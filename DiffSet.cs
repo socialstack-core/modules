@@ -1,0 +1,27 @@
+﻿using System.Collections.Generic;
+
+
+namespace Api.Translate
+{
+    /// <summary>
+    /// Represents a set of changes.
+    /// </summary>
+    public class DiffSet<T>
+    {
+        /// <summary>
+        /// A list of things that were added.
+        /// </summary>
+        public List<T> Added = new List<T>();
+
+        /// <summary>
+        /// A list of things that were removed.
+        /// </summary>
+        public List<T> Removed = new List<T>();
+
+        /// <summary>
+        /// A list of things that were changed.
+        /// </summary>
+        public List<T> Changed = new List<T>();
+    }
+
+}
