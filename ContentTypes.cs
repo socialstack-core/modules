@@ -1,0 +1,135 @@
+﻿using System;
+using System.Collections.Generic;
+using System.Data.Common;
+using System.Linq;
+using System.Reflection;
+using System.Threading.Tasks;
+
+
+namespace Api.Database
+{
+	/// <summary>
+	/// Types - which must inherit DatabaseRow - can be assigned a numeric ID.
+	/// This numeric ID - the ContentTypeId - is used in a variety of modules (reactions, comments, uploads etc)
+	/// to identify content being related to other content.
+	/// </summary>
+	public static class ContentTypes
+	{
+
+		static ContentTypes()
+		{
+			// Setup the reverse content type map:
+			Map = new Dictionary<string, int>();
+			TypeMap = new Dictionary<string, Type>();
+			ReverseMap = new Dictionary<int, string>();
+			
+			// Collect all the DatabaseRow classes:
+			var allTypes = typeof(ContentTypes).Assembly.DefinedTypes;
+
+			foreach (var typeInfo in allTypes)
+			{
+				// If it:
+				// - Is a class
+				// - Inherits DatabaseRow
+				// Then add to reverse map
+
+				if (!typeInfo.IsClass)
+				{
+					continue;
+				}
+
+				if (!typeInfo.IsSubclassOf(typeof(DatabaseRow)))
+				{
+					continue;
+				}
+
+				// Add now:
+				var name = typeInfo.Name.ToLower();
+				var id = GetId(name);
+				Map[name] = id;
+				TypeMap[name] = typeInfo;
+				ReverseMap[id] = name;
+			}
+		}
+
+		/// <summary>
+		/// A set of all available content types from lowercase name to ID. Use GetId rather than this directly.
+		/// </summary>
+		public static Dictionary<string, int> Map;
+
+		/// <summary>
+		/// A set of all available content types from lowercase name to the system type.
+		/// </summary>
+		public static Dictionary<string, Type> TypeMap;
+
+		/// <summary>
+		/// Reverse mapping from ID to type name.
+		/// Setup during DB service startup.
+		/// </summary>
+		public static Dictionary<int, string> ReverseMap;
+
+		/// <summary>
+		/// Gets a name from the given ID.
+		/// </summary>
+		/// <param name="id"></param>
+		/// <returns></returns>
+		public static string GetName(int id)
+		{
+			ReverseMap.TryGetValue(id, out string res);
+			return res;
+		}
+
+		/// <summary>
+		/// Gets a content type from its name. E.g. "Forum" -> typeof(Apis.Forums.Forum).
+		/// </summary>
+		/// <param name="name"></param>
+		/// <returns></returns>
+		public static Type GetType(string name)
+		{
+			TypeMap.TryGetValue(name, out Type result);
+			return result;
+		}
+
+		/// <summary>
+		/// Gets the ContentTypeId from the type name. Just a hash number function.
+		/// </summary>
+		/// <param name="typeName"></param>
+		/// <returns></returns>
+		public static int GetId(string typeName)
+		{
+			// Note: Caching this would be nice but isn't worthwhile
+			// because it _is_ the deterministic .NET hash function. If it was cached in a dictionary 
+			// you'd end up running this code anyway during the lookup!
+
+			typeName = typeName.ToLower();
+			
+			unchecked
+			{
+				int hash1 = (5381 << 16) + 5381;
+				int hash2 = hash1;
+
+				for (int i = 0; i < typeName.Length; i += 2)
+				{
+					hash1 = ((hash1 << 5) + hash1) ^ typeName[i];
+					if (i == typeName.Length - 1)
+						break;
+					hash2 = ((hash2 << 5) + hash2) ^ typeName[i + 1];
+				}
+
+				return hash1 + (hash2 * 1566083941);
+			}
+		}
+
+		/// <summary>
+		/// Gets the content ID for the given system type.
+		/// The type itself should be a DatabaseRow derivative - e.g. typeof(User).
+		/// </summary>
+		/// <param name="systemType"></param>
+		/// <returns></returns>
+		public static int GetId(Type systemType)
+		{
+			return GetId(systemType.Name);
+		}
+
+    }
+}
