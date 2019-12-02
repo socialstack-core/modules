@@ -37,6 +37,27 @@ namespace Api.Pages
 			updateQuery = Query.Update<Page>();
 			selectQuery = Query.Select<Page>();
 			listQuery = Query.List<Page>();
+
+			Task.Run(async () => {
+
+				var filter = new Filter();
+				filter.PageSize = 1;
+
+				var list = await _database.List(listQuery, filter);
+
+				if (list.Count == 0)
+				{
+					// No pages in the database - let's install the hello world page now:
+					await Create(new Context(), new Page() {
+
+						Url = "/",
+						BodyJson = "{\r\n\"content\": \"Welcome to your new SocialStack instance. This text comes from the pages table in your database in a format called canvas JSON - you can read more about this format in the documentation. \"\r\n}"
+
+					});
+				}
+
+			});
+			
 		}
 		
         /// <summary>
