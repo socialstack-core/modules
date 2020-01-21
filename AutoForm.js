@@ -4,6 +4,7 @@ import Canvas from 'UI/Canvas';
 import isNumeric from 'UI/Functions/IsNumeric';
 import getAutoForm from 'Admin/Functions/GetAutoForm';
 import webRequest from 'UI/Functions/WebRequest';
+import formatTime from "UI/Functions/FormatTime";
 
 /**
  * Used to automatically generate forms used by the admin area based on fields from your AutoForm declarations in the API.
@@ -89,7 +90,12 @@ export default class AutoForm extends React.Component {
 					if(isEdit && contentNode.data && contentNode.data.name){
 						var value = this.state.fieldData[contentNode.data.name];
 						if(value){
-							contentNode.data.defaultValue = value;
+							if(contentNode.data.name == "createdUtc"){
+								contentNode.data.defaultValue = formatTime(value);
+							}
+							else {
+								contentNode.data.defaultValue = value;
+							}
 						}
 					}
 				}}>
