@@ -73,7 +73,7 @@ export default class AutoForm extends React.Component {
 		}
 		
 		return (
-			<Form action={this.props.endpoint + "/" + (isEdit ? this.props.id : "")} onSuccess={
+			<Form autocomplete="off" action={this.props.endpoint + "/" + (isEdit ? this.props.id : "")} onSuccess={
 				response => {
 					if(!isEdit){
 						var state = global.pageRouter.state;
