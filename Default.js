@@ -1,9 +1,41 @@
 import NavMenu from 'UI/NavMenu';
 import MainMenu from 'Admin/MainMenu';
+import Landing from 'Admin/Pages/Landing';
+import LoginForm from 'Admin/LoginForm';
+import Tile from 'Admin/Tile';
+import Alert from 'UI/Alert';
 
 export default class Default extends React.Component{
 	
 	render(){
+		
+		if(global.app.state.loadingUser){
+			return <Landing>
+				Logging in..
+			</Landing>;
+		}
+		
+		var user = global.app.state.user;
+		
+		if(!user){
+			// Login page
+			return <Landing>
+				<Tile>
+					<LoginForm />
+				</Tile>
+			</Landing>;
+		}
+		
+		if(user.role !=2 && user.role !=1){
+			return <Landing>
+				<Tile>
+					<Alert>
+						Hi {user.firstName} - you'll need to ask an existing admin to grant you permission to login here.
+					</Alert>
+				</Tile>
+			</Landing>;
+		}
+		
 		return (
 			<div className="container-fluid h-100 pages-default">
 				<div className="row h-100">
