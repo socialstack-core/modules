@@ -1,0 +1,20 @@
+.landing{
+	.landing_page {
+		background: #2A3F54;
+	}
+
+	.landing_panel {
+		position: absolute;
+		top: 50%;
+		left: 50%;
+		width: 500px;
+		transform: translateX(-50%) translateY(-50%);
+	}
+
+	.fullsize{
+		width:100%;
+		height:100%;
+	}
+
+}
+
