@@ -1,0 +1,21 @@
+/*
+* Clones an object but omits certain keys.
+* Great for forwarding props - will also accept a prop spec.
+* For example
+* omit({a: 1, b: 2}, 'b') will return {a: 1}.
+* omit({a: 1, b: 2, c: 3}, ['b', 'c']) will return {a: 1}.
+*/
+export default function(object, keyOrKeys){
+	if(!object){
+		return object;
+	}
+	keyOrKeys = keyOrKeys instanceof Array ? keyOrKeys : [keyOrKeys];
+	var result = {};
+	for(var key in object){
+		if(keyOrKeys.indexOf(key) == -1){
+			// not excluded
+			result[key] = object[key];
+		}
+	}
+	return result;
+}
