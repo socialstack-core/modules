@@ -54,7 +54,35 @@ namespace Api.Permissions
 
 			return this;
 		}
-		
+
+		/// <summary>
+		/// Grants the given verbs unconditionally. Any capability that ends with this verb will be granted.
+		/// For example, GrantVerb("Load") will permit UserLoad, ForumReplyLoad etc.
+		/// </summary>
+		/// <param name="verbs"></param>
+		/// <returns></returns>
+		public Role GrantVerb(params string[] verbs)
+		{
+			for (var i = 0; i < verbs.Length; i++)
+			{
+				verbs[i] = "_" + verbs[i].ToLower();
+			}
+			
+			foreach (var kvp in Capabilities.All)
+			{
+				for (var i = 0; i < verbs.Length; i++)
+				{
+					if (kvp.Key.EndsWith(verbs[i]))
+					{
+						Grant(kvp.Key);
+						break;
+					}
+				}
+			}
+			
+			return this;
+		}
+
 		/// <summary>
 		/// Grants the given single capability conditionally. The chain must resolve to true to grant the capability.
 		/// Note that this is used via a .If() chain.
@@ -214,7 +242,19 @@ namespace Api.Permissions
 
             Roles.All[Id] = this;
         }
+		
+		/// <summary>Gets the raw grant rule for the given capability. This is readonly.</summary>
+		public FilterNode GetGrantRule(Capability capability)
+		{
+			if (capability.InternalId >= CapabilityLookup.Length)
+			{
+				// Nope!
+				return null;
+			}
 
+			return CapabilityLookup[capability.InternalId];
+		}
+		
 		/// <summary>
 		/// Is the given capability granted to this role? Don't use this directly - use ACapability.IsGranted instead.
 		/// </summary>

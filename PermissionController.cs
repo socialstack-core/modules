@@ -1,0 +1,98 @@
+﻿using System;
+using System.Collections.Generic;
+using System.Text;
+using System.Threading.Tasks;
+using Api.Permissions;
+using Api.Results;
+using Microsoft.AspNetCore.Mvc;
+
+
+namespace Api.Permissions
+{
+	/// <summary>
+	/// Handles an endpoint which describes the permissions on each role.
+	/// </summary>
+	
+	[Route("v1/permission")]
+	[ApiController]
+	public partial class PermissionController : ControllerBase
+    {
+		/// <summary>
+		/// Instanced automatically.
+		/// </summary>
+		public PermissionController(
+		)
+        {
+        }
+		
+		/// <summary>
+		/// GET /v1/permission/list
+		/// Returns meta about the list of available roles and their permission set.
+		/// </summary>
+		[HttpGet("list")]
+		public Set<PermissionMeta> List()
+		{
+			var results = new List<PermissionMeta>();
+			
+			// For each capability..
+			foreach(var capability in Capabilities.All){
+				
+				var meta = new PermissionMeta()
+				{
+					Key = capability.Key,
+					Description = "Generated capability",
+					Grants = new List<GrantMeta>()
+				};
+				
+				// For each role..
+				foreach(var role in Roles.All){
+					
+					// Got it set?
+					var rule = role.GetGrantRule(capability.Value);
+					
+					if(rule != null){
+						
+						var qry = new StringBuilder();
+
+						// Note that a blank rule description means it's always true.
+						// I.e. it's granted and there is no rule around when it is active.
+						rule.BuildQuery(qry, 0, false);
+						
+						meta.Grants.Add(new GrantMeta(){
+							Role = role,
+							RuleDescription = qry.ToString()
+						});
+					}
+					
+				}
+				
+				results.Add(meta);
+				
+			}
+			
+            return new Set<PermissionMeta>() {
+				Results = results,
+				Total = results.Count
+			};
+        }
+		
+    }
+	
+	public class GrantMeta
+	{
+		/// <summary>The filter description which describes the grant rule as it would appear as an SQL query.</summary>
+		public string RuleDescription;
+		/// <summary>The role that the grant is on.</summary>
+		public Role Role;
+	}
+	
+	public class PermissionMeta
+	{
+		public string Key;
+		public string Description;
+		
+		/// <summary>The list of roles which handle this permission in some way.</summary>
+		public List<GrantMeta> Grants;
+	}
+	
+}

@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Builder;
 using Microsoft.Extensions.DependencyInjection;
 using Api.Eventing;
 using Api.Contexts;
+using System.Threading.Tasks;
 
 namespace Api.Permissions
 {
@@ -24,8 +25,8 @@ namespace Api.Permissions
 
 			foreach (var permittedEvent in allPermittedEvents)
 			{
-				// Create a capability for this event type - e.g. "UserCreate". Creating it will automatically add it to the set.
-				var capability = new Capability(permittedEvent.EntityName + permittedEvent.Verb);
+				// Create a capability for this event type - e.g. UserCreate becomes a capability called "user_create". Creating it will automatically add it to the set.
+				var capability = new Capability(permittedEvent.EntityName + "_" + permittedEvent.Verb);
 
 				// Next, add an event handler at priority 1 (runs before others).
 				permittedEvent.AddEventListener((Context context, object[] args) =>
@@ -46,69 +47,86 @@ namespace Api.Permissions
 					return args != null && args.Length > 0 && role.IsGranted(capability, context, args) ? args[0] : null;
 				}, 1);
 			}
-
-			// Public - the role used by anonymous users.
-			Roles.Public = new Role(0)
-			{
-				Name = "Public",
-				Key = "public"
-			}
-			.GrantEverything();
-			/*
-			.Grant("UserCreate", "UserLogin", "UserPasswordForgot", "UserResetLoad", "CanvasLoad");
 			
-			// Public users can't see forum #1.
-			Public.If()
-				.Not().Id(typeof(Api.Forums.Forum), 1)
-				.ThenGrant("ForumLoad");
+			// Hook the default role setup. It's done like this so it can be removed by a plugin if wanted.
+			Events.RoleOnSetup.AddEventListener((Context context, object source) => {
+				
+				// Public - the role used by anonymous users.
+				Roles.Public = new Role(0)
+				{
+					Name = "Public",
+					Key = "public"
+				};
+				
+				// Super admin - can do everything.
+				// Note that you can grant everything and then revoke certain things if you want.
+				Roles.SuperAdmin = new Role(1)
+				{
+					Name = "Super Admin",
+					Key = "super_admin"
+				};
 
-			Public.Grant("AvailableEndpointList");
+				// Admin - can do almost everything. Usually everything super admin can do, minus system config options/ site level config.
+				Roles.Admin = new Role(2)
+				{
+					Name = "Admin",
+					Key = "admin"
+				}; // <-- In this case, we grant the same as SA.
 
-			// Public users can load forum replies if they can load the 
-			// forum they're in or they're the creator of the thread.
-			// The or is optional but permits a Nordic setup where private tickets are in a private forum
-			// but as they're raised by a particular person, are viewable by them.
-			Public.If()
-				.Not().Equals(typeof(ForumReplies.Reply), "ForumId", 1)
-				.Or()
-				.IsSelf(typeof(ForumReplies.Reply), "ThreadCreatorId")
-				.Or()
-				.IsSelf(typeof(ForumReplies.Reply), "UserId")
-				.ThenGrant("ForumReplyLoad");
-			*/
+				// Guest - account created, not activated. Basically the same as a public account by default.
+				Roles.Guest = new Role(3)
+				{
+					Name = "Guest",
+					Key = "guest"
+				}; // <-- In this case, we grant the same as public.
 
-			// Super admin - can do everything.
-			// Note that you can grant everything and then revoke certain things if you want.
-			Roles.SuperAdmin = new Role(1)
-            {
-                Name = "Super Admin",
-                Key = "super_admin"
-            }
-            .GrantEverything();
+				// Member - created and (optionally) activated.
+				Roles.Member = new Role(4)
+				{
+					Name = "Member",
+					Key = "member"
+				};
+				
+				return Task.FromResult(source);
+			}, 9);
+			
+			// Hook the default role setup. It's done like this so it can be removed by a plugin if wanted.
+			Events.CapabilityOnSetup.AddEventListener((Context context, object source) => {
 
-			// Admin - can do almost everything. Usually everything super admin can do, minus system config options/ site level config.
-			Roles.Admin = new Role(2)
-            {
-                Name = "Admin",
-                Key = "admin"
-            }
-            .GrantTheSameAs(Roles.SuperAdmin); // <-- In this case, we grant the same as SA.
+				// Public - the role used by anonymous users.
+				Roles.Public.GrantVerb("load").GrantVerb("list")
+					.Revoke("user_load").Revoke("user_list")
+					.Grant("user_create");
+				
+				// Super admin - can do everything.
+				// Note that you can grant everything and then revoke certain things if you want.
+				Roles.SuperAdmin.GrantEverything();
 
-			// Guest - account created, not activated. Basically the same as a public account.
-			Roles.Guest = new Role(3)
-            {
-                Name = "Guest",
-                Key = "guest"
-            }
-            .GrantTheSameAs(Roles.Public); // <-- In this case, we grant the same as public.
+				// Admin - can do almost everything. Usually everything super admin can do, minus system config options/ site level config.
+				Roles.Admin.GrantTheSameAs(Roles.SuperAdmin); // <-- In this case, we grant the same as SA.
 
-			// Member - created and (optionally) activated.
-			Roles.Member = new Role(4)
+				// Guest - account created, not activated. Basically the same as a public account by default.
+				Roles.Guest.GrantTheSameAs(Roles.Public); // <-- In this case, we grant the same as public.
+
+				// Member - created and (optionally) activated.
+				Roles.Member.GrantTheSameAs(Roles.Guest);
+
+				Roles.Member.If().IsSelf().ThenGrant("user_update");
+
+				return Task.FromResult(source);
+			}, 9);
+
+			Task.Run(async () =>
 			{
-				Name = "Member",
-				Key = "member"
-			}
-			.GrantTheSameAs(Roles.Guest);
+
+				// Trigger RoleSetup:
+				await Events.RoleOnSetup.Dispatch(null, null);
+
+				// Trigger capability setup:
+				await Events.CapabilityOnSetup.Dispatch(null, null);
+			
+				// We'll wait for this one as it's important it is setup before the API starts:
+			}).Wait();
 		}
 
 	}
