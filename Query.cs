@@ -476,11 +476,11 @@ namespace Api.Database
 			
 			if (filter != null)
 			{
-				filter.BuildFullQuery(str, paramOffset);
+				filter.BuildFullQuery(str, paramOffset, Operation == DELETE);
 			}
 			else if (_where != null)
 			{
-				_where.BuildFullQuery(str, paramOffset);
+				_where.BuildFullQuery(str, paramOffset, Operation == DELETE);
 			}
 			
 			var result = str.ToString();

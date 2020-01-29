@@ -1,16 +1,15 @@
-using System;
-using System.Text;
+﻿using System.Text;
 using Api.Contexts;
-
+using Api.Database;
 
 namespace Api.Permissions
 {
-
-	/// <summary>
-	/// A filter node which just always returns true.
-	/// </summary>
-	public partial class FilterTrue : FilterNode
-	{
+    /// <summary>
+    /// A filter method which does sorting by a field either 
+    /// ascending (default) or decsending.
+    /// </summary>
+    public partial class FilterSort : FilterNode
+    {
 		/// <summary>
 		/// Builds this filter node as a query string, writing it into the given string builder.
 		/// If a variable is outputted then a value reader is pushed in the given arg set.
@@ -20,8 +19,19 @@ namespace Api.Permissions
 		/// <param name="useTableNames">True if table names should be used instead of type names.</param>
 		public override void BuildQuery(StringBuilder builder, int paramOffset, bool useTableNames)
 		{
-			// Explicitly do nothing
-		}
-	}
-
+			builder.Append('`');
+			if (useTableNames)
+			{
+				builder.Append(Type.TableName());
+			}
+			else
+			{
+				builder.Append(Type.Name);
+			}
+			builder.Append("`.`");
+			builder.Append(Field);
+			builder.Append("` ");
+			builder.Append(SortDirection);
+        }
+    }
 }

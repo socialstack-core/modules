@@ -19,10 +19,18 @@ namespace Api.Permissions
 		/// </summary>
 		/// <param name="builder"></param>
 		/// <param name="paramOffset">A number to add to all emitted parameter @ refs.</param>
-		public override void BuildQuery(StringBuilder builder, int paramOffset)
+		/// <param name="useTableNames">True if table names should be used instead of type names.</param>
+		public override void BuildQuery(StringBuilder builder, int paramOffset, bool useTableNames)
 		{
 			builder.Append('`');
-			builder.Append(Type.Name);
+			if (useTableNames)
+			{
+				builder.Append(Type.TableName());
+			}
+			else
+			{
+				builder.Append(Type.Name);
+			}
 			builder.Append("`.`");
 			builder.Append(Field);
 			builder.Append("` IN (");

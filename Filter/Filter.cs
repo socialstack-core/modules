@@ -18,10 +18,11 @@ namespace Api.Permissions
 		/// <param name="builder"></param>
 		/// <returns></returns>
 		/// <param name="paramOffset">A number to add to all emitted parameter @ refs.</param>
-		public void BuildQuery(StringBuilder builder, int paramOffset)
+		/// <param name="useTableNames">True if table names should be used instead of type names.</param>
+		public void BuildQuery(StringBuilder builder, int paramOffset, bool useTableNames)
 		{
 			var whereRoot = Construct();
-			whereRoot.BuildQuery(builder, paramOffset);
+			whereRoot.BuildQuery(builder, paramOffset, useTableNames);
 		}
 
 		/// <summary>
@@ -29,24 +30,37 @@ namespace Api.Permissions
 		/// </summary>
 		/// <param name="str"></param>
 		/// <param name="paramOffset">A number to add to all emitted parameter @ refs.</param>
-		public void BuildFullQuery(StringBuilder str, int paramOffset)
+		/// <param name="useTableNames">True if table names should be used instead of type names.</param>
+		public void BuildFullQuery(StringBuilder str, int paramOffset, bool useTableNames)
 		{
 			if (Joins != null)
 			{
 				for (var i = 0; i < Joins.Count; i++)
 				{
-					Joins[i].BuildQuery(str, paramOffset);
+					Joins[i].BuildQuery(str, paramOffset, useTableNames);
 				}
 			}
+
+
 
 			if (HasContent)
 			{
 				str.Append(" WHERE ");
 				var whereRoot = Construct();
-				whereRoot.BuildQuery(str, paramOffset);
+				whereRoot.BuildQuery(str, paramOffset, useTableNames);
 			}
 
-			if (PageSize != 0)
+            if (Sorts != null)
+            {
+                str.Append(" ORDER BY ");
+                for (var i = 0; i < Sorts.Count; i++)
+                {
+                    Sorts[i].BuildQuery(str, paramOffset, useTableNames);
+                }
+
+            }
+
+            if (PageSize != 0)
 			{
 				str.Append(" LIMIT ");
 				str.Append(PageIndex * PageSize);
