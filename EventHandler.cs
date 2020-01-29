@@ -14,15 +14,13 @@ namespace Api.ErrorLogging
 {
 
 	/// <summary>
-	/// Event handlers are instanced automatically and form a major part of the pluggable architecture.
-	/// Modules can define events via simply extending the Events class.
-	/// Handlers are also heaviest on add - they're designed to maximise repeat run performance - so avoid rapidly adding and removing them.
-	/// Instead add one handler at startup and then do a check inside it to see if it should run or not.
+	/// Instanced automatically at startup.
 	/// </summary>
-	public partial class EventHandler
+	[EventListener]
+	public partial class Init
 	{
 		
-		public EventHandler()
+		public Init()
 		{
 			EntryPoint.OnConfigureHost += OnConfigureHost;
 			WebServerStartupInfo.OnConfigure += OnConfigure;
