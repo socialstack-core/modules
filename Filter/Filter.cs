@@ -83,13 +83,32 @@ namespace Api.Permissions
 				// Default page size used
 				SetPage(pageIndex.Value);
 			}
+
+			var sort = fromRequest["sort"] as JObject;
+			if (sort != null)
+			{
+				if (sort["field"] != null)
+				{
+					string field = sort["field"].ToString();
+
+					if (sort["direction"] != null && sort["direction"].ToString() == "desc")
+					{
+						Sort(field, "desc");
+					}
+					else
+					{
+						Sort(field, "asc");
+					}
+				}
+			}
+
 			var where = fromRequest["where"] as JObject;
 
 			if (where == null) {
 				return;
 			}
-
-			foreach (var kvp in where)
+			
+            foreach (var kvp in where)
 			{
 				// Default type:
 				var type = defaultType;
@@ -158,11 +177,16 @@ namespace Api.Permissions
 		/// </summary>
 		public List<FilterJoin> Joins = null;
 
-		/// <summary>
-		/// Used only by Construct() methods. Its purpose is to essentially construct the params for the Or()/ And()/ Not() etc nodes.
-		/// </summary>
-		/// <returns></returns>
-		public FilterNode PopConstructed()
+        /// <summary>
+        /// Any sorts in this filter.
+        /// </summary>
+        public List<FilterSort> Sorts = null;
+
+        /// <summary>
+        /// Used only by Construct() methods. Its purpose is to essentially construct the params for the Or()/ And()/ Not() etc nodes.
+        /// </summary>
+        /// <returns></returns>
+        public FilterNode PopConstructed()
 		{
 			var pop = Nodes[CurrentStackTop++];
 			return pop.Construct(this);
