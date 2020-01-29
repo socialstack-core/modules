@@ -34,13 +34,13 @@ namespace Api.BlogPosts
 		/// <summary>
 		/// The feature image ref. See also: "Upload.Ref" in the Uploads module.
 		/// </summary>
-		[DatabaseField(Length = 80)]
+		[DatabaseField(Length = 200)]
 		public string FeatureRef;
 
 		/// <summary>
 		/// The icon ref. See also: "Upload.Ref" in the Uploads module.
 		/// </summary>
-		[DatabaseField(Length = 80)]
+		[DatabaseField(Length = 200)]
 		public string IconRef;
 
         /// <summary>
