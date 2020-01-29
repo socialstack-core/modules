@@ -49,7 +49,7 @@ namespace Api.Articles
 		/// Deletes an article
 		/// </summary>
 		[HttpDelete("{id}")]
-		public async Task<Success> Delete([FromRoute] int id)
+		public async Task<Article> Delete([FromRoute] int id)
 		{
 			var context = Request.GetContext();
 			var result = await _articles.Get(context, id);
@@ -61,7 +61,7 @@ namespace Api.Articles
 				return null;
 			}
 			
-			return new Success();
+			return result;
 		}
 
 		/// <summary>
