@@ -49,7 +49,7 @@ namespace Api.Categories
 		/// Deletes an category
 		/// </summary>
 		[HttpDelete("{id}")]
-		public async Task<Success> Delete([FromRoute] int id)
+		public async Task<Category> Delete([FromRoute] int id)
 		{
 			var context = Request.GetContext();
 			var result = await _categories.Get(context, id);
@@ -61,7 +61,7 @@ namespace Api.Categories
 				return null;
 			}
 
-			return new Success();
+			return result;
 		}
 
 		/// <summary>
