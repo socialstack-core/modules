@@ -48,7 +48,7 @@ namespace Api.BlogPosts
 		/// Deletes a blogPost
 		/// </summary>
 		[HttpDelete("{id}")]
-		public async Task<Success> Delete([FromRoute] int id)
+		public async Task<BlogPost> Delete([FromRoute] int id)
 		{
 			var context = Request.GetContext();
 			var result = await _blogPosts.Get(context, id);
@@ -60,7 +60,7 @@ namespace Api.BlogPosts
 				return null;
 			}
 
-			return new Success();
+			return result;
 		}
 
 		/// <summary>
