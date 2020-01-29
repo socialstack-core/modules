@@ -182,10 +182,10 @@ namespace Api.Users
 
 		/// <summary>
 		/// DELETE /v1/user/2/
-		/// Deletes a user user
+		/// Deletes a user
 		/// </summary>
 		[HttpDelete("{id}")]
-		public async Task<Success> Delete([FromRoute] int id)
+		public async Task<User> Delete([FromRoute] int id)
 		{
 			var context = Request.GetContext();
 			var result = await _users.Get(context, id);
@@ -197,7 +197,7 @@ namespace Api.Users
 				return null;
 			}
 
-			return new Success();
+			return result;
 		}
 
 		/// <summary>
@@ -246,6 +246,11 @@ namespace Api.Users
 						Expires = result.Expiry
 					}
 				);
+			}
+			else
+			{
+				Response.StatusCode = 400;
+				return null;
 			}
 
 			#warning todo
