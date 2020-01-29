@@ -1,10 +1,10 @@
 ﻿using System.IO;
 using System.Net;
-using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Api.Configuration;
 using System;
 using Microsoft.AspNetCore.Server.Kestrel.Core;
+using Microsoft.Extensions.Logging;
 
 namespace Api.Startup
 {
@@ -20,6 +20,11 @@ namespace Api.Startup
 		/// </summary>
 		public static event Action<KestrelServerOptions> OnConfigureKestrel;
 
+		/// <summary>
+		/// Event which fires during the configuration of the web builder.
+		/// </summary>
+		public static event Action<IWebHostBuilder> OnConfigureHost;
+		
 		/// <summary>
 		/// The main entry point for your project's API.
 		/// </summary>
@@ -52,7 +57,7 @@ namespace Api.Startup
 				Activator.CreateInstance(typeInfo);
 			}
 
-			// Fire off initial OnStart handle:
+			// Fire off initial OnStart handlers:
 			Api.Eventing.Events.TriggerStart();
 
 			// Ok - modules have now connected any core events or have performed early startup functionality.
@@ -70,12 +75,16 @@ namespace Api.Startup
 					// Fire event so modules can also configure Kestrel:
 					OnConfigureKestrel?.Invoke(options);
 
-                })
-                .UseContentRoot(Directory.GetCurrentDirectory())
+                });
+			
+			// Fire event so modules can also configure the host builder:
+			OnConfigureHost?.Invoke(host);
+			
+			var builtHost = host.UseContentRoot(Directory.GetCurrentDirectory())
                 .UseStartup<WebServerStartupInfo>()
                 .Build();
 
-            host.Run();
+            builtHost.Run();
         }
     }
 	

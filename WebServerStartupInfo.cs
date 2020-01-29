@@ -22,6 +22,11 @@ namespace Api.Startup
 		public static event Action<IServiceCollection> OnConfigureServices;
 
 		/// <summary>
+		/// An event which fires when Configure occurs.
+		/// </summary>
+		public static event Action<IApplicationBuilder, IHostingEnvironment, ILoggerFactory, IServiceProvider, IApplicationLifetime> OnConfigure;
+
+		/// <summary>
 		/// An event which fires when the application is being configured.
 		/// </summary>
 		public static event Action<IApplicationBuilder> OnConfigureApplication;
@@ -94,6 +99,11 @@ namespace Api.Startup
 
 				_serviceTypes.Add(interfaceType);
 			}
+		
+			services.AddCors(c =>  
+			{  
+				c.AddPolicy("AllowOrigin", options => options.AllowAnyOrigin());  
+			});  
 			
 			// Run the first event (IEventListener implementors can use).
 			OnConfigureServices?.Invoke(services);
@@ -107,8 +117,12 @@ namespace Api.Startup
 				IApplicationBuilder app, IHostingEnvironment env, 
 				ILoggerFactory loggerFactory, IServiceProvider serviceProvider, IApplicationLifetime applicationLifetime)
 		{
-			// Set the service provider:
-			Services.Provider = serviceProvider;
+			OnConfigure?.Invoke(app, env, loggerFactory, serviceProvider, applicationLifetime);
+			
+            // Set the service provider:
+            Services.Provider = serviceProvider;
+
+            app.UseCors(options => options.AllowAnyOrigin());  
 			
 			app.UseForwardedHeaders(new ForwardedHeadersOptions
             {
@@ -124,8 +138,8 @@ namespace Api.Startup
 			
             app.UseMvc();
 			
-			// Next, we get *all* services so they are all instanced.
-			foreach (var serviceInterfaceType in _serviceTypes)
+            // Next, we get *all* services so they are all instanced.
+            foreach (var serviceInterfaceType in _serviceTypes)
 			{
 				var svc = serviceProvider.GetService(serviceInterfaceType);
 				Services.All[serviceInterfaceType] = svc;
