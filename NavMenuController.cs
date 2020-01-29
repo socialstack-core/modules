@@ -75,7 +75,7 @@ namespace Api.NavMenus
 		/// Deletes a navmenu
 		/// </summary>
 		[HttpDelete("{id}")]
-		public async Task<Success> Delete([FromRoute] int id)
+		public async Task<NavMenu> Delete([FromRoute] int id)
 		{
 			var context = Request.GetContext();
 			var result = await _navMenus.Get(context, id);
@@ -87,7 +87,7 @@ namespace Api.NavMenus
 				return null;
 			}
 
-			return new Success();
+			return result;
 		}
 
 		/// <summary>
