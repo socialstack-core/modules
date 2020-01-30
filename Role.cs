@@ -209,7 +209,7 @@ namespace Api.Permissions
 
 			for (var i = 0; i < copyFrom.CapabilityLookup.Length; i++)
 			{
-				var node = CapabilityLookup[i];
+				var node = copyFrom.CapabilityLookup[i];
 
 				if (node == null)
 				{

@@ -30,7 +30,7 @@ namespace Api.Permissions
 		/// Returns meta about the list of available roles and their permission set.
 		/// </summary>
 		[HttpGet("list")]
-		public Set<PermissionMeta> List()
+		public PermissionInformation List()
 		{
 			var results = new List<PermissionMeta>();
 			
@@ -70,13 +70,20 @@ namespace Api.Permissions
 				
 			}
 			
-            return new Set<PermissionMeta>() {
-				Results = results,
-				Total = results.Count
+            return new PermissionInformation() {
+				Capabilities = results,
+				Roles = Roles.All
 			};
         }
 		
     }
+	
+	public class PermissionInformation{
+		
+		public List<PermissionMeta> Capabilities;
+		public Role[] Roles;
+		
+	}
 	
 	public class GrantMeta
 	{
