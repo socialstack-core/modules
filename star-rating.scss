@@ -1,0 +1,37 @@
+.star-rating-compact, .star-rating{
+	
+	.star-unrated{
+		color: lightgrey;
+	}
+	
+	.star{
+		color: #f4cc56;
+	}
+	
+	.rating-average{
+		margin-left: 10px;
+	}
+	
+}
+
+.star-rating{
+	display: inline-block;
+	
+	.star-rating-container{
+		position: relative;
+		display: inline-block;
+		
+		.rated{
+			white-space: nowrap;
+			position: absolute;
+			top: 0;
+			left: 0;
+			overflow: hidden;
+		}
+		
+	}
+	
+	.rating-counter{
+		margin-left: 10px;
+	}
+}
