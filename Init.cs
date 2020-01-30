@@ -43,8 +43,20 @@ namespace Api.Permissions
 						Console.WriteLine("Warning: User ID " + context.UserId + " has no role (or the role with that ID hasn't been instanced).");
 						return null;
 					}
-					
-					return args != null && args.Length > 0 && role.IsGranted(capability, context, args) ? args[0] : null;
+
+					if (args == null || args.Length == 0)
+					{
+						// No args anyway
+						return null;
+					}
+
+					if (role.IsGranted(capability, context, args))
+					{
+						// It's granted - return the first arg:
+						return args[0];
+					}
+
+					return null;
 				}, 1);
 			}
 			
