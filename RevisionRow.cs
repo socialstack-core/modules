@@ -46,9 +46,9 @@ namespace Api.Users
 		/// <summary>
 		/// This is only set if you have a revision object of the content. This is always null for the latest content (what you'll have most of the time).
 		/// </summary>
-		public int RevisionId{
+		public int? RevisionId{
 			get {
-				return RevisionId;
+				return _RevisionId;
 			}
 		}
 
