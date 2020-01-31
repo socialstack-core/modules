@@ -1,5 +1,6 @@
 import submitForm from 'UI/Functions/SubmitForm';
 import mapUrl from 'UI/Functions/MapUrl';
+import omit from 'UI/Functions/Omit';
 
 /**
  * Wraps <form> in order to automatically manage setting up default values.
@@ -23,9 +24,7 @@ export default class Form extends React.Component {
 				})}
 				action={mapUrl(this.props.action)}
 				method={this.props.method || "post"}
-				className={this.props.className}
-				id={this.props.id}
-				name={this.props.name}
+				{...(omit(this.props, ['action', 'method', 'onSuccess', 'onFailed', 'onValues', 'children']))}
 			>
 				{this.props.children}
 			</form>
