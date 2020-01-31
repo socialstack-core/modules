@@ -1,4 +1,5 @@
 import PageRouter from 'UI/PageRouter';
+import webRequest from 'UI/Functions/WebRequest';
 
 /**
  * The root component. It stores state for us, such as the currently logged in user.
@@ -11,9 +12,19 @@ export default class App extends React.Component{
 		super(props);
 		this.state = {
 			user: null,
-			url: window.location.pathname
+			url: window.location.pathname,
+			loadingUser: true
 		};
 		global.app = this;
+		
+		webRequest('user/self').then(response => {
+			if(response && response.json && response.json.id){
+				global.app.setState({user: response.json, realUser: response.json, loadingUser: false});
+			}
+		}).catch(e=>{
+			// Not logged in
+			global.app.setState({user: null, realUser: null, loadingUser: false});
+		});
 	}
 	
 	render(){
