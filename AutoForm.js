@@ -73,7 +73,7 @@ export default class AutoForm extends React.Component {
 		}
 		
 		return (
-			<Form autocomplete="off" action={this.props.endpoint + "/" + (isEdit ? this.props.id : "")} onSuccess={
+			<Form autoComplete="off" action={this.props.endpoint + "/" + (isEdit ? this.props.id : "")} onSuccess={
 				response => {
 					if(!isEdit){
 						var state = global.pageRouter.state;
@@ -88,6 +88,7 @@ export default class AutoForm extends React.Component {
 			}>
 				<Canvas onContentNode={contentNode => {
 					if(isEdit && contentNode.data && contentNode.data.name){
+						contentNode.data.autoComplete = 'off';
 						var value = this.state.fieldData[contentNode.data.name];
 						if(value){
 							if(contentNode.data.name == "createdUtc"){
@@ -96,6 +97,7 @@ export default class AutoForm extends React.Component {
 							else {
 								contentNode.data.defaultValue = value;
 							}
+							contentNode.data.value = contentNode.data.defaultValue;
 						}
 					}
 				}}>
