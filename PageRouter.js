@@ -22,17 +22,6 @@ export default class PageRouter extends React.Component{
 			tokens: {} // Stores e.g. :id. Never null.
 		};
 		global.pageRouter = this;
-	
-		var pages = {};
-		if(!preloadedPages){
-			//console.log(this.props.url);
-			this.makeRequest();
-		} 
-		else {
-			this.pages(preloadedPages.results, true);
-		}
-
-		
 	}
 
 	makeRequest(){
@@ -104,11 +93,7 @@ export default class PageRouter extends React.Component{
 		
 		var pageInfo = this.getPageRedirected(rootPage, idMap, this.props.url);
 		
-		console.log("pageInfo url " + pageInfo.page.url );
-		console.log("props url " + this.props.url);
-		
 		if(isCached && pageInfo.page.url == "" && !(this.props.url == "/" || this.props.url.endsWith("mobile.html"))){
-			console.log("not in cache!");
 			this.makeRequest();
 		}
 		else{
@@ -158,6 +143,14 @@ export default class PageRouter extends React.Component{
 				cur = cur.parentNode;
 			}
 		});
+		
+		if(!preloadedPages){
+			//console.log(this.props.url);
+			this.makeRequest();
+		} 
+		else {
+			this.pages(preloadedPages.results, true);
+		}
 	}
 	
 	componentWillReceiveProps(props){
