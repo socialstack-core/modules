@@ -10,18 +10,17 @@ class Canvas extends React.Component {
 		super(props);
 
 		this.state = {
+			content: this.loadJson(props)
 		};
-		
-		this.loadJson(props);
 	}
 	
 	componentWillReceiveProps(props){
-		this.loadJson(props);
+		this.setState({content: this.loadJson(props)});
 	}
 	
 	loadJson(props, set){
 		var content;
-		var dataSource = props.bodyJson || props.children[0];
+		var dataSource = props.bodyJson || props.children;
 		
 		if(typeof dataSource == 'string'){
 			try{
@@ -38,7 +37,7 @@ class Canvas extends React.Component {
 			content = this.expand(content);
 		}
 		
-		this.setState({content});
+		return content;
 	}
 	
 	expand(contentNode){
