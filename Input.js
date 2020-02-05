@@ -1,7 +1,9 @@
 var id = 1;
 
 import tinymce from 'UI/TinyMce';
+import CanvasEditor from 'UI/CanvasEditor';
 import getModule from 'UI/Functions/GetModule';
+import omit from 'UI/Functions/Omit';
 
 
 /**
@@ -15,9 +17,11 @@ export default class Input extends React.Component {
 	
 	constructor(props){
 		super(props);
+		this.state={};
 		this.editor = null;
 		this.newId();
 		this.onChange=this.onChange.bind(this);
+		this.onSelectChange=this.onSelectChange.bind(this);
 	}
 	
 	newId(){
@@ -32,20 +36,6 @@ export default class Input extends React.Component {
 	
 	componentWillReceiveProps(props){
 		this.newId();
-	}
-	
-	componentDidMount(){
-		if(!this.element){
-			return;
-		}
-		tinymce.init({target:this.element, setup: editor => {
-			
-			this.editor = editor;
-			editor.on('change', function () {
-				tinymce.triggerSave();
-			});
-			
-		}})
 	}
 	
 	componentWillUnmount(){
@@ -80,6 +70,17 @@ export default class Input extends React.Component {
 	}
 	
 	onChange(e) {
+		this.props.onChange && this.props.onChange(e);
+		if(e.defaultPrevented){
+			return;
+		}
+		
+		// Validation check
+		this.revalidate(e);
+	}
+	
+	onSelectChange(e) {
+		this.setState({selectValue: e.target.value});
 		this.props.onChange && this.props.onChange(e);
 		if(e.defaultPrevented){
 			return;
@@ -141,33 +142,48 @@ export default class Input extends React.Component {
 		}
 	}
 	
+	mountEditor(e) {
+		this.element = e;
+		setTimeout(function(){
+			
+			tinymce.init({target:e, setup: editor => {
+				
+				this.editor = editor;
+				editor.on('change', function () {
+					tinymce.triggerSave();
+				});
+				
+			}});
+			
+		}, 50);
+	}
+	
 	renderInput() {
 		
 		const {type} = this.props;
 		
 		if(type == "select"){
 			
-			if(this.props.value){
-				return (<select
-						value={this.props.defaultValue} onChange={this.onChange} id={this.props.id || this.fieldId} name={this.props.name} className={this.props.className || "form-control"}>
+			return (
+				<select
+					onChange={this.onSelectChange}
+					value={typeof this.state.selectValue === 'undefined' ? this.props.defaultValue : this.state.selectValue}
+					id={this.props.id || this.fieldId}
+					className={this.props.className || "form-control"}
+					{...omit(this.props, ['id', 'className', 'onChange', 'type', 'children', 'defaultValue', 'value'])}
+				>
 					{this.props.children}
-				</select>);
-			}else{
-				return (<select
-						value={this.props.defaultValue} onChange={this.onChange} id={this.props.id || this.fieldId} name={this.props.name} className={this.props.className || "form-control"}>
-					{this.props.children}
-				</select>);
-			}
+				</select>
+			);
 			
 		}else if(type == "textarea"){
 			
 			return (
 				<textarea 
-					defaultValue={this.props.defaultValue}
 					onChange={this.onChange} 
 					id={this.props.id || this.fieldId} 
-					name={this.props.name} 
 					className={this.props.className || "form-control"}
+					{...omit(this.props, ['id', 'className', 'onChange', 'type'])}
 				/>
 			);
 		
@@ -175,69 +191,45 @@ export default class Input extends React.Component {
 			
 			return (
 				<textarea 
-					defaultValue={this.props.defaultValue}
+					ref={e=>this.mountEditor(e)}
 					onChange={this.onChange} 
-					// ref={e=>this.element = e}
 					id={this.props.id || this.fieldId} 
-					name={this.props.name} 
 					className={this.props.className || "form-control"}
+					{...omit(this.props, ['id', 'className', 'onChange', 'type'])}
 				/>
 			);
 		
 		}else if(type == "canvas"){
 			
 			return (
-				<textarea 
-					defaultValue={this.props.defaultValue}
-					onChange={this.onChange} 
-					// ref={e=>this.element = e}
-					id={this.props.id || this.fieldId} 
-					name={this.props.name} 
+				<CanvasEditor 
+					id={this.props.id || this.fieldId}
 					className={this.props.className || "form-control"}
+					{...omit(this.props, ['id', 'className', 'type'])}
 				/>
 			);
-		
+			
 		}else if(type == "submit"){
 			
 			return (
 				<button  
 					className={this.props.className || "btn btn-primary"}
 					type={type} 
-					onClick = {this.props.onClick}
+					{...omit(this.props, ['className', 'type', 'label', 'children'])}
 				>
 					{this.props.label || this.props.children || "Submit"}
 				</button>
 			);
-		
-		}else if(this.props.value){
-			return (
-				<input 
-					defaultValue={this.props.defaultValue}
-					id={this.props.id || this.fieldId} 
-					name={this.props.name} 
-					className={this.props.className || "form-control"}
-					aria-describedby={this.helpFieldId} 
-					type={type} 
-					placeholder={this.props.placeholder}
-					onChange={this.onChange}
-					disabled = {this.props.disabled}
-					value = {this.props.value}
-					hidden = {this.props.hidden}
-				/>
-			);
+			
 		}else{
 			return (
 				<input 
-					defaultValue={this.props.defaultValue}
 					id={this.props.id || this.fieldId} 
-					name={this.props.name} 
 					className={this.props.className || "form-control"}
 					aria-describedby={this.helpFieldId} 
 					type={type} 
-					placeholder={this.props.placeholder}
 					onChange={this.onChange}
-					disabled = {this.props.disabled}
-					hidden = {this.props.hidden}
+					{...omit(this.props, ['id', 'className', 'onChange', 'type'])}
 				/>
 			);
 		}
