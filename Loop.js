@@ -19,7 +19,6 @@ export default class Loop extends React.Component {
 			errored: false
 		};
 		
-		this.load(props);
 		this.onLiveMessage = this.onLiveMessage.bind(this);
 		this.onContentChange = this.onContentChange.bind(this);
 	}
@@ -112,6 +111,8 @@ export default class Loop extends React.Component {
 		
 		// contentchange is fired off by posting to API endpoints which then return an entity (object with both id and type fields).
 		document.addEventListener("contentchange", this.onContentChange);
+		
+		this.load(this.props);
 	}
 	
 	componentWillUnmount(){
@@ -231,7 +232,7 @@ export default class Loop extends React.Component {
 			results = newResults;
 		}
 		
-		var renderFunc = this.props.children[0];
+		var renderFunc = this.props.children;
 		
 		if(this.props.inline){
 			return (
