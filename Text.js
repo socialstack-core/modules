@@ -11,14 +11,11 @@ export default class Text extends React.Component {
     constructor(props) {
         super(props);
         this.state = { translation: '' };
-		this.reload(props);
+		var trans = props.children; // translations.get(props.children, props.group, props.replace);
+		this.state.translation = trans;
     }
 	
 	componentWillReceiveProps(props){
-		this.reload(props);
-	}
-	
-	reload(props){
 		var trans = props.children; // translations.get(props.children, props.group, props.replace);
 		this.setState({translation: trans});
 	}
