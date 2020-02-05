@@ -114,7 +114,6 @@ export default class AutoForm extends React.Component {
 							else {
 								contentNode.data.defaultValue = value;
 							}
-							contentNode.data.value = contentNode.data.defaultValue;
 						}
 					}
 				}}>
