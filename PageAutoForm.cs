@@ -15,6 +15,11 @@ namespace Api.Pages
 		public string Url;
 
 		/// <summary>
+		/// The default title for this page.
+		/// </summary>
+		public string Title;
+		
+		/// <summary>
 		/// Page canvas JSON. The raw structure of the page. Will often directly inherit some universal canvas.
 		/// </summary>
 		public string BodyJson;

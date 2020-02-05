@@ -16,6 +16,11 @@ namespace Api.Pages
 		public string Url;
 		
 		/// <summary>
+		/// The default title for this page.
+		/// </summary>
+		public string Title;
+		
+		/// <summary>
 		/// The pages content (as canvas JSON).
 		/// </summary>
 		public string BodyJson;
