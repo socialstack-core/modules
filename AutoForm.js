@@ -16,13 +16,15 @@ export default class AutoForm extends React.Component {
 	constructor(props){
 		super(props);
 		
-		this.state = {};
-		
-		this.load(props);
+		this.state = {submitting: false};
 	}
 	
 	componentWillReceiveProps(props){
 		this.load(props);
+	}
+	
+	componentDidMount(){
+		this.load(this.props);
 	}
 	
 	load(props){
@@ -73,9 +75,23 @@ export default class AutoForm extends React.Component {
 		}
 		
 		return (
-			<Form autoComplete="off" action={this.props.endpoint + "/" + (isEdit ? this.props.id : "")} onSuccess={
+			<Form autoComplete="off" action={this.props.endpoint + "/" + (isEdit ? this.props.id : "")}
+			onValues={values => {
+				this.setState({editSuccess: false, submitting: true});
+				return values;
+			}}
+			
+			onFailure={
 				response => {
-					if(!isEdit){
+					this.setState({editFailure: true, submitting: false});
+				}
+			}
+			
+			onSuccess={
+				response => {
+					if(isEdit){
+						this.setState({editSuccess: true, submitting: false});
+					}else{
 						var state = global.pageRouter.state;
 						if(state && state.page && state.page.url){
 							var parts = state.page.url.split('/');
@@ -85,7 +101,8 @@ export default class AutoForm extends React.Component {
 						}
 					}
 				}
-			}>
+			}
+			>
 				<Canvas onContentNode={contentNode => {
 					if(isEdit && contentNode.data && contentNode.data.name){
 						contentNode.data.autoComplete = 'off';
@@ -103,7 +120,21 @@ export default class AutoForm extends React.Component {
 				}}>
 					{this.state.fields}
 				</Canvas>
-				<Input type="submit">{isEdit ? "Save Changes" : "Create"}</Input>
+				<Input type="submit" disabled={this.state.submitting}>{isEdit ? "Save Changes" : "Create"}</Input>
+				{
+					this.state.editFailure && (
+						<div className="alert alert-danger">
+							Something went wrong whilst trying to save your changes - your device might be offline, so check your internet connection and try again.
+						</div>
+					)
+				}
+				{
+					this.state.editSuccess && (
+						<div className="alert alert-success">
+							Your changes have been saved
+						</div>
+					)
+				}
 			</Form>
 		);
 	}
