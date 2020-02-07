@@ -47,6 +47,10 @@ export default class Input extends React.Component {
 	}
 	
 	render() {
+		if(this.props.inline){
+			return this.renderInput();
+		}
+		
 		return (
 			<div className="form-group">
 				{this.props.label && this.props.type != "submit" && (
@@ -170,7 +174,7 @@ export default class Input extends React.Component {
 					value={typeof this.state.selectValue === 'undefined' ? this.props.defaultValue : this.state.selectValue}
 					id={this.props.id || this.fieldId}
 					className={this.props.className || "form-control"}
-					{...omit(this.props, ['id', 'className', 'onChange', 'type', 'children', 'defaultValue', 'value'])}
+					{...omit(this.props, ['id', 'className', 'onChange', 'type', 'children', 'defaultValue', 'value', 'inline'])}
 				>
 					{this.props.children}
 				</select>
@@ -183,7 +187,7 @@ export default class Input extends React.Component {
 					onChange={this.onChange} 
 					id={this.props.id || this.fieldId} 
 					className={this.props.className || "form-control"}
-					{...omit(this.props, ['id', 'className', 'onChange', 'type'])}
+					{...omit(this.props, ['id', 'className', 'onChange', 'type', 'inline'])}
 				/>
 			);
 		
@@ -195,7 +199,7 @@ export default class Input extends React.Component {
 					onChange={this.onChange} 
 					id={this.props.id || this.fieldId} 
 					className={this.props.className || "form-control"}
-					{...omit(this.props, ['id', 'className', 'onChange', 'type'])}
+					{...omit(this.props, ['id', 'className', 'onChange', 'type', 'inline'])}
 				/>
 			);
 		
@@ -205,17 +209,17 @@ export default class Input extends React.Component {
 				<CanvasEditor 
 					id={this.props.id || this.fieldId}
 					className={this.props.className || "form-control"}
-					{...omit(this.props, ['id', 'className', 'type'])}
+					{...omit(this.props, ['id', 'className', 'type', 'inline'])}
 				/>
 			);
 			
-		}else if(type == "submit"){
+		}else if(type == "submit" || type == "button"){
 			
 			return (
 				<button  
 					className={this.props.className || "btn btn-primary"}
 					type={type} 
-					{...omit(this.props, ['className', 'type', 'label', 'children'])}
+					{...omit(this.props, ['className', 'type', 'label', 'children', 'inline'])}
 				>
 					{this.props.label || this.props.children || "Submit"}
 				</button>
@@ -229,7 +233,7 @@ export default class Input extends React.Component {
 					aria-describedby={this.helpFieldId} 
 					type={type} 
 					onChange={this.onChange}
-					{...omit(this.props, ['id', 'className', 'onChange', 'type'])}
+					{...omit(this.props, ['id', 'className', 'onChange', 'type', 'inline'])}
 				/>
 			);
 		}
