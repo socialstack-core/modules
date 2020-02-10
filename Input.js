@@ -2,6 +2,7 @@ var id = 1;
 
 import tinymce from 'UI/TinyMce';
 import CanvasEditor from 'UI/CanvasEditor';
+import FileSelector from 'UI/FileSelector';
 import getModule from 'UI/Functions/GetModule';
 import omit from 'UI/Functions/Omit';
 
@@ -203,6 +204,16 @@ export default class Input extends React.Component {
 				/>
 			);
 		
+		}else if(type == "file" || type == "image"){
+			
+			return (
+				<FileSelector 
+					id={this.props.id || this.fieldId}
+					className={this.props.className || "form-control"}
+					{...omit(this.props, ['id', 'className', 'type', 'inline'])}
+				/>
+			);
+			
 		}else if(type == "canvas"){
 			
 			return (
