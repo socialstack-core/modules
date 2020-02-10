@@ -155,6 +155,13 @@ namespace Api.AutoForms
 					// Remove "Json" from the end of the label:
 					labelName = labelName.Substring(0, labelName.Length - 4);
 				}
+				else if (fieldType == typeof(string) && labelName.EndsWith("Ref"))
+				{
+					type = "image";
+
+					// Remove "Ref" from the end of the label:
+					labelName = labelName.Substring(0, labelName.Length - 3);
+				}
 				else if(fieldType == typeof(int) && labelName.EndsWith("PageId"))
 				{
 					field.Module = "Admin/Page/Select";
