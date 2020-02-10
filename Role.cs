@@ -127,12 +127,12 @@ namespace Api.Permissions
             return this;
         }
 
+		/*
 		/// <summary>
 		/// Builds this filter node as a query string, writing it into the given string builder.
 		/// </summary>
 		/// <param name="capability"></param>
 		/// <param name="builder"></param>
-		/*
 		public void BuildQuery(Capability capability, StringBuilder builder, int )
 		{
 			var filter = CapabilityLookup[capability.InternalId];
