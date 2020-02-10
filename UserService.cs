@@ -2,7 +2,6 @@
 using System.Threading.Tasks;
 using Api.Database;
 using Api.Emails;
-using Api.Uploads;
 using Microsoft.AspNetCore.Http;
 using Api.Contexts;
 using System.Collections.Generic;

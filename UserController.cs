@@ -5,7 +5,7 @@ using Microsoft.AspNetCore.Mvc;
 using Api.Database;
 using Api.Emails;
 using Api.Contexts;
-using Api.Uploads;
+using Api.Uploader;
 using Api.PasswordReset;
 using Api.Results;
 using Api.Eventing;
@@ -102,52 +102,7 @@ namespace Api.Users
 			var user = await context.GetUser();
 			return user;
 		}
-
-		/// <summary>
-		/// Upload a file for this user.
-		/// </summary>
-		/// <param name="id"></param>
-		/// <param name="body"></param>
-		/// <returns></returns>
-		[HttpPost("{id}/upload")]
-        public async Task<object> Upload([FromRoute] int id, [FromForm] UserImageUpload body)
-        {
-			var context = Request.GetContext();
-
-			body = await Events.UserOnUpload.Dispatch(context, body, Response);
-
-			// Upload the file:
-			var upload = await _uploads.Create(
-				context,
-                typeof(User),
-                id,
-                body.File,
-                new int[] {
-                    400
-                }
-            );
-
-			if (upload == null)
-			{
-				// It failed.
-				return null;
-			}
-
-			var uploadRef = upload.Ref;
-			var uploadType = body.Type.ToLower().Trim();
-			
-			// Update on the user row:
-			await _users.UpdateFile(context, id, uploadType, uploadRef);
-			
-			return new
-            {
-                id = upload.Id,
-				uploadRef = upload.Ref,
-                publicUrl = upload.GetPublicUrl("original"),
-                isImage = upload.IsImage
-            };
-        }
-
+		
 		/// <summary>
 		/// GET /v1/user/2/profile
 		/// Returns the profile user data for a single user.
