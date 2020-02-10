@@ -176,11 +176,7 @@ export default class Loop extends React.Component {
 	render() {
 		if (!this.state.results) {
 
-			console.log("no results");
-			console.log("this state");
-			console.log(this.state);
 			if(this.state.errored){
-				console.log("errored");
 				// is a specific failure set?
 				if(this.props.onFailure){
 					if(typeof this.props.onFailure === "function"){
