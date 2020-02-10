@@ -1,4 +1,5 @@
-﻿using Api.Contexts;
+﻿using Api.Configuration;
+using Api.Contexts;
 using Api.Database;
 using Api.Eventing;
 using Api.Permissions;
@@ -9,9 +10,10 @@ using System.DrawingCore;
 using System.DrawingCore.Drawing2D;
 using System.IO;
 using System.Threading.Tasks;
+using Microsoft.Extensions.Configuration;
 
 
-namespace Api.Uploads
+namespace Api.Uploader
 {
 	/// <summary>
 	/// Handles uploading of files related to particular pieces of content.
@@ -27,6 +29,7 @@ namespace Api.Uploads
 		private readonly Query<Upload> updateQuery;
 		private readonly Query<Upload> listQuery;
 
+		private UploaderConfig _configuration;
 
 		/// <summary>
 		/// Instanced automatically. Use injection to use this service, or Startup.Services.Get.
@@ -42,6 +45,14 @@ namespace Api.Uploads
 			updateQuery = Query.Update<Upload>();
 			selectQuery = Query.Select<Upload>();
 			listQuery = Query.List<Upload>();
+
+			_configuration = AppSettings.GetSection("Uploader").Get<UploaderConfig>();
+
+			if (_configuration == null)
+			{
+				// Create a default object:
+				_configuration = new UploaderConfig();
+			}
 		}
 
 		/// <summary>
@@ -120,30 +131,29 @@ namespace Api.Uploads
 		}
 
 		/// <summary>
-		/// Writes an uploaded file into the content folder.
+		/// Updates the meta for a particular upload.
 		/// </summary>
-		/// <param name="context"></param>
-		/// <param name="contentType">The type of content which is related to this upload.
-		/// For example, if it's a user avatar, provide the user type here.</param>
-		/// <param name="contentId">E.g. A product ID, forum ID, gallery ID etc.</param>
-		/// <param name="file">The contents of the file. The name is used to get the filetype.</param>
-		/// <param name="sizes">The list of sizes, in pixels, to use if it's an image. These are width values. Optional.</param>
-		/// <returns>Throws exceptions if it failed. Otherwise, returns the information about the file.</returns>
-		public async Task<Upload> Create(Context context, Type contentType, int contentId, IFormFile file, int[] sizes = null)
+		public async Task<Upload> Update(Context context, Upload upload)
 		{
-			return await Create(context, ContentTypes.GetId(contentType), contentId, file, sizes);
+			upload = await Events.UploadBeforeUpdate.Dispatch(context, upload);
+
+			if (upload == null || !await _database.Run(updateQuery, upload, upload.Id))
+			{
+				return null;
+			}
+
+			upload = await Events.UploadAfterUpdate.Dispatch(context, upload);
+			return upload;
 		}
 
 		/// <summary>
 		/// Writes an uploaded file into the content folder.
 		/// </summary>
 		/// <param name="context"></param>
-		/// <param name="contentTypeId">The ContentType Id for the content. See also: ContentTypes class.</param>
-		/// <param name="contentId">E.g. A product ID, forum ID, gallery ID etc.</param>
 		/// <param name="file">The contents of the file. The name is used to get the filetype.</param>
 		/// <param name="sizes">The list of sizes, in pixels, to use if it's an image. These are width values. Optional.</param>
 		/// <returns>Throws exceptions if it failed. Otherwise, returns the information about the file.</returns>
-		public async Task<Upload> Create(Context context, int contentTypeId, int contentId, IFormFile file, int[] sizes = null)
+		public async Task<Upload> Create(Context context, IFormFile file, int[] sizes = null)
         {
             if (file == null || string.IsNullOrEmpty(file.FileName))
             {
@@ -168,9 +178,7 @@ namespace Api.Uploads
 			var result = new Upload()
 			{
 				OriginalName = fileName,
-				ContentId = contentId,
 				FileType = fileType,
-				ContentTypeId = contentTypeId
 			};
 
 			result = await Events.UploadBeforeCreate.Dispatch(context, result);
@@ -189,7 +197,7 @@ namespace Api.Uploads
 			
 			Image current = null;
 
-			if (sizes != null && IsSupportedImage(fileType))
+			if (IsSupportedImage(fileType))
 			{
 				result.IsImage = true;
 				try
@@ -222,14 +230,17 @@ namespace Api.Uploads
 			{
 				Directory.CreateDirectory(dir);
 			}
-
-			// Relocate the temp file:
-			System.IO.File.Move(tempFile, writePath);
-
+			
 			// Resize
             if (current != null)
-            {
-                foreach (var imageSize in sizes)
+			{
+				if (sizes == null)
+				{
+					// Use the default set of sizes.
+					sizes = _configuration.ImageSizes;
+				}
+				
+				foreach (var imageSize in sizes)
                 {
                     // Resize it now:
                     Resize(current, result.GetFilePath(imageSize.ToString()), imageSize);
@@ -237,6 +248,9 @@ namespace Api.Uploads
             }
             
             current.Dispose();
+
+			// Relocate the temp file:
+			System.IO.File.Move(tempFile, writePath);
 
 			result = await Events.UploadAfterCreate.Dispatch(context, result);
 			return result;

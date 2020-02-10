@@ -1,4 +1,4 @@
-using Api.Uploads;
+using Api.Uploader;
 using Api.Permissions;
 using System.Collections.Generic;
 
@@ -66,7 +66,7 @@ namespace Api.Eventing
 		/// <summary>
 		/// Create a new upload.
 		/// </summary>
-		public static EndpointEventHandler<Upload> UploadCreate;
+		public static EndpointEventHandler<FileUploadBody> UploadCreate;
 		/// <summary>
 		/// Delete a upload.
 		/// </summary>
@@ -74,7 +74,7 @@ namespace Api.Eventing
 		/// <summary>
 		/// Update upload metadata.
 		/// </summary>
-		public static EndpointEventHandler<Upload> UploadUpdate;
+		public static EndpointEventHandler<UploadAutoForm> UploadUpdate;
 		/// <summary>
 		/// Load upload metadata.
 		/// </summary>

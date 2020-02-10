@@ -3,7 +3,7 @@ using Api.Configuration;
 using Api.Database;
 
 
-namespace Api.Uploads
+namespace Api.Uploader
 {
 	/// <summary>
 	/// Meta for uploaded files.
@@ -21,13 +21,6 @@ namespace Api.Uploads
 		/// </summary>
 		[DatabaseField(Length = 15)]
 		public string FileType;
-
-		/// <summary>
-		/// The type of content that this is related to.
-		/// See also: ContentTypes class.
-		/// For example, if it's an avatar image, this would be ContentTypes.GetId(typeof(User)).
-		/// </summary>
-		public int ContentTypeId;
 		
 		/// <summary>
 		/// If this is an image, the original width.
@@ -38,13 +31,7 @@ namespace Api.Uploads
 		/// If this is an image, the original height.
 		/// </summary>
 		public int? Height;
-
-		/// <summary>
-		/// The ID of the content that this upload is related to.
-		/// For example, if it's an avatar image, this would be the user ID.
-		/// </summary>
-		public int ContentId;
-
+		
 		/// <summary>
 		/// True if this upload is an image.
 		/// </summary>
@@ -54,8 +41,8 @@ namespace Api.Uploads
 		/// True if this is a private upload and requires a signature in order to access it publicly.
 		/// </summary>
 		public bool IsPrivate;
-
-
+		
+		
 		/// <summary>
 		/// The upload file ref is of either of these forms:
 		/// Private files: private:{optionalServerDomainName/}Id.fileType

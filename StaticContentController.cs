@@ -3,7 +3,7 @@ using Microsoft.AspNetCore.Mvc;
 using Api.Configuration;
 
 
-namespace Api.Uploads
+namespace Api.Uploader
 {
 	/// <summary>
 	/// Note that this is best done with a reverse proxy webserver like NGINX.

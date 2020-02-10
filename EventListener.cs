@@ -9,7 +9,7 @@ using Microsoft.AspNetCore.StaticFiles;
 using Api.Signatures;
 using System.Collections.Generic;
 
-namespace Api.Uploads
+namespace Api.Uploader
 {
 
 	/// <summary>
