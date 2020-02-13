@@ -52,6 +52,15 @@ namespace Api.Database
 		Task<bool> Run<T>(Query<T> q, params object[] args);
 
 		/// <summary>
+		/// Generic run. Usually used to delete by Id.
+		/// </summary>
+		/// <typeparam name="T"></typeparam>
+		/// <param name="q"></param>
+		/// <param name="args"></param>
+		/// <returns></returns>
+		Task<bool> Run(Query q, params object[] args);
+
+		/// <summary>
 		/// Run a raw query with no arguments. Avoid when possible.
 		/// </summary>
 		/// <param name="query">The query to run.</param>

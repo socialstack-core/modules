@@ -31,9 +31,35 @@ namespace Api.Database
 		/// </summary>
 		public string Name;
 		/// <summary>
-		/// The full name of this field. OwninType.Name.`Name`
+		/// The full name of this field. OwningType.Name.`Name`
 		/// </summary>
 		public string FullName;
+
+
+		/// <summary>
+		/// Updates the FullName field.
+		/// </summary>
+		public void SetFullName(string extension = null)
+		{
+			FullName = "`" + OwningType.Name + ((extension == null) ? "" : "_" + extension) + "`.`" + Name + "`";
+		}
+		
+		/// <summary>
+		/// Creates a clone of this field.
+		/// </summary>
+		/// <returns></returns>
+		public Field Clone()
+		{
+			return new Field()
+			{
+				OwningType = OwningType,
+				Type = Type,
+				TargetField = TargetField,
+				Name = Name,
+				FullName = FullName
+			};
+		}
+
 	}
 	
 }

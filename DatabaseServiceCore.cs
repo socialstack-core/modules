@@ -320,6 +320,24 @@ namespace Api.Database
 		/// <param name="q"></param>
 		/// <param name="args"></param>
 		/// <returns></returns>
+		public async Task<bool> Run(Query q, params object[] args)
+		{
+			// Run update:
+			using (var connection = GetConnection())
+			{
+				await connection.OpenAsync();
+				var cmd = CreateCommand(connection, q.GetQuery(), null, args);
+				return (await cmd.ExecuteNonQueryAsync() > 0);
+			}
+		}
+
+		/// <summary>
+		/// Runs the given query using the given arguments to bind.
+		/// Does not return any values other than a true/ false if it succeeded.
+		/// </summary>
+		/// <param name="q"></param>
+		/// <param name="args"></param>
+		/// <returns></returns>
 		public async Task<bool> Run<T>(Query<T> q, params object[] args)
 		{
 			// Run update:
