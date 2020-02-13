@@ -112,7 +112,7 @@ namespace Api.Eventing
 
 			return set;
 		}
-
+		
 		/// <summary>
 		/// Finds all event handlers for the given verb ("Update", "Create", "Load", "List", "Delete" are the major ones).
 		/// Use this if you want to run something e.g. whenever anything is created.
@@ -157,6 +157,38 @@ namespace Api.Eventing
 			{
 				if (kvp.Value.Placement == placement)
 				{
+					set.Add(kvp.Value);
+				}
+			}
+
+			return set;
+		}
+
+		/// <summary>
+		/// Finds all event handlers for the given verb ("Update", "Create", "Load", "List", "Delete" are the major ones) and optionally the given placement.
+		/// Use this if you want to run something e.g. whenever anything is created.
+		/// </summary>
+		/// <param name="verb"></param>
+		/// <param name="placement"></param>
+		/// <returns></returns>
+		public static List<EventHandler> FindByPlacementAndVerb(EventPlacement placement = EventPlacement.Any, string verb = null)
+		{
+			if (All == null)
+			{
+				Init();
+			}
+
+			var set = new List<EventHandler>();
+
+			foreach (var kvp in All)
+			{
+				if (verb == null || kvp.Value.Verb == verb)
+				{
+					if (placement != EventPlacement.Any && kvp.Value.Placement != placement)
+					{
+						continue;
+					}
+
 					set.Add(kvp.Value);
 				}
 			}
