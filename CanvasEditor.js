@@ -1,4 +1,3 @@
-import tinymce from 'UI/TinyMce';
 import omit from 'UI/Functions/Omit';
 import Text from 'UI/Text';
 import expand from 'UI/Functions/CanvasExpand';
@@ -8,23 +7,14 @@ export default class CanvasEditor extends React.Component {
 	
 	constructor(props){
 		super(props);
-		this.reset();
 		this.state = {
 			content: this.loadJson(props)
 		};
+		this.buildJson = this.buildJson.bind(this);
 	}
 	
 	componentWillReceiveProps(props){
-		this.reset();
 		this.setState({content: this.loadJson(props)});
-	}
-	
-	reset(){
-		this.element = null;
-		if(this.editor != null){
-			tinymce.remove(this.editor);
-			this.editor = null;
-		}
 	}
 	
 	loadJson(props){
@@ -33,41 +23,66 @@ export default class CanvasEditor extends React.Component {
 			json = JSON.parse(json);
 		}
 		
+		if(!json || (!json.module && !json.content)){
+			json = {module: 'UI/Text', content: ''};
+		}
+		
 		return expand(json, null, null, true);
 	}
 	
-	componentWillUnmount(){
-		this.reset();
+	buildJson(){
+		return this.buildJsonNode(this.state.content, 0, true);
 	}
 	
-	mountEditor(e) {
-		this.element = e;
-		setTimeout(function(){
+	buildJsonNode(contentNode, index, isRoot){
+		
+		if(Array.isArray(contentNode)){
+			return contentNode.map(this.buildJsonNode);
+		}
+		
+		if(contentNode.module == Text){
+			return isRoot ? {
+				content: contentNode.content
+			} : contentNode.content;
+		}
+		
+		// Otherwise, get the module name:
+		if(!contentNode.moduleName){
+			var moduleName = null;
 			
-			tinymce.init({target:e, setup: editor => {
-				
-				this.editor = editor;
-				editor.on('change', function () {
-					tinymce.triggerSave();
-				});
-				
-			}});
+			for(var name in global.__mm){
+				if(global.__mm[name] == contentNode.module){
+					moduleName = name;
+					break;
+				}
+			}
 			
-		}, 50);
+			contentNode.moduleName = moduleName;
+		}
+		
+		return {
+			module: contentNode.moduleName,
+			data: contentNode.data,
+			content: this.buildJsonNode(contentNode.content,0)
+		};
 	}
 	
 	renderNode(contentNode, index) {
 		var Module = contentNode.module || "div";
-		console.log('Render node', contentNode);
 		
 		if(Module == Text){
+			
+			var divRef = null;
+			
 			return (
-				<textarea 
-					ref={e=>this.mountEditor(e)}
-					onChange={this.onChange} 
-					className={this.props.className || "form-control"}
-					value={contentNode.content}
-					{...omit(this.props, ['className', 'onChange', 'type'])}
+				<div
+					contenteditable
+					onInput={e => {
+						contentNode.content = e.target.innerHTML;
+						this.ref.value=JSON.stringify(this.buildJson());
+					}}
+					className={"canvas-editor-text " + (this.props.className || "form-control")}
+					dangerouslySetInnerHTML={{__html: contentNode.content}}
 				/>
 			);
 		}
@@ -84,7 +99,7 @@ export default class CanvasEditor extends React.Component {
 			);
 		}
 		
-		console.log('No support');
+		console.log('No support!');
 		return '-Module not supported yet-';
 	}
 	
@@ -101,6 +116,16 @@ export default class CanvasEditor extends React.Component {
 			return content.map((e,i)=>this.renderNode(e,i));
 		}
 		
-		return this.renderNode(content,0);
+		return (
+			<div className="canvas-editor">
+				<input type="hidden" name={this.props.name} ref={ref => {
+					this.ref = ref;
+					if(ref){
+						ref.value=JSON.stringify(this.buildJson());
+					}
+				}}/>
+				{this.renderNode(content,0)}
+			</div>
+		);
 	}
 }
