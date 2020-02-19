@@ -17,8 +17,7 @@ namespace Api.Categories
     {
 		private readonly Query<CategoryContent> listByObjectQuery;
 		private readonly Query<CategoryContent> listContentQuery;
-		private readonly Query<Category> updateQuery;
-
+		
 
 		/// <summary>
 		/// Instanced automatically. Use injection to use this service, or Startup.Services.Get.
