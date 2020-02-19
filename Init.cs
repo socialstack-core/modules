@@ -3,11 +3,9 @@ using System.IO;
 using System.Net;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Builder;
-using Microsoft.AspNetCore.Hosting;
 using System.Collections.Generic;
 using Microsoft.Extensions.Logging;
 using Api.Startup;
-using Microsoft.Extensions.Logging;
 
 
 namespace Api.ErrorLogging
@@ -19,7 +17,10 @@ namespace Api.ErrorLogging
 	[EventListener]
 	public partial class Init
 	{
-		
+
+		/// <summary>
+		/// Instanced automatically at startup.
+		/// </summary>
 		public Init()
 		{
 			EntryPoint.OnConfigureHost += OnConfigureHost;
