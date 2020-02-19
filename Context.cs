@@ -83,7 +83,13 @@ namespace Api.Contexts
 
 			// Get the user now:
 			_user = await _users.Get(this, UserId);
-
+			
+			if(_user ==  null)
+			{
+				// Got a cookie for an account that was deleted or otherwise doesn't exist
+				return null;
+			}
+			
 			// Overwrite role just in case (the revoke system must catch this though):
 			RoleId = _user.Role;
 
