@@ -49,7 +49,7 @@ public partial class AutoService<T> where T: DatabaseRow, new(){
 	/// <summary>
 	/// The set of update/ delete/ create etc events for this type.
 	/// </summary>
-	protected EventGroup<T> EventGroup;
+	public EventGroup<T> EventGroup;
 
 	/// <summary>
 	/// Sets up the common service type fields.
