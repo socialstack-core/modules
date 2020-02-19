@@ -20,7 +20,6 @@ namespace Api.BlogPosts
 		/// <summary>
 		/// Instanced automatically. Use injection to use this service, or Startup.Services.Get.
 		/// </summary>
-		/// <param name="database"></param>
 		/// <param name="blogs"></param>
 		public BlogPostService(IBlogService blogs) : base(Events.BlogPost)
         {
