@@ -15,50 +15,10 @@ namespace Api.Eventing
 		#region Service events
 
 		/// <summary>
-		/// Just before a new nav menu is created. The given nav menu won't have an ID yet. Return null to cancel the creation.
+		/// Set of events for a NavMenu.
 		/// </summary>
-		public static EventHandler<NavMenu> NavMenuBeforeCreate;
-
-		/// <summary>
-		/// Just after an nav menu has been created. The given nav menu object will now have an ID.
-		/// </summary>
-		public static EventHandler<NavMenu> NavMenuAfterCreate;
-
-		/// <summary>
-		/// Just before an nav menu is being deleted. Return null to cancel the deletion.
-		/// </summary>
-		public static EventHandler<NavMenu> NavMenuBeforeDelete;
-
-		/// <summary>
-		/// Just after an nav menu has been deleted.
-		/// </summary>
-		public static EventHandler<NavMenu> NavMenuAfterDelete;
-
-		/// <summary>
-		/// Just before updating an nav menu. Optionally make additional changes, or return null to cancel the update.
-		/// </summary>
-		public static EventHandler<NavMenu> NavMenuBeforeUpdate;
-
-		/// <summary>
-		/// Just after updating an nav menu.
-		/// </summary>
-		public static EventHandler<NavMenu> NavMenuAfterUpdate;
-
-		/// <summary>
-		/// Just after an nav menu was loaded.
-		/// </summary>
-		public static EventHandler<NavMenu> NavMenuAfterLoad;
-
-		/// <summary>
-		/// Just before a service loads an navMenu list.
-		/// </summary>
-		public static EventHandler<Filter<NavMenu>> NavMenuBeforeList;
-
-		/// <summary>
-		/// Just after an navMenu list was loaded.
-		/// </summary>
-		public static EventHandler<List<NavMenu>> NavMenuAfterList;
-
+		public static EventGroup<NavMenu> NavMenu;
+		
 		#endregion
 
 		#region Controller events
