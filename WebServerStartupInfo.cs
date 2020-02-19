@@ -147,6 +147,16 @@ namespace Api.Startup
             app.UseMvc();
 			
             // Next, we get *all* services so they are all instanced.
+			// Special case for the DatabaseService as it's used by AutoService and specifically in the constructor of other services (but without injection).
+			foreach (var serviceInterfaceType in _serviceTypes)
+			{
+				if(serviceInterfaceType.Name == "IDatabaseService" || serviceInterfaceType.Name == "DatabaseService")
+				{
+					var svc = serviceProvider.GetService(serviceInterfaceType);
+					Services.All[serviceInterfaceType] = svc;
+				}
+			}
+			
             foreach (var serviceInterfaceType in _serviceTypes)
 			{
 				var svc = serviceProvider.GetService(serviceInterfaceType);
