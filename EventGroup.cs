@@ -1,6 +1,7 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using Api.AutoForms;
 using Api.Database;
 using Api.Permissions;
 
@@ -16,6 +17,8 @@ namespace Api.Eventing
 	/// <typeparam name="T"></typeparam>
 	public partial class EventGroup<T> where T : DatabaseRow, new()
 	{
+		#region Service events
+
 		/// <summary>
 		/// Just before a new entity is created. The given entity won't have an ID yet. Return null to cancel the creation.
 		/// </summary>
@@ -60,6 +63,33 @@ namespace Api.Eventing
 		/// Just after an entity list was loaded.
 		/// </summary>
 		public EventHandler<List<T>> AfterList;
+
+		#endregion
+
+		#region Controller events
+
+		/// <summary>
+		/// Create a new article.
+		/// </summary>
+		public EndpointEventHandler<AutoForm<T>> Create;
+		/// <summary>
+		/// Delete an article.
+		/// </summary>
+		public EndpointEventHandler<T> Delete;
+		/// <summary>
+		/// Update article metadata.
+		/// </summary>
+		public EndpointEventHandler<AutoForm<T>> Update;
+		/// <summary>
+		/// Load article metadata.
+		/// </summary>
+		public  EndpointEventHandler<T> Load;
+		/// <summary>
+		/// List articles.
+		/// </summary>
+		public EndpointEventHandler<Filter<T>> List;
+
+		#endregion
 
 	}
 }
