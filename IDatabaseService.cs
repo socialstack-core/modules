@@ -54,7 +54,6 @@ namespace Api.Database
 		/// <summary>
 		/// Generic run. Usually used to delete by Id.
 		/// </summary>
-		/// <typeparam name="T"></typeparam>
 		/// <param name="q"></param>
 		/// <param name="args"></param>
 		/// <returns></returns>
