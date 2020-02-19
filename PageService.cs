@@ -4,7 +4,8 @@ using Api.Eventing;
 using Api.Permissions;
 using System.Collections.Generic;
 using System.Threading.Tasks;
-
+using System.Linq;
+using System;
 
 namespace Api.Pages
 {
@@ -12,121 +13,130 @@ namespace Api.Pages
 	/// Handles pages.
 	/// Instanced automatically. Use injection to use this service, or Startup.Services.Get.
 	/// </summary>
-	public partial class PageService : IPageService
+	public partial class PageService : AutoService<Page>, IPageService
     {
-        private IDatabaseService _database;
-		
-		private readonly Query<Page> deleteQuery;
-		private readonly Query<Page> createQuery;
-		private readonly Query<Page> selectQuery;
-		private readonly Query<Page> listQuery;
-		private readonly Query<Page> updateQuery;
-
-
 		/// <summary>
 		/// Instanced automatically. Use injection to use this service, or Startup.Services.Get.
 		/// </summary>
-		public PageService(IDatabaseService database)
+		public PageService() : base(Events.Page)
         {
-            _database = database;
-			
-			// Start preparing the queries. Doing this ahead of time leads to excellent performance savings, 
-			// whilst also using a high-level abstraction as another plugin entry point.
-			deleteQuery = Query.Delete<Page>();
-			createQuery = Query.Insert<Page>();
-			updateQuery = Query.Update<Page>();
-			selectQuery = Query.Select<Page>();
-			listQuery = Query.List<Page>();
-
-			Task.Run(async () => {
-
-				var filter = new Filter();
-				filter.PageSize = 1;
-
-				var list = await _database.List(listQuery, filter);
-
-				if (list.Count == 0)
+			// If you don't have a homepage or admin area, this'll create them:
+			Install(
+				new Page()
 				{
-					// No pages in the database - let's install the hello world page now:
-					await Create(new Context(), new Page() {
+					Url = "/",
+					BodyJson = @"{
+						""content"": ""Welcome to your new SocialStack instance. This text comes from the pages table in your database in a format called canvas JSON - you can read more about this format in the documentation.""
+					}"
+				},
+				new Page()
+				{
+					Url = "/en-admin",
+					BodyJson = @"{
+						""module"": ""Admin/Pages/Default"",
+						""content"": [
+							{
+								""module"": ""Admin/Tile"",
+								""content"": [
+									""Welcome to the administration area. Pick what you'd like to edit on the left.""
+								]
+							}
+						]
+					}"
+				},
+				new Page()
+				{
+					Url = "/en-admin/login",
+					BodyJson = @"{
+						""module"": ""Admin/Pages/Landing"",
+						""content"": [
+							{
+								""module"": ""Admin/Tile"",
+								""content"": [
+									{
+										""module"":""Admin/LoginForm""
+									}
+								]
+							}
+						]
+					}"
+				},
+				new Page()
+				{
+					Url = "/en-admin/register",
+					BodyJson = @"{
+						""module"": ""Admin/Pages/Landing"",
+						""content"": [
+							{
+								""module"": ""Admin/Tile"",
+								""content"": [
+									{
+										""module"":""Admin/RegisterForm""
+									}
+								]
+							}
+						]
+					}"
+				}
+			);
+				
+		}
+		
+		/// <summary>
+		/// Installs the given page(s). It checks if they exist by their URL (or ID, if you provide that instead), and if not, creates them.
+		/// </summary>
+		/// <param name="pages"></param>
+		public void Install(params Page[] pages)
+		{
+			Task.Run(async () =>
+			{
+				var context = new Context();
 
-						Url = "/",
-						BodyJson = "{\r\n\"content\": \"Welcome to your new SocialStack instance. This text comes from the pages table in your database in a format called canvas JSON - you can read more about this format in the documentation. \"\r\n}"
+				// Get the set of pages which we'll match by URL:
+				var urlSet = pages.Where(page => page.Id == 0);
 
-					});
+				if (urlSet.Any())
+				{
+					// Get the pages by those URLs:
+					var filter = new Filter<Page>();
+					filter.EqualsSet("Url", urlSet.Select(Page => Page.Url));
+					
+					var existingPages = (await List(context, filter)).ToDictionary(page => page.Url);
+					
+					// For each page to consider for install..
+					foreach (var page in urlSet)
+					{
+						// If it doesn't already exist, create it.
+						if (!existingPages.ContainsKey(page.Url))
+						{
+							await Create(context, page);
+						}
+					}
+				}
+
+				// Get the set of pages which we'll match by ID:
+				var idSet = pages.Where(page => page.Id != 0);
+				
+				if (idSet.Any())
+				{
+					// Get the pages by those URLs:
+					var filter = new Filter<Page>();
+					filter.Id(idSet.Select(Page => Page.Url));
+					var existingPages = (await List(context, filter)).ToDictionary(page => page.Id);
+
+					// For each page to consider for install..
+					foreach (var page in idSet)
+					{
+						// If it doesn't already exist, create it.
+						if (!existingPages.ContainsKey(page.Id))
+						{
+							await Create(context, page);
+						}
+					}
 				}
 
 			});
-			
 		}
-		
-        /// <summary>
-        /// Deletes a page by its ID.
-		/// Optionally includes uploaded content refs in there too.
-        /// </summary>
-        /// <returns></returns>
-        public async Task<bool> Delete(Context context, int id)
-        {
-            // Delete the entry:
-			await _database.Run(deleteQuery, id);
-			
-			// Ok!
-			return true;
-        }
-
-		/// <summary>
-		/// List a filtered set of pages.
-		/// </summary>
-		/// <returns></returns>
-		public async Task<List<Page>> List(Context context, Filter<Page> filter)
-		{
-			filter = await Events.PageBeforeList.Dispatch(context, filter);
-			var list = await _database.List(listQuery, filter);
-			list = await Events.PageAfterList.Dispatch(context, list);
-			return list;
-		}
-
-		/// <summary>
-		/// Gets a single page by its ID.
-		/// </summary>
-		public async Task<Page> Get(Context context, int id)
-		{
-			return await _database.Select(selectQuery, id);
-		}
-
-		/// <summary>
-		/// Creates a new page.
-		/// </summary>
-		public async Task<Page> Create(Context context, Page page)
-		{
-			page = await Events.PageBeforeCreate.Dispatch(context, page);
-
-			// Note: The Id field is automatically updated by Run here.
-			if (page == null || !await _database.Run(createQuery, page))
-			{
-				return null;
-			}
-
-			page = await Events.PageAfterCreate.Dispatch(context, page);
-			return page;
-		}
-
-		/// <summary>
-		/// Updates the given nav menu.
-		/// </summary>
-		public async Task<Page> Update(Context context, Page page)
-		{
-			page = await Events.PageBeforeUpdate.Dispatch(context, page);
-
-			if (page == null || !await _database.Run(updateQuery, page, page.Id))
-			{
-				return null;
-			}
-
-			page = await Events.PageAfterUpdate.Dispatch(context, page);
-			return page;
-		}
-
 	}
     
 }

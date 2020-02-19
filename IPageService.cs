@@ -40,6 +40,11 @@ namespace Api.Pages
 		/// </summary>
 		/// <returns></returns>
 		Task<List<Page>> List(Context context, Filter<Page> filter);
-
+		
+		/// <summary>
+		/// Installs the given page(s). It checks if they exist by their URL (or ID, if you provide that instead), and if not, creates them.
+		/// </summary>
+		/// <param name="pages"></param>
+		void Install(params Page[] pages);
 	}
 }
