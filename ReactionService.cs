@@ -13,16 +13,10 @@ namespace Api.Reactions
 	/// Handles reactions - likes, upvotes etc - on content.
 	/// Instanced automatically. Use injection to use this service, or Startup.Services.Get.
 	/// </summary>
-	public partial class ReactionService : IReactionService
+	public partial class ReactionService : AutoService<Reaction>, IReactionService
 	{
-        private IDatabaseService _database;
 		private IReactionTypeService _reactionTypes;
 
-		private readonly Query<Reaction> deleteQuery;
-		private readonly Query<Reaction> createQuery;
-		private readonly Query<Reaction> selectQuery;
-		private readonly Query<Reaction> updateQuery;
-		private readonly Query<Reaction> listQuery;
 		private readonly Query<ReactionCount> listCountQuery;
 		private readonly Query<ReactionCount> listCountByObjectQuery;
 
@@ -30,18 +24,12 @@ namespace Api.Reactions
 		/// <summary>
 		/// Instanced automatically. Use injection to use this service, or Startup.Services.Get.
 		/// </summary>
-		public ReactionService(IDatabaseService database, IReactionTypeService reactionTypes)
+		public ReactionService(IReactionTypeService reactionTypes) : base(Events.Reaction)
         {
-            _database = database;
 			_reactionTypes = reactionTypes;
 
 			// Start preparing the queries. Doing this ahead of time leads to excellent performance savings, 
 			// whilst also using a high-level abstraction as another plugin entry point.
-			deleteQuery = Query.Delete<Reaction>();
-			createQuery = Query.Insert<Reaction>();
-			updateQuery = Query.Update<Reaction>();
-			selectQuery = Query.Select<Reaction>();
-			listQuery = Query.List<Reaction>();
 			listCountQuery = Query.List<ReactionCount>();
 			listCountByObjectQuery = Query.List<ReactionCount>();
 			listCountByObjectQuery.Where().EqualsArg("ContentTypeId", 0).And().EqualsArg("ContentId", 1);
@@ -261,73 +249,6 @@ namespace Api.Reactions
 			}
 
 		}
-
-		/// <summary>
-		/// Deletes a reaction by its ID.
-		/// </summary>
-		/// <returns></returns>
-		public async Task<bool> Delete(Context context, int id)
-        {
-            // Delete the entry:
-			await _database.Run(deleteQuery, id);
-			
-			// Ok!
-			return true;
-        }
-
-		/// <summary>
-		/// List a filtered set of reactions.
-		/// </summary>
-		/// <returns></returns>
-		public async Task<List<Reaction>> List(Context context, Filter<Reaction> filter)
-		{
-			filter = await Events.ReactionBeforeList.Dispatch(context, filter);
-			var list = await _database.List(listQuery, filter);
-			list = await Events.ReactionAfterList.Dispatch(context, list);
-			return list;
-		}
-		
-		/// <summary>
-		/// Gets a single reaction by its ID.
-		/// </summary>
-		public async Task<Reaction> Get(Context context, int id)
-		{
-			return await _database.Select(selectQuery, id);
-		}
-
-		/// <summary>
-		/// Creates a new reaction.
-		/// </summary>
-		public async Task<Reaction> Create(Context context, Reaction reaction)
-		{
-			reaction = await Events.ReactionBeforeCreate.Dispatch(context, reaction);
-
-			// Note: The Id field is automatically updated by Run here.
-			if (reaction == null || !await _database.Run(createQuery, reaction))
-			{
-				return null;
-			}
-
-			reaction = await Events.ReactionAfterCreate.Dispatch(context, reaction);
-			return reaction;
-		}
-
-		/// <summary>
-		/// Updates the given reaction.
-		/// </summary>
-		public async Task<Reaction> Update(Context context, Reaction reaction)
-		{
-			reaction = await Events.ReactionBeforeUpdate.Dispatch(context, reaction);
-
-			if (reaction == null || !await _database.Run(updateQuery, reaction, reaction.Id))
-			{
-				return null;
-			}
-
-			reaction = await Events.ReactionAfterUpdate.Dispatch(context, reaction);
-			return reaction;
-		}
-
 	}
 
 }
