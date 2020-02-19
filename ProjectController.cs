@@ -7,7 +7,6 @@ using Api.Results;
 using Microsoft.AspNetCore.Mvc;
 using Newtonsoft.Json.Linq;
 using Api.AutoForms;
-using Api.Eventing;
 
 namespace Api.Projects
 {
