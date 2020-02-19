@@ -13,14 +13,8 @@ namespace Api.Categories
 	/// Handles categories - usually seen in e.g. knowledge bases or help guides.
 	/// Instanced automatically. Use injection to use this service, or Startup.Services.Get.
 	/// </summary>
-	public partial class CategoryService : ICategoryService
+	public partial class CategoryService : AutoService<Category>, ICategoryService
     {
-        private IDatabaseService _database;
-		
-		private readonly Query<Category> deleteQuery;
-		private readonly Query<Category> createQuery;
-		private readonly Query<Category> selectQuery;
-		private readonly Query<Category> listQuery;
 		private readonly Query<CategoryContent> listByObjectQuery;
 		private readonly Query<CategoryContent> listContentQuery;
 		private readonly Query<Category> updateQuery;
@@ -29,18 +23,10 @@ namespace Api.Categories
 		/// <summary>
 		/// Instanced automatically. Use injection to use this service, or Startup.Services.Get.
 		/// </summary>
-		public CategoryService(IDatabaseService database)
+		public CategoryService() : base(Events.Category)
 		{
-			_database = database;
-
 			// Start preparing the queries. Doing this ahead of time leads to excellent performance savings, 
 			// whilst also using a high-level abstraction as another plugin entry point.
-			deleteQuery = Query.Delete<Category>();
-
-			createQuery = Query.Insert<Category>();
-			updateQuery = Query.Update<Category>();
-			selectQuery = Query.Select<Category>();
-			listQuery = Query.List<Category>();
 			listContentQuery = Query.List<CategoryContent>();
 			listByObjectQuery = Query.List<CategoryContent>();
 			listByObjectQuery.Where().EqualsArg("ContentTypeId", 0).And().EqualsArg("ContentId", 1);
@@ -278,72 +264,6 @@ namespace Api.Categories
 
 		}
 
-		/// <summary>
-		/// List a filtered set of categories.
-		/// </summary>
-		/// <returns></returns>
-		public async Task<List<Category>> List(Context context, Filter<Category> filter)
-		{
-			filter = await Events.CategoryBeforeList.Dispatch(context, filter);
-			var list = await _database.List(listQuery, filter);
-			list = await Events.CategoryAfterList.Dispatch(context, list);
-			return list;
-		}
-
-		/// <summary>
-		/// Deletes a Category by its ID.
-		/// Optionally includes uploaded content refs in there too.
-		/// </summary>
-		/// <returns></returns>
-		public async Task<bool> Delete(Context context, int id)
-        {
-            // Delete the entry:
-			await _database.Run(deleteQuery, id);
-			
-			// Ok!
-			return true;
-        }
-        
-		/// <summary>
-		/// Gets a single Category by its ID.
-		/// </summary>
-		public async Task<Category> Get(Context context, int id)
-		{
-			return await _database.Select(selectQuery, id);
-		}
-
-		/// <summary>
-		/// Creates a new category.
-		/// </summary>
-		public async Task<Category> Create(Context context, Category category)
-		{
-			category = await Events.CategoryBeforeCreate.Dispatch(context, category);
-
-			// Note: The Id field is automatically updated by Run here.
-			if (category == null || !await _database.Run(createQuery, category))
-			{
-				return null;
-			}
-
-			category = await Events.CategoryAfterCreate.Dispatch(context, category);
-			return category;
-		}
-
-		/// <summary>
-		/// Updates the given category.
-		/// </summary>
-		public async Task<Category> Update(Context context, Category category)
-		{
-			category = await Events.CategoryBeforeUpdate.Dispatch(context, category);
-
-			if (category == null || !await _database.Run(updateQuery, category, category.Id))
-			{
-				return null;
-			}
-
-			category = await Events.CategoryAfterUpdate.Dispatch(context, category);
-			return category;
-		}
 	}
     
 }
