@@ -78,13 +78,25 @@ namespace Api.Permissions
 		
     }
 	
+	/// <summary>
+	/// Information about the available permissions.
+	/// </summary>
 	public class PermissionInformation{
 		
+		/// <summary>
+		/// Information about the available capabilities.
+		/// </summary>
 		public List<PermissionMeta> Capabilities;
+		/// <summary>
+		/// The set of available roles.
+		/// </summary>
 		public Role[] Roles;
 		
 	}
 	
+	/// <summary>
+	/// Information about a particular grant.
+	/// </summary>
 	public class GrantMeta
 	{
 		/// <summary>The filter description which describes the grant rule as it would appear as an SQL query.</summary>
@@ -93,9 +105,18 @@ namespace Api.Permissions
 		public Role Role;
 	}
 	
+	/// <summary>
+	/// Information for a particular capability, such as which roles have been granted it.
+	/// </summary>
 	public class PermissionMeta
 	{
+		/// <summary>
+		/// The key of the capability.
+		/// </summary>
 		public string Key;
+		/// <summary>
+		/// The description of the capability.
+		/// </summary>
 		public string Description;
 		
 		/// <summary>The list of roles which handle this permission in some way.</summary>
