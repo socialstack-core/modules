@@ -1,4 +1,5 @@
 using Newtonsoft.Json.Linq;
+using System.Collections;
 
 namespace Api.Permissions
 {
@@ -68,7 +69,7 @@ namespace Api.Permissions
 		/// Convenience function for granting a capability only if we're provided a number from the given set.
 		/// </summary>
 		/// <returns></returns>
-		public Filter<T> Id(params object[] ids)
+		public Filter<T> Id(IEnumerable ids)
 		{
 			return Add(new FilterFieldEqualsSet(typeof(T), "Id")
 			{
@@ -80,7 +81,7 @@ namespace Api.Permissions
 		/// Convenience function for granting a capability only if we're provided an entry from the given set.
 		/// </summary>
 		/// <returns></returns>
-		public Filter<T> EqualsSet(string fieldName, params object[] values)
+		public Filter<T> EqualsSet(string fieldName, IEnumerable values)
 		{
 			return Add(new FilterFieldEqualsSet(typeof(T), fieldName)
 			{

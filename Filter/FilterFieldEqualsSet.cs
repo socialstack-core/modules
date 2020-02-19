@@ -1,4 +1,5 @@
 using System;
+using System.Collections;
 using System.Reflection;
 using Api.Contexts;
 
@@ -26,7 +27,7 @@ namespace Api.Permissions
 		/// <summary>
 		/// The values to match.
 		/// </summary>
-		public object[] Values;
+		public IEnumerable Values;
 		/// <summary>
 		/// The fieldInfo for the field on the type.
 		/// </summary>
@@ -66,10 +67,8 @@ namespace Api.Permissions
 			var firstArg = extraObjectsToCheck[ArgIndex];
 
 			// For each value, perform the same checks as a regular single field matching.
-			for (var i = 0; i < Values.Length; i++)
+			foreach(var value in Values)
 			{
-				var value = Values[i];
-
 				// Firstly is it a direct match?
 				if (firstArg == null)
 				{
