@@ -14,7 +14,7 @@ namespace Api.Eventing
 		#region Service events
 		
 		/// <summary>
-		/// Just after an article list was loaded.
+		/// Set of events for an Article.
 		/// </summary>
 		public static EventGroup<Article> Article;
 		
