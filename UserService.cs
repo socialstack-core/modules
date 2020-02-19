@@ -16,37 +16,25 @@ namespace Api.Users
 	/// Manages user accounts.
 	/// Instanced automatically. Use injection to use this service, or Startup.Services.Get.
 	/// </summary>
-	public class UserService : IUserService
+	public class UserService : AutoService<User>, IUserService
     {
-        private IDatabaseService _database;
         private IEmailService _email;
         private IContextService _contexts;
-		private readonly Query<User> createQuery;
-		private readonly Query<User> selectQuery;
 		private readonly Query<User> selectByEmailQuery;
 		private readonly Query<User> selectByUsernameQuery;
-		private readonly Query<User> updateQuery;
 		private readonly Query<User> updateAvatarQuery;
 		private readonly Query<User> updateFeatureQuery;
-		private readonly Query<User> deleteQuery;
-		private readonly Query<User> listQuery;
 
 
 		/// <summary>
 		/// Instanced automatically. Use injection to use this service, or Startup.Services.Get.
 		/// </summary>
-		public UserService(IDatabaseService database, IEmailService email, IContextService context)
+		public UserService(IEmailService email, IContextService context) : base(Events.User)
         {
-            _database = database;
             _email = email;
 			_contexts = context;
-			createQuery = Query.Insert<User>();
-			updateQuery = Query.Update<User>();
 			updateAvatarQuery = Query.Update<User>().RemoveAllBut("Id", "AvatarRef");
 			updateFeatureQuery = Query.Update<User>().RemoveAllBut("Id", "FeatureRef");
-			selectQuery = Query.Select<User>();
-			deleteQuery = Query.Delete<User>();
-			listQuery = Query.List<User>();
 			selectByEmailQuery = Query.Select<User>();
 			selectByEmailQuery.Where().EqualsArg("Email", 0);
 
@@ -235,17 +223,6 @@ namespace Api.Users
 		}
 
 		/// <summary>
-		/// Get a user by the given ID.
-		/// </summary>
-		/// <param name="context"></param>
-		/// <param name="id"></param>
-		/// <returns></returns>
-		public async Task<User> Get(Context context, int id)
-		{
-			return await _database.Select(selectQuery, id);
-		}
-
-		/// <summary>
 		/// Gets a user by the given email address.
 		/// </summary>
 		/// <param name="context"></param>
@@ -265,31 +242,6 @@ namespace Api.Users
 		public async Task<User> GetByUsername(Context context, string username)
 		{
 			return await _database.Select(selectByUsernameQuery, username);
-		}
-
-		/// <summary>
-		/// Deletes a user by their ID.
-		/// </summary>
-		/// <returns></returns>
-		public async Task<bool> Delete(Context context, int id)
-		{
-			// Delete the entry:
-			await _database.Run(deleteQuery, id);
-			
-			// Ok!
-			return true;
-		}
-
-		/// <summary>
-		/// List a filtered set of users.
-		/// </summary>
-		/// <returns></returns>
-		public async Task<List<User>> List(Context context, Filter<User> filter)
-		{
-			filter = await Events.UserBeforeList.Dispatch(context, filter);
-			var list = await _database.List(listQuery, filter);
-			list = await Events.UserAfterList.Dispatch(context, list);
-			return list;
 		}
 
 		/// <summary>
@@ -336,39 +288,6 @@ namespace Api.Users
 			}
 
 			return result;
-		}
-
-		/// <summary>
-		/// Creates a new user.
-		/// </summary>
-		public async Task<User> Create(Context context, User user)
-		{
-			user = await Events.UserBeforeCreate.Dispatch(context, user);
-
-			// Note: The Id field is automatically updated by Run here.
-			if (user == null || !await _database.Run(createQuery, user))
-			{
-				return null;
-			}
-
-			user = await Events.UserAfterCreate.Dispatch(context, user);
-			return user;
-		}
-
-		/// <summary>
-		/// Updates the given user.
-		/// </summary>
-		public async Task<User> Update(Context context, User user)
-		{
-			user = await Events.UserBeforeUpdate.Dispatch(context, user);
-
-			if (user == null || !await _database.Run(updateQuery, user, user.Id))
-			{
-				return null;
-			}
-
-			user = await Events.UserAfterUpdate.Dispatch(context, user);
-			return user;
 		}
 
 		/// <summary>
