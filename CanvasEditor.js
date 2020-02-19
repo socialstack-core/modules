@@ -37,7 +37,7 @@ export default class CanvasEditor extends React.Component {
 	buildJsonNode(contentNode, index, isRoot){
 		
 		if(Array.isArray(contentNode)){
-			return contentNode.map(this.buildJsonNode);
+			return contentNode.map((node, index) => this.buildJsonNode(node, index, false));
 		}
 		
 		if(contentNode.module == Text){
