@@ -41,32 +41,63 @@ namespace Api.Eventing
 
 			// Must setup this all set first:
 			All = new Dictionary<string, EventHandler>();
-
-			var events = typeof(Events).GetFields();
+			
+			SetupEventsOnObject(null, typeof(Events), "");
+		}
+		
+		/// <summary>
+		/// Sets up any event handler objects on the given target object by looping through fields of the given type.
+		/// Note that type is provided as the target object can be null in the case of the static Events class itself.
+		/// If it encounters an EventGroup, it recurses and sets up the events on its fields too.
+		/// </summary>
+		/// <param name="target"></param>
+		/// <param name="type"></param>
+		/// <param name="prependedNames">
+		/// If going through EventGroup objects, this is any additional text to prepend to the field name.
+		/// </param>
+		public static void SetupEventsOnObject(object target, Type type, string prependedNames)
+		{
+			var events = type.GetFields();
 
 			foreach (var field in events)
 			{
-				// EventHandler field type? (This excludes e.g. the All dictionary):
-				if (!typeof(EventHandler).IsAssignableFrom(field.FieldType))
-				{
-					continue;
-				}
-
-				var currentValue = field.GetValue(null);
+				var currentValue = field.GetValue(target);
 
 				if (currentValue != null)
 				{
 					// The dev specified a value they'd like to use instead.
 					continue;
 				}
-
+				
 				// Create an instance of the field type.
+				object evt = null;
+
+				// If it's an event group, instance the events on it, but prepended with the field name and any other names.
+				if (field.FieldType.IsGenericType && field.FieldType.GetGenericTypeDefinition() == typeof(EventGroup<>))
+				{
+					// Instance the group:
+					evt = Activator.CreateInstance(field.FieldType);
+
+					// Setup all of the fields on it too:
+					SetupEventsOnObject(evt, field.FieldType, prependedNames + field.Name);
+
+					field.SetValue(target, evt);
+
+					continue;
+				}
+
+				// EventHandler field type? (This excludes e.g. the All dictionary):
+				if (!typeof(EventHandler).IsAssignableFrom(field.FieldType))
+				{
+					continue;
+				}
+				
 				// We specifically use the fields own type here so the dev can specify a custom type there too.
 				// It must however have a constructor with 1 string param.
-				var evt = Activator.CreateInstance(field.FieldType, field.Name);
-
+				evt = Activator.CreateInstance(field.FieldType, prependedNames + field.Name);	
+				
 				// Set it to the field now:
-				field.SetValue(null, evt);
+				field.SetValue(target, evt);
 
 			}
 		}
