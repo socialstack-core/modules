@@ -62,18 +62,22 @@ namespace Api.Startup
 			foreach (var typeInfo in allTypes){
 				// If it:
 				// - Is a class
-				// - Ends with *Service
-				// - Implements an interface of the same name + I
+				// - Ends with *Service, with a specific exclusion for AutoService.
 				// Then we register it as a singleton.
 
 				var typeName = typeInfo.Name;
 
-				if (!typeInfo.IsClass || !typeName.EndsWith("Service"))
+				if (!typeInfo.IsClass || !typeName.EndsWith("Service") || typeName == "AutoService")
 				{
 					continue;
 				}
 
+				// Ok! Got a valid service. We can now register it:
+				
+				// Optional: You can also delclare an I{ServiceName} interface.
+				// This interface is mostly for documentation purposes and some extensibility.
 				// Get its interface list:
+
 				var interfaces = typeInfo.ImplementedInterfaces;
 				System.Type interfaceType = null;
 
@@ -87,17 +91,21 @@ namespace Api.Startup
 					}
 				}
 
-				if (interfaceType == null)
-				{
-					continue;
-				}
-
 				Console.WriteLine("Registered service: " + typeName);
 
-				// Ok! Got a valid service. We can now register it:
-				services.AddSingleton(interfaceType, typeInfo.AsType());
-
-				_serviceTypes.Add(interfaceType);
+				if (interfaceType != null)
+				{
+					services.AddSingleton(interfaceType, typeInfo.AsType());
+					_serviceTypes.Add(interfaceType);
+				}
+				else
+				{
+					// Add it as-is:
+					services.AddSingleton(typeInfo.AsType());
+					_serviceTypes.Add(typeInfo.AsType());
+				}
+				
+				
 			}
 		
 			services.AddCors(c =>  
