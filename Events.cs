@@ -13,52 +13,12 @@ namespace Api.Eventing
 	{
 
 		#region Service events
-
+		
 		/// <summary>
-		/// Just before a new tag is created. The given tag won't have an ID yet. Return null to cancel the creation.
+		/// Set of events for a Tag.
 		/// </summary>
-		public static EventHandler<Tag> TagBeforeCreate;
-
-		/// <summary>
-		/// Just after a tag has been created. The given tag object will now have an ID.
-		/// </summary>
-		public static EventHandler<Tag> TagAfterCreate;
-
-		/// <summary>
-		/// Just before a tag is being deleted. Return null to cancel the deletion.
-		/// </summary>
-		public static EventHandler<Tag> TagBeforeDelete;
-
-		/// <summary>
-		/// Just after a tag has been deleted.
-		/// </summary>
-		public static EventHandler<Tag> TagAfterDelete;
-
-		/// <summary>
-		/// Just before updating a tag. Optionally make additional changes, or return null to cancel the update.
-		/// </summary>
-		public static EventHandler<Tag> TagBeforeUpdate;
-
-		/// <summary>
-		/// Just after updating a tag.
-		/// </summary>
-		public static EventHandler<Tag> TagAfterUpdate;
-
-		/// <summary>
-		/// Just after a tag was loaded.
-		/// </summary>
-		public static EventHandler<Tag> TagAfterLoad;
-
-		/// <summary>
-		/// Just before a service loads a tag list.
-		/// </summary>
-		public static EventHandler<Filter<Tag>> TagBeforeList;
-
-		/// <summary>
-		/// Just after a tag list was loaded.
-		/// </summary>
-		public static EventHandler<List<Tag>> TagAfterList;
-
+		public static EventGroup<Tag> Tag;
+		
 		#endregion
 
 		#region Controller events

@@ -13,34 +13,19 @@ namespace Api.Tags
 	/// Handles tags - usually seen in e.g. knowledge bases or help guides.
 	/// Instanced automatically. Use injection to use this service, or Startup.Services.Get.
 	/// </summary>
-	public partial class TagService : ITagService
+	public partial class TagService : AutoService<Tag>, ITagService
     {
-        private IDatabaseService _database;
-		
-		private readonly Query<Tag> deleteQuery;
-		private readonly Query<Tag> createQuery;
-		private readonly Query<Tag> selectQuery;
-		private readonly Query<Tag> listQuery;
 		private readonly Query<TagContent> listByObjectQuery;
 		private readonly Query<TagContent> listContentQuery;
-		private readonly Query<Tag> updateQuery;
 
 
 		/// <summary>
 		/// Instanced automatically. Use injection to use this service, or Startup.Services.Get.
 		/// </summary>
-		public TagService(IDatabaseService database)
+		public TagService() : base(Events.Tag)
         {
-            _database = database;
-			
 			// Start preparing the queries. Doing this ahead of time leads to excellent performance savings, 
 			// whilst also using a high-level abstraction as another plugin entry point.
-			deleteQuery = Query.Delete<Tag>();
-			
-			createQuery = Query.Insert<Tag>();
-			updateQuery = Query.Update<Tag>();
-			selectQuery = Query.Select<Tag>();
-			listQuery = Query.List<Tag>();
 			listContentQuery = Query.List<TagContent>();
 			listByObjectQuery = Query.List<TagContent>();
 			listByObjectQuery.Where().EqualsArg("ContentTypeId", 0).And().EqualsArg("ContentId", 1);
@@ -281,73 +266,7 @@ namespace Api.Tags
 			}
 
 		}
-
-		/// <summary>
-		/// List a filtered set of tags.
-		/// </summary>
-		/// <returns></returns>
-		public async Task<List<Tag>> List(Context context, Filter<Tag> filter)
-		{
-			filter = await Events.TagBeforeList.Dispatch(context, filter);
-			var list = await _database.List(listQuery, filter);
-			list = await Events.TagAfterList.Dispatch(context, list);
-			return list;
-		}
-
-		/// <summary>
-		/// Deletes a Tag by its ID.
-		/// Optionally includes uploaded content refs in there too.
-		/// </summary>
-		/// <returns></returns>
-		public async Task<bool> Delete(Context context, int id)
-        {
-            // Delete the entry:
-			await _database.Run(deleteQuery, id);
-			
-			// Ok!
-			return true;
-        }
-        
-		/// <summary>
-		/// Gets a single Tag by its ID.
-		/// </summary>
-		public async Task<Tag> Get(Context context, int id)
-		{
-			return await _database.Select(selectQuery, id);
-		}
-
-		/// <summary>
-		/// Creates a new tag.
-		/// </summary>
-		public async Task<Tag> Create(Context context, Tag tag)
-		{
-			tag = await Events.TagBeforeCreate.Dispatch(context, tag);
-
-			// Note: The Id field is automatically updated by Run here.
-			if (tag == null || !await _database.Run(createQuery, tag))
-			{
-				return null;
-			}
-
-			tag = await Events.TagAfterCreate.Dispatch(context, tag);
-			return tag;
-		}
-
-		/// <summary>
-		/// Updates the given tag.
-		/// </summary>
-		public async Task<Tag> Update(Context context, Tag tag)
-		{
-			tag = await Events.TagBeforeUpdate.Dispatch(context, tag);
-
-			if (tag == null || !await _database.Run(updateQuery, tag, tag.Id))
-			{
-				return null;
-			}
-
-			tag = await Events.TagAfterUpdate.Dispatch(context, tag);
-			return tag;
-		}
+		
 	}
     
 }
