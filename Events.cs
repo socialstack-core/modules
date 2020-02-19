@@ -11,41 +11,10 @@ namespace Api.Eventing
 	/// </summary>
 	public partial class Events
 	{
-
-		#region Service events
-		
 		/// <summary>
 		/// Set of events for a Category.
 		/// </summary>
 		public static EventGroup<Category> Category;
-		
-		#endregion
-
-		#region Controller events
-
-		/// <summary>
-		/// Create a new category.
-		/// </summary>
-		public static EndpointEventHandler<CategoryAutoForm> CategoryCreate;
-		/// <summary>
-		/// Delete an category.
-		/// </summary>
-		public static EndpointEventHandler<Category> CategoryDelete;
-		/// <summary>
-		/// Update category metadata.
-		/// </summary>
-		public static EndpointEventHandler<CategoryAutoForm> CategoryUpdate;
-		/// <summary>
-		/// Load category metadata.
-		/// </summary>
-		public static EndpointEventHandler<Category> CategoryLoad;
-		/// <summary>
-		/// List categories.
-		/// </summary>
-		public static EndpointEventHandler<Filter<Category>> CategoryList;
-
-		#endregion
-
 	}
 
 }
