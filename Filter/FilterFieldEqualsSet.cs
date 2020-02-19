@@ -34,16 +34,21 @@ namespace Api.Permissions
 			builder.Append("`.`");
 			builder.Append(Field);
 			builder.Append("` IN (");
-
+			
 			if (Values != null)
 			{
-				for (var i = 0; i < Values.Length; i++)
+				var first = true;
+
+				foreach (var val in Values)
 				{
-					if (i != 0)
+					if (first)
+					{
+						first = false;
+					}
+					else
 					{
 						builder.Append(',');
 					}
-					var val = Values[i];
 
 					if (val == null)
 					{
