@@ -16,7 +16,7 @@ namespace Api.BlogPosts
 		/// Deletes a blog post by its ID.
 		/// </summary>
 		/// <returns></returns>
-		Task<bool> Delete(Context context, int postId, bool deleteContent = true);
+		Task<bool> Delete(Context context, int postId);
 
 		/// <summary>
 		/// Gets a single blog post by its ID.
