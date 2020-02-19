@@ -13,40 +13,26 @@ namespace Api.QuestionBoards
 	/// Handles creations of questionBoards - containers for questionBoard threads.
 	/// Instanced automatically. Use injection to use this service, or Startup.Services.Get.
 	/// </summary>
-	public partial class QuestionBoardService : IQuestionBoardService
+	public partial class QuestionBoardService : AutoService<QuestionBoard>, IQuestionBoardService
     {
-        private IDatabaseService _database;
-		
-		private readonly Query<QuestionBoard> deleteQuestionBoardQuery;
 		private readonly Query<Question> deleteQuestionsQuery;
 		private readonly Query<Answer> deleteAnswersQuery;
-		private readonly Query<QuestionBoard> createQuery;
-		private readonly Query<QuestionBoard> selectQuery;
-		private readonly Query<QuestionBoard> listQuery;
-		private readonly Query<QuestionBoard> updateQuery;
 
 
 		/// <summary>
 		/// Instanced automatically. Use injection to use this service, or Startup.Services.Get.
 		/// </summary>
-		public QuestionBoardService(IDatabaseService database)
+		public QuestionBoardService(IDatabaseService database) : base(Events.QuestionBoard)
         {
             _database = database;
 			
 			// Start preparing the queries. Doing this ahead of time leads to excellent performance savings, 
 			// whilst also using a high-level abstraction as another plugin entry point.
-			deleteQuestionBoardQuery = Query.Delete<QuestionBoard>();
-
 			deleteQuestionsQuery = Query.Delete<Question>();
 			deleteQuestionsQuery.Where().EqualsArg("QuestionBoardId", 0);
 
 			deleteAnswersQuery = Query.Delete<Answer>();
 			deleteAnswersQuery.Where().EqualsArg("QuestionBoardId", 0);
-			
-			createQuery = Query.Insert<QuestionBoard>();
-			updateQuery = Query.Update<QuestionBoard>();
-			selectQuery = Query.Select<QuestionBoard>();
-			listQuery = Query.List<QuestionBoard>();
 		}
 		
         /// <summary>
@@ -54,10 +40,20 @@ namespace Api.QuestionBoards
 		/// Optionally includes deleting all question content in there too.
         /// </summary>
         /// <returns></returns>
-        public async Task<bool> Delete(Context context, int id, bool deleteQuestions = true)
+        public override async Task<bool> Delete(Context context, int id)
+        {
+            return await Delete(context, id, true);
+        }
+
+        /// <summary>
+        /// Deletes a question board by its ID.
+		/// Optionally includes deleting all question content in there too.
+        /// </summary>
+        /// <returns></returns>
+        public async Task<bool> Delete(Context context, int id, bool deleteQuestions)
         {
             // Delete the questionBoard entry:
-			await _database.Run(deleteQuestionBoardQuery, id);
+			await base.Delete(context, id);
 			
 			if(deleteQuestions)
 			{
@@ -71,60 +67,5 @@ namespace Api.QuestionBoards
 			// Ok!
 			return true;
         }
-
-		/// <summary>
-		/// List a filtered set of question boards.
-		/// </summary>
-		/// <returns></returns>
-		public async Task<List<QuestionBoard>> List(Context context, Filter<QuestionBoard> filter)
-		{
-			filter = await Events.QuestionBoardBeforeList.Dispatch(context, filter);
-			var list = await _database.List(listQuery, filter);
-			list = await Events.QuestionBoardAfterList.Dispatch(context, list);
-			return list;
-		}
-
-		/// <summary>
-		/// Gets a single question board by its ID.
-		/// </summary>
-		public async Task<QuestionBoard> Get(Context context, int id)
-		{
-			return await _database.Select(selectQuery, id);
-		}
-
-		/// <summary>
-		/// Creates a new question board.
-		/// </summary>
-		public async Task<QuestionBoard> Create(Context context, QuestionBoard questionBoard)
-		{
-			questionBoard = await Events.QuestionBoardBeforeCreate.Dispatch(context, questionBoard);
-
-			// Note: The Id field is automatically updated by Run here.
-			if (questionBoard == null || !await _database.Run(createQuery, questionBoard))
-			{
-				return null;
-			}
-
-			questionBoard = await Events.QuestionBoardAfterCreate.Dispatch(context, questionBoard);
-			return questionBoard;
-		}
-
-		/// <summary>
-		/// Updates the given question board.
-		/// </summary>
-		public async Task<QuestionBoard> Update(Context context, QuestionBoard questionBoard)
-		{
-			questionBoard = await Events.QuestionBoardBeforeUpdate.Dispatch(context, questionBoard);
-
-			if (questionBoard == null || !await _database.Run(updateQuery, questionBoard, questionBoard.Id))
-			{
-				return null;
-			}
-
-			questionBoard = await Events.QuestionBoardAfterUpdate.Dispatch(context, questionBoard);
-			return questionBoard;
-		}
-
 	}
-
 }
