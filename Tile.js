@@ -8,7 +8,7 @@ export default class Tile extends React.Component {
         const className = (12 / (this.props.row || 1));
 		
         return (
-            <div className={'col-md-' + className}>
+            <div className={'col-md-' + className + ' ' + (this.props.className || '')}>
                 <div className={this.props.empty ? "" : "component-tile"}>
                     {!this.props.empty && (
                         <header>
