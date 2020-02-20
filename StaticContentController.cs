@@ -14,106 +14,17 @@ namespace Api.Uploader
 
 	public partial class StaticContentController : Controller
     {
+		private IStaticContentService _staticContentService;
+		
 		/// <summary>
-		/// The index file.
+		/// Instanced automatically per request.
 		/// </summary>
-		private byte[] _indexFile;
-
-		/// <summary>
-		/// The index file.
-		/// </summary>
-		private byte[] _adminIndexFile;
-
-		/// <summary>
-		/// Instanced automatically.
-		/// </summary>
-		public StaticContentController()
+		/// <param name="scs"></param>
+		public StaticContentController(IStaticContentService scs)
 		{
-			var pathToUIDir = AppSettings.Configuration["UI"];
-
-			if (string.IsNullOrEmpty(pathToUIDir))
-			{
-				pathToUIDir = "UI/public";
-			}
-			
-			var pathToAdminDir = AppSettings.Configuration["Admin"];
-
-			if (string.IsNullOrEmpty(pathToAdminDir))
-			{
-				// The en-admin subdir is to make configuring NGINX easy:
-				pathToAdminDir = "Admin/public/en-admin";
-			}
-
-			// User could edit the file themselves, 
-			// but also other modules such as the UI watcher may also inject changes too, so we'll watch for any changes on it.
-			WatchForIndexChanges(pathToUIDir, (byte[] file) => {
-
-				// This runs immediately, and also whenever the file changes.
-				_indexFile = file;
-
-			});
-
-			// Same for the admin index file:
-			WatchForIndexChanges(pathToAdminDir, (byte[] file) => {
-
-				// This runs immediately, and also whenever the file changes.
-				_adminIndexFile = file;
-
-			});
+			_staticContentService = scs;
 		}
-
-		/// <summary>
-		/// Watches the given file path for changes. Runs the given action whenever it changes, as well as immediately.
-		/// </summary>
-		/// <param name="directoryPath"></param>
-		/// <param name="onFileReadyOrChanged"></param>
-		private void WatchForIndexChanges(string directoryPath, Action<byte[]> onFileReadyOrChanged)
-		{
-			var fullFilePath = directoryPath + "/index.html";
-
-			if (System.IO.File.Exists(fullFilePath))
-			{
-				// Start watching the file:
-				using (FileSystemWatcher watcher = new FileSystemWatcher())
-				{
-					watcher.Path = directoryPath;
-
-					// Watch for changes in LastAccess and LastWrite times, and
-					// the renaming of files or directories.
-					watcher.NotifyFilter = NotifyFilters.LastAccess
-										 | NotifyFilters.LastWrite
-										 | NotifyFilters.FileName
-										 | NotifyFilters.DirectoryName;
-
-					// Only watch the index.html file.
-					watcher.Filter = "index.html";
-
-					// Add event handlers.
-					watcher.Changed += (object source, FileSystemEventArgs e) => {
-
-						onFileReadyOrChanged(System.IO.File.ReadAllBytes(fullFilePath));
-
-					};
-
-					// Initial run:
-					onFileReadyOrChanged(System.IO.File.ReadAllBytes(fullFilePath));
-
-					// Begin watching.
-					watcher.EnableRaisingEvents = true;
-				}
-
-			}
-			else
-			{
-				// The file doesn't exist.
-				onFileReadyOrChanged(
-					System.Text.Encoding.UTF8.GetBytes("index.html file is missing. Restart the API after correcting this. Check the logs for the location it is expected to be.")
-				);
-				System.Console.WriteLine("[WARNING] Your index.html file is missing. Create it and then restart the API. Tried to find it here: " + fullFilePath);
-			}
-
-		}
-
+		
 		/// <summary>
 		/// The catch all admin panel handler. If you're looking for /content/ etc, you'll find that over in Uploads/EventListener.cs
 		/// </summary>
@@ -121,8 +32,9 @@ namespace Api.Uploader
 		[Route("/en-admin/{*url}", Order = 9998)]
 		public async void CatchAllAdmin()
 		{
-            Response.ContentType = "text/html";
-            await Response.Body.WriteAsync(_adminIndexFile, 0, _adminIndexFile.Length);
+			Response.ContentType = "text/html";
+			var adminIndex = _staticContentService.AdminIndex;
+            await Response.Body.WriteAsync(adminIndex, 0, adminIndex.Length);
         }
 		
 		/// <summary>
@@ -131,9 +43,10 @@ namespace Api.Uploader
 		/// <returns></returns>
 		[Route("{*url}", Order = 9999)]
 		public async void CatchAll()
-        {
-            Response.ContentType = "text/html";
-            await Response.Body.WriteAsync(_indexFile, 0, _indexFile.Length);
+		{
+			Response.ContentType = "text/html";
+			var index = _staticContentService.Index;
+            await Response.Body.WriteAsync(index, 0, index.Length);
 		}
 		
 	}
