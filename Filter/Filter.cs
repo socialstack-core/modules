@@ -102,16 +102,83 @@ namespace Api.Permissions
 				}
 			}
 
-			var where = fromRequest["where"] as JObject;
+			var where = fromRequest["where"];
 
 			if (where == null) {
 				return;
 			}
 			
-            foreach (var kvp in where)
+			// There's 2 main ways you can format your where filter.
+			// Either as a simple object, which will be combined with AND:
+			/*
+				"where": {
+					"fieldName": "valueThatItMustBe",
+					"otherField": {
+						"startsWith": "valueItMustStartWith
+					},
+					"yetAnotherField": ["equals", "any", "of", "these"]
+				}
+			*/
+			
+			// Or it can be an array. If it's an array, then they are combined with OR. like this:
+			
+			/*
+				"where": [
+					{
+						"fieldName": "valueThatItMustBe"
+					},
+					{
+						"otherField": {
+							"startsWith": "valueItMustStartWith
+						}
+					},
+					{
+						"yetAnotherField": ["equals", "any", "of", "these"]
+					}
+				]
+			*/
+			
+			// The above is just an array of the previous where objects.
+			
+			// So, is it an array?
+			
+			var whereArray = where as JArray;
+			
+			if(whereArray != null){
+				
+				foreach(var entry in whereArray){
+					
+					if (Nodes.Count > 0)
+					{
+						// These combine with Or.
+						Or();
+					}
+					
+					// Handle it as a where object:
+					HandleWhereObject(entry as JObject);
+					
+				}
+				
+			}else{
+				
+				var whereObject = where as JObject;
+				
+				if(whereObject != null){
+					HandleWhereObject(whereObject);
+				}
+				
+			}
+		}
+		
+		/// <summary>
+		/// Applies JSON defined where:{} filters.
+		/// </summary>
+		private void HandleWhereObject(JObject whereObject){
+			
+			foreach (var kvp in whereObject)
 			{
 				// Default type:
-				var type = defaultType;
+				var type = DefaultType;
 				var fieldName = kvp.Key;
 				var dotIndex = fieldName.IndexOf('.');
 
@@ -156,17 +223,49 @@ namespace Api.Permissions
 				}
 				else if (matchingWithValue is JObject)
 				{
-					// It's also specifying the comparitor to use.
-					throw new NotImplementedException("Can't use objects as where field args yet.");
+					// It's also specifying the mode to use.
+					// For example
+					// MyField: {startsWith: 'Hello'}
+					// MyField: {contains: 'Hello'}
+					// MyField: {equals: 'Hello'}
+					// MyField: {endsWith: 'Hello'}
+
+					// For now the value can't be a set on anything except equals, i.e. MyField: {endsWith: ['Hello', 'World']} meaning either of Hello or World is not supported.
+
+					var fieldObject = matchingWithValue as JObject;
+
+					foreach (var fvp in fieldObject)
+					{
+
+						switch (fvp.Key)
+						{
+							case "startsWith":
+								StartsWith(type, kvp.Key, fvp.Value.Value<string>());
+							break;
+							case "contains":
+								Contains(type, kvp.Key, fvp.Value.Value<string>());
+							break;
+							case "endsWith":
+								EndsWith(type, kvp.Key, fvp.Value.Value<string>());
+							break;
+							case "equals":
+								// Little bit pointless but we'll support it anyway. fieldName: {equals: x} is the same as just fieldName: x.
+								Equals(type, kvp.Key, fvp.Value.ToObject<object>());
+							break;
+							default:
+								throw new Exception(fvp.Key + " is not a suitable comparison operator in a filter. Try contains, startsWith, equals or endsWith.");
+						}
+
+					}
+
 				}
 				else
 				{
 					Equals(type, kvp.Key, kvp.Value.ToObject<object>());
 				}
 			}
-			
 		}
-
+		
 		/// <summary>
 		/// The nodes in this filter.
 		/// </summary>
