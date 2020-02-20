@@ -1,0 +1,15 @@
+.auto-list{
+	
+	.fa-caret-down, .fa-caret-up{
+		color: lightgrey;
+		
+		&:hover{
+			cursor: pointer;
+		}
+	}
+	
+	th.sorted-desc .fa-caret-down, th.sorted-asc .fa-caret-up{
+		color: green;
+	}
+	
+}
