@@ -41,7 +41,7 @@ export default class Uploader extends React.Component {
 		} = this.state;
 		
         return (
-			<div>
+			<div className="uploader">
 				{loading && (
 					<Loading />
 				)}
