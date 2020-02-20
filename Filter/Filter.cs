@@ -151,6 +151,7 @@ namespace Api.Permissions
 					if (Nodes.Count > 0)
 					{
 						// These combine with Or.
+						#warning this isn't quite right as we'll end up with it OR-ing the 2 nearest things, rather than (all of this) or (all of this).
 						Or();
 					}
 					
