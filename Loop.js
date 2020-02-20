@@ -134,7 +134,6 @@ export default class Loop extends React.Component {
 			
 			if(this.state.over == props.over && jsonFilter == this.state.jsonFilter){
 				// Avoid making a new request.
-				console.log('Blocked because filter unchanged', jsonFilter);
 				return;
 			}
 			
