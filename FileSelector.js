@@ -60,7 +60,11 @@ export default class FileSelector extends React.Component {
 				<Loop over="uploader/list" inline>
 				{
 					entry => {
-						return <Image fileRef={entry.ref} size={64} alt={entry.name} />;
+						return <Image fileRef={entry.ref} size={64} alt={entry.name} onClick={() => {
+							
+							this.updateValue(entry);
+							
+						}}/>;
 					}
 				}
 				</Loop>
