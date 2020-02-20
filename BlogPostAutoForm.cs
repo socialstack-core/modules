@@ -1,6 +1,6 @@
 ﻿using Newtonsoft.Json;
 using Api.AutoForms;
-
+using System;
 
 namespace Api.BlogPosts
 {
@@ -42,5 +42,15 @@ namespace Api.BlogPosts
 		/// A description of the blog post. This will be displayed on blog post lists.
 		/// </summary>
 		public string Description;
+		
+		/// <summary>
+		/// The date the post was created.
+		/// </summary>
+		public DateTime CreatedUtc;
+		
+		/// <summary>
+		/// The user who created it.
+		/// </summary>
+		public int UserId;
 	}
 }
