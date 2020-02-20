@@ -12,7 +12,10 @@ export default class FileSelector extends React.Component {
 	constructor(props){
 		super(props);
 		
-		this.state = {};
+		this.state = {
+			editing: false
+			
+		};
 		this.closeModal = this.closeModal.bind(this);
 	}
 	
@@ -30,7 +33,8 @@ export default class FileSelector extends React.Component {
 		
 		this.setState({
 			value: newRef,
-			modalOpen: false
+			modalOpen: false,
+			editing: false
 		});
 	}
 	
@@ -69,14 +73,19 @@ export default class FileSelector extends React.Component {
 				}
 				</Loop>
 			</Modal>,
-			<div>
-				<Image fileRef={currentRef} size={64} />
-			</div>,
-			<span>
-				<span className="btn btn-secondary" onClick={() => this.showModal()}>Select from uploads</span> or <Uploader onUploaded={
-					file => this.updateValue(file)
-				}/>
-			</span>,
+			this.state.editing ? (
+				<div>
+					<span className="btn btn-secondary" onClick={() => this.showModal()}>Select from uploads</span> or <Uploader onUploaded={
+						file => this.updateValue(file)
+					}/>
+				</div>
+			) : (
+				<div>
+					{currentRef && currentRef.length ? <Image fileRef={currentRef} size={64} /> : 'None selected'}
+					&nbsp;
+					<div className="btn btn-secondary" onClick={() => this.setState({editing: true})}>Change</div>
+				</div>
+			),
 			this.props.name ? (
 				/* Also contains a hidden input field containing the value */
 				<input type="hidden" value={currentRef} name={this.props.name} id={this.props.id} />
