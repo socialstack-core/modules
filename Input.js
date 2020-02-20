@@ -167,6 +167,10 @@ export default class Input extends React.Component {
 		
 		const {type} = this.props;
 		
+		if(type instanceof Function){
+			return type(this);
+		}
+		
 		if(type == "select"){
 			
 			return (
