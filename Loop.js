@@ -134,6 +134,7 @@ export default class Loop extends React.Component {
 			
 			if(this.state.over == props.over && jsonFilter == this.state.jsonFilter){
 				// Avoid making a new request.
+				console.log('Blocked because filter unchanged', jsonFilter);
 				return;
 			}
 			
@@ -315,19 +316,51 @@ export default class Loop extends React.Component {
 		}
 		
 		if(this.props.asTable){
+			// May have multiple render functions, including for the header and footer.
+			var headerFunc = null;
+			var bodyFunc = renderFunc;
+			var footerFunc = null;
+			
+			if(renderFunc.length){
+				if(renderFunc.length == 1){
+					bodyFunc = renderFunc[0];
+				}else{
+					headerFunc = renderFunc[0];
+					bodyFunc = renderFunc[1];
+					
+					if(renderFunc.length > 1){
+						footerFunc = renderFunc[1];
+					}
+				}
+			}
+			
 			return (
 				<table className={"table " + className}>
+					{headerFunc && (
+						<thead>
+						{
+							headerFunc(results)
+						}
+						</thead>
+					)}
 					<tbody>
 					{
 						results.map((item, i) => {
 							return (
 								<tr className={'loop-item loop-item-' + i} key={i}>
-									{renderFunc(item, i, results.length)}
+									{bodyFunc(item, i, results.length)}
 								</tr>
 							);
 						})
 					}
 					</tbody>
+					{footerFunc && (
+						<tfoot>
+						{
+							footerFunc(results)
+						}
+						</tfoot>
+					)}
 				</table>
 			);
 		}
