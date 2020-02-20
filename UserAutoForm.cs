@@ -23,5 +23,10 @@ namespace Api.Users
         /// The json that contains a user bio
         /// </summary>
         public string BioJson;
+		
+        /// <summary>
+        /// A user's avatar.
+        /// </summary>
+        public string AvatarRef;
     }
 }
