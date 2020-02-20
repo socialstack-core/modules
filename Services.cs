@@ -13,6 +13,11 @@ namespace Api.Startup
 		/// The lookup of services. Use Get instead.
 		/// </summary>
 		public static Dictionary<Type, object> All = new Dictionary<Type, object>();
+		
+		/// <summary>
+		/// A lookup specifically for AutoService implementations.
+		/// </summary>
+		public static Dictionary<Type, object> AutoServices = new Dictionary<Type, object>();
 
 		/// <summary>
 		/// The underlying service provider, used to obtain injected service instances.

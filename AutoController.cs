@@ -33,18 +33,11 @@ public class AutoController<T, U> : ControllerBase
 	public AutoController()
 	{
 		// Find the service:
-		foreach (var service in Api.Startup.Services.All)
+		if (Api.Startup.Services.AutoServices.TryGetValue(typeof(AutoService<T>), out object svc))
 		{
-			var serviceType = service.Value.GetType();
-
-			if (typeof(AutoService<T>).IsAssignableFrom(serviceType))
-			{
-				// Got it:
-				_service = service.Value as AutoService<T>;
-			}
+			_service = (AutoService<T>)svc;
 		}
-
-		if (_service == null)
+		else
 		{
 			throw new Exception(
 				"Unable to use AutoController for type " + typeof(T).Name + " as it doesn't have an AutoService. " +

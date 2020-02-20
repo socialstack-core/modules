@@ -161,6 +161,15 @@ namespace Api.Startup
 			{
 				var svc = serviceProvider.GetService(serviceInterfaceType);
 				Services.All[serviceInterfaceType] = svc;
+
+				// If it's an AutoService, add it to the lookup:
+				var autoServiceType = GetAutoServiceType(svc.GetType());
+
+				if (autoServiceType != null)
+				{
+					Services.AutoServices[autoServiceType] = svc;
+				}
+				
 			}
 
 			// Services are now all instanced - fire off service OnStart event:
@@ -169,6 +178,32 @@ namespace Api.Startup
 			// Register shutdown event:
 			applicationLifetime.ApplicationStopping.Register(OnApplicationStopping);
 			
+		}
+		
+		/// <summary>
+		/// Attempts to find the AutoService type for the given type, or null if it isn't one.
+		/// </summary>
+		/// <param name="type"></param>
+		/// <returns></returns>
+		private Type GetAutoServiceType(Type type){
+			
+			if (type.IsGenericType)
+			{
+
+				if (type.GetGenericTypeDefinition() == typeof(AutoService<>))
+				{
+					// Yep, this is an AutoService type.
+					return type;
+				}
+
+			}
+
+			if (type.BaseType != null)
+			{
+				return GetAutoServiceType(type.BaseType);
+			}
+
+			return null;
 		}
 		
 		/// <summary>
