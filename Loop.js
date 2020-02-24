@@ -163,7 +163,7 @@ export default class Loop extends React.Component {
 
 		}else{
 			// Direct array:
-			var results = props.from;
+			var results = props.over;
 			
 			if(props.onResults){
 				results = this.props.onResults(results);
