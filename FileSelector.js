@@ -2,6 +2,19 @@ import Loop from 'UI/Loop';
 import Modal from 'UI/Modal';
 import Image from 'UI/Image';
 import Uploader from 'UI/Uploader';
+import omit from 'UI/Functions/Omit';
+
+var eventHandler = global.events.get('UI/Input');
+
+eventHandler.ontypefile = eventHandler.ontypeimage = function(props, _this){
+	return (
+		<FileSelector 
+			id={props.id || _this.fieldId}
+			className={props.className || "form-control"}
+			{...omit(props, ['id', 'className', 'type', 'inline'])}
+		/>
+	);
+};
 
 /**
  * Select a file from a users available uploads, outputting a ref.
@@ -30,6 +43,8 @@ export default class FileSelector extends React.Component {
 		}else if(newRef.ref){
 			newRef = newRef.ref;
 		}
+		
+		this.props.onChange && this.props.onChange({target: {value: newRef}});
 		
 		this.setState({
 			value: newRef,
