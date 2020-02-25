@@ -44,6 +44,7 @@ class Canvas extends React.Component {
 	}
 	
 	mapTokens(obj){
+		var tokenSet = this.props.tokens || global.pageRouter.state.tokens;
 		
 		for(var e in obj) {
 			
@@ -56,7 +57,7 @@ class Canvas extends React.Component {
 			if(value.type && value.name){
 			
 				if(value.type == "urlToken"){
-					obj[e] = global.pageRouter.state.tokens[value.name];
+					obj[e] = tokenSet[value.name];
 				}
 				
 			}else if(typeof value === 'object'){
@@ -78,7 +79,7 @@ class Canvas extends React.Component {
 		return (
 			<Module key={index} {...dataFields}>
 			{
-				contentNode.useCanvasRender ? contentNode.content.map((e,i)=>this.renderNode(e,i)) : contentNode.content
+				contentNode.useCanvasRender && contentNode.content ? contentNode.content.map((e,i)=>this.renderNode(e,i)) : contentNode.content
 			}
 			</Module>
 		);
