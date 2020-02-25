@@ -25,7 +25,6 @@ export default class PageRouter extends React.Component{
 	}
 
 	makeRequest(){
-		console.log("made webrequest for pages");
 		webRequest("page/list").then(response => {
 			var pages = response.json.results;
 			this.pages(pages, false);
