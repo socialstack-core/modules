@@ -3,6 +3,10 @@ import webRequest from 'UI/Functions/WebRequest';
 
 
 function expand(contentNode, onChange, onContentNode, blockRequest){
+	if(contentNode.expanded){
+		return contentNode;
+	}
+	
 	// We recurse the tree via each 'content' array, expanding each node as we go.
 	// The goal is to eliminate all convenience/ shorthand JSON such that e.g:
 	// {"canvas": 1}  -> {"module": "Canvas", data: {"url": "canvas/1"}}
@@ -16,7 +20,9 @@ function expand(contentNode, onChange, onContentNode, blockRequest){
 		// String or number
 		return {
 			module: Text,
-			content: contentNode
+			moduleName: 'UI/Text',
+			content: contentNode,
+			expanded: true
 		};
 	}
 	
@@ -59,6 +65,7 @@ function expand(contentNode, onChange, onContentNode, blockRequest){
 	if(contentNode.module){
 		
 		var mdRef = contentNode.module;
+		contentNode.moduleName = mdRef;
 		
 		if(mdRef.indexOf('.') == -1){
 			// Expansion of e.g. UI/Canvas to UI/Canvas/Canvas.js
@@ -114,6 +121,7 @@ function expand(contentNode, onChange, onContentNode, blockRequest){
 	
 	onContentNode && onContentNode(contentNode);
 	
+	contentNode.expanded = true;
 	return contentNode;
 }
 
