@@ -1,11 +1,10 @@
 var id = 1;
 
 import tinymce from 'UI/TinyMce';
-import CanvasEditor from 'UI/CanvasEditor';
-import FileSelector from 'UI/FileSelector';
 import getModule from 'UI/Functions/GetModule';
 import omit from 'UI/Functions/Omit';
 
+var eventTarget = global.events.get('UI/Input');
 
 /**
  * Helps eliminate a significant amount of boilerplate around <input>, <textarea> and <select> elements.
@@ -208,26 +207,6 @@ export default class Input extends React.Component {
 				/>
 			);
 		
-		}else if(type == "file" || type == "image"){
-			
-			return (
-				<FileSelector 
-					id={this.props.id || this.fieldId}
-					className={this.props.className || "form-control"}
-					{...omit(this.props, ['id', 'className', 'type', 'inline'])}
-				/>
-			);
-			
-		}else if(type == "canvas"){
-			
-			return (
-				<CanvasEditor 
-					id={this.props.id || this.fieldId}
-					className={this.props.className || "form-control"}
-					{...omit(this.props, ['id', 'className', 'type', 'inline'])}
-				/>
-			);
-			
 		}else if(type == "submit" || type == "button"){
 			
 			return (
@@ -241,6 +220,12 @@ export default class Input extends React.Component {
 			);
 			
 		}else{
+			// E.g. ontypecanvas will fire. This gives a generic entry point for custom input types by just installing them:
+			var handler = eventTarget['ontype' + type];
+			if(handler){
+				return handler(this.props, type, this);
+			}
+			
 			return (
 				<input 
 					id={this.props.id || this.fieldId} 
