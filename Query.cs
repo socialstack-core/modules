@@ -88,18 +88,29 @@ namespace Api.Database
 
 		/// <summary>The query to run (cached).</summary>
 		protected string _query;
-		
+
 		/// <summary>
 		/// Sets the MainTable and MainTableAs fields.
 		/// </summary>
 		/// <param name="type"></param>
-		protected void SetMainTable(Type type)
+		public Query SetMainTable(Type type)
 		{
-			MainTableType = type;
-			MainTable = type.TableName();
-			MainTableAs = MainTable + " AS `" + type.Name + "`";
+			return SetMainTable(type, type.TableName());
 		}
 
+		/// <summary>
+		/// Sets the MainTable and MainTableAs fields.
+		/// </summary>
+		/// <param name="type"></param>
+		/// <param name="name">The underlying table name.</param>
+		public Query SetMainTable(Type type, string name)
+		{
+			MainTableType = type;
+			MainTable = name;
+			MainTableAs = name + " AS `" + type.Name + "`";
+			return this;
+		}
+		
 		/// <summary>
 		/// True if this is an INSERT query.
 		/// </summary>
@@ -177,6 +188,25 @@ namespace Api.Database
 		public Field RemoveField(string name)
 		{
 			return Fields.Remove(name);
+		}
+
+		/// <summary>
+		/// Adds a new field to this query.
+		/// </summary>
+		/// <returns></returns>
+		public void AddField(Field field)
+		{
+			Fields.Add(field);
+		}
+		
+		/// <summary>
+		/// Finds a field with the given name. Null if not found.
+		/// </summary>
+		/// <param name="name"></param>
+		/// <returns></returns>
+		public Field GetField(string name)
+		{
+			return Fields.Find(name);
 		}
 
 		/// <summary>
@@ -610,6 +640,27 @@ namespace Api.Database
 	/// </summary>
 	public class Query<T> : Query
 	{
+
+		/// <summary>
+		/// Sets the MainTable and MainTableAs fields.
+		/// </summary>
+		public Query SetMainTable()
+		{
+			return SetMainTable(typeof(T), typeof(T).TableName());
+		}
+
+		/// <summary>
+		/// Sets the MainTable and MainTableAs fields.
+		/// </summary>
+		/// <param name="name">The underlying table name.</param>
+		public Query<T> SetMainTable(string name)
+		{
+			MainTableType = typeof(T);
+			MainTable = name;
+			MainTableAs = name + " AS `" + typeof(T).Name + "`";
+			return this;
+		}
+		
 		/// <summary>
 		/// Start building a custom WHERE filter.
 		/// </summary>

@@ -29,13 +29,7 @@ namespace Api.Database
 				
 				// (filter here if needed).
 				
-				fieldSet.Add(new Field(){
-					OwningType = type,
-					Type = field.FieldType,
-					Name = field.Name,
-					TargetField = field,
-					FullName = "`" + type.Name + "`.`" + field.Name + "`"
-				});
+				fieldSet.Add(new Field(type, field));
 			}
 			
 			// Set:
@@ -55,7 +49,26 @@ namespace Api.Database
 		{
 			Fields = Fields.Where(fld => fieldNames.Contains(fld.Name)).ToList();
 		}
-		
+
+		/// <summary>
+		/// Finds a field with the given name. Null if not found.
+		/// </summary>
+		/// <param name="name"></param>
+		/// <returns></returns>
+		public Field Find(string name)
+		{
+			return Fields.FirstOrDefault(fld => fld.Name == name);
+		}
+
+		/// <summary>
+		/// Adds a field to this map.
+		/// </summary>
+		/// <param name="field"></param>
+		public void Add(Field field)
+		{
+			Fields.Add(field);
+		}
+
 		/// <summary>
 		/// Remove a field from the map.
 		/// </summary>

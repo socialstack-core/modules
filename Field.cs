@@ -37,6 +37,23 @@ namespace Api.Database
 
 
 		/// <summary>
+		/// Creates a new empty field
+		/// </summary>
+		public Field() { }
+
+		/// <summary>
+		/// Creates a new field for the given owning type and field info, with optional field name.
+		/// </summary>
+		public Field(Type type, FieldInfo field, string name = null) {
+
+			OwningType = type;
+			Type = field.FieldType;
+			TargetField = field;
+			Name = name == null ? field.Name : name;
+			FullName = "`" + type.Name + "`.`" + Name + "`";
+		}
+
+		/// <summary>
 		/// Updates the FullName field.
 		/// </summary>
 		public void SetFullName(string extension = null)
