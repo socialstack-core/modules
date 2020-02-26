@@ -53,6 +53,22 @@ namespace Api.Users
 		}
 
 		/// <summary>
+		/// This is true if this revision is a draft. It's false if you don't have a revision object.
+		/// </summary>
+		private bool _IsDraft;
+
+		/// <summary>
+		/// This is true if this revision is a draft. It's false if you don't have a revision object.
+		/// </summary>
+		public bool IsDraft
+		{
+			get
+			{
+				return _IsDraft;
+			}
+		}
+
+		/// <summary>
 		/// Gets the ID of the user who created this content.
 		/// </summary>
 		/// <returns></returns>
