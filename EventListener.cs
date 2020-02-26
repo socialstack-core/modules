@@ -27,6 +27,7 @@ namespace Api.Revisions
 		public EventListener()
 		{
 			var revisionIdField = typeof(RevisionRow).GetField("_RevisionId", BindingFlags.Instance | BindingFlags.NonPublic);
+			var isDraftField = typeof(RevisionRow).GetField("_IsDraft", BindingFlags.Instance | BindingFlags.NonPublic);
 			
 			// Hook up the database diff event, which will be used to generate tables for us:
 			Events.DatabaseDiffBeforeAdd.AddEventListener((Context ctx, FieldMap fieldMap, Type typeInfo, Schema newSchema) => {
@@ -104,7 +105,20 @@ namespace Api.Revisions
 						contentIdColumn
 					);
 				}
-				
+
+				// Add IsDraft column:
+				var isDraft = new Field()
+				{
+					OwningType = typeInfo,
+					Type = isDraftField.FieldType,
+					TargetField = isDraftField,
+					Name = "RevisionIsDraft"
+				};
+
+				isDraft.SetFullName();
+
+				newSchema.Add(new DatabaseColumnDefinition(isDraft, targetTableName));
+
 				return Task.FromResult(fieldMap);
 			});
 
@@ -159,7 +173,7 @@ namespace Api.Revisions
 				var str = copyQuery.GetQuery();
 
 				// And add an event handler now:
-				beforeUpdateEvent.AddEventListener((Context context, object[] args) =>
+				beforeUpdateEvent.AddEventListener(async (Context context, object[] args) =>
 				{
 					if (args == null || args.Length == 0)
 					{
@@ -178,9 +192,28 @@ namespace Api.Revisions
 					{
 						database = Services.Get<IDatabaseService>();
 					}
+					
+					/*
+					// trigger the before create revision events:
+					if(beforeUpdateEvent.EventGroup != null){
+						beforeUpdateEvent.EventGroup.RevisionBeforeCreate(context, revisionableContent);
+					}
+					*/
 
 					// Run the copy query now:
-					database.Run(copyQuery, revisionableContent.Id);
+					await database.Run(copyQuery, revisionableContent.Id);
+
+					#warning TODO - trigger the before and after events
+					// - Requires collecting the ID from the above copy call
+					// - Also requires collecting the EventGroup that the update event came from in order to call the events.
+
+					/*
+					// trigger the after create revision events:
+					if(beforeUpdateEvent.EventGroup != null){
+						// Note: This will not know what the revisions ID is.
+						beforeUpdateEvent.EventGroup.RevisionAfterCreate(context, revisionableContent);
+					}
+					*/
 
 					// Bump its revision number.
 					revisionableContent.Revision++;
