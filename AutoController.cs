@@ -17,7 +17,7 @@ using Api.AutoForms;
 /// <typeparam name="T"></typeparam>
 /// <typeparam name="U"></typeparam>
 [ApiController]
-public class AutoController<T, U> : ControllerBase
+public partial class AutoController<T, U> : ControllerBase
 	where T : Api.Users.RevisionRow, new()
 	where U : AutoForm<T>
 {
