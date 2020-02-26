@@ -69,23 +69,23 @@ namespace Api.Eventing
 		#region Controller events
 
 		/// <summary>
-		/// Create a new article.
+		/// Create a new entity.
 		/// </summary>
 		public EndpointEventHandler<AutoForm<T>> Create;
 		/// <summary>
-		/// Delete an article.
+		/// Delete an entity.
 		/// </summary>
 		public EndpointEventHandler<T> Delete;
 		/// <summary>
-		/// Update article metadata.
+		/// Update entity metadata.
 		/// </summary>
 		public EndpointEventHandler<AutoForm<T>> Update;
 		/// <summary>
-		/// Load article metadata.
+		/// Load entity metadata.
 		/// </summary>
 		public  EndpointEventHandler<T> Load;
 		/// <summary>
-		/// List articles.
+		/// List entities.
 		/// </summary>
 		public EndpointEventHandler<Filter<T>> List;
 
