@@ -7,13 +7,13 @@ using System;
 namespace Api.Metrics
 {
     /// <summary>
-    /// Handles metric endpoints. 
+    /// Handles metric source endpoints. 
     /// Instanced automatically. Use injection to use this service, or Startup.Services.Get.
     /// </summary>
-    public partial interface IMetricService
+    public partial interface IMetricSourceService
     {
         /// <summary>
-		/// Delete a metric by its ID.
+		/// Delete a metric source by its ID.
 		/// </summary>
 		/// <param name="context"></param>
 		/// <param name="id"></param>
@@ -21,24 +21,24 @@ namespace Api.Metrics
 		Task<bool> Delete(Context context, int id);
 
 		/// <summary>
-		/// Get a metric by its ID.
+		/// Get a metric source by its ID.
 		/// </summary>
-		Task<Metric> Get(Context context, int id);
+		Task<MetricSource> Get(Context context, int id);
 
 		/// <summary>
-		/// Create a new metric.
+		/// Create a new metric source.
 		/// </summary>
-		Task<Metric> Create(Context context, Metric metric);
+		Task<MetricSource> Create(Context context, MetricSource metric);
 
 		/// <summary>
-		/// Updates the database with the given metric data. It must have an ID set.
+		/// Updates the database with the given metric source data. It must have an ID set.
 		/// </summary>
-		Task<Metric> Update(Context context, Metric metric);
+		Task<MetricSource> Update(Context context, MetricSource metric);
 
 		/// <summary>
-		/// List a filtered set of metrics.
+		/// List a filtered set of metric sources.
 		/// </summary>
 		/// <returns></returns>
-		Task<List<Metric>> List(Context context, Filter<Metric> filter);
+		Task<List<MetricSource>> List(Context context, Filter<MetricSource> filter);
     }
 }

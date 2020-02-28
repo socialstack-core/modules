@@ -1,11 +1,9 @@
-﻿using Api.Contexts;
-using Api.Database;
-using Api.Permissions;
-using Api.Eventing;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.Threading.Tasks;
-using Api.Notifications;
 using System;
+using Api.Eventing;
+using System.Timers;
+using Api.Contexts;
 
 namespace Api.Metrics
 {
@@ -13,99 +11,152 @@ namespace Api.Metrics
     /// Handles Metrics.
     /// Instanced automatically. Use Injection to use this service, or Startup.Services.Get. 
     /// </summary>
-    public partial class MetricService : IMetricService
+    public partial class MetricService : AutoService<Metric>, IMetricService
     {
-        private IDatabaseService _database;
+		/// <summary>
+		/// The raw metric sample rate is in blocks of every 15 minutes. This is the smallest division available.
+		/// </summary>
+		private int blockSizeInMinutes = 15;
+		private readonly IMetricSourceService _sources;
+		private readonly IMetricMeasurementService _measurements;
+		private readonly List<LiveMetricSource> _liveSources = new List<LiveMetricSource>();
+		private DateTime epoch = new DateTime(2020, 1, 1, 0, 0, 0, DateTimeKind.Utc);
 
-        private readonly Query<Metric> deleteQuery;
-        private readonly Query<Metric> createQuery;
-        private readonly Query<Metric> selectQuery;
-        private readonly Query<Metric> listQuery;
-        private readonly Query<Metric> updateQuery;
+		/// <summary>
+		/// Instanced automatically. Use injection to use this service, or Startup.Services.Get.
+		/// </summary>
+		public MetricService(IMetricSourceService sources, IMetricMeasurementService measurements) : base(Events.Metric)
+		{
+			_sources = sources;
+			_measurements = measurements;
 
-        /// <summary>
-        /// Instanced automatically. Use injection to use this service, or Startup.Service.Get. 
-        /// </summary>
-        /// <param name="database"></param>
-        public MetricService(IDatabaseService database)
-        {
-            _database = database;
+			StartUpdateLoop();
 
-            // Start preparing the queries. Doing this ahead of time leads to excellent performance savings,
-            // whilst also using a high-level abstraction as another plugin entry point.
-            deleteQuery = Query.Delete<Metric>();
-            createQuery = Query.Insert<Metric>();
-            updateQuery = Query.Update<Metric>();
-            selectQuery = Query.Select<Metric>();
-            listQuery = Query.List<Metric>();
-        }
+			Task.Run(async () => {
 
-        /// <summary>
-        /// List a filtered set of metrics
-        /// </summary>
-        /// <returns></returns>
-        public async Task<List<Metric>> List(Context context, Filter<Metric> filter)
-        {
-            filter = await Events.MetricBeforeList.Dispatch(context, filter);
-            var list = await _database.List(listQuery, filter);
-            list = await Events.MetricAfterList.Dispatch(context, list);
-            return list;
-        }
+				await SetupMetricHandlers();
 
-        /// <summary>
-        /// Deletes a metric by its ID
-        /// </summary>
-        public async Task<bool> Delete(Context context, int id, bool deleteContent = true)
-        {
-            await _database.Run(deleteQuery, id);
+			});
+		}
 
-            // Ok!
-            return true;
-        }
+		/// <summary>
+		/// Sets up all the event listeners for initially configured metrics.
+		/// </summary>
+		/// <returns></returns>
+		private async Task SetupMetricHandlers()
+		{
+			var ctx = new Context();
 
-        /// <summary>
-        /// Gets a metric by its ID.
-        /// </summary>
-        public async Task<Metric> Get(Context context, int id)
-        {
-            Metric metric = await _database.Select(selectQuery, id);
-            metric = await Events.MetricAfterLoad.Dispatch(context, metric);
-            return metric;
-        }
+			// Get the list of all metrics and sources:
+			var metrics = await List(ctx, null);
+			var metricSources = await _sources.List(ctx, null);
 
-        /// <summary>
-        /// Create a metric
-        /// </summary>
-        public async Task<Metric> Create(Context context, Metric metric)
-        {
-            metric = await Events.MetricBeforeCreate.Dispatch(context, metric);
+			// Map each source to the metrics they originate from.
+			// Whilst they'll probably be rare, we want to avoid connecting sources that aren't actually in metrics.
+			// First, make a little lookup:
+			var metricLookup = new Dictionary<int, Metric>();
 
-            // Note: The Id field is automtically updated by Run here.
-            if (metric == null || !await _database.Run(createQuery, metric))
-            {
-                return null;
-            }
+			foreach (var metric in metrics)
+			{
+				metricLookup[metric.Id] = metric;
+			}
 
-            metric = await Events.MetricAfterCreate.Dispatch(context, metric);
-            return metric;
-        }
+			// Connect each source:
+			foreach (var source in metricSources)
+			{
+				if (!metricLookup.TryGetValue(source.MetricId, out Metric metric))
+				{
+					continue;
+				}
 
-        /// <summary>
-        /// Updates the given metric. If it doesn't exist, it will create it instead. 
-        /// </summary>
-        public async Task<Metric> Update(Context context, Metric metric)
-        {
+				if (!Events.All.TryGetValue(source.EventName.ToLower().Trim(), out Eventing.EventHandler handler))
+				{
+					Console.WriteLine("[WARN] Metric source (see the metricsource table in the database) " + source.Id + " is trying to connect to an event called '" + source.EventName + "' which doesn't exist in this API. " +
+						"The source has been ignored.");
+					continue;
+				}
+				
+				// A connected metric source is a "Live source" - that's one which is actively receiving triggers:
+				var liveSource = new LiveMetricSource()
+				{
+					Metric = metric,
+					Source = source
+				};
 
-            
-            metric = await Events.MetricBeforeUpdate.Dispatch(context, metric);
+				GenericEventHandler listener = (Context context, object[] args) => {
 
-            if (metric == null || !await _database.Run(updateQuery, metric, metric.Id))
-            {
-                return null;
-            }
+					if (args == null || args.Length == 0)
+					{
+						return null;
+					}
 
-            metric = await Events.MetricAfterUpdate.Dispatch(context, metric);
-            return metric;
-        }
+					// The event has triggered. Bump the live source active count:
+					liveSource.Count++;
+
+					return args[0];
+				};
+
+				handler.AddEventListener(listener);
+				
+				_liveSources.Add(liveSource);
+			}
+
+		}
+
+		private void StartUpdateLoop()
+		{
+			// Create a timer with a 30 second interval.
+			var metricTimer = new System.Timers.Timer(30 * 1000);
+
+			metricTimer.Elapsed += async (Object source, ElapsedEventArgs e) => {
+
+				// Timer tick. Let's store any updated metric measurements.
+				var context = new Context();
+				
+				foreach (var liveSource in _liveSources)
+				{
+					// If its count is non-zero, add to or update the database entry.
+					if (liveSource.Count == 0)
+					{
+						continue;
+					}
+
+					var count = liveSource.Count;
+					liveSource.Count = 0;
+
+					// Got a metric measurement value to add:
+					long unixtime = (long)(DateTime.UtcNow.Subtract(epoch)).TotalSeconds;
+
+					#warning At some point, somebody will create more than 1024 sources.
+					// When they do, this optimisation will overflow.
+					int measurementId = (int)(unixtime / (blockSizeInMinutes * 60)) | (liveSource.Source.Id << 21);
+
+					// Let's check to see if it exists.
+					var measurement = await _measurements.Get(context, measurementId);
+
+					if (measurement == null)
+					{
+						// Doesn't exist, create it.
+						await _measurements.Create(context, new MetricMeasurement() {
+							Id = measurementId,
+							Count = count,
+							MetricId = liveSource.Metric.Id,
+							SourceId = liveSource.Source.Id
+						});
+					}
+					else
+					{
+						measurement.Count += count;
+						await _measurements.Update(context, measurement);
+					}
+
+				}
+
+			};
+
+			metricTimer.AutoReset = true;
+			metricTimer.Enabled = true;
+		}
+		
     }
 }

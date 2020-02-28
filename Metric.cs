@@ -5,14 +5,18 @@ using Api.Users;
 namespace Api.Metrics
 {
     /// <summary>
-    /// Metrics are used to measure the number of notifications created in 15 minute blocks. 
+    /// Metrics are used to measure the amount of occurrences of triggers (called a metric source) over time.
     /// </summary>
-    [DatabaseField(AutoIncrement = false)]
     public partial class Metric : RevisionRow
     {
         /// <summary>
-        /// The count of notification sent in this 15 minute block.
+        /// A name for this metric.
         /// </summary>
-        public int Count; 
+        public string Name;
+		
+		/// <summary>
+		/// The display mode for this metric.
+		/// </summary>
+		public int Mode = 1;
     }
 }

@@ -10,13 +10,13 @@ namespace Api.Metrics
     public partial class MetricAutoForm : AutoForm<Metric>
     {
         /// <summary>
-        /// The ID that is derived by determining what 15 minute slot the metric is measuring.
+        /// A nice name for this metric.
         /// </summary>
-        public int Id;
+        public string Name;
 
-        /// <summary>
-        /// The count of notification sent in this 15 minute block.
-        /// </summary>
-        public int Count;
+		/// <summary>
+		/// The mode of this metric.
+		/// </summary>
+		public int Mode = 1;
     }
 }
