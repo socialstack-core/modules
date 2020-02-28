@@ -50,6 +50,25 @@ namespace Api.Database
 			});
 
 		}
+		
+		/// <summary>
+		/// Puts a constant value into the target field.
+		/// </summary>
+		public void AddConstant(Type toType, string toFieldname, object constValue)
+		{
+			var toField = new Field()
+			{
+				OwningType = toType,
+				Name = toFieldname
+			};
+
+			Transfers.Add(new FieldTransfer()
+			{
+				IsConstant = true,
+				Constant = constValue,
+				To = toField
+			});
+		}
 
 		/// <summary>
 		/// An extension to add to the source table name.
@@ -89,7 +108,16 @@ namespace Api.Database
 	/// </summary>
 	public class FieldTransfer
 	{
-
+		/// <summary>
+		/// True if it's just a constant value to use for the target field.
+		/// </summary>
+		public bool IsConstant;
+		
+		/// <summary>
+		/// The constant to use. Can also be a null.
+		/// </summary>
+		public object Constant;
+		
 		/// <summary>
 		/// The source field.
 		/// </summary>

@@ -338,15 +338,37 @@ namespace Api.Database
 					// List of fields next!
 					for (var i = 0; i < TransferMap.Transfers.Count; i++)
 					{
+						var transfer = TransferMap.Transfers[i];
+						
 						if (i != 0)
 						{
 							str.Append(", ");
 						}
-						str.Append('`');
-						str.Append(TransferMap.Transfers[i].From.Name);
-						str.Append("` AS `");
-						str.Append(TransferMap.Transfers[i].To.Name);
-						str.Append('`');
+						
+						if(transfer.IsConstant)
+						{
+							if(transfer.Constant == null){
+								str.Append("NULL");
+							}else if(transfer.Constant is string){
+								str.Append('"');
+								str.Append(MySql.Data.MySqlClient.MySqlHelper.EscapeString((string)transfer.Constant));
+								str.Append('"');
+							}else{
+								// True, false, int etc.
+								str.Append(transfer.Constant.ToString());
+							}
+							str.Append(" AS `");
+							str.Append(transfer.To.Name);
+							str.Append('`');
+						}
+						else
+						{
+							str.Append('`');
+							str.Append(transfer.From.Name);
+							str.Append("` AS `");
+							str.Append(transfer.To.Name);
+							str.Append('`');
+						}
 					}
 
 					str.Append(" FROM ");
