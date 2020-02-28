@@ -165,7 +165,9 @@ namespace Api.Revisions
 						transferMap.Add(contentType, field.Name, contentType, field.Name);
 					}
 				}
-
+				
+				transferMap.AddConstant(contentType, "RevisionIsDraft", false);
+				
 				// The query itself:
 				var copyQuery = Query.Copy(transferMap);
 				copyQuery.Where().EqualsArg(contentType, "Id", 0);
