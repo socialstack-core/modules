@@ -1,0 +1,29 @@
+.carousel {
+	
+	.slider{
+		width: 100%;
+		overflow: hidden;
+	}
+	
+	.content-list {
+		transition: margin-left 200ms;
+		display: block !important;
+		white-space: nowrap;
+		font-size: 0;
+		width: 100%;
+		overflow: visible;
+		padding: 0;
+		margin-bottom: 0;
+	}
+	
+	.content-item {
+		display: inline-block !important;
+		font-size: 16px;
+		white-space: normal;
+		padding: 0;
+		height: 100%;
+		width: 100%;
+		overflow: hidden;
+	}
+	
+}
