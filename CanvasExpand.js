@@ -1,7 +1,10 @@
 import Text from 'UI/Text'; 
 import webRequest from 'UI/Functions/WebRequest';
 
-
+/*
+* Canvas JSON has multiple conveniences and automatically remapped fields.
+* "Expanding" a canvas structure essentially does that mapping process.
+*/
 function expand(contentNode, onChange, onContentNode, blockRequest){
 	if(contentNode.expanded){
 		return contentNode;
@@ -41,6 +44,83 @@ function expand(contentNode, onChange, onContentNode, blockRequest){
 		contentNode.data = {
 			data: contentNode.data
 		};
+	}
+	
+	// Content array load:
+	if(contentNode.data && contentNode.data.items && !blockRequest){
+		// Expand the items description.
+		// It's either an array of things (which is just as-is), or if it's an object,
+		// then it's describing where we can get the things from.
+		if(!Array.isArray(contentNode.data.items)){
+			
+			// It's describing one or more data sources.
+			
+			/* items: {
+				
+				sources: [
+					{
+						type: 'blog',
+						filter: OPTIONAL_LOOP_FILTER,
+						map: {
+							'optional': 'field map which remaps the provided objects to fields the target module wants'
+						}
+					},
+					[
+						'as-is arrays supported here too'
+					]
+				]
+				
+			}
+			
+			OR
+			
+			items: {
+				type: 'blog',
+				filter: OPTIONAL_LOOP_FILTER
+			}
+			
+			*/
+			
+			var itms = contentNode.data.items;
+			contentNode.data.items = [];
+			
+			var sources = itms.sources;
+			
+			if(!sources){
+				// Almost always only one source, but just in case people want to mix content, you can provide multiple.
+				sources = [
+					{
+						type: itms.type,
+						filter: itms.filter,
+						map: itms.map
+					}
+				];
+			}
+			
+			sources.map(src => {
+				
+				if(Array.isArray(src)){
+					// Can also mix in regular arrays.
+					contentNode.data.items = contentNode.data.items.concat(src);
+					return;
+				}
+				
+				return webRequest(src.type + '/list', src.filter).then(result => {
+					var set = result.json.results;
+					
+					if(src.map){
+						for(var i=0;i<set.length;i++){
+							set[i] = remap(set[i], src.map);
+						}
+					}
+					
+					contentNode.data.items = contentNode.data.items.concat(set);
+					onChange && onChange();
+				});
+				
+			});
+			
+		}
 	}
 	
 	// URL load filter (order matters - this last):
@@ -123,6 +203,45 @@ function expand(contentNode, onChange, onContentNode, blockRequest){
 	
 	contentNode.expanded = true;
 	return contentNode;
+}
+
+
+/*
+item is e.g:
+
+{
+	hello: 'world',
+	aField: 'aValue',
+	anUnmappedField: 'this will not be in the returned object'
+} 
+
+map is e.g:
+
+{
+	outputField1: 'hello',
+	outputField2: 'aField',
+}
+
+The return value is the following:
+
+{
+	outputField1: 'world',
+	outputField2: 'aValue',
+}
+
+*/
+function remap(item, map){
+	if(!item){
+		return null;
+	}
+	
+	var result = {};
+	
+	for(var field in map){
+		result[field] = item[map[field]];
+	}
+	
+	return result;
 }
 
 module.exports = expand;
