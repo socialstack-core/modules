@@ -16,3 +16,5 @@ Image.propTypes = {
 	fileRef: 'string',
 	size: 'int'
 };
+
+Image.icon = 'image';
