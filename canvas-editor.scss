@@ -3,4 +3,27 @@
 		min-height: 50px;
 		height: auto;
 	}
+	
+	.module-info{
+		margin-bottom: 5px;
+		padding: 10px;
+		border: 1px solid lightgrey;
+	}
+	
+	.module-select-modal{
+		.module-group{
+			margin-bottom: 10px;
+		}
+	
+		.module-tile{
+			border: 1px solid lightgrey;
+			border-radius: 4px;
+			text-align: center;
+			padding: 20px;
+			
+			&:hover{
+				cursor:pointer;
+			}
+		}
+	}
 }
