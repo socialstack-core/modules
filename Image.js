@@ -14,7 +14,7 @@ export default class Image extends React.Component {
 
 Image.propTypes = {
 	fileRef: 'string',
-	size: 'int'
+	size: ['original', '1024', '512', '256', '200', '128', '100', '64', '32'] // todo: pull from api
 };
 
 Image.icon = 'image';
