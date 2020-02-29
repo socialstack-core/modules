@@ -53,6 +53,12 @@ namespace Api.PasswordAuth
 
 				var hashToCheck = user.PasswordHash;
 
+				if (string.IsNullOrEmpty(hashToCheck))
+				{
+					// Disabled for this account
+					return null;
+				}
+
 				if (!PasswordStorage.VerifyPassword(loginDetails.Password, hashToCheck))
 				{
 					// Nope!
