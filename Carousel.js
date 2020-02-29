@@ -134,6 +134,7 @@ export default class Carousel extends React.Component {
     }
 }
 
+Carousel.icon = 'columns';
 Carousel.propTypes = {
 	delay: 'int',
 	imageSize: 'int',
