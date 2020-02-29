@@ -78,6 +78,7 @@ class Canvas extends React.Component {
 		
 		// Resolve runtime field values now:
 		this.mapTokens(dataFields);
+		dataFields.__canvas = this;
 		
 		return (
 			<Module key={index} {...dataFields}>
@@ -89,20 +90,7 @@ class Canvas extends React.Component {
 	}
 	
 	render() {
-		
 		var content = this.state.content;
-		var substitutions = null;
-		
-		if(this.props.data){
-			// Rendering some other canvas by the given ID (or loaded JSON).
-			if(typeof this.props.data == 'object'){
-				substitutions = content;
-				content = this.props.data;
-			}else{
-				// It's an ID. Must wait for it to load in full.
-				return null;
-			}
-		}
 		
 		// Otherwise, render the (preprocessed) child nodes.
 		if(!content){
