@@ -223,7 +223,7 @@ export default class Input extends React.Component {
 			// E.g. ontypecanvas will fire. This gives a generic entry point for custom input types by just installing them:
 			var handler = eventTarget['ontype' + type];
 			if(handler){
-				return handler(this.props, type, this);
+				return handler({...this.props, onChange: this.onChange}, type, this);
 			}
 			
 			return (
