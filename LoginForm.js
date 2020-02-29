@@ -21,7 +21,9 @@ export default class LoginForm extends React.Component {
 				action = "user/login" 
                 onSuccess={response => {
 					global.app.setState({user:response.user, realUser:response.user});
-					global.pageRouter.go("/en-admin/");
+					if(!this.props.noRedirect){
+						global.pageRouter.go("/en-admin/");
+					}
 				}}
 				onValues={v => {
 					this.setState({failed:false})
