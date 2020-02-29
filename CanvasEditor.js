@@ -131,10 +131,6 @@ export default class CanvasEditor extends React.Component {
 		super(props);
 		this.state = {
 			content: this.loadJson(props),
-			sampleTokens:{
-				'id': '1'
-			},
-			structureMode: props.live ? false : true
 		};
 		this.buildJson = this.buildJson.bind(this);
 		this.closeModal = this.closeModal.bind(this);
@@ -162,6 +158,7 @@ export default class CanvasEditor extends React.Component {
 			selectOpenFor: null,
 			optionsVisibleFor: null
 		});
+		this.updated();
 	}
 	
 	collectModules(){
@@ -262,6 +259,15 @@ export default class CanvasEditor extends React.Component {
 				selectOpenFor: null
 			});
 		}
+		
+		this.updated();
+	}
+	
+	updated(){
+		this.ref.value=JSON.stringify(this.buildJson());
+		this.props.onChange && this.props.onChange({
+			target: this.ref
+		});
 	}
 	
 	renderModuleSelection(){
@@ -393,7 +399,7 @@ export default class CanvasEditor extends React.Component {
 		return null;
 	}
 	
-	removeFrom(contentNode, parent){
+	removeFrom(contentNode, parent){ // if you use this, must also call this.updated() or .closeModal()
 		if(parent.content == contentNode){
 			parent.content = [];
 			return true;
@@ -533,7 +539,7 @@ export default class CanvasEditor extends React.Component {
 					contenteditable
 					onInput={e => {
 						contentNode.content = e.target.innerHTML;
-						this.ref.value=JSON.stringify(this.buildJson());
+						this.updated();
 					}}
 					onKeyDown={e => {
 						
