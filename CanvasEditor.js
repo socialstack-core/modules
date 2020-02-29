@@ -35,7 +35,6 @@ function CanvasSelection(){
 	
 	this.surroundTextWith = (eleName) => {
 		eleName = eleName.toUpperCase();
-		console.log(allSelected, eleName);
 		allSelected.forEach(selected => {
 			var el = selected.element;
 			if(el.nodeName != '#text'){
@@ -43,7 +42,7 @@ function CanvasSelection(){
 			}
 			
 			if(selected.offset){
-				// Only doing a substring of the 
+				// Only doing a substring of the text
 			}
 			
 			console.log("Create and parent", el);
@@ -54,7 +53,8 @@ function CanvasSelection(){
 				el.parentNode.removeChild(el);
 				newElement.appendChild(el);
 			}else{
-				console.log("Remove the parent somehow!");
+				console.log("Remove the parent");
+				// Delete the parent via also inversing the selection, and then re-adding it.
 			}
 			
 		});
@@ -105,7 +105,6 @@ function CanvasSelection(){
 		}
 	}
 	
-	console.log(allSelected);
 	this.allSelected = allSelected;
 	this.ancestor = ancestor;
 	this.backwards = backwards;
@@ -415,7 +414,6 @@ export default class CanvasEditor extends React.Component {
 			<div style={{marginBottom: '10px'}}>
 				<div className="btn btn-danger" onClick={() => {
 					var parent = this.findParent(contentNode);
-					console.log(parent);
 					this.removeFrom(contentNode, parent);
 					this.closeModal();
 				}}>
