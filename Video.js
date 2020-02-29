@@ -11,6 +11,15 @@ export default class Video extends React.Component {
 		var width = this.props.width || 560;
 		var height = this.props.height || 315;
 		
+		if(!ref){
+			return (<div style={{width,height,backgroundColor: 'grey', color: 'white', textAlign: 'center', display: 'inline-block'}}>
+				<div style={{margin: '10px'}}>
+					<i className='fa fa-play' />
+				</div>
+				No source
+			</div>);
+		}
+		
 		// Ideally these become submodules where the ref is handled generically.
 		if(ref.indexOf('youtube:') === 0){
 			
