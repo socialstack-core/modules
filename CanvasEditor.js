@@ -358,7 +358,65 @@ export default class CanvasEditor extends React.Component {
 				this.renderOptions(this.state.optionsVisibleFor)
 			}
 		</Modal>
+	}
+	
+	findParent(contentNode, current){
+		if(!current){
+			current = this.state;
+		}
 		
+		if(contentNode == current.content){
+			return current;
+		}
+		var a = current.content;
+		
+		if(!a || !Array.isArray(a)){
+			return null;
+		}
+		
+		for(var i=0;i<a.length;i++){
+			var node = a[i];
+			if(!node){
+				continue;
+			}
+			
+			if(node == contentNode){
+				return current;
+			}
+			
+			var parent = this.findParent(contentNode, node);
+			if(parent){
+				return parent;
+			}
+		}
+		
+		return null;
+	}
+	
+	removeFrom(contentNode, parent){
+		if(parent.content == contentNode){
+			parent.content = [];
+			return true;
+		}
+		
+		var count = parent.content.length;
+		parent.content = parent.content.filter(node => node != contentNode);
+		return count != parent.content.length;
+	}
+	
+	renderDelete(contentNode){
+		return (
+			<div style={{marginBottom: '10px'}}>
+				<div className="btn btn-danger" onClick={() => {
+					var parent = this.findParent(contentNode);
+					console.log(parent);
+					this.removeFrom(contentNode, parent);
+					this.closeModal();
+				}}>
+					Delete
+				</div>
+			</div>
+		);
 	}
 	
 	renderOptions(contentNode){
@@ -383,7 +441,7 @@ export default class CanvasEditor extends React.Component {
 		}
 		
 		for(var fieldName in dataValues){
-			if(!dataFields[fieldName]){
+			if(dataFields[fieldName]){
 				continue;
 			}
 			
@@ -394,17 +452,29 @@ export default class CanvasEditor extends React.Component {
 		}
 		
 		if(atLeastOneDataField){
-			return (<div>{
+			return (<div>
+				{this.renderDelete(contentNode)}
+				{
 				Object.keys(dataFields).map(fieldName => {
 					
 					// Very similar to how autoform works - auto deduce various field types whenever possible, based on field naming conventions.
 					var fieldInfo = dataFields[fieldName];
 					var label = fieldName;
 					var inputType = 'text';
+					var inputContent = undefined;
 					
 					if(fieldName.endsWith("Ref")){
 						inputType = 'file';
 						label = label.substring(0, label.length-3);
+					}else if(Array.isArray(fieldInfo.type)){
+						inputType = 'select';
+						inputContent = fieldInfo.type.map(name => {
+							return (
+								<option value={name}>{name}</option>
+							);
+						})
+					}else if(fieldInfo.type == 'color'){
+						inputType = 'color';
 					}
 					
 					// helloWorld -> Hello World.
@@ -430,12 +500,15 @@ export default class CanvasEditor extends React.Component {
 						}
 						
 						contentNode.data[fieldName] = fieldInfo.value = e.target.value;
-					}} />;
+					}}>{inputContent}</Input>;
 				})
 			}</div>);
 		}
 		
-		return 'No options available';
+		return <div>
+			{this.renderDelete(contentNode)}
+			No other options available
+		</div>;
 	}
 	
 	renderNode(contentNode){
@@ -500,7 +573,7 @@ export default class CanvasEditor extends React.Component {
 						
 						
 					}}
-					className={"canvas-editor-text " + (this.props.className || "form-control")}
+					className="canvas-editor-text"
 					dangerouslySetInnerHTML={{__html: contentNode.content}}
 				/>
 			);
