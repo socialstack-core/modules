@@ -86,9 +86,9 @@ namespace Api.Users {
 
 	public partial class UserLogin {
 		/// <summary>
-		/// The email address to use.
+		/// The email or username to use.
 		/// </summary>
-		public string Email;
+		public string EmailOrUsername;
 
 		/// <summary>
 		/// The password to use.
