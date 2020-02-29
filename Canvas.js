@@ -69,6 +69,9 @@ class Canvas extends React.Component {
 	}
 	
 	renderNode(contentNode, index) {
+		if(!contentNode){
+			return null;
+		}
 		var Module = contentNode.module || "div";
 		
 		var dataFields = {...contentNode.data};
