@@ -93,6 +93,15 @@ namespace Api.Permissions
 		/// Usage: .Thing().And().OtherThing() - this will be true if both are true.
 		/// </summary>
 		/// <returns></returns>
+		public new Filter<T> Or()
+		{
+			return Add(new FilterOr());
+		}
+
+		/// <summary>
+		/// Usage: .Thing().And().OtherThing() - this will be true if both are true.
+		/// </summary>
+		/// <returns></returns>
 		public new Filter<T> And()
 		{
 			return Add(new FilterAnd());
