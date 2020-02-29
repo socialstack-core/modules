@@ -153,6 +153,11 @@ export default class AutoForm extends React.Component {
 						}
 						
 						data.autoComplete = 'off';
+						data.onChange=(e) => {
+							// Input field has changed. Update the content object so any redraws are reflected.
+							content[data.name] = e.target.value;
+						};
+						
 						var value = content[data.name];
 						if(value){
 							if(data.name == "createdUtc"){
