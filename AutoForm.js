@@ -2,6 +2,7 @@ import Form from 'UI/Form';
 import Input from 'UI/Input';
 import Canvas from 'UI/Canvas';
 import isNumeric from 'UI/Functions/IsNumeric';
+import getUrl from 'UI/Functions/Url';
 import getAutoForm from 'Admin/Functions/GetAutoForm';
 import webRequest from 'UI/Functions/WebRequest';
 import formatTime from "UI/Functions/FormatTime";
@@ -141,14 +142,23 @@ export default class AutoForm extends React.Component {
 			>
 				<Canvas onContentNode={contentNode => {
 					if(isEdit && contentNode.data && contentNode.data.name){
-						contentNode.data.autoComplete = 'off';
-						var value = this.state.fieldData[contentNode.data.name];
+						var data = contentNode.data;
+						var content = this.state.fieldData;
+						
+						if(data.type == 'canvas' && content.pageId){
+							// Ref the content:
+							data.contentType = content.type;
+							data.contentId = content.id;
+							data.onPageUrl = getUrl(content);
+						}
+						
+						data.autoComplete = 'off';
+						var value = content[data.name];
 						if(value){
-							if(contentNode.data.name == "createdUtc"){
-								contentNode.data.defaultValue = formatTime(value);
-							}
-							else {
-								contentNode.data.defaultValue = value;
+							if(data.name == "createdUtc"){
+								data.defaultValue = formatTime(value);
+							} else {
+								data.defaultValue = value;
 							}
 						}
 					}
