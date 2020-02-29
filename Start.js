@@ -39,7 +39,29 @@ module.exports = function(){
 			var parts = e.split('=');
 			global.hashFields[parts[0]] = parts.length>1 ? parts[1] : true;
 		});
-
+		
+		// Specially look out for in-page edits:
+		if(global.hashFields.edit && global.hashFields.id && global.hashFields.field){
+			global.events.get('UI/Functions/WebRequest')['on' + global.hashFields.edit] = (content) => {
+				if(content.id == global.hashFields.id){
+					var fld = global.hashFields.field;
+					// Update content[global.hashFields.field] by wrapping it with a CanvasEditor.
+					
+					if(fld.indexOf("Json") != -1){
+						// Only permitted on canvas JSON. We inject a CanvasEditor by simply wrapping the canvas JSON in an editor:
+						var data = {
+							live: true,
+							type: global.hashFields.edit,
+							id: global.hashFields.id,
+							field: fld,
+							value: content[fld]
+						};
+						content[fld] = '{"module": "UI/CanvasEditor", "data": ' + JSON.stringify(data) + '}';
+					}
+				}
+			}
+		}
+		
 		// Render the root now! When the App instance is created, it sets itself up as global.app
 		React.render(
 			<App />,
