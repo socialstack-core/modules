@@ -38,12 +38,12 @@ namespace Api.Users
 		Task<UserProfile> GetProfile(Context context, User result);
 
 		/// <summary>
-		/// Gets a user by the given email address.
+		/// Gets a user by the given email address or username.
 		/// </summary>
 		/// <param name="context"></param>
-		/// <param name="email"></param>
+		/// <param name="emailOrUsername"></param>
 		/// <returns></returns>
-		Task<User> Get(Context context, string email);
+		Task<User> Get(Context context, string emailOrUsername);
 
 		/// <summary>
 		/// Gets a user by the given username.
@@ -52,6 +52,14 @@ namespace Api.Users
 		/// <param name="username"></param>
 		/// <returns></returns>
 		Task<User> GetByUsername(Context context, string username);
+
+		/// <summary>
+		/// Gets a user by the given email address.
+		/// </summary>
+		/// <param name="context"></param>
+		/// <param name="email"></param>
+		/// <returns></returns>
+		Task<User> GetByEmail(Context context, string email);
 
 		/// <summary>
 		/// Deletes a user by their ID.

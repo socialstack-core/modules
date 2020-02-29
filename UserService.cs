@@ -20,8 +20,9 @@ namespace Api.Users
     {
         private IEmailService _email;
         private IContextService _contexts;
-		private readonly Query<User> selectByEmailQuery;
+		private readonly Query<User> selectByEmailOrUsernameQuery;
 		private readonly Query<User> selectByUsernameQuery;
+		private readonly Query<User> selectByEmailQuery;
 		private readonly Query<User> updateAvatarQuery;
 		private readonly Query<User> updateFeatureQuery;
 
@@ -35,11 +36,14 @@ namespace Api.Users
 			_contexts = context;
 			updateAvatarQuery = Query.Update<User>().RemoveAllBut("Id", "AvatarRef");
 			updateFeatureQuery = Query.Update<User>().RemoveAllBut("Id", "FeatureRef");
-			selectByEmailQuery = Query.Select<User>();
-			selectByEmailQuery.Where().EqualsArg("Email", 0);
+			selectByEmailOrUsernameQuery = Query.Select<User>();
+			selectByEmailOrUsernameQuery.Where().EqualsArg("Email", 0).Or().EqualsArg("Username", 0);
 
 			selectByUsernameQuery = Query.Select<User>();
 			selectByUsernameQuery.Where().EqualsArg("Username", 0);
+
+			selectByEmailQuery = Query.Select<User>();
+			selectByEmailQuery.Where().EqualsArg("Email", 0);
 
 			SetupAutoUserFieldEvents();
 
@@ -223,15 +227,26 @@ namespace Api.Users
 		}
 
 		/// <summary>
-		/// Gets a user by the given email address.
+		/// Gets a user by the given email address or username.
+		/// </summary>
+		/// <param name="context"></param>
+		/// <param name="emailOrUsername"></param>
+		/// <returns></returns>
+		public async Task<User> Get(Context context, string emailOrUsername)
+        {
+			return await _database.Select(selectByEmailOrUsernameQuery, emailOrUsername);
+        }
+
+		/// <summary>
+		/// Gets a user by the given email.
 		/// </summary>
 		/// <param name="context"></param>
 		/// <param name="email"></param>
 		/// <returns></returns>
-		public async Task<User> Get(Context context, string email)
-        {
+		public async Task<User> GetByEmail(Context context, string email)
+		{
 			return await _database.Select(selectByEmailQuery, email);
-        }
+		}
 
 		/// <summary>
 		/// Gets a user by the given username.
