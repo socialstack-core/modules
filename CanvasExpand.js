@@ -6,7 +6,7 @@ import webRequest from 'UI/Functions/WebRequest';
 * "Expanding" a canvas structure essentially does that mapping process.
 */
 function expand(contentNode, onChange, onContentNode, blockRequest){
-	if(contentNode.expanded){
+	if(!contentNode || contentNode.expanded){
 		return contentNode;
 	}
 	
@@ -17,6 +17,16 @@ function expand(contentNode, onChange, onContentNode, blockRequest){
 	
 	if(Array.isArray(contentNode)){
 		return contentNode.map(e => expand(e, onChange, onContentNode, blockRequest));
+	}
+	
+	// If it has no module but does have content, then it's a text node.
+	if(!contentNode.module && contentNode.content !== undefined && !Array.isArray(contentNode.content)){
+		return {
+			module: Text,
+			moduleName: 'UI/Text',
+			content: contentNode.content,
+			expanded: true
+		};
 	}
 	
 	if(typeof contentNode != 'object'){
@@ -31,12 +41,6 @@ function expand(contentNode, onChange, onContentNode, blockRequest){
 	
 	// - Add a filter function here, so other modules can also expand canvas content too.
 	// contentNode = _some_global_filter_technique_(contentNode);
-	
-	// Canvas filter:
-	if(contentNode.canvas){
-		contentNode.module = "UI/Canvas";
-		contentNode.data = {url: "canvas/" + contentNode.canvas};
-	}
 	
 	// data filter:
 	if(contentNode.data && typeof contentNode.data != 'object'){
@@ -135,8 +139,16 @@ function expand(contentNode, onChange, onContentNode, blockRequest){
 		});
 	}
 	
-	if(contentNode.content){
-		contentNode.content = expand(contentNode.content, onChange, onContentNode, blockRequest);
+	if(contentNode.content !== undefined){
+		var expanded = expand(contentNode.content, onChange, onContentNode, blockRequest);
+		if(!expanded){
+			contentNode.content = [];
+		}else if(!Array.isArray(expanded)){
+			contentNode.content = [expanded];
+		}else{
+			contentNode.content = expanded;
+		}
+		
 	}else{
 		contentNode.content = [];
 	}
@@ -163,9 +175,7 @@ function expand(contentNode, onChange, onContentNode, blockRequest){
 				contentNode.module = module.default;
 			}else{
 				contentNode.module = Canvas;
-				contentNode.data = {
-					data: module
-				};
+				contentNode.content = module;
 			}
 			
 			contentNode.useCanvasRender = true;
@@ -190,9 +200,7 @@ function expand(contentNode, onChange, onContentNode, blockRequest){
 		
 	}else{
 		// Use this canvas to render the content unless there is also data.
-		if(contentNode.data){
-			contentNode.module = Canvas;
-		}else if(Array.isArray(contentNode.content)){
+		if(Array.isArray(contentNode.content)){
 			contentNode.useCanvasRender = true;
 		}else{
 			contentNode = contentNode.content;
