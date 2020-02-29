@@ -21,7 +21,7 @@ export default class Default extends React.Component{
 			// Login page
 			return <Landing>
 				<Tile>
-					<LoginForm />
+					<LoginForm noRedirect />
 				</Tile>
 			</Landing>;
 		}
