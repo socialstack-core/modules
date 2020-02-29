@@ -31,7 +31,7 @@ export default class LoginForm extends React.Component {
 					this.setState({failed:true})
 				}}
 				>
-				<Input name="email" placeholder="Email address" validate={['Required']} />
+				<Input name="emailOrUsername" placeholder="Email or username" validate={['Required']} />
 				<Input name="password" placeholder="Password" type="password" />
 				<Row>
 					<Col size="6">
