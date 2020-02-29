@@ -3,7 +3,23 @@ import mapUrl from 'UI/Functions/MapUrl';
 import store from 'UI/Functions/Store';
 import contentChange from 'UI/Functions/ContentChange';
 
-// import 'fetch-polyfill';
+var evtHandler = null;
+
+function receivedContent(content){
+	if(!content || !content.type){
+		return;
+	}
+	
+	if(!evtHandler){
+		evtHandler = global.events.get('UI/Functions/WebRequest');
+	}
+	
+	// Trigger a general use handler:
+	var evtFunc = evtHandler['on' + content.type];
+	if(evtFunc){
+		evtFunc(content);
+	}
+}
 
 export default function webRequest(origUrl, data, opts) {
 	var url = mapUrl(origUrl);
@@ -38,12 +54,20 @@ export default function webRequest(origUrl, data, opts) {
 				// that content has updated.
 				
 				// Trigger a contentchange event if it was a POST and it returned an entity:
-				var method = '';
+				var method = 'get';
 				
 				if(opts && opts.method){
 					method = opts.method.toLowerCase();
 				}else if(data){
 					method = 'post';
+				}
+				
+				if((method == 'post' || method == 'get') && json && json.results){
+					json.results.forEach(content => {
+						receivedContent(content);
+					});
+				}else if(method == 'get'){
+					receivedContent(json);
 				}
 				
 				success(response);
@@ -54,6 +78,7 @@ export default function webRequest(origUrl, data, opts) {
 					// Otherwise, as it's not specified, contentchange will establish if it was added or deleted based on the given url.
 					contentChange(json, origUrl, {deleted: (method == 'delete')});
 				}
+				
 			}).catch(err => {
 				console.log(err);
 				reject(err);
