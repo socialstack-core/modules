@@ -37,3 +37,5 @@ export default class Text extends React.Component {
     }
 }
 
+Text.propTypes = {};
+Text.icon = 'align-justify';
