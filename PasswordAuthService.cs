@@ -44,7 +44,7 @@ namespace Api.PasswordAuth
 				}
 
 				// First, get the user by the email address:
-				var user = await _users.Get(context, loginDetails.Email);
+				var user = await _users.Get(context, loginDetails.EmailOrUsername);
 				
 				if (user == null)
 				{
