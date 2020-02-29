@@ -244,10 +244,10 @@ namespace Api.Uploader
                 {
                     // Resize it now:
                     Resize(current, result.GetFilePath(imageSize.ToString()), imageSize);
-                }
-            }
-            
-            current.Dispose();
+				}
+
+				current.Dispose();
+			}
 
 			// Relocate the temp file:
 			System.IO.File.Move(tempFile, writePath);
