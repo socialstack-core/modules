@@ -603,7 +603,9 @@ export default class CanvasEditor extends React.Component {
 				{!this.props.minimal && (
 					<div className="btn btn-secondary" style={{marginBottom: '5px'}} onClick={() => {
 						this.setState({optionsVisibleFor: contentNode});
-					}}><i className="fa fa-cog"/></div>
+					}}><i className="fa fa-cog"/>
+					{' ' + this.displayModuleName(contentNode.moduleName)}
+					</div>
 				)}
 				{result}
 				
@@ -612,6 +614,9 @@ export default class CanvasEditor extends React.Component {
 	}
 	
 	displayModuleName(name){
+		if(!name){
+			return '';
+		}
 		var parts = name.split('/');
 		if(parts[0] == 'UI'){
 			parts.shift();
