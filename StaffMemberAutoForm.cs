@@ -7,7 +7,7 @@ namespace Api.StaffMembers
     /// <summary>
     /// Used when creating or updating a staff member
     /// </summary>
-    public partial class PersonAutoForm : AutoForm<StaffMember>
+    public partial class StaffMemberAutoForm : AutoForm<StaffMember>
     {
 		/// <summary>
 		/// The first name of the StaffMember (and any middle names).
