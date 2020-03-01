@@ -586,7 +586,7 @@ export default class CanvasEditor extends React.Component {
 			result = (
 				<Module {...contentNode.data}>
 					{contentNode.useCanvasRender ? this.renderNode(contentNode.content) : null}
-					{Module.propTypes && Module.propTypes.children && (
+					{Module.propTypes && Module.propTypes.children && !this.props.minimal && (
 						<div style={{marginTop: '10px'}}>
 							<div className="btn btn-secondary" onClick={() => {this.setState({selectOpenFor: contentNode})}}>
 								<i className="fa fa-plus" />
@@ -600,9 +600,11 @@ export default class CanvasEditor extends React.Component {
 		
 		return (
 			<div className="module-info">
-				<div className="btn btn-secondary" style={{marginBottom: '5px'}} onClick={() => {
-					this.setState({optionsVisibleFor: contentNode});
-				}}><i className="fa fa-cog"/></div>
+				{!this.props.minimal && (
+					<div className="btn btn-secondary" style={{marginBottom: '5px'}} onClick={() => {
+						this.setState({optionsVisibleFor: contentNode});
+					}}><i className="fa fa-cog"/></div>
+				)}
 				{result}
 				
 			</div>
@@ -638,11 +640,13 @@ export default class CanvasEditor extends React.Component {
 				}}/>
 				<div>
 					{this.renderNode(this.state.content,0)}
-					<div style={{clear: 'both', marginTop: '10px'}}>
-						<div className="btn btn-secondary" onClick={() => {this.setState({selectOpenFor: true})}}>
-							<i className="fa fa-plus" />
+					{!this.props.minimal && (
+						<div style={{clear: 'both', marginTop: '10px'}}>
+							<div className="btn btn-secondary" onClick={() => {this.setState({selectOpenFor: true})}}>
+								<i className="fa fa-plus" />
+							</div>
 						</div>
-					</div>
+					)}
 				</div>
 				{this.renderModuleSelection()}
 				{this.renderOptionsModal()}
