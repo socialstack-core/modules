@@ -17,7 +17,12 @@ export default class AutoForm extends React.Component {
 	constructor(props){
 		super(props);
 		
-		this.state = {submitting: false};
+		this.state = {
+			submitting: false
+		};
+		
+		console.log(global.location);
+		
 	}
 	
 	componentWillReceiveProps(props){
@@ -32,6 +37,8 @@ export default class AutoForm extends React.Component {
 		if(!props.endpoint || (props.endpoint == this.state.endpoint && props.id == this.state.id)){
 			return;
 		}
+		
+		var createSuccess = global.location && global.location.search == '?created=1';
 		
 		getAutoForm(props.endpoint).then(formData => {
 			
@@ -49,7 +56,7 @@ export default class AutoForm extends React.Component {
 			// Get the values we're editing:
 			webRequest(props.endpoint + '/' + props.id).then(response => {
 				
-				this.setState({fieldData: response.json});
+				this.setState({fieldData: response.json, createSuccess});
 				
 			});
 		}
@@ -113,20 +120,20 @@ export default class AutoForm extends React.Component {
 		return (
 			<Form autoComplete="off" action={this.props.endpoint + "/" + (isEdit ? this.props.id : "")}
 			onValues={values => {
-				this.setState({editSuccess: false, submitting: true});
+				this.setState({editSuccess: false, createSuccess: false, submitting: true});
 				return values;
 			}}
 			
 			onFailure={
 				response => {
-					this.setState({editFailure: true, submitting: false});
+					this.setState({editFailure: true, createSuccess: false, submitting: false});
 				}
 			}
 			
 			onSuccess={
 				response => {
 					if(isEdit){
-						this.setState({editSuccess: true, submitting: false});
+						this.setState({editSuccess: true, createSuccess: false, submitting: false});
 					}else{
 						this.setState({submitting: false});
 						var state = global.pageRouter.state;
@@ -134,7 +141,7 @@ export default class AutoForm extends React.Component {
 							var parts = state.page.url.split('/');
 							parts.pop();
 							parts.push(response.id);
-							global.pageRouter.go('/' + parts.join('/'));
+							global.pageRouter.go('/' + parts.join('/') + '?created=1');
 						}
 					}
 				}
@@ -155,7 +162,8 @@ export default class AutoForm extends React.Component {
 						data.autoComplete = 'off';
 						data.onChange=(e) => {
 							// Input field has changed. Update the content object so any redraws are reflected.
-							content[data.name] = e.target.value;
+							var t = e.target.type;
+							content[data.name] = (t == 'checkbox' || t == 'radio') ? e.target.checked : e.target.value;
 						};
 						
 						var value = content[data.name];
@@ -196,6 +204,13 @@ export default class AutoForm extends React.Component {
 					this.state.editSuccess && (
 						<div className="alert alert-success">
 							Your changes have been saved
+						</div>
+					)
+				}
+				{
+					this.state.createSuccess && (
+						<div className="alert alert-success">
+							Created successfully
 						</div>
 					)
 				}
