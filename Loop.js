@@ -201,10 +201,15 @@ export default class Loop extends React.Component {
 		}
 		
 		if(!this.state.results.length){
-			// Any results?
+			// No results at all.
+			var M = this.props.noneDisplayer;
+			if(M){
+				return <M loopAllProps={this.props} />;
+			}
+			
 			return this.props.orNone ? this.props.orNone() : null;
 		}
-
+		
 		var className = 'loop ' + (this.props.name ? this.props.name : ((typeof this.props.over == 'String') ? this.props.over.replace('/', '-') : ''));
 		if(this.props.className)
 		{
@@ -229,6 +234,14 @@ export default class Loop extends React.Component {
 		}
 		
 		var renderFunc = this.props.children;
+		
+		if(this.props.displayer){
+			// Wrap a module:
+			renderFunc = (item, i, count) => {
+				var M = this.props.displayer;
+				<M loopItemIndex={i} loopItemMax={count} {...item} />
+			};
+		}
 		
 		if(this.props.inline){
 			return (
@@ -417,3 +430,12 @@ export default class Loop extends React.Component {
 		);
 	}
 }
+
+Loop.propTypes={
+	over: 'set',
+	// mode: ['table','altRows','columns','unformatted', 'inline'],
+	inGroupsOf: 'int',
+	displayer: 'module',
+	noneDisplayer: 'module'
+};
+Loop.icon='list';
