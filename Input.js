@@ -239,8 +239,6 @@ export default class Input extends React.Component {
 				return handler({...this.props, onChange: this.onChange}, type, this);
 			}
 			
-			console.log(type, this.props.value, this.props.defaultValue);
-			
 			return (
 				<input 
 					id={this.props.id || this.fieldId} 
