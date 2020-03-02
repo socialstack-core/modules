@@ -18,6 +18,10 @@ namespace Api.StaffMembers
 		/// </summary>
 		public StaffMemberService() : base(Events.StaffMember)
         {
+			
+			// Create admin pages if they don't already exist:
+			InstallAdminPages("Staff", "fa:fa-users", new string[]{"id", "firstName", "lastName"});
+			
 		}
 	}
     
