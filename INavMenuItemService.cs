@@ -45,5 +45,18 @@ namespace Api.NavMenuItems
 		/// <returns></returns>
 		Task<List<NavMenuItem>> ListByMenu(Context context, int menuId);
 
+		/// <summary>
+		/// Adds an admin nav menu entry.
+		/// </summary>
+		/// <param name="targetUrl">The target page url, e.g. /en-admin/page</param>
+		/// <param name="iconRef">The ref to use for the icon. Typically these are fontawesome refs, of the form fa:fa-thing</param>
+		/// <param name="label">The text that appears on the menu</param>
+		Task InstallAdminEntry(string targetUrl, string iconRef, string label);
+
+		/// <summary>
+		/// Installs an item (Creates it if it doesn't already exist). MenuKey is required, but MenuId is not.
+		/// </summary>
+		Task Install(NavMenuItem item);
+
 	}
 }
