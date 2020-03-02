@@ -7,6 +7,7 @@ using Microsoft.AspNetCore.HttpOverrides;
 using Api.Configuration;
 using System.Collections.Generic;
 using System.Reflection;
+using System.Linq;
 
 namespace Api.Startup
 {
@@ -145,22 +146,25 @@ namespace Api.Startup
 			OnConfigureApplication?.Invoke(app);
 			
             app.UseMvc();
-			
-            // Next, we get *all* services so they are all instanced.
-			// Special case for the DatabaseService as it's used by AutoService and specifically in the constructor of other services (but without injection).
-			foreach (var serviceInterfaceType in _serviceTypes)
-			{
-				if(serviceInterfaceType.Name == "IDatabaseService" || serviceInterfaceType.Name == "DatabaseService")
+
+			// Next, we get *all* services so they are all instanced.
+			// First they'll be sorted though so services that require loading early can do so.
+			_serviceTypes = _serviceTypes.OrderBy(type => {
+
+				var loadPriority = type.GetCustomAttribute<LoadPriorityAttribute>();
+				if (loadPriority == null)
 				{
-					var svc = serviceProvider.GetService(serviceInterfaceType);
-					Services.All[serviceInterfaceType] = svc;
+					return 10;
 				}
-			}
+
+				return loadPriority.Priority;
+			}).ToList();
 			
             foreach (var serviceInterfaceType in _serviceTypes)
 			{
 				var svc = serviceProvider.GetService(serviceInterfaceType);
 				Services.All[serviceInterfaceType] = svc;
+				Services.AllByName[serviceInterfaceType.Name] = svc;
 
 				// If it's an AutoService, add it to the lookup:
 				var autoServiceType = GetAutoServiceType(svc.GetType());
