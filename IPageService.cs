@@ -1,5 +1,6 @@
 ﻿using Api.Contexts;
 using Api.Permissions;
+using Api.Startup;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 
@@ -10,6 +11,8 @@ namespace Api.Pages
 	/// Handles pages.
 	/// Instanced automatically. Use injection to use this service, or Startup.Services.Get.
 	/// </summary>
+	// Has a raised priority because it's often used by other services to install pages when they start.
+	[LoadPriority(5)]
 	public partial interface IPageService
     {
 		/// <summary>
@@ -45,6 +48,13 @@ namespace Api.Pages
 		/// Installs the given page(s). It checks if they exist by their URL (or ID, if you provide that instead), and if not, creates them.
 		/// </summary>
 		/// <param name="pages"></param>
-		void Install(params Page[] pages);
+		Task Install(params Page[] pages);
+
+		/// <summary>
+		/// Installs generic admin pages using the given fields to display on the list page.
+		/// </summary>
+		/// <param name="typeName"></param>
+		/// <param name="fields"></param>
+		Task InstallAdminPages(string typeName, string[] fields);
 	}
 }

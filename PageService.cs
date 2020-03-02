@@ -7,6 +7,7 @@ using System.Threading.Tasks;
 using System.Linq;
 using System;
 
+
 namespace Api.Pages
 {
 	/// <summary>
@@ -21,121 +22,156 @@ namespace Api.Pages
 		public PageService() : base(Events.Page)
         {
 			// If you don't have a homepage or admin area, this'll create them:
-			Install(
-				new Page()
-				{
-					Url = "/",
+			Task.Run(async () =>
+			{
+				await Install(
+					new Page()
+					{
+						Url = "/",
+						BodyJson = @"{
+							""content"": ""Welcome to your new SocialStack instance. This text comes from the pages table in your database in a format called canvas JSON - you can read more about this format in the documentation.""
+						}"
+					},
+					new Page()
+					{
+						Url = "/en-admin",
+						BodyJson = @"{
+							""module"": ""Admin/Pages/Default"",
+							""content"": [
+								{
+									""module"": ""Admin/Tile"",
+									""content"": [
+										""Welcome to the administration area. Pick what you'd like to edit on the left.""
+									]
+								}
+							]
+						}"
+					},
+					new Page()
+					{
+						Url = "/en-admin/login",
+						BodyJson = @"{
+							""module"": ""Admin/Pages/Landing"",
+							""content"": [
+								{
+									""module"": ""Admin/Tile"",
+									""content"": [
+										{
+											""module"":""Admin/LoginForm""
+										}
+									]
+								}
+							]
+						}"
+					},
+					new Page()
+					{
+						Url = "/en-admin/register",
+						BodyJson = @"{
+							""module"": ""Admin/Pages/Landing"",
+							""content"": [
+								{
+									""module"": ""Admin/Tile"",
+									""content"": [
+										{
+											""module"":""Admin/RegisterForm""
+										}
+									]
+								}
+							]
+						}"
+					}
+				);
+			});
+		}
+
+		/// <summary>
+		/// Installs generic admin pages using the given fields to display on the list page.
+		/// </summary>
+		/// <param name="typeName"></param>
+		/// <param name="fields"></param>
+		public async Task InstallAdminPages(string typeName, string[] fields)
+		{
+			var fieldString = Newtonsoft.Json.JsonConvert.SerializeObject(fields);
+			typeName = typeName.ToLower();
+
+			await Install(
+				new Page{
+					Url = "/en-admin/" + typeName,
 					BodyJson = @"{
-						""content"": ""Welcome to your new SocialStack instance. This text comes from the pages table in your database in a format called canvas JSON - you can read more about this format in the documentation.""
+						""data"" : {
+							""endpoint"" : """ + typeName + @""",
+							""fields"" : " + fieldString + @"
+						},
+						""module"" : ""Admin/Pages/List""
 					}"
 				},
-				new Page()
-				{
-					Url = "/en-admin",
+				new Page {
+					Url = "/en-admin/" + typeName + "/:id",
 					BodyJson = @"{
-						""module"": ""Admin/Pages/Default"",
-						""content"": [
-							{
-								""module"": ""Admin/Tile"",
-								""content"": [
-									""Welcome to the administration area. Pick what you'd like to edit on the left.""
-								]
+						""data"" : {
+							""endpoint"" : """ + typeName + @""",
+							""id"" : {
+								""name"" : ""id"",
+								""type"" : ""urlToken""
 							}
-						]
-					}"
-				},
-				new Page()
-				{
-					Url = "/en-admin/login",
-					BodyJson = @"{
-						""module"": ""Admin/Pages/Landing"",
-						""content"": [
-							{
-								""module"": ""Admin/Tile"",
-								""content"": [
-									{
-										""module"":""Admin/LoginForm""
-									}
-								]
-							}
-						]
-					}"
-				},
-				new Page()
-				{
-					Url = "/en-admin/register",
-					BodyJson = @"{
-						""module"": ""Admin/Pages/Landing"",
-						""content"": [
-							{
-								""module"": ""Admin/Tile"",
-								""content"": [
-									{
-										""module"":""Admin/RegisterForm""
-									}
-								]
-							}
-						]
+						},
+						""module"" : ""Admin/Pages/AutoEdit""
 					}"
 				}
 			);
-				
 		}
-		
+
 		/// <summary>
 		/// Installs the given page(s). It checks if they exist by their URL (or ID, if you provide that instead), and if not, creates them.
 		/// </summary>
 		/// <param name="pages"></param>
-		public void Install(params Page[] pages)
+		public async Task Install(params Page[] pages)
 		{
-			Task.Run(async () =>
+			var context = new Context();
+
+			// Get the set of pages which we'll match by ID:
+			var idSet = pages.Where(page => page.Id != 0);
+
+			if (idSet.Any())
 			{
-				var context = new Context();
+				// Get the pages by those URLs:
+				var filter = new Filter<Page>();
+				filter.Id(idSet.Select(Page => Page.Url));
+				var existingPages = (await List(context, filter)).ToDictionary(page => page.Id);
 
-				// Get the set of pages which we'll match by URL:
-				var urlSet = pages.Where(page => page.Id == 0);
-
-				if (urlSet.Any())
+				// For each page to consider for install..
+				foreach (var page in idSet)
 				{
-					// Get the pages by those URLs:
-					var filter = new Filter<Page>();
-					filter.EqualsSet("Url", urlSet.Select(Page => Page.Url));
-					
-					var existingPages = (await List(context, filter)).ToDictionary(page => page.Url);
-					
-					// For each page to consider for install..
-					foreach (var page in urlSet)
+					// If it doesn't already exist, create it.
+					if (!existingPages.ContainsKey(page.Id))
 					{
-						// If it doesn't already exist, create it.
-						if (!existingPages.ContainsKey(page.Url))
-						{
-							await Create(context, page);
-						}
+						await Create(context, page);
 					}
 				}
-
-				// Get the set of pages which we'll match by ID:
-				var idSet = pages.Where(page => page.Id != 0);
+			}
 				
-				if (idSet.Any())
-				{
-					// Get the pages by those URLs:
-					var filter = new Filter<Page>();
-					filter.Id(idSet.Select(Page => Page.Url));
-					var existingPages = (await List(context, filter)).ToDictionary(page => page.Id);
+			// Get the set of pages which we'll match by URL:
+			var urlSet = pages.Where(page => page.Id == 0);
 
-					// For each page to consider for install..
-					foreach (var page in idSet)
+			if (urlSet.Any())
+			{
+				// Get the pages by those URLs:
+				var filter = new Filter<Page>();
+				filter.EqualsSet("Url", urlSet.Select(Page => Page.Url));
+					
+				var existingPages = (await List(context, filter)).ToDictionary(page => page.Url);
+
+				// For each page to consider for install..
+				foreach (var page in urlSet)
+				{
+					// If it doesn't already exist, create it.
+					if (!existingPages.ContainsKey(page.Url))
 					{
-						// If it doesn't already exist, create it.
-						if (!existingPages.ContainsKey(page.Id))
-						{
-							await Create(context, page);
-						}
+						await Create(context, page);
 					}
 				}
-
-			});
+			}
 		}
 	}
     
