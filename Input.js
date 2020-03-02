@@ -219,12 +219,27 @@ export default class Input extends React.Component {
 				</button>
 			);
 			
+		}else if(type == "checkbox" || type == "radio"){
+			
+			return (
+				<input 
+					id={this.props.id || this.fieldId} 
+					className={this.props.className || "form-control"}
+					aria-describedby={this.helpFieldId} 
+					type={type} 
+					onChange={this.onChange}
+					{...omit(this.props, ['id', 'className', 'onChange', 'type', 'inline', 'value', 'defaultValue'])}
+					checked={this.props.value || this.props.defaultValue}
+				/>
+			);
 		}else{
 			// E.g. ontypecanvas will fire. This gives a generic entry point for custom input types by just installing them:
 			var handler = eventTarget['ontype' + type];
 			if(handler){
 				return handler({...this.props, onChange: this.onChange}, type, this);
 			}
+			
+			console.log(type, this.props.value, this.props.defaultValue);
 			
 			return (
 				<input 
