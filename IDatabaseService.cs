@@ -1,4 +1,5 @@
 ﻿using Api.Permissions;
+using Api.Startup;
 using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
@@ -10,6 +11,9 @@ namespace Api.Database
 	/// Handles communication with the sites database.
 	/// Instanced automatically. Use injection to use this service, or Startup.Services.Get.
 	/// </summary>
+	
+	// Used by almost all services so has a very high load order priority.
+	[LoadPriority(1)]
 	public partial interface IDatabaseService
     {
 		/// <summary>
