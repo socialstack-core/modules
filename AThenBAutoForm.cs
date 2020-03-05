@@ -16,6 +16,7 @@ namespace Api.IfAThenB
 		/// <summary>
 		/// The name of the event.
 		/// </summary>
+		[Module("Admin/Event/Select")]
 		public string EventName;
 		
 		/// <summary>
