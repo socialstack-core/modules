@@ -19,6 +19,7 @@ namespace Api.Reactions
 		/// </summary>
 		public ReactionTypeService() : base(Events.ReactionType)
 		{
+			InstallAdminPages("Reactions", "fa:fa-thumbs-up", new string[] { "id", "name" });
 		}
 	}
 }

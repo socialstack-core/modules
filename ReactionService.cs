@@ -33,8 +33,7 @@ namespace Api.Reactions
 			listCountQuery = Query.List<ReactionCount>();
 			listCountByObjectQuery = Query.List<ReactionCount>();
 			listCountByObjectQuery.Where().EqualsArg("ContentTypeId", 0).And().EqualsArg("ContentId", 1);
-
-
+			
 			// Load reactions on Load/List events next. First, find all events for types that implement IHaveReactions:
 			var loadEvents = Events.FindByType(typeof(IHaveReactions), "Load", EventPlacement.After);
 
