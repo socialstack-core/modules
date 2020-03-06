@@ -85,7 +85,7 @@ export default class AutoForm extends React.Component {
 			deleting: true
 		});
 		
-		webRequest(this.props.endpoint + '/' + this.props.id, {method: 'delete'}).then(response => {
+		webRequest(this.props.endpoint + '/' + this.props.id, null, {method: 'delete'}).then(response => {
 			
 			// Go to root parent page:
 			var state = global.pageRouter.state;
