@@ -37,6 +37,8 @@ namespace Api.Forums
 			updateThreadCountQuery = Query.Update<Forum>().RemoveAllBut("Id", "ThreadCount");
 			updateReplyCountQuery = Query.Update<Forum>().RemoveAllBut("Id", "ReplyCount");
 			
+			InstallAdminPages("Forums", "fa:fa-th-list", new string[] { "id", "name" });
+
 			// Add some events to bump our cached counters whenever a reply/ thread is added:
 			Events.ForumThread.AfterCreate.AddEventListener(async (Context context, ForumThread thread) =>
 			{
