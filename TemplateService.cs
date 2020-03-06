@@ -20,7 +20,7 @@ namespace Api.Templates
 		/// </summary>
 		public TemplateService() : base(Events.Template)
         {
-			
+			InstallAdminPages("Templates", "fa:fa-file-medical", new string[] { "id", "title", "key" });
 		}
 		
 	}
