@@ -30,6 +30,8 @@ namespace Api.Categories
 			listByObjectQuery = Query.List<CategoryContent>();
 			listByObjectQuery.Where().EqualsArg("ContentTypeId", 0).And().EqualsArg("ContentId", 1);
 
+			InstallAdminPages("Categories", "fa:fa-folder", new string[] { "id", "name" });
+
 			// Load categories on Load/List events next. First, find all events for types that implement IHaveCategories:
 			var loadEvents = Events.FindByType(typeof(IHaveCategories), "Load", EventPlacement.After);
 
