@@ -25,6 +25,7 @@ namespace Api.ForumReplies
 		/// </summary>
 		public ForumReplyService(IDatabaseService database) : base(Events.ForumReply)
         {
+			InstallAdminPages(new string[] { "id", "createdDateUtc" });
         }
 	}
 }
