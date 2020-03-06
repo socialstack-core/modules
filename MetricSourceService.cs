@@ -15,7 +15,11 @@ namespace Api.Metrics
 		/// <summary>
 		/// Instanced automatically. Use injection to use this service, or Startup.Services.Get.
 		/// </summary>
-		public MetricSourceService() : base(Events.MetricSource) {}
-	
-    }
+		public MetricSourceService() : base(Events.MetricSource) {
+
+			InstallAdminPages(new string[] { "id", "eventName" });
+
+		}
+
+	}
 }

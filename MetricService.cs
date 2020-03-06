@@ -30,6 +30,8 @@ namespace Api.Metrics
 			_sources = sources;
 			_measurements = measurements;
 
+			InstallAdminPages("Metrics", "fa:fa-chart-bar", new string[] { "id", "name" });
+
 			StartUpdateLoop();
 
 			Task.Run(async () => {
