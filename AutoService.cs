@@ -140,6 +140,16 @@ public partial class AutoService<T> where T: DatabaseRow, new(){
 	/// Installs generic admin pages for this service.
 	/// Does nothing if there isn't a page service installed, or if the admin pages already exist.
 	/// </summary>
+	/// <param name="fields"></param>
+	protected void InstallAdminPages(string[] fields)
+	{
+		InstallAdminPages(null, null, fields);
+	}
+
+	/// <summary>
+	/// Installs generic admin pages for this service, including the nav menu entry.
+	/// Does nothing if there isn't a page service installed, or if the admin pages already exist.
+	/// </summary>
 	/// <param name="navMenuLabel"></param>
 	/// <param name="navMenuIconRef"></param>
 	/// <param name="fields"></param>
@@ -169,20 +179,23 @@ public partial class AutoService<T> where T: DatabaseRow, new(){
 			}
 
 			// Nav menu also?
-			var navMenuItemService = Api.Startup.Services.Get("INavMenuItemService");
-
-			if (navMenuItemService != null)
+			if (navMenuLabel != null)
 			{
-				var installNavMenuEntry = navMenuItemService.GetType().GetMethod("InstallAdminEntry");
+				var navMenuItemService = Api.Startup.Services.Get("INavMenuItemService");
 
-				if (installNavMenuEntry != null)
+				if (navMenuItemService != null)
 				{
-					// InstallAdminEntry(string targetUrl, string iconRef, string label)
-					await (Task)installNavMenuEntry.Invoke(navMenuItemService, new object[] {
-						"/en-admin/" + typeName.ToLower(),
-						navMenuIconRef,
-						navMenuLabel
-					});
+					var installNavMenuEntry = navMenuItemService.GetType().GetMethod("InstallAdminEntry");
+
+					if (installNavMenuEntry != null)
+					{
+						// InstallAdminEntry(string targetUrl, string iconRef, string label)
+						await (Task)installNavMenuEntry.Invoke(navMenuItemService, new object[] {
+							"/en-admin/" + typeName.ToLower(),
+							navMenuIconRef,
+							navMenuLabel
+						});
+					}
 				}
 			}
 		});
