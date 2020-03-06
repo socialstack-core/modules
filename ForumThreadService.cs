@@ -36,6 +36,8 @@ namespace Api.ForumThreads
 			// whilst also using a high-level abstraction as another plugin entry point.
 			deleteRepliesQuery = Query.Delete<ForumReply>();
 			deleteRepliesQuery.Where().EqualsArg("ThreadId", 0);
+			
+			InstallAdminPages(new string[] { "id", "title", "createdDateUtc" });
 		}
 
 		/// <summary>
