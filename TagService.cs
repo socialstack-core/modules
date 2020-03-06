@@ -30,6 +30,8 @@ namespace Api.Tags
 			listByObjectQuery = Query.List<TagContent>();
 			listByObjectQuery.Where().EqualsArg("ContentTypeId", 0).And().EqualsArg("ContentId", 1);
 
+			InstallAdminPages("Tags", "fa:fa-tags", new string[] { "id", "name" });
+
 			#warning todo - handle create and update events. Applies to tags, categories, reactions etc.
 			// -> I.e. permit changing tags during entity create/ update.
 
