@@ -1,6 +1,5 @@
 var id = 1;
 
-import tinymce from 'UI/TinyMce';
 import getModule from 'UI/Functions/GetModule';
 import omit from 'UI/Functions/Omit';
 
@@ -18,7 +17,6 @@ export default class Input extends React.Component {
 	constructor(props){
 		super(props);
 		this.state={};
-		this.editor = null;
 		this.newId();
 		this.onChange=this.onChange.bind(this);
 		this.onSelectChange=this.onSelectChange.bind(this);
@@ -27,23 +25,10 @@ export default class Input extends React.Component {
 	newId(){
 		this.fieldId = 'form-field-' + (id++);
 		this.helpFieldId = this.fieldId + "-help";
-		this.element = null;
-		if(this.editor != null){
-			tinymce.remove(this.editor);
-			this.editor = null;
-		}
 	}
 	
 	componentWillReceiveProps(props){
 		this.newId();
-	}
-	
-	componentWillUnmount(){
-		if(this.editor != null){
-			tinymce.remove(this.editor);
-			this.editor = null;
-		}
-		this.element = null;
 	}
 	
 	render() {
@@ -146,22 +131,6 @@ export default class Input extends React.Component {
 		}
 	}
 	
-	mountEditor(e) {
-		this.element = e;
-		setTimeout(function(){
-			
-			tinymce.init({target:e, setup: editor => {
-				
-				this.editor = editor;
-				editor.on('change', function () {
-					tinymce.triggerSave();
-				});
-				
-			}});
-			
-		}, 50);
-	}
-	
 	renderInput() {
 		
 		const {type} = this.props;
@@ -194,19 +163,7 @@ export default class Input extends React.Component {
 					{...omit(this.props, ['id', 'className', 'onChange', 'type', 'inline'])}
 				/>
 			);
-		
-		}else if(type == "visual"){
 			
-			return (
-				<textarea 
-					ref={e=>this.mountEditor(e)}
-					onChange={this.onChange} 
-					id={this.props.id || this.fieldId} 
-					className={this.props.className || "form-control"}
-					{...omit(this.props, ['id', 'className', 'onChange', 'type', 'inline'])}
-				/>
-			);
-		
 		}else if(type == "submit" || type == "button"){
 			
 			return (
