@@ -82,7 +82,18 @@ namespace Api.Pages
 						}"
 					}
 				);
+				
 			});
+
+			// Install the admin pages. Special case as it's the page service itself - we'll want to wait until it's at least finished
+			// this/ its own constructor so we can say for sure that both it and anything else (like the navmenu service) are available.
+			Events.ServicesAfterStart.AddEventListener((Context ctx, object src) => {
+				
+				InstallAdminPages("Pages", "fa:fa-paragraph", new string[] { "id", "url", "title" });
+
+				return Task.FromResult(src);
+			});
+
 		}
 
 		/// <summary>
