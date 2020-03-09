@@ -16,7 +16,11 @@ namespace Api.Articles
 		/// <summary>
 		/// Instanced automatically. Use injection to use this service, or Startup.Services.Get.
 		/// </summary>
-		public ArticleService() : base(Events.Article) {}
+		public ArticleService() : base(Events.Article) {
+			
+			InstallAdminPages("Articles", "fa:fa-book-open", new string[] { "id", "name" });
+			
+		}
 	
 	}
     
