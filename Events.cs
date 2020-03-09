@@ -1,4 +1,5 @@
 using Api.NavMenus;
+using Api.NavMenuItems;
 using Api.Permissions;
 using System.Collections.Generic;
 
@@ -14,5 +15,9 @@ namespace Api.Eventing
 		/// Set of events for a NavMenu.
 		/// </summary>
 		public static EventGroup<NavMenu> NavMenu;
+		/// <summary>
+		/// Set of events for a NavMenuItem.
+		/// </summary>
+		public static EventGroup<NavMenuItem> NavMenuItem;
 	}
 }

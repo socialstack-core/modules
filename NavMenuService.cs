@@ -32,6 +32,17 @@ namespace Api.NavMenus
 			
 			selectByKeyQuery = Query.Select<NavMenu>();
 			selectByKeyQuery.Where().EqualsArg("Key", 0);
+			
+			
+			// Install the admin pages. Special case as it's the nav menu service itself - we'll want to wait until it's at least finished
+			// this/ its own constructor so we can say for sure that both it and anything else (like the page service) are available.
+			Events.ServicesAfterStart.AddEventListener((Context ctx, object src) => {
+				
+				// InstallAdminPages("Nav Menus", "fa:fa-map-signs", new string[] { "id", "name", "key" });
+
+				return Task.FromResult(src);
+			});
+
 		}
 		
         /// <summary>
