@@ -1,4 +1,6 @@
 using Api.Forums;
+using Api.ForumReplies;
+using Api.ForumThreads;
 using Api.Permissions;
 using System.Collections.Generic;
 
@@ -14,5 +16,15 @@ namespace Api.Eventing
 		/// Set of events for a Forum.
 		/// </summary>
 		public static EventGroup<Forum> Forum;
+		
+		/// <summary>
+		/// Set of events for a ForumReply.
+		/// </summary>
+		public static EventGroup<ForumReply> ForumReply;
+		
+		/// <summary>
+		/// Set of events for a ForumThread.
+		/// </summary>
+		public static EventGroup<ForumThread> ForumThread;
 	}
 }
