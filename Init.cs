@@ -120,11 +120,12 @@ namespace Api.Permissions
 				// Guest - account created, not activated. Basically the same as a public account by default.
 				Roles.Guest.GrantTheSameAs(Roles.Public); // <-- In this case, we grant the same as public.
 
+				// Users can update or delete any content they've created themselves:
+				Roles.Guest.If().IsSelf().ThenGrantVerb("update", "delete");
+
 				// Member - created and (optionally) activated.
 				Roles.Member.GrantTheSameAs(Roles.Guest);
-
-				Roles.Member.If().IsSelf().ThenGrant("user_update");
-
+				
 				return Task.FromResult(source);
 			}, 9);
 

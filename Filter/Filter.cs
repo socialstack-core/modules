@@ -364,6 +364,27 @@ namespace Api.Permissions
 		}
 
 		/// <summary>
+		/// If the previous chain resolves to true, then all the given capabilities will be granted.
+		/// </summary>
+		/// <param name="verbNames"></param>
+		/// <returns></returns>
+		public Role ThenGrantVerb(params string[] verbNames)
+		{
+			var rootNode = Construct();
+
+			// Grant the given set of caps to the given role
+			// Using *duplicates* of this grant chain.
+			// We duplicate in case people start directly using the grant chain on a particular capability
+			// after applying a bulk if to a bunch of them.
+			for (var i = 0; i < verbNames.Length; i++)
+			{
+				Role.GrantVerb(rootNode.Copy(), verbNames[i]);
+			}
+
+			return Role;
+		}
+
+		/// <summary>
 		/// Effectively adds the given node either as an X AND node or just the node as-is, depending on what is currently in the filter.
 		/// Note: Do not use this on persisted filters. This should only be used on short lived filter objects as it intentionally does a shallow add and construct.
 		/// </summary>

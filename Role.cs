@@ -63,6 +63,18 @@ namespace Api.Permissions
 		/// <returns></returns>
 		public Role GrantVerb(params string[] verbs)
 		{
+			return GrantVerb(null, verbs);
+		}
+
+		/// <summary>
+		/// Grants the given verbs unconditionally. Any capability that ends with this verb will be granted.
+		/// For example, GrantVerb("Load") will permit UserLoad, ForumReplyLoad etc.
+		/// </summary>
+		/// <param name="node"></param>
+		/// <param name="verbs"></param>
+		/// <returns></returns>
+		public Role GrantVerb(FilterNode node, params string[] verbs)
+		{
 			for (var i = 0; i < verbs.Length; i++)
 			{
 				verbs[i] = "_" + verbs[i].ToLower();
@@ -74,7 +86,15 @@ namespace Api.Permissions
 				{
 					if (kvp.Key.EndsWith(verbs[i]))
 					{
-						Grant(kvp.Key);
+						if (node == null)
+						{
+							Grant(kvp.Key);
+						}
+						else
+						{
+							Grant(kvp.Key, node);
+						}
+						
 						break;
 					}
 				}
