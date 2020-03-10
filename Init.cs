@@ -129,17 +129,17 @@ namespace Api.Permissions
 				return Task.FromResult(source);
 			}, 9);
 
-			Task.Run(async () =>
+			// After all EventListener's have had a chance to be initialised..
+			Events.EventsAfterStart.AddEventListener(async (Context ctx, object[] args) =>
 			{
-
 				// Trigger RoleSetup:
-				await Events.RoleOnSetup.Dispatch(null, null);
+				await Events.RoleOnSetup.Dispatch(ctx, null);
 
 				// Trigger capability setup:
-				await Events.CapabilityOnSetup.Dispatch(null, null);
-			
-				// We'll wait for this one as it's important it is setup before the API starts:
-			}).Wait();
+				await Events.CapabilityOnSetup.Dispatch(ctx, null);
+
+				return args == null || args.Length == 0 ? null : args[0];
+			});
 		}
 
 	}
