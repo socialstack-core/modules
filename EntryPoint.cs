@@ -29,7 +29,7 @@ namespace Api.Startup
 		/// <summary>
 		/// The main entry point for your project's API.
 		/// </summary>
-		public static async Task Main(string[] args)
+		public static void Main(string[] args)
         {
 			// Hello! The very first thing we'll do is instance all event handlers.
 			Api.Eventing.Events.Init();
@@ -58,11 +58,14 @@ namespace Api.Startup
 				Activator.CreateInstance(typeInfo);
 			}
 
-			// Fire off initial OnStart handlers:
-			await Api.Eventing.Events.TriggerStart();
-
 			// Ok - modules have now connected any core events or have performed early startup functionality.
 
+			Task.Run(async () =>
+			{
+				// Fire off initial OnStart handlers:
+				await Api.Eventing.Events.TriggerStart();
+			}).Wait();
+			
 			// Create a Kestrel host:
 			var host = new WebHostBuilder()
                 .UseKestrel(options => {
