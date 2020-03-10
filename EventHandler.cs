@@ -33,7 +33,7 @@ namespace Api.Eventing
 	/// Handlers are also heaviest on add - they're designed to maximise repeat run performance - so avoid rapidly adding and removing them.
 	/// Instead add one handler at startup and then do a check inside it to see if it should run or not.
 	/// </summary>
-	public partial class EventHandler
+	public abstract partial class EventHandler
 	{
 		/// <summary>
 		/// Event name. Always the same as the field name in the Events class. Of the form "ForumBeforeCreate".

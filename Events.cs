@@ -14,7 +14,7 @@ namespace Api.Eventing
 		/// <summary>
 		/// Called at the earliest point when all the event handlers are setup and you can start using them.
 		/// </summary>
-		public static EventHandler EventsAfterStart;
+		public static EventHandler<object> EventsAfterStart;
 
         /// <summary>
         /// A lookup of lowercase event name -> event handler.
@@ -27,7 +27,7 @@ namespace Api.Eventing
 		/// </summary>
 		public static async Task TriggerStart()
 		{
-			await EventsAfterStart.Dispatch(null);
+			await EventsAfterStart.Dispatch(null, null);
 		}
 
 		/// <summary>
