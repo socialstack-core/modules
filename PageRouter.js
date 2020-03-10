@@ -125,23 +125,21 @@ export default class PageRouter extends React.Component{
 				if(cur.nodeName == 'A'){
 					var href = cur.getAttribute('href'); // cur.href is absolute
 					
-					if(!href || !href.length){
-						continue;
-					}
-					
-					var pn = document.location.pathname;
-					var isOnExternPage = pn.indexOf('/en-admin') == 0 || pn.indexOf('/v1') == 0;
-					var targetIsExternPage = href[0] == '/' ? (href.indexOf('/en-admin') == 0 || href.indexOf('/v1') == 0) : isOnExternPage;
-					
-					if(href.indexOf(':') != -1 || (href[0] == '/' && (href.length>1 && href[1] == '/'))){
+					if(href && href.length){
+						var pn = document.location.pathname;
+						var isOnExternPage = pn.indexOf('/en-admin') == 0 || pn.indexOf('/v1') == 0;
+						var targetIsExternPage = href[0] == '/' ? (href.indexOf('/en-admin') == 0 || href.indexOf('/v1') == 0) : isOnExternPage;
+						
+						if(href.indexOf(':') != -1 || (href[0] == '/' && (href.length>1 && href[1] == '/'))){
+							return;
+						}
+						
+						if(targetIsExternPage == isOnExternPage){
+							e.preventDefault();
+							this.go(cur.pathname);
+						}
 						return;
 					}
-					
-					if(targetIsExternPage == isOnExternPage){
-						e.preventDefault();
-						this.go(cur.pathname);
-					}
-					return;
 				}
 				cur = cur.parentNode;
 			}
