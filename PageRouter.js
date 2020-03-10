@@ -116,7 +116,7 @@ export default class PageRouter extends React.Component{
 		});
 		
 		document.addEventListener("click", e => {
-			if(e.button != 0){
+			if(e.button != 0 || e.defaultPrevented){
 				// Browser default action for right/ middle clicks
 				return;
 			}
