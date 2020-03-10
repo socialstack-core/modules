@@ -5,6 +5,7 @@ using Api.Configuration;
 using System;
 using Microsoft.AspNetCore.Server.Kestrel.Core;
 using Microsoft.Extensions.Logging;
+using System.Threading.Tasks;
 
 namespace Api.Startup
 {
@@ -28,7 +29,7 @@ namespace Api.Startup
 		/// <summary>
 		/// The main entry point for your project's API.
 		/// </summary>
-		public static void Main(string[] args)
+		public static async Task Main(string[] args)
         {
 			// Hello! The very first thing we'll do is instance all event handlers.
 			Api.Eventing.Events.Init();
@@ -58,7 +59,7 @@ namespace Api.Startup
 			}
 
 			// Fire off initial OnStart handlers:
-			Api.Eventing.Events.TriggerStart();
+			await Api.Eventing.Events.TriggerStart();
 
 			// Ok - modules have now connected any core events or have performed early startup functionality.
 
