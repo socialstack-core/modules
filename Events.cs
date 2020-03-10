@@ -1,6 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
-
+using System.Threading.Tasks;
 
 namespace Api.Eventing
 {
@@ -25,9 +25,9 @@ namespace Api.Eventing
 		/// <summary>
 		/// Call this to trigger the OnStart event.
 		/// </summary>
-		public static void TriggerStart()
+		public static async Task TriggerStart()
 		{
-			EventsAfterStart.Dispatch(null);
+			await EventsAfterStart.Dispatch(null);
 		}
 
 		/// <summary>
