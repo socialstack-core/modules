@@ -82,6 +82,6 @@ export default class Template extends React.Component {
 }
 
 Template.propTypes = {
-	id: 'int',
+	id: {type: 'id', content: 'Template'},
 	children: true
 };
