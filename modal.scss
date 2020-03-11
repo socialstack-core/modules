@@ -1,3 +1,8 @@
 .modal.show{
 	display: block;
 }
+
+.modal-body{
+	max-height: 80vh;
+	overflow-y: auto;
+}
