@@ -5,6 +5,8 @@ import Loop from 'UI/Loop';
 import Canvas from 'UI/Canvas';
 import Input from 'UI/Input';
 import expand from 'UI/Functions/CanvasExpand';
+import webRequest from 'UI/Functions/WebRequest';
+import getContentTypes from 'UI/Functions/GetContentTypes';
 
 // Connect the input "ontypecanvas" render event:
 
@@ -13,6 +15,17 @@ var eventHandler = global.events.get('UI/Input');
 eventHandler.ontypecanvas = function(props, _this){
 	
 	return <CanvasEditor 
+		id={props.id || _this.fieldId}
+		className={props.className || "form-control"}
+		{...omit(props, ['id', 'className', 'type', 'inline'])}
+	/>;
+	
+};
+
+eventHandler.ontyperenderer = function(props, _this){
+	
+	return <CanvasEditor 
+		moduleSet='renderer'
 		id={props.id || _this.fieldId}
 		className={props.className || "form-control"}
 		{...omit(props, ['id', 'className', 'type', 'inline'])}
@@ -164,7 +177,8 @@ export default class CanvasEditor extends React.Component {
 		// __mm is the superglobal used by socialstack 
 		// to hold all available modules.
 		
-		var usableModules = {};
+		var sets = {standard:{}, renderer: {}};
+		__moduleGroups={};
 		
 		for(var modName in __mm){
 			// Attempt to get React propTypes.
@@ -181,6 +195,8 @@ export default class CanvasEditor extends React.Component {
 				continue;
 			}
 			
+			var set = sets[module.moduleSet || 'standard'];
+			
 			// modName is e.g. UI/Thing/Thing.js
 			
 			// Remove the filename, and get the super group:
@@ -195,10 +211,10 @@ export default class CanvasEditor extends React.Component {
 			
 			var group = nameParts.join(' > ');
 			
-			if(!usableModules[group]){
-				group = usableModules[group] = {name: group, modules: []};
+			if(!set[group]){
+				group = set[group] = {name: group, modules: []};
 			}else{
-				group = usableModules[group];
+				group = set[group];
 			}
 			
 			group.modules.push({
@@ -209,19 +225,22 @@ export default class CanvasEditor extends React.Component {
 			});
 		}
 		
-		var moduleGroups = [];
-		
-		if(usableModules[""]){
-			// UI group first always:
-			moduleGroups.push(usableModules[""]);
-			delete usableModules[""];
+		for(var setName in sets){
+			var set = sets[setName];
+			
+			var moduleGroups = [];
+			if(set[""]){
+				// UI group first always:
+				moduleGroups.push(set[""]);
+				delete set[""];
+			}
+			
+			for(var gName in set){
+				moduleGroups.push(set[gName]);
+			}
+			
+			__moduleGroups[setName] = moduleGroups;
 		}
-		
-		for(var gName in usableModules){
-			moduleGroups.push(usableModules[gName]);
-		}
-		
-		__moduleGroups = moduleGroups;
 		
 	}
 	
@@ -271,8 +290,13 @@ export default class CanvasEditor extends React.Component {
 	
 	renderModuleSelection(){
 		
-		if(this.state.selectOpenFor && !__moduleGroups){
-			this.collectModules();
+		var set = null;
+		
+		if(this.state.selectOpenFor){
+			if(!__moduleGroups){
+				this.collectModules();
+			}
+			set = this.props.moduleSet ? __moduleGroups[this.props.moduleSet] : __moduleGroups.standard;
 		}
 		
 		return (<Modal
@@ -287,7 +311,7 @@ export default class CanvasEditor extends React.Component {
 			onClose={this.closeModal}
 			visible={this.state.selectOpenFor}
 		>
-			{__moduleGroups ? __moduleGroups.map(group => {
+			{set ? set.map(group => {
 				return <div className="module-group">
 					<h6>{group.name}</h6>
 					<Loop asCols over={group.modules} size={4}>
@@ -370,31 +394,35 @@ export default class CanvasEditor extends React.Component {
 			current = this.state;
 		}
 		
-		if(contentNode == current.content){
-			return current;
-		}
 		var a = current.content;
 		
-		if(!a || !Array.isArray(a)){
+		if(contentNode == a){
+			return current;
+		}
+		
+		if(!a){
 			return null;
 		}
 		
-		for(var i=0;i<a.length;i++){
-			var node = a[i];
-			if(!node){
-				continue;
+		if(Array.isArray(a)){
+			for(var i=0;i<a.length;i++){
+				var node = a[i];
+				if(!node){
+					continue;
+				}
+				
+				if(node == contentNode){
+					return current;
+				}
+				
+				var parent = this.findParent(contentNode, node);
+				if(parent){
+					return parent;
+				}
 			}
-			
-			if(node == contentNode){
-				return current;
-			}
-			
-			var parent = this.findParent(contentNode, node);
-			if(parent){
-				return parent;
-			}
+		}else if(a.content){
+			return this.findParent(contentNode, a);
 		}
-		
 		return null;
 	}
 	
@@ -479,6 +507,13 @@ export default class CanvasEditor extends React.Component {
 						})
 					}else if(fieldInfo.type == 'color'){
 						inputType = 'color';
+					}else if(fieldInfo.type && fieldInfo.type.type == 'id'){
+						inputType = 'select';
+						inputContent = this.getContentDropdown(fieldInfo);
+					}else if(fieldInfo.type == 'set' || (fieldInfo.type && fieldInfo.type.type == 'set')){
+						
+						return this.renderSetSelection(fieldInfo, label);
+						
 					}
 					
 					// helloWorld -> Hello World.
@@ -513,6 +548,71 @@ export default class CanvasEditor extends React.Component {
 			{this.renderDelete(contentNode)}
 			No other options available
 		</div>;
+	}
+	
+	getContentDropdown(fieldInfo){
+		
+		if(!fieldInfo.type.loadedSet){
+			fieldInfo.type.loadedSet = [];
+			
+			webRequest(fieldInfo.type.content.toLowerCase() + '/list').then(result => {
+				fieldInfo.type.loadedSet = result.json.results;
+				this.setState({});
+			});
+		}
+		
+		return fieldInfo.type.loadedSet.map(item => {
+			var name = (item.name || item.title || item.firstName || 'Untitled') + ' (#' + item.id + ')';
+			
+			return (
+				<option value={item.id}>{name}</option>
+			);
+		});
+	}
+	
+	getContentTypeDropdown(fieldInfo){
+		if(!fieldInfo.type.loadedTypes){
+			fieldInfo.type.loadedTypes = [];
+			
+			getContentTypes().then(set => {
+				fieldInfo.type.loadedTypes = set;
+				this.setState({});
+			});
+		}
+		
+		return fieldInfo.type.loadedTypes.map(item => {
+			var name = item.name;
+			
+			return (
+				<option value={item.name}>{name}</option>
+			);
+		});
+	}
+	
+	renderSetSelection(fieldInfo, label){
+		
+		// helloWorld -> Hello World.
+		label = label.replace(/([^A-Z])([A-Z])/g, '$1 $2');
+		label = label[0].toUpperCase() + label.substring(1);
+		var val = fieldInfo.value || {type: 'set', renderer: JSON.stringify({module: fieldInfo.type.defaultRenderer}) || '[]'};
+		
+		return [
+			<Input label='Content Type' type='select' defaultValue={val.contentType} onChange={e => {
+				if(!contentNode.data){
+					contentNode.data = {};
+				}
+				val.contentType = e.target.value;
+			}}>{this.getContentTypeDropdown(fieldInfo)}</Input>,
+			<label>Content Filter</label>,
+			'Filter coming soon',
+			<Input label='Content Renderer' type='renderer' defaultValue={val.renderer} onChange={e => {
+				if(!contentNode.data){
+					contentNode.data = {};
+				}
+				val.renderer = e.target.value;
+			}} />
+		];
+		
 	}
 	
 	renderNode(contentNode){
