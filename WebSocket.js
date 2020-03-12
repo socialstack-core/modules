@@ -51,10 +51,8 @@ function goAgain(){
 function connect(){
 	var isHttps = global.location.protocol == "https:";
 	
-	console.log('Connecting');
-	
 	// Fire up the websocket:
-	ws = new WebSocket((global.apiHost || window.location.origin).replace("http", "ws") + "/live-websocket/");
+	ws = new WebSocket((global.apiHost || global.location.origin).replace("http", "ws") + "/live-websocket/");
 	
 	ws.addEventListener("open", () => {
 		informStatus(true);
