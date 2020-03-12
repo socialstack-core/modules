@@ -68,11 +68,24 @@ public partial class AutoService<T> where T: DatabaseRow, new(){
 		EventGroup = eventGroup;
 	}
 	
+	/// <summary>
+	/// The add mask to use for a nestable service.
+	/// Nested services essentially automatically block infinite recursion when loading data.
+	/// </summary>
 	public ulong NestableAddMask = 0;
+
+	/// <summary>
+	/// The remove mask to use for a nestable service.
+	/// Nested services essentially automatically block infinite recursion when loading data.
+	/// </summary>
 	public ulong NestableRemoveMask = ulong.MaxValue;
 	
 	private static int NestableTypeId = 0;
-	
+
+	/// <summary>
+	/// True if this service is 'nestable' meaning it can be used during a List event in some other service.
+	/// Nested services essentially automatically block infinite recursion when loading data.
+	/// </summary>
 	public bool IsNestable{
 		get{
 			return NestableAddMask != 0;
