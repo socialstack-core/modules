@@ -11,7 +11,7 @@ catch{
 export default class PageRouter extends React.Component{
 	
 	go(url){
-		window.history.pushState({}, "", url);
+		global.history.pushState({}, "", url);
 		document.body.parentNode.scrollTop=0;
 		this.props.onNavigate && this.props.onNavigate(url);
 	}
@@ -110,7 +110,7 @@ export default class PageRouter extends React.Component{
 	}
 	
 	componentDidMount(){
-		window.addEventListener("popstate", e => {
+		global.addEventListener("popstate", e => {
 			document.body.parentNode.scrollTo(0,0);
 			this.props.onNavigate && this.props.onNavigate(document.location.pathname);
 		});
