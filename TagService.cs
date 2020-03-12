@@ -30,6 +30,9 @@ namespace Api.Tags
 			listByObjectQuery = Query.List<TagContent>();
 			listByObjectQuery.Where().EqualsArg("ContentTypeId", 0).And().EqualsArg("ContentId", 1);
 
+			// Because of IHaveTags, Tag must be nestable:
+			MakeNestable();
+
 			InstallAdminPages("Tags", "fa:fa-tags", new string[] { "id", "name" });
 
 			#warning todo - handle create and update events. Applies to tags, categories, reactions etc.
