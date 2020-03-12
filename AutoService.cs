@@ -80,8 +80,6 @@ public partial class AutoService<T> where T: DatabaseRow, new(){
 	/// </summary>
 	public ulong NestableRemoveMask = ulong.MaxValue;
 	
-	private static int NestableTypeId = 0;
-
 	/// <summary>
 	/// True if this service is 'nestable' meaning it can be used during a List event in some other service.
 	/// Nested services essentially automatically block infinite recursion when loading data.
@@ -101,7 +99,7 @@ public partial class AutoService<T> where T: DatabaseRow, new(){
 			return;
 		}
 		
-		var id = NestableTypeId++;
+		var id = Api.Startup.AutoServiceNesting.TypeId++;
 		
 		NestableAddMask = (ulong)1 << id;
 		NestableRemoveMask = ~NestableAddMask;
@@ -261,6 +259,22 @@ public partial class AutoService<T> where T: DatabaseRow, new(){
 			}
 		});
 
+	}
+
+}
+
+namespace Api.Startup {
+
+	/// <summary>
+	/// Used to help nestable AutoServices.
+	/// </summary>
+	public static class AutoServiceNesting {
+
+		/// <summary>
+		/// All nestable AutoServices are given an ID. It's not stored in the database so it's assigned at runtime as the services start.
+		/// This tracks the number assigned so far.
+		/// </summary>
+		public static int TypeId;
 	}
 
 }
