@@ -43,7 +43,12 @@ namespace Api.Contexts
 		/// The full user object, if it has been requested.
 		/// </summary>
 		private User _user;
-
+		
+		/// <summary>
+		/// The nested type mask, used to automatically detect cyclical references.
+		/// </summary>
+		public ulong NestedTypes;
+		
 		/// <summary>
 		/// Role. Null indicates a broken AuthUser instance or user of a Role ID which probably hasn't been setup.
 		/// </summary>
