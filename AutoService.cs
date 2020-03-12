@@ -149,7 +149,19 @@ public partial class AutoService<T> where T: DatabaseRow, new(){
 	/// </summary>
 	public virtual async Task<T> Get(Context context, int id)
 	{
-		return await _database.Select(selectQuery, id);
+		if (NestableAddMask != 0 && (context.NestedTypes & NestableAddMask) == NestableAddMask)
+		{
+			// This happens when we're nesting Get calls.
+			// For example, a User has Tags which in turn have a (creator) User.
+			return null;
+		}
+		
+		var item = await _database.Select(selectQuery, id);
+
+		context.NestedTypes |= NestableAddMask;
+		item = await EventGroup.AfterLoad.Dispatch(context, item);
+		context.NestedTypes &= NestableRemoveMask;
+		return item;
 	}
 
 	/// <summary>
