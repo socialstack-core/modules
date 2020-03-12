@@ -45,6 +45,9 @@ namespace Api.Users
 			selectByEmailQuery = Query.Select<User>();
 			selectByEmailQuery.Where().EqualsArg("Email", 0);
 
+			// Because of IHaveCreatorUser, User must be nestable:
+			MakeNestable();
+
 			SetupAutoUserFieldEvents();
 
 		}
