@@ -30,6 +30,9 @@ namespace Api.Categories
 			listByObjectQuery = Query.List<CategoryContent>();
 			listByObjectQuery.Where().EqualsArg("ContentTypeId", 0).And().EqualsArg("ContentId", 1);
 
+			// Because of IHaveCategories, Category must be nestable:
+			MakeNestable();
+
 			InstallAdminPages("Categories", "fa:fa-folder", new string[] { "id", "name" });
 
 			// Load categories on Load/List events next. First, find all events for types that implement IHaveCategories:
