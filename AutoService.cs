@@ -67,7 +67,32 @@ public partial class AutoService<T> where T: DatabaseRow, new(){
 
 		EventGroup = eventGroup;
 	}
-
+	
+	public ulong NestableAddMask = 0;
+	public ulong NestableRemoveMask = ulong.MaxValue;
+	
+	private static int NestableTypeId = 0;
+	
+	public bool IsNestable{
+		get{
+			return NestableAddMask != 0;
+		}
+	}
+	
+	/// <summary>
+	/// Makes this service type 'nestable'.
+	/// </summary>
+	public void MakeNestable()
+	{
+		if(IsNestable){
+			return;
+		}
+		
+		var id = NestableTypeId++;
+		
+		NestableAddMask = (ulong)1 << id;
+		NestableRemoveMask = ~NestableAddMask;
+	}
 
 	/// <summary>
 	/// Deletes an entity by its ID.
@@ -89,9 +114,20 @@ public partial class AutoService<T> where T: DatabaseRow, new(){
 	/// <returns></returns>
 	public virtual async Task<List<T>> List(Context context, Filter<T> filter)
 	{
+		if(NestableAddMask!=0 && (context.NestedTypes & NestableAddMask) == NestableAddMask){
+			// This happens when we're nesting List calls.
+			// For example, a User has Tags which in turn have a (creator) User.
+			return new List<T>();
+		}
+		context.NestedTypes |= NestableAddMask;
 		filter = await EventGroup.BeforeList.Dispatch(context, filter);
+		context.NestedTypes &= NestableRemoveMask;
+		
 		var list = await _database.List(listQuery, filter);
+		
+		context.NestedTypes |= NestableAddMask;
 		list = await EventGroup.AfterList.Dispatch(context, list);
+		context.NestedTypes &= NestableRemoveMask;
 		return list;
 	}
 
