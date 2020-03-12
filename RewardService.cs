@@ -28,6 +28,9 @@ namespace Api.Rewards
 			// Create admin pages if they don't already exist:
 			InstallAdminPages("Rewards", "fa:fa-award", new string[]{"id", "name"});
 			
+			// Because of IHaveRewards, Reward must be nestable:
+			MakeNestable();
+
 			// Start preparing the queries. Doing this ahead of time leads to excellent performance savings, 
 			// whilst also using a high-level abstraction as another plugin entry point.
 			listContentQuery = Query.List<RewardContent>();
