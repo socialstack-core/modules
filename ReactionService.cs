@@ -34,6 +34,9 @@ namespace Api.Reactions
 			listCountByObjectQuery = Query.List<ReactionCount>();
 			listCountByObjectQuery.Where().EqualsArg("ContentTypeId", 0).And().EqualsArg("ContentId", 1);
 			
+			// Because of IHaveReactions, Reaction must be nestable:
+			MakeNestable();
+
 			// Load reactions on Load/List events next. First, find all events for types that implement IHaveReactions:
 			var loadEvents = Events.FindByType(typeof(IHaveReactions), "Load", EventPlacement.After);
 
