@@ -79,14 +79,29 @@ namespace Api.Users
 
 				var sourceField = typeof(User).GetField(targetField.Name, BindingFlags.Instance | BindingFlags.Public);
 
-				if (sourceField == null)
+				if (sourceField != null)
+				{
+					_profileFields.Add(new ProfileFieldTransfer()
+					{
+						From = sourceField,
+						To = targetField
+					});
+
+					continue;
+				}
+					
+				// is it a property?
+				var property = typeof(User).GetProperty(targetField.Name, BindingFlags.Instance | BindingFlags.Public);
+
+				if (property == null)
 				{
 					Console.WriteLine("Warning: You've got a public field in the UserProfile object called '" + targetField.Name + "' but it's not in a User object. It's value will be null.");
 					continue;
 				}
 
-				_profileFields.Add(new ProfileFieldTransfer() {
-					From = sourceField,
+				_profileFields.Add(new ProfileFieldTransfer()
+				{
+					FromProperty = property.GetGetMethod(),
 					To = targetField
 				});
 			}
@@ -255,12 +270,21 @@ namespace Api.Users
 			}
 
 			// Create the profile:
-			var profile = new UserProfile(result){};
+			var profile = new UserProfile(result);
 
 			// Transfer the auto fields:
 			foreach (var field in _profileFields)
 			{
-				field.To.SetValue(profile, field.From.GetValue(result));
+				if (field.FromProperty == null)
+				{
+					// It's a regular field:
+					field.To.SetValue(profile, field.From.GetValue(result));
+				}
+				else
+				{
+					// It's a property:
+					field.To.SetValue(profile, field.FromProperty.Invoke(result, null));
+				}
 			}
 
 			// Run the load event:
@@ -407,10 +431,15 @@ namespace Api.Users
 	/// <summary>
 	/// Defines the from/ to fields when setting up a UserProfile object.
 	/// </summary>
-	public class ProfileFieldTransfer {
+	public class ProfileFieldTransfer
+	{
+		/// <summary>
+		/// The source property in the User object. Either this or From is set.
+		/// </summary>
+		public MethodInfo FromProperty;
 
 		/// <summary>
-		/// The source field in the User object.
+		/// The source field in the User object. Either this or FromProperty is set.
 		/// </summary>
 		public FieldInfo From;
 
@@ -418,6 +447,5 @@ namespace Api.Users
 		/// The target field in the UserProfile object.
 		/// </summary>
 		public FieldInfo To;
-
 	}
 }
