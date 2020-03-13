@@ -237,7 +237,19 @@ namespace Api.Users
 		/// <returns></returns>
 		public async Task<User> Get(Context context, string emailOrUsername)
         {
-			return await _database.Select(selectByEmailOrUsernameQuery, emailOrUsername);
+			if (NestableAddMask != 0 && (context.NestedTypes & NestableAddMask) == NestableAddMask)
+			{
+				// This happens when we're nesting Get calls.
+				// For example, a User has Tags which in turn have a (creator) User.
+				return null;
+			}
+
+			var item = await _database.Select(selectByEmailOrUsernameQuery, emailOrUsername);
+
+			context.NestedTypes |= NestableAddMask;
+			item = await EventGroup.AfterLoad.Dispatch(context, item);
+			context.NestedTypes &= NestableRemoveMask;
+			return item;
         }
 
 		/// <summary>
@@ -248,7 +260,19 @@ namespace Api.Users
 		/// <returns></returns>
 		public async Task<User> GetByEmail(Context context, string email)
 		{
-			return await _database.Select(selectByEmailQuery, email);
+			if (NestableAddMask != 0 && (context.NestedTypes & NestableAddMask) == NestableAddMask)
+			{
+				// This happens when we're nesting Get calls.
+				// For example, a User has Tags which in turn have a (creator) User.
+				return null;
+			}
+
+			var item = await _database.Select(selectByEmailQuery, email);
+
+			context.NestedTypes |= NestableAddMask;
+			item = await EventGroup.AfterLoad.Dispatch(context, item);
+			context.NestedTypes &= NestableRemoveMask;
+			return item;
 		}
 
 		/// <summary>
@@ -259,7 +283,19 @@ namespace Api.Users
 		/// <returns></returns>
 		public async Task<User> GetByUsername(Context context, string username)
 		{
-			return await _database.Select(selectByUsernameQuery, username);
+			if (NestableAddMask != 0 && (context.NestedTypes & NestableAddMask) == NestableAddMask)
+			{
+				// This happens when we're nesting Get calls.
+				// For example, a User has Tags which in turn have a (creator) User.
+				return null;
+			}
+
+			var item = await _database.Select(selectByUsernameQuery, username);
+
+			context.NestedTypes |= NestableAddMask;
+			item = await EventGroup.AfterLoad.Dispatch(context, item);
+			context.NestedTypes &= NestableRemoveMask;
+			return item;
 		}
 
 		/// <summary>
