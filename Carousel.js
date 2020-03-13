@@ -53,13 +53,7 @@ export default class Carousel extends React.Component {
 	}
 	
 	content(){
-		var items = this.props.items;
-		
-		if(this.props.children && this.props.children.length && Array.isArray(this.props.children)){
-			items = this.props.children;
-		}
-		
-		return items;
+		return this.props.items || [];
 	}
 	
     render() {
@@ -75,9 +69,8 @@ export default class Carousel extends React.Component {
 		var itemSize = (1/visCount) * 100;
 		var itemSizePs = itemSize + '%';
 		
-		var Module = this.props.renderBy;
-		
-		var imgSize = this.props.imageSize === '' ? undefined : this.props.imageSize || 1024;
+		// The renderer is regularly a Canvas which performs a bunch of substitutions.
+		var Module = items.renderer;
 		
 		return (
 			<div className="carousel">
@@ -86,35 +79,10 @@ export default class Carousel extends React.Component {
 						<ul className="content-list content" style={{marginLeft: (-itemSize * this.state.currentIndex) + '%'}}>
 							{
 								items.map(item => {
-									
 									var content = React.isValidElement(item) ? item : null;
 									
 									if(!content && Module){
-										content = <Module {...item}/>;
-									}
-									
-									if(!content){
-										// Default.
-										content = <div style={{
-											height: (this.props.height ? (this.props.height + 'px') : '400px'),
-											backgroundColor: item.color,
-											backgroundImage: item.backgroundRef ? 'url(' + getRef(item.backgroundRef, {url: true, size: item.size || imgSize}) + ')' : undefined,
-											backgroundSize: this.props.spreadImage ? 'cover' : 'contain',
-											backgroundPosition: 'center center',
-											backgroundRepeat: 'no-repeat'
-										}}>
-											<center>
-												{
-													item.mainTitle && (<h1>{item.mainTitle}</h1>)
-												}
-												{
-													item.subTitle && (<h2>{item.subTitle}</h2>)
-												}
-												{
-													item.description && (<p>{item.description}</p>)
-												}
-											</center>
-										</div>;
+										content = <Module item={item} container={this.props}/>;
 									}
 									
 									return (
@@ -140,15 +108,8 @@ Carousel.propTypes = {
 	imageSize: 'int',
 	items: {
 		type: 'set',
-		element: {
-			mainTitle: 'string',
-			subTitle: 'string',
-			description: 'string',
-			backgroundRef: 'image',
-			color: 'color'
-		}
+		defaultRenderer: 'UI/Carousel/Default'
 	},
 	spreadImage: 'bool',
-	visibleAtOnce: {type: 'int', default: 1},
-	renderBy: 'component'
+	visibleAtOnce: {type: 'int', default: 1}
 };
