@@ -4,7 +4,7 @@ import Modal from 'UI/Modal';
 import Loop from 'UI/Loop';
 import Canvas from 'UI/Canvas';
 import Input from 'UI/Input';
-import expand from 'UI/Functions/CanvasExpand';
+import {expand, mapTokens} from 'UI/Functions/CanvasExpand';
 import webRequest from 'UI/Functions/WebRequest';
 import getContentTypes from 'UI/Functions/GetContentTypes';
 
@@ -32,6 +32,12 @@ eventHandler.ontyperenderer = function(props, _this){
 	/>;
 	
 };
+
+var __contentTypeCache = null;
+var __contentCacheByType = {};
+var __cachedForms = null;
+
+var __linkTypes = null;
 
 var __moduleGroups = null;
 
@@ -146,6 +152,7 @@ export default class CanvasEditor extends React.Component {
 		};
 		this.buildJson = this.buildJson.bind(this);
 		this.closeModal = this.closeModal.bind(this);
+		this.closeLinkModal = this.closeLinkModal.bind(this);
 	}
 	
 	componentWillReceiveProps(props){
@@ -162,7 +169,7 @@ export default class CanvasEditor extends React.Component {
 			json = {content: ''};
 		}
 		
-		return expand(json, null, null, true);
+		return expand(json);
 	}
 	
 	closeModal(){
@@ -171,6 +178,97 @@ export default class CanvasEditor extends React.Component {
 			optionsVisibleFor: null
 		});
 		this.updated();
+	}
+	
+	closeLinkModal(){
+		this.setState({
+			linkSelectionFor: null
+		});
+		this.updated();
+	}
+	
+	collectLinkTypes(){
+		
+		if(__linkTypes == null){
+			
+			var all = [];
+			
+			__linkTypes = {all};
+			
+			all.push({
+				icon: 'terminal',
+				type: 'urlToken',
+				propTypes: {
+					name: 'string'
+				}
+			});
+			
+			all.push({
+				icon: 'server',
+				type: 'endpoint',
+				propTypes: {
+					url: 'string'
+				}
+			});
+			
+			all.push({
+				icon: 'list',
+				type: 'set',
+				propTypes: {
+					contentType: 'contentType',
+					filter: {
+						type: 'filter',
+						forContent: {
+							type: 'field',
+							name: 'contentType'
+						}
+					},
+					renderer: {
+						type: 'renderer',
+						forContent: {
+							type: 'field',
+							name: 'contentType'
+						}
+					}
+				}
+			});
+			
+			var map = __linkTypes.map = {};
+			
+			all.forEach(linker => {
+				if(linker.name){
+					return;
+				}
+				var type = linker.type;
+				map[type] = linker;
+				linker.name = this.niceName(type);
+			});
+		}
+		
+		// __linkTypes is any globally available ones.
+		// Next add scope-specific ones (such as fields available to a renderer).
+		var all = __linkTypes.all;
+		var map = __linkTypes.map;
+		if(this.props.itemMeta){
+			var fieldLinker = {
+				icon: '',
+				type: 'field',
+				name: this.niceName(this.props.itemMeta.contentType),
+				propTypes: {
+					name: this.props.itemMeta.fields.map(field => field.data.name)
+				}
+			};
+			
+			all = __linkTypes.all.concat(fieldLinker);
+			map = {...map};
+			map[fieldLinker.type] = fieldLinker;
+		}
+		
+		return {
+			all,
+			map
+		};
+		
 	}
 	
 	collectModules(){
@@ -195,8 +293,6 @@ export default class CanvasEditor extends React.Component {
 				continue;
 			}
 			
-			var set = sets[module.moduleSet || 'standard'];
-			
 			// modName is e.g. UI/Thing/Thing.js
 			
 			// Remove the filename, and get the super group:
@@ -210,19 +306,31 @@ export default class CanvasEditor extends React.Component {
 			}
 			
 			var group = nameParts.join(' > ');
+			var setsToJoin = null;
 			
-			if(!set[group]){
-				group = set[group] = {name: group, modules: []};
+			if(module.rendererPropTypes){
+				// Both sets
+				setsToJoin = [sets.standard, sets.renderer];
 			}else{
-				group = set[group];
+				// 1 set
+				setsToJoin=[sets[module.moduleSet || 'standard']];
 			}
 			
-			group.modules.push({
-				name,
-				publicName,
-				props,
-				moduleClass: module
-			});
+			for(var i=0;i<setsToJoin.length;i++){
+				var set = setsToJoin[i];
+				if(!set[group]){
+					group = set[group] = {name: group, modules: []};
+				}else{
+					group = set[group];
+				}
+				
+				group.modules.push({
+					name,
+					publicName,
+					props: set == sets.renderer && module.rendererPropTypes ? module.rendererPropTypes : props,
+					moduleClass: module
+				});
+			}
 		}
 		
 		for(var setName in sets){
@@ -282,9 +390,16 @@ export default class CanvasEditor extends React.Component {
 	}
 	
 	updated(){
-		this.ref.value=JSON.stringify(this.buildJson());
+		var json = this.buildJson();
+		if(this.props.moduleSet == 'renderer'){
+			this.ref.value=JSON.stringify(json);
+		}else{
+			this.ref.value=JSON.stringify(json);
+		}
+		
 		this.props.onChange && this.props.onChange({
-			target: this.ref
+			target: this.ref,
+			json
 		});
 	}
 	
@@ -333,6 +448,10 @@ export default class CanvasEditor extends React.Component {
 		</Modal>);
 	}
 	
+	onChange(){
+		this.setState({});
+	}
+	
 	buildJson(){
 		return this.buildJsonNode(this.state.content, 0, true);
 	}
@@ -347,16 +466,23 @@ export default class CanvasEditor extends React.Component {
 			return contentNode.map((node, index) => this.buildJsonNode(node, index, false));
 		}
 		
-		if(contentNode.module == Text){
-			return isRoot ? {
-				content: contentNode.content
-			} : contentNode.content;
+		var data = {...contentNode.data};
+		
+		if(data){
+			// If any are renderers then we need to build those too as they'll be expanded.
+			for(var field in data){
+				if(data[field] && data[field].type == 'set'){
+					var setInfo = {...data[field]};
+					setInfo.renderer = this.buildJsonNode(data[field].renderer, 0, true);
+					data[field] = setInfo;
+				}
+			}
 		}
 		
 		// Otherwise, get the module name:
 		var result = {
 			module: contentNode.moduleName,
-			data: contentNode.data
+			data
 		};
 		
 		if(contentNode.content){
@@ -364,6 +490,60 @@ export default class CanvasEditor extends React.Component {
 		}
 		
 		return result;
+	}
+	
+	renderLinkSelectionModal(){
+		var lsf = this.state.linkSelectionFor;
+		if(!lsf){
+			return;
+		}
+		
+		var targetNode = lsf.targetNode;
+		var fieldInfo = lsf.fieldInfo;
+		var scopeLinks = this.collectLinkTypes().all;
+		
+		return <Modal
+			className={"module-link-selection-modal"}
+			buttons={[
+				{
+					label: "Close",
+					onClick: this.closeLinkModal
+				}
+			]}
+			title={'Linking ' + fieldInfo.name}
+			onClose={this.closeLinkModal}
+			visible={true}
+		>
+			<p>
+				Your field value can also be set dynamically - this is called linking. For example if you want it to come from something in the URL. Here's the linking options you have:
+			</p>
+			<Loop asCols over={scopeLinks} size={4}>
+				{linker => {
+					return <div className="module-tile" onClick={() => {
+							//if(targetNode.module){
+								if(!targetNode.data){
+									targetNode.data = {};
+								}
+								targetNode.data[fieldInfo.name] = {
+									type: linker.type
+								};
+							/*}else{
+								targetNode[fieldInfo.name] = {
+									type: linker.type
+								};
+							}*/
+							
+							this.closeLinkModal();
+						}}>
+						<div>
+							{<i className={"fa fa-" + (linker.icon || "puzzle-piece")} />}
+						</div>
+						{linker.name}
+					</div>;
+					
+				}}
+			</Loop>
+		</Modal>
 	}
 	
 	renderOptionsModal(){
@@ -451,23 +631,32 @@ export default class CanvasEditor extends React.Component {
 		);
 	}
 	
-	renderOptions(contentNode){
+	renderOptions(contentNode, module){
 		if(!contentNode){
 			return;
 		}
 		
-		var Module = contentNode.module || "div";
+		var Module = module || contentNode.module || "div";
 		var dataValues = {...contentNode.data};
+		
+		var props = Module.propTypes;
+		
+		if(this.props.moduleSet == 'renderer'){
+			props = Module.rendererPropTypes || props;
+		}
 		
 		var dataFields = {};
 		var atLeastOneDataField = false;
-		if(Module.propTypes){
-			for(var fieldName in Module.propTypes){
+		if(props){
+			for(var fieldName in props){
 				if(fieldName == 'children'){
 					continue;
 				}
-				var info = Module.propTypes[fieldName];
-				dataFields[fieldName] = {type: info, value: dataValues[fieldName]};
+				var propType = props[fieldName];
+				if(!propType.type){
+					propType = {type: propType};
+				}
+				dataFields[fieldName] = {propType, value: dataValues[fieldName]};
 				atLeastOneDataField = true;
 			}
 		}
@@ -479,69 +668,15 @@ export default class CanvasEditor extends React.Component {
 			
 			// This data field is in the JSON, but not a prop. The module is essentially missing its public interface.
 			// We'll still display it though so it can be edited:
-			dataFields[fieldName] = {type: 'string', value: dataValues[fieldName]};
+			dataFields[fieldName] = {propType: {type: 'string'}, value: dataValues[fieldName]};
 			atLeastOneDataField = true;
 		}
 		
 		if(atLeastOneDataField){
 			return (<div>
 				{this.renderDelete(contentNode)}
-				{
-				Object.keys(dataFields).map(fieldName => {
-					
-					// Very similar to how autoform works - auto deduce various field types whenever possible, based on field naming conventions.
-					var fieldInfo = dataFields[fieldName];
-					var label = fieldName;
-					var inputType = 'text';
-					var inputContent = undefined;
-					
-					if(fieldName.endsWith("Ref")){
-						inputType = 'file';
-						label = label.substring(0, label.length-3);
-					}else if(Array.isArray(fieldInfo.type)){
-						inputType = 'select';
-						inputContent = fieldInfo.type.map(name => {
-							return (
-								<option value={name}>{name}</option>
-							);
-						})
-					}else if(fieldInfo.type == 'color'){
-						inputType = 'color';
-					}else if(fieldInfo.type && fieldInfo.type.type == 'id'){
-						inputType = 'select';
-						inputContent = this.getContentDropdown(fieldInfo);
-					}else if(fieldInfo.type == 'set' || (fieldInfo.type && fieldInfo.type.type == 'set')){
-						
-						return this.renderSetSelection(fieldInfo, label);
-						
-					}
-					
-					// helloWorld -> Hello World.
-					label = label.replace(/([^A-Z])([A-Z])/g, '$1 $2');
-					label = label[0].toUpperCase() + label.substring(1);
-					
-					// The value might be e.g. a url ref.
-					var val = fieldInfo.value;
-					
-					if(val && val.type){
-						val = JSON.stringify(val);
-					}
-					
-					return <Input label={label} type={inputType} defaultValue={val} onChange={e => {
-						if(!contentNode.data){
-							contentNode.data = {};
-						}
-						
-						contentNode.data[fieldName] = fieldInfo.value = e.target.value;
-					}} onKeyUp={e => {
-						if(!contentNode.data){
-							contentNode.data = {};
-						}
-						
-						contentNode.data[fieldName] = fieldInfo.value = e.target.value;
-					}}>{inputContent}</Input>;
-				})
-			}</div>);
+				{this.renderOptionSet(dataFields, contentNode)}
+			</div>);
 		}
 		
 		return <div>
@@ -550,18 +685,213 @@ export default class CanvasEditor extends React.Component {
 		</div>;
 	}
 	
-	getContentDropdown(fieldInfo){
+	renderOptionSet(dataFields, targetNode){
 		
-		if(!fieldInfo.type.loadedSet){
-			fieldInfo.type.loadedSet = [];
+		var options = [];
+		
+		Object.keys(dataFields).forEach(fieldName => {
 			
-			webRequest(fieldInfo.type.content.toLowerCase() + '/list').then(result => {
-				fieldInfo.type.loadedSet = result.json.results;
+			// Very similar to how autoform works - auto deduce various field types whenever possible, based on field naming conventions.
+			var fieldInfo = dataFields[fieldName];
+			fieldInfo.name = fieldName;
+			var label = fieldName;
+			var inputType = 'text';
+			var inputContent = undefined;
+			var propType = fieldInfo.propType;
+			
+			if(propType.type == 'set' && (!fieldInfo.value || !fieldInfo.value.type)){
+				// The same as rendering a set linker.
+				this.updateField(targetNode, fieldInfo, {
+					type: 'set',
+					renderer: {
+						module: propType.defaultRenderer
+					}
+				});
+			}
+			
+			if(fieldInfo.value && fieldInfo.value.type && fieldInfo.value.type != 'module'){
+				// It's a linked field.
+				// Show its options instead.
+				var typeInfo = this.collectLinkTypes().map[fieldInfo.value.type];
+				
+				var fields = typeInfo.propTypes;
+				var linkDF = {};
+				
+				for(var linkFN in typeInfo.propTypes){
+					if(linkFN == 'children'){
+						continue;
+					}
+					var linkPT = typeInfo.propTypes[linkFN];
+					if(!linkPT.type){
+						linkPT = {type: linkPT};
+					}
+					linkDF[linkFN] = {propType: linkPT, value: fieldInfo.value[linkFN]};
+				}
+				
+				// Add the options:
+				options.push(
+					<div>
+						<label>
+							{this.niceName(label)}
+						</label>
+						<div style={{padding: '10px', border: '1px solid lightgrey'}}>
+							<p style={{color: 'lightgrey'}}>
+								{typeInfo.name}
+							</p>
+							{this.renderOptionSet(linkDF, fieldInfo.value)}
+						</div>
+					</div>
+				);
+				return;
+			}
+			
+			var extraProps = {};
+			
+			if(fieldName.endsWith("Ref")){
+				inputType = 'file';
+				label = label.substring(0, label.length-3);
+			}else if(Array.isArray(propType.type)){
+				inputType = 'select';
+				inputContent = propType.type.map(name => {
+					return (
+						<option value={name}>{name}</option>
+					);
+				})
+				inputContent.unshift(<option>Pick a value</option>);
+			}else if(propType.type == 'color'){
+				inputType = 'color';
+			}else if(propType.type == 'id'){
+				inputType = 'select';
+				inputContent = this.getContentDropdown(propType.content || propType.contentType);
+				inputContent.unshift(<option>Pick some content</option>);
+			}else if(propType.type == 'contentType'){
+				inputType = 'select';
+				inputContent = this.getContentTypeDropdown();
+				inputContent.unshift(<option>Pick a content type</option>);
+			}else if(propType.type == 'filter'){
+				return ("Filter WIP");
+			}else if(propType.type == 'renderer'){
+				inputType = 'renderer';
+				
+				// resolve forContent.
+				if(propType.forContent){
+					var contentType = propType.forContent;
+					if(propType.forContent.type == "field"){
+						var contentTypeField = dataFields[propType.forContent.name];
+						if(contentTypeField){
+							contentType = contentTypeField.value;
+						}else{
+							contentType = null;
+						}
+					}
+				}
+				
+				// Get the info for that content type, if we haven't already.
+				if(contentType){
+					this.getFieldsForType(contentType, (fields, fromCache) => {
+						if(fromCache){
+							extraProps.itemMeta = {
+								fields,
+								contentType
+							};
+						}else{
+							this.setState({});
+						}
+						
+					});
+				}
+			}
+			
+			// The value might be e.g. a url ref.
+			var val = fieldInfo.value;
+			
+			if(val && val.type){
+				val = JSON.stringify(val);
+			}
+			
+			options.push(
+				<Input label={this.getLinkLabel(this.niceName(label), targetNode, fieldInfo)} type={inputType} defaultValue={val} onChange={e => {
+					this.updateField(targetNode, fieldInfo, inputType == 'renderer' ? e.json : e.target.value);
+				}} onKeyUp={e => {
+					this.updateField(targetNode, fieldInfo, e.target.value);
+				}} {...extraProps}>{inputContent}</Input>
+			);
+		});
+		
+		return options;
+	}
+	
+	getFieldsForType(contentType, cb){
+		contentType = contentType.toLowerCase();
+	
+		if(__cachedForms){
+			return cb(__cachedForms[contentType], true);
+		}
+		
+		__cachedForms = {};
+		webRequest("autoform").then(result => {
+			var structure = result.json;
+			for(var i=0;i<structure.forms.length;i++){
+				var form = structure.forms[i];
+				__cachedForms[form.endpoint.substring(3)] = form.fields;
+			}
+			cb(__cachedForms[contentType]);
+		});
+	}
+	
+	updateField(targetNode, fieldInfo, value){
+		fieldInfo.value = value;
+		if(targetNode.module){
+			// Targeting a contentNode. Must go into the data array.
+			if(!targetNode.data){
+				targetNode.data = {};
+			}
+			targetNode.data[fieldInfo.name] = value;
+		}else{
+			// Goes direct into targetNode:
+			targetNode[fieldInfo.name] = value;
+		}
+		
+		console.log('Warning: this setState call invalidates the targetNode of this.state.linkSelectionFor, breaking >1 field change');
+		// -> Needs to tell the canvas to redraw but without ruining the state info.
+		// -> The detach happens because linkSelectionFor refs the json structure in the *parent canvas's data array* 
+		//    and not the one that gets regenerated in the child canvas editor.
+		this.setState({});
+	}
+	
+	niceName(label){
+		label = label.replace(/([^A-Z])([A-Z])/g, '$1 $2');
+		return label[0].toUpperCase() + label.substring(1);
+	}
+	
+	getLinkLabel(label, targetNode, fieldInfo){
+		
+		return [label, <i className='fa fa-link value-link' onClick={e => {
+			// This blocks the input field click that happens as we're surrounded by a <label>
+			e.preventDefault();
+			
+			this.setState({
+				linkSelectionFor: {
+					targetNode,
+					fieldInfo
+				}
+			});
+			
+		}}/>];
+		
+	}
+	
+	getContentDropdown(typeName){
+		if(!__contentCacheByType[typeName]){
+			__contentCacheByType[typeName] = [];
+			
+			webRequest(typeName.toLowerCase() + '/list').then(result => {
+				__contentCacheByType[typeName] = result.json.results;
 				this.setState({});
 			});
 		}
 		
-		return fieldInfo.type.loadedSet.map(item => {
+		return __contentCacheByType[typeName].map(item => {
 			var name = (item.name || item.title || item.firstName || 'Untitled') + ' (#' + item.id + ')';
 			
 			return (
@@ -570,49 +900,23 @@ export default class CanvasEditor extends React.Component {
 		});
 	}
 	
-	getContentTypeDropdown(fieldInfo){
-		if(!fieldInfo.type.loadedTypes){
-			fieldInfo.type.loadedTypes = [];
+	getContentTypeDropdown(){
+		if(!__contentTypeCache){
+			__contentTypeCache = [];
 			
 			getContentTypes().then(set => {
-				fieldInfo.type.loadedTypes = set;
+				__contentTypeCache = set;
 				this.setState({});
 			});
 		}
 		
-		return fieldInfo.type.loadedTypes.map(item => {
+		return __contentTypeCache.map(item => {
 			var name = item.name;
 			
 			return (
 				<option value={item.name}>{name}</option>
 			);
 		});
-	}
-	
-	renderSetSelection(fieldInfo, label){
-		
-		// helloWorld -> Hello World.
-		label = label.replace(/([^A-Z])([A-Z])/g, '$1 $2');
-		label = label[0].toUpperCase() + label.substring(1);
-		var val = fieldInfo.value || {type: 'set', renderer: JSON.stringify({module: fieldInfo.type.defaultRenderer}) || '[]'};
-		
-		return [
-			<Input label='Content Type' type='select' defaultValue={val.contentType} onChange={e => {
-				if(!contentNode.data){
-					contentNode.data = {};
-				}
-				val.contentType = e.target.value;
-			}}>{this.getContentTypeDropdown(fieldInfo)}</Input>,
-			<label>Content Filter</label>,
-			'Filter coming soon',
-			<Input label='Content Renderer' type='renderer' defaultValue={val.renderer} onChange={e => {
-				if(!contentNode.data){
-					contentNode.data = {};
-				}
-				val.renderer = e.target.value;
-			}} />
-		];
-		
 	}
 	
 	renderNode(contentNode){
@@ -683,8 +987,10 @@ export default class CanvasEditor extends React.Component {
 			);
 		}else{
 			
+			var dataFields = mapTokens(contentNode.data, this, Canvas);
+			
 			result = (
-				<Module {...contentNode.data}>
+				<Module {...dataFields}>
 					{contentNode.useCanvasRender ? this.renderNode(contentNode.content) : null}
 					{Module.propTypes && Module.propTypes.children && !this.props.minimal && (
 						<div style={{marginTop: '10px'}}>
@@ -753,8 +1059,9 @@ export default class CanvasEditor extends React.Component {
 						</div>
 					)}
 				</div>
-				{this.renderModuleSelection()}
-				{this.renderOptionsModal()}
+				{!this.state.linkSelectionFor && this.renderModuleSelection()}
+				{!this.state.linkSelectionFor && this.renderOptionsModal()}
+				{this.renderLinkSelectionModal()}
 			</div>
 		);
 	}

@@ -6,13 +6,18 @@
 		height: auto;
 	}
 	
+	.value-link{
+		color: #ddd;
+		margin-left: 5px;
+	}
+	
 	.module-info{
 		margin-bottom: 5px;
 		padding: 10px;
 		border: 1px solid lightgrey;
 	}
 	
-	.module-select-modal{
+	.module-select-modal, .module-link-selection-modal{
 		.module-group{
 			margin-bottom: 10px;
 		}
