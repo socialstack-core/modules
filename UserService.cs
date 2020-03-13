@@ -8,6 +8,7 @@ using System.Collections.Generic;
 using Api.Permissions;
 using Api.Eventing;
 using System.Collections;
+using System.Reflection;
 
 namespace Api.Users
 {
@@ -49,7 +50,46 @@ namespace Api.Users
 			MakeNestable();
 
 			SetupAutoUserFieldEvents();
+			SetupProfileFieldTransfers();
 
+		}
+
+		/// <summary>
+		/// Public fields of the UserProfile object which will be auto transferred.
+		/// </summary>
+		private List<ProfileFieldTransfer> _profileFields;
+
+		/// <summary>
+		/// Sets up the auto transfers for profile fields.
+		/// </summary>
+		private void SetupProfileFieldTransfers()
+		{
+			var publicUserProfileFields = typeof(UserProfile).GetFields(BindingFlags.Instance | BindingFlags.Public);
+			_profileFields = new List<ProfileFieldTransfer>();
+
+			for (var i = 0; i < publicUserProfileFields.Length; i++)
+			{
+				// Attempt to get the field in the user object:
+				var targetField = publicUserProfileFields[i];
+
+				if (targetField.GetCustomAttribute<Newtonsoft.Json.JsonIgnoreAttribute>() != null)
+				{
+					continue;
+				}
+
+				var sourceField = typeof(User).GetField(targetField.Name, BindingFlags.Instance | BindingFlags.Public);
+
+				if (sourceField == null)
+				{
+					Console.WriteLine("Warning: You've got a public field in the UserProfile object called '" + targetField.Name + "' but it's not in a User object. It's value will be null.");
+					continue;
+				}
+
+				_profileFields.Add(new ProfileFieldTransfer() {
+					From = sourceField,
+					To = targetField
+				});
+			}
 		}
 
 		/// <summary>
@@ -215,13 +255,13 @@ namespace Api.Users
 			}
 
 			// Create the profile:
-			var profile = new UserProfile(result)
+			var profile = new UserProfile(result){};
+
+			// Transfer the auto fields:
+			foreach (var field in _profileFields)
 			{
-				Id = result.Id,
-				FeatureRef = result.FeatureRef,
-				AvatarRef = result.AvatarRef,
-                Username = result.Username
-			};
+				field.To.SetValue(profile, field.From.GetValue(result));
+			}
 
 			// Run the load event:
 			profile = await Events.UserProfileLoad.Dispatch(context, profile);
@@ -362,5 +402,22 @@ namespace Api.Users
 				return false;
 			}
 		}
+	}
+
+	/// <summary>
+	/// Defines the from/ to fields when setting up a UserProfile object.
+	/// </summary>
+	public class ProfileFieldTransfer {
+
+		/// <summary>
+		/// The source field in the User object.
+		/// </summary>
+		public FieldInfo From;
+
+		/// <summary>
+		/// The target field in the UserProfile object.
+		/// </summary>
+		public FieldInfo To;
+
 	}
 }
