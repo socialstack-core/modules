@@ -1,4 +1,4 @@
-import expand from 'UI/Functions/CanvasExpand';
+import {expand, mapTokens} from 'UI/Functions/CanvasExpand';
 
 /**
  * This component renders canvas JSON. It takes canvas JSON as its child
@@ -33,7 +33,7 @@ class Canvas extends React.Component {
 		}
 		
 		if(content){
-			content = expand(content, () => this.forceRender(), this.props.onContentNode);
+			content = expand(content, this.props.onContentNode);
 		}
 		
 		return content;
@@ -43,29 +43,9 @@ class Canvas extends React.Component {
 		this.setState({content: this.state.content});
 	}
 	
-	mapTokens(obj){
-		var tokenSet = this.props.tokens || global.pageRouter.state.tokens;
-		
-		for(var e in obj) {
-			
-			var value = obj[e];
-			
-			if(!value){
-				continue;
-			}
-			
-			if(value.type && value.name){
-			
-				if(value.type == "urlToken"){
-					obj[e] = tokenSet[value.name];
-				}
-				
-			}else if(typeof value === 'object'){
-				// Go deeper:
-				this.mapTokens(value);
-			}
-		}
-		
+	onChange(){
+		this.forceRender();
+		this.props.onCanvasChanged && this.props.onCanvasChanged();
 	}
 	
 	renderNode(contentNode, index) {
@@ -74,11 +54,8 @@ class Canvas extends React.Component {
 		}
 		var Module = contentNode.module || "div";
 		
-		var dataFields = {...contentNode.data};
-		
 		// Resolve runtime field values now:
-		this.mapTokens(dataFields);
-		dataFields.__canvas = this;
+		var dataFields = mapTokens(contentNode.data, this, Canvas);
 		
 		return (
 			<Module key={index} {...dataFields}>
