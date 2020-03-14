@@ -66,7 +66,7 @@ namespace Api.Tags
 					var contentTypeId = ContentTypes.GetId(taggableObject.GetType());
 
 					// List the tags now:
-					var contentTags = await _database.List(listByObjectQuery, null, contentTypeId, dbObject.Id);
+					var contentTags = await _database.List(context, listByObjectQuery, null, contentTypeId, dbObject.Id);
 
 					if (contentTags == null || contentTags.Count == 0)
 					{
@@ -159,7 +159,7 @@ namespace Api.Tags
 					filter.EqualsArg("ContentTypeId", 0).And().EqualsSet("ContentId", ids);
 
 					// Get all the content tags for these entities:
-					var allContentTags = await _database.List(listContentQuery, filter, contentTypeId);
+					var allContentTags = await _database.List(context, listContentQuery, filter, contentTypeId);
 
 					// Build fast tag lookup:
 					var tagLookup = new Dictionary<int, Tag>();
