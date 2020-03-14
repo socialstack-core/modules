@@ -189,7 +189,8 @@ namespace Api.Translate
 				await LoadCache();
 			}
 			
-			if(id < 0 || id>=_cache.Length){
+			// Note that it can be = to cache length because we do a -1.
+			if(id <= 0 || id>_cache.Length){
 				return null;
 			}
 			
