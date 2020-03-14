@@ -36,7 +36,7 @@ namespace Api.NavMenuItems
 		/// <returns></returns>
 		public async Task<List<NavMenuItem>> ListByMenu(Context context, int menuId)
 		{
-			var menuSet = await _database.List(listByMenuQuery, null, menuId);
+			var menuSet = await _database.List(context, listByMenuQuery, null, menuId);
 			menuSet = await Events.NavMenuItem.AfterList.Dispatch(context, menuSet);
 			return menuSet;
 		}

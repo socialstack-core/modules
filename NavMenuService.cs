@@ -54,7 +54,7 @@ namespace Api.NavMenus
             await base.Delete(context, id);
 			
 			// Delete items too:
-			await _database.Run(deleteItemsQuery, id);
+			await _database.Run(context, deleteItemsQuery, id);
 			
 			// Ok!
 			return true;
@@ -66,7 +66,7 @@ namespace Api.NavMenus
 		public async Task<NavMenu> Get(Context context, string menuKey)
 		{
 			// Get the menu itself:
-			var menu = await _database.Select(selectByKeyQuery, menuKey);
+			var menu = await _database.Select(context, selectByKeyQuery, menuKey);
 
 			if (menu == null)
 			{
