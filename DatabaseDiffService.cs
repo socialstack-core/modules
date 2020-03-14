@@ -46,7 +46,7 @@ namespace Api.DatabaseDiff
 			var versionQuery = Query.List<DatabaseVersion>();
 			versionQuery.SetRawQuery("SELECT VERSION() as Version");
 
-			var dbVersion = await _database.Select(versionQuery);
+			var dbVersion = await _database.Select(null, versionQuery);
 
 			// Which version we got?
 			if (!dbVersion.Version.Trim().StartsWith("8"))
@@ -65,7 +65,7 @@ namespace Api.DatabaseDiff
 				"FROM information_schema.columns WHERE table_schema = DATABASE()"
 			);
 
-			var columns = await _database.List(listQuery, null);
+			var columns = await _database.List(null, listQuery, null);
 
 			// group them by table:
 			var existingSchema = new Schema();
