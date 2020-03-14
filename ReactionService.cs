@@ -65,7 +65,7 @@ namespace Api.Reactions
 					var contentTypeId = ContentTypes.GetId(reactionableObject.GetType());
 
 					// List the reaction counts now:
-					var contentReactions = await _database.List(listCountByObjectQuery, null, contentTypeId, dbObject.Id);
+					var contentReactions = await _database.List(context, listCountByObjectQuery, null, contentTypeId, dbObject.Id);
 
 					if (contentReactions == null || contentReactions.Count == 0)
 					{
@@ -198,7 +198,7 @@ namespace Api.Reactions
 					filter.EqualsArg("ContentTypeId", 0).And().EqualsSet("ContentId", ids);
 
 					// Get all the content reactions for these entities:
-					var allContentReactions = await _database.List(listCountQuery, filter, contentTypeId);
+					var allContentReactions = await _database.List(context, listCountQuery, filter, contentTypeId);
 
 					// Build fast reaction lookup:
 					var reactionLookup = new Dictionary<int, ReactionType>();

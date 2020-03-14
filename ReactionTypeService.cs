@@ -30,7 +30,7 @@ namespace Api.Reactions
 				var reactionTypeList = Query.List<ReactionType>();
 				reactionTypeList.Where().PageSize = 1;
 
-				var types = await _database.List(reactionTypeList, null);
+				var types = await _database.List(null, reactionTypeList, null);
 
 				if (types.Count == 0)
 				{
