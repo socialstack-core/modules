@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using Api.Contexts;
 using Api.Permissions;
 using Microsoft.Extensions.Configuration;
 using MySql.Data.MySqlClient;
@@ -127,23 +128,41 @@ namespace Api.Database
 				return await cmd.ExecuteNonQueryAsync() > 0;
 			}
 		}
-		
+
 		/// <summary>
 		/// Usually used for bulk deletes.
 		/// </summary>
 		/// <typeparam name="T"></typeparam>
+		/// <param name="context"></param>
 		/// <param name="q"></param>
 		/// <param name="idsToDelete"></param>
 		/// <param name="args"></param>
 		/// <returns></returns>
-		public async Task<bool> Run<T>(Query<T> q, IEnumerable<int> idsToDelete, params object[] args)
+		public async Task<bool> Run<T>(Context context, Query<T> q, IEnumerable<int> idsToDelete, params object[] args)
 		{
 			if (idsToDelete == null)
 			{
 				return false;
 			}
-			
-			var queryText = q.GetQuery(null, true);
+
+			var localeId = 0;
+			string localeCode = null;
+			if (context != null && context.LocaleId > 1)
+			{
+				localeId = context.LocaleId;
+				var gl = await context.GetLocale();
+				if (gl == null || gl.Id != localeId)
+				{
+					// The locale doesn't exist - we fell back to the site default one which doesn't have a column suffix.
+					localeId = 0;
+				}
+				else
+				{
+					localeCode = gl.Code;
+				}
+			}
+
+			var queryText = q.GetQuery(null, true, localeId, localeCode);
 			var builder = new System.Text.StringBuilder();
 			builder.Append(queryText);
 			BuildInString(builder, idsToDelete);
@@ -159,11 +178,12 @@ namespace Api.Database
 		/// Used for bulk inserts.
 		/// </summary>
 		/// <typeparam name="T"></typeparam>
+		/// <param name="context"></param>
 		/// <param name="q"></param>
 		/// <param name="toInsertSet"></param>
 		/// <param name="args"></param>
 		/// <returns></returns>
-		public async Task<bool> Run<T>(Query<T> q, List<T> toInsertSet, params object[] args)
+		public async Task<bool> Run<T>(Context context, Query<T> q, List<T> toInsertSet, params object[] args)
 		{
 			if (toInsertSet == null || toInsertSet.Count == 0)
 			{
@@ -174,8 +194,16 @@ namespace Api.Database
 			var fieldCount = q.Fields.Count;
 
 			// Note that the additional args are for any more complex args in the query.
-			
-			var queryText = q.GetQuery(null, true);
+
+			var localeId = 0;
+			string localeCode = null;
+			if (context != null && context.LocaleId > 1)
+			{
+				localeId = context.LocaleId;
+				localeCode = (await context.GetLocale()).Code;
+			}
+
+			var queryText = q.GetQuery(null, true, localeId, localeCode);
 			var builder = new System.Text.StringBuilder();
 			builder.Append(queryText);
 
@@ -235,16 +263,17 @@ namespace Api.Database
 				return false;
 			}
 		}
-		
+
 		/// <summary>
 		/// Runs the given query using the given arguments to bind.
 		/// Does not return any values other than a true/ false if it succeeded.
 		/// </summary>
+		/// <param name="context"></param>
 		/// <param name="q"></param>
 		/// <param name="srcObject"></param>
 		/// <param name="args"></param>
 		/// <returns></returns>
-		public async Task<bool> Run<T>(Query<T> q, T srcObject, params object[] args) where T:DatabaseRow
+		public async Task<bool> Run<T>(Context context, Query<T> q, T srcObject, params object[] args) where T:DatabaseRow
 		{
 			// UPDATE, DELETE and INSERT - Loop through each field in the query:
 			var fieldCount = q.Fields.Count;
@@ -290,11 +319,19 @@ namespace Api.Database
 			// And copy in any other fields (the where args for updates):
 			Array.Copy(args, 0, argSet, fieldCount, args.Length);
 
+			var localeId = 0;
+			string localeCode = null;
+			if (context != null && context.LocaleId > 1)
+			{
+				localeId = context.LocaleId;
+				localeCode = (await context.GetLocale()).Code;
+			}
+
 			// Run update:
 			using (var connection = GetConnection())
 			{
 				await connection.OpenAsync();
-				var cmd = CreateCommand(connection, q.GetQuery(), null, argSet);
+				var cmd = CreateCommand(connection, q.GetQuery(null, false, localeId, localeCode), null, argSet);
 				if (await cmd.ExecuteNonQueryAsync() > 0)
 				{
 					if (q.IdField != null)
@@ -317,16 +354,25 @@ namespace Api.Database
 		/// Runs the given query using the given arguments to bind.
 		/// Does not return any values other than a true/ false if it succeeded.
 		/// </summary>
+		/// <param name="context"></param>
 		/// <param name="q"></param>
 		/// <param name="args"></param>
 		/// <returns></returns>
-		public async Task<bool> Run(Query q, params object[] args)
+		public async Task<bool> Run(Context context, Query q, params object[] args)
 		{
+			var localeId = 0;
+			string localeCode = null;
+			if (context != null && context.LocaleId > 1)
+			{
+				localeId = context.LocaleId;
+				localeCode = (await context.GetLocale()).Code;
+			}
+
 			// Run update:
 			using (var connection = GetConnection())
 			{
 				await connection.OpenAsync();
-				var cmd = CreateCommand(connection, q.GetQuery(), null, args);
+				var cmd = CreateCommand(connection, q.GetQuery(null, false, localeId, localeCode), null, args);
 				return (await cmd.ExecuteNonQueryAsync() > 0);
 			}
 		}
@@ -335,16 +381,25 @@ namespace Api.Database
 		/// Runs the given query using the given arguments to bind.
 		/// Does not return any values other than a true/ false if it succeeded.
 		/// </summary>
+		/// <param name="context"></param>
 		/// <param name="q"></param>
 		/// <param name="args"></param>
 		/// <returns></returns>
-		public async Task<bool> Run<T>(Query<T> q, params object[] args)
+		public async Task<bool> Run<T>(Context context, Query<T> q, params object[] args)
 		{
+			var localeId = 0;
+			string localeCode = null;
+			if (context != null && context.LocaleId > 1)
+			{
+				localeId = context.LocaleId;
+				localeCode = (await context.GetLocale()).Code;
+			}
+
 			// Run update:
 			using (var connection = GetConnection())
 			{
 				await connection.OpenAsync();
-				var cmd = CreateCommand(connection, q.GetQuery(), null, args);
+				var cmd = CreateCommand(connection, q.GetQuery(null, false, localeId, localeCode), null, args);
 				return (await cmd.ExecuteNonQueryAsync() > 0);
 			}
 		}
@@ -352,20 +407,29 @@ namespace Api.Database
 		/// <summary>
 		/// Runs the given query with the given args to bind. Returns the results mapped as the given object.
 		/// </summary>
+		/// <param name="context"></param>
 		/// <typeparam name="T"></typeparam>
 		/// <param name="q"></param>
 		/// <param name="args"></param>
 		/// <returns></returns>
-		public async Task<T> Select<T>(Query<T> q, params object[] args) where T:new()
+		public async Task<T> Select<T>(Context context, Query<T> q, params object[] args) where T:new()
 		{
 			// Only SELECT comes through here.
 			// This is almost exactly the same as GetRow 
 			// except it operates using the field map in the query.
 
+			var localeId = 0;
+			string localeCode = null;
+			if (context != null && context.LocaleId > 1)
+			{
+				localeId = context.LocaleId;
+				localeCode = (await context.GetLocale()).Code;
+			}
+
 			using (var connection = GetConnection())
 			{
 				await connection.OpenAsync();
-				var qryString = q.GetQuery();
+				var qryString = q.GetQuery(null, false, localeId, localeCode);
 				var cmd = CreateCommand(connection, qryString, null, args);
 
 				using (var reader = await cmd.ExecuteReaderAsync())
@@ -410,6 +474,7 @@ namespace Api.Database
 		/// <summary>
 		/// Runs the given query with the given args to bind. Returns the results mapped as a list of the given type.
 		/// </summary>
+		/// <param name="context"></param>
 		/// <typeparam name="T"></typeparam>
 		/// <param name="q"></param>
 		/// <param name="filter">
@@ -418,14 +483,22 @@ namespace Api.Database
 		/// Pass it to Capability.IsGranted to have that happen automatically.</param>
 		/// <param name="args"></param>
 		/// <returns></returns>
-		public async Task<List<T>> List<T>(Query<T> q, Filter filter, params object[] args) where T : new()
+		public async Task<List<T>> List<T>(Context context, Query<T> q, Filter filter, params object[] args) where T : new()
 		{
 			var results = new List<T>();
+
+			var localeId = 0;
+			string localeCode = null;
+			if (context != null && context.LocaleId > 1)
+			{
+				localeId = context.LocaleId;
+				localeCode = (await context.GetLocale()).Code;
+			}
 
 			using (var connection = GetConnection())
 			{
 				await connection.OpenAsync();
-				var qryText = q.GetQuery(filter);
+				var qryText = q.GetQuery(filter, false, localeId, localeCode);
 				var cmd = CreateCommand(connection, qryText, filter, args);
 
 				using (var reader = await cmd.ExecuteReaderAsync())

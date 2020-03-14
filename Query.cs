@@ -246,17 +246,18 @@ namespace Api.Database
 					// List of fields next!
 					for (var i = 0; i < Fields.Count; i++)
 					{
+						var field = Fields[i];
 						if (i != 0)
 						{
 							str.Append(", ");
 						}
-						if (localeCode == null)
+						if (localeCode == null || field.LocalisedName == null)
 						{
-							str.Append(Fields[i].FullName);
+							str.Append(field.FullName);
 						}
 						else
 						{
-							str.Append(Fields[i].LocalisedName);
+							str.Append(field.LocalisedName);
 							str.Append(localeCode);
 							str.Append('`');
 						}
@@ -283,17 +284,18 @@ namespace Api.Database
 					// List of parametric fields next!
 					for (var i = 0; i < Fields.Count; i++)
 					{
+						var field = Fields[i];
 						if (i != 0)
 						{
 							str.Append(", ");
 						}
-						if (localeCode == null)
+						if (localeCode == null || field.LocalisedName == null)
 						{
-							str.Append(Fields[i].FullName);
+							str.Append(field.FullName);
 						}
 						else
 						{
-							str.Append(Fields[i].LocalisedName);
+							str.Append(field.LocalisedName);
 							str.Append(localeCode);
 							str.Append('`');
 						}

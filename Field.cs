@@ -1,4 +1,5 @@
-﻿using System;
+﻿using Api.Translate;
+using System;
 using System.Collections.Generic;
 using System.Data.Common;
 using System.Linq;
@@ -63,7 +64,16 @@ namespace Api.Database
 		public void SetFullName(string extension = null)
 		{
 			FullName = "`" + OwningType.Name + ((extension == null) ? "" : "_" + extension) + "`.`" + Name;
-			LocalisedName = FullName + "_";
+
+			if (TargetField != null && TargetField.GetCustomAttribute<LocalizedAttribute>() != null)
+			{
+				LocalisedName = FullName + "_";
+			}
+			else
+			{
+				LocalisedName = null;
+			}
+
 			FullName += "`";
 		}
 		
