@@ -68,7 +68,7 @@ namespace Api.Rewards
 					var contentTypeId = ContentTypes.GetId(rewardableObject.GetType());
 
 					// List the rewards now:
-					var contentRewards = await _database.List(listByObjectQuery, null, contentTypeId, dbObject.Id);
+					var contentRewards = await _database.List(context, listByObjectQuery, null, contentTypeId, dbObject.Id);
 
 					if (contentRewards == null || contentRewards.Count == 0)
 					{
@@ -161,7 +161,7 @@ namespace Api.Rewards
 					filter.EqualsArg("ContentTypeId", 0).And().EqualsSet("ContentId", ids);
 
 					// Get all the content rewards for these entities:
-					var allcontentRewards = await _database.List(listContentQuery, filter, contentTypeId);
+					var allcontentRewards = await _database.List(context, listContentQuery, filter, contentTypeId);
 
 					// Build fast reward lookup:
 					var rewardLookup = new Dictionary<int, Reward>();
