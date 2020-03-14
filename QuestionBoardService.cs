@@ -58,10 +58,10 @@ namespace Api.QuestionBoards
 			if(deleteQuestions)
 			{
 				// Delete questions:
-				await _database.Run(deleteQuestionsQuery, id);
+				await _database.Run(context, deleteQuestionsQuery, id);
 				
 				// Delete their answers:
-				await _database.Run(deleteAnswersQuery, id);
+				await _database.Run(context, deleteAnswersQuery, id);
 			}
 			
 			// Ok!
