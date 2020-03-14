@@ -32,7 +32,7 @@ namespace Api.Blogs
 		public override async Task<bool> Delete(Context context, int id)
         {
 			await base.Delete(context, id);
-			await _database.Run(deletePostsQuery, id);
+			await _database.Run(context, deletePostsQuery, id);
 			
 			// Ok!
 			return true;
@@ -46,10 +46,10 @@ namespace Api.Blogs
 		public async Task<bool> Delete(Context context, int id, bool deletePosts = true)
         {
             // Delete the entry:
-			await _database.Run(deleteQuery, id);
+			await _database.Run(context, deleteQuery, id);
 			
 			if(deletePosts){
-				await _database.Run(deletePostsQuery, id);
+				await _database.Run(context, deletePostsQuery, id);
 			}
 			
 			// Ok!
