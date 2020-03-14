@@ -18,7 +18,9 @@ namespace Api.Permissions
 		/// <param name="builder"></param>
 		/// <param name="paramOffset">A number to add to all emitted parameter @ refs.</param>
 		/// <param name="useTableNames">True if table names should be used instead of type names.</param>
-		public virtual void BuildQuery(StringBuilder builder, int paramOffset, bool useTableNames)
+		/// <param name="localeCode">Optional localeCode used when a request is for e.g. French fields instead. 
+		/// It would be e.g. "fr" and just matches whatever your Locale.Code is.</param>
+		public virtual void BuildQuery(StringBuilder builder, int paramOffset, bool useTableNames, string localeCode)
 		{
 			throw new NotImplementedException(GetType() + " the filter node doesn't support being part of an SQL query at the moment.");
 		}

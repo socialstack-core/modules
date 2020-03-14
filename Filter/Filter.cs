@@ -19,10 +19,12 @@ namespace Api.Permissions
 		/// <returns></returns>
 		/// <param name="paramOffset">A number to add to all emitted parameter @ refs.</param>
 		/// <param name="useTableNames">True if table names should be used instead of type names.</param>
-		public void BuildQuery(StringBuilder builder, int paramOffset, bool useTableNames)
+		/// <param name="localeCode">Optional localeCode used when a request is for e.g. French fields instead. 
+		/// It would be e.g. "fr" and just matches whatever your Locale.Code is.</param>
+		public void BuildQuery(StringBuilder builder, int paramOffset, bool useTableNames, string localeCode)
 		{
 			var whereRoot = Construct();
-			whereRoot.BuildQuery(builder, paramOffset, useTableNames);
+			whereRoot.BuildQuery(builder, paramOffset, useTableNames, localeCode);
 		}
 
 		/// <summary>
@@ -31,13 +33,15 @@ namespace Api.Permissions
 		/// <param name="str"></param>
 		/// <param name="paramOffset">A number to add to all emitted parameter @ refs.</param>
 		/// <param name="useTableNames">True if table names should be used instead of type names.</param>
-		public void BuildFullQuery(StringBuilder str, int paramOffset, bool useTableNames)
+		/// <param name="localeCode">Optional localeCode used when a request is for e.g. French fields instead. 
+		/// It would be e.g. "fr" and just matches whatever your Locale.Code is.</param>
+		public void BuildFullQuery(StringBuilder str, int paramOffset, bool useTableNames, string localeCode)
 		{
 			if (Joins != null)
 			{
 				for (var i = 0; i < Joins.Count; i++)
 				{
-					Joins[i].BuildQuery(str, paramOffset, useTableNames);
+					Joins[i].BuildQuery(str, paramOffset, useTableNames, localeCode);
 				}
 			}
 
@@ -47,7 +51,7 @@ namespace Api.Permissions
 			{
 				str.Append(" WHERE ");
 				var whereRoot = Construct();
-				whereRoot.BuildQuery(str, paramOffset, useTableNames);
+				whereRoot.BuildQuery(str, paramOffset, useTableNames, localeCode);
 			}
 
             if (Sorts != null)
@@ -55,7 +59,7 @@ namespace Api.Permissions
                 str.Append(" ORDER BY ");
                 for (var i = 0; i < Sorts.Count; i++)
                 {
-                    Sorts[i].BuildQuery(str, paramOffset, useTableNames);
+                    Sorts[i].BuildQuery(str, paramOffset, useTableNames, localeCode);
                 }
 
             }

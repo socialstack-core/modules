@@ -34,6 +34,10 @@ namespace Api.Database
 		/// The full name of this field. OwningType.Name.`Name`
 		/// </summary>
 		public string FullName;
+		/// <summary>
+		/// The full name of this field, except it ends with an underscore. OwningType.Name.`Name_
+		/// </summary>
+		public string LocalisedName;
 
 
 		/// <summary>
@@ -50,15 +54,17 @@ namespace Api.Database
 			Type = field.FieldType;
 			TargetField = field;
 			Name = name == null ? field.Name : name;
-			FullName = "`" + type.Name + "`.`" + Name + "`";
+			SetFullName(null);
 		}
 
 		/// <summary>
-		/// Updates the FullName field.
+		/// Updates the FullName and LocalisedName fields.
 		/// </summary>
 		public void SetFullName(string extension = null)
 		{
-			FullName = "`" + OwningType.Name + ((extension == null) ? "" : "_" + extension) + "`.`" + Name + "`";
+			FullName = "`" + OwningType.Name + ((extension == null) ? "" : "_" + extension) + "`.`" + Name;
+			LocalisedName = FullName + "_";
+			FullName += "`";
 		}
 		
 		/// <summary>
@@ -73,7 +79,8 @@ namespace Api.Database
 				Type = Type,
 				TargetField = TargetField,
 				Name = Name,
-				FullName = FullName
+				FullName = FullName,
+				LocalisedName = LocalisedName
 			};
 		}
 

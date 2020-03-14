@@ -90,6 +90,11 @@ namespace Api.Database
 		protected string _query;
 
 		/// <summary>
+		/// Language specific variants of the cached query. Generated on demand.
+		/// </summary>
+		protected string[] _localisedQuery;
+
+		/// <summary>
 		/// Sets the MainTable and MainTableAs fields.
 		/// </summary>
 		/// <param name="type"></param>
@@ -212,11 +217,23 @@ namespace Api.Database
 		/// <summary>
 		/// Builds the underlying query to run.
 		/// </summary>
-		public string GetQuery(Filter filter = null, bool bulk = false)
+		public string GetQuery(Filter filter = null, bool bulk = false, int localeId = 0, string localeCode = null)
 		{
-			if (filter == null && !bulk && _query != null)
+			if (filter == null && !bulk)
 			{
-				return _query;
+				if (localeId < 2)
+				{
+					if (_query != null)
+					{
+						return _query;
+					}
+				}
+				else if(_localisedQuery != null && _localisedQuery[localeId - 2] != null)
+				{
+					// The query is similar 
+					// except the fields typically have _localeCode on the end (e.g. _fr or _it).
+					return _localisedQuery[localeId - 2];
+				}
 			}
 
 			var str = new StringBuilder();
@@ -233,7 +250,16 @@ namespace Api.Database
 						{
 							str.Append(", ");
 						}
-						str.Append(Fields[i].FullName);
+						if (localeCode == null)
+						{
+							str.Append(Fields[i].FullName);
+						}
+						else
+						{
+							str.Append(Fields[i].LocalisedName);
+							str.Append(localeCode);
+							str.Append('`');
+						}
 					}
 
 					str.Append(" FROM ");
@@ -261,7 +287,16 @@ namespace Api.Database
 						{
 							str.Append(", ");
 						}
-						str.Append(Fields[i].FullName);
+						if (localeCode == null)
+						{
+							str.Append(Fields[i].FullName);
+						}
+						else
+						{
+							str.Append(Fields[i].LocalisedName);
+							str.Append(localeCode);
+							str.Append('`');
+						}
 						str.Append("=@p");
 						str.Append(i);
 					}
@@ -427,11 +462,11 @@ namespace Api.Database
 
 			if (filter != null)
 			{
-				filter.BuildFullQuery(str, paramOffset, Operation == DELETE);
+				filter.BuildFullQuery(str, paramOffset, Operation == DELETE, localeCode);
 			}
 			else if (_where != null)
 			{
-				_where.BuildFullQuery(str, paramOffset, Operation == DELETE);
+				_where.BuildFullQuery(str, paramOffset, Operation == DELETE, localeCode);
 			}
 
 			var result = str.ToString();
