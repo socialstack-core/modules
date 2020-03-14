@@ -53,7 +53,7 @@ namespace Api.Comments
 		public async Task<List<Comment>> List(Context context, Filter<Comment> filter)
 		{
 			filter = await Events.CommentBeforeList.Dispatch(context, filter);
-			var list = await _database.List(listQuery, filter);
+			var list = await _database.List(context, listQuery, filter);
 			list = await Events.CommentAfterList.Dispatch(context, list);
 			return list;
 		}
@@ -66,7 +66,7 @@ namespace Api.Comments
 		public async Task<bool> Delete(Context context, int id, bool deleteUploads = true)
         {
             // Delete the entry:
-			await _database.Run(deleteQuery, id);
+			await _database.Run(context, deleteQuery, id);
 			
 			if(deleteUploads){
 			}
@@ -80,7 +80,7 @@ namespace Api.Comments
 		/// </summary>
 		public async Task<Comment> Get(Context context, int id)
 		{
-			return await _database.Select(selectQuery, id);
+			return await _database.Select(context, selectQuery, id);
 		}
 
 		/// <summary>
@@ -91,7 +91,7 @@ namespace Api.Comments
 			comment = await Events.CommentBeforeCreate.Dispatch(context, comment);
 
 			// Note: The Id field is automatically updated by Run here.
-			if (comment == null || !await _database.Run(createQuery, comment))
+			if (comment == null || !await _database.Run(context, createQuery, comment))
 			{
 				return null;
 			}
@@ -107,7 +107,7 @@ namespace Api.Comments
 		{
 			comment = await Events.CommentBeforeUpdate.Dispatch(context, comment);
 
-			if (comment == null || !await _database.Run(updateQuery, comment, comment.Id))
+			if (comment == null || !await _database.Run(context, updateQuery, comment, comment.Id))
 			{
 				return null;
 			}
