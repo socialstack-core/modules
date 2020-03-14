@@ -35,6 +35,14 @@ namespace Api.Permissions
 		/// The 2nd fieldInfo for the field on the type.
 		/// </summary>
 		protected FieldInfo FieldInfoB;
+		/// <summary>
+		/// True if this field is localised.
+		/// </summary>
+		public bool LocaliseA;
+		/// <summary>
+		/// True if this field is localised.
+		/// </summary>
+		public bool LocaliseB;
 
 		/// <summary>
 		/// Create a new field equals node.
@@ -49,6 +57,21 @@ namespace Api.Permissions
 			FieldA = fieldA;
 			TypeB = typeB;
 			FieldB = fieldB;
+
+			// Get the field info:
+			FieldInfoA = typeA.GetField(fieldA);
+
+			if (FieldInfoA != null)
+			{
+				LocaliseA = FieldInfoA.GetCustomAttribute<Api.Translate.LocalizedAttribute>() != null;
+			}
+
+			FieldInfoB = typeA.GetField(fieldB);
+
+			if (FieldInfoB != null)
+			{
+				LocaliseB = FieldInfoB.GetCustomAttribute<Api.Translate.LocalizedAttribute>() != null;
+			}
 		}
 
 		/// <summary>

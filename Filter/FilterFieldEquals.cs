@@ -35,6 +35,10 @@ namespace Api.Permissions
 		/// The fieldInfo for the field on the type.
 		/// </summary>
 		protected FieldInfo FieldInfo;
+		/// <summary>
+		/// True if this field is localised.
+		/// </summary>
+		public bool Localise;
 
 		/// <summary>
 		/// Create a new equals node.
@@ -53,6 +57,8 @@ namespace Api.Permissions
 			{
 				throw new Exception(field + " doesn't exist on type '" + type.Name + "'");
 			}
+
+			Localise = FieldInfo.GetCustomAttribute<Api.Translate.LocalizedAttribute>() != null;
 		}
 
 		/// <summary>
