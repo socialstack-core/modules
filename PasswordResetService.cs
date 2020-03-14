@@ -41,7 +41,7 @@ namespace Api.PasswordReset
 		/// <returns></returns>
         public async Task<PasswordResetRequest> Get(int id)
         {
-			return  await _database.Select(selectQuery, id);
+			return  await _database.Select(null, selectQuery, id);
         }
 
         /// <summary>
@@ -61,7 +61,7 @@ namespace Api.PasswordReset
 			req.ExpiryUtc = expiry;
 			req.UserId = userId;
 
-			await _database.Run(createQuery, req);
+			await _database.Run(null, createQuery, req);
 
 			/*
             // Send the email now:
