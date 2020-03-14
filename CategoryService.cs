@@ -63,7 +63,7 @@ namespace Api.Categories
 					var contentTypeId = ContentTypes.GetId(categorisableObject.GetType());
 
 					// List the categories now:
-					var contentCategories = await _database.List(listByObjectQuery, null, contentTypeId, dbObject.Id);
+					var contentCategories = await _database.List(context, listByObjectQuery, null, contentTypeId, dbObject.Id);
 
 					if (contentCategories == null || contentCategories.Count == 0)
 					{
@@ -156,7 +156,7 @@ namespace Api.Categories
 					filter.EqualsArg("ContentTypeId", 0).And().EqualsSet("ContentId", ids);
 
 					// Get all the content categories for these entities:
-					var allContentCategories = await _database.List(listContentQuery, filter, contentTypeId);
+					var allContentCategories = await _database.List(context, listContentQuery, filter, contentTypeId);
 
 					// Build fast category lookup:
 					var categoryLookup = new Dictionary<int, Category>();
