@@ -42,14 +42,14 @@ namespace Api.Forums
 			// Add some events to bump our cached counters whenever a reply/ thread is added:
 			Events.ForumThread.AfterCreate.AddEventListener(async (Context context, ForumThread thread) =>
 			{
-				await _database.Run(updateThreadCountQuery, thread.ForumId, 1);
+				await _database.Run(context, updateThreadCountQuery, thread.ForumId, 1);
 
 				return thread;
 			});
 			
 			Events.ForumReply.AfterCreate.AddEventListener(async (Context context, ForumReply reply) =>
 			{
-				await _database.Run(updateReplyCountQuery, reply.ForumId, 1);
+				await _database.Run(context, updateReplyCountQuery, reply.ForumId, 1);
 
 				return reply;
 			});
@@ -66,10 +66,10 @@ namespace Api.Forums
 			await base.Delete(context, id);
 			
 			// Delete threads:
-			await _database.Run(deleteThreadsQuery, id);
+			await _database.Run(context, deleteThreadsQuery, id);
 			
 			// Delete their replies:
-			await _database.Run(deleteRepliesQuery, id);
+			await _database.Run(context, deleteRepliesQuery, id);
 			
 			// Ok!
 			return true;
@@ -87,10 +87,10 @@ namespace Api.Forums
 			
 			if(deleteThreads){
 				// Delete threads:
-				await _database.Run(deleteThreadsQuery, id);
+				await _database.Run(context, deleteThreadsQuery, id);
 				
 				// Delete their replies:
-				await _database.Run(deleteRepliesQuery, id);
+				await _database.Run(context, deleteRepliesQuery, id);
 			}
 			
 			// Ok!

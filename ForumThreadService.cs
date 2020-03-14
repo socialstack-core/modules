@@ -48,10 +48,10 @@ namespace Api.ForumThreads
 		public override async Task<bool> Delete(Context context, int id)
         {
             // Delete the entry:
-			await _database.Run(deleteQuery, id);
+			await _database.Run(context, deleteQuery, id);
 			
 			// Delete their replies:
-			await _database.Run(deleteRepliesQuery, id);
+			await _database.Run(context, deleteRepliesQuery, id);
 			
 			// Ok!
 			return true;
@@ -69,7 +69,7 @@ namespace Api.ForumThreads
 			
 			if(deleteThreads){
 				// Delete their replies:
-				await _database.Run(deleteRepliesQuery, id);
+				await _database.Run(context, deleteRepliesQuery, id);
 			}
 			
 			// Ok!
