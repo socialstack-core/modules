@@ -97,7 +97,7 @@ public partial class AutoService<T> where T: DatabaseRow, new(){
 		}
 		
 		// Delete the entry:
-		await _database.Run(revisionDeleteQuery, id);
+		await _database.Run(context, revisionDeleteQuery, id);
 
 		// Ok!
 		return true;
@@ -115,7 +115,7 @@ public partial class AutoService<T> where T: DatabaseRow, new(){
 		}
 		
 		filter = await EventGroup.RevisionBeforeList.Dispatch(context, filter);
-		var list = await _database.List(revisionListQuery, filter);
+		var list = await _database.List(context, revisionListQuery, filter);
 		list = await EventGroup.RevisionAfterList.Dispatch(context, list);
 		return list;
 	}
@@ -130,7 +130,7 @@ public partial class AutoService<T> where T: DatabaseRow, new(){
 			SetupRevisionQueries();
 		}
 		
-		return await _database.Select(revisionSelectQuery, id);
+		return await _database.Select(context, revisionSelectQuery, id);
 	}
 	
 	/// <summary>
@@ -148,7 +148,7 @@ public partial class AutoService<T> where T: DatabaseRow, new(){
 		entity = await EventGroup.RevisionBeforeCreate.Dispatch(context, entity);
 
 		// Note: The Id field is automatically updated by Run here.
-		if (entity == null || !await _database.Run(revisionCreateQuery, entity))
+		if (entity == null || !await _database.Run(context, revisionCreateQuery, entity))
 		{
 			return default(T);
 		}
@@ -169,7 +169,7 @@ public partial class AutoService<T> where T: DatabaseRow, new(){
 		
 		entity = await EventGroup.RevisionBeforeUpdate.Dispatch(context, entity);
 
-		if (entity == null || !await _database.Run(revisionUpdateQuery, entity, entity.Id))
+		if (entity == null || !await _database.Run(context, revisionUpdateQuery, entity, entity.Id))
 		{
 			return null;
 		}

@@ -203,7 +203,7 @@ namespace Api.Revisions
 					*/
 
 					// Run the copy query now:
-					await database.Run(copyQuery, revisionableContent.Id);
+					await database.Run(context, copyQuery, revisionableContent.Id);
 
 					#warning TODO - trigger the before and after events
 					// - Requires collecting the ID from the above copy call
