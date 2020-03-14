@@ -308,7 +308,7 @@ namespace Api.Users
 				return null;
 			}
 
-			var item = await _database.Select(selectByEmailOrUsernameQuery, emailOrUsername);
+			var item = await _database.Select(context, selectByEmailOrUsernameQuery, emailOrUsername);
 
 			context.NestedTypes |= NestableAddMask;
 			item = await EventGroup.AfterLoad.Dispatch(context, item);
@@ -331,7 +331,7 @@ namespace Api.Users
 				return null;
 			}
 
-			var item = await _database.Select(selectByEmailQuery, email);
+			var item = await _database.Select(context, selectByEmailQuery, email);
 
 			context.NestedTypes |= NestableAddMask;
 			item = await EventGroup.AfterLoad.Dispatch(context, item);
@@ -354,7 +354,7 @@ namespace Api.Users
 				return null;
 			}
 
-			var item = await _database.Select(selectByUsernameQuery, username);
+			var item = await _database.Select(context, selectByUsernameQuery, username);
 
 			context.NestedTypes |= NestableAddMask;
 			item = await EventGroup.AfterLoad.Dispatch(context, item);
@@ -415,11 +415,11 @@ namespace Api.Users
 		{
 			if (uploadType == "avatar")
 			{
-				return await _database.Run(updateAvatarQuery, id, uploadRef);
+				return await _database.Run(context, updateAvatarQuery, id, uploadRef);
 			}
 			else if (uploadType == "feature")
 			{
-				return await _database.Run(updateFeatureQuery, id, uploadRef);
+				return await _database.Run(context, updateFeatureQuery, id, uploadRef);
 			}
 			else
 			{
