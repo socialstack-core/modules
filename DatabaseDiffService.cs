@@ -140,6 +140,8 @@ namespace Api.DatabaseDiff
 			if (queryToRun.Length > 0)
 			{
 				await _database.Run(queryToRun);
+
+				await Events.DatabaseDiffAfterAdd.Dispatch(null, tableDiff);
 			}
 			
 		}
