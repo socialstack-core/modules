@@ -174,7 +174,7 @@ export default class Loop extends React.Component {
 	}
 	
 	render() {
-		if (!this.state.results) {
+		if (!this.state.results && !this.props.items) {
 
 			if(this.state.errored){
 				// is a specific failure set?
@@ -200,7 +200,22 @@ export default class Loop extends React.Component {
 			return null;
 		}
 		
-		if(!this.state.results.length){
+		var results = this.state.results;
+		
+		var renderFunc = this.props.children;
+		
+		if(this.props.items){
+			results = this.props.items;
+			
+			// Use the provided renderer instead:
+			var Module = results.renderer;
+			
+			renderFunc = (item, i, count) => {
+				return <Module item={item} container={this.props}/>
+			};
+		}
+		
+		if(!results.length){
 			// No results at all.
 			var M = this.props.noneDisplayer;
 			if(M){
@@ -215,8 +230,6 @@ export default class Loop extends React.Component {
 		{
 			var className = this.props.className;
 		}
-
-		var results = this.state.results;
 		
 		if(this.props.groupAll){
 			// Call the child method just once with the results as a single block.
@@ -233,17 +246,26 @@ export default class Loop extends React.Component {
 			results = newResults;
 		}
 		
-		var renderFunc = this.props.children;
+		var mode = this.props.mode;
 		
-		if(this.props.displayer){
-			// Wrap a module:
-			renderFunc = (item, i, count) => {
-				var M = this.props.displayer;
-				<M loopItemIndex={i} loopItemMax={count} {...item} />
-			};
+		if(this.props.colMd){
+			mode = "colmd";
+		}else if(this.props.altRow){
+			mode = "altrow";
+		}else if(this.props.asTable){
+			mode = "table";
+		}else if(this.props.asUl){
+			mode = "ul";
+		}else if(this.props.asCols){
+			mode = "cols";
+		}else if(this.props.raw){
+			mode = "raw";
+		}else if(this.props.inline){
+			mode = "inline";
 		}
 		
-		if(this.props.inline){
+		switch(mode){
+		case "inline":
 			return (
 				<span className={className}>
 				{
@@ -257,19 +279,18 @@ export default class Loop extends React.Component {
 				}
 				</span>
 			);
-		}
-		
-		if(this.props.raw){
+		break;
+		case "raw":
+		case "unformatted":
 			return (<span className={className}>
 				{results.map((item, i) => {
 					return renderFunc(item, i, results.length);
 				})}
 				</span>
 			);
-		}
-		
-		if(this.props.asCols){
-			
+		break;
+		case "cols":
+		case "columns":
 			var size = parseInt(this.props.size);
 			
 			if(!size || isNaN(size)){
@@ -309,9 +330,9 @@ export default class Loop extends React.Component {
 			}
 			
 			return <div className={className}>{rows}</div>;
-		}
-		
-		if(this.props.asUl){
+		break;
+		case "ul":
+		case "bulletpoints":
 			return (
                 <ul className={className} {...this.props.attributes}>
 				{
@@ -325,15 +346,14 @@ export default class Loop extends React.Component {
 				}
 				</ul>
 			);
-		}
-		
-		if(this.props.asTable){
+		break;
+		case "table":
 			// May have multiple render functions, including for the header and footer.
 			var headerFunc = null;
 			var bodyFunc = renderFunc;
 			var footerFunc = null;
 			
-			if(renderFunc.length){
+			if(renderFunc.length && !this.props.items){
 				if(renderFunc.length == 1){
 					bodyFunc = renderFunc[0];
 				}else{
@@ -375,9 +395,8 @@ export default class Loop extends React.Component {
 					)}
 				</table>
 			);
-		}
-
-		if(this.props.colMd ){
+		break;
+		case "colmd":
 			if(this.props.colMd > 0){
 				return (
 					<div className={className}>
@@ -393,9 +412,8 @@ export default class Loop extends React.Component {
 					</div>
 				);
 			}
-		}
-
-		if(this.props.altRow){
+		break;
+		case "altrow":
 			return (
 				<div className={className}>
 				{
@@ -413,6 +431,7 @@ export default class Loop extends React.Component {
 				}
 				</div>
 			);
+		break;
 		}
 		
 		return (
@@ -432,10 +451,8 @@ export default class Loop extends React.Component {
 }
 
 Loop.propTypes={
-	over: 'set',
-	// mode: ['table','altRows','columns','unformatted', 'inline'],
-	inGroupsOf: 'int',
-	displayer: 'module',
-	noneDisplayer: 'module'
+	items: 'set',
+	mode: ['table','columns', 'inline', 'bulletpoints','unformatted','altrows'],
+	inGroupsOf: 'int'
 };
 Loop.icon='list';
