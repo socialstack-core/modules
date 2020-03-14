@@ -32,7 +32,6 @@ namespace Api.Startup
 		/// <summary>
 		/// Gets a service by its textual non-interface name. Use this if you want to make a service optional and not a hard requirement for your module.
 		/// </summary>
-		/// <typeparam name="T">The services interface.</typeparam>
 		/// <returns></returns>
 		public static object Get(string name)
 		{

@@ -113,7 +113,7 @@ public partial class AutoService<T> where T: DatabaseRow, new(){
 	public virtual async Task<bool> Delete(Context context, int id)
 	{
 		// Delete the entry:
-		await _database.Run(deleteQuery, id);
+		await _database.Run(context, deleteQuery, id);
 
 		// Ok!
 		return true;
@@ -134,7 +134,7 @@ public partial class AutoService<T> where T: DatabaseRow, new(){
 		filter = await EventGroup.BeforeList.Dispatch(context, filter);
 		context.NestedTypes &= NestableRemoveMask;
 		
-		var list = await _database.List(listQuery, filter);
+		var list = await _database.List(context, listQuery, filter);
 		
 		context.NestedTypes |= NestableAddMask;
 		list = await EventGroup.AfterList.Dispatch(context, list);
@@ -154,7 +154,7 @@ public partial class AutoService<T> where T: DatabaseRow, new(){
 			return null;
 		}
 		
-		var item = await _database.Select(selectQuery, id);
+		var item = await _database.Select(context, selectQuery, id);
 
 		context.NestedTypes |= NestableAddMask;
 		item = await EventGroup.AfterLoad.Dispatch(context, item);
@@ -170,7 +170,7 @@ public partial class AutoService<T> where T: DatabaseRow, new(){
 		entity = await EventGroup.BeforeCreate.Dispatch(context, entity);
 
 		// Note: The Id field is automatically updated by Run here.
-		if (entity == null || !await _database.Run(createQuery, entity))
+		if (entity == null || !await _database.Run(context, createQuery, entity))
 		{
 			return default(T);
 		}
@@ -186,7 +186,7 @@ public partial class AutoService<T> where T: DatabaseRow, new(){
 	{
 		entity = await EventGroup.BeforeUpdate.Dispatch(context, entity);
 
-		if (entity == null || !await _database.Run(updateQuery, entity, entity.Id))
+		if (entity == null || !await _database.Run(context, updateQuery, entity, entity.Id))
 		{
 			return null;
 		}
