@@ -104,7 +104,7 @@ namespace Api.Uploader
 		public async Task<List<Upload>> List(Context context, Filter<Upload> filter)
 		{
 			filter = await Events.UploadBeforeList.Dispatch(context, filter);
-			var list = await _database.List(listQuery, filter);
+			var list = await _database.List(context, listQuery, filter);
 			list = await Events.UploadAfterList.Dispatch(context, list);
 			return list;
 		}
@@ -116,7 +116,7 @@ namespace Api.Uploader
 		public async Task<bool> Delete(Context context, int entryId)
         {
 			// Delete the entry:
-			await _database.Run(deleteQuery, entryId);
+			await _database.Run(context, deleteQuery, entryId);
 
 			// Ok!
 			return true;
@@ -127,7 +127,7 @@ namespace Api.Uploader
 		/// </summary>
 		public async Task<Upload> Get(Context context, int id)
 		{
-			return await _database.Select(selectQuery, id);
+			return await _database.Select(context, selectQuery, id);
 		}
 
 		/// <summary>
@@ -137,7 +137,7 @@ namespace Api.Uploader
 		{
 			upload = await Events.UploadBeforeUpdate.Dispatch(context, upload);
 
-			if (upload == null || !await _database.Run(updateQuery, upload, upload.Id))
+			if (upload == null || !await _database.Run(context, updateQuery, upload, upload.Id))
 			{
 				return null;
 			}
@@ -218,7 +218,7 @@ namespace Api.Uploader
 			}
 			
 			// Obtain an ID now:
-			await _database.Run(createQuery, result);
+			await _database.Run(context, createQuery, result);
 
 			// The path where we'll write the image:
 			var writePath = System.IO.Path.GetFullPath(result.GetFilePath("original"));
