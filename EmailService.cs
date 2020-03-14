@@ -51,7 +51,7 @@ namespace Api.Emails
 		/// <returns></returns>
 		public async Task<RenderedCanvas> RenderTemplate(int templateId, CanvasContext context)
         {
-            var template = await _database.Select(selectQuery, templateId);
+            var template = await _database.Select(null, selectQuery, templateId);
 
             if (template == null)
             {
@@ -69,7 +69,7 @@ namespace Api.Emails
 		/// <returns></returns>
 		public async Task<RenderedCanvas> RenderTemplate(string templateKey, CanvasContext context)
         {
-            var template = await _database.Select(selectByKeyQuery, templateKey);
+            var template = await _database.Select(null, selectByKeyQuery, templateKey);
 
 			if (template == null)
             {
@@ -200,7 +200,7 @@ namespace Api.Emails
 		/// <returns></returns>
 		public async Task<List<EmailTemplate>> List(Filter filter)
 		{
-			return await _database.List(listQuery, filter);
+			return await _database.List(null, listQuery, filter);
 		}
 
 	}
