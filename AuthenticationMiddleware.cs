@@ -9,7 +9,7 @@ using System.Text.Encodings.Web;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Primitives;
-
+using Api.Translate;
 
 namespace Api.Contexts
 {
@@ -19,6 +19,7 @@ namespace Api.Contexts
     public static class UserAuthenticationExtensions
 	{
 		private static IContextService _loginTokens;
+		private static ILocaleService _locales;
 
 		/// <summary>
 		/// Adds the middleware which enables identifying the user on each API request.
@@ -58,7 +59,12 @@ namespace Api.Contexts
 			{
 				_loginTokens = Api.Startup.Services.Get<IContextService>();
 			}
-			
+
+			if (_locales == null)
+			{
+				_locales = Api.Startup.Services.Get<ILocaleService>();
+			}
+
 			var cookie = request.Cookies[_loginTokens.CookieName];
 
 			if (string.IsNullOrEmpty(cookie))
@@ -66,7 +72,7 @@ namespace Api.Contexts
 				StringValues tokenStr;
 				if (!request.Headers.TryGetValue("Token", out tokenStr) || string.IsNullOrEmpty(tokenStr))
 				{
-					return new Context();
+					cookie = null;
 				}
 				else
 				{
@@ -74,13 +80,37 @@ namespace Api.Contexts
 				}
 			}
 
-			var context = _loginTokens.Get(cookie);
+			var context = cookie == null ? null : _loginTokens.Get(cookie);
 
 			if (context == null)
 			{
-				return new Context();
+				context = new Context();
 			}
-			
+
+			// Handle locale next:
+			cookie = request.Cookies[_locales.CookieName];
+
+			if (string.IsNullOrEmpty(cookie))
+			{
+				StringValues localeIds;
+				// Could also handle Accept-Language here. For now we use a custom header called Locale (an ID).
+				if (!request.Headers.TryGetValue("Locale", out localeIds) || string.IsNullOrEmpty(localeIds))
+				{
+					// Default locale
+					return context;
+				}
+				else
+				{
+					cookie = localeIds.FirstOrDefault();
+				}
+			}
+
+			if (int.TryParse(cookie, out int localeId))
+			{
+				// Set in the ctx:
+				context.LocaleId = localeId;
+			}
+
 			return context;
 		}
 
