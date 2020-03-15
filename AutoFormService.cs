@@ -159,7 +159,7 @@ namespace Api.AutoForms
 					if (contentField.GetCustomAttribute<LocalizedAttribute>() != null)
 					{
 						// Yep - it's translatable.
-						field.Localized = true;
+						field.Data["localized"] = true;
 					}
 				}
 
