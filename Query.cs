@@ -475,7 +475,28 @@ namespace Api.Database
 
 			if (!bulk && filter == null)
 			{
-				_query = result;
+				if (localeId < 2)
+				{
+					_query = result;
+				}
+				else
+				{
+					// Cache it in the localised set of strings:
+					var minSize = localeId + 5;
+					if (_localisedQuery == null)
+					{
+						_localisedQuery = new string[minSize];
+					}
+					else if (minSize > _localisedQuery.Length)
+					{
+						// Resize it:
+						var newLQ = new string[minSize];
+						Array.Copy(_localisedQuery, 0, newLQ, 0, _localisedQuery.Length);
+						_localisedQuery = newLQ;
+					}
+
+					_localisedQuery[localeId - 2] = result;
+				}
 			}
 
 			return result;
