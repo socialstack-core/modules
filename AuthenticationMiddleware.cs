@@ -87,25 +87,18 @@ namespace Api.Contexts
 				context = new Context();
 			}
 
-			// Handle locale next:
+			// Handle locale next. The cookie comes lower precedence to the Locale header.
 			cookie = request.Cookies[_locales.CookieName];
-
-			if (string.IsNullOrEmpty(cookie))
+			
+			StringValues localeIds;
+			// Could also handle Accept-Language here. For now we use a custom header called Locale (an ID).
+			if (request.Headers.TryGetValue("Locale", out localeIds) && !string.IsNullOrEmpty(localeIds))
 			{
-				StringValues localeIds;
-				// Could also handle Accept-Language here. For now we use a custom header called Locale (an ID).
-				if (!request.Headers.TryGetValue("Locale", out localeIds) || string.IsNullOrEmpty(localeIds))
-				{
-					// Default locale
-					return context;
-				}
-				else
-				{
-					cookie = localeIds.FirstOrDefault();
-				}
+				// Locale header is set - use it instead:
+				cookie = localeIds.FirstOrDefault();
 			}
 
-			if (int.TryParse(cookie, out int localeId))
+			if (cookie != null && int.TryParse(cookie, out int localeId))
 			{
 				// Set in the ctx:
 				context.LocaleId = localeId;
