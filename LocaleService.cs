@@ -25,7 +25,12 @@ namespace Api.Translate
 		}
 		
 		private Locale[] _cache;
-		
+
+
+		/// <summary>
+		/// The name of the cookie when locale is stored.
+		/// </summary>
+		public string CookieName => "Locale";
 		
 		/// <summary>
 		/// Pops the cache.

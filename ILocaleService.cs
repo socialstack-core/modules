@@ -13,6 +13,11 @@ namespace Api.Translate
 	public partial interface ILocaleService
     {
 		/// <summary>
+		/// The name of the cookie when locale is stored.
+		/// </summary>
+		string CookieName { get;  }
+
+		/// <summary>
 		/// Delete a locale by its ID. Optionally also deletes posts.
 		/// </summary>
 		/// <param name="context"></param>
