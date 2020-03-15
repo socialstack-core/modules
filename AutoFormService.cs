@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using Api.Translate;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Controllers;
 using Microsoft.AspNetCore.Mvc.Infrastructure;
 using Microsoft.AspNetCore.Mvc.Internal;
@@ -94,7 +95,7 @@ namespace Api.AutoForms
 							continue;
 						}
 
-						var formMeta = GetFormInfo(type);
+						var formMeta = GetFormInfo(type, type.BaseType.GetGenericArguments()[0]);
 						formMeta.Endpoint = url;
 
 						result.Add(formMeta);
@@ -110,8 +111,9 @@ namespace Api.AutoForms
 		/// Gets the AutoForm info such as fields available for the given :AutoForm type.
 		/// </summary>
 		/// <param name="autoFormType"></param>
+		/// <param name="contentType"></param>
 		/// <returns></returns>
-		public AutoFormInfo GetFormInfo(Type autoFormType)
+		public AutoFormInfo GetFormInfo(Type autoFormType, Type contentType)
 		{
 			var info = new AutoFormInfo();
 			info.Fields = new List<AutoFormField>();
@@ -146,6 +148,20 @@ namespace Api.AutoForms
 				var type = "text";
 				var name = fieldInfo.Name;
 				var labelName = name;
+
+				// Get the field in the content type.
+				// For example, if we're UserAutoForm, this'll be the same field over on the User type.
+				var contentField = contentType.GetField(name);
+
+				if (contentField != null)
+				{
+					// Does it have the Localised attribute?
+					if (contentField.GetCustomAttribute<LocalizedAttribute>() != null)
+					{
+						// Yep - it's translatable.
+						field.Localized = true;
+					}
+				}
 
 				// If the field is a string and ends with Json, it's canvas:
 				if (fieldType == typeof(string) && labelName.EndsWith("Json"))

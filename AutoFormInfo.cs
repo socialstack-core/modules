@@ -23,12 +23,16 @@ namespace Api.AutoForms
 		public List<AutoFormField> Fields;
 
 	}
-
-
+	
 	/// <summary>
 	/// Follows the same JSON structure as canvas. module maps directly to a component, data to props.
 	/// </summary>
 	public class AutoFormField {
+
+		/// <summary>
+		/// True if this field is localized.
+		/// </summary>
+		public bool Localized;
 
 		/// <summary>
 		/// The fields value type.
