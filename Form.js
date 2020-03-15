@@ -10,21 +10,38 @@ import omit from 'UI/Functions/Omit';
 export default class Form extends React.Component {
 	
 	render() {
-		if(!this.props.action){
+		var {
+			action,
+			locale,
+			onValues,
+			onSuccess,
+			onFailed
+		} = this.props;
+		
+		if(!action){
 			throw new Error("<Form> component requires action prop");
 		}
+		
+		var requestOpts = null;
+		
+		if(locale){
+			// Forcing a particular locale:
+			requestOpts = {locale};
+		}
+		
 		return (
 			<form
 				onSubmit={e=>submitForm(e, {
-					onValues: this.props.onValues,
+					onValues,
 					onFailed: (e) => {
-						this.props.onFailed && this.props.onFailed(e);
+						onFailed && onFailed(e);
 					},
-					onSuccess: this.props.onSuccess
+					onSuccess,
+					requestOpts
 				})}
-				action={mapUrl(this.props.action)}
+				action={mapUrl(action)}
 				method={this.props.method || "post"}
-				{...(omit(this.props, ['action', 'method', 'onSuccess', 'onFailed', 'onValues', 'children']))}
+				{...(omit(this.props, ['action', 'method', 'onSuccess', 'onFailed', 'onValues', 'children', 'locale']))}
 			>
 				{this.props.children}
 			</form>
