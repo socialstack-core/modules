@@ -28,7 +28,7 @@ export default function (e, options) {
 	Promise.resolve(values).then(values => {
 		
 		// Send it off now:
-		return webRequest(e.target.action, values).then(
+		return webRequest(e.target.action, values, options.requestOpts).then(
 			response => {
 				if (response.ok) {
 					// How successful was it? (Did we get a 200 response?)
