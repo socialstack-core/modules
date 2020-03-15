@@ -107,6 +107,10 @@ function _fetch(url, data, opts) {
 		headers['Token'] = store.get('user');
 	}
 	
+	if(opts && opts.locale){
+		headers['Locale'] = opts.locale;
+	}
+	
 	if (!data) {
 		return fetch(url, { method: opts && opts.method ? opts.method : 'get', mode: 'cors', credentials: 'include', headers });
 	}
