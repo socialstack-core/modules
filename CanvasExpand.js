@@ -2,10 +2,9 @@ import Text from 'UI/Text';
 import webRequest from 'UI/Functions/WebRequest';
 
 /*
-* Canvas JSON has multiple conveniences and automatically remapped fields.
-* "Expanding" a canvas structure essentially does that mapping process.
+* Canvas JSON has multiple conveniences - expanding it will, for example, resolve the module references.
 */
-function expand(contentNode, onChange, onContentNode, blockRequest){
+function expand(contentNode, onContentNode){
 	if(!contentNode || contentNode.expanded){
 		return contentNode;
 	}
@@ -16,7 +15,7 @@ function expand(contentNode, onChange, onContentNode, blockRequest){
 	// We'll also send off the requests for any of those url's to load.
 	
 	if(Array.isArray(contentNode)){
-		return contentNode.map(e => expand(e, onChange, onContentNode, blockRequest));
+		return contentNode.map(e => expand(e, onContentNode));
 	}
 	
 	// If it has no module but does have content, then it's a text node.
@@ -39,108 +38,8 @@ function expand(contentNode, onChange, onContentNode, blockRequest){
 		};
 	}
 	
-	// - Add a filter function here, so other modules can also expand canvas content too.
-	// contentNode = _some_global_filter_technique_(contentNode);
-	
-	// data filter:
-	if(contentNode.data && typeof contentNode.data != 'object'){
-		// Mapped to one prop just called data:
-		contentNode.data = {
-			data: contentNode.data
-		};
-	}
-	
-	// Content array load:
-	if(contentNode.data && contentNode.data.items && !blockRequest){
-		// Expand the items description.
-		// It's either an array of things (which is just as-is), or if it's an object,
-		// then it's describing where we can get the things from.
-		if(!Array.isArray(contentNode.data.items)){
-			
-			// It's describing one or more data sources.
-			
-			/* items: {
-				
-				sources: [
-					{
-						type: 'blog',
-						filter: OPTIONAL_LOOP_FILTER,
-						map: {
-							'optional': 'field map which remaps the provided objects to fields the target module wants'
-						}
-					},
-					[
-						'as-is arrays supported here too'
-					]
-				]
-				
-			}
-			
-			OR
-			
-			items: {
-				type: 'blog',
-				filter: OPTIONAL_LOOP_FILTER
-			}
-			
-			*/
-			
-			var itms = contentNode.data.items;
-			contentNode.data.items = [];
-			
-			var sources = itms.sources;
-			
-			if(!sources){
-				// Almost always only one source, but just in case people want to mix content, you can provide multiple.
-				sources = [
-					{
-						type: itms.type,
-						filter: itms.filter,
-						map: itms.map
-					}
-				];
-			}
-			
-			sources.map(src => {
-				
-				if(Array.isArray(src)){
-					// Can also mix in regular arrays.
-					contentNode.data.items = contentNode.data.items.concat(src);
-					return;
-				}
-				
-				return webRequest(src.type + '/list', src.filter).then(result => {
-					var set = result.json.results;
-					
-					if(src.map){
-						for(var i=0;i<set.length;i++){
-							set[i] = remap(set[i], src.map);
-						}
-					}
-					
-					contentNode.data.items = contentNode.data.items.concat(set);
-					onChange && onChange();
-				});
-				
-			});
-			
-		}
-	}
-	
-	// URL load filter (order matters - this last):
-	if(contentNode.data && contentNode.data.url && !blockRequest){
-		// Expand the data object.
-		
-		var url = contentNode.data.url;
-		
-		webRequest(url).then(obj => {
-			contentNode.data = obj.json;
-			onChange && onChange();
-		});
-	}
-	
 	if(contentNode.content !== undefined){
-		var expanded = expand(contentNode.content, onChange, onContentNode, blockRequest);
+		var expanded = expand(contentNode.content, onContentNode);
 		if(!expanded){
 			contentNode.content = [];
 		}else if(!Array.isArray(expanded)){
@@ -252,4 +151,166 @@ function remap(item, map){
 	return result;
 }
 
-module.exports = expand;
+function mapTokens(obj, canvas, Canvas){
+	var {props} = canvas;
+	var result = {};
+	
+	for(var e in obj) {
+		
+		var value = obj[e];
+		result[e] = value;
+		
+		if(!value){
+			continue;
+		}
+		
+		if(!value.type){
+			continue;
+		}
+		
+		var t = value.type;
+		switch(t){
+			case "token":
+				result[e] = props.tokens ? props.tokens[value.name] : null;
+			break;
+			case "urlToken":
+				result[e] = (props.urlTokens || global.pageRouter.state.tokens)[value.name];
+			break;
+			case "prop":
+				result[e] = props[value.name];
+			break;
+			case "field":
+				// Field in the "item" prop. Used by renderers - they're given an item, and this essentially maps
+				// from that items field to a prop of the target component.
+				result[e] = props.item ? props.item[value.name] : null;
+			break;
+			case "endpoint":
+				// Loads from an endpoint.
+				result[e] = null;
+				
+				if(value.__result){
+					result[e] = value.__result;
+				}else if(!value.__loading){
+					value.__loading = webRequest(value.url).then(obj => {
+						value.__result = obj.json;
+						canvas.onChange();
+					});
+				}
+			break;
+			case "set":
+			
+				// An array of items from one or more endpoints.
+				result[e] = mapSetValue(value, canvas, Canvas);
+				
+			break;
+		}
+	}
+	
+	result.__canvas = canvas;
+	return result;
+}
+
+function mapSetValue(value, canvas, Canvas){
+	var cached = __vCache.get(value);
+	
+	if(cached && cached.contentType == value.contentType){
+		return cached.result;
+	}
+	
+	// It's either an array of things (which is just as-is), or if it's an object,
+	// then it's describing where we can get the things from.
+	if(Array.isArray(value.items)){
+		/*
+		{
+			type: 'set',
+			items: [1,2,3,4..]								
+		}
+		*/
+		
+		// Just a simple set of items here.
+		var result = value.items;
+		result.renderer = (props) => <Canvas {...props} children={value.renderer} />;
+		__vCache.set(value, {result, contentType: value.contentType});
+		return result;
+	}
+	
+	// It's describing one or more data sources.
+	
+	var sources = [];
+	
+	if(value.contentType){
+		sources.push({
+			contentType: value.contentType,
+			filter: value.filter,
+			map: value.map
+		});
+	}else if(value.source){
+		sources.push(value.source);
+	}else if(value.sources){
+		sources = value.sources;
+	}
+	
+	/* {
+		type: 'set',
+		sources: [
+			{
+				contentType: 'blog',
+				filter: OPTIONAL_LOOP_FILTER,
+				map: {
+					'optional': 'advanced field map which remaps the provided objects to fields the target wants'
+				}
+			},
+			[
+				'as-is arrays supported here too'
+			]
+		]
+		
+	}
+	
+	OR
+	
+	{
+		type: 'set',
+		contentType: 'blog',
+		filter: OPTIONAL_LOOP_FILTER
+	}
+	*/
+	
+	var result = [];
+	
+	sources.map(src => {
+		
+		if(Array.isArray(src)){
+			// Can also mix in regular arrays.
+			result = result.concat(src);
+			return;
+		}
+		
+		webRequest(src.contentType + '/list', src.filter).then(r => {
+			var set = r.json.results;
+			
+			if(src.map){
+				for(var i=0;i<set.length;i++){
+					set[i] = remap(set[i], src.map);
+				}
+			}
+			
+			result = result.concat(set);
+			__vCache.set(value, {result, contentType: value.contentType});
+			result.renderer = (props) => <Canvas {...props} children={value.renderer} />;
+			canvas.onChange();
+		});
+		
+	});
+	
+	__vCache.set(value, {result, contentType: value.contentType});
+	result.renderer = (props) => <Canvas {...props} children={value.renderer} />;
+	return result;
+}
+
+var __vCache = new Map();
+
+module.exports = {
+	expand,
+	mapTokens
+};
