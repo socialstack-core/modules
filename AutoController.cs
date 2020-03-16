@@ -18,7 +18,7 @@ using Api.AutoForms;
 /// <typeparam name="U"></typeparam>
 [ApiController]
 public partial class AutoController<T, U> : ControllerBase
-	where T : Api.Users.RevisionRow, new()
+	where T : Api.Database.DatabaseRow, new()
 	where U : AutoForm<T>
 {
 
@@ -127,8 +127,16 @@ public partial class AutoController<T, U> : ControllerBase
 		// Most other fields, particularly custom extensions, are handled by autoform.
 		var entity = new T
 		{
-			UserId = context.UserId
 		};
+
+		// If it's revisionable we'll set the user ID now:
+		var revisionableEntity = (entity as Api.Users.RevisionRow);
+
+		if (revisionableEntity != null)
+		{
+			revisionableEntity.UserId = context.UserId;
+		}
+
 
 		if (!ModelState.Setup(form, entity))
 		{
