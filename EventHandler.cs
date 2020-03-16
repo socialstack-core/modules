@@ -240,6 +240,11 @@ namespace Api.Eventing
 		/// <param name="priority">Lower priorities mean it executes sooner. The default is 10.</param>
 		public void AddEventListener(T evt, int priority = 10)
 		{
+			if (evt == null)
+			{
+				throw new NullReferenceException("Listener is required.");
+			}
+
 			MethodSet.Add(evt, priority);
 		}
 		
@@ -314,6 +319,11 @@ namespace Api.Eventing
 		/// <param name="priority"></param>
 		public override void AddEventListener(GenericEventHandler evt, int priority = 10)
 		{
+			if (evt == null)
+			{
+				throw new NullReferenceException("Listener is required.");
+			}
+
 			MethodSet.Add((Context context, T1 v1) =>
 			{
 				var result = evt(context, v1);
@@ -329,6 +339,11 @@ namespace Api.Eventing
 		/// <param name="priority"></param>
 		public override void AddEventListener(GenericEventHandlerAsync evt, int priority = 10)
 		{
+			if (evt == null)
+			{
+				throw new NullReferenceException("Listener is required.");
+			}
+
 			MethodSet.Add(async (Context context, T1 v1) =>
 			{
 				var result = (T1)await evt(context, v1);
@@ -412,6 +427,11 @@ namespace Api.Eventing
 		/// <param name="priority"></param>
 		public override void AddEventListener(GenericEventHandler evt, int priority = 10)
 		{
+			if (evt == null)
+			{
+				throw new NullReferenceException("Listener is required.");
+			}
+
 			MethodSet.Add((Context context, T1 v1, T2 v2) =>
 			{
 				var result = evt(context, v1, v2);
@@ -427,6 +447,11 @@ namespace Api.Eventing
 		/// <param name="priority"></param>
 		public override void AddEventListener(GenericEventHandlerAsync evt, int priority = 10)
 		{
+			if (evt == null)
+			{
+				throw new NullReferenceException("Listener is required.");
+			}
+
 			MethodSet.Add(async (Context context, T1 v1, T2 v2) =>
 			{
 				var result = (T1)await evt(context, v1, v2);
@@ -511,6 +536,11 @@ namespace Api.Eventing
 		/// <param name="priority"></param>
 		public override void AddEventListener(GenericEventHandler evt, int priority = 10)
 		{
+			if (evt == null)
+			{
+				throw new NullReferenceException("Listener is required.");
+			}
+
 			MethodSet.Add((Context context, T1 v1, T2 v2, T3 v3) =>
 			{
 				var result = evt(context, v1, v2, v3);
@@ -526,6 +556,11 @@ namespace Api.Eventing
 		/// <param name="priority"></param>
 		public override void AddEventListener(GenericEventHandlerAsync evt, int priority = 10)
 		{
+			if (evt == null)
+			{
+				throw new NullReferenceException("Listener is required.");
+			}
+
 			MethodSet.Add(async (Context context, T1 v1, T2 v2, T3 v3) =>
 			{
 				var result = (T1)await evt(context, v1, v2, v3);
@@ -615,6 +650,11 @@ namespace Api.Eventing
 		/// <param name="priority"></param>
 		public override void AddEventListener(GenericEventHandler evt, int priority = 10)
 		{
+			if (evt == null)
+			{
+				throw new NullReferenceException("Listener is required.");
+			}
+
 			MethodSet.Add((Context context, T1 v1, T2 v2, T3 v3, T4 v4) =>
 			{
 				var result = evt(context, v1, v2, v3, v4);
@@ -630,6 +670,11 @@ namespace Api.Eventing
 		/// <param name="priority"></param>
 		public override void AddEventListener(GenericEventHandlerAsync evt, int priority = 10)
 		{
+			if (evt == null)
+			{
+				throw new NullReferenceException("Listener is required.");
+			}
+
 			MethodSet.Add(async (Context context, T1 v1, T2 v2, T3 v3, T4 v4) =>
 			{
 				var result = (T1)await evt(context, v1, v2, v3, v4);
