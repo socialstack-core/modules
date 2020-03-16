@@ -13,15 +13,7 @@ export default class Header extends React.Component {
 
 Header.propTypes={
 	size: ['1','2','3','4','5','6'],
-    name: 'string',
-    idOfASpecificPieceOfContent: {
-       type: 'id',
-       contentType: 'Template'
-    },
-    items: {
-       type: 'set',
-       defaultRenderer: 'UI/Signpost'
-    }
+	children: true
 }
 
 Header.icon='heading';
