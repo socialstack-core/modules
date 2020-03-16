@@ -68,8 +68,12 @@ namespace Api.Translate
 						return ds;
 					});
 
+					return;
 				}
-				return;
+				else
+				{
+					throw;
+				}
 			}
 
 			// Cache is indexed by locale ID.
