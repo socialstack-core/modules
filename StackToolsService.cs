@@ -1,13 +1,12 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Diagnostics;
+using System.Net;
+using System.Net.Sockets;
 using System.Runtime.InteropServices;
 using System.Threading.Tasks;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
-
-#warning Needs Linux support checking and also improve the error mode handling.
-// -> E.g. when the node process goes down it should start a new one without requests failing in the meantime.
-// -> ProcessRequestQueue is designed to be pooled for that purpose.
 
 namespace Api.StackTools
 {
@@ -32,7 +31,14 @@ namespace Api.StackTools
 		/// <summary>
 		/// The node.js process handler
 		/// </summary>
-		private ProcessRequestQueue Node;
+		private ProcessLink Node;
+
+		private Socket ListenSocket;
+		
+		/// <summary>
+		/// Processes which have been spawned and are currently waiting to connect.
+		/// </summary>
+		private List<NodeProcess> PendingProcesses = new List<NodeProcess>();
 
 		/// <summary>
 		/// Instanced automatically. Use injection to use this service, or Startup.Services.Get.
@@ -40,11 +46,10 @@ namespace Api.StackTools
 		public StackToolsService()
 		{
 
-			// Spawn the process now. We spawn it in the "interactive" mode which means we get one node.js service
+			// Spawn the service now. We spawn it in the "interactive" mode which means we get one node.js service
 			// which can handle multiple simultaneous requests via stdin.
 			Spawn();
-
-
+			
 			// When the application shuts down, kill the node child process:
 			Startup.WebServerStartupInfo.OnShutdown += () => {
 				if (Node != null)
@@ -54,6 +59,60 @@ namespace Api.StackTools
 			};
 		}
 
+		private int Port;
+
+		private void StartListening()
+		{
+			if (Port != 0)
+			{
+				// We're already listening.
+				return;
+			}
+
+			ListenSocket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
+			// Bind to port 0 will tell the OS to give us any available port.
+			ListenSocket.Bind(new IPEndPoint(IPAddress.Loopback, 0));
+			Port = ((IPEndPoint)ListenSocket.LocalEndPoint).Port;
+
+			Console.WriteLine("Ready for stack tools processes on port " + Port);
+
+			ListenSocket.Listen(5);
+			ListenSocket.BeginAccept(OnConnect, null);
+		}
+
+		private void OnConnect(IAsyncResult ar)
+		{
+			if (ListenSocket == null)
+			{
+				return;
+			}
+
+			// Get the socket:
+			Socket socket = ListenSocket.EndAccept(ar);
+
+			// Continue accepting more connections:
+			ListenSocket.BeginAccept(OnConnect, null);
+
+			// Non-blocking socket:
+			socket.Blocking = false;
+
+			Node = new ProcessLink(socket, () => {
+
+				// Get the process that this relates to:
+				var process = PendingProcesses.Find(proc => proc.Id == Node.Id);
+
+				if (process == null)
+				{
+					// This wasn't meant for us.
+					return;
+				}
+
+				PendingProcesses.Remove(process);
+				Node.Process = process;
+				process.StateChange(NodeProcessState.READY);
+			});
+		}
+		
 		/// <summary>
 		/// Get node.js to do something via sending it a serialisable request.
 		/// Of the form {action: "name", ..anything else..}.
@@ -82,38 +141,12 @@ namespace Api.StackTools
 			var isWindows = RuntimeInformation.IsOSPlatform(OSPlatform.Windows);
 
 			// Try to globally install socialstack tools now:
-			Process process = new Process();
-			process.StartInfo.FileName = isWindows ? "cmd.exe" : "/bin/bash";
-			process.StartInfo.Arguments = isWindows ? "/C npm install -g socialstack" : "-c \"npm install -g socialstack\"" ;
-			process.StartInfo.WindowStyle = ProcessWindowStyle.Hidden;
-			process.StartInfo.UseShellExecute = false;
-			process.StartInfo.RedirectStandardOutput = true;
-			process.StartInfo.RedirectStandardError = true;
-			process.StartInfo.RedirectStandardInput = true;
-			process.StartInfo.ErrorDialog = false;
-			process.StartInfo.CreateNoWindow = true;
-			process.EnableRaisingEvents = true;
-
-			process.ErrorDataReceived += new DataReceivedEventHandler((sender, e) =>
-			{
-				if (String.IsNullOrEmpty(e.Data))
-				{
-					return;
-				}
-
-				Console.WriteLine(e.Data);
-			});
-
-			process.OutputDataReceived += new DataReceivedEventHandler((sender, e) =>
-			{
-				// Write to our output stream:
-				Console.WriteLine(e.Data);
-			});
-
+			var np = new NodeProcess("npm install -g socialstack", false);
+			
 			try
 			{
-				process.Start();
-				process.WaitForExit();
+				np.Process.Start();
+				np.Process.WaitForExit();
 			}
 			catch (System.ComponentModel.Win32Exception winE)
 			{
@@ -138,34 +171,20 @@ namespace Api.StackTools
 		/// <returns></returns>
 		private void Spawn()
 		{
-			var isWindows = RuntimeInformation.IsOSPlatform(OSPlatform.Windows);
-			var port = 17061;
+			StartListening();
+			
+			var process = new NodeProcess("socialstack interactive -p " + Port, true);
 
-			Process process = new Process();
-			var npq = new ProcessRequestQueue(process, port);
-			// Configure the process using the StartInfo properties.
-			process.StartInfo.FileName = isWindows ? "cmd.exe" : "/bin/bash";
-			process.StartInfo.Arguments = isWindows ? "/C socialstack interactive -p " + port : "-c \"socialstack interactive -p "+port+"\"";
-			process.StartInfo.WorkingDirectory = "";
-			process.StartInfo.WindowStyle = ProcessWindowStyle.Hidden;
-			process.StartInfo.UseShellExecute = false;
-			process.StartInfo.RedirectStandardOutput = true;
-			process.StartInfo.RedirectStandardError = true;
-			process.StartInfo.RedirectStandardInput = true;
-			process.StartInfo.ErrorDialog = false;
-			process.StartInfo.CreateNoWindow = true;
-			process.EnableRaisingEvents = true;
-
-			npq.OnStateChange += (int state) =>
+			process.OnStateChange += (NodeProcessState state) =>
 			{
-				if (state == 0)
+				if (state == NodeProcessState.EXITING)
 				{
 					// The process is exiting - respawn:
 					Spawn();
 					return;
 				}
 
-				if (state == 3)
+				if (state == NodeProcessState.FAILED)
 				{
 					// It failed to start entirely.
 					if (AttemptedInstall)
@@ -183,17 +202,17 @@ namespace Api.StackTools
 						Install();
 						Spawn();
 					}
-					
+
 					return;
 				}
 
-				if (state != 2)
+				if (state != NodeProcessState.READY)
 				{
 					return;
 				}
 
 				// Start the UI watcher straight away:
-				npq.Request(new { action = "watch" }, (string e, JObject response) => {
+				Node.Request(new { action = "watch" }, (string e, JObject response) => {
 					if (e != null)
 					{
 						return;
@@ -205,10 +224,13 @@ namespace Api.StackTools
 
 			};
 
-			// Start now:
-			npq.Start();
+			// Add to the list of processes currently waiting to connect:
+			PendingProcesses.Add(process);
 
-			Node = npq;
+			// Start it now:
+			process.Start();
+			
+
 		}
 		
 	}
