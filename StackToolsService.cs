@@ -100,7 +100,7 @@ namespace Api.StackTools
 			Node = link;
 			link.OnReady = () => {
 				// Get the process that this relates to:
-				var process = PendingProcesses.Find(proc => proc.Id == Node.Id);
+				var process = PendingProcesses.Find(proc => proc.Id == link.Id);
 
 				if (process == null)
 				{
@@ -109,7 +109,7 @@ namespace Api.StackTools
 				}
 
 				PendingProcesses.Remove(process);
-				Node.Process = process;
+				link.Process = process;
 				process.StateChange(NodeProcessState.READY);
 			};
 
