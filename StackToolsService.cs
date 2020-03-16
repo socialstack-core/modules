@@ -96,8 +96,9 @@ namespace Api.StackTools
 			// Non-blocking socket:
 			socket.Blocking = false;
 
-			Node = new ProcessLink(socket, () => {
-
+			var link = new ProcessLink(socket);
+			Node = link;
+			link.OnReady = () => {
 				// Get the process that this relates to:
 				var process = PendingProcesses.Find(proc => proc.Id == Node.Id);
 
@@ -110,7 +111,9 @@ namespace Api.StackTools
 				PendingProcesses.Remove(process);
 				Node.Process = process;
 				process.StateChange(NodeProcessState.READY);
-			});
+			};
+
+			link.Begin();
 		}
 		
 		/// <summary>

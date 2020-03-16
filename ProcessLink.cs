@@ -27,14 +27,20 @@ namespace Api.StackTools
 		/// <summary>
 		/// Creates a new request queue.
 		/// </summary>
-		public ProcessLink(Socket socket, Action onReady)
+		public ProcessLink(Socket socket)
 		{
 			SocketLink = socket;
 			CurrentBuffer = HeaderBuffer;
-			OnReady = onReady;
+		}
+
+		/// <summary>
+		/// Call to start receiving data
+		/// </summary>
+		public void Begin()
+		{
 			ReceiveTcp();
 		}
-		
+
 		private int BytesReceived = 0;
 		private byte[] HeaderBuffer = new byte[7];
 		private byte[] CurrentBuffer;
@@ -90,7 +96,10 @@ namespace Api.StackTools
 			LinkOutOfSync();
 		}
 
-		private Action OnReady;
+		/// <summary>
+		/// Runs when the link is ready.
+		/// </summary>
+		public Action OnReady;
 
 		private void OnReceivedTcp(IAsyncResult result)
 		{
