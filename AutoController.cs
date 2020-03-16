@@ -16,9 +16,7 @@ using Api.AutoForms;
 /// </summary>
 /// <typeparam name="T"></typeparam>
 /// <typeparam name="U"></typeparam>
-public partial class AutoController<T, U> : ControllerBase
-	where T : Api.Users.RevisionRow, new()
-	where U : AutoForm<T>
+public partial class AutoController<T, U>
 {
 	/// <summary>
 	/// GET /v1/entityTypeName/revision/2/
