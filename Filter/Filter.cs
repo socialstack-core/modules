@@ -51,12 +51,13 @@ namespace Api.Permissions
 		/// For example, where Id 1 would mean DefaultType.Id = 1.</param>
 		public Filter(JObject fromRequest, Type defaultType) {
 
+			DefaultType = defaultType;
+
 			if (fromRequest == null) {
 				return;
 			}
 
 			FromRequest = fromRequest;
-			DefaultType = defaultType;
 			
 			// Handle universal pagination:
 			var pageSizeJToken = fromRequest["pageSize"];
@@ -147,17 +148,42 @@ namespace Api.Permissions
 			if(whereArray != null){
 				
 				foreach(var entry in whereArray){
-					
+
+					var entryObj = entry as JObject;
+
+					if (entryObj == null)
+					{
+						continue;
+					}
+
 					if (Nodes.Count > 0)
 					{
-						// These combine with Or.
-						#warning this isn't quite right as we'll end up with it OR-ing the 2 nearest things, rather than (all of this) or (all of this).
-						Or();
+						// These combine with Or unless told otherwise.
+						if (entryObj["and"] != null)
+						{
+							And();
+						}
+						else
+						{
+							Or();
+						}
 					}
-					
-					// Handle it as a where object:
-					HandleWhereObject(entry as JObject);
-					
+
+					// Handle it with brackets (only if count != 1)
+					if (whereArray.Count == 1)
+					{
+						// We're actually just ignoring the array.
+						// This check isn't needed, however it avoids generating unnecessary brackets in the 
+						// query and allocating another filter object.
+						HandleWhereObject(entryObj);
+					}
+					else
+					{
+						Brackets((Filter filter) =>
+						{
+							filter.HandleWhereObject(entryObj);
+						});
+					}
 				}
 				
 			}else{
@@ -181,6 +207,13 @@ namespace Api.Permissions
 				// Default type:
 				var type = DefaultType;
 				var fieldName = kvp.Key;
+
+				if (fieldName == "and" || fieldName == "op")
+				{
+					// Special case for the and/ op fields.
+					continue;
+				}
+
 				var dotIndex = fieldName.IndexOf('.');
 
 				if (IgnoredWhereFields != null && IgnoredWhereFields.ContainsKey(fieldName))
@@ -435,7 +468,9 @@ namespace Api.Permissions
 			// Create a new chain and set it up immediately:
 			var chain = new Filter
 			{
-				Role = Role
+				Role = Role,
+				DefaultType = DefaultType,
+				FromRequest = FromRequest
 			};
 			subfilter(chain);
 
