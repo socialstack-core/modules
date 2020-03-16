@@ -23,3 +23,7 @@ export default class AutoEdit extends React.Component {
 	}
 	
 }
+
+AutoEdit.propTypes = {
+	children: true
+};
