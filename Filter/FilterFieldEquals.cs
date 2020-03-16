@@ -108,7 +108,9 @@ namespace Api.Permissions
 		{
 			return new FilterFieldEquals(Type, Field)
 			{
-				Value = Value
+				Value = Value,
+				ArgIndex = ArgIndex,
+				AlwaysArgMatch = AlwaysArgMatch
 			};
 		}
 

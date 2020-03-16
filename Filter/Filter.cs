@@ -249,6 +249,20 @@ namespace Api.Permissions
 							case "endsWith":
 								EndsWith(type, kvp.Key, fvp.Value.Value<string>());
 							break;
+							case "geq":
+							case "greaterThanOrEqual":
+								GreaterThanOrEqual(type, kvp.Key, fvp.Value.Value<long>());
+							break;
+							case "greaterThan":
+								GreaterThan(type, kvp.Key, fvp.Value.Value<long>());
+							break;
+							case "lessThan":
+								LessThan(type, kvp.Key, fvp.Value.Value<long>());
+							break;
+							case "leq":
+							case "lessThanOrEqual":
+								LessThanOrEqual(type, kvp.Key, fvp.Value.Value<long>());
+							break;
 							case "equals":
 								// Little bit pointless but we'll support it anyway. fieldName: {equals: x} is the same as just fieldName: x.
 								Equals(type, kvp.Key, fvp.Value.ToObject<object>());

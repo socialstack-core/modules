@@ -110,7 +110,9 @@ namespace Api.Permissions
 		{
 			return new FilterFieldStartsWith(Type, Field)
 			{
-				Value = Value
+				Value = Value,
+				ArgIndex = ArgIndex,
+				AlwaysArgMatch = AlwaysArgMatch
 			};
 		}
 

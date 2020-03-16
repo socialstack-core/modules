@@ -7,9 +7,9 @@ namespace Api.Permissions
 {
 
 	/// <summary>
-	/// Checks if a field in an arg ends with a given value.
+	/// Checks if a field in an arg is greater than or equal to a given value.
 	/// </summary>
-	public partial class FilterFieldEndsWith: FilterNode
+	public partial class FilterFieldGreaterThanOrEqual: FilterNode
 	{
 		/// <summary>
 		/// The type that we're looking for
@@ -26,7 +26,7 @@ namespace Api.Permissions
 		/// <summary>
 		/// The value to match.
 		/// </summary>
-		public string Value;
+		public long Value;
 		/// <summary>
 		/// Matches arg instead of against the given constant Value.
 		/// </summary>
@@ -45,7 +45,7 @@ namespace Api.Permissions
 		/// </summary>
 		/// <param name="type"></param>
 		/// <param name="field"></param>
-		public FilterFieldEndsWith(Type type, string field)
+		public FilterFieldGreaterThanOrEqual(Type type, string field)
 		{
 			Type = type;
 			Field = field;
@@ -78,28 +78,27 @@ namespace Api.Permissions
 			// Firstly is it a direct match?
 			if (firstArg == null)
 			{
-				return Value == null;
+				return false;
 			}
 			
-			var firstArgAsStr = firstArg as string;
+			// Might just be a direct number given to us:
+			var firstArgAsNum = firstArg as long?;
 			
-			if (firstArgAsStr != null && firstArgAsStr.EndsWith(Value))
+			if (firstArgAsNum != null && firstArgAsNum >= Value)
 			{
 				return true;
 			}
 
 			// Nope - try matching it via reading the field next.
-			if (Value == null)
-			{
-				return false;
-			}
-
 			if (firstArg.GetType() != Type)
 			{
 				return false;
 			}
 
-			return Value.Equals(FieldInfo.GetValue(firstArg) as string);
+			// Try reading it:
+			var fieldValue = FieldInfo.GetValue(firstArg) as long?;
+
+			return fieldValue.HasValue && fieldValue >= Value;
 		}
 
 		/// <summary>
@@ -108,7 +107,7 @@ namespace Api.Permissions
 		/// <returns>A deep copy of the node.</returns>
 		public override FilterNode Copy()
 		{
-			return new FilterFieldEndsWith(Type, Field)
+			return new FilterFieldGreaterThanOrEqual(Type, Field)
 			{
 				Value = Value,
 				ArgIndex = ArgIndex,
@@ -141,16 +140,16 @@ namespace Api.Permissions
 	{
 
 		/// <summary>
-		/// Adds a filter node which checks if the value at the given argIndex ends with the given value.
+		/// Adds a filter node which checks if the value at the given argIndex is greater than or equal the given value.
 		/// If the arg is an object, it should be of the given type. The value will be obtained from the given field.
 		/// </summary>
 		/// <param name="type"></param>
 		/// <param name="fieldName"></param>
 		/// <param name="argIndex"></param>
 		/// <returns></returns>
-		public Filter EndsWithArg(System.Type type, string fieldName, int argIndex = 0)
+		public Filter GreaterThanOrEqualArg(System.Type type, string fieldName, int argIndex = 0)
 		{
-			return Add(new FilterFieldEndsWith(type, fieldName)
+			return Add(new FilterFieldGreaterThanOrEqual(type, fieldName)
 			{
 				AlwaysArgMatch = true,
 				ArgIndex = argIndex
@@ -158,7 +157,7 @@ namespace Api.Permissions
 		}
 
 		/// <summary>
-		/// Adds a filter node which checks if the value at the given argIndex ends with the given value.
+		/// Adds a filter node which checks if the value at the given argIndex is greater than or equal the given value.
 		/// If the arg is an object, it should be of the given type. The value will be obtained from the given field.
 		/// </summary>
 		/// <param name="type"></param>
@@ -166,9 +165,9 @@ namespace Api.Permissions
 		/// <param name="value"></param>
 		/// <param name="argIndex"></param>
 		/// <returns></returns>
-		public Filter EndsWith(System.Type type, string fieldName, string value, int argIndex = 0)
+		public Filter GreaterThanOrEqual(System.Type type, string fieldName, long value, int argIndex = 0)
 		{
-			return Add(new FilterFieldEndsWith(type, fieldName)
+			return Add(new FilterFieldGreaterThanOrEqual(type, fieldName)
 			{
 				Value = value,
 				ArgIndex = argIndex
