@@ -24,3 +24,7 @@ export default class Tile extends React.Component {
     }
 	
 }
+
+Tile.propTypes = {
+	children: true
+};
