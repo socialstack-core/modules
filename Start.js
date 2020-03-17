@@ -41,6 +41,7 @@ module.exports = function(){
 		});
 		
 		// Specially look out for in-page edits:
+		var editMode = false;
 		if(global.hashFields.edit && global.hashFields.id && global.hashFields.field){
 			global.events.get('UI/Functions/WebRequest')['on' + global.hashFields.edit] = (content) => {
 				if(content.id == global.hashFields.id){
@@ -57,10 +58,43 @@ module.exports = function(){
 							value: content[fld]
 						};
 						content[fld] = '{"module": "UI/CanvasEditor", "data": ' + JSON.stringify(data) + '}';
+						editMode = true;
 					}
 				}
 			}
 		}
+		
+		// ctrl + e for in-page edit:
+		document.addEventListener("keydown", e => {
+			if(e.defaultPrevented || !global.app.state.user || !global.pageRouter){
+				return;
+			}
+			
+			var pg = global.pageRouter.state.page;
+			
+			if(pg && e.ctrlKey){
+				
+				// ctrl + e
+				if(!editMode && e.keyCode == 69){
+					e.preventDefault();
+					// This will force a full page reload:
+					var l = document.location;
+					l.assign(l.pathname + '#edit=Page&field=bodyJson&id=' + pg.id);
+					l.reload();
+				}
+				
+				// ctrl + s
+				if(editMode && e.keyCode != 83){
+					e.preventDefault();
+					// This will force a full page reload:
+					var l = document.location;
+					l.assign(l.pathname);
+					l.reload();
+				}
+				
+			}
+			
+		});
 		
 		// Render the root now! When the App instance is created, it sets itself up as global.app
 		React.render(
