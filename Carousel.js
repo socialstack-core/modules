@@ -58,19 +58,32 @@ export default class Carousel extends React.Component {
 	
     render() {
 		
+		var {
+			visibleAtOnce,
+			spacing
+		} = this.props;
+		
 		var items = this.content();
 		
 		if(!items || !items.length){
 			return null;
 		}
 		
-		var visCount = this.props.visibleAtOnce || 1;
+		var visCount = visibleAtOnce || 1;
 		
 		var itemSize = (1/visCount) * 100;
 		var itemSizePs = itemSize + '%';
 		
 		// The renderer is regularly a Canvas which performs a bunch of substitutions.
 		var Module = items.renderer;
+		
+		if(spacing){
+			var padNum = parseInt(spacing);
+			if(!isNaN(padNum)){
+				itemSizePs = 'calc(' + itemSizePs + ' - ' + (padNum * 2) + 'px)';
+				spacing = padNum + 'px';
+			}
+		}
 		
 		return (
 			<div className="carousel">
@@ -86,7 +99,7 @@ export default class Carousel extends React.Component {
 									}
 									
 									return (
-										<li className="content-item" style={{width: itemSizePs}}>
+										<li className="content-item" style={{width: itemSizePs, margin: spacing}}>
 											{content}
 										</li>
 									);
@@ -111,5 +124,6 @@ Carousel.propTypes = {
 		defaultRenderer: 'UI/Carousel/Default'
 	},
 	spreadImage: 'bool',
+	spacing: 'int',
 	visibleAtOnce: {type: 'int', default: 1}
 };
