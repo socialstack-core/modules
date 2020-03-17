@@ -18,6 +18,7 @@ namespace Api.Projects
 		/// </summary>
 		public ProjectService() : base(Events.Project)
         {
+			InstallAdminPages("Projects", "fa:fa-rocket", new string[] { "id", "name" });
 		}
 	}
     
