@@ -10,6 +10,8 @@ namespace Api.Database
 	internal sealed class DatabaseFieldAttribute : Attribute
 	{
 		public int Length;
+
+		public int Length2;
 		/// <summary>
 		/// Use this to declare a column as auto increment.
 		/// If you set it to false on your class, it will block the Id field from being auto increment too.
@@ -23,6 +25,20 @@ namespace Api.Database
 		{
 			Length = length;
 		}
-		
+
+		/// <summary>
+		/// Typically used for decimals. 
+		/// </summary>
+		/// <param name="afterDecimal"></param>
+		/// <param name="totalLength"></param>
+		internal DatabaseFieldAttribute(int afterDecimal, int totalLength)
+		{
+			// nums after the decimal pt:
+			Length = afterDecimal;
+
+			// Total length (optional and 10 is default):
+			Length2 = totalLength;
+		}
+
 	}
 }
