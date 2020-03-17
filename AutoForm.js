@@ -135,7 +135,7 @@ export default class AutoForm extends React.Component {
 		return (
 			<div className="auto-form">
 				{
-					this.state.isLocalized && locales.length > 1 && <div>
+					isEdit && this.state.isLocalized && locales.length > 1 && <div>
 						<Input label ="Select Locale" type="select" name="locale" onChange={
 							e => {
 								// Set the locale and clear the fields/ endpoint so we can load the localized info instead:
