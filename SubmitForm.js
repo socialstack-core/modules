@@ -21,7 +21,7 @@ export default function (e, options) {
 	
 	if(options.onValues){
 		// Map the values:
-		values = options.onValues(values);
+		values = options.onValues(values, e);
 	}
 	
 	// Resolve the values. This permits onValues to do async logic:
@@ -35,13 +35,13 @@ export default function (e, options) {
 					// NB: Run success last and after a small delay 
 					// (to be able to unmount the component in full / reset the form).
 					setTimeout(() => {
-						options.onSuccess && options.onSuccess(response.json, values);
+						options.onSuccess && options.onSuccess(response.json, values, e);
 					}, 1);
 					
 				} else {
 					console.log(response.json);
 					if (options.onFailed) {
-						options.onFailed(response.json);
+						options.onFailed(response.json, values, e);
 					}
 				}
 				
