@@ -7,17 +7,16 @@ using System.Threading.Tasks;
 namespace Api.Comments
 {
 	/// <summary>
-	/// Handles comments on other pieces of content.
+	/// Handles comments.
 	/// Instanced automatically. Use injection to use this service, or Startup.Services.Get.
 	/// </summary>
 	public partial interface ICommentService
 	{
 		/// <summary>
-		/// Deletes a Comment by its ID.
-		/// Optionally includes uploaded content refs in there too.
+		/// Deletes an comment by its ID.
 		/// </summary>
 		/// <returns></returns>
-		Task<bool> Delete(Context context, int id, bool deleteContent = true);
+		Task<bool> Delete(Context context, int id);
 
 		/// <summary>
 		/// Gets a single comment by its ID.
@@ -30,7 +29,7 @@ namespace Api.Comments
 		Task<Comment> Create(Context context, Comment comment);
 
 		/// <summary>
-		/// Updates the given comment. It must have an ID - usually the object will originate from a Get call.
+		/// Updates the given comment.
 		/// </summary>
 		Task<Comment> Update(Context context, Comment comment);
 
@@ -39,6 +38,5 @@ namespace Api.Comments
 		/// </summary>
 		/// <returns></returns>
 		Task<List<Comment>> List(Context context, Filter<Comment> filter);
-
 	}
 }
