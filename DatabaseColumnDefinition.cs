@@ -29,6 +29,7 @@ namespace Api.DatabaseDiff
 			TypeMap[typeof(float)] = new DatabaseType("float");
 			TypeMap[typeof(DateTime)] = new DatabaseType("datetime");
 			TypeMap[typeof(double)] = new DatabaseType("double");
+			TypeMap[typeof(decimal)] = new DatabaseType("decimal", "decimal");
 		}
 
 		/// <summary>
@@ -64,6 +65,11 @@ namespace Api.DatabaseDiff
 		/// Varchar and varbinary mainly - the max number of characters. varchar(x).
 		/// </summary>
 		public long? MaxCharacters;
+
+		/// <summary>
+		/// Typically used by e.g. decimal(MaxCharacters2, MaxCharacters). If you only specify one length, that'll be the amount of digits after the decimal point.
+		/// </summary>
+		public long? MaxCharacters2;
 
 
 		/// <summary>
@@ -132,6 +138,24 @@ namespace Api.DatabaseDiff
 					MaxCharacters = fieldMeta.Length;
 				}
 				
+			}else if(fieldType == typeof(decimal)){
+				
+				// Lengths might be applied. Check for them now:
+				if (fieldMeta != null && (fieldMeta.Length != 0 || fieldMeta.Length2 != 0))
+				{
+					// After DP:
+					MaxCharacters = fieldMeta.Length;
+					
+					// Before DP:
+					MaxCharacters2 = fieldMeta.Length2 == 0 ? 10 : fieldMeta.Length2;
+				}
+				else
+				{
+					// After DP defaults to 2.
+					MaxCharacters = 2;
+					MaxCharacters2 = 10;
+				}
+				
 			}
 			
 			DatabaseType dbType;
@@ -171,8 +195,11 @@ namespace Api.DatabaseDiff
 			if (DataType == "varchar" || DataType == "varbinary")
 			{
 				return (MaxCharacters != newColumn.MaxCharacters);
+			}else if(DataType == "decimal"){
+				// 2 is the full length of the decimal, which is represented by MaxChars:
+				return (MaxCharacters2 != newColumn.MaxCharacters2 || MaxCharacters != newColumn.MaxCharacters);
 			}
-
+			
 			return false;
 		}
 
@@ -182,7 +209,8 @@ namespace Api.DatabaseDiff
 		/// <returns></returns>
 		public string TypeAsSql()
 		{
-			return DataType.Trim() + (((DataType == "varchar" || DataType == "varbinary") && MaxCharacters.HasValue) ? "(" + MaxCharacters + ")" : "") + 
+			return DataType.Trim() + (((DataType == "varchar" || DataType == "varbinary") && MaxCharacters.HasValue) ? "(" + MaxCharacters + ")" : "") +
+				(((DataType == "decimal") && MaxCharacters.HasValue) ? "(" + MaxCharacters2 + ", " + MaxCharacters + ")" : "") +
 				(IsUnsigned ? " unsigned" : "") + (IsNullable ? " null" : " not null") + (IsAutoIncrement ? " auto_increment" : "");
 		}
 

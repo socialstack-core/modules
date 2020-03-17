@@ -61,7 +61,8 @@ namespace Api.DatabaseDiff
 				"SELECT table_name as TableName, `column_name` as ColumnName, `data_type` as DataType, " +
 				"`is_nullable` = 'YES' as IsNullable, IF(INSTR(extra, 'auto_increment')>0, TRUE, FALSE) as IsAutoIncrement, " +
 				"IF(INSTR(column_type, 'unsigned')>0, TRUE, FALSE) as IsUnsigned, " +
-				"`character_maximum_length` as MaxCharacters " +
+				"IF(`character_maximum_length` IS NULL, `numeric_scale`, `character_maximum_length`) as MaxCharacters, " +
+				"CAST(`numeric_precision` as SIGNED) as MaxCharacters2 " +
 				"FROM information_schema.columns WHERE table_schema = DATABASE()"
 			);
 
