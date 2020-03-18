@@ -49,9 +49,9 @@ namespace Api.DatabaseDiff
 			var dbVersion = await _database.Select(null, versionQuery);
 
 			// Which version we got?
-			if (!dbVersion.Version.Trim().StartsWith("8"))
+			if (!dbVersion.Version.Trim().StartsWith("8") || !dbVersion.Version.Trim().StartsWith("8") || !dbVersion.Version.Trim().StartsWith("10"))
 			{
-				System.Console.WriteLine("[WARNING] DatabaseDiff module disabled. It's currently only available on MySQL 8.");
+				System.Console.WriteLine("[WARNING] DatabaseDiff module disabled. It's currently only available on MySQL >8 (" + dbVersion.Version + ").");
 				return;
 			}
 
