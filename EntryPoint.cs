@@ -72,7 +72,8 @@ namespace Api.Startup
 					
 					var portNumber = AppSettings.GetInt32("Port", 5000);
 					
-					options.Listen(IPAddress.Loopback, portNumber);
+					// If running inside a container, we'll need to listen to the 0.0.0.0 (any) interface:
+					options.Listen(AppSettings.GetInt32("Container", 0) == 1 ? IPAddress.Any : IPAddress.Loopback, portNumber);
 					
                     options.Limits.MaxRequestBodySize = AppSettings.GetInt64("MaxBodySize", 512000000); // 512MB by default
 
