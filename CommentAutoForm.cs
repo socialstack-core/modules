@@ -21,7 +21,7 @@ namespace Api.Comments
 		/// <summary>
 		/// E.g. "forum" or "comment" (if in reply to another comment). It's just the type name lower cased.
 		/// </summary>
-		public id ContentTypeId;
+		public int ContentTypeId;
 
 		/// <summary>
 		/// The comment itself as a JSON canvas. If you just want html/ raw text, use {"content": "The text here"}.
