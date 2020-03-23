@@ -103,8 +103,7 @@ namespace Api.Signatures
 		/// The public key parameters.
 		/// </summary>
 		public ECPublicKeyParameters PublicKey;
-
-		private SHA256Managed _sha256;
+		
 		private ECDsaSigner _signer;
 		private ECDsaSigner _verifier;
 
@@ -148,14 +147,12 @@ namespace Api.Signatures
 			
 			var messageBytes = System.Text.Encoding.UTF8.GetBytes(message);
 
-			if (_sha256 == null)
-			{
-				_sha256 = new SHA256Managed();
-			}
+			// Can't share this as it has internal properties which get set during ComputeHash
+			var sha256 = new SHA256Managed();
 
 			// Double sha256 hash (Bitcoin compatible):
-			messageBytes = _sha256.ComputeHash(messageBytes, 0, messageBytes.Length);
-			messageBytes = _sha256.ComputeHash(messageBytes);
+			messageBytes = sha256.ComputeHash(messageBytes, 0, messageBytes.Length);
+			messageBytes = sha256.ComputeHash(messageBytes);
 
 			lock (_verifier)
 			{
@@ -191,10 +188,7 @@ namespace Api.Signatures
 		/// <returns>A 64 byte signature.</returns>
 		public byte[] Sign(byte[] message)
 		{
-			if (_sha256 == null)
-			{
-				_sha256 = new SHA256Managed();
-			}
+			var sha256 = new SHA256Managed();
 
 			if (_signer == null)
 			{
@@ -203,8 +197,8 @@ namespace Api.Signatures
 			}
 
 			// Double sha256 hash (Bitcoin compatible):
-			message = _sha256.ComputeHash(message, 0, message.Length);
-			message = _sha256.ComputeHash(message);
+			message = sha256.ComputeHash(message, 0, message.Length);
+			message = sha256.ComputeHash(message);
 
 			BigInteger[] rs;
 
