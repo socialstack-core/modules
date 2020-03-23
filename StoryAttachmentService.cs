@@ -77,7 +77,7 @@ namespace Api.StoryAttachments
 					var contentTypeId = ContentTypes.GetId(attachableObject.GetType());
 
 					// List the stories now:
-					var stories = await _database.List(listByObjectQuery, null, contentTypeId, dbObject.Id);
+					var stories = await _database.List(context, listByObjectQuery, null, contentTypeId, dbObject.Id);
 					attachableObject.Attachments = stories;
 					return attachableObject;
 				});
@@ -142,7 +142,7 @@ namespace Api.StoryAttachments
 					filter.EqualsArg("ContentTypeId", 0).And().EqualsSet("ContentId", ids);
 
 					// Get all the attachments for these entities:
-					var allStoryAttachments = await _database.List(listQuery, filter, contentTypeId);
+					var allStoryAttachments = await _database.List(context, listQuery, filter, contentTypeId);
 
 					// Add each one to the content:
 					foreach (var attachment in allStoryAttachments)
@@ -171,7 +171,7 @@ namespace Api.StoryAttachments
 		public async Task<List<StoryAttachment>> List(Context context, Filter<StoryAttachment> filter)
 		{
 			filter = await Events.StoryAttachmentBeforeList.Dispatch(context, filter);
-			var list = await _database.List(listQuery, filter);
+			var list = await _database.List(context, listQuery, filter);
 			list = await Events.StoryAttachmentAfterList.Dispatch(context, list);
 			return list;
 		}
@@ -184,7 +184,7 @@ namespace Api.StoryAttachments
 		public async Task<bool> Delete(Context context, int id, bool deleteUploads = true)
         {
             // Delete the entry:
-			await _database.Run(deleteQuery, id);
+			await _database.Run(context, deleteQuery, id);
 			
 			if(deleteUploads){
 			}
@@ -198,7 +198,7 @@ namespace Api.StoryAttachments
 		/// </summary>
 		public async Task<StoryAttachment> Get(Context context, int id)
 		{
-			return await _database.Select(selectQuery, id);
+			return await _database.Select(context, selectQuery, id);
 		}
 		
 		/// <summary>
@@ -209,7 +209,7 @@ namespace Api.StoryAttachments
 			storyAttachment = await Events.StoryAttachmentBeforeCreate.Dispatch(context, storyAttachment);
 
 			// Note: The Id field is automatically updated by Run here.
-			if (storyAttachment == null || !await _database.Run(createQuery, storyAttachment)) {
+			if (storyAttachment == null || !await _database.Run(context, createQuery, storyAttachment)) {
 				return null;
 			}
 
@@ -224,7 +224,7 @@ namespace Api.StoryAttachments
 		{
 			storyAttachment = await Events.StoryAttachmentBeforeUpdate.Dispatch(context, storyAttachment);
 
-			if (storyAttachment == null || !await _database.Run(updateQuery, storyAttachment, storyAttachment.Id))
+			if (storyAttachment == null || !await _database.Run(context, updateQuery, storyAttachment, storyAttachment.Id))
 			{
 				return null;
 			}
