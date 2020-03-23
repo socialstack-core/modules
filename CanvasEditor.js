@@ -766,6 +766,8 @@ export default class CanvasEditor extends React.Component {
 				inputContent.unshift(<option>Pick a value</option>);
 			}else if(propType.type == 'color'){
 				inputType = 'color';
+			}else if(propType.type == 'checkbox'){
+				inputType = 'checkbox';
 			}else if(propType.type == 'id'){
 				inputType = 'select';
 				inputContent = this.getContentDropdown(propType.content || propType.contentType);
