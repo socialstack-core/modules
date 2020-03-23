@@ -47,7 +47,7 @@ namespace Api.Galleries
         public async Task<bool> Delete(Context context, int id, bool deleteUploads = true)
         {
             // Delete the entry:
-			await _database.Run(deleteQuery, id);
+			await _database.Run(context, deleteQuery, id);
 			
 			if(deleteUploads){
 			}
@@ -63,7 +63,7 @@ namespace Api.Galleries
 		public async Task<List<Gallery>> List(Context context, Filter<Gallery> filter)
 		{
 			filter = await Events.GalleryBeforeList.Dispatch(context, filter);
-			var list = await _database.List(listQuery, filter);
+			var list = await _database.List(context, listQuery, filter);
 			list = await Events.GalleryAfterList.Dispatch(context, list);
 			return list;
 		}
@@ -73,7 +73,7 @@ namespace Api.Galleries
 		/// </summary>
 		public async Task<Gallery> Get(Context context, int id)
 		{
-			return await _database.Select(selectQuery, id);
+			return await _database.Select(context, selectQuery, id);
 		}
 
 		/// <summary>
@@ -84,7 +84,7 @@ namespace Api.Galleries
 			gallery = await Events.GalleryBeforeCreate.Dispatch(context, gallery);
 
 			// Note: The Id field is automatically updated by Run here.
-			if (gallery == null || !await _database.Run(createQuery, gallery))
+			if (gallery == null || !await _database.Run(context, createQuery, gallery))
 			{
 				return null;
 			}
@@ -100,7 +100,7 @@ namespace Api.Galleries
 		{
 			gallery = await Events.GalleryBeforeUpdate.Dispatch(context, gallery);
 
-			if (gallery == null || !await _database.Run(updateQuery, gallery, gallery.Id))
+			if (gallery == null || !await _database.Run(context, updateQuery, gallery, gallery.Id))
 			{
 				return null;
 			}
