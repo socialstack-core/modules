@@ -52,7 +52,7 @@ namespace Api.FeedStories
 		public async Task<List<FeedStory>> List(Context context, Filter<FeedStory> filter)
 		{
 			filter = await Events.FeedStoryBeforeList.Dispatch(context, filter);
-			var list = await _database.List(listQuery, filter);
+			var list = await _database.List(context, listQuery, filter);
 			list = await Events.FeedStoryAfterList.Dispatch(context, list);
 			return list;
 		}
@@ -65,7 +65,7 @@ namespace Api.FeedStories
 		public async Task<bool> Delete(Context context, int id, bool deleteUploads = true)
         {
             // Delete the entry:
-			await _database.Run(deleteQuery, id);
+			await _database.Run(context, deleteQuery, id);
 			
 			if(deleteUploads){
 			}
@@ -79,7 +79,7 @@ namespace Api.FeedStories
 		/// </summary>
 		public async Task<FeedStory> Get(Context context, int id)
 		{
-			return await _database.Select(selectQuery, id);
+			return await _database.Select(context, selectQuery, id);
 		}
 		
 		/// <summary>
@@ -90,7 +90,7 @@ namespace Api.FeedStories
 			feedStory = await Events.FeedStoryBeforeCreate.Dispatch(context, feedStory);
 
 			// Note: The Id field is automatically updated by Run here.
-			if (feedStory == null || !await _database.Run(createQuery, feedStory)) {
+			if (feedStory == null || !await _database.Run(context, createQuery, feedStory)) {
 				return null;
 			}
 
@@ -105,7 +105,7 @@ namespace Api.FeedStories
 		{
 			feedStory = await Events.FeedStoryBeforeUpdate.Dispatch(context, feedStory);
 
-			if (feedStory == null || !await _database.Run(updateQuery, feedStory, feedStory.Id))
+			if (feedStory == null || !await _database.Run(context, updateQuery, feedStory, feedStory.Id))
 			{
 				return null;
 			}
