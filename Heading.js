@@ -1,8 +1,8 @@
 
 /**
- * Header for h1/h2/h3 etc.
+ * For h1/h2/h3 etc.
  */
-export default class Header extends React.Component {
+export default class Heading extends React.Component {
 	
 	render() {
 		var Mod = 'h' + (this.props.size || '1');
