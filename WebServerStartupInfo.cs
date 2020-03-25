@@ -72,7 +72,7 @@ namespace Api.Startup
 				{
 					continue;
 				}
-
+				
 				// Ok! Got a valid service. We can now register it:
 				
 				// Optional: You can also delclare an I{ServiceName} interface.
