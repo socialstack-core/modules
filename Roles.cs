@@ -35,6 +35,20 @@ namespace Api.Permissions
 		/// </summary>
 		public static Role Member;
 
-		
+
+		/// <summary>
+		/// Gets a role by its ID.
+		/// </summary>
+		/// <param name="id"></param>
+		/// <returns></returns>
+		public static Role Get(int id)
+		{
+			if (id < 0 || id >= All.Length)
+			{
+				return null;
+			}
+
+			return All[id];
+		}
     }
 }

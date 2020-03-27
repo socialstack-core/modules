@@ -24,7 +24,64 @@ namespace Api.Permissions
 		)
         {
         }
-		
+
+		private RoleMeta[] _roleMetas;
+
+		/// <summary>
+		/// Gets info for a particular role. Primarily the list of capabilities within it.
+		/// </summary>
+		/// <param name="id"></param>
+		/// <returns></returns>
+		[HttpGet("role/{id}")]
+		public RoleMeta GetRole([FromRoute] int id)
+		{
+			if (_roleMetas == null)
+			{
+				_roleMetas = new RoleMeta[Roles.All.Length];
+
+				for(var i=0;i<_roleMetas.Length;i++)
+				{
+					var role = Roles.All[i];
+					
+					var caps = new List<CapabilityMeta>();
+
+					foreach (var capability in Capabilities.All)
+					{
+						var rule = role.GetGrantRule(capability.Value);
+
+						if (rule == null)
+						{
+							continue;
+						}
+
+						caps.Add(new CapabilityMeta()
+						{
+							Name = capability.Key
+						});
+					}
+
+					_roleMetas[i] = new RoleMeta()
+					{
+						Role = role,
+						Capabilities = caps
+					};
+					
+				}
+			}
+
+			if (id < 0 || id >= _roleMetas.Length)
+			{
+				return null;
+			}
+			
+			return _roleMetas[id];
+		}
+
+		/// <summary>
+		/// The cached permission meta.
+		/// </summary>
+		private PermissionInformation _allPermissionInfo;
+
 		/// <summary>
 		/// GET /v1/permission/list
 		/// Returns meta about the list of available roles and their permission set.
@@ -32,49 +89,59 @@ namespace Api.Permissions
 		[HttpGet("list")]
 		public PermissionInformation List()
 		{
+			if (_allPermissionInfo != null)
+			{
+				return _allPermissionInfo;
+			}
+
 			var results = new List<PermissionMeta>();
-			
+
 			// For each capability..
-			foreach(var capability in Capabilities.All){
-				
+			foreach (var capability in Capabilities.All)
+			{
+
 				var meta = new PermissionMeta()
 				{
 					Key = capability.Key,
 					Description = "Generated capability",
 					Grants = new List<GrantMeta>()
 				};
-				
+
 				// For each role..
-				foreach(var role in Roles.All){
-					
+				foreach (var role in Roles.All)
+				{
+
 					// Got it set?
 					var rule = role.GetGrantRule(capability.Value);
-					
-					if(rule != null){
-						
+
+					if (rule != null)
+					{
+
 						var qry = new StringBuilder();
 
 						// Note that a blank rule description means it's always true.
 						// I.e. it's granted and there is no rule around when it is active.
 						rule.BuildQuery(qry, 0, false, null);
-						
-						meta.Grants.Add(new GrantMeta(){
+
+						meta.Grants.Add(new GrantMeta()
+						{
 							Role = role,
 							RuleDescription = qry.ToString()
 						});
 					}
-					
+
 				}
-				
+
 				results.Add(meta);
-				
+
 			}
-			
-            return new PermissionInformation() {
+
+			return _allPermissionInfo = new PermissionInformation()
+			{
 				Capabilities = results,
 				Roles = Roles.All
 			};
-        }
+		}
 		
     }
 	
@@ -93,7 +160,33 @@ namespace Api.Permissions
 		public Role[] Roles;
 		
 	}
-	
+
+	/// <summary>
+	/// Meta for a particular role.
+	/// </summary>
+	public class RoleMeta
+	{
+		/// <summary>
+		/// The role itself.
+		/// </summary>
+		public Role Role;
+		/// <summary>
+		/// The list of capabilities that are granted in this role.
+		/// </summary>
+		public List<CapabilityMeta> Capabilities;
+	}
+
+	/// <summary>
+	/// Meta for a particular capability.
+	/// </summary>
+	public class CapabilityMeta
+	{
+		/// <summary>
+		/// The name of the capability, e.g. "user_create".
+		/// </summary>
+		public string Name;
+	}
+
 	/// <summary>
 	/// Information about a particular grant.
 	/// </summary>
