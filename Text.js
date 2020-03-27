@@ -12,10 +12,19 @@ export default class Text extends React.Component {
     }
 	
     render() {
-		return <span 
+		var text = <span 
 			dangerouslySetInnerHTML={{__html: (this.props.text || this.props.children)}}
 			{...omit(this.props, ['text', 'children'])}
 		/>;
+		
+		const {align} = this.props;
+		
+		if(align && align != 'none'){
+			// Block display if align is used
+			return <div style={{textAlign: align}}>{text}</div>;
+		}
+		
+		return text;
     }
 }
 
@@ -23,5 +32,6 @@ Text.propTypes = {};
 Text.icon = 'align-justify';
 
 Text.rendererPropTypes = {
-	text: 'string'
+	text: 'string',
+	align: ['none', 'left', 'right', 'center', 'justify']
 };
