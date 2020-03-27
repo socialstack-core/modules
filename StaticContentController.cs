@@ -33,7 +33,10 @@ namespace Api.Uploader
 		public async void CatchAllAdmin()
 		{
 			Response.ContentType = "text/html";
+			Response.Headers["Content-Encoding"] = "gzip";
+			Response.Headers["Cache-Control"] = "max-age=315360000, public";
 			var adminIndex = _staticContentService.AdminIndex;
+			Response.ContentLength = adminIndex.Length;
             await Response.Body.WriteAsync(adminIndex, 0, adminIndex.Length);
         }
 		
@@ -45,8 +48,11 @@ namespace Api.Uploader
 		public async void CatchAll()
 		{
 			Response.ContentType = "text/html";
+			Response.Headers["Content-Encoding"] = "gzip";
+			Response.Headers["Cache-Control"] = "max-age=315360000, public";
 			var index = _staticContentService.Index;
-            await Response.Body.WriteAsync(index, 0, index.Length);
+			Response.ContentLength = index.Length;
+			await Response.Body.WriteAsync(index, 0, index.Length);
 		}
 		
 	}

@@ -8,6 +8,8 @@ using Microsoft.Extensions.FileProviders;
 using Microsoft.AspNetCore.StaticFiles;
 using Api.Signatures;
 using System.Collections.Generic;
+using System.Threading.Tasks;
+using Microsoft.Extensions.Configuration;
 
 namespace Api.Uploader
 {
@@ -94,6 +96,8 @@ namespace Api.Uploader
 					}
 				});
 
+				var autoCreateGzips = false;
+
 				// UI path next:
 				var pathToUIDir = AppSettings.Configuration["UI"];
 				if (string.IsNullOrEmpty(pathToUIDir))
@@ -110,8 +114,9 @@ namespace Api.Uploader
 				
 				app.UseStaticFiles(new StaticFileOptions()
 				{
-					FileProvider = new PhysicalFileProvider(pathToUIDir),
-					RequestPath = new PathString("")
+					FileProvider = new GzipMappingFileProvider(autoCreateGzips, new PhysicalFileProvider(pathToUIDir)),
+					RequestPath = new PathString(""),
+					OnPrepareResponse = GzipMappingFileProvider.OnPrepareResponse
 				});
 
 				// And the admin panel:
@@ -130,14 +135,15 @@ namespace Api.Uploader
 
 				app.UseStaticFiles(new StaticFileOptions()
 				{
-					FileProvider = new PhysicalFileProvider(pathToAdminDir),
-					RequestPath = new PathString("/en-admin")
+					FileProvider = new GzipMappingFileProvider(autoCreateGzips, new PhysicalFileProvider(pathToAdminDir)),
+					RequestPath = new PathString("/en-admin"),
+					OnPrepareResponse = GzipMappingFileProvider.OnPrepareResponse
 				});
 
 			};
 
 		}
-
+		
 		private string SetupDirectory(bool priv)
 		{
 			var settingName = priv ? "ContentPrivate" : "Content";

@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Mvc;
 using Api.Configuration;
 using System;
 using System.IO;
+using System.IO.Compression;
 
 namespace Api.Uploader
 {
@@ -94,7 +95,17 @@ namespace Api.Uploader
 					};
 
 					// Initial run:
-					onFileReadyOrChanged(System.IO.File.ReadAllBytes(fullFilePath));
+					var fileBytes = System.IO.File.ReadAllBytes(fullFilePath);
+					using (var ms = new MemoryStream())
+					{
+						using (var gs = new GZipStream(ms, CompressionMode.Compress))
+						{
+							gs.Write(fileBytes);
+						}
+						fileBytes = ms.ToArray();
+					}
+
+					onFileReadyOrChanged(fileBytes);
 
 					// Begin watching.
 					watcher.EnableRaisingEvents = true;
@@ -121,6 +132,14 @@ namespace Api.Uploader
 				try
 				{
 					fileBytes = await System.IO.File.ReadAllBytesAsync(fullFilePath);
+					using (var ms = new MemoryStream()) {
+						using (var gs = new GZipStream(ms, CompressionMode.Compress))
+						{
+							gs.Write(fileBytes);
+						}
+						fileBytes = ms.ToArray();
+					}
+
 					break;
 				}
 				catch (IOException)
