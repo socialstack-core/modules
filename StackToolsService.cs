@@ -214,8 +214,15 @@ namespace Api.StackTools
 					return;
 				}
 
+				// We default to prod mode if we're a release build.
+#if DEBUG
+				var prod = false;
+#else
+				var prod = true;
+#endif
+
 				// Start the UI watcher straight away:
-				Node.Request(new { action = "watch" }, (string e, JObject response) => {
+				Node.Request(new { action = "watch", minified = prod, compress = prod }, (string e, JObject response) => {
 					if (e != null)
 					{
 						return;
