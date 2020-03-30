@@ -15,7 +15,7 @@ namespace Api.Blogs
     /// </summary>
 
     [Route("v1/blog")]
-	public partial class BlogController : AutoController<Blog, BlogAutoForm>
+	public partial class BlogController : AutoController<Blog>
 	{
     }
 
