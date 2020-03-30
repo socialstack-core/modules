@@ -6,7 +6,7 @@ namespace Api.Categories
     /// Handles category endpoints.
     /// </summary>
     [Route("v1/category")]
-	public partial class CategoryController : AutoController<Category, CategoryAutoForm>
+	public partial class CategoryController : AutoController<Category>
 	{
     }
 }
