@@ -7,7 +7,7 @@ using Api.Results;
 using Microsoft.AspNetCore.Mvc;
 using Newtonsoft.Json.Linq;
 using Api.AutoForms;
-
+using Api.Startup;
 
 /// <summary>
 /// A convenience controller for defining common endpoints like create, list, delete etc. Requires an AutoService of the same type to function.
@@ -15,11 +15,9 @@ using Api.AutoForms;
 /// Like AutoService this isn't in a namespace due to the frequency it's used.
 /// </summary>
 /// <typeparam name="T"></typeparam>
-/// <typeparam name="U"></typeparam>
 [ApiController]
-public partial class AutoController<T, U> : ControllerBase
+public partial class AutoController<T> : ControllerBase
 	where T : Api.Database.DatabaseRow, new()
-	where U : AutoForm<T>
 {
 
 	/// <summary>
@@ -119,15 +117,13 @@ public partial class AutoController<T, U> : ControllerBase
 	/// Creates a new entity. Returns the ID.
 	/// </summary>
 	[HttpPost]
-	public virtual async Task<T> Create([FromBody] U form)
+	public virtual async Task<T> Create([FromBody] JObject body)
 	{
 		var context = Request.GetContext();
 
 		// Start building up our object.
 		// Most other fields, particularly custom extensions, are handled by autoform.
-		var entity = new T
-		{
-		};
+		var entity = new T();
 
 		// If it's revisionable we'll set the user ID now:
 		var revisionableEntity = (entity as Api.Users.RevisionRow);
@@ -136,60 +132,147 @@ public partial class AutoController<T, U> : ControllerBase
 		{
 			revisionableEntity.UserId = context.UserId;
 		}
-
-
-		if (!ModelState.Setup(form, entity))
-		{
-			return null;
-		}
-
-		form = await _service.EventGroup.Create.Dispatch(context, form, Response) as U;
-
-		if (form == null || form.Result == null)
-		{
-			// A handler rejected this request.
-			return null;
-		}
-
-		entity = await _service.Create(context, form.Result);
+		
+		// Set the actual fields now:
+		var notes = await SetFieldsOnObject(entity, context, body, JsonFieldGroup.Default);
+		
+		// Fire off a create event:
+		entity = await _service.EventGroup.Create.Dispatch(context, entity, Response) as T;
 
 		if (entity == null)
 		{
-			Response.StatusCode = 500;
+			// A handler rejected this request.
+
+			if (notes != null)
+			{
+				Request.Headers["Api-Notes"] = notes;
+			}
+			
 			return null;
+		}
+
+		entity = await _service.Create(context, entity);
+		
+		if (entity == null)
+		{
+			Response.StatusCode = 500;
+
+			if (notes != null)
+			{
+				Request.Headers["Api-Notes"] = notes;
+			}
+			
+			return null;
+		}
+		
+		// Set post ID fields:
+		var secondaryNotes = await SetFieldsOnObject(entity, context, body, JsonFieldGroup.AfterId);
+
+		if (secondaryNotes != null)
+		{
+			if (notes == null)
+			{
+				notes = secondaryNotes;
+			}
+			else
+			{
+				notes += ", " + secondaryNotes;
+			}
+
+		}
+
+		if (notes != null)
+		{
+			Request.Headers["Api-Notes"] = notes;
 		}
 
 		return entity;
 	}
 
 	/// <summary>
+	/// Sets the fields from the given JSON object on the given target object, based on the user role in the context.
+	/// Note that there's 2 sets of fields - a primary set, then also a secondary set which are set only after the ID of the object is known.
+	/// E.g. during create, the object is instanced, initial fields are set, it's then actually created, and then the after ID set is run.
+	/// </summary>
+	/// <param name="target"></param>
+	/// <param name="context"></param>
+	/// <param name="body"></param>
+	/// <param name="fieldGroup"></param>
+	private async Task<string> SetFieldsOnObject(T target, Context context, JObject body, JsonFieldGroup fieldGroup = JsonFieldGroup.Any)
+	{
+		// Get the JSON meta which will indicate exactly which fields are editable by this user (role):
+		var availableFields = await _service.GetJsonStructure(context.RoleId);
+
+		string notes = null;
+
+		foreach (var property in body.Properties())
+		{
+			// Attempt to get the available field:
+			var field = availableFields.GetField(property.Name, fieldGroup);
+
+			if (field == null)
+			{
+				// Tell the callee that this field was ignored.
+				if (notes != null)
+				{
+					notes += ", " + property.Name + " was ignored (doesn't exist or no permission)";
+				}
+				else
+				{
+					notes = property.Name + " was ignored (doesn't exist or no permission)";
+				}
+
+				continue;
+			}
+
+			// Try setting the value now:
+			await field.SetValue(context, target, property.Value);
+		}
+
+		return notes;
+	}
+	
+	/// <summary>
 	/// POST /v1/entityTypeName/1/
 	/// Updates an entity with the given ID.
 	/// </summary>
 	[HttpPost("{id}")]
-	public virtual async Task<T> Update([FromRoute] int id, [FromBody] U form)
+	public virtual async Task<T> Update([FromRoute] int id, [FromBody] JObject body)
 	{
 		var context = Request.GetContext();
 
 		var entity = await _service.Get(context, id);
 
-		if (!ModelState.Setup(form, entity))
+		if (entity == null)
 		{
+			// Either not allowed to edit this, or it doesn't exist.
+			// Both situations are a 404.
+			Response.StatusCode = 404;
 			return null;
 		}
 
-		form = await _service.EventGroup.Update.Dispatch(context, form, Response) as U;
+		// In this case the entity ID is definitely known, so we can run all fields at the same time:
+		var notes = await SetFieldsOnObject(entity, context, body, JsonFieldGroup.Any);
 
-		if (form == null || form.Result == null)
+		if (notes != null)
+		{
+			Request.Headers["Api-Notes"] = notes;
+		}
+
+		// Run the request update event:
+		entity = await _service.EventGroup.Update.Dispatch(context, entity, Response) as T;
+
+		if (entity == null)
 		{
 			// A handler rejected this request.
 			return null;
 		}
 
-		entity = await _service.Update(context, form.Result);
+		entity = await _service.Update(context, entity);
 
 		if (entity == null)
 		{
+			// It went wrong during the update.
 			Response.StatusCode = 500;
 			return null;
 		}

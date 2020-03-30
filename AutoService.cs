@@ -2,6 +2,7 @@ using Api.Contexts;
 using Api.Database;
 using Api.Eventing;
 using Api.Permissions;
+using Api.Startup;
 using System;
 using System.Collections;
 using System.Collections.Generic;
@@ -88,6 +89,36 @@ public partial class AutoService<T> where T: DatabaseRow, new(){
 		get{
 			return NestableAddMask != 0;
 		}
+	}
+	
+	private JsonStructure<T>[] _jsonStructures = null;
+	
+	/// <summary>
+	/// Gets the JSON structure. Defines settable fields for a particular role.
+	/// </summary>
+	public async Task<JsonStructure<T>> GetJsonStructure(int roleId)
+	{
+		if(_jsonStructures == null)
+		{
+			_jsonStructures = new JsonStructure<T>[Roles.All.Length];
+		}
+		
+		if(roleId < 0 || roleId >= Roles.All.Length)
+		{
+			// Bad role ID.
+			return null;
+		}
+		
+		var structure = _jsonStructures[roleId];
+		
+		if(structure == null)
+		{
+			// Not built yet. Build it now:
+			_jsonStructures[roleId] = structure = new JsonStructure<T>(Roles.All[roleId]);
+			await structure.Build(EventGroup);
+		}
+		
+		return structure;
 	}
 	
 	/// <summary>

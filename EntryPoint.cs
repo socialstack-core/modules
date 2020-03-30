@@ -7,6 +7,14 @@ using Microsoft.AspNetCore.Server.Kestrel.Core;
 using Microsoft.Extensions.Logging;
 using System.Threading.Tasks;
 
+
+public class JsonTest
+{
+	public string Hi;
+	public int TestInt;
+	public bool TestBool;
+}
+
 namespace Api.Startup
 {
 	/// <summary>
