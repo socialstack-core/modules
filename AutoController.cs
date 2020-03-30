@@ -14,9 +14,7 @@ using Api.AutoForms;
 /// Not required to use these - you can also just directly use ControllerBase if you want.
 /// Like AutoService this isn't in a namespace due to the frequency it's used.
 /// </summary>
-/// <typeparam name="T"></typeparam>
-/// <typeparam name="U"></typeparam>
-public partial class AutoController<T, U>
+public partial class AutoController<T>
 {
 	/// <summary>
 	/// GET /v1/entityTypeName/revision/2/
@@ -90,17 +88,13 @@ public partial class AutoController<T, U>
 	/// Updates an entity revision with the given ID.
 	/// </summary>
 	[HttpPost("revision/{id}")]
-	public virtual async Task<T> UpdateRevision([FromRoute] int id, [FromBody] U form)
+	public virtual async Task<T> UpdateRevision([FromRoute] int id, [FromBody] JObject body)
 	{
 		var context = Request.GetContext();
 
 		var entity = await _service.GetRevision(context, id);
-
-		if (!ModelState.Setup(form, entity))
-		{
-			return null;
-		}
 		
+		/*
 		form = await _service.EventGroup.RevisionUpdate.Dispatch(context, form, Response) as U;
 
 		if (form == null || form.Result == null)
@@ -116,6 +110,8 @@ public partial class AutoController<T, U>
 			Response.StatusCode = 500;
 			return null;
 		}
+
+		*/
 
 		return entity;
 	}
