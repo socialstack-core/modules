@@ -7,7 +7,7 @@ namespace Api.Projects
     /// </summary>
 
     [Route("v1/project")]
-	public partial class ProjectController : AutoController<Project, ProjectAutoForm>
+	public partial class ProjectController : AutoController<Project>
     {
     }
 }
