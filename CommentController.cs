@@ -8,6 +8,6 @@ namespace Api.Comments
     /// </summary>
 
     [Route("v1/comment")]
-	public partial class CommentController : AutoController<Comment, CommentAutoForm>
+	public partial class CommentController : AutoController<Comment>
     {}
 }
