@@ -4,7 +4,7 @@ using System.Collections.Generic;
 using Api.AutoForms;
 using Api.Database;
 using Api.Permissions;
-
+using Api.Startup;
 
 namespace Api.Eventing
 {
@@ -64,6 +64,11 @@ namespace Api.Eventing
 		/// </summary>
 		public EventHandler<List<T>> AfterList;
 
+		/// <summary>
+		/// Just before a field is added (and made settable).
+		/// </summary>
+		public EventHandler<JsonField<T>> BeforeSettable;
+
 		#endregion
 
 		#region Controller events
@@ -71,7 +76,7 @@ namespace Api.Eventing
 		/// <summary>
 		/// Create a new entity.
 		/// </summary>
-		public EndpointEventHandler<AutoForm<T>> Create;
+		public EndpointEventHandler<T> Create;
 		/// <summary>
 		/// Delete an entity.
 		/// </summary>
@@ -79,7 +84,7 @@ namespace Api.Eventing
 		/// <summary>
 		/// Update entity metadata.
 		/// </summary>
-		public EndpointEventHandler<AutoForm<T>> Update;
+		public EndpointEventHandler<T> Update;
 		/// <summary>
 		/// Load entity metadata.
 		/// </summary>
