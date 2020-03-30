@@ -73,6 +73,12 @@ namespace Api.Startup
 					continue;
 				}
 
+				// Must also be in the Api.* namespace:
+				if (typeInfo.Namespace == null || !typeInfo.Namespace.StartsWith("Api."))
+				{
+					continue;
+				}
+
 				// Ok! Got a valid service. We can now register it:
 				
 				// Optional: You can also delclare an I{ServiceName} interface.
