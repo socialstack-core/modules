@@ -7,7 +7,7 @@ namespace Api.BlogPosts
     /// Handles blog post endpoints.
     /// </summary>
     [Route("v1/blog/post")]
-	public partial class BlogPostController : AutoController<BlogPost, BlogPostAutoForm>
+	public partial class BlogPostController : AutoController<BlogPost>
     {
 		
     }
