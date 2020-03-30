@@ -178,6 +178,12 @@ namespace Api.AutoForms
 					// Remove "Ref" from the end of the label:
 					labelName = labelName.Substring(0, labelName.Length - 3);
 				}
+				else if (fieldType == typeof(string) && (labelName.EndsWith("Color") || labelName.EndsWith("Colour")))
+				{
+					type = "color";
+					
+					// Retain the word color/ colour in this one
+				}
 				/*
 				else if (fieldType == typeof(DateTime))
 				{
