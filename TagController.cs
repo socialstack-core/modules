@@ -6,7 +6,7 @@ namespace Api.Tags
     /// Handles tag endpoints.
     /// </summary>
     [Route("v1/tag")]
-	public partial class TagController : AutoController<Tag, TagAutoForm>
+	public partial class TagController : AutoController<Tag>
     {
     }
 }
