@@ -29,7 +29,7 @@ namespace Api.Users
 		/// </summary>
 		public UserController(
             IContextService contexts
-		)
+		) : base()
         {
 			_contexts = contexts;
 		}
