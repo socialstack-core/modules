@@ -7,7 +7,7 @@ namespace Api.Articles
 	/// Handles article endpoints.
 	/// </summary>
 	[Route("v1/article")]
-	public partial class ArticleController : AutoController<Article, ArticleAutoForm>
+	public partial class ArticleController : AutoController<Article>
 	{
     }
 }
