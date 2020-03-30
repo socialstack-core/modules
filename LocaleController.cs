@@ -15,7 +15,7 @@ namespace Api.Translate
     /// </summary>
 
     [Route("v1/locale")]
-	public partial class LocaleController : AutoController<Locale, LocaleAutoForm>
+	public partial class LocaleController : AutoController<Locale>
 	{
     }
 
