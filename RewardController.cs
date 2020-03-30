@@ -6,7 +6,7 @@ namespace Api.Rewards
     /// Handles reward endpoints.
     /// </summary>
     [Route("v1/reward")]
-	public partial class RewardController : AutoController<Reward, RewardAutoForm>
+	public partial class RewardController : AutoController<Reward>
     {
     }
 }
