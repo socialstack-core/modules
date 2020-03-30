@@ -7,7 +7,7 @@ namespace Api.StaffMembers
     /// </summary>
 
     [Route("v1/staffmember")]
-	public partial class StaffMemberController : AutoController<StaffMember, StaffMemberAutoForm>
+	public partial class StaffMemberController : AutoController<StaffMember>
     {
     }
 }
