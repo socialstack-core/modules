@@ -85,7 +85,8 @@ namespace Api.Startup
 				var jsonField = new JsonField<T>()
 				{
 					Name = field.Name,
-					Structure = this
+					Structure = this,
+					TargetType = field.FieldType
 				};
 				jsonField.FieldInfo = field;
 				await TryAddField(context, jsonField, eventSystem);
@@ -98,7 +99,8 @@ namespace Api.Startup
 				var jsonField = new JsonField<T>()
 				{
 					Name = property.Name,
-					Structure = this
+					Structure = this,
+					TargetType = property.PropertyType
 				};
 				
 				jsonField.PropertyGet = property.GetGetMethod();
