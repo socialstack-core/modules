@@ -7,7 +7,7 @@ namespace Api.Faqs
 	/// Handles faq endpoints.
 	/// </summary>
 	[Route("v1/faq")]
-	public partial class FaqController : AutoController<Faq, FaqAutoForm>
+	public partial class FaqController : AutoController<Faq>
 	{
     }
 }
