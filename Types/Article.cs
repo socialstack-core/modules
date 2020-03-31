@@ -12,6 +12,9 @@ namespace Api.Articles
 	/// </summary>
 	public partial class Article : IHaveCategories
 	{
+		/// <summary>
+		/// The categories of this article.
+		/// </summary>
 		public List<Category> Categories { get; set; }
 	}
 }
