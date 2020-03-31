@@ -22,7 +22,7 @@ namespace Api.Startup
 		/// <summary>
 		/// A lookup specifically for AutoService implementations.
 		/// </summary>
-		public static Dictionary<Type, object> AutoServices = new Dictionary<Type, object>();
+		public static Dictionary<Type, AutoService> AutoServices = new Dictionary<Type, AutoService>();
 
 		/// <summary>
 		/// The underlying service provider, used to obtain injected service instances.

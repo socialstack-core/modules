@@ -31,7 +31,7 @@ public partial class AutoController<T> : ControllerBase
 	public AutoController()
 	{
 		// Find the service:
-		if (Api.Startup.Services.AutoServices.TryGetValue(typeof(AutoService<T>), out object svc))
+		if (Api.Startup.Services.AutoServices.TryGetValue(typeof(AutoService<T>), out AutoService svc))
 		{
 			_service = (AutoService<T>)svc;
 		}
@@ -201,7 +201,7 @@ public partial class AutoController<T> : ControllerBase
 	private async Task<string> SetFieldsOnObject(T target, Context context, JObject body, JsonFieldGroup fieldGroup = JsonFieldGroup.Any)
 	{
 		// Get the JSON meta which will indicate exactly which fields are editable by this user (role):
-		var availableFields = await _service.GetJsonStructure(context.RoleId);
+		var availableFields = await _service.GetTypedJsonStructure(context.RoleId);
 
 		string notes = null;
 

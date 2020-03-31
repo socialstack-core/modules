@@ -15,13 +15,8 @@ using System.Threading.Tasks;
 /// Services are actually detected purely by name.
 /// </summary>
 /// <typeparam name="T"></typeparam>
-public partial class AutoService<T> where T: DatabaseRow, new(){
-
-	/// <summary>
-	/// The database service.
-	/// </summary>
-	protected IDatabaseService _database;
-
+public partial class AutoService<T> : AutoService where T: DatabaseRow, new(){
+	
 	/// <summary>
 	/// A query which deletes 1 entity.
 	/// </summary>
@@ -51,13 +46,12 @@ public partial class AutoService<T> where T: DatabaseRow, new(){
 	/// The set of update/ delete/ create etc events for this type.
 	/// </summary>
 	public EventGroup<T> EventGroup;
-
+	
 	/// <summary>
 	/// Sets up the common service type fields.
 	/// </summary>
-	public AutoService(EventGroup<T> eventGroup) {
-		_database = Api.Startup.Services.Get<IDatabaseService>();
-
+	public AutoService(EventGroup<T> eventGroup) : base(typeof(T))
+	{
 		// Start preparing the queries. Doing this ahead of time leads to excellent performance savings, 
 		// whilst also using a high-level abstraction as another plugin entry point.
 		deleteQuery = Query.Delete<T>();
@@ -69,34 +63,20 @@ public partial class AutoService<T> where T: DatabaseRow, new(){
 		EventGroup = eventGroup;
 	}
 	
-	/// <summary>
-	/// The add mask to use for a nestable service.
-	/// Nested services essentially automatically block infinite recursion when loading data.
-	/// </summary>
-	public ulong NestableAddMask = 0;
-
-	/// <summary>
-	/// The remove mask to use for a nestable service.
-	/// Nested services essentially automatically block infinite recursion when loading data.
-	/// </summary>
-	public ulong NestableRemoveMask = ulong.MaxValue;
-	
-	/// <summary>
-	/// True if this service is 'nestable' meaning it can be used during a List event in some other service.
-	/// Nested services essentially automatically block infinite recursion when loading data.
-	/// </summary>
-	public bool IsNestable{
-		get{
-			return NestableAddMask != 0;
-		}
-	}
-	
 	private JsonStructure<T>[] _jsonStructures = null;
-	
+
 	/// <summary>
 	/// Gets the JSON structure. Defines settable fields for a particular role.
 	/// </summary>
-	public async Task<JsonStructure<T>> GetJsonStructure(int roleId)
+	public override async Task<JsonStructure> GetJsonStructure(int roleId)
+	{
+		return await GetTypedJsonStructure(roleId);
+	}
+
+	/// <summary>
+	/// Gets the JSON structure. Defines settable fields for a particular role.
+	/// </summary>
+	public async Task<JsonStructure<T>> GetTypedJsonStructure(int roleId)
 	{
 		if(_jsonStructures == null)
 		{
@@ -121,21 +101,6 @@ public partial class AutoService<T> where T: DatabaseRow, new(){
 		return structure;
 	}
 	
-	/// <summary>
-	/// Makes this service type 'nestable'.
-	/// </summary>
-	public void MakeNestable()
-	{
-		if(IsNestable){
-			return;
-		}
-		
-		var id = Api.Startup.AutoServiceNesting.TypeId++;
-		
-		NestableAddMask = (ulong)1 << id;
-		NestableRemoveMask = ~NestableAddMask;
-	}
-
 	/// <summary>
 	/// Deletes an entity by its ID.
 	/// Optionally includes uploaded content refs in there too.
@@ -225,7 +190,82 @@ public partial class AutoService<T> where T: DatabaseRow, new(){
 		entity = await EventGroup.AfterUpdate.Dispatch(context, entity);
 		return entity;
 	}
+	
+}
 
+/// <summary>
+/// The base class of all AutoService instances.
+/// </summary>
+public class AutoService
+{
+	/// <summary>
+	/// The type that this AutoService is servicing. E.g. a User, ForumPost etc.
+	/// </summary>
+	public Type ServicedType;
+
+	/// <summary>
+	/// The database service.
+	/// </summary>
+	protected IDatabaseService _database;
+
+	/// <summary>
+	/// The add mask to use for a nestable service.
+	/// Nested services essentially automatically block infinite recursion when loading data.
+	/// </summary>
+	public ulong NestableAddMask = 0;
+
+	/// <summary>
+	/// The remove mask to use for a nestable service.
+	/// Nested services essentially automatically block infinite recursion when loading data.
+	/// </summary>
+	public ulong NestableRemoveMask = ulong.MaxValue;
+
+	/// <summary>
+	/// True if this service is 'nestable' meaning it can be used during a List event in some other service.
+	/// Nested services essentially automatically block infinite recursion when loading data.
+	/// </summary>
+	public bool IsNestable
+	{
+		get
+		{
+			return NestableAddMask != 0;
+		}
+	}
+
+	/// <summary>
+	/// Creates a new AutoService.
+	/// </summary>
+	/// <param name="type"></param>
+	public AutoService(Type type)
+	{
+		_database = Api.Startup.Services.Get<IDatabaseService>();
+		ServicedType = type;
+	}
+
+	/// <summary>
+	/// Gets the JSON structure. Defines settable fields for a particular role.
+	/// </summary>
+	public virtual Task<JsonStructure> GetJsonStructure(int roleId)
+	{
+		throw new NotImplementedException();
+	}
+		
+	/// <summary>
+	/// Makes this service type 'nestable'.
+	/// </summary>
+	public void MakeNestable()
+	{
+		if (IsNestable)
+		{
+			return;
+		}
+
+		var id = Api.Startup.AutoServiceNesting.TypeId++;
+
+		NestableAddMask = (ulong)1 << id;
+		NestableRemoveMask = ~NestableAddMask;
+	}
+	
 	/// <summary>
 	/// Installs generic admin pages for this service.
 	/// Does nothing if there isn't a page service installed, or if the admin pages already exist.
@@ -257,7 +297,7 @@ public partial class AutoService<T> where T: DatabaseRow, new(){
 		{
 
 			var installPages = pageService.GetType().GetMethod("InstallAdminPages");
-			var typeName = typeof(T).Name;
+			var typeName = ServicedType.Name;
 
 			if (installPages != null)
 			{

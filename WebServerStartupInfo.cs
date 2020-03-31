@@ -169,6 +169,7 @@ namespace Api.Startup
             foreach (var serviceInterfaceType in _serviceTypes)
 			{
 				var svc = serviceProvider.GetService(serviceInterfaceType);
+				
 				Services.All[serviceInterfaceType] = svc;
 				Services.AllByName[serviceInterfaceType.Name] = svc;
 
@@ -177,7 +178,7 @@ namespace Api.Startup
 
 				if (autoServiceType != null)
 				{
-					Services.AutoServices[autoServiceType] = svc;
+					Services.AutoServices[autoServiceType] = svc as AutoService;
 				}
 				
 			}

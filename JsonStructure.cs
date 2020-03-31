@@ -36,12 +36,30 @@ namespace Api.Startup
 	/// Describes the available fields on a particular type.
 	/// This exists so we can, for example, role restrict setting particular fields.
 	/// </summary>
-	public class JsonStructure<T> where T: DatabaseRow, new()
-	{
+	public class JsonStructure {
 		/// <summary>
 		/// The role that this structure is for.
 		/// </summary>
 		public Role ForRole;
+
+		/// <summary>
+		/// All fields in this structure as typeless JsonField refs.
+		/// </summary>
+		public virtual IEnumerable<KeyValuePair<string, JsonField>> AllFields
+		{
+			get
+			{
+				throw new NotImplementedException();
+			}
+		}
+	}
+
+	/// <summary>
+	/// Describes the available fields on a particular type.
+	/// This exists so we can, for example, role restrict setting particular fields.
+	/// </summary>
+	public class JsonStructure<T> : JsonStructure where T: DatabaseRow, new()
+	{
 		/// <summary>
 		/// All raw fields in this structure.
 		/// </summary>
@@ -55,8 +73,7 @@ namespace Api.Startup
 		/// </summary>
 		public Dictionary<string, JsonField<T>> BeforeIdFields;
 
-
-
+		
 		/// <summary>
 		/// Creates a new structure for the given role.
 		/// </summary>
@@ -68,7 +85,21 @@ namespace Api.Startup
 			AfterIdFields = new Dictionary<string, JsonField<T>>();
 			BeforeIdFields = new Dictionary<string, JsonField<T>>();
 		}
-		
+
+		/// <summary>
+		/// All fields in this structure as typeless JsonField refs.
+		/// </summary>
+		public override IEnumerable<KeyValuePair<string, JsonField>> AllFields
+		{
+			get
+			{
+				foreach (var fieldKvp in Fields)
+				{
+					yield return new KeyValuePair<string, JsonField>(fieldKvp.Key, fieldKvp.Value);
+				}
+			}
+		}
+
 		/// <summary>
 		/// Builds this structure now. It looks at all public fields and properties of a type
 		/// and for each one, triggers an event. The event can return either nothing at all - which will outright block the field - 
@@ -85,6 +116,8 @@ namespace Api.Startup
 				var jsonField = new JsonField<T>()
 				{
 					Name = field.Name,
+					OriginalName = field.Name,
+					Attributes = field.GetCustomAttributes(),
 					Structure = this,
 					TargetType = field.FieldType
 				};
@@ -99,7 +132,10 @@ namespace Api.Startup
 				var jsonField = new JsonField<T>()
 				{
 					Name = property.Name,
+					OriginalName = property.Name,
+					Attributes = property.GetCustomAttributes(),
 					Structure = this,
+					PropertyInfo = property,
 					TargetType = property.PropertyType
 				};
 				
@@ -168,21 +204,24 @@ namespace Api.Startup
 		}
 		
 	}
-	
+
 	/// <summary>
 	/// A field within a JsonStructure.
 	/// </summary>
-	/// <typeparam name="T"></typeparam>
-	public class JsonField<T> where T: DatabaseRow, new(){
-		
+	public class JsonField
+	{
 		/// <summary>
 		/// The name of the field.
 		/// </summary>
 		public string Name;
 		/// <summary>
-		/// The structure this field belongs to.
+		/// The original name of the field.
 		/// </summary>
-		public JsonStructure<T> Structure;
+		public string OriginalName;
+		/// <summary>
+		/// If this is a property, the underlying PropertyInfo. Null otherwise.
+		/// </summary>
+		public PropertyInfo PropertyInfo;
 		/// <summary>
 		/// If this is a field, the underlying FieldInfo. Null otherwise.
 		/// </summary>
@@ -200,14 +239,31 @@ namespace Api.Startup
 		/// </summary>
 		public MethodInfo PropertySet;
 		/// <summary>
-		/// An event which is called when the value is set. It returns the value it wants to be set.
-		/// </summary>
-		public EventHandler<object, T, JToken> OnSetValue = new EventHandler<object, T, JToken>(null);
-		/// <summary>
 		/// The field/ property value type.
 		/// </summary>
 		public Type TargetType;
+		/// <summary>
+		/// The field or property attributes.
+		/// </summary>
+		public IEnumerable<Attribute> Attributes;
+		
+	}
 
+	/// <summary>
+	/// A field within a JsonStructure.
+	/// </summary>
+	/// <typeparam name="T"></typeparam>
+	public class JsonField<T> : JsonField where T: DatabaseRow, new(){
+		
+		/// <summary>
+		/// The structure this field belongs to.
+		/// </summary>
+		public JsonStructure<T> Structure;
+		/// <summary>
+		/// An event which is called when the value is set. It returns the value it wants to be set.
+		/// </summary>
+		public EventHandler<object, T, JToken> OnSetValue = new EventHandler<object, T, JToken>(null);
+		
 		/// <summary>
 		/// The role that this is for.
 		/// </summary>
@@ -239,9 +295,7 @@ namespace Api.Startup
 			}
 
 			// Do this rather than use value just in case the OnSetValue returned a JToken:
-			var targetJToken = targetValue as JToken;
-
-			if (targetJToken != null)
+			if (targetValue is JToken targetJToken)
 			{
 				// Still a JToken - lets try and map it through now.
 
@@ -270,7 +324,7 @@ namespace Api.Startup
 						else
 						{
 							// Unrecognised date format.
-							#warning submitting an invalid date string format to the API will silently ignore the field
+#warning submitting an invalid date string format to the API will silently ignore the field
 							return;
 						}
 					}
@@ -281,9 +335,9 @@ namespace Api.Startup
 					targetValue = targetJToken.ToObject(TargetType);
 				}
 			}
-			
+
 			// Note that both the setter and the FieldInfo can be null (readonly properties).
-			if(PropertySet != null)
+			if (PropertySet != null)
 			{
 				PropertySet.Invoke(onObject, new object[]{targetValue});
 			}
