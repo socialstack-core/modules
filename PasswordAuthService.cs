@@ -129,19 +129,4 @@ namespace Api.Users {
 
 	}
 
-	public partial class UserAutoForm {
-
-		/// <summary>
-		/// The user's password.
-		/// </summary>
-		public string Password;
-
-		// Optionally add repetition
-
-		/// <summary>
-		/// The user's password again.
-		/// </summary>
-		// public string PasswordRepeat { get; set; }
-	}
-
 }
