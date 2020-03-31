@@ -10,7 +10,7 @@ namespace Api.NavMenus
 	/// Handles nav menu endpoints.
 	/// </summary>
 	[Route("v1/navmenu")]
-	public partial class NavMenuController : AutoController<NavMenu, NavMenuAutoForm>
+	public partial class NavMenuController : AutoController<NavMenu>
 	{
         private INavMenuItemService _navMenuItems;
 
