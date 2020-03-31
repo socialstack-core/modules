@@ -17,7 +17,7 @@ namespace Api.Galleries
 		/// Optionally includes uploaded content refs in there too.
 		/// </summary>
 		/// <returns></returns>
-		Task<bool> Delete(Context context, int id, bool deleteContent = true);
+		Task<bool> Delete(Context context, int id);
 
 		/// <summary>
 		/// Gets a single Gallery by its ID.

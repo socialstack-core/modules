@@ -1,4 +1,5 @@
 using Api.Galleries;
+using Api.GalleryEntries;
 using Api.Permissions;
 using System.Collections.Generic;
 
