@@ -17,7 +17,7 @@ namespace Api.ForumReplies
     /// </summary>
 
     [Route("v1/forum/reply")]
-	public partial class ForumReplyController : AutoController<ForumReply, ForumReplyAutoForm>
+	public partial class ForumReplyController : AutoController<ForumReply>
     {
         private IForumThreadService _forumThreads;
 

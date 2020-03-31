@@ -6,7 +6,7 @@ namespace Api.ForumThreads
     /// Handles forum thread endpoints.
     /// </summary>
     [Route("v1/forum/thread")]
-	public partial class ForumThreadController : AutoController<ForumThread, ForumThreadAutoForm>
+	public partial class ForumThreadController : AutoController<ForumThread>
     {
     }
 }

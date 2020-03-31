@@ -7,7 +7,7 @@ namespace Api.Forums
     /// </summary>
 
     [Route("v1/forum")]
-	public partial class ForumController : AutoController<Forum, ForumAutoForm>
+	public partial class ForumController : AutoController<Forum>
     {
     }
 }
