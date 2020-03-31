@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using Api.Database;
 using Api.Reactions;
 using Api.Users;
+using Api.AutoForms;
 
 namespace Api.IfAThenB
 {
@@ -15,6 +16,7 @@ namespace Api.IfAThenB
 		/// <summary>
 		/// The name of the event.
 		/// </summary>
+		[Module("Admin/Event/Select")]
 		public string EventName;
 		
 		/// <summary>

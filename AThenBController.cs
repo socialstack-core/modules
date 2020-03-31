@@ -8,7 +8,7 @@ namespace Api.IfAThenB
     /// </summary>
 
     [Route("v1/athenb")]
-	public partial class AThenBController : AutoController<AThenB, AThenBAutoForm>
+	public partial class AThenBController : AutoController<AThenB>
     {
 		
     }
