@@ -19,33 +19,15 @@ namespace Api.Uploader
 	/// Handles uploading of files related to particular pieces of content.
 	/// Instanced automatically. Use injection to use this service, or Startup.Services.Get.
 	/// </summary>
-	public partial class UploadService : IUploadService
+	public partial class UploadService : AutoService<Upload>, IUploadService
     {
-        private IDatabaseService _database;
-
-		private readonly Query<Upload> deleteQuery;
-		private readonly Query<Upload> createQuery;
-		private readonly Query<Upload> selectQuery;
-		private readonly Query<Upload> updateQuery;
-		private readonly Query<Upload> listQuery;
-
 		private UploaderConfig _configuration;
 
 		/// <summary>
 		/// Instanced automatically. Use injection to use this service, or Startup.Services.Get.
 		/// </summary>
-		public UploadService(IDatabaseService database)
+		public UploadService(IDatabaseService database) : base(Events.Upload)
         {
-            _database = database;
-
-			// Start preparing the queries. Doing this ahead of time leads to excellent performance savings, 
-			// whilst also using a high-level abstraction as another plugin entry point.
-			deleteQuery = Query.Delete<Upload>();
-			createQuery = Query.Insert<Upload>();
-			updateQuery = Query.Update<Upload>();
-			selectQuery = Query.Select<Upload>();
-			listQuery = Query.List<Upload>();
-
 			_configuration = AppSettings.GetSection("Uploader").Get<UploaderConfig>();
 
 			if (_configuration == null)
@@ -98,55 +80,6 @@ namespace Api.Uploader
         }
 
 		/// <summary>
-		/// List a filtered set of uploads.
-		/// </summary>
-		/// <returns></returns>
-		public async Task<List<Upload>> List(Context context, Filter<Upload> filter)
-		{
-			filter = await Events.UploadBeforeList.Dispatch(context, filter);
-			var list = await _database.List(context, listQuery, filter);
-			list = await Events.UploadAfterList.Dispatch(context, list);
-			return list;
-		}
-
-		/// <summary>
-		/// Deletes an entry by its ID.
-		/// </summary>
-		/// <returns></returns>
-		public async Task<bool> Delete(Context context, int entryId)
-        {
-			// Delete the entry:
-			await _database.Run(context, deleteQuery, entryId);
-
-			// Ok!
-			return true;
-		}
-
-		/// <summary>
-		/// Gets a single upload by its ID.
-		/// </summary>
-		public async Task<Upload> Get(Context context, int id)
-		{
-			return await _database.Select(context, selectQuery, id);
-		}
-
-		/// <summary>
-		/// Updates the meta for a particular upload.
-		/// </summary>
-		public async Task<Upload> Update(Context context, Upload upload)
-		{
-			upload = await Events.UploadBeforeUpdate.Dispatch(context, upload);
-
-			if (upload == null || !await _database.Run(context, updateQuery, upload, upload.Id))
-			{
-				return null;
-			}
-
-			upload = await Events.UploadAfterUpdate.Dispatch(context, upload);
-			return upload;
-		}
-
-		/// <summary>
 		/// Writes an uploaded file into the content folder.
 		/// </summary>
 		/// <param name="context"></param>
@@ -181,7 +114,7 @@ namespace Api.Uploader
 				FileType = fileType,
 			};
 
-			result = await Events.UploadBeforeCreate.Dispatch(context, result);
+			result = await Events.Upload.BeforeCreate.Dispatch(context, result);
 
 			if (result == null)
 			{
@@ -252,7 +185,7 @@ namespace Api.Uploader
 			// Relocate the temp file:
 			System.IO.File.Move(tempFile, writePath);
 
-			result = await Events.UploadAfterCreate.Dispatch(context, result);
+			result = await Events.Upload.AfterCreate.Dispatch(context, result);
 			return result;
         }
 	
