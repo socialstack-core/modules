@@ -41,7 +41,7 @@ namespace Api.Eventing
 		/// <summary>
 		/// Create a new user.
 		/// </summary>
-		public static EndpointEventHandler<UserAutoForm> UserCreate;
+		public static EndpointEventHandler<User> UserCreate;
 		/// <summary>
 		/// Delete an user.
 		/// </summary>
@@ -49,7 +49,7 @@ namespace Api.Eventing
 		/// <summary>
 		/// Update user metadata.
 		/// </summary>
-		public static EndpointEventHandler<UserAutoForm> UserUpdate;
+		public static EndpointEventHandler<User> UserUpdate;
 		/// <summary>
 		/// Load user metadata.
 		/// </summary>
