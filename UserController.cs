@@ -124,10 +124,7 @@ namespace Api.Users
 				Response.StatusCode = 400;
 				return null;
 			}
-
-			#warning todo
-			// Locale cookie too (Added by translation system).
-
+			
 			return result;
         }
 
