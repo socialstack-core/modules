@@ -74,7 +74,7 @@ namespace Api.Eventing
 		/// <summary>
 		/// Update upload metadata.
 		/// </summary>
-		public static EndpointEventHandler<UploadAutoForm> UploadUpdate;
+		public static EndpointEventHandler<Upload> UploadUpdate;
 		/// <summary>
 		/// Load upload metadata.
 		/// </summary>
