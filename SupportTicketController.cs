@@ -1,107 +1,14 @@
-﻿using System.Threading.Tasks;
-using Api.Permissions;
-using Microsoft.AspNetCore.Mvc;
-using Api.ForumThreads;
-using System;
-using Api.Results;
-using Api.Contexts;
-using Api.Eventing;
-using Newtonsoft.Json.Linq;
-using Api.AutoForms;
+﻿using Microsoft.AspNetCore.Mvc;
+
 
 namespace Api.SupportTickets
 {
     /// <summary>
     /// Handles support ticket endpoints.
     /// </summary>
-
-    [Route("v1/support/ticket")]
-	[ApiController]
-	public partial class SupportTicketController : ControllerBase
+    [Route("v1/supportticket")]
+	public partial class SupportTicketController : AutoController<SupportTicket>
     {
-        private ISupportTicketService _supportTickets;
-        private IForumThreadService _forumThreads;
-
-
-		/// <summary>
-		/// Instanced automatically.
-		/// </summary>
-		public SupportTicketController(
-			ISupportTicketService supportTickets,
-			IForumThreadService forumThreads
-		)
-        {
-			_supportTickets = supportTickets;
-			_forumThreads = forumThreads;
-		}
-
-		/// <summary>
-		/// GET /v1/support/ticket/2/
-		/// Returns the data for a single support ticket.
-		/// </summary>
-		[HttpGet("{id}")]
-		public async Task<SupportTicket> Load([FromRoute] int id)
-		{
-			var context = Request.GetContext();
-			var result = await _supportTickets.Get(context, id);
-			return await Events.SupportTicketLoad.Dispatch(context, result, Response);
-		}
-
-		/// <summary>
-		/// DELETE /v1/support/ticket/2/
-		/// Deletes a ticket
-		/// </summary>
-		[HttpDelete("{id}")]
-		public async Task<Success> Delete([FromRoute] int id)
-		{
-			var context = Request.GetContext();
-			var result = await _supportTickets.Get(context, id);
-			result = await Events.SupportTicketDelete.Dispatch(context, result, Response);
-
-			if (result == null || !await _supportTickets.Delete(context, id))
-			{
-				// The handlers have blocked this one from happening, or it failed
-				return null;
-			}
-
-			return new Success();
-		}
-
-		/// <summary>
-		/// GET /v1/support/ticket/list
-		/// Lists all support tickets available to this user.
-		/// </summary>
-		/// <returns></returns>
-		[HttpGet("list")]
-		public async Task<Set<SupportTicket>> List()
-		{
-			return await List(null);
-		}
-
-		/// <summary>
-		/// POST /v1/support/ticket/list
-		/// Lists filtered support tickets available to this user.
-		/// See the filter documentation for more details on what you can request here.
-		/// </summary>
-		/// <returns></returns>
-		[HttpPost("list")]
-		public async Task<Set<SupportTicket>> List([FromBody] JObject filters)
-		{
-			var context = Request.GetContext();
-			var filter = new Filter<SupportTicket>(filters);
-
-			filter = await Events.SupportTicketList.Dispatch(context, filter, Response);
-
-			if (filter == null)
-			{
-				// A handler rejected this request.
-				return null;
-			}
-
-			var results = await _supportTickets.List(context, filter);
-			return new Set<SupportTicket>() { Results = results };
-		}
-
 		/*
 		/// <summary>
 		/// POST /v1/support/ticket/

@@ -1,17 +1,22 @@
 using System;
 using Api.Database;
+using Api.Users;
 
 
 namespace Api.SupportTickets
 {
 	
 	/// <summary>
-	/// A support ticket. These just store additional info about a 
-	/// forum thread without bloating the thread table.
+	/// A support ticket.
 	/// </summary>
-	[DatabaseField(AutoIncrement=false)]
-	public partial class SupportTicket : DatabaseRow
+	public partial class SupportTicket : RevisionRow
 	{
+		/// <summary>
+		/// The title of this ticket.
+		/// </summary>
+		[DatabaseField(Length = 200)]
+		public string Title;
+		
 		/// <summary>
 		/// The current ticket status.
 		/// </summary>
