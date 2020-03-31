@@ -1,3 +1,4 @@
+using Api.AutoForms;
 using System;
 
 
@@ -15,6 +16,7 @@ namespace Api.Database
 		/// The row ID.
 		/// </summary>
 		[DatabaseField(AutoIncrement = true)]
+		[Module(Hide = true)]
 		public int Id;
 
 		/// <summary>
