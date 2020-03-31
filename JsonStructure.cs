@@ -280,8 +280,6 @@ namespace Api.Startup
 				{
 					targetValue = targetJToken.ToObject(TargetType);
 				}
-				
-				return;
 			}
 			
 			// Note that both the setter and the FieldInfo can be null (readonly properties).
