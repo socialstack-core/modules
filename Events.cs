@@ -1,3 +1,5 @@
+using Api.Answers;
+using Api.Questions;
 using Api.QuestionBoards;
 using Api.Permissions;
 using System.Collections.Generic;
@@ -15,5 +17,15 @@ namespace Api.Eventing
 		/// Set of events for a QuestionBoard.
 		/// </summary>
 		public static EventGroup<QuestionBoard> QuestionBoard;
+		
+		/// <summary>
+		/// Set of events for a Answer.
+		/// </summary>
+		public static EventGroup<Answer> Answer;
+		
+		/// <summary>
+		/// Set of events for a Question.
+		/// </summary>
+		public static EventGroup<Question> Question;
 	}
 }

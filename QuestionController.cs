@@ -7,15 +7,16 @@ using Api.Results;
 using Api.Eventing;
 using Newtonsoft.Json.Linq;
 using Api.AutoForms;
+using Api.QuestionBoards;
 
-namespace Api.QuestionBoards
+namespace Api.Questions
 {
-	/// <summary>
-	/// Handles question board endpoints.
-	/// </summary>
+    /// <summary>
+    /// Handles question endpoints.
+    /// </summary>
 
-	[Route("v1/questionboard")]
-	public partial class QuestionBoardController : AutoController<QuestionBoard>
+    [Route("v1/question")]
+	public partial class QuestionController : AutoController<Question>
     {
     }
 }
