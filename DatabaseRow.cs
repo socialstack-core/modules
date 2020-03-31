@@ -22,6 +22,7 @@ namespace Api.Database
 		/// <summary>
 		/// The name of the type. Can be used to obtain the content ID.
 		/// </summary>
+		[Module(Hide = true)]
 		public string Type {
 			get {
 				return GetType().Name;
