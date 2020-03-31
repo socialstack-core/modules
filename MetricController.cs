@@ -7,7 +7,7 @@ namespace Api.Metrics
     ///  Handles Metric endpoints.
     /// </summary>
     [Route("v1/metric")]
-    public partial class MetricController: AutoController<Metric, MetricAutoForm>
+    public partial class MetricController: AutoController<Metric>
     {
     }
 }

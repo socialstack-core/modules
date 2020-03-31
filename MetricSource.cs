@@ -1,7 +1,7 @@
 ﻿using System;
 using Api.Database;
 using Api.Users;
-
+using Api.AutoForms;
 
 namespace Api.Metrics
 {
@@ -14,10 +14,11 @@ namespace Api.Metrics
 		/// The metric that this will be supplying data to.
 		/// </summary>
 		public int MetricId;
-		
+
         /// <summary>
         /// The name of an API event to use as a source. For example, "AnswerBeforeCreate".
         /// </summary>
+        [Module("Admin/Event/Select")]
         public string EventName; 
     }
 }
