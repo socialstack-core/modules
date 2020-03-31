@@ -6,6 +6,8 @@ using Api.Eventing;
 using Api.Contexts;
 using Newtonsoft.Json;
 using Microsoft.AspNetCore.Http;
+using Api.Startup;
+using Newtonsoft.Json.Linq;
 
 namespace Api.PasswordAuth
 {
@@ -71,17 +73,31 @@ namespace Api.PasswordAuth
 				};
 			});
 
-			// Handle user creation too:
-			Events.UserCreate.AddEventListener((Context context, UserAutoForm form, HttpResponse resonse) => {
+			// Handle user creation too.
+			// Add a mapper for a field called Password -> PasswordHash.
+			Events.User.BeforeSettable.AddEventListener((Context context, JsonField<User> field) =>
+			{
+				if (field.Name == "PasswordHash")
+				{
+					// Use this name in the JSON:
+					field.Name = "Password";
 
-				// Hash the password now:
-				form.Result.PasswordHash = PasswordStorage.CreateHash(form.Password);
+					// Set value method:
+					field.OnSetValue.AddEventListener((Context ctx, object value, User target, JToken token) => {
 
-				return Task.FromResult(form);
+						if (token.Type == JTokenType.String)
+						{
+							value = PasswordStorage.CreateHash(token.ToObject<string>());
+						}
+
+						return Task.FromResult(value);
+					});
+
+				}
+
+				return Task.FromResult(field);
 			});
 			
-
-
 		}
 
 	}
