@@ -36,14 +36,9 @@ namespace Api.Permissions
 		/// <returns>A deep copy of the node.</returns>
 		public override FilterNode Copy()
 		{
-			#warning todo - this isn't used
-			var onFilter = new Filter() {
-				Role = On.Role
-			};
-
 			return new FilterJoin()
 			{
-				On = On,
+				On = On.Copy(),
 				TargetType = TargetType
 			};
 		}

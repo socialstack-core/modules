@@ -21,6 +21,21 @@ namespace Api.Permissions
 		/// <param name="fromRequest"></param>
 		public Filter(JObject fromRequest) : base(fromRequest, typeof(T)) { }
 
+		
+		/// <summary>
+		/// Copies this filter.
+		/// </summary>
+		/// <returns></returns>
+		public new Filter<T> Copy()
+		{
+			var filter = new Filter<T>()
+			{
+				Role = Role
+			};
+			CopyNodes(filter);
+			return filter;
+		}
+		
 		/// <summary>
 		/// Adds a new node to the filter.
 		/// </summary>

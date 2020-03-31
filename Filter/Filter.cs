@@ -503,6 +503,32 @@ namespace Api.Permissions
 		}
 
 		/// <summary>
+		/// Copies the nodes from this filter into the given one.
+		/// </summary>
+		/// <param name="intoFilter"></param>
+		public void CopyNodes(Filter intoFilter)
+		{
+			foreach (var node in Nodes)
+			{
+				intoFilter.Add(node.Copy());
+			}
+		}
+
+		/// <summary>
+		/// Copies this filter.
+		/// </summary>
+		/// <returns></returns>
+		public Filter Copy()
+		{
+			var filter = new Filter()
+			{
+				Role = Role
+			};
+			CopyNodes(filter);
+			return filter;
+		}
+
+		/// <summary>
 		/// "Constructs" the chain. Doesn't actually allocate anything - this just makes sure Or()/ And() etc Inputs are set up.
 		/// </summary>
 		/// <returns></returns>
