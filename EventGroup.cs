@@ -75,7 +75,7 @@ namespace Api.Eventing
 		/// <summary>
 		/// Update revision metadata.
 		/// </summary>
-		public EndpointEventHandler<AutoForm<T>> RevisionUpdate;
+		public EndpointEventHandler<T> RevisionUpdate;
 		/// <summary>
 		/// Load revision metadata.
 		/// </summary>
