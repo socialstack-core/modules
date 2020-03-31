@@ -9,19 +9,31 @@ using Newtonsoft.Json;
 
 namespace Api.Startup
 {
+	/// <summary>
+	/// Handles exceptions being logged to a log service.
+	/// </summary>
     public class ExceptionMiddleware
     {
         private readonly RequestDelegate _next;
 
         private readonly ILogger _logger;
-
-        //Your constructor will have the dependencies needed for database access
+		
+		/// <summary>
+		/// Instanced automatically.
+		/// </summary>
+		/// <param name="next"></param>
+		/// <param name="logger"></param>
         public ExceptionMiddleware(RequestDelegate next, ILogger<ExceptionMiddleware> logger)
         {
             _next = next;
             _logger = logger;
         }
 
+		/// <summary>
+		/// Runs during each request.
+		/// </summary>
+		/// <param name="context"></param>
+		/// <returns></returns>
         public async Task Invoke(HttpContext context)
         {
             byte[] responseBody = null;
