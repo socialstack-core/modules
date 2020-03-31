@@ -29,50 +29,23 @@ namespace Api.Answers
         )
         {
             _questions = questions;
-        }
 
-		/// <summary>
-		/// POST /v1/answer/
-		/// Creates a new answer. Returns the ID.
-		/// </summary>
-		[HttpPost]
-		public override async Task<Answer> Create([FromBody] AnswerAutoForm form)
-		{
-			var context = Request.GetContext();
+			// Connect a create event:
+			Events.Answer.BeforeCreate.AddEventListener(async (Context context, Answer answer) => {
 
-			// Get the question so we can grab the board ID:
-			var question = await _questions.Get(context, form.QuestionId);
+				// Get the question so we can ensure the board ID is correct:
+				var question = await _questions.Get(context, answer.QuestionId);
 
-			// Start building up our object.
-			// Most other fields, particularly custom extensions, are handled by autoform.
-			var answer = new Answer
-			{
-				UserId = context.UserId,
-				QuestionBoardId = question.QuestionBoardId
-			};
-			
-			if (!ModelState.Setup(form, answer))
-			{
-				return null;
-			}
+				if (question == null)
+				{
+					return null;
+				}
 
-			form = await Events.Answer.Create.Dispatch(context, form, Response) as AnswerAutoForm;
+				answer.QuestionBoardId = question.QuestionBoardId;
+				return answer;
+			});
 
-			if (form == null || form.Result == null)
-			{
-				// A handler rejected this request.
-				return null;
-			}
-
-			answer = await _service.Create(context, form.Result);
-
-			if (answer == null)
-			{
-				Response.StatusCode = 500;
-				return null;
-			}
-			
-            return answer;
-        }
+		}
+		
 	}
 }
