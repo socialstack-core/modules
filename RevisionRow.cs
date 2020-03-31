@@ -45,7 +45,9 @@ namespace Api.Users
 		/// This is only set if you have a revision object of the content. This is always null for the latest content.
 		/// This is unique within all revisions for a particular type. It's the row ID for the revisions table, and doesn't exist at all in the main type table.
 		/// </summary>
+		#pragma warning disable 0649
 		private int? _RevisionId;
+		#pragma warning restore 0649
 
 		/// <summary>
 		/// This is only set if you have a revision object of the content. This is always null for the latest content (what you'll have most of the time).
@@ -56,10 +58,12 @@ namespace Api.Users
 			}
 		}
 
+		#pragma warning disable 0649
 		/// <summary>
 		/// This is true if this revision is a draft. It's false if you don't have a revision object.
 		/// </summary>
 		private bool _IsDraft;
+		#pragma warning restore 0649
 
 		/// <summary>
 		/// This is true if this revision is a draft. It's false if you don't have a revision object.
