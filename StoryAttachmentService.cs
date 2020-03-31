@@ -19,32 +19,18 @@ namespace Api.StoryAttachments
 	/// Handles story attachments. These attachments are e.g. images attached to a feed story or a message in a chat channel.
 	/// Instanced automatically. Use injection to use this service, or Startup.Services.Get.
 	/// </summary>
-	public partial class StoryAttachmentService : IStoryAttachmentService
+	public partial class StoryAttachmentService : AutoService<StoryAttachment>, IStoryAttachmentService
     {
-        private IDatabaseService _database;
-		
-		private readonly Query<StoryAttachment> deleteQuery;
-		private readonly Query<StoryAttachment> createQuery;
-		private readonly Query<StoryAttachment> selectQuery;
-		private readonly Query<StoryAttachment> updateQuery;
-		private readonly Query<StoryAttachment> listQuery;
 		private readonly Query<StoryAttachment> listByObjectQuery;
 
 
 		/// <summary>
 		/// Instanced automatically. Use injection to use this service, or Startup.Services.Get.
 		/// </summary>
-		public StoryAttachmentService(IDatabaseService database)
+		public StoryAttachmentService() : base(Events.StoryAttachment)
         {
-            _database = database;
-			
 			// Start preparing the queries. Doing this ahead of time leads to excellent performance savings, 
 			// whilst also using a high-level abstraction as another plugin entry point.
-			deleteQuery = Query.Delete<StoryAttachment>();
-			createQuery = Query.Insert<StoryAttachment>();
-			updateQuery = Query.Update<StoryAttachment>();
-			selectQuery = Query.Select<StoryAttachment>();
-			listQuery = Query.List<StoryAttachment>();
 			listByObjectQuery = Query.List<StoryAttachment>();
 			listByObjectQuery.Where().EqualsArg("ContentTypeId", 0).And().EqualsArg("ContentId", 1);
 
@@ -164,75 +150,6 @@ namespace Api.StoryAttachments
 			
 		}
 
-		/// <summary>
-		/// List a filtered set of story attachments.
-		/// </summary>
-		/// <returns></returns>
-		public async Task<List<StoryAttachment>> List(Context context, Filter<StoryAttachment> filter)
-		{
-			filter = await Events.StoryAttachmentBeforeList.Dispatch(context, filter);
-			var list = await _database.List(context, listQuery, filter);
-			list = await Events.StoryAttachmentAfterList.Dispatch(context, list);
-			return list;
-		}
-
-		/// <summary>
-		/// Deletes a story attachment by its ID.
-		/// Optionally includes uploaded content refs in there too.
-		/// </summary>
-		/// <returns></returns>
-		public async Task<bool> Delete(Context context, int id, bool deleteUploads = true)
-        {
-            // Delete the entry:
-			await _database.Run(context, deleteQuery, id);
-			
-			if(deleteUploads){
-			}
-			
-			// Ok!
-			return true;
-        }
-        
-		/// <summary>
-		/// Gets a single story attachment by its ID.
-		/// </summary>
-		public async Task<StoryAttachment> Get(Context context, int id)
-		{
-			return await _database.Select(context, selectQuery, id);
-		}
-		
-		/// <summary>
-		/// Creates a new story attachment.
-		/// </summary>
-		public async Task<StoryAttachment> Create(Context context, StoryAttachment storyAttachment)
-		{
-			storyAttachment = await Events.StoryAttachmentBeforeCreate.Dispatch(context, storyAttachment);
-
-			// Note: The Id field is automatically updated by Run here.
-			if (storyAttachment == null || !await _database.Run(context, createQuery, storyAttachment)) {
-				return null;
-			}
-
-			storyAttachment = await Events.StoryAttachmentAfterCreate.Dispatch(context, storyAttachment);
-			return storyAttachment;
-		}
-		
-		/// <summary>
-		/// Updates the given story attachment.
-		/// </summary>
-		public async Task<StoryAttachment> Update(Context context, StoryAttachment storyAttachment)
-		{
-			storyAttachment = await Events.StoryAttachmentBeforeUpdate.Dispatch(context, storyAttachment);
-
-			if (storyAttachment == null || !await _database.Run(context, updateQuery, storyAttachment, storyAttachment.Id))
-			{
-				return null;
-			}
-
-			storyAttachment = await Events.StoryAttachmentAfterUpdate.Dispatch(context, storyAttachment);
-			return storyAttachment;
-		}
-		
     }
     
 }
