@@ -34,14 +34,6 @@ namespace Api.AutoForms
 			// Build it now
 			map = new AutoFormFieldMap();
 			
-			// Must be a direct inherit of AutoForm<>:
-			if (!type.BaseType.IsConstructedGenericType || type.BaseType.GetGenericTypeDefinition() != typeof(AutoForm<>))
-			{
-				throw new Exception(
-					"Attempted to build an autoform field map for a type that doesn't directly inherit AutoForm<>. The type was: " + type.Name
-				);
-			}
-
 			// Get the fields from the model:
 			var fields = type.GetFields(BindingFlags.Public | BindingFlags.Instance);
 

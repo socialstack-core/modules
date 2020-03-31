@@ -11,9 +11,9 @@ namespace Api.AutoForms
 	public partial interface IAutoFormService
 	{
 		/// <summary>
-		/// Lists all available autoforms from this API.
+		/// Lists all available autoforms from this API for a particular role.
 		/// </summary>
 		/// <returns></returns>
-		List<AutoFormInfo> List();
+		Task<List<AutoFormInfo>> List(int roleId);
     }
 }

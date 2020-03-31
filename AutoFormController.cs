@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
+using Api.Contexts;
 using Api.Permissions;
 using Microsoft.AspNetCore.Mvc;
 
@@ -32,8 +33,10 @@ namespace Api.AutoForms
 		/// Returns meta about all autoforms in this API.
 		/// </summary>
 		[HttpGet]
-		public AutoFormStructure Get()
+		public async Task<AutoFormStructure> Get()
         {
+			var context = Request.GetContext();
+
 			// Get the content types and their IDs:
 			var cTypes = new List<ContentType>();
 
@@ -49,7 +52,7 @@ namespace Api.AutoForms
 			// The result object:
 			var structure = new AutoFormStructure()
 			{
-				Forms = _autoForms.List(),
+				Forms = await _autoForms.List(context.RoleId),
 				ContentTypes = cTypes
 			};
 
