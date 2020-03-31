@@ -61,7 +61,7 @@ namespace Api.Users
 		{
 			var context = Request.GetContext();
 
-			var result = await _users.GetProfile(context, id);
+			var result = await (_service as IUserService).GetProfile(context, id);
 
 			if (result == null)
 			{
@@ -105,7 +105,7 @@ namespace Api.Users
 		{
 			var context = Request.GetContext();
 
-			var result = await _users.Authenticate(context, body);
+			var result = await (_service as IUserService).Authenticate(context, body);
 
 			if (result != null && result.Token != null)
 			{
