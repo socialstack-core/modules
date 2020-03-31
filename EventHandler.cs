@@ -159,14 +159,7 @@ namespace Api.Eventing
 		{
 			SourcePrimaryType = type;
 			PrimaryType = type;
-
-			// Special case for AutoForm as they inherit the constructed generic type that we want.
-			if (!type.IsConstructedGenericType && typeof(AutoForm).IsAssignableFrom(type))
-			{
-				// Got an autoform type. Get the underlying generic type (a constructed generic type):
-				type = type.BaseType;
-			}
-
+			
 			// Resolve Set, List and Filter types (primarily) next. This helps auto grab the most important type from e.g. List events.
 			if (type.IsConstructedGenericType)
 			{
