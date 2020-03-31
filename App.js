@@ -12,12 +12,11 @@ export default class App extends React.Component{
 		super(props);
 		this.state = {
 			user: null,
-			url: global.location.pathname,
-			loadingUser: true
+			url: global.location.pathname
 		};
 		global.app = this;
 		
-		webRequest('user/self').then(response => {
+		this.state.loadingUser = webRequest('user/self').then(response => {
 			if(response && response.json && response.json.id){
 				global.app.setState({user: response.json, realUser: response.json, loadingUser: false});
 			}
