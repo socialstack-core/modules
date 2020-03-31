@@ -47,12 +47,22 @@ namespace Api.AutoForms
 			foreach (var actionDescription in _descriptionProvider.ActionDescriptors.Items)
 			{
 				var cad = actionDescription as ControllerActionDescriptor;
-
-				if (cad == null)
+				
+				if (cad == null || cad.ControllerTypeInfo == null)
 				{
 					// We're only after controller descriptors here.
 					continue;
 				}
+
+				var controllerBaseType = cad.ControllerTypeInfo.BaseType;
+
+				if (!controllerBaseType.IsConstructedGenericType || controllerBaseType.GetGenericTypeDefinition() != typeof(AutoController<>))
+				{
+					// Only AutoControllers are supported (as they define the endpoints that we interact with primarily).
+					continue;
+				}
+
+				var formType = controllerBaseType.GetGenericArguments()[0];
 
 				var url = cad.AttributeRouteInfo.Template;
 				var methodInfo = cad.MethodInfo;
@@ -77,17 +87,7 @@ namespace Api.AutoForms
 					if (methodParam.GetCustomAttribute(typeof(FromBodyAttribute)) != null)
 					{
 						var type = methodParam.ParameterType;
-
-						if (type.BaseType == null || !type.BaseType.IsConstructedGenericType)
-						{
-							continue;
-						}
-
-						if (type.BaseType.GetGenericTypeDefinition() != typeof(AutoForm<>))
-						{
-							continue;
-						}
-
+						
 						// Method MUST be called Create otherwise we ignore it.
 						// This blocks duplicate Update endpoints with /{id} on the end of the URL.
 						if (methodInfo.Name != "Create")
@@ -95,7 +95,7 @@ namespace Api.AutoForms
 							continue;
 						}
 
-						var formMeta = GetFormInfo(type, type.BaseType.GetGenericArguments()[0]);
+						var formMeta = GetFormInfo(formType);
 						formMeta.Endpoint = url;
 
 						result.Add(formMeta);
@@ -110,30 +110,20 @@ namespace Api.AutoForms
 		/// <summary>
 		/// Gets the AutoForm info such as fields available for the given :AutoForm type.
 		/// </summary>
-		/// <param name="autoFormType"></param>
 		/// <param name="contentType"></param>
 		/// <returns></returns>
-		public AutoFormInfo GetFormInfo(Type autoFormType, Type contentType)
+		public AutoFormInfo GetFormInfo(Type contentType)
 		{
 			var info = new AutoFormInfo();
 			info.Fields = new List<AutoFormField>();
 
 			// Get the raw fields:
-			var fieldInfoSet = autoFormType.GetFields(BindingFlags.Public | BindingFlags.Instance);
+			var fieldInfoSet = contentType.GetFields(BindingFlags.Public | BindingFlags.Instance);
 
 			for (var i = 0; i < fieldInfoSet.Length; i++)
 			{
 				var fieldInfo = fieldInfoSet[i];
-
-				if (
-					fieldInfo.DeclaringType == typeof(AutoForm) || 
-					(fieldInfo.DeclaringType.IsConstructedGenericType && fieldInfo.DeclaringType.GetGenericTypeDefinition() == typeof(AutoForm<>))
-				)
-				{
-					// Skip internal autoform fields
-					continue;
-				}
-
+				
 				var customAttributes = fieldInfo.GetCustomAttributes();
 
 				var fieldType = fieldInfo.FieldType;
@@ -148,19 +138,12 @@ namespace Api.AutoForms
 				var type = "text";
 				var name = fieldInfo.Name;
 				var labelName = name;
-
-				// Get the field in the content type.
-				// For example, if we're UserAutoForm, this'll be the same field over on the User type.
-				var contentField = contentType.GetField(name);
-
-				if (contentField != null)
+				
+				// Does it have the Localised attribute?
+				if (fieldInfo.GetCustomAttribute<LocalizedAttribute>() != null)
 				{
-					// Does it have the Localised attribute?
-					if (contentField.GetCustomAttribute<LocalizedAttribute>() != null)
-					{
-						// Yep - it's translatable.
-						field.Data["localized"] = true;
-					}
+					// Yep - it's translatable.
+					field.Data["localized"] = true;
 				}
 
 				// If the field is a string and ends with Json, it's canvas:
