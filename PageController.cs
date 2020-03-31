@@ -7,7 +7,7 @@ namespace Api.Pages
     /// </summary>
 
     [Route("v1/page")]
-	public partial class PageController : AutoController<Page, PageAutoForm>
+	public partial class PageController : AutoController<Page>
     {
     }
 }
