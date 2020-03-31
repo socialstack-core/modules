@@ -200,7 +200,7 @@ namespace Api.Startup
 		/// <summary>
 		/// An event which is called when the value is set. It returns the value it wants to be set.
 		/// </summary>
-		public EventHandler<object, Context, T, JToken> OnSetValue;
+		public EventHandler<object, T, JToken> OnSetValue = new EventHandler<object, T, JToken>(null);
 		/// <summary>
 		/// The field/ property value type.
 		/// </summary>
