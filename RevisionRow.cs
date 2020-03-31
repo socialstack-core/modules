@@ -1,4 +1,5 @@
-﻿using Api.Database;
+﻿using Api.AutoForms;
+using Api.Database;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -20,21 +21,24 @@ namespace Api.Users
 		/// <summary>
 		/// The UTC creation date.
 		/// </summary>
+		[Module(Hide = true)]
 		public DateTime CreatedUtc;
 
 		/// <summary>
 		/// The UTC last edited date.
 		/// </summary>
+		[Module(Hide = true)]
 		public DateTime EditedUtc;
 		
 		/// <summary>
 		/// The user who created this content.
 		/// </summary>
 		public UserProfile CreatorUser { get; set; }
-		
+
 		/// <summary>
 		/// The revision number of a particular piece of content. Starts at 1 and goes up linearly.
 		/// </summary>
+		[Module(Hide = true)]
 		public int Revision = 1;
 		
 		/// <summary>
