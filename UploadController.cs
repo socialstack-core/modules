@@ -41,7 +41,7 @@ namespace Api.Uploader
 			body = await Events.UploadCreate.Dispatch(context, body, Response);
 
 			// Upload the file:
-			var upload = await _uploads.Create(
+			var upload = await (_service as IUploadService).Create(
 				context,
 				body.File
 			);
