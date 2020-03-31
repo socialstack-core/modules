@@ -16,6 +16,7 @@ namespace Api.Users
 		/// <summary>
 		/// The user who created this content.
 		/// </summary>
+		[Module(Hide = true)]
 		public int UserId;
 
 		/// <summary>
@@ -29,10 +30,11 @@ namespace Api.Users
 		/// </summary>
 		[Module(Hide = true)]
 		public DateTime EditedUtc;
-		
+
 		/// <summary>
 		/// The user who created this content.
 		/// </summary>
+		[Module(Hide = true)]
 		public UserProfile CreatorUser { get; set; }
 
 		/// <summary>
@@ -47,11 +49,12 @@ namespace Api.Users
 		/// </summary>
 		#pragma warning disable 0649
 		private int? _RevisionId;
-		#pragma warning restore 0649
+#pragma warning restore 0649
 
 		/// <summary>
 		/// This is only set if you have a revision object of the content. This is always null for the latest content (what you'll have most of the time).
 		/// </summary>
+		[Module(Hide = true)]
 		public int? RevisionId{
 			get {
 				return _RevisionId;
@@ -68,6 +71,7 @@ namespace Api.Users
 		/// <summary>
 		/// This is true if this revision is a draft. It's false if you don't have a revision object.
 		/// </summary>
+		[Module(Hide = true)]
 		public bool IsDraft
 		{
 			get
