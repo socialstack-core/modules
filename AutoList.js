@@ -15,13 +15,30 @@ export default class AutoList extends React.Component {
 	}
 	
 	render(){
-		var combinedFilter = {...this.props.filter};
+		var {filter, filterField, filterValue} = this.props;
+		
+		if(filterField){
+			var where = {};
+			where[filterField] = filterValue;
+			filter = {
+				where
+			};
+		}
+		
+		var combinedFilter = {...filter};
 		
 		if(!combinedFilter.sort && this.state.sort){
 			combinedFilter.sort = this.state.sort;
 		}
 		
 		return <Tile className="auto-list">
+			{this.props.create && (
+				<div>
+					<a href={this.props.path + 'add'} className="btn btn-primary">
+						Create
+					</a>
+				</div>
+			)}
 			<Loop asTable over={this.props.endpoint + "/list"} {...this.props} filter={combinedFilter}>
 			{[
 				allContent => {
