@@ -9,6 +9,7 @@ using Api.Contexts;
 using Api.Eventing;
 using Newtonsoft.Json.Linq;
 using Api.AutoForms;
+using Microsoft.AspNetCore.Http;
 
 namespace Api.ForumReplies
 {
@@ -30,56 +31,22 @@ namespace Api.ForumReplies
         )
         {
             _forumThreads = forumThreads;
-        }
 
-		/// <summary>
-		/// POST /v1/forum/reply/
-		/// Creates a new forum reply. Returns the ID.
-		/// </summary>
-		[HttpPost]
-		public override async Task<ForumReply> Create([FromBody] ForumReplyAutoForm form)
-		{
-			var context = Request.GetContext();
-			
-			// Get the thread so we can grab the forum ID:
-			var thread = await _forumThreads.Get(context, form.ThreadId);
-			
-			if(thread == null){
-				return null;
-			}
-			
-			// Start building up our object.
-			// Most other fields, particularly custom extensions, are handled by autoform.
-			var forumReply = new ForumReply
-			{
-				UserId = context.UserId,
-				ForumId = thread.ForumId
-			};
-			
-			if (!ModelState.Setup(form, forumReply))
-			{
-				return null;
-			}
+			// Connect a create event:
+			Events.ForumReply.BeforeCreate.AddEventListener(async (Context context, ForumReply reply) => {
+				
+				// Get the thread so we can ensure the forum ID is correct:
+				var thread = await _forumThreads.Get(context, reply.ThreadId);
+				
+				if (thread == null) {
+					return null;
+				}
+				
+				reply.ForumId = thread.ForumId;
+				return reply;
+			});
 
-			form = await Events.ForumReply.Create.Dispatch(context, form, Response) as ForumReplyAutoForm;
-
-			if (form == null || form.Result == null)
-			{
-				// A handler rejected this request.
-				return null;
-			}
-
-			forumReply = await _service.Create(context, form.Result);
-
-			if (forumReply == null)
-			{
-				Response.StatusCode = 500;
-				return null;
-			}
-			
-            return forumReply;
-        }
-
-    }
+		}
+	}
 
 }
