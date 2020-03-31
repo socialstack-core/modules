@@ -91,7 +91,7 @@ namespace Api.Eventing
 
 			if (string.IsNullOrEmpty(name))
 			{
-				throw new ArgumentNullException("Events require a name.");
+				return;
 			}
 
 			if (Events.All == null)
