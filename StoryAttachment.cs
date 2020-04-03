@@ -1,7 +1,6 @@
 using System;
 using System.Collections.Generic;
 using Api.Database;
-using Api.Reactions;
 using Api.Users;
 
 namespace Api.StoryAttachments
