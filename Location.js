@@ -50,7 +50,7 @@ function get(opts){
 }
 
 /*
-Used to griddify GPS coordinates.
+Used to gridify GPS coordinates.
 Helps find things within approximately x km rapidly
 */
 
@@ -62,8 +62,35 @@ function gridId(lat, lon, opts) {
 	var res = opts.res || 8000;
 	var scalar = res / 360; // Maps the grid to lat/lon range.
 	
-	return Math.floor((lat + 90) * scalar) + res * Math.floor((lon + 180) * scalar);
-};
+	return compose(Math.floor((lat + 90) * scalar), Math.floor((lon + 180) * scalar), res);
+}
+
+function compose(latId, lonId, resolution){
+	return latId + (lonId * resolution);
+}
+
+function decompose(gridId, resolution){
+	var lonId = Math.floor(gridId/resolution);
+	var latId = gridId - (lonId * resolution);
+	
+	return {lonId, latId};
+}
+
+/*
+* Offsets the given lat/lon amount from the given ID on a grid of the given resolution value.
+* Note that latitude is clipped, whilst longitude wraps.
+*/
+function gridOffset(id, latOffset, lonOffset, resolution){
+	var gridPos = decompose(id, resolution);
+	gridPos.lonId = (gridPos.lonId + lonOffset) % resolution;
+	gridPos.latId += latOffset;
+	if(gridPos.latId<0){
+		gridPos.latId = 0;
+	}else if(gridPos.latId >= resolution){
+		gridPos.latId = resolution - 1;
+	}
+	return compose(gridPos.latId, gridPos.lonId, resolution);
+}
 
 module.exports = (opts) => {
 	if(interval){
@@ -74,3 +101,4 @@ module.exports = (opts) => {
 };
 
 module.exports.gridId = gridId;
+module.exports.gridOffset = gridOffset;
