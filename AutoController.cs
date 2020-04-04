@@ -155,7 +155,8 @@ public partial class AutoController<T> : ControllerBase
 		
 		if (entity == null)
 		{
-			Response.StatusCode = 500;
+			// It was blocked or went wrong, typically because of a bad request.
+			Response.StatusCode = 400;
 
 			if (notes != null)
 			{
@@ -272,8 +273,8 @@ public partial class AutoController<T> : ControllerBase
 
 		if (entity == null)
 		{
-			// It went wrong during the update.
-			Response.StatusCode = 500;
+			// It was blocked or went wrong, typically because of a bad request.
+			Response.StatusCode = 400;
 			return null;
 		}
 
