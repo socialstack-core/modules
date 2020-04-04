@@ -10,8 +10,6 @@ using System.Net.Http;
 using Api.Configuration;
 using Microsoft.Extensions.Configuration;
 using System.Security.Cryptography;
-using Microsoft.IdentityModel.Tokens;
-using System.IdentityModel.Tokens.Jwt;
 
 namespace Api.PushNotifications
 {
