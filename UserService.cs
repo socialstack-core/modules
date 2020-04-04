@@ -51,7 +51,8 @@ namespace Api.Users
 
 			SetupAutoUserFieldEvents();
 			SetupProfileFieldTransfers();
-
+			
+			#warning todo block role field update for everyone except admin
 		}
 
 		/// <summary>
