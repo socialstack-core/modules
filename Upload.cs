@@ -63,28 +63,36 @@ namespace Api.Uploader
 		/// <summary>
 		/// The public url of this content (including the domain from the site configuration).
 		/// </summary>
-		public string GetPublicUrl(string sizeName)
+		public string GetPublicUrl(string sizeName, bool omitExt = false)
         {
-			return AppSettings.Configuration["PublicUrl"] + "/content/" + GetRelativePath(sizeName);
+			return AppSettings.Configuration["PublicUrl"] + "/content/" + GetRelativePath(sizeName, omitExt);
         }
 
         /// <summary>
         /// File path to this content using the given size name.
 		/// It's either "original" or a specific width in pixels, e.g. "400".
         /// </summary>
-        public string GetFilePath(string sizeName)
+        public string GetFilePath(string sizeName, bool omitExt = false)
         {
-            return AppSettings.Configuration[IsPrivate ? "ContentPrivate" : "Content"] + GetRelativePath(sizeName);
+            return AppSettings.Configuration[IsPrivate ? "ContentPrivate" : "Content"] + GetRelativePath(sizeName, omitExt);
         }
 
 		/// <summary>
 		/// Relative path used as both the actual filepath and the URL
 		/// </summary>
 		/// <param name="sizeName"></param>
+        /// <param name="omitExt"></param>
 		/// <returns></returns>
-		public string GetRelativePath(string sizeName)
+		public string GetRelativePath(string sizeName, bool omitExt = false)
         {
-            return (IsPrivate ? "private/" : "") + Id + "-" + sizeName + "." + FileType;
+            if (omitExt)
+            {
+                return (IsPrivate ? "private/" : "") + Id + "-" + sizeName;
+            }
+            else
+            {
+                return (IsPrivate ? "private/" : "") + Id + "-" + sizeName + "." + FileType;
+            }
         }
     }
 
