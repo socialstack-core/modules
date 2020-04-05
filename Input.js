@@ -109,7 +109,7 @@ export default class Input extends React.Component {
 			
 			switch(typeof valType){
 				case "string":
-					var mtd = getModule("UI/Functions/Validation/" + valType);
+					var mtd = getModule("UI/Functions/Validation/" + valType).default;
 					vFail = mtd(v);
 				break;
 				case "function":
