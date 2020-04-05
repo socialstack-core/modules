@@ -80,7 +80,7 @@ namespace Api.PasswordAuth
 				if(field == null)
 				{
 					// Something else doesn't want this field to show.
-					return field;
+					return Task.FromResult(field);
 				}
 				
 				if (field.Name == "PasswordHash")
