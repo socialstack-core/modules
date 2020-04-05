@@ -9,6 +9,7 @@ using Api.Permissions;
 using Api.Eventing;
 using System.Collections;
 using System.Reflection;
+using Api.Startup;
 
 namespace Api.Users
 {
@@ -32,8 +33,8 @@ namespace Api.Users
 		/// Instanced automatically. Use injection to use this service, or Startup.Services.Get.
 		/// </summary>
 		public UserService(IEmailService email, IContextService context) : base(Events.User)
-        {
-            _email = email;
+		{
+			_email = email;
 			_contexts = context;
 			updateAvatarQuery = Query.Update<User>().RemoveAllBut("Id", "AvatarRef");
 			updateFeatureQuery = Query.Update<User>().RemoveAllBut("Id", "FeatureRef");
@@ -52,7 +53,17 @@ namespace Api.Users
 			SetupAutoUserFieldEvents();
 			SetupProfileFieldTransfers();
 			
-			#warning todo block role field update for everyone except admin
+			Events.User.BeforeSettable.AddEventListener((Context ctx, JsonField<User> field) => {
+
+				if (field.Name == "Role")
+				{
+					// Only admins can update this field.
+					// Will be permission system based in the future
+					return Task.FromResult((field.ForRole == Roles.Admin || field.ForRole == Roles.SuperAdmin) ? field : null);
+				}
+
+				return Task.FromResult(field);
+			});
 		}
 
 		/// <summary>
