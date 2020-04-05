@@ -64,6 +64,17 @@ namespace Api.Users
 
 				return Task.FromResult(field);
 			});
+			
+			Events.User.BeforeCreate.AddEventListener((Context ctx, User user) => {
+				
+				// Default role is Member:
+				user.Role = Roles.Member.Id;
+				
+				// Join date:
+				user.JoinedUtc = DateTime.UtcNow;
+				
+				return Task.FromResult(user);
+			});
 		}
 
 		/// <summary>
