@@ -25,6 +25,10 @@ namespace Api.Permissions
 
 			foreach (var permittedEvent in allPermittedEvents)
 			{
+				if(permittedEvent.Verb == "Created" || permittedEvent.Verb == "Updated" || permittedEvent.Verb == "Deleted"){
+					continue;
+				}
+				
 				// Create a capability for this event type - e.g. UserCreate becomes a capability called "user_create". Creating it will automatically add it to the set.
 				var capability = new Capability(permittedEvent.EntityName + "_" + permittedEvent.Verb);
 
