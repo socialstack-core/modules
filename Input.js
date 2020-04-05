@@ -19,6 +19,7 @@ export default class Input extends React.Component {
 		this.state={};
 		this.newId();
 		this.onChange=this.onChange.bind(this);
+		this.onBlur=this.onBlur.bind(this);
 		this.onSelectChange=this.onSelectChange.bind(this);
 	}
 	
@@ -60,6 +61,16 @@ export default class Input extends React.Component {
 	
 	onChange(e) {
 		this.props.onChange && this.props.onChange(e);
+		if(e.defaultPrevented){
+			return;
+		}
+		
+		// Validation check
+		this.revalidate(e);
+	}
+	
+	onBlur(e) {
+		this.props.onBlur && this.props.onBlur(e);
 		if(e.defaultPrevented){
 			return;
 		}
@@ -144,10 +155,12 @@ export default class Input extends React.Component {
 			return (
 				<select
 					onChange={this.onSelectChange}
+					onBlur={this.onBlur}
 					value={typeof this.state.selectValue === 'undefined' ? this.props.defaultValue : this.state.selectValue}
 					id={this.props.id || this.fieldId}
 					className={this.props.className || "form-control"}
-					{...omit(this.props, ['id', 'className', 'onChange', 'type', 'children', 'defaultValue', 'value', 'inline'])}
+					{...omit(this.props, ['id', 'className', 'onChange', 'onBlur', 'type', 'children', 'defaultValue', 'value', 'inline'])}
+					data-validation={this.state.validationFailure ? true : undefined}
 				>
 					{this.props.children}
 				</select>
@@ -158,9 +171,11 @@ export default class Input extends React.Component {
 			return (
 				<textarea 
 					onChange={this.onChange} 
+					onBlur={this.onBlur}
 					id={this.props.id || this.fieldId} 
 					className={this.props.className || "form-control"}
-					{...omit(this.props, ['id', 'className', 'onChange', 'type', 'inline'])}
+					{...omit(this.props, ['id', 'className', 'onChange', 'onBlur', 'type', 'inline'])}
+					data-validation={this.state.validationFailure ? true : undefined}
 				/>
 			);
 			
@@ -185,7 +200,9 @@ export default class Input extends React.Component {
 					aria-describedby={this.helpFieldId} 
 					type={type} 
 					onChange={this.onChange}
-					{...omit(this.props, ['id', 'className', 'onChange', 'type', 'inline', 'value', 'defaultValue'])}
+					onBlur={this.onBlur}
+					data-validation={this.state.validationFailure ? true : undefined}
+					{...omit(this.props, ['id', 'className', 'onChange', 'onBlur', 'type', 'inline', 'value', 'defaultValue'])}
 					checked={this.props.value || this.props.defaultValue}
 				/>
 			);
@@ -193,7 +210,7 @@ export default class Input extends React.Component {
 			// E.g. ontypecanvas will fire. This gives a generic entry point for custom input types by just installing them:
 			var handler = eventTarget['ontype' + type];
 			if(handler){
-				return handler({...this.props, onChange: this.onChange}, type, this);
+				return handler({...this.props, onChange: this.onChange, onBlur: this.onBlur}, type, this);
 			}
 			
 			return (
@@ -203,7 +220,9 @@ export default class Input extends React.Component {
 					aria-describedby={this.helpFieldId} 
 					type={type} 
 					onChange={this.onChange}
-					{...omit(this.props, ['id', 'className', 'onChange', 'type', 'inline'])}
+					onBlur={this.onBlur}
+					data-validation={this.state.validationFailure ? true : undefined}
+					{...omit(this.props, ['id', 'className', 'onChange', 'onBlur', 'type', 'inline'])}
 				/>
 			);
 		}
