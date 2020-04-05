@@ -103,6 +103,13 @@ namespace Api.Permissions
 					Key = "member"
 				};
 				
+				// Banned role - can do basically nothing.
+				Roles.Banned = new Role(5)
+				{
+					Name = "Banned",
+					Key = "banned"
+				};
+				
 				return Task.FromResult(source);
 			}, 9);
 			

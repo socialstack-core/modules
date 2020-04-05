@@ -34,6 +34,10 @@ namespace Api.Permissions
 		/// The default role used when a user is created.
 		/// </summary>
 		public static Role Member;
+		/// <summary>
+		/// Role for banned people.
+		/// </summary>
+		public static Role Banned;
 
 
 		/// <summary>
