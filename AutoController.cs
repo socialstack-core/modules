@@ -74,6 +74,7 @@ public partial class AutoController<T> : ControllerBase
 			return null;
 		}
 
+		result = await _service.EventGroup.Deleted.Dispatch(context, result, Response);
 		return result;
 	}
 
@@ -109,6 +110,7 @@ public partial class AutoController<T> : ControllerBase
 		}
 
 		var results = await _service.List(context, filter);
+		
 		return new Set<T>() { Results = results };
 	}
 
@@ -186,6 +188,9 @@ public partial class AutoController<T> : ControllerBase
 		{
 			Request.Headers["Api-Notes"] = notes;
 		}
+
+		// Fire off after create evt:
+		entity = await _service.EventGroup.Created.Dispatch(context, entity, Response) as T;
 
 		return entity;
 	}
@@ -277,6 +282,9 @@ public partial class AutoController<T> : ControllerBase
 			Response.StatusCode = 400;
 			return null;
 		}
+
+		// Run the request updated event:
+		entity = await _service.EventGroup.Updated.Dispatch(context, entity, Response) as T;
 
 		return entity;
 	}
