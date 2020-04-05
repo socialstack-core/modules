@@ -88,7 +88,20 @@ namespace Api.Eventing
 		/// <summary>
 		/// Load entity metadata.
 		/// </summary>
-		public  EndpointEventHandler<T> Load;
+		public EndpointEventHandler<T> Load;
+		
+		/// <summary>
+		/// Create a new entity.
+		/// </summary>
+		public EndpointEventHandler<T> Created;
+		/// <summary>
+		/// Delete an entity.
+		/// </summary>
+		public EndpointEventHandler<T> Deleted;
+		/// <summary>
+		/// Update entity metadata.
+		/// </summary>
+		public EndpointEventHandler<T> Updated;
 		/// <summary>
 		/// List entities.
 		/// </summary>
