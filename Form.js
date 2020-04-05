@@ -33,8 +33,8 @@ export default class Form extends React.Component {
 			<form
 				onSubmit={e=>submitForm(e, {
 					onValues,
-					onFailed: (e) => {
-						onFailed && onFailed(e);
+					onFailed: (a,b,c,d) => {
+						onFailed && onFailed(a,b,c,d);
 					},
 					onSuccess,
 					requestOpts
