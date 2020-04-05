@@ -6,5 +6,5 @@
 export default function getModule(name) {
 	var parts = name.split('/');
 	name += '/' + parts[parts.length-1] + '.js';
-	return global.require(name).required;
+	return global.require(name);
 }
