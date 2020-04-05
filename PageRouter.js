@@ -2,7 +2,7 @@ import webRequest from 'UI/Functions/WebRequest';
 import Canvas from 'UI/Canvas';
 
 try{
-	var preloadedPages = null;
+	var preloadedPages = require('UI/PreloadedPages/PreloadedPages.json');
 }
 catch{
 	var preloadedPages = null;
