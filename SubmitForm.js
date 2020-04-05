@@ -8,6 +8,7 @@ export default function (e, options) {
 	var fields = e.target.elements;
 	
 	var values = {};
+	var validationErrors = 0;
 	
 	for(var i=0;i<fields.length;i++){
 		var field = fields[i];
@@ -16,7 +17,19 @@ export default function (e, options) {
 			continue;
 		}
 		
+		var validation = field.getAttribute('data-validation');
+		if(validation){
+			validationErrors++;
+		}
+		
 		values[field.name] = field.type=='checkbox' ? true : field.value;
+	}
+	
+	if(validationErrors){
+		if (options.onFailed) {
+			options.onFailed('VALIDATION', validationErrors, e);
+		}
+		return;
 	}
 	
 	if(options.onValues){
