@@ -77,6 +77,12 @@ namespace Api.PasswordAuth
 			// Add a mapper for a field called Password -> PasswordHash.
 			Events.User.BeforeSettable.AddEventListener((Context context, JsonField<User> field) =>
 			{
+				if(field == null)
+				{
+					// Something else doesn't want this field to show.
+					return field;
+				}
+				
 				if (field.Name == "PasswordHash")
 				{
 					// Use this name in the JSON:
