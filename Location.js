@@ -92,8 +92,36 @@ function gridOffset(id, latOffset, lonOffset, resolution){
 	return compose(gridPos.latId, gridPos.lonId, resolution);
 }
 
+const deg2Rad = (2 * Math.PI) / 360;
+
+function toRad(deg){
+	return deg * deg2Rad;
+}
+
+/*
+* Circle distance between (lat,lon) and (lat,lon)
+*/
+function distance(a, b){
+	if(!a || !b){
+		return 0;
+	}
+	
+	var radius = 6371e3; // metres
+	var ang1 = toRad(a.lat);
+	var ang2 = toRad(b.lat);
+	var d1 = toRad(b.lat-a.lat);
+	var d2 = toRad(b.lon-a.lon);
+	
+	var a = Math.sin(d1/2) * Math.sin(d1/2) +
+			Math.cos(ang1) * Math.cos(ang2) *
+			Math.sin(d2/2) * Math.sin(d2/2);
+	var c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+
+	return radius * c;
+}
+
 module.exports = (opts) => {
-	if(interval){
+	if(interval && current){
 		return Promise.resolve(current);
 	}
 	
@@ -102,3 +130,4 @@ module.exports = (opts) => {
 
 module.exports.gridId = gridId;
 module.exports.gridOffset = gridOffset;
+module.exports.distance = distance;
