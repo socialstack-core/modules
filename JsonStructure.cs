@@ -246,15 +246,20 @@ namespace Api.Startup
 		/// The field or property attributes.
 		/// </summary>
 		public IEnumerable<Attribute> Attributes;
-		
+		/// <summary>
+		/// An event which is called when the value is set. It returns the value it wants to be set.
+		/// Same as OnSetValue just exposed without the type.
+		/// </summary>
+		public Api.Eventing.EventHandler OnSetValueUnTyped;
+
 	}
 
 	/// <summary>
 	/// A field within a JsonStructure.
 	/// </summary>
 	/// <typeparam name="T"></typeparam>
-	public class JsonField<T> : JsonField where T: DatabaseRow, new(){
-		
+	public class JsonField<T> : JsonField where T : DatabaseRow, new() {
+
 		/// <summary>
 		/// The structure this field belongs to.
 		/// </summary>
@@ -263,7 +268,16 @@ namespace Api.Startup
 		/// An event which is called when the value is set. It returns the value it wants to be set.
 		/// </summary>
 		public EventHandler<object, T, JToken> OnSetValue = new EventHandler<object, T, JToken>(null);
-		
+
+
+		/// <summary>
+		/// A new JsonField.
+		/// </summary>
+		public JsonField()
+		{
+			OnSetValueUnTyped = OnSetValue;
+		}
+
 		/// <summary>
 		/// The role that this is for.
 		/// </summary>
