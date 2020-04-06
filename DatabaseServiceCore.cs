@@ -499,8 +499,53 @@ namespace Api.Database
 			{
 				await connection.OpenAsync();
 				var qryText = q.GetQuery(filter, false, localeId, localeCode);
-				var cmd = CreateCommand(connection, qryText, filter, args);
 
+				MySqlCommand cmd;
+
+				// If the filter has additional value resolvers..
+				if (filter != null && filter.BaseParamOffset != 0)
+				{
+					// This means the filter wants some additional values to be calculated when it's called.
+					// So, go ahead and invoke that now:
+					cmd = new MySqlCommand(qryText, connection);
+					MySqlParameter parameter;
+
+					for (var i = 0; i < filter.ParamValueResolvers.Count; i++)
+					{
+						var valueResolver = filter.ParamValueResolvers[i];
+
+						parameter = cmd.CreateParameter();
+						parameter.ParameterName = "p" + i;
+						cmd.Parameters.Add(parameter);
+
+						if (valueResolver != null)
+						{
+							parameter.Value = await valueResolver(context);
+						}
+					}
+
+					if (args != null)
+					{
+						for (var i = 0; i < args.Length; i++)
+						{
+							parameter = cmd.CreateParameter();
+							parameter.ParameterName = "p" + i + filter.BaseParamOffset;
+							parameter.Value = args[i];
+							cmd.Parameters.Add(parameter);
+						}
+					}
+
+					// Add user:
+					parameter = cmd.CreateParameter();
+					parameter.ParameterName = "user";
+					parameter.Value = filter != null && filter.LoginToken != null ? filter.LoginToken.UserId : 0;
+					cmd.Parameters.Add(parameter);
+				}
+				else
+				{
+					cmd = CreateCommand(connection, qryText, filter, args);
+				}
+				
 				using (var reader = await cmd.ExecuteReaderAsync())
 				{
 					while (await reader.ReadAsync())
