@@ -85,6 +85,9 @@ function connect(){
 }
 
 function send(msg){
+	if(!ws){
+		connect();
+	}
 	if(ws.readyState == WebSocket.OPEN){
 		ws.send(JSON.stringify(msg));
 	}else{
@@ -119,10 +122,15 @@ module.exports = {
 			
 			if(typeCount<=0){
 				typeCount=0;
+			}
+			
+			// Todo: Do this after a timeout:
+			/*
 				ws.addEventListener("close", e => {e.stopPropagation()});
 				ws.close();
 				ws=null;
 			}
+			*/
 			
 			delete messageTypes[type];
 		}
