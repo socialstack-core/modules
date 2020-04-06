@@ -1,7 +1,10 @@
 ﻿using Newtonsoft.Json;
 using Api.Configuration;
 using Api.Database;
-
+using Api.Signatures;
+using Api.Startup;
+using System;
+using System.Web;
 
 namespace Api.Uploader
 {
@@ -10,6 +13,11 @@ namespace Api.Uploader
 	/// </summary>
     public partial class Upload : DatabaseRow
 	{
+		/// <summary>
+		/// The signature service for priv uploads.
+		/// </summary>
+		private static ISignatureService _sigService;
+
 		/// <summary>
 		/// The original file name.
 		/// </summary>
@@ -59,14 +67,44 @@ namespace Api.Uploader
 				return (IsPrivate ? "private:" : "public:") + Id + "." + FileType;
 			}
 		}
-
+		
 		/// <summary>
 		/// The public url of this content (including the domain from the site configuration).
 		/// </summary>
 		public string GetPublicUrl(string sizeName, bool omitExt = false)
         {
-			return AppSettings.Configuration["PublicUrl"] + "/content/" + GetRelativePath(sizeName, omitExt);
+			var path =  "/content" + (IsPrivate ? "-private/" : "/") + GetRelativePath(sizeName, omitExt);
+			var url = AppSettings.Configuration["PublicUrl"] + path;
+
+			if (IsPrivate){
+				var timestamp = GetUnixTimestamp();
+
+				if (_sigService == null)
+				{
+					_sigService = Services.Get<ISignatureService>();
+				}
+
+				var sig = _sigService.Sign(path, timestamp);
+
+				url += "?s=" + HttpUtility.UrlEncode(sig) + "&t=" + timestamp;
+			}
+
+			return url;
         }
+
+		/// <summary>
+		/// Unix epoch
+		/// </summary>
+		private readonly DateTime _unixEpoch = new DateTime(1970, 1, 1);
+
+		/// <summary>
+		/// Current unix timestamp as a long
+		/// </summary>
+		/// <returns></returns>
+		public long GetUnixTimestamp()
+		{
+			return (long)(DateTime.UtcNow.Subtract(_unixEpoch)).TotalSeconds;
+		}
 
         /// <summary>
         /// File path to this content using the given size name.
@@ -87,11 +125,11 @@ namespace Api.Uploader
         {
             if (omitExt)
             {
-                return (IsPrivate ? "private/" : "") + Id + "-" + sizeName;
+                return Id + "-" + sizeName;
             }
             else
             {
-                return (IsPrivate ? "private/" : "") + Id + "-" + sizeName + "." + FileType;
+                return Id + "-" + sizeName + "." + FileType;
             }
         }
     }
