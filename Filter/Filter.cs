@@ -3,7 +3,7 @@ using Newtonsoft.Json.Linq;
 using System;
 using System.Collections.Generic;
 using Api.Database;
-
+using System.Threading.Tasks;
 
 namespace Api.Permissions
 {
@@ -27,6 +27,16 @@ namespace Api.Permissions
 
 			IgnoredWhereFields.Add(fieldName, true);
 		}
+
+		/// <summary>
+		/// Additional param value resolvers if there are any.
+		/// </summary>
+		public List<Func<Context, Task<object>>> ParamValueResolvers;
+
+		/// <summary>
+		/// Base parameter offset.
+		/// </summary>
+		public int BaseParamOffset;
 
 		/// <summary>
 		/// The underlying request info used to construct this filter.
@@ -196,7 +206,21 @@ namespace Api.Permissions
 				
 			}
 		}
-		
+
+		/// <summary>
+		/// Adds a param value resolver.
+		/// </summary>
+		/// <param name="resolver"></param>
+		public int AddParamValueResolver(Func<Context, Task<object>> resolver)
+		{
+			if (ParamValueResolvers == null)
+			{
+				ParamValueResolvers = new List<Func<Context, Task<object>>>();
+			}
+			ParamValueResolvers.Add(resolver);
+			return BaseParamOffset++;
+		}
+
 		/// <summary>
 		/// Applies JSON defined where:{} filters.
 		/// </summary>

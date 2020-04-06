@@ -74,7 +74,10 @@ namespace Api.Permissions
 		/// <returns></returns>
 		public Filter FieldEqualsValue(Type type, string field, Func<Context, Task<object>> valueMethod)
 		{
-			return Add(new FilterFieldEqualsValue(type, field, valueMethod));
+			var index = AddParamValueResolver(valueMethod);
+			var node = new FilterFieldEqualsValue(type, field, valueMethod);
+			node.ArgIndex = index;
+			return Add(node);
 		}
 
 	}
