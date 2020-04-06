@@ -5,13 +5,14 @@ using Api.Signatures;
 using Api.Startup;
 using System;
 using System.Web;
+using Api.Users;
 
 namespace Api.Uploader
 {
 	/// <summary>
 	/// Meta for uploaded files.
 	/// </summary>
-    public partial class Upload : DatabaseRow
+    public partial class Upload : RevisionRow
 	{
 		/// <summary>
 		/// The signature service for priv uploads.
