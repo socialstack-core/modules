@@ -112,6 +112,8 @@ namespace Api.Uploader
 			{
 				OriginalName = fileName,
 				FileType = fileType,
+				UserId = context.UserId,
+				CreatedUtc = DateTime.UtcNow
 			};
 
 			result = await Events.Upload.BeforeCreate.Dispatch(context, result);
