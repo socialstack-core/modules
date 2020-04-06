@@ -38,7 +38,7 @@ namespace Api.Signatures
 		/// The timestamp will be appended to the end of the valueToSign as ?t={timestamp}.
 		/// </summary>
 		/// <returns></returns>
-		public string Sign(string valueToSign, int timestamp)
+		public string Sign(string valueToSign, long timestamp)
 		{
 			return _keyPair.SignBase64(valueToSign + "?t=" + timestamp);
 		}
@@ -50,7 +50,7 @@ namespace Api.Signatures
 		/// <param name="timestamp">The timestamp.</param>
 		/// <param name="signature"></param>
 		/// <returns>True if the signature is valid.</returns>
-		public bool ValidateSignature(string signedValue, int timestamp, string signature)
+		public bool ValidateSignature(string signedValue, long timestamp, string signature)
 		{
 			return _keyPair.Verify(signedValue + "?t=" + timestamp, signature);
 		}

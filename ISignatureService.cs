@@ -18,7 +18,7 @@ namespace Api.Signatures
 		/// <param name="timestamp">The timestamp.</param>
 		/// <param name="signature"></param>
 		/// <returns>True if the signature is valid.</returns>
-		bool ValidateSignature(string signedValue, int timestamp, string signature);
+		bool ValidateSignature(string signedValue, long timestamp, string signature);
 
 		/// <summary>
 		/// Generates a signature for the given piece of text. The timestamp will be appended to the end via ?t={timestamp}.
@@ -26,7 +26,7 @@ namespace Api.Signatures
 		/// <param name="valueToSign"></param>
 		/// <param name="timestamp"></param>
 		/// <returns></returns>
-		string Sign(string valueToSign, int timestamp);
+		string Sign(string valueToSign, long timestamp);
 
 		/// <summary>
 		/// Validates a signature for a given signed value as-is.
