@@ -38,9 +38,9 @@ export default class Input extends React.Component {
 		}
 		
 		return (
-			<div className="form-group">
-				{this.props.label && this.props.type != "submit" && (
-					<label for={this.props.id || this.fieldId}>
+            <div className="form-group">
+                {this.props.label && this.props.type !== "submit" && this.props.type !== "checkbox" && this.props.type !== "radio" && (
+					<label htmlFor={this.props.id || this.fieldId}>
 						{this.props.label}
 					</label>
 				)}
@@ -150,62 +150,88 @@ export default class Input extends React.Component {
 			return type(this);
 		}
 		
-		if(type == "select"){
+		if(type === "select"){
 			
 			return (
-				<select
-					onChange={this.onSelectChange}
-					onBlur={this.onBlur}
-					value={typeof this.state.selectValue === 'undefined' ? this.props.defaultValue : this.state.selectValue}
-					id={this.props.id || this.fieldId}
-					className={this.props.className || "form-control"}
-					{...omit(this.props, ['id', 'className', 'onChange', 'onBlur', 'type', 'children', 'defaultValue', 'value', 'inline'])}
-					data-validation={this.state.validationFailure ? true : undefined}
-				>
+                <select
+                    onChange={this.onSelectChange}
+                    onBlur={this.onBlur}
+                    value={typeof this.state.selectValue === 'undefined' ? this.props.defaultValue : this.state.selectValue}
+                    id={this.props.id || this.fieldId}
+                    className={this.props.className || "form-control"}
+                    {...omit(this.props, ['id', 'className', 'onChange', 'onBlur', 'type', 'children', 'defaultValue', 'value', 'inline'])}
+                    data-validation={this.state.validationFailure ? true : undefined}
+                >
 					{this.props.children}
 				</select>
 			);
 			
-		}else if(type == "textarea"){
+		}else if(type === "textarea"){
 			
 			return (
-				<textarea 
-					onChange={this.onChange} 
-					onBlur={this.onBlur}
-					id={this.props.id || this.fieldId} 
-					className={this.props.className || "form-control"}
-					{...omit(this.props, ['id', 'className', 'onChange', 'onBlur', 'type', 'inline'])}
-					data-validation={this.state.validationFailure ? true : undefined}
+                <textarea
+                    onChange={this.onChange}
+                    onBlur={this.onBlur}
+                    id={this.props.id || this.fieldId}
+                    className={this.props.className || "form-control"}
+                    {...omit(this.props, ['id', 'className', 'onChange', 'onBlur', 'type', 'inline'])}
+                    data-validation={this.state.validationFailure ? true : undefined}
 				/>
 			);
 			
-		}else if(type == "submit" || type == "button"){
+		}else if(type === "submit" || type === "button"){
 			
 			return (
-				<button  
-					className={this.props.className || "btn btn-primary"}
-					type={type} 
-					{...omit(this.props, ['className', 'type', 'label', 'children', 'inline'])}
-				>
+                <button
+                    className={this.props.className || "btn btn-primary"}
+                    type={type}
+                    {...omit(this.props, ['className', 'type', 'label', 'children', 'inline'])}
+                >
 					{this.props.label || this.props.children || "Submit"}
 				</button>
 			);
 			
-		}else if(type == "checkbox" || type == "radio"){
+		}else if(type === "checkbox"){
 			
-			return (
-				<input 
-					id={this.props.id || this.fieldId} 
-					className={this.props.className || "form-control"}
-					aria-describedby={this.helpFieldId} 
-					type={type} 
-					onChange={this.onChange}
-					onBlur={this.onBlur}
-					data-validation={this.state.validationFailure ? true : undefined}
-					{...omit(this.props, ['id', 'className', 'onChange', 'onBlur', 'type', 'inline', 'value', 'defaultValue'])}
-					checked={this.props.value || this.props.defaultValue}
-				/>
+            return (
+                <div className="custom-control custom-checkbox">
+                    <input
+                        id={this.props.id || this.fieldId}
+                        className={this.props.className || "form-control custom-control-input"}
+                        aria-describedby={this.helpFieldId}
+                        type={type}
+                        onChange={this.onChange}
+                        onBlur={this.onBlur}
+                        data-validation={this.state.validationFailure ? true : undefined}
+                        {...omit(this.props, ['id', 'className', 'onChange', 'onBlur', 'type', 'inline', 'value', 'defaultValue'])}
+                        checked={this.props.value || this.props.defaultValue}
+                    />
+                    <label htmlFor={this.props.id || this.fieldId} className="custom-control-label">
+                        {this.props.label}
+                    </label>
+                </div>
 			);
+        } else if (type === "radio") {
+
+            return (
+                <div className="custom-control custom-radio">
+                    <input
+                        id={this.props.id || this.fieldId}
+                        className={this.props.className || "form-control custom-control-input"}
+                        name={this.props.name}
+                        aria-describedby={this.helpFieldId}
+                        type={type}
+                        onChange={this.onChange}
+                        onBlur={this.onBlur}
+                        data-validation={this.state.validationFailure ? true : undefined}
+                        {...omit(this.props, ['id', 'className', 'onChange', 'onBlur', 'type', 'inline', 'value', 'defaultValue'])}
+                        checked={this.props.value || this.props.defaultValue}
+                    />
+                    <label htmlFor={this.props.id || this.fieldId} className="custom-control-label">
+                        {this.props.label}
+                    </label>
+                </div>
+            );
 		}else{
 			// E.g. ontypecanvas will fire. This gives a generic entry point for custom input types by just installing them:
 			var handler = eventTarget['ontype' + type];
@@ -214,15 +240,15 @@ export default class Input extends React.Component {
 			}
 			
 			return (
-				<input 
-					id={this.props.id || this.fieldId} 
-					className={this.props.className || "form-control"}
-					aria-describedby={this.helpFieldId} 
-					type={type} 
-					onChange={this.onChange}
-					onBlur={this.onBlur}
-					data-validation={this.state.validationFailure ? true : undefined}
-					{...omit(this.props, ['id', 'className', 'onChange', 'onBlur', 'type', 'inline'])}
+                <input
+                    id={this.props.id || this.fieldId}
+                    className={this.props.className || "form-control"}
+                    aria-describedby={this.helpFieldId}
+                    type={type}
+                    onChange={this.onChange}
+                    onBlur={this.onBlur}
+                    data-validation={this.state.validationFailure ? true : undefined}
+                    {...omit(this.props, ['id', 'className', 'onChange', 'onBlur', 'type', 'inline'])}
 				/>
 			);
 		}
