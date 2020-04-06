@@ -55,7 +55,7 @@ namespace Api.Users
 			
 			Events.User.BeforeSettable.AddEventListener((Context ctx, JsonField<User> field) => {
 
-				if (field.Name == "Role")
+				if(field != null && field.Name == "Role")
 				{
 					// Only admins can update this field.
 					// Will be permission system based in the future
