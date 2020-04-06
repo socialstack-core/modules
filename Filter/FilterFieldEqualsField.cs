@@ -1,5 +1,6 @@
 using System;
 using System.Reflection;
+using System.Threading.Tasks;
 using Api.Contexts;
 
 
@@ -77,7 +78,7 @@ namespace Api.Permissions
 		/// <summary>
 		/// True if this particular node is granted.
 		/// </summary>
-		public override bool IsGranted(Capability capability, Context token, object[] extraObjectsToCheck)
+		public override Task<bool> IsGranted(Capability capability, Context token, object[] extraObjectsToCheck)
 		{
 			throw new Exception("Field=Field doesn't support the permissions system at the moment. Got a use case? Do share!");
 		}

@@ -1,5 +1,5 @@
 using Api.Contexts;
-
+using System.Threading.Tasks;
 
 namespace Api.Permissions
 {
@@ -16,10 +16,10 @@ namespace Api.Permissions
 		/// <param name="token"></param>
 		/// <param name="extraArgs"></param>
 		/// <returns></returns>
-		public virtual bool IsGranted(Capability cap, Context token, object[] extraArgs)
+		public virtual Task<bool> IsGranted(Capability cap, Context token, object[] extraArgs)
 		{
 			// You shall not pass!
-			return false;
+			return Task.FromResult(false);
 		}
 
 		/// <summary>

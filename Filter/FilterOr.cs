@@ -1,5 +1,5 @@
 using Api.Contexts;
-
+using System.Threading.Tasks;
 
 namespace Api.Permissions
 {
@@ -12,9 +12,11 @@ namespace Api.Permissions
 		/// <summary>
 		/// True if this particular node is granted.
 		/// </summary>
-		public override bool IsGranted(Capability cap, Context token, object[] extraArgs)
+		public override async Task<bool> IsGranted(Capability cap, Context token, object[] extraArgs)
 		{
-			return Input0.IsGranted(cap, token, extraArgs) || Input1.IsGranted(cap, token, extraArgs);
+			var a = await Input0.IsGranted(cap, token, extraArgs);
+			var b = await Input1.IsGranted(cap, token, extraArgs);
+			return a || b;
 		}
 
 		/// <summary>

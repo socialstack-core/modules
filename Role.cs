@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Text;
+using System.Threading.Tasks;
 using Api.Contexts;
 
 
@@ -285,19 +286,19 @@ namespace Api.Permissions
 		/// For example - can a user access forum post x? Check ForumPostLoad perm and give it x.
 		/// </param>
 		/// <returns></returns>
-		public bool IsGranted(Capability capability, Context token, params object[] extraObjectsToCheck)
+		public Task<bool> IsGranted(Capability capability, Context token, params object[] extraObjectsToCheck)
         {
             if (capability.InternalId >= CapabilityLookup.Length)
             {
                 // Nope!
-                return false;
+                return Task.FromResult(false);
             }
 
             var handler = CapabilityLookup[capability.InternalId];
 
             if (handler == null)
             {
-                return false;
+                return Task.FromResult(false);
             }
 
             // Ask the handler:

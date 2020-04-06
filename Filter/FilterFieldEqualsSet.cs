@@ -1,6 +1,7 @@
 using System;
 using System.Collections;
 using System.Reflection;
+using System.Threading.Tasks;
 using Api.Contexts;
 
 
@@ -61,13 +62,13 @@ namespace Api.Permissions
 		/// <summary>
 		/// True if this particular node is granted.
 		/// </summary>
-		public override bool IsGranted(Capability capability, Context token, object[] extraObjectsToCheck)
+		public override Task<bool> IsGranted(Capability capability, Context token, object[] extraObjectsToCheck)
 		{
 			// Get first extra arg
 			if (extraObjectsToCheck == null || extraObjectsToCheck.Length < ArgIndex)
 			{
 				// Arg not provided. Hard fail scenario.
-				return EqualsFail(capability);
+				return Task.FromResult(EqualsFail(capability));
 			}
 
 			var firstArg = extraObjectsToCheck[ArgIndex];
@@ -80,7 +81,7 @@ namespace Api.Permissions
 				{
 					if (value == null)
 					{
-						return true;
+						return Task.FromResult(true);
 					}
 
 					continue;
@@ -88,7 +89,7 @@ namespace Api.Permissions
 
 				if (firstArg.Equals(value))
 				{
-					return true;
+					return Task.FromResult(true);
 				}
 
 				// Nope - try matching it via reading the field next.
@@ -99,17 +100,17 @@ namespace Api.Permissions
 
 				if (firstArg.GetType() != Type)
 				{
-					return false;
+					return Task.FromResult(false);
 				}
 
 				if (value.Equals(FieldInfo.GetValue(firstArg)))
 				{
-					return true;
+					return Task.FromResult(true);
 				}
 			}
 
 			// No hits
-			return false;
+			return Task.FromResult(false);
 		}
 
 		/// <summary>

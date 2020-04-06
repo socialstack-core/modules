@@ -1,6 +1,7 @@
 using Api.Contexts;
 using System;
 using System.Collections.Generic;
+using System.Threading.Tasks;
 
 namespace Api.Permissions
 {
@@ -24,10 +25,10 @@ namespace Api.Permissions
 		/// <summary>
 		/// True if this particular node is granted.
 		/// </summary>
-		public override bool IsGranted(Capability cap, Context token, object[] extraArgs)
+		public override Task<bool> IsGranted(Capability cap, Context token, object[] extraArgs)
 		{
 			// TODO: True only if the join succeeds. Joins won't be used in the perm system yet though.
-			return true;
+			return Task.FromResult(true);
 		}
 		
 		/// <summary>

@@ -33,7 +33,7 @@ namespace Api.Permissions
 				var capability = new Capability(permittedEvent.EntityName + "_" + permittedEvent.Verb);
 
 				// Next, add an event handler at priority 1 (runs before others).
-				permittedEvent.AddEventListener((Context context, object[] args) =>
+				permittedEvent.AddEventListener(async (Context context, object[] args) =>
 				{
 					// Check if the capability is granted.
 					// If it is, return the first arg.
@@ -54,7 +54,7 @@ namespace Api.Permissions
 						return null;
 					}
 
-					if (role.IsGranted(capability, context, args))
+					if (await role.IsGranted(capability, context, args))
 					{
 						// It's granted - return the first arg:
 						return args[0];

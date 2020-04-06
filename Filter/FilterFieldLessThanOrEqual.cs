@@ -1,5 +1,6 @@
 using System;
 using System.Reflection;
+using System.Threading.Tasks;
 using Api.Contexts;
 
 
@@ -64,13 +65,13 @@ namespace Api.Permissions
 		/// <summary>
 		/// True if this particular node is granted.
 		/// </summary>
-		public override bool IsGranted(Capability capability, Context token, object[] extraObjectsToCheck)
+		public override Task<bool> IsGranted(Capability capability, Context token, object[] extraObjectsToCheck)
 		{
 			// Get first extra arg
 			if (extraObjectsToCheck == null || extraObjectsToCheck.Length < ArgIndex)
 			{
 				// Arg not provided. Hard fail scenario.
-				return Fail(capability);
+				return Task.FromResult(Fail(capability));
 			}
 
 			var firstArg = extraObjectsToCheck[ArgIndex];
@@ -78,7 +79,7 @@ namespace Api.Permissions
 			// Firstly is it a direct match?
 			if (firstArg == null)
 			{
-				return false;
+				return Task.FromResult(false);
 			}
 			
 			// Might just be a direct number given to us:
@@ -86,19 +87,19 @@ namespace Api.Permissions
 			
 			if (firstArgAsNum != null && firstArgAsNum <= Value)
 			{
-				return true;
+				return Task.FromResult(true);
 			}
 
 			// Nope - try matching it via reading the field next.
 			if (firstArg.GetType() != Type)
 			{
-				return false;
+				return Task.FromResult(false);
 			}
 
 			// Try reading it:
 			var fieldValue = FieldInfo.GetValue(firstArg) as long?;
 
-			return fieldValue.HasValue && fieldValue <= Value;
+			return Task.FromResult(fieldValue.HasValue && fieldValue <= Value);
 		}
 
 		/// <summary>

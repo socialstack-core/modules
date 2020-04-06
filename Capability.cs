@@ -2,6 +2,7 @@
 using System;
 using System.Collections.Generic;
 using Api.Contexts;
+using System.Threading.Tasks;
 
 namespace Api.Permissions
 {
@@ -55,7 +56,7 @@ namespace Api.Permissions
         /// E.g. if you're checking to see if something can be edited by the current user, pass that something.
         /// </param>
         /// <returns>True if it's permitted, false otherwise.</returns>
-        public bool IsGranted(HttpRequest request, params object[] extraObjectsToCheck)
+        public Task<bool> IsGranted(HttpRequest request, params object[] extraObjectsToCheck)
         {
             var token = (request.HttpContext.User as Context);
             var role = token == null ? Roles.Public : token.Role;
@@ -64,7 +65,7 @@ namespace Api.Permissions
 				// No user role - can't grant this capability.
 				// This is likely to indicate a deeper issue, so we'll warn about it:
 				Console.WriteLine("Warning: User ID " + token.UserId + " has no role (or the role with that ID hasn't been instanced).");
-				return false;
+				return Task.FromResult(false);
             }
             
             return role.IsGranted(this, token, extraObjectsToCheck);
