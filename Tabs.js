@@ -34,7 +34,15 @@ export default class Tabs extends React.Component {
         return (
             <div>
                 <ul className="tab-wrapper">{tabs}</ul>
-                {this.props.children[this.state.activeIndex]}
+                {
+                    this.props.children.map((child, index) => {
+                        return (
+                            <div className="tab" style={{ display: index === this.state.activeIndex ? '' : 'none' }}>
+                                {child}
+                            </div>
+                        );
+                    })
+                }
             </div>
         );
     }
