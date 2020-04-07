@@ -1,4 +1,5 @@
 using System;
+using System.Linq;
 using System.Threading.Tasks;
 using Api.Eventing;
 using Api.Contexts;
@@ -8,6 +9,7 @@ using Microsoft.AspNetCore.Mvc;
 using Newtonsoft.Json.Linq;
 using Api.AutoForms;
 using Api.Startup;
+using Microsoft.Extensions.Logging;
 
 /// <summary>
 /// A convenience controller for defining common endpoints like create, list, delete etc. Requires an AutoService of the same type to function.
@@ -25,13 +27,13 @@ public partial class AutoController<T> : ControllerBase
 	/// </summary>
 	protected AutoService<T> _service;
 
-	/// <summary>
-	/// Instanced automatically.
-	/// </summary>
-	public AutoController()
-	{
-		// Find the service:
-		if (Api.Startup.Services.AutoServices.TryGetValue(typeof(AutoService<T>), out AutoService svc))
+    /// <summary>
+    /// Instanced automatically.
+    /// </summary>
+    public AutoController()
+    {
+        // Find the service:
+        if (Api.Startup.Services.AutoServices.TryGetValue(typeof(AutoService<T>), out AutoService svc))
 		{
 			_service = (AutoService<T>)svc;
 		}
@@ -50,41 +52,60 @@ public partial class AutoController<T> : ControllerBase
 	/// Returns the data for 1 entity.
 	/// </summary>
 	[HttpGet("{id}")]
-	public virtual async Task<T> Load([FromRoute] int id)
+	public virtual async Task<object> Load([FromRoute] int id)
 	{
 		var context = Request.GetContext();
-		var result = await _service.Get(context, id);
-		return await _service.EventGroup.Load.Dispatch(context, result, Response);
-	}
 
-	/// <summary>
-	/// DELETE /v1/entityTypeName/2/
-	/// Deletes an entity
-	/// </summary>
-	[HttpDelete("{id}")]
-	public virtual async Task<T> Delete([FromRoute] int id)
-	{
-		var context = Request.GetContext();
-		var result = await _service.Get(context, id);
-		result = await _service.EventGroup.Delete.Dispatch(context, result, Response);
+        try
+        {
+            var result = await _service.Get(context, id);
+            return await _service.EventGroup.Load.Dispatch(context, result, Response);
+        }
+        catch (PermissionException ex)
+        {
+            await Events.Logging.Dispatch(context, v1: new Logging() { LogLevel = LOG_LEVEL.Information, Message = $"Access Denied: {ex}" });
+            Response.StatusCode = 403;
+            return new ErrorResponse() { Message = "Access Denied" };
+        }
+    }
 
-		if (result == null || !await _service.Delete(context, id))
-		{
-			// The handlers have blocked this one from happening, or it failed
-			return null;
-		}
+    /// <summary>
+    /// DELETE /v1/entityTypeName/2/
+    /// Deletes an entity
+    /// </summary>
+    [HttpDelete("{id}")]
+    public virtual async Task<object> Delete([FromRoute] int id)
+    {
+        var context = Request.GetContext();
+        try
+        {
+            var result = await _service.Get(context, id);
+            result = await _service.EventGroup.Delete.Dispatch(context, result, Response);
 
-		result = await _service.EventGroup.Deleted.Dispatch(context, result, Response);
-		return result;
-	}
+            if (result == null || !await _service.Delete(context, id))
+            {
+                // The handlers have blocked this one from happening, or it failed
+                return null;
+            }
 
-	/// <summary>
+            result = await _service.EventGroup.Deleted.Dispatch(context, result, Response);
+            return result;
+        }
+        catch (PermissionException ex)
+        {
+            await Events.Logging.Dispatch(context, v1: new Logging() {LogLevel = LOG_LEVEL.Information, Message = $"Access Denied: {ex}"});
+            Response.StatusCode = 403;
+            return new ErrorResponse() {Message = "Access Denied"};
+        }
+    }
+
+    /// <summary>
 	/// GET /v1/entityTypeName/list
 	/// Lists all entities of this type available to this user.
 	/// </summary>
 	/// <returns></returns>
 	[HttpGet("list")]
-	public virtual async Task<Set<T>> List()
+	public virtual async Task<object> List()
 	{
 		return await List(null);
 	}
@@ -96,30 +117,40 @@ public partial class AutoController<T> : ControllerBase
 	/// </summary>
 	/// <returns></returns>
 	[HttpPost("list")]
-	public virtual async Task<Set<T>> List([FromBody] JObject filters)
+	public virtual async Task<object> List([FromBody] JObject filters)
 	{
-		var context = Request.GetContext();
-		var filter = new Filter<T>(filters);
+        var context = Request.GetContext();
+        try
+        {
+		    var filter = new Filter<T>(filters);
 
-		filter = await _service.EventGroup.List.Dispatch(context, filter, Response);
+		    filter = await _service.EventGroup.List.Dispatch(context, filter, Response);
 
-		if (filter == null)
-		{
-			// A handler rejected this request.
-			return null;
-		}
+		    if (filter == null)
+		    {
+			    // A handler rejected this request.
+			    return null;
+		    }
 
-		var results = await _service.List(context, filter);
-		
-		return new Set<T>() { Results = results };
-	}
+		    var results = await _service.List(context, filter);
+		    
+		    return  new Set<object>() { Results = results.ConvertAll(c => (object)c) };
+        }
+        catch (PermissionException ex)
+        {
+            await Events.Logging.Dispatch(context, v1: new Logging() { LogLevel = LOG_LEVEL.Information, Message = $"Access Denied: {ex}" });
+            Response.StatusCode = 403;
+            return new ErrorResponse() { Message = "Access Denied" };
+        }
 
-	/// <summary>
-	/// POST /v1/entityTypeName/
-	/// Creates a new entity. Returns the ID.
-	/// </summary>
-	[HttpPost]
-	public virtual async Task<T> Create([FromBody] JObject body)
+    }
+
+    /// <summary>
+    /// POST /v1/entityTypeName/
+    /// Creates a new entity. Returns the ID.
+    /// </summary>
+    [HttpPost]
+	public virtual async Task<object> Create([FromBody] JObject body)
 	{
 		var context = Request.GetContext();
 
@@ -137,63 +168,72 @@ public partial class AutoController<T> : ControllerBase
 		
 		// Set the actual fields now:
 		var notes = await SetFieldsOnObject(entity, context, body, JsonFieldGroup.Default);
-		
-		// Fire off a create event:
-		entity = await _service.EventGroup.Create.Dispatch(context, entity, Response) as T;
 
-		if (entity == null)
-		{
-			// A handler rejected this request.
+        try
+        {
+            // Fire off a create event:
+            entity = await _service.EventGroup.Create.Dispatch(context, entity, Response) as T;
 
-			if (notes != null)
-			{
-				Request.Headers["Api-Notes"] = notes;
-			}
-			
-			return null;
-		}
+            if (entity == null)
+            {
+                // A handler rejected this request.
+                if (notes != null)
+                {
+                    Request.Headers["Api-Notes"] = notes;
+                }
 
-		entity = await _service.Create(context, entity);
-		
-		if (entity == null)
-		{
-			// It was blocked or went wrong, typically because of a bad request.
-			Response.StatusCode = 400;
+                return null;
+            }
 
-			if (notes != null)
-			{
-				Request.Headers["Api-Notes"] = notes;
-			}
-			
-			return null;
-		}
-		
-		// Set post ID fields:
-		var secondaryNotes = await SetFieldsOnObject(entity, context, body, JsonFieldGroup.AfterId);
+            entity = await _service.Create(context, entity);
 
-		if (secondaryNotes != null)
-		{
-			if (notes == null)
-			{
-				notes = secondaryNotes;
-			}
-			else
-			{
-				notes += ", " + secondaryNotes;
-			}
+            if (entity == null)
+            {
+                // It was blocked or went wrong, typically because of a bad request.
+                Response.StatusCode = 400;
 
-		}
+                if (notes != null)
+                {
+                    Request.Headers["Api-Notes"] = notes;
+                }
 
-		if (notes != null)
-		{
-			Request.Headers["Api-Notes"] = notes;
-		}
+                return null;
+            }
 
-		// Fire off after create evt:
-		entity = await _service.EventGroup.Created.Dispatch(context, entity, Response) as T;
+            // Set post ID fields:
+            var secondaryNotes = await SetFieldsOnObject(entity, context, body, JsonFieldGroup.AfterId);
 
-		return entity;
-	}
+            if (secondaryNotes != null)
+            {
+                if (notes == null)
+                {
+                    notes = secondaryNotes;
+                }
+                else
+                {
+                    notes += ", " + secondaryNotes;
+                }
+
+            }
+
+            if (notes != null)
+            {
+                Request.Headers["Api-Notes"] = notes;
+            }
+
+            // Fire off after create evt:
+            entity = await _service.EventGroup.Created.Dispatch(context, entity, Response) as T;
+
+            return entity;
+        }
+        catch (PermissionException ex)
+        {
+            await Events.Logging.Dispatch(context, v1: new Logging() {LogLevel = LOG_LEVEL.Information, Message = $"Access Denied: {ex}" });
+            Response.StatusCode = 403;
+            return new ErrorResponse() {Message = "Access Denied"};
+        }
+        
+    }
 
 	/// <summary>
 	/// Sets the fields from the given JSON object on the given target object, based on the user role in the context.
@@ -206,7 +246,7 @@ public partial class AutoController<T> : ControllerBase
 	/// <param name="fieldGroup"></param>
 	private async Task<string> SetFieldsOnObject(T target, Context context, JObject body, JsonFieldGroup fieldGroup = JsonFieldGroup.Any)
 	{
-		// Get the JSON meta which will indicate exactly which fields are editable by this user (role):
+        // Get the JSON meta which will indicate exactly which fields are editable by this user (role):
 		var availableFields = await _service.GetTypedJsonStructure(context.RoleId);
 
 		string notes = null;
@@ -243,50 +283,59 @@ public partial class AutoController<T> : ControllerBase
 	/// Updates an entity with the given ID.
 	/// </summary>
 	[HttpPost("{id}")]
-	public virtual async Task<T> Update([FromRoute] int id, [FromBody] JObject body)
+	public virtual async Task<object> Update([FromRoute] int id, [FromBody] JObject body)
 	{
 		var context = Request.GetContext();
 
-		var entity = await _service.Get(context, id);
+        try
+        {
+            var entity = await _service.Get(context, id);
 
-		if (entity == null)
-		{
-			// Either not allowed to edit this, or it doesn't exist.
-			// Both situations are a 404.
-			Response.StatusCode = 404;
-			return null;
-		}
+            if (entity == null)
+            {
+                // Either not allowed to edit this, or it doesn't exist.
+                // Both situations are a 404.
+                Response.StatusCode = 404;
+                return null;
+            }
 
-		// In this case the entity ID is definitely known, so we can run all fields at the same time:
-		var notes = await SetFieldsOnObject(entity, context, body, JsonFieldGroup.Any);
+            // In this case the entity ID is definitely known, so we can run all fields at the same time:
+            var notes = await SetFieldsOnObject(entity, context, body, JsonFieldGroup.Any);
 
-		if (notes != null)
-		{
-			Request.Headers["Api-Notes"] = notes;
-		}
+            if (notes != null)
+            {
+                Request.Headers["Api-Notes"] = notes;
+            }
 
-		// Run the request update event:
-		entity = await _service.EventGroup.Update.Dispatch(context, entity, Response) as T;
+            // Run the request update event:
+            entity = await _service.EventGroup.Update.Dispatch(context, entity, Response) as T;
 
-		if (entity == null)
-		{
-			// A handler rejected this request.
-			return null;
-		}
+            if (entity == null)
+            {
+                // A handler rejected this request.
+                return null;
+            }
 
-		entity = await _service.Update(context, entity);
+            entity = await _service.Update(context, entity);
 
-		if (entity == null)
-		{
-			// It was blocked or went wrong, typically because of a bad request.
-			Response.StatusCode = 400;
-			return null;
-		}
+            if (entity == null)
+            {
+                // It was blocked or went wrong, typically because of a bad request.
+                Response.StatusCode = 400;
+                return null;
+            }
 
-		// Run the request updated event:
-		entity = await _service.EventGroup.Updated.Dispatch(context, entity, Response) as T;
+            // Run the request updated event:
+            entity = await _service.EventGroup.Updated.Dispatch(context, entity, Response) as T;
 
-		return entity;
-	}
+            return entity;
+        }
+        catch (PermissionException ex)
+        {
+            await Events.Logging.Dispatch(context, v1: new Logging() {LogLevel = LOG_LEVEL.Information, Message = $"Access Denied: {ex}"});
+            Response.StatusCode = 403;
+            return new ErrorResponse() {Message = "Access Denied"};
+        }
+    }
 
 }
