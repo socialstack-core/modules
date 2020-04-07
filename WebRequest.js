@@ -39,14 +39,17 @@ export default function webRequest(origUrl, data, opts) {
 					return;
 				}
 				
-				if (!response.ok) {
-					reject(json);
-					return;
-				}
+                if (!response.ok) {
+                    if (json) {
+                        reject(json);
+                    } else {
+                        reject({ error: 'invalid response' });
+                    }
+                return;
+                }
 
 				// Run success now:
 				response.json = json;
-				
 				
 				// If we're not blocked from doing so with the options
 				// and this was either a DELETE or POST request which returned an entity
@@ -80,7 +83,7 @@ export default function webRequest(origUrl, data, opts) {
 				}
 				
 			}).catch(err => {
-				console.log(err);
+                console.log(err);
 				reject(err);
 			});
 		}).catch(err => {
