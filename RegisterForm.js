@@ -29,7 +29,7 @@ export default class RegisterForm extends React.Component {
 				<div>
 					<Input name="firstName" placeholder="Your first name" validate={['Required']} />
 					<Input name="lastName" placeholder="Your last name" validate={['Required']} />
-					<Input name="email" placeholder="Email address" validate={['Required', 'EmailAddress']} />
+					<Input name="email" type="email" placeholder="Email address" validate={['Required', 'EmailAddress']} />
 					<Input name="password" type="password" placeholder="New Password" validate={['Required']} />
 					<Input name="passwordRepeat" type="password" placeholder="New Password Again" validate={['Required']} />
 				</div>
