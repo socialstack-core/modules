@@ -61,6 +61,7 @@ export default class Loop extends React.Component {
 					// Does it pass the filter? If it does, add it.
 					if(this.testFilter(msg.entity)){
 						this.state.results.push(msg.entity);
+						this.props.onLiveCreate && this.props.onLiveCreate(msg.entity);
 						this.setState({results: this.state.results});
 					}
 					
@@ -75,6 +76,7 @@ export default class Loop extends React.Component {
 					// First though, make sure it passes the filter if there is one.
 					if(this.testFilter(msg.entity)){
 						this.state.results.push(msg.entity);
+						this.props.onLiveCreate && this.props.onLiveCreate(msg.entity);
 						this.setState({results: this.state.results});
 					}
 				}
