@@ -24,6 +24,47 @@ namespace Api.WebSockets
     {
 
 		/// <summary>
+		/// Instanced automatically.
+		/// </summary>
+		public WebSocketService(){
+			
+			// Collect all IAmLive types.
+			
+			var loadEvents = Events.FindByType(typeof(IAmLive), null, EventPlacement.After);
+
+			foreach (var typeEvent in loadEvents)
+			{
+				if(typeEvent.Verb != "Create" && typeEvent.Verb != "Update" && typeEvent.Verb != "Delete"){
+					continue;
+				}
+				
+				var method = typeEvent.Verb.ToLower();
+				
+				typeEvent.AddEventListener(async (Context context, object[] args) => {
+					
+					if(args == null || args.Length == 0){
+						return null;
+					}
+					
+					// Send via the websocket service:
+					await Send(
+						new WebSocketEntityMessage() {
+							Type = typeEvent.EntityName,
+							Method = method,
+							Entity = args[0]
+						}
+					);
+					
+					return args[0];
+
+				}, 20);
+				
+			}
+			
+		}
+
+
+		/// <summary>
 		/// Websocket clients listening by event type.
 		/// Type is typically of the form EventName?query&amp;encoded&amp;filter.
 		/// For example, if someone is listening to chat messages in a particular channel, it's:
@@ -307,12 +348,16 @@ namespace Api.WebSockets
 	/// <summary>
 	/// A message to send via websockets with an entity of a particular type.
 	/// </summary>
-	public class WebSocketMessage<T> : WebSocketMessage{
+	public class WebSocketEntityMessage : WebSocketMessage{
 		/// <summary>
 		/// The entity to send in this message.
 		/// E.g. a newly created chat message.
 		/// </summary>
-		public T Entity;
+		public object Entity;
+		/// <summary>
+		/// Lowercase, "update", "delete" or "create".
+		/// </summary>
+		public string Method;
 	}
 	
 	/// <summary>
