@@ -31,11 +31,85 @@ export default class Loop extends React.Component {
 		
 		// Push msg.entity into the results set:
 		if(this.state.results && msg.entity){
-			this.state.results.push(msg.entity);
-			// State nudge:
-			this.setState({results: this.state.results});
+			console.log(msg);
+			
+			var entityId = msg.entity.id;
+			
+			if(msg.method == 'delete'){
+				// Remove by id:
+				this.setState({results: this.state.results.filter(ent => ent && ent.id != entityId)});
+			}else if(msg.method == 'update'){
+				// find by id:
+				
+				var res = this.state.results;
+				var found = false;
+				for(var i=0;i<res.length;i++){
+					if(!res[i]){
+						continue;
+					}
+					
+					if(res[i] == entityId){
+						res[i] = msg.entity;
+						found = true;
+					}
+				}
+				
+				if(found){
+					this.setState({results: res});
+				}else{
+					
+					// Does it pass the filter? If it does, add it.
+					if(this.testFilter(msg.entity)){
+						this.state.results.push(msg.entity);
+						this.setState({results: this.state.results});
+					}
+					
+				}
+				
+			}else if(msg.method == 'create'){
+				
+				// already in there?
+				if(!this.state.results.find(ent => ent && ent.id == entityId)){
+					
+					// Nope - potentially adding it.
+					// First though, make sure it passes the filter if there is one.
+					if(this.testFilter(msg.entity)){
+						this.state.results.push(msg.entity);
+						this.setState({results: this.state.results});
+					}
+				}
+				
+			}
+			
 		}
-		console.log(msg);
+	}
+	
+	testFilter(ent){
+		
+		var {filter} = this.props;
+		
+		if(filter && filter.where){
+			
+			// Simple filter fields for now.
+			// Doesn't support the advanced loop filtering.
+			for(var key in filter.where){
+				if(!key || !key.length){
+					continue;
+				}
+				
+				var value = filter.where[key];
+				
+				// Lowercase the key as it's an exact field match:
+				var entityKeyName = key.charAt(0).toLowerCase() + key.slice(1);
+				
+				if(ent[entityKeyName] != value){
+					return false;
+				}
+			}
+			
+		}
+		
+		return true;
 	}
 	
 	onContentChange(e){
