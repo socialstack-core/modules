@@ -5,6 +5,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Api.Eventing;
 using Api.Contexts;
 using System.Threading.Tasks;
+using Api.Permissions;
 
 namespace Api.Permissions
 {
@@ -45,14 +46,14 @@ namespace Api.Permissions
 						// No user role - can't grant this capability.
 						// This is likely to indicate a deeper issue, so we'll warn about it:
 						Console.WriteLine("Warning: User ID " + context.UserId + " has no role (or the role with that ID hasn't been instanced).");
-						return null;
-					}
+                        throw new PermissionException(capability.Name, await context.GetUser());
+                    }
 
 					if (args == null || args.Length == 0)
 					{
-						// No args anyway
-						return null;
-					}
+                        // No args anyway (should throw exception?)
+                        throw new PermissionException("No object to check", await context.GetUser());
+                    }
 
 					if (await role.IsGranted(capability, context, args))
 					{
@@ -60,8 +61,8 @@ namespace Api.Permissions
 						return args[0];
 					}
 
-					return null;
-				}, 1);
+                    throw new PermissionException(capability.Name, await context.GetUser());
+                }, 1);
 			}
 			
 			// Hook the default role setup. It's done like this so it can be removed by a plugin if wanted.
