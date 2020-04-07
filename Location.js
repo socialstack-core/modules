@@ -121,8 +121,8 @@ function distance(a, b){
 }
 
 module.exports = (opts) => {
-	if(interval && current){
-		return Promise.resolve(current);
+	if(interval && latest){
+		return Promise.resolve(latest);
 	}
 	
 	return get(opts);
