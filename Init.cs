@@ -73,7 +73,7 @@ namespace Api.ErrorLogging
 				logging.AddConfiguration(hostingContext.Configuration.GetSection("Logging"));
 				logging.AddConsole();
 				logging.AddDebug();
-				logging.AddLog4Net(Path.Combine(hostingContext.HostingEnvironment.ContentRootPath, "Api\\ThirdParty\\ErrorLogging\\log4net.config"));
+				logging.AddLog4Net(Path.Combine(hostingContext.HostingEnvironment.ContentRootPath, "Api/ThirdParty/ErrorLogging/log4net.config"));
 			});
 		}
 		
@@ -83,7 +83,7 @@ namespace Api.ErrorLogging
 		private void OnConfigure(IApplicationBuilder app, IHostingEnvironment env, 
 			ILoggerFactory loggerFactory, IServiceProvider serviceProvider, IApplicationLifetime applicationLifetime)
 		{
-            loggerFactory.AddLog4Net(Path.Combine(env.ContentRootPath, "Api\\ThirdParty\\ErrorLogging\\log4net.config"));
+            loggerFactory.AddLog4Net(Path.Combine(env.ContentRootPath, "Api/ThirdParty/ErrorLogging/log4net.config"));
 
             _logger = loggerFactory.CreateLogger("Api");
         }
