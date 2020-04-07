@@ -4,8 +4,15 @@
  */
 export default class Loading extends React.Component {
 	
-	render() {
-		return ("Loading..");
+    render() {
+        let message = this.props.message ? this.props.message : "Loading ... ";
+
+        return (
+            <div className="alert alert-info loading">
+                {message}
+                <i className="fas fa-spinner fa-spin" />
+            </div>
+        );
 	}
 	
 }
