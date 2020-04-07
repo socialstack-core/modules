@@ -1,0 +1,51 @@
+.tab-link {
+    margin-right: 2rem;
+
+    .tab-link-btn {
+        -webkit-appearance: none;
+        background-color: transparent;
+        border: 0;
+        border-bottom: .5rem solid transparent;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        height: 100%;
+        justify-content: space-between;
+
+        .fas, .far, .fal, .fad {
+            font-size: 4rem;
+            color: #aaa;
+            position: relative;
+
+            &::after {
+                //content: attr(data-total);
+                position: absolute;
+                font-family: Arial;
+                font-size: 1.75rem;
+                left: 0;
+                right: 0;
+                top: 1rem;
+                color: #aaa;
+            }
+        }
+    }
+
+    &.tab-link-active {
+
+        .tab-link-btn {
+            border-bottom-color: #007bff;
+
+            .fas, .far, .fal, .fad {
+                color: #007bff;
+            }
+        }
+    }
+}
+
+// general mobile
+@media only screen and (max-width: 480px) and (orientation: portrait) {
+
+    .tab-link {
+        margin-right: 0;
+    }
+}
