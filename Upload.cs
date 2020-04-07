@@ -68,13 +68,23 @@ namespace Api.Uploader
 				return (IsPrivate ? "private:" : "public:") + Id + "." + FileType;
 			}
 		}
-		
+
 		/// <summary>
 		/// The public url of this content (including the domain from the site configuration).
 		/// </summary>
-		public string GetPublicUrl(string sizeName, bool omitExt = false)
-        {
+		public string GetPublicUrl(string sizeName, bool omitExt = false, string altExt = null)
+		{
+			if (altExt != null)
+			{
+				omitExt = true;
+			}
+
 			var path =  "/content" + (IsPrivate ? "-private/" : "/") + GetRelativePath(sizeName, omitExt);
+
+			if (altExt != null) {
+				path += "." + altExt;
+			}
+
 			var url = AppSettings.Configuration["PublicUrl"] + path;
 
 			if (IsPrivate){
