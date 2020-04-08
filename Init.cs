@@ -54,13 +54,6 @@ namespace Api.ErrorLogging
 
                 return Task.FromResult(logging);
             });
-
-            Events.CapabilityOnSetup.AddEventListener((Context context, object source) =>
-            {
-                // Public - the role used by anonymous users.
-                Roles.Public.Grant("_logging");
-                return Task.FromResult(source);
-            });
         }
 
         /// <summary>
