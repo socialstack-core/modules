@@ -42,6 +42,12 @@ namespace Api.Permissions
 
 			var firstArg = extraObjectsToCheck[ArgIndex];
 			
+			if(firstArg == null)
+			{
+				// Required.
+				return false;
+			}
+			
 			// Is it the correct type?
 			if (firstArg.GetType() != Type)
 			{

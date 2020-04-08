@@ -30,6 +30,12 @@ namespace Api.Permissions
 					continue;
 				}
 				
+				// If it had a DontAddPermissions attribute, just skip.
+				if (permittedEvent.GetCustomAttribute<DontAddPermissionsAttribute>() != null)
+				{
+					continue;
+				}
+
 				// Create a capability for this event type - e.g. UserCreate becomes a capability called "user_create". Creating it will automatically add it to the set.
 				var capability = new Capability(permittedEvent.EntityName + "_" + permittedEvent.Verb);
 
