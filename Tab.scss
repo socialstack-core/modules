@@ -1,5 +1,68 @@
 .tab-link {
     margin-right: 2rem;
+    position: relative;
+    // critical / standard totals
+    &::before,
+    &::after {
+        position: absolute;
+        font-family: $installed_font;
+        font-size: 1rem;
+        border-radius: 50%;
+        right: 0;
+        width: 2rem;
+        height: 2rem;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border: 3px solid #fff;
+    }
+
+    &::before {
+        content: attr(data-critical-total);
+        background-color: $nhs_red;
+        color: #fff;
+        top: 0rem;
+    }
+
+    &::after {
+        content: attr(data-standard-total);
+        font-family: $installed_font;
+        background-color: $nhs_yellow;
+        color: #000;
+        top: 2rem;
+    }
+
+    &:not([data-critical-total]),
+    &[data-critical-total=""],
+    &[data-critical-total="0"] {
+
+        &::before {
+            content: none;
+        }
+    }
+
+    &[data-critical-total="99+"] {
+
+        &::before {
+            font-size: .75rem;
+        }
+    }
+
+    &:not([data-standard-total]),
+    &[data-standard-total=""],
+    &[data-standard-total="0"] {
+
+        &::after {
+            content: none;
+        }
+    }
+
+    &[data-standard-total="99+"] {
+
+        &::after {
+            font-size: .75rem;
+        }
+    }
 
     .tab-link-btn {
         -webkit-appearance: none;
@@ -13,22 +76,48 @@
         justify-content: space-between;
         line-height: normal;
         padding-bottom: .25rem;
+        position: relative;
 
         .fas, .far, .fal, .fad {
             font-size: 4rem;
             color: #aaa;
+            /*
             position: relative;
 
             &::after {
-                //content: attr(data-total);
+                content: attr(data-total);
                 position: absolute;
-                font-family: Arial;
-                font-size: 1.75rem;
-                left: 0;
-                right: 0;
-                top: 1rem;
-                color: #aaa;
+                font-family: $installed_font;
+                font-size: 1rem;
+                background-color: $nhs_red;
+                color: #fff;
+                border-radius: 50%;
+                right: -1rem;
+                top: 0rem;
+                width: 2rem;
+                height: 2rem;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                border: 3px solid #fff;
             }
+
+            &:not([data-total]),
+            &[data-total=""],
+            &[data-total="0"] {
+
+                &::after {
+                    content: none;
+                }
+            }
+
+            &[data-total="99+"] {
+
+                &::after {
+                    font-size: .75rem;
+                }
+            }
+*/
         }
     }
 
