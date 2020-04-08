@@ -62,8 +62,9 @@ namespace Api.WebSockets
 					);
 					
 					return args[0];
-
-				}, 20);
+				
+				// The 50 means every other handler has a chance to run before this does.
+				}, 50);
 				
 			}
 			
@@ -143,43 +144,61 @@ namespace Api.WebSockets
 
 					var type = jToken.Value<string>();
 					
-					if(type == "AddEventListener"){
+					switch(type){
+						case "Add":
+						case "AddEventListener":
+							jToken = message["name"];
 
-						jToken = message["name"];
+							if (jToken == null || jToken.Type != JTokenType.String)
+							{
+								// Just ignore this message.
+								continue;
+							}
+							
+							var evtName = jToken.Value<string>();
 
-						if (jToken == null || jToken.Type != JTokenType.String)
-						{
-							// Just ignore this message.
-							continue;
-						}
-						
-						var evtName = jToken.Value<string>();
+							// no-op if they're already listening to this event.
+							var typeToListenTo = GetTypeListener(evtName, true);
+							
+							// Add the listener now:
+							client.AddEventListener(typeToListenTo);
+						break;
+						case "Remove":
+						case "RemoveEventListener":
+							jToken = message["name"];
 
-						// no-op if they're already listening to this event.
-						var typeToListenTo = GetTypeListener(evtName, true);
-						
-						// Add the listener now:
-						client.AddEventListener(typeToListenTo);
-						
-					}else if(type == "RemoveEventListener"){
+							if (jToken == null || jToken.Type != JTokenType.String)
+							{
+								// Just ignore this message.
+								continue;
+							}
+							
+							var typeToRemove = GetTypeListener(jToken.Value<string>(), false);
 
-						jToken = message["name"];
+							if (typeToRemove != null)
+							{
+								// Remove it:
+								client.RemoveEventListener(typeToRemove);
+							}
+						break;
+						case "AddSet":
+							jToken = message["names"];
 
-						if (jToken == null || jToken.Type != JTokenType.String)
-						{
-							// Just ignore this message.
-							continue;
-						}
-
-						var evtName = jToken.Value<string>();
-
-						var typeToRemove = GetTypeListener(evtName, false);
-
-						if (typeToRemove != null)
-						{
-							// Remove it:
-							client.RemoveEventListener(typeToRemove);
-						}
+							if (jToken == null || jToken.Type != JTokenType.Array)
+							{
+								// Just ignore this message.
+								continue;
+							}
+							
+							var jArray = jToken as JArray;
+							
+							foreach(var entry in jArray){
+								var eName = entry.Value<string>();
+								
+								// Add the listener now:
+								client.AddEventListener(GetTypeListener(eName, true));
+							}
+						break;
 					}
 
 				}
