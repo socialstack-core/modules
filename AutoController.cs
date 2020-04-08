@@ -191,7 +191,25 @@ public partial class AutoController<T> : ControllerBase
                 return null;
             }
 
-            entity = await _service.Create(context, entity);
+            entity = await _service.Create(context, entity, async (Context c, T ent) => {
+
+				// Set post ID fields:
+				var secondaryNotes = await SetFieldsOnObject(entity, context, body, JsonFieldGroup.AfterId);
+
+				if (secondaryNotes != null)
+				{
+					if (notes == null)
+					{
+						notes = secondaryNotes;
+					}
+					else
+					{
+						notes += ", " + secondaryNotes;
+					}
+
+				}
+			
+			});
 
             if (entity == null)
             {
@@ -205,23 +223,7 @@ public partial class AutoController<T> : ControllerBase
 
                 return null;
             }
-
-            // Set post ID fields:
-            var secondaryNotes = await SetFieldsOnObject(entity, context, body, JsonFieldGroup.AfterId);
-
-            if (secondaryNotes != null)
-            {
-                if (notes == null)
-                {
-                    notes = secondaryNotes;
-                }
-                else
-                {
-                    notes += ", " + secondaryNotes;
-                }
-
-            }
-
+			
             if (notes != null)
             {
                 Request.Headers["Api-Notes"] = notes;

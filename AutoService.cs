@@ -161,7 +161,15 @@ public partial class AutoService<T> : AutoService where T: DatabaseRow, new(){
 	/// <summary>
 	/// Creates a new entity.
 	/// </summary>
-	public virtual async Task<T> Create(Context context, T entity)
+	public virtual Task<T> Create(Context context, T entity)
+	{
+		return Create(context, entity, null);
+	}
+	
+	/// <summary>
+	/// Creates a new entity.
+	/// </summary>
+	public virtual async Task<T> Create(Context context, T entity, Action<Context, T> postIdCallback)
 	{
 		entity = await EventGroup.BeforeCreate.Dispatch(context, entity);
 
@@ -170,6 +178,8 @@ public partial class AutoService<T> : AutoService where T: DatabaseRow, new(){
 		{
 			return default(T);
 		}
+
+		postIdCallback?.Invoke(context, entity);
 
 		entity = await EventGroup.AfterCreate.Dispatch(context, entity);
 		return entity;
