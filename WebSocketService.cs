@@ -37,8 +37,12 @@ namespace Api.WebSockets
 				if(typeEvent.Verb != "Create" && typeEvent.Verb != "Update" && typeEvent.Verb != "Delete"){
 					continue;
 				}
-				
+
 				var method = typeEvent.Verb.ToLower();
+
+				// We'll send this event to particular users *if* they have the load capability.
+				string capName = (typeEvent.EntityName + "_load").ToLower();
+				Capabilities.All.TryGetValue(capName, out Capability capability);
 				
 				typeEvent.AddEventListener(async (Context context, object[] args) => {
 					
@@ -52,7 +56,9 @@ namespace Api.WebSockets
 							Type = typeEvent.EntityName,
 							Method = method,
 							Entity = args[0]
-						}
+						},
+						capability,
+						args
 					);
 					
 					return args[0];
@@ -190,8 +196,10 @@ namespace Api.WebSockets
 		/// Sends the given message. Only sends to users who are actively listening out for this type.
 		/// </summary>
 		/// <param name="message"></param>
+		/// <param name="capability"></param>
+		/// <param name="capArgs"></param>
 		/// <returns></returns>
-		public async Task Send(WebSocketMessage message)
+		public async Task Send(WebSocketMessage message, Capability capability, object[] capArgs)
 		{
 			var type = GetTypeListener(message.Type, false);
 
@@ -200,7 +208,7 @@ namespace Api.WebSockets
 				return;
 			}
 
-			await type.Send(message);
+			await type.Send(message, capability, capArgs);
 		}
 
 	}
@@ -285,7 +293,8 @@ namespace Api.WebSockets
 		/// <summary>
 		/// Sends a message to all listeners for this type by encoding it as JSON.
 		/// </summary>
-		public async Task Send(WebSocketMessage message){
+		public async Task Send(WebSocketMessage message, Capability capability, object[] capArgs)
+		{
 
 			if (_serializerSettings == null)
 			{
@@ -298,21 +307,22 @@ namespace Api.WebSockets
 			// Get the bytes of the message:
             var jsonMessage = JsonConvert.SerializeObject(message, _serializerSettings);
 			var data = Encoding.UTF8.GetBytes(jsonMessage);
-			await Send(data);
+			await Send(data, capability, capArgs);
 		}
 		
 		/// <summary>
 		/// Sends a JSON message to all listeners for this type.
 		/// </summary>
-		public async Task Send(string jsonMessage){
+		public async Task Send(string jsonMessage, Capability capability, object[] capArgs)
+		{
 			var data = Encoding.UTF8.GetBytes(jsonMessage);
-			await Send(data);
+			await Send(data, capability, capArgs);
 		}
 		
 		/// <summary>
 		/// Sends a raw binary message to all listeners for this type.
 		/// </summary>
-		public async Task Send(byte[] message){
+		public async Task Send(byte[] message, Capability capability, object[] capArgs){
 			
 			var arSegment = new ArraySegment<Byte>(message);
 			
@@ -320,7 +330,18 @@ namespace Api.WebSockets
 			var current = First;
 			
 			while(current != null){
-				
+
+				if (capability != null)
+				{
+					var ctx = current.Client.Context;
+
+					if (!await ctx.Role.IsGranted(capability, ctx, capArgs))
+					{
+						// Skip this user
+						continue;
+					}
+				}
+
 				await current.Client.Socket.SendAsync(
 					arSegment,
 					WebSocketMessageType.Text,
@@ -369,64 +390,11 @@ namespace Api.WebSockets
 		/// The underlying socket.
 		/// </summary>
 		public System.Net.WebSockets.WebSocket Socket;
-
-		private static IUserService _users;
 		
 		/// <summary>
-		/// The current locale or the site default.
+		/// The context for this user. Survives much longer than a typical context does.
 		/// </summary>
-		public int LocaleId = 1;
-
-		/// <summary>
-		///  The logged in users ID.
-		/// </summary>
-		public int UserId;
-		
-		/// <summary>
-		/// The role ID from the token.
-		/// </summary>
-		public int RoleId;
-
-		/// <summary>
-		/// The full user object, if it has been requested.
-		/// </summary>
-		private User _user;
-
-		/// <summary>
-		/// Role. Null indicates a broken AuthUser instance or user of a Role ID which probably hasn't been setup.
-		/// </summary>
-		public Role Role
-		{
-			get
-			{
-				return RoleId >= Roles.All.Length ? null : Roles.All[RoleId];
-			}
-		}
-		
-		/// <summary>
-		/// Get the user associated to this login token.
-		/// </summary>
-		/// <returns></returns>
-		public async Task<User> GetUser(Context context)
-		{
-			if (_user != null)
-			{
-				return _user;
-			}
-
-			if (_users == null)
-			{
-				_users = Services.Get<IUserService>();
-			}
-
-			// Get the user now:
-			_user = await _users.Get(context, UserId);
-
-			// Overwrite role just in case (the revoke system must catch this though):
-			RoleId = _user.Role;
-
-			return _user;
-		}
+		public Context Context;
 		
 		/// <summary>
 		/// All the message types that this client is listening to.

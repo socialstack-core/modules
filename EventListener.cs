@@ -52,11 +52,15 @@ namespace Api.WebSockets
 					{
 						Socket = websocket
 					};
-					
-					if(context != null){
-						client.UserId = context.UserId;
-						client.LocaleId = context.LocaleId;
-						client.RoleId = context.RoleId;
+
+					if (context != null)
+					{
+						client.Context = context;
+					}
+					else
+					{
+						// new anon context:
+						client.Context = new Context();
 					}
 
 					try

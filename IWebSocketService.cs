@@ -22,8 +22,10 @@ namespace Api.WebSockets
 		/// Sends a message via websockets. Only sends to users who are actively listening for a message with this type.
 		/// </summary>
 		/// <param name="message"></param>
+		/// <param name="capability"></param>
+		/// <param name="capArgs"></param>
 		/// <returns></returns>
-		Task Send(WebSocketMessage message);
+		Task Send(WebSocketMessage message, Capability capability, object[] capArgs);
 
 	}
 }
