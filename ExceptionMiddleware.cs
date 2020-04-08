@@ -4,6 +4,7 @@ using System.Security;
 using System.Text;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Http.Internal;
 using Microsoft.Extensions.Logging;
 using Newtonsoft.Json;
 
@@ -47,18 +48,17 @@ namespace Api.Startup
             catch (SecurityException secEx)
             {
                 anyE = secEx;
-                responseBody = Encoding.UTF8.GetBytes(JsonConvert.SerializeObject(new { error = new[] { "Access to this resource has been denied" } }));
+                responseBody = Encoding.UTF8.GetBytes(JsonConvert.SerializeObject(new ErrorResponse() { Message = "Access Denied" }));
                 statusCode = 403;
             }
             catch (Exception e)
             {
                 anyE = e;
-                responseBody = Encoding.UTF8.GetBytes(JsonConvert.SerializeObject(new { error = new[] { "Application error occured which has been logged" } }));
+                responseBody = Encoding.UTF8.GetBytes(JsonConvert.SerializeObject(new ErrorResponse { Message ="Application error occured which has been logged" } ));
                 statusCode = 500;
             }
 
-
-            if (anyE != null)
+            if (anyE != null && _logger != null)
             {
                 _logger.LogCritical(anyE.ToString());
 

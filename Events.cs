@@ -9,11 +9,24 @@ namespace Api.Eventing
 {
     public enum LOG_LEVEL
     {
+        /// <summary>
+        /// Information logging 
+        /// </summary>
         Information,
+        /// <summary>
+        /// Log as warning
+        /// </summary>
         Warning,
+        /// <summary>
+        /// Log as error
+        /// </summary>
         Error,
+        /// <summary>
+        /// Details debug logging
+        /// </summary>
         Debug
     }
+
     public class Logging
     {
         /// <summary>
