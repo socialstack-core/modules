@@ -14,13 +14,19 @@ export default class Tabs extends React.Component {
         let tabs = this.props.children.map((child, index) => {
             let className = activeIndex === index ? 'tab-link tab-link-active' : 'tab-link';
             let icon;
+            let criticalTotal = child.props.criticalTotal > 99 ? "99+" : child.props.criticalTotal;
+            let standardTotal = child.props.standardTotal > 99 ? "99+" : child.props.standardTotal;
 
             if (child.props.icon) {
-                icon = <i className={child.props.icon} data-total={child.props.total} />;
+                icon = (
+                    <i className={child.props.icon}
+                        data-total={child.props.total > 99 ? "99+" : child.props.total}
+                    />
+                );
             }
 
             return (
-                <li className={className}>
+                <li className={className} data-critical-total={criticalTotal} data-standard-total={standardTotal}>
                     <button
                         className="tab-link-btn"
                         onClick={() => this.setState({ activeIndex: index })}
