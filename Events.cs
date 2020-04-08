@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Reflection;
 using System.Threading.Tasks;
 
 namespace Api.Eventing
@@ -42,9 +43,9 @@ namespace Api.Eventing
 			// Must setup this all set first:
 			All = new Dictionary<string, EventHandler>();
 			
-			SetupEventsOnObject(null, typeof(Events), "");
+			SetupEventsOnObject(null, typeof(Events), "", null);
 		}
-		
+
 		/// <summary>
 		/// Sets up any event handler objects on the given target object by looping through fields of the given type.
 		/// Note that type is provided as the target object can be null in the case of the static Events class itself.
@@ -55,7 +56,8 @@ namespace Api.Eventing
 		/// <param name="prependedNames">
 		/// If going through EventGroup objects, this is any additional text to prepend to the field name.
 		/// </param>
-		public static void SetupEventsOnObject(object target, Type type, string prependedNames)
+		/// <param name="attribs"></param>
+		public static void SetupEventsOnObject(object target, Type type, string prependedNames, IEnumerable<Attribute> attribs)
 		{
 			var events = type.GetFields();
 
@@ -72,6 +74,8 @@ namespace Api.Eventing
 				// Create an instance of the field type.
 				object evt = null;
 
+				var fieldAttribs = field.GetCustomAttributes();
+
 				// If it's an event group, instance the events on it, but prepended with the field name and any other names.
 				if (field.FieldType.IsGenericType && field.FieldType.GetGenericTypeDefinition() == typeof(EventGroup<>))
 				{
@@ -79,7 +83,7 @@ namespace Api.Eventing
 					evt = Activator.CreateInstance(field.FieldType);
 
 					// Setup all of the fields on it too:
-					SetupEventsOnObject(evt, field.FieldType, prependedNames + field.Name);
+					SetupEventsOnObject(evt, field.FieldType, prependedNames + field.Name, attribs);
 
 					field.SetValue(target, evt);
 
@@ -94,8 +98,15 @@ namespace Api.Eventing
 				
 				// We specifically use the fields own type here so the dev can specify a custom type there too.
 				// It must however have a constructor with 1 string param.
-				evt = Activator.CreateInstance(field.FieldType, prependedNames + field.Name);	
-				
+				evt = Activator.CreateInstance(field.FieldType, prependedNames + field.Name);
+
+				if (fieldAttribs != null || attribs != null)
+				{
+					var handler = (evt as EventHandler);
+					handler.AddAttributes(fieldAttribs);
+					handler.AddAttributes(attribs);
+				}
+
 				// Set it to the field now:
 				field.SetValue(target, evt);
 

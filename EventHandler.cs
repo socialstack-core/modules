@@ -49,6 +49,11 @@ namespace Api.Eventing
 		public string Verb;
 
 		/// <summary>
+		/// Attributes on the various event handler fields. Can be null.
+		/// </summary>
+		public List<Attribute> Attributes;
+
+		/// <summary>
 		/// The primary type of this event handler. If set, it's the type of the first arg (and also its return type).
 		/// Usually relates to, but isn't necessarily the same as, EntityName.
 		/// If an Api.Results.Set/ Filter type is applied here, it will be resolved into the contained type.
@@ -148,6 +153,51 @@ namespace Api.Eventing
 				EntityName += wordsFromName[i];
 			}
 			
+		}
+
+		/// <summary>
+		/// Gets an attribute of the given type if its on this event handler's field. Null if not set.
+		/// </summary>
+		/// <typeparam name="T"></typeparam>
+		/// <returns></returns>
+		public Attribute GetCustomAttribute<T>()
+		{
+			if (Attributes == null)
+			{
+				return null;
+			}
+
+			foreach (var attrib in Attributes)
+			{
+				if (attrib is T)
+				{
+					return attrib;
+				}
+			}
+
+			return null;
+		}
+
+		/// <summary>
+		/// Adds a custom attribute declared on the field.
+		/// </summary>
+		/// <param name="set"></param>
+		public void AddAttributes(IEnumerable<Attribute> set)
+		{
+			if (set == null)
+			{
+				return;
+			}
+
+			foreach (var attrib in set)
+			{
+				if (Attributes == null)
+				{
+					Attributes = new List<Attribute>();
+				}
+
+				Attributes.Add(attrib);
+			}
 		}
 
 		/// <summary>
