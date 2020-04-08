@@ -1,7 +1,10 @@
 .loading {
+    display: flex;
+    flex-direction: column;
+    flex-wrap: nowrap;
+    align-items: center;
 
     .fa-spinner {
-        display: block;
         font-size: 4rem;
         margin: 1rem;
     }
