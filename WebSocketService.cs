@@ -49,17 +49,22 @@ namespace Api.WebSockets
 					if(args == null || args.Length == 0){
 						return null;
 					}
-					
+
 					// Send via the websocket service:
-					await Send(
-						new WebSocketEntityMessage() {
-							Type = typeEvent.EntityName,
-							Method = method,
-							Entity = args[0]
-						},
-						capability,
-						args
-					);
+					Task.Run(async () =>
+					{
+
+						await Send(
+							new WebSocketEntityMessage() {
+								Type = typeEvent.EntityName,
+								Method = method,
+								Entity = args[0]
+							},
+							capability,
+							args
+						);
+						
+					});
 					
 					return args[0];
 				
@@ -357,6 +362,7 @@ namespace Api.WebSockets
 					if (!await ctx.Role.IsGranted(capability, ctx, capArgs))
 					{
 						// Skip this user
+						current = current.Next;
 						continue;
 					}
 				}
@@ -370,9 +376,8 @@ namespace Api.WebSockets
 				
 				current = current.Next;
 			}
-			
 		}
-		
+
 	}
 	
 	/// <summary>
