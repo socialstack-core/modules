@@ -4,7 +4,7 @@ import Text from 'UI/Text';
 	Phone number (UK/US) validation method. Returns translatable React element if it failed alongside a constant error code, or nothing.
 */
 
-export const phoneNumber = value => {
+export default value => {
 	if(!value){
 		// Also use "Required" validation if you want it to check in this scenario.
 		return;
