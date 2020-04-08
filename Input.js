@@ -13,146 +13,146 @@ var eventTarget = global.events.get('UI/Input');
  * See e.g. UI/Functions/Validation/Required/Required.js for the structure of a custom method.
  */
 export default class Input extends React.Component {
-	
-	constructor(props){
-		super(props);
-		this.state={};
-		this.newId();
-		this.onChange=this.onChange.bind(this);
-		this.onBlur=this.onBlur.bind(this);
-		this.onSelectChange=this.onSelectChange.bind(this);
-	}
-	
-	newId(){
-		this.fieldId = 'form-field-' + (id++);
-		this.helpFieldId = this.fieldId + "-help";
-	}
-	
-	componentWillReceiveProps(props){
-		this.newId();
-	}
-	
-	render() {
-		if(this.props.inline){
-			return this.renderInput();
-		}
-		
-		return (
+
+    constructor(props) {
+        super(props);
+        this.state = {};
+        this.newId();
+        this.onChange = this.onChange.bind(this);
+        this.onBlur = this.onBlur.bind(this);
+        this.onSelectChange = this.onSelectChange.bind(this);
+    }
+
+    componentWillReceiveProps(props) {
+        this.newId();
+    }
+
+    newId() {
+        this.fieldId = 'form-field-' + (id++);
+        this.helpFieldId = this.fieldId + "-help";
+    }
+
+    render() {
+        if (this.props.inline) {
+            return this.renderInput();
+        }
+
+        return (
             <div className="form-group">
                 {this.props.label && this.props.type !== "submit" && this.props.type !== "checkbox" && this.props.type !== "radio" && (
-					<label htmlFor={this.props.id || this.fieldId}>
-						{this.props.label}
-					</label>
-				)}
-				{this.props.help && (
-					<small id={this.helpFieldId} className="form-text text-muted">
-						{this.props.help}
-					</small>
-				)}
-				{this.renderInput()}
-				{this.state.validationFailure && (
-					<div className="validation-error">
-						{this.props.validationFailure ? this.props.validationFailure(this.state.validationFailure) : this.state.validationFailure.ui}
-					</div>
-				)}
-			</div>
-		);
-	}
-	
-	onChange(e) {
-		this.props.onChange && this.props.onChange(e);
-		if(e.defaultPrevented){
-			return;
-		}
-		
-		// Validation check
-		this.revalidate(e);
-	}
-	
-	onBlur(e) {
-		this.props.onBlur && this.props.onBlur(e);
-		if(e.defaultPrevented){
-			return;
-		}
-		
-		// Validation check
-		this.revalidate(e);
-	}
-	
-	onSelectChange(e) {
-		this.setState({selectValue: e.target.value});
-		this.props.onChange && this.props.onChange(e);
-		if(e.defaultPrevented){
-			return;
-		}
-		
-		// Validation check
-		this.revalidate(e);
-	}
-	
-	revalidate(e){
-		
-		var validations = this.props.validate;
-		
-		if(!validations){
-			if(this.state.validationFailure){
-				this.setState({validationFailure: null});
-			}
-			return;
-		}
-		
-		if(!Array.isArray(validations)){
-			// Make it one:
-			validations = [validations];
-		}
-		
-		var v = e.target.value;
-		var vFail = null;
-		
-		for(var i=0;i<validations.length;i++){
-			// If it's a string, include the module.
-			// Otherwise it's assumed to be a function that we directly run.
-			var valType = validations[i];
-			
-			if(!valType){
-				continue;
-			}
-			
-			switch(typeof valType){
-				case "string":
-					var mtd = getModule("UI/Functions/Validation/" + valType).default;
-					vFail = mtd(v);
-				break;
-				case "function":
-					// Run it:
-					vFail = valType(v);
-				break;
-				default:
-					console.log("Invalid validation type: ", validations, valType, i);
-				break;
-			}
-			
-			if(vFail){
-				break;
-			}
-		}
-		
-		if(vFail || this.state.validationFailure){
-			this.setState({validationFailure: vFail});
-		}
-	}
-	
-	renderInput() {
-		
-		const {type} = this.props;
-		
-		if(type instanceof Function){
-			return type(this);
-		}
-		
-		if(type === "select"){
-			
-			return (
+                    <label htmlFor={this.props.id || this.fieldId}>
+                        {this.props.label}
+                    </label>
+                )}
+                {this.props.help && (
+                    <small id={this.helpFieldId} className="form-text text-muted">
+                        {this.props.help}
+                    </small>
+                )}
+                {this.renderInput()}
+                {this.state.validationFailure && (
+                    <div className="validation-error">
+                        {this.props.validationFailure ? this.props.validationFailure(this.state.validationFailure) : this.state.validationFailure.ui}
+                    </div>
+                )}
+            </div>
+        );
+    }
+
+    onChange(e) {
+        this.props.onChange && this.props.onChange(e);
+        if (e.defaultPrevented) {
+            return;
+        }
+
+        // Validation check
+        this.revalidate(e);
+    }
+
+    onBlur(e) {
+        this.props.onBlur && this.props.onBlur(e);
+        if (e.defaultPrevented) {
+            return;
+        }
+
+        // Validation check
+        this.revalidate(e);
+    }
+
+    onSelectChange(e) {
+        this.setState({ selectValue: e.target.value });
+        this.props.onChange && this.props.onChange(e);
+        if (e.defaultPrevented) {
+            return;
+        }
+
+        // Validation check
+        this.revalidate(e);
+    }
+
+    revalidate(e) {
+
+        var validations = this.props.validate;
+
+        if (!validations) {
+            if (this.state.validationFailure) {
+                this.setState({ validationFailure: null });
+            }
+            return;
+        }
+
+        if (!Array.isArray(validations)) {
+            // Make it one:
+            validations = [validations];
+        }
+
+        var v = e.target.value;
+        var vFail = null;
+
+        for (var i = 0; i < validations.length; i++) {
+            // If it's a string, include the module.
+            // Otherwise it's assumed to be a function that we directly run.
+            var valType = validations[i];
+
+            if (!valType) {
+                continue;
+            }
+
+            switch (typeof valType) {
+                case "string":
+                    var mtd = getModule("UI/Functions/Validation/" + valType).default;
+                    vFail = mtd(v);
+                    break;
+                case "function":
+                    // Run it:
+                    vFail = valType(v);
+                    break;
+                default:
+                    console.log("Invalid validation type: ", validations, valType, i);
+                    break;
+            }
+
+            if (vFail) {
+                break;
+            }
+        }
+
+        if (vFail || this.state.validationFailure) {
+            this.setState({ validationFailure: vFail });
+        }
+    }
+
+    renderInput() {
+
+        const { type } = this.props;
+
+        if (type instanceof Function) {
+            return type(this);
+        }
+
+        if (type === "select") {
+
+            return (
                 <select
                     onChange={this.onSelectChange}
                     onBlur={this.onBlur}
@@ -162,13 +162,13 @@ export default class Input extends React.Component {
                     {...omit(this.props, ['id', 'className', 'onChange', 'onBlur', 'type', 'children', 'defaultValue', 'value', 'inline'])}
                     data-validation={this.state.validationFailure ? true : undefined}
                 >
-					{this.props.children}
-				</select>
-			);
-			
-		}else if(type === "textarea"){
-			
-			return (
+                    {this.props.children}
+                </select>
+            );
+
+        } else if (type === "textarea") {
+
+            return (
                 <textarea
                     onChange={this.onChange}
                     onBlur={this.onBlur}
@@ -176,23 +176,29 @@ export default class Input extends React.Component {
                     className={this.props.className || "form-control"}
                     {...omit(this.props, ['id', 'className', 'onChange', 'onBlur', 'type', 'inline'])}
                     data-validation={this.state.validationFailure ? true : undefined}
-				/>
-			);
-			
-		}else if(type === "submit" || type === "button"){
-			
-			return (
+                />
+            );
+
+        } else if (type === "submit" || type === "button") {
+            var showIcon = this.props.icon;
+
+            return (
                 <button
                     className={this.props.className || "btn btn-primary"}
                     type={type}
                     {...omit(this.props, ['className', 'type', 'label', 'children', 'inline'])}
                 >
-					{this.props.label || this.props.children || "Submit"}
-				</button>
-			);
-			
-		}else if(type === "checkbox"){
-			
+                    {
+                        !!showIcon && (
+                            <i className={this.props.icon} />
+                        )
+                    }
+                    {this.props.label || this.props.children || "Submit"}
+                </button>
+            );
+
+        } else if (type === "checkbox") {
+
             return (
                 <div className="custom-control custom-checkbox">
                     <input
@@ -210,7 +216,7 @@ export default class Input extends React.Component {
                         {this.props.label}
                     </label>
                 </div>
-			);
+            );
         } else if (type === "radio") {
 
             return (
@@ -232,14 +238,14 @@ export default class Input extends React.Component {
                     </label>
                 </div>
             );
-		}else{
-			// E.g. ontypecanvas will fire. This gives a generic entry point for custom input types by just installing them:
-			var handler = eventTarget['ontype' + type];
-			if(handler){
-				return handler({...this.props, onChange: this.onChange, onBlur: this.onBlur}, type, this);
-			}
-			
-			return (
+        } else {
+            // E.g. ontypecanvas will fire. This gives a generic entry point for custom input types by just installing them:
+            var handler = eventTarget['ontype' + type];
+            if (handler) {
+                return handler({ ...this.props, onChange: this.onChange, onBlur: this.onBlur }, type, this);
+            }
+
+            return (
                 <input
                     id={this.props.id || this.fieldId}
                     className={this.props.className || "form-control"}
@@ -249,10 +255,10 @@ export default class Input extends React.Component {
                     onBlur={this.onBlur}
                     data-validation={this.state.validationFailure ? true : undefined}
                     {...omit(this.props, ['id', 'className', 'onChange', 'onBlur', 'type', 'inline'])}
-				/>
-			);
-		}
-		
-	}
-	
+                />
+            );
+        }
+
+    }
+
 }
