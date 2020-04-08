@@ -141,22 +141,29 @@ namespace Api.Signatures
 				_verifier = new ECDsaSigner();
 				_verifier.Init(false, PublicKey);
 			}
-			
-			var r = new BigInteger(1, signature, 0, 32);
-			var s = new BigInteger(1, signature, 32, 32);
-			
-			var messageBytes = System.Text.Encoding.UTF8.GetBytes(message);
 
-			// Can't share this as it has internal properties which get set during ComputeHash
-			var sha256 = new SHA256Managed();
-
-			// Double sha256 hash (Bitcoin compatible):
-			messageBytes = sha256.ComputeHash(messageBytes, 0, messageBytes.Length);
-			messageBytes = sha256.ComputeHash(messageBytes);
-
-			lock (_verifier)
+			try
 			{
-				return _verifier.VerifySignature(messageBytes, r, s);
+				var rLength = (int)signature[0]; // first byte contains length of r array
+				var r = new BigInteger(1, signature, 1, rLength);
+				var s = new BigInteger(1, signature, rLength + 1, signature.Length - (rLength + 1));
+
+				var messageBytes = System.Text.Encoding.UTF8.GetBytes(message);
+
+				// Can't share this as it has internal properties which get set during ComputeHash
+				var sha256 = new SHA256Managed();
+
+				// Double sha256 hash (Bitcoin compatible):
+				messageBytes = sha256.ComputeHash(messageBytes, 0, messageBytes.Length);
+				messageBytes = sha256.ComputeHash(messageBytes);
+				lock (_verifier)
+				{
+					return _verifier.VerifySignature(messageBytes, r, s);
+				}
+			}
+			catch (IndexOutOfRangeException)
+			{
+				return false;
 			}
 		}
 
@@ -209,10 +216,12 @@ namespace Api.Signatures
 
 			var r = rs[0].ToByteArrayUnsigned();
 			var s = rs[1].ToByteArrayUnsigned();
-			byte[] result = new byte[r.Length + s.Length];
-			Array.Copy(r, 0, result, 0, r.Length);
-			Array.Copy(s, 0, result, r.Length, s.Length);
-			return result; // (result is 64 bytes long)
+			byte[] result = new byte[1 + r.Length + s.Length];
+
+			result[0] = (byte)r.Length;
+			Array.Copy(r, 0, result, 1, r.Length);
+			Array.Copy(s, 0, result, r.Length + 1, s.Length);
+			return result; // (result is 64 or 65 bytes long)
 		}
 
 	}
