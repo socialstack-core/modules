@@ -211,7 +211,9 @@ namespace Api.DatabaseDiff
 		{
 			return DataType.Trim() + (((DataType == "varchar" || DataType == "varbinary") && MaxCharacters.HasValue) ? "(" + MaxCharacters + ")" : "") +
 				(((DataType == "decimal") && MaxCharacters.HasValue) ? "(" + MaxCharacters2 + ", " + MaxCharacters + ")" : "") +
-				(IsUnsigned ? " unsigned" : "") + (IsNullable ? " null" : " not null") + (IsAutoIncrement ? " auto_increment" : "");
+				(IsUnsigned ? " unsigned" : "") + (IsNullable ? " null" : " not null") 
+				+ ((DataType == "datetime" && !IsNullable) ? " DEFAULT '1970-01-01 00:00:00'":"")
+				+ (IsAutoIncrement ? " auto_increment" : "");
 		}
 
 		/// <summary>
