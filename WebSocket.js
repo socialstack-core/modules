@@ -62,6 +62,16 @@ function connect(){
 		for(var i=0;i<msgs.length;i++){
 			ws.send(JSON.stringify(msgs[i]));
 		}
+		
+		var types = [];
+		
+		for(var name in messageTypes){
+			types.push(name);
+		}
+		
+		if(types.length){
+			ws.send(JSON.stringify({type: 'AddSet', names: types}));
+		}
 	});
 	
 	ws.addEventListener("close", onClose);
@@ -104,8 +114,15 @@ module.exports = {
 		}else{
 			typeCount++;
 			messageTypes[type] = [method];
-			console.log('Todo: if this fails to send and RemoveEventListener is called, make sure its not in the send queue');
-			send({type: 'AddEventListener', name: type});
+			var msg = {type: 'Add', name: type};
+			
+			if(!ws){
+				connect();
+			}
+			
+			if(ws.readyState == WebSocket.OPEN){
+				ws.send(JSON.stringify(msg));
+			}
 		}
 	},
 	removeEventListener:(type, method) => {
@@ -118,7 +135,7 @@ module.exports = {
 		
 		if(!messageTypes[type].length){
 			typeCount--;
-			send({type: 'RemoveEventListener', name: type});
+			send({type: 'Remove', name: type});
 			
 			if(typeCount<=0){
 				typeCount=0;
