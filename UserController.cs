@@ -81,7 +81,7 @@ namespace Api.Users
 
 			// var context = Request.GetContext();
 
-			var expiry = DateTime.MinValue;
+			var expiry = default(DateTimeOffset?);
 
             Response.Cookies.Append(
                 _contexts.CookieName,
