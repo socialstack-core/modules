@@ -3,11 +3,15 @@
 */
 
 export default class Tabs extends React.Component {
-
-    state = {
-        activeIndex: this.props.defaultIndex || 0
-    };
-
+	
+	
+	constructor(props){
+		super(props);
+		this.state = {
+			activeIndex: this.props.defaultIndex || 0
+		};
+	}
+	
 	render(){
         let { activeIndex } = this.state;
 
