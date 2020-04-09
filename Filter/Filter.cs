@@ -4,6 +4,7 @@ using System;
 using System.Collections.Generic;
 using Api.Database;
 using System.Threading.Tasks;
+using System.Linq;
 
 namespace Api.Permissions
 {
@@ -31,13 +32,8 @@ namespace Api.Permissions
 		/// <summary>
 		/// Additional param value resolvers if there are any.
 		/// </summary>
-		public List<Func<Context, Task<object>>> ParamValueResolvers;
-
-		/// <summary>
-		/// Base parameter offset.
-		/// </summary>
-		public int BaseParamOffset;
-
+		public List<FilterFieldEqualsValue> ParamValueResolvers;
+		
 		/// <summary>
 		/// The underlying request info used to construct this filter.
 		/// </summary>
@@ -208,17 +204,88 @@ namespace Api.Permissions
 		}
 
 		/// <summary>
+		/// Creates a new filter which is an AND combination of this one and the given one.
+		/// </summary>
+		/// <param name="b"></param>
+		/// <param name="nodes"></param>
+		/// <returns></returns>
+		public Filter Combine(FilterNode b, List<FilterFieldEqualsValue> nodes)
+		{
+			// Create a new chain and set it up immediately:
+			var combined = Copy(false);
+
+			// Construct the subchain so we get the node to actually add straight away:
+			var a = Construct();
+
+			// Add it in:
+			combined.Add(new FilterAnd()
+			{
+				Input0 = a,
+				Input1 = b
+			});
+
+			// Combine the args:
+			if (ParamValueResolvers == null)
+			{
+				// Only need to consider nodes:
+				combined.ParamValueResolvers = nodes;
+			}
+			else
+			{
+				if (nodes != null)
+				{
+					// Merge them:
+					combined.ParamValueResolvers = nodes.Concat(ParamValueResolvers).ToList();
+				}
+				else
+				{
+					// Only need to consider ParamValueResolvers:
+					combined.ParamValueResolvers = ParamValueResolvers;
+				}
+			}
+
+			return combined;
+		}
+
+		/// <summary>
+		/// Creates a new filter which is an AND combination of this one and the given one.
+		/// </summary>
+		/// <param name="b"></param>
+		/// <returns></returns>
+		public Filter Combine(Filter b)
+		{
+			// Create a new chain and set it up immediately:
+			var combined = new Filter
+			{
+				Role = Role,
+				DefaultType = DefaultType,
+				FromRequest = FromRequest
+			};
+
+			// Construct the subchain so we get the node to actually add straight away:
+			var a = Construct();
+
+			// Add it in:
+			combined.Add(new FilterAnd()
+			{
+				Input0 = a,
+				Input1 = b.Construct()
+			});
+
+			return combined;
+		}
+
+		/// <summary>
 		/// Adds a param value resolver.
 		/// </summary>
 		/// <param name="resolver"></param>
-		public int AddParamValueResolver(Func<Context, Task<object>> resolver)
+		public void AddParamValueResolver(FilterFieldEqualsValue resolver)
 		{
 			if (ParamValueResolvers == null)
 			{
-				ParamValueResolvers = new List<Func<Context, Task<object>>>();
+				ParamValueResolvers = new List<FilterFieldEqualsValue>();
 			}
 			ParamValueResolvers.Add(resolver);
-			return BaseParamOffset++;
 		}
 
 		/// <summary>
@@ -428,7 +495,7 @@ namespace Api.Permissions
 			// after applying a bulk if to a bunch of them.
 			for (var i = 0; i < capabilityNames.Length; i++)
 			{
-				Role.Grant(capabilityNames[i], rootNode.Copy());
+				Role.Grant(capabilityNames[i], rootNode.Copy(), this);
 			}
 
 			return Role;
@@ -449,7 +516,7 @@ namespace Api.Permissions
 			// after applying a bulk if to a bunch of them.
 			for (var i = 0; i < verbNames.Length; i++)
 			{
-				Role.GrantVerb(rootNode.Copy(), verbNames[i]);
+				Role.GrantVerb(rootNode.Copy(), this, verbNames[i]);
 			}
 
 			return Role;
@@ -490,9 +557,17 @@ namespace Api.Permissions
 		public Filter Brackets(Action<Filter> subfilter)
 		{
 			// Create a new chain and set it up immediately:
+
+			if (ParamValueResolvers == null)
+			{
+				// Sub-filters must share the same set (otherwise adds get left out).
+				ParamValueResolvers = new List<FilterFieldEqualsValue>();
+			}
+
 			var chain = new Filter
 			{
 				Role = Role,
+				ParamValueResolvers = ParamValueResolvers,
 				DefaultType = DefaultType,
 				FromRequest = FromRequest
 			};
@@ -512,6 +587,10 @@ namespace Api.Permissions
 		/// <returns></returns>
 		private Filter Add(FilterNode node)
 		{
+			if (node is FilterFieldEqualsValue)
+			{
+				AddParamValueResolver((FilterFieldEqualsValue)node);
+			}
 			Nodes.Add(node);
 			return this;
 		}
@@ -537,18 +616,23 @@ namespace Api.Permissions
 				intoFilter.Add(node.Copy());
 			}
 		}
-
+		
 		/// <summary>
 		/// Copies this filter.
 		/// </summary>
 		/// <returns></returns>
-		public Filter Copy()
+		public virtual Filter Copy(bool withNodes = true)
 		{
 			var filter = new Filter()
 			{
-				Role = Role
+				Role = Role,
+				DefaultType = DefaultType,
+				FromRequest = FromRequest
 			};
-			CopyNodes(filter);
+			if (withNodes)
+			{
+				CopyNodes(filter);
+			}
 			return filter;
 		}
 

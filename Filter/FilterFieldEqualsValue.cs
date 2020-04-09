@@ -12,10 +12,21 @@ namespace Api.Permissions
 	/// </summary>
 	public partial class FilterFieldEqualsValue : FilterFieldEquals
 	{
+		private static object _lock = new object();
+		/// <summary>
+		/// Param ID which counts up to give each one a unique ref.
+		/// </summary>
+		public static long NextParamId = 1;
+
+		/// <summary>
+		/// A unique parameter ID.
+		/// </summary>
+		public long ParamId;
+
 		/// <summary>
 		/// The method to run to obtain a value to compare the field to.
 		/// </summary>
-		private Func<Context, Task<object>> _valueMethod;
+		public Func<Context, Task<object>> Method;
 
 		/// <summary>
 		/// Create a new ifUserField node.
@@ -23,9 +34,21 @@ namespace Api.Permissions
 		/// <param name="type"></param>
 		/// <param name="field"></param>
 		/// <param name="valueMethod"></param>
-		public FilterFieldEqualsValue(Type type, string field, Func<Context, Task<object>> valueMethod) : base(type, field) {
+		/// <param name="paramId"></param>
+		public FilterFieldEqualsValue(Type type, string field, Func<Context, Task<object>> valueMethod, long paramId = 0) : base(type, field) {
 
-			_valueMethod = valueMethod;
+			if (paramId == 0)
+			{
+				lock (_lock)
+				{
+					ParamId = NextParamId++;
+				}
+			}
+			else
+			{
+				ParamId = paramId;
+			}
+			Method = valueMethod;
 		}
 
 		/// <summary>
@@ -57,7 +80,7 @@ namespace Api.Permissions
 			var fieldValue = FieldInfo.GetValue(firstArg);
 
 			// Does it match?
-			var compareTo = await _valueMethod(token);
+			var compareTo = await Method(token);
 
 			return compareTo.Equals(fieldValue);
 		}
@@ -68,7 +91,7 @@ namespace Api.Permissions
 		/// <returns>A deep copy of the node.</returns>
 		public override FilterNode Copy()
 		{
-			return new FilterFieldEqualsValue(Type, Field, _valueMethod);
+			return new FilterFieldEqualsValue(Type, Field, Method, ParamId);
 		}
 	}
 
@@ -80,9 +103,7 @@ namespace Api.Permissions
 		/// <returns></returns>
 		public Filter FieldEqualsValue(Type type, string field, Func<Context, Task<object>> valueMethod)
 		{
-			var index = AddParamValueResolver(valueMethod);
 			var node = new FilterFieldEqualsValue(type, field, valueMethod);
-			node.ArgIndex = index;
 			return Add(node);
 		}
 

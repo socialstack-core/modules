@@ -37,9 +37,14 @@ namespace Api.Permissions
         }
 
 		/// <summary>
-		/// Indexed by capability InternalId. Never null.
+		/// Indexed by capability InternalId.
 		/// </summary>
 		private FilterNode[] CapabilityLookup = new FilterNode[0];
+
+		/// <summary>
+		/// Indexed by capability InternalId.
+		/// </summary>
+		private Filter[] CapabilityFilterLookup = new Filter[0];
 
 		/// <summary>
 		/// Grants the given capabilities unconditionally.
@@ -50,7 +55,7 @@ namespace Api.Permissions
 		{
 			for (var i = 0; i < capabilityNames.Length; i++)
 			{
-				Grant(capabilityNames[i], new FilterTrue());
+				Grant(capabilityNames[i], new FilterTrue(), null);
 			}
 
 			return this;
@@ -64,7 +69,7 @@ namespace Api.Permissions
 		/// <returns></returns>
 		public Role GrantVerb(params string[] verbs)
 		{
-			return GrantVerb(null, verbs);
+			return GrantVerb(null, null, verbs);
 		}
 
 		/// <summary>
@@ -72,9 +77,10 @@ namespace Api.Permissions
 		/// For example, GrantVerb("Load") will permit UserLoad, ForumReplyLoad etc.
 		/// </summary>
 		/// <param name="node"></param>
+		/// <param name="srcFilter"></param>
 		/// <param name="verbs"></param>
 		/// <returns></returns>
-		public Role GrantVerb(FilterNode node, params string[] verbs)
+		public Role GrantVerb(FilterNode node, Filter srcFilter, params string[] verbs)
 		{
 			for (var i = 0; i < verbs.Length; i++)
 			{
@@ -93,7 +99,7 @@ namespace Api.Permissions
 						}
 						else
 						{
-							Grant(kvp.Key, node);
+							Grant(kvp.Key, node, srcFilter);
 						}
 						
 						break;
@@ -110,8 +116,9 @@ namespace Api.Permissions
 		/// </summary>
 		/// <param name="capabilityName"></param>
 		/// <param name="node"></param>
+		/// <param name="srcFilter"></param>
 		/// <returns></returns>
-		public Role Grant(string capabilityName, FilterNode node)
+		public Role Grant(string capabilityName, FilterNode node, Filter srcFilter)
 		{
 			Capability cap;
 			if (!Capabilities.All.TryGetValue(capabilityName.ToLower(), out cap))
@@ -128,6 +135,10 @@ namespace Api.Permissions
 				var newLookup = new FilterNode[cap.InternalId + 1];
 				Array.Copy(CapabilityLookup, newLookup, CapabilityLookup.Length);
 				CapabilityLookup = newLookup;
+
+				var newFilterLookup = new Filter[cap.InternalId + 1];
+				Array.Copy(CapabilityFilterLookup, newFilterLookup, CapabilityFilterLookup.Length);
+				CapabilityFilterLookup = newFilterLookup;
 			}
 
 			if (CapabilityLookup[cap.InternalId] != null)
@@ -144,6 +155,7 @@ namespace Api.Permissions
 			// NOTE: We're intentionally generating new objects for each one.
 			// The capabilities must be completely independent at all times to avoid any unexpected crossover.
 			CapabilityLookup[cap.InternalId] = node;
+			CapabilityFilterLookup[cap.InternalId] = srcFilter;
 			
             return this;
         }
@@ -199,6 +211,7 @@ namespace Api.Permissions
 
                 // Remove from lookup:
                 CapabilityLookup[cap.InternalId] = null;
+                CapabilityFilterLookup[cap.InternalId] = null;
             }
 
             return this;
@@ -227,10 +240,12 @@ namespace Api.Permissions
         {
             // Must clone each grant chain individually just in case someone uses the chain API directly.
             CapabilityLookup = new FilterNode[copyFrom.CapabilityLookup.Length];
+            CapabilityFilterLookup = new Filter[copyFrom.CapabilityFilterLookup.Length];
 
 			for (var i = 0; i < copyFrom.CapabilityLookup.Length; i++)
 			{
 				var node = copyFrom.CapabilityLookup[i];
+				var srcFilter = copyFrom.CapabilityFilterLookup[i];
 
 				if (node == null)
 				{
@@ -238,6 +253,7 @@ namespace Api.Permissions
 				}
 
 				CapabilityLookup[i] = node.Copy();
+				CapabilityFilterLookup[i] = srcFilter == null ? null : srcFilter.Copy();
 			}
 
             return this;
@@ -263,7 +279,19 @@ namespace Api.Permissions
 
             Roles.All[Id] = this;
         }
-		
+
+		/// <summary>Gets the raw grant rule for the given capability. This is readonly.</summary>
+		public Filter GetSourceFilter(Capability capability)
+		{
+			if (capability.InternalId >= CapabilityLookup.Length)
+			{
+				// Nope!
+				return null;
+			}
+
+			return CapabilityFilterLookup[capability.InternalId];
+		}
+
 		/// <summary>Gets the raw grant rule for the given capability. This is readonly.</summary>
 		public FilterNode GetGrantRule(Capability capability)
 		{
