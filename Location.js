@@ -128,6 +128,14 @@ module.exports = (opts) => {
 	return get(opts);
 };
 
+module.exports.getFast = () => {
+	// Only returns latest if it's actually set.
+	if(latest && latest.latitude){
+		return latest;
+	}
+	return null;
+}
+
 module.exports.gridId = gridId;
 module.exports.gridOffset = gridOffset;
 module.exports.distance = distance;
