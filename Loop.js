@@ -55,7 +55,13 @@ export default class Loop extends React.Component {
 				}
 				
 				if(found){
-					this.setState({results: res});
+					// If it still passes the filter, keep it. Otherwise, delete it.
+					if(this.testFilter(msg.entity)){
+						this.setState({results: res});
+					}else{
+						// Delete it
+						this.setState({results: this.state.results.filter(ent => ent && ent.id != entityId)});
+					}
 				}else{
 					
 					// Does it pass the filter? If it does, add it.
