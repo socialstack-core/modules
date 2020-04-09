@@ -68,7 +68,7 @@ namespace Api.Permissions
 						var srcFilter = role.GetSourceFilter(capability);
 
 						// If it's outright rejected..
-						if (rawGrantRule == null || srcFilter == null)
+						if (rawGrantRule == null)
 						{
 							throw new PermissionException(capability.Name, await context.GetUser());
 						}
