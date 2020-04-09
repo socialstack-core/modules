@@ -237,7 +237,7 @@ namespace Api.Database
 			}
 
 			var str = new StringBuilder();
-			int paramOffset = filter == null ? 0 : filter.BaseParamOffset;
+			int paramOffset = 0;
 
 			switch (Operation)
 			{

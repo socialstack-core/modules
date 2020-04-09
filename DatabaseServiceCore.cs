@@ -503,7 +503,7 @@ namespace Api.Database
 				MySqlCommand cmd;
 
 				// If the filter has additional value resolvers..
-				if (filter != null && filter.BaseParamOffset != 0)
+				if (filter != null && filter.ParamValueResolvers != null)
 				{
 					// This means the filter wants some additional values to be calculated when it's called.
 					// So, go ahead and invoke that now:
@@ -513,14 +513,14 @@ namespace Api.Database
 					for (var i = 0; i < filter.ParamValueResolvers.Count; i++)
 					{
 						var valueResolver = filter.ParamValueResolvers[i];
-
+						
 						parameter = cmd.CreateParameter();
-						parameter.ParameterName = "p" + i;
+						parameter.ParameterName = "v" + valueResolver.ParamId;
 						cmd.Parameters.Add(parameter);
 
 						if (valueResolver != null)
 						{
-							parameter.Value = await valueResolver(context);
+							parameter.Value = await valueResolver.Method(context);
 						}
 					}
 
@@ -529,7 +529,7 @@ namespace Api.Database
 						for (var i = 0; i < args.Length; i++)
 						{
 							parameter = cmd.CreateParameter();
-							parameter.ParameterName = "p" + i + filter.BaseParamOffset;
+							parameter.ParameterName = "p" + i;
 							parameter.Value = args[i];
 							cmd.Parameters.Add(parameter);
 						}

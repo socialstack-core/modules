@@ -43,8 +43,8 @@ namespace Api.Permissions
 			}
 			
 			// Equal the value:
-			builder.Append("=@p");
-			builder.Append(ArgIndex);
+			builder.Append("`=@v");
+			builder.Append(ParamId);
 		}
 	}
 
