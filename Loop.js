@@ -48,7 +48,7 @@ export default class Loop extends React.Component {
 						continue;
 					}
 					
-					if(res[i] == entityId){
+					if(res[i].id == entityId){
 						res[i] = msg.entity;
 						found = true;
 					}
