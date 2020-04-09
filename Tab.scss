@@ -3,7 +3,7 @@
     position: relative;
     // critical / standard totals
     &::before,
-    &::after {
+    &::after { 
         position: absolute;
         font-family: $installed_font;
         font-size: 1rem;
