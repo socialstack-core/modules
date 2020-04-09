@@ -27,7 +27,7 @@ namespace Api.Permissions
 		/// <summary>
 		/// The value to match.
 		/// </summary>
-		public long Value;
+		public object Value;
 		/// <summary>
 		/// Matches arg instead of against the given constant Value.
 		/// </summary>
@@ -81,26 +81,53 @@ namespace Api.Permissions
 			{
 				return Task.FromResult(false);
 			}
-			
-			// Might just be a direct number given to us:
-			var firstArgAsNum = firstArg as long?;
-			
-			if (firstArgAsNum != null && firstArgAsNum < Value)
-			{
-				return Task.FromResult(true);
-			}
 
-			// Nope - try matching it via reading the field next.
-			if (firstArg.GetType() != Type)
-			{
-				return Task.FromResult(false);
-			}
+            if (Value is long)
+            {
+                // Might just be a direct number given to us:
+                var firstArgAsNum = firstArg as long?;
 
-			// Try reading it:
-			var fieldValue = FieldInfo.GetValue(firstArg) as long?;
+                if (firstArgAsNum != null && firstArgAsNum < (long)Value)
+                {
+                    return Task.FromResult(true);
+                }
 
-			return Task.FromResult(fieldValue.HasValue && fieldValue < Value);
-		}
+                // Nope - try matching it via reading the field next.
+                if (firstArg.GetType() != Type)
+                {
+                    return Task.FromResult(false);
+                }
+
+                // Try reading it:
+                var fieldValue = FieldInfo.GetValue(firstArg) as long?;
+
+                return Task.FromResult(fieldValue.HasValue && fieldValue < (long)Value);
+            }
+
+            if (Value is DateTime)
+            {
+                // Might just be a direct datetime given to us:
+                var firstArgAsNum = firstArg as DateTime?;
+
+                if (firstArgAsNum != null && firstArgAsNum < (DateTime)Value)
+                {
+                    return Task.FromResult(true);
+                }
+
+                // Nope - try matching it via reading the field next.
+                if (firstArg.GetType() != Type)
+                {
+                    return Task.FromResult(false);
+                }
+
+                // Try reading it:
+                var fieldValue = FieldInfo.GetValue(firstArg) as DateTime?;
+
+                return Task.FromResult(fieldValue.HasValue && fieldValue < (DateTime)Value);
+            }
+
+            return Task.FromResult(false);
+        }
 
 		/// <summary>
 		/// Copies this filter node.
@@ -166,7 +193,7 @@ namespace Api.Permissions
 		/// <param name="value"></param>
 		/// <param name="argIndex"></param>
 		/// <returns></returns>
-		public Filter LessThan(System.Type type, string fieldName, long value, int argIndex = 0)
+		public Filter LessThan(System.Type type, string fieldName, object value, int argIndex = 0)
 		{
 			return Add(new FilterFieldLessThan(type, fieldName)
 			{

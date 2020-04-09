@@ -64,14 +64,48 @@ namespace Api.Permissions
 			});
 		}
 
-		/// <summary>
-		/// Adds a filter node which checks if the value at the given argIndex equals the given value.
-		/// If the arg is an object, it should be of the given type. The value will be obtained from the given field.
-		/// </summary>
-		/// <param name="fieldName"></param>
-		/// <param name="argIndex"></param>
-		/// <returns></returns>
-		public Filter<T> EqualsArg(string fieldName, int argIndex = 0)
+        /// <summary>
+        /// Adds a filter node which checks if the value at the given argIndex is less than the given value.
+        /// If the arg is an object, it should be of the given type. The value will be obtained from the given field.
+        /// </summary>
+        /// <param name="fieldName"></param>
+        /// <param name="value"></param>
+        /// <param name="argIndex"></param>
+        /// <returns></returns>
+        public Filter<T> LessThan(string fieldName, object value, int argIndex = 0)
+        {
+            return Add(new FilterFieldLessThan(typeof(T), fieldName)
+            {
+                Value = value,
+                ArgIndex = argIndex
+            });
+        }
+
+        /// <summary>
+        /// Adds a filter node which checks if the value at the given argIndex is greater than the given value.
+        /// If the arg is an object, it should be of the given type. The value will be obtained from the given field.
+        /// </summary>
+        /// <param name="fieldName"></param>
+        /// <param name="value"></param>
+        /// <param name="argIndex"></param>
+        /// <returns></returns>
+        public Filter<T> GreaterThan(string fieldName, object value, int argIndex = 0)
+        {
+            return Add(new FilterFieldGreaterThan(typeof(T), fieldName)
+            {
+                Value = value,
+                ArgIndex = argIndex
+            });
+        }
+
+        /// <summary>
+        /// Adds a filter node which checks if the value at the given argIndex equals the given value.
+        /// If the arg is an object, it should be of the given type. The value will be obtained from the given field.
+        /// </summary>
+        /// <param name="fieldName"></param>
+        /// <param name="argIndex"></param>
+        /// <returns></returns>
+        public Filter<T> EqualsArg(string fieldName, int argIndex = 0)
 		{
 			return Add(new FilterFieldEquals(typeof(T), fieldName)
 			{
