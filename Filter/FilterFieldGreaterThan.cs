@@ -1,9 +1,6 @@
 using System;
-using System.Reflection;
 using System.Text;
-using Api.Contexts;
 using Api.Database;
-
 
 namespace Api.Permissions
 {
@@ -51,9 +48,18 @@ namespace Api.Permissions
 			}
 			else
 			{
-				// Use a constant non-null value
-				builder.Append(" > ");
-				builder.Append(MySql.Data.MySqlClient.MySqlHelper.EscapeString(Value.ToString()));
+                // Use a constant non-null value
+                builder.Append(" > ");
+                if (Value is DateTime)
+                {
+                    builder.Append("\"");
+                    builder.Append(MySql.Data.MySqlClient.MySqlHelper.EscapeString(((DateTime)Value).ToString("yyyy-MM-dd HH:mm:ss.fff")));
+                    builder.Append("\"");
+                }
+                else
+                {
+                    builder.Append(MySql.Data.MySqlClient.MySqlHelper.EscapeString(Value.ToString()));
+                }
 			}
 		}
 	}
