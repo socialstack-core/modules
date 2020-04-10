@@ -26,6 +26,13 @@ export default function webRequest(origUrl, data, opts) {
 	
 	return new Promise((success, reject) => {
 		_fetch(url, data, opts).then(response => {
+			if(global.storedToken && response.headers){
+				var token = response.headers.get('Token');
+				if(token){
+					store.set('context', token);
+				}
+			}
+			
 			// Get the response as json:
 			return response.text().then(text => {
 				// Catchable parse:
@@ -96,18 +103,15 @@ export default function webRequest(origUrl, data, opts) {
 function _fetch(url, data, opts) {
 	// Get the global user state - we want to see if we're phantoming as somebody.
 	var storeState = global.app.state;
-
-	// If we're logged in and the real user is not the same as the apparent user then tell the API we're phantoming:
-	var headers = (storeState.user && storeState.user.id != storeState.realUser.id) ? {
-		'Phantom-As': storeState.user.id
-	} : {};
+	
+	var headers = {};
 
 	if (global.settings && global.settings._version_) {
 		headers.Version = global.settings._version_;
 	}
     
-	if(global.apiHost){
-		headers['Token'] = store.get('user');
+	if(global.storedToken){
+		headers['Token'] = store.get('context');
 	}
 	
 	if(opts && opts.locale){
