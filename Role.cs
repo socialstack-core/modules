@@ -230,13 +230,49 @@ namespace Api.Permissions
             return this;
         }
 
-        /// <summary>
-        /// Grants the same perms as the given role. 
-        /// Replaces any grants already done, but you can still call grant after this.
-        /// </summary>
-        /// <param name="copyFrom"></param>
-        /// <returns></returns>
-        public Role GrantTheSameAs(Role copyFrom)
+		/// <summary>
+		/// Revokes all caps which end with the given text.
+		/// </summary>
+		/// <param name="capabilityNames"></param>
+		/// <returns></returns>
+		public Role RevokeIfEndsWith(params string[] capabilityNames)
+		{
+			for (var i = 0; i < capabilityNames.Length; i++)
+			{
+				var capabilityName = capabilityNames[i].ToLower();
+
+				foreach (var capKvp in Capabilities.All)
+				{
+					if (!capKvp.Key.EndsWith(capabilityName))
+					{
+						continue;
+					}
+
+					var cap = capKvp.Value;
+
+					// Revoke at that index:
+					if (cap.InternalId >= CapabilityLookup.Length)
+					{
+						// Out of range - already not granted.
+						continue;
+					}
+
+					// Remove from lookup:
+					CapabilityLookup[cap.InternalId] = null;
+					CapabilityFilterLookup[cap.InternalId] = null;
+				}
+			}
+
+			return this;
+		}
+
+		/// <summary>
+		/// Grants the same perms as the given role. 
+		/// Replaces any grants already done, but you can still call grant after this.
+		/// </summary>
+		/// <param name="copyFrom"></param>
+		/// <returns></returns>
+		public Role GrantTheSameAs(Role copyFrom)
         {
             // Must clone each grant chain individually just in case someone uses the chain API directly.
             CapabilityLookup = new FilterNode[copyFrom.CapabilityLookup.Length];
