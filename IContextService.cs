@@ -29,11 +29,8 @@
 		/// <summary>
 		/// Creates a signed token for the given user.
 		/// </summary>
-		/// <param name="userId"></param>
-		/// <param name="userRef">The login ref for this user.</param>
-		/// <param name="roleId">The user's role ID.</param>
 		/// <returns></returns>
-		string CreateToken(int userId, int userRef, int roleId);
+		string CreateToken(Context context);
 
 	}
 }

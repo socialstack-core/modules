@@ -1,5 +1,8 @@
 ﻿using System.Collections.Generic;
+using System.Reflection;
+using System.Text;
 using System.Threading.Tasks;
+using Api.Eventing;
 using Api.Signatures;
 
 
@@ -19,6 +22,12 @@ namespace Api.Contexts
 		#warning todo - populate the revoke map on load
 		private Dictionary<int, int> RevocationMap = new Dictionary<int, int>();
 
+		/// <summary>
+		/// Maps lowercase field names to the info about them.
+		/// </summary>
+		private Dictionary<string, ContextFieldInfo> Fields = new Dictionary<string, ContextFieldInfo>();
+		private List<ContextFieldInfo> FieldList = new List<ContextFieldInfo>();
+
 		private ISignatureService _signatures;
 
 
@@ -28,6 +37,38 @@ namespace Api.Contexts
         public ContextService(ISignatureService signatures)
         {
 			_signatures = signatures;
+
+			// Load all the props now.
+			var fields = typeof(Context).GetProperties(BindingFlags.Public | BindingFlags.Instance);
+
+			var defaultValueChecker = new Context();
+
+			foreach (var field in fields)
+			{
+				// must be an int field.
+				if (field.PropertyType != typeof(int))
+				{
+					continue;
+				}
+				
+				var lcName = field.Name.ToLower();
+				var getMethod = field.GetGetMethod();
+				
+				var defaultValue = (int)getMethod.Invoke(defaultValueChecker, new object[0]);
+				
+				var fld = new ContextFieldInfo()
+				{
+					Set = field.GetSetMethod(),
+					Get = getMethod,
+					Property = field,
+					Name = field.Name,
+					LowercaseNameWithDash = lcName + '-',
+					DefaultValue = defaultValue
+				};
+
+				Fields[lcName] = fld;
+				FieldList.Add(fld);
+			}
         }
 
 		/// <summary>
@@ -63,8 +104,8 @@ namespace Api.Contexts
                 return null;
             }
 
-			// Token str format is:
-			// UserID-RoleID-RoleRefVersion|Base64SignatureOfEverythingElse
+			// Default token str format is:
+			// userid-X-roleid-Y-userref-Z|Base64SignatureOfEverythingElse
 
 			var tokenSig = tokenStr.Split('|');
 
@@ -82,62 +123,93 @@ namespace Api.Contexts
 			// Verified! Build the token based on what was in the cookie:
 			var tokenParts = tokenSig[0].Split('-');
 
-			if (tokenParts.Length != 3)
+			var length = tokenParts.Length;
+
+			if ((length % 2) != 0)
 			{
+				// Must have an even # of parts.
 				return null;
 			}
+			
+			var context = new Context();
 
-			// Must all be integers:
-			if (!int.TryParse(tokenParts[0], out int userId))
+			// Every even token part is a field name, odd parts are the value.
+			// Default values - the value seen when creating a new context - are not stored.
+			var args = new object[1];
+
+			for (var i = 0; i < length; i += 2)
 			{
-				return null;
-			}
+				var fieldName = tokenParts[i];
+				var fieldValue = tokenParts[i + 1];
 
-			if (!int.TryParse(tokenParts[1], out int userRef))
-			{
-				return null;
-			}
+				if (!Fields.TryGetValue(fieldName, out ContextFieldInfo field))
+				{
+					// Removed field. We can ignore this and permit all other changes.
+					continue;
+				}
 
-			if (!int.TryParse(tokenParts[2], out int role))
-			{
-				return null;
-			}
+				if (!int.TryParse(fieldValue, out int id))
+				{
+					// Ancient cookie.
+					continue;
+				}
 
+				args[0] = id;
+
+				field.Set.Invoke(context, args);
+			}
+			
 			// If we don't have a revocation for the given user ref then continue.
 			// This means a significant amount of API requests go through without a single auth related database hit.
 
-			if (RevocationMap.TryGetValue(userId, out int revokedRefs))
+			if (RevocationMap.TryGetValue(context.UserId, out int revokedRefs))
 			{
-				if (userRef <= revokedRefs)
+				if (context.UserRef <= revokedRefs)
 				{
 					// This token is revoked permanently.
 					return null;
 				}
 			}
-
-			var token = new Context()
-			{
-				UserId = userId,
-				UserRef = userRef,
-				RoleId = role
-			};
 			
-			return token;
+
+			return context;
 		}
 
-		/// <summary>
-		/// Creates a signed token for the given user.
-		/// </summary>
-		/// <param name="userId"></param>
-		/// <param name="userRef">The login ref for this user.</param>
-		/// <param name="roleId">The user's role ID.</param>
-		/// <returns></returns>
-		public string CreateToken(int userId, int userRef, int roleId)
-		{
-			// Cookie format is:
-			// UserID-UserRef-RoleID|Base64SignatureOfEverythingElse
+		private object[] _emptyArgs = new object[0];
 
-			var tokenStr = userId + "-" + userRef + "-" + roleId;
+		/// <summary>
+		/// Creates a signed token for the given context.
+		/// </summary>
+		/// <returns></returns>
+		public string CreateToken(Context context)
+		{
+			var builder = new StringBuilder();
+
+			bool first = true;
+
+			foreach (var field in FieldList)
+			{
+				var value = (int)field.Get.Invoke(context, _emptyArgs);
+
+				if (value == field.DefaultValue)
+				{
+					continue;
+				}
+
+				if (first)
+				{
+					first = false;
+				}
+				else
+				{
+					builder.Append('-');
+				}
+
+				builder.Append(field.LowercaseNameWithDash);
+				builder.Append(value);
+			}
+
+			var tokenStr = builder.ToString();
 			tokenStr += "|" + _signatures.Sign(tokenStr);
             return tokenStr;
         }

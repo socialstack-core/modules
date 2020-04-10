@@ -1,10 +1,12 @@
-﻿using System.Security.Claims;
+﻿using System;
+using System.Security.Claims;
 using System.Threading.Tasks;
+using Api.Eventing;
 using Api.Permissions;
 using Api.Startup;
 using Api.Translate;
 using Api.Users;
-
+using Microsoft.AspNetCore.Http;
 
 namespace Api.Contexts
 {
@@ -12,19 +14,34 @@ namespace Api.Contexts
 	/// A context constructed primarily from a cookie value. 
 	/// Uses other locale hints such as Accept-Lang when the user doesn't specifically have one set in the cookie.
 	/// </summary>
-    public partial class Context : ClaimsPrincipal
+	public partial class Context : ClaimsPrincipal
 	{
 		/// <summary>
 		/// The identity this token represents (a genericu user).
 		/// </summary>
-		private static System.Security.Principal.GenericIdentity GenericIdentity= new System.Security.Principal.GenericIdentity("User");
+		private static System.Security.Principal.GenericIdentity GenericIdentity = new System.Security.Principal.GenericIdentity("User");
 		private static IUserService _users;
 		private static ILocaleService _locales;
+		private static IContextService _contextService;
+
+
+		private int _localeId = 1;
 
 		/// <summary>
 		/// The current locale or the site default.
 		/// </summary>
-		public int LocaleId = 1;
+		public int LocaleId
+		{
+			get
+			{
+				return _localeId;
+			}
+			set
+			{
+				_locale = null;
+				_localeId = value;
+			}
+		}
 
 		/// <summary>
 		/// The full locale object, if it has been requested.
@@ -41,7 +58,7 @@ namespace Api.Contexts
 			{
 				return _locale;
 			}
-			
+
 			if (_locales == null)
 			{
 				_locales = Services.Get<ILocaleService>();
@@ -55,24 +72,34 @@ namespace Api.Contexts
 				// Dodgy locale in the cookie. Locale #1 always exists.
 				return await _locales.GetCached(this, 1);
 			}
-			
+
 			return _locale;
 		}
+
+		private int _userId;
 
 		/// <summary>
 		///  The logged in users ID.
 		/// </summary>
-		public int UserId;
+		public int UserId {
+			get {
+				return _userId;
+			}
+			set {
+				_userId = value;
+				_user = null;
+			}
+		}
 
 		/// <summary>
 		/// A number held in the user row which is used to check for signature revocations.
 		/// </summary>
-		public int UserRef;
+		public int UserRef { get; set; }
 
 		/// <summary>
 		/// The role ID from the token.
 		/// </summary>
-		public int RoleId;
+		public int RoleId {get; set;}
 
 		/// <summary>
 		/// The full user object, if it has been requested.
@@ -135,6 +162,86 @@ namespace Api.Contexts
 
 			return _user;
 		}
-		
+
+		/// <summary>
+		/// Builds a public context. Used by e.g. self or login/ register EP's.
+		/// </summary>
+		public async Task<PublicContext> GetPublicContext()
+		{
+			var ctx = new PublicContext();
+			ctx.User = await GetUser();
+			ctx.Locale = await GetLocale();
+			ctx.Role = Role;
+
+			// Get any custom extensions:
+			ctx = await Events.PubliccontextOnSetup.Dispatch(this, ctx);
+
+			return ctx;
+		}
+
+		/// <summary>
+		/// Generates a new token for this ctx. Typically put into a cookie.
+		/// </summary>
+		/// <returns></returns>
+		public string CreateToken()
+		{
+			if (_contextService == null)
+			{
+				_contextService = Services.Get<IContextService>();
+			}
+
+			return _contextService.CreateToken(this);
+		}
+
+		/// <summary>
+		/// Sends a token into the 
+		/// </summary>
+		/// <param name="response"></param>
+		public void SendToken(HttpResponse response)
+		{
+			var token = CreateToken();
+			response.Headers.Append("Token", token);
+
+			var expiry = DateTime.UtcNow.AddDays(120);
+
+			if (_contextService == null)
+			{
+				_contextService = Services.Get<IContextService>();
+			}
+			
+			response.Cookies.Append(
+					_contextService.CookieName,
+					token,
+					new Microsoft.AspNetCore.Http.CookieOptions()
+					{
+						Path = "/",
+						Expires = expiry
+					}
+				);
+		}
+
+	}
+
+	/// <summary>
+	/// The publicly (to the user themselves) exposed context.
+	/// </summary>
+	public partial class PublicContext
+	{
+
+		/// <summary>
+		/// Authed user.
+		/// </summary>
+		public User User;
+
+		/// <summary>
+		/// Authed user locale.
+		/// </summary>
+		public Locale Locale;
+
+		/// <summary>
+		/// Authed user role.
+		/// </summary>
+		public Role Role;
+
 	}
 }
