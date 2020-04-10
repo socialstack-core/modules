@@ -1,15 +1,12 @@
-using System;
-using System.Linq;
-using System.Threading.Tasks;
-using Api.Eventing;
 using Api.Contexts;
+using Api.Eventing;
 using Api.Permissions;
 using Api.Results;
+using Api.Startup;
 using Microsoft.AspNetCore.Mvc;
 using Newtonsoft.Json.Linq;
-using Api.AutoForms;
-using Api.Startup;
-using Microsoft.Extensions.Logging;
+using System;
+using System.Threading.Tasks;
 
 /// <summary>
 /// A convenience controller for defining common endpoints like create, list, delete etc. Requires an AutoService of the same type to function.
@@ -252,7 +249,7 @@ public partial class AutoController<T> : ControllerBase
 	/// <param name="context"></param>
 	/// <param name="body"></param>
 	/// <param name="fieldGroup"></param>
-	private async Task<string> SetFieldsOnObject(T target, Context context, JObject body, JsonFieldGroup fieldGroup = JsonFieldGroup.Any)
+	protected async Task<string> SetFieldsOnObject(T target, Context context, JObject body, JsonFieldGroup fieldGroup = JsonFieldGroup.Any)
 	{
         // Get the JSON meta which will indicate exactly which fields are editable by this user (role):
 		var availableFields = await _service.GetTypedJsonStructure(context.RoleId);
