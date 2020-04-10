@@ -417,10 +417,14 @@ namespace Api.Users
 				result.CookieName = _contexts.CookieName;
 
 				// Create a new context token (basically a signed string which can identify a context with this user/ role/ locale etc):
-				result.Token = _contexts.CreateToken(result.User.Id, 0, result.User.Role);
+				context.UserId = result.User.Id;
+				context.UserRef = result.User.LoginRevokeCount;
+				context.RoleId = result.User.Role;
+
+				result.Token = _contexts.CreateToken(context);
 
 				// The default expiry:
-				result.Expiry = DateTime.UtcNow.AddDays(30);
+				result.Expiry = DateTime.UtcNow.AddDays(120);
 			}
 			else
 			{

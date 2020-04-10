@@ -35,21 +35,20 @@ namespace Api.Users
 		}
 		
 		/// <summary>
-		/// Gets the currently logged in user, or null if there isn't one.
+		/// Gets the current context.
 		/// </summary>
 		/// <returns></returns>
 		[HttpGet("self")]
-		public async Task<User> Self()
+		public async Task<PublicContext> Self()
 		{
 			var context = Request.GetContext();
 
-			if (context == null || context.UserId == 0)
+			if (context == null)
 			{
 				return null;
 			}
 
-			var user = await context.GetUser();
-			return user;
+			return await context.GetPublicContext();
 		}
 		
 		/// <summary>
@@ -109,6 +108,8 @@ namespace Api.Users
 
 			if (result != null && result.Token != null)
 			{
+				Response.Headers.Add("Token", result.Token);
+
 				Response.Cookies.Append(
 					result.CookieName,
 					result.Token,
