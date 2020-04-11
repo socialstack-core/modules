@@ -74,8 +74,7 @@ namespace Api.WebSockets
 			}
 			
 		}
-
-
+		
 		/// <summary>
 		/// Websocket clients listening by event type.
 		/// Type is typically of the form EventName?query&amp;encoded&amp;filter.
@@ -105,7 +104,49 @@ namespace Api.WebSockets
 			
 			return listener;
 		}
+		
+		/// <summary>
+		/// Sends the given entity and the given method name which states what has happened with this object. Typically its 'update', 'create' or 'delete'.
+		/// It's sent to everyone who can view entities of this type.
+		/// </summary>
+		public void Send(object entity, string methodName)
+		{
+			
+			if(entity == null)
+			{
+				return;
+			}
+			
+			var typeName = entity.GetType().Name;
+			
+			// We'll send this event to particular users *if* they have the load capability.
+			string capName = (typeName + "_load").ToLower();
+			if(!Capabilities.All.TryGetValue(capName, out Capability capability))
+			{
+				// Can't send this entity.
+				return;
+			}
+			
+			// Send via the websocket service:
+			Task.Run(async () =>
+			{
 
+				await Send(
+					new WebSocketEntityMessage() {
+						Type = typeName,
+						Method = methodName,
+						Entity = entity
+					},
+					capability,
+					new object[] {
+						entity
+					}
+				);
+				
+			});
+			
+		}
+		
 		/// <summary>
 		/// Called when a new client has connected and it's time to add them.
 		/// </summary>
@@ -136,7 +177,7 @@ namespace Api.WebSockets
 					// Get the payload:
 					var requestJson = Encoding.UTF8.GetString(buffer.Array,
 						buffer.Offset,
-						buffer.Count);
+						received.Count);
 				
 					JObject message = JsonConvert.DeserializeObject(requestJson) as JObject;
 
