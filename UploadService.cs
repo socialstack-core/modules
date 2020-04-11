@@ -148,7 +148,13 @@ namespace Api.Uploader
 					// Dump the file and reject the request.
 					File.Delete(tempFile);
 
-					throw new Exception("Uploaded file is a corrupt image or is too big. Underlying exception: " + e.ToString());
+					Console.WriteLine("Uploaded file is a corrupt image or is too big. Underlying exception: " + e.ToString());
+				}
+				catch
+				{
+					// Either the image format is unknown or you don't have the required libraries to decode this format [GDI+ status: UnknownImageFormat]
+					// Just ignore this one.
+					Console.WriteLine("Unsupported image format was not resized.");
 				}
 			}
 			
