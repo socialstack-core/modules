@@ -11,11 +11,9 @@ var messageTypes = {
 };
 
 function informStatus(state){
-	for(var type in messageTypes){
-		var handlers = messageTypes[type];
-		for(var i=0;i<handlers.length;i++){
-			handlers[i]({type: 'status', connected: state});
-		}
+	var handlers = messageTypes['status'];
+	for(var i=0;i<handlers.length;i++){
+		handlers[i]({connected: state});
 	}
 }
 
@@ -47,12 +45,34 @@ function goAgain(){
     }, 5000);
 }
 
+var pingInterval = null;
+
+function setPing(){
+	
+	if(pingInterval){
+		return;
+	}
+	
+	pingInterval = setInterval(function(){
+		
+		// Check if the server is still there every 30s.
+		// If this fails the socket disconnects and we get informed about it that way.
+		if(ws && ws.readyState == WebSocket.OPEN && ws.ping)
+		{
+			ws.ping();
+		}
+		
+	}, 30000);
+	
+}
+
 // Connects the websocket
 function connect(){
 	var isHttps = global.location.protocol == "https:";
 	
 	// Fire up the websocket:
 	ws = new WebSocket((global.apiHost || global.location.origin).replace("http", "ws") + "/live-websocket/");
+	setPing();
 	
 	ws.addEventListener("open", () => {
 		informStatus(true);
@@ -66,7 +86,9 @@ function connect(){
 		var types = [];
 		
 		for(var name in messageTypes){
-			types.push(name);
+			if(name != 'status'){
+				types.push(name);
+			}
 		}
 		
 		if(types.length){
@@ -107,13 +129,20 @@ function send(msg){
 
 module.exports = {
     addEventListener:(type, method) => {
-		start();
+		if(type != 'status'){
+			start();
+		}
 		
 		if(messageTypes[type]){
 			messageTypes[type].push(method);
 		}else{
 			typeCount++;
 			messageTypes[type] = [method];
+			
+			if(type == 'status'){
+				return;
+			}
+			
 			var msg = {type: 'Add', name: type};
 			
 			if(!ws){
