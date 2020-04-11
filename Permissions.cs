@@ -23,6 +23,10 @@ namespace Api.Uploader
 				// Public - the role used by anonymous users.
 				Roles.Guest.Grant("upload_create");
 				Roles.Member.Grant("upload_create");
+				
+				Roles.Guest.Revoke("upload_list", "upload_load");
+				Roles.Member.Revoke("upload_list", "upload_load");
+				Roles.Public.Revoke("upload_list", "upload_load");
 				return Task.FromResult(source);
 			});
 		}
