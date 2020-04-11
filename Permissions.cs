@@ -21,9 +21,6 @@ namespace Api.Users
 			Events.CapabilityOnSetup.AddEventListener((Context context, object source) =>
 			{
 				// Public - the role used by anonymous users.
-				Roles.Guest.Grant("user_load");
-				Roles.Public.Grant("user_load");
-				Roles.Member.Grant("user_load");
 				return Task.FromResult(source);
 			});
 		}
