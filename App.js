@@ -17,12 +17,11 @@ export default class App extends React.Component{
 		};
 		global.app = this;
 		
-		webRequest('user/self').then(response => {
-			if(response && response.json && response.json.id){
-				global.app.setState({user: response.json, realUser: response.json, loadingUser: false});
+		this.state.loadingUser = webRequest('user/self').then(response => {
+			if(response && response.json){
+				global.app.setState({...response.json, loadingUser: false});
 			}else{
-				// Not logged in
-				global.app.setState({user: null, realUser: null, loadingUser: false});
+				global.app.setState({loadingUser: false});
 			}
 		}).catch(e=>{
 			// Not logged in
