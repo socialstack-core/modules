@@ -11,6 +11,15 @@ export default class Tabs extends React.Component {
 			activeIndex: this.props.defaultIndex || 0
 		};
 	}
+
+    updateSelectedTab(index) {
+        this.setState({ activeIndex: index });
+
+        if (this.props.onChangeTab) {
+            this.props.onChangeTab(index);
+        }
+
+    }
 	
 	render(){
         let { activeIndex } = this.state;
@@ -33,7 +42,7 @@ export default class Tabs extends React.Component {
                 <li className={className} data-critical-total={criticalTotal} data-standard-total={standardTotal}>
                     <button
                         className="tab-link-btn"
-                        onClick={() => this.setState({ activeIndex: index })}
+                        onClick={() => this.updateSelectedTab(index)}
                     >
                         {icon}
                         {child.props.label}
