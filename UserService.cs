@@ -421,6 +421,8 @@ namespace Api.Users
 				context.UserRef = result.User.LoginRevokeCount;
 				context.RoleId = result.User.Role;
 
+				await Events.UserOnLogin.Dispatch(context, result);
+
 				result.Token = _contexts.CreateToken(context);
 
 				// The default expiry:

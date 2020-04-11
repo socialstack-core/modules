@@ -25,6 +25,11 @@ namespace Api.Eventing
 		public static EventHandler<UserLogin> UserBeforeAuthenticate;
 
 		/// <summary>
+		/// During a login. This is where you can make context changes due to a user logging in.
+		/// </summary>
+		public static EventHandler<LoginResult> UserOnLogin;
+
+		/// <summary>
 		/// Just after updating an user.
 		/// </summary>
 		public static EventHandler<User> UserAfterAuthenticate;
