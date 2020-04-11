@@ -7,11 +7,17 @@ namespace Api.PushNotifications
     /// </summary>
     public partial class PushNotificationCustomData
     {
-		
+
+		/// <summary>
+		/// The url of the message.
+		/// </summary>
+		public string url;
+
 		/// <summary>
 		/// The title of the message.
 		/// </summary>
 		public string title;
+
 		/// <summary>
 		/// The body of the message.
 		/// </summary>

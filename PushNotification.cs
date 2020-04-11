@@ -31,7 +31,12 @@ namespace Api.PushNotifications
 		/// This is set to true if the notification was sent successfully.
 		/// </summary>
 		public bool Successful = false;
-		
+
+		/// <summary>
+		/// Optional target URL to open.
+		/// </summary>
+		public string Url;
+
 		/// <summary>
 		/// Any additional data to send with this notification. Optional.
 		/// </summary>

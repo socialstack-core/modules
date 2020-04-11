@@ -61,13 +61,15 @@ namespace Api.PushNotifications
 				customData = new PushNotificationCustomData()
 				{
 					body = notification.Body,
-					title = notification.Title
+					title = notification.Title,
+					url = notification.Url
 				};
 			}
 			else
 			{
 				customData.body = notification.Body;
 				customData.title = notification.Title;
+				customData.url = notification.Url;
 			}
 			
 			// Firebase for everything else
@@ -77,6 +79,8 @@ namespace Api.PushNotifications
 				notification = new {
 					body = notification.Body,
 					title = notification.Title,
+					url = notification.Url,
+
 					//customData.category,
 					//customData.click_action
 				},
