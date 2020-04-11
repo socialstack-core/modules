@@ -164,10 +164,13 @@ module.exports = {
 		
 		if(!messageTypes[type].length){
 			typeCount--;
-			send({type: 'Remove', name: type});
 			
 			if(typeCount<=0){
 				typeCount=0;
+			}
+			
+			if(ws && ws.readyState == WebSocket.OPEN){
+				ws.send(JSON.stringify({type: 'Remove', name: type}));
 			}
 			
 			// Todo: Do this after a timeout:
