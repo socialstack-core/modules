@@ -58,7 +58,8 @@ namespace Api.WebSockets
 							new WebSocketEntityMessage() {
 								Type = typeEvent.EntityName,
 								Method = method,
-								Entity = args[0]
+								Entity = args[0],
+								By = context == null ? 0 : context.UserId
 							},
 							capability,
 							args
@@ -109,7 +110,7 @@ namespace Api.WebSockets
 		/// Sends the given entity and the given method name which states what has happened with this object. Typically its 'update', 'create' or 'delete'.
 		/// It's sent to everyone who can view entities of this type.
 		/// </summary>
-		public void Send(object entity, string methodName)
+		public void Send(Context context, object entity, string methodName)
 		{
 			
 			if(entity == null)
@@ -135,7 +136,8 @@ namespace Api.WebSockets
 					new WebSocketEntityMessage() {
 						Type = typeName,
 						Method = methodName,
-						Entity = entity
+						Entity = entity,
+						By = context == null ? 0 : context.UserId
 					},
 					capability,
 					new object[] {
@@ -435,6 +437,11 @@ namespace Api.WebSockets
 	/// A message to send via websockets with an entity of a particular type.
 	/// </summary>
 	public class WebSocketEntityMessage : WebSocketMessage{
+		
+		/// <summary>
+		/// User ID of the person who raised this event.
+		/// </summary>
+		public int By;
 		/// <summary>
 		/// The entity to send in this message.
 		/// E.g. a newly created chat message.

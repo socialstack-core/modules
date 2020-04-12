@@ -31,7 +31,7 @@ namespace Api.WebSockets
 		/// Sends the given entity and the given method name which states what has happened with this object. Typically its 'update', 'create' or 'delete'.
 		/// It's sent to everyone who can view entities of this type.
 		/// </summary>
-		void Send(object entity, string methodName);
+		void Send(Context context, object entity, string methodName);
 		
 	}
 }
