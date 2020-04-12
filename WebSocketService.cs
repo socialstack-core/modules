@@ -23,13 +23,17 @@ namespace Api.WebSockets
 	public partial class WebSocketService : IWebSocketService
     {
 
+		private readonly IContextService _contextService;
+
 		/// <summary>
 		/// Instanced automatically.
 		/// </summary>
-		public WebSocketService(){
-			
+		public WebSocketService(IContextService contextService)
+		{
+			_contextService = contextService;
+
 			// Collect all IAmLive types.
-			
+
 			var loadEvents = Events.FindByType(typeof(IAmLive), null, EventPlacement.After);
 
 			foreach (var typeEvent in loadEvents)
@@ -210,6 +214,28 @@ namespace Api.WebSockets
 							
 							// Add the listener now:
 							client.AddEventListener(typeToListenTo);
+						break;
+						case "Auth":
+							jToken = message["token"];
+
+							if (jToken == null || jToken.Type != JTokenType.String)
+							{
+								// Just ignore this message.
+								continue;
+							}
+
+							var authToken = jToken.Value<string>();
+
+							// Load the context:
+							var ctx = _contextService.Get(authToken);
+
+							if (ctx == null)
+							{
+								ctx = new Context();
+							}
+
+							client.Context = ctx;
+
 						break;
 						case "Remove":
 						case "RemoveEventListener":
