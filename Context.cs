@@ -17,7 +17,7 @@ namespace Api.Contexts
 	public partial class Context : ClaimsPrincipal
 	{
 		/// <summary>
-		/// The identity this token represents (a genericu user).
+		/// The identity this token represents (a generic user).
 		/// </summary>
 		private static System.Security.Principal.GenericIdentity GenericIdentity = new System.Security.Principal.GenericIdentity("User");
 		private static IUserService _users;
@@ -26,7 +26,12 @@ namespace Api.Contexts
 
 
 		private int _localeId = 1;
-
+		
+		/// <summary>
+		/// Set to false if editedUtc values shouldn't be updated.
+		/// </summary>
+		public bool PermitEditedUtcChange = true;
+		
 		/// <summary>
 		/// The current locale or the site default.
 		/// </summary>
