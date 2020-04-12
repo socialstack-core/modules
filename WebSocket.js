@@ -1,3 +1,5 @@
+import store from 'UI/Functions/Store';
+
 /*
 * Handles setting up the websocket.
 */
@@ -78,6 +80,14 @@ function connect(){
 		informStatus(true);
 		var msgs = onConnectedMessages;
 		onConnectedMessages = [];
+		
+		if(global.storedToken){
+			// Auth msg:
+			ws.send(JSON.stringify({
+				type: 'Auth',
+				token: store.get('context')
+			}));
+		}
 		
 		for(var i=0;i<msgs.length;i++){
 			ws.send(JSON.stringify(msgs[i]));
