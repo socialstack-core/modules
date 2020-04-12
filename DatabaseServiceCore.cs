@@ -284,7 +284,7 @@ namespace Api.Database
 			{
 				var revRow = srcObject as Api.Users.RevisionRow;
 
-				if (revRow != null)
+				if (revRow != null && context.PermitEditedUtcChange)
 				{
 					revRow.EditedUtc = DateTime.UtcNow;
 				}
