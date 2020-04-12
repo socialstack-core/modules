@@ -31,9 +31,28 @@ export default class Loop extends React.Component {
 		
 		// Push msg.entity into the results set:
 		if(this.state.results && msg.entity){
-			console.log(msg);
+			var e = msg.entity;
 			
-			var entityId = msg.entity.id;
+			if(msg.by && e.viewedAtUtc){
+				// Special views specific functionality here.
+				// If we receive an update via the websocket, we must change its viewedAtUtc field (if it has one).
+				// That's because its value is user specific, and is set to the value of the person who raised the event.
+				// Lots of database traffic just isn't worthwhile given the UI can figure it out for itself.
+				
+				// If *this user* made the update, set the viewed date as the edited date.
+				// Otherwise, clear it. We don't know when this user actually last saw it.
+				var { user } = global.app.state;
+				
+				var userId = user ? user.id : 0;
+				
+				if(msg.by == userId){
+					e.viewedAtUtc = e.editedUtc;
+				}else{
+					e.viewedAtUtc = null;
+				}
+			}
+			
+			var entityId = e.id;
 			
 			if(msg.method == 'delete'){
 				// Remove by id:
@@ -49,14 +68,14 @@ export default class Loop extends React.Component {
 					}
 					
 					if(res[i].id == entityId){
-						res[i] = msg.entity;
+						res[i] = e;
 						found = true;
 					}
 				}
 				
 				if(found){
 					// If it still passes the filter, keep it. Otherwise, delete it.
-					if(this.testFilter(msg.entity)){
+					if(this.testFilter(e)){
 						this.setState({results: res});
 					}else{
 						// Delete it
@@ -65,9 +84,9 @@ export default class Loop extends React.Component {
 				}else{
 					
 					// Does it pass the filter? If it does, add it.
-					if(this.testFilter(msg.entity)){
-						this.state.results.push(msg.entity);
-						this.props.onLiveCreate && this.props.onLiveCreate(msg.entity);
+					if(this.testFilter(e)){
+						this.state.results.push(e);
+						this.props.onLiveCreate && this.props.onLiveCreate(e);
 						this.setState({results: this.state.results});
 					}
 					
