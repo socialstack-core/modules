@@ -3,6 +3,7 @@ html, body, #react-view, #react-root, #content-root, #content-page {
     width: 100%;
     margin: 0;
     font-family: $installed_font;
+	touch-action: manipulation;
 }
 
 .non-selectable {
