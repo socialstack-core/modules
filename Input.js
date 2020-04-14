@@ -18,6 +18,7 @@ export default class Input extends React.Component {
         super(props);
         this.state = {};
         this.newId();
+        this.onInput = this.onInput.bind(this);
         this.onChange = this.onChange.bind(this);
         this.onBlur = this.onBlur.bind(this);
         this.onSelectChange = this.onSelectChange.bind(this);
@@ -57,6 +58,16 @@ export default class Input extends React.Component {
                 )}
             </div>
         );
+    }
+
+    onInput(e) {
+        this.props.onInput && this.props.onInput(e);
+        if (e.defaultPrevented) {
+            return; 
+        }
+
+        // Validation check
+        this.revalidate(e);
     }
 
     onChange(e) {
@@ -253,6 +264,7 @@ export default class Input extends React.Component {
                     type={type}
                     onChange={this.onChange}
                     onBlur={this.onBlur}
+                    onInput={this.onInput}
                     data-validation={this.state.validationFailure ? true : undefined}
                     {...omit(this.props, ['id', 'className', 'onChange', 'onBlur', 'type', 'inline'])}
                 />
