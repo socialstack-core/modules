@@ -11,7 +11,11 @@ catch{
 export default class PageRouter extends React.Component{
 	
 	go(url){
-		global.history.pushState({}, "", url);
+		if(global.storedToken){
+			global.history.pushState({}, "", '#' + url);
+		}else{
+			global.history.pushState({}, "", url);
+		}
 		document.body.parentNode.scrollTop=0;
 		this.props.onNavigate && this.props.onNavigate(url);
 	}
