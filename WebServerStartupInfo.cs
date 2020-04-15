@@ -117,8 +117,8 @@ namespace Api.Startup
 		
 			services.AddCors(c =>  
 			{  
-				c.AddPolicy("AllowOrigin", options => options.AllowAnyOrigin());  
-			});  
+				c.AddDefaultPolicy(options => options.AllowAnyOrigin().AllowAnyHeader().AllowAnyMethod());
+			}); 
 			
 			// Run the first event (IEventListener implementors can use).
 			OnConfigureServices?.Invoke(services);
@@ -137,8 +137,8 @@ namespace Api.Startup
             // Set the service provider:
             Services.Provider = serviceProvider;
 
-            app.UseCors(options => options.AllowAnyOrigin());  
-			
+            app.UseCors(options => options.AllowAnyOrigin().AllowAnyHeader().AllowAnyMethod());
+
 			app.UseForwardedHeaders(new ForwardedHeadersOptions
             {
                 ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto
