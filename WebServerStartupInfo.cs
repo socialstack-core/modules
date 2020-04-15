@@ -137,7 +137,7 @@ namespace Api.Startup
             // Set the service provider:
             Services.Provider = serviceProvider;
 
-            app.UseCors(options => options.AllowAnyOrigin().AllowAnyHeader().AllowAnyMethod());
+            app.UseCors(options => options.AllowAnyOrigin().AllowAnyHeader().AllowAnyMethod().WithExposedHeaders("Token"));
 
 			app.UseForwardedHeaders(new ForwardedHeadersOptions
             {
