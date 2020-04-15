@@ -103,7 +103,9 @@ export default function webRequest(origUrl, data, opts) {
 function _fetch(url, data, opts) {
 	// Get the global user state - we want to see if we're phantoming as somebody.
 	var storeState = global.app.state;
-	
+	var credentials = global.storedToken ? undefined : 'include';
+	var mode = 'cors';
+
 	var headers = {};
 
 	if (global.settings && global.settings._version_) {
@@ -119,15 +121,15 @@ function _fetch(url, data, opts) {
 	}
 	
 	if (!data) {
-		return fetch(url, { method: opts && opts.method ? opts.method : 'get', mode: 'cors', credentials: 'include', headers });
+		return fetch(url, { method: opts && opts.method ? opts.method : 'get', mode, credentials, headers });
 	}
     
 	if (data instanceof FormData) {
 		return fetch(url, {
 			method: opts && opts.method ? opts.method : 'post',
             body: data,
-			mode: 'cors',
-            credentials: 'include',
+			mode,
+            credentials,
 			headers
 		});
 	}
@@ -139,8 +141,8 @@ function _fetch(url, data, opts) {
 			'Content-Type': 'application/json',
 			...headers
 		},
-		mode: 'cors',
+		mode,
 		body: JSON.stringify(data),
-		credentials: 'include'
+		credentials
 	});
 }
