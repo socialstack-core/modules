@@ -80,6 +80,57 @@ namespace Api.Uploader
         }
 
 		/// <summary>
+		/// Orientation tag
+		/// </summary>
+		private const int ExifOrientationTagId = 274;
+
+		/// <summary>
+		/// Strips orientation exif data.
+		/// </summary>
+		public bool NormalizeOrientation(Image image)
+		{
+			if (Array.IndexOf(image.PropertyIdList, ExifOrientationTagId) > -1)
+			{
+				int orientation;
+
+				orientation = image.GetPropertyItem(ExifOrientationTagId).Value[0];
+
+				if (orientation >= 1 && orientation <= 8)
+				{
+					switch (orientation)
+					{
+					case 2:
+						image.RotateFlip(RotateFlipType.RotateNoneFlipX);
+						break;
+					case 3:
+						image.RotateFlip(RotateFlipType.Rotate180FlipNone);
+						break;
+					case 4:
+						image.RotateFlip(RotateFlipType.Rotate180FlipX);
+						break;
+					case 5:
+						image.RotateFlip(RotateFlipType.Rotate90FlipX);
+						break;
+					case 6:
+						image.RotateFlip(RotateFlipType.Rotate90FlipNone);
+						break;
+					case 7:
+						image.RotateFlip(RotateFlipType.Rotate270FlipX);
+						break;
+					case 8:
+						image.RotateFlip(RotateFlipType.Rotate270FlipNone);
+						break;
+					}
+
+					image.RemovePropertyItem(ExifOrientationTagId);
+					return true;
+				}
+			}
+
+			return false;
+		}
+		
+		/// <summary>
 		/// Writes an uploaded file into the content folder.
 		/// </summary>
 		/// <param name="context"></param>
@@ -130,6 +181,7 @@ namespace Api.Uploader
 				await file.CopyToAsync(fileStream);
 			}
 			
+			var saveOriginal = false;
 			Image current = null;
 
 			if (IsSupportedImage(fileType))
@@ -138,8 +190,15 @@ namespace Api.Uploader
 				try
 				{
 					current = Image.FromFile(tempFile);
+					
+					if(NormalizeOrientation(current)){
+						// The image was rotated - we need to save it as the original.
+						saveOriginal = true;
+					}
+					
 					result.Width = current.Width;
 					result.Height = current.Height;
+					
 				}
 				catch (OutOfMemoryException e)
 				{
@@ -189,10 +248,15 @@ namespace Api.Uploader
 
 				current.Dispose();
 			}
-
-			// Relocate the temp file:
-			System.IO.File.Move(tempFile, writePath);
-
+			
+			if(saveOriginal){
+				// Save img as the original file:
+				current.Save(writePath);
+			}else{
+				// Relocate the temp file:
+				System.IO.File.Move(tempFile, writePath);
+			}
+			
 			result = await Events.Upload.AfterCreate.Dispatch(context, result);
 			return result;
         }
