@@ -25,7 +25,13 @@ export default class Loop extends React.Component {
 	
 	onLiveMessage(msg){
 		if(msg.type == "status"){
+			if(msg.connected){
+				// Force a reload:
+				this.load(this.props, true);
+			}
+			
 			this.props.onLiveStatus && this.props.onLiveStatus(msg.connected);
+			
 			return;
 		}
 		
@@ -228,12 +234,12 @@ export default class Loop extends React.Component {
 		this.load(props);
 	}
 	
-	load(props) {
+	load(props, force) {
 		if(typeof props.over == 'string'){
 			
 			var jsonFilter = props.filter ? JSON.stringify(props.filter) : null;
 			
-			if(this.state.over == props.over && jsonFilter == this.state.jsonFilter){
+			if(!force && this.state.over == props.over && jsonFilter == this.state.jsonFilter){
 				// Avoid making a new request.
 				return;
 			}
