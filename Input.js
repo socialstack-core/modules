@@ -16,7 +16,7 @@ export default class Input extends React.Component {
 
     constructor(props) {
         super(props);
-        this.state = {};
+        this.state = {pwVisible:false};
         this.newId();
         this.onInput = this.onInput.bind(this);
         this.onChange = this.onChange.bind(this);
@@ -249,6 +249,27 @@ export default class Input extends React.Component {
                     </label>
                 </div>
             );
+		}else if(type === "password"){
+			var { pwVisible } = this.state;
+			return <div className="input-group">
+					<input
+						id={this.props.id || this.fieldId}
+						className={this.props.className || "form-control"}
+						aria-describedby={this.helpFieldId}
+						type={pwVisible ? 'text' : type}
+						onChange={this.onChange}
+						onBlur={this.onBlur}
+						onInput={this.onInput}
+						data-validation={this.state.validationFailure ? true : undefined}
+						{...omit(this.props, ['id', 'className', 'onChange', 'onBlur', 'type', 'inline'])}
+					/>
+					<div className="input-group-append clickable" onClick={() => {
+						this.setState({pwVisible: !pwVisible});
+					}}>
+						<span className="input-group-text"><i className={"fa fa-eye" + (pwVisible ? '-slash' : '')} /></span>
+					</div>
+				</div>;
+			
         } else {
             // E.g. ontypecanvas will fire. This gives a generic entry point for custom input types by just installing them:
             var handler = eventTarget['ontype' + type];

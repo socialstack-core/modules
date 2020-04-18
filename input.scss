@@ -4,6 +4,10 @@
 	margin-top: 4px;
 }
 
+.clickable:hover{
+	cursor:pointer;
+}
+
 input[type="checkbox"].form-control {
 	width: initial;
 }
