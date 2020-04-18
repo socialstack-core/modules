@@ -13,9 +13,11 @@ var messageTypes = {
 };
 
 function informStatus(state){
-	var handlers = messageTypes['status'];
-	for(var i=0;i<handlers.length;i++){
-		handlers[i]({connected: state});
+	for(var typeName in messageTypes){
+		var handlers = messageTypes[typeName];
+		for(var i=0;i<handlers.length;i++){
+			handlers[i]({type: 'status', connected: state});
+		}
 	}
 }
 
