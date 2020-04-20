@@ -106,6 +106,10 @@ namespace Api.Eventing
 		/// List entities.
 		/// </summary>
 		public EndpointEventHandler<Filter<T>> List;
+		/// <summary>
+		/// List entities.
+		/// </summary>
+		public EndpointEventHandler<List<T>> Listed;
 
 		#endregion
 
