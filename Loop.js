@@ -135,7 +135,15 @@ export default class Loop extends React.Component {
 				// Lowercase the key as it's an exact field match:
 				var entityKeyName = key.charAt(0).toLowerCase() + key.slice(1);
 				
-				if(ent[entityKeyName] != value){
+				var reqValue = ent[entityKeyName];
+				
+				// value can be an array of options.
+				if(Array.isArray(value) && value.indexOf(reqValue) == -1){
+					// Failed the filter
+					return false;
+				}
+				
+				if(reqValue != value){
 					return false;
 				}
 			}
