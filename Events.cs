@@ -1,5 +1,4 @@
 using System;
-using Api.Hospitals;
 using Api.Permissions;
 using System.Collections.Generic;
 using System.Runtime.Serialization;
