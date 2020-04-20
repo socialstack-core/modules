@@ -217,12 +217,24 @@ namespace Api.Permissions
 			// Construct the subchain so we get the node to actually add straight away:
 			var a = Construct();
 
-			// Add it in:
-			combined.Add(new FilterAnd()
+			// If either is null, set just the one on combined.
+			if (a == null)
 			{
-				Input0 = a,
-				Input1 = b
-			});
+				combined.Add(b);
+			}
+			else if (b == null)
+			{
+				combined.Add(a);
+			}
+			else
+			{
+				// Add it in:
+				combined.Add(new FilterAnd()
+				{
+					Input0 = a,
+					Input1 = b
+				});
+			}
 
 			// Combine the args:
 			if (ParamValueResolvers == null)

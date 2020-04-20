@@ -59,7 +59,7 @@ namespace Api.Permissions
 
 						if (args == null || args.Length == 0)
 						{
-							// No args anyway (should throw exception?)
+							// No args anyway
 							throw new PermissionException("No object to check", await context.GetUser());
 						}
 						
@@ -84,9 +84,10 @@ namespace Api.Permissions
 
 						if (filter == null)
 						{
-							return rawGrantRule;
+							// All permission handled List calls require a filter.
+							throw new PermissionException("Internal issue: A filter is required", await context.GetUser());
 						}
-
+						
 						// Both are set. Must combine them safely:
 						return filter.Combine(rawGrantRule, srcFilter == null ? null : srcFilter.ParamValueResolvers);
 					}, 1);
