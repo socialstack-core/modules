@@ -72,7 +72,7 @@ namespace Api.WebSockets
 						throw e;
 					}
 					finally {
-						client.RemoveAll();
+						client.OnDisconnected(_websocketService);
 					}
 				});
 			};

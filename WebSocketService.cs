@@ -66,6 +66,7 @@ namespace Api.WebSockets
 								By = context == null ? 0 : context.UserId
 							},
 							capability,
+							null,
 							args
 						);
 						
@@ -91,8 +92,12 @@ namespace Api.WebSockets
 		/// <summary>
 		/// Websocket clients by user ID.
 		/// </summary>
-		public Dictionary<int, WebSocketClient> ListenersByUserId = new Dictionary<int, WebSocketClient>();
+		public Dictionary<int, UserWebsocketLinks> ListenersByUserId = new Dictionary<int, UserWebsocketLinks>();
 		
+		/// <summary>
+		/// Websocket clients by user ID.
+		/// </summary>
+		public Dictionary<int, UserWebsocketLinks> UserListeners => ListenersByUserId;
 		
 		/// <summary>
 		/// Gets type listener by the name. Optionally creates it if it didn't exist.
@@ -112,9 +117,9 @@ namespace Api.WebSockets
 		
 		/// <summary>
 		/// Sends the given entity and the given method name which states what has happened with this object. Typically its 'update', 'create' or 'delete'.
-		/// It's sent to everyone who can view entities of this type.
+		/// It's sent to everyone who can view entities of this type, unless you give a specific userId.
 		/// </summary>
-		public void Send(Context context, object entity, string methodName)
+		public void Send(Context context, object entity, string methodName, int? toUserId = null)
 		{
 			
 			if(entity == null)
@@ -144,12 +149,33 @@ namespace Api.WebSockets
 						By = context == null ? 0 : context.UserId
 					},
 					capability,
+					toUserId,
 					new object[] {
 						entity
 					}
 				);
 				
 			});
+			
+		}
+		
+		/// <summary>
+		/// Updates the user client set.
+		/// </summary>
+		private void ChangeUserSet(WebSocketClient client){
+			
+			var uId = client.Context.UserId;
+			
+			lock(ListenersByUserId){
+				
+				if(!ListenersByUserId.TryGetValue(uId, out UserWebsocketLinks set))
+				{
+					set = new UserWebsocketLinks(uId);
+				}
+				
+				// Add the client to the set:
+				set.Add(client, ListenersByUserId);
+			}
 			
 		}
 		
@@ -161,8 +187,14 @@ namespace Api.WebSockets
 		public async Task ConnectedClient(WebSocketClient client){
 
 			// Add to user lookup (may be multiple)
-			// ListenersByUserId[client.UserId] = client;
-
+			
+			if(client.Context != null && client.Context.UserId != 0){
+				
+				// Add to user lookup.
+				ChangeUserSet(client);
+				
+			}
+			
 			var token = CancellationToken.None;
 			var buffer = new ArraySegment<byte>(new byte[4096]);
 			var websocket = client.Socket;
@@ -233,9 +265,16 @@ namespace Api.WebSockets
 							{
 								ctx = new Context();
 							}
-
+							
+							var prevUserId = client.Context != null ? client.Context.UserId : 0;
+							
 							client.Context = ctx;
-
+							
+							if(ctx.UserId != prevUserId){
+								// Update the user set it's in:
+								ChangeUserSet(client);
+							}
+							
 						break;
 						case "Remove":
 						case "RemoveEventListener":
@@ -290,10 +329,23 @@ namespace Api.WebSockets
 		/// </summary>
 		/// <param name="message"></param>
 		/// <param name="capability"></param>
+		/// <param name="toUserId"></param>
 		/// <param name="capArgs"></param>
 		/// <returns></returns>
-		public async Task Send(WebSocketMessage message, Capability capability, object[] capArgs)
+		public async Task Send(WebSocketMessage message, Capability capability, int? toUserId, object[] capArgs)
 		{
+			if (toUserId.HasValue)
+			{
+				// Sending to a specific user. These messages go out regardless of if the user was actually listening for them.
+				// Note that if a capability is given, it can still reject them.
+				if (ListenersByUserId.TryGetValue(toUserId.Value, out UserWebsocketLinks links))
+				{
+					await links.Send(message, capability, capArgs);
+				}
+
+				return;
+			}
+
 			var type = GetTypeListener(message.Type, false);
 
 			if (type == null)
@@ -480,10 +532,146 @@ namespace Api.WebSockets
 	}
 	
 	/// <summary>
+	/// All a particular user's websocket links.
+	/// </summary>
+	public class UserWebsocketLinks{
+
+		private static JsonSerializerSettings _serializerSettings;
+
+		/// <summary>
+		/// User ID.
+		/// </summary>
+		public int Id;
+		
+		/// <summary>
+		/// First link in their set.
+		/// </summary>
+		public WebSocketClient First;
+		
+		/// <summary>
+		/// Last link in their set.
+		/// </summary>
+		public WebSocketClient Last;
+		
+		/// <summary>
+		/// Creates a new set of user specific clients for the given user ID.
+		/// </summary>
+		/// <param name="id"></param>
+		public UserWebsocketLinks(int id){
+			Id = id;
+		}
+		
+		/// <summary>
+		/// Adds the given client to the user set.
+		/// </summary>
+		public void Add(WebSocketClient client, Dictionary<int, UserWebsocketLinks> all){
+			
+			if(client.UserSet != null){
+				client.RemoveFromUserSet(all);
+			}
+			
+			client.UserNext = null;
+			client.UserSet = this;
+			
+			lock(this){
+				if(Last == null){
+					client.UserPrevious = null;
+					First = client;
+					Last = client;
+				}else{
+					client.UserPrevious = Last;
+					Last.UserNext = client;
+					Last = client;
+				}
+			}
+			
+		}
+		
+		/// <summary>
+		/// Sends a message to all of a user's clients by encoding it as JSON.
+		/// </summary>
+		public async Task Send(WebSocketMessage message, Capability capability, object[] capArgs)
+		{
+
+			if (_serializerSettings == null)
+			{
+				_serializerSettings = new JsonSerializerSettings
+				{
+					ContractResolver = new CamelCasePropertyNamesContractResolver()
+				};
+			}
+
+			// Get the bytes of the message:
+			var jsonMessage = JsonConvert.SerializeObject(message, _serializerSettings);
+			var data = Encoding.UTF8.GetBytes(jsonMessage);
+			await Send(data, capability, capArgs);
+		}
+
+		/// <summary>
+		/// Sends a JSON message to all of a user's clients.
+		/// </summary>
+		public async Task Send(string jsonMessage, Capability capability, object[] capArgs)
+		{
+			var data = Encoding.UTF8.GetBytes(jsonMessage);
+			await Send(data, capability, capArgs);
+		}
+
+		/// <summary>
+		/// Sends a raw binary message to all of a user's clients.
+		/// </summary>
+		public async Task Send(byte[] message, Capability capability, object[] capArgs)
+		{
+			var arSegment = new ArraySegment<Byte>(message);
+
+			// Send it now:
+			var current = First;
+
+			while (current != null)
+			{
+
+				if (capability != null)
+				{
+					var ctx = current.Context;
+
+					if (!await ctx.Role.IsGranted(capability, ctx, capArgs))
+					{
+						// Skip this client
+						current = current.UserNext;
+						continue;
+					}
+				}
+
+				await current.Socket.SendAsync(
+					arSegment,
+					WebSocketMessageType.Text,
+					true,
+					CancellationToken.None
+				);
+
+				current = current.UserNext;
+			}
+		}
+
+	}
+
+	/// <summary>
 	/// A connected websocket client.
 	/// </summary>
 	public class WebSocketClient{
-
+		
+		/// <summary>
+		/// If this client is in a user set, the set it is in.
+		/// </summary>
+		public UserWebsocketLinks UserSet;
+		/// <summary>
+		/// Next in the user's set of websocket clients.
+		/// </summary>
+		public WebSocketClient UserNext;
+		/// <summary>
+		/// Previous in the user's set of websocket clients.
+		/// </summary>
+		public WebSocketClient UserPrevious;
+		
 		/// <summary>
 		/// The underlying socket.
 		/// </summary>
@@ -520,12 +708,50 @@ namespace Api.WebSockets
 			
 			return client;
 		}
-
+		
+		/// <summary>
+		/// Removes this client from the user set.
+		/// </summary>
+		public void RemoveFromUserSet(Dictionary<int, UserWebsocketLinks> all){
+			if(UserSet == null){
+				return;
+			}
+			
+			lock(UserSet){
+			
+				if(UserNext == null){
+					UserSet.Last = UserPrevious;
+				}else{
+					UserNext.UserPrevious = UserPrevious;
+				}
+				
+				if(UserPrevious == null){
+					UserSet.First = UserNext;
+				}else{
+					UserPrevious.UserNext = UserNext;
+				}
+				
+			}
+			
+			if(UserSet.First == null){
+				// Remove from the overall lookup now.
+				lock(all){
+					all.Remove(UserSet.Id);
+				}
+			}
+			
+			UserSet = null;
+		}
+		
 		/// <summary>
 		/// Called when this client disconnects. Removes all their type listeners.
 		/// </summary>
-		public void RemoveAll()
+		public void OnDisconnected(IWebSocketService service)
 		{
+			// Remove from user set:
+			RemoveFromUserSet(service.UserListeners);
+			
+			// Remove all:
 			foreach (var kvp in TypeListeners)
 			{
 				// Remove it:
