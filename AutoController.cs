@@ -136,8 +136,10 @@ public partial class AutoController<T> : ControllerBase
 		    }
 
 		    var results = await _service.List(context, filter);
-		    
-		    return  new Set<object>() { Results = results.ConvertAll(c => (object)c) };
+
+			results = await _service.EventGroup.Listed.Dispatch(context, results, Response);
+
+			return  new Set<object>() { Results = results.ConvertAll(c => (object)c) };
         }
         catch (PermissionException ex)
         {
