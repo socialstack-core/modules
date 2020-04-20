@@ -26,7 +26,8 @@ namespace Api.Permissions
 
 			foreach (var permittedEvent in allPermittedEvents)
 			{
-				if(permittedEvent.Verb == "Created" || permittedEvent.Verb == "Updated" || permittedEvent.Verb == "Deleted"){
+				if(permittedEvent.Verb.EndsWith("ed"))
+				{
 					continue;
 				}
 				
