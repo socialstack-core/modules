@@ -399,6 +399,10 @@ namespace Api.Permissions
 							case "lessThanOrEqual":
 								LessThanOrEqual(type, kvp.Key, fvp.Value.Value<long>());
 							break;
+							case "not":
+								// Not equals:
+								Not().Equals(type, kvp.Key, fvp.Value.ToObject<object>());
+							break;
 							case "equals":
 								// Little bit pointless but we'll support it anyway. fieldName: {equals: x} is the same as just fieldName: x.
 								Equals(type, kvp.Key, fvp.Value.ToObject<object>());
@@ -645,6 +649,10 @@ namespace Api.Permissions
 			{
 				CopyNodes(filter);
 			}
+			
+			// Shallow sort copy:
+			filter.Sorts = Sorts;
+
 			return filter;
 		}
 

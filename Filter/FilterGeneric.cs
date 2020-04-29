@@ -36,6 +36,10 @@ namespace Api.Permissions
 			{
 				CopyNodes(filter);
 			}
+
+			// Shallow sort copy:
+			filter.Sorts = Sorts;
+
 			return filter;
 		}
 		
