@@ -69,8 +69,16 @@ export default class Carousel extends React.Component {
 			return null;
 		}
 		
-		var visCount = visibleAtOnce || 1;
-		
+        var visCount = visibleAtOnce || 1;
+
+        if (window.matchMedia('(max-width: 767px)').matches && visCount > 2) {
+            visCount = 2;
+        }
+
+        if (window.matchMedia('(max-width: 575px)').matches) {
+            visCount = 1;
+        }
+
 		var itemSize = (1/visCount) * 100;
 		var itemSizePs = itemSize + '%';
 		
