@@ -138,9 +138,9 @@ export default class Loop extends React.Component {
 				var reqValue = ent[entityKeyName];
 				
 				// value can be an array of options.
-				if(Array.isArray(value) && value.indexOf(reqValue) == -1){
-					// Failed the filter
-					return false;
+				if(Array.isArray(value)){
+					// Failed the filter if the reqd value is not in the array.
+					return value.indexOf(reqValue) != -1;
 				}
 				
 				if(reqValue != value){
