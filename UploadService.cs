@@ -245,8 +245,7 @@ namespace Api.Uploader
                     // Resize it now:
                     Resize(current, result.GetFilePath(imageSize.ToString()), imageSize);
 				}
-
-				current.Dispose();
+				
 			}
 			
 			if(saveOriginal){
@@ -256,7 +255,13 @@ namespace Api.Uploader
 				// Relocate the temp file:
 				System.IO.File.Move(tempFile, writePath);
 			}
-			
+
+			if (current != null)
+			{
+				current.Dispose();
+				current = null;
+			}
+
 			result = await Events.Upload.AfterCreate.Dispatch(context, result);
 			return result;
         }
