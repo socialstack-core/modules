@@ -5,6 +5,21 @@ import webSocket from 'UI/Functions/WebSocket';
 import getEndpointType from 'UI/Functions/GetEndpointType';
 import Failure from 'UI/Failed';
 
+// Operators as used by Filter in where clauses.
+const filterOperators = {
+	"startsWith": (a,b) => a && a.startsWith(b),
+	"contains": (a,b) => a && a.indexOf(b) != -1,
+	"endsWith": (a,b) => a && a.endsWith(b),
+	"geq": (a,b) => a >= b,
+	"greaterThanOrEqual": (a,b) => a >= b,
+	"greaterThan": (a,b) => a > b,
+	"lessThan": (a,b) => a < b,
+	"leq": (a,b) => a <= b,
+	"lessThanOrEqual": (a,b) => a <= b,
+	"not": (a,b) => a != b,
+	"equals":(a,b) => a == b
+};
+
 /**
  * This component repeatedly renders its child using either an explicit array of data or an endpoint.
  */
@@ -81,19 +96,26 @@ export default class Loop extends React.Component {
 				
 				if(found){
 					// If it still passes the filter, keep it. Otherwise, delete it.
-					if(this.testFilter(e)){
+					var keep = this.testFilter(e);
+					
+					if(keep && !this.isSorted()){
 						this.setState({results: res});
 					}else{
-						// Delete it
-						this.setState({results: this.state.results.filter(ent => ent && ent.id != entityId)});
+						// Delete it:
+						res = res.filter(ent => ent && ent.id != entityId);
+						
+						if(keep){
+							// Re-add it (into a sorted list). This allows an updated entity to move change order.
+							this.add(e, res);
+						}else{
+							this.setState({results: res});
+						}
 					}
 				}else{
 					
 					// Does it pass the filter? If it does, add it.
 					if(this.testFilter(e)){
-						this.state.results.push(e);
-						this.props.onLiveCreate && this.props.onLiveCreate(e);
-						this.setState({results: this.state.results});
+						this.add(e, res);
 					}
 					
 				}
@@ -101,20 +123,105 @@ export default class Loop extends React.Component {
 			}else if(msg.method == 'create'){
 				
 				// already in there?
-				if(!this.state.results.find(ent => ent && ent.id == entityId)){
+				var results = this.state.results;
+				
+				if(!results.find(ent => ent && ent.id == entityId)){
 					
 					// Nope - potentially adding it.
 					// First though, make sure it passes the filter if there is one.
 					if(this.testFilter(msg.entity)){
-						this.state.results.push(msg.entity);
-						this.props.onLiveCreate && this.props.onLiveCreate(msg.entity);
-						this.setState({results: this.state.results});
+						this.add(msg.entity, results);
 					}
 				}
 				
 			}
 			
 		}
+	}
+	
+	// Finds the index where the given item should be inserted.
+	sortedSearch(arr, item, compare, low, high){ 
+		if (high <= low){
+			return compare(item, arr[low]) == 1 ? (low + 1): low; 
+		}
+		
+		// Mid coerced to int:
+		var mid = ((low + high)/2)|0; 
+		
+		if(compare(item, arr[mid]) == 0){
+			return mid+1; 
+		}
+		
+		if(compare(item, arr[mid]) == 1){
+			return this.sortedSearch(arr, item, compare, mid+1, high);
+		}
+		return this.sortedSearch(arr, item, compare, low, mid-1); 
+	} 
+	
+	isSorted(){
+		var { filter } = this.props;
+		return filter && filter.sort && filter.sort.field;
+	}
+	
+	add(entity, results){
+		
+		var { filter } = this.props;
+		
+		if(results.length && this.isSorted()){
+			// account for the sort too.
+			
+			// Ascending is default.
+			var desc = (filter.sort.dir || filter.sort.direction) == 'desc';
+			
+			var positive = desc ? -1 : 1;
+			var negative = -positive;
+			
+			// The sort field may have an uppercase first letter:
+			var fieldName = filter.sort.field;
+			fieldName = fieldName.charAt(0).toLowerCase() + fieldName.slice(1);
+			
+			// Read the field:
+			var fieldValue = entity[fieldName];
+			
+			// Date field? Special case for those:
+			var isDate = fieldName.endsWith('Utc');
+			
+			if(isDate){
+				// Load str:
+				fieldValue = fieldValue ? new Date(fieldValue).getTime() : null;
+			}
+			
+			// Search for the target index:
+			var targetIndex = this.sortedSearch(results, fieldValue, (a, b) => {
+				// a is the field value from the entity.
+				// b is the object to compare with.
+				var bField = b ? b[fieldName] : null;
+				
+				if(isDate){
+					// Parse the date:
+					if(typeof bField == 'string'){
+						bField = new Date(bField).getTime();
+					}else if(bField && bField.getTime){
+						bField = bField.getTime();
+					}
+				}
+				
+				if(a > bField){
+					return positive;
+				}
+				
+				return (a == bField) ? 0 : negative;
+			}, 0, results.length-1);
+			
+			// Push it in:
+			results.splice(targetIndex, 0, entity);
+			
+		}else{
+			results.push(entity);
+		}
+		
+		this.props.onLiveCreate && this.props.onLiveCreate(entity);
+		this.setState({results});
 	}
 	
 	testFilter(ent){
@@ -137,10 +244,25 @@ export default class Loop extends React.Component {
 				
 				var reqValue = ent[entityKeyName];
 				
-				// value can be an array of options.
+				// value can be an array of options:
 				if(Array.isArray(value)){
 					// Failed the filter if the reqd value is not in the array.
 					return value.indexOf(reqValue) != -1;
+				}else if(value && typeof value == 'object'){
+					// Potentially defining an operator other than equals.
+					// {not: 'test'} etc.
+					for(var filterField in filterOperators){
+						var fValue = value[filterField];
+						
+						// Basic check to make sure it's not a function.
+						// - It can be null though
+						if(fValue !== undefined && (fValue === null || typeof fValue != 'object')){
+							
+							// Use this operator:
+							return filterOperators[filterField](reqValue, fValue);
+							
+						}
+					}
 				}
 				
 				if(reqValue != value){
