@@ -36,7 +36,12 @@ namespace Api.PushNotifications
 		/// Optional target URL to open.
 		/// </summary>
 		public string Url;
-
+		
+		/// <summary>
+		/// Set to update the homescreen badge.
+		/// </summary>
+		public int? BadgeUpdate = null;
+		
 		/// <summary>
 		/// Any additional data to send with this notification. Optional.
 		/// </summary>
