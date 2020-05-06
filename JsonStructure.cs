@@ -1,12 +1,15 @@
+using Api.AutoForms;
 using Api.Contexts;
 using Api.Database;
 using Api.Eventing;
 using Api.Permissions;
+using Api.Translate;
 using Newtonsoft.Json.Linq;
 using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.Reflection;
+using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 
 
@@ -155,10 +158,13 @@ namespace Api.Startup
 		/// <param name="eventSystem"></param>
 		private async Task TryAddField(Context context, JsonField<T> field, EventGroup<T> eventSystem)
 		{
+			// Set the default just before the field event:
+			field.SetDefaultDisplayModule();
+			
 			field = await eventSystem.BeforeSettable.Dispatch(context, field);
 
 			// If the event didn't outright block the field..
-			if (field == null)
+			if (field == null || field.Hide)
 			{
 				return;
 			}
@@ -251,6 +257,148 @@ namespace Api.Startup
 		/// Same as OnSetValue just exposed without the type.
 		/// </summary>
 		public Api.Eventing.EventHandler OnSetValueUnTyped;
+		
+		/// <summary>
+		/// The display module when this field is displayed in a form.
+		/// Can be overriden durign field load.
+		/// </summary>
+		public string Module;
+		/// <summary>
+		/// The set of props to give to the display module when displaying this field in a form.
+		/// Must be json serializable.
+		/// </summary>
+		public Dictionary<string, object> Data = new Dictionary<string, object>();
+		/// <summary>
+		/// True if this field should not appear in forms.
+		/// </summary>
+		public bool Hide;
+
+		/// <summary>
+		/// Sets up the default display module for common field types.
+		/// This runs just before the field load event occurs.
+		/// </summary>
+		public void SetDefaultDisplayModule()
+		{
+			Module = "UI/Input";
+			var type = "text";
+			var name = OriginalName;
+			var labelName = name;
+			var fieldType = TargetType;
+
+			// If the field is a string and ends with Json, it's canvas:
+			if (fieldType == typeof(string) && labelName.EndsWith("Json"))
+			{
+				type = "canvas";
+
+				// Remove "Json" from the end of the label:
+				labelName = labelName.Substring(0, labelName.Length - 4);
+	}
+			else if (fieldType == typeof(string) && labelName.EndsWith("Ref"))
+			{
+				type = "image";
+
+				// Remove "Ref" from the end of the label:
+				labelName = labelName.Substring(0, labelName.Length - 3);
+			}
+			else if (fieldType == typeof(string) && (labelName.EndsWith("Color") || labelName.EndsWith("Colour")))
+			{
+				type = "color";
+
+				// Retain the word color/ colour in this one
+			}
+			/*
+			else if (fieldType == typeof(DateTime))
+			{
+				type = "datetime-local";
+
+				if(labelName.EndsWith("Utc")){
+					// Remove "Utc" from the end of the label:
+					labelName = labelName.Substring(0, labelName.Length - 3);
+				}
+			}
+			*/
+			else if (fieldType == typeof(int) && labelName.EndsWith("PageId"))
+			{
+				Module = "Admin/Page/Select";
+
+				// Remove "Id" from the end of the label:
+				labelName = labelName.Substring(0, labelName.Length - 2);
+			}
+			else if (fieldType == typeof(int) && labelName.EndsWith("UserId"))
+			{
+				// User selection:
+				Module = "Admin/User/Select";
+
+				// Remove "Id" from the end of the label:
+				labelName = labelName.Substring(0, labelName.Length - 2);
+			}
+			else if (fieldType == typeof(bool))
+			{
+				type = "checkbox";
+			}
+
+			Data["label"] = SpaceCamelCase(labelName);
+			Data["name"] = FirstCharacterToLower(name);
+			Data["type"] = type;
+			
+			// Any of these [Module] or inheritors?
+			foreach (var attrib in Attributes)
+			{
+				if (attrib is ModuleAttribute)
+				{
+					var module = attrib as ModuleAttribute;
+
+					if (module.Name != null)
+					{
+						Module = module.Name;
+					}
+					
+					if(module.Hide)
+					{
+						Hide = true;
+					}
+				}
+				else if (attrib is DataAttribute)
+				{
+					var data = attrib as DataAttribute;
+					Data[data.Name] = data.Value;
+				}
+				else if (attrib is LocalizedAttribute)
+				{
+					// Yep - it's translatable.
+					Data["localized"] = true;
+				}
+			}
+			
+		}
+
+		private static Regex SplitCamelCaseRegex = new Regex(@"
+                (?<=[A-Z])(?=[A-Z][a-z]) |
+                 (?<=[^A-Z])(?=[A-Z]) |
+                 (?<=[A-Za-z])(?=[^A-Za-z])", RegexOptions.IgnorePatternWhitespace);
+
+	/// <summary>
+		/// Adds spaces to a CamelCase string (so it becomes "Camel Case")
+		/// </summary>
+		/// <param name="s"></param>
+		/// <returns></returns>
+		public static string SpaceCamelCase(string s)
+		{
+			return SplitCamelCaseRegex.Replace(s, " ");
+		}
+
+		/// <summary>
+		/// Lowercases the first character of the given string.
+		/// </summary>
+		/// <param name="str"></param>
+		/// <returns></returns>
+		public static string FirstCharacterToLower(string str)
+		{
+			if (String.IsNullOrEmpty(str) || Char.IsLower(str, 0))
+				return str;
+
+			return Char.ToLowerInvariant(str[0]) + str.Substring(1);
+		}
 
 	}
 
@@ -288,7 +436,7 @@ namespace Api.Startup
 				return Structure.ForRole;
 			}
 		}
-
+		
 		private static readonly DateTime _unixEpoch = new DateTime(1970, 1, 1, 0, 0, 0, 0);
 
 		private DateTime ConvertFromJsUnixTimestamp(double timestamp)
