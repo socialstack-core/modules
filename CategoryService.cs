@@ -6,6 +6,7 @@ using Api.Eventing;
 using Api.Contexts;
 using System.Collections;
 using Newtonsoft.Json.Linq;
+using Api.Startup;
 
 namespace Api.Categories
 {
@@ -96,6 +97,24 @@ namespace Api.Categories
 					return categorisableObject;
 				});
 
+			}
+
+			// Hook up a MultiSelect on the underlying fields:
+			var listBeforeSettable = Events.FindByType(typeof(IHaveCategories), "Settable", EventPlacement.Before);
+
+			foreach (var listEvent in listBeforeSettable)
+			{
+				listEvent.AddEventListener((Context context, object[] args) =>
+				{
+					var field = args[0] as JsonField;
+
+					if (field != null && field.Name == "Categories")
+					{
+						field.Module = "Admin/MultiSelect";
+					}
+
+					return args[0];
+				});
 			}
 
 			// Next the AfterList events to add categories to stuff:
