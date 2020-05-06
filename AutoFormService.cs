@@ -112,8 +112,8 @@ namespace Api.AutoForms
 			var field = new AutoFormField()
 			{
 				ValueType = fieldType.Name,
-				Module = "UI/Input",
-				Data = new Dictionary<string, object>()
+				Module = jsonField.Module,
+				Data = jsonField.Data
 			};
 
 			var type = "text";
