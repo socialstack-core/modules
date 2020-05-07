@@ -32,7 +32,10 @@ export default class PageRouter extends React.Component{
 		webRequest("page/list").then(response => {
 			var pages = response.json.results;
 			this.pages(pages, false);
-		});
+		}).catch(err => {
+			// No additional pages are available.
+			console.log(err);
+		})
 	}
 
 	pages(pages, isCached){
@@ -183,11 +186,19 @@ export default class PageRouter extends React.Component{
 		
 		// Is this also a redirect?
 		var json;
-		try{
-			json = JSON.parse(pageInfo.bodyJson);
-		}catch(e){
-			console.log('Failed to load page JSON: ', pageInfo.bodyJson);
-			console.error(e);
+		
+		if(typeof pageInfo.bodyJson == "string"){
+			try{
+				json = JSON.parse(pageInfo.bodyJson);
+			}catch(e){
+				console.log('Failed to load page JSON: ', pageInfo.bodyJson);
+				console.error(e);
+			}
+		}else{
+			json = pageInfo.bodyJson;
+		}
+		
+		if(!json){
 			json = {};
 		}
 		
@@ -212,13 +223,21 @@ export default class PageRouter extends React.Component{
 		var page = pageAndState.page;
 		
 		var json;
-        try{
-            json = JSON.parse(page.bodyJson);
-        }catch(e){
-            console.log('Failed to load page JSON: ', page.bodyJson);
-            console.error(e);
-            json = {};
-        }
+		
+		if(typeof page.bodyJson == "string"){
+			try{
+				json = JSON.parse(page.bodyJson);
+			}catch(e){
+				console.log('Failed to load page JSON: ', page.bodyJson);
+				console.error(e);
+			}
+		}else{
+			json = page.bodyJson;
+		}
+		
+		if(!json){
+			json = {};
+		}
 		
 		if(json.redirect){
 			// Redirecting to another page. It's always identified by ID.
