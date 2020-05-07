@@ -251,17 +251,26 @@ namespace Api.Uploader
 			if(saveOriginal){
 				// Save img as the original file:
 				current.Save(writePath);
-			}else{
+
+				if (current != null)
+				{
+					current.Dispose();
+					current = null;
+				}
+			
+			}
+			else
+			{
+				if (current != null)
+				{
+					current.Dispose();
+					current = null;
+				}
+				
 				// Relocate the temp file:
 				System.IO.File.Move(tempFile, writePath);
 			}
-
-			if (current != null)
-			{
-				current.Dispose();
-				current = null;
-			}
-
+			
 			result = await Events.Upload.AfterCreate.Dispatch(context, result);
 			return result;
         }
