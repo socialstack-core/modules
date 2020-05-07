@@ -157,7 +157,7 @@ export default class PageRouter extends React.Component{
 			this.makeRequest();
 		} 
 		else {
-			this.pages(preloadedPages.results, true);
+			this.pages(preloadedPages.results || preloadedPages, true);
 		}
 	}
 	
