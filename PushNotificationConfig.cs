@@ -16,6 +16,11 @@ namespace Api.PushNotifications
         public string ServerKey { get; set; }
 
 		/// <summary>
+		/// FCM Sender ID (required).
+		/// </summary>
+		public string SenderId { get; set; }
+
+		/// <summary>
 		/// The APNS server key to use for iOS devices.
 		/// </summary>
 		public string APNSKey { get; set; }

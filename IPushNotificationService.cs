@@ -15,8 +15,8 @@ namespace Api.PushNotifications
         /// Sends a push notification.
         /// </summary>
 		/// <returns>
-		/// If successful, the push notification is returned with a successful state.
+		/// Returns true if the notification was added to the queue.
 		/// </returns>
-        Task<PushNotification> Send(Context context, PushNotification notification);
+        bool Send(Context context, PushNotification notification);
     }
 }
