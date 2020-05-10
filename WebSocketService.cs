@@ -201,6 +201,9 @@ namespace Api.WebSockets
 
 			try
 			{
+				// Send connected event:
+				await Events.WebSocketClientConnected.Dispatch(client.Context, client);
+			
 				// Whilst it's open, receive a message:
 				while (websocket.State == WebSocketState.Open)
 				{
@@ -741,6 +744,20 @@ namespace Api.WebSockets
 			}
 			
 			UserSet = null;
+		}
+		
+		/// <summary>
+		/// Convenience one off send method.
+		/// </summary>
+		public async Task Send(byte[] message){
+			var arSegment = new ArraySegment<Byte>(message);
+			
+			await Socket.SendAsync(
+				arSegment,
+				WebSocketMessageType.Text,
+				true,
+				CancellationToken.None
+			);
 		}
 		
 		/// <summary>

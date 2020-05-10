@@ -40,8 +40,6 @@ namespace Api.WebSockets
 					var websocket = await http.WebSockets.AcceptWebSocketAsync();
 					
 					// We've got a new websocket client.
-					Console.WriteLine("Got a client - sending hello message");
-					
 					if(_websocketService == null){
 						_websocketService = Api.Startup.Services.Get<IWebSocketService>();
 					}
