@@ -251,6 +251,8 @@ export default class Loop extends React.Component {
 				}else if(value && typeof value == 'object'){
 					// Potentially defining an operator other than equals.
 					// {not: 'test'} etc.
+					var success = false;
+					
 					for(var filterField in filterOperators){
 						var fValue = value[filterField];
 						
@@ -261,9 +263,16 @@ export default class Loop extends React.Component {
 							// Use this operator:
 							if(!filterOperators[filterField](reqValue, fValue)){
 								return false;
+							}else{
+								success = true;
+								break;
 							}
-							
 						}
+					}
+					
+					if(success){
+						// Didn't get any matching filter operators otherwise so it should just attempt an object v. object compare
+						continue;
 					}
 				}
 				
