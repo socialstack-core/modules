@@ -39,14 +39,15 @@ export default class Loop extends React.Component {
 	}
 	
 	onLiveMessage(msg){
-		if(msg.type == "status"){
-			if(msg.connected){
-				// Force a reload:
-				this.load(this.props, true);
+		if(msg.all){
+			if(msg.type == "status"){
+				if(msg.connected){
+					// Force a reload:
+					this.load(this.props, true);
+				}
+				
+				this.props.onLiveStatus && this.props.onLiveStatus(msg.connected);
 			}
-			
-			this.props.onLiveStatus && this.props.onLiveStatus(msg.connected);
-			
 			return;
 		}
 		
