@@ -13,10 +13,15 @@ var messageTypes = {
 };
 
 function informStatus(state){
+	tellAllHandlers({type: 'status', connected: state});
+}
+
+function tellAllHandlers(msg){
+	msg.all = true;
 	for(var typeName in messageTypes){
 		var handlers = messageTypes[typeName];
 		for(var i=0;i<handlers.length;i++){
-			handlers[i]({type: 'status', connected: state});
+			handlers[i](msg);
 		}
 	}
 }
@@ -98,7 +103,7 @@ function connect(){
 		var types = [];
 		
 		for(var name in messageTypes){
-			if(name != 'status'){
+			if(name != 'status' && name != 'hello'){
 				types.push(name);
 			}
 		}
@@ -113,9 +118,13 @@ function connect(){
 	
 	ws.addEventListener("message", e => {
 		var message = JSON.parse(e.data);
-		console.log(message);
+		if(!message){
+			return;
+		}
 		
-		if(message && message.type){
+		if(message.all){
+			tellAllHandlers(message);
+		}else if(message.type){
 			var handlers = messageTypes[message.type];
 			
 			if(handlers && handlers.length){
@@ -141,7 +150,7 @@ function send(msg){
 
 module.exports = {
     addEventListener:(type, method) => {
-		if(type != 'status'){
+		if(type != 'status' && type != 'hello'){
 			start();
 		}
 		
@@ -151,7 +160,7 @@ module.exports = {
 			typeCount++;
 			messageTypes[type] = [method];
 			
-			if(type == 'status'){
+			if(type == 'status' || type == 'hello'){
 				return;
 			}
 			
