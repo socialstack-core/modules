@@ -259,7 +259,9 @@ export default class Loop extends React.Component {
 						if(fValue !== undefined && (fValue === null || typeof fValue != 'object')){
 							
 							// Use this operator:
-							return filterOperators[filterField](reqValue, fValue);
+							if(!filterOperators[filterField](reqValue, fValue)){
+								return false;
+							}
 							
 						}
 					}
