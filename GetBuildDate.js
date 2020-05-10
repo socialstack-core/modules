@@ -16,8 +16,13 @@ module.exports = () => {
 			
 			var versionParts = src.split('?v=');
 			if(versionParts.length == 2){
-				var timestamp = versionParts[1];
-				buildDate = new Date(parseInt(timestamp)).toUTCString();
+				var timestamp = parseInt(versionParts[1]);
+				var date = new Date(timestamp);
+				buildDate = {
+					date,
+					dateString: date.toUTCString(),
+					timestamp
+				};
 			}
 		}
 	}
