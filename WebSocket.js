@@ -103,7 +103,7 @@ function connect(){
 		var types = [];
 		
 		for(var name in messageTypes){
-			if(name != 'status' && name != 'hello'){
+			if(name != '_all_'){
 				types.push(name);
 			}
 		}
@@ -150,7 +150,13 @@ function send(msg){
 
 module.exports = {
     addEventListener:(type, method) => {
-		if(type != 'status' && type != 'hello'){
+		
+		if(!method){
+			method = type;
+			type = '_all_';
+		}
+		
+		if(type != '_all_'){
 			start();
 		}
 		
@@ -160,7 +166,7 @@ module.exports = {
 			typeCount++;
 			messageTypes[type] = [method];
 			
-			if(type == 'status' || type == 'hello'){
+			if(type == '_all_'){
 				return;
 			}
 			
@@ -176,6 +182,10 @@ module.exports = {
 		}
 	},
 	removeEventListener:(type, method) => {
+		if(!method){
+			method = type;
+			type = '_all_';
+		}
 		
 		if(!messageTypes[type]){
 			return;
