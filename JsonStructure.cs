@@ -168,7 +168,18 @@ namespace Api.Startup
 			{
 				return;
 			}
-
+			
+			if(field.Attributes != null){
+				foreach (var attrib in field.Attributes)
+				{
+					if (attrib is Newtonsoft.Json.JsonIgnoreAttribute)
+					{
+						// We'll ignore these too.
+						return;
+					}
+				}
+			}
+			
 			var lowerName = field.Name.ToLower();
 
 			if (field.AfterId)
