@@ -42,7 +42,7 @@ export default class AutoForm extends React.Component {
 		
 		getAutoForm(props.endpoint).then(formData => {
 			
-			var isLocalized = formData.form && formData.form.fields && formData.form.fields.find(fld => fld.data.localized);
+			var isLocalized = formData && formData.form && formData.form.fields && formData.form.fields.find(fld => fld.data.localized);
 			
 			if(isLocalized && !locales){
 				locales = [];
