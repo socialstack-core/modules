@@ -80,6 +80,18 @@ namespace Api.Pages
 								}
 							]
 						}"
+					},
+					new Page()
+					{
+						Url = "/en-admin/permissions",
+						BodyJson = @"{
+							""module"": ""Admin/Pages/Default"",
+							""content"": [
+								{
+									""module"": ""Admin/PermissionGrid""
+								}
+							]
+						}"
 					}
 				);
 				
