@@ -5,7 +5,6 @@ using Api.Permissions;
 using System.Linq;
 using Api.Eventing;
 using Api.Contexts;
-using Api.NavMenuItems;
 
 
 namespace Api.NavMenus

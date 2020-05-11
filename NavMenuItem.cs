@@ -4,7 +4,7 @@ using Api.Database;
 using Api.Translate;
 using Api.Users;
 
-namespace Api.NavMenuItems
+namespace Api.NavMenus
 {
 	
 	/// <summary>

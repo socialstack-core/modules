@@ -5,9 +5,8 @@ using Api.Permissions;
 using System.Linq;
 using Api.Eventing;
 using Api.Contexts;
-using Api.NavMenus;
 
-namespace Api.NavMenuItems
+namespace Api.NavMenus
 {
 	/// <summary>
 	/// Handles navigation menu items.

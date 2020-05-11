@@ -4,7 +4,7 @@ using System.Collections.Generic;
 using System.Threading.Tasks;
 
 
-namespace Api.NavMenuItems
+namespace Api.NavMenus
 {
 	/// <summary>
 	/// Handles navigation menus.
