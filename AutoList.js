@@ -31,10 +31,12 @@ export default class AutoList extends React.Component {
 			combinedFilter.sort = this.state.sort;
 		}
 		
+		var path = '/en-admin/' + this.props.endpoint + '/';
+		
 		return <Tile className="auto-list">
 			{this.props.create && (
-				<div>
-					<a href={this.props.path + 'add'} className="btn btn-primary">
+				<div style={{marginBottom: '10px'}}>
+					<a href={path + 'add'} className="btn btn-primary">
 						Create
 					</a>
 				</div>
@@ -81,7 +83,7 @@ export default class AutoList extends React.Component {
 				},
 				entry => {
 					// Each row
-					return this.props.fields.map(field => <td><a href={this.props.path + '' + entry.id}>{
+					return this.props.fields.map(field => <td><a href={path + '' + entry.id}>{
 							field.endsWith("Json") ? <Canvas>{entry[field]}</Canvas> : entry[field]
 						}</a></td>);
 				}
