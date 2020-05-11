@@ -15,6 +15,11 @@ namespace Api.Eventing
 		/// Set of events for a Blog.
 		/// </summary>
 		public static EventGroup<Blog> Blog;
+		
+		/// <summary>
+		/// Set of events for a BlogPost.
+		/// </summary>
+		public static EventGroup<BlogPost> BlogPost;
 	}
 
 }
