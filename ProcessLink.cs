@@ -45,7 +45,9 @@ namespace Api.StackTools
 		private byte[] HeaderBuffer = new byte[7];
 		private byte[] CurrentBuffer;
 		private int ReceiveRequestIndex;
-
+		private int RemoteVersion;
+		
+		
 		/// <summary>
 		/// An ID we assign to identify the process that is connecting to us.
 		/// </summary>
@@ -58,7 +60,17 @@ namespace Api.StackTools
 
 		private void ReceiveTcp()
 		{
-			SocketLink.BeginReceive(CurrentBuffer, BytesReceived, CurrentBuffer.Length - BytesReceived, SocketFlags.None, OnReceivedTcp, null);
+			try
+			{
+				SocketLink.BeginReceive(CurrentBuffer, BytesReceived, CurrentBuffer.Length - BytesReceived, SocketFlags.None, OnReceivedTcp, null);
+			}
+			catch
+			{
+				// The process has stopped.
+				OnClose?.Invoke();
+				SocketLink = null;
+				Process = null;
+			}
 		}
 		
 		private void LinkOutOfSync()
@@ -100,6 +112,11 @@ namespace Api.StackTools
 		/// Runs when the link is ready.
 		/// </summary>
 		public Action OnReady;
+
+		/// <summary>
+		/// Runs when the link closes.
+		/// </summary>
+		public Action OnClose;
 
 		private void OnReceivedTcp(IAsyncResult result)
 		{
@@ -144,6 +161,14 @@ namespace Api.StackTools
 							// Wait for another header
 							BytesReceived = 0;
 							ReceiveTcp();
+							
+							if(RemoteVersion >= 1){
+								// Respond to the heartbeat (0 length, 0 request ID):
+								var header = new byte[7];
+								header[0] = 4;
+								SocketLink.Send(header);
+							}
+							
 							return;
 						}
 						else if (Id == -1 && CurrentBuffer[0] == 3)
@@ -152,7 +177,23 @@ namespace Api.StackTools
 							Id = CurrentBuffer[1] | (CurrentBuffer[2] << 8) | (CurrentBuffer[3] << 16) | (CurrentBuffer[4] << 24);
 
 							OnReady?.Invoke();
-
+							
+							RemoteVersion = CurrentBuffer[5];
+							
+							
+							if(RemoteVersion >= 1){
+								// Tell the remote end our protocol version too:
+								var header = new byte[7];
+								header[0] = 5;
+								header[1] = 0;
+								header[2] = 0;
+								header[3] = 0;
+								header[4] = 0;
+								header[5] = 1;
+								header[6] = 0;
+								SocketLink.Send(header);
+							}
+							
 							// Wait for another header
 							BytesReceived = 0;
 							ReceiveTcp();

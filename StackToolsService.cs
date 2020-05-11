@@ -21,7 +21,6 @@ namespace Api.StackTools
 	/// This service is used to invoke the socialstack command line tools (node.js) 
 	/// which e.g. build/ serverside render the UI and render emails etc.
 	/// </summary>
-
 	public partial class StackToolsService : IStackToolsService
 	{
 		/// <summary>
@@ -45,7 +44,6 @@ namespace Api.StackTools
 		/// </summary>
 		public StackToolsService()
 		{
-
 			// Spawn the service now. We spawn it in the "interactive" mode which means we get one node.js service
 			// which can handle multiple simultaneous requests via stdin.
 			Spawn();
@@ -95,9 +93,16 @@ namespace Api.StackTools
 
 			// Non-blocking socket:
 			socket.Blocking = false;
-
+			
 			var link = new ProcessLink(socket);
 			Node = link;
+			
+			link.OnClose = () => {
+				// The process has closed. Spawn a new one:
+				Node = null;
+				Spawn();
+			};
+			
 			link.OnReady = () => {
 				// Get the process that this relates to:
 				var process = PendingProcesses.Find(proc => proc.Id == link.Id);
@@ -140,6 +145,7 @@ namespace Api.StackTools
 
 		private void Install()
 		{
+			return;
 			AttemptedInstall = true;
 			var isWindows = RuntimeInformation.IsOSPlatform(OSPlatform.Windows);
 
