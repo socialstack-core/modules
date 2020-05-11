@@ -40,7 +40,7 @@ export default class AutoForm extends React.Component {
 		
 		var createSuccess = global.location && global.location.search == '?created=1';
 		
-		getAutoForm(props.endpoint).then(formData => {
+		getAutoForm((props.endpoint || '').toLowerCase()).then(formData => {
 			
 			var isLocalized = formData && formData.form && formData.form.fields && formData.form.fields.find(fld => fld.data.localized);
 			
@@ -121,9 +121,10 @@ export default class AutoForm extends React.Component {
 		var isEdit = isNumeric(this.props.id);
 		
 		if(this.state.failed){
+			var ep = this.props.endpoint || '';
 			return (
 				<div className="alert alert-danger">
-					Oh no! It Looks like this type doesn't support autoform. It must have an endpoint method called Create which accepts a parameter marked with [FromBody] that inherits AutoForm.
+					{'Oh no! It Looks like this type doesn\'t support the admin panel. Ask a developer to make sure the type name ("' + ep + '") is spelt correctly. The value comes from the page config of this page, and the type name should match the name of the entity in the API. Case doesn\'t matter.'}
 				</div>
 			);
 		}
