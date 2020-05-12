@@ -8,7 +8,7 @@ export default class Banner extends React.Component{
 				<div className="container h-100">
 					<div className="row h-100 align-items-center">
 						<div className="col-3"></div>
-						<div className="col-7 banner-text">
+						<div className="col-6 banner-text">
 							<h1 className="title" style={{color: col}} dangerouslySetInnerHTML={{__html: this.props.title}} />
 							<br/>
 							<br/>
