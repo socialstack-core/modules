@@ -422,6 +422,7 @@ export default class CanvasEditor extends React.Component {
 					onClick: this.closeModal
 				}
 			]}
+			isLarge
 			title={"Add something to your content"}
 			onClose={this.closeModal}
 			visible={this.state.selectOpenFor}
