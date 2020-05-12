@@ -767,7 +767,7 @@ export default class CanvasEditor extends React.Component {
 				inputContent.unshift(<option>Pick a value</option>);
 			}else if(propType.type == 'color'){
 				inputType = 'color';
-			}else if(propType.type == 'checkbox'){
+			}else if(propType.type == 'checkbox' || propType.type == 'bool' || propType.type == 'boolean'){
 				inputType = 'checkbox';
 			}else if(propType.type == 'id'){
 				inputType = 'select';
@@ -939,6 +939,7 @@ export default class CanvasEditor extends React.Component {
 		
 		var Module = contentNode.module || "div";
 		
+		var kidsSupported = false;
 		var result = null;
 		
 		if(Module == Text){
@@ -997,14 +998,25 @@ export default class CanvasEditor extends React.Component {
 		}else{
 			
 			var dataFields = mapTokens(contentNode.data, this, Canvas);
-			
+			kidsSupported = Module.propTypes && Module.propTypes.children;
+			var displayName = ' ' + this.displayModuleName(contentNode.moduleName);
 			result = (
 				<Module {...dataFields}>
+					{kidsSupported && !this.props.minimal && (
+						<div style={{flex: '0 0 100%'}}>
+							<div className="btn btn-secondary" style={{marginBottom: '5px'}} onClick={() => {
+								this.setState({optionsVisibleFor: contentNode});
+							}}><i className="fa fa-cog"/>
+							{displayName}
+							</div>
+						</div>
+					)}
 					{contentNode.useCanvasRender ? this.renderNode(contentNode.content) : null}
-					{Module.propTypes && Module.propTypes.children && !this.props.minimal && (
+					{kidsSupported && !this.props.minimal && (
 						<div style={{marginTop: '10px'}}>
 							<div className="btn btn-secondary" onClick={() => {this.setState({selectOpenFor: contentNode})}}>
 								<i className="fa fa-plus" />
+								{' to ' + displayName}
 							</div>
 						</div>
 					)}
@@ -1013,19 +1025,19 @@ export default class CanvasEditor extends React.Component {
 			
 		}
 		
-		return (
-			<div className="module-info">
-				{!this.props.minimal && (
-					<div className="btn btn-secondary" style={{marginBottom: '5px'}} onClick={() => {
-						this.setState({optionsVisibleFor: contentNode});
-					}}><i className="fa fa-cog"/>
-					{' ' + this.displayModuleName(contentNode.moduleName)}
-					</div>
-				)}
-				{result}
-				
-			</div>
-		);
+		if(kidsSupported || this.props.minimal){
+			return result;
+		}
+		
+		// Display the config button before the element:
+		return [
+			<div className="btn btn-secondary" style={{marginRight: '5px', marginBottom: '5px'}} onClick={() => {
+				this.setState({optionsVisibleFor: contentNode});
+			}}><i className="fa fa-cog"/>
+			{' ' + this.displayModuleName(contentNode.moduleName)}
+			</div>,
+			result
+		];
 	}
 	
 	displayModuleName(name){
@@ -1058,7 +1070,7 @@ export default class CanvasEditor extends React.Component {
 						ref.value=JSON.stringify(this.buildJson());
 					}
 				}}/>
-				<div>
+				<div style={{border: '1px solid lightgrey', borderRadius: '4px', padding: '0.375rem 0.75rem'}}>
 					{this.renderNode(this.state.content,0)}
 					{!this.props.minimal && (
 						<div style={{clear: 'both', marginTop: '10px'}}>

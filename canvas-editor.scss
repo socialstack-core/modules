@@ -2,7 +2,9 @@
 	text-align: left;
 	
 	.canvas-editor-text{
-		min-height: 50px;
+		display: inline-block;
+		min-width: 50px;
+		min-height: 1em;
 		height: auto;
 	}
 	
