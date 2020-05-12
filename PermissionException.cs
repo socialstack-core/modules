@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Security;
 using System.Threading.Tasks;
+using Api.Contexts;
 using Api.Users;
 
 namespace Api.Permissions
@@ -12,15 +13,46 @@ namespace Api.Permissions
     /// </summary>
     public class PermissionException : SecurityException
     {
-        /// <summary>
-        /// 
-        /// </summary>
-        /// <param name="capability"></param>
-        /// <param name="user"></param>
-        public PermissionException(string capability, User user):base($"The user {user?.Username} has no access to {capability}")
-        {
+		/// <summary>
+		/// Creates a new permission exception.
+		/// </summary>
+		/// <param name="capability"></param>
+		/// <param name="context"></param>
+		/// <param name="notes">Optional notes</param>
+		/// <returns></returns>
+		public static PermissionException Create(string capability, Context context, string notes = null)
+		{
+			var userId = context == null ? 0 : context.UserId;
+			var msg = $"The user {userId} has no access to {capability}";
 
-        }
+			if (notes != null)
+			{
+				msg += ". " + notes;
+			}
+			return new PermissionException(capability, context, msg);
+		}
+
+		/// <summary>
+		/// The capability this occurred for.
+		/// </summary>
+		public string Capability;
+
+		/// <summary>
+		/// The context this occurred in.
+		/// </summary>
+		public Context Context;
+
+		/// <summary>
+		/// Use Create instead.
+		/// </summary>
+		/// <param name="capability"></param>
+		/// <param name="context"></param>
+		/// <param name="msg"></param>
+		internal PermissionException(string capability, Context context, string msg) : base(msg)
+        {
+			Capability = capability;
+			Context = context;
+		}
 
     }
 }

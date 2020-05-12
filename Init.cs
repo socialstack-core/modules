@@ -55,13 +55,13 @@ namespace Api.Permissions
 							// No user role - can't grant this capability.
 							// This is likely to indicate a deeper issue, so we'll warn about it:
 							Console.WriteLine("Warning: User ID " + context.UserId + " has no role (or the role with that ID hasn't been instanced).");
-							throw new PermissionException(capability.Name, await context.GetUser());
+							throw PermissionException.Create(capability.Name, context);
 						}
 
 						if (args == null || args.Length == 0)
 						{
 							// No args anyway
-							throw new PermissionException("No object to check", await context.GetUser());
+							throw PermissionException.Create("No object to check", context);
 						}
 						
 						// Get the grant rule (a filter) for this role + capability:
@@ -71,7 +71,7 @@ namespace Api.Permissions
 						// If it's outright rejected..
 						if (rawGrantRule == null)
 						{
-							throw new PermissionException(capability.Name, await context.GetUser());
+							throw PermissionException.Create(capability.Name, context);
 						}
 
 						// Otherwise, merge the user filter with the one from the grant system (if we need to).
@@ -86,7 +86,7 @@ namespace Api.Permissions
 						if (filter == null)
 						{
 							// All permission handled List calls require a filter.
-							throw new PermissionException("Internal issue: A filter is required", await context.GetUser());
+							throw PermissionException.Create("Internal issue: A filter is required", context);
 						}
 						
 						// Both are set. Must combine them safely:
@@ -107,14 +107,13 @@ namespace Api.Permissions
 						{
 							// No user role - can't grant this capability.
 							// This is likely to indicate a deeper issue, so we'll warn about it:
-							Console.WriteLine("Warning: User ID " + context.UserId + " has no role (or the role with that ID hasn't been instanced).");
-							throw new PermissionException(capability.Name, await context.GetUser());
+							throw PermissionException.Create(capability.Name, context, "No role");
 						}
 
 						if (args == null || args.Length == 0)
 						{
-							// No args anyway (should throw exception?)
-							throw new PermissionException("No object to check", await context.GetUser());
+							// No args anyway
+							throw PermissionException.Create(capability.Name, context, "No args provided");
 						}
 
 						if (await role.IsGranted(capability, context, args))
@@ -123,7 +122,7 @@ namespace Api.Permissions
 							return args[0];
 						}
 
-						throw new PermissionException(capability.Name, await context.GetUser());
+						throw PermissionException.Create(capability.Name, context);
 					}, 1);
 				}
 			}
