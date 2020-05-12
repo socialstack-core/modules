@@ -88,7 +88,16 @@ namespace Api.Startup
 			{
 				path += "?" + context.Request.QueryString;
 			}
-			
+
+			/*
+			// Future: If it's a POST request, we'll also log the post body, encrypted using the sign service.
+			var signatureService = Services.Get<Api.Signatures.ISignatureService>();
+
+			if (signatureService != null)
+			{
+			}
+			*/
+
 			if (statusCode >= 500){
 
 				await Events.Logging.Dispatch(ctx, new Logging()
