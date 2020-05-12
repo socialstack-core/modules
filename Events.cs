@@ -6,6 +6,9 @@ using Microsoft.Extensions.Logging;
 
 namespace Api.Eventing
 {
+	/// <summary>
+	/// The level of a particular logged message.
+	/// </summary>
     public enum LOG_LEVEL
     {
         /// <summary>
@@ -26,8 +29,15 @@ namespace Api.Eventing
         Debug
     }
 
+	/// <summary>
+	/// Used to log things.
+	/// </summary>
     public class Logging
     {
+		/// <summary>
+		/// A triggering exception (if there was one).
+		/// </summary>
+		public Exception Exception;
         /// <summary>
         /// THe message to write to the log
         /// </summary>

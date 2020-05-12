@@ -3,6 +3,8 @@ using System.IO;
 using System.Security;
 using System.Text;
 using System.Threading.Tasks;
+using Api.Contexts;
+using Api.Eventing;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Http.Internal;
 using Microsoft.Extensions.Logging;
@@ -16,20 +18,124 @@ namespace Api.Startup
     public class ExceptionMiddleware
     {
         private readonly RequestDelegate _next;
-
-        private readonly ILogger _logger;
+		private static object msgLock = new object();
 		
+
 		/// <summary>
 		/// Instanced automatically.
 		/// </summary>
 		/// <param name="next"></param>
-		/// <param name="logger"></param>
-        public ExceptionMiddleware(RequestDelegate next, ILogger<ExceptionMiddleware> logger)
+		public ExceptionMiddleware(RequestDelegate next)
         {
             _next = next;
-            _logger = logger;
-        }
 
+			// Default console logging handler (removable):
+			Events.Logging.AddEventListener((Context ctx, Logging l) =>
+			{
+				switch (l.LogLevel) {
+					case LOG_LEVEL.Debug:
+						Console.ForegroundColor = ConsoleColor.Green;
+						Console.Write("[DEBUG] ");
+						Console.ForegroundColor = ConsoleColor.White;
+					break;
+					case LOG_LEVEL.Error:
+						Console.ForegroundColor = ConsoleColor.Red;
+						Console.Write("[!] ");
+						Console.ForegroundColor = ConsoleColor.White;
+					break;
+					case LOG_LEVEL.Information:
+						Console.ForegroundColor = ConsoleColor.Cyan;
+						Console.Write("[INFO] ");
+						Console.ForegroundColor = ConsoleColor.White;
+					break;
+					case LOG_LEVEL.Warning:
+						Console.ForegroundColor = ConsoleColor.Yellow;
+						Console.Write("[WARN] ");
+						Console.ForegroundColor = ConsoleColor.White;
+					break;
+				}
+
+				if (l.Message != null)
+				{
+					Console.WriteLine(l.Message);
+				}
+
+				if (l.Exception != null)
+				{
+					// Special case: Don't log an "Info" SecurityException.
+					if (l.LogLevel != LOG_LEVEL.Information || !(typeof(SecurityException).IsAssignableFrom(l.Exception.GetType())))
+					{
+						Console.WriteLine(l.Exception.ToString());
+					}
+				}
+
+				return Task.FromResult(l);
+			});
+
+        }
+		
+		/// <summary>
+		/// Logs an exception and responds to the original requester.
+		/// </summary>
+		private async Task HandleError(Exception e, HttpContext context, int statusCode)
+		{
+			byte[] responseBody = null;
+			var ctx = context.Request.GetContext();
+
+			// Request URL:
+			var path = context.Request.Method + " " + context.Request.Path;
+			if (context.Request.QueryString != null && context.Request.QueryString.HasValue)
+			{
+				path += "?" + context.Request.QueryString;
+			}
+			
+			if (statusCode >= 500){
+
+				await Events.Logging.Dispatch(ctx, new Logging()
+				{
+					Exception = e,
+					LogLevel = LOG_LEVEL.Error,
+					Message = "Application error on " + path
+				});
+				
+				// Internal server error
+				responseBody = Encoding.UTF8.GetBytes(
+					JsonConvert.SerializeObject(
+						new ErrorResponse {
+							Message ="Application error occured which has been logged"
+						}
+					)
+				);
+				
+			}else{
+				// Access denied:
+				await Events.Logging.Dispatch(ctx, new Logging()
+				{
+					Exception = e,
+					LogLevel = LOG_LEVEL.Information,
+					Message = "Access denied on " + path + " " + e.Message
+				});
+				
+				responseBody = Encoding.UTF8.GetBytes(
+					JsonConvert.SerializeObject(
+						new ErrorResponse() {
+							Message = "Access denied"
+						}
+					)
+				);
+			}
+			
+			using (var ms = new MemoryStream())
+			{
+				ms.Seek(0, SeekOrigin.Begin);
+				await ms.WriteAsync(responseBody, 0, responseBody.Length);
+				ms.Seek(0, SeekOrigin.Begin);
+				context.Response.StatusCode = statusCode;
+				context.Response.ContentType = "application/json";
+				await ms.CopyToAsync(context.Response.Body);
+			}
+		}
+		
 		/// <summary>
 		/// Runs during each request.
 		/// </summary>
@@ -37,40 +143,22 @@ namespace Api.Startup
 		/// <returns></returns>
         public async Task Invoke(HttpContext context)
         {
-            byte[] responseBody = null;
-            Exception anyE = null;
-            int statusCode = 200;
-
             try
             {
                 await _next(context);
             }
             catch (SecurityException secEx)
             {
-                anyE = secEx;
-                responseBody = Encoding.UTF8.GetBytes(JsonConvert.SerializeObject(new ErrorResponse() { Message = "Access Denied" }));
-                statusCode = 403;
+				await HandleError(secEx, context, 403);
             }
             catch (Exception e)
             {
-                anyE = e;
-                responseBody = Encoding.UTF8.GetBytes(JsonConvert.SerializeObject(new ErrorResponse { Message ="Application error occured which has been logged" } ));
-                statusCode = 500;
-            }
-
-            if (anyE != null && _logger != null)
-            {
-                _logger.LogCritical(anyE.ToString());
-
-                using (var ms = new MemoryStream())
-                {
-                    ms.Seek(0, SeekOrigin.Begin);
-                    await ms.WriteAsync(responseBody, 0, responseBody.Length);
-                    ms.Seek(0, SeekOrigin.Begin);
-                    context.Response.StatusCode = statusCode;
-                    context.Response.ContentType = "application/json";
-                    await ms.CopyToAsync(context.Response.Body);
-                }
+                await HandleError(e, context, 500);
+				
+				#if DEBUG
+				// Rethrow for easy debugging:
+				throw;
+				#endif
             }
         }
     }
