@@ -302,18 +302,27 @@ export default class PageRouter extends React.Component{
 	}
 	
 	render(){
-		if(!this.state.page){
+		var {page} = this.state;
+		
+		if(!page){
 			return null;
 		}
 		
-		return [
+		if(page.title && page.title.length){
+			return [
 				<title>
-					{this.state.page.title}
+					{page.title}
 				</title>,
 				<Canvas>
-					{this.state.page.bodyJson}
+					{page.bodyJson}
 				</Canvas>
 			];
+		}
+		
+		return <Canvas>
+			{page.bodyJson}
+		</Canvas>;
+		
 	}
 	
 }
