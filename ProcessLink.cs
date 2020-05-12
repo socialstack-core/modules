@@ -103,8 +103,12 @@ namespace Api.StackTools
 		/// </summary>
 		private void NodeDisconnected()
 		{
-			SocketLink.Close();
-			SocketLink = null;
+			if (SocketLink != null)
+			{
+				SocketLink.Close();
+				SocketLink = null;
+			}
+			
 			LinkOutOfSync();
 		}
 
@@ -134,12 +138,11 @@ namespace Api.StackTools
 			}
 			catch (Exception e)
 			{
-				Console.WriteLine("[WARN] Attempting automatic recovery from this error: " + e.ToString());
 				NodeDisconnected();
 				return;
 			}
 
-			if (rcv == 0)
+			if (rcv == 0 || SocketLink == null)
 			{
 				NodeDisconnected();
 				return;

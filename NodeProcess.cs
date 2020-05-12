@@ -104,7 +104,12 @@ namespace Api.StackTools
 		/// </summary>
 		public void Kill()
 		{
-			Process.Kill();
+			if (Process.HasExited)
+			{
+				Process = null;
+				return;
+			}
+			Process?.Kill();
 		}
 
 		/// <summary>
