@@ -88,6 +88,10 @@ namespace Api.AutoForms
 
 			foreach (var field in jsonStructure.AllFields)
 			{
+				if(field.Value.Hide)
+				{
+					continue;
+				}
 				var formField = BuildFieldInfo(field.Value);
 
 				if (formField != null)
