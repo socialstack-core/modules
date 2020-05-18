@@ -208,7 +208,7 @@ export default class AutoForm extends React.Component {
 							};
 							
 							var value = content[data.name];
-							if(value){
+							if(value !== undefined){
 								if(data.name == "createdUtc"){
 									data.defaultValue = formatTime(value);
 								} else {
