@@ -163,21 +163,22 @@ namespace Api.Startup
 			
 			field = await eventSystem.BeforeSettable.Dispatch(context, field);
 
-			// If the event didn't outright block the field..
-			if (field == null || field.Hide)
+			if (field != null && field.Attributes != null)
 			{
-				return;
-			}
-			
-			if(field.Attributes != null){
 				foreach (var attrib in field.Attributes)
 				{
 					if (attrib is Newtonsoft.Json.JsonIgnoreAttribute)
 					{
 						// We'll ignore these too.
-						return;
+						field.Hide = true;
 					}
 				}
+			}
+
+			// If the event didn't outright block the field..
+			if (field == null)
+			{
+				return;
 			}
 			
 			var lowerName = field.Name.ToLower();
@@ -461,7 +462,13 @@ namespace Api.Startup
 		public async Task SetValue(Context context, T onObject, JToken value)
 		{
 			object targetValue = value;
-			
+
+			if (OnSetValue == null && Hide)
+			{
+				// Ignore these fields - they can only be set if they have an OnSetValue handler.
+				return;
+			}
+
 			if(OnSetValue != null)
 			{
 				targetValue = await OnSetValue.Dispatch(context, targetValue, onObject, value);
