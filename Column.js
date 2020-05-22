@@ -9,7 +9,7 @@ export default class Column extends React.Component {
 	render(){
 		var props=this.props;
 		return <div
-			className={"col-md-" + (props.size || 6) + " " + (props.noGutters ? "no-gutters" : "")}
+			className={"col-md-" + (props.size || 6) + " " + (props.noGutters ? "no-gutters" : "") + (props.className ? ' ' + props.className : '')}
 			{...(omit(this.props, ['className', 'noGutters', 'children', '__canvas']))}
 		>
 			{props.children}
