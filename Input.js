@@ -251,6 +251,11 @@ export default class Input extends React.Component {
             );
 		}else if(type === "password"){
 			var { pwVisible } = this.state;
+			
+			if(this.props.visible !== undefined){
+				pwVisible = this.props.visible;
+			}
+			
 			return <div className="input-group">
 					<input
 						id={this.props.id || this.fieldId}
@@ -263,11 +268,15 @@ export default class Input extends React.Component {
 						data-validation={this.state.validationFailure ? true : undefined}
 						{...omit(this.props, ['id', 'className', 'onChange', 'onBlur', 'type', 'inline'])}
 					/>
-					<div className="input-group-append clickable" onClick={() => {
-						this.setState({pwVisible: !pwVisible});
-					}}>
-						<span className="input-group-text"><i className={"fa fa-eye" + (pwVisible ? '-slash' : '')} /></span>
-					</div>
+					{!this.props.noVisiblityButton && (
+						<div className="input-group-append clickable" onClick={() => {
+							this.setState({pwVisible: !pwVisible});
+						}}>
+							<span className="input-group-text">
+								<i className={"fa fa-eye" + (pwVisible ? '-slash' : '')} />
+							</span>
+						</div>
+					)}
 				</div>;
 			
         } else {
