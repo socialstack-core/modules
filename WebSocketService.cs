@@ -48,18 +48,20 @@ namespace Api.WebSockets
 				string capName = (typeEvent.EntityName + "_load").ToLower();
 				Capabilities.All.TryGetValue(capName, out Capability capability);
 				
-				typeEvent.AddEventListener(async (Context context, object[] args) => {
+				typeEvent.AddEventListener((Context context, object[] args) => {
 					
 					if(args == null || args.Length == 0){
-						return null;
+						return Task.FromResult((object)null);
 					}
 
 					// Send via the websocket service:
+					#pragma warning disable CS4014 // Because we don't want to wait for this
 					Task.Run(async () =>
 					{
 
 						await Send(
-							new WebSocketEntityMessage() {
+							new WebSocketEntityMessage()
+							{
 								Type = typeEvent.EntityName,
 								Method = method,
 								Entity = args[0],
@@ -69,10 +71,11 @@ namespace Api.WebSockets
 							null,
 							args
 						);
-						
+
 					});
-					
-					return args[0];
+					#pragma warning restore CS4014
+
+					return Task.FromResult(args[0]);
 				
 				// The 50 means every other handler has a chance to run before this does.
 				}, 50);
@@ -171,6 +174,7 @@ namespace Api.WebSockets
 				if(!ListenersByUserId.TryGetValue(uId, out UserWebsocketLinks set))
 				{
 					set = new UserWebsocketLinks(uId);
+					ListenersByUserId[uId] = set;
 				}
 				
 				// Add the client to the set:
@@ -570,7 +574,9 @@ namespace Api.WebSockets
 		public void Add(WebSocketClient client, Dictionary<int, UserWebsocketLinks> all){
 			
 			if(client.UserSet != null){
-				client.RemoveFromUserSet(all);
+				// The null here avoids the set from being removed from the overall lookup
+				// we don't want it to be as we're about to add something to it.
+				client.RemoveFromUserSet(null);
 			}
 			
 			client.UserNext = null;
@@ -736,7 +742,8 @@ namespace Api.WebSockets
 				
 			}
 			
-			if(UserSet.First == null){
+			// Is the set completely empty?
+			if(UserSet.First == null && all != null){
 				// Remove from the overall lookup now.
 				lock(all){
 					all.Remove(UserSet.Id);
