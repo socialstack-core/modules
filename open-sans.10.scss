@@ -72,4 +72,20 @@
 	font-display: swap;
 }
 
+@font-face {
+    font-family: 'OpenSans';
+    src: url('./OpenSans-ExtraBold-webfont.woff') format('woff');
+    font-weight: 900;
+    font-style: normal;
+    font-display: swap;
+}
+
+@font-face {
+    font-family: 'OpenSans';
+    src: url('./OpenSans-ExtraBoldItalic-webfont.woff') format('woff');
+    font-weight: 900;
+    font-style: italic;
+    font-display: swap;
+}
+
 $installed_font: 'OpenSans';
