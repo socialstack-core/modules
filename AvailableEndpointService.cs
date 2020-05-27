@@ -1,7 +1,11 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Controllers;
 using Microsoft.AspNetCore.Mvc.Infrastructure;
+#if NETCOREAPP2_1 || NETCOREAPP2_2
 using Microsoft.AspNetCore.Mvc.Internal;
+#else
+using Microsoft.AspNetCore.Mvc.ActionConstraints;
+#endif
 using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
