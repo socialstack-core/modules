@@ -1,11 +1,7 @@
 ﻿using Api.Permissions;
 using Api.Startup;
 using Api.Translate;
-using Microsoft.AspNetCore.Mvc;
-using Microsoft.AspNetCore.Mvc.Controllers;
 using Microsoft.AspNetCore.Mvc.Infrastructure;
-using Microsoft.AspNetCore.Mvc.Internal;
-using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
 using System.Reflection;
