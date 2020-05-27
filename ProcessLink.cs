@@ -169,6 +169,11 @@ namespace Api.StackTools
 								// Respond to the heartbeat (0 length, 0 request ID):
 								var header = new byte[7];
 								header[0] = 4;
+								if (SocketLink == null)
+								{
+									NodeDisconnected();
+									return;
+								}
 								SocketLink.Send(header);
 							}
 							
