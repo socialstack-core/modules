@@ -26,7 +26,11 @@ namespace Api.Configuration
 		/// </summary>
 		public static bool IsProduction()
 		{
+#if NETCOREAPP2_1 || NETCOREAPP2_2
 			return Name == Microsoft.AspNetCore.Hosting.EnvironmentName.Production;
+#else
+			return Name == Microsoft.Extensions.Hosting.Environments.Production;
+#endif
 		}
 		
 		/// <summary>
@@ -34,17 +38,25 @@ namespace Api.Configuration
 		/// </summary>
 		public static bool IsStaging()
 		{
+#if NETCOREAPP2_1 || NETCOREAPP2_2
 			return Name == Microsoft.AspNetCore.Hosting.EnvironmentName.Staging;
+#else
+			return Name == Microsoft.Extensions.Hosting.Environments.Staging;
+#endif
 		}
-		
+
 		/// <summary>
 		/// True if this is the dev environment.
 		/// </summary>
 		public static bool IsDevelopment()
 		{
+#if NETCOREAPP2_1 || NETCOREAPP2_2
 			return Name == Microsoft.AspNetCore.Hosting.EnvironmentName.Development;
+#else
+			return Name == Microsoft.Extensions.Hosting.Environments.Development;
+#endif
 		}
-		
+
 	}
 	
 }
