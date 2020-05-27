@@ -6,8 +6,6 @@ using System.Threading.Tasks;
 using Api.Contexts;
 using Api.Eventing;
 using Microsoft.AspNetCore.Http;
-using Microsoft.AspNetCore.Http.Internal;
-using Microsoft.Extensions.Logging;
 using Newtonsoft.Json;
 
 namespace Api.Startup
