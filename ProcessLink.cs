@@ -136,7 +136,7 @@ namespace Api.StackTools
 			{
 				rcv = SocketLink.EndReceive(result);
 			}
-			catch (Exception e)
+			catch
 			{
 				NodeDisconnected();
 				return;

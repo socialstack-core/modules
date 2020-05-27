@@ -47,14 +47,6 @@ namespace Api.StackTools
 			// Spawn the service now. We spawn it in the "interactive" mode which means we get one node.js service
 			// which can handle multiple simultaneous requests via stdin.
 			Spawn();
-			
-			// When the application shuts down, kill the node child process:
-			Startup.WebServerStartupInfo.OnShutdown += () => {
-				if (Node != null)
-				{
-					Node.Stop();
-				}
-			};
 		}
 
 		private int Port;
