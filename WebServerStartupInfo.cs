@@ -25,7 +25,7 @@ namespace Api.Startup
 		/// <summary>
 		/// An event which fires when Configure occurs.
 		/// </summary>
-		public static event Action<IApplicationBuilder, IHostingEnvironment, ILoggerFactory, IServiceProvider, IApplicationLifetime> OnConfigure;
+		public static event Action<IApplicationBuilder, ILoggerFactory, IServiceProvider> OnConfigure;
 
 		/// <summary>
 		/// An event which fires when the application is being configured.
@@ -33,15 +33,9 @@ namespace Api.Startup
 		public static event Action<IApplicationBuilder> OnConfigureApplication;
 
 		/// <summary>
-		/// An event which fires when the application is shutting down.
-		/// </summary>
-		public static event Action OnShutdown;
-
-		/// <summary>
 		/// Create a new web startup info instance.
 		/// </summary>
-		/// <param name="env"></param>
-		public WebServerStartupInfo(IHostingEnvironment env)
+		public WebServerStartupInfo()
         {
         }
 
@@ -53,8 +47,12 @@ namespace Api.Startup
 		/// </summary>
         public void ConfigureServices(IServiceCollection services)
         {
-            services.AddMvc();
-			
+#if NETCORE2_2 || NETCORE2_1
+			services.AddMvc();
+#else
+			services.AddControllers().AddNewtonsoftJson();
+#endif
+
 			// Start checking types:
 			var allTypes = typeof(WebServerStartupInfo).Assembly.DefinedTypes;
 
@@ -118,8 +116,8 @@ namespace Api.Startup
 			services.AddCors(c =>  
 			{  
 				c.AddDefaultPolicy(options => options.AllowAnyOrigin().AllowAnyHeader().AllowAnyMethod());
-			}); 
-			
+			});
+
 			// Run the first event (IEventListener implementors can use).
 			OnConfigureServices?.Invoke(services);
 			
@@ -129,29 +127,47 @@ namespace Api.Startup
 		/// Configures the HTTP pipeline.
 		/// </summary>
 		public void Configure(
-				IApplicationBuilder app, IHostingEnvironment env, 
-				ILoggerFactory loggerFactory, IServiceProvider serviceProvider, IApplicationLifetime applicationLifetime)
+				IApplicationBuilder app, 
+				ILoggerFactory loggerFactory, IServiceProvider serviceProvider)
 		{
-			OnConfigure?.Invoke(app, env, loggerFactory, serviceProvider, applicationLifetime);
+			OnConfigure?.Invoke(app, loggerFactory, serviceProvider);
 			
             // Set the service provider:
             Services.Provider = serviceProvider;
 
-            app.UseCors(options => options.AllowAnyOrigin().AllowAnyHeader().AllowAnyMethod().WithExposedHeaders("Token"));
+#if !NETCOREAPP2_1 && !NETCOREAPP2_2
+
+			// Fire off an event so services can also extend app if they want (IEventListener implementors can use).
+			OnConfigureApplication?.Invoke(app);
+
+			app.UseRouting();
+#endif
+
+			app.UseCors(options => options.AllowAnyOrigin().AllowAnyHeader().AllowAnyMethod().WithExposedHeaders("Token"));
 
 			app.UseForwardedHeaders(new ForwardedHeadersOptions
             {
                 ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto
             });
 
-			#if DEBUG
+#if DEBUG
 			app.UseDeveloperExceptionPage();
-			#endif
+#endif
 
+#if NETCOREAPP2_1 || NETCOREAPP2_2
+			
 			// Fire off an event so services can also extend app if they want (IEventListener implementors can use).
 			OnConfigureApplication?.Invoke(app);
-			
+
             app.UseMvc();
+#else
+			app.UseEndpoints(endpoints =>
+			{
+				// Mapping of endpoints goes here:
+				endpoints.MapControllers();
+			});
+#endif
+
 
 			// Next, we get *all* services so they are all instanced.
 			// First they'll be sorted though so services that require loading early can do so.
@@ -185,10 +201,6 @@ namespace Api.Startup
 
 			// Services are now all instanced - fire off service OnStart event:
 			Services.TriggerStart();
-			
-			// Register shutdown event:
-			applicationLifetime.ApplicationStopping.Register(OnApplicationStopping);
-			
 		}
 		
 		/// <summary>
@@ -217,14 +229,5 @@ namespace Api.Startup
 			return null;
 		}
 		
-		/// <summary>
-		/// Called when we're going down.
-		/// </summary>
-		private void OnApplicationStopping(){
-
-			// Fire off the shutdown event:
-			OnShutdown?.Invoke();
-
-		}
 	}
 }
