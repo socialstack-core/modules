@@ -41,10 +41,18 @@ namespace Api.Uploader
 				// Setup the public unauthed static content route:
 				var pubPath = SetupDirectory(false);
 
+				var extensions = new FileExtensionContentTypeProvider();
+
+				// DASH mime types:
+				extensions.Mappings[".mpd"] = "application/dash+xml";
+				extensions.Mappings[".m4s"] = "video/iso.segment";
+
+
 				app.UseStaticFiles(new StaticFileOptions()
 				{
 					FileProvider = new PhysicalFileProvider(pubPath),
-					RequestPath = new PathString("/content")
+					RequestPath = new PathString("/content"),
+					ContentTypeProvider = extensions
 				});
 
 				// Setup the private authed path:
@@ -54,6 +62,7 @@ namespace Api.Uploader
 				{
 					FileProvider = new PhysicalFileProvider(privPath),
 					RequestPath = new PathString("/content-private"),
+					ContentTypeProvider = extensions,
 					OnPrepareResponse = (StaticFileResponseContext context) => {
 
 						if (_signatureService == null)
