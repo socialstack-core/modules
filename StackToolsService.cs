@@ -5,6 +5,7 @@ using System.Net;
 using System.Net.Sockets;
 using System.Runtime.InteropServices;
 using System.Threading.Tasks;
+using Microsoft.Extensions.Hosting;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 
@@ -32,7 +33,7 @@ namespace Api.StackTools
 		/// <summary>
 		/// The node.js Process
 		/// </summary>
-		private NodeProcess Process;
+		private NodeProcess NodeProcess;
 
 		/// <summary>
 		/// Instanced automatically. Use injection to use this service, or Startup.Services.Get.
@@ -80,7 +81,7 @@ namespace Api.StackTools
 		/// <param name="onResult">This callback runs when it responds.</param>
 		public void Request(Request msg, OnStackToolsResponse onResult)
 		{
-			Process.Request(msg, onResult);
+			NodeProcess.Request(msg, onResult);
 		}
 		
 		/// <summary>
@@ -172,10 +173,10 @@ namespace Api.StackTools
 		/// <returns></returns>
 		private void Spawn()
 		{
-			Process = new NodeProcess("socialstack interactive -parent " + Process.GetCurrentProcess().Id);
+			NodeProcess = new NodeProcess("socialstack interactive -parent " + Process.GetCurrentProcess().Id);
 
 			// Start it now:
-			Process.Start();
+			NodeProcess.Start();
 
 			// We default to prod mode if we're a release build.
 #if DEBUG
@@ -185,7 +186,7 @@ namespace Api.StackTools
 #endif
 
 			// Start the UI watcher straight away:
-			Process.Request(new WatchRequest() {
+			NodeProcess.Request(new WatchRequest() {
 				minified = prod, compress = prod
 			}, (string e, JObject response) => {
 				if (e != null)
