@@ -38,7 +38,11 @@ namespace Api.StackTools
 		/// <summary>
 		/// Instanced automatically. Use injection to use this service, or Startup.Services.Get.
 		/// </summary>
-		public StackToolsService(IHostApplicationLifetime lifetime)
+		public StackToolsService(
+#if !NETCOREAPP2_1 && !NETCOREAPP2_2
+			IHostApplicationLifetime lifetime
+#endif
+		)
 		{
 			Task.Run(() =>
 			{
@@ -49,10 +53,12 @@ namespace Api.StackTools
 				// which can handle multiple simultaneous requests via stdin.
 				Spawn();
 			});
-			
+
+#if !NETCOREAPP2_1 && !NETCOREAPP2_2
 			lifetime.ApplicationStopping.Register(() => {
 				StopAll();
 			});
+#endif
 
 			AppDomain.CurrentDomain.ProcessExit += (object sender, EventArgs e) => {
 				StopAll();
@@ -69,7 +75,11 @@ namespace Api.StackTools
 			
 			if (NodeProcess != null && NodeProcess.Process != null && !NodeProcess.Process.HasExited)
 			{
+#if NETCOREAPP2_1 || NETCOREAPP2_2
+				NodeProcess.Process.Kill();
+#else
 				NodeProcess.Process.Kill(true);
+#endif
 			}
 		}
 
