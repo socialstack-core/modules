@@ -47,7 +47,7 @@ namespace Api.Startup
 		/// </summary>
         public void ConfigureServices(IServiceCollection services)
         {
-#if NETCORE2_2 || NETCORE2_1
+#if NETCOREAPP2_2 || NETCOREAPP2_1
 			services.AddMvc();
 #else
 			services.AddControllers().AddNewtonsoftJson();
