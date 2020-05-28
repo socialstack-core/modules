@@ -17,7 +17,7 @@ namespace Api.CanvasRenderer
 		/// Instanced automatically. Use injection to use this service, or Startup.Services.Get.
 		/// </summary>
 		public CanvasRendererService(IStackToolsService stackTools)
-        {
+		{
 			_stackTools = stackTools;
 		}
 
@@ -34,10 +34,9 @@ namespace Api.CanvasRenderer
 			// A TCS will let us return when the callback runs:
 			var tcs = new TaskCompletionSource<RenderedCanvas>();
 
-			_stackTools.Request(new {
-				action = "render",
+			_stackTools.Request(new RenderRequest() {
 				canvas = bodyJson,
-				context
+				context = context
 			}, (string error, JObject response) => {
 
 				var result = error != null ? null : new RenderedCanvas()
@@ -48,10 +47,33 @@ namespace Api.CanvasRenderer
 
 				tcs.TrySetResult(result);
 			});
-			
+
 			return tcs.Task;
 		}
 
 	}
-    
+
+	/// <summary>
+	/// A request to socialstack tools to render a canvas.
+	/// </summary>
+	public class RenderRequest : Request
+	{
+		/// <summary>
+		/// Canvas JSON
+		/// </summary>
+		public string canvas;
+
+		/// <summary>
+		/// The context
+		/// </summary>
+		public CanvasContext context;
+
+		/// <summary>
+		/// 
+		/// </summary>
+		public RenderRequest()
+		{
+			action = "render";
+		}
+	}
 }
