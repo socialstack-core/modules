@@ -79,6 +79,10 @@ function setPing(){
 function connect(){
 	var isHttps = global.location.protocol == "https:";
 	
+	if(typeof WebSocket === "undefined"){
+		return;
+	}
+	
 	// Fire up the websocket:
 	ws = new WebSocket((global.apiHost || global.location.origin).replace("http", "ws") + "/live-websocket/");
 	setPing();
@@ -176,7 +180,7 @@ module.exports = {
 				connect();
 			}
 			
-			if(ws.readyState == WebSocket.OPEN){
+			if(ws && ws.readyState == WebSocket.OPEN){
 				ws.send(JSON.stringify(msg));
 			}
 		}
