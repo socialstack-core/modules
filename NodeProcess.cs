@@ -1,3 +1,5 @@
+using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
 using System;
 using System.Diagnostics;
 using System.Runtime.InteropServices;
@@ -35,30 +37,12 @@ namespace Api.StackTools
 	public partial class NodeProcess
 	{
 		/// <summary>
-		/// An ID to use to identify node processes.
-		/// </summary>
-		private static int SpawnId = 1;
-
-		/// <summary>
-		/// This process's ID.
-		/// </summary>
-		public int Id;
-
-		/// <summary>
 		/// Sets up a new process.
 		/// cmd is of the form "socialstack interactive -p .."
 		/// </summary>
 		/// <param name="cmd">The socialstack command to spawn.</param>
-		/// <param name="appendId">True if the process Id should be appended to the command, in the form " -id ID"</param>
-		public NodeProcess(string cmd, bool appendId)
+		public NodeProcess(string cmd)
 		{
-			Id = SpawnId++;
-
-			if (appendId)
-			{
-				cmd += " -id " + Id;
-			}
-
 			var isWindows = RuntimeInformation.IsOSPlatform(OSPlatform.Windows);
 			
 			Process process = new Process();
@@ -213,22 +197,80 @@ namespace Api.StackTools
 					return;
 				}
 
+				if (OnData != null)
+				{
+					OnData(e.Data);
+					return;
+				}
+
 				// Forward to our output stream:
 				Console.WriteLine(e.Data);
 			});
 
 			process.ErrorDataReceived += new DataReceivedEventHandler((sender, e) =>
 			{
+				// Responses pass through here. Check if the msg is JSON.
+				
 				if (string.IsNullOrEmpty(e.Data))
 				{
 					return;
 				}
 
-				Console.WriteLine(e.Data);
+				OnStackToolsResponse responseHandler = null;
+				JObject response = null;
+
+				// Objects only for the response message type:
+				if (e.Data[0] == '{')
+				{
+					try
+					{
+						response = JsonConvert.DeserializeObject(e.Data) as JObject;
+
+						if (response != null)
+						{
+							var idField = response["_id"];
+
+							if (idField != null)
+							{
+								var requestId = idField.Value<int>();
+								responseHandler = GetResponseHandler(requestId);
+							}
+						}
+					}
+					catch
+					{
+						// Wasn't json (or a valid message) - just write it out.
+					}
+				}
+
+				if (responseHandler == null)
+				{
+					if (OnErrorData != null)
+					{
+						OnErrorData(e.Data);
+						return;
+					}
+
+					Console.WriteLine(e.Data);
+					return;
+				}
+
+				// Valid message - run now:
+				responseHandler.Invoke(null, response);
 			});
 
 		}
-		
+
+		/// <summary>
+		/// Called when error data is received.
+		/// </summary>
+		public event Action<string> OnErrorData;
+
+		/// <summary>
+		/// Called when stdout data is received.
+		/// </summary>
+		public event Action<string> OnData;
+
 		/// <summary>
 		/// Called when the process has changed state. 0=Exiting, 1=Connecting, 2=Connected
 		/// </summary>
@@ -253,14 +295,12 @@ namespace Api.StackTools
 			
 			try
 			{
-				Process.Start();
-
 				Task.Run(() => {
+					Process.Start();
 					Process.BeginOutputReadLine();
 					Process.BeginErrorReadLine();
 					Process.WaitForExit();
 				});
-
 			}
 			catch (Exception e)
 			{
@@ -272,6 +312,21 @@ namespace Api.StackTools
 
 		}
 
+		/// <summary>
+		/// Submits a request to the running shared process. When it's done, it runs your given callback.
+		/// </summary>
+		/// <param name="request">The raw request data</param>
+		/// <param name="onResponse">Called when the request returns.</param>
+		public void Request(Request request, OnStackToolsResponse onResponse)
+		{
+			// Pop an ID:
+			request._id = GetRequestId(onResponse);
+
+			// Serialise the request as JSON:
+			var jsonString = JsonConvert.SerializeObject(request);
+
+			// Write to stdin:
+			Process.StandardInput.Write(jsonString);
+		}
 	}
-	
 }

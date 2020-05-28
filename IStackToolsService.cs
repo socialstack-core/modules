@@ -15,16 +15,9 @@ namespace Api.StackTools
 		/// <summary>
 		/// Get node.js to do something via sending it a serialisable request.
 		/// </summary>
-		/// <param name="serialisableMessage"></param>
+		/// <param name="msg"></param>
 		/// <param name="onResult">This callback runs when it responds.</param>
-		void Request(object serialisableMessage, OnStackToolsResponse onResult);
-
-		/// <summary>
-		/// Get node.js to do something via sending it a raw json request.
-		/// </summary>
-		/// <param name="json"></param>
-		/// <param name="onResult">This callback runs when it responds.</param>
-		void RequestJson(string json, OnStackToolsResponse onResult);
-
+		void Request(Request msg, OnStackToolsResponse onResult);
+		
 	}
 }

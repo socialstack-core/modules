@@ -23,126 +23,126 @@ namespace Api.StackTools
 	/// </summary>
 	public partial class StackToolsService : IStackToolsService
 	{
+		
+		private bool _stopping;
 		/// <summary>
 		/// True if we attempted an install.
 		/// </summary>
 		internal bool AttemptedInstall = false;
 		/// <summary>
-		/// The node.js process handler
+		/// The node.js Process
 		/// </summary>
-		private ProcessLink Node;
-
-		private Socket ListenSocket;
-		
-		/// <summary>
-		/// Processes which have been spawned and are currently waiting to connect.
-		/// </summary>
-		private List<NodeProcess> PendingProcesses = new List<NodeProcess>();
+		private NodeProcess Process;
 
 		/// <summary>
 		/// Instanced automatically. Use injection to use this service, or Startup.Services.Get.
 		/// </summary>
-		public StackToolsService()
+		public StackToolsService(IHostApplicationLifetime lifetime)
 		{
-			// Spawn the service now. We spawn it in the "interactive" mode which means we get one node.js service
-			// which can handle multiple simultaneous requests via stdin.
-			Spawn();
-		}
-
-		private int Port;
-
-		private void StartListening()
-		{
-			if (Port != 0)
+			Task.Run(() =>
 			{
-				// We're already listening.
-				return;
-			}
+				// Version + install check:
+				CheckInstall();
 
-			ListenSocket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
-			// Bind to port 0 will tell the OS to give us any available port.
-			ListenSocket.Bind(new IPEndPoint(IPAddress.Loopback, 0));
-			Port = ((IPEndPoint)ListenSocket.LocalEndPoint).Port;
-
-			Console.WriteLine("Ready for stack tools processes on port " + Port);
-
-			ListenSocket.Listen(5);
-			ListenSocket.BeginAccept(OnConnect, null);
-		}
-
-		private void OnConnect(IAsyncResult ar)
-		{
-			if (ListenSocket == null)
-			{
-				return;
-			}
-
-			// Get the socket:
-			Socket socket = ListenSocket.EndAccept(ar);
-
-			// Continue accepting more connections:
-			ListenSocket.BeginAccept(OnConnect, null);
-
-			// Non-blocking socket:
-			socket.Blocking = false;
-			
-			var link = new ProcessLink(socket);
-			Node = link;
-			
-			link.OnClose = () => {
-				// The process has closed. Spawn a new one:
-				Node = null;
+				// Spawn the service now. We spawn it in the "interactive" mode which means we get one node.js service
+				// which can handle multiple simultaneous requests via stdin.
 				Spawn();
-			};
+			});
 			
-			link.OnReady = () => {
-				// Get the process that this relates to:
-				var process = PendingProcesses.Find(proc => proc.Id == link.Id);
+			lifetime.ApplicationStopping.Register(() => {
+				StopAll();
+			});
 
-				if (process == null)
-				{
-					// This wasn't meant for us.
-					return;
-				}
-
-				PendingProcesses.Remove(process);
-				link.Process = process;
-				process.StateChange(NodeProcessState.READY);
+			AppDomain.CurrentDomain.ProcessExit += (object sender, EventArgs e) => {
+				StopAll();
 			};
 
-			link.Begin();
 		}
 		
+		/// <summary>
+		/// Stops all processes.
+		/// </summary>
+		private void StopAll()
+		{
+			_stopping = true;
+			
+			if (NodeProcess != null && NodeProcess.Process != null && !NodeProcess.Process.HasExited)
+			{
+				NodeProcess.Process.Kill(true);
+			}
+		}
+
 		/// <summary>
 		/// Get node.js to do something via sending it a serialisable request.
 		/// Of the form {action: "name", ..anything else..}.
 		/// </summary>
-		/// <param name="serialisableMessage"></param>
+		/// <param name="msg"></param>
 		/// <param name="onResult">This callback runs when it responds.</param>
-		public void Request(object serialisableMessage, OnStackToolsResponse onResult)
+		public void Request(Request msg, OnStackToolsResponse onResult)
 		{
-			Node.Request(serialisableMessage, onResult);
+			Process.Request(msg, onResult);
+		}
+		
+		/// <summary>
+		/// Null if not installed.
+		/// </summary>
+		/// <returns></returns>
+		private Version GetToolsVersion()
+		{
+			// Version check:
+			var versionChecker = new NodeProcess("socialstack v");
+
+			string versionText = null;
+
+			versionChecker.OnData += (string version) => {
+				versionText = version.Trim();
+			};
+
+			try
+			{
+				versionChecker.Process.Start();
+				versionChecker.Process.WaitForExit();
+			}
+			catch (System.ComponentModel.Win32Exception)
+			{
+				// Socialstack isn't installed at all (or is just really old!)
+				return null;
+			}
+
+			return versionText == null ? null : new Version(versionText);
 		}
 
 		/// <summary>
-		/// Get node.js to do something via sending it a raw json request.
-		/// Of the form {action: "name", ..anything else..}.
+		/// Min tools version
 		/// </summary>
-		/// <param name="json"></param>
-		/// <param name="onResult">This callback runs when it responds.</param>
-		public void RequestJson(string json, OnStackToolsResponse onResult)
-		{
-			Node.RequestJson(json, onResult);
-		}
+		private Version MinVersion = new Version("1.0.90");
 
-		private void Install()
+		private void CheckInstall()
 		{
 			return;
+
+			// Get the version:
+			var version = GetToolsVersion();
+
+			if (version == null)
+			{
+				Console.WriteLine("Socialstack tools isn't installed - attempting to install now.");
+			}
+			else if (version < MinVersion)
+			{
+				Console.WriteLine("Socialstack tools is below the required min version - upgrading now.");
+			}
+			else
+			{
+				Console.WriteLine("Socialstack tools passed version check.");
+				return;
+			}
+
 			AttemptedInstall = true;
 			var isWindows = RuntimeInformation.IsOSPlatform(OSPlatform.Windows);
 
 			// Try to globally install socialstack tools now:
-			var np = new NodeProcess("npm install -g socialstack", false);
+			var np = new NodeProcess("npm install -g socialstack");
 			
 			try
 			{
@@ -172,72 +172,29 @@ namespace Api.StackTools
 		/// <returns></returns>
 		private void Spawn()
 		{
-			StartListening();
-			
-			var process = new NodeProcess("socialstack interactive -p " + Port, true);
-
-			process.OnStateChange += (NodeProcessState state) =>
-			{
-				if (state == NodeProcessState.EXITING)
-				{
-					// The process is exiting - respawn:
-					Spawn();
-					return;
-				}
-
-				if (state == NodeProcessState.FAILED)
-				{
-					// It failed to start entirely.
-					if (AttemptedInstall)
-					{
-						// Already tried an install - this module has a hard failure which we can't recover from.
-						throw new Exception("Unable to start socialstack tools. " +
-						"Try manually running 'npm install -g socialstack', possibly after installing node.js");
-					}
-					else
-					{
-						Console.WriteLine("[WARN] Socialstack tools didn't start.");
-						Console.WriteLine("Attempting to install socialstack tools and we'll try again shortly.");
-
-						// (install blocks)
-						Install();
-						Spawn();
-					}
-
-					return;
-				}
-
-				if (state != NodeProcessState.READY)
-				{
-					return;
-				}
-
-				// We default to prod mode if we're a release build.
-#if DEBUG
-				var prod = false;
-#else
-				var prod = true;
-#endif
-
-				// Start the UI watcher straight away:
-				Node.Request(new { action = "watch", minified = prod, compress = prod }, (string e, JObject response) => {
-					if (e != null)
-					{
-						return;
-					}
-
-					Console.WriteLine("UI watcher started successfully.");
-
-				});
-
-			};
-
-			// Add to the list of processes currently waiting to connect:
-			PendingProcesses.Add(process);
+			Process = new NodeProcess("socialstack interactive -parent " + Process.GetCurrentProcess().Id);
 
 			// Start it now:
-			process.Start();
-			
+			Process.Start();
+
+			// We default to prod mode if we're a release build.
+#if DEBUG
+			var prod = false;
+#else
+			var prod = true;
+#endif
+
+			// Start the UI watcher straight away:
+			Process.Request(new WatchRequest() {
+				minified = prod, compress = prod
+			}, (string e, JObject response) => {
+				if (e != null)
+				{
+					return;
+				}
+
+				Console.WriteLine("UI watcher started successfully.");
+			});
 
 		}
 		
