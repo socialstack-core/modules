@@ -4,7 +4,9 @@ using System.Threading.Tasks;
 using Api.Database;
 using System.Text;
 using Api.Eventing;
-
+using System;
+using System.Collections;
+using System.Collections.Generic;
 
 namespace Api.DatabaseDiff
 {
@@ -54,20 +56,28 @@ namespace Api.DatabaseDiff
 				System.Console.WriteLine("[WARNING] DatabaseDiff module disabled. It's currently only available on MySQL >8 (" + dbVersion.Version + ").");
 				return;
 			}
+			
+			List<DatabaseColumnDefinition> columns = null;
+			
+			try{
+				// Collect all the existing table meta:
+				var listQuery = Query.List<DatabaseColumnDefinition>();
+				listQuery.SetRawQuery(
+					"SELECT table_name as TableName, `column_name` as ColumnName, `data_type` as DataType, " +
+					"`is_nullable` = 'YES' as IsNullable, IF(INSTR(extra, 'auto_increment')>0, TRUE, FALSE) as IsAutoIncrement, " +
+					"IF(INSTR(column_type, 'unsigned')>0, TRUE, FALSE) as IsUnsigned, " +
+					"IF(`character_maximum_length` IS NULL, `numeric_scale`, `character_maximum_length`) as MaxCharacters, " +
+					"CAST(`numeric_precision` as SIGNED) as MaxCharacters2 " +
+					"FROM information_schema.columns WHERE table_schema = DATABASE()"
+				);
 
-			// Collect all the existing table meta:
-			var listQuery = Query.List<DatabaseColumnDefinition>();
-			listQuery.SetRawQuery(
-				"SELECT table_name as TableName, `column_name` as ColumnName, `data_type` as DataType, " +
-				"`is_nullable` = 'YES' as IsNullable, IF(INSTR(extra, 'auto_increment')>0, TRUE, FALSE) as IsAutoIncrement, " +
-				"IF(INSTR(column_type, 'unsigned')>0, TRUE, FALSE) as IsUnsigned, " +
-				"IF(`character_maximum_length` IS NULL, `numeric_scale`, `character_maximum_length`) as MaxCharacters, " +
-				"CAST(`numeric_precision` as SIGNED) as MaxCharacters2 " +
-				"FROM information_schema.columns WHERE table_schema = DATABASE()"
-			);
-
-			var columns = await _database.List(null, listQuery, null);
-
+				columns = await _database.List(null, listQuery, null);
+			}
+			catch(Exception e)
+			{
+				System.Console.WriteLine("[WARNING] DatabaseDiff module disabled. Unsupported version: " + dbVersion.Version);
+				return;
+			}
 			// group them by table:
 			var existingSchema = new Schema();
 			existingSchema.Add(columns);
