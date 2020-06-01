@@ -46,6 +46,11 @@ export default function (e, options) {
 	// Resolve the values. This permits onValues to do async logic:
 	Promise.resolve(values).then(values => {
 		
+		if(values){
+			// Tidiness - delete the set action function:
+			delete values.setAction;
+		}
+		
 		// Send it off now:
 		return webRequest(action, values, options.requestOpts).then(
 			response => {
