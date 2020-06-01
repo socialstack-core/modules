@@ -71,6 +71,11 @@ namespace Api.StackTools
 		/// </summary>
 		private void StopAll()
 		{
+			if (_stopping)
+			{
+				return;
+			}
+
 			_stopping = true;
 			
 			if (NodeProcess != null && NodeProcess.Process != null && !NodeProcess.Process.HasExited)
