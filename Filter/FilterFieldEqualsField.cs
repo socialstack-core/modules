@@ -19,20 +19,12 @@ namespace Api.Permissions
 		/// </summary>
 		/// <param name="builder"></param>
 		/// <param name="paramOffset">A number to add to all emitted parameter @ refs.</param>
-		/// <param name="useTableNames">True if table names should be used instead of type names.</param>
 		/// <param name="localeCode">Optional localeCode used when a request is for e.g. French fields instead. 
 		/// It would be e.g. "fr" and just matches whatever your Locale.Code is.</param>
-		public override void BuildQuery(StringBuilder builder, int paramOffset, bool useTableNames, string localeCode)
+		public override void BuildQuery(StringBuilder builder, int paramOffset, string localeCode)
 		{
 			builder.Append('`');
-			if (useTableNames)
-			{
-				builder.Append(TypeA.TableName());
-			}
-			else
-			{
-				builder.Append(TypeA.Name);
-			}
+			builder.Append(TypeA.Name);
 			builder.Append("`.`");
 			builder.Append(FieldA);
 
@@ -44,14 +36,7 @@ namespace Api.Permissions
 
 			// Equal type B:
 			builder.Append("`=`");
-			if (useTableNames)
-			{
-				builder.Append(TypeB.TableName());
-			}
-			else
-			{
-				builder.Append(TypeB.Name);
-			}
+			builder.Append(TypeB.Name);
 			builder.Append("`.`");
 			builder.Append(FieldB);
 

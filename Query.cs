@@ -267,8 +267,10 @@ namespace Api.Database
 					str.Append(MainTableAs);
 					break;
 				case DELETE:
-					str.Append("DELETE FROM ");
-					str.Append(MainTable);
+					str.Append("DELETE `");
+					str.Append(MainTableType.Name);
+					str.Append("` FROM ");
+					str.Append(MainTableAs);
 
 					if (bulk)
 					{
@@ -464,11 +466,11 @@ namespace Api.Database
 
 			if (filter != null)
 			{
-				filter.BuildFullQuery(str, paramOffset, Operation == DELETE, localeCode);
+				filter.BuildFullQuery(str, paramOffset, localeCode);
 			}
 			else if (_where != null)
 			{
-				_where.BuildFullQuery(str, paramOffset, Operation == DELETE, localeCode);
+				_where.BuildFullQuery(str, paramOffset, localeCode);
 			}
 
 			var result = str.ToString();
