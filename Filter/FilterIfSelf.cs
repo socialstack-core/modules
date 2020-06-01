@@ -48,12 +48,11 @@ namespace Api.Permissions
 			}
 
 			// If the object is a RevisionRow type..
-			var revRow = firstArg as RevisionRow;
-			
-			if(revRow != null){
+			if (firstArg is RevisionRow revRow)
+			{
 				return Task.FromResult(currentUserId == revRow.UserId);
 			}
-			
+
 			// Nope - try matching it via reading the field next.
 			if (firstArg.GetType() != Type)
 			{

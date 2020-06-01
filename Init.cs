@@ -90,7 +90,7 @@ namespace Api.Permissions
 						}
 						
 						// Both are set. Must combine them safely:
-						return filter.Combine(rawGrantRule, srcFilter == null ? null : srcFilter.ParamValueResolvers);
+						return filter.Combine(rawGrantRule, srcFilter?.ParamValueResolvers);
 					}, 1);
 				}
 				else

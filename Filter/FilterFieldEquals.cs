@@ -49,10 +49,27 @@ namespace Api.Permissions
 		public FilterFieldEquals(Type type, string field)
 		{
 			Type = type;
-			Field = field;
 
 			// Get the field info:
-			FieldInfo = type.GetField(field);
+			if (field == "IsDraft")
+			{
+				// Special case
+				Field = "RevisionIsDraft";
+				FieldInfo = typeof(Users.RevisionRow).GetField("_IsDraft", BindingFlags.Instance | BindingFlags.NonPublic);
+			}
+			/*
+			else if (field == "RevisionId")
+			{
+				// Special case
+				Field = "RevisionIsDraft";
+				FieldInfo = typeof(Users.RevisionRow).GetField("_RevisionId", BindingFlags.Instance | BindingFlags.NonPublic);
+			}
+			*/
+			else
+			{
+				Field = field;
+				FieldInfo = type.GetField(field);
+			}
 
 			if (FieldInfo == null)
 			{
