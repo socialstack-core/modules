@@ -7,7 +7,7 @@ using Api.Results;
 using Microsoft.AspNetCore.Mvc;
 using Newtonsoft.Json.Linq;
 using Api.AutoForms;
-
+using Api.Startup;
 
 /// <summary>
 /// A convenience controller for defining common endpoints like create, list, delete etc. Requires an AutoService of the same type to function.
@@ -85,33 +85,140 @@ public partial class AutoController<T>
 	
 	/// <summary>
 	/// POST /v1/entityTypeName/revision/1
-	/// Updates an entity revision with the given ID.
+	/// Updates an entity revision with the given RevisionId.
 	/// </summary>
 	[HttpPost("revision/{id}")]
 	public virtual async Task<T> UpdateRevision([FromRoute] int id, [FromBody] JObject body)
 	{
 		var context = Request.GetContext();
-
-		var entity = await _service.GetRevision(context, id);
 		
-		/*
-		form = await _service.EventGroup.RevisionUpdate.Dispatch(context, form, Response) as U;
+		var entity = await _service.GetRevision(context, id);
 
-		if (form == null || form.Result == null)
+		if (entity == null)
+		{
+			// Either not allowed to edit this, or it doesn't exist.
+			// Both situations are a 404.
+			Response.StatusCode = 404;
+			return null;
+		}
+
+		// In this case the entity ID is definitely known, so we can run all fields at the same time:
+		var notes = await SetFieldsOnObject(entity, context, body, JsonFieldGroup.Any);
+
+		if (notes != null)
+		{
+			Request.Headers["Api-Notes"] = notes;
+		}
+
+		// Run the request update event:
+		// entity = await _service.EventGroup.Update.Dispatch(context, entity, Response) as T;
+
+		if (entity == null)
 		{
 			// A handler rejected this request.
 			return null;
 		}
 
-		entity = await _service.UpdateRevision(context, form.Result);
+		entity = await _service.UpdateRevision(context, entity);
 
 		if (entity == null)
 		{
-			Response.StatusCode = 500;
+			// It was blocked or went wrong, typically because of a bad request.
+			Response.StatusCode = 400;
 			return null;
 		}
+		
+		// Run the request updated event:
+		// entity = await _service.EventGroup.Updated.Dispatch(context, entity, Response) as T;
 
-		*/
+		return entity;
+	}
+
+	/// <summary>
+	/// POST /v1/entityTypeName/draft/
+	/// Updates an entity revision with the given ID.
+	/// </summary>
+	[HttpPost("draft")]
+	public virtual async Task<T> CreateDraft([FromBody] JObject body)
+	{
+		var context = Request.GetContext();
+
+		// Start building up our object.
+		// Most other fields, particularly custom extensions, are handled by autoform.
+		var entity = new T();
+
+		// If it's revisionable we'll set the user ID now:
+		var revisionableEntity = (entity as Api.Users.RevisionRow);
+
+		if (revisionableEntity != null)
+		{
+			revisionableEntity.UserId = context.UserId;
+
+			// Mark it as a draft:
+			revisionableEntity.IsDraft = true;
+		}
+		
+		// Set the actual fields now:
+		var notes = await SetFieldsOnObject(entity, context, body, JsonFieldGroup.Default);
+		
+		// Fire off a create event:
+		// entity = await _service.EventGroup.Create.Dispatch(context, entity, Response) as T;
+
+		if (entity == null)
+		{
+			// A handler rejected this request.
+			if (notes != null)
+			{
+				Request.Headers["Api-Notes"] = notes;
+			}
+
+			return null;
+		}
+		
+		entity = await _service.CreateRevision(context, entity);
+
+		/*
+		 , async (Context c, T ent) => {
+
+			// Set post ID fields:
+			var secondaryNotes = await SetFieldsOnObject(entity, context, body, JsonFieldGroup.AfterId);
+
+			if (secondaryNotes != null)
+			{
+				if (notes == null)
+				{
+					notes = secondaryNotes;
+				}
+				else
+				{
+					notes += ", " + secondaryNotes;
+				}
+
+			}
+		
+		}
+		 */
+
+		if (entity == null)
+		{
+			// It was blocked or went wrong, typically because of a bad request.
+			Response.StatusCode = 400;
+
+			if (notes != null)
+			{
+				Request.Headers["Api-Notes"] = notes;
+			}
+
+			return null;
+		}
+		
+		if (notes != null)
+		{
+			Request.Headers["Api-Notes"] = notes;
+		}
+
+		// Fire off after create evt:
+		// entity = await _service.EventGroup.Created.Dispatch(context, entity, Response) as T;
 
 		return entity;
 	}
