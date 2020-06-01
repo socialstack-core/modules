@@ -12,6 +12,57 @@ export default class AutoList extends React.Component {
 			// If an id field is specified, that's the default sort
 			sort: this.props.fields.find(field => field == 'id') ? {field: 'id', direction: 'desc'} : null
 		};
+		
+		this.renderHeader = this.renderHeader.bind(this);
+		this.renderEntry = this.renderEntry.bind(this);
+	}
+	
+	renderHeader(allContent){
+		// Header (Optional)
+		return this.props.fields.map(field => {
+			
+			// Class for styling the sort buttons:
+			var sortingByThis = this.state.sort && this.state.sort.field == field;
+			var className = '';
+			
+			if(sortingByThis){
+				className = this.state.sort.direction == 'desc' ? 'sorted-desc' : 'sorted-asc';
+			}
+			
+			// Field name with its first letter uppercased:
+			var ucFirstFieldName = field.length ? field.charAt(0).toUpperCase() + field.slice(1) : '';
+			
+			return (
+				<th className={className}>
+					{ucFirstFieldName} <i className="fa fa-caret-down" onClick={() => {
+						// Sort desc
+						this.setState({
+							sort: {
+								field,
+								direction: 'desc'
+							}
+						});
+					}}/> <i className="fa fa-caret-up" onClick={() => {
+						// Sort asc
+						this.setState({
+							sort: {
+								field,
+								direction: 'asc'
+							}
+						});
+					}}/>
+				</th>
+			);
+		});
+	}
+	
+	renderEntry(entry) {
+		var path = '/en-admin/' + this.props.endpoint + '/';
+		
+		// Each row
+		return this.props.fields.map(field => <td><a href={path + '' + entry.id + (entry.revisionId ? '?revision=' + entry.revisionId : '')}>{
+				field.endsWith("Json") ? <Canvas>{entry[field]}</Canvas> : entry[field]
+			}</a></td>);
 	}
 	
 	render(){
@@ -41,52 +92,16 @@ export default class AutoList extends React.Component {
 					</a>
 				</div>
 			)}
+			<Loop asTable over={this.props.endpoint + '/revision/list'} filter={{where: {IsDraft: true}}}>
+				{[
+					this.renderHeader,
+					this.renderEntry
+				]}
+			</Loop>
 			<Loop asTable over={this.props.endpoint + "/list"} {...this.props} filter={combinedFilter}>
 			{[
-				allContent => {
-					// Header (Optional)
-					return this.props.fields.map(field => {
-						
-						// Class for styling the sort buttons:
-						var sortingByThis = this.state.sort && this.state.sort.field == field;
-						var className = '';
-						
-						if(sortingByThis){
-							className = this.state.sort.direction == 'desc' ? 'sorted-desc' : 'sorted-asc';
-						}
-						
-						// Field name with its first letter uppercased:
-						var ucFirstFieldName = field.length ? field.charAt(0).toUpperCase() + field.slice(1) : '';
-						
-						return (
-							<th className={className}>
-								{ucFirstFieldName} <i className="fa fa-caret-down" onClick={() => {
-									// Sort desc
-									this.setState({
-										sort: {
-											field,
-											direction: 'desc'
-										}
-									});
-								}}/> <i className="fa fa-caret-up" onClick={() => {
-									// Sort asc
-									this.setState({
-										sort: {
-											field,
-											direction: 'asc'
-										}
-									});
-								}}/>
-							</th>
-						);
-					});
-				},
-				entry => {
-					// Each row
-					return this.props.fields.map(field => <td><a href={path + '' + entry.id}>{
-							field.endsWith("Json") ? <Canvas>{entry[field]}</Canvas> : entry[field]
-						}</a></td>);
-				}
+				this.renderHeader,
+				this.renderEntry
 			]}
 			</Loop>
 		</Tile>;
