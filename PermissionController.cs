@@ -121,7 +121,7 @@ namespace Api.Permissions
 
 						// Note that a blank rule description means it's always true.
 						// I.e. it's granted and there is no rule around when it is active.
-						rule.BuildQuery(qry, 0, false, null);
+						rule.BuildQuery(qry, 0, null);
 
 						meta.Grants.Add(new GrantMeta()
 						{
