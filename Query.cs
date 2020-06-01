@@ -507,9 +507,11 @@ namespace Api.Database
 		/// </summary>
 		public static Query Copy(FieldTransferMap map)
 		{
-			var result = new Query();
-			result.Operation = COPY;
-			result.TransferMap = map;
+			var result = new Query
+			{
+				Operation = COPY,
+				TransferMap = map
+			};
 			return result;
 		}
 
@@ -540,12 +542,14 @@ namespace Api.Database
 		/// </summary>
 		public static Query List(Type rowType)
 		{
-			var result = new Query(rowType);
-			result.Operation = SELECT;
+			var result = new Query(rowType)
+			{
+				Operation = SELECT,
 
-			// Fields that we'll select are mapped ahead-of-time for rapid lookup speeds.
-			// Note that these maps aren't shared between queries so the fields can be removed etc from them.
-			result.Fields = new FieldMap(rowType);
+				// Fields that we'll select are mapped ahead-of-time for rapid lookup speeds.
+				// Note that these maps aren't shared between queries so the fields can be removed etc from them.
+				Fields = new FieldMap(rowType)
+			};
 
 			return result;
 		}
@@ -556,8 +560,10 @@ namespace Api.Database
 		/// <returns></returns>
 		public Filter Where()
 		{
-			var result = new Filter();
-			result.DefaultType = MainTableType;
+			var result = new Filter
+			{
+				DefaultType = MainTableType
+			};
 			_where = result;
 			return result;
 		}
@@ -567,8 +573,10 @@ namespace Api.Database
 		/// </summary>
 		public static Query<U> List<U>()
 		{
-			var result = new Query<U>();
-			result.Operation = SELECT;
+			var result = new Query<U>
+			{
+				Operation = SELECT
+			};
 			result.SetMainTable(typeof(U));
 
 			// Fields that we'll select are mapped ahead-of-time for rapid lookup speeds.
@@ -584,12 +592,14 @@ namespace Api.Database
 		/// </summary>
 		public static Query Replace(Type rowType)
 		{
-			var result = new Query(rowType);
-			result.Operation = REPLACE;
+			var result = new Query(rowType)
+			{
+				Operation = REPLACE,
 
-			// Fields that we'll select are mapped ahead-of-time for rapid lookup speeds.
-			// Note that these maps aren't shared between queries so the fields can be removed etc from them.
-			result.Fields = new FieldMap(rowType);
+				// Fields that we'll select are mapped ahead-of-time for rapid lookup speeds.
+				// Note that these maps aren't shared between queries so the fields can be removed etc from them.
+				Fields = new FieldMap(rowType)
+			};
 			return result;
 		}
 
@@ -599,8 +609,10 @@ namespace Api.Database
 		/// </summary>
 		public static Query<U> Replace<U>()
 		{
-			var result = new Query<U>();
-			result.Operation = REPLACE;
+			var result = new Query<U>
+			{
+				Operation = REPLACE
+			};
 			result.SetMainTable(typeof(U));
 
 			// Fields that we'll select are mapped ahead-of-time for rapid lookup speeds.
@@ -679,8 +691,10 @@ namespace Api.Database
 		/// </summary>
 		public static Query<U> Update<U>()
 		{
-			var result = new Query<U>();
-			result.Operation = UPDATE;
+			var result = new Query<U>
+			{
+				Operation = UPDATE
+			};
 			result.SetMainTable(typeof(U));
 
 			// Fields that we'll select are mapped ahead-of-time for rapid lookup speeds.
@@ -702,8 +716,10 @@ namespace Api.Database
 		/// </summary>
 		public static Query<U> Delete<U>()
 		{
-			var result = new Query<U>();
-			result.Operation = DELETE;
+			var result = new Query<U>
+			{
+				Operation = DELETE
+			};
 			result.SetMainTable(typeof(U));
 
 			// Default where:

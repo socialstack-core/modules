@@ -15,21 +15,31 @@ namespace Api.Database
 	public class FieldMap
 	{
 		/// <summary>
+		/// The type that this is a map for.
+		/// </summary>
+		public Type Type;
+
+		/// <summary>
 		/// The field map for the given type. It should inherit DatabaseRow.
 		/// </summary>
 		public FieldMap(Type type)
 		{
+			Type = type;
+
 			// For now we just use *all* fields:
 			var fields = type.GetFields();
 			
 			var fieldSet = new List<Field>();
-			
-			for(var i=0;i<fields.Length;i++){
+			Lookup = new Dictionary<string, Field>();
+
+			for (var i=0;i<fields.Length;i++){
 				var field = fields[i];
-				
+
 				// (filter here if needed).
-				
-				fieldSet.Add(new Field(type, field));
+
+				var fld = new Field(type, field);
+				fieldSet.Add(fld);
+				Lookup[fld.Name] = fld;
 			}
 			
 			// Set:
@@ -40,6 +50,10 @@ namespace Api.Database
 		/// All the fields in this map.
 		/// </summary>
 		public List<Field> Fields;
+		/// <summary>
+		/// Name lookup.
+		/// </summary>
+		private Dictionary<string, Field> Lookup;
 
 		/// <summary>
 		/// Remove all fields except the named ones.
@@ -48,6 +62,11 @@ namespace Api.Database
 		public void RemoveAllBut(string[] fieldNames)
 		{
 			Fields = Fields.Where(fld => fieldNames.Contains(fld.Name)).ToList();
+			Lookup.Clear();
+			foreach (var field in Fields)
+			{
+				Lookup[field.Name] = field;
+			}
 		}
 
 		/// <summary>
@@ -57,7 +76,8 @@ namespace Api.Database
 		/// <returns></returns>
 		public Field Find(string name)
 		{
-			return Fields.FirstOrDefault(fld => fld.Name == name);
+			Lookup.TryGetValue(name, out Field f);
+			return f;
 		}
 
 		/// <summary>
@@ -67,6 +87,7 @@ namespace Api.Database
 		public void Add(Field field)
 		{
 			Fields.Add(field);
+			Lookup[field.Name] = field;
 		}
 
 		/// <summary>
