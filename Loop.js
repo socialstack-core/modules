@@ -609,8 +609,8 @@ export default class Loop extends React.Component {
 					headerFunc = renderFunc[0];
 					bodyFunc = renderFunc[1];
 					
-					if(renderFunc.length > 1){
-						footerFunc = renderFunc[1];
+					if(renderFunc.length > 2){
+						footerFunc = renderFunc[2];
 					}
 				}
 			}
