@@ -38,7 +38,23 @@ export default class AutoForm extends React.Component {
 			return;
 		}
 		
-		var createSuccess = global.location && global.location.search == '?created=1';
+		var createSuccess = false;
+		var revisionId = 0;
+		if(global.location && global.location.search){
+			var query = {};
+			global.location.search.substring(1).split('&').forEach(piece => {
+				var term = piece.split('=');
+				query[term[0]] = decodeURIComponent(term[1]);
+			});
+			
+			if(query.created){
+				createSuccess = true;
+			}
+			
+			if(query.revision){
+				revisionId = parseInt(query.revision);
+			}
+		}
 		
 		getAutoForm((props.endpoint || '').toLowerCase()).then(formData => {
 			
@@ -69,7 +85,7 @@ export default class AutoForm extends React.Component {
 			var opts = {locale: this.state.locale};
 			
 			// Get the values we're editing:
-			webRequest(props.endpoint + '/' + props.id, null, opts).then(response => {
+			webRequest(revisionId ? props.endpoint + '/revision/' + revisionId : props.endpoint + '/' + props.id, null, opts).then(response => {
 				
 				this.setState({fieldData: response.json, createSuccess});
 				
@@ -78,7 +94,8 @@ export default class AutoForm extends React.Component {
 		
 		this.setState({
 			endpoint: props.endpoint,
-			id: props.id
+			id: props.id,
+			revisionId
 		});
 	}
 	
