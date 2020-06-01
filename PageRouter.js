@@ -143,7 +143,7 @@ export default class PageRouter extends React.Component{
 						
 						if(targetIsExternPage == isOnExternPage){
 							e.preventDefault();
-							this.go(cur.pathname);
+							this.go(cur.pathname + cur.search);
 						}
 						return;
 					}
