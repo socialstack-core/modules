@@ -71,8 +71,10 @@ namespace Api.Revisions
 						specialIdField.TargetField = revisionIdField;
 
 						// Create a column definition:
-						columnDefinition = new DatabaseColumnDefinition(specialIdField, targetTableName);
-						columnDefinition.IsAutoIncrement = true;
+						columnDefinition = new DatabaseColumnDefinition(specialIdField, targetTableName)
+						{
+							IsAutoIncrement = true
+						};
 					}
 					else
 					{
@@ -96,10 +98,12 @@ namespace Api.Revisions
 					var contentIdColumn = new DatabaseColumnDefinition(
 						contentIdField,
 						targetTableName
-					);
+					)
+					{
 
-					// It may have seen that the Id column is autoinc, depending on field attributes, so clear that:
-					contentIdColumn.IsAutoIncrement = false;
+						// It may have seen that the Id column is autoinc, depending on field attributes, so clear that:
+						IsAutoIncrement = false
+					};
 
 					newSchema.Add(
 						contentIdColumn
@@ -145,10 +149,12 @@ namespace Api.Revisions
 
 				// Create the original field map:
 				var fieldMap = new FieldMap(contentType);
-				
+
 				// First, generate a 'copy' query. It'll transfer values from table A to table B.
-				var transferMap = new FieldTransferMap();
-				transferMap.TargetTypeNameExtension = "_revisions";
+				var transferMap = new FieldTransferMap
+				{
+					TargetTypeNameExtension = "_revisions"
+				};
 
 				// For each field in the map, create a transfer:
 				foreach (var field in fieldMap.Fields)
@@ -182,9 +188,7 @@ namespace Api.Revisions
 						return null;
 					}
 
-					var revisionableContent = args[0] as RevisionRow;
-
-					if (revisionableContent == null)
+					if (!(args[0] is RevisionRow revisionableContent))
 					{
 						// This event is not for us
 						return args[0];
@@ -244,10 +248,12 @@ namespace Api.Revisions
 
 				// Create the original field map:
 				var fieldMap = new FieldMap(contentType);
-				
+
 				// First, generate a 'copy' query. It'll transfer values from table A to table B.
-				var transferMap = new FieldTransferMap();
-				transferMap.TargetTypeNameExtension = "_revisions";
+				var transferMap = new FieldTransferMap
+				{
+					TargetTypeNameExtension = "_revisions"
+				};
 
 				// For each field in the map, create a transfer:
 				foreach (var field in fieldMap.Fields)
@@ -280,10 +286,8 @@ namespace Api.Revisions
 					{
 						return null;
 					}
-
-					var revisionableContent = args[0] as RevisionRow;
-
-					if (revisionableContent == null)
+					
+					if (!(args[0] is RevisionRow revisionableContent))
 					{
 						// This event is not for us
 						return args[0];
