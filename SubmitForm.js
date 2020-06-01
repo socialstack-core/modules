@@ -32,6 +32,12 @@ export default function (e, options) {
 		return;
 	}
 	
+	var action = e.target.action;
+	
+	values.setAction = (newAction) => {
+		action = newAction;
+	};
+	
 	if(options.onValues){
 		// Map the values:
 		values = options.onValues(values, e);
@@ -41,7 +47,7 @@ export default function (e, options) {
 	Promise.resolve(values).then(values => {
 		
 		// Send it off now:
-		return webRequest(e.target.action, values, options.requestOpts).then(
+		return webRequest(action, values, options.requestOpts).then(
 			response => {
 				if (response.ok) {
 					// How successful was it? (Did we get a 200 response?)
