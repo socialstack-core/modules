@@ -25,6 +25,10 @@ export default function (e, options) {
 		values[field.name] = field.type=='checkbox' ? true : field.value;
 	}
 	
+	if(e.submitter && e.submitter.name){
+		values[e.submitter.name] = e.submitter.value;
+	}
+	
 	if(validationErrors){
 		if (options.onFailed) {
 			options.onFailed('VALIDATION', validationErrors, e);
