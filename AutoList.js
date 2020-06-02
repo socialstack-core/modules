@@ -60,9 +60,26 @@ export default class AutoList extends React.Component {
 		var path = '/en-admin/' + this.props.endpoint + '/';
 		
 		// Each row
-		return this.props.fields.map(field => <td><a href={path + '' + entry.id + (entry.revisionId ? '?revision=' + entry.revisionId : '')}>{
-				field.endsWith("Json") ? <Canvas>{entry[field]}</Canvas> : entry[field]
-			}</a></td>);
+		return this.props.fields.map(field => {
+			
+			var fieldValue = entry[field];
+			
+			if(field.endsWith("Json")) {
+				fieldValue = <Canvas>{fieldValue}</Canvas>;
+			}else if(field == "id") {
+				if(!fieldValue){
+					fieldValue = "Draft";
+				}
+			}
+			
+			return <td>
+				<a href={path + '' + entry.id + (entry.revisionId ? '?revision=' + entry.revisionId : '')}>
+				{
+					fieldValue
+				}
+				</a>
+			</td>
+		});
 	}
 	
 	render(){
