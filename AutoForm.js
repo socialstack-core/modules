@@ -1,6 +1,7 @@
 import Form from 'UI/Form';
 import Input from 'UI/Input';
 import Canvas from 'UI/Canvas';
+import Spacer from 'UI/Spacer';
 import isNumeric from 'UI/Functions/IsNumeric';
 import getUrl from 'UI/Functions/Url';
 import getAutoForm from 'Admin/Functions/GetAutoForm';
@@ -117,8 +118,11 @@ export default class AutoForm extends React.Component {
 			deleting: true
 		});
 		
-		webRequest(this.props.endpoint + '/' + this.props.id, null, {method: 'delete'}).then(response => {
-			
+		webRequest(
+			this.state.revisionId ? (this.props.endpoint + '/revision/' + this.state.revisionId) : (this.props.endpoint + '/' + this.props.id),
+			null,
+			{method: 'delete'}
+		).then(response => {
 			// Go to root parent page:
 			var state = global.pageRouter.state;
 			var parts = state.page.url.split('/'); // e.g. ['en-admin', 'pages', '1']
@@ -137,6 +141,8 @@ export default class AutoForm extends React.Component {
 	render() {
 		var isEdit = isNumeric(this.props.id);
 		
+		const { revisionId } = this.state;
+		
 		if(this.state.failed){
 			var ep = this.props.endpoint || '';
 			return (
@@ -148,6 +154,14 @@ export default class AutoForm extends React.Component {
 		
 		if(!this.state.fields || (isEdit && !this.state.fieldData) || this.state.deleting){
 			return "Loading..";
+		}
+		
+		// Publish actions.
+		var endpoint = this.props.endpoint + "/";
+		var parsedId = parseInt(this.props.id);
+		
+		if(isEdit && parsedId){
+			endpoint += this.props.id;
 		}
 		
 		return (
@@ -171,13 +185,26 @@ export default class AutoForm extends React.Component {
 						</Input>
 					</div>
 				}
-				<Form autoComplete="off" locale={this.state.locale} action={this.props.endpoint + "/" + (isEdit ? this.props.id : "")}
+				<Form autoComplete="off" locale={this.state.locale} action={endpoint}
 				onValues={values => {
+					if(values._submitMode == 'draft'){
+						if(this.state.revisionId){
+							// Already a draft - Update it:
+							// (Note: there are no revisions of drafts partially because of this).
+							values.setAction(this.props.endpoint + "/revision/" + revisionId);
+						}else{
+							// Create a draft:
+							values.setAction(this.props.endpoint + "/draft");
+						}
+					}
+					
+					delete values._submitMode;
+					
 					this.setState({editSuccess: false, createSuccess: false, submitting: true});
 					return values;
 				}}
 				
-				onFailure={
+				onFailed={
 					response => {
 						this.setState({editFailure: true, createSuccess: false, submitting: false});
 					}
@@ -185,16 +212,41 @@ export default class AutoForm extends React.Component {
 				
 				onSuccess={
 					response => {
+						var state = global.pageRouter.state;
+						
 						if(isEdit){
 							this.setState({editSuccess: true, createSuccess: false, submitting: false});
-						}else{
-							this.setState({submitting: false});
-							var state = global.pageRouter.state;
+							
 							if(state && state.page && state.page.url){
 								var parts = state.page.url.split('/');
 								parts.pop();
 								parts.push(response.id);
-								global.pageRouter.go('/' + parts.join('/') + '?created=1');
+								
+								if(response.revisionId && !this.state.revisionId){
+									// Created a draft of a live piece of content
+									
+									// Go to it now:
+									global.pageRouter.go('/' + parts.join('/') + '?created=1&revision=' + response.revisionId);
+									
+								}else if(response.id && !parsedId){
+									// Created content from a draft. Go there now.
+									global.pageRouter.go('/' + parts.join('/') + '?created=1');
+								}
+							}
+						}else{
+							this.setState({submitting: false});
+							
+							if(state && state.page && state.page.url){
+								var parts = state.page.url.split('/');
+								parts.pop();
+								parts.push(response.id);
+								
+								if(response.revisionId){
+									// Created a draft
+									global.pageRouter.go('/' + parts.join('/') + '?created=1&revision=' + response.revisionId);
+								}else{
+									global.pageRouter.go('/' + parts.join('/') + '?created=1');
+								}
 							}
 						}
 					}
@@ -249,8 +301,15 @@ export default class AutoForm extends React.Component {
 							<Input type="button" className="btn btn-danger" style={{float: 'right'}} onClick={() => this.startDelete()}>Delete</Input>
 						)
 					)}
-					<Input type="submit" disabled={this.state.submitting}>{isEdit ? "Save Changes" : "Create"}</Input>
-
+					<div>
+						<Input inline type="submit" name="_submitMode" value="publish" disabled={this.state.submitting}>
+							{isEdit ? "Save and Publish" : "Create"}
+						</Input>
+						<Input inline type="submit" className="btn btn-primary createDraft" name="_submitMode" value="draft" disabled={this.state.submitting}>
+							{isEdit ? "Save Draft" : "Create Draft"}
+						</Input>
+					</div>
+					<Spacer />
 					{
 						this.state.editFailure && (
 							<div className="alert alert-danger">
