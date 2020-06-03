@@ -8,9 +8,9 @@ namespace Api.CalendarEvents
 {
 	
 	/// <summary>
-	/// An event for e.g. displaying on calendars. May happen repeatedly (An EventOccurrence).
+	/// A CalendarEvent
 	/// </summary>
-	public partial class Event : RevisionRow
+	public partial class CalendarEvent : RevisionRow
 	{
 		/// <summary>
 		/// The name of the event in the site default language.
