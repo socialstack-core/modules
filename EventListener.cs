@@ -46,6 +46,7 @@ namespace Api.Uploader
 				// DASH mime types:
 				extensions.Mappings[".mpd"] = "application/dash+xml";
 				extensions.Mappings[".m4s"] = "video/iso.segment";
+				extensions.Mappings[".m3u8"] = "application/x-mpegURL";
 
 
 				app.UseStaticFiles(new StaticFileOptions()
