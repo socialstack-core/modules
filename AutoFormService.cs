@@ -14,7 +14,6 @@ namespace Api.AutoForms
 	/// This service drives AutoForm - the form which automatically displays fields in the admin area.
 	/// Instanced automatically. Use injection to use this service, or Startup.Services.Get.
 	/// </summary>
-
 	public partial class AutoFormService : IAutoFormService
 	{
 		private IActionDescriptorCollectionProvider _descriptionProvider;
@@ -152,12 +151,15 @@ namespace Api.AutoForms
 				}
 			}
 			*/
-			else if (fieldType == typeof(int) && labelName.EndsWith("PageId"))
+			else if ((fieldType == typeof(int) || fieldType == typeof(int?)) && labelName != "Id" && labelName.EndsWith("Id") && Api.Database.ContentTypes.GetType(labelName.Substring(0, labelName.Length - 2).ToLower()) != null)
 			{
-				field.Module = "Admin/Page/Select";
-
+				
 				// Remove "Id" from the end of the label:
 				labelName = labelName.Substring(0, labelName.Length - 2);
+				
+				field.Data["contentType"] = labelName;
+				field.Module = "Admin/ContentSelect";
+
 			}
 			else if (fieldType == typeof(int) && labelName.EndsWith("UserId"))
 			{
