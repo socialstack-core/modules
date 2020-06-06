@@ -166,13 +166,17 @@ export default class Loop extends React.Component {
 	
 	add(entity, results){
 		
-		var { filter } = this.props;
+		var { filter, reverse } = this.props;
 		
 		if(results.length && this.isSorted()){
 			// account for the sort too.
 			
 			// Ascending is default.
 			var desc = (filter.sort.dir || filter.sort.direction) == 'desc';
+			
+			if(reverse){
+				desc = !desc;
+			}
 			
 			var positive = desc ? -1 : 1;
 			var negative = -positive;
@@ -396,6 +400,10 @@ export default class Loop extends React.Component {
 						results = this.props.onResults(results);
 					}
 					
+					if(props.reverse){
+						results = results.reverse();
+					}
+					
 					this.setState({results});
 				}).catch(e => {
 					console.log('Loop caught an error:');
@@ -405,6 +413,10 @@ export default class Loop extends React.Component {
 					
 					if(props.onResults){
 						results = this.props.onResults(results);
+					}
+					
+					if(props.reverse){
+						results = results.reverse();
 					}
 					
 					if(props.onFailed){
@@ -424,6 +436,10 @@ export default class Loop extends React.Component {
 			
 			if(props.onResults){
 				results = this.props.onResults(results);
+			}
+		
+			if(props.reverse){
+				results = results.reverse();
 			}
 			
 			this.setState({over: null, jsonFilter: null, results});
