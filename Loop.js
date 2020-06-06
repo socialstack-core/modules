@@ -398,12 +398,20 @@ export default class Loop extends React.Component {
 					
 					this.setState({results});
 				}).catch(e => {
+					console.log('Loop caught an error:');
 					console.error(e);
 					
 					var results = [];
 					
 					if(props.onResults){
 						results = this.props.onResults(results);
+					}
+					
+					if(props.onFailed){
+						if(props.onFailed(e)){
+							this.setState({over: null, jsonFilter: null, results, errored: false});
+							return;
+						}
 					}
 					
 					this.setState({over: null, jsonFilter: null, results, errored: true});
