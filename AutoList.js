@@ -109,7 +109,10 @@ export default class AutoList extends React.Component {
 					</a>
 				</div>
 			)}
-			<Loop asTable over={this.props.endpoint + '/revision/list'} filter={{where: {IsDraft: 1}}}>
+			<Loop asTable over={this.props.endpoint + '/revision/list'} filter={{where: {IsDraft: 1}}} onFailed={e => {
+				// Revisions aren't supported.
+				return true;
+			}}>
 				{[
 					this.renderHeader,
 					this.renderEntry
