@@ -41,8 +41,8 @@ export default function webRequest(origUrl, data, opts) {
 				try {
 					json = (text && text.length) ? JSON.parse(text) : null;
 				} catch (e) {
-					console.log(e);
-					reject({ error: 'invalid/json' });
+					console.log(url, e);
+					reject({ error: 'invalid/json', text });
 					return;
 				}
 				
