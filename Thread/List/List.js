@@ -34,7 +34,7 @@ export default (props) =>
 							{thread.creatorUser ? thread.creatorUser.username : ""}
 						</Column>
 						<Column size="3">
-							<Time date = {thread.lastReplyUtc} />
+							<Time date = {thread.editedUtc} />
 						</Column>
 					</Row>
 					</div>

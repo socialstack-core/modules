@@ -1,5 +1,6 @@
 import Loop from 'UI/Loop';
 import Column from 'UI/Column';
+import Time from 'UI/Time';
 import Row from 'UI/Row';
 import url from 'UI/Functions/Url';
 
@@ -13,6 +14,7 @@ export default (props) =>
 			<Column size="6"><h5>Topic</h5></Column>
 			<Column size="2"><h5>Thread Count</h5></Column>	
 			<Column size="2"><h5>Reply Count</h5></Column>	
+			<Column size="2"><h5>Latest Reply</h5></Column>	
 		</Row>
 		<hr></hr>	
 		<Loop over='forum/list' {...props}>
@@ -34,7 +36,7 @@ export default (props) =>
 						{forum.replyCount}
 					</Column>
 					<Column size='2'>
-						{forum.latestReplyUtc}
+						<Time date={forum.latestReplyUtc} />
 					</Column>
 				</Row>
 				<hr></hr>
