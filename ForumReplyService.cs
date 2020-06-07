@@ -20,12 +20,18 @@ namespace Api.Forums
 	/// </summary>
 	public partial class ForumReplyService : AutoService<ForumReply>, IForumReplyService
     {
+		private readonly Query<Forum> updateReplyCountQuery;
+		private readonly Query<ForumThread> updateThreadReplyQuery;
+		
 		/// <summary>
 		/// Instanced automatically. Use injection to use this service, or Startup.Services.Get.
 		/// </summary>
-		public ForumReplyService(IForumThreadService forumThreads) : base(Events.ForumReply)
+		public ForumReplyService(IForumThreadService forumThreads, IForumService forums) : base(Events.ForumReply)
         {
 			InstallAdminPages(new string[] { "id", "createdDateUtc" });
+			
+			updateReplyCountQuery = Query.Update<Forum>().RemoveAllBut("Id", "ReplyCount");
+			updateThreadReplyQuery = Query.Update<ForumThread>().RemoveAllBut("Id", "ReplyCount");
 			
 			// Connect a create event:
 			Events.ForumReply.BeforeCreate.AddEventListener(async (Context context, ForumReply reply) => {
@@ -36,6 +42,15 @@ namespace Api.Forums
 				if (thread == null) {
 					return null;
 				}
+				
+				var forum = await forums.Get(context, thread.ForumId);
+				
+				if(forum == null){
+					return null;
+				}
+				
+				await _database.Run(context, updateReplyCountQuery, forum.Id, forum.ReplyCount + 1);
+				await _database.Run(context, updateThreadReplyQuery, thread.Id, thread.ReplyCount + 1);
 				
 				reply.ForumId = thread.ForumId;
 				return reply;

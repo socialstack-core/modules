@@ -20,6 +20,7 @@ namespace Api.Forums
 	public partial class ForumThreadService : AutoService<ForumThread>, IForumThreadService
 	{
 		private IForumService _forums;
+		private readonly Query<Forum> updateThreadCountQuery;
 		private readonly Query<ForumReply> deleteRepliesQuery;
 
 
@@ -35,6 +36,8 @@ namespace Api.Forums
 			deleteRepliesQuery = Query.Delete<ForumReply>();
 			deleteRepliesQuery.Where().EqualsArg("ThreadId", 0);
 			
+			updateThreadCountQuery = Query.Update<Forum>().RemoveAllBut("Id", "ThreadCount");
+			
 			InstallAdminPages(new string[] { "id", "title", "createdDateUtc" });
 			
 			// Connect a create event:
@@ -46,6 +49,9 @@ namespace Api.Forums
 				if (forum == null) {
 					return null;
 				}
+				
+				// Bump thread count:
+				await _database.Run(context, updateThreadCountQuery, thread.ForumId, forum.ThreadCount + 1);
 				
 				thread.PageId = forum.ThreadPageId;
 				return thread;

@@ -30,11 +30,11 @@ namespace Api.Forums
 		/// </summary>
 		// [DatabaseField(Length = 8000)]
 		public string BodyJson;
-        /// <summary>
-        /// This tells us the last time that someone replied to the thread. It is null
-        /// if there aren't any replies yet.
-        /// </summary>
-        public DateTime? LatestReplyUtc;
+		
+		/// <summary>
+		/// Total replies.
+		/// </summary>
+		public int ReplyCount;
 	}
 	
 }

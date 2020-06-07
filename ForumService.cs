@@ -15,8 +15,6 @@ namespace Api.Forums
     {
 		private readonly Query<ForumThread> deleteThreadsQuery;
 		private readonly Query<ForumReply> deleteRepliesQuery;
-		private readonly Query<Forum> updateThreadCountQuery;
-		private readonly Query<Forum> updateReplyCountQuery;
 
 
 		/// <summary>
@@ -32,25 +30,7 @@ namespace Api.Forums
 			deleteRepliesQuery = Query.Delete<ForumReply>();
 			deleteRepliesQuery.Where().EqualsArg("ForumId", 0);
 			
-			updateThreadCountQuery = Query.Update<Forum>().RemoveAllBut("Id", "ThreadCount");
-			updateReplyCountQuery = Query.Update<Forum>().RemoveAllBut("Id", "ReplyCount");
-			
 			InstallAdminPages("Forums", "fa:fa-th-list", new string[] { "id", "name" });
-
-			// Add some events to bump our cached counters whenever a reply/ thread is added:
-			Events.ForumThread.AfterCreate.AddEventListener(async (Context context, ForumThread thread) =>
-			{
-				await _database.Run(context, updateThreadCountQuery, thread.ForumId, 1);
-
-				return thread;
-			});
-			
-			Events.ForumReply.AfterCreate.AddEventListener(async (Context context, ForumReply reply) =>
-			{
-				await _database.Run(context, updateReplyCountQuery, reply.ForumId, 1);
-
-				return reply;
-			});
 		}
 		
         /// <summary>
