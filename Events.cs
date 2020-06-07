@@ -19,5 +19,10 @@ namespace Api.Eventing
 		/// Set of events for a PollAnswer.
 		/// </summary>
 		public static EventGroup<PollAnswer> PollAnswer;
+		
+		/// <summary>
+		/// Set of events for a PollResponse.
+		/// </summary>
+		public static EventGroup<PollResponse> PollResponse;
 	}
 }
