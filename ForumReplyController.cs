@@ -15,36 +15,9 @@ namespace Api.Forums
     /// Handles forum reply endpoints.
     /// </summary>
 
-    [Route("v1/forum/reply")]
+    [Route("v1/forumreply")]
 	public partial class ForumReplyController : AutoController<ForumReply>
     {
-        private IForumThreadService _forumThreads;
-
-
-		/// <summary>
-		/// Instanced automatically.
-		/// </summary>
-		public ForumReplyController(
-			IForumThreadService forumThreads
-        )
-        {
-            _forumThreads = forumThreads;
-
-			// Connect a create event:
-			Events.ForumReply.BeforeCreate.AddEventListener(async (Context context, ForumReply reply) => {
-				
-				// Get the thread so we can ensure the forum ID is correct:
-				var thread = await _forumThreads.Get(context, reply.ThreadId);
-				
-				if (thread == null) {
-					return null;
-				}
-				
-				reply.ForumId = thread.ForumId;
-				return reply;
-			});
-
-		}
 	}
 
 }

@@ -36,6 +36,21 @@ namespace Api.Forums
 			deleteRepliesQuery.Where().EqualsArg("ThreadId", 0);
 			
 			InstallAdminPages(new string[] { "id", "title", "createdDateUtc" });
+			
+			// Connect a create event:
+			Events.ForumThread.BeforeCreate.AddEventListener(async (Context context, ForumThread thread) => {
+				
+				// Get the forum:
+				var forum = await _forums.Get(context, thread.ForumId);
+				
+				if (forum == null) {
+					return null;
+				}
+				
+				thread.PageId = forum.ThreadPageId;
+				return thread;
+			});
+
 		}
 
 		/// <summary>

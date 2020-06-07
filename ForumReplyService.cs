@@ -23,9 +23,24 @@ namespace Api.Forums
 		/// <summary>
 		/// Instanced automatically. Use injection to use this service, or Startup.Services.Get.
 		/// </summary>
-		public ForumReplyService(IDatabaseService database) : base(Events.ForumReply)
+		public ForumReplyService(IForumThreadService forumThreads) : base(Events.ForumReply)
         {
 			InstallAdminPages(new string[] { "id", "createdDateUtc" });
+			
+			// Connect a create event:
+			Events.ForumReply.BeforeCreate.AddEventListener(async (Context context, ForumReply reply) => {
+				
+				// Get the thread so we can ensure the forum ID is correct:
+				var thread = await forumThreads.Get(context, reply.ThreadId);
+				
+				if (thread == null) {
+					return null;
+				}
+				
+				reply.ForumId = thread.ForumId;
+				return reply;
+			});
+
         }
 	}
 }
