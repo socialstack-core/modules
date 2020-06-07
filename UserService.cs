@@ -75,6 +75,8 @@ namespace Api.Users
 				
 				return Task.FromResult(user);
 			});
+			
+			InstallAdminPages("Users", "fa:fa-user", new string[] { "id", "email", "username" });
 		}
 
 		/// <summary>
