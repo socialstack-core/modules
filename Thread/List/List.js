@@ -2,7 +2,7 @@ import Loop from 'UI/Loop';
 import Column from 'UI/Column';
 import Row from 'UI/Row';
 import url from 'UI/Functions/Url';
-import SinceDate from 'UI/SinceDate';
+import Time from 'UI/Time';
 import Tags from 'UI/Tags';
 import Spacer from 'UI/Spacer';
 
@@ -34,7 +34,7 @@ export default (props) =>
 							{thread.creatorUser ? thread.creatorUser.username : ""}
 						</Column>
 						<Column size="3">
-							<SinceDate date = {thread.lastReplyUtc} />
+							<Time date = {thread.lastReplyUtc} />
 						</Column>
 					</Row>
 					</div>

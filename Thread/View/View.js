@@ -2,7 +2,7 @@ import Loop from 'UI/Loop';
 import Canvas from 'UI/Canvas';
 import Column from 'UI/Column';
 import Row from 'UI/Row';
-import SinceDate from 'UI/SinceDate';
+import Time from 'UI/Time';
 import Spacer from 'UI/Spacer';
 import Reactions from 'UI/Reactions';
 import UserSignpost from 'UI/User/Signpost';
@@ -13,7 +13,7 @@ import Tags from 'UI/Tags';
  */
 
 export default (props) =>
-<Loop over='forumthread/list' filter={props.threadId ? {where: {Id: props.threadId}} : undefined} {...props}>
+<Loop over='forumthread/list' filter={{where: {Id: props.id}}} {...props}>
 {props.children.length ? props.children : thread => 
         <div class = "thread-view">
             <Column>
@@ -29,7 +29,7 @@ export default (props) =>
                     </Column>
                     <Spacer height = "30"/>
                     <Column size = "3">
-                        Last Edited <SinceDate date = {thread.editedUtc} />
+                        Last Edited <Time date = {thread.editedUtc} />
                     </Column>
                 </Row>
                 <Row>

@@ -36,11 +36,11 @@ export default class Add extends React.Component{
                 onValues = { values => {return {
                     ...values,
                     forumId: forumId,
-                    bodyJson: JSON.stringify({content: values.bodyJson})
+                    bodyJson: JSON.stringify({content: values.body})
                 }}}
             >
 				<Input type="text" name = "title" label="Thread Title" placeholder="My awesome thread"/>
-                <Input type="canvas" name = "bodyJson"/>
+                <Input type="textarea" name = "body"/>
                 <Input type="submit" label="Create thread"/>
             </Form>
         </div>);

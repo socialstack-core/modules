@@ -3,7 +3,7 @@ import Canvas from 'UI/Canvas';
 import Row from 'UI/Row';
 import Column from 'UI/Column';
 import Spacer from 'UI/Spacer';
-import SinceDate from 'UI/SinceDate';
+import Time from 'UI/Time';
 import Reactions from 'UI/Reactions';
 import UserSignpost from 'UI/User/Signpost';
 
@@ -24,7 +24,7 @@ export default (props) =>
 						</Column>
 						<Spacer height = "30"/>
 						<Column size = "3">
-							Last Edited <SinceDate date = {reply.editedUtc} />
+							Last Edited <Time date = {reply.editedUtc} />
 						</Column>
 					</Row>
 					<Row>

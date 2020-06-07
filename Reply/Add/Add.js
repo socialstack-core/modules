@@ -28,13 +28,18 @@ export default class Add extends React.Component{
                 onFailure = {response => {
 					this.setState({failed: true});
 				}}
+				onSuccess = {
+					() => {
+						document.getElementById('_replyArea').value='';
+					}
+				}
                 onValues = { values => {return {
                     ...values,
                     threadId: threadId,
-                    bodyJson: JSON.stringify({content: values.bodyJson})
+                    bodyJson: JSON.stringify({content: values.body})
                 }}}
             >
-                <Input type="canvas" name = "bodyJson"/>
+                <Input id="_replyArea" type="textarea" name = "body"/>
                 <Input type="submit" label="Reply"/>
             </Form>
         </div>);
