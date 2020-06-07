@@ -51,7 +51,7 @@ namespace Api.Forums
 				}
 				
 				// Bump thread count:
-				await _database.Run(context, updateThreadCountQuery, thread.ForumId, forum.ThreadCount + 1);
+				await _database.Run(context, updateThreadCountQuery, forum.ThreadCount + 1, thread.ForumId);
 				
 				thread.PageId = forum.ThreadPageId;
 				return thread;

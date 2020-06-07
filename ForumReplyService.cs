@@ -49,8 +49,8 @@ namespace Api.Forums
 					return null;
 				}
 				
-				await _database.Run(context, updateReplyCountQuery, forum.Id, forum.ReplyCount + 1);
-				await _database.Run(context, updateThreadReplyQuery, thread.Id, thread.ReplyCount + 1);
+				await _database.Run(context, updateReplyCountQuery, forum.ReplyCount + 1, forum.Id);
+				await _database.Run(context, updateThreadReplyQuery, thread.ReplyCount + 1, thread.Id);
 				
 				reply.ForumId = thread.ForumId;
 				return reply;
