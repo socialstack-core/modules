@@ -1,0 +1,10 @@
+.forum-list{
+    a{
+        color: black;
+
+        &:hover{
+            text-decoration: none;
+            color: darkgrey;
+        }
+    }
+}
