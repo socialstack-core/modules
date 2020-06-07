@@ -4,7 +4,7 @@ using System.Collections.Generic;
 using System.Threading.Tasks;
 
 
-namespace Api.ForumThreads
+namespace Api.Forums
 {
 	/// <summary>
 	/// Handles creations of forum threads - containers for forum posts.

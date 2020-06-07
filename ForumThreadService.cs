@@ -7,13 +7,11 @@ using System.DrawingCore.Drawing2D;
 using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
-using Api.ForumReplies;
 using Api.Permissions;
 using Api.Eventing;
-using Api.Forums;
 using Api.Contexts;
 
-namespace Api.ForumThreads
+namespace Api.Forums
 {
 	/// <summary>
 	/// Handles creations of forum threads - containers for forum posts.

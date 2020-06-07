@@ -2,7 +2,7 @@ using System;
 using Api.Database;
 using Api.Users;
 
-namespace Api.ForumThreads
+namespace Api.Forums
 {
 	
 	/// <summary>

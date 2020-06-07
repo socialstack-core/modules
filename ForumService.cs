@@ -1,7 +1,5 @@
 ﻿using Api.Database;
 using System.Threading.Tasks;
-using Api.ForumThreads;
-using Api.ForumReplies;
 using System.Collections.Generic;
 using Api.Permissions;
 using Api.Eventing;

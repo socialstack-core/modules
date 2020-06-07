@@ -1,6 +1,6 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 
-namespace Api.ForumThreads
+namespace Api.Forums
 {
     /// <summary>
     /// Handles forum thread endpoints.

@@ -2,16 +2,14 @@
 using System.Threading.Tasks;
 using Api.Permissions;
 using Microsoft.AspNetCore.Mvc;
-using Api.ForumThreads;
 using System.Collections.Generic;
 using Api.Results;
 using Api.Contexts;
 using Api.Eventing;
 using Newtonsoft.Json.Linq;
-using Api.AutoForms;
 using Microsoft.AspNetCore.Http;
 
-namespace Api.ForumReplies
+namespace Api.Forums
 {
     /// <summary>
     /// Handles forum reply endpoints.

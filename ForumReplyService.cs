@@ -12,7 +12,7 @@ using System.Linq;
 using System.Threading.Tasks;
 
 
-namespace Api.ForumReplies
+namespace Api.Forums
 {
 	/// <summary>
 	/// Handles forum replies.

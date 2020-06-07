@@ -1,6 +1,4 @@
 using Api.Forums;
-using Api.ForumReplies;
-using Api.ForumThreads;
 using Api.Permissions;
 using System.Collections.Generic;
 
