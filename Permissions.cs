@@ -38,6 +38,10 @@ namespace Api.Polls
 				Roles.Member.Revoke("poll_load", "poll_list");
 				*/
 				
+				// Public - the role used by anonymous users.
+				Roles.Guest.Grant("pollresponse_create");
+				Roles.Member.Grant("pollresponse_create");
+				
 				return Task.FromResult(source);
 			}, 20);
 		}
