@@ -304,3 +304,12 @@ export default class Input extends React.Component {
     }
 
 }
+
+Input.propTypes={
+	type: 'string',
+	name: 'string',
+	placeholder: 'string',
+	value: 'string',
+};
+
+Input.icon = 'pen-nib';
