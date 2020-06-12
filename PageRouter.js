@@ -26,6 +26,8 @@ export default class PageRouter extends React.Component{
 			tokens: {} // Stores e.g. :id. Never null.
 		};
 		global.pageRouter = this;
+		this.onLinkClick = this.onLinkClick.bind(this);
+		this.onPopState = this.onPopState.bind(this);
 	}
 
 	makeRequest(){
@@ -116,41 +118,45 @@ export default class PageRouter extends React.Component{
 		}
 	}
 	
-	componentDidMount(){
-		global.addEventListener("popstate", e => {
-			document.body.parentNode.scrollTo(0,0);
-			this.props.onNavigate && this.props.onNavigate(document.location.pathname);
-		});
-		
-		document.addEventListener("click", e => {
-			if(e.button != 0 || e.defaultPrevented){
-				// Browser default action for right/ middle clicks
-				return;
-			}
-			var cur = e.target;
-			while(cur && cur != document){
-				if(cur.nodeName == 'A'){
-					var href = cur.getAttribute('href'); // cur.href is absolute
+	onLinkClick(e){
+		if(e.button != 0 || e.defaultPrevented){
+			// Browser default action for right/ middle clicks
+			return;
+		}
+		var cur = e.target;
+		while(cur && cur != document){
+			if(cur.nodeName == 'A'){
+				var href = cur.getAttribute('href'); // cur.href is absolute
+				
+				if(href && href.length){
+					var pn = document.location.pathname;
+					var isOnExternPage = pn.indexOf('/en-admin') == 0 || pn.indexOf('/v1') == 0;
+					var targetIsExternPage = href[0] == '/' ? (href.indexOf('/en-admin') == 0 || href.indexOf('/v1') == 0) : isOnExternPage;
 					
-					if(href && href.length){
-						var pn = document.location.pathname;
-						var isOnExternPage = pn.indexOf('/en-admin') == 0 || pn.indexOf('/v1') == 0;
-						var targetIsExternPage = href[0] == '/' ? (href.indexOf('/en-admin') == 0 || href.indexOf('/v1') == 0) : isOnExternPage;
-						
-						if(href.indexOf(':') != -1 || (href[0] == '/' && (href.length>1 && href[1] == '/'))){
-							return;
-						}
-						
-						if(targetIsExternPage == isOnExternPage){
-							e.preventDefault();
-							this.go(cur.pathname + cur.search);
-						}
+					if(href.indexOf(':') != -1 || (href[0] == '/' && (href.length>1 && href[1] == '/'))){
 						return;
 					}
+					
+					if(targetIsExternPage == isOnExternPage){
+						e.preventDefault();
+						this.go(cur.pathname + cur.search);
+					}
+					return;
 				}
-				cur = cur.parentNode;
 			}
-		});
+			cur = cur.parentNode;
+		}
+	}
+	
+	onPopState(e){
+		document.body.parentNode.scrollTo(0,0);
+		this.props.onNavigate && this.props.onNavigate(document.location.pathname);
+	}
+	
+	componentDidMount(){
+		global.addEventListener("popstate", this.onPopState);
+		
+		document.addEventListener("click", this.onLinkClick);
 		
 		if(!preloadedPages){
 			//console.log(this.props.url);
@@ -162,7 +168,6 @@ export default class PageRouter extends React.Component{
 	}
 	
 	componentWillReceiveProps(props){
-		
 		// page and tokens
 		var pageInfo = this.getPageRedirected(this.state.rootPage, this.state.idMap, props.url);
 		
@@ -170,7 +175,8 @@ export default class PageRouter extends React.Component{
 	}
 	
 	componentWillUnmount(){
-		// Remove event listeners
+		global.removeEventListener("popstate", this.onPopState);
+		document.removeEventListener("click", this.onLinkClick);
 	}
 	
 	resolveRedirect(pageId, idMap, redirectCount){
@@ -215,12 +221,16 @@ export default class PageRouter extends React.Component{
 		
 		var pageAndState = this.getPage(rootPage, url);
 		
-		if(pageAndState == null || !pageAndState.page.bodyJson){
-			return pageAndState;
+		if(!pageAndState || !pageAndState.page){
+			// Redirect to 404:
+			return this.getPage(this.state.rootPage, this.props.notFound || '/404');
 		}
 		
-		var tokens = pageAndState.tokens;
-		var page = pageAndState.page;
+		var {page} = pageAndState;
+		
+		if(!page.bodyJson){
+			return pageAndState;
+		}
 		
 		var json;
 		
@@ -243,7 +253,7 @@ export default class PageRouter extends React.Component{
 			// Redirecting to another page. It's always identified by ID.
 			return {
 				page: this.resolveRedirect(json.redirect, idMap, 0),
-				tokens 
+				tokens: pageAndState.tokens
 			};
 		}
 		
@@ -289,7 +299,7 @@ export default class PageRouter extends React.Component{
 				}
 				
 				if(!nextNode){
-					break;
+					return null;
 				}
 				curNode = nextNode;
 			}
