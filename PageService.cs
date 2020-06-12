@@ -92,7 +92,14 @@ namespace Api.Pages
 								}
 							]
 						}"
-					}
+					},
+					new Page()
+					{
+						Url = "/404",
+						BodyJson = @"{
+							""content"": ""The page you were looking for wasn't found here.""
+						}"
+					},
 				);
 				
 			});
