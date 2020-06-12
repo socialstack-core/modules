@@ -49,3 +49,9 @@ export default class Form extends React.Component {
 	}
 	
 }
+
+Form.propTypes={
+	action: 'string'
+};
+
+Form.icon = 'question';
