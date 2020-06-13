@@ -6,5 +6,8 @@ import omit from 'UI/Functions/Omit';
  */
 const container = (props) => <div className={"container" + (props.type ? "-" + props.type : '') + " " + (props.className || '')} {...omit(props, ['type','children', 'className'])}>{props.children}</div>;
 export default container;
-container.propTypes={children: true};
+container.propTypes={
+	type: ['','sm','md','lg','xl'],
+	children: true
+};
 container.icon = 'cube';
