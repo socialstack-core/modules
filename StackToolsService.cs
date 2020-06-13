@@ -190,27 +190,34 @@ namespace Api.StackTools
 		{
 			NodeProcess = new NodeProcess("socialstack interactive -parent " + Process.GetCurrentProcess().Id);
 
-			// Start it now:
-			NodeProcess.Start();
+			NodeProcess.OnStateChange += (NodeProcessState state) => {
+				if (state == NodeProcessState.READY)
+				{
 
-			// We default to prod mode if we're a release build.
+					// We default to prod mode if we're a release build.
 #if DEBUG
-			var prod = false;
+					var prod = false;
 #else
 			var prod = true;
 #endif
+					// Start the UI watcher straight away:
+					NodeProcess.Request(new WatchRequest()
+					{
+						minified = prod,
+						compress = prod
+					}, (string e, JObject response) => {
+						if (e != null)
+						{
+							return;
+						}
 
-			// Start the UI watcher straight away:
-			NodeProcess.Request(new WatchRequest() {
-				minified = prod, compress = prod
-			}, (string e, JObject response) => {
-				if (e != null)
-				{
-					return;
+						Console.WriteLine("UI watcher started successfully.");
+					});
 				}
+			};
 
-				Console.WriteLine("UI watcher started successfully.");
-			});
+			// Start it now:
+			NodeProcess.Start();
 
 		}
 		

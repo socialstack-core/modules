@@ -299,6 +299,7 @@ namespace Api.StackTools
 					Process.Start();
 					Process.BeginOutputReadLine();
 					Process.BeginErrorReadLine();
+					StateChange(NodeProcessState.READY);
 					Process.WaitForExit();
 				});
 			}
