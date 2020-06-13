@@ -1,6 +1,10 @@
 import submitForm from 'UI/Functions/SubmitForm';
 import mapUrl from 'UI/Functions/MapUrl';
 import omit from 'UI/Functions/Omit';
+import Spacer from 'UI/Spacer';
+import Alert from 'UI/Alert';
+import Loading from 'UI/Loading';
+import Input from 'UI/Input';
 
 /**
  * Wraps <form> in order to automatically manage setting up default values.
@@ -9,18 +13,26 @@ import omit from 'UI/Functions/Omit';
  */
 export default class Form extends React.Component {
 	
-	render() {
+	constructor(props){
+		super(props);
+		this.state={};
+		this.onSubmit=this.onSubmit.bind(this);
+	}
+	
+	onSubmit(e){
+		if(!e){
+			e={
+				target:this.formEle,
+				preventDefault:()=>{}
+			};
+		}
+		
 		var {
-			action,
 			locale,
 			onValues,
 			onSuccess,
 			onFailed
 		} = this.props;
-		
-		if(!action){
-			throw new Error("<Form> component requires action prop");
-		}
 		
 		var requestOpts = null;
 		
@@ -29,21 +41,97 @@ export default class Form extends React.Component {
 			requestOpts = {locale};
 		}
 		
+		return submitForm(e, {
+			onValues: (values, evt) => {
+				this.setState({
+					loading: true
+				});
+				return onValues ? onValues(values, evt) : values;
+			},
+			onFailed: (r,v,evt) => {
+				this.setState({
+					loading: undefined,
+					failed: true
+				});
+				onFailed && onFailed(r,v,evt);
+			},
+			onSuccess: (r,v,evt) => {
+				this.setState({
+					loading: undefined,
+					failed: false,
+					success: true
+				});
+				onSuccess && onSuccess(r,v,evt);
+			},
+			requestOpts
+		});
+	}
+	
+	render() {
+		var {
+			action,
+			loadingMessage,
+			submitLabel,
+			failedMessage,
+			successMessage
+		} = this.props;
+		
+		if(!action){
+			throw new Error("<Form> requires an action");
+		}
+		
+		var showFormResponse = !!(loadingMessage || submitLabel || failedMessage);
+		
 		return (
 			<form
-				onSubmit={e=>submitForm(e, {
-					onValues,
-					onFailed: (a,b,c,d) => {
-						onFailed && onFailed(a,b,c,d);
-					},
-					onSuccess,
-					requestOpts
-				})}
+				onSubmit={this.onSubmit}
+				ref={f=>{
+					this.formEle=f;
+					if(f){
+						f.submit = this.onSubmit;
+					}
+				}}
 				action={mapUrl(action)}
 				method={this.props.method || "post"}
 				{...(omit(this.props, ['action', 'method', 'onSuccess', 'onFailed', 'onValues', 'children', 'locale']))}
 			>
 				{this.props.children}
+				{showFormResponse && (
+					<div className="form-response">
+						<Spacer />
+						{
+							this.state.failed && failedMessage && (
+								<div className="form-failed">
+									<Alert type="error">
+										{failedMessage}
+									</Alert>
+									<Spacer />
+								</div>
+							)
+						}
+						{
+							this.state.success && successMessage && (
+								<div className="form-success">
+									<Alert type="success">
+										{successMessage}
+									</Alert>
+									<Spacer />
+								</div>
+							)
+						}
+						{
+							submitLabel && <Input type="submit" label={submitLabel} disabled={this.state.loading} />
+						}
+						{
+							this.state.loading && loadingMessage && (
+								<div className="form-loading">
+									<Spacer />
+									<Loading label={loadingMessage}/>
+								</div>
+							)
+						}
+					</div>
+				)}
 			</form>
 		);
 	}
