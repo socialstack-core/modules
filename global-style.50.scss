@@ -1,4 +1,4 @@
-html, body, #react-view, #react-root, #content-root, #content-page {
+html, body, #react-view, #react-root, #content-root, #content-page, #react-loading{
     height: 100%;
     width: 100%;
     margin: 0;
@@ -14,31 +14,6 @@ html, body, #react-view, #react-root, #content-root, #content-page {
     -ms-user-select: none; /* Internet Explorer/Edge */
     user-select: none; /* Non-prefixed version, currently
                                   supported by Chrome and Opera */
-}
-
-
-@keyframes collapse {
-    0% {
-        width: 10%;
-        font-size: 100%;
-    }
-
-    100% {
-        width: 0;
-        font-size: 0;
-    }
-}
-
-@keyframes expand {
-    0% {
-        width: 0;
-        font-size: 0;
-    }
-
-    100% {
-        width: 100%;
-        font-size: 100%;
-    }
 }
 
 /* === Spacing === */
@@ -100,12 +75,6 @@ html, body, #react-view, #react-root, #content-root, #content-page {
 
 .clear {
     clear: both;
-}
-
-body, html, #react-loading {
-	width: 100%;
-	height: 100%;
-	margin: 0;
 }
 
 #react-loading {
