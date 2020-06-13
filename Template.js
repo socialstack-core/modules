@@ -73,7 +73,7 @@ export default class Template extends React.Component {
 	
 	render(){
 		if(!this.state.template){
-			return null;
+			return <div>{this.props.children}</div>;
 		}
 		return (<Canvas onSubstitute={(name) => {
 			
