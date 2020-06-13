@@ -5,6 +5,18 @@ var templateCache = {
 	
 };
 
+try{
+	var preload = require('UI/PreloadedTemplates/PreloadedTemplates.json');
+	if(preload && preload.results){
+		preload.results.forEach(template => {
+			templateCache[template.id + ''] = template;
+		});
+	}
+}
+catch{
+	var preloadedTemplates = null;
+}
+
 /**
  * This component renders a template with a given ID, and substitutes one or more named subs.
  */
