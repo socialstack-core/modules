@@ -73,7 +73,13 @@ export default class Template extends React.Component {
 	
 	render(){
 		if(!this.state.template){
-			return <div>{this.props.children}</div>;
+			if(!this.props.id){
+				// This is for the editor
+				return <div>{this.props.children}</div>;
+			}else{
+				// Just not loaded it yet
+				return null;
+			}
 		}
 		return (<Canvas onSubstitute={(name) => {
 			
