@@ -1,0 +1,128 @@
+import Loading from 'UI/Loading';
+import Input from 'UI/Input';
+import webRequest from 'UI/Functions/WebRequest';
+import getRef from 'UI/Functions/GetRef';
+import Debounce from 'UI/Functions/Debounce';
+
+/**
+ * Used to search for things.
+ */
+export default class Search extends React.Component {
+	constructor(props){
+		super(props);
+		this.search = this.search.bind(this);
+		this.state = {
+			loading: false,
+			results: null,
+			debounce: new Debounce(this.search)
+		};
+	}
+	
+    componentDidMount(){
+        var result = this.props.result;
+        if(result){
+            this.setState({
+                result
+            });
+        }else{
+			var id = this.props.value || this.props.defaultValue;
+			
+			if(!id){
+				return;
+			}
+			
+			webRequest(this.props.for + '/' + id).then(response => {
+				
+				if(response && response.json){
+					
+					this.setState({
+						result: response.json
+					});
+					
+				}
+				
+			});
+		}
+    }
+    
+	selectResult(result){
+		this.setState({
+			results: null,
+			result,
+			id: result ? result.id : null
+		});
+		
+		if(this.input){
+			this.input.value='';
+		}
+		
+		this.props.onFind && this.props.onFind(result);
+	}
+	
+	search(query){
+		this.setState({loading: true});
+		
+		var where = {};
+		
+		var field = this.props.field || 'name';
+		var fieldNameUcFirst = field.charAt(0).toUpperCase() + field.slice(1);
+		
+		where[fieldNameUcFirst]={contains: query};
+		
+		if(this.props.onQuery){
+			where = this.props.onQuery(where);
+		}
+		
+		webRequest(this.props.for + '/list', {where, pageSize: (this.props.limit || 50)}).then(response => {
+			var results = response.json.results;
+			this.setState({loading: false, results});
+		});
+	}
+	
+	avatar(result) {
+		if(result.avatarRef === undefined){
+			return '';
+		}
+		
+		return getRef(result.avatarRef);
+	}
+	
+	display(result, isSuggestion){
+		if(this.props.onDisplay){
+			return this.props.onDisplay(result, isSuggestion);
+		} 
+		
+		return result[this.props.field || 'name'];
+	}
+	
+	render(){
+		return <div className="search">
+			<input ref={
+				ele =>{
+					this.input = ele
+				}
+			}
+			autoComplete="false" className="form-control" placeholder={this.props.placeholder || 'Search..'} type="text" onKeyUp={(e) => {
+				this.state.debounce.handle(e.target.value);
+			}}/>
+			{this.state.results && (
+				<div className="suggestions">
+					{this.state.results.length ? (
+						this.state.results.map((result, i) => (
+							<div key={i} onClick={() => this.selectResult(result)} className="suggestion">
+								{this.display(result, true)}
+							</div>
+						))
+					) : (
+						<div>
+							No results found
+						</div>
+					)}
+				</div>
+			)}
+			{
+				this.props.name && <input type="hidden" value={this.state.id || this.props.value || this.props.defaultValue} name={this.props.name} />
+			}
+		</div>;
+	}
+}
