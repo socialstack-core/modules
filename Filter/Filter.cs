@@ -668,6 +668,7 @@ namespace Api.Permissions
 			}
 
 			StackTop = null;
+			CurrentStackTop = 0;
 
 			while (CurrentStackTop < Nodes.Count)
 			{
