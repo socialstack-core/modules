@@ -22,7 +22,13 @@ export default function (e, options) {
 			validationErrors++;
 		}
 		
-		values[field.name] = field.type=='checkbox' ? true : field.value;
+		var value = field.type=='checkbox' ? true : field.value;
+		
+		if(field.onGetValue){
+			value = field.onGetValue(value);
+		}
+		
+		values[field.name] = value;
 	}
 	
 	if(e.submitter && e.submitter.name){
