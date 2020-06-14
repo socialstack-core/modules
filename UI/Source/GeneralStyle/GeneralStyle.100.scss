@@ -1,0 +1,41 @@
+/*
+
+Global style rules go in here.
+The 100 indicates load order - you can change it if you want, 
+You can add multiple scss files for tidiness if you'd like. They'll all be included by default.
+
+*/
+
+
+/*
+Identify a frontend (mobile app build too):
+
+html.ui {
+	
+}
+*/
+
+/*
+Identify a mobile app build:
+
+html.mobile {
+	
+}
+*/
+
+/*
+Identify a frontend but not the app build:
+
+html.web {
+	
+}
+
+*/
+
+/*
+Identify the admin panel:
+
+html.admin {
+	
+}
+*/
