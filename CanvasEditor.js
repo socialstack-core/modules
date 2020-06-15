@@ -656,7 +656,7 @@ export default class CanvasEditor extends React.Component {
 		var atLeastOneDataField = false;
 		if(props){
 			for(var fieldName in props){
-				if(fieldName == 'children'){
+				if(this.specialField(fieldName)){
 					continue;
 				}
 				var propType = props[fieldName];
@@ -692,6 +692,10 @@ export default class CanvasEditor extends React.Component {
 		</div>;
 	}
 	
+	specialField(fieldName){
+		return fieldName == 'children' || fieldName == 'editButton'
+	}
+	
 	renderOptionSet(dataFields, targetNode){
 		
 		var options = [];
@@ -725,7 +729,7 @@ export default class CanvasEditor extends React.Component {
 				var linkDF = {};
 				
 				for(var linkFN in typeInfo.propTypes){
-					if(linkFN == 'children'){
+					if(this.specialField(linkFN)){
 						continue;
 					}
 					var linkPT = typeInfo.propTypes[linkFN];
@@ -999,11 +1003,19 @@ export default class CanvasEditor extends React.Component {
 			
 			var dataFields = mapTokens(contentNode.data, this, Canvas);
 			kidsSupported = Module.propTypes && Module.propTypes.children;
+			var customEdit = Module.propTypes && Module.propTypes.editButton;
 			var displayName = ' ' + this.displayModuleName(contentNode.moduleName);
 			result = (
-				<Module {...dataFields}>
-					{kidsSupported && !this.props.minimal && (
-						<div style={{flex: '0 0 100%'}}>
+				<Module {...dataFields} editButton={customEdit && !this.props.minimal ? () => {
+					// Custom edit button
+					return <div className="btn btn-secondary edit-button" onClick={() => {
+						this.setState({optionsVisibleFor: contentNode});
+						}}><i className="fa fa-cog"/>
+						{' ' + this.displayModuleName(contentNode.moduleName)}
+					</div>
+				} : undefined}>
+					{kidsSupported && !this.props.minimal && !customEdit && (
+						<div className="edit-button" style={{flex: '0 0 100%'}}>
 							<div className="btn btn-secondary" style={{marginBottom: '5px'}} onClick={() => {
 								this.setState({optionsVisibleFor: contentNode});
 							}}><i className="fa fa-cog"/>
@@ -1029,9 +1041,14 @@ export default class CanvasEditor extends React.Component {
 			return result;
 		}
 		
+		// Does it have a custom edit button placement?
+		if(customEdit){
+			return result;
+		}
+		
 		// Display the config button before the element:
 		return [
-			<div className="btn btn-secondary" style={{marginRight: '5px', marginBottom: '5px'}} onClick={() => {
+			<div className="edit-button btn btn-secondary" style={{marginRight: '5px', marginBottom: '5px'}} onClick={() => {
 				this.setState({optionsVisibleFor: contentNode});
 			}}><i className="fa fa-cog"/>
 			{' ' + this.displayModuleName(contentNode.moduleName)}
