@@ -7,6 +7,7 @@ using Api.Contexts;
 using System.Collections;
 using Newtonsoft.Json.Linq;
 using Api.Startup;
+using System;
 
 namespace Api.Categories
 {
@@ -23,7 +24,7 @@ namespace Api.Categories
 		/// <summary>
 		/// Instanced automatically. Use injection to use this service, or Startup.Services.Get.
 		/// </summary>
-		public CategoryService() : base(Events.Category)
+		public CategoryService(ICategoryContentService _categoryContents) : base(Events.Category)
 		{
 			// Start preparing the queries. Doing this ahead of time leads to excellent performance savings, 
 			// whilst also using a high-level abstraction as another plugin entry point.
@@ -111,6 +112,104 @@ namespace Api.Categories
 					if (field != null && field.Name == "Categories")
 					{
 						field.Module = "Admin/MultiSelect";
+						field.Data["contentType"] = "category";
+						
+						// Defer the set after the ID is available:
+						field.AfterId = true;
+
+						// On set, convert provided IDs into Category objects.
+						field.OnSetValueUnTyped.AddEventListener(async (Context ctx, object[] valueArgs) =>
+						{
+							if (valueArgs == null || valueArgs.Length < 2)
+							{
+								return null;
+							}
+
+							// The value should be an array of ints.
+							var value = valueArgs[0];
+
+							// The object we're setting to will have an ID now because of the above defer:
+							if (!(valueArgs[1] is DatabaseRow targetObject))
+							{
+								return null;
+							}
+
+							if (!(value is JArray idArray))
+							{
+								return null;
+							}
+
+							var ids = new List<int>();
+
+							foreach (var token in idArray)
+							{
+								// Upload id is..
+								var id = token.Value<int?>();
+
+								if (id.HasValue && id > 0)
+								{
+									ids.Add(id.Value);
+								}
+							}
+
+							if (ids.Count == 0)
+							{
+								// Do nothing
+								return null;
+							}
+							
+							var contentTypeId = ContentTypes.GetId(targetObject.GetType());
+							
+							// Get all category content entries for this host object:
+							var existingEntries = await _categoryContents.List(
+								ctx,
+								new Filter<CategoryContent>().Equals("ContentId", targetObject.Id).And().Equals("ContentTypeId", contentTypeId)
+							);
+
+							// Identify ones being deleted, and ones being added, then update category contents.
+							Dictionary<int, CategoryContent> existingLookup = new Dictionary<int, CategoryContent>();
+
+							foreach (var existingEntry in existingEntries)
+							{
+								existingLookup[existingEntry.CategoryId] = existingEntry;
+							}
+
+							var now = DateTime.UtcNow;
+
+							Dictionary<int, bool> newSet = new Dictionary<int, bool>();
+
+							foreach (var id in ids)
+							{
+								newSet[id] = true;
+
+								if (!existingLookup.ContainsKey(id))
+								{
+									// Add it:
+									await _categoryContents.Create(ctx, new CategoryContent()
+									{
+										ContentId = targetObject.Id,
+										ContentTypeId = contentTypeId,
+										CategoryId = id,
+										CreatedUtc = now
+									});
+								}
+							}
+
+							// Delete any being removed:
+							foreach (var existingEntry in existingEntries)
+							{
+								if (!newSet.ContainsKey(existingEntry.CategoryId))
+								{
+									// Delete this row:
+									await _categoryContents.Delete(ctx, existingEntry.Id);
+								}
+							}
+
+							// Get the categories:
+							return await List(ctx, new Filter<Category>().EqualsSet("Id", ids));
+						});
+
+						
 					}
 
 					return args[0];
