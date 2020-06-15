@@ -33,8 +33,11 @@ export default class ContentSelect extends React.Component {
 				if(!content){
 					return <option value={'0'}>None</option>;
 				}
+				
+				var title = content.title || content.firstName || content.username || content.name || content.url;
+				
 				return <option value={content.id}>{
-					content.title || content.firstName || content.username || content.name || content.url || content.id
+					'#' + content.id + (title ? ' - ' + title : '(no identified title)')
 				}</option>;
 			}) : [
 			]
