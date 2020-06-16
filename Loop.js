@@ -390,45 +390,43 @@ export default class Loop extends React.Component {
 				return;
 			}
 
-			this.setState({ over: props.over, jsonFilter, results: null });
-			if (!this.state.errored) {
-				webRequest(props.over, props.filter).then(response => {
-					var fieldName = props.field || 'results';
-					var results = (response && response.json && response.json[fieldName]) ? response.json[fieldName] : [];
+			this.setState({ over: props.over, jsonFilter, results: null, errored: false });	
+			webRequest(props.over, props.filter).then(response => {
+				var fieldName = props.field || 'results';
+				var results = (response && response.json && response.json[fieldName]) ? response.json[fieldName] : [];
 
-					if (props.onResults) {
-						results = this.props.onResults(results);
+				if (props.onResults) {
+					results = this.props.onResults(results);
+				}
+
+				if (props.reverse) {
+					results = results.reverse();
+				}
+
+				this.setState({ results, errored: false });
+			}).catch(e => {
+				console.log('Loop caught an error:');
+				console.error(e);
+
+				var results = [];
+
+				if (props.onResults) {
+					results = this.props.onResults(results);
+				}
+
+				if (props.reverse) {
+					results = results.reverse();
+				}
+
+				if (props.onFailed) {
+					if (props.onFailed(e)) {
+						this.setState({ over: null, jsonFilter: null, results, errored: false });
+						return;
 					}
+				}
 
-					if (props.reverse) {
-						results = results.reverse();
-					}
-
-					this.setState({ results });
-				}).catch(e => {
-					console.log('Loop caught an error:');
-					console.error(e);
-
-					var results = [];
-
-					if (props.onResults) {
-						results = this.props.onResults(results);
-					}
-
-					if (props.reverse) {
-						results = results.reverse();
-					}
-
-					if (props.onFailed) {
-						if (props.onFailed(e)) {
-							this.setState({ over: null, jsonFilter: null, results, errored: false });
-							return;
-						}
-					}
-
-					this.setState({ over: null, jsonFilter: null, results, errored: true });
-				});
-			}
+				this.setState({ over: null, jsonFilter: null, results, errored: true });
+			});
 
 		} else {
 			// Direct array:
@@ -442,23 +440,23 @@ export default class Loop extends React.Component {
 				results = results.reverse();
 			}
 
-			this.setState({ over: null, jsonFilter: null, results });
+			this.setState({ over: null, jsonFilter: null, results, errored: false });
 		}
 	}
 
 	render() {
-		if (!this.state.results && !this.props.items) {
-
-			if (this.state.errored) {
-				// is a specific failure set?
-				if (this.props.onFailure) {
-					if (typeof this.props.onFailure === "function") {
-						return this.props.onFailure();
-					}
+		
+		if (this.state.errored) {
+			// is a specific failure set?
+			if (this.props.onFailure) {
+				if (typeof this.props.onFailure === "function") {
+					return this.props.onFailure();
 				}
-				return <Failure />
 			}
+			return <Failure />
+		}
 
+		if (!this.state.results && !this.props.items) {
 			// Loading
 			if (this.props.loader) {
 
