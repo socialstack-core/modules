@@ -6,6 +6,8 @@ using Api.Eventing;
 using Api.Contexts;
 using System.Collections;
 using Newtonsoft.Json.Linq;
+using Api.Startup;
+using System;
 
 namespace Api.Rewards
 {
@@ -22,7 +24,7 @@ namespace Api.Rewards
 		/// <summary>
 		/// Instanced automatically. Use injection to use this service, or Startup.Services.Get.
 		/// </summary>
-		public RewardService() : base(Events.Reward)
+		public RewardService(IRewardContentService _rewardContents) : base(Events.Reward)
         {
 			
 			// Create admin pages if they don't already exist:
@@ -36,9 +38,6 @@ namespace Api.Rewards
 			listContentQuery = Query.List<RewardContent>();
 			listByObjectQuery = Query.List<RewardContent>();
 			listByObjectQuery.Where().EqualsArg("ContentTypeId", 0).And().EqualsArg("ContentId", 1);
-
-			#warning todo - handle create and update events. Applies to tags, categories, reactions, rewards etc.
-			// -> I.e. permit changing rewards during entity create/ update.
 
 			// Load rewards on Load/List events next. First, find all events for types that implement IHaveRewards:
 			var loadEvents = Events.FindByType(typeof(IHaveRewards), "Load", EventPlacement.After);
@@ -101,6 +100,122 @@ namespace Api.Rewards
 					return rewardableObject;
 				});
 
+			}
+
+			// Hook up a MultiSelect on the underlying fields:
+			var listBeforeSettable = Events.FindByType(typeof(IHaveRewards), "Settable", EventPlacement.Before);
+
+			foreach (var listEvent in listBeforeSettable)
+			{
+				listEvent.AddEventListener((Context context, object[] args) =>
+				{
+					var field = args[0] as JsonField;
+
+					if (field != null && field.Name == "Rewards")
+					{
+						field.Module = "Admin/MultiSelect";
+						field.Data["contentType"] = "reward";
+
+						// Defer the set after the ID is available:
+						field.AfterId = true;
+
+						// On set, convert provided IDs into tag objects.
+						field.OnSetValueUnTyped.AddEventListener(async (Context ctx, object[] valueArgs) =>
+						{
+							if (valueArgs == null || valueArgs.Length < 2)
+							{
+								return null;
+							}
+
+							// The value should be an array of ints.
+							var value = valueArgs[0];
+
+							// The object we're setting to will have an ID now because of the above defer:
+							if (!(valueArgs[1] is DatabaseRow targetObject))
+							{
+								return null;
+							}
+
+							if (!(value is JArray idArray))
+							{
+								return null;
+							}
+
+							var ids = new List<int>();
+
+							foreach (var token in idArray)
+							{
+								// id is..
+								var id = token.Value<int?>();
+
+								if (id.HasValue && id > 0)
+								{
+									ids.Add(id.Value);
+								}
+							}
+
+							if (ids.Count == 0)
+							{
+								// Do nothing
+								return null;
+							}
+
+							var contentTypeId = ContentTypes.GetId(targetObject.GetType());
+
+							// Get all reward content entries for this host object:
+							var existingEntries = await _rewardContents.List(
+								ctx,
+								new Filter<RewardContent>().Equals("ContentId", targetObject.Id).And().Equals("ContentTypeId", contentTypeId)
+							);
+
+							// Identify ones being deleted, and ones being added, then update tag contents.
+							Dictionary<int, RewardContent> existingLookup = new Dictionary<int, RewardContent>();
+
+							foreach (var existingEntry in existingEntries)
+							{
+								existingLookup[existingEntry.RewardId] = existingEntry;
+							}
+
+							var now = DateTime.UtcNow;
+
+							Dictionary<int, bool> newSet = new Dictionary<int, bool>();
+
+							foreach (var id in ids)
+							{
+								newSet[id] = true;
+
+								if (!existingLookup.ContainsKey(id))
+								{
+									// Add it:
+									await _rewardContents.Create(ctx, new RewardContent()
+									{
+										ContentId = targetObject.Id,
+										ContentTypeId = contentTypeId,
+										RewardId = id,
+										CreatedUtc = now
+									});
+								}
+							}
+
+							// Delete any being removed:
+							foreach (var existingEntry in existingEntries)
+							{
+								if (!newSet.ContainsKey(existingEntry.RewardId))
+								{
+									// Delete this row:
+									await _rewardContents.Delete(ctx, existingEntry.Id);
+								}
+							}
+
+							// Get the rewards:
+							return await List(ctx, new Filter<Reward>().EqualsSet("Id", ids));
+						});
+
+
+					}
+
+					return args[0];
+				});
 			}
 
 			// Next the List events:
