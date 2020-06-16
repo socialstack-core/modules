@@ -420,7 +420,7 @@ export default class Loop extends React.Component {
 
 				if (props.onFailed) {
 					if (props.onFailed(e)) {
-						this.setState({ over: null, jsonFilter: null, results, errored: false });
+						this.setState({ over: null, jsonFilter: null, results, errored: false, errorMessage: e });
 						return;
 					}
 				}
@@ -450,7 +450,7 @@ export default class Loop extends React.Component {
 			// is a specific failure set?
 			if (this.props.onFailure) {
 				if (typeof this.props.onFailure === "function") {
-					return this.props.onFailure();
+					return this.props.onFailure(this.state.errorMessage);
 				}
 			}
 			return <Failure />
