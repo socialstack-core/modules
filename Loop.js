@@ -420,12 +420,12 @@ export default class Loop extends React.Component {
 
 				if (props.onFailed) {
 					if (props.onFailed(e)) {
-						this.setState({ over: null, jsonFilter: null, results, errored: false, errorMessage: e });
+						this.setState({ over: null, jsonFilter: null, results, errored: false });
 						return;
 					}
 				}
 
-				this.setState({ over: null, jsonFilter: null, results, errored: true });
+				this.setState({ over: null, jsonFilter: null, results, errored: true, errorMessage: e });
 			});
 
 		} else {
