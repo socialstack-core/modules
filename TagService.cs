@@ -6,6 +6,8 @@ using Api.Eventing;
 using Api.Contexts;
 using System.Collections;
 using Newtonsoft.Json.Linq;
+using Api.Startup;
+using System;
 
 namespace Api.Tags
 {
@@ -22,7 +24,7 @@ namespace Api.Tags
 		/// <summary>
 		/// Instanced automatically. Use injection to use this service, or Startup.Services.Get.
 		/// </summary>
-		public TagService() : base(Events.Tag)
+		public TagService(ITagContentService _tagContents) : base(Events.Tag)
         {
 			// Start preparing the queries. Doing this ahead of time leads to excellent performance savings, 
 			// whilst also using a high-level abstraction as another plugin entry point.
@@ -34,10 +36,7 @@ namespace Api.Tags
 			MakeNestable();
 
 			InstallAdminPages("Tags", "fa:fa-tags", new string[] { "id", "name" });
-
-			#warning todo - handle create and update events. Applies to tags, categories, reactions etc.
-			// -> I.e. permit changing tags during entity create/ update.
-
+			
 			// Load tags on Load/List events next. First, find all events for types that implement IHaveTags:
 			var loadEvents = Events.FindByType(typeof(IHaveTags), "Load", EventPlacement.After);
 
@@ -101,6 +100,122 @@ namespace Api.Tags
 
 			}
 
+			// Hook up a MultiSelect on the underlying fields:
+			var listBeforeSettable = Events.FindByType(typeof(IHaveTags), "Settable", EventPlacement.Before);
+
+			foreach (var listEvent in listBeforeSettable)
+			{
+				listEvent.AddEventListener((Context context, object[] args) =>
+				{
+					var field = args[0] as JsonField;
+
+					if (field != null && field.Name == "Tags")
+					{
+						field.Module = "Admin/MultiSelect";
+						field.Data["contentType"] = "tag";
+						
+						// Defer the set after the ID is available:
+						field.AfterId = true;
+
+						// On set, convert provided IDs into tag objects.
+						field.OnSetValueUnTyped.AddEventListener(async (Context ctx, object[] valueArgs) =>
+						{
+							if (valueArgs == null || valueArgs.Length < 2)
+							{
+								return null;
+							}
+
+							// The value should be an array of ints.
+							var value = valueArgs[0];
+
+							// The object we're setting to will have an ID now because of the above defer:
+							if (!(valueArgs[1] is DatabaseRow targetObject))
+							{
+								return null;
+							}
+
+							if (!(value is JArray idArray))
+							{
+								return null;
+							}
+
+							var ids = new List<int>();
+
+							foreach (var token in idArray)
+							{
+								// id is..
+								var id = token.Value<int?>();
+
+								if (id.HasValue && id > 0)
+								{
+									ids.Add(id.Value);
+								}
+							}
+
+							if (ids.Count == 0)
+							{
+								// Do nothing
+								return null;
+							}
+							
+							var contentTypeId = ContentTypes.GetId(targetObject.GetType());
+							
+							// Get all tag content entries for this host object:
+							var existingEntries = await _tagContents.List(
+								ctx,
+								new Filter<TagContent>().Equals("ContentId", targetObject.Id).And().Equals("ContentTypeId", contentTypeId)
+							);
+
+							// Identify ones being deleted, and ones being added, then update tag contents.
+							Dictionary<int, TagContent> existingLookup = new Dictionary<int, TagContent>();
+
+							foreach (var existingEntry in existingEntries)
+							{
+								existingLookup[existingEntry.TagId] = existingEntry;
+							}
+
+							var now = DateTime.UtcNow;
+
+							Dictionary<int, bool> newSet = new Dictionary<int, bool>();
+
+							foreach (var id in ids)
+							{
+								newSet[id] = true;
+
+								if (!existingLookup.ContainsKey(id))
+								{
+									// Add it:
+									await _tagContents.Create(ctx, new TagContent()
+									{
+										ContentId = targetObject.Id,
+										ContentTypeId = contentTypeId,
+										TagId = id,
+										CreatedUtc = now
+									});
+								}
+							}
+
+							// Delete any being removed:
+							foreach (var existingEntry in existingEntries)
+							{
+								if (!newSet.ContainsKey(existingEntry.TagId))
+								{
+									// Delete this row:
+									await _tagContents.Delete(ctx, existingEntry.Id);
+								}
+							}
+
+							// Get the tags:
+							return await List(ctx, new Filter<Tag>().EqualsSet("Id", ids));
+						});
+
+						
+					}
+
+					return args[0];
+				});
+			}
+			
 			// Next the List events:
 			var listEvents = Events.FindByType(typeof(IHaveTags), "List", EventPlacement.After);
 
