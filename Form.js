@@ -51,7 +51,8 @@ export default class Form extends React.Component {
 			onFailed: (r,v,evt) => {
 				this.setState({
 					loading: undefined,
-					failed: true
+					failed: true,
+					failure: r
 				});
 				onFailed && onFailed(r,v,evt);
 			},
@@ -103,7 +104,7 @@ export default class Form extends React.Component {
 							this.state.failed && failedMessage && (
 								<div className="form-failed">
 									<Alert type="error">
-										{failedMessage}
+										{typeof failedMessage == "function" ? failedMessage(this.state.failure) : failedMessage}
 									</Alert>
 									<Spacer />
 								</div>
@@ -113,7 +114,7 @@ export default class Form extends React.Component {
 							this.state.success && successMessage && (
 								<div className="form-success">
 									<Alert type="success">
-										{successMessage}
+										{typeof successMessage == "function" ? successMessage() : successMessage}
 									</Alert>
 									<Spacer />
 								</div>
