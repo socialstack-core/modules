@@ -60,8 +60,6 @@ export default class Search extends React.Component {
 	}
 	
 	search(query){
-		this.setState({loading: true});
-		
 		var where = {};
 		
 		var field = this.props.field || 'name';
@@ -70,13 +68,17 @@ export default class Search extends React.Component {
 		where[fieldNameUcFirst]={contains: query};
 		
 		if(this.props.onQuery){
-			where = this.props.onQuery(where);
+			where = this.props.onQuery(where, query);
 		}
 		
-		webRequest(this.props.for + '/list', {where, pageSize: (this.props.limit || 50)}).then(response => {
-			var results = response.json.results;
-			this.setState({loading: false, results});
-		});
+		if(this.props.for){
+			// Otherwise it just exports the query
+			this.setState({loading: true});
+			webRequest(this.props.for + '/list', {where, pageSize: (this.props.limit || 50)}).then(response => {
+				var results = response.json.results;
+				this.setState({loading: false, results});
+			});
+		}
 	}
 	
 	avatar(result) {
