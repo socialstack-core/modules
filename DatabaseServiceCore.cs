@@ -472,6 +472,142 @@ namespace Api.Database
 		}
 
 		/// <summary>
+		/// Runs the given query with the given args to bind. Returns the results mapped as the given object, along with the total number of results.
+		/// </summary>
+		/// <param name="context"></param>
+		/// <typeparam name="T"></typeparam>
+		/// <param name="q"></param>
+		/// <param name="filter">
+		/// A runtime filter to apply to the query. It's the same as WHERE.
+		/// These filters often handle permission based filtering. 
+		/// Pass it to Capability.IsGranted to have that happen automatically.</param>
+		/// <param name="args"></param>
+		/// <returns></returns>
+		public async Task<ListWithTotal<T>> ListWithTotal<T>(Context context, Query<T> q, Filter filter, params object[] args) where T : new()
+		{
+			var results = new List<T>();
+
+			var localeId = 0;
+			string localeCode = null;
+			if (context != null && context.LocaleId > 1)
+			{
+				localeId = context.LocaleId;
+				localeCode = (await context.GetLocale()).Code;
+			}
+
+			bool paginationActive = filter != null && filter.PageSize != 0;
+			int? total = 0;
+
+			using (var connection = GetConnection())
+			{
+				await connection.OpenAsync();
+
+				// When pagination is active and a total has to be calculated separately, qryText is actually a comma separated double query.
+				var qryText = q.GetQuery(filter, false, localeId, localeCode, paginationActive);
+
+				MySqlCommand cmd;
+
+				// If the filter has additional value resolvers..
+				if (filter != null && filter.ParamValueResolvers != null)
+				{
+					// This means the filter wants some additional values to be calculated when it's called.
+					// So, go ahead and invoke that now:
+					cmd = new MySqlCommand(qryText, connection);
+					MySqlParameter parameter;
+
+					for (var i = 0; i < filter.ParamValueResolvers.Count; i++)
+					{
+						var valueResolver = filter.ParamValueResolvers[i];
+
+						parameter = cmd.CreateParameter();
+						parameter.ParameterName = "v" + valueResolver.ParamId;
+						cmd.Parameters.Add(parameter);
+
+						if (valueResolver != null)
+						{
+							parameter.Value = await valueResolver.Method(context);
+						}
+					}
+
+					if (args != null)
+					{
+						for (var i = 0; i < args.Length; i++)
+						{
+							parameter = cmd.CreateParameter();
+							parameter.ParameterName = "p" + i;
+							parameter.Value = args[i];
+							cmd.Parameters.Add(parameter);
+						}
+					}
+
+					// Add user:
+					parameter = cmd.CreateParameter();
+					parameter.ParameterName = "user";
+					parameter.Value = filter != null && filter.LoginToken != null ? filter.LoginToken.UserId : 0;
+					cmd.Parameters.Add(parameter);
+				}
+				else
+				{
+					cmd = CreateCommand(connection, qryText, filter, args);
+				}
+
+				using (var reader = await cmd.ExecuteReaderAsync())
+				{
+					if (paginationActive)
+					{
+						await reader.ReadAsync();
+						var count = (long)reader.GetValue(0);
+						total = (int)count;
+
+						await reader.NextResultAsync();
+					}
+
+					while (await reader.ReadAsync())
+					{
+						// Create the object: 
+						var result = new T();
+
+						// For each field..
+						for (var i = 0; i < reader.FieldCount; i++)
+						{
+							var value = reader.GetValue(i);
+
+							if (value is System.DBNull)
+							{
+								continue;
+							}
+
+							var field = q.Fields[i];
+
+							if (field.Type == typeof(bool))
+							{
+								// Set the value:
+								field.TargetField.SetValue(result, Convert.ToBoolean(value));
+							}
+							else
+							{
+								// Set the value:
+								field.TargetField.SetValue(result, value);
+							}
+						}
+
+						results.Add(result);
+					}
+				}
+			}
+
+			if (!paginationActive)
+			{
+				total = results.Count;
+			}
+
+			return new ListWithTotal<T>() {
+				Results = results,
+				Total = total
+			};
+		}
+
+		/// <summary>
 		/// Runs the given query with the given args to bind. Returns the results mapped as a list of the given type.
 		/// </summary>
 		/// <param name="context"></param>

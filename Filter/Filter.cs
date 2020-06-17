@@ -27,13 +27,13 @@ namespace Api.Permissions
 		}
 
 		/// <summary>
-		/// Builds join where and limit as a query.
+		/// Builds join where as a query.
 		/// </summary>
 		/// <param name="str"></param>
 		/// <param name="paramOffset">A number to add to all emitted parameter @ refs.</param>
 		/// <param name="localeCode">Optional localeCode used when a request is for e.g. French fields instead. 
 		/// It would be e.g. "fr" and just matches whatever your Locale.Code is.</param>
-		public void BuildFullQuery(StringBuilder str, int paramOffset, string localeCode)
+		public void BuildWhereQuery(StringBuilder str, int paramOffset, string localeCode)
 		{
 			if (Joins != null)
 			{
@@ -42,15 +42,38 @@ namespace Api.Permissions
 					Joins[i].BuildQuery(str, paramOffset, localeCode);
 				}
 			}
-			
+
 			if (HasContent)
 			{
 				str.Append(" WHERE ");
 				var whereRoot = Construct();
 				whereRoot.BuildQuery(str, paramOffset, localeCode);
 			}
+		}
 
-            if (Sorts != null)
+		/// <summary>
+		/// Builds join where and limit as a query.
+		/// </summary>
+		/// <param name="str"></param>
+		/// <param name="paramOffset">A number to add to all emitted parameter @ refs.</param>
+		/// <param name="localeCode">Optional localeCode used when a request is for e.g. French fields instead. 
+		/// It would be e.g. "fr" and just matches whatever your Locale.Code is.</param>
+		public void BuildFullQuery(StringBuilder str, int paramOffset, string localeCode)
+		{
+			BuildWhereQuery(str, paramOffset, localeCode);
+			BuildOrderLimitQuery(str, paramOffset, localeCode);
+		}
+
+		/// <summary>
+		/// Builds order and limit as a query.
+		/// </summary>
+		/// <param name="str"></param>
+		/// <param name="paramOffset">A number to add to all emitted parameter @ refs.</param>
+		/// <param name="localeCode">Optional localeCode used when a request is for e.g. French fields instead. 
+		/// It would be e.g. "fr" and just matches whatever your Locale.Code is.</param>
+		public void BuildOrderLimitQuery(StringBuilder str, int paramOffset, string localeCode)
+		{
+			if (Sorts != null)
             {
                 str.Append(" ORDER BY ");
                 for (var i = 0; i < Sorts.Count; i++)

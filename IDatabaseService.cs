@@ -101,6 +101,21 @@ namespace Api.Database
 		Task<List<T>> List<T>(Context context, Query<T> q, Filter filter, params object[] args) where T : new();
 		
 		/// <summary>
+		/// Runs the given query with the given args to bind. Returns the results mapped as the given object, along with the total number of results.
+		/// For efficiency you should only use this when your filter.PageSize is non-zero (i.e. you're paginating and only getting a potential subset of the results).
+		/// </summary>
+		/// <typeparam name="T"></typeparam>
+		/// <param name="context"></param>
+		/// <param name="q"></param>
+		/// <param name="filter">
+		/// A runtime filter to apply to the query. It's the same as WHERE.
+		/// These filters often handle permission based filtering. 
+		/// Pass it to Capability.IsGranted to have that happen automatically.</param>
+		/// <param name="args"></param>
+		/// <returns></returns>
+		Task<ListWithTotal<T>> ListWithTotal<T>(Context context, Query<T> q, Filter filter, params object[] args) where T : new();
+		
+		/// <summary>
 		/// Database text escape. You should instead be using the args set (and ? placeholders).
 		/// </summary>
 		/// <param name="value">The text to escape.</param>

@@ -217,8 +217,15 @@ namespace Api.Database
 		/// <summary>
 		/// Builds the underlying query to run.
 		/// </summary>
-		public string GetQuery(Filter filter = null, bool bulk = false, int localeId = 0, string localeCode = null)
+		public string GetQuery(Filter filter = null, bool bulk = false, int localeId = 0, string localeCode = null, bool includeCount = false)
 		{
+			if (includeCount && (filter == null || Operation != SELECT))
+			{
+				throw new ArgumentException("You can only include the count on SELECT statements with a LIMIT.");
+				// Otherwise just use the result count.
+				// This check however exists to avoid a multitude of potential caching problems.
+			}
+
 			if (filter == null && !bulk)
 			{
 				if (localeId < 2)
@@ -238,6 +245,7 @@ namespace Api.Database
 
 			var str = new StringBuilder();
 			int paramOffset = 0;
+			int fromLocation = 0;
 
 			switch (Operation)
 			{
@@ -263,6 +271,7 @@ namespace Api.Database
 						}
 					}
 
+					fromLocation = str.Length;
 					str.Append(" FROM ");
 					str.Append(MainTableAs);
 					break;
@@ -464,16 +473,39 @@ namespace Api.Database
 					break;
 			}
 
-			if (filter != null)
-			{
-				filter.BuildFullQuery(str, paramOffset, localeCode);
-			}
-			else if (_where != null)
-			{
-				_where.BuildFullQuery(str, paramOffset, localeCode);
-			}
+			string result;
 
-			var result = str.ToString();
+			if (includeCount)
+			{
+				// SELECT .. FROM .. WHERE .. first:
+				filter.BuildWhereQuery(str, paramOffset, localeCode);
+
+				// Bake to a string as we're mostly interested in the WHERE part:
+				var whereSegment = str.ToString();
+
+				// Clear the str builder and start constructing the next one:
+				str.Clear();
+				str.Append("SELECT COUNT(*) as Count ");
+				str.Append(whereSegment.Substring(fromLocation));
+				str.Append(';');
+				str.Append(whereSegment);
+				filter.BuildOrderLimitQuery(str, paramOffset, localeCode);
+				result = str.ToString();
+			}
+			else
+			{
+
+				if (filter != null)
+				{
+					filter.BuildFullQuery(str, paramOffset, localeCode);
+				}
+				else if (_where != null)
+				{
+					_where.BuildFullQuery(str, paramOffset, localeCode);
+				}
+
+				result = str.ToString();
+			}
 
 			if (!bulk && filter == null)
 			{
