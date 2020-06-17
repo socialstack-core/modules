@@ -102,6 +102,11 @@ export default class AutoList extends React.Component {
 			combinedFilter.sort = this.state.sort;
 		}
 		
+		/*
+		combinedFilter.pageSize = 10;
+		combinedFilter.includeTotal = true;
+		*/
+		
 		if(this.state.searchText && searchFields){
 			var where = [];
 			
@@ -127,12 +132,19 @@ export default class AutoList extends React.Component {
 		
 		var path = '/en-admin/' + this.props.endpoint + '/';
 		
-		return <Tile className="auto-list">
+		var addUrl = path + 'add';
+		
+		if(filterField){
+			var filterFieldLC = filterField.charAt(0).toLowerCase() + filterField.slice(1);
+			addUrl += '?' + filterFieldLC + '=' + filterValue;
+		}
+		
+		return <Tile className="auto-list" title={this.props.title}>
 			{(this.props.create || searchFields) && (
 				<Row style={{marginBottom: '10px'}}>
 					<Col>
 						{this.props.create && (
-								<a href={path + 'add'} className="btn btn-primary">
+								<a href={ addUrl } className="btn btn-primary">
 									Create
 								</a>
 						)}
