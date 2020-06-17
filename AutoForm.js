@@ -50,10 +50,12 @@ export default class AutoForm extends React.Component {
 			
 			if(query.created){
 				createSuccess = true;
+				delete query.created;
 			}
 			
 			if(query.revision){
 				revisionId = parseInt(query.revision);
+				delete query.revision;
 			}
 		}
 		
@@ -79,6 +81,7 @@ export default class AutoForm extends React.Component {
 		});
 		
 		var isEdit = isNumeric(props.id);
+		var fieldData = undefined;
 		
 		if(isEdit){
 			
@@ -91,12 +94,18 @@ export default class AutoForm extends React.Component {
 				this.setState({fieldData: response.json, createSuccess});
 				
 			});
+		}else if(query){
+			
+			// Anything else in the query string is the default fieldData:
+			fieldData = query;
+			
 		}
 		
 		this.setState({
 			endpoint: props.endpoint,
 			id: props.id,
-			revisionId
+			revisionId,
+			fieldData
 		});
 	}
 	
@@ -253,36 +262,38 @@ export default class AutoForm extends React.Component {
 				}
 				>
 					<Canvas onContentNode={contentNode => {
-						if(isEdit && contentNode.data && contentNode.data.name){
-							var data = contentNode.data;
-							var content = this.state.fieldData;
-							
-							if(data.type == 'canvas' && content.pageId){
-								// Ref the content:
-								data.contentType = content.type;
-								data.contentId = content.id;
-								data.onPageUrl = getUrl(content);
-							}
-							
-							if(data.localized){
-								// Show globe icon alongside the label:
-								data.label = [(data.label || ''), <i className='fa fa-globe-europe localized-field-label' />];
-							}
-							
-							data.autoComplete = 'off';
-							data.onChange=(e) => {
-								// Input field has changed. Update the content object so any redraws are reflected.
-								var t = e.target.type;
-								content[data.name] = (t == 'checkbox' || t == 'radio') ? e.target.checked : e.target.value;
-							};
-							
-							var value = content[data.name];
-							if(value !== undefined){
-								if(data.name == "createdUtc"){
-									data.defaultValue = formatTime(value);
-								} else {
-									data.defaultValue = value;
-								}
+						var content = this.state.fieldData;
+						if(!contentNode.data || !contentNode.data.name || !content){
+							return;
+						}
+						
+						var data = contentNode.data;
+						
+						if(data.type == 'canvas' && content.pageId){
+							// Ref the content:
+							data.contentType = content.type;
+							data.contentId = content.id;
+							data.onPageUrl = getUrl(content);
+						}
+						
+						if(data.localized){
+							// Show globe icon alongside the label:
+							data.label = [(data.label || ''), <i className='fa fa-globe-europe localized-field-label' />];
+						}
+						
+						data.autoComplete = 'off';
+						data.onChange=(e) => {
+							// Input field has changed. Update the content object so any redraws are reflected.
+							var t = e.target.type;
+							content[data.name] = (t == 'checkbox' || t == 'radio') ? e.target.checked : e.target.value;
+						};
+						
+						var value = content[data.name];
+						if(value !== undefined){
+							if(data.name == "createdUtc"){
+								data.defaultValue = formatTime(value);
+							} else {
+								data.defaultValue = value;
 							}
 						}
 					}}>
