@@ -1,4 +1,5 @@
 using Api.Contexts;
+using Api.Database;
 using Api.Eventing;
 using Api.Permissions;
 using Api.Results;
@@ -6,6 +7,7 @@ using Api.Startup;
 using Microsoft.AspNetCore.Mvc;
 using Newtonsoft.Json.Linq;
 using System;
+using System.Collections.Generic;
 using System.Threading.Tasks;
 
 /// <summary>
@@ -114,11 +116,33 @@ public partial class AutoController<T> : ControllerBase
 			return null;
 		}
 
-		var results = await _service.List(context, filter);
+		ListWithTotal<T> response;
 
-		results = await _service.EventGroup.Listed.Dispatch(context, results, Response);
+		if (filter.PageSize != 0 && filters != null && filters["includeTotal"] != null)
+		{
+			// Get the total number of non-paginated results as well:
+			response = await _service.ListWithTotal(context, filter);
+		}
+		else
+		{
+			// Not paginated or requsetor doesn't care about the total.
+			var results = await _service.List(context, filter);
 
-		return  new Set<object>() { Results = results.ConvertAll(c => (object)c) };
+			response = new ListWithTotal<T>()
+			{
+				Results = results
+			};
+
+			if (filter.PageSize == 0)
+			{
+				// Trivial instance - pagination is off so the total is just the result set length.
+				response.Total = results == null ? 0 : results.Count;
+			}
+		}
+
+		response.Results = await _service.EventGroup.Listed.Dispatch(context, response.Results, Response);
+
+		return response;
     }
 
     /// <summary>

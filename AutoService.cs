@@ -116,6 +116,35 @@ public partial class AutoService<T> : AutoService where T: DatabaseRow, new(){
 	}
 
 	/// <summary>
+	/// List a filtered set of entities along with the total number of (unpaginated) results.
+	/// </summary>
+	/// <returns></returns>
+	public virtual async Task<ListWithTotal<T>> ListWithTotal(Context context, Filter<T> filter)
+	{
+		if (NestableAddMask != 0 && (context.NestedTypes & NestableAddMask) == NestableAddMask)
+		{
+			// This happens when we're nesting List calls.
+			// For example, a User has Tags which in turn have a (creator) User.
+			return new ListWithTotal<T>()
+			{
+				Results = new List<T>(),
+				Total = 0
+			};
+		}
+
+		context.NestedTypes |= NestableAddMask;
+		filter = await EventGroup.BeforeList.Dispatch(context, filter);
+		context.NestedTypes &= NestableRemoveMask;
+
+		var listAndTotal = await _database.ListWithTotal(context, listQuery, filter);
+
+		context.NestedTypes |= NestableAddMask;
+		listAndTotal.Results = await EventGroup.AfterList.Dispatch(context, listAndTotal.Results);
+		context.NestedTypes &= NestableRemoveMask;
+		return listAndTotal;
+	}
+
+	/// <summary>
 	/// List a filtered set of entities.
 	/// </summary>
 	/// <returns></returns>
