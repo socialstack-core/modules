@@ -1,6 +1,9 @@
 import Tile from 'Admin/Tile';
 import Loop from 'UI/Loop';
 import Canvas from 'UI/Canvas';
+import Col from 'UI/Column';
+import Row from 'UI/Row';
+import Search from 'UI/Search';
 
 
 export default class AutoList extends React.Component {
@@ -83,7 +86,7 @@ export default class AutoList extends React.Component {
 	}
 	
 	render(){
-		var {filter, filterField, filterValue} = this.props;
+		var {filter, filterField, filterValue, searchFields} = this.props;
 		
 		if(filterField){
 			var where = {};
@@ -99,15 +102,51 @@ export default class AutoList extends React.Component {
 			combinedFilter.sort = this.state.sort;
 		}
 		
+		if(this.state.searchText && searchFields){
+			var where = [];
+			
+			for(var i=0;i< searchFields.length;i++){
+				var ob = {};
+				
+				if(filterField){
+					ob[filterField] = filterValue;
+				}
+				
+				var field = searchFields[i];
+				var fieldNameUcFirst = field.charAt(0).toUpperCase() + field.slice(1);
+				
+				ob[fieldNameUcFirst] = {
+					contains: this.state.searchText
+				};
+				
+				where.push(ob);
+			}
+			
+			combinedFilter.where = where;
+		}
+		
 		var path = '/en-admin/' + this.props.endpoint + '/';
 		
 		return <Tile className="auto-list">
-			{this.props.create && (
-				<div style={{marginBottom: '10px'}}>
-					<a href={path + 'add'} className="btn btn-primary">
-						Create
-					</a>
-				</div>
+			{(this.props.create || searchFields) && (
+				<Row style={{marginBottom: '10px'}}>
+					<Col>
+						{this.props.create && (
+								<a href={path + 'add'} className="btn btn-primary">
+									Create
+								</a>
+						)}
+					</Col>
+					<Col>
+						{searchFields && (
+							<Search onQuery={(where, query) => {
+								this.setState({
+									searchText: query
+								});
+							}}/>
+						)}
+					</Col>
+				</Row>
 			)}
 			<Loop asTable over={this.props.endpoint + '/revision/list'} filter={{where: {IsDraft: 1}}} onFailed={e => {
 				// Revisions aren't supported.
