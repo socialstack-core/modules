@@ -4,6 +4,7 @@ import Row from 'UI/Row';
 import webSocket from 'UI/Functions/WebSocket';
 import getEndpointType from 'UI/Functions/GetEndpointType';
 import Failure from 'UI/Failed';
+import Paginator from 'UI/Paginator';
 
 // Operators as used by Filter in where clauses.
 const filterOperators = {
@@ -31,7 +32,9 @@ export default class Loop extends React.Component {
 		super(props);
 		this.state = {
 			results: null,
-			errored: false
+			errored: false,
+			pageIndex: 1,
+			totalPages: 0
 		};
 
 		this.onLiveMessage = this.onLiveMessage.bind(this);
@@ -380,7 +383,7 @@ export default class Loop extends React.Component {
 		this.load(props);
 	}
 
-	load(props, force) {
+	load(props, force, newPageIndex) {
 		if (typeof props.over == 'string') {
 
 			var jsonFilter = props.filter ? JSON.stringify(props.filter) : null;
@@ -389,9 +392,42 @@ export default class Loop extends React.Component {
 				// Avoid making a new request.
 				return;
 			}
-
-			this.setState({ over: props.over, jsonFilter, results: null, errored: false });	
-			webRequest(props.over, props.filter).then(response => {
+			
+			var newState = {
+				over: props.over,
+				jsonFilter,
+				results: null,
+				errored: false 
+			};
+			
+			if(newPageIndex){
+				newState.pageIndex = newPageIndex;
+			}
+			
+			this.setState(newState);	
+			
+			var filter = props.filter;
+			
+			var pageCfg = props.paged;
+			
+			if(pageCfg){
+				if(!filter){
+					filter = {};
+				}
+				filter = {...filter};
+				filter.pageIndex = (newPageIndex || this.state.pageIndex)-1;
+				filter.includeTotal = true;
+				
+				var pageSize = pageCfg.pageSize || 50;
+				
+				if (typeof pageCfg == "number") {
+					pageSize = pageCfg;
+				}
+				
+				filter.pageSize = pageSize;
+			}
+			
+			webRequest(props.over, filter).then(response => {
 				var fieldName = props.field || 'results';
 				var results = (response && response.json && response.json[fieldName]) ? response.json[fieldName] : [];
 
@@ -403,7 +439,7 @@ export default class Loop extends React.Component {
 					results = results.reverse();
 				}
 
-				this.setState({ results, errored: false });
+				this.setState({ results, errored: false, totalResults: response.json.total });
 			}).catch(e => {
 				console.log('Loop caught an error:');
 				console.error(e);
@@ -420,27 +456,42 @@ export default class Loop extends React.Component {
 
 				if (props.onFailed) {
 					if (props.onFailed(e)) {
-						this.setState({ over: null, jsonFilter: null, results, errored: false });
+						this.setState({ over: null, jsonFilter: null, results, totalResults: results.length, errored: false });
 						return;
 					}
 				}
 
-				this.setState({ over: null, jsonFilter: null, results, errored: true, errorMessage: e });
+				this.setState({ over: null, jsonFilter: null, results, totalResults: results.length, errored: true, errorMessage: e });
 			});
 
 		} else {
 			// Direct array:
 			var results = props.over;
-
+			
 			if (props.onResults) {
 				results = this.props.onResults(results);
 			}
-
+			
+			var total = results.totalResults || results.length;
+			var pageCfg = props.paged;
+			
+			if (pageCfg) {
+				var offset = (newPageIndex || this.state.pageIndex)-1;
+				var pageSize = pageCfg.pageSize || 50;
+				
+				if (typeof pageCfg == "number") {
+					pageSize = pageCfg;
+				}
+				
+				var startIndex = offset * pageSize;
+				results = results.slice(startIndex, startIndex + pageSize);
+			}
+			
 			if (props.reverse) {
 				results = results.reverse();
 			}
-
-			this.setState({ over: null, jsonFilter: null, results, errored: false });
+			
+			this.setState({ over: null, jsonFilter: null, results, total, errored: false });
 		}
 	}
 
@@ -533,10 +584,12 @@ export default class Loop extends React.Component {
 		} else if (this.props.inline) {
 			mode = "inline";
 		}
-
+		
+		var loopContent = null;
+		
 		switch (mode) {
 			case "inline":
-				return (
+				loopContent = (
 					<span className={className}>
 						{
 							results.map((item, i) => {
@@ -552,7 +605,7 @@ export default class Loop extends React.Component {
 				break;
 			case "raw":
 			case "unformatted":
-				return (<span className={className}>
+				loopContent = (<span className={className}>
 					{results.map((item, i) => {
 						return renderFunc(item, i, results.length);
 					})}
@@ -599,11 +652,11 @@ export default class Loop extends React.Component {
 					rows.push(<Row className="loop-row" key={r}>{cols}</Row>);
 				}
 
-				return <div className={className}>{rows}</div>;
+				loopContent = <div className={className}>{rows}</div>;
 				break;
 			case "ul":
 			case "bulletpoints":
-				return (
+				loopContent = (
 					<ul className={className} {...this.props.attributes}>
 						{
 							results.map((item, i) => {
@@ -636,7 +689,7 @@ export default class Loop extends React.Component {
 					}
 				}
 
-				return (
+				loopContent = (
 					<table className={"table " + className}>
 						{headerFunc && (
 							<thead>
@@ -670,34 +723,31 @@ export default class Loop extends React.Component {
 				var breakpoints = ['Xs', 'Sm', 'Md', 'Lg', 'Xl'];
 				var breakpointClasses = "";
 
-				breakpoints.forEach(function (breakpoint) {
+				breakpoints.forEach((breakpoint) => {
 					var width = this.props["col" + breakpoint];
 
 					if (width > 0) {
 						breakpointClasses += " col-" + breakpoint.toLowerCase() + "-" + width;
 					}
-
-				}.bind(this));
-
-				if (breakpointClasses != "") {
-					return (
-						<div className={className}>
-							{
-								results.map((item, i) => {
-									var classes = breakpointClasses + ' loop-item loop-item-' + i;
-									return (
-										<div className={classes} key={i}>
-											{renderFunc(item, i, results.length)}
-										</div>
-									);
-								})
-							}
-						</div>
-					);
-				}
+				});
+				
+				loopContent = (
+					<div className={className}>
+						{
+							results.map((item, i) => {
+								var classes = breakpointClasses + ' loop-item loop-item-' + i;
+								return (
+									<div className={classes} key={i}>
+										{renderFunc(item, i, results.length)}
+									</div>
+								);
+							})
+						}
+					</div>
+				);
 				break;
 			case "altrow":
-				return (
+				loopContent = (
 					<div className={className}>
 						{
 							results.map((item, i) => {
@@ -715,21 +765,60 @@ export default class Loop extends React.Component {
 					</div>
 				);
 				break;
+			default:
+				loopContent = (
+					<div className={className}>
+						{
+							results.map((item, i) => {
+								return (
+									<div className={'loop-item loop-item-' + i + ' ' + (this.props.subClassName ? this.props.subClassName : '')} key={i}>
+										{renderFunc(item, i, results.length)}
+									</div>
+								);
+							})
+						}
+					</div>
+				);
 		}
-
-		return (
-			<div className={className}>
-				{
-					results.map((item, i) => {
-						return (
-							<div className={'loop-item loop-item-' + i + ' ' + (this.props.subClassName ? this.props.subClassName : '')} key={i}>
-								{renderFunc(item, i, results.length)}
-							</div>
-						);
-					})
-				}
-			</div>
-		);
+		
+		var pageCfg = this.props.paged;
+		
+		if(!pageCfg){
+			return loopContent;
+		}
+		
+		var pageSize = pageCfg.pageSize || 50;
+		
+		if(typeof pageCfg == "number"){
+			pageSize = pageCfg;
+		}
+		
+		// Paginate
+		var Module = pageCfg.module || Paginator;
+		
+		var paginator = <Module 
+			pageSize={pageSize} 
+			pageIndex={this.state.pageIndex} 
+			totalResults={this.state.totalResults}
+			onChange={pageIndex => {
+				this.load(this.props, true, pageIndex);
+			}}
+		/>;
+		
+		var result = [];
+		
+		if(pageCfg.top){
+			result.push(paginator);
+		}
+		
+		result.push(loopContent);
+		
+		if(pageCfg.bottom !== false){
+			// Bottom is true unless it's explicitly false
+			result.push(paginator);
+		}
+		
+		return result;
 	}
 }
 
