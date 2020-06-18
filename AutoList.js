@@ -102,11 +102,6 @@ export default class AutoList extends React.Component {
 			combinedFilter.sort = this.state.sort;
 		}
 		
-		/*
-		combinedFilter.pageSize = 10;
-		combinedFilter.includeTotal = true;
-		*/
-		
 		if(this.state.searchText && searchFields){
 			var where = [];
 			
@@ -169,7 +164,7 @@ export default class AutoList extends React.Component {
 					this.renderEntry
 				]}
 			</Loop>
-			<Loop asTable over={this.props.endpoint + "/list"} {...this.props} filter={combinedFilter}>
+			<Loop asTable over={this.props.endpoint + "/list"} {...this.props} filter={combinedFilter} paged>
 			{[
 				this.renderHeader,
 				this.renderEntry
