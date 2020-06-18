@@ -1,0 +1,30 @@
+/*
+	Optional stylesheet
+*/
+
+.paginator{
+	
+	input{
+		border: 1px solid lightgrey;
+		width: 3em;
+		padding: 5px;
+	}
+	
+	.nav-before{
+		padding-right: 10px;
+	}
+	
+	.nav-after{
+		padding-left: 10px;
+	}
+	
+	i{
+		color: #2A3F54;
+		margin: 10px;
+		
+		&:hover{
+			cursor: pointer;
+		}
+	}
+	
+}
