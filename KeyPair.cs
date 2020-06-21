@@ -7,7 +7,7 @@ using Org.BouncyCastle.Math;
 using Org.BouncyCastle.Asn1.X9;
 using Org.BouncyCastle.Crypto.Generators;
 using Org.BouncyCastle.Security;
-
+using Newtonsoft.Json;
 
 namespace Api.Signatures
 {
@@ -58,15 +58,35 @@ namespace Api.Signatures
 		/// <returns></returns>
 		public static KeyPair FromSerialized(string text)
 		{
-			var result = new KeyPair()
+			KeyPair result;
+
+			if (text[0] == '{')
 			{
-				PrivateKeyBytes = Convert.FromBase64String(text)
-			};
+				var jsonInfo = JsonConvert.DeserializeObject<JsonKeyData>(text);
+
+				// JSON format
+				result = new KeyPair()
+				{
+					PrivateKeyBytes = Convert.FromBase64String(jsonInfo.Private),
+					PublicKeyBytes = Convert.FromBase64String(jsonInfo.Public)
+				};
+			}
+			else
+			{
+				result = new KeyPair()
+				{
+					PrivateKeyBytes = Convert.FromBase64String(text)
+				};
+
+			}
 
 			// Create the D value:
 			var privD = new BigInteger(result.PrivateKeyBytes);
-			
-			result.PublicKeyBytes = Curve.G.Multiply(privD).GetEncoded(true);
+
+			if (result.PublicKeyBytes == null)
+			{
+				result.PublicKeyBytes = Curve.G.Multiply(privD).GetEncoded(true);
+			}
 
 			// Setup params:
 			result.PrivateKey = new ECPrivateKeyParameters(privD, DomainParams);
@@ -91,7 +111,7 @@ namespace Api.Signatures
 		/// <returns></returns>
 		public string Serialize()
 		{
-			return Convert.ToBase64String(PrivateKeyBytes);
+			return "{\"private\":\"" + Convert.ToBase64String(PrivateKeyBytes) + "\", \"public\": \"" + Convert.ToBase64String(PublicKeyBytes) + "\"}";
 		}
 
 		/// <summary>
@@ -224,5 +244,11 @@ namespace Api.Signatures
 			return result; // (result is 64 or 65 bytes long)
 		}
 
+	}
+
+	public class JsonKeyData
+	{
+		public string Public;
+		public string Private;
 	}
 }
