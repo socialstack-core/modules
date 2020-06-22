@@ -25,7 +25,7 @@ export default function (e, options) {
 		var value = field.type=='checkbox' ? true : field.value;
 		
 		if(field.onGetValue){
-			value = field.onGetValue(value);
+			value = field.onGetValue(value, field, e);
 		}
 		
 		values[field.name] = value;
