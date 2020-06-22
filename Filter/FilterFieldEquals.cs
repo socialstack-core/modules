@@ -57,14 +57,12 @@ namespace Api.Permissions
 				Field = "RevisionIsDraft";
 				FieldInfo = typeof(Users.RevisionRow).GetField("_IsDraft", BindingFlags.Instance | BindingFlags.NonPublic);
 			}
-			/*
-			else if (field == "RevisionId")
+			else if (field == "RevisionOriginalContentId")
 			{
 				// Special case
-				Field = "RevisionIsDraft";
+				Field = "RevisionOriginalContentId";
 				FieldInfo = typeof(Users.RevisionRow).GetField("_RevisionId", BindingFlags.Instance | BindingFlags.NonPublic);
 			}
-			*/
 			else
 			{
 				Field = field;
