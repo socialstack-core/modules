@@ -34,7 +34,6 @@ export default class MultiSelect extends React.Component {
 	
 	render() {
 		var fieldName = this.props.field || 'name';
-		console.log(this.props);
 		return (
 			<div className="form-group">
 				{this.props.label && (
