@@ -30,6 +30,16 @@ namespace Api.Eventing
 		public EventHandler<T> RevisionAfterCreate;
 
 		/// <summary>
+		/// Called just before an entity draft has been created.
+		/// </summary>
+		public EventHandler<T> DraftBeforeCreate;
+
+		/// <summary>
+		/// Called just after an entity draft has been created.
+		/// </summary>
+		public EventHandler<T> DraftAfterCreate;
+
+		/// <summary>
 		/// Just before an entity revision is being deleted. Return null to cancel the deletion.
 		/// </summary>
 		public EventHandler<T> RevisionBeforeDelete;
@@ -69,6 +79,16 @@ namespace Api.Eventing
 		#region Controller events
 		
 		/// <summary>
+		/// Draft is being created.
+		/// </summary>
+		public EndpointEventHandler<T> DraftCreate;
+
+		/// <summary>
+		/// After a draft is being created.
+		/// </summary>
+		public EndpointEventHandler<T> DraftCreated;
+
+		/// <summary>
 		/// Delete a revision.
 		/// </summary>
 		public EndpointEventHandler<T> RevisionDelete;
@@ -76,6 +96,10 @@ namespace Api.Eventing
 		/// Update revision metadata.
 		/// </summary>
 		public EndpointEventHandler<T> RevisionUpdate;
+		/// <summary>
+		/// After a revision was updated.
+		/// </summary>
+		public EndpointEventHandler<T> RevisionUpdated;
 		/// <summary>
 		/// Load revision metadata.
 		/// </summary>

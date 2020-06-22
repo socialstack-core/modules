@@ -2,6 +2,7 @@
 using Api.Database;
 using Api.Permissions;
 using Api.Users;
+using System;
 using System.Collections.Generic;
 using System.Reflection;
 using System.Threading.Tasks;
@@ -39,8 +40,13 @@ public partial class AutoService<T> where T: DatabaseRow, new(){
 	/// A query which updates 1 entity revision.
 	/// </summary>
 	protected Query<T> revisionUpdateQuery;
-	
-	
+
+	/// <summary>
+	/// A query which clears draft state for any existing revisions of a particular content.
+	/// </summary>
+	protected Query<T> clearDraftStateQuery;
+
+
 	/// <summary>Sets up the revision queries.</summary>
 	private void SetupRevisionQueries()
 	{
@@ -52,6 +58,11 @@ public partial class AutoService<T> where T: DatabaseRow, new(){
 		revisionSelectQuery = Query.Select<T>().SetMainTable(tableName);
 		revisionListQuery = Query.List<T>().SetMainTable(tableName);
 		
+		clearDraftStateQuery = Query.Update<T>().SetMainTable(tableName);
+		SetRevisionColumns(clearDraftStateQuery);
+		clearDraftStateQuery.RemoveAllBut("RevisionIsDraft");
+		clearDraftStateQuery.Where().Equals("IsDraft", 1).And().EqualsArg("RevisionOriginalContentId", 0);
+
 		SetRevisionColumns(revisionCreateQuery);
 		SetRevisionColumns(revisionUpdateQuery);
 		SetRevisionColumns(revisionSelectQuery);
@@ -177,4 +188,41 @@ public partial class AutoService<T> where T: DatabaseRow, new(){
 		return entity;
 	}
 	
+	/// <summary>
+	/// Creates the given entity as a draft. It'll be assigned a content ID like anything else.
+	/// </summary>
+	public virtual async Task<T> CreateDraft(Context context, T entity, Action<Context, T> postIdCallback)
+	{
+		if(revisionCreateQuery == null)
+		{
+			SetupRevisionQueries();
+		}
+
+		if (entity.Id == 0)
+		{
+			// For simplicity for other consuming API's (such as publishing draft content), as well as 
+			// so we can track all revisions of draft content, we'll get a content ID.
+			// We do that by creating the object in the database, then immediately deleting it.
+			await _database.Run(context, createQuery, entity);
+			await _database.Run(context, deleteQuery, entity.Id);
+		}
+		else
+		{
+			// Clear any existing drafts:
+			await _database.Run(context, clearDraftStateQuery, 0, entity.Id);
+		}
+
+		entity = await EventGroup.DraftBeforeCreate.Dispatch(context, entity);
+		
+		// Note: The Id field is automatically updated by Run here.
+		if (entity == null || !await _database.Run(context, revisionCreateQuery, entity))
+		{
+			return default(T);
+		}
+		
+		postIdCallback?.Invoke(context, entity);
+		
+		entity = await EventGroup.DraftAfterCreate.Dispatch(context, entity);
+		return entity;
+	}
 }

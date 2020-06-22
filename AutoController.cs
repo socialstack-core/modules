@@ -111,7 +111,7 @@ public partial class AutoController<T>
 		}
 
 		// Run the request update event:
-		// entity = await _service.EventGroup.Update.Dispatch(context, entity, Response) as T;
+		entity = await _service.EventGroup.RevisionUpdate.Dispatch(context, entity, Response) as T;
 
 		if (entity == null)
 		{
@@ -129,8 +129,8 @@ public partial class AutoController<T>
 		}
 		
 		// Run the request updated event:
-		// entity = await _service.EventGroup.Updated.Dispatch(context, entity, Response) as T;
-
+		entity = await _service.EventGroup.RevisionUpdated.Dispatch(context, entity, Response) as T;
+		
 		return entity;
 	}
 
@@ -161,9 +161,9 @@ public partial class AutoController<T>
 		// Set the actual fields now:
 		var notes = await SetFieldsOnObject(entity, context, body, JsonFieldGroup.Default);
 		
-		// Fire off a create event:
-		// entity = await _service.EventGroup.Create.Dispatch(context, entity, Response) as T;
-
+		// Fire off a create draft event:
+		entity = await _service.EventGroup.DraftCreate.Dispatch(context, entity, Response) as T;
+		
 		if (entity == null)
 		{
 			// A handler rejected this request.
@@ -175,10 +175,7 @@ public partial class AutoController<T>
 			return null;
 		}
 		
-		entity = await _service.CreateRevision(context, entity);
-
-		/*
-		 , async (Context c, T ent) => {
+		entity = await _service.CreateDraft(context, entity, async (Context c, T ent) => {
 
 			// Set post ID fields:
 			var secondaryNotes = await SetFieldsOnObject(entity, context, body, JsonFieldGroup.AfterId);
@@ -196,9 +193,8 @@ public partial class AutoController<T>
 
 			}
 		
-		}
-		 */
-
+		});
+		
 		if (entity == null)
 		{
 			// It was blocked or went wrong, typically because of a bad request.
@@ -218,7 +214,7 @@ public partial class AutoController<T>
 		}
 
 		// Fire off after create evt:
-		// entity = await _service.EventGroup.Created.Dispatch(context, entity, Response) as T;
+		entity = await _service.EventGroup.DraftCreated.Dispatch(context, entity, Response) as T;
 
 		return entity;
 	}
