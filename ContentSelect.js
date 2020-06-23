@@ -17,7 +17,6 @@ export default class ContentSelect extends React.Component {
 	}
 	
 	load(props){
-		console.log(props);
 		webRequest(props.contentType.toLowerCase() + '/list').then(response => {
 			var all = response.json.results;
 			all.unshift(null);
