@@ -245,8 +245,6 @@ export default class AutoForm extends React.Component {
 								parts.pop();
 								parts.push(response.id);
 								
-								console.log(response.revisionId, !!(response.revisionId));
-								
 								if(response.revisionId){
 									// Saved a draft
 									
@@ -271,8 +269,6 @@ export default class AutoForm extends React.Component {
 								var parts = state.page.url.split('/');
 								parts.pop();
 								parts.push(response.id);
-								
-								console.log('R2', response.revisionId, !!(response.revisionId));
 								
 								if(response.revisionId){
 									// Created a draft
