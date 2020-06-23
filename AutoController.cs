@@ -24,7 +24,7 @@ public partial class AutoController<T>
 	[HttpGet("revision/{id}")]
 	public virtual async Task<T> LoadRevision([FromRoute] int id)
 	{
-		if (!typeof(RevisionRow).IsAssignableFrom(typeof(T)))
+		if (!_service.IsRevisionType())
 		{
 			Response.StatusCode = 404;
 			return null;
@@ -42,7 +42,7 @@ public partial class AutoController<T>
 	[HttpDelete("revision/{id}")]
 	public virtual async Task<T> DeleteRevision([FromRoute] int id)
 	{
-		if (!typeof(RevisionRow).IsAssignableFrom(typeof(T)))
+		if (!_service.IsRevisionType())
 		{
 			Response.StatusCode = 404;
 			return null;
@@ -81,7 +81,7 @@ public partial class AutoController<T>
 	[HttpPost("revision/list")]
 	public virtual async Task<Set<T>> ListRevisions([FromBody] JObject filters)
 	{
-		if (!typeof(RevisionRow).IsAssignableFrom(typeof(T)))
+		if (!_service.IsRevisionType())
 		{
 			Response.StatusCode = 404;
 			return null;
@@ -109,7 +109,7 @@ public partial class AutoController<T>
 	[HttpPost("revision/{id}")]
 	public virtual async Task<T> UpdateRevision([FromRoute] int id, [FromBody] JObject body)
 	{
-		if (!typeof(RevisionRow).IsAssignableFrom(typeof(T)))
+		if (!_service.IsRevisionType())
 		{
 			Response.StatusCode = 404;
 			return null;
@@ -169,7 +169,7 @@ public partial class AutoController<T>
 	[HttpGet("publish/{id}")]
 	public virtual async Task<T> PublishRevision([FromRoute] int id, [FromBody] JObject body)
 	{
-		if (!typeof(RevisionRow).IsAssignableFrom(typeof(T)))
+		if (!_service.IsRevisionType())
 		{
 			Response.StatusCode = 404;
 			return null;
@@ -218,7 +218,7 @@ public partial class AutoController<T>
 	[HttpPost("publish/{id}")]
 	public virtual async Task<T> PublishAndUpdateRevision([FromRoute] int id, [FromBody] JObject body)
 	{
-		if (!typeof(RevisionRow).IsAssignableFrom(typeof(T)))
+		if (!_service.IsRevisionType())
 		{
 			Response.StatusCode = 404;
 			return null;
@@ -280,7 +280,7 @@ public partial class AutoController<T>
 	[HttpPost("draft")]
 	public virtual async Task<T> CreateDraft([FromBody] JObject body)
 	{
-		if (!typeof(RevisionRow).IsAssignableFrom(typeof(T)))
+		if (!_service.IsRevisionType())
 		{
 			Response.StatusCode = 404;
 			return null;

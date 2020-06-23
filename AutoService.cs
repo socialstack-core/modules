@@ -46,6 +46,25 @@ public partial class AutoService<T> where T: DatabaseRow, new(){
 	/// </summary>
 	protected Query<T> clearDraftStateQuery;
 
+	/// <summary>
+	/// True if this type supports revisions.
+	/// </summary>
+	private bool? _isRevisionType;
+
+	/// <summary>
+	/// True if this type supports revisions.
+	/// </summary>
+	/// <returns></returns>
+	public bool IsRevisionType()
+	{
+		if (_isRevisionType.HasValue)
+		{
+			return _isRevisionType.Value;
+		}
+
+		_isRevisionType = typeof(RevisionRow).IsAssignableFrom(typeof(T));
+		return _isRevisionType.Value;
+	}
 
 	/// <summary>Sets up the revision queries.</summary>
 	private void SetupRevisionQueries()
