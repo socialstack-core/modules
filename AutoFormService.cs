@@ -56,7 +56,10 @@ namespace Api.AutoForms
 
 			var result = new List<AutoFormInfo>();
 			_cachedAutoFormInfo[roleId] = result;
-
+			
+			// Try getting the revision service to see if they're supported:
+			var revisionsSupported = Api.Startup.Services.Get("IRevisionService") != null;
+			
 			// For each AutoService..
 			foreach (var serviceKvp in Services.AutoServices)
 			{
@@ -64,7 +67,11 @@ namespace Api.AutoForms
 
 				var formType = serviceKvp.Value.ServicedType;
 				var formMeta = GetFormInfo(fieldStructure);
-				formMeta.SupportsRevisions = typeof(RevisionRow).IsAssignableFrom(serviceKvp.Value.ServicedType);
+				
+				// Must inherit revisionRow and 
+				// the revision module must be installed
+				formMeta.SupportsRevisions = revisionsSupported && typeof(RevisionRow).IsAssignableFrom(serviceKvp.Value.ServicedType);
+				
 				formMeta.Endpoint = "v1/" + formType.Name.ToLower();
 				result.Add(formMeta);
 			}
