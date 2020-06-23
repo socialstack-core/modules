@@ -17,8 +17,7 @@ export default function (e, options) {
 			continue;
 		}
 		
-		var validation = field.getAttribute('data-validation');
-		if(validation){
+		if(field.onValidationCheck && field.onValidationCheck(field)){
 			validationErrors++;
 		}
 		
@@ -73,7 +72,6 @@ export default function (e, options) {
 					}, 1);
 					
 				} else {
-					console.log(response.json);
 					if (options.onFailed) {
 						options.onFailed(response.json, values, e);
 					}
