@@ -10,10 +10,14 @@ namespace Api.AutoForms
 	/// </summary>
 	public class AutoFormInfo
 	{
-
+		/// <summary>
+		/// True if it supports revisions.
+		/// </summary>
+		public bool SupportsRevisions;
+		
 		/// <summary>
 		/// The endpoint that this autoform is for.
-		/// e.g. "v1/forum/reply"
+		/// e.g. "v1/forumreply"
 		/// </summary>
 		public string Endpoint;
 

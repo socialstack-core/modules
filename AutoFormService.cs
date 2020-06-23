@@ -1,6 +1,7 @@
 ﻿using Api.Permissions;
 using Api.Startup;
 using Api.Translate;
+using Api.Users;
 using Microsoft.AspNetCore.Mvc.Infrastructure;
 using System;
 using System.Collections.Generic;
@@ -60,8 +61,10 @@ namespace Api.AutoForms
 			foreach (var serviceKvp in Services.AutoServices)
 			{
 				var fieldStructure = await serviceKvp.Value.GetJsonStructure(roleId);
+
 				var formType = serviceKvp.Value.ServicedType;
 				var formMeta = GetFormInfo(fieldStructure);
+				formMeta.SupportsRevisions = typeof(RevisionRow).IsAssignableFrom(serviceKvp.Value.ServicedType);
 				formMeta.Endpoint = "v1/" + formType.Name.ToLower();
 				result.Add(formMeta);
 			}
