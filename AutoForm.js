@@ -65,20 +65,20 @@ export default class AutoForm extends React.Component {
 		
 		getAutoForm((props.endpoint || '').toLowerCase()).then(formData => {
 			
+			var supportsRevisions = formData && formData.form && formData.form.supportsRevisions;
 			var isLocalized = formData && formData.form && formData.form.fields && formData.form.fields.find(fld => fld.data.localized);
 			
 			if(isLocalized && !locales){
 				locales = [];
 				webRequest('locale/list').then(resp => {
 					locales = resp.json.results;
-					console.log(locales);
 					this.setState({});
 				})
 			}
 			
 			if(formData){
 				// Slight remap to canvas friendly structure:
-				this.setState({fields: formData.canvas, isLocalized});
+				this.setState({fields: formData.canvas, isLocalized, supportsRevisions});
 			}else{
 				this.setState({failed: true});
 			}
@@ -343,9 +343,11 @@ export default class AutoForm extends React.Component {
 						<Input inline type="submit" name="_submitMode" value="publish" disabled={this.state.submitting}>
 							{isEdit ? "Save and Publish" : "Create"}
 						</Input>
-						<Input inline type="submit" className="btn btn-primary createDraft" name="_submitMode" value="draft" disabled={this.state.submitting}>
-							{isEdit ? "Save Draft" : "Create Draft"}
-						</Input>
+						{this.state.supportsRevisions && (
+							<Input inline type="submit" className="btn btn-primary createDraft" name="_submitMode" value="draft" disabled={this.state.submitting}>
+								{isEdit ? "Save Draft" : "Create Draft"}
+							</Input>
+						)}
 					</div>
 					<Spacer />
 					{
