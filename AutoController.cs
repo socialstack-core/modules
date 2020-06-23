@@ -168,7 +168,10 @@ public partial class AutoController<T> : ControllerBase
 		
 		// Set the actual fields now:
 		var notes = await SetFieldsOnObject(entity, context, body, JsonFieldGroup.Default);
-		
+
+		// Not permitted to create with a specified ID via the API. Ensure it's 0:
+		entity.Id = 0;
+
 		// Fire off a create event:
 		entity = await _service.EventGroup.Create.Dispatch(context, entity, Response) as T;
 
@@ -296,6 +299,9 @@ public partial class AutoController<T> : ControllerBase
 		{
 			Request.Headers["Api-Notes"] = notes;
 		}
+
+		// Make sure it's the original ID:
+		entity.Id = id;
 
 		// Run the request update event:
 		entity = await _service.EventGroup.Update.Dispatch(context, entity, Response) as T;
