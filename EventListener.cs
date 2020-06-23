@@ -32,13 +32,11 @@ namespace Api.Revisions
 			// Hook up the database diff event, which will be used to generate tables for us:
 			Events.DatabaseDiffBeforeAdd.AddEventListener((Context ctx, FieldMap fieldMap, Type typeInfo, Schema newSchema) => {
 
-				// If this type *is* RevisionRow, return null.
-				// That blocks it from generating any table.
-				if (typeInfo == typeof(RevisionRow))
+				if (fieldMap == null)
 				{
-					return Task.FromResult((FieldMap)null);
+					return Task.FromResult(fieldMap);
 				}
-				
+
 				// Firstly, is this type a RevisionRow?
 				// If so, we'll need to add another table to the schema with the same set of fields only it's called _revisions.
 

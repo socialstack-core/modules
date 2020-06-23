@@ -219,7 +219,16 @@ public partial class AutoService<T> where T: DatabaseRow, new(){
 		
 		// Clear any existing drafts:
 		await _database.Run(context, clearDraftStateQuery, 0, entity.Id);
-		
+
+		var rr = (entity as RevisionRow);
+
+		if (rr != null)
+		{
+			// Clear revision ID:
+			rr.RevisionId = 0;
+			rr.IsDraft = false;
+		}
+
 		// Does it exist? If yes, call update, otherwise, create it (but with a prespecified ID).
 		var existingObject = await Get(context, entity.Id);
 		
