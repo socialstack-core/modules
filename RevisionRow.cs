@@ -6,37 +6,13 @@ using System.Linq;
 using System.Threading.Tasks;
 
 namespace Api.Users
-{
+{	
 	/// <summary>
-	/// Use this to get a UserId, CreatedUtc and EditedUtc with automatic creator user field support.
+	/// Use this to get a UserId, CreatedUtc and EditedUtc with automatic creator user field support, which is also capable of revisions.
 	/// Alternatively use DatabaseRow directly if you want total control over your table.
 	/// </summary>
-	public class RevisionRow : DatabaseRow, IHaveCreatorUser
+	public class RevisionRow : UserCreatedRow
 	{
-		/// <summary>
-		/// The user who created this content.
-		/// </summary>
-		[Module(Hide = true)]
-		public int UserId;
-
-		/// <summary>
-		/// The UTC creation date.
-		/// </summary>
-		[Module(Hide = true)]
-		public DateTime CreatedUtc;
-
-		/// <summary>
-		/// The UTC last edited date.
-		/// </summary>
-		[Module(Hide = true)]
-		public DateTime EditedUtc;
-
-		/// <summary>
-		/// The user who created this content.
-		/// </summary>
-		[Module(Hide = true)]
-		public UserProfile CreatorUser { get; set; }
-
 		/// <summary>
 		/// The revision number of a particular piece of content. Starts at 1 and goes up linearly.
 		/// </summary>
@@ -81,15 +57,6 @@ namespace Api.Users
 			{
 				_IsDraft = value;
 			}
-		}
-
-		/// <summary>
-		/// Gets the ID of the user who created this content.
-		/// </summary>
-		/// <returns></returns>
-		public int GetCreatorUserId()
-		{
-			return UserId;
 		}
 	}
 }
