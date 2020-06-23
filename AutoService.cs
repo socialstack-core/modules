@@ -140,7 +140,20 @@ public partial class AutoService<T> where T: DatabaseRow, new(){
 			SetupRevisionQueries();
 		}
 		
-		return await _database.Select(context, revisionSelectQuery, id);
+		if (NestableAddMask != 0 && (context.NestedTypes & NestableAddMask) == NestableAddMask)
+		{
+			// This happens when we're nesting Get calls.
+			// For example, a User has Tags which in turn have a (creator) User.
+			return null;
+		}
+		
+		var item = await _database.Select(context, revisionSelectQuery, id);
+		
+		context.NestedTypes |= NestableAddMask;
+		item = await EventGroup.RevisionAfterLoad.Dispatch(context, item);
+		context.NestedTypes &= NestableRemoveMask;
+		
+		return item;
 	}
 	
 	/// <summary>
