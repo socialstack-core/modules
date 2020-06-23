@@ -70,8 +70,8 @@ export default class AutoList extends React.Component {
 			if(field.endsWith("Json")) {
 				fieldValue = <Canvas>{fieldValue}</Canvas>;
 			}else if(field == "id") {
-				if(!fieldValue){
-					fieldValue = "Draft";
+				if(entry.isDraft){
+					fieldValue = <span>{fieldValue} <span className="is-draft">(Draft)</span></span>;
 				}
 			}
 			
