@@ -20,7 +20,7 @@ namespace Api.Tags
 		/// </summary>
 		public int ContentTypeId;
 		/// <summary>
-		/// The ID of the tagged content. Can be 0 if this is on a draft - in which case, RevisionId is non-zero.
+		/// The ID of the tagged content.
 		/// </summary>
 		public int ContentId;
 		/// <summary>
