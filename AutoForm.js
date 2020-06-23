@@ -35,7 +35,7 @@ export default class AutoForm extends React.Component {
 	}
 	
 	load(props){
-		if(!props.endpoint || (props.endpoint == this.state.endpoint && props.id == this.state.id)){
+		if(!props.endpoint){
 			return;
 		}
 		
@@ -57,6 +57,10 @@ export default class AutoForm extends React.Component {
 				revisionId = parseInt(query.revision);
 				delete query.revision;
 			}
+		}
+		
+		if(props.endpoint == this.state.endpoint && props.id == this.state.id && revisionId == this.state.revisionId){
+			return;
 		}
 		
 		getAutoForm((props.endpoint || '').toLowerCase()).then(formData => {
@@ -175,6 +179,11 @@ export default class AutoForm extends React.Component {
 		
 		return (
 			<div className="auto-form">
+				{(this.state.fieldData && this.state.fieldData.isDraft) && (
+					<span className="is-draft">
+						Draft
+					</span>
+				)}
 				{
 					isEdit && this.state.isLocalized && locales.length > 1 && <div>
 						<Input label ="Select Locale" type="select" name="locale" onChange={
@@ -197,13 +206,18 @@ export default class AutoForm extends React.Component {
 				<Form autoComplete="off" locale={this.state.locale} action={endpoint}
 				onValues={values => {
 					if(values._submitMode == 'draft'){
+						// Set content ID if there is one already:
+						if(isEdit && parsedId){
+							values.id = parsedId;
+						}
+						
+						// Create a draft:
+						values.setAction(this.props.endpoint + "/draft");
+					}else{
+						// Potentially publishing a draft.
 						if(this.state.revisionId){
-							// Already a draft - Update it:
-							// (Note: there are no revisions of drafts partially because of this).
-							values.setAction(this.props.endpoint + "/revision/" + revisionId);
-						}else{
-							// Create a draft:
-							values.setAction(this.props.endpoint + "/draft");
+							// Use the publish EP.
+							values.setAction(this.props.endpoint + "/publish/" +  this.state.revisionId);
 						}
 					}
 					
@@ -231,13 +245,21 @@ export default class AutoForm extends React.Component {
 								parts.pop();
 								parts.push(response.id);
 								
-								if(response.revisionId && !this.state.revisionId){
-									// Created a draft of a live piece of content
+								console.log(response.revisionId, !!(response.revisionId));
+								
+								if(response.revisionId){
+									// Saved a draft
+									
+									var newUrl = '/' + parts.join('/') + '?revision=' + response.revisionId;
+									
+									if(!this.state.revisionId){
+										newUrl += '&created=1';
+									}
 									
 									// Go to it now:
-									global.pageRouter.go('/' + parts.join('/') + '?created=1&revision=' + response.revisionId);
+									global.pageRouter.go(newUrl);
 									
-								}else if(response.id && !parsedId){
+								}else if(response.id){
 									// Created content from a draft. Go there now.
 									global.pageRouter.go('/' + parts.join('/') + '?created=1');
 								}
@@ -249,6 +271,8 @@ export default class AutoForm extends React.Component {
 								var parts = state.page.url.split('/');
 								parts.pop();
 								parts.push(response.id);
+								
+								console.log('R2', response.revisionId, !!(response.revisionId));
 								
 								if(response.revisionId){
 									// Created a draft
