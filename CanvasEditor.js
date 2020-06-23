@@ -391,12 +391,6 @@ export default class CanvasEditor extends React.Component {
 	
 	updated(){
 		var json = this.buildJson();
-		if(this.props.moduleSet == 'renderer'){
-			this.ref.value=JSON.stringify(json);
-		}else{
-			this.ref.value=JSON.stringify(json);
-		}
-		
 		this.props.onChange && this.props.onChange({
 			target: this.ref,
 			json
@@ -1084,7 +1078,13 @@ export default class CanvasEditor extends React.Component {
 				<input type="hidden" name={this.props.name} ref={ref => {
 					this.ref = ref;
 					if(ref){
-						ref.value=JSON.stringify(this.buildJson());
+						ref.onGetValue = (val, field) => {
+							if(field != this.ref){
+								return;
+							}
+							
+							return JSON.stringify(this.buildJson());
+						}
 					}
 				}}/>
 				<div style={{border: '1px solid lightgrey', borderRadius: '4px', padding: '0.375rem 0.75rem'}}>
