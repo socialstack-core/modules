@@ -262,8 +262,19 @@ public partial class AutoController<T>
 		
 		// Set the actual fields now:
 		var notes = await SetFieldsOnObject(entity, context, body, JsonFieldGroup.Default);
-		
-		// Note: Providing an Id is acceptable here.
+
+		// Note: Providing an Id is acceptable here. If it is provided, make sure the entity exists.
+		if (entity.Id != 0)
+		{
+			// Get the entity that this is a draft for:
+			var draftOfThisContent = await _service.Get(context, entity.Id);
+
+			if (draftOfThisContent == null)
+			{
+				Response.StatusCode = 404;
+				return null;
+			}
+		}
 
 		// Fire off a create draft event:
 		entity = await _service.EventGroup.DraftCreate.Dispatch(context, entity, Response) as T;
