@@ -137,10 +137,14 @@ export default class AutoForm extends React.Component {
 			{method: 'delete'}
 		).then(response => {
 			// Go to root parent page:
-			var state = global.pageRouter.state;
-			var parts = state.page.url.split('/'); // e.g. ['en-admin', 'pages', '1']
-			parts = parts.slice(0, 2); // e.g. ['en-admin', 'pages']. will always go to the root.
-			global.pageRouter.go('/' + parts.join('/'));
+			var target = this.props.deletePage;
+			if(!target){
+				var state = global.pageRouter.state;
+				var parts = state.page.url.split('/'); // e.g. ['en-admin', 'pages', '1']
+				parts = parts.slice(0, 2); // e.g. ['en-admin', 'pages']. will always go to the root.
+				target = '/' + parts.join('/');
+			}
+			global.pageRouter.go(target);
 			
 		}).catch(e => {
 			console.error(e);
