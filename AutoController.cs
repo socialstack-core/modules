@@ -8,6 +8,7 @@ using Microsoft.AspNetCore.Mvc;
 using Newtonsoft.Json.Linq;
 using Api.AutoForms;
 using Api.Startup;
+using Api.Users;
 
 /// <summary>
 /// A convenience controller for defining common endpoints like create, list, delete etc. Requires an AutoService of the same type to function.
@@ -23,6 +24,12 @@ public partial class AutoController<T>
 	[HttpGet("revision/{id}")]
 	public virtual async Task<T> LoadRevision([FromRoute] int id)
 	{
+		if (!typeof(RevisionRow).IsAssignableFrom(typeof(T)))
+		{
+			Response.StatusCode = 404;
+			return null;
+		}
+		
 		var context = Request.GetContext();
 		var result = await _service.GetRevision(context, id);
 		return await _service.EventGroup.RevisionLoad.Dispatch(context, result, Response);
@@ -35,6 +42,12 @@ public partial class AutoController<T>
 	[HttpDelete("revision/{id}")]
 	public virtual async Task<T> DeleteRevision([FromRoute] int id)
 	{
+		if (!typeof(RevisionRow).IsAssignableFrom(typeof(T)))
+		{
+			Response.StatusCode = 404;
+			return null;
+		}
+		
 		var context = Request.GetContext();
 		var result = await _service.GetRevision(context, id);
 		result = await _service.EventGroup.RevisionDelete.Dispatch(context, result, Response);
@@ -68,6 +81,12 @@ public partial class AutoController<T>
 	[HttpPost("revision/list")]
 	public virtual async Task<Set<T>> ListRevisions([FromBody] JObject filters)
 	{
+		if (!typeof(RevisionRow).IsAssignableFrom(typeof(T)))
+		{
+			Response.StatusCode = 404;
+			return null;
+		}
+		
 		var context = Request.GetContext();
 		var filter = new Filter<T>(filters);
 
@@ -90,6 +109,12 @@ public partial class AutoController<T>
 	[HttpPost("revision/{id}")]
 	public virtual async Task<T> UpdateRevision([FromRoute] int id, [FromBody] JObject body)
 	{
+		if (!typeof(RevisionRow).IsAssignableFrom(typeof(T)))
+		{
+			Response.StatusCode = 404;
+			return null;
+		}
+		
 		var context = Request.GetContext();
 		
 		var entity = await _service.GetRevision(context, id);
@@ -144,6 +169,12 @@ public partial class AutoController<T>
 	[HttpGet("publish/{id}")]
 	public virtual async Task<T> PublishRevision([FromRoute] int id, [FromBody] JObject body)
 	{
+		if (!typeof(RevisionRow).IsAssignableFrom(typeof(T)))
+		{
+			Response.StatusCode = 404;
+			return null;
+		}
+		
 		var context = Request.GetContext();
 		
 		var entity = await _service.GetRevision(context, id);
@@ -187,6 +218,12 @@ public partial class AutoController<T>
 	[HttpPost("publish/{id}")]
 	public virtual async Task<T> PublishAndUpdateRevision([FromRoute] int id, [FromBody] JObject body)
 	{
+		if (!typeof(RevisionRow).IsAssignableFrom(typeof(T)))
+		{
+			Response.StatusCode = 404;
+			return null;
+		}
+		
 		var context = Request.GetContext();
 		
 		var entity = await _service.GetRevision(context, id);
@@ -243,6 +280,12 @@ public partial class AutoController<T>
 	[HttpPost("draft")]
 	public virtual async Task<T> CreateDraft([FromBody] JObject body)
 	{
+		if (!typeof(RevisionRow).IsAssignableFrom(typeof(T)))
+		{
+			Response.StatusCode = 404;
+			return null;
+		}
+		
 		var context = Request.GetContext();
 
 		// Start building up our object.
