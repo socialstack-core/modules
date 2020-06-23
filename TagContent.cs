@@ -20,13 +20,18 @@ namespace Api.Tags
 		/// </summary>
 		public int ContentTypeId;
 		/// <summary>
-		/// The ID of the tagged content.
+		/// The ID of the tagged content. Can be 0 if this is on a draft - in which case, RevisionId is non-zero.
 		/// </summary>
 		public int ContentId;
 		/// <summary>
 		/// The UTC creation date. Read/ delete only rows so an edited date isn't present here.
 		/// </summary>
 		public DateTime CreatedUtc;
+
+		/// <summary>
+		/// The ID of a particular revision that these tags are on. Zero if it's on the live content.
+		/// </summary>
+		public int RevisionId;
 	}
 	
 }

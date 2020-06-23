@@ -8,6 +8,7 @@ using System.Collections;
 using Newtonsoft.Json.Linq;
 using Api.Startup;
 using System;
+using Api.Users;
 
 namespace Api.Tags
 {
@@ -30,7 +31,7 @@ namespace Api.Tags
 			// whilst also using a high-level abstraction as another plugin entry point.
 			listContentQuery = Query.List<TagContent>();
 			listByObjectQuery = Query.List<TagContent>();
-			listByObjectQuery.Where().EqualsArg("ContentTypeId", 0).And().EqualsArg("ContentId", 1);
+			listByObjectQuery.Where().EqualsArg("ContentTypeId", 0).And().EqualsArg("ContentId", 1).And().EqualsArg("RevisionId", 2);
 
 			// Because of IHaveTags, Tag must be nestable:
 			MakeNestable();
@@ -63,9 +64,21 @@ namespace Api.Tags
 
 					// Get the content type ID for the primary object:
 					var contentTypeId = ContentTypes.GetId(taggableObject.GetType());
+					
+					int revisionId = 0;
+
+					if (dbObject is RevisionRow)
+					{
+						var revId = ((RevisionRow)dbObject).RevisionId;
+
+						if (revId.HasValue)
+						{
+							revisionId = revId.Value;
+						}
+					}
 
 					// List the tags now:
-					var contentTags = await _database.List(context, listByObjectQuery, null, contentTypeId, dbObject.Id);
+					var contentTags = await _database.List(context, listByObjectQuery, null, contentTypeId, dbObject.Id, revisionId);
 
 					if (contentTags == null || contentTags.Count == 0)
 					{
@@ -157,13 +170,25 @@ namespace Api.Tags
 								// Do nothing
 								return null;
 							}
-							
+
+							int revisionId = 0;
+
+							if (targetObject is RevisionRow)
+							{
+								var revId = ((RevisionRow)targetObject).RevisionId;
+
+								if (revId.HasValue)
+								{
+									revisionId = revId.Value;
+								}
+							}
+
 							var contentTypeId = ContentTypes.GetId(targetObject.GetType());
 							
 							// Get all tag content entries for this host object:
 							var existingEntries = await _tagContents.List(
 								ctx,
-								new Filter<TagContent>().Equals("ContentId", targetObject.Id).And().Equals("ContentTypeId", contentTypeId)
+								new Filter<TagContent>().Equals("ContentId", targetObject.Id).And().Equals("ContentTypeId", contentTypeId).And().Equals("RevisionId", revisionId)
 							);
 
 							// Identify ones being deleted, and ones being added, then update tag contents.
@@ -190,6 +215,7 @@ namespace Api.Tags
 										ContentId = targetObject.Id,
 										ContentTypeId = contentTypeId,
 										TagId = id,
+										RevisionId = revisionId,
 										CreatedUtc = now
 									});
 								}
@@ -271,8 +297,11 @@ namespace Api.Tags
 
 					// Create the filter and run the query now:
 					var filter = new Filter<TagContent>();
-					filter.EqualsArg("ContentTypeId", 0).And().EqualsSet("ContentId", ids);
-
+					filter.EqualsArg("ContentTypeId", 0).And().EqualsSet("ContentId", ids).And().Equals("RevisionId", 0);
+					
+					// Todo: The above blocks tags from loading on lists of revisions
+					// However, such a list of revisions requires a special case of per-row querying.
+					
 					// Get all the content tags for these entities:
 					var allContentTags = await _database.List(context, listContentQuery, filter, contentTypeId);
 
@@ -302,22 +331,22 @@ namespace Api.Tags
 
 					var tagFilter = new Filter<Tag>();
 					tagFilter.EqualsSet("Id", tagIds);
-					var categories = await List(context, tagFilter);
+					var tags = await List(context, tagFilter);
 
-					foreach (var category in categories)
+					foreach (var tag in tags)
 					{
-						tagLookup[category.Id] = category;
+						tagLookup[tag.Id] = tag;
 					}
 
 					// For each content->tag relation..
-					foreach (var contentCategory in allContentTags)
+					foreach (var contentTag in allContentTags)
 					{
-						// Lookup content/ category:
-						var content = contentLookup[contentCategory.ContentId];
-						var category = tagLookup[contentCategory.TagId];
+						// Lookup content/ tag:
+						var content = contentLookup[contentTag.ContentId];
+						var tag = tagLookup[contentTag.TagId];
 
 						// Add the tag to the content:
-						content.Tags.Add(category);
+						content.Tags.Add(tag);
 					}
 
 					return list;
@@ -376,6 +405,7 @@ namespace Api.Tags
 						}
 
 						filter.Join<TagContent>("Id", "ContentId")
+							.And().Equals("RevisionId", 0)
 							.And().Equals("ContentTypeId", ContentTypes.GetId(filter.DefaultType))
 							.And().EqualsSet("TagId", idArray);
 
