@@ -20,7 +20,9 @@ export default class Input extends React.Component {
         this.newId();
         this.onInput = this.onInput.bind(this);
         this.onChange = this.onChange.bind(this);
+        this.updateValidation = this.updateValidation.bind(this);
         this.onBlur = this.onBlur.bind(this);
+        this.setRef = this.setRef.bind(this);
         this.onSelectChange = this.onSelectChange.bind(this);
     }
 
@@ -100,24 +102,24 @@ export default class Input extends React.Component {
         // Validation check
         this.revalidate(e);
     }
-
-    revalidate(e) {
-
+	
+	isValid(){
         var validations = this.props.validate;
 
         if (!validations) {
-            if (this.state.validationFailure) {
-                this.setState({ validationFailure: null });
-            }
-            return;
+            return true;
         }
-
+	
         if (!Array.isArray(validations)) {
             // Make it one:
             validations = [validations];
         }
-
-        var v = e.target.value;
+		
+		if(!this.inputRef){
+			return false;
+		}
+		
+        var v = this.inputRef.value;
         var vFail = null;
 
         for (var i = 0; i < validations.length; i++) {
@@ -142,17 +144,39 @@ export default class Input extends React.Component {
                     console.log("Invalid validation type: ", validations, valType, i);
                     break;
             }
-
+			
             if (vFail) {
-                break;
+                return false;
             }
         }
-
-        if (vFail || this.state.validationFailure) {
-            this.setState({ validationFailure: vFail });
+		
+		return true;
+	}
+	
+    revalidate(e) {
+		this.updateValidation(e.target);
+	}
+	
+	updateValidation(el){
+		if(el != this.inputRef){
+			return false;
+		}
+		var invalid = !this.isValid();
+        if (this.state.validationFailure != invalid) {
+            this.setState({ validationFailure: invalid });
         }
+		return invalid;
     }
-
+	
+	setRef(ref) {
+		this.inputRef = ref;
+		this.props.inputRef && this.props.inputRef(ref);
+		
+		if(ref){
+			ref.onValidationCheck = this.updateValidation;
+		}
+	}
+	
     renderInput() {
 
         const { type } = this.props;
@@ -165,6 +189,7 @@ export default class Input extends React.Component {
 
             return (
                 <select
+					ref={this.setRef}
                     onChange={this.onSelectChange}
                     onBlur={this.onBlur}
                     value={typeof this.state.selectValue === 'undefined' ? this.props.defaultValue : this.state.selectValue}
@@ -181,6 +206,7 @@ export default class Input extends React.Component {
 
             return (
                 <textarea
+					ref={this.setRef}
                     onChange={this.onChange}
                     onBlur={this.onBlur}
                     id={this.props.id || this.fieldId}
@@ -213,6 +239,7 @@ export default class Input extends React.Component {
             return (
                 <div className="custom-control custom-checkbox">
                     <input
+						ref={this.setRef}
                         id={this.props.id || this.fieldId}
                         className={this.props.className || "form-control custom-control-input"}
                         aria-describedby={this.helpFieldId}
@@ -233,6 +260,7 @@ export default class Input extends React.Component {
             return (
                 <div className="custom-control custom-radio">
                     <input
+						ref={this.setRef}
                         id={this.props.id || this.fieldId}
                         className={this.props.className || "form-control custom-control-input"}
                         name={this.props.name}
@@ -258,6 +286,7 @@ export default class Input extends React.Component {
 			
 			return <div className="input-group">
 					<input
+						ref={this.setRef}
 						id={this.props.id || this.fieldId}
 						className={this.props.className || "form-control"}
 						aria-describedby={this.helpFieldId}
@@ -288,6 +317,7 @@ export default class Input extends React.Component {
 
             return (
                 <input
+					ref={this.setRef}
                     id={this.props.id || this.fieldId}
                     className={this.props.className || "form-control"}
                     aria-describedby={this.helpFieldId}
