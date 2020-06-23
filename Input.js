@@ -103,11 +103,11 @@ export default class Input extends React.Component {
         this.revalidate(e);
     }
 	
-	isValid(){
+	validationError(){
         var validations = this.props.validate;
 
         if (!validations) {
-            return true;
+            return false;
         }
 	
         if (!Array.isArray(validations)) {
@@ -146,11 +146,11 @@ export default class Input extends React.Component {
             }
 			
             if (vFail) {
-                return false;
+                return vFail;
             }
         }
 		
-		return true;
+		return false;
 	}
 	
     revalidate(e) {
@@ -161,11 +161,11 @@ export default class Input extends React.Component {
 		if(el != this.inputRef){
 			return false;
 		}
-		var invalid = !this.isValid();
+		var invalid = this.validationError();
         if (this.state.validationFailure != invalid) {
             this.setState({ validationFailure: invalid });
         }
-		return invalid;
+		return !!invalid;
     }
 	
 	setRef(ref) {
