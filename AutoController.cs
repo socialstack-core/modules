@@ -110,6 +110,9 @@ public partial class AutoController<T>
 			Request.Headers["Api-Notes"] = notes;
 		}
 
+		// Make sure it's the same ID:
+		entity.Id = id;
+
 		// Run the request update event:
 		entity = await _service.EventGroup.RevisionUpdate.Dispatch(context, entity, Response) as T;
 
@@ -133,7 +136,106 @@ public partial class AutoController<T>
 		
 		return entity;
 	}
+	
+	/// <summary>
+	/// GET /v1/entityTypeName/publish/1
+	/// Publishes the given revision as the new live entry.
+	/// </summary>
+	[HttpGet("publish/{id}")]
+	public virtual async Task<T> PublishRevision([FromRoute] int id, [FromBody] JObject body)
+	{
+		var context = Request.GetContext();
+		
+		var entity = await _service.GetRevision(context, id);
 
+		if (entity == null)
+		{
+			// Either not allowed to edit this, or it doesn't exist.
+			// Both situations are a 404.
+			Response.StatusCode = 404;
+			return null;
+		}
+		
+		// Run the request update event:
+		entity = await _service.EventGroup.RevisionPublish.Dispatch(context, entity, Response) as T;
+
+		if (entity == null)
+		{
+			// A handler rejected this request.
+			return null;
+		}
+
+		entity = await _service.PublishRevision(context, entity);
+
+		if (entity == null)
+		{
+			// It was blocked or went wrong, typically because of a bad request.
+			Response.StatusCode = 400;
+			return null;
+		}
+		
+		// Run the request updated event:
+		entity = await _service.EventGroup.RevisionPublished.Dispatch(context, entity, Response) as T;
+		
+		return entity;
+	}
+	
+	/// <summary>
+	/// POST /v1/entityTypeName/publish/1
+	/// Publishes the given posted object as an extension to the given revision.
+	/// </summary>
+	[HttpPost("publish/{id}")]
+	public virtual async Task<T> PublishAndUpdateRevision([FromRoute] int id, [FromBody] JObject body)
+	{
+		var context = Request.GetContext();
+		
+		var entity = await _service.GetRevision(context, id);
+
+		if (entity == null)
+		{
+			// Either not allowed to edit this, or it doesn't exist.
+			// Both situations are a 404.
+			Response.StatusCode = 404;
+			return null;
+		}
+		
+		var contentId = entity.Id;
+		
+		// In this case the entity ID is definitely known, so we can run all fields at the same time:
+		var notes = await SetFieldsOnObject(entity, context, body, JsonFieldGroup.Any);
+
+		if (notes != null)
+		{
+			Request.Headers["Api-Notes"] = notes;
+		}
+		
+		// Ensure the ID remains unchanged:
+		entity.Id = contentId;
+		
+		// Run the request update event:
+		entity = await _service.EventGroup.RevisionPublish.Dispatch(context, entity, Response) as T;
+
+		if (entity == null)
+		{
+			// A handler rejected this request.
+			return null;
+		}
+
+		entity = await _service.PublishRevision(context, entity);
+
+		if (entity == null)
+		{
+			// It was blocked or went wrong, typically because of a bad request.
+			Response.StatusCode = 400;
+			return null;
+		}
+		
+		// Run the request updated event:
+		entity = await _service.EventGroup.RevisionPublished.Dispatch(context, entity, Response) as T;
+		
+		return entity;
+	}
+	
 	/// <summary>
 	/// POST /v1/entityTypeName/draft/
 	/// Updates an entity revision with the given ID.
@@ -161,6 +263,8 @@ public partial class AutoController<T>
 		// Set the actual fields now:
 		var notes = await SetFieldsOnObject(entity, context, body, JsonFieldGroup.Default);
 		
+		// Note: Providing an Id is acceptable here.
+
 		// Fire off a create draft event:
 		entity = await _service.EventGroup.DraftCreate.Dispatch(context, entity, Response) as T;
 		

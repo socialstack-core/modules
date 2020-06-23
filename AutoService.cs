@@ -202,6 +202,39 @@ public partial class AutoService<T> where T: DatabaseRow, new(){
 	}
 	
 	/// <summary>
+	/// Publishes the given entity, which originated from a revision. The entity content ID may not exist at all.
+	/// </summary>
+	public virtual async Task<T> PublishRevision(Context context, T entity)
+	{
+		if(revisionCreateQuery == null)
+		{
+			SetupRevisionQueries();
+		}
+		
+		if (entity.Id == 0)
+		{
+			// Id required.
+			return null;
+		}
+		
+		// Clear any existing drafts:
+		await _database.Run(context, clearDraftStateQuery, 0, entity.Id);
+		
+		// Does it exist? If yes, call update, otherwise, create it (but with a prespecified ID).
+		var existingObject = await Get(context, entity.Id);
+		
+		if(existingObject != null)
+		{
+			// Update
+			return await Update(context, entity);
+		}
+		else
+		{
+			// Create
+			return await Create(context, entity);
+		}
+	}
+	/// <summary>
 	/// Creates the given entity as a draft. It'll be assigned a content ID like anything else.
 	/// </summary>
 	public virtual async Task<T> CreateDraft(Context context, T entity, Action<Context, T> postIdCallback)

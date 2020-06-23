@@ -89,6 +89,16 @@ namespace Api.Eventing
 		public EndpointEventHandler<T> DraftCreated;
 
 		/// <summary>
+		/// A revision is being published.
+		/// </summary>
+		public EndpointEventHandler<T> RevisionPublish;
+
+		/// <summary>
+		/// After a revision was published.
+		/// </summary>
+		public EndpointEventHandler<T> RevisionPublished;
+
+		/// <summary>
 		/// Delete a revision.
 		/// </summary>
 		public EndpointEventHandler<T> RevisionDelete;
