@@ -26,6 +26,11 @@ public partial class AutoService<T> : AutoService where T: DatabaseRow, new(){
 	/// A query which creates 1 entity.
 	/// </summary>
 	protected readonly Query<T> createQuery;
+	
+	/// <summary>
+	/// A query which creates 1 entity with a known ID.
+	/// </summary>
+	protected readonly Query<T> createWithIdQuery;
 
 	/// <summary>
 	/// A query which selects 1 entity.
@@ -56,6 +61,7 @@ public partial class AutoService<T> : AutoService where T: DatabaseRow, new(){
 		// whilst also using a high-level abstraction as another plugin entry point.
 		deleteQuery = Query.Delete<T>();
 		createQuery = Query.Insert<T>();
+		createWithIdQuery = Query.Insert<T>(true);
 		updateQuery = Query.Update<T>();
 		selectQuery = Query.Select<T>();
 		listQuery = Query.List<T>();
@@ -203,7 +209,17 @@ public partial class AutoService<T> : AutoService where T: DatabaseRow, new(){
 		entity = await EventGroup.BeforeCreate.Dispatch(context, entity);
 
 		// Note: The Id field is automatically updated by Run here.
-		if (entity == null || !await _database.Run(context, createQuery, entity))
+		if (entity == null)
+		{
+			return entity;
+		}
+
+		if (entity.Id != 0)
+		{
+			// Explicit ID has been provided.
+			await _database.Run(context, createWithIdQuery, entity);
+		}
+		else if (!await _database.Run(context, createQuery, entity))
 		{
 			return default(T);
 		}
