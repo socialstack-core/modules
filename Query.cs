@@ -659,10 +659,10 @@ namespace Api.Database
 		/// Generates a insert into rowType.TableName() (field,field..) values(?,?,?..) query.
 		/// rowType should be a DatabaseRow derived type. The type of data that will be getting inserted.
 		/// </summary>
-		public static Query Insert(Type rowType)
+		public static Query Insert(Type rowType, bool explicitId = false)
 		{
 			var result = new Query(rowType);
-			SetupInsert(result, rowType);
+			SetupInsert(result, rowType, explicitId);
 			return result;
 		}
 
@@ -670,14 +670,14 @@ namespace Api.Database
 		/// Generates a insert into rowType.TableName() (field,field..) values(?,?,?..) query.
 		/// Type should be a DatabaseRow derived type. The type of data that will be getting inserted.
 		/// </summary>
-		public static Query<U> Insert<U>()
+		public static Query<U> Insert<U>(bool explicitId = false)
 		{
 			var result = new Query<U>();
-			SetupInsert(result, typeof(U));
+			SetupInsert(result, typeof(U), explicitId);
 			return result;
 		}
 
-		private static void SetupInsert(Query result, Type mainType)
+		private static void SetupInsert(Query result, Type mainType, bool explicitId = false)
 		{
 			result.Operation = INSERT;
 			result.SetMainTable(mainType);
@@ -689,8 +689,6 @@ namespace Api.Database
 			// Discover if the type has an explicit ID or not.
 			// It will do if it has turned off auto-inc on the Id, which is done via setting the attrib on the class itself.
 			// So, lets get that:
-			bool explicitId = false;
-
 			var metaAttribs = mainType.GetCustomAttributes(typeof(DatabaseFieldAttribute), true);
 
 			if (metaAttribs.Length > 0)
