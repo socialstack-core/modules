@@ -31,6 +31,11 @@ namespace Api.Translate
 			// Hook up the database diff event, which will be used to generate tables for us:
 			Events.DatabaseDiffBeforeAdd.AddEventListener(async (Context ctx, FieldMap fieldMap, Type typeInfo, Schema newSchema) => {
 
+				if (fieldMap == null)
+				{
+					return fieldMap;
+				}
+				
 				// Does this field map have any [Localized] fields?
 				Locale[] locales = null;
 
