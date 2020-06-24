@@ -26,7 +26,11 @@ namespace Api.DatabaseDiff
 		public DatabaseDiffService(IDatabaseService database)
 		{
 			_database = database;
-        }
+
+			// Important that this occurs before other services start such 
+			// that anything they setup including pages all exist.
+			UpdateDatabaseSchema();
+		}
 		
 		/// <summary>
 		/// Ensures all used columns are available in the database.

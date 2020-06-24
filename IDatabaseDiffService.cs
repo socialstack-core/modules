@@ -1,4 +1,5 @@
-﻿using System;
+﻿using Api.Startup;
+using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 
@@ -9,6 +10,7 @@ namespace Api.DatabaseDiff
 	/// This service checks the site database to see if any new columns are required during startup or on demand.
 	/// Instanced automatically. Use injection to use this service, or Startup.Services.Get.
 	/// </summary>
+	[LoadPriority(5)]
 	public partial interface IDatabaseDiffService
     {
 		/// <summary>
