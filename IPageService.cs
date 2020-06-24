@@ -48,7 +48,7 @@ namespace Api.Pages
 		/// Installs the given page(s). It checks if they exist by their URL (or ID, if you provide that instead), and if not, creates them.
 		/// </summary>
 		/// <param name="pages"></param>
-		Task Install(params Page[] pages);
+		void Install(params Page[] pages);
 
 		/// <summary>
 		/// Installs generic admin pages using the given fields to display on the list page.

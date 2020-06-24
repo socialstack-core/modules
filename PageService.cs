@@ -6,7 +6,7 @@ using System.Collections.Generic;
 using System.Threading.Tasks;
 using System.Linq;
 using System;
-
+using Api.Startup;
 
 namespace Api.Pages
 {
@@ -22,97 +22,86 @@ namespace Api.Pages
 		public PageService() : base(Events.Page)
         {
 			// If you don't have a homepage or admin area, this'll create them:
-			Task.Run(async () =>
-			{
-				await Install(
-					new Page()
-					{
-						Url = "/",
-						BodyJson = @"{
-							""content"": ""Welcome to your new SocialStack instance. This text comes from the pages table in your database in a format called canvas JSON - you can read more about this format in the documentation.""
-						}"
-					},
-					new Page()
-					{
-						Url = "/en-admin",
-						BodyJson = @"{
-							""module"": ""Admin/Pages/Default"",
-							""content"": [
-								{
-									""module"": ""Admin/Tile"",
-									""content"": [
-										""Welcome to the administration area. Pick what you'd like to edit on the left.""
-									]
-								}
-							]
-						}"
-					},
-					new Page()
-					{
-						Url = "/en-admin/login",
-						BodyJson = @"{
-							""module"": ""Admin/Pages/Landing"",
-							""content"": [
-								{
-									""module"": ""Admin/Tile"",
-									""content"": [
-										{
-											""module"":""Admin/LoginForm""
-										}
-									]
-								}
-							]
-						}"
-					},
-					new Page()
-					{
-						Url = "/en-admin/register",
-						BodyJson = @"{
-							""module"": ""Admin/Pages/Landing"",
-							""content"": [
-								{
-									""module"": ""Admin/Tile"",
-									""content"": [
-										{
-											""module"":""Admin/RegisterForm""
-										}
-									]
-								}
-							]
-						}"
-					},
-					new Page()
-					{
-						Url = "/en-admin/permissions",
-						BodyJson = @"{
-							""module"": ""Admin/Pages/Default"",
-							""content"": [
-								{
-									""module"": ""Admin/PermissionGrid""
-								}
-							]
-						}"
-					},
-					new Page()
-					{
-						Url = "/404",
-						BodyJson = @"{
-							""content"": ""The page you were looking for wasn't found here.""
-						}"
-					}
-				);
-				
-			});
+			Install(
+				new Page()
+				{
+					Url = "/",
+					BodyJson = @"{
+						""content"": ""Welcome to your new SocialStack instance. This text comes from the pages table in your database in a format called canvas JSON - you can read more about this format in the documentation.""
+					}"
+				},
+				new Page()
+				{
+					Url = "/en-admin",
+					BodyJson = @"{
+						""module"": ""Admin/Pages/Default"",
+						""content"": [
+							{
+								""module"": ""Admin/Tile"",
+								""content"": [
+									""Welcome to the administration area. Pick what you'd like to edit on the left.""
+								]
+							}
+						]
+					}"
+				},
+				new Page()
+				{
+					Url = "/en-admin/login",
+					BodyJson = @"{
+						""module"": ""Admin/Pages/Landing"",
+						""content"": [
+							{
+								""module"": ""Admin/Tile"",
+								""content"": [
+									{
+										""module"":""Admin/LoginForm""
+									}
+								]
+							}
+						]
+					}"
+				},
+				new Page()
+				{
+					Url = "/en-admin/register",
+					BodyJson = @"{
+						""module"": ""Admin/Pages/Landing"",
+						""content"": [
+							{
+								""module"": ""Admin/Tile"",
+								""content"": [
+									{
+										""module"":""Admin/RegisterForm""
+									}
+								]
+							}
+						]
+					}"
+				},
+				new Page()
+				{
+					Url = "/en-admin/permissions",
+					BodyJson = @"{
+						""module"": ""Admin/Pages/Default"",
+						""content"": [
+							{
+								""module"": ""Admin/PermissionGrid""
+							}
+						]
+					}"
+				},
+				new Page()
+				{
+					Url = "/404",
+					BodyJson = @"{
+						""content"": ""The page you were looking for wasn't found here.""
+					}"
+				}
+			);
 
-			// Install the admin pages. Special case as it's the page service itself - we'll want to wait until it's at least finished
-			// this/ its own constructor so we can say for sure that both it and anything else (like the navmenu service) are available.
-			Events.ServicesAfterStart.AddEventListener((Context ctx, object src) => {
-				
-				InstallAdminPages("Pages", "fa:fa-paragraph", new string[] { "id", "url", "title" });
-
-				return Task.FromResult(src);
-			});
-
+			// Install the admin pages.
+			InstallAdminPages("Pages", "fa:fa-paragraph", new string[] { "id", "url", "title" });
 		}
 
 		/// <summary>
@@ -125,7 +114,7 @@ namespace Api.Pages
 			var fieldString = Newtonsoft.Json.JsonConvert.SerializeObject(fields);
 			typeName = typeName.ToLower();
 
-			await Install(
+			await InstallInternal(
 				new Page{
 					Url = "/en-admin/" + typeName,
 					BodyJson = @"{
@@ -156,7 +145,30 @@ namespace Api.Pages
 		/// Installs the given page(s). It checks if they exist by their URL (or ID, if you provide that instead), and if not, creates them.
 		/// </summary>
 		/// <param name="pages"></param>
-		public async Task Install(params Page[] pages)
+		public void Install(params Page[] pages)
+		{
+			if (Services.Started)
+			{
+				Task.Run(async () =>
+				{
+					await InstallInternal(pages);
+				});
+			}
+			else
+			{
+				Events.ServicesAfterStart.AddEventListener(async (Context ctx, object src) =>
+				{
+					await InstallInternal(pages);
+					return src;
+				});
+			}
+		}
+			
+		/// <summary>
+		/// Installs the given page(s). It checks if they exist by their URL (or ID, if you provide that instead), and if not, creates them.
+		/// </summary>
+		/// <param name="pages"></param>
+		private async Task InstallInternal(params Page[] pages)
 		{
 			var context = new Context();
 
