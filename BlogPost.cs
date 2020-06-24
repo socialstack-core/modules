@@ -30,7 +30,11 @@ namespace Api.Blogs
 		/// </summary>
 		// [DatabaseField(Length = 8000)]
 		public string BodyJson;
-
+		/// <summary>
+		/// URL slug (optional).
+		/// </summary>
+		[DatabaseField(Length = 80)]
+		public string Slug;
 		/// <summary>
 		/// The feature image ref. See also: "Upload.Ref" in the Uploads module.
 		/// </summary>
