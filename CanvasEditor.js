@@ -818,9 +818,25 @@ export default class CanvasEditor extends React.Component {
 			
 			options.push(
 				<Input label={this.getLinkLabel(this.niceName(label), targetNode, fieldInfo)} type={inputType} defaultValue={val} onChange={e => {
-					this.updateField(targetNode, fieldInfo, inputType == 'renderer' ? e.json : e.target.value);
+					var value = e.target.value;
+					
+					if(inputType == 'renderer'){
+						value = e.json;
+					}else if(inputType == 'checkbox'){
+						value = !!e.target.checked;
+					}
+					
+					this.updateField(targetNode, fieldInfo, value);
 				}} onKeyUp={e => {
-					this.updateField(targetNode, fieldInfo, e.target.value);
+					var value = e.target.value;
+					
+					if(inputType == 'renderer'){
+						value = e.json;
+					}else if(inputType == 'checkbox'){
+						value = !!e.target.checked;
+					}
+					
+					this.updateField(targetNode, fieldInfo, value);
 				}} {...extraProps}>{inputContent}</Input>
 			);
 		});
@@ -859,7 +875,7 @@ export default class CanvasEditor extends React.Component {
 			targetNode[fieldInfo.name] = value;
 		}
 		
-		console.log('Warning: this setState call invalidates the targetNode of this.state.linkSelectionFor, breaking >1 field change');
+		console.log('Warning: this setState call invalidates the targetNode of this.state.linkSelectionFor, breaking >1 field change', targetNode);
 		// -> Needs to tell the canvas to redraw but without ruining the state info.
 		// -> The detach happens because linkSelectionFor refs the json structure in the *parent canvas's data array* 
 		//    and not the one that gets regenerated in the child canvas editor.
