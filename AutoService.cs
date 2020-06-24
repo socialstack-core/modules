@@ -340,6 +340,23 @@ public class AutoService
 	/// <param name="fields"></param>
 	protected void InstallAdminPages(string navMenuLabel, string navMenuIconRef, string[] fields)
 	{
+		if (Services.Started)
+		{
+			InstallAdminPagesInternal(navMenuLabel, navMenuIconRef, fields);
+		}
+		else
+		{
+			// Must happen after services start otherwise the page service isn't necessarily available yet.
+			Events.ServicesAfterStart.AddEventListener((Context ctx, object src) =>
+			{
+				InstallAdminPagesInternal(navMenuLabel, navMenuIconRef, fields);
+				return Task.FromResult(src);
+			});
+		}
+	}
+
+	private void InstallAdminPagesInternal(string navMenuLabel, string navMenuIconRef, string[] fields)
+	{
 		var pageService = Api.Startup.Services.Get("IPageService");
 
 		if (pageService == null)
@@ -350,7 +367,6 @@ public class AutoService
 
 		Task.Run(async () =>
 		{
-
 			var installPages = pageService.GetType().GetMethod("InstallAdminPages");
 			var typeName = ServicedType.Name;
 

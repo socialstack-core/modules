@@ -1,6 +1,7 @@
 ﻿using Api.Eventing;
 using System;
 using System.Collections.Generic;
+using System.Transactions;
 
 namespace Api.Startup
 {
@@ -9,6 +10,10 @@ namespace Api.Startup
 	/// </summary>
 	public static class Services
 	{
+		/// <summary>
+		/// True when AfterStart has been called.
+		/// </summary>
+		public static bool Started;
 		/// <summary>
 		/// A textual lookup of all services. Use Get instead. Textual key is e.g. "IPageService".
 		/// </summary>
@@ -56,6 +61,7 @@ namespace Api.Startup
 		/// </summary>
 		public static async void TriggerStart()
 		{
+			Started = true;
 			Provider = null;
 			await Events.ServicesAfterStart.Dispatch(null, null);
 		}
