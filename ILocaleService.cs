@@ -1,5 +1,6 @@
 ﻿using Api.Contexts;
 using Api.Permissions;
+using Api.Startup;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 
@@ -10,6 +11,7 @@ namespace Api.Translate
 	/// Handles locales - the core of the translation (localisation) system.
 	/// Instanced automatically. Use injection to use this service, or Startup.Services.Get.
 	/// </summary>
+	[LoadPriority(2)]
 	public partial interface ILocaleService
     {
 		/// <summary>

@@ -6,6 +6,7 @@ using Api.Eventing;
 using Api.Contexts;
 using Api.DatabaseDiff;
 using System;
+using Api.Startup;
 
 namespace Api.Translate
 {
@@ -19,10 +20,10 @@ namespace Api.Translate
 		/// Instanced automatically. Use injection to use this service, or Startup.Services.Get.
 		/// </summary>
 		public LocaleService() : base(Events.Locale)
-        {
+		{		
 			InstallAdminPages("Locales", "fa:fa-globe-europe", new string[] { "id", "name" });
 		}
-		
+
 		private Locale[] _cache;
 
 
