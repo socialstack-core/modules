@@ -162,7 +162,7 @@ export default class CanvasEditor extends React.Component {
 	loadJson(props){
 		var json = props.value || props.defaultValue;
 		if(typeof json === 'string'){
-			json = JSON.parse(json);
+			json = json.length ? JSON.parse(json) : null;
 		}
 		
 		if(!json || (!json.module && !json.content && !Array.isArray(json))){
