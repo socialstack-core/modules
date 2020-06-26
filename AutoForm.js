@@ -84,6 +84,9 @@ export default class AutoForm extends React.Component {
 			}
 		});
 		
+		if(this.state.fieldData){
+			this.setState({fieldData: null});
+		}
 		var isEdit = isNumeric(props.id);
 		var fieldData = undefined;
 		
@@ -264,14 +267,12 @@ export default class AutoForm extends React.Component {
 									// Go to it now:
 									global.pageRouter.go(newUrl);
 									
-								}else if(response.id){
+								}else if(response.id != this.state.id){
 									// Created content from a draft. Go there now.
 									global.pageRouter.go('/' + parts.join('/') + '?created=1');
 								}
 							}
 						}else{
-							this.setState({submitting: false});
-							
 							if(state && state.page && state.page.url){
 								var parts = state.page.url.split('/');
 								parts.pop();
@@ -290,7 +291,7 @@ export default class AutoForm extends React.Component {
 				>
 					<Canvas onContentNode={contentNode => {
 						var content = this.state.fieldData;
-						if(!contentNode.data || !contentNode.data.name || !content){
+						if(!contentNode.data || !contentNode.data.name || !content || contentNode.data.autoComplete == 'off'){
 							return;
 						}
 						
@@ -303,7 +304,7 @@ export default class AutoForm extends React.Component {
 							data.onPageUrl = getUrl(content);
 						}
 						
-						if(data.localized){
+						if(data.localized && !Array.isArray(data.label)){
 							// Show globe icon alongside the label:
 							data.label = [(data.label || ''), <i className='fa fa-globe-europe localized-field-label' />];
 						}
@@ -311,8 +312,17 @@ export default class AutoForm extends React.Component {
 						data.autoComplete = 'off';
 						data.onChange=(e) => {
 							// Input field has changed. Update the content object so any redraws are reflected.
-							var t = e.target.type;
-							content[data.name] = (t == 'checkbox' || t == 'radio') ? e.target.checked : e.target.value;
+							var val = e.target.value;
+							switch(data.type){
+								case 'checkbox':
+								case 'radio':
+									val = e.target.checked;
+								break;
+								case 'canvas':
+									val = e.json;
+								break;
+							}
+							content[data.name] = val;
 						};
 						
 						var value = content[data.name];
