@@ -7,3 +7,14 @@
     font-weight: normal;
     font-style: normal;
 }
+
+// we only have a single weight for this font, so prevent browsers from rendering faux bold
+@font-face {
+    font-family: 'Pathways';
+    src: url('./PathwaysScript-Regular.woff2') format('woff2'), 
+        url('./PathwaysScript-Regular.woff') format('woff'), 
+        url('./PathwaysScript-Regular.otf') format('otf'), 
+        url('./PathwaysScript-Regular.svg#PathwaysScript-Regular') format('svg');
+    font-weight: bold;
+    font-style: normal;
+}
