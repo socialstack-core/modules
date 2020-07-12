@@ -25,6 +25,7 @@ export default function (e, options) {
 		
 		if(field.onGetValue){
 			value = field.onGetValue(value, field, e);
+			field.value = value;
 		}
 		
 		values[field.name] = value;
