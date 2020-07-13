@@ -54,10 +54,45 @@ namespace Api.DatabaseDiff
 
 			var dbVersion = await _database.Select(null, versionQuery);
 
-			// Which version we got?
-			if (!dbVersion.Version.Trim().StartsWith("8") && !dbVersion.Version.Trim().StartsWith("9") && !dbVersion.Version.Trim().StartsWith("10"))
+			// Get DB version:
+			var version = dbVersion.Version.ToLower().Trim();
+
+			var versionPieces = version.Split('-');
+
+			if (!Version.TryParse(versionPieces[0], out Version parsedVersion))
 			{
-				System.Console.WriteLine("[WARNING] DatabaseDiff module disabled. It's currently only available on MySQL >8 (" + dbVersion.Version + ").");
+				System.Console.WriteLine("[WARNING] DatabaseDiff module disabled due to unrecognised MySQL version text. It was: " + version);
+				return;
+			}
+
+			string variant = "base";
+
+			if (versionPieces.Length > 2)
+			{
+				// It's a variant, like MariaDB
+				variant = versionPieces[1];
+			}
+
+			Version minVersion = null;
+
+			if (variant == "base")
+			{
+				minVersion = new Version(5, 7);
+			}
+			else if (variant == "mariadb")
+			{
+				minVersion = new Version(10, 1);
+			}
+
+			// Which version we got?
+			if (minVersion == null)
+			{
+				System.Console.WriteLine("[WARNING] DatabaseDiff module disabled. Unrecognised MySQL variant: " + version);
+				return;
+			}
+			else if (parsedVersion < minVersion)
+			{
+				System.Console.WriteLine("[WARNING] DatabaseDiff module disabled. You're using a version of MySQL that is too old. It's version: " + version);
 				return;
 			}
 			
