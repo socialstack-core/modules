@@ -22,5 +22,12 @@ namespace Api.CanvasRenderer
 		/// This acts like POSTed page data.</param>
 		/// <returns></returns>
 		Task<RenderedCanvas> Render(string bodyJson, CanvasContext context);
+
+		/// <summary>
+		/// Renders a complete set of 
+		/// </summary>
+		/// <param name="set"></param>
+		/// <returns></returns>
+		Task<List<RenderedCanvas>> Render(CanvasAndContextSet set);
     }
 }

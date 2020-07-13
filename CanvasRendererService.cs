@@ -1,5 +1,7 @@
 ﻿using Api.StackTools;
 using Newtonsoft.Json.Linq;
+using System;
+using System.Collections.Generic;
 using System.Threading.Tasks;
 
 
@@ -19,6 +21,88 @@ namespace Api.CanvasRenderer
 		public CanvasRendererService(IStackToolsService stackTools)
 		{
 			_stackTools = stackTools;
+		}
+
+		/// <summary>
+		/// Renders a block of contexts using the same canvas.
+		/// The set of results is in the exact order of the original contexts.
+		/// If one fails for whatever reason, the entry will be null.
+		/// </summary>
+		/// <param name="set"></param>
+		/// <returns></returns>
+		public Task<List<RenderedCanvas>> Render(CanvasAndContextSet set)
+		{
+			var tcs = new TaskCompletionSource<List<RenderedCanvas>>();
+
+			_stackTools.Request(new RenderRequest()
+			{
+				canvas = set.BodyJson,
+				contexts = set.Contexts
+			}, (string error, JObject response) => {
+
+				if (error != null || response == null)
+				{
+					Console.WriteLine(error);
+					tcs.TrySetResult(null);
+					return;
+				}
+
+				var results = response["results"];
+
+				if (results == null)
+				{
+					Console.WriteLine(error);
+					tcs.TrySetResult(null);
+					return;
+				}
+
+				var result = new List<RenderedCanvas>();
+
+				foreach (var jsonResult in results)
+				{
+					var body = jsonResult["html"];
+					var meta = jsonResult["meta"];
+
+					string htmlBody;
+					string title;
+
+					if (body == null)
+					{
+						htmlBody = "";
+					}
+					else
+					{
+						htmlBody = body.Value<string>();
+					}
+
+					if (meta == null)
+					{
+						title = null;
+					}
+					else
+					{
+						var titleJson = meta["title"];
+						if (titleJson == null)
+						{
+							title = null;
+						}
+						else
+						{
+							title = titleJson.Value<string>();
+						}
+					}
+
+					result.Add(new RenderedCanvas()
+					{
+						Body = htmlBody,
+						Title = title,
+					});
+				}
+
+				tcs.TrySetResult(result);
+			});
+
+			return tcs.Task;
 		}
 
 		/// <summary>
@@ -67,6 +151,11 @@ namespace Api.CanvasRenderer
 		/// The context
 		/// </summary>
 		public CanvasContext context;
+
+		/// <summary>
+		/// Multiple contexts in a multi-render request.
+		/// </summary>
+		public List<Dictionary<string, object>> contexts;
 
 		/// <summary>
 		/// 
