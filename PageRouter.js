@@ -105,7 +105,7 @@ export default class PageRouter extends React.Component{
 		
 		var pageInfo = this.getPageRedirected(rootPage, idMap, this.props.url);
 		
-		if(isCached && pageInfo.page.url == "" && !(this.props.url == "/" || this.props.url.endsWith("mobile.html"))){
+		if(isCached && pageInfo.page.url == "" && !(this.props.url == "/" || this.props.url.substring(this.props.url.length - 11, this.props.url.length) === "mobile.html")){
 			this.makeRequest();
 		}
 		else{
