@@ -35,7 +35,7 @@ export default class Default extends React.Component {
 				<tr class="footer">
 					<td style="font-family: &quot;Helvetica Neue&quot;, Helvetica, Arial, sans-serif; font-size: 13px; line-height: 1.6; color: #5c5c5c; padding: 25px 0;">
 						<div>
-							You're receiving this email because of your account with us. <a class="mng-notif-link" href="https://source.socialstack.cf/profile/notifications" style="color: #3777b0; text-decoration: none;">Manage all notifications</a> &#183; <a class="help-link" href="https://source.socialstack.cf/help" style="color: #3777b0; text-decoration: none;">Help</a>
+							You're receiving this email because of your account with us. <a class="mng-notif-link" href={origin + "/email/preferences"} style="color: #3777b0; text-decoration: none;">Change preferences here</a>
 						</div>
 					</td>
 				</tr>
