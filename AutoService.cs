@@ -117,6 +117,13 @@ public partial class AutoService<T> : AutoService where T: DatabaseRow, new(){
 		// Delete the entry:
 		await _database.Run(context, deleteQuery, id);
 
+		var cache = GetCacheForLocale(context == null ? 1 : context.LocaleId);
+
+		if (cache != null)
+		{
+			cache.Remove(context, id);
+		}
+
 		// Ok!
 		return true;
 	}
@@ -184,9 +191,21 @@ public partial class AutoService<T> : AutoService where T: DatabaseRow, new(){
 			// For example, a User has Tags which in turn have a (creator) User.
 			return null;
 		}
-		
-		var item = await _database.Select(context, selectQuery, id);
 
+		T item = null;
+
+		var cache = GetCacheForLocale(context == null ? 1 : context.LocaleId);
+
+		if (cache != null)
+		{
+			item = cache.Get(id);
+		}
+
+		if (item == null)
+		{
+			item = await _database.Select(context, selectQuery, id);
+		}
+		
 		context.NestedTypes |= NestableAddMask;
 		item = await EventGroup.AfterLoad.Dispatch(context, item);
 		context.NestedTypes &= NestableRemoveMask;
@@ -226,6 +245,13 @@ public partial class AutoService<T> : AutoService where T: DatabaseRow, new(){
 
 		postIdCallback?.Invoke(context, entity);
 
+		var cache = GetCacheForLocale(context == null ? 1 : context.LocaleId);
+
+		if (cache != null)
+		{
+			cache.Add(context, entity);
+		}
+
 		entity = await EventGroup.AfterCreate.Dispatch(context, entity);
 		return entity;
 	}
@@ -240,6 +266,13 @@ public partial class AutoService<T> : AutoService where T: DatabaseRow, new(){
 		if (entity == null || !await _database.Run(context, updateQuery, entity, entity.Id))
 		{
 			return null;
+		}
+
+		var cache = GetCacheForLocale(context == null ? 1 : context.LocaleId);
+
+		if (cache != null)
+		{
+			cache.Add(context, entity);
 		}
 
 		entity = await EventGroup.AfterUpdate.Dispatch(context, entity);
