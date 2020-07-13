@@ -8,9 +8,9 @@ import Paginator from 'UI/Paginator';
 
 // Operators as used by Filter in where clauses.
 const filterOperators = {
-	"startsWith": (a, b) => a && a.startsWith(b),
+	"startsWith": (a, b) => a && a.indexOf(b) == 0,
 	"contains": (a, b) => a && a.indexOf(b) != -1,
-	"endsWith": (a, b) => a && a.endsWith(b),
+	"endsWith": (a, b) => a && a.substring(a.length - b.length, a.length) === b,
 	"geq": (a, b) => a >= b,
 	"greaterThanOrEqual": (a, b) => a >= b,
 	"greaterThan": (a, b) => a > b,
