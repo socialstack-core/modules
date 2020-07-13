@@ -6,7 +6,6 @@ using Api.Database;
 using Api.Emails;
 using Api.Contexts;
 using Api.Uploader;
-using Api.PasswordReset;
 using Api.Results;
 using Api.Eventing;
 using Newtonsoft.Json.Linq;
