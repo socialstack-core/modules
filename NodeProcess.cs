@@ -1,5 +1,6 @@
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
+using Newtonsoft.Json.Serialization;
 using System;
 using System.Diagnostics;
 using System.Runtime.InteropServices;
@@ -59,10 +60,20 @@ namespace Api.StackTools
 			process.StartInfo.ErrorDialog = false;
 			process.StartInfo.CreateNoWindow = true;
 			process.EnableRaisingEvents = true;
-			
+
+			_serializerConfig = new JsonSerializerSettings
+			{
+				ContractResolver = new CamelCasePropertyNamesContractResolver()
+			};
+
 			SetNodeProcess(process);
 		}
-		
+
+		/// <summary>
+		/// Used by the serializer when sending JSON to the node process.
+		/// </summary>
+		private JsonSerializerSettings _serializerConfig;
+
 		/// <summary>
 		/// The system process.
 		/// </summary>
@@ -197,14 +208,47 @@ namespace Api.StackTools
 					return;
 				}
 
-				if (OnData != null)
+				OnStackToolsResponse responseHandler = null;
+				JObject response = null;
+
+				// Objects only for the response message type:
+				if (e.Data[0] == '{')
 				{
-					OnData(e.Data);
+					try
+					{
+						response = JsonConvert.DeserializeObject(e.Data) as JObject;
+
+						if (response != null)
+						{
+							var idField = response["_id"];
+
+							if (idField != null)
+							{
+								var requestId = idField.Value<int>();
+								responseHandler = GetResponseHandler(requestId);
+							}
+						}
+					}
+					catch
+					{
+						// Wasn't json (or a valid message) - just write it out.
+					}
+				}
+
+				if (responseHandler == null)
+				{
+					if (OnData != null)
+					{
+						OnData(e.Data);
+						return;
+					}
+
+					Console.WriteLine(e.Data);
 					return;
 				}
 
-				// Forward to our output stream:
-				Console.WriteLine(e.Data);
+				// Valid message - run now:
+				responseHandler.Invoke(null, response);
 			});
 
 			process.ErrorDataReceived += new DataReceivedEventHandler((sender, e) =>
@@ -324,7 +368,7 @@ namespace Api.StackTools
 			request._id = GetRequestId(onResponse);
 
 			// Serialise the request as JSON:
-			var jsonString = JsonConvert.SerializeObject(request);
+			var jsonString = JsonConvert.SerializeObject(request, _serializerConfig);
 
 			// Write to stdin:
 			Process.StandardInput.Write(jsonString);
