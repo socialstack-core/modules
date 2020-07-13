@@ -20,7 +20,6 @@ namespace Api.Users
 	/// </summary>
 	public class UserService : AutoService<User>, IUserService
     {
-        private IEmailService _email;
         private IContextService _contexts;
 		private readonly Query<User> selectByEmailOrUsernameQuery;
 		private readonly Query<User> selectByUsernameQuery;
@@ -32,9 +31,8 @@ namespace Api.Users
 		/// <summary>
 		/// Instanced automatically. Use injection to use this service, or Startup.Services.Get.
 		/// </summary>
-		public UserService(IEmailService email, IContextService context) : base(Events.User)
+		public UserService(IContextService context) : base(Events.User)
 		{
-			_email = email;
 			_contexts = context;
 			updateAvatarQuery = Query.Update<User>().RemoveAllBut("Id", "AvatarRef");
 			updateFeatureQuery = Query.Update<User>().RemoveAllBut("Id", "FeatureRef");

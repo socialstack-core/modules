@@ -54,6 +54,11 @@ namespace Api.Users
         /// The json that contains a user bio
         /// </summary>
         public string BioJson;
+
+		/// <summary>
+		/// The latest locale this user used. Primarily, this is used for emails being sent to them. If it's null or 0, the site default, 1, is assumed.
+		/// </summary>
+		public int? LocaleId;
     }
     
 }
