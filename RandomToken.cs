@@ -2,7 +2,7 @@
 using System.Text;
 
 
-namespace Api.PasswordReset
+namespace Api.PasswordResetRequests
 {
 	/// <summary>
 	/// Used for generating random strings.
