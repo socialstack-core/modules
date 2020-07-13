@@ -942,7 +942,7 @@ export default class CanvasEditor extends React.Component {
 		});
 	}
 	
-	renderNode(contentNode){
+	renderNode(contentNode, index){
 		if(!contentNode){
 			return null;
 		}
@@ -1015,10 +1015,24 @@ export default class CanvasEditor extends React.Component {
 			kidsSupported = Module.propTypes && Module.propTypes.children;
 			var customEdit = Module.propTypes && Module.propTypes.editButton;
 			var displayName = ' ' + this.displayModuleName(contentNode.moduleName);
+			
+			if(dataFields.className){
+				dataFields.className += " admin-module";
+			}else{
+				dataFields.className = "admin-module";
+			}
+			
 			result = (
 				<Module {...dataFields} editButton={customEdit && !this.props.minimal ? () => {
 					// Custom edit button
-					return <div className="btn btn-secondary edit-button" onClick={() => {
+					return <div className="btn btn-secondary edit-button" 
+						draggable={true}
+						onDragStart={e => {
+							var json = JSON.stringify(this.buildJsonNode(contentNode, index, false));
+							console.log(json);
+							e.dataTransfer.setData("application/json", json);
+						}}
+						onClick={() => {
 						this.setState({optionsVisibleFor: contentNode});
 						}}><i className="fa fa-cog"/>
 						{' ' + this.displayModuleName(contentNode.moduleName)}
@@ -1026,9 +1040,18 @@ export default class CanvasEditor extends React.Component {
 				} : undefined}>
 					{kidsSupported && !this.props.minimal && !customEdit && (
 						<div className="edit-button" style={{flex: '0 0 100%'}}>
-							<div className="btn btn-secondary" style={{marginBottom: '5px'}} onClick={() => {
-								this.setState({optionsVisibleFor: contentNode});
-							}}><i className="fa fa-cog"/>
+							<div className="btn btn-secondary"
+								style={{marginBottom: '5px'}}
+								draggable={true}
+								onDragStart={e => {
+									var json = JSON.stringify(this.buildJsonNode(contentNode, index, false));
+									console.log(json);
+									e.dataTransfer.setData("application/json", json);
+								}}
+								onClick={() => {
+									this.setState({optionsVisibleFor: contentNode});
+								}}
+							><i className="fa fa-cog"/>
 							{displayName}
 							</div>
 						</div>
@@ -1058,9 +1081,19 @@ export default class CanvasEditor extends React.Component {
 		
 		// Display the config button before the element:
 		return [
-			<div className="edit-button btn btn-secondary" style={{marginRight: '5px', marginBottom: '5px'}} onClick={() => {
-				this.setState({optionsVisibleFor: contentNode});
-			}}><i className="fa fa-cog"/>
+			<div
+				className="edit-button btn btn-secondary"
+				style={{marginRight: '5px', marginBottom: '5px'}}
+				draggable={true}
+				onDragStart={e => {
+					var json = JSON.stringify(this.buildJsonNode(contentNode, index, false));
+					console.log(json);
+					e.dataTransfer.setData("application/json", json);
+				}}
+				onClick={() => {
+					this.setState({optionsVisibleFor: contentNode});
+				}}
+			><i className="fa fa-cog"/>
 			{' ' + this.displayModuleName(contentNode.moduleName)}
 			</div>,
 			result
@@ -1081,7 +1114,30 @@ export default class CanvasEditor extends React.Component {
 	
 	render(){
 		return (
-			<div className="canvas-editor">
+			<div
+				className="canvas-editor"
+				onDrop={e => {
+					console.log("Drop");
+					e.preventDefault();
+					console.log(e.target);
+					/*
+					var data = e.dataTransfer.getData("text");
+					e.target.appendChild(document.getElementById(data));
+					*/
+				}}
+				onDragOver = {e => {
+					console.log("dragover");
+					
+					if(this.dragTarget){
+						this.dragTarget.style.backgroundColor='';
+					}
+					
+					this.dragTarget = e.target;
+					this.dragTarget.style.backgroundColor = 'lightyellow';
+					
+					e.preventDefault();
+				}} 
+			>
 				{this.props.onPageUrl && (
 					<div style={{marginBottom: '10px'}}>
 						<a href={this.props.onPageUrl + '#edit=' + this.props.contentType + '&id=' + this.props.contentId + '&field=' + this.props.name}>

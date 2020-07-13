@@ -1,6 +1,13 @@
 .canvas-editor{
 	text-align: left;
 	
+	.admin-module{
+		&:hover{
+			outline: 2px solid lightblue !important;
+			/* background: rgb(250, 252, 255) !important; */
+		}
+	}
+	
 	.canvas-editor-text{
 		display: inline-block;
 		min-width: 50px;
