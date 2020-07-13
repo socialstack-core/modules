@@ -4,6 +4,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using Api.Contexts;
 using Api.Permissions;
+using Api.Translate;
 using Microsoft.Extensions.Configuration;
 using MySql.Data.MySqlClient;
 
@@ -21,7 +22,11 @@ namespace Api.Database
 		/// </summary>
 		public string ConnectionString { get; set; }
 
-
+		/// <summary>
+		/// The supported locale set, indexed by locale ID-1. Can be null.
+		/// </summary>
+		public Locale[] Locales { get; set; }
+		
 		/// <summary>
 		/// Create a new database connector with the given connection string.
 		/// </summary>
@@ -48,7 +53,47 @@ namespace Api.Database
 		{
 			return MySql.Data.MySqlClient.MySqlHelper.EscapeString(text);
 		}
+		
+		/// <summary>
+		/// Gets the index information for the given type. Does not cache internally.
+		/// </summary>
+		public List<DatabaseIndexInfo> GetIndices(Type contentType){
 
+			var indexSet = new List<DatabaseIndexInfo>();
+
+			// For each public field, including inherited ones, look out for [DatabaseIndex]
+			// It can also be used on the type to declare multi-field indices.
+			var attributes = contentType.GetCustomAttributes(true);
+
+			// Get the field set:
+			var fields = contentType.GetFields();
+
+			foreach (var attrib in attributes)
+			{
+				if (attrib is DatabaseIndexAttribute)
+				{
+					indexSet.Add(new DatabaseIndexInfo((DatabaseIndexAttribute)attrib, contentType));
+				}
+			}
+
+			// For each field, get the db index attributes:
+			foreach (var field in fields)
+			{
+				var attribs = field.GetCustomAttributes(true);
+
+				foreach (var attrib in attribs)
+				{
+					if (attrib is DatabaseIndexAttribute)
+					{
+						indexSet.Add(new DatabaseIndexInfo((DatabaseIndexAttribute)attrib, field));
+					}
+				}
+
+			}
+
+			return indexSet;
+		}
+		
 		/// <summary>
 		/// A helper to generate a command object with the given arguments.
 		/// </summary>
@@ -628,7 +673,15 @@ namespace Api.Database
 			if (context != null && context.LocaleId > 1)
 			{
 				localeId = context.LocaleId;
-				localeCode = (await context.GetLocale()).Code;
+
+				if (Locales != null && localeId > 0 && localeId <= Locales.Length)
+				{
+					var locale = Locales[localeId - 1];
+					if (locale != null)
+					{
+						localeCode = locale.Code;
+					}
+				}
 			}
 
 			using (var connection = GetConnection())

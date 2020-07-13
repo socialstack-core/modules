@@ -15,6 +15,7 @@ namespace Api.Database
 		/// <summary>
 		/// The row ID.
 		/// </summary>
+		[DatabaseIndex]
 		[DatabaseField(AutoIncrement = true)]
 		[Module(Hide = true)]
 		public int Id;

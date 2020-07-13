@@ -1,6 +1,7 @@
 ﻿using Api.Contexts;
 using Api.Permissions;
 using Api.Startup;
+using Api.Translate;
 using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
@@ -27,6 +28,11 @@ namespace Api.Database
 		/// <param name="args"></param>
 		/// <returns></returns>
 		Task<bool> Run<T>(Context context, Query<T> q, T srcObject, params object[] args) where T : DatabaseRow;
+
+		/// <summary>
+		/// Gets the index information for the given type. Does not cache internally.
+		/// </summary>
+		List<DatabaseIndexInfo> GetIndices(Type contentType);
 
 		/// <summary>
 		/// Performs a bulk insert.
@@ -121,6 +127,10 @@ namespace Api.Database
 		/// <param name="value">The text to escape.</param>
 		/// <returns></returns>
 		string Escape(string value);
-		
-    }
+
+		/// <summary>
+		/// The supported locale set, indexed by locale ID-1. Can be null.
+		/// </summary>
+		Locale[] Locales { get; set; }
+	}
 }
