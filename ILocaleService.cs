@@ -48,15 +48,5 @@ namespace Api.Translate
 		/// <returns></returns>
 		Task<List<Locale>> List(Context context, Filter<Locale> filter);
 		
-		/// <summary>
-		/// Gets a locale from the cache.
-		/// </summary>
-		Task<Locale> GetCached(Context context, int id);
-
-		/// <summary>
-		/// Gets the locale cache.
-		/// </summary>
-		Task<Locale[]> GetAllCached(Context context);
-
 	}
 }

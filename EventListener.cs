@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Reflection;
 using System.Threading.Tasks;
 using Api.Contexts;
@@ -37,10 +38,42 @@ namespace Api.Translate
 				}
 				
 				// Does this field map have any [Localized] fields?
-				Locale[] locales = null;
+				List<Locale> locales = null;
+
+				var _database = Services.Get<IDatabaseService>();
+
+				try
+				{
+					locales = await _database.List(new Context(), Query.List<Locale>(), null);
+				}
+				catch
+				{
+					// The table doesn't exist. Locale set is just the default one:
+					locales = new List<Locale>() {
+								new Locale()
+								{
+									Code = "en",
+									Name = "English",
+									Id = 1
+								}
+							};
+				}
+
+				// Find the max ID:
+				var maxId = locales.Max(locale => locale.Id);
+
+				var localeLookup = new Locale[maxId];
+
+				foreach (var locale in locales)
+				{
+					localeLookup[locale.Id - 1] = locale;
+				}
+
+				// Set the available locales:
+				_database.Locales = localeLookup;
 
 				// Iterate backwards for simplicity because we add to fields and order doesn't matter:
-				for(var fm=fieldMap.Fields.Count-1; fm >= 0; fm--)
+				for (var fm=fieldMap.Fields.Count-1; fm >= 0; fm--)
 				{
 					var field = fieldMap.Fields[fm];
 
@@ -57,12 +90,7 @@ namespace Api.Translate
 					}
 
 					// Got localised fields. Add dupes for each locale now.
-					if (locales == null)
-					{
-						locales = await Services.Get<ILocaleService>().GetAllCached(new Context());
-					}
-
-					for (var i = 0; i < locales.Length; i++)
+					for (var i = 0; i < locales.Count; i++)
 					{
 						if (locales[i] == null || i == 0)
 						{
