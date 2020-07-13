@@ -70,12 +70,12 @@ namespace Api.Contexts
 			}
 
 			// Get the user now:
-			_locale = await _locales.GetCached(this, LocaleId <= 0 ? 1 : LocaleId);
+			_locale = await _locales.Get(this, LocaleId <= 0 ? 1 : LocaleId);
 
 			if (_locale == null)
 			{
 				// Dodgy locale in the cookie. Locale #1 always exists.
-				return await _locales.GetCached(this, 1);
+				return await _locales.Get(this, 1);
 			}
 
 			return _locale;
