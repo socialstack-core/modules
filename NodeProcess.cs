@@ -364,14 +364,17 @@ namespace Api.StackTools
 		/// <param name="onResponse">Called when the request returns.</param>
 		public void Request(Request request, OnStackToolsResponse onResponse)
 		{
-			// Pop an ID:
-			request._id = GetRequestId(onResponse);
+			lock (this)
+			{
+				// Pop an ID:
+				request._id = GetRequestId(onResponse);
 
-			// Serialise the request as JSON:
-			var jsonString = JsonConvert.SerializeObject(request, _serializerConfig);
+				// Serialise the request as JSON:
+				var jsonString = JsonConvert.SerializeObject(request, _serializerConfig);
 
-			// Write to stdin:
-			Process.StandardInput.Write(jsonString);
+				// Write to stdin:
+				Process.StandardInput.Write(jsonString);
+			}
 		}
 	}
 }
