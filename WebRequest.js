@@ -3,6 +3,7 @@ import mapUrl from 'UI/Functions/MapUrl';
 import store from 'UI/Functions/Store';
 import contentChange from 'UI/Functions/ContentChange';
 
+var fetch = global.fetch;
 var evtHandler = null;
 
 function receivedContent(content){
