@@ -1,5 +1,5 @@
 import Alert from 'UI/Alert';
-import AudioPolyfill from 'UI/AudioPolyfill';
+import AudioPolyfill from 'UI/Functions/AudioPolyfill';
 
 export default class AudioCapture extends React.Component {
     constructor(props) {
