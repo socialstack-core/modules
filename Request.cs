@@ -33,6 +33,9 @@ namespace Api.StackTools
 		/// </summary>
 		public bool compress { get; set; }
 
+		/// <summary>
+		/// Create a new watch request.
+		/// </summary>
 		public WatchRequest()
 		{
 			action = "watch";
