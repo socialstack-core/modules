@@ -112,7 +112,7 @@ namespace Api.DatabaseDiff
 
 				columns = await _database.List(null, listQuery, null);
 			}
-			catch(Exception e)
+			catch
 			{
 				System.Console.WriteLine("[WARNING] DatabaseDiff module disabled. Unsupported version: " + dbVersion.Version);
 				return;
