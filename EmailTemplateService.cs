@@ -291,6 +291,8 @@ namespace Api.Emails
 		/// <param name="toAddress">Target email address.</param>
 		/// <param name="subject">Email subject.</param>
 		/// <param name="body">Email body (HTML).</param>
+		/// <param name="messageId">Optional message ID.</param>
+		/// <param name="fromAccount">Optionally select a particular from account. The default (in your appsettings.json) is used otherwise.</param>
 		public async Task Send(string toAddress, string subject, string body, string messageId = null, EmailAccount fromAccount = null)
 		{
 			if (fromAccount == null)
