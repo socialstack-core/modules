@@ -56,7 +56,11 @@ namespace Api.Database
 
 
 		}
-		
+
+		/// <summary>
+		/// Creates a databaseindex for a particular field (a single field db index).
+		/// The index field name comes directly from the fieldInfo.
+		/// </summary>
 		public DatabaseIndexInfo(DatabaseIndexAttribute attr, FieldInfo field)
 		{
 			ColumnFields = new FieldInfo[]{field};
