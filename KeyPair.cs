@@ -246,9 +246,18 @@ namespace Api.Signatures
 
 	}
 
+	/// <summary>
+	/// A public/private ecdsa keypair from a JSON file.
+	/// </summary>
 	public class JsonKeyData
 	{
+		/// <summary>
+		/// The public key, base64.
+		/// </summary>
 		public string Public;
+		/// <summary>
+		/// The private key, base64.
+		/// </summary>
 		public string Private;
 	}
 }
