@@ -49,14 +49,17 @@ namespace Api.Translate
 				catch
 				{
 					// The table doesn't exist. Locale set is just the default one:
-					locales = new List<Locale>() {
-								new Locale()
-								{
-									Code = "en",
-									Name = "English",
-									Id = 1
-								}
-							};
+					locales = new List<Locale>();
+				}
+
+				if (locales.Count == 0)
+				{
+					locales.Add(new Locale()
+					{
+						Code = "en",
+						Name = "English",
+						Id = 1
+					});
 				}
 
 				// Find the max ID:

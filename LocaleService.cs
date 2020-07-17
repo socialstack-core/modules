@@ -23,7 +23,26 @@ namespace Api.Translate
 		{		
 			InstallAdminPages("Locales", "fa:fa-globe-europe", new string[] { "id", "name" });
 
-			Cache();
+			Cache(new CacheConfig<Locale>() {
+				OnCacheLoaded = async () => {
+
+					// Get the default cache:
+					var defaultCache = GetCacheForLocale(1);
+
+					// Does it have anything in it?
+					if (defaultCache.Count() == 0)
+					{
+						// Create the default locale now:
+						await Create(new Context(), new Locale()
+						{
+							Code = "en",
+							Name = "English",
+							Id = 1
+						});
+					}
+
+				}
+			});
 		}
 
 		/// <summary>
