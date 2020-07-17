@@ -17,7 +17,11 @@ using Api.Translate;
 /// </summary>
 /// <typeparam name="T"></typeparam>
 public partial class AutoService<T> : AutoService where T: DatabaseRow, new(){
-	
+
+	/// <summary>
+	/// The config for the cache.
+	/// </summary>
+	protected CacheConfig<T> _cacheConfig;
 	/// <summary>
 	/// The caches, if enabled. Call Cache() to set this service as one with caching active.
 	/// It's an array as there's one per locale.
@@ -50,6 +54,8 @@ public partial class AutoService<T> : AutoService where T: DatabaseRow, new(){
 			// Default config:
 			cfg = new CacheConfig<T>();
 		}
+
+		_cacheConfig = cfg;
 
 		var indices = _database.GetIndices(typeof(T));
 
@@ -143,5 +149,7 @@ public partial class AutoService<T> : AutoService where T: DatabaseRow, new(){
 				cache.Add(ctx, row);
 			}
 		}
+
+		_cacheConfig.OnCacheLoaded?.Invoke();
 	}
 }

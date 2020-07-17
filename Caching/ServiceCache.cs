@@ -139,6 +139,15 @@ namespace Api.Startup{
 		}
 
 		/// <summary>
+		/// The number of entries in the cache.
+		/// </summary>
+		/// <returns></returns>
+		public int Count()
+		{
+			return Primary.Count;
+		}
+
+		/// <summary>
 		/// Gets the ID of the index with the given name.
 		/// </summary>
 		/// <param name="name"></param>

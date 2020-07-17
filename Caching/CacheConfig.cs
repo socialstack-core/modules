@@ -29,6 +29,11 @@ namespace Api.Startup{
 		public Action<Context, T, T> OnChange;
 
 		/// <summary>
+		/// An action which is triggered when the cache is loaded, if Preload is true.
+		/// </summary>
+		public Action OnCacheLoaded;
+
+		/// <summary>
 		/// 
 		/// </summary>
 		public CacheConfig(){
