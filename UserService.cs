@@ -280,7 +280,7 @@ namespace Api.Users
 			
 			for(var i=0;i<list.Count;i++){
 				// (this doesn't hit the database):
-				profileList[i] = await GetProfile(context, list[i]);
+				profileList.Add(await GetProfile(context, list[i]));
 			}
 			
 			return profileList;
