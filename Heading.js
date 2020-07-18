@@ -1,3 +1,4 @@
+import omit from 'UI/Functions/Omit';
 
 /**
  * For h1/h2/h3 etc.
@@ -6,7 +7,10 @@ export default class Heading extends React.Component {
 	
 	render() {
 		var Mod = 'h' + (this.props.size || '1');
-		return <Mod {...this.props}>{this.props.children}</Mod>;
+		
+		var className='heading ' + (this.props.className || '');
+		
+		return <Mod {...omit(this.props, ['children', 'className'])}>{this.props.children}</Mod>;
 	}
 	
 }
