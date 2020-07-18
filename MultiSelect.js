@@ -34,6 +34,7 @@ export default class MultiSelect extends React.Component {
 	
 	render() {
 		var fieldName = this.props.field || 'name';
+		var displayFieldName = this.props.displayField || fieldName;
 		return (
 			<div className="form-group">
 				{this.props.label && (
@@ -42,7 +43,7 @@ export default class MultiSelect extends React.Component {
 				<div className="multiselect">
 					{this.state.value.map((entry, i) => (
 						<div key={entry.id} className="entry" onClick={() => this.remove(entry)}>
-							{entry[fieldName]} <i className="remove-icon fa fa-times-circle" />
+							{entry[displayFieldName]} <i className="remove-icon fa fa-times-circle" />
 						</div>
 					))}
 					<div>
