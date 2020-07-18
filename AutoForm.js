@@ -273,6 +273,7 @@ export default class AutoForm extends React.Component {
 								}
 							}
 						}else{
+							this.setState({submitting: false});
 							if(state && state.page && state.page.url){
 								var parts = state.page.url.split('/');
 								parts.pop();
