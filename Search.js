@@ -14,6 +14,7 @@ export default class Search extends React.Component {
 		this.state = {
 			loading: false,
 			results: null,
+			hidden: this.props.startHidden,
 			debounce: new Debounce(this.search)
 		};
 	}
@@ -98,6 +99,17 @@ export default class Search extends React.Component {
 	}
 	
 	render(){
+		
+		if(this.state.hidden){
+			return <div className="search" onClick={() => {
+				this.setState({hidden: false});
+			}}>
+				{
+					this.props.onHidden ? this.props.onHidden() : <i className="fa fa-search" />
+				}
+			</div>;
+		}
+		
 		return <div className="search">
 			<input ref={
 				ele =>{
