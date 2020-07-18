@@ -88,7 +88,12 @@ namespace Api.Users
 		/// <returns></returns>
 		Task<List<User>> List(Context context, Filter<User> filter);
 
-
+		/// <summary>
+		/// List a filtered set of users, mapped to their public profile.
+		/// </summary>
+		/// <returns></returns>
+		Task<List<UserProfile>> ListProfiles(Context context, Filter<User> filter);
+		
 		/// <summary>
 		/// Attempt to auth a user now. If successful, returns an auth token to use.
 		/// </summary>

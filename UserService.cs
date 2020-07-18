@@ -267,6 +267,26 @@ namespace Api.Users
 		}
 
 		/// <summary>
+		/// List a filtered set of users, mapped to their public profile.
+		/// </summary>
+		/// <returns></returns>
+		public async Task<List<UserProfile>> ListProfiles(Context context, Filter<User> filter)
+		{
+			// Get the user list:
+			var list = await List(context, filter);
+			
+			// Map through:
+			var profileList = new List<UserProfile>(list.Count);
+			
+			for(var i=0;i<list.Count;i++){
+				// (this doesn't hit the database):
+				profileList[i] = await GetProfile(context, list[i]);
+			}
+			
+			return profileList;
+		}
+		
+		/// <summary>
 		/// Gets a public facing user profile.
 		/// </summary>
 		/// <param name="context"></param>
