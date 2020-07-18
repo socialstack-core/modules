@@ -164,13 +164,7 @@ namespace Api.Tags
 									ids.Add(id.Value);
 								}
 							}
-
-							if (ids.Count == 0)
-							{
-								// Do nothing
-								return null;
-							}
-
+							
 							int revisionId = 0;
 
 							if (targetObject is RevisionRow)
@@ -230,7 +224,13 @@ namespace Api.Tags
 									await _tagContents.Delete(ctx, existingEntry.Id);
 								}
 							}
-
+							
+							if (ids.Count == 0)
+							{
+								// Empty set to return.
+								return null;
+							}
+							
 							// Get the tags:
 							return await List(ctx, new Filter<Tag>().EqualsSet("Id", ids));
 						});
