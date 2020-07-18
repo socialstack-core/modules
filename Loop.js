@@ -604,6 +604,10 @@ export default class Loop extends React.Component {
 				);
 				break;
 			case "raw":
+				loopContent = results.map((item, i) => {
+					return renderFunc(item, i, results.length);
+				});
+				break;
 			case "unformatted":
 				loopContent = (<span className={className}>
 					{results.map((item, i) => {
