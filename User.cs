@@ -51,12 +51,6 @@ namespace Api.Users
         public string Username;
 		
 		/// <summary>
-		/// A user's bio.
-		/// </summary>
-		[DatabaseField(Length = 1000)]
-		public string Bio;
-		
-		/// <summary>
 		/// The latest locale this user used. Primarily, this is used for emails being sent to them. If it's null or 0, the site default, 1, is assumed.
 		/// </summary>
 		public int? LocaleId;
