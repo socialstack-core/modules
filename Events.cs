@@ -30,9 +30,14 @@ namespace Api.Eventing
 		public static EventHandler<LoginResult> UserOnLogin;
 
 		/// <summary>
-		/// Just after updating an user.
+		/// Just after a user has authenticated.
 		/// </summary>
 		public static EventHandler<User> UserAfterAuthenticate;
+		
+		/// <summary>
+		/// Just after a profile has loaded.
+		/// </summary>
+		public static EventHandler<UserProfile> UserProfileAfterLoad;
 		
 		/// <summary>
 		/// Set of events for a User.
@@ -42,7 +47,22 @@ namespace Api.Eventing
 		#endregion
 
 		#region Controller events
-
+		
+		/// <summary>
+		/// A user profile was loaded.
+		/// </summary>
+		public static EndpointEventHandler<UserProfile> UserProfileLoad;
+		
+		/// <summary>
+		/// User profiles are being listed.
+		/// </summary>
+		public static EndpointEventHandler<Filter<User>> UserProfileList;
+		
+		/// <summary>
+		/// User profiles are being listed.
+		/// </summary>
+		public static EndpointEventHandler<List<UserProfile>> UserProfileListed;
+		
 		/// <summary>
 		/// Create a new user.
 		/// </summary>
@@ -63,10 +83,6 @@ namespace Api.Eventing
 		/// Uploading files.
 		/// </summary>
 		public static EndpointEventHandler<UserImageUpload> UserOnUpload;
-		/// <summary>
-		/// Load user profile (generally public) metadata.
-		/// </summary>
-		public static EventHandler<UserProfile> UserProfileLoad;
 		/// <summary>
 		/// List users.
 		/// </summary>

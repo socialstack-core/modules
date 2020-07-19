@@ -51,26 +51,6 @@ namespace Api.Users
 		}
 		
 		/// <summary>
-		/// GET /v1/user/2/profile
-		/// Returns the profile user data for a single user.
-		/// </summary>
-		[HttpGet("{id}/profile")]
-		public async Task<UserProfile> LoadProfile([FromRoute] int id)
-		{
-			var context = Request.GetContext();
-
-			var result = await (_service as IUserService).GetProfile(context, id);
-
-			if (result == null)
-			{
-				Response.StatusCode = 404;
-				return null;
-			}
-			
-			return result;
-		}
-
-		/// <summary>
 		/// Logs out this user account.
 		/// </summary>
 		/// <returns></returns>

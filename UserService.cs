@@ -285,6 +285,30 @@ namespace Api.Users
 			
 			return profileList;
 		}
+
+		/// <summary>
+		/// List a filtered set of users, mapped to their public profile, with the total result count (i.e. for paginated results).
+		/// </summary>
+		/// <returns></returns>
+		public async Task<ListWithTotal<UserProfile>> ListProfilesWithTotal(Context context, Filter<User> filter)
+		{
+			// Get the user list:
+			var listAndTotal = await ListWithTotal(context, filter);
+			var list = listAndTotal.Results;
+
+			// Map through:
+			var profileList = new List<UserProfile>(list.Count);
+			
+			for(var i=0;i<list.Count;i++){
+				// (this doesn't hit the database):
+				profileList.Add(await GetProfile(context, list[i]));
+			}
+			
+			return new ListWithTotal<UserProfile>() {
+				Results = profileList,
+				Total = listAndTotal.Total
+			};
+		}
 		
 		/// <summary>
 		/// Gets a public facing user profile.
@@ -331,7 +355,7 @@ namespace Api.Users
 			}
 
 			// Run the load event:
-			profile = await Events.UserProfileLoad.Dispatch(context, profile);
+			profile = await Events.UserProfileAfterLoad.Dispatch(context, profile);
 
 			return profile;
 		}

@@ -1,4 +1,5 @@
 ﻿using Api.Contexts;
+using Api.Database;
 using Api.Permissions;
 using Microsoft.AspNetCore.Http;
 using System.Collections.Generic;
@@ -88,6 +89,12 @@ namespace Api.Users
 		/// <returns></returns>
 		Task<List<User>> List(Context context, Filter<User> filter);
 
+		/// <summary>
+		/// List a filtered set of users, mapped to their public profile, with the total result count (i.e. for paginated results).
+		/// </summary>
+		/// <returns></returns>
+		Task<ListWithTotal<UserProfile>> ListProfilesWithTotal(Context context, Filter<User> filter);
+		
 		/// <summary>
 		/// List a filtered set of users, mapped to their public profile.
 		/// </summary>
