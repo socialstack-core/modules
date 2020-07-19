@@ -1,0 +1,17 @@
+/*
+	Optional stylesheet
+*/
+
+.collapsible{
+	h2{
+		background: rgb(240,240,240);
+		padding: 20px;
+		margin: 0;
+	}
+	
+	.collapsible-body{
+		border: 1px solid rgb(240,240,240);
+		margin-bottom: 10px;
+		padding: 20px;
+	}
+}
