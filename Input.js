@@ -1,6 +1,7 @@
 var id = 1;
 
 import getModule from 'UI/Functions/GetModule';
+import Loop from 'UI/Loop';
 import omit from 'UI/Functions/Omit';
 
 var eventTarget = global.events.get('UI/Input');
@@ -198,7 +199,17 @@ export default class Input extends React.Component {
                     {...omit(this.props, ['id', 'className', 'onChange', 'onBlur', 'type', 'children', 'defaultValue', 'value', 'inline'])}
                     data-validation={this.state.validationFailure ? true : undefined}
                 >
-                    {this.props.children}
+                    {this.props.contentType ? (
+						<Loop over={this.props.contentType + '/list'} raw>
+							{
+								entry => <option value={entry.id}>
+									{
+										entry[this.props.displayField || 'name']
+									}
+								</option>
+							}
+						</Loop>
+					) : this.props.children}
                 </select>
             );
 
