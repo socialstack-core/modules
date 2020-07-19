@@ -4,7 +4,7 @@ using System.Collections.Generic;
 using System.Threading.Tasks;
 
 
-namespace Api.PrivateChatMessages
+namespace Api.PrivateChats
 {
 	/// <summary>
 	/// Handles privateChatMessages.

@@ -4,7 +4,7 @@ using Api.Translate;
 using Api.Users;
 
 
-namespace Api.PrivateChatMessages
+namespace Api.PrivateChats
 {
 	
 	/// <summary>
@@ -12,33 +12,21 @@ namespace Api.PrivateChatMessages
 	/// </summary>
 	public partial class PrivateChatMessage : RevisionRow
 	{
-		// Example fields. None are required:
-		/*
-        /// <summary>
-        /// The name of the privateChatMessage
-        /// </summary>
-        [DatabaseField(Length = 200)]
-		[Localized]
-		public string Name;
-
 		/// <summary>
-		/// A page this privateChatMessage appears on.
+		/// The private chat this message is in.
 		/// </summary>
-		public int PageId;
+		public int PrivateChatId;
 		
 		/// <summary>
-		/// The content of this privateChatMessage.
+		/// A quick reference to the ID of the other user in the chat.
 		/// </summary>
-		[Localized]
-		public string BodyJson;
-
-		/// <summary>
-		/// The feature image ref
-		/// </summary>
-		[DatabaseField(Length = 80)]
-		public string FeatureRef;
-		*/
+		public int WithUserId;
 		
+		/// <summary>
+		/// The message text.
+		/// </summary>
+		[DatabaseField(Length=1000)]
+		public string Message;
 	}
 
 }

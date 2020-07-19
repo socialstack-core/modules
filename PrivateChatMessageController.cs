@@ -1,6 +1,6 @@
 using Microsoft.AspNetCore.Mvc;
 
-namespace Api.PrivateChatMessages
+namespace Api.PrivateChats
 {
     /// <summary>Handles privateChatMessage endpoints.</summary>
     [Route("v1/privateChatMessage")]
