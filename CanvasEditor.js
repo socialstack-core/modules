@@ -204,6 +204,14 @@ export default class CanvasEditor extends React.Component {
 			});
 			
 			all.push({
+				icon: 'paper-plane',
+				type: 'contextToken',
+				propTypes: {
+					name: 'string'
+				}
+			});
+			
+			all.push({
 				icon: 'server',
 				type: 'endpoint',
 				propTypes: {
