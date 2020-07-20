@@ -8,7 +8,6 @@ function loadMaps(key){
 	if(loaded){
 		return loaded;
 	}
-	console.log(key);
 	return loaded = new Promise((s, r) => {
 		var script = global.document.createElement('script');
 		script.src = 'https://maps.googleapis.com/maps/api/js?key=' + key + '&callback=stackInitGMap';
@@ -40,15 +39,38 @@ export default class GoogleMap extends React.Component {
 	
 	componentDidMount(){
 		loadMaps(this.props.apiKey).then(() => {
+			var c = this.props.center;
+			var center = {
+				lat: c ? parseFloat(c.lat) : 51.511536,
+				lng: c ? parseFloat(c.lng) : -0.122147
+			};
 			var map = new google.maps.Map(this.mapEle, {
-				center: this.props.center || {
-					lat: 51.511536,
-					lng: -0.122147
-				},
+				center,
 				zoom: this.props.zoom || 8
 			});
 			
-			console.log(map);
+			var markerSet = this.props.markers;
+			
+			if(markerSet){
+				for(var i=0;i<markerSet.length;i++){
+					((info) => {
+						var marker = new google.maps.Marker({
+							position: {
+								lat: parseFloat(info.lat),
+								lng: parseFloat(info.lng)
+							},
+							map: map,
+							title: info.title || ''
+						});
+						
+						if(!this.props.notClickable){
+							marker.addListener('click', () => {
+								this.props.onMarkerClick && this.props.onMarkerClick(info);
+							});
+						}
+					})(markerSet[i]);
+				}
+			}
 			
 			this.setState({
 				map
