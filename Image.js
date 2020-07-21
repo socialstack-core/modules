@@ -15,14 +15,12 @@ export default class Image extends React.Component {
 		attribs.alt = attribs.alt || attribs.title;
 		var img = <div className={fullWidth ? "image image-wide" : "image"} onClick={this.props.onClick}>
 			{getRef(this.props.fileRef, {attribs, size})}
-			{this.props.editButton && this.props.editButton()}
 		</div>;
 		return linkUrl ? <a alt={attribs.alt} title={attribs.title} href={linkUrl}>{img}</a> : img;
 	}
 }
 
 Image.propTypes = {
-	editButton: true, // Custom edit button placement
 	fileRef: {type: 'string', default: 'url:' + logo},
 	linkUrl: 'string',
 	title: 'string',
