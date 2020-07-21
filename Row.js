@@ -20,7 +20,7 @@ export default class Row extends React.Component {
 
 Row.propTypes={
 	noGutters: 'boolean',
-	children: true
+	children: {default: [{module: "UI/Column", content: "Column 1"}, {module: "UI/Column", content: "Column 2"}]}
 };
 
 Row.icon = 'columns';
