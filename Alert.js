@@ -49,7 +49,7 @@ export default class Alert extends React.Component {
 }
 
 Alert.propTypes = {
-    children: true,
+    children: {default: 'My New Alert'},
 	type: ['error', 'warning', 'success', 'info']
 };
 
