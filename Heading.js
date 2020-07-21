@@ -17,7 +17,7 @@ export default class Heading extends React.Component {
 
 Heading.propTypes={
 	size: ['1','2','3','4','5','6'],
-	children: true
+	children: {default: 'My New Heading'}
 }
 
 Heading.icon='heading';
