@@ -1,5 +1,6 @@
 import getRef from 'UI/Functions/GetRef';
 import omit from 'UI/Functions/Omit';
+import logo from './logo.png';
 
 /*
 Used to display an image from a fileRef.
@@ -22,7 +23,7 @@ export default class Image extends React.Component {
 
 Image.propTypes = {
 	editButton: true, // Custom edit button placement
-	fileRef: 'string',
+	fileRef: {type: 'string', default: 'url:' + logo},
 	linkUrl: 'string',
 	title: 'string',
 	fullWidth: 'bool',
