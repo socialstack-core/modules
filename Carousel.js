@@ -6,7 +6,7 @@ export default class Carousel extends React.Component {
         super(props);
 		
 		this.state = {
-			currentIndex: 0
+			currentIndex: props.defaultSlide || 0
 		};
     }
 	
@@ -33,7 +33,7 @@ export default class Carousel extends React.Component {
 	}
 	
 	componentDidMount(){
-		if(this.interval){
+		if(this.interval || this.props.static){
 			return;
 		}
 		
@@ -99,10 +99,12 @@ export default class Carousel extends React.Component {
 					<div className="slider">
 						<ul className="content-list content" style={{marginLeft: (-itemSize * this.state.currentIndex) + '%'}}>
 							{
-								items.map(item => {
+								items.map((item,i) => {
 									var content = React.isValidElement(item) ? item : null;
 									
-									if(!content && Module){
+									if(this.props.children){
+										content = this.props.children(item, i, this);
+									}else if(!content && Module){
 										content = <Module item={item} container={this.props}/>;
 									}
 									
