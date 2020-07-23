@@ -188,12 +188,14 @@ export default class Input extends React.Component {
 
         if (type === "select") {
 
+			var defaultValue=typeof this.state.selectValue === 'undefined' ? this.props.defaultValue : this.state.selectValue;
+
             return (
                 <select
 					ref={this.setRef}
                     onChange={this.onSelectChange}
                     onBlur={this.onBlur}
-                    value={typeof this.state.selectValue === 'undefined' ? this.props.defaultValue : this.state.selectValue}
+                    value={defaultValue}
                     id={this.props.id || this.fieldId}
                     className={this.props.className || "form-control"}
                     {...omit(this.props, ['id', 'className', 'onChange', 'onBlur', 'type', 'children', 'defaultValue', 'value', 'inline'])}
@@ -202,7 +204,7 @@ export default class Input extends React.Component {
                     {this.props.contentType ? (
 						<Loop over={this.props.contentType + '/list'} raw>
 							{
-								entry => <option value={entry.id}>
+								entry => <option value={entry.id} selected={entry.id == defaultValue ? true : undefined}>
 									{
 										entry[this.props.displayField || 'name']
 									}
