@@ -30,7 +30,16 @@ namespace Api.Signatures
 				_keyPair = KeyPair.Generate();
 				System.IO.File.WriteAllText(filePath, _keyPair.Serialize());
 			}
-			
+
+			// Test the integrity of the key:
+			var roundTrip = "signatureServiceTest";
+			var sig = Sign(roundTrip);
+			var result = ValidateSignature(roundTrip, sig);
+
+			if (!result)
+			{
+				throw new Exception("You have a broken signatureService.key - delete it, and restart the API to generate a new one.");
+			}
 		}
 		
 		/// <summary>

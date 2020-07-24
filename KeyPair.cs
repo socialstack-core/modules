@@ -8,6 +8,7 @@ using Org.BouncyCastle.Asn1.X9;
 using Org.BouncyCastle.Crypto.Generators;
 using Org.BouncyCastle.Security;
 using Newtonsoft.Json;
+using Microsoft.AspNetCore.DataProtection.XmlEncryption;
 
 namespace Api.Signatures
 {
@@ -45,7 +46,6 @@ namespace Api.Signatures
 			return new KeyPair()
 			{
 				PrivateKeyBytes = privateKey.D.ToByteArrayUnsigned(),
-				PublicKeyBytes = publicKey.Q.GetEncoded(true),
 				PublicKey = publicKey,
 				PrivateKey = privateKey
 			};
@@ -67,8 +67,7 @@ namespace Api.Signatures
 				// JSON format
 				result = new KeyPair()
 				{
-					PrivateKeyBytes = Convert.FromBase64String(jsonInfo.Private),
-					PublicKeyBytes = Convert.FromBase64String(jsonInfo.Public)
+					PrivateKeyBytes = Convert.FromBase64String(jsonInfo.Private)
 				};
 			}
 			else
@@ -82,24 +81,13 @@ namespace Api.Signatures
 
 			// Create the D value:
 			var privD = new BigInteger(result.PrivateKeyBytes);
-
-			if (result.PublicKeyBytes == null)
-			{
-				result.PublicKeyBytes = Curve.G.Multiply(privD).GetEncoded(true);
-			}
-
-			// Setup params:
 			result.PrivateKey = new ECPrivateKeyParameters(privD, DomainParams);
-			result.PublicKey = new ECPublicKeyParameters(Curve.Curve.DecodePoint(result.PublicKeyBytes), DomainParams);
+			var q = result.PrivateKey.Parameters.G.Multiply(privD).Normalize();
+			result.PublicKey = new ECPublicKeyParameters(result.PrivateKey.AlgorithmName, q, DomainParams);
 
 			return result;
 		}
 		
-		/// <summary>
-		/// The bytes of the public key.
-		/// </summary>
-		public byte[] PublicKeyBytes;
-
 		/// <summary>
 		/// The bytes of the private key.
 		/// </summary>
@@ -111,7 +99,7 @@ namespace Api.Signatures
 		/// <returns></returns>
 		public string Serialize()
 		{
-			return "{\"private\":\"" + Convert.ToBase64String(PrivateKeyBytes) + "\", \"public\": \"" + Convert.ToBase64String(PublicKeyBytes) + "\"}";
+			return "{\"private\":\"" + Convert.ToBase64String(PrivateKeyBytes) + "\", \"public\": \"\"}";
 		}
 
 		/// <summary>
