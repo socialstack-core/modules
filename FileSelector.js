@@ -76,15 +76,24 @@ export default class FileSelector extends React.Component {
 				onClose={this.closeModal}
 				visible={this.state.modalOpen}
 			>
-				<Loop over="uploader/list" inline>
+				<Loop over="uploader/list" asTable>
 				{
-					entry => {
-						return <Image fileRef={entry.ref} size={64} alt={entry.name} onClick={() => {
-							
-							this.updateValue(entry);
-							
-						}}/>;
-					}
+					[
+						() => <tr>
+							<th>Name</th>
+							<th></th>
+						</tr>,
+						entry => <tr onClick={() => this.updateValue(entry)}>
+							<td width='85%'>
+								{entry.originalName}
+							</td>
+							<td width='15%' align='right'>
+								{entry.isImage && (
+									<Image fileRef={entry.ref} size={64} alt={entry.originalName}/>
+								)}
+							</td>
+						</tr>
+					]
 				}
 				</Loop>
 			</Modal>,
