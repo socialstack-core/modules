@@ -6,7 +6,7 @@ using System;
 using Microsoft.AspNetCore.Server.Kestrel.Core;
 using Microsoft.Extensions.Logging;
 using System.Threading.Tasks;
-
+using System.Runtime.InteropServices;
 
 namespace Api.Startup
 {
@@ -74,9 +74,17 @@ namespace Api.Startup
 					var portNumber = AppSettings.GetInt32("Port", 5000);
 					
 					// If running inside a container, we'll need to listen to the 0.0.0.0 (any) interface:
-					options.Listen(AppSettings.GetInt32("Container", 0) == 1 ? IPAddress.Any : IPAddress.Loopback, portNumber);
-					
-                    options.Limits.MaxRequestBodySize = AppSettings.GetInt64("MaxBodySize", 512000000); // 512MB by default
+					options.Listen(AppSettings.GetInt32("Container", 0) == 1 ? IPAddress.Any : IPAddress.Loopback, portNumber, listenOpts => {
+						listenOpts.Protocols = HttpProtocols.Http1AndHttp2;
+					});
+
+					if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux))
+					{
+						// Listen on a Unix socket too:
+						options.ListenUnixSocket("api.sock");
+					}
+
+					options.Limits.MaxRequestBodySize = AppSettings.GetInt64("MaxBodySize", 512000000); // 512MB by default
 
 					// Fire event so modules can also configure Kestrel:
 					OnConfigureKestrel?.Invoke(options);
