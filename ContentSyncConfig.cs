@@ -1,0 +1,26 @@
+using System;
+using System.Collections;
+using System.Collections.Generic;
+using System.Linq;
+using System.Threading.Tasks;
+
+
+namespace Api.ContentSync
+{
+	/// <summary>
+	/// The appsettings.json config block for push notification config.
+	/// </summary>
+    public class ContentSyncConfig
+    {
+		/// <summary>
+		/// Minimum ID. Assigned IDs must never be any less than this.
+		/// </summary>
+		public int Offset { get; set; }
+		
+		/// <summary>
+		/// The username to stripe range config.
+		/// </summary>
+		public Dictionary<string, List<StripeRange>> Users { get; set; }
+	}
+	
+}
