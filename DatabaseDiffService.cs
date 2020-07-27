@@ -181,7 +181,10 @@ namespace Api.DatabaseDiff
 				}
 
 			}
-
+			
+			// Set schema to DB service so it can be easily checked:
+			_database.Schema = newSchema;
+			
 			// Ignore table removes - database will often contain other tables that we don't need to care about.
 
 			// Run now:

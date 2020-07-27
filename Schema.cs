@@ -11,7 +11,7 @@ namespace Api.DatabaseDiff
 		/// <summary>
 		/// The tables in this schema.
 		/// </summary>
-		private Dictionary<string, DatabaseTableDefinition> Tables = new Dictionary<string, DatabaseTableDefinition>();
+		public Dictionary<string, DatabaseTableDefinition> Tables = new Dictionary<string, DatabaseTableDefinition>();
 
 		/// <summary>
 		/// Gets a table by its case insensitive name. Creates it if it doesn't exist.
