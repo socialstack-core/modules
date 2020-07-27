@@ -21,7 +21,7 @@ namespace Api.ContentSync
 	/// Instanced automatically. Use injection to use this service, or Startup.Services.Get.
 	/// </summary>
 	public partial class ContentSyncService : IContentSyncService
-    {
+	{
 		static readonly char[] InvalidFileNameChars = Path.GetInvalidFileNameChars();
 		private ContentSyncConfig _configuration;
 		private IDatabaseService _database;
@@ -40,11 +40,13 @@ namespace Api.ContentSync
 			else
 			{
 				// Must happen after services start otherwise the page service isn't necessarily available yet.
-				Events.ServicesAfterStart.AddEventListener((Context ctx, object src) =>
+				// Notably this happens immediately after services start in the first group
+				// (that's before any e.g. system pages are created).
+				Events.ServicesAfterStart.AddEventListener(async (Context ctx, object src) =>
 				{
-					Start();
-					return Task.FromResult(src);
-				});
+					await Start();
+					return src;
+				}, 1);
 			}
 		}
 
@@ -52,70 +54,84 @@ namespace Api.ContentSync
 		/// Starts the content sync service.
 		/// Must run after all other services have loaded.
 		/// </summary>
-		public void Start()
+		public Task<bool> Start()
 		{
 			// The content sync service is used to keep content created by multiple instances in sync.
 			// (which can be a cluster of servers, or a group of developers)
 			// It does this by setting up 'stripes' of IDs which are assigned to particular users.
 			// A user is identified by "socialstack sync whoami" or if not set, the computer hostname is used instead.
-			
+
 			var section = AppSettings.GetSection("ContentSync");
-			
-			if(section == null){
-				return;
+
+			if (section == null)
+			{
+				return Task.FromResult(false);
 			}
-			
+
 			_configuration = section.Get<ContentSyncConfig>();
-			
+
 			if (_configuration == null || _configuration.Users == null || _configuration.Users.Count == 0)
 			{
 				Console.WriteLine("[WARN] Content sync is installed but not configured.");
-				return;
+				return Task.FromResult(false);
 			}
-			
-			// Get the user:
-			var stackTools = new NodeProcess("socialstack sync whoami", true);
-			var errored = false;
-			string name = null;
-			
-			stackTools.Process.OutputDataReceived += new DataReceivedEventHandler((sender, e) =>
-			{
-				if (string.IsNullOrEmpty(e.Data))
+
+			var taskCompletionSource = new TaskCompletionSource<bool>();
+			try {
+				// Get the user:
+				var stackTools = new NodeProcess("socialstack sync whoami", true);
+				var errored = false;
+				string name = null;
+
+				stackTools.Process.OutputDataReceived += new DataReceivedEventHandler((sender, e) =>
 				{
-					return;
-				}
-
-				name = e.Data.Trim();
-			});
-			
-			stackTools.Process.ErrorDataReceived += new DataReceivedEventHandler((sender, e) =>
-			{
-				if (string.IsNullOrEmpty(e.Data))
-				{
-					return;
-				}
-
-				errored = true;
-			});
-
-			stackTools.OnStateChange += (NodeProcessState state) => {
-
-				if (state == NodeProcessState.EXITING)
-				{
-					if(errored || name == null){
-						name = System.Environment.MachineName.ToString();
-					}
-					Console.WriteLine("Content sync starting with config for '" + name + "'");
-					Task.Run(async () =>
+					if (string.IsNullOrEmpty(e.Data))
 					{
-						await StartFor(name);
-					});
-					
-				}
+						return;
+					}
 
-			};
+					name = e.Data.Trim();
+				});
 
-			stackTools.Start();
+				stackTools.Process.ErrorDataReceived += new DataReceivedEventHandler((sender, e) =>
+				{
+					if (string.IsNullOrEmpty(e.Data))
+					{
+						return;
+					}
+
+					errored = true;
+				});
+
+				stackTools.OnStateChange += (NodeProcessState state) =>
+				{
+
+					if (state == NodeProcessState.EXITING)
+					{
+						if (errored || name == null)
+						{
+							name = System.Environment.MachineName.ToString();
+						}
+						Console.WriteLine("Content sync starting with config for '" + name + "'");
+
+						Task.Run(async () =>
+						{
+							await StartFor(name);
+							taskCompletionSource.SetResult(true);
+						});
+
+					}
+
+				};
+
+				stackTools.Start();
+			}
+			catch(Exception e)
+			{
+				taskCompletionSource.SetException(e);
+			}
+
+			return taskCompletionSource.Task;
 		}
 
 		private string FileSafeName(string name)
@@ -179,38 +195,45 @@ namespace Api.ContentSync
 			var dirName = FileSafeName(name);
 			Directory.CreateDirectory("Database/" + dirName);
 
-			// Load them:
-			Dictionary<string, SyncTableFileSet> loadedSyncSets = new Dictionary<string, SyncTableFileSet>();
-
-			foreach (var kvp in _configuration.Users)
+			try
 			{
-				if (kvp.Value == null || kvp.Value.Count == 0)
+				// Load them:
+				Dictionary<string, SyncTableFileSet> loadedSyncSets = new Dictionary<string, SyncTableFileSet>();
+
+				foreach (var kvp in _configuration.Users)
 				{
-					continue;
+					if (kvp.Value == null || kvp.Value.Count == 0)
+					{
+						continue;
+					}
+
+					// Create the table set:
+					var syncSet = new SyncTableFileSet("Database/" + FileSafeName(kvp.Key));
+
+					// Set it up:
+					// (for "my" files, I'm going to instance them all - regardless of if the actual file exists or not).
+					var mine = kvp.Key == name;
+
+					if (mine)
+					{
+						LocalTableSet = syncSet;
+					}
+
+					syncSet.Setup(!mine);
+					loadedSyncSets[kvp.Key] = syncSet;
+
+					if (!mine)
+					{
+						// Apply the sync set:
+						await syncSet.Sync(_database);
+					}
 				}
 
-				// Create the table set:
-				var syncSet = new SyncTableFileSet("Database/" + FileSafeName(kvp.Key));
-
-				// Set it up:
-				// (for "my" files, I'm going to instance them all - regardless of if the actual file exists or not).
-				var mine = kvp.Key == name;
-
-				if (mine)
-				{
-					LocalTableSet = syncSet;
-				}
-
-				syncSet.Setup(!mine);
-				loadedSyncSets[kvp.Key] = syncSet;
-
-				if (!mine)
-				{
-					// Apply the sync set:
-					await syncSet.Sync(_database);
-				}
 			}
-
+			catch (Exception e)
+			{
+				Console.WriteLine("ContentSync failed to handle other user's updates with error: " + e.ToString());
+			}
 #endif
 
 			// Next, add Create handlers to all types.

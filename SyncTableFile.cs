@@ -313,7 +313,19 @@ namespace Api.ContentSync
 					case 'C':
 						// Create the entry:
 						ctx.LocaleId = localeIdOrDeletedId;
-						await Service.Create(ctx, row);
+
+						// Already exists?
+						var existing = await Service.Get(ctx, row.Id);
+
+						if (existing != null)
+						{
+							// Update instead:
+							await Service.Update(ctx, row);
+						}
+						else
+						{
+							await Service.Create(ctx, row);
+						}
 					break;
 					case 'D':
 						// Delete the entry:
