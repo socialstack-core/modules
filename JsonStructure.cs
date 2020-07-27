@@ -329,20 +329,14 @@ namespace Api.Startup
 				}
 			}
 			*/
-			else if (fieldType == typeof(int) && labelName.EndsWith("PageId"))
+			
+			else if ((fieldType == typeof(int) || fieldType == typeof(int?)) && labelName != "Id" && labelName.EndsWith("Id") && Api.Database.ContentTypes.GetType(labelName.Substring(0, labelName.Length - 2).ToLower()) != null)
 			{
-				Module = "Admin/Page/Select";
-
 				// Remove "Id" from the end of the label:
 				labelName = labelName.Substring(0, labelName.Length - 2);
-			}
-			else if (fieldType == typeof(int) && labelName.EndsWith("UserId"))
-			{
-				// User selection:
-				Module = "Admin/User/Select";
-
-				// Remove "Id" from the end of the label:
-				labelName = labelName.Substring(0, labelName.Length - 2);
+				
+				Data["contentType"] = labelName;
+				Module = "Admin/ContentSelect";
 			}
 			else if (fieldType == typeof(bool))
 			{
