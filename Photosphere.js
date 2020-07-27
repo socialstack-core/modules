@@ -24,6 +24,7 @@ export default class Photosphere extends React.Component {
 		this.onMouseDown = this.onMouseDown.bind(this);
 		this.onMouseMove = this.onMouseMove.bind(this);
 		this.animate = this.animate.bind(this);
+		this.onLoaded = this.onLoaded.bind(this);
 	}
 	
 	componentWillReceiveProps(props){
@@ -129,6 +130,11 @@ export default class Photosphere extends React.Component {
 		}
 	}
 	
+	onLoaded(){
+		this.setState({loaded: true});
+		this.props.onLoad && this.props.onLoad();
+	}
+	
 	setup(props){
 		// Expose the three.js scenegraph to inspection tools
 		global.scene = this.state.scene;
@@ -154,7 +160,7 @@ export default class Photosphere extends React.Component {
 		size.w = bounds.width;
 		size.h = bounds.height;
 		
-		renderer.setSize(size.w, size.h);
+		renderer.setSize(size.w, size.h, false);
 		renderer.renderers[0].setClearColor( 0x000000, 0 ); // the default
 		// hostEle.appendChild(renderer.domElement);
 		
@@ -180,11 +186,11 @@ export default class Photosphere extends React.Component {
 		if(material){
 			if(material._url != imgUrl){
 				material._url = imgUrl;
-				material.map = THREE.ImageUtils.loadTexture(imgUrl);
+				material.map = new THREE.TextureLoader().load(imgUrl, this.onLoaded);
 			}
 		}else{
 			var geometry = new THREE.SphereGeometry( 5, 32, 32 );
-			this.material = material = new THREE.MeshBasicMaterial( {map: THREE.ImageUtils.loadTexture(imgUrl), side: THREE.DoubleSide} );
+			this.material = material = new THREE.MeshBasicMaterial( {map: new THREE.TextureLoader().load(imgUrl, this.onLoaded), side: THREE.DoubleSide} );
 			var sphere = new THREE.Mesh( geometry, material );
 			material._url = imgUrl;
 			this.sphere = sphere;
@@ -219,7 +225,7 @@ export default class Photosphere extends React.Component {
 		if(bounds.width != size.w || bounds.height != size.h){
 			size.w = bounds.width;
 			size.h = bounds.height;
-			this.renderer.setSize(size.w, size.h);
+			this.renderer.setSize(size.w, size.h, false);
 		}
 		
 		this.doc && this.doc.update();
@@ -227,12 +233,17 @@ export default class Photosphere extends React.Component {
 	}
 	
 	render(){
+		const { size } = this.state;
+		
+		var width = size.w + 'px';
+		var height= size.h + 'px';
+		
 		return (
 		<SphereContext.Provider value={this.state.scene}>
-			<div ref={this.setRef} style={this.props.style} className="photosphere">
-				<canvas ref={this.setCanvasRef} style={{position: 'absolute', top: '0px', left: '0px'}} />
-				<div ref={this.set3DRef} style={{overflow: 'hidden', position: 'absolute', top: '0px', left: '0px'}} onMouseDown={this.onMouseDown} onMouseMove={this.onMouseMove}>
-					<div style={{WebkitTransformStyle: 'preserve-3d', transformStyle: 'preserve-3d', pointerEvents: 'none'}}>
+			<div ref={this.setRef} style={this.props.style} className={"photosphere" + (this.state.loaded ? ' loaded' : '')}>
+				<canvas ref={this.setCanvasRef} style={{position: 'absolute', top: '0px', left: '0px', width, height}} />
+				<div ref={this.set3DRef} style={{overflow: 'hidden', position: 'absolute', top: '0px', left: '0px', width, height}} onMouseDown={this.onMouseDown} onMouseMove={this.onMouseMove}>
+					<div style={{WebkitTransformStyle: 'preserve-3d', transformStyle: 'preserve-3d', pointerEvents: 'none', width, height}}>
 						{this.props.children}
 					</div>
 				</div>
