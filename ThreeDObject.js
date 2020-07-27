@@ -24,6 +24,7 @@ export default class ThreeDObject extends React.Component {
 		}
 		this.ref = ref;
 		this.setup(this.props);
+		this.props.onDivRef && this.props.onDivRef(ref);
 	}
 	
 	setup(props){
@@ -70,11 +71,17 @@ export default class ThreeDObject extends React.Component {
 	}
 	
 	render(){
+		var { children } = this.props;
+		
 		if(this.obj){
 			this.transform(this.props);
 		}
 		
-		return <div ref={this.refChange}>{this.props.children}</div>;
+		if(!children){
+			return <div ref={this.refChange} />;
+		}
+		
+		return <div ref={this.refChange}>{children}</div>;
 	}
 	
 }
