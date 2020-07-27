@@ -42,7 +42,8 @@ namespace Api.StackTools
 		/// cmd is of the form "socialstack interactive -p .."
 		/// </summary>
 		/// <param name="cmd">The socialstack command to spawn.</param>
-		public NodeProcess(string cmd)
+		/// <param name="customOutputHandlers">True if you'd like to add custom data/ error handlers to the process.</param>
+		public NodeProcess(string cmd, bool customOutputHandlers = false)
 		{
 			var isWindows = RuntimeInformation.IsOSPlatform(OSPlatform.Windows);
 			
@@ -65,8 +66,12 @@ namespace Api.StackTools
 			{
 				ContractResolver = new CamelCasePropertyNamesContractResolver()
 			};
-
-			SetNodeProcess(process);
+			
+			if(customOutputHandlers){
+				Process = process;
+			}else{
+				SetNodeProcess(process);
+			}
 		}
 
 		/// <summary>
@@ -328,7 +333,26 @@ namespace Api.StackTools
 		{
 			OnStateChange?.Invoke(state);
 		}
-		
+
+		/// <summary>
+		/// Runs synchronously.
+		/// </summary>
+		public void StartSync()
+		{
+			StateChange(NodeProcessState.STARTING);
+			RunSync();
+		}
+
+		private void RunSync()
+		{
+			Process.Start();
+			Process.BeginOutputReadLine();
+			Process.BeginErrorReadLine();
+			StateChange(NodeProcessState.READY);
+			Process.WaitForExit();
+			StateChange(NodeProcessState.EXITING);
+		}
+
 		/// <summary>
 		/// Attempts to start the process. Will output to stdout any messages that occur
 		/// and raise a StateChange event if it doesn't start.
@@ -340,19 +364,16 @@ namespace Api.StackTools
 			try
 			{
 				Task.Run(() => {
-					Process.Start();
-					Process.BeginOutputReadLine();
-					Process.BeginErrorReadLine();
-					StateChange(NodeProcessState.READY);
-					Process.WaitForExit();
+					RunSync();
 				});
 			}
 			catch (Exception e)
 			{
-				Console.WriteLine("[WARN] Caught this whilst trying to start socialstack tools:");
+				Console.WriteLine("[WARN] Caught this whilst trying to run socialstack tools:");
 				Console.WriteLine(e.ToString());
 				
 				StateChange(NodeProcessState.FAILED);
+				StateChange(NodeProcessState.EXITING);
 			}
 
 		}

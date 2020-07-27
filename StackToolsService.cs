@@ -106,26 +106,29 @@ namespace Api.StackTools
 		private Version GetToolsVersion()
 		{
 			// Version check:
-			var versionChecker = new NodeProcess("socialstack v");
+			var versionChecker = new NodeProcess("socialstack version", true);
 
-			string versionText = null;
+			string versionText = "";
 
-			versionChecker.OnData += (string version) => {
-				versionText = version.Trim();
-			};
+			versionChecker.Process.OutputDataReceived += new DataReceivedEventHandler((sender, e) =>
+			{
+				if (string.IsNullOrEmpty(e.Data))
+				{
+					return;
+				}
+				versionText += e.Data;
+			});
 
 			try
 			{
-				versionChecker.Process.Start();
-				versionChecker.Process.WaitForExit();
+				versionChecker.StartSync();
 			}
 			catch (System.ComponentModel.Win32Exception)
 			{
 				// Socialstack isn't installed at all (or is just really old!)
 				return null;
 			}
-
-			return versionText == null ? null : new Version(versionText);
+			return versionText == "" ? null : new Version(versionText.Trim());
 		}
 
 		/// <summary>
@@ -135,11 +138,9 @@ namespace Api.StackTools
 
 		private void CheckInstall()
 		{
-			return;
-
 			// Get the version:
 			var version = GetToolsVersion();
-
+			
 			if (version == null)
 			{
 				Console.WriteLine("Socialstack tools isn't installed - attempting to install now.");
@@ -155,7 +156,6 @@ namespace Api.StackTools
 			}
 
 			AttemptedInstall = true;
-			var isWindows = RuntimeInformation.IsOSPlatform(OSPlatform.Windows);
 
 			// Try to globally install socialstack tools now:
 			var np = new NodeProcess("npm install -g socialstack");
