@@ -35,7 +35,7 @@ namespace Api.Startup
 		public static IServiceProvider Provider;
 
 		/// <summary>
-		/// Gets a service by its textual non-interface name. Use this if you want to make a service optional and not a hard requirement for your module.
+		/// Gets a service by its textual interface name. Use this if you want to make a service optional and not a hard requirement for your module.
 		/// </summary>
 		/// <returns></returns>
 		public static object Get(string name)
