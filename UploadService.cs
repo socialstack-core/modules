@@ -216,10 +216,18 @@ namespace Api.Uploader
 					Console.WriteLine("Unsupported image format was not resized.");
 				}
 			}
-			
-			// Obtain an ID now:
-			await _database.Run(context, createQuery, result);
 
+			if (result.Id != 0)
+			{
+				// Explicit ID has been provided.
+				await _database.Run(context, createWithIdQuery, result);
+			}
+			else
+			{
+				// Obtain an ID now:
+				await _database.Run(context, createQuery, result);
+			}
+			
 			// The path where we'll write the image:
 			var writePath = System.IO.Path.GetFullPath(result.GetFilePath("original"));
 
