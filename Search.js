@@ -61,6 +61,13 @@ export default class Search extends React.Component {
 	}
 	
 	search(query){
+		// do we have a minimum length to activate query (0 will show all for emoty query)
+		if (this.props.minLength && query.length < this.props.minLength) {
+			var results = null;
+			this.setState({loading: false, results});
+			return;
+		}
+
 		var where = {};
 		
 		var field = this.props.field || 'name';
@@ -70,6 +77,11 @@ export default class Search extends React.Component {
 		
 		if(this.props.onQuery){
 			where = this.props.onQuery(where, query);
+		}
+
+		// exclude entries by list of ids
+		if (this.props.exclude && this.props.exclude.length > 0) {
+			where['Id']={not:this.props.exclude};
 		}
 		
 		if(this.props.for){
@@ -116,9 +128,17 @@ export default class Search extends React.Component {
 					this.input = ele
 				}
 			}
-			autoComplete="false" className="form-control" placeholder={this.props.placeholder || 'Search..'} type="text" onKeyUp={(e) => {
+			autoComplete="false" className="form-control" placeholder={this.props.placeholder || 'Search..'} type="text" 
+			onKeyUp={(e) => {
 				this.state.debounce.handle(e.target.value);
-			}}/>
+			}} 
+			onKeyDown={(e) => {
+				if (e.keyCode == 13){
+					if (this.state.results && this.state.results.length == 1) {
+						this.selectResult(this.state.results[0]);
+					}		
+					e.preventDefault();
+				}}}/>
 			{this.state.results && (
 				<div className="suggestions">
 					{this.state.results.length ? (
