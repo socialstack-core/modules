@@ -1,10 +1,32 @@
 .canvas-editor{
 	text-align: left;
 	
-	.admin-module{
+	*[admin-module=true]{
+		min-width: 20px;
+		min-height: 20px;
 		&:hover{
 			outline: 2px solid lightblue !important;
-			/* background: rgb(250, 252, 255) !important; */
+		}
+	}
+	
+	.context-menu{
+		background: white;
+		color: black;
+		border: 1px solid lightgrey;
+		padding: 10px;
+		position: fixed;
+		
+		.context-btn{
+			margin-bottom: 10px;
+			
+			i{
+				color: lightgrey;
+				margin-right: 5px;
+			}
+			
+			&:hover{
+				cursor: pointer;
+			}
 		}
 	}
 	

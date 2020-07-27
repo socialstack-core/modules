@@ -153,6 +153,7 @@ export default class CanvasEditor extends React.Component {
 		this.buildJson = this.buildJson.bind(this);
 		this.closeModal = this.closeModal.bind(this);
 		this.closeLinkModal = this.closeLinkModal.bind(this);
+		this.clearContextMenu = this.clearContextMenu.bind(this);
 	}
 	
 	componentWillReceiveProps(props){
@@ -365,15 +366,39 @@ export default class CanvasEditor extends React.Component {
 		var changed = false;
 		
 		if(!Array.isArray(content)){
-			content = [content];
+			if(content === null){
+				content = [];
+			}else{
+				content = [content];
+			}
 			changed = true;
 		}
 		
-		content.push({
+		var component = {
 			module: moduleInfo.moduleClass,
 			moduleName: moduleInfo.publicName,
+			data: {},
 			expanded: true
-		});
+		};
+		
+		content.push(component);
+		
+		var {propTypes} = component.module;
+		
+		if(propTypes){
+			if(propTypes.children && propTypes.children.default){
+				component.content = expand(propTypes.children.default);
+				component.useCanvasRender = true;
+			}
+			
+			// Apply defaults:
+			for(var key in propTypes){
+				var prop = propTypes[key];
+				if(prop.default){
+					component.data[key] = prop.default;
+				}
+			}
+		}
 		
 		if(changed){
 			if(contentNode == this.state){
@@ -626,20 +651,6 @@ export default class CanvasEditor extends React.Component {
 		return count != parent.content.length;
 	}
 	
-	renderDelete(contentNode){
-		return (
-			<div style={{marginBottom: '10px'}}>
-				<div className="btn btn-danger" onClick={() => {
-					var parent = this.findParent(contentNode);
-					this.removeFrom(contentNode, parent);
-					this.closeModal();
-				}}>
-					Delete
-				</div>
-			</div>
-		);
-	}
-	
 	renderOptions(contentNode, module){
 		if(!contentNode){
 			return;
@@ -671,7 +682,7 @@ export default class CanvasEditor extends React.Component {
 		}
 		
 		for(var fieldName in dataValues){
-			if(dataFields[fieldName]){
+			if(this.specialField(fieldName) || dataFields[fieldName]){
 				continue;
 			}
 			
@@ -683,13 +694,11 @@ export default class CanvasEditor extends React.Component {
 		
 		if(atLeastOneDataField){
 			return (<div>
-				{this.renderDelete(contentNode)}
 				{this.renderOptionSet(dataFields, contentNode)}
 			</div>);
 		}
 		
 		return <div>
-			{this.renderDelete(contentNode)}
 			No other options available
 		</div>;
 	}
@@ -960,8 +969,6 @@ export default class CanvasEditor extends React.Component {
 		}
 		
 		var Module = contentNode.module || "div";
-		
-		var kidsSupported = false;
 		var result = null;
 		
 		if(Module == Text){
@@ -1010,8 +1017,6 @@ export default class CanvasEditor extends React.Component {
 							// Canvas level ones like ctrl+z, ctrl+s, ctrl+y are handled elsewhere.
 							// copy/paste is handled by the browser
 						}
-						
-						
 					}}
 					className="canvas-editor-text"
 					dangerouslySetInnerHTML={{__html: contentNode.content}}
@@ -1020,92 +1025,51 @@ export default class CanvasEditor extends React.Component {
 		}else{
 			
 			var dataFields = mapTokens(contentNode.data, this, Canvas);
-			kidsSupported = Module.propTypes && Module.propTypes.children;
-			var customEdit = Module.propTypes && Module.propTypes.editButton;
-			var displayName = ' ' + this.displayModuleName(contentNode.moduleName);
-			
-			if(dataFields.className){
-				dataFields.className += " admin-module";
-			}else{
-				dataFields.className = "admin-module";
-			}
 			
 			result = (
-				<Module {...dataFields} editButton={customEdit && !this.props.minimal ? () => {
-					// Custom edit button
-					return <div className="btn btn-secondary edit-button" 
-						draggable={true}
-						onDragStart={e => {
+				<Module ref={r => {
+					if(r == null){
+						return;
+					}
+					
+					setTimeout(() => {
+						if(r.base == null || r.base.setAttribute == null){
+							return;
+						}
+						
+						r.base.setAttribute('draggable', true);
+						r.base.ondragstart = e => {
 							var json = JSON.stringify(this.buildJsonNode(contentNode, index, false));
-							console.log(json);
 							e.dataTransfer.setData("application/json", json);
-						}}
-						onClick={() => {
-						this.setState({optionsVisibleFor: contentNode});
-						}}><i className="fa fa-cog"/>
-						{' ' + this.displayModuleName(contentNode.moduleName)}
-					</div>
-				} : undefined}>
-					{kidsSupported && !this.props.minimal && !customEdit && (
-						<div className="edit-button" style={{flex: '0 0 100%'}}>
-							<div className="btn btn-secondary"
-								style={{marginBottom: '5px'}}
-								draggable={true}
-								onDragStart={e => {
-									var json = JSON.stringify(this.buildJsonNode(contentNode, index, false));
-									console.log(json);
-									e.dataTransfer.setData("application/json", json);
-								}}
-								onClick={() => {
-									this.setState({optionsVisibleFor: contentNode});
-								}}
-							><i className="fa fa-cog"/>
-							{displayName}
-							</div>
-						</div>
-					)}
+						};
+						r.base.onjsondrop = (target, modules) => {
+							
+							if(!Array.isArray(contentNode.content)){
+								if(contentNode.content === null){
+									contentNode.content = [];
+								}else{
+									contentNode.content = [contentNode.content];
+								}
+								contentNode.useCanvasRender = true;
+							}
+							
+							contentNode.content.push(expand(modules));
+							
+							this.setState({content: this.state.content});
+							this.updated();
+						};
+						r.base.contentNode = contentNode;
+						r.base.setAttribute('admin-module', true);
+					}, 1000);
+					
+				}} {...dataFields}>
 					{contentNode.useCanvasRender ? this.renderNode(contentNode.content) : null}
-					{kidsSupported && !this.props.minimal && (
-						<div style={{marginTop: '10px'}}>
-							<div className="btn btn-secondary" onClick={() => {this.setState({selectOpenFor: contentNode})}}>
-								<i className="fa fa-plus" />
-								{' to ' + displayName}
-							</div>
-						</div>
-					)}
 				</Module>
 			);
 			
 		}
 		
-		if(kidsSupported || this.props.minimal){
-			return result;
-		}
-		
-		// Does it have a custom edit button placement?
-		if(customEdit){
-			return result;
-		}
-		
-		// Display the config button before the element:
-		return [
-			<div
-				className="edit-button btn btn-secondary"
-				style={{marginRight: '5px', marginBottom: '5px'}}
-				draggable={true}
-				onDragStart={e => {
-					var json = JSON.stringify(this.buildJsonNode(contentNode, index, false));
-					console.log(json);
-					e.dataTransfer.setData("application/json", json);
-				}}
-				onClick={() => {
-					this.setState({optionsVisibleFor: contentNode});
-				}}
-			><i className="fa fa-cog"/>
-			{' ' + this.displayModuleName(contentNode.moduleName)}
-			</div>,
-			result
-		];
+		return result;
 	}
 	
 	displayModuleName(name){
@@ -1120,31 +1084,145 @@ export default class CanvasEditor extends React.Component {
 		return parts.join(' > ');
 	}
 	
+	renderContextMenu(){
+		var {rightClick} = this.state;
+		
+		var buttons = [];
+		
+		var {contentNode} = rightClick;
+		
+		if(contentNode){
+			var Module = contentNode.module || "div";
+			var displayName = this.displayModuleName(contentNode.moduleName);
+			var kidsSupported = Module.propTypes && Module.propTypes.children;
+			
+			if(kidsSupported){
+				buttons.push({
+					onClick: () => this.setState({selectOpenFor: contentNode, rightClick: null}),
+					icon: 'plus',
+					text: ' to ' + displayName
+				});
+			}
+			
+			buttons.push({
+				onClick: () => this.setState({optionsVisibleFor: contentNode, rightClick: null}),
+				icon: 'cog',
+				text: 'Edit ' + displayName
+			});
+			
+			buttons.push({
+				onClick: () => {
+					this.setState({rightClick: null});
+					var parent = this.findParent(contentNode);
+					this.removeFrom(contentNode, parent);
+					if(parent == this.state){
+						this.setState({content: parent.content});
+					}
+					this.updated();
+				},
+				icon: 'minus',
+				text: 'Delete ' + displayName
+			});
+		}
+		
+		return <div className="context-menu" style={{
+				left: rightClick.x + 'px',
+				top: rightClick.y + 'px'
+			}}>
+			{buttons.map(cfg => {
+				
+				return (
+					<div className="context-btn" onClick={cfg.onClick}>
+						<i className={"fa fa-" + cfg.icon} />
+						{cfg.text}
+					</div>
+				);
+				
+			})}
+		</div>;
+	}
+	
+	clearContextMenu(e){
+		if(this.state.rightClick){
+			this.setState({rightClick: null});
+		}
+	}
+	
+	componentDidMount(){
+		document.addEventListener('click', this.clearContextMenu);
+	}
+	
+	componentWillUnmount(){
+		document.removeEventListener('click', this.clearContextMenu);
+	}
+	
+	findComponentRoot(e){
+		if(e == null || !e.hasAttribute){
+			return null;
+		}
+		if(e.hasAttribute('admin-module')){
+			return e;
+		}
+		return this.findComponentRoot(e.parentNode);
+	}
+	
 	render(){
 		return (
 			<div
 				className="canvas-editor"
 				onDrop={e => {
-					console.log("Drop");
 					e.preventDefault();
-					console.log(e.target);
-					/*
-					var data = e.dataTransfer.getData("text");
-					e.target.appendChild(document.getElementById(data));
-					*/
-				}}
-				onDragOver = {e => {
-					console.log("dragover");
+					var data = e.dataTransfer.getData("application/json");
 					
+					var target = this.findComponentRoot(e.target);
+					
+					if(target && target.onjsondrop){
+						target.onjsondrop(e, JSON.parse(data));
+					}
+					
+				}}
+				onDragEnd = {
+					e => {
+						if(this.dragTarget){
+							this.dragTarget.style.backgroundColor='';
+						}
+					}
+				}
+				onDragOver = {e => {
 					if(this.dragTarget){
 						this.dragTarget.style.backgroundColor='';
 					}
 					
 					this.dragTarget = e.target;
-					this.dragTarget.style.backgroundColor = 'lightyellow';
+					this.dragTarget.style.backgroundColor = 'lightblue';
 					
 					e.preventDefault();
-				}} 
+				}}
+				onContextMenu={e => {
+					e.preventDefault();
+					return false;
+				}}
+				onMouseUp = { e=> {
+					// Check for right click
+					// TODO: Also check for a long press.
+					if(e.button != 2){
+						return;
+					}
+					
+					// Find nearest admin-module:
+					// TODO: Stuff that perfectly fits inside its parent, such as anything inside UI/Align, makes the UI/Align itself unreachable.
+					// Maybe find *all* nearest admin-modules and list them?
+					var targetModuleElement = this.findComponentRoot(e.target);
+					e.preventDefault();
+					
+					this.setState({
+						rightClick: {
+							contentNode: targetModuleElement.contentNode,
+							x: e.clientX,
+							y: e.clientY
+						}
+					});
+				}}
 			>
 				{this.props.onPageUrl && (
 					<div style={{marginBottom: '10px'}}>
@@ -1180,6 +1258,7 @@ export default class CanvasEditor extends React.Component {
 				{!this.state.linkSelectionFor && this.renderModuleSelection()}
 				{!this.state.linkSelectionFor && this.renderOptionsModal()}
 				{this.renderLinkSelectionModal()}
+				{this.state.rightClick && this.renderContextMenu()}
 			</div>
 		);
 	}
