@@ -400,9 +400,30 @@ namespace Api.Permissions
 								LessThanOrEqual(type, kvp.Key, fvp.Value.Value<long>());
 							break;
 							case "not":
+
 								// Not equals:
-								Not().Equals(type, kvp.Key, fvp.Value.ToObject<object>());
-							break;
+								Not();
+
+								if (fvp.Value is JObject)
+								{
+									Brackets((Filter filter) =>
+									{
+										filter.HandleWhereObject((JObject)fvp.Value);
+									});
+								}
+								else if (fvp.Value is JArray)
+								{
+									Add(new FilterFieldEqualsSet(type, fieldName)
+									{
+										Values = ((JArray)fvp.Value).ToObject<object[]>()
+									});
+								}
+								else
+								{
+									Equals(type, kvp.Key, fvp.Value.ToObject<object>());
+								}
+
+								break;
 							case "equals":
 								// Little bit pointless but we'll support it anyway. fieldName: {equals: x} is the same as just fieldName: x.
 								Equals(type, kvp.Key, fvp.Value.ToObject<object>());
