@@ -36,6 +36,7 @@ export default class ThreeDObject extends React.Component {
 		
 		if(this.obj){
 			if(this.obj.element == ref){
+				this.transform(props);
 				return;
 			}
 			scene && scene.remove(this.obj);
