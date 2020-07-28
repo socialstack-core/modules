@@ -1125,6 +1125,12 @@ export default class CanvasEditor extends React.Component {
 			});
 		}
 		
+		buttons.push({
+			onClick: () => this.setState({jsonEdit: JSON.stringify(this.buildJson(), null, '\t')}),
+			icon: 'code',
+			text: 'Edit JSON source'
+		});
+		
 		return <div className="context-menu" style={{
 				left: rightClick.x + 'px',
 				top: rightClick.y + 'px'
@@ -1167,6 +1173,21 @@ export default class CanvasEditor extends React.Component {
 	}
 	
 	render(){
+		if(this.state.jsonEdit){
+			return (
+				<div className="canvas-editor">
+					<div className="btn btn-info" onClick={() => {
+						// TODO: grab the value from the textarea 
+						// and set it as the loaded canvas.
+						this.setState({
+							jsonEdit: false
+						});
+					}}>Back to visual view</div>
+					<Input type="textarea" name={this.props.name} defaultValue={this.state.jsonEdit} />
+				</div>
+			);
+		}
+		
 		return (
 			<div
 				className="canvas-editor"
