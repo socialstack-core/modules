@@ -202,7 +202,7 @@ export default class Input extends React.Component {
                     data-validation={this.state.validationFailure ? true : undefined}
                 >
                     {this.props.contentType ? [
-						<option value='0'>None</option>,
+						<option value='0'>None Specified</option>,
 						<Loop over={this.props.contentType + '/list'} raw>
 							{
 								entry => <option value={entry.id} selected={entry.id == defaultValue ? true : undefined}>
