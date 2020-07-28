@@ -201,7 +201,8 @@ export default class Input extends React.Component {
                     {...omit(this.props, ['id', 'className', 'onChange', 'onBlur', 'type', 'children', 'defaultValue', 'value', 'inline'])}
                     data-validation={this.state.validationFailure ? true : undefined}
                 >
-                    {this.props.contentType ? (
+                    {this.props.contentType ? [
+						<option value='0'>None</option>,
 						<Loop over={this.props.contentType + '/list'} raw>
 							{
 								entry => <option value={entry.id} selected={entry.id == defaultValue ? true : undefined}>
@@ -211,7 +212,7 @@ export default class Input extends React.Component {
 								</option>
 							}
 						</Loop>
-					) : this.props.children}
+					] : this.props.children}
                 </select>
             );
 
