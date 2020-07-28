@@ -144,13 +144,17 @@ export default class Photosphere extends React.Component {
 		}
 		
 		var startRotation = props.startRotation || 45;
-		var renderer = this.renderer = new THREE.MultiRenderer(
-			{
-				domElement: this.hostEle,
-				renderers: [THREE.WebGLRenderer, THREE.CSS3DRenderer],
-				parameters: [{alpha: true, canvas: this.canvasEle}, this.root3DEle]
-			}
-		);
+		var renderer = this.renderer;
+		
+		if(renderer){
+			renderer = this.renderer = new THREE.MultiRenderer(
+				{
+					domElement: this.hostEle,
+					renderers: [THREE.WebGLRenderer, THREE.CSS3DRenderer],
+					parameters: [{alpha: true, canvas: this.canvasEle}, this.root3DEle]
+				}
+			);
+		}
 		
 		// var renderer = new THREE.WebGLRenderer({alpha: true});
 		
