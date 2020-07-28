@@ -79,8 +79,21 @@ const isoConvert = (isoish) => {
 	 return returnDate;
 }
 
+function localToUtc(date){
+	return Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate(),
+	date.getUTCHours(), date.getUTCMinutes(), date.getUTCSeconds());
+}
+
+function addDays(date, days) {
+    var date = new Date(date.valueOf());
+    date.setDate(date.getDate() + days);
+    return date;
+}
+
 module.exports = {
 	ordinal,
 	monthNames,
-	isoConvert
+	isoConvert,
+	localToUtc,
+	addDays
 };
