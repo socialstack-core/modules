@@ -1,4 +1,5 @@
 import webRequest from 'UI/Functions/WebRequest';
+import omit from 'UI/Functions/Omit';
 import Input from 'UI/Input';
 
 /**
@@ -27,7 +28,7 @@ export default class ContentSelect extends React.Component {
 	render(){
 		var all = this.state.all;
 		
-		return (<Input {...this.props} type="select">{
+		return (<Input {...omit(this.props, ['contentType'])} type="select">{
 			all ? all.map(content => {
 				if(!content){
 					return <option value={'0'}>None</option>;
