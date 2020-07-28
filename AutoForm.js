@@ -233,7 +233,7 @@ export default class AutoForm extends React.Component {
 					
 					delete values._submitMode;
 					
-					this.setState({editSuccess: false, createSuccess: false, submitting: true});
+					this.setState({editSuccess: false, editFailure: false, createSuccess: false, submitting: true});
 					return values;
 				}}
 				
@@ -248,7 +248,7 @@ export default class AutoForm extends React.Component {
 						var state = global.pageRouter.state;
 						
 						if(isEdit){
-							this.setState({editSuccess: true, createSuccess: false, submitting: false});
+							this.setState({editFailure: false, editSuccess: true, createSuccess: false, submitting: false});
 							
 							if(state && state.page && state.page.url){
 								var parts = state.page.url.split('/');
@@ -273,7 +273,7 @@ export default class AutoForm extends React.Component {
 								}
 							}
 						}else{
-							this.setState({submitting: false});
+							this.setState({editFailure: false, submitting: false});
 							if(state && state.page && state.page.url){
 								var parts = state.page.url.split('/');
 								parts.pop();
