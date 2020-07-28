@@ -72,17 +72,17 @@ export default class ThreeDObject extends React.Component {
 	}
 	
 	render(){
-		var { children } = this.props;
+		var { children, className } = this.props;
 		
 		if(this.obj){
 			this.transform(this.props);
 		}
 		
 		if(!children){
-			return <div ref={this.refChange} />;
+			return <div className = {className && className} ref={this.refChange} />;
 		}
 		
-		return <div ref={this.refChange}>{children}</div>;
+		return <div className = {className && className} ref={this.refChange}>{children}</div>;
 	}
 	
 }
