@@ -274,7 +274,12 @@ namespace Api.Users
 		{
 			// Get the user list:
 			var list = await List(context, filter);
-			
+
+			if (list == null)
+			{
+				return new List<UserProfile>();
+			}
+
 			// Map through:
 			var profileList = new List<UserProfile>(list.Count);
 			
@@ -295,6 +300,14 @@ namespace Api.Users
 			// Get the user list:
 			var listAndTotal = await ListWithTotal(context, filter);
 			var list = listAndTotal.Results;
+
+			if (list == null)
+			{
+				return new ListWithTotal<UserProfile>()
+				{
+					Results = new List<UserProfile>()
+				};
+			}
 
 			// Map through:
 			var profileList = new List<UserProfile>(list.Count);
