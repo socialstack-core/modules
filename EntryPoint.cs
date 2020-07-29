@@ -81,7 +81,7 @@ namespace Api.Startup
 					if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux))
 					{
 						// Listen on a Unix socket too:
-						options.ListenUnixSocket("api.sock");
+						options.ListenUnixSocket(System.IO.Path.GetFullPath("api.sock"));
 					}
 
 					options.Limits.MaxRequestBodySize = AppSettings.GetInt64("MaxBodySize", 512000000); // 512MB by default
