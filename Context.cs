@@ -131,7 +131,24 @@ namespace Api.Contexts
 		/// Creates a new login token.
 		/// </summary>
 		public Context() : base(GenericIdentity) { }
-		
+
+		/// <summary>
+		/// Sets the given user as the logged in contextual user.
+		/// </summary>
+		/// <param name="user"></param>
+		public void SetUser(User user)
+		{
+			if (user == null)
+			{
+				_user = null;
+				UserId = 0;
+				return;
+			}
+
+			_user = user;
+			UserId = user.Id;
+		}
+
 		/// <summary>
 		/// Get the user associated to this login token.
 		/// </summary>
