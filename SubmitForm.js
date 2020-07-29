@@ -13,7 +13,7 @@ export default function (e, options) {
 	for(var i=0;i<fields.length;i++){
 		var field = fields[i];
 		
-		if(!field.name || ((field.type == 'radio' || field.type=='checkbox') && !field.checked)){
+		if(!field.name || (field.type == 'radio' && !field.checked)){
 			continue;
 		}
 		
@@ -21,7 +21,7 @@ export default function (e, options) {
 			validationErrors++;
 		}
 		
-		var value = field.type=='checkbox' ? true : field.value;
+		var value = field.type=='checkbox' ? field.checked : field.value;
 		
 		if(field.onGetValue){
 			value = field.onGetValue(value, field, e);
