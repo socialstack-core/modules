@@ -329,13 +329,24 @@ namespace Api.ContentSync
 					break;
 					case 'D':
 						// Delete the entry:
-						ctx.LocaleId = 0;
-						await Service.Delete(ctx, localeIdOrDeletedId);
+						var existingDel = await Service.Get(ctx, localeIdOrDeletedId);
+
+						if (existingDel != null)
+						{
+							ctx.LocaleId = 0;
+							await Service.Delete(ctx, localeIdOrDeletedId);
+						}
 					break;
 					case 'U':
 						// Update the entry:
 						ctx.LocaleId = localeIdOrDeletedId;
-						await Service.Update(ctx, row);
+						var existingUpd = await Service.Get(ctx, row.Id);
+
+						if (existingUpd != null)
+						{
+							await Service.Update(ctx, row);
+						}
+						// Otherwise do nothing.
 					break;
 				}
 				
