@@ -1,5 +1,6 @@
 import webRequest from 'UI/Functions/WebRequest';
 import hlsjs from './hls.js';
+import omit from 'UI/Functions/Omit';
 var Hls = hlsjs;
 
 
@@ -30,7 +31,7 @@ export default class HlsVideo extends React.Component {
 	
 	render(){
 		return <div className="hlsVideo">
-			<video ref={video => {
+			<video {...omit(this.props, ['videoId'])} ref={video => {
 				if(!video){
 					return;
 				}
@@ -54,7 +55,7 @@ export default class HlsVideo extends React.Component {
 					video.onloadedmetadata = this.onManifest;
 				}
 				
-			}} muted={this.props.muted} autoplay={this.props.autoplay} controls /> 
+			}}/> 
 		</div>;
 		
 	}
