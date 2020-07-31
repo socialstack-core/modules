@@ -1,5 +1,6 @@
 using Api.Contexts;
 using Api.Eventing;
+using Api.Permissions;
 using Api.Startup;
 using Api.Users;
 using Microsoft.AspNetCore.Http;
@@ -35,9 +36,9 @@ namespace Api.LoginOnRegister
 				// Ensure user exists:
 				var usr = await context.GetUser();
 
-				if (usr != null)
+				if (usr != null && (context.Role == Roles.SuperAdmin || context.Role == Roles.Admin))
 				{
-					// Not anon - probaably being made by admin.
+					// Not anon and is admin. Don't login this newly made account.
 					return user;
 				}
 
