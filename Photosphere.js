@@ -5,6 +5,18 @@ import DeviceOrientationControls from 'UI/Functions/DeviceOrientationControls';
 
 const SphereContext = React.createContext(null);
 
+var _cache = {};
+
+function imageCache(url, onLoaded){
+	
+	if(_cache[url]){
+		onLoaded();
+		return _cache[url];
+	}
+	
+	return _cache[url] = new THREE.TextureLoader().load(url, onLoaded);
+}
+
 export default class Photosphere extends React.Component {
 	
 	constructor(props){
@@ -197,11 +209,11 @@ export default class Photosphere extends React.Component {
 		if(material){
 			if(material._url != imgUrl){
 				material._url = imgUrl;
-				material.map = new THREE.TextureLoader().load(imgUrl, this.onLoaded);
+				material.map = imageCache(imgUrl, this.onLoaded);
 			}
 		}else{
 			var geometry = new THREE.SphereGeometry( 5, 32, 32 );
-			this.material = material = new THREE.MeshBasicMaterial( {map: new THREE.TextureLoader().load(imgUrl, this.onLoaded), side: THREE.DoubleSide} );
+			this.material = material = new THREE.MeshBasicMaterial( {map: imageCache(imgUrl, this.onLoaded), side: THREE.DoubleSide} );
 			var sphere = new THREE.Mesh( geometry, material );
 			material._url = imgUrl;
 			this.sphere = sphere;
