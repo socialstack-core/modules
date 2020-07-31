@@ -1,7 +1,7 @@
 import webRequest from 'UI/Functions/WebRequest';
 import hlsjs from './hls.js';
 import omit from 'UI/Functions/Omit';
-var Hls = hlsjs;
+import cache from 'UI/HlsVideo/Cache';
 
 
 export default class HlsVideo extends React.Component {
@@ -12,14 +12,19 @@ export default class HlsVideo extends React.Component {
 		this.onManifest = this.onManifest.bind(this);
 		
 		if(hlsjs.isSupported()) {
-			var hls = this.state.hls = new hlsjs();
-			hls.loadSource(this.getSource(props));
-			hls.on(Hls.Events.MANIFEST_PARSED,this.onManifest);
+			var hls = this.state.hls = cache(this.getSource(props), this.onManifest);
 		}
 	}
 	
 	onManifest(){
-		this.video && this.video.play();
+		if(!this.video){
+			return;
+		}
+		
+		this.video.pause();
+		this.video.currentTime = 0;
+		this.video.load();
+		this.video.play();
 	}
 	
 	componentWillReceiveProps(props){
