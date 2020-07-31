@@ -824,6 +824,10 @@ export default class CanvasEditor extends React.Component {
 						
 					});
 				}
+			}else if(propType.type == 'string'){
+				inputType = 'text';
+			}else{
+				inputType = propType.type;
 			}
 			
 			// The value might be e.g. a url ref.
