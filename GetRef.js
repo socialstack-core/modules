@@ -40,11 +40,16 @@ function basicUrl(url, options){
 function contentFile(ref, options){
 	var url = options.protocol == 'public' ? '/content/' : '/content-private/';
 	
-	var serverParts = ref.split('/');
+	var dirs = ref.split('/');
+	ref = dirs.pop();
 	
-	if(serverParts.length>1){
-		url = '//' + serverParts[0] + url;
-		ref = serverParts[serverParts.length-1];
+	if(dirs.length>1){
+		// If dirs[0] contains . then it's a server address (for example, public:mycdn.com/123.jpg
+		if(dirs[0].indexOf('.')){
+			var addr = dirs.shift();
+			url = '//' + addr + url;
+		}
+		url += dirs.join('/');
 	}
 	
 	var fileParts = ref.split('.');
