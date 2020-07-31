@@ -8,8 +8,8 @@ namespace Api.DefaultAvatar
 	/// <summary>
 	/// The appsettings.json config block for push notification config.
 	/// </summary>
-    public class AvatarConfig
-    {
+    public class DefaultAvatarConfig
+	{
 		/// <summary>
 		/// Refs for a set of random profile images to choose from.
 		/// </summary>

@@ -24,7 +24,7 @@ namespace Api.DefaultAvatar
 		/// </summary>
 		public DefaultAvatarService()
         {
-			var section = AppSettings.GetSection("DefaultAvatarImages");
+			var section = AppSettings.GetSection("DefaultAvatars");
 
 			if (section == null)
 			{
