@@ -1,5 +1,6 @@
 var THREE = require('UI/Functions/ThreeJs/ThreeJs.js');
 import getRef from 'UI/Functions/GetRef';
+import omit from 'UI/Functions/Omit';
 import DeviceOrientationControls from 'UI/Functions/DeviceOrientationControls';
 
 const SphereContext = React.createContext(null);
@@ -18,6 +19,7 @@ export default class Photosphere extends React.Component {
 		global.scene = scene;
 		
 		this.setRef = this.setRef.bind(this);
+		this.setContainerRef = this.setContainerRef.bind(this);
 		this.set3DRef = this.set3DRef.bind(this);
 		this.setCanvasRef = this.setCanvasRef.bind(this);
 		this.onMouseUp = this.onMouseUp.bind(this);
@@ -33,6 +35,11 @@ export default class Photosphere extends React.Component {
 	
 	setRef(ref){
 		this.hostEle = ref;
+		this.setup(this.props);
+	}
+	
+	setContainerRef(ref){
+		this.containerEle = ref;
 		this.setup(this.props);
 	}
 	
@@ -139,7 +146,7 @@ export default class Photosphere extends React.Component {
 		// Expose the three.js scenegraph to inspection tools
 		global.scene = this.state.scene;
 		
-		if(!this.hostEle || !this.root3DEle || !this.canvasEle){
+		if(!this.hostEle || !this.containerEle || !this.root3DEle || !this.canvasEle){
 			return;
 		}
 		
@@ -159,12 +166,12 @@ export default class Photosphere extends React.Component {
 		// var renderer = new THREE.WebGLRenderer({alpha: true});
 		
 		var hostEle = this.hostEle;
-		var bounds = hostEle.getBoundingClientRect();
+		var bounds = this.containerEle.getBoundingClientRect();
 		var {size, scene} = this.state;
 		size.w = bounds.width;
 		size.h = bounds.height;
 		
-		renderer.setSize(size.w, size.h, false);
+		renderer.setSize(size.w, size.h, true);
 		renderer.renderers[0].setClearColor( 0x000000, 0 ); // the default
 		// hostEle.appendChild(renderer.domElement);
 		
@@ -224,12 +231,12 @@ export default class Photosphere extends React.Component {
 		}
 		
 		global.requestAnimationFrame( this.animate );
-		var bounds = this.hostEle.getBoundingClientRect();
+		var bounds = this.containerEle.getBoundingClientRect();
 		var size = this.state.size;
 		if(bounds.width != size.w || bounds.height != size.h){
 			size.w = bounds.width;
 			size.h = bounds.height;
-			this.renderer.setSize(size.w, size.h, false);
+			this.renderer.setSize(size.w, size.h, true);
 		}
 		
 		this.doc && this.doc.update();
@@ -244,15 +251,17 @@ export default class Photosphere extends React.Component {
 		
 		return (
 		<SphereContext.Provider value={this.state.scene}>
-			<div ref={this.setRef} style={this.props.style} className={"photosphere" + (this.state.loaded ? ' loaded' : '')}>
-				<canvas ref={this.setCanvasRef} style={{position: 'absolute', top: '0px', left: '0px', width, height}} />
-				<div ref={this.set3DRef} style={{overflow: 'hidden', position: 'absolute', top: '0px', left: '0px', width, height}} onMouseDown={this.onMouseDown} onMouseMove={this.onMouseMove}>
-					<div style={{WebkitTransformStyle: 'preserve-3d', transformStyle: 'preserve-3d', pointerEvents: 'none', width, height}}>
-						{this.props.children}
+			<div ref={this.setContainerRef} {...omit(this.props, ['ar', 'children', 'imageRef', 'onLoad', 'startRotation', 'skipFade'])}>
+				<div ref={this.setRef} style={{width: '100%', height: '100%', position: 'absolute'}} className={"photosphere" + (this.state.loaded ? ' loaded' : '') + (this.props.skipFade ? ' no-fade' : '')}>
+					<canvas ref={this.setCanvasRef} style={{position: 'absolute', top: '0px', left: '0px', width, height}} />
+					<div ref={this.set3DRef} style={{overflow: 'hidden', position: 'absolute', top: '0px', left: '0px', width, height}} onMouseDown={this.onMouseDown} onMouseMove={this.onMouseMove}>
+						<div style={{WebkitTransformStyle: 'preserve-3d', transformStyle: 'preserve-3d', pointerEvents: 'none', width, height}}>
+							{this.props.children}
+						</div>
 					</div>
 				</div>
+				<div className="photosphereUI"></div>
 			</div>
-			<div className="photosphereUI"></div>
 		</SphereContext.Provider>);
 	}
 
