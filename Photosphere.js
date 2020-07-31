@@ -2,20 +2,8 @@ var THREE = require('UI/Functions/ThreeJs/ThreeJs.js');
 import getRef from 'UI/Functions/GetRef';
 import omit from 'UI/Functions/Omit';
 import DeviceOrientationControls from 'UI/Functions/DeviceOrientationControls';
-
+import imageCache from 'UI/Photosphere/Cache';
 const SphereContext = React.createContext(null);
-
-var _cache = {};
-
-function imageCache(url, onLoaded){
-	
-	if(_cache[url]){
-		onLoaded();
-		return _cache[url];
-	}
-	
-	return _cache[url] = new THREE.TextureLoader().load(url, onLoaded);
-}
 
 export default class Photosphere extends React.Component {
 	
