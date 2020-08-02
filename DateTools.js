@@ -80,8 +80,8 @@ const isoConvert = (isoish) => {
 }
 
 function localToUtc(date){
-	return Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate(),
-	date.getUTCHours(), date.getUTCMinutes(), date.getUTCSeconds());
+	return new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate(),
+	date.getUTCHours(), date.getUTCMinutes(), date.getUTCSeconds()));
 }
 
 function addDays(date, days) {
