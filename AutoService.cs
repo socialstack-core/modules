@@ -6,6 +6,7 @@ using Api.Startup;
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Linq;
 using System.Threading.Tasks;
 
 /// <summary>
@@ -192,6 +193,25 @@ public partial class AutoService<T> : AutoService where T: DatabaseRow, new(){
 	}
 
 	/// <summary>
+	/// Gets an object from this service.
+	/// </summary>
+	/// <param name="context"></param>
+	/// <param name="ids"></param>
+	/// <returns></returns>
+	public override async Task<IEnumerable> ListObjects(Context context, IEnumerable<int> ids)
+	{
+		if (ids == null || !ids.Any())
+		{
+			return null;
+		}
+
+		// Get the list:
+		var results = await List(context, new Filter<T>().Id(ids));
+
+		return results;
+	}
+
+	/// <summary>
 	/// Gets a single entity by its ID.
 	/// </summary>
 	public virtual async Task<T> Get(Context context, int id)
@@ -358,6 +378,17 @@ public class AutoService
 	public virtual Task<object> GetObject(Context context, int id)
 	{
 		return Task.FromResult((object)null);
+	}
+
+	/// <summary>
+	/// Gets an list of objects from this service.
+	/// </summary>
+	/// <param name="context"></param>
+	/// <param name="ids"></param>
+	/// <returns></returns>
+	public virtual Task<IEnumerable> ListObjects(Context context, IEnumerable<int> ids)
+	{
+		return Task.FromResult((IEnumerable)null);
 	}
 
 	/// <summary>
