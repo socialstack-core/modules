@@ -129,7 +129,7 @@ namespace Api.PrivateChats
 						var privateChat = (PrivateChat)src;
 						return new ContentTypeAndId(privateChat.TargetContentType, privateChat.TargetContentId);
 					},
-					(object src, DatabaseRow content) =>
+					(object src, object content) =>
 					{
 						var privateChat = (PrivateChat)src;
 						privateChat.Target = content;
@@ -145,7 +145,7 @@ namespace Api.PrivateChats
 						var privateChat = (PrivateChat)src;
 						return new ContentTypeAndId(privateChat.SourceContentType, privateChat.SourceContentId);
 					},
-					(object src, DatabaseRow content) =>
+					(object src, object content) =>
 					{
 						var privateChat = (PrivateChat)src;
 						privateChat.Source = content;
