@@ -181,6 +181,17 @@ public partial class AutoService<T> : AutoService where T: DatabaseRow, new(){
 	}
 
 	/// <summary>
+	/// Gets an object from this service. Generally use Get instead with a fixed type.
+	/// </summary>
+	/// <param name="context"></param>
+	/// <param name="id"></param>
+	/// <returns></returns>
+	public override async Task<object> GetObject(Context context, int id)
+	{
+		return await Get(context, id);
+	}
+
+	/// <summary>
 	/// Gets a single entity by its ID.
 	/// </summary>
 	public virtual async Task<T> Get(Context context, int id)
@@ -337,7 +348,18 @@ public class AutoService
 	{
 		throw new NotImplementedException();
 	}
-		
+
+	/// <summary>
+	/// Gets an object from this service.
+	/// </summary>
+	/// <param name="context"></param>
+	/// <param name="id"></param>
+	/// <returns></returns>
+	public virtual Task<object> GetObject(Context context, int id)
+	{
+		return Task.FromResult((object)null);
+	}
+
 	/// <summary>
 	/// Makes this service type 'nestable'.
 	/// </summary>

@@ -8,6 +8,7 @@ using Api.Configuration;
 using System.Collections.Generic;
 using System.Reflection;
 using System.Linq;
+using Api.Database;
 
 namespace Api.Startup
 {
@@ -195,6 +196,7 @@ namespace Api.Startup
 				if (autoServiceType != null)
 				{
 					Services.AutoServices[autoServiceType] = svc as AutoService;
+					Services.ContentTypes[ContentTypes.GetId(autoServiceType)] = svc as AutoService;
 				}
 				
 			}

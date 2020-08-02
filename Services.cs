@@ -30,6 +30,11 @@ namespace Api.Startup
 		public static Dictionary<Type, AutoService> AutoServices = new Dictionary<Type, AutoService>();
 
 		/// <summary>
+		/// A lookup by content type ID to the autoService relating to it.
+		/// </summary>
+		public static Dictionary<int, AutoService> ContentTypes = new Dictionary<int, AutoService>();
+
+		/// <summary>
 		/// The underlying service provider, used to obtain injected service instances.
 		/// </summary>
 		public static IServiceProvider Provider;
@@ -41,6 +46,17 @@ namespace Api.Startup
 		public static object Get(string name)
 		{
 			AllByName.TryGetValue(name, out object result);
+			return result;
+		}
+
+		/// <summary>
+		/// Gets a service by the content type ID.
+		/// </summary>
+		/// <param name="id"></param>
+		/// <returns></returns>
+		public static AutoService GetByContentTypeId(int id)
+		{
+			ContentTypes.TryGetValue(id, out AutoService result);
 			return result;
 		}
 
