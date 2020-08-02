@@ -387,17 +387,45 @@ namespace Api.Permissions
 							break;
 							case "geq":
 							case "greaterThanOrEqual":
-								GreaterThanOrEqual(type, kvp.Key, fvp.Value.Value<long>());
+								if (fvp.Value.Type == JTokenType.Date)
+								{
+									GreaterThanOrEqual(type, kvp.Key, fvp.Value.Value<DateTime>());
+								}
+								else
+								{
+									GreaterThanOrEqual(type, kvp.Key, fvp.Value.Value<long>());
+								}
 							break;
 							case "greaterThan":
-								GreaterThan(type, kvp.Key, fvp.Value.Value<long>());
+								if (fvp.Value.Type == JTokenType.Date)
+								{
+									GreaterThan(type, kvp.Key, fvp.Value.Value<DateTime>());
+								}
+								else
+								{
+									GreaterThan(type, kvp.Key, fvp.Value.Value<long>());
+								}
 							break;
 							case "lessThan":
-								LessThan(type, kvp.Key, fvp.Value.Value<long>());
+								if (fvp.Value.Type == JTokenType.Date)
+								{
+									LessThan(type, kvp.Key, fvp.Value.Value<DateTime>());
+								}
+								else
+								{
+									LessThan(type, kvp.Key, fvp.Value.Value<long>());
+								}
 							break;
 							case "leq":
 							case "lessThanOrEqual":
-								LessThanOrEqual(type, kvp.Key, fvp.Value.Value<long>());
+								if (fvp.Value.Type == JTokenType.Date)
+								{
+									LessThanOrEqual(type, kvp.Key, fvp.Value.Value<DateTime>());
+								}
+								else
+								{
+									LessThanOrEqual(type, kvp.Key, fvp.Value.Value<long>());
+								}
 							break;
 							case "not":
 

@@ -193,7 +193,7 @@ namespace Api.Permissions
 		/// <param name="value"></param>
 		/// <param name="argIndex"></param>
 		/// <returns></returns>
-		public Filter GreaterThan(System.Type type, string fieldName, long value, int argIndex = 0)
+		public Filter GreaterThan(System.Type type, string fieldName, object value, int argIndex = 0)
 		{
 			return Add(new FilterFieldGreaterThan(type, fieldName)
 			{
