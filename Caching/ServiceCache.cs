@@ -139,6 +139,15 @@ namespace Api.Startup{
 		}
 
 		/// <summary>
+		/// Get the primary index.
+		/// </summary>
+		/// <returns></returns>
+		public Dictionary<int, T> GetPrimary()
+		{
+			return Primary;
+		}
+
+		/// <summary>
 		/// The number of entries in the cache.
 		/// </summary>
 		/// <returns></returns>

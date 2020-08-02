@@ -14,6 +14,13 @@ namespace Api.Startup{
 		public bool? Preload = true;
 
 		/// <summary>
+		/// True if all content should be retained in the cache.
+		/// I.e. creates/ updates/ deletes are reflected in the cache across a cluster, 
+		/// instead of those things just deleting the cache entry.
+		/// </summary>
+		public bool? Retain = false;
+
+		/// <summary>
 		/// If preloading, this is the event handler priority
 		/// </summary>
 		public int PreloadPriority = 10;
