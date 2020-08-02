@@ -12,14 +12,33 @@ namespace Api.Huddles
 	/// </summary>
 	public partial class Huddle : RevisionRow
 	{
+		/// <summary>
+		/// 0 = Public (anyone can join)
+		/// 1 = Open invite (it's private, but people can essentially permit themselves, up to the limit).
+		/// 2 = Closed invite (it's private, and only the person who created it can invite users).
+		/// </summary>
+		public int HuddleType;
+		
+		/// <summary>
+		/// Assigned automatically.
+		/// </summary>
+		public int HuddleServerId;
 
 		/// <summary>
-		/// The server DNS address where this huddle is hosted.
-		/// huddler14.site.com for example.
+		/// Start time of the huddle. If not provided, "now" is assumed.
 		/// </summary>
-		[DatabaseField(Length = 80)]
-		public string ServerAddress;
+		public DateTime StartTimeUtc;
 
+		/// <summary>
+		/// Scheduled end time of the huddle. Note that this is not a hard deadline - it just helps with load balancing huddles.
+		/// If not provided, StartTimeUtc + 1hr is the default.
+		/// </summary>
+		public DateTime EstimatedEndTimeUtc;
+
+		/// <summary>
+		/// Estimated max participant count. If unfilled, 2 is assumed.
+		/// </summary>
+		public int EstimatedParticipants;
 	}
 
 }

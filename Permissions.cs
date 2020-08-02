@@ -36,6 +36,40 @@ namespace Api.Huddles
 				Roles.Guest.Revoke("huddle_load", "huddle_list");
 				Roles.Public.Revoke("huddle_load", "huddle_list");
 				Roles.Member.Revoke("huddle_load", "huddle_list");
+				
+				// Allow public creation (as it's disabled by default):
+				Roles.Member.Grant("huddleServer_create");
+				Roles.Public.Grant("huddleServer_create");
+				Roles.Guest.Grant("huddleServer_create");
+				
+				// Remove public viewing (as it's enabled by default):
+				Roles.Guest.Revoke("huddleServer_load", "huddleServer_list");
+				Roles.Public.Revoke("huddleServer_load", "huddleServer_list");
+				Roles.Member.Revoke("huddleServer_load", "huddleServer_list");
+				*/
+				
+				/*
+				// Allow public creation (as it's disabled by default):
+				Roles.Member.Grant("huddleLoadMetric_create");
+				Roles.Public.Grant("huddleLoadMetric_create");
+				Roles.Guest.Grant("huddleLoadMetric_create");
+				
+				// Remove public viewing (as it's enabled by default):
+				Roles.Guest.Revoke("huddleLoadMetric_load", "huddleLoadMetric_list");
+				Roles.Public.Revoke("huddleLoadMetric_load", "huddleLoadMetric_list");
+				Roles.Member.Revoke("huddleLoadMetric_load", "huddleLoadMetric_list");
+				*/
+				
+				/*
+				// Allow public creation (as it's disabled by default):
+				Roles.Member.Grant("huddlePermittedUser_create");
+				Roles.Public.Grant("huddlePermittedUser_create");
+				Roles.Guest.Grant("huddlePermittedUser_create");
+				
+				// Remove public viewing (as it's enabled by default):
+				Roles.Guest.Revoke("huddlePermittedUser_load", "huddlePermittedUser_list");
+				Roles.Public.Revoke("huddlePermittedUser_load", "huddlePermittedUser_list");
+				Roles.Member.Revoke("huddlePermittedUser_load", "huddlePermittedUser_list");
 				*/
 				
 				return Task.FromResult(source);

@@ -19,13 +19,49 @@ namespace Api.Huddles
 	public partial class HuddleService : AutoService<Huddle>, IHuddleService
     {
 		private ISignatureService _signatures;
-		
+		private IHuddleServerService _huddleServerService;
+
 		/// <summary>
 		/// Instanced automatically. Use injection to use this service, or Startup.Services.Get.
 		/// </summary>
-		public HuddleService(ISignatureService signatures) : base(Events.Huddle)
+		public HuddleService(ISignatureService signatures, IHuddleServerService huddleServerService) : base(Events.Huddle)
         {
 			_signatures = signatures;
+			_huddleServerService = huddleServerService;
+
+
+			Events.Huddle.BeforeCreate.AddEventListener(async (Context ctx, Huddle huddle) =>
+			{
+				if (huddle.EstimatedParticipants <= 0) {
+					// 2 is assumed:
+					huddle.EstimatedParticipants = 2;
+				}
+
+				if (huddle.StartTimeUtc == DateTime.MinValue)
+				{
+					huddle.StartTimeUtc = DateTime.UtcNow;
+				}
+
+				if (huddle.EstimatedEndTimeUtc == DateTime.MinValue)
+				{
+					huddle.EstimatedEndTimeUtc = huddle.StartTimeUtc.AddHours(1);
+				}
+
+				var n = huddle.EstimatedParticipants;
+				var loadFactor = n + (n * (n - 1));
+
+				// Assign a server now.
+				var serverToUse = await _huddleServerService.Allocate(ctx, huddle.StartTimeUtc, huddle.EstimatedEndTimeUtc, loadFactor);
+
+				if (serverToUse == null)
+				{
+					// Failed to allocate (because there's no huddle servers setup, or because the service hasn't started yet).
+					return null;
+				}
+
+				huddle.HuddleServerId = serverToUse.Id;
+				return huddle;
+			}, 5);
 		}
 		
 		/// <summary>
@@ -41,8 +77,15 @@ namespace Api.Huddles
 			
 			// This signature is what allows the user to fully authenticate on a db-less target server:
 			var sig = _signatures.Sign(queryStr);
-			
-			return huddle.ServerAddress + "/?" + queryStr + "&sig=" + HttpUtility.UrlEncode(sig);
+
+			var huddleServer = await _huddleServerService.Get(context, huddle.HuddleServerId);
+
+			if (huddleServer == null)
+			{
+				return null;
+			}
+
+			return huddleServer.Address + "/?" + queryStr + "&sig=" + HttpUtility.UrlEncode(sig);
 		}
 	}
     

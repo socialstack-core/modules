@@ -1,0 +1,176 @@
+using Api.Database;
+using System.Threading.Tasks;
+using System.Collections.Generic;
+using Api.Permissions;
+using Api.Contexts;
+using Api.Eventing;
+using Api.Startup;
+using System;
+using System.Text;
+using System.Linq;
+
+namespace Api.Huddles
+{
+	/// <summary>
+	/// Handles huddleServers.
+	/// Instanced automatically. Use injection to use this service, or Startup.Services.Get.
+	/// </summary>
+	public partial class HuddleServerService : AutoService<HuddleServer>, IHuddleServerService
+    {
+		/// <summary>
+		/// The size in seconds of a time slice (15 minutes).
+		/// </summary>
+		private const int TimeSliceSize = 60 * 15;
+		
+		/// <summary>
+		/// Time slice epoch.
+		/// </summary>
+		private DateTime _epoch = new DateTime(2020, 1, 1);
+		
+		private string queryStart;
+
+		private Dictionary<int, HuddleServer> huddleServerLookup;
+
+		private Random rand = new Random();
+
+		private IHuddleLoadMetricService _loadMetrics;
+
+		/// <summary>
+		/// Instanced automatically. Use injection to use this service, or Startup.Services.Get.
+		/// </summary>
+		public HuddleServerService(IHuddleLoadMetricService loadMetrics) : base(Events.HuddleServer)
+        {
+			_loadMetrics = loadMetrics;
+
+			InstallAdminPages("Huddle Servers", "fa:fa-users", new string[] { "id", "address" });
+			
+			Cache(new CacheConfig<HuddleServer>(){
+				Retain = true,
+				Preload = true,
+				OnCacheLoaded = () => {
+					// The cache ID index is a huddle server lookup.
+					// That'll be useful when allocating a server.
+					huddleServerLookup = GetCacheForLocale(1).GetPrimary();
+				}
+			});
+			
+			queryStart = "select HuddleServerId from " + typeof(HuddleLoadMetric).TableName() + 
+				" group by HuddleServerId where TimeSliceId in (";
+		}
+		
+		private int GetTimeSlice(DateTime timeUtc){
+			return (int)((timeUtc.Subtract(_epoch)).TotalSeconds / TimeSliceSize);
+		}
+
+		/// <summary>
+		/// Allocates a huddle server for the given time range and load factor.
+		/// </summary>
+		/// <param name="context"></param>
+		/// <param name="startTimeUtc"></param>
+		/// <param name="projectedEndTimeUtc"></param>
+		/// <param name="loadFactor"></param>
+		/// <returns></returns>
+		public async Task<HuddleServer> Allocate(Context context, DateTime startTimeUtc, DateTime projectedEndTimeUtc, int loadFactor)
+		{
+			if (huddleServerLookup == null || huddleServerLookup.Count == 0)
+			{
+				// Can't allocate yet (e.g. because there aren't any!)
+				return null;
+			}
+
+			var allServers = new Dictionary<int, bool>();
+
+			foreach (var kvp in huddleServerLookup)
+			{
+				allServers[kvp.Key] = true;
+			}
+				
+			// Start and end times:
+			var startSliceId = GetTimeSlice(startTimeUtc);
+			var endSliceId = GetTimeSlice(projectedEndTimeUtc);
+			
+			StringBuilder query = new StringBuilder();
+			query.Append(queryStart);
+			
+			for(var i=startSliceId;i<=endSliceId;i++){
+				if(query.Length != 0){
+					query.Append(',');
+				}
+				query.Append(i.ToString());
+			}
+			
+			query.Append(") order by sum(LoadFactor) asc");
+			
+			// Ask the DB for huddle load entries, grouped by server, across this range of time slices:
+			var listQuery = Query.List<AllocatedHuddleServer>();
+			listQuery.SetRawQuery(query.ToString());
+			
+			var allocations = await _database.List(null, listQuery, null);
+
+			// Next, we need to find if there's any servers missing.
+			foreach (var entry in allocations)
+			{
+				allServers.Remove(entry.HuddleServerId);
+			}
+
+			var serverToAllocateTo = 0;
+
+			if (allServers.Count == 0)
+			{
+				// There's no missing servers.
+				// The least busy one is allocations[0].
+				serverToAllocateTo = allocations[0].HuddleServerId;
+			}
+			else
+			{
+				// There's servers which have no allocations at all during these time slices.
+				// Pick a random one of those:
+				serverToAllocateTo = allServers.ElementAt(rand.Next(0, allServers.Count)).Key;
+			}
+
+			// Allocating this server:
+			if (!huddleServerLookup.TryGetValue(serverToAllocateTo, out HuddleServer targetServer))
+			{
+				return null;
+			}
+
+			// Update the load metric table:
+			for (var i = startSliceId; i <= endSliceId; i++)
+			{
+				int sliceId = (int)(i | (serverToAllocateTo << 21));
+
+				// Insert/ update each slice:
+				var measurement = await _loadMetrics.Get(context, sliceId);
+
+				if (measurement == null)
+				{
+					// Doesn't exist, create it.
+					await _loadMetrics.Create(context, new HuddleLoadMetric()
+					{
+						Id = sliceId,
+						LoadFactor = loadFactor,
+						HuddleServerId = serverToAllocateTo,
+						TimeSliceId = i
+					});
+				}
+				else
+				{
+					measurement.LoadFactor += loadFactor;
+					await _loadMetrics.Update(context, measurement);
+				}
+
+			}
+
+			return targetServer;
+		}
+
+		private class AllocatedHuddleServer
+		{
+			/// <summary>
+			/// Allocated server ID.
+			/// </summary>
+			public int HuddleServerId;
+		}
+	}
+    
+}

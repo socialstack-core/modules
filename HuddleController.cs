@@ -28,7 +28,7 @@ namespace Api.Huddles
 			var huddle = await service.Get(context, id);
 			
 			if(huddle == null){
-				// Doesn't exist or not permitted
+				// Doesn't exist or not permitted (the permission system internally checks huddle type and invites).
 				return null;
 			}
 			
