@@ -13,9 +13,32 @@ namespace Api.PrivateChats
 	public partial class PrivateChat : RevisionRow
 	{
 		/// <summary>
-		/// CreatorUserId is chatting with WithUserId.
+		/// Private chat can be between two entities on the site. Usually that's a user->user, but can 
+		/// also be e.g. user->company or company->company or company->group etc.
+		/// ContentId of the original sender.
 		/// </summary>
-		public int WithUserId;
+		public int SourceContentId;
+		
+		/// <summary>
+		/// Private chat can be between two entities on the site. Usually that's a user->user, but can 
+		/// also be e.g. user->company or company->company or company->group etc.
+		/// ContentType of the original sender.
+		/// </summary>
+		public int SourceContentType;
+		
+		/// <summary>
+		/// Private chat can be between two entities on the site. Usually that's a user->user, but can 
+		/// also be e.g. user->company or company->company or company->group etc.
+		/// ContentType of the original recipient.
+		/// </summary>
+		public int TargetContentType;
+		
+		/// <summary>
+		/// Private chat can be between two entities on the site. Usually that's a user->user, but can 
+		/// also be e.g. user->company or company->company or company->group etc.
+		/// ContentId of the original recipient.
+		/// </summary>
+		public int TargetContentId;
 		
 		/// <summary>
 		/// Total messages in this chat.
@@ -26,7 +49,7 @@ namespace Api.PrivateChats
 		/// <summary>
 		/// Set when loading this private chat.
 		/// </summary>
-		public UserProfile WithUser {get; set;}
+		public object Target {get; set;}
 	}
 
 }

@@ -18,11 +18,6 @@ namespace Api.PrivateChats
 		public int PrivateChatId;
 		
 		/// <summary>
-		/// A quick reference to the ID of the other user in the chat.
-		/// </summary>
-		public int WithUserId;
-		
-		/// <summary>
 		/// The message text.
 		/// </summary>
 		[DatabaseField(Length=1000)]

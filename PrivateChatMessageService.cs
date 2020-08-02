@@ -20,29 +20,37 @@ namespace Api.PrivateChats
         {
 			
 			Events.PrivateChatMessage.BeforeCreate.AddEventListener(async (Context context, PrivateChatMessage msg) => {
-				
+
+				if (msg.PrivateChatId == 0)
+				{
+					// Chat ID must be set.
+					return null;
+				}
+
 				// User able to msg this channel?
 				// Get the channel:
 				var channel = await _chats.Get(context, msg.PrivateChatId);
-				
+					
 				if(channel == null){
 					// Doesn't exist.
 					return null;
 				}
-				
-				if(channel.UserId != context.UserId && channel.WithUserId != context.UserId){
+
+				// Context must represent either the channel source, or the channel target.
+				if(
+					!context.HasContent(channel.SourceContentType, channel.SourceContentId) &&
+					!context.HasContent(channel.TargetContentType, channel.TargetContentId)
+				) {
 					// Nope
 					return null;
 				}
 				
-				// Set the with user ref:
-				msg.WithUserId = (context.UserId == channel.UserId) ? channel.WithUserId : channel.UserId;
-				
 				// Update the channel with the number of messages in it:
 				channel.MessageCount++;
-				
+					
 				await _chats.Update(context, channel);
-				
+
+				// Ok:
 				return msg;
 			});
 			

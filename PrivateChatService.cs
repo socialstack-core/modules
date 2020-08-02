@@ -23,52 +23,85 @@ namespace Api.PrivateChats
 
 			Events.PrivateChat.AfterLoad.AddEventListener(async (Context context, PrivateChat chat) =>
 			{
-
-				if (chat == null || chat.WithUserId == 0)
+				if (chat == null)
 				{
-					return chat;
+					return null;
 				}
 
-				// Get the with user:
-				chat.WithUser = await _users.GetProfile(context, chat.WithUserId);
+				if (chat.TargetContentId != 0)
+				{
+					// Get the target info:
+					chat.Target = await Content.Get(context, chat.TargetContentType, chat.TargetContentId);
+				}
 
 				return chat;
 			}, 5);
 			
 			Events.PrivateChat.AfterUpdate.AddEventListener(async (Context context, PrivateChat chat) =>
 			{
-
-				if (chat == null || chat.WithUserId == 0)
+				if (chat == null)
 				{
-					return chat;
+					return null;
 				}
 
-				// Get the with user:
-				chat.WithUser = await _users.GetProfile(context, chat.WithUserId);
+				if (chat.TargetContentId != 0)
+				{
+					// Get the target info:
+					chat.Target = await Content.Get(context, chat.TargetContentType, chat.TargetContentId);
+				}
 
 				return chat;
 			}, 5);
 			
 			Events.PrivateChat.AfterCreate.AddEventListener(async (Context context, PrivateChat chat) =>
 			{
-
-				if (chat == null || chat.WithUserId == 0)
+				if (chat == null)
 				{
-					return chat;
+					return null;
 				}
 
-				// Get the with user:
-				chat.WithUser = await _users.GetProfile(context, chat.WithUserId);
+				if (chat.TargetContentId != 0)
+				{
+					// Get the target info:
+					chat.Target = await Content.Get(context, chat.TargetContentType, chat.TargetContentId);
+				}
 
 				return chat;
 			}, 5);
-			
+
+			Events.PrivateChat.BeforeCreate.AddEventListener((Context context, PrivateChat chat) => {
+
+				// Permitted to create this chat for the named source if this context has that source.
+				if (chat == null)
+				{
+					return Task.FromResult(chat);
+				}
+
+				if (chat.SourceContentType == 0 && chat.SourceContentId == 0)
+				{
+					// It's not set - default to being from the contextual user.
+					chat.SourceContentType = ContentTypes.GetId(typeof(User));
+					chat.SourceContentId = context.UserId;
+				}
+				else if (!context.HasContent(chat.SourceContentType, chat.SourceContentId))
+				{
+					// The context does not have this source.
+					// For example, user tried to send as company Y, but they aren't authenticated as company Y.
+					// Aka, go away!
+					return Task.FromResult((PrivateChat)null);
+				}
+
+				return Task.FromResult(chat);
+			});
+
 			Events.PrivateChat.AfterList.AddEventListener(async (Context context, List<PrivateChat> list) =>
 			{
 				// First we'll collect all their IDs so we can do a single bulk lookup.
 				// ASSUMPTION: The list is not excessively long!
 				// FUTURE IMPROVEMENT: Do this in chunks of ~50k entries.
 				// (applies to at least categories/ tags).
+
+#warning todo this needs to be modified to support companies (eBay) as well
 
 				var uniqueUsers = new Dictionary<int, UserProfile>();
 
@@ -82,7 +115,7 @@ namespace Api.PrivateChats
 					}
 
 					// Add to content lookup so we can map the tags to it shortly:
-					var creatorId = entry.WithUserId;
+					var creatorId = entry.TargetContentId;
 
 					if (creatorId != 0)
 					{
@@ -128,13 +161,13 @@ namespace Api.PrivateChats
 					}
 
 					// Add to content lookup so we can map the tags to it shortly:
-					var creatorId = entry.WithUserId;
+					var creatorId = entry.TargetContentId;
 
 					// Note that this user object might be null.
 					var userProfile = creatorId == 0 ? null : uniqueUsers[creatorId];
 
 					// Get it as the public profile object next:
-					entry.WithUser = userProfile;
+					entry.Target = userProfile;
 				}
 
 				return list;
