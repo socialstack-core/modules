@@ -8,7 +8,7 @@ namespace Api.Users
     /// <summary>
     /// A typically public facing segment of a user account.
     /// </summary>
-    public partial class UserProfile
+    public partial class UserProfile: IHaveId
     {
 		/// <summary>
 		/// Starts creating a public facing variant of the given user object.
@@ -44,6 +44,15 @@ namespace Api.Users
         /// The username of the user. 
         /// </summary>
         public string Username;
-    }
+
+		/// <summary>
+		/// Gets the ID of this row.
+		/// </summary>
+		/// <returns></returns>
+		public int GetId()
+		{
+			return Id;
+		}
+	}
 
 }
