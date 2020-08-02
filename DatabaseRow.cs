@@ -10,7 +10,7 @@ namespace Api.Database
 	/// store in the database automatically.
 	/// A database table will always have the columns defined here as fields.
 	/// </summary>
-	public partial class DatabaseRow
+	public partial class DatabaseRow : IHaveId
 	{
 		/// <summary>
 		/// The row ID.
@@ -28,6 +28,15 @@ namespace Api.Database
 			get {
 				return GetType().Name;
 			}
+		}
+
+		/// <summary>
+		/// Gets the ID of this row.
+		/// </summary>
+		/// <returns></returns>
+		public int GetId()
+		{
+			return Id;
 		}
 	}
 	

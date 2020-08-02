@@ -61,7 +61,7 @@ namespace Api.Database
 		/// <returns></returns>
 		public static async Task ApplyMixed(
 			Context context, IEnumerable parentContents, Func<object, ContentTypeAndId> getTypeAndId, 
-			Action<object, DatabaseRow> applyContent, bool convertUser = true
+			Action<object, object> applyContent, bool convertUser = true
 		) {
 			if (parentContents == null)
 			{
@@ -128,7 +128,7 @@ namespace Api.Database
 				}
 
 				// Apply the content (value can be null - that's fine):
-				loader.Contents.TryGetValue(typeAndId.ContentId, out DatabaseRow value);
+				loader.Contents.TryGetValue(typeAndId.ContentId, out object value);
 				applyContent(host, value);
 			}
 
@@ -210,7 +210,7 @@ namespace Api.Database
 		/// <summary>
 		/// The mapping of loaded contents.
 		/// </summary>
-		public Dictionary<int, DatabaseRow> Contents = new Dictionary<int, DatabaseRow>();
+		public Dictionary<int, object> Contents = new Dictionary<int, object>();
 
 		/// <summary>
 		/// Enumerator of content IDs.
@@ -227,14 +227,19 @@ namespace Api.Database
 		/// <param name="contents"></param>
 		public void Apply(IEnumerable contents)
 		{
+			if (contents == null)
+			{
+				return;
+			}
+
 			foreach (var content in contents)
 			{
-				var dbRow = content as DatabaseRow;
-				if (dbRow == null)
+				var entry = content as IHaveId;
+				if (entry == null)
 				{
 					continue;
 				}
-				Contents[dbRow.Id] = dbRow;
+				Contents[entry.GetId()] = entry;
 			}
 		}
 	}
