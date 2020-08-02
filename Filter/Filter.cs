@@ -61,6 +61,15 @@ namespace Api.Permissions
 		public void BuildFullQuery(StringBuilder str, int paramOffset, string localeCode)
 		{
 			BuildWhereQuery(str, paramOffset, localeCode);
+
+			if (Groupings != null)
+			{
+				for (var i = 0; i < Groupings.Count; i++)
+				{
+					Groupings[i].BuildQuery(str, paramOffset, localeCode);
+				}
+			}
+
 			BuildOrderLimitQuery(str, paramOffset, localeCode);
 		}
 
