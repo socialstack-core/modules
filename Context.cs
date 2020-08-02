@@ -33,6 +33,30 @@ namespace Api.Contexts
 		public bool PermitEditedUtcChange = true;
 		
 		/// <summary>
+		/// True if this context has the given content in it. For example, checks if this content has User #12, or Company #120 etc.
+		/// </summary>
+		public bool HasContent(int contentTypeId, int contentId)
+		{
+			if (_contextService == null)
+			{
+				_contextService = Services.Get<IContextService>();
+			}
+			
+			// See if a field exists for the given contentTypeId on the Context object:
+			var fieldInfo = _contextService.FieldByContentType(contentTypeId);
+			
+			if(fieldInfo == null){
+				return false;
+			}
+			
+			// Read the ID to match with:
+			var contextsContentId = (int)fieldInfo.Get.Invoke(this, null);
+			
+			// This context has the content if the ID (in the context) matches the content we were asked about:
+			return contextsContentId == contentId;
+		}
+		
+		/// <summary>
 		/// The current locale or the site default.
 		/// </summary>
 		public int LocaleId

@@ -31,6 +31,11 @@
 		/// </summary>
 		/// <returns></returns>
 		string CreateToken(Context context);
-
+		
+		/// <summary>
+		/// Gets Context field info for the given contentType. Null if it doesn't exist in Context.
+		/// </summary>
+		ContextFieldInfo FieldByContentType(int contentTypeId);
+		
 	}
 }

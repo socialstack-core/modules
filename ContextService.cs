@@ -2,6 +2,7 @@
 using System.Reflection;
 using System.Text;
 using System.Threading.Tasks;
+using Api.Database;
 using Api.Eventing;
 using Api.Signatures;
 
@@ -27,7 +28,11 @@ namespace Api.Contexts
 		/// </summary>
 		private Dictionary<string, ContextFieldInfo> Fields = new Dictionary<string, ContextFieldInfo>();
 		private List<ContextFieldInfo> FieldList = new List<ContextFieldInfo>();
-
+		
+		/// <summary>
+		/// Maps a content type ID to the context field info. Your context property must end with 'Id' to get an entry here.
+		/// </summary>
+		private Dictionary<int, ContextFieldInfo> ContentTypeToFieldInfo = new Dictionary<int, ContextFieldInfo>();
 		private ISignatureService _signatures;
 
 
@@ -65,12 +70,28 @@ namespace Api.Contexts
 					LowercaseNameWithDash = lcName + '-',
 					DefaultValue = defaultValue
 				};
-
+				
+				if(field.Name.EndsWith("Id")){
+					// E.g. UserId, LocaleId.
+					// Get content type ID:
+					var contentTypeId = ContentTypes.GetId(field.Name.Substring(0, field.Name.Length - 2));
+					ContentTypeToFieldInfo[contentTypeId] = fld;
+				}
+				
 				Fields[lcName] = fld;
 				FieldList.Add(fld);
 			}
         }
-
+		
+		/// <summary>
+		/// Gets Context field info for the given contentType. Null if it doesn't exist in Context.
+		/// </summary>
+		public ContextFieldInfo FieldByContentType(int contentTypeId)
+		{
+			ContentTypeToFieldInfo.TryGetValue(contentTypeId, out ContextFieldInfo result);
+			return result;
+		}
+		
 		/// <summary>
 		/// The name of the cookie in use.
 		/// </summary>
