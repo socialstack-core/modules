@@ -195,8 +195,10 @@ namespace Api.Startup
 
 				if (autoServiceType != null)
 				{
-					Services.AutoServices[autoServiceType] = svc as AutoService;
-					Services.ContentTypes[ContentTypes.GetId(autoServiceType)] = svc as AutoService;
+					var autoService = svc as AutoService;
+					Services.AutoServices[autoServiceType] = autoService;
+					var contentId = ContentTypes.GetId(autoService.ServicedType);
+					Services.ContentTypes[contentId] = autoService;
 				}
 				
 			}
