@@ -50,6 +50,11 @@ namespace Api.PrivateChats
 		/// Set when loading this private chat.
 		/// </summary>
 		public object Target {get; set;}
+
+		/// <summary>
+		/// Set when loading this private chat.
+		/// </summary>
+		public object Source { get; set; }
 	}
 
 }

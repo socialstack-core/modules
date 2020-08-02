@@ -34,6 +34,12 @@ namespace Api.PrivateChats
 					chat.Target = await Content.Get(context, chat.TargetContentType, chat.TargetContentId);
 				}
 
+				if (chat.SourceContentId != 0)
+				{
+					// Get the source info:
+					chat.Source = await Content.Get(context, chat.SourceContentType, chat.SourceContentId);
+				}
+
 				return chat;
 			}, 5);
 			
@@ -50,6 +56,12 @@ namespace Api.PrivateChats
 					chat.Target = await Content.Get(context, chat.TargetContentType, chat.TargetContentId);
 				}
 
+				if (chat.SourceContentId != 0)
+				{
+					// Get the source info:
+					chat.Source = await Content.Get(context, chat.SourceContentType, chat.SourceContentId);
+				}
+
 				return chat;
 			}, 5);
 			
@@ -64,6 +76,12 @@ namespace Api.PrivateChats
 				{
 					// Get the target info:
 					chat.Target = await Content.Get(context, chat.TargetContentType, chat.TargetContentId);
+				}
+
+				if (chat.SourceContentId != 0)
+				{
+					// Get the source info:
+					chat.Source = await Content.Get(context, chat.SourceContentType, chat.SourceContentId);
 				}
 
 				return chat;
@@ -96,83 +114,46 @@ namespace Api.PrivateChats
 
 			Events.PrivateChat.AfterList.AddEventListener(async (Context context, List<PrivateChat> list) =>
 			{
-				// First we'll collect all their IDs so we can do a single bulk lookup.
-				// ASSUMPTION: The list is not excessively long!
-				// FUTURE IMPROVEMENT: Do this in chunks of ~50k entries.
-				// (applies to at least categories/ tags).
-
-#warning todo this needs to be modified to support companies (eBay) as well
-
-				var uniqueUsers = new Dictionary<int, UserProfile>();
-
-				for (var i = 0; i < list.Count; i++)
+				if (list == null)
 				{
-					var entry = list[i];
-
-					if (entry == null)
-					{
-						continue;
-					}
-
-					// Add to content lookup so we can map the tags to it shortly:
-					var creatorId = entry.TargetContentId;
-
-					if (creatorId != 0)
-					{
-						uniqueUsers[creatorId] = null;
-					}
-				}
-
-				if (uniqueUsers.Count == 0)
-				{
-					// Nothing to do - just return here:
 					return list;
 				}
 
-				// Create the filter and run the query now:
-				var userIds = new object[uniqueUsers.Count];
-				var index = 0;
-				foreach (var kvp in uniqueUsers)
-				{
-					userIds[index++] = kvp.Key;
-				}
-
-				var filter = new Filter<User>();
-				filter.EqualsSet("Id", userIds);
-
-				// Use the regular list method here:
-				var allUsers = await _users.List(context, filter);
-
-				foreach (var user in allUsers)
-				{
-					// Get as the public profile and hook up the mapping:
-					var profile = await _users.GetProfile(context, user);
-					uniqueUsers[user.Id] = profile;
-				}
-
-				for (var i = 0; i < list.Count; i++)
-				{
-					// Get as IHaveCreatorUser objects (must be valid because of the above check):
-					var entry = list[i];
-
-					if (entry == null)
+				// Can be mixed content (e.g. chats between users/ companies etc) so we'll use the Content.ApplyMixed helper:
+				await Content.ApplyMixed(
+					context,
+					list,
+					src =>
 					{
-						continue;
+						// Never invoked with null.
+						var privateChat = (PrivateChat)src;
+						return new ContentTypeAndId(privateChat.TargetContentType, privateChat.TargetContentId);
+					},
+					(object src, DatabaseRow content) =>
+					{
+						var privateChat = (PrivateChat)src;
+						privateChat.Target = content;
 					}
+				);
 
-					// Add to content lookup so we can map the tags to it shortly:
-					var creatorId = entry.TargetContentId;
-
-					// Note that this user object might be null.
-					var userProfile = creatorId == 0 ? null : uniqueUsers[creatorId];
-
-					// Get it as the public profile object next:
-					entry.Target = userProfile;
-				}
-
+				await Content.ApplyMixed(
+					context,
+					list,
+					src =>
+					{
+						// Never invoked with null.
+						var privateChat = (PrivateChat)src;
+						return new ContentTypeAndId(privateChat.SourceContentType, privateChat.SourceContentId);
+					},
+					(object src, DatabaseRow content) =>
+					{
+						var privateChat = (PrivateChat)src;
+						privateChat.Source = content;
+					}
+				);
+				
 				return list;
-			}, 5);
-			
+			});
 		}
 	}
     
