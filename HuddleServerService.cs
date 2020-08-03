@@ -93,7 +93,7 @@ namespace Api.Huddles
 			query.Append(queryStart);
 			
 			for(var i=startSliceId;i<=endSliceId;i++){
-				if(query.Length != 0){
+				if(i != startSliceId){
 					query.Append(',');
 				}
 				query.Append(i.ToString());
