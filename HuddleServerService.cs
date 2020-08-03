@@ -55,7 +55,7 @@ namespace Api.Huddles
 			});
 			
 			queryStart = "select HuddleServerId from " + typeof(HuddleLoadMetric).TableName() + 
-				" group by HuddleServerId where TimeSliceId in (";
+				" where TimeSliceId in (";
 		}
 		
 		private int GetTimeSlice(DateTime timeUtc){
@@ -99,7 +99,7 @@ namespace Api.Huddles
 				query.Append(i.ToString());
 			}
 			
-			query.Append(") order by sum(LoadFactor) asc");
+			query.Append(") group by HuddleServerId order by sum(LoadFactor) asc");
 			
 			// Ask the DB for huddle load entries, grouped by server, across this range of time slices:
 			var listQuery = Query.List<AllocatedHuddleServer>();
