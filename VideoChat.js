@@ -97,5 +97,5 @@ export default class VideoChat extends React.Component {
 }
 
 VideoChat.propTypes = {
-	
+	roomId: 'int'
 };
