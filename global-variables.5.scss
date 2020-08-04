@@ -1,0 +1,63 @@
+/*
+	SASS variable defaults
+
+    NB: named global-variables.5.scss to allow for project-specific overrides (see UI/Source/GeneralStyle/variables.10.scss)
+	** CHANGES / ADDITIONS TO THESE SETTINGS WILL APPLY TO ALL SOCIALSTACK PROJECTS - use project-level SASS to override for a specific project **
+*/
+
+$site_bg: #fff !default;
+
+$unbranded_dark: #aaa;
+$unbranded_light: #fff;
+
+// badges
+$badge_bg: $unbranded_dark !default;
+$badge_fg: $unbranded_light !default;
+$badge_border_radius: 0 !default;
+
+// fonts
+$base_font_size: 16 !default; // in px
+$theme_font_family: "Open Sans", Arial, sans-serif !default;
+$title_font_family: $theme_font_family !default;
+$title_font_weight: 700 !default;
+$regular_font_family: $theme_font_family !default;
+$regular_font_weight: 400 !default;
+$bold_font_family: $theme_font_family !default;
+$bold_font_weight: 700 !default;
+$light_font_family: $theme_font_family !default;
+$light_font_weight: 400 !default;
+$installed_font: $theme_font_family; // for backwards compatibility (original variable name)
+
+// buttons
+$theme_primary_btn_bg: $unbranded_dark !default;
+$theme_primary_btn_fg: $unbranded_light !default;
+$theme_primary_btn_border: 2px solid transparent !default;
+$theme_primary_btn_hover_bg: darken($theme_primary_btn_bg, 10%) !default;
+$theme_primary_btn_hover_fg: darken($theme_primary_btn_fg, 10%) !default;
+$theme_primary_btn_hover_border: 2px solid transparent !default;
+$theme_primary_btn_active_bg: darken($theme_primary_btn_bg, 20%) !default;
+$theme_primary_btn_active_fg: darken($theme_primary_btn_fg, 20%) !default;
+$theme_primary_btn_active_border: 2px solid transparent !default;
+
+$theme_secondary_btn_bg: $unbranded_light !default;
+$theme_secondary_btn_fg: $unbranded_dark !default;
+$theme_secondary_btn_border: 2px solid $unbranded_dark !default;
+$theme_secondary_btn_hover_bg: darken($theme_secondary_btn_bg, 10%) !default;
+$theme_secondary_btn_hover_fg: darken($theme_secondary_btn_fg, 10%) !default;
+$theme_secondary_btn_hover_border: 2px solid darken($unbranded_dark, 10%) !default;
+$theme_secondary_btn_active_bg: darken($theme_secondary_btn_bg, 20%) !default;
+$theme_secondary_btn_active_fg: darken($theme_secondary_btn_fg, 20%) !default;
+$theme_secondary_btn_active_border: 2px solid darken($unbranded_dark, 20%) !default;
+
+// links
+$theme_link_fg: $unbranded_dark !default;
+$theme_link_weight: bold !default;
+$theme_link_decoration: none !default;
+$theme_link_hover_fg: darken($theme_link_fg, 5%) !default;
+$theme_link_hover_decoration: underline !default;
+$theme_link_active_fg: darken($theme_link_fg, 10%) !default;
+
+// z-indexes
+$zindex_dropdown: 900 !default;
+$zindex_fixed_header: 1000 !default;
+
