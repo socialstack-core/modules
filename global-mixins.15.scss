@@ -11,16 +11,24 @@
     line-height: 0rem + $px / $base_font_size;
 }
 
-@mixin padding($vertical_px, $horizontal_px: $vertical_px) {
-    $vertical_em: 0rem + $vertical_px / $base_font_size;
-    $horizontal_em: 0rem + $horizontal_px / $base_font_size;
-    padding: $vertical_em $horizontal_em;
+@mixin letter_spacing($px) {
+    letter-spacing: 0rem + $px / $base_font_size;
 }
 
-@mixin margin($vertical_px, $horizontal_px: $vertical_px) {
-    $vertical_em: 0rem + $vertical_px / $base_font_size;
-    $horizontal_em: 0rem + $horizontal_px / $base_font_size;
-    margin: $vertical_em $horizontal_em;
+@mixin padding($top_px: 0, $right_px: 0, $bottom_px: $top_px, $left_px: $right_px) {
+    $top_em: 0rem + $top_px / $base_font_size;
+    $right_em: 0rem + $right_px / $base_font_size;
+    $bottom_em: 0rem + $bottom_px / $base_font_size;
+    $left_em: 0rem + $left_px / $base_font_size;
+    padding: $top_em $right_em $bottom_em $left_em;
+}
+
+@mixin margin($top_px: 0, $right_px: 0, $bottom_px: $top_px, $left_px: $right_px) {
+    $top_em: 0rem + $top_px / $base_font_size;
+    $right_em: 0rem + $right_px / $base_font_size;
+    $bottom_em: 0rem + $bottom_px / $base_font_size;
+    $left_em: 0rem + $left_px / $base_font_size;
+    margin: $top_em $right_em $bottom_em $left_em;
 }
 
 // typically used in the following context:
