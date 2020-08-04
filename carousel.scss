@@ -3,11 +3,70 @@
     .slider {
         width: 100%;
         overflow: hidden;
+        position: relative;
+
+        &.slider-align-first {
+
+            .content-list.content.first {
+                // optionally indent carousel so it appears to be centred for the first slide
+                // (mimics being parented by a <Container> without the width limitation)
+                // TODO: reference default theme container width here
+                // typically 1140px, overridden to 960px within AVT-EBY project
+                //margin-left: calc((100% - 960px) / 2) !important;
+                margin-left: 15px;
+            }
+
+            .content-item {
+                // TODO: account for different spacing
+                flex: 0 0 calc(100% + 16px);
+            }
+
+        }
+
+        .slider-back-wrapper,
+        .slider-next-wrapper {
+            position: absolute;
+            display: flex;
+            align-items: center;
+            top: 0;
+            bottom: 0;
+            z-index: 10;
+        }
+
+        .slider-back-wrapper {
+            left: 0;
+        }
+
+        .slider-next-wrapper {
+            right: 0;
+        }
+
+        .slider-back,
+        .slider-next {
+            width: 4rem;
+            height: 4rem;
+            // TODO: base on theme-specific settings
+            background: #fff;
+            box-shadow: 0px 2px 5px 0px rgba(0, 0, 0, 0.25);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            // icon
+            > svg {
+                width: 1.25rem;
+                height: 1.25rem;
+
+                path {
+                    fill: #3665f3;
+                }
+            }
+        }
     }
 
     .content-list {
         transition: margin-left 600ms ease-in-out;
-        display: block !important;
+        //display: block !important;
+        display: flex;
         white-space: nowrap;
         font-size: 0;
         width: 100%;
@@ -21,20 +80,95 @@
         font-size: 16px;
         white-space: normal;
         padding: 0;
-        height: 100%;
+        height: auto;
         width: 100%;
+        flex: 0 0 100%;
         overflow: hidden;
 
+        .content-item-internal {
+            height: 100%;
+        }
+
+        // TODO: shouldn't be shared, this might well vary for each instance
+        /*
         > div {
             height: 440px !important;
-
+            
             h1 {
                 font-size: 2.125rem;
+            }
+        }
+        */
+    }
+}
+
+@media only screen and (min-width: 576px) {
+
+    .carousel {
+
+        .slider {
+
+            &.slider-align-first {
+
+                .content-list.content.first {
+                    margin-left: calc( (100% - 510px) / 2) !important;
+
+                    .content-item {
+                        // TODO: account for different spacing
+                        flex: 0 0 calc(510px + 16px);
+                    }
+                }
             }
         }
     }
 }
 
+@media only screen and (min-width: 768px) {
+
+    .carousel {
+
+        .slider {
+
+            &.slider-align-first {
+
+                .content-list.content.first {
+                    margin-left: calc( (100% - 690px) / 2) !important;
+
+                    .content-item {
+                        // TODO: account for different spacing
+                        //flex: 0 0 calc( (690px / 2) + (16px / 2));
+                        flex: 0 0 calc(690px + 16px);
+                    }
+                }
+            }
+        }
+    }
+}
+
+@media only screen and (min-width: 992px) {
+
+    .carousel {
+
+        .slider {
+
+            &.slider-align-first {
+
+                .content-list.content.first {
+                    margin-left: calc( (100% - 930px) / 2) !important;
+
+                    .content-item {
+                        // TODO: account for different spacing
+                        //flex: 0 0 calc( (930px / 2) + (16px / 2));
+                        flex: 0 0 calc(930px + 16px);
+                    }
+                }
+            }
+        }
+    }
+}
+
+// TODO: unlikely to apply to every instance of a Carousel
+/*
 @media only screen and (max-width: 1199px) {
 
     .carousel {
@@ -94,3 +228,4 @@
         }
     }
 }
+*/
