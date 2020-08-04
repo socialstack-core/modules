@@ -1,0 +1,68 @@
+/*
+	global button styles
+    NB: named global-buttons.35.scss to allow for project-specific overrides to these styles (see UI/Source/GeneralStyle/buttons.40.scss)
+*/
+
+.ss-button {
+    @include button_styling; // NB: includes focus styling
+    display: inline-block;
+    font-size: 1rem;
+    font-weight: bold;
+    padding: .75rem 4rem;
+    border-radius: 2rem;
+    transition: all .2s ease;
+    transition-property: color, background-color, border-color;
+    text-decoration: none;
+
+    &[disabled] {
+        opacity: .5;
+        cursor: not-allowed;
+    }
+
+    &:hover {
+        text-decoration: none;
+    }
+
+    /* WIP
+    &.ss-button__large {
+        min-width: 222px;
+    }
+    */
+
+    &.ss-button__primary {
+        background-color: $theme_primary_btn_bg;
+        color: $theme_primary_btn_fg;
+        border: $theme_primary_btn_border;
+
+        &:hover {
+            background-color: $theme_primary_btn_hover_bg;
+            color: $theme_primary_btn_hover_fg;
+            border-color: $theme_primary_btn_hover_border;
+        }
+
+        &:active {
+            background-color: $theme_primary_btn_active_bg;
+            color: $theme_primary_btn_active_fg;
+            border-color: $theme_primary_btn_active_border;
+        }
+
+    }
+
+    &.ss-button__secondary {
+        background-color: $theme_secondary_btn_bg;
+        color: $theme_secondary_btn_fg;
+        border: $theme_secondary_btn_border;
+
+        &:hover {
+            background-color: $theme_secondary_btn_hover_bg;
+            color: $theme_secondary_btn_hover_fg;
+            border-color: $theme_secondary_btn_hover_border;
+        }
+
+        &:active {
+            background-color: $theme_secondary_btn_active_bg;
+            color: $theme_secondary_btn_active_fg;
+            border-color: $theme_secondary_btn_active_border;
+        }
+    }
+}
