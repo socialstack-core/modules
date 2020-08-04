@@ -72,8 +72,9 @@ namespace Api.Huddles
 			var user = await context.GetUser();
 
 			string displayName = user == null ? "Anonymous" : user.Username;
+			string avatarRef = user == null ? (string)null : user.AvatarRef;
 
-			var queryStr = "h=" + huddle.Id + "&u=" + context.UserId + "&d=" + HttpUtility.UrlEncode(displayName) + "&a=" + HttpUtility.UrlEncode(user.AvatarRef);
+			var queryStr = "h=" + huddle.Id + "&u=" + context.UserId + "&d=" + HttpUtility.UrlEncode(displayName) + "&a=" + HttpUtility.UrlEncode(avatarRef);
 			
 			// This signature is what allows the user to fully authenticate on a db-less target server:
 			var sig = _signatures.Sign(queryStr);

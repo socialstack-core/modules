@@ -21,6 +21,11 @@ namespace Api.Huddles
 		/// The huddle ID.
 		/// </summary>
 		public int HuddleId;
+
+		/// <summary>
+		/// The permitted user (if there is one - can be null).
+		/// </summary>
+		public UserProfile PermittedUser { get; set; }
 	}
 
 }

@@ -36,8 +36,8 @@ namespace Api.Huddles
 			var connectionUrl = await service.SignUrl(context, huddle);
 			
 			return new {
-				huddle = huddle,
-				connectionUrl = connectionUrl
+				huddle,
+				connectionUrl
 			};
 		}
 		

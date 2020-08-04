@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using Api.Database;
 using Api.Translate;
 using Api.Users;
@@ -39,6 +40,11 @@ namespace Api.Huddles
 		/// Estimated max participant count. If unfilled, 2 is assumed.
 		/// </summary>
 		public int EstimatedParticipants;
+
+		/// <summary>
+		/// Invited users to this huddle.
+		/// </summary>
+		public List<HuddlePermittedUser> Invites { get; set; }
 	}
 
 }
