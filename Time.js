@@ -105,11 +105,23 @@ export default class Time extends React.Component {
 		}
 	}
 	
-	render(){
+	render() {
 		const { agoTime } = this.state;
-		return agoTime;
-	}
-	
+		var isoString = false;
+		var title = false;
+
+		if (this.props.date) {
+			var date = dateTools.isoConvert(this.props.date);
+
+			if (date) {
+				isoString = date.toISOString();
+				title = this.dateText(date);
+			}
+		}
+
+		return <time className={this.props.className} title={title} datetime={isoString}>
+			{agoTime}
+		</time>;
+	}	
 	
 }
-	
