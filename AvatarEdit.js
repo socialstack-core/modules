@@ -73,7 +73,7 @@ export default class AvatarEdit extends React.Component {
 												<div className="btn btn-danger" style={{marginRight: '20px'}} onClick={() => this.setAvatar(null)}>
 													Yes - Remove it
 												</div>
-												<div className="btn btn-primary" onClick={() => this.setState({confirmDelete: false})}>
+													<div className="btn btn-primary" onMouseDown={() => this.setState({confirmDelete: false})}>
 													Cancel
 												</div>
 											</div>
