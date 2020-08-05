@@ -1,6 +1,7 @@
 import webRequest from 'UI/Functions/WebRequest';
 import hlsjs from './hls.js';
 import omit from 'UI/Functions/Omit';
+import getRef from 'UI/Functions/GetRef';
 import cache from 'UI/HlsVideo/Cache';
 
 
@@ -21,22 +22,32 @@ export default class HlsVideo extends React.Component {
 			return;
 		}
 		
-		this.video.pause();
-		this.video.currentTime = 0;
-		this.video.load();
-		this.video.play();
+		if(this.props.autoplay){
+			this.video.pause();
+			this.video.currentTime = 0;
+			this.video.load();
+			this.video.play();
+		}
 	}
 	
 	componentWillReceiveProps(props){
 	}
 	
 	getSource(props){
-		return '/content/video/' + props.videoId + '/manifest.m3u8';
+		var {videoId, videoRef} = props;
+		
+		if(!videoId && videoRef){
+			// extract id from ref:
+			var refParts = getRef(videoRef, {url: true, dirs: ['video']}).split('-');
+			return refParts[0] + '/manifest.m3u8';
+		}
+		
+		return '/content/video/' + videoId + '/manifest.m3u8';
 	}
 	
 	render(){
 		return <div className="hlsVideo">
-			<video {...omit(this.props, ['videoId'])} ref={video => {
+			<video {...omit(this.props, ['videoId', 'ref', 'autoplay'])} ref={video => {
 				if(!video){
 					return;
 				}
