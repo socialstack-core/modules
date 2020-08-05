@@ -42,19 +42,23 @@ function contentFile(ref, options){
 	
 	var dirs = ref.split('/');
 	ref = dirs.pop();
-	
-	if(dirs.length>1){
+	if(options.dirs){
+		dirs = dirs.concat(options.dirs);
+	}
+	if(dirs.length>0){
 		// If dirs[0] contains . then it's a server address (for example, public:mycdn.com/123.jpg
-		if(dirs[0].indexOf('.')){
+		if(dirs[0].indexOf('.') != -1){
 			var addr = dirs.shift();
 			url = '//' + addr + url;
 		}
-		url += dirs.join('/');
+		
+		url += dirs.join('/') + '/';
 	}
 	
 	var fileParts = ref.split('.');
 	var id = fileParts.shift();
 	var type = fileParts.join('.');
+	
 	url = url + id + '-' + (options.size || 'original') + '.' + type;
 	
 	if(options.url){
