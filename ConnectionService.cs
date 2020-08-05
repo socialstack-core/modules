@@ -25,6 +25,7 @@ namespace Api.Connections
 		/// </summary>
 		public ConnectionService() : base(Events.Connection)
         {
+			InstallAdminPages("Connections", "fa:fa-user-friends", new string[] { "id", "email" });
 		}
-    }
+	}
 }

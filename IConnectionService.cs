@@ -13,13 +13,6 @@ namespace Api.Connections
 	public partial interface IConnectionService
 	{
 		/// <summary>
-		/// Deletes a connection by its ID.
-		/// Optionally includes uploaded content refs in there too.
-		/// </summary>
-		/// <returns></returns>
-		Task<bool> Delete(Context context, int id, bool deleteContent = true);
-
-		/// <summary>
 		/// Gets a single connection by its ID.
 		/// </summary>
 		Task<Connection> Get(Context context, int id);
