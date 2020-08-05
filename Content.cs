@@ -200,6 +200,21 @@ namespace Api.Database
 			ContentTypeId = contentTypeId;
 			ContentId = id;
 		}
+
+		/// <summary>
+		/// </summary>
+		/// <returns></returns>
+		public override int GetHashCode() => (ContentTypeId, ContentId).GetHashCode();
+
+		/// <summary>
+		/// </summary>
+		/// <returns></returns>
+		public override bool Equals(object other) => other is ContentTypeAndId ct && Equals(ct);
+
+		/// <summary>
+		/// </summary>
+		/// <returns></returns>
+		public bool Equals(ContentTypeAndId other) => ContentTypeId == other.ContentTypeId && ContentId == other.ContentId;
 	}
 
 	/// <summary>
