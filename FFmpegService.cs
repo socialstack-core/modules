@@ -226,8 +226,6 @@ namespace Api.FFmpeg
 				{
 					// Is a video
 					
-					// C:\etc\ffmpeg\bin\ffmpeg.exe -i "1-original.mp4" -c:v h264 -c:a aac -f ssegment -segment_list "video/1/manifest.m3u8" -segment_time 1 -hls_time 1 -g 30 "video/1/chunk%d.ts"
-					
 					if(hlsTranscode){
 
 						// Create the video dir:
