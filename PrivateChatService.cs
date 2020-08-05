@@ -6,6 +6,7 @@ using Api.Contexts;
 using Api.Eventing;
 using Api.Users;
 using System;
+using Api.Startup;
 
 namespace Api.PrivateChats
 {
@@ -20,7 +21,8 @@ namespace Api.PrivateChats
 		/// </summary>
 		public PrivateChatService(IUserService _users) : base(Events.PrivateChat)
         {
-
+			IPrivateChatMessageService messageService = null;
+			
 			Events.PrivateChat.AfterLoad.AddEventListener(async (Context context, PrivateChat chat) =>
 			{
 				if (chat == null)
@@ -83,7 +85,21 @@ namespace Api.PrivateChats
 					// Get the source info:
 					chat.Source = await Content.Get(context, chat.SourceContentType, chat.SourceContentId);
 				}
-
+				
+				// If there's a message, create it as well now:
+				if(!string.IsNullOrEmpty(chat.Message))
+				{
+					if(messageService == null)
+					{
+						messageService = Services.Get<IPrivateChatMessageService>();
+					}
+					
+					await messageService.Create(context, new PrivateChatMessage(){
+						Message = chat.Message,
+						PrivateChatId = chat.Id
+					});
+				}
+				
 				return chat;
 			}, 5);
 

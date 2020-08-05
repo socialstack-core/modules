@@ -55,6 +55,11 @@ namespace Api.PrivateChats
 		/// Set when loading this private chat.
 		/// </summary>
 		public object Source { get; set; }
+		
+		/// <summary>
+		/// Optional first message that can be provided when starting a new chat.
+		/// </summary>
+		public string Message {get; set;}
 	}
 
 }
