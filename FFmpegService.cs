@@ -14,6 +14,7 @@ using Newtonsoft.Json.Linq;
 using Microsoft.Extensions.Configuration;
 using Api.Configuration;
 using Microsoft.Extensions.Hosting;
+using System.IO;
 
 namespace Api.FFmpeg
 {
@@ -29,7 +30,9 @@ namespace Api.FFmpeg
 		private bool _stopping;
 		private FFmpegConfig _configuration;
 		private IUploadService _uploads;
-
+		private bool hlsTranscode;
+		private bool h264Transcode;
+		
 		/// <summary>
 		/// Instanced automatically.
 		/// </summary>
@@ -40,6 +43,25 @@ namespace Api.FFmpeg
 			
 			if(_configuration != null && _configuration.TranscodeUploads)
 			{
+				var formats = _configuration.TranscodeTargets;
+				
+				if(string.IsNullOrEmpty(formats)){
+					formats = "hls";
+				}
+				
+				var targetFormats = formats.Trim().Split(',');
+				
+				for(var i=0;i<targetFormats.Length;i++){
+					var fmt = targetFormats[i].Trim().ToLower();
+					
+					if(fmt == "hls"){
+						hlsTranscode = true;
+					}else if(fmt == "h264" || fmt == "h264/aac"){
+						h264Transcode = true;
+					}
+					
+				}
+				
 				StartUploadTranscode();
 			}
 
@@ -133,7 +155,7 @@ namespace Api.FFmpeg
 				// If A/V, we'll be transcoding shortly.
 				if(upload.IsVideo || upload.IsAudio){
 					
-					if(upload.FileType == "mp4" || upload.FileType == "mp3")
+					if((upload.FileType == "mp4" && !hlsTranscode && h264Transcode) || upload.FileType == "mp3")
 					{
 						// it's already transcoded and available immediately.
 						upload.TranscodeState = 2;
@@ -203,14 +225,35 @@ namespace Api.FFmpeg
 				if(upload.IsVideo)
 				{
 					// Is a video
-					targetPath = originalPathWithoutExt + ".mp4";
-					Run("-i \"" + originalPath + "\" \"" + targetPath + "\"", async () => {
+					
+					// C:\etc\ffmpeg\bin\ffmpeg.exe -i "1-original.mp4" -c:v h264 -c:a aac -f ssegment -segment_list "video/1/manifest.m3u8" -segment_time 1 -hls_time 1 -g 30 "video/1/chunk%d.ts"
+					
+					if(hlsTranscode){
+
+						// Create the video dir:
+						var baseDir = AppSettings.Configuration[upload.IsPrivate ? "ContentPrivate" : "Content"] + "video/" + upload.Id + "/";
+						Directory.CreateDirectory(baseDir);
+
+						Run("-i \"" + originalPath + "\" -c:v h264 -c:a aac -f ssegment -segment_list \"" + baseDir + "manifest.m3u8\" -segment_time 1 -hls_time 1 -g 30 \"" + baseDir + "chunk%d.ts\"", async () => {
+							
+							// Done! (NB can trigger twice if multi-transcoding)
+							upload.TranscodeState = 2;
+							await _uploads.Update(context, upload);
+							await Events.UploadAfterTranscode.Dispatch(context, upload);
+						});
+					}
+					
+					if(h264Transcode){
+						targetPath = originalPathWithoutExt + ".mp4";
 						
-						// Done!
-						upload.TranscodeState = 2;
-						await _uploads.Update(context, upload);
-						await Events.UploadAfterTranscode.Dispatch(context, upload);
-					});
+						Run("-i \"" + originalPath + "\" \"" + targetPath + "\"", async () => {
+							
+							// Done! (NB can trigger twice if multi-transcoding)
+							upload.TranscodeState = 2;
+							await _uploads.Update(context, upload);
+							await Events.UploadAfterTranscode.Dispatch(context, upload);
+						});
+					}
 					
 				}else if(upload.IsAudio){
 					

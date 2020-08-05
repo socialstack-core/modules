@@ -11,9 +11,14 @@ namespace Api.FFmpeg
     public class FFmpegConfig
     {
 		/// <summary>
-		/// Set this to true if uploads should be automatically transcoded to h264/aac.
+		/// Set this to true if uploads should be automatically transcoded.
 		/// </summary>
 		public bool TranscodeUploads { get; set; }
+		
+		/// <summary>
+		/// Video transcode target format(s). "hls" is the default if not specified. Can comma separate, e.g. "hls,h264/aac"
+		/// </summary>
+		public string TranscodeTargets { get; set; }
 	}
 	
 }
