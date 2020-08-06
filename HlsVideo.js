@@ -23,10 +23,14 @@ export default class HlsVideo extends React.Component {
 		}
 		
 		if(this.props.autoplay){
-			this.video.pause();
-			this.video.currentTime = 0;
-			this.video.load();
-			this.video.play();
+			try{
+				this.video.pause();
+				this.video.currentTime = 0;
+				this.video.load();
+				this.video.play();
+			}catch(e){
+				// autoplay block
+			}
 		}
 	}
 	
