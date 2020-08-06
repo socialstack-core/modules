@@ -94,8 +94,9 @@ export default class AvatarEdit extends React.Component {
 				{/* NB: 
 				 * ID necessary to trigger rendering of label, which is where the CSS magic happens 
 				 * label prop ensures any label supplied is passed along
+				 * maxSize prop causes "Max file size: xx" when max bytes supplied (e.g. 1024 = 1KB)
 				 */}
-				<Uploader label={this.props.label} id={this.props.id} onUploaded={info => {
+				<Uploader label={this.props.label} id={this.props.id} maxSize={this.props.maxSize} onUploaded={info => {
 					console.log(info);
 					this.setState({
 						next: info.uploadRef
