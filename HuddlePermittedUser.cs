@@ -33,6 +33,11 @@ namespace Api.Huddles
 		public int PermittedUserId;
 		
 		/// <summary>
+		/// An invited user has rejected the invite.
+		/// </summary>
+		public bool Rejected;
+		
+		/// <summary>
 		/// The huddle ID.
 		/// </summary>
 		public int HuddleId;
