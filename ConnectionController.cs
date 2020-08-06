@@ -18,8 +18,8 @@ namespace Api.Connections
         /// </summary>
         /// <param name="id"></param>
         /// <returns></returns>
-        [HttpGet("{id}/accept")]
-        public async Task<Connection> Accept([FromRoute] int id)
+        [HttpPost("{id}/accept")]
+        public async Task<Connection> Accept(int id)
         {
             var context = Request.GetContext();
             var user = await context.GetUser();
