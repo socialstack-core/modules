@@ -3,6 +3,42 @@
     NB: named global-buttons.35.scss to allow for project-specific overrides to these styles (see UI/Source/GeneralStyle/buttons.40.scss)
 */
 
+@mixin primary_button_styling() {
+    background-color: $theme_primary_btn_bg;
+    color: $theme_primary_btn_fg;
+    border: $theme_primary_btn_border;
+
+    &:hover {
+        background-color: $theme_primary_btn_hover_bg;
+        color: $theme_primary_btn_hover_fg;
+        border-color: $theme_primary_btn_hover_border;
+    }
+
+    &:active {
+        background-color: $theme_primary_btn_active_bg;
+        color: $theme_primary_btn_active_fg;
+        border-color: $theme_primary_btn_active_border;
+    }
+}
+
+@mixin secondary_button_styling() {
+    background-color: $theme_secondary_btn_bg;
+    color: $theme_secondary_btn_fg;
+    border: $theme_secondary_btn_border;
+
+    &:hover {
+        background-color: $theme_secondary_btn_hover_bg;
+        color: $theme_secondary_btn_hover_fg;
+        border-color: $theme_secondary_btn_hover_border;
+    }
+
+    &:active {
+        background-color: $theme_secondary_btn_active_bg;
+        color: $theme_secondary_btn_active_fg;
+        border-color: $theme_secondary_btn_active_border;
+    }
+}
+
 .ss-button {
     @include button_styling; // NB: includes focus styling
     display: inline-block;
@@ -13,7 +49,8 @@
     transition: all .2s ease;
     transition-property: color, background-color, border-color;
     text-decoration: none;
-
+    cursor: pointer;
+    
     &[disabled] {
         opacity: .5;
         cursor: not-allowed;
@@ -22,47 +59,52 @@
     &:hover {
         text-decoration: none;
     }
-
     /* WIP
     &.ss-button__large {
         min-width: 222px;
     }
     */
-
     &.ss-button__primary {
-        background-color: $theme_primary_btn_bg;
-        color: $theme_primary_btn_fg;
-        border: $theme_primary_btn_border;
-
-        &:hover {
-            background-color: $theme_primary_btn_hover_bg;
-            color: $theme_primary_btn_hover_fg;
-            border-color: $theme_primary_btn_hover_border;
-        }
-
-        &:active {
-            background-color: $theme_primary_btn_active_bg;
-            color: $theme_primary_btn_active_fg;
-            border-color: $theme_primary_btn_active_border;
-        }
-
+        @include primary_button_styling();
     }
 
     &.ss-button__secondary {
-        background-color: $theme_secondary_btn_bg;
-        color: $theme_secondary_btn_fg;
-        border: $theme_secondary_btn_border;
+        @include secondary_button_styling();
+    }
+}
 
-        &:hover {
-            background-color: $theme_secondary_btn_hover_bg;
-            color: $theme_secondary_btn_hover_fg;
-            border-color: $theme_secondary_btn_hover_border;
+input {
+    // form buttons
+    &[type='button'],
+    &[type='submit'] {
+        @include primary_button_styling();
+    }
+
+    &[type='reset'] {
+        @include secondary_button_styling();
+    }
+    // file upload
+    // NB: for this to work, the file input must have a following label, e.g.
+    // <input type="file" name="file" id="file" />
+    // <label for="file">Choose a file</label>
+    // ref http://tympanus.net/codrops/2015/09/15/styling-customizing-file-inputs-smart-way/
+    &[type='file'][id] {
+        // NB: not 0 as this can affect tab order on some browsers
+        width: 0.1px;
+        height: 0.1px;
+        opacity: 0;
+        overflow: hidden;
+        position: absolute;
+        z-index: -1;
+
+        + label {
+            @include primary_button_styling();
         }
 
-        &:active {
-            background-color: $theme_secondary_btn_active_bg;
-            color: $theme_secondary_btn_active_fg;
-            border-color: $theme_secondary_btn_active_border;
+        &:focus + label {
+            @include focus_styling;
+            cursor: pointer;
+            //pointer-events: none;
         }
     }
 }

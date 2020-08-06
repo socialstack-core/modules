@@ -49,6 +49,16 @@ $theme_secondary_btn_active_bg: darken($theme_secondary_btn_bg, 20%) !default;
 $theme_secondary_btn_active_fg: darken($theme_secondary_btn_fg, 20%) !default;
 $theme_secondary_btn_active_border: 2px solid darken($unbranded_dark, 20%) !default;
 
+// form styling
+$ss_form_field_bg: #fff;
+$ss_form_field_fg: #444;
+$ss_form_field_border: 1px solid #e5e5e5;
+$ss_form_field_font_family: -apple-system, BlinkMacSystemFont, "Segoe UI", Arial, "Helvetica Neue", Helvetica, sans-serif;
+$ss_form_field_padding_x: 14;
+$ss_form_field_padding_y: 10;
+$ss_form_field_font_size: 14;
+$ss_form_field_border_radius: $ss_form_field_font_size / 2;
+
 // links
 $theme_link_fg: $unbranded_dark !default;
 $theme_link_weight: bold !default;

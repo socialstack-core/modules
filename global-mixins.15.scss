@@ -15,6 +15,10 @@
     letter-spacing: 0rem + $px / $base_font_size;
 }
 
+@mixin border_radius($px) {
+    border-radius: 0rem + $px / $base_font_size;
+}
+
 @mixin padding($top_px: 0, $right_px: 0, $bottom_px: $top_px, $left_px: $right_px) {
     $top_em: 0rem + $top_px / $base_font_size;
     $right_em: 0rem + $right_px / $base_font_size;
@@ -54,9 +58,13 @@
 @mixin focus_styling {
     // mimics Chrome black outline
     // (box shadow used to apply white outer border for elements on a dark background)
-    transition: outline 1ms, box-shadow 1ms;
-    outline: 2px solid #000;
-    box-shadow: 0 0 0 3px #fff;
+    //transition: outline 1ms, box-shadow 1ms;
+    //outline: 2px solid #000;
+    //box-shadow: 0 0 0 3px #fff;
+
+    // alternate version
+    outline: 1px dotted #000;
+    outline: -webkit-focus-ring-color auto 5px;
 }
 
 @mixin button_styling($text_align: center) {
