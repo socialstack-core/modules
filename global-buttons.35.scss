@@ -3,6 +3,32 @@
     NB: named global-buttons.35.scss to allow for project-specific overrides to these styles (see UI/Source/GeneralStyle/buttons.40.scss)
 */
 
+@mixin base_button_styling() {
+    @include button_styling; // NB: includes focus styling
+    display: inline-block;
+    font-size: 1rem;
+    font-weight: bold;
+    padding: .75rem 4rem;
+    border-radius: 2rem;
+    transition: all .2s ease;
+    transition-property: color, background-color, border-color;
+    text-decoration: none;
+    cursor: pointer;
+    transition: color 0.15s ease-in-out, 
+        background-color 0.15s ease-in-out, 
+        border-color 0.15s ease-in-out, 
+        box-shadow 0.15s ease-in-out;
+
+    &[disabled] {
+        opacity: .5;
+        cursor: not-allowed;
+    }
+
+    &:hover {
+        text-decoration: none;
+    }
+}
+
 @mixin primary_button_styling() {
     background-color: $theme_primary_btn_bg;
     color: $theme_primary_btn_fg;
@@ -11,13 +37,13 @@
     &:hover {
         background-color: $theme_primary_btn_hover_bg;
         color: $theme_primary_btn_hover_fg;
-        border-color: $theme_primary_btn_hover_border;
+        border: $theme_primary_btn_hover_border;
     }
 
     &:active {
         background-color: $theme_primary_btn_active_bg;
         color: $theme_primary_btn_active_fg;
-        border-color: $theme_primary_btn_active_border;
+        border: $theme_primary_btn_active_border;
     }
 }
 
@@ -29,36 +55,19 @@
     &:hover {
         background-color: $theme_secondary_btn_hover_bg;
         color: $theme_secondary_btn_hover_fg;
-        border-color: $theme_secondary_btn_hover_border;
+        border: $theme_secondary_btn_hover_border;
     }
 
     &:active {
         background-color: $theme_secondary_btn_active_bg;
         color: $theme_secondary_btn_active_fg;
-        border-color: $theme_secondary_btn_active_border;
+        border: $theme_secondary_btn_active_border;
     }
 }
 
 .ss-button {
-    @include button_styling; // NB: includes focus styling
-    display: inline-block;
-    font-size: 1rem;
-    font-weight: bold;
-    padding: .75rem 4rem;
-    border-radius: 2rem;
-    transition: all .2s ease;
-    transition-property: color, background-color, border-color;
-    text-decoration: none;
-    cursor: pointer;
-    
-    &[disabled] {
-        opacity: .5;
-        cursor: not-allowed;
-    }
+    @include base_button_styling();
 
-    &:hover {
-        text-decoration: none;
-    }
     /* WIP
     &.ss-button__large {
         min-width: 222px;
@@ -98,13 +107,16 @@ input {
         z-index: -1;
 
         + label {
+            @include base_button_styling();
             @include primary_button_styling();
+            display: inline-block; // necessary to prevent optional hidden form labels from hiding this
         }
 
         &:focus + label {
-            @include focus_styling;
+            //@include focus_styling;
             cursor: pointer;
             //pointer-events: none;
+            box-shadow: 0 0 0 0.2rem rgba($theme_primary_btn_bg, .5);
         }
     }
 }

@@ -1,0 +1,21 @@
+/*
+	global functions
+    helper functions to be used by SASS styles
+*/
+
+//  replace characters in a string
+@function str-replace($string, $search, $replace: '') {
+    $index: str-index($string, $search);
+
+    @if $index {
+        @return str-slice($string, 1, $index - 1) + $replace + str-replace(str-slice($string, $index + str-length($search)), $search, $replace);
+    }
+
+    @return $string;
+}
+
+// replace a given RGB fill colour with another
+@function replace-svg-fill($svg, $fill-to-replace, $new-fill) {
+    $new-fill-string: str-replace(inspect($new-fill), '#', '%23');
+    @return str-replace($svg, $fill-to-replace, $new-fill-string);
+}
