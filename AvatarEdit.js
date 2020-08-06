@@ -48,12 +48,12 @@ export default class AvatarEdit extends React.Component {
 									<p>
 										Are you sure you want to set this as your avatar?
 									</p>
-									<div className="btn btn-success" style={{marginRight: '20px'}} onClick={() => this.setAvatar(next)}>
+									<button type="button" className="btn btn-success" style={{marginRight: '20px'}} onClick={() => this.setAvatar(next)}>
 										Yes
-									</div>
-									<div className="btn btn-primary" onClick={() => this.setState({next: null})}>
+									</button>
+									<button type="button" className="btn btn-primary" onClick={() => this.setState({next: null})}>
 										Cancel
-									</div>
+									</button>
 								</div>
 							</div>
 						) : (
@@ -70,17 +70,17 @@ export default class AvatarEdit extends React.Component {
 												<p>
 													Are you sure you want to remove this?
 												</p>
-												<div className="btn btn-danger" style={{marginRight: '20px'}} onClick={() => this.setAvatar(null)}>
+													<button type="button" className="btn btn-danger" style={{marginRight: '20px'}} onClick={() => this.setAvatar(null)}>
 													Yes - Remove it
-												</div>
-													<div className="btn btn-primary" onMouseDown={() => this.setState({confirmDelete: false})}>
+												</button>
+													<button type="button" className="btn btn-primary" onMouseDown={() => this.setState({confirmDelete: false})}>
 													Cancel
-												</div>
+												</button>
 											</div>
 										) : (
-											<div className="btn btn-danger" style={{marginLeft: '20px'}} onClick={() => this.setState({confirmDelete: true})}>
+											<button type="button" className="btn btn-danger" style={{marginLeft: '20px'}} onClick={() => this.setState({confirmDelete: true})}>
 												Remove
-											</div>
+											</button>
 										)
 									}
 								</div>
