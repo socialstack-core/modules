@@ -1,0 +1,77 @@
+/*
+	global form styles
+    NB: named global-forms.45.scss to allow for project-specific overrides to these styles (see UI/Source/GeneralStyle/forms.50.scss)
+*/
+
+@mixin input_field_styling() {
+    @include font_size($ss_form_field_font_size);
+    @include padding($ss_form_field_padding_x, $ss_form_field_padding_y);
+    @include border_radius($ss_form_field_border_radius);
+    background-color: $ss_form_field_bg;
+    color: $ss_form_field_fg;
+    border: $ss_form_field_border;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Arial, "Helvetica Neue", Helvetica, sans-serif;
+}
+
+fieldset {
+
+    legend {
+
+    }
+
+}
+
+label {
+
+}
+
+input {
+    // form buttons
+    // NB: see global-buttons.35.scss
+    /*
+    &[type='button'],
+    &[type='reset'],
+    &[type='submit'] {
+    }
+    */
+    // checkboxes
+    &[type='checkbox'] {
+    }
+    // radio buttons
+    &[type='radio'] {
+    }
+    // text entry
+    &[type='date'],
+    &[type='datetime'], // obsolete
+    &[type='datetime-local'],
+    &[type='email'],
+    &[type='month'],
+    &[type='number'],
+    &[type='password'],
+    &[type='search'],
+    &[type='tel'],
+    &[type='text'],
+    &[type='time'],
+    &[type='url'],
+    &[type='week'] {
+        @include input_field_styling;
+    }
+    // colour picker
+    &[type='color'] {
+    }
+    // file upload
+    // NB: see global-buttons.35.scss
+    //&[type='file'] {
+    //}
+    // range
+    &[type='range'] {
+    }
+}
+
+textarea {
+    @include input_field_styling;
+}
+
+select {
+
+}
