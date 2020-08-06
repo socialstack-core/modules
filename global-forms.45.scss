@@ -7,13 +7,26 @@
 $dropdown_svg: 'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="101" height="34"><path d="M28.989 34c-1.1 0-2.1-.4-2.9-1.2l-25-26C.389 6-.011 5-.011 4c0-1.1.4-2.1 1.2-2.9 1.6-1.5 4.1-1.5 5.7.1l22.1 23 22.1-23c1.5-1.6 4.1-1.6 5.7-.1 1.6 1.5 1.6 4.1.1 5.7l-25 26c-.8.8-1.8 1.2-2.9 1.2z" fill="%23000000"/></svg>';
 
 @mixin input_field_placeholder() {
+    /* NB: placeholder only supports the following properties:
+        font properties
+        color
+        background properties
+        word-spacing
+        letter-spacing
+        text-decoration
+        vertical-align
+        text-transform
+        line-height
+        text-indent
+        opacity
+    */
     color: $ss_form_field_placeholder !important;
     font-weight: $ss_form_field_placeholder_weight;
     font-style: $ss_form_field_placeholder_style;
 }
 
-@mixin input_field_styling() {
-    @include font_size($ss_form_field_font_size);
+@mixin input_field_styling($font_size: $ss_form_field_font_size) {
+    @include font_size($font_size);
     @include padding($ss_form_field_padding_y, $ss_form_field_padding_x);
     @include border_radius($ss_form_field_border_radius);
     background-color: $ss_form_field_bg;
@@ -43,6 +56,8 @@ $dropdown_svg: 'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" 
 
     &::-moz-placeholder {
         @include input_field_placeholder();
+        // TODO: test Firefox doesn't automatically override opacity level
+        // opacity: 1;
     }
 
     &:-ms-input-placeholder {
@@ -159,5 +174,48 @@ select.form-control {
 
     option {
         font-weight: normal !important;
+    }
+}
+
+html.ios {
+    // ensure iOS uses a minimum font size of 16px
+    // (otherwise page will zoom in when inputs gain focus)
+    input.form-control {
+        // checkboxes
+        &[type='checkbox'] {
+        }
+        // radio buttons
+        &[type='radio'] {
+        }
+        // text entry
+        &[type='date'],
+        &[type='datetime'], // obsolete
+        &[type='datetime-local'],
+        &[type='email'],
+        &[type='month'],
+        &[type='number'],
+        &[type='password'],
+        &[type='search'],
+        &[type='tel'],
+        &[type='text'],
+        &[type='time'],
+        &[type='url'],
+        &[type='week'] {
+            @include input_field_styling(16);
+        }
+        // colour picker
+        &[type='color'] {
+        }
+        // range
+        &[type='range'] {
+        }
+    }
+
+    textarea.form-control {
+        @include input_field_styling(16);
+    }
+
+    select.form-control {
+        @include input_field_styling(16);
     }
 }

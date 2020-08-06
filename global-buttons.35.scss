@@ -108,7 +108,8 @@ input {
 
         + label {
             @include base_button_styling();
-            @include primary_button_styling();
+            //@include primary_button_styling();
+            @include secondary_button_styling();
             display: inline-block; // necessary to prevent optional hidden form labels from hiding this
         }
 
@@ -116,7 +117,13 @@ input {
             //@include focus_styling;
             cursor: pointer;
             //pointer-events: none;
-            box-shadow: 0 0 0 0.2rem rgba($theme_primary_btn_bg, .5);
+            //box-shadow: 0 0 0 0.2rem rgba($theme_primary_btn_bg, .5);
+            box-shadow: 0 0 0 0.2rem rgba($theme_secondary_btn_bg, .5);
+        }
+
+        ~ .upload-limit {
+            @include font_size(12);
+            display: block;
         }
     }
 }
