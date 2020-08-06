@@ -1,7 +1,7 @@
 /*
-* Very basic date/time formatting, using a US date format.
+* Very basic date/time formatting, using a US date or EU date for now format.
 */
-export default function FormatTime(date){
+export default function FormatTime(date, format){
     if(!date){
         return '-';
     }
@@ -32,5 +32,14 @@ export default function FormatTime(date){
     if (minute < 10){
         minute = "0" + minute;
     }
-    return month + "/" + day + "/" + year + " " + hour + ":" + minute + " " + meridiem;
+    if(format == "us") {
+        return month + "/" + day + "/" + year + " " + hour + ":" + minute + " " + meridiem;
+    }
+    else if(format == "eu") {
+        return day + "-" + month + "-" + year + " " + hour + ":" + minute + " " + meridiem;
+    }
+    else {
+        // Defaulting to Euro, even though its listed twice.
+        return day + "-" + month + "-" + year + " " + hour + ":" + minute + " " + meridiem;
+    }
 }
