@@ -39,7 +39,7 @@ export default class Uploader extends React.Component {
 		const {
 			loading
 		} = this.state;
-		
+
         return (
 			<div className="uploader">
 				{loading && (
@@ -47,7 +47,9 @@ export default class Uploader extends React.Component {
 				)}
 				<input type="file" id={this.props.id} onChange={e => this.onSelectedFile(e)} className="form-control-file" />
 				{this.props.id &&
-					<label htmlFor={this.props.id}></label>
+					<label htmlFor={this.props.id}>
+					{this.props.label || "Upload file"}
+					</label>
 				}
 			</div>
         );
