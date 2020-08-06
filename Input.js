@@ -41,10 +41,14 @@ export default class Input extends React.Component {
             return this.renderInput();
         }
 
+        // possible to hide all labels globally with $ss_form_field_label_hidden;
+        // this allows us to specify fields which should always display their label
+        var labelClass = this.props.labelImportant ? "label-important" : "";
+
         return (
             <div className="form-group">
                 {this.props.label && this.props.type !== "submit" && this.props.type !== "checkbox" && this.props.type !== "radio" && (
-                    <label htmlFor={this.props.id || this.fieldId}>
+                    <label htmlFor={this.props.id || this.fieldId} className={labelClass}>
                         {this.props.label}
                     </label>
                 )}
@@ -188,7 +192,8 @@ export default class Input extends React.Component {
 
         if (type === "select") {
 
-			var defaultValue=typeof this.state.selectValue === 'undefined' ? this.props.defaultValue : this.state.selectValue;
+            var defaultValue = typeof this.state.selectValue === 'undefined' ? this.props.defaultValue : this.state.selectValue;
+            var noSelection = this.props.noSelection || "None Specified";
 
             return (
                 <select
@@ -202,7 +207,7 @@ export default class Input extends React.Component {
                     data-validation={this.state.validationFailure ? true : undefined}
                 >
                     {this.props.contentType ? [
-						<option value='0'>None Specified</option>,
+                        <option value='0'>{noSelection}</option>,
 						<Loop over={this.props.contentType + '/list'} raw>
 							{
 								entry => <option value={entry.id} selected={entry.id == defaultValue ? true : undefined}>
@@ -329,9 +334,9 @@ export default class Input extends React.Component {
                 return handler({ ...this.props, onChange: this.onChange, onBlur: this.onBlur }, type, this);
             }
 
-            return (
+            const fieldMarkup = (
                 <input
-					ref={this.setRef}
+                    ref={this.setRef}
                     id={this.props.id || this.fieldId}
                     className={this.props.className || "form-control"}
                     aria-describedby={this.helpFieldId}
@@ -343,6 +348,15 @@ export default class Input extends React.Component {
                     {...omit(this.props, ['id', 'className', 'onChange', 'onBlur', 'type', 'inline'])}
                 />
             );
+
+            if (this.props.icon) {
+                return <div className="input-wrapper">
+                    {fieldMarkup}
+                    <i className={this.props.icon}></i>
+                </div>;
+            }
+
+            return fieldMarkup;
         }
 
     }
