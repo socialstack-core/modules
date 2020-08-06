@@ -91,7 +91,8 @@ export default class AvatarEdit extends React.Component {
 					}
                 </div> 
                 <Spacer />
-                <Uploader onUploaded={info => {
+				{/* NB: ID necessary to trigger rendering of label, which is where the CSS magic happens */}
+				<Uploader id={this.props.id} onUploaded={info => {
 					console.log(info);
 					this.setState({
 						next: info.uploadRef
