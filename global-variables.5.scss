@@ -28,6 +28,19 @@ $light_font_family: $theme_font_family !default;
 $light_font_weight: 400 !default;
 $installed_font: $theme_font_family; // for backwards compatibility (original variable name)
 
+// colours
+$theme_success_bg: #28a745;
+$theme_success_fg: #fff;
+
+$theme_danger_bg: #dc3545;
+$theme_danger_fg: #fff;
+
+$theme_warning_bg: #ffc107;
+$theme_warning_fg: #212529;
+
+$theme_info_bg: #17a2b8;
+$theme_info_fg: #fff;
+
 // buttons
 $theme_primary_btn_bg: $unbranded_dark !default;
 $theme_primary_btn_fg: $unbranded_light !default;
