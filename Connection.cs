@@ -24,7 +24,7 @@ namespace Api.Connections
 		/// <summary>
 		/// The recipient's email address. 
 		/// </summary>
-		public string Email;
+		public string? Email;
 
 		/// <summary>
 		/// The time that this connection request was accepted, meaning this a valid connection.
@@ -35,6 +35,13 @@ namespace Api.Connections
 		/// The time that this friend connection was declined, meaning that the target user denied the request.
 		/// </summary>
 		public DateTime? DeclinedUtc;
+
+		/// <summary>
+		/// Property containing the connected to User.
+		/// </summary>
+		public UserProfile ConnectedToUser {
+			get; set;
+		}
 	}
 
 }

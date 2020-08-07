@@ -61,6 +61,5 @@ namespace Api.Connections
 
             return connection;
         }
-
 	}
 }
