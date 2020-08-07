@@ -36,33 +36,51 @@ export default class Input extends React.Component {
         this.helpFieldId = this.fieldId + "-help";
     }
 
-    render() {
-        if (this.props.inline) {
-            return this.renderInput();
-        }
-
+    renderField() {
         // possible to hide all labels globally with $ss_form_field_label_hidden;
         // this allows us to specify fields which should always display their label
         var labelClass = this.props.labelImportant ? "label-important" : "";
 
         return (
-            <div className="form-group">
-                {this.props.label && this.props.type !== "submit" && this.props.type !== "checkbox" && this.props.type !== "radio" && (
+            <>
+            {
+                this.props.label && this.props.type !== "submit" && this.props.type !== "checkbox" && this.props.type !== "radio" && (
                     <label htmlFor={this.props.id || this.fieldId} className={labelClass}>
                         {this.props.label}
                     </label>
-                )}
-                {this.props.help && (
+                )
+            }
+            {
+                this.props.help && (
                     <small id={this.helpFieldId} className="form-text text-muted">
                         {this.props.help}
                     </small>
-                )}
-                {this.renderInput()}
-                {this.state.validationFailure && (
+                )
+            }
+            { this.renderInput() }
+            {
+                this.state.validationFailure && (
                     <div className="validation-error">
                         {this.props.validationFailure ? this.props.validationFailure(this.state.validationFailure) : this.state.validationFailure.ui}
                     </div>
-                )}
+                )
+            }
+            </>
+        )
+    }
+
+    render() {
+        if (this.props.inline) {
+            return this.renderInput();
+        }
+
+        if (this.props.noWrapper) {
+            return this.renderField();
+        }
+
+        return (
+            <div className="form-group">
+                {this.renderField()}
             </div>
         );
     }
