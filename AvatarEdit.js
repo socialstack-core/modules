@@ -19,15 +19,18 @@ export default class AvatarEdit extends React.Component {
     }
     
 	render(){
-		var avatarRef;
+		var { avatarRef } = this.state;
 		var {name} = this.props;
 		if(name){
-			avatarRef = this.state.avatarRef || this.props.value || this.props.defaultValue;
+			if(avatarRef === undefined){
+				avatarRef = this.props.value || this.props.defaultValue;
+			}
 		}else{
 			var { user } = global.app.state;
 			if(!user || !user.id){
 				return null;
 			}
+			avatarRef = user.avatarRef;
 		}
         
 		var {updating, confirmDelete, next} = this.state;
