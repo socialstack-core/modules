@@ -516,6 +516,7 @@ namespace Api.Huddles
 				throw new Exception("Invite already accepted");
 			}
 
+			invite.PermittedUserId = context.UserId;
 			invite = await Events.HuddlePermittedUser.BeforeAccept.Dispatch(context, invite);
 
 			if (invite == null)
@@ -524,7 +525,6 @@ namespace Api.Huddles
 			}
 
 			// Update the invite:
-			invite.PermittedUserId = context.UserId;
 			invite = await Update(context, invite);
 
 			if (invite == null)
@@ -532,7 +532,7 @@ namespace Api.Huddles
 				return null;
 			}
 
-			invite = await Events.HuddlePermittedUser.BeforeAccept.Dispatch(context, invite);
+			invite = await Events.HuddlePermittedUser.AfterAccept.Dispatch(context, invite);
 			return invite;
 		}
 	}
