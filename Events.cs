@@ -77,7 +77,10 @@ namespace Api.Eventing
 				var fieldAttribs = field.GetCustomAttributes();
 
 				// If it's an event group, instance the events on it, but prepended with the field name and any other names.
-				if (field.FieldType.IsGenericType && field.FieldType.GetGenericTypeDefinition() == typeof(EventGroup<>))
+				if (
+					field.FieldType.IsGenericType && field.FieldType.GetGenericTypeDefinition() == typeof(EventGroup<>) || 
+					field.FieldType.BaseType.IsGenericType && field.FieldType.BaseType.GetGenericTypeDefinition() == typeof(EventGroup<>)
+				)
 				{
 					// Instance the group:
 					evt = Activator.CreateInstance(field.FieldType);
