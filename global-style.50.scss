@@ -2,85 +2,71 @@ html, body, #react-view, #react-root, #content-root, #content-page, #react-loadi
 	height: 100%;
 	width: 100%;
 	margin: 0;
-	font-family: $theme_font_family;
 	touch-action: manipulation;
 }
 
-.non-selectable {
-    -webkit-touch-callout: none; /* iOS Safari */
-    -webkit-user-select: none; /* Safari */
-    -khtml-user-select: none; /* Konqueror HTML */
-    -moz-user-select: none; /* Firefox */
-    -ms-user-select: none; /* Internet Explorer/Edge */
-    user-select: none; /* Non-prefixed version, currently
-                                  supported by Chrome and Opera */
-}
+html {
+	overflow-x: hidden;
+	// Identify a frontend (mobile app build too):
+	&.ui {
+	}
+	// Identify a mobile app build:
+	&.mobile {
+	}
+	// Identify a frontend but not the app build:
+	&.web {
+	}
+	// Identify the admin panel:
+	&.admin {
+	}
+	// define rules which shouldn't be applied for admin views
+	&:not(.admin) {
+		font-family: $regular_font_family !important;
+		font-weight: $regular_font_weight !important;
 
-/* === Spacing === */
+		body, #react-view, #react-root, #content-root, #content-page, #react-loading {
+			font-family: $regular_font_family;
+			font-weight: $regular_font_weight;
+		}
 
-.uppercase {
-    text-transform: uppercase;
-}
+		body {
+			background-color: $site_bg;
 
-.pad20 {
-    padding: 0em + 20/$base_font_size;
-}
+			&.white-bg {
+				background-color: #fff;
+			}
+		}
 
-.space20 {
-	margin-top: 0em + 20/$base_font_size;
-}
-
-.margin-y-20 {
-	margin: 0em + 20/$base_font_size 0;
-}
-
-.float-right {
-    float: right;
-}
-
-.float-left {
-    float: left;
+		#react-root {
+			display: flex;
+			flex-direction: column;
+			flex-wrap: nowrap;
+		}
+	}
 }
 
 .loader {
+	position: absolute;
 	display: inline-block;
-	border: 6px solid lightgrey;
+	//border: 6px solid lightgrey;
+	border: 4px solid #eeeeee;
 	border-radius: 50%;
-	border-top: 6px solid white;
-	width: 40px;
-	height: 40px;
+	//border-top: 6px solid white;
+	border-top: 4px solid white;
+	//width: 40px;
+	//height: 40px;
+	width: 60px;
+	height: 60px;
+	margin-left: -30px;
+	margin-top: -30px;
 	-webkit-animation: spin 2s linear infinite;
 	animation: spin 2s linear infinite;
-}
-
-@-webkit-keyframes spin {
-	0% {
-		-webkit-transform: rotate(0deg);
-	}
-
-	100% {
-		-webkit-transform: rotate(360deg);
-	}
-}
-
-@keyframes spin {
-	0% {
-		transform: rotate(0deg);
-	}
-
-	100% {
-		transform: rotate(360deg);
-	}
-}
-
-.clear {
-    clear: both;
 }
 
 #react-loading {
 	position: absolute;
 	top: 0;
-	background: white !important;
+	//background: white !important;
 }
 
 #react-loading-message {
@@ -92,28 +78,3 @@ html, body, #react-view, #react-root, #content-root, #content-page, #react-loadi
 	left: 50%;
 	transform: translateX(-50%) translateY(-50%);
 }
-
-.loader {
-	position: absolute;
-	display: inline-block;
-	margin-left: -30px;
-	margin-top: -30px;
-	border: 4px solid #eeeeee;
-	border-radius: 50%;
-	border-top: 4px solid white;
-	width: 60px;
-	height: 60px;
-	-webkit-animation: spin 2s linear infinite;
-	animation: spin 2s linear infinite;
-}
-
-.hidden {
-    display: none !important;
-}
-
-/* Blocks orange focus outlines on older phones */
-* {
-    -webkit-tap-highlight-color: rgba(255, 255, 255, 0) !important; 
-    -webkit-focus-ring-color: rgba(255, 255, 255, 0) !important; 
-    outline: none;
-} 

@@ -3,3 +3,72 @@
 */
 
 // TODO: add line wrap utilities
+
+.non-selectable {
+	-webkit-touch-callout: none; /* iOS Safari */
+	-webkit-user-select: none; /* Safari */
+	-khtml-user-select: none; /* Konqueror HTML */
+	-moz-user-select: none; /* Firefox */
+	-ms-user-select: none; /* Internet Explorer/Edge */
+	user-select: none; /* Non-prefixed version, currently
+                                  supported by Chrome and Opera */
+}
+
+@-webkit-keyframes spin {
+	0% {
+		-webkit-transform: rotate(0deg);
+	}
+
+	100% {
+		-webkit-transform: rotate(360deg);
+	}
+}
+
+@keyframes spin {
+	0% {
+		transform: rotate(0deg);
+	}
+
+	100% {
+		transform: rotate(360deg);
+	}
+}
+
+.uppercase {
+	text-transform: uppercase;
+}
+
+.pad20 {
+	padding: 0em + 20/$base_font_size;
+}
+
+.space20 {
+	margin-top: 0em + 20/$base_font_size;
+}
+
+.margin-y-20 {
+	margin: 0em + 20/$base_font_size 0;
+}
+
+.float-right {
+	float: right;
+}
+
+.float-left {
+	float: left;
+}
+
+.hidden {
+	display: none !important;
+}
+
+.clear {
+	clear: both;
+}
+
+/* Blocks orange focus outlines on older phones */
+* {
+	-webkit-tap-highlight-color: rgba(255, 255, 255, 0) !important;
+	-webkit-focus-ring-color: rgba(255, 255, 255, 0) !important;
+	outline: none;
+} 
