@@ -48,7 +48,11 @@ namespace Api.DefaultAvatar
 			var rand = new Random();
 
 			Events.User.BeforeCreate.AddEventListener((Context ctx, User user) => {
-
+				
+				if(user == null){
+					return Task.FromResult(user);
+				}
+				
 				if (string.IsNullOrEmpty(user.AvatarRef))
 				{
 					user.AvatarRef = images[rand.Next(0, images.Length)];
