@@ -37,6 +37,11 @@ namespace Api.Connections
 
 				var user = await context.GetUser();
 
+				if(user == null)
+                {
+					return null;
+                }
+
 				// Is the user inviting themselves. 
 				if (connection.ConnectedToId == context.UserId || ( !string.IsNullOrEmpty(connection.Email) && !string.IsNullOrEmpty(user.Email) && connection.Email.Trim().ToLower() == user.Email.Trim().ToLower()))
                 {
