@@ -65,6 +65,10 @@ namespace Api.Users
 			
 			Events.User.BeforeCreate.AddEventListener((Context ctx, User user) => {
 				
+				if(user == null){
+					return Task.FromResult(user);
+				}
+				
 				// Default role is Member:
 				user.Role = Roles.Member.Id;
 				
