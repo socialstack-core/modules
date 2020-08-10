@@ -28,6 +28,6 @@ namespace Api.Eventing
 		/// <summary>
 		/// Set of events for a huddlePermittedUser.
 		/// </summary>
-		public static EventGroup<HuddlePermittedUser> HuddlePermittedUser;
+		public static HuddlePermittedUserEventGroup HuddlePermittedUser;
 	}
 }

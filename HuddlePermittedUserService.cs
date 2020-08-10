@@ -429,6 +429,112 @@ namespace Api.Huddles
 			});
 			
 		}
+
+		/// <summary>
+		/// Rejects or cancels a request.
+		/// </summary>
+		/// <param name="context"></param>
+		/// <param name="invite"></param>
+		/// <returns></returns>
+		public async Task<HuddlePermittedUser> RejectOrCancel(Context context, HuddlePermittedUser invite)
+		{
+			if (invite == null)
+			{
+				return null;
+			}
+
+			if (!invite.Rejected)
+			{
+				invite = await Events.HuddlePermittedUser.BeforeCancel.Dispatch(context, invite);
+
+				if (invite == null)
+				{
+					return null;
+				}
+
+				// Mark as rejected:
+				invite.Rejected = true;
+
+				// Clear the user ID:
+				invite.PermittedUserId = 0;
+
+				invite = await Update(context, invite);
+
+				if (invite == null)
+				{
+					return null;
+				}
+
+				invite = await Events.HuddlePermittedUser.AfterCancel.Dispatch(context, invite);
+			}
+
+			return invite;
+		}
+
+		/// <summary>
+		/// Accepts a request.
+		/// </summary>
+		/// <param name="context"></param>
+		/// <param name="invite"></param>
+		/// <param name="userId"></param>
+		/// <param name="force"></param>
+		/// <returns></returns>
+		public async Task<HuddlePermittedUser> Accept(Context context, HuddlePermittedUser invite, int userId, bool force)
+		{
+			if (invite == null)
+			{
+				return null;
+			}
+
+			if (force)
+			{
+				if (invite.PermittedUserId != 0)
+				{
+					// Clear the prior user by cancelling it:
+
+					invite = await Events.HuddlePermittedUser.BeforeCancel.Dispatch(context, invite);
+
+					if (invite == null)
+					{
+						return null;
+					}
+
+					// Clear the user ID:
+					invite.PermittedUserId = 0;
+
+					invite = await Events.HuddlePermittedUser.AfterCancel.Dispatch(context, invite);
+
+					if (invite == null)
+					{
+						return null;
+					}
+				}
+			}
+			else if (invite.PermittedUserId != 0)
+			{
+				// It's already accepted.
+				throw new Exception("Invite already accepted");
+			}
+
+			invite = await Events.HuddlePermittedUser.BeforeAccept.Dispatch(context, invite);
+
+			if (invite == null)
+			{
+				return null;
+			}
+
+			// Update the invite:
+			invite.PermittedUserId = context.UserId;
+			invite = await Update(context, invite);
+
+			if (invite == null)
+			{
+				return null;
+			}
+
+			invite = await Events.HuddlePermittedUser.BeforeAccept.Dispatch(context, invite);
+			return invite;
+		}
 	}
     
 }

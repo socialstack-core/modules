@@ -41,5 +41,22 @@ namespace Api.Huddles
 		/// <returns></returns>
 		Task<List<HuddlePermittedUser>> List(Context context, Filter<HuddlePermittedUser> filter);
 
+		/// <summary>
+		/// Accepts a request.
+		/// </summary>
+		/// <param name="context"></param>
+		/// <param name="invite"></param>
+		/// <param name="userId"></param>
+		/// <param name="force"></param>
+		/// <returns></returns>
+		Task<HuddlePermittedUser> Accept(Context context, HuddlePermittedUser invite, int userId, bool force);
+
+		/// <summary>
+		/// Rejects or cancels a request.
+		/// </summary>
+		/// <param name="context"></param>
+		/// <param name="invite"></param>
+		/// <returns></returns>
+		Task<HuddlePermittedUser> RejectOrCancel(Context context, HuddlePermittedUser invite);
 	}
 }
