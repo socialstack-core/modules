@@ -3,11 +3,12 @@ import getRef from 'UI/Functions/GetRef';
 import Loading from 'UI/Loading';
 import Spacer from 'UI/Spacer';
 import Uploader from 'UI/Uploader';
+import Input from 'UI/Input';
 
 export default class AvatarEdit extends React.Component {
 	
     setAvatar(avatarRef){
-        this.setState({updating: true, next: null});
+        this.setState({updating: true, confirmDelete: false, next: null});
 		webRequest('user/' + global.app.state.user.id, {avatarRef}).then(response => {
 			global.app.setState({user: response.json});
             this.setState({updating: false});
@@ -18,10 +19,16 @@ export default class AvatarEdit extends React.Component {
     }
     
 	render(){
-		var { user } = global.app.state;
-		if(!user || !user.id){
-            return null;
-        }
+		var avatarRef;
+		var {name} = this.props;
+		if(name){
+			avatarRef = this.state.avatarRef || this.props.value || this.props.defaultValue;
+		}else{
+			var { user } = global.app.state;
+			if(!user || !user.id){
+				return null;
+			}
+		}
         
 		var {updating, confirmDelete, next} = this.state;
 		
@@ -37,6 +44,9 @@ export default class AvatarEdit extends React.Component {
         
         return (
             <div className="avatarEdit">
+				{
+					name && <Input type="hidden" name={name} value={avatarRef}/>
+				}
                 <div>
 					{
 						next ? (
@@ -57,11 +67,11 @@ export default class AvatarEdit extends React.Component {
 								</div>
 							</div>
 						) : (
-							user.avatarRef && user.avatarRef.length ? (
+							avatarRef && avatarRef.length ? (
 								<div>
 									{
-										<a href={getRef(user.avatarRef, {url: true})} target='_blank'>
-											{getRef(user.avatarRef, {size: 128})}
+										<a href={getRef(avatarRef, {url: true})} target='_blank'>
+											{getRef(avatarRef, {size: 128})}
 										</a>
 									}
 									{
@@ -70,7 +80,16 @@ export default class AvatarEdit extends React.Component {
 												<p>
 													Are you sure you want to remove this?
 												</p>
-													<button type="button" className="btn btn-danger" style={{marginRight: '20px'}} onClick={() => this.setAvatar(null)}>
+													<button type="button" className="btn btn-danger" style={{marginRight: '20px'}} onClick={() => {
+														if(this.props.name){
+															this.setState({
+																confirmDelete: false,
+																avatarRef: null
+															});
+														}else{
+															this.setAvatar(null);
+														}
+													}}>
 													Yes - Remove it
 												</button>
 													<button type="button" className="btn btn-primary" onMouseDown={() => this.setState({confirmDelete: false})}>
@@ -98,9 +117,15 @@ export default class AvatarEdit extends React.Component {
 				 */}
 				<Uploader label={this.props.label} id={this.props.id} maxSize={this.props.maxSize} onUploaded={info => {
 					console.log(info);
-					this.setState({
-						next: info.uploadRef
-					});
+					if(this.props.name){
+						this.setState({
+							avatarRef: info.uploadRef
+						});
+					}else{
+						this.setState({
+							next: info.uploadRef
+						});
+					}
                 }}/>
             </div>
         );
