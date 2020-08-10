@@ -40,7 +40,11 @@ export default class Modal extends React.Component {
 
         if (this.props.isCentred) {
             classes+=' modal-dialog-centered';
-        }
+		}
+
+		if (this.props.isScrollable) {
+			classes += ' modal-dialog-scrollable';
+		}
 		
         if (this.props.isSmall) {
             classes+=' modal-sm';
