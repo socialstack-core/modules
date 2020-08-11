@@ -20,33 +20,12 @@ namespace Api.Huddles
 			// Hook the default role setup. It's done like this so it can be removed by a plugin if wanted.
 			Events.CapabilityOnSetup.AddEventListener((Context context, object source) =>
 			{
-				/*
-				Example permission rules.
-				
-				Member role: A verified user account. Not an admin.
-				Guest role: A user account. The transition from guest to member is up to you.
-				Public role: Not logged in at all.
-				
 				// Allow public creation (as it's disabled by default):
 				Roles.Member.Grant("huddle_create");
-				Roles.Public.Grant("huddle_create");
-				Roles.Guest.Grant("huddle_create");
 				
 				// Remove public viewing (as it's enabled by default):
 				Roles.Guest.Revoke("huddle_load", "huddle_list");
 				Roles.Public.Revoke("huddle_load", "huddle_list");
-				Roles.Member.Revoke("huddle_load", "huddle_list");
-				
-				// Allow public creation (as it's disabled by default):
-				Roles.Member.Grant("huddleServer_create");
-				Roles.Public.Grant("huddleServer_create");
-				Roles.Guest.Grant("huddleServer_create");
-				
-				// Remove public viewing (as it's enabled by default):
-				Roles.Guest.Revoke("huddleServer_load", "huddleServer_list");
-				Roles.Public.Revoke("huddleServer_load", "huddleServer_list");
-				Roles.Member.Revoke("huddleServer_load", "huddleServer_list");
-				*/
 				
 				/*
 				// Allow public creation (as it's disabled by default):
@@ -60,12 +39,10 @@ namespace Api.Huddles
 				Roles.Member.Revoke("huddleLoadMetric_load", "huddleLoadMetric_list");
 				*/
 				
-				/*
 				// Allow public creation (as it's disabled by default):
 				Roles.Member.Grant("huddlePermittedUser_create");
-				Roles.Public.Grant("huddlePermittedUser_create");
-				Roles.Guest.Grant("huddlePermittedUser_create");
 				
+				/*
 				// Remove public viewing (as it's enabled by default):
 				Roles.Guest.Revoke("huddlePermittedUser_load", "huddlePermittedUser_list");
 				Roles.Public.Revoke("huddlePermittedUser_load", "huddlePermittedUser_list");
