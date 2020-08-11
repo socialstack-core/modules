@@ -26,18 +26,22 @@ namespace Api.Huddles
 				// Remove public viewing (as it's enabled by default):
 				Roles.Guest.Revoke("huddle_load", "huddle_list");
 				Roles.Public.Revoke("huddle_load", "huddle_list");
+				Roles.Member.Revoke("huddle_list");
+				
+				// Can only list public huddles:
+				Roles.Member.If().Equals(typeof(Huddle), "HuddleType", 0).ThenGrant("huddle_list");
 				
 				/*
 				// Allow public creation (as it's disabled by default):
 				Roles.Member.Grant("huddleLoadMetric_create");
 				Roles.Public.Grant("huddleLoadMetric_create");
 				Roles.Guest.Grant("huddleLoadMetric_create");
+				*/
 				
 				// Remove public viewing (as it's enabled by default):
-				Roles.Guest.Revoke("huddleLoadMetric_load", "huddleLoadMetric_list");
-				Roles.Public.Revoke("huddleLoadMetric_load", "huddleLoadMetric_list");
-				Roles.Member.Revoke("huddleLoadMetric_load", "huddleLoadMetric_list");
-				*/
+				Roles.Guest.Revoke("huddleLoadMetric_load", "huddleLoadMetric_list", "huddleserver_load", "huddleserver_list");
+				Roles.Public.Revoke("huddleLoadMetric_load", "huddleLoadMetric_list", "huddleserver_load", "huddleserver_list");
+				Roles.Member.Revoke("huddleLoadMetric_load", "huddleLoadMetric_list", "huddleserver_load", "huddleserver_list");
 				
 				// Allow public creation (as it's disabled by default):
 				Roles.Member.Grant("huddlePermittedUser_create");
