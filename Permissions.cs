@@ -26,17 +26,14 @@ namespace Api.UserAgendaEntries
 				Member role: A verified user account. Not an admin.
 				Guest role: A user account. The transition from guest to member is up to you.
 				Public role: Not logged in at all.
+				*/
 				
 				// Allow public creation (as it's disabled by default):
 				Roles.Member.Grant("userAgendaEntry_create");
-				Roles.Public.Grant("userAgendaEntry_create");
-				Roles.Guest.Grant("userAgendaEntry_create");
 				
 				// Remove public viewing (as it's enabled by default):
 				Roles.Guest.Revoke("userAgendaEntry_load", "userAgendaEntry_list");
 				Roles.Public.Revoke("userAgendaEntry_load", "userAgendaEntry_list");
-				Roles.Member.Revoke("userAgendaEntry_load", "userAgendaEntry_list");
-				*/
 				
 				return Task.FromResult(source);
 			}, 20);
