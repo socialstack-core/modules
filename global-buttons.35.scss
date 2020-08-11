@@ -6,18 +6,23 @@
 @mixin base_button_styling() {
     @include button_styling; // NB: includes focus styling
     display: inline-block;
+    font-weight: 400;
+    color: #212529;
+    text-align: center;
+    vertical-align: middle;
+    -webkit-user-select: none;
+    -moz-user-select: none;
+    -ms-user-select: none;
+    user-select: none;
+    background-color: transparent;
+    border: 1px solid transparent;
+    padding: .375rem .75rem;
     font-size: 1rem;
-    font-weight: bold;
-    padding: .75rem 4rem;
-    border-radius: 2rem;
-    transition: all .2s ease;
-    transition-property: color, background-color, border-color;
+    line-height: 1.5;
+    border-radius: .25rem;
+    transition: color .15s ease-in-out, background-color .15s ease-in-out, border-color .15s ease-in-out, box-shadow .15s ease-in-out;
     text-decoration: none;
     cursor: pointer;
-    transition: color 0.15s ease-in-out, 
-        background-color 0.15s ease-in-out, 
-        border-color 0.15s ease-in-out, 
-        box-shadow 0.15s ease-in-out;
 
     &[disabled] {
         opacity: .5;
@@ -33,7 +38,11 @@
     background-color: $theme_primary_btn_bg;
     color: $theme_primary_btn_fg;
     border: $theme_primary_btn_border;
-
+    border-radius: $theme_primary_btn_border_radius;
+    font-size: $theme_primary_btn_font_size;
+    font-weight: $theme_primary_btn_font_weight;
+    padding: $theme_primary_btn_padding;
+    
     &:hover {
         background-color: $theme_primary_btn_hover_bg;
         color: $theme_primary_btn_hover_fg;
@@ -56,6 +65,10 @@
     background-color: $theme_secondary_btn_bg;
     color: $theme_secondary_btn_fg;
     border: $theme_secondary_btn_border;
+    border-radius: $theme_secondary_btn_border_radius;
+    font-size: $theme_secondary_btn_font_size;
+    font-weight: $theme_secondary_btn_font_weight;
+    padding: $theme_secondary_btn_padding;
 
     &:hover {
         background-color: $theme_secondary_btn_hover_bg;
@@ -72,23 +85,6 @@
     &:focus {
         outline: 0;
         box-shadow: 0 0 0 0.2rem rgba($theme_secondary_btn_bg, .5);
-    }
-}
-
-.ss-button {
-    @include base_button_styling();
-
-    /* WIP
-    &.ss-button__large {
-        min-width: 222px;
-    }
-    */
-    &.ss-button__primary {
-        @include primary_button_styling();
-    }
-
-    &.ss-button__secondary {
-        @include secondary_button_styling();
     }
 }
 

@@ -47,12 +47,15 @@
                     // ... and replace with icon
                     &::after {
                         content: "\f00d"; // fr-times
-                        display: inline-block;
-                        font: normal normal normal 14px/1 FourRoads;
-                        font-size: inherit;
-                        text-rendering: auto;
-                        -webkit-font-smoothing: antialiased;
+                        font-family: "Font Awesome 5 Pro";
+                        font-weight: 300; // equivalent to .fal
                         -moz-osx-font-smoothing: grayscale;
+                        -webkit-font-smoothing: antialiased;
+                        display: inline-block;
+                        font-style: normal;
+                        font-variant: normal;
+                        text-rendering: auto;
+                        line-height: 1;
                         @include font_size($theme_modal_close_font_size);
                     }
                 }
