@@ -61,6 +61,20 @@ namespace Api.DefaultAvatar
 				return Task.FromResult(user);
 			}, 6);
 			
+			Events.User.BeforeUpdate.AddEventListener((Context ctx, User user) => {
+				
+				if(user == null){
+					return Task.FromResult(user);
+				}
+				
+				if (string.IsNullOrEmpty(user.AvatarRef))
+				{
+					user.AvatarRef = images[rand.Next(0, images.Length)];
+				}
+
+				return Task.FromResult(user);
+			}, 6);
+			
 		}
 	}
     
