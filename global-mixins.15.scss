@@ -79,6 +79,7 @@
     transition: all .2s ease-in-out;
     transition-property: color, background-color, border-color;
     border: 0;
+    @include padding(1, 6);
 
     &:focus {
         // TODO: looks terrible
@@ -94,18 +95,21 @@
     &:focus {
         @include focus_styling;
     }
-
     // ensure underlining doesn't apply to icons
     @if $hasIcon {
         @include icon_style($font_size, .25em);
         display: inline-flex;
         align-items: center;
-        
+
         &:hover {
             color: $theme_link_hover_fg;
 
-            > span {
+            > span:not(.header-link) {
                 text-decoration: $theme_link_hover_decoration;
+
+                .header-link-label {
+                    text-decoration: $theme_link_hover_decoration;
+                }
             }
         }
     }
