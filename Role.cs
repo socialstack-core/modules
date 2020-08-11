@@ -217,11 +217,31 @@ namespace Api.Permissions
             return this;
         }
 
-        /// <summary>
-        /// Grants every capability. You can revoke certain ones afterwards.
-        /// </summary>
-        /// <returns></returns>
-        public Role GrantEverything()
+		/// <summary>
+		/// Revokes every capability. You can grant certain ones afterwards.
+		/// </summary>
+		/// <returns></returns>
+		public Role RevokeEverything()
+		{
+			if (CapabilityLookup == null)
+			{
+				return this;
+			}
+
+			for (var i = 0; i < CapabilityLookup.Length; i++)
+			{
+				CapabilityLookup[i] = null;
+				CapabilityFilterLookup[i] = null;
+			}
+
+			return this;
+		}
+
+		/// <summary>
+		/// Grants every capability. You can revoke certain ones afterwards.
+		/// </summary>
+		/// <returns></returns>
+		public Role GrantEverything()
         {
             foreach (var kvp in Capabilities.All)
             {
