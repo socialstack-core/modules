@@ -1,17 +1,66 @@
-/*
-	Optional stylesheet
-*/
+﻿.collapsible {
 
-.collapsible{
-	h2{
+	.collapsible-summary {
+		list-style: none;
+		display: flex;
+		align-items: center;
+
+		&::-webkit-details-marker {
+			display: none;
+		}
+
+		.collapsible-title {
+			@include font_size(20);
+			font-weight: bold;
+		}
+
+		.collapsible-icon {
+			margin-left: auto;
+			transition: transform .3s ease-in-out;
+		}
+	}
+
+	&:not([open]) > .collapsible-content {
+		display: none;
+	}
+
+	&[open] > .collapsible-summary {
+
+		.collapsible-icon {
+			-ms-filter: "progid:DXImageTransform.Microsoft.BasicImage(rotation=2)";
+			transform: rotate(180deg);
+		}
+	}
+
+	.collapsible-content {
+		@include font_size(16);
+	}
+	/*
+	h2 {
 		background: rgb(240,240,240);
 		padding: 20px;
 		margin: 0;
 	}
-	
-	.collapsible-body{
+
+	.collapsible-body {
 		border: 1px solid rgb(240,240,240);
 		margin-bottom: 10px;
 		padding: 20px;
 	}
+
+
+details:not([open]) > *:not(summary) {
+	display: none;
+	}
+	
+	summary::before {
+		content: "x";
+		padding-right: 0.3rem;
+		font-size: 0.6rem;
+		cursor: default;
+		}
+		
+		[open] > summary::before {content: "x";}
+
+	*/
 }

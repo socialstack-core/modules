@@ -3,25 +3,23 @@ export default class Collapsible extends React.Component {
 	constructor(props){
 		super(props);
 		this.state={
-			collapsed: this.props.defaultCollapsed===undefined ? true : this.props.defaultCollapsed
 		};
 	}
 	
 	render(){
-		
-		return <div className="collapsible">
-			<h2 onClick={() => {
-				this.setState({collapsed: !this.state.collapsed});
-			}}>
-				{this.props.title}
-			</h2>
-			{!this.state.collapsed && (
-				<div className="collapsible-body">
-					{this.props.children}
+		return <details className="collapsible">
+			<summary className="collapsible-summary">
+				<h4 className="collapsible-title">
+					{this.props.title}
+				</h4>
+				<div className="collapsible-icon">
+					<i className="fal fa-chevron-down"></i>
 				</div>
-			)}
-		</div>;
-		
+			</summary>
+			<div className="collapsible-content">
+				{this.props.children}
+			</div>
+		</details>;
 	}
 	
 }
