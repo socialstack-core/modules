@@ -78,8 +78,10 @@ export default class Input extends React.Component {
             return this.renderField();
         }
 
+        var groupClass = this.props.groupClassName ? "form-group " + this.props.groupClassName : "form-group";
+
         return (
-            <div className="form-group">
+            <div className={groupClass}>
                 {this.renderField()}
             </div>
         );
