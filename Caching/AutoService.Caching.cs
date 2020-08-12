@@ -15,7 +15,6 @@ using Api.Translate;
 /// Note that you don't have to inherit this to create a service - it's just for convenience for common functionality.
 /// Services are actually detected purely by name.
 /// </summary>
-/// <typeparam name="T"></typeparam>
 public partial class AutoService<T> : AutoService where T: DatabaseRow, new(){
 
 	/// <summary>
