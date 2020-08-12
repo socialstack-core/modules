@@ -159,21 +159,17 @@
     }
 
     &.btn-lg {
-        /*
-        padding: .5rem 1rem;
-        font-size: 1.25rem;
-        line-height: 1.5;
-        border-radius: .3rem;
-        */
+        padding: $theme_primary_btn_padding_lg;
+        font-size: $theme_primary_btn_font_size_lg;
+        //line-height: 1.5;
+        border-radius: $theme_primary_btn_border_radius_lg;
     }
 
     &.btn-sm {
-        /*
-        padding: .25rem .5rem;
-        font-size: .875rem;
-        line-height: 1.5;
-        border-radius: .2rem;
-        */
+        padding: $theme_secondary_btn_padding_lg;
+        font-size: $theme_secondary_btn_font_size_lg;
+        //line-height: 1.5;
+        border-radius: $theme_secondary_btn_border_radius_lg;
     }
 }
 
