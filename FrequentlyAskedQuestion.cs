@@ -26,6 +26,9 @@ namespace Api.FrequentlyAskedQuestions
 		[Localized]
 		public string AnswerJson;
 
+		/// <summary>
+		/// Tags
+		/// </summary>
 		public List<Tag> Tags { get; set; }
 	}
 
