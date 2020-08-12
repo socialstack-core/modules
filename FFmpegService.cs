@@ -103,11 +103,11 @@ namespace Api.FFmpeg
 		/// </summary>
 		public void StartUploadTranscode()
 		{
-			Events.Upload.BeforeCreate.AddEventListener(async (Context context, Upload upload) =>
+			Events.Upload.BeforeCreate.AddEventListener((Context context, Upload upload) =>
             {
 				// Something else might've blocked it:
 				if(upload == null){
-					return null;
+					return Task.FromResult(upload);
 				}
 				
 				switch (upload.FileType)
@@ -166,7 +166,7 @@ namespace Api.FFmpeg
 					}
 				}
 
-				return upload;
+				return Task.FromResult(upload);
 			});
 			
 			// On upload, auto transcode a/v files.
