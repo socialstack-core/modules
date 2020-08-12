@@ -1143,7 +1143,7 @@ export default class CanvasEditor extends React.Component {
 				
 				return (
 					<div className="context-btn" onClick={cfg.onClick}>
-						<i className={"fa fa-" + cfg.icon} />
+						<i className={"fa fa-fw fa-" + cfg.icon} />
 						{cfg.text}
 					</div>
 				);
@@ -1180,14 +1180,14 @@ export default class CanvasEditor extends React.Component {
 		if(this.state.jsonEdit){
 			return (
 				<div className="canvas-editor">
-					<div className="btn btn-info" onClick={() => {
+					<div className="btn btn-info back-to-visual" onClick={() => {
 						// TODO: grab the value from the textarea 
 						// and set it as the loaded canvas.
 						this.setState({
 							jsonEdit: false
 						});
 					}}>Back to visual view</div>
-					<Input type="textarea" name={this.props.name} defaultValue={this.state.jsonEdit} />
+					<Input type="textarea" className="form-control json-preview" name={this.props.name} defaultValue={this.state.jsonEdit} />
 				</div>
 			);
 		}
