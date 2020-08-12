@@ -13,7 +13,7 @@ export default class Collapsible extends React.Component {
 					{this.props.title}
 				</h4>
 				<div className="collapsible-icon">
-					<i className="fal fa-chevron-down"></i>
+					<i className="far fa-chevron-down"></i>
 				</div>
 			</summary>
 			<div className="collapsible-content">
