@@ -542,7 +542,7 @@ namespace Api.WebSockets
 	/// <summary>
 	/// All a particular user's websocket links.
 	/// </summary>
-	public class UserWebsocketLinks{
+	public partial class UserWebsocketLinks{
 
 		private static JsonSerializerSettings _serializerSettings;
 
