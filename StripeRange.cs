@@ -13,6 +13,11 @@ namespace Api.ContentSync
     public class StripeRange
     {
 		/// <summary>
+		/// Numeric server ID.
+		/// </summary>
+		public int ServerId { get; set; }
+		
+		/// <summary>
 		/// Minimum stripe ID (inclusive).
 		/// </summary>
 		public int Min { get; set; }

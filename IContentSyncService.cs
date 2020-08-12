@@ -13,5 +13,10 @@ namespace Api.ContentSync
 	public partial interface IContentSyncService
     {
 
+		/// <summary>
+		/// This server's ID from the ContentSync config.
+		/// </summary>
+		int ServerId {get; set;}
+		
 	}
 }

@@ -22,6 +22,11 @@ namespace Api.ContentSync
 	/// </summary>
 	public partial class ContentSyncService : IContentSyncService
 	{
+		/// <summary>
+		/// This server's ID from the ContentSync config.
+		/// </summary>
+		public int ServerId {get; set;}
+		
 		static readonly char[] InvalidFileNameChars = Path.GetInvalidFileNameChars();
 		private ContentSyncConfig _configuration;
 		private IDatabaseService _database;
@@ -157,7 +162,9 @@ namespace Api.ContentSync
 				Console.WriteLine("[WARN]: Content sync disabled. This instance (" + name + ") has no allocation in the project appsettings.json ContentSync config.");
 				return;
 			}
-
+			
+			ServerId = myRanges[0].ServerId;
+			
 			// Find the biggest max value:
 			var overallMax = 0;
 
