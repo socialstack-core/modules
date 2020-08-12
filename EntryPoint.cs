@@ -7,6 +7,7 @@ using Microsoft.AspNetCore.Server.Kestrel.Core;
 using Microsoft.Extensions.Logging;
 using System.Threading.Tasks;
 using System.Runtime.InteropServices;
+using System.Diagnostics.CodeAnalysis;
 
 namespace Api.Startup
 {
@@ -67,6 +68,19 @@ namespace Api.Startup
 				await Api.Eventing.Events.TriggerStart();
 			}).Wait();
 			
+			string apiSocketFile = null;
+			
+			if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux))
+			{
+				// Listen on a Unix socket too:
+				apiSocketFile = System.IO.Path.GetFullPath("api.sock");
+				
+				try{
+					// Delete if exists:
+					System.IO.File.Delete(apiSocketFile);
+				}catch{}
+			}
+			
 			// Create a Kestrel host:
 			var host = new WebHostBuilder()
                 .UseKestrel(options => {
@@ -78,16 +92,8 @@ namespace Api.Startup
 						listenOpts.Protocols = HttpProtocols.Http1AndHttp2;
 					});
 
-					if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux))
+					if (apiSocketFile != null)
 					{
-						// Listen on a Unix socket too:
-						var apiSocketFile = System.IO.Path.GetFullPath("api.sock");
-						
-						try{
-							// Delete if exists:
-							System.IO.File.Delete(apiSocketFile);
-						}catch{}
-						
 						options.ListenUnixSocket(apiSocketFile);
 					}
 
@@ -105,8 +111,59 @@ namespace Api.Startup
                 .UseStartup<WebServerStartupInfo>()
                 .Build();
 
-            builtHost.Run();
+			builtHost.Start();
+
+			if (apiSocketFile != null)
+			{
+				Chmod.Set(apiSocketFile); // 777
+			}
+
+			builtHost.WaitForShutdown();
         }
     }
+	
+	/// <summary>
+	/// Helper for *nix file permissions.
+	/// </summary>
+	public static class Chmod
+	{
+		[DllImport("libc", EntryPoint="chmod", SetLastError = true)]
+		[SuppressMessage("Style", "IDE1006:Naming Styles", Justification = "interop")]
+		private static extern int chmod(string pathname, int mode);
+
+		// user permissions
+		const int S_IRUSR = 0x100;
+		const int S_IWUSR = 0x80;
+		const int S_IXUSR = 0x40;
+
+		// group permission
+		const int S_IRGRP = 0x20;
+		const int S_IWGRP = 0x10;
+		const int S_IXGRP = 0x8;
+
+		// other permissions
+		const int S_IROTH = 0x4;
+		const int S_IWOTH = 0x2;
+		const int S_IXOTH = 0x1;
+		
+		/// <summary>
+		/// Sets file permissions on a *nix platform
+		/// </summary>
+		/// <param name="filename"></param>
+		/// <param name="perms"></param>
+		public static void Set(string filename, int perms = 0)
+		{
+			if(perms == 0){
+				// 777
+				perms =
+				S_IRUSR | S_IXUSR | S_IWUSR
+				| S_IRGRP | S_IXGRP | S_IWGRP
+				| S_IROTH | S_IXOTH | S_IWOTH;
+			}
+			
+			if (0 != chmod(Path.GetFullPath(filename), (int)perms))
+				throw new Exception("Could not set Unix socket permissions");
+		}
+	}
 	
 }
