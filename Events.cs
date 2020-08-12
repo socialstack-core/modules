@@ -1,7 +1,5 @@
 using Api.WebSockets;
 using Api.Permissions;
-using System.Collections.Generic;
-using Api.Users;
 
 namespace Api.Eventing
 {
@@ -11,15 +9,17 @@ namespace Api.Eventing
 	/// </summary>
 	public partial class Events
 	{
-		
+
 		/// <summary>
 		/// Called when a client connects.
 		/// </summary>
+		[DontAddPermissions]
 		public static EventHandler<WebSocketClient> WebSocketClientConnected;
 		
 		/// <summary>
 		/// Called when a user logs in/ logs out. Note that they may have multiple 
 		/// </summary>
+		[DontAddPermissions]
 		public static EventHandler<int, UserWebsocketLinks> WebSocketUserState;
 		
 	}

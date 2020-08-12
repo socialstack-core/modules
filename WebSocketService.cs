@@ -13,6 +13,7 @@ using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using Api.Startup;
 using Newtonsoft.Json.Serialization;
+using Api.SocketServerLibrary;
 
 namespace Api.WebSockets
 {
@@ -606,7 +607,7 @@ namespace Api.WebSockets
 				}
 			}
 
-			await Events.WebSocketUserState.Dispatch(null, Id, this);
+			await Events.WebSocketUserState.Dispatch(client.Context != null ? client.Context : new Context(), Id, this);
 		}
 		
 		/// <summary>
@@ -763,7 +764,7 @@ namespace Api.WebSockets
 				}
 
 				// Trigger state event:
-				await Events.WebSocketUserState.Dispatch(null, UserSet.Id, UserSet);
+				await Events.WebSocketUserState.Dispatch(Context != null ? Context : new Context(), UserSet.Id, UserSet);
 			}
 			
 			UserSet = null;
