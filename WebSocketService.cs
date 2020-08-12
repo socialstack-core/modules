@@ -588,7 +588,7 @@ namespace Api.WebSockets
 			if(client.UserSet != null){
 				// The null here avoids the set from being removed from the overall lookup
 				// we don't want it to be as we're about to add something to it.
-				client.RemoveFromUserSet(null);
+				await client.RemoveFromUserSet(null);
 			}
 			
 			client.UserNext = null;
