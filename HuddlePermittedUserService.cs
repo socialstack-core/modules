@@ -375,7 +375,7 @@ namespace Api.Huddles
 
 							if (!existingLookup.ContainsKey(id))
 							{
-								// Add it:
+								// Add it.
 								var newUser = new HuddlePermittedUser()
 								{
 									UserId = ctx.UserId,
@@ -389,8 +389,24 @@ namespace Api.Huddles
 									EditedUtc = now
 								};
 
+								// Immediately accept the invite if the invite is for the user creating the huddle.
+								var accept = false;
+								
+								if(ctx.HasContent(id.ContentTypeId, id.ContentId))
+								{
+									// E.g. "this" user is the invited one.
+									newUser.PermittedUserId = ctx.UserId;
+									accept = true;
+									newUser = await Events.HuddlePermittedUser.BeforeAccept.Dispatch(ctx, newUser);
+								}
+								
 								existingLookup[id] = newUser;
-								await Create(ctx, newUser);
+								newUser = await Create(ctx, newUser);
+								
+								if(accept && newUser != null)
+								{
+									newUser = await Events.HuddlePermittedUser.AfterAccept.Dispatch(ctx, newUser);
+								}
 							}
 						}
 

@@ -15,7 +15,7 @@ namespace Api.Huddles
         /// </summary>
         /// <param name="id"></param>
         /// <returns></returns>
-        [HttpPost("{id}/accept")]
+        [HttpGet("{id}/accept")]
         public async Task<HuddlePermittedUser> Accept(int id)
         {
             var context = Request.GetContext();
@@ -53,7 +53,7 @@ namespace Api.Huddles
         /// </summary>
         /// <param name="id"></param>
         /// <returns></returns>
-        [HttpPost("{id}/reject")]
+        [HttpGet("{id}/reject")]
         public async Task<HuddlePermittedUser> Reject(int id)
         {
             var context = Request.GetContext();
