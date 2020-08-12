@@ -32,10 +32,14 @@ export default class Paginator extends React.Component {
 	}
 	
 	render(){
-		
 		var {pageIndex} = this.props;
 		
 		var totalPages = this.getTotalPages();
+		
+		// if we only have a single page then optionally hide
+		if (!this.props.always && totalPages && totalPages < 2) {
+			return;
+		}
 		
 		var currentPage = this.props.pageIndex || 1;
 		
@@ -48,6 +52,7 @@ export default class Paginator extends React.Component {
 		}
 		
 		return <div className="paginator">
+	
 			{currentPage > 1 && (
 				<span className="nav-before">
 					<i className="fa fa-step-backward first-page" onClick={() => this.changePage(1)} />
@@ -71,7 +76,6 @@ export default class Paginator extends React.Component {
 		</div>;
 		
 	}
-	
 }
 
 // propTypes are used to describe configuration on your component in the editor.
@@ -79,5 +83,5 @@ export default class Paginator extends React.Component {
 // Define your available props like the examples below.
 
 Paginator.propTypes = {
-	
+	always : 'bool'
 };
