@@ -9,6 +9,7 @@ using Api.ContentSync;
 using System;
 using Api.Users;
 using Api.WebSockets;
+using System.Text;
 
 namespace Api.ActiveLogins
 {
@@ -17,7 +18,9 @@ namespace Api.ActiveLogins
 	/// Instanced automatically. Use injection to use this service, or Startup.Services.Get.
 	/// </summary>
 	public partial class ActiveLoginService : AutoService<ActiveLogin>, IActiveLoginService
-    {
+	{
+		private IUserService _users = null;
+
 		/// <summary>
 		/// Instanced automatically. Use injection to use this service, or Startup.Services.Get.
 		/// </summary>
@@ -38,6 +41,11 @@ namespace Api.ActiveLogins
 					serverId = Services.Get<IContentSyncService>().ServerId;
 				}
 				
+				if(_users == null)
+				{
+					_users = Services.Get<IUserService>();
+				}
+				
 				if (userSockets.ContainsOne)
 				{
 					// Logged in (first time on this server)
@@ -53,6 +61,14 @@ namespace Api.ActiveLogins
 					if(activeLogin != null){
 						userSockets.ActiveLoginId = activeLogin.Id;
 					}
+					
+					// Make sure user row is definitely online:
+					var user = await _users.Get(ctx, userId);
+					
+					if(user != null && (!user.OnlineState.HasValue || user.OnlineState != 1)){
+						user.OnlineState = 1;
+						await _users.Update(ctx, user);
+					}
 				}
 				else if (userSockets.First == null)
 				{
@@ -63,6 +79,19 @@ namespace Api.ActiveLogins
 						var id = userSockets.ActiveLoginId;
 						userSockets.ActiveLoginId = 0;
 						await Delete(ctx, id);
+						
+						// Ask the DB if this user is online anywhere currently:
+						var onlineEntries = await List(ctx, new Filter<ActiveLogin>().Equals("UserId", userId));
+						
+						if(onlineEntries == null || onlineEntries.Count == 0)
+						{
+							var user = await _users.Get(ctx, userId);
+							if(user != null && user.OnlineState.HasValue && user.OnlineState != 0){
+								user.OnlineState = 0;
+								await _users.Update(ctx, user);
+							}
+						}
+						
 					}
 				}
 
@@ -107,14 +136,105 @@ namespace Api.ActiveLogins
 				// ALS requires a server ID.
 				Console.WriteLine("[WARN] Active Login Service using ServerId 0 because ContentSync is not configured for this machine. This is fine locally.");
 			}
+
+			if (_users == null)
+			{
+				_users = Services.Get<IUserService>();
+			}
+
+			var ctx = new Context();
+
+			// Get the list of active logins for the server:
+			var onlineEntries = await List(ctx, new Filter<ActiveLogin>().Equals("Server", id));
 			
 			// Delete from DB now:
 			var delQuery = Query.Delete<ActiveLogin>();
 			delQuery.SetRawQuery("DELETE FROM " + typeof(ActiveLogin).TableName() + " WHERE Server=" + id);
 			await _database.Run(null, delQuery);
+			
+			// Update online state for any users who should now be marked offline:
+			if(onlineEntries != null){
+				Dictionary<int, bool> uniqueUsers = new Dictionary<int, bool>();
+				
+				foreach(var entry in onlineEntries){
+					if(entry == null || entry.UserId == 0)
+					{
+						continue;
+					}
+					uniqueUsers[entry.UserId] = true;
+				}
+				
+				if(uniqueUsers.Count > 0)
+				{
+					var inQuery = new StringBuilder();
+					inQuery.Append("SELECT count(*) as Count, UserId FROM " + typeof(ActiveLogin).TableName() + " where UserId in(");
+					var first = true;
+					
+					foreach(var kvp in uniqueUsers)
+					{
+						if(first)
+						{
+							first = false;
+						}
+						else
+						{
+							inQuery.Append(',');
+						}
+						inQuery.Append(kvp.Key.ToString());
+					}
+					
+					inQuery.Append(") group by UserId");
+					
+					// For each unique user, check if they should now be offline.
+					// Do this by counting the # of other online records they have.
+					var countQuery = Query.List<ActiveLoginCount>();
+					countQuery.SetRawQuery(inQuery.ToString());
+					var counts = await _database.List(null, countQuery, null);
 
+					// NB: could be done in a query, but going through the update API
+					// means other servers will become aware of the user(s) going offline.
+					foreach (var entry in counts)
+					{
+						if (entry != null && entry.Count != 0)
+						{
+							uniqueUsers[entry.UserId] = false;
+						}
+					}
+
+					foreach(var kvp in uniqueUsers)
+					{
+						if (!kvp.Value)
+						{
+							// It has other entries elsewhere
+							continue;
+						}
+						// This user was online on this server, but now isn't.
+						// Update to mark as offline:
+						var user = await _users.Get(ctx, kvp.Key);
+						if(user != null && user.OnlineState.HasValue && user.OnlineState != 0){
+							user.OnlineState = 0;
+							await _users.Update(ctx, user);
+						}
+					}
+				}
+			}
+			
 			return true;
 		}
+	}
+	
+	/// <summary>
+	/// Active login counts per user.
+	/// </summary>
+	public class ActiveLoginCount{
+		/// <summary>
+		/// User Id.
+		/// </summary>
+		public int UserId;
+		/// <summary>
+		/// The number of servers this user is active on.
+		/// </summary>
+		public int Count;
 	}
     
 }
