@@ -202,7 +202,7 @@ export default class HuddleClient
 
 	close()
 	{
-		if (this._closed)
+		if (this._closed || !this._protoo)
 			return;
 
 		this._closed = true;
@@ -257,7 +257,7 @@ export default class HuddleClient
 		var huddleInfo = await webRequest('huddle/' + this.room.id + '/join');
 		var url = huddleInfo.json.connectionUrl;
 		var isHttps = global.location.protocol == "https:";
-		const protooTransport = new protoo.WebSocketTransport((isHttps ? 'wss' : 'ws') + '://' + url);
+		const protooTransport = new protoo.WebSocketTransport((isHttps ? 'wss' : 'ws') + '://' + url.trim());
 		this._protoo = new protoo.Peer(protooTransport);
 		
 		this.room.state = 'connecting';
@@ -1663,23 +1663,23 @@ export default class HuddleClient
 			const routerRtpCapabilities = await this._protoo.request('getRouterRtpCapabilities');
 
 			await this._mediasoupDevice.load({ routerRtpCapabilities });
-
-			// NOTE: Stuff to play remote audios due to browsers' new autoplay policy.
-			//
-			// Just get access to the mic and DO NOT close the mic track for a while.
-			// Super hack!
-			{
-				const stream = await global.navigator.mediaDevices.getUserMedia({ audio: true });
-				const audioTrack = stream.getAudioTracks()[0];
-
-				audioTrack.enabled = false;
-
-				setTimeout(() => audioTrack.stop(), 120000);
-			}
-
-			// Create mediasoup Transport for sending (unless we don't want to produce).
+			
 			if (this._produce)
 			{
+				// NOTE: Stuff to play remote audios due to browsers' new autoplay policy.
+				//
+				// Just get access to the mic and DO NOT close the mic track for a while.
+				// Super hack!
+				{
+					const stream = await global.navigator.mediaDevices.getUserMedia({ audio: true });
+					const audioTrack = stream.getAudioTracks()[0];
+
+					audioTrack.enabled = false;
+
+					setTimeout(() => audioTrack.stop(), 120000);
+				}
+
+				// Create mediasoup Transport for sending (unless we don't want to produce).
 				const transportInfo = await this._protoo.request(
 					'createWebRtcTransport',
 					{
