@@ -423,8 +423,9 @@ export default class Loop extends React.Component {
 				if (typeof pageCfg == "number") {
 					pageSize = pageCfg;
 				}
-				
-				filter.pageSize = pageSize;
+				if (!filter.pageSize) {
+					filter.pageSize = pageSize;
+				}
 			}
 			
 			webRequest(props.over, filter).then(response => {
@@ -795,6 +796,11 @@ export default class Loop extends React.Component {
 		
 		if(typeof pageCfg == "number"){
 			pageSize = pageCfg;
+		}
+		
+		// if filter contains pagesize use that
+		if (this.props.filter && this.props.filter.pageSize ) {
+			pageSize = this.props.filter.pageSize;
 		}
 		
 		// Paginate
