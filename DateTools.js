@@ -14,6 +14,7 @@ function ordinal(i) {
 }
 
 const monthNames = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+const shortMonthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 
 const isoConvert = (isoish) => {
 	
@@ -93,6 +94,7 @@ function addDays(date, days) {
 module.exports = {
 	ordinal,
 	monthNames,
+	shortMonthNames,
 	isoConvert,
 	localToUtc,
 	addDays
