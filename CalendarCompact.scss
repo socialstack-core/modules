@@ -1,0 +1,29 @@
+/*
+	Optional stylesheet
+*/
+
+.calendar-compact{
+
+	.header{
+	
+		> div{
+			padding: 5px;
+			border-bottom: 1px solid lightgrey;
+		}
+	}
+
+	background: white;
+	
+	.day{
+		position: relative;
+		
+		.timeblock{
+			position: absolute;
+			left: 0;
+		}
+		
+		.entry{
+			width: 100%;
+		}
+	}
+}
