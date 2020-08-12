@@ -23,24 +23,36 @@ namespace Api.PasswordResetRequests
         {
 			Events.PasswordResetRequest.BeforeCreate.AddEventListener(async (Context context, PasswordResetRequest reset) => {
 				
-				if(string.IsNullOrWhiteSpace(reset.Email)){
+				if(reset == null){
 					return null;
-				}
-				
-				reset.CreatedUtc = DateTime.UtcNow;
-				
-				// Get the user:
-				var user = await users.GetByEmail(context, reset.Email.Trim());
-				
-				if(user == null){
-					// Quietly stop here.
-					// We let the creation go through so this doesn't leak information about which emails are registered.
-					return reset;
 				}
 				
 				// Generate a token, which will be hidden from the user:
 				reset.Token = RandomToken.Generate(20);
-				reset.UserId = user.Id;
+				reset.CreatedUtc = DateTime.UtcNow;
+				
+				if(string.IsNullOrWhiteSpace(reset.Email))
+				{
+					if(reset.UserId == 0){
+						return null;
+					}
+					
+					// Admins can provide a user ID.
+					// In this situation, an email isn't sent out.
+				}
+				else
+				{
+					// Get the user:
+					var user = await users.GetByEmail(context, reset.Email.Trim());
+					
+					if(user == null){
+						// Quietly stop here.
+						// We let the creation go through so this doesn't leak information about which emails are registered.
+						return reset;
+					}
+					
+					reset.UserId = user.Id;
+				}
 				
 				return reset;
 			}, 5);
@@ -48,7 +60,7 @@ namespace Api.PasswordResetRequests
 			Events.PasswordResetRequest.AfterCreate.AddEventListener(async (Context context, PasswordResetRequest reset) => {
 				
 				// Send the email (we'll specifically wait for this one):
-				if(reset.UserId == 0){
+				if(reset == null || reset.UserId == 0 || reset.Email == null){
 					return reset;
 				}
 				

@@ -9,7 +9,6 @@ namespace Api.PasswordResetRequests
 	/// </summary>
 	public class PasswordResetRequest : DatabaseRow
 	{
-
 		/// <summary>
 		/// The randomly generated token, used by the client, to prove ownership of the 2nd channel.
 		/// </summary>
