@@ -165,22 +165,23 @@ namespace Api.WebSockets
 		/// <summary>
 		/// Updates the user client set.
 		/// </summary>
-		private void ChangeUserSet(WebSocketClient client){
+		private async Task ChangeUserSet(WebSocketClient client){
 			
 			var uId = client.Context.UserId;
-			
-			lock(ListenersByUserId){
+			UserWebsocketLinks set = null;
+
+			lock (ListenersByUserId){
 				
-				if(!ListenersByUserId.TryGetValue(uId, out UserWebsocketLinks set))
+				if(!ListenersByUserId.TryGetValue(uId, out set))
 				{
 					set = new UserWebsocketLinks(uId);
 					ListenersByUserId[uId] = set;
 				}
 				
-				// Add the client to the set:
-				set.Add(client, ListenersByUserId);
 			}
-			
+
+			// Add the client to the set:
+			await set.Add(client);
 		}
 		
 		/// <summary>
@@ -195,7 +196,7 @@ namespace Api.WebSockets
 			if(client.Context != null && client.Context.UserId != 0){
 				
 				// Add to user lookup.
-				ChangeUserSet(client);
+				await ChangeUserSet(client);
 				
 			}
 			
@@ -279,7 +280,7 @@ namespace Api.WebSockets
 							
 							if(ctx.UserId != prevUserId){
 								// Update the user set it's in:
-								ChangeUserSet(client);
+								await ChangeUserSet(client);
 							}
 							
 						break;
@@ -569,9 +570,20 @@ namespace Api.WebSockets
 		}
 		
 		/// <summary>
+		/// True if this set contains exactly 1 entry.
+		/// </summary>
+		public bool ContainsOne
+		{
+			get
+			{
+				return First != null && First == Last;
+			}
+		}
+
+		/// <summary>
 		/// Adds the given client to the user set.
 		/// </summary>
-		public void Add(WebSocketClient client, Dictionary<int, UserWebsocketLinks> all){
+		public async Task Add(WebSocketClient client){
 			
 			if(client.UserSet != null){
 				// The null here avoids the set from being removed from the overall lookup
@@ -593,7 +605,8 @@ namespace Api.WebSockets
 					Last = client;
 				}
 			}
-			
+
+			await Events.WebSocketUserState.Dispatch(null, Id, this);
 		}
 		
 		/// <summary>
@@ -721,7 +734,7 @@ namespace Api.WebSockets
 		/// <summary>
 		/// Removes this client from the user set.
 		/// </summary>
-		public void RemoveFromUserSet(Dictionary<int, UserWebsocketLinks> all){
+		public async Task RemoveFromUserSet(Dictionary<int, UserWebsocketLinks> all){
 			if(UserSet == null){
 				return;
 			}
@@ -748,6 +761,9 @@ namespace Api.WebSockets
 				lock(all){
 					all.Remove(UserSet.Id);
 				}
+
+				// Trigger state event:
+				await Events.WebSocketUserState.Dispatch(null, UserSet.Id, UserSet);
 			}
 			
 			UserSet = null;
@@ -770,10 +786,10 @@ namespace Api.WebSockets
 		/// <summary>
 		/// Called when this client disconnects. Removes all their type listeners.
 		/// </summary>
-		public void OnDisconnected(IWebSocketService service)
+		public async Task OnDisconnected(IWebSocketService service)
 		{
 			// Remove from user set:
-			RemoveFromUserSet(service.UserListeners);
+			await RemoveFromUserSet(service.UserListeners);
 			
 			// Remove all:
 			foreach (var kvp in TypeListeners)

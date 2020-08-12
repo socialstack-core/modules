@@ -70,7 +70,7 @@ namespace Api.WebSockets
 						throw e;
 					}
 					finally {
-						client.OnDisconnected(_websocketService);
+						await client.OnDisconnected(_websocketService);
 					}
 				});
 			};
