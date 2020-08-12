@@ -164,12 +164,27 @@ namespace Api.Huddles
 			return targetServer;
 		}
 
-		private class AllocatedHuddleServer
+		/// <summary>
+		/// 
+		/// </summary>
+		public class AllocatedHuddleServer
 		{
 			/// <summary>
 			/// Allocated server ID.
 			/// </summary>
 			public int HuddleServerId;
+
+			/// <summary>
+			/// 
+			/// </summary>
+			public AllocatedHuddleServer() { }
+			/// <summary>
+			/// 
+			/// </summary>
+			/// <param name="huddleServerId"></param>
+			public AllocatedHuddleServer(int huddleServerId) {
+				HuddleServerId = huddleServerId;
+			}
 		}
 	}
     
