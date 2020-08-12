@@ -147,15 +147,95 @@
     }
 
     &.btn-warning {
+        background-color: $theme_warning_bg;
+        color: $theme_warning_fg;
+        border: 0;
+
+        &:hover {
+            background-color: darken($theme_warning_bg, 5%);
+            color: darken($theme_warning_fg, 5%);
+            border: 0;
+        }
+
+        &:active {
+            background-color: darken($theme_warning_bg, 10%);
+            color: darken($theme_warning_fg, 10%);
+            border: 0;
+        }
+
+        &:focus {
+            outline: 0;
+            box-shadow: 0 0 0 0.2rem rgba($theme_warning_bg, .5);
+        }
     }
 
     &.btn-info {
+        background-color: $theme_info_bg;
+        color: $theme_info_fg;
+        border: 0;
+
+        &:hover {
+            background-color: darken($theme_info_bg, 5%);
+            color: darken($theme_info_fg, 5%);
+            border: 0;
+        }
+
+        &:active {
+            background-color: darken($theme_info_bg, 10%);
+            color: darken($theme_info_fg, 10%);
+            border: 0;
+        }
+
+        &:focus {
+            outline: 0;
+            box-shadow: 0 0 0 0.2rem rgba($theme_info_bg, .5);
+        }
     }
 
     &.btn-light {
+        background-color: $theme_light_bg;
+        color: $theme_light_fg;
+        border: 0;
+
+        &:hover {
+            background-color: darken($theme_light_bg, 5%);
+            color: darken($theme_light_fg, 5%);
+            border: 0;
+        }
+
+        &:active {
+            background-color: darken($theme_light_bg, 10%);
+            color: darken($theme_light_fg, 10%);
+            border: 0;
+        }
+
+        &:focus {
+            outline: 0;
+            box-shadow: 0 0 0 0.2rem rgba($theme_light_bg, .5);
+        }
     }
 
     &.btn-dark {
+        background-color: $theme_dark_bg;
+        color: $theme_dark_fg;
+        border: 0;
+
+        &:hover {
+            background-color: darken($theme_dark_bg, 5%);
+            color: darken($theme_dark_fg, 5%);
+            border: 0;
+        }
+
+        &:active {
+            background-color: darken($theme_dark_bg, 10%);
+            color: darken($theme_dark_fg, 10%);
+            border: 0;
+        }
+
+        &:focus {
+            outline: 0;
+            box-shadow: 0 0 0 0.2rem rgba($theme_dark_bg, .5);
+        }
     }
 
     &.btn-lg {
