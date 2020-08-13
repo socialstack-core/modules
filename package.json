@@ -1,0 +1,5 @@
+{
+	"dependencies": [
+		"nuget:CsvHelper@15.0.5"
+	]
+}
