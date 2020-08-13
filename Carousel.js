@@ -102,7 +102,8 @@ export default class Carousel extends React.Component {
 
 		}
 
-		var contentClass = this.state.currentIndex === 0 ? "content-list content first" : "content-list content";
+		//var contentClass = this.state.currentIndex === 0 ? "content-list content first" : "content-list content";
+		var contentClass = "content-list content first";
 		var width = 0;
 
 		// TODO: update media query matches in realtime
@@ -121,23 +122,21 @@ export default class Carousel extends React.Component {
 			width = 930;
 		}
 
+		var transformCalc = '';
 		var slideWidthCalc = '';
 		var slideWidth = '';
 
 		if (centred) {
-			slideWidthCalc = spacing ?
-				"calc( (" + width + "px / " + visCount + ") + (" + spacing + " / " + visCount + ") )" :
-				"calc(" + width + "px / " + visCount + ")";
+			transformCalc = spacing ?
+				(width / visCount) + (padNum / visCount) :
+				width / visCount;
+			slideWidthCalc = transformCalc + "px";
 			slideWidth = { flex: "0 0 " + slideWidthCalc };
 		}
 
 		var slideOffset = centred ?
-			//{ marginLeft: "-" + this.state.currentIndex + " * calc(" + width + "px / " + visCount + ")" } :
-			{ marginLeft: "calc(-(" + this.state.currentIndex + " * " + width / visCount + "px) / " + visCount + ")" } :
+			{ transform: "translateX(calc(-" + transformCalc + "px * " + this.state.currentIndex + "))" } :
 			{ marginLeft: (-((1 / visCount) * 100) * this.state.currentIndex) + '%' };
-
-		//console.log("width: " + width / visCount + spacing / 2);
-		// transform: translateX(calc(-473px * this.state.currentIndex))
 
 		return (
 			<div className="carousel">
@@ -178,7 +177,7 @@ export default class Carousel extends React.Component {
 								})
 							}
 						</ul>
-						{showNext && this.state.currentIndex < items.length &&
+						{showNext && this.state.currentIndex < items.length - 1 &&
 							<div className="slider-next-wrapper">
 								<button type="button" className="slider-next" onClick={() => {
 									this.moveNext();

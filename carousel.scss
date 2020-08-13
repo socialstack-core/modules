@@ -64,7 +64,8 @@
     }
 
     .content-list {
-        transition: margin-left 600ms ease-in-out;
+        transition: all 600ms ease-in-out;
+        transition-property: margin-left transform;
         //display: block !important;
         display: flex;
         white-space: nowrap;
