@@ -181,6 +181,35 @@ select.form-control {
     }
 }
 
+.white-fields {
+
+    input.form-control {
+        // text entry
+        &:not([type]),
+        &[type=""],
+        &[type='date'],
+        &[type='datetime'], // obsolete
+        &[type='datetime-local'],
+        &[type='email'],
+        &[type='month'],
+        &[type='number'],
+        &[type='password'],
+        &[type='search'],
+        &[type='tel'],
+        &[type='text'],
+        &[type='time'],
+        &[type='url'],
+        &[type='week'] {
+            background-color: #fff;
+        }
+    }
+
+    textarea.form-control,
+    select.form-control {
+        background-color: #fff;
+    }
+}
+
 html.ios {
     // ensure iOS uses a minimum font size of 16px
     // (otherwise page will zoom in when inputs gain focus)
