@@ -27,6 +27,7 @@ namespace Api.NavMenus
 			listByMenuQuery = Query.List<NavMenuItem>();
 			listByMenuQuery.Where().EqualsArg("NavMenuId", 0);
 			_navMenus = navMenus;
+			InstallAdminPages(null, null, new string[] { "id", "target" });
 		}
 		
 		/// <summary>
