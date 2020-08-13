@@ -183,6 +183,10 @@ namespace Api.AutoForms
 			{
 				type = "checkbox";
 			}
+			else if (fieldType == typeof(DateTime) || fieldType == typeof(DateTime?))
+			{
+				type = "datetime";
+			}
 
 			field.Data["label"] = SpaceCamelCase(labelName);
 			field.Data["name"] = FirstCharacterToLower(name);
