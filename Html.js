@@ -9,7 +9,7 @@ export default class Html extends React.Component {
     }
 	
     render() {
-		return <span dangerouslySetInnerHTML={{__html: this.props.children}} />;
+		return <span className={this.props.className} dangerouslySetInnerHTML={{__html: this.props.children}} />;
     }
 }
 
