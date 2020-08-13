@@ -126,6 +126,8 @@ input.form-control {
     &[type='radio'] {
     }
     // text entry
+    &:not([type]),
+    &[type=""],
     &[type='date'],
     &[type='datetime'], // obsolete
     &[type='datetime-local'],
