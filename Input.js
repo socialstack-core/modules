@@ -336,7 +336,7 @@ export default class Input extends React.Component {
 						data-validation={this.state.validationFailure ? true : undefined}
 						{...omit(this.props, ['id', 'className', 'onChange', 'onBlur', 'type', 'inline'])}
 					/>
-					{!this.props.noVisiblityButton && (
+                {!this.props.noVisiblityButton && !this.props.noVisibilityButton && (
 						<div className="input-group-append clickable" onClick={() => {
 							this.setState({pwVisible: !pwVisible});
 						}}>
