@@ -256,7 +256,7 @@ export default class HuddleClient
 	{
 		var huddleInfo = await webRequest('huddle/' + this.room.id + '/join');
 		var url = huddleInfo.json.connectionUrl;
-		var isHttps = global.location.protocol == "https:";
+		var isHttps = url.indexOf("localhost") == -1;
 		const protooTransport = new protoo.WebSocketTransport((isHttps ? 'wss' : 'ws') + '://' + url.trim());
 		this._protoo = new protoo.Peer(protooTransport);
 		
