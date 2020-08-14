@@ -153,7 +153,7 @@ namespace Api.Startup
 		/// <summary>
 		/// Check if the given type is a numeric one.
 		/// </summary>
-		/// <param name="o"></param>
+		/// <param name="type"></param>
 		/// <returns></returns>
 		private static bool IsNumericType(Type type)
 		{
