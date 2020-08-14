@@ -236,10 +236,12 @@ namespace Api.WebSockets
 					}
 
 					var type = jToken.Value<string>();
+					var handled = false;
 					
 					switch(type){
 						case "Add":
 						case "AddEventListener":
+							handled = true;
 							jToken = message["name"];
 
 							if (jToken == null || jToken.Type != JTokenType.String)
@@ -257,6 +259,7 @@ namespace Api.WebSockets
 							client.AddEventListener(typeToListenTo);
 						break;
 						case "Auth":
+							handled = true;
 							jToken = message["token"];
 
 							if (jToken == null || jToken.Type != JTokenType.String)
@@ -287,6 +290,7 @@ namespace Api.WebSockets
 						break;
 						case "Remove":
 						case "RemoveEventListener":
+							handled = true;
 							jToken = message["name"];
 
 							if (jToken == null || jToken.Type != JTokenType.String)
@@ -304,6 +308,7 @@ namespace Api.WebSockets
 							}
 						break;
 						case "AddSet":
+							handled = true;
 							jToken = message["names"];
 
 							if (jToken == null || jToken.Type != JTokenType.Array)
@@ -321,6 +326,10 @@ namespace Api.WebSockets
 								client.AddEventListener(GetTypeListener(eName, true));
 							}
 						break;
+					}
+					
+					if(!handled){
+						await Events.WebSocketMessage.Dispatch(client.Context, message, client, type);
 					}
 
 				}

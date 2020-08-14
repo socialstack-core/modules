@@ -1,5 +1,6 @@
 using Api.WebSockets;
 using Api.Permissions;
+using Newtonsoft.Json.Linq;
 
 namespace Api.Eventing
 {
@@ -21,6 +22,12 @@ namespace Api.Eventing
 		/// </summary>
 		[DontAddPermissions]
 		public static EventHandler<int, UserWebsocketLinks> WebSocketUserState;
+		
+		/// <summary>
+		/// Called when a message is received of a non-core type.
+		/// </summary>
+		[DontAddPermissions]
+		public static EventHandler<JObject, WebSocketClient, string> WebSocketMessage;
 		
 	}
 }
