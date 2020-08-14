@@ -91,11 +91,22 @@ function addDays(date, days) {
     return date;
 }
 
+function addHours(date, hours) {
+	return addMinutes(date, hours * 60);
+}
+
+function addMinutes(date, minutes) {
+	var date = new Date(date.valueOf() + (1000 * 60 * minutes));
+	return date;
+}
+
 module.exports = {
 	ordinal,
 	monthNames,
 	shortMonthNames,
 	isoConvert,
 	localToUtc,
-	addDays
+	addDays,
+	addMinutes,
+	addHours
 };
