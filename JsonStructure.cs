@@ -151,6 +151,32 @@ namespace Api.Startup
 		}
 
 		/// <summary>
+		/// Check if the given type is a numeric one.
+		/// </summary>
+		/// <param name="o"></param>
+		/// <returns></returns>
+		private static bool IsNumericType(Type type)
+		{
+			switch (Type.GetTypeCode(type))
+			{
+				case TypeCode.Byte:
+				case TypeCode.SByte:
+				case TypeCode.UInt16:
+				case TypeCode.UInt32:
+				case TypeCode.UInt64:
+				case TypeCode.Int16:
+				case TypeCode.Int32:
+				case TypeCode.Int64:
+				case TypeCode.Decimal:
+				case TypeCode.Double:
+				case TypeCode.Single:
+					return true;
+				default:
+					return false;
+			}
+		}
+
+		/// <summary>
 		/// Adds the given field to this structure.
 		/// </summary>
 		/// <param name="context"></param>
@@ -160,7 +186,14 @@ namespace Api.Startup
 		{
 			// Set the default just before the field event:
 			field.SetDefaultDisplayModule();
-			
+
+			// Get underlying nullable type:
+			var nullableType = Nullable.GetUnderlyingType(field.TargetType);
+
+			// Set if it's numeric:
+			field.UnderlyingNullable = nullableType;
+			field.IsNumericField = IsNumericType(nullableType != null ? nullableType : field.TargetType);
+
 			field = await eventSystem.BeforeSettable.Dispatch(context, field);
 
 			if (field != null && field.Attributes != null)
@@ -260,6 +293,14 @@ namespace Api.Startup
 		/// The field/ property value type.
 		/// </summary>
 		public Type TargetType;
+		/// <summary>
+		/// If TargetType is nullable, the underlying type.
+		/// </summary>
+		public Type UnderlyingNullable;
+		/// <summary>
+		/// True if this is a numeric field (int, double etc).
+		/// </summary>
+		public bool IsNumericField;
 		/// <summary>
 		/// The field or property attributes.
 		/// </summary>
@@ -498,11 +539,38 @@ namespace Api.Startup
 						else
 						{
 							// Unrecognised date format.
-#warning submitting an invalid date string format to the API will silently ignore the field
 							return;
 						}
 					}
 
+				}
+				else if (targetJToken.Type == JTokenType.Null)
+				{
+					// Use the default targetValue:
+					if (TargetType.IsValueType)
+					{
+						targetValue = Activator.CreateInstance(TargetType);
+					}
+					else
+					{
+						targetValue = null;
+					}
+				}
+				else if (targetJToken.Type == JTokenType.String && IsNumericField)
+				{
+					// can be e.g. an empty string on a numeric field.
+					var str = targetJToken.Value<string>();
+
+					if (string.IsNullOrEmpty(str))
+					{
+						// Use the default value:
+						targetValue = Activator.CreateInstance(TargetType);
+					}
+					else
+					{
+						// Try parse:
+						targetValue = targetJToken.ToObject(TargetType);
+					}
 				}
 				else
 				{
