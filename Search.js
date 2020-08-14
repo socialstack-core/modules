@@ -91,6 +91,12 @@ export default class Search extends React.Component {
 				var results = response.json.results;
 				this.setState({loading: false, results});
 			});
+		}else if(this.props.endpoint){
+			webRequest(this.props.endpoint + '?q=' + encodeURIComponent(query)).then(response => {
+				var results = response.json.results;
+				this.props.onResults && this.props.onResults(results);
+				this.setState({loading: false, results});
+			});
 		}
 	}
 	
@@ -134,12 +140,12 @@ export default class Search extends React.Component {
 			}} 
 			onKeyDown={(e) => {
 				if (e.keyCode == 13){
-					if (this.state.results && this.state.results.length == 1) {
+					if (this.state.results && !this.props.onResults && this.state.results.length == 1) {
 						this.selectResult(this.state.results[0]);
 					}		
 					e.preventDefault();
 				}}}/>
-			{this.state.results && (
+			{this.state.results && !this.props.onResults && (
 				<div className="suggestions">
 					{this.state.results.length ? (
 						this.state.results.map((result, i) => (
