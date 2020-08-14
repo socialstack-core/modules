@@ -16,6 +16,9 @@ export default class PageRouter extends React.Component{
 		}else{
 			global.history.pushState({}, "", url);
 		}
+		var e = new Event('xpushstate');
+		e.url = url;
+		global.dispatchEvent(e);
 		document.body.parentNode.scrollTop=0;
 		this.props.onNavigate && this.props.onNavigate(url);
 	}
