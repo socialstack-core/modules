@@ -1,4 +1,3 @@
-
 /**
  * Standalone component which displays a loader (typically a spinner).
  */
@@ -10,7 +9,17 @@ export default class Loading extends React.Component {
         return (
             <div className="alert alert-info loading">
                 {message}
-                <i className="fas fa-spinner fa-spin" />
+
+                {this.props.svg && 
+                    <div className="fa-spin">
+                        this.props.svg
+                    </div>
+                }
+
+                {!this.props.svg &&
+                    <i className="fas fa-spinner fa-spin" />
+                }
+
             </div>
         );
 	}
