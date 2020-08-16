@@ -4,8 +4,32 @@
 		background: #F7F7F7;
 	}
 	
-	> div > .admin-aside{
+	> div > .admin-aside {
 		background: #2A3F54;
+		padding-left: 0;
+		padding-right: 0;
+		position: relative;
+
+		.main-menu {
+			position: fixed;
+			overflow-y: auto;
+			height: 100%;
+			width: 16.67%;
+
+			.loop {
+
+				.loop-item {
+
+					> a {
+						padding: 12px 15px;
+					}
+
+				}
+
+			}
+
+		}
+
 	}
 	
 }
