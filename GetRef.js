@@ -78,7 +78,15 @@ function fontAwesomeIcon(ref, options){
 	if(options.url){
 		return '';
 	}
-	return (<i className={options.protocol + ' ' + ref} {...options.attribs}/>);
+
+	// allows us to specify FontAwesome modifier classes, e.g. fa-fw
+	var className = options.protocol + ' ' + ref;
+
+	if (options.className) {
+		className += ' ' + options.className;
+	}
+
+	return (<i className={className} {...options.attribs}/>);
 }
 
 function emojiStr(ref, options){
