@@ -1,13 +1,12 @@
 import NavMenu from 'UI/NavMenu';
 import Canvas from 'UI/Canvas';
 import getRef from 'UI/Functions/GetRef';
-import logo from './logo.svg';
 
 export default class MainMenu extends React.Component {
 	render() {
 		return (
 			<div className="main-menu">
-				<img className="logo" src={logo} alt="Logo" />
+				<div className="logo" />
 				<NavMenu id={'admin_primary'} asUl>
 					{item =>
 						<a href={item.target} className={
