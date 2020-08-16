@@ -1,3 +1,5 @@
+import Html from 'UI/Html';
+
 /**
  * Standalone component which displays a loader (typically a spinner).
  */
@@ -12,7 +14,9 @@ export default class Loading extends React.Component {
 
                 {this.props.svg && 
                     <div className="fa-spin">
-                        this.props.svg
+                        <Html>
+                            {this.props.svg}
+                        </Html>
                     </div>
                 }
 
