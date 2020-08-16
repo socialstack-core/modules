@@ -4,34 +4,34 @@
 */
 
 @mixin font_size($px) {
-    font-size: 0rem + $px / $base_font_size;
+    font-size: px_to_rem($px);
 }
 
 @mixin line_height($px) {
-    line-height: 0rem + $px / $base_font_size;
+    line-height: px_to_rem($px);
 }
 
 @mixin letter_spacing($px) {
-    letter-spacing: 0rem + $px / $base_font_size;
+    letter-spacing: px_to_rem($px);
 }
 
 @mixin border_radius($px) {
-    border-radius: 0rem + $px / $base_font_size;
+    border-radius: px_to_rem($px);
 }
 
 @mixin padding($top_px: 0, $right_px: 0, $bottom_px: $top_px, $left_px: $right_px) {
-    $top_em: 0rem + $top_px / $base_font_size;
-    $right_em: 0rem + $right_px / $base_font_size;
-    $bottom_em: 0rem + $bottom_px / $base_font_size;
-    $left_em: 0rem + $left_px / $base_font_size;
+    $top_em: px_to_rem($top_px);
+    $right_em: px_to_rem($right_px);
+    $bottom_em: px_to_rem($bottom_px);
+    $left_em: px_to_rem($left_px);
     padding: $top_em $right_em $bottom_em $left_em;
 }
 
 @mixin margin($top_px: 0, $right_px: 0, $bottom_px: $top_px, $left_px: $right_px) {
-    $top_em: 0rem + $top_px / $base_font_size;
-    $right_em: 0rem + $right_px / $base_font_size;
-    $bottom_em: 0rem + $bottom_px / $base_font_size;
-    $left_em: 0rem + $left_px / $base_font_size;
+    $top_em: px_to_rem($top_px);
+    $right_em: px_to_rem($right_px);
+    $bottom_em: px_to_rem($bottom_px);
+    $left_em: px_to_rem($left_px);
     margin: $top_em $right_em $bottom_em $left_em;
 }
 

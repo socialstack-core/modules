@@ -1,0 +1,180 @@
+/*
+	SASS theme functions
+
+	NB: relies on default settings stored within $socialstack_default_theme;
+	    checks for optional project-specific overrides within $socialstack_project_theme
+	
+	setting values should be held within the following format:
+	
+	// PALETTE
+	key: "base palette value",
+	categoryName: (
+		key: "category palette value",
+	)
+
+	// THEME
+	key: "base level value",
+	categoryName: (
+		key: "category level value",
+		contextName: (
+			key: "context level value",
+			subContextName: (
+				key: "subcontext level value"
+                state: (
+                    key: "state value"
+                )
+			)
+		)
+	)
+
+*/
+
+@function get_palette_value($theme, $value, $category: null) {
+
+	@if ($category) {
+		$categoryMap: map-get($theme, $category);
+
+		@if ($categoryMap) {
+			@return map-get($categoryMap, $value);
+		}
+
+	}
+	@else {
+		@return map-get($theme, $value);
+	}
+
+	@return null;
+}
+
+@function get_hover_value($theme, $value, $category: null) {
+	$color: get_palette_value($theme, $value, $category);
+
+	@if ($color) {
+		@return darken($color, 10%);
+	}
+
+	@return null;
+}
+
+@function get_active_value($theme, $value, $category: null) {
+	$color: get_palette_value($theme, $value, $category);
+
+	@if ($color) {
+		@return darken($color, 20%);
+	}
+
+	@return null;
+}
+
+@function get_palette($value, $category: null) {
+	$default: null;
+	$project: null;
+
+	@if (variable-exists(socialstack_default_palette)) {
+		$default: get_palette_value($socialstack_default_palette, $value, $category);
+	}
+
+	@if (variable-exists(socialstack_project_palette)) {
+		$project: get_palette_value($socialstack_project_palette, $value, $category);
+	}
+
+	@if ($project) {
+		@return $project;
+	}
+
+	@return $default;
+}
+
+// retrieve value of category > context > subContext > state > key from the given theme (default or project)
+// (all levels optional)
+@function get_theme_value($theme, $value, $category: null, $context: null, $subContext: null, $state: null) {
+
+	@if ($category) {
+		$categoryMap: map-get($theme, $category);
+
+		@if ($categoryMap) {
+
+			@if ($context) {
+				$contextMap: map-get($categoryMap, $context);
+
+				@if ($contextMap) {
+
+					@if ($subContext) {
+						$subContextMap: map-get($contextMap, $subContext);
+
+						@if ($subContextMap) {
+
+							@if ($state) {
+								$stateMap: map-get($subContextMap, $state);
+
+								@if ($stateMap) {
+									@return map-get($stateMap, $value);
+								}
+
+							} @else {
+								@return map-get($subContextMap, $value);
+							}
+						}
+					}
+					@else {
+						@return map-get($contextMap, $value);
+					}
+				}
+			}
+			@else {
+				@return map-get($categoryMap, $value);
+			}
+		}
+	}
+	@else {
+		@return map-get($theme, $value);
+	}
+
+	@return null;
+}
+
+// retrieve value of category > context > subContext > state > key (all levels optional)
+// returns project-level value if found, default value otherwise (null if neither found)
+@function get_value($value, $category: null, $context: null, $subContext: null, $state: null) {
+	$default: null;
+	$project: null;
+
+	@if (variable-exists(socialstack_default_theme)) {
+		$default: get_theme_value($socialstack_default_theme, $value, $category, $context, $subContext, $state);
+	}
+
+	@if (variable-exists(socialstack_project_theme)) {
+		$project: get_theme_value($socialstack_project_theme, $value, $category, $context, $subContext, $state);
+	}
+
+	@if ($project) {
+		@return $project;
+	}
+
+	@return $default;
+}
+
+// produce theme variations for alerts
+@mixin get_alert_themes() {
+	$themes: primary, secondary, success, danger, warning, info;
+
+	@each $theme in $themes {
+	  &.alert-#{$theme} {
+		color: get_value(color, bootstrap, alert, $theme);
+		background-color: get_value(background-color, bootstrap, alert, $theme);
+		border-color: get_value(border-color, bootstrap, alert, $theme);
+	  }
+	}
+}
+
+// produce theme variations for badges
+@mixin get_badge_themes() {
+	$themes: primary, secondary, success, danger, warning, info, light, dark;
+
+	@each $theme in $themes {
+	  &.badge-#{$theme} {
+		color: get_value(color, bootstrap, badge, $theme);
+		background-color: get_value(background-color, bootstrap, badge, $theme);
+	  }
+	}
+}

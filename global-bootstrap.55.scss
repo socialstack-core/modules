@@ -3,6 +3,27 @@
     NB: button-specific overrides are defined within global-buttons.35.scss
 */
 
+// override alerts
+.alert {
+    padding: get_value(padding, bootstrap, alert);
+    border-width: get_value(border-width, bootstrap, alert);
+    border-radius: get_value(border-radius, bootstrap, alert);
+
+    @include get_alert_themes();
+}
+
+// override badges
+.badge {
+    outline: 0 !important;
+    padding: get_value(padding, bootstrap, badge);
+    font-size: get_value(font-size, bootstrap, badge);
+    font-weight: get_value(font-weight, bootstrap, badge);
+    border-radius: get_value(border-radius, bootstrap, badge);
+
+    @include get_badge_themes();
+}
+
+
 // overrides for bootstrap modal defaults
 .modal-backdrop {
     background-color: $theme_modal_backdrop;
@@ -124,10 +145,3 @@
     }
 }
 
-// override bootstrap defaults
-.badge {
-    background-color: $badge_bg;
-    color: $badge_fg;
-    border-radius: $badge_border_radius;
-    @include padding($badge_padding_y, $badge_padding_x);
-}
