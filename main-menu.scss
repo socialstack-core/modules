@@ -1,4 +1,11 @@
 .main-menu {
+	padding-bottom: 1rem;
+
+	.logo {
+		width: 200px;
+		margin: 1rem 15px;
+	}
+
 	.loop-item {
 		padding: 0;
 		font-size: 16px;
@@ -20,7 +27,6 @@
 		}
 		
 		.fa, .fas, .far {
-			width: 1em;
 			margin: 0 auto;
 			margin-right: 10px;
 			font-size: 24px;
