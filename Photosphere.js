@@ -27,6 +27,8 @@ export default class Photosphere extends React.Component {
 		this.onMouseMove = this.onMouseMove.bind(this);
 		this.animate = this.animate.bind(this);
 		this.onLoaded = this.onLoaded.bind(this);
+        this.onWheel = this.onWheel.bind(this);
+        this.onResize = this.onResize.bind(this);
 	}
 	
 	componentWillReceiveProps(props){
@@ -74,6 +76,7 @@ export default class Photosphere extends React.Component {
 		global.scene = this.state.scene;
 		
 		global.addEventListener("mouseup", this.onMouseUp);
+        global.addEventListener("wheel", this.onWheel);
 		this.setup(this.props);
 	}
 	
@@ -86,6 +89,7 @@ export default class Photosphere extends React.Component {
 		}
 		scene.dispose();
 		global.removeEventListener("mouseup", this.onMouseUp);
+        global.removeEventListener("wheel", this.onWheel);
 		global.cancelAnimationFrame(this.animate);
 		
 	}
@@ -93,6 +97,14 @@ export default class Photosphere extends React.Component {
 	onMouseUp(){
 		this.setState({click: null});
 	}
+    
+    onWheel(props) {
+        var scaleFactor = 2;
+        var maxFov = 70;
+        var minFov = 30;
+        this.camera.fov = Math.max(Math.min(this.camera.fov + (Math.sign(props.deltaY) * scaleFactor), maxFov), minFov);
+        this.camera.updateProjectionMatrix();
+    }
 	
 	onMouseMove(e){
 		var { click } = this.state;
