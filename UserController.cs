@@ -47,7 +47,18 @@ namespace Api.Users
 				return null;
 			}
 
-			return await context.GetPublicContext();
+			var ctx = await context.GetPublicContext();
+			
+			if(ctx != null && ctx.User != null && ctx.Role != null)
+			{
+				if(ctx.User.Role != ctx.Role.Id)
+				{
+					// Force reset if role changed.
+					return null;
+				}
+			}
+			
+			return ctx;
 		}
 		
 		/// <summary>
