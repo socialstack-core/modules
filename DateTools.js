@@ -85,6 +85,13 @@ function localToUtc(date){
 	date.getUTCHours(), date.getUTCMinutes(), date.getUTCSeconds()));
 }
 
+function getMonday(date) {
+  d = new Date(date);
+  var day = d.getDay(),
+      diff = d.getDate() - day + (day == 0 ? -6:1); // adjust when day is sunday
+  return new Date(d.setDate(diff));
+}
+
 function addDays(date, days) {
     var date = new Date(date.valueOf());
     date.setDate(date.getDate() + days);
@@ -106,6 +113,7 @@ module.exports = {
 	shortMonthNames,
 	isoConvert,
 	localToUtc,
+	getMonday,
 	addDays,
 	addMinutes,
 	addHours
