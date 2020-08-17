@@ -7,6 +7,8 @@ export default class Peers extends React.Component {
 		var peers = huddleClient.peers;
 		var activeSpeakerId = huddleClient.room.activeSpeakerId;
 		
+		console.log(peers);
+		
 		return <div className="peers">
 			{
 				peers.map((peer) =>

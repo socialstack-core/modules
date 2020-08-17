@@ -6,17 +6,34 @@ export default class VideoChat extends React.Component {
 	
 	constructor(props){
 		super(props);
+		var test = false;
 		
 		var huddleClient = new HuddleClient({
-			roomId: (this.props.roomId || 1).toString(),
+			roomId: (props.roomId || 1).toString(),
 			produce: true,
 			consume: true,
 			useSimulcast: true,
 			useSharingSimulcast: true
 		});
 		
+		if(typeof props.roomId === 'string' && props.roomId.length > 1){
+			if(props.roomId[0] == 't'){
+				// tX where X is the number of peers in the meeting.
+				// Ability to setup a test number of people in a meeting.
+				test = true;
+				
+				huddleClient.peers = [];
+				var pt = parseInt(props.roomId.substring(1));
+				for(var i=0;i<pt;i++){
+					huddleClient.peers.push({test: true, consumers: []});
+				}
+				
+			}
+		}
+		
 		this.state = {
-			huddleClient
+			huddleClient,
+			test
 		};
 		
 		this.onRoomUpdate = this.onRoomUpdate.bind(this);
@@ -31,7 +48,9 @@ export default class VideoChat extends React.Component {
 	{
 		const { huddleClient } = this.state;
 		huddleClient.addEventListener('roomupdate', this.onRoomUpdate);
-		huddleClient.join();
+		if(!this.state.test){
+			huddleClient.join();
+		}
 		
 	}
 	
@@ -39,7 +58,9 @@ export default class VideoChat extends React.Component {
 	{
 		const { huddleClient } = this.state;
 		huddleClient.removeEventListener('roomupdate', this.onRoomUpdate);
-		huddleClient.close();
+		if(!this.state.test){
+			huddleClient.close();
+		}
 	}
 	
 	render(){
