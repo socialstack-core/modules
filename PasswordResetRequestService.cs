@@ -17,10 +17,25 @@ namespace Api.PasswordResetRequests
 	public partial class PasswordResetRequestService : AutoService<PasswordResetRequest>, IPasswordResetRequestService
     {
 		/// <summary>
+		/// Request expiry time, in hours.
+		/// </summary>
+		public const int DefaultExpiryTime = 48;
+		
+		/// <summary>
+		/// The request expiry time, in hours.
+		/// </summary>
+		public int ExpiryTime = DefaultExpiryTime;
+		
+		private readonly Query<PasswordResetRequest> selectByTokenQuery;
+		
+		/// <summary>
 		/// Instanced automatically. Use injection to use this service, or Startup.Services.Get.
 		/// </summary>
 		public PasswordResetRequestService(IEmailTemplateService emails, IUserService users) : base(Events.PasswordResetRequest)
         {
+			selectByTokenQuery = Query.Select<PasswordResetRequest>();
+			selectByTokenQuery.Where().EqualsArg("Token", 0);
+			
 			Events.PasswordResetRequest.BeforeCreate.AddEventListener(async (Context context, PasswordResetRequest reset) => {
 				
 				if(reset == null){
@@ -81,6 +96,31 @@ namespace Api.PasswordResetRequests
 				
 			}, 100);
 		}
+		
+		/// <summary>
+		/// True if given req has expired.
+		/// </summary>
+		public bool HasExpired(PasswordResetRequest req)
+		{
+			// Either doesn't exist, or its created time + expiry is in the past:
+			return (req == null || req.IsUsed || req.CreatedUtc.AddHours(ExpiryTime) < DateTime.UtcNow);
+		}
+		
+		/// <summary>
+		/// Gets a reset request by the given token.
+		/// </summary>
+		/// <param name="context"></param>
+		/// <param name="token"></param>
+		/// <returns></returns>
+		public async Task<PasswordResetRequest> Get(Context context, string token)
+        {
+			var item = await _database.Select(context, selectByTokenQuery, token);
+			context.NestedTypes |= NestableAddMask;
+			item = await EventGroup.AfterLoad.Dispatch(context, item);
+			context.NestedTypes &= NestableRemoveMask;
+			return item;
+        }
+
 	}
     
 }

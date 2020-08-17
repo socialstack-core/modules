@@ -40,6 +40,18 @@ namespace Api.PasswordResetRequests
 		/// </summary>
 		/// <returns></returns>
 		Task<List<PasswordResetRequest>> List(Context context, Filter<PasswordResetRequest> filter);
-
+		
+		/// <summary>
+		/// Gets a reset request by the given token.
+		/// </summary>
+		/// <param name="context"></param>
+		/// <param name="token"></param>
+		/// <returns></returns>
+		Task<PasswordResetRequest> Get(Context context, string token);
+		
+		/// <summary>
+		/// True if given req has expired (or is already used).
+		/// </summary>
+		bool HasExpired(PasswordResetRequest req);
 	}
 }

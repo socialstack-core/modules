@@ -15,7 +15,12 @@ namespace Api.PasswordResetRequests
 		[DatabaseField(Length =40)]
 		[JsonIgnore]
 		public string Token;
-		
+
+		/// <summary>
+		/// True if this token was used.
+		/// </summary>
+		public bool IsUsed;
+
 		/// <summary>
 		/// The email address that is being reset.
 		/// </summary>
