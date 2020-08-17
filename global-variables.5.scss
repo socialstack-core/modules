@@ -267,6 +267,15 @@ $socialstack_default_scrollspy: (
 );
 
 $socialstack_default_spinners: (
+    width: 2rem,
+    height: 2rem,
+    border-width: .25em,
+    border-color: currentColor,
+    border-right-color: transparent,
+    animation-duration: .75s
+    // TODO:
+    // support for text-primary / secondary etc. variants
+    // ref: https://getbootstrap.com/docs/4.3/components/spinners/
 );
 
 $socialstack_default_toasts: (

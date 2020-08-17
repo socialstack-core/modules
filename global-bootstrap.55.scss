@@ -23,6 +23,18 @@
     @include get_badge_themes();
 }
 
+// override spinners
+.spinner-border {
+    width: get_value(width, bootstrap, spinners);
+    height: get_value(height, bootstrap, spinners);
+    border-width: get_value(border-width, bootstrap, spinners);
+    border-color: get_value(border-color, bootstrap, spinners);
+    border-right-color: get_value(border-right-color, bootstrap, spinners);
+    animation-duration: get_value(animation-duration, bootstrap, spinners);
+
+    // TODO: other spinner variants
+    // ref: https://getbootstrap.com/docs/4.3/components/spinners/
+}
 
 // overrides for bootstrap modal defaults
 .modal-backdrop {
