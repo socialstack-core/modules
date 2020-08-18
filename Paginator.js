@@ -5,18 +5,45 @@ export default class Paginator extends React.Component {
 	constructor(props) {
 		super(props);
 		this.newId();
+        this.paginator = React.createRef();
 	}
 
 	componentWillReceiveProps(props) {
 		this.newId();
-	}
+    }
+
+    componentDidMount() {
+        this.checkVisible();
+    }
 
 	newId() {
 		this.fieldId = 'paginator_' + (id++);
 	}
 
-	changePage(newPageId) {
-		try {
+    checkVisible() {
+        var paginator = this.paginator.current;
+
+        if (!paginator) {
+			// will be unavailable on the initial pass
+            return;
+        }
+
+        var bounding = paginator.getBoundingClientRect();
+
+        if (
+            bounding.top >= 0 &&
+            bounding.left >= 0 &&
+            bounding.bottom <= (window.innerHeight || document.documentElement.clientHeight) &&
+            bounding.right <= (window.innerWidth || document.documentElement.clientWidth)
+        ) {
+            return;
+        }
+
+        paginator.scrollIntoView({ block: "end" });
+    }
+
+    changePage(newPageId) {
+        try {
 			var nextPage = parseInt(newPageId);
 
 			if (!nextPage || nextPage <= 0) {
@@ -29,8 +56,7 @@ export default class Paginator extends React.Component {
 				nextPage = totalPages;
 			}
 
-			this.props.onChange && this.props.onChange(nextPage, this.props.pageIndex);
-
+            this.props.onChange && this.props.onChange(nextPage, this.props.pageIndex);
 		} catch{
 			// E.g. user typed in something that isn't a number
 			return;
@@ -132,7 +158,7 @@ export default class Paginator extends React.Component {
 
 		// .paginator so we can differentiate one of our components
 		// .pagination so we inherit Bootstrap styling
-		return <nav className="paginator" aria-label={description}>
+        return <nav className="paginator" aria-label={description} ref={this.paginator}>
 			<ul className="pagination">
 				{/* first page */}
 				<li className="page-item first-page">
