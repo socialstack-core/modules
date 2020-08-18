@@ -52,18 +52,20 @@ export default class LoginForm extends React.Component {
 						<Input name="google2FAPin" validate={['Required']} />
 					</div>
 				)}
-				<Input name="emailOrUsername" placeholder="Email or username" validate={['Required']} />
-				<Input name="password" placeholder="Password" type="password" />
-				<Row>
-					<Col size="6">
-						<label className="checkbox-label">
-                            <input name="remember" type="checkbox" /> Remember me
-						</label>
-					</Col>
-					<Col size="6" className="text-right">
-						<a href="/en-admin/forgot">I forgot my password</a>
-					</Col>
-				</Row>
+				<div style={{display: this.state.moreRequired ? 'none' : 'initial'}}>
+					<Input name="emailOrUsername" placeholder="Email or username" validate={['Required']} />
+					<Input name="password" placeholder="Password" type="password" />
+					<Row>
+						<Col size="6">
+							<label className="checkbox-label">
+								<input name="remember" type="checkbox" /> Remember me
+							</label>
+						</Col>
+						<Col size="6" className="text-right">
+							<a href="/en-admin/forgot">I forgot my password</a>
+						</Col>
+					</Row>
+				</div>
 				<Spacer height="20" />
 				<Input type="submit" label="Login"/>
 				{this.state.failed && (
