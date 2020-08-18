@@ -1,20 +1,26 @@
 var id = 1;
+var initialised = false;
 
 export default class Paginator extends React.Component {
 
 	constructor(props) {
 		super(props);
 		this.newId();
-        this.paginator = React.createRef();
+		this.paginator = React.createRef();
 	}
 
 	componentWillReceiveProps(props) {
 		this.newId();
     }
 
-    componentDidMount() {
-        this.checkVisible();
-    }
+	componentDidMount() {
+
+		// prevent paginator scrolling into view before we've interacted with it
+		if (initialised) {
+			this.checkVisible();
+		}
+
+	}
 
 	newId() {
 		this.fieldId = 'paginator_' + (id++);
@@ -43,7 +49,9 @@ export default class Paginator extends React.Component {
     }
 
     changePage(newPageId) {
-        try {
+		initialised = true;
+
+		try {
 			var nextPage = parseInt(newPageId);
 
 			if (!nextPage || nextPage <= 0) {
@@ -156,50 +164,58 @@ export default class Paginator extends React.Component {
 			pageRange.push(i);
 		}
 
+		var showFullNav = pageRange.length > Math.min(totalPages, maxLinks);
+
 		// .paginator so we can differentiate one of our components
 		// .pagination so we inherit Bootstrap styling
         return <nav className="paginator" aria-label={description} ref={this.paginator}>
 			<ul className="pagination">
-				{/* first page */}
-				<li className="page-item first-page">
-					<button type="button" className="page-link" onClick={() => this.changePage(1)} disabled={currentPage <= 1}>
-						<i className={firstIcon}></i>
-						<span className="sr-only">
-							First page
+				{showFullNav && <>
+					{/* first page */}
+					<li className="page-item first-page">
+						<button type="button" className="page-link" onClick={() => this.changePage(1)} disabled={currentPage <= 1}>
+							<i className={firstIcon}></i>
+							<span className="sr-only">
+								First page
 						</span>
-					</button>
-				</li>
-				{/* previous page */}
-				<li className="page-item prev-page">
-					<button type="button" className="page-link" onClick={() => this.changePage(currentPage - 1)} disabled={currentPage <= 1}>
-						<i className={prevIcon}></i>
-						<span className="sr-only">
-							Previous page
+						</button>
+					</li>
+					{/* previous page */}
+					<li className="page-item prev-page">
+						<button type="button" className="page-link" onClick={() => this.changePage(currentPage - 1)} disabled={currentPage <= 1}>
+							<i className={prevIcon}></i>
+							<span className="sr-only">
+								Previous page
 						</span>
-					</button>
-				</li>
+						</button>
+					</li>
+				</>}
+
 				{/* individual page links */}
 				{
 					this.renderPageLinks(pageRange, currentPage, totalPages)
 				}
-				{/* next page */}
-				<li className="page-item next-page">
-					<button type="button" className="page-link" onClick={() => this.changePage(currentPage + 1)} disabled={currentPage == totalPages}>
-						<i className={nextIcon}></i>
-						<span className="sr-only">
-							Next page
+
+				{showFullNav && <>
+					{/* next page */}
+					<li className="page-item next-page">
+						<button type="button" className="page-link" onClick={() => this.changePage(currentPage + 1)} disabled={currentPage == totalPages}>
+							<i className={nextIcon}></i>
+							<span className="sr-only">
+								Next page
 						</span>
-					</button>
-				</li>
-				{/* last page */}
-				<li className="page-item last-page">
-					<button type="button" className="page-link" onClick={() => this.changePage(totalPages)} disabled={currentPage == totalPages}>
-						<i className={lastIcon}></i>
-						<span className="sr-only">
-							Last page
+						</button>
+					</li>
+					{/* last page */}
+					<li className="page-item last-page">
+						<button type="button" className="page-link" onClick={() => this.changePage(totalPages)} disabled={currentPage == totalPages}>
+							<i className={lastIcon}></i>
+							<span className="sr-only">
+								Last page
 						</span>
-					</button>
-				</li>
+						</button>
+					</li>
+				</>}
 			</ul>
 			<div className="pagination-overview">
 				{showInput && <>
