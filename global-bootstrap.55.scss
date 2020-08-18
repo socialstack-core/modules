@@ -23,6 +23,90 @@
     @include get_badge_themes();
 }
 
+// overrride pagination
+$pagination_spacing: get_value(linkSpacing, bootstrap, pagination);
+$pagination_border_width: get_value(border-width, bootstrap, pagination);
+$pagination_min_size: get_value(minSize, bootstrap, pagination);
+
+.pagination {
+    justify-content: get_value(justify-content, bootstrap, pagination);
+    margin-bottom: .5rem;
+
+    &[data-spacing] {
+
+    }
+
+    .page-item {
+
+        &:first-child .page-link {
+            margin-left: 0 !important;
+        }
+        
+        &:last-child .page-link {
+            margin-right: 0 !important;
+        }
+
+        .page-link {
+            padding: get_value(padding, bootstrap, pagination);
+            background-color: get_value(background-color, bootstrap, pagination);
+            color: get_value(color, bootstrap, pagination);
+            border-color: get_value(border-color, bootstrap, pagination);
+			border-radius: 0 !important;
+            border-width: $pagination_border_width;
+
+            @if ($pagination_min_size) {
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                min-width: $pagination_min_size;
+                min-height: $pagination_min_size;
+            }
+
+            @if ($pagination_spacing) {
+                margin-left: calc(#{$pagination_spacing} / 2);
+                margin-right: calc(#{$pagination_spacing} / 2);
+            } @else {
+                margin-left: -$pagination_border_width;
+            }
+
+            &[disabled] {
+                background-color: get_value(background-color, bootstrap, pagination, disabled) !important;
+                color: get_value(color, bootstrap, pagination, disabled) !important;
+                border-color: get_value(border-color, bootstrap, pagination, disabled) !important;
+            }
+
+            &.empty {
+                visibility: hidden;
+            }
+        }
+
+        .first-page {
+
+        }
+
+        .prev-page {
+
+        }
+
+        .next-page {
+
+        }
+
+        .last-page {
+
+        }
+
+        &.active {
+
+            .page-link {
+                background-color: get_value(background-color, bootstrap, pagination, active);
+                color: get_value(color, bootstrap, pagination, active);
+                border-color: get_value(border-color, bootstrap, pagination, active);
+            }
+        }
+    }
+}
+
 // override spinners
 .spinner-border {
     width: get_value(width, bootstrap, spinners);

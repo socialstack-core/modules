@@ -260,6 +260,34 @@ $socialstack_default_navs: (
 $socialstack_default_navbar: (
 );
 
+$socialstack_default_pagination: (
+    justify-content: center, // flex-start / flex-end
+    //linkSpacing: 0, // horizontal spacing between links
+    showInput: true, // show input field in preference to individual links
+    maxLinks: 5, // max links to show
+    //minSize: 0, // used to define min-width and height on each link
+    //firstIcon: 'fas fa-fast-backward',
+    //prevIcon: 'fas fa-backward',
+    //nextIcon: 'fas fa-forward',
+    //lastIcon: 'fas fa-fast-forward',
+    color: #007bff,
+    background-color: #fff,
+    padding: .5rem .75rem,
+    border-width: 1px,
+    border-color: #dee2e6,
+    //border-radius: .25rem,
+    active: (
+        color: #fff,
+        background-color: #007bff,
+        border-color: #007bff
+    ),
+    disabled: (
+        color: #6c757d,
+        background-color: #fff,
+        border-color: #dee2e6
+    )
+);
+
 $socialstack_default_progress: (
 );
 
@@ -336,6 +364,7 @@ $socialstack_default_theme: (
         modal: $socialstack_default_modal,
         navs: $socialstack_default_navs,
         navbar: $socialstack_default_navbar,
+        pagination: $socialstack_default_pagination,
         progress: $socialstack_default_progress,
         scrollspy: $socialstack_default_scrollspy,
         spinners: $socialstack_default_spinners,
