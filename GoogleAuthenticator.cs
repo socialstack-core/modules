@@ -1,4 +1,5 @@
-﻿using System;
+﻿using Org.BouncyCastle.Security;
+using System;
 using System.Globalization;
 using System.Net;
 using System.Security.Cryptography;
@@ -18,6 +19,7 @@ namespace Api.TwoFactorGoogleAuth
 		const int PinLength = 6;
 		static readonly int PinModulo = (int)Math.Pow(10, PinLength);
 		static readonly DateTime UnixEpoch = new DateTime(1970, 1, 1, 0, 0, 0, DateTimeKind.Utc);
+		private SecureRandom secureRandom = new SecureRandom();
 
 		/// <summary>
 		///   Number of intervals that have elapsed.
@@ -33,12 +35,21 @@ namespace Api.TwoFactorGoogleAuth
 		}
 
 		/// <summary>
+		/// Generates a key into the given array
+		/// </summary>
+		/// <param name="into"></param>
+		public void GenerateKey(byte[] into)
+		{
+			secureRandom.NextBytes(into);
+		}
+
+		/// <summary>
 		///   Generates a QR code bitmap for provisioning.
 		/// </summary>
-		public byte[] GenerateProvisioningImage(string identifier, byte[] key, int width, int height)
+		public byte[] GenerateProvisioningImage(string identifier, byte[] key, int width = 256, int height = 256)
 		{
 			var KeyString = Encoder.Base32Encode(key);
-			var ProvisionUrl = Encoder.UrlEncode(string.Format("otpauth://totp/{0}?secret={1}&issuer=MyCompany", identifier, KeyString));
+			var ProvisionUrl = Encoder.UrlEncode(string.Format("otpauth://totp/{0}?secret={1}&issuer=Socialstack", identifier, KeyString));
 
 			var ChartUrl = string.Format("https://chart.apis.google.com/chart?cht=qr&chs={0}x{1}&chl={2}", width, height, ProvisionUrl);
 			using (var Client = new WebClient())

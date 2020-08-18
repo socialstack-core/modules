@@ -5,6 +5,7 @@ using Api.Users;
 using Api.Eventing;
 using Api.Contexts;
 using Newtonsoft.Json;
+using Api.Configuration;
 
 namespace Api.TwoFactorGoogleAuth
 {
@@ -16,12 +17,16 @@ namespace Api.TwoFactorGoogleAuth
 	{
 		private GoogleAuthenticator _ga;
 
+		private string siteUrl;
+
 		/// <summary>
 		/// Instanced automatically. Use injection to use this service, or Startup.Services.Get.
 		/// </summary>
 		public TwoFactorGoogleAuthService()
         {
 			_ga = new GoogleAuthenticator();
+
+			siteUrl = AppSettings.Configuration["PublicUrl"].Replace("https:", "").Replace("http:", "").Replace("/", "");
 
 			// Hook up to the UserOnAuthenticate event:
 			Events.UserOnAuthenticate.AddEventListener(async (Context context, LoginResult result, UserLogin loginDetails) => {
@@ -48,19 +53,10 @@ namespace Api.TwoFactorGoogleAuth
 					return result;
 				}
 
-				var pin = loginDetails.Google2FAPin.Trim();
-
-				// Submitted a pin - does it match the one we want?
-				var currentInterval = _ga.CurrentInterval;
-
-				if (pin != _ga.GeneratePin(result.User.TwoFactorSecret, currentInterval))
+				if(!Validate(result.User.TwoFactorSecret, loginDetails.Google2FAPin))
 				{
-					// One more chance - they might've been a bit slow, so try the previous pin too:
-					if (pin != _ga.GeneratePin(result.User.TwoFactorSecret, currentInterval - 1))
-					{
-						// Definitely a bad pin.
-						return null;
-					}
+					// Bad pin.
+					return null;
 				}
 
 				return result;
@@ -71,6 +67,58 @@ namespace Api.TwoFactorGoogleAuth
 			
 		}
 
+		/// <summary>
+		/// Checks if the given pin is acceptable for the given secret.
+		/// </summary>
+		/// <param name="secret"></param>
+		/// <param name="pin"></param>
+		/// <returns></returns>
+		public bool Validate(byte[] secret, string pin)
+		{
+			if(string.IsNullOrEmpty(pin))
+			{
+				return false;
+			}
+			
+			pin = pin.Trim();
+
+			// Submitted a pin - does it match the one we want?
+			var currentInterval = _ga.CurrentInterval;
+
+			if (pin != _ga.GeneratePin(secret, currentInterval))
+			{
+				// One more chance - they might've been a bit slow, so try the previous pin too:
+				if (pin != _ga.GeneratePin(secret, currentInterval - 1))
+				{
+					// Definitely a bad pin.
+					return false;
+				}
+			}
+			
+			return true;
+		}
+
+		/// <summary>
+		/// Generates an image for the given key.
+		/// </summary>
+		/// <param name="key"></param>
+		/// <returns></returns>
+		public byte[] GenerateProvisioningImage(byte[] key)
+		{
+			return _ga.GenerateProvisioningImage(siteUrl, key);
+		}
+
+
+		/// <summary>
+		/// Generates a new secret key.
+		/// </summary>
+		/// <returns></returns>
+		public byte[] GenerateKey()
+		{
+			var result = new byte[10];
+			_ga.GenerateKey(result);
+			return result;
+		}
 	}
 	
 }
@@ -92,6 +140,13 @@ namespace Api.Users {
 		[DatabaseField(Length = 10)]
 		[JsonIgnore]
 		public byte[] TwoFactorSecret;
+		
+		/// <summary>
+		/// Set when setting up 2FA.
+		/// </summary>
+		[DatabaseField(Length = 10)]
+		[JsonIgnore]
+		public byte[] TwoFactorSecretPending;
 
 	}
 	
