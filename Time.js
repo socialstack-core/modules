@@ -41,10 +41,39 @@ export default class Time extends React.Component {
 		
 		return hours + ':' + mins;
 	}
-	
+
+    isToday(date) {
+        return new Date(date).setHours(0, 0, 0, 0) == new Date().setHours(0, 0, 0, 0);
+    }
+
+    isThisWeek(date) {
+        var check = new Date(date).setHours(0, 0, 0, 0);
+        var start = new Date(date.setDate(date.getDate() - 6)).setHours(0, 0, 0, 0);
+        var end = new Date().setHours(0, 0, 0, 0);
+
+        return (check >= start && check <= end);
+    }
+
 	dateText(date){
 		var monthIndex = date.getMonth();
-		var dayIndex = date.getDate();
+        var dayIndex = date.getDate();
+
+        if (this.props.compact) {
+
+            if (this.isToday(date)) {
+                return this.timeOnly(date);
+            }
+
+            if (this.isThisWeek(date)) {
+                var dayIndex = date.getDay();
+
+                return this.props.shortDay ?
+                    dateTools.shortDayNames[dayIndex] + " " + this.timeOnly(date) :
+                    dateTools.dayNames[dayIndex] + " " + this.timeOnly(date);
+            }
+
+        }
+
 		return dateTools.ordinal(dayIndex) + " " + dateTools.monthNames[monthIndex] + " " + this.timeOnly(date);
 	}
 	
