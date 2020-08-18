@@ -88,13 +88,29 @@ export default class Paginator extends React.Component {
 
 		var showInput = this.props.showInput !== undefined ? this.props.showInput : true;
 		var maxLinks = this.props.maxLinks || 5;
+		var fromPage, toPage;
 
 		if (maxLinks % 2 == 0) {
-			maxLinks++;
+			fromPage = currentPage - ((maxLinks / 2) - 1);
+			toPage = currentPage + (maxLinks / 2);
+		} else {
+			fromPage = currentPage - ((maxLinks-1) / 2);
+			toPage = currentPage + ((maxLinks - 1) / 2);
 		}
 
-		var fromPage = currentPage - (maxLinks - 1);
-		var toPage = currentPage + (maxLinks - 1);
+		while (fromPage < 1) {
+			fromPage++;
+			toPage++
+		}
+
+		while (toPage > totalPages) {
+			toPage--;
+		}
+
+		while ((totalPages >= maxLinks) && (toPage - fromPage + 1 < maxLinks)) {
+			fromPage--;
+		}
+
 		var pageRange = [];
 
 		for (var i = fromPage; i <= toPage; i++) {
