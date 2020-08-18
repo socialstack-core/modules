@@ -54,7 +54,7 @@ export default class AvatarEdit extends React.Component {
 					{
 						next ? (
 							<div>
-								<a href={getRef(next, {url: true})} target='_blank'>
+								<a href={getRef(next, { url: true })} target='_blank' rel="noopener noreferrer">
 									{getRef(next, {size: 128})}
 								</a>
 								<div style={{margin: '20px'}}>
@@ -73,7 +73,7 @@ export default class AvatarEdit extends React.Component {
 							avatarRef && avatarRef.length ? (
 								<div>
 									{
-										<a href={getRef(avatarRef, {url: true})} target='_blank'>
+										<a href={getRef(avatarRef, { url: true })} target='_blank' rel="noopener noreferrer">
 											{getRef(avatarRef, {size: 128})}
 										</a>
 									}
