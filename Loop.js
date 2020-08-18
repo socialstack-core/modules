@@ -6,6 +6,8 @@ import getEndpointType from 'UI/Functions/GetEndpointType';
 import Failure from 'UI/Failed';
 import Paginator from 'UI/Paginator';
 
+const DEFAULT_PAGE_SIZE = 50;
+
 // Operators as used by Filter in where clauses.
 const filterOperators = {
 	"startsWith": (a, b) => a && a.indexOf(b) == 0,
@@ -417,8 +419,7 @@ export default class Loop extends React.Component {
 				filter = {...filter};
 				filter.pageIndex = (newPageIndex || this.state.pageIndex)-1;
 				filter.includeTotal = true;
-				
-				var pageSize = pageCfg.pageSize || 50;
+				var pageSize = pageCfg.pageSize || DEFAULT_PAGE_SIZE;
 				
 				if (typeof pageCfg == "number") {
 					pageSize = pageCfg;
@@ -478,7 +479,7 @@ export default class Loop extends React.Component {
 			
 			if (pageCfg) {
 				var offset = (newPageIndex || this.state.pageIndex)-1;
-				var pageSize = pageCfg.pageSize || 50;
+				var pageSize = pageCfg.pageSize || DEFAULT_PAGE_SIZE;
 				
 				if (typeof pageCfg == "number") {
 					pageSize = pageCfg;
@@ -792,8 +793,10 @@ export default class Loop extends React.Component {
 			return loopContent;
 		}
 		
-		var pageSize = pageCfg.pageSize || 50;
-		
+		var pageSize = pageCfg.pageSize || DEFAULT_PAGE_SIZE;
+		var showInput = pageCfg.showInput !== undefined ? pageCfg.showInput : undefined;
+		var maxLinks = pageCfg.maxLinks || undefined;
+
 		if(typeof pageCfg == "number"){
 			pageSize = pageCfg;
 		}
@@ -807,7 +810,9 @@ export default class Loop extends React.Component {
 		var Module = pageCfg.module || Paginator;
 		
 		var paginator = <Module 
-			pageSize={pageSize} 
+			pageSize={pageSize}
+			showInput={showInput}
+			maxLinks={maxLinks}
 			pageIndex={this.state.pageIndex} 
 			totalResults={this.state.totalResults}
 			onChange={pageIndex => {
