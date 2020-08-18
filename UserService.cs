@@ -484,10 +484,7 @@ namespace Api.Users
 
 				await Events.UserOnLogin.Dispatch(context, result);
 
-				result.Token = _contexts.CreateToken(context);
-
-				// The default expiry:
-				result.Expiry = DateTime.UtcNow.AddDays(120);
+				result.Success = true;
 			}
 			else
 			{

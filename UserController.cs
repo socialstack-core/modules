@@ -87,10 +87,10 @@ namespace Api.Users
 
 		/// <summary>
 		/// POST /v1/user/login/
-		/// Attempts to login.
+		/// Attempts to login. Returns either a Context or a LoginResult.
 		/// </summary>
 		[HttpPost("login")]
-		public async Task<LoginResult> Login([FromBody] UserLogin body)
+		public async Task<object> Login([FromBody] UserLogin body)
 		{
 			var context = Request.GetContext();
 
@@ -102,19 +102,12 @@ namespace Api.Users
 				return null;
 			}
 
-			if (result.Token != null)
+			if (result.Success)
 			{
-				Response.Headers.Add("Token", result.Token);
+				// Regenerate the contextual token:
+				context.SendToken(Response);
 
-				Response.Cookies.Append(
-					result.CookieName,
-					result.Token,
-					new Microsoft.AspNetCore.Http.CookieOptions()
-					{
-						Path = "/",
-						Expires = result.Expiry
-					}
-				);
+				return await context.GetPublicContext();
 			}
 			
 			return result;

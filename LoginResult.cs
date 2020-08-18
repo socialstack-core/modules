@@ -26,13 +26,8 @@ namespace Api.Users
 		public User User;
 
 		/// <summary>
-		/// The expiry, if any, of this token.
-		/// </summary>
-		public DateTime Expiry;
-
-		/// <summary>
 		/// The signed token. Usually set to a cookie.
 		/// </summary>
-		public string Token;
+		public bool Success;
 	}
 }
