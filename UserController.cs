@@ -96,7 +96,13 @@ namespace Api.Users
 
 			var result = await (_service as IUserService).Authenticate(context, body);
 
-			if (result != null && result.Token != null)
+			if (result == null)
+			{
+				Response.StatusCode = 400;
+				return null;
+			}
+
+			if (result.Token != null)
 			{
 				Response.Headers.Add("Token", result.Token);
 
@@ -109,11 +115,6 @@ namespace Api.Users
 						Expires = result.Expiry
 					}
 				);
-			}
-			else
-			{
-				Response.StatusCode = 400;
-				return null;
 			}
 			
 			return result;
