@@ -1,6 +1,19 @@
-import uniqueId from 'UI/Functions/UniqueId';
+var id = 1;
 
 export default class Paginator extends React.Component {
+
+	constructor(props) {
+		super(props);
+		this.newId();
+	}
+
+	componentWillReceiveProps(props) {
+		this.newId();
+	}
+
+	newId() {
+		this.fieldId = 'paginator_' + (id++);
+	}
 
 	changePage(newPageId) {
 		try {
@@ -117,8 +130,6 @@ export default class Paginator extends React.Component {
 			pageRange.push(i);
 		}
 
-		var id = uniqueId("pagination_");
-
 		// .paginator so we can differentiate one of our components
 		// .pagination so we inherit Bootstrap styling
 		return <nav className="paginator" aria-label={description}>
@@ -166,10 +177,10 @@ export default class Paginator extends React.Component {
 			</ul>
 			<div className="pagination-overview">
 				{showInput && <>
-					<label className="page-label" for={id}>
+					<label className="page-label" for={this.props.id || this.fieldId}>
 						Viewing page
 					</label>
-					<input className="form-control" type="text" id={id} value={this.props.pageIndex || '1'}
+					<input className="form-control" type="text" id={this.props.id || this.fieldId} value={this.props.pageIndex || '1'}
 						onkeyUp={e => {
 							if (e.keyCode == 13) {
 								this.changePage(e.target.value);
