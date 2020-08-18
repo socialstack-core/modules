@@ -25,12 +25,12 @@ namespace Api.Users
 		/// Sets up 2FA. Can only do this for yourself.
 		/// </summary>
 		/// <returns></returns>
-		[HttpGet("setup2fa/{pin}")]
-		public async Task<object> TwoFactorSetup(string pin)
+		[HttpPost("setup2fa/confirm")]
+		public async Task<object> TwoFactorSetup([FromBody] PinCarrierModel pinCarrier)
 		{
 			var context = Request.GetContext();
 
-			if (context == null)
+			if (context == null || pinCarrier == null)
 			{
 				return null;
 			}
@@ -43,7 +43,7 @@ namespace Api.Users
 			}
 			
 			// Attempt to validate the pin:
-			if(Services.Get<ITwoFactorGoogleAuthService>().Validate(user.TwoFactorSecretPending, pin))
+			if(Services.Get<ITwoFactorGoogleAuthService>().Validate(user.TwoFactorSecretPending, pinCarrier.Pin))
 			{
 				// Ok! Successful setup.
 				// Apply pending -> active right now.
@@ -94,5 +94,16 @@ namespace Api.Users
 		
 		
     }
-
+	
+	/// <summary>
+	/// Carries a 2FA pin.
+	/// </summary>
+	public class PinCarrierModel{
+		
+		/// <summary>
+		/// The users first pin.
+		/// </summary>
+		public string Pin;
+		
+	}
 }
