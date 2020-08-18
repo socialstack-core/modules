@@ -1,4 +1,6 @@
-﻿using System;
+﻿using Api.Configuration;
+using Microsoft.Extensions.Configuration;
+using System;
 
 
 namespace Api.Signatures
@@ -18,19 +20,28 @@ namespace Api.Signatures
 		public SignatureService()
         {
 
-			// Generate or load keypair:
-			var filePath = "signatureService.key";
-
-			if (System.IO.File.Exists(filePath))
+			// Generate or load keypair. First check if it's in appsettings:
+			var appsettingsConfig = AppSettings.GetSection("SignatureService").Get<SignatureServiceConfig>();
+			
+			if(appsettingsConfig != null && !string.IsNullOrEmpty(appsettingsConfig.Private))
 			{
-				_keyPair = KeyPair.FromSerialized(System.IO.File.ReadAllText(filePath));
+				_keyPair = KeyPair.FromSerialized(appsettingsConfig.Public, appsettingsConfig.Private);
 			}
 			else
 			{
-				_keyPair = KeyPair.Generate();
-				System.IO.File.WriteAllText(filePath, _keyPair.Serialize());
-			}
+				var filePath = "signatureService.key";
 
+				if (System.IO.File.Exists(filePath))
+				{
+					_keyPair = KeyPair.FromSerialized(System.IO.File.ReadAllText(filePath));
+				}
+				else
+				{
+					_keyPair = KeyPair.Generate();
+					System.IO.File.WriteAllText(filePath, _keyPair.Serialize());
+				}
+			}
+			
 			// Test the integrity of the key:
 			var roundTrip = "signatureServiceTest";
 			var sig = Sign(roundTrip);

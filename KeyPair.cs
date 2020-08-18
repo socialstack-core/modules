@@ -52,6 +52,28 @@ namespace Api.Signatures
 		}
 
 		/// <summary>
+		/// Gets a keypair from the serialised pub/ priv pair.
+		/// </summary>
+		/// <param name="pub"></param>
+		/// <param name="priv"></param>
+		/// <returns></returns>
+		public static KeyPair FromSerialized(string pub, string priv)
+		{
+			var result = new KeyPair()
+			{
+				PrivateKeyBytes = Convert.FromBase64String(priv)
+			};
+
+			// Create the D value:
+			var privD = new BigInteger(result.PrivateKeyBytes);
+			result.PrivateKey = new ECPrivateKeyParameters(privD, DomainParams);
+			var q = result.PrivateKey.Parameters.G.Multiply(privD).Normalize();
+			result.PublicKey = new ECPublicKeyParameters(result.PrivateKey.AlgorithmName, q, DomainParams);
+
+			return result;
+		}
+
+		/// <summary>
 		/// Gets a keypair from the serialised text version.
 		/// </summary>
 		/// <param name="text"></param>
