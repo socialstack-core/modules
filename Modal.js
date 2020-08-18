@@ -1,4 +1,3 @@
-
 /*
 * A popup modal. Usage is e.g.:
 
@@ -14,9 +13,23 @@
 >
 	This is the modals content.
 </Modal>
-
 */
+var titleId = 1;
+
 export default class Modal extends React.Component {
+
+	constructor(props) {
+		super(props);
+		this.newTitleId();
+	}
+
+	componentWillReceiveProps(props) {
+		this.newTitleId();
+	}
+
+	newTitleId() {
+		this.modalTitleId = 'modal_title_' + (titleId++);
+	}
 
     backdropClassName() {
         let classes = 'modal-backdrop show';
@@ -38,11 +51,13 @@ export default class Modal extends React.Component {
     modalDialogClassName() {
         let classes = 'modal-dialog show';
 
-        if (this.props.isCentred) {
+		// NB: modals centred on-screen by default; use isNotCentred prop to disable
+        if (!this.props.isNotCentred) {
             classes+=' modal-dialog-centered';
 		}
 
-		if (this.props.isScrollable) {
+		// NB: modals scrollable by default; use isNotScrollable prop to disable
+		if (!this.props.isNotScrollable) {
 			classes += ' modal-dialog-scrollable';
 		}
 		
@@ -76,11 +91,11 @@ export default class Modal extends React.Component {
 		
         return [
 			this.props.noBackdrop ? null : <div className={this.backdropClassName()} onClick={() => this.closeModal()}></div>,
-			<div className={this.modalClassName()} tabIndex="-1" role="dialog">
+			<div className={this.modalClassName()} tabIndex="-1" role="dialog" aria-labelledby={this.modalTitleId}>
 				<div className={this.modalDialogClassName()} role="document">
 					<div className="modal-content">
 						<div className="modal-header">
-							<h5 className="modal-title">{this.props.title}</h5>
+							<h5 className="modal-title" id={this.modalTitleId}>{this.props.title}</h5>
 							<button type="button" className="close" data-dismiss="modal" aria-label="Close"
 									onClick={() => this.closeModal()}>
 								<span aria-hidden="true">&times;</span>
