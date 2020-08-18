@@ -20,6 +20,13 @@ export default class LoginForm extends React.Component {
 			<Form className="login-form"
 				action = "user/login" 
                 onSuccess={response => {
+					if(response.moreDetailRequired){
+						this.setState({
+							moreRequired: response.moreDetailRequired
+						});
+						return;
+					}
+					
 					global.app.setState({user:response.user, realUser:response.user});
 					if(!this.props.noRedirect){
 						global.pageRouter.go("/en-admin/");
@@ -34,6 +41,17 @@ export default class LoginForm extends React.Component {
 					this.setState({failed:true})
 				}}
 				>
+				{this.state.moreRequired && (
+					<div>
+						<h3>
+							Two factor authentication
+						</h3>
+						<p>
+							Please provide the auth code from your device:
+						</p>
+						<Input name="google2FAPin" validate={['Required']} />
+					</div>
+				)}
 				<Input name="emailOrUsername" placeholder="Email or username" validate={['Required']} />
 				<Input name="password" placeholder="Password" type="password" />
 				<Row>
