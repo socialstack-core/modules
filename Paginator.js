@@ -1,80 +1,180 @@
+import uniqueId from 'UI/Functions/UniqueId';
+
 export default class Paginator extends React.Component {
-	
-	changePage(newPageId){
-		
-		try{
+
+	changePage(newPageId) {
+		try {
 			var nextPage = parseInt(newPageId);
-			
-			if(!nextPage || nextPage<=0){
+
+			if (!nextPage || nextPage <= 0) {
 				nextPage = 1;
 			}
-			
+
 			var totalPages = this.getTotalPages();
-			
-			if(totalPages && nextPage>totalPages){
+
+			if (totalPages && nextPage > totalPages) {
 				nextPage = totalPages;
 			}
-			
+
 			this.props.onChange && this.props.onChange(nextPage, this.props.pageIndex);
-			
-		}catch{
+
+		} catch{
 			// E.g. user typed in something that isn't a number
 			return;
 		}
 	}
-	
-	getTotalPages(){
+
+	getTotalPages() {
 		var { totalResults, pageSize } = this.props;
-		if(totalResults){
+		if (totalResults) {
 			return Math.ceil(totalResults / pageSize);
 		}
 		return 0;
 	}
-	
-	render(){
-		var {pageIndex} = this.props;
-		
+
+	renderPage(page, currentPage, totalPages) {
+		var isCurrentPage = page == currentPage;
+		var pageClass = isCurrentPage ? "page-item active" : "page-item";
+		var isEmpty = page < 1 || page > totalPages;
+
+		return <li className={pageClass}>
+			{!isCurrentPage && !isEmpty &&
+				<button type="button" className="page-link" onClick={() => this.changePage(page)}>
+					{page}
+				</button>
+			}
+			{isCurrentPage && !isEmpty &&
+				<span className="page-link">
+					{page}
+				</span>
+			}
+			{isEmpty &&
+				<span className="page-link empty">
+					&nbsp;
+				</span>
+			}
+		</li>;
+	}
+
+	renderPageLinks(pageRange, currentPage, totalPages) {
+		return pageRange.map((page) => this.renderPage(page, currentPage, totalPages));
+	}
+
+	render() {
+		var { pageIndex } = this.props;
+
 		var totalPages = this.getTotalPages();
-		
+
 		// if we only have a single page then optionally hide
 		if (!this.props.always && totalPages && totalPages < 2) {
 			return;
 		}
-		
+
 		var currentPage = this.props.pageIndex || 1;
-		
-		if(!pageIndex || pageIndex<=0){
+
+		if (!pageIndex || pageIndex <= 0) {
 			pageIndex = 1;
 		}
-		
-		if(totalPages && pageIndex>totalPages){
+
+		if (totalPages && pageIndex > totalPages) {
 			pageIndex = totalPages;
 		}
-		
-		return <div className="paginator">
-	
-			{currentPage > 1 && (
-				<span className="nav-before">
-					<i className="fa fa-step-backward first-page" onClick={() => this.changePage(1)} />
-					<i className="fa fa-chevron-left prev-page" onClick={() => this.changePage(currentPage-1)} />
-				</span>
-			)}
-			Page <input type="text" onkeyUp={e => {
-				if(e.keyCode == 13){
-					this.changePage(e.target.value);
+
+		var description = this.props.description || "Results";
+		var firstIcon = this.props.firstIcon || "fas fa-fast-backward";
+		var prevIcon = this.props.prevIcon || "fas fa-backward";
+		var nextIcon = this.props.nextIcon || "fas fa-forward";
+		var lastIcon = this.props.lastIcon || "fas fa-fast-forward";
+
+		var showInput = this.props.showInput !== undefined ? this.props.showInput : true;
+		var maxLinks = this.props.maxLinks || 5;
+
+		if (maxLinks % 2 == 0) {
+			maxLinks++;
+		}
+
+		var fromPage = currentPage - (maxLinks - 1);
+		var toPage = currentPage + (maxLinks - 1);
+		var pageRange = [];
+
+		for (var i = fromPage; i <= toPage; i++) {
+			pageRange.push(i);
+		}
+
+		var id = uniqueId("pagination_");
+
+		// .paginator so we can differentiate one of our components
+		// .pagination so we inherit Bootstrap styling
+		return <nav className="paginator" aria-label={description}>
+			<ul className="pagination">
+				{/* first page */}
+				<li className="page-item first-page">
+					<button type="button" className="page-link" onClick={() => this.changePage(1)} disabled={currentPage <= 1}>
+						<i className={firstIcon}></i>
+						<span className="sr-only">
+							First page
+						</span>
+					</button>
+				</li>
+				{/* previous page */}
+				<li className="page-item prev-page">
+					<button type="button" className="page-link" onClick={() => this.changePage(currentPage - 1)} disabled={currentPage <= 1}>
+						<i className={prevIcon}></i>
+						<span className="sr-only">
+							Previous page
+						</span>
+					</button>
+				</li>
+				{/* individual page links */}
+				{
+					this.renderPageLinks(pageRange, currentPage, totalPages)
 				}
-			}} value={this.props.pageIndex || '1'}/> 
-			{!!totalPages && (
-				' of ' + totalPages
-			)}
-			{currentPage < totalPages && (
-				<span className="nav-after">
-					<i className="fa fa-chevron-right next-page" onClick={() => this.changePage(currentPage+1)} />
-					<i className="fa fa-step-forward last-page" onClick={() => this.changePage(totalPages)} />
-				</span>
-			)}
-		</div>;
-		
+				{/* next page */}
+				<li className="page-item next-page">
+					<button type="button" className="page-link" onClick={() => this.changePage(currentPage + 1)} disabled={currentPage == totalPages}>
+						<i className={nextIcon}></i>
+						<span className="sr-only">
+							Next page
+						</span>
+					</button>
+				</li>
+				{/* last page */}
+				<li className="page-item last-page">
+					<button type="button" className="page-link" onClick={() => this.changePage(totalPages)} disabled={currentPage == totalPages}>
+						<i className={lastIcon}></i>
+						<span className="sr-only">
+							Last page
+						</span>
+					</button>
+				</li>
+			</ul>
+			<div className="pagination-overview">
+				{showInput && <>
+					<label className="page-label" for={id}>
+						Viewing page
+					</label>
+					<input className="form-control" type="text" id={id} value={this.props.pageIndex || '1'}
+						onkeyUp={e => {
+							if (e.keyCode == 13) {
+								this.changePage(e.target.value);
+							}
+						}} />
+
+					{!!totalPages &&
+						<span className="field-label"> of {totalPages}</span>
+					}
+				</>}
+
+				{!showInput && <p className="field-label">
+					Viewing page {currentPage}
+					{!!totalPages &&
+						<span> of {totalPages}</span>
+					}
+				</p>
+				}
+
+			</div>
+		</nav>;
 	}
 }
 
@@ -83,5 +183,5 @@ export default class Paginator extends React.Component {
 // Define your available props like the examples below.
 
 Paginator.propTypes = {
-	always : 'bool'
+	always: 'bool'
 };
