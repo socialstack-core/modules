@@ -121,6 +121,12 @@ export default class Carousel extends React.Component {
 			visCount = visCountLg || visCount;
 			width = 930;
 		}
+		
+		// hide controls if nothing to page
+		if (visCount >= items.length) {
+			showBack = false;
+			showNext = false;
+		}
 
 		var transformCalc = '';
 		var slideWidthCalc = '';
