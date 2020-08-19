@@ -1,4 +1,5 @@
 import Loading from 'UI/Loading';
+import Alert from 'UI/Alert';
 import webRequest from 'UI/Functions/WebRequest';
 
 /*
@@ -14,7 +15,7 @@ export default class Uploader extends React.Component {
 	}
 	
 	onSelectedFile(e) {
-		this.setState({ loading: true });
+		this.setState({ loading: true, failed: false, success: false });
 		var formData = new FormData();
 		var file = e.target.files[0];
 		formData.append('file', file);
@@ -25,25 +26,37 @@ export default class Uploader extends React.Component {
 		}).then(response => {
 			
 			var uploadInfo = response.json;
+			
+			if(!uploadInfo){
+				this.setState({loading: false, success: false, failed: true});
+				return;
+			}
+			
 			// uploadInfo contains the upload file info, such as its original public url and ref.
 			
 			// Run the main callback:
 			this.props.onUploaded && this.props.onUploaded(uploadInfo);
 			
-			this.setState({loading: false, success: true});
+			this.setState({loading: false, success: true, failed: false});
 		});
 		
 	}
 	
     render() {
 		const {
-			loading
+			loading,
+			failed
 		} = this.state;
 		
         return (
 			<div className="uploader">
 				{loading && (
-					<Loading />
+					<Loading message="Uploading.."/>
+				)}
+				{failed && (
+					<Alert type="error">
+						Unable to upload that file - it may be a format we don't support.
+					</Alert>
 				)}
 				<input type="file" onChange={e => this.onSelectedFile(e)} className="form-control-file" />
 			</div>
