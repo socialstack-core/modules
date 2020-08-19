@@ -18,11 +18,13 @@ export default class List extends React.Component {
 		
 		return (
 			<Default>
-				<Tile>
-					<a href={path + 'add'}>
-						<div className="btn btn-primary">Create</div>
-					</a>
-				</Tile>
+				{!this.props.noCreate && 
+					<Tile>
+						<a href={path + 'add'}>
+							<div className="btn btn-primary">Create</div>
+						</a>
+					</Tile>
+				}
 				<AutoList endpoint={this.props.endpoint} path={path} {...this.props} />
 			</Default>	
 		);
