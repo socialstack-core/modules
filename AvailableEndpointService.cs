@@ -10,7 +10,7 @@ using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
 using System.Reflection;
-
+using Newtonsoft.Json.Linq;
 
 namespace Api.AvailableEndpoints
 {
@@ -163,7 +163,25 @@ namespace Api.AvailableEndpoints
 						endpoint.BodyFields = new Dictionary<string, object>();
 					}
 
-					BuildBodyFields(methodParam.ParameterType, endpoint.BodyFields);
+					// Special case if this is a JObject:
+					if (methodParam.ParameterType == typeof(JObject))
+					{
+						// If the parent type of the method is an AutoController, grab its base type and use that instead:
+						if (methodInfo.DeclaringType.IsGenericType)
+						{
+							var genericDef = methodInfo.DeclaringType.GetGenericTypeDefinition();
+
+							if (genericDef == typeof(AutoController<>))
+							{
+								var genericTypes = methodInfo.DeclaringType.GetGenericArguments();
+								BuildBodyFields(genericTypes[0], endpoint.BodyFields);
+							}
+						}
+					}
+					else
+					{
+						BuildBodyFields(methodParam.ParameterType, endpoint.BodyFields);
+					}
 
 				}
 
@@ -220,9 +238,41 @@ namespace Api.AvailableEndpoints
 		private void BuildBodyFields(System.Type paramType, Dictionary<string, object> fields)
 		{
 			var props = paramType.GetProperties();
+			var fieldSet = paramType.GetFields();
+
+			foreach (var field in fieldSet)
+			{
+				if (field.GetCustomAttribute(typeof(JsonIgnoreAttribute)) != null)
+				{
+					continue;
+				}
+
+				var jsonAttrib = field.GetCustomAttribute(typeof(JsonPropertyAttribute)) as JsonPropertyAttribute;
+				var name = field.Name;
+
+				if (jsonAttrib != null)
+				{
+					if (jsonAttrib.PropertyName != null)
+					{
+						name = jsonAttrib.PropertyName;
+					}
+				}
+
+				fields[name] = GetFieldTypeInfo(field.FieldType);
+			}
 
 			foreach (var prop in props)
 			{
+				if (!prop.CanWrite)
+				{
+					continue;
+				}
+
+				if (prop.GetCustomAttribute(typeof(JsonIgnoreAttribute)) != null)
+				{
+					continue;
+				}
+
 				var jsonAttrib = prop.GetCustomAttribute(typeof(JsonPropertyAttribute)) as JsonPropertyAttribute;
 				var name = prop.Name;
 
@@ -233,6 +283,8 @@ namespace Api.AvailableEndpoints
 						name = jsonAttrib.PropertyName;
 					}
 				}
+
+
 
 				fields[name] = GetFieldTypeInfo(prop.PropertyType);
 			}
