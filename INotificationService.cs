@@ -26,6 +26,12 @@ namespace Api.Notifications
 		Task<Notification> Get(Context context, int id);
 
 		/// <summary>
+		/// Send a notification. This will either create or update a notification if a similar notification exists.
+		/// "Similar" means same contentId + type to the same user.
+		/// </summary>
+		Task<Notification> Send(Context context, Notification e);
+
+		/// <summary>
 		/// Create a notification.
 		/// </summary>
 		Task<Notification> Create(Context context, Notification e);
