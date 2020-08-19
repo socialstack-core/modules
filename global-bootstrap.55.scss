@@ -202,7 +202,27 @@ $pagination_min_size: get_value(minSize, bootstrap, pagination);
         }
     }
 
-    &.no-title {
+    &.no-header {
+
+        .modal-dialog {
+
+            .modal-content {
+
+                .modal-header {
+                    display: none;
+                }
+
+                .modal-body {
+                    padding-top: 3rem;
+                }
+
+            }
+
+        }
+
+    }
+
+    &.no-title:not(.no-header) {
 
         .modal-dialog {
 
