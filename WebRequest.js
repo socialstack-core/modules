@@ -33,6 +33,18 @@ export default function webRequest(origUrl, data, opts) {
 				}
 			}
 			
+			if(opts && opts.blob){
+				return response.blob().then(blob => {
+					if (!response.ok) {
+						return reject({ error: 'invalid response', blob });
+					}
+					
+					// Run success now:
+					response.json = response.blob = blob;
+					success(response);
+				})
+			}
+			
 			// Get the response as json:
 			return response.text().then(text => {
 				// Catchable parse:
@@ -52,7 +64,7 @@ export default function webRequest(origUrl, data, opts) {
                     } else {
                         reject({ error: 'invalid response' });
                     }
-                return;
+					return;
                 }
 
 				// Run success now:
