@@ -41,13 +41,28 @@ export default class Uploader extends React.Component {
 		});
 		
 	}
+
+	formatBytes(bytes, decimals = 2) {
+
+		if (bytes === 0) {
+			return "";
+		}
+
+		const k = 1024;
+		const dm = decimals < 0 ? 0 : decimals;
+		const sizes = ['Bytes', 'KB', 'MB', 'GB', 'TB', 'PB', 'EB', 'ZB', 'YB'];
+
+		const i = Math.floor(Math.log(bytes) / Math.log(k));
+
+		return parseFloat((bytes / Math.pow(k, i)).toFixed(dm)) + ' ' + sizes[i];
+	}
 	
     render() {
 		const {
 			loading,
 			failed
 		} = this.state;
-		
+
         return (
 			<div className="uploader">
 				{loading && (
@@ -58,7 +73,17 @@ export default class Uploader extends React.Component {
 						Unable to upload that file - it may be a format we don't support.
 					</Alert>
 				)}
-				<input type="file" onChange={e => this.onSelectedFile(e)} className="form-control-file" />
+				<input type="file" id={this.props.id} onChange={e => this.onSelectedFile(e)} className="form-control-file" />
+				{this.props.id &&
+					<label htmlFor={this.props.id}>
+						{this.props.label || "Upload file"}
+					</label>
+				}
+				{this.props.maxSize && 
+					<span className="upload-limit">
+						Max file size: {this.formatBytes(this.props.maxSize)}
+					</span>
+				}
 			</div>
         );
     }
