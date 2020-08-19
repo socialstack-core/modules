@@ -1,3 +1,10 @@
+import applyTokens from 'Email/Functions/ApplyTokens';
+
+/*
+* A large, centered button.
+* Target can include {context.tokens} where 
+*/
+
 export default class PrimaryButton extends React.Component {
 	
 	render(){
@@ -5,8 +12,15 @@ export default class PrimaryButton extends React.Component {
 		var target = this.props.target;
 		if(!target){target = '';}
 		
+		// Apply {tokens}:
+		target = applyTokens(target, global.app.state);
+		
 		if(target.indexOf('http') != 0){
-			target = origin + '/' + target;
+			if(target.length && target[0] == '/'){
+				target = origin + target;
+			}else{
+				target = origin + '/' + target;
+			}
 		}
 		
 		return <table role="presentation" style="margin: auto;" cellspacing="0" cellpadding="0" border="0" align="center">
