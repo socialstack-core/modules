@@ -31,14 +31,17 @@ export default class Form extends React.Component {
 			locale,
 			onValues,
 			onSuccess,
-			onFailed
+			onFailed,
+			requestOpts
 		} = this.props;
 		
-		var requestOpts = null;
+		if(!requestOpts){
+			requestOpts = {};
+		}
 		
 		if(locale){
 			// Forcing a particular locale:
-			requestOpts = {locale};
+			requestOpts.locale=locale;
 		}
 		
 		return submitForm(e, {
@@ -127,7 +130,7 @@ export default class Form extends React.Component {
 							this.state.loading && loadingMessage && (
 								<div className="form-loading">
 									<Spacer />
-									<Loading label={loadingMessage}/>
+									<Loading message={loadingMessage}/>
 								</div>
 							)
 						}
