@@ -139,7 +139,7 @@ public class CsvMapping
 	private void Add(CsvFieldMap map, Type type)
 	{
 		// If type is an advanced field, apply an AdvancedMapper to the fieldMap.
-		if (type != typeof(int) && type != typeof(string) && type != typeof(DateTime))
+		if (type != typeof(int) && type != typeof(string) && type != typeof(DateTime) && type != typeof(bool) && type != typeof(int?))
 		{
 			return;
 		}
