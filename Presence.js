@@ -7,23 +7,17 @@ function send(evt){
 	});
 }
 
-function pageChange(url){
-	if(!url){
-		return;
-	}
-	
+function pageChange(page){
 	send({
 		type: "page",
-		name: url
+		url: page.url,
+		id: page.id
 	});
 }
 
 if(global.addEventListener){
-	global.addEventListener("popstate", () => pageChange(document.location.pathname));
-	global.addEventListener("xpushstate", e => pageChange(e.url));
+	global.addEventListener("xpagechange", e => e.pageInfo && e.pageInfo.page && pageChange(e.pageInfo.page));
 }
-
-document.location && document.location.pathname && pageChange(document.location.pathname);
 
 module.exports = {
 	event: (type, name, meta) => {
