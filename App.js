@@ -1,6 +1,8 @@
 import PageRouter from 'UI/PageRouter';
 import webRequest from 'UI/Functions/WebRequest';
 
+var eventTarget;
+
 /**
  * The root component. It stores state for us, such as the currently logged in user.
  * The instance of this component is available in the global scope as simply 'app'.
@@ -12,7 +14,7 @@ export default class App extends React.Component{
 		super(props);
 		this.state = {
 			user: null,
-			url: window.location.pathname,
+			url: global.location.pathname,
 			loadingUser: true
 		};
 		global.app = this;
@@ -27,6 +29,12 @@ export default class App extends React.Component{
 			// Not logged in
 			global.app.setState({user: null, realUser: null, loadingUser: false});
 		});
+		
+		eventTarget = global.events.get('App');
+	}
+	
+	componentWillUpdate(){
+		eventTarget.onState && eventTarget.onState();
 	}
 	
 	render(){
