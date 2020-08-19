@@ -176,6 +176,16 @@ function mapTokens(obj, canvas, Canvas){
 			case "urlToken":
 				result[e] = (props.urlTokens || global.pageRouter.state.tokens)[value.name];
 			break;
+			case "contextToken":
+				var tokenParts = (value.name || '').split('.');
+				var currentContext = (props.contextTokens || global.app.state);
+				
+				for(var i=0;i<tokenParts.length;i++){
+					currentContext && (currentContext = currentContext[tokenParts[i]]);
+				}
+				
+				result[e] = currentContext;
+			break;
 			case "prop":
 				result[e] = props[value.name];
 			break;
