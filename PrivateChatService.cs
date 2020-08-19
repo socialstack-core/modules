@@ -96,7 +96,8 @@ namespace Api.PrivateChats
 					
 					await messageService.Create(context, new PrivateChatMessage(){
 						Message = chat.Message,
-						PrivateChatId = chat.Id
+						PrivateChatId = chat.Id,
+						UserId = context.UserId
 					});
 				}
 				
