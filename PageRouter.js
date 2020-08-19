@@ -16,9 +16,6 @@ export default class PageRouter extends React.Component{
 		}else{
 			global.history.pushState({}, "", url);
 		}
-		var e = new Event('xpushstate');
-		e.url = url;
-		global.dispatchEvent(e);
 		document.body.parentNode.scrollTop=0;
 		this.props.onNavigate && this.props.onNavigate(url);
 	}
@@ -107,7 +104,7 @@ export default class PageRouter extends React.Component{
 		});
 		
 		var pageInfo = this.getPageRedirected(rootPage, idMap, this.props.url);
-		
+		this.trigger(pageInfo);
 		if(isCached && pageInfo.page.url == "" && !(this.props.url == "/" || this.props.url.substring(this.props.url.length - 11, this.props.url.length) === "mobile.html")){
 			this.makeRequest();
 		}
@@ -170,10 +167,18 @@ export default class PageRouter extends React.Component{
 		}
 	}
 	
+	trigger(pgInfo){
+		if(pgInfo){
+			var e = new Event('xpagechange');
+			e.pageInfo = pgInfo;
+			global.dispatchEvent(e);
+		}
+	}
+	
 	componentWillReceiveProps(props){
 		// page and tokens
 		var pageInfo = this.getPageRedirected(this.state.rootPage, this.state.idMap, props.url);
-		
+		this.trigger(pageInfo);
 		this.setState(pageInfo);
 	}
 	
