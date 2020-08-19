@@ -1,3 +1,6 @@
+// NB: shared Bootstrap modal override styling set in UI/ThirdParty/GlobalStyle/global-bootstrap.55.scss;
+// project-specific modal styling is in UI/GeneralStyle/Bootstrap.60.scss
+
 .modal.show{
 	display: block;
 }
