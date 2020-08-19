@@ -774,9 +774,17 @@ export default class CanvasEditor extends React.Component {
 				label = label.substring(0, label.length-3);
 			}else if(Array.isArray(propType.type)){
 				inputType = 'select';
-				inputContent = propType.type.map(name => {
+				inputContent = propType.type.map(entry => {
+					var value = entry;
+					var name = entry;
+
+					if (entry && typeof entry == "object") {
+						value = entry.value;
+						name = entry.name;
+					}
+
 					return (
-						<option value={name}>{name}</option>
+						<option value={value}>{name}</option>
 					);
 				})
 				inputContent.unshift(<option>Pick a value</option>);
@@ -1238,6 +1246,11 @@ export default class CanvasEditor extends React.Component {
 					// TODO: Stuff that perfectly fits inside its parent, such as anything inside UI/Align, makes the UI/Align itself unreachable.
 					// Maybe find *all* nearest admin-modules and list them?
 					var targetModuleElement = this.findComponentRoot(e.target);
+
+					if (!targetModuleElement) {
+						return;
+					}
+
 					e.preventDefault();
 					
 					this.setState({
