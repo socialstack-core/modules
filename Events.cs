@@ -14,5 +14,10 @@ namespace Api.Eventing
 		/// Set of events for an activeLogin.
 		/// </summary>
 		public static EventGroup<ActiveLogin> ActiveLogin;
+		
+		/// <summary>
+		/// Set of events for an ActiveLoginHistory.
+		/// </summary>
+		public static EventGroup<ActiveLoginHistory> ActiveLoginHistory;
 	}
 }

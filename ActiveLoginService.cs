@@ -20,11 +20,12 @@ namespace Api.ActiveLogins
 	public partial class ActiveLoginService : AutoService<ActiveLogin>, IActiveLoginService
 	{
 		private IUserService _users = null;
+		private IActiveLoginHistoryService _historicalRecord;
 
 		/// <summary>
 		/// Instanced automatically. Use injection to use this service, or Startup.Services.Get.
 		/// </summary>
-		public ActiveLoginService() : base(Events.ActiveLogin)
+		public ActiveLoginService(IActiveLoginHistoryService historicalRecord) : base(Events.ActiveLogin)
         {
 			var serverId = 0;
 			
@@ -68,6 +69,13 @@ namespace Api.ActiveLogins
 					if(user != null && (!user.OnlineState.HasValue || user.OnlineState != 1)){
 						user.OnlineState = 1;
 						await _users.Update(ctx, user);
+						
+						// Insert to historical record. This user came online across the cluster.
+						await historicalRecord.Create(ctx, new ActiveLoginHistory(){
+							UserId = user.Id,
+							IsLogin = true,
+							CreatedUtc = now
+						});
 					}
 				}
 				else if (userSockets.First == null)
@@ -89,6 +97,13 @@ namespace Api.ActiveLogins
 							if(user != null && user.OnlineState.HasValue && user.OnlineState != 0){
 								user.OnlineState = 0;
 								await _users.Update(ctx, user);
+								
+								// Insert to historical record. This user came online across the cluster.
+								await historicalRecord.Create(ctx, new ActiveLoginHistory(){
+									UserId = user.Id,
+									IsLogin = false,
+									CreatedUtc = DateTime.UtcNow
+								});
 							}
 						}
 						
@@ -200,7 +215,9 @@ namespace Api.ActiveLogins
 							uniqueUsers[entry.UserId] = false;
 						}
 					}
-
+					
+					var now = DateTime.UtcNow;
+					
 					foreach(var kvp in uniqueUsers)
 					{
 						if (!kvp.Value)
@@ -214,6 +231,13 @@ namespace Api.ActiveLogins
 						if(user != null && user.OnlineState.HasValue && user.OnlineState != 0){
 							user.OnlineState = 0;
 							await _users.Update(ctx, user);
+							
+							// Insert to historical record. This user came online across the cluster.
+							await _historicalRecord.Create(ctx, new ActiveLoginHistory(){
+								UserId = user.Id,
+								IsLogin = false,
+								CreatedUtc = now
+							});
 						}
 					}
 				}

@@ -20,23 +20,15 @@ namespace Api.ActiveLogins
 			// Hook the default role setup. It's done like this so it can be removed by a plugin if wanted.
 			Events.CapabilityOnSetup.AddEventListener((Context context, object source) =>
 			{
-				/*
-				Example permission rules.
-				
-				Member role: A verified user account. Not an admin.
-				Guest role: A user account. The transition from guest to member is up to you.
-				Public role: Not logged in at all.
-				
-				// Allow public creation (as it's disabled by default):
-				Roles.Member.Grant("activeLogin_create");
-				Roles.Public.Grant("activeLogin_create");
-				Roles.Guest.Grant("activeLogin_create");
-				
 				// Remove public viewing (as it's enabled by default):
 				Roles.Guest.Revoke("activeLogin_load", "activeLogin_list");
 				Roles.Public.Revoke("activeLogin_load", "activeLogin_list");
 				Roles.Member.Revoke("activeLogin_load", "activeLogin_list");
-				*/
+				
+				// Remove public viewing (as it's enabled by default):
+				Roles.Guest.Revoke("activeLoginHistory_load", "activeLoginHistory_list");
+				Roles.Public.Revoke("activeLoginHistory_load", "activeLoginHistory_list");
+				Roles.Member.Revoke("activeLoginHistory_load", "activeLoginHistory_list");
 				
 				return Task.FromResult(source);
 			}, 20);
