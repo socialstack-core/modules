@@ -45,7 +45,6 @@
 
 			&.bordered {
 				border-left: 1px solid rgb(199,199,199);
-				border-right: 1px solid rgb(199,199,199);
 			}
 
 			.day {
@@ -77,7 +76,7 @@
 				.bookings {
 
 					.entry {
-
+						padding: .5rem;
 					}
 
 				}

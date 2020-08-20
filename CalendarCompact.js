@@ -174,7 +174,7 @@ export default class CalendarCompact extends React.Component {
 	
 	render(){
 		
-		var { days } = this.props;
+		var { days, showNav } = this.props;
 		
 		if(!days){
 			days = 3;
@@ -188,7 +188,7 @@ export default class CalendarCompact extends React.Component {
 					{this.state.currentView.map((viewInfo,index) => {
 						
 						return <Col size={colSize} className="calendar-header-col">
-							{index == 0 && <button type="button" className="btn btn-link previous">
+							{index == 0 && showNav && <button type="button" className="btn btn-link previous">
 									<i className="far fr-chevron-left"></i>
 									<span className="sr-only">Previous</span>
 							</button>
@@ -196,7 +196,7 @@ export default class CalendarCompact extends React.Component {
 							<h2 className="calendar-column-title">
 								{shortMonthNames[viewInfo.start.getMonth()] + ' ' + viewInfo.start.getDate() + ' ' + viewInfo.start.getFullYear()}
 							</h2>
-							{index == this.state.currentView.length - 1 && <button type="button" className="btn btn-link next">
+							{index == this.state.currentView.length - 1 && showNav && <button type="button" className="btn btn-link next">
 									<i className="far fr-chevron-right"></i>
 									<span className="sr-only">Next</span>
 								</button>
@@ -209,8 +209,7 @@ export default class CalendarCompact extends React.Component {
 					{this.state.currentView.map((viewInfo, index) => {
 						var colClass = "calendar-body-col";
 
-						// NB: assumes 3 columns
-						if (index == 1) {
+						if (index > 0) {
 							colClass += ' bordered';
 						}
 						
