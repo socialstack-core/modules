@@ -23,9 +23,11 @@ export default class Modal extends React.Component {
 		this.newTitleId();
 	}
 
+	/*
 	componentWillReceiveProps(props) {
 		this.newTitleId();
 	}
+	*/
 
 	newTitleId() {
 		this.modalTitleId = 'modal_title_' + (titleId++);
