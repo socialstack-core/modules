@@ -25,10 +25,11 @@ namespace Api.ActiveLogins
 		/// <summary>
 		/// Instanced automatically. Use injection to use this service, or Startup.Services.Get.
 		/// </summary>
-		public ActiveLoginService(IActiveLoginHistoryService historicalRecord) : base(Events.ActiveLogin)
+		public ActiveLoginService(IActiveLoginHistoryService loginHistory) : base(Events.ActiveLogin)
         {
 			var serverId = 0;
-			
+			_historicalRecord = loginHistory;
+
 			// Add event listeners for websocket users:
 			Events.WebSocketUserState.AddEventListener(async (Context ctx, int userId, UserWebsocketLinks userSockets) =>
 			{
@@ -71,7 +72,7 @@ namespace Api.ActiveLogins
 						await _users.Update(ctx, user);
 						
 						// Insert to historical record. This user came online across the cluster.
-						await historicalRecord.Create(ctx, new ActiveLoginHistory(){
+						await _historicalRecord.Create(ctx, new ActiveLoginHistory(){
 							UserId = user.Id,
 							IsLogin = true,
 							CreatedUtc = now
@@ -99,7 +100,7 @@ namespace Api.ActiveLogins
 								await _users.Update(ctx, user);
 								
 								// Insert to historical record. This user came online across the cluster.
-								await historicalRecord.Create(ctx, new ActiveLoginHistory(){
+								await _historicalRecord.Create(ctx, new ActiveLoginHistory(){
 									UserId = user.Id,
 									IsLogin = false,
 									CreatedUtc = DateTime.UtcNow
