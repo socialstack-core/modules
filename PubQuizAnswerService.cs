@@ -19,6 +19,8 @@ namespace Api.PubQuizzes
 		/// </summary>
 		public PubQuizAnswerService() : base(Events.PubQuizAnswer)
         {
+			InstallAdminPages(null, null, new string[] { "id", "answerJson" });
+			
 			Events.PubQuizQuestion.AfterLoad.AddEventListener(async (Context context, PubQuizQuestion question) =>
 			{
 				if (question == null)

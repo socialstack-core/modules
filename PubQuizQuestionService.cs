@@ -18,6 +18,7 @@ namespace Api.PubQuizzes
 		/// </summary>
 		public PubQuizQuestionService() : base(Events.PubQuizQuestion)
         {
+			InstallAdminPages(null, null, new string[] { "id", "questionJson" });
 		}
 	}
     
