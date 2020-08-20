@@ -322,8 +322,17 @@ namespace Api.ProfanityFilter
 	/// Available terminal types
 	/// </summary>
 	public enum TerminalType{
+		/// <summary>
+		/// Not a terminal
+		/// </summary>
 		None,
+		/// <summary>
+		/// Word starts with this
+		/// </summary>
 		StartsWith,
+		/// <summary>
+		/// Word must terminate here to match
+		/// </summary>
 		Exact
 	}
 	
