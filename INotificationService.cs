@@ -21,6 +21,14 @@ namespace Api.Notifications
 		Task<bool> Delete(Context context, int id);
 
 		/// <summary>
+		/// Mark all of a user's notifications as viewed.
+		/// </summary>
+		/// <param name="context"></param>
+		/// <param name="userId">User ID</param>
+		/// <returns>The number cleared</returns>
+		Task<int> MarkAllViewed(Context context, int userId);
+
+		/// <summary>
 		/// Get a notification by its ID.
 		/// </summary>
 		Task<Notification> Get(Context context, int id);
