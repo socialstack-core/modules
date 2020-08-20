@@ -94,6 +94,7 @@ export default class Form extends React.Component {
 					if(f){
 						f.submit = this.onSubmit;
 					}
+					this.props.formRef && this.props.formRef(f);
 				}}
 				action={mapUrl(action)}
 				method={this.props.method || "post"}
