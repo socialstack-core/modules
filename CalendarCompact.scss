@@ -1,29 +1,99 @@
-/*
-	Optional stylesheet
-*/
+.calendar-compact {
+	background-color: #fff;
 
-.calendar-compact{
+	.calendar-header {
+		border: 1px solid rgb(199,199,199);
 
-	.header{
-	
-		> div{
-			padding: 5px;
-			border-bottom: 1px solid lightgrey;
+		.calendar-header-col {
+			position: relative;
+			display: flex;
+			align-items: center;
+			justify-content: center;
+
+			.previous {
+				position: absolute;
+				left: 1rem;
+				color: #767676;
+				font-size: 1.5rem;
+			}
+
+			.next {
+				position: absolute;
+				right: 1rem;
+				color: #767676;
+				font-size: 1.5rem;
+			}
+
+			.calendar-column-title {
+				@include font_size(20);
+				font-weight: normal;
+				color: #767676;
+				margin: 1rem 0;
+			}
+
+		}
+
+	}
+
+	.calendar-body {
+		border: 1px solid rgb(199,199,199);
+		border-top: 0;
+		overflow-y: auto;
+		max-height: 75vh;
+
+		.calendar-body-col {
+
+			&.bordered {
+				border-left: 1px solid rgb(199,199,199);
+				border-right: 1px solid rgb(199,199,199);
+			}
+
+			.day {
+				position: relative;
+
+				.times {
+
+					.time-info {
+
+						.time {
+							@include font_size(20);
+							font-weight: normal;
+							color: #767676;
+							margin: 0;
+							display: flex;
+
+							&::after {
+								content: "";
+								flex: 1 1;
+								border-bottom: 1px solid rgb(199,199,199);
+								margin: auto -15px auto 15px;
+							}
+						}
+
+					}
+
+				}
+
+				.bookings {
+
+					.entry {
+
+					}
+
+				}
+
+				.timeblock {
+					position: absolute;
+					left: 3.5rem;
+				}
+		
+				.entry {
+					width: calc(100% - 3.5rem);
+				}
+
+			}
+
 		}
 	}
 
-	background: white;
-	
-	.day{
-		position: relative;
-		
-		.timeblock{
-			position: absolute;
-			left: 0;
-		}
-		
-		.entry{
-			width: 100%;
-		}
-	}
 }

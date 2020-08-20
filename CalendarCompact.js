@@ -1,7 +1,7 @@
 import Row from 'UI/Row';
 import Col from 'UI/Column';
 import Container from 'UI/Container';
-import { localToUtc, addDays, isoConvert, ordinal, monthNames } from 'UI/Functions/DateTools';
+import { localToUtc, addDays, isoConvert, ordinal, shortMonthNames, monthNames } from 'UI/Functions/DateTools';
 import Loading from 'UI/Loading';
 
 export default class CalendarCompact extends React.Component {
@@ -154,8 +154,10 @@ export default class CalendarCompact extends React.Component {
 					
 					return <div className="time-info" style={{
 							height: this.minutesToSize(spaceInfo.minuteEnd - spaceInfo.minuteStart)
-						}}>
-						{spaceInfo.time}
+					}}>
+						<h3 className="time">
+							{spaceInfo.time}
+						</h3>
 					</div>
 					
 				})}
@@ -182,19 +184,37 @@ export default class CalendarCompact extends React.Component {
 		
 		return <div className="calendar-compact">
 			<Container>
-				<Row className="header">
-					{this.state.currentView.map(viewInfo => {
+				<Row className="calendar-header">
+					{this.state.currentView.map((viewInfo,index) => {
 						
-						return <Col size={colSize}>
-							{ordinal(viewInfo.start.getDate()) + ' ' + monthNames[viewInfo.start.getMonth()]}
+						return <Col size={colSize} className="calendar-header-col">
+							{index == 0 && <button type="button" className="btn btn-link previous">
+									<i className="far fr-chevron-left"></i>
+									<span className="sr-only">Previous</span>
+							</button>
+							}
+							<h2 className="calendar-column-title">
+								{shortMonthNames[viewInfo.start.getMonth()] + ' ' + viewInfo.start.getDate() + ' ' + viewInfo.start.getFullYear()}
+							</h2>
+							{index == this.state.currentView.length - 1 && <button type="button" className="btn btn-link next">
+									<i className="far fr-chevron-right"></i>
+									<span className="sr-only">Next</span>
+								</button>
+							}
 						</Col>;
 						
 					})}
 				</Row>
-				<Row>
-					{this.state.currentView.map(viewInfo => {
+				<Row className="calendar-body">
+					{this.state.currentView.map((viewInfo, index) => {
+						var colClass = "calendar-body-col";
+
+						// NB: assumes 3 columns
+						if (index == 1) {
+							colClass += ' bordered';
+						}
 						
-						return <Col size={colSize}>
+						return <Col size={colSize} className={colClass}>
 							{viewInfo.results ? this.renderDay(viewInfo.results) : <Loading />}
 						</Col>;
 						
@@ -206,3 +226,9 @@ export default class CalendarCompact extends React.Component {
 	}
 	
 }
+
+CalendarCompact.propTypes = {
+};
+
+CalendarCompact.defaultProps = {
+};
