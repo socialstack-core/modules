@@ -46,8 +46,15 @@ export default class CalendarCompact extends React.Component {
 		return hours + ':' + minuteStr;
 	}
 	
+	isToday(date) {
+		var today = new Date().setHours(0,0,0,0);
+		var timestamp = new Date(date).setHours(0,0,0,0);
+		
+		return today == timestamp;
+	}
+	
 	componentDidMount(){
-		this.load();
+		this.load(0);
 	}
 	
 	/*
@@ -68,14 +75,25 @@ export default class CalendarCompact extends React.Component {
 		return localToUtc(start);
 	}
 	
-	load(){
+	updateOffset(adj) {
+		var {offset} = this.state;
+		
+		if (!offset){
+			offset = 0;
+		}
+		
+		offset = offset + adj;
+		this.load(offset);
+	}
+	
+	load(offset){
 		var { days } = this.props;
 		
 		if(!days){
 			days = 3;
 		}
 		
-		var sliceStart = this.dayStartUtc(0);
+		var sliceStart = this.dayStartUtc(offset);
 		
 		// The timeslice goes from sliceStart -> sliceStart + num of visible days:
 		var sliceEnd = addDays(sliceStart, days);
@@ -91,7 +109,7 @@ export default class CalendarCompact extends React.Component {
 			});
 		}
 		
-		this.setState({currentView: dayMeta});
+		this.setState({currentView: dayMeta, offset: offset});
 		
 		// Request for section:
 		this.populateBetween(sliceStart, sliceEnd, dayMeta);
@@ -174,7 +192,7 @@ export default class CalendarCompact extends React.Component {
 	
 	render(){
 		
-		var { days, showNav } = this.props;
+		var { days , showNav , showToday } = this.props;
 		
 		if(!days){
 			days = 3;
@@ -188,15 +206,31 @@ export default class CalendarCompact extends React.Component {
 					{this.state.currentView.map((viewInfo,index) => {
 						
 						return <Col size={colSize} className="calendar-header-col">
-							{index == 0 && showNav && <button type="button" className="btn btn-link previous">
+							{index == 0 && showNav && 
+							<button type="button" className="btn btn-link previous" 
+								onClick={e => {
+									e.stopPropagation();
+									e.preventDefault();
+									this.updateOffset(-1);
+								}}>
 									<i className="far fr-chevron-left"></i>
 									<span className="sr-only">Previous</span>
 							</button>
 							}
 							<h2 className="calendar-column-title">
-								{shortMonthNames[viewInfo.start.getMonth()] + ' ' + viewInfo.start.getDate() + ' ' + viewInfo.start.getFullYear()}
+							{showToday && this.isToday(viewInfo.start) ?
+								<>Today</> : 
+								<>{shortMonthNames[viewInfo.start.getMonth()] + ' ' + viewInfo.start.getDate() + ' ' + viewInfo.start.getFullYear()}</>
+							}
+								
 							</h2>
-							{index == this.state.currentView.length - 1 && showNav && <button type="button" className="btn btn-link next">
+							{index == this.state.currentView.length - 1 && showNav &&
+							<button type="button" className="btn btn-link next"
+								onClick={e => {
+									e.stopPropagation();
+									e.preventDefault();
+									this.updateOffset(1);
+								}}>
 									<i className="far fr-chevron-right"></i>
 									<span className="sr-only">Next</span>
 								</button>
