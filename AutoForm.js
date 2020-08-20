@@ -215,7 +215,7 @@ export default class AutoForm extends React.Component {
 				}
 				<Form autoComplete="off" locale={this.state.locale} action={endpoint}
 				onValues={values => {
-					if(values._submitMode == 'draft'){
+					if(this.draftBtn){
 						// Set content ID if there is one already:
 						if(isEdit && parsedId){
 							values.id = parsedId;
@@ -230,8 +230,6 @@ export default class AutoForm extends React.Component {
 							values.setAction(this.props.endpoint + "/publish/" +  this.state.revisionId);
 						}
 					}
-					
-					delete values._submitMode;
 					
 					this.setState({editSuccess: false, editFailure: false, createSuccess: false, submitting: true});
 					return values;
@@ -267,9 +265,9 @@ export default class AutoForm extends React.Component {
 									// Go to it now:
 									global.pageRouter.go(newUrl);
 									
-								}else if(response.id != this.state.id){
-									// Created content from a draft. Go there now.
-									global.pageRouter.go('/' + parts.join('/') + '?created=1');
+								}else if(response.id != this.state.id || this.state.revisionId){
+									// Published content from a draft. Go there now.
+									global.pageRouter.go('/' + parts.join('/') + '?published=1');
 								}
 							}
 						}else{
@@ -351,11 +349,11 @@ export default class AutoForm extends React.Component {
 						)
 					)}
 					<div>
-						<Input inline type="submit" name="_submitMode" value="publish" disabled={this.state.submitting}>
+						<Input inline type="submit" disabled={this.state.submitting} onMouseDown={() => {this.draftBtn = false}}>
 							{isEdit ? "Save and Publish" : "Create"}
 						</Input>
 						{this.state.supportsRevisions && (
-							<Input inline type="submit" className="btn btn-primary createDraft" name="_submitMode" value="draft" disabled={this.state.submitting}>
+							<Input inline type="submit" className="btn btn-primary createDraft" onMouseDown={() => {this.draftBtn = true}} disabled={this.state.submitting}>
 								{isEdit ? "Save Draft" : "Create Draft"}
 							</Input>
 						)}
