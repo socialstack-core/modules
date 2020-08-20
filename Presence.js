@@ -1,16 +1,18 @@
 import webSocket from 'UI/Functions/WebSocket';
 
-function send(evt){
+function send(type, evt){
 	webSocket.send({
 		type: "Pres",
-		payload: evt
+		c: type,
+		m: JSON.stringify(evt)
 	});
 }
 
 function pageChange(page){
-	send({
-		type: "page",
-		url: page.url,
+	webSocket.send({
+		type: "Pres",
+		c: "page",
+		m: JSON.stringify({url: global.location.pathname}),
 		id: page.id
 	});
 }
@@ -20,11 +22,7 @@ if(global.addEventListener){
 }
 
 module.exports = {
-	event: (type, name, meta) => {
-		send({
-			type,
-			name,
-			meta
-		});
+	event: (type, meta) => {
+		send(type,meta);
 	}
 };
