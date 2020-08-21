@@ -87,7 +87,10 @@ html:not(.admin) {
         @include font_size($ss_form_field_label_font_size);
         color: $ss_form_field_label;
         font-weight: $ss_form_field_label_font_weight;
-        margin-bottom: .5rem;
+
+        &:not(.custom-control-label) {
+            margin-bottom: .5rem;
+        }
 
         &:not(.label-important):not(.custom-control-label) {
             @if $ss_form_field_label_hidden {

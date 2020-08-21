@@ -19,6 +19,14 @@
     border-radius: px_to_rem($px);
 }
 
+@mixin border_radius($topleft_px: 0, $topright_px: $topleft_px, $bottomright_px: $topleft_px, $bottomleft_px: $topleft_px) {
+    $topleft_em: px_to_rem($topleft_px);
+    $topright_em: px_to_rem($topright_px);
+    $bottomright_em: px_to_rem($bottomright_px);
+    $bottomleft_em: px_to_rem($bottomleft_px);
+    border-radius: $topleft_em $topright_em $bottomright_em $bottomleft_em;
+}
+
 @mixin padding($top_px: 0, $right_px: 0, $bottom_px: $top_px, $left_px: $right_px) {
     $top_em: px_to_rem($top_px);
     $right_em: px_to_rem($right_px);
