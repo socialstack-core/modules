@@ -88,12 +88,12 @@ export default class Search extends React.Component {
 			// Otherwise it just exports the query
 			this.setState({loading: true});
 			webRequest(this.props.for + '/list', {where, pageSize: (this.props.limit || 50)}).then(response => {
-				var results = response.json.results;
+				var results = response.json ? response.json.results : [];
 				this.setState({loading: false, results});
 			});
 		}else if(this.props.endpoint){
 			webRequest(this.props.endpoint + '?q=' + encodeURIComponent(query)).then(response => {
-				var results = response.json.results;
+				var results = response.json ? response.json.results : [];
 				this.props.onResults && this.props.onResults(results);
 				this.setState({loading: false, results});
 			});
