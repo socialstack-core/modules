@@ -1,4 +1,5 @@
 import webRequest from 'UI/Functions/WebRequest';
+import webSocket from 'UI/Functions/WebSocket';
 
 /*
 * A convenience mechanism for obtaining 1 piece of content. Outputs no DOM structure.
@@ -11,20 +12,121 @@ export default class Content extends React.Component {
 		this.state={
 			loading: true
 		};
+		this.onLiveMessage = this.onLiveMessage.bind(this);
+		this.onContentChange = this.onContentChange.bind(this);
+	}
+	
+	evtType(){
+		var name = this.props.type;
+		return name.charAt(0).toUpperCase() + name.slice(1);
+	}
+	
+	onLiveMessage(msg) {
+		if (msg.all) {
+			if (msg.type == "status") {
+				if (msg.connected) {
+					// Force a reload:
+					this.load(this.props, true);
+				}
+
+				this.props.onLiveStatus && this.props.onLiveStatus(msg.connected);
+			}
+			return;
+		}
+		
+		// Push msg.entity into the results set:
+		if (this.state.content && msg.entity) {
+			var e = msg.entity;
+			if (msg.by && e.viewedAtUtc) {
+				// Special views specific functionality here.
+				// If we receive an update via the websocket, we must change its viewedAtUtc field (if it has one).
+				// That's because its value is user specific, and is set to the value of the person who raised the event.
+				// Lots of database traffic just isn't worthwhile given the UI can figure it out for itself.
+				
+				// If *this user* made the update, set the viewed date as the edited date.
+				// Otherwise, clear it. We don't know when this user actually last saw it.
+				var { user } = global.app.state;
+
+				var userId = user ? user.id : 0;
+
+				if (msg.by == userId) {
+					e.viewedAtUtc = e.editedUtc;
+				} else {
+					e.viewedAtUtc = null;
+				}
+			}
+			
+			var entityId = e.id;
+
+			if (msg.method == 'delete') {
+				this.onContentChange({deleted: true, entity: e});
+			} else if (msg.method == 'update' || msg.method == 'create') {
+				this.onContentChange({entity: e});
+			}
+		}
+	}
+	
+	onContentChange(e) {
+		// Content changed! Is it a thing relative to us?
+		if (!this.state.content) {
+			// Nothing loaded yet
+			return;
+		}
+		
+		var entity = e.entity;
+		if(entity && entity.type != this.evtType()){
+			return;
+		}
+		
+		if (this.props.onContentChange) {
+			entity = this.props.onContentChange(entity);
+			if (!entity) {
+				// Handler rejected
+				return;
+			}
+		}
+		
+		if (e.deleted) {
+			// Deleted it:
+			this.setState({
+				content: null,
+				loading: false
+			});
+		} else {
+			// Update or add. id match?
+			if(this.props.id == entity.id){
+				this.setState({
+					content: entity
+				});
+			}
+		}
 	}
 	
 	componentWillReceiveProps(props){
 		this.load(props);
 	}
 	
-	componentDidMount(){
-		this.load(this.props);
-		// Future: add support for live, like Loop.
+	componentWillUnmount() {
+		if (this.props.live) {
+			webSocket.removeEventListener(this.evtType(), this.onLiveMessage);
+		}
+		
+		document.removeEventListener("contentchange", this.onContentChange);
 	}
 	
-	load(props){
+	componentDidMount(){
+		this.load(this.props);
+		
+		if (this.props.live) {
+			webSocket.addEventListener(this.evtType(), this.onLiveMessage);
+		}
+		
+		document.addEventListener("contentchange", this.onContentChange);
+	}
+	
+	load(props,force){
 		var url = props.type + '/' + props.id;
-		if(url == this.state.url){
+		if(!force && url == this.state.url){
 			return;
 		}
 		
