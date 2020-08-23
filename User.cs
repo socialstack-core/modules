@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using Api.AutoForms;
 using Api.Database;
 
 
@@ -25,6 +26,8 @@ namespace Api.Users
 		/// <summary>
 		/// The user's main role.
 		/// </summary>
+		[Module("Admin/ContentSelect")]
+		[Data("contentType", "role")]
 		public int Role;
 
 		/// <summary>
