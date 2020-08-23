@@ -32,25 +32,7 @@ $data_clamp_max: 6;
 // enforces single line clamping
 @mixin singleLineClamping(){
     white-space: nowrap;
-    /*
-    text-overflow: ellipsis;
-    overflow: hidden;
-    max-width: 100%;
     display: block;
-
-	&[data-clamp-display="inline-block"] {
-		display: inline-block;		
-	}
-
-	&[data-clamp-display="inline-flex"] {
-		display: inline-flex;		
-	}
-
-	&[data-clamp-display="flex"] {
-		display: flex;		
-	}
-    */
-
 }
 
 // enforces multiple line clamping
