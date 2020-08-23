@@ -6,6 +6,7 @@ using Api.Eventing;
 using Api.Contexts;
 using System.Threading.Tasks;
 using Api.Permissions;
+using Api.Database;
 
 namespace Api.Permissions
 {
@@ -212,8 +213,59 @@ namespace Api.Permissions
 				// Trigger capability setup:
 				await Events.CapabilityOnSetup.Dispatch(ctx, null);
 
+				// Now all the roles and caps have been setup, inject role restrictions:
+				SetupPartialRoleRestrictions();
+
 				return args == null || args.Length == 0 ? null : args[0];
 			});
+		}
+
+		private void SetupPartialRoleRestrictions()
+		{
+			// For each type, build the field map of roles that it wants to partially restrict (if any):
+			foreach (var kvp in ContentTypes.TypeMap)
+			{
+				var contentType = kvp.Value;
+
+				if (!typeof(IHaveRoleRestrictions).IsAssignableFrom(contentType))
+				{
+					continue;
+				}
+
+				// This type has partial role restrictions.
+				// This means it would like to restrict some content (but not all) by role.
+				foreach (var role in Roles.All)
+				{
+
+					// Is there a field called VisibleToRoleX?
+					var fieldName = "VisibleToRole" + role.Id;
+					var field = contentType.GetField(fieldName);
+
+					if (field == null)
+					{
+						continue;
+					}
+
+					// Ok - this type has visibility which varies within a role.
+					// For example, members of the public see certain pages but not e.g. the admin pages.
+
+					// Next, we'll inject into the permission filter a restriction on this field.
+					// I.e. the field must be true to go ahead.
+					var typeName = contentType.Name.ToLower();
+
+					if (Capabilities.All.TryGetValue(typeName + "_load", out Capability loadCapability))
+					{
+						role.AddRoleRestrictionToFilter(loadCapability, contentType, fieldName);
+					}
+
+					if (Capabilities.All.TryGetValue(typeName + "_list", out Capability listCapability))
+					{
+						role.AddRoleRestrictionToFilter(listCapability, contentType, fieldName);
+					}
+
+				}
+
+			}
 		}
 
 	}

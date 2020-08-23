@@ -705,9 +705,9 @@ namespace Api.Permissions
 		/// "Constructs" the chain. Doesn't actually allocate anything - this just makes sure Or()/ And() etc Inputs are set up.
 		/// </summary>
 		/// <returns></returns>
-		public FilterNode Construct()
+		public FilterNode Construct(bool force = false)
 		{
-			if (_constructed != null)
+			if (_constructed != null && !force)
 			{
 				return _constructed;
 			}

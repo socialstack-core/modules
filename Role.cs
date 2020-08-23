@@ -160,18 +160,29 @@ namespace Api.Permissions
             return this;
         }
 
-		/*
 		/// <summary>
-		/// Builds this filter node as a query string, writing it into the given string builder.
+		/// Extends a cap filter with a role restriction. Note that this happens after e.g. GrantTheSameAs calls, because it's always role specific.
 		/// </summary>
-		/// <param name="capability"></param>
-		/// <param name="builder"></param>
-		public void BuildQuery(Capability capability, StringBuilder builder, int )
+		/// <param name="cap"></param>
+		/// <param name="contentType"></param>
+		/// <param name="fieldName"></param>
+		public void AddRoleRestrictionToFilter(Capability cap, Type contentType, string fieldName)
 		{
-			var filter = CapabilityLookup[capability.InternalId];
-			filter.BuildQuery(builder, 0);
+			var filter = CapabilityFilterLookup[cap.InternalId];
+			if (filter == null)
+			{
+				filter = If();
+				CapabilityFilterLookup[cap.InternalId] = filter;
+			}
+
+			if (filter.HasContent)
+			{
+				filter.And();
+			}
+
+			filter.Equals(contentType, fieldName, 1);
+			CapabilityLookup[cap.InternalId] = filter.Construct(true);
 		}
-		*/
 
 		/// <summary>
 		/// Start conditional grants. For example, theRole.If().IsSelf().ThenGrant("UserEdit") - 
