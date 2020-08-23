@@ -1,5 +1,7 @@
 using Api.Contexts;
 using System.Threading.Tasks;
+using System.Collections.Generic;
+
 
 namespace Api.Permissions
 {
@@ -43,6 +45,14 @@ namespace Api.Permissions
 			Input0 = filter.PopConstructed();
 			return this;
 		}
+		
+		/// <summary>
+		/// True if this filter node is active on the given object.
+		/// </summary>
+		public override bool Matches(List<ResolvedValue> values, object obj){
+			return !Input0.Matches(values, obj);
+		}
+		
 	}
 
 	public partial class Filter

@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Threading.Tasks;
 using Api.Contexts;
 using Api.Users;
@@ -35,9 +36,9 @@ namespace Api.Permissions
 		/// <param name="field"></param>
 		/// <param name="valueMethod"></param>
 		/// <param name="paramId"></param>
-		public FilterFieldEqualsValue(Type type, string field, Func<Context, Task<object>> valueMethod, long paramId = 0) : base(type, field) {
+		public FilterFieldEqualsValue(Type type, string field, Func<Context, Task<object>> valueMethod, long paramId = -1) : base(type, field) {
 
-			if (paramId == 0)
+			if (paramId == -1)
 			{
 				lock (_lock)
 				{
@@ -86,6 +87,50 @@ namespace Api.Permissions
 		}
 
 		/// <summary>
+		/// True if this filter node is active on the given object.
+		/// </summary>
+		public override bool Matches(List<ResolvedValue> values, object obj)
+		{
+			if (obj == null || values == null)
+			{
+				return false;
+			}
+
+			// Read the value:
+			var val = FieldInfo.GetValue(obj);
+			
+			// Get the resolved value:
+			ResolvedValue rv = null;
+			
+			for(var i=0;i<values.Count;i++){
+				if(values[i].Node == this)
+				{
+					rv = values[i];
+					break;
+				}
+			}
+			
+			if(rv == null)
+			{
+				return false;
+			}
+			
+			// Compare rv.Value to val.
+			object compareWith = rv.Value;
+			
+			if(val == null)
+			{
+				return (compareWith == null);
+			}
+			else if(compareWith == null)
+			{
+				return false;
+			}
+			
+			return val.Equals(compareWith);
+		}
+
+		/// <summary>
 		/// Copies this filter node.
 		/// </summary>
 		/// <returns>A deep copy of the node.</returns>
@@ -107,6 +152,22 @@ namespace Api.Permissions
 			return Add(node);
 		}
 
+	}
+
+	/// <summary>
+	/// A resolved value from a resolvevr node.
+	/// </summary>
+	public class ResolvedValue
+	{
+		/// <summary>
+		/// The node it came from.
+		/// </summary>
+		public FilterFieldEqualsValue Node;
+
+		/// <summary>
+		/// The resolved value.
+		/// </summary>
+		public object Value;
 	}
 
 }

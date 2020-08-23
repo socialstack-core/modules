@@ -500,15 +500,6 @@ namespace Api.Permissions
 			return pop.Construct(this);
 		}
 		
-		/// <summary>
-		/// Set when a filter is given to the Capability.IsGranted method.
-		/// This is the login token in use by the current runtime only filter.
-		/// </summary>
-		public Context LoginToken
-		{
-			get; set;
-		}
-
 		private FilterNode _constructed;
 		private bool TopUsed = false;
 		private FilterNode StackTop = null;

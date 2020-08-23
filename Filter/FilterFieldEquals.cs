@@ -2,6 +2,7 @@ using System;
 using System.Reflection;
 using System.Threading.Tasks;
 using Api.Contexts;
+using System.Collections.Generic;
 
 
 namespace Api.Permissions
@@ -114,6 +115,94 @@ namespace Api.Permissions
 			}
 
 			return Task.FromResult(Value.Equals(FieldInfo.GetValue(firstArg)));
+		}
+
+		/// <summary>
+		/// True if this filter node is active on the given object.
+		/// </summary>
+		public override bool Matches(List<ResolvedValue> values, object obj){
+			
+			if(obj == null)
+			{
+				return false;
+			}
+			
+			// Read the value:
+			var val = FieldInfo.GetValue(obj);
+			
+			if (AlwaysArgMatch)
+			{
+				// No args in this mode
+				return false;
+			}
+			
+			object compareWith = Value;
+			
+			if(val == null)
+			{
+				return (compareWith == null);
+			}
+			else if(compareWith == null)
+			{
+				return false;
+			}
+
+			var typeA = val.GetType();
+			var typeB = compareWith.GetType();
+
+			if (typeA == typeB)
+			{
+				// Both the same type - equals can handle it:
+				return val.Equals(compareWith);
+			}
+
+			// They're different types.
+			// If one is a string, we do a ToString on the other:
+			if (typeA == typeof(string))
+			{
+				return (string)val == compareWith.ToString();
+			}
+			
+			if (typeB == typeof(string))
+			{
+				return val.ToString() == (string)compareWith;
+			}
+
+			// Number vs. bool or other numeric type
+			// Treat all as a long:
+			var isNumA = IsNumericishType(typeA);
+			var isNumB = IsNumericishType(typeB);
+
+			if (isNumA && isNumB)
+			{
+				return Convert.ToInt64(val) == Convert.ToInt64(compareWith);
+			}
+
+			// Unknown type combination
+			return false;
+		}
+
+		private bool IsNumericishType(Type t)
+		{
+			switch (Type.GetTypeCode(t))
+			{
+				case TypeCode.Boolean:
+				case TypeCode.Char:
+				case TypeCode.Byte:
+				case TypeCode.SByte:
+				case TypeCode.UInt16:
+				case TypeCode.UInt32:
+				case TypeCode.UInt64:
+				case TypeCode.Int16:
+				case TypeCode.Int32:
+				case TypeCode.Int64:
+				case TypeCode.Decimal:
+				case TypeCode.Double:
+				case TypeCode.Single:
+					return true;
+				default:
+					return false;
+			}
 		}
 
 		/// <summary>

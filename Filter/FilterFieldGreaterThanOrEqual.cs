@@ -2,6 +2,7 @@ using System;
 using System.Reflection;
 using System.Threading.Tasks;
 using Api.Contexts;
+using System.Collections.Generic;
 
 
 namespace Api.Permissions
@@ -127,6 +128,44 @@ namespace Api.Permissions
 			}
 
 			return Task.FromResult(false);
+		}
+
+		/// <summary>
+		/// True if this filter node is active on the given object.
+		/// </summary>
+		public override bool Matches(List<ResolvedValue> values, object obj)
+		{
+
+			if (obj == null)
+			{
+				return false;
+			}
+
+			// Read the value:
+			var val = FieldInfo.GetValue(obj);
+			
+			if (AlwaysArgMatch)
+			{
+				// No args in this mode
+				return false;
+			}
+			
+			object compareWith = Value;
+			
+			if (val == null || compareWith == null)
+			{
+				// Matches DB behaviour too. I.e. NULL<10, NULL>10, 10>NULL, 10<NULL are all false.
+				return false;
+			}
+
+			if (val is DateTime)
+			{
+				return (DateTime)val >= (DateTime)compareWith;
+			}
+
+			var us = Convert.ToInt64(val);
+			var them = Convert.ToInt64(compareWith);
+			return us >= them;
 		}
 
 		/// <summary>

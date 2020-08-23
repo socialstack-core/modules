@@ -1,4 +1,5 @@
 using Api.Contexts;
+using System.Collections.Generic;
 using System.Threading.Tasks;
 
 namespace Api.Permissions
@@ -21,7 +22,14 @@ namespace Api.Permissions
 			// You shall not pass!
 			return Task.FromResult(false);
 		}
-
+		
+		/// <summary>
+		/// True if this filter node is active on the given object.
+		/// </summary>
+		public virtual bool Matches(List<ResolvedValue> values, object obj){
+			return false;
+		}
+		
 		/// <summary>
 		/// Copies this filter node.
 		/// </summary>

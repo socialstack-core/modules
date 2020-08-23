@@ -21,7 +21,7 @@ namespace Api.Permissions
 		/// </summary>
 		public Filter On;
 
-
+		
 		/// <summary>
 		/// True if this particular node is granted.
 		/// </summary>
@@ -43,6 +43,7 @@ namespace Api.Permissions
 				TargetType = TargetType
 			};
 		}
+		
 	}
 
 	public partial class Filter

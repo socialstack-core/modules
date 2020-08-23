@@ -1,6 +1,7 @@
 ﻿using Api.Contexts;
 using System;
 using System.Collections.Generic;
+using System.Reflection;
 using System.Threading.Tasks;
 
 namespace Api.Permissions
@@ -21,10 +22,14 @@ namespace Api.Permissions
         public string Field;
 
         /// <summary>
-        ///  A string representing the sort direction.
+        /// The field being sorted. Can be null as this is lazy loaded.
         /// </summary>
-        ///
-        public string SortDirection;
+        public FieldInfo FieldInfo;
+
+        /// <summary>
+        /// True if this is sorting asc.
+        /// </summary>
+        public bool Ascending;
         /*
         public enum SortDirection
         {
@@ -43,9 +48,9 @@ namespace Api.Permissions
 		/// </summary>
 		public override Task<bool> IsGranted(Capability cap, Context token, object[] extraArgs)
         {
-            // TODO: Does this need a perm? It is just sorting after all.
             return Task.FromResult(true);
         }
+		
     }
 
     public partial class Filter
@@ -60,16 +65,10 @@ namespace Api.Permissions
                 Sorts = new List<FilterSort>();
             }
 
-            // Is the direction equal to desc? If not, return it to our default asc value.
-            if(direction != "desc")
-            {
-                direction = "asc";
-            }
-
             Sorts.Add(new FilterSort()
             {
                 Field = fieldName,
-                SortDirection = direction,
+                Ascending = (direction != "desc"),
                 Type = DefaultType
             });
 

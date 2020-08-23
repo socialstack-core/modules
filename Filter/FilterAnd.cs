@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using Api.Contexts;
 using System.Threading.Tasks;
 
@@ -31,6 +32,14 @@ namespace Api.Permissions
 				Input1 = Input1.Copy()
 			};
 		}
+		
+		/// <summary>
+		/// True if this filter node is active on the given object.
+		/// </summary>
+		public override bool Matches(List<ResolvedValue> values, object obj){
+			return Input0.Matches(values, obj) && Input1.Matches(values, obj);
+		}
+		
 	}
 
 	public partial class Filter

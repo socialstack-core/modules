@@ -89,12 +89,6 @@ namespace Api.Permissions
 			var token = (request.HttpContext.User as Context);
 			var role = token == null ? Roles.Public : token.Role;
 
-			if (filter != null)
-			{
-				// Set the login token:
-				filter.LoginToken = token;
-			}
-
 			if (role == null)
 			{
 				// No user role - can't grant this capability.

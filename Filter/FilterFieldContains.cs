@@ -2,6 +2,7 @@ using System;
 using System.Reflection;
 using System.Threading.Tasks;
 using Api.Contexts;
+using System.Collections.Generic;
 
 
 namespace Api.Permissions
@@ -103,6 +104,36 @@ namespace Api.Permissions
 			return Task.FromResult(Value.Equals(FieldInfo.GetValue(firstArg) as string));
 		}
 
+		/// <summary>
+		/// True if this filter node is active on the given object.
+		/// </summary>
+		public override bool Matches(List<ResolvedValue> values, object obj){
+			
+			if(obj == null)
+			{
+				return false;
+			}
+			
+			// Read the value:
+			var val = FieldInfo.GetValue(obj);
+			
+			if (AlwaysArgMatch)
+			{
+				// No args in this mode
+				return false;
+			}
+			
+			object compareWith = Value;
+			
+			if(val == null || compareWith == null)
+			{
+				return false;
+			}
+			
+			// Does val contain compareWith?
+			return val.ToString().Contains(compareWith.ToString());
+		}
+		
 		/// <summary>
 		/// Copies this filter node.
 		/// </summary>
