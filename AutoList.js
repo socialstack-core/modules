@@ -20,6 +20,20 @@ export default class AutoList extends React.Component {
 		this.renderEntry = this.renderEntry.bind(this);
 	}
 	
+	componentWillReceiveProps(props){
+		
+		var { sort } = this.state;
+		var { fields } = props;
+		
+		if(sort && !fields.find(field => field == sort.field)){
+			// Restore to id sort:
+			this.setState({
+				sort: fields.find(field => field == 'id') ? {field: 'id', direction: 'desc'} : null
+			});
+		}
+		
+	}
+	
 	renderHeader(allContent){
 		// Header (Optional)
 		return this.props.fields.map(field => {
