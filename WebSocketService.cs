@@ -334,6 +334,10 @@ namespace Api.WebSockets
 
 				}
 			}
+			catch(WebSocketException)
+			{
+				// This is ok - happens when the remote user disconnects abruptly.
+			}
 			catch (Exception e)
 			{
 				Console.WriteLine(e.ToString());
