@@ -5,6 +5,7 @@ using Api.Permissions;
 using System.Linq;
 using Api.Eventing;
 using Api.Contexts;
+using Api.Startup;
 
 namespace Api.NavMenus
 {
@@ -28,6 +29,10 @@ namespace Api.NavMenus
 			listByMenuQuery.Where().EqualsArg("NavMenuId", 0);
 			_navMenus = navMenus;
 			InstallAdminPages(null, null, new string[] { "id", "target" });
+			
+			Cache(new CacheConfig<NavMenuItem>(){
+				PreloadPriority = 20
+			});
 		}
 		
 		/// <summary>

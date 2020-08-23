@@ -5,7 +5,7 @@ using Api.Permissions;
 using System.Linq;
 using Api.Eventing;
 using Api.Contexts;
-
+using Api.Startup;
 
 namespace Api.NavMenus
 {
@@ -33,6 +33,10 @@ namespace Api.NavMenus
 			selectByKeyQuery.Where().EqualsArg("Key", 0);
 			
 			InstallAdminPages("Nav Menus", "fa:fa-map-signs", new string[] { "id", "name", "key" });
+			
+			Cache(new CacheConfig<NavMenu>(){
+				PreloadPriority = 20
+			});
 		}
 		
         /// <summary>
