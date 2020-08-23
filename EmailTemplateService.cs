@@ -40,7 +40,7 @@ namespace Api.Emails
 		/// <summary>
 		/// A reference to the key index from the cache.
 		/// </summary>
-		private int KeyIndexId;
+		private int KeyIndexId = -1;
 
 		/// <summary>
 		/// Instanced automatically. Use injection to use this service, or Startup.Services.Get.
@@ -55,9 +55,6 @@ namespace Api.Emails
 
 			// Cache all in memory:
 			Cache();
-
-			// Get the index ID of the DB index called 'Key':
-			KeyIndexId = GetCacheIndexId("Key");
 		}
 
 		/// <summary>
@@ -75,6 +72,12 @@ namespace Api.Emails
 			if (cache == null)
 			{
 				return Task.FromResult((EmailTemplate)null);
+			}
+
+			if (KeyIndexId == -1)
+			{
+				// Get the index ID of the DB index called 'Key':
+				KeyIndexId = GetCacheIndexId("Key");
 			}
 
 			var template = cache.GetUsingIndex(KeyIndexId, key);
