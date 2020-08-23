@@ -25,7 +25,7 @@ namespace Api.Permissions
 			builder.Append("`.`");
 			builder.Append(Field);
 			builder.Append("` ");
-			builder.Append(SortDirection);
+			builder.Append(Ascending ? "asc" : "desc");
         }
     }
 }

@@ -117,13 +117,6 @@ namespace Api.Database
 					cmd.Parameters.Add(parameter);
 				}
 			}
-
-			// Add user:
-			parameter = cmd.CreateParameter();
-			parameter.ParameterName = "user";
-			parameter.Value = filter != null && filter.LoginToken != null ? filter.LoginToken.UserId : 0;
-			cmd.Parameters.Add(parameter);
-			
 			return cmd;
 		}
 
@@ -584,12 +577,6 @@ namespace Api.Database
 							cmd.Parameters.Add(parameter);
 						}
 					}
-
-					// Add user:
-					parameter = cmd.CreateParameter();
-					parameter.ParameterName = "user";
-					parameter.Value = filter != null && filter.LoginToken != null ? filter.LoginToken.UserId : 0;
-					cmd.Parameters.Add(parameter);
 				}
 				else
 				{
@@ -723,12 +710,6 @@ namespace Api.Database
 							cmd.Parameters.Add(parameter);
 						}
 					}
-
-					// Add user:
-					parameter = cmd.CreateParameter();
-					parameter.ParameterName = "user";
-					parameter.Value = filter != null && filter.LoginToken != null ? filter.LoginToken.UserId : 0;
-					cmd.Parameters.Add(parameter);
 				}
 				else
 				{
