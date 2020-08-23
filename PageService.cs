@@ -102,6 +102,10 @@ namespace Api.Pages
 
 			// Install the admin pages.
 			InstallAdminPages("Pages", "fa:fa-paragraph", new string[] { "id", "url", "title" });
+			
+			Cache(new CacheConfig<Page>(){
+				PreloadPriority = 20
+			});
 		}
 
 		/// <summary>
