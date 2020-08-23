@@ -1,5 +1,7 @@
 using Api.Contexts;
 using Api.Database;
+using Api.Permissions;
+using Api.Results;
 using System;
 using System.Collections;
 using System.Collections.Generic;
@@ -145,6 +147,130 @@ namespace Api.Startup{
 		public Dictionary<int, T> GetPrimary()
 		{
 			return Primary;
+		}
+
+		/// <summary>
+		/// Gets list with total number of results. Regularly used by pagination.
+		/// </summary>
+		/// <param name="filter"></param>
+		/// <param name="values"></param>
+		/// <returns></returns>
+		public ListWithTotal<T> ListWithTotal(Filter<T> filter, List<ResolvedValue> values)
+		{
+			var results = List(filter, values, out int total);
+			return new ListWithTotal<T>()
+			{
+				Results = results,
+				Total = total
+			};
+		}
+
+		/// <summary>
+		/// List objects with the given filter.
+		/// </summary>
+		/// <param name="filter">Can be null.</param>
+		/// <param name="values">Resolved value set</param>
+		/// <param name="total">Total number of results, regardless of any pagination happening.</param>
+		/// <returns></returns>
+		public List<T> List(Filter<T> filter, List<ResolvedValue> values, out int total)
+		{
+			var set = new List<T>();
+
+			if (filter == null || !filter.HasContent)
+			{
+				// Everything in whatever order the PK returns them in. Can be paginated.
+				foreach (var kvp in Primary)
+				{
+					set.Add(kvp.Value);
+				}
+			}
+			else
+			{
+				var rootNode = filter.Construct();
+
+				foreach (var kvp in Primary)
+				{
+					if (rootNode.Matches(values, kvp.Value))
+					{
+						set.Add(kvp.Value);
+					}
+				}
+			}
+
+			if (filter != null && filter.Sorts != null && filter.Sorts.Count > 0)
+			{
+				HandleSorting(set, filter.Sorts);
+			}
+
+			total = set.Count;
+
+			// Limit happens after sorting:
+			if (filter != null && filter.PageSize != 0)
+			{
+				var rowStart = filter == null ? 0 : filter.PageIndex * filter.PageSize;
+
+				if (rowStart >= set.Count)
+				{
+					return new List<T>();
+				}
+
+				var count = set.Count - rowStart;
+
+				if (count > filter.PageSize)
+				{
+					count = filter.PageSize;
+				}
+
+				return set.GetRange(rowStart, count);
+			}
+
+			return set;
+		}
+
+		private void HandleSorting(List<T> set, List<FilterSort> sorts)
+		{
+			foreach (var sort in sorts)
+			{
+				if (sort.FieldInfo == null)
+				{
+					sort.FieldInfo = sort.Type.GetField(char.IsLower(sort.Field[0]) ? char.ToUpper(sort.Field[0]) + sort.Field.Substring(1) : sort.Field);
+
+					if (sort.FieldInfo == null)
+					{
+						throw new Exception(sort.Field + " sort field doesn't exist on type '" + sort.Type.Name + "'");
+					}
+				}
+			}
+
+			set.Sort((a, b) => {
+
+				for (var i = 0; i < sorts.Count; i++)
+				{
+					var sort = sorts[i];
+
+					var valA = sort.FieldInfo.GetValue(a);
+					var valB = sort.FieldInfo.GetValue(b);
+					var comparison = (valA as IComparable).CompareTo(valB);
+
+					// If a and b compare equal, proceed to check the next sort node
+					// Otherwise, return the compare value
+					if (comparison != 0)
+					{
+						if (sort.Ascending)
+						{
+							return comparison;
+						}
+						else
+						{
+							// Invert:
+							return -comparison;
+						}
+					}
+				}
+
+				return 0;
+			});
+
 		}
 
 		/// <summary>

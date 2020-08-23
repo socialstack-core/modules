@@ -20,7 +20,7 @@ public partial class AutoService<T> : AutoService where T: DatabaseRow, new(){
 	/// <summary>
 	/// The config for the cache.
 	/// </summary>
-	protected CacheConfig<T> _cacheConfig;
+	protected CacheConfig _cacheConfig;
 	/// <summary>
 	/// The caches, if enabled. Call Cache() to set this service as one with caching active.
 	/// It's an array as there's one per locale.
@@ -46,15 +46,56 @@ public partial class AutoService<T> : AutoService where T: DatabaseRow, new(){
 	/// Indicates that entities of this service should be cached in memory.
 	/// Auto establishes if everything should be loaded now or later.
 	/// </summary>
-	public void Cache(CacheConfig<T> cfg = null)
+	public void Cache(CacheConfig cfg = null)
+	{
+		if (Services.Started)
+		{
+			// Services already started - preload right now:
+			var task = SetupCacheNow(cfg);
+			task.Wait();
+		}
+		else
+		{
+			Events.ServicesAfterStart.AddEventListener(async (Context ctx, object src) =>
+			{
+				await SetupCacheNow(cfg);
+				return src;
+			}, cfg == null ? 10 : cfg.PreloadPriority);
+		}
+	}
+
+	/// <summary>
+	/// Gets a cache for a given locale ID. Null if none.
+	/// </summary>
+	/// <param name="localeId"></param>
+	/// <returns></returns>
+	public ServiceCache<T> GetCacheForLocale(int localeId)
+	{
+		if (_cache == null || localeId <= 0 || localeId > _cache.Length)
+		{
+			return null;
+		}
+		return _cache[localeId - 1];
+	}
+
+	/// <summary>
+	/// Sets up the cache on this service. If you're not sure, use Cache instead of this.
+	/// </summary>
+	/// <returns></returns>
+	public override async Task SetupCacheNow(CacheConfig cfg)
 	{
 		if (cfg == null)
 		{
 			// Default config:
-			cfg = new CacheConfig<T>();
+			cfg = new CacheConfig();
 		}
 
 		_cacheConfig = cfg;
+		
+		// Log that the cache is on:
+		Console.WriteLine(GetType().Name + " - cache on");
+
+		var genericCfg = _cacheConfig as CacheConfig<T>;
 
 		var indices = _database.GetIndices(typeof(T));
 
@@ -85,49 +126,13 @@ public partial class AutoService<T> : AutoService where T: DatabaseRow, new(){
 			}
 
 			_cache[i] = new ServiceCache<T>(indices);
-			_cache[i].OnChange = cfg.OnChange;
+			_cache[i].OnChange = genericCfg == null ? null : genericCfg.OnChange;
 		}
-
-		// Do we need to preload the values?
-		if (cfg.Preload.HasValue && cfg.Preload.Value)
-		{
-			if (Services.Started)
-			{
-				// Services already started - preload right now:
-				var task = PreloadCacheInternal(localeSet);
-				task.Wait();
-			}
-			else
-			{
-				Events.ServicesAfterStart.AddEventListener(async (Context ctx, object src) =>
-				{
-					await PreloadCacheInternal(localeSet);
-					return src;
-				}, cfg.PreloadPriority);
-			}
-		}
-	}
-
-	/// <summary>
-	/// Gets a cache for a given locale ID. Null if none.
-	/// </summary>
-	/// <param name="localeId"></param>
-	/// <returns></returns>
-	public ServiceCache<T> GetCacheForLocale(int localeId)
-	{
-		if (_cache == null || localeId <= 0 || localeId > _cache.Length)
-		{
-			return null;
-		}
-		return _cache[localeId - 1];
-	}
-
-	private async Task PreloadCacheInternal(Locale[] locales)
-	{
+		
 		// Get everything, for each supported locale:
-		for (var i = 0; i < locales.Length; i++)
+		for (var i = 0; i < localeSet.Length; i++)
 		{
-			var locale = locales[i];
+			var locale = localeSet[i];
 
 			if (locale == null)
 			{
@@ -141,7 +146,7 @@ public partial class AutoService<T> : AutoService where T: DatabaseRow, new(){
 				LocaleId = locale.Id
 			};
 
-			var everything = await List(ctx, null);
+			var everything = await ListNoCache(ctx, null);
 
 			foreach (var row in everything)
 			{

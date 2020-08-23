@@ -150,12 +150,67 @@ public partial class AutoService<T> : AutoService where T: DatabaseRow, new(){
 		filter = await EventGroup.BeforeList.Dispatch(context, filter);
 		context.NestedTypes &= NestableRemoveMask;
 
-		var listAndTotal = await _database.ListWithTotal(context, listQuery, filter);
+		// If the filter doesn't have join or group by nodes, we can potentially run it through the cache.
+		var cache = GetCacheForLocale(context == null ? 1 : context.LocaleId);
 
+		ListWithTotal<T> listAndTotal;
+
+		if (cache != null)
+		{
+			if (filter == null || (filter.Joins == null && filter.Groupings == null))
+			{
+				// This filter can be serviced by the cache.
+				List<ResolvedValue> values = await ResolveValues(context, filter);
+				listAndTotal = cache.ListWithTotal(filter, values);
+			}
+			else
+			{
+				// Via DB:
+				listAndTotal = await _database.ListWithTotal(context, listQuery, filter);
+			}
+		}
+		else
+		{
+			listAndTotal = await _database.ListWithTotal(context, listQuery, filter);
+		}
+		
 		context.NestedTypes |= NestableAddMask;
 		listAndTotal.Results = await EventGroup.AfterList.Dispatch(context, listAndTotal.Results);
 		context.NestedTypes &= NestableRemoveMask;
 		return listAndTotal;
+	}
+
+	/// <summary>
+	/// Resolves param value resolvers and returns the results as a set.
+	/// </summary>
+	/// <param name="context"></param>
+	/// <param name="filter"></param>
+	/// <returns></returns>
+	public async Task<List<ResolvedValue>> ResolveValues(Context context, Filter<T> filter)
+	{
+		if (filter == null || filter.ParamValueResolvers == null)
+		{
+			return null;
+		}
+
+		var values = new List<ResolvedValue>();
+
+		for (var i = 0; i < filter.ParamValueResolvers.Count; i++)
+		{
+			var valueResolver = filter.ParamValueResolvers[i];
+
+			if (valueResolver != null)
+			{
+				var value = await valueResolver.Method(context);
+				values.Add(new ResolvedValue()
+				{
+					Value = value,
+					Node = valueResolver
+				});
+			}
+		}
+
+		return values;
 	}
 
 	/// <summary>
@@ -173,8 +228,54 @@ public partial class AutoService<T> : AutoService where T: DatabaseRow, new(){
 		filter = await EventGroup.BeforeList.Dispatch(context, filter);
 		context.NestedTypes &= NestableRemoveMask;
 		
-		var list = await _database.List(context, listQuery, filter);
+		// If the filter doesn't have join or group by nodes, we can potentially run it through the cache.
+		var cache = GetCacheForLocale(context == null ? 1 : context.LocaleId);
 		
+		List<T> list;
+		
+		if (cache != null)
+		{
+			if (filter == null || (filter.Joins == null && filter.Groupings == null))
+			{
+				// This filter can be serviced by the cache.
+				List<ResolvedValue> values = await ResolveValues(context, filter);
+				list = cache.List(filter, values, out int total);
+			}
+			else
+			{
+				// Via DB:
+				list = await _database.List(context, listQuery, filter);
+			}
+		}
+		else
+		{
+			list = await _database.List(context, listQuery, filter);
+		}
+		
+		context.NestedTypes |= NestableAddMask;
+		list = await EventGroup.AfterList.Dispatch(context, list);
+		context.NestedTypes &= NestableRemoveMask;
+		return list;
+	}
+
+	/// <summary>
+	/// List a filtered set of entities without using the cache.
+	/// </summary>
+	/// <returns></returns>
+	public virtual async Task<List<T>> ListNoCache(Context context, Filter<T> filter)
+	{
+		if (NestableAddMask != 0 && (context.NestedTypes & NestableAddMask) == NestableAddMask)
+		{
+			// This happens when we're nesting List calls.
+			// For example, a User has Tags which in turn have a (creator) User.
+			return new List<T>();
+		}
+		context.NestedTypes |= NestableAddMask;
+		filter = await EventGroup.BeforeList.Dispatch(context, filter);
+		context.NestedTypes &= NestableRemoveMask;
+		
+		var list = await _database.List(context, listQuery, filter);
+
 		context.NestedTypes |= NestableAddMask;
 		list = await EventGroup.AfterList.Dispatch(context, list);
 		context.NestedTypes &= NestableRemoveMask;
@@ -361,6 +462,15 @@ public class AutoService
 		ServicedType = type;
 	}
 
+	/// <summary>
+	/// Sets up the cache on this service. If you're not sure, use Cache instead of this.
+	/// </summary>
+	/// <returns></returns>
+	public virtual Task SetupCacheNow(CacheConfig cfg)
+	{
+		throw new NotImplementedException();
+	}
+	
 	/// <summary>
 	/// Gets the JSON structure. Defines settable fields for a particular role.
 	/// </summary>
