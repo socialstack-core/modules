@@ -52,7 +52,23 @@ namespace Api.Emails
 			_configuration = AppSettings.GetSection("Email").Get<EmailConfig>();
 			
 			InstallAdminPages("Emails", "fa:fa-paper-plane", new string[] { "id", "name", "key" });
-
+			
+			Events.User.BeforeSettable.AddEventListener((Context context, JsonField<User> field) =>
+			{
+				if (field == null)
+				{
+					return Task.FromResult(field);
+				}
+				
+				if(field.Name == "EmailOptOutFlags")
+				{
+					// This field isn't settable
+					field = null;
+				}
+				
+				return Task.FromResult(field);
+			});
+			
 			// Cache all in memory:
 			Cache();
 		}
