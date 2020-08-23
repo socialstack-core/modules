@@ -89,7 +89,10 @@ namespace Api.Pages
 								""module"": ""Admin/PermissionGrid""
 							}
 						]
-					}"
+					}",
+					VisibleToRole0 = false,
+					VisibleToRole3 = false,
+					VisibleToRole4 = false
 				},
 				new Page()
 				{
@@ -127,7 +130,10 @@ namespace Api.Pages
 							""fields"" : " + fieldString + @"
 						},
 						""module"" : ""Admin/Pages/List""
-					}"
+					}",
+					VisibleToRole0 = false,
+					VisibleToRole3 = false,
+					VisibleToRole4 = false
 				},
 				new Page {
 					Url = "/en-admin/" + typeName + "/:id",
@@ -140,7 +146,10 @@ namespace Api.Pages
 							}
 						},
 						""module"" : ""Admin/Pages/AutoEdit""
-					}"
+					}",
+					VisibleToRole0 = false,
+					VisibleToRole3 = false,
+					VisibleToRole4 = false
 				}
 			);
 		}

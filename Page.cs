@@ -1,5 +1,6 @@
 using System;
 using Api.Database;
+using Api.Permissions;
 using Api.Users;
 
 namespace Api.Pages
@@ -8,7 +9,7 @@ namespace Api.Pages
 	/// <summary>
 	/// A page.
 	/// </summary>
-	public partial class Page : RevisionRow
+	public partial class Page : RevisionRow, IHaveRoleRestrictions
 	{
 		/// <summary>
 		/// The URL for this page.
@@ -24,6 +25,21 @@ namespace Api.Pages
 		/// The pages content (as canvas JSON).
 		/// </summary>
 		public string BodyJson;
+		
+		/// <summary>
+		/// Page visibility varies when anon users.
+		/// </summary>
+		public bool VisibleToRole0 = true;
+		
+		/// <summary>
+		/// Page visibility varies when guest user.
+		/// </summary>
+		public bool VisibleToRole3 = true;
+		
+		/// <summary>
+		/// Page visibility varies when member user.
+		/// </summary>
+		public bool VisibleToRole4 = true;
 	}
 	
 }
