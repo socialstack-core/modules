@@ -400,6 +400,10 @@ export default class Loop extends React.Component {
 				errored: false 
 			};
 			
+			if(this.state.over != props.over){
+				newPageIndex = 1;
+			}
+			
 			if(newPageIndex){
 				newState.pageIndex = newPageIndex;
 			}
@@ -472,6 +476,12 @@ export default class Loop extends React.Component {
 				results = this.props.onResults(results);
 			}
 			
+			var newState = { over: null, jsonFilter: null, results, total, errored: false };
+			
+			if(newPageIndex){
+				newState.pageIndex = newPageIndex;
+			}
+			
 			var total = results.totalResults || results.length;
 			var pageCfg = props.paged;
 			
@@ -491,7 +501,7 @@ export default class Loop extends React.Component {
 				results = results.reverse();
 			}
 			
-			this.setState({ over: null, jsonFilter: null, results, total, errored: false });
+			this.setState(newState);
 		}
 	}
 
