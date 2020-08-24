@@ -100,7 +100,7 @@ export default class Photosphere extends React.Component {
 	}
     
     onWheel(props) {
-		if(props.target != this.hostEle && props.target != this.containerEle && props.target != this.root3DEle && props.target != canvasEle) {
+		if(props.target != this.hostEle && props.target != this.containerEle && props.target != this.root3DEle && props.target != this.canvasEle) {
 			return;
 		}	
         var scaleFactor = 2;
