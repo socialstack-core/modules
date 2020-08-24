@@ -27,7 +27,7 @@ export default class LoginForm extends React.Component {
 						return;
 					}
 					
-					global.app.setState({user:response.user, realUser:response.user});
+					global.app.setState(response);
 					if(!this.props.noRedirect){
 						global.pageRouter.go("/en-admin/");
 					}
