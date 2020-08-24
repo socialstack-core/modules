@@ -81,7 +81,7 @@ fieldset {
 
 }
 
-html:not(.admin) {
+//html:not(.admin) {
     label,
     .field-label {
         @include font_size($ss_form_field_label_font_size);
@@ -98,7 +98,7 @@ html:not(.admin) {
             }
         }
     }
-}
+//}
 
 .form-group {
     // see ThirdParty/Input - used when optionally providing an icon class

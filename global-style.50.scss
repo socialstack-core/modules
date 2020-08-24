@@ -7,6 +7,18 @@ html, body, #react-view, #react-root, #content-root, #content-page, #react-loadi
 
 html {
 	overflow-x: hidden;
+	font-family: $regular_font_family !important;
+	font-weight: $regular_font_weight !important;
+
+	body, #react-view, #react-root, #content-root, #content-page, #react-loading {
+		font-family: $regular_font_family;
+		font-weight: $regular_font_weight;
+	}
+
+	body {
+		background-color: $site_bg;
+	}
+
 	// Identify a frontend (mobile app build too):
 	&.ui {
 	}
@@ -21,29 +33,6 @@ html {
 	}
 	// define rules which shouldn't be applied for admin views
 	&:not(.admin) {
-		font-family: $regular_font_family !important;
-		font-weight: $regular_font_weight !important;
-
-		body, #react-view, #react-root, #content-root, #content-page, #react-loading {
-			font-family: $regular_font_family;
-			font-weight: $regular_font_weight;
-		}
-
-		body {
-			background-color: $site_bg;
-
-			&.white-bg {
-				background-color: #fff;
-			}
-		}
-
-		/*
-		#react-root {
-			display: flex;
-			flex-direction: column;
-			flex-wrap: nowrap;
-		}
-		*/
 	}
 }
 
