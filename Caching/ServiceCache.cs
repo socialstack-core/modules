@@ -181,7 +181,7 @@ namespace Api.Startup{
 				// Everything in whatever order the PK returns them in. Can be paginated.
 				foreach (var kvp in Primary)
 				{
-					set.Add(kvp.Value);
+					set.Add(Clone(kvp.Value));
 				}
 			}
 			else
@@ -192,7 +192,7 @@ namespace Api.Startup{
 				{
 					if (rootNode.Matches(values, kvp.Value))
 					{
-						set.Add(kvp.Value);
+						set.Add(Clone(kvp.Value));
 					}
 				}
 			}
@@ -220,7 +220,9 @@ namespace Api.Startup{
 				{
 					count = filter.PageSize;
 				}
-
+				
+				
+				
 				return set.GetRange(rowStart, count);
 			}
 
