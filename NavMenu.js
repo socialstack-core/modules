@@ -7,7 +7,7 @@ import isNumeric from 'UI/Functions/IsNumeric';
  */
 
 export default (props) =>
-	<Loop over={'navmenu/' + (isNumeric(props.id) ? '' : 'key/') + props.id} {...props}>
+	<Loop over={'navmenuitem/' + (isNumeric(props.id) ? '' : 'key/') + props.id} {...props}>
 	{(props.children && props.children.length) ? props.children : item => 
 		<a href={item.target}>
 			<Canvas>{item.bodyJson}</Canvas>
