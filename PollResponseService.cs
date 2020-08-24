@@ -25,20 +25,28 @@ namespace Api.Polls
 				// Note that there's a unique index on the table which blocks users
 				// from answering twice.
 				
+				if(response == null)
+				{
+					return response;
+				}
+				
 				// The answer:
 				var answer = await answers.Get(context, response.AnswerId);
 				
-				if(answer == null){
+				if(answer == null)
+				{
 					return null;
 				}
 				
-				// Set the poll ID:
+				// Set the response info:
 				response.PollId = answer.PollId;
 				response.UserId = context.UserId;
 				response.CreatedUtc = DateTime.UtcNow;
 				
-				return response;
+				answer.Votes++;
+				await answers.Update(context, answer);
 				
+				return response;
 			});
 			
 		}

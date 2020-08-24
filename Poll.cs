@@ -2,6 +2,7 @@ using System;
 using Api.Database;
 using Api.Translate;
 using Api.Users;
+using System.Collections.Generic;
 
 
 namespace Api.Polls
@@ -18,11 +19,11 @@ namespace Api.Polls
         [DatabaseField(Length = 200)]
 		[Localized]
 		public string Title;
-
+		
 		/// <summary>
-		/// A page this poll appears on.
+		/// Thet set of answers for the poll.
 		/// </summary>
-		public int PageId;
+		public List<PollAnswer> Answers { get; set; }
 	}
 
 }

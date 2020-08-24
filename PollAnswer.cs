@@ -23,6 +23,11 @@ namespace Api.Polls
 		/// The parent poll ID
 		/// </summary>
 		public int PollId;
+		
+		/// <summary>
+		/// Total votes for this answer.
+		/// </summary>
+		public int Votes;
 	}
 
 }

@@ -10,6 +10,7 @@ namespace Api.Polls
 	/// <summary>
 	/// A Poll
 	/// </summary>
+	[DatabaseIndex(Fields = new string[] { "UserId", "PollId" }, Unique = true)]
 	public partial class PollResponse : DatabaseRow
 	{
 		/// <summary>
