@@ -3,6 +3,8 @@ using System.Collections.Generic;
 using Api.Database;
 using Api.Translate;
 using Api.Users;
+using Api.Permissions;
+
 
 namespace Api.NavMenus
 {
@@ -10,7 +12,7 @@ namespace Api.NavMenus
 	/// <summary>
 	/// A particular entry within a navigation menu.
 	/// </summary>
-	public partial class NavMenuItem : RevisionRow
+	public partial class NavMenuItem : RevisionRow, IHaveRoleRestrictions
 	{
 		/// <summary>
 		/// The ID of the nav menu this item belongs to.
@@ -45,6 +47,21 @@ namespace Api.NavMenus
 		/// </summary>
 		[DatabaseField(Length = 80)]
 		public string IconRef;
+		
+		/// <summary>
+		/// Page visibility varies when anon users.
+		/// </summary>
+		public bool VisibleToRole0 = true;
+		
+		/// <summary>
+		/// Page visibility varies when guest user.
+		/// </summary>
+		public bool VisibleToRole3 = true;
+		
+		/// <summary>
+		/// Page visibility varies when member user.
+		/// </summary>
+		public bool VisibleToRole4 = true;
 	}
 	
 }

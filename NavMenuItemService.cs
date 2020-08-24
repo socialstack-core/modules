@@ -45,7 +45,7 @@ namespace Api.NavMenus
 			menuSet = await Events.NavMenuItem.AfterList.Dispatch(context, menuSet);
 			return menuSet;
 		}
-
+		
 		/// <param name="targetUrl">The target page url, e.g. /en-admin/page</param>
 		/// <param name="iconRef">The ref to use for the icon. Typically these are fontawesome refs, of the form fa:fa-thing</param>
 		/// <param name="label">The text that appears on the menu</param>
@@ -61,7 +61,10 @@ namespace Api.NavMenus
 					Target = targetUrl,
 					MenuKey = "admin_primary",
 					BodyJson = bodyJson,
-					IconRef = iconRef
+					IconRef = iconRef,
+					VisibleToRole0 = false,
+					VisibleToRole3 = false,
+					VisibleToRole4 = false
 				}
 			);
 		}
@@ -96,7 +99,10 @@ namespace Api.NavMenus
 							NavMenuId = menu.Id,
 							BodyJson = "{\"content\":\"Dashboard\"}",
 							Target = "/en-admin/",
-							IconRef = "fa:fa-bars"
+							IconRef = "fa:fa-bars",
+							VisibleToRole0 = false,
+							VisibleToRole3 = false,
+							VisibleToRole4 = false
 						});
 						
 					}else{
