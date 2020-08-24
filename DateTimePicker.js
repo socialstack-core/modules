@@ -113,10 +113,6 @@ export default class DateTimePicker extends React.Component {
 	}
 	
 	renderEdit(date){
-		if(!date){
-			date = new Date();
-		}
-		
 		return <div className="date-time-picker">
 			<i className="fa fa-clock"/>
 				{this.renderSelect(date.getUTCHours(), zero23, 'hours', 'small', (v, d) => {
@@ -166,7 +162,7 @@ export default class DateTimePicker extends React.Component {
 			{this.showUtc(date)} <button className="btn btn-secondary" onClick={e => {
 				e.preventDefault();
 				e.stopPropagation();
-				this.setState({edit: true});
+				this.setState({edit: true, date: date || new Date()});
 			}}>
 				Change
 			</button>
