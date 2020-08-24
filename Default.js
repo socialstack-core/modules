@@ -15,7 +15,7 @@ export default class Default extends React.Component{
 			</Landing>;
 		}
 		
-		var user = global.app.state.user;
+		var {user, role} = global.app.state;
 		
 		if(!user){
 			// Login page
@@ -26,7 +26,7 @@ export default class Default extends React.Component{
 			</Landing>;
 		}
 		
-		if(user.role !=2 && user.role !=1){
+		if(!role || !role.canViewAdmin){
 			return <Landing>
 				<Tile>
 					<Alert>
