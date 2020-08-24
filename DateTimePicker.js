@@ -121,7 +121,7 @@ export default class DateTimePicker extends React.Component {
 			<i className="fa fa-clock"/>
 				{this.renderSelect(date.getUTCHours(), zero23, 'hours', 'small', (v, d) => {
 					d.setUTCHours(parseInt(v));
-					return date;
+					return d;
 				})}
 				{this.renderSelect(date.getUTCMinutes(), zero59, 'minutes', 'small', (v, d) => {
 					d.setUTCMinutes(parseInt(v));
