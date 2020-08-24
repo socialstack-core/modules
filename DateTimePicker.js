@@ -98,7 +98,7 @@ export default class DateTimePicker extends React.Component {
 		
 		return <select value={val} onChange={e => {
 			var date = this.currentDate() || new Date();
-			onChange(e.target.value, date);
+			date = onChange(e.target.value, date);
 			this.setState({date});
 		}} name={this.props.name + '__' + name}>
 			{set.map((v, i) => {
@@ -120,29 +120,29 @@ export default class DateTimePicker extends React.Component {
 		return <div className="date-time-picker">
 			<i className="fa fa-clock"/>
 				{this.renderSelect(date.getUTCHours(), zero23, 'hours', 'small', (v, d) => {
-					date.setUTCHours(parseInt(v));
+					d.setUTCHours(parseInt(v));
 					return date;
 				})}
 				{this.renderSelect(date.getUTCMinutes(), zero59, 'minutes', 'small', (v, d) => {
-					date.setUTCMinutes(parseInt(v));
-					return date;
+					d.setUTCMinutes(parseInt(v));
+					return d;
 				})}
 				{this.renderSelect(date.getUTCSeconds(), zero59, 'seconds', 'small', (v, d) => {
-					date.setUTCSeconds(parseInt(v));
-					return date;
+					d.setUTCSeconds(parseInt(v));
+					return d;
 				})}
 			<i className="fa fa-calendar"/>
 				{this.renderSelect(date.getUTCDate() - 1, days, 'days', 'small', (v, d) => {
-					date.setUTCDate(parseInt(v) + 1);
-					return date;
+					d.setUTCDate(parseInt(v) + 1);
+					return d;
 				})}
 				{this.renderSelect(date.getUTCMonth(), months, 'months', 'small', (v, d) => {
-					date.setUTCMonth(parseInt(v));
-					return date;
+					d.setUTCMonth(parseInt(v));
+					return d;
 				})}
 				{this.renderSelect(date.getUTCFullYear(), years, 'years', 'small', (v, d) => {
-					date.setUTCFullYear(parseInt(v));
-					return date;
+					d.setUTCFullYear(parseInt(v));
+					return d;
 				})}
 			<button className="btn btn-secondary" onClick={e => {
 				e.preventDefault();
