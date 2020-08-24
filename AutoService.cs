@@ -160,7 +160,12 @@ public partial class AutoService<T> : AutoService where T: DatabaseRow, new(){
 			if (filter == null || (filter.Joins == null && filter.Groupings == null))
 			{
 				// This filter can be serviced by the cache.
-				List<ResolvedValue> values = await ResolveValues(context, filter);
+				List<ResolvedValue> values = null;
+
+				if (filter != null)
+				{
+					values = await filter.ResolveValues(context);
+				}
 				listAndTotal = cache.ListWithTotal(filter, values);
 			}
 			else
@@ -178,39 +183,6 @@ public partial class AutoService<T> : AutoService where T: DatabaseRow, new(){
 		listAndTotal.Results = await EventGroup.AfterList.Dispatch(context, listAndTotal.Results);
 		context.NestedTypes &= NestableRemoveMask;
 		return listAndTotal;
-	}
-
-	/// <summary>
-	/// Resolves param value resolvers and returns the results as a set.
-	/// </summary>
-	/// <param name="context"></param>
-	/// <param name="filter"></param>
-	/// <returns></returns>
-	public async Task<List<ResolvedValue>> ResolveValues(Context context, Filter<T> filter)
-	{
-		if (filter == null || filter.ParamValueResolvers == null)
-		{
-			return null;
-		}
-
-		var values = new List<ResolvedValue>();
-
-		for (var i = 0; i < filter.ParamValueResolvers.Count; i++)
-		{
-			var valueResolver = filter.ParamValueResolvers[i];
-
-			if (valueResolver != null)
-			{
-				var value = await valueResolver.Method(context);
-				values.Add(new ResolvedValue()
-				{
-					Value = value,
-					Node = valueResolver
-				});
-			}
-		}
-
-		return values;
 	}
 
 	/// <summary>
@@ -238,7 +210,12 @@ public partial class AutoService<T> : AutoService where T: DatabaseRow, new(){
 			if (filter == null || (filter.Joins == null && filter.Groupings == null))
 			{
 				// This filter can be serviced by the cache.
-				List<ResolvedValue> values = await ResolveValues(context, filter);
+				List<ResolvedValue> values = null;
+
+				if (filter != null)
+				{
+					values = await filter.ResolveValues(context);
+				}
 				list = cache.List(filter, values, out int total);
 			}
 			else
