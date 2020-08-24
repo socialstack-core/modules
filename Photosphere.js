@@ -25,10 +25,11 @@ export default class Photosphere extends React.Component {
 		this.onMouseUp = this.onMouseUp.bind(this);
 		this.onMouseDown = this.onMouseDown.bind(this);
 		this.onMouseMove = this.onMouseMove.bind(this);
+        this.onTouchStart = this.onTouchStart.bind(this);
+        this.onTouchMove = this.onTouchMove.bind(this);
 		this.animate = this.animate.bind(this);
 		this.onLoaded = this.onLoaded.bind(this);
         this.onWheel = this.onWheel.bind(this);
-        this.onResize = this.onResize.bind(this);
 	}
 	
 	componentWillReceiveProps(props){
@@ -99,6 +100,9 @@ export default class Photosphere extends React.Component {
 	}
     
     onWheel(props) {
+		if(props.target != this.hostEle && props.target != this.containerEle && props.target != this.root3DEle && props.target != canvasEle) {
+			return;
+		}	
         var scaleFactor = 2;
         var maxFov = 70;
         var minFov = 30;
@@ -133,6 +137,33 @@ export default class Photosphere extends React.Component {
 				y: e.clientY
 			}
 		});
+	}
+    
+    onTouchStart(e){
+        this.setState({
+			touch: {
+				x: e.touches[0].clientX,
+				y: e.touches[0].clientY
+			}
+		});
+    }
+    
+    onTouchMove(e){
+		var { touch } = this.state;
+		if(!touch){
+			return;
+		}
+		var deltaX=e.touches[0].clientX - touch.x;
+		var deltaY=e.touches[0].clientY - touch.y;        
+		touch.x = e.touches[0].clientX;
+		touch.y = e.touches[0].clientY;
+		
+		if(!this.camera){
+			return;
+		}
+
+        this.camera.rotation.y += deltaX * 0.002;
+		this.camera.rotation.x += deltaY * 0.002;
 	}
 	
 	onFullscreen(){
@@ -266,7 +297,7 @@ export default class Photosphere extends React.Component {
 			<div ref={this.setContainerRef} {...omit(this.props, ['ar', 'children', 'imageRef', 'onLoad', 'startRotation', 'skipFade'])}>
 				<div ref={this.setRef} style={{width: '100%', height: '100%', position: 'absolute'}} className={"photosphere" + (this.state.loaded ? ' loaded' : '') + (this.props.skipFade ? ' no-fade' : '')}>
 					<canvas ref={this.setCanvasRef} style={{position: 'absolute', top: '0px', left: '0px', width, height}} />
-					<div ref={this.set3DRef} style={{overflow: 'hidden', position: 'absolute', top: '0px', left: '0px', width, height}} onMouseDown={this.onMouseDown} onMouseMove={this.onMouseMove}>
+					<div ref={this.set3DRef} style={{overflow: 'hidden', position: 'absolute', top: '0px', left: '0px', width, height}} onMouseDown={this.onMouseDown} onMouseMove={this.onMouseMove} onTouchStart={this.onTouchStart} onTouchMove={this.onTouchMove}>
 						<div style={{WebkitTransformStyle: 'preserve-3d', transformStyle: 'preserve-3d', pointerEvents: 'none', width, height}}>
 							{this.props.children}
 						</div>
