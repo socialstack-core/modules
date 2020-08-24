@@ -5,22 +5,54 @@ import omit from 'UI/Functions/Omit';
  */
 
 export default class Column extends React.Component {
-	
-	render(){
-		var props=this.props;
+
+	render() {
+		var props = this.props;
+		var colClass = '';
+		// only define a default col-md- width if we don't have a col-xs- / col-sm- value which overrides it
+		var sizeMd = props.sizeMd || props.size || (!props.sizeXs && !props.sizeMd ? 6 : undefined);
+
+		if (props.sizeXs) {
+			colClass = 'col-xs-' + props.sizeXs;
+		}
+
+		if (props.sizeSm) {
+			colClass += ' col-sm-' + props.sizeSm;
+		}
+
+		if (sizeMd) {
+			colClass += ' col-md-' + sizeMd;
+		}
+
+		if (props.sizeLg) {
+			colClass += ' col-lg-' + props.sizeLg;
+		}
+
+		if (props.sizeXl) {
+			colClass += ' col-xl-' + props.sizeXl;
+		}
+
+		if (props.noGutters) {
+			colClass += ' no-gutters';
+		}
+
+		if (props.className) {
+			colClass += ' ' + props.className;
+		}
+
 		return <div
-			className={"col-md-" + (props.size || 6) + " " + (props.noGutters ? "no-gutters" : "") + (props.className ? ' ' + props.className : '')}
+			className={colClass}
 			{...(omit(this.props, ['className', 'noGutters', 'children', '__canvas']))}
 		>
 			{props.children}
 		</div>;
 	}
-	
+
 }
 
-Column.propTypes={
+Column.propTypes = {
 	noGutters: 'boolean',
-	size: [1,2,3,4,5,6,7,8,9,10,11,12],
+	size: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12],
 	children: true
 };
 
