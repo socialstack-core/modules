@@ -30,6 +30,22 @@ namespace Api.ActiveLogins
 			var serverId = 0;
 			_historicalRecord = loginHistory;
 
+			Events.User.BeforeSettable.AddEventListener((Context context, JsonField<User> field) =>
+			{
+				if (field == null)
+				{
+					return Task.FromResult(field);
+				}
+				
+				if(field.Name == "OnlineState")
+				{
+					// This field isn't settable
+					field = null;
+				}
+				
+				return Task.FromResult(field);
+			});
+			
 			// Add event listeners for websocket users:
 			Events.WebSocketUserState.AddEventListener(async (Context ctx, int userId, UserWebsocketLinks userSockets) =>
 			{
