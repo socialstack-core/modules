@@ -24,7 +24,11 @@ namespace Api.Permissions
 		///  This shouldn't change after it has been set.
 		/// </summary>
         public string Key;
-
+		
+		/// <summary>
+		/// True if this role can view the admin panel.
+		/// </summary>
+		public bool CanViewAdmin;
 
 		/// <summary>
 		/// Create a new role with the given ID.

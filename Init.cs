@@ -143,14 +143,16 @@ namespace Api.Permissions
 				Roles.SuperAdmin = new Role(1)
 				{
 					Name = "Super Admin",
-					Key = "super_admin"
+					Key = "super_admin",
+					CanViewAdmin = true
 				};
 
 				// Admin - can do almost everything. Usually everything super admin can do, minus system config options/ site level config.
 				Roles.Admin = new Role(2)
 				{
 					Name = "Admin",
-					Key = "admin"
+					Key = "admin",
+					CanViewAdmin = true
 				}; // <-- In this case, we grant the same as SA.
 
 				// Guest - account created, not activated. Basically the same as a public account by default.
