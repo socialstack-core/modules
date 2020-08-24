@@ -108,7 +108,15 @@ namespace Api.Eventing
 			
 			// Add to name lookup and set the internal ID:
 			InternalId = Events.All.Count;
-			Events.All[name.ToLower()] = this;
+
+			var lcName = name.ToLower();
+
+			if (Events.All.ContainsKey(lcName))
+			{
+				throw new Exception("Event handler defined twice: " + lcName);
+			}
+
+			Events.All[lcName] = this;
 
 			// Split by capitals (note: This will split e.g. "SMS => S M S") but the few words we care about here won't contain this scenario.
 			var wordsFromName = System.Text.RegularExpressions.Regex.Replace(
