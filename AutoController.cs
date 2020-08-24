@@ -125,7 +125,7 @@ public partial class AutoController<T> : ControllerBase
 		}
 		else
 		{
-			// Not paginated or requsetor doesn't care about the total.
+			// Not paginated or requestor doesn't care about the total.
 			var results = await _service.List(context, filter);
 
 			response = new ListWithTotal<T>()
