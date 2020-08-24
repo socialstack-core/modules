@@ -3,11 +3,9 @@ using Api.Database;
 using Api.DatabaseDiff;
 using Api.Eventing;
 using Api.Startup;
-using Api.Companies;
 using System;
 using System.Threading.Tasks;
 using Api.Permissions;
-using Api.Videos;
 using Api.Configuration;
 using Microsoft.Extensions.Configuration;
 
