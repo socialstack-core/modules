@@ -260,6 +260,39 @@ namespace Api.Permissions
 		}
 
 		/// <summary>
+		/// Resolves param value resolvers for the given context and returns the results as a set.
+		/// Null if there's no resolvers.
+		/// </summary>
+		/// <param name="context"></param>
+		/// <returns></returns>
+		public async Task<List<ResolvedValue>> ResolveValues(Context context)
+		{
+			if (ParamValueResolvers == null)
+			{
+				return null;
+			}
+
+			var values = new List<ResolvedValue>();
+
+			for (var i = 0; i < ParamValueResolvers.Count; i++)
+			{
+				var valueResolver = ParamValueResolvers[i];
+
+				if (valueResolver != null)
+				{
+					var value = await valueResolver.Method(context);
+					values.Add(new ResolvedValue()
+					{
+						Value = value,
+						Node = valueResolver
+					});
+				}
+			}
+
+			return values;
+		}
+		
+		/// <summary>
 		/// Creates a new filter which is an AND combination of this one and the given one.
 		/// </summary>
 		/// <param name="b"></param>
