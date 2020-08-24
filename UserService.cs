@@ -52,12 +52,22 @@ namespace Api.Users
 			SetupProfileFieldTransfers();
 			
 			Events.User.BeforeSettable.AddEventListener((Context ctx, JsonField<User> field) => {
-
-				if(field != null && field.Name == "Role")
+				
+				if (field == null)
+				{
+					return Task.FromResult(field);
+				}
+				
+				if(field.Name == "Role")
 				{
 					// Only admins can update this field.
 					// Will be permission system based in the future
 					return Task.FromResult((field.ForRole == Roles.Admin || field.ForRole == Roles.SuperAdmin) ? field : null);
+				}
+				else if(field.Name == "JoinedUtc")
+				{
+					// Not settable
+					field = null;
 				}
 
 				return Task.FromResult(field);

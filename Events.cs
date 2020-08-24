@@ -64,29 +64,9 @@ namespace Api.Eventing
 		public static EndpointEventHandler<List<UserProfile>> UserProfileListed;
 		
 		/// <summary>
-		/// Create a new user.
-		/// </summary>
-		public static EndpointEventHandler<User> UserCreate;
-		/// <summary>
-		/// Delete an user.
-		/// </summary>
-		public static EndpointEventHandler<User> UserDelete;
-		/// <summary>
-		/// Update user metadata.
-		/// </summary>
-		public static EndpointEventHandler<User> UserUpdate;
-		/// <summary>
-		/// Load user metadata.
-		/// </summary>
-		public static EndpointEventHandler<User> UserLoad;
-		/// <summary>
 		/// Uploading files.
 		/// </summary>
 		public static EndpointEventHandler<UserImageUpload> UserOnUpload;
-		/// <summary>
-		/// List users.
-		/// </summary>
-		public static EndpointEventHandler<Filter<User>> UserList;
 
 		#endregion
 
