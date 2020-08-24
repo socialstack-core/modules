@@ -13,7 +13,9 @@ export default class Column extends React.Component {
 		var sizeMd = props.sizeMd || props.size || (!props.sizeXs && !props.sizeMd ? 6 : undefined);
 
 		if (props.sizeXs) {
-			colClass = 'col-xs-' + props.sizeXs;
+			// NB: no col-xs- prefix
+			// ref: https://getbootstrap.com/docs/4.3/layout/grid/
+			colClass = 'col-' + props.sizeXs;
 		}
 
 		if (props.sizeSm) {
