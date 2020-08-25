@@ -46,7 +46,6 @@ namespace Api.Eventing
 		/// <summary>
 		/// Gets an event group by the content type.
 		/// </summary>
-		/// <typeparam name="T"></typeparam>
 		/// <returns></returns>
 		public static object GetGroup(Type type)
 		{
