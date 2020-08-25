@@ -1,4 +1,6 @@
-﻿using System;
+﻿using Api.Database;
+using Api.Results;
+using System;
 using System.Collections.Generic;
 using System.Reflection;
 using System.Threading.Tasks;
@@ -22,6 +24,35 @@ namespace Api.Eventing
         /// </summary>
         public static Dictionary<string, EventHandler> All;
 
+		/// <summary>
+		/// A lookup of content type to the EventGroup for that type.
+		/// </summary>
+		public static Dictionary<Type, object> GroupLookup;
+
+		/// <summary>
+		/// Gets an event group by the content type.
+		/// </summary>
+		/// <typeparam name="T"></typeparam>
+		/// <returns></returns>
+		public static EventGroup<T> GetGroup<T>() where T:DatabaseRow, new()
+		{
+			if (GroupLookup.TryGetValue(typeof(T), out object result))
+			{
+				return result as EventGroup<T>;
+			}
+			return null;
+		}
+
+		/// <summary>
+		/// Gets an event group by the content type.
+		/// </summary>
+		/// <typeparam name="T"></typeparam>
+		/// <returns></returns>
+		public static object GetGroup(Type type)
+		{
+			GroupLookup.TryGetValue(type, out object result);
+			return result;
+		}
 
 		/// <summary>
 		/// Call this to trigger the OnStart event.
@@ -42,8 +73,14 @@ namespace Api.Eventing
 
 			// Must setup this all set first:
 			All = new Dictionary<string, EventHandler>();
+			GroupLookup = new Dictionary<Type, object>();
 			
 			SetupEventsOnObject(null, typeof(Events), "", null);
+		}
+
+		private static bool IsEventGroup(Type type)
+		{
+			return type.IsGenericType && type.GetGenericTypeDefinition() == typeof(EventGroup<>);
 		}
 
 		/// <summary>
@@ -77,13 +114,20 @@ namespace Api.Eventing
 				var fieldAttribs = field.GetCustomAttributes();
 
 				// If it's an event group, instance the events on it, but prepended with the field name and any other names.
+				var mainIsEvtGroup  = IsEventGroup(field.FieldType);
+
 				if (
-					field.FieldType.IsGenericType && field.FieldType.GetGenericTypeDefinition() == typeof(EventGroup<>) || 
-					field.FieldType.BaseType.IsGenericType && field.FieldType.BaseType.GetGenericTypeDefinition() == typeof(EventGroup<>)
+					mainIsEvtGroup || IsEventGroup(field.FieldType.BaseType)
 				)
 				{
 					// Instance the group:
 					evt = Activator.CreateInstance(field.FieldType);
+
+					// Get the content type of the group (e.g. User from EventGroup<User>)
+					var contentType = mainIsEvtGroup ? field.FieldType.GetGenericArguments()[0] : field.FieldType.BaseType.GetGenericArguments()[0];
+
+					// Add group to map:
+					GroupLookup[contentType] = evt;
 
 					// Setup all of the fields on it too:
 					SetupEventsOnObject(evt, field.FieldType, prependedNames + field.Name, attribs);
