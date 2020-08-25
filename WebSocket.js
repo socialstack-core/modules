@@ -21,7 +21,7 @@ function tellAllHandlers(msg){
 	for(var typeName in messageTypes){
 		var handlers = messageTypes[typeName];
 		for(var i=0;i<handlers.length;i++){
-			handlers[i](msg);
+			handlers[i].method(msg);
 		}
 	}
 }
@@ -104,16 +104,23 @@ function connect(){
 			ws.send(JSON.stringify(msgs[i]));
 		}
 		
-		var types = [];
+		var set = [];
 		
 		for(var name in messageTypes){
-			if(name != '_all_'){
-				types.push(name);
+			if(name == '_all_'){
+				continue;
 			}
+			
+			var s = messageTypes[name];
+			for(var type in s){
+				var entry = s[type];
+				set.push({n: name, f: entry.filter, i: entry.id});
+			}
+			
 		}
 		
-		if(types.length){
-			ws.send(JSON.stringify({type: 'AddSet', names: types}));
+		if(set.length){
+			ws.send(JSON.stringify({type: '+*', set}));
 		}
 	});
 	
@@ -133,7 +140,7 @@ function connect(){
 			
 			if(handlers && handlers.length){
 				for(var i=0;i<handlers.length;i++){
-					handlers[i](message);
+					handlers[i].method(message);
 				}
 			}
 		}
@@ -152,8 +159,10 @@ function send(msg){
 	}
 }
 
+var refId = 1;
+
 module.exports = {
-    addEventListener:(type, method) => {
+    addEventListener:(type, method, filter) => {
 		
 		if(!method){
 			method = type;
@@ -164,25 +173,38 @@ module.exports = {
 			start();
 		}
 		
+		// Already got this listener?
+		// If so, must re-add it, essentially re-registering the filter.
+		// Note that we assume the user called this because it changed - we don't check for non-change here.
+		var entry;
+		
 		if(messageTypes[type]){
-			messageTypes[type].push(method);
+			entry = messageTypes[type].find(mf => mf.method == method);
+			if(entry){
+				// Actually an update of existing one
+				entry.filter = filter;
+			}else{
+				entry = {method,filter, id: refId++};
+				messageTypes[type].push(entry);
+			}
 		}else{
 			typeCount++;
-			messageTypes[type] = [method];
-			
-			if(type == '_all_'){
-				return;
-			}
-			
-			var msg = {type: 'Add', name: type};
-			
-			if(!ws){
-				connect();
-			}
-			
-			if(ws && ws.readyState == WebSocket.OPEN){
-				ws.send(JSON.stringify(msg));
-			}
+			entry = {method,filter, id: refId++};
+			messageTypes[type] = [entry];
+		}
+		
+		if(type == '_all_'){
+			return;
+		}
+		
+		var msg = {type: '+', n: type, f: filter, i: entry.id};
+		
+		if(!ws){
+			connect();
+		}
+		
+		if(ws && ws.readyState == WebSocket.OPEN){
+			ws.send(JSON.stringify(msg));
 		}
 	},
 	removeEventListener:(type, method) => {
@@ -195,7 +217,16 @@ module.exports = {
 			return;
 		}
 		
-		messageTypes[type] = messageTypes[type].filter(mtd => mtd != method);
+		var entry = messageTypes[type].find(mf => mf.method == method);
+		if(!entry){
+			return;
+		}
+		
+		messageTypes[type] = messageTypes[type].filter(a => a != entry);
+		
+		if(ws && ws.readyState == WebSocket.OPEN){
+			ws.send(JSON.stringify({type: '-', i: entry.id}));
+		}
 		
 		if(!messageTypes[type].length){
 			typeCount--;
@@ -204,12 +235,10 @@ module.exports = {
 				typeCount=0;
 			}
 			
-			if(ws && ws.readyState == WebSocket.OPEN){
-				ws.send(JSON.stringify({type: 'Remove', name: type}));
-			}
-			
-			// Todo: Do this after a timeout:
 			/*
+				Tends to lead to a scenario where the socket 
+				disconnects then very shortly after reconnects - a timer would help debounce that
+				
 				ws.addEventListener("close", e => {e.stopPropagation()});
 				ws.close();
 				ws=null;
