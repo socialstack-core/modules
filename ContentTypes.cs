@@ -86,7 +86,7 @@ namespace Api.Database
 		/// <returns></returns>
 		public static Type GetType(string name)
 		{
-			TypeMap.TryGetValue(name, out Type result);
+			TypeMap.TryGetValue(name.ToLower(), out Type result);
 			return result;
 		}
 
