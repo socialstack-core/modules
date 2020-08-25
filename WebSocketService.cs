@@ -53,7 +53,10 @@ namespace Api.WebSockets
 				{
 					continue;
 				}
-
+				
+				// Mark as remote synced:
+				Api.Startup.RemoteSync.Add(contentType);
+				
 				// Get the listener:
 				var listener = GetTypeListener(contentType);
 
