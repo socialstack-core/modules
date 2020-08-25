@@ -94,7 +94,10 @@ public partial class AutoService<T> : AutoService where T: DatabaseRow, new(){
 		
 		// Log that the cache is on:
 		Console.WriteLine(GetType().Name + " - cache on");
-
+		
+		// Ping sync:
+		RemoteSync.Add(typeof(T));
+		
 		var genericCfg = _cacheConfig as CacheConfig<T>;
 
 		var indices = _database.GetIndices(typeof(T));

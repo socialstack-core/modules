@@ -1,3 +1,4 @@
+using Api.Permissions;
 using System;
 
 
@@ -17,10 +18,16 @@ namespace Api.Eventing
 		/// This is invoked just after services are instanced.
 		/// Use it to add additional types, or block adding this one.
 		/// </summary>
+		[DontAddPermissions]
 		public static EventHandler<object> ServicesAfterStart;
-		
 		#endregion
-		
+
+		/// <summary>
+		/// Called when a remote syncable type was added.
+		/// </summary>
+		[DontAddPermissions]
+		public static EventHandler<Type, int> RemoteSyncTypeAdded;
+
 	}
 
 }
