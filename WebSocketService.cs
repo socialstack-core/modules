@@ -14,6 +14,7 @@ using Newtonsoft.Json.Linq;
 using Api.Startup;
 using Newtonsoft.Json.Serialization;
 using Api.SocketServerLibrary;
+using Api.Results;
 
 namespace Api.WebSockets
 {
@@ -45,10 +46,22 @@ namespace Api.WebSockets
 
 				var method = typeEvent.Verb.ToLower();
 
-				// We'll send this event to particular users *if* they have the load capability.
-				string capName = (typeEvent.EntityName + "_load").ToLower();
-				Capabilities.All.TryGetValue(capName, out Capability capability);
-				
+				// Get the actual type. We use this to avoid Revisions etc as we're not interested in those here:
+				var contentType = ContentTypes.GetType(typeEvent.EntityName);
+
+				if (contentType == null)
+				{
+					continue;
+				}
+
+				// Get the listener:
+				var listener = GetTypeListener(contentType);
+
+				if (listener == null)
+				{
+					continue;
+				}
+
 				typeEvent.AddEventListener((Context context, object[] args) => {
 					
 					if(args == null || args.Length == 0){
@@ -59,19 +72,13 @@ namespace Api.WebSockets
 					#pragma warning disable CS4014 // Because we don't want to wait for this
 					Task.Run(async () =>
 					{
-
-						await Send(
-							new WebSocketEntityMessage()
-							{
-								Type = typeEvent.EntityName,
-								Method = method,
-								Entity = args[0],
-								By = context == null ? 0 : context.UserId
-							},
-							capability,
-							null,
-							args
-						);
+						await listener.Send(new WebSocketEntityMessage()
+						{
+							Type = typeEvent.EntityName,
+							Method = method,
+							Entity = args[0],
+							By = context == null ? 0 : context.UserId
+						});
 
 					});
 					#pragma warning restore CS4014
@@ -102,16 +109,49 @@ namespace Api.WebSockets
 		/// Websocket clients by user ID.
 		/// </summary>
 		public Dictionary<int, UserWebsocketLinks> UserListeners => ListenersByUserId;
-		
+
 		/// <summary>
 		/// Gets type listener by the name. Optionally creates it if it didn't exist.
 		/// </summary>
-		private WebSocketTypeListeners GetTypeListener(string name, bool create){
-			
-			if(!ListenersByType.TryGetValue(name, out WebSocketTypeListeners listener) && create){
-				
-				lock(ListenersByType){
-					listener = new WebSocketTypeListeners();
+		private WebSocketTypeListeners GetTypeListener(string name)
+		{
+			var cType = ContentTypes.GetType(name);
+
+			if (cType == null)
+			{
+				// Nope! Not a valid content type.
+				Console.WriteLine("Attempted to listen to '" + name + "' but it doesn't exist.");
+				return null;
+			}
+
+			return GetTypeListener(cType);
+		}
+
+		/// <summary>
+		/// Gets type listener by the name. Optionally creates it if it didn't exist.
+		/// </summary>
+		private WebSocketTypeListeners GetTypeListener(Type type)
+		{
+			var name = type.Name;
+
+			if (!ListenersByType.TryGetValue(name, out WebSocketTypeListeners listener)){
+
+				lock (ListenersByType)
+				{
+					var cap = Capabilities.All[type.Name.ToLower() + "_list"];
+
+					if (cap == null)
+					{
+						Console.WriteLine("'" + name + "' has no _list capability.");
+						return null;
+					}
+
+					listener = new WebSocketTypeListeners()
+					{
+						Type = type,
+						Capability = cap
+					};
+
 					ListenersByType[name] = listener;
 				}
 			}
@@ -133,18 +173,9 @@ namespace Api.WebSockets
 			
 			var typeName = entity.GetType().Name;
 			
-			// We'll send this event to particular users *if* they have the load capability.
-			string capName = (typeName + "_load").ToLower();
-			if(!Capabilities.All.TryGetValue(capName, out Capability capability))
-			{
-				// Can't send this entity.
-				return;
-			}
-			
 			// Send via the websocket service:
 			Task.Run(async () =>
 			{
-
 				await Send(
 					new WebSocketEntityMessage() {
 						Type = typeName,
@@ -152,11 +183,7 @@ namespace Api.WebSockets
 						Entity = entity,
 						By = context == null ? 0 : context.UserId
 					},
-					capability,
-					toUserId,
-					new object[] {
-						entity
-					}
+					toUserId
 				);
 				
 			});
@@ -237,9 +264,16 @@ namespace Api.WebSockets
 
 					var type = jToken.Value<string>();
 					var handled = false;
-					
+					JArray jArray = null;
+					string name;
+					int id;
+					JObject filter;
+					WebSocketTypeListeners listeners;
+
 					switch(type){
+						// Depreciated
 						case "Add":
+						// Depreciated
 						case "AddEventListener":
 							handled = true;
 							jToken = message["name"];
@@ -253,10 +287,16 @@ namespace Api.WebSockets
 							var evtName = jToken.Value<string>();
 
 							// no-op if they're already listening to this event.
-							var typeToListenTo = GetTypeListener(evtName, true);
-							
+							listeners = GetTypeListener(evtName);
+
+							if (listeners == null)
+							{
+								// Reject this
+								continue;
+							}
+
 							// Add the listener now:
-							client.AddEventListener(typeToListenTo);
+							await client.AddEventListener(listeners, null);
 						break;
 						case "Auth":
 							handled = true;
@@ -288,7 +328,9 @@ namespace Api.WebSockets
 							}
 							
 						break;
+						// Depreciated
 						case "Remove":
+						// Depreciated
 						case "RemoveEventListener":
 							handled = true;
 							jToken = message["name"];
@@ -298,15 +340,16 @@ namespace Api.WebSockets
 								// Just ignore this message.
 								continue;
 							}
-							
-							var typeToRemove = GetTypeListener(jToken.Value<string>(), false);
 
-							if (typeToRemove != null)
+							listeners = GetTypeListener(jToken.Value<string>());
+
+							if (listeners != null)
 							{
 								// Remove it:
-								client.RemoveEventListener(typeToRemove);
+								client.RemoveEventListener(listeners);
 							}
 						break;
+						// Depreciated
 						case "AddSet":
 							handled = true;
 							jToken = message["names"];
@@ -317,14 +360,89 @@ namespace Api.WebSockets
 								continue;
 							}
 							
-							var jArray = jToken as JArray;
+							jArray = jToken as JArray;
 							
 							foreach(var entry in jArray){
 								var eName = entry.Value<string>();
-								
+
 								// Add the listener now:
-								client.AddEventListener(GetTypeListener(eName, true));
+								listeners = GetTypeListener(eName);
+
+								if (listeners != null)
+								{
+									await client.AddEventListener(listeners, null);
+								}
 							}
+						break;
+						case "+":
+							// Adds a single listener with an optional filter. id required.
+							name = message["n"].Value<string>();
+							id = message["i"].Value<int>();
+							filter = message["f"] as JObject; // Can be null, but is a complete filter incl. {where:..}
+
+							listeners = GetTypeListener(name);
+
+							if (listeners != null)
+							{
+								// Add the listener now:
+								await client.AddEventListener(
+									listeners,
+									filter,
+									id
+								);
+							}
+
+							break;
+						case "+*":
+							// Add a set of listeners with filters. Usually happens after the websocket disconnected. id for each required.
+							
+							handled = true;
+							jToken = message["set"];
+
+							if (jToken == null || jToken.Type != JTokenType.Array)
+							{
+								// Just ignore this message.
+								continue;
+							}
+							
+							jArray = jToken as JArray;
+							
+							foreach(var entry in jArray)
+							{
+								var jo = entry as JObject;
+								name = jo["n"].Value<string>();
+								listeners = GetTypeListener(name);
+
+								if (listeners != null)
+								{
+									id = jo["i"].Value<int>();
+									filter = jo["f"] as JObject; // Can be null, but is a complete filter incl. {where:..}
+
+									// Add the listener now:
+									await client.AddEventListener(listeners, filter, id);
+								}
+							}
+							
+						break;
+						case "-":
+							// Removes a listener identified by its ID.
+							handled = true;
+							jToken = message["i"];
+
+							if (jToken == null || jToken.Type != JTokenType.Integer)
+							{
+								// Just ignore this message.
+								continue;
+							}
+
+							// Get the listener by ID:
+							var listener = client.GetById(jToken.Value<int>());
+
+							if (listener != null)
+							{
+								listener.Remove();
+							}
+
 						break;
 					}
 					
@@ -350,11 +468,9 @@ namespace Api.WebSockets
 		/// Sends the given message. Only sends to users who are actively listening out for this type.
 		/// </summary>
 		/// <param name="message"></param>
-		/// <param name="capability"></param>
 		/// <param name="toUserId"></param>
-		/// <param name="capArgs"></param>
 		/// <returns></returns>
-		public async Task Send(WebSocketMessage message, Capability capability, int? toUserId, object[] capArgs)
+		public async Task Send(WebSocketMessage message, int? toUserId)
 		{
 			if (toUserId.HasValue)
 			{
@@ -362,20 +478,18 @@ namespace Api.WebSockets
 				// Note that if a capability is given, it can still reject them.
 				if (ListenersByUserId.TryGetValue(toUserId.Value, out UserWebsocketLinks links))
 				{
-					await links.Send(message, capability, capArgs);
+					await links.Send(message);
 				}
 
 				return;
 			}
 
-			var type = GetTypeListener(message.Type, false);
+			var type = GetTypeListener(message.Type);
 
-			if (type == null)
+			if (type != null)
 			{
-				return;
+				await type.Send(message);
 			}
-
-			await type.Send(message, capability, capArgs);
 		}
 
 	}
@@ -390,33 +504,173 @@ namespace Api.WebSockets
 		
 		/// <summary>Previous one in the linked list.</summary>
 		public WebSocketTypeClient Previous;
+
+		/// <summary>Next one in the client set linked list.</summary>
+		public WebSocketTypeClient NextClient;
+		
+		/// <summary>Previous one in the client set linked list.</summary>
+		public WebSocketTypeClient PreviousClient;
 		
 		/// <summary>
 		/// The client this is for.
 		/// </summary>
 		public WebSocketClient Client;
-		
+
 		/// <summary>
-		/// Removes this websocket type client from the listener set.
+		/// True if this node should just be skipped because it can't receive these updates anyway.
+		/// </summary>
+		public bool Skip;
+
+		/// <summary>
+		/// Client assigned numeric ID to identify this type client for removals.
+		/// </summary>
+		public int Id;
+
+		/// <summary>
+		/// The 'global' set of websocket listeners that this is in.
+		/// </summary>
+		public WebSocketTypeListeners TypeSet;
+
+		/// <summary>
+		/// The underlying filter to use.
+		/// </summary>
+		public FilterNode FilterNode;
+
+		/// <summary>
+		/// The raw filter object.
+		/// </summary>
+		private JObject FilterObject;
+
+		/// <summary>
+		/// Resolved values for fast use with Matches calls.
+		/// </summary>
+		public List<ResolvedValue> ResolvedValues;
+
+		/// <summary>
+		/// Set filter
+		/// </summary>
+		/// <param name="filterObj"></param>
+		public async Task SetFilter(JObject filterObj)
+		{
+			// Note that filter can be null.
+			FilterObject = filterObj;
+			await SetupFilter();
+		}
+
+		/// <summary>
+		/// Call this to setup the filter object again, pre-calculating permissions etc.
+		/// This is used directly only when the socket is reauthenticated.
+		/// </summary>
+		public async Task SetupFilter()
+		{
+			// Create the filter:
+			var filter = new Filter(FilterObject, TypeSet.Type);
+
+			if (Client.Context == null)
+			{
+				Skip = true;
+				return;
+			}
+
+			// Next, pre-inject the permissions system for the target system type.
+			// It's the *_list capability that we're using.
+			var role = Client.Context.Role;
+
+			if (role == null)
+			{
+				Skip = true;
+				return;
+			}
+
+			// Get the grant rule (a filter) for this role + capability:
+			var rawGrantRule = role.GetGrantRule(TypeSet.Capability);
+			var srcFilter = role.GetSourceFilter(TypeSet.Capability);
+
+			// If it's outright rejected..
+			if (rawGrantRule == null)
+			{
+				Skip = true;
+				return;
+			}
+
+			// Otherwise, merge the user filter with the one from the grant system (if we need to).
+			// Special case for the common true always node:
+			if (!(rawGrantRule is FilterTrue))
+			{
+				// Both are set. Must combine them safely:
+				filter = filter.Combine(rawGrantRule, srcFilter?.ParamValueResolvers);
+			}
+
+			Skip = false;
+
+			// Next, construct the filter:
+			FilterNode = filter.Construct();
+
+			// Finally, we'll precalc the param values for this context:
+			ResolvedValues = await filter.ResolveValues(Client.Context);
+		}
+
+		/// <summary>
+		/// Removes this websocket type client from the listener sets.
 		/// Use WebSocketClient.RemoveEventListener instead.
 		/// </summary>
-		internal void RemoveFrom(WebSocketTypeListeners listeners){
-			
-			lock(listeners){
-			
-				if(Next == null){
-					listeners.Last = Previous;
-				}else{
-					Next.Previous = Previous;
+		internal void Remove()
+		{
+			// Remove from the parent client:
+			if (Client != null)
+			{
+				lock (Client)
+				{
+					if (NextClient == null)
+					{
+						Client.LastClient = PreviousClient;
+					}
+					else
+					{
+						NextClient.PreviousClient = PreviousClient;
+					}
+
+					if (PreviousClient == null)
+					{
+						Client.FirstClient = NextClient;
+					}
+					else
+					{
+						PreviousClient.NextClient = NextClient;
+					}
 				}
-				
-				if(Previous == null){
-					listeners.First = Next;
-				}else{
-					Previous.Next = Next;
-				}
-				
+				Client = null;
 			}
+
+			// Remove from the type set:
+			if (TypeSet != null)
+			{
+				lock (TypeSet)
+				{
+
+					if (Next == null)
+					{
+						TypeSet.Last = Previous;
+					}
+					else
+					{
+						Next.Previous = Previous;
+					}
+
+					if (Previous == null)
+					{
+						TypeSet.First = Next;
+					}
+					else
+					{
+						Previous.Next = Next;
+					}
+
+				}
+
+				TypeSet = null;
+			}
+
 		}
 		
 	}
@@ -425,6 +679,16 @@ namespace Api.WebSockets
 	/// Holds a block of listeners for a particular message type.
 	/// </summary>
 	public class WebSocketTypeListeners{
+
+		/// <summary>
+		/// The content type. This must be an IAmLive type otherwise it won't raise events.
+		/// </summary>
+		public Type Type;
+
+		/// <summary>
+		/// The *_list capability.
+		/// </summary>
+		public Capability Capability;
 
 		private static JsonSerializerSettings _serializerSettings;
 
@@ -440,7 +704,12 @@ namespace Api.WebSockets
 		/// Use WebSocketClient.AddEventListener instead.
 		/// </summary>
 		internal void Add(WebSocketTypeClient typeClient){
-			
+			if (typeClient.TypeSet != null)
+			{
+				throw new Exception("Can't add a client twice");
+			}
+
+			typeClient.TypeSet = this;
 			typeClient.Next = null;
 			
 			lock(this){
@@ -460,7 +729,7 @@ namespace Api.WebSockets
 		/// <summary>
 		/// Sends a message to all listeners for this type by encoding it as JSON.
 		/// </summary>
-		public async Task Send(WebSocketMessage message, Capability capability, object[] capArgs)
+		public async Task Send(WebSocketMessage message)
 		{
 
 			if (_serializerSettings == null)
@@ -471,25 +740,28 @@ namespace Api.WebSockets
 				};
 			}
 
+			var entityMessage = message as WebSocketEntityMessage;
+
 			// Get the bytes of the message:
             var jsonMessage = JsonConvert.SerializeObject(message, _serializerSettings);
 			var data = Encoding.UTF8.GetBytes(jsonMessage);
-			await Send(data, capability, capArgs);
+			await Send(data, entityMessage == null ? null : entityMessage.Entity);
 		}
 		
 		/// <summary>
 		/// Sends a JSON message to all listeners for this type.
 		/// </summary>
-		public async Task Send(string jsonMessage, Capability capability, object[] capArgs)
+		public async Task Send(string jsonMessage, object entity = null)
 		{
 			var data = Encoding.UTF8.GetBytes(jsonMessage);
-			await Send(data, capability, capArgs);
+			await Send(data, entity);
 		}
 		
 		/// <summary>
 		/// Sends a raw binary message to all listeners for this type.
 		/// </summary>
-		public async Task Send(byte[] message, Capability capability, object[] capArgs){
+		public async Task Send(byte[] message, object entity = null)
+		{
 			
 			var arSegment = new ArraySegment<Byte>(message);
 			
@@ -498,11 +770,9 @@ namespace Api.WebSockets
 			
 			while(current != null){
 
-				if (capability != null)
+				if (entity != null && current.FilterNode != null)
 				{
-					var ctx = current.Client.Context;
-
-					if (!await ctx.Role.IsGranted(capability, ctx, capArgs))
+					if (!current.FilterNode.Matches(current.ResolvedValues, entity))
 					{
 						// Skip this user
 						current = current.Next;
@@ -528,7 +798,7 @@ namespace Api.WebSockets
 	/// </summary>
 	public class WebSocketMessage{
 		/// <summary>
-		/// The type of this message. Usually the same as a nearby event, e.g. "ChannelMessageCreate".
+		/// The type of this message e.g. "ChannelMessage".
 		/// </summary>
 		public string Type;
 	}
@@ -626,7 +896,7 @@ namespace Api.WebSockets
 		/// <summary>
 		/// Sends a message to all of a user's clients by encoding it as JSON.
 		/// </summary>
-		public async Task Send(WebSocketMessage message, Capability capability, object[] capArgs)
+		public async Task Send(WebSocketMessage message)
 		{
 
 			if (_serializerSettings == null)
@@ -637,25 +907,27 @@ namespace Api.WebSockets
 				};
 			}
 
+			var entityMessage = message as WebSocketEntityMessage;
+
 			// Get the bytes of the message:
 			var jsonMessage = JsonConvert.SerializeObject(message, _serializerSettings);
 			var data = Encoding.UTF8.GetBytes(jsonMessage);
-			await Send(data, capability, capArgs);
+			await Send(data, entityMessage == null ? null : entityMessage.Entity);
 		}
 
 		/// <summary>
 		/// Sends a JSON message to all of a user's clients.
 		/// </summary>
-		public async Task Send(string jsonMessage, Capability capability, object[] capArgs)
+		public async Task Send(string jsonMessage, object entity = null)
 		{
 			var data = Encoding.UTF8.GetBytes(jsonMessage);
-			await Send(data, capability, capArgs);
+			await Send(data, entity);
 		}
 
 		/// <summary>
 		/// Sends a raw binary message to all of a user's clients.
 		/// </summary>
-		public async Task Send(byte[] message, Capability capability, object[] capArgs)
+		public async Task Send(byte[] message, object entity = null)
 		{
 			var arSegment = new ArraySegment<Byte>(message);
 
@@ -664,8 +936,10 @@ namespace Api.WebSockets
 
 			while (current != null)
 			{
+				#warning todo - send direct to user is disabled (but unused)
 
-				if (capability != null)
+				/*
+				if (entity != null && current.FilterNode != null)
 				{
 					var ctx = current.Context;
 
@@ -683,6 +957,7 @@ namespace Api.WebSockets
 					true,
 					CancellationToken.None
 				);
+				*/
 
 				current = current.UserNext;
 			}
@@ -721,30 +996,69 @@ namespace Api.WebSockets
 		/// <summary>
 		/// All the message types that this client is listening to.
 		/// </summary>
-		public Dictionary<WebSocketTypeListeners, WebSocketTypeClient> TypeListeners = new Dictionary<WebSocketTypeListeners, WebSocketTypeClient>();
-		
+		public WebSocketTypeClient FirstClient;
+
+		/// <summary>
+		/// All the message types that this client is listening to.
+		/// </summary>
+		public WebSocketTypeClient LastClient;
+
 		/// <summary>
 		/// Adds a listener for messages of the given type. Returns null if it was already being listened to.
 		/// </summary>
-		public WebSocketTypeClient AddEventListener(WebSocketTypeListeners type){
-			
-			if(TypeListeners.TryGetValue(type, out WebSocketTypeClient client)){
-				// Already listening to this one.
-				return client;
+		public async Task<WebSocketTypeClient> AddEventListener(WebSocketTypeListeners type, JObject filter, int id = -1){
+
+			// Already got a listener with this ID? If so, replace its filter.
+			var client = id == -1 ? null : GetById(id);
+
+			if (client == null)
+			{
+				client = new WebSocketTypeClient();
+				client.Client = this;
+				client.Id = id;
+
+				// Add to the user:
+				if (LastClient == null)
+				{
+					FirstClient = LastClient = client;
+				}
+				else
+				{
+					client.PreviousClient = LastClient;
+					LastClient = LastClient.NextClient = client;
+				}
+
+				// Add this client object to the type itself:
+				type.Add(client);
 			}
-			
-			client = new WebSocketTypeClient();
-			client.Client = this;
-			
-			// Add to set:
-			TypeListeners[type] = client;
-			
-			// Add this client object to the type itself:
-			type.Add(client);
-			
+
+			// Apply the filter now (must be after type.Add):
+			await client.SetFilter(filter);
+
 			return client;
 		}
-		
+
+		/// <summary>
+		/// Gets a type client by ID.
+		/// </summary>
+		/// <param name="id">The ID</param>
+		/// <returns></returns>
+		public WebSocketTypeClient GetById(int id)
+		{
+			var c = FirstClient;
+
+			while (c != null)
+			{
+				if (c.Id == id)
+				{
+					return c;
+				}
+				c = c.NextClient;
+			}
+
+			return null;
+		}
+
 		/// <summary>
 		/// Removes this client from the user set.
 		/// </summary>
@@ -804,32 +1118,50 @@ namespace Api.WebSockets
 		{
 			// Remove from user set:
 			await RemoveFromUserSet(service.UserListeners);
-			
-			// Remove all:
-			foreach (var kvp in TypeListeners)
+
+			var current = FirstClient;
+
+			while (current != null)
 			{
-				// Remove it:
-				kvp.Value.RemoveFrom(kvp.Key);
+				var next = current.NextClient;
+				current.Remove();
+				current = next;
 			}
-			TypeListeners.Clear();
+
+			FirstClient = LastClient = null;
 		}
 
 		/// <summary>
 		/// Removes listener for messages of the given type.
 		/// </summary>
 		public void RemoveEventListener(WebSocketTypeListeners type){
-			
-			if(!TypeListeners.TryGetValue(type, out WebSocketTypeClient client)){
-				return;
+
+			var current = FirstClient;
+
+			while (current != null)
+			{
+				var next = current.NextClient;
+				if (current.TypeSet == type)
+				{
+					current.Remove();
+				}
+				current = next;
 			}
-			
-			// Remove from lookup:
-			TypeListeners.Remove(type);
-			
-			// Remove this client value from the type too:
-			client.RemoveFrom(type);
 		}
-		
+
+		/// <summary>
+		/// Removes listener by given ID.
+		/// </summary>
+		public void RemoveEventListener(int id)
+		{
+			var c = GetById(id);
+
+			if (c != null)
+			{
+				c.Remove();
+			}
+		}
+
 	}
 	
 }
