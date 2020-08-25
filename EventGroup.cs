@@ -119,6 +119,6 @@ namespace Api.Eventing
 		/// by passing it through all the AfterLoad handlers.
 		/// </summary>
 		[DontAddPermissions]
-		public EventHandler<T> Received;
+		public EventHandler<T, int> Received;
 	}
 }
