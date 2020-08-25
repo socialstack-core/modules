@@ -363,13 +363,8 @@ export default class Loop extends React.Component {
 	}
 
 	componentWillMount() {
-		if (this.props.live) {
-			webSocket.addEventListener(this.props.live, this.onLiveMessage);
-		}
-
 		// contentchange is fired off by posting to API endpoints which then return an entity (object with both id and type fields).
 		document.addEventListener("contentchange", this.onContentChange);
-
 		this.load(this.props);
 	}
 
@@ -393,6 +388,11 @@ export default class Loop extends React.Component {
 			if (!force && this.state.over == props.over && jsonFilter == this.state.jsonFilter) {
 				// Avoid making a new request.
 				return;
+			}
+			
+			if (props.live) {
+				// Note: onLiveMessage is used to detect if the filter changed
+				webSocket.addEventListener(props.live, this.onLiveMessage, props.filter);
 			}
 			
 			var newState = {
