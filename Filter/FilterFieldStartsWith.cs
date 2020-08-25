@@ -131,7 +131,7 @@ namespace Api.Permissions
 			}
 			
 			// Does val start with compareWith?
-			return val.ToString().StartsWith(compareWith.ToString());
+			return val.ToString().StartsWith(compareWith.ToString(), StringComparison.OrdinalIgnoreCase);
 		}
 		
 		/// <summary>

@@ -131,7 +131,7 @@ namespace Api.Permissions
 			}
 			
 			// Does val contain compareWith?
-			return val.ToString().Contains(compareWith.ToString());
+			return val.ToString().Contains(compareWith.ToString(), StringComparison.OrdinalIgnoreCase);
 		}
 		
 		/// <summary>

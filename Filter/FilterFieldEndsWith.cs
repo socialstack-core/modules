@@ -131,7 +131,7 @@ namespace Api.Permissions
 			}
 			
 			// Does val end with compareWith?
-			return val.ToString().EndsWith(compareWith.ToString());
+			return val.ToString().EndsWith(compareWith.ToString(), StringComparison.OrdinalIgnoreCase);
 		}
 		
 		/// <summary>
