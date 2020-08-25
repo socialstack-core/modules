@@ -113,5 +113,12 @@ namespace Api.Eventing
 
 		#endregion
 
+		/// <summary>
+		/// Called when a remote entity was received via remote sync.
+		/// The object will be of the correct content type and will be populated 
+		/// by passing it through all the AfterLoad handlers.
+		/// </summary>
+		[DontAddPermissions]
+		public EventHandler<T> Received;
 	}
 }
