@@ -22,6 +22,7 @@ namespace Api.Database
 			Map = new Dictionary<string, int>();
 			TypeMap = new Dictionary<string, Type>();
 			ReverseMap = new Dictionary<int, string>();
+			ReverseTypeMap = new Dictionary<int, Type>();
 			
 			// Collect all the DatabaseRow classes:
 			var allTypes = typeof(ContentTypes).Assembly.DefinedTypes;
@@ -49,6 +50,7 @@ namespace Api.Database
 				Map[name] = id;
 				TypeMap[name] = typeInfo;
 				ReverseMap[id] = name;
+				ReverseTypeMap[id] = typeInfo;
 			}
 		}
 
@@ -67,6 +69,30 @@ namespace Api.Database
 		/// Setup during DB service startup.
 		/// </summary>
 		public static Dictionary<int, string> ReverseMap;
+		
+		/// <summary>
+		/// Reverse mapping from ID to type.
+		/// Setup during DB service startup.
+		/// </summary>
+		public static Dictionary<int, Type> ReverseTypeMap;
+
+		/// <summary>
+		/// True if given type is a content type.
+		/// </summary>
+		/// <param name="type"></param>
+		/// <returns></returns>
+		public static bool IsContentType(Type type)
+		{
+			foreach (var kvp in TypeMap)
+			{
+				if (kvp.Value == type)
+				{
+					return true;
+				}
+			}
+
+			return false;
+		}
 
 		/// <summary>
 		/// Gets a name from the given ID.
@@ -87,6 +113,17 @@ namespace Api.Database
 		public static Type GetType(string name)
 		{
 			TypeMap.TryGetValue(name.ToLower(), out Type result);
+			return result;
+		}
+
+		/// <summary>
+		/// Gets a content type from its ID.
+		/// </summary>
+		/// <param name="id"></param>
+		/// <returns></returns>
+		public static Type GetType(int id)
+		{
+			ReverseTypeMap.TryGetValue(id, out Type result);
 			return result;
 		}
 
