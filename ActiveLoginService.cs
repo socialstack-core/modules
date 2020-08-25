@@ -275,7 +275,7 @@ namespace Api.ActiveLogins
 		/// <summary>
 		/// The number of servers this user is active on.
 		/// </summary>
-		public int Count;
+		public long Count;
 	}
     
 }
