@@ -455,6 +455,10 @@ namespace Api.WebSockets
 
 				}
 			}
+			catch(OperationCanceledException)
+			{
+				// Ok - happens when the server is shut down
+			}
 			catch(WebSocketException)
 			{
 				// This is ok - happens when the remote user disconnects abruptly.
