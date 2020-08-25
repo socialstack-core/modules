@@ -60,6 +60,24 @@ namespace Api.Startup
 		}
 
 		/// <summary>
+		/// Gets a service by the content type that it serves.
+		/// </summary>
+		/// <param name="type"></param>
+		/// <returns></returns>
+		public static AutoService GetByContentType(Type type)
+		{
+			foreach (var kvp in AutoServices)
+			{
+				if (kvp.Value.ServicedType == type)
+				{
+					return kvp.Value;
+				}
+			}
+
+			return null;
+		}
+
+		/// <summary>
 		/// Gets a service by the content type ID.
 		/// </summary>
 		/// <param name="id"></param>
