@@ -116,11 +116,6 @@ export default class Content extends React.Component {
 	
 	componentDidMount(){
 		this.load(this.props);
-		
-		if (this.props.live) {
-			webSocket.addEventListener(this.evtType(), this.onLiveMessage);
-		}
-		
 		document.addEventListener("contentchange", this.onContentChange);
 	}
 	
@@ -128,6 +123,10 @@ export default class Content extends React.Component {
 		var url = props.type + '/' + props.id;
 		if(!force && url == this.state.url){
 			return;
+		}
+		
+		if (props.live) {
+			webSocket.addEventListener(this.evtType(), this.onLiveMessage, {where: {Id: props.id}});
 		}
 		
 		this.setState({url, content: null, loading: true});
