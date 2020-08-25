@@ -193,7 +193,7 @@ namespace Api.Pages
 				// Get the pages by those URLs:
 				var filter = new Filter<Page>();
 				filter.Id(idSet.Select(Page => Page.Url));
-				var existingPages = (await List(context, filter)).ToDictionary(page => page.Id);
+				var existingPages = (await ListNoCache(context, filter)).ToDictionary(page => page.Id);
 
 				// For each page to consider for install..
 				foreach (var page in idSet)
@@ -215,7 +215,7 @@ namespace Api.Pages
 				var filter = new Filter<Page>();
 				filter.EqualsSet("Url", urlSet.Select(Page => Page.Url));
 					
-				var existingPages = (await List(context, filter)).ToDictionary(page => page.Url);
+				var existingPages = (await ListNoCache(context, filter)).ToDictionary(page => page.Url);
 
 				// For each page to consider for install..
 				foreach (var page in urlSet)
