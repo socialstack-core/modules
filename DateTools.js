@@ -110,6 +110,23 @@ function addMinutes(date, minutes) {
 	return date;
 }
 
+function daysUntilDate(date) {
+	var start = isoConvert(date);
+	var currentTimeUTC = new Date();
+	var diff = start.getTime() - currentTimeUTC.getTime();
+	var days = Math.ceil(diff / (1000 * 3600 * 24));
+
+	switch (days) {
+		case 0:
+		case 1:
+			return start.setHours(0, 0, 0, 0) == currentTimeUTC.setHours(0, 0, 0, 0) ? 0 : 1;
+
+		default:
+			return days;
+	}
+
+}
+
 module.exports = {
 	ordinal,
 	dayNames,
@@ -121,5 +138,6 @@ module.exports = {
 	getMonday,
 	addDays,
 	addMinutes,
-	addHours
+	addHours,
+	daysUntilDate
 };
