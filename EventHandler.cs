@@ -34,6 +34,13 @@ namespace Api.UserAgendaEntries
 					return huddle;
 				}
 
+                // Update the user agenda if needed.
+                if (agenda == null)
+                {
+                    agenda = Services.Get<IUserAgendaEntryService>();
+                    huddles = Services.Get<IHuddleService>();
+                }
+
 				// Foreach invite, if AgendaEntryId is non-zero, update the entry.
 				if (huddle.Invites != null && huddle.Invites.Count > 0)
 				{
