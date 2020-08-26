@@ -59,14 +59,16 @@ function contentFile(ref, options){
 	var id = fileParts.shift();
 	var type = fileParts.join('.');
 	
-	url = url + id + '-' + (options.size || 'original') + '.' + type;
+	var video = (type == 'mp4' || type == 'ogg' || type == 'webm' || type == 'avi');
+	
+	url = url + id + '-' + (video ? 'original' : (options.size || 'original')) + '.' + type;
 	
 	if(options.url){
 		return url;
 	}
 	
-	if(type == 'mp4' || type == 'ogg' || type == 'webm'){
-		return (<video src={url} {...options.attribs} />);
+	if(video){
+		return (<video src={url} width={300} controls {...options.attribs} />);
 	}
 	
 	// React component by default:
