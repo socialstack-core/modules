@@ -27,6 +27,39 @@ namespace Api.UserAgendaEntries
 			IHuddleService huddles = null;
 			var huddleContentTypeId = ContentTypes.GetId(typeof(Huddle));
 
+            Events.Huddle.BeforeDelete.AddEventListener(async (Context context, Huddle huddle) =>
+            {
+                if (huddle == null)
+                {
+                    return huddle;
+                }
+
+                // Update the user agenda if needed.
+                if (agenda == null)
+                {
+                    agenda = Services.Get<IUserAgendaEntryService>();
+                    huddles = Services.Get<IHuddleService>();
+                }
+
+				var userAgendaFilter = new Filter<UserAgendaEntry>()
+                    .Equals("ContentTypeId", ContentTypes.GetId("Huddle"))
+                    .And()
+                    .Equals("ContentId", huddle.Id);
+
+                // Get the entries:
+                var agendaEntries = await agenda.List(context, userAgendaFilter);
+
+                // For each one, remove the agendaEntries
+                foreach (var entry in agendaEntries)
+                {
+                    await agenda.Delete(context, entry.Id);
+                }
+
+                return huddle;
+            });
+
+
+
 			Events.Huddle.AfterUpdate.AddEventListener(async (Context context, Huddle huddle) =>
 			{
 				if (huddle == null)
