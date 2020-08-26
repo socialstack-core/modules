@@ -2,4 +2,11 @@
 	display: inline-block;
 
 	// NB: file upload styling is defined wihin UI/Source/ThirdParty/global-buttons.35.scss 
+	
+	.loading{
+		.loading-message{
+			display: initial;
+			color: black;
+		}
+	}
 }

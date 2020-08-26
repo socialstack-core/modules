@@ -1,6 +1,7 @@
 import Loading from 'UI/Loading';
 import Alert from 'UI/Alert';
 import webRequest from 'UI/Functions/WebRequest';
+import apiEndpoint from 'UI/Functions/ApiEndpoint';
 
 /*
 * General purpose file uploader. Doesn't delcare a form so can be used inline anywhere.
@@ -10,36 +11,55 @@ export default class Uploader extends React.Component {
 	constructor(props) {
 		super(props);
 		this.state = {
-			loading: false
+			loading: false,
+			progress: ""
 		};
 	}
 	
 	onSelectedFile(e) {
-		this.setState({ loading: true, failed: false, success: false });
+		this.setState({ loading: true, failed: false, success: false,progress: "" });
 		var formData = new FormData();
 		var file = e.target.files[0];
 		formData.append('file', file);
 		this.props.onStarted && this.props.onStarted(file, formData);
 		
-		webRequest("uploader/upload", formData, {
-			onUploadProgress: this.props.onUploadProgress
-		}).then(response => {
+		var xhr = new global.XMLHttpRequest();
 			
-			var uploadInfo = response.json;
-			
-			if(!uploadInfo){
-				this.setState({loading: false, success: false, failed: true});
-				return;
+		xhr.onreadystatechange = () => {
+			if (xhr.readyState == 4) {
+				if (xhr.responseText) {
+					var uploadInfo;
+					try{
+						uploadInfo = JSON.parse(xhr.responseText);
+					}catch(e){
+						
+					}
+					console.log(uploadInfo);
+					
+					if(!uploadInfo || uploadInfo.errors){
+						this.setState({loading: false, success: false, failed: true});
+						return;
+					}
+					
+					// uploadInfo contains the upload file info, such as its original public url and ref.
+					
+					// Run the main callback:
+					this.props.onUploaded && this.props.onUploaded(uploadInfo);
+					
+					this.setState({loading: false, success: true, failed: false});
+				}
 			}
-			
-			// uploadInfo contains the upload file info, such as its original public url and ref.
-			
-			// Run the main callback:
-			this.props.onUploaded && this.props.onUploaded(uploadInfo);
-			
-			this.setState({loading: false, success: true, failed: false});
-		});
+		};
 		
+		xhr.upload.onprogress = (evt) => {
+			this.setState({
+				progress: ' ' + Math.floor(evt.loaded * 100 / evt.total) + '%'
+			});
+			this.props.onUploadProgress && this.props.onUploadProgress();
+		};
+		
+		xhr.open('POST', apiEndpoint("uploader/upload"), true);
+		xhr.send(formData);
 	}
 
 	formatBytes(bytes, decimals = 2) {
@@ -60,21 +80,24 @@ export default class Uploader extends React.Component {
     render() {
 		const {
 			loading,
-			failed
+			failed,
+			progress
 		} = this.state;
 
         return (
 			<div className="uploader">
 				{loading && (
-					<Loading message="Uploading.."/>
+					<Loading message={"Uploading" + progress + ".."}/>
 				)}
 				{failed && (
 					<Alert type="error">
 						Unable to upload that file - it may be a format we don't support.
 					</Alert>
 				)}
-				<input type="file" id={this.props.id} onChange={e => this.onSelectedFile(e)} className="form-control-file" />
-				{this.props.id &&
+				{!loading && (
+					<input type="file" id={this.props.id} onChange={e => this.onSelectedFile(e)} className="form-control-file" />
+				)}
+				{this.props.id && !loading &&
 					<label htmlFor={this.props.id}>
 						{this.props.label || "Upload file"}
 					</label>
