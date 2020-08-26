@@ -107,6 +107,10 @@ export default class Carousel extends React.Component {
 		var width = 0;
 
 		// TODO: update media query matches in realtime
+		if (window.matchMedia('(max-width: 575px)').matches) {
+			width = screen.width - 32;
+		}
+
 		if (window.matchMedia('(min-width: 576px)').matches) {
 			visCount = visCountSm || visCount;
 			width = 510;
@@ -121,7 +125,7 @@ export default class Carousel extends React.Component {
 			visCount = visCountLg || visCount;
 			width = 930;
 		}
-		
+
 		// hide controls if nothing to page
 		if (visCount >= items.length) {
 			showBack = false;
