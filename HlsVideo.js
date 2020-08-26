@@ -68,7 +68,7 @@ export default class HlsVideo extends React.Component {
 	
 	render(){
 		return <div className="hlsVideo">
-			<video {...omit(this.props, ['videoId', 'ref', 'autoplay'])} ref={video => {
+			<video {...omit(this.props, ['videoId', 'videoRef', 'ref', 'autoplay'])} ref={video => {
 				if(!video){
 					return;
 				}
