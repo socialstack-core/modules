@@ -52,9 +52,29 @@ export default class Column extends React.Component {
 
 }
 
+var sizeOptions = [
+	{ name: '1/12', value: 1 },
+	{ name: '2/12', value: 2 },
+	{ name: '3/12 (25%)', value: 3 },
+	{ name: '4/12 (33%)', value: 4 },
+	{ name: '5/12', value: 5 },
+	{ name: '6/12 (50%)', value: 6 },
+	{ name: '7/12', value: 7 },
+	{ name: '8/12 (66%)', value: 8 },
+	{ name: '9/12 (75%)', value: 9 },
+	{ name: '10/12', value: 10 },
+	{ name: '11/12', value: 11 },
+	{ name: '12/12 (100%)', value: 12 }
+];
+
 Column.propTypes = {
 	noGutters: 'boolean',
-	size: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12],
+	size: sizeOptions,
+	sizeXs: sizeOptions,
+	sizeSm: sizeOptions,
+	sizeMd: sizeOptions,
+	sizeLg: sizeOptions,
+	sizeXl: sizeOptions,
 	children: true
 };
 
