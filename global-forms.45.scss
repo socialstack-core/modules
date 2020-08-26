@@ -239,7 +239,7 @@ html.ios {
         &[type='time'],
         &[type='url'],
         &[type='week'] {
-            @include input_field_styling(16);
+            @include font_size(16);
         }
         // colour picker
         &[type='color'] {
@@ -250,10 +250,10 @@ html.ios {
     }
 
     textarea.form-control {
-        @include input_field_styling(16);
+        @include font_size(16);
     }
 
     select.form-control {
-        @include input_field_styling(16);
+        @include font_size(16);
     }
 }
