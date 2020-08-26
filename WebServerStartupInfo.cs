@@ -9,6 +9,7 @@ using System.Collections.Generic;
 using System.Reflection;
 using System.Linq;
 using Api.Database;
+using Microsoft.AspNetCore.Http.Features;
 
 namespace Api.Startup
 {
@@ -54,6 +55,13 @@ namespace Api.Startup
 			services.AddControllers().AddNewtonsoftJson();
 #endif
 
+			// Remove .NET size limitations:
+			services.Configure<FormOptions>(x =>
+			{
+				x.ValueLengthLimit = int.MaxValue;
+				x.MultipartBodyLengthLimit = int.MaxValue; // In case of multipart
+			});
+			
 			// Start checking types:
 			var allTypes = typeof(WebServerStartupInfo).Assembly.DefinedTypes;
 
