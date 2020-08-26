@@ -36,16 +36,21 @@ namespace Api.WebSockets
 
 			// Collect all IAmLive types.
 
-			var loadEvents = Events.FindByType(typeof(IAmLive), null, EventPlacement.After);
+			Events.ServicesAfterStart.AddEventListener((Context ctx, object src) =>
+			{
+				Setup();
+				return Task.FromResult(src);
+			});
+		}
 
+		private void Setup()
+		{
+			var loadEvents = Events.FindByType(typeof(IAmLive), "Create", EventPlacement.After);
+			
+			var methodInfo = GetType().GetMethod("SetupForType");
+			
 			foreach (var typeEvent in loadEvents)
 			{
-				if(typeEvent.Verb != "Create" && typeEvent.Verb != "Update" && typeEvent.Verb != "Delete"){
-					continue;
-				}
-
-				var method = typeEvent.Verb.ToLower();
-
 				// Get the actual type. We use this to avoid Revisions etc as we're not interested in those here:
 				var contentType = ContentTypes.GetType(typeEvent.EntityName);
 
@@ -54,47 +59,150 @@ namespace Api.WebSockets
 					continue;
 				}
 				
-				// Mark as remote synced:
-				Api.Startup.RemoteSync.Add(contentType);
+				// Invoke setup for type:
+				var setupType = methodInfo.MakeGenericMethod(new Type[] {
+					contentType
+				});
 				
-				// Get the listener:
-				var listener = GetTypeListener(contentType);
+				setupType.Invoke(this, new object[] {
+					typeEvent.EntityName
+				});
+			}
+			
+		}
 
-				if (listener == null)
+		/// <summary>
+		/// Sets up a particular content type with websocket handlers.
+		/// </summary>
+		/// <typeparam name="T"></typeparam>
+		/// <param name="entityName"></param>
+		public void SetupForType<T>(string entityName) where T:DatabaseRow, new()
+		{
+			// Invoked by reflection
+			
+			var evtGroup = Events.GetGroup<T>();
+			
+			// Mark as remote synced:
+			Api.Startup.RemoteSync.Add(typeof(T));
+			
+			// Get the listener:
+			var listener = GetTypeListener(typeof(T));
+
+			if (listener == null)
+			{
+				return;
+			}
+			
+			// On received is used when something came from another server:
+			evtGroup.Received.AddEventListener((Context context, T obj, int action) => {
+
+				if (obj == null)
 				{
-					continue;
+					return Task.FromResult(obj);
 				}
 
-				typeEvent.AddEventListener((Context context, object[] args) => {
-					
-					if(args == null || args.Length == 0){
-						return Task.FromResult((object)null);
-					}
-
-					// Send via the websocket service:
-					#pragma warning disable CS4014 // Because we don't want to wait for this
+				if (action == 1)
+				{
+					// Create
 					Task.Run(async () =>
 					{
 						await listener.Send(new WebSocketEntityMessage()
 						{
-							Type = typeEvent.EntityName,
-							Method = method,
-							Entity = args[0],
+							Type = entityName,
+							Method = "create",
+							Entity = obj,
 							By = context == null ? 0 : context.UserId
 						});
 
 					});
-					#pragma warning restore CS4014
+				}
+				else if (action == 2)
+				{
+					// Update
+					Task.Run(async () =>
+					{
+						await listener.Send(new WebSocketEntityMessage()
+						{
+							Type = entityName,
+							Method = "update",
+							Entity = obj,
+							By = context == null ? 0 : context.UserId
+						});
 
-					return Task.FromResult(args[0]);
-				
-				// The 50 means every other handler has a chance to run before this does.
-				}, 50);
-				
-			}
-			
+					});
+				}
+				else if (action == 3)
+				{
+					// Delete
+					Task.Run(async () =>
+					{
+						await listener.Send(new WebSocketEntityMessage()
+						{
+							Type = entityName,
+							Method = "delete",
+							Entity = obj,
+							By = context == null ? 0 : context.UserId
+						});
+
+					});
+				}
+
+				return Task.FromResult(obj);
+			}, 50);
+
+			evtGroup.AfterCreate.AddEventListener((Context context, T obj) => {
+
+				Task.Run(async () =>
+				{
+					await listener.Send(new WebSocketEntityMessage()
+					{
+						Type = entityName,
+						Method = "create",
+						Entity = obj,
+						By = context == null ? 0 : context.UserId
+					});
+
+				});
+
+				return Task.FromResult(obj);
+			}, 50);
+
+			evtGroup.AfterUpdate.AddEventListener((Context context, T obj) => {
+
+				Task.Run(async () =>
+				{
+					await listener.Send(new WebSocketEntityMessage()
+					{
+						Type = entityName,
+						Method = "update",
+						Entity = obj,
+						By = context == null ? 0 : context.UserId
+					});
+
+				});
+
+				return Task.FromResult(obj);
+			}, 50);
+
+			evtGroup.AfterDelete.AddEventListener((Context context, T obj) => {
+
+				Task.Run(async () =>
+				{
+					await listener.Send(new WebSocketEntityMessage()
+					{
+						Type = entityName,
+						Method = "delete",
+						Entity = obj,
+						By = context == null ? 0 : context.UserId
+					});
+
+				});
+
+				return Task.FromResult(obj);
+			}, 50);
+
 		}
-		
+
 		/// <summary>
 		/// Websocket clients listening by event type.
 		/// Type is typically of the form EventName?query&amp;encoded&amp;filter.
