@@ -314,7 +314,7 @@ namespace Api.FFmpeg
 				else
 				{
 					// Forward to our output stream:
-					Console.WriteLine(e.Data);
+					// Console.WriteLine(e.Data);
 				}
 			});
 
