@@ -47,34 +47,45 @@ export default class Time extends React.Component {
     }
 
     isThisWeek(date) {
-        var check = new Date(date).setHours(0, 0, 0, 0);
-        var start = new Date(date.setDate(date.getDate() - 6)).setHours(0, 0, 0, 0);
-        var end = new Date().setHours(0, 0, 0, 0);
-
-        return (check >= start && check <= end);
+		var now = new Date();
+		var start = dateTools.addDays(now, -7);
+        return (date <= now && date >= start);
     }
 
 	dateText(date){
 		var monthIndex = date.getMonth();
         var dayIndex = date.getDate();
-
-        if (this.props.compact) {
-
+		
+		var dayStr;
+		var { compact, shortDay, compactDayOnly } = this.props;
+		
+        if (compact) {
+			
             if (this.isToday(date)) {
                 return this.timeOnly(date);
             }
 
             if (this.isThisWeek(date)) {
                 var dayIndex = date.getDay();
-
-                return this.props.shortDay ?
-                    dateTools.shortDayNames[dayIndex] + " " + this.timeOnly(date) :
-                    dateTools.dayNames[dayIndex] + " " + this.timeOnly(date);
+				
+				dayStr = shortDay ? dateTools.shortDayNames[dayIndex] : dateTools.dayNames[dayIndex];
+				
+				if(!compactDayOnly){
+					dayStr += " " + this.timeOnly(date);
+				}
+				
+				return dayStr;
             }
 
         }
-
-		return dateTools.ordinal(dayIndex) + " " + dateTools.monthNames[monthIndex] + " " + this.timeOnly(date);
+		
+		dayStr = dateTools.ordinal(dayIndex) + " " + dateTools.monthNames[monthIndex];
+		
+		if(compact && compactDayOnly){
+			return dayStr;
+		}
+		
+		return dayStr + " " + this.timeOnly(date);
 	}
 	
 	timeAgoString(dateish){
