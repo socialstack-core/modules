@@ -46,28 +46,27 @@ namespace Api.Users
 			{
 				return null;
 			}
-
+			
+			var cookieRole = context.RoleId;
+			
 			var ctx = await context.GetPublicContext();
 			
-			if(ctx != null && ctx.User != null && ctx.Role != null)
+			if(context.RoleId != cookieRole)
 			{
-				if(ctx.User.Role != ctx.Role.Id)
-				{
-					// Force reset if role changed.
-					var expiry = default(DateTimeOffset?);
-					
-					Response.Cookies.Append(
-						_contexts.CookieName,
-						"",
-						new Microsoft.AspNetCore.Http.CookieOptions()
-						{
-							Path = "/",
-							Expires = expiry
-						}
-					);
-					
-					return null;
-				}
+				// Force reset if role changed.
+				var expiry = default(DateTimeOffset?);
+				
+				Response.Cookies.Append(
+					_contexts.CookieName,
+					"",
+					new Microsoft.AspNetCore.Http.CookieOptions()
+					{
+						Path = "/",
+						Expires = expiry
+					}
+				);
+				
+				return null;
 			}
 			
 			return ctx;
