@@ -2,6 +2,7 @@ import NavMenu from 'UI/NavMenu';
 import Canvas from 'UI/Canvas';
 import webRequest from 'UI/Functions/WebRequest';
 import getRef from 'UI/Functions/GetRef';
+import logout from 'UI/Functions/Logout';
 
 export default class MainMenu extends React.Component {
 	render() {
@@ -22,13 +23,7 @@ export default class MainMenu extends React.Component {
 				<ul className="loop">
 					<li className="loop-item">
 						<a href={'#'} onClick={()=>{
-							webRequest('user/logout').then(() => {
-								global.app.setState({ user: null, realUser: null, company: null });
-								global.pageRouter.go('/en-admin/');
-							}).catch(e => {
-								global.app.setState({ user: null, realUser: null, company: null });
-								global.pageRouter.go('/en-admin/');
-							})
+							logout('/en-admin/');
 						}}>
 							<i className="fa fa-door-open fa-fw"></i>
 							Logout
