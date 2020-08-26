@@ -1,4 +1,6 @@
-﻿using System;
+﻿using Api.Contexts;
+using Api.Uploader;
+using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 
@@ -15,6 +17,11 @@ namespace Api.FFmpeg
 		/// Runs ffmpeg with the given cmd args.
 		/// </summary>
 		void Run(string cmdArgs, Func<Task> onDone, Action<string> onData = null, Action<string> onErrorData = null);
-
+		
+		/// <summary>
+		/// Transcodes the given upload now.
+		/// </summary>
+		bool Transcode(Context ctx, Upload upload);
+		
 	}
 }

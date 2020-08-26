@@ -1,0 +1,69 @@
+﻿using System;
+using System.Collections.Generic;
+using System.Text;
+using System.Threading.Tasks;
+using Api.Contexts;
+using Api.Permissions;
+using Api.Results;
+using Api.Uploader;
+using Microsoft.AspNetCore.Mvc;
+
+
+namespace Api.FFmpeg
+{
+	/// <summary>
+	/// Handles an endpoint which describes the permissions on each role.
+	/// </summary>
+
+	[Route("v1/ffmpeghelper")]
+	[ApiController]
+	public partial class FFMpegController : ControllerBase
+	{
+		private IFFmpegService _ffmpegService;
+		private IUploadService _uploadService;
+
+		/// <summary>
+		/// Instanced automatically.
+		/// </summary>
+		public FFMpegController(
+			IFFmpegService svc, IUploadService uploads
+		)
+		{
+			_ffmpegService = svc;
+			_uploadService = uploads;
+		}
+
+		/// <summary>
+		/// Requests to transcode a particular video.
+		/// </summary>
+		/// <param name="id"></param>
+		/// <returns></returns>
+		[HttpGet("transcode/{id}")]
+		public async Task<object> Transcode([FromRoute] int id)
+		{
+			var ctx = Request.GetContext();
+
+			if (ctx.RoleId != 1 && ctx.RoleId != 2)
+			{
+				return null;
+			}
+
+			var upload = await _uploadService.Get(ctx, id);
+
+			if (upload == null)
+			{
+				return null;
+			}
+
+			if (_ffmpegService.Transcode(ctx, upload))
+			{
+				return new
+				{
+					success = true
+				};
+			}
+
+			return null;
+		}
+	}
+}

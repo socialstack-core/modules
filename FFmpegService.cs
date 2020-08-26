@@ -23,6 +23,8 @@ namespace Api.FFmpeg
 	/// </summary>
 	public partial class FFmpegService : IFFmpegService
 	{
+		private bool Verbose = false;
+
 		/// <summary>
 		/// All active processes.
 		/// </summary>
@@ -183,8 +185,6 @@ namespace Api.FFmpeg
                 string originalPathWithoutExt = upload.GetFilePath("original", true);
                 string originalPath = originalPathWithoutExt + "." + upload.FileType;
 
-                string targetPath;
-
 				if (upload.IsVideo) {
 
 					// Check if we need to probe it.
@@ -221,57 +221,73 @@ namespace Api.FFmpeg
 					}
 					
 				}
-
-				if(upload.IsVideo)
-				{
-					// Is a video
-					
-					if(hlsTranscode){
-
-						// Create the video dir:
-						var baseDir = AppSettings.Configuration[upload.IsPrivate ? "ContentPrivate" : "Content"] + "video/" + upload.Id + "/";
-						Directory.CreateDirectory(baseDir);
-
-						Run("-i \"" + originalPath + "\" -c:v h264 -c:a aac -f ssegment -segment_list \"" + baseDir + "manifest.m3u8\" -segment_time 1 -hls_time 1 -g 30 \"" + baseDir + "chunk%d.ts\"", async () => {
-							
-							// Done! (NB can trigger twice if multi-transcoding)
-							upload.TranscodeState = 2;
-							await _uploads.Update(context, upload);
-							await Events.UploadAfterTranscode.Dispatch(context, upload);
-						});
-					}
-					
-					if(h264Transcode){
-						targetPath = originalPathWithoutExt + ".mp4";
-						
-						Run("-i \"" + originalPath + "\" \"" + targetPath + "\"", async () => {
-							
-							// Done! (NB can trigger twice if multi-transcoding)
-							upload.TranscodeState = 2;
-							await _uploads.Update(context, upload);
-							await Events.UploadAfterTranscode.Dispatch(context, upload);
-						});
-					}
-					
-				}else if(upload.IsAudio){
-					
-					// Is audio
-					targetPath = originalPathWithoutExt + ".mp3";
-					Run("-i \"" + originalPath + "\" \"" + targetPath + "\"", async () => {
-						
-						// Done!
-						upload.TranscodeState = 2;
-						await _uploads.Update(context, upload);
-						await Events.UploadAfterTranscode.Dispatch(context, upload);
-					});
-					
-				}
+				
+				Transcode(context, upload);
 				
 				// File is:
 				// upload.GetFilePath("original");
 
 				return await Task.FromResult(upload);
 			});
+		}
+		
+		/// <summary>
+		/// Transcodes the given upload now.
+		/// </summary>
+		public bool Transcode(Context context, Upload upload)
+		{
+			string originalPathWithoutExt = upload.GetFilePath("original", true);
+			string originalPath = originalPathWithoutExt + "." + upload.FileType;
+
+			string targetPath;
+			if (upload.IsVideo)
+			{
+				// Is a video
+				
+				if(hlsTranscode){
+
+					// Create the video dir:
+					var baseDir = AppSettings.Configuration[upload.IsPrivate ? "ContentPrivate" : "Content"] + "video/" + upload.Id + "/";
+					Directory.CreateDirectory(baseDir);
+
+					Run("-i \"" + originalPath + "\" -c:v h264 -c:a aac -f ssegment -segment_list \"" + baseDir + "manifest.m3u8\" -segment_time 1 -hls_time 1 -g 30 \"" + baseDir + "chunk%d.ts\"", async () => {
+						
+						// Done! (NB can trigger twice if multi-transcoding)
+						upload.TranscodeState = 2;
+						await _uploads.Update(context, upload);
+						await Events.UploadAfterTranscode.Dispatch(context, upload);
+					});
+				}
+				
+				if(h264Transcode){
+					targetPath = originalPathWithoutExt + ".mp4";
+					
+					Run("-i \"" + originalPath + "\" \"" + targetPath + "\"", async () => {
+						
+						// Done! (NB can trigger twice if multi-transcoding)
+						upload.TranscodeState = 2;
+						await _uploads.Update(context, upload);
+						await Events.UploadAfterTranscode.Dispatch(context, upload);
+					});
+				}
+				
+			}else if(upload.IsAudio){
+				
+				// Is audio
+				targetPath = originalPathWithoutExt + ".mp3";
+				Run("-i \"" + originalPath + "\" \"" + targetPath + "\"", async () => {
+					
+					// Done!
+					upload.TranscodeState = 2;
+					await _uploads.Update(context, upload);
+					await Events.UploadAfterTranscode.Dispatch(context, upload);
+				});
+				
+			}else{
+				return false;
+			}
+			
+			return true;
 		}
 		
 		/// <summary>
@@ -284,7 +300,12 @@ namespace Api.FFmpeg
 			var isWindows = RuntimeInformation.IsOSPlatform(OSPlatform.Windows);
 			
 			Process process = new Process();
-			
+
+			if (!Verbose)
+			{
+				cmdArgs = "-hide_banner -loglevel fatal " + cmdArgs;
+			}
+
 			var cmd = "ffmpeg " + cmdArgs;
 			
 			// Configure the process using the StartInfo properties.
