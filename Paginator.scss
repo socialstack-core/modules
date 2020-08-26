@@ -1,6 +1,8 @@
 $paginator_justify_content: get_value(justify-content, bootstrap, pagination);
 
 .paginator {
+	width: 100%;
+
 	// NB: Bootstrap-specific .pagination overrides are set within global-bootstrap.55.scss
 	// (based in turn on project-specific settings from $socialstack_project_theme and fallbacks set in $socialstack_default_theme)
 	
