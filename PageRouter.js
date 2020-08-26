@@ -28,10 +28,18 @@ export default class PageRouter extends React.Component{
 		global.pageRouter = this;
 		this.onLinkClick = this.onLinkClick.bind(this);
 		this.onPopState = this.onPopState.bind(this);
+		
+		var {loadingUser} = global.app.state;
+		
+		if(loadingUser){
+			loadingUser.then(res => {
+				this.role = res && res.json.role ? res.json.role.id : undefined;
+			})
+		}
 	}
-
+	
 	makeRequest(){
-		webRequest("page/list").then(response => {
+		return webRequest("page/list").then(response => {
 			var pages = response.json.results;
 			this.pages(pages, false);
 		}).catch(err => {
@@ -175,7 +183,23 @@ export default class PageRouter extends React.Component{
 		}
 	}
 	
+	getRole(){
+		var { role } = global.app.state;
+		return role ? role.id : undefined;
+	}
+	
 	componentWillReceiveProps(props){
+		var role = this.getRole();
+		if(!preloadedPages && this.role!==undefined && role!==undefined && this.role != role){
+			this.role = role;
+			// User role changed (they logged in) - get page list again, then change page:
+			this.makeRequest().then(() => this.setupPage(props));
+		}else{
+			this.setupPage(props);
+		}
+	}
+	
+	setupPage(props){
 		// page and tokens
 		var pageInfo = this.getPageRedirected(this.state.rootPage, this.state.idMap, props.url);
 		this.trigger(pageInfo);
