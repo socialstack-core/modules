@@ -14,6 +14,10 @@ using Api.Startup;
 using Api.Users;
 using System.Linq;
 using System.IO;
+using System.Reflection;
+using System.Net;
+using Api.Signatures;
+using Api.AutoForms;
 
 namespace Api.ContentSync
 {
@@ -30,7 +34,14 @@ namespace Api.ContentSync
 		static readonly char[] InvalidFileNameChars = Path.GetInvalidFileNameChars();
 		private ContentSyncConfig _configuration;
 		private IDatabaseService _database;
-
+		/// <summary>
+		/// Private LAN sync server.
+		/// </summary>
+		private Server<ContentSyncServer> SyncServer;
+		/// <summary>
+		/// Servers connected to this one.
+		/// </summary>
+		private Dictionary<int, ContentSyncServer> RemoteServers = new Dictionary<int, ContentSyncServer>();
 		/// <summary>
 		/// Instanced automatically. Use injection to use this service, or Startup.Services.Get.
 		/// </summary>
@@ -38,21 +49,16 @@ namespace Api.ContentSync
 		{
 			_database = database;
 
-			if (Services.Started)
+
+
+			// Must happen after services start otherwise the page service isn't necessarily available yet.
+			// Notably this happens immediately after services start in the first group
+			// (that's before any e.g. system pages are created).
+			Events.ServicesAfterStart.AddEventListener(async (Context ctx, object src) =>
 			{
-				Start();
-			}
-			else
-			{
-				// Must happen after services start otherwise the page service isn't necessarily available yet.
-				// Notably this happens immediately after services start in the first group
-				// (that's before any e.g. system pages are created).
-				Events.ServicesAfterStart.AddEventListener(async (Context ctx, object src) =>
-				{
-					await Start();
-					return src;
-				}, 1);
-			}
+				await Start();
+				return src;
+			}, 1);
 		}
 
 		/// <summary>
@@ -184,219 +190,793 @@ namespace Api.ContentSync
 				}
 			}
 
-			// Load the allocations:
-			StripeTable table = new StripeTable(myRanges, overallMax);
+			if (overallMax != 0)
+			{
 
-			await table.Setup(_database);
+				// Load the allocations:
+				StripeTable table = new StripeTable(myRanges, overallMax);
 
-			Console.WriteLine("Content sync ID information obtained");
+				await table.Setup(_database);
+
+				Console.WriteLine("Content sync ID information obtained");
 
 #if DEBUG
-			// Hello developers!
-			// Create syncfile object for each known table and for each user.
+				// Hello developers!
+				// Create syncfile object for each known table and for each user.
 
-			Console.WriteLine("Content sync now checking for changes");
+				Console.WriteLine("Content sync now checking for changes");
 
-			// Make sure a sync dir exists for this user.
-			// Syncfiles go in as Database/FILENAME_SAFE_USERNAME/tableName.txt
-			var dirName = FileSafeName(name);
-			Directory.CreateDirectory("Database/" + dirName);
+				// Make sure a sync dir exists for this user.
+				// Syncfiles go in as Database/FILENAME_SAFE_USERNAME/tableName.txt
+				var dirName = FileSafeName(name);
+				Directory.CreateDirectory("Database/" + dirName);
 
-			try
-			{
-				// Load them:
-				Dictionary<string, SyncTableFileSet> loadedSyncSets = new Dictionary<string, SyncTableFileSet>();
-
-				foreach (var kvp in _configuration.Users)
+				try
 				{
-					if (kvp.Value == null || kvp.Value.Count == 0)
+					// Load them:
+					Dictionary<string, SyncTableFileSet> loadedSyncSets = new Dictionary<string, SyncTableFileSet>();
+
+					foreach (var kvp in _configuration.Users)
+					{
+						if (kvp.Value == null || kvp.Value.Count == 0)
+						{
+							continue;
+						}
+
+						// Create the table set:
+						var syncSet = new SyncTableFileSet("Database/" + FileSafeName(kvp.Key));
+
+						// Set it up:
+						// (for "my" files, I'm going to instance them all - regardless of if the actual file exists or not).
+						var mine = kvp.Key == name;
+
+						if (mine)
+						{
+							LocalTableSet = syncSet;
+						}
+
+						syncSet.Setup(!mine);
+						loadedSyncSets[kvp.Key] = syncSet;
+
+						if (!mine)
+						{
+							// Apply the sync set:
+							await syncSet.Sync(_database);
+						}
+					}
+
+				}
+				catch (Exception e)
+				{
+					Console.WriteLine("ContentSync failed to handle other user's updates with error: " + e.ToString());
+				}
+#endif
+
+				// Next, add Create handlers to all types.
+				// When the handler fires, we simply assign an ID from our pool.
+				// DatabaseService internally handles predefined IDs already.
+				foreach (var kvp in ContentTypes.TypeMap)
+				{
+					if (kvp.Value == typeof(UserCreatedRow) || kvp.Value == typeof(RevisionRow))
 					{
 						continue;
 					}
 
-					// Create the table set:
-					var syncSet = new SyncTableFileSet("Database/" + FileSafeName(kvp.Key));
+					// Db table name is..
+					var tableName = kvp.Value.TableName();
 
-					// Set it up:
-					// (for "my" files, I'm going to instance them all - regardless of if the actual file exists or not).
-					var mine = kvp.Key == name;
-
-					if (mine)
+					// Get the assigner for this table:
+					if (!table.DataTables.TryGetValue(tableName, out IdAssigner assigner))
 					{
-						LocalTableSet = syncSet;
+						// If this ever happens, it signals an internal issue with Socialstack.
+						// Content types drive the table schema. ID assigners come from the table schema.
+						// If a content type was somehow skipped, or its name is mangled, then this would happen.
+						Console.WriteLine("[WARN] Content sync integrity issue. The content type '" + kvp.Key + "' does not have an ID assigner.");
+						continue;
 					}
 
-					syncSet.Setup(!mine);
-					loadedSyncSets[kvp.Key] = syncSet;
+					// Get the service for this type next:
+					var beforeCreate = Events.FindByType(kvp.Value, "Create", EventPlacement.Before);
 
-					if (!mine)
+					if (beforeCreate.Count == 0)
 					{
-						// Apply the sync set:
-						await syncSet.Sync(_database);
-					}
-				}
-
-			}
-			catch (Exception e)
-			{
-				Console.WriteLine("ContentSync failed to handle other user's updates with error: " + e.ToString());
-			}
-#endif
-
-			// Next, add Create handlers to all types.
-			// When the handler fires, we simply assign an ID from our pool.
-			// DatabaseService internally handles predefined IDs already.
-			foreach (var kvp in ContentTypes.TypeMap)
-			{
-				if (kvp.Value == typeof(UserCreatedRow) || kvp.Value == typeof(RevisionRow))
-				{
-					continue;
-				}
-
-				// Db table name is..
-				var tableName = kvp.Value.TableName();
-
-				// Get the assigner for this table:
-				if (!table.DataTables.TryGetValue(tableName, out IdAssigner assigner))
-				{
-					// If this ever happens, it signals an internal issue with Socialstack.
-					// Content types drive the table schema. ID assigners come from the table schema.
-					// If a content type was somehow skipped, or its name is mangled, then this would happen.
-					Console.WriteLine("[WARN] Content sync integrity issue. The content type '" + kvp.Key + "' does not have an ID assigner.");
-					continue;
-				}
-
-				// Get the service for this type next:
-				var beforeCreate = Events.FindByType(kvp.Value, "Create", EventPlacement.Before);
-
-				if (beforeCreate.Count == 0)
-				{
-					// This indicates someone has somehow missed adding a BeforeCreate event for a particular type.
-					// (Given that it's all automated, this should be actually quite hard to do, but would indicate developer error).
-					Console.WriteLine("[WARN] Content sync can't mount a type. The content type '" + kvp.Key + "' does not have a BeforeCreate event.");
-					continue;
-				}
-
-				beforeCreate[0].AddEventListener((Context context, object[] args) =>
-				{
-					if (args == null || args.Length == 0)
-					{
-						return null;
+						// This indicates someone has somehow missed adding a BeforeCreate event for a particular type.
+						// (Given that it's all automated, this should be actually quite hard to do, but would indicate developer error).
+						Console.WriteLine("[WARN] Content sync can't mount a type. The content type '" + kvp.Key + "' does not have a BeforeCreate event.");
+						continue;
 					}
 
-					// Get object as a DB Row instance (so we can actually set the ID):
-					var dbRow = args[0] as DatabaseRow;
-
-					if (dbRow != null)
+					beforeCreate[0].AddEventListener((Context context, object[] args) =>
 					{
-						// Assign an ID now!
-						dbRow.Id = (int)assigner.Assign();
-					}
+						if (args == null || args.Length == 0)
+						{
+							return null;
+						}
 
-					return args[0];
-				});
+						// Get object as a DB Row instance (so we can actually set the ID):
+						var dbRow = args[0] as DatabaseRow;
+
+						if (dbRow != null)
+						{
+							// Assign an ID now!
+							dbRow.Id = (int)assigner.Assign();
+						}
+
+						return args[0];
+					});
 
 #if DEBUG
-				// Hello developers!
-				// Add handlers to Create, Delete and Update events, and track these in a syncfile for this user.
-				if (LocalTableSet != null)
-				{
-					// Attempt to get the sync file for this type:
-					LocalTableSet.Files.TryGetValue(tableName, out SyncTableFile localSyncFile);
-
-					if (localSyncFile != null)
+					// Hello developers!
+					// Add handlers to Create, Delete and Update events, and track these in a syncfile for this user.
+					if (LocalTableSet != null)
 					{
-						// Get the after create event - we want to track creation of objects:
-						var afterCreate = Events.FindByType(kvp.Value, "Create", EventPlacement.After);
+						// Attempt to get the sync file for this type:
+						LocalTableSet.Files.TryGetValue(tableName, out SyncTableFile localSyncFile);
 
-						if (afterCreate.Count != 0)
+						if (localSyncFile != null)
 						{
-							afterCreate[0].AddEventListener((Context context, object[] args) =>
+							// Get the after create event - we want to track creation of objects:
+							var afterCreate = Events.FindByType(kvp.Value, "Create", EventPlacement.After);
+
+							if (afterCreate.Count != 0)
 							{
-								if (args == null || args.Length == 0)
+								afterCreate[0].AddEventListener((Context context, object[] args) =>
 								{
-									return null;
-								}
+									if (args == null || args.Length == 0)
+									{
+										return null;
+									}
 
-								var firstArg = args[0];
+									var firstArg = args[0];
 
-								if (firstArg is DatabaseRow)
-								{
-									// Write creation to sync file:
-									localSyncFile.Write(firstArg, 'C', context == null ? 0 : context.LocaleId);
-								}
+									if (firstArg is DatabaseRow)
+									{
+										// Write creation to sync file:
+										localSyncFile.Write(firstArg, 'C', context == null ? 0 : context.LocaleId);
+									}
 
-								return firstArg;
-							});
-						}
+									return firstArg;
+								});
+							}
 
-						var afterUpdate = Events.FindByType(kvp.Value, "Update", EventPlacement.After);
+							var afterUpdate = Events.FindByType(kvp.Value, "Update", EventPlacement.After);
 
-						if (afterUpdate.Count != 0)
-						{
-							afterUpdate[0].AddEventListener((Context context, object[] args) =>
+							if (afterUpdate.Count != 0)
 							{
-								if (args == null || args.Length == 0)
+								afterUpdate[0].AddEventListener((Context context, object[] args) =>
 								{
-									return null;
-								}
+									if (args == null || args.Length == 0)
+									{
+										return null;
+									}
 
-								var firstArg = args[0];
+									var firstArg = args[0];
 
-								if (firstArg is DatabaseRow)
-								{
-									// Write update to sync file:
-									localSyncFile.Write(firstArg, 'U', context == null ? 0 : context.LocaleId);
-								}
+									if (firstArg is DatabaseRow)
+									{
+										// Write update to sync file:
+										localSyncFile.Write(firstArg, 'U', context == null ? 0 : context.LocaleId);
+									}
 
-								return firstArg;
-							});
-						}
+									return firstArg;
+								});
+							}
 
-						var afterDelete = Events.FindByType(kvp.Value, "Delete", EventPlacement.After);
+							var afterDelete = Events.FindByType(kvp.Value, "Delete", EventPlacement.After);
 
-						if (afterDelete.Count != 0)
-						{
-							afterDelete[0].AddEventListener((Context context, object[] args) =>
+							if (afterDelete.Count != 0)
 							{
-								if (args == null || args.Length == 0)
+								afterDelete[0].AddEventListener((Context context, object[] args) =>
 								{
-									return null;
-								}
+									if (args == null || args.Length == 0)
+									{
+										return null;
+									}
 
-								var firstArg = args[0];
+									var firstArg = args[0];
 
-								if (firstArg is DatabaseRow)
-								{
-									// Write delete to sync file:
-									localSyncFile.Write(firstArg, 'D', context == null ? 0 : context.LocaleId);
-								}
+									if (firstArg is DatabaseRow)
+									{
+										// Write delete to sync file:
+										localSyncFile.Write(firstArg, 'D', context == null ? 0 : context.LocaleId);
+									}
 
-								return firstArg;
-							});
+									return firstArg;
+								});
+							}
 						}
 					}
-				}
 #endif
 
+				}
 			}
-
 			// Add event handlers to all caching enabled types, *if* there are any with remote addresses.
 			// If a change (update, delete, create) happens, broadcast a cache remove message to all remote addresses.
-			// If the link drops, poll until remote is back again. Updates must queue up in the meantime.
-#warning todo
+			// If the link drops, poll until remote is back again.
+			var servers = new List<ContentSyncServerInfo>();
+			ContentSyncServerInfo myServerInfo = new ContentSyncServerInfo();
 
 			// Instance a sync server if remote addresses are present in the config:
 			foreach (var kvp in _configuration.Users)
 			{
-				if (kvp.Key == name)
+				if (kvp.Value == null)
 				{
 					continue;
 				}
 
 				// Remote address?
+				var serverId = 0;
+				string remoteAddr = null;
+				var port = 0;
+				IPAddress bindAddress = IPAddress.Loopback;
+
+				foreach (var range in kvp.Value)
+				{
+					if (!string.IsNullOrWhiteSpace(range.RemoteAddress))
+					{
+						remoteAddr = range.RemoteAddress;
+					}
+
+					if (range.ServerId != 0)
+					{
+						serverId = range.ServerId;
+					}
+
+					if (!string.IsNullOrEmpty(range.BindAddress))
+					{
+						bindAddress = range.BindAddress == "*" ? IPAddress.Any : IPAddress.Parse(range.BindAddress);
+					}
+
+					if (range.Port != 0)
+					{
+						port = range.Port;
+					}
+				}
+
+				if (!string.IsNullOrWhiteSpace(remoteAddr))
+				{
+					// Remote server - We'll sync up with this server by sending it any relevant changes that we generate.
+					// A relevant change is anything cached, or anything that is e.g. live on the websocket.
+					var info = new ContentSyncServerInfo()
+					{
+						RemoteAddress = remoteAddr,
+						BindAddress = bindAddress,
+						ServerId = serverId
+					};
+
+					if (port != 0)
+					{
+						// Override default:
+						info.Port = port;
+					}
+
+					if (kvp.Key == name)
+					{
+						// This is "me!"
+						myServerInfo = info;
+					}
+					else
+					{
+						servers.Add(info);
+					}
+				}
+
+			}
+
+			if (servers.Count == 0)
+			{
+				return;
+			}
+			
+			// We're in a cluster.
+			// Start my server now:
+			SyncServer = new Server<ContentSyncServer>();
+			SyncServer.Port = myServerInfo.Port;
+			SyncServer.BindAddress = myServerInfo.BindAddress;
+
+			SyncServer.RegisterOpCode(3, (SyncServerHandshake message) =>
+			{
+				// Grab the values from the context:
+				var theirId = message.ServerId;
+				var signature = message.Signature;
+
+				// If the sig checks out, and they've also signed their own and our ID, then they can connect.
+				var signData = theirId.ToString() + "=>" + ServerId.ToString();
+
+				if (!Services.Get<ISignatureService>().ValidateSignature(signData, signature))
+				{
+					// Fail there:
+					message.Kill();
+
+					// Check the serverInfo.json on the server that threw this exception 
+					// and make sure its ID matches whatever is in the global server map.
+					throw new Exception("Server handshake failed. This usually means the remote server is using the wrong server ID. It's ID was " + 
+						theirId + " and it tried to connect to server " + ServerId);
+				}
+
+				// Ok - It's definitely a permitted server.
+				var server = (message.Client as ContentSyncServer);
+				server.Hello = false;
+
+				// Add server to set of servers that have connected:
+				server.ServerId = theirId;
+				RemoteServers[theirId] = server;
+
+				foreach (var meta in RemoteTypes)
+				{
+					SendMetaTo(meta, server);
+				}
+
+				// Let it know that we're happy:
+				var helloResponse = Writer.GetPooled();
+				helloResponse.Start(4);
+				helloResponse.Write(ServerId);
+
+				// Respond with hello response:
+				server.Send(helloResponse);
+
+				#if DEBUG
+				Console.WriteLine("[CSync] Connected to " + theirId);
+				#endif
+
+				// That's all folks:
+				message.Done();
+			}).IsHello = true;
+
+			SyncServer.RegisterOpCode(4, (SyncServerHandshakeResponse message) => {
+				var server = (message.Client as ContentSyncServer);
+
+				if (!server.Hello)
+				{
+					// Hello other server! Add it to lookup:
+					server.ServerId = message.ServerId;
+					RemoteServers[message.ServerId] = server;
+
+					foreach (var meta in RemoteTypes)
+					{
+						SendMetaTo(meta, server);
+					}
+
+				}
+
+				#if DEBUG
+				Console.WriteLine("[CSync] Connected to " + message.ServerId);
+				#endif
+
+				// That's all folks:
+				message.Done();
+			});
+
+			TypeRegOpcode = SyncServer.RegisterOpCode(5, (TypeRegistration message) => {
+
+				// Remote server is telling us that it is listening 
+				// for a particular content type as a given opcode, as well as the object structure.
+				var server = (message.Client as ContentSyncServer);
+
+				var type = ContentTypes.GetType(message.ContentTypeId);
+
+				if (type != null)
+				{
+					// The message type we'll receive is..
+					var messageType = typeof(ContentUpdate<>).MakeGenericType(new Type[] {type});
+
+					var ocmWriter = new OpCodeMessageWriter(message.OpCodeToListenFor, message.FieldInfo, messageType);
+
+					// Add to OCM:
+					server.OpCodeMap[type] = ocmWriter;
+
+					// Add to type writers (may overwrite if a particular server declared twice - that's fine):
+					AddTypeWriter(type, ocmWriter, server);
+				}
+				
+				// That's all folks:
+				message.Done();
+			});
+
+			foreach (var meta in RemoteTypes)
+			{
+				HandleType(meta, false);
+			}
+
+			// After HandleType calls so it can register some of the handlers:
+			SyncServer.Start();
+
+			// Try to explicitly connect to the other servers.
+			// We might be the first one up, so some of these can outright fail.
+			// That's ok though - they'll contact us instead.
+			foreach (var serverInfo in servers)
+			{
+				SyncServer.ConnectTo(serverInfo.RemoteAddress, serverInfo.Port, serverInfo.ServerId, ServerId);
+			}
+
+		}
+
+		/// <summary>
+		/// A map of each content type to a set of remote server writers.
+		/// When something changes, we use the list to message the servers about it.
+		/// </summary>
+		private Dictionary<Type, List<ContentSyncTypeWriter>> TypeWriters = new Dictionary<Type, List<ContentSyncTypeWriter>>();
+
+		/// <summary>
+		/// Gets the set of type writers for the given type.
+		/// </summary>
+		/// <param name="type"></param>
+		/// <returns></returns>
+		private List<ContentSyncTypeWriter> GetTypeWriters(Type type)
+		{
+			if (!TypeWriters.TryGetValue(type, out List<ContentSyncTypeWriter> set))
+			{
+				set = new List<ContentSyncTypeWriter>();
+				TypeWriters[type] = set;
+			}
+
+			return set;
+		}
+
+		/// <summary>
+		/// Removes the given server from the lookups.
+		/// </summary>
+		/// <param name="server"></param>
+		public void RemoveServer(ContentSyncServer server)
+		{
+			RemoteServers.Remove(server.ServerId);
+
+			foreach (var kvp in TypeWriters)
+			{
+				var set = kvp.Value;
+
+				ContentSyncTypeWriter toRemove = null;
+
+				foreach (var entry in set)
+				{
+					if (entry.Server == server)
+					{
+						toRemove = entry;
+						break;
+					}
+				}
+
+				if (toRemove != null)
+				{
+					set.Remove(toRemove);
+				}
 			}
 		}
+
+		/// <summary>
+		/// Adds a type writer. Note that a given server can only have one of the given type.
+		/// </summary>
+		/// <param name="type"></param>
+		/// <param name="writer"></param>
+		/// <param name="server"></param>
+		private void AddTypeWriter(Type type, OpCodeMessageWriter writer, ContentSyncServer server)
+		{
+			var writers = GetTypeWriters(type);
+
+			for (var i = 0; i < writers.Count; i++)
+			{
+				if (writers[i].Server == server)
+				{
+					writers[i].Writer = writer;
+					return;
+				}
+			}
+
+			lock (writers)
+			{
+				writers.Add(new ContentSyncTypeWriter()
+				{
+					Server = server,
+					Writer = writer
+				});
+			}
+		}
+
+		private OpCode<TypeRegistration> TypeRegOpcode;
+
+		private void SendMetaTo(ContentSyncTypeMeta meta, ContentSyncServer server)
+		{
+			var fields = meta.FieldList;
+
+			var msg = TypeRegOpcode.Write(new TypeRegistration() {
+				ContentTypeId = meta.ContentTypeId,
+				OpCodeToListenFor = meta.OpCodeId,
+				FieldInfo = fields
+			});
+
+			server.Send(msg);
+		}
+
+		/// <summary>
+		/// Register a content type as an opcode.
+		/// </summary>
+		/// <typeparam name="T"></typeparam>
+		/// <param name="meta"></param>
+		/// <param name="addListeners"></param>
+		public void HandleTypeInternal<T>(ContentSyncTypeMeta meta, bool addListeners) where T : DatabaseRow, new()
+		{
+			// NOTE: This is used by reflection by HandleType.
+
+			// - Hook up the events which then builds the messages too
+
+			// Get the service:
+			var a = Services.GetByContentType(typeof(T));
+			var svc = a as AutoService<T>;
+
+			if (svc == null)
+			{
+				Console.WriteLine("[WARN] Content type " + typeof(T)+  " is marked for sync, but has no service. This means it doesn't have a cache either, so syncing it doesn't gain much.");
+			}
+
+			// Get the event group:
+			var eventGroup = svc == null ? Events.GetGroup<T>() : svc.EventGroup;
+			
+			var receivedEventHandler = eventGroup.Received;
+			var afterLoad = eventGroup.AfterLoad;
+
+			if (addListeners)
+			{
+				var servers = GetTypeWriters(typeof(T));
+
+				// Add the event listeners now!
+				eventGroup.AfterCreate.AddEventListener((Context ctx, T src) =>
+				{
+					if (src == null || servers.Count == 0)
+					{
+						return Task.FromResult(src);
+					}
+
+					try
+					{
+
+						// Create the content update message:
+						var message = new ContentUpdate<T>();
+						message.Action = 1;
+						message.User = ctx.UserId;
+						message.LocaleId = ctx.LocaleId;
+						message.RoleId = ctx.RoleId;
+						message.Content = src;
+
+						// Tell each server about it:
+						foreach (var server in servers)
+						{
+							var msg = server.Writer.Write(message);
+							server.Server.Send(msg);
+						}
+
+					}
+					catch (Exception e)
+					{
+						Console.WriteLine(e);
+					}
+
+					return Task.FromResult(src);
+				}, 1000); // Always absolutely last
+
+				eventGroup.AfterUpdate.AddEventListener((Context ctx, T src) =>
+				{
+					if (src == null || servers.Count == 0)
+					{
+						return Task.FromResult(src);
+					}
+
+					try
+					{
+						// Create the content update message:
+						var message = new ContentUpdate<T>();
+						message.Action = 2;
+						message.User = ctx.UserId;
+						message.LocaleId = ctx.LocaleId;
+						message.RoleId = ctx.RoleId;
+						message.Content = src;
+
+						// Tell each server about it:
+						foreach (var server in servers)
+						{
+							var msg = server.Writer.Write(message);
+							server.Server.Send(msg);
+						}
+					}
+						catch (Exception e)
+					{
+						Console.WriteLine(e);
+					}
+
+				return Task.FromResult(src);
+				}, 1000); // Always absolutely last
+
+				eventGroup.AfterDelete.AddEventListener((Context ctx, T src) =>
+				{
+					if (src == null || servers.Count == 0)
+					{
+						return Task.FromResult(src);
+					}
+
+					try
+					{
+						// Create the content update message:
+						var message = new ContentUpdate<T>();
+						message.Action = 3;
+						message.User = ctx.UserId;
+						message.LocaleId = ctx.LocaleId;
+						message.RoleId = ctx.RoleId;
+						message.Content = src;
+
+						// Tell each server about it:
+						foreach (var server in servers)
+						{
+							var msg = server.Writer.Write(message);
+							server.Server.Send(msg);
+						}
+					}
+					catch (Exception e)
+					{
+						Console.WriteLine(e);
+					}
+
+				return Task.FromResult(src);
+				}, 1000); // Always absolutely last
+
+			}
+
+			if (SyncServer == null)
+			{
+				// Server isn't ready yet - it'll call this again when it is.
+				return;
+			}
+
+			meta.OpCode = SyncServer.RegisterOpCode((uint)meta.OpCodeId, (ContentUpdate<T> message) => {
+
+				// Create the context as it was in the remote:
+				var context = new Context() {
+					RoleId = message.RoleId,
+					LocaleId = message.LocaleId,
+					UserId = message.User
+				};
+
+				// Create, Update, Delete
+				var action = message.Action;
+
+				if (message.Content == null)
+				{
+					// That's all folks:
+					message.Done();
+					return;
+				}
+
+				// Dispatch events:
+				Task.Run(async () =>{
+
+					// Run afterLoad events:
+					await afterLoad.Dispatch(context, message.Content);
+
+					// Received the content object:
+					await receivedEventHandler.Dispatch(context, message.Content, action);
+
+					if (svc != null)
+					{
+						// Update local cache next:
+						var cache = svc.GetCacheForLocale(context.LocaleId);
+
+						if (cache != null)
+						{
+							if (action == 1)
+							{
+								// Created
+								cache.Add(context, message.Content);
+							}
+							else if (action == 2)
+							{
+								// Updated
+								cache.Add(context, message.Content);
+							}
+							else if (action == 3)
+							{
+								// Deleted
+								cache.Remove(context, message.Content.Id);
+							}
+						}
+					}
+				});
+
+				// That's all folks:
+				message.Done();
+			});
+
+			// Collect the field list:
+			meta.FieldList = meta.OpCode.FieldList();
+		}
+
+		private void HandleType(ContentSyncTypeMeta meta, bool addListeners)
+		{
+			// This is only called a handful of times during startup
+			var handleTypeInternal = GetType().GetMethod("HandleTypeInternal").MakeGenericMethod(new Type[] {
+				meta.Type
+			});
+
+			handleTypeInternal.Invoke(this, new object[] {
+				meta,
+				addListeners
+			});
+
+			// If we've already connected to some servers, tell them about this type:
+			if (RemoteServers != null)
+			{
+				foreach (var kvp in RemoteServers)
+				{
+					var server = kvp.Value;
+					SendMetaTo(meta, server);
+				}
+			}
+		}
+
+		private List<ContentSyncTypeMeta> RemoteTypes = new List<ContentSyncTypeMeta>();
+
+		/// <summary>
+		/// Informs CSync to start syncing the given type as the given opcode.
+		/// </summary>
+		/// <param name="type"></param>
+		/// <param name="opcode"></param>
+		public void SyncRemoteType(Type type, int opcode)
+		{
+			var meta = new ContentSyncTypeMeta()
+			{
+				Type = type,
+				OpCodeId = (uint)opcode,
+				ContentTypeId = ContentTypes.GetId(type)
+			};
+
+			RemoteTypes.Add(meta);
+			HandleType(meta, true);
+		}
+
 	}
-    
+
+	/// <summary>
+	/// Stores sync meta for a given type.
+	/// </summary>
+	public class ContentSyncTypeMeta
+	{
+		/// <summary>
+		/// The content type
+		/// </summary>
+		public Type Type;
+
+		/// <summary>
+		/// The content type ID for Type.
+		/// </summary>
+		public int ContentTypeId;
+
+		/// <summary>
+		/// The opcode
+		/// </summary>
+		public uint OpCodeId;
+
+		/// <summary>
+		/// The opcode
+		/// </summary>
+		public OpCode OpCode;
+
+		/// <summary>
+		/// The field meta from the opcode.
+		/// </summary>
+		public List<string> FieldList;
+	}
+
+	/// <summary>
+	/// Server/ writer combo
+	/// </summary>
+	public class ContentSyncTypeWriter
+	{
+		/// <summary>
+		/// The server to send to.
+		/// </summary>
+		public ContentSyncServer Server;
+
+		/// <summary>
+		/// The writer that helps us build the actual msg.
+		/// </summary>
+		public OpCodeMessageWriter Writer;
+	}
+
 }

@@ -18,6 +18,24 @@ namespace Api.ContentSync
 		public int ServerId { get; set; }
 		
 		/// <summary>
+		/// Numeric port.
+		/// </summary>
+		public int Port { get; set; }
+
+		/// <summary>
+		/// When running in production, this is the remote address (DNS/ IP) to connect to in order to sync in realtime.
+		/// Updates, inserts and deletes are informed on all cached services.
+		/// Note that if this address is unreachable, updates are buffered in memory for a set 
+		/// period of time, and connections are repeatedly attempted.
+		/// </summary>
+		public string RemoteAddress { get; set; }
+		
+		/// <summary>
+		/// Like RemoteAddress, this is used to define which IP "this" machine should bind to.
+		/// </summary>
+		public string BindAddress { get; set; }
+
+		/// <summary>
 		/// Minimum stripe ID (inclusive).
 		/// </summary>
 		public int Min { get; set; }
@@ -31,14 +49,6 @@ namespace Api.ContentSync
 		/// You can make multiple ranges overlap by specifying a step size.
 		/// </summary>
 		public int StepSize { get; set; }
-
-		/// <summary>
-		/// When running in production, this is the remote address (DNS/ IP) to connect to in order to sync in realtime.
-		/// Updates, inserts and deletes are informed on all cached services.
-		/// Note that if this address is unreachable, updates are buffered in memory for a set 
-		/// period of time, and connections are repeatedly attempted.
-		/// </summary>
-		public string RemoteAddress { get; set; }
 
 
 		/// <summary>
