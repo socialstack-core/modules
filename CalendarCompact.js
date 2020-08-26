@@ -205,7 +205,9 @@ export default class CalendarCompact extends React.Component {
 				<Row className="calendar-header">
 					{this.state.currentView.map((viewInfo,index) => {
 						
-						return <Col size={colSize} className="calendar-header-col">
+						return <Col sizeXs={12} sizeMd={colSize} className={"calendar-header-col col-" + index}>
+
+							{/* previous (desktop) */}
 							{index == 0 && showNav && 
 							<button type="button" className="btn btn-link previous" 
 								onClick={e => {
@@ -217,6 +219,20 @@ export default class CalendarCompact extends React.Component {
 									<span className="sr-only">Previous</span>
 							</button>
 							}
+
+							{/* previous (mobile) */}
+							{index == 1 && showNav &&
+								<button type="button" className="btn btn-link previous previous-mobile"
+									onClick={e => {
+										e.stopPropagation();
+										e.preventDefault();
+										this.updateOffset(-1);
+									}}>
+									<i className="far fr-chevron-left"></i>
+									<span className="sr-only">Previous</span>
+								</button>
+							}
+
 							<h2 className="calendar-column-title">
 							{showToday && this.isToday(viewInfo.start) ?
 								<>Today</> : 
@@ -224,6 +240,21 @@ export default class CalendarCompact extends React.Component {
 							}
 								
 							</h2>
+
+							{/* next (mobile) */}
+							{index == 1 && showNav &&
+								<button type="button" className="btn btn-link next next-mobile"
+									onClick={e => {
+										e.stopPropagation();
+										e.preventDefault();
+										this.updateOffset(1);
+									}}>
+									<i className="far fr-chevron-right"></i>
+									<span className="sr-only">Next</span>
+								</button>
+							}
+
+							{/* next (desktop) */}
 							{index == this.state.currentView.length - 1 && showNav &&
 							<button type="button" className="btn btn-link next"
 								onClick={e => {
