@@ -132,11 +132,30 @@ namespace Api.SocketServerLibrary
 		}
 
 		/// <summary>
+		/// Allocates the contents of this buffer as a string.
+		/// </summary>
+		/// <returns></returns>
+		public string GetString()
+		{
+			var buffer = AllocatedBuffer();
+			if (buffer == null)
+			{
+				return null;
+			}
+			return System.Text.Encoding.UTF8.GetString(buffer);
+		}
+
+		/// <summary>
 		/// Slow/ allocated block of bytes.
 		/// </summary>
 		/// <returns></returns>
 		public byte[] AllocatedBuffer()
 		{
+			if(Length == -1)
+			{
+				return null;
+			}
+
 			var result = new byte[Length];
 			for (var i = 0; i < Length; i++) {
 				result[i] = Next;
@@ -153,7 +172,10 @@ namespace Api.SocketServerLibrary
 			}
 			var newBuffer = BinaryBufferPool.Get();
 			newBuffer.Offset = 0;
-			Array.Copy(FirstBuffer.Bytes, Offset, newBuffer.Bytes, 0, Length);
+			if (Length != -1)
+			{
+				Array.Copy(FirstBuffer.Bytes, Offset, newBuffer.Bytes, 0, Length);
+			}
 			Offset = 0;
 			IsCopy = true;
 			FirstBuffer = newBuffer;
@@ -166,7 +188,11 @@ namespace Api.SocketServerLibrary
 		/// Note that it MUST have space, and you must not have used Next.
 		/// </summary>
 		public void CopyInto(byte[] targetBuffer, int atIndex){
-			
+			if (Length == -1)
+			{
+				return;
+			}
+
 			var bytesRemaining = BinaryBufferPool.BufferSize - Offset;
 			
 			if(Length <= bytesRemaining){
@@ -257,6 +283,10 @@ namespace Api.SocketServerLibrary
 		/// View the contents of this buffer as a simple MySQL flavour string. Generally for debug use only.
 		/// </summary>
 		public string AsStringMySQL(){
+			if (Length == -1)
+			{
+				return null;
+			}
 			return System.Text.Encoding.UTF8.GetString(FirstBuffer.Bytes, Offset, Length);
 		}
 
@@ -265,6 +295,10 @@ namespace Api.SocketServerLibrary
 		/// </summary>
 		/// <returns></returns>
 		public string AsHex(){
+			if (Length == -1)
+			{
+				return null;
+			}
 
 			var sb = new System.Text.StringBuilder();
 

@@ -54,6 +54,8 @@ namespace Api.SocketServerLibrary {
 		private readonly Action<byte> ThenCheckForNul_D;
 		private readonly Action<long> ThenReadBufferLong_D;
 		private readonly Action<BufferSegment> ThenReadDateTime_D;
+		private readonly Action<BufferSegment> ThenReadNDateTime_D;
+		private readonly Action<BufferSegment> ThenReadNInt32_D;
 		private readonly Action<BufferSegment> ThenReadUInt32_D;
 		private readonly Action<BufferSegment> ThenReadUInt24_D;
 		private readonly Action<BufferSegment> ThenReadUInt16_D;
@@ -72,7 +74,13 @@ namespace Api.SocketServerLibrary {
 		private readonly Action<BufferSegment> ThenReadI16_D;
 		private readonly Action<BufferSegment> ThenReadDouble_D;
 		private readonly Action<BufferSegment> ThenReadFloat_D;
+		private readonly Action<byte> ThenReadNDateTimeFlag_D;
+		private readonly Action<byte> ThenReadNInt32Flag_D;
 		private readonly Action<ulong> ThenReadXBytes_D;
+		private readonly Action<ulong> ThenReadXItems_D;
+		private readonly Action<ulong> ThenReadXListItems_D;
+		private readonly Action<BufferSegment> ThenReadStringListItem_D;
+		private readonly Action<BufferSegment> ThenReadBufferArrayItem_D;
 
 		private List<object> __Stack = new List<object>(10);
 		private int __Index;
@@ -134,6 +142,10 @@ namespace Api.SocketServerLibrary {
 			ThenCheckForNul_D = new Action<byte>(ThenCheckForNul);
 			ThenReadBufferLong_D = new Action<long>(ThenReadBufferLong);
 			ThenReadDateTime_D = new Action<BufferSegment>(ThenReadDateTime);
+			ThenReadNDateTime_D = new Action<BufferSegment>(ThenReadNDateTime);
+			ThenReadNInt32_D = new Action<BufferSegment>(ThenReadNInt32);
+			ThenReadNDateTimeFlag_D = new Action<byte>(ThenReadNDateTimeFlag);
+			ThenReadNInt32Flag_D = new Action<byte>(ThenReadNInt32Flag);
 			ThenReadUInt32_D = new Action<BufferSegment>(ThenReadUInt32);
 			ThenReadUInt24_D = new Action<BufferSegment>(ThenReadUInt24);
 			ThenReadUInt16_D = new Action<BufferSegment>(ThenReadUInt16);
@@ -153,6 +165,10 @@ namespace Api.SocketServerLibrary {
 			ThenReadDouble_D = new Action<BufferSegment>(ThenReadDouble);
 			ThenReadFloat_D = new Action<BufferSegment>(ThenReadFloat);
 			ThenReadXBytes_D = new Action<ulong>(ThenReadXBytes);
+			ThenReadXItems_D = new Action<ulong>(ThenReadXItems);
+			ThenReadXListItems_D = new Action<ulong>(ThenReadXListItems);
+			ThenReadStringListItem_D = new Action<BufferSegment>(ThenReadStringListItem);
+			ThenReadBufferArrayItem_D = new Action<BufferSegment>(ThenReadBufferArrayItem);
 		}
 
 		/// <summary>
@@ -560,6 +576,20 @@ namespace Api.SocketServerLibrary {
 			// struct - not an allocation:
 			cb(new DateTime(ticks));
 		}
+		
+		/// <summary>
+		/// Internal - Reads an 8 byte int from a buffer as a nullable datetime 
+		/// </summary>
+		/// <param name="buffer"></param>
+		private void ThenReadNDateTime(BufferSegment buffer)
+		{
+			var cb = (Action<DateTime?>)Pop();
+			var ticks = (long)buffer.Next | ((long)buffer.Next << 8) | ((long)buffer.Next << 16) | ((long)buffer.Next << 24) |
+					((long)buffer.Next << 32) | ((long)buffer.Next << 40) | ((long)buffer.Next << 48) | ((long)buffer.Next << 56);
+			buffer.Release();
+			// struct - not an allocation:
+			cb(new DateTime(ticks));
+		}
 
 		/// <summary>
 		/// Internal - Reads a 4 byte float from a buffer
@@ -856,6 +886,47 @@ namespace Api.SocketServerLibrary {
 		}
 
 		/// <summary>
+		/// Read a nullable datetime (UTC).
+		/// </summary>
+		/// <param name="cb"></param>
+		public void ReadDateTime(Action<DateTime?> cb)
+		{
+			Push(cb);
+
+#if DEBUG && SOCKET_SERVER_PROBE_ON
+			Validate(MetaFieldType.Date, 8);
+#endif
+
+			Read(ThenReadNDateTimeFlag_D);
+		}
+
+		private void ThenReadNDateTimeFlag(byte flag)
+		{
+			if (flag == 0)
+			{
+				var cb = (Action<DateTime?>)Pop();
+				cb(null);
+				return;
+			}
+
+			// Read a date
+			ReadBytesUnverified(8, ThenReadNDateTime_D);
+		}
+		
+		private void ThenReadNInt32Flag(byte flag)
+		{
+			if (flag == 0)
+			{
+				var cb = (Action<int?>)Pop();
+				cb(null);
+				return;
+			}
+
+			// Read a nullable int
+			ReadBytesUnverified(4, ThenReadNInt32_D);
+		}
+
+		/// <summary>
 		/// Read a datetime (UTC).
 		/// </summary>
 		/// <param name="cb"></param>
@@ -883,6 +954,21 @@ namespace Api.SocketServerLibrary {
 #endif
 
 			ReadBytesUnverified(4, ThenReadInt32_D);
+		}
+		
+		/// <summary>
+		/// Read a nullable int.
+		/// </summary>
+		/// <param name="cb"></param>
+		public void ReadInt32(Action<int?> cb)
+		{
+			Push(cb);
+
+#if DEBUG && SOCKET_SERVER_PROBE_ON
+			Validate(MetaFieldType.Signed, 4);
+#endif
+
+			Read(ThenReadNInt32Flag_D);
 		}
 
 		/// <summary>
@@ -1002,7 +1088,7 @@ namespace Api.SocketServerLibrary {
 			Validate(MetaFieldType.Float, 8);
 #endif
 
-			ReadBytesUnverified(4, ThenReadDouble_D);
+			ReadBytesUnverified(8, ThenReadDouble_D);
 		}
 
 #if DEBUG && SOCKET_SERVER_PROBE_ON
@@ -1109,6 +1195,18 @@ namespace Api.SocketServerLibrary {
 			buffer.Release();
 			cb(value);
 		}
+		
+		/// <summary>
+		/// Internal - Reads a nullable 4 byte int from a buffer.
+		/// </summary>
+		/// <param name="buffer"></param>
+		private void ThenReadNInt32(BufferSegment buffer)
+		{
+			var cb = (Action<int?>)Pop();
+			var value = (int)buffer.Next | ((int)buffer.Next << 8) | ((int)buffer.Next << 16) | ((int)buffer.Next << 24);
+			buffer.Release();
+			cb(value);
+		}
 
 		/// <summary>
 		/// Reads a compacted positive integer using the MySQL format. You're probably looking for ReadCompressed.
@@ -1201,6 +1299,127 @@ namespace Api.SocketServerLibrary {
 		}
 
 		/// <summary>
+		/// Reads an array of buffer segments, invoking the onEntry callback for each one.
+		/// </summary>
+		/// <param name="cb"></param>
+		public void ReadStringList(Action<List<string>> cb)
+		{
+			Push(cb);
+			ReadCompressed(ThenReadXListItems_D);
+		}
+
+		/// <summary>
+		/// A currently building list of str's.
+		/// </summary>
+		private List<string> CurrentStringList;
+
+		/// <summary>
+		/// Then reads the given number of items in an list of strings.
+		/// </summary>
+		/// <param name="length"></param>
+		public void ThenReadXListItems(ulong length)
+		{
+			ArrayCount1 = length;
+			CurrentStringList = null;
+
+			if (length == 0)
+			{
+				var cb = (Action<List<string>>)Pop(); // cb
+				cb(CurrentStringList);
+				return;
+			}
+
+			ReadBytes(ThenReadStringListItem_D);
+		}
+		
+		/// <summary>
+		/// Reads an array of buffer segments, invoking the onEntry callback for each one.
+		/// </summary>
+		/// <param name="onEntry"></param>
+		/// <param name="cb"></param>
+		public void ReadBufferSegmentArray(Action<BufferSegment> onEntry, Action cb)
+		{
+			Push(cb);
+			Push(onEntry);
+			ReadCompressed(ThenReadXItems_D);
+		}
+
+		/// <summary>
+		/// Array remaining counter
+		/// </summary>
+		private ulong ArrayCount1;
+
+		/// <summary>
+		/// Then reads the given number of items in an array.
+		/// </summary>
+		/// <param name="length"></param>
+		public void ThenReadXItems(ulong length)
+		{
+			ArrayCount1 = length;
+
+			if (length == 0)
+			{
+				Pop(); // entry callback
+				var cb = (Action)Pop(); // cb
+				cb();
+				return;
+			}
+
+			ReadBytes(ThenReadBufferArrayItem_D);
+		}
+
+		/// <summary>
+		/// Read a buffer item in an array.
+		/// </summary>
+		public void ThenReadStringListItem(BufferSegment bs)
+		{
+			var str = bs.GetString();
+
+			if (CurrentStringList == null)
+			{
+				CurrentStringList = new List<string>();
+			}
+
+			CurrentStringList.Add(str);
+			ArrayCount1--;
+
+			if (ArrayCount1 <= 0)
+			{
+				// Done!
+				var cb = (Action<List<string>>)Pop(); // cb
+				var list = CurrentStringList;
+				cb(list);
+				return;
+			}
+
+			// Otherwise, we'll read another item.
+			ReadBytes(ThenReadStringListItem_D);
+		}
+		
+		/// <summary>
+		/// Read a buffer item in an array.
+		/// </summary>
+		public void ThenReadBufferArrayItem(BufferSegment bs)
+		{
+			// Run the callback:
+			var entryCb = (Action<BufferSegment>)Peek();
+			entryCb(bs);
+			ArrayCount1--;
+
+			if (ArrayCount1 <= 0)
+			{
+				// Done!
+				Pop(); // entry callback
+				var cb = (Action)Pop(); // cb
+				cb();
+				return;
+			}
+
+			// Otherwise, we'll read another item.
+			ReadBytes(ThenReadBufferArrayItem_D);
+		}
+
+		/// <summary>
 		/// Reads an unknown length block of bytes.
 		/// </summary>
 		/// <param name="cb"></param>
@@ -1217,10 +1436,21 @@ namespace Api.SocketServerLibrary {
 		/// <param name="length"></param>
 		public void ThenReadXBytes(ulong length)
 		{
+			var cb = (Action<BufferSegment>)Pop();
+
+			if (length == 0)
+			{
+				// it's null:
+				cb(new BufferSegment() {
+					Length = -1
+				});
+				return;
+			}
+
 #if DEBUG && SOCKET_SERVER_PROBE_ON
 			Validate(MetaFieldType.Buffer, (ulong)length);
 #endif
-			ReadBytes((int)length, (Action<BufferSegment>)Pop());
+			ReadBytes((int)(length - 1), cb);
 		}
 
 		/// <summary>

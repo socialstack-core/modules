@@ -4,7 +4,9 @@ using System.Net;
 using System.Net.Sockets;
 using System.Collections.Generic;
 using System.Reflection.Emit;
-
+using System.Timers;
+using Api.Startup;
+using Api.Signatures;
 
 namespace Api.SocketServerLibrary {
 
@@ -44,6 +46,96 @@ namespace Api.SocketServerLibrary {
 
 			Connected(c);
 			OnConnected?.Invoke(c);
+		}
+
+
+		/// <summary>
+		/// Explicitly connect to a remote host (another server of this type).
+		/// </summary>
+		public T ConnectTo(string host, int port, int serverId, int myServerId)
+		{
+			if (IPAddress.TryParse(host, out IPAddress addr))
+			{
+				return ConnectTo(addr, port, serverId, myServerId);
+			}
+
+			var hostEntry = Dns.GetHostEntry(host);
+
+			if (hostEntry.AddressList.Length == 0)
+			{
+				throw new Exception("DNS records for '" + host + "' not found");
+			}
+
+			// Connect now:
+			return ConnectTo(hostEntry.AddressList[0], port, serverId, myServerId);
+		}
+
+		/// <summary>
+		/// A response to an explicit connect to.
+		/// </summary>
+		private void OnConnectResult(IAsyncResult result)
+		{
+			var remote = result.AsyncState as Client;
+
+			if (!remote.Socket.Connected)
+			{
+				return;
+			}
+
+			// Doesn't require hello when we're connecting to it:
+			remote.Hello = false;
+
+			remote.Socket.EndConnect(result);
+
+			// Start listening for data:
+			remote.Start();
+		}
+
+		/// <summary>
+		/// Explicitly connect to a remote host (another server of this type).
+		/// </summary>
+		public T ConnectTo(IPAddress targetIp, int port, int serverId, int myServerId)
+		{
+			var remote = new T()
+			{
+				Server = this,
+				CanProcessSend = false
+			};
+
+			var socket = new Socket(targetIp.AddressFamily, SocketType.Stream, ProtocolType.Tcp);
+			remote.Socket = socket;
+			socket.Blocking = false;
+			socket.BeginConnect(targetIp, port, OnConnectResult, remote);
+
+			var timer = new Timer();
+			timer.Elapsed += (object source, ElapsedEventArgs e) => {
+
+				if (!socket.Connected)
+				{
+					// Timeout.
+					Console.WriteLine("[WARN] Unable to contact remote server #" + serverId);
+					socket.Close();
+				}
+
+				timer.Stop();
+				timer.Dispose();
+			};
+
+			timer.Interval = 1000;
+			timer.Enabled = true;
+
+			// Send the hello.
+			// Sign our ID + their ID:
+			var signature = Services.Get<ISignatureService>().Sign(myServerId + "=>" + serverId);
+
+			var msg = Writer.GetPooled();
+			msg.Start(3);
+			msg.Write(myServerId);
+			msg.Write(signature);
+
+			remote.Send(msg);
+
+			return remote;
 		}
 
 	}
@@ -120,7 +212,36 @@ namespace Api.SocketServerLibrary {
 			// Set the request delegate:
 			instance.OnRequest = onRequest;
 
+			instance.Code = opcode;
+
+			// Reg fields:
+			instance.RegisterFields();
+
 			OpCodeMap[opcode] = instance;
+
+			if (FastOpCodeMap != null)
+			{
+				if (MaxOpCode > 5000)
+				{
+					FastOpCodeMap = null;
+				}
+				else if (opcode >= FastOpCodeMap.Length)
+				{
+					// resize it:
+					var map = new OpCode[MaxOpCode + 1];
+
+					foreach (var kvp in OpCodeMap)
+					{
+						map[kvp.Key] = kvp.Value;
+					}
+
+					FastOpCodeMap = map;
+				}
+				else
+				{
+					FastOpCodeMap[opcode] = instance;
+				}
+			}
 
 			return instance;
 		}

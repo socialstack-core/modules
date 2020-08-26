@@ -4,7 +4,9 @@ using System.Net;
 using System.Net.Sockets;
 using System.Collections.Generic;
 using System.Reflection.Emit;
-
+using System.Reflection;
+using Api.SocketServerLibrary;
+using Api.Database;
 
 namespace Api.SocketServerLibrary {
 
@@ -19,6 +21,11 @@ namespace Api.SocketServerLibrary {
 	/// </summary>
 	public class OpCode
 	{
+		/// <summary>
+		/// The numeric opcode.
+		/// </summary>
+		public uint Code;
+
 		/// <summary>
 		/// True if this opcode is a request/ response system, and the message includes a request ID.
 		/// </summary>
@@ -35,6 +42,15 @@ namespace Api.SocketServerLibrary {
 		public bool RequiresUserId;
 
 		private object PoolLock = new object();
+
+		/// <summary>
+		/// Returns a list of the fields in the order they'll be written.
+		/// </summary>
+		/// <returns></returns>
+		public virtual List<string> FieldList()
+		{
+			return null;
+		}
 
 		/// <summary>
 		/// Runs when the given message has started to be received.
@@ -259,6 +275,113 @@ namespace Api.SocketServerLibrary {
 	}
 
 	/// <summary>
+	/// Meta about a field in a message.
+	/// </summary>
+	public class MessageFieldMeta<T> : MessageFieldMeta
+	{
+		/// <summary>
+		/// Called to write the field value to the message.
+		/// </summary>
+		public Action<Writer, T> OnWrite;
+
+
+		/// <summary>
+		/// Sets the write method handler.
+		/// </summary>
+		/// <param name="action">An Action with writer and a field of the value type T.</param>
+		public override void SetWrite(object action)
+		{
+			OnWrite = (Action<Writer, T>)action;
+		}
+
+		/// <summary>
+		/// Writes to the given writer
+		/// </summary>
+		/// <param name="writer">The writer to write to.</param>
+		/// <param name="message">The message object.</param>
+		/// <param name="currentObject">The current object being sent.</param>
+		public override void Write(Writer writer, object message, ref object currentObject)
+		{
+			// Get the underlying value:
+			var srcValue = (T)Field.GetValue(currentObject);
+
+			if (ChangeToFieldValue)
+			{
+				// Context change to a child object. Must not be null.
+				currentObject = srcValue;
+			}
+
+			if (OnWrite != null)
+			{
+				OnWrite(writer, srcValue);
+			}
+
+			if (ChangeToMessage)
+			{
+				// The last field in an object set
+				currentObject = message;
+			}
+
+		}
+
+	}
+
+	/// <summary>
+	/// Meta about a field in a message.
+	/// </summary>
+	public class MessageFieldMeta
+	{
+		/// <summary>
+		/// A textual description of the field such that a 
+		/// remote host can establish how to read it.
+		/// </summary>
+		public string FieldDescription;
+
+		/// <summary>
+		/// Changes the current context to the field's value.
+		/// </summary>
+		public bool ChangeToFieldValue;
+		
+		/// <summary>
+		/// Changes the current context back to the message.
+		/// </summary>
+		public bool ChangeToMessage;
+
+		/// <summary>
+		/// Get/ set the value here.
+		/// </summary>
+		public FieldInfo Field;
+
+		/// <summary>
+		/// Called to read the field from the message.
+		/// </summary>
+		public Action<ClientReader> OnRead;
+		
+		/// <summary>
+		/// Next field
+		/// </summary>
+		public MessageFieldMeta Next;
+
+		/// <summary>
+		/// Writes to the given write stream
+		/// </summary>
+		/// <param name="writer">The writer to write to.</param>
+		/// <param name="message">The message object.</param>
+		/// <param name="currentObject">The current object being sent.</param>
+		public virtual void Write(Writer writer, object message, ref object currentObject)
+		{
+		}
+
+		/// <summary>
+		/// Sets the write method handler.
+		/// </summary>
+		/// <param name="action">An Action with writer and a field of the value type T.</param>
+		public virtual void SetWrite(object action)
+		{
+		}
+	}
+
+	/// <summary>
 	/// An opcode handling the given message type.
 	/// </summary>
 	/// <typeparam name="T"></typeparam>
@@ -273,7 +396,136 @@ namespace Api.SocketServerLibrary {
 		/// Creates a new opcode.
 		/// </summary>
 		public OpCode() {
+
+		}
+
+		/// <summary>
+		/// The first field to read/ write.
+		/// </summary>
+		public MessageFieldMeta FirstField;
+		/// <summary>
+		/// Last field to read/ write.
+		/// </summary>
+		public MessageFieldMeta LastField;
+
+
+		/// <summary>
+		/// Writes the given message uisng the opcode field meta.
+		/// </summary>
+		/// <param name="message"></param>
+		public Writer Write(T message)
+		{
+			var writer = Writer.GetPooled();
+			writer.Start(Code);
+			var current = FirstField;
+			object ctx = message;
+
+			while (current != null)
+			{
+				current.Write(writer, message, ref ctx);
+				current = current.Next;
+			}
+
+			return writer;
+		}
+
+		/// <summary>
+		/// Returns a list of the fields in the order they'll be written.
+		/// </summary>
+		/// <returns></returns>
+		public override List<string> FieldList()
+		{
+			var fields = new List<string>();
+
+			var current = FirstField;
+
+			while (current != null)
+			{
+				fields.Add(current.FieldDescription);
+				current = current.Next;
+			}
+
+			return fields;
+		}
+
+		/// <summary>
+		/// Registers a field
+		/// </summary>
+		/// <param name="field"></param>
+		/// <param name="prefix"></param>
+		private void RegisterField(FieldInfo field, string prefix)
+		{
+			var fieldType = field.FieldType;
 			
+			var fieldMetaType = typeof(MessageFieldMeta<>).MakeGenericType(new Type[] { fieldType });
+			var fm = Activator.CreateInstance(fieldMetaType) as MessageFieldMeta;
+			fm.Field = field;
+			
+			// Get sys type:
+			var fieldTypeInfo = OpCodeFieldTypes.Get(fieldType);
+
+			if (fieldTypeInfo != null)
+			{
+				fm.FieldDescription = field.Name + "=" + fieldTypeInfo.Id;
+				
+				fm.OnRead = fieldTypeInfo.Reader;
+				fm.SetWrite(fieldTypeInfo.Writer);
+				Add(fm);
+			}
+			else if (prefix == "" && ContentTypes.IsContentType(fieldType))
+			{
+				// Register the fields of this sub-object as if it was inline with everything else.
+				fm.FieldDescription =  field.Name + "=C:" + ContentTypes.GetId(fieldType.Name) + "@V";
+				fm.ChangeToFieldValue = true;
+				Add(fm);
+
+				// Register all of the objects fields now:
+				RegisterFields(fieldType, field.Name + ".");
+
+				// NB: This works even if it registered no fields.
+				LastField.ChangeToMessage = true;
+				LastField.FieldDescription += "@M";
+			}
+			else
+			{
+				throw new Exception("A content type has an invalid field type which wasn't recognised: " + fieldType.ToString());
+			}
+		}
+
+		private void Add(MessageFieldMeta fm)
+		{
+			if (LastField == null)
+			{
+				FirstField = LastField = fm;
+			}
+			else
+			{
+				LastField.Next = fm;
+				LastField = fm;
+			}
+		}
+
+		/// <summary>
+		/// Auto field IO
+		/// </summary>
+		public void RegisterFields()
+		{
+			RegisterFields(typeof(T), "");
+		}
+
+		/// <summary>
+		/// Auto field IO
+		/// </summary>
+		public void RegisterFields(Type fromType, string prefix)
+		{
+			// Get the public field set:
+			var fieldSet = fromType.GetFields();
+
+			foreach (var field in fieldSet)
+			{
+				RegisterField(field, prefix);
+			}
+
 		}
 
 		/// <summary>
@@ -284,6 +536,16 @@ namespace Api.SocketServerLibrary {
 		{
 			// We have full control of the current client.
 			// This must read the messages fields, then call OnReceive.
+
+			if (FirstField == null)
+			{
+				OnReceive(message);
+				return;
+			}
+
+			var reader = message.Client.Reader;
+			reader.CurrentField = FirstField;
+			FirstField.OnRead(reader);
 		}
 
 		/// <summary>

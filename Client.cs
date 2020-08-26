@@ -32,7 +32,9 @@ namespace Api.SocketServerLibrary
 		/// <summary>Start listening for data.</summary>
 		public void Start()
 		{
-
+			// Now able to send data:
+			CanProcessSend = true;
+			
 			try
 			{
 				Socket.BeginReceive(ReceiveBuffer, 0, ReceiveBuffer.Length, 0, OnReceiveData, this);

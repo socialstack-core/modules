@@ -1,5 +1,5 @@
 using System;
-
+using System.Collections.Generic;
 
 namespace Api.SocketServerLibrary
 {
@@ -316,6 +316,27 @@ namespace Api.SocketServerLibrary
 			}
 		}
 
+		/// <summary>
+		/// Writes an array of strings to the writer.
+		/// </summary>
+		/// <param name="value"></param>
+		public void Write(List<string> value)
+		{
+			if (value == null)
+			{
+				WriteCompressed(0);
+			}
+			else
+			{
+				WriteCompressed((ulong)value.Count);
+
+				foreach (var val in value)
+				{
+					Write(val);
+				}
+			}
+		}
+
 		/// <summary>Write a single byte to the message. Write a block of bytes instead of using this if you can.</summary>
 		public void Write(byte val){
 			if(Fill == BinaryBufferPool.BufferSize){
@@ -372,7 +393,22 @@ namespace Api.SocketServerLibrary
 			_LastBufferBytes[Fill++]=(byte)(value>>16);
 			_LastBufferBytes[Fill++]=(byte)(value>>24);
 		}
-		
+
+		/// <summary>
+		/// Write a nullable int32 value.
+		/// </summary>
+		/// <param name="val"></param>
+		public void Write(int? val)
+		{
+			if (val == null)
+			{
+				Write((byte)0);
+				return;
+			}
+			Write((byte)1);
+			Write(val.Value);
+		}
+
 		/// <summary>Write a 4 byte signed value to the message.</summary>
 		public void Write(int value){
 			if(Fill > (BinaryBufferPool.BufferSize-4)){
@@ -419,7 +455,60 @@ namespace Api.SocketServerLibrary
 			_LastBufferBytes[Fill++]=(byte)(value>>16);
 			_LastBufferBytes[Fill++]=(byte)(value>>24);
 		}
-		
+
+		/// <summary>Write a double value.</summary>
+		public void Write(double val)
+		{
+			if (Fill > (BinaryBufferPool.BufferSize - 8))
+			{
+				NextBuffer();
+			}
+
+			ulong value = new DoubleBits(val).Int;
+			_LastBufferBytes[Fill++] = (byte)value;
+			_LastBufferBytes[Fill++] = (byte)(value >> 8);
+			_LastBufferBytes[Fill++] = (byte)(value >> 16);
+			_LastBufferBytes[Fill++] = (byte)(value >> 24);
+			_LastBufferBytes[Fill++] = (byte)(value >> 32);
+			_LastBufferBytes[Fill++] = (byte)(value >> 40);
+			_LastBufferBytes[Fill++] = (byte)(value >> 48);
+			_LastBufferBytes[Fill++] = (byte)(value >> 56);
+		}
+
+		/// <summary>Write a date value.</summary>
+		public void Write(DateTime val)
+		{
+			if (Fill > (BinaryBufferPool.BufferSize - 8))
+			{
+				NextBuffer();
+			}
+
+			var value = val.Ticks;
+			_LastBufferBytes[Fill++] = (byte)value;
+			_LastBufferBytes[Fill++] = (byte)(value >> 8);
+			_LastBufferBytes[Fill++] = (byte)(value >> 16);
+			_LastBufferBytes[Fill++] = (byte)(value >> 24);
+			_LastBufferBytes[Fill++] = (byte)(value >> 32);
+			_LastBufferBytes[Fill++] = (byte)(value >> 40);
+			_LastBufferBytes[Fill++] = (byte)(value >> 48);
+			_LastBufferBytes[Fill++] = (byte)(value >> 56);
+		}
+
+		/// <summary>
+		/// Write a nullable date value.
+		/// </summary>
+		/// <param name="val"></param>
+		public void Write(DateTime? val)
+		{
+			if (val == null)
+			{
+				Write((byte)0);
+				return;
+			}
+			Write((byte)1);
+			Write(val.Value);
+		}
+
 		/// <summary>Write an 8 byte unsigned value to the message.</summary>
 		public void Write(ulong value){
 			if(Fill > (BinaryBufferPool.BufferSize-8)){
@@ -605,7 +694,12 @@ namespace Api.SocketServerLibrary
 		/// <param name="bytes"></param>
 		public void WriteBuffer(byte[] bytes)
 		{
-			WriteCompressed((ulong)bytes.Length);
+			if (bytes == null)
+			{
+				WriteCompressed(0);
+				return;
+			}
+			WriteCompressed((ulong)(bytes.Length + 1));
 			Write(bytes);
 		}
 
@@ -615,8 +709,14 @@ namespace Api.SocketServerLibrary
 		/// <param name="str"></param>
 		public void Write(string str)
 		{
+			if (str == null)
+			{
+				WriteCompressed(0);
+				return;
+			}
+
 			var strBytes = System.Text.Encoding.UTF8.GetBytes(str);
-			WriteCompressed((ulong)strBytes.Length);
+			WriteCompressed((ulong)(strBytes.Length + 1));
 			Write(strBytes);
 		}
 
@@ -626,8 +726,11 @@ namespace Api.SocketServerLibrary
 		/// <param name="str"></param>
 		public void WriteNulString(string str)
 		{
-			var strBytes = System.Text.Encoding.UTF8.GetBytes(str);
-			Write(strBytes);
+			if (str != null)
+			{
+				var strBytes = System.Text.Encoding.UTF8.GetBytes(str);
+				Write(strBytes);
+			}
 			Write((byte)0);
 		}
 		
@@ -637,6 +740,11 @@ namespace Api.SocketServerLibrary
 		/// <param name="str"></param>
 		public void WriteMySQLString(string str)
 		{
+			if (str == null)
+			{
+				WritePackedInt(0);
+				return;
+			}
 			var strBytes = System.Text.Encoding.UTF8.GetBytes(str);
 			WritePackedInt((ulong)strBytes.Length);
 			Write(strBytes);
