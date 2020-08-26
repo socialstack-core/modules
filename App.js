@@ -25,6 +25,7 @@ export default class App extends React.Component{
 			}else{
 				global.app.setState({loadingUser: false});
 			}
+			return response;
 		}).catch(e=>{
 			// Not logged in
 			global.app.setState({user: null, realUser: null, loadingUser: false});
