@@ -31,6 +31,8 @@ namespace Api.ContentSync
 		/// </summary>
 		public int ServerId {get; set;}
 		
+		public bool Verbose = true;
+		
 		static readonly char[] InvalidFileNameChars = Path.GetInvalidFileNameChars();
 		private ContentSyncConfig _configuration;
 		private IDatabaseService _database;
@@ -86,7 +88,13 @@ namespace Api.ContentSync
 				Console.WriteLine("[WARN] Content sync is installed but not configured.");
 				return Task.FromResult(false);
 			}
-
+			
+			Verbose = _configuration.Verbose;
+			
+			if(Verbose){
+				Console.WriteLine("Content sync is in verbose mode - it will tell you each thing it syncs over your network.");
+			}
+			
 			var taskCompletionSource = new TaskCompletionSource<bool>();
 			try {
 				// Get the user:
@@ -514,11 +522,9 @@ namespace Api.ContentSync
 
 				// Respond with hello response:
 				server.Send(helloResponse);
-
-				#if DEBUG
+				
 				Console.WriteLine("[CSync] Connected to " + theirId);
-				#endif
-
+				
 				// That's all folks:
 				message.Done();
 			}).IsHello = true;
@@ -539,10 +545,8 @@ namespace Api.ContentSync
 
 				}
 
-				#if DEBUG
 				Console.WriteLine("[CSync] Connected to " + message.ServerId);
-				#endif
-
+				
 				// That's all folks:
 				message.Done();
 			});
@@ -584,8 +588,11 @@ namespace Api.ContentSync
 			// Try to explicitly connect to the other servers.
 			// We might be the first one up, so some of these can outright fail.
 			// That's ok though - they'll contact us instead.
+			Console.WriteLine("[CSync] Started connecting to " + servers.Count + " peers");
+			
 			foreach (var serverInfo in servers)
 			{
+				Console.WriteLine("[CSync] Connect to " + serverInfo.RemoteAddress);
 				SyncServer.ConnectTo(serverInfo.RemoteAddress, serverInfo.Port, serverInfo.ServerId, ServerId);
 			}
 
@@ -740,6 +747,9 @@ namespace Api.ContentSync
 						// Tell each server about it:
 						foreach (var server in servers)
 						{
+							if(Verbose){
+								Console.WriteLine("[Create " + typeof(T).Name + "]=>" + server.Server.ServerId);
+							}
 							var msg = server.Writer.Write(message);
 							server.Server.Send(msg);
 						}
@@ -769,10 +779,13 @@ namespace Api.ContentSync
 						message.LocaleId = ctx.LocaleId;
 						message.RoleId = ctx.RoleId;
 						message.Content = src;
-
+						
 						// Tell each server about it:
 						foreach (var server in servers)
 						{
+							if(Verbose){
+								Console.WriteLine("[Update " + typeof(T).Name + "]=>" + server.Server.ServerId);
+							}
 							var msg = server.Writer.Write(message);
 							server.Server.Send(msg);
 						}
@@ -805,6 +818,9 @@ namespace Api.ContentSync
 						// Tell each server about it:
 						foreach (var server in servers)
 						{
+							if(Verbose){
+								Console.WriteLine("[Delete " + typeof(T).Name + "]=>"+server.Server.ServerId);
+							}
 							var msg = server.Writer.Write(message);
 							server.Server.Send(msg);
 						}
@@ -846,7 +862,11 @@ namespace Api.ContentSync
 
 				// Dispatch events:
 				Task.Run(async () =>{
-
+					
+					if(Verbose){
+						Console.WriteLine("Receive <= " + action + " of " + message.Content.GetType());
+					}
+					
 					// Run afterLoad events:
 					await afterLoad.Dispatch(context, message.Content);
 

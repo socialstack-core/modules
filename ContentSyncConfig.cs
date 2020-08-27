@@ -18,6 +18,11 @@ namespace Api.ContentSync
 		public int Offset { get; set; }
 		
 		/// <summary>
+		/// Verbose messaging mode
+		/// </summary>
+		public bool Verbose {get; set;}
+		
+		/// <summary>
 		/// The username to stripe range config.
 		/// </summary>
 		public Dictionary<string, List<StripeRange>> Users { get; set; }
