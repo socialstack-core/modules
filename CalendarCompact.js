@@ -160,8 +160,16 @@ export default class CalendarCompact extends React.Component {
 		});
 	}
 	
-	minutesToSize(mins){
-		return (mins * 5) + 'px';
+	minutesToSize(mins, offset) {
+
+		if (!offset) {
+			offset = 0;
+		}
+
+		// TODO: expose this as an option to allow for calendar scaling
+		// was 5px; equates to 150px per 30min
+		// 3.33px should get us to the 100px per 30min shown in the original design
+		return ((mins * 3.33) + offset) + 'px';
 	}
 	
 	renderDay(sortedEntries){
@@ -182,8 +190,10 @@ export default class CalendarCompact extends React.Component {
 			</div>
 			<div className="bookings">
 				{sortedEntries.map(entry => this.props.onRenderEntry(entry, {
-					top: this.minutesToSize(entry.minuteStart - this.state.startMinutes),
-					height: this.minutesToSize(entry.minuteEnd - entry.minuteStart)
+					// NB: 14px offset is based on h3.time being set to 28px tall - this gets events lining up
+					top: this.minutesToSize(entry.minuteStart - this.state.startMinutes, 14 - 1),
+					// extra pixel to cover start / end lines
+					height: this.minutesToSize(entry.minuteEnd - entry.minuteStart, 1)
 				}))}
 			</div>
 		</div>;
