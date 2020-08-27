@@ -229,7 +229,7 @@ namespace Api.ActiveLogins
 					{
 						if (entry != null && entry.Count != 0)
 						{
-							uniqueUsers[entry.UserId] = false;
+							uniqueUsers[(int)entry.UserId] = false;
 						}
 					}
 					
@@ -271,7 +271,7 @@ namespace Api.ActiveLogins
 		/// <summary>
 		/// User Id.
 		/// </summary>
-		public int UserId;
+		public long UserId;
 		/// <summary>
 		/// The number of servers this user is active on.
 		/// </summary>
