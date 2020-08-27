@@ -516,7 +516,10 @@ namespace Api.ContentSync
 
 				// Add server to set of servers that have connected:
 				server.ServerId = theirId;
-				RemoteServers[theirId] = server;
+				lock (RemoteServers)
+				{
+					RemoteServers[theirId] = server;
+				}
 
 				foreach (var meta in RemoteTypes)
 				{
@@ -546,7 +549,11 @@ namespace Api.ContentSync
 				{
 					// Hello other server! Add it to lookup:
 					server.ServerId = message.ServerId;
-					RemoteServers[message.ServerId] = server;
+
+					lock (RemoteServers)
+					{
+						RemoteServers[message.ServerId] = server;
+					}
 
 					foreach (var meta in RemoteTypes)
 					{
@@ -623,13 +630,16 @@ namespace Api.ContentSync
 		/// <returns></returns>
 		private List<ContentSyncTypeWriter> GetTypeWriters(Type type)
 		{
-			if (!TypeWriters.TryGetValue(type, out List<ContentSyncTypeWriter> set))
+			lock (TypeWriters)
 			{
-				set = new List<ContentSyncTypeWriter>();
-				TypeWriters[type] = set;
-			}
+				if (!TypeWriters.TryGetValue(type, out List<ContentSyncTypeWriter> set))
+				{
+					set = new List<ContentSyncTypeWriter>();
+					TypeWriters[type] = set;
+				}
 
-			return set;
+				return set;
+			}
 		}
 
 		/// <summary>
@@ -638,7 +648,10 @@ namespace Api.ContentSync
 		/// <param name="server"></param>
 		public void RemoveServer(ContentSyncServer server)
 		{
-			RemoteServers.Remove(server.ServerId);
+			lock (RemoteServers)
+			{
+				RemoteServers.Remove(server.ServerId);
+			}
 
 			foreach (var kvp in TypeWriters)
 			{
