@@ -30,7 +30,7 @@ namespace Api.SocketServerLibrary
 		}
 
 		/// <summary>Start listening for data.</summary>
-		public void Start()
+		public virtual void Start()
 		{
 			// Now able to send data:
 			CanProcessSend = true;

@@ -52,11 +52,11 @@ namespace Api.SocketServerLibrary {
 		/// <summary>
 		/// Explicitly connect to a remote host (another server of this type).
 		/// </summary>
-		public T ConnectTo(string host, int port, int serverId, int myServerId)
+		public T ConnectTo(string host, int port, int serverId, Action<T> onSetupRemote)
 		{
 			if (IPAddress.TryParse(host, out IPAddress addr))
 			{
-				return ConnectTo(addr, port, serverId, myServerId);
+				return ConnectTo(addr, port, serverId, onSetupRemote);
 			}
 
 			var hostEntry = Dns.GetHostEntry(host);
@@ -67,7 +67,7 @@ namespace Api.SocketServerLibrary {
 			}
 
 			// Connect now:
-			return ConnectTo(hostEntry.AddressList[0], port, serverId, myServerId);
+			return ConnectTo(hostEntry.AddressList[0], port, serverId, onSetupRemote);
 		}
 
 		/// <summary>
@@ -94,13 +94,15 @@ namespace Api.SocketServerLibrary {
 		/// <summary>
 		/// Explicitly connect to a remote host (another server of this type).
 		/// </summary>
-		public T ConnectTo(IPAddress targetIp, int port, int serverId, int myServerId)
+		public T ConnectTo(IPAddress targetIp, int port, int serverId, Action<T> onSetupRemote)
 		{
 			var remote = new T()
 			{
 				Server = this,
 				CanProcessSend = false
 			};
+
+			onSetupRemote?.Invoke(remote);
 
 			var socket = new Socket(targetIp.AddressFamily, SocketType.Stream, ProtocolType.Tcp);
 			remote.Socket = socket;
@@ -123,17 +125,6 @@ namespace Api.SocketServerLibrary {
 
 			timer.Interval = 1000;
 			timer.Enabled = true;
-
-			// Send the hello.
-			// Sign our ID + their ID:
-			var signature = Services.Get<ISignatureService>().Sign(myServerId + "=>" + serverId);
-
-			var msg = Writer.GetPooled();
-			msg.Start(3);
-			msg.Write(myServerId);
-			msg.Write(signature);
-
-			remote.Send(msg);
 
 			return remote;
 		}
