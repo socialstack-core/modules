@@ -98,7 +98,7 @@ export default function webRequest(origUrl, data, opts) {
 					
 					// If method was 'delete' then this entity was deleted.
 					// Otherwise, as it's not specified, contentchange will establish if it was added or deleted based on the given url.
-					contentChange(json, origUrl, {deleted: (method == 'delete')});
+					contentChange(json, origUrl, (method == 'delete') ? {deleted: true} : null);
 				}
 				
 			}).catch(err => {
