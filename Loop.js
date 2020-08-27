@@ -305,9 +305,7 @@ export default class Loop extends React.Component {
 			// Not looping an endpoint OR we don't have any results yet anyway.
 			return;
 		}
-
-		var endpoint = e.endpoint;
-
+		
 		if (this.props.updateContentType) {
 			// If you're using custom endpoints, specify this updateContentType prop to be able to still receive live updates.
 
@@ -321,8 +319,8 @@ export default class Loop extends React.Component {
 			return;
 		}
 
-		var entity = e.entity;
-
+		/*
+		Unified with liveMessage
 		if (this.props.onContentChange) {
 
 			entity = this.props.onContentChange(entity);
@@ -332,34 +330,10 @@ export default class Loop extends React.Component {
 				return;
 			}
 		}
-
-		if (e.deleted) {
-			// Remove it from the results if we have it.
-			results = results.filter(c => c.id != entity.id);
-		} else {
-
-			// Update or add. 
-			// Already got this content?
-			var exists = false;
-
-			for (var i = 0; i < results.length; i++) {
-				if (results[i].id == entity.id) {
-					// Update.
-					results[i] = entity;
-					exists = true;
-				}
-			}
-
-			if (!exists) {
-				// TODO: Only do so if entity fulfils our filter.
-				if (this.props.filter) {
-					console.log('TODO: Ensure entity fulfils the filter.');
-				}
-				results.push(entity);
-			}
-		}
-
-		this.setState({ results });
+		*/
+		
+		var entity = e.entity;
+		this.onLiveMessage({entity, method: e.deleted ? 'delete' : (e.created ? 'create' : 'update')});
 	}
 
 	componentWillMount() {
