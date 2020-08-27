@@ -103,7 +103,7 @@ namespace Api.Permissions
 			ResolvedValue rv = null;
 			
 			for(var i=0;i<values.Count;i++){
-				if(values[i].Node == this)
+				if(values[i].Node.ParamId == ParamId)
 				{
 					rv = values[i];
 					break;
