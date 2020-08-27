@@ -1,7 +1,7 @@
 import Row from 'UI/Row';
 import Col from 'UI/Column';
 import Container from 'UI/Container';
-import { localToUtc, addDays, isoConvert, ordinal, shortMonthNames, monthNames } from 'UI/Functions/DateTools';
+import { daysBetween, localToUtc, addDays, isoConvert, ordinal, shortMonthNames, monthNames } from 'UI/Functions/DateTools';
 import Loading from 'UI/Loading';
 
 export default class CalendarCompact extends React.Component {
@@ -110,6 +110,7 @@ export default class CalendarCompact extends React.Component {
 		}
 		
 		this.setState({currentView: dayMeta, offset: offset});
+		global.app.setState({forceCalendarRefresh : null});
 		
 		// Request for section:
 		this.populateBetween(sliceStart, sliceEnd, dayMeta);
@@ -201,6 +202,13 @@ export default class CalendarCompact extends React.Component {
 	}
 	
 	render(){
+		
+		// if we have added a new entry force calendar to redraw and focus
+		if (global.app.state.forceCalendarRefresh)
+		{
+			var newOffset = daysBetween(new Date() , global.app.state.forceCalendarRefresh);
+			this.load(newOffset);
+		}
 		
 		var { days , showNav , showToday } = this.props;
 		
