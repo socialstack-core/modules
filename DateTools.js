@@ -124,8 +124,17 @@ function daysUntilDate(date) {
 		default:
 			return days;
 	}
-
 }
+
+function daysBetween(startdate , enddate) {
+	var start = isoConvert(startdate).setHours(0, 0, 0, 0);
+	var end = isoConvert(enddate).setHours(0, 0, 0, 0);	
+	var diff = end - start;
+	var days = Math.ceil(diff / (1000 * 3600 * 24));
+
+	return days;
+}
+
 
 module.exports = {
 	ordinal,
@@ -139,5 +148,6 @@ module.exports = {
 	addDays,
 	addMinutes,
 	addHours,
-	daysUntilDate
+	daysUntilDate,
+	daysBetween
 };
