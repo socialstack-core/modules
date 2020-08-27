@@ -1,7 +1,6 @@
 import webRequest from 'UI/Functions/WebRequest';
 import getRef from 'UI/Functions/GetRef';
 import Loading from 'UI/Loading';
-import Spacer from 'UI/Spacer';
 import Uploader from 'UI/Uploader';
 import Input from 'UI/Input';
 
@@ -50,7 +49,7 @@ export default class AvatarEdit extends React.Component {
 				{
 					name && <Input type="hidden" name={name} value={avatarRef}/>
 				}
-                <div>
+				<div className="avatar-edit-internal">
 					{
 						next ? (
 							<div>
@@ -112,7 +111,7 @@ export default class AvatarEdit extends React.Component {
 						)
 					}
                 </div> 
-                <Spacer />
+
 				{/* NB: 
 				 * ID necessary to trigger rendering of label, which is where the CSS magic happens 
 				 * label prop ensures any label supplied is passed along
