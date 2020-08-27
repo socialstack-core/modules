@@ -1,5 +1,6 @@
 ﻿using Api.Contexts;
 using Api.Permissions;
+using Api.SocketServerLibrary;
 using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
@@ -14,6 +15,11 @@ namespace Api.ContentSync
 	public partial interface IContentSyncService
     {
 
+		/// <summary>
+		/// Handshake opcode
+		/// </summary>
+		OpCode<SyncServerHandshake> HandshakeOpCode { get; set; }
+		
 		/// <summary>
 		/// This server's ID from the ContentSync config.
 		/// </summary>

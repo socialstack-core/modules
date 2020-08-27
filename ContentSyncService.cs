@@ -29,8 +29,16 @@ namespace Api.ContentSync
 		/// <summary>
 		/// This server's ID from the ContentSync config.
 		/// </summary>
-		public int ServerId {get; set;}
-		
+		public int ServerId { get; set; }
+
+		/// <summary>
+		/// Handshake opcode
+		/// </summary>
+		public OpCode<SyncServerHandshake> HandshakeOpCode { get; set; }
+
+		/// <summary>
+		/// True if sync should be in verbose mode.
+		/// </summary>
 		public bool Verbose = true;
 		
 		static readonly char[] InvalidFileNameChars = Path.GetInvalidFileNameChars();
@@ -482,7 +490,7 @@ namespace Api.ContentSync
 			SyncServer.Port = myServerInfo.Port;
 			SyncServer.BindAddress = myServerInfo.BindAddress;
 
-			SyncServer.RegisterOpCode(3, (SyncServerHandshake message) =>
+			HandshakeOpCode = SyncServer.RegisterOpCode(3, (SyncServerHandshake message) =>
 			{
 				// Grab the values from the context:
 				var theirId = message.ServerId;
@@ -527,7 +535,9 @@ namespace Api.ContentSync
 				
 				// That's all folks:
 				message.Done();
-			}).IsHello = true;
+			});
+
+			HandshakeOpCode.IsHello = true;
 
 			SyncServer.RegisterOpCode(4, (SyncServerHandshakeResponse message) => {
 				var server = (message.Client as ContentSyncServer);
@@ -593,7 +603,9 @@ namespace Api.ContentSync
 			foreach (var serverInfo in servers)
 			{
 				Console.WriteLine("[CSync] Connect to " + serverInfo.RemoteAddress);
-				SyncServer.ConnectTo(serverInfo.RemoteAddress, serverInfo.Port, serverInfo.ServerId, ServerId);
+				SyncServer.ConnectTo(serverInfo.RemoteAddress, serverInfo.Port, serverInfo.ServerId, (ContentSyncServer s) => {
+					s.ServerId = serverInfo.ServerId;
+				});
 			}
 
 		}

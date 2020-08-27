@@ -14,7 +14,7 @@ using Api.Startup;
 using Api.Users;
 using System.Linq;
 using System.IO;
-
+using Api.Signatures;
 
 namespace Api.ContentSync
 {
@@ -52,6 +52,31 @@ namespace Api.ContentSync
 
 			// Tell the sync service to remove this:
 			Services.Get<IContentSyncService>().RemoveServer(this);
+		}
+
+		/// <summary>
+		/// Called just after connecting to a remote server.
+		/// </summary>
+		public override void Start()
+		{
+			base.Start();
+
+			if (!Hello)
+			{
+				// It's up to us to send the hello:
+				var syncService = Services.Get<IContentSyncService>();
+
+				// Send the hello.
+				// Sign our ID + their ID:
+				var signature = Services.Get<ISignatureService>().Sign(syncService.ServerId + "=>" + ServerId);
+
+				var msg = syncService.HandshakeOpCode.Write(new SyncServerHandshake() {
+					ServerId = syncService.ServerId,
+					Signature = signature
+				});
+
+				Send(msg);
+			}
 		}
 	}
 
