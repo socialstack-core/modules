@@ -1,7 +1,11 @@
+$admin_sidebar_width: px_to_rem(280);
+
 .pages-default{
 	
-	> div > .admin-main-area{
+	> div > .admin-main-area {
 		background: #F7F7F7;
+		flex: 0 0 calc(100vw - #{$admin_sidebar_width});
+	    max-width: calc(100vw - #{$admin_sidebar_width});
 	}
 	
 	> div > .admin-aside {
@@ -9,12 +13,14 @@
 		padding-left: 0;
 		padding-right: 0;
 		position: relative;
+		flex: 0 0 $admin_sidebar_width;
+	    max-width: $admin_sidebar_width;
 
 		.main-menu {
 			position: fixed;
 			overflow-y: auto;
 			height: 100%;
-			width: 16.67%;
+			width: $admin_sidebar_width;
 
 			.loop {
 

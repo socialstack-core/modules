@@ -39,10 +39,10 @@ export default class Default extends React.Component{
 		return (
 			<div className="container-fluid h-100 pages-default">
 				<div className="row h-100">
-					<div className="col-2 admin-aside">
+					<div className="admin-aside">
 						<MainMenu />
 					</div>
-					<div className="col-10 admin-main-area">
+					<div className="admin-main-area">
 						{this.props.children}
 					</div>
 				</div>
