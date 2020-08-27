@@ -905,20 +905,18 @@ namespace Api.ContentSync
 
 						if (cache != null)
 						{
-							if (action == 1)
+							lock (cache)
 							{
-								// Created
-								cache.Add(context, message.Content);
-							}
-							else if (action == 2)
-							{
-								// Updated
-								cache.Add(context, message.Content);
-							}
-							else if (action == 3)
-							{
-								// Deleted
-								cache.Remove(context, message.Content.Id);
+								if (action == 1 || action == 2)
+								{
+									// Created
+									cache.Add(context, message.Content);
+								}
+								else if (action == 3)
+								{
+									// Deleted
+									cache.Remove(context, message.Content.Id);
+								}
 							}
 						}
 					}
