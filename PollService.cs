@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using Api.Permissions;
 using Api.Contexts;
 using Api.Eventing;
+using Api.Startup;
 
 namespace Api.Polls
 {
@@ -20,6 +21,23 @@ namespace Api.Polls
         {
 			// Example admin page install:
 			InstallAdminPages("Polls", "fa:fa-poll", new string[] { "id", "title" });
+			
+			Events.Poll.BeforeSettable.AddEventListener((Context context, JsonField<Poll> field) =>
+			{
+				if (field == null)
+				{
+					return Task.FromResult(field);
+				}
+				
+				if(field.Name == "Answers")
+				{
+					// This field isn't settable
+					field = null;
+				}
+				
+				return Task.FromResult(field);
+			});
+			
 		}
 	}
     

@@ -20,8 +20,7 @@ namespace Api.Polls
 		/// </summary>
 		public PollAnswerService() : base(Events.PollAnswer)
         {
-			// Example admin page install:
-			// InstallAdminPages("Polls", "fa:fa-rocket", new string[] { "id", "name" });
+			InstallAdminPages(null, null, new string[] { "id", "name" });
 			
 			Events.PollAnswer.BeforeSettable.AddEventListener((Context context, JsonField<PollAnswer> field) =>
 			{
