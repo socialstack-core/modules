@@ -35,6 +35,11 @@ namespace Api.Startup
 		public static Dictionary<int, AutoService> ContentTypes = new Dictionary<int, AutoService>();
 
 		/// <summary>
+		/// A lookup by actual content type to the autoService relating to it.
+		/// </summary>
+		public static Dictionary<Type, AutoService> ServicedTypes = new Dictionary<Type, AutoService>();
+
+		/// <summary>
 		/// The underlying service provider, used to obtain injected service instances.
 		/// </summary>
 		public static IServiceProvider Provider;
@@ -66,15 +71,8 @@ namespace Api.Startup
 		/// <returns></returns>
 		public static AutoService GetByContentType(Type type)
 		{
-			foreach (var kvp in AutoServices)
-			{
-				if (kvp.Value.ServicedType == type)
-				{
-					return kvp.Value;
-				}
-			}
-
-			return null;
+			ServicedTypes.TryGetValue(type, out AutoService result);
+			return result;
 		}
 
 		/// <summary>
