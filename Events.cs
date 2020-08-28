@@ -14,5 +14,11 @@ namespace Api.Eventing
 		/// Set of events for a passwordResetRequest.
 		/// </summary>
 		public static EventGroup<PasswordResetRequest> PasswordResetRequest;
+		
+		/// <summary>
+		/// After successful reset.
+		/// </summary>
+		[DontAddPermissions]
+		public static EventHandler<PasswordResetRequest> PasswordResetRequestAfterSuccess;
 	}
 }

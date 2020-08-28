@@ -1,4 +1,5 @@
 using Api.Contexts;
+using Api.Eventing;
 using Api.PasswordAuth;
 using Api.Permissions;
 using Api.Users;
@@ -117,6 +118,8 @@ namespace Api.PasswordResetRequests
 			// Set user:
 			context.SetUser(targetUser);
 			context.RoleId = targetUser.Role;
+			
+			await Events.PasswordResetRequestAfterSuccess.Dispatch(context, request);
 			
             // Regenerate the contextual token:
             context.SendToken(Response);
