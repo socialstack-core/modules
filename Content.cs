@@ -19,6 +19,31 @@ namespace Api.Database
 	{
 
 		/// <summary>
+		/// Updates a piece of generic content.
+		/// </summary>
+		/// <param name="context"></param>
+		/// <param name="content"></param>
+		/// <returns></returns>
+		public static async Task<object> Update(Context context, object content)
+		{
+			if (content == null)
+			{
+				return content;
+			}
+
+			// Get the service:
+			var service = Services.GetByContentType(content.GetType());
+
+			if (service == null)
+			{
+				return null;
+			}
+
+			content = await service.UpdateObject(context, content);
+			return content;
+		}
+
+		/// <summary>
 		/// Gets a piece of content from only its content ID and type.
 		/// </summary>
 		/// <param name="context"></param>
