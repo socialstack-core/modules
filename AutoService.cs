@@ -271,6 +271,17 @@ public partial class AutoService<T> : AutoService where T: DatabaseRow, new(){
 	}
 
 	/// <summary>
+	/// Updates an object in this service.
+	/// </summary>
+	/// <param name="context"></param>
+	/// <param name="content"></param>
+	/// <returns></returns>
+	public override async Task<object> UpdateObject(Context context, object content)
+	{
+		return await Update(context, content as T);
+	}
+
+	/// <summary>
 	/// Gets an object from this service.
 	/// </summary>
 	/// <param name="context"></param>
@@ -454,6 +465,17 @@ public class AutoService
 	public virtual Task<JsonStructure> GetJsonStructure(int roleId)
 	{
 		throw new NotImplementedException();
+	}
+
+	/// <summary>
+	/// Updates an object in this service.
+	/// </summary>
+	/// <param name="context"></param>
+	/// <param name="content"></param>
+	/// <returns></returns>
+	public virtual Task<object> UpdateObject(Context context, object content)
+	{
+		return Task.FromResult((object)null);
 	}
 
 	/// <summary>
