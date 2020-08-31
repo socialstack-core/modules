@@ -18,5 +18,11 @@ namespace Api.Startup
         /// </summary>
         [JsonProperty]
         public string Message { get; set; }
+		
+        /// <summary>
+        /// Optional textual error code for localisation. E.g. "already_booked".
+        /// </summary>
+        [JsonProperty]
+        public string Code { get; set; }
     }
 }
