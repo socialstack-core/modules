@@ -11,7 +11,8 @@
 		.suggestion {
 			@include font_size(12);
 			@include padding(5, 8);
-			color: $theme_grey;
+			//color: $theme_grey;
+			color: grey;
 			display: block;
 			width: 100%;
 			text-align: left;
@@ -25,7 +26,8 @@
 		.no-results {
 			@include font_size(12);
 			@include padding(5, 8);
-			color: $theme_grey;
+			//color: $theme_grey;
+			color: grey;
 			font-style: italic;
 		}
 	}
