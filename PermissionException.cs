@@ -4,6 +4,7 @@ using System.Linq;
 using System.Security;
 using System.Threading.Tasks;
 using Api.Contexts;
+using Api.Startup;
 using Api.Users;
 
 namespace Api.Permissions
@@ -11,7 +12,7 @@ namespace Api.Permissions
     /// <summary>
     /// The requested resource is not accessible
     /// </summary>
-    public class PermissionException : SecurityException
+    public class PermissionException : PublicException
     {
 		/// <summary>
 		/// Creates a new permission exception.
@@ -48,7 +49,7 @@ namespace Api.Permissions
 		/// <param name="capability"></param>
 		/// <param name="context"></param>
 		/// <param name="msg"></param>
-		internal PermissionException(string capability, Context context, string msg) : base(msg)
+		internal PermissionException(string capability, Context context, string msg) : base(msg, "permissions", 403)
         {
 			Capability = capability;
 			Context = context;
