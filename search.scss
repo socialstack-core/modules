@@ -1,9 +1,31 @@
-.search{
-	.suggestion{
-		padding: 5px;
-	}
-	
-	.suggestion:hover{
-		cursor:pointer;
+.search {
+	position: relative;
+
+	.suggestions {
+		position: absolute;
+		width: 100%;
+		background: #fff;
+		border: 1px solid #ccc;
+
+		.suggestion {
+			@include font_size(12);
+			@include padding(5, 8);
+			color: $theme_grey;
+			display: block;
+			width: 100%;
+			text-align: left;
+
+			&:hover,
+			&:focus {
+				background-color: #fcf2bd;
+			}
+		}
+
+		.no-results {
+			@include font_size(12);
+			@include padding(5, 8);
+			color: $theme_grey;
+			font-style: italic;
+		}
 	}
 }

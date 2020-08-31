@@ -149,15 +149,15 @@ export default class Search extends React.Component {
 				<div className="suggestions">
 					{this.state.results.length ? (
 						this.state.results.map((result, i) => (
-							<div key={i} onClick={() => this.selectResult(result)} className="suggestion">
+							<button type="button" key={i} onClick={() => this.selectResult(result)} className="btn suggestion">
 								{this.display(result, true)}
-							</div>
+							</button>
 						))
 					) : (
-						<div>
-							No results found
-						</div>
-					)}
+							<div className="no-results">
+								No results found
+							</div>
+						)}
 				</div>
 			)}
 			{
