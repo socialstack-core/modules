@@ -29,7 +29,7 @@ namespace Api.Huddles
 				Roles.Member.Revoke("huddle_list");
 				
 				// Can only list public huddles:
-				Roles.Member.If().Equals(typeof(Huddle), "HuddleType", 0).ThenGrant("huddle_list");
+				Roles.Member.If((Filter f) => f.EqualsField("HuddleType", 0)).ThenGrant("huddle_list");
 				
 				/*
 				// Allow public creation (as it's disabled by default):
