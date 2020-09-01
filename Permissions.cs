@@ -20,15 +20,10 @@ namespace Api.UserFlags
 			// Hook the default role setup. It's done like this so it can be removed by a plugin if wanted.
 			Events.CapabilityOnSetup.AddEventListener((Context context, object source) =>
 			{
-				/*
-				Example permission rules.
-				
-				Member role: A verified user account. Not an admin.
-				Guest role: A user account. The transition from guest to member is up to you.
-				Public role: Not logged in at all.
-				
 				// Allow public creation (as it's disabled by default):
-				Roles.Member.Grant("userFlag_create");
+				Roles.Member.Grant("userflag_create");
+				
+				/*
 				Roles.Public.Grant("userFlag_create");
 				Roles.Guest.Grant("userFlag_create");
 				
