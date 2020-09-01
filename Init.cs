@@ -40,6 +40,7 @@ namespace Api.Permissions
 
 				// Create a capability for this event type - e.g. UserCreate becomes a capability called "user_create". Creating it will automatically add it to the set.
 				var capability = new Capability(permittedEvent.EntityName + "_" + permittedEvent.Verb);
+				capability.ContentType = permittedEvent.PrimaryType;
 
 				if (permittedEvent.Verb == "List")
 				{
@@ -198,7 +199,7 @@ namespace Api.Permissions
 				Roles.Guest.GrantTheSameAs(Roles.Public); // <-- In this case, we grant the same as public.
 
 				// Users can update or delete any content they've created themselves:
-				Roles.Guest.If().IsSelf().ThenGrantVerb("update", "delete");
+				Roles.Guest.If((Filter f) => f.IsSelf()).ThenGrantVerb("update", "delete");
 
 				// Member - created and (optionally) activated.
 				Roles.Member.GrantTheSameAs(Roles.Guest);

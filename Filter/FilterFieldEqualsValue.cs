@@ -146,14 +146,24 @@ namespace Api.Permissions
 		/// True if the given field (on an object of the given type) has the value returned by the given method.
 		/// </summary>
 		/// <returns></returns>
-		public Filter FieldEqualsValue(Type type, string field, Func<Context, Task<object>> valueMethod)
+		public Filter Equals(string field, Func<Context, Task<object>> valueMethod)
+		{
+			var node = new FilterFieldEqualsValue(DefaultType, field, valueMethod);
+			return Add(node);
+		}
+
+		/// <summary>
+		/// True if the given field (on an object of the given type) has the value returned by the given method.
+		/// </summary>
+		/// <returns></returns>
+		public Filter Equals(Type type, string field, Func<Context, Task<object>> valueMethod)
 		{
 			var node = new FilterFieldEqualsValue(type, field, valueMethod);
 			return Add(node);
 		}
 
 	}
-
+	
 	/// <summary>
 	/// A resolved value from a resolvevr node.
 	/// </summary>

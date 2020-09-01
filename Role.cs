@@ -99,13 +99,12 @@ namespace Api.Permissions
 					{
 						if (node == null)
 						{
-							Grant(kvp.Key);
+							Grant(kvp.Value, new FilterTrue(), null);
 						}
 						else
 						{
-							Grant(kvp.Key, node, srcFilter);
+							Grant(kvp.Value, node, srcFilter);
 						}
-						
 						break;
 					}
 				}
@@ -131,7 +130,19 @@ namespace Api.Permissions
 				// (it's probably a typo in your grant call).
 				throw new Exception("Role '" + Name + "' tried to grant '" + capabilityName + "' but that capability wasn't found.");
 			}
-			
+
+			return Grant(cap, node, srcFilter);
+		}
+
+		/// <summary>
+		/// Grants the given single capability conditionally. The chain must resolve to true to grant the capability.
+		/// Note that this is used via a .If() chain.
+		/// </summary>
+		/// <param name="cap"></param>
+		/// <param name="node"></param>
+		/// <param name="srcFilter"></param>
+		public Role Grant(Capability cap, FilterNode node, Filter srcFilter)
+		{
 			// Resize lookup if we need to:
 			if (cap.InternalId >= CapabilityLookup.Length)
 			{
@@ -149,7 +160,7 @@ namespace Api.Permissions
 			{
 				// Can't replace grants here. Revoke first to avoid, but the dev probably meant to use an Or()/ And() call.
 				throw new Exception(
-					"Attempted to grant '" + capabilityName + "' on role '" + Name + "' again. " +
+					"Attempted to grant '" + cap.Name + "' on role '" + Name + "' again. " +
 					"If you did want to replace the existing grant, use Revoke first to avoid this message. " +
 					"Otherwise, if you wanted to merge them, use Or() or And() calls instead."
 				);
@@ -175,7 +186,9 @@ namespace Api.Permissions
 			var filter = CapabilityFilterLookup[cap.InternalId];
 			if (filter == null)
 			{
-				filter = If();
+				filter = new Filter(contentType) {
+					Role = this
+				};
 				CapabilityFilterLookup[cap.InternalId] = filter;
 			}
 
@@ -189,13 +202,13 @@ namespace Api.Permissions
 		}
 
 		/// <summary>
-		/// Start conditional grants. For example, theRole.If().IsSelf().ThenGrant("UserEdit") - 
+		/// Start conditional grants. For example, theRole.If((Filter f) => f.IsSelf()).ThenGrant("user_update") - 
 		/// this means if the current user is the user being edited then the permission is granted.
 		/// </summary>
 		/// <returns></returns>
-		public Filter If()
+		public RoleIfResolver If(Func<Filter, Filter> resolver)
 		{
-			return new Filter() { Role = this };
+			return new RoleIfResolver() { Role = this, FilterResolver = resolver };
 		}
 		
 		/// <summary>
@@ -439,7 +452,111 @@ namespace Api.Permissions
 		}
 		
 	}
-	
+
+	/// <summary>
+	/// Resolves If() statements on roles.
+	/// </summary>
+	public class RoleIfResolver
+	{
+		/// <summary>
+		/// The role that this is for.
+		/// </summary>
+		public Role Role;
+
+		/// <summary>
+		/// Called for each grant.
+		/// </summary>
+		public Func<Filter, Filter> FilterResolver;
+
+
+		/// <summary>
+		/// If the previous chain resolves to true, then all the given capabilities will be granted.
+		/// </summary>
+		/// <param name="capabilityNames"></param>
+		/// <returns></returns>
+		public Role ThenGrant(params string[] capabilityNames)
+		{
+			// Grant the given set of caps to the given role
+			// Using new instances of this grant chain.
+			// We always use new instances in case people start directly using the grant chain on a particular capability
+			// after applying a bulk if to a bunch of them.
+			for (var i = 0; i < capabilityNames.Length; i++)
+			{
+				// Get the cap:
+				var capabilityName = capabilityNames[i];
+
+				Capability cap;
+				if (!Capabilities.All.TryGetValue(capabilityName.ToLower(), out cap))
+				{
+					// If you ended up here, please check to that you're instancing a capability with the given name 
+					// (it's probably a typo in your grant call).
+					throw new Exception("Role '" + Role.Name + "' tried to grant '" + capabilityName + "' but that capability wasn't found.");
+				}
+
+				GrantInternal(cap);
+			}
+
+			return Role;
+		}
+
+		private void GrantInternal(Capability cap)
+		{
+			var filterType = typeof(Filter<>).MakeGenericType(new Type[] { cap.ContentType });
+			var filter = Activator.CreateInstance(filterType) as Filter;
+			filter = FilterResolver(filter);
+
+			if (filter == null)
+			{
+				// Don't actually grant this.
+				return;
+			}
+
+			var rootNode = filter.Construct();
+			Role.Grant(cap, rootNode, filter);
+		}
+
+		/// <summary>
+		/// If the previous chain resolves to true, then all the given capabilities will be granted.
+		/// </summary>
+		/// <param name="verbs"></param>
+		/// <returns></returns>
+		public Role ThenGrantVerb(params string[] verbs)
+		{
+			for (var i = 0; i < verbs.Length; i++)
+			{
+				verbs[i] = "_" + verbs[i].ToLower();
+			}
+
+			foreach (var kvp in Capabilities.All)
+			{
+				for (var i = 0; i < verbs.Length; i++)
+				{
+					if (kvp.Key.EndsWith(verbs[i]))
+					{
+						GrantInternal(kvp.Value);
+						break;
+					}
+				}
+			}
+
+			/*
+			var rootNode = Construct();
+
+			// Grant the given set of caps to the given role
+			// Using *duplicates* of this grant chain.
+			// We duplicate in case people start directly using the grant chain on a particular capability
+			// after applying a bulk if to a bunch of them.
+			for (var i = 0; i < verbNames.Length; i++)
+			{
+				Role.GrantVerb(rootNode.Copy(), this, verbNames[i]);
+			}
+			*/
+
+			return Role;
+		}
+		
+	}
+
 	/// <summary>
 	/// Used to define a method which returns true/ false depending on if a capability should be granted.
 	/// </summary>

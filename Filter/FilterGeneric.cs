@@ -13,7 +13,7 @@ namespace Api.Permissions
 		/// <summary>
 		/// Create a new filter with no restrictions by default.
 		/// </summary>
-		public Filter() { }
+		public Filter() :base(typeof(T)){ }
 
 		/// <summary>
 		/// Builds a filter safely from a generic JSON payload.

@@ -23,6 +23,11 @@ namespace Api.Permissions
         public readonly int InternalId;
 
         /// <summary>
+        /// The content type that this cap came from (if any).
+        /// </summary>
+        public Type ContentType;
+
+        /// <summary>
         /// Create a new capability. Should only do this once during startup, and typically via extending Capabilities class.
         /// </summary>
         /// <param name="name">

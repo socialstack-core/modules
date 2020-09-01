@@ -277,7 +277,24 @@ namespace Api.Permissions
 				ArgIndex = argIndex
 			});
 		}
-		
+
+		/// <summary>
+		/// Adds a filter node which checks if the value at the given argIndex equals the given value.
+		/// If the arg is an object, it should be of the given type. The value will be obtained from the given field.
+		/// </summary>
+		/// <param name="fieldName"></param>
+		/// <param name="value"></param>
+		/// <param name="argIndex"></param>
+		/// <returns></returns>
+		public Filter EqualsField(string fieldName, object value, int argIndex = 0)
+		{
+			return Add(new FilterFieldEquals(DefaultType, fieldName)
+			{
+				Value = value,
+				ArgIndex = argIndex
+			});
+		}
+
 	}
 
 }

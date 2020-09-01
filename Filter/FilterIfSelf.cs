@@ -11,22 +11,19 @@ namespace Api.Permissions
 
 		/// <summary>
 		/// True if an ID or user object given equals that of the current user.
-		/// Short for IsSelf(typeof(User), "Id")
 		/// </summary>
 		/// <returns></returns>
 		public Filter IsSelf()
 		{
-			return IsSelf(typeof(User), "Id");
-		}
+			// Types that aren't UserCreatedRow or User itself return false always.
+			var isUser = DefaultType == typeof(User);
 
-		/// <summary>
-		/// True if an ID or user object given equals that of the current user.
-		/// Short for IsSelf(typeof(User), "Id")
-		/// </summary>
-		/// <returns></returns>
-		public Filter IsSelf(Type type, string field)
-		{
-			return Add(new FilterFieldEqualsValue(type, field, (Context ctx) => Task.FromResult((object)ctx.UserId)));
+			if (!isUser && !typeof(UserCreatedRow).IsAssignableFrom(DefaultType))
+			{
+				return null;
+			}
+
+			return Add(new FilterFieldEqualsValue(DefaultType, isUser ? "Id" : "UserId", (Context ctx) => Task.FromResult((object)ctx.UserId)));
 		}
 
 	}

@@ -40,14 +40,16 @@ namespace Api.Permissions
 		public JObject FromRequest;
 
 		/// <summary>
-		/// The default type of this filter. E.g. this is filtering Forum threads then this will be typeof(ForumThread).
+		/// The default type of this filter. E.g. this is filtering Forum threads then this will be typeof(ForumThread). Required.
 		/// </summary>
 		public Type DefaultType;
 
 		/// <summary>
 		/// Create a new filter with no restrictions by default.
 		/// </summary>
-		public Filter() { }
+		public Filter(Type defaultType){
+			DefaultType = defaultType;
+		}
 
 		/// <summary>
 		/// Builds a filter safely from a generic JSON payload.
@@ -300,10 +302,9 @@ namespace Api.Permissions
 		public Filter Combine(Filter b)
 		{
 			// Create a new chain and set it up immediately:
-			var combined = new Filter
+			var combined = new Filter(DefaultType)
 			{
 				Role = Role,
-				DefaultType = DefaultType,
 				FromRequest = FromRequest
 			};
 
@@ -573,49 +574,7 @@ namespace Api.Permissions
 			PageIndex = pageIndex;
 			PageSize = pageSize;
 		}
-
-		/// <summary>
-		/// If the previous chain resolves to true, then all the given capabilities will be granted.
-		/// </summary>
-		/// <param name="capabilityNames"></param>
-		/// <returns></returns>
-		public Role ThenGrant(params string[] capabilityNames)
-		{
-			var rootNode = Construct();
-
-			// Grant the given set of caps to the given role
-			// Using *duplicates* of this grant chain.
-			// We duplicate in case people start directly using the grant chain on a particular capability
-			// after applying a bulk if to a bunch of them.
-			for (var i = 0; i < capabilityNames.Length; i++)
-			{
-				Role.Grant(capabilityNames[i], rootNode.Copy(), this);
-			}
-
-			return Role;
-		}
-
-		/// <summary>
-		/// If the previous chain resolves to true, then all the given capabilities will be granted.
-		/// </summary>
-		/// <param name="verbNames"></param>
-		/// <returns></returns>
-		public Role ThenGrantVerb(params string[] verbNames)
-		{
-			var rootNode = Construct();
-
-			// Grant the given set of caps to the given role
-			// Using *duplicates* of this grant chain.
-			// We duplicate in case people start directly using the grant chain on a particular capability
-			// after applying a bulk if to a bunch of them.
-			for (var i = 0; i < verbNames.Length; i++)
-			{
-				Role.GrantVerb(rootNode.Copy(), this, verbNames[i]);
-			}
-
-			return Role;
-		}
-
+		
 		/// <summary>
 		/// Effectively adds the given node either as an X AND node or just the node as-is, depending on what is currently in the filter.
 		/// Note: Do not use this on persisted filters. This should only be used on short lived filter objects as it intentionally does a shallow add and construct.
@@ -658,11 +617,10 @@ namespace Api.Permissions
 				ParamValueResolvers = new List<FilterFieldEqualsValue>();
 			}
 
-			var chain = new Filter
+			var chain = new Filter(DefaultType)
 			{
 				Role = Role,
 				ParamValueResolvers = ParamValueResolvers,
-				DefaultType = DefaultType,
 				FromRequest = FromRequest
 			};
 			subfilter(chain);
@@ -717,10 +675,9 @@ namespace Api.Permissions
 		/// <returns></returns>
 		public virtual Filter Copy(bool withNodes = true)
 		{
-			var filter = new Filter()
+			var filter = new Filter(DefaultType)
 			{
 				Role = Role,
-				DefaultType = DefaultType,
 				FromRequest = FromRequest
 			};
 			if (withNodes)
