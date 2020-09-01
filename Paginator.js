@@ -129,12 +129,43 @@ export default class Paginator extends React.Component {
 
 		var description = this.props.description || "Results";
 		var firstIcon = this.props.firstIcon || "fas fa-fast-backward";
-		var prevIcon = this.props.prevIcon || "fas fa-backward";
-		var nextIcon = this.props.nextIcon || "fas fa-forward";
+		var prevIcon = this.props.prevIcon || "fas fa-play fa-xs fa-flip-horizontal";
+		var nextIcon = this.props.nextIcon || "fas fa-play fa-xs";
 		var lastIcon = this.props.lastIcon || "fas fa-fast-forward";
+
+		/*
+		// as a workaround for having to potentially send rebranded icons for each instance of <Paginator>
+		// (or, more than likely, each instance of a paged <Loop>), check for overrides defined in global state
+		var globalSettings = global.app.state.paginatorSettings;
+
+		if (typeof globalSettings == "object") {
+			firstIcon = globalSettings.firstIcon || firstIcon;
+			prevIcon = globalSettings.prevIcon || prevIcon;
+			nextIcon = globalSettings.nextIcon || nextIcon;
+			lastIcon = globalSettings.lastIcon || lastIcon;
+		}
+		*/
 
 		var showInput = this.props.showInput !== undefined ? this.props.showInput : true;
 		var maxLinks = this.props.maxLinks || 5;
+
+		// override maxLinks if we're on mobile
+		var isMobile = false;
+		var html = document.getElementsByTagName("html");
+
+		if (html.length && html[0].classList.contains("device-mobile")) {
+			isMobile = true;
+		}
+
+		var showFirstLastNav = true;
+		var showPrevNextNav = true;
+
+		if (isMobile) {
+			maxLinks = 3;
+			showFirstLastNav = false;
+			//showPrevNextNav = false;
+		}
+
 		var fromPage, toPage;
 
 		if (maxLinks % 2 == 0) {
@@ -164,58 +195,60 @@ export default class Paginator extends React.Component {
 			pageRange.push(i);
 		}
 
-		var showFullNav = pageRange.length > Math.min(totalPages, maxLinks);
-
 		// .paginator so we can differentiate one of our components
 		// .pagination so we inherit Bootstrap styling
         return <nav className="paginator" aria-label={description} ref={this.paginator}>
 			<ul className="pagination">
-				{showFullNav && <>
-					{/* first page */}
+				{/* first page */}
+				{showFirstLastNav &&
 					<li className="page-item first-page">
-						<button type="button" className="page-link" onClick={() => this.changePage(1)} disabled={currentPage <= 1}>
+						<button type="button" className="page-link" onClick={() => this.changePage(1)} disabled={currentPage <= 1} title="First page">
 							<i className={firstIcon}></i>
 							<span className="sr-only">
 								First page
-						</span>
+							</span>
 						</button>
 					</li>
-					{/* previous page */}
+				}
+				{/* previous page */}
+				{showPrevNextNav &&
 					<li className="page-item prev-page">
-						<button type="button" className="page-link" onClick={() => this.changePage(currentPage - 1)} disabled={currentPage <= 1}>
+						<button type="button" className="page-link" onClick={() => this.changePage(currentPage - 1)} disabled={currentPage <= 1} title="Previous page">
 							<i className={prevIcon}></i>
 							<span className="sr-only">
 								Previous page
-						</span>
+							</span>
 						</button>
 					</li>
-				</>}
+				}
 
 				{/* individual page links */}
 				{
 					this.renderPageLinks(pageRange, currentPage, totalPages)
 				}
 
-				{showFullNav && <>
-					{/* next page */}
+				{/* next page */}
+				{showPrevNextNav &&
 					<li className="page-item next-page">
-						<button type="button" className="page-link" onClick={() => this.changePage(currentPage + 1)} disabled={currentPage == totalPages}>
+						<button type="button" className="page-link" onClick={() => this.changePage(currentPage + 1)} disabled={currentPage == totalPages} title="Next page">
 							<i className={nextIcon}></i>
 							<span className="sr-only">
 								Next page
-						</span>
+							</span>
 						</button>
 					</li>
-					{/* last page */}
+				}
+				{/* last page */}
+				{showFirstLastNav &&
 					<li className="page-item last-page">
-						<button type="button" className="page-link" onClick={() => this.changePage(totalPages)} disabled={currentPage == totalPages}>
+						<button type="button" className="page-link" onClick={() => this.changePage(totalPages)} disabled={currentPage == totalPages} title="Last page">
 							<i className={lastIcon}></i>
 							<span className="sr-only">
 								Last page
-						</span>
+							</span>
 						</button>
 					</li>
-				</>}
+				}
 			</ul>
 			<div className="pagination-overview">
 				{showInput && <>
