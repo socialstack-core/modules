@@ -88,7 +88,12 @@ namespace Api.Huddles
 			// Start and end times:
 			var startSliceId = GetTimeSlice(startTimeUtc);
 			var endSliceId = GetTimeSlice(projectedEndTimeUtc);
-			
+
+			if (endSliceId < startSliceId)
+			{
+				throw new Exception("Unable to schedule a huddle as it ends before it starts. Check your start and end times.");
+			}
+
 			StringBuilder query = new StringBuilder();
 			query.Append(queryStart);
 			
