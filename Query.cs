@@ -594,10 +594,7 @@ namespace Api.Database
 		/// <returns></returns>
 		public Filter Where()
 		{
-			var result = new Filter
-			{
-				DefaultType = MainTableType
-			};
+			var result = new Filter(MainTableType);
 			_where = result;
 			return result;
 		}
