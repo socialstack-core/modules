@@ -389,21 +389,30 @@ export default class Loop extends React.Component {
 			var filter = props.filter;
 			
 			var pageCfg = props.paged;
-			
-			if(pageCfg){
-				if(!filter){
+
+			if (pageCfg) {
+				if (!filter) {
 					filter = {};
 				}
-				filter = {...filter};
-				filter.pageIndex = (newPageIndex || this.state.pageIndex)-1;
+				filter = { ...filter };
+				filter.pageIndex = (newPageIndex || this.state.pageIndex) - 1;
 				filter.includeTotal = true;
 				var pageSize = pageCfg.pageSize || DEFAULT_PAGE_SIZE;
-				
+
 				if (typeof pageCfg == "number") {
 					pageSize = pageCfg;
 				}
 				if (!filter.pageSize) {
 					filter.pageSize = pageSize;
+				}
+			}
+
+			// check - override page size if mobile-specific page size given and we're on a mobile device
+			if (typeof pageCfg == "object" && pageCfg.mobilePageSize) {
+				var html = document.getElementsByTagName("html");
+
+				if (html.length && html[0].classList.contains("device-mobile")) {
+					filter.pageSize = pageCfg.mobilePageSize;
 				}
 			}
 			
