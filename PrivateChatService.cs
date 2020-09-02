@@ -45,45 +45,11 @@ namespace Api.PrivateChats
 				return chat;
 			}, 5);
 			
-			Events.PrivateChat.AfterUpdate.AddEventListener(async (Context context, PrivateChat chat) =>
-			{
-				if (chat == null)
-				{
-					return null;
-				}
-
-				if (chat.TargetContentId != 0)
-				{
-					// Get the target info:
-					chat.Target = await Content.Get(context, chat.TargetContentType, chat.TargetContentId);
-				}
-
-				if (chat.SourceContentId != 0)
-				{
-					// Get the source info:
-					chat.Source = await Content.Get(context, chat.SourceContentType, chat.SourceContentId);
-				}
-
-				return chat;
-			}, 5);
-			
 			Events.PrivateChat.AfterCreate.AddEventListener(async (Context context, PrivateChat chat) =>
 			{
 				if (chat == null)
 				{
 					return null;
-				}
-
-				if (chat.TargetContentId != 0)
-				{
-					// Get the target info:
-					chat.Target = await Content.Get(context, chat.TargetContentType, chat.TargetContentId);
-				}
-
-				if (chat.SourceContentId != 0)
-				{
-					// Get the source info:
-					chat.Source = await Content.Get(context, chat.SourceContentType, chat.SourceContentId);
 				}
 				
 				// If there's a message, create it as well now:
@@ -103,13 +69,50 @@ namespace Api.PrivateChats
 				
 				return chat;
 			}, 5);
+			
+			Events.PrivateChat.BeforeUpdate.AddEventListener(async (Context context, PrivateChat chat) =>
+			{
+				if (chat == null)
+				{
+					return null;
+				}
 
-			Events.PrivateChat.BeforeCreate.AddEventListener((Context context, PrivateChat chat) => {
+				// Must have access to both target and src:
+				if (chat.SourceContentType == 0 && chat.SourceContentId == 0)
+				{
+					// It's not set - default to being from the contextual user.
+					chat.SourceContentType = ContentTypes.GetId(typeof(User));
+					chat.SourceContentId = context.UserId;
+				}
+				else if (!context.HasContent(chat.SourceContentType, chat.SourceContentId))
+				{
+					// The context does not have this source.
+					// For example, user tried to send as company Y, but they aren't authenticated as company Y.
+					// Aka, go away!
+					return null;
+				}
+				
+				if (chat.TargetContentId != 0)
+				{
+					// Get the target info:
+					chat.Target = await Content.Get(context, chat.TargetContentType, chat.TargetContentId, true);
+				}
+				
+				if (chat.SourceContentId != 0)
+				{
+					// Get the source info:
+					chat.Source = await Content.Get(context, chat.SourceContentType, chat.SourceContentId, true);
+				}
+				
+				return chat;
+			}, 5);
+			
+			Events.PrivateChat.BeforeCreate.AddEventListener(async (Context context, PrivateChat chat) => {
 
 				// Permitted to create this chat for the named source if this context has that source.
 				if (chat == null)
 				{
-					return Task.FromResult(chat);
+					return chat;
 				}
 
 				if (chat.SourceContentType == 0 && chat.SourceContentId == 0)
@@ -123,10 +126,22 @@ namespace Api.PrivateChats
 					// The context does not have this source.
 					// For example, user tried to send as company Y, but they aren't authenticated as company Y.
 					// Aka, go away!
-					return Task.FromResult((PrivateChat)null);
+					return null;
+				}
+				
+				if (chat.TargetContentId != 0)
+				{
+					// Get the target info:
+					chat.Target = await Content.Get(context, chat.TargetContentType, chat.TargetContentId, true);
+				}
+				
+				if (chat.SourceContentId != 0)
+				{
+					// Get the source info:
+					chat.Source = await Content.Get(context, chat.SourceContentType, chat.SourceContentId, true);
 				}
 
-				return Task.FromResult(chat);
+				return chat;
 			});
 
 			Events.PrivateChat.AfterList.AddEventListener(async (Context context, List<PrivateChat> list) =>
