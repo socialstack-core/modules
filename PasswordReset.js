@@ -37,6 +37,7 @@ export default class PasswordReset extends React.Component {
     }
     
 	render(){
+		var {policy} = this.state;
 		
 		return <div className="password-reset">
 			{
@@ -66,10 +67,21 @@ export default class PasswordReset extends React.Component {
 									// Go to homepage:
 									global.pageRouter.go('/');
 								}
-								
+							}}
+							onValues={v => {
+								this.setState({policy: null});
+								return v;
+							}}
+							onFailed={e => {
+								this.setState({policy: e});
 							}}
                         >
                             <Input name="password" type="password" placeholder="Your password" />
+							{policy && (
+								<Alert type="error">{
+									policy.message || 'Unable to set your password - the request may have expired'
+								}</Alert>
+							)}
                         </Form>
                     )
                 )
