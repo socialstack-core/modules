@@ -415,7 +415,12 @@ public class AutoService
 	/// The database service.
 	/// </summary>
 	protected IDatabaseService _database;
-
+	
+	/// <summary>
+	/// The load capability for this service.
+	/// </summary>
+	private Capability _loadCapability;
+	
 	/// <summary>
 	/// The add mask to use for a nestable service.
 	/// Nested services essentially automatically block infinite recursion when loading data.
@@ -439,7 +444,21 @@ public class AutoService
 			return NestableAddMask != 0;
 		}
 	}
+	
+	/// <summary>
+	/// Gets the load capability.
+	/// </summary>
+	public Capability GetLoadCapability()
+	{
+		if(_loadCapability != null)
+		{
+			return _loadCapability;
+		}
 
+		Capabilities.All.TryGetValue(ServicedType.Name.ToLower() + "_load", out _loadCapability);
+		return _loadCapability;
+	}
+	
 	/// <summary>
 	/// Creates a new AutoService.
 	/// </summary>
