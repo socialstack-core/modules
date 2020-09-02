@@ -46,7 +46,7 @@ namespace Api.Huddles
 
 				foreach (var invite in huddle.Invites)
 				{
-					if (invite.PermittedUserId == context.UserId)
+					if (invite.PermittedUserId != 0 && invite.PermittedUserId == context.UserId)
 					{
 						invited = true;
 						break;
