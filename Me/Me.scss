@@ -1,11 +1,11 @@
-/*
-	Optional stylesheet
-*/
-
-.me{
+.me {
 	position: relative;
-	height: 100%;
-	width: 100%;
+	//height: 100%;
+	//width: 100%;
+	//width: 300px;
+	width: 23vw;
+	min-width: 300px;
+	padding-top: 56.25%; // based on parent width: mimics 16/9 ratio
 
 	> .controls {
 		position: absolute;
@@ -115,4 +115,13 @@
 			}
 		}
 	}
+}
+
+html.device-mobile {
+
+	.me {
+		width: calc(100vw - 30px);
+		min-width: 0;
+	}
+
 }

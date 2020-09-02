@@ -1,17 +1,5 @@
 .peer{
-	flex: 100 100 auto;
-	position: relative;
-	height: 100%;
-	width: 100%;
-
-/*
-	+mobile() {
-		display: flex;
-		flex-direction: column;
-		justify-content: center;
-		align-items: center;
-	}
-*/
+	padding-top: 56.25%;
 
 	> .indicators {
 		position: absolute;
@@ -35,12 +23,6 @@
 			background-repeat: no-repeat;
 			transition-property: opacity;
 			transition-duration: 0.15s;
-
-/*
-			+desktop() {
-				opacity: 0.85;
-			}
-*/
 
 			&.mic-off {
 				background-image: url('./images/icon_remote_mic_white_off.svg');

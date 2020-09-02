@@ -1,7 +1,3 @@
-/*
-	Optional stylesheet
-*/
-
 .videoChat{
 	position: relative;
 	height: 100%;
@@ -27,15 +23,6 @@
 			margin-right: 0;
 			height: 16px;
 			width: 16px;
-			
-			/*
-			+mobile() {
-				margin: 4px;
-				margin-right: 0;
-				height: 16px;
-				width: 16px;
-			}
-			*/
 
 			&.new, &.closed {
 				background-color: rgba(#aaa, 0.5);
@@ -43,12 +30,6 @@
 			
 			&.connected {
 				background-color: rgba(#30bd18, 0.75);
-				
-				/*
-				+mobile() {
-					display: none;
-				}
-				*/
 			}
 		}
 	}
@@ -64,22 +45,12 @@
 		&.active-speaker {
 			border-color: green;
 		}
-	
-		height: 250px;
-		width: 294px;
-		bottom: 60px;
+
+		// dimensions set in .me child element
+		// (necessary as we need to set position: relative on the same element, but parent also needs to remain fixed)
+		bottom: 70px;
 		left: 20px;
 		border: 1px solid rgba(#fff, 0.15);
-		
-		/*
-		+mobile() {
-			height: 220px;
-			width: 200px;
-			bottom: 50px;
-			left: 10px;
-			border: 1px solid rgba(#fff, 0.25);
-		}
-		*/
 	}
 	
 	> .sidebar {
@@ -96,14 +67,6 @@
 		width: 36px;
 		margin-top: -60px;
 		
-		/*
-		+mobile() {
-			left: 10px;
-			width: 32px;
-			margin-top: -80px;
-		}
-		*/
-		
 		> .button {
 			flex: 0 0 auto;
 			margin: 4px 0;
@@ -118,13 +81,6 @@
 
 			height: 36px;
 			width: 36px;
-			
-			/*
-			+mobile() {
-				height: 32px;
-				width: 32px;
-			}
-			*/
 			
 			&.on {
 				background-color: rgba(#fff, 0.7);
@@ -157,4 +113,17 @@
 			}
 		}
 	}
+}
+
+html.device-mobile {
+
+	.videoChat {
+
+		> .state,
+		> .me-container {
+			left: 15px;
+		}
+
+	}
+
 }

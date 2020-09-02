@@ -56,15 +56,20 @@ export default class PeerView extends React.Component {
 		}
 		
 		if(!videoVisible || !videoCanPlay){
-			videoClassNames += 'hidden ';
+			videoClassNames += 'peerview-hidden ';
 		}
 		
 		if(videoVisible && videoMultiLayer && consumerCurrentSpatialLayer === null){
 			videoClassNames += 'network-error';
 		}
+
+		//var avatarUrl = user && user.avatarRef ? getRef(user.avatarRef, { url: true, size: 100 }) : "";
+		//console.log(isMe ? "ME: " : "PEER: ", peer);
+		//console.log("name: ", displayName);
 		
 		return (
 			<div className='peerView'>
+
 			{/*
 				<div className='info'>
 					<div className={'peer ' + (isMe ? 'is-me' : '')}>
