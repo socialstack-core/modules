@@ -1,4 +1,5 @@
 ﻿using Api.Contexts;
+using Api.Permissions;
 using Api.Startup;
 using Api.Users;
 using System;
@@ -17,7 +18,6 @@ namespace Api.Database
 	/// </summary>
 	public static class Content
 	{
-
 		/// <summary>
 		/// Updates a piece of generic content.
 		/// </summary>
@@ -49,9 +49,10 @@ namespace Api.Database
 		/// <param name="context"></param>
 		/// <param name="contentTypeId"></param>
 		/// <param name="contentId"></param>
+		/// <param name="permCheck"></param>
 		/// <param name="convertUser">Converts User objects to UserProfile if true (default).</param>
 		/// <returns></returns>
-		public static async Task<object> Get(Context context, int contentTypeId, int contentId, bool convertUser = true)
+		public static async Task<object> Get(Context context, int contentTypeId, int contentId, bool permCheck = false, bool convertUser = true)
 		{
 			// Get the service:
 			var service = Services.GetByContentTypeId(contentTypeId);
@@ -62,6 +63,17 @@ namespace Api.Database
 			}
 
 			var objResult = await service.GetObject(context, contentId);
+
+			if (permCheck)
+			{
+				// Grab the Load capability:
+				var cap = service.GetLoadCapability();
+
+				if (!await context.Role.IsGranted(cap, context, new object[] { objResult }))
+				{
+					throw PermissionException.Create(cap.Name, context);
+				}
+			}
 
 			// Special case for users, up until UserProfile is removed.
 			if (convertUser && objResult is User)
