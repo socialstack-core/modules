@@ -23,6 +23,12 @@ namespace Api.Users
 		Task<User> Get(Context context, int id);
 
 		/// <summary>
+		/// Gets the UserProfile_Load capability.
+		/// </summary>
+		/// <returns></returns>
+		Capability GetProfileLoadCapability();
+
+		/// <summary>
 		/// Get a public facing user profile.
 		/// </summary>
 		/// <param name="context"></param>

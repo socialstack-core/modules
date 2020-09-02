@@ -91,6 +91,23 @@ namespace Api.Users
 			InstallAdminPages("Users", "fa:fa-user", new string[] { "id", "email", "username" });
 		}
 
+		private Capability _profileLoad;
+
+		/// <summary>
+		/// Gets the UserProfile_Load capability.
+		/// </summary>
+		/// <returns></returns>
+		public Capability GetProfileLoadCapability()
+		{
+			if (_profileLoad != null)
+			{
+				return _profileLoad;
+			}
+
+			Capabilities.All.TryGetValue("userprofile_load", out _profileLoad);
+			return _profileLoad;
+		}
+
 		/// <summary>
 		/// Public fields of the UserProfile object which will be auto transferred.
 		/// </summary>
