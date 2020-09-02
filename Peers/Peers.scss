@@ -1,9 +1,26 @@
+@mixin peer_width($peerTotal, $width, $minWidth: null) {
+
+	&.peers-#{$peerTotal} {
+
+		.peers > .peer-container {
+			width: $width;
+
+			@if ($minWidth) {
+			    min-width: $minWidth;
+			}
+		}
+
+	}
+
+}
+
 .peers {
+
 	.nobody-else{
 		text-align: center;
 		padding: 1em;
 	}
-
+	
 	// NB: height set via inline style (necessary to support calc referencing header / footer heights)
 	min-height: px_to_rem(600);
 	padding-top: 3rem;
@@ -38,16 +55,135 @@
 	}
 }
 
+.videoChat {
+	// defaults for 1920x1080
+	@include peer_width(1, 50vw);
+	@include peer_width(2, 48vw);
+	@include peer_width(3, 32vw);
+	@include peer_width(4, 25vw);
+	@include peer_width(5, 25vw);
+	@include peer_width(6, 23vw);
+}
+
+// iPad overrides
+html.device-ipad {
+
+    @media only screen and (orientation: portrait) {
+
+		.videoChat {
+			@include peer_width(1, 95vw);
+			@include peer_width(2, 72vw);
+			@include peer_width(3, 49vw);
+			@include peer_width(4, 47vw);
+			@include peer_width(5, 47vw);
+			@include peer_width(6, 47vw);
+		}
+
+    }
+
+    @media only screen and (orientation: landscape) {
+
+		.videoChat {
+			@include peer_width(1, 80vw);
+			@include peer_width(2, 48vw);
+			@include peer_width(3, 44vw);
+			@include peer_width(4, 35vw);
+			@include peer_width(5, 31vw);
+			@include peer_width(6, 31vw);
+		}
+    }
+
+}
+
+// mobile overrides
 html.device-mobile {
 
-	.peers {
+	@media only screen and (orientation: portrait) {
 
-		> .peer-container {
-			border: 0;
-			box-shadow: none;
-			margin: 1px;
-			width: calc(50vw - 2px);
-			min-width: 0;
+		.videoChat {
+			@include peer_width(1, calc(100vw - 30px));
+			@include peer_width(2, calc(100vw - 30px));
+
+			&.peers-3 {
+
+				.peers > .peer-container {
+					width: 60vw;
+					min-width: 0;
+				}
+			}
+
+			&.peers-4,
+			&.peers-5,
+			&.peers-6,
+			&.peers-7 {
+
+				.peers > .peer-container {
+					border: 0;
+					box-shadow: none;
+					margin: 1px;
+					width: calc(50vw - 2px) !important;
+					min-width: 0 !important;
+				}
+			}
+		}
+	}
+
+	@media only screen and (orientation: landscape) {
+
+		.peers {
+			padding-left: 280px;
+			min-height: 0;
+		}
+
+		.videoChat {
+			//@include peer_width(1, 50vw);
+
+			&.peers-2,
+			&.peers-3,
+			&.peers-4,
+			&.peers-5,
+			&.peers-6,
+			&.peers-7 {
+
+				.peers > .peer-container {
+					border: 0;
+					box-shadow: none;
+					margin: 1px;
+					min-width: 0 !important;
+				}
+			}
+
+
+			&.peers-2 {
+
+				.peers > .peer-container {
+					width: calc(((100vw - 280px) / 2) - 2px) !important;
+				}
+			}
+
+			&.peers-3,
+			&.peers-4 {
+
+				.peers > .peer-container {
+					width: calc(((100vw - 400px) / 2) - 2px) !important;
+				}
+			}
+
+			&.peers-5,
+			&.peers-6 {
+
+				.peers > .peer-container {
+					width: calc(((100vw - 480px) / 2) - 2px) !important;
+				}
+			}
+
+			&.peers-7 {
+
+				.peers > .peer-container {
+					width: calc(((100vw - 560px) / 2) - 2px) !important;
+				}
+			}
+
 		}
 
 	}
