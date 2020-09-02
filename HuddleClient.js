@@ -252,10 +252,30 @@ export default class HuddleClient
 		this.events[evt] = set.filter(h => h!=handler);
 	}
 	
+	joinFail()
+	{
+		this.dispatchEvent(
+		{
+			type : 'error',
+			join : true,
+			text : 'This meeting doesn\'t exist, or you weren\'t able to join it.'
+		});
+	}
+	
 	async join()
 	{
 		var huddleInfo = await webRequest('huddle/' + this.room.id + '/join');
+		
+		if(!huddleInfo || !huddleInfo.json){
+			return this.joinFail();
+		}
+		
 		var url = huddleInfo.json.connectionUrl;
+		
+		if(!url){
+			return this.joinFail();
+		}
+		
 		var isHttps = url.indexOf("localhost") == -1;
 		const protooTransport = new protoo.WebSocketTransport((isHttps ? 'wss' : 'ws') + '://' + url.trim());
 		this._protoo = new protoo.Peer(protooTransport);
@@ -388,6 +408,7 @@ export default class HuddleClient
 						this.dispatchEvent(
 						{
 							type : 'error',
+							minor: true,
 							text : 'Error creating a Consumer: ' + error
 						});
 
@@ -698,6 +719,7 @@ export default class HuddleClient
 				this.dispatchEvent(
 					{
 						type : 'error',
+						minor: true,
 						text : 'Microphone disconnected!'
 					});
 
@@ -712,6 +734,7 @@ export default class HuddleClient
 			this.dispatchEvent(
 				{
 					type : 'error',
+					minor: true,
 					text : 'Error enabling microphone: ' + error
 				});
 
@@ -739,6 +762,7 @@ export default class HuddleClient
 		{
 			this.dispatchEvent({
 				type : 'error',
+				minor: true,
 				text : 'Error closing server-side mic Producer: ' + error
 			});
 		}
@@ -767,6 +791,7 @@ export default class HuddleClient
 			console.error('muteMic() | failed: %o', error);
 			this.dispatchEvent({
 				type : 'error',
+				minor: true,
 				text : 'Error pausing server-side mic Producer: ' + error
 			});
 		}
@@ -793,6 +818,7 @@ export default class HuddleClient
 
 			this.dispatchEvent({
 				type : 'error',
+				minor: true,
 				text : 'Error resuming server-side mic Producer: ' + error
 			});
 		}
@@ -930,6 +956,7 @@ export default class HuddleClient
 			{
 				this.dispatchEvent({
 					type : 'error',
+					minor: true,
 					text : 'Webcam disconnected!'
 				});
 
@@ -943,6 +970,7 @@ export default class HuddleClient
 
 			this.dispatchEvent({
 				type : 'error',
+				minor: true,
 				text : 'Error enabling webcam: ' + error
 			});
 			
@@ -974,6 +1002,7 @@ export default class HuddleClient
 			this.dispatchEvent(
 			{
 				type : 'error',
+				minor: true,
 				text : 'Error closing server-side webcam Producer: ' + error
 			});
 		}
@@ -1039,6 +1068,7 @@ export default class HuddleClient
 		{
 			this.dispatchEvent({
 				type : 'error',
+				minor: true,
 				text : 'Could not change webcam: ' + error
 			});
 		}
@@ -1101,6 +1131,7 @@ export default class HuddleClient
 
 			this.dispatchEvent({
 				type : 'error',
+				minor: true,
 				text : 'Could not change webcam resolution: ' + error
 			});
 		}
@@ -1244,6 +1275,7 @@ export default class HuddleClient
 				this.dispatchEvent(
 				{
 					type : 'error',
+					minor: true,
 					text : 'Share disconnected!'
 				});
 
@@ -1258,6 +1290,7 @@ export default class HuddleClient
 				this.dispatchEvent(
 				{
 					type : 'error',
+					minor: true,
 					text : 'Error sharing: ' + error
 				});
 			}
@@ -1290,6 +1323,7 @@ export default class HuddleClient
 			this.dispatchEvent(
 			{
 				type : 'error',
+					minor: true,
 				text : 'Error closing server-side share Producer: ' + error
 			});
 		}
@@ -1442,6 +1476,7 @@ export default class HuddleClient
 			this.dispatchEvent(
 			{
 				type : 'error',
+				minor: true,
 				text : 'Error setting max sending video spatial layer: ' + error
 			});
 		}
@@ -1470,6 +1505,7 @@ export default class HuddleClient
 			this.dispatchEvent(
 			{
 				type : 'error',
+				minor: true,
 				text : 'Error setting Consumer preferred layers: ' + error
 			});
 		}
@@ -1495,6 +1531,7 @@ export default class HuddleClient
 			this.dispatchEvent(
 			{
 				type : 'error',
+				minor: true,
 				text : 'Error setting Consumer priority: ' + error
 			});
 		}
@@ -1517,6 +1554,7 @@ export default class HuddleClient
 			this.dispatchEvent(
 			{
 				type : 'error',
+				minor: true,
 				text : 'Error requesting key frame for Consumer: ' + error
 			});
 		}
@@ -1625,6 +1663,7 @@ export default class HuddleClient
 			this.dispatchEvent(
 			{
 				type : 'error',
+				minor: true,
 				text : 'Error applying network throttle: ' + error
 			});
 		}
@@ -1645,6 +1684,7 @@ export default class HuddleClient
 				this.dispatchEvent(
 				{
 					type : 'error',
+					minor: true,
 					text : 'Error resetting network throttle: ' + error
 				});
 			}
@@ -1965,6 +2005,7 @@ export default class HuddleClient
 			this.dispatchEvent(
 			{
 				type : 'error',
+				minor: true,
 				text : 'Error pausing Consumer: ' + error
 			});
 		}
@@ -1995,6 +2036,7 @@ export default class HuddleClient
 			this.dispatchEvent(
 			{
 				type : 'error',
+				minor: true,
 				text : 'Error resuming Consumer: ' + error
 			});
 		}
