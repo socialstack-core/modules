@@ -2,6 +2,7 @@ using Api.Contexts;
 using Api.Eventing;
 using Api.PasswordAuth;
 using Api.Permissions;
+using Api.Startup;
 using Api.Users;
 using Microsoft.AspNetCore.Mvc;
 using System;
@@ -65,66 +66,77 @@ namespace Api.PasswordResetRequests
 		[HttpPost("login/{token}")]
 		public async Task<object> LoginWithToken(string token, [FromBody] NewPassword newPassword)
 		{
-			var context = Request.GetContext();
-			
-			if (context == null || newPassword == null || string.IsNullOrWhiteSpace(newPassword.Password))
+			try
 			{
-				return null;
+				var context = Request.GetContext();
+				
+				if (context == null || newPassword == null || string.IsNullOrWhiteSpace(newPassword.Password))
+				{
+					return null;
+				}
+				
+				var svc = (_service as IPasswordResetRequestService);
+				
+				var request = await svc.Get(context, token);
+				
+				if(request == null)
+				{
+					Response.StatusCode = 404;
+					return null;
+				}
+				
+				// Has it expired?
+				if(svc.HasExpired(request))
+				{
+					Response.StatusCode = 400;
+					return null;
+				}
+				
+				// Get the target user account:
+				var targetUser = await _users.Get(context, request.UserId);
+				
+				if (targetUser == null)
+				{
+					// User doesn't exist.
+					Response.StatusCode = 403;
+					return null;
+				}
+
+				// Set the password on the user account:
+				var authService = Services.Get<IPasswordAuthService>();
+				
+				await authService.EnforcePolicy(newPassword.Password);
+				
+				targetUser.PasswordHash = PasswordStorage.CreateHash(newPassword.Password);
+
+				targetUser = await _users.Update(context, targetUser);
+
+				if (targetUser == null)
+				{
+					// API forced a halt:
+					Response.StatusCode = 403;
+					return null;
+				}
+
+				// Burn the token:
+				request.IsUsed = true;
+				await _service.Update(context, request);
+
+				// Set user:
+				context.SetUser(targetUser);
+				context.RoleId = targetUser.Role;
+				
+				await Events.PasswordResetRequestAfterSuccess.Dispatch(context, request);
+				
+				// Regenerate the contextual token:
+				context.SendToken(Response);
+				
+				return await context.GetPublicContext();
 			}
-			
-			var svc = (_service as IPasswordResetRequestService);
-			
-			var request = await svc.Get(context, token);
-			
-			if(request == null)
+			catch (PublicException e)
 			{
-				Response.StatusCode = 404;
-				return null;
+				return e.Apply(Response);
 			}
-			
-			// Has it expired?
-			if(svc.HasExpired(request))
-			{
-				Response.StatusCode = 400;
-				return null;
-			}
-			
-			// Get the target user account:
-            var targetUser = await _users.Get(context, request.UserId);
-			
-            if (targetUser == null)
-            {
-				// User doesn't exist.
-                Response.StatusCode = 403;
-                return null;
-            }
-
-			// Set the password on the user account:
-			targetUser.PasswordHash = PasswordStorage.CreateHash(newPassword.Password.Trim());
-
-			targetUser = await _users.Update(context, targetUser);
-
-			if (targetUser == null)
-			{
-				// API forced a halt:
-				Response.StatusCode = 403;
-				return null;
-			}
-
-			// Burn the token:
-			request.IsUsed = true;
-			await _service.Update(context, request);
-
-			// Set user:
-			context.SetUser(targetUser);
-			context.RoleId = targetUser.Role;
-			
-			await Events.PasswordResetRequestAfterSuccess.Dispatch(context, request);
-			
-            // Regenerate the contextual token:
-            context.SendToken(Response);
-			
-            return await context.GetPublicContext();
 		}
 		
 		/// <summary>
