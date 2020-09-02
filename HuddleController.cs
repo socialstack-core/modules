@@ -31,6 +31,33 @@ namespace Api.Huddles
 				// Doesn't exist or not permitted (the permission system internally checks huddle type and invites).
 				return null;
 			}
+
+			// Is the current contextual user permitted to join?
+			// Either it's open, or they must be on the invite list:
+			if (huddle.HuddleType != 0)
+			{
+				// Must be a permitted user:
+				if (huddle.Invites == null)
+				{
+					return null;
+				}
+
+				var invited = false;
+
+				foreach (var invite in huddle.Invites)
+				{
+					if (invite.PermittedUserId == context.UserId)
+					{
+						invited = true;
+						break;
+					}
+				}
+
+				if (!invited)
+				{
+					return null;
+				}
+			}
 			
 			// Sign a join URL:
 			var connectionUrl = await service.SignUrl(context, huddle);
