@@ -214,6 +214,13 @@ export default class Input extends React.Component {
 
             var defaultValue = typeof this.state.selectValue === 'undefined' ? this.props.defaultValue : this.state.selectValue;
             var noSelection = this.props.noSelection || "None Specified";
+            var mobileNoSelection = this.props.mobileNoSelection || "None Specified";
+
+            var html = document.getElementsByTagName("html");
+
+            if (html.length && html[0].classList.contains("device-mobile")) {
+                noSelection = mobileNoSelection;
+            }
 
             return (
                 <select
