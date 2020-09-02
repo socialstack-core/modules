@@ -3,7 +3,7 @@ using System.Reflection;
 using System.Threading.Tasks;
 using Api.Contexts;
 using System.Collections.Generic;
-
+using System.Collections;
 
 namespace Api.Permissions
 {
@@ -275,6 +275,18 @@ namespace Api.Permissions
 			{
 				Value = value,
 				ArgIndex = argIndex
+			});
+		}
+
+		/// <summary>
+		/// Convenience function for granting a capability only if we're provided an entry from the given set.
+		/// </summary>
+		/// <returns></returns>
+		public Filter Equals(string fieldName, IEnumerable values)
+		{
+			return Add(new FilterFieldEqualsSet(DefaultType, fieldName)
+			{
+				Values = values
 			});
 		}
 
