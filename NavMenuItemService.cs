@@ -134,7 +134,7 @@ namespace Api.NavMenus
 				var filter = new Filter<NavMenuItem>();
 				filter.Equals("Target", item.Target).And().Equals("MenuKey", item.MenuKey);
 					
-				var existingEntry = (await List(context, filter));
+				var existingEntry = (await ListNoCache(context, filter));
 
 				if (existingEntry.Count == 0)
 				{
