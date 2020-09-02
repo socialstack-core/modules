@@ -50,6 +50,12 @@ namespace Api.Huddles
                     return null;
                 }
 
+                // Check that the invited content is accessible:
+                if (permit.InvitedContentId != 0)
+                {
+                    permit.InvitedContent = await Content.Get(context, permit.InvitedContentTypeId, permit.InvitedContentId, true);
+                }
+                
                 // make sure the user is allowed to invite this entity to the huddle 
                 if (context.UserId == huddle.CreatorUser.Id ||
                     (huddle.HuddleType == 1 && context.UserId == permit.InvitedContentId && permit.InvitedContentTypeId == ContentTypes.GetId("User")))
@@ -85,7 +91,7 @@ namespace Api.Huddles
                 return permit;
             });
 
-            Events.HuddlePermittedUser.AfterUpdate.AddEventListener(async (Context context, HuddlePermittedUser permit) =>
+            Events.HuddlePermittedUser.BeforeUpdate.AddEventListener(async (Context context, HuddlePermittedUser permit) =>
             {
                 if (permit == null)
                 {
@@ -96,7 +102,7 @@ namespace Api.Huddles
 
                 if (permit.InvitedContentId != 0)
                 {
-                    permit.InvitedContent = await Content.Get(context, permit.InvitedContentTypeId, permit.InvitedContentId);
+                    permit.InvitedContent = await Content.Get(context, permit.InvitedContentTypeId, permit.InvitedContentId, true);
                 }
 
                 // Get the permitted user profile:
@@ -115,11 +121,6 @@ namespace Api.Huddles
                     // Due to the way how event chains work, the primary object can be null.
                     // Safely ignore this.
                     return null;
-                }
-
-                if (permit.InvitedContentId != 0)
-                {
-                    permit.InvitedContent = await Content.Get(context, permit.InvitedContentTypeId, permit.InvitedContentId);
                 }
 
                 // Get the permitted user profile:
