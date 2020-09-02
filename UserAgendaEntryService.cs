@@ -33,8 +33,8 @@ namespace Api.UserAgendaEntries
 
 				return agendaEntry;
 			}, 5);
-			
-			Events.UserAgendaEntry.AfterUpdate.AddEventListener(async (Context context, UserAgendaEntry agendaEntry) =>
+
+			Events.UserAgendaEntry.BeforeUpdate.AddEventListener(async (Context context, UserAgendaEntry agendaEntry) =>
 			{
 				if (agendaEntry == null)
 				{
@@ -43,14 +43,14 @@ namespace Api.UserAgendaEntries
 
 				if (agendaEntry.ContentId != 0)
 				{
-					// Get the content info:
-					agendaEntry.Content = await Content.Get(context, agendaEntry.ContentTypeId, agendaEntry.ContentId);
+					// Get the content info (throws if permission fails):
+					agendaEntry.Content = await Content.Get(context, agendaEntry.ContentTypeId, agendaEntry.ContentId, true);
 				}
 
 				return agendaEntry;
 			}, 5);
 			
-			Events.UserAgendaEntry.AfterCreate.AddEventListener(async (Context context, UserAgendaEntry agendaEntry) =>
+			Events.UserAgendaEntry.BeforeCreate.AddEventListener(async (Context context, UserAgendaEntry agendaEntry) =>
 			{
 				if (agendaEntry == null)
 				{
@@ -59,8 +59,8 @@ namespace Api.UserAgendaEntries
 
 				if (agendaEntry.ContentId != 0)
 				{
-					// Get the content info:
-					agendaEntry.Content = await Content.Get(context, agendaEntry.ContentTypeId, agendaEntry.ContentId);
+					// Get the content info (throws if permission fails):
+					agendaEntry.Content = await Content.Get(context, agendaEntry.ContentTypeId, agendaEntry.ContentId, true);
 				}
 
 				return agendaEntry;
@@ -72,8 +72,6 @@ namespace Api.UserAgendaEntries
 				{
 					return list;
 				}
-				
-				#warning Security todo. The permission system applies to controllers, not services, so this generic content get/ applymixed mechanism can be exploited here
 				
 				// Can be mixed content so we'll use the Content.ApplyMixed helper:
 				await Content.ApplyMixed(
