@@ -8,6 +8,7 @@ using Newtonsoft.Json;
 using Microsoft.AspNetCore.Http;
 using Api.Startup;
 using Newtonsoft.Json.Linq;
+using System;
 
 namespace Api.PasswordAuth
 {
@@ -19,8 +20,19 @@ namespace Api.PasswordAuth
 	/// </summary>
 	public partial class PasswordAuthService : IPasswordAuthService
     {
+		
+		/// <summary>
+		/// Min password length.
+		/// </summary>
+		public int MinLength = 10;
+		
+		/// <summary>
+		/// True if new passwords should be checked for public exposure.
+		/// </summary>
+		public bool CheckIfExposed = true;
+		
 		private IUserService _users;
-
+		
 		/// <summary>
 		/// Instanced automatically. Use injection to use this service, or Startup.Services.Get.
 		/// </summary>
@@ -89,14 +101,16 @@ namespace Api.PasswordAuth
 					field.Name = "Password";
 
 					// Set value method:
-					field.OnSetValue.AddEventListener((Context ctx, object value, User target, JToken token) => {
+					field.OnSetValue.AddEventListener(async (Context ctx, object value, User target, JToken token) => {
+						
+						// Get the pwd and attempt to enforce it (throws if it fails):
+						var pwd = token.ToObject<string>();
+						await EnforcePolicy(pwd);
+						
+						// Ok:
+						value = PasswordStorage.CreateHash(pwd);
+						return value;
 
-						if (token.Type == JTokenType.String)
-						{
-							value = PasswordStorage.CreateHash(token.ToObject<string>());
-						}
-
-						return Task.FromResult(value);
 					});
 
 				}
@@ -104,6 +118,43 @@ namespace Api.PasswordAuth
 				return Task.FromResult(field);
 			});
 			
+		}
+		
+		/// <summary>
+		/// Enforces pwd policy on the given password.
+		/// </summary>
+		public async Task EnforcePolicy(string pwd)
+		{
+			if(pwd == null)
+			{
+				throw new PublicException("Password must be longer than " + MinLength + " characters.", "password_length");
+			}
+
+			pwd = pwd.Trim();
+
+			if(pwd.Length < MinLength)
+			{
+				throw new PublicException("Password must be longer than " + MinLength + " characters.", "password_length");
+			}
+
+			if (CheckIfExposed)
+			{
+				var isExposed = false;
+				try
+				{
+					isExposed = await PwnedPasswords.IsPasswordPwned(pwd, System.Threading.CancellationToken.None);
+				}
+				catch(Exception e)
+				{
+					// Unavailable - we'll let it through.
+					Console.WriteLine(e.ToString());
+				}
+
+				if (isExposed)
+				{
+					throw new PublicException("Your password is weak as it has been seen in public data leaks.", "password_public");
+				}
+			}
 		}
 
 	}

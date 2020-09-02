@@ -14,6 +14,10 @@ namespace Api.PasswordAuth
 	/// </summary>
 	public partial interface IPasswordAuthService
 	{
-        
+
+		/// <summary>
+		/// Enforces pwd policy on the given password.
+		/// </summary>
+		Task EnforcePolicy(string pwd);
 	}
 }
