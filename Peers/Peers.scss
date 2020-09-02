@@ -1,4 +1,9 @@
 .peers {
+	.nobody-else{
+		text-align: center;
+		padding: 1em;
+	}
+
 	// NB: height set via inline style (necessary to support calc referencing header / footer heights)
 	min-height: px_to_rem(600);
 	padding-top: 3rem;

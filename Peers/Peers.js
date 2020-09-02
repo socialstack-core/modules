@@ -7,7 +7,13 @@ export default class Peers extends React.Component {
 		var peers = huddleClient.peers;
 		var activeSpeakerId = huddleClient.room.activeSpeakerId;
 		
-		console.log(peers);
+		if(!peers || !peers.length){
+			return <div className="peers">
+				<h2 className="nobody-else">
+					Waiting for others to join the meeting
+				</h2>
+			</div>;
+		}
 		
 		return <div className="peers">
 			{

@@ -1,6 +1,8 @@
 import HuddleClient from 'UI/Functions/HuddleClient';
 import Peers from 'UI/VideoChat/Peers';
 import Me from 'UI/VideoChat/Me';
+import Alert from 'UI/Alert';
+import Container from 'UI/Container';
 
 export default class VideoChat extends React.Component {
 
@@ -37,15 +39,26 @@ export default class VideoChat extends React.Component {
 		};
 
 		this.onRoomUpdate = this.onRoomUpdate.bind(this);
+		this.onError = this.onError.bind(this);
 	}
-
+	
+	onError(e){
+		if(!e.minor){
+			console.log(e);
+			this.setState({
+				error: e
+			});
+		}
+	}
+	
 	onRoomUpdate(evt) {
-		this.setState({ huddleClient: this.state.huddleClient });
+		this.setState({ huddleClient: this.state.huddleClient, error: null });
 	}
 
 	componentDidMount() {
 		const { huddleClient } = this.state;
 		huddleClient.addEventListener('roomupdate', this.onRoomUpdate);
+		huddleClient.addEventListener('error', this.onError);
 		if (!this.state.test) {
 			huddleClient.join();
 		}
@@ -55,6 +68,7 @@ export default class VideoChat extends React.Component {
 	componentWillUnmount() {
 		const { huddleClient } = this.state;
 		huddleClient.removeEventListener('roomupdate', this.onRoomUpdate);
+		huddleClient.removeEventListener('error', this.onError);
 		if (!this.state.test) {
 			huddleClient.close();
 		}
@@ -93,7 +107,15 @@ export default class VideoChat extends React.Component {
 					break;
 			}
 		}
-
+		
+		if(this.state.error){
+			return <Container>
+				<Alert type="error">
+					Unfortunately we ran into an issue connecting you to this meeting. Please check your internet connection and that you're invited to join this meeting.
+				</Alert>
+			</Container>;
+		}
+		
 		var videoClass = "videoChat";
 
 		if (huddleClient && huddleClient.peers) {
