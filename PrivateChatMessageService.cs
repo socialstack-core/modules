@@ -45,6 +45,12 @@ namespace Api.PrivateChats
 					return null;
 				}
 				
+				// Clone in the src/ target:
+				msg.SourceContentType = channel.SourceContentType;
+				msg.TargetContentType = channel.TargetContentType;
+				msg.TargetContentId = channel.TargetContentId;
+				msg.SourceContentId = channel.SourceContentId;
+				
 				// Update the channel with the number of messages in it:
 				channel.MessageCount++;
 					
