@@ -469,7 +469,7 @@ export default class Loop extends React.Component {
 			
 			var total = results.totalResults || results.length;
 			var pageCfg = props.paged;
-			
+
 			if (pageCfg) {
 				var offset = (newPageIndex || this.state.pageIndex)-1;
 				var pageSize = pageCfg.pageSize || DEFAULT_PAGE_SIZE;
@@ -481,7 +481,7 @@ export default class Loop extends React.Component {
 				var startIndex = offset * pageSize;
 				results = results.slice(startIndex, startIndex + pageSize);
 			}
-			
+
 			if (props.reverse) {
 				results = results.reverse();
 			}
@@ -798,7 +798,16 @@ export default class Loop extends React.Component {
 		if (this.props.filter && this.props.filter.pageSize ) {
 			pageSize = this.props.filter.pageSize;
 		}
-		
+
+		// override with mobile pagesize if available
+		if (typeof pageCfg == "object" && pageCfg.mobilePageSize) {
+			var html = document.getElementsByTagName("html");
+
+			if (html.length && html[0].classList.contains("device-mobile")) {
+				pageSize = pageCfg.mobilePageSize;
+			}
+		}
+
 		// Paginate
 		var Module = pageCfg.module || Paginator;
 		
