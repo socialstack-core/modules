@@ -45,7 +45,15 @@ export default class Paginator extends React.Component {
             return;
         }
 
-        paginator.scrollIntoView({ block: "end" });
+		paginator.scrollIntoView({ block: "end" });
+
+		// check - offset slightly if on mobile (accounts for menus docked at bottom of page)
+		var html = document.getElementsByTagName("html");
+
+		if (html.length && html[0].classList.contains("device-mobile")) {
+			window.scrollBy(0, 60);
+		}
+
     }
 
     changePage(newPageId) {
@@ -162,7 +170,7 @@ export default class Paginator extends React.Component {
 
 		if (isMobile) {
 			maxLinks = 3;
-			showFirstLastNav = false;
+			//showFirstLastNav = false;
 			//showPrevNextNav = false;
 		}
 
