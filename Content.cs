@@ -62,23 +62,25 @@ namespace Api.Database
 				return null;
 			}
 
+			var converted = false;
 			var objResult = await service.GetObject(context, contentId);
+
+			// Special case for users, up until UserProfile is removed.
+			if (convertUser && objResult is User)
+			{
+				converted = true;
+				objResult = await (service as IUserService).GetProfile(context, objResult as User);
+			}
 
 			if (permCheck)
 			{
 				// Grab the Load capability:
-				var cap = service.GetLoadCapability();
+				var cap = converted ? (service as IUserService).GetProfileLoadCapability() : service.GetLoadCapability();
 
 				if (!await context.Role.IsGranted(cap, context, new object[] { objResult }))
 				{
 					throw PermissionException.Create(cap.Name, context);
 				}
-			}
-
-			// Special case for users, up until UserProfile is removed.
-			if (convertUser && objResult is User)
-			{
-				objResult = await Services.Get<IUserService>().GetProfile(context, objResult as User);
 			}
 
 			return objResult;
