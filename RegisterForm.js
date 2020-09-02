@@ -15,11 +15,20 @@ export default class RegisterForm extends React.Component {
 	}
 	
 	render() {
+		var {policy} = this.state;
+		
 		return (
 			<Form
 				action = "user"
 				onSuccess={response => {
 					this.setState({success: true})
+				}}
+				onValues={v => {
+					this.setState({policy: null});
+					return v;
+				}}
+				onFailed={e => {
+					this.setState({policy: e});
 				}}
 				className="register-form"
 				>
@@ -32,6 +41,11 @@ export default class RegisterForm extends React.Component {
 					<Input name="email" type="email" placeholder="Email address" validate={['Required', 'EmailAddress']} />
 					<Input name="password" type="password" placeholder="New Password" validate={['Required']} />
 				</div>
+				{policy && (
+					<Alert type="error">{
+						policy.message || 'Unable to set your password - the request may have expired'
+					}</Alert>
+				)}
 				{this.state.success ? (
 					<Alert type="success">
 						Account created! Please ask an existing admin to enable it for you.
