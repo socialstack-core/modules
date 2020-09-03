@@ -59,7 +59,12 @@ export default class Form extends React.Component {
 				});
 				onFailed && onFailed(r,v,evt);
 			},
-			onSuccess: (r,v,evt) => {
+			onSuccess: (r, v, evt) => {
+
+				if (this.props.resetOnSubmit) {
+					this.formEle.reset();
+				}
+
 				this.setState({
 					loading: undefined,
 					failed: false,
