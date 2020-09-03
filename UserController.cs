@@ -10,6 +10,7 @@ using Api.Results;
 using Api.Eventing;
 using Newtonsoft.Json.Linq;
 using Api.AutoForms;
+using Api.Startup;
 
 namespace Api.Users
 {
@@ -103,25 +104,31 @@ namespace Api.Users
 		[HttpPost("login")]
 		public async Task<object> Login([FromBody] UserLogin body)
 		{
-			var context = Request.GetContext();
+			try{
+				var context = Request.GetContext();
 
-			var result = await (_service as IUserService).Authenticate(context, body);
+				var result = await (_service as IUserService).Authenticate(context, body);
 
-			if (result == null)
-			{
-				Response.StatusCode = 400;
-				return null;
+				if (result == null)
+				{
+					Response.StatusCode = 400;
+					return null;
+				}
+
+				if (result.Success)
+				{
+					// Regenerate the contextual token:
+					context.SendToken(Response);
+
+					return await context.GetPublicContext();
+				}
+				
+				return result;
 			}
-
-			if (result.Success)
+			catch(PublicException e)
 			{
-				// Regenerate the contextual token:
-				context.SendToken(Response);
-
-				return await context.GetPublicContext();
+				return e.Apply(Response);
 			}
-			
-			return result;
         }
 
     }
