@@ -82,7 +82,19 @@ export default class Modal extends React.Component {
         return classes;
     }
 
-    closeModal() {
+	closeModal() {
+
+		if (this.props.hideSelector) {
+			const hideElements = Array.prototype.slice.apply(
+				document.querySelectorAll(this.props.hideSelector)
+			);
+
+			hideElements.forEach((element) => {
+				element.classList.remove("hidden-by-modal");
+			});
+
+		}
+
         this.props.onClose && this.props.onClose();
     }
 	
@@ -90,7 +102,18 @@ export default class Modal extends React.Component {
 		if(!this.props.visible){
 			return null;
 		}
-		
+
+		if (this.props.hideSelector) {
+			const hideElements = Array.prototype.slice.apply(
+				document.querySelectorAll(this.props.hideSelector)
+			);
+
+			hideElements.forEach((element) => {
+				element.classList.add("hidden-by-modal");
+			});
+
+		}
+
         return [
 			this.props.noBackdrop ? null : <div className={this.backdropClassName()} onClick={() => this.closeModal()}></div>,
 			<div className={this.modalClassName()} tabIndex="-1" role="dialog" aria-labelledby={this.modalTitleId}>
