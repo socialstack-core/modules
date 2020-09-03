@@ -29,15 +29,15 @@ export default class Peers extends React.Component {
 						btnClass += " active-speaker";
 					}
 
+					if (peer.fullscreen && this.props.allowFullscreen) {
+						btnClass += " fullscreen";
+					}
+
 					return (
 						<button type="button" className={btnClass} disabled={!this.props.allowFullscreen} title={this.props.allowFullscreen ? "Click to toggle expanded view" : ""}
 							onClick={(e) => {
-							var peerContainer = e.target.closest("button");
-
-							if (peerContainer) {
-								peerContainer.classList.toggle("fullscreen")
-							}
-
+								peer.fullscreen = !peer.fullscreen;
+								this.setState({});
 						}}>
 							<Peer peer={peer} huddleClient={huddleClient} />
 						</button>
