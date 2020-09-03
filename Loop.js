@@ -239,60 +239,76 @@ export default class Loop extends React.Component {
 		var { filter } = this.props;
 
 		if (filter && filter.where) {
-
-			// Simple filter fields for now.
-			// Doesn't support the advanced loop filtering.
-			for (var key in filter.where) {
-				if (!key || !key.length) {
-					continue;
-				}
-
-				var value = filter.where[key];
-
-				// Lowercase the key as it's an exact field match:
-				var entityKeyName = key.charAt(0).toLowerCase() + key.slice(1);
-
-				var reqValue = ent[entityKeyName];
-
-				// value can be an array of options:
-				if (Array.isArray(value)) {
-					// Failed the filter if the reqd value is not in the array.
-					return value.indexOf(reqValue) != -1;
-				} else if (value && typeof value == 'object') {
-					// Potentially defining an operator other than equals.
-					// {not: 'test'} etc.
-					var success = false;
-
-					for (var filterField in filterOperators) {
-						var fValue = value[filterField];
-
-						// Basic check to make sure it's not a function.
-						// - It can be null though
-						if (fValue !== undefined && (fValue === null || typeof fValue != 'object')) {
-
-							// Use this operator:
-							if (!filterOperators[filterField](reqValue, fValue)) {
-								return false;
-							} else {
-								success = true;
-								break;
-							}
-						}
-					}
-
-					if (success) {
-						// Didn't get any matching filter operators otherwise so it should just attempt an object v. object compare
-						continue;
+			
+			if(Array.isArray(filter.where)){
+				for(var i=0;i<filter.where.length;i++){
+					if(this.testFilterObj(ent, filter.where[i])){
+						return true;
 					}
 				}
-
-				if (reqValue != value) {
+				return false;
+			}else{
+				if(!this.testFilterObj(ent, filter.where)){
 					return false;
 				}
 			}
 
 		}
 
+		return true;
+	}
+
+	testFilterObj(ent, where){
+		for (var key in where) {
+			if (!key || !key.length) {
+				continue;
+			}
+			
+			var value = where[key];
+
+			// Lowercase the key as it's an exact field match:
+			var entityKeyName = key.charAt(0).toLowerCase() + key.slice(1);
+
+			var reqValue = ent[entityKeyName];
+
+			// value can be an array of options:
+			if (Array.isArray(value)) {
+				// Failed the filter if the reqd value is not in the array.
+				return value.indexOf(reqValue) != -1;
+			} else if (value && typeof value == 'object') {
+				// Potentially defining an operator other than equals.
+				// {not: 'test'} etc.
+				var success = false;
+
+				for (var filterField in filterOperators) {
+					var fValue = value[filterField];
+
+					// Basic check to make sure it's not a function.
+					// - It can be null though
+					if (fValue !== undefined && (fValue === null || typeof fValue != 'object')) {
+
+						// Use this operator:
+						if (!filterOperators[filterField](reqValue, fValue)) {
+							return false;
+						} else {
+							success = true;
+							break;
+						}
+					}
+				}
+
+				if (success) {
+					// Didn't get any matching filter operators otherwise so it should just attempt an object v. object compare
+					continue;
+				}
+			}
+
+			if (reqValue != value) {
+				return false;
+			}
+		}
+		
+		// All clear
 		return true;
 	}
 
