@@ -63,19 +63,22 @@ if (global.document && global.document.getElementsByTagName("html").length) {
     var isMobile = false;
 
     // small mobile (>= 320px)
-    if (window.matchMedia('(max-width: 320px) and (pointer: coarse)').matches) {
+    if (window.matchMedia('(max-width: 320px) and (pointer: coarse) and (orientation: portrait)').matches ||
+        window.matchMedia('(max-height: 320px) and (pointer: coarse) and (orientation: landscape)').matches) {
         htmlClassList.add("device-mobile", "device-mobile-small");
         isMobile = true;
     }
 
     // medium mobile (321px - 411px)
-    if (window.matchMedia('(min-width: 321px) and (max-width: 411px) and (pointer: coarse)').matches) {
+    if (window.matchMedia('(min-width: 321px) and (max-width: 411px) and (pointer: coarse) and (orientation: portrait)').matches ||
+        window.matchMedia('(min-height: 321px) and (max-height: 411px) and (pointer: coarse) and (orientation: landscape)').matches) {
         htmlClassList.add("device-mobile", "device-mobile-medium");
         isMobile = true;
     }
 
     // large mobile (412px - 767px)
-    if (window.matchMedia('(min-width: 412px) and (max-width: 767px) and (pointer: coarse)').matches) {
+    if (window.matchMedia('(min-width: 412px) and (max-width: 767px) and (pointer: coarse) and (orientation: portrait)').matches ||
+        window.matchMedia('(min-height: 412px) and (max-height: 767px) and (pointer: coarse) and (orientation: landscape)').matches) {
         htmlClassList.add("device-mobile", "device-mobile-large");
         isMobile = true;
     }
