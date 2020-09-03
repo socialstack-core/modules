@@ -42,6 +42,11 @@ namespace Api.Permissions
 		/// </summary>
 		public override FilterNode Construct(Filter filter)
 		{
+			if (Input0 != null)
+			{
+				// Already constructed
+				return this;
+			}
 			Input0 = filter.PopConstructed();
 			return this;
 		}
