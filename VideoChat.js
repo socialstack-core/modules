@@ -35,11 +35,15 @@ export default class VideoChat extends React.Component {
 
 		this.state = {
 			huddleClient,
-			test
+			test,
+			startX: 0,
+			startY: 0
 		};
 
 		this.onRoomUpdate = this.onRoomUpdate.bind(this);
 		this.onError = this.onError.bind(this);
+		this.onStartMeContainerDrag = this.onStartMeContainerDrag.bind(this);
+		this.onMoveMeContainerDrag = this.onMoveMeContainerDrag.bind(this);
 	}
 	
 	onError(e){
@@ -50,7 +54,57 @@ export default class VideoChat extends React.Component {
 			});
 		}
 	}
-	
+
+	onStartMeContainerDrag(evt) {
+		evt = evt || window.event;
+		evt.preventDefault();
+
+		// get the mouse cursor position at startup:
+		this.setState({
+			startX: evt.clientX,
+			startY: evt.clientY
+		});
+
+		document.onmouseup = this.onEndMeContainerDrag;
+		document.onmousemove = this.onMoveMeContainerDrag;
+	}
+
+	onMoveMeContainerDrag(evt) {
+		evt = evt || window.event;
+		evt.preventDefault();
+
+		var newX, newY;
+		var meContainer = document.getElementById("me_container");
+
+		if (!meContainer) {
+			return;
+		}
+
+		// calc new position
+		newX = this.state.startX - evt.clientX;
+		newY = this.state.startY - evt.clientY;
+
+		this.setState({
+			startX: evt.clientX,
+			startY: evt.clientY
+		});
+
+		// set new position
+		var limitedX = Math.max(0, meContainer.offsetLeft - newX);
+		limitedX = Math.min(limitedX, window.innerWidth - meContainer.offsetWidth);
+
+		var limitedY = Math.min(window.innerHeight - meContainer.offsetHeight, window.innerHeight - meContainer.offsetTop - meContainer.offsetHeight + newY);
+		limitedY = Math.max(limitedY, 0);
+
+		meContainer.style.left = limitedX + "px";
+		meContainer.style.bottom = limitedY + "px";
+	}
+
+	onEndMeContainerDrag() {
+		document.onmouseup = null;
+		document.onmousemove = null;
+	}
+
 	onRoomUpdate(evt) {
 		this.setState({ huddleClient: this.state.huddleClient, error: null });
 	}
@@ -61,6 +115,13 @@ export default class VideoChat extends React.Component {
 		huddleClient.addEventListener('error', this.onError);
 		if (!this.state.test) {
 			huddleClient.join();
+		}
+
+		// make own video draggable
+		var meContainer = document.getElementById("me_container");
+
+		if (meContainer) {
+			meContainer.onmousedown = this.onStartMeContainerDrag;
 		}
 
 	}
@@ -128,10 +189,14 @@ export default class VideoChat extends React.Component {
 				<div className={'icon ' + room.state} title={stateDescription} />
 			</div>
 
-			{/* TODO: close button */}
+			{/* close button */}
+			<a href="/" className="btn btn-close" title="Leave chat">
+				<i className="fr fr-times"></i>
+				<span className="sr-only">Leave chat</span>
+			</a>
 
-			<Peers huddleClient={huddleClient} />
-			<div className={'me-container ' + (amActiveSpeaker ? 'active-speaker' : '')}>
+			<Peers huddleClient={huddleClient} allowFullscreen={this.props.allowFullscreen} />
+			<div id="me_container" className={'me-container ' + (amActiveSpeaker ? 'active-speaker' : '')}>
 				<Me huddleClient={huddleClient} />
 			</div>
 

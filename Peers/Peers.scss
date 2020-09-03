@@ -1,4 +1,13 @@
 @mixin peer_width($peerTotal, $width, $minWidth: null) {
+	$fontCalc: $width;
+	$widthString: inspect($width);
+	$calcIndex: str-index($widthString, "calc(");
+
+	@if ($calcIndex != null) {
+		$fontCalc: str-slice($widthString, $calcIndex + 4, -1);
+	}
+
+	$font_size: $width;
 
 	&.peers-#{$peerTotal} {
 
@@ -7,6 +16,14 @@
 
 			@if ($minWidth) {
 			    min-width: $minWidth;
+			}
+
+			.peerView {
+				&::after {
+					// scale user icon
+					// (16% based on 4rem/48px @ 300px wide)
+					font-size: calc(#{$fontCalc} * .16);
+				}
 			}
 		}
 

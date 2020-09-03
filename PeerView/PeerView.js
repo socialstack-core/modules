@@ -48,7 +48,8 @@ export default class PeerView extends React.Component {
 			videoElemPaused,
 			maxSpatialLayer
 		} = this.state;
-		
+
+		var peerViewClassNames = 'peerView';
 		var videoClassNames = '';
 		
 		if(isMe){
@@ -56,6 +57,7 @@ export default class PeerView extends React.Component {
 		}
 		
 		if(!videoVisible || !videoCanPlay){
+			peerViewClassNames += ' show-avatar';
 			videoClassNames += 'peerview-hidden ';
 		}
 		
@@ -68,7 +70,7 @@ export default class PeerView extends React.Component {
 		//console.log("name: ", displayName);
 		
 		return (
-			<div className='peerView'>
+			<div className={peerViewClassNames}>
 
 			{/*
 				<div className='info'>
