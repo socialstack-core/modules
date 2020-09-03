@@ -73,8 +73,30 @@ namespace Api.PasswordAuth
 					return null;
 				}
 
+				// Lockout check.
+				var now = DateTime.UtcNow;
+
+				if (user.FailedLoginTimeUtc.HasValue && user.LoginAttempts>=5 && (now - user.FailedLoginTimeUtc.Value).TotalMinutes < 20)
+				{
+					// Locked
+					throw new PublicException("Locked account - try again in 20 minutes", "locked_account");
+				}
+				
 				if (!PasswordStorage.VerifyPassword(loginDetails.Password, hashToCheck))
 				{
+					// Update login attempts:
+					if (!user.FailedLoginTimeUtc.HasValue || (now - user.FailedLoginTimeUtc.Value).TotalMinutes >= 20)
+					{
+						user.FailedLoginTimeUtc = DateTime.UtcNow;
+						user.LoginAttempts = 1;
+						await _users.Update(context, user);
+					}
+					else
+					{
+						user.LoginAttempts++;
+						await _users.Update(context, user);
+					}
+					
 					// Nope!
 					return null;
 				}
@@ -183,7 +205,17 @@ namespace Api.Users {
 		[DatabaseField(Length = 80)]
 		[JsonIgnore]
 		public string PasswordHash;
-
+		
+		/// <summary>
+		/// Failed login attempt counter.
+		/// </summary>
+		public int LoginAttempts;
+		
+		/// <summary>
+		/// Time of first failed login which updated the login attempt counter.
+		/// </summary>
+		public DateTime? FailedLoginTimeUtc;
+		
 	}
 
 }
