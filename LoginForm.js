@@ -16,6 +16,8 @@ export default class LoginForm extends React.Component {
 	}
 	
 	render() {
+		var { failed } = this.state;
+		
 		return (
 			<Form className="login-form"
 				action = "user/login" 
@@ -37,8 +39,8 @@ export default class LoginForm extends React.Component {
 					this.setState({failed:false})
 					return v;
 				}}
-				onFailed={()=>{
-					this.setState({failed:true})
+				onFailed={e=>{
+					this.setState({failed:e})
 				}}
 				>
 				{this.state.moreRequired && (
@@ -68,9 +70,9 @@ export default class LoginForm extends React.Component {
 				</div>
 				<Spacer height="20" />
 				<Input type="submit" label="Login"/>
-				{this.state.failed && (
+				{failed && (
 					<Alert type="fail">
-						Those login details weren't right - please try again.
+						{failed.message || 'Those login details weren\'t right - please try again.'}
 					</Alert>
 				)}
 				<div className="form-group">
