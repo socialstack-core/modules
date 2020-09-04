@@ -18,6 +18,13 @@ namespace Api.PubQuizzes
         [DatabaseField(Length = 200)]
 		[Localized]
 		public string Title;
+
+		/// <summary>
+		/// The name of the PubQuiz
+		/// </summary>
+		[DatabaseField(Length = 200)]
+		[Localized]
+		public string Description;
 	}
 
 }

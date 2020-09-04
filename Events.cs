@@ -24,5 +24,10 @@ namespace Api.Eventing
 		/// Set of events for a pubQuizAnswer.
 		/// </summary>
 		public static EventGroup<PubQuizAnswer> PubQuizAnswer;
+
+		/// <summary>
+		/// Set of events for a pubQuizSubmission.
+		/// </summary>
+		public static EventGroup<PubQuizSubmission> PubQuizSubmission;
 	}
 }
