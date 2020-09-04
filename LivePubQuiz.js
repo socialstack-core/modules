@@ -4,6 +4,9 @@ import Loading from 'UI/Loading';
 import Canvas from 'UI/Canvas';
 import Input from 'UI/Input';
 import Form from 'UI/Form';
+import getContentTypeId from 'UI/Functions/GetContentTypeId';
+import { addSeconds} from 'UI/Functions/DateTools';
+import Loop from 'UI/Loop';
 
 // <LivePubQuiz startTime={time} id={quizId} />
 
@@ -16,6 +19,7 @@ export default class LivePubQuiz extends React.Component {
 	constructor(props){
 		super(props);
 		this.state = {
+			score: {}
 		};
 		
 		this.load(props);
@@ -26,20 +30,30 @@ export default class LivePubQuiz extends React.Component {
 	}
 	
 	componentWillReceiveProps(props){
+		console.log("Updated!");
 		this.load(props);
 	}
 	
 	load(props){
-		if(props.id == this.state.id){
+		console.log("props in pub quiz");
+		console.log(props);
+
+		if(!props.id) {
+			return;
+		}
+
+		if(props.id && props.id == this.state.id && props.start == this.state.start){
+			console.log("FAILLLLLLLLLLLLLL");
 			return;
 		}
 		
 		webRequest('pubquizquestion/list', {where:{
 			PubQuizId: props.id
 		}}).then(response => {
-			
+			console.log("quiz questions loaded");	
+
 			var questions = response.json.results;
-			
+
 			// Next, we need to establish where we are on the timing side.
 			// Each question lasts for 10 seconds.
 			var start = this.props.startTime || new Date();
@@ -62,12 +76,56 @@ export default class LivePubQuiz extends React.Component {
 			
 			if(!active.finished){
 				this.interval=setInterval(() => {
-					
 					// Tick!
 					var next = this.getActiveQuestionInfo();
+					/*console.log("active:");
+					console.log(this.state.active);
+					console.log("next:");
+					console.log(next);*/
+
+					// Let's see if this is a questions tranisition
+					if(this.state.active && this.state.active.question && next && next.question && next.question.id != this.state.active.question.id) 
+					{
+						var radios = document.getElementsByName('question_'+this.state.active.question.id);
+
+						for (var i = 0, length = radios.length; i < length; i++) {
+							if (radios[i].checked) {
+								var value = radios[i].id;
+								break;
+							}
+						}
+
+						webRequest('pubquizsubmission', {
+							activityInstanceId: this.props.instanceId,
+							pubQuizAnswerId: value
+						});
+					}
+
+
 					this.setState({active: next});
 					
 					if(next.finished){
+						
+						if(this.state.active && this.state.active.question) 
+						{
+							var radios = document.getElementsByName('question_'+this.state.active.question.id);
+
+							for (var i = 0, length = radios.length; i < length; i++) {
+								if (radios[i].checked) {
+									var value = radios[i].id;
+									break;
+								}
+							}
+
+							webRequest('pubquizsubmission', {
+								activityInstanceId: this.props.instanceId,
+								pubQuizAnswerId: value
+							}).then(response => {
+								// Since this the last submission, let's get the answers as well
+							});
+						}
+
+
 						this.interval && clearInterval(this.interval);
 					}
 					
@@ -114,6 +172,8 @@ export default class LivePubQuiz extends React.Component {
 	}
 	
 	renderFinished(){
+		var {huddleId, id} = this.props;
+
 		return <div>
 			<h1>
 				Quiz finished!
@@ -121,9 +181,70 @@ export default class LivePubQuiz extends React.Component {
 			<p>
 				Here's how you did
 			</p>
-			<p>
-				Scores TBD
-			</p>
+			<h3>
+				Scores
+			</h3>
+			
+			{/*<Loop
+				over = {"pubquizsubmission/list"}
+				filter = {{where : {ActivityInstanceId : this.props.instanceId}}}
+			>
+				{submission => {
+					var score = this.state.score;
+
+					// Was the creatorUser of this submission
+					var creator = submission.creatorUser;
+
+					// Do we have an entry for this user?
+					if (!score[creator.id]) {
+						creator.score = 0;
+						score[creator.id] = creator;
+					}
+
+					var answer = submission.pubQuizAnswer;
+
+					if(answer.isCorrect) {
+						score[creator.id].score = score[creator.id].score + 1;
+					}
+
+					this.setState({score: score});
+				}}
+			</Loop>*/}
+
+			<Form
+				action={"huddle/" + huddleId}
+				submitLabel="Restart"
+				successMessage="Activity restarted!"
+				failedMessage="We weren't able to restart your activity right now"
+				onSuccess={response => {
+					this.props.updateHuddle && this.props.updateHuddle(response);
+				}}
+				onValues={values => {
+					values.activityStartUtc = addSeconds(new Date(), 10);
+					values.activityContentTypeId = getContentTypeId("PubQuiz");
+					values.activityContentId = id
+					return values;
+				}}
+			>
+
+			</Form>
+			<Form
+				action={"huddle/" + huddleId}
+				submitLabel="End Activity"
+				successMessage="Activity Ended!"
+				failedMessage="We weren't able to end your activity right now"
+				onSuccess={response => {
+					this.props.updateHuddle && this.props.updateHuddle(response);
+				}}
+				onValues={values => {
+					values.activityStartUtc = null;
+					values.activityContentTypeId = 0;
+					values.activityContentId = 0;
+					return values;
+				}}
+			>
+
+			</Form>
 		</div>;
 	}
 	
@@ -137,13 +258,13 @@ export default class LivePubQuiz extends React.Component {
 				</Canvas>
 			</h1>
 			<h2>
-				{Math.floor(active.remainingTime)}
+				<i class="far fa-clock"></i> {Math.floor(active.remainingTime)}
 			</h2>
 			<div>
 				{question.answers ? question.answers.map(answer => {
 					
 					return <p>
-						<Input type="radio" name={"question_" + question.id} />
+						<Input id = {answer.id} type="radio" name={"question_" + question.id} />
 						<Canvas>
 							{answer.answerJson}
 						</Canvas>
@@ -158,12 +279,13 @@ export default class LivePubQuiz extends React.Component {
 	}
 	
 	renderBefore(active){
+
 		return <div>
 			<h1>
 				On your marks!
 			</h1>
 			<p>
-				Quiz starting in {active.startsInSeconds}..
+				<i class="far fa-clock"></i> Quiz starting in {Math.floor(active.startsInSeconds)}..
 			</p>
 		</div>;
 	}
@@ -175,7 +297,7 @@ export default class LivePubQuiz extends React.Component {
 		if(!active){
 			return <Loading />;
 		}
-		
+
 		return <div className="live-pub-quiz">
 			{active.finished && this.renderFinished()}
 			{active.before && this.renderBefore(active)}
@@ -183,7 +305,6 @@ export default class LivePubQuiz extends React.Component {
 		</div>;
 		
 	}
-	
 }
 
 LivePubQuiz.propTypes = {
