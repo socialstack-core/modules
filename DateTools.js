@@ -110,6 +110,11 @@ function addMinutes(date, minutes) {
 	return date;
 }
 
+function addSeconds(date, seconds) {
+	var date = new Date(date.valueOf() + (1000 * seconds));
+	return date;
+}
+
 function daysUntilDate(date) {
 	var start = isoConvert(date);
 	var currentTimeUTC = new Date();
@@ -148,6 +153,7 @@ module.exports = {
 	addDays,
 	addMinutes,
 	addHours,
+	addSeconds,
 	daysUntilDate,
 	daysBetween
 };
