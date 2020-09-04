@@ -87,7 +87,7 @@ export default class FileSelector extends React.Component {
 							<td width='85%'>
 								{entry.originalName}
 							</td>
-							<td width='15%' align='right'>
+							<td width='15%' align='right' className="break-word">
 								{entry.isImage && (
 									<Image fileRef={entry.ref} size={64} alt={entry.originalName}/>
 								)}
