@@ -26,6 +26,12 @@ namespace Api.Huddles
 		/// E.g. quiz ID.
 		/// </summary>
 		public int ActivityContentId;
+
+		/// <summary>
+        /// Whenever a new activity is started or restarted, a new id is made here. Primary purpose is for tracking results
+        /// for a given instance. 
+        /// </summary>
+		public int ActivityInstanceId;
 		
 		/// <summary>
 		/// The current activity, if there is one.
