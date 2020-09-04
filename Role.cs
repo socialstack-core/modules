@@ -322,7 +322,6 @@ namespace Api.Permissions
 		/// <returns></returns>
 		public Role GrantTheSameAs(Role copyFrom)
         {
-            // Must clone each grant chain individually just in case someone uses the chain API directly.
             CapabilityLookup = new FilterNode[copyFrom.CapabilityLookup.Length];
             CapabilityFilterLookup = new Filter[copyFrom.CapabilityFilterLookup.Length];
 
@@ -331,13 +330,8 @@ namespace Api.Permissions
 				var node = copyFrom.CapabilityLookup[i];
 				var srcFilter = copyFrom.CapabilityFilterLookup[i];
 
-				if (node == null)
-				{
-					continue;
-				}
-
-				CapabilityLookup[i] = node.Copy();
-				CapabilityFilterLookup[i] = srcFilter == null ? null : srcFilter.Copy();
+				CapabilityLookup[i] = node;
+				CapabilityFilterLookup[i] = srcFilter;
 			}
 
             return this;

@@ -665,7 +665,12 @@ namespace Api.Permissions
 		{
 			foreach (var node in Nodes)
 			{
-				intoFilter.Add(node.Copy());
+				var copy = node.Copy();
+				intoFilter.Add(copy);
+				// TODO: There's a special case that occurs when copying a node that originated from Bracket with value resolvers in it.
+				// The resolvers don't get setup, as the copied nodes don't go through Add() which is what sets up the resolvers.
+				// However, copy in general needs work: copying a constructed filter would result in multiple instances of the same nodes
+				// because the original Nodes list has the full set of nodes, as well as on e.g. And or Or nodes where there would be another copy of them as well.
 			}
 		}
 		
