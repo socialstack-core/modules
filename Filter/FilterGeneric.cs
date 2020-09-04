@@ -31,7 +31,9 @@ namespace Api.Permissions
 			var filter = new Filter<T>()
 			{
 				Role = Role,
-				FromRequest = FromRequest
+				FromRequest = FromRequest,
+				PageSize = PageSize,
+				PageIndex = PageIndex
 			};
 			if (withNodes)
 			{

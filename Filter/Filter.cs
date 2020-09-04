@@ -678,7 +678,9 @@ namespace Api.Permissions
 			var filter = new Filter(DefaultType)
 			{
 				Role = Role,
-				FromRequest = FromRequest
+				FromRequest = FromRequest,
+				PageSize = PageSize,
+				PageIndex = PageIndex
 			};
 			if (withNodes)
 			{
