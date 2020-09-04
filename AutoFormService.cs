@@ -150,17 +150,15 @@ namespace Api.AutoForms
 
 				// Retain the word color/ colour in this one
 			}
-			/*
 			else if (fieldType == typeof(DateTime))
 			{
 				type = "datetime-local";
 
 				if(labelName.EndsWith("Utc")){
 					// Remove "Utc" from the end of the label:
-					labelName = labelName.Substring(0, labelName.Length - 3);
+					labelName = labelName.Substring(0, labelName.Length - 3) + " (Please note all dates should be entered as UTC)";
 				}
 			}
-			*/
 			else if ((fieldType == typeof(int) || fieldType == typeof(int?)) && labelName != "Id" && labelName.EndsWith("Id") && Api.Database.ContentTypes.GetType(labelName.Substring(0, labelName.Length - 2).ToLower()) != null)
 			{
 				
