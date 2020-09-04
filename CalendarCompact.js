@@ -94,6 +94,14 @@ export default class CalendarCompact extends React.Component {
 		}
 		
 		var sliceStart = this.dayStartUtc(offset);
+
+		// mobile is rendered as a single day (central column);
+		// offset the start day by 1 so we're still pointing at today
+		var html = document.getElementsByTagName("html");
+
+		if (html.length && html[0].classList.contains("device-mobile")) {
+			sliceStart = addDays(sliceStart, -1);
+		}
 		
 		// The timeslice goes from sliceStart -> sliceStart + num of visible days:
 		var sliceEnd = addDays(sliceStart, days);
