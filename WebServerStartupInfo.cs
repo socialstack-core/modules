@@ -10,6 +10,8 @@ using System.Reflection;
 using System.Linq;
 using Api.Database;
 using Microsoft.AspNetCore.Http.Features;
+using Microsoft.AspNetCore.Diagnostics;
+using Microsoft.AspNetCore.Http;
 
 namespace Api.Startup
 {
@@ -158,11 +160,29 @@ namespace Api.Startup
             {
                 ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto
             });
-
-#if DEBUG
-			app.UseDeveloperExceptionPage();
-#endif
-
+		
+			app.UseExceptionHandler(errorApp =>
+			{
+				errorApp.Run(async context =>
+				{
+					context.Response.ContentType = "application/json";
+					var exceptionHandlerPathFeature = context.Features.Get<IExceptionHandlerPathFeature>();
+					var publicError = (exceptionHandlerPathFeature?.Error as PublicException);
+					
+					if(publicError != null)
+					{
+						var response = publicError.Apply(context.Response);
+						context.Response.StatusCode = publicError.StatusCode;
+						await context.Response.WriteAsync(publicError.ToJson());
+					}
+					else
+					{
+						context.Response.StatusCode = 500;
+						await context.Response.WriteAsync("{message: \"An internal error has occurred - please try again later.\", code: \"server_error\"}");
+					}
+				});
+			});
+		
 #if NETCOREAPP2_1 || NETCOREAPP2_2
 			
 			// Fire off an event so services can also extend app if they want (IEventListener implementors can use).

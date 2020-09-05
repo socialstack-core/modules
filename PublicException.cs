@@ -39,12 +39,22 @@ namespace Api.Startup
 				Code = code
 			};
 		}
-		
+
+		/// <summary>
+		/// Serializes the error response to JSON.
+		/// </summary>
+		/// <returns></returns>
+		public string ToJson()
+		{
+			return JsonConvert.SerializeObject(Response);
+		}
+
 		/// <summary>
 		/// Outputs to the given HttpResponse.
 		/// </summary>
 		public virtual ErrorResponse Apply(HttpResponse response)
 		{
+			Console.WriteLine(Response.Message);
 			response.StatusCode = StatusCode;
 			return Response;
 		}
