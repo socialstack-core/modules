@@ -84,7 +84,7 @@ namespace Api.Contexts
 
 			if (context == null)
 			{
-				context = new Context();
+				context = new Context() { CookieState = (cookie == null) ? 1 : 2 };
 			}
 
 			// Handle locale next. The cookie comes lower precedence to the Locale header.

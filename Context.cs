@@ -139,7 +139,9 @@ namespace Api.Contexts
 		/// The nested type mask, used to automatically detect cyclical references.
 		/// </summary>
 		public ulong NestedTypes;
-		
+
+		public int CookieState;
+
 		/// <summary>
 		/// Role. Null indicates a broken AuthUser instance or user of a Role ID which probably hasn't been setup.
 		/// </summary>

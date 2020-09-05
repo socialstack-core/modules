@@ -122,7 +122,10 @@ namespace Api.Contexts
         {
             if (tokenStr == null)
             {
-                return null;
+				return new Context()
+				{
+					CookieState = 6
+				};
             }
 
 			// Default token str format is:
@@ -132,13 +135,18 @@ namespace Api.Contexts
 
             if (tokenSig.Length != 2)
             {
-                return null;
+				return new Context()
+				{
+					CookieState = 5
+				};
             }
 
 			// Verify the signature first:
 			if (!_signatures.ValidateSignature(tokenSig[0], tokenSig[1]))
 			{
-				return null;
+				return new Context() {
+					CookieState = 4
+				};
 			}
 			
 			// Verified! Build the token based on what was in the cookie:
@@ -149,7 +157,10 @@ namespace Api.Contexts
 			if ((length % 2) != 0)
 			{
 				// Must have an even # of parts.
-				return null;
+				return new Context()
+				{
+					CookieState = 7
+				};
 			}
 			
 			var context = new Context();
