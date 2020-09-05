@@ -186,13 +186,31 @@ namespace Api.Startup{
 			}
 			else
 			{
-				var rootNode = filter.Construct();
+				FilterFieldEqualsSet setNode = filter.Nodes.Count == 1 ? filter.Nodes[0] as FilterFieldEqualsSet : null;
 
-				foreach (var kvp in Primary)
+				if (setNode != null && setNode.Field == "Id")
 				{
-					if (rootNode.Matches(values, kvp.Value))
+					// Very common special case where we're getting a specific set of rows.
+					// Directly hit the primary key to return results.
+					foreach (var id in setNode.Values)
 					{
-						set.Add(Clone(kvp.Value));
+						var intId = (int)id;
+						if (Primary.TryGetValue(intId, out T value))
+						{
+							set.Add(Clone(value));
+						}
+					}
+				}
+				else
+				{
+					var rootNode = filter.Construct();
+
+					foreach (var kvp in Primary)
+					{
+						if (rootNode.Matches(values, kvp.Value))
+						{
+							set.Add(Clone(kvp.Value));
+						}
 					}
 				}
 			}
