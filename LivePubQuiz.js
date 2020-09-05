@@ -30,27 +30,22 @@ export default class LivePubQuiz extends React.Component {
 	}
 	
 	componentWillReceiveProps(props){
-		console.log("Updated!");
 		this.load(props);
 	}
 	
 	load(props){
-		console.log("props in pub quiz");
-		console.log(props);
 
 		if(!props.id) {
 			return;
 		}
 
 		if(props.id && props.id == this.state.id && props.start == this.state.start){
-			console.log("FAILLLLLLLLLLLLLL");
 			return;
 		}
 		
 		webRequest('pubquizquestion/list', {where:{
 			PubQuizId: props.id
 		}}).then(response => {
-			console.log("quiz questions loaded");	
 
 			var questions = response.json.results;
 
@@ -78,10 +73,6 @@ export default class LivePubQuiz extends React.Component {
 				this.interval=setInterval(() => {
 					// Tick!
 					var next = this.getActiveQuestionInfo();
-					/*console.log("active:");
-					console.log(this.state.active);
-					console.log("next:");
-					console.log(next);*/
 
 					// Let's see if this is a questions tranisition
 					if(this.state.active && this.state.active.question && next && next.question && next.question.id != this.state.active.question.id) 
@@ -106,8 +97,7 @@ export default class LivePubQuiz extends React.Component {
 					
 					if(next.finished){
 						
-						if(this.state.active && this.state.active.question) 
-						{
+						if(this.state.active && this.state.active.question) {
 							var radios = document.getElementsByName('question_'+this.state.active.question.id);
 
 							for (var i = 0, length = radios.length; i < length; i++) {
@@ -121,17 +111,23 @@ export default class LivePubQuiz extends React.Component {
 								activityInstanceId: this.props.instanceId,
 								pubQuizAnswerId: value
 							}).then(response => {
+								/*
 								// Since this the last submission, let's get the answers as well
+								webRequest('pubquizsubmission/list',{
+									ActivityInstanceId : this.props.instanceId
+								}).then(response => {
+									console.log("submissions for quiz:");
+									console.log(response);
+								})
+
+								*/
 							});
-						}
-
-
+						} 
 						this.interval && clearInterval(this.interval);
 					}
 					
 				}, 1000);
 			}
-			
 		});
 	}
 	
