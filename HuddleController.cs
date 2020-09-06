@@ -64,6 +64,7 @@ namespace Api.Huddles
 			
 			return new {
 				huddle,
+				role = huddle.UserId == context.UserId ? 1 : 4,
 				connectionUrl
 			};
 		}
