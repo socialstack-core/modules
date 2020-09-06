@@ -34,6 +34,19 @@ export default class Peer extends React.Component {
 					{!videoConsumer && (
 						<div className='icon webcam-off' />
 					)}
+					{// If we are an admin, we should see a button to make this user a permitted speaker if they are not.
+					huddleClient.me.role == 1 && (peer.isPermittedSpeaker ? <div className = "btn btn-danger" onClick = {() => {
+						huddleClient.setAsSpeaker(peer, false)
+					}}>
+						Revoke Speaker
+					</div> : <div className = "btn btn-success" onClick = {() => {
+						huddleClient.setAsSpeaker(peer, true)
+					}}>
+						Permit Speaker
+					</div>)}
+				</div>
+				<div className = "raised-hand">
+					<i class="fas fa-hand-paper"></i>
 				</div>
 				<PeerView
 					peer={peer}

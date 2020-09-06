@@ -122,6 +122,14 @@
 				}
 			}
 
+			&.raise-hand {
+				color: #b9bdc4;
+				font-size: 22px;
+				.icon {
+					margin: 21%;
+				}
+			}
+
 			&.restart-ice {
 				background-image: url('./images/icon_restart_ice_white.svg');
 			}

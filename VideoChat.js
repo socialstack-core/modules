@@ -2,6 +2,7 @@ import HuddleClient from 'UI/Functions/HuddleClient';
 import Peers from 'UI/VideoChat/Peers';
 import Me from 'UI/VideoChat/Me';
 import Alert from 'UI/Alert';
+import Row from 'UI/Row';
 import Container from 'UI/Container';
 
 export default class VideoChat extends React.Component {
@@ -200,30 +201,44 @@ export default class VideoChat extends React.Component {
 				<Me huddleClient={huddleClient} />
 			</div>
 
-			{/*
-				These buttons turn off everyone else's video or audio (from your point of view)
-				Useful for personal bandwidth control, but unlikely that people will actually use them.
-				<div className='sidebar'>
-					<div
-						className={'button hide-videos ' + (me.audioOnly ? 'on' : 'off') + ' ' + (me.audioOnlyInProgress ? 'disabled' : '')}
-						onClick={() =>
-						{
-							me.audioOnly ? huddleClient.disableAudioOnly() : huddleClient.enableAudioOnly();
-						}}
-					/>
-					
-					<div
-						className={'button mute-audio ' + (me.audioMuted ? 'on' : 'off')}
-						data-tip={'Mute/unmute participants\' audio'}
-						onClick={() =>
-						{
-							me.audioMuted
-								? huddleClient.unmuteAudio()
-								: huddleClient.muteAudio();
-						}}
-					/>
-				</div>
+
+			{//These buttons turn off everyone else's video or audio (from your point of view)
+			//Useful for personal bandwidth control, but unlikely that people will actually use them.
+			}	
+			<div className='sidebar'>
+				{/*
+				<div
+					className={'button hide-videos ' + (me.audioOnly ? 'on' : 'off') + ' ' + (me.audioOnlyInProgress ? 'disabled' : '')}
+					onClick={() =>
+					{
+						me.audioOnly ? huddleClient.disableAudioOnly() : huddleClient.enableAudioOnly();
+					}}
+				/>
+				
+				<div
+					className={'button mute-audio ' + (me.audioMuted ? 'on' : 'off')}
+					data-tip={'Mute/unmute participants\' audio'}
+					onClick={() =>
+					{
+						me.audioMuted
+							? huddleClient.unmuteAudio()
+							: huddleClient.muteAudio();
+					}}
+				/>
 				*/}
+				
+				{me.role != 1 &&  room.huddle && room.huddle.huddleType == 3 && <div 
+					className = {'button raise-hand ' + (me.raiseHand ? 'on' : 'off')} 
+					title = "Raise hand to request sharing." 
+					onClick = {() => {
+						me.handRaised
+							? huddleClient.unraiseHand()
+							: huddleClient.raiseHand();
+					}}
+				>	
+					<i className="icon fas fa-hand-paper"/> 
+				</div>}
+			</div>
 		</div>;
 
 	}
