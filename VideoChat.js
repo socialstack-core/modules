@@ -227,27 +227,17 @@ export default class VideoChat extends React.Component {
 				/>
 				*/}
 				
-				{me.role != 1 &&  room.huddle && room.huddle.huddleType == 3 && <div 
-					className = {'button raise-hand ' + (me.raiseHand ? 'on' : 'off')} 
+				{me.role != 1 &&  room.huddle && room.huddle.huddleType == 3 && <button 
+					className = {'button raise-hand ' + (me.requestedToSpeak ? 'on' : 'off')} 
 					title = "Raise hand to request sharing." 
 					onClick = {() => {
-						me.handRaised
+						me.requestedToSpeak
 							? huddleClient.requestToSpeak(false)
 							: huddleClient.requestToSpeak(true);
 					}}
 				>	
 					<i className="icon fas fa-hand-paper"/> 
-				</div>}
-
-				{me.roles != 1 && room.huddle  && room.huddle.huddleType == 3 && me.isPermittedSpeaker && <div
-					className = {'button stop-sharing'}
-					title = "Stop sharing."
-					onClick = {() => {
-						huddleClient.setAsSpeaker(me, false);
-					}}
-				>
-					<i class="fas fa-microphone-alt-slash"></i>
-				</div>}
+				</button>}
 			</div>
 		</div>;
 

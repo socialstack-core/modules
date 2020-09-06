@@ -2,11 +2,25 @@ import PeerView from 'UI/VideoChat/PeerView';
 
 export default class Peer extends React.Component {
 	
+	setSpeaker(state, e){
+		const {
+			peer,
+			huddleClient
+		} = this.props;
+		
+		huddleClient.setAsSpeaker(peer, state);
+		e.stopPropagation();
+		e.stopImmediatePropagation && e.stopImmediatePropagation();
+		e.preventDefault();
+	}
+	
 	render(){
 		const {
 			peer,
 			huddleClient
 		} = this.props;
+		
+		var { room } = huddleClient;
 		
 		const audioConsumer = peer.consumers.find((consumer) => consumer.track.kind === 'audio');
 		const videoConsumer = peer.consumers.find((consumer) => consumer.track.kind === 'video');
@@ -35,15 +49,15 @@ export default class Peer extends React.Component {
 						<div className='icon webcam-off' />
 					)}
 					{// If we are an admin, we should see a button to make this user a permitted speaker if they are not.
-					huddleClient.me.role == 1 && (peer.isPermittedSpeaker ? <div className = "btn btn-danger" onClick = {() => {
-						huddleClient.setAsSpeaker(peer, false)
+					huddleClient.me.role == 1 && room.huddle && room.huddle.huddleType == 3 &&(peer.isPermittedSpeaker ? <button className = "btn btn-danger" onClick = {e => {
+						this.setSpeaker(false, e);
 					}}>
 						Revoke Speaker
-					</div> : <div className = "btn btn-success" onClick = {() => {
-						huddleClient.setAsSpeaker(peer, true)
+					</button> : <button className = "btn btn-success" onClick = {e => {
+						this.setSpeaker(true, e);
 					}}>
 						Permit Speaker
-					</div>)}
+					</button>)}
 				</div>
 				{peer.requestedToSpeak && <div className = "raised-hand">
 					<i class="fas fa-hand-paper"></i>

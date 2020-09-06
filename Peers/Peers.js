@@ -36,6 +36,8 @@ export default class Peers extends React.Component {
 					return (
 						<button type="button" className={btnClass} disabled={!this.props.allowFullscreen} title={this.props.allowFullscreen ? "Click to toggle expanded view" : ""}
 							onClick={(e) => {
+								console.log('ClickB');
+						
 								peer.fullscreen = !peer.fullscreen;
 								this.setState({});
 						}}>
