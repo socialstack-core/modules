@@ -169,6 +169,9 @@ export default class LivePubQuiz extends React.Component {
 	
 	renderFinished(){
 		var {huddleId, id} = this.props;
+		var {score} = this.state;
+
+		console.log(score);
 
 		return <div>
 			<h1>
@@ -181,7 +184,7 @@ export default class LivePubQuiz extends React.Component {
 				Scores
 			</h3>
 			
-			{/*<Loop
+			{!this.state.score && <Loop
 				over = {"pubquizsubmission/list"}
 				filter = {{where : {ActivityInstanceId : this.props.instanceId}}}
 			>
@@ -205,7 +208,7 @@ export default class LivePubQuiz extends React.Component {
 
 					this.setState({score: score});
 				}}
-			</Loop>*/}
+			</Loop>}
 
 			<Form
 				action={"huddle/" + huddleId}
