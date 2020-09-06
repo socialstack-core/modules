@@ -22,7 +22,8 @@ export default class Me extends React.Component {
 		const producersArray = huddleClient.producers;
 		const audioProducer = producersArray.find((producer) => producer.track.kind === 'audio');
 		const videoProducer = producersArray.find((producer) => producer.track.kind === 'video');
-		
+		var { room } = huddleClient;
+
 		let micState;
 
 		if (!me.canSendMic)
@@ -64,7 +65,7 @@ export default class Me extends React.Component {
 				className="me"
 				ref={(node) => (this._rootNode = node)}
 			>
-				{connected && (
+				{connected && (<>
 					<div className='controls'>
 						<div
 							className={'button mic ' + micState}
@@ -107,7 +108,17 @@ export default class Me extends React.Component {
 							}}
 						/>
 					</div>
-				)}
+					{me.isPermittedSpeaker && room.huddle && room.huddle.huddleType == 3 ? (
+						<div className="live-indicator on">
+							Live
+						</div>
+					) : (
+						<div className="live-indicator off">
+							Not Live
+						</div>
+					)}
+
+				</>)}
 				
 				<PeerView
 					isMe
