@@ -232,8 +232,8 @@ export default class VideoChat extends React.Component {
 					title = "Raise hand to request sharing." 
 					onClick = {() => {
 						me.handRaised
-							? huddleClient.unraiseHand()
-							: huddleClient.raiseHand();
+							? huddleClient.requestToSpeak(false)
+							: huddleClient.requestToSpeak(true);
 					}}
 				>	
 					<i className="icon fas fa-hand-paper"/> 
