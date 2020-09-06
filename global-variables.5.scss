@@ -493,7 +493,7 @@ $ss_form_field_padding_y: 9 !default;
 $ss_form_field_font_size: 14 !default;
 $ss_form_field_border_radius: $ss_form_field_font_size / 2 !default;
 $ss_form_field_icon: $ss_form_field_fg !default; // used for select dropdown icon
-$ss_form_field_background_position: 98% 50% !default;
+$ss_form_field_background_position: right .5rem top 50% !default;
 $ss_form_field_background_size: 1.5em !default;
 $ss_form_field_label: #444 !default;
 $ss_form_field_label_font_size: 16 !default;
