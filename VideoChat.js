@@ -238,6 +238,16 @@ export default class VideoChat extends React.Component {
 				>	
 					<i className="icon fas fa-hand-paper"/> 
 				</div>}
+
+				{me.roles != 1 && room.huddle  && room.huddle.huddleType == 3 && me.isPermittedSpeaker && <div
+					className = {'button stop-sharing'}
+					title = "Stop sharing."
+					onClick = {() => {
+						huddleClient.setAsSpeaker(me, false);
+					}}
+				>
+					<i class="fas fa-microphone-alt-slash"></i>
+				</div>}
 			</div>
 		</div>;
 

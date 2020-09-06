@@ -45,9 +45,9 @@ export default class Peer extends React.Component {
 						Permit Speaker
 					</div>)}
 				</div>
-				<div className = "raised-hand">
+				{peer.requestedToSpeak && <div className = "raised-hand">
 					<i class="fas fa-hand-paper"></i>
-				</div>
+				</div>}
 				<PeerView
 					peer={peer}
 					videoRtpParameters={videoConsumer ? videoConsumer.rtpParameters : null}
