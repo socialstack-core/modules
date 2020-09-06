@@ -276,6 +276,11 @@ export default class HuddleClient
 			return this.joinFail();
 		}
 		
+		// huddleType and my role:
+		this.room.huddle = huddleInfo.json.huddle;
+		this.me.role = huddleInfo.json.role;
+		console.log(this.me);
+		
 		var isHttps = url.indexOf("localhost") == -1;
 		const protooTransport = new protoo.WebSocketTransport((isHttps ? 'wss' : 'ws') + '://' + url.trim());
 		this._protoo = new protoo.Peer(protooTransport);
@@ -432,7 +437,66 @@ export default class HuddleClient
 					this.dispatchEvent({type:'producerscore', producer});
 					break;
 				}
-
+				
+				case 'speakerState':
+				{
+					const { peerId, permittedState } = notification.data;
+					
+					if(peerId == this.me.peerId){
+						this.me.isPermittedSpeaker = permittedState;
+					}else{
+						var peer = this.peersById[peerId];
+						if(!peer){
+							return;
+						}
+						peer.isPermittedSpeaker = permittedState;
+					}
+					
+					this.dispatchEvent({
+						type: 'roomupdate',
+						room: this.room
+					});
+					
+					break;
+				}
+				
+				case 'requestSpeaker':
+				{
+					const { active, peerId } = notification.data;
+					
+					// Speaker state change:
+					if(peerId == this.me.peerId){
+						this.me.requestedToSpeak = active;
+					}else{
+						var peer = this.peersById[peerId];
+						if(!peer){
+							return;
+						}
+						
+						peer.requestedToSpeak = active;
+					}
+					
+					this.dispatchEvent({
+						type: 'roomupdate',
+						room: this.room
+					});
+					
+					break;
+				}
+				
+				case 'welcome':
+				{
+					const {id, isPermittedSpeaker} = notification.data;
+					this.me.peerId = id;
+					this.me.isPermittedSpeaker = isPermittedSpeaker;
+					
+					this.dispatchEvent({
+						type: 'roomupdate',
+						room: this.room
+					});
+					break;
+				}
+				
 				case 'newPeer':
 				{
 					const peer = notification.data;
@@ -573,6 +637,31 @@ export default class HuddleClient
 						'unknown protoo notification.method "%s"', notification.method);
 				}
 			}
+		});
+	}
+	
+	async requestToSpeak(flag){
+		this.me.requestedToSpeak = flag;
+		
+		await this._protoo.request('requestSpeaker', { active: flag });
+		
+		this.dispatchEvent({
+			type: 'roomupdate',
+			room: this.room
+		});
+	}
+	
+	async setAsSpeaker(peer, flag){
+		if(this.me.role != 1){
+			return;
+		}
+		
+		peer.isPermittedSpeaker = flag;
+		await this._protoo.request('speakerState', { remotePeerId: peer.id, permittedState: flag });
+		
+		this.dispatchEvent({
+			type: 'roomupdate',
+			room: this.room
 		});
 	}
 	
