@@ -209,11 +209,13 @@ namespace Api.Users {
 		/// <summary>
 		/// Failed login attempt counter.
 		/// </summary>
+		[JsonIgnore]
 		public int LoginAttempts;
 		
 		/// <summary>
 		/// Time of first failed login which updated the login attempt counter.
 		/// </summary>
+		[JsonIgnore]
 		public DateTime? FailedLoginTimeUtc;
 		
 	}
