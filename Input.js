@@ -211,11 +211,15 @@ export default class Input extends React.Component {
         }
 
         if (type === "select") {
-
+			var {noSelectionValue} = this.props;
             var defaultValue = typeof this.state.selectValue === 'undefined' ? this.props.defaultValue : this.state.selectValue;
             var noSelection = this.props.noSelection || "None Specified";
             var mobileNoSelection = this.props.mobileNoSelection || "None Specified";
-
+			if(noSelectionValue === undefined)
+			{
+				noSelectionValue = '0';
+			}
+			
             var html = document.getElementsByTagName("html");
 
             if (html.length && html[0].classList.contains("device-mobile")) {
@@ -234,7 +238,7 @@ export default class Input extends React.Component {
                     data-validation={this.state.validationFailure ? true : undefined}
                 >
                     {this.props.contentType ? [
-                        <option value='0'>{noSelection}</option>,
+                        <option value={noSelectionValue}>{noSelection}</option>,
 						<Loop over={this.props.contentType + '/list'} raw>
 							{
 								entry => <option value={entry.id} selected={entry.id == defaultValue ? true : undefined}>
