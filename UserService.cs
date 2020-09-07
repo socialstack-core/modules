@@ -79,8 +79,11 @@ namespace Api.Users
 					return Task.FromResult(user);
 				}
 				
-				// Default role is Member:
-				user.Role = Roles.Member.Id;
+				if(user.Role == 0 || (ctx.Role != Roles.SuperAdmin && ctx.Role != Roles.Admin))
+				{
+					// Default role is Member:
+					user.Role = Roles.Member.Id;
+				}
 				
 				// Join date:
 				user.JoinedUtc = DateTime.UtcNow;
