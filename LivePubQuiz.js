@@ -7,6 +7,7 @@ import Form from 'UI/Form';
 import getContentTypeId from 'UI/Functions/GetContentTypeId';
 import { addSeconds} from 'UI/Functions/DateTools';
 import Loop from 'UI/Loop';
+import Websocket from 'UI/Functions/WebSocket';
 
 // <LivePubQuiz startTime={time} id={quizId} />
 
@@ -19,33 +20,70 @@ export default class LivePubQuiz extends React.Component {
 	constructor(props){
 		super(props);
 		this.state = {
-			score: {}
+			score: []
 		};
 		
 		this.load(props);
+		this.aggregateScore = this.aggregateScore.bind(this);
 	}
 	
 	componentWillUnmount(){
 		this.interval && clearInterval(this.interval);
+		webSocket.removeEventListener("PubQuizSubmission", this.aggregateScore);
 	}
 	
 	componentWillReceiveProps(props){
 		this.load(props);
 	}
 	
-	load(props){
-
-		if(!props.id) {
+	aggregateScore(msg) {
+		if (msg.all) {
+			if (msg.type == "status") {
+				if (msg.connected) {
+					// Force a reload:
+					this.load(this.props, true);
+				}
+			}
 			return;
 		}
 
-		if(props.id && props.id == this.state.id && props.start == this.state.start){
+		var entity = msg.entity;
+		var entityId = entity.id;
+
+		if (msg.method == 'create') {
+			var score = this.state.score;
+			
+			if (!score.find(ent => ent && ent.id == entityId)) {
+				score.push(entity);
+				this.setState({score});
+			}
+
+		}
+	}
+
+	load(props, force){
+
+		if(!props.id && !force) {
 			return;
 		}
+
+		if(!force && props.id && props.id == this.state.id && props.start == this.state.start){
+			return;
+		}
+
+		webRequest('pubquizsubmission/list', {where:{
+			ActivityInstanceId: props.instanceId
+		}}).then(response => {
+			this.setState({score: response.json.results});
+		});
 		
 		webRequest('pubquizquestion/list', {where:{
 			PubQuizId: props.id
 		}}).then(response => {
+
+			Websocket.addEventListener('PubQuizSubmission', this.aggregateScore, {where:{
+				ActivityInstanceId: props.instanceId
+			}});
 
 			var questions = response.json.results;
 
@@ -110,17 +148,6 @@ export default class LivePubQuiz extends React.Component {
 							webRequest('pubquizsubmission', {
 								activityInstanceId: this.props.instanceId,
 								pubQuizAnswerId: value
-							}).then(response => {
-								/*
-								// Since this the last submission, let's get the answers as well
-								webRequest('pubquizsubmission/list',{
-									ActivityInstanceId : this.props.instanceId
-								}).then(response => {
-									console.log("submissions for quiz:");
-									console.log(response);
-								})
-
-								*/
 							});
 						} 
 						this.interval && clearInterval(this.interval);
@@ -167,6 +194,36 @@ export default class LivePubQuiz extends React.Component {
 		};
 	}
 	
+	renderScores(){
+		var score = this.state.score;
+		var users = {};
+
+		score.forEach(scr => {
+			var userId = scr.userId;
+
+			if(users[userId]){
+				users[userId].scores.push(scr);
+				if(scr.isCorrect) {
+					users[userId].total++;
+				}
+			}else{
+			 	users[userId] = { scores: [scr], total: scr.isCorrect ? 1:0, profile: scr.creatorUser};
+			}
+		})
+	
+		var result = [];
+
+		for(var userId in users ) {
+			var user = users[userId];
+			result.push(<div>
+				{user.profile ? user.profile.firstName + " " + user.profile.lastName : "Anonymous"}
+				{": " + user.total}
+			</div>);
+		}
+
+		return result;
+	}
+
 	renderFinished(){
 		var {huddleId, id} = this.props;
 		var {score} = this.state;
@@ -180,35 +237,8 @@ export default class LivePubQuiz extends React.Component {
 			<p>
 				Here's how you did
 			</p>
-			<h3>
-				Scores
-			</h3>
-			
-			{!this.state.score && <Loop
-				over = {"pubquizsubmission/list"}
-				filter = {{where : {ActivityInstanceId : this.props.instanceId}}}
-			>
-				{submission => {
-					var score = this.state.score;
 
-					// Was the creatorUser of this submission
-					var creator = submission.creatorUser;
-
-					// Do we have an entry for this user?
-					if (!score[creator.id]) {
-						creator.score = 0;
-						score[creator.id] = creator;
-					}
-
-					var answer = submission.pubQuizAnswer;
-
-					if(answer.isCorrect) {
-						score[creator.id].score = score[creator.id].score + 1;
-					}
-
-					this.setState({score: score});
-				}}
-			</Loop>}
+			{this.renderScores()}
 
 			<Form
 				action={"huddle/" + huddleId}
