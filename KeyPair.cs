@@ -121,7 +121,7 @@ namespace Api.Signatures
 		/// <returns></returns>
 		public string Serialize()
 		{
-			return "{\"private\":\"" + Convert.ToBase64String(PrivateKeyBytes) + "\", \"public\": \"\"}";
+			return "{\"private\":\"" + Convert.ToBase64String(PrivateKeyBytes) + "\", \"public\": \"" + Convert.ToBase64String(PublicKey.Q.GetEncoded(false)) + "\"}";
 		}
 
 		/// <summary>
