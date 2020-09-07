@@ -49,6 +49,11 @@ namespace Api.NavMenus
 		public string IconRef;
 		
 		/// <summary>
+		/// Optional sort order. Higher numbers list first.
+		/// </summary>
+		public int Order;
+		
+		/// <summary>
 		/// Page visibility varies when anon users.
 		/// </summary>
 		public bool VisibleToRole0 = true;
