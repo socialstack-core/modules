@@ -108,16 +108,19 @@ export default class Me extends React.Component {
 							}}
 						/>
 					</div>
-					{me.isPermittedSpeaker && room.huddle && room.huddle.huddleType == 3 ? (
-						<div className="live-indicator on">
-							Live
-						</div>
-					) : (
-						<div className="live-indicator off">
-							Not Live
-						</div>
-					)}
-
+					{
+						room.huddle && room.huddle.huddleType == 3 && (
+							me.isPermittedSpeaker ? (
+								<div className="live-indicator on">
+									Live
+								</div>
+							) : (
+								<div className="live-indicator off">
+									Not Live
+								</div>
+							)
+						)
+					}
 				</>)}
 				
 				<PeerView
