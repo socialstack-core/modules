@@ -242,14 +242,14 @@
         padding: $theme_primary_btn_padding_lg;
         font-size: $theme_primary_btn_font_size_lg;
         //line-height: 1.5;
-        border-radius: $theme_primary_btn_border_radius_lg;
+        //border-radius: $theme_primary_btn_border_radius_lg;
     }
 
     &.btn-sm {
-        padding: $theme_secondary_btn_padding_lg;
-        font-size: $theme_secondary_btn_font_size_lg;
+        padding: $theme_secondary_btn_padding_sm;
+        font-size: $theme_secondary_btn_font_size_sm;
         //line-height: 1.5;
-        border-radius: $theme_secondary_btn_border_radius_lg;
+        //border-radius: $theme_secondary_btn_border_radius_lg;
     }
 }
 
