@@ -16,7 +16,7 @@ namespace Api.PubQuizzes
 		/// <summary>
 		/// Instanced automatically. Use injection to use this service, or Startup.Services.Get.
 		/// </summary>
-		public PubQuizSubmissionService() : base(Events.PubQuizSubmission)
+		public PubQuizSubmissionService(IPubQuizAnswerService answers) : base(Events.PubQuizSubmission)
         {
 			var pubQuizAnswerContentTypeId = ContentTypes.GetId(typeof(PubQuizAnswer));
 			// Example admin page install:
@@ -42,6 +42,24 @@ namespace Api.PubQuizzes
 				);
 
 				return submissions;
+			});
+
+			Events.PubQuizSubmission.BeforeCreate.AddEventListener(async (Context context, PubQuizSubmission submission) =>
+			{
+				if (submission == null)
+                {
+					return null;
+                }
+
+				var answer = await answers.Get(context, submission.PubQuizAnswerId);
+
+				if (answer == null)
+				{
+					return null;
+				}
+
+				submission.IsCorrect = answer.IsCorrect;
+				return submission;
 			});
 
 		}
