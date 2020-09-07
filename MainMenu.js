@@ -9,7 +9,7 @@ export default class MainMenu extends React.Component {
 		return (
 			<div className="main-menu">
 				<div className="logo" />
-				<NavMenu id={'admin_primary'} asUl>
+				<NavMenu id={'admin_primary'} filter={{ sort: { field: 'BodyJson' } }} asUl>
 					{item =>
 						<a href={item.target} className={
 							item.target == '/en-admin/' ?
