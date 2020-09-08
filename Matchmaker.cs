@@ -15,7 +15,7 @@ namespace Api.Matchmaking
 		/// <summary>
 		/// Server region. Use 0 to indicate no use of regions.
 		/// Otherwise, the regions are purely down to a particular project.
-		/// E.g. 1=Europe, 2=Asia, 3=NA East, 4=NA West, 5=Oceania, 6=South America
+		/// E.g. 1=Europe, 2=Asia, 3=NA East, 4=NA West, 5=Oceania, 6=South America, 7=Africa
 		/// This indicates which region the matchmaker will exclusively use when selecting a server.
 		/// </summary>
 		public int RegionId;
