@@ -9,20 +9,42 @@ namespace Api.Startup
     /// <summary>
     /// Used when responding with an error
     /// </summary>
-    [Serializable]
-    [JsonObject(MemberSerialization.OptIn , Id = "Error")]
     public class ErrorResponse
     {
         /// <summary>
         /// The error message
         /// </summary>
-        [JsonProperty]
-        public string Message { get; set; }
+		public string message;
 		
         /// <summary>
         /// Optional textual error code for localisation. E.g. "already_booked".
         /// </summary>
-        [JsonProperty]
-        public string Code { get; set; }
+		public string code;
+		
+        /// <summary>
+        /// The error message
+        /// </summary>
+		[JsonIgnore]
+        public string Message{
+			get{
+				return message;
+			}
+			set{
+				message = value;
+			}
+		}
+		
+        /// <summary>
+        /// Optional textual error code for localisation. E.g. "already_booked".
+        /// </summary>
+		[JsonIgnore]
+        public string Code{
+			get{
+				return code;
+			}
+			set{
+				code = value;
+			}
+		}
     }
 }
