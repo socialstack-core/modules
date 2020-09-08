@@ -178,7 +178,7 @@ namespace Api.Startup
 					else
 					{
 						context.Response.StatusCode = 500;
-						await context.Response.WriteAsync("{message: \"An internal error has occurred - please try again later.\", code: \"server_error\"}");
+						await context.Response.WriteAsync("{\"message\": \"An internal error has occurred - please try again later.\", \"code\": \"server_error\"}");
 					}
 				});
 			});
