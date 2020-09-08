@@ -7,6 +7,7 @@ import Input from 'UI/Input';
 import {expand, mapTokens} from 'UI/Functions/CanvasExpand';
 import webRequest from 'UI/Functions/WebRequest';
 import getContentTypes from 'UI/Functions/GetContentTypes';
+import Collapsible from 'UI/Collapsible';
 
 // Connect the input "ontypecanvas" render event:
 
@@ -660,6 +661,7 @@ export default class CanvasEditor extends React.Component {
 		var dataValues = {...contentNode.data};
 		
 		var props = Module.propTypes;
+		var defaultProps = Module.defaultProps || {};
 		
 		if(this.props.moduleSet == 'renderer'){
 			props = Module.rendererPropTypes || props;
@@ -676,7 +678,7 @@ export default class CanvasEditor extends React.Component {
 				if(!propType.type){
 					propType = {type: propType};
 				}
-				dataFields[fieldName] = {propType, value: dataValues[fieldName]};
+				dataFields[fieldName] = { propType, defaultValue: defaultProps[fieldName], value: dataValues[fieldName]};
 				atLeastOneDataField = true;
 			}
 		}
@@ -688,7 +690,7 @@ export default class CanvasEditor extends React.Component {
 			
 			// This data field is in the JSON, but not a prop. The module is essentially missing its public interface.
 			// We'll still display it though so it can be edited:
-			dataFields[fieldName] = {propType: {type: 'string'}, value: dataValues[fieldName]};
+			dataFields[fieldName] = { propType: { type: 'string' }, defaultValue: defaultProps[fieldName], value: dataValues[fieldName]};
 			atLeastOneDataField = true;
 		}
 		
@@ -844,29 +846,36 @@ export default class CanvasEditor extends React.Component {
 			if(val && val.type){
 				val = JSON.stringify(val);
 			}
-			
+
+			var placeholder = val == "" ? null : fieldInfo.defaultValue;
+
 			options.push(
-				<Input label={this.getLinkLabel(this.niceName(label), targetNode, fieldInfo)} type={inputType} defaultValue={val} onChange={e => {
+				<Input label={this.getLinkLabel(this.niceName(label), targetNode, fieldInfo)} type={inputType} defaultValue={val} placeholder={placeholder} onChange={e => {
 					var value = e.target.value;
-					
-					if(inputType == 'renderer'){
+
+					if (inputType == 'renderer') {
 						value = e.json;
-					}else if(inputType == 'checkbox'){
+					} else if (inputType == 'checkbox') {
 						value = !!e.target.checked;
 					}
-					
+
 					this.updateField(targetNode, fieldInfo, value);
 				}} onKeyUp={e => {
 					var value = e.target.value;
-					
-					if(inputType == 'renderer'){
+
+					if (inputType == 'renderer') {
 						value = e.json;
-					}else if(inputType == 'checkbox'){
+					} else if (inputType == 'checkbox') {
 						value = !!e.target.checked;
 					}
-					
+
 					this.updateField(targetNode, fieldInfo, value);
-				}} {...extraProps}>{inputContent}</Input>
+					}} onKeyDown={e => {
+						if (e.ctrlKey && e.key === 'Delete') {
+							// reset field to default value
+							e.target.value = fieldInfo.defaultValue;
+						}
+					}} {...extraProps}>{inputContent}</Input>
 			);
 		});
 		
@@ -1083,6 +1092,229 @@ export default class CanvasEditor extends React.Component {
 		
 		return result;
 	}
+
+	renderLayoutNode(contentNode, index) {
+		if (!contentNode) {
+			return null;
+		}
+
+		if (Array.isArray(contentNode)) {
+			return contentNode.map((e, i) => this.renderLayoutNode(e, i));
+		}
+
+		var result = null;
+		var buttons = [];
+
+		var Module = contentNode.module || "div";
+		var displayName = this.displayModuleName(contentNode.moduleName);
+		var subtitle;
+		var kidsSupported = Module.propTypes && Module.propTypes.children;
+
+		if (kidsSupported) {
+			buttons.push({
+				onClick: () => this.setState({ selectOpenFor: contentNode, rightClick: null }),
+				icon: 'far fa-plus',
+				text: 'Add component to ' + displayName
+			});
+		}
+
+		buttons.push({
+			onClick: () => this.setState({ optionsVisibleFor: contentNode, rightClick: null }),
+			icon: 'far fa-cog',
+			text: 'Edit ' + displayName
+		});
+
+		buttons.push({
+			onClick: () => {
+				this.setState({ rightClick: null });
+				var parent = this.findParent(contentNode);
+				this.removeFrom(contentNode, parent);
+				if (parent == this.state) {
+					this.setState({ content: parent.content });
+				}
+				this.updated();
+			},
+			icon: 'far fa-trash',
+			text: 'Delete ' + displayName
+		});
+
+		if (contentNode.module == Text) {
+			result = (
+				<Collapsible title={displayName} buttons={buttons} open>
+					<div
+						contenteditable
+						onInput={e => {
+							contentNode.content = e.target.innerHTML;
+							this.updated();
+						}}
+						onKeyDown={e => {
+
+							if (!e.ctrlKey) {
+								return;
+							}
+
+							switch (e.keyCode) {
+								case 73:
+									// ctrl+i.
+									e.preventDefault();
+									var selection = new CanvasSelection(this);
+									selection.surroundTextWith('i');
+									break;
+								case 66:
+									// ctrl+b.
+									e.preventDefault();
+									var selection = new CanvasSelection(this);
+									selection.surroundTextWith('b');
+									break;
+								case 85:
+									// ctrl+u.
+									e.preventDefault();
+									var selection = new CanvasSelection(this);
+									selection.surroundTextWith('u');
+									break;
+								case 75:
+									// ctrl+k. (hyperlink)
+									e.preventDefault();
+									var selection = new CanvasSelection(this);
+									selection.surroundTextWith('a');
+									break;
+
+								// Canvas level ones like ctrl+z, ctrl+s, ctrl+y are handled elsewhere.
+								// copy/paste is handled by the browser
+							}
+						}}
+						className="canvas-editor-module canvas-editor-text"
+						dangerouslySetInnerHTML={{ __html: contentNode.content }}
+					/>
+				</Collapsible>
+			);
+		} else {
+
+			if (displayName.toLowerCase() == "if") {
+				var clauses = [];
+
+				for (const [key, value] of Object.entries(contentNode.data)) {
+					clauses.push(key + " = " + value);
+				}
+
+				if (clauses.length) {
+					subtitle = "(" + clauses.join(", ").trim() + ")";
+				}
+
+			}
+
+			result = (
+				<Collapsible title={displayName} subtitle={subtitle} buttons={buttons} open>
+					{contentNode.useCanvasRender ? this.renderLayoutNode(contentNode.content) : null}
+				</Collapsible>
+			);
+		}
+
+		return result;
+
+		var Module = contentNode.module || "div";
+		var result = null;
+
+		if (Module == Text) {
+
+			var divRef = null;
+
+			result = (
+				<div
+					contenteditable
+					onInput={e => {
+						contentNode.content = e.target.innerHTML;
+						this.updated();
+					}}
+					onKeyDown={e => {
+
+						if (!e.ctrlKey) {
+							return;
+						}
+
+						switch (e.keyCode) {
+							case 73:
+								// ctrl+i.
+								e.preventDefault();
+								var selection = new CanvasSelection(this);
+								selection.surroundTextWith('i');
+								break;
+							case 66:
+								// ctrl+b.
+								e.preventDefault();
+								var selection = new CanvasSelection(this);
+								selection.surroundTextWith('b');
+								break;
+							case 85:
+								// ctrl+u.
+								e.preventDefault();
+								var selection = new CanvasSelection(this);
+								selection.surroundTextWith('u');
+								break;
+							case 75:
+								// ctrl+k. (hyperlink)
+								e.preventDefault();
+								var selection = new CanvasSelection(this);
+								selection.surroundTextWith('a');
+								break;
+
+							// Canvas level ones like ctrl+z, ctrl+s, ctrl+y are handled elsewhere.
+							// copy/paste is handled by the browser
+						}
+					}}
+					className="canvas-editor-text"
+					dangerouslySetInnerHTML={{ __html: contentNode.content }}
+				/>
+			);
+		} else {
+
+			var dataFields = mapTokens(contentNode.data, this, Canvas);
+
+			result = (
+				<Module ref={r => {
+					if (r == null) {
+						return;
+					}
+
+					setTimeout(() => {
+						if (r.base == null || r.base.setAttribute == null) {
+							return;
+						}
+
+						r.base.setAttribute('draggable', true);
+						r.base.ondragstart = e => {
+							var json = JSON.stringify(this.buildJsonNode(contentNode, index, false));
+							e.dataTransfer.setData("application/json", json);
+						};
+						r.base.onjsondrop = (target, modules) => {
+
+							if (!Array.isArray(contentNode.content)) {
+								if (contentNode.content === null) {
+									contentNode.content = [];
+								} else {
+									contentNode.content = [contentNode.content];
+								}
+								contentNode.useCanvasRender = true;
+							}
+
+							contentNode.content.push(expand(modules));
+
+							this.setState({ content: this.state.content });
+							this.updated();
+						};
+						r.base.contentNode = contentNode;
+						r.base.setAttribute('admin-module', true);
+					}, 1000);
+
+				}} {...dataFields}>
+					{contentNode.useCanvasRender ? this.renderLayoutNode(contentNode.content) : null}
+				</Module>
+			);
+
+		}
+
+		return result;
+	}
 	
 	displayModuleName(name){
 		if(!name){
@@ -1184,120 +1416,178 @@ export default class CanvasEditor extends React.Component {
 		return this.findComponentRoot(e.parentNode);
 	}
 	
-	render(){
-		if(this.state.jsonEdit){
-			return (
-				<div className="canvas-editor">
-					<div className="btn btn-info back-to-visual" onClick={() => {
-						// TODO: grab the value from the textarea 
-						// and set it as the loaded canvas.
-						this.setState({
-							jsonEdit: false
-						});
-					}}>Back to visual view</div>
-					<Input type="textarea" className="form-control json-preview" name={this.props.name} defaultValue={this.state.jsonEdit} />
-				</div>
-			);
-		}
-		
+	render() {
+		var btnClass = "btn btn-sm btn-primary";
+		var isPreviewMode = !this.state.layoutView && !this.state.jsonEdit;
+		var previewClass = btnClass + (isPreviewMode ? " active" : "");
+		var layoutClass = btnClass + (this.state.layoutView ? " active" : "");
+		var sourceClass = btnClass + (this.state.jsonEdit ? " active" : "");
+
+		{/* TODO: grab the value from the JSON source textarea and set it as the loaded canvas */}
 		return (
-			<div
-				className="canvas-editor"
-				onDrop={e => {
-					e.preventDefault();
-					var data = e.dataTransfer.getData("application/json");
-					
-					var target = this.findComponentRoot(e.target);
-					
-					if(target && target.onjsondrop){
-						target.onjsondrop(e, JSON.parse(data));
-					}
-					
-				}}
-				onDragEnd = {
-					e => {
-						if(this.dragTarget){
-							this.dragTarget.style.backgroundColor='';
-						}
-					}
-				}
-				onDragOver = {e => {
-					if(this.dragTarget){
-						this.dragTarget.style.backgroundColor='';
-					}
-					
-					this.dragTarget = e.target;
-					this.dragTarget.style.backgroundColor = 'lightblue';
-					
-					e.preventDefault();
-				}}
-				onContextMenu={e => {
-					e.preventDefault();
-					return false;
-				}}
-				onMouseUp = { e=> {
-					// Check for right click
-					// TODO: Also check for a long press.
-					if(e.button != 2){
-						return;
-					}
-					
-					// Find nearest admin-module:
-					// TODO: Stuff that perfectly fits inside its parent, such as anything inside UI/Align, makes the UI/Align itself unreachable.
-					// Maybe find *all* nearest admin-modules and list them?
-					var targetModuleElement = this.findComponentRoot(e.target);
+			<>
+				{/* preview / layout / source switch*/}
+				<div class="btn-group btn-group-toggle canvas-editor-view" data-toggle="buttons">
+					<label class={previewClass}>
+						<input type="radio" name="canvasViewOptions" id="previewMode" autocomplete="off"
+							checked={isPreviewMode} onChange={() => {
+								this.setState({
+									layoutView: false,
+									jsonEdit: false
+								});
+							}} />
+						<i className="far fa-presentation"></i>
+						Preview
+					</label>
+					<label class={layoutClass}>
+						<input type="radio" name="canvasViewOptions" id="layoutMode" autocomplete="off"
+							checked={this.state.layoutView} onChange={() => {
+								this.setState({
+									layoutView: true,
+									jsonEdit: false
+								});
+							}} />
+						<i className="far fa-sitemap"></i>
+						Layout
+					</label>
+					<label class={sourceClass}>
+						<input type="radio" name="canvasViewOptions" id="sourceMode" autocomplete="off"
+							checked={this.state.jsonEdit} onChange={() => {
+								this.setState({
+									layoutView: false,
+									jsonEdit: JSON.stringify(this.buildJson(), null, '\t')
+								});
+							}} />
+						<i className="far fa-code"></i>
+						Source
+					</label>
+				</div>
 
-					if (!targetModuleElement) {
-						return;
-					}
-
-					e.preventDefault();
-					
-					this.setState({
-						rightClick: {
-							contentNode: targetModuleElement.contentNode,
-							x: e.clientX,
-							y: e.clientY
-						}
-					});
-				}}
-			>
-				{this.props.onPageUrl && (
-					<div style={{marginBottom: '10px'}}>
-						<a href={this.props.onPageUrl + '#edit=' + this.props.contentType + '&id=' + this.props.contentId + '&field=' + this.props.name}>
-							<div className="btn btn-primary">
-								Edit on page
-							</div>
-						</a>
-					</div>
-				)}
 				<input type="hidden" name={this.props.name} ref={ref => {
 					this.ref = ref;
-					if(ref){
+					if (ref) {
 						ref.onGetValue = (val, field) => {
-							if(field != this.ref){
+							if (field != this.ref) {
 								return;
 							}
-							
+
 							return JSON.stringify(this.buildJson());
 						}
 					}
-				}}/>
-				<div style={{border: '1px solid lightgrey', borderRadius: '4px', padding: '0.375rem 0.75rem'}}>
-					{this.renderNode(this.state.content,0)}
-					{!this.props.minimal && (
-						<div style={{clear: 'both', marginTop: '10px'}}>
-							<div className="btn btn-secondary" onClick={() => {this.setState({selectOpenFor: true})}}>
-								<i className="fa fa-plus" />
+				}} />
+
+				{/* preview mode */}
+				{isPreviewMode &&
+					<div
+						className="canvas-editor"
+						onDrop={e => {
+							e.preventDefault();
+							var data = e.dataTransfer.getData("application/json");
+
+							var target = this.findComponentRoot(e.target);
+
+							if (target && target.onjsondrop) {
+								target.onjsondrop(e, JSON.parse(data));
+							}
+
+						}}
+						onDragEnd={
+							e => {
+								if (this.dragTarget) {
+									this.dragTarget.style.backgroundColor = '';
+								}
+							}
+						}
+						onDragOver={e => {
+							if (this.dragTarget) {
+								this.dragTarget.style.backgroundColor = '';
+							}
+
+							this.dragTarget = e.target;
+							this.dragTarget.style.backgroundColor = 'lightblue';
+
+							e.preventDefault();
+						}}
+						onContextMenu={e => {
+							e.preventDefault();
+							return false;
+						}}
+						onMouseUp={e => {
+							// Check for right click
+							// TODO: Also check for a long press.
+							if (e.button != 2) {
+								return;
+							}
+
+							// Find nearest admin-module:
+							// TODO: Stuff that perfectly fits inside its parent, such as anything inside UI/Align, makes the UI/Align itself unreachable.
+							// Maybe find *all* nearest admin-modules and list them?
+							var targetModuleElement = this.findComponentRoot(e.target);
+
+							if (!targetModuleElement) {
+								return;
+							}
+
+							e.preventDefault();
+
+							this.setState({
+								rightClick: {
+									contentNode: targetModuleElement.contentNode,
+									x: e.clientX,
+									y: e.clientY
+								}
+							});
+						}}
+					>
+						{this.props.onPageUrl && (
+							<div style={{ marginBottom: '10px' }}>
+								<a href={this.props.onPageUrl + '#edit=' + this.props.contentType + '&id=' + this.props.contentId + '&field=' + this.props.name}>
+									<div className="btn btn-primary">
+										Edit on page
+								</div>
+								</a>
 							</div>
-						</div>
 					)}
-				</div>
-				{!this.state.linkSelectionFor && this.renderModuleSelection()}
-				{!this.state.linkSelectionFor && this.renderOptionsModal()}
-				{this.renderLinkSelectionModal()}
-				{this.state.rightClick && this.renderContextMenu()}
-			</div>
+						<div className="canvas-editor-bordered">
+							{this.renderNode(this.state.content, 0)}
+							{!this.props.minimal && (
+								<button type="button" className="btn btn-secondary btn-add-component" onClick={() => { this.setState({ selectOpenFor: true }) }}>
+									<i className="far fa-plus" />
+									Add component
+								</button>
+							)}
+						</div>
+						{!this.state.linkSelectionFor && this.renderModuleSelection()}
+						{!this.state.linkSelectionFor && this.renderOptionsModal()}
+						{this.renderLinkSelectionModal()}
+						{this.state.rightClick && this.renderContextMenu()}
+					</div>
+				}
+
+				{/* layout mode */}
+				{this.state.layoutView &&
+					<div className="canvas-editor">
+						{this.renderLayoutNode(this.state.content, 0)}
+						{!this.props.minimal && (
+							<button type="button" className="btn btn-sm btn-primary btn-add-component" onClick={() => { this.setState({ selectOpenFor: true }) }}>
+								<i className="far fa-plus" />
+								Add component
+							</button>
+						)}
+						{!this.state.linkSelectionFor && this.renderModuleSelection()}
+						{!this.state.linkSelectionFor && this.renderOptionsModal()}
+						{this.renderLinkSelectionModal()}
+					</div>
+				}
+
+				{/* source mode */}
+				{this.state.jsonEdit &&
+					<div className="canvas-editor">
+						<Input type="textarea" className="form-control json-preview" name={this.props.name} defaultValue={this.state.jsonEdit} />
+					</div>
+				}
+
+			</>
 		);
 	}
 }

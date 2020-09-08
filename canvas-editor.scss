@@ -1,5 +1,63 @@
+.canvas-editor-view {
+	float: right;
+
+	label i {
+		margin-right: .5rem;
+	}
+}
+
 .canvas-editor{
+	margin-top: 2rem;
 	text-align: left;
+
+	.canvas-editor-bordered {
+		border: 1px solid lightgrey;
+		border-radius: 4px;
+		padding: 0.375rem 0.75rem;
+	}
+
+	.collapsible {
+		margin-bottom: 1rem;
+
+		.collapsible-summary {
+			padding: .5rem 1rem;
+			border: 1px solid lightgrey;
+			border-radius: 4px;
+
+			.collapsible-title {
+				font-size: px_to_rem(18);
+				font-weight: bold;
+				color: #444;
+				margin: 0;
+			}
+
+			.buttons {
+
+				.btn {
+					border-radius: 4px;
+					padding: .75rem 1rem !important;
+				}
+
+			}
+
+		}
+
+		.collapsible-content {
+			padding: 0 1rem 1rem 1rem;
+			border-color: lightgrey;
+		}
+
+	}
+
+	.btn-add-component {
+		clear: both;
+		margin-top: 1rem;
+		display: block;
+
+		i {
+			margin-right: .5rem;
+		}
+	}
 	
 	*[admin-module=true]{
 		min-width: 20px;
@@ -15,6 +73,7 @@
 		border: 1px solid lightgrey;
 		padding: 10px;
 		position: fixed;
+		z-index: 1;
 		
 		.context-btn{
 			margin-bottom: 10px;
@@ -26,6 +85,10 @@
 			
 			&:hover{
 				cursor: pointer;
+			}
+
+			&:last-child {
+				margin-bottom: 0;
 			}
 		}
 	}
