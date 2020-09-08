@@ -113,7 +113,9 @@ export default class Search extends React.Component {
 			return this.props.onDisplay(result, isSuggestion);
 		} 
 		
-		return result[this.props.field || 'name'];
+		var field = this.props.field || 'name';
+		field = field.charAt(0).toLowerCase() + field.slice(1);
+		return result[field];
 	}
 	
 	render(){
