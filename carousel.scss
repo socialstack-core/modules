@@ -1,3 +1,19 @@
+// maximum number of slides considered when updating opacity
+$max_slides: 20;
+
+@mixin opacityCheck($offset, $slidesPerScreen) {
+    $nthOffset: $slidesPerScreen + 1 + $offset;
+
+    &[data-offset='#{$offset}'] {
+
+        .content-item:nth-child(-n+#{$offset}),
+        .content-item:nth-child(n+#{$nthOffset}) {
+            opacity: .5;
+        }
+
+    }
+}
+
 .carousel {
 
     .slider {
@@ -74,6 +90,20 @@
         overflow: visible;
         padding: 0;
         margin-bottom: 0;
+
+        &.toggle-opacity {
+
+            @for $offset from 0 through $max_slides {
+                @include opacityCheck($offset, 2);
+            }
+
+            @media only screen and (max-width: 991px) {
+                @for $offset from 0 through $max_slides {
+                    @include opacityCheck($offset, 1);
+                }
+            }
+
+        }
     }
 
     .content-item {
@@ -85,6 +115,7 @@
         width: 100%;
         flex: 0 0 100%;
         overflow: hidden;
+        transition: opacity ease .2s;
 
         .content-item-internal {
             height: 100%;

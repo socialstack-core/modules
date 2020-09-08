@@ -65,7 +65,8 @@ export default class Carousel extends React.Component {
 			visibleAtOnceSm,
 			visibleAtOnceMd,
 			visibleAtOnceLg,
-			spacing
+			spacing,
+			toggleOpacity
 		} = this.props;
 
 		var items = this.content();
@@ -103,7 +104,7 @@ export default class Carousel extends React.Component {
 		}
 
 		//var contentClass = this.state.currentIndex === 0 ? "content-list content first" : "content-list content";
-		var contentClass = "content-list content first";
+		var contentClass = toggleOpacity ? "content-list content first toggle-opacity" : "content-list content first";
 		var width = 0;
 
 		// TODO: update media query matches in realtime
@@ -165,7 +166,7 @@ export default class Carousel extends React.Component {
 								</button>
 							</div>
 						}
-						<ul className={contentClass} style={slideOffset}>
+						<ul className={contentClass} style={slideOffset} data-offset={this.state.currentIndex}>
 							{
 								items.map((item,i) => {
 									var content = React.isValidElement(item) ? item : null;
