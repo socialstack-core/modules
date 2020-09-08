@@ -167,7 +167,8 @@ namespace Api.Startup
 				{
 					context.Response.ContentType = "application/json";
 					var exceptionHandlerPathFeature = context.Features.Get<IExceptionHandlerPathFeature>();
-					var publicError = (exceptionHandlerPathFeature?.Error as PublicException);
+					var e = exceptionHandlerPathFeature?.Error;
+					var publicError = (e as PublicException);
 					
 					if(publicError != null)
 					{
@@ -177,6 +178,9 @@ namespace Api.Startup
 					}
 					else
 					{
+						if(e != null){
+							Console.WriteLine(e.ToString());
+						}
 						context.Response.StatusCode = 500;
 						await context.Response.WriteAsync("{\"message\": \"An internal error has occurred - please try again later.\", \"code\": \"server_error\"}");
 					}
