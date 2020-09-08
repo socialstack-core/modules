@@ -10,8 +10,8 @@ import formatTime from "UI/Functions/FormatTime";
 var locales = null;
 
 /**
- * Used to automatically generate forms used by the admin area based on fields from your AutoForm declarations in the API.
- * To use this, your endpoints must have add/ update and must also accept an AutoForm<> model. 
+ * Used to automatically generate forms used by the admin area based on fields from your entity declarations in the API.
+ * To use this, use AutoService/ AutoController.
  * Most modules do this, so check any existing one for some examples.
  */
 export default class AutoForm extends React.Component {
@@ -306,7 +306,17 @@ export default class AutoForm extends React.Component {
 							// Show globe icon alongside the label:
 							data.label = [(data.label || ''), <i className='fa fa-globe-europe localized-field-label' />];
 						}
-
+						
+						if(data.hint){
+							var hint = <i className='fa fa-question-circle hint-field-label' title={data.hint}/>;
+							
+							if(Array.isArray(data.label)){
+								data.label.push(hint);
+							}else{
+								data.label = [(data.label || ''), hint];
+							}
+						}
+						
 						data.autoComplete = 'off';
 						data.onChange = (e) => {
 							// Input field has changed. Update the content object so any redraws are reflected.
