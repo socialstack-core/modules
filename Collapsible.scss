@@ -19,11 +19,37 @@
 			@include font_size(20);
 			font-weight: bold;
 			margin: 0;
+			display: flex;
+			align-items: center;
+
+			small {
+				margin-left: .25rem;
+				font-size: .75em;
+				font-weight: normal;
+			}
+
 		}
 
 		.collapsible-icon {
+
+			&:not(.collapsible-icon-left) {
+				margin-left: auto;
+				transition: transform .3s ease-in-out;
+			}
+
+			&.collapsible-icon-left {
+				margin-right: .5rem;
+
+				i::before {
+					content: "\f067"; // fa-plus
+				}
+
+			}
+
+		}
+
+		.buttons {
 			margin-left: auto;
-			transition: transform .3s ease-in-out;
 		}
 	}
 
@@ -35,8 +61,18 @@
 		border-bottom: 0;
 
 		.collapsible-icon {
-			-ms-filter: "progid:DXImageTransform.Microsoft.BasicImage(rotation=2)";
-			transform: rotate(180deg);
+
+			&:not(.collapsible-icon-left) {
+				-ms-filter: "progid:DXImageTransform.Microsoft.BasicImage(rotation=2)";
+				transform: rotate(180deg);
+			}
+
+			&.collapsible-icon-left {
+
+				i::before {
+					content: "\f068"; // fa-minus
+				}
+			}
 		}
 	}
 
