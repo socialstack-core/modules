@@ -10,24 +10,26 @@ export default class ContentSelect extends React.Component {
 	
 	constructor(props){
 		super(props);
-		this.state = {};
-		this.load(props);
+		this.state = {
+			selected: null
+		};
+		this.load(props, true);
 	}
 	
 	componentWillReceiveProps(props){
 		this.load(props);
 	}
 	
-	load(props){
+	load(props, first){
 		if(props.search){
 			var value = props.value || props.defaultValue;
 			if(value){
 				webRequest(props.contentType.toLowerCase() + '/' + value).then(response => {
 					this.setState({
-						selected: response.json
+						selected: response ? response.json : null
 					});
 				});
-			}else{
+			}else if(!first){
 				this.setState({
 					selected: null
 				});
