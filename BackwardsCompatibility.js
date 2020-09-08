@@ -125,6 +125,20 @@ if (!("CustomEvent" in window && typeof window.CustomEvent === "function")) {
     window.CustomEvent = CustomEvent;
 }
 
+// string.includes polyfill
+// https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/String/includes#Polyfill
+if (!String.prototype.includes) {
+    String.prototype.includes = function (search, start) {
+        'use strict';
+
+        if (search instanceof RegExp) {
+            throw TypeError('first argument must not be a RegExp');
+        }
+        if (start === undefined) { start = 0; }
+        return this.indexOf(search, start) !== -1;
+    };
+}
+
 // array.includes polyfill
 // https://tc39.github.io/ecma262/#sec-array.prototype.includes
 if (!Array.prototype.includes) {
