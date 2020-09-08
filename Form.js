@@ -113,7 +113,9 @@ export default class Form extends React.Component {
 							this.state.failed && failedMessage && (
 								<div className="form-failed">
 									<Alert type="error">
-										{typeof failedMessage == "function" ? failedMessage(this.state.failure) : failedMessage}
+										{typeof failedMessage == "function" ? failedMessage(this.state.failure) : (
+											(this.state.failure && this.state.failure.message) || failedMessage
+										)}
 									</Alert>
 									<Spacer />
 								</div>
