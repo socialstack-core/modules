@@ -40,7 +40,7 @@ export default class MultiSelect extends React.Component {
 				{this.props.label && (
 					<label>{this.props.label}</label>
 				)}
-				<div className="multiselect">
+				<div className="admin-multiselect">
 					{this.state.value.map((entry, i) => (
 						<div key={entry.id} className="entry" onClick={() => this.remove(entry)}>
 							{entry[displayFieldName]} <i className="remove-icon fa fa-times-circle" />

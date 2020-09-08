@@ -1,4 +1,4 @@
-.multiselect{
+.admin-multiselect{
 	
 	.entry:hover, .entry-suggestion{
 		cursor:pointer;
@@ -24,19 +24,4 @@
 		}
 	}
 	
-	.search{
-		.suggestion{
-			display: inline-block;
-			background: #28a745;
-			border-radius: 5px;
-			padding: 5px;
-			color: white;
-			margin-right: 10px;
-			margin-top: 10px;
-			
-			&::before{
-				content: '+ ';
-			}
-		}
-	}
 }
