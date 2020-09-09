@@ -388,7 +388,6 @@ export default class Loop extends React.Component {
 			var newState = {
 				over: props.over,
 				jsonFilter,
-				results: null,
 				errored: false 
 			};
 			
