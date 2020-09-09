@@ -6,7 +6,7 @@
 	}
 }
 
-.canvas-editor{
+.canvas-editor {
 	margin-top: 2rem;
 	text-align: left;
 
@@ -142,5 +142,52 @@
 			tab-size: 2;
 		}
 	}
-	
+
+}
+
+html.admin.fullscreen-preview {
+
+	.canvas-editor {
+		position: fixed;
+		left: 0;
+		top: 0;
+		z-index: 500000;
+		background-color: #fff;
+		margin-top: 0;
+		width: 100%;
+		height: 100%;
+		overflow-y: auto;
+
+		&::before {
+			content: "";
+			position: fixed;
+			width: 0;
+			height: 0;
+			opacity: .65;
+			border-right: 4rem solid transparent;
+			border-bottom: 4rem solid transparent;
+			border-left: 4rem solid #ff2121;
+			border-top: 4rem solid #ff2121;
+			z-index: 60000;
+		}
+
+		&::after {
+			content: "Preview";
+			position: fixed;
+			color: #fff;
+			z-index: 70000;
+			left: 2.5rem;
+			top: 2.5rem;
+			transform: rotate(-45deg);
+			margin-left: -1.5rem;
+		}
+
+		.canvas-editor-bordered {
+			border: 0;
+			border-radius: 0;
+			padding: 0;
+		}
+
+	}
+
 }
