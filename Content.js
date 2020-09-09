@@ -129,7 +129,7 @@ export default class Content extends React.Component {
 			webSocket.addEventListener(this.evtType(), this.onLiveMessage, {where: {Id: props.id}});
 		}
 		
-		this.setState({url, content: null, loading: true});
+		this.setState({url, loading: true});
 		webRequest(url).then(response => {
 			this.setState({content: response.json, loading: false});
 		}).catch(e => {
