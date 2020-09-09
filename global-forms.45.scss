@@ -81,7 +81,8 @@ fieldset {
 
 }
 
-//html:not(.admin) {
+//html:not(.admin),
+//html.admin.fullscreen-preview {
     label,
     .field-label {
         @include font_size($ss_form_field_label_font_size);

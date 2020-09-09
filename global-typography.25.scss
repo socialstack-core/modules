@@ -6,7 +6,8 @@
 html {
     font-size: #{$base_font_size}px;
     // define rules which shouldn't be applied for admin views
-    //&:not(.admin) {
+    //&:not(.admin),
+    //&.admin.fullscreen-preview {
 
         h1, h2, h3, h4, h5, h6,
         .h1, .h2, .h3, .h4, .h5, .h6 {

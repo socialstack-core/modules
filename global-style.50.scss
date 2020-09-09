@@ -31,20 +31,23 @@ html {
 	// Identify the admin panel:
 	&.admin {
 
-		// prevent admin sidbar breaking layout when viewing an admin page in admin
-		.canvas-editor {
+		&:not(.fullscreen-preview) {
 
-			.pages-default > div > .admin-aside .main-menu {
-				position: static;
-				width: 100%;
-				max-height: 20rem;
+			// prevent admin sidbar breaking layout when viewing an admin page in admin
+			.canvas-editor {
+
+				.pages-default > div > .admin-aside .main-menu {
+					position: static;
+					width: 100%;
+					max-height: 20rem;
+				}
+
 			}
-
 		}
-
 	}
 	// define rules which shouldn't be applied for admin views
-	&:not(.admin) {
+	&:not(.admin),
+	&.admin.fullscreen-preview {
 	}
 }
 
