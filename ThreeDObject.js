@@ -50,20 +50,31 @@ export default class ThreeDObject extends React.Component {
 	
 	transform(props){
 		var obj = this.obj;
-		var {position, rotation, scale} = props;
-		
-		if(position){
-			obj.position.x = position.x || 0;
-			obj.position.y = position.y || 0;
-			obj.position.z = position.z || 0;
-		}	
-		
-		if(rotation){
-			obj.rotation.x = rotation.x || 0;
-			obj.rotation.y = rotation.y || 0;
-			obj.rotation.z = rotation.z || 0;
-		}
-		
+		var {position, rotation, scale, circularCoords} = props;
+        
+        if (circularCoords) {
+            var degToRad = Math.PI / 180;
+            obj.position.x = circularCoords.radius * Math.sin(circularCoords.angle * degToRad);
+            obj.position.z = -circularCoords.radius * Math.cos(circularCoords.angle * degToRad);
+            obj.position.y = circularCoords.height;            
+            obj.rotation.y = -circularCoords.angle * degToRad;
+            obj.rotation.x = 0;
+            obj.rotation.z = 0;
+            
+        } else {
+            if(position){
+                obj.position.x = position.x || 0;
+                obj.position.y = position.y || 0;
+                obj.position.z = position.z || 0;
+            }
+            
+            if(rotation){
+                obj.rotation.x = rotation.x || 0;
+                obj.rotation.y = rotation.y || 0;
+                obj.rotation.z = rotation.z || 0;	
+            }            
+        }
+
 		if(scale){
 			obj.scale.x = scale.x || 1;
 			obj.scale.y = scale.y || 1;
