@@ -140,6 +140,14 @@ function daysBetween(startdate , enddate) {
 	return days;
 }
 
+function minsBetween(startdate , enddate) {
+	var start = isoConvert(startdate);
+	var end = isoConvert(enddate);	
+	var diff = Math.abs(end - start);
+	var mins = Math.floor((diff /1000) /60);
+
+	return mins;
+}
 
 module.exports = {
 	ordinal,
@@ -155,5 +163,6 @@ module.exports = {
 	addHours,
 	addSeconds,
 	daysUntilDate,
-	daysBetween
+	daysBetween,
+	minsBetween
 };
