@@ -177,7 +177,13 @@ export default class PageRouter extends React.Component{
 	
 	trigger(pgInfo){
 		if(pgInfo){
-			var e = new Event('xpagechange');
+			var e;
+			if(typeof(Event) === 'function') {
+				e = new Event('xpagechange');
+			}else{
+				e = document.createEvent('Event');
+				e.initEvent('xpagechange', true, true);
+			}
 			e.pageInfo = pgInfo;
 			global.dispatchEvent(e);
 		}
