@@ -179,9 +179,11 @@ namespace Api.Startup{
 			if (filter == null || !filter.HasContent)
 			{
 				// Everything in whatever order the PK returns them in. Can be paginated.
-				foreach (var kvp in Primary)
-				{
-					set.Add(Clone(kvp.Value));
+				lock(Primary){
+					foreach (var kvp in Primary)
+					{
+						set.Add(Clone(kvp.Value));
+					}
 				}
 			}
 			else
@@ -204,12 +206,13 @@ namespace Api.Startup{
 				else
 				{
 					var rootNode = filter.Construct();
-
-					foreach (var kvp in Primary)
-					{
-						if (rootNode.Matches(values, kvp.Value))
+					lock(Primary){
+						foreach (var kvp in Primary)
 						{
-							set.Add(Clone(kvp.Value));
+							if (rootNode.Matches(values, kvp.Value))
+							{
+								set.Add(Clone(kvp.Value));
+							}
 						}
 					}
 				}
@@ -442,7 +445,9 @@ namespace Api.Startup{
 
 			if (fromPrimary)
 			{
-				Primary.Remove(id);
+				lock(Primary){
+					Primary.Remove(id);
+				}
 			}
 
 			// Remove the given value from all indices.
@@ -460,9 +465,11 @@ namespace Api.Startup{
 		/// <param name="entry"></param>
 		private void AddInternal(T entry)
 		{
-			// Add to primary index:
-			Primary[entry.Id] = entry;
-
+			lock(Primary){
+				// Add to primary index:
+				Primary[entry.Id] = entry;
+			}
+			
 			// Add to any secondary indices:
 			foreach (var index in SecondaryIndices)
 			{
