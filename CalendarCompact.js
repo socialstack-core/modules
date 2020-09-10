@@ -29,6 +29,15 @@ export default class CalendarCompact extends React.Component {
 			currentView: [],
 			spaces
 		};
+		
+		// mobile is rendered as a single day (central column)
+		var html = document.getElementsByTagName("html");
+		
+		if (html.length && html[0].classList.contains("device-mobile")) {
+			this.state.mobile = true;
+		}
+		
+		
 	}
 	
 	blockTime(spacing, blockId){
@@ -93,15 +102,11 @@ export default class CalendarCompact extends React.Component {
 			days = 3;
 		}
 		
-		var sliceStart = this.dayStartUtc(offset);
-
-		// mobile is rendered as a single day (central column);
-		// offset the start day by 1 so we're still pointing at today
-		var html = document.getElementsByTagName("html");
-
-		if (html.length && html[0].classList.contains("device-mobile")) {
-			sliceStart = addDays(sliceStart, -1);
+		if(this.state.mobile){
+			days = 1;
 		}
+		
+		var sliceStart = this.dayStartUtc(offset);
 		
 		// The timeslice goes from sliceStart -> sliceStart + num of visible days:
 		var sliceEnd = addDays(sliceStart, days);
@@ -224,6 +229,12 @@ export default class CalendarCompact extends React.Component {
 			days = 3;
 		}
 		
+		var { mobile } = this.state;
+		
+		if(mobile){
+			days = 1;
+		}
+		
 		var colSize = 12/days;
 		
 		return <div className="calendar-compact">
@@ -234,7 +245,7 @@ export default class CalendarCompact extends React.Component {
 						return <Col sizeXs={12} sizeMd={colSize} className={"calendar-header-col col-" + index}>
 
 							{/* previous (desktop) */}
-							{index == 0 && showNav && 
+							{!mobile && showNav && 
 							<button type="button" className="btn btn-link previous" 
 								onClick={e => {
 									e.stopPropagation();
@@ -247,7 +258,7 @@ export default class CalendarCompact extends React.Component {
 							}
 
 							{/* previous (mobile) */}
-							{index == 1 && showNav &&
+							{mobile && showNav &&
 								<button type="button" className="btn btn-link previous previous-mobile"
 									onClick={e => {
 										e.stopPropagation();
@@ -268,7 +279,7 @@ export default class CalendarCompact extends React.Component {
 							</h2>
 
 							{/* next (mobile) */}
-							{index == 1 && showNav &&
+							{mobile && showNav &&
 								<button type="button" className="btn btn-link next next-mobile"
 									onClick={e => {
 										e.stopPropagation();
@@ -281,7 +292,7 @@ export default class CalendarCompact extends React.Component {
 							}
 
 							{/* next (desktop) */}
-							{index == this.state.currentView.length - 1 && showNav &&
+							{!mobile && index == this.state.currentView.length - 1 && showNav &&
 							<button type="button" className="btn btn-link next"
 								onClick={e => {
 									e.stopPropagation();
