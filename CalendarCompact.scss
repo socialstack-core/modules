@@ -24,11 +24,6 @@
 				font-size: 1.5rem;
 			}
 
-			.previous-mobile,
-			.next-mobile {
-				display: none;
-			}
-
 			.calendar-column-title {
 				@include font_size(20);
 				font-weight: normal;
@@ -107,16 +102,6 @@
 html.device-mobile {
 
 	.calendar-compact {
-
-		.calendar-header {
-
-			.calendar-header-col {
-				.previous-mobile,
-				.next-mobile {
-					display: block;
-				}
-			}
-		}
 
 		.calendar-body {
 			// TODO: improve height calc for mobile
