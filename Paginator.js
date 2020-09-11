@@ -7,6 +7,12 @@ export default class Paginator extends React.Component {
 		super(props);
 		this.newId();
 		this.paginator = React.createRef();
+
+		// NB: scroll preference can be one of:
+		// "none": no scrolling
+		// "top" (or undefined): scroll to top of page after switching pages
+		// "self": ensure paginator remains visible after switching pages
+		this.state = { scrollPref: this.props.scrollPref };
 	}
 
 	componentWillReceiveProps(props) {
@@ -17,13 +23,33 @@ export default class Paginator extends React.Component {
 
 		// prevent paginator scrolling into view before we've interacted with it
 		if (initialised) {
-			this.checkVisible();
+			// WIP
+			//this.performScroll();
 		}
 
 	}
 
 	newId() {
 		this.fieldId = 'paginator_' + (id++);
+	}
+
+	performScroll() {
+
+		switch (this.state.scrollPref) {
+			case "none":
+				break;
+
+			case "self":
+				this.checkVisible();
+				break;
+				
+			//case "top":
+			default:
+				window.scrollTo(0, 0);
+				break;
+				
+		}
+
 	}
 
     checkVisible() {
@@ -51,7 +77,7 @@ export default class Paginator extends React.Component {
 		var html = document.getElementsByTagName("html");
 
 		if (html.length && html[0].classList.contains("device-mobile")) {
-			window.scrollBy(0, 60);
+			window.scrollBy(0, 80);
 		}
 
     }
@@ -117,7 +143,6 @@ export default class Paginator extends React.Component {
 
 	render() {
 		var { pageIndex } = this.props;
-
 		var totalPages = this.getTotalPages();
 
 		// if we only have a single page then optionally hide
