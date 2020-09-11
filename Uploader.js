@@ -58,7 +58,7 @@ export default class Uploader extends React.Component {
 			this.props.onUploadProgress && this.props.onUploadProgress();
 		};
 		
-		xhr.open('POST', apiEndpoint("uploader/upload"), true);
+		xhr.open('POST', global.ingestUrl ? global.ingestUrl + "v1/uploader/upload" : apiEndpoint("uploader/upload"), true);
 		xhr.send(formData);
 	}
 
