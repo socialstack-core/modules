@@ -64,10 +64,50 @@
 .shown-mobile-portrait,
 .shown-mobile-landscape,
 .shown-ipad,
+.shown-ipad-and-below,
 .shown-ipad-portrait,
+.shown-ipad-portrait-and-below,
+.shown-below-ipad-portrait,
 .shown-ipad-landscape,
+.shown-ipad-landscape-and-below,
+.shown-below-ipad-landscape,
 .shown-desktop {
     display: none;
+}
+
+@media only screen and (max-width: 1024px) {
+
+	.shown-ipad-and-below,
+	.shown-ipad-landscape-and-below {
+        display: block;
+	}
+
+}
+
+@media only screen and (max-width: 1023px) {
+
+	.shown-below-ipad-landscape {
+        display: block;
+	}
+
+}
+
+//@media only screen and (max-width: 768px) {
+@media only screen and (max-width: 834px) {
+
+	.shown-ipad-portrait-and-below {
+        display: block;
+	}
+
+}
+
+//@media only screen and (max-width: 767px) {
+@media only screen and (max-width: 833px) {
+
+	.shown-below-ipad-portrait {
+        display: block;
+	}
+
 }
 
 html.device-mobile {
