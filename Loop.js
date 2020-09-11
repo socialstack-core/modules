@@ -826,14 +826,16 @@ export default class Loop extends React.Component {
 		// Paginate
 		var Module = pageCfg.module || Paginator;
 		
-		var paginator = <Module 
+		var paginator = <Module
 			pageSize={pageSize}
 			showInput={showInput}
 			maxLinks={maxLinks}
-			pageIndex={this.state.pageIndex} 
+			pageIndex={this.state.pageIndex}
 			totalResults={this.state.totalResults}
+			//scrollPref={this.props.scrollPref}
 			onChange={pageIndex => {
 				this.load(this.props, true, pageIndex);
+				window.scrollTo(0, 0);
 			}}
 		/>;
 		
