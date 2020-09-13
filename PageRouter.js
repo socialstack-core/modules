@@ -135,6 +135,9 @@ export default class PageRouter extends React.Component{
 		while(cur && cur != document){
 			if(cur.nodeName == 'A'){
 				var href = cur.getAttribute('href'); // cur.href is absolute
+				if(cur.getAttribute('target') || cur.getAttribute('download')){
+					return;
+				}
 				
 				if(href && href.length){
 					var pn = document.location.pathname;
