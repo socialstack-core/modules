@@ -186,25 +186,26 @@ public partial class AutoController<T> : ControllerBase
 			return null;
 		}
 
-		entity = await _service.Create(context, entity, async (Context c, T ent) => {
+		entity = await _service.CreatePartial(context, entity);
 
-			// Set post ID fields:
-			var secondaryNotes = await SetFieldsOnObject(entity, context, body, JsonFieldGroup.AfterId);
+		// Set post ID fields:
+		var secondaryNotes = await SetFieldsOnObject(entity, context, body, JsonFieldGroup.AfterId);
 
-			if (secondaryNotes != null)
+		if (secondaryNotes != null)
+		{
+			if (notes == null)
 			{
-				if (notes == null)
-				{
-					notes = secondaryNotes;
-				}
-				else
-				{
-					notes += ", " + secondaryNotes;
-				}
-
+				notes = secondaryNotes;
 			}
-		
-		});
+			else
+			{
+				notes += ", " + secondaryNotes;
+			}
+
+		}
+
+		// Complete the call (runs AfterCreate):
+		entity = await _service.CreatePartialComplete(context, entity);
 
 		if (entity == null)
 		{

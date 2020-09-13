@@ -335,15 +335,17 @@ public partial class AutoService<T> : AutoService where T: DatabaseRow, new(){
 	/// <summary>
 	/// Creates a new entity.
 	/// </summary>
-	public virtual Task<T> Create(Context context, T entity)
+	public virtual async Task<T> Create(Context context, T entity)
 	{
-		return Create(context, entity, null);
+		entity = await CreatePartial(context, entity);
+		return await CreatePartialComplete(context, entity);
 	}
-	
+
 	/// <summary>
-	/// Creates a new entity.
+	/// Creates a new entity but without calling AfterCreate. This allows you to update fields after the ID has been set, but before AfterCreate is called.
+	/// You must always call CreatePartialComplete afterwards to trigger the AfterCreate calls.
 	/// </summary>
-	public virtual async Task<T> Create(Context context, T entity, Action<Context, T> postIdCallback)
+	public virtual async Task<T> CreatePartial(Context context, T entity)
 	{
 		entity = await EventGroup.BeforeCreate.Dispatch(context, entity);
 
@@ -363,8 +365,17 @@ public partial class AutoService<T> : AutoService where T: DatabaseRow, new(){
 			return default(T);
 		}
 
-		postIdCallback?.Invoke(context, entity);
+		return entity;
+	}
 
+	/// <summary>
+	/// 
+	/// </summary>
+	/// <param name="context"></param>
+	/// <param name="entity"></param>
+	/// <returns></returns>
+	public virtual async Task<T> CreatePartialComplete(Context context, T entity)
+	{
 		var cache = GetCacheForLocale(context == null ? 1 : context.LocaleId);
 
 		if (cache != null)
@@ -372,8 +383,7 @@ public partial class AutoService<T> : AutoService where T: DatabaseRow, new(){
 			cache.Add(context, entity);
 		}
 
-		entity = await EventGroup.AfterCreate.Dispatch(context, entity);
-		return entity;
+		return await EventGroup.AfterCreate.Dispatch(context, entity);
 	}
 
 	/// <summary>
