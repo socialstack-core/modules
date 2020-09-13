@@ -467,51 +467,73 @@ namespace Api.Huddles
                         }
 
                         var now = DateTime.UtcNow;
-
+						
                         var newSet = new Dictionary<ContentTypeAndId, bool>();
-
+						
+						// MUST handle "me" first to avoid creating invites if the user themselves can't actually schedule the meeting.
+						foreach (var id in typeAndId)
+                        {
+							newSet[id] = true;
+							
+							if (existingLookup.ContainsKey(id) || !ctx.HasContent(id.ContentTypeId, id.ContentId))
+							{
+								continue;
+							}
+							
+							// Add it.
+							var newUser = new HuddlePermittedUser()
+							{
+								UserId = ctx.UserId,
+								InvitedContentTypeId = id.ContentTypeId,
+								InvitedContentId = id.ContentId,
+								// An invited user becomes permitted when they accept.
+								PermittedUserId = 0, // PermittedUserId = id.ContentTypeId == userContentType ? id.ContentId : 0,
+								HuddleId = huddle.Id,
+								RevisionId = revisionId,
+								CreatedUtc = now,
+								EditedUtc = now
+							};
+							
+							// E.g. "this" user is the invited one. Must immediately accept the invite (this makes it e.g. get added to schedules).
+							newUser.PermittedUserId = ctx.UserId;
+							newUser.AcceptedStartUtc = huddle.StartTimeUtc;
+							newUser.AcceptedEndUtc = huddle.EstimatedEndTimeUtc;
+							newUser.Creator = true;
+							newUser = await Events.HuddlePermittedUser.BeforeAccept.Dispatch(ctx, newUser);
+							
+							newUser = await Create(ctx, newUser);
+							
+							if (newUser != null)
+							{
+								newUser = await Events.HuddlePermittedUser.AfterAccept.Dispatch(ctx, newUser);
+							}
+							
+							existingLookup[id] = newUser;
+						}
+						
                         foreach (var id in typeAndId)
                         {
-                            newSet[id] = true;
-
-                            if (!existingLookup.ContainsKey(id))
-                            {
-                                // Add it.
-                                var newUser = new HuddlePermittedUser()
-                                {
-                                    UserId = ctx.UserId,
-                                    InvitedContentTypeId = id.ContentTypeId,
-                                    InvitedContentId = id.ContentId,
-                                    // An invited user becomes permitted when they accept.
-                                    PermittedUserId = 0, // PermittedUserId = id.ContentTypeId == userContentType ? id.ContentId : 0,
-                                    HuddleId = huddle.Id,
-                                    RevisionId = revisionId,
-                                    CreatedUtc = now,
-                                    EditedUtc = now
-                                };
-
-                                // Immediately accept the invite if the invite is for the user creating the huddle.
-                                var accept = false;
-
-                                if (ctx.HasContent(id.ContentTypeId, id.ContentId))
-                                {
-                                    // E.g. "this" user is the invited one.
-                                    newUser.PermittedUserId = ctx.UserId;
-                                    newUser.AcceptedStartUtc = huddle.StartTimeUtc;
-                                    newUser.AcceptedEndUtc = huddle.EstimatedEndTimeUtc;
-                                    newUser.Creator = true;
-                                    accept = true;
-                                    newUser = await Events.HuddlePermittedUser.BeforeAccept.Dispatch(ctx, newUser);
-                                }
-
-                                existingLookup[id] = newUser;
-                                newUser = await Create(ctx, newUser);
-
-                                if (accept && newUser != null)
-                                {
-                                    newUser = await Events.HuddlePermittedUser.AfterAccept.Dispatch(ctx, newUser);
-                                }
-                            }
+                            if (existingLookup.ContainsKey(id) || ctx.HasContent(id.ContentTypeId, id.ContentId))
+							{
+								continue;
+							}
+						
+							// Add it.
+							var newUser = new HuddlePermittedUser()
+							{
+								UserId = ctx.UserId,
+								InvitedContentTypeId = id.ContentTypeId,
+								InvitedContentId = id.ContentId,
+								// An invited user becomes permitted when they accept.
+								PermittedUserId = 0, // PermittedUserId = id.ContentTypeId == userContentType ? id.ContentId : 0,
+								HuddleId = huddle.Id,
+								RevisionId = revisionId,
+								CreatedUtc = now,
+								EditedUtc = now
+							};
+							
+							newUser = await Create(ctx, newUser);
+							existingLookup[id] = newUser;
                         }
 
                         // Delete any being removed:
