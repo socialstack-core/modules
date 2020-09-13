@@ -95,6 +95,13 @@ function getMonday(date) {
   return new Date(d.setDate(diff));
 }
 
+function getSunday(date) {
+  d = new Date(date);
+  var day = d.getDay(),
+      diff = d.getDate() - day;
+  return new Date(d.setDate(diff));
+}
+
 function addDays(date, days) {
     var date = new Date(date.valueOf());
     date.setDate(date.getDate() + days);
@@ -158,6 +165,7 @@ module.exports = {
 	isoConvert,
 	localToUtc,
 	getMonday,
+	getSunday,
 	addDays,
 	addMinutes,
 	addHours,
