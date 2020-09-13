@@ -46,6 +46,21 @@ namespace Api.Huddles
 		/// The permitted user (if there is one - can be null).
 		/// </summary>
 		public UserProfile PermittedUser { get; set; }
+
+		/// <summary>
+		/// Huddle start time that was accepted (if this invite is an accepted one).
+		/// </summary>
+		public DateTime? AcceptedStartUtc;
+
+		/// <summary>
+		/// Huddle end time that was accepted (if this invite is an accepted one).
+		/// </summary>
+		public DateTime? AcceptedEndUtc;
+
+		/// <summary>
+		/// True if this user is the creator of the meeting.
+		/// </summary>
+		public bool Creator;
 	}
 
 }

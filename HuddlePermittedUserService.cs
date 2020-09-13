@@ -28,6 +28,7 @@ namespace Api.Huddles
         {
 
             _huddleService = huddleService;
+            var userContentType = ContentTypes.GetId(typeof(User));
 
             Events.HuddlePermittedUser.BeforeCreate.AddEventListener(async (Context context, HuddlePermittedUser permit) =>
             {
@@ -230,6 +231,47 @@ namespace Api.Huddles
                 }
 
                 return huddle;
+            }, 1);
+
+            Events.Huddle.AfterUpdate.AddEventListener(async (Context context, Huddle huddle) =>
+            {
+                if (huddle == null)
+                {
+                    // Due to the way how event chains work, the primary object can be null.
+                    // Safely ignore this.
+                    return null;
+                }
+                
+                // (Happens in a separate handler so others can inject before this).
+
+                // If any have been accepted, they must be unaccepted IF the date changed since they accepted.
+                // Importantly the invite gets adjusted to being direct to the permitted 
+                // user, instead of whatever was invited originally.
+                if (huddle.Invites != null)
+                {
+                    foreach (var invite in huddle.Invites)
+                    {
+                        if ( // It's accepted:
+                            invite.PermittedUserId != 0 && !invite.Rejected &&
+                            // And it's not "this" user:
+                            invite.PermittedUserId != context.UserId && 
+                            // And the time changed since it was accepted:
+                            (invite.AcceptedStartUtc != huddle.StartTimeUtc || invite.AcceptedEndUtc != huddle.EstimatedEndTimeUtc))
+                        {
+                            // Someone (else) accepted but the time changed. We'll soft-unaccept the invite so they can check their schedule.
+                            // Make sure invited content is now "them" if needed:
+                            invite.InvitedContentTypeId = userContentType;
+							invite.InvitedContentId = invite.PermittedUserId;
+                            invite.PermittedUserId = 0;
+                            invite.PermittedUser = null;
+
+                            await Update(context, invite);
+                        }
+
+                    }
+                }
+
+                return huddle;
             });
 
             Events.Huddle.AfterCreate.AddEventListener(async (Context context, Huddle huddle) =>
@@ -322,8 +364,6 @@ namespace Api.Huddles
 
                 return huddles;
             });
-
-            var userContentType = ContentTypes.GetId(typeof(User));
 
             // Hook up a MultiSelect on the underlying fields:
             Events.Huddle.BeforeSettable.AddEventListener((Context rootContext, JsonField<Huddle> field) =>
@@ -457,6 +497,9 @@ namespace Api.Huddles
                                 {
                                     // E.g. "this" user is the invited one.
                                     newUser.PermittedUserId = ctx.UserId;
+                                    newUser.AcceptedStartUtc = huddle.StartTimeUtc;
+                                    newUser.AcceptedEndUtc = huddle.EstimatedEndTimeUtc;
+                                    newUser.Creator = true;
                                     accept = true;
                                     newUser = await Events.HuddlePermittedUser.BeforeAccept.Dispatch(ctx, newUser);
                                 }
@@ -589,11 +632,21 @@ namespace Api.Huddles
             }
             else if (invite.PermittedUserId != 0)
             {
-                // It's already accepted.
-                throw new Exception("Invite already accepted");
+				// It's already accepted.
+                throw new PublicException("This invite has already been accepted.", "meeting_accepted");
+            }
+
+            var huddle = await _huddleService.Get(context, invite.HuddleId);
+
+            if (huddle == null)
+            {
+                // The huddle doesn't exist.
+                throw new PublicException("This meeting no longer exists.", "meeting_deleted");
             }
 
             invite.PermittedUserId = context.UserId;
+            invite.AcceptedStartUtc = huddle.StartTimeUtc;
+            invite.AcceptedEndUtc = huddle.EstimatedEndTimeUtc;
             invite = await Events.HuddlePermittedUser.BeforeAccept.Dispatch(context, invite);
 
             if (invite == null)
