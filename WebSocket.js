@@ -66,9 +66,10 @@ function setPing(){
 		
 		// Check if the server is still there every 30s.
 		// If this fails the socket disconnects and we get informed about it that way.
-		if(ws && ws.readyState == WebSocket.OPEN && ws.ping)
+		if(ws && ws.readyState == WebSocket.OPEN)
 		{
-			ws.ping();
+			// Just an empty message will ping the server:
+			ws.send('{}');
 		}
 		
 	}, 30000);
