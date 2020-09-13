@@ -56,7 +56,7 @@ namespace Api.UserAgendaEntries
                 }
 
                 return huddle;
-            });
+            }, 20);
 
 
 
@@ -74,7 +74,7 @@ namespace Api.UserAgendaEntries
                     huddles = Services.Get<IHuddleService>();
                 }
 
-				// Foreach invite, if AgendaEntryId is non-zero, update the entry.
+				// For each invite, if AgendaEntryId is non-zero, update the entry.
 				if (huddle.Invites != null && huddle.Invites.Count > 0)
 				{
 					var ids = new List<int>();
@@ -104,7 +104,7 @@ namespace Api.UserAgendaEntries
 				}
 
 				return huddle;
-			});
+			}, 20);
 
 			Events.HuddlePermittedUser.BeforeCancel.AddEventListener(async (Context context, HuddlePermittedUser invite) =>
 			{
@@ -136,7 +136,39 @@ namespace Api.UserAgendaEntries
 
 				invite.AgendaEntryId = 0;
 				return invite;
-			});
+			}, 20);
+
+			Events.HuddlePermittedUser.BeforeUpdate.AddEventListener(async (Context context, HuddlePermittedUser invite) =>
+			{
+
+				if (invite == null || !invite.AgendaEntryId.HasValue || invite.AgendaEntryId == 0 || invite.PermittedUserId != 0)
+				{
+					return invite;
+				}
+
+				// Has an agenda entry ID but no permitted user.
+				// Remove it from their agenda if needed.
+				if (agenda == null)
+				{
+					agenda = Services.Get<IUserAgendaEntryService>();
+					huddles = Services.Get<IHuddleService>();
+				}
+
+				// Get agenda entry:
+				var entry = await agenda.Get(
+					context,
+					invite.AgendaEntryId.Value
+				);
+
+				if (entry != null)
+				{
+					// Delete it:
+					await agenda.Delete(context, entry.Id);
+				}
+
+				invite.AgendaEntryId = 0;
+				return invite;
+			}, 20);
 
 			Events.HuddlePermittedUser.BeforeAccept.AddEventListener(async (Context context, HuddlePermittedUser invite) => {
 				
@@ -160,7 +192,36 @@ namespace Api.UserAgendaEntries
 					// Hmm!
 					return invite;
 				}
-
+				
+				// Collision check - does this user have something else on their agenda at this time?
+				/*
+				* Omit anything that ended before (or equal to) my start
+				* Omit anything that started after (or equal to) my end
+				* Anything else overlaps
+				!(ENTRY.EndUtc <= HUDDLE.StartUtc || ENTRY.StartUtc >= HUDDLE.EndUtc)
+				
+				Simplifies to:
+				
+				ENTRY.EndUtc > HUDDLE.StartUtc && ENTRY.StartUtc < HUDDLE.EndUtc
+				*/
+				
+				var overlappers = await agenda.List(
+					context, 
+					new Filter<UserAgendaEntry>()
+						.Equals("UserId", invite.PermittedUserId)
+						.And()
+						.GreaterThan("EndUtc", huddle.StartTimeUtc)
+						.And()
+						.LessThan("StartUtc", huddle.EstimatedEndTimeUtc)
+				);
+				
+				if(overlappers != null && overlappers.Count > 0)
+				{
+					// User has something on the agenda that overlaps.
+					// Reject this request.
+					throw new PublicException("You're already booked at this time. Please check your calendar and propose a new time", "double_booked");
+				}
+				
 				// Create an agenda entry now:
 				var entry = await agenda.Create(
 					context,
