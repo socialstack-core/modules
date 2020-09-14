@@ -143,8 +143,19 @@ namespace Api.Permissions
 				{
 					continue;
 				}
-				
-				if(val.Equals(compareWith))
+
+				if (compareWith is long)
+				{
+					// Long is often outputted by JSON deserializer.
+					// long.Equals(int) != int.Equals(long).
+					var a = (long)compareWith;
+					var b = Convert.ToInt64(val);
+
+					if (a == b)
+					{
+						return true;
+					}
+				}else if(val.Equals(compareWith))
 				{
 					return true;
 				}
