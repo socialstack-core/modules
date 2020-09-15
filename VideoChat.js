@@ -173,7 +173,10 @@ export default class VideoChat extends React.Component {
 		if(this.state.error){
 			return <Container>
 				<Alert type="error">
-					Unfortunately we ran into an issue connecting you to this meeting. Please check your internet connection and that you're invited to join this meeting.
+				{
+					this.state.error.text || 
+					'Unfortunately we ran into an issue connecting you to this meeting. Please check your internet connection and that you\'re invited to join this meeting.'
+				}
 				</Alert>
 			</Container>;
 		}
