@@ -7,7 +7,7 @@ import Form from 'UI/Form';
 import getContentTypeId from 'UI/Functions/GetContentTypeId';
 import { addSeconds} from 'UI/Functions/DateTools';
 import Loop from 'UI/Loop';
-import Websocket from 'UI/Functions/WebSocket';
+import webSocket from 'UI/Functions/WebSocket';
 
 // <LivePubQuiz startTime={time} id={quizId} />
 
@@ -81,7 +81,7 @@ export default class LivePubQuiz extends React.Component {
 			PubQuizId: props.id
 		}}).then(response => {
 
-			Websocket.addEventListener('PubQuizSubmission', this.aggregateScore, {where:{
+			webSocket.addEventListener('PubQuizSubmission', this.aggregateScore, {where:{
 				ActivityInstanceId: props.instanceId
 			}});
 
