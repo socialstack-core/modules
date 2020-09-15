@@ -295,7 +295,7 @@ export default class HuddleClient
 			this.dispatchEvent(
 			{
 				type : 'error',
-				text : 'WebSocket connection failed'
+				text : 'Unable to connect to the meeting. Please check your internet connection. To try and reconnect, please refresh the page.'
 			});
 		});
 
@@ -304,7 +304,7 @@ export default class HuddleClient
 			this.dispatchEvent(
 			{
 				type : 'error',
-				text : 'WebSocket disconnected'
+				text : 'Disconnected from the meeting. Your internet connection may have been interrupted. To try and reconnect, please refresh the page.'
 			});
 
 			// Close mediasoup Transports.
@@ -1537,7 +1537,7 @@ export default class HuddleClient
 
 			this.dispatchEvent({
 				type : 'error',
-				text : 'ICE restart failed: ' + error
+				text : 'Unable to communicate properly with the server. This often means your network is blocking the connection.'
 			});
 		}
 
@@ -1800,7 +1800,27 @@ export default class HuddleClient
 				// Just get access to the mic and DO NOT close the mic track for a while.
 				// Super hack!
 				{
-					const stream = await global.navigator.mediaDevices.getUserMedia({ audio: true });
+					var stream = null;
+					
+					try{
+						stream = await global.navigator.mediaDevices.getUserMedia({ audio: true });
+					}catch(e){
+						console.log(e);
+						this.dispatchEvent(
+						{
+							type : 'error',
+							text : <div>
+								<p>
+									Unable to use your microphone - make sure you allow the microphone prompt. To try again, please refresh the page.
+								</p>
+								<p>
+									If the prompt still doesn't appear, you may need to restart your browser and double check that you have a microphone plugged in.
+								</p>
+							</div>
+						});
+						return;
+					}
+					
 					const audioTrack = stream.getAudioTracks()[0];
 
 					audioTrack.enabled = false;
@@ -2016,7 +2036,7 @@ export default class HuddleClient
 			this.dispatchEvent(
 			{
 				type : 'error',
-				text : 'Could not join the room: ' + error
+				text : 'An error occurred whilst trying to connect to the meeting. To connect, please make sure you have at least a microphone and are using an up to date web browser.'
 			});
 
 			this.close();
