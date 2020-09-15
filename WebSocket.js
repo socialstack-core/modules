@@ -134,6 +134,13 @@ function connect(){
 			return;
 		}
 		
+		if(message.host){
+			if(message.reload && global.location && global.location.reload){
+				global.location.reload(true);
+			}
+			return;
+		}
+		
 		if(message.all){
 			tellAllHandlers(message);
 		}else if(message.type){
