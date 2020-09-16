@@ -107,6 +107,7 @@ export default class VideoChat extends React.Component {
 	}
 
 	onRoomUpdate(evt) {
+		this.props.onRoomUpdate && this.props.onRoomUpdate(evt, this.state.huddleClient);
 		this.setState({ huddleClient: this.state.huddleClient, error: null });
 	}
 
