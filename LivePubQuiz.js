@@ -20,10 +20,11 @@ export default class LivePubQuiz extends React.Component {
 	constructor(props){
 		super(props);
 		this.state = {
-			score: []
+			score: [],
+			instanceId: props.instanceId
 		};
 		
-		this.load(props);
+		this.load(props, true);
 		this.aggregateScore = this.aggregateScore.bind(this);
 	}
 	
@@ -48,6 +49,11 @@ export default class LivePubQuiz extends React.Component {
 		}
 
 		var entity = msg.entity;
+		
+		if(!entity){
+			return;
+		}
+		
 		var entityId = entity.id;
 
 		if (msg.method == 'create') {
@@ -67,7 +73,7 @@ export default class LivePubQuiz extends React.Component {
 			return;
 		}
 
-		if(!force && props.id && props.id == this.state.id && props.start == this.state.start){
+		if(!force && props.id && props.instanceId == this.state.instanceId){
 			return;
 		}
 
@@ -96,6 +102,7 @@ export default class LivePubQuiz extends React.Component {
 			
 			var state = {
 				id: props.id,
+				instanceId: props.instanceId,
 				questions,
 				start,
 				startTicks,
@@ -107,7 +114,7 @@ export default class LivePubQuiz extends React.Component {
 			state.active = active;
 			this.setState(state);
 			
-			if(!active.finished){
+			if(!active.finished && !this.interval){
 				this.interval=setInterval(() => {
 					// Tick!
 					var next = this.getActiveQuestionInfo();
@@ -115,42 +122,32 @@ export default class LivePubQuiz extends React.Component {
 					// Let's see if this is a questions tranisition
 					if(this.state.active && this.state.active.question && next && next.question && next.question.id != this.state.active.question.id) 
 					{
-						var radios = document.getElementsByName('question_'+this.state.active.question.id);
-
-						for (var i = 0, length = radios.length; i < length; i++) {
-							if (radios[i].checked) {
-								var value = radios[i].id;
-								break;
-							}
+						if(this.state.answer){
+							webRequest('pubquizsubmission', {
+								activityInstanceId: this.props.instanceId,
+								pubQuizAnswerId: this.state.answer.id
+							});
+							this.setState({answer: null});
 						}
-
-						webRequest('pubquizsubmission', {
-							activityInstanceId: this.props.instanceId,
-							pubQuizAnswerId: value
-						});
 					}
 
 
 					this.setState({active: next});
 					
 					if(next.finished){
+						this.interval && clearInterval(this.interval);
 						
 						if(this.state.active && this.state.active.question) {
-							var radios = document.getElementsByName('question_'+this.state.active.question.id);
-
-							for (var i = 0, length = radios.length; i < length; i++) {
-								if (radios[i].checked) {
-									var value = radios[i].id;
-									break;
-								}
+							if(this.state.answer){
+								webRequest('pubquizsubmission', {
+									activityInstanceId: this.props.instanceId,
+									pubQuizAnswerId: this.state.answer.id
+								});
+								
+								this.setState({answer: null});
 							}
-
-							webRequest('pubquizsubmission', {
-								activityInstanceId: this.props.instanceId,
-								pubQuizAnswerId: value
-							});
 						} 
-						this.interval && clearInterval(this.interval);
+						
 					}
 					
 				}, 1000);
@@ -210,7 +207,18 @@ export default class LivePubQuiz extends React.Component {
 			 	users[userId] = { scores: [scr], total: scr.isCorrect ? 1:0, profile: scr.creatorUser};
 			}
 		})
-	
+		
+		var { user } = global.app.state;
+		
+		if(user && !users[user.id]){
+			// They didn't answer anything
+			users[user.id] = {
+				scores: [],
+				total: 0,
+				profile: user
+			};
+		}
+		
 		var result = [];
 
 		for(var userId in users ) {
@@ -227,15 +235,13 @@ export default class LivePubQuiz extends React.Component {
 	renderFinished(){
 		var {huddleId, id} = this.props;
 		var {score} = this.state;
-
-		console.log(score);
-
+		
 		return <div>
 			<h1>
 				Quiz finished!
 			</h1>
 			<p>
-				Here's how you did
+				Here's how everyone did:
 			</p>
 
 			{this.renderScores()}
@@ -293,7 +299,12 @@ export default class LivePubQuiz extends React.Component {
 				{question.answers ? question.answers.map(answer => {
 					
 					return <p>
-						<Input id = {answer.id} type="radio" name={"question_" + question.id} />
+						<Input id = {answer.id} type="radio" name={"question_" + question.id} onChange={e => {
+							console.log('Chg!');
+							this.setState({
+								answer
+							});
+						}} value={this.state.answer == answer} defaultValue={this.state.answer == answer}/>
 						<Canvas>
 							{answer.answerJson}
 						</Canvas>
