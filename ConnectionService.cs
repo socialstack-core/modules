@@ -42,14 +42,20 @@ namespace Api.Connections
 					return null;
                 }
 
-				// Is the user inviting themselves. 
-				if (connection.ConnectedToId == context.UserId || ( !string.IsNullOrEmpty(connection.Email) && !string.IsNullOrEmpty(user.Email) && connection.Email.Trim().ToLower() == user.Email.Trim().ToLower()))
+				// Is the user inviting themselves?
+				if (connection.ConnectedToId == context.UserId)
                 {
 					return null;
                 }
 
-                // You can invite by email or id. If you invite by email, we need to look up to see if there is a user affiliated to that email.
-                if (!string.IsNullOrEmpty(connection.Email))
+				// Is the user inviting themselves?
+				if (!string.IsNullOrEmpty(connection.Email) && !string.IsNullOrEmpty(user.Email) && connection.Email.Trim().ToLower() == user.Email.Trim().ToLower())
+                {
+					return null;
+                }
+
+				// You can invite by email or id. If you invite by email, we need to look up to see if there is a user affiliated to that email.
+				if (!string.IsNullOrEmpty(connection.Email))
                 {
 					var connectToUser = await users.GetByEmail(context, connection.Email.Trim().ToLower());
 
