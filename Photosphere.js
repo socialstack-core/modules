@@ -234,17 +234,33 @@ export default class Photosphere extends React.Component {
 		// +ve z is north
 		// +ve x is west
 		
+		var imgUrlLoad = getRef(props.imageRef, {url: true, size: '512'});
 		var imgUrl = getRef(props.imageRef, {url: true, size: 'original'});
 		var material = this.material;
 		
 		if(material){
 			if(material._url != imgUrl){
 				material._url = imgUrl;
-				material.map = imageCache(imgUrl, this.onLoaded);
+				var mapSmall = imageCache(imgUrlLoad, this.onLoaded);
+				var mapFull = imageCache(imgUrl, () => {
+					if(material._url == imgUrl){
+						material.map = mapFull;
+					}
+					this.onLoaded();
+				});
+				material.map = map.image ? map : mapFull;
 			}
 		}else{
 			var geometry = new THREE.SphereGeometry( 5, 32, 32 );
-			this.material = material = new THREE.MeshBasicMaterial( {map: imageCache(imgUrl, this.onLoaded), side: THREE.DoubleSide} );
+			var mapSmall = imageCache(imgUrlLoad, this.onLoaded);
+			var mapFull = imageCache(imgUrl, () => {
+				if(this.material._url == imgUrl){
+					material.map = mapFull;
+				}
+				this.onLoaded();
+			});
+			var map = mapFull.image ? mapFull : mapSmall;
+			this.material = material = new THREE.MeshBasicMaterial( {map, side: THREE.DoubleSide} );
 			var sphere = new THREE.Mesh( geometry, material );
 			material._url = imgUrl;
 			this.sphere = sphere;
