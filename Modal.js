@@ -119,13 +119,13 @@ export default class Modal extends React.Component {
 			<div className={this.modalClassName()} tabIndex="-1" role="dialog" aria-labelledby={this.modalTitleId}>
 				<div className={this.modalDialogClassName()} role="document">
 					<div className="modal-content">
-						<div className="modal-header">
+						{this.props.noHeader ? <></> : <div className="modal-header">
 							<h5 className="modal-title" id={this.modalTitleId}>{this.props.title}</h5>
 							<button type="button" className="close" data-dismiss="modal" aria-label="Close"
 									onClick={() => this.closeModal()}>
 								<span aria-hidden="true">&times;</span>
 							</button>
-						</div>
+						</div>}
 						<div className="modal-body">
 							{this.props.children}
 						</div>
