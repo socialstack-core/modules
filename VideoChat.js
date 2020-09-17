@@ -11,13 +11,7 @@ export default class VideoChat extends React.Component {
 		super(props);
 		var test = false;
 
-		var huddleClient = new HuddleClient({
-			roomId: (props.roomId || 1).toString(),
-			produce: true,
-			consume: true,
-			useSimulcast: true,
-			useSharingSimulcast: true
-		});
+		var huddleClient = this.mount(props);
 
 		if (typeof props.roomId === 'string' && props.roomId.length > 1) {
 			if (props.roomId[0] == 't') {
@@ -45,6 +39,26 @@ export default class VideoChat extends React.Component {
 		this.onError = this.onError.bind(this);
 		this.onStartMeContainerDrag = this.onStartMeContainerDrag.bind(this);
 		this.onMoveMeContainerDrag = this.onMoveMeContainerDrag.bind(this);
+	}
+	
+	mount(props){
+		return new HuddleClient({
+			roomId: (props.roomId || 1).toString(),
+			produce: true,
+			consume: true,
+			useSimulcast: true,
+			useSharingSimulcast: true
+		});
+	}
+	
+	componentWillReceiveProps(newProps){
+		if(newProps.roomId != this.props.roomId){
+			// Room change!
+			this.state.huddleClient.close();
+			var huddleClient = this.mount(newProps);
+			this.setState({huddleClient});
+			this.connect(huddleClient);
+		}
 	}
 	
 	onError(e){
@@ -110,15 +124,19 @@ export default class VideoChat extends React.Component {
 		this.props.onRoomUpdate && this.props.onRoomUpdate(evt, this.state.huddleClient);
 		this.setState({ huddleClient: this.state.huddleClient, error: null });
 	}
-
-	componentDidMount() {
-		const { huddleClient } = this.state;
+	
+	connect(huddleClient){
 		huddleClient.addEventListener('roomupdate', this.onRoomUpdate);
 		huddleClient.addEventListener('error', this.onError);
 		if (!this.state.test) {
 			huddleClient.join();
 		}
-
+	}
+	
+	componentDidMount() {
+		const { huddleClient } = this.state;
+		this.connect(huddleClient);
+		
 		// make own video draggable
 		var meContainer = document.getElementById("me_container");
 
