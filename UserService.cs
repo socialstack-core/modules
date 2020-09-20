@@ -165,139 +165,138 @@ namespace Api.Users
 		}
 
 		/// <summary>
+		/// Sets a particular type with CreatorUser handlers. Used via reflection.
+		/// </summary>
+		/// <typeparam name="T"></typeparam>
+		/// <param name="entityName"></param>
+		public void SetupForCreatorUser<T>(string entityName) where T : DatabaseRow, IHaveCreatorUser, new()
+		{
+			// Invoked by reflection
+			var evtGroup = Events.GetGroup<T>();
+
+			evtGroup.AfterLoad.AddEventListener(async (Context context, T content) =>
+			{
+				if (content == null)
+				{
+					// Due to the way how event chains work, the primary object can be null.
+					// Safely ignore this.
+					return content;
+				}
+
+				content.CreatorUser = await GetProfile(context, content.GetCreatorUserId());
+				return content;
+			});
+
+			evtGroup.AfterCreate.AddEventListener(async (Context context, T content) =>
+			{
+				if (content == null)
+				{
+					// Due to the way how event chains work, the primary object can be null.
+					// Safely ignore this.
+					return content;
+				}
+
+				content.CreatorUser = await GetProfile(context, content.GetCreatorUserId());
+				return content;
+			});
+
+			evtGroup.AfterList.AddEventListener(async (Context context, List<T> content) =>
+			{
+				// First we'll collect all their IDs so we can do a single bulk lookup.
+				// ASSUMPTION: The list is not excessively long!
+				// FUTURE IMPROVEMENT: Do this in chunks of ~50k entries.
+				// (applies to at least categories/ tags).
+
+				var uniqueUsers = new Dictionary<int, UserProfile>();
+
+				for (var i = 0; i < content.Count; i++)
+				{
+					// Add to content lookup so we can map the tags to it shortly:
+					var creatorId = content[i].GetCreatorUserId();
+
+					if (creatorId != 0)
+					{
+						uniqueUsers[creatorId] = null;
+					}
+				}
+
+				if (uniqueUsers.Count == 0)
+				{
+					// Nothing to do - just return here:
+					return content;
+				}
+
+				// Create the filter and run the query now:
+				var userIds = new object[uniqueUsers.Count];
+				var index = 0;
+				foreach (var kvp in uniqueUsers)
+				{
+					userIds[index++] = kvp.Key;
+				}
+
+				var filter = new Filter<User>();
+				filter.EqualsSet("Id", userIds);
+
+				// Use the regular list method here:
+				var allUsers = await List(context, filter);
+
+				foreach (var user in allUsers)
+				{
+					// Get as the public profile and hook up the mapping:
+					var profile = await GetProfile(context, user);
+					uniqueUsers[user.Id] = profile;
+				}
+
+				for (var i = 0; i < content.Count; i++)
+				{
+					// Get as IHaveCreatorUser objects (must be valid because of the above check):
+					var ihc = content[i];
+
+					// Add to content lookup so we can map the tags to it shortly:
+					var creatorId = ihc.GetCreatorUserId();
+
+					// Note that this user object might be null.
+					var userProfile = creatorId == 0 ? null : uniqueUsers[creatorId];
+
+					// Get it as the public profile object next:
+					ihc.CreatorUser = userProfile;
+				}
+
+				return content;
+			});
+
+		}
+
+		/// <summary>
 		/// Hooks up List/Load events for all types which user our auto setup interfaces.
 		/// </summary>
 		private void SetupAutoUserFieldEvents()
 		{
 			var loadEvents = Events.FindByType(typeof(IHaveCreatorUser), "Load", EventPlacement.After);
 
-			foreach (var loadEvent in loadEvents)
+			var methodInfo = GetType().GetMethod("SetupForCreatorUser");
+
+			foreach (var typeEvent in loadEvents)
 			{
-				loadEvent.AddEventListener(async (Context context, object[] args) =>
+				// Get the actual type. We use this to avoid Revisions etc as we're not interested in those here:
+				var contentType = ContentTypes.GetType(typeEvent.EntityName);
+
+				if (contentType == null)
 				{
-					// The primary object is always the first arg which should be an IHaveCreatorUser type:
-					if (!(args[0] is IHaveCreatorUser userObject))
-					{
-						// Due to the way how event chains work, the primary object can be null.
-						// Safely ignore this.
-						return null;
-					}
+					continue;
+				}
 
-					userObject.CreatorUser = await GetProfile(context, userObject.GetCreatorUserId());
+				// Invoke setup for type:
+				var setupType = methodInfo.MakeGenericMethod(new Type[] {
+					contentType
+				});
 
-					return userObject;
+				setupType.Invoke(this, new object[] {
+					typeEvent.EntityName
 				});
 
 			}
 
-			// Create events:
-			var createEvents = Events.FindByType(typeof(IHaveCreatorUser), "Create", EventPlacement.After);
-
-			foreach (var createEvent in createEvents)
-			{
-				createEvent.AddEventListener(async (Context context, object[] args) =>
-				{
-					// The primary object is always the first arg which should be an IHaveCreatorUser type:
-					if (!(args[0] is IHaveCreatorUser userObject))
-					{
-						// Due to the way how event chains work, the primary object can be null.
-						// Safely ignore this.
-						return null;
-					}
-
-					userObject.CreatorUser = await GetProfile(context, userObject.GetCreatorUserId());
-
-					return userObject;
-				});
-
-			}
-
-
-			// Next the List events:
-			var listEvents = Events.FindByType(typeof(IHaveCreatorUser), "List", EventPlacement.After);
-
-			foreach (var listEvent in listEvents)
-			{
-				listEvent.AddEventListener(async (Context context, object[] args) =>
-				{
-					// args[0] is a List of IHaveCreatorUser implementors.
-					if (!(args[0] is IList list))
-					{
-						// Can't handle this (or it was null anyway):
-						return args[0];
-					}
-
-					// First we'll collect all their IDs so we can do a single bulk lookup.
-					// ASSUMPTION: The list is not excessively long!
-					// FUTURE IMPROVEMENT: Do this in chunks of ~50k entries.
-					// (applies to at least categories/ tags).
-					
-					var uniqueUsers = new Dictionary<int, UserProfile>();
-
-					for (var i = 0; i < list.Count; i++)
-					{
-						// Get as IHaveCreatorUser objects:
-						if (!(list[i] is IHaveCreatorUser ihc))
-						{
-							// A correctly functioning list endpoint would never return nulls - 
-							// that indicates something deeper is going on.
-							throw new Exception("Bad IHaveCreatorUser object - nulls aren't permitted in these lists.");
-						}
-
-						// Add to content lookup so we can map the tags to it shortly:
-						var creatorId = ihc.GetCreatorUserId();
-
-						if (creatorId != 0)
-						{
-							uniqueUsers[creatorId] = null;
-						}
-					}
-
-					if (uniqueUsers.Count == 0)
-					{
-						// Nothing to do - just return here:
-						return list;
-					}
-
-					// Create the filter and run the query now:
-					var userIds = new object[uniqueUsers.Count];
-					var index = 0;
-					foreach (var kvp in uniqueUsers) {
-						userIds[index++] = kvp.Key;
-					}
-
-					var filter = new Filter<User>();
-					filter.EqualsSet("Id", userIds);
-
-					// Use the regular list method here:
-					var allUsers = await List(context, filter);
-
-					foreach (var user in allUsers)
-					{
-						// Get as the public profile and hook up the mapping:
-						var profile = await GetProfile(context, user);
-						uniqueUsers[user.Id] = profile;
-					}
-
-					for (var i = 0; i < list.Count; i++)
-					{
-						// Get as IHaveCreatorUser objects (must be valid because of the above check):
-						var ihc = (IHaveCreatorUser)list[i];
-
-						// Add to content lookup so we can map the tags to it shortly:
-						var creatorId = ihc.GetCreatorUserId();
-
-						// Note that this user object might be null.
-						var userProfile = creatorId == 0 ? null : uniqueUsers[creatorId];
-
-						// Get it as the public profile object next:
-						ihc.CreatorUser = userProfile;
-					}
-					
-					return list;
-				});
-
-			}
 		}
 
 		/// <summary>
