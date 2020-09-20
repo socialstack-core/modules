@@ -129,13 +129,17 @@ namespace Api.Revisions
 			// and bump the Revision number of the about to be updated row.
 			var allBeforeUpdateEvents = Events.FindByPlacementAndVerb(EventPlacement.Before, "Update");
 
-			// The database service:
-			IDatabaseService database = null;
+			var methodInfo = GetType().GetMethod("SetupForRevisions");
 
 			foreach (var beforeUpdateEvent in allBeforeUpdateEvents)
 			{
-				// Is this update for a RevisionRow type?
-				var contentType = beforeUpdateEvent.PrimaryType;
+				// Get the actual type. We use this to avoid Revisions etc as we're not interested in those here:
+				var contentType = ContentTypes.GetType(beforeUpdateEvent.EntityName);
+
+				if (contentType == null)
+				{
+					continue;
+				}
 
 				if (!typeof(RevisionRow).IsAssignableFrom(contentType))
 				{
@@ -143,188 +147,149 @@ namespace Api.Revisions
 					continue;
 				}
 
-				// We've got a BeforeUpdate event for revisionable content.
+				// Invoke setup for type:
+				var setupType = methodInfo.MakeGenericMethod(new Type[] {
+					contentType
+				});
 
-				// Create the original field map:
-				var fieldMap = new FieldMap(contentType);
-
-				// First, generate a 'copy' query. It'll transfer values from table A to table B.
-				var transferMap = new FieldTransferMap
-				{
-					TargetTypeNameExtension = "_revisions"
-				};
-
-				// For each field in the map, create a transfer:
-				foreach (var field in fieldMap.Fields)
-				{
-					// Special case for the Id field.
-					if (field.Name == "Id")
-					{
-						// Id transfers to the RevisionContentId field.
-						transferMap.Add(contentType, field.Name, contentType, "RevisionOriginalContentId");
-					}
-					else
-					{
-						// The only difference is the target type name extension above.
-						transferMap.Add(contentType, field.Name, contentType, field.Name);
-					}
-				}
-				
-				transferMap.AddConstant(contentType, "RevisionIsDraft", false);
-				
-				// The query itself:
-				var copyQuery = Query.Copy(transferMap);
-				copyQuery.Where().EqualsArg(contentType, "Id", 0);
-
-				var str = copyQuery.GetQuery();
-
-				// And add an event handler now:
-				beforeUpdateEvent.AddEventListener(async (Context context, object[] args) =>
-				{
-					if (args == null || args.Length == 0)
-					{
-						return null;
-					}
-
-					if (!(args[0] is RevisionRow revisionableContent))
-					{
-						// This event is not for us
-						return args[0];
-					}
-
-					if (database == null)
-					{
-						database = Services.Get<IDatabaseService>();
-					}
-					
-					/*
-					// trigger the before create revision events:
-					if(beforeUpdateEvent.EventGroup != null){
-						beforeUpdateEvent.EventGroup.RevisionBeforeCreate(context, revisionableContent);
-					}
-					*/
-
-					// Run the copy query now:
-					await database.Run(context, copyQuery, revisionableContent.Id);
-
-					#warning TODO - trigger the before and after events
-					// - Requires collecting the ID from the above copy call
-					// - Also requires collecting the EventGroup that the update event came from in order to call the events.
-
-					/*
-					// trigger the after create revision events:
-					if(beforeUpdateEvent.EventGroup != null){
-						// Note: This will not know what the revisions ID is.
-						beforeUpdateEvent.EventGroup.RevisionAfterCreate(context, revisionableContent);
-					}
-					*/
-
-					// Bump its revision number.
-					revisionableContent.Revision++;
-
-					return args[0];
-				}, 11);
+				setupType.Invoke(this, new object[] {
+					beforeUpdateEvent.EntityName
+				});
 
 			}
-			
-			
-			// Now we do the same for delete events too.
-			var allBeforeDeleteEvents = Events.FindByPlacementAndVerb(EventPlacement.Before, "Delete");
-			
-			foreach (var beforeDeleteEvent in allBeforeDeleteEvents)
-			{
-				// Is this delete for a RevisionRow type?
-				var contentType = beforeDeleteEvent.PrimaryType;
-
-				if (!typeof(RevisionRow).IsAssignableFrom(contentType))
-				{
-					// nope
-					continue;
-				}
-
-				// We've got a Delete event for revisionable content.
-
-				// Create the original field map:
-				var fieldMap = new FieldMap(contentType);
-
-				// First, generate a 'copy' query. It'll transfer values from table A to table B.
-				var transferMap = new FieldTransferMap
-				{
-					TargetTypeNameExtension = "_revisions"
-				};
-
-				// For each field in the map, create a transfer:
-				foreach (var field in fieldMap.Fields)
-				{
-					// Special case for the Id field.
-					if (field.Name == "Id")
-					{
-						// Id transfers to the RevisionContentId field.
-						transferMap.Add(contentType, field.Name, contentType, "RevisionOriginalContentId");
-					}
-					else
-					{
-						// The only difference is the target type name extension above.
-						transferMap.Add(contentType, field.Name, contentType, field.Name);
-					}
-				}
-				
-				transferMap.AddConstant(contentType, "RevisionIsDraft", false);
-				
-				// The query itself:
-				var copyQuery = Query.Copy(transferMap);
-				copyQuery.Where().EqualsArg(contentType, "Id", 0);
-
-				var str = copyQuery.GetQuery();
-
-				// And add an event handler now:
-				beforeDeleteEvent.AddEventListener(async (Context context, object[] args) =>
-				{
-					if (args == null || args.Length == 0)
-					{
-						return null;
-					}
-					
-					if (!(args[0] is RevisionRow revisionableContent))
-					{
-						// This event is not for us
-						return args[0];
-					}
-
-					if (database == null)
-					{
-						database = Services.Get<IDatabaseService>();
-					}
-					
-					/*
-					// trigger the before create revision events:
-					if(beforeDeleteEvent.EventGroup != null){
-						beforeDeleteEvent.EventGroup.RevisionBeforeCreate(context, revisionableContent);
-					}
-					*/
-
-					// Run the copy query now:
-					await database.Run(context, copyQuery, revisionableContent.Id);
-
-					#warning TODO - trigger the before and after events
-					// - Requires collecting the ID from the above copy call
-					// - Also requires collecting the EventGroup that the update event came from in order to call the events.
-
-					/*
-					// trigger the after create revision events:
-					if(beforeDeleteEvent.EventGroup != null){
-						// Note: This will not know what the revisions ID is.
-						beforeDeleteEvent.EventGroup.RevisionAfterCreate(context, revisionableContent);
-					}
-					*/
-					
-					return args[0];
-				}, 11);
-
-			}
-			
 			
 		}
-		
+
+		/// <summary>
+		/// The database service.
+		/// </summary>
+		private IDatabaseService database = null;
+
+		/// <summary>
+		/// Sets a particular type with revision handlers. Used via reflection.
+		/// </summary>
+		/// <typeparam name="T"></typeparam>
+		/// <param name="entityName"></param>
+		public void SetupForRevisions<T>(string entityName) where T : RevisionRow, new()
+		{
+			var contentType = typeof(T);
+
+			// Invoked by reflection
+			var evtGroup = Events.GetGroup<T>();
+
+			// Create the original field map:
+			var fieldMap = new FieldMap(contentType);
+
+			// First, generate a 'copy' query. It'll transfer values from table A to table B.
+			var transferMap = new FieldTransferMap
+			{
+				TargetTypeNameExtension = "_revisions"
+			};
+
+			// For each field in the map, create a transfer:
+			foreach (var field in fieldMap.Fields)
+			{
+				// Special case for the Id field.
+				if (field.Name == "Id")
+				{
+					// Id transfers to the RevisionContentId field.
+					transferMap.Add(contentType, field.Name, contentType, "RevisionOriginalContentId");
+				}
+				else
+				{
+					// The only difference is the target type name extension above.
+					transferMap.Add(contentType, field.Name, contentType, field.Name);
+				}
+			}
+
+			transferMap.AddConstant(contentType, "RevisionIsDraft", false);
+
+			// The query itself:
+			var copyQuery = Query.Copy(transferMap);
+			copyQuery.Where().EqualsArg(contentType, "Id", 0);
+
+			var str = copyQuery.GetQuery();
+
+			// And add an event handler now:
+			evtGroup.BeforeUpdate.AddEventListener(async (Context context, T content) =>
+			{
+				if (content == null)
+				{
+					return content;
+				}
+
+				if (database == null)
+				{
+					database = Services.Get<IDatabaseService>();
+				}
+
+				/*
+				// trigger the before create revision events:
+				if(beforeUpdateEvent.EventGroup != null){
+					beforeUpdateEvent.EventGroup.RevisionBeforeCreate(context, revisionableContent);
+				}
+				*/
+
+				// Run the copy query now:
+				await database.Run(context, copyQuery, content.Id);
+
+				#warning TODO - trigger the before and after events
+				// - Requires collecting the ID from the above copy call
+				// - Also requires collecting the EventGroup that the update event came from in order to call the events.
+
+				/*
+				// trigger the after create revision events:
+				if(beforeUpdateEvent.EventGroup != null){
+					// Note: This will not know what the revisions ID is.
+					beforeUpdateEvent.EventGroup.RevisionAfterCreate(context, revisionableContent);
+				}
+				*/
+
+				// Bump its revision number.
+				content.Revision++;
+
+				return content;
+			}, 11);
+
+			// Add the beforeDelete handler too:
+			evtGroup.BeforeDelete.AddEventListener(async (Context context, T content) =>
+			{
+				if (content == null)
+				{
+					return content;
+				}
+
+				if (database == null)
+				{
+					database = Services.Get<IDatabaseService>();
+				}
+				
+				/*
+				// trigger the before create revision events:
+				if(beforeDeleteEvent.EventGroup != null){
+					beforeDeleteEvent.EventGroup.RevisionBeforeCreate(context, revisionableContent);
+				}
+				*/
+
+				// Run the copy query now:
+				await database.Run(context, copyQuery, content.Id);
+
+				#warning TODO - trigger the before and after events
+				// - Requires collecting the ID from the above copy call
+				// - Also requires collecting the EventGroup that the update event came from in order to call the events.
+
+				/*
+				// trigger the after create revision events:
+				if(beforeDeleteEvent.EventGroup != null){
+					// Note: This will not know what the revisions ID is.
+					beforeDeleteEvent.EventGroup.RevisionAfterCreate(context, revisionableContent);
+				}
+				*/
+
+				return content;
+			}, 11);
+			
+		}
+
 	}
 }
