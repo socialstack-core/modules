@@ -627,6 +627,67 @@ public class AutoService
 
 	}
 
+	/// <summary>
+	/// Defines a new IHave* interface.
+	/// It's added to content types to declare they have e.g. an array of tags, categories etc.
+	/// </summary>
+	protected void DefineIHaveArrayHandler<T, U, M>(string whereFieldName, string mapperFieldName, Action<T, List<U>> setResult)
+		where T : class
+		where U : DatabaseRow, new()
+		where M : MappingRow, new()
+	{
+		var mapper = new IHaveArrayHandler<T, U, M>() {
+			WhereFieldName = whereFieldName,
+			MapperFieldName = mapperFieldName,
+			OnSetResult = setResult,
+			Database = _database
+		};
+
+		mapper.Map();
+	}
+	
+	/// <summary>
+	/// Defines a new IHave* interface.
+	/// It's added to content types to declare they have e.g. an array of tags, categories etc.
+	/// </summary>
+	protected void DefineIHaveArrayHandler<T, M>(string whereFieldName, Action<T, List<Api.Users.UserProfile>> setResult)
+		where T : class
+		where M : MappingRow, new()
+	{
+		Api.Users.IUserService _users = null;
+
+		var mapper = new IHaveArrayHandler<T, Api.Users.User, M>() {
+			WhereFieldName = whereFieldName,
+			MapperFieldName = "UserId",
+			OnSetResult = (T content, List<Api.Users.User> users) => {
+
+				if (users == null)
+				{
+					setResult(content, null);
+					return;
+				}
+
+				if (_users == null)
+				{
+					_users = Services.Get<Api.Users.IUserService>();
+				}
+
+				// Map users to a UserProfile list:
+				var set = new List<Api.Users.UserProfile>();
+
+				foreach (var user in users)
+				{
+					set.Add(_users.GetProfile(user));
+				}
+
+				setResult(content, set);
+			},
+			Database = _database
+		};
+
+		mapper.Map();
+	}
+
 }
 
 namespace Api.Startup {
