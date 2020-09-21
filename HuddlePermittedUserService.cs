@@ -377,18 +377,9 @@ namespace Api.Huddles
                     field.AfterId = true;
 
                     // On set, convert provided IDs into tag objects.
-                    field.OnSetValueUnTyped.AddEventListener(async (Context ctx, object[] valueArgs) =>
+                    field.OnSetValue.AddEventListener(async (Context ctx, object value, Huddle huddle, JToken srcToken) =>
                     {
-                        if (valueArgs == null || valueArgs.Length < 2)
-                        {
-                            return null;
-                        }
-
-                        // The value should be an array of ints.
-                        var value = valueArgs[0];
-
                         // The object we're setting to will have an ID now because of the above defer:
-                        var huddle = valueArgs[1] as Huddle;
                         if (huddle == null)
                         {
                             return null;
