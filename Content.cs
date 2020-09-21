@@ -77,7 +77,7 @@ namespace Api.Database
 				// Grab the Load capability:
 				var cap = converted ? (service as IUserService).GetProfileLoadCapability() : service.GetLoadCapability();
 
-				if (!await context.Role.IsGranted(cap, context, new object[] { objResult }))
+				if (!await context.Role.IsGranted(cap, context, objResult))
 				{
 					throw PermissionException.Create(cap.Name, context);
 				}
