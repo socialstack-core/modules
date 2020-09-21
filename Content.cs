@@ -69,7 +69,7 @@ namespace Api.Database
 			if (convertUser && objResult is User)
 			{
 				converted = true;
-				objResult = await (service as IUserService).GetProfile(context, objResult as User);
+				objResult = (service as IUserService).GetProfile(objResult as User);
 			}
 
 			if (permCheck)
@@ -203,7 +203,7 @@ namespace Api.Database
 				foreach (var obj in objResult)
 				{
 					// (Doesn't hit the database)
-					result.Add(await _users.GetProfile(context, obj as User));
+					result.Add(_users.GetProfile(obj as User));
 				}
 
 				objResult = result;
