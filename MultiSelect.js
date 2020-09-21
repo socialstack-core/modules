@@ -13,7 +13,7 @@ export default class MultiSelect extends React.Component {
 		
 		
 		this.state = {
-			value: props.value || props.defaultValue || []
+			value: (props.value || props.defaultValue || []).filter(t => t!=null)
 		};
 		
     }
@@ -21,14 +21,14 @@ export default class MultiSelect extends React.Component {
 	componentWillReceiveProps(props){
 		if(props.value){
 			this.setState({
-				value: props.value
+				value: props.value.filter(t => t!=null)
 			});
 		}
 	}
 	
 	remove(entry) {
         this.setState({
-			value: this.state.value.filter(t => t!=entry)
+			value: this.state.value.filter(t => t!=entry && t!=null)
 		});
     }
 	
@@ -63,6 +63,9 @@ export default class MultiSelect extends React.Component {
 						}
 						name={this.props.name} />
 						<Search for={this.props.contentType} field={fieldName} limit={5} placeholder={"Find " + this.props.label + " to add.."} onFind={entry => {
+							if(!entry){
+								return;
+							}
 							var value = this.state.value;
 							value.push(entry);
 							this.setState({
