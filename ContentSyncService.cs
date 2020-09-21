@@ -172,6 +172,101 @@ namespace Api.ContentSync
 		public SyncTableFileSet LocalTableSet;
 
 		/// <summary>
+		/// Sets up a particular content type with e.g. ID assign handlers.
+		/// </summary>
+		/// <typeparam name="T"></typeparam>
+		public void SetupForType<T>(StripeTable table) where T : DatabaseRow, new()
+		{
+			// Invoked by reflection
+
+			var evtGroup = Events.GetGroup<T>();
+
+			if (evtGroup == null)
+			{
+				return;
+			}
+
+			// Db table name is..
+			var tableName = typeof(T).TableName();
+
+			// Get the assigner for this table:
+			if (!table.DataTables.TryGetValue(tableName, out IdAssigner assigner))
+			{
+				// If this ever happens, it signals an internal issue with Socialstack.
+				// Content types drive the table schema. ID assigners come from the table schema.
+				// If a content type was somehow skipped, or its name is mangled, then this would happen.
+				Console.WriteLine("[WARN] Content sync integrity issue. The content type '" + typeof(T) + "' does not have an ID assigner.");
+				return;
+			}
+			
+			evtGroup.BeforeCreate.AddEventListener((Context context, T content) =>
+			{
+				if (content == null)
+				{
+					return Task.FromResult(content);
+				}
+
+				// Assign an ID now!
+				content.Id = (int)assigner.Assign();
+				
+				return Task.FromResult(content);
+			});
+
+#if DEBUG
+			// Hello developers!
+			// Add handlers to Create, Delete and Update events, and track these in a syncfile for this user.
+			if (LocalTableSet != null)
+			{
+				// Attempt to get the sync file for this type:
+				LocalTableSet.Files.TryGetValue(tableName, out SyncTableFile localSyncFile);
+
+				if (localSyncFile != null)
+				{
+					// Hook up create/ update/ delete - we want to track modding of objects:
+					evtGroup.AfterCreate.AddEventListener((Context context, T content) =>
+					{
+						if (content == null)
+						{
+							return Task.FromResult(content);
+						}
+
+						// Write creation to sync file:
+						localSyncFile.Write(content, 'C', context == null ? 0 : context.LocaleId);
+
+						return Task.FromResult(content);
+					});
+
+					evtGroup.AfterUpdate.AddEventListener((Context context, T content) =>
+					{
+						if (content == null)
+						{
+							return Task.FromResult(content);
+						}
+
+						// Write update to sync file:
+						localSyncFile.Write(content, 'U', context == null ? 0 : context.LocaleId);
+
+						return Task.FromResult(content);
+					});
+
+					evtGroup.AfterDelete.AddEventListener((Context context, T content) =>
+					{
+						if (content == null)
+						{
+							return Task.FromResult(content);
+						}
+
+						// Write delete to sync file:
+						localSyncFile.Write(content, 'D', context == null ? 0 : context.LocaleId);
+
+						return Task.FromResult(content);
+					});
+				}
+			}
+#endif
+		}
+
+		/// <summary>
 		/// Starts using the given username as this instance. Often a hostname on prod servers.
 		/// </summary>
 		/// <param name="name"></param>
@@ -268,142 +363,21 @@ namespace Api.ContentSync
 				}
 #endif
 
+				var methodInfo = GetType().GetMethod("SetupForType");
+				
 				// Next, add Create handlers to all types.
 				// When the handler fires, we simply assign an ID from our pool.
 				// DatabaseService internally handles predefined IDs already.
 				foreach (var kvp in ContentTypes.TypeMap)
 				{
-					if (kvp.Value == typeof(UserCreatedRow) || kvp.Value == typeof(RevisionRow))
-					{
-						continue;
-					}
-
-					// Db table name is..
-					var tableName = kvp.Value.TableName();
-
-					// Get the assigner for this table:
-					if (!table.DataTables.TryGetValue(tableName, out IdAssigner assigner))
-					{
-						// If this ever happens, it signals an internal issue with Socialstack.
-						// Content types drive the table schema. ID assigners come from the table schema.
-						// If a content type was somehow skipped, or its name is mangled, then this would happen.
-						Console.WriteLine("[WARN] Content sync integrity issue. The content type '" + kvp.Key + "' does not have an ID assigner.");
-						continue;
-					}
-
-					// Get the service for this type next:
-					var beforeCreate = Events.FindByType(kvp.Value, "Create", EventPlacement.Before);
-
-					if (beforeCreate.Count == 0)
-					{
-						// This indicates someone has somehow missed adding a BeforeCreate event for a particular type.
-						// (Given that it's all automated, this should be actually quite hard to do, but would indicate developer error).
-						Console.WriteLine("[WARN] Content sync can't mount a type. The content type '" + kvp.Key + "' does not have a BeforeCreate event.");
-						continue;
-					}
-
-					beforeCreate[0].AddEventListener((Context context, object[] args) =>
-					{
-						if (args == null || args.Length == 0)
-						{
-							return null;
-						}
-
-						// Get object as a DB Row instance (so we can actually set the ID):
-						var dbRow = args[0] as DatabaseRow;
-
-						if (dbRow != null)
-						{
-							// Assign an ID now!
-							dbRow.Id = (int)assigner.Assign();
-						}
-
-						return args[0];
+					// Invoke setup for type:
+					var setupType = methodInfo.MakeGenericMethod(new Type[] {
+						kvp.Value
 					});
 
-#if DEBUG
-					// Hello developers!
-					// Add handlers to Create, Delete and Update events, and track these in a syncfile for this user.
-					if (LocalTableSet != null)
-					{
-						// Attempt to get the sync file for this type:
-						LocalTableSet.Files.TryGetValue(tableName, out SyncTableFile localSyncFile);
-
-						if (localSyncFile != null)
-						{
-							// Get the after create event - we want to track creation of objects:
-							var afterCreate = Events.FindByType(kvp.Value, "Create", EventPlacement.After);
-
-							if (afterCreate.Count != 0)
-							{
-								afterCreate[0].AddEventListener((Context context, object[] args) =>
-								{
-									if (args == null || args.Length == 0)
-									{
-										return null;
-									}
-
-									var firstArg = args[0];
-
-									if (firstArg is DatabaseRow)
-									{
-										// Write creation to sync file:
-										localSyncFile.Write(firstArg, 'C', context == null ? 0 : context.LocaleId);
-									}
-
-									return firstArg;
-								});
-							}
-
-							var afterUpdate = Events.FindByType(kvp.Value, "Update", EventPlacement.After);
-
-							if (afterUpdate.Count != 0)
-							{
-								afterUpdate[0].AddEventListener((Context context, object[] args) =>
-								{
-									if (args == null || args.Length == 0)
-									{
-										return null;
-									}
-
-									var firstArg = args[0];
-
-									if (firstArg is DatabaseRow)
-									{
-										// Write update to sync file:
-										localSyncFile.Write(firstArg, 'U', context == null ? 0 : context.LocaleId);
-									}
-
-									return firstArg;
-								});
-							}
-
-							var afterDelete = Events.FindByType(kvp.Value, "Delete", EventPlacement.After);
-
-							if (afterDelete.Count != 0)
-							{
-								afterDelete[0].AddEventListener((Context context, object[] args) =>
-								{
-									if (args == null || args.Length == 0)
-									{
-										return null;
-									}
-
-									var firstArg = args[0];
-
-									if (firstArg is DatabaseRow)
-									{
-										// Write delete to sync file:
-										localSyncFile.Write(firstArg, 'D', context == null ? 0 : context.LocaleId);
-									}
-
-									return firstArg;
-								});
-							}
-						}
-					}
-#endif
-
+					setupType.Invoke(this, new object[] {
+						table
+					});
 				}
 			}
 			// Add event handlers to all caching enabled types, *if* there are any with remote addresses.

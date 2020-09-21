@@ -796,11 +796,6 @@ namespace Api.ContentSync
 
 			foreach (var kvp in ContentTypes.TypeMap)
 			{
-				if (kvp.Value == typeof(UserCreatedRow) || kvp.Value == typeof(RevisionRow))
-				{
-					continue;
-				}
-
 				// Get the service for this thing (if there is one):
 				var svc = Services.Get("I" + kvp.Value.Name + "Service");
 
