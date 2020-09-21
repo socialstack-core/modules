@@ -10,7 +10,7 @@ namespace Api.Database
 	/// store in the database automatically.
 	/// A database table will always have the columns defined here as fields.
 	/// </summary>
-	public partial class DatabaseRow : IHaveId
+	public abstract partial class DatabaseRow : IHaveId
 	{
 		/// <summary>
 		/// The row ID.

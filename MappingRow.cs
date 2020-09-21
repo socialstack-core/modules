@@ -8,7 +8,7 @@ namespace Api.Database
 	/// <summary>
 	/// Maps e.g. tags to particular content.
 	/// </summary>
-	public class MappingRow : DatabaseRow
+	public abstract class MappingRow : DatabaseRow
 	{
 		/// <summary>
 		/// The type ID of the tagged content. See also: Api.Database.ContentTypes

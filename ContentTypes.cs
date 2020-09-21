@@ -34,7 +34,7 @@ namespace Api.Database
 				// - Inherits DatabaseRow
 				// Then add to reverse map
 
-				if (!typeInfo.IsClass)
+				if (!typeInfo.IsClass || typeInfo.IsAbstract)
 				{
 					continue;
 				}
