@@ -11,7 +11,7 @@ namespace Api.Users
 	/// Use this to get a UserId, CreatedUtc and EditedUtc with automatic creator user field support, which is also capable of revisions.
 	/// Alternatively use DatabaseRow directly if you want total control over your table.
 	/// </summary>
-	public class RevisionRow : UserCreatedRow
+	public abstract class RevisionRow : UserCreatedRow
 	{
 		/// <summary>
 		/// The revision number of a particular piece of content. Starts at 1 and goes up linearly.

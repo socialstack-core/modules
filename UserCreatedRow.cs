@@ -11,7 +11,7 @@ namespace Api.Users
 	/// Use this to get a UserId, CreatedUtc and EditedUtc with automatic creator user field support.
 	/// Alternatively use DatabaseRow directly if you want total control over your table.
 	/// </summary>
-	public class UserCreatedRow : DatabaseRow, IHaveCreatorUser
+	public abstract class UserCreatedRow : DatabaseRow, IHaveCreatorUser
 	{
 		/// <summary>
 		/// The user who created this content.
