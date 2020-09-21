@@ -66,39 +66,16 @@ namespace Api.Permissions
 		/// <summary>
 		/// True if this particular node is granted.
 		/// </summary>
-		public override Task<bool> IsGranted(Capability capability, Context token, object[] extraObjectsToCheck)
+		public override Task<bool> IsGranted(Capability capability, Context token, object firstArg)
 		{
-			// Get first extra arg
-			if (extraObjectsToCheck == null || extraObjectsToCheck.Length < ArgIndex)
-			{
-				// Arg not provided. Hard fail scenario.
-				return Task.FromResult(Fail(capability));
-			}
-
-			var firstArg = extraObjectsToCheck[ArgIndex];
-
 			// Firstly is it a direct match?
-			if (firstArg == null)
+			if (firstArg == null || firstArg.GetType() != Type)
 			{
 				return Task.FromResult(false);
 			}
 
 			if (Value is long)
 			{
-				// Might just be a direct number given to us:
-				var firstArgAsNum = firstArg as long?;
-
-				if (firstArgAsNum != null && firstArgAsNum <= (long)Value)
-				{
-					return Task.FromResult(true);
-				}
-
-				// Nope - try matching it via reading the field next.
-				if (firstArg.GetType() != Type)
-				{
-					return Task.FromResult(false);
-				}
-
 				// Try reading it:
 				var fieldValue = FieldInfo.GetValue(firstArg) as long?;
 
@@ -107,20 +84,6 @@ namespace Api.Permissions
 
 			if (Value is DateTime)
 			{
-				// Might just be a direct datetime given to us:
-				var firstArgAsNum = firstArg as DateTime?;
-
-				if (firstArgAsNum != null && firstArgAsNum <= (DateTime)Value)
-				{
-					return Task.FromResult(true);
-				}
-
-				// Nope - try matching it via reading the field next.
-				if (firstArg.GetType() != Type)
-				{
-					return Task.FromResult(false);
-				}
-
 				// Try reading it:
 				var fieldValue = FieldInfo.GetValue(firstArg) as DateTime?;
 
@@ -181,26 +144,6 @@ namespace Api.Permissions
 				AlwaysArgMatch = AlwaysArgMatch
 			};
 		}
-
-		/// <summary>
-		/// Used when the basic setup checks fail.
-		/// </summary>
-		/// <param name="capability"></param>
-		protected bool Fail(Capability capability)
-		{
-			// Separating this helps make the grant methods potentially go inline.
-			if (capability == null)
-			{
-				throw new Exception("Capability wasn't found. This probably means you used a capability name which doesn't exist.");
-			}
-
-			throw new Exception(
-				"Use of '" + capability.Name +
-				"' capability requires giving it a " + Type.Name + " as argument " + ArgIndex + ". " +
-				"Capability.IsGranted(request, \"cap_name\", .., *" + Type.Name + "*);"
-			);
-		}
-
 	}
 	
 	public partial class Filter
@@ -232,12 +175,11 @@ namespace Api.Permissions
 		/// <param name="value"></param>
 		/// <param name="argIndex"></param>
 		/// <returns></returns>
-		public Filter LessThanOrEqual(System.Type type, string fieldName, object value, int argIndex = 0)
+		public Filter LessThanOrEqual(System.Type type, string fieldName, object value)
 		{
 			return Add(new FilterFieldLessThanOrEqual(type, fieldName)
 			{
-				Value = value,
-				ArgIndex = argIndex
+				Value = value
 			});
 		}
 		

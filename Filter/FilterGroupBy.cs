@@ -24,7 +24,7 @@ namespace Api.Permissions
 		/// <summary>
 		/// True if this particular node is granted.
 		/// </summary>
-		public override Task<bool> IsGranted(Capability cap, Context token, object[] extraArgs)
+		public override Task<bool> IsGranted(Capability cap, Context token, object firstArg)
 		{
 			// Always granted.
 			return Task.FromResult(true);

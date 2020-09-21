@@ -15,9 +15,9 @@ namespace Api.Permissions
 		/// </summary>
 		/// <param name="cap"></param>
 		/// <param name="token"></param>
-		/// <param name="extraArgs"></param>
+		/// <param name="firstArg"></param>
 		/// <returns></returns>
-		public virtual Task<bool> IsGranted(Capability cap, Context token, object[] extraArgs)
+		public virtual Task<bool> IsGranted(Capability cap, Context token, object firstArg)
 		{
 			// You shall not pass!
 			return Task.FromResult(false);

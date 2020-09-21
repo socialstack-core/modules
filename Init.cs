@@ -7,6 +7,7 @@ using Api.Contexts;
 using System.Threading.Tasks;
 using Api.Permissions;
 using Api.Database;
+using Microsoft.AspNetCore.Http;
 
 namespace Api.Permissions
 {
@@ -24,6 +25,9 @@ namespace Api.Permissions
 		public Init()
 		{
 			var allPermittedEvents = Events.FindByPlacement(EventPlacement.NotSpecified);
+
+			var listMethodInfo = GetType().GetMethod("SetupForListEvent");
+			var standardMethodInfo = GetType().GetMethod("SetupForStandardEvent");
 
 			foreach (var permittedEvent in allPermittedEvents)
 			{
@@ -44,88 +48,27 @@ namespace Api.Permissions
 
 				if (permittedEvent.Verb == "List")
 				{
-					// Next, add an event handler at priority 1 (runs before others).
-					permittedEvent.AddEventListener(async (Context context, object[] args) =>
-					{
-						// Check if the capability is granted.
-						// If it is, return the first arg.
-						// Otherwise, return null.
-						var role = context == null ? Roles.Public : context.Role;
+					// Invoke SetupForListEvent:
+					var setupType = listMethodInfo.MakeGenericMethod(new Type[] {
+						permittedEvent.PrimaryType
+					});
 
-						if (role == null)
-						{
-							// No user role - can't grant this capability.
-							// This is likely to indicate a deeper issue, so we'll warn about it:
-							Console.WriteLine("Warning: User ID " + context.UserId + " has no role (or the role with that ID hasn't been instanced).");
-							throw PermissionException.Create(capability.Name, context);
-						}
-
-						if (args == null || args.Length == 0)
-						{
-							// No args anyway
-							throw PermissionException.Create("No object to check", context);
-						}
-						
-						// Get the grant rule (a filter) for this role + capability:
-						var rawGrantRule = role.GetGrantRule(capability);
-						var srcFilter = role.GetSourceFilter(capability);
-
-						// If it's outright rejected..
-						if (rawGrantRule == null)
-						{
-							throw PermissionException.Create(capability.Name, context);
-						}
-
-						// Otherwise, merge the user filter with the one from the grant system (if we need to).
-						// Special case for the common true always node:
-						if (rawGrantRule is FilterTrue)
-						{
-							return args[0];
-						}
-
-						var filter = args[0] as Filter;
-
-						if (filter == null)
-						{
-							// All permission handled List calls require a filter.
-							throw PermissionException.Create("Internal issue: A filter is required", context);
-						}
-						
-						// Both are set. Must combine them safely:
-						return filter.Combine(rawGrantRule, srcFilter?.ParamValueResolvers);
-					}, 1);
+					setupType.Invoke(this, new object[] {
+						permittedEvent,
+						capability
+					});
 				}
 				else
 				{
-					// Next, add an event handler at priority 1 (runs before others).
-					permittedEvent.AddEventListener(async (Context context, object[] args) =>
-					{
-						// Check if the capability is granted.
-						// If it is, return the first arg.
-						// Otherwise, return null.
-						var role = context == null ? Roles.Public : context.Role;
+					// Invoke SetupForStandardEvent:
+					var setupType = standardMethodInfo.MakeGenericMethod(new Type[] {
+						permittedEvent.PrimaryType
+					});
 
-						if (role == null)
-						{
-							// No user role - can't grant this capability.
-							// This is likely to indicate a deeper issue, so we'll warn about it:
-							throw PermissionException.Create(capability.Name, context, "No role");
-						}
-
-						if (args == null || args.Length == 0)
-						{
-							// No args anyway
-							throw PermissionException.Create(capability.Name, context, "No args provided");
-						}
-
-						if (await role.IsGranted(capability, context, args))
-						{
-							// It's granted - return the first arg:
-							return args[0];
-						}
-
-						throw PermissionException.Create(capability.Name, context);
-					}, 1);
+					setupType.Invoke(this, new object[] {
+						permittedEvent,
+						capability
+					});
 				}
 			}
 			
@@ -208,7 +151,7 @@ namespace Api.Permissions
 			}, 9);
 
 			// After all EventListener's have had a chance to be initialised..
-			Events.EventsAfterStart.AddEventListener(async (Context ctx, object[] args) =>
+			Events.EventsAfterStart.AddEventListener(async (Context ctx, object source) =>
 			{
 				// Trigger RoleSetup:
 				await Events.RoleOnSetup.Dispatch(ctx, null);
@@ -219,7 +162,7 @@ namespace Api.Permissions
 				// Now all the roles and caps have been setup, inject role restrictions:
 				SetupPartialRoleRestrictions();
 
-				return args == null || args.Length == 0 ? null : args[0];
+				return Task.FromResult(source);
 			});
 		}
 
@@ -269,6 +212,107 @@ namespace Api.Permissions
 				}
 
 			}
+		}
+
+		/// <summary>
+		/// Sets up a particular list event handler with permissions
+		/// </summary>
+		/// <typeparam name="T"></typeparam>
+		/// <param name="evtHandler"></param>
+		/// <param name="capability"></param>
+		public void SetupForListEvent<T>(Api.Eventing.EventHandler evtHandler, Capability capability)
+		{
+			var handler = evtHandler as EndpointEventHandler<Filter<T>>;
+
+			if (handler == null)
+			{
+				// We can't mount a permmission handle on this event.
+				return;
+			}
+
+			// Add an event handler at priority 1 (runs before others).
+			handler.AddEventListener((Context context, Filter<T> filter, HttpResponse response) =>
+			{
+				// Check if the capability is granted.
+				// If it is, return the first arg.
+				// Otherwise, return null.
+				var role = context == null ? Roles.Public : context.Role;
+
+				if (role == null)
+				{
+					// No user role - can't grant this capability.
+					// This is likely to indicate a deeper issue, so we'll warn about it:
+					Console.WriteLine("Warning: User ID " + context.UserId + " has no role (or the role with that ID hasn't been instanced).");
+					throw PermissionException.Create(capability.Name, context);
+				}
+
+				// Get the grant rule (a filter) for this role + capability:
+				var rawGrantRule = role.GetGrantRule(capability);
+				var srcFilter = role.GetSourceFilter(capability);
+
+				// If it's outright rejected..
+				if (rawGrantRule == null)
+				{
+					throw PermissionException.Create(capability.Name, context);
+				}
+
+				// Otherwise, merge the user filter with the one from the grant system (if we need to).
+				// Special case for the common true always node:
+				if (rawGrantRule is FilterTrue)
+				{
+					return Task.FromResult(filter);
+				}
+
+				if (filter == null)
+				{
+					// All permission handled List calls require a filter.
+					throw PermissionException.Create("Internal issue: A filter is required", context);
+				}
+
+				// Both are set. Must combine them safely:
+				return Task.FromResult(filter.Combine(rawGrantRule, srcFilter?.ParamValueResolvers) as Filter<T>);
+			}, 1);
+
+		}
+
+		/// <summary>
+		/// Sets up a particular non-list event handler with permissions
+		/// </summary>
+		/// <typeparam name="T"></typeparam>
+		/// <param name="evtHandler"></param>
+		/// <param name="capability"></param>
+		public void SetupForStandardEvent<T>(Api.Eventing.EventHandler evtHandler, Capability capability)
+		{
+			var handler = evtHandler as EndpointEventHandler<T>;
+			if (handler == null)
+			{
+				// We can't mount a permmission handle on this event.
+				return;
+			}
+
+			// Add an event handler at priority 1 (runs before others).
+			handler.AddEventListener(async (Context context, T content, HttpResponse response) =>
+			{
+				// Check if the capability is granted.
+				// If it is, return the first arg.
+				// Otherwise, return null.
+				var role = context == null ? Roles.Public : context.Role;
+
+				if (role == null)
+				{
+					// No user role - can't grant this capability.
+					// This is likely to indicate a deeper issue, so we'll warn about it:
+					throw PermissionException.Create(capability.Name, context, "No role");
+				}
+
+				if (await role.IsGranted(capability, context, content))
+				{
+					// It's granted - return the first arg:
+					return content;
+				}
+
+				throw PermissionException.Create(capability.Name, context);
+			}, 1);
 		}
 
 	}

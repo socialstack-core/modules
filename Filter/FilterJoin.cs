@@ -25,7 +25,7 @@ namespace Api.Permissions
 		/// <summary>
 		/// True if this particular node is granted.
 		/// </summary>
-		public override Task<bool> IsGranted(Capability cap, Context token, object[] extraArgs)
+		public override Task<bool> IsGranted(Capability cap, Context token, object firstArg)
 		{
 			// TODO: True only if the join succeeds. Joins won't be used in the perm system yet though.
 			return Task.FromResult(true);

@@ -81,17 +81,8 @@ namespace Api.Permissions
 		/// <summary>
 		/// True if this particular node is granted.
 		/// </summary>
-		public override Task<bool> IsGranted(Capability capability, Context token, object[] extraObjectsToCheck)
+		public override Task<bool> IsGranted(Capability capability, Context token, object firstArg)
 		{
-			// Get first extra arg
-			if (extraObjectsToCheck == null || extraObjectsToCheck.Length < ArgIndex)
-			{
-				// Arg not provided. Hard fail scenario.
-				return Task.FromResult(EqualsFail(capability));
-			}
-
-			var firstArg = extraObjectsToCheck[ArgIndex];
-
 			// Firstly is it a direct match?
 			if (firstArg == null)
 			{
@@ -218,26 +209,6 @@ namespace Api.Permissions
 				AlwaysArgMatch = AlwaysArgMatch
 			};
 		}
-
-		/// <summary>
-		/// Used by equals when the basic setup checks fail.
-		/// </summary>
-		/// <param name="capability"></param>
-		protected bool EqualsFail(Capability capability)
-		{
-			// Separating this helps make the grant methods potentially go inline.
-			if (capability == null)
-			{
-				throw new Exception("Capability wasn't found. This probably means you used a capability name which doesn't exist.");
-			}
-
-			throw new Exception(
-				"Use of '" + capability.Name +
-				"' capability requires giving it a " + Type.Name + " as argument " + ArgIndex + ". " +
-				"Capability.IsGranted(request, \"cap_name\", .., *" + Type.Name + "*);"
-			);
-		}
-
 	}
 	
 	public partial class Filter
@@ -269,12 +240,11 @@ namespace Api.Permissions
 		/// <param name="value"></param>
 		/// <param name="argIndex"></param>
 		/// <returns></returns>
-		public Filter Equals(System.Type type, string fieldName, object value, int argIndex = 0)
+		public Filter Equals(System.Type type, string fieldName, object value)
 		{
 			return Add(new FilterFieldEquals(type, fieldName)
 			{
-				Value = value,
-				ArgIndex = argIndex
+				Value = value
 			});
 		}
 
@@ -298,12 +268,11 @@ namespace Api.Permissions
 		/// <param name="value"></param>
 		/// <param name="argIndex"></param>
 		/// <returns></returns>
-		public Filter EqualsField(string fieldName, object value, int argIndex = 0)
+		public Filter EqualsField(string fieldName, object value)
 		{
 			return Add(new FilterFieldEquals(DefaultType, fieldName)
 			{
-				Value = value,
-				ArgIndex = argIndex
+				Value = value
 			});
 		}
 

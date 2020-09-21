@@ -50,18 +50,18 @@ namespace Api.Permissions
             InternalId = Capabilities.All.Count;
             Capabilities.All[name.ToLower()] = this;
         }
-        
+
         /// <summary>
         /// Use this to check if the capability is granted to the current user.
-		/// Note that this isn't virtual for a reason: All capabilities are the same.
-		/// It is all about how they are granted.
+        /// Note that this isn't virtual for a reason: All capabilities are the same.
+        /// It is all about how they are granted.
         /// </summary>
-		/// <param name="request">The current http request where we'll obtain the user from.</param>
-        /// <param name="extraObjectsToCheck">
+        /// <param name="request">The current http request where we'll obtain the user from.</param>
+        /// <param name="extraArg">
         /// E.g. if you're checking to see if something can be edited by the current user, pass that something.
         /// </param>
         /// <returns>True if it's permitted, false otherwise.</returns>
-        public Task<bool> IsGranted(HttpRequest request, params object[] extraObjectsToCheck)
+        public Task<bool> IsGranted(HttpRequest request, object extraArg)
         {
             var token = (request.HttpContext.User as Context);
             var role = token == null ? Roles.Public : token.Role;
@@ -73,7 +73,7 @@ namespace Api.Permissions
 				return Task.FromResult(false);
             }
             
-            return role.IsGranted(this, token, extraObjectsToCheck);
+            return role.IsGranted(this, token, extraArg);
         }
 
 		/// <summary>

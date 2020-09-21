@@ -55,17 +55,8 @@ namespace Api.Permissions
 		/// <summary>
 		/// True if this particular node is granted.
 		/// </summary>
-		public override async Task<bool> IsGranted(Capability capability, Context token, object[] extraObjectsToCheck)
+		public override async Task<bool> IsGranted(Capability capability, Context token, object firstArg)
 		{
-			// Get first extra arg
-			if (extraObjectsToCheck == null || extraObjectsToCheck.Length < ArgIndex)
-			{
-				// Arg not provided. Hard fail scenario.
-				return EqualsFail(capability);
-			}
-
-			var firstArg = extraObjectsToCheck[ArgIndex];
-			
 			if(firstArg == null)
 			{
 				// Required.

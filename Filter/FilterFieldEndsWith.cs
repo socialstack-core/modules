@@ -66,31 +66,15 @@ namespace Api.Permissions
 		/// <summary>
 		/// True if this particular node is granted.
 		/// </summary>
-		public override Task<bool> IsGranted(Capability capability, Context token, object[] extraObjectsToCheck)
+		public override Task<bool> IsGranted(Capability capability, Context token, object firstArg)
 		{
-			// Get first extra arg
-			if (extraObjectsToCheck == null || extraObjectsToCheck.Length < ArgIndex)
-			{
-				// Arg not provided. Hard fail scenario.
-				return Task.FromResult(Fail(capability));
-			}
-
-			var firstArg = extraObjectsToCheck[ArgIndex];
-
 			// Firstly is it a direct match?
 			if (firstArg == null)
 			{
 				return Task.FromResult(Value == null);
 			}
 			
-			var firstArgAsStr = firstArg as string;
-			
-			if (firstArgAsStr != null && firstArgAsStr.EndsWith(Value))
-			{
-				return Task.FromResult(true);
-			}
-
-			// Nope - try matching it via reading the field next.
+			// Try matching it via reading the field next.
 			if (Value == null)
 			{
 				return Task.FromResult(false);
@@ -147,26 +131,6 @@ namespace Api.Permissions
 				AlwaysArgMatch = AlwaysArgMatch
 			};
 		}
-
-		/// <summary>
-		/// Used when the basic setup checks fail.
-		/// </summary>
-		/// <param name="capability"></param>
-		protected bool Fail(Capability capability)
-		{
-			// Separating this helps make the grant methods potentially go inline.
-			if (capability == null)
-			{
-				throw new Exception("Capability wasn't found. This probably means you used a capability name which doesn't exist.");
-			}
-
-			throw new Exception(
-				"Use of '" + capability.Name +
-				"' capability requires giving it a " + Type.Name + " as argument " + ArgIndex + ". " +
-				"Capability.IsGranted(request, \"cap_name\", .., *" + Type.Name + "*);"
-			);
-		}
-
 	}
 	
 	public partial class Filter
@@ -198,12 +162,11 @@ namespace Api.Permissions
 		/// <param name="value"></param>
 		/// <param name="argIndex"></param>
 		/// <returns></returns>
-		public Filter EndsWith(System.Type type, string fieldName, string value, int argIndex = 0)
+		public Filter EndsWith(System.Type type, string fieldName, string value)
 		{
 			return Add(new FilterFieldEndsWith(type, fieldName)
 			{
-				Value = value,
-				ArgIndex = argIndex
+				Value = value
 			});
 		}
 		

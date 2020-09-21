@@ -381,18 +381,17 @@ namespace Api.Permissions
 
 			return CapabilityLookup[capability.InternalId];
 		}
-		
+
 		/// <summary>
 		/// Is the given capability granted to this role? Don't use this directly - use ACapability.IsGranted instead.
 		/// </summary>
 		/// <param name="capability">The capability to check for. This is required.</param>
 		/// <param name="token">The requesting user account.</param>
-		/// <param name="extraObjectsToCheck">
-		/// Any additional args used by the capability to check access rights.
-		/// For example - can a user access forum post x? Check ForumPostLoad perm and give it x.
+		/// <param name="extraArg">
+		/// E.g. the Forum object to check if access is granted for.
 		/// </param>
 		/// <returns></returns>
-		public Task<bool> IsGranted(Capability capability, Context token, params object[] extraObjectsToCheck)
+		public Task<bool> IsGranted(Capability capability, Context token, object extraArg)
         {
             if (capability.InternalId >= CapabilityLookup.Length)
             {
@@ -408,7 +407,7 @@ namespace Api.Permissions
             }
 
             // Ask the handler:
-            return handler.IsGranted(capability, token, extraObjectsToCheck);
+            return handler.IsGranted(capability, token, extraArg);
         }
 
 		/// <summary>

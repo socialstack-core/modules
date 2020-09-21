@@ -63,17 +63,8 @@ namespace Api.Permissions
 		/// <summary>
 		/// True if this particular node is granted.
 		/// </summary>
-		public override Task<bool> IsGranted(Capability capability, Context token, object[] extraObjectsToCheck)
+		public override Task<bool> IsGranted(Capability capability, Context token, object firstArg)
 		{
-			// Get first extra arg
-			if (extraObjectsToCheck == null || extraObjectsToCheck.Length < ArgIndex)
-			{
-				// Arg not provided. Hard fail scenario.
-				return Task.FromResult(EqualsFail(capability));
-			}
-
-			var firstArg = extraObjectsToCheck[ArgIndex];
-
 			// For each value, perform the same checks as a regular single field matching.
 			foreach(var value in Values)
 			{
@@ -175,26 +166,6 @@ namespace Api.Permissions
 				Values = Values
 			};
 		}
-
-		/// <summary>
-		/// Used by equals when the basic setup checks fail.
-		/// </summary>
-		/// <param name="capability"></param>
-		protected bool EqualsFail(Capability capability)
-		{
-			// Separating this helps make the grant methods potentially go inline.
-			if (capability == null)
-			{
-				throw new Exception("Capability wasn't found. This probably means you used a capability name which doesn't exist.");
-			}
-
-			throw new Exception(
-				"Use of '" + capability.Name +
-				"' capability requires giving it a " + Type.Name + " as argument " + ArgIndex + ". " +
-				"Capability.IsGranted(request, \"cap_name\", .., *" + Type.Name + "*);"
-			);
-		}
-
 	}
 
 	public partial class Filter
