@@ -42,7 +42,7 @@ namespace Api.Users
 		/// <param name="context"></param>
 		/// <param name="result"></param>
 		/// <returns></returns>
-		Task<UserProfile> GetProfile(Context context, User result);
+		UserProfile GetProfile(User result);
 
 		/// <summary>
 		/// Gets a user by the given email address or username.

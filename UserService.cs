@@ -243,7 +243,7 @@ namespace Api.Users
 				foreach (var user in allUsers)
 				{
 					// Get as the public profile and hook up the mapping:
-					var profile = await GetProfile(context, user);
+					var profile = GetProfile(user);
 					uniqueUsers[user.Id] = profile;
 				}
 
@@ -318,7 +318,7 @@ namespace Api.Users
 			
 			for(var i=0;i<list.Count;i++){
 				// (this doesn't hit the database):
-				profileList.Add(await GetProfile(context, list[i]));
+				profileList.Add(GetProfile(list[i]));
 			}
 			
 			return profileList;
@@ -347,7 +347,7 @@ namespace Api.Users
 			
 			for(var i=0;i<list.Count;i++){
 				// (this doesn't hit the database):
-				profileList.Add(await GetProfile(context, list[i]));
+				profileList.Add(GetProfile(list[i]));
 			}
 			
 			return new ListWithTotal<UserProfile>() {
@@ -366,16 +366,15 @@ namespace Api.Users
 		{
 			// First get the full user info:
 			var result = await Get(context, id);
-			return await GetProfile(context, result);
+			return GetProfile(result);
 		}
 
 		/// <summary>
 		/// Gets a public facing user profile.
 		/// </summary>
-		/// <param name="context"></param>
 		/// <param name="result"></param>
 		/// <returns></returns>
-		public async Task<UserProfile> GetProfile(Context context, User result)
+		public UserProfile GetProfile(User result)
 		{
 			if (result == null)
 			{
@@ -399,9 +398,6 @@ namespace Api.Users
 					field.To.SetValue(profile, field.FromProperty.Invoke(result, null));
 				}
 			}
-
-			// Run the load event:
-			profile = await Events.UserProfileAfterLoad.Dispatch(context, profile);
 
 			return profile;
 		}

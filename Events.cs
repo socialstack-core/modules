@@ -35,11 +35,6 @@ namespace Api.Eventing
 		public static EventHandler<User> UserAfterAuthenticate;
 		
 		/// <summary>
-		/// Just after a profile has loaded.
-		/// </summary>
-		public static EventHandler<UserProfile> UserProfileAfterLoad;
-		
-		/// <summary>
 		/// Set of events for a User.
 		/// </summary>
 		public static EventGroup<User> User;
