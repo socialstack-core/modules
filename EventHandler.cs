@@ -8,26 +8,6 @@ using System.Threading.Tasks;
 namespace Api.Eventing
 {
 	/// <summary>
-	/// Used when an event handler is hooked up generically.
-	/// </summary>
-	/// <param name="context">
-	/// The context which can be used to identify the original user making a particular request.
-	/// Important for e.g. returning correctly localised database results automatically.</param>
-	/// <param name="args"></param>
-	/// <returns></returns>
-	public delegate object GenericEventHandler(Context context, params object[] args);
-
-	/// <summary>
-	/// Used when an event handler is hooked up generically.
-	/// </summary>
-	/// <param name="context">
-	/// The context which can be used to identify the original user making a particular request.
-	/// Important for e.g. returning correctly localised database results automatically.</param>
-	/// <param name="args"></param>
-	/// <returns></returns>
-	public delegate Task<object> GenericEventHandlerAsync(Context context, params object[] args);
-
-	/// <summary>
 	/// Event handlers are instanced automatically and form a major part of the pluggable architecture.
 	/// Modules can define events via simply extending the Events class.
 	/// Handlers are also heaviest on add - they're designed to maximise repeat run performance - so avoid rapidly adding and removing them.
@@ -241,24 +221,6 @@ namespace Api.Eventing
 			return Task.FromResult(args != null && args.Length > 0 ? args[0] : null);
 		}
 
-		/// <summary>
-		/// Adds a generic method handler.
-		/// </summary>
-		/// <param name="evt"></param>
-		/// <param name="priority"></param>
-		public virtual void AddEventListener(GenericEventHandler evt, int priority = 10)
-		{
-			throw new NotImplementedException("Attempted to add an event listener to a base EventHandler. Use one of the generic EventHandler<> types instead.");
-		}
-
-		/// <summary>
-		/// Adds an async generic method handler.
-		/// </summary>
-		/// <param name="evt"></param>
-		/// <param name="priority"></param>
-		public virtual void AddEventListener(GenericEventHandlerAsync evt, int priority = 10)
-		{
-		}
 	}
 
 	/// <summary>
@@ -362,45 +324,6 @@ namespace Api.Eventing
 			return v1;
 		}
 
-		/// <summary>
-		/// Adds a generic method handler.
-		/// To add a non-async handler, use Task.FromResult.
-		/// </summary>
-		/// <param name="evt"></param>
-		/// <param name="priority"></param>
-		public override void AddEventListener(GenericEventHandler evt, int priority = 10)
-		{
-			if (evt == null)
-			{
-				throw new NullReferenceException("Listener is required.");
-			}
-
-			MethodSet.Add((Context context, T1 v1) =>
-			{
-				var result = evt(context, v1);
-				return Task.FromResult((T1)result);
-			}, priority);
-		}
-
-		/// <summary>
-		/// Adds a generic method handler.
-		/// To add a non-async handler, use Task.FromResult.
-		/// </summary>
-		/// <param name="evt"></param>
-		/// <param name="priority"></param>
-		public override void AddEventListener(GenericEventHandlerAsync evt, int priority = 10)
-		{
-			if (evt == null)
-			{
-				throw new NullReferenceException("Listener is required.");
-			}
-
-			MethodSet.Add(async (Context context, T1 v1) =>
-			{
-				var result = (T1)await evt(context, v1);
-				return result;
-			}, priority);
-		}
 	}
 
 	/// <summary>
@@ -470,45 +393,6 @@ namespace Api.Eventing
 			return v1;
 		}
 		
-		/// <summary>
-		/// Adds a generic method handler.
-		/// To add a non-async handler, use Task.FromResult.
-		/// </summary>
-		/// <param name="evt"></param>
-		/// <param name="priority"></param>
-		public override void AddEventListener(GenericEventHandler evt, int priority = 10)
-		{
-			if (evt == null)
-			{
-				throw new NullReferenceException("Listener is required.");
-			}
-
-			MethodSet.Add((Context context, T1 v1, T2 v2) =>
-			{
-				var result = evt(context, v1, v2);
-				return Task.FromResult((T1)result);
-			}, priority);
-		}
-
-		/// <summary>
-		/// Adds a generic method handler.
-		/// To add a non-async handler, use Task.FromResult.
-		/// </summary>
-		/// <param name="evt"></param>
-		/// <param name="priority"></param>
-		public override void AddEventListener(GenericEventHandlerAsync evt, int priority = 10)
-		{
-			if (evt == null)
-			{
-				throw new NullReferenceException("Listener is required.");
-			}
-
-			MethodSet.Add(async (Context context, T1 v1, T2 v2) =>
-			{
-				var result = (T1)await evt(context, v1, v2);
-				return result;
-			}, priority);
-		}
 	}
 
 	/// <summary>
@@ -579,45 +463,6 @@ namespace Api.Eventing
 			return v1;
 		}
 
-		/// <summary>
-		/// Adds a generic method handler.
-		/// To add a non-async handler, use Task.FromResult.
-		/// </summary>
-		/// <param name="evt"></param>
-		/// <param name="priority"></param>
-		public override void AddEventListener(GenericEventHandler evt, int priority = 10)
-		{
-			if (evt == null)
-			{
-				throw new NullReferenceException("Listener is required.");
-			}
-
-			MethodSet.Add((Context context, T1 v1, T2 v2, T3 v3) =>
-			{
-				var result = evt(context, v1, v2, v3);
-				return Task.FromResult((T1)result);
-			}, priority);
-		}
-
-		/// <summary>
-		/// Adds a generic method handler.
-		/// To add a non-async handler, use Task.FromResult.
-		/// </summary>
-		/// <param name="evt"></param>
-		/// <param name="priority"></param>
-		public override void AddEventListener(GenericEventHandlerAsync evt, int priority = 10)
-		{
-			if (evt == null)
-			{
-				throw new NullReferenceException("Listener is required.");
-			}
-
-			MethodSet.Add(async (Context context, T1 v1, T2 v2, T3 v3) =>
-			{
-				var result = (T1)await evt(context, v1, v2, v3);
-				return result;
-			}, priority);
-		}
 	}
 
 	/// <summary>
@@ -693,45 +538,6 @@ namespace Api.Eventing
 			return v1;
 		}
 
-		/// <summary>
-		/// Adds a generic method handler.
-		/// To add a non-async handler, use Task.FromResult.
-		/// </summary>
-		/// <param name="evt"></param>
-		/// <param name="priority"></param>
-		public override void AddEventListener(GenericEventHandler evt, int priority = 10)
-		{
-			if (evt == null)
-			{
-				throw new NullReferenceException("Listener is required.");
-			}
-
-			MethodSet.Add((Context context, T1 v1, T2 v2, T3 v3, T4 v4) =>
-			{
-				var result = evt(context, v1, v2, v3, v4);
-				return Task.FromResult((T1)result);
-			}, priority);
-		}
-
-		/// <summary>
-		/// Adds a generic method handler.
-		/// To add a non-async handler, use Task.FromResult.
-		/// </summary>
-		/// <param name="evt"></param>
-		/// <param name="priority"></param>
-		public override void AddEventListener(GenericEventHandlerAsync evt, int priority = 10)
-		{
-			if (evt == null)
-			{
-				throw new NullReferenceException("Listener is required.");
-			}
-
-			MethodSet.Add(async (Context context, T1 v1, T2 v2, T3 v3, T4 v4) =>
-			{
-				var result = (T1)await evt(context, v1, v2, v3, v4);
-				return result;
-			}, priority);
-		}
 	}
 
 	/// <summary>
