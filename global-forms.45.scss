@@ -165,7 +165,8 @@ textarea.form-control {
     @include input_field_styling;
 }
 
-select.form-control {
+select.form-control,
+.date-time-picker select {
     @include input_field_styling;
     //line-height: 1.3;
     //display: inline-block;
