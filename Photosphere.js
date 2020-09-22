@@ -121,13 +121,26 @@ export default class Photosphere extends React.Component {
 		click.x = e.clientX;
 		click.y = e.clientY;
 		
+		// sphere.rotation.y = startRotation * deg2rad;
+		this.rotateCamera(deltaX, deltaY, 0.001);
+	}
+	
+	rotateCamera(deltaX, deltaY, scale){
 		if(!this.camera){
 			return;
 		}
 		
-		// sphere.rotation.y = startRotation * deg2rad;
-		this.camera.rotation.y += deltaX * 0.001;
-		this.camera.rotation.x += deltaY * 0.001;
+		this.camera.rotation.y += deltaX * scale;
+		var x = this.camera.rotation.x;
+		x += deltaY * scale;
+		
+		if(x < -1.4){
+			x = -1.4;
+		}else if(x>1.4){
+			x = 1.4;
+		}
+		
+		this.camera.rotation.x = x;
 	}
 	
 	onMouseDown(e){
@@ -158,12 +171,7 @@ export default class Photosphere extends React.Component {
 		touch.x = e.touches[0].clientX;
 		touch.y = e.touches[0].clientY;
 		
-		if(!this.camera){
-			return;
-		}
-
-        this.camera.rotation.y += deltaX * 0.002;
-		this.camera.rotation.x += deltaY * 0.002;
+		this.rotateCamera(deltaX, deltaY, 0.002);
 	}
 	
 	onFullscreen(){
@@ -296,6 +304,12 @@ export default class Photosphere extends React.Component {
 			size.w = bounds.width;
 			size.h = bounds.height;
 			this.renderer.setSize(size.w, size.h, true);
+			
+			if(this.camera){
+				this.camera.aspect = size.w / size.h;
+				this.camera.updateProjectionMatrix();
+			}
+			
 		}
 		
 		this.doc && this.doc.update();
