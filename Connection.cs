@@ -24,7 +24,7 @@ namespace Api.Connections
 		/// <summary>
 		/// The recipient's email address. 
 		/// </summary>
-		public string? Email;
+		public string Email;
 
 		/// <summary>
 		/// The time that this connection request was accepted, meaning this a valid connection.
