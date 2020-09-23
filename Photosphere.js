@@ -188,9 +188,14 @@ export default class Photosphere extends React.Component {
 		}
 	}
 	
-	onLoaded(){
+	onLoaded(fullsize){
 		this.setState({loaded: true});
-		this.props.onLoad && this.props.onLoad();
+		if(!fullsize){
+			var startRotation = this.props.startRotation || 0;
+			this.camera.rotation.y = startRotation;
+			this.camera.rotation.x = 0;
+		}
+		this.props.onLoad && this.props.onLoad(fullsize);
 	}
 	
 	setup(props){
@@ -201,7 +206,6 @@ export default class Photosphere extends React.Component {
 			return;
 		}
 		
-		var startRotation = props.startRotation || 0;
 		var renderer = this.renderer;
 		
 		if(!renderer){
@@ -231,14 +235,11 @@ export default class Photosphere extends React.Component {
 		if(!camera){
 			camera = new THREE.PerspectiveCamera(70, size.w / size.h, 0.1, 100);
 			camera.rotation.order = 'YXZ';
-			camera.rotation.y = startRotation;
 			this.camera = camera;
 			scene.add(camera);
-		}else{
-			camera.rotation.y = startRotation;
 		}
 		
-		if(props.ar){
+		if(props.ar && !this.doc){
 			this.doc = new DeviceOrientationControls(this.camera);
 		}
 		
@@ -257,7 +258,7 @@ export default class Photosphere extends React.Component {
 					if(material._url == imgUrl){
 						material.map = mapFull;
 					}
-					this.onLoaded();
+					this.onLoaded(true);
 				});
 				material.map = mapFull.image ? mapFull : mapSmall;
 			}
@@ -268,7 +269,7 @@ export default class Photosphere extends React.Component {
 				if(this.material && this.material._url == imgUrl){
 					this.material.map = mapFull;
 				}
-				this.onLoaded();
+				this.onLoaded(true);
 			});
 			var map = mapFull.image ? mapFull : mapSmall;
 			this.material = material = new THREE.MeshBasicMaterial( {map, side: THREE.DoubleSide} );
