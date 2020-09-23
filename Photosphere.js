@@ -201,7 +201,7 @@ export default class Photosphere extends React.Component {
 			return;
 		}
 		
-		var startRotation = props.startRotation || 45;
+		var startRotation = props.startRotation || 0;
 		var renderer = this.renderer;
 		
 		if(!renderer){
@@ -231,8 +231,11 @@ export default class Photosphere extends React.Component {
 		if(!camera){
 			camera = new THREE.PerspectiveCamera(70, size.w / size.h, 0.1, 100);
 			camera.rotation.order = 'YXZ';
+			camera.rotation.y = startRotation;
 			this.camera = camera;
 			scene.add(camera);
+		}else{
+			camera.rotation.y = startRotation;
 		}
 		
 		if(props.ar){
