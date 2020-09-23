@@ -3,6 +3,13 @@ import getRef from 'UI/Functions/GetRef';
 import omit from 'UI/Functions/Omit';
 import DeviceOrientationControls from 'UI/Functions/DeviceOrientationControls';
 import imageCache from 'UI/Photosphere/Cache';
+var HlsVideo;
+try{
+	HlsVideo = require('UI/HlsVideo/HlsVideo.js').default;
+}catch(e){
+	// No video sphere support
+}
+
 const SphereContext = React.createContext(null);
 
 export default class Photosphere extends React.Component {
@@ -246,35 +253,58 @@ export default class Photosphere extends React.Component {
 		// +ve z is north
 		// +ve x is west
 		
+		// Is it a video?
 		var imgUrlLoad = getRef(props.imageRef, {url: true, size: '512'});
-		var imgUrl = getRef(props.imageRef, {url: true, size: 'original'});
+		var imgUrl = props.videoRef ? null : getRef(props.imageRef, {url: true, size: 'original'});
 		var material = this.material;
 		
+		try{
+			var vt = this.videoTex;
+			this.videoTex = null;
+			if(vt && !props.videoRef){
+				vt.dispose();
+			}
+		}catch(e){
+			// Failed tidying up video - this is ok; it was likely tidied up internally
+		}
+		
 		if(material){
-			if(material._url != imgUrl){
-				material._url = imgUrl;
+			if(material._url != imgUrlLoad){
+				material._url = imgUrlLoad;
 				var mapSmall = imageCache(imgUrlLoad, () => this.onLoaded(false));
+				
+				if(imgUrl){
+					var mapFull = imageCache(imgUrl, () => {
+						if(material._url == imgUrlLoad){
+							material.map = mapFull;
+						}
+						this.onLoaded(true);
+					});
+					material.map = mapFull.image ? mapFull : mapSmall;
+				}else{
+					// It's a video - we show the low res image until the video loads:
+					material.map = this.videoTex || mapSmall;
+				}
+			}
+		}else{
+			var mapSmall = imageCache(imgUrlLoad, () => this.onLoaded(false));
+			var map;
+			
+			if(imgUrl){
 				var mapFull = imageCache(imgUrl, () => {
-					if(material._url == imgUrl){
-						material.map = mapFull;
+					if(this.material && this.material._url == imgUrlLoad){
+						this.material.map = mapFull;
 					}
 					this.onLoaded(true);
 				});
-				material.map = mapFull.image ? mapFull : mapSmall;
+				map = mapFull.image ? mapFull : mapSmall;
+			}else{
+				map = this.videoTex || mapSmall;
 			}
-		}else{
 			var geometry = new THREE.SphereGeometry( 5, 32, 32 );
-			var mapSmall = imageCache(imgUrlLoad, () => this.onLoaded(false));
-			var mapFull = imageCache(imgUrl, () => {
-				if(this.material && this.material._url == imgUrl){
-					this.material.map = mapFull;
-				}
-				this.onLoaded(true);
-			});
-			var map = mapFull.image ? mapFull : mapSmall;
 			this.material = material = new THREE.MeshBasicMaterial( {map, side: THREE.DoubleSide} );
 			var sphere = new THREE.Mesh( geometry, material );
-			material._url = imgUrl;
+			material._url = imgUrlLoad;
 			this.sphere = sphere;
 			var scaleFactor = 0.1;
 			
@@ -328,7 +358,7 @@ export default class Photosphere extends React.Component {
 		
 		return (
 		<SphereContext.Provider value={this.state.scene}>
-			<div ref={this.setContainerRef} {...omit(this.props, ['ar', 'children', 'imageRef', 'onLoad', 'startRotation', 'skipFade'])}>
+			<div ref={this.setContainerRef} {...omit(this.props, ['ar', 'children', 'imageRef', 'videoRef', 'onLoad', 'startRotation', 'skipFade'])}>
 				<div ref={this.setRef} style={{width: '100%', height: '100%', position: 'absolute'}} className={"photosphere" + (this.state.loaded ? ' loaded' : '') + (this.props.skipFade ? ' no-fade' : '')}>
 					<canvas ref={this.setCanvasRef} style={{position: 'absolute', top: '0px', left: '0px', width, height}} />
 					<div ref={this.set3DRef} style={{overflow: 'hidden', position: 'absolute', top: '0px', left: '0px', width, height}} onMouseDown={this.onMouseDown} onMouseMove={this.onMouseMove} onTouchStart={this.onTouchStart} onTouchMove={this.onTouchMove}>
@@ -336,6 +366,24 @@ export default class Photosphere extends React.Component {
 							{this.props.children}
 						</div>
 					</div>
+					{this.props.videoRef && <HlsVideo style={{display: 'none'}} videoRef={this.props.videoRef} autoplay loop={this.props.loop} onEnded={this.props.onVideoEnded} onProgress={this.props.onVideoProgress} onVideo={videoEl => {
+						
+						if(!videoEl){
+							return;
+						}
+						
+						// Create video texture:
+						var texture = new THREE.VideoTexture(videoEl);
+						texture.minFilter = THREE.LinearFilter;
+						texture.magFilter = THREE.LinearFilter;
+						texture.format = THREE.RGBFormat;
+						this.videoTex = texture;
+						
+						if(this.material){
+							this.material.map = texture;
+						}
+						
+					}}/>}
 				</div>
 				<div className="photosphereUI"></div>
 			</div>
