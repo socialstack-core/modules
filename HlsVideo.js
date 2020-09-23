@@ -56,7 +56,6 @@ export default class HlsVideo extends React.Component {
 	
 	getSource(props){
 		var {videoId, videoRef} = props;
-		
 		if(!videoId && videoRef){
 			// extract id from ref:
 			var refParts = getRef(videoRef, {url: true, dirs: ['video']}).split('-');
@@ -73,6 +72,7 @@ export default class HlsVideo extends React.Component {
 					return;
 				}
 				this.video = video;
+				this.props.onVideo && this.props.onVideo(video);
 				var hls = this.state.hls;
 				
 				if (!hls && video.canPlayType('application/vnd.apple.mpegurl')) {
