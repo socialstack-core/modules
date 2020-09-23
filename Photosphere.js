@@ -253,7 +253,7 @@ export default class Photosphere extends React.Component {
 		if(material){
 			if(material._url != imgUrl){
 				material._url = imgUrl;
-				var mapSmall = imageCache(imgUrlLoad, this.onLoaded);
+				var mapSmall = imageCache(imgUrlLoad, () => this.onLoaded(false));
 				var mapFull = imageCache(imgUrl, () => {
 					if(material._url == imgUrl){
 						material.map = mapFull;
@@ -264,7 +264,7 @@ export default class Photosphere extends React.Component {
 			}
 		}else{
 			var geometry = new THREE.SphereGeometry( 5, 32, 32 );
-			var mapSmall = imageCache(imgUrlLoad, this.onLoaded);
+			var mapSmall = imageCache(imgUrlLoad, () => this.onLoaded(false));
 			var mapFull = imageCache(imgUrl, () => {
 				if(this.material && this.material._url == imgUrl){
 					this.material.map = mapFull;
