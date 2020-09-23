@@ -8,10 +8,16 @@ export default class CalendarCompact extends React.Component {
 	
 	constructor(props){
 		super(props);
-		
-		var spacing = 30; // In minutes
-		var start = 18; // In # of spaces (18 = 9am).
-		var end = 36; // 6pm
+
+		// in minutes
+		var spacing = this.props.spacing || 30;
+
+		var start = this.props.startTime || 9; // 9AM
+		start = (start * 60) / spacing;
+
+		var end = this.props.endTime || 18;  // 6PM
+		end = (end * 60) / spacing;
+
 		var spaces = [];
 		
 		for(var i=start;i<=end;i++){
@@ -175,15 +181,19 @@ export default class CalendarCompact extends React.Component {
 	}
 	
 	minutesToSize(mins, offset) {
+		var { verticalScale } = this.props;
+
+		if (!verticalScale) {
+			verticalScale = 3.33;
+		}
 
 		if (!offset) {
 			offset = 0;
 		}
 
-		// TODO: expose this as an option to allow for calendar scaling
-		// was 5px; equates to 150px per 30min
-		// 3.33px should get us to the 100px per 30min shown in the original design
-		return ((mins * 3.33) + offset) + 'px';
+		// 5px; equates to 150px per 30min
+		// 3.33px (default) should get us to the 100px per 30min shown in the original design
+		return ((mins * verticalScale) + offset) + 'px';
 	}
 	
 	renderDay(sortedEntries){
@@ -301,8 +311,47 @@ export default class CalendarCompact extends React.Component {
 	
 }
 
+var timeOptions = [
+	{ name: '12:00 AM', value: 0 },
+	{ name: '1:00 AM', value: 2 },
+	{ name: '2:00 AM', value: 4 },
+	{ name: '3:00 AM', value: 6 },
+	{ name: '4:00 AM', value: 8 },
+	{ name: '5:00 AM', value: 10 },
+	{ name: '6:00 AM', value: 12 },
+	{ name: '7:00 AM', value: 14 },
+	{ name: '8:00 AM', value: 16 },
+	{ name: '9:00 AM', value: 18 },
+	{ name: '10:00 AM', value: 20 },
+	{ name: '11:00 AM', value: 22 },
+	{ name: '12:00 PM', value: 24 },
+	{ name: '1:00 PM', value: 26 },
+	{ name: '2:00 PM', value: 28 },
+	{ name: '3:00 PM', value: 30 },
+	{ name: '4:00 PM', value: 32 },
+	{ name: '5:00 PM', value: 34 },
+	{ name: '6:00 PM', value: 36 },
+	{ name: '7:00 PM', value: 38 },
+	{ name: '8:00 PM', value: 40 },
+	{ name: '9:00 PM', value: 42 },
+	{ name: '10:00 PM', value: 44 },
+	{ name: '11:00 PM', value: 46 }
+];
+
 CalendarCompact.propTypes = {
+	verticalScale: { type: "int" },
+	spacing: [
+		{ name: '15 minutes', value: 15 },
+		{ name: '30 minutes', value: 30 },
+		{ name: '1 hour', value: 60 },
+	],
+	startTime: timeOptions,
+	endTime: timeOptions
 };
 
 CalendarCompact.defaultProps = {
+	verticalScale: 3.33,
+	spacing: 30,
+	startTime: 9, // 9AM
+	endTime: 18 // 6PM
 };
