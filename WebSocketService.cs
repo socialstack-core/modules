@@ -13,7 +13,6 @@ using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using Api.Startup;
 using Newtonsoft.Json.Serialization;
-using Api.SocketServerLibrary;
 using Api.Results;
 
 namespace Api.WebSockets
