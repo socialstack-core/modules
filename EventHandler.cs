@@ -6,7 +6,8 @@ using Api.Permissions;
 using Api.Startup;
 using System;
 using System.Collections.Generic;
-using System.Threading.Tasks;
+using Microsoft.Extensions.Configuration;
+using Api.Configuration;
 
 
 namespace Api.UserAgendaEntries
@@ -18,6 +19,7 @@ namespace Api.UserAgendaEntries
 	[EventListener]
 	public class EventListener
 	{
+		private AddMeetingsToAgendaConfig Config = null;
 		/// <summary>
 		/// Instanced automatically.
 		/// </summary>
@@ -26,8 +28,9 @@ namespace Api.UserAgendaEntries
 			IUserAgendaEntryService agenda = null;
 			IHuddleService huddles = null;
 			var huddleContentTypeId = ContentTypes.GetId(typeof(Huddle));
+			//AddMeetingsToAgendaConfig Config = null;
 
-            Events.Huddle.BeforeDelete.AddEventListener(async (Context context, Huddle huddle) =>
+			Events.Huddle.BeforeDelete.AddEventListener(async (Context context, Huddle huddle) =>
             {
                 if (huddle == null)
                 {
@@ -192,7 +195,7 @@ namespace Api.UserAgendaEntries
 					// Hmm!
 					return invite;
 				}
-				
+
 				// Collision check - does this user have something else on their agenda at this time?
 				/*
 				* Omit anything that ended before (or equal to) my start
@@ -204,22 +207,48 @@ namespace Api.UserAgendaEntries
 				
 				ENTRY.EndUtc > HUDDLE.StartUtc && ENTRY.StartUtc < HUDDLE.EndUtc
 				*/
-				
-				var overlappers = await agenda.List(
-					context, 
-					new Filter<UserAgendaEntry>()
-						.Equals("UserId", invite.PermittedUserId)
-						.And()
-						.GreaterThan("EndUtc", huddle.StartTimeUtc)
-						.And()
-						.LessThan("StartUtc", huddle.EstimatedEndTimeUtc)
-				);
-				
-				if(overlappers != null && overlappers.Count > 0)
+				// Before moving on, check the config policy on collisions. 
+				if (Config == null)
+                {
+					var section = AppSettings.GetSection("AddMeetingsToAgenda");
+
+					if (section != null)
+					{
+						Config = section.Get<AddMeetingsToAgendaConfig>();
+					}
+				}
+
+
+				// Config is still null, or if AllowCollisions is false, run the check OR if AllowCollisions is true and forceAccept = false.
+
+				if (Config == null || !Config.AllowCollisions || (Config != null && Config.AllowCollisions && !invite.ForceAccept))
 				{
-					// User has something on the agenda that overlaps.
-					// Reject this request.
-					throw new PublicException("You're already booked at this time. Please check your calendar and propose a new time", "double_booked");
+					var overlappers = await agenda.List(
+						context,
+						new Filter<UserAgendaEntry>()
+							.Equals("UserId", invite.PermittedUserId)
+							.And()
+							.GreaterThan("EndUtc", huddle.StartTimeUtc)
+							.And()
+							.LessThan("StartUtc", huddle.EstimatedEndTimeUtc)
+					);
+
+					if (overlappers != null && overlappers.Count > 0)
+					{
+						// Are we returning a warning or error:
+						if(Config != null && Config.AllowCollisions != null && Config.AllowCollisions && !invite.ForceAccept)
+                        {
+							// We are returning a warning since the Allow collisions is enabled but we are not forcing.
+							throw new PublicException("You're already booked at this time. Please check your calendar and propose a new time", "double_booked_warning");
+						}
+						else
+                        {
+							// User has something on the agenda that overlaps.
+							// Reject this request.
+							throw new PublicException("You're already booked at this time. Please check your calendar and propose a new time", "double_booked");
+						}
+						
+					}
 				}
 				
 				// Create an agenda entry now:
