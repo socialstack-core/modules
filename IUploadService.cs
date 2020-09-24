@@ -14,6 +14,15 @@ namespace Api.Uploader
 	/// </summary>
 	public partial interface IUploadService
     {
+
+		/// <summary>
+		/// Gets an upload by its ref.
+		/// </summary>
+		/// <param name="context"></param>
+		/// <param name="uploadRef"></param>
+		/// <returns></returns>
+		Task<Upload> Get(Context context, string uploadRef);
+
 		/// <summary>
 		/// Gets a single upload metadata by its ID.
 		/// </summary>

@@ -26,7 +26,7 @@ namespace Api.Uploader
 		/// <summary>
 		/// Instanced automatically. Use injection to use this service, or Startup.Services.Get.
 		/// </summary>
-		public UploadService(IDatabaseService database) : base(Events.Upload)
+		public UploadService() : base(Events.Upload)
         {
 			_configuration = AppSettings.GetSection("Uploader").Get<UploaderConfig>();
 
@@ -35,6 +35,37 @@ namespace Api.Uploader
 				// Create a default object:
 				_configuration = new UploaderConfig();
 			}
+		}
+
+		/// <summary>
+		/// Gets an upload by its ref.
+		/// </summary>
+		/// <param name="context"></param>
+		/// <param name="uploadRef"></param>
+		/// <returns></returns>
+		public async Task<Upload> Get(Context context, string uploadRef)
+		{
+			if (string.IsNullOrEmpty(uploadRef))
+			{
+				return null;
+			}
+
+			// SCHEMA:optionalPath/ID.type.type2
+
+			// Get the ID from the above. First, split off the schema:
+			var pieces = uploadRef.Split(':');
+			// ID is always in the last piece. Split off any optional paths:
+			pieces = pieces[pieces.Length - 1].Split('/');
+			// ID is again always in the last piece. Split off any types:
+			pieces = pieces[pieces.Length - 1].Split('.');
+
+			// ID is always the first piece before any types:
+			if (!int.TryParse(pieces[0], out int id))
+			{
+				return null;
+			}
+
+			return await Get(context, id);
 		}
 
 		/// <summary>
