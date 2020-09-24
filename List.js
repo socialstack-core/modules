@@ -26,6 +26,7 @@ export default class List extends React.Component {
 					</Tile>
 				}
 				<AutoList endpoint={this.props.endpoint} path={path} {...this.props} />
+				{this.props.children}
 			</Default>	
 		);
 	}
