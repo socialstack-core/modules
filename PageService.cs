@@ -14,7 +14,8 @@ namespace Api.Pages
 	/// Handles pages.
 	/// Instanced automatically. Use injection to use this service, or Startup.Services.Get.
 	/// </summary>
-	public partial class PageService : AutoService<Page>, IPageService
+	[LoadPriority(5)]
+	public partial class PageService : AutoService<Page>
     {
 		/// <summary>
 		/// Instanced automatically. Use injection to use this service, or Startup.Services.Get.
@@ -116,7 +117,7 @@ namespace Api.Pages
 		/// </summary>
 		/// <param name="typeName"></param>
 		/// <param name="fields"></param>
-		public async Task InstallAdminPages(string typeName, string[] fields)
+		public async ValueTask InstallAdminPages(string typeName, string[] fields)
 		{
 			var fieldString = Newtonsoft.Json.JsonConvert.SerializeObject(fields);
 			typeName = typeName.ToLower();
@@ -181,7 +182,7 @@ namespace Api.Pages
 		/// Installs the given page(s). It checks if they exist by their URL (or ID, if you provide that instead), and if not, creates them.
 		/// </summary>
 		/// <param name="pages"></param>
-		private async Task InstallInternal(params Page[] pages)
+		private async ValueTask InstallInternal(params Page[] pages)
 		{
 			var context = new Context();
 
