@@ -7,6 +7,7 @@ using Api.Eventing;
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using Api.Startup;
 
 namespace Api.DatabaseDiff
 {
@@ -14,16 +15,17 @@ namespace Api.DatabaseDiff
 	/// This service checks the site database to see if any new columns are required during startup or on demand.
 	/// Instanced automatically. Use injection to use this service, or Startup.Services.Get.
 	/// </summary>
-	public partial class DatabaseDiffService : IDatabaseDiffService
+	[LoadPriority(5)]
+	public partial class DatabaseDiffService
     {
-		private IDatabaseService _database;
+		private DatabaseService _database;
 
 
 
 		/// <summary>
 		/// Instanced automatically. Use injection to use this service, or Startup.Services.Get.
 		/// </summary>
-		public DatabaseDiffService(IDatabaseService database)
+		public DatabaseDiffService(DatabaseService database)
 		{
 			_database = database;
 
