@@ -11,7 +11,7 @@ namespace Api.Tags
 	/// Handles tagContents.
 	/// Instanced automatically. Use injection to use this service, or Startup.Services.Get.
 	/// </summary>
-	public partial class TagContentService : AutoService<TagContent>, ITagContentService
+	public partial class TagContentService : AutoService<TagContent>
     {
 		/// <summary>
 		/// Instanced automatically. Use injection to use this service, or Startup.Services.Get.

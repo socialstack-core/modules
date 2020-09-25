@@ -18,7 +18,7 @@ namespace Api.Tags
 	/// Handles tags - usually seen in e.g. knowledge bases or help guides.
 	/// Instanced automatically. Use injection to use this service, or Startup.Services.Get.
 	/// </summary>
-	public partial class TagService : AutoService<Tag>, ITagService
+	public partial class TagService : AutoService<Tag>
     {
 		/// <summary>
 		/// Instanced automatically. Use injection to use this service, or Startup.Services.Get.
