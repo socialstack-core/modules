@@ -437,7 +437,7 @@ namespace Api.Startup{
 		/// <param name="fromPrimary">Also remove from the primary</param>
 		private T Remove(int id, bool fromPrimary)
 		{
-			if (!Primary.TryGetValue(id, out T value))
+			if (Primary == null || !Primary.TryGetValue(id, out T value))
 			{
 				// Not cached anyway
 				return null;
