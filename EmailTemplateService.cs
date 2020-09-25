@@ -23,7 +23,7 @@ namespace Api.Emails
 	/// Handles emailTemplates.
 	/// Instanced automatically. Use injection to use this service, or Startup.Services.Get.
 	/// </summary>
-	public partial class EmailTemplateService : AutoService<EmailTemplate>, IEmailTemplateService
+	public partial class EmailTemplateService : AutoService<EmailTemplate>
 	{
 		/// <summary>
 		/// The priority value used when adding an email event handler automatically.
@@ -33,9 +33,9 @@ namespace Api.Emails
 
 		private EmailConfig _configuration;
 
-		private ICanvasRendererService _canvasRendererService;
+		private CanvasRendererService _canvasRendererService;
 
-		private IUserService _users;
+		private UserService _users;
 
 		/// <summary>
 		/// A reference to the key index from the cache.
@@ -45,7 +45,7 @@ namespace Api.Emails
 		/// <summary>
 		/// Instanced automatically. Use injection to use this service, or Startup.Services.Get.
 		/// </summary>
-		public EmailTemplateService(ICanvasRendererService canvasRendererService, IUserService users) : base(Events.EmailTemplate)
+		public EmailTemplateService(CanvasRendererService canvasRendererService, UserService users) : base(Events.EmailTemplate)
 		{
 			_users = users;
 			_canvasRendererService = canvasRendererService;
@@ -57,7 +57,7 @@ namespace Api.Emails
 			{
 				if (field == null)
 				{
-					return Task.FromResult(field);
+					return new ValueTask<JsonField<User>>(field);
 				}
 				
 				if(field.Name == "EmailOptOutFlags")
@@ -65,8 +65,8 @@ namespace Api.Emails
 					// This field isn't settable
 					field = null;
 				}
-				
-				return Task.FromResult(field);
+
+				return new ValueTask<JsonField<User>>(field);
 			});
 			
 			// Cache all in memory:

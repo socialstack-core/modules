@@ -37,8 +37,8 @@ namespace Api.Emails
 				Roles.Public.Revoke("emailTemplate_load", "emailTemplate_list");
 				Roles.Member.Revoke("emailTemplate_load", "emailTemplate_list");
 				*/
-				
-				return Task.FromResult(source);
+
+				return new ValueTask<object>(source);
 			}, 20);
 		}
 	}
