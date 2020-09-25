@@ -18,9 +18,9 @@ namespace Api.Users
 	/// Manages user accounts.
 	/// Instanced automatically. Use injection to use this service, or Startup.Services.Get.
 	/// </summary>
-	public class UserService : AutoService<User>, IUserService
+	public class UserService : AutoService<User>
     {
-        private IContextService _contexts;
+        private ContextService _contexts;
 		private readonly Query<User> selectByEmailOrUsernameQuery;
 		private readonly Query<User> selectByUsernameQuery;
 		private readonly Query<User> selectByEmailQuery;
@@ -31,7 +31,7 @@ namespace Api.Users
 		/// <summary>
 		/// Instanced automatically. Use injection to use this service, or Startup.Services.Get.
 		/// </summary>
-		public UserService(IContextService context) : base(Events.User)
+		public UserService(ContextService context) : base(Events.User)
 		{
 			_contexts = context;
 			updateAvatarQuery = Query.Update<User>().RemoveAllBut("Id", "AvatarRef");
@@ -55,14 +55,14 @@ namespace Api.Users
 				
 				if (field == null)
 				{
-					return Task.FromResult(field);
+					return new ValueTask<JsonField<User>>(field);
 				}
 				
 				if(field.Name == "Role")
 				{
 					// Only admins can update this field.
 					// Will be permission system based in the future
-					return Task.FromResult((field.ForRole == Roles.Admin || field.ForRole == Roles.SuperAdmin) ? field : null);
+					return new ValueTask<JsonField<User>>((field.ForRole == Roles.Admin || field.ForRole == Roles.SuperAdmin) ? field : null);
 				}
 				else if(field.Name == "JoinedUtc")
 				{
@@ -70,13 +70,13 @@ namespace Api.Users
 					field = null;
 				}
 
-				return Task.FromResult(field);
+				return new ValueTask<JsonField<User>>(field);
 			});
 			
 			Events.User.BeforeCreate.AddEventListener((Context ctx, User user) => {
 				
 				if(user == null){
-					return Task.FromResult(user);
+					return new ValueTask<User>(user);
 				}
 				
 				if(user.Role == 0 || (ctx.Role != Roles.SuperAdmin && ctx.Role != Roles.Admin))
@@ -87,8 +87,8 @@ namespace Api.Users
 				
 				// Join date:
 				user.JoinedUtc = DateTime.UtcNow;
-				
-				return Task.FromResult(user);
+
+				return new ValueTask<User>(user);
 			});
 			
 			InstallAdminPages("Users", "fa:fa-user", new string[] { "id", "email", "username" });

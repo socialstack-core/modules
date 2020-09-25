@@ -20,13 +20,13 @@ namespace Api.Users
 	[ApiController]
 	public partial class UserProfileController : ControllerBase
     {
-		private IUserService _users;
+		private UserService _users;
 		
 		/// <summary>
 		/// Instanced automatically.
 		/// </summary>
 		/// <param name="users"></param>
-		public UserProfileController(IUserService users){
+		public UserProfileController(UserService users){
 			_users = users;
 		}
 		

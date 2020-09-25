@@ -21,7 +21,7 @@ namespace Api.Users
 			Events.CapabilityOnSetup.AddEventListener((Context context, object source) =>
 			{
 				// Public - the role used by anonymous users.
-				return Task.FromResult(source);
+				return new ValueTask<object>(source);
 			});
 		}
 	}

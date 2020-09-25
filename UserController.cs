@@ -21,14 +21,14 @@ namespace Api.Users
     [Route("v1/user")]
 	public partial class UserController : AutoController<User>
     {
-		private IContextService _contexts;
+		private ContextService _contexts;
 
 
 		/// <summary>
 		/// Instanced automatically.
 		/// </summary>
 		public UserController(
-            IContextService contexts
+            ContextService contexts
 		) : base()
         {
 			_contexts = contexts;
@@ -107,7 +107,7 @@ namespace Api.Users
 			try{
 				var context = Request.GetContext();
 
-				var result = await (_service as IUserService).Authenticate(context, body);
+				var result = await (_service as UserService).Authenticate(context, body);
 
 				if (result == null)
 				{
