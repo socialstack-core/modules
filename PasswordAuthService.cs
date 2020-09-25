@@ -18,7 +18,7 @@ namespace Api.PasswordAuth
 	/// You can either add additional schemes or just outright replace this one if you want something else.
 	/// Instanced automatically. Use injection to use this service, or Startup.Services.Get.
 	/// </summary>
-	public partial class PasswordAuthService : IPasswordAuthService
+	public partial class PasswordAuthService
     {
 		
 		/// <summary>
@@ -31,12 +31,12 @@ namespace Api.PasswordAuth
 		/// </summary>
 		public bool CheckIfExposed = true;
 		
-		private IUserService _users;
+		private UserService _users;
 		
 		/// <summary>
 		/// Instanced automatically. Use injection to use this service, or Startup.Services.Get.
 		/// </summary>
-		public PasswordAuthService(IUserService users)
+		public PasswordAuthService(UserService users)
         {
 			_users = users;
 
@@ -114,7 +114,7 @@ namespace Api.PasswordAuth
 				if(field == null)
 				{
 					// Something else doesn't want this field to show.
-					return Task.FromResult(field);
+					return new ValueTask<JsonField<User>>(field);
 				}
 				
 				if (field.Name == "PasswordHash")
@@ -137,7 +137,7 @@ namespace Api.PasswordAuth
 
 				}
 
-				return Task.FromResult(field);
+				return new ValueTask<JsonField<User>>(field);
 			});
 			
 		}
