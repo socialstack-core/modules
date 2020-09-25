@@ -16,13 +16,13 @@ namespace Api.AutoForms
 	[ApiController]
 	public partial class AutoFormController : ControllerBase
     {
-        private IAutoFormService _autoForms;
+        private AutoFormService _autoForms;
 
 		/// <summary>
 		/// Instanced automatically.
 		/// </summary>
 		public AutoFormController(
-			IAutoFormService autoForms
+			AutoFormService autoForms
 		)
         {
 			_autoForms = autoForms;

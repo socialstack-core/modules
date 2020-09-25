@@ -15,7 +15,7 @@ namespace Api.AutoForms
 	/// This service drives AutoForm - the form which automatically displays fields in the admin area.
 	/// Instanced automatically. Use injection to use this service, or Startup.Services.Get.
 	/// </summary>
-	public partial class AutoFormService : IAutoFormService
+	public partial class AutoFormService
 	{
 		private IActionDescriptorCollectionProvider _descriptionProvider;
 
