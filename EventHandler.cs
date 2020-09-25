@@ -270,7 +270,7 @@ namespace Api.Eventing
 	/// <typeparam name="T1">
 	/// Type of 1st arg.
 	/// </typeparam>
-	public partial class EventHandler<T1> : EventHandlerMethodSet<Func<Context, T1, Task<T1>>>
+	public partial class EventHandler<T1> : EventHandlerMethodSet<Func<Context, T1, ValueTask<T1>>>
 	{
 		/// <summary>
 		/// A place where event methods can be attached to handle events of a particular type.
@@ -336,7 +336,7 @@ namespace Api.Eventing
 	/// <typeparam name="T2">
 	/// Type of 2nd arg.
 	/// </typeparam>
-	public partial class EventHandler<T1, T2> : EventHandlerMethodSet<Func<Context, T1, T2, Task<T1>>>
+	public partial class EventHandler<T1, T2> : EventHandlerMethodSet<Func<Context, T1, T2, ValueTask<T1>>>
 	{
 		/// <summary>
 		/// A place where event methods can be attached to handle events of a particular type.
@@ -408,7 +408,7 @@ namespace Api.Eventing
 	/// <typeparam name="T3">
 	/// Type of 3rd arg.
 	/// </typeparam>
-	public partial class EventHandler<T1, T2, T3> : EventHandlerMethodSet<Func<Context, T1, T2, T3, Task<T1>>>
+	public partial class EventHandler<T1, T2, T3> : EventHandlerMethodSet<Func<Context, T1, T2, T3, ValueTask<T1>>>
 	{
 		/// <summary>
 		/// A place where event methods can be attached to handle events of a particular type.
@@ -481,7 +481,7 @@ namespace Api.Eventing
 	/// <typeparam name="T4">
 	/// Type of 4th arg.
 	/// </typeparam>
-	public partial class EventHandler<T1, T2, T3, T4> : EventHandlerMethodSet<Func<Context, T1, T2, T3, T4, Task<T1>>>
+	public partial class EventHandler<T1, T2, T3, T4> : EventHandlerMethodSet<Func<Context, T1, T2, T3, T4, ValueTask<T1>>>
 	{
 		/// <summary>
 		/// A place where event methods can be attached to handle events of a particular type.
