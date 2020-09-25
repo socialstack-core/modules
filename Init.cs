@@ -119,8 +119,8 @@ namespace Api.Permissions
 					Name = "Banned",
 					Key = "banned"
 				};
-				
-				return Task.FromResult(source);
+
+				return new ValueTask<object>(source);
 			}, 9);
 			
 			// Hook the default role setup. It's done like this so it can be removed by a plugin if wanted.
@@ -146,8 +146,8 @@ namespace Api.Permissions
 
 				// Member - created and (optionally) activated.
 				Roles.Member.GrantTheSameAs(Roles.Guest);
-				
-				return Task.FromResult(source);
+
+				return new ValueTask<object>(source);
 			}, 9);
 
 			// After all EventListener's have had a chance to be initialised..
@@ -260,7 +260,7 @@ namespace Api.Permissions
 				// Special case for the common true always node:
 				if (rawGrantRule is FilterTrue)
 				{
-					return Task.FromResult(filter);
+					return new ValueTask<Filter<T>>(filter);
 				}
 
 				if (filter == null)
@@ -270,7 +270,7 @@ namespace Api.Permissions
 				}
 
 				// Both are set. Must combine them safely:
-				return Task.FromResult(filter.Combine(rawGrantRule, srcFilter?.ParamValueResolvers) as Filter<T>);
+				return new ValueTask<Filter<T>>(filter.Combine(rawGrantRule, srcFilter?.ParamValueResolvers) as Filter<T>);
 			}, 1);
 
 		}
