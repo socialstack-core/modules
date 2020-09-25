@@ -19,7 +19,7 @@ namespace Api.AvailableEndpoints
 	/// Instanced automatically. Use injection to use this service, or Startup.Services.Get.
 	/// </summary>
 
-	public partial class AvailableEndpointService : IAvailableEndpointService
+	public partial class AvailableEndpointService
 	{
 		private List<Endpoint> _cachedList;
 		private IActionDescriptorCollectionProvider _descriptionProvider;

@@ -17,13 +17,13 @@ namespace Api.AvailableEndpoints
 	[ApiController]
 	public partial class AvailableEndpointController : ControllerBase
     {
-        private IAvailableEndpointService _availableEndpoints;
+        private AvailableEndpointService _availableEndpoints;
 
 		/// <summary>
 		/// Instanced automatically.
 		/// </summary>
 		public AvailableEndpointController(
-			IAvailableEndpointService availableEndpoints
+			AvailableEndpointService availableEndpoints
 		)
         {
 			_availableEndpoints = availableEndpoints;
