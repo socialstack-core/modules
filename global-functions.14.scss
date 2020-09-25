@@ -20,6 +20,7 @@
     @return str-replace($svg, $fill-to-replace, $new-fill-string);
 }
 
+// convert given HEX value to RGBA (with optional opacity)
 @function hex_to_rgba($hex, $opacity: 1) {
     $red: red($hex);
     $green: green($hex);
@@ -31,4 +32,17 @@
         @return rgba($red, $green, $blue, $opacity);
     }
 
+}
+
+// square root function
+@function sqrt($r) {
+  $x0: 1;
+  $x1: $x0;
+ 
+  @for $i from 1 through 10 {
+    $x1: $x0 - ($x0 * $x0 - abs($r)) / (2 * $x0);
+    $x0: $x1;
+  }
+ 
+  @return $x1;
 }
