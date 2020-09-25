@@ -111,8 +111,8 @@ export default class Photosphere extends React.Component {
 			return;
 		}	
         var scaleFactor = 2;
-        var maxFov = 70;
-        var minFov = 30;
+        var maxFov = this.props.maxFov || 70;
+        var minFov = this.props.minFov || 30;
         this.camera.fov = Math.max(Math.min(this.camera.fov + (Math.sign(props.deltaY) * scaleFactor), maxFov), minFov);
         this.camera.updateProjectionMatrix();
     }
