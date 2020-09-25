@@ -13,7 +13,7 @@ namespace Api.NavMenus
 	/// Handles navigation menus.
 	/// Instanced automatically. Use injection to use this service, or Startup.Services.Get.
 	/// </summary>
-	public partial class NavMenuService : AutoService<NavMenu>, INavMenuService
+	public partial class NavMenuService : AutoService<NavMenu>
 	{
 		private readonly Query<NavMenuItem> deleteItemsQuery;
 		private readonly Query<NavMenu> selectByKeyQuery;
@@ -43,7 +43,7 @@ namespace Api.NavMenus
         /// Deletes a nav menu by its ID.
         /// </summary>
         /// <returns></returns>
-        public override async Task<bool> Delete(Context context, int id)
+        public override async ValueTask<bool> Delete(Context context, int id)
         {
             await base.Delete(context, id);
 			
@@ -57,7 +57,7 @@ namespace Api.NavMenus
 		/// <summary>
 		/// Gets a single nav menu by its key.
 		/// </summary>
-		public async Task<NavMenu> Get(Context context, string menuKey)
+		public async ValueTask<NavMenu> Get(Context context, string menuKey)
 		{
 			// Get the menu itself:
 			var menu = await _database.Select(context, selectByKeyQuery, menuKey);

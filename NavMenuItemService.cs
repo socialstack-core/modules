@@ -13,15 +13,15 @@ namespace Api.NavMenus
 	/// Handles navigation menu items.
 	/// Instanced automatically. Use injection to use this service, or Startup.Services.Get.
 	/// </summary>
-	public partial class NavMenuItemService : AutoService<NavMenuItem>, INavMenuItemService
+	public partial class NavMenuItemService : AutoService<NavMenuItem>
 	{
 		private readonly Query<NavMenuItem> listByMenuQuery;
-		private readonly INavMenuService _navMenus;
+		private readonly NavMenuService _navMenus;
 
 		/// <summary>
 		/// Instanced automatically. Use injection to use this service, or Startup.Services.Get.
 		/// </summary>
-		public NavMenuItemService(INavMenuService navMenus) : base(Events.NavMenuItem)
+		public NavMenuItemService(NavMenuService navMenus) : base(Events.NavMenuItem)
         {
 			// Start preparing the queries. Doing this ahead of time leads to excellent performance savings, 
 			// whilst also using a high-level abstraction as another plugin entry point.
@@ -39,7 +39,7 @@ namespace Api.NavMenus
 		/// List nav menu items by menu.
 		/// </summary>
 		/// <returns></returns>
-		public async Task<List<NavMenuItem>> ListByMenu(Context context, int menuId)
+		public async ValueTask<List<NavMenuItem>> ListByMenu(Context context, int menuId)
 		{
 			var menuSet = await _database.List(context, listByMenuQuery, null, menuId);
 			menuSet = await Events.NavMenuItem.AfterList.Dispatch(context, menuSet);
@@ -49,7 +49,7 @@ namespace Api.NavMenus
 		/// <param name="targetUrl">The target page url, e.g. /en-admin/page</param>
 		/// <param name="iconRef">The ref to use for the icon. Typically these are fontawesome refs, of the form fa:fa-thing</param>
 		/// <param name="label">The text that appears on the menu</param>
-		public async Task InstallAdminEntry(string targetUrl, string iconRef, string label)
+		public async ValueTask InstallAdminEntry(string targetUrl, string iconRef, string label)
 		{
 			var bodyJson = Newtonsoft.Json.JsonConvert.SerializeObject(new {
 				content = label
@@ -72,7 +72,7 @@ namespace Api.NavMenus
 		/// <summary>
 		/// Installs an item (Creates it if it doesn't already exist). MenuKey is required, but MenuId is not.
 		/// </summary>
-		public async Task Install(NavMenuItem item)
+		public async ValueTask Install(NavMenuItem item)
 		{
 			var context = new Context();
 			
