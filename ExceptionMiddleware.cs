@@ -67,7 +67,7 @@ namespace Api.Startup
 					}
 				}
 
-				return Task.FromResult(l);
+				return new ValueTask<Logging>(l);
 			});
 
         }
