@@ -9,7 +9,7 @@ namespace Api.Signatures
 	/// Handles generation and validation of signatures used for e.g. serving of private files.
 	/// Instanced automatically. Use injection to use this service, or Startup.Services.Get.
 	/// </summary>
-	public partial class SignatureService : ISignatureService
+	public partial class SignatureService
     {
 
 		private KeyPair _keyPair;
