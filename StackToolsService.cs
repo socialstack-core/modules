@@ -22,7 +22,7 @@ namespace Api.StackTools
 	/// This service is used to invoke the socialstack command line tools (node.js) 
 	/// which e.g. build/ serverside render the UI and render emails etc.
 	/// </summary>
-	public partial class StackToolsService : IStackToolsService
+	public partial class StackToolsService
 	{
 		
 		private bool _stopping;
