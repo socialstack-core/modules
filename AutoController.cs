@@ -22,7 +22,7 @@ public partial class AutoController<T>
 	/// Returns the data for 1 entity revision.
 	/// </summary>
 	[HttpGet("revision/{id}")]
-	public virtual async Task<T> LoadRevision([FromRoute] int id)
+	public virtual async ValueTask<T> LoadRevision([FromRoute] int id)
 	{
 		if (!_service.IsRevisionType())
 		{
@@ -40,7 +40,7 @@ public partial class AutoController<T>
 	/// Deletes an entity
 	/// </summary>
 	[HttpDelete("revision/{id}")]
-	public virtual async Task<T> DeleteRevision([FromRoute] int id)
+	public virtual async ValueTask<T> DeleteRevision([FromRoute] int id)
 	{
 		if (!_service.IsRevisionType())
 		{
@@ -67,7 +67,7 @@ public partial class AutoController<T>
 	/// </summary>
 	/// <returns></returns>
 	[HttpGet("revision/list")]
-	public virtual async Task<Set<T>> ListRevisions()
+	public virtual async ValueTask<Set<T>> ListRevisions()
 	{
 		return await ListRevisions(null);
 	}
@@ -79,7 +79,7 @@ public partial class AutoController<T>
 	/// </summary>
 	/// <returns></returns>
 	[HttpPost("revision/list")]
-	public virtual async Task<Set<T>> ListRevisions([FromBody] JObject filters)
+	public virtual async ValueTask<Set<T>> ListRevisions([FromBody] JObject filters)
 	{
 		if (!_service.IsRevisionType())
 		{
@@ -107,7 +107,7 @@ public partial class AutoController<T>
 	/// Updates an entity revision with the given RevisionId.
 	/// </summary>
 	[HttpPost("revision/{id}")]
-	public virtual async Task<T> UpdateRevision([FromRoute] int id, [FromBody] JObject body)
+	public virtual async ValueTask<T> UpdateRevision([FromRoute] int id, [FromBody] JObject body)
 	{
 		if (!_service.IsRevisionType())
 		{
@@ -167,7 +167,7 @@ public partial class AutoController<T>
 	/// Publishes the given revision as the new live entry.
 	/// </summary>
 	[HttpGet("publish/{id}")]
-	public virtual async Task<T> PublishRevision([FromRoute] int id, [FromBody] JObject body)
+	public virtual async ValueTask<T> PublishRevision([FromRoute] int id, [FromBody] JObject body)
 	{
 		if (!_service.IsRevisionType())
 		{
@@ -216,7 +216,7 @@ public partial class AutoController<T>
 	/// Publishes the given posted object as an extension to the given revision.
 	/// </summary>
 	[HttpPost("publish/{id}")]
-	public virtual async Task<T> PublishAndUpdateRevision([FromRoute] int id, [FromBody] JObject body)
+	public virtual async ValueTask<T> PublishAndUpdateRevision([FromRoute] int id, [FromBody] JObject body)
 	{
 		if (!_service.IsRevisionType())
 		{
@@ -278,7 +278,7 @@ public partial class AutoController<T>
 	/// Updates an entity revision with the given ID.
 	/// </summary>
 	[HttpPost("draft")]
-	public virtual async Task<T> CreateDraft([FromBody] JObject body)
+	public virtual async ValueTask<T> CreateDraft([FromBody] JObject body)
 	{
 		if (!_service.IsRevisionType())
 		{

@@ -118,7 +118,7 @@ public partial class AutoService<T> where T: DatabaseRow, new(){
 	/// Optionally includes uploaded content refs in there too.
 	/// </summary>
 	/// <returns></returns>
-	public virtual async Task<bool> DeleteRevision(Context context, int id)
+	public virtual async ValueTask<bool> DeleteRevision(Context context, int id)
 	{
 		if(revisionDeleteQuery == null)
 		{
@@ -136,7 +136,7 @@ public partial class AutoService<T> where T: DatabaseRow, new(){
 	/// List a filtered set of revisions.
 	/// </summary>
 	/// <returns></returns>
-	public virtual async Task<List<T>> ListRevisions(Context context, Filter<T> filter)
+	public virtual async ValueTask<List<T>> ListRevisions(Context context, Filter<T> filter)
 	{
 		if(revisionListQuery == null)
 		{
@@ -152,7 +152,7 @@ public partial class AutoService<T> where T: DatabaseRow, new(){
 	/// <summary>
 	/// Gets a single entity revision by its ID.
 	/// </summary>
-	public virtual async Task<T> GetRevision(Context context, int id)
+	public virtual async ValueTask<T> GetRevision(Context context, int id)
 	{
 		if(revisionSelectQuery == null)
 		{
@@ -180,7 +180,7 @@ public partial class AutoService<T> where T: DatabaseRow, new(){
 	/// Note that this is infrequently used - most revisions are made using an optimised copy process.
 	/// The BeforeCreateRevision and AfterCreateRevision events are still triggered however.
 	/// </summary>
-	public virtual async Task<T> CreateRevision(Context context, T entity)
+	public virtual async ValueTask<T> CreateRevision(Context context, T entity)
 	{
 		if(revisionCreateQuery == null)
 		{
@@ -202,7 +202,7 @@ public partial class AutoService<T> where T: DatabaseRow, new(){
 	/// <summary>
 	/// Updates the given entity revision.
 	/// </summary>
-	public virtual async Task<T> UpdateRevision(Context context, T entity)
+	public virtual async ValueTask<T> UpdateRevision(Context context, T entity)
 	{
 		if(revisionUpdateQuery == null)
 		{
@@ -223,7 +223,7 @@ public partial class AutoService<T> where T: DatabaseRow, new(){
 	/// <summary>
 	/// Publishes the given entity, which originated from a revision. The entity content ID may not exist at all.
 	/// </summary>
-	public virtual async Task<T> PublishRevision(Context context, T entity)
+	public virtual async ValueTask<T> PublishRevision(Context context, T entity)
 	{
 		if(revisionCreateQuery == null)
 		{
@@ -265,7 +265,7 @@ public partial class AutoService<T> where T: DatabaseRow, new(){
 	/// <summary>
 	/// Creates the given entity as a draft. It'll be assigned a content ID like anything else.
 	/// </summary>
-	public virtual async Task<T> CreateDraft(Context context, T entity, Action<Context, T> postIdCallback)
+	public virtual async ValueTask<T> CreateDraft(Context context, T entity, Action<Context, T> postIdCallback)
 	{
 		if(revisionCreateQuery == null)
 		{

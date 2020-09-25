@@ -23,8 +23,8 @@ namespace Api.Revisions
 				Roles.Member.RevokeIfEndsWith("revision_list", "revision_create", "revision_load", "revision_delete");
 				Roles.Guest.RevokeIfEndsWith("revision_list", "revision_create", "revision_load", "revision_delete");
 				Roles.Public.RevokeIfEndsWith("revision_list", "revision_create", "revision_load", "revision_delete");
-				
-				return Task.FromResult(source);
+
+				return new ValueTask<object>(source);
 			});
 		}
 	}

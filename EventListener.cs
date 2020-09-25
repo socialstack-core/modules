@@ -34,7 +34,7 @@ namespace Api.Revisions
 
 				if (fieldMap == null)
 				{
-					return Task.FromResult(fieldMap);
+					return new ValueTask<FieldMap>(fieldMap);
 				}
 
 				// Firstly, is this type a RevisionRow?
@@ -42,7 +42,7 @@ namespace Api.Revisions
 
 				if (!typeof(RevisionRow).IsAssignableFrom(typeInfo))
 				{
-					return Task.FromResult(fieldMap);
+					return new ValueTask<FieldMap>(fieldMap);
 				}
 
 				// We've got a revisionable content type. Add a revisions table to the schema:
@@ -121,7 +121,7 @@ namespace Api.Revisions
 
 				newSchema.Add(new DatabaseColumnDefinition(isDraft, targetTableName));
 
-				return Task.FromResult(fieldMap);
+				return new ValueTask<FieldMap>(fieldMap);
 			});
 
 			// Next hook up all before update events for anything which is a RevisionRow type.
@@ -163,7 +163,7 @@ namespace Api.Revisions
 		/// <summary>
 		/// The database service.
 		/// </summary>
-		private IDatabaseService database = null;
+		private DatabaseService database = null;
 
 		/// <summary>
 		/// Sets a particular type with revision handlers. Used via reflection.
@@ -220,7 +220,7 @@ namespace Api.Revisions
 
 				if (database == null)
 				{
-					database = Services.Get<IDatabaseService>();
+					database = Services.Get<DatabaseService>();
 				}
 
 				/*
@@ -261,7 +261,7 @@ namespace Api.Revisions
 
 				if (database == null)
 				{
-					database = Services.Get<IDatabaseService>();
+					database = Services.Get<DatabaseService>();
 				}
 				
 				/*
