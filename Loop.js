@@ -547,7 +547,7 @@ export default class Loop extends React.Component {
 			};
 		}
 
-		if (!results.length) {
+		if (!results.length || this.props.testNone) {
 			// No results at all.
 			var M = this.props.noneDisplayer;
 			if (M) {
