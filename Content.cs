@@ -69,13 +69,13 @@ namespace Api.Database
 			if (convertUser && objResult is User)
 			{
 				converted = true;
-				objResult = (service as IUserService).GetProfile(objResult as User);
+				objResult = (service as UserService).GetProfile(objResult as User);
 			}
 
 			if (permCheck)
 			{
 				// Grab the Load capability:
-				var cap = converted ? (service as IUserService).GetProfileLoadCapability() : service.GetLoadCapability();
+				var cap = converted ? (service as UserService).GetProfileLoadCapability() : service.GetLoadCapability();
 
 				if (!await context.Role.IsGranted(cap, context, objResult))
 				{
@@ -196,7 +196,7 @@ namespace Api.Database
 			// Special case for users, up until UserProfile is removed.
 			if(objResult != null && convertUser && service.ServicedType == typeof(User))
 			{
-				var _users = service as IUserService;
+				var _users = service as UserService;
 
 				var result = new List<UserProfile>();
 
