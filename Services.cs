@@ -55,11 +55,6 @@ namespace Api.Startup
 				return null;
 			}
 			
-			if(name[0] != 'I'){
-				// Convenience - this is specifically for interfaces, so just in case somebody asks for a service by its full name:
-				name = "I" + name;
-			}
-			
 			AllByName.TryGetValue(name, out object result);
 			return result;
 		}

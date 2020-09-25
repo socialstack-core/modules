@@ -87,41 +87,12 @@ namespace Api.Startup
 				{
 					continue;
 				}
-
+				
 				// Ok! Got a valid service. We can now register it:
+				services.AddSingleton(typeInfo.AsType());
+				_serviceTypes.Add(typeInfo.AsType());
 				
-				// Optional: You can also delclare an I{ServiceName} interface.
-				// This interface is mostly for documentation purposes and some extensibility.
-				// Get its interface list:
-
-				var interfaces = typeInfo.ImplementedInterfaces;
-				System.Type interfaceType = null;
-
-				foreach(var serviceInterface in interfaces)
-				{
-					// The interface should be I+TheTypeName:
-					if (serviceInterface.Name == "I" + typeName)
-					{
-						interfaceType = serviceInterface;
-						break;
-					}
-				}
-
 				Console.WriteLine("Registered service: " + typeName);
-
-				if (interfaceType != null)
-				{
-					services.AddSingleton(interfaceType, typeInfo.AsType());
-					_serviceTypes.Add(interfaceType);
-				}
-				else
-				{
-					// Add it as-is:
-					services.AddSingleton(typeInfo.AsType());
-					_serviceTypes.Add(typeInfo.AsType());
-				}
-				
-				
 			}
 		
 			services.AddCors(c =>  
@@ -215,12 +186,12 @@ namespace Api.Startup
 				return loadPriority.Priority;
 			}).ToList();
 			
-            foreach (var serviceInterfaceType in _serviceTypes)
+            foreach (var serviceType in _serviceTypes)
 			{
-				var svc = serviceProvider.GetService(serviceInterfaceType);
+				var svc = serviceProvider.GetService(serviceType);
 				
-				Services.All[serviceInterfaceType] = svc;
-				Services.AllByName[serviceInterfaceType.Name] = svc;
+				Services.All[serviceType] = svc;
+				Services.AllByName[serviceType.Name] = svc;
 
 				// If it's an AutoService, add it to the lookup:
 				var autoServiceType = GetAutoServiceType(svc.GetType());

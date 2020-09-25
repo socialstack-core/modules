@@ -75,7 +75,7 @@ public partial class AutoService<T> : AutoService where T: DatabaseRow, new(){
 	/// <summary>
 	/// Gets the JSON structure. Defines settable fields for a particular role.
 	/// </summary>
-	public override async Task<JsonStructure> GetJsonStructure(int roleId)
+	public override async ValueTask<JsonStructure> GetJsonStructure(int roleId)
 	{
 		return await GetTypedJsonStructure(roleId);
 	}
@@ -83,7 +83,7 @@ public partial class AutoService<T> : AutoService where T: DatabaseRow, new(){
 	/// <summary>
 	/// Gets the JSON structure. Defines settable fields for a particular role.
 	/// </summary>
-	public async Task<JsonStructure<T>> GetTypedJsonStructure(int roleId)
+	public async ValueTask<JsonStructure<T>> GetTypedJsonStructure(int roleId)
 	{
 		if(_jsonStructures == null)
 		{
@@ -113,7 +113,7 @@ public partial class AutoService<T> : AutoService where T: DatabaseRow, new(){
 	/// Optionally includes uploaded content refs in there too.
 	/// </summary>
 	/// <returns></returns>
-	public virtual async Task<bool> Delete(Context context, int id)
+	public virtual async ValueTask<bool> Delete(Context context, int id)
 	{
 		// Delete the entry:
 		await _database.Run(context, deleteQuery, id);
@@ -133,7 +133,7 @@ public partial class AutoService<T> : AutoService where T: DatabaseRow, new(){
 	/// List a filtered set of entities along with the total number of (unpaginated) results.
 	/// </summary>
 	/// <returns></returns>
-	public virtual async Task<ListWithTotal<T>> ListWithTotal(Context context, Filter<T> filter)
+	public virtual async ValueTask<ListWithTotal<T>> ListWithTotal(Context context, Filter<T> filter)
 	{
 		if (NestableAddMask != 0 && (context.NestedTypes & NestableAddMask) == NestableAddMask)
 		{
@@ -189,7 +189,7 @@ public partial class AutoService<T> : AutoService where T: DatabaseRow, new(){
 	/// List a filtered set of entities.
 	/// </summary>
 	/// <returns></returns>
-	public virtual async Task<List<T>> List(Context context, Filter<T> filter)
+	public virtual async ValueTask<List<T>> List(Context context, Filter<T> filter)
 	{
 		if(NestableAddMask!=0 && (context.NestedTypes & NestableAddMask) == NestableAddMask){
 			// This happens when we're nesting List calls.
@@ -239,7 +239,7 @@ public partial class AutoService<T> : AutoService where T: DatabaseRow, new(){
 	/// List a filtered set of entities without using the cache.
 	/// </summary>
 	/// <returns></returns>
-	public virtual async Task<List<T>> ListNoCache(Context context, Filter<T> filter)
+	public virtual async ValueTask<List<T>> ListNoCache(Context context, Filter<T> filter)
 	{
 		if (NestableAddMask != 0 && (context.NestedTypes & NestableAddMask) == NestableAddMask)
 		{
@@ -265,7 +265,7 @@ public partial class AutoService<T> : AutoService where T: DatabaseRow, new(){
 	/// <param name="context"></param>
 	/// <param name="id"></param>
 	/// <returns></returns>
-	public override async Task<object> GetObject(Context context, int id)
+	public override async ValueTask<object> GetObject(Context context, int id)
 	{
 		return await Get(context, id);
 	}
@@ -276,7 +276,7 @@ public partial class AutoService<T> : AutoService where T: DatabaseRow, new(){
 	/// <param name="context"></param>
 	/// <param name="content"></param>
 	/// <returns></returns>
-	public override async Task<object> UpdateObject(Context context, object content)
+	public override async ValueTask<object> UpdateObject(Context context, object content)
 	{
 		return await Update(context, content as T);
 	}
@@ -287,7 +287,7 @@ public partial class AutoService<T> : AutoService where T: DatabaseRow, new(){
 	/// <param name="context"></param>
 	/// <param name="ids"></param>
 	/// <returns></returns>
-	public override async Task<IEnumerable> ListObjects(Context context, IEnumerable<int> ids)
+	public override async ValueTask<IEnumerable> ListObjects(Context context, IEnumerable<int> ids)
 	{
 		if (ids == null || !ids.Any())
 		{
@@ -303,7 +303,7 @@ public partial class AutoService<T> : AutoService where T: DatabaseRow, new(){
 	/// <summary>
 	/// Gets a single entity by its ID.
 	/// </summary>
-	public virtual async Task<T> Get(Context context, int id)
+	public virtual async ValueTask<T> Get(Context context, int id)
 	{
 		if (NestableAddMask != 0 && (context.NestedTypes & NestableAddMask) == NestableAddMask)
 		{
@@ -335,7 +335,7 @@ public partial class AutoService<T> : AutoService where T: DatabaseRow, new(){
 	/// <summary>
 	/// Creates a new entity.
 	/// </summary>
-	public virtual async Task<T> Create(Context context, T entity)
+	public virtual async ValueTask<T> Create(Context context, T entity)
 	{
 		entity = await CreatePartial(context, entity);
 		return await CreatePartialComplete(context, entity);
@@ -345,7 +345,7 @@ public partial class AutoService<T> : AutoService where T: DatabaseRow, new(){
 	/// Creates a new entity but without calling AfterCreate. This allows you to update fields after the ID has been set, but before AfterCreate is called.
 	/// You must always call CreatePartialComplete afterwards to trigger the AfterCreate calls.
 	/// </summary>
-	public virtual async Task<T> CreatePartial(Context context, T entity)
+	public virtual async ValueTask<T> CreatePartial(Context context, T entity)
 	{
 		entity = await EventGroup.BeforeCreate.Dispatch(context, entity);
 
@@ -374,7 +374,7 @@ public partial class AutoService<T> : AutoService where T: DatabaseRow, new(){
 	/// <param name="context"></param>
 	/// <param name="entity"></param>
 	/// <returns></returns>
-	public virtual async Task<T> CreatePartialComplete(Context context, T entity)
+	public virtual async ValueTask<T> CreatePartialComplete(Context context, T entity)
 	{
 		var cache = GetCacheForLocale(context == null ? 1 : context.LocaleId);
 
@@ -389,7 +389,7 @@ public partial class AutoService<T> : AutoService where T: DatabaseRow, new(){
 	/// <summary>
 	/// Updates the given entity.
 	/// </summary>
-	public virtual async Task<T> Update(Context context, T entity)
+	public virtual async ValueTask<T> Update(Context context, T entity)
 	{
 		entity = await EventGroup.BeforeUpdate.Dispatch(context, entity);
 
@@ -424,7 +424,7 @@ public class AutoService
 	/// <summary>
 	/// The database service.
 	/// </summary>
-	protected IDatabaseService _database;
+	protected DatabaseService _database;
 	
 	/// <summary>
 	/// The load capability for this service.
@@ -475,7 +475,7 @@ public class AutoService
 	/// <param name="type"></param>
 	public AutoService(Type type)
 	{
-		_database = Api.Startup.Services.Get<IDatabaseService>();
+		_database = Api.Startup.Services.Get<DatabaseService>();
 		ServicedType = type;
 	}
 
@@ -491,7 +491,7 @@ public class AutoService
 	/// <summary>
 	/// Gets the JSON structure. Defines settable fields for a particular role.
 	/// </summary>
-	public virtual Task<JsonStructure> GetJsonStructure(int roleId)
+	public virtual ValueTask<JsonStructure> GetJsonStructure(int roleId)
 	{
 		throw new NotImplementedException();
 	}
@@ -502,9 +502,9 @@ public class AutoService
 	/// <param name="context"></param>
 	/// <param name="content"></param>
 	/// <returns></returns>
-	public virtual Task<object> UpdateObject(Context context, object content)
+	public virtual ValueTask<object> UpdateObject(Context context, object content)
 	{
-		return Task.FromResult((object)null);
+		return new ValueTask<object>(null);
 	}
 
 	/// <summary>
@@ -513,9 +513,9 @@ public class AutoService
 	/// <param name="context"></param>
 	/// <param name="id"></param>
 	/// <returns></returns>
-	public virtual Task<object> GetObject(Context context, int id)
+	public virtual ValueTask<object> GetObject(Context context, int id)
 	{
-		return Task.FromResult((object)null);
+		return new ValueTask<object>(null);
 	}
 
 	/// <summary>
@@ -524,9 +524,9 @@ public class AutoService
 	/// <param name="context"></param>
 	/// <param name="ids"></param>
 	/// <returns></returns>
-	public virtual Task<IEnumerable> ListObjects(Context context, IEnumerable<int> ids)
+	public virtual ValueTask<IEnumerable> ListObjects(Context context, IEnumerable<int> ids)
 	{
-		return Task.FromResult((IEnumerable)null);
+		return new ValueTask<IEnumerable>((IEnumerable)null);
 	}
 
 	/// <summary>
@@ -574,14 +574,14 @@ public class AutoService
 			Events.ServicesAfterStart.AddEventListener((Context ctx, object src) =>
 			{
 				InstallAdminPagesInternal(navMenuLabel, navMenuIconRef, fields);
-				return Task.FromResult(src);
+				return new ValueTask<object>(src);
 			});
 		}
 	}
 
 	private void InstallAdminPagesInternal(string navMenuLabel, string navMenuIconRef, string[] fields)
 	{
-		var pageService = Api.Startup.Services.Get("IPageService");
+		var pageService = Api.Startup.Services.Get("PageService");
 
 		if (pageService == null)
 		{
@@ -606,7 +606,7 @@ public class AutoService
 			// Nav menu also?
 			if (navMenuLabel != null)
 			{
-				var navMenuItemService = Api.Startup.Services.Get("INavMenuItemService");
+				var navMenuItemService = Api.Startup.Services.Get("NavMenuItemService");
 
 				if (navMenuItemService != null)
 				{
@@ -654,7 +654,7 @@ public class AutoService
 		where T : class
 		where M : MappingRow, new()
 	{
-		Api.Users.IUserService _users = null;
+		Api.Users.UserService _users = null;
 
 		var mapper = new IHaveArrayHandler<T, Api.Users.User, M>() {
 			WhereFieldName = whereFieldName,
@@ -669,7 +669,7 @@ public class AutoService
 
 				if (_users == null)
 				{
-					_users = Services.Get<Api.Users.IUserService>();
+					_users = Services.Get<Api.Users.UserService>();
 				}
 
 				// Map users to a UserProfile list:

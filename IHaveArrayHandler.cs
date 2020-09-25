@@ -52,7 +52,7 @@ namespace Api.Startup {
 		/// <summary>
 		/// The DB service.
 		/// </summary>
-		public IDatabaseService Database;
+		public DatabaseService Database;
 
 		/// <summary>
 		/// The service which obtains the content.
@@ -109,7 +109,7 @@ namespace Api.Startup {
 		/// <typeparam name="CT"></typeparam>
 		public void SetupHandlers<CT>() where CT : DatabaseRow, T, new()
 		{
-			IUserService _users = null;
+			UserService _users = null;
 
 			// Invoked by reflection
 			var evtGroup = Events.GetGroup<CT>();
@@ -292,7 +292,7 @@ namespace Api.Startup {
 							// Special case - return profile list.
 							if (_users == null)
 							{
-								_users = Services.Get<IUserService>();
+								_users = Services.Get<UserService>();
 							}
 
 							var set = new List<Api.Users.UserProfile>();
@@ -311,7 +311,7 @@ namespace Api.Startup {
 
 				}
 
-				return Task.FromResult(field);
+				return new ValueTask<JsonField<CT>>(field);
 			});
 
 			// Next the List events:

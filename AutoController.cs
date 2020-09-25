@@ -51,7 +51,7 @@ public partial class AutoController<T> : ControllerBase
 	/// Returns the data for 1 entity.
 	/// </summary>
 	[HttpGet("{id}")]
-	public virtual async Task<object> Load([FromRoute] int id)
+	public virtual async ValueTask<object> Load([FromRoute] int id)
 	{
 		var context = Request.GetContext();
 		var result = await _service.Get(context, id);
@@ -63,7 +63,7 @@ public partial class AutoController<T> : ControllerBase
     /// Deletes an entity
     /// </summary>
     [HttpDelete("{id}")]
-    public virtual async Task<object> Delete([FromRoute] int id)
+    public virtual async ValueTask<object> Delete([FromRoute] int id)
 	{
 		var context = Request.GetContext();
 		var result = await _service.Get(context, id);
@@ -91,7 +91,7 @@ public partial class AutoController<T> : ControllerBase
 	/// </summary>
 	/// <returns></returns>
 	[HttpGet("list")]
-	public virtual async Task<object> List()
+	public virtual async ValueTask<object> List()
 	{
 		return await List(null);
 	}
@@ -103,7 +103,7 @@ public partial class AutoController<T> : ControllerBase
 	/// </summary>
 	/// <returns></returns>
 	[HttpPost("list")]
-	public virtual async Task<object> List([FromBody] JObject filters)
+	public virtual async ValueTask<object> List([FromBody] JObject filters)
 	{
 		var context = Request.GetContext();
 		var filter = new Filter<T>(filters);
@@ -150,7 +150,7 @@ public partial class AutoController<T> : ControllerBase
     /// Creates a new entity. Returns the ID.
     /// </summary>
     [HttpPost]
-	public virtual async Task<object> Create([FromBody] JObject body)
+	public virtual async ValueTask<object> Create([FromBody] JObject body)
 	{
 		var context = Request.GetContext();
 
@@ -240,7 +240,7 @@ public partial class AutoController<T> : ControllerBase
 	/// <param name="context"></param>
 	/// <param name="body"></param>
 	/// <param name="fieldGroup"></param>
-	protected async Task<string> SetFieldsOnObject(T target, Context context, JObject body, JsonFieldGroup fieldGroup = JsonFieldGroup.Any)
+	protected async ValueTask<string> SetFieldsOnObject(T target, Context context, JObject body, JsonFieldGroup fieldGroup = JsonFieldGroup.Any)
 	{
         // Get the JSON meta which will indicate exactly which fields are editable by this user (role):
 		var availableFields = await _service.GetTypedJsonStructure(context.RoleId);
@@ -279,7 +279,7 @@ public partial class AutoController<T> : ControllerBase
 	/// Updates an entity with the given ID.
 	/// </summary>
 	[HttpPost("{id}")]
-	public virtual async Task<object> Update([FromRoute] int id, [FromBody] JObject body)
+	public virtual async ValueTask<object> Update([FromRoute] int id, [FromBody] JObject body)
 	{
 		var context = Request.GetContext();
 		
