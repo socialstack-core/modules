@@ -14,7 +14,7 @@ namespace Api.PasswordResetRequests
 	/// Handles passwordResetRequests.
 	/// Instanced automatically. Use injection to use this service, or Startup.Services.Get.
 	/// </summary>
-	public partial class PasswordResetRequestService : AutoService<PasswordResetRequest>, IPasswordResetRequestService
+	public partial class PasswordResetRequestService : AutoService<PasswordResetRequest>
     {
 		/// <summary>
 		/// Request expiry time, in hours.
@@ -31,7 +31,7 @@ namespace Api.PasswordResetRequests
 		/// <summary>
 		/// Instanced automatically. Use injection to use this service, or Startup.Services.Get.
 		/// </summary>
-		public PasswordResetRequestService(IEmailTemplateService emails, IUserService users) : base(Events.PasswordResetRequest)
+		public PasswordResetRequestService(EmailTemplateService emails, UserService users) : base(Events.PasswordResetRequest)
         {
 			selectByTokenQuery = Query.Select<PasswordResetRequest>();
 			selectByTokenQuery.Where().EqualsArg("Token", 0);

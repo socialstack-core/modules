@@ -14,13 +14,13 @@ namespace Api.PasswordResetRequests
     [Route("v1/passwordResetRequest")]
 	public partial class PasswordResetRequestController : AutoController<PasswordResetRequest>
     {
-		private IUserService _users;
+		private UserService _users;
 
 		/// <summary>
 		/// Instanced automatically.
 		/// </summary>
 		/// <param name="users"></param>
-		public PasswordResetRequestController(IUserService users)
+		public PasswordResetRequestController(UserService users)
 		{
 			_users = users;
 		}
@@ -29,7 +29,7 @@ namespace Api.PasswordResetRequests
 		/// Check if token exists and has not expired yet.
 		/// </summary>
 		[HttpGet("token/{token}")]
-		public async Task<object> CheckTokenExists(string token)
+		public async ValueTask<object> CheckTokenExists(string token)
 		{
 			var context = Request.GetContext();
 			
@@ -38,7 +38,7 @@ namespace Api.PasswordResetRequests
 				return null;
 			}
 			
-			var svc = (_service as IPasswordResetRequestService);
+			var svc = (_service as PasswordResetRequestService);
 			
 			var request = await svc.Get(context, token);
 			
@@ -64,7 +64,7 @@ namespace Api.PasswordResetRequests
 		/// Attempts to login with a submitted new password.
 		/// </summary>
 		[HttpPost("login/{token}")]
-		public async Task<object> LoginWithToken(string token, [FromBody] NewPassword newPassword)
+		public async ValueTask<object> LoginWithToken(string token, [FromBody] NewPassword newPassword)
 		{
 			try
 			{
@@ -75,7 +75,7 @@ namespace Api.PasswordResetRequests
 					return null;
 				}
 				
-				var svc = (_service as IPasswordResetRequestService);
+				var svc = (_service as PasswordResetRequestService);
 				
 				var request = await svc.Get(context, token);
 				
@@ -103,7 +103,7 @@ namespace Api.PasswordResetRequests
 				}
 
 				// Set the password on the user account:
-				var authService = Services.Get<IPasswordAuthService>();
+				var authService = Services.Get<PasswordAuthService>();
 				
 				await authService.EnforcePolicy(newPassword.Password);
 				
@@ -143,7 +143,7 @@ namespace Api.PasswordResetRequests
 		/// Admin link generation.
 		/// </summary>
 		[HttpGet("{id}/generate")]
-		public async Task<object> Generate(int id)
+		public async ValueTask<object> Generate(int id)
 		{
 			var context = Request.GetContext();
 
