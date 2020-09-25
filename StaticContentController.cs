@@ -14,13 +14,13 @@ namespace Api.Uploader
 
 	public partial class StaticContentController : Controller
     {
-		private IStaticContentService _staticContentService;
+		private StaticContentService _staticContentService;
 		
 		/// <summary>
 		/// Instanced automatically per request.
 		/// </summary>
 		/// <param name="scs"></param>
-		public StaticContentController(IStaticContentService scs)
+		public StaticContentController(StaticContentService scs)
 		{
 			_staticContentService = scs;
 		}

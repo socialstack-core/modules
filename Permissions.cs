@@ -27,7 +27,7 @@ namespace Api.Uploader
 				Roles.Guest.Revoke("upload_list", "upload_load");
 				Roles.Member.Revoke("upload_list", "upload_load");
 				Roles.Public.Revoke("upload_list", "upload_load");
-				return Task.FromResult(source);
+				return new ValueTask<object>(source);
 			});
 		}
 	}

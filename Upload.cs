@@ -17,7 +17,7 @@ namespace Api.Uploader
 		/// <summary>
 		/// The signature service for priv uploads.
 		/// </summary>
-		private static ISignatureService _sigService;
+		private static SignatureService _sigService;
 
 		/// <summary>
 		/// The original file name.
@@ -92,7 +92,7 @@ namespace Api.Uploader
 
 				if (_sigService == null)
 				{
-					_sigService = Services.Get<ISignatureService>();
+					_sigService = Services.Get<SignatureService>();
 				}
 
 				var sig = _sigService.Sign(path, timestamp);

@@ -11,7 +11,7 @@ namespace Api.Uploader
 	/// Handles static content.
 	/// </summary>
 
-	public partial class StaticContentService : IStaticContentService
+	public partial class StaticContentService
     {
 		/// <summary>
 		/// The index file.

@@ -21,7 +21,7 @@ namespace Api.Uploader
 	public class EventListener
 	{
 
-		private ISignatureService _signatureService;
+		private SignatureService _signatureService;
 
 		/// <summary>
 		/// Instanced automatically.
@@ -68,7 +68,7 @@ namespace Api.Uploader
 
 						if (_signatureService == null)
 						{
-							_signatureService = Services.Get<ISignatureService>();
+							_signatureService = Services.Get<SignatureService>();
 						}
 
 						// A signature is required. Validate it here.

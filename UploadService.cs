@@ -19,7 +19,7 @@ namespace Api.Uploader
 	/// Handles uploading of files related to particular pieces of content.
 	/// Instanced automatically. Use injection to use this service, or Startup.Services.Get.
 	/// </summary>
-	public partial class UploadService : AutoService<Upload>, IUploadService
+	public partial class UploadService : AutoService<Upload>
     {
 		private UploaderConfig _configuration;
 
@@ -43,7 +43,7 @@ namespace Api.Uploader
 		/// <param name="context"></param>
 		/// <param name="uploadRef"></param>
 		/// <returns></returns>
-		public async Task<Upload> Get(Context context, string uploadRef)
+		public async ValueTask<Upload> Get(Context context, string uploadRef)
 		{
 			if (string.IsNullOrEmpty(uploadRef))
 			{
