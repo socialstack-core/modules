@@ -11,14 +11,14 @@ namespace Api.CanvasRenderer
 	/// Handles rendering canvases server side. Particularly useful for e.g. sending emails.
 	/// Instanced automatically. Use injection to use this service, or Startup.Services.Get.
 	/// </summary>
-	public partial class CanvasRendererService : ICanvasRendererService
+	public partial class CanvasRendererService
 	{
-		private readonly IStackToolsService _stackTools;
+		private readonly StackToolsService _stackTools;
 
 		/// <summary>
 		/// Instanced automatically. Use injection to use this service, or Startup.Services.Get.
 		/// </summary>
-		public CanvasRendererService(IStackToolsService stackTools)
+		public CanvasRendererService(StackToolsService stackTools)
 		{
 			_stackTools = stackTools;
 		}
