@@ -40,7 +40,7 @@ namespace Api.Translate
 				// Does this field map have any [Localized] fields?
 				List<Locale> locales = null;
 
-				var _database = Services.Get<IDatabaseService>();
+				var _database = Services.Get<DatabaseService>();
 
 				try
 				{

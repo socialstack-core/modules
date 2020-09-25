@@ -14,7 +14,8 @@ namespace Api.Translate
 	/// Handles locales - the core of the translation (localisation) system.
 	/// Instanced automatically. Use injection to use this service, or Startup.Services.Get.
 	/// </summary>
-	public partial class LocaleService : AutoService<Locale>, ILocaleService
+	[LoadPriority(2)]
+	public partial class LocaleService : AutoService<Locale>
     {
 		/// <summary>
 		/// Instanced automatically. Use injection to use this service, or Startup.Services.Get.
