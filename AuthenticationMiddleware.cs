@@ -18,8 +18,8 @@ namespace Api.Contexts
     /// </summary>
     public static class UserAuthenticationExtensions
 	{
-		private static IContextService _loginTokens;
-		private static ILocaleService _locales;
+		private static ContextService _loginTokens;
+		private static LocaleService _locales;
 
 		/// <summary>
 		/// Adds the middleware which enables identifying the user on each API request.
@@ -57,12 +57,12 @@ namespace Api.Contexts
 		{
 			if (_loginTokens == null)
 			{
-				_loginTokens = Api.Startup.Services.Get<IContextService>();
+				_loginTokens = Api.Startup.Services.Get<ContextService>();
 			}
 
 			if (_locales == null)
 			{
-				_locales = Api.Startup.Services.Get<ILocaleService>();
+				_locales = Api.Startup.Services.Get<LocaleService>();
 			}
 
 			var cookie = request.Cookies[_loginTokens.CookieName];

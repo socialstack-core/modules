@@ -20,9 +20,9 @@ namespace Api.Contexts
 		/// The identity this token represents (a generic user).
 		/// </summary>
 		private static System.Security.Principal.GenericIdentity GenericIdentity = new System.Security.Principal.GenericIdentity("User");
-		private static IUserService _users;
-		private static ILocaleService _locales;
-		private static IContextService _contextService;
+		private static UserService _users;
+		private static LocaleService _locales;
+		private static ContextService _contextService;
 
 
 		private int _localeId = 1;
@@ -39,7 +39,7 @@ namespace Api.Contexts
 		{
 			if (_contextService == null)
 			{
-				_contextService = Services.Get<IContextService>();
+				_contextService = Services.Get<ContextService>();
 			}
 			
 			// See if a field exists for the given contentTypeId on the Context object:
@@ -90,7 +90,7 @@ namespace Api.Contexts
 
 			if (_locales == null)
 			{
-				_locales = Services.Get<ILocaleService>();
+				_locales = Services.Get<LocaleService>();
 			}
 
 			// Get the user now:
@@ -140,6 +140,9 @@ namespace Api.Contexts
 		/// </summary>
 		public ulong NestedTypes;
 
+		/// <summary>
+		/// Used to inform about the validity of the context cookie.
+		/// </summary>
 		public int CookieState;
 
 		/// <summary>
@@ -193,7 +196,7 @@ namespace Api.Contexts
 
 			if (_users == null)
 			{
-				_users = Services.Get<IUserService>();
+				_users = Services.Get<UserService>();
 			}
 
 			// Get the user now:
@@ -235,7 +238,7 @@ namespace Api.Contexts
 		{
 			if (_contextService == null)
 			{
-				_contextService = Services.Get<IContextService>();
+				_contextService = Services.Get<ContextService>();
 			}
 
 			return _contextService.CreateToken(this);
@@ -254,7 +257,7 @@ namespace Api.Contexts
 
 			if (_contextService == null)
 			{
-				_contextService = Services.Get<IContextService>();
+				_contextService = Services.Get<ContextService>();
 			}
 			
 			response.Cookies.Append(

@@ -13,7 +13,7 @@ namespace Api.Contexts
 	/// Used to establish primary user context - role, locale and the user ID - when possible.
 	/// This is signature based - it doesn't generate any database traffic.
 	/// </summary>
-	public class ContextService : IContextService
+	public class ContextService
     {
 		/// <summary>
 		/// Tracks any active revocations. A revoke occurs when either a user is forcefully logged out (e.g. account was declared stolen)
@@ -33,13 +33,13 @@ namespace Api.Contexts
 		/// Maps a content type ID to the context field info. Your context property must end with 'Id' to get an entry here.
 		/// </summary>
 		private Dictionary<int, ContextFieldInfo> ContentTypeToFieldInfo = new Dictionary<int, ContextFieldInfo>();
-		private ISignatureService _signatures;
+		private SignatureService _signatures;
 
 
 		/// <summary>
 		/// Instanced automatically.
 		/// </summary>
-        public ContextService(ISignatureService signatures)
+        public ContextService(SignatureService signatures)
         {
 			_signatures = signatures;
 
