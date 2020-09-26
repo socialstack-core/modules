@@ -29,19 +29,19 @@ namespace Api.TwoFactorGoogleAuth
 			siteUrl = AppSettings.Configuration["PublicUrl"].Replace("https:", "").Replace("http:", "").Replace("/", "");
 
 			// Hook up to the UserOnAuthenticate event:
-			Events.UserOnAuthenticate.AddEventListener(async (Context context, LoginResult result, UserLogin loginDetails) => {
+			Events.UserOnAuthenticate.AddEventListener((Context context, LoginResult result, UserLogin loginDetails) => {
 
 				if (result == null || result.User == null || result.MoreDetailRequired != null)
 				{
 					// We only trigger if something has already logged in and nothing before us requires more detail.
-					return result;
+					return new ValueTask<LoginResult>(result);
 				}
 
 				// 2FA enabled?
 				if (result.User.TwoFactorSecret == null || result.User.TwoFactorSecret.Length != 10)
 				{
 					// Nope.
-					return result;
+					return new ValueTask<LoginResult>(result);
 				}
 
 				// It's enabled - pin submitted or do we require it?
@@ -50,16 +50,16 @@ namespace Api.TwoFactorGoogleAuth
 					// It's required. This blocks the complete token from being generated.
 					result.MoreDetailRequired = "2fa";
 
-					return result;
+					return new ValueTask<LoginResult>(result);
 				}
 
 				if(!Validate(result.User.TwoFactorSecret, loginDetails.Google2FAPin))
 				{
 					// Bad pin.
-					return null;
+					return new ValueTask<LoginResult>((LoginResult)null);
 				}
 
-				return result;
+				return new ValueTask<LoginResult>(result);
 			}, 20);
 
 			// Note: the 20 priority is important. It means we'll run this event always after the default auth handlers (10).
