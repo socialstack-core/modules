@@ -17,15 +17,15 @@ namespace Api.ActiveLogins
 	/// Handles activeLogins.
 	/// Instanced automatically. Use injection to use this service, or Startup.Services.Get.
 	/// </summary>
-	public partial class ActiveLoginService : AutoService<ActiveLogin>, IActiveLoginService
+	public partial class ActiveLoginService : AutoService<ActiveLogin>
 	{
-		private IUserService _users = null;
-		private IActiveLoginHistoryService _historicalRecord;
+		private UserService _users = null;
+		private ActiveLoginHistoryService _historicalRecord;
 
 		/// <summary>
 		/// Instanced automatically. Use injection to use this service, or Startup.Services.Get.
 		/// </summary>
-		public ActiveLoginService(IActiveLoginHistoryService loginHistory) : base(Events.ActiveLogin)
+		public ActiveLoginService(ActiveLoginHistoryService loginHistory) : base(Events.ActiveLogin)
         {
 			var serverId = 0;
 			_historicalRecord = loginHistory;
@@ -34,7 +34,7 @@ namespace Api.ActiveLogins
 			{
 				if (field == null)
 				{
-					return Task.FromResult(field);
+					return new ValueTask<JsonField<User>>(field);
 				}
 				
 				if(field.Name == "OnlineState")
@@ -43,7 +43,7 @@ namespace Api.ActiveLogins
 					field = null;
 				}
 				
-				return Task.FromResult(field);
+				return new ValueTask<JsonField<User>>(field);
 			});
 			
 			// Add event listeners for websocket users:
@@ -56,12 +56,12 @@ namespace Api.ActiveLogins
 				}
 				
 				if(serverId == 0){
-					serverId = Services.Get<IContentSyncService>().ServerId;
+					serverId = Services.Get<ContentSyncService>().ServerId;
 				}
 				
 				if(_users == null)
 				{
-					_users = Services.Get<IUserService>();
+					_users = Services.Get<UserService>();
 				}
 				
 				if (userSockets.ContainsOne)
@@ -156,7 +156,7 @@ namespace Api.ActiveLogins
 		public async Task<bool> Start()
 		{
 			// Get server ID:
-			var contentSyncService = Services.Get<IContentSyncService>();
+			var contentSyncService = Services.Get<ContentSyncService>();
 			
 			if(contentSyncService == null){
 				return false;
@@ -171,7 +171,7 @@ namespace Api.ActiveLogins
 
 			if (_users == null)
 			{
-				_users = Services.Get<IUserService>();
+				_users = Services.Get<UserService>();
 			}
 
 			var ctx = new Context();

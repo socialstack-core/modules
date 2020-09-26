@@ -17,7 +17,7 @@ namespace Api.ActiveLogins
 	/// Handles activeLogins.
 	/// Instanced automatically. Use injection to use this service, or Startup.Services.Get.
 	/// </summary>
-	public partial class ActiveLoginHistoryService : AutoService<ActiveLoginHistory>, IActiveLoginHistoryService
+	public partial class ActiveLoginHistoryService : AutoService<ActiveLoginHistory>
 	{
 		/// <summary>
 		/// Instanced automatically. Use injection to use this service, or Startup.Services.Get.
