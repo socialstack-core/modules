@@ -40,6 +40,10 @@ namespace Api.Huddles
 				{
 					huddle.Activity = await Content.Get(context, huddle.ActivityContentTypeId, huddle.ActivityContentId);
 				}
+				else
+				{
+					huddle.Activity = null;
+				}
 				
 				return huddle;
 			});
