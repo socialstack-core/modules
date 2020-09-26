@@ -57,7 +57,7 @@ namespace Api.PubQuizzes
 					if(question == null){
 						continue;
 					}
-					
+					question.Answers = null;
 					lookup[question.Id] = question;
 				}
 				
