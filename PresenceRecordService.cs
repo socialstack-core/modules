@@ -15,7 +15,7 @@ namespace Api.Presence
 	/// Handles presenceRecords.
 	/// Instanced automatically. Use injection to use this service, or Startup.Services.Get.
 	/// </summary>
-	public partial class PresenceRecordService : AutoService<PresenceRecord>, IPresenceRecordService
+	public partial class PresenceRecordService : AutoService<PresenceRecord>
     {
 		/// <summary>
 		/// True if presence should be stored in the DB.
@@ -32,13 +32,13 @@ namespace Api.Presence
 			Events.WebSocketMessage.AddEventListener((Context context,JObject message, WebSocketClient client, string type) => {
 				
 				if(type != "Pres"){
-					return Task.FromResult(message);
+					return new ValueTask<JObject>(message);
 				}
 				
 				var typeObj = message["c"];
 				
 				if(typeObj == null){
-					return Task.FromResult(message);
+					return new ValueTask<JObject>(message);
 					
 				}
 				
@@ -66,7 +66,7 @@ namespace Api.Presence
 				// (don't await this - we won't block the websocket for metrics):
 				Create(context, record);
 				
-				return Task.FromResult(message);
+				return new ValueTask<JObject>(message);
 			});
 			
 		}

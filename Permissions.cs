@@ -25,7 +25,7 @@ namespace Api.Presence
 				Roles.Public.Revoke("presenceRecord_load", "presenceRecord_list");
 				Roles.Member.Revoke("presenceRecord_load", "presenceRecord_list");
 				
-				return Task.FromResult(source);
+				return new ValueTask<object>(source);
 			}, 20);
 		}
 	}
