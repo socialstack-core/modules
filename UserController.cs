@@ -43,7 +43,7 @@ namespace Api.Users
 			}
 			
 			// Attempt to validate the pin:
-			if(Services.Get<ITwoFactorGoogleAuthService>().Validate(user.TwoFactorSecretPending, pinCarrier.Pin))
+			if(Services.Get<TwoFactorGoogleAuthService>().Validate(user.TwoFactorSecretPending, pinCarrier.Pin))
 			{
 				// Ok! Successful setup.
 				// Apply pending -> active right now.
@@ -79,7 +79,7 @@ namespace Api.Users
 				return null;
 			}
 			
-			var twoFA = Services.Get<ITwoFactorGoogleAuthService>();
+			var twoFA = Services.Get<TwoFactorGoogleAuthService>();
 			
 			// Generate a key and apply to pending:
 			var key = twoFA.GenerateKey();
