@@ -22,7 +22,7 @@ namespace Api.TaggedInterests
 		/// <summary>
 		/// Instanced automatically. Use injection to use this service, or Startup.Services.Get.
 		/// </summary>
-		public TaggedInterestService(IDatabaseService _database)
+		public TaggedInterestService(DatabaseService _database)
         {
 			// Interests which are simply thinly renamed Tags.
 
