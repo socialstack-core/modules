@@ -25,8 +25,8 @@ namespace Api.Huddles
 		/// </summary>
 		public HuddleActivityEventHandler()
         {
-			IHuddleService huddleService = null;
-			IActivityInstanceService activityInstanceService = null;
+			HuddleService huddleService = null;
+			ActivityInstanceService activityInstanceService = null;
 			Events.Huddle.AfterLoad.AddEventListener(async (Context context, Huddle huddle) =>
 			{
 				if (huddle == null)
@@ -78,7 +78,7 @@ namespace Api.Huddles
 
 				if(huddleService == null)
                 {
-					huddleService = Services.Get<IHuddleService>();
+					huddleService = Services.Get<HuddleService>();
                 }
 
 				var unupdatedHuddle = await huddleService.Get(context, huddle.Id);
@@ -100,7 +100,7 @@ namespace Api.Huddles
 					// The activity has been updated. Let's create a new activityInstance
 					if (activityInstanceService == null)
 					{
-						activityInstanceService = Services.Get<IActivityInstanceService>();
+						activityInstanceService = Services.Get<ActivityInstanceService>();
 					}
 
 					var activityInstance = new ActivityInstance();
