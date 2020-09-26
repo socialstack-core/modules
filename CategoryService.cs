@@ -15,7 +15,7 @@ namespace Api.Categories
 	/// Handles categories - usually seen in e.g. knowledge bases or help guides.
 	/// Instanced automatically. Use injection to use this service, or Startup.Services.Get.
 	/// </summary>
-	public partial class CategoryService : AutoService<Category>, ICategoryService
+	public partial class CategoryService : AutoService<Category>
     {
 		/// <summary>
 		/// Instanced automatically. Use injection to use this service, or Startup.Services.Get.

@@ -11,7 +11,7 @@ namespace Api.Categories
 	/// Handles categoryContents.
 	/// Instanced automatically. Use injection to use this service, or Startup.Services.Get.
 	/// </summary>
-	public partial class CategoryContentService : AutoService<CategoryContent>, ICategoryContentService
+	public partial class CategoryContentService : AutoService<CategoryContent>
     {
 		/// <summary>
 		/// Instanced automatically. Use injection to use this service, or Startup.Services.Get.

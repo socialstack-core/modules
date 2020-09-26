@@ -23,7 +23,7 @@ namespace Api.Categories
 				// Public - the role used by anonymous users.
 				Roles.Guest.Revoke("category_delete", "category_update");
 				Roles.Member.Revoke("category_delete", "category_update");
-				return Task.FromResult(source);
+				return new ValueTask<object>(source);
 			});
 		}
 	}
