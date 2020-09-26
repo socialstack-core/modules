@@ -30,6 +30,10 @@ namespace Api.UserAgendaEntries
 					// Get the content info:
 					agendaEntry.Content = await Content.Get(context, agendaEntry.ContentTypeId, agendaEntry.ContentId);
 				}
+				else
+				{
+					agendaEntry.Content = null;
+				}
 
 				return agendaEntry;
 			}, 5);
@@ -46,6 +50,10 @@ namespace Api.UserAgendaEntries
 					// Get the content info (throws if permission fails):
 					agendaEntry.Content = await Content.Get(context, agendaEntry.ContentTypeId, agendaEntry.ContentId, true);
 				}
+				else
+				{
+					agendaEntry.Content = null;
+				}
 
 				return agendaEntry;
 			}, 5);
@@ -61,6 +69,10 @@ namespace Api.UserAgendaEntries
 				{
 					// Get the content info (throws if permission fails):
 					agendaEntry.Content = await Content.Get(context, agendaEntry.ContentTypeId, agendaEntry.ContentId, true);
+				}
+				else
+				{
+					agendaEntry.Content = null;
 				}
 
 				return agendaEntry;
