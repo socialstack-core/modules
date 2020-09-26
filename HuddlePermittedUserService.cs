@@ -44,18 +44,16 @@ namespace Api.Huddles
                 {
                     return null;
                 }
-
-                // only allow a max of 8 invites 
-                if (huddle.Invites != null && huddle.Invites.Count == 8)
-                {
-                    return null;
-                }
-
+				
                 // Check that the invited content is accessible:
                 if (permit.InvitedContentId != 0)
                 {
                     permit.InvitedContent = await Content.Get(context, permit.InvitedContentTypeId, permit.InvitedContentId, true);
                 }
+				else
+				{
+					permit.InvitedContent = null;
+				}
                 
                 // make sure the user is allowed to invite this entity to the huddle 
                 if (context.UserId == huddle.CreatorUser.Id ||
@@ -82,12 +80,20 @@ namespace Api.Huddles
                 {
                     permit.InvitedContent = await Content.Get(context, permit.InvitedContentTypeId, permit.InvitedContentId);
                 }
+				else
+				{
+					permit.InvitedContent = null;
+				}
 
                 // Get the permitted user profile:
                 if (permit.PermittedUserId != 0)
                 {
                     permit.PermittedUser = await users.GetProfile(context, permit.PermittedUserId);
                 }
+				else
+				{
+					permit.PermittedUser = null;
+				}
 
                 return permit;
             });
@@ -105,12 +111,20 @@ namespace Api.Huddles
                 {
                     permit.InvitedContent = await Content.Get(context, permit.InvitedContentTypeId, permit.InvitedContentId, true);
                 }
+				else
+				{
+					permit.InvitedContent = null;
+				}
 
                 // Get the permitted user profile:
                 if (permit.PermittedUserId != 0)
                 {
                     permit.PermittedUser = await users.GetProfile(context, permit.PermittedUserId);
                 }
+				else
+				{
+					permit.PermittedUser = null;
+				}
 
                 return permit;
             });
@@ -129,6 +143,10 @@ namespace Api.Huddles
                 {
                     permit.PermittedUser = await users.GetProfile(context, permit.PermittedUserId);
                 }
+				else
+				{
+					permit.PermittedUser = null;
+				}
 
                 return permit;
             });
@@ -191,6 +209,10 @@ namespace Api.Huddles
                         {
                             huddle.PermittedUser = profile;
                         }
+						else
+						{
+							huddle.PermittedUser = null;
+						}
                     }
                 }
 
@@ -229,6 +251,10 @@ namespace Api.Huddles
                     // Get the permits:
                     huddle.Invites = await List(context, new Filter<HuddlePermittedUser>().Equals("HuddleId", huddle.Id));
                 }
+				else
+				{
+					huddle.Invites = null;
+				}
 
                 return huddle;
             }, 1);
@@ -288,6 +314,10 @@ namespace Api.Huddles
                     // Get the permits:
                     huddle.Invites = await List(context, new Filter<HuddlePermittedUser>().Equals("HuddleId", huddle.Id));
                 }
+				else
+				{
+					huddle.Invites = null;
+				}
 
                 return huddle;
             });
@@ -339,6 +369,7 @@ namespace Api.Huddles
                         {
                             continue;
                         }
+						huddle.Invites = null;
                         huddleMap[huddle.Id] = huddle;
                     }
 
