@@ -21,7 +21,7 @@ namespace Api.FFmpeg
 	/// <summary>
 	/// This service is used to invoke ffmpeg on the command line. You must have it in your path or installed on Linux.
 	/// </summary>
-	public partial class FFmpegService : IFFmpegService
+	public partial class FFmpegService
 	{
 		private bool Verbose = false;
 
@@ -31,14 +31,14 @@ namespace Api.FFmpeg
 		private List<Process> All = new List<Process>();
 		private bool _stopping;
 		private FFmpegConfig _configuration;
-		private IUploadService _uploads;
+		private UploadService _uploads;
 		private bool hlsTranscode;
 		private bool h264Transcode;
 		
 		/// <summary>
 		/// Instanced automatically.
 		/// </summary>
-		public FFmpegService(IUploadService uploads, IHostApplicationLifetime lifetime)
+		public FFmpegService(UploadService uploads, IHostApplicationLifetime lifetime)
 		{
 			_uploads = uploads;
 			_configuration = AppSettings.GetSection("FFmpeg").Get<FFmpegConfig>();
@@ -109,7 +109,7 @@ namespace Api.FFmpeg
             {
 				// Something else might've blocked it:
 				if(upload == null){
-					return Task.FromResult(upload);
+					return new ValueTask<Upload>(upload);
 				}
 				
 				switch (upload.FileType)
@@ -168,7 +168,7 @@ namespace Api.FFmpeg
 					}
 				}
 
-				return Task.FromResult(upload);
+				return new ValueTask<Upload>(upload);
 			});
 			
 			// On upload, auto transcode a/v files.

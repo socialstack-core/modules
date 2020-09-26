@@ -19,14 +19,14 @@ namespace Api.FFmpeg
 	[ApiController]
 	public partial class FFMpegController : ControllerBase
 	{
-		private IFFmpegService _ffmpegService;
-		private IUploadService _uploadService;
+		private FFmpegService _ffmpegService;
+		private UploadService _uploadService;
 
 		/// <summary>
 		/// Instanced automatically.
 		/// </summary>
 		public FFMpegController(
-			IFFmpegService svc, IUploadService uploads
+			FFmpegService svc, UploadService uploads
 		)
 		{
 			_ffmpegService = svc;
