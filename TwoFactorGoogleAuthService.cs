@@ -13,7 +13,7 @@ namespace Api.TwoFactorGoogleAuth
 	/// Google authenticator based 2FA.
 	/// Instanced automatically. Use injection to use this service, or Startup.Services.Get.
 	/// </summary>
-	public partial class TwoFactorGoogleAuthService : ITwoFactorGoogleAuthService
+	public partial class TwoFactorGoogleAuthService
 	{
 		private GoogleAuthenticator _ga;
 
