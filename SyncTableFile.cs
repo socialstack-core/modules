@@ -756,7 +756,7 @@ namespace Api.ContentSync
 		/// </summary>
 		/// <param name="databaseService"></param>
 		/// <returns></returns>
-		public async Task Sync(IDatabaseService databaseService)
+		public async Task Sync(DatabaseService databaseService)
 		{
 			// First, load the index. This file indicates where we last got up to (the file length of each file in this set).
 			var index = new SyncTableIndex(ParentDirectory + "/index.json");

@@ -19,13 +19,13 @@ namespace Api.ContentSync
 		/// </summary>
 		public EventListener(){
 
-			IContentSyncService cSyncService = null;
+			ContentSyncService cSyncService = null;
 
 			Events.RemoteSyncTypeAdded.AddEventListener((Context ctx, Type type, int index) => {
 
 				if (type == null)
 				{
-					return Task.FromResult(type);
+					return new ValueTask<Type>(type);
 				}
 
 				// Tell other servers that we're now listening for changes on this type.
@@ -34,12 +34,12 @@ namespace Api.ContentSync
 
 				if (cSyncService == null)
 				{
-					cSyncService = Services.Get<IContentSyncService>();
+					cSyncService = Services.Get<ContentSyncService>();
 				}
 
 				cSyncService.SyncRemoteType(type, opcode);
 				
-				return Task.FromResult(type);
+				return new ValueTask<Type>(type);
 			});
 			
 		}

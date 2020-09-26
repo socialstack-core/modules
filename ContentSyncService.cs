@@ -24,7 +24,7 @@ namespace Api.ContentSync
 	/// <summary>
 	/// Instanced automatically. Use injection to use this service, or Startup.Services.Get.
 	/// </summary>
-	public partial class ContentSyncService : IContentSyncService
+	public partial class ContentSyncService
 	{
 		/// <summary>
 		/// This server's ID from the ContentSync config.
@@ -43,7 +43,7 @@ namespace Api.ContentSync
 		
 		static readonly char[] InvalidFileNameChars = Path.GetInvalidFileNameChars();
 		private ContentSyncConfig _configuration;
-		private IDatabaseService _database;
+		private DatabaseService _database;
 		/// <summary>
 		/// Private LAN sync server.
 		/// </summary>
@@ -55,7 +55,7 @@ namespace Api.ContentSync
 		/// <summary>
 		/// Instanced automatically. Use injection to use this service, or Startup.Services.Get.
 		/// </summary>
-		public ContentSyncService(IDatabaseService database)
+		public ContentSyncService(DatabaseService database)
 		{
 			_database = database;
 
@@ -203,13 +203,13 @@ namespace Api.ContentSync
 			{
 				if (content == null)
 				{
-					return Task.FromResult(content);
+					return new ValueTask<T>(content);
 				}
 
 				// Assign an ID now!
 				content.Id = (int)assigner.Assign();
 				
-				return Task.FromResult(content);
+				return new ValueTask<T>(content);
 			});
 
 #if DEBUG
@@ -227,39 +227,39 @@ namespace Api.ContentSync
 					{
 						if (content == null)
 						{
-							return Task.FromResult(content);
+							return new ValueTask<T>(content);
 						}
 
 						// Write creation to sync file:
 						localSyncFile.Write(content, 'C', context == null ? 0 : context.LocaleId);
 
-						return Task.FromResult(content);
+						return new ValueTask<T>(content);
 					});
 
 					evtGroup.AfterUpdate.AddEventListener((Context context, T content) =>
 					{
 						if (content == null)
 						{
-							return Task.FromResult(content);
+							return new ValueTask<T>(content);
 						}
 
 						// Write update to sync file:
 						localSyncFile.Write(content, 'U', context == null ? 0 : context.LocaleId);
 
-						return Task.FromResult(content);
+						return new ValueTask<T>(content);
 					});
 
 					evtGroup.AfterDelete.AddEventListener((Context context, T content) =>
 					{
 						if (content == null)
 						{
-							return Task.FromResult(content);
+							return new ValueTask<T>(content);
 						}
 
 						// Write delete to sync file:
 						localSyncFile.Write(content, 'D', context == null ? 0 : context.LocaleId);
 
-						return Task.FromResult(content);
+						return new ValueTask<T>(content);
 					});
 				}
 			}
@@ -473,7 +473,7 @@ namespace Api.ContentSync
 				// If the sig checks out, and they've also signed their own and our ID, then they can connect.
 				var signData = theirId.ToString() + "=>" + ServerId.ToString();
 
-				if (!Services.Get<ISignatureService>().ValidateSignature(signData, signature))
+				if (!Services.Get<SignatureService>().ValidateSignature(signData, signature))
 				{
 					// Fail there:
 					message.Kill();
@@ -729,7 +729,7 @@ namespace Api.ContentSync
 				{
 					if (src == null || servers.Count == 0)
 					{
-						return Task.FromResult(src);
+						return new ValueTask<T>(src);
 					}
 
 					try
@@ -759,14 +759,14 @@ namespace Api.ContentSync
 						Console.WriteLine(e);
 					}
 
-					return Task.FromResult(src);
+					return new ValueTask<T>(src);
 				}, 1000); // Always absolutely last
 
 				eventGroup.AfterUpdate.AddEventListener((Context ctx, T src) =>
 				{
 					if (src == null || servers.Count == 0)
 					{
-						return Task.FromResult(src);
+						return new ValueTask<T>(src);
 					}
 
 					try
@@ -794,14 +794,14 @@ namespace Api.ContentSync
 						Console.WriteLine(e);
 					}
 
-				return Task.FromResult(src);
+				return new ValueTask<T>(src);
 				}, 1000); // Always absolutely last
 
 				eventGroup.AfterDelete.AddEventListener((Context ctx, T src) =>
 				{
 					if (src == null || servers.Count == 0)
 					{
-						return Task.FromResult(src);
+						return new ValueTask<T>(src);
 					}
 
 					try
@@ -829,7 +829,7 @@ namespace Api.ContentSync
 						Console.WriteLine(e);
 					}
 
-				return Task.FromResult(src);
+				return new ValueTask<T>(src);
 				}, 1000); // Always absolutely last
 
 			}

@@ -37,7 +37,7 @@ namespace Api.ContentSync
 		/// Sets up this stripe table.
 		/// </summary>
 		/// <param name="database"></param>
-		public async Task Setup(IDatabaseService database)
+		public async Task Setup(DatabaseService database)
 		{
 			// For each table:
 			var schema = database.Schema;

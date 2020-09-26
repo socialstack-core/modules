@@ -51,7 +51,7 @@ namespace Api.ContentSync
 			Console.WriteLine("[CSync] A server disconnected. Bye!");
 
 			// Tell the sync service to remove this:
-			Services.Get<IContentSyncService>().RemoveServer(this);
+			Services.Get<ContentSyncService>().RemoveServer(this);
 		}
 
 		/// <summary>
@@ -64,11 +64,11 @@ namespace Api.ContentSync
 			if (!Hello)
 			{
 				// It's up to us to send the hello:
-				var syncService = Services.Get<IContentSyncService>();
+				var syncService = Services.Get<ContentSyncService>();
 
 				// Send the hello.
 				// Sign our ID + their ID:
-				var signature = Services.Get<ISignatureService>().Sign(syncService.ServerId + "=>" + ServerId);
+				var signature = Services.Get<SignatureService>().Sign(syncService.ServerId + "=>" + ServerId);
 
 				var msg = syncService.HandshakeOpCode.Write(new SyncServerHandshake() {
 					ServerId = syncService.ServerId,
