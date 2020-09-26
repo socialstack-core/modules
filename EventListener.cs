@@ -16,7 +16,7 @@ namespace Api.LoginOnRegister
 	[EventListener]
 	public class EventListener
 	{
-		private IContextService _contexts;
+		private ContextService _contexts;
 
 		/// <summary>
 		/// Instanced automatically.
@@ -44,7 +44,7 @@ namespace Api.LoginOnRegister
 
 				if (_contexts == null)
 				{
-					_contexts = Services.Get<IContextService>();
+					_contexts = Services.Get<ContextService>();
 				}
 
 				context.UserId = user.Id;
