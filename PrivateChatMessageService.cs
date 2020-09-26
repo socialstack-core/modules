@@ -11,12 +11,12 @@ namespace Api.PrivateChats
 	/// Handles privateChatMessages.
 	/// Instanced automatically. Use injection to use this service, or Startup.Services.Get.
 	/// </summary>
-	public partial class PrivateChatMessageService : AutoService<PrivateChatMessage>, IPrivateChatMessageService
+	public partial class PrivateChatMessageService : AutoService<PrivateChatMessage>
     {
 		/// <summary>
 		/// Instanced automatically. Use injection to use this service, or Startup.Services.Get.
 		/// </summary>
-		public PrivateChatMessageService(IPrivateChatService _chats) : base(Events.PrivateChatMessage)
+		public PrivateChatMessageService(PrivateChatService _chats) : base(Events.PrivateChatMessage)
         {
 			
 			Events.PrivateChatMessage.BeforeCreate.AddEventListener(async (Context context, PrivateChatMessage msg) => {

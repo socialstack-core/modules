@@ -33,11 +33,11 @@ namespace Api.PrivateChats
 				Roles.Guest.Revoke("privateChatMessage_load", "privateChatMessage_list");
 				Roles.Public.Revoke("privateChatMessage_load", "privateChatMessage_list");
 				// Roles.Member.Revoke("privateChatMessage_load", "privateChatMessage_list");
-				
+
 				// Grant member load/ list if they're able to view the chat.
 				// (TODO)
-				
-				return Task.FromResult(source);
+
+				return new ValueTask<object>(source);
 			}, 20);
 		}
 	}
