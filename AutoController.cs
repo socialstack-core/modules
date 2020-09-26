@@ -69,6 +69,11 @@ public partial class AutoController<T> : ControllerBase
 		var result = await _service.Get(context, id);
 		result = await _service.EventGroup.Delete.Dispatch(context, result, Response);
 
+		if (result == null)
+		{
+			return null;
+		}
+
 		// Future todo - move this event inside the service:
 		result = await _service.EventGroup.BeforeDelete.Dispatch(context, result);
 		
@@ -293,6 +298,17 @@ public partial class AutoController<T> : ControllerBase
 			return null;
 		}
 
+		// Run the request update event (using the original object to be updated):
+		entity = await _service.EventGroup.Update.Dispatch(context, entity, Response) as T;
+
+		if (entity == null)
+		{
+			// Either not allowed to edit this, or it doesn't exist.
+			// Both situations are a 404.
+			Response.StatusCode = 404;
+			return null;
+		}
+
 		// In this case the entity ID is definitely known, so we can run all fields at the same time:
 		var notes = await SetFieldsOnObject(entity, context, body, JsonFieldGroup.Any);
 
@@ -303,9 +319,6 @@ public partial class AutoController<T> : ControllerBase
 
 		// Make sure it's the original ID:
 		entity.Id = id;
-
-		// Run the request update event:
-		entity = await _service.EventGroup.Update.Dispatch(context, entity, Response) as T;
 
 		if (entity == null)
 		{

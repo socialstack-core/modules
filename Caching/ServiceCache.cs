@@ -182,7 +182,7 @@ namespace Api.Startup{
 				lock(Primary){
 					foreach (var kvp in Primary)
 					{
-						set.Add(Clone(kvp.Value));
+						set.Add(kvp.Value);
 					}
 				}
 			}
@@ -199,7 +199,7 @@ namespace Api.Startup{
 						var intId = (int)id;
 						if (Primary.TryGetValue(intId, out T value))
 						{
-							set.Add(Clone(value));
+							set.Add(value);
 						}
 					}
 				}
@@ -211,7 +211,7 @@ namespace Api.Startup{
 						{
 							if (rootNode.Matches(values, kvp.Value))
 							{
-								set.Add(Clone(kvp.Value));
+								set.Add(kvp.Value);
 							}
 						}
 					}
@@ -336,50 +336,18 @@ namespace Api.Startup{
 				return null;
 			}
 
-			return Clone(result);
+			return result;
 		}
 
 		/// <summary>
 		/// Attempts to get the object with the given ID from the cache.
 		/// </summary>
 		/// <param name="id"></param>
-		/// <param name="clone">True if the object (specifically, its known fields) should be cloned.</param>
 		/// <returns></returns>
-		public T Get(int id, bool clone = true)
+		public T Get(int id)
 		{
-			if (Primary.TryGetValue(id, out T value) && clone)
-			{
-				value = Clone(value);
-			}
+			Primary.TryGetValue(id, out T value);
 			return value;
-		}
-
-		/// <summary>
-		/// Clones the given value's core fields. This is to exactly mimic an original database response.
-		/// </summary>
-		/// <param name="value"></param>
-		/// <returns></returns>
-		private T Clone(T value)
-		{
-			// Create a new object by cloning it and returning that.
-			// This is important to avoid race conditions by event handlers on popular content, as well as during updates.
-			// For example, when you update an object, it first gets it and then applies changed fields.
-			// That object, however, may have originated from the cache and is now being directly manipulated.
-			var result = new T();
-
-			// For each field in the type:
-			for (var i = 0; i < Fields.Count; i++)
-			{
-				var fieldMeta = Fields[i];
-
-				// Transfer the field:
-				fieldMeta.TargetField.SetValue(
-					result,
-					fieldMeta.TargetField.GetValue(value)
-				);
-			}
-
-			return result;
 		}
 
 		/// <summary>
