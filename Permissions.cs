@@ -22,7 +22,7 @@ namespace Api.UserFlags
 			{
 				// Allow public creation (as it's disabled by default):
 				Roles.Member.Grant("userflag_create");
-				
+
 				/*
 				Roles.Public.Grant("userFlag_create");
 				Roles.Guest.Grant("userFlag_create");
@@ -32,8 +32,8 @@ namespace Api.UserFlags
 				Roles.Public.Revoke("userFlag_load", "userFlag_list");
 				Roles.Member.Revoke("userFlag_load", "userFlag_list");
 				*/
-				
-				return Task.FromResult(source);
+
+				return new ValueTask<object>(source);
 			}, 20);
 		}
 	}

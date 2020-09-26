@@ -11,7 +11,7 @@ namespace Api.UserFlags
 	/// Handles userFlags.
 	/// Instanced automatically. Use injection to use this service, or Startup.Services.Get.
 	/// </summary>
-	public partial class UserFlagService : AutoService<UserFlag>, IUserFlagService
+	public partial class UserFlagService : AutoService<UserFlag>
     {
 		/// <summary>
 		/// Instanced automatically. Use injection to use this service, or Startup.Services.Get.
