@@ -53,7 +53,7 @@ namespace Api.Huddles
 				Roles.Member.Revoke("huddlePermittedUser_load", "huddlePermittedUser_list");
 				*/
 				
-				return Task.FromResult(source);
+				return new ValueTask<object>(source);
 			}, 20);
 		}
 	}

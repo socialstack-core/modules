@@ -15,7 +15,7 @@ namespace Api.Huddles
 	/// Handles huddleServers.
 	/// Instanced automatically. Use injection to use this service, or Startup.Services.Get.
 	/// </summary>
-	public partial class HuddleServerService : AutoService<HuddleServer>, IHuddleServerService
+	public partial class HuddleServerService : AutoService<HuddleServer>
     {
 		/// <summary>
 		/// The size in seconds of a time slice (15 minutes).
@@ -33,12 +33,12 @@ namespace Api.Huddles
 
 		private Random rand = new Random();
 
-		private IHuddleLoadMetricService _loadMetrics;
+		private HuddleLoadMetricService _loadMetrics;
 
 		/// <summary>
 		/// Instanced automatically. Use injection to use this service, or Startup.Services.Get.
 		/// </summary>
-		public HuddleServerService(IHuddleLoadMetricService loadMetrics) : base(Events.HuddleServer)
+		public HuddleServerService(HuddleLoadMetricService loadMetrics) : base(Events.HuddleServer)
         {
 			_loadMetrics = loadMetrics;
 

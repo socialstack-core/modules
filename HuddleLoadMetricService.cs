@@ -11,7 +11,7 @@ namespace Api.Huddles
 	/// Handles huddleLoadMetrics.
 	/// Instanced automatically. Use injection to use this service, or Startup.Services.Get.
 	/// </summary>
-	public partial class HuddleLoadMetricService : AutoService<HuddleLoadMetric>, IHuddleLoadMetricService
+	public partial class HuddleLoadMetricService : AutoService<HuddleLoadMetric>
     {
 		/// <summary>
 		/// Instanced automatically. Use injection to use this service, or Startup.Services.Get.

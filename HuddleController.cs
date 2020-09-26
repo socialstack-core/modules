@@ -22,7 +22,7 @@ namespace Api.Huddles
 				return null;
 			}
 			
-			var service = (_service as IHuddleService);
+			var service = (_service as HuddleService);
 			
 			// Get the huddle:
 			var huddle = await service.Get(context, id);

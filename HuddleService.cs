@@ -16,15 +16,15 @@ namespace Api.Huddles
 	/// Handles huddles.
 	/// Instanced automatically. Use injection to use this service, or Startup.Services.Get.
 	/// </summary>
-	public partial class HuddleService : AutoService<Huddle>, IHuddleService
+	public partial class HuddleService : AutoService<Huddle>
     {
-		private ISignatureService _signatures;
-		private IHuddleServerService _huddleServerService;
+		private SignatureService _signatures;
+		private HuddleServerService _huddleServerService;
 
 		/// <summary>
 		/// Instanced automatically. Use injection to use this service, or Startup.Services.Get.
 		/// </summary>
-		public HuddleService(ISignatureService signatures, IHuddleServerService huddleServerService) : base(Events.Huddle)
+		public HuddleService(SignatureService signatures, HuddleServerService huddleServerService) : base(Events.Huddle)
         {
 			_signatures = signatures;
 			_huddleServerService = huddleServerService;

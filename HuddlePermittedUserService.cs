@@ -16,15 +16,15 @@ namespace Api.Huddles
     /// Handles huddlePermittedUsers.
     /// Instanced automatically. Use injection to use this service, or Startup.Services.Get.
     /// </summary>
-    public partial class HuddlePermittedUserService : AutoService<HuddlePermittedUser>, IHuddlePermittedUserService
+    public partial class HuddlePermittedUserService : AutoService<HuddlePermittedUser>
     {
 
-        private IHuddleService _huddleService;
+        private HuddleService _huddleService;
 
         /// <summary>
         /// Instanced automatically. Use injection to use this service, or Startup.Services.Get.
         /// </summary>
-        public HuddlePermittedUserService(IUserService users, IHuddleService huddleService) : base(Events.HuddlePermittedUser)
+        public HuddlePermittedUserService(UserService users, HuddleService huddleService) : base(Events.HuddlePermittedUser)
         {
 
             _huddleService = huddleService;
@@ -558,7 +558,7 @@ namespace Api.Huddles
 
                 }
 
-                return Task.FromResult(field);
+                return new ValueTask<JsonField<Huddle>>(field);
             });
 
         }
