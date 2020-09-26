@@ -35,11 +35,19 @@ namespace Api.PrivateChats
 					// Get the target info:
 					chat.Target = await Content.Get(context, chat.TargetContentType, chat.TargetContentId);
 				}
+				else
+				{
+					chat.Target = null;
+				}
 
 				if (chat.SourceContentId != 0)
 				{
 					// Get the source info:
 					chat.Source = await Content.Get(context, chat.SourceContentType, chat.SourceContentId);
+				}
+				else
+				{
+					chat.Source = null;
 				}
 
 				return chat;
@@ -97,11 +105,19 @@ namespace Api.PrivateChats
 					// Get the target info:
 					chat.Target = await Content.Get(context, chat.TargetContentType, chat.TargetContentId, true);
 				}
+				else
+				{
+					chat.Target = null;
+				}
 				
 				if (chat.SourceContentId != 0)
 				{
 					// Get the source info:
 					chat.Source = await Content.Get(context, chat.SourceContentType, chat.SourceContentId, true);
+				}
+				else
+				{
+					chat.Source = null;
 				}
 				
 				return chat;
@@ -134,11 +150,19 @@ namespace Api.PrivateChats
 					// Get the target info:
 					chat.Target = await Content.Get(context, chat.TargetContentType, chat.TargetContentId, true);
 				}
+				else
+				{
+					chat.Target = null;
+				}
 				
 				if (chat.SourceContentId != 0)
 				{
 					// Get the source info:
 					chat.Source = await Content.Get(context, chat.SourceContentType, chat.SourceContentId, true);
+				}
+				else
+				{
+					chat.Source = null;
 				}
 
 				return chat;
