@@ -12,7 +12,7 @@ namespace Api.PubQuizzes
 	/// Handles pubQuizAnswers.
 	/// Instanced automatically. Use injection to use this service, or Startup.Services.Get.
 	/// </summary>
-	public partial class PubQuizAnswerService : AutoService<PubQuizAnswer>, IPubQuizAnswerService
+	public partial class PubQuizAnswerService : AutoService<PubQuizAnswer>
     {
 		/// <summary>
 		/// Instanced automatically. Use injection to use this service, or Startup.Services.Get.

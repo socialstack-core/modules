@@ -11,12 +11,12 @@ namespace Api.PubQuizzes
 	/// Handles pubQuizSubmissions.
 	/// Instanced automatically. Use injection to use this service, or Startup.Services.Get.
 	/// </summary>
-	public partial class PubQuizSubmissionService : AutoService<PubQuizSubmission>, IPubQuizSubmissionService
+	public partial class PubQuizSubmissionService : AutoService<PubQuizSubmission>
     {
 		/// <summary>
 		/// Instanced automatically. Use injection to use this service, or Startup.Services.Get.
 		/// </summary>
-		public PubQuizSubmissionService(IPubQuizAnswerService answers) : base(Events.PubQuizSubmission)
+		public PubQuizSubmissionService(PubQuizAnswerService answers) : base(Events.PubQuizSubmission)
         {
 			var pubQuizAnswerContentTypeId = ContentTypes.GetId(typeof(PubQuizAnswer));
 			// Example admin page install:

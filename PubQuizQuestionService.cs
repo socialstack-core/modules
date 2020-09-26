@@ -12,7 +12,7 @@ namespace Api.PubQuizzes
 	/// Handles pubQuizQuestions.
 	/// Instanced automatically. Use injection to use this service, or Startup.Services.Get.
 	/// </summary>
-	public partial class PubQuizQuestionService : AutoService<PubQuizQuestion>, IPubQuizQuestionService
+	public partial class PubQuizQuestionService : AutoService<PubQuizQuestion>
     {
 		/// <summary>
 		/// Instanced automatically. Use injection to use this service, or Startup.Services.Get.
@@ -45,7 +45,7 @@ namespace Api.PubQuizzes
 			{
 				if (field == null)
 				{
-					return Task.FromResult(field);
+					return new ValueTask<JsonField<PubQuizAnswer>>(field);
 				}
 
 				if (field.Name == "PubQuizId")
@@ -54,7 +54,7 @@ namespace Api.PubQuizzes
 					field = null;
 				}
 
-				return Task.FromResult(field);
+				return new ValueTask<JsonField<PubQuizAnswer>>(field);
 			}
 			);
 
@@ -62,7 +62,7 @@ namespace Api.PubQuizzes
 				{
 					if (field == null)
 					{
-						return Task.FromResult(field);
+						return new ValueTask<JsonField<PubQuizQuestion>>(field);
 					}
 
 					if (field.Name == "Answers")
@@ -71,7 +71,7 @@ namespace Api.PubQuizzes
 						field = null;
 					}
 
-					return Task.FromResult(field);
+					return new ValueTask<JsonField<PubQuizQuestion>>(field);
 				}
 			);
 		}
