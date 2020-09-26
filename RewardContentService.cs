@@ -11,7 +11,7 @@ namespace Api.Rewards
 	/// Handles rewardContents.
 	/// Instanced automatically. Use injection to use this service, or Startup.Services.Get.
 	/// </summary>
-	public partial class RewardContentService : AutoService<RewardContent>, IRewardContentService
+	public partial class RewardContentService : AutoService<RewardContent>
     {
 		/// <summary>
 		/// Instanced automatically. Use injection to use this service, or Startup.Services.Get.

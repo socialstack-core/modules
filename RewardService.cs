@@ -15,7 +15,7 @@ namespace Api.Rewards
 	/// Handles rewards - usually given to users, but can go on any entity which implements IHaveRewards.
 	/// Instanced automatically. Use injection to use this service, or Startup.Services.Get.
 	/// </summary>
-	public partial class RewardService : AutoService<Reward>, IRewardService
+	public partial class RewardService : AutoService<Reward>
     {
 		/// <summary>
 		/// Instanced automatically. Use injection to use this service, or Startup.Services.Get.
