@@ -13,7 +13,7 @@ namespace Api.FileTypeBlocker
 	/// <summary>
 	/// Instanced automatically. Use injection to use this service, or Startup.Services.Get.
 	/// </summary>
-	public partial class FileTypeBlockerService : IFileTypeBlockerService
+	public partial class FileTypeBlockerService
     {
 		private FileTypeBlockerConfig _configuration;
 
@@ -148,7 +148,7 @@ namespace Api.FileTypeBlocker
 				
 				if(upload == null)
 				{
-					return Task.FromResult((Upload)null);
+					return new ValueTask<Upload>(upload);
 				}
 				
 				// If whitelist mode, FileType must be in the set.
@@ -157,10 +157,10 @@ namespace Api.FileTypeBlocker
 				if(FilterSet.ContainsKey(upload.FileType) != UseWhitelist)
 				{
 					// Reject:
-					return Task.FromResult((Upload)null);
+					upload = null;
 				}
 				
-				return Task.FromResult(upload);
+				return new ValueTask<Upload>(upload);
 			});
 		}
 	}
