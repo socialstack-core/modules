@@ -92,6 +92,10 @@ namespace Api.Connections
 
 					connection.ConnectedToUser = user;
                 }
+				else
+				{
+					connection.ConnectedToUser = null;
+				}
 
 				return connection;
 			});
@@ -109,6 +113,10 @@ namespace Api.Connections
 
 					connection.ConnectedToUser = user;
 				}
+				else
+				{
+					connection.ConnectedToUser = null;
+				}
 
 				return connection;
 			});
@@ -125,6 +133,10 @@ namespace Api.Connections
 					var user = await users.GetProfile(context, connection.ConnectedToId.Value);
 
 					connection.ConnectedToUser = user;
+				}
+				else
+				{
+					connection.ConnectedToUser = null;
 				}
 
 				return connection;
@@ -172,6 +184,10 @@ namespace Api.Connections
 						if (userMap.TryGetValue(connection.ConnectedToId.Value, out UserProfile profile))
 						{
 							connection.ConnectedToUser = profile;
+						}
+						else
+						{
+							connection.ConnectedToUser = null;
 						}
 					}
 
