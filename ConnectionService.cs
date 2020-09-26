@@ -18,12 +18,12 @@ namespace Api.Connections
 	/// Handles connections (subscribers).
 	/// Instanced automatically. Use injection to use this service, or Startup.Services.Get.
 	/// </summary>
-	public partial class ConnectionService : AutoService<Connection>, IConnectionService
+	public partial class ConnectionService : AutoService<Connection>
     {
 		/// <summary>
 		/// Instanced automatically. Use injection to use this service, or Startup.Services.Get.
 		/// </summary>
-		public ConnectionService(IUserService users) : base(Events.Connection)
+		public ConnectionService(UserService users) : base(Events.Connection)
         {
 			InstallAdminPages("Connections", "fa:fa-user-friends", new string[] { "id", "email" });
 
