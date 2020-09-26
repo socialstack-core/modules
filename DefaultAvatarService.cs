@@ -15,7 +15,7 @@ namespace Api.DefaultAvatar
 	/// <summary>
 	/// Instanced automatically. Use injection to use this service, or Startup.Services.Get.
 	/// </summary>
-	public partial class DefaultAvatarService : IDefaultAvatarService
+	public partial class DefaultAvatarService
     {
 		private DefaultAvatarConfig _configuration; 
 		
@@ -50,7 +50,7 @@ namespace Api.DefaultAvatar
 			Events.User.BeforeCreate.AddEventListener((Context ctx, User user) => {
 				
 				if(user == null){
-					return Task.FromResult(user);
+					return new ValueTask<User>(user);
 				}
 				
 				if (string.IsNullOrEmpty(user.AvatarRef))
@@ -58,13 +58,13 @@ namespace Api.DefaultAvatar
 					user.AvatarRef = images[rand.Next(0, images.Length)];
 				}
 
-				return Task.FromResult(user);
+				return new ValueTask<User>(user);
 			}, 6);
 			
 			Events.User.BeforeUpdate.AddEventListener((Context ctx, User user) => {
 				
 				if(user == null){
-					return Task.FromResult(user);
+					return new ValueTask<User>(user);
 				}
 				
 				if (string.IsNullOrEmpty(user.AvatarRef))
@@ -72,7 +72,7 @@ namespace Api.DefaultAvatar
 					user.AvatarRef = images[rand.Next(0, images.Length)];
 				}
 
-				return Task.FromResult(user);
+				return new ValueTask<User>(user);
 			}, 6);
 			
 		}
