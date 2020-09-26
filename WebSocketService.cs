@@ -21,15 +21,15 @@ namespace Api.WebSockets
 	/// Handles creations of galleries - containers for image uploads.
 	/// Instanced automatically. Use injection to use this service, or Startup.Services.Get.
 	/// </summary>
-	public partial class WebSocketService : IWebSocketService
+	public partial class WebSocketService
     {
 
-		private readonly IContextService _contextService;
+		private readonly ContextService _contextService;
 
 		/// <summary>
 		/// Instanced automatically.
 		/// </summary>
-		public WebSocketService(IContextService contextService)
+		public WebSocketService(ContextService contextService)
 		{
 			_contextService = contextService;
 
@@ -38,7 +38,7 @@ namespace Api.WebSockets
 			Events.ServicesAfterStart.AddEventListener((Context ctx, object src) =>
 			{
 				Setup();
-				return Task.FromResult(src);
+				return new ValueTask<object>(src);
 			});
 		}
 
@@ -97,7 +97,7 @@ namespace Api.WebSockets
 
 				if (obj == null)
 				{
-					return Task.FromResult(obj);
+					return new ValueTask<T>(obj);
 				}
 
 				if (action == 1)
@@ -146,7 +146,7 @@ namespace Api.WebSockets
 					});
 				}
 
-				return Task.FromResult(obj);
+				return new ValueTask<T>(obj);
 			}, 50);
 
 			evtGroup.AfterCreate.AddEventListener((Context context, T obj) => {
@@ -163,7 +163,7 @@ namespace Api.WebSockets
 
 				});
 
-				return Task.FromResult(obj);
+				return new ValueTask<T>(obj);
 			}, 50);
 
 			evtGroup.AfterUpdate.AddEventListener((Context context, T obj) => {
@@ -180,7 +180,7 @@ namespace Api.WebSockets
 
 				});
 
-				return Task.FromResult(obj);
+				return new ValueTask<T>(obj);
 			}, 50);
 
 			evtGroup.AfterDelete.AddEventListener((Context context, T obj) => {
@@ -197,7 +197,7 @@ namespace Api.WebSockets
 
 				});
 
-				return Task.FromResult(obj);
+				return new ValueTask<T>(obj);
 			}, 50);
 
 		}
@@ -1228,7 +1228,7 @@ namespace Api.WebSockets
 		/// <summary>
 		/// Called when this client disconnects. Removes all their type listeners.
 		/// </summary>
-		public async Task OnDisconnected(IWebSocketService service)
+		public async Task OnDisconnected(WebSocketService service)
 		{
 			// Remove from user set:
 			await RemoveFromUserSet(service.UserListeners);

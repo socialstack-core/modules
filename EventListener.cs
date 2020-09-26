@@ -15,7 +15,7 @@ namespace Api.WebSockets
 	public class EventListener
 	{
 		
-		private IWebSocketService _websocketService;
+		private WebSocketService _websocketService;
 		
 		/// <summary>
 		/// Instanced automatically.
@@ -41,7 +41,7 @@ namespace Api.WebSockets
 					
 					// We've got a new websocket client.
 					if(_websocketService == null){
-						_websocketService = Api.Startup.Services.Get<IWebSocketService>();
+						_websocketService = Api.Startup.Services.Get<WebSocketService>();
 					}
 					
 					var context = http.Request.GetContext();
