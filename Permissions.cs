@@ -37,8 +37,8 @@ namespace Api.Notifications
 				Roles.Public.Revoke("notification_load", "notification_list");
 				Roles.Member.Revoke("notification_load", "notification_list");
 				*/
-				
-				return Task.FromResult(source);
+
+				return new ValueTask<object>(source);
 			}, 20);
 		}
 	}

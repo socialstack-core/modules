@@ -21,7 +21,7 @@ namespace Api.Notifications
 				return null;
 			}
 			
-			await (_service as INotificationService).MarkAllViewed(ctx, ctx.UserId);
+			await (_service as NotificationService).MarkAllViewed(ctx, ctx.UserId);
 			
 			return new {};
 		}
