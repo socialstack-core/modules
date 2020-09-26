@@ -110,6 +110,7 @@ namespace Api.Polls
 						{
 							continue;
 						}
+						poll.Answers = null;
 						pollMap[poll.Id] = poll;
 					}
 					
