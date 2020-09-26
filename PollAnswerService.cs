@@ -13,7 +13,7 @@ namespace Api.Polls
 	/// Handles polls.
 	/// Instanced automatically. Use injection to use this service, or Startup.Services.Get.
 	/// </summary>
-	public partial class PollAnswerService : AutoService<PollAnswer>, IPollAnswerService
+	public partial class PollAnswerService : AutoService<PollAnswer>
     {
 		/// <summary>
 		/// Instanced automatically. Use injection to use this service, or Startup.Services.Get.
@@ -26,7 +26,7 @@ namespace Api.Polls
 			{
 				if (field == null)
 				{
-					return Task.FromResult(field);
+					return new ValueTask<JsonField<PollAnswer>>(field);
 				}
 				
 				if(field.Name == "Votes")
@@ -35,7 +35,7 @@ namespace Api.Polls
 					field = null;
 				}
 				
-				return Task.FromResult(field);
+				return new ValueTask<JsonField<PollAnswer>>(field);
 			});
 			
 			Events.Poll.AfterLoad.AddEventListener(async (Context context, Poll poll) =>

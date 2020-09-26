@@ -41,8 +41,8 @@ namespace Api.Polls
 				// Public - the role used by anonymous users.
 				Roles.Guest.Grant("pollresponse_create");
 				Roles.Member.Grant("pollresponse_create");
-				
-				return Task.FromResult(source);
+
+				return new ValueTask<object>(source);
 			}, 20);
 		}
 	}

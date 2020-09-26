@@ -12,12 +12,12 @@ namespace Api.Polls
 	/// Handles polls.
 	/// Instanced automatically. Use injection to use this service, or Startup.Services.Get.
 	/// </summary>
-	public partial class PollResponseService : AutoService<PollResponse>, IPollResponseService
+	public partial class PollResponseService : AutoService<PollResponse>
     {
 		/// <summary>
 		/// Instanced automatically. Use injection to use this service, or Startup.Services.Get.
 		/// </summary>
-		public PollResponseService(IPollAnswerService answers) : base(Events.PollResponse)
+		public PollResponseService(PollAnswerService answers) : base(Events.PollResponse)
         {
 			
 			Events.PollResponse.BeforeCreate.AddEventListener(async (Context context, PollResponse response) => {
