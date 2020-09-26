@@ -35,7 +35,7 @@ namespace Api.UserAgendaEntries
 				Roles.Guest.Revoke("userAgendaEntry_load", "userAgendaEntry_list");
 				Roles.Public.Revoke("userAgendaEntry_load", "userAgendaEntry_list");
 				
-				return Task.FromResult(source);
+				return new ValueTask<object>(source);
 			}, 20);
 		}
 	}

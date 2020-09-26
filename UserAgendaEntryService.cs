@@ -11,7 +11,7 @@ namespace Api.UserAgendaEntries
 	/// Handles userAgendaEntries.
 	/// Instanced automatically. Use injection to use this service, or Startup.Services.Get.
 	/// </summary>
-	public partial class UserAgendaEntryService : AutoService<UserAgendaEntry>, IUserAgendaEntryService
+	public partial class UserAgendaEntryService : AutoService<UserAgendaEntry>
     {
 		/// <summary>
 		/// Instanced automatically. Use injection to use this service, or Startup.Services.Get.
