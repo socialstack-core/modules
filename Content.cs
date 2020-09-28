@@ -288,7 +288,7 @@ namespace Api.Database
 
 			foreach (var content in contents)
 			{
-				var entry = content as IHaveId;
+				var entry = content as IHaveId<int>;
 				if (entry == null)
 				{
 					continue;

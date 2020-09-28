@@ -311,7 +311,7 @@ namespace Api.Database
 		/// <param name="srcObject"></param>
 		/// <param name="args"></param>
 		/// <returns></returns>
-		public async Task<bool> Run<T>(Context context, Query<T> q, T srcObject, params object[] args) where T:DatabaseRow
+		public async Task<bool> Run<T>(Context context, Query<T> q, T srcObject, params object[] args) where T:class, new()
 		{
 			// UPDATE, DELETE and INSERT - Loop through each field in the query:
 			var fieldCount = q.Fields.Count;

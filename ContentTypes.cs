@@ -15,7 +15,6 @@ namespace Api.Database
 	/// </summary>
 	public static class ContentTypes
 	{
-
 		static ContentTypes()
 		{
 			// Setup the reverse content type map:
@@ -39,7 +38,7 @@ namespace Api.Database
 					continue;
 				}
 
-				if (!typeInfo.IsSubclassOf(typeof(DatabaseRow)))
+				if (!IsAssignableToGenericType(typeInfo, typeof(DatabaseRow<>)))
 				{
 					continue;
 				}
@@ -52,6 +51,53 @@ namespace Api.Database
 				ReverseMap[id] = name;
 				ReverseTypeMap[id] = typeInfo;
 			}
+		}
+
+		/// <summary>
+		/// True if the given type is assignable to the given "open" generic type.
+		/// </summary>
+		/// <param name="givenType"></param>
+		/// <param name="genericType"></param>
+		/// <returns></returns>
+		public static bool IsAssignableToGenericType(Type givenType, Type genericType)
+		{
+			return IsAssignableToGenericType(givenType, genericType, out Type ct);
+		}
+
+		/// <summary>
+		/// True if the given type is assignable to the given "open" generic type.
+		/// </summary>
+		/// <param name="givenType"></param>
+		/// <param name="genericType"></param>
+		/// <param name="concreteType"></param>
+		/// <returns></returns>
+		public static bool IsAssignableToGenericType(Type givenType, Type genericType, out Type concreteType)
+		{
+			var interfaceTypes = givenType.GetInterfaces();
+
+			foreach (var it in interfaceTypes)
+			{
+				if (it.IsGenericType && it.GetGenericTypeDefinition() == genericType)
+				{
+					concreteType = it;
+					return true;
+				}
+			}
+
+			if (givenType.IsGenericType && givenType.GetGenericTypeDefinition() == genericType)
+			{
+				concreteType = givenType;
+				return true;
+			}
+
+			Type baseType = givenType.BaseType;
+			if (baseType == null)
+			{
+				concreteType = null;
+				return false;
+			}
+
+			return IsAssignableToGenericType(baseType, genericType, out concreteType);
 		}
 
 		/// <summary>
