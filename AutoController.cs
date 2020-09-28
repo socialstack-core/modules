@@ -15,14 +15,14 @@ using Api.Users;
 /// Not required to use these - you can also just directly use ControllerBase if you want.
 /// Like AutoService this isn't in a namespace due to the frequency it's used.
 /// </summary>
-public partial class AutoController<T>
+public partial class AutoController<T, ID>
 {
 	/// <summary>
 	/// GET /v1/entityTypeName/revision/2/
 	/// Returns the data for 1 entity revision.
 	/// </summary>
 	[HttpGet("revision/{id}")]
-	public virtual async ValueTask<T> LoadRevision([FromRoute] int id)
+	public virtual async ValueTask<T> LoadRevision([FromRoute] ID id)
 	{
 		if (!_service.IsRevisionType())
 		{
@@ -40,7 +40,7 @@ public partial class AutoController<T>
 	/// Deletes an entity
 	/// </summary>
 	[HttpDelete("revision/{id}")]
-	public virtual async ValueTask<T> DeleteRevision([FromRoute] int id)
+	public virtual async ValueTask<T> DeleteRevision([FromRoute] ID id)
 	{
 		if (!_service.IsRevisionType())
 		{
@@ -107,7 +107,7 @@ public partial class AutoController<T>
 	/// Updates an entity revision with the given RevisionId.
 	/// </summary>
 	[HttpPost("revision/{id}")]
-	public virtual async ValueTask<T> UpdateRevision([FromRoute] int id, [FromBody] JObject body)
+	public virtual async ValueTask<T> UpdateRevision([FromRoute] ID id, [FromBody] JObject body)
 	{
 		if (!_service.IsRevisionType())
 		{
@@ -167,7 +167,7 @@ public partial class AutoController<T>
 	/// Publishes the given revision as the new live entry.
 	/// </summary>
 	[HttpGet("publish/{id}")]
-	public virtual async ValueTask<T> PublishRevision([FromRoute] int id, [FromBody] JObject body)
+	public virtual async ValueTask<T> PublishRevision([FromRoute] ID id, [FromBody] JObject body)
 	{
 		if (!_service.IsRevisionType())
 		{
@@ -216,7 +216,7 @@ public partial class AutoController<T>
 	/// Publishes the given posted object as an extension to the given revision.
 	/// </summary>
 	[HttpPost("publish/{id}")]
-	public virtual async ValueTask<T> PublishAndUpdateRevision([FromRoute] int id, [FromBody] JObject body)
+	public virtual async ValueTask<T> PublishAndUpdateRevision([FromRoute] ID id, [FromBody] JObject body)
 	{
 		if (!_service.IsRevisionType())
 		{
@@ -293,7 +293,7 @@ public partial class AutoController<T>
 		var entity = new T();
 
 		// If it's revisionable we'll set the user ID now:
-		var revisionableEntity = (entity as Api.Users.RevisionRow);
+		var revisionableEntity = (entity as Api.Users.RevisionRow<ID>);
 
 		if (revisionableEntity != null)
 		{

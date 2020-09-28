@@ -14,7 +14,7 @@ using System.Threading.Tasks;
 /// Note that you don't have to inherit this to create a service - it's just for convenience for common functionality.
 /// Services are actually detected purely by name.
 /// </summary>
-public partial class AutoService<T> where T: DatabaseRow, new(){
+public partial class AutoService<T, ID>{
 	
 	/// <summary>
 	/// A query which deletes 1 entity revision.
@@ -62,7 +62,7 @@ public partial class AutoService<T> where T: DatabaseRow, new(){
 			return _isRevisionType.Value;
 		}
 
-		_isRevisionType = typeof(RevisionRow).IsAssignableFrom(typeof(T));
+		_isRevisionType = ContentTypes.IsAssignableToGenericType(typeof(T), typeof(RevisionRow<>));
 		return _isRevisionType.Value;
 	}
 
@@ -93,8 +93,8 @@ public partial class AutoService<T> where T: DatabaseRow, new(){
 	/// </summary>
 	private void SetRevisionColumns(Query<T> query){
 		
-		var revisionIdField = typeof(RevisionRow).GetField("_RevisionId", BindingFlags.Instance | BindingFlags.NonPublic);
-		var idField = typeof(DatabaseRow).GetField("Id");
+		var revisionIdField = typeof(RevisionRow<ID>).GetField("_RevisionId", BindingFlags.Instance | BindingFlags.NonPublic);
+		var idField = typeof(T).GetField("Id");
 		
 		// Remap the ID column, because the Id column in the database goes to the RevisionId field always.
 		query.IdField = revisionIdField;
@@ -106,7 +106,7 @@ public partial class AutoService<T> where T: DatabaseRow, new(){
 		}
 
 		// Include hidden draft field:
-		var isDraftField = typeof(RevisionRow).GetField("_IsDraft", BindingFlags.Instance | BindingFlags.NonPublic);
+		var isDraftField = typeof(RevisionRow<ID>).GetField("_IsDraft", BindingFlags.Instance | BindingFlags.NonPublic);
 		query.AddField(new Field(typeof(T), isDraftField, "RevisionIsDraft"));
 		
 		// Similarly the actual Id field on the entity goes to the column called RevisionOriginalContentId:
@@ -118,7 +118,7 @@ public partial class AutoService<T> where T: DatabaseRow, new(){
 	/// Optionally includes uploaded content refs in there too.
 	/// </summary>
 	/// <returns></returns>
-	public virtual async ValueTask<bool> DeleteRevision(Context context, int id)
+	public virtual async ValueTask<bool> DeleteRevision(Context context, ID id)
 	{
 		if(revisionDeleteQuery == null)
 		{
@@ -152,7 +152,7 @@ public partial class AutoService<T> where T: DatabaseRow, new(){
 	/// <summary>
 	/// Gets a single entity revision by its ID.
 	/// </summary>
-	public virtual async ValueTask<T> GetRevision(Context context, int id)
+	public virtual async ValueTask<T> GetRevision(Context context, ID id)
 	{
 		if(revisionSelectQuery == null)
 		{
@@ -230,7 +230,7 @@ public partial class AutoService<T> where T: DatabaseRow, new(){
 			SetupRevisionQueries();
 		}
 		
-		if (entity.Id == 0)
+		if (entity.Id.Equals(0))
 		{
 			// Id required.
 			return null;
@@ -239,12 +239,12 @@ public partial class AutoService<T> where T: DatabaseRow, new(){
 		// Clear any existing drafts:
 		await _database.Run(context, clearDraftStateQuery, 0, entity.Id);
 
-		var rr = (entity as RevisionRow);
+		var rr = (entity as RevisionRow<ID>);
 
 		if (rr != null)
 		{
 			// Clear revision ID:
-			rr.RevisionId = 0;
+			rr.RevisionId = default;
 			rr.IsDraft = false;
 		}
 
@@ -262,6 +262,7 @@ public partial class AutoService<T> where T: DatabaseRow, new(){
 			return await Create(context, entity);
 		}
 	}
+
 	/// <summary>
 	/// Creates the given entity as a draft. It'll be assigned a content ID like anything else.
 	/// </summary>
@@ -272,7 +273,7 @@ public partial class AutoService<T> where T: DatabaseRow, new(){
 			SetupRevisionQueries();
 		}
 
-		if (entity.Id == 0)
+		if (entity.Id.Equals(0))
 		{
 			// For simplicity for other consuming API's (such as publishing draft content), as well as 
 			// so we can track all revisions of draft content, we'll get a content ID.

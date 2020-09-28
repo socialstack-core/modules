@@ -26,9 +26,6 @@ namespace Api.Revisions
 		/// </summary>
 		public EventListener()
 		{
-			var revisionIdField = typeof(RevisionRow).GetField("_RevisionId", BindingFlags.Instance | BindingFlags.NonPublic);
-			var isDraftField = typeof(RevisionRow).GetField("_IsDraft", BindingFlags.Instance | BindingFlags.NonPublic);
-			
 			// Hook up the database diff event, which will be used to generate tables for us:
 			Events.DatabaseDiffBeforeAdd.AddEventListener((Context ctx, FieldMap fieldMap, Type typeInfo, Schema newSchema) => {
 
@@ -40,11 +37,15 @@ namespace Api.Revisions
 				// Firstly, is this type a RevisionRow?
 				// If so, we'll need to add another table to the schema with the same set of fields only it's called _revisions.
 
-				if (!typeof(RevisionRow).IsAssignableFrom(typeInfo))
+				if (!ContentTypes.IsAssignableToGenericType(typeInfo, typeof(RevisionRow<>), out Type revisionRowType))
 				{
 					return new ValueTask<FieldMap>(fieldMap);
 				}
-
+				
+				var revisionIdField = revisionRowType.GetField("_RevisionId", BindingFlags.Instance | BindingFlags.NonPublic);
+				var isDraftField = revisionRowType.GetField("_IsDraft", BindingFlags.Instance | BindingFlags.NonPublic);
+			
+				
 				// We've got a revisionable content type. Add a revisions table to the schema:
 
 				var targetTableName = typeInfo.TableName() + "_revisions";
@@ -141,15 +142,18 @@ namespace Api.Revisions
 					continue;
 				}
 
-				if (!typeof(RevisionRow).IsAssignableFrom(contentType))
+				if (!ContentTypes.IsAssignableToGenericType(contentType, typeof(RevisionRow<>)))
 				{
 					// nope
 					continue;
 				}
 
 				// Invoke setup for type:
+				var idType = contentType.GetField("Id").FieldType;
+				
 				var setupType = methodInfo.MakeGenericMethod(new Type[] {
-					contentType
+					contentType,
+					idType
 				});
 
 				setupType.Invoke(this, new object[] {
@@ -169,8 +173,11 @@ namespace Api.Revisions
 		/// Sets a particular type with revision handlers. Used via reflection.
 		/// </summary>
 		/// <typeparam name="T"></typeparam>
+		/// <typeparam name="ID"></typeparam>
 		/// <param name="entityName"></param>
-		public void SetupForRevisions<T>(string entityName) where T : RevisionRow, new()
+		public void SetupForRevisions<T, ID>(string entityName)
+			where T : RevisionRow<ID>, new()
+			where ID: struct, IComparable
 		{
 			var contentType = typeof(T);
 
