@@ -31,7 +31,10 @@ export default class HuddleSpy extends React.Component {
 			produce: false,
 			consume: true,
 			useSimulcast: true,
-			useSharingSimulcast: true
+			useSharingSimulcast: true,
+			device: {
+				huddleSpy: true
+			}
 		});
 		
 		if(ret){
@@ -57,7 +60,6 @@ export default class HuddleSpy extends React.Component {
 		const { huddleClient } = this.state;
 		huddleClient.addEventListener('roomupdate', this.onRoomUpdate);
 		huddleClient.join();
-		
 	}
 	
 	componentWillUnmount()
