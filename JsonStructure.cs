@@ -61,7 +61,7 @@ namespace Api.Startup
 	/// Describes the available fields on a particular type.
 	/// This exists so we can, for example, role restrict setting particular fields.
 	/// </summary>
-	public class JsonStructure<T> : JsonStructure where T: DatabaseRow, new()
+	public class JsonStructure<T> : JsonStructure
 	{
 		/// <summary>
 		/// All raw fields in this structure.
@@ -448,7 +448,7 @@ namespace Api.Startup
 	/// A field within a JsonStructure.
 	/// </summary>
 	/// <typeparam name="T"></typeparam>
-	public class JsonField<T> : JsonField where T : DatabaseRow, new() {
+	public class JsonField<T> : JsonField {
 
 		/// <summary>
 		/// The structure this field belongs to.

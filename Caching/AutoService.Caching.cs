@@ -15,7 +15,7 @@ using Api.Translate;
 /// Note that you don't have to inherit this to create a service - it's just for convenience for common functionality.
 /// Services are actually detected purely by name.
 /// </summary>
-public partial class AutoService<T> : AutoService where T: DatabaseRow, new(){
+public partial class AutoService<T, ID> {
 
 	/// <summary>
 	/// The config for the cache.
@@ -25,7 +25,7 @@ public partial class AutoService<T> : AutoService where T: DatabaseRow, new(){
 	/// The caches, if enabled. Call Cache() to set this service as one with caching active.
 	/// It's an array as there's one per locale.
 	/// </summary>
-	protected ServiceCache<T>[] _cache;
+	protected ServiceCache<T, ID>[] _cache;
 
 	/// <summary>
 	/// Gets the index ID of a cache index with the given key name.
@@ -69,7 +69,7 @@ public partial class AutoService<T> : AutoService where T: DatabaseRow, new(){
 	/// </summary>
 	/// <param name="localeId"></param>
 	/// <returns></returns>
-	public ServiceCache<T> GetCacheForLocale(int localeId)
+	public ServiceCache<T, ID> GetCacheForLocale(int localeId)
 	{
 		if (_cache == null || localeId <= 0 || localeId > _cache.Length)
 		{
@@ -116,7 +116,7 @@ public partial class AutoService<T> : AutoService where T: DatabaseRow, new(){
 			};
 		}
 
-		_cache = new ServiceCache<T>[localeSet.Length];
+		_cache = new ServiceCache<T, ID>[localeSet.Length];
 
 		for (var i = 0; i < localeSet.Length; i++)
 		{
@@ -128,7 +128,7 @@ public partial class AutoService<T> : AutoService where T: DatabaseRow, new(){
 				continue;
 			}
 
-			_cache[i] = new ServiceCache<T>(indices);
+			_cache[i] = new ServiceCache<T, ID>(indices);
 			_cache[i].OnChange = genericCfg == null ? null : genericCfg.OnChange;
 		}
 		

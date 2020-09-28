@@ -221,7 +221,7 @@ namespace Api.Startup
 			if (type.IsGenericType)
 			{
 
-				if (type.GetGenericTypeDefinition() == typeof(AutoService<>))
+				if (type.GetGenericTypeDefinition() == typeof(AutoService<,>))
 				{
 					// Yep, this is an AutoService type.
 					return type;

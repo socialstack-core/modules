@@ -21,7 +21,7 @@ namespace Api.Startup {
 	/// </summary>
 	public class IHaveArrayHandler<T, U, M> 
 			where T : class
-			where U : DatabaseRow, new()
+			where U : DatabaseRow<int>, new()
 			where M : MappingRow, new()
 	{
 		/// <summary>
@@ -107,7 +107,7 @@ namespace Api.Startup {
 		/// Sets a particular type with IHave* handlers. Used via reflection.
 		/// </summary>
 		/// <typeparam name="CT"></typeparam>
-		public void SetupHandlers<CT>() where CT : DatabaseRow, T, new()
+		public void SetupHandlers<CT>() where CT : DatabaseRow<int>, T, new()
 		{
 			UserService _users = null;
 
@@ -127,9 +127,9 @@ namespace Api.Startup {
 
 				int revisionId = 0;
 
-				if (content is RevisionRow)
+				if (content is RevisionRow<int>)
 				{
-					var revId = (content as RevisionRow).RevisionId;
+					var revId = (content as RevisionRow<int>).RevisionId;
 
 					if (revId.HasValue)
 					{
@@ -215,9 +215,9 @@ namespace Api.Startup {
 
 						int revisionId = 0;
 
-						if (targetObject is RevisionRow)
+						if (targetObject is RevisionRow<int>)
 						{
-							var revId = (targetObject as RevisionRow).RevisionId;
+							var revId = (targetObject as RevisionRow<int>).RevisionId;
 
 							if (revId.HasValue)
 							{

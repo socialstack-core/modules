@@ -16,15 +16,28 @@ using System.Threading.Tasks;
 /// Like AutoService this isn't in a namespace due to the frequency it's used.
 /// </summary>
 /// <typeparam name="T"></typeparam>
+public partial class AutoController<T> : AutoController<T, int>
+	where T : Api.Database.DatabaseRow<int>, new()
+{
+}
+
+/// <summary>
+/// A convenience controller for defining common endpoints like create, list, delete etc. Requires an AutoService of the same type to function.
+/// Not required to use these - you can also just directly use ControllerBase if you want.
+/// Like AutoService this isn't in a namespace due to the frequency it's used.
+/// </summary>
+/// <typeparam name="T"></typeparam>
+/// <typeparam name="ID"></typeparam>
 [ApiController]
-public partial class AutoController<T> : ControllerBase
-	where T : Api.Database.DatabaseRow, new()
+public partial class AutoController<T,ID> : ControllerBase
+	where T : Api.Database.DatabaseRow<ID>, new()
+	where ID : struct, IConvertible
 {
 
 	/// <summary>
 	/// The underlying autoservice used by this controller.
 	/// </summary>
-	protected AutoService<T> _service;
+	protected AutoService<T, ID> _service;
 
     /// <summary>
     /// Instanced automatically.
@@ -32,9 +45,9 @@ public partial class AutoController<T> : ControllerBase
     public AutoController()
     {
         // Find the service:
-        if (Api.Startup.Services.AutoServices.TryGetValue(typeof(AutoService<T>), out AutoService svc))
+        if (Api.Startup.Services.AutoServices.TryGetValue(typeof(AutoService<T, ID>), out AutoService svc))
 		{
-			_service = (AutoService<T>)svc;
+			_service = (AutoService<T, ID>)svc;
 		}
 		else
 		{
@@ -51,7 +64,7 @@ public partial class AutoController<T> : ControllerBase
 	/// Returns the data for 1 entity.
 	/// </summary>
 	[HttpGet("{id}")]
-	public virtual async ValueTask<object> Load([FromRoute] int id)
+	public virtual async ValueTask<object> Load([FromRoute] ID id)
 	{
 		var context = Request.GetContext();
 		var result = await _service.Get(context, id);
@@ -63,7 +76,7 @@ public partial class AutoController<T> : ControllerBase
     /// Deletes an entity
     /// </summary>
     [HttpDelete("{id}")]
-    public virtual async ValueTask<object> Delete([FromRoute] int id)
+    public virtual async ValueTask<object> Delete([FromRoute] ID id)
 	{
 		var context = Request.GetContext();
 		var result = await _service.Get(context, id);
@@ -164,7 +177,7 @@ public partial class AutoController<T> : ControllerBase
 		var entity = new T();
 
 		// If it's revisionable we'll set the user ID now:
-		var revisionableEntity = (entity as Api.Users.RevisionRow);
+		var revisionableEntity = (entity as Api.Users.RevisionRow<ID>);
 
 		if (revisionableEntity != null)
 		{
@@ -175,7 +188,7 @@ public partial class AutoController<T> : ControllerBase
 		var notes = await SetFieldsOnObject(entity, context, body, JsonFieldGroup.Default);
 
 		// Not permitted to create with a specified ID via the API. Ensure it's 0:
-		entity.Id = 0;
+		entity.Id = default;
 
 		// Fire off a create event:
 		entity = await _service.EventGroup.Create.Dispatch(context, entity, Response) as T;
@@ -284,7 +297,7 @@ public partial class AutoController<T> : ControllerBase
 	/// Updates an entity with the given ID.
 	/// </summary>
 	[HttpPost("{id}")]
-	public virtual async ValueTask<object> Update([FromRoute] int id, [FromBody] JObject body)
+	public virtual async ValueTask<object> Update([FromRoute] ID id, [FromBody] JObject body)
 	{
 		var context = Request.GetContext();
 		

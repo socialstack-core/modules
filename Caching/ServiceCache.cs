@@ -13,7 +13,9 @@ namespace Api.Startup{
 	/// A cache for content which is frequently read but infrequently written.
 	/// There is one of these per locale, stored by AutoService.
 	/// </summary>
-	public class ServiceCache<T> where T:DatabaseRow, new()
+	public class ServiceCache<T, PT> 
+		where T:DatabaseRow<PT>
+		where PT:struct
 	{
 		/// <summary>
 		/// True if this cache is in lazy loading mode.
@@ -23,7 +25,7 @@ namespace Api.Startup{
 		/// <summary>
 		/// The primary cached index.
 		/// </summary>
-		private Dictionary<int, T> Primary;
+		private Dictionary<PT, T> Primary;
 
 		/// <summary>
 		/// The indices of the cache. The name of the index is the same as it is in the database 
@@ -116,7 +118,7 @@ namespace Api.Startup{
 					index.Primary = true;
 
 					// Primary - grab the underlying dictionary ref:
-					Primary = index.GetUnderlyingStructure() as Dictionary<int, T>;
+					Primary = index.GetUnderlyingStructure() as Dictionary<PT, T>;
 				}
 				else
 				{
@@ -136,7 +138,7 @@ namespace Api.Startup{
 
 			if (Primary == null)
 			{
-				Primary = new Dictionary<int, T>();
+				Primary = new Dictionary<PT, T>();
 			}
 		}
 
@@ -144,7 +146,7 @@ namespace Api.Startup{
 		/// Get the primary index.
 		/// </summary>
 		/// <returns></returns>
-		public Dictionary<int, T> GetPrimary()
+		public Dictionary<PT, T> GetPrimary()
 		{
 			return Primary;
 		}
@@ -196,7 +198,7 @@ namespace Api.Startup{
 					// Directly hit the primary key to return results.
 					foreach (var id in setNode.Values)
 					{
-						var intId = (int)id;
+						var intId = (PT)id;
 						if (Primary.TryGetValue(intId, out T value))
 						{
 							set.Add(value);
@@ -344,7 +346,7 @@ namespace Api.Startup{
 		/// </summary>
 		/// <param name="id"></param>
 		/// <returns></returns>
-		public T Get(int id)
+		public T Get(PT id)
 		{
 			Primary.TryGetValue(id, out T value);
 			return value;
@@ -369,7 +371,7 @@ namespace Api.Startup{
 		/// <param name="entry"></param>
 		public void Add(Context context, T entry)
 		{
-			if (entry == null || entry.Id <= 0)
+			if (entry == null)
 			{
 				return;
 			}
@@ -388,7 +390,7 @@ namespace Api.Startup{
 		/// </summary>
 		/// <param name="context"></param>
 		/// <param name="id"></param>
-		public void Remove(Context context, int id)
+		public void Remove(Context context, PT id)
 		{
 			var prev = Remove(id, true);
 
@@ -403,7 +405,7 @@ namespace Api.Startup{
 		/// </summary>
 		/// <param name="id"></param>
 		/// <param name="fromPrimary">Also remove from the primary</param>
-		private T Remove(int id, bool fromPrimary)
+		private T Remove(PT id, bool fromPrimary)
 		{
 			if (Primary == null || !Primary.TryGetValue(id, out T value))
 			{

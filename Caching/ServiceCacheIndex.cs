@@ -8,7 +8,7 @@ namespace Api.Startup{
 	
 	/// <summary>
 	/// </summary>
-	public class ServiceCacheIndex<T> where T : DatabaseRow
+	public class ServiceCacheIndex<T> where T : class
 	{
 		/// <summary>
 		/// The ID of this index. Does not persist across restarts etc.
@@ -81,7 +81,7 @@ namespace Api.Startup{
 	/// </summary>
 	/// <typeparam name="T"></typeparam>
 	/// <typeparam name="U"></typeparam>
-	public class UniqueIndex<T, U> : ServiceCacheIndex<T> where T : DatabaseRow {
+	public class UniqueIndex<T, U> : ServiceCacheIndex<T> where T : class {
 
 		private Dictionary<U, T> Index = new Dictionary<U, T>();
 

@@ -16,7 +16,29 @@ using System.Threading.Tasks;
 /// Services are actually detected purely by name.
 /// </summary>
 /// <typeparam name="T"></typeparam>
-public partial class AutoService<T> : AutoService where T: DatabaseRow, new(){
+public partial class AutoService<T> : AutoService<T, int>
+	where T : DatabaseRow<int>, new()
+{
+	/// <summary>
+	/// Instanced automatically
+	/// </summary>
+	/// <param name="eventGroup"></param>
+	public AutoService(EventGroup<T> eventGroup):base(eventGroup)
+	{ }
+}
+
+/// <summary>
+/// A general use service which manipulates an entity type. In the global namespace due to its common use.
+/// Deletes, creates, lists and updates them whilst also firing off a series of events.
+/// Note that you don't have to inherit this to create a service - it's just for convenience for common functionality.
+/// Services are actually detected purely by name.
+/// </summary>
+/// <typeparam name="T"></typeparam>
+/// <typeparam name="ID">ID type (usually int)</typeparam>
+public partial class AutoService<T, ID> : AutoService 
+	where T: DatabaseRow<ID>, new()
+	where ID: struct, IConvertible
+{
 	
 	/// <summary>
 	/// A query which deletes 1 entity.
@@ -68,8 +90,18 @@ public partial class AutoService<T> : AutoService where T: DatabaseRow, new(){
 		listQuery = Query.List<T>();
 
 		EventGroup = eventGroup;
+
+		// GetObject specifically uses integer IDs (and is only available on services that have integer IDs)
+		// We need to make a delegate that it can use for mapping that integer through to whatever typeof(ID) is.
+		if (typeof(ID) == typeof(int))
+		{
+			var getMethodDelegate = (Func<Context, ID, ValueTask<T>>)Get;
+			_getWithIntId = (getMethodDelegate as Func<Context, int, ValueTask<T>>);
+		}
+
 	}
 	
+	private Func<Context, int, ValueTask<T>> _getWithIntId;
 	private JsonStructure<T>[] _jsonStructures = null;
 
 	/// <summary>
@@ -113,7 +145,7 @@ public partial class AutoService<T> : AutoService where T: DatabaseRow, new(){
 	/// Optionally includes uploaded content refs in there too.
 	/// </summary>
 	/// <returns></returns>
-	public virtual async ValueTask<bool> Delete(Context context, int id)
+	public virtual async ValueTask<bool> Delete(Context context, ID id)
 	{
 		// Delete the entry:
 		await _database.Run(context, deleteQuery, id);
@@ -267,9 +299,14 @@ public partial class AutoService<T> : AutoService where T: DatabaseRow, new(){
 	/// <returns></returns>
 	public override async ValueTask<object> GetObject(Context context, int id)
 	{
-		return await Get(context, id);
-	}
+		if (_getWithIntId == null)
+		{
+			throw new Exception("Only available on types with integer IDs. " + typeof(T) + " uses an ID which is a " + typeof(ID));
+		}
 
+		return await _getWithIntId(context, id);
+	}
+	
 	/// <summary>
 	/// Updates an object in this service.
 	/// </summary>
@@ -303,7 +340,7 @@ public partial class AutoService<T> : AutoService where T: DatabaseRow, new(){
 	/// <summary>
 	/// Gets a single entity by its ID.
 	/// </summary>
-	public virtual async ValueTask<T> Get(Context context, int id)
+	public virtual async ValueTask<T> Get(Context context, ID id)
 	{
 		if (NestableAddMask != 0 && (context.NestedTypes & NestableAddMask) == NestableAddMask)
 		{
@@ -355,7 +392,7 @@ public partial class AutoService<T> : AutoService where T: DatabaseRow, new(){
 			return entity;
 		}
 
-		if (entity.Id != 0)
+		if (!entity.Id.Equals(0))
 		{
 			// Explicit ID has been provided.
 			await _database.Run(context, createWithIdQuery, entity);
@@ -597,7 +634,7 @@ public class AutoService
 			if (installPages != null)
 			{
 				// InstallAdminPages(string typeName, string[] fields)
-				await (Task)installPages.Invoke(pageService, new object[] {
+				await (ValueTask)installPages.Invoke(pageService, new object[] {
 					typeName,
 					fields
 				});
