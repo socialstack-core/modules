@@ -1,12 +1,13 @@
 ﻿using Api.Database;
 using Api.Translate;
+using Api.Users;
 
 namespace Api.Emails
 {
     /// <summary>
     /// A particular email template.
     /// </summary>
-    public class EmailTemplate : DatabaseRow
+    public class EmailTemplate : RevisionRow
     {
 		/// <summary>
 		/// The internal key for this token. E.g. "forgot_password".
