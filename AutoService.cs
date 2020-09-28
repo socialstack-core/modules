@@ -670,7 +670,7 @@ public class AutoService
 	/// </summary>
 	protected void DefineIHaveArrayHandler<T, U, M>(string whereFieldName, string mapperFieldName, Action<T, List<U>> setResult)
 		where T : class
-		where U : DatabaseRow, new()
+		where U : DatabaseRow<int>, new()
 		where M : MappingRow, new()
 	{
 		var mapper = new IHaveArrayHandler<T, U, M>() {
