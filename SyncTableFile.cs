@@ -797,7 +797,7 @@ namespace Api.ContentSync
 			foreach (var kvp in ContentTypes.TypeMap)
 			{
 				// Get the service for this thing (if there is one):
-				var svc = Services.Get("I" + kvp.Value.Name + "Service");
+				var svc = Services.Get(kvp.Value.Name + "Service");
 
 				var tableName = kvp.Value.TableName();
 				var filePath = ParentDirectory + "/" + tableName + ".txt";

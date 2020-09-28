@@ -175,7 +175,7 @@ namespace Api.ContentSync
 		/// Sets up a particular content type with e.g. ID assign handlers.
 		/// </summary>
 		/// <typeparam name="T"></typeparam>
-		public void SetupForType<T>(StripeTable table) where T : DatabaseRow, new()
+		public void SetupForType<T>(StripeTable table) where T : DatabaseRow<int>, new()
 		{
 			// Invoked by reflection
 
@@ -697,9 +697,12 @@ namespace Api.ContentSync
 		/// Register a content type as an opcode.
 		/// </summary>
 		/// <typeparam name="T"></typeparam>
+		/// <typeparam name="ID"></typeparam>
 		/// <param name="meta"></param>
 		/// <param name="addListeners"></param>
-		public void HandleTypeInternal<T>(ContentSyncTypeMeta meta, bool addListeners) where T : DatabaseRow, new()
+		public void HandleTypeInternal<T, ID>(ContentSyncTypeMeta meta, bool addListeners)
+			where T : DatabaseRow<ID>, new()
+			where ID : struct, IConvertible
 		{
 			// NOTE: This is used by reflection by HandleType.
 
@@ -707,7 +710,7 @@ namespace Api.ContentSync
 
 			// Get the service:
 			var a = Services.GetByContentType(typeof(T));
-			var svc = a as AutoService<T>;
+			var svc = a as AutoService<T, ID>;
 
 			if (svc == null)
 			{
@@ -907,8 +910,11 @@ namespace Api.ContentSync
 		private void HandleType(ContentSyncTypeMeta meta, bool addListeners)
 		{
 			// This is only called a handful of times during startup
+			var idType = meta.Type.GetField("Id").FieldType;
+
 			var handleTypeInternal = GetType().GetMethod("HandleTypeInternal").MakeGenericMethod(new Type[] {
-				meta.Type
+				meta.Type,
+				idType
 			});
 
 			handleTypeInternal.Invoke(this, new object[] {
