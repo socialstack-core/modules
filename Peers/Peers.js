@@ -7,6 +7,10 @@ export default class Peers extends React.Component {
 		var peers = huddleClient.peers;
 		var activeSpeakerId = huddleClient.room.activeSpeakerId;
 		
+		if(peers){
+			peers = peers.filter(peer => !peer.device || !peer.device.huddleSpy);
+		}
+		
 		if(!peers || !peers.length){
 			return <div className="peers">
 				<h2 className="nobody-else">
