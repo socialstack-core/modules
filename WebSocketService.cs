@@ -75,7 +75,7 @@ namespace Api.WebSockets
 		/// </summary>
 		/// <typeparam name="T"></typeparam>
 		/// <param name="entityName"></param>
-		public void SetupForType<T>(string entityName) where T:DatabaseRow, new()
+		public void SetupForType<T>(string entityName) where T:new()
 		{
 			// Invoked by reflection
 			
