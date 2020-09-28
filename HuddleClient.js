@@ -58,7 +58,8 @@ export default class HuddleClient
 			forceH264,
 			forceVP9,
 			svc,
-			datachannel
+			datachannel,
+			device
 		}
 	)
 	{
@@ -69,6 +70,7 @@ export default class HuddleClient
 		this.consumersById = {};
 		this.peers = [];
 		this.peersById = {};
+		this.device = device || {};
 		
 		this.room = {
 			id: roomId,
@@ -202,23 +204,29 @@ export default class HuddleClient
 
 	close()
 	{
-		if (this._closed || !this._protoo)
-			return;
-
+		var wasClosed = this._closed;
 		this._closed = true;
 		
+		if(this._permAudioTrack){
+			this._permAudioTrack.stop();
+			this._permAudioTrack=null;
+		}
+		
 		// Close protoo Peer
-		this._protoo.close();
-
+		if(this._protoo)
+			this._protoo.close();
+		
 		// Close mediasoup Transports.
 		if (this._sendTransport)
 			this._sendTransport.close();
-
+		
 		if (this._recvTransport)
 			this._recvTransport.close();
 		
-		this.room.state = 'closed';
-		this.dispatchEvent({type: 'roomupdate', room: this.room});
+		if(!wasClosed){
+			this.room.state = 'closed';
+			this.dispatchEvent({type: 'roomupdate', room: this.room});
+		}
 	}
 	
 	dispatchEvent(evt)
@@ -276,10 +284,13 @@ export default class HuddleClient
 			return this.joinFail();
 		}
 		
+		if(this._closed){
+			return;
+		}
+		
 		// huddleType and my role:
 		this.room.huddle = huddleInfo.json.huddle;
 		this.me.role = huddleInfo.json.role;
-		console.log(this.me);
 		
 		var isHttps = url.indexOf("localhost") == -1;
 		const protooTransport = new protoo.WebSocketTransport((isHttps ? 'wss' : 'ws') + '://' + url.trim());
@@ -1782,6 +1793,10 @@ export default class HuddleClient
 	
 	async _joinRoom()
 	{
+		if(this._closed){
+			return;
+		}
+		
 		try
 		{
 			this._mediasoupDevice = new mediasoup.Device(
@@ -1824,7 +1839,7 @@ export default class HuddleClient
 					const audioTrack = stream.getAudioTracks()[0];
 
 					audioTrack.enabled = false;
-
+					this._permAudioTrack = audioTrack;
 					setTimeout(() => audioTrack.stop(), 120000);
 				}
 
@@ -1941,7 +1956,11 @@ export default class HuddleClient
 							? this._mediasoupDevice.sctpCapabilities
 							: undefined
 					});
-
+				
+				if(this._closed){
+					return;
+				}
+				
 				const {
 					id,
 					iceParameters,
@@ -1963,6 +1982,11 @@ export default class HuddleClient
 				this._recvTransport.on(
 					'connect', ({ dtlsParameters }, callback, errback) => // eslint-disable-line no-shadow
 					{
+						
+						if(this._closed){
+							return;
+						}
+						
 						this._protoo.request(
 							'connectWebRtcTransport',
 							{
@@ -1973,13 +1997,17 @@ export default class HuddleClient
 							.catch(errback);
 					});
 			}
-
+			
+			if(this._closed){
+				return;
+			}
+			
 			// Join now into the room.
 			// NOTE: Don't send our RTP capabilities if we don't want to consume.
 			const { peers, peerId } = await this._protoo.request(
 				'join',
 				{
-					device          : {},
+					device          : this.device,
 					rtpCapabilities : this._consume
 						? this._mediasoupDevice.rtpCapabilities
 						: undefined,
