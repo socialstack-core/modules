@@ -15,7 +15,7 @@ namespace Api.Eventing
 	/// public static EventGroup{Page} Page;
 	/// </summary>
 	/// <typeparam name="T"></typeparam>
-	public partial class EventGroup<T> where T : DatabaseRow, new()
+	public partial class EventGroup<T>
 	{
 		#region Service events
 

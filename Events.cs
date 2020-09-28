@@ -34,7 +34,7 @@ namespace Api.Eventing
 		/// </summary>
 		/// <typeparam name="T"></typeparam>
 		/// <returns></returns>
-		public static EventGroup<T> GetGroup<T>() where T:DatabaseRow, new()
+		public static EventGroup<T> GetGroup<T>()
 		{
 			if (GroupLookup.TryGetValue(typeof(T), out object result))
 			{
