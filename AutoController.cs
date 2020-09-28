@@ -22,8 +22,7 @@ using Newtonsoft.Json;
 /// Not required to use these - you can also just directly use ControllerBase if you want.
 /// Like AutoService this isn't in a namespace due to the frequency it's used.
 /// </summary>
-public partial class AutoController<T>
-	where T : Api.Database.DatabaseRow, new()
+public partial class AutoController<T,ID>
 {
 
 	private CsvMapping _csvMapping;
