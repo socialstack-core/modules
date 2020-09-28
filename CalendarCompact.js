@@ -69,7 +69,7 @@ export default class CalendarCompact extends React.Component {
 	}
 	
 	componentDidMount(){
-		this.load(0);
+		this.load(0, this.props);
 	}
 	
 	/*
@@ -78,8 +78,12 @@ export default class CalendarCompact extends React.Component {
 	}
 	*/
 	
-	dayStartUtc(offset){
+	dayStartUtc(offset, props){
 		// Local day start:
+		if(props.date){
+			return localToUtc(props.date);
+		}
+		
 		var start = new Date();
 		if(offset){
 			start = addDays(start, offset);
@@ -101,8 +105,8 @@ export default class CalendarCompact extends React.Component {
 		this.load(offset);
 	}
 	
-	load(offset){
-		var { days } = this.props;
+	load(offset, props){
+		var { days } = props;
 		
 		if(!days){
 			days = 3;
@@ -112,7 +116,7 @@ export default class CalendarCompact extends React.Component {
 			days = 1;
 		}
 		
-		var sliceStart = this.dayStartUtc(offset);
+		var sliceStart = this.dayStartUtc(offset, props);
 		
 		// The timeslice goes from sliceStart -> sliceStart + num of visible days:
 		var sliceEnd = addDays(sliceStart, days);
@@ -133,6 +137,12 @@ export default class CalendarCompact extends React.Component {
 		
 		// Request for section:
 		this.populateBetween(sliceStart, sliceEnd, dayMeta);
+	}
+	
+	componentWillReceiveProps(props){
+		if(props.date && props.date != this.props.date){
+			this.load(0, props);
+		}
 	}
 	
 	populateBetween(start, end, dayMeta){
