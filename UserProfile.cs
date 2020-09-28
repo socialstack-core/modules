@@ -8,7 +8,7 @@ namespace Api.Users
     /// <summary>
     /// A typically public facing segment of a user account.
     /// </summary>
-    public partial class UserProfile: IHaveId
+    public partial class UserProfile: IHaveId<int>
     {
 		/// <summary>
 		/// Starts creating a public facing variant of the given user object.

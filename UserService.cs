@@ -169,7 +169,7 @@ namespace Api.Users
 		/// </summary>
 		/// <typeparam name="T"></typeparam>
 		/// <param name="entityName"></param>
-		public void SetupForCreatorUser<T>(string entityName) where T : DatabaseRow, IHaveCreatorUser, new()
+		public void SetupForCreatorUser<T>(string entityName) where T : IHaveCreatorUser, new()
 		{
 			// Invoked by reflection
 			var evtGroup = Events.GetGroup<T>();
