@@ -198,7 +198,20 @@ namespace Api.Startup{
 					// Directly hit the primary key to return results.
 					foreach (var id in setNode.Values)
 					{
-						var intId = (PT)id;
+						PT intId = default;
+
+						if (id is PT pT)
+						{
+							intId = pT;
+						}
+						else
+						{
+							// Also a type conversion
+							// Currently when this happens, id is a long, and PT is int.
+							var idObj = (object)((int)((long)id));
+							intId = (PT)idObj;
+						}
+
 						if (Primary.TryGetValue(intId, out T value))
 						{
 							set.Add(value);
