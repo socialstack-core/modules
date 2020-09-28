@@ -336,7 +336,23 @@ public partial class AutoService<T, ID> : AutoService
 
 		return results;
 	}
-
+	
+	/// <summary>
+	/// Gets a single entity by its ID, then performs a permission system check.
+	/// Throws if the permission system rejects the call.
+	/// </summary>
+	public virtual async ValueTask<T> GetIfPermitted(Context context, ID id)
+	{
+		var result = await Get(context, id);
+		if(result == null)
+		{
+			return result;
+		}
+		
+		await context.Role.IsGranted(GetLoadCapability(), context, result);
+		return result;
+	}
+	
 	/// <summary>
 	/// Gets a single entity by its ID.
 	/// </summary>
