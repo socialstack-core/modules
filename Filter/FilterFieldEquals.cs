@@ -56,13 +56,13 @@ namespace Api.Permissions
 			{
 				// Special case
 				Field = "RevisionIsDraft";
-				FieldInfo = typeof(Users.RevisionRow).GetField("_IsDraft", BindingFlags.Instance | BindingFlags.NonPublic);
+				FieldInfo = type.GetField("_IsDraft", BindingFlags.Instance | BindingFlags.NonPublic);
 			}
 			else if (field == "RevisionOriginalContentId")
 			{
 				// Special case
 				Field = "RevisionOriginalContentId";
-				FieldInfo = typeof(Users.RevisionRow).GetField("_RevisionId", BindingFlags.Instance | BindingFlags.NonPublic);
+				FieldInfo = type.GetField("_RevisionId", BindingFlags.Instance | BindingFlags.NonPublic);
 			}
 			else
 			{

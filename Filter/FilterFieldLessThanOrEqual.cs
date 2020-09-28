@@ -173,7 +173,6 @@ namespace Api.Permissions
 		/// <param name="type"></param>
 		/// <param name="fieldName"></param>
 		/// <param name="value"></param>
-		/// <param name="argIndex"></param>
 		/// <returns></returns>
 		public Filter LessThanOrEqual(System.Type type, string fieldName, object value)
 		{
