@@ -25,8 +25,8 @@ namespace Api.UserAgendaEntries
 		/// </summary>
 		public EventListener()
 		{
-			IUserAgendaEntryService agenda = null;
-			IHuddleService huddles = null;
+			UserAgendaEntryService agenda = null;
+			HuddleService huddles = null;
 			var huddleContentTypeId = ContentTypes.GetId(typeof(Huddle));
 			//AddMeetingsToAgendaConfig Config = null;
 
@@ -40,8 +40,8 @@ namespace Api.UserAgendaEntries
                 // Update the user agenda if needed.
                 if (agenda == null)
                 {
-                    agenda = Services.Get<IUserAgendaEntryService>();
-                    huddles = Services.Get<IHuddleService>();
+                    agenda = Services.Get<UserAgendaEntryService>();
+                    huddles = Services.Get<HuddleService>();
                 }
 
 				var userAgendaFilter = new Filter<UserAgendaEntry>()
@@ -73,8 +73,8 @@ namespace Api.UserAgendaEntries
                 // Update the user agenda if needed.
                 if (agenda == null)
                 {
-                    agenda = Services.Get<IUserAgendaEntryService>();
-                    huddles = Services.Get<IHuddleService>();
+                    agenda = Services.Get<UserAgendaEntryService>();
+                    huddles = Services.Get<HuddleService>();
                 }
 
 				// For each invite, if AgendaEntryId is non-zero, update the entry.
@@ -121,8 +121,8 @@ namespace Api.UserAgendaEntries
 				// Remove it from their agenda if needed.
 				if (agenda == null)
 				{
-					agenda = Services.Get<IUserAgendaEntryService>();
-					huddles = Services.Get<IHuddleService>();
+					agenda = Services.Get<UserAgendaEntryService>();
+					huddles = Services.Get<HuddleService>();
 				}
 
 				// Get agenda entry:
@@ -153,8 +153,8 @@ namespace Api.UserAgendaEntries
 				// Remove it from their agenda if needed.
 				if (agenda == null)
 				{
-					agenda = Services.Get<IUserAgendaEntryService>();
-					huddles = Services.Get<IHuddleService>();
+					agenda = Services.Get<UserAgendaEntryService>();
+					huddles = Services.Get<HuddleService>();
 				}
 
 				// Get agenda entry:
@@ -184,8 +184,8 @@ namespace Api.UserAgendaEntries
 				// Add it to their agenda.
 				if(agenda == null)
 				{
-					agenda = Services.Get<IUserAgendaEntryService>();
-					huddles = Services.Get<IHuddleService>();
+					agenda = Services.Get<UserAgendaEntryService>();
+					huddles = Services.Get<HuddleService>();
 				}
 
 				var huddle = await huddles.Get(context, invite.HuddleId);
@@ -239,7 +239,7 @@ namespace Api.UserAgendaEntries
 						if(Config != null && Config.AllowCollisions != null && Config.AllowCollisions && !invite.ForceAccept)
                         {
 							// We are returning a warning since the Allow collisions is enabled but we are not forcing.
-							throw new PublicException("You're already booked at this time. Please check your calendar and propose a new time", "double_booked_warning");
+							//throw new PublicException("You're already booked at this time. Please check your calendar and propose a new time", "double_booked_warning");
 						}
 						else
                         {
