@@ -16,6 +16,7 @@
  * NB: WORK IN PROGRESS
  */
 $socialstack_default_palette: (
+    linkColor: #000,
     primary: (
         color: #fff,
         background-color: #007bff
@@ -387,6 +388,10 @@ $theme_font_family: "Open Sans", Arial, sans-serif !default;
 $title_font_family: $theme_font_family !default;
 $title_font_weight: 700 !default;
 $title_line_height: 1.2 !default;
+
+$serif_font_family: Georgia, Times, Times New Roman, serif !default;
+$serif_font_weight: 400 !default;
+
 $theme_h1_font_size: 2.5rem !default;
 $theme_h2_font_size: 2rem !default;
 $theme_h3_font_size: 1.75rem !default;
