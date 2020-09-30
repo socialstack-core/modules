@@ -73,7 +73,7 @@ $max_slides: 20;
                 height: 1.25rem;
 
                 path {
-                    fill: #3665f3;
+                    fill: get_palette(linkColor);
                 }
             }
         }
