@@ -288,8 +288,17 @@ namespace Api.Startup{
 
 					var valA = sort.FieldInfo.GetValue(a);
 					var valB = sort.FieldInfo.GetValue(b);
-					var comparison = (valA as IComparable).CompareTo(valB);
+					int comparison;
 
+					if (valA == null)
+					{
+						comparison = (valB == null) ? 0 : 1;
+					}
+					else
+					{
+						comparison = (valA as IComparable).CompareTo(valB);
+					}
+					
 					// If a and b compare equal, proceed to check the next sort node
 					// Otherwise, return the compare value
 					if (comparison != 0)
