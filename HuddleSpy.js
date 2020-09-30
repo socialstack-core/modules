@@ -47,7 +47,9 @@ export default class HuddleSpy extends React.Component {
 	}
 	
 	componentWillReceiveProps(props){
-		this.connectTo(props.roomId);
+		var newClient = this.connectTo(props.roomId, true);
+		this.setState({huddleClient: newClient});
+		newClient.join();
 	}
 	
 	onRoomUpdate(evt)
