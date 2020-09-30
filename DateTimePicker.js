@@ -42,16 +42,18 @@ export default class DateTimePicker extends React.Component {
 	constructor(props){
 		super(props);
 		this.state={
-			edit: false
+			edit: this.props.stayOpen || false
 		};
+		
+		this.state.date=this.currentDate(props) || new Date();
 		
 		if(!zero59){
 			setup();
 		}
 	}
 	
-	currentDate(){
-		var {value, defaultValue} = this.props;
+	currentDate(props){
+		var {value, defaultValue} = props;
 		
 		if(value !== undefined){
 			return value ? dateTools.isoConvert(value) : null;
@@ -77,27 +79,52 @@ export default class DateTimePicker extends React.Component {
 	
 	showUtc(date){
 		if(!date){
-			return 'No date selected';
+			return <div className = "no-date">No date selected</div>;
 		}
 		
 		var timeStr = this.doubleDigit(date.getUTCHours()) + ':' + 
-			this.doubleDigit(date.getUTCMinutes()) + ':' + 
-			this.doubleDigit(date.getUTCSeconds());
+			this.doubleDigit(date.getUTCMinutes());
+
+		if(!this.props.hideSeconds){
+			timeStr += ':' + this.doubleDigit(date.getUTCSeconds());
+		}
 		
 		var dayStr = dateTools.ordinal(date.getUTCDate()) + ' ' + dateTools.monthNames[date.getUTCMonth()] + ' ' + date.getUTCFullYear();
 		
 		return <span>
-			<i className="fa fa-clock"/>
-			{timeStr}
-			<i className="fa fa-calendar"/>
-			{dayStr}
+			<i className="fa fa-fw fa-clock" />
+			<span className="selected-time">{timeStr}</span>
+			<i className="fa fa-fw fa-calendar" />
+			<span className="selected-date">{dayStr}</span>			
+		</span>;
+	}
+	
+	showLocal(date){
+		if(!date){
+			return <div className = "no-date">No date selected</div>;
+		}
+		
+		var timeStr = this.doubleDigit(date.getHours()) + ':' + 
+			this.doubleDigit(date.getMinutes());
+
+		if(!this.props.hideSeconds){
+			timeStr += ':' + this.doubleDigit(date.getSeconds());
+		}
+		
+		var dayStr = dateTools.ordinal(date.getDate()) + ' ' + dateTools.monthNames[date.getMonth()] + ' ' + date.getFullYear();
+		
+		return <span>
+			<i className="fa fa-fw fa-clock" />
+			<span className="selected-time">{timeStr}</span>
+			<i className="fa fa-fw fa-calendar" />
+			<span className="selected-date">{dayStr}</span>			
 		</span>;
 	}
 	
 	renderSelect(val, set, name, className, onChange){
 		
 		return <select value={val} onChange={e => {
-			var date = this.currentDate() || new Date();
+			var date = this.currentDate(this.props) || new Date();
 			date = onChange(e.target.value, date);
 			this.setState({date});
 		}} name={this.props.name + '__' + name}>
@@ -112,60 +139,70 @@ export default class DateTimePicker extends React.Component {
 		
 	}
 	
-	renderEdit(date){
+	renderEdit(date, local){
+		
 		return <div className="date-time-picker">
-			<i className="fa fa-clock"/>
-				{this.renderSelect(date.getUTCHours(), zero23, 'hours', 'small', (v, d) => {
-					d.setUTCHours(parseInt(v));
-					return d;
-				})}
-				{this.renderSelect(date.getUTCMinutes(), zero59, 'minutes', 'small', (v, d) => {
-					d.setUTCMinutes(parseInt(v));
-					return d;
-				})}
-				{this.renderSelect(date.getUTCSeconds(), zero59, 'seconds', 'small', (v, d) => {
-					d.setUTCSeconds(parseInt(v));
-					return d;
-				})}
-			<i className="fa fa-calendar"/>
-				{this.renderSelect(date.getUTCDate() - 1, days, 'days', 'small', (v, d) => {
-					d.setUTCDate(parseInt(v) + 1);
-					return d;
-				})}
-				{this.renderSelect(date.getUTCMonth(), months, 'months', 'small', (v, d) => {
-					d.setUTCMonth(parseInt(v));
-					return d;
-				})}
-				{this.renderSelect(date.getUTCFullYear(), years, 'years', 'small', (v, d) => {
-					d.setUTCFullYear(parseInt(v));
-					return d;
-				})}
-			<button className="btn btn-secondary" onClick={e => {
-				e.preventDefault();
-				e.stopPropagation();
-				this.setState({edit: false});
-			}}>
-				Done
-			</button>
+			<span className="time-picker">
+				<i className="fa fa-clock"/>
+					{this.renderSelect(local ? date.getHours() : date.getUTCHours(), zero23, 'hours', 'small', (v, d) => {
+						local ? d.setHours(parseInt(v)) : d.setUTCHours(parseInt(v));
+						return d;
+					})}
+					{this.renderSelect(local ? date.getMinutes() : date.getUTCMinutes(), zero59, 'minutes', 'small', (v, d) => {
+						local ? d.setMinutes(parseInt(v)) : d.setUTCMinutes(parseInt(v));
+						return d;
+					})}
+					{!this.props.hideSeconds && this.renderSelect(local ? date.getSeconds() : date.getUTCSeconds(), zero59, 'seconds', 'small', (v, d) => {
+						local ? d.setSeconds(parseInt(v)) : d.setUTCSeconds(parseInt(v));
+						return d;
+					})}
+			</span>
+			<span className="date-picker">
+				<i className="fa fa-calendar"/>
+					{this.renderSelect((local ? date.getDate() : date.getUTCDate()) - 1, days, 'days', 'small', (v, d) => {
+						local ? d.setDate(parseInt(v)) : d.setUTCDate(parseInt(v) + 1);
+						return d;
+					})}
+					{this.renderSelect(local ? date.getMonth() : date.getUTCMonth(), months, 'months', 'small', (v, d) => {
+						local ? d.setMonth(parseInt(v)) : d.setUTCMonth(parseInt(v));
+						return d;
+					})}
+					{this.renderSelect(local ? date.getFullYear() : date.getUTCFullYear(), years, 'years', 'small', (v, d) => {
+						local ? d.setFullYear(parseInt(v)) : d.setUTCFullYear(parseInt(v));
+						return d;
+					})}
+			</span>
+			{!this.props.stayOpen &&
+				<button className="btn btn-success btn-done" onClick={e => {
+					e.preventDefault();
+					e.stopPropagation();
+					this.setState({edit: false});
+				}}>
+					Update
+				</button>
+			}
 		</div>;
 		
 	}
 	
 	render(){
-		var date = this.currentDate();
-		
-		if(this.state.edit){
-			return this.renderEdit(date);
-		}
+		var date = this.currentDate(this.props);
+		var {local} = this.props;
 		
 		return <div className="date-time-picker">
-			{this.showUtc(date)} <button className="btn btn-secondary" onClick={e => {
-				e.preventDefault();
-				e.stopPropagation();
-				this.setState({edit: true, date: date || new Date()});
-			}}>
-				Change
-			</button>
+			{
+				this.state.edit ? this.renderEdit(date, local) : (
+					<>
+						{local ? this.showLocal(date) : this.showUtc(date)} <button className="btn btn-secondary btn-change" onClick={e => {
+							e.preventDefault();
+							e.stopPropagation();
+							this.setState({edit: true, date: date || new Date()});
+						}}>
+							Change
+						</button>
+					</>
+				)
+			}
 			<input type="hidden" name={this.props.name} ref={ref => {
 				this.ref = ref;
 				if(ref){
@@ -173,7 +210,7 @@ export default class DateTimePicker extends React.Component {
 						if(field != this.ref){
 							return;
 						}					
-						var date = this.currentDate();
+						var date = this.currentDate(this.props);
 						return date ? date.toISOString() : null;
 					}
 				}
