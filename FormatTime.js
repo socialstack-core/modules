@@ -1,3 +1,5 @@
+import dateTools from 'UI/Functions/DateTools';
+
 /*
 * Very basic date/time formatting, using a US date or EU date for now format.
 */
@@ -5,13 +7,10 @@ export default function FormatTime(date, format){
     if(!date){
         return '-';
     }
-
-    if (typeof date !== 'object') {
-        date = new Date(date);
-    }
-
-    var day = date.getUTCDate();
-    var year = date.getUTCFullYear();
+	
+	date = dateTools.isoConvert(date);
+    var day = date.getDate();
+    var year = date.getFullYear();
     var month = date.getMonth() + 1;
     var hour = date.getHours();
     var minute = date.getMinutes();
