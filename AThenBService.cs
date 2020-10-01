@@ -9,7 +9,7 @@ namespace Api.IfAThenB
 	/// Handles a then b rules.
 	/// Instanced automatically. Use injection to use this service, or Startup.Services.Get.
 	/// </summary>
-	public partial class AThenBService : AutoService<AThenB>, IAThenBService
+	public partial class AThenBService : AutoService<AThenB>
     {
 		/// <summary>
 		/// Instanced automatically. Use injection to use this service, or Startup.Services.Get.
