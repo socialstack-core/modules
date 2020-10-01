@@ -9,7 +9,7 @@ namespace Api.Metrics
     /// Handles Metrics.
     /// Instanced automatically. Use Injection to use this service, or Startup.Services.Get. 
     /// </summary>
-    public partial class MetricSourceService : AutoService<MetricSource>, IMetricSourceService
+    public partial class MetricSourceService : AutoService<MetricSource>
     {
 		
 		/// <summary>

@@ -1,6 +1,7 @@
 ﻿using System.Collections.Generic;
 using System.Threading.Tasks;
 using System;
+using System.Diagnostics.Eventing.Reader;
 using Api.Eventing;
 using System.Timers;
 using Api.Contexts;
@@ -11,21 +12,21 @@ namespace Api.Metrics
     /// Handles Metrics.
     /// Instanced automatically. Use Injection to use this service, or Startup.Services.Get. 
     /// </summary>
-    public partial class MetricService : AutoService<Metric>, IMetricService
+    public partial class MetricService : AutoService<Metric>
     {
 		/// <summary>
 		/// The raw metric sample rate is in blocks of every 15 minutes. This is the smallest division available.
 		/// </summary>
 		private int blockSizeInMinutes = 15;
-		private readonly IMetricSourceService _sources;
-		private readonly IMetricMeasurementService _measurements;
+		private readonly MetricSourceService _sources;
+		private readonly MetricMeasurementService _measurements;
 		private readonly List<LiveMetricSource> _liveSources = new List<LiveMetricSource>();
 		private DateTime epoch = new DateTime(2020, 1, 1, 0, 0, 0, DateTimeKind.Utc);
 
 		/// <summary>
 		/// Instanced automatically. Use injection to use this service, or Startup.Services.Get.
 		/// </summary>
-		public MetricService(IMetricSourceService sources, IMetricMeasurementService measurements) : base(Events.Metric)
+		public MetricService(MetricSourceService sources, MetricMeasurementService measurements) : base(Events.Metric)
 		{
 			_sources = sources;
 			_measurements = measurements;
@@ -85,6 +86,8 @@ namespace Api.Metrics
 					Source = source
 				};
 
+				//TODO:disbaled 
+				/*
 				GenericEventHandler listener = (Context context, object[] args) => {
 
 					if (args == null || args.Length == 0)
@@ -99,7 +102,8 @@ namespace Api.Metrics
 				};
 
 				handler.AddEventListener(listener);
-				
+				*/
+
 				_liveSources.Add(liveSource);
 			}
 
