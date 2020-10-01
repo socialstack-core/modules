@@ -113,7 +113,7 @@ $meeting_padding_top: 3rem;
 	}
 
 	// overlays test indices over video panels
-	//&.show-overlays {
+	&.show-overlays {
 
 		> .peer-container {
 
@@ -133,7 +133,7 @@ $meeting_padding_top: 3rem;
 				justify-content: center;
 			}
 		}
-	//}
+	}
 
 	&[data-sharing]:not([data-sharing=""]) {
 		padding-top: 0;
