@@ -198,9 +198,16 @@ export default class Photosphere extends React.Component {
 	onLoaded(fullsize){
 		this.setState({loaded: true});
 		if(!fullsize){
-			var startRotation = this.props.startRotation || 0;
-			this.camera.rotation.y = startRotation;
-			this.camera.rotation.x = 0;
+			var {startRotation} = this.props;
+            
+            if(startRotation && startRotation.y !== undefined){
+                    this.camera.rotation.y = startRotation.y;
+                    this.camera.rotation.x = startRotation.x;
+            }else{
+                var startRotation = this.props.startRotation || 0;
+                this.camera.rotation.y = startRotation;
+                this.camera.rotation.x = 0;
+            }
 		}
 		this.props.onLoad && this.props.onLoad(fullsize);
 	}
