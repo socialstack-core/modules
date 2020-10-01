@@ -11,7 +11,7 @@ namespace Api.PublishGroups
 	/// Handles publishGroups.
 	/// Instanced automatically. Use injection to use this service, or Startup.Services.Get.
 	/// </summary>
-	public partial class PublishGroupService : AutoService<PublishGroup>, IPublishGroupService
+	public partial class PublishGroupService : AutoService<PublishGroup>
     {
 		/// <summary>
 		/// Instanced automatically. Use injection to use this service, or Startup.Services.Get.

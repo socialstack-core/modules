@@ -37,8 +37,8 @@ namespace Api.PublishGroups
 				Roles.Public.Revoke("publishGroup_load", "publishGroup_list");
 				Roles.Member.Revoke("publishGroup_load", "publishGroup_list");
 				*/
-				
-				return Task.FromResult(source);
+
+                return new ValueTask<object>(source);
 			}, 20);
 		}
 	}
