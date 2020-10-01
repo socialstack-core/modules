@@ -11,7 +11,7 @@ namespace Api.Articles
 	/// Handles articles - containers for individual article posts.
 	/// Instanced automatically. Use injection to use this service, or Startup.Services.Get.
 	/// </summary>
-	public partial class ArticleService : AutoService<Article>, IArticleService
+	public partial class ArticleService : AutoService<Article>
     {
 		/// <summary>
 		/// Instanced automatically. Use injection to use this service, or Startup.Services.Get.
