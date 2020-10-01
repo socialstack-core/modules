@@ -5,6 +5,7 @@ import webSocket from 'UI/Functions/WebSocket';
 import getEndpointType from 'UI/Functions/GetEndpointType';
 import Failure from 'UI/Failed';
 import Paginator from 'UI/Paginator';
+import { isoConvert } from 'UI/Functions/DateTools';
 
 const DEFAULT_PAGE_SIZE = 50;
 
@@ -198,7 +199,7 @@ export default class Loop extends React.Component {
 
 			if (isDate) {
 				// Load str:
-				fieldValue = fieldValue ? new Date(fieldValue).getTime() : null;
+				fieldValue = fieldValue ? isoConvert(fieldValue).getTime() : null;
 			}
 
 			// Search for the target index:
@@ -210,7 +211,7 @@ export default class Loop extends React.Component {
 				if (isDate) {
 					// Parse the date:
 					if (typeof bField == 'string') {
-						bField = new Date(bField).getTime();
+						bField = isoConvert(bField).getTime();
 					} else if (bField && bField.getTime) {
 						bField = bField.getTime();
 					}
