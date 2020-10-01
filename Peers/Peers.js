@@ -18,10 +18,21 @@ export default class Peers extends React.Component {
 				</h2>
 			</div>;
 		}
-		
-		return <div className="peers">
+
+		// NB: using an array as we may potentially support multiple maximized videos in future
+		var sharedPeers = [];
+
+		peers.map((peer, index) => {
+
+			if (peer.fullscreen && this.props.allowFullscreen) {
+				sharedPeers.push(index);
+			}
+
+		});
+
+		return <div className="peers" data-sharing={sharedPeers.join()} data-attendees={peers ? peers.length : 0}>
 			{
-				peers.map((peer) =>
+				peers.map((peer, index) =>
 				{
 					var btnClass = "btn peer-container";
 
@@ -38,9 +49,17 @@ export default class Peers extends React.Component {
 					}
 
 					return (
-						<button type="button" className={btnClass} disabled={!this.props.allowFullscreen} title={this.props.allowFullscreen ? "Click to toggle expanded view" : ""}
+						<button type="button" data-peer={index} className={btnClass} disabled={!this.props.allowFullscreen} title={this.props.allowFullscreen ? "Click to toggle expanded view" : ""}
 							onClick={(e) => {
-								console.log('ClickB');
+
+								// ensure we only have one fullscreen vid at once
+								peers.map((otherPeer) => {
+
+									if (otherPeer != peer) {
+										otherPeer.fullscreen = false;
+									}
+
+								});
 						
 								peer.fullscreen = !peer.fullscreen;
 								this.setState({});

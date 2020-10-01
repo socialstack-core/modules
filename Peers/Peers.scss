@@ -1,3 +1,5 @@
+$meeting_padding_top: 3rem;
+
 @mixin peer_width($peerTotal, $width, $minWidth: null) {
 	$fontCalc: $width;
 	$widthString: inspect($width);
@@ -11,24 +13,62 @@
 
 	&.peers-#{$peerTotal} {
 
-		.peers > .peer-container {
-			width: $width;
+		.peers {
 
-			@if ($minWidth) {
-			    min-width: $minWidth;
+			> .peer-container {
+				width: $width;
+
+				@if ($minWidth) {
+					min-width: $minWidth;
+				}
+
+				.peerView {
+					&::after {
+						// scale user icon
+						// (16% based on 4rem/48px @ 300px wide)
+						font-size: calc(#{$fontCalc} * .16);
+					}
+				}
 			}
 
-			.peerView {
-				&::after {
-					// scale user icon
-					// (16% based on 4rem/48px @ 300px wide)
-					font-size: calc(#{$fontCalc} * .16);
+			@if ($peerTotal > 1) {
+
+				&[data-sharing]:not([data-sharing=""]) {
+					$otherPeerTotal: $peerTotal - 1;
+					$otherPeerWidth: 100% / $otherPeerTotal;
+					grid-template-columns: repeat($otherPeerTotal, $otherPeerWidth);
+
+					> .peer-container {
+						position: relative;
+						width: 100%;
+						height: 100%;
+						margin: 0;
+						padding: 0;
+						border: 0;
+						border-radius: 0;
+
+						&.fullscreen {
+							grid-row: 1;
+							grid-column-start: 1;
+							grid-column-end: $peerTotal;
+						}
+
+						&:not(.fullscreen) {
+							min-width: 0;
+
+							@for $i from 1 through $otherPeerTotal {
+
+								&:nth-child(#{$i}) {
+									grid-column: $i;
+								}
+
+							}
+						}
+					}
 				}
 			}
 		}
-
 	}
-
 }
 
 .peers {
@@ -40,7 +80,7 @@
 	
 	// NB: height set via inline style (necessary to support calc referencing header / footer heights)
 	min-height: px_to_rem(600);
-	padding-top: 3rem;
+	padding-top: $meeting_padding_top;
 	display: flex;
 	flex-direction: row;
 	flex-wrap: wrap;
@@ -69,7 +109,39 @@
 		&.active-speaker {
 			border-color: green;
 		}
+
 	}
+
+	// overlays test indices over video panels
+	&.show-overlays {
+
+		> .peer-container {
+
+			&:after {
+				content: attr(data-peer);
+				color: #fff;
+				font-size: 10vh;
+				font-weight: bold;
+				z-index: 100;
+				position: absolute;
+				left: 0;
+				top: 0;
+				width: 100%;
+				height: 100%;
+				display: flex;
+				align-items: center;
+				justify-content: center;
+			}
+		}
+	}
+
+	&[data-sharing]:not([data-sharing=""]) {
+		padding-top: 0;
+		display: grid;
+		//grid-template-rows: calc(75vh - #{$meeting_padding_top}) 25vh;
+		grid-template-rows: 75vh 25vh;
+	}
+
 }
 
 .videoChat {
@@ -80,6 +152,23 @@
 	@include peer_width(4, 25vw);
 	@include peer_width(5, 25vw);
 	@include peer_width(6, 23vw);
+
+	.peers[data-sharing]:not([data-sharing=""]) {
+
+		> .peer-container:not(.fullscreen) {
+			grid-row: 2;
+		}
+
+	}
+
+	&.peers-1 {
+
+		.peers[data-sharing]:not([data-sharing=""]) {
+			//grid-template-rows: calc(100vh - #{$meeting_padding_top}) !important;
+			grid-template-rows: 100vh !important;
+		}
+
+	}
 }
 
 // iPad overrides
