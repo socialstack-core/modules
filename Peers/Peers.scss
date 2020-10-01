@@ -152,6 +152,8 @@ $meeting_padding_top: 3rem;
 	@include peer_width(4, 25vw);
 	@include peer_width(5, 25vw);
 	@include peer_width(6, 23vw);
+	@include peer_width(7, 23vw);
+	@include peer_width(8, 23vw);
 
 	.peers[data-sharing]:not([data-sharing=""]) {
 
@@ -197,6 +199,8 @@ html.device-ipad {
 			@include peer_width(4, 47vw);
 			@include peer_width(5, 47vw);
 			@include peer_width(6, 47vw);
+			@include peer_width(7, 47vw);
+			@include peer_width(8, 47vw);
 		}
 
     }
@@ -210,6 +214,8 @@ html.device-ipad {
 			@include peer_width(4, 35vw);
 			@include peer_width(5, 31vw);
 			@include peer_width(6, 31vw);
+			@include peer_width(7, 31vw);
+			@include peer_width(8, 31vw);
 		}
     }
 
