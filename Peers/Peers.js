@@ -30,7 +30,13 @@ export default class Peers extends React.Component {
 
 		});
 
-		return <div className="peers" data-sharing={sharedPeers.join()} data-attendees={peers ? peers.length : 0}>
+		var dataSharing = sharedPeers.join();
+
+		if (props.forceThumbnails) {
+			dataSharing = "forced";
+		}
+
+		return <div className="peers" data-sharing={dataSharing} data-attendees={peers ? peers.length : 0}>
 			{
 				peers.map((peer, index) =>
 				{

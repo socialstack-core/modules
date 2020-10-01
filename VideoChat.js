@@ -2,7 +2,6 @@ import HuddleClient from 'UI/Functions/HuddleClient';
 import Peers from 'UI/VideoChat/Peers';
 import Me from 'UI/VideoChat/Me';
 import Alert from 'UI/Alert';
-import Row from 'UI/Row';
 import Container from 'UI/Container';
 
 export default class VideoChat extends React.Component {
@@ -218,7 +217,7 @@ export default class VideoChat extends React.Component {
 				<span className="sr-only">Leave chat</span>
 			</a>
 
-			<Peers huddleClient={huddleClient} allowFullscreen={this.props.allowFullscreen} />
+			<Peers huddleClient={huddleClient} allowFullscreen={this.props.allowFullscreen} forceThumbnails={this.props.forceThumbnails} />
 			<div id="me_container" className={'me-container ' + (amActiveSpeaker ? 'active-speaker' : '')}>
 				<Me huddleClient={huddleClient} />
 			</div>
