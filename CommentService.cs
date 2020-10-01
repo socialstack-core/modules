@@ -18,12 +18,12 @@ namespace Api.Comments
 	/// Handles comments.
 	/// Instanced automatically. Use injection to use this service, or Startup.Services.Get.
 	/// </summary>
-	public partial class CommentService : AutoService<Comment>, ICommentService
+	public partial class CommentService : AutoService<Comment>
     {
 		/// <summary>
 		/// Instanced automatically. Use injection to use this service, or Startup.Services.Get.
 		/// </summary>
-		public CommentService(IDatabaseService database) : base(Events.Comment)
+		public CommentService() : base(Events.Comment)
         {
         }
 	}

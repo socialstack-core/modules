@@ -23,7 +23,7 @@ namespace Api.Comments
 				// Public - the role used by anonymous users.
 				Roles.Guest.Grant("comment_create");
 				Roles.Member.Grant("comment_create");
-				return Task.FromResult(source);
+				return new ValueTask<object>(source);
 			});
 		}
 	}
