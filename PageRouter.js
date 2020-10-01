@@ -204,7 +204,10 @@ export default class PageRouter extends React.Component{
 			// User role changed (they logged in) - get page list again, then change page:
 			this.makeRequest().then(() => this.setupPage(props));
 		}else{
-			this.setupPage(props);
+			// Only setup if page actually changed.
+			if(props.url != this.props.url){
+				this.setupPage(props);
+			}
 		}
 	}
 	
