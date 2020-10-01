@@ -23,7 +23,7 @@ namespace Api.Reactions
 				// Public - the role used by anonymous users.
 				Roles.Guest.Grant("reaction_create");
 				Roles.Member.Grant("reaction_create");
-				return Task.FromResult(source);
+                return new ValueTask<object>(source);
 			});
 		}
 	}

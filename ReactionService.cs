@@ -13,9 +13,9 @@ namespace Api.Reactions
 	/// Handles reactions - likes, upvotes etc - on content.
 	/// Instanced automatically. Use injection to use this service, or Startup.Services.Get.
 	/// </summary>
-	public partial class ReactionService : AutoService<Reaction>, IReactionService
+	public partial class ReactionService : AutoService<Reaction>
 	{
-		private IReactionTypeService _reactionTypes;
+		private ReactionTypeService _reactionTypes;
 
 		private readonly Query<ReactionCount> listCountQuery;
 		private readonly Query<ReactionCount> listCountByObjectQuery;
@@ -24,7 +24,7 @@ namespace Api.Reactions
 		/// <summary>
 		/// Instanced automatically. Use injection to use this service, or Startup.Services.Get.
 		/// </summary>
-		public ReactionService(IReactionTypeService reactionTypes) : base(Events.Reaction)
+		public ReactionService(ReactionTypeService reactionTypes) : base(Events.Reaction)
         {
 			_reactionTypes = reactionTypes;
 
@@ -39,7 +39,8 @@ namespace Api.Reactions
 
 			// Load reactions on Load/List events next. First, find all events for types that implement IHaveReactions:
 			var loadEvents = Events.FindByType(typeof(IHaveReactions), "Load", EventPlacement.After);
-
+			//Todo:disbaled
+			/*
 			foreach (var loadEvent in loadEvents)
 			{
 				loadEvent.AddEventListener(async (Context context, object[] args) =>
@@ -249,6 +250,7 @@ namespace Api.Reactions
 				});
 
 			}
+			*/
 
 		}
 	}

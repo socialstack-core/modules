@@ -12,7 +12,7 @@ namespace Api.Reactions
 	/// Handles reaction types - i.e. define a new type of reaction that can be used on content.
 	/// Instanced automatically. Use injection to use this service, or Startup.Services.Get.
 	/// </summary>
-	public partial class ReactionTypeService : AutoService<ReactionType>, IReactionTypeService
+	public partial class ReactionTypeService : AutoService<ReactionType>
 	{
 		/// <summary>
 		/// Instanced automatically. Use injection to use this service, or Startup.Services.Get.
