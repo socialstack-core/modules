@@ -32,7 +32,7 @@ export default class Peers extends React.Component {
 
 		var dataSharing = sharedPeers.join();
 
-		if (props.forceThumbnails) {
+		if (this.props.forceThumbnails) {
 			dataSharing = "forced";
 		}
 
