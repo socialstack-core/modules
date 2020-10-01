@@ -1,7 +1,7 @@
 import Row from 'UI/Row';
 import Col from 'UI/Column';
 import Container from 'UI/Container';
-import { daysBetween, localToUtc, addDays, isoConvert, ordinal, shortMonthNames, monthNames } from 'UI/Functions/DateTools';
+import { daysBetween, localToUtc, addDays, isoConvert, ordinal, shortMonthNames, monthNames, addMinutes } from 'UI/Functions/DateTools';
 import Loading from 'UI/Loading';
 
 export default class CalendarCompact extends React.Component {
@@ -12,7 +12,7 @@ export default class CalendarCompact extends React.Component {
 		// in minutes
 		var spacing = this.props.spacing || 30;
 
-		var start = this.props.startTime || 9; // 9AM
+		var start = this.props.startTime === undefined ? 9 : this.props.startTime; // 9AM
 		start = (start * 60) / spacing;
 
 		var end = this.props.endTime || 18;  // 6PM
@@ -147,47 +147,166 @@ export default class CalendarCompact extends React.Component {
 	
 	populateBetween(start, end, dayMeta){
 		this.props.onGetData && this.props.onGetData(start, end).then(response => {
+			
 			if(response.json){
 				// Can either give us an array or a raw API response.
 				response = response.json.results;
 			}
 			
-			for(var i=0;i<dayMeta.length;i++){
-				dayMeta[i].results = [];
-			}
+			// Test:
+			// response=this.rand();
 			
-			// Handle the sorting of results into each day now:
-			for(var i=0;i<response.length;i++){
-				
-				var entry = response[i];
-				entry.startUtc = isoConvert(entry.startUtc);
-				entry.endUtc = isoConvert(entry.endUtc);
-				
-				// Start time:
-				var startUtc = entry.startUtc;
-				
-				for(var d=0;d<dayMeta.length;d++){
-					// Is startUtc in between this days start/ ends?
-					var day = dayMeta[d];
-					
-					if(day.start <= startUtc && day.end >= startUtc){
-						entry.minuteStart = Math.floor(((startUtc - day.start)/1000)/60);
-						entry.minuteEnd = Math.floor(((entry.endUtc - day.start)/1000)/60);
-						day.results.push(entry);
-						break;
-					}
+			this.build(response, dayMeta);
+		});
+	}
+	
+	/*
+	rand(){
+		var set = [];
+		var randCount = Math.floor((Math.random() * 30))+1;
+		
+		for(var i=0;i<randCount;i++){
+			
+			var randHour = Math.floor((Math.random() * 22));
+			var randMins = Math.floor((Math.random() * 30));
+			var randDur = Math.floor((Math.random() * 120));
+			
+			var start = new Date();
+			start.setHours(randHour);
+			start.setMinutes(randMins);
+			var end = addMinutes(start, randDur);
+			
+			set.push({
+				startUtc: start.toISOString(),
+				endUtc: end.toISOString(),
+				content: {
+					type: 'Video',
+					name: 'Test'
 				}
+			});
+		}
+		return set;
+	}
+	*/
+	
+	build(response, dayMeta){
+		for(var i=0;i<dayMeta.length;i++){
+			dayMeta[i].results = [];
+		}
+		
+		// Handle the sorting of results into each day now:
+		for(var i=0;i<response.length;i++){
+			
+			var entry = response[i];
+			entry.startUtc = isoConvert(entry.startUtc);
+			entry.endUtc = isoConvert(entry.endUtc);
+			
+			// Start time:
+			var startUtc = entry.startUtc;
+			
+			for(var d=0;d<dayMeta.length;d++){
+				// Is startUtc in between this days start/ ends?
+				var day = dayMeta[d];
 				
+				if(day.start <= startUtc && day.end >= startUtc){
+					entry.minuteStart = Math.floor(((startUtc - day.start)/1000)/60);
+					entry.minuteEnd = Math.floor(((entry.endUtc - day.start)/1000)/60);
+					day.results.push(entry);
+					break;
+				}
 			}
 			
-			// Sort each day by ascending start time.
-			for(var d=0;d<dayMeta.length;d++){
-				var day = dayMeta[d];
+		}
+		
+		// Detect collisions in the results set
+		for(var d=0;d<dayMeta.length;d++){
+			var day = dayMeta[d];
+			if(this.props.handleCollisions){
+				this.organiseEntries(day);
+			}else{
 				day.results.sort((a,b) => (a.startUtc > b.startUtc) ? 1 : ((b.startUtc > a.startUtc) ? -1 : 0));
 			}
+		}
+		
+		this.setState({currentView: this.state.currentView});
+	}
+	
+	/*
+	* Returns set of things that time collided with entry from the given entry set.
+	*/
+	checkIfCollides(entry, entrySet){
+		for(var i=0;i<entrySet.length;i++){
 			
-			this.setState({currentView: this.state.currentView});
-		});
+			var checkWith = entrySet[i];
+			
+			if(checkWith.startUtc < entry.endUtc && checkWith.endUtc > entry.startUtc){
+				return true;
+			}
+			
+		}
+		
+		return false;
+	}
+	
+	collisionIteration(set, colIndex){
+		var next = null;
+		var output = [];
+		
+		// Add unless there is a collision:
+		for(var i=0;i<set.length;i++){
+			var entry = set[i];
+			if(!entry){
+				continue;
+			}
+			entry._column = colIndex; // col index
+			
+			if(this.checkIfCollides(entry, output)){
+				// This entry collides - add to set of things to resolve in the second+ iteration.
+				if(!next){
+					next=[entry];
+				}else{
+					next.push(entry);
+				}
+			}else{
+				// Doesn't collide - add as-is:
+				output.push(entry);
+			}
+		}
+		
+		return {
+			output,
+			next
+		};
+	}
+	
+	organiseEntries(day) {
+		var col = 0;
+		var iter = this.collisionIteration(day.results, 0);
+		var {output} = iter;
+		
+		while(iter.next){
+			iter = this.collisionIteration(iter.next, ++col);
+			output = output.concat(iter.output);
+		}
+		
+		var width = 1/(col+1);
+		
+		// Finally build computed style:
+		for(var i=0;i<output.length;i++){
+			var entry = output[i];
+			
+			entry._computedStyle = {
+				// NB: 14px offset is based on h3.time being set to 28px tall - this gets events lining up
+				top: this.minutesToSize(entry.minuteStart - this.state.startMinutes, 14 - 1),
+				// extra pixel to cover start / end lines
+				height: this.minutesToSize(entry.minuteEnd - entry.minuteStart, 1),
+				width: entry._column == 0 ? 'calc(' + (width * 100) + '% - 3.5rem)' : (width * 100) + '%',
+				left: entry._column == 0 ? 'calc(' + ((entry._column/(col+1)) * 100) + '% + 3.5rem)' : ((entry._column/(col+1)) * 100) + '%',
+			};
+			
+		}
+		
+		day.results = output;
 	}
 	
 	minutesToSize(mins, offset) {
@@ -223,12 +342,7 @@ export default class CalendarCompact extends React.Component {
 				})}
 			</div>
 			<div className="bookings">
-				{sortedEntries.map(entry => this.props.onRenderEntry(entry, {
-					// NB: 14px offset is based on h3.time being set to 28px tall - this gets events lining up
-					top: this.minutesToSize(entry.minuteStart - this.state.startMinutes, 14 - 1),
-					// extra pixel to cover start / end lines
-					height: this.minutesToSize(entry.minuteEnd - entry.minuteStart, 1)
-				}))}
+				{sortedEntries.map(entry => this.props.onRenderEntry(entry, entry._computedStyle))}
 			</div>
 		</div>;
 		
