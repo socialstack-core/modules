@@ -113,7 +113,7 @@ $meeting_padding_top: 3rem;
 	}
 
 	// overlays test indices over video panels
-	&.show-overlays {
+	//&.show-overlays {
 
 		> .peer-container {
 
@@ -133,7 +133,7 @@ $meeting_padding_top: 3rem;
 				justify-content: center;
 			}
 		}
-	}
+	//}
 
 	&[data-sharing]:not([data-sharing=""]) {
 		padding-top: 0;
@@ -166,6 +166,16 @@ $meeting_padding_top: 3rem;
 		.peers[data-sharing]:not([data-sharing=""]) {
 			//grid-template-rows: calc(100vh - #{$meeting_padding_top}) !important;
 			grid-template-rows: 100vh !important;
+			grid-template-columns: 100vw !important;
+
+			> .peer-container {
+				width: 100%;
+				height: 100%;
+				margin: 0;
+				padding: 0;
+			    border: 0;
+				border-radius: 0;
+			}
 		}
 
 	}
