@@ -668,7 +668,7 @@ public class AutoService
 					if (installNavMenuEntry != null)
 					{
 						// InstallAdminEntry(string targetUrl, string iconRef, string label)
-						await (Task)installNavMenuEntry.Invoke(navMenuItemService, new object[] {
+						await (ValueTask)installNavMenuEntry.Invoke(navMenuItemService, new object[] {
 							"/en-admin/" + typeName.ToLower(),
 							navMenuIconRef,
 							navMenuLabel
