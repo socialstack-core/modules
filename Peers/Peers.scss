@@ -157,6 +157,10 @@ $meeting_padding_top: 3rem;
 
 		> .peer-container:not(.fullscreen) {
 			grid-row: 2;
+
+			.peerView > video {
+				object-fit: contain;
+			}
 		}
 
 	}
