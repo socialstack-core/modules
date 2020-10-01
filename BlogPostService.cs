@@ -10,15 +10,15 @@ namespace Api.Blogs
 	/// Handles blogs posts.
 	/// Instanced automatically. Use injection to use this service, or Startup.Services.Get.
 	/// </summary>
-	public partial class BlogPostService : AutoService<BlogPost>, IBlogPostService
+	public partial class BlogPostService : AutoService<BlogPost>
     {
-        private IBlogService _blogs;
+        private BlogService _blogs;
 		
 		/// <summary>
 		/// Instanced automatically. Use injection to use this service, or Startup.Services.Get.
 		/// </summary>
 		/// <param name="blogs"></param>
-		public BlogPostService(IBlogService blogs) : base(Events.BlogPost)
+		public BlogPostService(BlogService blogs) : base(Events.BlogPost)
         {
 			_blogs = blogs;
 		}
@@ -26,7 +26,7 @@ namespace Api.Blogs
 		/// <summary>
 		/// Creates a new blog post.
 		/// </summary>
-		public override async Task<BlogPost> Create(Context context, BlogPost post)
+		public override async ValueTask<BlogPost> Create(Context context, BlogPost post)
 		{
 			// Get the blog to obtain the default page ID:
 			var blog = await _blogs.Get(context, post.BlogId);
