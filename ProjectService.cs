@@ -11,7 +11,7 @@ namespace Api.Projects
 	/// Handles projects.
 	/// Instanced automatically. Use injection to use this service, or Startup.Services.Get.
 	/// </summary>
-	public partial class ProjectService : AutoService<Project>, IProjectService
+	public partial class ProjectService : AutoService<Project>
     {
 		/// <summary>
 		/// Instanced automatically. Use injection to use this service, or Startup.Services.Get.
