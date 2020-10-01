@@ -245,24 +245,7 @@ export default class LivePubQuiz extends React.Component {
 			</p>
 
 			{this.renderScores()}
-
-			<Form
-				action={"huddle/" + huddleId}
-				submitLabel="Restart"
-				successMessage="Activity restarted!"
-				failedMessage="We weren't able to restart your activity right now"
-				onSuccess={response => {
-					this.props.updateHuddle && this.props.updateHuddle(response);
-				}}
-				onValues={values => {
-					values.activityStartUtc = addSeconds(new Date(), 10);
-					values.activityContentTypeId = getContentTypeId("PubQuiz");
-					values.activityContentId = id
-					return values;
-				}}
-			>
-
-			</Form>
+			
 			<Form
 				action={"huddle/" + huddleId}
 				submitLabel="End Activity"
