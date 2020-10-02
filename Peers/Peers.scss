@@ -12,57 +12,54 @@ $meeting_padding_top: 3rem;
 	$font_size: $width;
 
 	&.peers-#{$peerTotal} {
+		
+		> .peer-container {
+			width: $width;
 
-		.peers {
-
-			> .peer-container {
-				width: $width;
-
-				@if ($minWidth) {
-					min-width: $minWidth;
-				}
-
-				.peerView {
-					&::after {
-						// scale user icon
-						// (16% based on 4rem/48px @ 300px wide)
-						font-size: calc(#{$fontCalc} * .16);
-					}
-				}
+			@if ($minWidth) {
+				min-width: $minWidth;
 			}
 
-			@if ($peerTotal > 1) {
+			.peerView {
+				&::after {
+					// scale user icon
+					// (16% based on 4rem/48px @ 300px wide)
+					font-size: calc(#{$fontCalc} * .16);
+				}
+			}
+		}
 
-				&[data-sharing]:not([data-sharing=""]) {
-					$otherPeerTotal: $peerTotal - 1;
-					$otherPeerWidth: 100% / $otherPeerTotal;
-					grid-template-columns: repeat($otherPeerTotal, $otherPeerWidth);
+		@if ($peerTotal > 1) {
 
-					> .peer-container {
-						position: relative;
-						width: 100%;
-						height: 100%;
-						margin: 0;
-						padding: 0;
-						border: 0;
-						border-radius: 0;
+			&[data-sharing]:not([data-sharing=""]) {
+				$otherPeerTotal: $peerTotal - 1;
+				$otherPeerWidth: 100% / $otherPeerTotal;
+				grid-template-columns: repeat($otherPeerTotal, $otherPeerWidth);
 
-						&.fullscreen {
-							grid-row: 1;
-							grid-column-start: 1;
-							grid-column-end: $peerTotal;
-						}
+				> .peer-container {
+					position: relative;
+					width: 100%;
+					height: 100%;
+					margin: 0;
+					padding: 0;
+					border: 0;
+					border-radius: 0;
 
-						&:not(.fullscreen) {
-							min-width: 0;
+					&.fullscreen {
+						grid-row: 1;
+						grid-column-start: 1;
+						grid-column-end: $peerTotal;
+					}
 
-							@for $i from 1 through $otherPeerTotal {
+					&:not(.fullscreen) {
+						min-width: 0;
 
-								&:nth-child(#{$i}) {
-									grid-column: $i;
-								}
+						@for $i from 1 through $otherPeerTotal {
 
+							&:nth-child(#{$i}) {
+								grid-column: $i;
 							}
+
 						}
 					}
 				}
@@ -94,7 +91,8 @@ $meeting_padding_top: 3rem;
 	> .peer-container {
 		overflow: hidden;
 		flex: 0 0 auto;
-
+		opacity: 1;
+		
 		//width: 300px;
 		width: 23vw;
 		min-width: 300px;
@@ -144,7 +142,7 @@ $meeting_padding_top: 3rem;
 
 }
 
-.videoChat {
+.videoChat .peers {
 	// defaults for 1920x1080
 	@include peer_width(1, 50vw);
 	@include peer_width(2, 48vw);
@@ -154,8 +152,8 @@ $meeting_padding_top: 3rem;
 	@include peer_width(6, 23vw);
 	@include peer_width(7, 23vw);
 	@include peer_width(8, 23vw);
-
-	.peers[data-sharing]:not([data-sharing=""]) {
+	
+	&[data-sharing]:not([data-sharing=""]) {
 
 		> .peer-container:not(.fullscreen) {
 			grid-row: 2;
@@ -167,23 +165,21 @@ $meeting_padding_top: 3rem;
 
 	}
 
-	&.peers-1 {
+	&.peers-1[data-sharing]:not([data-sharing=""]) {
+		
+		//grid-template-rows: calc(100vh - #{$meeting_padding_top}) !important;
+		grid-template-rows: 100vh !important;
+		grid-template-columns: 100vw !important;
 
-		.peers[data-sharing]:not([data-sharing=""]) {
-			//grid-template-rows: calc(100vh - #{$meeting_padding_top}) !important;
-			grid-template-rows: 100vh !important;
-			grid-template-columns: 100vw !important;
-
-			> .peer-container {
-				width: 100%;
-				height: 100%;
-				margin: 0;
-				padding: 0;
-			    border: 0;
-				border-radius: 0;
-			}
+		> .peer-container {
+			width: 100%;
+			height: 100%;
+			margin: 0;
+			padding: 0;
+			border: 0;
+			border-radius: 0;
 		}
-
+		
 	}
 }
 
@@ -192,7 +188,7 @@ html.device-ipad {
 
     @media only screen and (orientation: portrait) {
 
-		.videoChat {
+		.videoChat .peers {
 			@include peer_width(1, 95vw);
 			@include peer_width(2, 72vw);
 			@include peer_width(3, 49vw);
@@ -207,7 +203,7 @@ html.device-ipad {
 
     @media only screen and (orientation: landscape) {
 
-		.videoChat {
+		.videoChat .peers {
 			@include peer_width(1, 80vw);
 			@include peer_width(2, 48vw);
 			@include peer_width(3, 44vw);
@@ -226,13 +222,13 @@ html.device-mobile {
 
 	@media only screen and (orientation: portrait) {
 
-		.videoChat {
+		.videoChat .peers {
 			@include peer_width(1, calc(100vw - 30px));
 			@include peer_width(2, calc(100vw - 30px));
 
 			&.peers-3 {
 
-				.peers > .peer-container {
+				> .peer-container {
 					width: 60vw;
 					min-width: 0;
 				}
@@ -243,7 +239,7 @@ html.device-mobile {
 			&.peers-6,
 			&.peers-7 {
 
-				.peers > .peer-container {
+				> .peer-container {
 					border: 0;
 					box-shadow: none;
 					margin: 1px;
@@ -261,7 +257,7 @@ html.device-mobile {
 			min-height: 0;
 		}
 
-		.videoChat {
+		.videoChat .peers {
 			//@include peer_width(1, 50vw);
 
 			&.peers-2,
@@ -271,18 +267,17 @@ html.device-mobile {
 			&.peers-6,
 			&.peers-7 {
 
-				.peers > .peer-container {
+				> .peer-container {
 					border: 0;
 					box-shadow: none;
 					margin: 1px;
 					min-width: 0 !important;
 				}
 			}
-
-
+			
 			&.peers-2 {
 
-				.peers > .peer-container {
+				> .peer-container {
 					width: calc(((100vw - 280px) / 2) - 2px) !important;
 				}
 			}
@@ -290,7 +285,7 @@ html.device-mobile {
 			&.peers-3,
 			&.peers-4 {
 
-				.peers > .peer-container {
+				> .peer-container {
 					width: calc(((100vw - 400px) / 2) - 2px) !important;
 				}
 			}
@@ -298,14 +293,14 @@ html.device-mobile {
 			&.peers-5,
 			&.peers-6 {
 
-				.peers > .peer-container {
+				> .peer-container {
 					width: calc(((100vw - 480px) / 2) - 2px) !important;
 				}
 			}
 
 			&.peers-7 {
 
-				.peers > .peer-container {
+				> .peer-container {
 					width: calc(((100vw - 560px) / 2) - 2px) !important;
 				}
 			}

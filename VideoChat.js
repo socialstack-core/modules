@@ -199,13 +199,13 @@ export default class VideoChat extends React.Component {
 			</Container>;
 		}
 		
-		var videoClass = "videoChat";
-
-		if (huddleClient && huddleClient.peers) {
-			videoClass += " peers-" + huddleClient.peers.length;
-		}
-
-		return <div className={videoClass}>
+		var {children} = this.props;
+		
+		// If we have at least 1 actual child node, then there is a visible activity.
+		// It acts like a fullscreen peer.
+		var activity = children;
+		
+		return <div className={"videoChat"}>
 			{/*<Notifications />*/}
 			<div className='state'>
 				<div className={'icon ' + room.state} title={stateDescription} />
@@ -217,7 +217,7 @@ export default class VideoChat extends React.Component {
 				<span className="sr-only">Leave chat</span>
 			</a>
 
-			<Peers huddleClient={huddleClient} allowFullscreen={this.props.allowFullscreen} forceThumbnails={this.props.forceThumbnails} />
+			<Peers huddleClient={huddleClient} allowFullscreen={this.props.allowFullscreen} activity={activity} />
 			<div id="me_container" className={'me-container ' + (amActiveSpeaker ? 'active-speaker' : '')}>
 				<Me huddleClient={huddleClient} />
 			</div>

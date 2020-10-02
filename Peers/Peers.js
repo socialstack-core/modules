@@ -3,15 +3,18 @@ import Peer from 'UI/VideoChat/Peer';
 export default class Peers extends React.Component {
 	
 	render(){
-		var { huddleClient } = this.props;
-		var peers = huddleClient.peers;
+		var { huddleClient, activity, allowFullscreen } = this.props;
+		var peers = huddleClient.peers || [];
 		var activeSpeakerId = huddleClient.room.activeSpeakerId;
 		
-		if(peers){
-			peers = peers.filter(peer => !peer.device || !peer.device.huddleSpy);
+		peers = peers.filter(peer => !peer.device || !peer.device.huddleSpy);
+		
+		if(activity){
+			// Push the activity so it has a proper index and the length etc works too:
+			peers.push({_activity:activity, fullscreen: true});
 		}
 		
-		if(!peers || !peers.length){
+		if(!peers.length){
 			return <div className="peers">
 				<h2 className="nobody-else">
 					Waiting for others to join the meeting
@@ -21,28 +24,36 @@ export default class Peers extends React.Component {
 
 		// NB: using an array as we may potentially support multiple maximized videos in future
 		var sharedPeers = [];
-
+		
+		if(activity){
+			// it's always the last one, because we just pushed it in:
+			sharedPeers.push(peers.length-1);
+			allowFullscreen = false;
+		}
+		
 		peers.map((peer, index) => {
 
-			if (peer.fullscreen && this.props.allowFullscreen) {
+			if (peer.fullscreen && allowFullscreen) {
 				sharedPeers.push(index);
 			}
 
 		});
-
+		
 		var dataSharing = sharedPeers.join();
-
-		if (this.props.forceThumbnails) {
-			dataSharing = "forced";
-		}
-
-		return <div className="peers" data-sharing={dataSharing} data-attendees={peers ? peers.length : 0}>
+		
+		return <div className={"peers peers-" + peers.length} data-sharing={dataSharing} data-attendees={peers.length}>
 			{
 				peers.map((peer, index) =>
 				{
+					if(peer._activity){
+						return <div data-peer={index} className="peer-container fullscreen peer-activity">
+							{peer._activity}
+						</div>
+					}
+					
 					var btnClass = "btn peer-container";
 
-					if (this.props.allowFullscreen) {
+					if (allowFullscreen) {
 						btnClass += " allow-fullscreen";
 					}
 
@@ -50,12 +61,12 @@ export default class Peers extends React.Component {
 						btnClass += " active-speaker";
 					}
 
-					if (peer.fullscreen && this.props.allowFullscreen) {
+					if (peer.fullscreen && allowFullscreen) {
 						btnClass += " fullscreen";
 					}
 
 					return (
-						<button type="button" data-peer={index} className={btnClass} disabled={!this.props.allowFullscreen} title={this.props.allowFullscreen ? "Click to toggle expanded view" : ""}
+						<button type="button" data-peer={index} className={btnClass} disabled={!allowFullscreen} title={allowFullscreen ? "Click to toggle expanded view" : ""}
 							onClick={(e) => {
 
 								// ensure we only have one fullscreen vid at once
