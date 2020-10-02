@@ -11,6 +11,7 @@ using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
 using Api.Users;
+using Api.Startup;
 
 namespace Api.Connections
 {
@@ -45,14 +46,16 @@ namespace Api.Connections
 				// Is the user inviting themselves?
 				if (connection.ConnectedToId == context.UserId)
                 {
-					return null;
-                }
+					// We already have a connection with the target user. 
+					throw new PublicException("You can't send invites to yourself.", "is_target");
+				}
 
 				// Is the user inviting themselves?
 				if (!string.IsNullOrEmpty(connection.Email) && !string.IsNullOrEmpty(user.Email) && connection.Email.Trim().ToLower() == user.Email.Trim().ToLower())
                 {
-					return null;
-                }
+					// We already have a connection with the target user. 
+					throw new PublicException("You can't send invites to yourself.", "is_target");
+				}
 
 				// You can invite by email or id. If you invite by email, we need to look up to see if there is a user affiliated to that email.
 				if (!string.IsNullOrEmpty(connection.Email))
@@ -71,8 +74,9 @@ namespace Api.Connections
 				
 				if(results.Count > 0 )
                 {
-					return null;
-                }
+					// We already have a connection with the target user. 
+					throw new PublicException("You have already sent an invitation to this user or are friends already.", "already_sent");
+				}
 
 				return connection;
 			});
