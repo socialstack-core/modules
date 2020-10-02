@@ -141,6 +141,38 @@ namespace Api.UserAgendaEntries
 				return invite;
 			}, 20);
 
+			Events.HuddlePermittedUser.BeforeDelete.AddEventListener(async (Context context, HuddlePermittedUser invite) =>
+			{
+				if (invite == null || !invite.AgendaEntryId.HasValue || invite.AgendaEntryId == 0)
+				{
+					return invite;
+				}
+
+				// Got a permittedUserId.
+				// Remove it from their agenda if needed.
+				if (agenda == null)
+				{
+					agenda = Services.Get<UserAgendaEntryService>();
+					huddles = Services.Get<HuddleService>();
+				}
+
+				// Get agenda entry:
+				var entry = await agenda.Get(
+					context,
+					invite.AgendaEntryId.Value
+				);
+
+				if (entry != null)
+				{
+					// Delete it:
+					await agenda.Delete(context, entry.Id);
+				}
+
+				invite.AgendaEntryId = 0;
+				return invite;
+			});
+
+
 			Events.HuddlePermittedUser.BeforeUpdate.AddEventListener(async (Context context, HuddlePermittedUser invite) =>
 			{
 
