@@ -189,7 +189,7 @@ export default class VideoChat extends React.Component {
 		}
 		
 		if(this.state.error){
-			return <Container>
+			return <Container className="video-chat-error">
 				<Alert type="error">
 				{
 					this.state.error.text || 
