@@ -18,7 +18,8 @@ namespace Api.Huddles
     /// </summary>
     public partial class HuddlePermittedUserService : AutoService<HuddlePermittedUser>
     {
-
+		
+		private int userContentType;
         private HuddleService _huddleService;
 
         /// <summary>
@@ -28,7 +29,7 @@ namespace Api.Huddles
         {
 
             _huddleService = huddleService;
-            var userContentType = ContentTypes.GetId(typeof(User));
+            userContentType = ContentTypes.GetId(typeof(User));
 
             Events.HuddlePermittedUser.BeforeCreate.AddEventListener(async (Context context, HuddlePermittedUser permit) =>
             {
@@ -503,32 +504,7 @@ namespace Api.Huddles
 							}
 							
 							// Add it.
-							var newUser = new HuddlePermittedUser()
-							{
-								UserId = ctx.UserId,
-								InvitedContentTypeId = id.ContentTypeId,
-								InvitedContentId = id.ContentId,
-								// An invited user becomes permitted when they accept.
-								PermittedUserId = 0, // PermittedUserId = id.ContentTypeId == userContentType ? id.ContentId : 0,
-								HuddleId = huddle.Id,
-								RevisionId = revisionId,
-								CreatedUtc = now,
-								EditedUtc = now
-							};
-							
-							// E.g. "this" user is the invited one. Must immediately accept the invite (this makes it e.g. get added to schedules).
-							newUser.PermittedUserId = ctx.UserId;
-							newUser.AcceptedStartUtc = huddle.StartTimeUtc;
-							newUser.AcceptedEndUtc = huddle.EstimatedEndTimeUtc;
-							newUser.Creator = true;
-							newUser = await Events.HuddlePermittedUser.BeforeAccept.Dispatch(ctx, newUser);
-							
-							newUser = await Create(ctx, newUser);
-							
-							if (newUser != null)
-							{
-								newUser = await Events.HuddlePermittedUser.AfterAccept.Dispatch(ctx, newUser);
-							}
+							var newUser = await CreateAccepted(ctx, huddle, ctx.UserId, id.ContentTypeId, id.ContentId);
 							
 							existingLookup[id] = newUser;
 						}
@@ -593,7 +569,58 @@ namespace Api.Huddles
             });
 
         }
-
+		
+		/// <summary>
+		/// Creates a pre-accepted permit.
+		/// </summary>
+		public Task<HuddlePermittedUser> CreateAccepted(Context context, Huddle huddle, int userId)
+		{
+			return CreateAccepted(context, huddle, userId, userContentType, userId);
+		}
+		
+		/// <summary>
+		/// Creates a pre-accepted permit.
+		/// </summary>
+		public async Task<HuddlePermittedUser> CreateAccepted(Context context, Huddle huddle, int userId, int contentTypeId, int contentId)
+		{
+			int revisionId = 0;
+			if (huddle.RevisionId.HasValue)
+			{
+				revisionId = huddle.RevisionId.Value;
+			}
+			
+			var now = DateTime.UtcNow;
+			
+			var newUser = new HuddlePermittedUser()
+			{
+				UserId = userId,
+				InvitedContentTypeId = contentTypeId,
+				InvitedContentId = contentId,
+				// An invited user becomes permitted when they accept.
+				PermittedUserId = 0, // PermittedUserId = id.ContentTypeId == userContentType ? id.ContentId : 0,
+				HuddleId = huddle.Id,
+				RevisionId = revisionId,
+				CreatedUtc = now,
+				EditedUtc = now
+			};
+			
+			// E.g. "this" user is the invited one. Must immediately accept the invite (this makes it e.g. get added to schedules).
+			newUser.PermittedUserId = userId;
+			newUser.AcceptedStartUtc = huddle.StartTimeUtc;
+			newUser.AcceptedEndUtc = huddle.EstimatedEndTimeUtc;
+			newUser.Creator = userId == huddle.UserId;
+			newUser = await Events.HuddlePermittedUser.BeforeAccept.Dispatch(context, newUser);
+			
+			newUser = await Create(context, newUser);
+			
+			if (newUser != null)
+			{
+				newUser = await Events.HuddlePermittedUser.AfterAccept.Dispatch(context, newUser);
+			}
+			
+			return newUser;
+		}
+		
         /// <summary>
         /// Rejects or cancels a request.
         /// </summary>
