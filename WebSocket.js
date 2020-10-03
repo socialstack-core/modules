@@ -85,7 +85,7 @@ function connect(){
 	}
 	
 	// Fire up the websocket:
-	ws = new WebSocket((global.apiHost || global.location.origin).replace("http", "ws") + "/live-websocket/");
+	ws = new WebSocket((global.wsHost || global.apiHost || global.location.origin).replace("http", "ws") + "/live-websocket/");
 	setPing();
 	
 	ws.addEventListener("open", () => {
