@@ -48,6 +48,18 @@ export default class HlsVideo extends React.Component {
 		}
 	}
 	
+	componentWillUnmount(){
+		if(this.state.hls){
+			try{
+				this.video.stop && this.video.stop();
+				this.state.hls.stopLoad && this.state.hls.stopLoad();
+				this.state.hls.destroy && this.state.hls.destroy();
+			}catch(e){
+				console.log('Error stopping HLS: ', e);
+			}
+		}
+	}
+	
 	componentWillReceiveProps(props){
 		if(hlsjs.isSupported() && (props.videoId != this.props.videoId || props.videoRef != this.props.videoRef)) {
             var hls = this.state.hls = cache(this.getSource(props), this.onManifest);
