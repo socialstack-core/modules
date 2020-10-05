@@ -1,4 +1,26 @@
 import store from 'UI/Functions/Store';
+var eventTarget = global.events.get('App');
+var __user = null;
+
+eventTarget.add('onState', () => {
+	var {user} = global.app.state;
+	
+	if(user != __user){
+		__user = user;
+		if(ws){
+			console.log('Reconnecting websocket for new user');
+			try{
+				// setting ws to null prevents the close handler from running here.
+				var _ws = ws;
+				ws= null;
+				_ws.close();
+				connect();
+			}catch(e){
+				console.log(e);
+			}
+		}
+	}
+});
 
 /*
 * Handles setting up the websocket.
