@@ -105,6 +105,16 @@ namespace Api.PasswordResetRequests
 			// Either doesn't exist, or its created time + expiry is in the past:
 			return (req == null || req.IsUsed || req.CreatedUtc.AddHours(ExpiryTime) < DateTime.UtcNow);
 		}
+
+		/// <summary>
+		/// True if given req has been used already.
+		/// </summary>
+		/// <param name="req"></param>
+		/// <returns></returns>
+		public bool IsUsed(PasswordResetRequest req)
+        {
+			return (req == null || req.IsUsed);
+        }
 		
 		/// <summary>
 		/// Gets a reset request by the given token.

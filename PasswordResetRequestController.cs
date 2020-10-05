@@ -48,6 +48,12 @@ namespace Api.PasswordResetRequests
 				return null;
 			}
 			
+			// Has it been used?
+			if(svc.IsUsed(request))
+            {
+				throw new PublicException("Token already used", "already_used");
+            }
+
 			// Has it expired?
 			if(svc.HasExpired(request))
 			{
