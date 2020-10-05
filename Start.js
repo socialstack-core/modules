@@ -6,7 +6,21 @@ module.exports = function(){
 	global.events = {
 		get: function(name){
 			if(!global.events[name]){
-				return global.events[name] = {};
+				var t = {};
+				t.add = (evtName, handle) => {
+					if(!t[evtName]){
+						var f = function(...args){
+							for(var i=0;i<f.handles.length;i++){
+								f.handles[i](...args);
+							}
+						};
+						f.handles=[handle];
+						t[evtName] = f;
+					}else{
+						t[evtName].handles.push(handle);
+					}
+				};
+				return global.events[name] = t;
 			}
 			return global.events[name];
 		}
