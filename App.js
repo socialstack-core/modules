@@ -34,7 +34,7 @@ export default class App extends React.Component{
 		eventTarget = global.events.get('App');
 	}
 	
-	componentWillUpdate(){
+	componentDidUpdate(){
 		eventTarget.onState && eventTarget.onState();
 	}
 	
