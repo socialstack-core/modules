@@ -74,6 +74,8 @@ namespace Api.PubQuizzes
 				Roles.Member.Revoke("pubQuizQuestion_load", "pubQuizQuestion_list");
 				*/
 				
+				Roles.Guest.Grant("pubQuizSubmission_create");
+				Roles.Member.Grant("pubQuizSubmission_create");
 				return new ValueTask<object>(source);
 			}, 20);
 		}
