@@ -21,9 +21,9 @@ namespace Api.Presence
 			Events.CapabilityOnSetup.AddEventListener((Context context, object source) =>
 			{
 				// Remove public viewing (as it's enabled by default):
-				Roles.Guest.Revoke("presenceRecord_load", "presenceRecord_list");
-				Roles.Public.Revoke("presenceRecord_load", "presenceRecord_list");
-				Roles.Member.Revoke("presenceRecord_load", "presenceRecord_list");
+				Roles.Guest.Revoke("presenceRecord_load", "presenceRecord_list", "pagePresenceRecord_load", "pagePresenceRecord_list");
+				Roles.Public.Revoke("presenceRecord_load", "presenceRecord_list", "pagePresenceRecord_load", "pagePresenceRecord_list");
+				Roles.Member.Revoke("presenceRecord_load", "presenceRecord_list", "pagePresenceRecord_load", "pagePresenceRecord_list");
 				
 				return new ValueTask<object>(source);
 			}, 20);

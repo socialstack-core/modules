@@ -25,10 +25,10 @@ namespace Api.Presence
 		/// <summary>
 		/// Instanced automatically. Use injection to use this service, or Startup.Services.Get.
 		/// </summary>
-		public PresenceRecordService() : base(Events.PresenceRecord)
+		public PresenceRecordService(PagePresenceRecordService pagePresence) : base(Events.PresenceRecord)
         {
 			var pageContentTypeId = ContentTypes.GetId(typeof(Page));
-
+			
 			Events.WebSocketMessage.AddEventListener((Context context,JObject message, WebSocketClient client, string type) => {
 				
 				if(type != "Pres"){
@@ -60,11 +60,16 @@ namespace Api.Presence
 				// Special handle for presType "page":
 				if (presType == "page"){
 					record.ContentTypeId = pageContentTypeId;
+					
+					if(pagePresence.Active){
+						// (don't await this - we won't block the websocket for metrics): 
+						_ = pagePresence.SetPresence(client, record);
+					}
 				}
-				
+
 				// Presence record. If it's for something we recognise, store it in the DB
 				// (don't await this - we won't block the websocket for metrics):
-				Create(context, record);
+				_ = Create(context, record);
 				
 				return new ValueTask<JObject>(message);
 			});

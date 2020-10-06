@@ -14,5 +14,10 @@ namespace Api.Eventing
 		/// Set of events for a presenceRecord.
 		/// </summary>
 		public static EventGroup<PresenceRecord> PresenceRecord;
+		
+		/// <summary>
+		/// Set of events for a pagePresenceRecord.
+		/// </summary>
+		public static EventGroup<PagePresenceRecord> PagePresenceRecord;
 	}
 }
