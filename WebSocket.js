@@ -5,7 +5,6 @@ var waitMode = 0;
 
 eventTarget.add('onState', () => {
 	var {user, loadingUser} = global.app.state;
-	console.log(user, __user, loadingUser, waitMode);
 	
 	if(!waitMode){
 		if(loadingUser){
