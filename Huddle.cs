@@ -37,5 +37,10 @@ namespace Api.Huddles
 		/// The current activity, if there is one.
 		/// </summary>
 		public object Activity {get; set;}
+
+		/// <summary>
+		/// Timed activities can store their duartion here. 
+		/// </summary>
+		public int? DurationTicks;
 	}
 }
