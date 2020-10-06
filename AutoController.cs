@@ -87,18 +87,12 @@ public partial class AutoController<T,ID> : ControllerBase
 			return null;
 		}
 
-		// Future todo - move this event inside the service:
-		result = await _service.EventGroup.BeforeDelete.Dispatch(context, result);
-		
-		if (result == null || !await _service.Delete(context, id))
+		if (result == null || !await _service.Delete(context, result))
 		{
 			// The handlers have blocked this one from happening, or it failed
 			return null;
 		}
 
-		// Future todo - move this event inside the service:
-		result = await _service.EventGroup.AfterDelete.Dispatch(context, result);
-		
 		result = await _service.EventGroup.Deleted.Dispatch(context, result, Response);
 		return result;
 	}

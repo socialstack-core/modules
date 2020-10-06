@@ -139,26 +139,44 @@ public partial class AutoService<T, ID> : AutoService
 		
 		return structure;
 	}
-	
+
 	/// <summary>
 	/// Deletes an entity by its ID.
-	/// Optionally includes uploaded content refs in there too.
 	/// </summary>
 	/// <returns></returns>
 	public virtual async ValueTask<bool> Delete(Context context, ID id)
 	{
+		var result = await Get(context, id);
+		return await Delete(context, result);
+	}
+
+	/// <summary>
+	/// Deletes an entity.
+	/// </summary>
+	/// <returns></returns>
+	public virtual async ValueTask<bool> Delete(Context context, T result)
+	{
+		result = await EventGroup.BeforeDelete.Dispatch(context, result);
+
+		if (result == null)
+		{
+			return false;
+		}
+
 		// Delete the entry:
-		await _database.Run(context, deleteQuery, id);
+		await _database.Run(context, deleteQuery, result.Id);
 
 		var cache = GetCacheForLocale(context == null ? 1 : context.LocaleId);
 
 		if (cache != null)
 		{
-			cache.Remove(context, id);
+			cache.Remove(context, result.Id);
 		}
 
+		result = await EventGroup.AfterDelete.Dispatch(context, result);
+
 		// Ok!
-		return true;
+		return result != null;
 	}
 
 	/// <summary>
