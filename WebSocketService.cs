@@ -346,28 +346,29 @@ namespace Api.WebSockets
 			{
 				// Send connected event:
 				await Events.WebSocketClientConnected.Dispatch(client.Context, client);
-			
+
 				// Whilst it's open, receive a message:
 				while (websocket.State == WebSocketState.Open)
 				{
 					var received = await websocket.ReceiveAsync(buffer, token);
-					
+
 					if (received == null || received.MessageType != WebSocketMessageType.Text)
 					{
 						// Ignore binary messages
 						continue;
 					}
-					
+
 					// Get the payload:
 					var requestJson = Encoding.UTF8.GetString(buffer.Array,
 						buffer.Offset,
 						received.Count);
-				
+
 					JObject message = JsonConvert.DeserializeObject(requestJson) as JObject;
 
 					var jToken = message["type"];
 
-					if (jToken == null || jToken.Type != JTokenType.String) {
+					if (jToken == null || jToken.Type != JTokenType.String)
+					{
 						// Just ignore this message.
 						continue;
 					}
@@ -380,7 +381,8 @@ namespace Api.WebSockets
 					JObject filter;
 					WebSocketTypeListeners listeners;
 
-					switch(type){
+					switch (type)
+					{
 						// Depreciated
 						case "Add":
 						// Depreciated
@@ -393,7 +395,7 @@ namespace Api.WebSockets
 								// Just ignore this message.
 								continue;
 							}
-							
+
 							var evtName = jToken.Value<string>();
 
 							// no-op if they're already listening to this event.
@@ -407,7 +409,7 @@ namespace Api.WebSockets
 
 							// Add the listener now:
 							await client.AddEventListener(listeners, null);
-						break;
+							break;
 						case "Auth":
 							handled = true;
 							jToken = message["token"];
@@ -427,17 +429,18 @@ namespace Api.WebSockets
 							{
 								ctx = new Context();
 							}
-							
+
 							var prevUserId = client.Context != null ? client.Context.UserId : 0;
-							
+
 							client.Context = ctx;
-							
-							if(ctx.UserId != prevUserId){
+
+							if (ctx.UserId != prevUserId)
+							{
 								// Update the user set it's in:
 								await ChangeUserSet(client);
 							}
-							
-						break;
+
+							break;
 						// Depreciated
 						case "Remove":
 						// Depreciated
@@ -458,7 +461,7 @@ namespace Api.WebSockets
 								// Remove it:
 								client.RemoveEventListener(listeners);
 							}
-						break;
+							break;
 						// Depreciated
 						case "AddSet":
 							handled = true;
@@ -469,10 +472,11 @@ namespace Api.WebSockets
 								// Just ignore this message.
 								continue;
 							}
-							
+
 							jArray = jToken as JArray;
-							
-							foreach(var entry in jArray){
+
+							foreach (var entry in jArray)
+							{
 								var eName = entry.Value<string>();
 
 								// Add the listener now:
@@ -483,7 +487,7 @@ namespace Api.WebSockets
 									await client.AddEventListener(listeners, null);
 								}
 							}
-						break;
+							break;
 						case "+":
 							// Adds a single listener with an optional filter. id required.
 							name = message["n"].Value<string>();
@@ -505,7 +509,7 @@ namespace Api.WebSockets
 							break;
 						case "+*":
 							// Add a set of listeners with filters. Usually happens after the websocket disconnected. id for each required.
-							
+
 							handled = true;
 							jToken = message["set"];
 
@@ -514,10 +518,10 @@ namespace Api.WebSockets
 								// Just ignore this message.
 								continue;
 							}
-							
+
 							jArray = jToken as JArray;
-							
-							foreach(var entry in jArray)
+
+							foreach (var entry in jArray)
 							{
 								var jo = entry as JObject;
 								name = jo["n"].Value<string>();
@@ -532,8 +536,8 @@ namespace Api.WebSockets
 									await client.AddEventListener(listeners, filter, id);
 								}
 							}
-							
-						break;
+
+							break;
 						case "-":
 							// Removes a listener identified by its ID.
 							handled = true;
@@ -553,20 +557,23 @@ namespace Api.WebSockets
 								listener.Remove();
 							}
 
-						break;
+							break;
 					}
-					
-					if(!handled){
+
+					if (!handled)
+					{
 						await Events.WebSocketMessage.Dispatch(client.Context, message, client, type);
 					}
 
 				}
+
+
 			}
-			catch(OperationCanceledException)
+			catch (OperationCanceledException)
 			{
 				// Ok - happens when the server is shut down
 			}
-			catch(WebSocketException)
+			catch (WebSocketException)
 			{
 				// This is ok - happens when the remote user disconnects abruptly.
 			}
@@ -574,7 +581,10 @@ namespace Api.WebSockets
 			{
 				Console.WriteLine(e.ToString());
 			}
-			
+			finally
+			{
+				await Events.WebSocketClientDisconnected.Dispatch(client.Context, client);
+			}
 			
 		}
 
@@ -1082,8 +1092,12 @@ namespace Api.WebSockets
 	/// <summary>
 	/// A connected websocket client.
 	/// </summary>
-	public class WebSocketClient{
-		
+	public partial class WebSocketClient{
+
+		/// <summary>
+		/// Not globally unique. ID to identify a particular WS client.
+		/// </summary>
+		public uint Id;
 		/// <summary>
 		/// If this client is in a user set, the set it is in.
 		/// </summary>

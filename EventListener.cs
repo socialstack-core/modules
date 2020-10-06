@@ -14,9 +14,11 @@ namespace Api.WebSockets
 	[EventListener]
 	public class EventListener
 	{
-		
+
+		private uint Id = 1;
 		private WebSocketService _websocketService;
-		
+		private object connector = new object();
+
 		/// <summary>
 		/// Instanced automatically.
 		/// </summary>
@@ -43,11 +45,24 @@ namespace Api.WebSockets
 					if(_websocketService == null){
 						_websocketService = Api.Startup.Services.Get<WebSocketService>();
 					}
-					
+
+					uint id;
+
+					lock (connector)
+					{
+						id = Id++;
+
+						if (Id == uint.MaxValue)
+						{
+							Id = 0;
+						}
+					}
+
 					var context = http.Request.GetContext();
-					
+
 					var client = new WebSocketClient()
 					{
+						Id = id,
 						Socket = websocket
 					};
 
