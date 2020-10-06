@@ -1,20 +1,38 @@
 import store from 'UI/Functions/Store';
 var eventTarget = global.events.get('App');
 var __user = null;
+var waitMode = 0;
 
 eventTarget.add('onState', () => {
-	var {user} = global.app.state;
+	var {user, loadingUser} = global.app.state;
+	console.log(user, __user, loadingUser, waitMode);
 	
-	if(user != __user){
+	if(!waitMode){
+		if(loadingUser){
+			waitMode=1;
+			loadingUser.then(() => {
+				waitMode=2;
+				__user = global.app.state.user;
+			});
+		}else{
+			waitMode=2;
+			__user = global.app.state.user;
+		}
+		return;
+	}
+	
+	if(waitMode==2 && user != __user){
 		__user = user;
 		if(ws){
 			console.log('Reconnecting websocket for new user');
 			try{
 				// setting ws to null prevents the close handler from running here.
 				var _ws = ws;
-				ws= null;
+				ws=null;
 				_ws.close();
-				connect();
+				setTimeout(() => {
+					start();
+				}, 100);
 			}catch(e){
 				console.log(e);
 			}
@@ -46,15 +64,6 @@ function tellAllHandlers(msg){
 			handlers[i].method(msg);
 		}
 	}
-}
-
-function onClose(){
-	if(!ws){
-		return;
-	}
-	ws=null;
-	informStatus(false);
-	goAgain();
 }
 
 /*
@@ -100,31 +109,43 @@ function setPing(){
 
 // Connects the websocket
 function connect(){
-	var isHttps = global.location.protocol == "https:";
 	
 	if(typeof WebSocket === "undefined"){
 		return;
 	}
 	
 	// Fire up the websocket:
-	ws = new WebSocket((global.wsHost || global.apiHost || global.location.origin).replace("http", "ws") + "/live-websocket/");
+	var sk = new WebSocket((global.wsHost || global.apiHost || global.location.origin).replace("http", "ws") + "/live-websocket/");
+	ws = sk;
 	setPing();
 	
-	ws.addEventListener("open", () => {
+	sk.addEventListener("open", () => {
+		if(ws != sk){
+			return;
+		}
 		informStatus(true);
 		var msgs = onConnectedMessages;
 		onConnectedMessages = [];
 		
 		if(global.storedToken){
 			// Auth msg:
-			ws.send(JSON.stringify({
+			sk.send(JSON.stringify({
 				type: 'Auth',
 				token: store.get('context')
 			}));
 		}
 		
+		// Default pres:
+		var { page } = global.pageRouter.state;
+		sk.send(JSON.stringify({
+			type: "Pres",
+			c: "page",
+			m: JSON.stringify({url: global.location.pathname}),
+			id: page ? page.id : 0
+		}));
+		
 		for(var i=0;i<msgs.length;i++){
-			ws.send(JSON.stringify(msgs[i]));
+			sk.send(JSON.stringify(msgs[i]));
 		}
 		
 		var set = [];
@@ -143,14 +164,23 @@ function connect(){
 		}
 		
 		if(set.length){
-			ws.send(JSON.stringify({type: '+*', set}));
+			sk.send(JSON.stringify({type: '+*', set}));
 		}
 	});
 	
-	ws.addEventListener("close", onClose);
-	ws.addEventListener("error", onClose);
+	function onClose(){
+		if(ws!=sk){
+			return;
+		}
+		ws=null;
+		informStatus(false);
+		goAgain();
+	}
+
+	sk.addEventListener("close", onClose);
+	sk.addEventListener("error", onClose);
 	
-	ws.addEventListener("message", e => {
+	sk.addEventListener("message", e => {
 		var message = JSON.parse(e.data);
 		if(!message){
 			return;
