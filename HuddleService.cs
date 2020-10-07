@@ -9,6 +9,7 @@ using System.Net;
 using System.Net.Sockets;
 using Api.Signatures;
 using System.Web;
+using Api.Users;
 
 namespace Api.Huddles
 {
@@ -20,6 +21,7 @@ namespace Api.Huddles
     {
 		private SignatureService _signatures;
 		private HuddleServerService _huddleServerService;
+		private int userTypeId;
 
 		/// <summary>
 		/// Instanced automatically. Use injection to use this service, or Startup.Services.Get.
@@ -28,7 +30,7 @@ namespace Api.Huddles
         {
 			_signatures = signatures;
 			_huddleServerService = huddleServerService;
-
+			userTypeId = ContentTypes.GetId(typeof(User));
 
 			Events.Huddle.BeforeCreate.AddEventListener(async (Context ctx, Huddle huddle) =>
 			{
@@ -63,7 +65,49 @@ namespace Api.Huddles
 				return huddle;
 			}, 5);
 		}
-		
+
+		/// <summary>
+		/// True if user is permitted to access the given huddle.
+		/// </summary>
+		/// <returns></returns>
+		public bool IsPermitted(Context context, Huddle huddle)
+		{
+			if (huddle == null)
+			{
+				return false;
+			}
+
+			if (huddle.HuddleType == 0)
+			{
+				// Public open
+				return true;
+			}
+
+			if (huddle.Invites == null)
+			{
+				return false;
+			}
+
+			if (context.UserId == context.UserId)
+			{
+				return true;
+			}
+
+			foreach (var invite in huddle.Invites)
+			{
+				if (invite.PermittedUserId != 0 && invite.PermittedUserId == context.UserId)
+				{
+					return true;
+				}
+				else if (invite.PermittedUserId == 0 && invite.InvitedContentTypeId == userTypeId && invite.InvitedContentId == context.UserId)
+				{
+					return true;
+				}
+			}
+
+			return false;
+		}
+
 		/// <summary>
 		/// Creates a signed join URL.
 		/// </summary>

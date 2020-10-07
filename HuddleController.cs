@@ -1,4 +1,6 @@
 using Api.Contexts;
+using Api.Database;
+using Api.Users;
 using Microsoft.AspNetCore.Mvc;
 using System.Threading.Tasks;
 
@@ -33,30 +35,10 @@ namespace Api.Huddles
 			}
 
 			// Is the current contextual user permitted to join?
-			// Either it's open, or they must be on the invite list:
-			if (huddle.HuddleType != 0)
+			// Either it's open, or they must be on the invite list (don't have to specifically have accepted though):
+			if (!service.IsPermitted(context, huddle))
 			{
-				// Must be a permitted user:
-				if (huddle.Invites == null)
-				{
-					return null;
-				}
-
-				var invited = false;
-
-				foreach (var invite in huddle.Invites)
-				{
-					if (invite.PermittedUserId != 0 && invite.PermittedUserId == context.UserId)
-					{
-						invited = true;
-						break;
-					}
-				}
-
-				if (!invited)
-				{
-					return null;
-				}
+				return null;
 			}
 			
 			// Sign a join URL:
