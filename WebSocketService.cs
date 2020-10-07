@@ -103,46 +103,34 @@ namespace Api.WebSockets
 				if (action == 1)
 				{
 					// Create
-					Task.Run(async () =>
+					_=listener.Send(new WebSocketEntityMessage()
 					{
-						await listener.Send(new WebSocketEntityMessage()
-						{
-							Type = entityName,
-							Method = "create",
-							Entity = obj,
-							By = context == null ? 0 : context.UserId
-						});
-
+						Type = entityName,
+						Method = "create",
+						Entity = obj,
+						By = context == null ? 0 : context.UserId
 					});
 				}
 				else if (action == 2)
 				{
 					// Update
-					Task.Run(async () =>
+					_=listener.Send(new WebSocketEntityMessage()
 					{
-						await listener.Send(new WebSocketEntityMessage()
-						{
-							Type = entityName,
-							Method = "update",
-							Entity = obj,
-							By = context == null ? 0 : context.UserId
-						});
-
+						Type = entityName,
+						Method = "update",
+						Entity = obj,
+						By = context == null ? 0 : context.UserId
 					});
 				}
 				else if (action == 3)
 				{
 					// Delete
-					Task.Run(async () =>
+					_=listener.Send(new WebSocketEntityMessage()
 					{
-						await listener.Send(new WebSocketEntityMessage()
-						{
-							Type = entityName,
-							Method = "delete",
-							Entity = obj,
-							By = context == null ? 0 : context.UserId
-						});
-
+						Type = entityName,
+						Method = "delete",
+						Entity = obj,
+						By = context == null ? 0 : context.UserId
 					});
 				}
 
@@ -151,16 +139,13 @@ namespace Api.WebSockets
 
 			evtGroup.AfterCreate.AddEventListener((Context context, T obj) => {
 
-				Task.Run(async () =>
+				// Send without waiting:
+				_ = listener.Send(new WebSocketEntityMessage()
 				{
-					await listener.Send(new WebSocketEntityMessage()
-					{
-						Type = entityName,
-						Method = "create",
-						Entity = obj,
-						By = context == null ? 0 : context.UserId
-					});
-
+					Type = entityName,
+					Method = "create",
+					Entity = obj,
+					By = context == null ? 0 : context.UserId
 				});
 
 				return new ValueTask<T>(obj);
@@ -168,33 +153,25 @@ namespace Api.WebSockets
 
 			evtGroup.AfterUpdate.AddEventListener((Context context, T obj) => {
 
-				Task.Run(async () =>
+				_=listener.Send(new WebSocketEntityMessage()
 				{
-					await listener.Send(new WebSocketEntityMessage()
-					{
-						Type = entityName,
-						Method = "update",
-						Entity = obj,
-						By = context == null ? 0 : context.UserId
-					});
-
+					Type = entityName,
+					Method = "update",
+					Entity = obj,
+					By = context == null ? 0 : context.UserId
 				});
 
 				return new ValueTask<T>(obj);
 			}, 50);
 
 			evtGroup.AfterDelete.AddEventListener((Context context, T obj) => {
-
-				Task.Run(async () =>
+				
+				_= listener.Send(new WebSocketEntityMessage()
 				{
-					await listener.Send(new WebSocketEntityMessage()
-					{
-						Type = entityName,
-						Method = "delete",
-						Entity = obj,
-						By = context == null ? 0 : context.UserId
-					});
-
+					Type = entityName,
+					Method = "delete",
+					Entity = obj,
+					By = context == null ? 0 : context.UserId
 				});
 
 				return new ValueTask<T>(obj);
@@ -284,20 +261,15 @@ namespace Api.WebSockets
 			var typeName = entity.GetType().Name;
 			
 			// Send via the websocket service:
-			Task.Run(async () =>
-			{
-				await Send(
-					new WebSocketEntityMessage() {
-						Type = typeName,
-						Method = methodName,
-						Entity = entity,
-						By = context == null ? 0 : context.UserId
-					},
-					toUserId
-				);
-				
-			});
-			
+			_=Send(
+				new WebSocketEntityMessage() {
+					Type = typeName,
+					Method = methodName,
+					Entity = entity,
+					By = context == null ? 0 : context.UserId
+				},
+				toUserId
+			);
 		}
 		
 		/// <summary>
