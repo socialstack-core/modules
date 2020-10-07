@@ -1,5 +1,5 @@
 import Qr from 'UI/Functions/Qr';
-import emailAddress from 'UI/Functions/EmailAddress';
+import emailAddress from 'UI/Functions/Validation/EmailAddress';
 
 // Uses https://github.com/davidshimjs/qrcodejs (the imported module)
 export default class Scanner extends React.Component{
