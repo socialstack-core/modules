@@ -199,7 +199,18 @@ public partial class AutoController<T,ID> : ControllerBase
 		}
 
 		entity = await _service.CreatePartial(context, entity);
+		
+		if(entity == null)
+		{
+			// A handler rejected this request.
+			if (notes != null)
+			{
+				Request.Headers["Api-Notes"] = notes;
+			}
 
+			return null;
+		}
+		
 		// Set post ID fields:
 		var secondaryNotes = await SetFieldsOnObject(entity, context, body, JsonFieldGroup.AfterId);
 
