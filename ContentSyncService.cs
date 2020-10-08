@@ -172,10 +172,54 @@ namespace Api.ContentSync
 		public SyncTableFileSet LocalTableSet;
 
 		/// <summary>
+		/// Adds ID assigners to the given event group.
+		/// </summary>
+		/// <typeparam name="T"></typeparam>
+		/// <param name="assigner"></param>
+		/// <param name="evtGroup"></param>
+		public void AddIdAssigner<T>(IdAssigner assigner, EventGroup<T> evtGroup) where T:DatabaseRow<int>
+		{
+			if (assigner is IdAssignerSigned)
+			{
+				var signedAssigner = assigner as IdAssignerSigned;
+
+				evtGroup.BeforeCreate.AddEventListener((Context context, T content) =>
+				{
+					if (content == null)
+					{
+						return new ValueTask<T>(content);
+					}
+
+					// Assign an ID now!
+					content.Id = (int)signedAssigner.Assign();
+
+					return new ValueTask<T>(content);
+				});
+			}
+			else
+			{
+				var unsignedAssigner = assigner as IdAssignerUnsigned;
+
+				evtGroup.BeforeCreate.AddEventListener((Context context, T content) =>
+				{
+					if (content == null)
+					{
+						return new ValueTask<T>(content);
+					}
+
+					// Assign an ID now!
+					content.Id = (int)unsignedAssigner.Assign();
+
+					return new ValueTask<T>(content);
+				});
+			}
+		}
+
+		/// <summary>
 		/// Sets up a particular content type with e.g. ID assign handlers.
 		/// </summary>
 		/// <typeparam name="T"></typeparam>
-		public void SetupForType<T>(StripeTable table) where T : DatabaseRow<int>, new()
+		public void SetupForType<T>(StripeTable table) where T: new()
 		{
 			// Invoked by reflection
 
@@ -198,20 +242,21 @@ namespace Api.ContentSync
 				Console.WriteLine("[WARN] Content sync integrity issue. The content type '" + typeof(T) + "' does not have an ID assigner.");
 				return;
 			}
-			
-			evtGroup.BeforeCreate.AddEventListener((Context context, T content) =>
+
+			// ID assigner is currently only available on int tables:
+			if (typeof(DatabaseRow<int>).IsAssignableFrom(typeof(T)))
 			{
-				if (content == null)
-				{
-					return new ValueTask<T>(content);
-				}
+				var methodInfo = GetType().GetMethod("AddIdAssigner");
 
-				// Assign an ID now!
-				content.Id = (int)assigner.Assign();
-				
-				return new ValueTask<T>(content);
-			});
+				// Add ID assigner:
+				var addIdAssigner = methodInfo.MakeGenericMethod(new Type[] {
+					typeof(T)
+				});
 
+				addIdAssigner.Invoke(this, new object[] {
+					assigner, evtGroup
+				});
+			}
 #if DEBUG
 			// Hello developers!
 			// Add handlers to Create, Delete and Update events, and track these in a syncfile for this user.
