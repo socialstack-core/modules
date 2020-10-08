@@ -525,7 +525,8 @@ namespace Api.Huddles
 								// An invited user becomes permitted when they accept.
 								PermittedUserId = 0, // PermittedUserId = id.ContentTypeId == userContentType ? id.ContentId : 0,
 								HuddleId = huddle.Id,
-								RevisionId = revisionId,
+                                Title = huddle.Title,
+                                RevisionId = revisionId,
 								CreatedUtc = now,
 								EditedUtc = now
 							};
@@ -599,6 +600,7 @@ namespace Api.Huddles
 				// An invited user becomes permitted when they accept.
 				PermittedUserId = 0, // PermittedUserId = id.ContentTypeId == userContentType ? id.ContentId : 0,
 				HuddleId = huddle.Id,
+                Title = huddle.Title,
 				RevisionId = revisionId,
 				CreatedUtc = now,
 				EditedUtc = now

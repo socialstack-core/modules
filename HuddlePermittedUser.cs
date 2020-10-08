@@ -61,6 +61,12 @@ namespace Api.Huddles
 		/// True if this user is the creator of the meeting.
 		/// </summary>
 		public bool Creator;
+		
+		/// <summary>
+		/// Optional meeting title.
+		/// </summary>
+		[DatabaseField(Length=100)]
+		public string Title;
 	}
 
 }

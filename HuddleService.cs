@@ -10,6 +10,7 @@ using System.Net.Sockets;
 using Api.Signatures;
 using System.Web;
 using Api.Users;
+using Api.Startup;
 
 namespace Api.Huddles
 {
@@ -58,7 +59,10 @@ namespace Api.Huddles
 				if (serverToUse == null)
 				{
 					// Failed to allocate (because there's no huddle servers setup, or because the service hasn't started yet).
-					return null;
+					throw new PublicException(
+						"We're a little busy at the moment and have ran out of available meeting servers. " +
+						"Please try again shortly, or contact support if this keeps occuring.", "no_huddle_servers"
+					);
 				}
 
 				huddle.HuddleServerId = serverToUse.Id;
