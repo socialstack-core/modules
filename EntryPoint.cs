@@ -35,7 +35,12 @@ namespace Api.Startup
         {
 			// Hello! The very first thing we'll do is instance all event handlers.
 			Api.Eventing.Events.Init();
-
+			
+			TaskScheduler.UnobservedTaskException += (object sender, UnobservedTaskExceptionEventArgs e) => 
+			{
+				Console.WriteLine(e.Exception.ToString());
+			};
+			
 			// Next we find any EventListener classes.
 			var allTypes = typeof(EntryPoint).Assembly.DefinedTypes; 
 			
