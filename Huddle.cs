@@ -41,6 +41,6 @@ namespace Api.Huddles
 		/// <summary>
 		/// Timed activities can store their duartion here. 
 		/// </summary>
-		public int? DurationTicks;
+		public int? ActivityDurationTicks;
 	}
 }
