@@ -21,7 +21,7 @@ export default class Peers extends React.Component {
 				</h2>
 			</div>;
 		}
-
+		
 		// NB: using an array as we may potentially support multiple maximized videos in future
 		var sharedPeers = [];
 		

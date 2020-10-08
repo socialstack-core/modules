@@ -32,7 +32,6 @@ export default class PeerView extends React.Component {
 	{
 		const {
 			isMe,
-			displayName,
 			peer,
 			audioMuted,
 			videoVisible,
@@ -64,23 +63,19 @@ export default class PeerView extends React.Component {
 		if(videoVisible && videoMultiLayer && consumerCurrentSpatialLayer === null){
 			videoClassNames += 'network-error';
 		}
-
+		
 		//var avatarUrl = user && user.avatarRef ? getRef(user.avatarRef, { url: true, size: 100 }) : "";
 		//console.log(isMe ? "ME: " : "PEER: ", peer);
 		//console.log("name: ", displayName);
 		
+		var displayName = null;
+		
+		if(!isMe && peer.profile){
+			displayName = peer.profile.displayName;
+		}
+		
 		return (
 			<div className={peerViewClassNames}>
-
-			{/*
-				<div className='info'>
-					<div className={'peer ' + (isMe ? 'is-me' : '')}>
-						<span className='display-name'>
-							{isMe ? displayName : peer.displayName}
-						</span>
-					</div>
-				</div>
-			*/}
 				<video
 					ref={r => this.refs.videoElem = r}
 					className={videoClassNames}
@@ -107,6 +102,14 @@ export default class PeerView extends React.Component {
 				{videoElemPaused && (
 					<div className='video-elem-paused' />
 				)}
+				
+				{displayName && 
+					<div className='info'>
+						<span className='display-name'>
+							{displayName}
+						</span>
+					</div>
+				}
 			</div>
 		);
 	}

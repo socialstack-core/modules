@@ -14,6 +14,16 @@
     width: 100%;
     height: 100%;
 	
+	.info {
+		position: absolute;
+		top: 5px;
+		left: 5px;
+		padding: 5px;
+		color: white;
+		background-color: rgba(#000, 0.75);
+		border-radius: 5px;
+	}
+	
 	> video {
 		flex: 100 100 auto;
 		height: 100%;
