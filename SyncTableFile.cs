@@ -17,7 +17,8 @@ namespace Api.ContentSync
 	/// <summary>
 	/// Sync table stored in a file. Used by devs.
 	/// </summary>
-	public class SyncTableFile<T> : SyncTableFile where T:DatabaseRow<int>, new()
+	public class SyncTableFile<T, ID> : SyncTableFile where T : DatabaseRow<ID>, new()
+	where ID : struct, IConvertible
 	{
 		private string FilePath;
 		
@@ -32,7 +33,7 @@ namespace Api.ContentSync
 		/// <summary>
 		/// The service which deals with this type (if there is one).
 		/// </summary>
-		public AutoService<T> Service;
+		public AutoService<T, ID> Service;
 
 		/// <summary>
 		/// Used to build strings in the file.
@@ -93,7 +94,7 @@ namespace Api.ContentSync
 		/// <param name="service"></param>
 		public override void SetService(object service)
 		{
-			Service = (AutoService<T>)service;
+			Service = (AutoService<T, ID>)service;
 		}
 
 		/// <summary>
@@ -305,14 +306,14 @@ namespace Api.ContentSync
 
 			var changes = 0;
 
-			var totalLength = await ReadRows(offset, async (char mode, T row, int localeIdOrDeletedId) => {
+			var totalLength = await ReadRows(offset, async (char mode, T row, int localeId, ID deletedId) => {
 				changes++;
 
 				switch (mode)
 				{
 					case 'C':
 						// Create the entry:
-						ctx.LocaleId = localeIdOrDeletedId;
+						ctx.LocaleId = localeId;
 
 						// Already exists?
 						var existing = await Service.Get(ctx, row.Id);
@@ -329,17 +330,17 @@ namespace Api.ContentSync
 					break;
 					case 'D':
 						// Delete the entry:
-						var existingDel = await Service.Get(ctx, localeIdOrDeletedId);
+						var existingDel = await Service.Get(ctx, deletedId);
 
 						if (existingDel != null)
 						{
 							ctx.LocaleId = 0;
-							await Service.Delete(ctx, localeIdOrDeletedId);
+							await Service.Delete(ctx, deletedId);
 						}
 					break;
 					case 'U':
 						// Update the entry:
-						ctx.LocaleId = localeIdOrDeletedId;
+						ctx.LocaleId = localeId;
 						var existingUpd = await Service.Get(ctx, row.Id);
 
 						if (existingUpd != null)
@@ -529,10 +530,65 @@ namespace Api.ContentSync
 			Writer.Write('\n');
 		}
 
+		private ID ReadId(string text)
+		{
+			if (typeof(ID) == typeof(int))
+			{
+				if (!int.TryParse(text, out int id))
+				{
+					return default(ID);
+				}
+
+				return (ID)(object)(id);
+			}
+			else if (typeof(ID) == typeof(string))
+			{
+				return (ID)(object)text;
+			}
+			else if (typeof(ID) == typeof(uint))
+			{
+				if (!uint.TryParse(text, out uint id))
+				{
+					return default(ID);
+				}
+
+				return (ID)(object)(id);
+			}
+			else if (typeof(ID) == typeof(long))
+			{
+				if (!long.TryParse(text, out long id))
+				{
+					return default(ID);
+				}
+
+				return (ID)(object)(id);
+			}
+			else if (typeof(ID) == typeof(ulong))
+			{
+				if (!ulong.TryParse(text, out ulong id))
+				{
+					return default(ID);
+				}
+
+				return (ID)(object)(id);
+			}
+			else if (typeof(ID) == typeof(Guid))
+			{
+				if (!Guid.TryParse(text, out Guid id))
+				{
+					return default(ID);
+				}
+
+				return (ID)(object)(id);
+			}
+
+			return default(ID);
+		}
+
 		/// <summary>
 		/// Read the rows from the file now.
 		/// </summary>
-		public async Task<long> ReadRows(long offset, Func<char, T, int, Task> onReadRow)
+		public async Task<long> ReadRows(long offset, Func<char, T, int, ID, Task> onReadRow)
 		{
 			long size = 0;
 
@@ -567,13 +623,10 @@ namespace Api.ContentSync
 							// Deleted something.
 							string idTxt = ReadUntilEol(sr);
 
-							if (!int.TryParse(idTxt, out int deletedId))
-							{
-								break;
-							}
+							ID deletedId = ReadId(idTxt);
 
 							// 
-							await onReadRow((char)mode, null, deletedId);
+							await onReadRow((char)mode, null, 0, default(ID));
 
 							continue;
 						}
@@ -674,7 +727,7 @@ namespace Api.ContentSync
 							break;
 						}
 
-						await onReadRow((char)mode, row, localeId);
+						await onReadRow((char)mode, row, localeId, default(ID));
 					}
 				}
 			}
@@ -806,8 +859,11 @@ namespace Api.ContentSync
 					continue;
 				}
 
+				// Get ID field type:
+				var idFieldType = kvp.Value.GetField("Id").FieldType;
+
 				// Get the table file type now:
-				var stfType = typeof(SyncTableFile<>).MakeGenericType(kvp.Value);
+				var stfType = typeof(SyncTableFile<,>).MakeGenericType(kvp.Value, idFieldType);
 
 				// Instance it:
 				var stf = (SyncTableFile)Activator.CreateInstance(stfType, new object[] { filePath });
