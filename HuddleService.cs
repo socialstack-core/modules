@@ -119,13 +119,20 @@ namespace Api.Huddles
 		{
 			var user = await context.GetUser();
 
-			string displayName = user == null ? "Anonymous" : user.Username;
-			string avatarRef = user == null ? (string)null : user.AvatarRef;
+
+			var joinInfo = new HuddleJoinInfo()
+			{
+				DisplayName = user == null ? "Anonymous" : user.Username,
+				AvatarRef = user == null ? (string)null : user.AvatarRef
+			};
+
+			// Dispatch the get join info evt:
+			joinInfo = await Events.HuddleGetJoinInfo.Dispatch(context, joinInfo, huddle, user);
 
 			var queryStr = "h=" + huddle.Id + 
 			"&u=" + context.UserId + 
-			"&d=" + HttpUtility.UrlEncode(displayName) + 
-			"&a=" + HttpUtility.UrlEncode(avatarRef) +
+			"&d=" + HttpUtility.UrlEncode(joinInfo.DisplayName) + 
+			"&a=" + HttpUtility.UrlEncode(joinInfo.AvatarRef) +
 			"&type=" + huddle.HuddleType + 
 			"&role=" + ((huddle.UserId == context.UserId) ? "1" : "4");
 			

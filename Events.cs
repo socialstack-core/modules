@@ -1,6 +1,7 @@
 using Api.Huddles;
 using Api.Permissions;
 using System.Collections.Generic;
+using Api.Users;
 
 namespace Api.Eventing
 {
@@ -29,5 +30,11 @@ namespace Api.Eventing
 		/// Set of events for a huddlePermittedUser.
 		/// </summary>
 		public static HuddlePermittedUserEventGroup HuddlePermittedUser;
+		
+		/// <summary>
+		/// Called when a huddle is being joined.
+		/// </summary>
+		[DontAddPermissions]
+		public static EventHandler<HuddleJoinInfo, Huddle, User> HuddleGetJoinInfo;
 	}
 }
