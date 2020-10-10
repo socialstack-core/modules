@@ -11,6 +11,8 @@ using Api.Signatures;
 using System.Web;
 using Api.Users;
 using Api.Startup;
+using Microsoft.AspNetCore.Http;
+using System.Linq;
 
 namespace Api.Huddles
 {
@@ -32,7 +34,47 @@ namespace Api.Huddles
 			_signatures = signatures;
 			_huddleServerService = huddleServerService;
 			userTypeId = ContentTypes.GetId(typeof(User));
+			
+			Events.HuddlePermittedUser.Listed.AddEventListener(async (Context context, List<HuddlePermittedUser> list, HttpResponse response) => {
 
+				// If specifically using huddle permitted user list, add huddle objects to it:
+				if (list == null || list.Count == 0)
+				{
+					return list;
+				}
+
+				// Get huddle list:
+				var huddles = await List(context, new Filter<Huddle>().Id(list.Select(e => e.HuddleId)));
+
+				var huddleLookup = new Dictionary<int, Huddle>();
+
+				foreach (var huddle in huddles)
+				{
+					huddleLookup[huddle.Id] = huddle;
+				}
+
+				foreach (var entry in list)
+				{
+					huddleLookup.TryGetValue(entry.HuddleId, out Huddle huddle);
+					if (huddle == null)
+					{
+						entry.HuddleMeta = null;
+					}
+					else
+					{
+						entry.HuddleMeta = new HuddleMeta()
+						{
+							Title = huddle.Title,
+							StartTimeUtc = huddle.StartTimeUtc,
+							EstimatedEndTimeUtc = huddle.EstimatedEndTimeUtc,
+						};
+					}
+				}
+
+				return list;
+				
+			});
+			
 			Events.Huddle.BeforeCreate.AddEventListener(async (Context ctx, Huddle huddle) =>
 			{
 				if (huddle.EstimatedParticipants <= 0) {

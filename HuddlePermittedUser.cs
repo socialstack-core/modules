@@ -67,6 +67,29 @@ namespace Api.Huddles
 		/// </summary>
 		[DatabaseField(Length=100)]
 		public string Title;
+
+		/// <summary>
+		/// Important: only used specifically by the huddlepermitteduser/list endpoint. It's null everywhere else.
+		/// </summary>
+		public HuddleMeta HuddleMeta { get; set; }
 	}
 
+	/// <summary>
+	/// Base info about a huddle.
+	/// </summary>
+	public class HuddleMeta
+	{
+		/// <summary>
+		/// Huddles raw title.
+		/// </summary>
+		public string Title;
+		/// <summary>
+		/// Start time from the huddle.
+		/// </summary>
+		public DateTime StartTimeUtc;
+		/// <summary>
+		/// Est end time from the huddle.
+		/// </summary>
+		public DateTime EstimatedEndTimeUtc;
+	}
 }
