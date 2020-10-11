@@ -97,6 +97,16 @@ namespace Api.Users
 					Expires = expiry
                 }
             );
+			
+            Response.Cookies.Append(
+                _contexts.CookieName,
+                "",
+                new Microsoft.AspNetCore.Http.CookieOptions()
+                {
+                    Path = "/",
+					Expires = expiry
+                }
+            );
 
             return new Success();
         }
