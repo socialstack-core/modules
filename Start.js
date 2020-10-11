@@ -31,9 +31,11 @@ module.exports = function(){
 		__mm[m] && require(m);
 	}
 	
-	if(typeof document != 'undefined'){
+	var document = global.document;
+	
+	if(document){
 		// We're server side otherwise. It would've set global.app internally.
-
+		
 		/*
 		* Navigates in a safe in-page way.
 		*/
