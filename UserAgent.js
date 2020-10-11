@@ -117,7 +117,7 @@ function isDesktop() {
     return !mobileInfo.isMobile && !tabletInfo.isTablet && (window.matchMedia('(pointer: fine)').matches || isIE10Plus);
 }
 
-if (global.document && global.document.getElementsByTagName("html").length) {
+if (global.document && global.document.getElementsByTagName && global.document.getElementsByTagName("html").length) {
     // user agent detection
     var userAgent = navigator.userAgent || navigator.vendor || window.opera;
     var isWindowsPhone = /windows phone/i.test(userAgent);
