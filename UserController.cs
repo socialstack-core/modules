@@ -56,13 +56,15 @@ namespace Api.Users
 			{
 				// Force reset if role changed.
 				var expiry = default(DateTimeOffset?);
-				
+
 				Response.Cookies.Append(
 					_contexts.CookieName,
 					"",
 					new Microsoft.AspNetCore.Http.CookieOptions()
 					{
 						Path = "/",
+						Domain = _contexts.GetDomain(),
+						IsEssential = true,
 						Expires = expiry
 					}
 				);
@@ -90,7 +92,9 @@ namespace Api.Users
                 new Microsoft.AspNetCore.Http.CookieOptions()
                 {
                     Path = "/",
-                    Expires = expiry
+					Domain = _contexts.GetDomain(),
+					IsEssential = true,
+					Expires = expiry
                 }
             );
 
