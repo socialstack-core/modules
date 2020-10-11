@@ -5,6 +5,10 @@ import {
 
 import webRequest from 'UI/Functions/WebRequest';
 
+// If more people than this in a meeting, the camera does not enable by default when more people join.
+// Still usable, but just not on by default anymore.
+const CAM_MAX = 10;
+
 const VIDEO_CONSTRAINS =
 {
 	qvga : { width: { ideal: 320 }, height: { ideal: 240 } },
@@ -2045,7 +2049,14 @@ export default class HuddleClient
 				});
 				
 				this.enableMic();
-				this.enableWebcam();
+				
+				// If we know for sure it's a busy meeting, or will likely be a busy meeting
+				// don't turn the cam on straight away.
+				var busyMeeting = this.isBusy();
+				
+				if(!busyMeeting){
+					this.enableWebcam();
+				}
 
 				this._sendTransport.on('connectionstatechange', (connectionState) =>
 				{
@@ -2070,7 +2081,14 @@ export default class HuddleClient
 			this.close();
 		}
 	}
-
+	
+	isBusy()
+	{
+		return (this.peers && this.peers.length > CAM_MAX) || 
+		(this.room.huddle && this.room.huddle.invites && this.room.huddle.invites.length > CAM_MAX) || 
+		this.props.busyMeeting
+	}
+	
 	async _updateWebcams()
 	{
 		// Reset the list.
