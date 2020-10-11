@@ -1,7 +1,10 @@
 
 namespace Api.Huddles
 {
-	public struct HuddleJoinInfo
+	/// <summary>
+	/// Info about the user profile to return when they join a huddle.
+	/// </summary>
+	public partial struct HuddleJoinInfo
 	{
 		
 		/// <summary>
