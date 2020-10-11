@@ -115,16 +115,28 @@ namespace Api.Contexts
 		/// <returns></returns>
 		public string GetDomain()
 		{
+			#if DEBUG
+				// Localhost
+				return null;
+			#else
 			if (_domain == null)
 			{
-				_domain = AppSettings.Configuration["PublicUrl"].Replace("https://", "");
-				if (_domain.StartsWith("www."))
+				if(AppSettings.Configuration["CookieDomain"] != null)
 				{
-					_domain = _domain.Substring(4);
+					_domain = AppSettings.Configuration["CookieDomain"];
+				}
+				else
+				{
+					_domain = AppSettings.Configuration["PublicUrl"].Replace("https://", "");
+					if (_domain.StartsWith("www."))
+					{
+						_domain = _domain.Substring(4);
+					}
 				}
 			}
 
 			return _domain;
+			#endif
 		}
 
 		/// <summary>
