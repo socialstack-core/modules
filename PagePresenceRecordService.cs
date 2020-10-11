@@ -50,17 +50,17 @@ namespace Api.Presence
 
 			if (Services.Started)
 			{
-				_ = Start();
+				Start();
 			}
 			else
 			{
 				// Must happen after services start otherwise the page service isn't necessarily available yet.
 				// Notably this happens immediately after services start in the first group
 				// (that's before any e.g. system pages are created).
-				Events.ServicesAfterStart.AddEventListener(async (Context ctx, object src) =>
+				Events.ServicesAfterStart.AddEventListener((Context ctx, object src) =>
 				{
-					await Start();
-					return src;
+					Start();
+					return new ValueTask<object>(src);
 
 					// Happens on tick 2 which is immediately after contentSync starts.
 					// This means the ContentSync service has the server config/ ID available.
@@ -118,7 +118,7 @@ namespace Api.Presence
 		/// <summary>
 		/// Starts the page presence service
 		/// </summary>
-		public async Task<bool> Start()
+		public bool Start()
 		{
 			// Get server ID:
 			var contentSyncService = Services.Get<ContentSyncService>();
@@ -146,11 +146,13 @@ namespace Api.Presence
 			// This service is always cached - cache it now:
 			Cache(new CacheConfig<PagePresenceRecord>() {
 				Preload = true,
+
+				#warning todo - must run after cache has loaded and contentsync is connected
+				/*
 				OnCacheLoaded = async () => {
 
-					#warning todo - must run after cache has loaded and contentsync is connected
+					
 					// - because it needs to clear remote server caches too.
-					/*
 					// Cache has loaded - delete any entries which were from this server.
 					var context = new Context();
 					var priorServerEntries = await List(context, new Filter<PagePresenceRecord>().Equals("ServerId", ServerId));
@@ -159,9 +161,9 @@ namespace Api.Presence
 					{
 						await Delete(context, entry);
 					}
-					*/
 
 				}
+				*/
 			});
 
 			// Add event listeners for websocket users:
