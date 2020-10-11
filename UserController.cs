@@ -51,11 +51,10 @@ namespace Api.Users
 			var cookieRole = context.RoleId;
 			
 			var ctx = await context.GetPublicContext();
-			
-			if(context.RoleId != cookieRole)
+
+			if (context.RoleId != cookieRole)
 			{
 				// Force reset if role changed.
-				var expiry = default(DateTimeOffset?);
 
 				Response.Cookies.Append(
 					_contexts.CookieName,
@@ -65,16 +64,36 @@ namespace Api.Users
 						Path = "/",
 						Domain = _contexts.GetDomain(),
 						IsEssential = true,
-						Expires = expiry
+						Expires = ThePast
 					}
 				);
-				
+
+				Response.Cookies.Append(
+					_contexts.CookieName,
+					"",
+					new Microsoft.AspNetCore.Http.CookieOptions()
+					{
+						Path = "/",
+						Expires = ThePast
+					}
+				);
+
 				return null;
+			}
+			else
+			{
+				// Update the token:
+				context.SendToken(Response);
 			}
 			
 			return ctx;
 		}
-		
+
+		/// <summary>
+		/// A date in the past used to set expiry on cookies.
+		/// </summary>
+		private static DateTimeOffset ThePast = new DateTimeOffset(1993, 1, 1, 0, 0, 0, TimeSpan.Zero);
+
 		/// <summary>
 		/// Logs out this user account.
 		/// </summary>
@@ -84,8 +103,6 @@ namespace Api.Users
 
 			// var context = Request.GetContext();
 
-			var expiry = default(DateTimeOffset?);
-
             Response.Cookies.Append(
                 _contexts.CookieName,
                 "",
@@ -94,8 +111,8 @@ namespace Api.Users
                     Path = "/",
 					Domain = _contexts.GetDomain(),
 					IsEssential = true,
-					Expires = expiry
-                }
+					Expires = ThePast
+				}
             );
 			
             Response.Cookies.Append(
@@ -104,8 +121,8 @@ namespace Api.Users
                 new Microsoft.AspNetCore.Http.CookieOptions()
                 {
                     Path = "/",
-					Expires = expiry
-                }
+					Expires = ThePast
+				}
             );
 
             return new Success();
