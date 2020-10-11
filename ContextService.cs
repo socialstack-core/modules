@@ -2,6 +2,7 @@
 using System.Reflection;
 using System.Text;
 using System.Threading.Tasks;
+using Api.Configuration;
 using Api.Database;
 using Api.Eventing;
 using Api.Signatures;
@@ -102,6 +103,29 @@ namespace Api.Contexts
                 return "user";
             }
         }
+
+		/// <summary>
+		/// Cookie domain
+		/// </summary>
+		private static string _domain;
+		
+		/// <summary>
+		/// Cookie domain to use
+		/// </summary>
+		/// <returns></returns>
+		public string GetDomain()
+		{
+			if (_domain == null)
+			{
+				_domain = AppSettings.Configuration["PublicUrl"].Replace("https://", "");
+				if (_domain.StartsWith("www."))
+				{
+					_domain = _domain.Substring(4);
+				}
+			}
+
+			return _domain;
+		}
 
 		/// <summary>
 		/// Revokes all previous login tokens for the given user.

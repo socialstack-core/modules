@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Security.Claims;
 using System.Threading.Tasks;
+using Api.Configuration;
 using Api.Eventing;
 using Api.Permissions;
 using Api.Startup;
@@ -259,14 +260,16 @@ namespace Api.Contexts
 			{
 				_contextService = Services.Get<ContextService>();
 			}
-			
+
 			response.Cookies.Append(
 					_contextService.CookieName,
 					token,
 					new Microsoft.AspNetCore.Http.CookieOptions()
 					{
 						Path = "/",
-						Expires = expiry
+						Expires = expiry,
+						Domain = _contextService.GetDomain(),
+						IsEssential = true
 					}
 				);
 		}
