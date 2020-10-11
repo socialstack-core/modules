@@ -40,8 +40,9 @@ export default class Peers extends React.Component {
 		});
 		
 		var dataSharing = sharedPeers.join();
+		var cappedPeerCount = peers.length > 8 ? 8 : peers.length;
 		
-		return <div className={"peers peers-" + peers.length} data-sharing={dataSharing} data-attendees={peers.length}>
+		return <div className={"peers peers-" + cappedPeerCount} data-sharing={dataSharing} data-attendees={cappedPeerCount}>
 			{
 				peers.map((peer, index) =>
 				{

@@ -1,6 +1,23 @@
 import PeerView from 'UI/VideoChat/PeerView';
+import Modal from 'UI/Modal';
 
 export default class Me extends React.Component {
+	
+	busyCheck(onIgnore){
+		const {
+			huddleClient
+		} = this.props;
+		
+		if(huddleClient.isBusy()){
+			
+			this.setState({
+				promptAboutBusy: {
+					onIgnore
+				}
+			});
+			
+		}
+	}
 	
 	render(){
 		const {
@@ -60,6 +77,8 @@ export default class Me extends React.Component {
 
 		const videoVisible = Boolean(videoProducer) && !videoProducer.paused;
 		
+		var {promptAboutBusy} = this.state;
+		
 		return (
 			<div
 				className="me"
@@ -87,7 +106,9 @@ export default class Me extends React.Component {
 								}
 								else
 								{
-									huddleClient.enableWebcam();
+									this.busyCheck(() => {
+										huddleClient.enableWebcam();
+									});
 								}
 							}}
 						/>
@@ -104,7 +125,10 @@ export default class Me extends React.Component {
 								if (shareState === 'on')
 									huddleClient.disableShare();
 								else
+								{
+									// Although it's video, screenshare intentionally doesn't do the busy check
 									huddleClient.enableShare();
+								}
 							}}
 						/>
 					</div>
@@ -134,6 +158,23 @@ export default class Me extends React.Component {
 					audioScore={audioProducer ? audioProducer.score : null}
 					videoScore={videoProducer ? videoProducer.score : null}
 				/>
+				{promptAboutBusy && <Modal visible onClose={() => {
+					this.setState({promptAboutBusy: null});
+				}}>
+					<h2>
+						There's a lot of people here!
+					</h2>
+					<p>
+						For the best performance it's recommended to leave your camera off unless you're sharing.
+					</p>
+					<button className="btn btn-primary" onClick={() => {
+						this.setState({promptAboutBusy: null});
+						promptAboutBusy.onIgnore && promptAboutBusy.onIgnore();
+					}}>
+						Enable camera
+					</button>
+				</Modal>
+				}
 			</div>
 		);
 		

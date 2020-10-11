@@ -1,4 +1,5 @@
 import Loading from 'UI/Loading';
+import getRef from 'UI/Functions/GetRef';
 
 export default class PeerView extends React.Component {
 	constructor(props)
@@ -64,9 +65,12 @@ export default class PeerView extends React.Component {
 			videoClassNames += 'network-error';
 		}
 		
-		//var avatarUrl = user && user.avatarRef ? getRef(user.avatarRef, { url: true, size: 100 }) : "";
-		//console.log(isMe ? "ME: " : "PEER: ", peer);
-		//console.log("name: ", displayName);
+		var avatarUrl = peer.profile && peer.profile.avatar ? getRef(peer.profile.avatar, { url: true, size: 512 }) : "";
+		
+		/*
+		var avatarUrl = peer._pic || 'https://picsum.photos/' + (300 + Math.floor((Math.random() * 40)));
+		peer._pic = avatarUrl;
+		*/
 		
 		var displayName = null;
 		
@@ -93,14 +97,14 @@ export default class PeerView extends React.Component {
 					controls={false}
 				/>
 				
+				{(!videoVisible || !videoCanPlay) && (
+					<div className="video-avatar" style={{backgroundImage: 'url(' + avatarUrl + ')'}} />
+				)}
+				
 				{(videoVisible && videoScore < 5) && (
 					<div className='spinner-container'>
 						<Loading />
 					</div>
-				)}
-
-				{videoElemPaused && (
-					<div className='video-elem-paused' />
 				)}
 				
 				{displayName && 
