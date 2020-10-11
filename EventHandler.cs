@@ -268,7 +268,7 @@ namespace Api.UserAgendaEntries
 					if (overlappers != null && overlappers.Count > 0)
 					{
 						// Are we returning a warning or error:
-						if(Config != null && Config.AllowCollisions != null && Config.AllowCollisions && !invite.ForceAccept)
+						if(Config != null && Config.AllowCollisions && !invite.ForceAccept)
                         {
 							// We are returning a warning since the Allow collisions is enabled but we are not forcing.
 							//throw new PublicException("You're already booked at this time. Please check your calendar and propose a new time", "double_booked_warning");
