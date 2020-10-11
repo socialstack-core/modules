@@ -16,6 +16,8 @@ export default class Me extends React.Component {
 				}
 			});
 			
+		}else{
+			onIgnore();
 		}
 	}
 	
@@ -107,6 +109,7 @@ export default class Me extends React.Component {
 								else
 								{
 									this.busyCheck(() => {
+										console.log('Enabling webcam');
 										huddleClient.enableWebcam();
 									});
 								}
