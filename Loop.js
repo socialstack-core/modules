@@ -6,7 +6,7 @@ import getEndpointType from 'UI/Functions/GetEndpointType';
 import Failure from 'UI/Failed';
 import Paginator from 'UI/Paginator';
 import { isoConvert } from 'UI/Functions/DateTools';
-
+var document = global.document;
 const DEFAULT_PAGE_SIZE = 50;
 
 // Operators as used by Filter in where clauses.
