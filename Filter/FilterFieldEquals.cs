@@ -238,7 +238,6 @@ namespace Api.Permissions
 		/// <param name="type"></param>
 		/// <param name="fieldName"></param>
 		/// <param name="value"></param>
-		/// <param name="argIndex"></param>
 		/// <returns></returns>
 		public Filter Equals(System.Type type, string fieldName, object value)
 		{
@@ -266,7 +265,6 @@ namespace Api.Permissions
 		/// </summary>
 		/// <param name="fieldName"></param>
 		/// <param name="value"></param>
-		/// <param name="argIndex"></param>
 		/// <returns></returns>
 		public Filter EqualsField(string fieldName, object value)
 		{
