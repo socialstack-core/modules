@@ -1046,6 +1046,7 @@ namespace Api.WebSockets
 						continue;
 					}
 				}
+				*/
 
 				await current.Socket.SendAsync(
 					arSegment,
@@ -1053,8 +1054,7 @@ namespace Api.WebSockets
 					true,
 					CancellationToken.None
 				);
-				*/
-
+				
 				current = current.UserNext;
 			}
 		}
