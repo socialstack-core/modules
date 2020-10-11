@@ -63,7 +63,8 @@ export default class HuddleClient
 			forceVP9,
 			svc,
 			datachannel,
-			device
+			device,
+			busyMeeting
 		}
 	)
 	{
@@ -139,6 +140,8 @@ export default class HuddleClient
 		// Whether simulcast should be used in desktop sharing.
 		// @type {Boolean}
 		this._useSharingSimulcast = useSharingSimulcast;
+		
+		this._busyMeeting = busyMeeting;
 		
 		// protoo-client Peer instance.
 		// @type {protoo.Peer}
@@ -2086,7 +2089,7 @@ export default class HuddleClient
 	{
 		return (this.peers && this.peers.length > CAM_MAX) || 
 		(this.room.huddle && this.room.huddle.invites && this.room.huddle.invites.length > CAM_MAX) || 
-		this.props.busyMeeting
+		this._busyMeeting
 	}
 	
 	async _updateWebcams()
