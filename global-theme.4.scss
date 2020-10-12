@@ -175,6 +175,12 @@
 	  &.badge-#{$theme} {
 		color: get_value(color, bootstrap, badge, $theme);
 		background-color: get_value(background-color, bootstrap, badge, $theme);
+
+		&:hover,
+		&:focus {
+			color: get_value(color, bootstrap, badge, $theme);
+			background-color: darken(get_value(background-color, bootstrap, badge, $theme), 10%);
+		}
 	  }
 	}
 }
