@@ -21,11 +21,12 @@ class MediaRecorder {
 	/**
 	* @param {MediaStream} stream The audio stream to record.
 	*/
-	constructor (stream) {
+	constructor (stream, props) {
 		/**
 		 * The `MediaStream` passed into the constructor.
 		 * @type {MediaStream}
 		 */
+		 this.props = props || {};
 		this.stream = stream
 		this.maxDuration = 60;
 		this.recording = false
@@ -123,13 +124,24 @@ class MediaRecorder {
 			processor = context.createScriptProcessor(2048, 1, 1);
 		}
 		
-		processor.onaudioprocess = (e) => {
-			if (!this.recording) {
-				return;
+		if(this.props.onData){
+			processor.onaudioprocess = (e) => {
+				if (!this.recording) {
+					return;
+				}
+				
+				var data = e.inputBuffer.getChannelData(0);
+				this.props.onData(data);
 			}
-			
-			var data = e.inputBuffer.getChannelData(0);
-			this.addData(data);
+		}else{
+			processor.onaudioprocess = (e) => {
+				if (!this.recording) {
+					return;
+				}
+				
+				var data = e.inputBuffer.getChannelData(0);
+				this.addData(data);
+			}
 		}
 
 		input.connect(processor)
