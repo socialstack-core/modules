@@ -109,8 +109,11 @@ var protocolHandlers = {
 	'private': contentFile,
 	'url': basicUrl,
 	'fa': fontAwesomeIcon,
+	'fas': fontAwesomeIcon,
 	'far': fontAwesomeIcon,
 	'fad': fontAwesomeIcon,
 	'fal': fontAwesomeIcon,
+	'fab': fontAwesomeIcon,
+	'fr': fontAwesomeIcon, // Four Roads icon fonts use "fr" as opposed to "fa"
 	'emoji': emojiStr
 };
