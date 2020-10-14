@@ -33,10 +33,6 @@ namespace Api.NavMenus
 			selectByKeyQuery.Where().EqualsArg("Key", 0);
 			
 			InstallAdminPages("Nav Menus", "fa:fa-map-signs", new string[] { "id", "name", "key" });
-			
-			Cache(new CacheConfig<NavMenu>(){
-				PreloadPriority = 20
-			});
 		}
 		
         /// <summary>
