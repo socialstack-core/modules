@@ -48,6 +48,10 @@ namespace Api.Uploader
 				extensions.Mappings[".m4s"] = "video/iso.segment";
 				extensions.Mappings[".m3u8"] = "application/x-mpegURL";
 
+				// GLTF:
+				extensions.Mappings[".gltf"] = "model/gltf+json";
+				extensions.Mappings[".hdr"] = "application/octet-stream";
+
 
 				app.UseStaticFiles(new StaticFileOptions()
 				{
