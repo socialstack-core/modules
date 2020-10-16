@@ -29,6 +29,12 @@
 
 */
 
+$socialstack_theme_version: get_theme(version);
+
+@if (not $socialstack_theme_version) {
+    $socialstack_theme_version: 1;
+}
+
 // *** palette functions
 // *** ----------------------------------------------------------------------
 

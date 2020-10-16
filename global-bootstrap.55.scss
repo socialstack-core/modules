@@ -17,6 +17,9 @@ $bootstrap_variants: (
 
 // ALERTS
 // https://getbootstrap.com/docs/4.5/components/alerts/
+// supports:
+// - specific background-color/color/border-color combinations (defined within theme under bootstrap > alert > [variant])
+// - alternatively, uses background-color/color/border-color for given variant (defined within palette under [variant])
 .alert {
     $alert-bg-level:                    -10 !default;
     $alert-border-level:                -9 !default;
@@ -25,11 +28,11 @@ $bootstrap_variants: (
     border-width: get_theme(border-width, bootstrap, alert);
     border-radius: get_theme(border-radius, bootstrap, alert);
 
-    @if (get_theme(version) == 1) {
+    @if ($socialstack_theme_version == 1) {
         @include get_alert_themes();
     }
 
-    @if (get_theme(version) > 1) {
+    @if ($socialstack_theme_version > 1) {
 
         @each $variant in $bootstrap_variants {
 
@@ -52,6 +55,8 @@ $bootstrap_variants: (
 
 // BADGES
 // https://getbootstrap.com/docs/4.5/components/badge/
+// supports:
+// - background-color/color/border-color for given variant (defined within palette under [variant])
 .badge {
     outline: 0 !important;
     padding: get_theme(padding, bootstrap, badge);
@@ -60,11 +65,11 @@ $bootstrap_variants: (
     line-height: get_theme(line-height, bootstrap, badge);
     border-radius: get_theme(border-radius, bootstrap, badge);
 
-    @if (get_theme(version) == 1) {
+    @if ($socialstack_theme_version == 1) {
         @include get_badge_themes();
     }
 
-    @if (get_theme(version) > 1) {
+    @if ($socialstack_theme_version > 1) {
         $badge_padding_x: get_theme(padding-x, bootstrap, badge, pill);
 
         .badge-pill {
@@ -119,7 +124,7 @@ $bootstrap_variants: (
 // BUTTONS
 // https://getbootstrap.com/docs/4.5/components/buttons/
 // NB: border-width override only supported for outline buttons
-@if (get_theme(version) > 1) {
+@if ($socialstack_theme_version > 1) {
     $button_outline_width: get_theme(border-width, bootstrap, buttons);
     $button_padding_y: get_theme(padding-y, bootstrap, buttons);
     $button_padding_x: get_theme(padding-x, bootstrap, buttons);
@@ -193,31 +198,29 @@ $bootstrap_variants: (
 
 // BUTTON GROUP
 // https://getbootstrap.com/docs/4.5/components/button-group/
-@if (get_theme(version) > 1) {
+@if ($socialstack_theme_version > 1) {
     .btn-group {
         // Prevent double borders when buttons are next to each other
         > .btn:not(:first-child),
         > .btn-group:not(:first-child) {
-            //margin-left: -$btn-border-width;
+            //margin-left: -$btn-border-width; // default 1px, unlikely to change
         }
 
     }
 
     .btn-group-sm > .btn {
         @extend .btn-sm;
-        //@include button-size($button_padding_y_sm, $button_padding_x_sm, $button_font_size_sm, $button_line_height_sm, $button_border_radius_sm);
     }
 
     .btn-group-lg > .btn {
         @extend .btn-lg;
-        //@include button-size($button_padding_y_lg, $button_padding_x_lg, $button_font_size_lg, $button_line_height_lg, $button_border_radius_lg);
     }
 
     .btn-group-vertical {
 
         > .btn:not(:first-child),
         > .btn-group:not(:first-child) {
-            //margin-top: -$btn-border-width;
+            //margin-top: -$btn-border-width; // default 1px, unlikely to change
         }
     }
 
@@ -261,7 +264,7 @@ $bootstrap_variants: (
 
 // MODAL
 // https://getbootstrap.com/docs/4.5/components/modal/
-@if (get_theme(version) == 1) {
+@if ($socialstack_theme_version == 1) {
 
     .modal-backdrop {
         background-color: $theme_modal_backdrop;
@@ -430,7 +433,7 @@ $bootstrap_variants: (
     }
 }
 
-@if (get_theme(version) > 1) {
+@if ($socialstack_theme_version > 1) {
     $modal_dialog_margin: get_theme(margin, bootstrap, modal, dialog);
     $modal_dialog_margin_y_sm_up: get_theme(margin-y, bootstrap, modal, dialog, sm);
     $modal_header_padding_y: get_theme(padding-y, bootstrap, modal, header);
@@ -604,7 +607,7 @@ $bootstrap_variants: (
 
 // PAGINATION
 // https://getbootstrap.com/docs/4.5/components/pagination/
-@if (get_theme(version) == 1) {
+@if ($socialstack_theme_version == 1) {
     $pagination_spacing: get_theme(linkSpacing, bootstrap, pagination);
     $pagination_border_width: get_theme(border-width, bootstrap, pagination);
     $pagination_min_size: get_theme(minSize, bootstrap, pagination);
@@ -699,7 +702,7 @@ $bootstrap_variants: (
     }
 }
 
-@if (get_theme(version) > 1) {
+@if ($socialstack_theme_version > 1) {
     // TODO
 }
 
@@ -717,7 +720,7 @@ $bootstrap_variants: (
 
 // SPINNERS
 // https://getbootstrap.com/docs/4.5/components/spinners/
-@if (get_theme(version) == 1) {
+@if ($socialstack_theme_version == 1) {
     .spinner-border {
         width: get_theme(width, bootstrap, spinners);
         height: get_theme(height, bootstrap, spinners);
