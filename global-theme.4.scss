@@ -29,10 +29,13 @@
 
 */
 
-@function get_palette_value($theme, $value, $category: null) {
+// *** palette functions
+// *** ----------------------------------------------------------------------
+
+@function get_specific_palette($palette, $value, $category: null) {
 
 	@if ($category) {
-		$categoryMap: map-get($theme, $category);
+		$categoryMap: map-get($palette, $category);
 
 		@if ($categoryMap) {
 			@return map-get($categoryMap, $value);
@@ -40,14 +43,20 @@
 
 	}
 	@else {
-		@return map-get($theme, $value);
+		@return map-get($palette, $value);
 	}
 
 	@return null;
 }
 
-@function get_hover_value($theme, $value, $category: null) {
-	$color: get_palette_value($theme, $value, $category);
+// DEPRECATED
+@function get_palette_value($palette, $value, $category: null) {
+	@return get_specific_palette($palette, $value, $category);
+}
+
+// DEPRECATED
+@function get_hover_value($palette, $value, $category: null) {
+	$color: get_specific_palette($palette, $value, $category);
 
 	@if ($color) {
 		@return darken($color, 10%);
@@ -56,8 +65,9 @@
 	@return null;
 }
 
-@function get_active_value($theme, $value, $category: null) {
-	$color: get_palette_value($theme, $value, $category);
+// DEPRECATED
+@function get_active_value($palette, $value, $category: null) {
+	$color: get_specific_palette($palette, $value, $category);
 
 	@if ($color) {
 		@return darken($color, 20%);
@@ -71,11 +81,11 @@
 	$project: null;
 
 	@if (variable-exists(socialstack_default_palette)) {
-		$default: get_palette_value($socialstack_default_palette, $value, $category);
+		$default: get_specific_palette($socialstack_default_palette, $value, $category);
 	}
 
 	@if (variable-exists(socialstack_project_palette)) {
-		$project: get_palette_value($socialstack_project_palette, $value, $category);
+		$project: get_specific_palette($socialstack_project_palette, $value, $category);
 	}
 
 	@if ($project) {
@@ -85,9 +95,80 @@
 	@return $default;
 }
 
+@function palette_has_key($value, $category: null) {
+	$defaultHasKey: default_palette_has_key($value, $category);
+	$projectHasKey: project_palette_has_key($value, $category);
+
+	@if ($projectHasKey) {
+		@return true;
+	}
+
+	@return $defaultHasKey;
+}
+
+@function project_palette_has_key($value, $category: null) {
+	$projectHasKey: false;
+
+	@if (variable-exists(socialstack_project_palette)) {
+		$projectHasKey: specific_palette_has_key($socialstack_project_palette, $value, $category);
+	}
+
+	@return $projectHasKey;
+}
+
+@function default_palette_has_key($value, $category: null) {
+	$defaultHasKey: false;
+
+	@if (variable-exists(socialstack_default_palette)) {
+		$defaultHasKey: specific_palette_has_key($socialstack_default_palette, $value, $category);
+	}
+
+	@return $defaultHasKey;
+}
+
+@function specific_palette_has_key($palette, $value, $category: null) {
+	$paletteHasKey: false;
+
+	@if ($category == null) {
+		$paletteHasKey: map-has-key($palette, $value);
+	} @else {
+
+		@if (map-has-key($palette, $category)) {
+			$categoryMap: map-get($palette, category);
+			$paletteHasKey: map-has-key($categoryMap, $value);
+		}
+	}
+
+	@return $paletteHasKey;
+}
+
+@function palette_exists() {
+
+	@if (variable-exists(socialstack_default_palette)) {
+		@return true;
+	}
+
+	@if (variable-exists(socialstack_project_palette)) {
+		@return true;
+	}
+
+	@return false;
+}
+
+@function project_palette_exists() {
+	@return variable-exists(socialstack_project_palette);
+}
+
+@function default_palette_exists() {
+	@return variable-exists(socialstack_default_palette);
+}
+
+// *** theme functions
+// *** ----------------------------------------------------------------------
+
 // retrieve value of category > context > subContext > state > key from the given theme (default or project)
 // (all levels optional)
-@function get_theme_value($theme, $value, $category: null, $context: null, $subContext: null, $state: null) {
+@function get_specific_theme($theme, $value, $category: null, $context: null, $subContext: null, $state: null) {
 
 	@if ($category) {
 		$categoryMap: map-get($theme, $category);
@@ -133,9 +214,14 @@
 	@return null;
 }
 
+// DEPRECATED
+@function get_theme_value($theme, $value, $category: null, $context: null, $subContext: null, $state: null) {
+	@return get_specific_theme($theme, $value, $category, $context, $subContext, $state);
+}
+
 // retrieve value of category > context > subContext > state > key (all levels optional)
 // returns project-level value if found, default value otherwise (null if neither found)
-@function get_value($value, $category: null, $context: null, $subContext: null, $state: null) {
+@function get_theme($value, $category: null, $context: null, $subContext: null, $state: null) {
 	$default: null;
 	$project: null;
 
@@ -154,6 +240,111 @@
 	@return $default;
 }
 
+// DEPRECATED
+@function get_value($value, $category: null, $context: null, $subContext: null, $state: null) {
+	@return get_theme($value, $category, $context, $subContext, $state);
+}
+
+@function theme_has_key($value, $category: null, $context: null, $subContext: null, $state: null) {
+	$defaultHasKey: default_theme_has_key($value, $category, $context, $subContext, $state);
+	$projectHasKey: project_theme_has_key($value, $category, $context, $subContext, $state);
+
+	@if ($projectHasKey) {
+		@return $projectHasKey;
+	}
+
+	@return $defaultHasKey;
+}
+
+@function project_theme_has_key($value, $category: null, $context: null, $subContext: null, $state: null) {
+	$projectHasKey: false;
+
+	@if (variable-exists(socialstack_project_theme)) {
+		$projectHasKey: specific_theme_has_key($socialstack_project_theme, $value, $category, $context, $subContext, $state);
+	}
+
+	@return $projectHasKey;
+}
+
+@function default_theme_has_key($value, $category: null, $context: null, $subContext: null, $state: null) {
+	$defaultHasKey: false;
+
+	@if (variable-exists(socialstack_default_theme)) {
+		$defaultHasKey: specific_theme_has_key($socialstack_default_theme, $value, $category, $context, $subContext, $state);
+	}
+
+	@return $defaultHasKey;
+}
+
+@function specific_theme_has_key($theme, $value, $category: null, $context: null, $subContext: null, $state: null) {
+	$projectHasKey: false;
+
+	@if ($category) {
+		$categoryMap: map-get($theme, $category);
+
+		@if ($categoryMap) {
+
+			@if ($context) {
+				$contextMap: map-get($categoryMap, $context);
+
+				@if ($contextMap) {
+
+					@if ($subContext) {
+						$subContextMap: map-get($contextMap, $subContext);
+
+						@if ($subContextMap) {
+
+							@if ($state) {
+								$stateMap: map-get($subContextMap, $state);
+
+								@if ($stateMap) {
+									$projectHasKey: map-has-key($stateMap, $value);
+								}
+
+							} @else {
+								$projectHasKey: map-has-key($subContextMap, $value);
+							}
+						}
+					}
+					@else {
+						$projectHasKey: map-has-key($contextMap, $value);
+					}
+				}
+			}
+			@else {
+				$projectHasKey: map-has-key($categoryMap, $value);
+			}
+		}
+	}
+	@else {
+		$projectHasKey: map-has-key($theme, $value);
+	}
+
+	@return $projectHasKey;
+}
+
+@function theme_exists() {
+
+	@if (variable-exists(socialstack_default_theme)) {
+		@return true;
+	}
+
+	@if (variable-exists(socialstack_project_theme)) {
+		@return true;
+	}
+
+	@return false;
+}
+
+@function project_theme_exists() {
+	@return variable-exists(socialstack_project_theme);
+}
+
+@function default_theme_exists() {
+	@return variable-exists(socialstack_default_theme);
+}
+
+// DEPRECATED
 // produce theme variations for alerts
 @mixin get_alert_themes() {
 	$themes: primary, secondary, success, danger, warning, info;
@@ -167,6 +358,7 @@
 	}
 }
 
+// DEPRECATED
 // produce theme variations for badges
 @mixin get_badge_themes() {
 	$themes: primary, secondary, success, danger, warning, info, light, dark;
@@ -175,12 +367,6 @@
 	  &.badge-#{$theme} {
 		color: get_value(color, bootstrap, badge, $theme);
 		background-color: get_value(background-color, bootstrap, badge, $theme);
-
-		&:hover,
-		&:focus {
-			color: get_value(color, bootstrap, badge, $theme);
-			background-color: darken(get_value(background-color, bootstrap, badge, $theme), 10%);
-		}
 	  }
 	}
 }

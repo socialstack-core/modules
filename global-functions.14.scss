@@ -46,3 +46,40 @@
  
   @return $x1;
 }
+
+@function list_contains($list,$var) {
+    $contains: false;
+
+    @each $item in $list { 
+        @if $item == $var { 
+            $contains: true; 
+
+        } 
+    }
+
+    @return $contains;
+}
+
+// The yiq lightness value that determines when the lightness of color changes from "dark" to "light". Acceptable values are between 0 and 255.
+$yiq-contrasted-threshold:  150 !default;
+
+// Customize the light and dark text colors for use in our YIQ color contrast function.
+$gray-900: #212529 !default;
+$white: #fff !default;
+$yiq-text-dark:             $gray-900 !default;
+$yiq-text-light:            $white !default;
+
+// Color contrast
+@function color-yiq($color, $dark: $yiq-text-dark, $light: $yiq-text-light) {
+  $r: red($color);
+  $g: green($color);
+  $b: blue($color);
+
+  $yiq: (($r * 299) + ($g * 587) + ($b * 114)) / 1000;
+
+  @if ($yiq >= $yiq-contrasted-threshold) {
+    @return $dark;
+  } @else {
+    @return $light;
+  }
+}
