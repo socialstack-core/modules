@@ -138,6 +138,7 @@ if (global.document && global.document.getElementsByTagName && global.document.g
         //window.navigator.vendor === "Google Inc." &&
         !isOpera &&
         !isEdge;
+    var isIE = window.document.documentMode;
     var isIE10Plus = window.matchMedia("(-ms-high-contrast: active)").matches || window.matchMedia("(-ms-high-contrast: none)").matches;
 
     var htmlClassList = global.document.getElementsByTagName("html")[0].classList;
@@ -162,6 +163,9 @@ if (global.document && global.document.getElementsByTagName && global.document.g
     }
     if (isChrome) {
         htmlClassList.add("chrome");
+    }
+    if (isIE) {
+        htmlClassList.add("ie");
     }
     if (isIE10Plus) {
         htmlClassList.add("ie10-plus");
