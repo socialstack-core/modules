@@ -9,6 +9,7 @@ export default class Collapsible extends React.Component {
 	render() {
 		var isOpen = this.props && this.props.open;
 		var noContent = !this.props.children;
+		var expanderLeft = this.props.expanderLeft;
 		var hasButtons = this.props.buttons && this.props.buttons.length;
 
 		if (noContent) {
@@ -18,7 +19,7 @@ export default class Collapsible extends React.Component {
 		// NB: include "open" class in addition to [open] attribute as we may be using a polyfill to render this
 		var detailsClass = isOpen ? "collapsible open" : "collapsible";
 		var summaryClass = noContent ? "collapsible-summary no-content" : "collapsible-summary";
-		var iconClass = hasButtons ? "collapsible-icon collapsible-icon-left" : "collapsible-icon";
+		var iconClass = expanderLeft || hasButtons ? "collapsible-icon collapsible-icon-left" : "collapsible-icon";
 
 		if (noContent) {
 			iconClass += " invisible";
@@ -26,7 +27,7 @@ export default class Collapsible extends React.Component {
 
 		return <details className={detailsClass} open={isOpen} onClick={noContent ? (e) => { e.preventDefault(); } : false}>
 			<summary className={summaryClass}>
-				{hasButtons &&
+				{(expanderLeft || hasButtons) &&
 					<div className={iconClass}>
 						{/* NB: icon classes injected dynamically via CSS */}
 						<i className="far fa-fw"></i>
@@ -40,7 +41,7 @@ export default class Collapsible extends React.Component {
 						</small>
 					}
 				</h4>
-				{!hasButtons &&
+				{!expanderLeft && !hasButtons &&
 					<div className={iconClass}>
 						<i className="far fa-chevron-down"></i>
 					</div>
