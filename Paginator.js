@@ -45,7 +45,7 @@ export default class Paginator extends React.Component {
 				
 			//case "top":
 			default:
-				window.scrollTo(0, 0);
+				global.scrollTo && global.scrollTo(0, 0);
 				break;
 				
 		}
@@ -77,7 +77,7 @@ export default class Paginator extends React.Component {
 		var html = document.getElementsByTagName("html");
 
 		if (html.length && html[0].classList.contains("device-mobile")) {
-			window.scrollBy(0, 80);
+			global.scrollBy && global.scrollBy(0, 80);
 		}
 
     }
