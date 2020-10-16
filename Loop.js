@@ -836,7 +836,7 @@ export default class Loop extends React.Component {
 			//scrollPref={this.props.scrollPref}
 			onChange={pageIndex => {
 				this.load(this.props, true, pageIndex);
-				window.scrollTo(0, 0);
+				global.scrollTo && global.scrollTo(0, 0);
 			}}
 		/>;
 		
