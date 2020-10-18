@@ -84,7 +84,7 @@ export default class LiveChat extends React.Component {
 	}
 	
 	render(){
-		const { videoId } = this.props;
+		const { contentId, contentType } = this.props;
 		const { user } = global.app.state;
 
 		return <div className="liveChat" style={{ background: 'white' }}>
@@ -92,7 +92,7 @@ export default class LiveChat extends React.Component {
 				<Loop
 					over={"livechatmessage/list"}
 					live={"LiveChatMessage"}
-					filter={{where:{VideoId: videoId}, pageSize: 50, sort: {
+					filter={{where:{ContentId: contentId, ContentTypeId: contentType}, pageSize: 50, sort: {
 						field: 'CreatedUtc',
 						direction: 'desc'
 					}}}
@@ -201,7 +201,8 @@ export default class LiveChat extends React.Component {
 					onValues={
 						v => {
 							this.setState({ submitting: true });
-							v.VideoId = videoId;
+							v.ContentId = contentId
+							v.ContentTypeId = contentType;
 							return v;
 						}
 					}
@@ -267,3 +268,8 @@ export default class LiveChat extends React.Component {
 		</div>;
 	}
 }
+
+LiveChat.propTypes={
+	contentId: 'string',
+	contentType: 'string'
+};
