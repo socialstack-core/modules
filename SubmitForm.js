@@ -61,6 +61,12 @@ export default function (e, options) {
 			delete values.setAction;
 		}
 		
+		if(!action){
+			// Form doesn't have an action="", but we run onsuccess if validation passed:
+			options.onSuccess && options.onSuccess({formHasNoAction: true, ...values}, values, e);
+			return;
+		}
+		
 		// Send it off now:
 		return webRequest(action, values, options.requestOpts).then(
 			response => {
