@@ -140,11 +140,12 @@ export default class Input extends React.Component {
             validations = [validations];
         }
 		
-		if(!this.inputRef){
+		var field = this.inputRef;
+		if(!field){
 			return false;
 		}
 		
-        var v = this.inputRef.value;
+        var v = field.type=='checkbox' ? field.checked : field.value;
         var vFail = null;
 
         for (var i = 0; i < validations.length; i++) {
