@@ -6,7 +6,7 @@ import Text from 'UI/Text';
 
 export default value => {
 	
-	if(!value || value.trim() == ''){
+	if(!value || (value.trim && value.trim() == '')){
 		return {
 			error: 'EMPTY',
 			ui: <Text>
