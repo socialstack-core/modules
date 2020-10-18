@@ -32,7 +32,8 @@ export default class Form extends React.Component {
 			onValues,
 			onSuccess,
 			onFailed,
-			requestOpts
+			requestOpts,
+			action
 		} = this.props;
 		
 		if(!requestOpts){
@@ -46,6 +47,10 @@ export default class Form extends React.Component {
 		
 		return submitForm(e, {
 			onValues: (values, evt) => {
+				if(!action){
+					values.setAction(null);
+				}
+				
 				this.setState({
 					loading: true
 				});
@@ -84,10 +89,6 @@ export default class Form extends React.Component {
 			failedMessage,
 			successMessage
 		} = this.props;
-		
-		if(!action){
-			throw new Error("<Form> requires an action");
-		}
 		
 		var showFormResponse = !!(loadingMessage || submitLabel || failedMessage);
 		
