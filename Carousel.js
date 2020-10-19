@@ -171,7 +171,7 @@ export default class Carousel extends React.Component {
 								items.map((item,i) => {
 									var content = React.isValidElement(item) ? item : null;
 									
-									if(this.props.children){
+									if(this.props.children && this.props.children.length){
 										content = this.props.children(item, i, this);
 									}else if(!content && Module){
 										content = <Module item={item} container={this.props}/>;
