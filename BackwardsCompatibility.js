@@ -1,3 +1,5 @@
+var document = global.document;
+
 // startsWith polyfill
 if (!String.prototype.startsWith) {
     Object.defineProperty(String.prototype, 'startsWith', {
@@ -83,7 +85,7 @@ if (!supportsSelector(':focus-within')) {
 
         return function () {
             if (!running) {
-                requestAnimationFrame(action);
+                global.requestAnimationFrame && global.requestAnimationFrame(action);
                 running = true;
             }
         };
@@ -103,7 +105,7 @@ var Promise = global.Promise;
 global.fetch || (global.fetch = function (e, n) { return n = n || {}, new Promise(function (t, s) { var r = new XMLHttpRequest, o = [], u = [], i = {}, a = function () { return { ok: 2 == (r.status / 100 | 0), statusText: r.statusText, status: r.status, url: r.responseURL, text: function () { return Promise.resolve(r.responseText) }, json: function () { return Promise.resolve(JSON.parse(r.responseText)) }, blob: function () { return Promise.resolve(new Blob([r.response])) }, clone: a, headers: { keys: function () { return o }, entries: function () { return u }, get: function (e) { return i[e.toLowerCase()] }, has: function (e) { return e.toLowerCase() in i } } } }; for (var c in r.open(n.method || "get", e, !0), r.onload = function () { r.getAllResponseHeaders().replace(/^(.*?):[^\S\n]*([\s\S]*?)$/gm, function (e, n, t) { o.push(n = n.toLowerCase()), u.push([n, t]), i[n] = i[n] ? i[n] + "," + t : t }), t(a()) }, r.onerror = s, r.withCredentials = "include" == n.credentials, n.headers) r.setRequestHeader(c, n.headers[c]); r.send(n.body || null) }) });
 
 // CustomEvent polyfill
-if (!("CustomEvent" in window && typeof window.CustomEvent === "function")) {
+if (!("CustomEvent" in global && typeof global.CustomEvent === "function") && global.Event) {
     function CustomEvent(event, params) {
         params = params || {
             bubbles: false,
@@ -120,9 +122,8 @@ if (!("CustomEvent" in window && typeof window.CustomEvent === "function")) {
         return evt;
     }
 
-    CustomEvent.prototype = window.Event.prototype;
-
-    window.CustomEvent = CustomEvent;
+    CustomEvent.prototype = global.Event.prototype;
+    global.CustomEvent = CustomEvent;
 }
 
 // string.includes polyfill
@@ -199,13 +200,16 @@ if (!Array.prototype.includes) {
 
 // Polyfill for Element.closest
 // https://developer.mozilla.org/en-US/docs/Web/API/Element/closest
-if (!Element.prototype.matches) {
+
+var Element = global.Element;
+
+if (Element && !Element.prototype.matches) {
     Element.prototype.matches =
         Element.prototype.msMatchesSelector ||
         Element.prototype.webkitMatchesSelector;
 }
 
-if (!Element.prototype.closest) {
+if (Element && !Element.prototype.closest) {
     Element.prototype.closest = function (s) {
         var el = this;
 
@@ -231,8 +235,8 @@ var objectFitImages = (function () {
         );
     }
     function e(t) {
-        if (t.srcset && !p && window.picturefill) {
-            var e = window.picturefill._;
+        if (t.srcset && !p && global.picturefill) {
+            var e = global.picturefill._;
             (t[e.ns] && t[e.ns].evaled) || e.fillImg(t, { reselect: !0 }),
                 t[e.ns].curSrc ||
                 ((t[e.ns].supported = !1), e.fillImg(t, { reselect: !0 })),
@@ -389,6 +393,9 @@ Copyright © 2019 Javan Makhmali
  */
 (function () {
     "use strict";
+	if(!document.createElement){
+		return;
+	}
     var element = document.createElement("details");
     var elementIsNative = typeof HTMLDetailsElement != "undefined" && element instanceof HTMLDetailsElement;
     var support = {
