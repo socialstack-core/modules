@@ -511,7 +511,7 @@ $bootstrap_variants: (
         .close {
             padding: $modal_header_padding;
 
-            @if ($modal_header_padding_y && $modal_header_padding_x) {
+            @if ($modal_header_padding_y and $modal_header_padding_x) {
                 margin: (-$modal_header_padding_y) (-$modal_header_padding_x) (-$modal_header_padding_y) auto;
             }
         }
