@@ -436,21 +436,21 @@ namespace Api.Startup {
 
 				if (idSet != null)
 				{
-					// We've got content that we need to filter by. For now this set must be integer host IDs.
-					// We want to join the host content table 
-					// on WhateverTypeTheFilterIsUsing.Id = HostContent.Id AND ContentTypeId = TheIDOfThatFilterType
-					// AND UserId IN(hostSet)
+					// We've got content that we need to filter by. For now this set must be integer thing IDs.
+					// We want to join the content table 
+					// on WhateverTypeTheFilterIsUsing.Id = Thing.Id AND ContentTypeId = TheIDOfThatFilterType
+					// AND WhereField IN(hostSet)
 
 					if (mappingService == null)
 					{
 						mappingService = Services.GetByContentType(typeof(M)) as AutoService<M>;
 					}
 
-					// Each piece of content must have all of these hosts to satisfy the request.
+					// Each piece of content must have all of these things to satisfy the request.
 					var requiredList = await mappingService.List(context, new Filter<M>()
 						.Equals("RevisionId", 0)
 						.And().Equals("ContentTypeId", contentTypeId)
-						.And().EqualsSet("UserId", idSet.Select(token => token.Value<int>())));
+						.And().EqualsSet(MapperFieldName, idSet.Select(token => token.Value<int>())));
 
 					// Build unique set of content IDs:
 					Dictionary<int, bool> uniqueIds = new Dictionary<int, bool>();
