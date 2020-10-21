@@ -59,8 +59,6 @@ namespace Api.ContentSync
 		{
 			_database = database;
 
-
-
 			// Must happen after services start otherwise the page service isn't necessarily available yet.
 			// Notably this happens immediately after services start in the first group
 			// (that's before any e.g. system pages are created).
@@ -70,7 +68,12 @@ namespace Api.ContentSync
 				return src;
 			}, 1);
 		}
-
+		
+		/// <summary>
+		/// True if the sync file is active.
+		/// </summary>
+		private bool SyncFileMode = false;
+		
 		/// <summary>
 		/// Starts the content sync service.
 		/// Must run after all other services have loaded.
@@ -95,6 +98,18 @@ namespace Api.ContentSync
 			{
 				Console.WriteLine("[WARN] Content sync is installed but not configured.");
 				return Task.FromResult(false);
+			}
+			
+			if(_configuration.SyncFileMode.HasValue)
+			{
+				SyncFileMode = _configuration.SyncFileMode.Value;
+			}
+			else
+			{
+				// Devs have sync file turned on whenever sync is:
+				#if DEBUG
+				SyncFileMode = true;
+				#endif
 			}
 			
 			Verbose = _configuration.Verbose;
@@ -257,11 +272,11 @@ namespace Api.ContentSync
 					assigner, evtGroup
 				});
 			}
-#if DEBUG
-			// Hello developers!
-			// Add handlers to Create, Delete and Update events, and track these in a syncfile for this user.
-			if (LocalTableSet != null)
+			
+			if (SyncFileMode && LocalTableSet != null)
 			{
+				// Add handlers to Create, Delete and Update events, and track these in a syncfile for this user.
+
 				// Attempt to get the sync file for this type:
 				LocalTableSet.Files.TryGetValue(tableName, out SyncTableFile localSyncFile);
 
@@ -308,7 +323,6 @@ namespace Api.ContentSync
 					});
 				}
 			}
-#endif
 		}
 
 		/// <summary>
@@ -318,10 +332,15 @@ namespace Api.ContentSync
 		private async Task StartFor(string name)
 		{
 			_configuration.Users.TryGetValue(name, out List<StripeRange> myRanges);
-			
-			if(myRanges == null || myRanges.Count == 0)
+
+			if (myRanges == null)
 			{
 				Console.WriteLine("[WARN]: Content sync disabled. This instance (" + name + ") has no allocation in the project appsettings.json ContentSync config.");
+				return;
+			}
+			else if (myRanges.Count == 0)
+			{
+				Console.WriteLine("[WARN]: Content sync disabled. This instance (" + name + ") is in the contentsync appsettings.json, but it's setup wrong. It should be an array, like \"" + name + "\": [{..}]");
 				return;
 			}
 			
@@ -356,58 +375,58 @@ namespace Api.ContentSync
 
 				Console.WriteLine("Content sync ID information obtained");
 
-#if DEBUG
-				// Hello developers!
-				// Create syncfile object for each known table and for each user.
+				if(SyncFileMode){
+					
+					// Create syncfile object for each known table and for each user.
 
-				Console.WriteLine("Content sync now checking for changes");
+					Console.WriteLine("Content sync now checking for changes");
 
-				// Make sure a sync dir exists for this user.
-				// Syncfiles go in as Database/FILENAME_SAFE_USERNAME/tableName.txt
-				var dirName = FileSafeName(name);
-				Directory.CreateDirectory("Database/" + dirName);
+					// Make sure a sync dir exists for this user.
+					// Syncfiles go in as Database/FILENAME_SAFE_USERNAME/tableName.txt
+					var dirName = FileSafeName(name);
+					Directory.CreateDirectory("Database/" + dirName);
 
-				try
-				{
-					// Load them:
-					Dictionary<string, SyncTableFileSet> loadedSyncSets = new Dictionary<string, SyncTableFileSet>();
-
-					foreach (var kvp in _configuration.Users)
+					try
 					{
-						if (kvp.Value == null || kvp.Value.Count == 0)
+						// Load them:
+						Dictionary<string, SyncTableFileSet> loadedSyncSets = new Dictionary<string, SyncTableFileSet>();
+
+						foreach (var kvp in _configuration.Users)
 						{
-							continue;
+							if (kvp.Value == null || kvp.Value.Count == 0)
+							{
+								continue;
+							}
+
+							// Create the table set:
+							var syncSet = new SyncTableFileSet("Database/" + FileSafeName(kvp.Key));
+
+							// Set it up:
+							// (for "my" files, I'm going to instance them all - regardless of if the actual file exists or not).
+							var mine = kvp.Key == name;
+
+							if (mine)
+							{
+								LocalTableSet = syncSet;
+							}
+
+							syncSet.Setup(!mine);
+							loadedSyncSets[kvp.Key] = syncSet;
+
+							if (!mine)
+							{
+								// Apply the sync set:
+								await syncSet.Sync(_database);
+							}
 						}
 
-						// Create the table set:
-						var syncSet = new SyncTableFileSet("Database/" + FileSafeName(kvp.Key));
-
-						// Set it up:
-						// (for "my" files, I'm going to instance them all - regardless of if the actual file exists or not).
-						var mine = kvp.Key == name;
-
-						if (mine)
-						{
-							LocalTableSet = syncSet;
-						}
-
-						syncSet.Setup(!mine);
-						loadedSyncSets[kvp.Key] = syncSet;
-
-						if (!mine)
-						{
-							// Apply the sync set:
-							await syncSet.Sync(_database);
-						}
 					}
-
+					catch (Exception e)
+					{
+						Console.WriteLine("ContentSync failed to handle other user's updates with error: " + e.ToString());
+					}
 				}
-				catch (Exception e)
-				{
-					Console.WriteLine("ContentSync failed to handle other user's updates with error: " + e.ToString());
-				}
-#endif
-
+				
 				var methodInfo = GetType().GetMethod("SetupForType");
 				
 				// Next, add Create handlers to all types.

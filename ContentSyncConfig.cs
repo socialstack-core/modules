@@ -26,6 +26,11 @@ namespace Api.ContentSync
 		/// The username to stripe range config.
 		/// </summary>
 		public Dictionary<string, List<StripeRange>> Users { get; set; }
+
+		/// <summary>
+		/// True if the sync file should be explicitly enabled/ disabled.
+		/// </summary>
+		public bool? SyncFileMode { get; set; }
 	}
 	
 }

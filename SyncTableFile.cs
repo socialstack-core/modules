@@ -306,51 +306,27 @@ namespace Api.ContentSync
 
 			var changes = 0;
 
+			// Get the event group:
+			var eventGroup = Service.EventGroup;
+			var receivedEventHandler = eventGroup.Received;
+			var afterLoad = eventGroup.AfterLoad;
+			
 			var totalLength = await ReadRows(offset, async (char mode, T row, int localeId, ID deletedId) => {
 				changes++;
 
-				switch (mode)
+				try
 				{
-					case 'C':
-						// Create the entry:
-						ctx.LocaleId = localeId;
-
-						// Already exists?
-						var existing = await Service.Get(ctx, row.Id);
-
-						if (existing != null)
-						{
-							// Update instead:
-							await Service.Update(ctx, row);
-						}
-						else
-						{
-							await Service.Create(ctx, row);
-						}
-					break;
-					case 'D':
-						// Delete the entry:
-						var existingDel = await Service.Get(ctx, deletedId);
-
-						if (existingDel != null)
-						{
-							ctx.LocaleId = 0;
-							await Service.Delete(ctx, deletedId);
-						}
-					break;
-					case 'U':
-						// Update the entry:
-						ctx.LocaleId = localeId;
-						var existingUpd = await Service.Get(ctx, row.Id);
-
-						if (existingUpd != null)
-						{
-							await Service.Update(ctx, row);
-						}
-						// Otherwise do nothing.
-					break;
+					// Run afterLoad events:
+					await afterLoad.Dispatch(ctx, row);
 				}
-				
+				catch (Exception e)
+				{
+					Console.WriteLine("[WARN] ContentSync failed to run AfterLoad for some new content. This indicates a code error: " + e.ToString());
+				}
+
+				ctx.LocaleId = localeId;
+
+				await Service.RawUpdateEntity(ctx, row, mode, deletedId);
 			});
 
 			if (changes != 0)
@@ -625,8 +601,7 @@ namespace Api.ContentSync
 
 							ID deletedId = ReadId(idTxt);
 
-							// 
-							await onReadRow((char)mode, null, 0, default(ID));
+							await onReadRow((char)mode, null, 0, deletedId);
 
 							continue;
 						}
