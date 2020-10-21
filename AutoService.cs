@@ -440,6 +440,58 @@ public partial class AutoService<T, ID> : AutoService
 	}
 
 	/// <summary>
+	/// Updates the database and the cache without triggering any events, based on the provided mode.
+	/// </summary>
+	/// <param name="context"></param>
+	/// <param name="entity"></param>
+	/// <param name="mode">U = update, C = Create, D = Delete</param>
+	/// <param name="deletedId"></param>
+	public async Task RawUpdateEntity(Context context, T entity, char mode, ID deletedId)
+	{
+		if (mode == 'D')
+		{
+			// Delete
+			await _database.Run(context, deleteQuery, deletedId);
+		}
+		else if (mode == 'U' || mode == 'C')
+		{
+			// Updated or created
+			// In both cases, check if it exists first:
+			if (await _database.Select(context, selectQuery, entity.Id) != null)
+			{
+				// Update
+				await _database.Run(context, updateQuery, entity, entity.Id);
+			}
+			else
+			{
+				// Create
+				await _database.Run(context, createWithIdQuery, entity);
+			}
+		}
+
+		// Update the cache next:
+		var cache = GetCacheForLocale(context.LocaleId);
+
+		if (cache != null)
+		{
+			lock (cache)
+			{
+				if (mode == 'C' || mode == 'U')
+				{
+					// Created
+					cache.Add(context, entity);
+				}
+				else if (mode == 'D')
+				{
+					// Deleted
+					cache.Remove(context, entity.Id);
+				}
+			}
+		}
+
+	}
+
+	/// <summary>
 	/// 
 	/// </summary>
 	/// <param name="context"></param>
