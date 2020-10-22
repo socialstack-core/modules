@@ -3,7 +3,7 @@ import Text from 'UI/Text';
 /*
 	Password validation method. Returns translatable React element if it failed alongside a constant error code, or nothing.
 */
-export const validatePassword = value => {
+export default value => {
 	if(!value){
 		return;
 	}
