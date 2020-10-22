@@ -11,7 +11,8 @@ using System.DrawingCore.Drawing2D;
 using System.IO;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Configuration;
-
+using System.Runtime.InteropServices;
+using Api.Startup;
 
 namespace Api.Uploader
 {
@@ -308,6 +309,19 @@ namespace Api.Uploader
 				
 				// Relocate the temp file:
 				System.IO.File.Move(tempFile, writePath);
+			}
+			
+			if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux))
+			{
+				// Set perms on the newly uploaded file:
+				try
+				{
+					Chmod.SetRead(writePath);
+				}
+				catch(Exception e)
+				{
+					Console.WriteLine("Unable to set file permissions - skipping. File was " + writePath + " with error " + e.ToString());
+				}
 			}
 			
 			result = await Events.Upload.AfterCreate.Dispatch(context, result);
