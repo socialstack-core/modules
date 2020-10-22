@@ -139,19 +139,69 @@ namespace Api.Startup
 		private static extern int chmod(string pathname, int mode);
 
 		// user permissions
-		const int S_IRUSR = 0x100;
-		const int S_IWUSR = 0x80;
-		const int S_IXUSR = 0x40;
+		/// <summary>
+		/// user read
+		/// </summary>
+		public const int S_IRUSR = 0x100;
+
+		/// <summary>
+		/// user write
+		/// </summary>
+		public const int S_IWUSR = 0x80;
+
+		/// <summary>
+		/// user exec
+		/// </summary>
+		public const int S_IXUSR = 0x40;
 
 		// group permission
-		const int S_IRGRP = 0x20;
-		const int S_IWGRP = 0x10;
-		const int S_IXGRP = 0x8;
+		/// <summary>
+		/// group read
+		/// </summary>
+		public const int S_IRGRP = 0x20;
+
+		/// <summary>
+		/// group write
+		/// </summary>
+		public const int S_IWGRP = 0x10;
+
+		/// <summary>
+		/// group exec
+		/// </summary>
+		public const int S_IXGRP = 0x8;
 
 		// other permissions
-		const int S_IROTH = 0x4;
-		const int S_IWOTH = 0x2;
-		const int S_IXOTH = 0x1;
+
+		/// <summary>
+		/// other read
+		/// </summary>
+		public const int S_IROTH = 0x4;
+
+		/// <summary>
+		/// other write
+		/// </summary>
+		public const int S_IWOTH = 0x2;
+
+		/// <summary>
+		/// other exec
+		/// </summary>
+		public const int S_IXOTH = 0x1;
+		
+		/// <summary>
+		/// Sets 644 global read (+owner write) file permissions on a *nix platform
+		/// </summary>
+		/// <param name="filename"></param>
+		public static void SetRead(string filename)
+		{
+			// 644
+			var perms =
+			S_IRUSR | S_IWUSR
+			| S_IRGRP
+			| S_IROTH;
+
+			if (0 != chmod(Path.GetFullPath(filename), (int)perms))
+				throw new Exception("Could not set Unix socket permissions");
+		}
 		
 		/// <summary>
 		/// Sets file permissions on a *nix platform
