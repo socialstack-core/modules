@@ -635,7 +635,7 @@ $bootstrap_variants: (
                 background-color: get_theme(background-color, bootstrap, pagination);
                 color: get_theme(color, bootstrap, pagination);
                 border-color: get_theme(border-color, bootstrap, pagination);
-			    border-radius: 0 !important;
+			    border-radius: get_theme(border-radius, bootstrap, pagination);
                 border-width: $pagination_border_width;
 
                 @if ($pagination_min_size) {
@@ -664,19 +664,14 @@ $bootstrap_variants: (
                 }
             }
 
-            .first-page {
+            &.first-page,
+            &.prev-page,
+            &.next-page,
+            &.last-page {
 
-            }
-
-            .prev-page {
-
-            }
-
-            .next-page {
-
-            }
-
-            .last-page {
+                .page-link {
+                    color: get_theme(color, bootstrap, pagination, active);
+                }
 
             }
 
