@@ -77,6 +77,9 @@ const isoConvert = (isoish) => {
 			 // subtracted from the date.
 			 timezoneOffsetHours *= -1;
 		 }
+         
+         returnDate.setUTCHours( parseInt( dateParts[ 3 ] ) + timezoneOffsetHours );
+         returnDate.setUTCMinutes( parseInt( dateParts[ 4 ] )  + timezoneOffsetMinutes );
 	 }
 	
 	 // Return the Date object calculated from the string.
@@ -86,6 +89,10 @@ const isoConvert = (isoish) => {
 function localToUtc(date){
 	return new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate(),
 	date.getUTCHours(), date.getUTCMinutes(), date.getUTCSeconds()));
+}
+
+function utcToLocal(date) {
+    return new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate(),  date.getHours(), date.getMinutes(), date.getSeconds()));
 }
 
 function getMonday(date) {
@@ -163,6 +170,7 @@ module.exports = {
 	monthNames,
 	shortMonthNames,
 	isoConvert,
+    utcToLocal,
 	localToUtc,
 	getMonday,
 	getSunday,
