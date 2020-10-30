@@ -18,14 +18,14 @@ export default value => {
 	}
 	
 	const hasNumbers = /\d/.test(value);
-	const hasNonalphas = /\W/.test(value);
+	// const hasNonalphas = /\W/.test(value);
 	const hasUppercase = /[A-Z]/.test(value);
-
-	if (!hasNumbers || !hasNonalphas || !hasUppercase) {
+   //  || !hasNonalphas
+	if (!hasNumbers || !hasUppercase) {
 		return {
 			error: 'COMPLEXITY',
 			ui: <Text>
-				Password must contain at least 1 number, 1 non alphabet character and a capital letter
+				Password must contain at least 1 number and a capital letter
 			</Text>
 		};
 	}
