@@ -392,7 +392,7 @@ export default class Loop extends React.Component {
 				errored: false 
 			};
 			
-			if(this.state.over != props.over){
+			if(this.state.over != props.over || jsonFilter != this.state.jsonFilter){
 				newPageIndex = 1;
 			}
 			
