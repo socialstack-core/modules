@@ -489,6 +489,88 @@ namespace Api.Startup {
 				return filter;
 			});
 
+			if (typeof(CT) == typeof(User))
+			{
+				// Special case for UserProfile, because it't not a "real" type. Must also add to UserProfileList:
+				Events.UserProfileList.AddEventListener(async (Context context, Filter<User> filter, HttpResponse response) =>
+				{
+					// These always have:
+					// args[0] is a filter object
+					// args[1] is for the Response
+
+					if (filter == null || filter.FromRequest == null)
+					{
+						// We can't handle this - return the first arg just in case it was something else:
+						return filter;
+					}
+
+					var where = filter.FromRequest["where"] as JObject;
+
+					if (where == null)
+					{
+						// No where clause
+						return filter;
+					}
+
+					// If the filter contained the field we're interested in then we'll add a join restriction:
+					var idSet = where[WhereFieldName] as JArray;
+
+					if (idSet != null)
+					{
+						// We've got content that we need to filter by. For now this set must be integer thing IDs.
+						// We want to join the content table 
+						// on WhateverTypeTheFilterIsUsing.Id = Thing.Id AND ContentTypeId = TheIDOfThatFilterType
+						// AND WhereField IN(hostSet)
+
+						if (mappingService == null)
+						{
+							mappingService = Services.GetByContentType(typeof(M)) as AutoService<M>;
+						}
+
+						// Each piece of content must have all of these things to satisfy the request.
+						var requiredList = await mappingService.List(context, new Filter<M>()
+							.Equals("RevisionId", 0)
+							.And().Equals("ContentTypeId", contentTypeId)
+							.And().EqualsSet(MapperFieldName, idSet.Select(token => token.Value<int>())));
+
+						// Build unique set of content IDs:
+						Dictionary<int, bool> uniqueIds = new Dictionary<int, bool>();
+
+						foreach (var entry in requiredList)
+						{
+							uniqueIds[entry.ContentId] = true;
+						}
+
+						if (uniqueIds.Count == 0)
+						{
+							// Force no results
+							if (!filter.HasContent)
+							{
+								filter.EqualsField("Id", 0);
+							}
+							else
+							{
+								filter.And().EqualsField("Id", 0);
+							}
+						}
+						else
+						{
+							// Restrict filter to matching those IDs:
+							if (!filter.HasContent)
+							{
+								filter.EqualsSet("Id", uniqueIds.Keys);
+							}
+							else
+							{
+								filter.And().EqualsSet("Id", uniqueIds.Keys);
+							}
+						}
+					}
+
+					return filter;
+				});
+			}
+
 		}
 
 	}
