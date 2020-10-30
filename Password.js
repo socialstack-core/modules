@@ -8,11 +8,11 @@ export default value => {
 		return;
 	}
 	
-	if (value.length < 8) {
+	if (value.length < 10) {
 		return {
 			error: 'LENGTH',
 			ui: <Text>
-				Must be at least 8 characters long
+				Must be at least 10 characters long
 			</Text>
 		};
 	}
