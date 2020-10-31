@@ -1,4 +1,5 @@
-﻿using Api.Permissions;
+﻿using Api.Database;
+using Api.Permissions;
 using Api.Startup;
 using Api.Translate;
 using Api.Users;
@@ -214,6 +215,15 @@ namespace Api.AutoForms
 				{
 					// Yep - it's translatable.
 					field.Data["localized"] = true;
+				}
+				else if (attrib is DatabaseFieldAttribute)
+				{
+					var dbField = attrib as DatabaseFieldAttribute;
+					if (fieldType == typeof(string) && dbField.Length != 0)
+					{
+						// Set field max length:
+						field.Data["maxlength"] = dbField.Length;
+					}
 				}
 			}
 
