@@ -113,7 +113,7 @@ export default class PageRouter extends React.Component{
 		
 		var pageInfo = this.getPageRedirected(rootPage, idMap, this.props.url);
 		this.trigger(pageInfo);
-		if(isCached && pageInfo.page.url == "" && !(this.props.url == "/" || this.props.url.substring(this.props.url.length - 11, this.props.url.length) === "mobile.html")){
+		if(isCached && pageInfo.page.url == "" && this.props.url != "/"){
 			this.makeRequest();
 		}
 		else{
@@ -267,7 +267,7 @@ export default class PageRouter extends React.Component{
 		
 		if(!pageAndState || !pageAndState.page){
 			// Redirect to 404:
-			return this.getPage(this.state.rootPage, this.props.notFound || '/404');
+			return this.getPage(rootPage, this.props.notFound || '/404');
 		}
 		
 		var {page} = pageAndState;
