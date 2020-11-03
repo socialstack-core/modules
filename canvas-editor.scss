@@ -1,3 +1,5 @@
+$canvas_editor_min_height: 400; // px
+
 .canvas-editor-view {
 	float: right;
 
@@ -10,11 +12,17 @@
 	margin-top: 2rem;
 	text-align: left;
 	transform: scaleX(1); /* position: fixed is relative to transforms too, so we can use this to contain them */
+	min-height: px_to_rem($canvas_editor_min_height);
 	
 	.canvas-editor-bordered {
 		border: 1px solid lightgrey;
 		border-radius: 4px;
 		padding: 0.375rem 0.75rem;
+		min-height: px_to_rem($canvas_editor_min_height);
+	}
+
+	> .collapsible {
+		min-height: px_to_rem($canvas_editor_min_height);
 	}
 
 	.collapsible {
