@@ -65,6 +65,11 @@ namespace Api.Startup {
 		private AutoService<M> mappingService;
 
 		/// <summary>
+		/// True if order should be retained in the mappings.
+		/// </summary>
+		public bool RetainOrder = false;
+
+		/// <summary>
 		/// Adds the mapping now.
 		/// </summary>
 		public void Map()
@@ -160,10 +165,21 @@ namespace Api.Startup {
 				}
 				else
 				{
-					// It has multiple tags. Use a filtered list here.
-					var filter = new Filter<U>();
-					filter.EqualsSet("Id", mappings.Select(t => t.TargetContentId));
-					OnSetResult(content as T, await contentService.List(context, filter));
+					if(RetainOrder){
+						// We're assuming the content service is cached to avoid creating multiple lists and needing to sort.
+						var result = new List<U>();
+						
+						foreach(var mapping in mappings){
+							result.Add(await contentService.Get(context, mapping.TargetContentId));
+						}
+						
+						OnSetResult(content as T, result);
+					}else{
+						// It has multiple tags. Use a filtered list here.
+						var filter = new Filter<U>();
+						filter.EqualsSet("Id", mappings.Select(t => t.TargetContentId));
+						OnSetResult(content as T, await contentService.List(context, filter));
+					}
 				}
 
 				return content;
@@ -227,15 +243,30 @@ namespace Api.Startup {
 
 						// Get all mapping entries for this object:
 						var existingEntries = await Database.List(ctx, listByObjectQuery, null, contentTypeId, targetObject.Id, revisionId);
-
-						// Identify ones being deleted, and ones being added, then update tag contents.
-						Dictionary<int, T> existingLookup = new Dictionary<int, T>();
-
-						foreach (var existingEntry in existingEntries)
+						
+						Dictionary<int, T> existingLookup = null;
+						
+						if(RetainOrder)
 						{
-							existingLookup[existingEntry.TargetContentId] = null;
+							// Must delete all and re-add:
+							foreach (var existingEntry in existingEntries)
+							{
+								// Delete this row:
+								await mappingService.Delete(ctx, existingEntry.Id);
+							}
 						}
+						else
+						{
+							// Identify ones being deleted, and ones being added, then update tag contents.
+							existingLookup = new Dictionary<int, T>();
 
+							foreach (var existingEntry in existingEntries)
+							{
+								existingLookup[existingEntry.TargetContentId] = null;
+							}
+							
+						}
+						
 						var now = DateTime.UtcNow;
 
 						Dictionary<int, bool> newSet = new Dictionary<int, bool>();
@@ -249,7 +280,7 @@ namespace Api.Startup {
 						{
 							newSet[id] = true;
 
-							if (!existingLookup.ContainsKey(id))
+							if (existingLookup == null || !existingLookup.ContainsKey(id))
 							{
 								// Add it:
 								await mappingService.Create(ctx, new M()
@@ -262,17 +293,20 @@ namespace Api.Startup {
 								});
 							}
 						}
-
-						// Delete any being removed:
-						foreach (var existingEntry in existingEntries)
+						
+						if(!RetainOrder)
 						{
-							if (!newSet.ContainsKey(existingEntry.TargetContentId))
+							// Delete any being removed:
+							foreach (var existingEntry in existingEntries)
 							{
-								// Delete this row:
-								await mappingService.Delete(ctx, existingEntry.Id);
+								if (!newSet.ContainsKey(existingEntry.TargetContentId))
+								{
+									// Delete this row:
+									await mappingService.Delete(ctx, existingEntry.Id);
+								}
 							}
 						}
-
+						
 						if (ids.Count == 0)
 						{
 							// Empty set to return.
@@ -352,6 +386,12 @@ namespace Api.Startup {
 				if (mappingService == null)
 				{
 					mappingService = Services.GetByContentType(typeof(M)) as AutoService<M>;
+				}
+
+				if (RetainOrder)
+				{
+					// Entries are always in ID order
+					filter.Sort("Id");
 				}
 
 				// Get all the mappings for these entities:

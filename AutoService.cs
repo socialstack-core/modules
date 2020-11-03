@@ -754,7 +754,7 @@ public class AutoService
 	/// Defines a new IHave* interface.
 	/// It's added to content types to declare they have e.g. an array of tags, categories etc.
 	/// </summary>
-	protected void DefineIHaveArrayHandler<T, U, M>(string whereFieldName, string mapperFieldName, Action<T, List<U>> setResult)
+	protected IHaveArrayHandler<T, U, M> DefineIHaveArrayHandler<T, U, M>(string whereFieldName, string mapperFieldName, Action<T, List<U>> setResult, bool retainOrder = false)
 		where T : class
 		where U : DatabaseRow<int>, new()
 		where M : MappingRow, new()
@@ -763,17 +763,20 @@ public class AutoService
 			WhereFieldName = whereFieldName,
 			MapperFieldName = mapperFieldName,
 			OnSetResult = setResult,
-			Database = _database
+			Database = _database,
+			RetainOrder = retainOrder
 		};
 
 		mapper.Map();
+
+		return mapper;
 	}
 	
 	/// <summary>
 	/// Defines a new IHave* interface.
 	/// It's added to content types to declare they have e.g. an array of tags, categories etc.
 	/// </summary>
-	protected void DefineIHaveArrayHandler<T, M>(string whereFieldName, Action<T, List<Api.Users.UserProfile>> setResult)
+	protected IHaveArrayHandler<T, Api.Users.User, M> DefineIHaveArrayHandler<T, M>(string whereFieldName, Action<T, List<Api.Users.UserProfile>> setResult, bool retainOrder = false)
 		where T : class
 		where M : MappingRow, new()
 	{
@@ -805,10 +808,13 @@ public class AutoService
 
 				setResult(content, set);
 			},
-			Database = _database
+			Database = _database,
+			RetainOrder = retainOrder
 		};
 
 		mapper.Map();
+
+		return mapper;
 	}
 
 }
