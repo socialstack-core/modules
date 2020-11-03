@@ -68,6 +68,32 @@
 		}
 	}
 	
+	.canvas-editor-text{
+		display: inline-block;
+		min-width: 50px;
+		min-height: 1em;
+		height: auto;
+	}
+	
+	.module-info{
+		margin-bottom: 5px;
+		padding: 10px;
+		border: 1px solid lightgrey;
+	}
+	
+	.back-to-visual {
+		margin-bottom: .75rem;
+	}
+
+}
+
+.canvas-editor-popups{
+	
+	.value-link{
+		color: #ddd;
+		margin-left: 5px;
+	}
+	
 	.context-menu{
 		background: white;
 		color: black;
@@ -94,24 +120,6 @@
 		}
 	}
 	
-	.canvas-editor-text{
-		display: inline-block;
-		min-width: 50px;
-		min-height: 1em;
-		height: auto;
-	}
-	
-	.value-link{
-		color: #ddd;
-		margin-left: 5px;
-	}
-	
-	.module-info{
-		margin-bottom: 5px;
-		padding: 10px;
-		border: 1px solid lightgrey;
-	}
-	
 	.module-select-modal, .module-link-selection-modal{
 		.module-group{
 			margin-bottom: 10px;
@@ -129,10 +137,6 @@
 		}
 	}
 	
-	.back-to-visual {
-		margin-bottom: .75rem;
-	}
-
 	textarea.form-control {
 		//@include input_field_styling;
 

@@ -1422,7 +1422,9 @@ export default class CanvasEditor extends React.Component {
 		var previewClass = btnClass + (isPreviewMode ? " active" : "");
 		var layoutClass = btnClass + (this.state.layoutView ? " active" : "");
 		var sourceClass = btnClass + (this.state.jsonEdit ? " active" : "");
-
+		
+		var popups = isPreviewMode || this.state.layoutView;
+		
 		{/* TODO: grab the value from the JSON source textarea and set it as the loaded canvas */}
 		return (
 			<>
@@ -1557,10 +1559,6 @@ export default class CanvasEditor extends React.Component {
 								</button>
 							)}
 						</div>
-						{!this.state.linkSelectionFor && this.renderModuleSelection()}
-						{!this.state.linkSelectionFor && this.renderOptionsModal()}
-						{this.renderLinkSelectionModal()}
-						{this.state.rightClick && this.renderContextMenu()}
 					</div>
 				}
 
@@ -1574,12 +1572,22 @@ export default class CanvasEditor extends React.Component {
 								Add component
 							</button>
 						)}
+					</div>
+				}
+				
+				{popups && (
+					<div className="canvas-editor-popups" 
+						onContextMenu={e => {
+							e.preventDefault();
+							return false;
+						}}>
 						{!this.state.linkSelectionFor && this.renderModuleSelection()}
 						{!this.state.linkSelectionFor && this.renderOptionsModal()}
 						{this.renderLinkSelectionModal()}
+						{this.state.rightClick && this.renderContextMenu()}
 					</div>
-				}
-
+				)}
+				
 				{/* source mode */}
 				{this.state.jsonEdit &&
 					<div className="canvas-editor">
