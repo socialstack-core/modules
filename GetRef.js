@@ -45,14 +45,22 @@ function contentFile(ref, options){
 	if(options.dirs){
 		dirs = dirs.concat(options.dirs);
 	}
+	
+	var hadServer = false;
+	
 	if(dirs.length>0){
 		// If dirs[0] contains . then it's a server address (for example, public:mycdn.com/123.jpg
 		if(dirs[0].indexOf('.') != -1){
 			var addr = dirs.shift();
 			url = '//' + addr + url;
+			hadServer = true;
 		}
 		
 		url += dirs.join('/') + '/';
+	}
+	
+	if(!hadServer && global.contentSource){
+		url = global.contentSource + url;
 	}
 	
 	var fileParts = ref.split('.');
