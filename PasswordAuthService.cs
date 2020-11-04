@@ -9,6 +9,8 @@ using Microsoft.AspNetCore.Http;
 using Api.Startup;
 using Newtonsoft.Json.Linq;
 using System;
+using Microsoft.Extensions.Configuration;
+using Api.Configuration;
 
 namespace Api.PasswordAuth
 {
@@ -31,6 +33,8 @@ namespace Api.PasswordAuth
 		/// </summary>
 		public bool CheckIfExposed = true;
 		
+		private PasswordAuthConfig _configuration;
+		
 		private UserService _users;
 		
 		/// <summary>
@@ -39,7 +43,13 @@ namespace Api.PasswordAuth
 		public PasswordAuthService(UserService users)
         {
 			_users = users;
-
+			_configuration = AppSettings.GetSection("PasswordAuth").Get<PasswordAuthConfig>();
+			
+			if(_configuration!=null){
+				MinLength = _configuration.MinLength;
+				CheckIfExposed = _configuration.CheckIfExposed;
+			}
+			
 			// Hook up to the UserOnAuthenticate event:
 			Events.UserOnAuthenticate.AddEventListener(async (Context context, LoginResult result, UserLogin loginDetails) => {
 
