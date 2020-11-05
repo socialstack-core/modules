@@ -346,9 +346,26 @@ namespace Api.Emails
 
 			mailMessage.Subject = subject;
 
+			client.SendCompleted += (object sender, AsyncCompletedEventArgs e) =>
+			{
+				if (e.Cancelled)
+				{
+					Console.WriteLine("Email send cancelled.");
+				}
+				if (e.Error != null)
+				{
+					Console.WriteLine("Email error: " + e.Error.ToString());
+				}
+				else
+				{
+					Console.WriteLine("Email sent");
+				}
+			};
+
 			await client.SendMailAsync(mailMessage);
+
 		}
-		
+
 	}
 
 	/// <summary>
