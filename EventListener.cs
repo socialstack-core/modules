@@ -183,7 +183,12 @@ namespace Api.Revisions
 
 			// Invoked by reflection
 			var evtGroup = Events.GetGroup<T>();
-
+			
+			if(evtGroup == null){
+				Console.WriteLine("Warning: " + typeof(T).Name + " does not have an event group. An event group is required to setup revisions on it.");
+				return;
+			}
+			
 			// Create the original field map:
 			var fieldMap = new FieldMap(contentType);
 
