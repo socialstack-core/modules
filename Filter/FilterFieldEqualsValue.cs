@@ -74,6 +74,11 @@ namespace Api.Permissions
 			// Does it match?
 			var compareTo = await Method(token);
 
+			if (compareTo is ContentIdLookup lookup)
+			{
+				return lookup.Contains((int)fieldValue);
+			}
+
 			return compareTo.Equals(fieldValue);
 		}
 
@@ -108,14 +113,19 @@ namespace Api.Permissions
 			
 			// Compare rv.Value to val.
 			object compareWith = rv.Value;
-			
-			if(val == null)
+
+			if (val == null)
 			{
 				return (compareWith == null);
 			}
 			else if(compareWith == null)
 			{
 				return false;
+			}
+
+			if (compareWith is ContentIdLookup lookup)
+			{
+				return lookup.Contains((int)val);
 			}
 			
 			return val.Equals(compareWith);

@@ -8,6 +8,9 @@ using System.Threading.Tasks;
 using Api.Permissions;
 using Api.Database;
 using Microsoft.AspNetCore.Http;
+using System.Collections.Generic;
+using Api.Users;
+using Newtonsoft.Json.Linq;
 
 namespace Api.Permissions
 {
@@ -162,8 +165,262 @@ namespace Api.Permissions
 				// Now all the roles and caps have been setup, inject role restrictions:
 				SetupPartialRoleRestrictions();
 
+				// Setup IHaveUserRestrictions too:
+				SetupUserRestrictions();
+
 				return Task.FromResult(source);
 			});
+		}
+
+		/// <summary>
+		/// Invoked by reflection. Adds user restrictions to the given event group for a particular content type.
+		/// </summary>
+		/// <typeparam name="T"></typeparam>
+		/// <param name="eventGroup"></param>
+		public void SetupUserRestrictionsForContent<T>(EventGroup<T> eventGroup) where T: IHaveId<int>, IHaveUserRestrictions
+		{
+			PermittedContentService permits = null;
+			UserService users = null;
+
+			var contentTypeId = ContentTypes.GetId(typeof(T));
+			var userContentTypeId = ContentTypes.GetId(typeof(User));
+
+			// After load, potentially hook the list of permitted users.
+			eventGroup.AfterLoad.AddEventListener(async (Context context, T content) => {
+
+				if (content == null)
+				{
+					return content;
+				}
+
+				if (content.PermittedUsersListVisible)
+				{
+
+					if (permits == null)
+					{
+						permits = Services.Get<PermittedContentService>();
+					}
+
+					// Load the permitted users list:
+					content.PermittedUsers = await permits.List(context, new Filter<PermittedContent>().Equals("ContentId", content.GetId()).And().Equals("ContentTypeId", contentTypeId));
+
+				}
+
+				return content;
+			});
+
+			// After list, potentially hook the list of permitted users.
+			eventGroup.AfterList.AddEventListener(async (Context context, List<T> set) => {
+
+				if (set == null)
+				{
+					return set;
+				}
+
+				foreach (var content in set)
+				{
+					if (content.PermittedUsersListVisible)
+					{
+
+						if (permits == null)
+						{
+							permits = Services.Get<PermittedContentService>();
+						}
+
+						// Load the permitted users list. These are cached so we're not hitting the database here.
+						content.PermittedUsers = await permits.List(context, new Filter<PermittedContent>().Equals("ContentId", content.GetId()).And().Equals("ContentTypeId", contentTypeId));
+
+					}
+				}
+
+				return set;
+			});
+
+			// Hook up a MultiSelect on the underlying fields:
+			eventGroup.BeforeSettable.AddEventListener((Context ctxbset, JsonField<T> field) =>
+			{
+				if (field != null && field.Name == "PermittedUsers")
+				{
+					field.Module = null;
+
+					// Defer the set after the ID is available:
+					field.AfterId = true;
+
+					// On set, convert provided IDs into tag objects.
+					field.OnSetValue.AddEventListener(async (Context context, object value, T targetObject, JToken srcToken) =>
+					{
+						// The value should be an array of ints.
+						if (!(value is JArray permitArray))
+						{
+							return null;
+						}
+
+						var permitList = new List<PermittedContent>();
+
+						// Anon can't make self-permits
+						var createSelfPermit = context.UserId != 0;
+
+						if (users == null)
+						{
+							users = Services.Get<UserService>();
+						}
+
+						var now = DateTime.UtcNow;
+
+						if (permits == null)
+						{
+							permits = Services.Get<PermittedContentService>();
+						}
+						
+						foreach (var token in permitArray)
+						{
+							// Token can be either a user ID, or {contentTypeId: x, contentId: y}, or {contentId: y} or {userId: y}
+
+							var permitToCreate = new PermittedContent();
+
+							if (token.Type == JTokenType.Integer)
+							{
+								permitToCreate.PermittedContentId = token.Value<int>();
+								permitToCreate.PermittedContentTypeId = userContentTypeId;
+							}
+							else if (token.Type == JTokenType.Object)
+							{
+								var jObj = token as JObject;
+
+								JToken v = null;
+
+								if (jObj.TryGetValue("userId", out v))
+								{
+									permitToCreate.PermittedContentId = v.Value<int>();
+									permitToCreate.PermittedContentTypeId = userContentTypeId;
+								}
+								else if (jObj.TryGetValue("contentId", out v))
+								{
+									permitToCreate.PermittedContentId = v.Value<int>();
+
+									if (jObj.TryGetValue("contentTypeId", out v))
+									{
+										permitToCreate.PermittedContentTypeId = v.Value<int>();
+									}
+									else
+									{
+										permitToCreate.PermittedContentTypeId = userContentTypeId;
+									}
+								}
+								else
+								{
+									continue;
+								}
+
+							}
+							else
+							{
+								continue;
+							}
+
+							permitToCreate.UserId = context.UserId;
+							permitToCreate.ContentId = targetObject.GetId();
+							permitToCreate.ContentTypeId = contentTypeId;
+							permitToCreate.CreatedUtc = now;
+
+							// Get the targeted content, with a permission check, 
+							// just in case somebody attempts to permit something they aren't allowed to see.
+							var permittedContent = await Content.Get(context, permitToCreate.PermittedContentTypeId, permitToCreate.PermittedContentId, true);
+
+							if (permittedContent == null)
+							{
+								continue;
+							}
+
+							if (context.HasContent(permitToCreate.PermittedContentTypeId, permitToCreate.PermittedContentId))
+							{
+								// This one is for "self" so don't create it.
+								createSelfPermit = false;
+							}
+
+							permitList.Add(permitToCreate);
+							permitToCreate.Permitted = permittedContent;
+							await permits.Create(context, permitToCreate);
+
+						}
+
+						if (createSelfPermit)
+						{
+							// Create a permit for "me".
+							var myProfile = users.GetProfile(await context.GetUser());
+
+							var permitToCreate = new PermittedContent()
+							{
+								UserId = context.UserId,
+								ContentId = targetObject.GetId(),
+								ContentTypeId = contentTypeId,
+								CreatedUtc = now,
+								Permitted = myProfile,
+								AcceptedUtc = now,
+								PermittedContentId = context.UserId,
+								PermittedContentTypeId = userContentTypeId
+							};
+
+							await permits.Create(context, permitToCreate);
+							permitList.Add(permitToCreate);
+						}
+
+						return permitList;
+					});
+
+
+				}
+
+				return new ValueTask<JsonField<T>>(field);
+			});
+			
+			// Permission blocks next. Ensure we only return results for things that this user is permitted to see.
+			// We'll do this by extending the grant filter.
+
+			foreach (var role in Roles.All)
+			{
+				// Note that this applies to everybody - admins included.
+
+				var typeName = typeof(T).Name.ToLower();
+
+				if (Capabilities.All.TryGetValue(typeName + "_load", out Capability loadCapability))
+				{
+					role.AddHasPermit(loadCapability, typeof(T), contentTypeId);
+				}
+
+				if (Capabilities.All.TryGetValue(typeName + "_list", out Capability listCapability))
+				{
+					role.AddHasPermit(listCapability, typeof(T), contentTypeId);
+				}
+
+			}
+		}
+
+		private void SetupUserRestrictions()
+		{
+			// For each type, add the user restriction handlers if the type requires them:
+			var userRestrictMethodInfo = GetType().GetMethod("SetupUserRestrictionsForContent");
+
+			foreach (var kvp in ContentTypes.TypeMap)
+			{
+				var contentType = kvp.Value;
+
+				if (!typeof(IHaveUserRestrictions).IsAssignableFrom(contentType))
+				{
+					continue;
+				}
+
+				// Invoke:
+				var setupType = userRestrictMethodInfo.MakeGenericMethod(new Type[] {
+					contentType
+				});
+
+				var group = Events.GetGroup(contentType);
+
+				setupType.Invoke(this, new object[] {
+					group
+				});
+			}
 		}
 
 		private void SetupPartialRoleRestrictions()

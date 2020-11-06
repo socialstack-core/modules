@@ -1,8 +1,11 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Text;
 using System.Threading.Tasks;
 using Api.Contexts;
-
+using Api.Database;
+using Api.Startup;
+using Api.Users;
 
 namespace Api.Permissions
 {
@@ -144,17 +147,7 @@ namespace Api.Permissions
 		public Role Grant(Capability cap, FilterNode node, Filter srcFilter)
 		{
 			// Resize lookup if we need to:
-			if (cap.InternalId >= CapabilityLookup.Length)
-			{
-				// Resize it:
-				var newLookup = new FilterNode[cap.InternalId + 1];
-				Array.Copy(CapabilityLookup, newLookup, CapabilityLookup.Length);
-				CapabilityLookup = newLookup;
-
-				var newFilterLookup = new Filter[cap.InternalId + 1];
-				Array.Copy(CapabilityFilterLookup, newFilterLookup, CapabilityFilterLookup.Length);
-				CapabilityFilterLookup = newFilterLookup;
-			}
+			ResizeIfRequired(cap.InternalId);
 
 			if (CapabilityLookup[cap.InternalId] != null)
 			{
@@ -176,6 +169,106 @@ namespace Api.Permissions
         }
 
 		/// <summary>
+		/// Adds a PermittedContent requirement to the given capability.
+		/// </summary>
+		/// <param name="cap"></param>
+		/// <param name="contentType"></param>
+		/// <param name="contentTypeId">The content type ID of the permit. This means a content type can use permits from another type.
+		/// For example, permits on a private chat can be used directly by private chat *messages*.</param>
+		/// <param name="field">The field on ContentType that will be checked for a permit.</param>
+		public void AddHasPermit(Capability cap, Type contentType, int contentTypeId, string field = "Id")
+		{
+			ResizeIfRequired(cap.InternalId);
+			
+			var filter = CapabilityFilterLookup[cap.InternalId];
+			if (filter == null)
+			{
+				filter = new Filter(contentType)
+				{
+					Role = this
+				};
+				CapabilityFilterLookup[cap.InternalId] = filter;
+			}
+
+			if (filter.HasContent)
+			{
+				filter.And();
+			}
+
+			// Must have a PermittedContent obj for the contextual user.
+			// This means for each permit on the content object being filtered, 
+			// check if at least one belongs to the contextual user.
+			filter.Equals(field, async (Context context) => {
+
+				if (_permittedContents == null)
+				{
+					userContentTypeId = ContentTypes.GetId(typeof(User));
+					_permittedContents = Services.Get<PermittedContentService>();
+				}
+
+				// All permits for this user for the given type of content.
+				var permits = await _permittedContents.List(context,
+					new Filter<PermittedContent>()
+						.Equals("PermittedContentId", context.UserId)
+						.And()
+						.Equals("PermittedContentTypeId", userContentTypeId)
+						.And()
+						.Equals("ContentTypeId", contentTypeId)
+				);
+
+				if (permits == null || permits.Count == 0)
+				{
+					// User is not permitted to any of this content. Just return a 0:
+					return 0;
+				}
+
+				// User is permitted to something of this type.
+				// Can be hundreds of results, so at this point build a dictionary.
+				// When the cache is running objects through the Equals node of the filter, 
+				// it knows to perform a lookup in <int, bool> dictionaries.
+				var results = new ContentIdLookup()
+				{
+					ContentTypeId = contentTypeId
+				};
+
+				foreach (var permit in permits)
+				{
+					results.Add(permit.ContentId);
+				}
+
+				return results;
+			});
+
+			CapabilityLookup[cap.InternalId] = filter.Construct(true);
+		}
+
+		/// <summary>
+		/// The content type ID of User. ContentTypes.GetId(typeof(User));
+		/// </summary>
+		private static int userContentTypeId;
+
+		/// <summary>
+		/// The permitted content service.
+		/// </summary>
+		private static PermittedContentService _permittedContents;
+
+		private void ResizeIfRequired(int index)
+		{
+			// Resize lookup if we need to:
+			if (index >= CapabilityLookup.Length)
+			{
+				// Resize it:
+				var newLookup = new FilterNode[index + 1];
+				Array.Copy(CapabilityLookup, newLookup, CapabilityLookup.Length);
+				CapabilityLookup = newLookup;
+
+				var newFilterLookup = new Filter[index + 1];
+				Array.Copy(CapabilityFilterLookup, newFilterLookup, CapabilityFilterLookup.Length);
+				CapabilityFilterLookup = newFilterLookup;
+			}
+		}
+
+		/// <summary>
 		/// Extends a cap filter with a role restriction. Note that this happens after e.g. GrantTheSameAs calls, because it's always role specific.
 		/// </summary>
 		/// <param name="cap"></param>
@@ -183,6 +276,8 @@ namespace Api.Permissions
 		/// <param name="fieldName"></param>
 		public void AddRoleRestrictionToFilter(Capability cap, Type contentType, string fieldName)
 		{
+			ResizeIfRequired(cap.InternalId);
+
 			var filter = CapabilityFilterLookup[cap.InternalId];
 			if (filter == null)
 			{
