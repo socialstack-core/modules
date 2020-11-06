@@ -1,8 +1,10 @@
 using System;
+using System.Collections.Generic;
 using Api.Database;
+using Api.Permissions;
 using Api.Translate;
 using Api.Users;
-
+using Api.WebSockets;
 
 namespace Api.PrivateChats
 {
@@ -10,36 +12,8 @@ namespace Api.PrivateChats
 	/// <summary>
 	/// A PrivateChat
 	/// </summary>
-	public partial class PrivateChat : RevisionRow
+	public partial class PrivateChat : RevisionRow, IHaveUserRestrictions, IAmLive
 	{
-		/// <summary>
-		/// Private chat can be between two entities on the site. Usually that's a user->user, but can 
-		/// also be e.g. user->company or company->company or company->group etc.
-		/// ContentId of the original sender.
-		/// </summary>
-		public int SourceContentId;
-		
-		/// <summary>
-		/// Private chat can be between two entities on the site. Usually that's a user->user, but can 
-		/// also be e.g. user->company or company->company or company->group etc.
-		/// ContentType of the original sender.
-		/// </summary>
-		public int SourceContentType;
-		
-		/// <summary>
-		/// Private chat can be between two entities on the site. Usually that's a user->user, but can 
-		/// also be e.g. user->company or company->company or company->group etc.
-		/// ContentType of the original recipient.
-		/// </summary>
-		public int TargetContentType;
-		
-		/// <summary>
-		/// Private chat can be between two entities on the site. Usually that's a user->user, but can 
-		/// also be e.g. user->company or company->company or company->group etc.
-		/// ContentId of the original recipient.
-		/// </summary>
-		public int TargetContentId;
-		
 		/// <summary>
 		/// Total messages in this chat.
 		/// Updating this triggers the LastEditedUtc date to change.
@@ -47,19 +21,24 @@ namespace Api.PrivateChats
 		public int MessageCount;
 		
 		/// <summary>
-		/// Set when loading this private chat.
-		/// </summary>
-		public object Target {get; set;}
-
-		/// <summary>
-		/// Set when loading this private chat.
-		/// </summary>
-		public object Source { get; set; }
-		
-		/// <summary>
 		/// Optional first message that can be provided when starting a new chat.
 		/// </summary>
 		public string Message {get; set;}
+		
+		/// <summary>
+		/// Access to a private chat is restricted to specific people.
+		/// </summary>
+		public bool UserRestrictionsActive => true;
+
+		/// <summary>
+		/// Users are allowed to see other users who are in the chat with them.
+		/// </summary>
+		public bool PermittedUsersListVisible => true;
+
+		/// <summary>
+		/// Users in a chat
+		/// </summary>
+		public List<PermittedContent> PermittedUsers { get; set; }
 	}
 
 }
