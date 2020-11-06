@@ -240,16 +240,19 @@ export default class Loop extends React.Component {
 		var { filter } = this.props;
 
 		if (filter && filter.where) {
-			
-			if(Array.isArray(filter.where)){
-				for(var i=0;i<filter.where.length;i++){
-					if(this.testFilterObj(ent, filter.where[i])){
+			var w = filter.where;
+			if(Array.isArray(w)){
+				if(!w.length){
+					return true;
+				}
+				for(var i=0;i<w.length;i++){
+					if(this.testFilterObj(ent, w[i])){
 						return true;
 					}
 				}
 				return false;
 			}else{
-				if(!this.testFilterObj(ent, filter.where)){
+				if(!this.testFilterObj(ent, w)){
 					return false;
 				}
 			}
