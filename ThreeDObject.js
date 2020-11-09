@@ -50,7 +50,51 @@ export default class ThreeDObject extends React.Component {
 	
 	transform(props){
 		var obj = this.obj;
-		var {position, rotation, scale, circularCoords} = props;
+		var {position, 
+			rotation, 
+			scale, 
+			circularCoords,
+			radius,
+			angle,
+			height,
+			positionX,
+			positionY,
+			positionZ,
+			scaleX,
+			scaleY,
+			scaleZ,
+			rotationX,
+			rotationY,
+			rotationZ
+		} = props;
+
+		if(!circularCoords && (radius || angle || height)) {
+			circularCoords = {};
+			circularCoords.radius = radius;
+			circularCoords.angle = angle;
+			circularCoords.height = height;
+		}
+
+		if(!position && (positionX || positionY || positionZ)) {
+			position = {};
+			position.x = positionX;
+			position.y = positionY;
+			position.z = positionZ;
+		}
+
+		if(!scale && (scaleX || scaleY || scaleZ)) {
+			scale = {};
+			scale.x = scaleX;
+			scale.y = scaleY;
+			scale.z = scaleZ;
+		}
+
+		if(!rotation && (rotationX || rotationY || rotationZ)) {
+			rotation = {};
+			rotation.x = rotationX;
+			rotation.y = rotationY;
+			rotation.z = rotationZ;
+		}
         
         if (circularCoords) {
             var degToRad = Math.PI / 180;
@@ -96,4 +140,20 @@ export default class ThreeDObject extends React.Component {
 		return <div className = {className && className} ref={this.refChange}>{children}</div>;
 	}
 	
+}
+ThreeDObject.propTypes = {
+	className: 'string',
+	radius: 'int',
+	angle: 'float',
+	height: 'int',
+	positionX: 'int',
+	positionY: 'int',
+	positionZ: 'int',
+	scaleX: 'float',
+	scaleY: 'float',
+	scaleZ: 'float',
+	rotationX: 'float',
+	rotationY: 'float',
+	rotationZ: 'float',
+	children: true
 }
