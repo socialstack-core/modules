@@ -10,7 +10,7 @@ try{
 	// No video sphere support
 }
 
-const SphereContext = React.createContext(null);
+import SphereContext from 'UI/Photosphere/SphereContext';
 
 export default class Photosphere extends React.Component {
 	
@@ -36,7 +36,9 @@ export default class Photosphere extends React.Component {
         this.onTouchMove = this.onTouchMove.bind(this);
 		this.animate = this.animate.bind(this);
 		this.onLoaded = this.onLoaded.bind(this);
-        this.onWheel = this.onWheel.bind(this);
+		this.onWheel = this.onWheel.bind(this);
+		this.setPhotosphereUIRef = this.setPhotosphereUIRef.bind(this);
+
 	}
 	
 	componentWillReceiveProps(props){
@@ -52,6 +54,10 @@ export default class Photosphere extends React.Component {
 		this.containerEle = ref;
 		this.setup(this.props);
 	}
+
+	setPhotosphereUIRef(ref) {
+		this.photosphereUIRef = ref;
+	}
 	
 	set3DRef(ref){
 		this.root3DEle = ref;
@@ -62,6 +68,8 @@ export default class Photosphere extends React.Component {
 		this.canvasEle = ref;
 		this.setup(this.props);
 	}
+
+
 	
 	/*
 	* Makes the host element go fullscreen
@@ -364,7 +372,7 @@ export default class Photosphere extends React.Component {
 		var height= size.h + 'px';
 		
 		return (
-		<SphereContext.Provider value={this.state.scene}>
+		<SphereContext.Provider value={{scene: this.state.scene, uiNode: this.photosphereUIRef }}>
 			<div ref={this.setContainerRef} {...omit(this.props, ['ar', 'children', 'imageRef', 'videoRef', 'onLoad', 'startRotation', 'skipFade'])}>
 				<div ref={this.setRef} style={{width: '100%', height: '100%', position: 'absolute'}} className={"photosphere" + (this.state.loaded ? ' loaded' : '') + (this.props.skipFade ? ' no-fade' : '')}>
 					<canvas ref={this.setCanvasRef} style={{position: 'absolute', top: '0px', left: '0px', width, height}} />
@@ -392,7 +400,7 @@ export default class Photosphere extends React.Component {
 						
 					}}/>}
 				</div>
-				<div className="photosphereUI"></div>
+				<div className="photosphereUI" ref = {this.setPhotosphereUIRef}></div>
 			</div>
 		</SphereContext.Provider>);
 	}
