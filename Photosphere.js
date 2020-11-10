@@ -400,7 +400,7 @@ export default class Photosphere extends React.Component {
 						
 					}}/>}
 				</div>
-				<div className="photosphereUI" ref = {this.setPhotosphereUIRef}></div>
+				<div ref = {this.setPhotosphereUIRef} />
 			</div>
 		</SphereContext.Provider>);
 	}
