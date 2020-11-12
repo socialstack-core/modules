@@ -133,3 +133,279 @@
         color: $theme_link_active_fg;
     }
 }
+
+$input-btn-focus-width:       .2rem !default;
+$btn-focus-width:             $input-btn-focus-width !default;
+
+@mixin button-variant($foreground, $background, $border: $background, 
+    $hover-background: darken($background, 7.5%), 
+    $hover-border: darken($border, 10%), 
+    $active-background: darken($background, 10%), 
+    $active-border: darken($border, 12.5%)) {
+
+      @if ($foreground) {
+        color: $foreground;
+      } @else {
+        color: color-yiq($background);
+      }
+
+  background-color: $background;
+  border-color: $border;
+
+  &:hover {
+
+      @if ($foreground) {
+        color: $foreground;
+      } @else {
+        color: color-yiq($hover-background);
+      }
+
+    background-color: $hover-background;
+    border-color: $hover-border;
+  }
+
+  &:focus,
+  &.focus {
+
+      @if ($foreground) {
+        color: $foreground;
+      } @else {
+        color: color-yiq($hover-background);
+      }
+
+    background-color: $hover-background;
+    border-color: $hover-border;
+    box-shadow: 0 0 0 $btn-focus-width rgba(mix(color-yiq($background), $border, 15%), .5);
+  }
+
+  // Disabled comes first so active can properly restyle
+  &.disabled,
+  &:disabled {
+
+      @if ($foreground) {
+        color: $foreground;
+      } @else {
+        color: color-yiq($background);
+      }
+
+    background-color: $background;
+    border-color: $border;
+  }
+
+  &:not(:disabled):not(.disabled):active,
+  &:not(:disabled):not(.disabled).active,
+  .show > &.dropdown-toggle {
+
+      @if ($foreground) {
+        color: $foreground;
+      } @else {
+        color: color-yiq($active-background);
+      }
+
+    background-color: $active-background;
+    border-color: $active-border;
+
+    &:focus {
+      box-shadow: 0 0 0 $btn-focus-width rgba(mix(color-yiq($background), $border, 15%), .5);
+    }
+  }
+}
+
+@mixin button-outline-variant($foreground: $background, $background, $color-hover: color-yiq($background), $active-background: $background, $active-border: $background) {
+
+  @if ($foreground) {
+      color: $foreground;
+  } @else {
+      color: $background;
+  }
+
+  border-color: $background;
+
+  &:hover {
+
+    @if ($foreground) {
+      color: $foreground;
+    } @else {
+      color: $color-hover;
+    }
+
+    background-color: $active-background;
+    border-color: $active-border;
+  }
+
+  &:focus,
+  &.focus {
+    box-shadow: 0 0 0 $btn-focus-width rgba($background, .5);
+  }
+
+  &.disabled,
+  &:disabled {
+
+    @if ($foreground) {
+      color: $foreground;
+    } @else {
+      color: $background;
+    }
+
+    background-color: transparent;
+  }
+
+  &:not(:disabled):not(.disabled):active,
+  &:not(:disabled):not(.disabled).active,
+  .show > &.dropdown-toggle {
+
+    @if ($foreground) {
+      color: $foreground;
+    } @else {
+      color: color-yiq($active-background);
+    }
+
+    background-color: $active-background;
+    border-color: $active-border;
+
+    &:focus {
+      box-shadow: 0 0 0 $btn-focus-width rgba($background, .5);
+    }
+  }
+}
+
+@mixin button-size($padding-y, $padding-x, $font-size, $line-height, $border-radius) {
+  padding: $padding-y $padding-x;
+  //@include font-size($font-size);
+  font-size: $font-size;
+  line-height: $line-height;
+  // Manually declare to provide an override to the browser default
+  //@include border-radius($border-radius, 0);
+  border-radius: $border-radius;
+}
+
+// Set a specific jump point for requesting color jumps
+$theme-color-interval:      8% !default;
+
+@function theme-color-level($color-name: "primary", $level: 0) {
+  //$color: theme-color($color-name);
+  $color: get_palette(color, $color-name);
+  $color-base: if($level > 0, #000, #fff);
+  $level: abs($level);
+
+  @return mix($color-base, $color, $level * $theme-color-interval);
+}
+
+$badge-focus-width:                 $input-btn-focus-width !default;
+
+@mixin badge-variant($bg) {
+  color: color-yiq($bg);
+  background-color: $bg;
+
+  @at-root a#{&} {
+
+    &:hover,
+    &:focus {
+      color: color-yiq($bg);
+      background-color: darken($bg, 10%);
+    }
+
+    &:focus,
+    &.focus {
+      outline: 0;
+      box-shadow: 0 0 0 $badge-focus-width rgba($bg, .5);
+    }
+  }
+}
+
+@mixin alert-variant($background, $border, $color) {
+  color: $color;
+  background-color: $background;
+  border-color: $border;
+
+  hr {
+    border-top-color: darken($border, 5%);
+  }
+
+  .alert-link {
+    color: darken($color, 10%);
+  }
+}
+
+$grid_breakpoints: get_theme(grid-breakpoints, bootstrap);
+
+@function breakpoint-next($name, $breakpoints: $grid_breakpoints, $breakpoint-names: map-keys($breakpoints)) {
+  $n: index($breakpoint-names, $name);
+  @return if($n != null and $n < length($breakpoint-names), nth($breakpoint-names, $n + 1), null);
+}
+
+@function breakpoint-min($name, $breakpoints: $grid_breakpoints) {
+  $min: map-get($breakpoints, $name);
+  @return if($min != 0, $min, null);
+}
+
+@function breakpoint-max($name, $breakpoints: $grid_breakpoints) {
+  $next: breakpoint-next($name, $breakpoints);
+  @return if($next, breakpoint-min($next, $breakpoints) - .02, null);
+}
+
+@function breakpoint-infix($name, $breakpoints: $grid_breakpoints) {
+  @return if(breakpoint-min($name, $breakpoints) == null, "", "-#{$name}");
+}
+
+@mixin media-breakpoint-up($name, $breakpoints: $grid_breakpoints) {
+    $min: breakpoint-min($name, $breakpoints);
+    
+    @if $min {
+        @media (min-width: $min) {
+            @content;
+        }
+    } @else {
+        @content;
+    }
+}
+
+@mixin media-breakpoint-down($name, $breakpoints: $grid_breakpoints) {
+    $max: breakpoint-max($name, $breakpoints);
+    
+    @if $max {
+        @media (max-width: $max) {
+            @content;
+        }
+    } @else {
+        @content;
+    }
+}
+
+@mixin media-breakpoint-between($lower, $upper, $breakpoints: $grid_breakpoints) {
+  $min: breakpoint-min($lower, $breakpoints);
+  $max: breakpoint-max($upper, $breakpoints);
+
+  @if $min != null and $max != null {
+    @media (min-width: $min) and (max-width: $max) {
+      @content;
+    }
+  } @else if $max == null {
+    @include media-breakpoint-up($lower, $breakpoints) {
+      @content;
+    }
+  } @else if $min == null {
+    @include media-breakpoint-down($upper, $breakpoints) {
+      @content;
+    }
+  }
+}
+
+@mixin media-breakpoint-only($name, $breakpoints: $grid_breakpoints) {
+  $min: breakpoint-min($name, $breakpoints);
+  $max: breakpoint-max($name, $breakpoints);
+
+  @if $min != null and $max != null {
+    @media (min-width: $min) and (max-width: $max) {
+      @content;
+    }
+  } @else if $max == null {
+    @include media-breakpoint-up($name, $breakpoints) {
+      @content;
+    }
+  } @else if $min == null {
+    @include media-breakpoint-down($name, $breakpoints) {
+      @content;
+    }
+  }
+}

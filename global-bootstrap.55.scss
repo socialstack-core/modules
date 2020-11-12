@@ -3,294 +3,740 @@
     NB: button-specific overrides are defined within global-buttons.35.scss
 */
 
-// override alerts
+$bootstrap_variants: (
+    primary,
+    secondary,
+    success,
+    danger,
+    warning,
+    info,
+    light,
+    dark,
+    link
+);
+
+// ALERTS
+// https://getbootstrap.com/docs/4.5/components/alerts/
+// supports:
+// - specific background-color/color/border-color combinations (defined within theme under bootstrap > alert > [variant])
+// - alternatively, uses background-color/color/border-color for given variant (defined within palette under [variant])
 .alert {
-    padding: get_value(padding, bootstrap, alert);
-    border-width: get_value(border-width, bootstrap, alert);
-    border-radius: get_value(border-radius, bootstrap, alert);
+    $alert-bg-level:                    -10 !default;
+    $alert-border-level:                -9 !default;
+    $alert-color-level:                 6 !default;
+    padding: get_theme(padding, bootstrap, alert);
+    border-width: get_theme(border-width, bootstrap, alert);
+    border-radius: get_theme(border-radius, bootstrap, alert);
 
-    @include get_alert_themes();
-}
-
-// override badges
-.badge {
-    outline: 0 !important;
-    padding: get_value(padding, bootstrap, badge);
-    font-size: get_value(font-size, bootstrap, badge);
-    font-weight: get_value(font-weight, bootstrap, badge);
-    border-radius: get_value(border-radius, bootstrap, badge);
-
-    @include get_badge_themes();
-}
-
-// overrides for bootstrap modal defaults
-.modal-backdrop {
-    background-color: $theme_modal_backdrop;
-
-    &.show {
-        opacity: $theme_modal_backdrop_opacity;
+    @if ($socialstack_theme_version == 1) {
+        @include get_alert_themes();
     }
-}
 
-.modal {
-    // fix for line-height: 0 being inherited from card footers
-    line-height: normal;
+    @if ($socialstack_theme_version > 1) {
 
-    .modal-dialog {
-        //width: 616px;
-        //max-width: 100vw;
-        .modal-content {
-            background-color: $theme_modal_bg;
-            color: $theme_modal_fg;
-            border: $theme_modal_border;
-            @include border_radius($theme_modal_border_radius);
-            box-shadow: $theme_modal_box_shadow;
+        @each $variant in $bootstrap_variants {
 
-            .modal-header {
-                height: $theme_modal_header_height;
-                border-bottom-width: get_value(border-bottom-width, bootstrap, modal, header);
+            @if ($variant != link) {
 
-                .modal-title {
-                    //display: none;
-                }
+                &.alert-#{$variant} {
 
-                .close {
-                    width: $theme_modal_header_height;
-                    height: $theme_modal_header_height;
-                    background-color: $theme_modal_close_bg;
-                    opacity: 1;
-                    color: $theme_modal_close_fg;
-
-                    > span {
-                        // hide Bootstrap close "x" text ...
-                        display: none;
-                    }
-                    // ... and replace with icon
-                    &::after {
-                        content: "\f00d"; // fr-times
-                        font-family: "Font Awesome 5 Pro";
-                        font-weight: 300; // equivalent to .fal
-                        -moz-osx-font-smoothing: grayscale;
-                        -webkit-font-smoothing: antialiased;
-                        display: inline-block;
-                        font-style: normal;
-                        font-variant: normal;
-                        text-rendering: auto;
-                        line-height: 1;
-                        @include font_size($theme_modal_close_font_size);
+                    @if (theme_has_key($variant, bootstrap, alert)) {
+                        // use colour scheme specified within the theme
+                        @include alert-variant(get_theme(background-color, bootstrap, alert, $variant), get_theme(border-color, bootstrap, alert, $variant), get_theme(color, bootstrap, alert, $variant));
+                    } @else if (palette_has_key($variant)) {
+                        // base alert on variant colour specified in palette
+                        @include alert-variant(theme-color-level($variant, $alert-bg-level), theme-color-level($variant, $alert-border-level), theme-color-level($variant, $alert-color-level));
                     }
                 }
             }
+        }
+    }
+}
 
-            .modal-body {
-                // used to render footer controls within .modal-body
-                // (as opposed to the more typical .modal-footer - sometimes unavoidable)
-                .modal-internal-footer {
-                    text-align: right;
+// BADGES
+// https://getbootstrap.com/docs/4.5/components/badge/
+// supports:
+// - background-color/color/border-color for given variant (defined within palette under [variant])
+.badge {
+    outline: 0 !important;
+    padding: get_theme(padding, bootstrap, badge);
+    font-size: get_theme(font-size, bootstrap, badge);
+    font-weight: get_theme(font-weight, bootstrap, badge);
+    line-height: get_theme(line-height, bootstrap, badge);
+    border-radius: get_theme(border-radius, bootstrap, badge);
 
-                    > button, > a {
-                        margin-top: 1rem;
-                        margin-right: 1rem;
+    @if ($socialstack_theme_version == 1) {
+        @include get_badge_themes();
+    }
 
-                        &:last-child {
-                            margin-right: 0;
+    @if ($socialstack_theme_version > 1) {
+        $badge_padding_x: get_theme(padding-x, bootstrap, badge, pill);
+
+        .badge-pill {
+            padding-right: $badge_padding_x;
+            padding-left: $badge_padding_x;
+            border-radius: get_theme(border-radius, bootstrap, badge, pill);
+        }
+
+        @each $variant in $bootstrap_variants {
+
+            @if ($variant != link) {
+
+                &.badge-#{$variant} {
+                    @include badge-variant(get_palette(background-color, $variant));
+                }
+            }
+        }
+    }
+}
+
+// BREADCRUMBS
+// https://getbootstrap.com/docs/4.5/components/breadcrumb/
+.breadcrumb {
+    $breadcrumb_padding_y: get_theme(padding-y, bootstrap, breadcrumb);
+    $breadcrumb_padding_x: get_theme(padding-x, bootstrap, breadcrumb);
+    padding: $breadcrumb_padding_y $breadcrumb_padding_x;
+    margin-bottom: get_theme(margin-bottom, bootstrap, breadcrumb);
+    font-size: get_theme(font-size, bootstrap, breadcrumb);
+    background-color: get_theme(background-color, bootstrap, breadcrumb);
+    border-radius: get_theme(border-radius, bootstrap, breadcrumb);
+}
+
+.breadcrumb-item {
+    
+    // The separator between breadcrumbs (by default, a forward-slash: "/")
+    + .breadcrumb-item {
+        padding-left: get_theme(padding-left, bootstrap, breadcrumb, item);
+        
+        &::before {
+            padding-right: get_theme(padding-right, bootstrap, breadcrumb, item);
+            color: get_theme(color, bootstrap, breadcrumb, item);
+            //TODO
+            //content: escape-svg($breadcrumb-divider);
+        }
+    }
+    
+    &.active {
+        color: get_theme(color, bootstrap, breadcrumb, item, active);
+    }
+}
+
+// BUTTONS
+// https://getbootstrap.com/docs/4.5/components/buttons/
+// NB: border-width override only supported for outline buttons
+@if ($socialstack_theme_version > 1) {
+    $button_outline_width: get_theme(border-width, bootstrap, buttons);
+    $button_padding_y: get_theme(padding-y, bootstrap, buttons);
+    $button_padding_x: get_theme(padding-x, bootstrap, buttons);
+    $button_font_size: get_theme(font-size, bootstrap, buttons);
+    $button_line_height: get_theme(line-height, bootstrap, buttons);
+    $button_border_radius: get_theme(border-radius, bootstrap, buttons);
+
+    $button_padding_y_lg: get_theme(padding-y, bootstrap, buttons, lg);
+    $button_padding_x_lg: get_theme(padding-x, bootstrap, buttons, lg);
+    $button_font_size_lg: get_theme(font-size, bootstrap, buttons, lg);
+    $button_line_height_lg: get_theme(line-height, bootstrap, buttons, lg);
+    $button_border_radius_lg: get_theme(border-radius, bootstrap, buttons, lg);
+
+    $button_padding_y_sm: get_theme(padding-y, bootstrap, buttons, sm);
+    $button_padding_x_sm: get_theme(padding-x, bootstrap, buttons, sm);
+    $button_font_size_sm: get_theme(font-size, bootstrap, buttons, sm);
+    $button_line_height_sm: get_theme(line-height, bootstrap, buttons, sm);
+    $button_border_radius_sm: get_theme(border-radius, bootstrap, buttons, sm);
+
+    .btn {
+        font-family: get_theme(font-family, bootstrap, buttons);
+        font-weight: get_theme(font-weight, bootstrap, buttons);
+        @include button-size($button_padding_y, $button_padding_x, $button_font_size, $button_line_height, $button_border_radius);
+
+        @each $variant in $bootstrap_variants {
+
+            @if ($variant != link) {
+
+                &.btn-outline-#{$variant} {
+                    border-width: $button_outline_width + 0px;
+                }
+            }
+        }
+    }
+
+    .btn-lg {
+        @include button-size($button_padding_y_lg, $button_padding_x_lg, $button_font_size_lg, $button_line_height_lg, $button_border_radius_lg);
+    }
+
+    .btn-sm {
+        @include button-size($button_padding_y_sm, $button_padding_x_sm, $button_font_size_sm, $button_line_height_sm, $button_border_radius_sm);
+    }
+
+	@if (palette_exists()) {
+
+        @each $variant in $bootstrap_variants {
+
+            @if (palette_has_key($variant)) {
+
+                @if ($variant != link) {
+                    $color: get_palette(color, $variant);
+                    $background: get_palette(background-color, $variant);
+                    $border: get_palette(border-color, $variant);
+
+                    @if ($border == null) {
+                        $border: $background;
+                    }
+
+                    .btn-#{$variant} {
+                        @include button-variant($color, $background, $border);
+                    }
+
+                    .btn-outline-#{$variant} {
+                        @include button-outline-variant($color, $background);
+                    }
+                }
+            }
+        }
+	}
+}
+
+// BUTTON GROUP
+// https://getbootstrap.com/docs/4.5/components/button-group/
+@if ($socialstack_theme_version > 1) {
+    .btn-group {
+        // Prevent double borders when buttons are next to each other
+        > .btn:not(:first-child),
+        > .btn-group:not(:first-child) {
+            //margin-left: -$btn-border-width; // default 1px, unlikely to change
+        }
+
+    }
+
+    .btn-group-sm > .btn {
+        @extend .btn-sm;
+    }
+
+    .btn-group-lg > .btn {
+        @extend .btn-lg;
+    }
+
+    .btn-group-vertical {
+
+        > .btn:not(:first-child),
+        > .btn-group:not(:first-child) {
+            //margin-top: -$btn-border-width; // default 1px, unlikely to change
+        }
+    }
+
+}
+
+// CARD
+// https://getbootstrap.com/docs/4.5/components/card/
+// TODO
+
+// CAROUSEL
+// https://getbootstrap.com/docs/4.5/components/carousel/
+// TODO
+
+// COLLAPSE
+// https://getbootstrap.com/docs/4.5/components/collapse/
+// TODO
+
+// DROPDOWNS
+// https://getbootstrap.com/docs/4.5/components/dropdowns/
+// TODO
+
+// FORMS
+// https://getbootstrap.com/docs/4.5/components/forms/
+// TODO
+
+// INPUT GROUP
+// https://getbootstrap.com/docs/4.5/components/input-group/
+// TODO
+
+// JUMBOTRON
+// https://getbootstrap.com/docs/4.5/components/jumbotron/
+// TODO
+
+// LIST GROUP
+// https://getbootstrap.com/docs/4.5/components/list-group/
+// TODO
+
+// MEDIA OBJECT
+// https://getbootstrap.com/docs/4.5/components/media-object/
+// TODO
+
+// MODAL
+// https://getbootstrap.com/docs/4.5/components/modal/
+@if ($socialstack_theme_version == 1) {
+
+    .modal-backdrop {
+        background-color: $theme_modal_backdrop;
+        // max width and height to prevent backdrop overflowing outside of canvas editor within admin views
+        max-width: 100%;
+        max-height: 100%;
+
+        &.show {
+            opacity: $theme_modal_backdrop_opacity;
+        }
+    }
+
+    .modal {
+        // fix for line-height: 0 being inherited from card footers
+        line-height: normal;
+
+        .modal-dialog {
+            //width: 616px;
+            //max-width: 100vw;
+            .modal-content {
+                background-color: $theme_modal_bg;
+                color: $theme_modal_fg;
+                border: $theme_modal_border;
+                @include border_radius($theme_modal_border_radius);
+                box-shadow: $theme_modal_box_shadow;
+
+                .modal-header {
+                    height: $theme_modal_header_height;
+                    border-bottom-width: get_theme(border-bottom-width, bootstrap, modal, header);
+
+                    .modal-title {
+                        //display: none;
+                    }
+
+                    .close {
+                        width: $theme_modal_header_height;
+                        height: $theme_modal_header_height;
+                        background-color: $theme_modal_close_bg;
+                        opacity: 1;
+                        color: $theme_modal_close_fg;
+
+                        > span {
+                            // hide Bootstrap close "x" text ...
+                            display: none;
+                        }
+                        // ... and replace with icon
+                        &::after {
+                            content: "\f00d"; // fr-times
+                            font-family: "Font Awesome 5 Pro";
+                            font-weight: 300; // equivalent to .fal
+                            -moz-osx-font-smoothing: grayscale;
+                            -webkit-font-smoothing: antialiased;
+                            display: inline-block;
+                            font-style: normal;
+                            font-variant: normal;
+                            text-rendering: auto;
+                            line-height: 1;
+                            @include font_size($theme_modal_close_font_size);
+                        }
+                    }
+                }
+
+                .modal-body {
+                    // used to render footer controls within .modal-body
+                    // (as opposed to the more typical .modal-footer - sometimes unavoidable)
+                    .modal-internal-footer {
+                        text-align: right;
+
+                        > button, > a {
+                            margin-top: 1rem;
+                            margin-right: 1rem;
+
+                            &:last-child {
+                                margin-right: 0;
+                            }
+                        }
+                    }
+                }
+
+                // hide empty footers
+                .modal-footer:empty {
+                    display: none;
+                }
+            }
+        }
+
+        &.no-header {
+
+            .modal-dialog {
+
+                .modal-content {
+
+                    .modal-header {
+                        display: none;
+                    }
+
+                    .modal-body {
+                        padding-top: 3rem;
+                    }
+
+                }
+
+            }
+
+        }
+
+        &.no-title:not(.no-header) {
+
+            .modal-dialog {
+
+                .modal-content {
+
+                    .modal-header {
+                        border: 0;
+
+                        .modal-title {
+                            display: none;
+                        }
+
+                        .close {
+                            z-index: 1;
+                        }
+                    }
+
+                    .modal-body {
+                        margin-top: -$theme_modal_header_height;
+                        // NB: note titles defined within modal body will need to be wary of being partially obscured by the close button without the following line
+                        // (commented as this has the side effect of making content too narrow / bringing footer contrls too far left)
+                        //padding-right: calc(1rem + #{$theme_modal_header_height});
+
+                        .modal-internal-footer {
+                            //margin-right: -$theme_modal_header_height;
                         }
                     }
                 }
             }
-
-            // hide empty footers
-            .modal-footer:empty {
-                display: none;
-            }
-        }
-    }
-
-    &.no-header {
-
-        .modal-dialog {
-
-            .modal-content {
-
-                .modal-header {
-                    display: none;
-                }
-
-                .modal-body {
-                    padding-top: 3rem;
-                }
-
-            }
-
         }
 
-    }
-
-    &.no-title:not(.no-header) {
-
-        .modal-dialog {
-
-            .modal-content {
-
-                .modal-header {
-                    border: 0;
-
-                    .modal-title {
-                        display: none;
-                    }
-
-                    .close {
-                        z-index: 1;
-                    }
-                }
-
-                .modal-body {
-                    margin-top: -$theme_modal_header_height;
-                    // NB: note titles defined within modal body will need to be wary of being partially obscured by the close button without the following line
-                    // (commented as this has the side effect of making content too narrow / bringing footer contrls too far left)
-                    //padding-right: calc(1rem + #{$theme_modal_header_height});
-
-                    .modal-internal-footer {
-                        //margin-right: -$theme_modal_header_height;
-                    }
-                }
-            }
-        }
-    }
-
-    &.no-footer {
-
-        .modal-dialog {
-
-            .modal-content {
-
-                .modal-footer {
-                    display: none;
-                }
-            }
-        }
-    }
-}
-
-// overrride pagination
-$pagination_spacing: get_value(linkSpacing, bootstrap, pagination);
-$pagination_border_width: get_value(border-width, bootstrap, pagination);
-$pagination_min_size: get_value(minSize, bootstrap, pagination);
-
-.pagination {
-    justify-content: get_value(justify-content, bootstrap, pagination);
-    margin-bottom: .5rem;
-
-    &[data-spacing] {
-
-    }
-
-    .page-item {
-
-        &:first-child .page-link {
-            margin-left: 0 !important;
-        }
-        
-        &:last-child .page-link {
-            margin-right: 0 !important;
-        }
-
-        .page-link {
-            padding: get_value(padding, bootstrap, pagination);
-            background-color: get_value(background-color, bootstrap, pagination);
-            color: get_value(color, bootstrap, pagination);
-            border-color: get_value(border-color, bootstrap, pagination);
-			border-radius: 0 !important;
-            border-width: $pagination_border_width;
-
-            @if ($pagination_min_size) {
-                display: flex;
-                align-items: center;
-                justify-content: center;
-                min-width: $pagination_min_size;
-                min-height: $pagination_min_size;
-            }
-
-            @if ($pagination_spacing) {
-                margin-left: calc(#{$pagination_spacing} / 2);
-                margin-right: calc(#{$pagination_spacing} / 2);
-            } @else {
-                margin-left: -$pagination_border_width;
-            }
-
-            &[disabled] {
-                background-color: get_value(background-color, bootstrap, pagination, disabled) !important;
-                color: get_value(color, bootstrap, pagination, disabled) !important;
-                border-color: get_value(border-color, bootstrap, pagination, disabled) !important;
-            }
-
-            &.empty {
-                visibility: hidden;
-            }
-        }
-
-        .first-page {
-
-        }
-
-        .prev-page {
-
-        }
-
-        .next-page {
-
-        }
-
-        .last-page {
-
-        }
-
-        &.active {
-
-            .page-link {
-                background-color: get_value(background-color, bootstrap, pagination, active);
-                color: get_value(color, bootstrap, pagination, active);
-                border-color: get_value(border-color, bootstrap, pagination, active);
-            }
-        }
-    }
-}
-
-// override spinners
-.spinner-border {
-    width: get_value(width, bootstrap, spinners);
-    height: get_value(height, bootstrap, spinners);
-    border-width: get_value(border-width, bootstrap, spinners);
-    border-color: get_value(border-color, bootstrap, spinners);
-    border-right-color: get_value(border-right-color, bootstrap, spinners);
-    animation-duration: get_value(animation-duration, bootstrap, spinners);
-
-    // TODO: other spinner variants
-    // ref: https://getbootstrap.com/docs/4.3/components/spinners/
-}
-
-html.device-mobile {
-
-    .modal {
-
-        &.modal-fullscreen-mobile {
+        &.no-footer {
 
             .modal-dialog {
-                margin: 0;
 
                 .modal-content {
-                    height: 100vh;
-                    padding-bottom: 4rem; // account for possible docked menu obscuring content
+
+                    .modal-footer {
+                        display: none;
+                    }
                 }
             }
         }
-
     }
 
-    // collapse pagination links on mobile (prevents clipping)
-    .pagination .page-item .page-link {
-        margin-left: 0;
-        margin-right: 0;
+    html.device-mobile {
+
+        .modal {
+
+            &.modal-fullscreen-mobile {
+
+                .modal-dialog {
+                    margin: 0;
+
+                    .modal-content {
+                        height: 100vh;
+                        padding-bottom: 4rem; // account for possible docked menu obscuring content
+                    }
+                }
+            }
+        }
+    }
+}
+
+@if ($socialstack_theme_version > 1) {
+    $modal_dialog_margin: get_theme(margin, bootstrap, modal, dialog);
+    $modal_dialog_margin_y_sm_up: get_theme(margin-y, bootstrap, modal, dialog, sm);
+    $modal_header_padding_y: get_theme(padding-y, bootstrap, modal, header);
+    $modal_header_padding_x: get_theme(padding-x, bootstrap, modal, header);
+    $modal_header_padding: $modal_header_padding_y $modal_header_padding_x;
+    $modal_header_border_radius: get_theme(border-radius, bootstrap, modal, header);
+    $modal_header_border_bottom_width: get_theme(border-bottom-width, bootstrap, modal, header);
+    $modal_header_border_bottom_color: get_theme(border-bottom-color, bootstrap, modal, header);
+    $modal_inner_padding: get_theme(padding, bootstrap, modal, body);
+    $modal_footer_margin_between: get_theme(margin-between, bootstrap, modal, footer);
+    $modal_footer_border_radius: get_theme(border-radius, bootstrap, modal, footer);
+    $modal_footer_border_bottom_width: get_theme(border-bottom-width, bootstrap, modal, footer);
+    $modal_footer_border_bottom_color: get_theme(border-bottom-color, bootstrap, modal, footer);
+
+    // container to scroll within
+    .modal {
+        z-index: get_theme(z-index, bootstrap, modal);
+    }
+
+    // positioning shell for actual modal
+    @if ($modal_dialog_margin) {
+        .modal-dialog {
+            margin: $modal_dialog_margin;
+        }
+
+        .modal-dialog-scrollable {
+            max-height: subtract(100%, $modal_dialog_margin * 2);
+        
+            .modal-content {
+                max-height: subtract(100vh, $modal_dialog_margin * 2);
+            }
+        }
+
+        .modal-dialog-centered {
+            min-height: subtract(100%, $modal_dialog_margin * 2);
+
+            &::before {
+                height: subtract(100vh, $modal_dialog_margin * 2);
+                height: min-content; // Reset height to 0 except on IE
+            }
+        }
+    }
+
+    // actual modal
+    .modal-content {
+        color: get_theme(color, bootstrap, modal, content);
+        background-color: get_theme(background-color, bootstrap, modal, content);
+        border-width: get_theme(border-width, bootstrap, modal, content);
+        border-color: get_theme(border-color, bootstrap, modal, content);
+        border-radius: get_theme(border-radius, bootstrap, modal, content);
+        box-shadow: get_theme(box-shadow, bootstrap, modal, content, xs);
+    }
+
+    // modal background
+    .modal-backdrop {
+        z-index: get_theme(z-index, bootstrap, modal, backdrop);
+        background-color: get_theme(background-color, bootstrap, modal, backdrop);
+        
+        &.show { 
+            opacity: get_theme(opacity, bootstrap, modal, backdrop);
+        }
+    }
+
+    // modal header
+    .modal-header {
+        padding: $modal_header_padding;
+
+        @if ($modal_header_border_bottom_width and $modal_header_border_bottom_color) {
+            border-bottom: $modal_header_border_bottom_width solid $modal_header_border_bottom_color;
+        }
+
+        border-top-left-radius: $modal_header_border_radius;
+        border-top-right-radius: $modal_header_border_radius;
+
+        .close {
+            padding: $modal_header_padding;
+
+            @if ($modal_header_padding_y and $modal_header_padding_x) {
+                margin: (-$modal_header_padding_y) (-$modal_header_padding_x) (-$modal_header_padding_y) auto;
+            }
+        }
+    }
+    
+    // title text within header
+    .modal-title {
+        line-height: get_theme(line-height, bootstrap, modal, header);
+    }
+    
+    // modal body
+    .modal-body {
+        padding: $modal_inner_padding;
+    }
+    
+    // modal footer (for actions)
+    .modal-footer {
+        padding: $modal_inner_padding - $modal_footer_margin_between / 2;
+
+        @if ($modal_footer_border_bottom_width and $modal_footer_border_bottom_color) {
+            border-top: $modal_footer_border_bottom_width solid $modal_footer_border_bottom_color;
+        }
+
+        border-bottom-left-radius: $modal_footer_border_radius;
+        border-bottom-right-radius: $modal_footer_border_radius;
+        
+        @if ($modal_footer_margin_between) {
+            > * {
+                margin: $modal_footer_margin_between / 2;
+            }
+        }
+    }
+    
+    // scale up the modal
+    @include media-breakpoint-up(sm) {
+        
+        .modal-dialog {
+            max-width: get_theme(max-width, bootstrap, modal, dialog, md);
+            margin: $modal_dialog_margin_y_sm_up auto;
+        }
+
+        @if ($modal_dialog_margin_y_sm_up) {
+
+            .modal-dialog-scrollable {
+                max-height: subtract(100%, $modal_dialog_margin_y_sm_up * 2);
+            
+                .modal-content {
+                    max-height: subtract(100vh, $modal_dialog_margin_y_sm_up * 2);
+                }
+            }
+        
+            .modal-dialog-centered {
+                min-height: subtract(100%, $modal_dialog_margin_y_sm_up * 2);
+            
+                &::before {
+                    height: subtract(100vh, $modal_dialog_margin_y_sm_up * 2);
+                    height: min-content;
+                }
+            }
+        }
+        
+        .modal-content {
+            box-shadow: get_theme(box-shadow, bootstrap, modal, content, sm);
+        }
+        
+        .modal-sm { 
+            max-width: get_theme(max-width, bootstrap, modal, dialog, sm); 
+        }
+    }
+    
+    @include media-breakpoint-up(lg) {
+        .modal-lg,
+        .modal-xl {
+            max-width: get_theme(max-width, bootstrap, modal, dialog, lg);
+        }
+    }
+
+    @include media-breakpoint-up(xl) {
+        .modal-xl { 
+            max-width: get_theme(max-width, bootstrap, modal, dialog, xl); 
+        }
     }
 
 }
+
+// NAVS
+// https://getbootstrap.com/docs/4.5/components/navs/
+// TODO
+
+// NAVBAR
+// https://getbootstrap.com/docs/4.5/components/navbar/
+// TODO
+
+// PAGINATION
+// https://getbootstrap.com/docs/4.5/components/pagination/
+@if ($socialstack_theme_version == 1) {
+    $pagination_spacing: get_theme(linkSpacing, bootstrap, pagination);
+    $pagination_border_width: get_theme(border-width, bootstrap, pagination);
+    $pagination_min_size: get_theme(minSize, bootstrap, pagination);
+
+    .pagination {
+        justify-content: get_theme(justify-content, bootstrap, pagination);
+        margin-bottom: .5rem;
+
+        &[data-spacing] {
+
+        }
+
+        .page-item {
+
+            &:first-child .page-link {
+                margin-left: 0 !important;
+            }
+        
+            &:last-child .page-link {
+                margin-right: 0 !important;
+            }
+
+            .page-link {
+                padding: get_theme(padding, bootstrap, pagination);
+                background-color: get_theme(background-color, bootstrap, pagination);
+                color: get_theme(color, bootstrap, pagination);
+                border-color: get_theme(border-color, bootstrap, pagination);
+			    border-radius: get_theme(border-radius, bootstrap, pagination);
+                border-width: $pagination_border_width;
+
+                @if ($pagination_min_size) {
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    min-width: $pagination_min_size;
+                    min-height: $pagination_min_size;
+                }
+
+                @if ($pagination_spacing) {
+                    margin-left: calc(#{$pagination_spacing} / 2);
+                    margin-right: calc(#{$pagination_spacing} / 2);
+                } @else {
+                    margin-left: -$pagination_border_width;
+                }
+
+                &[disabled] {
+                    background-color: get_theme(background-color, bootstrap, pagination, disabled) !important;
+                    color: get_theme(color, bootstrap, pagination, disabled) !important;
+                    border-color: get_theme(border-color, bootstrap, pagination, disabled) !important;
+                }
+
+                &.empty {
+                    visibility: hidden;
+                }
+            }
+
+            &.first-page,
+            &.prev-page,
+            &.next-page,
+            &.last-page {
+
+                .page-link {
+                    color: get_theme(color, bootstrap, pagination, active);
+                }
+
+            }
+
+            &.active {
+
+                .page-link {
+                    background-color: get_theme(background-color, bootstrap, pagination, active);
+                    color: get_theme(color, bootstrap, pagination, active);
+                    border-color: get_theme(border-color, bootstrap, pagination, active);
+                }
+            }
+        }
+    }
+
+    html.device-mobile {
+
+        // collapse pagination links on mobile (prevents clipping)
+        .pagination .page-item .page-link {
+            margin-left: 0;
+            margin-right: 0;
+        }
+
+    }
+}
+
+@if ($socialstack_theme_version > 1) {
+    // TODO
+}
+
+// POPOVERS
+// https://getbootstrap.com/docs/4.5/components/popovers/
+// TODO
+
+// PROGRESS
+// https://getbootstrap.com/docs/4.5/components/progress/
+// TODO
+
+// SCROLLSPY
+// https://getbootstrap.com/docs/4.5/components/scrollspy/
+// TODO
+
+// SPINNERS
+// https://getbootstrap.com/docs/4.5/components/spinners/
+@if ($socialstack_theme_version == 1) {
+    .spinner-border {
+        width: get_theme(width, bootstrap, spinners);
+        height: get_theme(height, bootstrap, spinners);
+        border-width: get_theme(border-width, bootstrap, spinners);
+        border-color: get_theme(border-color, bootstrap, spinners);
+        border-right-color: get_theme(border-right-color, bootstrap, spinners);
+        animation-duration: get_theme(animation-duration, bootstrap, spinners);
+
+        // TODO: other spinner variants
+        // ref: https://getbootstrap.com/docs/4.3/components/spinners/
+    }
+
+}
+
+// TOASTS
+// https://getbootstrap.com/docs/4.5/components/toasts/
+// TODO
+
+// TOOLTIPS
+// https://getbootstrap.com/docs/4.5/components/tooltips/
+// TODO

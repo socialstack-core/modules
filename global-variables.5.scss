@@ -343,6 +343,7 @@ $base_font_size: 16 !default; // in px
 }
 
 $socialstack_default_theme: (
+    version: 1,
     typography: (
         //baseFontSize: 16
     ),
@@ -351,6 +352,19 @@ $socialstack_default_theme: (
     ),
     // bootstrap defaults
     bootstrap: (
+        grid-breakpoints: (
+            xs: 0,
+            sm: 576px,
+            md: 768px,
+            lg: 992px,
+            xl: 1200px
+        ),
+        container-max-widths: (
+            sm: 540px,
+            md: 720px,
+            lg: 960px,
+            xl: 1140px
+        ),
         alert: $socialstack_default_alert,
 		badge: $socialstack_default_badge,
         breadcrumb: $socialstack_default_breadcrumb,
@@ -383,15 +397,13 @@ $unbranded_dark: #aaa;
 $unbranded_light: #fff;
 
 // typography
-$theme_font_family: "OpenSans", Arial, sans-serif !default;
+$theme_font_family: "Open Sans", Arial, sans-serif !default;
 
 $title_font_family: $theme_font_family !default;
 $title_font_weight: 700 !default;
 $title_line_height: 1.2 !default;
-
 $serif_font_family: Georgia, Times, Times New Roman, serif !default;
 $serif_font_weight: 400 !default;
-
 $theme_h1_font_size: 2.5rem !default;
 $theme_h2_font_size: 2rem !default;
 $theme_h3_font_size: 1.75rem !default;

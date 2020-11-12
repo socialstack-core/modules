@@ -162,6 +162,48 @@ input.form-control {
     }
 }
 
+// file upload (TODO)
+/*
+input {
+    // file upload
+    // NB: for this to work, the file input must have a following label, e.g.
+    // <input type="file" name="file" id="file" />
+    // <label for="file">Choose a file</label>
+    // ref http://tympanus.net/codrops/2015/09/15/styling-customizing-file-inputs-smart-way/
+    &[type='file'][id] {
+        // NB: not 0 as this can affect tab order on some browsers
+        width: 0.1px;
+        height: 0.1px;
+        opacity: 0;
+        overflow: hidden;
+        position: absolute;
+        z-index: -1;
+
+        @if ($socialstack_theme_version == 1) {
+            + label {
+                @include base_button_styling();
+                //@include primary_button_styling();
+                @include secondary_button_styling();
+                display: inline-block; // necessary to prevent optional hidden form labels from hiding this
+            }
+        }
+
+        &:focus + label {
+            //@include focus_styling;
+            cursor: pointer;
+            //pointer-events: none;
+            //box-shadow: 0 0 0 0.2rem rgba($theme_primary_btn_bg, .5);
+            box-shadow: 0 0 0 0.2rem rgba($theme_secondary_btn_bg, .5);
+        }
+
+        ~ .upload-limit {
+            @include font_size(12);
+            display: block;
+        }
+    }
+}
+*/
+
 textarea.form-control {
     @include input_field_styling;
 }
