@@ -85,49 +85,59 @@
 	@return $default;
 }
 
+@function ss_map_get($map, $key) {
+	$value: map-get($map, $key);
+
+	@if ($key == "font-family") {
+		@return unquote($value);
+	}
+
+	@return $value;
+}
+
 // retrieve value of category > context > subContext > state > key from the given theme (default or project)
 // (all levels optional)
 @function get_theme_value($theme, $value, $category: null, $context: null, $subContext: null, $state: null) {
 
 	@if ($category) {
-		$categoryMap: map-get($theme, $category);
+		$categoryMap: ss_map_get($theme, $category);
 
 		@if ($categoryMap) {
 
 			@if ($context) {
-				$contextMap: map-get($categoryMap, $context);
+				$contextMap: ss_map_get($categoryMap, $context);
 
 				@if ($contextMap) {
 
 					@if ($subContext) {
-						$subContextMap: map-get($contextMap, $subContext);
+						$subContextMap: ss_map_get($contextMap, $subContext);
 
 						@if ($subContextMap) {
 
 							@if ($state) {
-								$stateMap: map-get($subContextMap, $state);
+								$stateMap: ss_map_get($subContextMap, $state);
 
 								@if ($stateMap) {
-									@return map-get($stateMap, $value);
+									@return ss_map_get($stateMap, $value);
 								}
 
 							} @else {
-								@return map-get($subContextMap, $value);
+								@return ss_map_get($subContextMap, $value);
 							}
 						}
 					}
 					@else {
-						@return map-get($contextMap, $value);
+						@return ss_map_get($contextMap, $value);
 					}
 				}
 			}
 			@else {
-				@return map-get($categoryMap, $value);
+				@return ss_map_get($categoryMap, $value);
 			}
 		}
 	}
 	@else {
-		@return map-get($theme, $value);
+		@return ss_map_get($theme, $value);
 	}
 
 	@return null;
