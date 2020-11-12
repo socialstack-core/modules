@@ -67,7 +67,10 @@ export default class HlsVideo extends React.Component {
 	}
 	
 	getSource(props){
-		var {videoId, videoRef} = props;
+		var {videoId, videoRef, url} = props;
+		if(url){
+			return url;
+		}
 		if(!videoId && videoRef){
 			// extract id from ref:
 			var refParts = getRef(videoRef, {url: true, dirs: ['video']}).split('-');

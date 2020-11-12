@@ -12,7 +12,7 @@ module.exports = (src, onManifest) => {
 			hls.___manifest.push(onManifest);
 		}
 	}else{
-		hls = new hlsjs({startFragPrefetch: true});
+		hls = new hlsjs({startFragPrefetch: true, liveMaxLatencyDuration: 12, liveSyncDuration: 3});
 		hls.loadSource(src);
 		hls.__manif = [onManifest];
 		hls.on(hlsjs.Events.MANIFEST_PARSED, () => {
