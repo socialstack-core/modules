@@ -9,10 +9,7 @@ export default class Html extends React.Component {
     }
 	
     render() {
-		var ch = this.props.children;
-		if(Array.isArray(ch)){
-			ch = ch.length ? ch[0] : "";
-		}
+		var ch = this.props.html || this.props.children;
         return <span {...this.props} dangerouslySetInnerHTML={{__html: ch}} />;
     }
 }
