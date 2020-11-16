@@ -87,6 +87,7 @@ $socialstack_project_theme: (
 
     // bootstrap defaults
     bootstrap: (
+    /*
         alert: (
             border-radius: 0,
 			success: (
@@ -112,7 +113,7 @@ $socialstack_project_theme: (
 			border-radius: 0,
 			primary: (
 				color: #fff,
-				background-color: get_palette(blue4)
+				background-color: #3665f3
 			)
 		),
 		modal: (
@@ -137,9 +138,9 @@ $socialstack_project_theme: (
 			border-color: transparent,
 			border-radius: 0,
 			active: (
-				color: get_palette(blue4),
+				color: #3665f3,
 				background-color: #fff,
-				border-color: get_palette(blue4)
+				border-color: #3665f3
 			),
 			disabled: (
 				color: #6c757d,
@@ -156,10 +157,46 @@ $socialstack_project_theme: (
 			animation-duration: 1.25s
 		)
     )
+    */
 );
+
+// optional overrides for automated responsive values for for font sizes, paddings, margins and much more
+// defined within UI/Source/GlobalStyle/global-typography.25.scss
+//-------------------------------------------------------------------------------------------------------
+
+// Disable RFS by setting $enable-rfs to false
+// $enable-rfs: false;
+
+// Base value
+//$rfs-base-value: 1.25rem;
+//$rfs-unit: rem;
+
+// Breakpoint at where values start decreasing if screen width is smaller
+//$rfs-breakpoint: 1600px;
+//$rfs-breakpoint-unit: px;
+
+// Resize values based on screen height and width
+//$rfs-two-dimensional: false;
+
+// Factor of decrease
+//$rfs-factor: 10;
+
+// Mode. Possibilities: "min-media-query", "max-media-query"
+//$rfs-mode: min-media-query;
+
+// Generate enable or disable classes. Possibilities: false, "enable" or "disable"
+//$rfs-class: disable;
+
+// 1 rem = $rfs-rem-value px
+//$rfs-rem-value: 16;
+
+// Safari iframe resize bug: https://github.com/twbs/rfs/issues/14
+//$rfs-safari-iframe-resize-bug-fix: true !default;
+
 
 // DEPRECATED - ideally colours should be defined within
 // $socialstack_project_palette (see above)
+
 // colour scheme
 $theme_grey: #767676;
 $theme_light_grey: #f0f0f0;
@@ -189,7 +226,7 @@ $theme_hover: lighten($theme_grey, 50%);
 $theme_active: #5ee471;
 $theme_inactive: #e45e5e; // guesstimate
 
-$site_bg: #f2f2f2;
+$site_bg: #fff;
 
 // DEPRECATED - Bootstrap-specific changes due to be
 // controlled in future builds via a custom Bootstrap build
@@ -200,10 +237,10 @@ $site_bg: #f2f2f2;
 //$badge_padding_y: 2;
 
 // fonts
-$theme_font_family: "Market Sans", Arial, sans-serif;
+$theme_font_family: Arial, sans-serif;
 $title_font_family: $theme_font_family;
 $title_font_weight: 700;
-$serif_font_family: "";
+$serif_font_family: Garamond, serif;
 $serif_font_weight: 400;
 $regular_font_family: $theme_font_family;
 $regular_font_weight: 400;
@@ -304,26 +341,6 @@ $theme_link_active_fg: darken($theme_link_fg, 10%);
 //$zindex_dropdown: 900;
 $zindex_fixed_header: 1000;
 $zindex_fixed_footer: 2000;
-
-// side panels
-$side_panel_bg: #fff;
-$side_panel_fg: $theme_dark_grey;
-$side_panel_highlight_bg: $theme_highlight_bg;
-$side_panel_highlight_fg: $theme_highlight_fg;
-$side_panel_padding: 1rem 1.25rem;
-
-// site header
-//$site_header_height: 88px;
-$site_header_bg: #fff;
-$site_header_dropdown_header_bg: $theme_highlight_bg;
-$site_header_dropdown_header_fg: $theme_grey;
-$site_header_dropdown_border: #e1e1e1;
-$site_header_dropdown_zindex: $zindex_dropdown;
-$site_header_fixed_zindex: $zindex_fixed_header;
-$site_header_box_shadow: 0 4px 6px rgba(0,0,0,.125);
-
-// site footer
-$site_mobile_footer_zindex: $zindex_fixed_footer;
 
 // notification indicator
 $theme_notification_bg: #e62048;
