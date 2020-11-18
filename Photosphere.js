@@ -37,7 +37,6 @@ export default class Photosphere extends React.Component {
 		this.animate = this.animate.bind(this);
 		this.onLoaded = this.onLoaded.bind(this);
 		this.onWheel = this.onWheel.bind(this);
-		this.setPhotosphereUIRef = this.setPhotosphereUIRef.bind(this);
 
 	}
 	
@@ -53,10 +52,6 @@ export default class Photosphere extends React.Component {
 	setContainerRef(ref){
 		this.containerEle = ref;
 		this.setup(this.props);
-	}
-
-	setPhotosphereUIRef(ref) {
-		this.photosphereUIRef = ref;
 	}
 	
 	set3DRef(ref){
@@ -372,14 +367,12 @@ export default class Photosphere extends React.Component {
 		var height= size.h + 'px';
 		
 		return (
-		<SphereContext.Provider value={{scene: this.state.scene, uiNode: this.photosphereUIRef }}>
+		<SphereContext.Provider value={{scene: this.state.scene }}>
 			<div ref={this.setContainerRef} {...omit(this.props, ['ar', 'children', 'imageRef', 'videoRef', 'onLoad', 'startRotation', 'skipFade'])}>
 				<div ref={this.setRef} style={{width: '100%', height: '100%', position: 'absolute'}} className={"photosphere" + (this.state.loaded ? ' loaded' : '') + (this.props.skipFade ? ' no-fade' : '')}>
 					<canvas ref={this.setCanvasRef} style={{position: 'absolute', top: '0px', left: '0px', width, height}} />
 					<div ref={this.set3DRef} style={{overflow: 'hidden', position: 'absolute', top: '0px', left: '0px', width, height}} onMouseDown={this.onMouseDown} onMouseMove={this.onMouseMove} onTouchStart={this.onTouchStart} onTouchMove={this.onTouchMove}>
-						<div style={{WebkitTransformStyle: 'preserve-3d', transformStyle: 'preserve-3d', pointerEvents: 'none', width, height}}>
-							{this.props.children}
-						</div>
+						{this.props.children}
 					</div>
 					{this.props.videoRef && <HlsVideo style={{display: 'none'}} videoRef={this.props.videoRef} autoplay loop={this.props.loop} onEnded={this.props.onVideoEnded} onProgress={this.props.onVideoProgress} onVideo={videoEl => {
 						
