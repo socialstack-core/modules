@@ -68,7 +68,7 @@ $meeting_padding_top: 3rem;
 	}
 }
 
-.peers {
+.videoChat .peers {
 
 	.nobody-else{
 		text-align: center;
@@ -252,7 +252,7 @@ html.device-mobile {
 
 	@media only screen and (orientation: landscape) {
 
-		.peers {
+		.videoChat .peers {
 			padding-left: 280px;
 			min-height: 0;
 		}

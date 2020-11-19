@@ -199,13 +199,46 @@ export default class VideoChat extends React.Component {
 			</Container>;
 		}
 		
-		var {children} = this.props;
+		var {children, allowFullscreen, onRenderPeer, onPreRender} = this.props;
 		
 		// If we have at least 1 actual child node, then there is a visible activity.
 		// It acts like a fullscreen peer.
 		var activity = children;
 		
-		return <div className={"videoChat"}>
+		var cfg = {
+			className: 'videoChat',
+			peersClassName: 'peers'
+		};
+		
+		// Filter irrelevant peers:
+		var peers = huddleClient.peers || [];
+		peers = peers.filter(peer => !peer.device || !peer.device.huddleSpy);
+		
+		if(activity){
+			// Push the activity so it has a proper index and the length etc works too:
+			peers.push({_activity:activity, fullscreen: true});
+		}
+		
+		// NB: using an array as we may potentially support multiple maximized videos in future
+		var sharedPeers = [];
+		
+		if(activity){
+			// it's always the last one, because we just pushed it in:
+			sharedPeers.push(peers.length-1);
+			allowFullscreen = false;
+		}
+		
+		peers.map((peer, index) => {
+
+			if (peer.fullscreen && allowFullscreen) {
+				sharedPeers.push(index);
+			}
+
+		});
+		
+		onPreRender && onPreRender(cfg, peers, sharedPeers);
+		
+		return <div className={cfg.className}>
 			{/*<Notifications />*/}
 			<div className='state'>
 				<div className={'icon ' + room.state} title={stateDescription} />
@@ -217,7 +250,14 @@ export default class VideoChat extends React.Component {
 				<span className="sr-only">Leave chat</span>
 			</a>
 
-			<Peers huddleClient={huddleClient} allowFullscreen={this.props.allowFullscreen} activity={activity} />
+			<Peers 
+				className={cfg.peersClassName}
+				huddleClient={huddleClient}
+				allowFullscreen={allowFullscreen}
+				onRenderPeer={onRenderPeer}
+				peers={peers}
+				sharedPeers={sharedPeers}
+			/>
 			<div id="me_container" className={'me-container ' + (amActiveSpeaker ? 'active-speaker' : '')}>
 				<Me huddleClient={huddleClient} />
 			</div>
