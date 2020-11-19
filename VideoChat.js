@@ -249,7 +249,6 @@ export default class VideoChat extends React.Component {
 				<i className="fr fr-times"></i>
 				<span className="sr-only">Leave chat</span>
 			</a>
-
 			<Peers 
 				className={cfg.peersClassName}
 				huddleClient={huddleClient}
@@ -257,6 +256,7 @@ export default class VideoChat extends React.Component {
 				onRenderPeer={onRenderPeer}
 				peers={peers}
 				sharedPeers={sharedPeers}
+				peerChange={() => this.setState({})}
 			/>
 			<div id="me_container" className={'me-container ' + (amActiveSpeaker ? 'active-speaker' : '')}>
 				<Me huddleClient={huddleClient} />

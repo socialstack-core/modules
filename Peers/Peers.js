@@ -45,7 +45,6 @@ export default class Peers extends React.Component {
 						result = (
 							<button type="button" data-peer={index} className={btnClass} disabled={!allowFullscreen} title={allowFullscreen ? "Click to toggle expanded view" : ""}
 								onClick={(e) => {
-
 									// ensure we only have one fullscreen vid at once
 									peers.map((otherPeer) => {
 
@@ -56,7 +55,7 @@ export default class Peers extends React.Component {
 									});
 							
 									peer.fullscreen = !peer.fullscreen;
-									this.setState({});
+									this.props.peerChange();
 							}}>
 								<Peer peer={peer} huddleClient={huddleClient} />
 							</button>
