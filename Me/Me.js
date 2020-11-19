@@ -92,9 +92,9 @@ export default class Me extends React.Component {
 							className={'button mic ' + micState}
 							onClick={() =>
 							{
-								micState === 'on'
+								(micState === 'on'
 									? huddleClient.muteMic()
-									: huddleClient.unmuteMic();
+									: huddleClient.unmuteMic()).then(() => this.setState({}));
 							}}
 						/>
 
@@ -104,13 +104,13 @@ export default class Me extends React.Component {
 							{
 								if (webcamState === 'on')
 								{
-									huddleClient.disableWebcam();
+									huddleClient.disableWebcam().then(() => this.setState({}))
 								}
 								else
 								{
 									this.busyCheck(() => {
 										console.log('Enabling webcam');
-										huddleClient.enableWebcam();
+										huddleClient.enableWebcam().then(() => this.setState({}))
 									});
 								}
 							}}
@@ -118,7 +118,7 @@ export default class Me extends React.Component {
 
 						<div
 							className={'button change-webcam ' + changeWebcamState + ((me.webcamInProgress || me.shareInProgress) ? 'disabled' : '')}
-							onClick={() => huddleClient.changeWebcam()}
+							onClick={() => huddleClient.changeWebcam().then(() => this.setState({}))}
 						/>
 
 						<div
@@ -126,11 +126,11 @@ export default class Me extends React.Component {
 							onClick={() =>
 							{
 								if (shareState === 'on')
-									huddleClient.disableShare();
+									huddleClient.disableShare().then(() => this.setState({}))
 								else
 								{
 									// Although it's video, screenshare intentionally doesn't do the busy check
-									huddleClient.enableShare();
+									huddleClient.enableShare().then(() => this.setState({}))
 								}
 							}}
 						/>
@@ -154,6 +154,11 @@ export default class Me extends React.Component {
 					isMe
 					peer={me}
 					displayName={displayName}
+					updateStates={{
+						shareState,
+						webcamState,
+						micState
+					}} /* This just makes PeerView update whenever this component does */
 					videoRtpParameters={videoProducer ? videoProducer.rtpParameters : null}
 					audioTrack={audioProducer ? audioProducer.track : null}
 					videoTrack={videoProducer ? videoProducer.track : null}

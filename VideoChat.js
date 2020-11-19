@@ -30,14 +30,17 @@ export default class VideoChat extends React.Component {
 		this.state = {
 			huddleClient,
 			test,
-			startX: 0,
-			startY: 0
+			currentX: 20,
+			currentY: 70,
+			meStyle: {
+				bottom: '70px',
+				left: '20px'
+			}
 		};
-
+		
 		this.onRoomUpdate = this.onRoomUpdate.bind(this);
+		this.onEndMeContainerDrag = this.onEndMeContainerDrag.bind(this);
 		this.onError = this.onError.bind(this);
-		this.onStartMeContainerDrag = this.onStartMeContainerDrag.bind(this);
-		this.onMoveMeContainerDrag = this.onMoveMeContainerDrag.bind(this);
 	}
 	
 	mount(props){
@@ -72,53 +75,57 @@ export default class VideoChat extends React.Component {
 	onStartMeContainerDrag(evt) {
 		evt = evt || window.event;
 		evt.preventDefault();
-
+		evt.stopPropagation();
+		
 		// get the mouse cursor position at startup:
 		this.setState({
-			startX: evt.clientX,
-			startY: evt.clientY
+			drag:{
+				startX: evt.clientX,
+				startY: evt.clientY
+			}
 		});
-
+		
 		document.onmouseup = this.onEndMeContainerDrag;
-		document.onmousemove = this.onMoveMeContainerDrag;
 	}
 
 	onMoveMeContainerDrag(evt) {
-		evt = evt || window.event;
-		evt.preventDefault();
-
-		var newX, newY;
-		var meContainer = document.getElementById("me_container");
-
-		if (!meContainer) {
+		var {drag, meStyle, currentX, currentY} = this.state;
+		
+		if(!drag){
 			return;
 		}
-
+		
+		evt = evt || window.event;
+		evt.preventDefault();
+		evt.stopPropagation();
+		
+		var newX, newY;
+		
 		// calc new position
-		newX = this.state.startX - evt.clientX;
-		newY = this.state.startY - evt.clientY;
-
+		var deltaX = evt.clientX - drag.startX;
+		deltaY = drag.startY - evt.clientY;
+		
+		drag.startX = evt.clientX;
+		drag.startY = evt.clientY;
+		currentX += deltaX;
+		currentY += deltaY;
+		
 		this.setState({
-			startX: evt.clientX,
-			startY: evt.clientY
+			drag,
+			meStyle: {
+				left: currentX + "px",
+				bottom: currentY + "px"
+			},
+			currentX,
+			currentY
 		});
-
-		// set new position
-		var limitedX = Math.max(0, meContainer.offsetLeft - newX);
-		limitedX = Math.min(limitedX, window.innerWidth - meContainer.offsetWidth);
-
-		var limitedY = Math.min(window.innerHeight - meContainer.offsetHeight, window.innerHeight - meContainer.offsetTop - meContainer.offsetHeight + newY);
-		limitedY = Math.max(limitedY, 0);
-
-		meContainer.style.left = limitedX + "px";
-		meContainer.style.bottom = limitedY + "px";
 	}
 
 	onEndMeContainerDrag() {
 		document.onmouseup = null;
-		document.onmousemove = null;
+		this.setState({drag: null});
 	}
-
+	
 	onRoomUpdate(evt) {
 		this.props.onRoomUpdate && this.props.onRoomUpdate(evt, this.state.huddleClient);
 		this.setState({ huddleClient: this.state.huddleClient, error: null });
@@ -135,14 +142,6 @@ export default class VideoChat extends React.Component {
 	componentDidMount() {
 		const { huddleClient } = this.state;
 		this.connect(huddleClient);
-		
-		// make own video draggable
-		var meContainer = document.getElementById("me_container");
-
-		if (meContainer) {
-			meContainer.onmousedown = this.onStartMeContainerDrag;
-		}
-
 	}
 
 	componentWillUnmount() {
@@ -158,9 +157,7 @@ export default class VideoChat extends React.Component {
 		const {
 			huddleClient
 		} = this.state;
-
-		//console.log("HC ", huddleClient);
-
+		
 		const {
 			room,
 			me
@@ -238,7 +235,7 @@ export default class VideoChat extends React.Component {
 		
 		onPreRender && onPreRender(cfg, peers, sharedPeers);
 		
-		return <div className={cfg.className}>
+		return <div className={cfg.className} onMouseMove={e => this.onMoveMeContainerDrag(e)}>
 			{/*<Notifications />*/}
 			<div className='state'>
 				<div className={'icon ' + room.state} title={stateDescription} />
@@ -256,9 +253,16 @@ export default class VideoChat extends React.Component {
 				onRenderPeer={onRenderPeer}
 				peers={peers}
 				sharedPeers={sharedPeers}
-				peerChange={() => this.setState({})}
+				peerChange={() => {
+					// Peer changed
+					this.setState({});
+				}}
 			/>
-			<div id="me_container" className={'me-container ' + (amActiveSpeaker ? 'active-speaker' : '')}>
+			<div 
+				className={'me-container ' + (amActiveSpeaker ? 'active-speaker' : '')}
+				style={this.state.meStyle}
+				onMouseDown={e => this.onStartMeContainerDrag(e)}
+			>
 				<Me huddleClient={huddleClient} />
 			</div>
 
