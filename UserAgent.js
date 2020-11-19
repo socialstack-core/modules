@@ -1,3 +1,18 @@
+function getMobileSmall() {
+    return { from: 0, to: 320 };
+}
+
+function getMobileMedium() {
+    var mobileSmall = getMobileSmall();
+    var mobileLarge = getMobileLarge();
+
+    return { from: mobileSmall.to + 1, to: mobileLarge.from - 1 };
+}
+
+function getMobileLarge() {
+    return { from: 412, to: 767 };
+}
+
 function getMobileInfo() {
     var mobileInfo = {
         isMobile: false,
@@ -6,24 +21,28 @@ function getMobileInfo() {
         large: false
     };
 
+    var mobileSmall = getMobileSmall();
+    var mobileMedium = getMobileMedium();
+    var mobileLarge = getMobileLarge();
+
     // small mobile (>= 320px)
-    if (window.matchMedia('(max-width: 320px) and (pointer: coarse) and (orientation: portrait)').matches ||
-        window.matchMedia('(max-height: 320px) and (pointer: coarse) and (orientation: landscape)').matches) {
+    if (window.matchMedia('(max-width: ' + mobileSmall.to + 'px) and (pointer: coarse) and (orientation: portrait)').matches ||
+        window.matchMedia('(max-height: ' + mobileSmall.to + 'px) and (pointer: coarse) and (orientation: landscape)').matches) {
         mobileInfo.isMobile = true;
         mobileInfo.small = true;
     }
 
     // medium mobile (321px - 411px)
-    if (window.matchMedia('(min-width: 321px) and (max-width: 411px) and (pointer: coarse) and (orientation: portrait)').matches ||
-        window.matchMedia('(min-height: 321px) and (max-height: 411px) and (pointer: coarse) and (orientation: landscape)').matches) {
+    if (window.matchMedia('(min-width: ' + mobileMedium.from + 'px) and (max-width: ' + mobileMedium.to + 'px) and (pointer: coarse) and (orientation: portrait)').matches ||
+        window.matchMedia('(min-height: ' + mobileMedium.from + 'px) and (max-height: ' + mobileMedium.to + 'px) and (pointer: coarse) and (orientation: landscape)').matches) {
         htmlClassList.add("device-mobile", "device-mobile-medium");
         mobileInfo.isMobile = true;
         mobileInfo.medium = true;
     }
 
     // large mobile (412px - 767px)
-    if (window.matchMedia('(min-width: 412px) and (max-width: 767px) and (pointer: coarse) and (orientation: portrait)').matches ||
-        window.matchMedia('(min-height: 412px) and (max-height: 767px) and (pointer: coarse) and (orientation: landscape)').matches) {
+    if (window.matchMedia('(min-width: ' + mobileLarge.from + 'px) and (max-width: ' + mobileLarge.to + 'px) and (pointer: coarse) and (orientation: portrait)').matches ||
+        window.matchMedia('(min-height: ' + mobileLarge.from + 'px) and (max-height: ' + mobileLarge.to + 'px) and (pointer: coarse) and (orientation: landscape)').matches) {
         mobileInfo.isMobile = true;
         mobileInfo.large = true;
     }
@@ -247,6 +266,9 @@ if (global.document && global.document.getElementsByTagName && global.document.g
 }
 
 module.exports = {
+    getMobileSmall,
+    getMobileMedium,
+    getMobileLarge,
     getMobileInfo,
     isMobile,
     getTabletInfo,
