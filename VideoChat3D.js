@@ -30,7 +30,7 @@ export default class VideoChat3D extends React.Component {
 				
 				var point = placements[index];
 				
-				return <ThreeDObject position={point.position} scale={point.scale} rotation={point.rotation}>
+				return <ThreeDObject key={peer.id} position={point.position} scale={point.scale} rotation={point.rotation}>
 					<div className="peer-3d">
 						{content}
 					</div>
