@@ -24,7 +24,7 @@ export default class Peers extends React.Component {
 					var result = null;
 					
 					if(peer._activity){
-						result = <div data-peer={index} className="peer-container fullscreen peer-activity">
+						result = <div key={peer.id} data-peer={index} className="peer-container fullscreen peer-activity">
 							{peer._activity}
 						</div>;
 					}else{
@@ -43,7 +43,7 @@ export default class Peers extends React.Component {
 						}
 		
 						result = (
-							<button type="button" data-peer={index} className={btnClass} disabled={!allowFullscreen} title={allowFullscreen ? "Click to toggle expanded view" : ""}
+							<button key={peer.id} type="button" data-peer={index} className={btnClass} disabled={!allowFullscreen} title={allowFullscreen ? "Click to toggle expanded view" : ""}
 								onClick={(e) => {
 									// ensure we only have one fullscreen vid at once
 									peers.map((otherPeer) => {
