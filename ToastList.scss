@@ -4,6 +4,7 @@
 
 .toast-list{
 	position: fixed;
-	top: 10px;
-	left: 10px;
+	bottom: 70px;
+	left: 50%;
+	transform: translateX(-50%);
 }

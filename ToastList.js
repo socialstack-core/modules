@@ -7,6 +7,8 @@ export default class ToastList extends React.Component {
 		var {toasts} = global.app.state;
 		toasts = toasts.filter(toast => toast != toastInfo);
 		global.app.setState({toasts});
+
+		
 	}
 	
 	render(){
@@ -44,7 +46,11 @@ export default class ToastList extends React.Component {
 						  <span aria-hidden="true">&times;</span>
 						</button>
 					  </div>
-					  <div className="toast-body">
+					  <div className="toast-body" onClick = {() => {
+						  if(toastInfo.url) {
+							global.pageRouter.go(toastInfo.url);
+						}
+					  }}>
 						{toastInfo.description}
 					  </div>
 					</div>;
