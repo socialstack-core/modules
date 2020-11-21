@@ -304,7 +304,7 @@ export default class HuddleClient
 		
 		// huddleType and my role:
 		this.room.huddle = huddleInfo.json.huddle;
-		this.me.role = huddleInfo.json.role;
+		this.me.huddleRole = huddleInfo.json.huddleRole;
 		
 		var isHttps = url.indexOf("localhost") == -1;
 		const protooTransport = new protoo.WebSocketTransport((isHttps ? 'wss' : 'ws') + '://' + url.trim());
@@ -677,7 +677,7 @@ export default class HuddleClient
 	}
 	
 	async setAsSpeaker(peer, flag){
-		if(this.me.role != 1){
+		if(this.me.huddleRole != 1){
 			return;
 		}
 		
