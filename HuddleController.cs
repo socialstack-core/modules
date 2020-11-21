@@ -44,14 +44,15 @@ namespace Api.Huddles
 			
 			// Sign a join URL:
 			var connectionUrl = await service.SignUrl(context, huddle);
+			var canViewAdmin = context.Role != null && context.Role.CanViewAdmin;
 			
-			if(huddle.HuddleType == 4 && context.Role != null && context.Role.CanViewAdmin)
+			if(huddle.HuddleType == 4 && canViewAdmin)
 			{
 				// Audience huddle type, and we're admin. Return a list of all servers as well.
 				
 				return new {
 					huddle,
-					huddleRole = huddle.UserId == context.UserId ? 1 : 4,
+					huddleRole = 1,
 					connectionUrl,
 					servers = Services.Get<HuddleServerService>().GetHostList()
 				};
@@ -59,7 +60,7 @@ namespace Api.Huddles
 			}else{
 				return new {
 					huddle,
-					huddleRole = huddle.UserId == context.UserId ? 1 : 4,
+					huddleRole = (huddle.UserId == context.UserId || canViewAdmin) ? 1 : 4,
 					connectionUrl
 				};
 			}
