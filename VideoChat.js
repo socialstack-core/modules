@@ -317,7 +317,7 @@ export default class VideoChat extends React.Component {
 				/>
 				*/}
 				
-				{me.role != 1 &&  room.huddle && (room.huddle.huddleType == 3 || room.huddle.huddleType == 4) && <button 
+				{me.huddleRole != 1 &&  room.huddle && (room.huddle.huddleType == 3 || room.huddle.huddleType == 4) && <button 
 					className = {'button raise-hand ' + (me.requestedToSpeak ? 'on' : 'off')} 
 					title = "Raise hand to request sharing." 
 					onClick = {() => {
