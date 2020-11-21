@@ -181,7 +181,9 @@ namespace Api.Huddles
 			"&d=" + HttpUtility.UrlEncode(joinInfo.DisplayName) + 
 			"&a=" + HttpUtility.UrlEncode(joinInfo.AvatarRef) +
 			"&type=" + huddle.HuddleType + 
+			"&urole=" + context.RoleId + 
 			"&role=" + ((huddle.UserId == context.UserId) ? "1" : "4");
+			
 			
 			// This signature is what allows the user to fully authenticate on a db-less target server:
 			var sig = _signatures.Sign(queryStr);
