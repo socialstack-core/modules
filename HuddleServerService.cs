@@ -28,7 +28,8 @@ namespace Api.Huddles
 		private DateTime _epoch = new DateTime(2020, 1, 1);
 		
 		private string queryStart;
-
+		
+		private HuddleServer[] huddleServerSet;
 		private Dictionary<int, HuddleServer> huddleServerLookup;
 
 		private Random rand = new Random();
@@ -51,11 +52,54 @@ namespace Api.Huddles
 					// The cache ID index is a huddle server lookup.
 					// That'll be useful when allocating a server.
 					huddleServerLookup = GetCacheForLocale(1).GetPrimary();
+					huddleServerSet = huddleServerLookup.Values.ToArray();
 				}
 			});
 			
 			queryStart = "select HuddleServerId from " + typeof(HuddleLoadMetric).TableName() + 
 				" where TimeSliceId in (";
+		}
+
+		private string[] _hostList;
+
+		/// <summary>
+		/// Gets the list of server addresses.
+		/// </summary>
+		/// <returns></returns>
+		public string[] GetHostList()
+		{
+			if (_hostList == null)
+			{
+				if (huddleServerSet == null)
+				{
+					return null;
+				}
+				_hostList = new string[huddleServerSet.Length];
+				for (var i = 0; i < huddleServerSet.Length; i++)
+				{
+					_hostList[i] = huddleServerSet[i].Address;
+				}
+			}
+
+			return _hostList;
+		}
+
+		private int _currentRand = 0;
+		
+		/// <summary>
+		/// The next random server.
+		/// </summary>
+		public HuddleServer RandomServer(){
+			if(huddleServerSet == null || huddleServerSet.Length == 0){
+				return null;
+			}
+			
+			if(_currentRand >= huddleServerSet.Length){
+				// Wrap:
+				_currentRand = 0;
+			}
+			
+			return huddleServerSet[_currentRand++];
 		}
 		
 		private int GetTimeSlice(DateTime timeUtc){

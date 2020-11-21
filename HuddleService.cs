@@ -94,20 +94,25 @@ namespace Api.Huddles
 
 				var n = huddle.EstimatedParticipants;
 				var loadFactor = n + (n * (n - 1));
-
-				// Assign a server now.
-				var serverToUse = await _huddleServerService.Allocate(ctx, huddle.StartTimeUtc, huddle.EstimatedEndTimeUtc, loadFactor);
-
-				if (serverToUse == null)
+				
+				// Audience huddles don't have an assigned server.
+				if(huddle.HuddleType != 4)
 				{
-					// Failed to allocate (because there's no huddle servers setup, or because the service hasn't started yet).
-					throw new PublicException(
-						"We're a little busy at the moment and have ran out of available meeting servers. " +
-						"Please try again shortly, or contact support if this keeps occuring.", "no_huddle_servers"
-					);
-				}
+					// Assign a server now.
+					var serverToUse = await _huddleServerService.Allocate(ctx, huddle.StartTimeUtc, huddle.EstimatedEndTimeUtc, loadFactor);
 
-				huddle.HuddleServerId = serverToUse.Id;
+					if (serverToUse == null)
+					{
+						// Failed to allocate (because there's no huddle servers setup, or because the service hasn't started yet).
+						throw new PublicException(
+							"We're a little busy at the moment and have ran out of available meeting servers. " +
+							"Please try again shortly, or contact support if this keeps occuring.", "no_huddle_servers"
+						);
+					}
+					
+					huddle.HuddleServerId = serverToUse.Id;
+				}
+				
 				return huddle;
 			}, 5);
 		}
@@ -180,9 +185,19 @@ namespace Api.Huddles
 			
 			// This signature is what allows the user to fully authenticate on a db-less target server:
 			var sig = _signatures.Sign(queryStr);
-
-			var huddleServer = await _huddleServerService.Get(context, huddle.HuddleServerId);
-
+			
+			HuddleServer huddleServer;
+			
+			if(huddle.HuddleType == 4)
+			{
+				// Audience type - use a random server:
+				huddleServer = _huddleServerService.RandomServer();
+			}
+			else
+			{
+				huddleServer = await _huddleServerService.Get(context, huddle.HuddleServerId);
+			}
+			
 			if (huddleServer == null)
 			{
 				return null;

@@ -1,5 +1,6 @@
 using Api.Contexts;
 using Api.Database;
+using Api.Startup;
 using Api.Users;
 using Microsoft.AspNetCore.Mvc;
 using System.Threading.Tasks;
@@ -44,11 +45,24 @@ namespace Api.Huddles
 			// Sign a join URL:
 			var connectionUrl = await service.SignUrl(context, huddle);
 			
-			return new {
-				huddle,
-				role = huddle.UserId == context.UserId ? 1 : 4,
-				connectionUrl
-			};
+			if(huddle.HuddleType == 4 && context.Role != null && context.Role.CanViewAdmin)
+			{
+				// Audience huddle type, and we're admin. Return a list of all servers as well.
+				
+				return new {
+					huddle,
+					role = huddle.UserId == context.UserId ? 1 : 4,
+					connectionUrl,
+					servers = Services.Get<HuddleServerService>().GetHostList()
+				};
+				
+			}else{
+				return new {
+					huddle,
+					role = huddle.UserId == context.UserId ? 1 : 4,
+					connectionUrl
+				};
+			}
 		}
 		
     }

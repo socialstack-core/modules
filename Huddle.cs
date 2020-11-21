@@ -17,7 +17,8 @@ namespace Api.Huddles
 		/// 0 = Public (anyone can join)
 		/// 1 = Open invite (it's private, but people can essentially permit themselves, up to the limit).
 		/// 2 = Closed invite (it's private, and only the person who created it can invite users).
-		/// 3 = Administrated (it's private, and someone - currently the creator - can set who is able to talk).
+		/// 3 = Administered (it's private, and someone - currently the creator - can set who is able to talk).
+		/// 4 = Audience (anyone can join in a one way format, and users are randomly distributed to servers).
 		/// </summary>
 		public int HuddleType;
 		
