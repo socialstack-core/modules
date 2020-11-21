@@ -64,7 +64,9 @@ export default class HuddleClient
 			svc,
 			datachannel,
 			device,
-			busyMeeting
+			busyMeeting,
+			directChatOnly,
+			excludeRoles
 		}
 	)
 	{
@@ -81,6 +83,11 @@ export default class HuddleClient
 			id: roomId,
 			state: 'closed',
 			activeSpeakerId: 0
+		};
+		
+		this.filters = {
+			directChatOnly,
+			excludeRoles
 		};
 		
 		this.me = {
@@ -2015,6 +2022,7 @@ export default class HuddleClient
 				'join',
 				{
 					device          : this.device,
+					filters			: this.filters,
 					rtpCapabilities : this._consume
 						? this._mediasoupDevice.rtpCapabilities
 						: undefined,
