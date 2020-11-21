@@ -51,7 +51,7 @@ namespace Api.Huddles
 				
 				return new {
 					huddle,
-					role = huddle.UserId == context.UserId ? 1 : 4,
+					huddleRole = huddle.UserId == context.UserId ? 1 : 4,
 					connectionUrl,
 					servers = Services.Get<HuddleServerService>().GetHostList()
 				};
@@ -59,7 +59,7 @@ namespace Api.Huddles
 			}else{
 				return new {
 					huddle,
-					role = huddle.UserId == context.UserId ? 1 : 4,
+					huddleRole = huddle.UserId == context.UserId ? 1 : 4,
 					connectionUrl
 				};
 			}
