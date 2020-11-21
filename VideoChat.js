@@ -46,10 +46,12 @@ export default class VideoChat extends React.Component {
 	mount(props){
 		return new HuddleClient({
 			roomId: (props.roomId || 1).toString(),
-			produce: true,
-			consume: true,
+			produce: props.initialProduce,
+			consume: props.initialConsume,
 			useSimulcast: true,
-			useSharingSimulcast: true
+			useSharingSimulcast: true,
+			directChatOnly: props.directChatOnly,
+			excludeRoles: props.excludeRoles
 		});
 	}
 	
@@ -209,7 +211,21 @@ export default class VideoChat extends React.Component {
 		
 		// Filter irrelevant peers:
 		var peers = huddleClient.peers || [];
-		peers = peers.filter(peer => !peer.device || !peer.device.huddleSpy);
+		var videoPeers = [];
+		var raisedHands = [];
+		peers.forEach(peer => {
+			
+			if(!peer.device || !peer.device.huddleSpy || !peer.requestedToSpeak){
+				videoPeers.push(peer);
+			}
+			
+			if(peer.requestedToSpeak){
+				raisedHands.push(peer);
+			}
+			
+		});
+		
+		peers = videoPeers;
 		
 		if(activity){
 			// Push the activity so it has a proper index and the length etc works too:
@@ -252,6 +268,7 @@ export default class VideoChat extends React.Component {
 				allowFullscreen={allowFullscreen}
 				onRenderPeer={onRenderPeer}
 				peers={peers}
+				holdingText={this.props.holdingText}
 				sharedPeers={sharedPeers}
 				peerChange={() => {
 					// Peer changed
@@ -265,7 +282,15 @@ export default class VideoChat extends React.Component {
 			>
 				<Me huddleClient={huddleClient} />
 			</div>
-
+			
+			<div className="raised-hands">
+				{raisedHands.map(personWithRaisedHand => {
+					
+					// var isLive = personWithRaisedHand.isPermittedSpeaker;
+					// var name = personWithRaisedHand.profile.displayName;
+					
+				})}
+			</div>
 
 			{//These buttons turn off everyone else's video or audio (from your point of view)
 			//Useful for personal bandwidth control, but unlikely that people will actually use them.
@@ -292,7 +317,7 @@ export default class VideoChat extends React.Component {
 				/>
 				*/}
 				
-				{me.role != 1 &&  room.huddle && room.huddle.huddleType == 3 && <button 
+				{me.role != 1 &&  room.huddle && (room.huddle.huddleType == 3 || room.huddle.huddleType == 4) && <button 
 					className = {'button raise-hand ' + (me.requestedToSpeak ? 'on' : 'off')} 
 					title = "Raise hand to request sharing." 
 					onClick = {() => {
@@ -309,6 +334,11 @@ export default class VideoChat extends React.Component {
 	}
 
 }
+
+VideoChat.defaultProps = {
+	intialProduce: true,
+	intialConsume: true
+};
 
 VideoChat.propTypes = {
 	roomId: 'int'

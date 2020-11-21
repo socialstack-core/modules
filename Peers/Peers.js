@@ -9,7 +9,7 @@ export default class Peers extends React.Component {
 		if(!peers.length){
 			return <div className="peers">
 				<h2 className="nobody-else">
-					Waiting for others to join the meeting
+					{this.props.holdingText || 'Waiting for others to join the meeting'}
 				</h2>
 			</div>;
 		}
