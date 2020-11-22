@@ -649,7 +649,7 @@ export default class HuddleClient
 	}
 	
 	async requestToSpeak(flag){
-		this.me.requestedToSpeak = flag;
+		this.me.profile.requestedToSpeak = flag;
 		
 		await this._protoo.request('requestSpeaker', { active: flag });
 		
