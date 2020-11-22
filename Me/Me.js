@@ -137,7 +137,7 @@ export default class Me extends React.Component {
 					</div>
 					{
 						room.huddle && room.huddle.huddleType == 3 && (
-							me.isPermittedSpeaker ? (
+							me.profile.isPermittedSpeaker ? (
 								<div className="live-indicator on">
 									Live
 								</div>

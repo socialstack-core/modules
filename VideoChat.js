@@ -3,6 +3,7 @@ import Peers from 'UI/VideoChat/Peers';
 import Me from 'UI/VideoChat/Me';
 import Alert from 'UI/Alert';
 import Container from 'UI/Container';
+import Row from 'UI/Row';
 
 export default class VideoChat extends React.Component {
 
@@ -215,11 +216,11 @@ export default class VideoChat extends React.Component {
 		var raisedHands = [];
 		peers.forEach(peer => {
 			
-			if(!peer.device || !peer.device.huddleSpy || !peer.requestedToSpeak){
+			if(!peer.device || !peer.device.huddleSpy || !peer.profile.requestedToSpeak){
 				videoPeers.push(peer);
 			}
 			
-			if(peer.requestedToSpeak){
+			if(peer.profile.requestedToSpeak){
 				raisedHands.push(peer);
 			}
 			
@@ -275,6 +276,8 @@ export default class VideoChat extends React.Component {
 					this.setState({});
 				}}
 			/>
+
+			{!this.props.hideMeView &&
 			<div 
 				className={'me-container ' + (amActiveSpeaker ? 'active-speaker' : '')}
 				style={this.state.meStyle}
@@ -282,13 +285,29 @@ export default class VideoChat extends React.Component {
 			>
 				<Me huddleClient={huddleClient} />
 			</div>
+			}
 			
 			<div className="raised-hands">
+				{/*<Row>
+					<i class="fas fa-hand-paper icon"></i> Luke Briggs
+				</Row>
+				<Row>
+					<i class="fas fa-volume icon live"></i> Michael Rogers
+				</Row>
+				<Row>
+					<i class="fas fa-circle icon live"></i> John Safeway
+				</Row>*/}
 				{raisedHands.map(personWithRaisedHand => {
 					
-					// var isLive = personWithRaisedHand.isPermittedSpeaker;
-					// var name = personWithRaisedHand.profile.displayName;
+					var isLive = personWithRaisedHand.profile.isPermittedSpeaker;
+					var name = personWithRaisedHand.profile.displayName;
 					
+					return <Row>
+						<i class="fas fa-hand-paper icon"></i>
+						{name}
+
+					</Row>
+
 				})}
 			</div>
 
@@ -318,10 +337,11 @@ export default class VideoChat extends React.Component {
 				*/}
 				
 				{me.huddleRole != 1 &&  room.huddle && (room.huddle.huddleType == 3 || room.huddle.huddleType == 4) && <button 
-					className = {'button raise-hand ' + (me.requestedToSpeak ? 'on' : 'off')} 
+					className = {'button raise-hand ' + (me.profile.requestedToSpeak ? 'on' : 'off')} 
 					title = "Raise hand to request sharing." 
 					onClick = {() => {
-						me.requestedToSpeak
+						console.log("raise hand clicked!");
+						me.profile.requestedToSpeak
 							? huddleClient.requestToSpeak(false)
 							: huddleClient.requestToSpeak(true);
 					}}

@@ -49,7 +49,7 @@ export default class Peer extends React.Component {
 						<div className='icon webcam-off' />
 					)}
 					{// If we are an admin, we should see a button to make this user a permitted speaker if they are not.
-					huddleClient.me.huddleRole == 1 && room.huddle && room.huddle.huddleType == 3 &&(peer.isPermittedSpeaker ? <button className = "btn btn-danger" onClick = {e => {
+					huddleClient.me.huddleRole == 1 && room.huddle && room.huddle.huddleType == 3 &&(peer.profile.isPermittedSpeaker ? <button className = "btn btn-danger" onClick = {e => {
 						this.setSpeaker(false, e);
 					}}>
 						Revoke Speaker
@@ -59,7 +59,7 @@ export default class Peer extends React.Component {
 						Permit Speaker
 					</button>)}
 				</div>
-				{peer.requestedToSpeak && <div className = "raised-hand">
+				{peer.profile.requestedToSpeak && <div className = "raised-hand">
 					<i class="fas fa-hand-paper"></i>
 				</div>}
 				<PeerView

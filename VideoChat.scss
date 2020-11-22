@@ -3,6 +3,25 @@
 	height: 100%;
 	width: 100%;
 	overflow-y: auto;
+
+	.raised-hands {
+		position: fixed;
+		left: 20px;
+		top: 60px;
+
+		.row {
+			margin-left: 10px;
+			margin-right: 0px;
+		}
+
+		.icon {
+			padding-right: 5px;
+		}
+
+		.live {
+			color: red;
+		}
+	}
 	
 	> .state {
 		position: fixed;
