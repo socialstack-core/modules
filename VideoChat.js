@@ -45,10 +45,11 @@ export default class VideoChat extends React.Component {
 	}
 	
 	mount(props){
+
 		return new HuddleClient({
 			roomId: (props.roomId || 1).toString(),
-			produce: props.initialProduce,
-			consume: props.initialConsume,
+			produce: props.initialProduce === undefined ? true : props.initialProduce,
+			consume: props.initialConsume === undefined ? true : props.initialConsume,
 			useSimulcast: true,
 			useSharingSimulcast: true,
 			directChatOnly: props.directChatOnly,
@@ -214,9 +215,12 @@ export default class VideoChat extends React.Component {
 		var peers = huddleClient.peers || [];
 		var videoPeers = [];
 		var raisedHands = [];
+
+		console.log(peers);
+
 		peers.forEach(peer => {
 			
-			if(!peer.device || !peer.device.huddleSpy || !peer.profile.requestedToSpeak){
+			if((!peer.device || !peer.device.huddleSpy) && (!peer.profile && (!peer.profile.requestedToSpeak))){
 				videoPeers.push(peer);
 			}
 			
@@ -226,7 +230,9 @@ export default class VideoChat extends React.Component {
 			
 		});
 		
+		console.log(peers);
 		peers = videoPeers;
+		console.log(peers);
 		
 		if(activity){
 			// Push the activity so it has a proper index and the length etc works too:
@@ -277,16 +283,17 @@ export default class VideoChat extends React.Component {
 				}}
 			/>
 
-			{!this.props.hideMeView &&
-			<div 
-				className={'me-container ' + (amActiveSpeaker ? 'active-speaker' : '')}
-				style={this.state.meStyle}
-				onMouseDown={e => this.onStartMeContainerDrag(e)}
-			>
-				<Me huddleClient={huddleClient} />
-			</div>
+			{!this.props.hideMeView && (this.props.initialProduce || (!this.props.initilProduce && me.profile && me.profile.forceStartProducing)) &&
+				<div 
+					className={'me-container ' + (amActiveSpeaker ? 'active-speaker' : '')}
+					style={this.state.meStyle}
+					onMouseDown={e => this.onStartMeContainerDrag(e)}
+				>
+					<Me huddleClient={huddleClient} />
+				</div>
 			}
-			
+			{console.log(this.props.showRaisedHands)}
+			{this.props.showRaisedHands &&
 			<div className="raised-hands">
 				{/*<Row>
 					<i class="fas fa-hand-paper icon"></i> Luke Briggs
@@ -303,13 +310,30 @@ export default class VideoChat extends React.Component {
 					var name = personWithRaisedHand.profile.displayName;
 					
 					return <Row>
-						<i class="fas fa-hand-paper icon"></i>
-						{name}
-
+						{personWithRaisedHand.profile.directChatIds ? <i class="fal fa-volume icon"></i> : <i class="fas fa-hand-paper icon"></i>} 
+						{this.props.isDirector ? <a href = "#" onClick = {() => {
+							huddleClient.updatePeer(personWithRaisedHand, {
+								directChatIds: [global.app.state.user.id]
+							});
+						}}>
+							{name}
+						</a> : name
+						} 
+						
+						{this.props.isDirector &&
+							<a href = "#" onClick = {() => {
+								huddleClient.updatePeer(personWithRaisedHand, {
+									requestedToSpeak: false
+								});
+							}}> 
+								<i class="fas fa-times-circle icon" style = {{color: "red"}}></i>
+							</a>
+						}
 					</Row>
 
 				})}
 			</div>
+			}
 
 			{//These buttons turn off everyone else's video or audio (from your point of view)
 			//Useful for personal bandwidth control, but unlikely that people will actually use them.
@@ -336,11 +360,10 @@ export default class VideoChat extends React.Component {
 				/>
 				*/}
 				
-				{me.huddleRole != 1 &&  room.huddle && (room.huddle.huddleType == 3 || room.huddle.huddleType == 4) && <button 
+				{me.profile.huddleRole != 1 &&  room.huddle && (room.huddle.huddleType == 3 || room.huddle.huddleType == 4) && <button 
 					className = {'button raise-hand ' + (me.profile.requestedToSpeak ? 'on' : 'off')} 
 					title = "Raise hand to request sharing." 
 					onClick = {() => {
-						console.log("raise hand clicked!");
 						me.profile.requestedToSpeak
 							? huddleClient.requestToSpeak(false)
 							: huddleClient.requestToSpeak(true);
@@ -349,6 +372,9 @@ export default class VideoChat extends React.Component {
 					<i className="icon fas fa-hand-paper"/> 
 				</button>}
 			</div>
+
+			{me.profile.directChatIds && me.profile.directChatIds.length && (<span className="producer"><i class="fal fa-volume"></i> Speaking with Producer</span>)}
+
 		</div>;
 
 	}
@@ -357,7 +383,8 @@ export default class VideoChat extends React.Component {
 
 VideoChat.defaultProps = {
 	intialProduce: true,
-	intialConsume: true
+	intialConsume: true,
+	showRaisedHands: true
 };
 
 VideoChat.propTypes = {

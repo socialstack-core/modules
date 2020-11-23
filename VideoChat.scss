@@ -15,7 +15,7 @@
 		}
 
 		.icon {
-			padding-right: 5px;
+			padding: 0px 5px;
 		}
 
 		.live {
@@ -117,7 +117,7 @@
 			width: 36px;
 			
 			&.on {
-				background-color: rgba(#fff, 0.7);
+				background-color: rgba(48, 189, 24, 0.75);
 			}
 
 			&.disabled {
@@ -143,6 +143,7 @@
 			}
 
 			&.raise-hand {
+				padding: 0px;
 				color: #b9bdc4;
 				font-size: 22px;
 				.icon {
@@ -162,6 +163,13 @@
 				background-image: url('./images/icon_restart_ice_white.svg');
 			}
 		}
+	}
+
+	.producer {
+		color: red;
+		position: fixed;
+		right: 20px;
+		top: 60px;
 	}
 }
 
