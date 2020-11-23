@@ -1,9 +1,5 @@
 var THREE = require('UI/Functions/ThreeJs/ThreeJs.js');
 
-function epsilon( value ) {
-	return Math.abs( value ) < 1e-10 ? 0 : value;
-}
-
 export default class ThreeDObject extends React.Component {
 	
 	constructor(props){
@@ -132,27 +128,7 @@ export default class ThreeDObject extends React.Component {
 			obj.scale.z = scale.z || 1;
 		}
 		
-		obj.updateMatrixWorld();
-		
-		var elements = obj.matrixWorld.elements;
-		obj._cssMatrix = 'matrix3d(' +
-			epsilon( elements[ 0 ] ) + ',' +
-			epsilon( elements[ 1 ] ) + ',' +
-			epsilon( elements[ 2 ] ) + ',' +
-			epsilon( elements[ 3 ] ) + ',' +
-			epsilon( - elements[ 4 ] ) + ',' +
-			epsilon( - elements[ 5 ] ) + ',' +
-			epsilon( - elements[ 6 ] ) + ',' +
-			epsilon( - elements[ 7 ] ) + ',' +
-			epsilon( elements[ 8 ] ) + ',' +
-			epsilon( elements[ 9 ] ) + ',' +
-			epsilon( elements[ 10 ] ) + ',' +
-			epsilon( elements[ 11 ] ) + ',' +
-			epsilon( elements[ 12 ] ) + ',' +
-			epsilon( elements[ 13 ] ) + ',' +
-			epsilon( elements[ 14 ] ) + ',' +
-			epsilon( elements[ 15 ] ) +
-		')';
+		obj.update();
 	}
 	
 	render(){
