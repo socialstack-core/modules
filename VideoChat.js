@@ -215,9 +215,7 @@ export default class VideoChat extends React.Component {
 		var peers = huddleClient.peers || [];
 		var videoPeers = [];
 		var raisedHands = [];
-
-		console.log(peers);
-
+		
 		peers.forEach(peer => {
 			
 			if((!peer.device || !peer.device.huddleSpy) && (!peer.profile && (!peer.profile.requestedToSpeak))){
@@ -230,9 +228,7 @@ export default class VideoChat extends React.Component {
 			
 		});
 		
-		console.log(peers);
 		peers = videoPeers;
-		console.log(peers);
 		
 		if(activity){
 			// Push the activity so it has a proper index and the length etc works too:
@@ -283,7 +279,7 @@ export default class VideoChat extends React.Component {
 				}}
 			/>
 
-			{!this.props.hideMeView && (this.props.initialProduce || (!this.props.initilProduce && me.profile && me.profile.forceStartProducing)) &&
+			{!this.props.hideMeView && (this.props.initialProduce === undefined || this.props.initialProduce || (!this.props.initialProduce && me.profile && me.profile.forceStartProducing)) &&
 				<div 
 					className={'me-container ' + (amActiveSpeaker ? 'active-speaker' : '')}
 					style={this.state.meStyle}
@@ -292,7 +288,6 @@ export default class VideoChat extends React.Component {
 					<Me huddleClient={huddleClient} />
 				</div>
 			}
-			{console.log(this.props.showRaisedHands)}
 			{this.props.showRaisedHands &&
 			<div className="raised-hands">
 				{/*<Row>
