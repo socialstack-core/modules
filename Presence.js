@@ -12,7 +12,7 @@ function pageChange(page){
 	webSocket.send({
 		type: "Pres",
 		c: "page",
-		m: JSON.stringify({url: global.location.pathname}),
+		m: JSON.stringify({url: global.location.pathname + global.location.search}),
 		id: page.id
 	});
 }
