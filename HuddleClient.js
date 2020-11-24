@@ -66,7 +66,8 @@ export default class HuddleClient
 			device,
 			busyMeeting,
 			directChatOnly,
-			excludeRoles
+			excludeRoles,
+			shareAudio // True if it should capture screenshare audio instead of mic audio
 		}
 	)
 	{
@@ -102,6 +103,8 @@ export default class HuddleClient
 			restartIceInProgress: false,
 			profile: {}
 		};
+		
+		this.shareAudio = shareAudio === undefined ? false : shareAudio;
 		
 		// Closed flag.
 		// @type {Boolean}
@@ -1276,7 +1279,7 @@ export default class HuddleClient
 		{
 			const stream = await global.navigator.mediaDevices.getDisplayMedia(
 				{
-					audio : false,
+					audio : this.shareAudio,
 					video :
 					{
 						displaySurface : 'monitor',
