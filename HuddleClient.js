@@ -679,7 +679,7 @@ export default class HuddleClient
 			peer.profile[f] = val;
 		}
 		
-		await this._protoo.request('updatePeer', { remotePeerId: peer.id, fields });
+		await this._protoo.request('peerUpdate', { remotePeerId: peer.id, fields });
 		
 		this.dispatchEvent({
 			type: 'roomupdate',
