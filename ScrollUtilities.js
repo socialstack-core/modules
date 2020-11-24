@@ -109,7 +109,13 @@ function getActiveIndex() {
 function pageUp() {
     var activeIndex = getActiveIndex();
     var pageTop = getPageTop(activeIndex);
-    var partialScrollingDisabled = getPage(activeIndex).getAttribute("data-disable-partial-scroll") !== null;
+    var page = getPage(activeIndex);
+
+    if (!page) {
+        return;
+    }
+
+    var partialScrollingDisabled = page.getAttribute("data-disable-partial-scroll") !== null;
     var viewportHeight = getViewportHeight();
     var scrollPos = getScrollPos(); 
 
@@ -143,7 +149,13 @@ function pageUp() {
 function pageDown() {
     var activeIndex = getActiveIndex();
     var pageBottom = getPageBottom(activeIndex);
-    var partialScrollingDisabled = getPage(activeIndex).getAttribute("data-disable-partial-scroll") !== null;
+    var page = getPage(activeIndex);
+
+    if (!page) {
+        return;
+    }
+
+    var partialScrollingDisabled = page.getAttribute("data-disable-partial-scroll") !== null;
     var viewportHeight = getViewportHeight();
     var scrollPos = getScrollPos(); 
 
@@ -206,6 +218,8 @@ function checkScrollingActive() {
 }
 
 if (global.document && global.document.getElementsByTagName && global.document.getElementsByTagName("html").length) {
+    var html = global.document.querySelector("html");
+
     // check - does addEventListener support passive option?
     var passiveSupported = false;
 
@@ -224,68 +238,71 @@ if (global.document && global.document.getElementsByTagName && global.document.g
         passiveSupported = false;
     }
 
-    //global.addEventListener('scroll', manualScroll, false);
-    global.addEventListener('mousewheel', mouseWheelScroll, passiveSupported ? { passive: false } : false);
+    // disable for admin views
+    if (!html.classList.contains("admin")) {
+        //global.addEventListener('scroll', manualScroll, false);
+        global.addEventListener('mousewheel', mouseWheelScroll, passiveSupported ? { passive: false } : false);
 
-    global.document.addEventListener("keydown", function (event) {
-        var tag = event.target.tagName.toLowerCase();
-        var ignoredTags = ['input', 'textarea', 'button', 'a', 'datalist', 'option', 'iframe', 'area', 'audio', 'video', 'embed', 'object'];
+        global.document.addEventListener("keydown", function (event) {
+            var tag = event.target.tagName.toLowerCase();
+            var ignoredTags = ['input', 'textarea', 'button', 'a', 'datalist', 'option', 'iframe', 'area', 'audio', 'video', 'embed', 'object'];
 
-        for (var i = 0; i < ignoredTags.length; i++) {
+            for (var i = 0; i < ignoredTags.length; i++) {
 
-            if (tag == ignoredTags[i]) {
+                if (tag == ignoredTags[i]) {
+                    return;
+                }
+
+            }
+
+            var keyCode = event.keyCode || event.which;
+
+            // check for IME events
+            if (event.isComposing || keyCode === 229) {
                 return;
             }
 
-        }
+            switch (keyCode) {
+                // handle <space> / [SHIFT]+<space>
+                case KeyEvent.DOM_VK_SPACE:
+                    event.preventDefault();
+                    if (event.shiftKey) {
+                        pageUp();
+                    } else {
+                        pageDown();
+                    }
 
-        var keyCode = event.keyCode || event.which;
+                    break;
 
-        // check for IME events
-        if (event.isComposing || keyCode === 229) {
-            return;
-        }
-
-        switch (keyCode) {
-            // handle <space> / [SHIFT]+<space>
-            case KeyEvent.DOM_VK_SPACE:
-                event.preventDefault();
-                if (event.shiftKey) {
+                // handle cursor up / page up
+                case KeyEvent.DOM_VK_PAGE_UP:
+                case KeyEvent.DOM_VK_UP:
+                    event.preventDefault();
                     pageUp();
-                } else {
+                    break;
+
+                // handle cursor down / page down
+                case KeyEvent.DOM_VK_PAGE_DOWN:
+                case KeyEvent.DOM_VK_DOWN:
+                    event.preventDefault();
                     pageDown();
-                }
+                    break;
 
-                break;
+                // handle home
+                case KeyEvent.DOM_VK_HOME:
+                    event.preventDefault();
+                    home();
+                    break;
 
-            // handle cursor up / page up
-            case KeyEvent.DOM_VK_PAGE_UP:
-            case KeyEvent.DOM_VK_UP:
-                event.preventDefault();
-                pageUp();
-                break;
+                // handle end
+                case KeyEvent.DOM_VK_END:
+                    event.preventDefault();
+                    end();
+                    break;
+            }
 
-            // handle cursor down / page down
-            case KeyEvent.DOM_VK_PAGE_DOWN:
-            case KeyEvent.DOM_VK_DOWN:
-                event.preventDefault();
-                pageDown();
-                break;
-
-            // handle home
-            case KeyEvent.DOM_VK_HOME:
-                event.preventDefault();
-                home();
-                break;
-
-            // handle end
-            case KeyEvent.DOM_VK_END:
-                event.preventDefault();
-                end();
-                break;
-        }
-
-    });  
+        });  
+    }
 
 }
 
