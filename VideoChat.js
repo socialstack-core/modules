@@ -217,12 +217,15 @@ export default class VideoChat extends React.Component {
 		var raisedHands = [];
 		
 		peers.forEach(peer => {
+			if(!peer.device || peer.device.huddleSpy){
+				return;
+			}
 			
-			if((!peer.device || !peer.device.huddleSpy) && (!peer.profile && (!peer.profile.requestedToSpeak))){
+			if(peer.profile.isPermittedSpeaker){
 				videoPeers.push(peer);
 			}
 			
-			if(peer.profile.requestedToSpeak){
+			if(peer.profile && peer.profile.requestedToSpeak){
 				raisedHands.push(peer);
 			}
 			
