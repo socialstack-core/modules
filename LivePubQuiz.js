@@ -12,7 +12,7 @@ import webSocket from 'UI/Functions/WebSocket';
 // <LivePubQuiz startTime={time} id={quizId} />
 
 // in seconds
-var questionDuration = 10;
+var questionDuration = 25;
 
 export default class LivePubQuiz extends React.Component {
 	
