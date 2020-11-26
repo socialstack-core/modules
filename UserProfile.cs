@@ -53,6 +53,15 @@ namespace Api.Users
 		{
 			return Id;
 		}
+		
+		/// <summary>
+		/// Type of this obj.
+		/// </summary>
+		public string Type{
+			get{
+				return "User";
+			}
+		}
 	}
 
 }
