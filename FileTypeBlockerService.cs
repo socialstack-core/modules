@@ -21,6 +21,8 @@ namespace Api.FileTypeBlocker
 		/// Default whitelist
 		/// </summary>
 		public readonly string[] WhitelistDefaults = new string[]{
+		    "apng",
+		    "avif",
 			"png",
 			"jpg",
 			"jpeg",
