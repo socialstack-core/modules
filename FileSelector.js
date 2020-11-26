@@ -1,8 +1,10 @@
 import Loop from 'UI/Loop';
 import Modal from 'UI/Modal';
+import Alert from 'UI/Alert';
 import Image from 'UI/Image';
 import Uploader from 'UI/Uploader';
 import omit from 'UI/Functions/Omit';
+import getRef from 'UI/Functions/GetRef';
 
 var eventHandler = global.events.get('UI/Input');
 
@@ -53,6 +55,20 @@ export default class FileSelector extends React.Component {
 		});
 	}
 	
+	showRef(ref){
+		// Check if it's an image/ video/ audio file. If yes, a preview is shown. Otherwise it'll be a preview link.
+		var canShowImage = getRef.isImage(ref);
+		
+		return <a href={getRef(ref, {url: true})} alt={ref} target={'_blank'}>
+			{
+				canShowImage ? (
+					<Image fileRef={ref} size={256} alt={ref}/>
+				) : 'View selected file'
+			}
+		</a>;
+		
+	}
+	
 	showModal(){
 		this.setState({modalOpen: true});
 	}
@@ -62,10 +78,17 @@ export default class FileSelector extends React.Component {
 	}
 	
 	render() {
-		var currentRef = this.state.value || this.props.value || this.props.defaultValue;
+		var currentRef = this.props.value || this.props.defaultValue;
 		
-		return [
+		if(this.state.value !== undefined){
+			currentRef = this.state.value;
+		}
+		
+		var hasRef = currentRef && currentRef.length;
+		
+		return <div className="file-selector">
 			<Modal
+				isExtraLarge
 				className={"image-select-modal"}
 				buttons={[
 					{
@@ -76,28 +99,28 @@ export default class FileSelector extends React.Component {
 				onClose={this.closeModal}
 				visible={this.state.modalOpen}
 			>
-				<Loop over="uploader/list" asTable>
-				{
-					[
-						() => <tr>
-							<th>Name</th>
-							<th></th>
-						</tr>,
+				<table>
+					<tr>
+						<th>Name</th>
+						<th></th>
+					</tr>
+					<Loop over="uploader/list" filter={{sort: {field: 'CreatedUtc', direction: 'desc'}}} asRaw paged>
+					{
 						entry => <tr onClick={() => this.updateValue(entry)}>
 							<td width='85%'>
 								{entry.originalName}
 							</td>
 							<td width='15%' align='right' className="break-word">
 								{entry.isImage && (
-									<Image fileRef={entry.ref} size={64} alt={entry.originalName}/>
+									<Image fileRef={entry.ref} size={128} />
 								)}
 							</td>
 						</tr>
-					]
-				}
-				</Loop>
-			</Modal>,
-			this.state.editing ? (
+					}
+					</Loop>
+					</table>
+			</Modal>
+			{this.state.editing ? (
 				<div>
 					<span className="btn btn-secondary" onClick={() => this.showModal()}>Select from uploads</span> or <Uploader onUploaded={
 						file => this.updateValue(file)
@@ -105,16 +128,21 @@ export default class FileSelector extends React.Component {
 				</div>
 			) : (
 				<div>
-					{currentRef && currentRef.length ? <Image fileRef={currentRef} size={64} /> : 'None selected'}
+					{hasRef && (currentRef.endsWith('.webp') || currentRef.endsWith('.avif')) && <p>
+						<Alert type='info'>Format requires manual resizing</Alert>
+						</p>
+					}
+					{hasRef ? this.showRef(currentRef) : 'None selected'}
 					&nbsp;
 					<div className="btn btn-secondary" onClick={() => this.setState({editing: true})}>Change</div>
+					<div className="btn btn-danger delete-file-btn" onClick={() => this.updateValue(null)}>Remove</div>
 				</div>
-			),
-			this.props.name ? (
+			)}
+			{this.props.name && (
 				/* Also contains a hidden input field containing the value */
 				<input type="hidden" value={currentRef} name={this.props.name} id={this.props.id} />
-			) : null
-		];
+			)}
+		</div>;
 	}
 	
 }
