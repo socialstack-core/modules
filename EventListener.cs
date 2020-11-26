@@ -47,7 +47,14 @@ namespace Api.Uploader
 				extensions.Mappings[".mpd"] = "application/dash+xml";
 				extensions.Mappings[".m4s"] = "video/iso.segment";
 				extensions.Mappings[".m3u8"] = "application/x-mpegURL";
-
+				
+				// Image formats:
+				extensions.Mappings[".apng"] = "image/png";
+				extensions.Mappings[".webp"] = "image/webp";
+				extensions.Mappings[".avif"] = "image/avif";
+				extensions.Mappings[".heic"] = "image/heic";
+				extensions.Mappings[".heif"] = "image/heif";
+				
 				// GLTF:
 				extensions.Mappings[".gltf"] = "model/gltf+json";
 				extensions.Mappings[".hdr"] = "application/octet-stream";

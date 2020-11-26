@@ -107,7 +107,20 @@ namespace Api.Uploader
             // https://msdn.microsoft.com/en-us/library/4sahykhd(v=vs.110).aspx
             return (
                 fileType == "jpg" || fileType == "jpeg" || fileType == "tiff" || 
-                fileType == "png" || fileType == "gif" || fileType == "bmp"
+                fileType == "png" || fileType == "bmp"
+            );
+        }
+		
+        /// <summary>
+        /// True if the filetype is a non-resizeable image file.
+        /// </summary>
+        /// <param name="fileType">The filetype.</param>
+        /// <returns></returns>
+        public bool IsOtherImage(string fileType)
+        {
+            return (
+                fileType == "svg" || fileType == "apng" || fileType == "avif" || 
+                fileType == "webp" || fileType == "gif"
             );
         }
 
@@ -247,6 +260,9 @@ namespace Api.Uploader
 					// Just ignore this one.
 					Console.WriteLine("Unsupported image format was not resized.");
 				}
+			}else if(IsOtherImage(fileType))
+			{
+				result.IsImage = true;
 			}
 
 			if (result.Id != 0)
