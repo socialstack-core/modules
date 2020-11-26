@@ -8,7 +8,7 @@
 
 export default function getRef(ref, options) {
 	var r = getRef.parse(ref);
-	return r ? r.handler(r.ref, options, r) : null;
+	return r ? r.handler(r.ref, options || {}, r) : null;
 }
 
 function basicUrl(url, options){
