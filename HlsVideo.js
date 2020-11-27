@@ -61,7 +61,7 @@ export default class HlsVideo extends React.Component {
 	}
 	
 	componentWillReceiveProps(props){
-		if(hlsjs.isSupported() && (props.videoId != this.props.videoId || props.videoRef != this.props.videoRef)) {
+		if(hlsjs.isSupported() && (props.videoId != this.props.videoId || props.videoRef != this.props.videoRef || this.props.url != props.url)) {
             var hls = this.state.hls = cache(this.getSource(props), this.onManifest);
         }
 	}
