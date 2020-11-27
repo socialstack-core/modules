@@ -490,7 +490,7 @@ namespace Api.Startup {
 					var requiredList = await mappingService.List(context, new Filter<M>()
 						.Equals("RevisionId", 0)
 						.And().Equals("ContentTypeId", contentTypeId)
-						.And().EqualsSet(MapperFieldName, idSet.Select(token => token.Value<int>())));
+						.And().EqualsSet(MapperFieldName, idSet.Where(token => token.Type == JTokenType.Integer).Select(token => token.Value<int>())));
 
 					// Build unique set of content IDs:
 					Dictionary<int, bool> uniqueIds = new Dictionary<int, bool>();
