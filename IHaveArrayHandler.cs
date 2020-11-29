@@ -103,7 +103,7 @@ namespace Api.Startup {
 					contentType
 				});
 
-				setupType.Invoke(this, new object[] {});
+				setupType.Invoke(this, Array.Empty<object>());
 			}
 
 		}
