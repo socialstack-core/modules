@@ -60,7 +60,7 @@ namespace Api.Contexts
 				var lcName = field.Name.ToLower();
 				var getMethod = field.GetGetMethod();
 				
-				var defaultValue = (int)getMethod.Invoke(defaultValueChecker, new object[0]);
+				var defaultValue = (int)getMethod.Invoke(defaultValueChecker, System.Array.Empty<object>());
 				
 				var fld = new ContextFieldInfo()
 				{
@@ -107,7 +107,7 @@ namespace Api.Contexts
 		/// <summary>
 		/// Cookie domain
 		/// </summary>
-		private static string _domain;
+		private static string _domain = null;
 		
 		/// <summary>
 		/// Cookie domain to use
@@ -115,10 +115,6 @@ namespace Api.Contexts
 		/// <returns></returns>
 		public string GetDomain()
 		{
-			#if DEBUG
-				// Localhost
-				return null;
-			#else
 			if (_domain == null)
 			{
 				if(AppSettings.Configuration["CookieDomain"] != null)
@@ -127,16 +123,20 @@ namespace Api.Contexts
 				}
 				else
 				{
+					#if DEBUG
+						// Localhost
+						return null;
+					#else
 					_domain = AppSettings.Configuration["PublicUrl"].Replace("https://", "");
 					if (_domain.StartsWith("www."))
 					{
 						_domain = _domain.Substring(4);
 					}
+					#endif
 				}
 			}
 
 			return _domain;
-			#endif
 		}
 
 		/// <summary>
@@ -243,7 +243,7 @@ namespace Api.Contexts
 			return context;
 		}
 
-		private object[] _emptyArgs = new object[0];
+		private object[] _emptyArgs = System.Array.Empty<object>();
 
 		/// <summary>
 		/// Creates a signed token for the given context.
