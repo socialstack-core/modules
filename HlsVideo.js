@@ -12,9 +12,7 @@ export default class HlsVideo extends React.Component {
 		this.state = {};
 		this.onManifest = this.onManifest.bind(this);
 		
-		if(hlsjs.isSupported()) {
-			var hls = this.state.hls = cache(this.getSource(props), this.onManifest);
-		}
+		this.load(props);
 	}
 	
 	onManifest(){
@@ -61,9 +59,17 @@ export default class HlsVideo extends React.Component {
 	}
 	
 	componentWillReceiveProps(props){
-		if(hlsjs.isSupported() && (props.videoId != this.props.videoId || props.videoRef != this.props.videoRef || this.props.url != props.url)) {
-            var hls = this.state.hls = cache(this.getSource(props), this.onManifest);
-        }
+		if(props.videoId != this.props.videoId || props.videoRef != this.props.videoRef || this.props.url != props.url) {
+			this.load(props);
+		}
+	}
+	
+	load(props){
+		if(!hlsjs.isSupported()){
+			return;
+		}
+        var hls = this.state.hls = cache(this.getSource(props), this.onManifest);
+		props.onPlayer && props.onPlayer(hls);
 	}
 	
 	getSource(props){
