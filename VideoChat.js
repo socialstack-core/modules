@@ -20,9 +20,18 @@ export default class VideoChat extends React.Component {
 				test = true;
 
 				huddleClient.peers = [];
+				huddleClient.test = true;
 				var pt = parseInt(props.roomId.substring(1));
 				for (var i = 0; i < pt; i++) {
-					huddleClient.peers.push({ test: true, consumers: [] });
+					huddleClient.peers.push({
+						test: true,
+						consumers: [],
+						device: {},
+						profile: props.testProfile || {
+							isPermittedSpeaker: true,
+							displayName: 'Test Device'
+						}
+					});
 				}
 
 			}
