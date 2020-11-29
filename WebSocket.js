@@ -139,7 +139,7 @@ function connect(){
 		sk.send(JSON.stringify({
 			type: "Pres",
 			c: "page",
-			m: JSON.stringify({url: global.location.pathname}),
+			m: JSON.stringify({url: global.location.pathname + global.location.search}),
 			id: page ? page.id : 0
 		}));
 		
