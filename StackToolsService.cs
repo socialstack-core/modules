@@ -176,7 +176,7 @@ namespace Api.StackTools
 						"Make sure node.js is installed and npm is available on your shell/ command line.");
 				}
 
-				throw winE;
+				throw;
 			}
 		}
 
@@ -188,7 +188,7 @@ namespace Api.StackTools
 		/// <returns></returns>
 		private void Spawn()
 		{
-			NodeProcess = new NodeProcess("socialstack interactive -parent " + Process.GetCurrentProcess().Id);
+			NodeProcess = new NodeProcess("socialstack interactive -parent " + Process.GetCurrentProcess().Id); // Environment.ProcessId (.NET 5)
 
 			NodeProcess.OnStateChange += (NodeProcessState state) => {
 				if (state == NodeProcessState.READY)
