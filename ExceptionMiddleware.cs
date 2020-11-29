@@ -77,12 +77,12 @@ namespace Api.Startup
 		/// </summary>
 		private async Task HandleError(Exception e, HttpContext context, int statusCode)
 		{
-			byte[] responseBody = null;
+			byte[] responseBody;
 			var ctx = context.Request.GetContext();
 
 			// Request URL:
 			var path = context.Request.Method + " " + context.Request.Path;
-			if (context.Request.QueryString != null && context.Request.QueryString.HasValue)
+			if (context.Request.QueryString.HasValue)
 			{
 				path += "?" + context.Request.QueryString;
 			}
