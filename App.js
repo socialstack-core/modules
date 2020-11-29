@@ -14,7 +14,7 @@ export default class App extends React.Component{
 		super(props);
 		this.state = {
 			user: null,
-			url: global.location.pathname,
+			url: global.location.pathname + global.location.search,
 			loadingUser: true
 		};
 		global.app = this;
