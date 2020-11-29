@@ -1,7 +1,6 @@
 import webSocket from 'UI/Functions/WebSocket';
 
 function send(type, evt){
-	console.log("PRES SEND", type, evt);
 	webSocket.send({
 		type: "Pres",
 		c: type,
@@ -10,7 +9,6 @@ function send(type, evt){
 }
 
 function pageChange(page){
-	console.log("PG ", global.location.pathname + global.location.search);
 	webSocket.send({
 		type: "Pres",
 		c: "page",
