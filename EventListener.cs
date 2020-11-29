@@ -80,9 +80,9 @@ namespace Api.WebSockets
 					{
 						await _websocketService.ConnectedClient(client);
 					}
-					catch (Exception e)
+					catch
 					{
-						throw e;
+						throw;
 					}
 					finally {
 						await client.OnDisconnected(_websocketService);
