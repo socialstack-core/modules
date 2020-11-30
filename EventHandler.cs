@@ -25,8 +25,6 @@ namespace Api.Huddles
 		/// </summary>
 		public HuddleActivityEventHandler()
         {
-			HuddleService huddleService = null;
-			ActivityInstanceService activityInstanceService = null;
 			Events.Huddle.AfterLoad.AddEventListener(async (Context context, Huddle huddle) =>
 			{
 				if (huddle == null)
