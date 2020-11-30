@@ -91,5 +91,29 @@ namespace Api.Huddles
 
             return Task.FromResult(result);
         }
+		
+        [HttpGet("{id}/endactivity")]
+		public virtual async Task<object> EndActivity([FromRoute] int id)
+        {
+			// Only possible if you can load a meeting, so we use the load perm here:
+            var context = Request.GetContext();
+            var result = await _service.Get(context, id);
+            result = await _service.EventGroup.Load.Dispatch(context, result, Response);
+
+            if (result == null)
+            {
+                return null;
+            }
+            
+			if(result.ActivityContentId != 0)
+			{
+				result.ActivityContentId = 0;
+				result.ActivityContentTypeId = 0;
+				result.ActivityStartUtc = null;
+				result = await _service.Update(context, result);
+			}
+			
+			return Task.FromResult(result);
+		}
     }
 }
