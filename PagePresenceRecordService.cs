@@ -86,6 +86,17 @@ namespace Api.Presence
 				// Must delete it. This ensures removals occur on the client end.
 				await Delete(client.Context, client.Record);
 			}
+			else
+			{
+				// First time for this client. Must ensure this record doesn't exist at the server end.
+				// This happens when a server is abruptly shutdown - it leaves records in the DB.
+				var rec = await Get(client.Context, client.Id + ServerIdMask);
+				
+				if(rec != null){
+					// Delete it:
+					await Delete(client.Context, rec);
+				}
+			}
 			
 			// Create a presence record by client+server ID. 
 			var now = DateTime.UtcNow;
@@ -147,7 +158,10 @@ namespace Api.Presence
 			Cache(new CacheConfig<PagePresenceRecord>() {
 				Preload = true,
 
-				#warning todo - must run after cache has loaded and contentsync is connected
+				#warning todo - need to add a verification which runs after the cache has loaded and contentsync has started
+				// It should wait for a moment, then check for any entries in the cache that do not represent actually connected users.
+				// These "dangling" entries are caused by a prior shutdown of the server.
+				
 				/*
 				OnCacheLoaded = async () => {
 
