@@ -70,52 +70,7 @@ namespace Api.Huddles
 				
 				return huddles;
 			});
-
-			Events.Huddle.BeforeUpdate.AddEventListener(async (Context context, Huddle huddle) =>
-			{
-				// The purpose of this event listener is to see if the activity or the activity time (indicating an activity has been restarted)
-				// has been been changed. If they have been changed, we need to create a new activity instance
-				if(huddle == null)
-                {
-					return null;
-                }
-
-				if(huddleService == null)
-                {
-					huddleService = Services.Get<HuddleService>();
-                }
-
-				var unupdatedHuddle = await huddleService.Get(context, huddle.Id);
-
-				// Is there an activity contentId change occuring or activity start time change occuring?
-				if(huddle.ActivityStartUtc == unupdatedHuddle.ActivityStartUtc && huddle.ActivityContentId == unupdatedHuddle.ActivityContentId)
-                {
-					// The activity is unchanged, just return the huddle here.
-					return huddle;
-                }
-
-				// It could be the case that the values were nullified. If so, we should nullify the activityInstance as well.
-				if(huddle.ActivityStartUtc == null && huddle.ActivityContentId == 0)
-                {
-					huddle.ActivityInstanceId = 0;
-				}
-                else
-                {
-					// The activity has been updated. Let's create a new activityInstance
-					if (activityInstanceService == null)
-					{
-						activityInstanceService = Services.Get<ActivityInstanceService>();
-					}
-
-					var activityInstance = new ActivityInstance();
-					activityInstance = await activityInstanceService.Create(context, activityInstance);
-
-					huddle.ActivityInstanceId = activityInstance.Id;
-				}
-
-				return huddle;
-			});
-
+			
 			Events.Huddle.AfterUpdate.AddEventListener(async (Context context, Huddle huddle) =>
 			{
 				if (huddle == null)
