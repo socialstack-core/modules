@@ -47,6 +47,10 @@ export default class HlsVideo extends React.Component {
 	}
 	
 	componentWillUnmount(){
+		this.clear();
+	}
+	
+	clear(){
 		if(this.state.hls){
 			try{
 				this.video.stop && this.video.stop();
@@ -68,6 +72,7 @@ export default class HlsVideo extends React.Component {
 		if(!hlsjs.isSupported()){
 			return;
 		}
+		this.clear();
         var hls = this.state.hls = cache(this.getSource(props), this.onManifest);
 		props.onPlayer && props.onPlayer(hls);
 	}
