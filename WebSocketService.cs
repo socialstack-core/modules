@@ -987,13 +987,17 @@ namespace Api.WebSockets
 						continue;
 					}
 				}
-
-				await current.Client.Socket.SendAsync(
-					arSegment,
-					WebSocketMessageType.Text,
-					true,
-					CancellationToken.None
-				);
+				
+				if(current.Client.Socket.State == WebSocketState.Open){
+				
+					await current.Client.Socket.SendAsync(
+						arSegment,
+						WebSocketMessageType.Text,
+						true,
+						CancellationToken.None
+					);
+					
+				}
 				
 				current = current.Next;
 			}
@@ -1159,13 +1163,17 @@ namespace Api.WebSockets
 					}
 				}
 				*/
-
-				await current.Socket.SendAsync(
-					arSegment,
-					WebSocketMessageType.Text,
-					true,
-					CancellationToken.None
-				);
+				
+				if(current.Socket.State == WebSocketState.Open){
+					
+					await current.Socket.SendAsync(
+						arSegment,
+						WebSocketMessageType.Text,
+						true,
+						CancellationToken.None
+					);
+					
+				}
 				
 				current = current.UserNext;
 			}
@@ -1333,12 +1341,16 @@ namespace Api.WebSockets
 		public async Task Send(byte[] message){
 			var arSegment = new ArraySegment<Byte>(message);
 			
-			await Socket.SendAsync(
-				arSegment,
-				WebSocketMessageType.Text,
-				true,
-				CancellationToken.None
-			);
+			if(Socket.State == WebSocketState.Open){
+					
+				await Socket.SendAsync(
+					arSegment,
+					WebSocketMessageType.Text,
+					true,
+					CancellationToken.None
+				);
+				
+			}
 		}
 		
 		/// <summary>
