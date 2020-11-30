@@ -128,7 +128,7 @@ namespace Api.Huddles
 				return false;
 			}
 
-			if (huddle.HuddleType == 0)
+			if (huddle.HuddleType == 0 || huddle.HuddleType == 4)
 			{
 				// Public open
 				return true;
@@ -139,7 +139,7 @@ namespace Api.Huddles
 				return false;
 			}
 
-			if (context.UserId == context.UserId)
+			if (context.UserId == huddle.UserId)
 			{
 				return true;
 			}
