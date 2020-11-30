@@ -57,39 +57,46 @@ namespace Api.ContentSync
 		/// </summary>
 		public ContentSyncService(DatabaseService database)
 		{
+			// The content sync service is used to keep content created by multiple instances in sync.
+			// (which can be a cluster of servers, or a group of developers)
+			// It does this by setting up 'stripes' of IDs which are assigned to particular users.
+			// A user is identified by the computer hostname.
+			
 			_database = database;
 
-			// Must happen after services start otherwise the page service isn't necessarily available yet.
-			// Notably this happens immediately after services start in the first group
-			// (that's before any e.g. system pages are created).
-			Events.ServicesAfterStart.AddEventListener(async (Context ctx, object src) =>
+			// Load config:
+			var isActive = SetupConfig();
+
+			if (isActive)
 			{
-				await Start();
-				return src;
-			}, 1);
+				// Must happen after services start otherwise the page service isn't necessarily available yet.
+				// Notably this happens immediately after services start in the first group
+				// (that's before any e.g. system pages are created).
+				Events.ServicesAfterStart.AddEventListener(async (Context ctx, object src) =>
+				{
+					await Start();
+					return src;
+				}, 1);
+			}
 		}
 		
 		/// <summary>
 		/// True if the sync file is active.
 		/// </summary>
 		private bool SyncFileMode = false;
-		
+
 		/// <summary>
-		/// Starts the content sync service.
-		/// Must run after all other services have loaded.
+		/// The name of this ContentSync host
 		/// </summary>
-		public Task<bool> Start()
+		private string HostName;
+
+		private bool SetupConfig()
 		{
-			// The content sync service is used to keep content created by multiple instances in sync.
-			// (which can be a cluster of servers, or a group of developers)
-			// It does this by setting up 'stripes' of IDs which are assigned to particular users.
-			// A user is identified by "socialstack sync whoami" or if not set, the computer hostname is used instead.
-
 			var section = AppSettings.GetSection("ContentSync");
-
 			if (section == null)
 			{
-				return Task.FromResult(false);
+				_configuration = null;
+				return false;
 			}
 
 			_configuration = section.Get<ContentSyncConfig>();
@@ -97,27 +104,35 @@ namespace Api.ContentSync
 			if (_configuration == null || _configuration.Users == null || _configuration.Users.Count == 0)
 			{
 				Console.WriteLine("[WARN] Content sync is installed but not configured.");
-				return Task.FromResult(false);
+				return false;
 			}
-			
-			if(_configuration.SyncFileMode.HasValue)
+
+			if (_configuration.SyncFileMode.HasValue)
 			{
 				SyncFileMode = _configuration.SyncFileMode.Value;
 			}
 			else
 			{
 				// Devs have sync file turned on whenever sync is:
-				#if DEBUG
+#if DEBUG
 				SyncFileMode = true;
-				#endif
+#endif
 			}
-			
+
 			Verbose = _configuration.Verbose;
-			
-			if(Verbose){
+
+			if (Verbose)
+			{
 				Console.WriteLine("Content sync is in verbose mode - it will tell you each thing it syncs over your network.");
 			}
-			
+
+			// Get system name:
+			var name = System.Environment.MachineName.ToString();
+			HostName = name;
+
+			/*
+			 * We need the ServerId to be available sooner than this so a custom name is now obsolete.
+			 * 
 			var taskCompletionSource = new TaskCompletionSource<bool>();
 			try {
 				// Get the user:
@@ -174,7 +189,28 @@ namespace Api.ContentSync
 			}
 
 			return taskCompletionSource.Task;
+			*/
+
+			_configuration.Users.TryGetValue(name, out List<StripeRange> myRanges);
+
+			if (myRanges == null)
+			{
+				Console.WriteLine("[WARN]: Content sync disabled. This instance (" + name + ") has no allocation in the project appsettings.json ContentSync config.");
+				return false;
+			}
+			else if (myRanges.Count == 0)
+			{
+				Console.WriteLine("[WARN]: Content sync disabled. This instance (" + name + ") is in the contentsync appsettings.json, but it's setup wrong. It should be an array, like \"" + name + "\": [{..}]");
+				return false;
+			}
+
+			MyRanges = myRanges;
+			ServerId = myRanges[0].ServerId;
+			
+			return true;
 		}
+
+		private List<StripeRange> MyRanges;
 
 		private string FileSafeName(string name)
 		{
@@ -326,26 +362,13 @@ namespace Api.ContentSync
 		}
 
 		/// <summary>
-		/// Starts using the given username as this instance. Often a hostname on prod servers.
+		/// Starts the content sync service.
+		/// Must run after all other services have loaded.
 		/// </summary>
-		/// <param name="name"></param>
-		private async Task StartFor(string name)
+		public async Task Start()
 		{
-			_configuration.Users.TryGetValue(name, out List<StripeRange> myRanges);
+			Console.WriteLine("Content sync starting with config for '" + HostName + "' as Server #" + ServerId);
 
-			if (myRanges == null)
-			{
-				Console.WriteLine("[WARN]: Content sync disabled. This instance (" + name + ") has no allocation in the project appsettings.json ContentSync config.");
-				return;
-			}
-			else if (myRanges.Count == 0)
-			{
-				Console.WriteLine("[WARN]: Content sync disabled. This instance (" + name + ") is in the contentsync appsettings.json, but it's setup wrong. It should be an array, like \"" + name + "\": [{..}]");
-				return;
-			}
-			
-			ServerId = myRanges[0].ServerId;
-			
 			// Find the biggest max value:
 			var overallMax = 0;
 
@@ -369,7 +392,7 @@ namespace Api.ContentSync
 			{
 
 				// Load the allocations:
-				StripeTable table = new StripeTable(myRanges, overallMax);
+				StripeTable table = new StripeTable(MyRanges, overallMax);
 
 				await table.Setup(_database);
 
@@ -383,7 +406,7 @@ namespace Api.ContentSync
 
 					// Make sure a sync dir exists for this user.
 					// Syncfiles go in as Database/FILENAME_SAFE_USERNAME/tableName.txt
-					var dirName = FileSafeName(name);
+					var dirName = FileSafeName(HostName);
 					Directory.CreateDirectory("Database/" + dirName);
 
 					try
@@ -403,7 +426,7 @@ namespace Api.ContentSync
 
 							// Set it up:
 							// (for "my" files, I'm going to instance them all - regardless of if the actual file exists or not).
-							var mine = kvp.Key == name;
+							var mine = kvp.Key == HostName;
 
 							if (mine)
 							{
@@ -504,7 +527,7 @@ namespace Api.ContentSync
 						info.Port = port;
 					}
 
-					if (kvp.Key == name)
+					if (kvp.Key == HostName)
 					{
 						// This is "me!"
 						myServerInfo = info;
