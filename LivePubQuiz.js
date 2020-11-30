@@ -231,7 +231,17 @@ export default class LivePubQuiz extends React.Component {
 
 		return result;
 	}
-
+	
+	endActivity(){
+		var {huddleId} = this.props;
+		this.setState({
+			ending: true
+		});
+		webRequest('huddle/' + huddleId + '/endactivity').then(r => {
+			this.props.updateHuddle && this.props.updateHuddle(r.json);
+		});
+	}
+	
 	renderFinished(){
 		var {huddleId, id} = this.props;
 		var {score} = this.state;
@@ -243,26 +253,13 @@ export default class LivePubQuiz extends React.Component {
 			<p>
 				Here's how everyone did:
 			</p>
-
-			{this.renderScores()}
 			
-			<Form
-				action={"huddle/" + huddleId}
-				submitLabel="End Activity"
-				successMessage="Activity Ended!"
-				failedMessage="We weren't able to end your activity right now"
-				onSuccess={response => {
-					this.props.updateHuddle && this.props.updateHuddle(response);
-				}}
-				onValues={values => {
-					values.activityStartUtc = null;
-					values.activityContentTypeId = 0;
-					values.activityContentId = 0;
-					return values;
-				}}
-			>
-
-			</Form>
+			<p>
+				{this.renderScores()}
+			</p>
+			{this.state.ending ? (<Loading />) : <button className='btn btn-primary' onClick={() => this.endActivity()}>
+				End Activity
+			</button>}
 		</div>;
 	}
 	
@@ -282,15 +279,23 @@ export default class LivePubQuiz extends React.Component {
 				{question.answers ? question.answers.map(answer => {
 					
 					return <p>
-						<Input id = {answer.id} type="radio" name={"question_" + question.id} onChange={e => {
-							console.log('Chg!');
-							this.setState({
-								answer
-							});
-						}} value={this.state.answer == answer} defaultValue={this.state.answer == answer}/>
-						<Canvas>
-							{answer.answerJson}
-						</Canvas>
+						<Input
+							id = {answer.id}
+							type="radio"
+							name={"question_" + question.id}
+							onChange={e => {
+								this.setState({
+									answer
+								});
+							}}
+							value={this.state.answer == answer}
+							defaultValue={this.state.answer == answer}
+							label={
+								<Canvas>
+									{answer.answerJson}
+								</Canvas>
+							}
+						/>
 					</p>;
 					
 				}) : ''}
