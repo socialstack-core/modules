@@ -81,6 +81,11 @@ namespace Api.Presence
 			// {"url":"x"} so a substring can capture x for us:
 			var url = record.MetaJson == null || record.MetaJson.Length < 10 ? "" : record.MetaJson.Substring(8, record.MetaJson.Length - 10);
 
+			if (!IdSetup)
+			{
+				SetupServerId();
+			}
+
 			if (client.Record != null)
 			{
 				// Must delete it. This ensures removals occur on the client end.
@@ -123,8 +128,29 @@ namespace Api.Presence
 			*/
 		}
 
+		private bool IdSetup;
 		private ulong ServerIdMask;
 		private uint ServerId;
+
+		private void SetupServerId()
+		{
+			if (IdSetup)
+			{
+				return;
+			}
+
+			var contentSyncService = Services.Get<ContentSyncService>();
+
+			if (contentSyncService == null)
+			{
+				return;
+			}
+
+			IdSetup = true;
+			var id = contentSyncService.ServerId;
+			ServerId = (uint)id;
+			ServerIdMask = ((ulong)id) << 32;
+		}
 
 		/// <summary>
 		/// Starts the page presence service
@@ -132,18 +158,9 @@ namespace Api.Presence
 		public bool Start()
 		{
 			// Get server ID:
-			var contentSyncService = Services.Get<ContentSyncService>();
+			SetupServerId();
 
-			if (contentSyncService == null)
-			{
-				return false;
-			}
-
-			var id = contentSyncService.ServerId;
-			ServerId = (uint)id;
-			ServerIdMask = ((ulong)id) << 32;
-
-			if (id == 0)
+			if (ServerId == 0)
 			{
 				// ALS requires a server ID.
 				Console.WriteLine("[WARN] Page Record Service using ServerId 0 because ContentSync is not configured for this machine. This is fine locally.");
