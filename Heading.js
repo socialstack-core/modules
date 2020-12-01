@@ -10,7 +10,7 @@ export default class Heading extends React.Component {
 		
 		var className='heading ' + (this.props.className || '');
 		
-		return <Mod {...omit(this.props, ['children', 'className'])}>{this.props.children}</Mod>;
+		return <Mod data-aos="fade-right" {...omit(this.props, ['children', 'className'])}>{this.props.children}</Mod>;
 	}
 	
 }
