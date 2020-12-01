@@ -4,6 +4,12 @@ var ignoreMouseWheel = false;
 
 // translate wheel scroll into page up / down calls
 function mouseWheelScroll(e) {
+    var body = global.document.querySelector("body");
+
+    if (body.classList.contains("burger-open")) {
+        return;
+    }
+
     e.preventDefault();
 
     if (scrollTimer || ignoreMouseWheel) {
@@ -244,6 +250,12 @@ if (global.document && global.document.getElementsByTagName && global.document.g
         global.addEventListener('mousewheel', mouseWheelScroll, passiveSupported ? { passive: false } : false);
 
         global.document.addEventListener("keydown", function (event) {
+            var body = global.document.querySelector("body");
+
+            if (body.classList.contains("burger-open")) {
+                return;
+            }
+
             var tag = event.target.tagName.toLowerCase();
             var ignoredTags = ['input', 'textarea', 'button', 'a', 'datalist', 'option', 'iframe', 'area', 'audio', 'video', 'embed', 'object'];
 
