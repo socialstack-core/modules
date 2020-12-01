@@ -6,7 +6,7 @@ export default class Paragraph extends React.Component {
     }
 	
     render() {
-		return <p {...(omit(this.props, ['children']))}>{this.props.children}</p>;
+		return <p data-aos="fade-up" {...(omit(this.props, ['children']))}>{this.props.children}</p>;
     }
 }
 
