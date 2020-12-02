@@ -121,10 +121,10 @@ export default class Modal extends React.Component {
 					<div className="modal-content">
 						{this.props.noHeader ? <></> : <div className="modal-header">
 							<h5 className="modal-title" id={this.modalTitleId}>{this.props.title}</h5>
-							<button type="button" className="close" data-dismiss="modal" aria-label="Close"
+							{this.props.noClose ? <></> : <button type="button" className="close" data-dismiss="modal" aria-label="Close"
 									onClick={() => this.closeModal()}>
 								<span aria-hidden="true">&times;</span>
-							</button>
+							</button>}
 						</div>}
 						<div className="modal-body">
 							{this.props.children}
@@ -159,4 +159,13 @@ export default class Modal extends React.Component {
 		});
 		
 	}
+}
+
+Modal.propTypes = {
+	noHeader: 'bool',
+	noBackdrop: 'bool',
+	noClose: 'bool',
+	visible: 'bool',
+	isExtraLarge: 'bool',
+	children: true
 }
