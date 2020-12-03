@@ -753,6 +753,18 @@ public class AutoService
 	/// <summary>
 	/// Defines a new IHave* interface.
 	/// It's added to content types to declare they have e.g. an array of tags, categories etc.
+	/// This one specifically is where the mapping type is also the array entries.
+	/// </summary>
+	protected IHaveArrayHandler<T, U, U> DefineIHaveArrayHandler<T, U>(Action<T, List<U>> setResult, bool retainOrder = false)
+		where T : class
+		where U : MappingRow, new()
+	{
+		return DefineIHaveArrayHandler<T, U, U>(null, null, setResult, retainOrder);
+	}
+	
+	/// <summary>
+	/// Defines a new IHave* interface.
+	/// It's added to content types to declare they have e.g. an array of tags, categories etc.
 	/// </summary>
 	protected IHaveArrayHandler<T, U, M> DefineIHaveArrayHandler<T, U, M>(string whereFieldName, string mapperFieldName, Action<T, List<U>> setResult, bool retainOrder = false)
 		where T : class
