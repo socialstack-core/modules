@@ -47,7 +47,7 @@ namespace Api.Startup {
 		/// <summary>
 		/// The query helper used when listing mapping objects.
 		/// </summary>
-		private Query<M> listByObjectQuery;
+		protected Query<M> listByObjectQuery;
 
 		/// <summary>
 		/// The DB service.
@@ -57,12 +57,12 @@ namespace Api.Startup {
 		/// <summary>
 		/// The service which obtains the content.
 		/// </summary>
-		private AutoService<U> contentService;
+		protected AutoService<U> contentService;
 
 		/// <summary>
 		/// The service which obtains mappings.
 		/// </summary>
-		private AutoService<M> mappingService;
+		protected AutoService<M> mappingService;
 
 		/// <summary>
 		/// True if order should be retained in the mappings.
@@ -112,7 +112,7 @@ namespace Api.Startup {
 		/// Sets a particular type with IHave* handlers. Used via reflection.
 		/// </summary>
 		/// <typeparam name="CT"></typeparam>
-		public void SetupHandlers<CT>() where CT : DatabaseRow<int>, T, new()
+		public virtual void SetupHandlers<CT>() where CT : DatabaseRow<int>, T, new()
 		{
 			UserService _users = null;
 
@@ -615,4 +615,126 @@ namespace Api.Startup {
 
 	}
 
-}
+	/// <summary>
+	/// An array handler where the mapping objects are the actual entries in the array as well.
+	/// </summary>
+	/// <typeparam name="T"></typeparam>
+	/// <typeparam name="U"></typeparam>
+	public class IHaveArrayHandler<T, U> : IHaveArrayHandler <T, U, U>
+			where T : class
+			where U : MappingRow, new()
+	{
+
+		/// <summary>
+		/// Sets a particular type with IHave* handlers. Used via reflection.
+		/// </summary>
+		/// <typeparam name="CT"></typeparam>
+		public override void SetupHandlers<CT>()
+		{
+			// Invoked by reflection
+			var evtGroup = Events.GetGroup<CT>();
+
+			// Get the content type ID for the primary object:
+			var contentTypeId = ContentTypes.GetId(typeof(CT));
+
+			evtGroup.AfterLoad.AddEventListener(async (Context context, CT content) =>
+			{
+				if (content == null)
+				{
+					// Event chaining - can be null
+					return null;
+				}
+
+				int revisionId = 0;
+
+				if (content is RevisionRow<int>)
+				{
+					var revId = (content as RevisionRow<int>).RevisionId;
+
+					if (revId.HasValue)
+					{
+						revisionId = revId.Value;
+					}
+				}
+
+				// List the content now:
+				var mappings = await Database.List(context, listByObjectQuery, null, contentTypeId, content.Id, revisionId);
+
+				OnSetResult(content as T, mappings);
+
+				return content;
+			});
+
+			// Next the List events:
+			evtGroup.AfterList.AddEventListener(async (Context context, List<CT> content) =>
+			{
+				if (content == null)
+				{
+					return content;
+				}
+
+				// First we'll collect all their IDs so we can do a single bulk lookup.
+				// ASSUMPTION: The list is not excessively long!
+				// FUTURE IMPROVEMENT: Do this in chunks of ~50k entries.
+				// (applies to at least categories/ tags).
+				var contentLookup = new Dictionary<int, List<U>>();
+
+				for (var i = 0; i < content.Count; i++)
+				{
+					// Add to content lookup so we can map the items to it shortly:
+					var entry = content[i];
+					var set = new List<U>();
+					contentLookup[entry.Id] = set;
+				}
+
+				if (contentLookup.Count == 0)
+				{
+					// Nothing to do - just return here:
+					return content;
+				}
+
+				// Create the filter and run the query now:
+				var filter = new Filter<U>();
+				filter.Equals("ContentTypeId", contentTypeId).And().EqualsSet("ContentId", contentLookup.Keys).And().Equals("RevisionId", 0);
+
+				// Todo: The above blocks a set of things from loading on lists of revisions
+				// However, such a list of revisions requires a special case of per-row querying.
+
+				if (mappingService == null)
+				{
+					mappingService = Services.GetByContentType(typeof(U)) as AutoService<U>;
+				}
+
+				if (RetainOrder)
+				{
+					// Entries are always in ID order
+					filter.Sort("Id");
+				}
+
+				// Get all the mappings for these entities:
+				var allMappings = await mappingService.List(context, filter);
+
+				// For each mapping..
+				foreach (var mapping in allMappings)
+				{
+					// Lookup target content:
+					var set = contentLookup[mapping.ContentId];
+					
+					// Add the result to the set:
+					set.Add(mapping);
+				}
+
+				// Trigger OnSetResult:
+				// - Happens last to catch UserProfile special case (as it maps the objects when OnSetResult is called).
+				for (var i = 0; i < content.Count; i++)
+				{
+					var entry = content[i];
+					OnSetResult(entry, contentLookup[entry.Id]);
+				}
+
+				return content;
+			});
+
+		}
+		}
+	}

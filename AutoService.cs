@@ -759,13 +759,30 @@ public class AutoService
 		where U : DatabaseRow<int>, new()
 		where M : MappingRow, new()
 	{
-		var mapper = new IHaveArrayHandler<T, U, M>() {
-			WhereFieldName = whereFieldName,
-			MapperFieldName = mapperFieldName,
-			OnSetResult = setResult,
-			Database = _database,
-			RetainOrder = retainOrder
-		};
+		IHaveArrayHandler<T, U, M> mapper;
+
+		if (typeof(U) == typeof(M))
+		{
+			mapper = new IHaveArrayHandler<T, M>()
+			{
+				WhereFieldName = whereFieldName,
+				MapperFieldName = mapperFieldName,
+				OnSetResult = setResult as Action<T, List<M>>,
+				Database = _database,
+				RetainOrder = retainOrder
+			} as IHaveArrayHandler<T, U, M>;
+		}
+		else
+		{
+			mapper = new IHaveArrayHandler<T, U, M>()
+			{
+				WhereFieldName = whereFieldName,
+				MapperFieldName = mapperFieldName,
+				OnSetResult = setResult,
+				Database = _database,
+				RetainOrder = retainOrder
+			};
+		}
 
 		mapper.Map();
 
