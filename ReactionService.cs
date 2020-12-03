@@ -26,21 +26,134 @@ namespace Api.Reactions
 		/// </summary>
 		public ReactionService(ReactionTypeService reactionTypes) : base(Events.Reaction)
         {
+			
 			_reactionTypes = reactionTypes;
-
+			/*
 			// Start preparing the queries. Doing this ahead of time leads to excellent performance savings, 
 			// whilst also using a high-level abstraction as another plugin entry point.
 			listCountQuery = Query.List<ReactionCount>();
 			listCountByObjectQuery = Query.List<ReactionCount>();
 			listCountByObjectQuery.Where().EqualsArg("ContentTypeId", 0).And().EqualsArg("ContentId", 1);
-			
+			*/
+
 			// Because of IHaveReactions, Reaction must be nestable:
 			MakeNestable();
 
 			// Load reactions on Load/List events next. First, find all events for types that implement IHaveReactions:
 			var loadEvents = Events.FindByType(typeof(IHaveReactions), "Load", EventPlacement.After);
-			//Todo:disbaled
+
+			// Define the IHaveReactions handler:
+			DefineIHaveArrayHandler<IHaveReactions, ReactionCount>(
+				(IHaveReactions content, List<ReactionCount> results) =>
+                {
+					content.Reactions = results;
+                }
+			);
+
+
+			Events.Reaction.BeforeCreate.AddEventListener(async (Context context, Reaction reaction) =>
+			{
+				if (reaction == null)
+                {
+					return null;
+                }
+
+				if(context.UserId == null)
+				{
+					return null;
+                }
+
+				if (reaction.ReactionTypeId == null)
+                {
+					return null;
+                }
+
+				reaction.ReactionType = await _reactionTypes.Get(context, reaction.ReactionTypeId);
+
+				// Now, list all reactions that have the same contentTypeId, contentId and UserId
+				var reactions = await List(context, new Filter<Reaction>().Equals("UserId", context.UserId).And().Equals("ContentTypeId", reaction.ContentTypeId).And().Equals("ContentId", reaction.ContentId));
+
+				// Let's now loop over each reaction
+				foreach(var react in reactions)
+                {
+					if(react.ReactionType != null && react.ReactionType.GroupId == reaction.ReactionType.GroupId)
+                    {
+						await Delete(context, react);
+                    }
+                }
+
+				return reaction;
+
+			});
+
+			Events.Reaction.AfterLoad.AddEventListener(async (Context context, Reaction reaction) =>
+			{
+				if (reaction == null)
+				{
+					return null;
+				}
+				reaction.ReactionType = await _reactionTypes.Get(context, reaction.ReactionTypeId);
+				return reaction;
+			});
+
+			Events.Reaction.AfterList.AddEventListener(async (Context context, List<Reaction> reactions) =>
+			{
+				if (reactions == null || reactions.Count == 0)
+				{
+					return reactions;
+				}
+				// Collect all unique reactionType IDs:
+				Dictionary<int, ReactionType> reactionTypes = new Dictionary<int, ReactionType>();
+				foreach (var reaction in reactions)
+				{
+					if (reaction.ReactionTypeId == 0)
+					{
+						continue;
+					}
+					reactionTypes[reaction.ReactionTypeId] = null;
+				}
+				if (reactionTypes.Count == 0)
+				{
+					// Nothing to do - just return here:
+					return reactions;
+				}
+				// Array of unique IDs:
+				var reactionTypeIds = new object[reactionTypes.Count];
+				var index = 0;
+				foreach (var kvp in reactionTypes)
+				{
+					reactionTypeIds[index++] = kvp.Key;
+				}
+				// Get now:
+				var reactionTypeFilter = new Filter<ReactionType>();
+				reactionTypeFilter.EqualsSet("Id", reactionTypeIds);
+				var reactionTypeData = await _reactionTypes.List(context, reactionTypeFilter);
+				// Add the reactionType info to the lookup:
+				foreach (var reactionType in reactionTypeData)
+				{
+					reactionTypes[reactionType.Id] = reactionType;
+				}
+				// Apply reactionTypes to reactions:
+				foreach (var reaction in reactions)
+				{
+					if (reaction.ReactionTypeId == 0)
+					{
+						continue;
+					}
+					if (reactionTypes.TryGetValue(reaction.ReactionTypeId, out ReactionType rt))
+					{
+						reaction.ReactionType = rt;
+					}
+					else
+					{
+						reaction.ReactionType = null;
+					}
+				}
+				return reactions;
+			});
+
 			/*
+
 			foreach (var loadEvent in loadEvents)
 			{
 				loadEvent.AddEventListener(async (Context context, object[] args) =>

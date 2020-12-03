@@ -20,5 +20,10 @@ namespace Api.Eventing
 		/// Set of events for a ReactionType.
 		/// </summary>
 		public static EventGroup<ReactionType> ReactionType;
+
+		/// <summary>
+		/// Set of events for a ReactionCount.
+		/// </summary>
+		public static EventGroup<ReactionCount> ReactionCount;
 	}
 }

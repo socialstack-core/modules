@@ -1,6 +1,7 @@
 using System;
 using Api.Database;
 using Api.Users;
+using Api.WebSockets;
 
 namespace Api.Reactions
 {
@@ -8,7 +9,7 @@ namespace Api.Reactions
 	/// A reaction by a particular user to a particular piece of content.
 	/// ReactionCount is essentially just a counted version of these.
 	/// </summary>
-	public partial class Reaction : RevisionRow
+	public partial class Reaction : RevisionRow, IAmLive
 	{
 		/// <summary>
 		/// The content type this is a reaction to.
@@ -22,6 +23,11 @@ namespace Api.Reactions
 		/// The type of reaction (like, dislike etc - they can be custom defined).
 		/// </summary>
 		public int ReactionTypeId;
+		
+		/// <summary>
+		/// The reaction type.
+		/// </summary>
+		public ReactionType ReactionType { get; set; }
 	}
 	
 }

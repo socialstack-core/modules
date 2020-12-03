@@ -10,7 +10,7 @@ namespace Api.Reactions
 	/// (and its data can be directly derived from the Reaction table).
 	/// Used to get e.g. x upvotes, y downvotes.
 	/// </summary>
-	public partial class ReactionCount : DatabaseRow
+	public partial class ReactionCount : MappingRow
 	{
 		/// <summary>
 		/// The content type this is a reaction to.
