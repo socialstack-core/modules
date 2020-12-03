@@ -1,3 +1,4 @@
+import getRef from 'UI/Functions/GetRef';
 /*
 * A popup modal. Usage is e.g.:
 
@@ -114,11 +115,20 @@ export default class Modal extends React.Component {
 
 		}
 
+		var style = {};
+		if(this.props.backgroundImageRef) {
+			style.backgroundImage = "url("+ getRef(this.props.backgroundImageRef, {url: true}) +")"
+			style.height= "690px"; /* You must set a specified height */
+  			style.backgroundPosition= "center"; /* Center the image */
+			style.backgroundRepeat= "no-repeat"; /* Do not repeat the image */
+			style.backgroundSize= "cover";
+		}
+
         return [
 			this.props.noBackdrop ? null : <div className={this.backdropClassName()} onClick={() => this.closeModal()}></div>,
 			<div className={this.modalClassName()} tabIndex="-1" role="dialog" aria-labelledby={this.modalTitleId}>
 				<div className={this.modalDialogClassName()} role="document">
-					<div className="modal-content">
+					<div className="modal-content" style = {style}>
 						{this.props.noHeader ? <></> : <div className="modal-header">
 							<h5 className="modal-title" id={this.modalTitleId}>{this.props.title}</h5>
 							{this.props.noClose ? <></> : <button type="button" className="close" data-dismiss="modal" aria-label="Close"
@@ -167,5 +177,7 @@ Modal.propTypes = {
 	noClose: 'bool',
 	visible: 'bool',
 	isExtraLarge: 'bool',
+	backgroundImageRef: 'string',
 	children: true
+	
 }
