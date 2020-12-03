@@ -25,7 +25,8 @@ namespace Api.Comments
 		/// </summary>
 		public CommentService() : base(Events.Comment)
         {
-        }
+			InstallAdminPages("Comments", "fa:fa-comment", new string[] { "id", "name" });
+		}
 	}
     
 }
