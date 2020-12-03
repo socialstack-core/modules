@@ -1,6 +1,7 @@
 using Api.Users;
 using Api.Permissions;
 using System.Collections.Generic;
+using Api.Contexts;
 
 namespace Api.Eventing
 {
@@ -33,6 +34,11 @@ namespace Api.Eventing
 		/// Just after a user has authenticated.
 		/// </summary>
 		public static EventHandler<User> UserAfterAuthenticate;
+		
+		/// <summary>
+		/// Just after an anon user has been identified.
+		/// </summary>
+		public static EndpointEventHandler<Context> ContextAfterAnonymous;
 		
 		/// <summary>
 		/// Set of events for a User.

@@ -45,16 +45,31 @@ namespace Api.Users
 
 			if (context == null)
 			{
+				// Should never happen but just in case.
 				return null;
 			}
 			
 			var cookieRole = context.RoleId;
-			
+
+			if (context.UserId == 0)
+			{
+				// Anonymous - fire off the anon user event:
+				context = await Events.ContextAfterAnonymous.Dispatch(context, context, Response);
+
+				if (context == null)
+				{
+					return null;
+				}
+
+				// Update cookie role:
+				cookieRole = context.RoleId;
+			}
+
 			var ctx = await context.GetPublicContext();
 
 			if (context.RoleId != cookieRole)
 			{
-				// Force reset if role changed.
+				// Force reset if role changed. Getting the public context will verify that the roles match.
 
 				Response.Cookies.Append(
 					_contexts.CookieName,
