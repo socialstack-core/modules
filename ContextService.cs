@@ -132,6 +132,15 @@ namespace Api.Contexts
 					{
 						_domain = _domain.Substring(4);
 					}
+					
+					var fwdSlash = _domain.IndexOf('/');
+					
+					if(fwdSlash != -1)
+					{
+						// Trim everything else off:
+						_domain = _domain.Substring(0, fwdSlash);
+					}
+					
 					#endif
 				}
 			}
