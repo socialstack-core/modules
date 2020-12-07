@@ -15,7 +15,17 @@ function expand(contentNode, onContentNode){
 	// We'll also send off the requests for any of those url's to load.
 	
 	if(Array.isArray(contentNode)){
-		return contentNode.map(e => expand(e, onContentNode));
+		
+		// Filter out any nulls, but then also if there's only 1 entry, return it as-is.
+		var filtered = contentNode.filter(e => e != null);
+		
+		if(filtered.length == 0){
+			return null;
+		}else if(filtered.length == 1){
+			return expand(filtered[0], onContentNode);
+		}
+		
+		return filtered.map(e => expand(e, onContentNode));
 	}
 	
 	// If it has no module but does have content, then it's a text node.
