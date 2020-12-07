@@ -151,6 +151,7 @@ export default class Photosphere extends React.Component {
 		}
 		
 		this.camera.rotation.x = x;
+		this.props.onMovement && this.props.onMovement(x, this.camera.rotation.y);
 	}
 	
 	onMouseDown(e){
