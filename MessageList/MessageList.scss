@@ -1,0 +1,75 @@
+.livesupport{
+	.message-list {
+		min-height: 100%;
+		/*
+		background: #fff;
+		border: 1px solid rgb(199,199,199);
+		*/
+		display: flex;
+		flex-direction: column;
+		flex-wrap: nowrap;
+
+		.message-history {
+			padding: 2rem;
+			max-height: 600px;
+			overflow-y: auto;
+
+			margin-bottom: 8px;
+			border-radius: 8px;
+			background: #fff;
+		}
+
+		.message-create {
+			margin-top: auto;
+			text-align: right;
+		}
+
+		.message {
+			background: rgb(238,238,238);
+			padding: 1rem;
+			@include font_size(14);
+			color: $theme_grey;
+			width: 60%;
+			border-radius: .5rem;
+			// prevent long strings of text / URLs from breaking layout
+			overflow-wrap: break-word;
+
+			&.message-right {
+				margin-left: auto;
+				background: #efe9da;
+			}
+		}
+
+		.message-date {
+			@include font_size(12);
+			@include margin(8, 0, 16);
+			color: #666;
+			display: block;
+
+			&.message-date-right {
+				text-align: right;
+			}
+		}
+	}
+}
+
+html.device-mobile {
+
+	.livesupport{
+		.message-list {
+			border: 0;
+			background: none;
+			margin-left: -15px;
+			margin-right: -15px;
+			margin-top: -1rem;
+			min-height: 0;
+			// TODO: improve height calc
+			// device height - fixed header - searchable header - fixed footer
+			height: calc(100vh - 68px - 100px - 64px);
+			
+			.message-history {
+				padding: 2rem 1.5rem;
+			}
+		}
+	}
+}
