@@ -1,5 +1,7 @@
 import Time from 'UI/Time';
 import Loop from 'UI/Loop';
+import Form from 'UI/Form';
+import Canvas from 'UI/Canvas';
 import MessageCreate from 'UI/LiveSupport/MessageCreate';
 import getContentTypeId from 'UI/Functions/GetContentTypeId';
 
@@ -19,6 +21,38 @@ export default class MessageList extends React.Component {
 			return '';
 		}
 		return str.split('\n').map((item, key) => <p>{item}</p>)
+	}
+	
+	renderAttachment(json, message) {
+		if(message.messageType == 1){
+			// Input format with a surrounding form. This importantly blocks the regular free text box from appearing.
+			// The rendered field(s) must supply a field called "message" with the selected value.
+			return this.renderInput(json, message);
+		}
+		return <Canvas>{json}</Canvas>;
+	}
+	
+	renderInput(json, message) {
+		return <Form
+			action = "livesupportmessage"
+			onSuccess={response => {
+				if(this.state.hideMessageBox == message.id){
+					this.setState({hideMessageBox: false});
+				}
+			}}
+			onFailed={response => {
+				this.setState({submitting: false, failure: response.message || 'Unable to send your message at the moment'});
+			}}
+			onValues={
+				values => {
+					values.inReplyTo = message.replyTo;
+					values.liveSupportChatId = this.props.chat.id;
+					return values;
+				}
+			}
+		>
+			<Canvas>{json}</Canvas>
+		</Form>;
 	}
 	
 	render(){
@@ -42,6 +76,14 @@ export default class MessageList extends React.Component {
 					setTimeout(() => {
 						e.scrollTo(0, e.scrollHeight);
 					}, 10);
+					
+					if(entity.messageType == 1){
+						// requires special response from user. The extra payload is canvas JSON.
+						this.setState({
+							hideMessageBox: entity.id
+						});
+					}
+					
 				}}
 				
 				groupAll
@@ -53,14 +95,17 @@ export default class MessageList extends React.Component {
 							// * pm.creatorUser is sender info
 							var sender = pm.creatorUser;
 							
-							var fromThisSide = true;
+							var fromThisSide = sender != null;
 							
 							var messageClass = fromThisSide ? "message message-right" : "message";
 							var dateClass = fromThisSide ? "message-date message-date-right" : "message-date";
-
+							
 							return <>
 								<div className={messageClass}>
 									{this.nl2br(pm.message)}
+									{pm.payloadJson && <div className="message-canvas">
+										{this.renderAttachment(pm.payloadJson, pm)} 
+									</div>}
 								</div>
 								<div className={dateClass}>
 									{sender ? sender.fullName : ''} <Time absolute compact withDate date={pm.createdUtc} />
@@ -72,7 +117,7 @@ export default class MessageList extends React.Component {
 					}}
 				</Loop>
 			</div>
-			<MessageCreate chat={chat} />
+			{!this.state.hideMessageBox && <MessageCreate chat={chat} />}
 		</div>;
 	}
 	
