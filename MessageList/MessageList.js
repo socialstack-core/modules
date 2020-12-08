@@ -29,7 +29,7 @@ export default class MessageList extends React.Component {
 			<div ref={r => this.history = r} className="message-history">
 				<Loop raw live='LiveSupportMessage' over='livesupportmessage/list' filter={{
 					where: {
-						ChatId: chat.id
+						LiveSupportChatId: chat.id
 					},
 					sort: {
 						field: 'CreatedUtc',

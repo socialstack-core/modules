@@ -32,7 +32,7 @@ export default class Create extends React.Component {
 				onValues={
 					values => {
 						this.setState({submitting: true, failure: false});
-						values.chatId = this.props.chat.id;
+						values.liveSupportChatId = this.props.chat.id;
 						return values;
 					}
 				}
