@@ -243,6 +243,8 @@ THREE.CSS3DRenderer = function (domElement) {
 
 THREE.MultiRenderer = function ( parameters ) {
   this.domElement = parameters.domElement;
+  this.w = 0;
+  this.h = 0;
 
   this.renderers = []
   this._renderSizeSet = false
@@ -263,7 +265,8 @@ THREE.MultiRenderer = function ( parameters ) {
 }
 
 THREE.MultiRenderer.prototype.setSize = function( w, h ) {
-
+this.w = w;
+this.h = h;
   this.domElement.style.width = w + 'px'
   this.domElement.style.height = h + 'px'
 
