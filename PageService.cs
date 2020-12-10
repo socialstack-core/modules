@@ -133,12 +133,12 @@ namespace Api.Pages
 					VisibleToRole4 = false
 				},
 				new Page {
-					Url = "/en-admin/" + typeName + "/:id",
+					Url = "/en-admin/" + typeName + "/:adminId",
 					BodyJson = @"{
 						""data"" : {
 							""endpoint"" : """ + typeName + @""",
 							""id"" : {
-								""name"" : ""id"",
+								""name"" : ""adminId"",
 								""type"" : ""urlToken""
 							}
 						},
