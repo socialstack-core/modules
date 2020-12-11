@@ -46,24 +46,48 @@ export default class Billboard extends React.Component {
 	}
 	
 	onSceneRender(deltaTime, renderer, camera, scene){
-		var vector = this.vector;
 		
 		var props = this.props;
-		vector.set(props.x, props.y, props.z);
+		var vector = this.vector;
+		
+		if(props.objectName){
+			// Must set an object to scene.billboards
+			if(!scene.billboards){
+				return;
+			}
+			
+			if(!this._obj || this._obj.name != props.objectName){
+				this._obj = scene.billboards.getObjectByName(props.objectName);
+			}
+			
+			if(!this._obj){
+				return;
+			}
+			
+			vector.copy(this._obj.position);
+		}else{
+			vector.set(props.x, props.y, props.z);
+		}
+		
+		camera._dirHelper.subVectors( vector, camera.position ).normalize();
 		
 		var widthHalf = 0.5 * renderer.w;
 		var heightHalf = 0.5 * renderer.h;
 		vector.project(camera);
 		vector.x = ( vector.x * widthHalf ) + widthHalf;
-		vector.y = -( vector.y * heightHalf ) + heightHalf;
+		vector.y = ( vector.y * heightHalf ) + heightHalf;
 		
-		if(vector.x != this.vectorX || vector.y != this.vectorY){
+		var visible = camera._dirHelper.dot(camera._direction) > 0;
+		
+		if(vector.x != this.vectorX || vector.y != this.vectorY || visible != this.visible){
 			this.vectorX = vector.x;
 			this.vectorY = vector.y;
+			this.visible = visible;
 			this.setState({
 				style: {
+					display: this.visible == 1 ? 'block': 'none',
 					left: vector.x + 'px',
-					top: vector.y + 'px'
+					bottom: vector.y + 'px'
 				}
 			});
 		}
