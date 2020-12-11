@@ -2743,7 +2743,9 @@ var GLTFLoader = ( function () {
 
 	/** When Object3D instances are targeted by animation, they need unique names. */
 	GLTFParser.prototype.createUniqueName = function ( originalName ) {
-
+		// https://github.com/mrdoob/three.js/issues/15087
+		return originalName;
+		/*
 		var name = PropertyBinding.sanitizeNodeName( originalName || '' );
 
 		for ( var i = 1; this.nodeNamesUsed[ name ]; ++ i ) {
@@ -2755,7 +2757,7 @@ var GLTFLoader = ( function () {
 		this.nodeNamesUsed[ name ] = true;
 
 		return name;
-
+*/
 	};
 
 	/**
