@@ -35,11 +35,6 @@ export default class MessageList extends React.Component {
 	renderInput(json, message) {
 		return <Form
 			action = "livesupportmessage"
-			onSuccess={response => {
-				if(this.state.hideMessageBox == message.id){
-					this.setState({hideMessageBox: false});
-				}
-			}}
 			onFailed={response => {
 				this.setState({submitting: false, failure: response.message || 'Unable to send your message at the moment'});
 			}}
@@ -77,18 +72,22 @@ export default class MessageList extends React.Component {
 						e.scrollTo(0, e.scrollHeight);
 					}, 10);
 					
-					if(entity.messageType == 1){
-						// requires special response from user. The extra payload is canvas JSON.
-						this.setState({
-							hideMessageBox: entity.id
-						});
-					}
-					
+					this.setState({
+						hideMessageBox: (entity.messageType == 1)
+					});
 				}}
 				
 				groupAll
 				>
 					{all => {
+						var shouldHide = (all.length && all[all.length-1].messageType == 1);
+						
+						if(this.state.hideMessageBox != shouldHide){
+							setTimeout(() => {
+								this.setState({hideMessageBox: shouldHide});
+							}, 100);
+						}
+						
 						var msgs = all.map(pm => {
 							
 							// A message was made by creatorUser.

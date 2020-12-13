@@ -24,7 +24,7 @@ export default class Create extends React.Component {
 				action = "livesupportmessage"
 				onSuccess={response => {
 					this.setState({submitting: false, messageText: ''});
-					this.createTextarea.value='';
+					this.createTextarea && (this.createTextarea.value='');
 				}}
 				onFailed={response => {
 					this.setState({submitting: false, failure: response.message || 'Unable to send your message at the moment'});

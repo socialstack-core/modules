@@ -16,8 +16,7 @@ export default class LiveSupport extends React.Component {
 	}
 	
 	renderStartChat() {
-		
-		return <button onClick={() => {
+		var startClick = () => {
 			this.setState({
 				loading: true
 			});
@@ -27,8 +26,9 @@ export default class LiveSupport extends React.Component {
 					chat: response.json
 				});
 			})
-		}}>Chat with us</button>
+		};
 		
+		return this.props.children ? this.props.children(startClick) : <button onClick={startClick}>Chat with us</button>
 	}
 	
 	renderOpenChat() {
