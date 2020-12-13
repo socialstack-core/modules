@@ -35,6 +35,11 @@ namespace Api.LiveSupportChats
 		/// Users in a chat
 		/// </summary>
 		public List<PermittedContent> PermittedUsers { get; set; }
+		
+		/// <summary>
+		/// User ID of current support worker responding to the chat.
+		/// </summary>
+		public int? AssignedToUserId;
 	}
 
 }
