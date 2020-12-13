@@ -54,7 +54,7 @@ export default class ChatList extends React.Component {
 		};
 		
 		var filter = {
-		...(this.props.filter || {}),
+			where:this.props.filter,
 			sort:{
 				field: 'EditedUtc',
 				direction: 'desc'

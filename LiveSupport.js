@@ -1,6 +1,6 @@
 import Row from 'UI/Row';
 import Col from 'UI/Column';
-import ChatList from 'Admin/LiveSupportAdmin/ChatList';
+import ChatList from 'Admin/LiveSupport/ChatList';
 import MessageList from 'UI/LiveSupport/MessageList';
 import webRequest from 'UI/Functions/WebRequest';
 
