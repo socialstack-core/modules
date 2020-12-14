@@ -31,6 +31,7 @@ export default class Create extends React.Component {
 				}}
 				onValues={
 					values => {
+						values.inReplyTo = this.props.replyTo;
 						this.setState({submitting: true, failure: false});
 						values.liveSupportChatId = this.props.chat.id;
 						return values;

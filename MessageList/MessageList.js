@@ -53,6 +53,7 @@ export default class MessageList extends React.Component {
 	render(){
 		var { chat } = this.props;
 		var { user } = global.app.state;
+		var { lastMessage } = this.state;
 		
 		return <div className="message-list">
 			<div ref={r => this.history = r} className="message-history">
@@ -73,19 +74,18 @@ export default class MessageList extends React.Component {
 					}, 10);
 					
 					this.setState({
-						hideMessageBox: (entity.messageType == 1)
+						lastMessage: entity
 					});
 				}}
 				
 				groupAll
 				>
 					{all => {
-						var shouldHide = (all.length && all[all.length-1].messageType == 1);
-						
-						if(this.state.hideMessageBox != shouldHide){
+						var last = all.length && all[all.length-1];
+						if(this.state.lastMessage != last){
 							setTimeout(() => {
-								this.setState({hideMessageBox: shouldHide});
-							}, 100);
+								this.setState({lastMessage: last});
+							}, 10);
 						}
 						
 						var msgs = all.map(pm => {
@@ -94,7 +94,7 @@ export default class MessageList extends React.Component {
 							// * pm.creatorUser is sender info
 							var sender = pm.creatorUser;
 							
-							var fromThisSide = sender != null;
+							var fromThisSide = (sender == null && user == null) || (user!= null && pm.userId == user.id);
 							
 							var messageClass = fromThisSide ? "message message-right" : "message";
 							var dateClass = fromThisSide ? "message-date message-date-right" : "message-date";
@@ -116,7 +116,7 @@ export default class MessageList extends React.Component {
 					}}
 				</Loop>
 			</div>
-			{!this.state.hideMessageBox && <MessageCreate chat={chat} />}
+			{(!lastMessage || lastMessage.messageType != 1) && <MessageCreate chat={chat} replyTo={lastMessage ? lastMessage.replyTo : 0} />}
 		</div>;
 	}
 	
