@@ -7,6 +7,7 @@ using Api.Contexts;
 using Api.Eventing;
 using Api.LiveSupportChats;
 using Api.Startup;
+using System;
 
 namespace Api.ChatBotSimple
 {
@@ -129,6 +130,9 @@ namespace Api.ChatBotSimple
 		
 		private async Task SendChatBotMessage(Context ctx, int chatId, ChatBotDecision dec)
 		{
+			// Add an artificial delay to make sure sorts are ok:
+			var time = DateTime.UtcNow.AddSeconds(1);
+			
 			await _liveChatMessages.Create(new Context(){
 				UserId = 0
 			}, new LiveSupportMessage(){
@@ -137,7 +141,9 @@ namespace Api.ChatBotSimple
 				MessageType = dec.MessageType,
 				FromSupport = true,
 				ReplyTo = dec.Id,
-				PayloadJson = dec.PayloadJson
+				PayloadJson = dec.PayloadJson,
+				EditedUtc = time,
+				CreatedUtc = time
 			});
 		}
 		
