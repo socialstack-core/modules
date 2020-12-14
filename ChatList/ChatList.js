@@ -20,7 +20,7 @@ export default class ChatList extends React.Component {
 		}
 	}
 	
-	renderUser(user, subject, dateEdited, users) {
+	renderUser(user, subject, dateEdited) {
 		return <div className="user-chat">
 			{getRef(user.avatarRef, { size: 256 })}
 			<div className="user-details">
@@ -65,22 +65,9 @@ export default class ChatList extends React.Component {
 			<Loop raw paged={paginationSettings} live='LiveSupportChat' over={'livesupportchat/list'} filter={filter}>
 				{
 					chatChannel => {
-						// Establish who we're chatting with.
-						// The chat is with all of the given permitted users (one of whom is "me")
-						var users = chatChannel.permittedUsers || [];
-						users = users.map(permit => permit.permitted).filter(p => p!=null && !(p.type == "User" && p.id == user.id));
+						// Who we're chatting with:
+						var chattingWith = chatChannel.creatorUser;
 						
-						if(!users.length){
-							// This chat channel is with a deleted user, 
-							// or anon (as is the case on coms from the homepage).
-							users.push({
-								type: 'User',
-								firstName: 'Anonymous',
-								lastName:''
-							});
-						}
-						
-						var chattingWith = users[0];
 						return (
 							<button type="button" className="chat-request" onClick={() => {
 								var name = "Message";
@@ -100,7 +87,7 @@ export default class ChatList extends React.Component {
 									this.props.onClick && this.props.onClick(chatChannel);
 								}, 10);
 							}}>
-								{this.renderUser(chattingWith, chatChannel.subject, chatChannel.editedUtc, users)}
+								{this.renderUser(chattingWith, chatChannel.subject, chatChannel.editedUtc)}
 							</button>
 						);
 						

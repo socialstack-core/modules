@@ -50,7 +50,9 @@ export default class LiveSupport extends React.Component {
 				</Col>
 
 				<Col className="messages-preview" sizeXs={12} sizeSm={6} sizeMd={7}>
-					{ this.state.chat && <MessageList chat={this.state.chat} /> }
+					<div className="livesupport">
+						{ this.state.chat && <MessageList chat={this.state.chat} /> }
+					</div>
 				</Col>
 			</Row>
 		</div>;
