@@ -40,7 +40,7 @@ export default class LiveSupport extends React.Component {
 						<h2 className="meeting-chats-title">
 							Your requests
 						</h2>
-						<ChatList showTime filter={{AssignedToUserId: user.id}} onClick={chat => {
+						<ChatList canClaim = {true} showTime filter={{AssignedToUserId: user.id}} onClick={chat => {
 							this.setState({
 								meetingRequest: null,
 								chat
@@ -51,7 +51,7 @@ export default class LiveSupport extends React.Component {
 
 				<Col className="messages-preview" sizeXs={12} sizeSm={6} sizeMd={7}>
 					<div className="livesupport">
-						{ this.state.chat && <MessageList chat={this.state.chat} /> }
+						{ this.state.chat && <MessageList canClaim = {true} chat={this.state.chat} /> }
 					</div>
 				</Col>
 			</Row>
