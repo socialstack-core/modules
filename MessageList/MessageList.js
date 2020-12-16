@@ -35,6 +35,11 @@ export default class MessageList extends React.Component {
 	renderInput(json, message) {
 		return <Form
 			action = "livesupportmessage"
+			onSuccess={response => {
+				if(this.state.hideMessageBox == message.id){
+					this.setState({hideMessageBox: false});
+				}
+			}}
 			onFailed={response => {
 				this.setState({submitting: false, failure: response.message || 'Unable to send your message at the moment'});
 			}}
@@ -53,7 +58,6 @@ export default class MessageList extends React.Component {
 	render(){
 		var { chat } = this.props;
 		var { user } = global.app.state;
-		var { lastMessage } = this.state;
 		
 		return <div className="message-list">
 			<div ref={r => this.history = r} className="message-history">
@@ -73,28 +77,25 @@ export default class MessageList extends React.Component {
 						e.scrollTo(0, e.scrollHeight);
 					}, 10);
 					
-					this.setState({
-						lastMessage: entity
-					});
+					if(entity.messageType == 1){
+						// requires special response from user. The extra payload is canvas JSON.
+						this.setState({
+							hideMessageBox: entity.id
+						});
+					}
+					
 				}}
 				
 				groupAll
 				>
 					{all => {
-						var last = all.length && all[all.length-1];
-						if(this.state.lastMessage != last){
-							setTimeout(() => {
-								this.setState({lastMessage: last});
-							}, 10);
-						}
-						
 						var msgs = all.map(pm => {
 							
 							// A message was made by creatorUser.
 							// * pm.creatorUser is sender info
 							var sender = pm.creatorUser;
 							
-							var fromThisSide = (sender == null && user == null) || (user!= null && pm.userId == user.id);
+							var fromThisSide = sender != null;
 							
 							var messageClass = fromThisSide ? "message message-right" : "message";
 							var dateClass = fromThisSide ? "message-date message-date-right" : "message-date";
@@ -116,7 +117,7 @@ export default class MessageList extends React.Component {
 					}}
 				</Loop>
 			</div>
-			{(!lastMessage || lastMessage.messageType != 1) && <MessageCreate chat={chat} replyTo={lastMessage ? lastMessage.replyTo : 0} />}
+			{!this.state.hideMessageBox && <MessageCreate canClaim = {this.props.canClaim} chat={chat} />}
 		</div>;
 	}
 	
