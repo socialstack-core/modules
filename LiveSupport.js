@@ -7,14 +7,14 @@ import MessageList from 'UI/LiveSupport/MessageList';
 
 
 export default class LiveSupport extends React.Component {
-	
+
 	constructor(props) {
 		super(props);
 		this.state = {
 			chat: null
 		};
 	}
-	
+
 	renderStartChat() {
 		var startClick = () => {
 			this.setState({
@@ -27,26 +27,45 @@ export default class LiveSupport extends React.Component {
 				});
 			})
 		};
-		
-		return this.props.children ? this.props.children(startClick) : <button onClick={startClick}>Chat with us</button>
+
+		return this.props.children ? this.props.children(startClick) : <button type="button" className="btn" onClick={startClick}>Chat with us</button>
 	}
-	
+
 	renderOpenChat() {
+		var { title, closeImage, closeLabel } = this.props;
 		
+		title = title || "Chat";
+		// TODO: default close image
+		//closeImage = closeImage || ;
+		closeLabel = closeLabel || "Close chat";		
+
 		return <div className="open-chat">
-			{this.state.loading ? <Loading /> : <MessageList chat={this.state.chat}/>}
+			<header className="chat-header">
+				<span className="chat-title">{title}</span>
+				<button type="button" className="btn chat-close-btn" title={closeLabel} aria-label={closeLabel} onClick={() => {
+					this.setState({
+						chat: false,
+						loading: false
+					});
+				}}>
+					<img src={closeImage} alt="" role="presentation" />
+				</button>
+			</header>
+			{this.state.loading ? <Loading /> : <MessageList chat={this.state.chat} />}
 		</div>;
-		
+
 	}
-	
+
 	render() {
-		
-		return <div className="livesupport">
-			{(this.state.chat || this.state.loading) ? this.renderOpenChat() : this.renderStartChat()}
+		var chatOpen = this.state.chat || this.state.loading;
+		var supportClass = chatOpen ? "livesupport open" : "livesupport";
+
+		return <div className={supportClass}>
+			{chatOpen ? this.renderOpenChat() : this.renderStartChat()}
 		</div>;
-		
+
 	}
-	
+
 }
 
 LiveSupport.propTypes = {};
