@@ -52,7 +52,7 @@ export default class LiveSupport extends React.Component {
 	}
 
 	renderOpenChat() {
-		var { title, closeImage, closeLabel } = this.props;
+		var { title, closeImage, closeLabel, sendLabel, sendTip, placeholder } = this.props;
 		var { mode } = this.state;
 
 		title = title || "Chat";
@@ -75,7 +75,8 @@ export default class LiveSupport extends React.Component {
 			</header>
 
 			{/**Now we need to determine which menu to open. */}
-			{!mode ? this.renderSelection() : this.state.loading ? <Loading /> : <MessageList chat={this.state.chat} />}
+			{!mode ? this.renderSelection() : this.state.loading ? <Loading /> : <MessageList chat={this.state.chat} sendLabel={sendLabel} sendTip={sendTip} placeholder={placeholder} />}
+
 		</div>;
 
 	}

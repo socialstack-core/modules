@@ -8,7 +8,7 @@ export default class Create extends React.Component {
     constructor(props) {
         super(props);
         this.state = {
-			messageText: ""
+            messageText: ""
         };
 
         console.log("Message Create: ");
@@ -21,76 +21,81 @@ export default class Create extends React.Component {
         })
     }
 
-  claimChat() {
-    webRequest("livesupportchat/"+this.props.chat.id, {assignedToUserId : global.app.state.user.id} ).then(response => {
-      this.setState({claimed: response});
-      console.log("Chat was claimed!");
-    }).catch(error => {
-      console.log("There was an error claiming the chat.");
-    })
-  }
+    claimChat() {
+        webRequest("livesupportchat/" + this.props.chat.id, { assignedToUserId: global.app.state.user.id }).then(response => {
+            this.setState({ claimed: response });
+            console.log("Chat was claimed!");
+        }).catch(error => {
+            console.log("There was an error claiming the chat.");
+        })
+    }
 
-	render(){
+    render() {
+        var { sendLabel, sendTip, placeholder } = this.props;
 
-		return <div className="message-create">
-			<Form
-				action = "livesupportmessage"
-				onSuccess={response => {
-					this.setState({submitting: false, messageText: ''});
-					this.createTextarea && (this.createTextarea.value='');
-				}}
-				onFailed={response => {
-					this.setState({submitting: false, failure: response.message || 'Unable to send your message at the moment'});
-				}}
-				onValues={
-					values => {
-            console.log("submitting!");
-						values.inReplyTo = this.props.replyTo;
-						this.setState({submitting: true, failure: false});
-						values.liveSupportChatId = this.props.chat.id;
-						return values;
-					}
-				}
-				className="message-form"
-			>
-        <div>
-          <Input onKeyPress={e => {
-              if(!this.state.submitting && this.state.messageText.trim().length > 0 && e.keyCode == 13){
-                e.preventDefault();
-                e.target.form.submit();
-              }
-            }}
-            inputRef={e => this.createTextarea = e}
-            style={{ fontSize: "1em" }}
-            name="message"
-            type="textarea"
-            maxlength="1000"
-            autocorrect="off"
-            autocapitalize="off"
-            placeholder="Write your message here..."
-            label=""
-            noWrapper
-            onKeyUp={e => {
-              this.messageUpdated(e);
-          }} />
-          {this.state.failure && <Alert type="error">{this.state.failure}</Alert>}
+        sendLabel = sendLabel || "Send";
+        sendTip = sendTip || "Send message";
+        placeholder = placeholder || "Write your message here...";
 
-          {this.props.canClaim && !this.props.chat.assignedToUserId && !this.state.claimed &&
-            <a onClick = {() => {console.log("Claimed!"); this.claimChat();}} className="btn btn-primary send-message success" title="Claim">
-              <span>Claim!</span>
-            </a>
-          }
-          {this.props.canClaim && this.state.claimed && <Alert type = "success">
-            You have successfully claimed this request! You are now in a one-on-one conversation with this user.
-          </Alert>}
+        return <div className="message-create">
+            <Form
+                action="livesupportmessage"
+                onSuccess={response => {
+                    this.setState({ submitting: false, messageText: '' });
+                    this.createTextarea && (this.createTextarea.value = '');
+                }}
+                onFailed={response => {
+                    this.setState({ submitting: false, failure: response.message || 'Unable to send your message at the moment' });
+                }}
+                onValues={
+                    values => {
+                        console.log("submitting!");
+                        values.inReplyTo = this.props.replyTo;
+                        this.setState({ submitting: true, failure: false });
+                        values.liveSupportChatId = this.props.chat.id;
+                        return values;
+                    }
+                }
+                className="message-form"
+            >
+                <div>
+                    <Input onKeyPress={e => {
+                        if (!this.state.submitting && this.state.messageText.trim().length > 0 && e.keyCode == 13) {
+                            e.preventDefault();
+                            e.target.form.submit();
+                        }
+                    }}
+                        inputRef={e => this.createTextarea = e}
+                        style={{ fontSize: "1em" }}
+                        name="message"
+                        type="textarea"
+                        maxlength="1000"
+                        autocorrect="off"
+                        autocapitalize="off"
+                        placeholder={placeholder}
+                        label=""
+                        noWrapper
+                        onKeyUp={e => {
+                            this.messageUpdated(e);
+                        }} />
+                    {this.state.failure && <Alert type="error">{this.state.failure}</Alert>}
 
-          <button className="btn btn-primary send-message" type="submit" disabled={this.state.submitting || this.state.messageText.trim().length === 0} title="Send message">
-            <span>Send</span>
-          </button>
-        </div>
-			</Form>
-		</div>;
+                    {this.props.canClaim && !this.props.chat.assignedToUserId && !this.state.claimed &&
+                        <a onClick={() => { console.log("Claimed!"); this.claimChat(); }} className="btn btn-primary send-message success" title="Claim">
+                            <span>Claim!</span>
+                        </a>
+                    }
+                    {this.props.canClaim && this.state.claimed && <Alert type="success">
+                        You have successfully claimed this request! You are now in a one-on-one conversation with this user.
+                    </Alert>}
 
-	}
+                    <button className="btn btn-primary send-message" type="submit" disabled={this.state.submitting || this.state.messageText.trim().length === 0} title={sendTip}>
+                        <span>{sendLabel}</span>
+                    </button>
+                </div>
+            </Form>
+        </div>;
+
+    }
 
 }

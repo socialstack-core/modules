@@ -56,7 +56,7 @@ export default class MessageList extends React.Component {
 	}
 	
 	render(){
-		var { chat } = this.props;
+		var { chat, sendLabel, sendTip, placeholder } = this.props;
 		var { user } = global.app.state;
 		
 		return <div className="message-list">
@@ -117,7 +117,7 @@ export default class MessageList extends React.Component {
 					}}
 				</Loop>
 			</div>
-			{!this.state.hideMessageBox && <MessageCreate canClaim = {this.props.canClaim} chat={chat} />}
+			{!this.state.hideMessageBox && <MessageCreate canClaim={this.props.canClaim} chat={chat} sendLabel={sendLabel} sendTip={sendTip} placeholder={placeholder} />}
 		</div>;
 	}
 	
