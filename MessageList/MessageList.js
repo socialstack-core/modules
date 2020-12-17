@@ -58,6 +58,7 @@ export default class MessageList extends React.Component {
 	render(){
 		var { chat, sendLabel, sendTip, placeholder } = this.props;
 		var { user } = global.app.state;
+		var { lastMessage } = this.state;
 		
 		return <div className="message-list">
 			<div ref={r => this.history = r} className="message-history">
@@ -80,7 +81,9 @@ export default class MessageList extends React.Component {
 					if(entity.messageType == 1){
 						// requires special response from user. The extra payload is canvas JSON.
 						this.setState({
-							hideMessageBox: entity.id
+							hideMessageBox: entity.id,
+							lastMessage: entity
+
 						});
 					}
 					
@@ -89,13 +92,21 @@ export default class MessageList extends React.Component {
 				groupAll
 				>
 					{all => {
+						var last = all.length && all[all.length-1];
+						if(this.state.lastMessage != last){
+							setTimeout(() => {
+								this.setState({lastMessage: last});
+							}, 10);
+						}
+
 						var msgs = all.map(pm => {
 							
 							// A message was made by creatorUser.
 							// * pm.creatorUser is sender info
 							var sender = pm.creatorUser;
 							
-							var fromThisSide = sender != null;
+							var fromThisSide = (sender == null && user == null) || (user!= null && pm.userId == user.id);
+
 							
 							var messageClass = fromThisSide ? "message message-right" : "message";
 							var dateClass = fromThisSide ? "message-date message-date-right" : "message-date";
@@ -117,7 +128,7 @@ export default class MessageList extends React.Component {
 					}}
 				</Loop>
 			</div>
-			{!this.state.hideMessageBox && <MessageCreate canClaim={this.props.canClaim} chat={chat} sendLabel={sendLabel} sendTip={sendTip} placeholder={placeholder} />}
+			{(!lastMessage || lastMessage.messageType != 1) && <MessageCreate replyTo={lastMessage ? lastMessage.replyTo : 0}  canClaim={this.props.canClaim} chat={chat} sendLabel={sendLabel} sendTip={sendTip} placeholder={placeholder} />}
 		</div>;
 	}
 	
