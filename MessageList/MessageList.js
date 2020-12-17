@@ -61,7 +61,7 @@ export default class MessageList extends React.Component {
 		var { lastMessage } = this.state;
 		
 		return <div className="message-list">
-			<div ref={r => this.history = r} className="message-history">
+			<div ref={r => this.history = r} className="message-history" data-simplebar data-simplebar-auto-hide="false">
 				<Loop raw live='LiveSupportMessage' over='livesupportmessage/list' filter={{
 					where: {
 						LiveSupportChatId: chat.id

@@ -34,20 +34,34 @@ export default class LiveSupport extends React.Component {
 
 	// Used to select the chat mode that we are about to enter.
 	renderSelection() {
-		return <div className = "chat-selection">
-			<span>Do you want help now?</span>
-			<button onClick = {() => this.setState({mode: "live"})}>
-				Speak with a live operator
-			</button>
-			<button onClick = {() => this.setState({mode: "question"})}>
-				Do you have a question?
-			</button>
-			<button onClick = {() => this.setState({mode: "appointment"})}>
-				No, I want to book a 1:1 for later
-			</button>
-			<button onClick = {() => this.setState({mode: "expert"})}>
-				Ask an expert
-			</button>
+		var liveSelected = this.state.mode == "live";
+		var questionSelected = this.state.mode == "question";
+		var appointmentSelected = this.state.mode == "appointment";
+		var expertSelected = this.state.mode == "expert";
+		var disabled = this.state.mode != null ? "disabled" : null;
+
+		return <div className="chat-selection">
+			<div className="message">
+				<p>Do you want help now?</p>
+				<div className="chat-options">
+					<Input key={"live"} className={liveSelected ? "btn btn-primary selected" : "btn btn-primary"} disabled={disabled} type="button"
+						onClick={() => this.setState({ mode: "live" })}>
+						Speak with a live operator
+					</Input>
+					<Input key={"question"} className={questionSelected ? "btn btn-primary selected" : "btn btn-primary"} disabled={disabled} type="button"
+						onClick={() => this.setState({ mode: "question" })}>
+						Do you have a question?
+					</Input>
+					<Input key={"appointment"} className={appointmentSelected ? "btn btn-primary selected" : "btn btn-primary"} disabled={disabled} type="button"
+						onClick={() => this.setState({ mode: "appointment" })}>
+						No, I want to book a 1:1 for later
+					</Input>
+					<Input key={"expert"} className={expertSelected ? "btn btn-primary selected" : "btn btn-primary"} disabled={disabled} type="button"
+						onClick={() => this.setState({ mode: "expert" })}>
+						Ask an expert
+					</Input>
+				</div>
+			</div>
 		</div>
 	}
 
