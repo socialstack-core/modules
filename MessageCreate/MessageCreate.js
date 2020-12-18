@@ -31,11 +31,31 @@ export default class Create extends React.Component {
     }
 
     render() {
-        var { sendLabel, sendTip, placeholder } = this.props;
+        var { sendLabel, sendTip, placeholder, lastMessage } = this.props;
 
         sendLabel = sendLabel || "Send";
         sendTip = sendTip || "Send message";
         placeholder = placeholder || "Write your message here...";
+        var validate = [];
+        // Let's look at the last Message's Message Type to see if we need to apply any validation. 
+        if(lastMessage && lastMessage.messageType){
+            if (lastMessage.messageType == 3) {
+                validate.push("FullName");
+            }
+
+            if (lastMessage.messageType == 4) {
+                validate.push("EmailAddress");
+            }
+
+            if (lastMessage.messageType == 5) {
+                validate.push("PhoneNumber");
+            }
+
+            // Lastly, let's check if our close condition hit.
+            if (lastMessage.messageType == 6) {
+                this.props.onClose && this.props.onClose();
+            }
+        }
 
         return <div className="message-create">
             <Form
@@ -75,6 +95,7 @@ export default class Create extends React.Component {
                         placeholder={placeholder}
                         label=""
                         noWrapper
+                        validate = {validate}
                         onKeyUp={e => {
                             this.messageUpdated(e);
                         }} />

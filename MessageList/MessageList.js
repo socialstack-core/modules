@@ -47,7 +47,9 @@ export default class MessageList extends React.Component {
 				values => {
 					values.inReplyTo = message.replyTo;
 					values.liveSupportChatId = this.props.chat.id;
-					return values;
+					if(this.state.hideMessageBox == message.id){
+						return values;
+					}
 				}
 			}
 		>
@@ -128,7 +130,7 @@ export default class MessageList extends React.Component {
 					}}
 				</Loop>
 			</div>
-			{(!lastMessage || lastMessage.messageType != 1) && <MessageCreate replyTo={lastMessage ? lastMessage.replyTo : 0}  canClaim={this.props.canClaim} chat={chat} sendLabel={sendLabel} sendTip={sendTip} placeholder={placeholder} />}
+			{(!lastMessage || lastMessage.messageType != 1) && <MessageCreate onClose = {this.props.onClose} lastMessage={lastMessage} replyTo={lastMessage ? lastMessage.replyTo : 0}  canClaim={this.props.canClaim} chat={chat} sendLabel={sendLabel} sendTip={sendTip} placeholder={placeholder} />}
 		</div>;
 	}
 	
