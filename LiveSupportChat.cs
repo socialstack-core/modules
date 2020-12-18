@@ -25,6 +25,11 @@ namespace Api.LiveSupportChats
 		/// User ID of current support worker responding to the chat.
 		/// </summary>
 		public int? AssignedToUserId;
+
+		/// <summary>
+		/// The full name of the user that in initiated this chat.
+		/// </summary>
+		public string FullName;
 	}
 
 }
