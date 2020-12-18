@@ -21,6 +21,10 @@ export default class ChatList extends React.Component {
 	}
 	
 	renderUser(user, subject, dateEdited) {
+		if(!user) {
+			return;
+		}
+
 		return <div className="user-chat">
 			{getRef(user.avatarRef, { size: 256 })}
 			<div className="user-details">
