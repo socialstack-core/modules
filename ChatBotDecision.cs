@@ -18,6 +18,11 @@ namespace Api.ChatBotSimple
 		/// Optional decision ID that the user is replying to that this decision will apply to.
 		/// </summary>
 		public int InReplyTo;
+
+		/// <summary>
+		/// Optional ReplyToOverrideId that overwrites the reply to value with the id of another decision. 
+		/// </summary>
+		public int? ReplyToOverrideId;
 		
 		/// <summary>
 		/// Message type. 0 = User free text response, 1 = multiselect answers
@@ -41,6 +46,11 @@ namespace Api.ChatBotSimple
 		/// Payload (Canvas JSON) for more complex message types.
 		/// </summary>
 		public string PayloadJson;
+
+		/// <summary>
+		/// AlsoSend is the message to also send in response after the inital response. 
+		/// </summary>
+		public int? AlsoSend;
 		
 	}
 

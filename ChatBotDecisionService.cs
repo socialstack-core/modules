@@ -19,6 +19,7 @@ namespace Api.ChatBotSimple
     {
 		private Dictionary<int, List<ChatBotDecision>> _inReplyToMap;
 		private LiveSupportMessageService _liveChatMessages;
+		private LiveSupportChatService _liveChat;
 		
 		/// <summary>
 		/// Instanced automatically. Use injection to use this service, or Startup.Services.Get.
@@ -52,6 +53,23 @@ namespace Api.ChatBotSimple
 				{
 					return message;
 				}
+
+				// If reply to is 1, this is the one that sets the name of the user, so let's grab it.
+				if(message.InReplyTo == 1)
+                {
+					// Let's update the chat to have the user's name.
+					if(message.LiveSupportChatId != null)
+                    {
+						if(_liveChat == null)
+                        {
+							_liveChat = Services.Get<LiveSupportChatService>();
+                        }
+
+						var chat = await _liveChat.Get(ctx, message.LiveSupportChatId);
+						chat.FullName = message.Message;
+						chat = await _liveChat.Update(ctx, chat);
+					}
+                }
 				
 				// message.LiveSupportChatId
 				List<ChatBotDecision> list = null;
@@ -132,19 +150,48 @@ namespace Api.ChatBotSimple
 		{
 			// Add an artificial delay to make sure sorts are ok:
 			var time = DateTime.UtcNow.AddSeconds(1);
-			
-			await _liveChatMessages.Create(new Context(){
+			var context = new Context()
+			{
 				UserId = 0
-			}, new LiveSupportMessage(){
+			};
+
+			// Check the message text for key words such as {first}
+			var returnText = dec.MessageText;
+
+			if (dec.MessageText.Contains("{first}"))
+            {
+				var returnTextParts = dec.MessageText.Split("{first}");
+
+				if (_liveChat == null)
+				{
+					_liveChat = Services.Get<LiveSupportChatService>();
+				}
+
+				var chat = await _liveChat.Get(ctx, chatId);
+
+				var first = chat.FullName.Split(" ")[0];
+
+				returnText = returnTextParts[0] + first + returnTextParts[1];
+			}
+
+			await _liveChatMessages.Create(context, new LiveSupportMessage(){
 				LiveSupportChatId = chatId,
-				Message = dec.MessageText,
+				Message = returnText,
 				MessageType = dec.MessageType,
 				FromSupport = true,
-				ReplyTo = dec.Id,
+				ReplyTo = dec.ReplyToOverrideId.HasValue ? dec.ReplyToOverrideId.Value : dec.Id,
 				PayloadJson = dec.PayloadJson,
 				EditedUtc = time,
 				CreatedUtc = time
 			});
+
+			// Excellent! Before resolving here, let's make sure this decision doesn't have an also send.
+			if (dec.AlsoSend.HasValue)
+            {
+				var alsoSendMessage = await Get(ctx, dec.AlsoSend.Value);
+				await Task.Delay(2000);
+				await SendChatBotMessage(ctx, chatId, alsoSendMessage);
+            }
 		}
 		
 		private void AddToMap(ChatBotDecision dec)
