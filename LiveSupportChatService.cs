@@ -19,7 +19,7 @@ namespace Api.LiveSupportChats
 		public LiveSupportChatService() : base(Events.LiveSupportChat)
         {
 			// Example admin page install:
-			// InstallAdminPages("LiveSupportChats", "fa:fa-rocket", new string[] { "id", "name" });
+			InstallAdminPages("LiveSupportChats", "fa:fa-rocket", new string[] { "id", "userId" });
 		}
 	}
     
