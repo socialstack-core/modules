@@ -30,6 +30,16 @@ namespace Api.LiveSupportChats
 		/// The full name of the user that in initiated this chat.
 		/// </summary>
 		public string FullName;
+
+		/// <summary>
+		/// The time this user entered the queue. When the user is done being serviced, they will be removed from the queue by admin user.
+		/// </summary>
+		public DateTime? EnteredQueueUtc;
+
+		/// <summary>
+		/// Determines whether a user can download the chat. Happens at the end of booking or once an operator chat has been initiated.
+		/// </summary>
+		public bool CanDownload;
 	}
 
 }
