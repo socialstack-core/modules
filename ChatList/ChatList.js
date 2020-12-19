@@ -57,6 +57,7 @@ export default class ChatList extends React.Component {
 			maxLinks: 4
 		};
 		
+		/*
 		var filter = {
 			where:this.props.filter,
 			sort:{
@@ -64,9 +65,11 @@ export default class ChatList extends React.Component {
 				direction: 'desc'
 			}
 		};
+		*/
+		var filter = this.props.filter;
 		
 		return <div className="live-support-chats">
-			<Loop raw paged={paginationSettings} live='LiveSupportChat' over={'livesupportchat/list'} filter={filter}>
+			<Loop raw paged={paginationSettings} live='LiveSupportChat' over={'livesupportchat/list'} filter={filter} orNone = {() => <h5>There are no active support requests right now.</h5>}>
 				{
 					chatChannel => {
 						// Who we're chatting with:

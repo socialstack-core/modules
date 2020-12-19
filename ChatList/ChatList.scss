@@ -107,6 +107,13 @@
 	
 	.paginator{
 		margin-top: 1em;
+		.pagination {
+			.active {
+				.page-link {
+					color: #007bff;
+				}
+			}
+		}
 	}
 	
 }
