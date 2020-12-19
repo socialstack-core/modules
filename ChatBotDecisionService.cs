@@ -57,18 +57,14 @@ namespace Api.ChatBotSimple
 				// If reply to is 1, this is the one that sets the name of the user, so let's grab it.
 				if(message.InReplyTo == 1)
                 {
-					// Let's update the chat to have the user's name.
-					if(message.LiveSupportChatId != null)
+					if(_liveChat == null)
                     {
-						if(_liveChat == null)
-                        {
-							_liveChat = Services.Get<LiveSupportChatService>();
-                        }
+						_liveChat = Services.Get<LiveSupportChatService>();
+                    }
 
-						var chat = await _liveChat.Get(ctx, message.LiveSupportChatId);
-						chat.FullName = message.Message;
-						chat = await _liveChat.Update(ctx, chat);
-					}
+					var chat = await _liveChat.Get(ctx, message.LiveSupportChatId);
+					chat.FullName = message.Message;
+					chat = await _liveChat.Update(ctx, chat);
                 }
 				
 				// message.LiveSupportChatId
@@ -108,6 +104,35 @@ namespace Api.ChatBotSimple
 				}
 				
 				return message;
+			});
+
+			Events.LiveSupportChat.BeforeUpdate.AddEventListener(async (Context ctx, LiveSupportChat chat) =>
+			{
+				// If we are closing out a support chat by nullifying its EnteredQueue and AssignedToUserId
+				// we need to send them a specified chatbot decision:
+				// TODO: this needs to be made dynamic in future projects. 
+				if (chat == null || ctx == null)
+                {
+					return null;
+                }
+
+				if (_liveChat == null)
+				{
+					_liveChat = Services.Get<LiveSupportChatService>();
+				}
+				// Let's load the chat so we can see its current state.
+				var currChat = await _liveChat.Get(ctx, chat.Id);
+
+				// Now let's compare, if currChat has both assignedToUser set and enteredQueueUtc, and the new chat doesn't, we need to send message to the user to give control to the bot.
+				if(chat.AssignedToUserId == null && chat.EnteredQueueUtc == null && currChat.AssignedToUserId != null && currChat.EnteredQueueUtc != null)
+				{
+					var alsoSendMessage = await Get(ctx, 11);
+					await Task.Delay(2000);
+					await SendChatBotMessage(ctx, chat.Id, alsoSendMessage);
+				}
+
+				return chat;
+
 			});
 			
 			Events.ChatBotDecision.AfterCreate.AddEventListener((Context ctx, ChatBotDecision dec) => {
@@ -174,6 +199,22 @@ namespace Api.ChatBotSimple
 				returnText = returnTextParts[0] + first + returnTextParts[1];
 			}
 
+			if (dec.MessageText.Contains("{queue}"))
+            {
+				// Let's get the current queue count
+				if (_liveChat == null)
+				{
+					_liveChat = Services.Get<LiveSupportChatService>();
+				}
+
+				var chats = await _liveChat.List(ctx, new Filter<LiveSupportChat>().Not().Equals("EnteredQueueUtc", null).And().Equals("AssignedToUserId", null));
+
+				var queuePosition = chats.Count + 1;
+
+				returnText = returnText.Replace("{queue}", queuePosition.ToString());
+
+			}
+
 			await _liveChatMessages.Create(context, new LiveSupportMessage(){
 				LiveSupportChatId = chatId,
 				Message = returnText,
@@ -192,6 +233,18 @@ namespace Api.ChatBotSimple
 				await Task.Delay(2000);
 				await SendChatBotMessage(ctx, chatId, alsoSendMessage);
             }
+
+			if (dec.MessageType == 2)
+			{
+				if (_liveChat == null)
+				{
+					_liveChat = Services.Get<LiveSupportChatService>();
+				}
+
+				var chat = await _liveChat.Get(ctx, chatId);
+				chat.EnteredQueueUtc = DateTime.Now;
+				chat = await _liveChat.Update(ctx, chat);
+			}
 		}
 		
 		private void AddToMap(ChatBotDecision dec)
