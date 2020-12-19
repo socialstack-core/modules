@@ -4,6 +4,9 @@ import Form from 'UI/Form';
 import Canvas from 'UI/Canvas';
 import MessageCreate from 'UI/LiveSupport/MessageCreate';
 import getContentTypeId from 'UI/Functions/GetContentTypeId';
+import getRef from 'UI/Functions/GetRef';
+
+const defaultRef = "/images/talk_to_us.jpg";
 
 export default class MessageList extends React.Component {
 	
@@ -113,7 +116,13 @@ export default class MessageList extends React.Component {
 							var messageClass = fromThisSide ? "message message-right" : "message";
 							var dateClass = fromThisSide ? "message-date message-date-right" : "message-date";
 							
-							return <>
+							return <div style = {{postion: "relative"}}>
+								{
+									!fromThisSide && <span className="avatar-span">
+										<img className = "avatar" src = {(pm.creatorUser && pm.creatorUser.avatarRef) ? getRef(pm.creatorUser.avatarRef, {url: true}) : defaultRef}/>
+									</span>
+								 
+								}
 								<div className={messageClass}>
 									{this.nl2br(pm.message)}
 									{pm.payloadJson && <div className="message-canvas">
@@ -123,14 +132,14 @@ export default class MessageList extends React.Component {
 								<div className={dateClass}>
 									{sender ? sender.fullName : ''} <Time absolute compact withDate date={pm.createdUtc} />
 								</div>
-							</>;
+							</div>;
 						});
 						
 						return msgs;
 					}}
 				</Loop>
 			</div>
-			{(!lastMessage || lastMessage.messageType != 1) && <MessageCreate onClose = {this.props.onClose} lastMessage={lastMessage} replyTo={lastMessage ? lastMessage.replyTo : 0}  canClaim={this.props.canClaim} chat={chat} sendLabel={sendLabel} sendTip={sendTip} placeholder={placeholder} />}
+			<MessageCreate disableSend = {(lastMessage && lastMessage.messageType == 1)} returnToBotDecision = {this.props.returnToBotDecision} onClose = {this.props.onClose} lastMessage={lastMessage} replyTo={lastMessage ? lastMessage.replyTo : 0}  canClaim={this.props.canClaim} chat={chat} sendLabel={sendLabel} sendTip={sendTip} placeholder={placeholder} />
 		</div>;
 	}
 	

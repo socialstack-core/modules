@@ -30,8 +30,23 @@ export default class Create extends React.Component {
         })
     }
 
+    closeChat() {
+        webRequest("livesupportchat/" + this.props.chat.id, { assignedToUserId: null, enteredQueueUtc: null}).then(response => {
+            console.log("Chat was closed!");
+        }).catch(error => {
+            console.log("There was an error claiming the chat.");
+        })
+    }
+
+    componentWillReceiveProps(newProps) {
+        if(newProps.lastMessage && newProps.lastMessage.messageType && newProps.lastMessage.messageType == 2) {
+            this.setState({canDownload: true})
+        }
+    }
+
     render() {
         var { sendLabel, sendTip, placeholder, lastMessage } = this.props;
+        var {canDownload} = this.state;
 
         sendLabel = sendLabel || "Send";
         sendTip = sendTip || "Send message";
@@ -99,22 +114,55 @@ export default class Create extends React.Component {
                         onKeyUp={e => {
                             this.messageUpdated(e);
                         }} />
-                    {this.state.failure && <Alert type="error">{this.state.failure}</Alert>}
 
-                    {this.props.canClaim && !this.props.chat.assignedToUserId && !this.state.claimed &&
+                    {this.props.canClaim && !this.props.chat.assignedToUserId &&
                         <a onClick={() => { console.log("Claimed!"); this.claimChat(); }} className="btn btn-primary send-message success" title="Claim">
                             <span>Claim!</span>
                         </a>
                     }
-                    {this.props.canClaim && this.state.claimed && <Alert type="success">
-                        You have successfully claimed this request! You are now in a one-on-one conversation with this user.
-                    </Alert>}
 
-                    <button className="btn btn-primary send-message" type="submit" disabled={this.state.submitting || this.state.messageText.trim().length === 0} title={sendTip}>
+                    {this.props.chat.assignedToUserId && this.props.chat.assignedToUserId == global.app.state.user.id &&
+                        <a onClick={() => { console.log("Closed!"); this.closeChat(); }} className="btn btn-primary send-message danger" title="Close">
+                            <span>Close</span>
+                        </a>
+                    
+                    }
+
+                    
+
+                    <button className="btn btn-primary send-message" type="submit" disabled={this.props.disableSend || this.state.submitting || this.state.messageText.trim().length === 0} title={sendTip}>
                         <span>{sendLabel}</span>
                     </button>
                 </div>
             </Form>
+
+            {canDownload && <Form
+				requestOpts={{
+					blob: true
+				}}
+                action={"livesupportmessage/list.csv"}
+                onValues={vals => {
+                    var filter = {};
+                    filter.where = {};
+                    filter.where.LiveSupportChatId = this.props.chat.id;
+					
+					return filter;
+                }}
+				onSuccess={responseBlob => {
+					var url = window.URL.createObjectURL(responseBlob);
+					var a = document.createElement('a');
+					a.href = url;
+					a.download = "bridgestone-chat-history.csv";
+					document.body.appendChild(a);
+					a.click();
+					a.remove();
+				}}
+            >
+                <button type = "submit" className ="btn btn-primary send-message download-chat" onClick = {() => {console.log("Download!")}}>
+                    <span>Download Chat</span>
+                </button>
+			</Form>
+ }
         </div>;
 
     }
