@@ -11,6 +11,7 @@ export default class MessageTypeSelect extends React.Component {
 				<option value="4">Validated response must be an email address</option>
 				<option value="5">Validated response must be a phone number</option>
 				<option value="6">When received, terminates chat.</option>
+				<option value="7">When received, return control to bot.</option>
 			</Input>;
 	}
 	
