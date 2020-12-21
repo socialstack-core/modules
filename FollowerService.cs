@@ -18,7 +18,7 @@ namespace Api.Followers
 	/// Handles followers (subscribers).
 	/// Instanced automatically. Use injection to use this service, or Startup.Services.Get.
 	/// </summary>
-	public partial class FollowerService : AutoService<Follower>, IFollowerService
+	public partial class FollowerService : AutoService<Follower>
     {
 		/// <summary>
 		/// Instanced automatically. Use injection to use this service, or Startup.Services.Get.

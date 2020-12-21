@@ -15,7 +15,7 @@ namespace Api.Followers
 	public partial class FollowerController : AutoController<Follower>
     {
         [HttpPost]
-        public override async Task<object> Create([FromBody] JObject body)
+        public override async ValueTask<object> Create([FromBody] JObject body)
         {
             var entity = new Follower();
 

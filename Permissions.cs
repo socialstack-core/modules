@@ -27,7 +27,7 @@ namespace Api.Followers
                 Roles.Public.Revoke("follower_load");
 				Roles.Public.Revoke("follower_list");
 
-                return Task.FromResult(source);
+				return new ValueTask<object>(source);
 			}, 20);
 		}
 	}
