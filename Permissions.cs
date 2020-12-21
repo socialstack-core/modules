@@ -24,7 +24,7 @@ namespace Api.Views
 				Roles.Guest.Revoke("view_list", "view_load", "view_update", "view_create");
 				Roles.Public.Revoke("view_list", "view_load", "view_update", "view_create");
 				
-				return Task.FromResult(source);
+				return new ValueTask<object>(source);
 			});
 		}
 	}

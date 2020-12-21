@@ -31,7 +31,7 @@ public partial class AutoController<T>
 			// Just going to directly create (or update) the viewed row.
 			var contentTypeId = ContentTypes.GetId(typeof(T));
 			
-			await Services.Get<IViewService>().MarkViewed(context, contentTypeId, id);
+			await Services.Get<ViewService>().MarkViewed(context, contentTypeId, id);
 			
 			return new {
 				success = true

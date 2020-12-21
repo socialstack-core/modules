@@ -14,7 +14,7 @@ namespace Api.Views
 	/// Handles views
 	/// Instanced automatically. Use injection to use this service, or Startup.Services.Get.
 	/// </summary>
-	public partial class ViewService : AutoService<View>, IViewService
+	public partial class ViewService : AutoService<View>
 	{
 		
 		private readonly Query<View> selectByContentTypeAndIdQuery;
@@ -30,6 +30,7 @@ namespace Api.Views
 			// View total is automatic on load/ list endpoints
 			// The ViewedAt state needs to be figured out however.
 			
+			/*
 			selectByContentTypeAndIdQuery = Query.Select<View>();
 			selectByContentTypeAndIdQuery.Where().EqualsArg("ContentId", 0).And().EqualsArg("ContentTypeId", 1).And().EqualsArg("UserId", 2);
 			
@@ -257,6 +258,7 @@ namespace Api.Views
 				});
 
 			}
+			*/
 		}
 		
 		/// <summary>
@@ -277,7 +279,7 @@ namespace Api.Views
 				viewEntry.ContentId = id;
 				viewEntry.ContentTypeId = contentTypeId;
 				
-				await Create(context, viewEntry, null);
+				await Create(context, viewEntry);
 				
 			}else{
 				// Update viewed time:
