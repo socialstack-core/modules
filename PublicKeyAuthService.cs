@@ -17,11 +17,11 @@ namespace Api.PublicKeyAuth
 	/// Public key authentication scheme. The user's device has a private key which it uses to sign a challenge.
 	/// Instanced automatically. Use injection to use this service, or Startup.Services.Get.
 	/// </summary>
-	public partial class PublicKeyAuthService : IPublicKeyAuthService
+	public partial class PublicKeyAuthService
     {
 		private DateTime _epoch = new DateTime(1970, 1, 1);
-		private IUserService _users;
-		private ISignatureService _signatures;
+		private UserService _users;
+		private SignatureService _signatures;
 		private Random _rng = new Random();
 		
 		/// <summary>
@@ -35,7 +35,7 @@ namespace Api.PublicKeyAuth
 		/// <summary>
 		/// Instanced automatically. Use injection to use this service, or Startup.Services.Get.
 		/// </summary>
-		public PublicKeyAuthService(IUserService users, ISignatureService sigs)
+		public PublicKeyAuthService(UserService users, SignatureService sigs)
         {
 			_users = users;
 			_signatures = sigs;
