@@ -23,7 +23,7 @@ namespace Api.StoryAttachments
 				// Public - the role used by anonymous users.
 				Roles.Guest.Grant("storyattachment_create");
 				Roles.Member.Grant("storyattachment_create");
-				return Task.FromResult(source);
+				return new ValueTask<object>(source);
 			});
 		}
 	}

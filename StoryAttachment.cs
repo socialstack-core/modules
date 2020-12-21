@@ -7,20 +7,15 @@ namespace Api.StoryAttachments
 {
 
 	/// <summary>
-	/// A user following (or subscribed to) some other user.
+	/// Usually an attachment on activity feed entries.
 	/// </summary>
-	public partial class StoryAttachment : RevisionRow
+	public partial class StoryAttachment : MappingRow
 	{
 		/// <summary>
-		/// The original content type ID, if there is one.
+		/// Creator user
 		/// </summary>
-		public int? ContentTypeId;
-		
-		/// <summary>
-		/// The content ID of this story, if there is one.
-		/// </summary>
-		public int? ContentId;
-		
+		public int UserId;
+
 		/// <summary>
 		/// Target URL where this attachment can be found. Can be a ref such as page:1 or module:ComponentName
 		/// </summary>

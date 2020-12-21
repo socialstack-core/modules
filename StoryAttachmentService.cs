@@ -19,135 +19,26 @@ namespace Api.StoryAttachments
 	/// Handles story attachments. These attachments are e.g. images attached to a feed story or a message in a chat channel.
 	/// Instanced automatically. Use injection to use this service, or Startup.Services.Get.
 	/// </summary>
-	public partial class StoryAttachmentService : AutoService<StoryAttachment>, IStoryAttachmentService
+	public partial class StoryAttachmentService : AutoService<StoryAttachment>
     {
-		private readonly Query<StoryAttachment> listByObjectQuery;
-
-
 		/// <summary>
 		/// Instanced automatically. Use injection to use this service, or Startup.Services.Get.
 		/// </summary>
 		public StoryAttachmentService() : base(Events.StoryAttachment)
         {
-			// Start preparing the queries. Doing this ahead of time leads to excellent performance savings, 
-			// whilst also using a high-level abstraction as another plugin entry point.
-			listByObjectQuery = Query.List<StoryAttachment>();
-			listByObjectQuery.Where().EqualsArg("ContentTypeId", 0).And().EqualsArg("ContentId", 1);
-
-
-			// Load story attachments on Load/List events next. First, find all events for types that implement IHaveStoryAttachments:
-			var loadEvents = Events.FindByType(typeof(IHaveStoryAttachments), "Load", EventPlacement.After);
-
-			foreach (var loadEvent in loadEvents)
-			{
-				loadEvent.AddEventListener(async (Context context, object[] args) =>
-				{
-					// The primary object is always the first arg.
-					// It's both IHaveStoryAttachments and a DatabaseRow object:
-					if (!(args[0] is IHaveStoryAttachments attachableObject))
-					{
-						// Due to the way how event chains work, the primary object can be null.
-						// Safely ignore this.
-						return null;
-					}
-
-					if (!(args[0] is DatabaseRow dbObject))
-					{
-						throw new System.Exception(
-							"Story attachments are only available on DatabaseRow entities. " +
-							"This type implements IHaveStoryAttachments but isn't in the database: " + args[0].GetType().Name
-						);
-					}
-
-					// Get the content type ID for the primary object:
-					var contentTypeId = ContentTypes.GetId(attachableObject.GetType());
-
-					// List the stories now:
-					var stories = await _database.List(context, listByObjectQuery, null, contentTypeId, dbObject.Id);
-					attachableObject.Attachments = stories;
-					return attachableObject;
-				});
-
-			}
-
-			// Next the List events:
-			var listEvents = Events.FindByType(typeof(IHaveStoryAttachments), "List", EventPlacement.After);
-
-			foreach (var listEvent in listEvents)
-			{
-				listEvent.AddEventListener(async (Context context, object[] args) =>
-				{
-					// args[0] is a List of IHaveStoryAttachments implementors.
-					if (!(args[0] is IList list))
-					{
-						// Can't handle this (or it was null anyway):
-						return args[0];
-					}
-
-					// First we'll collect all their IDs so we can do a single bulk lookup.
-					// ASSUMPTION: The list is not excessively long!
-					// FUTURE IMPROVEMENT: Do this in chunks of ~50k entries.
-					// (applies to at least categories/ tags/ attachments).
-
-					var ids = new object[list.Count];
-					var contentLookup = new Dictionary<int, IHaveStoryAttachments>();
-					int contentTypeId = 0;
-
-					for (var i = 0; i < ids.Length; i++)
-					{
-						// *must* be DatabaseRow entries:
-						if (!(list[i] is DatabaseRow entry) || !(list[i] is IHaveStoryAttachments ihc))
-						{
-							throw new System.Exception("Story attachments are only available on DatabaseRow entities. " +
-							"Failed on this type: " + list[i].GetType().Name);
-						}
-
-						// Get the content type ID for the primary object:
-						if (contentTypeId == 0)
-						{
-							contentTypeId = ContentTypes.GetId(entry.GetType());
-						}
-
-						// Add to content lookup so we can map the tags to it shortly:
-						contentLookup[entry.Id] = ihc;
-
-						// Setup empty attachment array:
-						ihc.Attachments = new List<StoryAttachment>();
-
-						ids[i] = entry.Id;
-					}
-
-					if (ids.Length == 0)
-					{
-						// Nothing to do - just return here:
-						return list;
-					}
-
-					// Create the filter and run the query now:
-					var filter = new Filter<StoryAttachment>();
-					filter.EqualsArg("ContentTypeId", 0).And().EqualsSet("ContentId", ids);
-
-					// Get all the attachments for these entities:
-					var allStoryAttachments = await _database.List(context, listQuery, filter, contentTypeId);
-
-					// Add each one to the content:
-					foreach (var attachment in allStoryAttachments)
-					{
-						if (!attachment.ContentId.HasValue)
-						{
-							continue;
-						}
-
-						if (contentLookup.TryGetValue(attachment.ContentId.Value, out IHaveStoryAttachments content)) {
-							content.Attachments.Add(attachment);
-						}
-					}
-					
-					return list;
-				});
-
-			}
 			
+			// Because of IHaveStoryAttachments, must be nestable:
+			MakeNestable();
+			
+			// Define the IHaveStoryAttachments handler:
+			DefineIHaveArrayHandler<IHaveStoryAttachments, StoryAttachment>(
+				(IHaveStoryAttachments content, List<StoryAttachment> results) =>
+				{
+					content.Attachments = results;
+				}
+			);
+
+
 		}
 
     }
