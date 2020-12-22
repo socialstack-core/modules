@@ -254,11 +254,11 @@ namespace Api.Uploader
 
 					Console.WriteLine("Uploaded file is a corrupt image or is too big. Underlying exception: " + e.ToString());
 				}
-				catch
+				catch (Exception e)
 				{
 					// Either the image format is unknown or you don't have the required libraries to decode this format [GDI+ status: UnknownImageFormat]
 					// Just ignore this one.
-					Console.WriteLine("Unsupported image format was not resized.");
+					Console.WriteLine("Unsupported image format was not resized. Underlying exception: " + e.ToString());
 				}
 			}else if(IsOtherImage(fileType))
 			{
