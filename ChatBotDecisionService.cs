@@ -8,6 +8,7 @@ using Api.Eventing;
 using Api.LiveSupportChats;
 using Api.Startup;
 using System;
+using Api.MeetingAppointments;
 
 namespace Api.ChatBotSimple
 {
@@ -20,6 +21,7 @@ namespace Api.ChatBotSimple
 		private Dictionary<int, List<ChatBotDecision>> _inReplyToMap;
 		private LiveSupportMessageService _liveChatMessages;
 		private LiveSupportChatService _liveChat;
+		private MeetingAppointmentService _meetingsAppointments;
 		
 		/// <summary>
 		/// Instanced automatically. Use injection to use this service, or Startup.Services.Get.
@@ -66,6 +68,146 @@ namespace Api.ChatBotSimple
 					chat.FullName = message.Message;
 					chat = await _liveChat.Update(ctx, chat);
                 }
+
+				// The user is setting the email address for this chat.
+				if (message.MessageType == 4)
+                {
+					
+					// We need to create a meeting Appointment instance - let's grab that service and the live chat service so we can get existing details. 
+					if (_liveChat == null)
+					{
+						_liveChat = Services.Get<LiveSupportChatService>();
+					}
+
+					// Let's set the live chat to have the email address.
+					var chat = await _liveChat.Get(ctx, message.LiveSupportChatId);
+					chat.Email = message.Message;
+					chat = await _liveChat.Update(ctx, chat);
+				}
+
+				// Is the user setting the date for the meeting?
+				if (message.MessageType == 8)
+				{
+					// We need to see if there is currently an appointment on this chat instance.
+					if (_liveChat == null)
+					{
+						_liveChat = Services.Get<LiveSupportChatService>();
+					}
+
+					if (_meetingsAppointments == null)
+					{
+						_meetingsAppointments = Services.Get<MeetingAppointmentService>();
+					}
+
+					// Let's get the live chat
+					var chat = await _liveChat.Get(ctx, message.LiveSupportChatId);
+
+					// Does the live chat have a meeting? If not, we done.
+					if (chat.MeetingAppointmentId.HasValue)
+					{
+						// Yep, let's get said meeting appointment
+						var appt = await _meetingsAppointments.Get(ctx, chat.MeetingAppointmentId.Value);
+
+						// is the appt valid?
+						if (appt != null)
+						{
+							// Set the new Date
+							appt.Date = message.HiddenDatePayload;
+							appt = await _meetingsAppointments.Update(ctx, appt);
+						}
+					}
+				}
+
+				// Is the user setting the meeting topic?
+				if (message.MessageType == 9)
+                {
+					// We need to see if there is currently an appointment on this chat instance.
+					if (_liveChat == null)
+					{
+						_liveChat = Services.Get<LiveSupportChatService>();
+					}
+
+					if (_meetingsAppointments == null)
+					{
+						_meetingsAppointments = Services.Get<MeetingAppointmentService>();
+					}
+
+					// Let's get the live chat
+					var chat = await _liveChat.Get(ctx, message.LiveSupportChatId);
+
+					// Does the live chat have a meeting? If not, we done.
+					if (chat.MeetingAppointmentId.HasValue)
+					{
+						// Yep, let's get said meeting appointment
+						var appt = await _meetingsAppointments.Get(ctx, chat.MeetingAppointmentId.Value);
+
+						// is the appt valid?
+						if (appt != null)
+						{
+							// Nice, now we can do business - set the phone number
+							appt.Topic = message.Message;
+							appt = await _meetingsAppointments.Update(ctx, appt);
+						}
+					}
+				}
+
+				// is the user setting the phonenumber for a meeting?
+				if (message.MessageType == 5)
+                {
+					// We need to see if there is currently an appointment on this chat instance.
+					if (_liveChat == null)
+					{
+						_liveChat = Services.Get<LiveSupportChatService>();
+					}
+
+					if (_meetingsAppointments == null)
+					{
+						_meetingsAppointments = Services.Get<MeetingAppointmentService>();
+					}
+
+					// Let's get the live chat
+					var chat = await _liveChat.Get(ctx, message.LiveSupportChatId);
+
+					// Does the live chat have a meeting? If not, we done.
+					if (chat.MeetingAppointmentId.HasValue)
+                    {
+						// Yep, let's get said meeting appointment
+						var appt = await _meetingsAppointments.Get(ctx, chat.MeetingAppointmentId.Value);
+
+						// is the appt valid?
+						if (appt != null)
+                        {
+							// Nice, now we can do business - set the phone number
+							appt.ContactNumber = message.Message;
+							appt = await _meetingsAppointments.Update(ctx, appt);
+                        }
+                    }
+				}
+
+				// The user is creating a new meeting instance. 
+				if(message.InReplyTo == 3 && message.Message == "Book a meeting")
+                {
+					// We need to create a meeting Appointment instance - let's grab that service and the live chat service so we can get existing details. 
+					if (_liveChat == null)
+					{
+						_liveChat = Services.Get<LiveSupportChatService>();
+					}
+
+					if (_meetingsAppointments == null)
+                    {
+						_meetingsAppointments = Services.Get<MeetingAppointmentService>();
+                    }
+
+					// Let's grab the current live chat.
+					var chat = await _liveChat.Get(ctx, message.LiveSupportChatId);
+
+					// Let's create a new meeting appointment entry.
+					var appt = await _meetingsAppointments.Create(ctx, new MeetingAppointment() { FullName = chat.FullName, Email = chat.Email, UserId = chat.UserId });
+
+					// Let's also set the chat to have the appointment's id.
+					chat.MeetingAppointmentId = appt.Id;
+					chat = await _liveChat.Update(ctx, chat);
+				}
 				
 				// message.LiveSupportChatId
 				List<ChatBotDecision> list = null;
@@ -127,7 +269,7 @@ namespace Api.ChatBotSimple
 				if(chat.AssignedToUserId == null && chat.EnteredQueueUtc == null && currChat.AssignedToUserId != null && currChat.EnteredQueueUtc != null)
 				{
 					var alsoSendMessage = await Get(ctx, 11);
-					await Task.Delay(2000);
+					await Task.Delay(1000);
 					await SendChatBotMessage(ctx, chat.Id, alsoSendMessage);
 				}
 
