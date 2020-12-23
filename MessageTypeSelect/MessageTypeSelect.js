@@ -12,6 +12,9 @@ export default class MessageTypeSelect extends React.Component {
 				<option value="5">Validated response must be a phone number</option>
 				<option value="6">When received, terminates chat.</option>
 				<option value="7">When received, return control to bot.</option>
+				<option value="8">Validated response must be a date</option>
+				<option value="9">Response is meeting topic</option>
+				<option value="10">Response is timezone id</option>
 			</Input>;
 	}
 	
