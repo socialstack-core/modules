@@ -40,6 +40,16 @@ namespace Api.LiveSupportChats
 		/// Determines whether a user can download the chat. Happens at the end of booking or once an operator chat has been initiated.
 		/// </summary>
 		public bool CanDownload;
+
+		/// <summary>
+		/// The current meeting appointment we are constructing in this chat.
+		/// </summary>
+		public int? MeetingAppointmentId;
+
+		/// <summary>
+		/// The user's who initiated the chat's address.
+		/// </summary>
+		public string Email;
 	}
 
 }

@@ -37,6 +37,11 @@ namespace Api.LiveSupportChats
 		/// True if message is from the support end.
 		/// </summary>
 		public bool FromSupport;
+
+		/// <summary>
+		/// This is used to carry an important payload that is what we really want, but not what we can render i.e. dates- the utc would look too nasty as a message so we hide and have the message as clean content.
+		/// </summary>
+		public DateTime? HiddenDatePayload;
 	}
 
 }
