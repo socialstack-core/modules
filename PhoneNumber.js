@@ -10,7 +10,7 @@ export default value => {
 		return;
 	}
 	
-	if(/[^0-9\+\-\.]+/.test(value)){
+	if(/[^0-9\+\-\.\ \(\)]+/.test(value)){
 		return {
 			error: 'FORMAT',
 			ui: <Text>
