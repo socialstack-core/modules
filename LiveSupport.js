@@ -26,6 +26,8 @@ export default class LiveSupport extends React.Component {
 					loading: false,
 					chat: response.json
 				});
+
+				global.app.setState({chat: response.json});
 			})
 		};
 
@@ -50,6 +52,7 @@ export default class LiveSupport extends React.Component {
 						loading: false,
 						mode: null
 					});
+					global.app.setState({chat: null});
 				}}>
 					<img src={closeImage} alt="" role="presentation" />
 				</button>

@@ -2,6 +2,7 @@ import Form from 'UI/Form';
 import Input from 'UI/Input';
 import Alert from 'UI/Alert';
 import webRequest from 'UI/Functions/WebRequest';
+import Calendar from 'UI/Calendar';
 
 export default class Create extends React.Component {
 
@@ -52,6 +53,8 @@ export default class Create extends React.Component {
         sendTip = sendTip || "Send message";
         placeholder = placeholder || "Write your message here...";
         var validate = [];
+        var useCalendarMessage = false;
+
         // Let's look at the last Message's Message Type to see if we need to apply any validation. 
         if(lastMessage && lastMessage.messageType){
             if (lastMessage.messageType == 3) {
@@ -70,9 +73,14 @@ export default class Create extends React.Component {
             if (lastMessage.messageType == 6) {
                 this.props.onClose && this.props.onClose();
             }
+
+            if (lastMessage.messageType == 8) {
+                useCalendarMessage = true;
+            }
         }
 
         return <div className="message-create">
+            {useCalendarMessage ? <Calendar {...this.props}/> :
             <Form
                 action="livesupportmessage"
                 onSuccess={response => {
@@ -88,6 +96,7 @@ export default class Create extends React.Component {
                         values.inReplyTo = this.props.replyTo;
                         this.setState({ submitting: true, failure: false });
                         values.liveSupportChatId = this.props.chat.id;
+                        values.messageType = lastMessage.messageType;
                         return values;
                     }
                 }
@@ -134,7 +143,7 @@ export default class Create extends React.Component {
                         <span>{sendLabel}</span>
                     </button>
                 </div>
-            </Form>
+            </Form> }
 
             {canDownload && <Form
 				requestOpts={{
@@ -162,7 +171,7 @@ export default class Create extends React.Component {
                     <span>Download Chat</span>
                 </button>
 			</Form>
- }
+            }   
         </div>;
 
     }
