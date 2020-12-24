@@ -50,6 +50,11 @@ namespace Api.LiveSupportChats
 		/// The user's who initiated the chat's address.
 		/// </summary>
 		public string Email;
+
+		/// <summary>
+		/// The current mode of this chat. If its null, its standard. Otherwise, project dependent.
+		/// </summary>
+		public int? Mode;
 	}
 
 }
