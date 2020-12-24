@@ -21,7 +21,13 @@ export default class LiveSupport extends React.Component {
 			this.setState({
 				loading: true
 			});
-			webRequest('livesupportchat', {}).then(response => {
+			var args = {};
+
+			if (this.props.mode) {
+				args.Mode = this.props.mode;
+			}
+
+			webRequest('livesupportchat', args).then(response => {
 				this.setState({
 					loading: false,
 					chat: response.json
