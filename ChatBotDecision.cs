@@ -51,7 +51,11 @@ namespace Api.ChatBotSimple
 		/// AlsoSend is the message to also send in response after the inital response. 
 		/// </summary>
 		public int? AlsoSend;
-		
+
+		/// <summary>
+		/// If the mode is set, this indicates its the first message for a given mode.
+		/// </summary>
+		public int? Mode;
 	}
 
 }

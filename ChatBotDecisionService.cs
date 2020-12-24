@@ -42,8 +42,41 @@ namespace Api.ChatBotSimple
 				List<ChatBotDecision> list = null;
 				if(_inReplyToMap.TryGetValue(0, out list) && list.Count > 0)
 				{
-					// In this case we can only use the first entry.
-					await SendChatBotMessage(ctx, chat.Id, list[0]);
+					// Let's check if this is a special mode. If not, send the standard chat first.
+					if(chat.Mode.HasValue)
+                    {
+						foreach(var dec in list)
+                        {
+							if (dec.Mode == chat.Mode)
+                            {
+								// We have a match, send that message.
+								await SendChatBotMessage(ctx, chat.Id, dec);
+
+								// Also, let's get this started with a meeting entry.
+								if (_meetingsAppointments == null)
+								{
+									_meetingsAppointments = Services.Get<MeetingAppointmentService>();
+								}
+
+								if (_liveChat == null)
+								{
+									_liveChat = Services.Get<LiveSupportChatService>();
+								}
+
+								// Let's create a new meeting appointment entry.
+								var appt = await _meetingsAppointments.Create(ctx, new MeetingAppointment() { UserId = chat.UserId });
+
+								// Let's also set the chat to have the appointment's id.
+								chat.MeetingAppointmentId = appt.Id;
+								chat = await _liveChat.Update(ctx, chat);
+							}
+                        }
+                    }
+					else
+                    {
+						// In this case we can only use the first entry.
+						await SendChatBotMessage(ctx, chat.Id, list[0]);
+					}
 				}
 				
 				return chat;
@@ -56,8 +89,8 @@ namespace Api.ChatBotSimple
 					return message;
 				}
 
-				// If reply to is 1, this is the one that sets the name of the user, so let's grab it.
-				if(message.InReplyTo == 1)
+				// this is the one that sets the name of the user, so let's grab it.
+				if(message.MessageType == 3)
                 {
 					if(_liveChat == null)
                     {
@@ -67,7 +100,29 @@ namespace Api.ChatBotSimple
 					var chat = await _liveChat.Get(ctx, message.LiveSupportChatId);
 					chat.FullName = message.Message;
 					chat = await _liveChat.Update(ctx, chat);
-                }
+
+					// Does this chat have an appointment? if so, let's set it's name.
+					// Does the live chat have a meeting? If not, we done.
+					if (chat.MeetingAppointmentId.HasValue)
+					{
+						if (_meetingsAppointments == null)
+						{
+							_meetingsAppointments = Services.Get<MeetingAppointmentService>();
+						}
+
+						// Yep, let's get said meeting appointment
+						var appt = await _meetingsAppointments.Get(ctx, chat.MeetingAppointmentId.Value);
+
+						// is the appt valid?
+						if (appt != null)
+						{
+							// Set the new Date
+							appt.FullName = message.Message;
+							appt = await _meetingsAppointments.Update(ctx, appt);
+						}
+					}
+
+				}
 
 				// The user is setting the email address for this chat.
 				if (message.MessageType == 4)
@@ -83,6 +138,27 @@ namespace Api.ChatBotSimple
 					var chat = await _liveChat.Get(ctx, message.LiveSupportChatId);
 					chat.Email = message.Message;
 					chat = await _liveChat.Update(ctx, chat);
+
+					// Does this chat have an appointment? if so, let's set it's name.
+					// Does the live chat have a meeting? If not, we done.
+					if (chat.MeetingAppointmentId.HasValue)
+					{
+						if (_meetingsAppointments == null)
+						{
+							_meetingsAppointments = Services.Get<MeetingAppointmentService>();
+						}
+
+						// Yep, let's get said meeting appointment
+						var appt = await _meetingsAppointments.Get(ctx, chat.MeetingAppointmentId.Value);
+
+						// is the appt valid?
+						if (appt != null)
+						{
+							// Set the new Date
+							appt.Email = message.Message;
+							appt = await _meetingsAppointments.Update(ctx, appt);
+						}
+					}
 				}
 
 				// Is the user setting the date for the meeting?
