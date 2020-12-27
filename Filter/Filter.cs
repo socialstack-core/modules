@@ -509,16 +509,6 @@ namespace Api.Permissions
 		/// </summary>
 		public List<FilterNode> Nodes = new List<FilterNode>();
 
-		/// <summary>
-		/// Any joins in this filter.
-		/// </summary>
-		public List<FilterJoin> Joins = null;
-		
-		/// <summary>
-		/// Any group by's in this filter.
-		/// </summary>
-		public List<FilterGroupBy> Groupings = null;
-
         /// <summary>
         /// Any sorts in this filter.
         /// </summary>
