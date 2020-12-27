@@ -9,6 +9,7 @@ using Api.LiveSupportChats;
 using Api.Startup;
 using System;
 using Api.MeetingAppointments;
+using Api.ExpertQuestions;
 
 namespace Api.ChatBotSimple
 {
@@ -22,6 +23,7 @@ namespace Api.ChatBotSimple
 		private LiveSupportMessageService _liveChatMessages;
 		private LiveSupportChatService _liveChat;
 		private MeetingAppointmentService _meetingsAppointments;
+		private ExpertQuestionService _expertQuestions;
 		
 		/// <summary>
 		/// Instanced automatically. Use injection to use this service, or Startup.Services.Get.
@@ -90,12 +92,12 @@ namespace Api.ChatBotSimple
 				}
 
 				// this is the one that sets the name of the user, so let's grab it.
-				if(message.MessageType == 3)
-                {
-					if(_liveChat == null)
-                    {
+				if (message.MessageType == 3)
+				{
+					if (_liveChat == null)
+					{
 						_liveChat = Services.Get<LiveSupportChatService>();
-                    }
+					}
 
 					var chat = await _liveChat.Get(ctx, message.LiveSupportChatId);
 					chat.FullName = message.Message;
@@ -126,8 +128,8 @@ namespace Api.ChatBotSimple
 
 				// The user is setting the email address for this chat.
 				if (message.MessageType == 4)
-                {
-					
+				{
+
 					// We need to create a meeting Appointment instance - let's grab that service and the live chat service so we can get existing details. 
 					if (_liveChat == null)
 					{
@@ -196,7 +198,7 @@ namespace Api.ChatBotSimple
 
 				// Is the user setting the meeting topic?
 				if (message.MessageType == 9)
-                {
+				{
 					// We need to see if there is currently an appointment on this chat instance.
 					if (_liveChat == null)
 					{
@@ -229,7 +231,7 @@ namespace Api.ChatBotSimple
 
 				// is the user setting the phonenumber for a meeting?
 				if (message.MessageType == 5)
-                {
+				{
 					// We need to see if there is currently an appointment on this chat instance.
 					if (_liveChat == null)
 					{
@@ -246,18 +248,150 @@ namespace Api.ChatBotSimple
 
 					// Does the live chat have a meeting? If not, we done.
 					if (chat.MeetingAppointmentId.HasValue)
-                    {
+					{
 						// Yep, let's get said meeting appointment
 						var appt = await _meetingsAppointments.Get(ctx, chat.MeetingAppointmentId.Value);
 
 						// is the appt valid?
 						if (appt != null)
-                        {
+						{
 							// Nice, now we can do business - set the phone number
 							appt.ContactNumber = message.Message;
 							appt = await _meetingsAppointments.Update(ctx, appt);
-                        }
-                    }
+						}
+					}
+				}
+
+				// Let's set the time zone string.
+				if (message.MessageType == 11)
+				{
+					// We need to see if there is currently an appointment on this chat instance.
+					if (_liveChat == null)
+					{
+						_liveChat = Services.Get<LiveSupportChatService>();
+					}
+
+					if (_meetingsAppointments == null)
+					{
+						_meetingsAppointments = Services.Get<MeetingAppointmentService>();
+					}
+
+					// Let's get the live chat
+					var chat = await _liveChat.Get(ctx, message.LiveSupportChatId);
+
+					// Does the live chat have a meeting? If not, we done.
+					if (chat.MeetingAppointmentId.HasValue)
+					{
+						// Yep, let's get said meeting appointment
+						var appt = await _meetingsAppointments.Get(ctx, chat.MeetingAppointmentId.Value);
+
+						// is the appt valid?
+						if (appt != null)
+						{
+							// Nice, now we can do business - set the phone number
+							appt.Timezone = message.Message;
+							appt = await _meetingsAppointments.Update(ctx, appt);
+						}
+					}
+				}
+
+				// We are setting the offering area.
+				if (message.MessageType == 12)
+				{
+					// We need to see if there is currently an appointment on this chat instance.
+					if (_liveChat == null)
+					{
+						_liveChat = Services.Get<LiveSupportChatService>();
+					}
+
+					if (_expertQuestions == null)
+					{
+						_expertQuestions = Services.Get<ExpertQuestionService>();
+					}
+
+					// Let's get the live chat
+					var chat = await _liveChat.Get(ctx, message.LiveSupportChatId);
+
+					// Does the live chat have a meeting? If not, we done.
+					if (chat.ExpertQuestionId.HasValue)
+					{
+						// Yep, let's get said meeting appointment
+						var quest = await _expertQuestions.Get(ctx, chat.ExpertQuestionId.Value);
+
+						// is the appt valid?
+						if (quest != null)
+						{
+							// Nice, now we can do business - set the phone number
+							quest.OfferingArea = message.Message;
+							quest = await _expertQuestions.Update(ctx, quest);
+						}
+					}
+				}
+
+				// We are setting the initiative of a question
+				if (message.MessageType == 13)
+				{
+					// We need to see if there is currently an appointment on this chat instance.
+					if (_liveChat == null)
+					{
+						_liveChat = Services.Get<LiveSupportChatService>();
+					}
+
+					if (_expertQuestions == null)
+					{
+						_expertQuestions = Services.Get<ExpertQuestionService>();
+					}
+
+					// Let's get the live chat
+					var chat = await _liveChat.Get(ctx, message.LiveSupportChatId);
+
+					// Does the live chat have a meeting? If not, we done.
+					if (chat.ExpertQuestionId.HasValue)
+					{
+						// Yep, let's get said meeting appointment
+						var quest = await _expertQuestions.Get(ctx, chat.ExpertQuestionId.Value);
+
+						// is the appt valid?
+						if (quest != null)
+						{
+							// Nice, now we can do business - set the phone number
+							quest.Initiative = message.Message;
+							quest = await _expertQuestions.Update(ctx, quest);
+						}
+					}
+				}
+
+				// We are setting the question's question
+				if (message.MessageType == 14)
+                {
+					// We need to see if there is currently an appointment on this chat instance.
+					if (_liveChat == null)
+					{
+						_liveChat = Services.Get<LiveSupportChatService>();
+					}
+
+					if (_expertQuestions == null)
+					{
+						_expertQuestions = Services.Get<ExpertQuestionService>();
+					}
+
+					// Let's get the live chat
+					var chat = await _liveChat.Get(ctx, message.LiveSupportChatId);
+
+					// Does the live chat have a meeting? If not, we done.
+					if (chat.ExpertQuestionId.HasValue)
+					{
+						// Yep, let's get said meeting appointment
+						var quest = await _expertQuestions.Get(ctx, chat.ExpertQuestionId.Value);
+
+						// is the appt valid?
+						if (quest != null)
+						{
+							// Nice, now we can do business - set the question
+							quest.Question = message.Message;
+							quest = await _expertQuestions.Update(ctx, quest);
+						}
+					}
 				}
 
 				// The user is creating a new meeting instance. 
@@ -282,6 +416,31 @@ namespace Api.ChatBotSimple
 
 					// Let's also set the chat to have the appointment's id.
 					chat.MeetingAppointmentId = appt.Id;
+					chat = await _liveChat.Update(ctx, chat);
+				}
+
+				// The user is creating a new ask an expert entry.
+				if(message.InReplyTo == 3 && message.Message == "Ask an expert")
+                {
+					// We need to create a meeting Appointment instance - let's grab that service and the live chat service so we can get existing details. 
+					if (_liveChat == null)
+					{
+						_liveChat = Services.Get<LiveSupportChatService>();
+					}
+
+					if (_expertQuestions == null)
+                    {
+						_expertQuestions = Services.Get<ExpertQuestionService>();
+                    }
+
+					// Let's grab the current live chat.
+					var chat = await _liveChat.Get(ctx, message.LiveSupportChatId);
+
+					// Let's create a new expert question entry.
+					var expertQuestion = await _expertQuestions.Create(ctx, new ExpertQuestion() { FullName = chat.FullName, Email = chat.Email});
+
+					// Let's also set the chat to have the expert Question id.
+					chat.ExpertQuestionId = expertQuestion.Id;
 					chat = await _liveChat.Update(ctx, chat);
 				}
 				
@@ -448,7 +607,7 @@ namespace Api.ChatBotSimple
 			if (dec.AlsoSend.HasValue)
             {
 				var alsoSendMessage = await Get(ctx, dec.AlsoSend.Value);
-				await Task.Delay(2000);
+				await Task.Delay(1000);
 				await SendChatBotMessage(ctx, chatId, alsoSendMessage);
             }
 
