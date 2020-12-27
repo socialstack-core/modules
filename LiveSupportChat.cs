@@ -55,6 +55,11 @@ namespace Api.LiveSupportChats
 		/// The current mode of this chat. If its null, its standard. Otherwise, project dependent.
 		/// </summary>
 		public int? Mode;
+
+		/// <summary>
+		/// The current expert question we are constructing in this chat.
+		/// </summary>
+		public int? ExpertQuestionId;
 	}
 
 }
