@@ -207,22 +207,13 @@ public partial class AutoService<T, ID> : AutoService
 
 		if (cache != null)
 		{
-			if (filter == null || (filter.Joins == null && filter.Groupings == null))
-			{
-				// This filter can be serviced by the cache.
-				List<ResolvedValue> values = null;
+			List<ResolvedValue> values = null;
 
-				if (filter != null)
-				{
-					values = await filter.ResolveValues(context);
-				}
-				listAndTotal = cache.ListWithTotal(filter, values);
-			}
-			else
+			if (filter != null)
 			{
-				// Via DB:
-				listAndTotal = await _database.ListWithTotal(context, listQuery, filter);
+				values = await filter.ResolveValues(context);
 			}
+			listAndTotal = cache.ListWithTotal(filter, values);
 		}
 		else
 		{
@@ -257,22 +248,13 @@ public partial class AutoService<T, ID> : AutoService
 		
 		if (cache != null)
 		{
-			if (filter == null || (filter.Joins == null && filter.Groupings == null))
-			{
-				// This filter can be serviced by the cache.
-				List<ResolvedValue> values = null;
+			List<ResolvedValue> values = null;
 
-				if (filter != null)
-				{
-					values = await filter.ResolveValues(context);
-				}
-				list = cache.List(filter, values, out int total);
-			}
-			else
+			if (filter != null)
 			{
-				// Via DB:
-				list = await _database.List(context, listQuery, filter);
+				values = await filter.ResolveValues(context);
 			}
+			list = cache.List(filter, values, out int total);
 		}
 		else
 		{
