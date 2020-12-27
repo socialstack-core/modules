@@ -15,6 +15,10 @@ export default class MessageTypeSelect extends React.Component {
 				<option value="8">Validated response must be a date</option>
 				<option value="9">Response is meeting topic</option>
 				<option value="10">Response is timezone id</option>
+				<option value="11">Response is timezone string</option>
+				<option value="12">Response is expert question offering area</option>
+				<option value="13">Response is expert question initiative</option>
+				<option value="14">Response is expert question question</option>
 			</Input>;
 	}
 	
