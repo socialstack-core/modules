@@ -35,14 +35,6 @@ namespace Api.Permissions
 		/// It would be e.g. "fr" and just matches whatever your Locale.Code is.</param>
 		public void BuildWhereQuery(StringBuilder str, int paramOffset, string localeCode)
 		{
-			if (Joins != null)
-			{
-				for (var i = 0; i < Joins.Count; i++)
-				{
-					Joins[i].BuildQuery(str, paramOffset, localeCode);
-				}
-			}
-
 			if (HasContent)
 			{
 				str.Append(" WHERE ");
@@ -61,15 +53,6 @@ namespace Api.Permissions
 		public void BuildFullQuery(StringBuilder str, int paramOffset, string localeCode)
 		{
 			BuildWhereQuery(str, paramOffset, localeCode);
-
-			if (Groupings != null)
-			{
-				for (var i = 0; i < Groupings.Count; i++)
-				{
-					Groupings[i].BuildQuery(str, paramOffset, localeCode);
-				}
-			}
-
 			BuildOrderLimitQuery(str, paramOffset, localeCode);
 		}
 
