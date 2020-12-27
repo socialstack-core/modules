@@ -10,15 +10,12 @@ export default class MultiSelect extends React.Component {
 	}
 
 	optionSelected(option) {
-		console.log("option selected has fired");
+		//console.log("option selected has fired");
 
-		this.state = {
-			selectedValue: option
-		};
+		//this.setState({selectedValue: option});
 	}
 	
 	render() {
-		console.log(this.props);
 		if(!this.props.answers) {
 			return;
 		}
@@ -27,10 +24,11 @@ export default class MultiSelect extends React.Component {
 		return <div className="livesupport-multiselect">
 			{
 				this.props.answers.map((text, i) => {
-					var optionClass = this.state.selectedValue == text ? "selected" : "";
+					var optionClass = "";
+					//var optionClass = this.state.selectedValue == text ? "selected" : "";
 					var disabled = this.state.selectedValue != null ? "disabled" : null;
 					{/* TODO: onClick not firing?  may be unnecessary if these options will be hidden after selection */}
-					return <Input disabled = {disabled} className = {optionClass} key={i} type="submit" name="message" value={text}>{text}</Input>
+					return <Input disabled = {disabled} onClick = {() => {this.optionSelected(text)}} className = {optionClass} key={i} type="submit" name="message" value={text}>{text}</Input>
 				})
 			}
 		</div>;

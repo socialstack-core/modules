@@ -27,7 +27,7 @@ export default class MessageList extends React.Component {
 	}
 	
 	renderAttachment(json, message) {
-		if(message.messageType == 1){
+		if(message.messageType == 1 || message.messageType == 12 || message.messageType == 13){
 			// Input format with a surrounding form. This importantly blocks the regular free text box from appearing.
 			// The rendered field(s) must supply a field called "message" with the selected value.
 			return this.renderInput(json, message);
@@ -50,7 +50,14 @@ export default class MessageList extends React.Component {
 				values => {
 					values.inReplyTo = message.replyTo;
 					values.liveSupportChatId = this.props.chat.id;
+					values.messageType = message.messageType;
+					//values.messageType = message.messageType;
+
+					console.log("state.hideMessageBox " + this.state.hideMessageBox);
+					console.log("message.id " + message.id);
+
 					if(this.state.hideMessageBox == message.id){
+						console.log("about to return values");
 						return values;
 					}
 				}
@@ -83,8 +90,16 @@ export default class MessageList extends React.Component {
 						e.scrollTo(0, e.scrollHeight);
 					}, 10);
 					
-					if(entity.messageType == 1){
+
+					console.log("checking new entity");
+					console.log(entity);
+
+					console.log("entity created time: " + new Date(entity.createdUtc).getTime());
+					console.log("current last message created time: " + new Date(this.state.lastMessage.createdUtc).getTime())
+					if((entity.messageType == 1 || entity.messageType == 12 || entity.messageType == 13) && new Date(entity.createdUtc).getTime() > new Date(this.state.lastMessage.createdUtc).getTime()){
 						// requires special response from user. The extra payload is canvas JSON.
+
+						console.log("about to set set for hide message Box")
 						this.setState({
 							hideMessageBox: entity.id,
 							lastMessage: entity
@@ -139,7 +154,7 @@ export default class MessageList extends React.Component {
 					}}
 				</Loop>
 			</div>
-			<MessageCreate disableSend = {(lastMessage && lastMessage.messageType == 1)} returnToBotDecision = {this.props.returnToBotDecision} onClose = {this.props.onClose} lastMessage={lastMessage} replyTo={lastMessage ? lastMessage.replyTo : 0}  canClaim={this.props.canClaim} chat={chat} sendLabel={sendLabel} sendTip={sendTip} placeholder={placeholder} />
+			<MessageCreate disableSend = {(lastMessage && (lastMessage.messageType == 1 || lastMessage.messageType == 12 || lastMessage.messageType == 13))} returnToBotDecision = {this.props.returnToBotDecision} onClose = {this.props.onClose} lastMessage={lastMessage} replyTo={lastMessage ? lastMessage.replyTo : 0}  canClaim={this.props.canClaim} chat={chat} sendLabel={sendLabel} sendTip={sendTip} placeholder={placeholder} />
 		</div>;
 	}
 	
