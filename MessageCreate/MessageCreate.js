@@ -80,7 +80,7 @@ export default class Create extends React.Component {
         }
 
         return <div className="message-create">
-            {useCalendarMessage ? <Calendar {...this.props}/> :
+            {useCalendarMessage ? <Calendar exclusionStartUtc = {"2021-01-11 00:00:00"} exclusionEndUtc = {"2021-01-17 00:00:00"} {...this.props}/> :
             <Form
                 action="livesupportmessage"
                 onSuccess={response => {
@@ -120,6 +120,7 @@ export default class Create extends React.Component {
                         label=""
                         noWrapper
                         validate = {validate}
+                        validateErrorLocation = "above"
                         onKeyUp={e => {
                             this.messageUpdated(e);
                         }} />
@@ -146,10 +147,7 @@ export default class Create extends React.Component {
             </Form> }
 
             {canDownload && <Form
-				requestOpts={{
-					blob: true
-				}}
-                action={"livesupportmessage/list.csv"}
+                action={"livesupportmessage/list"}
                 onValues={vals => {
                     var filter = {};
                     filter.where = {};
@@ -157,11 +155,41 @@ export default class Create extends React.Component {
 					
 					return filter;
                 }}
-				onSuccess={responseBlob => {
-					var url = window.URL.createObjectURL(responseBlob);
+				onSuccess={response => {
+                    // We need to piece together our response string using the responseBlob
+                    
+                    console.log(response);
+
+
+                    var text = "";
+                    response.results.forEach(message => {
+                        console.log(message.message);
+
+                        // Let's build our final text object.
+                        // Who made the message?
+                        if(message.message && message.message != "") {
+                            if(message.fromSupport) {
+                                text += "Bridgestone Support: ";
+                                text += message.message + "\n";
+                            } else if (message.creatorUser.id != global.app.state.user.id) {
+                                // Its from the user
+                                text += message.creatorUser.firstName + ": ";
+                                text += message.message + "\n";
+                            } else {
+                                // Its from the user
+                                text += "You: ";
+                                text += message.message + "\n";
+                            }
+                        }
+                    });
+
+                    console.log(text);
+
+					//var url = window.URL.createObjectURL(response);
 					var a = document.createElement('a');
-					a.href = url;
-					a.download = "bridgestone-chat-history.csv";
+                    //a.href = url;
+                    a.href = "data:text/plain/charset=utf-8," + encodeURIComponent(text);
+					a.download = "bridgestone-chat-history.txt";
 					document.body.appendChild(a);
 					a.click();
 					a.remove();

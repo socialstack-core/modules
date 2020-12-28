@@ -1,6 +1,11 @@
 .livesupport {
 	.message-create {
 
+		.validation-error {
+			margin-top: 5px;
+			margin-bottom: 5px;
+		}
+
 		textarea {
 			/*
 			border: 0;
