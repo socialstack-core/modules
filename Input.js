@@ -57,9 +57,18 @@ export default class Input extends React.Component {
                     </small>
                 )
             }
+            {
+                (this.state.validationFailure && this.props.validateErrorLocation && this.props.validateErrorLocation == "above") && (
+                    <div className="validation-error">
+                        {this.props.validationFailure ? this.props.validationFailure(this.state.validationFailure) : this.state.validationFailure.ui}
+                    </div>
+                )
+            }
+
+
             { this.renderInput() }
             {
-                this.state.validationFailure && (
+                (this.state.validationFailure && (!this.props.validateErrorLocation || (this.props.validateErrorLocation && this.props.validateErrorLocation != "above"))) && (
                     <div className="validation-error">
                         {this.props.validationFailure ? this.props.validationFailure(this.state.validationFailure) : this.state.validationFailure.ui}
                     </div>
