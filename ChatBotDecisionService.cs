@@ -10,6 +10,7 @@ using Api.Startup;
 using System;
 using Api.MeetingAppointments;
 using Api.ExpertQuestions;
+using Api.LiveChatHours;
 
 namespace Api.ChatBotSimple
 {
@@ -24,6 +25,7 @@ namespace Api.ChatBotSimple
 		private LiveSupportChatService _liveChat;
 		private MeetingAppointmentService _meetingsAppointments;
 		private ExpertQuestionService _expertQuestions;
+		private LiveChatHourService _liveChatHours;
 		
 		/// <summary>
 		/// Instanced automatically. Use injection to use this service, or Startup.Services.Get.
@@ -394,6 +396,45 @@ namespace Api.ChatBotSimple
 					}
 				}
 
+				var outOfHoursResponse = false;
+
+				// The user is attempting to speak to an operator.
+				if(message.InReplyTo == 3 && message.Message == "Speak to a live operator")
+                {
+					// We need to check the hours currently.
+					if (_liveChat == null)
+                    {
+						_liveChat = Services.Get<LiveSupportChatService>();
+                    }
+
+					if (_liveChatHours == null)
+                    {
+						_liveChatHours = Services.Get<LiveChatHourService>();
+                    }
+
+					// Let's grab the live chat hours
+					var hours = await _liveChatHours.Get(ctx, 1);
+
+					// Is hours null? if so, let's let things carry on.
+					if (hours != null)
+                    {
+						// Let's grab the current time.
+						var now = DateTime.UtcNow;
+						var startHour = hours.AvailabilityStartUtc.Hour;
+						var endHour = startHour + hours.Duration;
+						if ((now.Hour >= startHour && now.Hour < endHour) || (now.Hour + 24 >= startHour && now.Hour + 24 < endHour))
+                        {
+							// We are good!
+							outOfHoursResponse = false;
+                        }
+						else
+                        {
+							// We are not good, we need to override the response.
+							outOfHoursResponse = true;
+                        }
+					}
+                }
+
 				// The user is creating a new meeting instance. 
 				if(message.InReplyTo == 3 && message.Message == "Book a meeting")
                 {
@@ -455,16 +496,29 @@ namespace Api.ChatBotSimple
 					
 					foreach(var entry in list)
 					{
-						if(string.IsNullOrEmpty(entry.AnswerProvided))
-						{
-							noneResponse = entry;
+						if(outOfHoursResponse)
+                        {
+							// We are looking for the out of hours response message type (in this project, type 15)
+							if(entry.MessageType == 15)
+                            {
+								dec = entry;
+								break;
+                            }
+                        }
+						else
+                        {
+							if (string.IsNullOrEmpty(entry.AnswerProvided))
+							{
+								noneResponse = entry;
+							}
+							else if (entry.AnswerProvided == message.Message)
+							{
+								// User selected some previous response and sent it to the chatbot
+								dec = entry;
+								break;
+							}
 						}
-						else if(entry.AnswerProvided == message.Message)
-						{
-							// User selected some previous response and sent it to the chatbot
-							dec = entry;
-							break;
-						}
+						
 					}
 					
 					if(dec == null)
@@ -590,6 +644,69 @@ namespace Api.ChatBotSimple
 
 				returnText = returnText.Replace("{queue}", queuePosition.ToString());
 
+			}
+
+			if (dec.MessageText.Contains("{start"))
+            {
+				// Let's get the start time.
+				if (_liveChatHours == null)
+				{
+					_liveChatHours = Services.Get<LiveChatHourService>();
+				}
+
+				// Let's grab the live chat hours
+				var hours = await _liveChatHours.Get(ctx, 1);
+
+				// Is hours null? if so, let's let things carry on.
+				if (hours != null)
+				{
+					var startHour = hours.AvailabilityStartUtc.ToLocalTime().Hour;
+					var startMinute = hours.AvailabilityStartUtc.ToLocalTime().Minute;
+
+					var startMinuteStr = startMinute.ToString();
+					
+					if (startMinute < 10)
+                    {
+						startMinuteStr = "0" + startMinute;
+                    }
+					
+					var startTime = startHour + ":" + startMinuteStr;
+					returnText = returnText.Replace("{start}", startTime);
+				}
+			}
+
+			if (dec.MessageText.Contains("{end}"))
+            {
+				// Let's get the end time.
+				if (_liveChatHours == null)
+				{
+					_liveChatHours = Services.Get<LiveChatHourService>();
+				}
+
+				// Let's grab the live chat hours
+				var hours = await _liveChatHours.Get(ctx, 1);
+
+				// Is hours null? if so, let's let things carry on.
+				if (hours != null)
+				{
+					var endHour = hours.AvailabilityStartUtc.ToLocalTime().Hour + hours.Duration;
+					var endMinute = hours.AvailabilityStartUtc.ToLocalTime().Minute;
+
+					var endMinuteStr = endMinute.ToString();
+
+					if (endMinute < 10)
+                    {
+						endMinuteStr = "0" + endMinute;
+                    }
+
+					while (endHour > 24)
+                    {
+						endHour -= 24;
+                    }
+
+					var startTime = endHour + ":" + endMinuteStr;
+					returnText = returnText.Replace("{end}", startTime);
+				}
 			}
 
 			await _liveChatMessages.Create(context, new LiveSupportMessage(){
