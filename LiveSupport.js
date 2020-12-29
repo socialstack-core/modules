@@ -31,27 +31,42 @@ export default class LiveSupport extends React.Component {
 						<h2 className="meeting-chats-title">
 							Open support requests
 						</h2>
-						<ChatList showTime filter={{where:{AssignedToUserId: null, UserId: {not: null}, EnteredQueueUtc: {not: null}}, sort: {field: 'EnteredQueueUtc', direction: 'asc'}}} onClick={chat => {
-							this.setState({
-								meetingRequest: null,
-								chat
-							})
-						}} />
+						<ChatList showTime filter={{where:{AssignedToUserId: null, UserId: {not: null}, EnteredQueueUtc: {not: null}}, sort: {field: 'EnteredQueueUtc', direction: 'asc'}}}
+							onClick={chat => {
+								this.setState({
+									meetingRequest: null,
+									chat
+								})
+							}} 
+						/>
 						<h2 className="meeting-chats-title">
 							Your requests
 						</h2>
-						<ChatList canClaim = {true} showTime filter={{where:{AssignedToUserId: user.id, EnteredQueueUtc: {not: null}}, sort: {field: 'EnteredQueueUtc', direction: 'asc'}}} onClick={chat => {
-							this.setState({
-								meetingRequest: null,
-								chat
-							})
-						}} />
+						<ChatList showTime filter={{where:{AssignedToUserId: user.id, EnteredQueueUtc: {not: null}}, sort: {field: 'EnteredQueueUtc', direction: 'asc'}}}
+							onClick={chat => {
+								this.setState({
+									meetingRequest: null,
+									chat
+								})
+							}}
+						/>
 					</section>
 				</Col>
 
 				<Col className="messages-preview" sizeXs={12} sizeSm={6} sizeMd={7}>
 					<div className="livesupport">
-						{ this.state.chat && <MessageList returnToBotDecision = {this.props.returnToBotDecision} canClaim = {true} chat={this.state.chat} /> }
+						{ this.state.chat &&
+							<MessageList
+								returnToBotDecision={this.props.returnToBotDecision}
+								canClaim={!this.state.chat.assignedToUserId}
+								onClaim={chat => {
+									this.setState({
+										chat
+									})
+								}}
+								chat={this.state.chat}
+							/>
+						}
 					</div>
 				</Col>
 			</Row>
