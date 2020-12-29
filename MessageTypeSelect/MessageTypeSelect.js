@@ -19,6 +19,7 @@ export default class MessageTypeSelect extends React.Component {
 				<option value="12">Response is expert question offering area</option>
 				<option value="13">Response is expert question initiative</option>
 				<option value="14">Response is expert question question</option>
+				<option value="15">Message is sent when operator is requested out of hours</option>
 			</Input>;
 	}
 	
