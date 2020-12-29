@@ -154,7 +154,19 @@ export default class MessageList extends React.Component {
 					}}
 				</Loop>
 			</div>
-			<MessageCreate disableSend = {(lastMessage && (lastMessage.messageType == 1 || lastMessage.messageType == 12 || lastMessage.messageType == 13))} returnToBotDecision = {this.props.returnToBotDecision} onClose = {this.props.onClose} lastMessage={lastMessage} replyTo={lastMessage ? lastMessage.replyTo : 0}  canClaim={this.props.canClaim} chat={chat} sendLabel={sendLabel} sendTip={sendTip} placeholder={placeholder} />
+			<MessageCreate
+				disableSend={(lastMessage && (lastMessage.messageType == 1 || lastMessage.messageType == 12 || lastMessage.messageType == 13))}
+				returnToBotDecision={this.props.returnToBotDecision}
+				onClose={this.props.onClose}
+				lastMessage={lastMessage}
+				replyTo={lastMessage ? lastMessage.replyTo : 0}
+				canClaim={this.props.canClaim}
+				chat={chat}
+				sendLabel={sendLabel}
+				sendTip={sendTip}
+				placeholder={placeholder}
+				onClaim={this.props.onClaim}
+			/>
 		</div>;
 	}
 	
