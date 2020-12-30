@@ -29,7 +29,7 @@ export default class Create extends React.Component {
         }).catch(error => {
             this.setState({submitting: false});
             console.log("There was an error claiming the chat.");
-        })
+        });
     }
 
     closeChat() {
@@ -37,10 +37,11 @@ export default class Create extends React.Component {
         webRequest("livesupportchat/" + this.props.chat.id, { assignedToUserId: null, enteredQueueUtc: null}).then(response => {
             this.setState({submitting: false});
             console.log("Chat was closed!");
+            this.props.onClose && this.props.onClose();
         }).catch(error => {
             this.setState({submitting: false});
             console.log("There was an error closing the chat.");
-        })
+        });
     }
 
     componentWillReceiveProps(newProps) {
@@ -181,7 +182,7 @@ export default class Create extends React.Component {
                         }
                     });
 
-                    console.log(text);
+                    //console.log(text);
 
 					//var url = window.URL.createObjectURL(response);
 					var a = document.createElement('a');
