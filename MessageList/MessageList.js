@@ -93,6 +93,8 @@ export default class MessageList extends React.Component {
 
 					console.log("checking new entity");
 					console.log(entity);
+					console.log("here is the current last message:");
+					console.log(this.state.lastMessage)
 
 					console.log("entity created time: " + new Date(entity.createdUtc).getTime());
 					console.log("current last message created time: " + new Date(this.state.lastMessage.createdUtc).getTime())
