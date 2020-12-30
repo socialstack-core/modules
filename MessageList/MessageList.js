@@ -5,6 +5,7 @@ import Canvas from 'UI/Canvas';
 import MessageCreate from 'UI/LiveSupport/MessageCreate';
 import getContentTypeId from 'UI/Functions/GetContentTypeId';
 import getRef from 'UI/Functions/GetRef';
+import dateTools from 'UI/Functions/DateTools';
 
 const defaultRef = "/images/talk_to_us.jpg";
 
@@ -96,12 +97,12 @@ export default class MessageList extends React.Component {
 					console.log("here is the current last message:");
 					console.log(this.state.lastMessage)
 
-					console.log("entity created time: " + new Date(entity.createdUtc).getTime());
-					console.log("current last message created time: " + new Date(this.state.lastMessage.createdUtc).getTime())
+					console.log("entity created time: " + dateTools.isoConvert(entity.createdUtc).getTime());
+					console.log("current last message created time: " + dateTools.isoConvert(this.state.lastMessage.createdUtc).getTime())
 					if((entity.messageType == 1 || entity.messageType == 12 || entity.messageType == 13) && new Date(entity.createdUtc).getTime() > new Date(this.state.lastMessage.createdUtc).getTime()){
 						// requires special response from user. The extra payload is canvas JSON.
 
-						console.log("about to set set for hide message Box")
+						console.log("about to set lastMessage and hideMessageBox")
 						this.setState({
 							hideMessageBox: entity.id,
 							lastMessage: entity
@@ -118,7 +119,7 @@ export default class MessageList extends React.Component {
 						
 						if(this.state.lastMessage != last){
 							setTimeout(() => {
-								console.log("weird last message set hit.");
+								console.log("lastMessage updated in loop")
 								this.setState({lastMessage: last});
 							}, 10);
 						}
