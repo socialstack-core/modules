@@ -64,6 +64,9 @@ export default class LiveSupport extends React.Component {
 										chat
 									})
 								}}
+								onClose={() => {
+									this.setState({ chat: ''});
+								}}
 								chat={this.state.chat}
 							/>
 						}
