@@ -115,11 +115,15 @@ export default class MessageList extends React.Component {
 				>
 					{all => {
 						var last = all.length && all[all.length-1];
+						
+						/*
 						if(this.state.lastMessage != last){
 							setTimeout(() => {
+								console.log("weird last message set hit.");
 								this.setState({lastMessage: last});
 							}, 10);
 						}
+						*/
 
 						var msgs = all.map(pm => {
 							
