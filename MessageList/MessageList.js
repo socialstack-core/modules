@@ -99,7 +99,7 @@ export default class MessageList extends React.Component {
 
 					console.log("entity created time: " + dateTools.isoConvert(entity.createdUtc).getTime());
 					console.log("current last message created time: " + dateTools.isoConvert(this.state.lastMessage.createdUtc).getTime())
-					if((entity.messageType == 1 || entity.messageType == 12 || entity.messageType == 13) && new Date(entity.createdUtc).getTime() > new Date(this.state.lastMessage.createdUtc).getTime()){
+					if((entity.messageType == 1 || entity.messageType == 12 || entity.messageType == 13) && dateTools.isoConvert(entity.createdUtc).getTime() > dateTools.isoConvert(this.state.lastMessage.createdUtc).getTime()){
 						// requires special response from user. The extra payload is canvas JSON.
 
 						console.log("about to set lastMessage and hideMessageBox")
