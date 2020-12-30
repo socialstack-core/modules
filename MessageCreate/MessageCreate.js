@@ -85,7 +85,7 @@ export default class Create extends React.Component {
         }
 
         return <div className="message-create">
-            {useCalendarMessage ? <Calendar exclusionStartUtc = {"2021-01-11 00:00:00"} exclusionEndUtc = {"2021-01-17 00:00:00"} {...this.props}/> :
+            {useCalendarMessage ? <Calendar exclusionStartUtc = {"2021-01-10 00:00:00"} exclusionEndUtc = {"2021-01-18 00:00:00"} {...this.props}/> :
             <Form
                 action="livesupportmessage"
                 className="message-form"
@@ -167,6 +167,7 @@ export default class Create extends React.Component {
                         // Let's build our final text object.
                         // Who made the message?
                         if(message.message && message.message != "") {
+                            text += "["+message.createdUtc+"] ";
                             if(message.fromSupport) {
                                 text += "Bridgestone Support: ";
                                 text += message.message + "\n";
