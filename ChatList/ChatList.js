@@ -29,7 +29,7 @@ export default class ChatList extends React.Component {
 			{getRef(user.avatarRef, { size: 256 })}
 			<div className="user-details">
 				<h3 className="user-name">
-					{user.firstName + ' ' + user.lastName}
+					{ user.fullName || user.firstName + ' ' + user.lastName }
 				</h3>
 				{!this.props.meetingRequest && 
 					<p className="subject-title">
@@ -74,7 +74,10 @@ export default class ChatList extends React.Component {
 					chatChannel => {
 						// Who we're chatting with:
 						var chattingWith = chatChannel.creatorUser;
-						
+						if (chatChannel.fullName) {
+							chattingWith.fullName = chatChannel.fullName;
+						}
+
 						return (
 							<button type="button" className="chat-request" onClick={() => {
 								var name = "Message";
@@ -82,11 +85,9 @@ export default class ChatList extends React.Component {
 								if (chattingWith.firstName && chattingWith.lastName) {
 									name = chattingWith.firstName + ' ' + chattingWith.lastName;
 								} else {
-
 									if (chattingWith.name) {
 										name = chattingWith.name;
 									}
-
 								}
 
 								setTimeout(() => {
