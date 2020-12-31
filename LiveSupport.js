@@ -16,7 +16,7 @@ export default class LiveSupport extends React.Component {
 		};
 	}
 
-	renderStartChat() {
+	renderStartChat(onClickActive) {
 		var startClick = () => {
 			this.setState({
 				loading: true
@@ -37,7 +37,15 @@ export default class LiveSupport extends React.Component {
 			})
 		};
 
-		return this.props.children ? this.props.children(startClick) : <button type="button" className="btn" onClick={startClick}>Chat with us</button>
+
+
+		if(!onClickActive) {
+			return this.props.children ? this.props.children() : <button type="button" className="btn">Chat with us</button>
+		} else {
+			return this.props.children ? this.props.children(startClick) : <button type="button" className="btn" onClick={startClick}>Chat with us</button>
+		}
+
+		
 	}
 
 	renderOpenChat() {
@@ -78,11 +86,12 @@ export default class LiveSupport extends React.Component {
 	}
 
 	render() {
+		var {stayOpen} = this.props;
 		var chatOpen = this.state.chat || this.state.loading;
-		var supportClass = chatOpen ? "livesupport open" : "livesupport";
+		var supportClass = chatOpen && !stayOpen ? "livesupport open" : "livesupport";
 
 		return <div className={supportClass}>
-			{chatOpen ? this.renderOpenChat() : this.renderStartChat()}
+			{stayOpen ? (chatOpen ? [this.renderOpenChat(), this.renderStartChat(false)] : this.renderStartChat(true)) : chatOpen ? this.renderOpenChat() : this.renderStartChat(true) }
 		</div>;
 
 	}
