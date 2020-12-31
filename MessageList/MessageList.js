@@ -64,7 +64,16 @@ export default class MessageList extends React.Component {
 				}
 			}
 		>
-			<Canvas>{json}</Canvas>
+			<Canvas onContentNode={contentNode => {
+				var content = this.state.fieldData;
+				if (!contentNode.data || !contentNode.data.name || !content) {
+					return;
+				}
+				
+				var data = contentNode.data;
+				data.chat = this.props.chat;
+				data.message = message;
+			}}>{json}</Canvas>
 		</Form>;
 	}
 	
