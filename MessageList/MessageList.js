@@ -54,22 +54,13 @@ export default class MessageList extends React.Component {
 					values.messageType = message.messageType;
 					//values.messageType = message.messageType;
 
-					console.log("state.hideMessageBox " + this.state.hideMessageBox);
-					console.log("message.id " + message.id);
-
 					if(this.state.hideMessageBox == message.id){
-						console.log("about to return values");
 						return values;
 					}
 				}
 			}
 		>
 			<Canvas onContentNode={contentNode => {
-				var content = this.state.fieldData;
-				if (!contentNode.data || !contentNode.data.name || !content) {
-					return;
-				}
-				
 				var data = contentNode.data;
 				data.chat = this.props.chat;
 				data.message = message;
@@ -100,18 +91,9 @@ export default class MessageList extends React.Component {
 						e.scrollTo(0, e.scrollHeight);
 					}, 10);
 					
-
-					console.log("checking new entity");
-					console.log(entity);
-					console.log("here is the current last message:");
-					console.log(this.state.lastMessage)
-
-					console.log("entity created time: " + dateTools.isoConvert(entity.createdUtc).getTime());
-					console.log("current last message created time: " + dateTools.isoConvert(this.state.lastMessage.createdUtc).getTime())
 					if((entity.messageType == 1 || entity.messageType == 12 || entity.messageType == 13) && dateTools.isoConvert(entity.createdUtc).getTime() > dateTools.isoConvert(this.state.lastMessage.createdUtc).getTime()){
 						// requires special response from user. The extra payload is canvas JSON.
 
-						console.log("about to set lastMessage and hideMessageBox")
 						this.setState({
 							hideMessageBox: entity.id,
 							lastMessage: entity
@@ -128,7 +110,6 @@ export default class MessageList extends React.Component {
 						
 						if(this.state.lastMessage != last){
 							setTimeout(() => {
-								console.log("lastMessage updated in loop")
 								this.setState({lastMessage: last});
 							}, 10);
 						}

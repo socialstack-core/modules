@@ -34,8 +34,6 @@ export default class LiveSupport extends React.Component {
 				loading: false,
 				chat: response.json
 			});
-
-			global.app.setState({chat: response.json});
 		})
 	}
 	
@@ -62,6 +60,7 @@ export default class LiveSupport extends React.Component {
 		var { title, closeImage, closeLabel, sendLabel, sendTip, placeholder } = this.props;
 		var { mode } = this.state;
 
+		console.log(title);
 		title = title || "Chat";
 		// TODO: default close image
 		//closeImage = closeImage || ;
