@@ -90,6 +90,34 @@ export default class Create extends React.Component {
                 action="livesupportmessage"
                 className="message-form"
                 onSuccess={response => {
+
+                    // If there was a success, and its for the name or email address, let's store it globally.
+                    if(response.messageType == 3) {
+                        // Is there a global chatIdentity?
+                        if(global.app.state.chatIdentity){
+                            var chatIdentity = global.app.state.chatIdentity;;
+                            chatIdentity.fullName = response.message;
+                            global.app.setState({chatIdentity});                     
+                        }
+                        else {
+                            var chatIdentity = {fullName: response.message, email: null};
+                            global.app.setState({chatIdentity}); 
+                        }
+                    }
+
+                    if(response.messageType == 4) {
+                        // Is there a global chatIdentity?
+                        if(global.app.state.chatIdentity){
+                            var chatIdentity = global.app.state.chatIdentity;;
+                            chatIdentity.email = response.message;
+                            global.app.setState({chatIdentity});                     
+                        }
+                        else {
+                            var chatIdentity = {fullName: null, email: response.message};
+                            global.app.setState({chatIdentity}); 
+                        }
+                    }
+
                     this.setState({ submitting: false, messageText: '' });
                     this.createTextarea && (this.createTextarea.value = '');
                 }}
@@ -98,7 +126,7 @@ export default class Create extends React.Component {
                 }}
                 onValues={
                     values => {
-                        //console.log("submitting!");
+                        console.log("submitting!");
                         values.inReplyTo = this.props.replyTo;
                         this.setState({ submitting: true, failure: false });
                         values.liveSupportChatId = this.props.chat.id;

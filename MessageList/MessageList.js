@@ -54,6 +54,8 @@ export default class MessageList extends React.Component {
 					values.messageType = message.messageType;
 					//values.messageType = message.messageType;
 
+					console.log("submitting multiselect");
+
 					if(this.state.hideMessageBox == message.id){
 						return values;
 					}
@@ -111,6 +113,14 @@ export default class MessageList extends React.Component {
 						if(this.state.lastMessage != last){
 							setTimeout(() => {
 								this.setState({lastMessage: last});
+
+								if((last.messageType == 1 || last.messageType == 12 || last.messageType == 13)){
+									// requires special response from user. The extra payload is canvas JSON.
+									this.setState({
+										hideMessageBox: last.id,
+									});
+								}
+
 							}, 10);
 						}
 

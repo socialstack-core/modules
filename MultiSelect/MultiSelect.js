@@ -28,7 +28,7 @@ export default class MultiSelect extends React.Component {
 					//var optionClass = this.state.selectedValue == text ? "selected" : "";
 					var disabled = this.state.selectedValue != null ? "disabled" : null;
 					{/* TODO: onClick not firing?  may be unnecessary if these options will be hidden after selection */}
-					return <Input disabled = {disabled} onClick = {() => {this.optionSelected(text)}} className = {optionClass} key={i} type="submit" name="message" value={text}>{text}</Input>
+					return <Input disabled = {disabled}  className = {optionClass} key={i} type="submit" name="message" value={text}>{text}</Input>
 				})
 			}
 		</div>;

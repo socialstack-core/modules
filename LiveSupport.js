@@ -29,6 +29,25 @@ export default class LiveSupport extends React.Component {
 			args.mode = props.mode;
 		}
 
+		// We need to determine what mode we are going in with. If there is a complete chat identity, we need to change the mode and create that chat using those global values. 
+		if(global.app.state && global.app.state.chatIdentity && global.app.state.chatIdentity.fullName && global.app.state.chatIdentity.email) {
+			if (props.mode) {
+				if (props.mode == 1) {
+					args.mode = 11;
+				}
+				if (props.mode == 2) {
+					args.mode = 12;
+				}
+			}
+			else {
+				// There is no mode set, but there is a logged in user, so this is the default chat.
+				args.mode = 10;
+			}
+
+			args.fullName = global.app.state.chatIdentity.fullName;
+			args.email = global.app.state.chatIdentity.email;
+		}
+
 		webRequest('livesupportchat', args).then(response => {
 			this.setState({
 				loading: false,
@@ -88,6 +107,7 @@ export default class LiveSupport extends React.Component {
 						loading: false,
 						mode: null
 					});
+					global.app.setState({chat: null});
 				}} chat={this.state.chat} sendLabel={sendLabel} sendTip={sendTip} placeholder={placeholder} />}
 
 		</div>;
