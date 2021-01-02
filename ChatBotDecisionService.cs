@@ -56,23 +56,48 @@ namespace Api.ChatBotSimple
 								// We have a match, send that message.
 								await SendChatBotMessage(ctx, chat.Id, dec);
 
-								// Also, let's get this started with a meeting entry.
-								if (_meetingsAppointments == null)
-								{
-									_meetingsAppointments = Services.Get<MeetingAppointmentService>();
+
+								// Now, do we need to make a meeting entry or ask an expert entry?
+								if(chat.Mode == 1 || chat.Mode == 11)
+                                {
+									// Also, let's get this started with a meeting entry.
+									if (_meetingsAppointments == null)
+									{
+										_meetingsAppointments = Services.Get<MeetingAppointmentService>();
+									}
+
+									if (_liveChat == null)
+									{
+										_liveChat = Services.Get<LiveSupportChatService>();
+									}
+
+									// Let's create a new meeting appointment entry.
+									var appt = await _meetingsAppointments.Create(ctx, new MeetingAppointment() { UserId = chat.UserId, FullName = chat.FullName, Email = chat.Email });
+
+									// Let's also set the chat to have the appointment's id.
+									chat.MeetingAppointmentId = appt.Id;
+									chat = await _liveChat.Update(ctx, chat);
 								}
 
-								if (_liveChat == null)
-								{
-									_liveChat = Services.Get<LiveSupportChatService>();
+								if (chat.Mode == 2 || chat.Mode == 12)
+                                {
+									if (_expertQuestions == null)
+                                    {
+										_expertQuestions = Services.Get<ExpertQuestionService>();
+                                    }
+
+									if (_liveChat == null)
+									{
+										_liveChat = Services.Get<LiveSupportChatService>();
+									}
+
+									// Let's create a new expert question entry.
+									var quest = await _expertQuestions.Create(ctx, new ExpertQuestion() { UserId = chat.UserId, FullName = chat.FullName, Email = chat.Email });
+
+									// Let's also set the chat to have question id.
+									chat.ExpertQuestionId = quest.Id;
+									chat = await _liveChat.Update(ctx, chat);
 								}
-
-								// Let's create a new meeting appointment entry.
-								var appt = await _meetingsAppointments.Create(ctx, new MeetingAppointment() { UserId = chat.UserId });
-
-								// Let's also set the chat to have the appointment's id.
-								chat.MeetingAppointmentId = appt.Id;
-								chat = await _liveChat.Update(ctx, chat);
 							}
                         }
                     }
