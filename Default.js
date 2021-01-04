@@ -4,6 +4,7 @@ import Landing from 'Admin/Pages/Landing';
 import LoginForm from 'Admin/LoginForm';
 import Tile from 'Admin/Tile';
 import Alert from 'UI/Alert';
+import logout from 'UI/Functions/Logout';
 
 export default class Default extends React.Component{
 	
@@ -29,9 +30,14 @@ export default class Default extends React.Component{
 		if(!role || !role.canViewAdmin){
 			return <Landing>
 				<Tile>
-					<Alert>
+					<p>
 						Hi {user.firstName} - you'll need to ask an existing admin to grant you permission to login here.
-					</Alert>
+					</p>
+					<a href={'#'} className="btn btn-secondary" onClick={()=>{
+						logout('/en-admin/');
+					}}>
+						Logout
+					</a>
 				</Tile>
 			</Landing>;
 		}
