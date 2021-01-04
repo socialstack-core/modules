@@ -44,17 +44,29 @@ namespace Api.TwoFactorGoogleAuth
 		}
 
 		/// <summary>
+		/// Get QR img url for provisioning 2FA.
+		/// </summary>
+		/// <param name="identifier"></param>
+		/// <param name="key"></param>
+		/// <param name="width"></param>
+		/// <param name="height"></param>
+		/// <returns></returns>
+		public string GetProvisionUrl(string identifier, byte[] key, int width = 256, int height = 256)
+		{
+			var KeyString = Encoder.Base32Encode(key);
+			var ProvisionUrl = Encoder.UrlEncode(string.Format("otpauth://totp/{0}?secret={1}&issuer=Socialstack", identifier, KeyString));
+			return string.Format("https://chart.apis.google.com/chart?cht=qr&chs={0}x{1}&chl={2}", width, height, ProvisionUrl);
+			
+		}
+
+		/// <summary>
 		///   Generates a QR code bitmap for provisioning.
 		/// </summary>
 		public byte[] GenerateProvisioningImage(string identifier, byte[] key, int width = 256, int height = 256)
 		{
-			var KeyString = Encoder.Base32Encode(key);
-			var ProvisionUrl = Encoder.UrlEncode(string.Format("otpauth://totp/{0}?secret={1}&issuer=Socialstack", identifier, KeyString));
-
-			var ChartUrl = string.Format("https://chart.apis.google.com/chart?cht=qr&chs={0}x{1}&chl={2}", width, height, ProvisionUrl);
 			using (var Client = new WebClient())
 			{
-				return Client.DownloadData(ChartUrl);
+				return Client.DownloadData(GetProvisionUrl(identifier, key, width,height));
 			}
 		}
 

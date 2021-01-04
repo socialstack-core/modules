@@ -91,8 +91,6 @@ namespace Api.Users
 			
 			return File(new MemoryStream(imageBytes), "image/jpeg");
 		}
-		
-		
     }
 	
 	/// <summary>
@@ -106,4 +104,5 @@ namespace Api.Users
 		public string Pin;
 		
 	}
+	
 }

@@ -6,6 +6,11 @@ using Api.Eventing;
 using Api.Contexts;
 using Newtonsoft.Json;
 using Api.Configuration;
+using Api.Permissions;
+using System;
+using System.Text;
+using Microsoft.Extensions.Configuration;
+
 
 namespace Api.TwoFactorGoogleAuth
 {
@@ -16,57 +21,140 @@ namespace Api.TwoFactorGoogleAuth
 	public partial class TwoFactorGoogleAuthService
 	{
 		private GoogleAuthenticator _ga;
-
+		private TwoFactorAuthConfig config;
 		private string siteUrl;
 
 		/// <summary>
 		/// Instanced automatically. Use injection to use this service, or Startup.Services.Get.
 		/// </summary>
-		public TwoFactorGoogleAuthService()
+		public TwoFactorGoogleAuthService(UserService _users)
         {
 			_ga = new GoogleAuthenticator();
+			config = AppSettings.GetSection("TwoFactorAuth").Get<TwoFactorAuthConfig>();
+
+			if (config == null)
+			{
+				config = new TwoFactorAuthConfig();
+			}
+
 
 			siteUrl = AppSettings.Configuration["PublicUrl"].Replace("https:", "").Replace("http:", "").Replace("/", "");
 
 			// Hook up to the UserOnAuthenticate event:
-			Events.UserOnAuthenticate.AddEventListener((Context context, LoginResult result, UserLogin loginDetails) => {
+			Events.UserOnAuthenticate.AddEventListener(async (Context context, LoginResult result, UserLogin loginDetails) => {
 
 				if (result == null || result.User == null || result.MoreDetailRequired != null)
 				{
 					// We only trigger if something has already logged in and nothing before us requires more detail.
-					return new ValueTask<LoginResult>(result);
+					return result;
 				}
 
 				// 2FA enabled?
 				if (result.User.TwoFactorSecret == null || result.User.TwoFactorSecret.Length != 10)
 				{
-					// Nope.
-					return new ValueTask<LoginResult>(result);
+					// If it's required for this account and the setup meta has not been submitted, require setup.
+					var user = result.User;
+					var role = Roles.Get(user.Role);
+					
+					if(config.Required || (config.RequiredForAdmin && role != null && role.CanViewAdmin))
+					{
+						if (string.IsNullOrEmpty(loginDetails.Google2FAPin) || result.User.TwoFactorSecretPending == null)
+						{
+							// Setup required. Create a key if there isn't one:
+							if(user.TwoFactorSecretPending == null)
+							{
+								var key = GenerateKey();
+								user.TwoFactorSecretPending = key;
+								user = await _users.Update(context, user);
+								result.User = user;
+							}
+							
+							result.MoreDetailRequired = new {
+								module = "UI/TwoFactorGoogleSetup",
+								data = new {
+									loginForm = true,
+									setupUrl = _ga.GetProvisionUrl(siteUrl, result.User.TwoFactorSecretPending)
+								}
+							};
+						}
+						else
+						{
+							// Complete the setup now:
+							if(Validate(result.User.TwoFactorSecretPending, loginDetails.Google2FAPin))
+							{
+								// Apply pending -> active right now.
+								user.TwoFactorSecret = user.TwoFactorSecretPending;
+								user.TwoFactorSecretPending = null;
+								user = await _users.Update(context, user);
+								result.User = user;
+							}
+							else
+							{
+								// Bad pin.
+								return null;
+							}
+						}
+					}
+					
+					// 2FA not enabled, or being setup. Allow proceed.
+					return result;
 				}
 
 				// It's enabled - pin submitted or do we require it?
 				if (string.IsNullOrEmpty(loginDetails.Google2FAPin)) {
 
 					// It's required. This blocks the complete token from being generated.
-					result.MoreDetailRequired = "2fa";
-
-					return new ValueTask<LoginResult>(result);
+					result.MoreDetailRequired = new {
+						module = "UI/TwoFactorGoogleSetup",
+						data = new {
+							loginForm = true
+						}
+					};
+					return result;
 				}
 
 				if(!Validate(result.User.TwoFactorSecret, loginDetails.Google2FAPin))
 				{
 					// Bad pin.
-					return new ValueTask<LoginResult>((LoginResult)null);
+					return null;
 				}
 
-				return new ValueTask<LoginResult>(result);
+				return result;
 			}, 20);
 
 			// Note: the 20 priority is important. It means we'll run this event always after the default auth handlers (10).
 			// I.e. some other handler auths the user, we then 2FA them.
 			
 		}
+		
+		/// <summary>
+		/// Checks if the given pin is acceptable for the given hex encoded secret.
+		/// </summary>
+		public byte[] GenerateProvisioningImage(string secret)
+		{
+			var bytes = new byte[secret.Length / 2];
+			for (var i = 0; i < bytes.Length; i++)
+			{
+				bytes[i] = Convert.ToByte(secret.Substring(i * 2, 2), 16);
+			}
+			
+			return _ga.GenerateProvisioningImage(siteUrl, bytes);
+		}
+		
+		/// <summary>
+		/// Gets the given secret as a hex string
+		/// </summary>
+		private string ToHexString(byte[] secret)
+		{
+			var sb = new StringBuilder();
+			foreach (var t in secret)
+			{
+				sb.Append(t.ToString("X2"));
+			}
 
+			return sb.ToString();
+		}
+		
 		/// <summary>
 		/// Checks if the given pin is acceptable for the given secret.
 		/// </summary>
