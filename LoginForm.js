@@ -2,6 +2,7 @@ import Input from 'UI/Input';
 import Form from 'UI/Form';
 import Row from 'UI/Row';
 import Col from 'UI/Column';
+import Canvas from 'UI/Canvas';
 import Spacer from 'UI/Spacer';
 import Alert from 'UI/Alert';
 
@@ -23,6 +24,8 @@ export default class LoginForm extends React.Component {
 				action = "user/login" 
                 onSuccess={response => {
 					if(response.moreDetailRequired){
+						// More required - e.g. a 2FA screen.
+						// The value of this is canvas compatible JSON.
 						this.setState({
 							moreRequired: response.moreDetailRequired
 						});
@@ -44,15 +47,7 @@ export default class LoginForm extends React.Component {
 				}}
 				>
 				{this.state.moreRequired && (
-					<div>
-						<h3>
-							Two factor authentication
-						</h3>
-						<p>
-							Please provide the auth code from your device:
-						</p>
-						<Input name="google2FAPin" validate={['Required']} />
-					</div>
+					<Canvas>{this.state.moreRequired}</Canvas>
 				)}
 				<div style={{display: this.state.moreRequired ? 'none' : 'initial'}}>
 					<Input name="emailOrUsername" placeholder="Email or username" validate={['Required']} />
