@@ -10,10 +10,9 @@ namespace Api.Users
     {
 		/// <summary>
 		/// A login happened, but more information is required. Used by 2FA and similar handlers.
-		/// Its value is whatever that handler would like to convey to the frontend to e.g. trigger a 2FA UI.
-		/// If you need more than a string, extend LoginResult with anything else you'd like.
+		/// Its value is canvas compatible object.
 		/// </summary>
-		public string MoreDetailRequired;
+		public object MoreDetailRequired;
 
 		/// <summary>
 		/// The name of a cookie to store the token in, if it's being held in a cookie.

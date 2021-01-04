@@ -152,7 +152,7 @@ namespace Api.Users
 
 				if (property == null)
 				{
-					Console.WriteLine("Warning: You've got a public field in the UserProfile object called '" + targetField.Name + "' but it's not in a User object. It's value will be null.");
+					Console.WriteLine("Warning: You've got a public field in the UserProfile object called '" + targetField.Name + "' but it's not in the User object. Its value will never be set.");
 					continue;
 				}
 
@@ -498,7 +498,7 @@ namespace Api.Users
 				return null;
 			}
 
-			if (string.IsNullOrEmpty(result.MoreDetailRequired))
+			if (result.MoreDetailRequired == null)
 			{
 				result.CookieName = _contexts.CookieName;
 
