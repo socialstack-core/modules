@@ -241,14 +241,18 @@ namespace Api.ContentSync
 		/// <returns></returns>
 		public long Assign()
 		{
-			var stripe = Stripes[ActiveIndex++];
+			LatestStripeId stripe;
+			
+			lock(this){
+				stripe = Stripes[ActiveIndex++];
 
-			if (ActiveIndex == Stripes.Length)
-			{
-				// Wrap:
-				ActiveIndex = 0;
+				if (ActiveIndex == Stripes.Length)
+				{
+					// Wrap:
+					ActiveIndex = 0;
+				}				
 			}
-
+			
 			if (stripe.Id == 0)
 			{
 				// The first assignment is just the stripe ID itself:
@@ -316,14 +320,18 @@ namespace Api.ContentSync
 		/// <returns></returns>
 		public ulong Assign()
 		{
-			var stripe = Stripes[ActiveIndex++];
+			LatestStripeId stripe;
+			
+			lock(this){
+				stripe = Stripes[ActiveIndex++];
 
-			if (ActiveIndex == Stripes.Length)
-			{
-				// Wrap:
-				ActiveIndex = 0;
+				if (ActiveIndex == Stripes.Length)
+				{
+					// Wrap:
+					ActiveIndex = 0;
+				}
 			}
-
+			
 			if (stripe.Id == 0)
 			{
 				// The first assignment is just the stripe ID itself:
