@@ -15,13 +15,14 @@ export default class LiveSupport extends React.Component {
 			mode: null,
 			loading: props.startOpen
 		};
-		
+
 		if(props.startOpen){
 			this.start(props);
 		}
-		
+
+		this.handleChatClose = this.handleChatClose.bind(this);
 	}
-	
+
 	start(props){
 		var args = {};
 
@@ -29,7 +30,7 @@ export default class LiveSupport extends React.Component {
 			args.mode = props.mode;
 		}
 
-		// We need to determine what mode we are going in with. If there is a complete chat identity, we need to change the mode and create that chat using those global values. 
+		// We need to determine what mode we are going in with. If there is a complete chat identity, we need to change the mode and create that chat using those global values.
 		if(global.app.state && global.app.state.chatIdentity && global.app.state.chatIdentity.fullName && global.app.state.chatIdentity.email) {
 			if (props.mode) {
 				if (props.mode == 1) {
@@ -55,7 +56,17 @@ export default class LiveSupport extends React.Component {
 			});
 		})
 	}
-	
+
+	handleChatClose() {
+		this.setState({
+			chat: false,
+			loading: false,
+			mode: null
+		});
+
+		global.app.setState({ chat: null });
+	}
+
 	renderStartChat(onClickActive) {
 		var startClick = () => {
 			this.setState({
@@ -72,44 +83,29 @@ export default class LiveSupport extends React.Component {
 			return this.props.children ? this.props.children(startClick) : <button type="button" className="btn" onClick={startClick}>Chat with us</button>
 		}
 
-		
+
 	}
 
 	renderOpenChat() {
-		var { title, closeImage, closeLabel, sendLabel, sendTip, placeholder } = this.props;
+		var { title, closeImage, closeLabel, closeCallback, sendLabel, sendTip, placeholder } = this.props;
 		var { mode } = this.state;
 
 		console.log(title);
 		title = title || "Chat";
 		// TODO: default close image
 		//closeImage = closeImage || ;
-		closeLabel = closeLabel || "Close chat";		
+		closeLabel = closeLabel || "Close chat";
 
 		return <div className="open-chat">
 			<header className="chat-header">
 				<span className="chat-title">{title}</span>
-				<button type="button" className="btn chat-close-btn" title={closeLabel} aria-label={closeLabel} onClick={() => {
-					this.setState({
-						chat: false,
-						loading: false,
-						mode: null
-					});
-					global.app.setState({chat: null});
-				}}>
+				<button type="button" className="btn chat-close-btn" title={closeLabel} aria-label={closeLabel} onClick={closeCallback || this.handleChatClose}>
 					<img src={closeImage} alt="" role="presentation" />
 				</button>
 			</header>
 
 			{/**Now we need to determine which menu to open. */}
-			{this.state.loading ? <Loading /> : <MessageList onClose = {() => {
-					this.setState({
-						chat: false,
-						loading: false,
-						mode: null
-					});
-					global.app.setState({chat: null});
-				}} chat={this.state.chat} sendLabel={sendLabel} sendTip={sendTip} placeholder={placeholder} />}
-
+			{this.state.loading ? <Loading /> : <MessageList onClose={this.handleChatClose} chat={this.state.chat} sendLabel={sendLabel} sendTip={sendTip} placeholder={placeholder} />}
 		</div>;
 
 	}
