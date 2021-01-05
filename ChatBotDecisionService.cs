@@ -127,6 +127,13 @@ namespace Api.ChatBotSimple
 					}
 
 					var chat = await _liveChat.Get(ctx, message.LiveSupportChatId);
+
+					if(chat == null)
+                    {
+						// The target chat does not exist.
+						return message;
+                    }
+
 					chat.FullName = message.Message;
 					chat = await _liveChat.Update(ctx, chat);
 
