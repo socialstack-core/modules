@@ -31,6 +31,7 @@ import {
 	MathUtils,
 	Matrix4,
 	Mesh,
+	InstancedMesh,
 	MeshBasicMaterial,
 	MeshPhysicalMaterial,
 	MeshStandardMaterial,
@@ -267,7 +268,23 @@ var GLTFLoader = ( function () {
 				return;
 
 			}
-
+			
+			// Go through the JSON and add mesh usage indicators:
+			if(json && json.nodes && json.nodes.length && json.meshes){
+				var nodes = json.nodes;
+				for(var i=0;i<nodes.length;i++){
+					var node = nodes[i];
+					if(node.mesh !== undefined){
+						var mesh = json.meshes[node.mesh];
+						if(!mesh.usage){
+							mesh.usage = 1;
+						}else{
+							mesh.usage++;
+						}
+					}
+				}
+			}
+			
 			var parser = new GLTFParser( json, {
 
 				path: path || this.resourcePath || '',
@@ -3136,7 +3153,7 @@ var GLTFLoader = ( function () {
 					mesh = meshDef.isSkinnedMesh === true
 						? new SkinnedMesh( geometry, material )
 						: new Mesh( geometry, material );
-
+					
 					if ( mesh.isSkinnedMesh === true && ! mesh.geometry.attributes.skinWeight.normalized ) {
 
 						// we normalize floating point skin weight array to fix malformed assets (see #15319)
@@ -3182,7 +3199,10 @@ var GLTFLoader = ( function () {
 					updateMorphTargets( mesh, meshDef );
 
 				}
-
+				
+				mesh._usage = meshDef.usage;
+				mesh._curUsage = 0;
+				
 				mesh.name = parser.createUniqueName( meshDef.name || ( 'mesh_' + meshIndex ) );
 
 				if ( geometries.length > 1 ) mesh.name += '_' + i;
@@ -3202,7 +3222,9 @@ var GLTFLoader = ( function () {
 			}
 
 			var group = new Group();
-
+			group._usage = meshDef.usage;
+			group._curUsage = 0;
+			
 			for ( var i = 0, il = meshes.length; i < il; i ++ ) {
 
 				group.add( meshes[ i ] );
@@ -3495,26 +3517,56 @@ var GLTFLoader = ( function () {
 			if ( nodeDef.mesh !== undefined ) {
 
 				pending.push( parser.getDependency( 'mesh', nodeDef.mesh ).then( function ( mesh ) {
-
-					var node = parser._getNodeRef( parser.meshCache, nodeDef.mesh, mesh );
-
-					// if weights are provided on the node, override weights on the mesh.
-					if ( nodeDef.weights !== undefined ) {
-
-						node.traverse( function ( o ) {
-
-							if ( ! o.isMesh ) return;
-
-							for ( var i = 0, il = nodeDef.weights.length; i < il; i ++ ) {
-
-								o.morphTargetInfluences[ i ] = nodeDef.weights[ i ];
-
+					
+					var node;
+					
+					if(nodeDef.instance){
+						// This node should actually just be an object3D with no children.
+						// Instead it carries a reference to the InstancedMesh
+						node = new Object3D();
+						
+						if(mesh._inst == null){
+							if(mesh.geometry){
+								// Instance must not share geometry or material with regular rendered obj:
+								mesh._inst = new InstancedMesh(mesh.geometry.clone(), mesh.material.clone(), mesh._usage);
+								this.scene.add(mesh._inst);
+							}else{
+								// It's a group
+								mesh._inst = [];
+								var children = mesh.children;
+								for(var i=0;i<children.length;i++){
+									var childMesh = children[i];
+									var im = new InstancedMesh(childMesh.geometry.clone(), childMesh.material.clone(), mesh._usage);
+									this.scene.add(im);
+									mesh._inst.push(im);
+								}
+								
 							}
+						}
+						
+						node._instIndex = mesh._curUsage++;
+						node._inst = mesh._inst;
+					}else{
+						node = parser._getNodeRef( parser.meshCache, nodeDef.mesh, mesh );
+						
+						// if weights are provided on the node, override weights on the mesh.
+						if ( nodeDef.weights !== undefined ) {
 
-						} );
+							node.traverse( function ( o ) {
 
+								if ( ! o.isMesh ) return;
+
+								for ( var i = 0, il = nodeDef.weights.length; i < il; i ++ ) {
+
+									o.morphTargetInfluences[ i ] = nodeDef.weights[ i ];
+
+								}
+
+							} );
+
+						}
 					}
-
+					
 					return node;
 
 				} ) );
@@ -3612,9 +3664,10 @@ var GLTFLoader = ( function () {
 					node.scale.fromArray( nodeDef.scale );
 
 				}
-
+				
+				node.updateMatrix();
 			}
-
+			
 			parser.associations.set( node, { type: 'nodes', index: nodeIndex } );
 
 			return node;
@@ -3738,6 +3791,7 @@ var GLTFLoader = ( function () {
 			// Loader returns Group, not Scene.
 			// See: https://github.com/mrdoob/three.js/issues/18342#issuecomment-578981172
 			var scene = new Group();
+			this.scene = scene;
 			if ( sceneDef.name ) scene.name = parser.createUniqueName( sceneDef.name );
 
 			assignExtrasToUserData( scene, sceneDef );
@@ -3755,7 +3809,28 @@ var GLTFLoader = ( function () {
 			}
 
 			return Promise.all( pending ).then( function () {
-
+				
+				scene.updateMatrixWorld(true, true);
+				
+				scene.traverse(function(node){
+					
+					if(node._inst != null){
+						if(Array.isArray(node._inst)){
+							// Some are groups of meshes:
+							var children = node._inst;
+							for(var i=0;i<children.length;i++){
+								var child = children[i];
+								child.setMatrixAt(node._instIndex, node.matrixWorld);
+								child.instanceMatrix.needsUpdate = true;
+							}
+						}else{
+							node._inst.setMatrixAt(node._instIndex, node.matrixWorld);
+							node._inst.instanceMatrix.needsUpdate = true;
+						}
+					}
+					
+				});
+				
 				return scene;
 
 			} );
