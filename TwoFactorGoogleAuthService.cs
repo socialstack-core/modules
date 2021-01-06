@@ -20,9 +20,9 @@ namespace Api.TwoFactorGoogleAuth
 	/// </summary>
 	public partial class TwoFactorGoogleAuthService
 	{
-		private GoogleAuthenticator _ga;
-		private TwoFactorAuthConfig config;
-		private string siteUrl;
+		private readonly GoogleAuthenticator _ga;
+		private readonly TwoFactorAuthConfig config;
+		private readonly string siteUrl;
 
 		/// <summary>
 		/// Instanced automatically. Use injection to use this service, or Startup.Services.Get.
@@ -139,20 +139,6 @@ namespace Api.TwoFactorGoogleAuth
 			}
 			
 			return _ga.GenerateProvisioningImage(siteUrl, bytes);
-		}
-		
-		/// <summary>
-		/// Gets the given secret as a hex string
-		/// </summary>
-		private string ToHexString(byte[] secret)
-		{
-			var sb = new StringBuilder();
-			foreach (var t in secret)
-			{
-				sb.Append(t.ToString("X2"));
-			}
-
-			return sb.ToString();
 		}
 		
 		/// <summary>
