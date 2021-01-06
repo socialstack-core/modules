@@ -320,7 +320,7 @@ namespace Api.ContentSync
 		/// <returns></returns>
 		public ulong Assign()
 		{
-			LatestStripeId stripe;
+			LatestStripeIdUnsigned stripe;
 			
 			lock(this){
 				stripe = Stripes[ActiveIndex++];
