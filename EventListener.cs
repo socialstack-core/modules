@@ -58,7 +58,10 @@ namespace Api.Uploader
 				// GLTF:
 				extensions.Mappings[".gltf"] = "model/gltf+json";
 				extensions.Mappings[".hdr"] = "application/octet-stream";
-
+				
+				
+				// WebVTT:
+				extensions.Mappings[".vtt"] = "text/vtt";
 
 				app.UseStaticFiles(new StaticFileOptions()
 				{
