@@ -19,16 +19,24 @@ export default class MultiSelect extends React.Component {
 		if(!this.props.answers) {
 			return;
 		}
-
-
+		
 		return <div className="livesupport-multiselect">
+			<Input type="hidden" name="message" ref={r => this.messageRef = r} value={this.state.message} />
 			{
 				this.props.answers.map((text, i) => {
 					var optionClass = "";
 					//var optionClass = this.state.selectedValue == text ? "selected" : "";
 					var disabled = this.state.selectedValue != null ? "disabled" : null;
-					{/* TODO: onClick not firing?  may be unnecessary if these options will be hidden after selection */}
-					return <Input disabled = {disabled}  className = {optionClass} key={i} type="submit" name="message" value={text}>{text}</Input>
+					return <Input 
+						disabled = {disabled} 
+						className = {optionClass} 
+						key={i} 
+						type="submit"
+						onClick={() => {
+							this.setState({message: text});
+							this.messageRef.value = text;
+						}}
+					>{text}</Input>
 				})
 			}
 		</div>;
