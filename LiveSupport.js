@@ -23,6 +23,21 @@ export default class LiveSupport extends React.Component {
 		this.handleChatClose = this.handleChatClose.bind(this);
 	}
 
+	componentDidUpdate() {
+		if(global.app.state.chat && global.app.state.chat.startNew) {
+			var chat = global.app.state.chat;
+			chat.startNew = false;
+
+			// we need to fire off the start sequence again in addition to unsetting it so future hits of this doesn't just restart the chat.
+			global.app.setState({chat});
+			this.setState({
+				loading: true
+			});
+			this.start(this.props);
+		}
+
+	}
+
 	start(props){
 		var args = {};
 
