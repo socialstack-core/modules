@@ -7,7 +7,7 @@ import getContentTypeId from 'UI/Functions/GetContentTypeId';
 import getRef from 'UI/Functions/GetRef';
 import dateTools from 'UI/Functions/DateTools';
 
-const defaultRef = "/images/talk_to_us.jpg";
+const defaultRef = "/images/chat_default_avatar.svg";
 
 export default class MessageList extends React.Component {
 
