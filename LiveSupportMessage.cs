@@ -19,6 +19,11 @@ namespace Api.LiveSupportChats
 		public int LiveSupportChatId;
 		
 		/// <summary>
+		/// UserId of the public user who created the chat. The same as LiveSupportChat.UserId.
+		/// </summary>
+		public int ChatCreatorUserId;
+		
+		/// <summary>
 		/// The message text.
 		/// </summary>
 		public string Message;

@@ -38,7 +38,13 @@ namespace Api.LiveSupportChats
         public async Task<FileResult> GroupList([FromBody] JObject filters)
         {
             var context = Request.GetContext();
-
+			
+			if(context.Role == null || !context.Role.CanViewAdmin)
+			{
+				// Must be an admin type user
+				return null;
+			}
+			
             // We need to get the chats within the given time range as provided by the filter.
             var chats = await _service.List(context, new Filter<LiveSupportChat>(filters));
 
