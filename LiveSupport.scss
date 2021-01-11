@@ -51,6 +51,13 @@
 	.messages-preview {
 
 	}
+
+	.avatar-span {
+		.avatar {
+			height: 60px;
+			width: 60px;
+		}
+	}
 }
 
 html.device-mobile {
@@ -72,6 +79,13 @@ html.device-mobile {
 				display: block;
 			}
 
+		}
+
+		.avatar-span {
+			.avatar {
+				height: 60px;
+				width: 60px;
+			}
 		}
 
 	}

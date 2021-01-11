@@ -18,7 +18,7 @@ export default class LiveSupport extends React.Component {
 			return;
 		}
 		
-		var landingPageClass = "live-chat-admin";
+		var landingPageClass = "live-support-admin";
 	
 		if (this.state.chat) {
 			landingPageClass += " chat-visible";	
