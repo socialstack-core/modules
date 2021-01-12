@@ -76,7 +76,7 @@ namespace Api.LiveSupportChats
 
                     if (messages.Count > 0)
                     {
-                        var csvFile = archive.CreateEntry("Chat#" + chat.Id + ".csv");
+                        var csvFile = archive.CreateEntry("Chat " + chat.CreatedUtc.ToString("yyyy-MM-dd HH:mm") + " #" + chat.Id + ".csv");
 
                         using (var entryStream = csvFile.Open())
                         using (var streamWriter = new StreamWriter(entryStream, System.Text.Encoding.UTF8, -1, true))
