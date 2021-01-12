@@ -27,10 +27,9 @@ namespace Api.PushNotifications
         /// Initialize sender
         /// </summary>
         /// <param name="p8privateKey">p8 certificate string</param>
-        /// <param name="privateKeyId">10 digit p8 certificate id. Usually a part of a downloadable certificate filename</param>
+        /// <param name="p8privateKeyId">10 digit p8 certificate id. Usually a part of a downloadable certificate filename</param>
         /// <param name="teamId">Apple 10 digit team id</param>
         /// <param name="appBundleIdentifier">App slug / bundle name</param>
-        /// <param name="server">Development or Production server</param>
         public ApnSender(string p8privateKey, string p8privateKeyId, string teamId, string appBundleIdentifier)
         {
             this.p8privateKey = p8privateKey;
@@ -83,6 +82,9 @@ namespace Api.PushNotifications
             }
         }
 
+        /// <summary>
+        /// Disposes the APN sender object.
+        /// </summary>
         public void Dispose()
         {
             if (http.IsValueCreated)
@@ -92,6 +94,7 @@ namespace Api.PushNotifications
             }
         }
 
+        [System.Diagnostics.CodeAnalysis.SuppressMessage("Interoperability", "CA1416:Validate platform compatibility", Justification = "In practice, this does actually also work on Linux, so the warning is somewhat spurious.")]
         private string CreateJwtToken()
         {
             var header = Newtonsoft.Json.JsonConvert.SerializeObject(new { alg = "ES256", kid = p8privateKeyId });

@@ -23,14 +23,14 @@ namespace Api.PushNotifications
 		/// </summary>
 		public string body;
 		
-		/// <summary>
-		/// Category as used by APNS.
-		/// </summary>
+		// /// <summary>
+		// /// Category as used by APNS.
+		// /// </summary>
 		// public string category = "primary";
 		
-		/// <summary>
-		/// Click action as used by Android.
-		/// </summary>
+		// /// <summary>
+		// /// Click action as used by Android.
+		// /// </summary>
 		// public string click_action = "primary";
 		
 	}
