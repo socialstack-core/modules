@@ -74,6 +74,10 @@ export default class ChatList extends React.Component {
 					chatChannel => {
 						// Who we're chatting with:
 						var chattingWith = chatChannel.creatorUser;
+                        // TODO: fix the cause of this error properly
+                        if (chattingWith == null) {
+                            return;
+                        }  
 						if (chatChannel.fullName) {
 							chattingWith.fullName = chatChannel.fullName;
 						}
