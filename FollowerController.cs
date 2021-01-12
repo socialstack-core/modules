@@ -14,6 +14,9 @@ namespace Api.Followers
     [Route("v1/follower")]
 	public partial class FollowerController : AutoController<Follower>
     {
+        /// <summary>
+        /// Creates a follower.
+        /// </summary>
         [HttpPost]
         public override async ValueTask<object> Create([FromBody] JObject body)
         {
