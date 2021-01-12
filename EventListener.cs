@@ -245,8 +245,8 @@ namespace Api.Revisions
 				// Run the copy query now:
 				await database.Run(context, copyQuery, content.Id);
 
-				#warning TODO - trigger the before and after events
-				// - Requires collecting the ID from the above copy call
+				// TODO: Trigger the before and after events (#208):
+				// - Requires collecting the ID from the above copy call.
 				// - Also requires collecting the EventGroup that the update event came from in order to call the events.
 
 				/*
@@ -286,8 +286,8 @@ namespace Api.Revisions
 				// Run the copy query now:
 				await database.Run(context, copyQuery, content.Id);
 
-				#warning TODO - trigger the before and after events
-				// - Requires collecting the ID from the above copy call
+				// TODO: Trigger the before and after events (#208):
+				// - Requires collecting the ID from the above copy call.
 				// - Also requires collecting the EventGroup that the update event came from in order to call the events.
 
 				/*
