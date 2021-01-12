@@ -1148,22 +1148,6 @@ namespace Api.WebSockets
 
 			while (current != null)
 			{
-				#warning todo - send direct to user is disabled (but unused)
-
-				/*
-				if (entity != null && current.FilterNode != null)
-				{
-					var ctx = current.Context;
-
-					if (!await ctx.Role.IsGranted(capability, ctx, capArgs))
-					{
-						// Skip this client
-						current = current.UserNext;
-						continue;
-					}
-				}
-				*/
-				
 				if(current.Socket.State == WebSocketState.Open){
 					
 					await current.Socket.SendAsync(
