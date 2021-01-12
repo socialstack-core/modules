@@ -21,7 +21,7 @@ namespace Api.Contexts
 		/// Or because their role was explicitly changed. Essentially rare admin tasks. 
 		/// A role change can be automatically reissued but a ref revoke requires logging in again.
 		/// </summary>
-		#warning todo - populate the revoke map on load
+		// TODO: Populate the revoke map on load (#208).
 		private Dictionary<int, int> RevocationMap = new Dictionary<int, int>();
 
 		/// <summary>
