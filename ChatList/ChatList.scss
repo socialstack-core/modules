@@ -113,6 +113,18 @@
 					color: #007bff;
 				}
 			}
+
+			.page-item {
+				.page-link {
+					&[disabled] {
+						background-color: get_theme(background-color, bootstrap, pagination, disabled) !important;
+						color: white !important;
+						border-color: get_theme(border-color, bootstrap, pagination, disabled) !important;
+					}
+
+					color: grey !important;
+				}
+			}
 		}
 	}
 	
