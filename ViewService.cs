@@ -16,8 +16,8 @@ namespace Api.Views
 	/// </summary>
 	public partial class ViewService : AutoService<View>
 	{
-		
-		private readonly Query<View> selectByContentTypeAndIdQuery;
+
+		private readonly Query<View> selectByContentTypeAndIdQuery = null;
 		
 		/// <summary>
 		/// Instanced automatically. Use injection to use this service, or Startup.Services.Get.
