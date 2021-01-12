@@ -76,23 +76,28 @@ export default class ChatList extends React.Component {
 						var chattingWith = chatChannel.creatorUser;
                         // TODO: fix the cause of this error properly
                         if (chattingWith == null) {
-                            return;
+                            chattingWith = {};
                         }  
 						if (chatChannel.fullName) {
 							chattingWith.fullName = chatChannel.fullName;
 						}
 
+						/*
+						var name = "Message";
+						if (chattingWith.firstName && chattingWith.lastName) {
+							name = chattingWith.firstName + ' ' + chattingWith.lastName;
+						} else {
+							if (chattingWith.name) {
+								name = chattingWith.name;
+							}
+						}
+						*/
+						
 						return (
 							<button type="button" className="chat-request" onClick={() => {
-								var name = "Message";
 								
-								if (chattingWith.firstName && chattingWith.lastName) {
-									name = chattingWith.firstName + ' ' + chattingWith.lastName;
-								} else {
-									if (chattingWith.name) {
-										name = chattingWith.name;
-									}
-								}
+								
+								
 
 								setTimeout(() => {
 									// this.handleHeaderToggle(name);
