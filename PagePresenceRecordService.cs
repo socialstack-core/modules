@@ -1,27 +1,29 @@
 using Api.Database;
 using System.Threading.Tasks;
 using System.Collections.Generic;
-using Api.Permissions;
 using Api.Contexts;
 using Api.Eventing;
 using Microsoft.Extensions.Configuration;
 using Api.Configuration;
-using Microsoft.Extensions.Hosting;
 using Api.Startup;
 using Api.WebSockets;
 using Api.ContentSync;
 using System;
+using System.Linq;
+using Api.PhotosphereTracking;
 using Api.Users;
 using Api.Presence;
+using Microsoft.Extensions.DependencyInjection;
 
 
 namespace Api.Presence
 {
-	/// <summary>
-	/// Handles pagePresenceRecords.
-	/// Instanced automatically. Use injection to use this service, or Startup.Services.Get.
-	/// </summary>
-	public partial class PagePresenceRecordService : AutoService<PagePresenceRecord, ulong>
+
+    /// <summary>
+    /// Handles pagePresenceRecords.
+    /// Instanced automatically. Use injection to use this service, or Startup.Services.Get.
+    /// </summary>
+    public partial class PagePresenceRecordService : AutoService<PagePresenceRecord, ulong>
 	{
 		/// <summary>
 		/// User service
@@ -113,7 +115,7 @@ namespace Api.Presence
 		}
 
 		private ulong ServerIdMask;
-		private uint ServerId;
+		public uint ServerId;
 
 		/// <summary>
 		/// Starts the page presence service
@@ -128,7 +130,7 @@ namespace Api.Presence
 				return false;
 			}
 
-			var id = contentSyncService.ServerId;
+		    var id = contentSyncService.ServerId;
 			ServerId = (uint)id;
 			ServerIdMask = ((ulong)id) << 32;
 
@@ -138,7 +140,7 @@ namespace Api.Presence
 				Console.WriteLine("[WARN] Page Record Service using ServerId 0 because ContentSync is not configured for this machine. This is fine locally.");
 			}
 
-			if (_users == null)
+            if (_users == null)
 			{
 				_users = Services.Get<UserService>();
 			}
