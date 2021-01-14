@@ -57,6 +57,7 @@ namespace Api.Uploader
 				
 				// GLTF:
 				extensions.Mappings[".gltf"] = "model/gltf+json";
+				extensions.Mappings[".glb"] = "model/gltf-binary";
 				extensions.Mappings[".hdr"] = "application/octet-stream";
 				
 				
