@@ -15,7 +15,7 @@ namespace Api.Presence
 		/// <summary>
 		/// E.g. "Page".
 		/// </summary>
-		[DatabaseField(Length=20)]
+		[DatabaseField(Length=100)]
 		public string EventName;
 		
 		/// <summary>

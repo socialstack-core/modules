@@ -83,10 +83,26 @@ namespace Api.Presence
 			// {"url":"x"} so a substring can capture x for us:
 			var url = record.MetaJson == null || record.MetaJson.Length < 10 ? "" : record.MetaJson.Substring(8, record.MetaJson.Length - 10);
 
+			if (!IdSetup)
+			{
+				SetupServerId();
+			}
+
 			if (client.Record != null)
 			{
 				// Must delete it. This ensures removals occur on the client end.
 				await Delete(client.Context, client.Record);
+			}
+			else
+			{
+				// First time for this client. Must ensure this record doesn't exist at the server end.
+				// This happens when a server is abruptly shutdown - it leaves records in the DB.
+				var rec = await Get(client.Context, client.Id + ServerIdMask);
+			
+				if(rec != null){
+					// Delete it:
+					await Delete(client.Context, rec);
+				}
 			}
 			
 			// Create a presence record by client+server ID. 
@@ -114,27 +130,39 @@ namespace Api.Presence
 			*/
 		}
 
+		private bool IdSetup;
 		private ulong ServerIdMask;
 		public uint ServerId;
+
+		private void SetupServerId()
+		{
+			if (IdSetup)
+			{
+				return;
+			}
+
+			var contentSyncService = Services.Get<ContentSyncService>();
+
+			if (contentSyncService == null)
+			{
+				return;
+			}
+
+			IdSetup = true;
+		    var id = contentSyncService.ServerId;
+			ServerId = (uint)id;
+			ServerIdMask = ((ulong)id) << 32;
+		}
 
 		/// <summary>
 		/// Starts the page presence service
 		/// </summary>
 		public bool Start()
-		{
-			// Get server ID:
-			var contentSyncService = Services.Get<ContentSyncService>();
-
-			if (contentSyncService == null)
 			{
-				return false;
-			}
+			// Get server ID:
+			SetupServerId();
 
-		    var id = contentSyncService.ServerId;
-			ServerId = (uint)id;
-			ServerIdMask = ((ulong)id) << 32;
-
-			if (id == 0)
+			if (ServerId == 0)
 			{
 				// ALS requires a server ID.
 				Console.WriteLine("[WARN] Page Record Service using ServerId 0 because ContentSync is not configured for this machine. This is fine locally.");
@@ -149,7 +177,10 @@ namespace Api.Presence
 			Cache(new CacheConfig<PagePresenceRecord>() {
 				Preload = true,
 
-				#warning todo - must run after cache has loaded and contentsync is connected
+				#warning todo - need to add a verification which runs after the cache has loaded and contentsync has started
+				// It should wait for a moment, then check for any entries in the cache that do not represent actually connected users.
+				// These "dangling" entries are caused by a prior shutdown of the server.
+				
 				/*
 				OnCacheLoaded = async () => {
 
