@@ -64,8 +64,6 @@ export default class Photosphere extends React.Component {
 		this.setup(this.props);
 	}
 
-
-	
 	/*
 	* Makes the host element go fullscreen
 	*/
@@ -105,6 +103,33 @@ export default class Photosphere extends React.Component {
 		
 	}
 	
+
+	/*
+	 * If there is a change event property wired up then send the message
+	 */
+    sendPositionUpdate() {
+        if (this.props.onPositionChange) { 
+
+            var otherPersonsCameraRotation = new THREE.Quaternion().setFromEuler(this.camera.rotation);
+
+            var camForward = new THREE.Vector3(0, 0, -1);
+
+            var positionIn3DOfCenterOfRemotePersonsCamera = camForward.applyQuaternion(otherPersonsCameraRotation);
+
+            var rotationY = this.camera.rotation.y;
+            var rotationX = this.camera.rotation.x;
+
+            this.props.onPositionChange({
+                posX: positionIn3DOfCenterOfRemotePersonsCamera.x,
+                posY: positionIn3DOfCenterOfRemotePersonsCamera.y,
+                posZ: positionIn3DOfCenterOfRemotePersonsCamera.z,
+                rotationY: rotationY,
+                rotationX: rotationX,
+                rotationZ: rotationX,
+            });
+        }
+    }
+
 	onMouseUp(){
 		this.setState({click: null});
 	}
@@ -118,6 +143,8 @@ export default class Photosphere extends React.Component {
         var minFov = this.props.minFov || 30;
         this.camera.fov = Math.max(Math.min(this.camera.fov + (Math.sign(props.deltaY) * scaleFactor), maxFov), minFov);
         this.camera.updateProjectionMatrix();
+
+        this.sendPositionUpdate();
     }
 	
 	onMouseMove(e){
@@ -152,6 +179,8 @@ export default class Photosphere extends React.Component {
 		
 		this.camera.rotation.x = x;
 		this.props.onMovement && this.props.onMovement(x, this.camera.rotation.y);
+
+        this.sendPositionUpdate();
 	}
 	
 	onMouseDown(e){
