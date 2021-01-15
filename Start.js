@@ -115,7 +115,7 @@ export default function(custom){
 		});
 		
 		// Render the root now! When the App instance is created, it sets itself up as global.app
-		React.render(
+		(React.render || ReactDom.render)(
 			<App />,
 			document.getElementById('react-root')
 		);
