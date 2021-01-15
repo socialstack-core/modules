@@ -208,6 +208,7 @@ function connect(){
 }
 
 function send(msg){
+	start();
 	if(!ws){
 		connect();
 	}
@@ -220,95 +221,96 @@ function send(msg){
 
 var refId = 1;
 
-module.exports = {
-    addEventListener:(type, method, filter) => {
-		
-		if(!method){
-			method = type;
-			type = '_all_';
-		}
-		
-		if(type != '_all_'){
-			start();
-		}
-		
-		// Already got this listener?
-		// If so, must re-add it, essentially re-registering the filter.
-		// Note that we assume the user called this because it changed - we don't check for non-change here.
-		var entry;
-		
-		if(messageTypes[type]){
-			entry = messageTypes[type].find(mf => mf.method == method);
-			if(entry){
-				// Actually an update of existing one
-				entry.filter = filter;
-			}else{
-				entry = {method,filter, id: refId++};
-				messageTypes[type].push(entry);
-			}
-		}else{
-			typeCount++;
-			entry = {method,filter, id: refId++};
-			messageTypes[type] = [entry];
-		}
-		
-		if(type == '_all_'){
-			return;
-		}
-		
-		var msg = {type: '+', n: type, f: filter, i: entry.id};
-		
-		if(!ws){
-			connect();
-		}
-		
-		if(ws && ws.readyState == WebSocket.OPEN){
-			ws.send(JSON.stringify(msg));
-		}
-	},
-	removeEventListener:(type, method) => {
-		if(!method){
-			method = type;
-			type = '_all_';
-		}
-		
-		if(!messageTypes[type]){
-			return;
-		}
-		
-		var entry = messageTypes[type].find(mf => mf.method == method);
-		if(!entry){
-			return;
-		}
-		
-		messageTypes[type] = messageTypes[type].filter(a => a != entry);
-		
-		if(ws && ws.readyState == WebSocket.OPEN){
-			ws.send(JSON.stringify({type: '-', i: entry.id}));
-		}
-		
-		if(!messageTypes[type].length){
-			typeCount--;
-			
-			if(typeCount<=0){
-				typeCount=0;
-			}
-			
-			/*
-				Tends to lead to a scenario where the socket 
-				disconnects then very shortly after reconnects - a timer would help debounce that
-				
-				ws.addEventListener("close", e => {e.stopPropagation()});
-				ws.close();
-				ws=null;
-			}
-			*/
-			
-			delete messageTypes[type];
-		}
-	},
-	send: message => {
-		start();
-		send(message);
+function addEventListener (type, method, filter){
+	
+	if(!method){
+		method = type;
+		type = '_all_';
 	}
+	
+	if(type != '_all_'){
+		start();
+	}
+	
+	// Already got this listener?
+	// If so, must re-add it, essentially re-registering the filter.
+	// Note that we assume the user called this because it changed - we don't check for non-change here.
+	var entry;
+	
+	if(messageTypes[type]){
+		entry = messageTypes[type].find(mf => mf.method == method);
+		if(entry){
+			// Actually an update of existing one
+			entry.filter = filter;
+		}else{
+			entry = {method,filter, id: refId++};
+			messageTypes[type].push(entry);
+		}
+	}else{
+		typeCount++;
+		entry = {method,filter, id: refId++};
+		messageTypes[type] = [entry];
+	}
+	
+	if(type == '_all_'){
+		return;
+	}
+	
+	var msg = {type: '+', n: type, f: filter, i: entry.id};
+	
+	if(!ws){
+		connect();
+	}
+	
+	if(ws && ws.readyState == WebSocket.OPEN){
+		ws.send(JSON.stringify(msg));
+	}
+}
+
+function removeEventListener(type, method) {
+	if(!method){
+		method = type;
+		type = '_all_';
+	}
+	
+	if(!messageTypes[type]){
+		return;
+	}
+	
+	var entry = messageTypes[type].find(mf => mf.method == method);
+	if(!entry){
+		return;
+	}
+	
+	messageTypes[type] = messageTypes[type].filter(a => a != entry);
+	
+	if(ws && ws.readyState == WebSocket.OPEN){
+		ws.send(JSON.stringify({type: '-', i: entry.id}));
+	}
+	
+	if(!messageTypes[type].length){
+		typeCount--;
+		
+		if(typeCount<=0){
+			typeCount=0;
+		}
+		
+		/*
+			Tends to lead to a scenario where the socket 
+			disconnects then very shortly after reconnects - a timer would help debounce that
+			
+			ws.addEventListener("close", e => {e.stopPropagation()});
+			ws.close();
+			ws=null;
+		}
+		*/
+		
+		delete messageTypes[type];
+	}
+}
+
+export {
+    addEventListener,
+	removeEventListener,
+	send
 };
