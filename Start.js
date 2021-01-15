@@ -1,6 +1,6 @@
 import App from './App.js';
 
-module.exports = function(custom){
+export default function(custom){
 	
 	if(!custom){
 		// Setup a simple event mechanism for communication between modules (note: EventTarget isn't available in Node):
