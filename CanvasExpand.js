@@ -330,7 +330,4 @@ function mapSetValue(value, canvas, Canvas){
 
 var __vCache = new Map();
 
-module.exports = {
-	expand,
-	mapTokens
-};
+export {expand, mapTokens };
