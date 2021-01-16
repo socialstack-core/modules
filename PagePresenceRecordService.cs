@@ -9,8 +9,6 @@ using Api.Startup;
 using Api.WebSockets;
 using Api.ContentSync;
 using System;
-using System.Linq;
-using Api.PhotosphereTracking;
 using Api.Users;
 using Api.Presence;
 using Microsoft.Extensions.DependencyInjection;
