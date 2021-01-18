@@ -29,7 +29,7 @@ export default function(custom){
 		
 		// Init all modules.
 		for(var m in __mm){
-			__mm[m] && require(m);
+			__mm[m] && global.getModule(m);
 		}
 	}
 	
