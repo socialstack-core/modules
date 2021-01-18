@@ -309,7 +309,7 @@ function removeEventListener(type, method) {
 	}
 }
 
-export {
+export default {
     addEventListener,
 	removeEventListener,
 	send
