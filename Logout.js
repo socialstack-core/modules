@@ -15,7 +15,7 @@ function clearAndNav(url){
 	global.pageRouter.go(url);
 }
 
-module.exports = (url) => {
+export default (url) => {
 	return webRequest('user/logout')
 		.then(() => clearAndNav(url || '/'))
 		.catch(e => clearAndNav(url || '/'));
