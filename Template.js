@@ -6,7 +6,7 @@ var templateCache = {
 };
 
 try{
-	var preload = require('UI/PreloadedTemplates/PreloadedTemplates.json');
+	var preload = global.getModule('UI/PreloadedTemplates/PreloadedTemplates.json');
 	if(preload && preload.results){
 		preload.results.forEach(template => {
 			templateCache[template.id + ''] = template;
