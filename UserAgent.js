@@ -136,6 +136,14 @@ function isDesktop() {
     return !mobileInfo.isMobile && !tabletInfo.isTablet && (window.matchMedia('(pointer: fine)').matches || isIE10Plus);
 }
 
+function isPortrait() {
+    return window.matchMedia('(orientation: portrait)').matches;
+}
+
+function isLandscape() {
+    return window.matchMedia('(orientation: landscape)').matches;
+}
+
 if (global.document && global.document.getElementsByTagName && global.document.getElementsByTagName("html").length) {
     // user agent detection
     var userAgent = navigator.userAgent || navigator.vendor || window.opera;
@@ -274,5 +282,9 @@ module.exports = {
     getTabletInfo,
     isTablet,
     isIPad,
-    isDesktop
+    isDesktop,
+    // NB: be sure to refresh orientation checks by watching for orientationChange events
+    // (iOS < 14.3 will need a resize event handler - check isPortrait() / isLandscape() within the resize event)
+    isPortrait,
+    isLandscape
 };
