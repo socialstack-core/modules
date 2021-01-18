@@ -74,7 +74,7 @@ function expand(contentNode, onContentNode){
 			mdRef = mdRef + '/' + mdRefParts[mdRefParts.length-1] + '.js';
 		}
 		
-		var module = require(mdRef);
+		var module = global.getModule(mdRef);
 		
 		if(module){
 			// Use the mapped module. It could be imported JSON, 
