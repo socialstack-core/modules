@@ -45,6 +45,14 @@ function getViewportHeight() {
     return Math.max(global.document.documentElement.clientHeight, global.innerHeight);
 }
 
+// get full page height
+function getDocumentHeight() {
+    var body = global.document.body,
+        html = global.document.documentElement;
+
+    return Math.max(body.scrollHeight, body.offsetHeight, html.clientHeight, html.scrollHeight, html.offsetHeight);
+}
+
 // return number of steps on this page
 function getPageCount() {
     var pages = global.document.querySelectorAll("[data-slide]");
@@ -123,7 +131,12 @@ function pageUp() {
 
     var partialScrollingDisabled = page.getAttribute("data-disable-partial-scroll") !== null;
     var viewportHeight = getViewportHeight();
-    var scrollPos = getScrollPos(); 
+    var scrollPos = getScrollPos();
+
+    // skip if we're already at the top of the document
+    if (scrollPos <= 0) {
+        return;
+    }
 
     // if this page is longer than the viewport height and we're not yet at the top, scroll up
     if (pageTop < scrollPos && !partialScrollingDisabled) {
@@ -164,6 +177,11 @@ function pageDown() {
     var partialScrollingDisabled = page.getAttribute("data-disable-partial-scroll") !== null;
     var viewportHeight = getViewportHeight();
     var scrollPos = getScrollPos(); 
+
+    // skip if we're already at the bottom of the document
+    if (scrollPos + viewportHeight >= getDocumentHeight()) {
+        return;
+    }
 
     // if this page is longer than the viewport height and we're not yet at the bottom, scroll down
     if (pageBottom > scrollPos + viewportHeight && !partialScrollingDisabled) {
