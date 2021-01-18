@@ -2,7 +2,7 @@ import webRequest from 'UI/Functions/WebRequest';
 import Canvas from 'UI/Canvas';
 
 try{
-	var preloadedPages = require('UI/PreloadedPages/PreloadedPages.json');
+	var preloadedPages = global.getModule('UI/PreloadedPages/PreloadedPages.json');
 }
 catch{
 	var preloadedPages = null;
