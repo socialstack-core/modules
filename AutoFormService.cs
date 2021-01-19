@@ -169,7 +169,7 @@ namespace Api.AutoForms
 				// Remove "Id" from the end of the label:
 				labelName = labelName.Substring(0, labelName.Length - 2);
 			}
-			else if (fieldType == typeof(bool))
+			else if (fieldType == typeof(bool) || fieldType == typeof(bool?))
 			{
 				type = "checkbox";
 			}
