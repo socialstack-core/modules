@@ -210,8 +210,8 @@ namespace Api.StackTools
 						{
 							return;
 						}
-
-						Console.WriteLine("UI watcher started successfully.");
+						
+						Console.WriteLine("UI watch command completed.");
 					});
 				}
 			};
