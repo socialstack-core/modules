@@ -3,6 +3,7 @@ import Alert from 'UI/Alert';
 export default class FileCapture extends React.Component {
     constructor(props) {
         super(props);
+		this.state={};
         this.selectImage = this.selectImage.bind(this)
     }
     
