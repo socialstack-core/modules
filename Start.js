@@ -35,7 +35,7 @@ export default function(custom){
 	
 	var document = global.document;
 	
-	if(document){
+	if(typeof document != 'undefined'){
 		// We're server side otherwise. It would've set global.app internally.
 		
 		/*
