@@ -147,7 +147,7 @@ export default class Paginator extends React.Component {
 
 		// if we only have a single page then optionally hide
 		if (!this.props.always && totalPages && totalPages < 2) {
-			return;
+			return null;
 		}
 
 		var currentPage = this.props.pageIndex || 1;
