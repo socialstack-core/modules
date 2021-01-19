@@ -10,7 +10,7 @@ export default class Substitute extends React.Component {
 	
 	render(){
 		var canvas = this.props.__canvas;
-		return canvas && canvas.props.onSubstitute && canvas.props.onSubstitute(this.props.name);
+		return canvas && canvas.props.onSubstitute && canvas.props.onSubstitute(this.props.name) || null;
 	}
 	
 }
