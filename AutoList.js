@@ -148,6 +148,9 @@ export default class AutoList extends React.Component {
 			addUrl += '?' + filterFieldLC + '=' + filterValue;
 		}
 		
+		// Todo: improve how revisions are found to be available or not
+		var revisionsSupported = (this.props.endpoint != 'user');
+		
 		return <Tile className="auto-list" title={this.props.title}>
 			{(this.props.create || searchFields) && (
 				<Row style={{marginBottom: '10px'}}>
@@ -169,15 +172,17 @@ export default class AutoList extends React.Component {
 					</Col>
 				</Row>
 			)}
-			<Loop asTable over={this.props.endpoint + '/revision/list'} filter={{where: {IsDraft: 1}}} onFailed={e => {
-				// Revisions aren't supported.
-				return true;
-			}}>
-				{[
-					this.renderHeader,
-					this.renderEntry
-				]}
-			</Loop>
+			{revisionsSupported && (
+				<Loop asTable over={this.props.endpoint + '/revision/list'} filter={{where: {IsDraft: 1}}} onFailed={e => {
+					// Revisions aren't supported.
+					return true;
+				}}>
+					{[
+						this.renderHeader,
+						this.renderEntry
+					]}
+				</Loop>
+			)}
 			<Loop asTable over={this.props.endpoint + "/list"} {...this.props} filter={combinedFilter} paged>
 			{[
 				this.renderHeader,
