@@ -1,35 +1,39 @@
 import App from './App.js';
 
-module.exports = function(){
+export default function(custom){
 	
-	// Setup a simple event mechanism for communication between modules (note: EventTarget isn't available in Node):
-	global.events = {
-		get: function(name){
-			if(!global.events[name]){
-				var t = {};
-				t.add = (evtName, handle) => {
-					if(!t[evtName]){
-						var f = function(...args){
-							for(var i=0;i<f.handles.length;i++){
-								f.handles[i](...args);
-							}
-						};
-						f.handles=[handle];
-						t[evtName] = f;
-					}else{
-						t[evtName].handles.push(handle);
-					}
-				};
-				return global.events[name] = t;
+	if(!custom){
+		// Setup a simple event mechanism for communication between modules (note: EventTarget isn't available in Node):
+		global.events = {
+			get: function(name){
+				if(!global.events[name]){
+					var t = {};
+					t.add = (evtName, handle) => {
+						if(!t[evtName]){
+							var f = function(...args){
+								for(var i=0;i<f.handles.length;i++){
+									f.handles[i](...args);
+								}
+							};
+							f.handles=[handle];
+							t[evtName] = f;
+						}else{
+							t[evtName].handles.push(handle);
+						}
+					};
+					return global.events[name] = t;
+				}
+				return global.events[name];
 			}
-			return global.events[name];
+		};
+		
+		// Init all modules.
+		for(var m in __mm){
+			__mm[m] && global.getModule(m);
 		}
-	};
-	
-	// Init all modules.
-	for(var m in __mm){
-		__mm[m] && require(m);
 	}
+	
+	var document = global.document;
 	
 	if(typeof document != 'undefined'){
 		// We're server side otherwise. It would've set global.app internally.
@@ -55,7 +59,7 @@ module.exports = function(){
 		});
 
 		// Render the root now! When the App instance is created, it sets itself up as global.app
-		React.render(
+		(React.render || ReactDom.render)(
 			<App />,
 			document.getElementById('react-root')
 		);
