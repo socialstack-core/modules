@@ -13,6 +13,9 @@ export default class VideoChat extends React.Component {
 
 		var huddleClient = this.mount(props);
 
+		console.log("huddle client");
+		console.log(huddleClient);
+
 		if (typeof props.roomId === 'string' && props.roomId.length > 1) {
 			if (props.roomId[0] == 't') {
 				// tX where X is the number of peers in the meeting.
