@@ -1,0 +1,166 @@
+.calendar {
+	padding-top: 0.9375rem;
+
+	.hint {
+		color: #999;
+		text-align: left;
+		margin-bottom: 0.5rem;
+	}
+
+	.header-row {
+		display: flex;
+		justify-content: space-between;
+		align-items: center;
+		height: px_to_rem(46);
+		font-size: px_to_rem(14);
+		margin-left: 0;
+		margin-right: 0;
+		border-bottom: 1px solid #ccc;
+		padding: 0 0.625rem;
+
+		.month {
+			padding: 0;
+			margin-bottom: 0;
+			font-weight: normal;
+			color: get_palette(blue);
+			font-size: px_to_rem(14);
+			letter-spacing: 0;
+		}
+
+		.arrow {
+			color: #999;
+
+			&:hover {
+				cursor: pointer;
+			}
+		}
+	}
+
+	.calendar__inner {
+		border: 1px solid #ccc;
+		margin-bottom: 0.9rem;
+	}
+
+	table {
+		width: 100%;
+
+		thead {
+			tr {
+				th {
+					text-align: center;
+					height: px_to_rem(46);
+					padding: 0;
+					font-weight: normal;
+			    font-size: px_to_rem(14);
+			    border-bottom: 1px solid #ccc;
+				}
+			}
+		}
+
+		tr {
+			td {
+				text-align: center;
+				height: px_to_rem(46);
+				padding: 0;
+				font-weight: normal;
+				font-size: px_to_rem(14);
+				position: relative;
+
+				span {
+					position: relative;
+					z-index: 1;
+				}
+			}
+
+			.today {
+				&:before {
+					content: '';
+					height: 82%;
+					width: 66%;
+					border: 1px solid #d6d6d6;
+					border-radius: 0.25rem;
+					position: absolute;
+					top: 50%;
+					left: 50%;
+					transform: translate(-50%, -50%);
+					display: block;
+					z-index: 0;
+				}
+
+				&:hover {
+					cursor: pointer;
+				}
+			}
+
+			.active-day {
+				color: white;
+
+				&:hover {
+					cursor: pointer;
+				}
+
+				&:before {
+					content: '';
+					height: 82%;
+					width: 66%;
+					border: 1px solid get_palette(blue);
+					background: get_palette(blue);
+					border-radius: 0.25rem;
+					position: absolute;
+					top: 50%;
+					left: 50%;
+					transform: translate(-50%, -50%);
+					display: block;
+					z-index: 0;
+				}
+			}
+
+			.not-selectable {
+				color: #d6d6d6;
+			}
+
+			.normal {
+				&:hover {
+					cursor: pointer;
+				}
+			}
+		}
+	}
+}
+
+.message-canvas {
+	.send-message {
+		margin-bottom: .9rem;
+		height: px_to_rem(50) !important;
+		max-width: initial !important;
+		box-shadow: none !important;
+		border-radius: unset !important;
+		text-transform: uppercase !important;
+		letter-spacing: 0.125rem;
+		font-weight: bold !important;
+	}
+}
+
+
+/* Color Shift */
+
+.booking-meeting {
+	.calendar {
+		.header-row {
+			.month {
+				color: get_palette(red);
+			}
+		}
+
+		table {
+			tr {
+				.active-day {
+					&:before {
+						border-color: get_palette(red);
+						background: get_palette(red);
+					}
+				}
+			}
+		}
+	}
+}
