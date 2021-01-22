@@ -3843,4 +3843,4 @@ var GLTFLoader = ( function () {
 
 } )();
 
-module.exports = GLTFLoader;
+export default GLTFLoader;
