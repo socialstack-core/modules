@@ -1226,4 +1226,4 @@ var MapControls = function ( object, domElement ) {
 MapControls.prototype = Object.create( EventDispatcher.prototype );
 MapControls.prototype.constructor = MapControls;
 
-module.exports = { OrbitControls, MapControls };
+export { OrbitControls, MapControls };
