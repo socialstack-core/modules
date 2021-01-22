@@ -130,7 +130,7 @@ export default class Create extends React.Component {
                         values.inReplyTo = this.props.replyTo;
                         this.setState({ submitting: true, failure: false });
                         values.liveSupportChatId = this.props.chat.id;
-                        values.messageType = lastMessage.messageType;
+                        values.messageType = lastMessage ? lastMessage.messageType : 0;
                         return values;
                     }
                 }
