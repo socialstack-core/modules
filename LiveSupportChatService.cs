@@ -1,3 +1,4 @@
+using System;
 using Api.Database;
 using System.Threading.Tasks;
 using System.Collections.Generic;
@@ -20,6 +21,21 @@ namespace Api.LiveSupportChats
         {
 			// Example admin page install:
 			InstallAdminPages("LiveSupportChats", "fa:fa-rocket", new string[] { "id", "userId" });
+            
+			
+            Events.LiveSupportChat.BeforeCreate.AddEventListener(async (Context context, LiveSupportChat message) => {
+				
+                if(message == null)
+                {
+                    return message;
+                }
+				
+                //When entering the queue the EnteredQueueUtc must be set
+                message.EnteredQueueUtc??= DateTime.UtcNow;
+
+                return message;
+				
+            }, 10);
 		}
 	}
     
