@@ -26,7 +26,7 @@ export default class ChatList extends React.Component {
 		}
 
 		return <div className="user-chat">
-			{getRef(user.avatarRef, { size: 256 })}
+			{getRef(user.avatarRef, { size: 100 })}
 			<div className="user-details">
 				<h3 className="user-name">
 					{ user.fullName || user.firstName + ' ' + user.lastName }
