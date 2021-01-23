@@ -147,7 +147,7 @@ export default class MessageList extends React.Component {
 								return <div style = {{postion: "relative"}}>
 									{
 										!fromThisSide && <span className="avatar-span" style={{ backgroundImage: `url('${defaultRef}')` }}>
-											{(pm.creatorUser && pm.creatorUser.avatarRef) && <img className="avatar" src={getRef(pm.creatorUser.avatarRef, {url: true})} />}
+											{(pm.creatorUser && pm.creatorUser.avatarRef) && <img className="avatar" src={getRef(pm.creatorUser.avatarRef, {url: true , size: 100})} />}
 										</span>
 
 									}
