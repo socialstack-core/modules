@@ -314,6 +314,10 @@ export default class PageRouter extends React.Component{
 			url=url.substring(0,url.length-1);
 		}
 		
+		if(global.mapUrl){
+			url = global.mapUrl(url);
+		}
+		
 		var curNode = rootPage;
 		
 		if(!curNode){
