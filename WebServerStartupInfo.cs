@@ -14,6 +14,7 @@ using Microsoft.AspNetCore.Diagnostics;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Configuration;
 using Api.Configuration;
+using Microsoft.AspNetCore.Cors.Infrastructure;
 
 namespace Api.Startup
 {
@@ -111,26 +112,59 @@ namespace Api.Startup
 		
 			services.AddCors(c =>  
 			{  
-				c.AddDefaultPolicy(options => {
-
-					if (_corsConfig.Origins != null && _corsConfig.Origins.Length != 0)
-					{
-						// Use specific origins:
-						options.WithOrigins(_corsConfig.Origins);
-					}
-					else
-					{
-						// Any:
-						options.AllowAnyOrigin();
-					}
-
-					options.AllowAnyHeader().AllowAnyMethod();
-				});
+				c.AddDefaultPolicy(options => SetupCors(options));
 			});
 
 			// Run the first event (IEventListener implementors can use).
 			OnConfigureServices?.Invoke(services);
 			
+		}
+
+		private void SetupCors(CorsPolicyBuilder options)
+		{
+			if (_corsConfig.Origins != null && _corsConfig.Origins.Length != 0)
+			{
+				// Use specific origins:
+				options.WithOrigins(_corsConfig.Origins);
+			}
+			else
+			{
+				// Any:
+				options.AllowAnyOrigin();
+			}
+
+			if (_corsConfig.AllowCredentials)
+			{
+				options.AllowCredentials();
+			}
+
+			if (_corsConfig.Headers != null && _corsConfig.Headers.Length != 0)
+			{
+				// Use specific origins:
+				options.WithHeaders(_corsConfig.Headers);
+			}
+			else
+			{
+				// Any:
+				options.AllowAnyHeader();
+			}
+
+			if (_corsConfig.Methods != null && _corsConfig.Methods.Length != 0)
+			{
+				// Use specific methods:
+				options.WithMethods(_corsConfig.Methods);
+			}
+			else
+			{
+				// Any:
+				options.AllowAnyMethod();
+			}
+
+			if (_corsConfig.ExposedHeaders != null && _corsConfig.ExposedHeaders.Length != 0)
+			{
+				options.WithExposedHeaders(_corsConfig.ExposedHeaders);
+			}
+
 		}
 
 		/// <summary>
@@ -153,20 +187,7 @@ namespace Api.Startup
 			app.UseRouting();
 #endif
 
-			app.UseCors(options => {
-				if (_corsConfig.Origins != null && _corsConfig.Origins.Length != 0)
-				{
-					// Use specific origins:
-					options.WithOrigins(_corsConfig.Origins);
-				}
-				else
-				{
-					// Any:
-					options.AllowAnyOrigin();
-				}
-
-				options.AllowAnyHeader().AllowAnyMethod().WithExposedHeaders("Token");
-			});
+			app.UseCors(options => SetupCors(options));
 
 			app.UseForwardedHeaders(new ForwardedHeadersOptions
             {
