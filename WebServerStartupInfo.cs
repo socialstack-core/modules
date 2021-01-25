@@ -153,7 +153,20 @@ namespace Api.Startup
 			app.UseRouting();
 #endif
 
-			app.UseCors(options => options.AllowAnyOrigin().AllowAnyHeader().AllowAnyMethod().WithExposedHeaders("Token"));
+			app.UseCors(options => {
+				if (_corsConfig.Origins != null && _corsConfig.Origins.Length != 0)
+				{
+					// Use specific origins:
+					options.WithOrigins(_corsConfig.Origins);
+				}
+				else
+				{
+					// Any:
+					options.AllowAnyOrigin();
+				}
+
+				options.AllowAnyHeader().AllowAnyMethod().WithExposedHeaders("Token");
+			});
 
 			app.UseForwardedHeaders(new ForwardedHeadersOptions
             {
