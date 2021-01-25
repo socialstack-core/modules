@@ -306,12 +306,23 @@ export default class PageRouter extends React.Component{
 	
 	getPage(rootPage, url){
 		url = url.split('?')[0].trim();
+		
 		if(url[0] == '/'){
 			url=url.substring(1);
 		}
 
 		if(url[url.length-1] == '/'){
 			url=url.substring(0,url.length-1);
+		}
+		
+		if(global.urlPrefix){
+			if(url.substring(0,global.urlPrefix.length).toLowerCase() == global.urlPrefix.toLowerCase()){
+				url = url.substring(global.urlPrefix.length);
+				
+				if(url[0] == '/'){
+					url=url.substring(1);
+				}
+			}
 		}
 		
 		if(global.mapUrl){
