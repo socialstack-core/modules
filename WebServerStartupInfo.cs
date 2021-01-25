@@ -12,6 +12,8 @@ using Api.Database;
 using Microsoft.AspNetCore.Http.Features;
 using Microsoft.AspNetCore.Diagnostics;
 using Microsoft.AspNetCore.Http;
+using Microsoft.Extensions.Configuration;
+using Api.Configuration;
 
 namespace Api.Startup
 {
@@ -37,11 +39,23 @@ namespace Api.Startup
 		public static event Action<IApplicationBuilder> OnConfigureApplication;
 
 		/// <summary>
+		/// Cors configuration.
+		/// </summary>
+		private CorsConfig _corsConfig;
+
+		/// <summary>
 		/// Create a new web startup info instance.
 		/// </summary>
 		public WebServerStartupInfo()
         {
-        }
+			_corsConfig = AppSettings.GetSection("Cors").Get<CorsConfig>();
+
+			if (_corsConfig == null)
+			{
+				// Ensure it's always set:
+				_corsConfig = new CorsConfig();
+			}
+		}
 
 		private List<Type> _serviceTypes;
 
@@ -97,7 +111,21 @@ namespace Api.Startup
 		
 			services.AddCors(c =>  
 			{  
-				c.AddDefaultPolicy(options => options.AllowAnyOrigin().AllowAnyHeader().AllowAnyMethod());
+				c.AddDefaultPolicy(options => {
+
+					if (_corsConfig.Origins != null && _corsConfig.Origins.Length != 0)
+					{
+						// Use specific origins:
+						options.WithOrigins(_corsConfig.Origins);
+					}
+					else
+					{
+						// Any:
+						options.AllowAnyOrigin();
+					}
+
+					options.AllowAnyHeader().AllowAnyMethod();
+				});
 			});
 
 			// Run the first event (IEventListener implementors can use).
