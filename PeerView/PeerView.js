@@ -97,7 +97,7 @@ export default class PeerView extends React.Component {
 					controls={false}
 				/>
 				
-				{(!videoVisible || !videoCanPlay) && (
+				{(!this.props.noAvatar) && (!videoVisible || !videoCanPlay) && (
 					<div className="video-avatar" style={{backgroundImage: 'url(' + avatarUrl + ')'}} />
 				)}
 				

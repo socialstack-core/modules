@@ -25,6 +25,8 @@ export default class Me extends React.Component {
 		const {
 			huddleClient
 		} = this.props;
+
+		var {hideControls} = this.props; 
 		
 		var user = global.app.state.user;
 		
@@ -86,7 +88,7 @@ export default class Me extends React.Component {
 				className="me"
 				ref={(node) => (this._rootNode = node)}
 			>
-				{connected && (<>
+				{(connected && !hideControls) && (<>
 					<div className='controls'>
 						<div
 							className={'button mic ' + micState}
@@ -151,6 +153,7 @@ export default class Me extends React.Component {
 				</>)}
 				
 				<PeerView
+					noAvatar = {true}
 					isMe
 					peer={me}
 					displayName={displayName}
