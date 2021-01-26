@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.IO;
 using System.Net;
 using System.Net.Sockets;
 using System.Runtime.InteropServices;
@@ -24,6 +25,12 @@ namespace Api.StackTools
 	/// </summary>
 	public partial class StackToolsService
 	{
+		/// <summary>
+		/// Simply an empty file to indicate that the API is actively connected to the node process.
+		/// This is the most reliable, as hard killing a process will not safely terminate a socket connection 
+		/// (from the other ends point of view) but does always close open file handles.
+		/// </summary>
+		private FileStream LockFile;
 		
 		private bool _stopping;
 		/// <summary>
@@ -85,6 +92,11 @@ namespace Api.StackTools
 #else
 				NodeProcess.Process.Kill(true);
 #endif
+			}
+			
+			if(LockFile != null){
+				LockFile.Close();
+				LockFile = null;
 			}
 		}
 
@@ -188,7 +200,9 @@ namespace Api.StackTools
 		/// <returns></returns>
 		private void Spawn()
 		{
-			NodeProcess = new NodeProcess("socialstack interactive -parent " + Process.GetCurrentProcess().Id); // Environment.ProcessId (.NET 5)
+			var lockFilePath = Path.GetTempFileName();
+			LockFile = new FileStream(lockFilePath, FileMode.OpenOrCreate, FileAccess.Read, FileShare.None);
+			NodeProcess = new NodeProcess("socialstack interactive -lockfile \"" + lockFilePath + "\"");
 
 			NodeProcess.OnStateChange += (NodeProcessState state) => {
 				if (state == NodeProcessState.READY)
