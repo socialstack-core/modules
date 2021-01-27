@@ -27,240 +27,203 @@ namespace Api.Views
 			// Because of IHaveViews, View must be nestable:
 			MakeNestable();
 			
+			// Note: This module is incompatible with cached entities.
+
 			// View total is automatic on load/ list endpoints
 			// The ViewedAt state needs to be figured out however.
 			
-			/*
 			selectByContentTypeAndIdQuery = Query.Select<View>();
 			selectByContentTypeAndIdQuery.Where().EqualsArg("ContentId", 0).And().EqualsArg("ContentTypeId", 1).And().EqualsArg("UserId", 2);
 			
 			// First, find all events for types that implement IHaveViews:
 			var loadEvents = Events.FindByType(typeof(IHaveViews), "Load", EventPlacement.After);
 
+			var methodInfo = GetType().GetMethod("SetupForViews");
+
 			foreach (var loadEvent in loadEvents)
 			{
-				loadEvent.AddEventListener(async (Context context, object[] args) =>
+				// Get the actual type. We use this to avoid Revisions etc as we're not interested in those here:
+				var contentType = ContentTypes.GetType(loadEvent.EntityName);
+
+				if (contentType == null)
 				{
-					// The primary object is always the first arg.
-					// It's both IHaveViews and a DatabaseRow object:
-					if (!(args[0] is IHaveViews viewableObject))
-					{
-						// Due to the way how event chains work, the primary object can be null.
-						// Safely ignore this.
-						return null;
-					}
+					continue;
+				}
 
-					if (!(args[0] is DatabaseRow dbObject))
-					{
-						throw new System.Exception(
-							"Views are only available on DatabaseRow entities. " +
-							"This type implements IHaveViews but isn't in the database: " + args[0].GetType().Name
-						);
-					}
+				// Invoke setup for type:
+				var setupType = methodInfo.MakeGenericMethod(new Type[] {
+					contentType
+				});
 
-					// Get the content type ID for the primary object:
-					var contentTypeId = ContentTypes.GetId(viewableObject.GetType());
-					
-					// Get the view state for this user:
-					var viewEntry = await _database.Select(context, selectByContentTypeAndIdQuery, dbObject.Id, contentTypeId, context.UserId);
-					
-					if(viewEntry == null){
-						// New viewer! Insert and increase view total by 1.
-						
-						// Use the regular insert so we can add events to the viewed state:
-						viewEntry = new View();
-						viewEntry.UserId = context.UserId;
-						viewEntry.ContentId = dbObject.Id;
-						viewEntry.ContentTypeId = contentTypeId;
-						
-						await Create(context, viewEntry, null);
-						
-					}else{
-						// Update viewed time:
-						await Update(context, viewEntry);
-					}
-					
-					// Viewed it just now:
-					viewableObject.ViewedAtUtc = DateTime.UtcNow;
-					
-					return viewableObject;
+				setupType.Invoke(this, new object[] {
 				});
 
 			}
 
-			// Next, update events. The person who updates the entity must also update their view time.
-			var updateEvents = Events.FindByType(typeof(IHaveViews), "Update", EventPlacement.After);
+		}
 
-			foreach (var updateEvent in updateEvents)
+		/// <summary>
+		/// Sets a particular type with views handlers. Used via reflection.
+		/// </summary>
+		/// <typeparam name="T"></typeparam>
+		public void SetupForViews<T>() where T : DatabaseRow<int>, IHaveViews, new()
+		{
+			// Invoked by reflection
+			var evtGroup = Events.GetGroup<T>();
+
+			// Get the content type ID for the primary object:
+			var contentTypeId = ContentTypes.GetId(typeof(T));
+
+			evtGroup.AfterLoad.AddEventListener(async (Context context, T entity) =>
 			{
-				updateEvent.AddEventListener(async (Context context, object[] args) =>
+				if (entity == null)
 				{
-					// The primary object is always the first arg.
-					// It's both IHaveViews and a DatabaseRow object:
-					if (!(args[0] is IHaveViews viewableObject))
-					{
-						// Due to the way how event chains work, the primary object can be null.
-						// Safely ignore this.
-						return null;
-					}
+					// Due to the way how event chains work, the primary object can be null.
+					// Safely ignore this.
+					return entity;
+				}
 
-					if (!(args[0] is DatabaseRow dbObject))
-					{
-						throw new System.Exception(
-							"Views are only available on DatabaseRow entities. " +
-							"This type implements IHaveViews but isn't in the database: " + args[0].GetType().Name
-						);
-					}
+				// Get the view state for this user:
+				var viewEntry = await _database.Select(context, selectByContentTypeAndIdQuery, entity.Id, contentTypeId, context.UserId);
 
-					// Get the content type ID for the primary object:
-					var contentTypeId = ContentTypes.GetId(viewableObject.GetType());
-
-					// Get the view state for this user:
-					var viewEntry = await _database.Select(context, selectByContentTypeAndIdQuery, dbObject.Id, contentTypeId, context.UserId);
-
-					if (viewEntry == null)
-					{
-						// New viewer! Insert and increase view total by 1.
-
-						// Use the regular insert so we can add events to the viewed state:
-						viewEntry = new View();
-						viewEntry.UserId = context.UserId;
-						viewEntry.ContentId = dbObject.Id;
-						viewEntry.ContentTypeId = contentTypeId;
-
-						await Create(context, viewEntry, null);
-					}
-					else
-					{
-						// Update viewed time:
-						await Update(context, viewEntry);
-					}
-
-					// Viewed it just now:
-					viewableObject.ViewedAtUtc = DateTime.UtcNow;
-
-					return viewableObject;
-				});
-
-			}
-
-			// Next, create events. The person who creates the entity must also update their view time.
-			var createEvents = Events.FindByType(typeof(IHaveViews), "Create", EventPlacement.After);
-
-			foreach (var createEvent in createEvents)
-			{
-				createEvent.AddEventListener(async (Context context, object[] args) =>
+				if (viewEntry == null)
 				{
-					// The primary object is always the first arg.
-					// It's both IHaveViews and a DatabaseRow object:
-					if (!(args[0] is IHaveViews viewableObject))
-					{
-						// Due to the way how event chains work, the primary object can be null.
-						// Safely ignore this.
-						return null;
-					}
+					// New viewer! Insert and increase view total by 1.
 
-					if (!(args[0] is DatabaseRow dbObject))
-					{
-						throw new System.Exception(
-							"Views are only available on DatabaseRow entities. " +
-							"This type implements IHaveViews but isn't in the database: " + args[0].GetType().Name
-						);
-					}
-
-					// Get the content type ID for the primary object:
-					var contentTypeId = ContentTypes.GetId(viewableObject.GetType());
-						
 					// Use the regular insert so we can add events to the viewed state:
-					var viewEntry = new View();
+					viewEntry = new View();
 					viewEntry.UserId = context.UserId;
-					viewEntry.ContentId = dbObject.Id;
+					viewEntry.ContentId = entity.Id;
 					viewEntry.ContentTypeId = contentTypeId;
 
-					await Create(context, viewEntry, null);
-					
-					// Viewed it just now:
-					viewableObject.ViewedAtUtc = DateTime.UtcNow;
-
-					return viewableObject;
-				});
-
-			}
-
-			// Next the List events. These just need to load the viewed state.
-			var listEvents = Events.FindByType(typeof(IHaveViews), "List", EventPlacement.After);
-
-			foreach (var listEvent in listEvents)
-			{
-				listEvent.AddEventListener(async (Context context, object[] args) =>
+					await Create(context, viewEntry);
+				}
+				else
 				{
-					// args[0] is a List of IHaveViews implementors.
-					if (!(args[0] is IList list))
-					{
-						// Can't handle this (or it was null anyway):
-						return args[0];
-					}
+					// Update viewed time:
+					await Update(context, viewEntry);
+				}
 
-					// First we'll collect all their IDs so we can do a single bulk lookup.
-					// ASSUMPTION: The list is not excessively long!
-					// FUTURE IMPROVEMENT: Do this in chunks of ~50k entries.
-					// (applies to at least categories/ tags).
+				// Viewed it just now:
+				entity.ViewedAtUtc = DateTime.UtcNow;
 
-					var ids = new object[list.Count];
-					var contentLookup = new Dictionary<int, IHaveViews>();
-					int contentTypeId = 0;
+				return entity;
+			});
 
-					for (var i = 0; i < ids.Length; i++)
-					{
-						// *must* be DatabaseRow entries:
-						if (!(list[i] is DatabaseRow entry) || !(list[i] is IHaveViews ihc))
-						{
-							throw new System.Exception("Views are only available on DatabaseRow entities. " +
-							"Failed on this type: " + list[i].GetType().Name);
-						}
+			evtGroup.AfterUpdate.AddEventListener(async (Context context, T entity) =>
+			{
+				if (entity == null)
+				{
+					// Due to the way how event chains work, the primary object can be null.
+					// Safely ignore this.
+					return entity;
+				}
 
-						// Get the content type ID for the primary object:
-						if (contentTypeId == 0)
-						{
-							contentTypeId = ContentTypes.GetId(entry.GetType());
-						}
+				// Get the view state for this user:
+				var viewEntry = await _database.Select(context, selectByContentTypeAndIdQuery, entity.Id, contentTypeId, context.UserId);
 
-						// Add to content lookup so we can map the tags to it shortly:
-						contentLookup[entry.Id] = ihc;
-						
-						ids[i] = entry.Id;
-					}
-					
-					if (ids.Length == 0)
-					{
-						// Nothing to do - just return here:
-						return list;
-					}
-					
-					// Create the filter and run the query now:
-					var filter = new Filter<View>();
-					filter.EqualsArg("ContentTypeId", 0).And().EqualsSet("ContentId", ids).And().EqualsArg("UserId", 1);
-					
-					// Get all the content views for these entities:
-					var allContentViews = await _database.List(context, listQuery, filter, contentTypeId, context.UserId);
-					
-					// For each content->view relation..
-					foreach (var contentView in allContentViews)
-					{
-						// Lookup content/ category:
-						var content = contentLookup[contentView.ContentId];
-						
-						// Set the viewed date:
-						content.ViewedAtUtc = contentView.EditedUtc;
-					}
-					
+				if (viewEntry == null)
+				{
+					// New viewer! Insert and increase view total by 1.
+
+					// Use the regular insert so we can add events to the viewed state:
+					viewEntry = new View();
+					viewEntry.UserId = context.UserId;
+					viewEntry.ContentId = entity.Id;
+					viewEntry.ContentTypeId = contentTypeId;
+
+					await Create(context, viewEntry);
+				}
+				else
+				{
+					// Update viewed time:
+					await Update(context, viewEntry);
+				}
+
+				// Viewed it just now:
+				entity.ViewedAtUtc = DateTime.UtcNow;
+
+				return entity;
+			});
+
+			evtGroup.AfterCreate.AddEventListener(async (Context context, T entity) =>
+			{
+				if (entity == null)
+				{
+					// Due to the way how event chains work, the primary object can be null.
+					// Safely ignore this.
+					return null;
+				}
+
+				// Use the regular insert so we can add events to the viewed state:
+				var viewEntry = new View();
+				viewEntry.UserId = context.UserId;
+				viewEntry.ContentId = entity.Id;
+				viewEntry.ContentTypeId = contentTypeId;
+
+				await Create(context, viewEntry);
+
+				// Viewed it just now:
+				entity.ViewedAtUtc = DateTime.UtcNow;
+
+				return entity;
+			});
+
+			evtGroup.AfterList.AddEventListener(async (Context context, List<T> list) =>
+			{
+				if (list == null)
+				{
+					// Due to the way how event chains work, the primary object can be null.
+					// Safely ignore this.
 					return list;
-				});
+				}
 
-			}
-			*/
+				// First we'll collect all their IDs so we can do a single bulk lookup.
+				// ASSUMPTION: The list is not excessively long!
+				// FUTURE IMPROVEMENT: Do this in chunks of ~50k entries.
+				// (applies to at least categories/ tags).
+
+				var ids = new object[list.Count];
+				var contentLookup = new Dictionary<int, T>();
+				
+				for (var i = 0; i < ids.Length; i++)
+				{
+					var entry = list[i];
+
+					// Add to content lookup so we can map the tags to it shortly:
+					contentLookup[entry.Id] = entry;
+
+					ids[i] = entry.Id;
+				}
+
+				if (ids.Length == 0)
+				{
+					// Nothing to do - just return here:
+					return list;
+				}
+
+				// Create the filter and run the query now:
+				var filter = new Filter<View>();
+				filter.Equals("ContentTypeId", contentTypeId).And().EqualsSet("ContentId", ids).And().Equals("UserId", context.UserId);
+
+				// Get all the content views for these entities:
+				var allContentViews = await _database.List(context, listQuery, filter);
+
+				// For each content->view relation..
+				foreach (var contentView in allContentViews)
+				{
+					// Lookup content/ category:
+					var content = contentLookup[contentView.ContentId];
+
+					// Set the viewed date:
+					content.ViewedAtUtc = contentView.EditedUtc;
+				}
+
+				return list;
+			});
+
 		}
-		
+
 		/// <summary>
 		/// Marks a content item of the given type as viewed.
 		/// </summary>
