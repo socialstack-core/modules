@@ -20,7 +20,10 @@ namespace Api.Permissions
         {
 			// Example admin page install:
 			// InstallAdminPages("PermittedContents", "fa:fa-rocket", new string[] { "id", "name" });
-
+			
+			// Caching is required by this service:
+			Cache();
+			
 			Events.PermittedContent.AfterLoad.AddEventListener(async (Context context, PermittedContent permit) => {
 
 				if (permit == null)
