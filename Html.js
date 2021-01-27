@@ -14,3 +14,6 @@ export default class Html extends React.Component {
     }
 }
 
+Html.propTypes={
+	html: 'text'
+};
