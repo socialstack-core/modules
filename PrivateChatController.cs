@@ -43,7 +43,7 @@ namespace Api.PrivateChats
                 // 2 permitted users, is it the chat we want?
                 var permitA = privateChat.PermittedUsers[0];
                 var permitB = privateChat.PermittedUsers[1];
-                if ((permitA.UserId == userId && permitB.UserId == secondUserId) || (permitB.UserId == userId && permitA.UserId == secondUserId))
+                if ((permitA.PermittedContentId == userId && permitB.PermittedContentId == secondUserId) || (permitB.PermittedContentId == userId && permitA.PermittedContentId == secondUserId))
                 {
                     // match! do something with private chat.
                     results.Add(privateChat);
