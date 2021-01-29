@@ -99,3 +99,5 @@ export default class CookieConsent extends React.Component {
 	}
 	
 }
+
+CookieConsent.propTypes = {};
