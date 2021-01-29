@@ -21,7 +21,8 @@ export default class AutoForm extends React.Component {
 
 		this.state = {
 			submitting: false,
-			locale: '1' // Always force EN locale if it's not specified.
+			locale: '1', // Always force EN locale if it's not specified.
+			updateCount: 0
 		};
 	}
 
@@ -245,7 +246,7 @@ export default class AutoForm extends React.Component {
 							var state = global.pageRouter.state;
 
 							if (isEdit) {
-								this.setState({ editFailure: false, editSuccess: true, createSuccess: false, submitting: false });
+								this.setState({ editFailure: false, editSuccess: true, createSuccess: false, submitting: false, fieldData: response, updateCount: this.state.updateCount + 1 });
 
 								if (state && state.page && state.page.url) {
 									var parts = state.page.url.split('/');
@@ -270,7 +271,7 @@ export default class AutoForm extends React.Component {
 									}
 								}
 							} else {
-								this.setState({ editFailure: false, submitting: false });
+								this.setState({ editFailure: false, submitting: false, fieldData: response, updateCount: this.state.updateCount+1 });
 								if (state && state.page && state.page.url) {
 									var parts = state.page.url.split('/');
 									parts.pop();
@@ -287,7 +288,7 @@ export default class AutoForm extends React.Component {
 						}
 					}
 				>
-					<Canvas onContentNode={contentNode => {
+					<Canvas key = {this.state.updateCount} onContentNode={contentNode => {
 						var content = this.state.fieldData;
 						if (!contentNode.data || !contentNode.data.name || !content || contentNode.data.autoComplete == 'off') {
 							return;
