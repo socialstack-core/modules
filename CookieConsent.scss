@@ -1,0 +1,14 @@
+.cookie-consent{
+	position: fixed;
+	bottom: 0;
+	width: 100%;
+	right: 0;
+	background: white;
+	padding: 10px;
+	color: black;
+	z-index: 2000;
+	
+	.necessary-only{
+		margin-right: 10px;
+	}
+}
