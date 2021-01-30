@@ -6,6 +6,7 @@ using System.Text.RegularExpressions;
 using Api.Startup;
 using Api.Permissions;
 using System.Collections.Generic;
+using Api.Configuration;
 
 namespace Api.Blogs
 {
@@ -25,7 +26,8 @@ namespace Api.Blogs
 		public BlogPostService(BlogService blogs) : base(Events.BlogPost)
         {
 			_blogs = blogs;
-			
+			var config = _blogs.GetConfig<BlogServiceConfig>();
+
 			// Before Create to make sure that the slug is unique.
 			Events.BlogPost.BeforeCreate.AddEventListener(async (Context context, BlogPost blogPost) =>
 			{
@@ -49,10 +51,13 @@ namespace Api.Blogs
                 }
 
 				// No slug was added, let's get one. 
-				slug = await _blogPosts.GetSlug(context, blogPost.Title);
+				if (config.GenerateSlugs)
+                {
+					slug = await _blogPosts.GetSlug(context, blogPost.Title);
 
-				blogPost.Slug = slug;
-
+					blogPost.Slug = slug;
+				}
+				
 				return blogPost;
 			});
 
@@ -73,83 +78,99 @@ namespace Api.Blogs
 				// Was a slug passed in? if so, just pass the blogPost on.
 				if (blogPost.Slug != null && blogPost.Slug != "")
 				{
+					// Let's make sure the provided slug is unique.
 					blogPost.Slug = await _blogPosts.GetSlug(context, blogPost.Title, blogPost.Slug, blogPost.Id);
 					return blogPost;
 				}
 
-				// No slug was added, let's get one. 
-				slug = await _blogPosts.GetSlug(context, blogPost.Title, null, blogPost.Id);
+				if(config.GenerateSlugs)
+                {
+					// No slug was added, let's get one if we are generating slugs. 
+					slug = await _blogPosts.GetSlug(context, blogPost.Title, null, blogPost.Id);
 
-				blogPost.Slug = slug;
+					blogPost.Slug = slug;
+				}
 
 				return blogPost;
 			});
 		}
 
-
+		/// <summary>
+		/// Used to get a slug
+		/// </summary>
+		/// <param name="context"></param>
+		/// <param name="title"></param>
+		/// <param name="slugCheck"></param>
+		/// <param name="exclusionId"></param>
+		/// <returns></returns>
 		public async ValueTask<string> GetSlug(Context context, string title, string slugCheck = null, int? exclusionId = null)
         {
+			var config = _blogs.GetConfig<BlogServiceConfig>();
 			string slug;
 
 			if (slugCheck == null)
 			{
 				//First to lower case
 				slug = title.ToLowerInvariant();
-
-				//Remove all accents
-				var bytes = Encoding.GetEncoding("Cyrillic").GetBytes(slug);
-				slug = Encoding.ASCII.GetString(bytes);
-
-				//Replace spaces
-				slug = Regex.Replace(slug, @"\s", "-", RegexOptions.Compiled);
-
-				//Remove invalid chars
-				slug = Regex.Replace(slug, @"[^a-z0-9\s-_]", "", RegexOptions.Compiled);
-
-				//Trim dashes from end
-				slug = slug.Trim('-', '_');
-
-				//Replace double occurences of - or _
-				slug = Regex.Replace(slug, @"([-_]){2,}", "$1", RegexOptions.Compiled);
-			}
-			else
-			{
-				slug = slugCheck;
-			}
-
-			var postsWithSlug = new List<BlogPost>();
-
-			// Now let's see if the slug is in use.
-			if (exclusionId == null)
-            {
-				postsWithSlug = await List(context, new Filter<BlogPost>().Equals("Slug", slug));
 			}
 			else
             {
-				postsWithSlug = await List(context, new Filter<BlogPost>().Equals("Slug", slug).And().Not().Equals("Id", exclusionId)); 
-			}
+				slug = slugCheck.ToLowerInvariant();
+            }
 
-			var increment = 0;
+			//Remove all accents
+			var bytes = Encoding.GetEncoding("Cyrillic").GetBytes(slug);
+			slug = Encoding.ASCII.GetString(bytes);
 
-			// Is the slug in use
-			while (postsWithSlug.Count > 0)
-			{
-				increment++;
+			//Replace spaces
+			slug = Regex.Replace(slug, @"\s", "-", RegexOptions.Compiled);
+
+			//Remove invalid chars
+			slug = Regex.Replace(slug, @"[^a-z0-9\s-_]", "", RegexOptions.Compiled);
+
+			//Trim dashes from end
+			slug = slug.Trim('-', '_');
+
+			//Replace double occurences of - or _
+			slug = Regex.Replace(slug, @"([-_]){2,}", "$1", RegexOptions.Compiled);		
+
+			// Do we need a unique slug?
+			if(config.UniqueSlugs)
+            {
+				var postsWithSlug = new List<BlogPost>();
+
+				// Now let's see if the slug is in use.
 				if (exclusionId == null)
 				{
-					postsWithSlug = await List(context, new Filter<BlogPost>().Equals("Slug", slug + "-" + increment));
+					postsWithSlug = await List(context, new Filter<BlogPost>().Equals("Slug", slug));
 				}
-                else
-                {
-					postsWithSlug = await List(context, new Filter<BlogPost>().Equals("Slug", slug + "-" + increment).And().Not().Equals("Id", exclusionId));
+				else
+				{
+					postsWithSlug = await List(context, new Filter<BlogPost>().Equals("Slug", slug).And().Not().Equals("Id", exclusionId));
+				}
+
+				var increment = 0;
+
+				// Is the slug in use
+				while (postsWithSlug.Count > 0)
+				{
+					increment++;
+					if (exclusionId == null)
+					{
+						postsWithSlug = await List(context, new Filter<BlogPost>().Equals("Slug", slug + "-" + increment));
+					}
+					else
+					{
+						postsWithSlug = await List(context, new Filter<BlogPost>().Equals("Slug", slug + "-" + increment).And().Not().Equals("Id", exclusionId));
+					}
+				}
+
+				if (increment > 0)
+				{
+					slug = slug + "-" + increment;
 				}
 			}
-
-			if (increment > 0)
-			{
-				slug = slug + "-" + increment;
-			}
-
+			
 			return slug;
 		}
 

@@ -33,7 +33,7 @@ namespace Api.Blogs
 		/// <summary>
 		/// URL slug (optional).
 		/// </summary>
-		[DatabaseField(Length = 80)]
+		[DatabaseField(Length = 200)]
 		public string Slug;
 		/// <summary>
 		/// The feature image ref. See also: "Upload.Ref" in the Uploads module.
