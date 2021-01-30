@@ -519,7 +519,7 @@ public partial class AutoService<T, ID> : AutoService
 /// <summary>
 /// The base class of all AutoService instances.
 /// </summary>
-public class AutoService
+public partial class AutoService
 {
 	/// <summary>
 	/// The type that this AutoService is servicing. E.g. a User, ForumPost etc.
