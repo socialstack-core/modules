@@ -52,6 +52,12 @@ namespace Api.Blogs
         /// </summary>
         [DatabaseField(Length = 500)]
         public string Description;
+
+		/// <summary>
+		/// A synopsis of the blog post that is generated from the 
+		/// </summary>
+		[DatabaseField(Length = 150)]
+		public string Synopsis;
 	}
 	
 }

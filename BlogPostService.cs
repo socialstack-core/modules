@@ -7,6 +7,7 @@ using Api.Startup;
 using Api.Permissions;
 using System.Collections.Generic;
 using Api.Configuration;
+using Newtonsoft.Json.Linq;
 
 namespace Api.Blogs
 {
@@ -61,6 +62,7 @@ namespace Api.Blogs
 				return blogPost;
 			});
 
+			// Before update to make sure the slug is unique.
 			Events.BlogPost.BeforeUpdate.AddEventListener(async (Context context, BlogPost blogPost) =>
 			{
 				var slug = "";
@@ -93,6 +95,78 @@ namespace Api.Blogs
 
 				return blogPost;
 			});
+
+			// We need event listeners for handling synopsis. It should generate when synopsis is blank on creation and update.
+			if (config.GenerateSynopsis)
+            {
+				Events.BlogPost.BeforeCreate.AddEventListener(async (Context context, BlogPost blogPost) =>
+				{
+					var synopsis = "";
+
+					if (context == null || blogPost == null)
+					{
+						return null;
+					}
+
+					if (_blogPosts == null)
+					{
+						_blogPosts = Services.Get<BlogPostService>();
+					}
+
+					// Was a synopsis passed in? if so, just pass the blogPost on.
+					if (blogPost.Synopsis != null && blogPost.Synopsis != "")
+					{
+						return blogPost;
+					}
+
+					// No synopsis was added, let's get one based on the body json. 
+					var bodyJson = JObject.Parse(blogPost.BodyJson);
+					synopsis = Regex.Replace(bodyJson.Value<string>("content"), @"<[^>]*>", string.Empty);
+
+					if (synopsis.Length > 150)
+					{
+						synopsis = synopsis.Substring(0, 147) + "...";
+					}
+
+					blogPost.Synopsis = synopsis;
+
+					return blogPost;
+				});
+
+				Events.BlogPost.BeforeUpdate.AddEventListener(async (Context context, BlogPost blogPost) =>
+				{
+					var synopsis = "";
+
+					if (context == null || blogPost == null)
+					{
+						return null;
+					}
+
+					if (_blogPosts == null)
+					{
+						_blogPosts = Services.Get<BlogPostService>();
+					}
+
+					// Was a synopsis passed in? if so, just pass the blogPost on.
+					if (blogPost.Synopsis != null && blogPost.Synopsis != "")
+					{
+						return blogPost;
+					}
+
+					// No synopsis was added, let's get one based on the body json. 
+					var bodyJson = JObject.Parse(blogPost.BodyJson);
+					synopsis = Regex.Replace(bodyJson.Value<string>("content"), @"<[^>]*>", string.Empty);
+
+					if (synopsis.Length > 150)
+					{
+						synopsis = synopsis.Substring(0, 147) + "...";
+					}
+
+					blogPost.Synopsis = synopsis;
+
+					return blogPost;
+				});
+			}	
 		}
 
 		/// <summary>

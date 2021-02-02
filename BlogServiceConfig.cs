@@ -2,6 +2,9 @@
 
 namespace Api.Blogs
 {
+    /// <summary>
+    /// Configurations used by the Blog Service.
+    /// </summary>
     public class BlogServiceConfig : Config
     {
         /// <summary>
@@ -10,8 +13,13 @@ namespace Api.Blogs
         public bool UniqueSlugs { get; set; }
 
         /// <summary>
-        /// Determines if slugs are generated on creation if none are provided.
+        /// Determines if slugs are generated on creation/updates if none are provided.
         /// </summary>
         public bool GenerateSlugs { get; set; }
+
+        /// <summary>
+        /// Determines if synopsis are generated on creation/updates if none are provided.
+        /// </summary>
+        public bool GenerateSynopsis { get; set; }
     }
 }
