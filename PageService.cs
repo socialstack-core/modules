@@ -109,6 +109,17 @@ namespace Api.Pages
 		}
 
 		/// <summary>
+		/// Gets the URL for the given piece of generic content. Pages are very often cached so this usually returns instantly.
+		/// </summary>
+		/// <param name="context"></param>
+		/// <param name="contentObject"></param>
+		/// <returns></returns>
+		public async ValueTask<string> GetUrl(Context context, object contentObject)
+		{
+			return "-coming soon-";
+		}
+
+		/// <summary>
 		/// Installs generic admin pages using the given fields to display on the list page.
 		/// </summary>
 		/// <param name="typeName"></param>
