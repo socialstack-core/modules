@@ -188,7 +188,12 @@ namespace Api.AutoForms
 			field.Data["label"] = SpaceCamelCase(labelName);
 			field.Data["name"] = FirstCharacterToLower(name);
 			field.Data["type"] = type;
-			
+
+			if (!jsonField.Writeable)
+			{
+				field.Data["readonly"] = true;
+			}
+
 			// Any of these [Module] or inheritors?
 			foreach (var attrib in customAttributes)
 			{
