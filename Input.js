@@ -33,13 +33,31 @@ export default class Input extends React.Component {
 
     newId() {
         this.fieldId = 'form-field-' + (id++);
-        this.helpFieldId = this.fieldId + "-help";
+        this.helpBeforeFieldId = this.fieldId + "-help-before";
+        this.helpAfterFieldId = this.fieldId + "-help-after";
+        this.helpIconFieldId = this.fieldId + "-help-icon";
+        this.describedById = this.helpBeforeFieldId || this.helpAfterFieldId || this.helpIconFieldId;
     }
 
     renderField() {
         // possible to hide all labels globally with $ss_form_field_label_hidden;
         // this allows us to specify fields which should always display their label
         var labelClass = this.props.labelImportant ? "label-important" : "";
+
+        var help = this.props.help;
+        var helpPosition = 'above';
+
+        if (help) {
+
+            if (global.invertHelpPosition) {
+                helpPosition = 'below';
+            }
+
+            if (this.props.helpPosition) {
+                helpPosition = this.props.helpPosition;
+            }
+
+        }
 
         return (
             <>
@@ -50,12 +68,12 @@ export default class Input extends React.Component {
                     </label>
                 )
             }
-            {
-                this.props.help && (
-                    <small id={this.helpFieldId} className="form-text text-muted">
-                        {this.props.help}
-                    </small>
-                )
+                {
+                    help && (helpPosition == 'above' || helpPosition == 'top') && (
+                        <small id={this.helpBeforeFieldId} className="form-text text-muted form-text-above">
+                            {help}
+                        </small>
+                    )
             }
             {
                 (this.state.validationFailure && this.props.validateErrorLocation && this.props.validateErrorLocation == "above") && (
@@ -65,8 +83,31 @@ export default class Input extends React.Component {
                 )
             }
 
+                {
+                    help && helpPosition == 'icon' && (
+                        <div className="form-control-icon-wrapper">
+                            {
+                                this.renderInput()
+                            }
+                            <span id={this.helpIconFieldId} className="fa fa-fw fa-info-circle" title={help}></span>
+                        </div>
+                    )
+                }
 
-            { this.renderInput() }
+                {
+                    helpPosition != 'icon' && (
+                        this.renderInput()
+                    )
+                }
+
+                {
+                    help && (helpPosition == 'below' || helpPosition == 'bottom') && (
+                        <small id={this.helpAfterFieldId} className="form-text text-muted">
+                            {help}
+                        </small>
+                    )
+                }
+
             {
                 (this.state.validationFailure && (!this.props.validateErrorLocation || (this.props.validateErrorLocation && this.props.validateErrorLocation != "above"))) && (
                     <div className="validation-error">
@@ -302,7 +343,7 @@ export default class Input extends React.Component {
 						ref={this.setRef}
                         id={this.props.id || this.fieldId}
                         className={this.props.className || "form-control custom-control-input"}
-                        aria-describedby={this.helpFieldId}
+                        aria-describedby={this.describedById}
                         type={type}
                         onChange={this.onChange}
                         onBlur={this.onBlur}
@@ -324,7 +365,7 @@ export default class Input extends React.Component {
                         id={this.props.id || this.fieldId}
                         className={this.props.className || "form-control custom-control-input"}
                         name={this.props.name}
-                        aria-describedby={this.helpFieldId}
+                        aria-describedby={this.describedById}
                         type={type}
                         onChange={this.onChange}
                         onBlur={this.onBlur}
@@ -349,7 +390,7 @@ export default class Input extends React.Component {
 						ref={this.setRef}
 						id={this.props.id || this.fieldId}
 						className={this.props.className || "form-control"}
-						aria-describedby={this.helpFieldId}
+                    aria-describedby={this.describedById}
 						type={pwVisible ? 'text' : type}
 						onChange={this.onChange}
 						onBlur={this.onBlur}
@@ -380,7 +421,7 @@ export default class Input extends React.Component {
                     ref={this.setRef}
                     id={this.props.id || this.fieldId}
                     className={this.props.className || "form-control"}
-                    aria-describedby={this.helpFieldId}
+                    aria-describedby={this.describedById}
                     type={type}
                     onChange={this.onChange}
                     onBlur={this.onBlur}

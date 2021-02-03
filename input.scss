@@ -14,3 +14,23 @@
 input[type="checkbox"].form-control {
 	width: initial;
 }
+
+.form-control-icon-wrapper {
+	display: flex;
+	flex-wrap: nowrap;
+	align-items: center;
+
+	input {
+		margin-right: .5rem;
+	}
+
+	.fa-info-circle {
+		margin-left: auto;
+		font-size: 1.25rem;
+	}
+}
+
+.form-text-above {
+	margin-top: 0;
+	margin-bottom: .25rem;
+}
