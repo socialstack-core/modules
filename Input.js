@@ -261,6 +261,11 @@ export default class Input extends React.Component {
             return type(this);
         }
 
+        // TODO: wire up related controls (e.g. field A is disabled based on checkbox B)
+        var disabledBy = this.props.disabledBy;
+        var enabledBy = this.props.enabledBy;
+        var fieldName = this.props.fieldName;
+
         if (type === "select") {
 			var {noSelectionValue} = this.props;
             var defaultValue = typeof this.state.selectValue === 'undefined' ? this.props.defaultValue : this.state.selectValue;
@@ -285,7 +290,8 @@ export default class Input extends React.Component {
                     value={defaultValue}
                     id={this.props.id || this.fieldId}
                     className={this.props.className || "form-control"}
-                    {...omit(this.props, ['id', 'className', 'onChange', 'onBlur', 'type', 'children', 'defaultValue', 'value', 'inline'])}
+                    {...omit(this.props, ['id', 'className', 'onChange', 'onBlur', 'type', 'children', 'defaultValue', 'value', 'inline', 'help', 'helpIcon', 'fieldName'])}
+                    data-field={fieldName}
                     data-validation={this.state.validationFailure ? true : undefined}
                 >
                     {this.props.contentType ? [
@@ -312,7 +318,7 @@ export default class Input extends React.Component {
                     onBlur={this.onBlur}
                     id={this.props.id || this.fieldId}
                     className={this.props.className || "form-control"}
-                    {...omit(this.props, ['id', 'className', 'onChange', 'onBlur', 'type', 'inline'])}
+                    {...omit(this.props, ['id', 'className', 'onChange', 'onBlur', 'type', 'inline', 'help', 'helpIcon', 'fieldName'])}
                     data-validation={this.state.validationFailure ? true : undefined}
                 />
             );
@@ -324,7 +330,7 @@ export default class Input extends React.Component {
                 <button
                     className={this.props.className || "btn btn-primary"}
                     type={type}
-                    {...omit(this.props, ['className', 'type', 'label', 'children', 'inline'])}
+                    {...omit(this.props, ['className', 'type', 'label', 'children', 'inline', 'help', 'helpIcon', 'fieldName'])}
                 >
                     {
                         !!showIcon && (
@@ -336,7 +342,6 @@ export default class Input extends React.Component {
             );
 
         } else if (type === "checkbox") {
-
             return (
                 <div className="custom-control custom-checkbox">
                     <input
@@ -347,8 +352,9 @@ export default class Input extends React.Component {
                         type={type}
                         onChange={this.onChange}
                         onBlur={this.onBlur}
+                        data-field={fieldName}
                         data-validation={this.state.validationFailure ? true : undefined}
-                        {...omit(this.props, ['id', 'className', 'onChange', 'onBlur', 'type', 'inline', 'value', 'defaultValue'])}
+                        {...omit(this.props, ['id', 'className', 'onChange', 'onBlur', 'type', 'inline', 'value', 'defaultValue', 'help', 'helpIcon', 'fieldName'])}
                         checked={this.props.value || this.props.defaultValue}
                     />
                     <label htmlFor={this.props.id || this.fieldId} className="custom-control-label">
@@ -369,8 +375,9 @@ export default class Input extends React.Component {
                         type={type}
                         onChange={this.onChange}
                         onBlur={this.onBlur}
+                        data-field={fieldName}
                         data-validation={this.state.validationFailure ? true : undefined}
-                        {...omit(this.props, ['id', 'className', 'onChange', 'onBlur', 'type', 'inline', 'value', 'defaultValue'])}
+                        {...omit(this.props, ['id', 'className', 'onChange', 'onBlur', 'type', 'inline', 'value', 'defaultValue', 'help', 'helpIcon', 'fieldName'])}
                         checked={this.props.value || this.props.defaultValue}
                     />
                     <label htmlFor={this.props.id || this.fieldId} className="custom-control-label">
@@ -396,7 +403,7 @@ export default class Input extends React.Component {
 						onBlur={this.onBlur}
 						onInput={this.onInput}
 						data-validation={this.state.validationFailure ? true : undefined}
-						{...omit(this.props, ['id', 'className', 'onChange', 'onBlur', 'type', 'inline'])}
+                        {...omit(this.props, ['id', 'className', 'onChange', 'onBlur', 'type', 'inline', 'help', 'helpIcon', 'fieldName'])}
 					/>
                 {!this.props.noVisiblityButton && !this.props.noVisibilityButton && (
 						<div className="input-group-append clickable" onClick={() => {
@@ -426,8 +433,10 @@ export default class Input extends React.Component {
                     onChange={this.onChange}
                     onBlur={this.onBlur}
                     onInput={this.onInput}
+                    data-disabled-by={disabledBy}
+                    data-enabled-by={enabledBy}
                     data-validation={this.state.validationFailure ? true : undefined}
-                    {...omit(this.props, ['id', 'className', 'onChange', 'onBlur', 'type', 'inline'])}
+                    {...omit(this.props, ['id', 'className', 'onChange', 'onBlur', 'type', 'inline', 'help', 'helpIcon', 'fieldName'])}
                 />
             );
 
