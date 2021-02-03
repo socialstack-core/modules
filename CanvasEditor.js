@@ -790,7 +790,7 @@ export default class CanvasEditor extends React.Component {
 					);
 				})
 				inputContent.unshift(<option>Pick a value</option>);
-			}else if(propType.type == 'color'){
+			} else if (propType.type == 'color' || propType.type == 'colour') {
 				inputType = 'color';
 			}else if(propType.type == 'checkbox' || propType.type == 'bool' || propType.type == 'boolean'){
 				inputType = 'checkbox';
@@ -847,10 +847,16 @@ export default class CanvasEditor extends React.Component {
 				val = JSON.stringify(val);
 			}
 
-			var placeholder = val == "" ? null : fieldInfo.defaultValue;
+			var placeholder = propType.placeholder || (val == "" ? null : fieldInfo.defaultValue);
+
+			// ensure default colour is set if we don't have a value
+			if (inputType == 'color' && val == undefined && fieldInfo.defaultValue) {
+				val = fieldInfo.defaultValue;
+			}
 
 			options.push(
-				<Input label={this.getLinkLabel(this.niceName(label), targetNode, fieldInfo)} type={inputType} defaultValue={val} placeholder={placeholder} onChange={e => {
+				<Input label={this.getLinkLabel(this.niceName(label), targetNode, fieldInfo)} type={inputType} defaultValue={val} placeholder={placeholder}
+					help={propType.help} helpPosition={propType.helpPosition} onChange={e => {
 					var value = e.target.value;
 
 					if (inputType == 'renderer') {
