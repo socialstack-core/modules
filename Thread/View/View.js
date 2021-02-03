@@ -12,43 +12,69 @@ import Tags from 'UI/Tags';
  * Loads the contents of a forum.
  */
 
-export default (props) =>
-<Loop over='forumthread/list' filter={{where: {Id: props.id}}} {...props}>
-{props.children.length ? props.children : thread => 
-        <div class = "thread-view">
-            <Column>
-            <h1>{thread.title}</h1>
-            <Tags on={thread} />
-            </Column>
-            <div class = "first-post">
-                <Row>
-                    <Column size = "9">
-                        {thread.creatorUser && (
-							<UserSignpost user={thread.creatorUser} />
-						)}
-                    </Column>
-                    <Spacer height = "30"/>
-                    <Column size = "3">
-                        Last Edited <Time date = {thread.editedUtc} />
-                    </Column>
-                </Row>
-                <Row>
-                    <Column size = "12">
-						<div className="thread-body">
-							<Canvas>
-								{thread.bodyJson}
-							</Canvas>
-						</div>
-                    </Column>
-                </Row>
-                <Row>
-					<Column>
-						<Reactions on={thread} />
-					</Column>
-					
-				</Row>
+export default class View extends React.Component {
+
+    // If you want to use state in your react component, uncomment this constructor:
+    /* 
+    constructor(props){
+        super(props);
+        this.state = {};
+    }
+    */
+
+    render() {
+
+        var {threadId, children} = this.props;
+
+        return (
+            <div className="thread-view">
+                <Loop over='forumthread/list' filter={{where: {Id: threadId}}} {...this.props}>
+                    {children && children.length ? children : thread => 
+                        <div class="thread">
+                            <div className="thread-title">
+                                <h1>{thread.title}</h1>
+                                <Tags on={thread} />
+                            </div>
+                            <hr/>
+                            <div class="first-post">
+                                <Row>
+                                    <Column size="9">
+                                        {thread.creatorUser && (
+                    						<UserSignpost user={thread.creatorUser} />
+                    					)}
+                                    </Column>
+                                    <Spacer height="30"/>
+                                    <Column size="3">
+                                        Last Edited: <Time date = {thread.editedUtc} />
+                                    </Column>
+                                </Row>
+                                <hr/>
+                                <Row>
+                                    <Column size="12">
+                    					<div className="thread-body">
+                    						<Canvas>
+                    							{thread.bodyJson}
+                    						</Canvas>
+                    					</div>
+                                    </Column>
+                                </Row>
+                                <Row>
+                    				<Column>
+                    					<Reactions on={thread} />
+                    				</Column>
+                    			</Row>
+                            </div>
+                    		<Spacer height='20' />
+                        </div>
+                    }
+                </Loop>
             </div>
-			<Spacer height='20' />
-        </div>
+        );
+    }
 }
-</Loop>
+
+View.propTypes = {
+    threadId: 'int'
+};
+View.defaultProps = {};
+View.icon = 'align-center';

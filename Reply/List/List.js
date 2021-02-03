@@ -10,41 +10,58 @@ import UserSignpost from 'UI/User/Signpost';
 /**
  * A list of forum replies
  */
+export default class List extends React.Component {
 
-export default (props) =>
-	<Loop over='forumreply/list' filter={props.threadId ? {where: {ThreadId: props.threadId}} : undefined} {...props}>
-	{props.children.length ? props.children : reply => 
-			<div className= "reply">
-				<Column size = "12">
-					<Row>
-						<Column size = "9">
-							{reply.creatorUser && (
-								<UserSignpost user={reply.creatorUser} />
-							)}
-						</Column>
-						<Spacer height = "30"/>
-						<Column size = "3">
-							Last Edited <Time date = {reply.editedUtc} />
-						</Column>
-					</Row>
-					<Row>
-						<Column size = "12">
-							<div className="reply-body">
-								<Canvas>
-									{reply.bodyJson}
-								</Canvas>
-							</div>
-						</Column>
-					</Row>
-					<Row>
-						<Column>
-							<Reactions on={reply} />
-						</Column>
-						
-					</Row>
-				</Column>
-				
-				<hr></hr>
-			</div>
+	constructor(props){
+		super(props);
+		this.state={};
 	}
-	</Loop>
+
+	render() {
+
+		var {threadId, children} = this.props;
+
+		return (
+			<Loop over='forumreply/list' filter={threadId ? {where: {ThreadId: threadId}} : undefined} {...this.props}>
+				{children.length ? children : reply => 
+					<div className= "reply">
+						<Row>
+							<Column size = "9">
+								{reply.creatorUser && (
+									<UserSignpost user={reply.creatorUser} />
+								)}
+							</Column>
+							<Spacer height = "30"/>
+							<Column size = "3">
+								Last Edited <Time date = {reply.editedUtc} />
+							</Column>
+						</Row>
+						<hr/>
+						<Row>
+							<Column size = "12">
+								<div className="reply-body">
+									<Canvas>
+										{reply.bodyJson}
+									</Canvas>
+								</div>
+							</Column>
+						</Row>
+						<Row>
+							<Column>
+								<Reactions on={reply} />
+							</Column>
+							
+						</Row>
+						<Spacer height='20' />
+					</div>
+				}
+			</Loop>
+		);
+	}
+}
+
+List.propTypes = {
+    threadId: 'int'
+};
+List.defaultProps = {};
+

@@ -2,7 +2,7 @@ import Input from "UI/Input";
 import Form from "UI/Form";
 
 
-export default class Add extends React.Component{
+export default class Add extends React.Component {
 	
 	constructor(props){
 		super(props);
@@ -11,9 +11,7 @@ export default class Add extends React.Component{
 	
     render(){
 
-        let {
-			threadId,
-		} = this.props;
+        var {threadId} = this.props;
 		
 		if(!threadId){
             // Missing required props.
@@ -22,26 +20,32 @@ export default class Add extends React.Component{
         }
 		
         return(
-            <div>
-            <Form 
-                action = "forumreply" 
-                onFailure = {response => {
-					this.setState({failed: true});
-				}}
-				onSuccess = {
-					() => {
-						document.getElementById('_replyArea').value='';
-					}
-				}
-                onValues = { values => {return {
-                    ...values,
-                    threadId: threadId,
-                    bodyJson: JSON.stringify({content: values.body})
-                }}}
-            >
-                <Input id="_replyArea" type="textarea" name = "body"/>
-                <Input type="submit" label="Reply"/>
-            </Form>
-        </div>);
+            <div className="reply-add">
+                <Form 
+                    action = "forumreply" 
+                    onFailure = {response => {
+    					this.setState({failed: true});
+    				}}
+    				onSuccess = {
+    					() => {
+    						document.getElementById('_replyArea').value='';
+    					}
+    				}
+                    onValues = { values => {return {
+                        ...values,
+                        threadId: threadId,
+                        bodyJson: JSON.stringify({content: values.body})
+                    }}}
+                >
+                    <Input id="_replyArea" type="textarea" name = "body"/>
+                    <Input type="submit" label="Reply" className="btn btn-dark"/>
+                </Form>
+            </div>
+        );
     }
 }
+
+Add.propTypes = {
+    threadId: 'int'
+};
+Add.defaultProps = {};
