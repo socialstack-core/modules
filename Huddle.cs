@@ -21,7 +21,12 @@ namespace Api.Huddles
 		/// 4 = Audience (anyone can join in a one way format, and users are randomly distributed to servers).
 		/// </summary>
 		public int HuddleType;
-		
+
+		/// <summary>
+		/// Note: This is only set when a compatible Huddle server (v1.1 or greater) is in use. All socialstack cloud servers are compatible.
+		/// </summary>
+		public int UsersInMeeting;
+
 		/// <summary>
 		/// Assigned automatically.
 		/// </summary>

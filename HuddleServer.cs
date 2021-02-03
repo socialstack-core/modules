@@ -17,6 +17,12 @@ namespace Api.Huddles
         /// </summary>
         [DatabaseField(Length = 200)]
 		public string Address;
+		
+        /// <summary>
+        /// The server public key in hex format. Used to validate status updates are legitimate.
+        /// </summary>
+        [DatabaseField(Length = 200)]
+		public string PublicKey;
 	}
 
 }

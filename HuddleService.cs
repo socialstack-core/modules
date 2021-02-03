@@ -162,7 +162,10 @@ namespace Api.Huddles
 		/// <summary>
 		/// Creates a signed join URL.
 		/// </summary>
-		public async Task<string> SignUrl(Context context, Huddle huddle)
+		/// <param name="localHostName">
+		/// The hostname of "this" API. Usually just the public site hostname, "www.example.com".
+		/// </param>
+		public async Task<string> SignUrl(Context context, Huddle huddle, string localHostName)
 		{
 			var user = await context.GetUser();
 
@@ -176,21 +179,9 @@ namespace Api.Huddles
 			// Dispatch the get join info evt:
 			joinInfo = await Events.HuddleGetJoinInfo.Dispatch(context, joinInfo, huddle, user);
 
-			var queryStr = "h=" + huddle.Id + 
-			"&u=" + context.UserId + 
-			"&d=" + HttpUtility.UrlEncode(joinInfo.DisplayName) + 
-			"&a=" + HttpUtility.UrlEncode(joinInfo.AvatarRef) +
-			"&type=" + huddle.HuddleType + 
-			"&urole=" + context.RoleId + 
-			"&role=" + ((huddle.UserId == context.UserId) ? "1" : "4");
-			
-			
-			// This signature is what allows the user to fully authenticate on a db-less target server:
-			var sig = _signatures.Sign(queryStr);
-			
 			HuddleServer huddleServer;
-			
-			if(huddle.HuddleType == 4)
+
+			if (huddle.HuddleType == 4)
 			{
 				// Audience type - use a random server:
 				huddleServer = _huddleServerService.RandomServer();
@@ -199,12 +190,32 @@ namespace Api.Huddles
 			{
 				huddleServer = await _huddleServerService.Get(context, huddle.HuddleServerId);
 			}
-			
+
 			if (huddleServer == null)
 			{
 				return null;
 			}
+			
+			var queryStr = "h=" + huddle.Id +
+			"&u=" + context.UserId +
+			"&d=" + HttpUtility.UrlEncode(joinInfo.DisplayName) +
+			"&a=" + HttpUtility.UrlEncode(joinInfo.AvatarRef) +
+			"&type=" + huddle.HuddleType +
+			"&urole=" + context.RoleId +
+			"&role=" + ((huddle.UserId == context.UserId) ? "1" : "4");
 
+			if (!string.IsNullOrEmpty(huddleServer.PublicKey))
+			{
+				// We have a public key, so we can use the callback (cb) webhook that informs about the state of users joining and exiting Huddles.
+				// When the webhook runs, the server will sign the URL using its private key, and declare itself using the huddle server ID that we give it here.
+				// This way we can map it back to a suitable public key (the server must not declare the public key during this webhook call).
+				queryStr += "&cb=" + localHostName +
+				"&hsid=" + huddle.HuddleServerId;
+			}
+
+			// This signature is what allows the user to fully authenticate on a db-less target server:
+			var sig = _signatures.Sign(queryStr);
+			
 			return huddleServer.Address + "/?" + queryStr + "&sig=" + HttpUtility.UrlEncode(sig);
 		}
 	}

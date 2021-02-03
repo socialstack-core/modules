@@ -99,6 +99,28 @@ namespace Api.Huddles
                 return permit;
             });
 
+            Events.HuddlePermittedUser.AfterUpdate.AddEventListener(async (Context context, HuddlePermittedUser permit) =>
+            {
+                if (permit == null)
+                {
+                    // Due to the way how event chains work, the primary object can be null.
+                    // Safely ignore this.
+                    return null;
+                }
+
+                // Get the huddle:
+                var huddle = await huddleService.Get(context, permit.HuddleId);
+
+                if (huddle != null)
+                {
+                    // Nudge its updated date by just updating it like so. Be careful with this though to avoid endless update loops 
+                    // (as there's a huddle afterUpdate which checks if any of its permits were accepted for a previous date).
+                    await huddleService.Update(context, huddle);
+                }
+
+                return permit;
+            });
+
             Events.HuddlePermittedUser.BeforeUpdate.AddEventListener(async (Context context, HuddlePermittedUser permit) =>
             {
                 if (permit == null)

@@ -22,6 +22,11 @@ namespace Api.Eventing
 		public static EventGroup<HuddleServer> HuddleServer;
 		
 		/// <summary>
+		/// Set of events for a huddlePresence.
+		/// </summary>
+		public static EventGroup<HuddlePresence> HuddlePresence;
+		
+		/// <summary>
 		/// Set of events for a huddleLoadMetric.
 		/// </summary>
 		public static EventGroup<HuddleLoadMetric> HuddleLoadMetric;
