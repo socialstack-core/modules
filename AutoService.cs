@@ -211,7 +211,7 @@ public partial class AutoService<T, ID>{
 		
 		entity = await EventGroup.RevisionBeforeUpdate.Dispatch(context, entity);
 
-		if (entity == null || !await _database.Run(context, revisionUpdateQuery, entity, entity.Id))
+		if (entity == null || !await _database.Run(context, revisionUpdateQuery, entity, entity.GetId()))
 		{
 			return null;
 		}
@@ -229,15 +229,17 @@ public partial class AutoService<T, ID>{
 		{
 			SetupRevisionQueries();
 		}
-		
-		if (entity.Id.Equals(0))
+
+		var id = entity.GetId();
+
+		if (id.Equals(0))
 		{
 			// Id required.
 			return null;
 		}
 		
 		// Clear any existing drafts:
-		await _database.Run(context, clearDraftStateQuery, 0, entity.Id);
+		await _database.Run(context, clearDraftStateQuery, 0, id);
 
 		var rr = (entity as RevisionRow<ID>);
 
@@ -249,7 +251,7 @@ public partial class AutoService<T, ID>{
 		}
 
 		// Does it exist? If yes, call update, otherwise, create it (but with a prespecified ID).
-		var existingObject = await Get(context, entity.Id);
+		var existingObject = await Get(context, id);
 		
 		if(existingObject != null)
 		{
@@ -273,18 +275,20 @@ public partial class AutoService<T, ID>{
 			SetupRevisionQueries();
 		}
 
-		if (entity.Id.Equals(0))
+		var id = entity.GetId();
+
+		if (id.Equals(0))
 		{
 			// For simplicity for other consuming API's (such as publishing draft content), as well as 
 			// so we can track all revisions of draft content, we'll get a content ID.
 			// We do that by creating the object in the database, then immediately deleting it.
 			await _database.Run(context, createQuery, entity);
-			await _database.Run(context, deleteQuery, entity.Id);
+			await _database.Run(context, deleteQuery, id);
 		}
 		else
 		{
 			// Clear any existing drafts:
-			await _database.Run(context, clearDraftStateQuery, 0, entity.Id);
+			await _database.Run(context, clearDraftStateQuery, 0, id);
 		}
 
 		entity = await EventGroup.DraftBeforeCreate.Dispatch(context, entity);
