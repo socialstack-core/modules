@@ -17,7 +17,7 @@ using System.Threading.Tasks;
 /// </summary>
 /// <typeparam name="T"></typeparam>
 public partial class AutoService<T> : AutoService<T, int>
-	where T : DatabaseRow<int>, new()
+	where T : class, IHaveId<int>, new()
 {
 	/// <summary>
 	/// Instanced automatically
@@ -36,7 +36,7 @@ public partial class AutoService<T> : AutoService<T, int>
 /// <typeparam name="T"></typeparam>
 /// <typeparam name="ID">ID type (usually int)</typeparam>
 public partial class AutoService<T, ID> : AutoService 
-	where T: DatabaseRow<ID>, new()
+	where T: class, IHaveId<ID>, new()
 	where ID: struct, IConvertible
 {
 	
@@ -164,13 +164,16 @@ public partial class AutoService<T, ID> : AutoService
 		}
 
 		// Delete the entry:
-		await _database.Run(context, deleteQuery, result.Id);
+		if (_database != null)
+		{
+			await _database.Run(context, deleteQuery, result.GetId());
+		}
 
 		var cache = GetCacheForLocale(context == null ? 1 : context.LocaleId);
 
 		if (cache != null)
 		{
-			cache.Remove(context, result.Id);
+			cache.Remove(context, result.GetId());
 		}
 
 		result = await EventGroup.AfterDelete.Dispatch(context, result);
@@ -215,6 +218,11 @@ public partial class AutoService<T, ID> : AutoService
 			}
 			listAndTotal = cache.ListWithTotal(filter, values);
 		}
+		else if (_database == null)
+		{
+			listAndTotal = new ListWithTotal<T>();
+			listAndTotal.Results = new List<T>();
+		}
 		else
 		{
 			listAndTotal = await _database.ListWithTotal(context, listQuery, filter);
@@ -245,7 +253,7 @@ public partial class AutoService<T, ID> : AutoService
 		var cache = GetCacheForLocale(context == null ? 1 : context.LocaleId);
 		
 		List<T> list;
-		
+
 		if (cache != null)
 		{
 			List<ResolvedValue> values = null;
@@ -255,6 +263,10 @@ public partial class AutoService<T, ID> : AutoService
 				values = await filter.ResolveValues(context);
 			}
 			list = cache.List(filter, values, out int total);
+		}
+		else if (_database == null)
+		{
+			list = new List<T>();
 		}
 		else
 		{
@@ -273,6 +285,12 @@ public partial class AutoService<T, ID> : AutoService
 	/// <returns></returns>
 	public virtual async ValueTask<List<T>> ListNoCache(Context context, Filter<T> filter)
 	{
+		if (_database == null)
+		{
+			// Non database backed services start empty.
+			return new List<T>();
+		}
+
 		if (NestableAddMask != 0 && (context.NestedTypes & NestableAddMask) == NestableAddMask)
 		{
 			// This happens when we're nesting List calls.
@@ -374,7 +392,7 @@ public partial class AutoService<T, ID> : AutoService
 			item = cache.Get(id);
 		}
 
-		if (item == null)
+		if (item == null && _database != null)
 		{
 			item = await _database.Select(context, selectQuery, id);
 		}
@@ -408,14 +426,17 @@ public partial class AutoService<T, ID> : AutoService
 			return entity;
 		}
 
-		if (!entity.Id.Equals(0))
+		if (_database != null)
 		{
-			// Explicit ID has been provided.
-			await _database.Run(context, createWithIdQuery, entity);
-		}
-		else if (!await _database.Run(context, createQuery, entity))
-		{
-			return default(T);
+			if (!entity.GetId().Equals(0))
+			{
+				// Explicit ID has been provided.
+				await _database.Run(context, createWithIdQuery, entity);
+			}
+			else if (!await _database.Run(context, createQuery, entity))
+			{
+				return default(T);
+			}
 		}
 
 		return entity;
@@ -430,24 +451,28 @@ public partial class AutoService<T, ID> : AutoService
 	/// <param name="deletedId"></param>
 	public async Task RawUpdateEntity(Context context, T entity, char mode, ID deletedId)
 	{
-		if (mode == 'D')
+		if (_database != null)
 		{
-			// Delete
-			await _database.Run(context, deleteQuery, deletedId);
-		}
-		else if (mode == 'U' || mode == 'C')
-		{
-			// Updated or created
-			// In both cases, check if it exists first:
-			if (await _database.Select(context, selectQuery, entity.Id) != null)
+			if (mode == 'D')
 			{
-				// Update
-				await _database.Run(context, updateQuery, entity, entity.Id);
+				// Delete
+				await _database.Run(context, deleteQuery, deletedId);
 			}
-			else
+			else if (mode == 'U' || mode == 'C')
 			{
-				// Create
-				await _database.Run(context, createWithIdQuery, entity);
+				// Updated or created
+				// In both cases, check if it exists first:
+				var id = entity.GetId();
+				if (await _database.Select(context, selectQuery, id) != null)
+				{
+					// Update
+					await _database.Run(context, updateQuery, entity, id);
+				}
+				else
+				{
+					// Create
+					await _database.Run(context, createWithIdQuery, entity);
+				}
 			}
 		}
 
@@ -466,7 +491,7 @@ public partial class AutoService<T, ID> : AutoService
 				else if (mode == 'D')
 				{
 					// Deleted
-					cache.Remove(context, entity.Id);
+					cache.Remove(context, entity.GetId());
 				}
 			}
 		}
@@ -498,7 +523,12 @@ public partial class AutoService<T, ID> : AutoService
 	{
 		entity = await EventGroup.BeforeUpdate.Dispatch(context, entity);
 
-		if (entity == null || !await _database.Run(context, updateQuery, entity, entity.Id))
+		if (entity == null)
+		{
+			return null;
+		}
+
+		if (_database != null && !await _database.Run(context, updateQuery, entity, entity.GetId()))
 		{
 			return null;
 		}
@@ -578,10 +608,54 @@ public partial class AutoService
 	/// Creates a new AutoService.
 	/// </summary>
 	/// <param name="type"></param>
-	public AutoService(Type type)
+	public AutoService(Type type = null)
 	{
-		_database = Api.Startup.Services.Get<DatabaseService>();
+		// _database is left blank if:
+		// * Type is given.
+		// * Type does not have DatabaseRow<> in its inheritence hierarchy.
+		// This is such that basic services without a type have a convenience database field, 
+		// but types that are in-memory only don't attempt to use the database.
+		if (type != null && !IsDatabaseRowType(type))
+		{
+			_database = null;
+		}
+		else
+		{
+			_database = Api.Startup.Services.Get<DatabaseService>();
+		}
+
 		ServicedType = type;
+	}
+
+	/// <summary>
+	/// True if this service stores persistent data.
+	/// </summary>
+	public bool DataIsPersistent
+	{
+		get
+		{
+			return ServicedType != null && _database != null;
+		}
+	}
+
+	/// <summary>
+	/// True if the given is a DatabaseRow type (i.e. if it should be persistent or not).
+	/// </summary>
+	/// <param name="t"></param>
+	/// <returns></returns>
+	private bool IsDatabaseRowType(Type t)
+	{
+		if (t.IsGenericType && t.GetGenericTypeDefinition() == typeof(DatabaseRow<>))
+		{
+			return true;
+		}
+
+		if (t.BaseType == null)
+		{
+			return false;
+		}
+
+		return IsDatabaseRowType(t.BaseType);
 	}
 
 	/// <summary>

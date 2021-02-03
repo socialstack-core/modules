@@ -257,14 +257,21 @@ namespace Api.Startup
 
 				// If it's an AutoService, add it to the lookup:
 				var autoServiceType = GetAutoServiceType(svc.GetType());
+				var autoService = svc as AutoService;
 
-				if (autoServiceType != null)
+				if (autoService != null)
 				{
-					var autoService = svc as AutoService;
-					Services.AutoServices[autoServiceType] = autoService;
-					Services.ServicedTypes[autoService.ServicedType] = autoService;
-					var contentId = ContentTypes.GetId(autoService.ServicedType);
-					Services.ContentTypes[contentId] = autoService;
+					if (autoServiceType != null)
+					{
+						Services.AutoServices[autoServiceType] = autoService;
+					}
+
+					if (autoService.ServicedType != null)
+					{
+						Services.ServicedTypes[autoService.ServicedType] = autoService;
+						var contentId = ContentTypes.GetId(autoService.ServicedType);
+						Services.ContentTypes[contentId] = autoService;
+					}
 				}
 				
 			}

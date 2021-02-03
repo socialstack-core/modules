@@ -14,7 +14,7 @@ namespace Api.Startup{
 	/// There is one of these per locale, stored by AutoService.
 	/// </summary>
 	public class ServiceCache<T, PT> 
-		where T:DatabaseRow<PT>
+		where T:class, IHaveId<PT>
 		where PT:struct
 	{
 		/// <summary>
@@ -399,7 +399,7 @@ namespace Api.Startup{
 			}
 
 			// Remove:
-			var prev = Remove(entry.Id, false);
+			var prev = Remove(entry.GetId(), false);
 
 			// Add:
 			AddInternal(entry);
@@ -459,7 +459,7 @@ namespace Api.Startup{
 		{
 			lock(Primary){
 				// Add to primary index:
-				Primary[entry.Id] = entry;
+				Primary[entry.GetId()] = entry;
 			}
 			
 			// Add to any secondary indices:
