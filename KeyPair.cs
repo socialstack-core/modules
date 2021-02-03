@@ -28,6 +28,55 @@ namespace Api.Signatures
 		}
 
 		/// <summary>
+		/// Loads a public key from a base64 string
+		/// </summary>
+		/// <returns></returns>
+		public static ECPublicKeyParameters LoadPublicKeyHex(string hex)
+		{
+			byte[] pubKeyBytes = new byte[hex.Length >> 1];
+
+			for (int i = 0; i < hex.Length >> 1; ++i)
+			{
+				pubKeyBytes[i] = (byte)((GetHexVal(hex[i << 1]) << 4) + (GetHexVal(hex[(i << 1) + 1])));
+			}
+
+			var ecPoint = Curve.Curve.DecodePoint(pubKeyBytes).Normalize();
+			return new ECPublicKeyParameters(ecPoint, DomainParams);
+		}
+
+		private static int GetHexVal(char hex)
+		{
+			int val = (int)hex;
+			//For uppercase A-F letters:
+			//return val - (val < 58 ? 48 : 55);
+			//For lowercase a-f letters:
+			//return val - (val < 58 ? 48 : 87);
+			//Or the two combined, but a bit slower:
+			return val - (val < 58 ? 48 : (val < 97 ? 55 : 87));
+		}
+
+		/// <summary>
+		/// Loads a public key from a base64 string
+		/// </summary>
+		/// <returns></returns>
+		public static ECPublicKeyParameters LoadPublicKey(string base64)
+		{
+			byte[] pubKeyBytes = Convert.FromBase64String(base64);
+			var ecPoint = Curve.Curve.DecodePoint(pubKeyBytes).Normalize();
+			return new ECPublicKeyParameters(ecPoint, DomainParams);
+		}
+
+		/// <summary>
+		/// Loads a public key from its raw bytes
+		/// </summary>
+		/// <returns></returns>
+		public static ECPublicKeyParameters LoadPublicKey(byte[] pubKeyBytes)
+		{
+			var ecPoint = Curve.Curve.DecodePoint(pubKeyBytes).Normalize();
+			return new ECPublicKeyParameters(ecPoint, DomainParams);
+		}
+
+		/// <summary>
 		/// Generates a secp256k1 key pair.
 		/// </summary>
 		/// <returns></returns>

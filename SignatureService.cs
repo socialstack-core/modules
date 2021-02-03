@@ -1,5 +1,8 @@
 ﻿using Api.Configuration;
 using Microsoft.Extensions.Configuration;
+using Org.BouncyCastle.Crypto.Signers;
+using Org.BouncyCastle.Math;
+using System.Security.Cryptography;
 using System;
 
 
@@ -61,6 +64,45 @@ namespace Api.Signatures
 		public string Sign(string valueToSign, long timestamp)
 		{
 			return _keyPair.SignBase64(valueToSign + "?t=" + timestamp);
+		}
+
+		/// <summary>
+		/// Validates a signature for a given signed value.
+		/// </summary>
+		/// <param name="signedValue">The value - usually a URL - being signed.</param>
+		/// <param name="signatureB64">Base64</param>
+		/// <param name="publicKeyHex">Hex formatted public key</param>
+		/// <returns>True if the signature is valid.</returns>
+		public bool ValidateSignature(string signedValue, string signatureB64, string publicKeyHex)
+		{
+			var _verifier = new ECDsaSigner();
+			_verifier.Init(false, KeyPair.LoadPublicKeyHex(publicKeyHex));
+
+			var signature = System.Convert.FromBase64String(signatureB64);
+
+			try
+			{
+				var rLength = (int)signature[0]; // first byte contains length of r array
+				var r = new BigInteger(1, signature, 1, rLength);
+				var s = new BigInteger(1, signature, rLength + 1, signature.Length - (rLength + 1));
+
+				var messageBytes = System.Text.Encoding.UTF8.GetBytes(signedValue);
+
+				// Can't share this as it has internal properties which get set during ComputeHash
+				var sha256 = new SHA256Managed();
+
+				// Double sha256 hash (Bitcoin compatible):
+				messageBytes = sha256.ComputeHash(messageBytes, 0, messageBytes.Length);
+				messageBytes = sha256.ComputeHash(messageBytes);
+				lock (_verifier)
+				{
+					return _verifier.VerifySignature(messageBytes, r, s);
+				}
+			}
+			catch (IndexOutOfRangeException)
+			{
+				return false;
+			}
 		}
 
 		/// <summary>
