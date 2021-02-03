@@ -792,7 +792,7 @@ export default class CanvasEditor extends React.Component {
 				inputContent.unshift(<option>Pick a value</option>);
 			} else if (propType.type == 'color' || propType.type == 'colour') {
 				inputType = 'color';
-			}else if(propType.type == 'checkbox' || propType.type == 'bool' || propType.type == 'boolean'){
+			} else if (propType.type == 'checkbox' || propType.type == 'bool' || propType.type == 'boolean') {
 				inputType = 'checkbox';
 			}else if(propType.type == 'id'){
 				inputType = 'select';
@@ -849,14 +849,23 @@ export default class CanvasEditor extends React.Component {
 
 			var placeholder = propType.placeholder || (val == "" ? null : fieldInfo.defaultValue);
 
-			// ensure default colour is set if we don't have a value
-			if (inputType == 'color' && val == undefined && fieldInfo.defaultValue) {
-				val = fieldInfo.defaultValue;
+			// ensure default colour / boolean is set if we don't have a value
+			switch (inputType) {
+				case 'color':
+				case 'checkbox':
+				case 'radio':
+
+					if (val == undefined && fieldInfo.defaultValue !== undefined && fieldInfo.defaultValue !== null) {
+						val = fieldInfo.defaultValue;
+					}
+
+					break;
 			}
 
 			options.push(
-				<Input label={this.getLinkLabel(this.niceName(label), targetNode, fieldInfo)} type={inputType} defaultValue={val} placeholder={placeholder}
-					help={propType.help} helpPosition={propType.helpPosition} onChange={e => {
+				<Input label={this.getLinkLabel(this.niceName(label, propType.label), targetNode, fieldInfo)} type={inputType} defaultValue={val} placeholder={placeholder}
+					help={propType.help} helpPosition={propType.helpPosition}
+					fieldName={fieldName} disabledBy={propType.disabledBy} enabledBy={propType.enabledBy} onChange={e => {
 					var value = e.target.value;
 
 					if (inputType == 'renderer') {
@@ -926,13 +935,17 @@ export default class CanvasEditor extends React.Component {
 		this.setState({});
 	}
 	
-	niceName(label){
+	niceName(label, override) {
+
+		if (override && override.length) {
+			return override;
+		}
+
 		label = label.replace(/([^A-Z])([A-Z])/g, '$1 $2');
 		return label[0].toUpperCase() + label.substring(1);
 	}
 	
-	getLinkLabel(label, targetNode, fieldInfo){
-		
+	getLinkLabel(label, targetNode, fieldInfo) {
 		return [label, <i className='fa fa-link value-link' onClick={e => {
 			// This blocks the input field click that happens as we're surrounded by a <label>
 			e.preventDefault();
