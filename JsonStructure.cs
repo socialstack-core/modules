@@ -55,6 +55,20 @@ namespace Api.Startup
 				throw new NotImplementedException();
 			}
 		}
+
+		/// <summary>
+		/// The meta fields in this type. The keys are always lowercase. For example "title" and "description".
+		/// These are set by applying [Meta("fieldname")] to your content type's fields. 
+		/// Note that title and description will always exist, unless a content type does not have any fields at all.
+		/// </summary>
+		public virtual IEnumerable<KeyValuePair<string, JsonField>> AllMetaFields
+		{
+			get
+			{
+				throw new NotImplementedException();
+			}
+		}
+
 	}
 
 	/// <summary>
@@ -64,9 +78,23 @@ namespace Api.Startup
 	public class JsonStructure<T> : JsonStructure
 	{
 		/// <summary>
+		///  Common field names used by entities which are used as a title when no [Meta("title")] is declared.
+		/// </summary>
+		private static string[] CommonTitleNames = new string[] { "fullname", "username", "firstname", "title", "name", "url" }; // Title itself isn't first as some user tables have "title" (as in Mr/s etc).
+
+		/// <summary>
+		///  Common field names used by entities which are used as a description when no [Meta("description")] is declared.
+		/// </summary>
+		private static string[] CommonDescriptionNames = new string[] { "description", "shortdescription", "bio", "biography", "about" };
+		
+		/// <summary>
 		/// All raw fields in this structure.
 		/// </summary>
 		public Dictionary<string, JsonField<T>> Fields;
+		/// <summary>
+		/// All meta fields in this structure. Common ones are e.g. "title" and "description".
+		/// </summary>
+		public Dictionary<string, JsonField<T>> MetaFields;
 		/// <summary>
 		/// The after ID fields in this structure.
 		/// </summary>
@@ -85,6 +113,7 @@ namespace Api.Startup
 		{
 			ForRole = forRole;
 			Fields = new Dictionary<string, JsonField<T>>();
+			MetaFields = new Dictionary<string, JsonField<T>>();
 			AfterIdFields = new Dictionary<string, JsonField<T>>();
 			BeforeIdFields = new Dictionary<string, JsonField<T>>();
 		}
@@ -97,6 +126,20 @@ namespace Api.Startup
 			get
 			{
 				foreach (var fieldKvp in Fields)
+				{
+					yield return new KeyValuePair<string, JsonField>(fieldKvp.Key, fieldKvp.Value);
+				}
+			}
+		}
+		
+		/// <summary>
+		/// All meta fields in this structure as typeless JsonField refs.
+		/// </summary>
+		public override IEnumerable<KeyValuePair<string, JsonField>> AllMetaFields
+		{
+			get
+			{
+				foreach (var fieldKvp in MetaFields)
 				{
 					yield return new KeyValuePair<string, JsonField>(fieldKvp.Key, fieldKvp.Value);
 				}
@@ -147,7 +190,44 @@ namespace Api.Startup
 				
 				await TryAddField(context, jsonField, eventSystem);
 			}
-			
+
+			// Do we have a title and description meta field?
+			// If not, we'll attempt to invent them based on some common names.
+			if (!MetaFields.ContainsKey("title"))
+			{
+				var titleField = TryGetAnyOf(CommonTitleNames);
+				if (titleField != null)
+				{
+					MetaFields["title"] = titleField;
+				}
+			}
+
+			if (!MetaFields.ContainsKey("description"))
+			{
+				var descriptionField = TryGetAnyOf(CommonDescriptionNames);
+				if (descriptionField != null)
+				{
+					MetaFields["description"] = descriptionField;
+				}
+			}
+		}
+
+		/// <summary>
+		/// Gets the first match of any of the given field names. They must be lowercase. Null if none exist.
+		/// </summary>
+		/// <param name="fieldNames"></param>
+		/// <returns></returns>
+		public JsonField<T> TryGetAnyOf(string[] fieldNames)
+		{
+			for (var i = 0; i < fieldNames.Length; i++)
+			{
+				if(Fields.TryGetValue(fieldNames[i], out JsonField<T> result))
+				{
+					return result;
+				}
+			}
+
+			return null;
 		}
 
 		/// <summary>
@@ -196,6 +276,8 @@ namespace Api.Startup
 
 			field = await eventSystem.BeforeSettable.Dispatch(context, field);
 
+			string metaFieldName = null;
+
 			if (field != null && field.Attributes != null)
 			{
 				foreach (var attrib in field.Attributes)
@@ -204,6 +286,11 @@ namespace Api.Startup
 					{
 						// We'll ignore these too.
 						field.Hide = true;
+					}
+
+					if (attrib is MetaAttribute)
+					{
+						metaFieldName = ((MetaAttribute)attrib).FieldName;
 					}
 				}
 			}
@@ -216,13 +303,21 @@ namespace Api.Startup
 			
 			var lowerName = field.Name.ToLower();
 
-			if (field.AfterId)
+			if (field.Writeable)
 			{
-				AfterIdFields[lowerName] = field;
+				if (field.AfterId)
+				{
+					AfterIdFields[lowerName] = field;
+				}
+				else
+				{
+					BeforeIdFields[lowerName] = field;
+				}
 			}
-			else
+
+			if (!string.IsNullOrEmpty(metaFieldName))
 			{
-				BeforeIdFields[lowerName] = field;
+				MetaFields[metaFieldName.ToLower()] = field;
 			}
 
 			Fields[lowerName] = field;
@@ -253,7 +348,19 @@ namespace Api.Startup
 			
 			return result;
 		}
-		
+
+		/// <summary>
+		/// Gets a meta field. Common names are "title" and "description".
+		/// </summary>
+		/// <param name="name"></param>
+		/// <returns></returns>
+		public JsonField<T> GetMetaField(string name)
+		{
+			JsonField<T> result;
+			MetaFields.TryGetValue(name.ToLower(), out result);
+			return result;
+		}
+
 	}
 
 	/// <summary>
@@ -301,6 +408,14 @@ namespace Api.Startup
 		/// True if this is a numeric field (int, double etc).
 		/// </summary>
 		public bool IsNumericField;
+		/// <summary>
+		/// True if this field is readable by this role.
+		/// </summary>
+		public bool Readable = true;
+		/// <summary>
+		/// True if this field is writeable by this role.
+		/// </summary>
+		public bool Writeable = true;
 		/// <summary>
 		/// The field or property attributes.
 		/// </summary>
