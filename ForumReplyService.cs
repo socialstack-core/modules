@@ -18,7 +18,7 @@ namespace Api.Forums
 	/// Handles forum replies.
 	/// Instanced automatically. Use injection to use this service, or Startup.Services.Get.
 	/// </summary>
-	public partial class ForumReplyService : AutoService<ForumReply>, IForumReplyService
+	public partial class ForumReplyService : AutoService<ForumReply>//, IForumReplyService
     {
 		private readonly Query<Forum> updateReplyCountQuery;
 		private readonly Query<ForumThread> updateThreadReplyQuery;
@@ -26,7 +26,7 @@ namespace Api.Forums
 		/// <summary>
 		/// Instanced automatically. Use injection to use this service, or Startup.Services.Get.
 		/// </summary>
-		public ForumReplyService(IForumThreadService forumThreads, IForumService forums) : base(Events.ForumReply)
+		public ForumReplyService(ForumThreadService forumThreads, ForumService forums) : base(Events.ForumReply)
         {
 			InstallAdminPages(new string[] { "id", "createdDateUtc" });
 			

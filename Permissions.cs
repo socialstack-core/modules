@@ -26,8 +26,8 @@ namespace Api.Forums
 
 				Roles.Guest.Grant("forumthread_create");
 				Roles.Member.Grant("forumthread_create");
-				return Task.FromResult(source);
-			});
+				return new ValueTask<object>(source);
+			}, 20);
 		}
 	}
 }

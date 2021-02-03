@@ -17,9 +17,9 @@ namespace Api.Forums
 	/// Handles creations of forum threads - containers for forum posts.
 	/// Instanced automatically. Use injection to use this service, or Startup.Services.Get.
 	/// </summary>
-	public partial class ForumThreadService : AutoService<ForumThread>, IForumThreadService
+	public partial class ForumThreadService : AutoService<ForumThread>//, IForumThreadService
 	{
-		private IForumService _forums;
+		private ForumService _forums;
 		private readonly Query<Forum> updateThreadCountQuery;
 		private readonly Query<ForumReply> deleteRepliesQuery;
 
@@ -27,7 +27,7 @@ namespace Api.Forums
 		/// <summary>
 		/// Instanced automatically. Use injection to use this service, or Startup.Services.Get.
 		/// </summary>
-		public ForumThreadService(IForumService forums) : base(Events.ForumThread)
+		public ForumThreadService(ForumService forums) : base(Events.ForumThread)
         {
 			_forums = forums;
 
@@ -64,7 +64,7 @@ namespace Api.Forums
 		/// Optionally includes deleting all replies and uploaded content refs in there too.
 		/// </summary>
 		/// <returns></returns>
-		public override async Task<bool> Delete(Context context, int id)
+		public override async ValueTask<bool> Delete(Context context, int id)
         {
             // Delete the entry:
 			await _database.Run(context, deleteQuery, id);
@@ -98,7 +98,7 @@ namespace Api.Forums
 		/// <summary>
 		/// Creates a new forum thread.
 		/// </summary>
-		public override async Task<ForumThread> Create(Context context, ForumThread forumThread)
+		public override async ValueTask<ForumThread> Create(Context context, ForumThread forumThread)
 		{
 			// Get the forum to obtain the default page ID:
 			var forum = await _forums.Get(context, forumThread.ForumId);

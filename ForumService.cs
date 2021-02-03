@@ -11,7 +11,7 @@ namespace Api.Forums
 	/// Handles creations of forums - containers for forum threads.
 	/// Instanced automatically. Use injection to use this service, or Startup.Services.Get.
 	/// </summary>
-	public partial class ForumService : AutoService<Forum>, IForumService
+	public partial class ForumService : AutoService<Forum>//, IForumService
     {
 		private readonly Query<ForumThread> deleteThreadsQuery;
 		private readonly Query<ForumReply> deleteRepliesQuery;
@@ -38,7 +38,7 @@ namespace Api.Forums
 		/// Includes deleting all replies, threads and uploaded content refs in there too.
         /// </summary>
         /// <returns></returns>
-        public override async Task<bool> Delete(Context context, int id)
+        public override async ValueTask<bool> Delete(Context context, int id)
         {
             // Delete the forum entry:
 			await base.Delete(context, id);
