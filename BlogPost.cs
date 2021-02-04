@@ -1,5 +1,6 @@
 using System;
 using Api.Database;
+using Api.Startup;
 using Api.Users;
 
 namespace Api.Blogs
@@ -22,6 +23,7 @@ namespace Api.Blogs
 		/// The post title in the site default language.
 		/// </summary>
 		[DatabaseField(Length = 200)]
+		[Meta("title")]
 		public string Title;
 		/// <summary>
 		/// The JSON body of the post. It's JSON because it is a *canvas*. 
@@ -57,6 +59,7 @@ namespace Api.Blogs
 		/// A synopsis of the blog post that is generated from the 
 		/// </summary>
 		[DatabaseField(Length = 150)]
+		[Meta("description")]
 		public string Synopsis;
 	}
 	
