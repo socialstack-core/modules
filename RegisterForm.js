@@ -49,3 +49,7 @@ export default class RegisterForm extends React.Component {
 		);
 	}
 }
+
+RegisterForm.propTypes = {
+	
+};
