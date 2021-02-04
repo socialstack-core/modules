@@ -109,14 +109,40 @@ namespace Api.Pages
 		}
 
 		/// <summary>
+		/// A cache used to identify which pages on the site are the canonical pages for each content type.
+		/// </summary>
+		private UrlGenerationCache _urlGenerationCache;
+
+		/// <summary>
 		/// Gets the URL for the given piece of generic content. Pages are very often cached so this usually returns instantly.
 		/// </summary>
 		/// <param name="context"></param>
 		/// <param name="contentObject"></param>
-		/// <returns></returns>
-		public async ValueTask<string> GetUrl(Context context, object contentObject)
+		/// <param name="scope">State which type of URL you want - either a frontend URL or admin panel. Default is frontend if not specified.</param>
+		/// <returns>A url which is relative to the site root.</returns>
+		public async ValueTask<string> GetUrl(Context context, object contentObject, UrlGenerationScope scope = null)
 		{
-			return "-coming soon-";
+			if (_urlGenerationCache == null)
+			{
+				// Instance and wait for it to be created:
+				_urlGenerationCache = new UrlGenerationCache();
+
+				// Get all pages:
+				var allPages = await List(context, null);
+
+				// Load now:
+				_urlGenerationCache.Load(allPages);
+			}
+
+			var lookup = _urlGenerationCache.GetLookup(scope);
+
+			if (!lookup.TryGetValue(contentObject.GetType(), out UrlGenerationMeta meta))
+			{
+				// URL is unknown.
+				return "/";
+			}
+
+			return meta.Generate(contentObject);
 		}
 
 		/// <summary>
