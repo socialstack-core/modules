@@ -34,8 +34,8 @@ export default class LoginForm extends React.Component {
 					this.setState({failed:true})
 				}}
 				>
-				<Input name="emailOrUsername" placeholder="Email or username" validate={['Required']} />
-				<Input name="password" placeholder="Password" type="password" />
+				<Input label = "Email" name="emailOrUsername" placeholder="Email or username" validate={['Required']} />
+				<Input label = "Password" name="password" placeholder="Password" type="password" />
 				<Row>
 					<Col size="6">
 						<label className="checkbox-label">
@@ -43,7 +43,7 @@ export default class LoginForm extends React.Component {
 						</label>
 					</Col>
 					<Col size="6" className="text-right">
-						<a href="/en-admin/forgot">I forgot my password</a>
+						<a href="/forgot">I forgot my password</a>
 					</Col>
 				</Row>
 				<Spacer height="20" />
@@ -54,9 +54,13 @@ export default class LoginForm extends React.Component {
 					</Alert>
 				)}
 				<div className="form-group">
-					Don't have an account? <a href="/en-admin/register">Register here</a>
+					Don't have an account? <a href="/register">Register here</a>
 				</div>
 			</Form>
 		);
 	}
 }
+
+LoginForm.propTypes = {
+
+};
