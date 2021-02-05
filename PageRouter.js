@@ -52,6 +52,8 @@ export default class PageRouter extends React.Component{
 		// Build route map and ID maps next.
 				
 		var idMap = {};
+		var contentMap = {};
+		var adminContentMap = {};
 				
 		pages.forEach(page => {
 			idMap[''+page.id] = page;
@@ -66,6 +68,71 @@ export default class PageRouter extends React.Component{
 			if(!url){
 				return;
 			}
+
+			// Does our url contain '{' ?
+			if(url.includes("{")) {
+				// We need to handle it as a content type. Let's get the type and piecesAfter value. 
+				var urlExploded = url.split("/");
+
+				var contentType = null;
+				var parameter = null;
+				var piecesAfter = 0;
+
+				// Let's loop backwards through our exploded url
+				for (var i = urlExploded.length -1; i >= 0; i--) {
+					var piece = urlExploded[i];
+
+					// Is our piece the content?
+					if(piece.charAt(0) == "{" && piece.charAt(piece.length-1) == "}") {
+						// yes, shed the curlies.
+						contentAndParam = piece.slice(1, -1);
+
+						// Let's split on the "." now.
+						contentAndParamExplode = contentAndParam.split(".");
+						
+						// do we have two pieces? If not, this is not right.
+						if(contentAndParamExplode.length == 2) {
+							// good to go. 
+							// what is the content type and param?
+							contentType = contentAndParamExplode[0].toLowerCase();
+							parameter = contentAndParamExplode[1].toLowerCase();
+							
+							//Nothing else needed in this loop now.
+							break;
+						}
+					}
+
+					piecesAfter++;
+				}
+
+				// Did we get a content type and param out of this?
+				if(contentType && parameter) {
+					
+					// What's it's scope?
+					if(url.includes("/en-admin/")) {
+						// The scope is admin - do we have an existing entry for this content?
+						if(!adminContentMap[contentType] || adminContentMap[contentType].piecesAfter > piecesAfter) {
+							adminContentMap[contentType] = {
+								parameter: parameter,
+								piecesAfter: piecesAfter,
+								page: page,
+								url: url
+							};
+						}
+					} else {
+						// For now, we will assume the scope is the UI otherwise.
+						if(!contentMap[contentType] || contentMap[contentType].piecesAfter > piecesAfter) {
+							contentMap[contentType] = {
+								parameter: parameter,
+								piecesAfter: piecesAfter,
+								page: page,
+								url: url
+							};
+						} 
+					}
+				}
+			}
+
 			
 			if(url.length && url[0] == '/'){
 				url = url.substring(1);
@@ -87,13 +154,24 @@ export default class PageRouter extends React.Component{
 				for(var i=0;i<parts.length;i++){
 					
 					var part = parts[i];
-					var token = (part.length && part[0] == ':') && part.substring(1);
-					
+					var token;
+					if (part.length)
+					{
+						if (part[0] == ':')
+						{
+							token = part.substring(1);
+						}
+						else if (part[0] == '{')
+						{
+							token = (part[part.length - 1] == '}') ? part.substring(1, part.length - 2) : part.substring(1);
+						}
+					}
+
 					if(token){
 						// Anything. Treat these tokens as *:
 						part = '*';
 					}
-					
+
 					var next = pg.children[part];
 					
 					if(!next){
@@ -121,6 +199,8 @@ export default class PageRouter extends React.Component{
 				pages,
 				rootPage,
 				idMap,
+				contentMap,
+				adminContentMap,
 				...pageInfo
 			});
 		}
