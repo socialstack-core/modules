@@ -12,25 +12,29 @@ export default class App extends React.Component{
 	
 	constructor(props){
 		super(props);
-		this.state = {
-			user: null,
-			url: global.hashRouter ? (global.location.hash ? global.location.hash.substring(1) : '/') : (global.location.pathname + global.location.search),
-			loadingUser: true
-		};
+		var url = global.hashRouter ? (global.location.hash ? global.location.hash.substring(1) : '/') : (global.location.pathname + global.location.search);
 		global.app = this;
 		
-		this.state.loadingUser = webRequest('user/self').then(response => {
-			if(response && response.json){
-				global.app.setState({...response.json, loadingUser: false});
-			}else{
-				global.app.setState({loadingUser: false});
-			}
-			return response;
-		}).catch(e=>{
-			// Not logged in
-			global.app.setState({user: null, realUser: null, loadingUser: false});
-		});
-		
+		if(global.gsInit){
+			this.state = {url, ...global.gsInit, loadingUser: false};
+		}else{
+			this.state = {
+				user: null,
+				url,
+				loadingUser: true
+			};
+			this.state.loadingUser = webRequest('user/self').then(response => {
+				if(response && response.json){
+					global.app.setState({...response.json, loadingUser: false});
+				}else{
+					global.app.setState({loadingUser: false});
+				}
+				return response;
+			}).catch(e=>{
+				// Not logged in
+				global.app.setState({user: null, realUser: null, loadingUser: false});
+			});
+		}
 		eventTarget = global.events.get('App');
 	}
 	
