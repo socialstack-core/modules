@@ -70,7 +70,7 @@ export default class PageRouter extends React.Component{
 			}
 
 			// Does our url contain '{' ?
-			if(url.includes("{")) {
+			if(url.indexOf("{") != -1) {
 				// We need to handle it as a content type. Let's get the type and piecesAfter value. 
 				var urlExploded = url.split("/");
 
@@ -163,7 +163,7 @@ export default class PageRouter extends React.Component{
 						}
 						else if (part[0] == '{')
 						{
-							token = (part[part.length - 1] == '}') ? part.substring(1, part.length - 2) : part.substring(1);
+							token = (part[part.length - 1] == '}') ? part.substring(1, part.length - 1) : part.substring(1);
 						}
 					}
 
