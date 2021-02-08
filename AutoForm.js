@@ -355,10 +355,10 @@ export default class AutoForm extends React.Component {
 								</div>
 							</div>
 						) : (
-								<Input type="button" className="btn btn-danger" style={{ float: 'right' }} onClick={() => this.startDelete()}>Delete</Input>
+								<Input type="button" groupClassName="offset-2 auto-form-footer" className="btn btn-danger" style={{ float: 'right' }} onClick={() => this.startDelete()}>Delete</Input>
 							)
 					)}
-					<div>
+					<div className="auto-form-create-options">
 						<Input inline type="submit" disabled={this.state.submitting} onMouseDown={() => { this.draftBtn = false }}>
 							{isEdit ? "Save and Publish" : "Create"}
 						</Input>
