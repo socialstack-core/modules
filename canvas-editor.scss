@@ -15,9 +15,12 @@ $canvas_editor_min_height: 400; // px
 	min-height: px_to_rem($canvas_editor_min_height);
 	
 	.canvas-editor-bordered {
-		border: 1px solid lightgrey;
-		border-radius: 4px;
-		padding: 0.375rem 0.75rem;
+		//padding: 0.375rem 0.75rem;
+		//border: 1px solid lightgrey;
+		//border-radius: 4px;
+		overflow: hidden;
+		border: 0;
+		outline: 1px solid lightgrey;
 		min-height: px_to_rem($canvas_editor_min_height);
 	}
 
