@@ -1507,7 +1507,7 @@ export default class CanvasEditor extends React.Component {
 
 							var target = this.findComponentRoot(e.target);
 
-							if (target && target.onjsondrop) {
+							if (target && target.onjsondrop && window.confirm("Move content?")) {
 								target.onjsondrop(e, JSON.parse(data));
 							}
 
