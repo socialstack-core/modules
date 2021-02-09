@@ -1,7 +1,6 @@
 using Api.Configuration;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Configuration;
-using Api.Configuration;
 
 /// <summary>
 /// A general use service which manipulates an entity type. In the global namespace due to its common use.
