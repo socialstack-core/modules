@@ -22,9 +22,9 @@ namespace Api.Huddles
 	/// </summary>
 	public partial class HuddleService : AutoService<Huddle>
     {
-		private SignatureService _signatures;
-		private HuddleServerService _huddleServerService;
-		private int userTypeId;
+		private readonly SignatureService _signatures;
+		private readonly HuddleServerService _huddleServerService;
+		private readonly int userTypeId;
 
 		/// <summary>
 		/// Instanced automatically. Use injection to use this service, or Startup.Services.Get.
@@ -162,6 +162,8 @@ namespace Api.Huddles
 		/// <summary>
 		/// Creates a signed join URL.
 		/// </summary>
+		/// <param name="context"></param>
+		/// <param name="huddle"></param>
 		/// <param name="localHostName">
 		/// The hostname of "this" API. Usually just the public site hostname, "www.example.com".
 		/// </param>

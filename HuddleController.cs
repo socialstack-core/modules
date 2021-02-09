@@ -263,8 +263,12 @@ namespace Api.Huddles
 		
     }
 
+	/// <summary>
+	/// </summary>
 	public class HuddleUserStates
 	{
+		/// <summary>
+		/// </summary>
 		public List<HuddleUserState> Users { get; set; }
 
 		/// <summary>
@@ -272,15 +276,25 @@ namespace Api.Huddles
 		/// </summary>
 		public int HuddleServerIdentifier { get; set; }
 	}
-
+	
+	/// <summary>
+	/// </summary>
 	public class HuddleUserState
 	{
+		/// <summary>
+		/// </summary>
 		public int UserId { get; set; }
 
+		/// <summary>
+		/// </summary>
 		public int HuddleId { get; set; }
 
+		/// <summary>
+		/// </summary>
 		public int PeerId { get; set; }
 
+		/// <summary>
+		/// </summary>
 		public bool Joined { get; set; }
 	}
 
