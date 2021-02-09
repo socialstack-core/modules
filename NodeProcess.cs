@@ -237,6 +237,7 @@ namespace Api.StackTools
 					catch
 					{
 						// Wasn't json (or a valid message) - just write it out.
+						Console.WriteLine(e.Data);
 					}
 				}
 
@@ -395,6 +396,7 @@ namespace Api.StackTools
 
 				// Write to stdin:
 				Process.StandardInput.Write(jsonString);
+				Process.StandardInput.Flush();
 			}
 		}
 	}
