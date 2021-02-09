@@ -15,6 +15,8 @@ export default class RegisterForm extends React.Component {
 	}
 	
 	render() {
+		var {noUsername} = this.props;
+		var {failed} = this.state;
 		return (
 			<Form
 				action = "user"
@@ -22,6 +24,14 @@ export default class RegisterForm extends React.Component {
 					this.setState({success: true})
 				}}
 				className="register-form"
+				onFailed={e=>{
+					console.log(e);
+					this.setState({failed:e})
+				}}
+				onValues = {values => {
+					this.setState({failed: false, success: false});
+					return values;
+				}}
 				>
                 <p>
                     All fields are required
@@ -30,10 +40,15 @@ export default class RegisterForm extends React.Component {
 					<Input name="firstName" placeholder="Your first name" validate={['Required']} />
 					<Input name="lastName" placeholder="Your last name" validate={['Required']} />
 					<Input name="email" placeholder="Email address" validate={['Required', 'EmailAddress']} />
-					<Input name="username" placeholder="Username" validate={['Required']} />
+					{!noUsername && <Input name="username" placeholder="Username" validate={['Required']} /> }
 					<Input name="password" type="password" placeholder="New Password" validate={['Required']} />
 					<Input name="passwordRepeat" type="password" placeholder="New Password Again" validate={['Required']} />
 				</div>
+				{failed && (
+					<Alert type="fail">
+						{failed.message ? failed.message : failed == "VALIDATION" && "Please verify all values are correct."}
+					</Alert>
+				)}
 				{this.state.success ? (
 					<Alert type="success">
 						Account created! You can now <a href="/login">login here</a>.
@@ -51,5 +66,5 @@ export default class RegisterForm extends React.Component {
 }
 
 RegisterForm.propTypes = {
-	
+	noUsername: 'bool'
 };
