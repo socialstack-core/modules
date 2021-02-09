@@ -77,7 +77,7 @@ namespace Api.StackTools
 		/// <summary>
 		/// Used by the serializer when sending JSON to the node process.
 		/// </summary>
-		private JsonSerializerSettings _serializerConfig;
+		private readonly JsonSerializerSettings _serializerConfig;
 
 		/// <summary>
 		/// The system process.
