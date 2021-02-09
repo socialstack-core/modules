@@ -16,7 +16,6 @@ namespace Api.Startup
     public class ExceptionMiddleware
     {
         private readonly RequestDelegate _next;
-		private static object msgLock = new object();
 		
 
 		/// <summary>
