@@ -13,7 +13,6 @@ using Microsoft.AspNetCore.Http.Features;
 using Microsoft.AspNetCore.Diagnostics;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Configuration;
-using Api.Configuration;
 using Microsoft.AspNetCore.Cors.Infrastructure;
 
 namespace Api.Startup
@@ -42,7 +41,7 @@ namespace Api.Startup
 		/// <summary>
 		/// Cors configuration.
 		/// </summary>
-		private CorsConfig _corsConfig;
+		private readonly CorsConfig _corsConfig;
 
 		/// <summary>
 		/// Create a new web startup info instance.
