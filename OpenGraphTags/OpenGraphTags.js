@@ -40,6 +40,19 @@ export default class OpenGraphTags extends React.Component {
 		metaImage.content = global.location.origin + getRef(page.imageRef, {url:true});
 		document.head.appendChild(metaImage);
 
+
+
+
+		var metaDescription = document.createElement('meta');
+		metaDescription.setAttribute('property', 'og:description');
+		metaDescription.content = page.title;
+		document.head.appendChild(metaDescription);
+
+		var metaSiteName = document.createElement('meta');
+		metaSiteName.setAttribute('property', 'og:site_name');
+		metaSiteName.content = '4-Roads';
+		document.head.appendChild(metaSiteName);
+
 		return <head>
 			<meta property="og:title" content={page.title} />
 			<meta property="og:type" content="website" />
