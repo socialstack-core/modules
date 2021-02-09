@@ -31,7 +31,7 @@ namespace Api.CanvasRenderer
 		/// <param name="set"></param>
 		/// <param name="modules"></param>
 		/// <returns></returns>
-		public Task<List<RenderedCanvas>> Render(CanvasAndContextSet set, string modules = "Admin")
+		public async Task<List<RenderedCanvas>> Render(CanvasAndContextSet set, string modules = "Admin")
 		{
 			var tcs = new TaskCompletionSource<List<RenderedCanvas>>();
 
@@ -103,8 +103,8 @@ namespace Api.CanvasRenderer
 
 				tcs.TrySetResult(result);
 			});
-
-			return tcs.Task;
+			
+			return await tcs.Task;
 		}
 
 		/// <summary>
