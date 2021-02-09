@@ -20,6 +20,8 @@ export default class OpenGraphTags extends React.Component {
 			return;
 		}
 
+		console.log(page);
+
 		return <head>
 			<meta property="og:title" content={page.title} />
 			<meta property="og:type" content="website" />
