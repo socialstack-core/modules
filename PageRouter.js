@@ -418,9 +418,15 @@ export default class PageRouter extends React.Component{
 			url=url.substring(0,url.length-1);
 		}
 		
-		if(global.urlPrefix){
-			if(url.substring(0,global.urlPrefix.length).toLowerCase() == global.urlPrefix.toLowerCase()){
-				url = url.substring(global.urlPrefix.length);
+		var prefix = global.urlPrefix;
+		
+		if(prefix){
+			if(prefix[0] == '/'){
+				prefix = prefix.substring(1);
+			}
+			
+			if(url.substring(0,prefix.length).toLowerCase() == prefix.toLowerCase()){
+				url = url.substring(prefix.length);
 				
 				if(url[0] == '/'){
 					url=url.substring(1);
