@@ -20,16 +20,11 @@ export default class OpenGraphTags extends React.Component {
 			return;
 		}
 
-		// Does the page have a content type?
-		console.log(page);
-
-		return [
-			<meta property="og:title" content={page.title} />,
-			<meta property="og:type" content="website" />,
-			<meta property="og:url" content={page.url} />,
+		return <head>
+			<meta property="og:title" content={page.title} />
+			<meta property="og:type" content="website" />
+			<meta property="og:url" content={page.url} />
 			<meta property="og:image" content={getRef(page.imageRef, {url:true})}/>
-		];
-		
+		</head>;	
 	}
-	
 }
