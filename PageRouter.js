@@ -190,21 +190,22 @@ export default class PageRouter extends React.Component{
 			
 		});
 		
-		var pageInfo = this.getPageRedirected(rootPage, idMap, this.props.url);
-		this.trigger(pageInfo);
-		if(isCached && pageInfo.page.url == "" && this.props.url != "/"){
-			this.makeRequest();
-		}
-		else{
-			this.setState({
-				pages,
-				rootPage,
-				idMap,
-				contentMap,
-				adminContentMap,
-				...pageInfo
-			});
-		}
+		this.getPageRedirected(rootPage, idMap, this.props.url).then(pageInfo => {
+			this.trigger(pageInfo);
+			if(isCached && pageInfo.page.url == "" && this.props.url != "/"){
+				this.makeRequest();
+			}
+			else{
+				this.setState({
+					pages,
+					rootPage,
+					idMap,
+					contentMap,
+					adminContentMap,
+					...pageInfo
+				});
+			}
+		})
 	}
 	
 	onLinkClick(e){
@@ -250,10 +251,12 @@ export default class PageRouter extends React.Component{
 		
 		document.addEventListener("click", this.onLinkClick);
 		
-		if(!preloadedPages){
+		if(global.pageRouterData){
+			this.pages(global.pageRouterData, true);
+		}else if(!preloadedPages){
 			//console.log(this.props.url);
 			this.makeRequest();
-		} 
+		}
 		else {
 			this.pages(preloadedPages.results || preloadedPages, true);
 		}
@@ -294,9 +297,10 @@ export default class PageRouter extends React.Component{
 	
 	setupPage(props){
 		// page and tokens
-		var pageInfo = this.getPageRedirected(this.state.rootPage, this.state.idMap, props.url);
-		this.trigger(pageInfo);
-		this.setState(pageInfo);
+		this.getPageRedirected(this.state.rootPage, this.state.idMap, props.url).then((pageInfo) => {
+			this.trigger(pageInfo);
+			this.setState(pageInfo);
+		});
 	}
 	
 	componentWillUnmount(){
@@ -343,46 +347,64 @@ export default class PageRouter extends React.Component{
 	
 	getPageRedirected(rootPage, idMap, url){
 		// The same as getPage only this one also resolves redirect: PageId.
-		
-		var pageAndState = this.getPage(rootPage, url);
-		
-		if(!pageAndState || !pageAndState.page){
-			// Redirect to 404:
-			return this.getPage(rootPage, this.props.notFound || '/404');
-		}
-		
-		var {page} = pageAndState;
-		
-		if(!page.bodyJson){
-			return pageAndState;
-		}
-		
-		var json;
-		
-		if(typeof page.bodyJson == "string"){
-			try{
-				json = JSON.parse(page.bodyJson);
-			}catch(e){
-				console.log('Failed to load page JSON: ', page.bodyJson);
-				console.error(e);
+		return new Promise((success, reject) => {
+			var pageAndState = this.getPage(rootPage, url);
+			
+			if(!pageAndState || !pageAndState.page){
+				// Redirect to 404:
+				pageAndState = this.getPage(rootPage, this.props.notFound || '/404');
 			}
-		}else{
-			json = page.bodyJson;
-		}
-		
-		if(!json){
-			json = {};
-		}
-		
-		if(json.redirect){
-			// Redirecting to another page. It's always identified by ID.
-			return {
-				page: this.resolveRedirect(json.redirect, idMap, 0),
-				tokens: pageAndState.tokens
-			};
-		}
-		
-		return pageAndState;
+			
+			var {page} = pageAndState;
+			
+			if(!page || !page.id){
+				return success(pageAndState);
+			}
+			
+			var pgLoad = null;
+			
+			if(page.createdUtc == undefined){
+				// Page not loaded yet - get it now:
+				pgLoad = webRequest("page/" + page.id).then(response => {
+					for(var field in response.json){
+						page[field] = response.json[field];
+					}
+					
+					return page;
+				});
+			}else{
+				pgLoad = Promise.resolve(page);
+			}
+			
+			pgLoad.then(page => {
+				var json;
+			
+				if(typeof page.bodyJson == "string"){
+					try{
+						json = JSON.parse(page.bodyJson);
+					}catch(e){
+						console.log('Failed to load page JSON: ', page.bodyJson);
+						console.error(e);
+					}
+				}else{
+					json = page.bodyJson;
+				}
+				
+				if(!json){
+					json = {};
+				}
+				
+				if(json.redirect){
+					// Redirecting to another page. It's always identified by ID.
+					pageAndState = {
+						page: this.resolveRedirect(json.redirect, idMap, 0),
+						tokens: pageAndState.tokens
+					};
+				}
+				
+				success(pageAndState);
+			});
+		});
 	}
 	
 	getPage(rootPage, url){
@@ -428,7 +450,7 @@ export default class PageRouter extends React.Component{
 					nextNode = curNode.children['*'];
 					
 					if(nextNode && nextNode.tokenNames.length){
-						// handles e.g. :token in the URL - sets the named token into the URL ctx.
+						// handles e.g. :token or {token} in the URL - sets the named token into the URL ctx.
 						// Note that one URL segment can be known by multiple token names.
 						var tNames= nextNode.tokenNames;
 						
