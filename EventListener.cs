@@ -17,7 +17,7 @@ namespace Api.WebSockets
 
 		private uint Id = 1;
 		private WebSocketService _websocketService;
-		private object connector = new object();
+		private readonly object connector = new object();
 
 		/// <summary>
 		/// Instanced automatically.
@@ -79,10 +79,6 @@ namespace Api.WebSockets
 					try
 					{
 						await _websocketService.ConnectedClient(client);
-					}
-					catch
-					{
-						throw;
 					}
 					finally {
 						await client.OnDisconnected(_websocketService);
