@@ -274,12 +274,12 @@ namespace Api.Pages
 					VisibleToRole4 = false
 				},
 				new Page {
-					Url = "/en-admin/" + typeName + "/:adminId",
+					Url = "/en-admin/" + typeName + "/{"+typeName+".id}",
 					BodyJson = @"{
 						""data"" : {
 							""endpoint"" : """ + typeName + @""",
 							""id"" : {
-								""name"" : ""adminId"",
+								""name"" : """+typeName+@".id"",
 								""type"" : ""urlToken""
 							}
 						},
@@ -290,6 +290,8 @@ namespace Api.Pages
 					VisibleToRole4 = false
 				}
 			);
+
+			await DeleteOldInternal(typeName);
 		}
 
 		/// <summary>
@@ -315,6 +317,31 @@ namespace Api.Pages
 			}
 		}
 			
+		/// <summary>
+		/// Used to uninstall internal pages that were once in use such as /en-admin/typeName/:id or /en-admin/typeName/:adminId
+		/// </summary>
+		/// <param name="typeName"></param>
+		/// <returns></returns>
+		private async ValueTask DeleteOldInternal(string typeName)
+        {
+			var context = new Context();
+
+			// We need to look for both old types.
+			var adminIdUrl = "/en-admin/" + typeName + "/:adminId";
+			var oldIdUrl = "/en-admin/" + typeName + "/:id";
+
+			// Get any pages by those URLs:
+			var filter = new Filter<Page>().Equals("Url", adminIdUrl).Or().Equals("Url", oldIdUrl);
+
+			var pages = await List(context, filter);
+
+			foreach (var page in pages)
+            {
+				// If we have any pages from the previous hit, time to delete them!
+				await Delete(context, page.Id);
+            }
+        }
+
 		/// <summary>
 		/// Installs the given page(s). It checks if they exist by their URL (or ID, if you provide that instead), and if not, creates them.
 		/// </summary>
