@@ -20,13 +20,31 @@ export default class OpenGraphTags extends React.Component {
 			return;
 		}
 
-		console.log(page);
+		var metaTitle = document.createElement('meta');
+		metaTitle.setAttribute('property', 'og:title');
+		metaTitle.content = page.title;
+		document.head.appendChild(metaTitle);
+
+		var metaType = document.createElement('meta');
+		metaType.setAttribute('property', 'og:type');
+		metaType.content = "website";
+		document.head.appendChild(metaType);
+
+		var metaUrl = document.createElement('meta');
+		metaUrl.setAttribute('property', 'og:url');
+		metaUrl.content = global.location.href;
+		document.head.appendChild(metaUrl);
+
+		var metaImage = document.createElement('meta');
+		metaImage.setAttribute('property', 'og:image');
+		metaImage.content = global.location.origin + getRef(page.imageRef, {url:true});
+		document.head.appendChild(metaImage);
 
 		return <head>
 			<meta property="og:title" content={page.title} />
 			<meta property="og:type" content="website" />
-			<meta property="og:url" content={page.url} />
-			<meta property="og:image" content={getRef(page.imageRef, {url:true})}/>
+			<meta property="og:url" content={global.location.href} />
+			<meta property="og:image" content={global.location.origin + getRef(page.imageRef, {url:true})}/>
 		</head>;	
-	}
+	}  
 }
