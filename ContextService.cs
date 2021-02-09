@@ -22,19 +22,19 @@ namespace Api.Contexts
 		/// A role change can be automatically reissued but a ref revoke requires logging in again.
 		/// </summary>
 		// TODO: Populate the revoke map on load (#208).
-		private Dictionary<int, int> RevocationMap = new Dictionary<int, int>();
+		private readonly Dictionary<int, int> RevocationMap = new Dictionary<int, int>();
 
 		/// <summary>
 		/// Maps lowercase field names to the info about them.
 		/// </summary>
-		private Dictionary<string, ContextFieldInfo> Fields = new Dictionary<string, ContextFieldInfo>();
-		private List<ContextFieldInfo> FieldList = new List<ContextFieldInfo>();
-		
+		private readonly Dictionary<string, ContextFieldInfo> Fields = new Dictionary<string, ContextFieldInfo>();
+		private readonly List<ContextFieldInfo> FieldList = new List<ContextFieldInfo>();
+
 		/// <summary>
 		/// Maps a content type ID to the context field info. Your context property must end with 'Id' to get an entry here.
 		/// </summary>
-		private Dictionary<int, ContextFieldInfo> ContentTypeToFieldInfo = new Dictionary<int, ContextFieldInfo>();
-		private SignatureService _signatures;
+		private readonly Dictionary<int, ContextFieldInfo> ContentTypeToFieldInfo = new Dictionary<int, ContextFieldInfo>();
+		private readonly SignatureService _signatures;
 
 
 		/// <summary>
@@ -75,7 +75,7 @@ namespace Api.Contexts
 				if(field.Name.EndsWith("Id")){
 					// E.g. UserId, LocaleId.
 					// Get content type ID:
-					var contentTypeId = ContentTypes.GetId(field.Name.Substring(0, field.Name.Length - 2));
+					var contentTypeId = ContentTypes.GetId(field.Name[0..^2]);
 					ContentTypeToFieldInfo[contentTypeId] = fld;
 				}
 				
@@ -108,7 +108,6 @@ namespace Api.Contexts
 		/// Cookie domain
 		/// </summary>
 		private static string _domain = null;
-		
 		/// <summary>
 		/// Cookie domain to use
 		/// </summary>
@@ -252,8 +251,7 @@ namespace Api.Contexts
 			return context;
 		}
 
-		private object[] _emptyArgs = System.Array.Empty<object>();
-
+		private readonly object[] _emptyArgs = System.Array.Empty<object>();
 		/// <summary>
 		/// Creates a signed token for the given context.
 		/// </summary>
