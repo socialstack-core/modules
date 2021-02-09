@@ -16,6 +16,14 @@ export default class LoginForm extends React.Component {
 	}
 	
 	render() {
+		var {emailOnly} = this.props;
+
+		var validate = ['Required'];
+
+		if (emailOnly) {
+			validate.push("EmailAddress")
+		}
+
 		return (
 			<Form className="login-form"
 				action = "user/login" 
@@ -34,7 +42,7 @@ export default class LoginForm extends React.Component {
 					this.setState({failed:true})
 				}}
 				>
-				<Input label = "Email" name="emailOrUsername" placeholder="Email or username" validate={['Required']} />
+				<Input label = "Email" name="emailOrUsername" placeholder={emailOnly ? "Email" : "Email or username"} validate={validate} />
 				<Input label = "Password" name="password" placeholder="Password" type="password" />
 				<Row>
 					<Col size="6">
@@ -62,5 +70,5 @@ export default class LoginForm extends React.Component {
 }
 
 LoginForm.propTypes = {
-
+	emailOnly: 'bool'
 };
