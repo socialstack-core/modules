@@ -9,6 +9,7 @@ namespace Api.Pages
 	
 	/// <summary>
 	/// Stores information about URLs which helps in generating them.
+	/// </summary>
 	public partial class UrlGenerationMeta
 	{
 		/// <summary>
@@ -19,7 +20,7 @@ namespace Api.Pages
 		/// <summary>
 		/// Possible pages. This is almost always just 1 option.
 		/// </summary>
-		private List<UrlGenerationPage> Pages = new List<UrlGenerationPage>();
+		private readonly List<UrlGenerationPage> Pages = new List<UrlGenerationPage>();
 
 		/// <summary>
 		/// Creates a new meta object for the given primary type.
@@ -155,14 +156,14 @@ namespace Api.Pages
 					// It's a field ref of the form {contentType.field}
 					string typeAndField;
 
-					if (piece[piece.Length - 1] == '}')
+					if (piece[^1] == '}')
 					{
-						typeAndField = piece.Substring(1, piece.Length - 2);
+						typeAndField = piece[1..^1];
 					}
 					else
 					{
 						// Just in caase somebody forgot the one on the end
-						typeAndField = piece.Substring(1);
+						typeAndField = piece[1..];
 					}
 
 					var firstDot = typeAndField.IndexOf('.');
@@ -187,7 +188,7 @@ namespace Api.Pages
 					else
 					{
 						// Get the field or property from the content type:
-						var fieldName = typeAndField.Substring(firstDot + 1);
+						var fieldName = typeAndField[(firstDot + 1)..];
 						var field = contentType.GetField(fieldName, BindingFlags.Public | BindingFlags.Instance | BindingFlags.IgnoreCase);
 
 						if (field == null)
@@ -267,9 +268,9 @@ namespace Api.Pages
 			for (var i = 0; i < FieldReaders.Count; i++)
 			{
 				var reader = FieldReaders[i];
-				if (reader is FieldInfo)
+				if (reader is FieldInfo info)
 				{
-					current = ((FieldInfo)reader).GetValue(current);
+					current = info.GetValue(current);
 				}
 				else
 				{

@@ -106,12 +106,123 @@ namespace Api.Pages
 
 			// Install the admin pages.
 			InstallAdminPages("Pages", "fa:fa-paragraph", new string[] { "id", "url", "title" });
+
+
+			Events.Page.AfterUpdate.AddEventListener((Context context, Page page) =>
+			{
+				if (_urlGenerationCache != null)
+				{
+					// Need to update the two caches. We'll just wipe them for now:
+					_urlGenerationCache = null;
+					_urlLookupCache = null;
+				}
+
+				return new ValueTask<Page>(page);
+			});
+
+			Events.Page.AfterDelete.AddEventListener((Context context, Page page) =>
+			{
+				if (_urlGenerationCache != null)
+				{
+					// Need to update the two caches. We'll just wipe them for now:
+					_urlGenerationCache = null;
+					_urlLookupCache = null;
+				}
+
+				return new ValueTask<Page>(page);
+			});
+
+			Events.Page.AfterCreate.AddEventListener((Context context, Page page) =>
+			{
+				if (_urlGenerationCache != null)
+				{
+					// Need to update the two caches. We'll just completely wipe them for now:
+					_urlGenerationCache = null;
+					_urlLookupCache = null;
+				}
+				
+				return new ValueTask<Page>(page);
+			});
+
+			Events.Page.Received.AddEventListener((Context context, Page page, int mode) => {
+
+				// Doesn't matter what the change was - we'll wipe the caches.
+				if (_urlGenerationCache != null)
+				{
+					_urlGenerationCache = null;
+					_urlLookupCache = null;
+				}
+
+				return new ValueTask<Page>(page);
+			});
 		}
 
 		/// <summary>
 		/// A cache used to identify which pages on the site are the canonical pages for each content type.
 		/// </summary>
 		private UrlGenerationCache _urlGenerationCache;
+
+		/// <summary>
+		/// A cache used to identify which page to use for a particular URL.
+		/// </summary>
+		private UrlLookupCache _urlLookupCache;
+
+		/// <summary>
+		/// Gets the raw list of just the URLs + pageId.
+		/// </summary>
+		/// <returns></returns>
+		public async ValueTask<List<PageIdAndUrl>> GetAllPageUrls(Context context)
+		{
+			if (_urlLookupCache == null)
+			{
+				await LoadCaches(context);
+			}
+
+			return _urlLookupCache.PageUrlList;
+		}
+
+		/// <summary>
+		/// Get the page to use for the given URL.
+		/// </summary>
+		public async ValueTask<PageWithTokens> GetPage(Context context, string url, bool return404IfNotFound = true)
+		{
+			if (_urlLookupCache == null)
+			{
+				await LoadCaches(context);
+			}
+
+			var pageInfo = _urlLookupCache.GetPage(url);
+
+			if (pageInfo.Page == null)
+			{
+				if (return404IfNotFound)
+				{
+					return new PageWithTokens()
+					{
+						Page = _urlLookupCache.NotFoundPage
+					};
+				}
+			}
+
+			return pageInfo;
+		}
+
+		private async Task LoadCaches(Context context)
+		{
+			// Get all pages:
+			var allPages = await List(context, null);
+
+			// Instance and wait for it to be created:
+			_urlGenerationCache = new UrlGenerationCache();
+
+			// Load now:
+			_urlGenerationCache.Load(allPages);
+
+			// Setup url lookup cache as well:
+			_urlLookupCache = new UrlLookupCache();
+
+			_urlLookupCache.Load(allPages);
+		}
 
 		/// <summary>
 		/// Gets the URL for the given piece of generic content. Pages are very often cached so this usually returns instantly.
@@ -124,14 +235,7 @@ namespace Api.Pages
 		{
 			if (_urlGenerationCache == null)
 			{
-				// Instance and wait for it to be created:
-				_urlGenerationCache = new UrlGenerationCache();
-
-				// Get all pages:
-				var allPages = await List(context, null);
-
-				// Load now:
-				_urlGenerationCache.Load(allPages);
+				await LoadCaches(context);
 			}
 
 			var lookup = _urlGenerationCache.GetLookup(scope);

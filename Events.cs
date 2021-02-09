@@ -13,6 +13,19 @@ namespace Api.Eventing
 		/// <summary>
 		/// All page entity events.
 		/// </summary>
-		public static EventGroup<Page> Page;
+		public static PageEventGroup Page;
+	}
+
+	/// <summary>
+	/// Page entity specific extensions to events.
+	/// </summary>
+	public class PageEventGroup : EventGroup<Page>
+	{
+
+		/// <summary>
+		/// During page generation.
+		/// </summary>
+		public EventHandler<Document> Generated;
+		
 	}
 }
