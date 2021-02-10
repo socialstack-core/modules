@@ -329,7 +329,7 @@ namespace Api.Pages
 				}
 				else
 				{
-					node = new DocumentNode("script", true);
+					node = new DocumentNode("script");
 					
 					// Expect an src:
 					if (bodyScript.Src != null)
