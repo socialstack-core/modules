@@ -60,14 +60,14 @@ namespace Api.Permissions
 			FieldB = fieldB;
 
 			// Get the field info:
-			FieldInfoA = typeA.GetField(fieldA);
+			FieldInfoA = typeA.GetField(fieldA, BindingFlags.IgnoreCase | BindingFlags.Instance | BindingFlags.Public);
 
 			if (FieldInfoA != null)
 			{
 				LocaliseA = FieldInfoA.GetCustomAttribute<Api.Translate.LocalizedAttribute>() != null;
 			}
 
-			FieldInfoB = typeA.GetField(fieldB);
+			FieldInfoB = typeA.GetField(fieldB, BindingFlags.IgnoreCase | BindingFlags.Instance | BindingFlags.Public);
 
 			if (FieldInfoB != null)
 			{

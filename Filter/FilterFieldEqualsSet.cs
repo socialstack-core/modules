@@ -50,7 +50,7 @@ namespace Api.Permissions
 			Field = field;
 
 			// Get the field info:
-			FieldInfo = type.GetField(field);
+			FieldInfo = type.GetField(field, BindingFlags.IgnoreCase | BindingFlags.Instance | BindingFlags.Public);
 
 			if (FieldInfo == null)
 			{

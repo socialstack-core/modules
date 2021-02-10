@@ -67,7 +67,7 @@ namespace Api.Permissions
 			else
 			{
 				Field = field;
-				FieldInfo = type.GetField(field);
+				FieldInfo = type.GetField(field, BindingFlags.IgnoreCase | BindingFlags.Instance | BindingFlags.Public);
 			}
 
 			if (FieldInfo == null)
