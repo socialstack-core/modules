@@ -146,7 +146,7 @@ namespace Api.StackTools
 		/// <summary>
 		/// Min tools version
 		/// </summary>
-		private Version MinVersion = new Version("1.0.90");
+		private Version MinVersion = new Version("2.0.7");
 
 		private void CheckInstall()
 		{
