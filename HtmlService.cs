@@ -234,8 +234,10 @@ namespace Api.Pages
 			
 			// Handle all Before Main JS scripts
 			HandleCustomScriptList(_config.BeforeMainJs, body);
-			
-			body.AppendChild(new DocumentNode("script").With("src", packDir + "main.generated.js?v=1"));
+
+			var mainJs = new DocumentNode("script").With("src", packDir + "main.generated.js?v=1");
+			doc.MainJs = mainJs;
+			body.AppendChild(mainJs);
 			
 			// Handle all After Main JS scripts
 			HandleCustomScriptList(_config.AfterMainJs, body);

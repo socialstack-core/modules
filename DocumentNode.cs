@@ -322,7 +322,12 @@ namespace Api.Pages
 				return ChildNodes[0];
 			}
 		}
-		
+
+		/// <summary>
+		/// A reference to the main js script element. Useful for inserting before it.
+		/// </summary>
+		public DocumentNode MainJs;
+
 		/// <summary>
 		/// The root html node.
 		/// </summary>
