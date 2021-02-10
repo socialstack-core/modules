@@ -7,6 +7,7 @@ using System.Threading.Tasks;
 using System.Linq;
 using System;
 using Api.Startup;
+using Api.CanvasRenderer;
 
 namespace Api.Pages
 {
@@ -250,45 +251,87 @@ namespace Api.Pages
 		}
 
 		/// <summary>
+		/// Used as a temporary piece of JSON when setting up admin pages to help avoid people setting the bodyJson field incorrectly.
+		/// </summary>
+		private readonly string TemporaryBodyJson = "{\"content\":\"Don't set this field - its about to be overwritten by the contents of the Canvas object that you've been given.\"}";
+
+		/// <summary>
 		/// Installs generic admin pages using the given fields to display on the list page.
 		/// </summary>
-		/// <param name="typeName"></param>
+		/// <param name="type">The content type that is being installed (Page, Blog etc)</param>
 		/// <param name="fields"></param>
-		public async ValueTask InstallAdminPages(string typeName, string[] fields)
+		/// <param name="childAdminPage">
+		/// A shortcut for specifying that your type has some kind of sub-type.
+		/// For example, the NavMenu admin page specifies a child type of NavMenuItem, meaning each NavMenu ends up with a list of NavMenuItems.
+		/// Make sure you specify the fields that'll be visible from the child type in the list on the parent type.
+		/// For example, if you'd like each child entry to show its Id and Title fields, specify new string[]{"id", "title"}.
+		/// </param>
+		public async ValueTask InstallAdminPages(Type type, string[] fields, ChildAdminPageOptions childAdminPage)
 		{
 			var fieldString = Newtonsoft.Json.JsonConvert.SerializeObject(fields);
-			typeName = typeName.ToLower();
+			var typeName = type.Name.ToLower();
+
+			var listPageCanvas = new CanvasNode("Admin/Pages/List").With("endpoint", typeName).With("fields", fieldString);
+
+			var listPage = new Page
+			{
+				Url = "/en-admin/" + typeName,
+				BodyJson = TemporaryBodyJson,
+				VisibleToRole0 = false,
+				VisibleToRole3 = false,
+				VisibleToRole4 = false
+			};
+
+			// Trigger an event to state that an admin page is being installed:
+			// - Use this event to inject additional nodes into the page, or change it however you'd like.
+			listPage = await Events.Page.BeforeAdminPageInstall.Dispatch(new Context(), listPage, listPageCanvas, type, AdminPageType.List);
+			listPage.BodyJson = listPageCanvas.ToJson();
+
+			var singlePageCanvas = new CanvasNode("Admin/Pages/AutoEdit")
+					.With("endpoint", typeName)
+					.With("id", new
+					{
+						name = typeName + ".id",
+						type = "urlToken"
+					});
+
+			if (childAdminPage != null && childAdminPage.ChildType != null)
+			{
+				singlePageCanvas.AppendChild(
+					new CanvasNode("Admin/AutoList")
+					.With("endpoint", childAdminPage.ChildType.ToLower())
+					.With("filterField", type.Name + "Id")
+					.With("create", childAdminPage.CreateButton)
+					.With("searchFields", childAdminPage.SearchFields)
+					.With("filterValue", new
+					{
+						name = typeName + ".id",
+						type = "urlToken"
+					})
+					.With("fields", childAdminPage.Fields == null ? new string[] { "id" } : childAdminPage.Fields)
+				);
+			}
+
+			var singlePage = new Page
+			{
+				Url = "/en-admin/" + typeName + "/{" + typeName + ".id}",
+				BodyJson = TemporaryBodyJson,
+				VisibleToRole0 = false,
+				VisibleToRole3 = false,
+				VisibleToRole4 = false
+			};
+
+			// Trigger an event to state that an admin page is being installed:
+			// - Use this event to inject additional nodes into the page, or change it however you'd like.
+			singlePage = await Events.Page.BeforeAdminPageInstall.Dispatch(new Context(), singlePage, singlePageCanvas, type, AdminPageType.Single);
+			singlePage.BodyJson = singlePageCanvas.ToJson();
+
+			// Future todo - If the admin page is "pure" (it's not been edited by an actual person) then compare BodyJson as well.
+			// This is why we'll always generate the bodyJson with the event.
 
 			await InstallInternal(
-				new Page{
-					Url = "/en-admin/" + typeName,
-					BodyJson = @"{
-						""data"" : {
-							""endpoint"" : """ + typeName + @""",
-							""fields"" : " + fieldString + @"
-						},
-						""module"" : ""Admin/Pages/List""
-					}",
-					VisibleToRole0 = false,
-					VisibleToRole3 = false,
-					VisibleToRole4 = false
-				},
-				new Page {
-					Url = "/en-admin/" + typeName + "/{"+typeName+".id}",
-					BodyJson = @"{
-						""data"" : {
-							""endpoint"" : """ + typeName + @""",
-							""id"" : {
-								""name"" : """+typeName+@".id"",
-								""type"" : ""urlToken""
-							}
-						},
-						""module"" : ""Admin/Pages/AutoEdit""
-					}",
-					VisibleToRole0 = false,
-					VisibleToRole3 = false,
-					VisibleToRole4 = false
-				}
+				listPage,
+				singlePage
 			);
 
 			await DeleteOldInternal(typeName);
@@ -333,7 +376,7 @@ namespace Api.Pages
 			// Get any pages by those URLs:
 			var filter = new Filter<Page>().Equals("Url", adminIdUrl).Or().Equals("Url", oldIdUrl);
 
-			var pages = await List(context, filter);
+			var pages = await ListNoCache(context, filter);
 
 			foreach (var page in pages)
             {

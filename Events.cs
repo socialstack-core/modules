@@ -26,6 +26,11 @@ namespace Api.Eventing
 		/// During page generation.
 		/// </summary>
 		public EventHandler<Document> Generated;
+
+		/// <summary>
+		/// On admin page install.
+		/// </summary>
+		public EventHandler<Page, CanvasRenderer.CanvasNode, System.Type, AdminPageType> BeforeAdminPageInstall;
 		
 	}
 }

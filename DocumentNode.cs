@@ -19,6 +19,11 @@ namespace Api.Pages
 		public string NodeName;
 		
 		/// <summary>
+		/// Parent doc node.
+		/// </summary>
+		public DocumentNode Parent;
+
+		/// <summary>
 		/// The attributes for this node.
 		/// </summary>
 		public Dictionary<string, string> Attributes = new Dictionary<string, string>();
@@ -67,6 +72,32 @@ namespace Api.Pages
 		}
 
 		/// <summary>
+		/// Inserts the given node before the given one, which should be a child of this. 
+		/// Use e.g. beforeThis.Parent.InsertBefore(thing, beforeThis); if you don't know what the parent is.
+		/// </summary>
+		/// <param name="addThis"></param>
+		/// <param name="beforeThis"></param>
+		/// <returns></returns>
+		public DocumentNode InsertBefore(DocumentNode addThis, DocumentNode beforeThis)
+		{
+			if (beforeThis.Parent != this)
+			{
+				// Before this isn't a child of this, so add to end:
+				AppendChild(addThis);
+				return this;
+			}
+
+			if (ChildNodes == null)
+			{
+				// Node doesn't support children
+				return this;
+			}
+
+			ChildNodes.Insert(ChildNodes.IndexOf(beforeThis), addThis);
+			return this;
+		}
+
+		/// <summary>
 		/// Chainable append child.
 		/// </summary>
 		/// <param name="child"></param>
@@ -78,6 +109,7 @@ namespace Api.Pages
 				// This node does not support children
 				return this;
 			}
+			child.Parent = this;
 			ChildNodes.Add(child);
 			return this;
 		}
@@ -260,7 +292,7 @@ namespace Api.Pages
 	}
 
 	/// <summary>
-	/// A html document used when pre-rendering a page.
+	/// A document used when pre-rendering a page.
 	/// </summary>
 	public partial class Document : DocumentNode
 	{

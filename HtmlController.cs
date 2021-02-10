@@ -32,13 +32,19 @@ namespace Api.Pages
 		[Route("/en-admin/{*url}", Order = 9998)]
 		public async Task CatchAllAdmin()
 		{
+			var context = Request.GetContext();
+			var compress = true;
+
 			Response.ContentType = "text/html";
-			Response.Headers["Content-Encoding"] = "gzip";
-			Response.Headers["Cache-Control"] = "max-age=315360000, public";
-			var adminIndex = new byte[0];
-			Response.ContentLength = adminIndex.Length;
-            await Response.Body.WriteAsync(adminIndex, 0, adminIndex.Length);
-        }
+			Response.Headers["Cache-Control"] = "no-store";
+
+			if (compress)
+			{
+				Response.Headers["Content-Encoding"] = "gzip";
+			}
+
+			await _htmlService.BuildPage(context, Request.Path, Response.Body, compress);
+		}
 		
 		/// <summary>
 		/// The catch all handler. If you're looking for /content/ etc, you'll find that over in Uploads/EventListener.cs
@@ -51,7 +57,7 @@ namespace Api.Pages
 			var compress = true;
 
 			Response.ContentType = "text/html";
-			Response.Headers["Cache-Control"] = "no-cache";
+			Response.Headers["Cache-Control"] = "no-store";
 
 			if (compress)
 			{
