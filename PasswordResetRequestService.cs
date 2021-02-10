@@ -7,6 +7,8 @@ using Api.Contexts;
 using Api.Eventing;
 using Api.Emails;
 using Api.Users;
+using Api.Pages;
+using Api.CanvasRenderer;
 
 namespace Api.PasswordResetRequests
 {
@@ -35,7 +37,27 @@ namespace Api.PasswordResetRequests
         {
 			selectByTokenQuery = Query.Select<PasswordResetRequest>();
 			selectByTokenQuery.Where().EqualsArg("Token", 0);
-			
+
+			Events.Page.BeforeAdminPageInstall.AddEventListener((Context context, Pages.Page page, CanvasRenderer.CanvasNode canvas, Type contentType, AdminPageType pageType) =>
+			{
+				if (contentType == typeof(User) && pageType == AdminPageType.Single)
+				{
+					// Installing user admin page for a particular user.
+					// Add the reset box into the user admin page (as a child of the autoform):
+					var tile = new CanvasNode("Admin/Tile");
+					tile.AppendChild(new CanvasNode("Admin/PasswordResetButton").With("userId", new {
+						name = "user.id",
+						type = "urlToken"
+					}));
+					
+					canvas.AppendChild(
+						tile
+					);
+				}
+
+				return new ValueTask<Pages.Page>(page);
+			});
+
 			Events.PasswordResetRequest.BeforeCreate.AddEventListener(async (Context context, PasswordResetRequest reset) => {
 				
 				if(reset == null){
