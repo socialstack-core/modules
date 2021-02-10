@@ -25,7 +25,8 @@ public partial class AutoService
 		if(_loadedConfiguration == null)
 		{
 			// For now this is only from appsettings:
-			_loadedConfiguration = AppSettings.GetSection(GetType().Name).Get<T>();
+			var sectionName = GetType().Name;
+			_loadedConfiguration = AppSettings.GetSection(sectionName).Get<T>();
 
 			if (_loadedConfiguration == null)
 			{
