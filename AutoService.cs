@@ -20,13 +20,19 @@ public partial class AutoService
 	/// You can safely reuse references to the object returned - if the config changes, it'll still be the same object.
 	/// You can find when it changes (or loads the first time) via the Configure event.
 	/// </summary>
-	public T GetConfig<T>()
+	public T GetConfig<T>() where T:new()
 	{
 		if(_loadedConfiguration == null)
 		{
 			// For now this is only from appsettings:
 			_loadedConfiguration = AppSettings.GetSection(GetType().Name).Get<T>();
-			
+
+			if (_loadedConfiguration == null)
+			{
+				// default cfg:
+				_loadedConfiguration = new T();
+			}
+
 			/*
 			 * When config is CMS backed, it'll fire this Configure event.
 			if(EventGroup != null){
