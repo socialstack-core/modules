@@ -21,10 +21,9 @@ namespace Api.GoogleAnalytics
 			Events.Page.Generated.AddEventListener((Context ctx, Document pageDocument) =>
 			{
 				var gaId = config.Id;
-				var script1 = new DocumentNode("script").With("async").With("src", "https://www.googletagmanager.com/gtag/js?id=" + gaId);
-				pageDocument.Body.AppendChild(script1);
 				
-				var script2 = new DocumentNode("script").AppendChild(new TextNode(@"window.dataLayer = window.dataLayer || [];
+				var script2 = new DocumentNode("script")
+				.AppendChild(new TextNode(@"window.dataLayer = window.dataLayer || [];
 					function gtag() { dataLayer.push(arguments); }
 					window.cookieLayer = window.cookieLayer || [];
 					function cookieState(m) {
@@ -36,7 +35,12 @@ namespace Api.GoogleAnalytics
 						gtag('config', '"+ gaId + @"');
 					});"
 				));
-				pageDocument.Body.AppendChild(script2);
+				pageDocument.MainJs.Parent.InsertBefore(script2, pageDocument.MainJs);
+
+				// This can just go at the end:
+				var remoteScript = new DocumentNode("script").With("defer").With("async").With("src", "https://www.googletagmanager.com/gtag/js?id=" + gaId);
+				pageDocument.Body.AppendChild(remoteScript);
+
 				return new ValueTask<Document>(pageDocument);
 			});
 		}
