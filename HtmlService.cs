@@ -156,6 +156,8 @@ namespace Api.Pages
 		/// <returns></returns>
 		private async ValueTask<List<DocumentNode>> RenderPage(Context context, Page page)
 		{
+			
+
 			if (cache.TryGetValue(page.Id, out List<DocumentNode> flatNodes))
 			{
 				return flatNodes;
@@ -166,6 +168,38 @@ namespace Api.Pages
 			doc.Html.With("class", "ui web");
 
 			var head = doc.Head;
+
+			//////////////////////// Here we need to handle all Start Head Tags in the config.
+			var startHeadTags = _config.StartHeadTags;
+			foreach(var headTag in startHeadTags)
+            {
+				// is the headTag a link or meta?
+				if(headTag.Rel != null)
+                {
+					var node = new DocumentNode("link", true);
+					node.With("rel", headTag.Rel);
+
+					if(headTag.Href != null)
+                    {
+						node.With("href", headTag.Href);
+                    }
+
+					head.AppendChild(node);
+				}
+
+				else
+                {
+					var node = new DocumentNode("meta", true);
+					node.With("property", headTag.Property);
+
+					if (headTag.Content != null)
+					{
+						node.With("contnet", headTag.Href);
+					}
+
+					head.AppendChild(node);
+				}
+            }
 
 			head.AppendChild(new DocumentNode("link", true).With("rel", "apple-touch-icon").With("sizes", "180x180").With("href", "/apple-touch-icon.png"))
 				.AppendChild(new DocumentNode("link", true).With("rel", "icon").With("type", "image/png").With("sizes", "32x32").With("href", "/favicon-32x32.png"))
@@ -178,6 +212,39 @@ namespace Api.Pages
 				.AppendChild(new DocumentNode("meta", true).With("charset", "utf-8"))
 				.AppendChild(new DocumentNode("meta", true).With("name", "viewport").With("content", "width=device-width, initial-scale=1"))
 				.AppendChild(new DocumentNode("title").AppendChild(new TextNode(page.Title)));
+
+			/////////////////////////// Here we need to handle all End Head tags in the config.
+			var endHeadTags = _config.EndHeadTags;
+			foreach (var headTag in startHeadTags)
+			{
+				// is the headTag a link or meta?
+				if (headTag.Rel != null)
+				{
+					var node = new DocumentNode("link", true);
+					node.With("rel", headTag.Rel);
+
+					if (headTag.Href != null)
+					{
+						node.With("href", headTag.Href);
+					}
+
+					head.AppendChild(node);
+				}
+
+				else
+				{
+					var node = new DocumentNode("meta", true);
+					node.With("property", headTag.Property);
+
+					if (headTag.Content != null)
+					{
+						node.With("contnet", headTag.Href);
+					}
+
+					head.AppendChild(node);
+				}
+
+			}
 
 			var reactRoot = new DocumentNode("div").With("id", "react-root");
 
@@ -204,6 +271,66 @@ namespace Api.Pages
 			}
 			
 			var body = doc.Body;
+
+			///////////////////////// Here we need to handle all Start Body JS scripts.
+			var startBodyJs = _config.StartBodyJs;
+			foreach (var bodyScript  in startBodyJs)
+			{
+				//Does this script have content?
+				if(bodyScript.Content != null)
+                {
+					var node = new DocumentNode("script").AppendChild(new TextNode(bodyScript.Content));
+
+					if(bodyScript.Async)
+                    {
+						node.With("async");
+                    }
+
+					if(bodyScript.Defer)
+                    {
+						node.With("defer");
+                    }
+
+					if(bodyScript.Type != null)
+                    {
+						node.With("type", bodyScript.Type);
+                    }
+
+					if(bodyScript.Id != null)
+                    {
+						node.With("id", bodyScript.Id);
+                    }
+
+					body.AppendChild(node);
+                }
+				else
+                {
+					var node = new DocumentNode("script", true);
+
+					if (bodyScript.Async)
+					{
+						node.With("async");
+					}
+
+					if (bodyScript.Defer)
+					{
+						node.With("defer");
+					}
+
+					if (bodyScript.Type != null)
+					{
+						node.With("type", bodyScript.Type);
+					}
+
+					if (bodyScript.Id != null)
+					{
+						node.With("id", bodyScript.Id);
+					}
+
+					body.AppendChild(node);
+				}
+			}
+
 			body.AppendChild(reactRoot)
 				.AppendChild(new DocumentNode("script").AppendChild(new TextNode(await BuildPageStateJs(context, page))))
 				.AppendChild(
@@ -215,8 +342,188 @@ namespace Api.Pages
 						}
 					))
 					.AppendChild(new TextNode(";"))
-				)
-				.AppendChild(new DocumentNode("script").With("src", "/pack/main.generated.js?v=1"));
+				);
+
+			/////////////////////////// Here we need to handle all Before Main Js scripts
+			var beforeMainJs = _config.BeforeMainJs;
+			foreach (var bodyScript in beforeMainJs)
+			{
+				//Does this script have content?
+				if (bodyScript.Content != null)
+				{
+					var node = new DocumentNode("script").AppendChild(new TextNode(bodyScript.Content));
+
+					if (bodyScript.Async)
+					{
+						node.With("async");
+					}
+
+					if (bodyScript.Defer)
+					{
+						node.With("defer");
+					}
+
+					if (bodyScript.Type != null)
+					{
+						node.With("type", bodyScript.Type);
+					}
+
+					if (bodyScript.Id != null)
+					{
+						node.With("id", bodyScript.Id);
+					}
+
+					body.AppendChild(node);
+				}
+				else
+				{
+					var node = new DocumentNode("script", true);
+
+					if (bodyScript.Async)
+					{
+						node.With("async");
+					}
+
+					if (bodyScript.Defer)
+					{
+						node.With("defer");
+					}
+
+					if (bodyScript.Type != null)
+					{
+						node.With("type", bodyScript.Type);
+					}
+
+					if (bodyScript.Id != null)
+					{
+						node.With("id", bodyScript.Id);
+					}
+
+					body.AppendChild(node);
+				}
+			}
+
+			body.AppendChild(new DocumentNode("script").With("src", "/pack/main.generated.js?v=1"));
+
+
+			/////////////////////////// Here we need to handle all After Main JS scripts
+			var afterMainJs = _config.AfterMainJs;
+			foreach (var bodyScript in afterMainJs)
+			{
+				//Does this script have content?
+				if (bodyScript.Content != null)
+				{
+					var node = new DocumentNode("script").AppendChild(new TextNode(bodyScript.Content));
+
+					if (bodyScript.Async)
+					{
+						node.With("async");
+					}
+
+					if (bodyScript.Defer)
+					{
+						node.With("defer");
+					}
+
+					if (bodyScript.Type != null)
+					{
+						node.With("type", bodyScript.Type);
+					}
+
+					if (bodyScript.Id != null)
+					{
+						node.With("id", bodyScript.Id);
+					}
+
+					body.AppendChild(node);
+				}
+				else
+				{
+					var node = new DocumentNode("script", true);
+
+					if (bodyScript.Async)
+					{
+						node.With("async");
+					}
+
+					if (bodyScript.Defer)
+					{
+						node.With("defer");
+					}
+
+					if (bodyScript.Type != null)
+					{
+						node.With("type", bodyScript.Type);
+					}
+
+					if (bodyScript.Id != null)
+					{
+						node.With("id", bodyScript.Id);
+					}
+
+					body.AppendChild(node);
+				}
+			}
+
+
+			//////////////////////////Here we need to handle all End Body JS scripts
+			var endBodyJs = _config.EndBodyJs;
+			foreach (var bodyScript in endBodyJs)
+			{
+				//Does this script have content?
+				if (bodyScript.Content != null)
+				{
+					var node = new DocumentNode("script").AppendChild(new TextNode(bodyScript.Content));
+
+					if (bodyScript.Async)
+					{
+						node.With("async");
+					}
+
+					if (bodyScript.Defer)
+					{
+						node.With("defer");
+					}
+
+					if (bodyScript.Type != null)
+					{
+						node.With("type", bodyScript.Type);
+					}
+
+					if (bodyScript.Id != null)
+					{
+						node.With("id", bodyScript.Id);
+					}
+
+					body.AppendChild(node);
+				}
+				else
+				{
+					var node = new DocumentNode("script", true);
+
+					if (bodyScript.Async)
+					{
+						node.With("async");
+					}
+
+					if (bodyScript.Defer)
+					{
+						node.With("defer");
+					}
+
+					if (bodyScript.Type != null)
+					{
+						node.With("type", bodyScript.Type);
+					}
+
+					if (bodyScript.Id != null)
+					{
+						node.With("id", bodyScript.Id);
+					}
+
+					body.AppendChild(node);
+				}
+			}
 
 			// Trigger an event for things to modify the html however they need:
 			doc = await Events.Page.Generated.Dispatch(context, doc);
