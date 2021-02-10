@@ -331,6 +331,26 @@ public partial class AutoService<T, ID> : AutoService
 	/// Gets an object from this service. Generally use Get instead with a fixed type.
 	/// </summary>
 	/// <param name="context"></param>
+	/// <param name="fieldName"></param>
+	/// <param name="fieldValue"></param>
+	/// <returns></returns>
+	public override async ValueTask<object> GetObject(Context context, string fieldName, object fieldValue)
+	{
+		var filter = new Filter<T>();
+		filter.EqualsField(fieldName, fieldValue);
+		filter.PageSize = 1;
+		var results = await List(context, filter);
+		if (results == null || results.Count == 0)
+		{
+			return null;
+		}
+		return results[0];
+	}
+
+	/// <summary>
+	/// Gets an object from this service. Generally use Get instead with a fixed type.
+	/// </summary>
+	/// <param name="context"></param>
 	/// <param name="id"></param>
 	/// <returns></returns>
 	public override async ValueTask<object> GetObject(Context context, int id)
@@ -729,6 +749,19 @@ public partial class AutoService
 	{
 		return new ValueTask<object>(null);
 	}
+
+	/// <summary>
+	/// Gets an object from this service which matches the given particular field/value. If multiple match, it's only ever the first one.
+	/// </summary>
+	/// <param name="context"></param>
+	/// <param name="fieldName"></param>
+	/// <param name="fieldValue"></param>
+	/// <returns></returns>
+	public virtual ValueTask<object> GetObject(Context context, string fieldName, object fieldValue)
+	{
+		return new ValueTask<object>(null);
+	}
+
 
 	/// <summary>
 	/// Gets an object from this service.
