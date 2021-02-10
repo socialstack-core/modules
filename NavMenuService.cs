@@ -32,7 +32,12 @@ namespace Api.NavMenus
 			selectByKeyQuery = Query.Select<NavMenu>();
 			selectByKeyQuery.Where().EqualsArg("Key", 0);
 			
-			InstallAdminPages("Nav Menus", "fa:fa-map-signs", new string[] { "id", "name", "key" });
+			InstallAdminPages(
+				"Nav Menus", "fa:fa-map-signs", new string[] { "id", "name", "key" },
+
+				// Each navmenu page also has a list of navmenuitem's on it:
+				"NavMenuItem", new string[] { "bodyJson" }
+			);
 		}
 		
         /// <summary>
