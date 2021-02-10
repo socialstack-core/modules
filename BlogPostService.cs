@@ -27,6 +27,9 @@ namespace Api.Blogs
 		public BlogPostService(BlogService blogs) : base(Events.BlogPost)
         {
 			_blogs = blogs;
+			
+			InstallAdminPages(null, null, new string[] { "id", "slug", "title" });
+			
 			var config = _blogs.GetConfig<BlogServiceConfig>();
 
 			// Before Create to make sure that the slug is unique.
