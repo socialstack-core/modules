@@ -47,29 +47,65 @@ namespace Api.Pages
 		public List<BodyScript> EndBodyJs { get; set; }
 	}
 
+	/// <summary>
+	/// A head tag.
+	/// </summary>
 	public class HeadTag
-    {
+	{
+		/// <summary>
+		/// Link rel="" attribute.
+		/// </summary>
 		public string Rel { get; set; }
 
+		/// <summary>
+		/// Link href="" attribute.
+		/// </summary>
 		public string Href { get; set; }
 
+		/// <summary>
+		/// Meta content="" attribute.
+		/// </summary>
 		public string Content { get; set; }
 
-		public string Property { get; set; }
+		/// <summary>
+		/// Meta name="" attribute.
+		/// </summary>
+		public string Name { get; set; }
 	}
 
+	/// <summary>
+	/// A script tag for use in the body of the page.
+	/// </summary>
 	public class BodyScript
     {
+		/// <summary>
+		/// Script src.
+		/// </summary>
 		public string Src { get; set; }
 
+		/// <summary>
+		/// True if is async.
+		/// </summary>
 		public bool Async { get; set; } = false;
 
+		/// <summary>
+		/// Usually "text/javascript".
+		/// </summary>
 		public string Type { get; set; }
 
+		/// <summary>
+		/// Optional ID.
+		/// </summary>
 		public string Id { get; set; }
 
+		/// <summary>
+		/// Defer the script until later
+		/// </summary>
 		public bool Defer { get; set; } = false;
 
+		/// <summary>
+		/// Raw js. Not recommended but available for quick and dirty drop-ins.
+		/// </summary>
 		public string Content { get; set; }
 	}
 	
