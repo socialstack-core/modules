@@ -211,16 +211,6 @@ namespace Api.Eventing
 			
 		}
 		
-		/// <summary>
-		/// Triggers this event handler to run.
-		/// Fires events in ascending order of the priority number.
-		/// Events with the same priority number will occur in the order they were added.
-		/// </summary>
-		public virtual Task<object> Dispatch(Context context, params object[] args)
-		{
-			return Task.FromResult(args != null && args.Length > 0 ? args[0] : null);
-		}
-
 	}
 
 	/// <summary>
@@ -290,27 +280,6 @@ namespace Api.Eventing
 		/// <param name="context">
 		/// The context which can be used to identify the original user making a particular request.
 		/// Important for e.g. returning correctly localised database results automatically.</param>
-		/// <param name="args"></param>
-		public async override Task<object> Dispatch(Context context, params object[] args)
-		{
-			var methods = MethodSet.Methods;
-			var count = MethodSet.HandlerCount;
-			var v1 = (T1)args[0];
-			for (var i = 0; i < count; i++)
-			{
-				v1 = await methods[i](context, v1);
-			}
-			return v1;
-		}
-		
-		/// <summary>
-		/// Triggers this event handler to run.
-		/// Fires events in ascending order of the priority number.
-		/// Events with the same priority number will occur in the order they were added.
-		/// </summary>
-		/// <param name="context">
-		/// The context which can be used to identify the original user making a particular request.
-		/// Important for e.g. returning correctly localised database results automatically.</param>
 		/// <param name="v1">1st arg value to pass to the methods. This one is also the default return value.</param>
 		/// <returns></returns>
 		public async Task<T1> Dispatch(Context context, T1 v1)
@@ -349,28 +318,6 @@ namespace Api.Eventing
 			SetPrimaryType(typeof(T1));
 		}
 
-		/// <summary>
-		/// Triggers this event handler to run.
-		/// Fires events in ascending order of the priority number.
-		/// Events with the same priority number will occur in the order they were added.
-		/// </summary>
-		/// <param name="context">
-		/// The context which can be used to identify the original user making a particular request.
-		/// Important for e.g. returning correctly localised database results automatically.</param>
-		/// <param name="args"></param>
-		public async override Task<object> Dispatch(Context context, params object[] args)
-		{
-			var methods = MethodSet.Methods;
-			var count = MethodSet.HandlerCount;
-			var v1 = (T1)args[0];
-			var v2 = (T2)args[1];
-			for (var i = 0; i < count; i++)
-			{
-				v1 = await methods[i](context, v1, v2);
-			}
-			return v1;
-		}
-		
 		/// <summary>
 		/// Triggers this event handler to run.
 		/// Fires events in ascending order of the priority number.
@@ -426,25 +373,6 @@ namespace Api.Eventing
 		/// Fires events in ascending order of the priority number.
 		/// Events with the same priority number will occur in the order they were added.
 		/// </summary>
-		public async override Task<object> Dispatch(Context context, params object[] args)
-		{
-			var methods = MethodSet.Methods;
-			var count = MethodSet.HandlerCount;
-			var v1 = (T1)args[0];
-			var v2 = (T2)args[1];
-			var v3 = (T3)args[2];
-			for (var i = 0; i < count; i++)
-			{
-				v1 = await methods[i](context, v1, v2, v3);
-			}
-			return v1;
-		}
-		
-		/// <summary>
-		/// Triggers this event handler to run.
-		/// Fires events in ascending order of the priority number.
-		/// Events with the same priority number will occur in the order they were added.
-		/// </summary>
 		/// <param name="context">
 		/// The context which can be used to identify the original user making a particular request.
 		/// Important for e.g. returning correctly localised database results automatically.</param>
@@ -492,26 +420,6 @@ namespace Api.Eventing
 		public EventHandler(string name) : base(name)
 		{
 			SetPrimaryType(typeof(T1));
-		}
-		
-		/// <summary>
-		/// Triggers this event handler to run.
-		/// Fires events in ascending order of the priority number.
-		/// Events with the same priority number will occur in the order they were added.
-		/// </summary>
-		public async override Task<object> Dispatch(Context context, params object[] args)
-		{
-			var methods = MethodSet.Methods;
-			var count = MethodSet.HandlerCount;
-			var v1 = (T1)args[0];
-			var v2 = (T2)args[1];
-			var v3 = (T3)args[2];
-			var v4 = (T4)args[3];
-			for (var i = 0; i < count; i++)
-			{
-				v1 = await methods[i](context, v1, v2, v3, v4);
-			}
-			return v1;
 		}
 		
 		/// <summary>
