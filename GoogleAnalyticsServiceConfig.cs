@@ -1,5 +1,5 @@
 using Api.Configuration;
-​
+
 namespace Api.GoogleAnalytics
 {
     /// <summary>
@@ -10,6 +10,6 @@ namespace Api.GoogleAnalytics
         /// <summary>
         /// The google analytics Id.
         /// </summary>
-        public string Id;
+        public string Id { get; set; }
     }
 }
