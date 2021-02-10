@@ -297,6 +297,35 @@ namespace Api.Pages
 	public partial class Document : DocumentNode
 	{
 		/// <summary>
+		/// The generated doc title. This originated from the source page's title field.
+		/// </summary>
+		public string Title;
+		/// <summary>
+		/// The Page that this doc originated from.
+		/// </summary>
+		public Page SourcePage;
+		/// <summary>
+		/// The contentTypeId of the primary object, if there is one. 0 otherwise.
+		/// </summary>
+		public int PrimaryContentTypeId;
+		/// <summary>
+		/// The primary object, if there is one.
+		/// </summary>
+		public object PrimaryObject;
+		/// <summary>
+		/// The type of the primary object, if there is one. Same as PrimaryObject.GetType()
+		/// </summary>
+		public Type PrimaryObjectType;
+		/// <summary>
+		/// The AutoService that provided the primary object, if there is one.
+		/// </summary>
+		public AutoService PrimaryObjectService;
+		/// <summary>
+		/// site relative URL of this doc.
+		/// </summary>
+		public string Path;
+
+		/// <summary>
 		/// Create a blank html doc
 		/// </summary>
 		public Document()

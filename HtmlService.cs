@@ -146,31 +146,57 @@ namespace Api.Pages
 			return sb.ToString();
 		}
 
-		private readonly Dictionary<int, List<DocumentNode>> cache = new Dictionary<int, List<DocumentNode>>();
+		/// <summary>
+		/// Url -> nodes that are as pre-generated as possible.
+		/// </summary>
+		private readonly Dictionary<string, List<DocumentNode>> cache = new Dictionary<string, List<DocumentNode>>();
 
 		/// <summary>
 		/// Note that context may only be used for the role information, not specific user details.
 		/// </summary>
 		/// <param name="context"></param>
-		/// <param name="page"></param>
+		/// <param name="pageAndTokens"></param>
+		/// <param name="path"></param>
 		/// <returns></returns>
-		private async ValueTask<List<DocumentNode>> RenderPage(Context context, Page page)
+		private async ValueTask<List<DocumentNode>> RenderPage(Context context, PageWithTokens pageAndTokens, string path)
 		{
-			var isAdmin = page.Url.StartsWith("/en-admin");
+			var isAdmin = path.StartsWith("/en-admin");
 
-
-			if (cache.TryGetValue(page.Id, out List<DocumentNode> flatNodes))
+			if (cache.TryGetValue(path, out List<DocumentNode> flatNodes))
 			{
 				return flatNodes;
 			}
-			
+
+			var page = pageAndTokens.Page;
+
 			// Generate the document:
 			var doc = new Document();
+			doc.Path = path;
+			doc.SourcePage = page;
 			doc.Html.With("class", "ui web");
 
 			var packDir = isAdmin ? "/en-admin/pack/" : "/pack/";
 
 			var head = doc.Head;
+
+			// If there are tokens, get the primary object:
+			if (pageAndTokens.Tokens != null && pageAndTokens.TokenValues != null)
+			{
+				var countA = pageAndTokens.TokenValues.Count;
+
+				if (countA > 0 && countA == pageAndTokens.Tokens.Count)
+				{
+					var primaryToken = pageAndTokens.Tokens[countA - 1];
+					doc.PrimaryContentTypeId = primaryToken.ContentTypeId;
+					doc.PrimaryObjectService = primaryToken.Service;
+					doc.PrimaryObjectType = primaryToken.ContentType;
+
+					if (primaryToken.IsId && int.TryParse(pageAndTokens.TokenValues[countA - 1], out int primaryObjectId))
+					{
+						doc.PrimaryObject = primaryToken.Service.GetObject(context, primaryObjectId);
+					}
+				}
+			}
 
 			// Handle all Start Head Tags in the config.
 			HandleCustomHeadList(_config.StartHeadTags, head);
@@ -249,7 +275,7 @@ namespace Api.Pages
 			doc = await Events.Page.Generated.Dispatch(context, doc);
 
 			// Build the flat HTML for the page:
-			cache[page.Id] = flatNodes = doc.Flatten();
+			cache[path] = flatNodes = doc.Flatten();
 			
 			// Note: Although gzip does support multiple concatenated gzip blocks, browsers do not implement this part of the gzip spec correctly.
 			// Unfortunately that means no part of the stream can be pre-compressed; must compress the whole thing and output that.
@@ -376,9 +402,8 @@ namespace Api.Pages
 		public async Task BuildPage(Context context, string path, Stream responseStream, bool compress = true)
 		{
 			var pageAndTokens = await _pages.GetPage(context, path);
-			var page = pageAndTokens.Page;
 
-			List<DocumentNode> flatNodes = await RenderPage(context, page);
+			List<DocumentNode> flatNodes = await RenderPage(context, pageAndTokens, path);
 
 			var outputStream = compress ? new GZipStream(responseStream, CompressionMode.Compress) : responseStream;
 

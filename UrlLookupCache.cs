@@ -1,4 +1,6 @@
+using System;
 using System.Collections.Generic;
+using System.Reflection;
 
 namespace Api.Pages
 {
@@ -49,6 +51,8 @@ namespace Api.Pages
 					continue;
 				}
 
+				var tokenSet = new List<PageUrlToken>();
+
 				PageUrlList.Add(new PageIdAndUrl()
 				{
 					PageId = page.Id,
@@ -89,10 +93,43 @@ namespace Api.Pages
 							if (part[0] == ':')
 							{
 								token = part.Substring(1);
+								tokenSet.Add(new PageUrlToken() {
+									RawToken = token
+								});
 							}
 							else if (part[0] == '{')
 							{
 								token = (part[part.Length - 1] == '}') ? part.Substring(1, part.Length - 2) : part.Substring(1);
+
+								var dotIndex = token.IndexOf('.');
+
+								if (dotIndex != -1)
+								{
+									var contentType = token.Substring(0, dotIndex);
+									var fieldName = token.Substring(dotIndex + 1);
+									var type = Api.Database.ContentTypes.GetType(contentType);
+
+									var service = Api.Startup.Services.GetByContentType(type);
+
+									tokenSet.Add(new PageUrlToken()
+									{
+										RawToken = token,
+										TypeName = contentType,
+										FieldName = fieldName,
+										ContentType = type,
+										Service = service,
+										IsId = fieldName.ToLower() == "id",
+										ContentTypeId = Api.Database.ContentTypes.GetId(type)
+									});
+								}
+								else
+								{
+									tokenSet.Add(new PageUrlToken()
+									{
+										RawToken = token
+									});
+								}
+								
 							}
 						}
 						
@@ -118,6 +155,7 @@ namespace Api.Pages
 				}
 
 				pg.Page = page;
+				pg.UrlTokens = tokenSet;
 			}
 
 		}
@@ -192,6 +230,7 @@ namespace Api.Pages
 			return new PageWithTokens()
 			{
 				Page = curNode.Page,
+				Tokens = curNode.UrlTokens,
 				TokenValues = wildcardTokens
 			};
 		}
@@ -202,6 +241,10 @@ namespace Api.Pages
 	/// </summary>
 	public struct PageWithTokens
 	{
+		/// <summary>
+		/// The tokens associated with the page itself.
+		/// </summary>
+		public List<PageUrlToken> Tokens;
 		/// <summary>
 		/// The page.
 		/// </summary>
@@ -217,7 +260,10 @@ namespace Api.Pages
 	/// </summary>
 	public partial class UrlLookupNode
 	{
-
+		/// <summary>
+		/// If this node has a page associated with it, this is the set of url tokens. The primary object is always derived from the last one.
+		/// </summary>
+		public List<PageUrlToken> UrlTokens;
 		/// <summary>
 		/// The page
 		/// </summary>
@@ -231,6 +277,53 @@ namespace Api.Pages
 		/// </summary>
 		public Dictionary<string, UrlLookupNode> Children = new Dictionary<string, UrlLookupNode>();
 
+	}
+
+	/// <summary>
+	/// A particular {urltoken} with the content type and field ref loaded.
+	/// </summary>
+	public partial class PageUrlToken
+	{
+
+		/// <summary>
+		/// The raw token value.
+		/// </summary>
+		public string RawToken;
+
+		/// <summary>
+		/// The type name.
+		/// </summary>
+		public string TypeName;
+
+		/// <summary>
+		/// The field name.
+		/// </summary>
+		public string FieldName;
+
+		/// <summary>
+		/// The content type.
+		/// </summary>
+		public Type ContentType;
+
+		/// <summary>
+		/// True if this id the ID field.
+		/// </summary>
+		public bool IsId;
+
+		/// <summary>
+		/// The service for the content type (if there is one).
+		/// </summary>
+		public AutoService Service;
+
+		/// <summary>
+		/// The field/ property info.
+		/// </summary>
+		public MemberInfo FieldOrProperty;
+
+		/// <summary>
+		/// THe ID of the content type.
+		/// </summary>
+		public int ContentTypeId;
 	}
 
 
