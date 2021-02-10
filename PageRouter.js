@@ -1,6 +1,5 @@
 import webRequest from 'UI/Functions/WebRequest';
 import Canvas from 'UI/Canvas';
-import OpenGraphTags from 'UI/PageRouter/OpenGraphTags';
 
 try{
 	var preloadedPages = global.getModule('UI/PreloadedPages/PreloadedPages.json');
@@ -488,7 +487,6 @@ export default class PageRouter extends React.Component{
 		
 		if(page.title && page.title.length){
 			return [
-				<OpenGraphTags page={page}/>,
 				<title>
 					{page.title}
 				</title>,
