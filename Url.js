@@ -8,14 +8,13 @@ export default function url(entity, queryParams, adminScope = false) {
 	
 	var qs = queryString(queryParams);
 	
-	//console.log("Url.js");
-	//console.log(entity);
 	if(!entity){
 		// 'this' page. Essentially just changing the qParams.
 		return qs;
 	}
 	
 	if(entity.pageId){
+		// Depreciated code route. Do not use PageId on new entity types.
 		// Get page by its ID
 		// Swap out :FieldName with entity.FieldName
 
@@ -36,15 +35,21 @@ export default function url(entity, queryParams, adminScope = false) {
 			if(part[0] == ':'){
 				// It's a :token
 				builtUrl += '/' + entity[part.substring(1)];
+			}else if(part[0] == '{'){
+				// It's a {token}
+				var tokenParts = part.substring(1, part.length-2).split('.');
+				if(tokenParts.length > 1){
+					builtUrl += '/' + entity[tokenParts[tokenParts.length-1]];
+				}else{
+					builtUrl += '/' + part;
+				}
 			}else{
 				builtUrl += '/' + part;
 			}
 		}
 		
 		return builtUrl + qs;
-	}
-
-	else if(entity.type) {
+	} else if(entity.type) {
 		// Which scope are we grabbing from?
 		if(adminScope) {
 			var page = global.pageRouter.state.adminContentMap[entity.type.toLowerCase()];
@@ -63,19 +68,14 @@ export default function url(entity, queryParams, adminScope = false) {
 		var parts = page.page.url.split('/');
 		
 		for(var i=0;i<parts.length;i++){
-			console.log(builtUrl);
 			var part = parts[i];
 			if(part[0] == '{'){
 				// It's a :token
-				
-				console.log(page.parameter);
 				builtUrl += '/' + entity[page.parameter];
 			}else{
 				builtUrl += '/' + part;
 			}
 		}
-
-		console.log(builtUrl);
 		return builtUrl + qs;
 
 	} else {
