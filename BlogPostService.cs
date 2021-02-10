@@ -241,13 +241,7 @@ namespace Api.Blogs
 			if (blog == null)
 			{
 				// Blog doesn't exist!
-				return null;
-			}
-			
-			if (post.PageId == 0)
-			{
-				// Default page ID applied now:
-				post.PageId = blog.PostPageId;
+				throw new PublicException("Blog with ID " + post.BlogId + " doesn't exist or is unusable.");
 			}
 			
 			return await base.Create(context, post);

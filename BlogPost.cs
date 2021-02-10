@@ -16,12 +16,7 @@ namespace Api.Blogs
 		/// The blog this post is in.
 		/// </summary>
 		public int BlogId;
-
-		/// <summary>
-		/// The primary ID of the page that this blog post appears on.
-		/// </summary>
-		public int PageId;
-
+		
 		/// <summary>
 		/// The post title in the site default language.
 		/// </summary>

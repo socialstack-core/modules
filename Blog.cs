@@ -17,16 +17,6 @@ namespace Api.Blogs
 		public string Name;
 
 		/// <summary>
-		/// The primary ID of the page that this blog appears on.
-		/// </summary>
-		public int PageId;
-
-		/// <summary>
-		/// The page ID that posts from this blog will appear on.
-		/// </summary>
-		public int PostPageId;
-		
-		/// <summary>
 		/// The feature image ref. See also: "Upload.Ref" in the Uploads module.
 		/// </summary>
 		[DatabaseField(Length = 80)]
