@@ -771,7 +771,7 @@ public partial class AutoService
 	/// <param name="fields"></param>
 	protected void InstallAdminPages(string[] fields)
 	{
-		InstallAdminPages(null, null, fields, null, null);
+		InstallAdminPages(null, null, fields, null);
 	}
 
 	/// <summary>
@@ -781,45 +781,30 @@ public partial class AutoService
 	/// <param name="navMenuLabel">The text to show on the navmenu.</param>
 	/// <param name="navMenuIconRef">The ref for the icon to use on the navmenu. Usually a fontawesome icon, of the form "fa:fa-thing".</param>
 	/// <param name="fields">The fields to show in the list of your content type. Usually include at least some sort of name or title.</param>
-	protected void InstallAdminPages(string navMenuLabel, string navMenuIconRef, string[] fields)
-	{
-		InstallAdminPages(navMenuLabel, navMenuIconRef, fields, null, null);
-	}
-
-	/// <summary>
-	/// Installs generic admin pages for this service, including the nav menu entry.
-	/// Does nothing if there isn't a page service installed, or if the admin pages already exist.
-	/// </summary>
-	/// <param name="navMenuLabel">The text to show on the navmenu.</param>
-	/// <param name="navMenuIconRef">The ref for the icon to use on the navmenu. Usually a fontawesome icon, of the form "fa:fa-thing".</param>
-	/// <param name="fields">The fields to show in the list of your content type. Usually include at least some sort of name or title.</param>
-	/// <param name="childListType">
+	/// <param name="childAdminPage">
 	/// A shortcut for specifying that your type has some kind of sub-type.
 	/// For example, the NavMenu admin page specifies a child type of NavMenuItem, meaning each NavMenu ends up with a list of NavMenuItems.
-	/// Used with childListFields.
-	/// </param>
-	/// <param name="childListFields">
-	/// Used with childListType - specifies the fields that'll be visible from the child type in the list on the parent type.
+	/// Make sure you specify the fields that'll be visible from the child type in the list on the parent type.
 	/// For example, if you'd like each child entry to show its Id and Title fields, specify new string[]{"id", "title"}.
 	/// </param>
-	protected void InstallAdminPages(string navMenuLabel, string navMenuIconRef, string[] fields, string childListType, string[] childListFields)
+	protected void InstallAdminPages(string navMenuLabel, string navMenuIconRef, string[] fields, ChildAdminPageOptions childAdminPage = null)
 	{
 		if (Services.Started)
 		{
-			InstallAdminPagesInternal(navMenuLabel, navMenuIconRef, fields, childListType, childListFields);
+			InstallAdminPagesInternal(navMenuLabel, navMenuIconRef, fields, childAdminPage);
 		}
 		else
 		{
 			// Must happen after services start otherwise the page service isn't necessarily available yet.
 			Events.ServicesAfterStart.AddEventListener((Context ctx, object src) =>
 			{
-				InstallAdminPagesInternal(navMenuLabel, navMenuIconRef, fields, childListType, childListFields);
+				InstallAdminPagesInternal(navMenuLabel, navMenuIconRef, fields, childAdminPage);
 				return new ValueTask<object>(src);
 			});
 		}
 	}
 
-	private void InstallAdminPagesInternal(string navMenuLabel, string navMenuIconRef, string[] fields, string childListType, string[] childListFields)
+	private void InstallAdminPagesInternal(string navMenuLabel, string navMenuIconRef, string[] fields, ChildAdminPageOptions childAdminPage)
 	{
 		var pageService = Api.Startup.Services.Get("PageService");
 
@@ -839,8 +824,7 @@ public partial class AutoService
 				await (ValueTask)installPages.Invoke(pageService, new object[] {
 					ServicedType,
 					fields,
-					childListType,
-					childListFields
+					childAdminPage
 				});
 			}
 
