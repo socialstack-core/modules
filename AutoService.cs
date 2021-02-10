@@ -105,33 +105,11 @@ public partial class AutoService<T, ID> : AutoService
 	private JsonStructure<T>[] _jsonStructures = null;
 
 	/// <summary>
-	/// Reads a particular metadata field by its name. Common ones are "title" and "description".
-	/// Use this to generically read common descriptive things about a given content type.
-	/// Note that as fields vary by role, it is possible for users of different roles to obtain different meta values.
-	/// </summary>
-	public async ValueTask<object> GetMetaFieldValue(Context context, string fieldName, T content)
-	{
-		var field = await GetMetaField(context, fieldName);
-		if (field == null)
-		{
-			return null;
-		}
-
-		if (field.PropertyGet != null)
-		{
-			// It's a property:
-			return field.PropertyGet.Invoke(content, null);
-		}
-
-		return field.FieldInfo.GetValue(content);
-	}
-	
-	/// <summary>
 	/// Gets a particular metadata field by its name. Common ones are "title" and "description".
 	/// Use this to generically read common descriptive things about a given content type.
 	/// Note that as fields vary by role, it is possible for users of different roles to obtain different meta values.
 	/// </summary>
-	public async ValueTask<JsonField<T>> GetMetaField(Context context, string fieldName)
+	public async ValueTask<JsonField<T>> GetTypedMetaField(Context context, string fieldName)
 	{
 		// If a context is not given, this will use anonymous role structure:
 		var structure = await GetTypedJsonStructure(context == null ? 0 : context.RoleId);
@@ -141,9 +119,9 @@ public partial class AutoService<T, ID> : AutoService
 		}
 
 		// Get the field:
-		return structure.GetMetaField(fieldName);
+		return structure.GetTypedMetaField(fieldName);
 	}
-		
+	
 	/// <summary>
 	/// Gets the JSON structure. Defines settable fields for a particular role.
 	/// </summary>
@@ -678,6 +656,32 @@ public partial class AutoService
 		}
 	}
 
+	/// <summary>
+	/// Reads a particular metadata field by its name. Common ones are "title" and "description".
+	/// Use this to generically read common descriptive things about a given content type.
+	/// Note that as fields vary by role, it is possible for users of different roles to obtain different meta values.
+	/// </summary>
+	public async ValueTask<object> GetMetaFieldValue(Context context, string fieldName, object content)
+	{
+		// Get the json structure:
+		var json = await GetJsonStructure(context == null ? 0 : context.RoleId);
+
+		var field = json.GetMetaField(fieldName);
+
+		if (field == null)
+		{
+			return null;
+		}
+
+		if (field.PropertyGet != null)
+		{
+			// It's a property:
+			return field.PropertyGet.Invoke(content, null);
+		}
+
+		return field.FieldInfo.GetValue(content);
+	}
+	
 	/// <summary>
 	/// True if the given is a DatabaseRow type (i.e. if it should be persistent or not).
 	/// </summary>

@@ -57,6 +57,16 @@ namespace Api.Startup
 		}
 
 		/// <summary>
+		/// Gets a meta field. Common names are "title" and "description".
+		/// </summary>
+		/// <param name="name"></param>
+		/// <returns></returns>
+		public virtual JsonField GetMetaField(string name)
+		{
+			return null;
+		}
+		
+		/// <summary>
 		/// The meta fields in this type. The keys are always lowercase. For example "title" and "description".
 		/// These are set by applying [Meta("fieldname")] to your content type's fields. 
 		/// Note that title and description will always exist, unless a content type does not have any fields at all.
@@ -354,7 +364,19 @@ namespace Api.Startup
 		/// </summary>
 		/// <param name="name"></param>
 		/// <returns></returns>
-		public JsonField<T> GetMetaField(string name)
+		public override JsonField GetMetaField(string name)
+		{
+			JsonField<T> result;
+			MetaFields.TryGetValue(name.ToLower(), out result);
+			return result;
+		}
+
+		/// <summary>
+		/// Gets a meta field. Common names are "title" and "description".
+		/// </summary>
+		/// <param name="name"></param>
+		/// <returns></returns>
+		public JsonField<T> GetTypedMetaField(string name)
 		{
 			JsonField<T> result;
 			MetaFields.TryGetValue(name.ToLower(), out result);
@@ -534,7 +556,7 @@ namespace Api.Startup
                  (?<=[^A-Z])(?=[A-Z]) |
                  (?<=[A-Za-z])(?=[^A-Za-z])", RegexOptions.IgnorePatternWhitespace);
 
-	/// <summary>
+		/// <summary>
 		/// Adds spaces to a CamelCase string (so it becomes "Camel Case")
 		/// </summary>
 		/// <param name="s"></param>
