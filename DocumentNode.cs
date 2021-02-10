@@ -341,7 +341,41 @@ namespace Api.Pages
 			html.AppendChild(new DocumentNode("body"));
 			AppendChild(html);
 		}
-		
+
+		/// <summary>
+		/// The pageService.
+		/// </summary>
+		private static PageService _pageService;
+
+		/// <summary>
+		/// Gets a named meta field from the primary object. You can specify a meta field with [meta("fieldName")] in your entity.
+		/// Note that [meta("title")] and [meta("description")] are 'guessed' automatically if you haven't explicitly declared them in your entity.
+		/// If the meta field is not set on the primary object, this function will then attempt to read the meta field from the Page object instead.
+		/// </summary>
+		/// <param name="context"></param>
+		/// <param name="fieldName"></param>
+		/// <returns></returns>
+		public async ValueTask<object> GetMeta(Context context, string fieldName)
+		{
+			if (PrimaryObjectService != null && PrimaryObject != null)
+			{
+				var meta = await PrimaryObjectService.GetMetaFieldValue(context, fieldName, PrimaryObject);
+
+				if (meta != null)
+				{
+					return meta;
+				}
+			}
+
+			// Otherwise, try the page instead:
+			if (_pageService == null)
+			{
+				_pageService = Api.Startup.Services.Get<PageService>();
+			}
+
+			return await _pageService.GetMetaFieldValue(null, fieldName, SourcePage);
+		}
+
 		/// <summary>
 		/// The doctype node.
 		/// </summary>
