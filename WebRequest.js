@@ -138,7 +138,7 @@ function _fetch(url, data, opts) {
 		return fetch(url, { method: opts && opts.method ? opts.method : 'get', mode, credentials, headers });
 	}
     
-	if (data instanceof FormData) {
+	if (global.FormData && data instanceof global.FormData) {
 		return fetch(url, {
 			method: opts && opts.method ? opts.method : 'post',
             body: data,
