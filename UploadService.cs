@@ -13,6 +13,7 @@ using System.Threading.Tasks;
 using Microsoft.Extensions.Configuration;
 using System.Runtime.InteropServices;
 using Api.Startup;
+//using ImageMagick;
 
 namespace Api.Uploader
 {
@@ -96,7 +97,31 @@ namespace Api.Uploader
 
             return true;
          }
-		
+
+		/*
+		/// <summary>
+		/// Resizes the given image such that it becomes the given width. Retains the aspect ratio and performs no cropping.
+		/// </summary>
+		/// <param name="source"></param>
+		/// <param name="width"></param>
+		/// <returns></returns>
+		public bool MagickResize(string source, int width)
+        {
+
+			using (MagickImage image = new MagickImage(source))
+			{
+				int height = Convert.ToInt32(width * (double)image.Height / (double)image.Width);
+				var size = new MagickGeometry(width, height);
+				var path = Path.GetFullPath(source);
+				var filename = Path.GetFileNameWithoutExtension(source);
+				var output = Path.Combine(path, filename + "-" + width.ToString(), ".webp");
+
+				image.Resize(size);
+				image.Write(output);
+			}
+		}
+		*/
+
         /// <summary>
         /// True if the filetype is a supported image file.
         /// </summary>
@@ -295,13 +320,14 @@ namespace Api.Uploader
 					// Use the default set of sizes.
 					sizes = _configuration.ImageSizes;
 				}
-				
+
 				foreach (var imageSize in sizes)
                 {
-                    // Resize it now:
-                    Resize(current, result.GetFilePath(imageSize.ToString()), imageSize);
+					// Resize it now:
+					Resize(current, result.GetFilePath(imageSize.ToString()), imageSize);
+					//MagickResize(tempFile, imageSize);
 				}
-				
+
 			}
 			
 			if(saveOriginal){
