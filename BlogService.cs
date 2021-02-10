@@ -28,8 +28,6 @@ namespace Api.Blogs
 				"Blogs", "fa:fa-blog", new string[] { "id", "name" },
 
 				// Each blog page also has a list of blogpost's on it:
-				"BlogPost", new string[] { "title" }
-				
 				new ChildAdminPageOptions(){
 					ChildType = "BlogPost",
 					Fields = new string[] { "title" },
