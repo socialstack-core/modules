@@ -17,8 +17,7 @@ namespace Api.Blogs
 	/// </summary>
 	public partial class BlogPostService : AutoService<BlogPost>
     {
-        private BlogService _blogs;
-		private BlogPostService _blogPosts;
+        private readonly BlogService _blogs;
 		
 		/// <summary>
 		/// Instanced automatically. Use injection to use this service, or Startup.Services.Get.
@@ -42,22 +41,17 @@ namespace Api.Blogs
 					return null;
                 }
 
-				if (_blogPosts == null)
-				{
-					_blogPosts = Services.Get<BlogPostService>();
-				}
-
 				// Was a slug passed in? if so, just pass the blogPost on.
 				if (blogPost.Slug != null && blogPost.Slug != "")
                 {
-					blogPost.Slug = await _blogPosts.GetSlug(context, blogPost.Title, blogPost.Slug);
+					blogPost.Slug = await GetSlug(context, blogPost.Title, blogPost.Slug);
 					return blogPost;
                 }
 
 				// No slug was added, let's get one. 
 				if (config.GenerateSlugs)
                 {
-					slug = await _blogPosts.GetSlug(context, blogPost.Title);
+					slug = await GetSlug(context, blogPost.Title);
 
 					blogPost.Slug = slug;
 				}
@@ -75,23 +69,18 @@ namespace Api.Blogs
 					return null;
 				}
 
-				if (_blogPosts == null)
-				{
-					_blogPosts = Services.Get<BlogPostService>();
-				}
-
 				// Was a slug passed in? if so, just pass the blogPost on.
 				if (blogPost.Slug != null && blogPost.Slug != "")
 				{
 					// Let's make sure the provided slug is unique.
-					blogPost.Slug = await _blogPosts.GetSlug(context, blogPost.Title, blogPost.Slug, blogPost.Id);
+					blogPost.Slug = await GetSlug(context, blogPost.Title, blogPost.Slug, blogPost.Id);
 					return blogPost;
 				}
 
 				if(config.GenerateSlugs)
                 {
 					// No slug was added, let's get one if we are generating slugs. 
-					slug = await _blogPosts.GetSlug(context, blogPost.Title, null, blogPost.Id);
+					slug = await GetSlug(context, blogPost.Title, null, blogPost.Id);
 
 					blogPost.Slug = slug;
 				}
@@ -109,11 +98,6 @@ namespace Api.Blogs
 					if (context == null || blogPost == null)
 					{
 						return null;
-					}
-
-					if (_blogPosts == null)
-					{
-						_blogPosts = Services.Get<BlogPostService>();
 					}
 
 					// Was a synopsis passed in? if so, just pass the blogPost on.
@@ -143,11 +127,6 @@ namespace Api.Blogs
 					if (context == null || blogPost == null)
 					{
 						return null;
-					}
-
-					if (_blogPosts == null)
-					{
-						_blogPosts = Services.Get<BlogPostService>();
 					}
 
 					// Was a synopsis passed in? if so, just pass the blogPost on.

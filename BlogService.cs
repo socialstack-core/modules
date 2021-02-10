@@ -5,6 +5,7 @@ using System.Collections.Generic;
 using Api.Permissions;
 using Api.Eventing;
 using Api.Contexts;
+using Api.Startup;
 
 namespace Api.Blogs
 {
