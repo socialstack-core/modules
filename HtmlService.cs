@@ -191,9 +191,16 @@ namespace Api.Pages
 					doc.PrimaryObjectService = primaryToken.Service;
 					doc.PrimaryObjectType = primaryToken.ContentType;
 
-					if (primaryToken.IsId && int.TryParse(pageAndTokens.TokenValues[countA - 1], out int primaryObjectId))
+					if (primaryToken.IsId)
 					{
-						doc.PrimaryObject = primaryToken.Service.GetObject(context, primaryObjectId);
+						if (int.TryParse(pageAndTokens.TokenValues[countA - 1], out int primaryObjectId))
+						{
+							doc.PrimaryObject = await primaryToken.Service.GetObject(context, primaryObjectId);
+						}
+					}
+					else
+					{
+						doc.PrimaryObject = await primaryToken.Service.GetObject(context, primaryToken.FieldName, pageAndTokens.TokenValues[countA - 1]);
 					}
 				}
 			}
