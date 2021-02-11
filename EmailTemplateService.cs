@@ -112,7 +112,9 @@ namespace Api.Emails
 
 			if (template == null || recipient == null)
 			{
-				return null;
+				return new RenderedCanvas() {
+					Body = null
+				};
 			}
 
 			// Render the template now:
@@ -277,8 +279,8 @@ namespace Api.Emails
 				// Get the set of canvas + all the contexts:
 				var set = localeKvp.Value;
 
-				// Fallback email subject:
-				var fallbackSubject = set.Template == null ? null : set.Template.Subject;
+				// Email subject:
+				var subject = set.Template == null ? null : set.Template.Subject;
 
 				// Render all. The results are in the exact same order as the recipients set.
 				List<RenderedCanvas> renderedCanvases = await _canvasRendererService.Render(set);
@@ -292,9 +294,6 @@ namespace Api.Emails
 
 					// Email to send to:
 					var targetEmail = recipient.User.Email;
-
-					// Email subject:
-					var subject = string.IsNullOrEmpty(renderedCanvas.Title) ? fallbackSubject : renderedCanvas.Title;
 
 					// Send now:
 					await Send(targetEmail, subject, renderedCanvas.Body);
