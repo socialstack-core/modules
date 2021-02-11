@@ -51,7 +51,7 @@ export default function(custom){
 
 		global.hashFields = {};
 
-		(global.location && global.location.hash) && global.location.hash.substring(1).split('&').forEach(e => {
+		(location && location.hash) && location.hash.substring(1).split('&').forEach(e => {
 			var parts = e.split('=');
 			global.hashFields[parts[0]] = parts.length>1 ? parts[1] : true;
 		});
@@ -112,7 +112,7 @@ export default function(custom){
 			
 		});
 		
-		// Render the root now! When the App instance is created, it sets itself up as global.app
+		// Render the root now! When the App instance is created, it sets itself up as global.app and this.context.app from components (use context.app whenever possible).
 		(React.render || ReactDom.render)(
 			<App />,
 			document.getElementById('react-root')
