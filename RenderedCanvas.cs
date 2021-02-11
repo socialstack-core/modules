@@ -8,16 +8,12 @@ namespace Api.CanvasRenderer
     /// <summary>
     /// A rendered canvas.
     /// </summary>
-    public class RenderedCanvas
+    public struct RenderedCanvas
     {
 		/// <summary>
 		/// The HTML body.
 		/// </summary>
         public string Body { get; set; }
-		/// <summary>
-		/// The page title (used as e.g. email subject).
-		/// </summary>
-        public string Title { get; set; }
     }
 
 }

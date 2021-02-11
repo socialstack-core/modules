@@ -1,9 +1,11 @@
-﻿using Api.StackTools;
-using Newtonsoft.Json.Linq;
+﻿using Newtonsoft.Json.Linq;
 using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
-
+using Microsoft.ClearScript.V8;
+using Microsoft.Extensions.ObjectPool;
+using Microsoft.ClearScript;
+using System.IO;
 
 namespace Api.CanvasRenderer
 {
@@ -11,16 +13,16 @@ namespace Api.CanvasRenderer
 	/// Handles rendering canvases server side. Particularly useful for e.g. sending emails.
 	/// Instanced automatically. Use injection to use this service, or Startup.Services.Get.
 	/// </summary>
-	public partial class CanvasRendererService
+	public partial class CanvasRendererService : AutoService
 	{
-		private readonly StackToolsService _stackTools;
+		private readonly CanvasRendererServiceConfig _cfg;
 
 		/// <summary>
-		/// Instanced automatically. Use injection to use this service, or Startup.Services.Get.
+		/// Instanced automatically.
 		/// </summary>
-		public CanvasRendererService(StackToolsService stackTools)
+		public CanvasRendererService()
 		{
-			_stackTools = stackTools;
+			_cfg = GetConfig<CanvasRendererServiceConfig>();
 		}
 
 		/// <summary>
@@ -29,82 +31,26 @@ namespace Api.CanvasRenderer
 		/// If one fails for whatever reason, the entry will be null.
 		/// </summary>
 		/// <param name="set"></param>
-		/// <param name="modules"></param>
 		/// <returns></returns>
-		public async Task<List<RenderedCanvas>> Render(CanvasAndContextSet set, string modules = "Admin")
+		public async Task<List<RenderedCanvas>> Render(CanvasAndContextSet set)
 		{
-			var tcs = new TaskCompletionSource<List<RenderedCanvas>>();
+			var results = new List<RenderedCanvas>();
 
-			_stackTools.Request(new RenderRequest()
+			// Get one engine and render repeatedly with it:
+			var engine = GetEngine();
+
+			foreach (var ctx in set.Contexts)
 			{
-				canvas = set.BodyJson,
-				contexts = set.Contexts,
-				modules = modules
-			}, (string error, JObject response) => {
-
-				if (error != null || response == null)
+				// RenderCanvas actually is a promise.
+				var canvas = new RenderedCanvas()
 				{
-					Console.WriteLine(error);
-					tcs.TrySetResult(null);
-					return;
-				}
+					Body = (string)engine.Invoke("renderCanvas", set.BodyJson)
+				};
 
-				var results = response["results"];
+				results.Add(canvas);
+			}
 
-				if (results == null)
-				{
-					Console.WriteLine(error);
-					tcs.TrySetResult(null);
-					return;
-				}
-
-				var result = new List<RenderedCanvas>();
-
-				foreach (var jsonResult in results)
-				{
-					var body = jsonResult["html"];
-					var meta = jsonResult["meta"];
-
-					string htmlBody;
-					string title;
-
-					if (body == null)
-					{
-						htmlBody = "";
-					}
-					else
-					{
-						htmlBody = body.Value<string>();
-					}
-
-					if (meta == null)
-					{
-						title = null;
-					}
-					else
-					{
-						var titleJson = meta["title"];
-						if (titleJson == null)
-						{
-							title = null;
-						}
-						else
-						{
-							title = titleJson.Value<string>();
-						}
-					}
-
-					result.Add(new RenderedCanvas()
-					{
-						Body = htmlBody,
-						Title = title,
-					});
-				}
-
-				tcs.TrySetResult(result);
-			});
-			
-			return await tcs.Task;
+			return results;
 		}
 
 		/// <summary>
@@ -114,64 +60,115 @@ namespace Api.CanvasRenderer
 		/// <param name="bodyJson">The JSON for the canvas.</param>
 		/// <param name="context">The context to use whilst rendering the canvas.
 		/// This acts like POSTed page data.</param>
-		/// <param name="modules"></param>
 		/// <returns></returns>
-		public Task<RenderedCanvas> Render(string bodyJson, CanvasContext context, string modules = "Admin")
+		public ValueTask<RenderedCanvas> Render(string bodyJson, CanvasContext context)
 		{
-			// A TCS will let us return when the callback runs:
-			var tcs = new TaskCompletionSource<RenderedCanvas>();
+			// Module set to use:
+			var modules = _cfg.Modules;
 
-			_stackTools.Request(new RenderRequest() {
-				canvas = bodyJson,
-				context = context,
-				modules = modules
-			}, (string error, JObject response) => {
+			var result = new RenderedCanvas()
+			{
+				// TODO: This will return a promise as a Task. Establish how it handles the task return type.
+				Body = (string)GetEngine().Invoke("renderCanvas", bodyJson)
+			};
 
-				var result = error != null ? null : new RenderedCanvas()
-				{
-					Body = response["html"].Value<string>(),
-					Title = response["meta"]["title"].Value<string>()
-				};
+			return new ValueTask<RenderedCanvas>(result);
+		}
 
-				tcs.TrySetResult(result);
-			});
+		private V8ScriptEngine _engine;
 
-			return tcs.Task;
+		private V8ScriptEngine GetEngine()
+		{
+			if (_engine != null)
+			{
+				return _engine;
+			}
+			
+			// TODO:
+			// - Add functionality that fetch can sit on top of to request data. 
+			//   It should return a cachable JSON string rather than the actual object.
+			// - Rework global state such that it's still easy to get to but is instanced without needing to reinstance the whole global scope.
+			// - Check what happens when multiple threads attempt Execute simultaneously.
+			// - Handle renderCanvas returning a Promise
+			// - Relocate the renderer.js such that it's e.g. compiled as an alt version of the main.generated.js or outputted alongside it.
+
+			var engine = new V8ScriptEngine("Socialstack API Renderer", V8ScriptEngineFlags.DisableGlobalMembers | V8ScriptEngineFlags.EnableTaskPromiseConversion);
+			engine.Script.server = true;
+			engine.Execute("window=this;");
+			engine.AddHostObject("document", new V8.Document());
+			engine.AddHostObject("navigator", new V8.Navigator());
+			engine.AddHostObject("location", new V8.Location());
+
+			/* engine.AddHostObject("host", new ExtendedHostFunctions());
+				engine.AddHostObject("lib", HostItemFlags.GlobalMembers, 
+				new HostTypeCollection("mscorlib", "System", "System.Core", "System.Numerics", "ClearScript.Core", "ClearScript.V8"));
+			*/
+			engine.SuppressExtensionMethodEnumeration = true;
+			engine.AllowReflection = true;
+
+			var sourceContent = File.ReadAllText("main.generated.js");
+			engine.Execute(new DocumentInfo(new Uri("main.generated.js")), sourceContent);
+
+			sourceContent = File.ReadAllText("renderer.js");
+			engine.Execute(new DocumentInfo(new Uri("renderer.js")), sourceContent);
+			_engine = engine;
+			return engine;
 		}
 
 	}
+}
+
+namespace Api.CanvasRenderer.V8
+{
+	
+	/// <summary>
+	/// The window.location object.
+	/// </summary>
+	public class Location
+	{
+	}
 
 	/// <summary>
-	/// A request to socialstack tools to render a canvas.
+	/// The window.navigator object.
 	/// </summary>
-	public class RenderRequest : Request
+	public class Navigator
 	{
 		/// <summary>
-		/// Canvas JSON
+		/// User agent.
 		/// </summary>
-		public string canvas;
+		public string userAgent = "API";
+	}
+
+	/// <summary>
+	/// The window.document object.
+	/// </summary>
+	public class Document
+	{
+		/// <summary>
+		/// Indicates we're serverside.
+		/// </summary>
+		public bool server = true;
 
 		/// <summary>
-		/// The context
+		/// Stub for adding an event listener.
 		/// </summary>
-		public CanvasContext context;
+		/// <param name="a"></param>
+		/// <param name="b"></param>
+		public void addEventListener(object a, object b) { }
 
 		/// <summary>
-		/// Multiple contexts in a multi-render request.
+		/// Stub for removing an event listener.
 		/// </summary>
-		public List<Dictionary<string, object>> contexts;
+		/// <param name="a"></param>
+		public void removeEventListener(object a) { }
 
 		/// <summary>
-		/// The module set to use. Usually 'Admin', but also 'UI' or 'Email' are acceptable.
+		/// Stub for getting an element by ID.
 		/// </summary>
-		public string modules;
-
-		/// <summary>
-		/// 
-		/// </summary>
-		public RenderRequest()
+		/// <param name="id"></param>
+		public object getElementById(object id)
 		{
-			action = "render";
+			return null;
 		}
 	}
 }
