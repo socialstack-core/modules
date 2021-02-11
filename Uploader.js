@@ -1,7 +1,6 @@
 import Loading from 'UI/Loading';
 import Alert from 'UI/Alert';
 import webRequest from 'UI/Functions/WebRequest';
-import apiEndpoint from 'UI/Functions/ApiEndpoint';
 
 /*
 * General purpose file uploader. Doesn't delcare a form so can be used inline anywhere.
@@ -58,7 +57,7 @@ export default class Uploader extends React.Component {
 			this.props.onUploadProgress && this.props.onUploadProgress();
 		};
 		
-		xhr.open('POST', global.ingestUrl ? global.ingestUrl + "v1/uploader/upload" : apiEndpoint("uploader/upload"), true);
+		xhr.open('POST', global.ingestUrl ? global.ingestUrl + "v1/uploader/upload" : ((global.apiHost || '') + '/v1/uploader/upload'), true);
 		xhr.send(formData);
 	}
 
