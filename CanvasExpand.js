@@ -188,7 +188,7 @@ function mapTokens(obj, canvas, Canvas){
 			break;
 			case "contextToken":
 				var tokenParts = (value.name || '').split('.');
-				var currentContext = (props.contextTokens || global.app.state);
+				var currentContext = (props.contextTokens || canvas.context.app.state);
 				
 				for(var i=0;i<tokenParts.length;i++){
 					currentContext && (currentContext = currentContext[tokenParts[i]]);
