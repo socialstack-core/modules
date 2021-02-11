@@ -59,7 +59,7 @@ export default class PasswordReset extends React.Component {
 							onSuccess={response => {
 								// Response is the new context.
 								// Set to global state:
-								global.app.setState(response);
+								this.context.app.setState(response);
 								
 								if(this.props.onSuccess){
 									this.props.onSuccess(response);
