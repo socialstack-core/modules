@@ -1,5 +1,4 @@
 /* This module sends web requests for us. */
-import mapUrl from 'UI/Functions/MapUrl';
 import store from 'UI/Functions/Store';
 import contentChange from 'UI/Functions/ContentChange';
 
@@ -22,7 +21,7 @@ function receivedContent(content){
 }
 
 export default function webRequest(origUrl, data, opts) {
-	var url = mapUrl(origUrl);
+	var url = (global.apiHost || '') + '/v1/' + origUrl;
 	
 	return new Promise((success, reject) => {
 		_fetch(url, data, opts).then(response => {
