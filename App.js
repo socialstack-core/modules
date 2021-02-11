@@ -12,11 +12,12 @@ export default class App extends React.Component{
 	
 	constructor(props){
 		super(props);
-		var url = global.location.pathname + global.location.search;
+		var url = location.pathname + location.search;
 		global.app = this;
+		var initState = props.init || global.gsInit;
 		
-		if(global.gsInit){
-			this.state = {url, ...global.gsInit, loadingUser: false};
+		if(initState){
+			this.state = {url, ...initState, loadingUser: false};
 		}else{
 			this.state = {
 				user: null,
@@ -25,17 +26,21 @@ export default class App extends React.Component{
 			};
 			this.state.loadingUser = webRequest('user/self').then(response => {
 				if(response && response.json){
-					global.app.setState({...response.json, loadingUser: false});
+					this.setState({...response.json, loadingUser: false});
 				}else{
-					global.app.setState({loadingUser: false});
+					this.setState({loadingUser: false});
 				}
 				return response;
 			}).catch(e=>{
 				// Not logged in
-				global.app.setState({user: null, realUser: null, loadingUser: false});
+				this.setState({user: null, realUser: null, loadingUser: false});
 			});
 		}
 		eventTarget = global.events.get('App');
+	}
+	
+	componentDidMount(){
+		this.context.app = this;
 	}
 	
 	componentDidUpdate(){

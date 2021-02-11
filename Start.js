@@ -33,8 +33,6 @@ export default function(custom){
 		}
 	}
 	
-	var document = global.document;
-	
 	if(!global.server){
 		// We're server side otherwise. It would've set global.app internally.
 
@@ -53,12 +51,12 @@ export default function(custom){
 
 		global.hashFields = {};
 
-		(global.location && global.location.hash) && global.location.hash.substring(1).split('&').forEach(e => {
+		(location && location.hash) && location.hash.substring(1).split('&').forEach(e => {
 			var parts = e.split('=');
 			global.hashFields[parts[0]] = parts.length>1 ? parts[1] : true;
 		});
-
-		// Render the root now! When the App instance is created, it sets itself up as global.app
+		
+		// Render the root now! When the App instance is created, it sets itself up as this.context.app (as seen by other *mounted* components).
 		(React.render || ReactDom.render)(
 			<App />,
 			document.getElementById('react-root')
