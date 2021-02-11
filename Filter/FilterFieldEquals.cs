@@ -46,6 +46,11 @@ namespace Api.Permissions
 				// Use a constant null value
 				builder.Append(" IS NULL");
 			}
+			else if(Value is bool)
+			{
+				builder.Append("=");
+				builder.Append(MySql.Data.MySqlClient.MySqlHelper.EscapeString(Value.ToString()));
+			}
 			else
 			{
 				// Use a constant non-null value

@@ -54,6 +54,11 @@ namespace Api.Permissions
 					{
 						builder.Append("NULL");
 					}
+					else if (val is bool)
+					{
+						builder.Append("=");
+						builder.Append(MySql.Data.MySqlClient.MySqlHelper.EscapeString(val.ToString()));
+					}
 					else
 					{
 						builder.Append('"');
