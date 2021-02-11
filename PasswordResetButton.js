@@ -13,7 +13,7 @@ export default class PasswordResetButton extends React.Component {
 		webRequest('passwordresetrequest/' + this.props.userId + '/generate').then(response => {
 			
 			var relativeUrl = response.json.url;
-			var url = global.location.origin + relativeUrl;
+			var url = location.origin + relativeUrl;
 			
 			this.setState({
 				loading: false,
