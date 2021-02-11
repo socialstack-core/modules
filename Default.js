@@ -9,14 +9,15 @@ import logout from 'UI/Functions/Logout';
 export default class Default extends React.Component{
 	
 	render(){
+		var { app } = this.context;
 		
-		if(global.app.state.loadingUser){
+		if(app.state.loadingUser){
 			return <Landing>
 				Logging in..
 			</Landing>;
 		}
 		
-		var {user, role} = global.app.state;
+		var {user, role} = app.state;
 		
 		if(!user){
 			// Login page
@@ -34,7 +35,7 @@ export default class Default extends React.Component{
 						Hi {user.firstName} - you'll need to ask an existing admin to grant you permission to login here.
 					</p>
 					<a href={'#'} className="btn btn-secondary" onClick={()=>{
-						logout('/en-admin/');
+						logout('/en-admin/', this.context);
 					}}>
 						Logout
 					</a>
