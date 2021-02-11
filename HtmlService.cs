@@ -172,6 +172,7 @@ namespace Api.Pages
 			// Generate the document:
 			var doc = new Document();
 			doc.Path = path;
+			doc.Title = page.Title; // Todo: permit {token} values in the title which refer to the primary object.
 			doc.SourcePage = page;
 			doc.Html.With("class", "ui web");
 
