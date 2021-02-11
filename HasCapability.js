@@ -12,9 +12,11 @@ export default class HasCapability extends React.Component {
 			name: props.called,
 			granted: false
 		};
-		
+	}
+	
+	componentDidMount(){
 		if(props.called){
-			hasCapability(props.called).then(granted => this.setState({granted}));
+			hasCapability(props.called, this.context).then(granted => this.setState({granted}));
 		}
 	}
 	
