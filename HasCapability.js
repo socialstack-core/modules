@@ -6,22 +6,22 @@ var cache = null;
 /*
 * Gets the list of content types on the site. Returns a promise.
 */
-export default (capName) => {
-	var gs = global.app.state;
+export default (capName, context) => {
+	var gs = context.app.state;
 	
 	if(gs.loadingUser){
-		return gs.loadingUser.then(() => loadCached(capName));
+		return gs.loadingUser.then(() => loadCached(capName, context));
 	}
 	
 	return loadCached(capName);
 }
 
-function loadCached(capName) {
+function loadCached(capName, context) {
 	if(cache != null){
 		return Promise.resolve(cache).then(caps => !!caps[capName]);
 	}
 	
-	var gs = global.app.state;
+	var gs = context.app.state;
 	var roleId = gs.user ? gs.user.role : 0;
 	
 	return cache = webRequest("permission/role/" + roleId).then(response => {
