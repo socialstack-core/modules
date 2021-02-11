@@ -1,9 +1,9 @@
 import webRequest from 'UI/Functions/WebRequest';
 
-function clearAndNav(url){
+function clearAndNav(url, context){
 	var state = {};
 	
-	for(var k in global.app.state){
+	for(var k in context.app.state){
 		if(k == 'url' || k == 'loadingUser'){
 			continue;
 		}
@@ -11,12 +11,16 @@ function clearAndNav(url){
 	}
 	
 	state.role={id: 0};
-	global.app.setState(state);
+	context.app.setState(state);
 	global.pageRouter.go(url);
 }
 
-export default (url) => {
+export default (url, context) => {
+	if(!context){
+		console.warn('Logout requires context (this.context from a component)');
+		context = global;
+	}
 	return webRequest('user/logout')
-		.then(() => clearAndNav(url || '/'))
-		.catch(e => clearAndNav(url || '/'));
+		.then(() => clearAndNav(url || '/', context))
+		.catch(e => clearAndNav(url || '/', context));
 };
