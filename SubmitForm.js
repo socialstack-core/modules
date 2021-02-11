@@ -43,6 +43,10 @@ export default function (e, options) {
 	}
 	
 	var action = e.target.action;
+	var actionPieces = action.split('/v1/');
+	if(actionPieces.length >= 2){
+		action = actionPieces[1];
+	}
 	
 	values.setAction = (newAction) => {
 		action = newAction;
