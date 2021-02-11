@@ -369,6 +369,17 @@ export default class PageRouter extends React.Component{
 						page[field] = response.json[field];
 					}
 					
+					var url = page.url;
+					
+					if(url.length && url[0] == '/'){
+						url = url.substring(1);
+					}
+					
+					if(url.length && url[url.length-1] == '/'){
+						url = url.substring(0, url.length-1);
+					}
+					
+					page.url = url;
 					return page;
 				});
 			}else{
