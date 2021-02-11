@@ -28,14 +28,6 @@ export default class PageRouter extends React.Component{
 		global.pageRouter = this;
 		this.onLinkClick = this.onLinkClick.bind(this);
 		this.onPopState = this.onPopState.bind(this);
-		
-		var {loadingUser} = global.app.state;
-		
-		if(loadingUser){
-			loadingUser.then(res => {
-				this.role = res && res.json.role ? res.json.role.id : undefined;
-			})
-		}
 	}
 	
 	makeRequest(){
@@ -246,6 +238,14 @@ export default class PageRouter extends React.Component{
 	}
 	
 	componentDidMount(){
+		var {loadingUser} = this.context.app.state;
+		
+		if(loadingUser){
+			loadingUser.then(res => {
+				this.role = res && res.json.role ? res.json.role.id : undefined;
+			})
+		}
+		
 		global.addEventListener("popstate", this.onPopState);
 		
 		document.addEventListener("click", this.onLinkClick);
@@ -276,7 +276,7 @@ export default class PageRouter extends React.Component{
 	}
 	
 	getRole(){
-		var { role } = global.app.state;
+		var { role } = this.context.app.state;
 		return role ? role.id : undefined;
 	}
 	
