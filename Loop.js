@@ -68,7 +68,7 @@ export default class Loop extends React.Component {
 
 				// If *this user* made the update, set the viewed date as the edited date.
 				// Otherwise, clear it. We don't know when this user actually last saw it.
-				var { user } = global.app.state;
+				var { user } = this.context.app.state;
 
 				var userId = user ? user.id : 0;
 
