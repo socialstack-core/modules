@@ -41,9 +41,9 @@ export default class AutoForm extends React.Component {
 
 		var createSuccess = false;
 		var revisionId = 0;
-		if (global.location && global.location.search) {
+		if (location && location.search) {
 			var query = {};
-			global.location.search.substring(1).split('&').forEach(piece => {
+			location.search.substring(1).split('&').forEach(piece => {
 				var term = piece.split('=');
 				query[term[0]] = decodeURIComponent(term[1]);
 			});
