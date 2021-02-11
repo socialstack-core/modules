@@ -144,7 +144,7 @@ function isLandscape() {
     return window.matchMedia('(orientation: landscape)').matches;
 }
 
-if (global.document && global.document.getElementsByTagName && global.document.getElementsByTagName("html").length) {
+if (document.getElementsByTagName && document.getElementsByTagName("html").length) {
     // user agent detection
     var userAgent = navigator.userAgent || navigator.vendor || window.opera;
     var isWindowsPhone = /windows phone/i.test(userAgent);
@@ -168,7 +168,7 @@ if (global.document && global.document.getElementsByTagName && global.document.g
     var isIE = window.document.documentMode;
     var isIE10Plus = window.matchMedia("(-ms-high-contrast: active)").matches || window.matchMedia("(-ms-high-contrast: none)").matches;
 
-    var htmlClassList = global.document.getElementsByTagName("html")[0].classList;
+    var htmlClassList = document.getElementsByTagName("html")[0].classList;
 
     if (isWindowsPhone) {
         htmlClassList.add("windows-phone");
