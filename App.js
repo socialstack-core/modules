@@ -10,10 +10,11 @@ var eventTarget;
  */
 export default class App extends React.Component{
 	
-	constructor(props){
-		super(props);
+	constructor(props, context){
+		super(props, context);
 		var url = global.hashRouter ? (location.hash ? location.hash.substring(1) : '/') : (location.pathname + location.search);
 		global.app = this;
+		context.app = this;
 		var initState = props.init || global.gsInit;
 		
 		if(initState){
@@ -37,10 +38,6 @@ export default class App extends React.Component{
 			});
 		}
 		eventTarget = global.events.get('App');
-	}
-	
-	componentDidMount(){
-		this.context.app = this;
 	}
 	
 	componentDidUpdate(){
