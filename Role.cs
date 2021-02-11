@@ -292,7 +292,7 @@ namespace Api.Permissions
 				filter.And();
 			}
 
-			filter.Equals(contentType, fieldName, 1);
+			filter.Equals(contentType, fieldName, true);
 			CapabilityLookup[cap.InternalId] = filter.Construct(true);
 		}
 
