@@ -14,7 +14,6 @@ export default class App extends React.Component{
 		super(props);
 		var url = global.hashRouter ? (global.location.hash ? global.location.hash.substring(1) : '/') : (global.location.pathname + global.location.search);
 		global.app = this;
-		
 		if(global.gsInit){
 			this.state = {url, ...global.gsInit, loadingUser: false};
 		}else{
@@ -36,6 +35,10 @@ export default class App extends React.Component{
 			});
 		}
 		eventTarget = global.events.get('App');
+	}
+	
+	componentDidMount(){
+		this.context.app = this;
 	}
 	
 	componentDidUpdate(){
