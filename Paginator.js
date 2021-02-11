@@ -169,7 +169,7 @@ export default class Paginator extends React.Component {
 		/*
 		// as a workaround for having to potentially send rebranded icons for each instance of <Paginator>
 		// (or, more than likely, each instance of a paged <Loop>), check for overrides defined in global state
-		var globalSettings = global.app.state.paginatorSettings;
+		var globalSettings = this.context.app.state.paginatorSettings;
 
 		if (typeof globalSettings == "object") {
 			firstIcon = globalSettings.firstIcon || firstIcon;
