@@ -1,5 +1,4 @@
 import submitForm from 'UI/Functions/SubmitForm';
-import mapUrl from 'UI/Functions/MapUrl';
 import omit from 'UI/Functions/Omit';
 import Spacer from 'UI/Spacer';
 import Alert from 'UI/Alert';
@@ -102,7 +101,7 @@ export default class Form extends React.Component {
 					}
 					this.props.formRef && this.props.formRef(f);
 				}}
-				action={mapUrl(action)}
+				action={(global.apiHost || '') + '/v1/' + action}
 				method={this.props.method || "post"}
 				{...(omit(this.props, ['action', 'method', 'onSuccess', 'onFailed', 'onValues', 'children', 'locale']))}
 			>
