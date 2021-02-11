@@ -23,7 +23,7 @@ export default class MainMenu extends React.Component {
 				<ul className="loop">
 					<li className="loop-item">
 						<a href={'#'} onClick={()=>{
-							logout('/en-admin/');
+							logout('/en-admin/', this.context);
 						}}>
 							<i className="fa fa-door-open fa-fw"></i>
 							Logout
