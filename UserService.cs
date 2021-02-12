@@ -50,6 +50,8 @@ namespace Api.Users
 
 			SetupAutoUserFieldEvents();
 			SetupProfileFieldTransfers();
+
+			var config = GetConfig<UserServiceConfig>();
 			
 			Events.User.BeforeSettable.AddEventListener((Context ctx, JsonField<User> field) => {
 				
@@ -90,6 +92,53 @@ namespace Api.Users
 
 				return new ValueTask<User>(user);
 			});
+
+			// Let's see if the username is ok.
+			if(config.UniqueUsernames)
+            {
+				// They need to be unique, so let's create our event listener.
+				Events.User.BeforeCreate.AddEventListener(async (Context ctx, User user) =>
+				{
+					if (user == null)
+					{
+						return null;
+					}
+
+					// Let's make sure the username is not in use.
+					var usersWithUsername = await List(ctx, new Filter<User>().Equals("Username", user.Username));
+
+					if (usersWithUsername.Count > 0)
+                    {
+						throw new PublicException("This username is already in use.");
+                    }
+
+					return user;
+				});
+            }
+
+			// Let's see if the email is ok.
+			if(config.UniqueEmails)
+            {
+				// They need to be unique, so let's create our event listener.
+				Events.User.BeforeCreate.AddEventListener(async (Context ctx, User user) =>
+				{
+
+					if (user == null)
+					{
+						return null;
+					}
+
+					// Let's make sure the username is not in use.
+					var usersWithEmail = await List(ctx, new Filter<User>().Equals("Email", user.Email));
+
+					if (usersWithEmail.Count > 0)
+					{
+						throw new PublicException("This email is already in use.");
+					}
+
+					return user;
+				});
+            }
 			
 			InstallAdminPages("Users", "fa:fa-user", new string[] { "id", "email", "username" });
 		}
