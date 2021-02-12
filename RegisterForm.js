@@ -15,7 +15,7 @@ export default class RegisterForm extends React.Component {
 	}
 	
 	render() {
-		var {noUsername} = this.props;
+		var {noUsername, noName} = this.props;
 		var {failed} = this.state;
 		return (
 			<Form
@@ -37,12 +37,12 @@ export default class RegisterForm extends React.Component {
                     All fields are required
                 </p>
 				<div>
-					<Input name="firstName" placeholder="Your first name" validate={['Required']} />
-					<Input name="lastName" placeholder="Your last name" validate={['Required']} />
-					<Input name="email" placeholder="Email address" validate={['Required', 'EmailAddress']} />
-					{!noUsername && <Input name="username" placeholder="Username" validate={['Required']} /> }
-					<Input name="password" type="password" placeholder="New Password" validate={['Required']} />
-					<Input name="passwordRepeat" type="password" placeholder="New Password Again" validate={['Required']} />
+					{!noName && <Input label = "First name" name="firstName" placeholder="Your first name" validate={['Required']} />}
+					{!noName && <Input label = "Last name" name="lastName" placeholder="Your last name" validate={['Required']} />}
+					<Input label = "Email" name="email" placeholder="Email address" validate={['Required', 'EmailAddress']} />
+					{!noUsername && <Input label = "Username" name="username" placeholder="Username" validate={['Required']} /> }
+					<Input label = "Password" name="password" type="password" placeholder="New Password" validate={['Required']} />
+					<Input label = "Password Repeat" name="passwordRepeat" type="password" placeholder="New Password Again" validate={['Required']} />
 				</div>
 				{failed && (
 					<Alert type="fail">
@@ -66,5 +66,6 @@ export default class RegisterForm extends React.Component {
 }
 
 RegisterForm.propTypes = {
-	noUsername: 'bool'
+	noUsername: 'bool',
+	noName: 'bool'
 };
