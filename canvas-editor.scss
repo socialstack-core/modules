@@ -96,6 +96,19 @@ $canvas_editor_min_height: 400; // px
 		margin-bottom: .75rem;
 	}
 
+	.form-group {
+
+		textarea.form-control {
+			//@include input_field_styling;
+
+			&.json-preview {
+				@include font_size(12);
+				font-family: Consolas, "Andale Mono WT", "Andale Mono", "Lucida Console", "Lucida Sans Typewriter", "DejaVu Sans Mono", "Bitstream Vera Sans Mono", "Liberation Mono", "Nimbus Mono L", Monaco, "Courier New", Courier, monospace;
+				min-height: px_to_rem($canvas_editor_min_height);
+				tab-size: 2;
+			}
+		}
+	}
 }
 
 .canvas-editor-popups{
@@ -148,17 +161,6 @@ $canvas_editor_min_height: 400; // px
 		}
 	}
 	
-	textarea.form-control {
-		//@include input_field_styling;
-
-		&.json-preview {
-			@include font_size(12);
-			font-family: Consolas, "Andale Mono WT", "Andale Mono", "Lucida Console", "Lucida Sans Typewriter", "DejaVu Sans Mono", "Bitstream Vera Sans Mono", "Liberation Mono", "Nimbus Mono L", Monaco, "Courier New", Courier, monospace;
-			min-height: 16rem;
-			tab-size: 2;
-		}
-	}
-
 }
 
 html.admin.fullscreen-preview {
