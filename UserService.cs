@@ -109,7 +109,25 @@ namespace Api.Users
 
 					if (usersWithUsername.Count > 0)
                     {
-						throw new PublicException("This username is already in use.");
+						throw new PublicException("This username is already in use.", "username_used");
+                    }
+
+					return user;
+				});
+
+				Events.User.BeforeUpdate.AddEventListener(async (Context ctx, User user) =>
+				{
+					if (user == null)
+                    {
+						return null;
+                    }
+
+					// Let's make sure the username is not in use by anyone besides this user (in case they didn't change it!).
+					var usersWithUsername = await List(ctx, new Filter<User>().Equals("Username", user.Username).And().Not().Equals("Id", user.Id));
+				
+					if (usersWithUsername.Count > 0)
+                    {
+						throw new PublicException("This username is already in use.", "username_used");
                     }
 
 					return user;
@@ -122,7 +140,6 @@ namespace Api.Users
 				// They need to be unique, so let's create our event listener.
 				Events.User.BeforeCreate.AddEventListener(async (Context ctx, User user) =>
 				{
-
 					if (user == null)
 					{
 						return null;
@@ -133,7 +150,25 @@ namespace Api.Users
 
 					if (usersWithEmail.Count > 0)
 					{
-						throw new PublicException("This email is already in use.");
+						throw new PublicException("This email is already in use.", "email_used");
+					}
+
+					return user;
+				});
+
+				Events.User.BeforeUpdate.AddEventListener(async (Context ctx, User user) =>
+				{
+					if (user == null)
+					{
+						return null;
+					}
+
+					// Let's make sure the username is not in use by anyone besides this user (in case they didn't change it!).
+					var usersWithEmail = await List(ctx, new Filter<User>().Equals("Email", user.Email).And().Not().Equals("Id", user.Id));
+
+					if (usersWithEmail.Count > 0)
+					{
+						throw new PublicException("This email is already in use.", "email_used");
 					}
 
 					return user;
