@@ -66,6 +66,10 @@ namespace Api.Comments
 		/// Reactions to this comment (typically upvote/ downvote).
 		/// </summary>
 		public List<ReactionCount> Reactions { get; set; }
+		/// <summary>
+		/// Since hierarchy matter, deletes need to be soft so keep the tree together.
+		/// </summary>
+		public bool Deleted;
 	}
 
 }
