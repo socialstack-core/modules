@@ -1,11 +1,16 @@
 import Input from "UI/Input";
 import Form from "UI/Form";
 import Alert from "UI/Alert";
+import Row from "UI/Row";
 
 export default class Add extends React.Component{
 	constructor(props){
 		super(props);
 		this.state={};
+	}
+
+	close() {
+		this.props.onClose && this.props.onClose();
 	}
 	
     render(){
@@ -13,9 +18,14 @@ export default class Add extends React.Component{
         let {
 			contentId,
 			contentTypeId,
+			visible,
 			parentCommentId // (optional)
 		} = this.props;
-        
+
+		if(!visible) {
+			return;
+		}
+		
         return(
             <div className = "comment-add">
 				<Form 
@@ -39,8 +49,14 @@ export default class Add extends React.Component{
 						parentCommentId
 					}}}
 				>
-                <Input type="textarea" name = "bodyJson"/>
-                <Input type="submit" label="Comment"/>
+                <Input placeholder="Leave us your thoughts!" type="textarea" name = "bodyJson"/>
+                <Row className = "comment-buttons">
+					<Input type="submit" label="Comment"/>
+					<div className = "cancel-button form-group">
+						<button className = "btn btn-danger" onClick = {() => {this.close();}}>Cancel</button>
+					</div>
+				</Row>
+				
 				
 				{
 					this.state.failure && (
