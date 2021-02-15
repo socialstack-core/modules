@@ -10,6 +10,13 @@
 	    //width: 100%;
 		//padding-right: 15px;
 		//padding-left: 15px;
+
+		// #9960: margin to allow content to be visible behind docked save / delete options footer
+		> div:last-child {
+			margin-bottom: 5rem;
+
+		}
+		
 	}
 	
 	> div > .admin-aside {
