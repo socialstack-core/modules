@@ -6,9 +6,9 @@ import Uploader from 'UI/Uploader';
 import omit from 'UI/Functions/Omit';
 import getRef from 'UI/Functions/GetRef';
 
-var eventHandler = global.events.get('UI/Input');
+var inputTypes = global.inputTypes = global.inputTypes || {};
 
-eventHandler.ontypefile = eventHandler.ontypeimage = function(props, _this){
+inputTypes.ontypefile = inputTypes.ontypeimage = function(props, _this){
 	return (
 		<FileSelector 
 			id={props.id || _this.fieldId}
