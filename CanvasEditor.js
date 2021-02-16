@@ -11,9 +11,9 @@ import Collapsible from 'UI/Collapsible';
 
 // Connect the input "ontypecanvas" render event:
 
-var eventHandler = global.events.get('UI/Input');
+var inputTypes = global.inputTypes = global.inputTypes || {};
 
-eventHandler.ontypecanvas = function(props, _this){
+inputTypes.ontypecanvas = function(props, _this){
 	
 	return <CanvasEditor 
 		id={props.id || _this.fieldId}
@@ -23,7 +23,7 @@ eventHandler.ontypecanvas = function(props, _this){
 	
 };
 
-eventHandler.ontyperenderer = function(props, _this){
+inputTypes.ontyperenderer = function(props, _this){
 	
 	return <CanvasEditor 
 		moduleSet='renderer'
