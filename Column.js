@@ -41,7 +41,7 @@ export default function Column (props) {
 
 	return <div
 		className={colClass}
-		{...(omit(this.props, ['className', 'noGutters', 'children', '__canvas']))}
+		{...(omit(props, ['className', 'noGutters', 'children', '__canvas']))}
 	>
 		{props.children}
 	</div>;
