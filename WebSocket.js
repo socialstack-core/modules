@@ -1,9 +1,8 @@
 import store from 'UI/Functions/Store';
-var eventTarget = global.events.get('App');
 var __user = null;
 var waitMode = 0;
 
-eventTarget.add('onState', () => {
+document.addEventListener('App/state', () => {
 	var {user, loadingUser} = global.app.state;
 	
 	if(!waitMode){
