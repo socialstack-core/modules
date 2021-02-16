@@ -1,13 +1,7 @@
 import omit from 'UI/Functions/Omit';
 
-export default class Paragraph extends React.Component {
-    constructor(props) {
-        super(props);
-    }
-	
-    render() {
-		return <p data-aos="fade-up" {...(omit(this.props, ['children']))}>{this.props.children}</p>;
-    }
+export default function Paragraph (props) {
+	return <p data-aos="fade-up" {...(omit(props, ['children']))}>{props.children}</p>;
 }
 
 Paragraph.propTypes = {
