@@ -3,7 +3,7 @@
 */
 
 export default function Html (props) {
-   return <span {...this.props} dangerouslySetInnerHTML={{__html: props.html || props.children}} />;
+   return <span {...props} dangerouslySetInnerHTML={{__html: props.html || props.children}} />;
 }
 
 Html.propTypes={
