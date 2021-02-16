@@ -39,7 +39,7 @@ export default class Video extends React.Component {
 			
 			return (
 				<iframe
-					src="https://player.vimeo.com/video/" + ref.substring(6)
+					src={"https://player.vimeo.com/video/" + ref.substring(6)}
 					width={width}
 					height={height}
 					frameborder="0"
