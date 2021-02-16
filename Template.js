@@ -1,102 +1,24 @@
 import Canvas from 'UI/Canvas';
-import webRequest from 'UI/Functions/WebRequest';
-
-var templateCache = {
-	
-};
-
-try{
-	var preload = global.getModule('UI/PreloadedTemplates/PreloadedTemplates.json');
-	if(preload && preload.results){
-		preload.results.forEach(template => {
-			templateCache[template.id + ''] = template;
-		});
-	}
-}
-catch{
-	var preloadedTemplates = null;
-}
+import Content from 'UI/Content';
 
 /**
- * This component renders a template with a given ID, and substitutes one or more named subs.
+ * Renders a template with a given ID, and substitutes one or more named subs.
  */
-export default class Template extends React.Component {
-	
-	constructor(props){
-		super(props);
-		this.state={
-			id: props.id,
-			template: templateCache['' + props.id]
-		};
-		
-		if(!this.state.template){
-			this.load(props.id);
+export default Template = (props) => {
+	return <Content type="template" id={props.id}>
+		{template => template ? <Canvas onSubstitute={(name) => {
+				if(name == 'content' || !name){
+					// The direct kids of the template.
+					return props.children;
+				}
+				return props.tokens ? props.tokens[name] : null;
+			}}>
+				{
+					template.bodyJson
+				}
+			</Canvas> : null
 		}
-	}
-	
-	componentWillReceiveProps(props){
-		if(this.state.id == props.id){
-			return;
-		}
-		
-		this.load(props.id);
-	}
-	
-	load(id){
-		if(!id){
-			return;
-		}
-		var template = templateCache['' + id];
-		
-		if(template){
-			this.setState({
-				id,
-				template
-			});
-		}else{
-		
-			webRequest('template/' + id).then(result => {
-				
-				// Template meta is..
-				var template = result.json;
-				templateCache['' + id] = template;
-				
-				this.setState({
-					id,
-					template
-				});
-				
-			}).catch(console.error);
-		}
-		
-	}
-	
-	render(){
-		if(!this.state.template){
-			if(!this.props.id){
-				// This is for the editor
-				return <div>{this.props.children}</div>;
-			}else{
-				// Just not loaded it yet
-				return null;
-			}
-		}
-		return (<Canvas onSubstitute={(name) => {
-			
-			if(name == 'content' || !name){
-				// The direct kids of the template.
-				return this.props.children;
-			}
-			
-			return this.props.tokens ? this.props.tokens[name] : null;
-		}}>
-			{
-				this.state.template.bodyJson
-			}
-		</Canvas>);
-		
-	}
-	
+	</Content>;
 }
 
 Template.propTypes = {
