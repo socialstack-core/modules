@@ -3,30 +3,6 @@ import App from './App.js';
 export default function(custom){
 	
 	if(!custom){
-		// Setup a simple event mechanism for communication between modules (note: EventTarget isn't available in Node):
-		global.events = {
-			get: function(name){
-				if(!global.events[name]){
-					var t = {};
-					t.add = (evtName, handle) => {
-						if(!t[evtName]){
-							var f = function(...args){
-								for(var i=0;i<f.handles.length;i++){
-									f.handles[i](...args);
-								}
-							};
-							f.handles=[handle];
-							t[evtName] = f;
-						}else{
-							t[evtName].handles.push(handle);
-						}
-					};
-					return global.events[name] = t;
-				}
-				return global.events[name];
-			}
-		};
-		
 		// Init all modules.
 		for(var m in __mm){
 			__mm[m] && global.getModule(m);
@@ -35,20 +11,13 @@ export default function(custom){
 	
 	if(!global.server){
 		// We're server side otherwise. It would've set global.app internally.
-
-		/*
-		* Navigates in a safe in-page way.
-		*/
-		global.navigateReact = function(url, data){
-			global.__history.push(url);
-		};
-
+		
 		// Start logging in now and update the loader text:
 		var loader = document.getElementById('react-loading');
 		if(loader){
 			loader.parentNode.removeChild(loader);
 		}
-
+		
 		global.hashFields = {};
 
 		(location && location.hash) && location.hash.substring(1).split('&').forEach(e => {
