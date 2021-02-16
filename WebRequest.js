@@ -2,24 +2,6 @@
 import store from 'UI/Functions/Store';
 import contentChange from 'UI/Functions/ContentChange';
 
-var evtHandler = null;
-
-function receivedContent(content){
-	if(!content || !content.type){
-		return;
-	}
-	
-	if(!evtHandler){
-		evtHandler = global.events.get('UI/Functions/WebRequest');
-	}
-	
-	// Trigger a general use handler:
-	var evtFunc = evtHandler['on' + content.type];
-	if(evtFunc){
-		evtFunc(content);
-	}
-}
-
 export default function webRequest(origUrl, data, opts) {
 	var url = (global.apiHost || '') + '/v1/' + origUrl;
 	
@@ -83,6 +65,7 @@ export default function webRequest(origUrl, data, opts) {
 					method = 'post';
 				}
 				
+				/*
 				if((method == 'post' || method == 'get') && json && json.results){
 					json.results.forEach(content => {
 						receivedContent(content);
@@ -90,6 +73,7 @@ export default function webRequest(origUrl, data, opts) {
 				}else if(method == 'get'){
 					receivedContent(json);
 				}
+				*/
 				
 				success(response);
 				
