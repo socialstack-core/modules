@@ -8,12 +8,14 @@ import Row from 'UI/Row';
 import sinceDate from 'UI/Functions/SinceDate';
 import Modal from 'UI/Modal';
 import Report from 'UI/Comments/Report';
+import DeleteComment from 'UI/Comments/Delete';
 
 export default class List extends React.Component{
 	constructor(props){
 		super(props);
 		this.state={
-			comments: []
+			comments: [],
+			deletedComments: []
 		};
 	}
 	
@@ -28,9 +30,15 @@ export default class List extends React.Component{
 		console.log(comments)
 		this.setState({comments});
 	}
-	
-	delete() {
 
+	onDeleted(comment) {
+		var {deletedComments} = this.state;
+
+		deletedComments[comment.id] = true;
+
+		this.setState({deletedComments, deleteComment: null});
+
+		console.log("on deleted callback");
 	}
 
     render(){
@@ -44,7 +52,8 @@ export default class List extends React.Component{
 		var {
 			comments,
 			deleteComment,
-			reportComment
+			reportComment,
+			deletedComments
 		} = this.state;
         
         if(!contentType && on){
@@ -62,16 +71,7 @@ export default class List extends React.Component{
 
         return(
             <div className = "comments">
-				<Modal className = "comment-delete-modal" title = "Delete comment" visible = {deleteComment} onClose = {() => {this.setState({deleteComment: null})}}>
-					Are you sure you want to delete your comment?
-					<Row className = "comment-delete-buttons">
-						<div className = "form-group">
-							<button className = "btn btn-secondary" onClick = {() => {this.setState({deleteComment: null})}}>Nevermind</button>
-							<button className = "btn btn-danger" onClick = {() => {this.delete()}}>Delete it!</button>
-						</div>
-
-					</Row>
-				</Modal>
+				<DeleteComment comment = {deleteComment} onDeleted = {() => this.onDeleted(deleteComment)} onClose = {() => this.setState({deleteComment: null})}/>
 				<Modal classname = "comment-report-modal" title = "Report comment" visible = {reportComment} onClose = {() => {this.setState({reportComment: null})}}>
 					Thanks for submitting a report. Please provide a short description of what is happening and someone will investigate.
 
@@ -94,14 +94,16 @@ export default class List extends React.Component{
 						var isUser = (global.app.state.user && comment.creatorUser.id == global.app.state.user.id);
 
 						return <li style={{marginLeft: (comment.depth * 100) + 'px'}}>
-							<Row className = "user-info"><b className = "user-name">{comment.creatorUser.username}</b> {sinceDate(comment.createdUtc)}</Row>
-							{comment.bodyJson}
-							<Row className = "comment-actions">
-								<button onClick = {() => {this.replyToggle(comment)}} className = "btn"><i class="far fa-comment-alt-lines"></i> Reply</button> 
-								{isUser && <button className = "btn"><i class="fas fa-pencil"></i> Edit</button>}
-								{!isUser && <button className = "btn"><i class="far fa-flag"></i> Report</button>}
-								{isUser && <button onClick = {() => {this.setState({deleteComment: comment})}} className = "btn"><i class="far fa-trash-alt"></i> Delete</button>}
-							</Row>
+							{deletedComments[comment.id] || comment.deleted ? (comment.childCommentCount > 0 && <i>-This comment was deleted-</i>) : <> 
+								<Row className = "user-info"><b className = "user-name">{comment.creatorUser.username}</b> {sinceDate(comment.createdUtc)}</Row>
+								{comment.bodyJson}
+								<Row className = "comment-actions">
+									<button onClick = {() => {this.replyToggle(comment)}} className = "btn"><i class="far fa-comment-alt-lines"></i> Reply</button> 
+									{isUser && <button className = "btn"><i class="fas fa-pencil"></i> Edit</button>}
+									{!isUser && <button className = "btn"><i class="far fa-flag"></i> Report</button>}
+									{isUser && <button onClick = {() => {this.setState({deleteComment: comment})}} className = "btn"><i class="far fa-trash-alt"></i> Delete</button>}
+								</Row>
+							</>}
 							<Add onClose = {() => {this.replyToggle(comment)}} visible = {comments[comment.id]} contentId={contentId} contentTypeId={contentTypeId} parentCommentId={comment.id} />
 						</li>;
 						
