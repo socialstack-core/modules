@@ -1,6 +1,6 @@
 import omit from 'UI/Functions/Omit';
 
-export default Align = () => <div style={{textAlign: props.type}} {...(omit(props, ['type', 'children']))}>
+export default Align = props => <div style={{textAlign: props.type}} {...(omit(props, ['type', 'children']))}>
 	{props.children}
 </div>
 
