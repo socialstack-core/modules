@@ -16,7 +16,8 @@ export default class RegisterForm extends React.Component {
 	
 	render() {
 		var {policy} = this.state;
-		
+		var {hasUsername} = this.props;
+
 		return (
 			<Form
 				action = "user"
@@ -39,6 +40,7 @@ export default class RegisterForm extends React.Component {
 					<Input name="firstName" placeholder="Your first name" validate={['Required']} />
 					<Input name="lastName" placeholder="Your last name" validate={['Required']} />
 					<Input name="email" type="email" placeholder="Email address" validate={['Required', 'EmailAddress']} />
+					{hasUsername && <Input name="username" placeholder="Username" validate={['Required']} />}
 					<Input name="password" type="password" placeholder="New Password" validate={['Required']} />
 				</div>
 				{policy && (
@@ -62,3 +64,6 @@ export default class RegisterForm extends React.Component {
 		);
 	}
 }
+RegisterForm.propTypes = {
+	hasUsername: 'bool'
+};
