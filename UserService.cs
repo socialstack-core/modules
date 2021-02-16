@@ -99,9 +99,9 @@ namespace Api.Users
 				// They need to be unique, so let's create our event listener.
 				Events.User.BeforeCreate.AddEventListener(async (Context ctx, User user) =>
 				{
-					if (user == null)
+					if (user == null || string.IsNullOrEmpty(user.Username))
 					{
-						return null;
+						return user;
 					}
 
 					// Let's make sure the username is not in use.
@@ -117,9 +117,9 @@ namespace Api.Users
 
 				Events.User.BeforeUpdate.AddEventListener(async (Context ctx, User user) =>
 				{
-					if (user == null)
+					if (user == null || string.IsNullOrEmpty(user.Username))
                     {
-						return null;
+						return user;
                     }
 
 					// Let's make sure the username is not in use by anyone besides this user (in case they didn't change it!).
