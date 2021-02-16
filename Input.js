@@ -4,7 +4,7 @@ import getModule from 'UI/Functions/GetModule';
 import Loop from 'UI/Loop';
 import omit from 'UI/Functions/Omit';
 
-var eventTarget = global.events.get('UI/Input');
+var inputTypes = global.inputTypes = global.inputTypes || {};
 
 /**
  * Helps eliminate a significant amount of boilerplate around <input>, <textarea> and <select> elements.
@@ -418,7 +418,7 @@ export default class Input extends React.Component {
 			
         } else {
             // E.g. ontypecanvas will fire. This gives a generic entry point for custom input types by just installing them:
-            var handler = eventTarget['ontype' + type];
+            var handler = inputTypes['ontype' + type];
             if (handler) {
                 return handler({ ...this.props, onChange: this.onChange, onBlur: this.onBlur }, type, this);
             }
