@@ -2,7 +2,7 @@
 	A bubble like block message. Not a popup or toast message (although it can be used as either via nesting).
 */
 
-export default Alert = () => {
+export default Alert = props => {
 	let alertClass = "";
 	let alertIcon = "";
 
