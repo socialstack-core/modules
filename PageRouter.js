@@ -1,5 +1,6 @@
 import webRequest from 'UI/Functions/WebRequest';
 import Canvas from 'UI/Canvas';
+import Content from 'UI/Content';
 
 try{
 	var preloadedPages = global.getModule('UI/PreloadedPages/PreloadedPages.json');
@@ -364,9 +365,9 @@ export default class PageRouter extends React.Component{
 			
 			if(page.createdUtc == undefined){
 				// Page not loaded yet - get it now:
-				pgLoad = webRequest("page/" + page.id).then(response => {
-					for(var field in response.json){
-						page[field] = response.json[field];
+				pgLoad = Content.get("page", page.id).then(response => {
+					for(var field in response){
+						page[field] = response[field];
 					}
 					
 					var url = page.url;
