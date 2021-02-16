@@ -6,19 +6,13 @@ import omit from 'UI/Functions/Omit';
  * <Text group='header'>Hello world</Text>
  * <Text group='header' key='hello_world'>Hello world</Text>
  */
-export default class Text extends React.Component {
-    constructor(props) {
-        super(props);
-    }
+export default function Text (props) {
+	var text = <span 
+		dangerouslySetInnerHTML={{__html: (props.text || props.children)}}
+		{...omit(props, ['text', 'children', 'paragraph'])}
+	/>;
 	
-    render() {
-		var text = <span 
-			dangerouslySetInnerHTML={{__html: (this.props.text || this.props.children)}}
-			{...omit(this.props, ['text', 'children', 'paragraph'])}
-		/>;
-		
-		return this.props.paragraph ? <p>{text}</p> : text;
-    }
+	return props.paragraph ? <p>{text}</p> : text;
 }
 
 Text.propTypes = {
