@@ -26,7 +26,7 @@ export default class Content extends React.Component {
 			if (msg.type == "status") {
 				if (msg.connected) {
 					// Force a reload:
-					this.load(this.props, true);
+					this.load(this.props);
 				}
 
 				this.props.onLiveStatus && this.props.onLiveStatus(msg.connected);
@@ -103,6 +103,10 @@ export default class Content extends React.Component {
 	}
 	
 	componentWillReceiveProps(props){
+		if(this.props && this.props.type == props.type && this.props.id == props.id){
+			// Cached object is fine here.
+			return;
+		}
 		this.load(props);
 	}
 	
@@ -119,23 +123,18 @@ export default class Content extends React.Component {
 		document.addEventListener("contentchange", this.onContentChange);
 	}
 	
-	load(props,force){
-		var url = props.type + '/' + props.id;
-		if(!force && url == this.state.url){
-			return;
-		}
-		
+	load(props){
 		if (props.live) {
 			webSocket.addEventListener(this.evtType(), this.onLiveMessage, {where: {Id: props.id}});
 		}
 		
-		this.setState({url, loading: true});
-		webRequest(url).then(response => {
-			this.setState({content: response.json, loading: false});
-		}).catch(e => {
-			// E.g. doesn't exist.
-			this.setState({content: null, loading: false});
-		});
+		this.setState({loading: true});
+		Content.get(props.type, props.id)
+			.then(content => this.setState({content, loading: false}))
+			.catch(e => {
+				// E.g. doesn't exist.
+				this.setState({content: null, loading: false});
+			});
 	}
 	
 	render(){
@@ -147,3 +146,18 @@ export default class Content extends React.Component {
 	}
 	
 }
+
+// E.g:
+// content.get("blog", 1);
+// A convenience wrapper which is shorted serverside for rapid performance.
+// Returns a promise which will either resolve directly to the object, 
+// or be rejected with a message and statusCode if there was an error.
+// 
+// Objects may be returned instantly from a client side cache. Due to the way how promise will, by design, always wait, this can lead to a wasted render 
+// where a load screen is displayed for a few frames, and will typically result in an apparent white flash.
+// To avoid this, the returned promise also has a .value 
+
+Content.get = (contentType, contentId) => {
+	var url = contentType + '/' + contentId;
+	return webRequest(url).then(response => response.json);
+};
