@@ -3,14 +3,10 @@ import omit from 'UI/Functions/Omit';
 /**
  * For h1/h2/h3 etc.
  */
-export default class Heading extends React.Component {
-	
-	render() {
-		var Mod = 'h' + (this.props.size || '1');
-		var className = 'heading ' + (this.props.className || '');
-		return <Mod {...omit(this.props, ['children', 'className'])}>{this.props.children}</Mod>;
-	}
-	
+export default function Heading () {
+	var Mod = 'h' + (props.size || '1');
+	var className = 'heading ' + (props.className || '');
+	return <Mod {...omit(props, ['children', 'className'])}>{props.children}</Mod>;
 }
 
 Heading.propTypes={
