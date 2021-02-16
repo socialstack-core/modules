@@ -3,7 +3,7 @@ import omit from 'UI/Functions/Omit';
 /**
  * For h1/h2/h3 etc.
  */
-export default function Heading () {
+export default function Heading (props) {
 	var Mod = 'h' + (props.size || '1');
 	var className = 'heading ' + (props.className || '');
 	return <Mod {...omit(props, ['children', 'className'])}>{props.children}</Mod>;
