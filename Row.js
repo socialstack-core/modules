@@ -7,7 +7,7 @@ import omit from 'UI/Functions/Omit';
 export default function Row (props) {
 	return <div 
 		className={"row " + (props.noGutters ? "no-gutters" : "") + " " + (props.className || '')}
-		{...(omit(this.props, ['className', 'noGutters', 'children', '__canvas']))}
+		{...(omit(props, ['className', 'noGutters', 'children', '__canvas']))}
 	>
 		{props.children}
 	</div>;
