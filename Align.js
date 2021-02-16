@@ -1,12 +1,8 @@
 import omit from 'UI/Functions/Omit';
 
-export default class Align extends React.Component {
-    constructor(props) {
-        super(props);
-    }
-	
+export default Align = () => {
     render() {
-		return <div style={{textAlign: this.props.type}} {...(omit(this.props, ['type', 'children']))}>{this.props.children}</div>;
+		return <div style={{textAlign: props.type}} {...(omit(props, ['type', 'children']))}>{props.children}</div>;
     }
 }
 
