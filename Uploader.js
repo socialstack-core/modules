@@ -1,6 +1,5 @@
 import Loading from 'UI/Loading';
 import Alert from 'UI/Alert';
-import webRequest from 'UI/Functions/WebRequest';
 
 /*
 * General purpose file uploader. Doesn't delcare a form so can be used inline anywhere.
