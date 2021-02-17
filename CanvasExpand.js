@@ -1,4 +1,3 @@
-import Text from 'UI/Text'; 
 import webRequest from 'UI/Functions/WebRequest';
 
 /*
@@ -30,22 +29,12 @@ function expand(contentNode, onContentNode){
 	
 	// If it has no module but does have content, then it's a text node.
 	if(!contentNode.module && contentNode.content !== undefined && !Array.isArray(contentNode.content)){
-		return {
-			module: Text,
-			moduleName: 'UI/Text',
-			content: contentNode.content,
-			expanded: true
-		};
+		return contentNode.content;
 	}
 	
 	if(typeof contentNode != 'object'){
 		// String or number
-		return {
-			module: Text,
-			moduleName: 'UI/Text',
-			content: contentNode,
-			expanded: true
-		};
+		return contentNode;
 	}
 	
 	if(contentNode.content !== undefined){
