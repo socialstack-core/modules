@@ -82,8 +82,7 @@ export default class List extends React.Component{
             <div className = "comments">
 				<DeleteComment comment = {deleteComment} onSuccess = {() => this.onDeleted(deleteComment)} onClose = {() => this.setState({deleteComment: null})}/>
 				<Modal classname = "comment-report-modal" title = "Report comment" visible = {reportComment} onClose = {() => {this.setState({reportComment: null})}}>
-					Thanks for submitting a report. Please provide a short description of what is happening and someone will investigate.
-					<ReportComment comment = {reportComment}/>
+					<ReportComment onClose = {() => {this.setState({reportComment: null})}} comment = {reportComment}/>
 				</Modal>
 				<Add contentId={contentId} contentTypeId={contentTypeId} />
 				<Loop over='comment/list' filter={
