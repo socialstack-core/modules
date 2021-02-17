@@ -1,4 +1,5 @@
 import webRequest from 'UI/Functions/WebRequest';
+import Text from 'UI/Text';
 
 /*
 * Canvas JSON has multiple conveniences - expanding it will, for example, resolve the module references.
@@ -29,7 +30,14 @@ function expand(contentNode, onContentNode){
 	
 	// If it has no module but does have content, then it's a text node.
 	if(!contentNode.module && contentNode.content !== undefined && !Array.isArray(contentNode.content)){
-		return contentNode.content;
+		return {
+			module: Text,
+			moduleName: 'UI/Text',
+			data: {
+				text: contentNode.content
+			},
+			expanded: true
+		};
 	}
 	
 	if(typeof contentNode != 'object'){
