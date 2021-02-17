@@ -1,9 +1,9 @@
 var scrollTimer = null;
-//var oldScrollPos = 0;
 var ignoreMouseWheel = false;
 
 // translate wheel scroll into page up / down calls
 function mouseWheelScroll(e) {
+    console.log("MOUSEWHEEL EVENT");
     var body = global.document.querySelector("body");
 
     if (body.classList.contains("burger-open")) {
@@ -32,6 +32,72 @@ function mouseWheelScroll(e) {
         pageDown();
     }
 
+}
+
+/// keydown handler
+function keyDownHandler(event) {
+    var body = global.document.querySelector("body");
+
+    if (body.classList.contains("burger-open")) {
+        return;
+    }
+
+    var tag = event.target.tagName.toLowerCase();
+    var ignoredTags = ['input', 'textarea', 'button', 'a', 'datalist', 'option', 'iframe', 'area', 'audio', 'video', 'embed', 'object'];
+
+    for (var i = 0; i < ignoredTags.length; i++) {
+
+        if (tag == ignoredTags[i]) {
+            return;
+        }
+
+    }
+
+    var keyCode = event.keyCode || event.which;
+
+    // check for IME events
+    if (event.isComposing || keyCode === 229) {
+        return;
+    }
+
+    switch (keyCode) {
+        // handle <space> / [SHIFT]+<space>
+        case KeyEvent.DOM_VK_SPACE:
+            event.preventDefault();
+            if (event.shiftKey) {
+                pageUp();
+            } else {
+                pageDown();
+            }
+
+            break;
+
+        // handle cursor up / page up
+        case KeyEvent.DOM_VK_PAGE_UP:
+        case KeyEvent.DOM_VK_UP:
+            event.preventDefault();
+            pageUp();
+            break;
+
+        // handle cursor down / page down
+        case KeyEvent.DOM_VK_PAGE_DOWN:
+        case KeyEvent.DOM_VK_DOWN:
+            event.preventDefault();
+            pageDown();
+            break;
+
+        // handle home
+        case KeyEvent.DOM_VK_HOME:
+            event.preventDefault();
+            home();
+            break;
+
+        // handle end
+        case KeyEvent.DOM_VK_END:
+            event.preventDefault();
+            end();
+            break;
+    }
 }
 
 // get current page scroll position
@@ -121,6 +187,18 @@ function getActiveIndex() {
 
 // move up one page
 function pageUp() {
+
+    if (!checkHasHtml()) {
+        return;
+    }
+
+    var html = global.document.querySelector("html");
+
+    //if (html.classList.contains("admin") || checkScrollingDisabled()) {
+    if (html.classList.contains("admin")) {
+        return;
+    }
+
     var activeIndex = getActiveIndex();
     var pageTop = getPageTop(activeIndex);
     var page = getPage(activeIndex);
@@ -166,6 +244,18 @@ function pageUp() {
 
 // move down one page
 function pageDown() {
+
+    if (!checkHasHtml()) {
+        return;
+    }
+
+    var html = global.document.querySelector("html");
+
+    //if (html.classList.contains("admin") || checkScrollingDisabled()) {
+    if (html.classList.contains("admin")) {
+        return;
+    }
+
     var activeIndex = getActiveIndex();
     var pageBottom = getPageBottom(activeIndex);
     var page = getPage(activeIndex);
@@ -212,12 +302,36 @@ function pageDown() {
 
 // move to start of document
 function home() {
+
+    if (!checkHasHtml()) {
+        return;
+    }
+
+    var html = global.document.querySelector("html");
+
+    //if (html.classList.contains("admin") || checkScrollingDisabled()) {
+    if (html.classList.contains("admin")) {
+        return;
+    }
+
     global.addEventListener('scroll', checkScrollingActive, false);
     global.scrollTo({ left: 0, top: 0, behavior: 'smooth' });
 }
 
 // move to end of document
 function end() {
+
+    if (!checkHasHtml()) {
+        return;
+    }
+
+    var html = global.document.querySelector("html");
+
+    //if (html.classList.contains("admin") || checkScrollingDisabled()) {
+    if (html.classList.contains("admin")) {
+        return;
+    }
+
     global.addEventListener('scroll', checkScrollingActive, false);
     global.scrollTo({ left: 0, top: global.document.body.scrollHeight, behavior: 'smooth' });
 }
@@ -233,7 +347,6 @@ function checkScrollingActive() {
         window.removeEventListener('scroll', checkScrollingActive, false);
         scrollTimer = null;
         ignoreMouseWheel = false;
-        //oldScrollPos = getScrollPos();
         var index = getActiveIndex();
         var page = getPage(index);
         page.classList.add("scroll-complete");
@@ -241,8 +354,20 @@ function checkScrollingActive() {
 
 }
 
-if (global.document && global.document.getElementsByTagName && global.document.getElementsByTagName("html").length) {
+// check we have a valid HTML tag
+function checkHasHtml() {
+    return global.document && global.document.getElementsByTagName && global.document.getElementsByTagName("html").length;
+}
+
+// toggle scrolling utilities on/off
+function toggle(enabled) {
+
+    if (!checkHasHtml()) {
+        return;
+    }
+
     var html = global.document.querySelector("html");
+    var isAdmin = html.classList.contains("admin");
 
     // check - does addEventListener support passive option?
     var passiveSupported = false;
@@ -262,76 +387,14 @@ if (global.document && global.document.getElementsByTagName && global.document.g
         passiveSupported = false;
     }
 
-    // disable for admin views
-    if (!html.classList.contains("admin")) {
-        //global.addEventListener('scroll', manualScroll, false);
+    if (enabled && !isAdmin) {
+        console.log("ENABLING SCROLLUTILS");
         global.addEventListener('mousewheel', mouseWheelScroll, passiveSupported ? { passive: false } : false);
-
-        global.document.addEventListener("keydown", function (event) {
-            var body = global.document.querySelector("body");
-
-            if (body.classList.contains("burger-open")) {
-                return;
-            }
-
-            var tag = event.target.tagName.toLowerCase();
-            var ignoredTags = ['input', 'textarea', 'button', 'a', 'datalist', 'option', 'iframe', 'area', 'audio', 'video', 'embed', 'object'];
-
-            for (var i = 0; i < ignoredTags.length; i++) {
-
-                if (tag == ignoredTags[i]) {
-                    return;
-                }
-
-            }
-
-            var keyCode = event.keyCode || event.which;
-
-            // check for IME events
-            if (event.isComposing || keyCode === 229) {
-                return;
-            }
-
-            switch (keyCode) {
-                // handle <space> / [SHIFT]+<space>
-                case KeyEvent.DOM_VK_SPACE:
-                    event.preventDefault();
-                    if (event.shiftKey) {
-                        pageUp();
-                    } else {
-                        pageDown();
-                    }
-
-                    break;
-
-                // handle cursor up / page up
-                case KeyEvent.DOM_VK_PAGE_UP:
-                case KeyEvent.DOM_VK_UP:
-                    event.preventDefault();
-                    pageUp();
-                    break;
-
-                // handle cursor down / page down
-                case KeyEvent.DOM_VK_PAGE_DOWN:
-                case KeyEvent.DOM_VK_DOWN:
-                    event.preventDefault();
-                    pageDown();
-                    break;
-
-                // handle home
-                case KeyEvent.DOM_VK_HOME:
-                    event.preventDefault();
-                    home();
-                    break;
-
-                // handle end
-                case KeyEvent.DOM_VK_END:
-                    event.preventDefault();
-                    end();
-                    break;
-            }
-
-        });  
+        global.document.addEventListener("keydown", keyDownHandler);
+    } else {
+        console.log("DISABLING SCROLLUTILS");
+        global.removeEventListener('mousewheel', mouseWheelScroll, passiveSupported ? { passive: false } : false)
+        global.document.removeEventListener("keydown", keyDownHandler);
     }
 
 }
@@ -340,5 +403,6 @@ module.exports = {
     pageUp,
     pageDown,
     home,
-    end
+    end,
+    toggle
 };
