@@ -2,7 +2,7 @@ import Container from 'UI/Container';
 import Modal from 'UI/Modal';
 import store from 'UI/Functions/Store';
 
-var _response = store.get('consent');
+var _response = null;
 
 function run(m){
 	try{
@@ -19,16 +19,11 @@ function flush(){
 	global.cookieState=run
 }
 
-if(_response && _response.mode){
-	flush();
-}
-
 export default class CookieConsent extends React.Component {
 	
 	constructor(props){
 		super(props);
-		
-		this.state=_response || {};
+		this.state={mode:1};
 		
 		this.cookies = [
 			{title: 'Logging In', names: ['user'], necessary: true, description: 'This one lets us log you in.'},
@@ -75,7 +70,7 @@ export default class CookieConsent extends React.Component {
 	
 	render(){
 		if(this.state.mode){
-			return;
+			return null;
 		}
 		
 		return <div className="cookie-consent">
@@ -96,6 +91,19 @@ export default class CookieConsent extends React.Component {
 			{this.renderDetails()}
 		</div>;
 		
+	}
+	
+	componentDidMount(){
+		// Must be hidden until we're mounted and can then read from the indexedDB store.
+		// This reduces critical path load, and also permits the component to work with the serverside renderer 
+		// which can't know if you've accepted the prompt yet.
+		_response = store.get('consent');
+		
+		if(_response && _response.mode){
+			flush();
+		}else{
+			this.setState({mode: 0});
+		}
 	}
 	
 }
