@@ -187,11 +187,6 @@ function getActiveIndex() {
 
 // move up one page
 function pageUp() {
-
-    if (!checkHasHtml()) {
-        return;
-    }
-
     var html = global.document.querySelector("html");
 
     //if (html.classList.contains("admin") || checkScrollingDisabled()) {
@@ -244,11 +239,6 @@ function pageUp() {
 
 // move down one page
 function pageDown() {
-
-    if (!checkHasHtml()) {
-        return;
-    }
-
     var html = global.document.querySelector("html");
 
     //if (html.classList.contains("admin") || checkScrollingDisabled()) {
@@ -302,11 +292,6 @@ function pageDown() {
 
 // move to start of document
 function home() {
-
-    if (!checkHasHtml()) {
-        return;
-    }
-
     var html = global.document.querySelector("html");
 
     //if (html.classList.contains("admin") || checkScrollingDisabled()) {
@@ -320,11 +305,6 @@ function home() {
 
 // move to end of document
 function end() {
-
-    if (!checkHasHtml()) {
-        return;
-    }
-
     var html = global.document.querySelector("html");
 
     //if (html.classList.contains("admin") || checkScrollingDisabled()) {
@@ -354,18 +334,8 @@ function checkScrollingActive() {
 
 }
 
-// check we have a valid HTML tag
-function checkHasHtml() {
-    return global.document && global.document.getElementsByTagName && global.document.getElementsByTagName("html").length;
-}
-
 // toggle scrolling utilities on/off
 function toggle(enabled) {
-
-    if (!checkHasHtml()) {
-        return;
-    }
-
     var html = global.document.querySelector("html");
     var isAdmin = html.classList.contains("admin");
 
