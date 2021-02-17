@@ -6,6 +6,9 @@ using Microsoft.ClearScript.V8;
 using Microsoft.Extensions.ObjectPool;
 using Microsoft.ClearScript;
 using System.IO;
+using Newtonsoft.Json;
+using Newtonsoft.Json.Serialization;
+using Api.Database;
 
 namespace Api.CanvasRenderer
 {
@@ -41,10 +44,12 @@ namespace Api.CanvasRenderer
 
 			foreach (var ctx in set.Contexts)
 			{
-				// RenderCanvas actually is a promise.
+				// RenderCanvas actually is a promise:
+				var result = (await (engine.Invoke("renderCanvas", set.BodyJson) as Task<object>)) as string;
+
 				var canvas = new RenderedCanvas()
 				{
-					Body = (string)engine.Invoke("renderCanvas", set.BodyJson)
+					Body = result
 				};
 
 				results.Add(canvas);
@@ -84,21 +89,13 @@ namespace Api.CanvasRenderer
 				return _engine;
 			}
 			
-			// TODO:
-			// - Add functionality that fetch can sit on top of to request data. 
-			//   It should return a cachable JSON string rather than the actual object.
-			// - Rework global state such that it's still easy to get to but is instanced without needing to reinstance the whole global scope.
-			// - Check what happens when multiple threads attempt Execute simultaneously.
-			// - Handle renderCanvas returning a Promise
-			// - Relocate the renderer.js such that it's e.g. compiled as an alt version of the main.generated.js or outputted alongside it.
-
 			var engine = new V8ScriptEngine("Socialstack API Renderer", V8ScriptEngineFlags.DisableGlobalMembers | V8ScriptEngineFlags.EnableTaskPromiseConversion);
-			engine.Script.server = true;
-			engine.Execute("window=this;");
+			engine.Execute("SERVER=true;window=this;");
 			engine.AddHostObject("document", new V8.Document());
+            engine.AddHostObject("console", new V8.Console());
 			engine.AddHostObject("navigator", new V8.Navigator());
 			engine.AddHostObject("location", new V8.Location());
-
+			
 			/* engine.AddHostObject("host", new ExtendedHostFunctions());
 				engine.AddHostObject("lib", HostItemFlags.GlobalMembers, 
 				new HostTypeCollection("mscorlib", "System", "System.Core", "System.Numerics", "ClearScript.Core", "ClearScript.V8"));
@@ -106,11 +103,13 @@ namespace Api.CanvasRenderer
 			engine.SuppressExtensionMethodEnumeration = true;
 			engine.AllowReflection = true;
 
-			var sourceContent = File.ReadAllText("main.generated.js");
-			engine.Execute(new DocumentInfo(new Uri("main.generated.js")), sourceContent);
+			var dllPath = AppDomain.CurrentDomain.BaseDirectory;
 
-			sourceContent = File.ReadAllText("renderer.js");
-			engine.Execute(new DocumentInfo(new Uri("renderer.js")), sourceContent);
+			var sourceContent = File.ReadAllText("Admin/public/en-admin/pack/main.generated.js");
+			engine.Execute(new DocumentInfo(new Uri("file://main.generated.js")), sourceContent);
+
+			sourceContent = File.ReadAllText(dllPath + "/Api/ThirdParty/CanvasRenderer/renderer.js");
+			engine.Execute(new DocumentInfo(new Uri("file://renderer.js")), sourceContent);
 			_engine = engine;
 			return engine;
 		}
@@ -129,6 +128,36 @@ namespace Api.CanvasRenderer.V8
 	}
 
 	/// <summary>
+	/// js console.* methods.
+	/// </summary>
+    public class Console
+	{
+
+		/// <summary>
+		/// console.log serverside
+		/// </summary>
+        public void log(params object[] msgs)
+        {
+            for (var i = 0; i < msgs.Length; i++)
+            {
+                System.Console.WriteLine(JsonConvert.SerializeObject(msgs[i]));
+            }
+        }
+		
+		/// <summary>
+		/// console.error serverside
+		/// </summary>
+        public void error(params object[] msgs)
+        {
+            for (var i = 0; i < msgs.Length; i++)
+            {
+                System.Console.WriteLine("ERROR " + JsonConvert.SerializeObject(msgs[i]));
+            }
+        }
+
+    }
+	
+	/// <summary>
 	/// The window.navigator object.
 	/// </summary>
 	public class Navigator
@@ -145,10 +174,10 @@ namespace Api.CanvasRenderer.V8
 	public class Document
 	{
 		/// <summary>
-		/// Indicates we're serverside.
+		/// Stub for dispatchEvent.
 		/// </summary>
-		public bool server = true;
-
+		public void dispatchEvent(object evt){ }
+		
 		/// <summary>
 		/// Stub for adding an event listener.
 		/// </summary>
@@ -170,5 +199,29 @@ namespace Api.CanvasRenderer.V8
 		{
 			return null;
 		}
+		
+		/// <summary>
+		/// Get content serverside by type and ID.
+		/// </summary>
+        public async Task getContentById(int contentTypeId, int contentId, ScriptObject cb)
+        {
+            var jsonFormatter = new JsonSerializerSettings
+            {
+                ContractResolver = new DefaultContractResolver
+                {
+                    NamingStrategy = new CamelCaseNamingStrategy()
+                },
+                Formatting = Formatting.None
+            };
+
+			// Get the content object, and when it's done, invoke the callback.
+			var content = await Content.Get(new Contexts.Context(), contentTypeId, contentId);
+
+            // Must serialize to JSON to avoid field case sensitivity problems.
+            var jsonResult = JsonConvert.SerializeObject(content, jsonFormatter);
+
+            cb.Invoke(false, jsonResult);
+        }
+
 	}
 }
