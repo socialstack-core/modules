@@ -53,7 +53,7 @@ namespace Api.Pages
 			Events.Page.AfterUpdate.AddEventListener((Context context, Page page) =>
 			{
 				// Doesn't matter what the change was - we'll wipe the cache.
-				_pageCache.Clear();
+				cache.Clear();
 
 				return new ValueTask<Page>(page);
 			});
@@ -61,7 +61,7 @@ namespace Api.Pages
 			Events.Page.AfterDelete.AddEventListener((Context context, Page page) =>
 			{
 				// Doesn't matter what the change was - we'll wipe the cache.
-				_pageCache.Clear();
+				cache.Clear();
 
 				return new ValueTask<Page>(page);
 			});
@@ -69,7 +69,7 @@ namespace Api.Pages
 			Events.Page.AfterCreate.AddEventListener((Context context, Page page) =>
 			{
 				// Doesn't matter what the change was - we'll wipe the cache.
-				_pageCache.Clear();
+				cache.Clear();
 
 				return new ValueTask<Page>(page);
 			});
@@ -77,7 +77,7 @@ namespace Api.Pages
 			Events.Page.Received.AddEventListener((Context context, Page page, int mode) => {
 
 				// Doesn't matter what the change was - we'll wipe the cache.
-				_pageCache.Clear();
+				cache.Clear();
 
 				return new ValueTask<Page>(page);
 			});
@@ -91,8 +91,6 @@ namespace Api.Pages
 			},
 			Formatting = Formatting.None
 		};
-
-		private readonly Dictionary<int, byte[]> _pageCache = new Dictionary<int, byte[]>();
 
 		/// <summary>
 		/// PageRouter state data as a js string. This data is always the same until a page is added/ deleted/ a url is changed.
@@ -161,11 +159,14 @@ namespace Api.Pages
 		private async ValueTask<List<DocumentNode>> RenderPage(Context context, PageWithTokens pageAndTokens, string path)
 		{
 			var isAdmin = path.StartsWith("/en-admin");
+			List<DocumentNode> flatNodes;
 
-			if (cache.TryGetValue(path, out List<DocumentNode> flatNodes))
+#if !DEBUG
+			if (cache.TryGetValue(path, out flatNodes))
 			{
 				return flatNodes;
 			}
+#endif
 
 			var page = pageAndTokens.Page;
 
