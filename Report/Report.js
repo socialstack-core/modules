@@ -16,9 +16,6 @@ export default class Report extends React.Component{
 
 	load(props) {
 		webRequest("userflag/list", {where: {ContentId: props.comment.id, ContentTypeId: getContentTypeId(props.comment.type), UserId: global.app.state.user.id}}).then(response => {
-			console.log("report load success");
-			console.log(response.json);
-
 			// Are there already any userflags from this user on this content?
 			if(response.json.total > 0 ) {
 				this.setState({existingReport: response.json.results[0]});
@@ -32,7 +29,8 @@ export default class Report extends React.Component{
 	undo() {
 		var opts = {method: "delete"};
 		webRequest("userflag/"+ this.state.existingReport.id, undefined, opts).then(response => {
-			console.log(response);
+			this.props.onClose && this.props.onClose();
+
 		}).catch(error => {
 			console.log(error);
 		});
@@ -51,9 +49,14 @@ export default class Report extends React.Component{
 					<p>
 						Thank you for reporting the incident. Someone will investigate!
 					</p>
-					<button className = "btn btn-primary" onClick = {() => {this.undo()}}>
-						Revoke report
-					</button>
+					<Row className = "comment-buttons">
+						<button className = "btn btn-primary" onClick = {() => {this.undo()}}>
+							Revoke report
+						</button>
+						
+						<button className = "cancel-button btn btn-danger" onClick = {() => {this.close()}}>Close</button>
+
+					</Row>
 				</div> : <div>
 					<p>
 						Something amiss? Please let us know what is happening and we'll look into it.
@@ -67,16 +70,11 @@ export default class Report extends React.Component{
 						}	
 						onSuccess={
 							(response, values, e) => {
-								console.log(response);
-
 								this.setState({success: true, failure: false, submitting: false, existingReport: response});
 								e.target.reset();
 							}
 						}
 						onValues = { values => {
-							console.log("Report values");
-							console.log(values);
-							console.log(this.props);
 							return {
 								contentId: this.props.comment.id,
 								contentTypeId: getContentTypeId(this.props.comment.type),
