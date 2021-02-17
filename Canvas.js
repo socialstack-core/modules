@@ -52,7 +52,11 @@ class Canvas extends React.Component {
 		if(!contentNode){
 			return null;
 		}
-		var Module = contentNode.module || "div";
+		if(!contentNode.module){
+			// E.g. strings, numbers.
+			return contentNode;
+		}
+		var Module = contentNode.module;
 		
 		// Resolve runtime field values now:
 		var dataFields = mapTokens(contentNode.data, this, Canvas);
