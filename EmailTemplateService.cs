@@ -118,7 +118,7 @@ namespace Api.Emails
 			}
 
 			// Render the template now:
-			return await _canvasRendererService.Render(template.BodyJson, recipient.CustomData);
+			return await _canvasRendererService.Render(recipient.Context, template.BodyJson, null, false, recipient.CustomData);
 		}
 
 		/// <summary>
@@ -134,18 +134,6 @@ namespace Api.Emails
 			{
 				if (recipient == null)
 				{
-					continue;
-				}
-
-				if (recipient.CustomData == null)
-				{
-					recipient.CustomData = new CanvasContext();
-				}
-
-				if (recipient.User != null)
-				{
-					// User is always provided:
-					recipient.CustomData["User"] = recipient.User;
 					continue;
 				}
 
@@ -185,12 +173,7 @@ namespace Api.Emails
 						if (recipient.UserId != 0)
 						{
 							// Try setting the user object now:
-							if (userLookup.TryGetValue(recipient.UserId, out recipient.User))
-							{
-								// User exists and is now set in the recipient.
-								// Set into CustomData too:
-								recipient.CustomData["user"] = recipient.User;
-							}
+							userLookup.TryGetValue(recipient.UserId, out recipient.User);
 						}
 					}
 				}
@@ -260,17 +243,11 @@ namespace Api.Emails
 
 					set.Template = template;
 
-					if (template != null)
-					{
-						set.BodyJson = template.BodyJson;
-					}
-
 					// Add it:
 					recipientsByLocale[localeId] = set;
 				}
 
 				set.Recipients.Add(recipient);
-				set.Contexts.Add(recipient.CustomData.Context);
 			}
 
 			// For each locale block, render the emails:
@@ -282,21 +259,19 @@ namespace Api.Emails
 				// Email subject:
 				var subject = set.Template == null ? null : set.Template.Subject;
 
-				// Render all. The results are in the exact same order as the recipients set.
-				List<RenderedCanvas> renderedCanvases = await _canvasRendererService.Render(set);
-
-				// Actually send each one next.
+				// For each recipient, render it.
 				for (var i=0;i<set.Recipients.Count;i++)
 				{
 					var recipient = set.Recipients[i];
 
-					var renderedCanvas = renderedCanvases[i];
+					// Render all. The results are in the exact same order as the recipients set.
+					var renderedResult = await _canvasRendererService.Render(recipient.Context, set.Template.BodyJson, null, false, recipient.CustomData);
 
 					// Email to send to:
 					var targetEmail = recipient.User.Email;
 
 					// Send now:
-					await Send(targetEmail, subject, renderedCanvas.Body);
+					await Send(targetEmail, subject, renderedResult.Body);
 				}
 			}
 
@@ -370,7 +345,7 @@ namespace Api.Emails
 	/// <summary>
 	/// A pairing of a template and a block of recipients to send it to.
 	/// </summary>
-	public class TemplateAndRecipientSet : CanvasAndContextSet
+	public class TemplateAndRecipientSet
 	{
 		/// <summary>
 		/// The email template to receive.

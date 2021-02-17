@@ -25,34 +25,11 @@ namespace Api.Emails{
 		public Context Context;
 		
 		/// <summary>
-		/// Optional custom data fields to use in rendering the email.
+		/// Optional custom data fields to use in rendering the email. This arrives as this.context.postData inside React.
 		/// </summary>
-		public CanvasContext CustomData;
+		public object CustomData;
 
 		
-		/// <summary>
-		/// Gets or sets custom data to pass through to the template rendering process for this recipient.
-		/// </summary>
-		/// <param name="customDataKey"></param>
-		/// <returns></returns>
-		public object this[string customDataKey]
-		{
-			get {
-				if (CustomData == null)
-				{
-					return null;
-				}
-				return CustomData[customDataKey];
-			}
-			set {
-				if (CustomData == null)
-				{
-					CustomData = new CanvasContext();
-				}
-				CustomData[customDataKey] = value;
-			}
-		}
-
 		/// <summary>
 		/// Email recipient for the user and locale defined in the context.
 		/// </summary>
