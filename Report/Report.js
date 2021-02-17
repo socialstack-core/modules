@@ -1,14 +1,22 @@
+import Form from 'UI/Form';
+import Input from 'UI/Input';
+import Row from 'UI/Row';
+
 export default class Report extends React.Component{
 	constructor(props){
 		super(props);
 		this.state={};
 	}
 
+	close() {
+		this.props.onClose && this.props.onClose();
+	}
+
     render(){
         return(
             <div className = "comment-report">
 				<Form 
-					action = "report" 
+					action = "userflag" 
 					onFailure={
 						response => {
 							this.setState({failure: true, submitting: false});
@@ -23,11 +31,16 @@ export default class Report extends React.Component{
 					onValues = { values => {return {
 						...values,
 						contentId,
-						contentTypeId,
-						parentCommentId
+						contentTypeId
 					}}}
 				>
-                    
+                    <Input placeholder="Leave us your thoughts!" type="textarea" name = "bodyJson"/>
+					<Row className = "comment-buttons">
+						<Input type="submit" label="Report"/>
+						<div className = "cancel-button form-group">
+							<button className = "btn btn-danger" onClick = {() => {this.close();}}>Cancel</button>
+						</div>
+					</Row>
                 </Form>
             </div>
         );

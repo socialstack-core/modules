@@ -9,27 +9,35 @@ import sinceDate from 'UI/Functions/SinceDate';
 import Modal from 'UI/Modal';
 import Report from 'UI/Comments/Report';
 import DeleteComment from 'UI/Comments/Delete';
+import EditComment from 'UI/Comments/Edit';
+import ReportComment from 'UI/Comments/Report';
 
 export default class List extends React.Component{
 	constructor(props){
 		super(props);
 		this.state={
 			comments: [],
-			deletedComments: []
+			deletedComments: [],
+			editComments: []
 		};
 	}
 	
 	replyToggle(comment) {
-		console.log("reply clicked");
-
 		// Let's find out which comments are toggled.
 		var comments = this.state.comments;
+		comments[comment.id] = !comments[comment.id];
 
-		console.log(comments);
-		comments[comment.id] = !!!comments[comment.id];
-		console.log(comments)
 		this.setState({comments});
 	}
+
+	editToggle(comment) {
+		var {editComments} = this.state; 
+		editComments[comment.id] = !editComments[comment.id]; 
+		
+		this.setState({editComments});
+	}
+
+
 
 	onDeleted(comment) {
 		var {deletedComments} = this.state;
@@ -53,7 +61,8 @@ export default class List extends React.Component{
 			comments,
 			deleteComment,
 			reportComment,
-			deletedComments
+			deletedComments,
+			editComments
 		} = this.state;
         
         if(!contentType && on){
@@ -71,10 +80,10 @@ export default class List extends React.Component{
 
         return(
             <div className = "comments">
-				<DeleteComment comment = {deleteComment} onDeleted = {() => this.onDeleted(deleteComment)} onClose = {() => this.setState({deleteComment: null})}/>
+				<DeleteComment comment = {deleteComment} onSuccess = {() => this.onDeleted(deleteComment)} onClose = {() => this.setState({deleteComment: null})}/>
 				<Modal classname = "comment-report-modal" title = "Report comment" visible = {reportComment} onClose = {() => {this.setState({reportComment: null})}}>
 					Thanks for submitting a report. Please provide a short description of what is happening and someone will investigate.
-
+					<ReportComment comment = {reportComment}/>
 				</Modal>
 				<Add contentId={contentId} contentTypeId={contentTypeId} />
 				<Loop over='comment/list' filter={
@@ -96,13 +105,18 @@ export default class List extends React.Component{
 						return <li style={{marginLeft: (comment.depth * 100) + 'px'}}>
 							{deletedComments[comment.id] || comment.deleted ? (comment.childCommentCount > 0 && <i>-This comment was deleted-</i>) : <> 
 								<Row className = "user-info"><b className = "user-name">{comment.creatorUser.username}</b> {sinceDate(comment.createdUtc)}</Row>
-								{comment.bodyJson}
-								<Row className = "comment-actions">
-									<button onClick = {() => {this.replyToggle(comment)}} className = "btn"><i class="far fa-comment-alt-lines"></i> Reply</button> 
-									{isUser && <button className = "btn"><i class="fas fa-pencil"></i> Edit</button>}
-									{!isUser && <button className = "btn"><i class="far fa-flag"></i> Report</button>}
-									{isUser && <button onClick = {() => {this.setState({deleteComment: comment})}} className = "btn"><i class="far fa-trash-alt"></i> Delete</button>}
-								</Row>
+								{editComments[comment.id] ? <EditComment 
+									onSuccess = {() => this.editToggle(comment)}
+									onClose = {() => this.editToggle(comment)}
+									comment = {comment}
+								/> : <> {comment.bodyJson}
+									<Row className = "comment-actions">
+										<button onClick = {() => {this.replyToggle(comment)}} className = "btn"><i class="far fa-comment-alt-lines"></i> Reply</button> 
+										{isUser && <button onClick = {() => {this.editToggle(comment)}}className = "btn"><i class="fas fa-pencil"></i> Edit</button>}
+										{!isUser && <button onCLick = {() => {this.setState({reportComment: comment})}} className = "btn"><i class="far fa-flag"></i> Report</button>}
+										{isUser && <button onClick = {() => {this.setState({deleteComment: comment})}} className = "btn"><i class="far fa-trash-alt"></i> Delete</button>}
+									</Row>
+								</>}
 							</>}
 							<Add onClose = {() => {this.replyToggle(comment)}} visible = {comments[comment.id]} contentId={contentId} contentTypeId={contentTypeId} parentCommentId={comment.id} />
 						</li>;

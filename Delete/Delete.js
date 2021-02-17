@@ -10,13 +10,10 @@ export default class Delete extends React.Component{
 	}
 
     delete(comment) {
-        var {onDeleted} = this.props;
+        var {onSuccess} = this.props;
 
         webRequest("comment/" + comment.id, {Deleted: true}).then(response => {
-            // Good to go!
-            // Call the onDeleted callback;
-            console.log("deleted success");
-            onDeleted && onDeleted();
+            onSuccess && onSuccess();
         }).catch(error => {
             this.setState({error})
         });
