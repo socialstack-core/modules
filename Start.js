@@ -18,10 +18,9 @@ export default function(custom){
 		loader && loader.parentNode.removeChild(loader);
 		
 		// Render the root now! When the App instance is created, it sets itself up as this.context.app (as seen by other mounted components).
-		(React.render || ReactDom.render)(
+		(root.childNodes.length ? React.hydrate : (React.render || ReactDom.render))(
 			<App />,
 			root
 		);
-		
 	}
 };
