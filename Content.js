@@ -10,7 +10,9 @@ export default class Content extends React.Component {
 	constructor(props){
 		super(props);
 		this.state={
-			loading: true
+			// Get initial content object. This is to avoid very inefficient wasted renders 
+			// caused by using a promise here or componentDidUpdate only.
+			content: Content.getCached(props.type, props.id)
 		};
 		this.onLiveMessage = this.onLiveMessage.bind(this);
 		this.onContentChange = this.onContentChange.bind(this);
@@ -26,7 +28,8 @@ export default class Content extends React.Component {
 			if (msg.type == "status") {
 				if (msg.connected) {
 					// Force a reload:
-					this.load(this.props);
+					var {type, id} = this.props;
+					this.load(type, id);
 				}
 
 				this.props.onLiveStatus && this.props.onLiveStatus(msg.connected);
@@ -68,7 +71,8 @@ export default class Content extends React.Component {
 	
 	onContentChange(e) {
 		// Content changed! Is it a thing relative to us?
-		if (!this.state.content) {
+		var { content } = this.state;
+		if (!content) {
 			// Nothing loaded yet
 			return;
 		}
@@ -87,10 +91,9 @@ export default class Content extends React.Component {
 		}
 		
 		if (e.deleted) {
-			// Deleted it:
+			// Deleted it. _err indicates an object that is known to not exist:
 			this.setState({
-				content: null,
-				loading: false
+				content: {_err: true}
 			});
 		} else {
 			// Update or add. id match?
@@ -102,47 +105,58 @@ export default class Content extends React.Component {
 		}
 	}
 	
-	componentWillReceiveProps(props){
-		if(this.props && this.props.type == props.type && this.props.id == props.id){
+	componentDidUpdate(prevProps){
+		var {type, id} = this.props;
+		if(prevProps && type == prevProps.type && id == prevProps.id){
 			// Cached object is fine here.
 			return;
 		}
-		this.load(props);
+		this.load(type, id);
+	}
+	
+	load(type, id){
+		Content.get(type, id)
+			.then(content => this.setState({content}))
+			.catch(e => {
+				// E.g. doesn't exist.
+				this.setState({content: {_err: e}});
+			});
 	}
 	
 	componentWillUnmount() {
 		if (this.props.live) {
 			webSocket.removeEventListener(this.evtType(), this.onLiveMessage);
 		}
-		
 		document.removeEventListener("contentchange", this.onContentChange);
 	}
 	
 	componentDidMount(){
-		this.load(this.props);
-		document.addEventListener("contentchange", this.onContentChange);
-	}
-	
-	load(props){
-		if (props.live) {
-			webSocket.addEventListener(this.evtType(), this.onLiveMessage, {where: {Id: props.id}});
+		var {type, id, live} = this.props;
+		if (live) {
+			webSocket.addEventListener(this.evtType(), this.onLiveMessage, {where: {Id: id}});
 		}
+		document.addEventListener("contentchange", this.onContentChange);
 		
-		this.setState({loading: true});
-		Content.get(props.type, props.id)
-			.then(content => this.setState({content, loading: false}))
-			.catch(e => {
-				// E.g. doesn't exist.
-				this.setState({content: null, loading: false});
-			});
+		if(!this.state.content){
+			// Content that is intentionally client only. Load now:
+			this.load(type, id);
+		}
 	}
 	
 	render(){
+		var {content} = this.state;
+		var {children} = this.props;
 		
-		return <div className="content">
-			{this.props.children && this.props.children(this.state.content, this.state.loading)}
-		</div>;
+		var loading = false;
 		
+		if(!content){
+			// Null indicates loading:
+			loading = true;
+		}else if(content._err){
+			// It failed - indicate null but not loading to children:
+			content = null;
+		}
+		return children ? children(content, loading) : null;
 	}
 	
 }
@@ -152,12 +166,20 @@ export default class Content extends React.Component {
 // A convenience wrapper which is shorted serverside for rapid performance.
 // Returns a promise which will either resolve directly to the object, 
 // or be rejected with a message and statusCode if there was an error.
-// 
-// Objects may be returned instantly from a client side cache. Due to the way how promise will, by design, always wait, this can lead to a wasted render 
-// where a load screen is displayed for a few frames, and will typically result in an apparent white flash.
-// To avoid this, the returned promise also has a .value 
-
-Content.get = (contentType, contentId) => {
-	var url = contentType + '/' + contentId;
+// You should only use this from componentDidMount and componentDidUpdate (or useEffect) for correct React usage.
+Content.get = function(type, id) {
+	var url = type + '/' + id;
 	return webRequest(url).then(response => response.json);
+};
+
+// E.g:
+// content.getCached("blog", 1, context);
+// Returns the object immediately if it came from the cache, otherwise null.
+// This should be used in your component constructor.
+// Using it prevents a wasted render when the data is available immediately.
+// 
+// When server side, this may return a promise. Any promises in a component's state when it has been 
+// constructed will be awaited and swapped with the resolved value before proceeding.
+Content.getCached = function(type, id) {
+	return global.sscache && global.sscache[type] ? global.sscache[type][id] : null;
 };
