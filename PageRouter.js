@@ -2,13 +2,6 @@ import webRequest from 'UI/Functions/WebRequest';
 import Canvas from 'UI/Canvas';
 import Content from 'UI/Content';
 
-try{
-	var preloadedPages = global.getModule('UI/PreloadedPages/PreloadedPages.json');
-}
-catch{
-	var preloadedPages = null;
-}
-
 export default class PageRouter extends React.Component{
 	
 	go(url){
@@ -23,35 +16,26 @@ export default class PageRouter extends React.Component{
 	
 	constructor(props){
 		super(props);
-		this.state = {
-			tokens: {} // Stores e.g. :id. Never null.
-		};
 		global.pageRouter = this;
 		this.onLinkClick = this.onLinkClick.bind(this);
 		this.onPopState = this.onPopState.bind(this);
+		this.state = global.pageRouterData ? this.loadPageData(global.pageRouterData) : {tokens:{}};
 	}
 	
 	makeRequest(){
 		return webRequest("page/list").then(response => {
 			var pages = response.json.results;
-			this.pages(pages, false);
+			this.setState(this.loadPageData(pages));
 		}).catch(err => {
 			// No additional pages are available.
 			console.log(err);
 		})
 	}
 
-	pages(pages, isCached){
+	loadPageData(pages){
 		// Build route map and ID maps next.
-				
-		var idMap = {};
 		var contentMap = {};
 		var adminContentMap = {};
-				
-		pages.forEach(page => {
-			idMap[''+page.id] = page;
-		});
-		
 		var rootPage = {children: {}, tokenNames: []};
 		
 		pages.forEach(page => {
@@ -179,25 +163,18 @@ export default class PageRouter extends React.Component{
 			}
 			
 			pg.page = page;
-			
 		});
 		
-		this.getPageRedirected(rootPage, idMap, this.props.url).then(pageInfo => {
-			this.trigger(pageInfo);
-			if(isCached && pageInfo.page.url == "" && this.props.url != "/"){
-				this.makeRequest();
-			}
-			else{
-				this.setState({
-					pages,
-					rootPage,
-					idMap,
-					contentMap,
-					adminContentMap,
-					...pageInfo
-				});
-			}
-		})
+		var pageInfo = this.getPage(rootPage, this.props.url);
+		this.trigger(pageInfo);
+		
+		return {
+			pages,
+			rootPage,
+			contentMap,
+			adminContentMap,
+			...pageInfo
+		};
 	}
 	
 	onLinkClick(e){
@@ -251,14 +228,8 @@ export default class PageRouter extends React.Component{
 		
 		document.addEventListener("click", this.onLinkClick);
 		
-		if(global.pageRouterData){
-			this.pages(global.pageRouterData, true);
-		}else if(!preloadedPages){
-			//console.log(this.props.url);
+		if(!this.state.pages){
 			this.makeRequest();
-		}
-		else {
-			this.pages(preloadedPages.results || preloadedPages, true);
 		}
 	}
 	
@@ -283,7 +254,7 @@ export default class PageRouter extends React.Component{
 	
 	componentWillReceiveProps(props){
 		var role = this.getRole();
-		if(!preloadedPages && this.role!==undefined && role!==undefined && this.role != role){
+		if(this.role!==undefined && role!==undefined && this.role != role){
 			this.role = role;
 			// User role changed (they logged in) - get page list again, then change page:
 			this.makeRequest().then(() => this.setupPage(props));
@@ -297,7 +268,7 @@ export default class PageRouter extends React.Component{
 	
 	setupPage(props){
 		// page and tokens
-		this.getPageRedirected(this.state.rootPage, this.state.idMap, props.url).then((pageInfo) => {
+		this.getPageLazy(this.state.rootPage, props.url).then((pageInfo) => {
 			this.trigger(pageInfo);
 			this.setState(pageInfo);
 		});
@@ -308,44 +279,7 @@ export default class PageRouter extends React.Component{
 		document.removeEventListener("click", this.onLinkClick);
 	}
 	
-	resolveRedirect(pageId, idMap, redirectCount){
-		if(redirectCount > 20){
-			// Probably a loop - kill it here.
-			throw new Error("Redirect loop detected involving page #" + pageId);
-		}
-		
-		var pageInfo = idMap[pageId];
-		if(pageInfo == null || !pageInfo.bodyJson){
-			return null;
-		}
-		
-		// Is this also a redirect?
-		var json;
-		
-		if(typeof pageInfo.bodyJson == "string"){
-			try{
-				json = JSON.parse(pageInfo.bodyJson);
-			}catch(e){
-				console.log('Failed to load page JSON: ', pageInfo.bodyJson);
-				console.error(e);
-			}
-		}else{
-			json = pageInfo.bodyJson;
-		}
-		
-		if(!json){
-			json = {};
-		}
-		
-		if(json.redirect){
-			// Redirecting to another page. It's always identified by ID.
-			return this.resolveRedirect(json.redirect, idMap, redirectCount+1);
-		}
-		
-		return pageInfo;
-	}
-	
-	getPageRedirected(rootPage, idMap, url){
+	getPageLazy(rootPage, url){
 		// The same as getPage only this one also resolves redirect: PageId.
 		return new Promise((success, reject) => {
 			var pageAndState = this.getPage(rootPage, url);
@@ -361,11 +295,9 @@ export default class PageRouter extends React.Component{
 				return success(pageAndState);
 			}
 			
-			var pgLoad = null;
-			
 			if(page.createdUtc == undefined){
 				// Page not loaded yet - get it now:
-				pgLoad = Content.get("page", page.id).then(response => {
+				Content.get("page", page.id).then(response => {
 					for(var field in response){
 						page[field] = response[field];
 					}
@@ -381,40 +313,11 @@ export default class PageRouter extends React.Component{
 					}
 					
 					page.url = url;
-					return page;
+					success(pageAndState);
 				});
 			}else{
-				pgLoad = Promise.resolve(page);
-			}
-			
-			pgLoad.then(page => {
-				var json;
-			
-				if(typeof page.bodyJson == "string"){
-					try{
-						json = JSON.parse(page.bodyJson);
-					}catch(e){
-						console.log('Failed to load page JSON: ', page.bodyJson);
-						console.error(e);
-					}
-				}else{
-					json = page.bodyJson;
-				}
-				
-				if(!json){
-					json = {};
-				}
-				
-				if(json.redirect){
-					// Redirecting to another page. It's always identified by ID.
-					pageAndState = {
-						page: this.resolveRedirect(json.redirect, idMap, 0),
-						tokens: pageAndState.tokens
-					};
-				}
-				
 				success(pageAndState);
-			});
+			}
 		});
 	}
 	
@@ -492,14 +395,9 @@ export default class PageRouter extends React.Component{
 	
 	render(){
 		var {page} = this.state;
-		
-		if(!page){
-			return null;
-		}
-		
-		return <Canvas>
+		return page ? <Canvas>
 			{page.bodyJson}
-		</Canvas>;
+		</Canvas> : null;
 	}
 	
 	componentDidUpdate(){
