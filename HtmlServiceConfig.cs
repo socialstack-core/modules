@@ -58,6 +58,16 @@ namespace Api.Pages
 		public string Rel { get; set; }
 
 		/// <summary>
+		/// Link crossorigin="" attribute used by preloads.
+		/// </summary>
+		public string CrossOrigin { get; set; } = "anonymous";
+
+		/// <summary>
+		/// Link as="" attribute for preloads.
+		/// </summary>
+		public string As { get; set; }
+
+		/// <summary>
 		/// Link href="" attribute.
 		/// </summary>
 		public string Href { get; set; }

@@ -207,41 +207,49 @@ namespace Api.Pages
 				}
 			}
 
+			// Charset must be within first 1kb of the header:
+			head.AppendChild(new DocumentNode("meta", true).With("charset", "utf-8"));
+
 			// Handle all Start Head Tags in the config.
 			HandleCustomHeadList(_config.StartHeadTags, head);
 
-			head.AppendChild(new DocumentNode("link", true).With("rel", "apple-touch-icon").With("sizes", "180x180").With("href", "/apple-touch-icon.png"))
-				.AppendChild(new DocumentNode("link", true).With("rel", "icon").With("type", "image/png").With("sizes", "32x32").With("href", "/favicon-32x32.png"))
+			head.AppendChild(new DocumentNode("link", true).With("rel", "icon").With("type", "image/png").With("sizes", "32x32").With("href", "/favicon-32x32.png"))
 				.AppendChild(new DocumentNode("link", true).With("rel", "icon").With("type", "image/png").With("sizes", "16x16").With("href", "/favicon-16x16.png"))
-				.AppendChild(new DocumentNode("link", true).With("rel", "manifest").With("href", "/site.webmanifest"))
-				.AppendChild(new DocumentNode("link", true).With("rel", "mask-icon").With("href", "/safari-pinned-tab.svg").With("color", "#ffffff"))
 				.AppendChild(new DocumentNode("link", true).With("rel", "stylesheet").With("href", packDir + "styles.css?v=1"))
 				.AppendChild(new DocumentNode("meta", true).With("name", "msapplication-TileColor").With("content", "#ffffff"))
 				.AppendChild(new DocumentNode("meta", true).With("name", "theme-color").With("content", "#ffffff"))
-				.AppendChild(new DocumentNode("meta", true).With("charset", "utf-8"))
 				.AppendChild(new DocumentNode("meta", true).With("name", "viewport").With("content", "width=device-width, initial-scale=1"))
 				.AppendChild(new DocumentNode("title").AppendChild(new TextNode(page.Title)));
+
+			/*
+			 * PWA headers that should only be added if PWA mode is turned on and these files exist
+			  .AppendChild(new DocumentNode("link", true).With("rel", "apple-touch-icon").With("sizes", "180x180").With("href", "/apple-touch-icon.png"))
+			  .AppendChild(new DocumentNode("link", true).With("rel", "manifest").With("href", "/site.webmanifest"))
+			  .AppendChild(new DocumentNode("link", true).With("rel", "mask-icon").With("href", "/safari-pinned-tab.svg").With("color", "#ffffff"))
+			 */
 
 			// Handle all End Head tags in the config.
 			HandleCustomHeadList(_config.EndHeadTags, head);
 			
 			var reactRoot = new DocumentNode("div").With("id", "react-root");
 
+			var body = doc.Body;
+			body.AppendChild(reactRoot);
+
 			if (_config.PreRender)
 			{
-				var set = new CanvasAndContextSet()
-				{
-					BodyJson = page.BodyJson
-				};
-
-				var ctx = new Dictionary<string, object>();
-				set.Contexts.Add(ctx);
-
 				try
 				{
-					var preRender = await _canvasRendererService.Render(set);
-					var renderedBody = preRender[0].Body;
-					reactRoot.AppendChild(new TextNode(renderedBody));
+					var preRender = await _canvasRendererService.Render(context, page.BodyJson, path, true);
+					reactRoot.AppendChild(new TextNode(preRender.Body));
+
+					// Add the data which populates the initial cache. This is important for a variety of reasons, but it primarily ensures that e.g. site template data doesn't have to be immediately requested.
+					// If it did have to be immediately requested, the first render run results in a totally blank output, which conflicts with what the server has already rendered.
+					// The end result of the conflict is it gets duplicated in the DOM and server effort is largely wasted.
+					body.AppendChild(
+						new DocumentNode("script")
+						.AppendChild(new TextNode(preRender.Data))
+					);
 				}
 				catch (Exception e)
 				{
@@ -249,14 +257,14 @@ namespace Api.Pages
 				}
 			}
 			
-			var body = doc.Body;
-
 			// Handle all start body JS scripts
 			HandleCustomScriptList(_config.StartBodyJs, body);
-			
-			body.AppendChild(reactRoot)
-				.AppendChild(new DocumentNode("script").AppendChild(new TextNode(await BuildPageStateJs(context, page))))
-				.AppendChild(
+
+			body.AppendChild(new DocumentNode("script").AppendChild(new TextNode(await BuildPageStateJs(context, page))));
+
+			if (!_config.PreRender) {
+				// Still add the global state init substitution node:
+				body.AppendChild(
 					new DocumentNode("script")
 					.AppendChild(new TextNode("window.gsInit="))
 					.AppendChild(new SubstituteNode(  // This is where user and page specific global state will be inserted. It gets substituted in.
@@ -266,7 +274,8 @@ namespace Api.Pages
 					))
 					.AppendChild(new TextNode(";"))
 				);
-			
+			}
+
 			// Handle all Before Main JS scripts
 			HandleCustomScriptList(_config.BeforeMainJs, body);
 
@@ -323,6 +332,12 @@ namespace Api.Pages
 				{
 					node = new DocumentNode("link", true);
 					node.With("rel", headTag.Rel);
+
+					if (!string.IsNullOrEmpty(headTag.As))
+					{
+						node.With("as", headTag.As);
+						node.With("crossorigin", headTag.CrossOrigin);
+					}
 
 					if (headTag.Href != null)
 					{
