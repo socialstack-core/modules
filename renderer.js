@@ -250,7 +250,9 @@ function reactPreRender(){
 							: context;
 
 					// stateless functional components
+					_currentContext = cctx;
 					rendered = nodeName.call(vnode.__c, props, cctx);
+					_currentContext = null;
 				} else {
 					// class-based components
 					let cxType = nodeName.contextType;
@@ -263,7 +265,9 @@ function reactPreRender(){
 							: context;
 
 					// c = new nodeName(props, context);
+					_currentContext = cctx;
 					c = vnode.__c = new nodeName(props, cctx);
+					_currentContext = null;
 					c.__v = vnode;
 					// turn off stateful re-rendering:
 					c._dirty = c.__d = true;
@@ -558,6 +562,7 @@ exports = undefined;
 // Get canvas and UI/Content:
 var _Canvas = getModule('UI/Canvas/Canvas.js').default;
 var _contentModule = getModule("UI/Content/Content.js").default;
+var _currentContext = null;
 
 // Stub:
 pageRouter = {
@@ -569,7 +574,7 @@ function fetch(url, opts) {
 	return Promise.reject({ error: 'This request is unsupported serverside.', serverside: true, url });
 }
 
-// Overwrite content.get and content.getCache:
+// Overwrite content.get, content.getCache etc:
 _contentModule.get = (type, id) => {
 	return Promise.reject({
 		error: 'This request is unsupported serverside. Use getCached in your constructor, and Content.get from componentDidMount/ componentDidUpdate/ useEffect.',
@@ -579,25 +584,86 @@ _contentModule.get = (type, id) => {
 	});
 };
 
+_contentModule.list = (type, filter) => {
+	return Promise.reject({
+		error: 'This request is unsupported serverside. Use listCached in your constructor, and Content.list from componentDidMount/ componentDidUpdate/ useEffect.',
+		serverside: true,
+		type,
+		filter
+	});
+};
+
 _contentModule.getCached = (type, id) => {
+	if (!_currentContext) {
+		// Invalid call site - constructors only.
+		return null;
+	}
+
+	var cctx = _currentContext;
+
 	return new Promise(s => {
-		document.getContentById(getContentTypeId(type), parseInt(id), jsonResponse => {
+		document.getContentById(cctx.app.apiContext, getContentTypeId(type), parseInt(id), jsonResponse => {
+			if (cctx.__contextualData) {
+				// We're tracking contextual data
+				cctx.__contextualData += "sscache._a(\'" + type + "\',\'" + id + "\'," + jsonResponse + ");";
+			}
 			s(JSON.parse(jsonResponse));
 		});
 	});
 };
 
-function renderCanvas(json){
+_contentModule.listCached = (type, filter) => {
+	if (!_currentContext) {
+		// Invalid call site - constructors only.
+		return null;
+	}
+
+	var filterJson = JSON.stringify(filter);
+	var cctx = _currentContext;
+
+	return new Promise(s => {
+		document.getContentsByFilter(cctx.app.apiContext, getContentTypeId(type), filter, jsonResponse => {
+			if (cctx.__contextualData) {
+				// We're tracking contextual data
+				cctx.__contextualData += "sscache._a(\'" + type + "\',\'" + filterJson + "\'," + jsonResponse + ");";
+			}
+			s(JSON.parse(jsonResponse));
+		});
+	});
+};
+
+function renderCanvas(bodyJson, apiContext, publicApiContextJson, url, postData, trackContextualData){
 	
 	// Stub app state:
 	app = {
-		state: {}
+		apiContext,
+		state: {
+			url,
+			...JSON.parse(publicApiContextJson)
+		}
 	};
 	
-	var canvas = preact.createElement(_Canvas, {children: json});
-	
+	var canvas = preact.createElement(_Canvas, { children: bodyJson});
+
+	var context = {
+		app,
+		postData
+	};
+
+	if (trackContextualData)
+	{
+		// Only construct this string if we actually need it (email rendering does not, for example).
+		// The contextual data being pulled in during this render. Must use this to rehydrate the caches when the site is done loading.
+		context.__contextualData = 'gsInit=' + publicApiContextJson + ';sscache={_a: function(t,i,a){if(!sscache[t]){sscache[t]={}}sscache[t][i]=a}};';
+	};
+
 	// Returns a promise.
-	return renderToString(canvas, {
-		app
+	return renderToString(canvas, context).then(body => {
+
+		return {
+			body,
+			data: trackContextualData ? context.__contextualData : ''
+		};
+
 	});
 }

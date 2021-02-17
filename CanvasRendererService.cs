@@ -29,56 +29,58 @@ namespace Api.CanvasRenderer
 		}
 
 		/// <summary>
-		/// Renders a block of contexts using the same canvas.
-		/// The set of results is in the exact order of the original contexts.
-		/// If one fails for whatever reason, the entry will be null.
-		/// </summary>
-		/// <param name="set"></param>
-		/// <returns></returns>
-		public async Task<List<RenderedCanvas>> Render(CanvasAndContextSet set)
-		{
-			var results = new List<RenderedCanvas>();
-
-			// Get one engine and render repeatedly with it:
-			var engine = GetEngine();
-
-			foreach (var ctx in set.Contexts)
-			{
-				// RenderCanvas actually is a promise:
-				var result = (await (engine.Invoke("renderCanvas", set.BodyJson) as Task<object>)) as string;
-
-				var canvas = new RenderedCanvas()
-				{
-					Body = result
-				};
-
-				results.Add(canvas);
-			}
-
-			return results;
-		}
-
-		/// <summary>
 		/// Renders the named canvas. This invokes the `socialstack renderui` command if it's not already running
 		/// then passes the body JSON and JSON serialized context to it.
 		/// </summary>
+		/// <param name="context">The context that the json will be rendered as. Any data requests are made as this user.</param>
 		/// <param name="bodyJson">The JSON for the canvas.</param>
-		/// <param name="context">The context to use whilst rendering the canvas.
-		/// This acts like POSTed page data.</param>
+		/// <param name="url">An optional URL of the page being rendered.</param>
+		/// <param name="trackDataRequests">Set this to true if you'd like a JS object representing the complete state that was ultimately loaded or used by the renderer.
+		/// This is vital for accurate rehydration in web clients, but a waste of cycles when it won't be used like in an email.</param>
+		/// <param name="customState">Functions like POSTed data; this is some initial state added to the context as "this.context.postData"</param>
 		/// <returns></returns>
-		public ValueTask<RenderedCanvas> Render(string bodyJson, CanvasContext context)
+		public async ValueTask<RenderedCanvas> Render(Contexts.Context context, string bodyJson, string url = null, bool trackDataRequests = false, object customState = null)
 		{
-			// Module set to use:
-			var modules = _cfg.Modules;
+			// Get a JS engine:
+			var engine = GetEngine();
 
-			var result = new RenderedCanvas()
+			// Get public version of context:
+			var publicContext = await context.GetPublicContext();
+
+			// Render the canvas now. This renderCanvas function is at the bottom of renderer.js (in the same directory as this file):
+			var result = (await (engine.Invoke(
+					"renderCanvas",
+					bodyJson,
+					context,
+					// Must do this such that all of the hidden fields are correctly considered, and any modifications the JS makes don't affect our actual cached objects.
+					JsonConvert.SerializeObject(publicContext, jsonFormatter),
+					url,
+					customState,
+					trackDataRequests
+				) as Task<object>)) as dynamic;
+
+			// Get body and data:
+			var body = result.body as string;
+			var data = result.data as string;
+
+			// The result is..
+			var canvas = new RenderedCanvas()
 			{
-				// TODO: This will return a promise as a Task. Establish how it handles the task return type.
-				Body = (string)GetEngine().Invoke("renderCanvas", bodyJson)
+				Body = body,
+				Data = data
 			};
 
-			return new ValueTask<RenderedCanvas>(result);
+			return canvas;
 		}
+
+		private JsonSerializerSettings jsonFormatter = new JsonSerializerSettings
+		{
+			ContractResolver = new DefaultContractResolver
+			{
+				NamingStrategy = new CamelCaseNamingStrategy()
+			},
+			Formatting = Formatting.None
+		};
 
 		private V8ScriptEngine _engine;
 
@@ -105,7 +107,13 @@ namespace Api.CanvasRenderer
 
 			var dllPath = AppDomain.CurrentDomain.BaseDirectory;
 
-			var sourceContent = File.ReadAllText("Admin/public/en-admin/pack/main.generated.js");
+			// Module set to use:
+			var modules = "UI"; // _cfg.Modules;
+
+			var sourceContent = File.ReadAllText(
+				modules == "Admin" ?
+					"Admin/public/en-admin/pack/main.generated.js": modules + "/public/pack/main.generated.js"
+			);
 			engine.Execute(new DocumentInfo(new Uri("file://main.generated.js")), sourceContent);
 
 			sourceContent = File.ReadAllText(dllPath + "/Api/ThirdParty/CanvasRenderer/renderer.js");
@@ -200,22 +208,22 @@ namespace Api.CanvasRenderer.V8
 			return null;
 		}
 		
+		private JsonSerializerSettings jsonFormatter = new JsonSerializerSettings
+		{
+			ContractResolver = new DefaultContractResolver
+			{
+				NamingStrategy = new CamelCaseNamingStrategy()
+			},
+			Formatting = Formatting.None
+		};
+
 		/// <summary>
 		/// Get content serverside by type and ID.
 		/// </summary>
-        public async Task getContentById(int contentTypeId, int contentId, ScriptObject cb)
+		public async Task getContentById(Contexts.Context context, int contentTypeId, int contentId, ScriptObject cb)
         {
-            var jsonFormatter = new JsonSerializerSettings
-            {
-                ContractResolver = new DefaultContractResolver
-                {
-                    NamingStrategy = new CamelCaseNamingStrategy()
-                },
-                Formatting = Formatting.None
-            };
-
 			// Get the content object, and when it's done, invoke the callback.
-			var content = await Content.Get(new Contexts.Context(), contentTypeId, contentId);
+			var content = await Content.Get(context, contentTypeId, contentId);
 
             // Must serialize to JSON to avoid field case sensitivity problems.
             var jsonResult = JsonConvert.SerializeObject(content, jsonFormatter);

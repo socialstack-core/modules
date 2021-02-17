@@ -11,9 +11,14 @@ namespace Api.CanvasRenderer
     public struct RenderedCanvas
     {
 		/// <summary>
-		/// The HTML body.
+		/// The HTML that was generated.
 		/// </summary>
         public string Body { get; set; }
+
+        /// <summary>
+        /// Javascript string which reconstructs the state used by the renderer. This is an empty string if you turned tracking it off.
+        /// </summary>
+        public string Data { get; set; }
     }
 
 }
