@@ -102,10 +102,13 @@ namespace Api.PasswordResetRequests
 				}
 				
 				var recipient = new Recipient(reset.UserId);
-				
-				recipient["reset"] = reset;
-				recipient["token"] = reset.Token;
-				
+
+				recipient.CustomData = new PasswordResetCustomEmailData()
+				{
+					Reset = reset,
+					Token = reset.Token
+				};
+
 				var recipients = new List<Recipient>();
 				recipients.Add(recipient);
 				
