@@ -35,7 +35,6 @@ function getMobileInfo() {
     // medium mobile (321px - 411px)
     if (window.matchMedia('(min-width: ' + mobileMedium.from + 'px) and (max-width: ' + mobileMedium.to + 'px) and (pointer: coarse) and (orientation: portrait)').matches ||
         window.matchMedia('(min-height: ' + mobileMedium.from + 'px) and (max-height: ' + mobileMedium.to + 'px) and (pointer: coarse) and (orientation: landscape)').matches) {
-        htmlClassList.add("device-mobile", "device-mobile-medium");
         mobileInfo.isMobile = true;
         mobileInfo.medium = true;
     }
@@ -144,7 +143,7 @@ function isLandscape() {
     return window.matchMedia('(orientation: landscape)').matches;
 }
 
-if (document.getElementsByTagName && document.getElementsByTagName("html").length) {
+if (document.getElementsByTagName && document.querySelector("html")) {
     // user agent detection
     var userAgent = navigator.userAgent || navigator.vendor || window.opera;
     var isWindowsPhone = /windows phone/i.test(userAgent);
@@ -168,7 +167,7 @@ if (document.getElementsByTagName && document.getElementsByTagName("html").lengt
     var isIE = window.document.documentMode;
     var isIE10Plus = window.matchMedia("(-ms-high-contrast: active)").matches || window.matchMedia("(-ms-high-contrast: none)").matches;
 
-    var htmlClassList = document.getElementsByTagName("html")[0].classList;
+    var htmlClassList = document.querySelector("html").classList;
 
     if (isWindowsPhone) {
         htmlClassList.add("windows-phone");
