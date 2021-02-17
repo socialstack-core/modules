@@ -6,6 +6,7 @@
         url('./PathwaysScript-Regular.svg#PathwaysScript-Regular') format('svg');
     font-weight: normal;
     font-style: normal;
+	font-display: swap;
 }
 
 // we only have a single weight for this font, so prevent browsers from rendering faux bold
@@ -17,4 +18,5 @@
         url('./PathwaysScript-Regular.svg#PathwaysScript-Regular') format('svg');
     font-weight: bold;
     font-style: normal;
+	font-display: swap;
 }
