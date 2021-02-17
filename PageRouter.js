@@ -497,21 +497,15 @@ export default class PageRouter extends React.Component{
 			return null;
 		}
 		
-		if(page.title && page.title.length){
-			return [
-				<title>
-					{page.title}
-				</title>,
-				<Canvas>
-					{page.bodyJson}
-				</Canvas>
-			];
-		}
-		
 		return <Canvas>
 			{page.bodyJson}
 		</Canvas>;
-		
 	}
 	
+	componentDidUpdate(){
+		var {page} = this.state;
+		if(page && page.title){
+			document.title = page.title;
+		}
+	}
 }
