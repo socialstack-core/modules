@@ -1013,7 +1013,7 @@ export default class CanvasEditor extends React.Component {
 				<div
 					contenteditable
 					onInput={e => {
-						contentNode.content = e.target.innerHTML;
+						contentNode.data.text = e.target.innerHTML;
 						this.updated();
 					}}
 					onKeyDown={e => {
@@ -1053,7 +1053,7 @@ export default class CanvasEditor extends React.Component {
 						}
 					}}
 					className="canvas-editor-text"
-					dangerouslySetInnerHTML={{__html: contentNode.content}}
+					dangerouslySetInnerHTML={{__html: contentNode.data.text}}
 				/>
 			);
 		}else{
