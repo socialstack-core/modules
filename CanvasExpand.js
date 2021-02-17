@@ -41,8 +41,14 @@ function expand(contentNode, onContentNode){
 	}
 	
 	if(typeof contentNode != 'object'){
-		// String or number
-		return contentNode;
+		return {
+			module: Text,
+			moduleName: 'UI/Text',
+			data: {
+				text: contentNode
+			},
+			expanded: true
+		};
 	}
 	
 	if(contentNode.content !== undefined){
