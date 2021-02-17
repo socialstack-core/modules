@@ -14,5 +14,10 @@ namespace Api.Eventing
 		/// Set of events for an userFlag.
 		/// </summary>
 		public static EventGroup<UserFlag> UserFlag;
+
+		/// <summary>
+		/// Set of events for an userFlagOption.
+		/// </summary>
+		public static EventGroup<UserFlagOption> UserFlagOption;
 	}
 }

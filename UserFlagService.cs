@@ -1,9 +1,10 @@
 using Api.Database;
-using System.Threading.Tasks;
 using System.Collections.Generic;
 using Api.Permissions;
 using Api.Contexts;
 using Api.Eventing;
+using Api.Startup;
+
 
 namespace Api.UserFlags
 {
@@ -20,6 +21,25 @@ namespace Api.UserFlags
         {
 			// Note that there's a unique index on the table which blocks users
 			// from flagging something twice.
+			Events.UserFlag.BeforeCreate.AddEventListener(async (Context ctx, UserFlag flag) =>
+			{
+				if(flag == null)
+                {
+					return flag;
+                }
+
+				// Let's see if a user flag by this user on this content exists.
+				List<UserFlag> flagCheck = await List(ctx, new Filter<UserFlag>().Equals("UserId", flag.UserId).And().Equals("ContentId", flag.ContentId).And().Equals("ContentTypeId", flag.ContentTypeId));
+
+				// Does a flag exist for this content by this user?
+				if(flagCheck.Count > 0)
+                {
+					throw new PublicException("You have already flagged this", "already_flagged");
+				}
+
+				return flag;
+			});
+
 			
 			Events.UserFlag.AfterCreate.AddEventListener(async (Context context, UserFlag flag) => {
 				
@@ -40,6 +60,33 @@ namespace Api.UserFlags
 				content.UserFlagCount++;
 				await Content.Update(context, content);
 				
+				return flag;
+			});
+
+			Events.UserFlag.AfterDelete.AddEventListener(async (Context context, UserFlag flag) =>
+			{
+				if (flag == null)
+                {
+					return flag;
+                }
+
+				// Get the flagged content: 
+				var content = await Content.Get(context, flag.ContentTypeId, flag.ContentId) as IAmFlaggable;
+
+				if(content == null)
+                {
+					// That doesn't exist, or isn't flaggable
+					return null;
+				}
+
+				content.UserFlagCount--;
+				if(content.UserFlagCount < 0)
+                {
+					content.UserFlagCount = 0;
+                }
+
+				await Content.Update(context, content);
+
 				return flag;
 			});
 		}

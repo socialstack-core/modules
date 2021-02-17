@@ -21,6 +21,16 @@ namespace Api.UserFlags
 		/// Flagged content type.
 		/// </summary>
 		public int ContentTypeId;
+
+		/// <summary>
+		/// The id of the user flag option that was selected for this flag.
+		/// </summary>
+		public int UserFlagOptionId;
+
+		/// <summary>
+		/// The user flag option that was selected for the flag.
+		/// </summary>
+		public UserFlagOption UserFlagOption { get; set; }
 	}
 
 }
