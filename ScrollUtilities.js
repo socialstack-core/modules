@@ -1,10 +1,13 @@
 var scrollTimer = null;
 var ignoreMouseWheel = false;
 
+// if scrolling up / down from the current position would mean only moving this far to the top / end of the current slide, skip a full page instead
+// (prevents irritating small 'nudges')
+const SCROLL_TOLERANCE = 48;
+
 // translate wheel scroll into page up / down calls
 function mouseWheelScroll(e) {
-    console.log("MOUSEWHEEL EVENT");
-    var body = global.document.querySelector("body");
+    var body = document.querySelector("body");
 
     if (body.classList.contains("burger-open")) {
         return;
@@ -36,7 +39,7 @@ function mouseWheelScroll(e) {
 
 /// keydown handler
 function keyDownHandler(event) {
-    var body = global.document.querySelector("body");
+    var body = document.querySelector("body");
 
     if (body.classList.contains("burger-open")) {
         return;
@@ -103,39 +106,39 @@ function keyDownHandler(event) {
 // get current page scroll position
 function getScrollPos() {
     return global.pageYOffset != undefined ? global.pageYOffset :
-        global.document.documentElement.scrollTop || global.document.body.scrollTop || 0;
+        document.documentElement.scrollTop || document.body.scrollTop || 0;
 }
 
 // get viewport height
 function getViewportHeight() {
-    return Math.max(global.document.documentElement.clientHeight, global.innerHeight);
+    return Math.max(document.documentElement.clientHeight, global.innerHeight);
 }
 
 // get full page height
 function getDocumentHeight() {
-    var body = global.document.body,
-        html = global.document.documentElement;
+    var body = document.body,
+        html = document.documentElement;
 
     return Math.max(body.scrollHeight, body.offsetHeight, html.clientHeight, html.scrollHeight, html.offsetHeight);
 }
 
 // return number of steps on this page
 function getPageCount() {
-    var pages = global.document.querySelectorAll("[data-slide]");
+    var pages = document.querySelectorAll("[data-slide]");
 
     return pages ? pages.length : 0;
 }
 
 // return given page
 function getPage(index) {
-    var pages = global.document.querySelectorAll("[data-slide]");
+    var pages = document.querySelectorAll("[data-slide]");
 
     return pages && index <= pages.length ? pages[index - 1] : null;
 }
 
 // get y value at top of given page
 function getPageTop(index) {
-    var pages = global.document.querySelectorAll("[data-slide]");
+    var pages = document.querySelectorAll("[data-slide]");
     var startY = 0;
 
     if (index > pages.length) {
@@ -151,7 +154,7 @@ function getPageTop(index) {
 
 // get y value at bottom of given page
 function getPageBottom(index) {
-    var pages = global.document.querySelectorAll("[data-slide]");
+    var pages = document.querySelectorAll("[data-slide]");
     var endY = 0;
 
     if (index > pages.length) {
@@ -167,7 +170,7 @@ function getPageBottom(index) {
 
 // return active page index
 function getActiveIndex() {
-    var pages = global.document.querySelectorAll("[data-slide]");
+    var pages = document.querySelectorAll("[data-slide]");
     var scrollPos = getScrollPos();
     var startY = 0;
 
@@ -187,9 +190,8 @@ function getActiveIndex() {
 
 // move up one page
 function pageUp() {
-    var html = global.document.querySelector("html");
+    var html = document.querySelector("html");
 
-    //if (html.classList.contains("admin") || checkScrollingDisabled()) {
     if (html.classList.contains("admin")) {
         return;
     }
@@ -212,7 +214,7 @@ function pageUp() {
     }
 
     // if this page is longer than the viewport height and we're not yet at the top, scroll up
-    if (pageTop < scrollPos && !partialScrollingDisabled) {
+    if (((scrollPos - pageTop) > SCROLL_TOLERANCE) && !partialScrollingDisabled) {
         var diff = scrollPos - pageTop;
         global.scrollBy({ left: 0, top: -Math.min(diff, viewportHeight), behavior: 'smooth' });
         return;
@@ -224,24 +226,12 @@ function pageUp() {
 
     global.addEventListener('scroll', checkScrollingActive, false);
     global.scrollTo({ top: getPageTop(activeIndex - 1), behavior: 'smooth' });
-
-    /*
-    var page = getPage(activeIndex - 1);
-
-    if (!page) {
-        return;
-    }
-
-    global.addEventListener('scroll', checkScrollingActive, false);
-    page.scrollIntoView({ block: 'start', behavior: 'smooth' });
-    */
 }
 
 // move down one page
 function pageDown() {
-    var html = global.document.querySelector("html");
+    var html = document.querySelector("html");
 
-    //if (html.classList.contains("admin") || checkScrollingDisabled()) {
     if (html.classList.contains("admin")) {
         return;
     }
@@ -264,7 +254,7 @@ function pageDown() {
     }
 
     // if this page is longer than the viewport height and we're not yet at the bottom, scroll down
-    if (pageBottom > scrollPos + viewportHeight && !partialScrollingDisabled) {
+    if ((pageBottom - (scrollPos + viewportHeight) > SCROLL_TOLERANCE) && !partialScrollingDisabled) {
         var diff = getPageBottom(activeIndex) - (scrollPos + viewportHeight);
         global.scrollBy({ left: 0, top: Math.min(diff, viewportHeight), behavior: 'smooth' });
         return;
@@ -277,24 +267,12 @@ function pageDown() {
     // use scrollTo as opposed to scrollIntoView as the latter has been known to be out by 1px
     global.addEventListener('scroll', checkScrollingActive, false);
     global.scrollTo({ top: getPageTop(activeIndex + 1), behavior: 'smooth' });
-
-    /*
-    var page = getPage(activeIndex + 1);
-
-    if (!page) {
-        return;
-    }
-
-    global.addEventListener('scroll', checkScrollingActive, false);
-    page.scrollIntoView({ block: 'start', behavior: 'smooth' });
-    */
 }
 
 // move to start of document
 function home() {
-    var html = global.document.querySelector("html");
+    var html = document.querySelector("html");
 
-    //if (html.classList.contains("admin") || checkScrollingDisabled()) {
     if (html.classList.contains("admin")) {
         return;
     }
@@ -305,15 +283,14 @@ function home() {
 
 // move to end of document
 function end() {
-    var html = global.document.querySelector("html");
+    var html = document.querySelector("html");
 
-    //if (html.classList.contains("admin") || checkScrollingDisabled()) {
     if (html.classList.contains("admin")) {
         return;
     }
 
     global.addEventListener('scroll', checkScrollingActive, false);
-    global.scrollTo({ left: 0, top: global.document.body.scrollHeight, behavior: 'smooth' });
+    global.scrollTo({ left: 0, top: document.body.scrollHeight, behavior: 'smooth' });
 }
 
 // check if we're still scrolling
@@ -336,7 +313,7 @@ function checkScrollingActive() {
 
 // toggle scrolling utilities on/off
 function toggle(enabled) {
-    var html = global.document.querySelector("html");
+    var html = document.querySelector("html");
     var isAdmin = html.classList.contains("admin");
 
     // check - does addEventListener support passive option?
@@ -358,13 +335,11 @@ function toggle(enabled) {
     }
 
     if (enabled && !isAdmin) {
-        console.log("ENABLING SCROLLUTILS");
         global.addEventListener('mousewheel', mouseWheelScroll, passiveSupported ? { passive: false } : false);
-        global.document.addEventListener("keydown", keyDownHandler);
+        document.addEventListener("keydown", keyDownHandler);
     } else {
-        console.log("DISABLING SCROLLUTILS");
         global.removeEventListener('mousewheel', mouseWheelScroll, passiveSupported ? { passive: false } : false)
-        global.document.removeEventListener("keydown", keyDownHandler);
+        document.removeEventListener("keydown", keyDownHandler);
     }
 
 }
