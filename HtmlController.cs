@@ -4,6 +4,7 @@ using Api.Configuration;
 using System;
 using System.IO;
 using Api.Contexts;
+using System.Text;
 
 namespace Api.Pages
 {
@@ -66,7 +67,29 @@ namespace Api.Pages
 
 			await _htmlService.BuildPage(context, Request.Path, Response.Body, compress);
 		}
-		
+
+		/// <summary>
+		/// Gets or generates the robots.txt file.
+		/// </summary>
+		/// <returns></returns>
+		[Route("robots.txt")]
+		public FileResult Robots()
+		{
+			// Robots.txt as a byte[]:
+			var robots = _htmlService.GetRobotsTxt();
+			return File(robots, "text/plain;charset=UTF-8");
+		}
+
+		/// <summary>
+		/// Sitemap.xml
+		/// </summary>
+		/// <returns></returns>
+		[Route("sitemap.xml")]
+		public void Sitemap()
+		{
+			Response.StatusCode = 404;
+		}
+
 	}
 
 }

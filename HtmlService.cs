@@ -83,6 +83,30 @@ namespace Api.Pages
 			});
 		}
 
+		/// <summary>
+		/// robots.txt
+		/// </summary>
+		private byte[] _robots;
+
+		/// <summary>
+		/// Gets robots.txt as a byte[].
+		/// </summary>
+		/// <returns></returns>
+		public byte[] GetRobotsTxt()
+		{
+			if (_robots == null)
+			{
+				var sb = new StringBuilder();
+				sb.Append("User-agent: *\r\n");
+				sb.Append("Disallow: /v1\r\n\r\n");
+				// sb.Append("Sitemap: /sitemap.xml");
+
+				_robots = System.Text.Encoding.UTF8.GetBytes(sb.ToString());
+			}
+
+			return _robots;
+		}
+
 		private readonly JsonSerializerSettings jsonSettings = new JsonSerializerSettings
 		{
 			ContractResolver = new DefaultContractResolver
@@ -241,15 +265,29 @@ namespace Api.Pages
 				try
 				{
 					var preRender = await _canvasRendererService.Render(context, page.BodyJson, path, true);
-					reactRoot.AppendChild(new TextNode(preRender.Body));
 
-					// Add the data which populates the initial cache. This is important for a variety of reasons, but it primarily ensures that e.g. site template data doesn't have to be immediately requested.
-					// If it did have to be immediately requested, the first render run results in a totally blank output, which conflicts with what the server has already rendered.
-					// The end result of the conflict is it gets duplicated in the DOM and server effort is largely wasted.
-					body.AppendChild(
-						new DocumentNode("script")
-						.AppendChild(new TextNode(preRender.Data))
-					);
+					if (preRender.Failed)
+					{
+						// JS not loaded yet or otherwise not reachable by the API process.
+						reactRoot.AppendChild(new TextNode(
+							"<h1>Hello! This site is not available just yet.</h1>"
+							+ "<p>If you're a developer, check the console for a 'Done handling UI changes' " +
+							"message - when that pops up, the UI has been compiled and is ready, then refresh this page.</p>" +
+							"<p>Otherwise, this happens when the UI and Admin .js files aren't available to the API.</p>"
+						));
+					}
+					else
+					{
+						reactRoot.AppendChild(new TextNode(preRender.Body));
+
+						// Add the data which populates the initial cache. This is important for a variety of reasons, but it primarily ensures that e.g. site template data doesn't have to be immediately requested.
+						// If it did have to be immediately requested, the first render run results in a totally blank output, which conflicts with what the server has already rendered.
+						// The end result of the conflict is it gets duplicated in the DOM and server effort is largely wasted.
+						body.AppendChild(
+							new DocumentNode("script")
+							.AppendChild(new TextNode(preRender.Data))
+						);
+					}
 				}
 				catch (Exception e)
 				{
