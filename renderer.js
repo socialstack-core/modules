@@ -627,7 +627,6 @@ _contentModule.listCached = (type, filter) => {
 				// We're tracking contextual data
 				cctx.__contextualData += "sscache._a(\'" + type + "\',\'" + filterJson + "\'," + jsonResponse + ");";
 			}
-			console.log("Running the callback for listCached!");
 			s(JSON.parse(jsonResponse));
 		});
 	});
