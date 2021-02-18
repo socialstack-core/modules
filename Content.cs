@@ -212,7 +212,31 @@ namespace Api.Database
 			return objResult;
 		}
 
-    }
+		/// <summary>
+		/// Gets a list of content by their content ID.
+		/// </summary>
+		/// <param name="context"></param>
+		/// <param name="contentTypeId"></param>
+		/// <param name="filterJson"></param>
+		/// <param name="convertUser">Converts User objects to UserProfile if true (default).</param>
+		/// <param name="applyPermissions"></param>
+		/// <returns></returns>
+		public static async Task<ListWithTotal> List(Context context, int contentTypeId, string filterJson, bool convertUser = true, bool applyPermissions = true)
+		{
+			// Get the service:
+			var service = Services.GetByContentTypeId(contentTypeId);
+
+			if (service == null)
+			{
+				return null;
+			}
+
+			var objResult = await service.ListObjects(context, filterJson, applyPermissions);
+
+			return objResult;
+		}
+
+	}
 
 	/// <summary>
 	/// A struct of content type and content ID.
