@@ -52,6 +52,7 @@ export default class Video extends React.Component {
 		/* assuming mp4 for now */
 		return (
 			<video
+				loading="lazy"
 				width={width}
 				height={height}
 				controls
