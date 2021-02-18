@@ -1,6 +1,7 @@
 import webRequest from 'UI/Functions/WebRequest';
 import Column from 'UI/Column';
 import Row from 'UI/Row';
+import Content from 'UI/Content';
 import webSocket from 'UI/Functions/WebSocket';
 import getEndpointType from 'UI/Functions/GetEndpointType';
 import Failure from 'UI/Failed';
@@ -32,23 +33,77 @@ export default class Loop extends React.Component {
 
 	constructor(props) {
 		super(props);
-		this.state = {
-			results: null,
-			errored: false,
-			pageIndex: 1,
-			totalPages: 0
-		};
+		
+		// Initial state which may come from the first render cache.
+		if(Array.isArray(props.over)){
+			
+			// Load initial result set now:
+			this.state = this.loadDirectArray(props, 1);
+			
+		}else if(typeof props.over === 'string'){
+			
+			var firstSlash = props.over.indexOf('/');
+			var cached;
+			if(props.over.substring(firstSlash+1) == 'list'){
+				cached = Content.listCached(props.over.substring(0, firstSlash), props.filter);
+			}
+			
+			if(cached){
+				if(cached.then){
+					// Special case on the server. It's a promise, but the result needs to be processed immediately.
+					// Only this constructor executes if a promise is in the state, so it's ok for it to directly overwrite all of this.state when its done.
+					cached.then(r => {
+						this.state = this.processCached(r, props);
+					});
+				}else{
+					this.state = this.processCached(cached, props);
+				}
+			}else{
+				// Can only client side load this one
+				this.state = {
+					pageIndex: 1
+				};
+			}
+		}else{
+			// Invalid!
+		}
 
 		this.onLiveMessage = this.onLiveMessage.bind(this);
 		this.onContentChange = this.onContentChange.bind(this);
 	}
+	
+	processCached(pending, props){
+		var results = (pending && pending.results) ? pending.results : [];
+		
+		if (props.onResults) {
+			results = props.onResults(results);
+		}
 
+		if (props.reverse) {
+			results = results.reverse();
+		}
+		
+		return {
+			results, errored: false, totalResults: pending.total
+		};
+	}
+	
+	componentWillMount(){
+		// Required for the server, as the _pending object above is a promise which 
+		var {_pending} = this.state;
+		var props = this.props;
+		
+		if(_pending){
+			
+		}
+	}
+	
 	onLiveMessage(msg) {
 		if (msg.all) {
 			if (msg.type == "status") {
 				if (msg.connected) {
 					// Force a reload:
-					this.load(this.props, true);
+					this.load(this.props);
 				}
 
 				this.props.onLiveStatus && this.props.onLiveStatus(msg.connected);
@@ -355,10 +410,14 @@ export default class Loop extends React.Component {
 		this.onLiveMessage({entity, method: e.deleted ? 'delete' : (e.created ? 'create' : 'update')});
 	}
 
-	componentWillMount() {
+	componentDidMount() {
 		// contentchange is fired off by posting to API endpoints which then return an entity (object with both id and type fields).
 		document.addEventListener("contentchange", this.onContentChange);
-		this.load(this.props);
+		
+		if(!this.state.results){
+			// No cached results - load now:
+			this.load(this.props);
+		}
 	}
 
 	componentWillUnmount() {
@@ -369,84 +428,71 @@ export default class Loop extends React.Component {
 		document.removeEventListener("contentchange", this.onContentChange);
 	}
 
-	componentWillReceiveProps(props) {
-		this.load(props);
+	componentDidUpdate(prevProps) {
+		var {over, filter} = this.props;
+		
+		// Has the filter/ over prop changed?
+		if(
+			over != prevProps.over || 
+			(Array.isArray(over) && over.length != prevProps.over.length) || 
+			JSON.stringify(filter) != JSON.stringify(prevProps.filter)
+		){
+			this.load(this.props, 1);
+		}
 	}
-
-	load(props, force, newPageIndex) {
-		if (typeof props.over == 'string') {
-
-			var jsonFilter = props.filter ? JSON.stringify(props.filter) : null;
-
-			if (!force && this.state.over == props.over && jsonFilter == this.state.jsonFilter) {
-				// Avoid making a new request.
-				return;
+	
+	getPagedFilter(filter, pageIndex, paged){
+		if (paged) {
+			if (!filter) {
+				filter = {};
 			}
-			
+			filter = { ...filter };
+			filter.pageIndex = pageIndex - 1;
+			filter.includeTotal = true;
+			var pageSize = pageCfg.pageSize || DEFAULT_PAGE_SIZE;
+
+			if (typeof pageCfg == "number") {
+				pageSize = pageCfg;
+			}
+			if (!filter.pageSize) {
+				filter.pageSize = pageSize;
+			}
+		}
+		return filter;
+	}
+	
+	load(props, newPageIndex) {
+		if (typeof props.over == 'string') {
 			if (props.live) {
 				// Note: onLiveMessage is used to detect if the filter changed
 				webSocket.addEventListener(props.live, this.onLiveMessage, props.filter);
 			}
 			
 			var newState = {
-				over: props.over,
-				jsonFilter,
 				errored: false 
 			};
-			
-			if(this.state.over != props.over || jsonFilter != this.state.jsonFilter){
-				newPageIndex = 1;
-			}
 			
 			if(newPageIndex){
 				newState.pageIndex = newPageIndex;
 			}
 			
-			this.setState(newState);	
+			this.setState(newState);
+			var filter = this.getPagedFilter(props.filter, newPageIndex || this.state.pageIndex, props.paged);
 			
-			var filter = props.filter;
-			
-			var pageCfg = props.paged;
-
-			if (pageCfg) {
-				if (!filter) {
-					filter = {};
-				}
-				filter = { ...filter };
-				filter.pageIndex = (newPageIndex || this.state.pageIndex) - 1;
-				filter.includeTotal = true;
-				var pageSize = pageCfg.pageSize || DEFAULT_PAGE_SIZE;
-
-				if (typeof pageCfg == "number") {
-					pageSize = pageCfg;
-				}
-				if (!filter.pageSize) {
-					filter.pageSize = pageSize;
-				}
-			}
-
-			// check - override page size if mobile-specific page size given and we're on a mobile device
-			if (typeof pageCfg == "object" && pageCfg.mobilePageSize) {
-				var html = document.getElementsByTagName("html");
-
-				if (html.length && html[0].classList.contains("device-mobile")) {
-					filter.pageSize = pageCfg.mobilePageSize;
-				}
-			}
-			
-			webRequest(props.over, filter).then(response => {
-				var fieldName = props.field || 'results';
-				var results = (response && response.json && response.json[fieldName]) ? response.json[fieldName] : [];
+			// NB: still using webRequest here rather than Content.list because props.over can also be custom named endpoints (for now!)
+			webRequest(props.over, filter).then(responseJson => {
+				var responseJson = responseJson.json;
+				var results = (responseJson && responseJson.results) ? responseJson.results : [];
 
 				if (props.onResults) {
-					results = this.props.onResults(results);
+					results = props.onResults(results);
 				}
 
 				if (props.reverse) {
 					results = results.reverse();
 				}
 
-				this.setState({ results, errored: false, totalResults: response.json.total });
+				this.setState({ results, errored: false, totalResults: responseJson.total });
 			}).catch(e => {
 				console.log('Loop caught an error:');
 				console.error(e);
@@ -463,51 +509,55 @@ export default class Loop extends React.Component {
 
 				if (props.onFailed) {
 					if (props.onFailed(e)) {
-						this.setState({ over: null, jsonFilter: null, results, totalResults: results.length, errored: false });
+						this.setState({ results, totalResults: results.length, errored: false });
 						return;
 					}
 				}
 
-				this.setState({ over: null, jsonFilter: null, results, totalResults: results.length, errored: true, errorMessage: e });
+				this.setState({ results, totalResults: results.length, errored: true, errorMessage: e });
 			});
 
 		} else {
-			// Direct array:
-			var results = props.over;
-			
-			if (props.onResults) {
-				results = this.props.onResults(results);
-			}
-			
-			var newState = { over: null, jsonFilter: null, results, total, errored: false };
-			
-			if(newPageIndex){
-				newState.pageIndex = newPageIndex;
-			}
-			
-			var total = results.totalResults || results.length;
-			var pageCfg = props.paged;
-
-			if (pageCfg) {
-				var offset = (newPageIndex || this.state.pageIndex)-1;
-				var pageSize = pageCfg.pageSize || DEFAULT_PAGE_SIZE;
-				
-				if (typeof pageCfg == "number") {
-					pageSize = pageCfg;
-				}
-				
-				var startIndex = offset * pageSize;
-				results = results.slice(startIndex, startIndex + pageSize);
-			}
-
-			if (props.reverse) {
-				results = results.reverse();
-			}
-			
-			this.setState(newState);
+			this.setState(this.loadDirectArray(props, newPageIndex));
 		}
 	}
+	
+	// Returns state change
+	loadDirectArray(props, newPageIndex) {
+		var results = props.over;
+		
+		if (props.onResults) {
+			results = props.onResults(results);
+		}
+		
+		var pageCfg = props.paged;
+		var totalResults = results.totalResults || results.length;
+		
+		if (pageCfg) {
+			var offset = (newPageIndex || this.state.pageIndex)-1;
+			var pageSize = pageCfg.pageSize || DEFAULT_PAGE_SIZE;
+			
+			if (typeof pageCfg == "number") {
+				pageSize = pageCfg;
+			}
+			
+			var startIndex = offset * pageSize;
+			results = results.slice(startIndex, startIndex + pageSize);
+		}
 
+		if (props.reverse) {
+			results = results.reverse();
+		}
+		
+		var newState = { over: null, jsonFilter: null, results, totalResults, errored: false };
+		
+		if(newPageIndex){
+			newState.pageIndex = newPageIndex;
+		}
+		
+		return newState;
+	}
+	
 	render() {
 		
 		if (this.state.errored) {
@@ -837,7 +887,7 @@ export default class Loop extends React.Component {
 			totalResults={this.state.totalResults}
 			//scrollPref={this.props.scrollPref}
 			onChange={pageIndex => {
-				this.load(this.props, true, pageIndex);
+				this.load(this.props, pageIndex);
 				global.scrollTo && global.scrollTo(0, 0);
 			}}
 		/>;
