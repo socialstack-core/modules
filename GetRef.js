@@ -17,7 +17,7 @@ function basicUrl(url, options){
 	}
 	
 	// React component by default:
-	return (<img src={url} {...options.attribs} />);
+	return (<img loading="lazy" src={url} {...options.attribs} />);
 }
 
 function contentFile(ref, options, r){
@@ -63,11 +63,11 @@ function contentFile(ref, options, r){
 	}
 	
 	if(video){
-		return (<video src={url} width={options.size || 256} controls {...options.attribs} />);
+		return (<video src={url} width={options.size || 256} loading="lazy" controls {...options.attribs} />);
 	}
 	
 	// React component by default:
-	return (<img src={url} width={options.size || undefined} {...options.attribs} />);
+	return (<img src={url} width={options.size || undefined} loading="lazy" {...options.attribs} />);
 }
 
 function fontAwesomeIcon(ref, options, r){
