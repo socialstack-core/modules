@@ -22,5 +22,8 @@ export default function(custom){
 			<App />,
 			root
 		);
+		
+		// Dump the initial load cache:
+		global.sscache = null;
 	}
 };
