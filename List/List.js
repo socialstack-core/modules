@@ -84,7 +84,7 @@ export default class List extends React.Component{
 				<Modal classname = "comment-report-modal" title = "Report comment" visible = {reportComment} onClose = {() => {this.setState({reportComment: null})}}>
 					<ReportComment onClose = {() => {this.setState({reportComment: null})}} comment = {reportComment}/>
 				</Modal>
-				<Add contentId={contentId} contentTypeId={contentTypeId} />
+				<Add contentId={contentId} contentTypeId={contentTypeId} visible = {true}/>
 				<Loop over='comment/list' filter={
 					{
 						where:{
