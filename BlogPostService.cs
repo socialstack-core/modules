@@ -139,9 +139,9 @@ namespace Api.Blogs
 					var bodyJson = JObject.Parse(blogPost.BodyJson);
 					synopsis = Regex.Replace(bodyJson.Value<string>("content"), @"<[^>]*>", string.Empty);
 
-					if (synopsis.Length > 150)
+					if (synopsis.Length > 500)
 					{
-						synopsis = synopsis.Substring(0, 147) + "...";
+						synopsis = synopsis.Substring(0, 497) + "...";
 					}
 
 					blogPost.Synopsis = synopsis;
