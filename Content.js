@@ -173,6 +173,17 @@ Content.get = function(type, id) {
 };
 
 // E.g:
+// content.list("blog", {where: ...});
+// A convenience wrapper which is shorted serverside for rapid performance.
+// Returns a promise which will either resolve directly to the object, 
+// or be rejected with a message and statusCode if there was an error.
+// You should only use this from componentDidMount and componentDidUpdate (or useEffect) for correct React usage.
+Content.list = function(type, filter) {
+	var url = type + '/list';
+	return webRequest(url, filter).then(response => response.json);
+};
+
+// E.g:
 // content.getCached("blog", 1, context);
 // Returns the object immediately if it came from the cache, otherwise null.
 // This should be used in your component constructor.
@@ -182,4 +193,8 @@ Content.get = function(type, id) {
 // constructed will be awaited and swapped with the resolved value before proceeding.
 Content.getCached = function(type, id) {
 	return global.sscache && global.sscache[type] ? global.sscache[type][id] : null;
+};
+
+Content.listCached = function(type, filter) {
+	return global.sscache && global.sscache[type] ? global.sscache[type][JSON.stringify(filter)] : null;
 };
