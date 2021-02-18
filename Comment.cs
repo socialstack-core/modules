@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using Api.Database;
 using Api.Reactions;
 using Api.Users;
+using Api.WebSockets;
 
 namespace Api.Comments
 {
@@ -10,7 +11,7 @@ namespace Api.Comments
 	/// <summary>
 	/// A comment on some particular content.
 	/// </summary>
-	public partial class Comment : RevisionRow, IHaveReactions
+	public partial class Comment : RevisionRow, IHaveReactions, IAmLive
 	{
 		/// <summary>
 		/// The content this comment is on.
