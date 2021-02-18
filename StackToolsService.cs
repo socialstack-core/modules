@@ -23,7 +23,7 @@ namespace Api.StackTools
 	/// This service is used to invoke the socialstack command line tools (node.js) 
 	/// which e.g. build/ serverside render the UI and render emails etc.
 	/// </summary>
-	public partial class StackToolsService
+	public partial class StackToolsService : AutoService
 	{
 		/// <summary>
 		/// Simply an empty file to indicate that the API is actively connected to the node process.
@@ -51,6 +51,8 @@ namespace Api.StackTools
 #endif
 		)
 		{
+			#if DEBUG
+			// Only need to spawn a process on debug (dev) builds.
 			Task.Run(() =>
 			{
 				// Version + install check:
@@ -58,7 +60,7 @@ namespace Api.StackTools
 
 				// Spawn the service now. We spawn it in the "interactive" mode which means we get one node.js service
 				// which can handle multiple simultaneous requests via stdin.
-				Spawn();
+				SpawnWatcher();
 			});
 
 #if !NETCOREAPP2_1 && !NETCOREAPP2_2
@@ -70,7 +72,7 @@ namespace Api.StackTools
 			AppDomain.CurrentDomain.ProcessExit += (object sender, EventArgs e) => {
 				StopAll();
 			};
-
+			#endif
 		}
 		
 		/// <summary>
@@ -146,7 +148,7 @@ namespace Api.StackTools
 		/// <summary>
 		/// Min tools version
 		/// </summary>
-		private Version MinVersion = new Version("2.0.7");
+		private Version MinVersion = new Version("2.0.10");
 
 		private void CheckInstall()
 		{
@@ -193,48 +195,27 @@ namespace Api.StackTools
 		}
 
 		/// <summary>
-		/// Spawns a new interactive process.
+		/// Spawns a new watch process.
 		/// If it fails because the tools aren't installed, it will go ahead and try to install them.
 		/// You can install manually too if you'd like: run "npm install -g socialstack".
 		/// </summary>
 		/// <returns></returns>
-		private void Spawn()
+		private void SpawnWatcher()
 		{
+			var cfg = GetConfig<StackToolsServiceConfig>();
+			
+			if(!cfg.WatcherActiveOnDebugBuilds){
+				return;
+			}
+			
 			var lockFilePath = Path.GetTempFileName();
 			LockFile = new FileStream(lockFilePath, FileMode.OpenOrCreate, FileAccess.Read, FileShare.None);
-			NodeProcess = new NodeProcess("socialstack interactive -lockfile \"" + lockFilePath + "\"");
-
-			NodeProcess.OnStateChange += (NodeProcessState state) => {
-				if (state == NodeProcessState.READY)
-				{
-
-					// We default to prod mode if we're a release build.
-#if DEBUG
-					var prod = false;
-#else
-			var prod = true;
-#endif
-					// Start the UI watcher straight away:
-					NodeProcess.Request(new WatchRequest()
-					{
-						minified = prod,
-						compress = prod
-					}, (string e, JObject response) => {
-						if (e != null)
-						{
-							return;
-						}
-						
-						Console.WriteLine("UI watch command completed.");
-					});
-				}
-			};
+			NodeProcess = new NodeProcess("socialstack watch -lockfile \"" + lockFilePath + "\"");
 
 			// Start it now:
 			NodeProcess.Start();
-
 		}
-		
+
 	}
     
 }

@@ -289,7 +289,7 @@ namespace Api.StackTools
 					}
 					catch
 					{
-						// Wasn't json (or a valid message) - just write it out.
+						// Wasn't json (or a valid message) - just write it out (happens below).
 					}
 				}
 
