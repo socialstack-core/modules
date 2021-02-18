@@ -10,6 +10,10 @@ namespace Api.CanvasRenderer
     /// </summary>
     public struct RenderedCanvas
     {
+        /// <summary>
+        /// True if it failed to render. This only happens when the .js files containing the components doesn't exist or can't be read by the API process.
+        /// </summary>
+        public bool Failed { get; set; }
 		/// <summary>
 		/// The HTML that was generated.
 		/// </summary>

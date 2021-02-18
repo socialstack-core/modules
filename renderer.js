@@ -613,20 +613,21 @@ _contentModule.getCached = (type, id) => {
 };
 
 _contentModule.listCached = (type, filter) => {
-	if (!_currentContext) {
+	if (!_currentContext || type == 'userprofile') {
 		// Invalid call site - constructors only.
 		return null;
 	}
 
-	var filterJson = JSON.stringify(filter);
 	var cctx = _currentContext;
+	var filterJson = JSON.stringify(filter);
 
 	return new Promise(s => {
-		document.getContentsByFilter(cctx.app.apiContext, getContentTypeId(type), filter, jsonResponse => {
+		document.getContentsByFilter(cctx.app.apiContext, getContentTypeId(type), filterJson, jsonResponse => {
 			if (cctx.__contextualData) {
 				// We're tracking contextual data
 				cctx.__contextualData += "sscache._a(\'" + type + "\',\'" + filterJson + "\'," + jsonResponse + ");";
 			}
+			console.log("Running the callback for listCached!");
 			s(JSON.parse(jsonResponse));
 		});
 	});
