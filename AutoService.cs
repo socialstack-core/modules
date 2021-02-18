@@ -3,6 +3,7 @@ using Api.Database;
 using Api.Eventing;
 using Api.Permissions;
 using Api.Startup;
+using Newtonsoft.Json.Linq;
 using System;
 using System.Collections;
 using System.Collections.Generic;
@@ -392,7 +393,51 @@ public partial class AutoService<T, ID> : AutoService
 
 		return results;
 	}
-	
+
+	/// <summary>
+	/// Gets objects from this service using a generic serialized filter. Use List instead whenever possible.
+	/// </summary>
+	/// <param name="context"></param>
+	/// <param name="filterJson"></param>
+	/// <param name="applyPermissions"></param>
+	/// <returns></returns>
+	public override async ValueTask<ListWithTotal> ListObjects(Context context, string filterJson, bool applyPermissions = false)
+	{
+		var filters = Newtonsoft.Json.JsonConvert.DeserializeObject(filterJson) as JObject;
+		var filter = new Filter<T>(filters);
+
+		if (applyPermissions)
+		{
+			filter = await EventGroup.List.Dispatch(context, filter, null);
+		}
+
+		ListWithTotal<T> response;
+
+		if (filter.PageSize != 0 && filters != null && filters["includeTotal"] != null)
+		{
+			// Get the total number of non-paginated results as well:
+			response = await ListWithTotal(context, filter);
+		}
+		else
+		{
+			// Not paginated or requestor doesn't care about the total.
+			var results = await List(context, filter);
+
+			response = new ListWithTotal<T>()
+			{
+				Results = results
+			};
+
+			if (filter.PageSize == 0)
+			{
+				// Trivial instance - pagination is off so the total is just the result set length.
+				response.Total = results == null ? 0 : results.Count;
+			}
+		}
+
+		return response;
+	}
+
 	/// <summary>
 	/// Gets a single entity by its ID, then performs a permission system check.
 	/// Throws if the permission system rejects the call.
@@ -783,6 +828,18 @@ public partial class AutoService
 	public virtual ValueTask<IEnumerable> ListObjects(Context context, IEnumerable<int> ids)
 	{
 		return new ValueTask<IEnumerable>((IEnumerable)null);
+	}
+
+	/// <summary>
+	/// Gets objects from this service using a generic serialized filter. Use List instead whenever possible.
+	/// </summary>
+	/// <param name="context"></param>
+	/// <param name="filterJson"></param>
+	/// <param name="applyPermissions"></param>
+	/// <returns></returns>
+	public virtual ValueTask<ListWithTotal> ListObjects(Context context, string filterJson, bool applyPermissions = false)
+	{
+		return new ValueTask<ListWithTotal>((ListWithTotal)null);
 	}
 
 	/// <summary>
