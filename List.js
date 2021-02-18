@@ -11,21 +11,16 @@ export default class List extends React.Component {
 	}
 	
 	render(){
-		var path = document.location.pathname;
-		if(path[path.length-1] != '/'){
-			path += '/';
-		}
-		
 		return (
 			<Default>
 				{!this.props.noCreate && 
 					<Tile>
-						<a href={path + 'add'}>
+						<a href={'/en-admin/' + this.props.endpoint + '/add'}>
 							<div className="btn btn-primary">Create</div>
 						</a>
 					</Tile>
 				}
-				<AutoList endpoint={this.props.endpoint} path={path} {...this.props} />
+				<AutoList endpoint={this.props.endpoint} {...this.props} />
 				{this.props.children}
 			</Default>	
 		);
