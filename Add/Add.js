@@ -40,6 +40,7 @@ export default class Add extends React.Component{
 						(response, values, e) => {
 							this.setState({success: true, failure: false, submitting: false});
 							this.props.onClose && this.props.onClose();
+							e.target.reset();
 						}
 					}
 					onValues = { values => {return {
@@ -49,12 +50,12 @@ export default class Add extends React.Component{
 						parentCommentId
 					}}}
 				>
-                <Input placeholder="Leave us your thoughts!" type="textarea" name = "bodyJson"/>
+                <Input placeholder="Leave us your thoughts!" type="textarea" name = "bodyJson" validate={["Required"]}/>
                 <Row className = "comment-buttons">
 					<Input type="submit" label="Comment"/>
-					<div className = "cancel-button form-group">
+					{this.props.onClose && <div className = "cancel-button form-group">
 						<button className = "btn btn-danger" onClick = {() => {this.close();}}>Cancel</button>
-					</div>
+					</div>}
 				</Row>
 				
 				
