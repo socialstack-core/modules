@@ -83,11 +83,13 @@ namespace Api.CanvasRenderer
 			// Get body and data:
 			var body = result.body as string;
 			var data = result.data as string;
+			var text = result.text as string;
 
 			// The result is..
 			var canvas = new RenderedCanvas()
 			{
 				Body = body,
+				Text = text,
 				Data = data
 			};
 
