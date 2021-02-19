@@ -14,9 +14,10 @@ export default class PageRouter extends React.Component{
 		this.props.onNavigate && this.props.onNavigate(url);
 	}
 	
-	constructor(props){
-		super(props);
+	constructor(props, context){
+		super(props, context);
 		global.pageRouter = this;
+		context.pageRouter = this;
 		this.onLinkClick = this.onLinkClick.bind(this);
 		this.onPopState = this.onPopState.bind(this);
 		this.state = global.pageRouterData ? this.loadPageData(global.pageRouterData) : {tokens:{}};
