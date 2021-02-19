@@ -8,6 +8,8 @@ using Api.Permissions;
 using System.Collections.Generic;
 using Api.Configuration;
 using Newtonsoft.Json.Linq;
+using Api.CanvasRenderer;
+using System;
 
 namespace Api.Blogs
 {
@@ -18,6 +20,7 @@ namespace Api.Blogs
 	public partial class BlogPostService : AutoService<BlogPost>
     {
         private readonly BlogService _blogs;
+		private CanvasRendererService _csr;
 		
 		/// <summary>
 		/// Instanced automatically. Use injection to use this service, or Startup.Services.Get.
@@ -106,13 +109,25 @@ namespace Api.Blogs
 						return blogPost;
 					}
 
-					// No synopsis was added, let's get one based on the body json. 
-					var bodyJson = JObject.Parse(blogPost.BodyJson);
-					synopsis = Regex.Replace(bodyJson.Value<string>("content"), @"<[^>]*>", string.Empty);
-
-					if (synopsis.Length > 150)
+					// Was a synopsis passed in? if so, just pass the blogPost on.
+					if (blogPost.Synopsis != null && blogPost.Synopsis != "")
 					{
-						synopsis = synopsis.Substring(0, 147) + "...";
+						return blogPost;
+					}
+
+					if (_csr == null)
+					{
+						_csr = Services.Get<CanvasRendererService>();
+					}
+
+					// No synopsis was added, let's get one based on the body json. 
+					var renderedPage = await _csr.Render(context, blogPost.BodyJson, null, false, null, RenderMode.Text);
+
+					synopsis = renderedPage.Text;
+
+					if (synopsis.Length > 500)
+					{
+						synopsis = synopsis.Substring(0, 497) + "...";
 					}
 
 					blogPost.Synopsis = synopsis;
@@ -135,9 +150,15 @@ namespace Api.Blogs
 						return blogPost;
 					}
 
+					if(_csr == null)
+                    {
+						_csr =  Services.Get<CanvasRendererService>();
+                    }
+
 					// No synopsis was added, let's get one based on the body json. 
-					var bodyJson = JObject.Parse(blogPost.BodyJson);
-					synopsis = Regex.Replace(bodyJson.Value<string>("content"), @"<[^>]*>", string.Empty);
+					var renderedPage = await _csr.Render(context, blogPost.BodyJson, null, false, null, RenderMode.Text);
+
+					synopsis = renderedPage.Text;
 
 					if (synopsis.Length > 500)
 					{
