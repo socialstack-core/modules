@@ -449,10 +449,10 @@ export default class Loop extends React.Component {
 			filter = { ...filter };
 			filter.pageIndex = pageIndex - 1;
 			filter.includeTotal = true;
-			var pageSize = pageCfg.pageSize || DEFAULT_PAGE_SIZE;
+			var pageSize = paged.pageSize || DEFAULT_PAGE_SIZE;
 
-			if (typeof pageCfg == "number") {
-				pageSize = pageCfg;
+			if (typeof paged == "number") {
+				pageSize = paged;
 			}
 			if (!filter.pageSize) {
 				filter.pageSize = pageSize;
