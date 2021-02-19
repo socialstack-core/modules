@@ -15,9 +15,13 @@ namespace Api.CanvasRenderer
         /// </summary>
         public bool Failed { get; set; }
 		/// <summary>
-		/// The HTML that was generated.
+		/// The HTML that was generated (unless you asked for text only).
 		/// </summary>
         public string Body { get; set; }
+		/// <summary>
+		/// If you asked for text, the text that was generated.
+		/// </summary>
+        public string Text { get; set; }
 
         /// <summary>
         /// Javascript string which reconstructs the state used by the renderer. This is an empty string if you turned tracking it off.

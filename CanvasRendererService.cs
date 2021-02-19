@@ -35,12 +35,13 @@ namespace Api.CanvasRenderer
 		/// </summary>
 		/// <param name="context">The context that the json will be rendered as. Any data requests are made as this user.</param>
 		/// <param name="bodyJson">The JSON for the canvas.</param>
+		/// <param name="mode">Html only, text only, or both.</param>
 		/// <param name="url">An optional URL of the page being rendered.</param>
 		/// <param name="trackDataRequests">Set this to true if you'd like a JS object representing the complete state that was ultimately loaded or used by the renderer.
 		/// This is vital for accurate rehydration in web clients, but a waste of cycles when it won't be used like in an email.</param>
 		/// <param name="customState">Functions like POSTed data; this is some initial state added to the context as "this.context.postData"</param>
 		/// <returns></returns>
-		public async ValueTask<RenderedCanvas> Render(Contexts.Context context, string bodyJson, string url = null, bool trackDataRequests = false, object customState = null)
+		public async ValueTask<RenderedCanvas> Render(Contexts.Context context, string bodyJson, string url = null, bool trackDataRequests = false, object customState = null, RenderMode mode = RenderMode.Html)
 		{
 			if (context == null)
 			{
@@ -75,7 +76,8 @@ namespace Api.CanvasRenderer
 					JsonConvert.SerializeObject(publicContext, jsonFormatter),
 					url,
 					customState,
-					trackDataRequests
+					trackDataRequests,
+					(int)mode
 				) as Task<object>)) as dynamic;
 
 			// Get body and data:
