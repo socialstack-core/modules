@@ -95,8 +95,15 @@ export default class List extends React.Component{
 						sort: {
 							field: 'Order'
 						}
-					}
-				}>
+					}	
+				}
+				orNone = {() =>{
+					return <div>
+						<h3>No Comments yet?</h3>
+						<p>Be the first to leave your thoughts!</p>
+					</div>
+				}}
+				>
 					{comment => {
 
 						var isUser = (global.app.state.user && comment.creatorUser.id == global.app.state.user.id);
