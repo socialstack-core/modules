@@ -112,7 +112,7 @@ export default class List extends React.Component{
 									<Row className = "comment-actions">
 										<button onClick = {() => {this.replyToggle(comment)}} className = "btn"><i class="far fa-comment-alt-lines"></i> Reply</button> 
 										{isUser && <button onClick = {() => {this.editToggle(comment)}}className = "btn"><i class="fas fa-pencil"></i> Edit</button>}
-										{!isUser && <button onCLick = {() => {this.setState({reportComment: comment})}} className = "btn"><i class="far fa-flag"></i> Report</button>}
+										{!isUser && global.app.state.user && <button onCLick = {() => {this.setState({reportComment: comment})}} className = "btn"><i class="far fa-flag"></i> Report</button>}
 										{isUser && <button onClick = {() => {this.setState({deleteComment: comment})}} className = "btn"><i class="far fa-trash-alt"></i> Delete</button>}
 									</Row>
 								</>}

@@ -2,6 +2,8 @@ import Input from "UI/Input";
 import Form from "UI/Form";
 import Alert from "UI/Alert";
 import Row from "UI/Row";
+import Modal from "UI/Modal";
+import LoginForm from "UI/LoginForm";
 
 export default class Add extends React.Component{
 	constructor(props){
@@ -24,6 +26,28 @@ export default class Add extends React.Component{
 
 		if(!visible) {
 			return;
+		}
+
+		console.log(global.app.state.user);
+
+		if(!global.app.state.user) {
+			return <div>
+				<p>You must be logged in to leave a comment.</p>
+				<Row className = "comment-buttons">
+					<button onClick = {() => {this.setState({login: true})}} className = "btn btn-secondary">
+						Login
+					</button>
+				</Row>
+
+				<Modal
+					visible = {this.state.login}
+					onClose = {() => {this.setState({login: false});}}
+					title = "Login"
+				>
+					<LoginForm noRedirect onLogin = {() => {this.setState({login:false})}}/>
+				</Modal>
+
+			</div>
 		}
 		
         return(
