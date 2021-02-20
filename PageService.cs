@@ -268,10 +268,9 @@ namespace Api.Pages
 		/// </param>
 		public async ValueTask InstallAdminPages(Type type, string[] fields, ChildAdminPageOptions childAdminPage)
 		{
-			var fieldString = Newtonsoft.Json.JsonConvert.SerializeObject(fields);
 			var typeName = type.Name.ToLower();
 
-			var listPageCanvas = new CanvasNode("Admin/Pages/List").With("endpoint", typeName).With("fields", fieldString);
+			var listPageCanvas = new CanvasNode("Admin/Pages/List").With("endpoint", typeName).With("fields", fields);
 
 			var listPage = new Page
 			{
