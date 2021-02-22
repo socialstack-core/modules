@@ -10,6 +10,27 @@ if (!String.prototype.startsWith) {
     });
 }
 
+
+/**
+ * Math.imul() polyfill
+ * https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Math/imul#:~:text=imul()%20allows%20for%2032,Math%20is%20not%20a%20constructor).
+ */
+if (!Math.imul){
+    Math.imul = function (opA, opB) {
+    	opB |= 0; // ensure that opB is an integer. opA will automatically be coerced.
+    	// floating points give us 53 bits of precision to work with plus 1 sign bit
+    	// automatically handled for our convienence:
+    	// 1. 0x003fffff /*opA & 0x000fffff*/ * 0x7fffffff /*opB*/ = 0x1fffff7fc00001
+    	//    0x1fffff7fc00001 < Number.MAX_SAFE_INTEGER /*0x1fffffffffffff*/
+    	var result = (opA & 0x003fffff) * opB;
+    	// 2. We can remove an integer coersion from the statement above because:
+    	//    0x1fffff7fc00001 + 0xffc00000 = 0x1fffffff800001
+    	//    0x1fffffff800001 < Number.MAX_SAFE_INTEGER /*0x1fffffffffffff*/
+    	if (opA & 0xffc00000 /*!== 0*/) result += (opA & 0xffc00000) * opB | 0;
+    	return result | 0;
+    };
+}
+
 /**
  * String.prototype.padStart() polyfill
  * https://github.com/uxitten/polyfill/blob/master/string.polyfill.js
@@ -389,7 +410,7 @@ var objectFitImages = (function () {
 
 /*
 Details Element Polyfill 2.4.0
-Copyright © 2019 Javan Makhmali
+Copyright  2019 Javan Makhmali
  */
 (function () {
     "use strict";
@@ -613,7 +634,7 @@ if (!Array.prototype.find) {
       while (k < len) {
         // a. Let Pk be ! ToString(k).
         // b. Let kValue be ? Get(O, Pk).
-        // c. Let testResult be ToBoolean(? Call(predicate, T, « kValue, k, O »)).
+        // c. Let testResult be ToBoolean(? Call(predicate, T,  kValue, k, O )).
         // d. If testResult is true, return kValue.
         var kValue = o[k];
         if (predicate.call(thisArg, kValue, k, o)) {
