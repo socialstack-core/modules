@@ -105,35 +105,52 @@ function keyDownHandler(event) {
 
 // get current page scroll position
 function getScrollPos() {
-    return global.pageYOffset != undefined ? global.pageYOffset :
+    var pos = global.pageYOffset != undefined ? global.pageYOffset :
         document.documentElement.scrollTop || document.body.scrollTop || 0;
+	
+	console.log("getScrollPos: ", pos);
+	
+    return pos;
 }
 
 // get viewport height
 function getViewportHeight() {
-    return Math.max(document.documentElement.clientHeight, global.innerHeight);
+    var vh = Math.max(document.documentElement.clientHeight, global.innerHeight);
+	
+	console.log("getViewportHeight: ", vh);
+	
+    return vh;
 }
 
 // get full page height
 function getDocumentHeight() {
     var body = document.body,
-        html = document.documentElement;
+        html = document.documentElement,
+		docHeight = Math.max(body.scrollHeight, body.offsetHeight, html.clientHeight, html.scrollHeight, html.offsetHeight);
 
-    return Math.max(body.scrollHeight, body.offsetHeight, html.clientHeight, html.scrollHeight, html.offsetHeight);
+	console.log("getDocumentHeight: ", docHeight);
+
+    return docHeight;
 }
 
 // return number of steps on this page
 function getPageCount() {
     var pages = document.querySelectorAll("[data-slide]");
+    var count = pages ? pages.length : 0;
 
-    return pages ? pages.length : 0;
+	console.log("getPageCount: ", count);
+
+    return count;
 }
 
 // return given page
 function getPage(index) {
     var pages = document.querySelectorAll("[data-slide]");
+    var page = pages && index <= pages.length ? pages[index - 1] : null;
 
-    return pages && index <= pages.length ? pages[index - 1] : null;
+	console.log("getPage: ", page);
+
+    return page;
 }
 
 // get y value at top of given page
@@ -148,6 +165,8 @@ function getPageTop(index) {
     for (var i = 0; i < index-1; i++) {
         startY += pages[i].offsetHeight;
     }
+
+	console.log("getPageTop: ", startY);
 
     return startY;
 }
@@ -164,6 +183,8 @@ function getPageBottom(index) {
     for (var i = 0; i < index; i++) {
         endY += pages[i].offsetHeight;
     }
+
+	console.log("getPageBottom: ", endY);
 
     return endY;
 }
@@ -184,6 +205,8 @@ function getActiveIndex() {
 
         startY += page.offsetHeight;
     }
+
+	console.log("getActiveIndex: ", pages.length);
 
     return pages.length;
 }
