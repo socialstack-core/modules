@@ -108,9 +108,10 @@ function getScrollPos() {
     var pos = global.pageYOffset != undefined ? global.pageYOffset :
         document.documentElement.scrollTop || document.body.scrollTop || 0;
 	
-	console.log("getScrollPos: ", pos);
-	
-    return pos;
+	console.log("getScrollPos: ", Math.ceil(pos));
+
+    // round up as this may be a subpixel value
+    return Math.ceil(pos);
 }
 
 // get viewport height
