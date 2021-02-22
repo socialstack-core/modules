@@ -83,9 +83,7 @@ export default function (e, options) {
 					}, 1);
 					
 				} else {
-					if (options.onFailed) {
-						options.onFailed(response.json, values, e);
-					}
+					options.onFailed && options.onFailed(response.json, values, e);
 				}
 				
 			}
@@ -93,9 +91,7 @@ export default function (e, options) {
 		
 	}).catch(err => {
 		console.log(err);
-		if (options.onFailed) {
-			options.onFailed(err);
-		}
+		options.onFailed && options.onFailed(err);
 	});
 	
 	return false;
