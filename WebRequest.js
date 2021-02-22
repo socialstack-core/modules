@@ -40,11 +40,7 @@ export default function webRequest(origUrl, data, opts) {
 				}
 				
                 if (!response.ok) {
-                    if (json) {
-                        reject(json);
-                    } else {
-                        reject({ error: 'invalid response' });
-                    }
+                    reject(json || { error: 'invalid response' });
 					return;
                 }
 
@@ -64,16 +60,6 @@ export default function webRequest(origUrl, data, opts) {
 				}else if(data){
 					method = 'post';
 				}
-				
-				/*
-				if((method == 'post' || method == 'get') && json && json.results){
-					json.results.forEach(content => {
-						receivedContent(content);
-					});
-				}else if(method == 'get'){
-					receivedContent(json);
-				}
-				*/
 				
 				success(response);
 				
