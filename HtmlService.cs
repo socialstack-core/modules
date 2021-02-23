@@ -181,6 +181,7 @@ namespace Api.Pages
 
 			return "{\"page\":" + Newtonsoft.Json.JsonConvert.SerializeObject(pageAndTokens.Page, jsonSettings) +
 				", \"tokens\":" + (pageAndTokens.TokenValues != null ? Newtonsoft.Json.JsonConvert.SerializeObject(pageAndTokens.TokenValues, jsonSettings) : "null") +
+				", \"tokenNames\":" + (pageAndTokens.TokenNames != null ? Newtonsoft.Json.JsonConvert.SerializeObject(pageAndTokens.TokenNames, jsonSettings) : "null") +
 				", \"po\":" + (primaryObject != null ? Newtonsoft.Json.JsonConvert.SerializeObject(primaryObject, jsonSettings) : "null") +
 				",\"data\":" + state + "}";
 		}
@@ -301,6 +302,8 @@ namespace Api.Pages
 							.AppendChild(
 								new TextNode(
 									"window.pgState={\"page\":" + Newtonsoft.Json.JsonConvert.SerializeObject(page, jsonSettings) +
+										", \"tokens\":" + (pageAndTokens.TokenValues != null ? Newtonsoft.Json.JsonConvert.SerializeObject(pageAndTokens.TokenValues, jsonSettings) : "null") +
+										", \"tokenNames\":" + (pageAndTokens.TokenNames != null ? Newtonsoft.Json.JsonConvert.SerializeObject(pageAndTokens.TokenNames, jsonSettings) : "null") +
 										", \"po\":" + (doc.PrimaryObject != null ? Newtonsoft.Json.JsonConvert.SerializeObject(doc.PrimaryObject, jsonSettings) : "null") +
 										",\"data\":" + preRender.Data + "};"
 								)
@@ -319,7 +322,9 @@ namespace Api.Pages
 					new DocumentNode("script")
 					.AppendChild(
 						new TextNode(
-							"window.pgState={\"page\":" + Newtonsoft.Json.JsonConvert.SerializeObject(page, jsonSettings) + 
+							"window.pgState={\"page\":" + Newtonsoft.Json.JsonConvert.SerializeObject(page, jsonSettings) +
+							", \"tokens\":" + (pageAndTokens.TokenValues != null ? Newtonsoft.Json.JsonConvert.SerializeObject(pageAndTokens.TokenValues, jsonSettings) : "null") +
+							", \"tokenNames\":" + (pageAndTokens.TokenNames != null ? Newtonsoft.Json.JsonConvert.SerializeObject(pageAndTokens.TokenNames, jsonSettings) : "null") +
 							", \"po\":" + (doc.PrimaryObject != null ? Newtonsoft.Json.JsonConvert.SerializeObject(doc.PrimaryObject, jsonSettings) : "null") + 
 							"};"
 						)

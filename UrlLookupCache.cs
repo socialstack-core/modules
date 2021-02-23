@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Reflection;
 
 namespace Api.Pages
@@ -156,6 +157,7 @@ namespace Api.Pages
 
 				pg.Page = page;
 				pg.UrlTokens = tokenSet;
+				pg.UrlTokenNames = tokenSet.Select(token => token.RawToken).ToList();
 			}
 
 		}
@@ -231,6 +233,7 @@ namespace Api.Pages
 			{
 				Page = curNode.Page,
 				Tokens = curNode.UrlTokens,
+				TokenNames = curNode.UrlTokenNames,
 				TokenValues = wildcardTokens
 			};
 		}
@@ -245,6 +248,10 @@ namespace Api.Pages
 		/// The tokens associated with the page itself.
 		/// </summary>
 		public List<PageUrlToken> Tokens;
+		/// <summary>
+		/// The tokens associated with the page itself (just their names).
+		/// </summary>
+		public List<string> TokenNames;
 		/// <summary>
 		/// The page.
 		/// </summary>
@@ -264,6 +271,10 @@ namespace Api.Pages
 		/// If this node has a page associated with it, this is the set of url tokens. The primary object is always derived from the last one.
 		/// </summary>
 		public List<PageUrlToken> UrlTokens;
+		/// <summary>
+		/// If this node has a page associated with it, this is the set of url tokens. The primary object is always derived from the last one. This is just the names only.
+		/// </summary>
+		public List<string> UrlTokenNames;
 		/// <summary>
 		/// The page
 		/// </summary>
