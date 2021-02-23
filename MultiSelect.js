@@ -6,8 +6,6 @@ import Search from 'UI/Search';
 
 export default class MultiSelect extends React.Component {
 	
-	input = null;
-	
     constructor(props) {
         super(props);
 		
