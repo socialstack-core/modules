@@ -17,13 +17,16 @@ export default function(custom){
 		var loader = document.getElementById('react-loading');
 		loader && loader.parentNode.removeChild(loader);
 		
+		// Reset load cache index:
+		global.cIndex = 0;
+		
 		// Render the root now! When the App instance is created, it sets itself up as this.context.app (as seen by other mounted components).
 		(root.childNodes.length ? React.hydrate : (React.render || ReactDom.render))(
 			<App />,
 			root
 		);
 		
-		// Dump the initial load cache:
-		global.sscache = null;
+		// Mark load cache index as used:
+		global.cIndex = undefined;
 	}
 };
