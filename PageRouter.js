@@ -1,5 +1,6 @@
 import webRequest from 'UI/Functions/WebRequest';
 import Canvas from 'UI/Canvas';
+import getBuildDate from 'UI/Functions/GetBuildDate';
 
 export default class PageRouter extends React.Component{
 	
@@ -89,7 +90,7 @@ export default class PageRouter extends React.Component{
 	
 	componentDidUpdate(oldProps){
 		if(oldProps.url != this.props.url){
-			webRequest("page/state", {url:this.props.url, version: 1}).then(res => this.setState(res.json));
+			webRequest("page/state", {url:this.props.url, version: getBuildDate().timestamp}).then(res => this.setState(res.json));
 		}
 		
 		var {page} = this.state;
