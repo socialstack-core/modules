@@ -1,0 +1,249 @@
+/*
+	media query mixins
+
+    example usage:
+
+    .selector-to-be-affected {
+        @include [MQ_NAME] {
+            // styling rules to be applied once MQ is active
+        }
+    }
+
+    e.g.
+
+    // will cause any elements with the "mobile-hide" class to be hidden when viewed on a mobile device
+    .mobile-hide {
+        @include mq_mobile {
+            display: none;
+        }
+    }
+
+    // will ensure the text input fields will have a font-size of 16px when running under iOS
+    input[type='text'] {
+        @include mq_iOS {
+            font-size: 16px !important;
+        }
+    }
+
+*/
+
+$socialstack_media_queries: (
+  mobile: (
+    small: (
+      from: 0px,
+      to: 320px
+    ),
+    medium: (
+      from: 312px,
+      to: 411px
+    ),
+    large: (
+      from: 412px,
+      to: 767px
+    )
+  ),
+  tablet: (
+    iPadMini: (
+      width: 1024px,
+      height: 768px
+    ),
+    iPad10_2: (
+      width: 1080px,
+      height: 810px
+    ),
+    iPad10_5: (
+      width: 1112px,
+      height: 834px
+    ),
+    iPad11: (
+      width: 1194px,
+      height: 834px
+    ),
+    iPad12_9: (
+      width: 1366px,
+      height: 1024px
+    )
+  )
+);
+
+// mobile mixins
+$ss_mobile: map-get($socialstack_media_queries, mobile);
+$ss_mobileSmall: map-get($ss_mobile, small);
+$ss_mobileMedium: map-get($ss_mobile, medium);
+$ss_mobileLarge: map-get($ss_mobile, large);
+
+// mobile MQ
+// covers all mobile sizes (small / medium / large)
+@mixin mq_mobile {
+  $to: map-get($ss_mobileLarge, to);
+  @media (max-width: #{$to}) and (pointer: coarse) and (orientation: portrait),
+         (max-height: #{$to}) and (pointer: coarse) and (orientation: landscape) {
+    @content;
+  }
+}
+
+// mobile MQ (small)
+@mixin mq_mobileSmall {
+  $from: map-get($ss_mobileSmall, from);
+  $to: map-get($ss_mobileSmall, to);
+  @media (min-width: #{$from}) and (max-width: #{$to}) and (pointer: coarse) and (orientation: portrait),
+         (min-height: #{$from}) and (max-height: #{$to}) and (pointer: coarse) and (orientation: landscape) {
+    @content;
+  }
+}
+
+// mobile MQ (medium)
+@mixin mq_mobileMedium {
+  $from: map-get($ss_mobileMedium, from);
+  $to: map-get($ss_mobileMedium, to);
+  @media (min-width: #{$from}) and (max-width: #{$to}) and (pointer: coarse) and (orientation: portrait),
+         (min-height: #{$from}) and (max-height: #{$to}) and (pointer: coarse) and (orientation: landscape) {
+    @content;
+  }
+}
+
+// mobile MQ (large)
+@mixin mq_mobileLarge {
+  $from: map-get($ss_mobileLarge, from);
+  $to: map-get($ss_mobileLarge, to);
+  @media (min-width: #{$from}) and (max-width: #{$to}) and (pointer: coarse) and (orientation: portrait),
+         (min-height: #{$from}) and (max-height: #{$to}) and (pointer: coarse) and (orientation: landscape) {
+    @content;
+  }
+}
+
+// tablet mixins
+$ss_tablet: map-get($socialstack_media_queries, tablet);
+$ss_iPadMini: map-get($ss_tablet, iPadMini);
+$ss_iPad10_2: map-get($ss_tablet, iPad10_2);
+$ss_iPad10_5: map-get($ss_tablet, iPad10_5);
+$ss_iPad11: map-get($ss_tablet, iPad11);
+$ss_iPad12_9: map-get($ss_tablet, iPad12_9);
+
+// iPad MQ (covers all variants)
+@mixin mq_iPad {
+  $widthMini: map-get($ss_iPadMini, width);
+  $heightMini: map-get($ss_iPadMini, height);
+  $width10_2: map-get($ss_iPad10_2, width);
+  $height10_2: map-get($ss_iPad10_2, height);
+  $width10_5: map-get($ss_iPad10_5, width);
+  $height10_5: map-get($ss_iPad10_5, height);
+  $width11: map-get($ss_iPad11, width);
+  $height11: map-get($ss_iPad11, height);
+  $width12_9: map-get($ss_iPad12_9, width);
+  $height12_9: map-get($ss_iPad12_9, height);
+
+  @media (device-width: #{$heightMini}) and (device-height: #{$widthMini}) and (orientation: portrait),
+         (device-width: #{$widthMini}) and (device-height: #{$heightMini}) and (orientation: landscape),
+
+         (device-width: #{$height10_2}) and (device-height: #{$width10_2}) and (orientation: portrait),
+         (device-width: #{$width10_2}) and (device-height: #{$height10_2}) and (orientation: landscape),
+    
+         (device-width: #{$height10_5}) and (device-height: #{$width10_5}) and (orientation: portrait),
+         (device-width: #{$width10_5}) and (device-height: #{$height10_5}) and (orientation: landscape),
+    
+         (device-width: #{$height11}) and (device-height: #{$width11}) and (orientation: portrait),
+         (device-width: #{$width11}) and (device-height: #{$height11}) and (orientation: landscape),
+
+         (device-width: #{$height12_9}) and (device-height: #{$width12_9}) and (orientation: portrait),
+         (device-width: #{$width12_9}) and (device-height: #{$height12_9}) and (orientation: landscape) {
+    @content;
+  }
+}
+
+// iPad MQ (mini)
+@mixin mq_iPadMini {
+  $width: map-get($ss_iPadMini, width);
+  $height: map-get($ss_iPadMini, height);
+  @media (device-width: #{$height}) and (device-height: #{$width}) and (orientation: portrait),
+         (device-width: #{$width}) and (device-height: #{$height}) and (orientation: landscape) {
+    @content;
+  }
+}
+
+// iPad MQ (10.2")
+@mixin mq_iPad10_2 {
+  $width: map-get($ss_iPad10_2, width);
+  $height: map-get($ss_iPad10_2, height);
+  @media (device-width: #{$height}) and (device-height: #{$width}) and (orientation: portrait),
+         (device-width: #{$width}) and (device-height: #{$height}) and (orientation: landscape) {
+    @content;
+  }
+}
+
+// iPad MQ (10.5")
+@mixin mq_iPad10_5 {
+  $width: map-get($ss_iPad10_5, width);
+  $height: map-get($ss_iPad10_5, height);
+  @media (device-width: #{$height}) and (device-height: #{$width}) and (orientation: portrait),
+         (device-width: #{$width}) and (device-height: #{$height}) and (orientation: landscape) {
+    @content;
+  }
+}
+
+// iPad MQ (11")
+@mixin mq_iPad11 {
+  $width: map-get($ss_iPad11, width);
+  $height: map-get($ss_iPad11, height);
+  @media (device-width: #{$height}) and (device-height: #{$width}) and (orientation: portrait),
+         (device-width: #{$width}) and (device-height: #{$height}) and (orientation: landscape) {
+    @content;
+  }
+}
+
+// iPad MQ (12.9")
+@mixin mq_iPad12_9 {
+  $width: map-get($ss_iPad12_9, width);
+  $height: map-get($ss_iPad12_9, height);
+  @media (device-width: #{$height}) and (device-height: #{$width}) and (orientation: portrait),
+         (device-width: #{$width}) and (device-height: #{$height}) and (orientation: landscape) {
+    @content;
+  }
+}
+
+// desktop mixin
+// (desktop is considered anything larger than the largest mobile width, coupled with an accurate pointing device)
+@mixin mq_desktop {
+  $desktopFrom: map-get($ss_mobileLarge, to) + 1;
+
+  // mobile / tablet should be discounted due to use of 'pointer: fine';
+  // -ms-high-contrast used to include IE10 (doesn't support 'pointer')
+  @media (min-width: #{$desktopFrom}) and (pointer: fine),    
+         (-ms-high-contrast: active),
+         (-ms-high-contrast: none) {
+    @content;
+  }
+}
+
+// IE10/11 mixin
+@mixin mq_IE10Plus {
+  @media (-ms-high-contrast: active), (-ms-high-contrast: none) {
+    @content;
+  }
+}
+
+// mozilla only
+@mixin mq_mozilla {
+  @-moz-document url-prefix() {
+    @content;
+  }
+}
+@mixin mq_firefox {
+  @-moz-document url-prefix() {
+    @content;
+  }
+}
+
+// safari only
+@mixin mq_safari {
+  @media not all and (min-resolution: 0.001dpcm) {
+    @content;
+  }
+}
+
+// iOS only
+@mixin mq_iOS {
+  @supports (-webkit-touch-callout: none) {
+    @content;
+  }
+}
