@@ -192,9 +192,15 @@ Content.list = function(type, filter) {
 // When server side, this may return a promise. Any promises in a component's state when it has been 
 // constructed will be awaited and swapped with the resolved value before proceeding.
 Content.getCached = function(type, id) {
-	return global.sscache && global.sscache[type] ? global.sscache[type][id] : null;
+	if(!global.pageRouter || global.cIndex === undefined){
+		return null;
+	}
+	var {data} = global.pageRouter.state;
+	
+	// Purely by order.
+	return data ? data[global.cIndex++] : null;
 };
 
 Content.listCached = function(type, filter) {
-	return global.sscache && global.sscache[type] ? global.sscache[type][JSON.stringify(filter)] : null;
+	return Content.getCached();
 };
