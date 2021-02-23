@@ -82,14 +82,7 @@ function expand(contentNode, onContentNode){
 		if(module){
 			// Use the mapped module. It could be imported JSON, 
 			// in which case we've got a regular JS object which should be passed to a canvas.
-			
-			if(module.default){
-				contentNode.module = module.default;
-			}else{
-				contentNode.module = Canvas;
-				contentNode.content = module;
-			}
-			
+			contentNode.module = module.default;
 			contentNode.useCanvasRender = true;
 			
 		}else{
@@ -173,11 +166,7 @@ function mapTokens(obj, canvas, Canvas){
 		var value = obj[e];
 		result[e] = value;
 		
-		if(!value){
-			continue;
-		}
-		
-		if(!value.type){
+		if(!value || !value.type){
 			continue;
 		}
 		
@@ -207,130 +196,11 @@ function mapTokens(obj, canvas, Canvas){
 				// from that items field to a prop of the target component.
 				result[e] = props.item ? props.item[value.name] : null;
 			break;
-			case "endpoint":
-				// Loads from an endpoint.
-				result[e] = null;
-				
-				if(value.__result){
-					result[e] = value.__result;
-				}else if(!value.__loading){
-					value.__loading = webRequest(value.url).then(obj => {
-						value.__result = obj.json;
-						canvas.onChange();
-					});
-				}
-			break;
-			case "set":
-			
-				// An array of items from one or more endpoints.
-				result[e] = mapSetValue(value, canvas, Canvas);
-				
-			break;
 		}
 	}
 	
 	result.__canvas = canvas;
 	return result;
 }
-
-function mapSetValue(value, canvas, Canvas){
-	var cached = __vCache.get(value);
-	
-	if(cached && cached.contentType == value.contentType){
-		return cached.result;
-	}
-	
-	// It's either an array of things (which is just as-is), or if it's an object,
-	// then it's describing where we can get the things from.
-	if(Array.isArray(value.items)){
-		/*
-		{
-			type: 'set',
-			items: [1,2,3,4..]								
-		}
-		*/
-		
-		// Just a simple set of items here.
-		var result = value.items;
-		result.renderer = (props) => <Canvas {...props} children={value.renderer} />;
-		__vCache.set(value, {result, contentType: value.contentType});
-		return result;
-	}
-	
-	// It's describing one or more data sources.
-	
-	var sources = [];
-	
-	if(value.contentType){
-		sources.push({
-			contentType: value.contentType,
-			filter: value.filter,
-			map: value.map
-		});
-	}else if(value.source){
-		sources.push(value.source);
-	}else if(value.sources){
-		sources = value.sources;
-	}
-	
-	/* {
-		type: 'set',
-		sources: [
-			{
-				contentType: 'blog',
-				filter: OPTIONAL_LOOP_FILTER,
-				map: {
-					'optional': 'advanced field map which remaps the provided objects to fields the target wants'
-				}
-			},
-			[
-				'as-is arrays supported here too'
-			]
-		]
-		
-	}
-	
-	OR
-	
-	{
-		type: 'set',
-		contentType: 'blog',
-		filter: OPTIONAL_LOOP_FILTER
-	}
-	*/
-	
-	var result = [];
-	
-	sources.map(src => {
-		
-		if(Array.isArray(src)){
-			// Can also mix in regular arrays.
-			result = result.concat(src);
-			return;
-		}
-		
-		webRequest(src.contentType + '/list', src.filter).then(r => {
-			var set = r.json.results;
-			
-			if(src.map){
-				for(var i=0;i<set.length;i++){
-					set[i] = remap(set[i], src.map);
-				}
-			}
-			
-			result = result.concat(set);
-			__vCache.set(value, {result, contentType: value.contentType});
-			result.renderer = (props) => <Canvas {...props} children={value.renderer} />;
-			canvas.onChange();
-		});
-		
-	});
-	
-	__vCache.set(value, {result, contentType: value.contentType});
-	result.renderer = (props) => <Canvas {...props} children={value.renderer} />;
-	return result;
-}
-
-var __vCache = new Map();
 
 export {expand, mapTokens };
