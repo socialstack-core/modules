@@ -13,43 +13,7 @@ export default function url(entity, queryParams, adminScope = false) {
 		return qs;
 	}
 	
-	if(entity.pageId){
-		// Depreciated code route. Do not use PageId on new entity types.
-		// Get page by its ID
-		// Swap out :FieldName with entity.FieldName
-
-		var page = global.pageRouter.state.idMap['' + entity.pageId];
-		
-		if(!page){
-			// Page not found.
-			return '/*' + qs;
-		}
-		
-		// Build the url next.
-		var builtUrl ='';
-		
-		var parts = page.url.split('/');
-		
-		for(var i=0;i<parts.length;i++){
-			var part = parts[i];
-			if(part[0] == ':'){
-				// It's a :token
-				builtUrl += '/' + entity[part.substring(1)];
-			}else if(part[0] == '{'){
-				// It's a {token}
-				var tokenParts = part.substring(1, part.length-2).split('.');
-				if(tokenParts.length > 1){
-					builtUrl += '/' + entity[tokenParts[tokenParts.length-1]];
-				}else{
-					builtUrl += '/' + part;
-				}
-			}else{
-				builtUrl += '/' + part;
-			}
-		}
-		
-		return builtUrl + qs;
-	} else if(entity.type) {
+	if(entity.type) {
 		// Which scope are we grabbing from?
 		if(adminScope) {
 			var page = global.pageRouter.state.adminContentMap[entity.type.toLowerCase()];
@@ -81,6 +45,4 @@ export default function url(entity, queryParams, adminScope = false) {
 	} else {
 		return '/' + qs;
 	}
-	
-	
 }
