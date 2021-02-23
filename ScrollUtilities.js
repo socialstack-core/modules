@@ -103,6 +103,58 @@ function keyDownHandler(event) {
     }
 }
 
+// orientation change handler
+function orientationChangeHandler() {
+
+    /*
+    switch (window.orientation) {
+        case 90:
+        case 270:
+        case -90:
+            // landscape
+            break;
+
+        default:
+            // portrait
+            break;
+    }
+    */
+
+    var html = document.querySelector("html");
+
+    if (html.classList.contains("admin")) {
+        return;
+    }
+
+    var activeIndex = getActiveIndex();
+    var pageTop = getPageTop(activeIndex);
+    var page = getPage(activeIndex);
+
+    if (!page) {
+        return;
+    }
+
+    var scrollPos = getScrollPos();
+
+    // skip if we're already at the top of the document
+    if (scrollPos <= 0) {
+        return;
+    }
+
+    // if this page is longer than the viewport height and we're not yet at the top, scroll up
+    // (prevents page appearing stuck between partial slides after re-orienting)
+    if ((scrollPos - pageTop) > 0) {
+        var diff = scrollPos - pageTop;
+        global.scrollBy({ left: 0, top: -diff, behavior: 'auto' });
+        return;
+    }
+
+    if ((pageTop - scrollPos) > 0) {
+        var diff = pageTop - scrollPos;
+        global.scrollBy({ left: 0, top: diff, behavior: 'auto' });
+    }
+}
+
 // get current page scroll position
 function getScrollPos() {
     var pos = global.pageYOffset != undefined ? global.pageYOffset :
@@ -201,6 +253,19 @@ function getActiveIndex() {
         var endY = startY + page.offsetHeight;
 
         if (scrollPos >= startY && scrollPos < endY) {
+
+            // check - are we showing a partial next page?
+            if (i + 1 < pages.length) {
+                var nextStartY = endY;
+                var nextEndY = endY + pages[i + 1].offsetHeight;
+                var screenMidpoint = scrollPos + (getViewportHeight() / 2);
+
+                // we're weighted more onto the next page
+                if (screenMidpoint >= nextStartY && screenMidpoint < nextEndY) {
+                    return i + 2;
+                }
+            }
+
             return i + 1;
         }
 
@@ -359,9 +424,11 @@ function toggle(enabled) {
     }
 
     if (enabled && !isAdmin) {
+        global.addEventListener('orientationchange', orientationChangeHandler, false);
         global.addEventListener('mousewheel', mouseWheelScroll, passiveSupported ? { passive: false } : false);
         document.addEventListener("keydown", keyDownHandler);
     } else {
+        global.removeEventListener('orientationchange', orientationChangeHandler, false);
         global.removeEventListener('mousewheel', mouseWheelScroll, passiveSupported ? { passive: false } : false)
         document.removeEventListener("keydown", keyDownHandler);
     }
