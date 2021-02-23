@@ -176,7 +176,7 @@ function mapTokens(obj, canvas, Canvas){
 				result[e] = props.tokens ? props.tokens[value.name] : null;
 			break;
 			case "urlToken":
-				result[e] = (props.urlTokens || global.pageRouter.state.tokens)[value.name];
+				result[e] = (props.urlTokens || canvas.context.pageRouter.state.tokens)[value.name];
 			break;
 			case "contextToken":
 				var tokenParts = (value.name || '').split('.');
