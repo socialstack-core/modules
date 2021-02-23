@@ -580,7 +580,7 @@ _contentModule.getCached = (type, id) => {
 
 	return new Promise(s => {
 		document.getContentById(cctx.app.apiContext, getContentTypeId(type), parseInt(id), jsonResponse => {
-			if (cctx.__contextualData) {
+			if (cctx.trackContextualData) {
 				// We're tracking contextual data
 				if(cctx.__contextualData!=""){
 					cctx.__contextualData += ",";
@@ -603,7 +603,7 @@ _contentModule.listCached = (type, filter) => {
 
 	return new Promise(s => {
 		document.getContentsByFilter(cctx.app.apiContext, getContentTypeId(type), filterJson, jsonResponse => {
-			if (cctx.__contextualData) {
+			if (cctx.trackContextualData) {
 				// We're tracking contextual data
 				if(cctx.__contextualData!=""){
 					cctx.__contextualData += ",";
@@ -630,7 +630,9 @@ function renderCanvas(bodyJson, apiContext, publicApiContextJson, url, postData,
 
 	var context = {
 		app,
-		postData
+		postData,
+		trackContextualData,
+		__contextualData: ''
 	};
 	
 	// Returns a promise.
