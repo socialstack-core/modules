@@ -582,7 +582,10 @@ _contentModule.getCached = (type, id) => {
 		document.getContentById(cctx.app.apiContext, getContentTypeId(type), parseInt(id), jsonResponse => {
 			if (cctx.__contextualData) {
 				// We're tracking contextual data
-				cctx.__contextualData += "sscache._a(\'" + type + "\',\'" + id + "\'," + jsonResponse + ");";
+				if(cctx.__contextualData!=""){
+					cctx.__contextualData += ",";
+				}
+				cctx.__contextualData += jsonResponse;
 			}
 			s(JSON.parse(jsonResponse));
 		});
@@ -602,7 +605,10 @@ _contentModule.listCached = (type, filter) => {
 		document.getContentsByFilter(cctx.app.apiContext, getContentTypeId(type), filterJson, jsonResponse => {
 			if (cctx.__contextualData) {
 				// We're tracking contextual data
-				cctx.__contextualData += "sscache._a(\'" + type + "\',\'" + filterJson + "\'," + jsonResponse + ");";
+				if(cctx.__contextualData!=""){
+					cctx.__contextualData += ",";
+				}
+				cctx.__contextualData += jsonResponse;
 			}
 			s(JSON.parse(jsonResponse));
 		});
@@ -626,17 +632,10 @@ function renderCanvas(bodyJson, apiContext, publicApiContextJson, url, postData,
 		app,
 		postData
 	};
-
-	if (trackContextualData)
-	{
-		// Only construct this string if we actually need it (email rendering does not, for example).
-		// The contextual data being pulled in during this render. Must use this to rehydrate the caches when the site is done loading.
-		context.__contextualData = 'gsInit=' + publicApiContextJson + ';sscache={_a: function(t,i,a){if(!sscache[t]){sscache[t]={}}sscache[t][i]=a}};';
-	};
-
+	
 	// Returns a promise.
 	return renderToString(canvas, context, {mode}).then(result => {
-		result.data = trackContextualData ? context.__contextualData : '';
+		result.data = trackContextualData ? '[' + context.__contextualData + ']' : '';
 		return result;
 	});
 }

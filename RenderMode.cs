@@ -7,6 +7,7 @@ namespace Api.CanvasRenderer
 	/// </summary>
 	public enum RenderMode : int
 	{
+		None = 0,
 		Html = 1,
 		Text = 2,
 		Both = 3
