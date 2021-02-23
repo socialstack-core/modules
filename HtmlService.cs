@@ -132,10 +132,10 @@ namespace Api.Pages
 		/// PageRouter state data as a js string. This data is always the same until a page is added/ deleted/ a url is changed.
 		/// </summary>
 		/// <returns></returns>
-		private async ValueTask<string> BuildPageStateJs(Context context, Page page)
+		private async ValueTask<string> BuildPageStateJs(Context context, Page page, Document doc)
 		{
 			var sb = new StringBuilder();
-			sb.Append("window.pageRouterData=[");
+			sb.Append("window.pageRouterData={pages:[");
 
 			var urlList = await _pages.GetAllPageUrls(context);
 
@@ -163,7 +163,18 @@ namespace Api.Pages
 				}
 			}
 
-			sb.Append("];");
+			sb.Append("], primaryObject:");
+
+			if(doc.PrimaryObject != null)
+            {
+				sb.Append(JsonConvert.SerializeObject(doc.PrimaryObject));
+            } 
+			else
+            {
+				sb.Append("null");
+            }
+
+			sb.Append("};");
 
 			return sb.ToString();
 		}
@@ -243,7 +254,8 @@ namespace Api.Pages
 				.AppendChild(new DocumentNode("meta", true).With("name", "msapplication-TileColor").With("content", "#ffffff"))
 				.AppendChild(new DocumentNode("meta", true).With("name", "theme-color").With("content", "#ffffff"))
 				.AppendChild(new DocumentNode("meta", true).With("name", "viewport").With("content", "width=device-width, initial-scale=1"))
-				.AppendChild(new DocumentNode("title").AppendChild(new TextNode(page.Title)));
+				.AppendChild(new DocumentNode("meta", true).With("name", "description").With("content", doc.ReplaceTokens(page.Description)))
+				.AppendChild(new DocumentNode("title").AppendChild(new TextNode(doc.ReplaceTokens(page.Title))));
 
 			/*
 			 * PWA headers that should only be added if PWA mode is turned on and these files exist
@@ -298,7 +310,7 @@ namespace Api.Pages
 			// Handle all start body JS scripts
 			HandleCustomScriptList(_config.StartBodyJs, body);
 
-			body.AppendChild(new DocumentNode("script").AppendChild(new TextNode(await BuildPageStateJs(context, page))));
+			body.AppendChild(new DocumentNode("script").AppendChild(new TextNode(await BuildPageStateJs(context, page, doc))));
 
 			if (!_config.PreRender) {
 				// Still add the global state init substitution node:

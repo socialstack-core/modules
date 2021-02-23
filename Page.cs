@@ -25,6 +25,11 @@ namespace Api.Pages
 		/// The pages content (as canvas JSON).
 		/// </summary>
 		public string BodyJson;
+
+		/// <summary>
+		/// The default description for this page.
+		/// </summary>
+		public string Description;
 		
 		/// <summary>
 		/// Page visibility varies when anon users.
@@ -40,6 +45,7 @@ namespace Api.Pages
 		/// Page visibility varies when member user.
 		/// </summary>
 		public bool VisibleToRole4 = true;
+
 	}
 	
 }
