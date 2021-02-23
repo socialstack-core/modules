@@ -53,7 +53,6 @@ export default class Loop extends React.Component {
 					// Special case on the server. It's a promise, but the result needs to be processed immediately.
 					// Only this constructor executes if a promise is in the state, so it's ok for it to directly overwrite all of this.state when its done.
 					cached = cached.then(r => {
-						console.log("Set loop state", r.results.length);
 						this.state = this.processCached(r, props);
 					});
 					this.state = {
