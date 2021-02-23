@@ -129,60 +129,69 @@ namespace Api.Pages
 		}
 		
 		/// <summary>
-		/// PageRouter state data as a js string. This data is always the same until a page is added/ deleted/ a url is changed.
-		/// </summary>
-		/// <returns></returns>
-		private async ValueTask<string> BuildPageStateJs(Context context, Page page, Document doc)
-		{
-			var sb = new StringBuilder();
-			sb.Append("window.pageRouterData={pages:[");
-
-			var urlList = await _pages.GetAllPageUrls(context);
-
-			for (var i=0;i<urlList.Count; i++)
-			{
-				if (i != 0)
-				{
-					sb.Append(',');
-				}
-
-				var pageId = urlList[i].PageId;
-
-				if (pageId == page.Id)
-				{
-					sb.Append(Newtonsoft.Json.JsonConvert.SerializeObject(page, jsonSettings));
-				}
-				else
-				{
-					// Compact version:
-					sb.Append("{url:\"");
-					sb.Append(HttpUtility.HtmlAttributeEncode(urlList[i].Url));
-					sb.Append("\",id:");
-					sb.Append(pageId);
-					sb.Append('}');
-				}
-			}
-
-			sb.Append("], primaryObject:");
-
-			if(doc.PrimaryObject != null)
-            {
-				sb.Append(JsonConvert.SerializeObject(doc.PrimaryObject));
-            } 
-			else
-            {
-				sb.Append("null");
-            }
-
-			sb.Append("};");
-
-			return sb.ToString();
-		}
-
-		/// <summary>
 		/// Url -> nodes that are as pre-generated as possible.
 		/// </summary>
 		private readonly Dictionary<string, List<DocumentNode>> cache = new Dictionary<string, List<DocumentNode>>();
+
+		/// <summary>
+		/// Renders the state only of a page to a JSON string.
+		/// </summary>
+		/// <param name="context"></param>
+		/// <param name="pageAndTokens"></param>
+		/// <param name="path"></param>
+		/// <returns></returns>
+		public async ValueTask<string> RenderState(Context context, PageWithTokens pageAndTokens, string path)
+		{
+			object primaryObject = null;
+
+			if (pageAndTokens.Tokens != null && pageAndTokens.TokenValues != null)
+			{
+				var countA = pageAndTokens.TokenValues.Count;
+
+				if (countA > 0 && countA == pageAndTokens.Tokens.Count)
+				{
+					var primaryToken = pageAndTokens.Tokens[countA - 1];
+
+					if (primaryToken.IsId)
+					{
+						if (int.TryParse(pageAndTokens.TokenValues[countA - 1], out int primaryObjectId))
+						{
+							primaryObject = await primaryToken.Service.GetObject(context, primaryObjectId);
+						}
+					}
+					else
+					{
+						primaryObject = await primaryToken.Service.GetObject(context, primaryToken.FieldName, pageAndTokens.TokenValues[countA - 1]);
+					}
+				}
+			}
+
+			string state = null;
+
+			if (_config.PreRender)
+			{
+				var preRender = await _canvasRendererService.Render(context, pageAndTokens.Page.BodyJson, path, true, null, RenderMode.None);
+
+				state = preRender.Data;
+			}
+			else
+			{
+				state = "null";
+			}
+
+			return "{\"page\":" + Newtonsoft.Json.JsonConvert.SerializeObject(pageAndTokens.Page, jsonSettings) +
+				", \"tokens\":" + (pageAndTokens.TokenValues != null ? Newtonsoft.Json.JsonConvert.SerializeObject(pageAndTokens.TokenValues, jsonSettings) : "null") +
+				", \"po\":" + (primaryObject != null ? Newtonsoft.Json.JsonConvert.SerializeObject(primaryObject, jsonSettings) : "null") +
+				",\"state\":" + state + "}";
+		}
+
+			/*
+			 * 
+			 * {\"page\":" + Newtonsoft.Json.JsonConvert.SerializeObject(page, jsonSettings) + 
+										", \"po\":" + (doc.PrimaryObject != null ? Newtonsoft.Json.JsonConvert.SerializeObject(doc.PrimaryObject, jsonSettings) : "null") + 
+										",\"state\":" + preRender.Data + "}
+			 * 
+			 * */
 
 		/// <summary>
 		/// Note that context may only be used for the role information, not specific user details.
@@ -297,7 +306,13 @@ namespace Api.Pages
 						// The end result of the conflict is it gets duplicated in the DOM and server effort is largely wasted.
 						body.AppendChild(
 							new DocumentNode("script")
-							.AppendChild(new TextNode(preRender.Data))
+							.AppendChild(
+								new TextNode(
+									"window.pgState={\"page\":" + Newtonsoft.Json.JsonConvert.SerializeObject(page, jsonSettings) +
+										", \"po\":" + (doc.PrimaryObject != null ? Newtonsoft.Json.JsonConvert.SerializeObject(doc.PrimaryObject, jsonSettings) : "null") +
+										",\"state\":" + preRender.Data + "};"
+								)
+							)
 						);
 					}
 				}
@@ -306,11 +321,22 @@ namespace Api.Pages
 					Console.WriteLine(e.ToString());
 				}
 			}
+			else
+			{
+				body.AppendChild(
+					new DocumentNode("script")
+					.AppendChild(
+						new TextNode(
+							"window.pgState={\"page\":" + Newtonsoft.Json.JsonConvert.SerializeObject(page, jsonSettings) + 
+							", \"po\":" + (doc.PrimaryObject != null ? Newtonsoft.Json.JsonConvert.SerializeObject(doc.PrimaryObject, jsonSettings) : "null") + 
+							"};"
+						)
+					)
+				);
+			}
 			
 			// Handle all start body JS scripts
 			HandleCustomScriptList(_config.StartBodyJs, body);
-
-			body.AppendChild(new DocumentNode("script").AppendChild(new TextNode(await BuildPageStateJs(context, page, doc))));
 
 			if (!_config.PreRender) {
 				// Still add the global state init substitution node:

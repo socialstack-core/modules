@@ -23,27 +23,27 @@ namespace Api.Pages
             _pageService = ps;
         }
 
-        /// <summary>
-        /// Attempts to get the page state of a page given the url and the version.
-        /// </summary>
-        /// <param name="title"></param>
-        /// <returns></returns>
-        [HttpPost("state")]
-        public async Task<string> PageState([FromBody] PageDetails pageDetails)
-        {
-            var context = Request.GetContext();
+		/// <summary>
+		/// Attempts to get the page state of a page given the url and the version.
+		/// </summary>
+		/// <param name="pageDetails"></param>
+		/// <returns></returns>
+		[HttpPost("state")]
+		public async Task<ContentResult> PageState([FromBody] PageDetails pageDetails)
+		{
+			var context = Request.GetContext();
 
+			// we first need to get the pageAndTokens
+			var pageAndTokens = await _pageService.GetPage(context, pageDetails.Url);
 
-            // we first need to get the pageAndTokens
-            var pageAndTokens = await _pageService.GetPage(context, pageDetails.Url);
+			if (_htmlService == null)
+			{
+				_htmlService = Services.Get<HtmlService>();
+			}
 
-            if(_htmlService == null)
-            {
-                _htmlService = Services.Get<HtmlService>();
-            }
-
-            return await _htmlService.RenderState(context, pageAndTokens, pageDetails.Url)
-        }
+			var stateJson = await _htmlService.RenderState(context, pageAndTokens, pageDetails.Url);
+            return Content(stateJson, "application/json");
+		}
 
         /// <summary>
         /// Used when getting the page state.
