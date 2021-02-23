@@ -6,6 +6,8 @@ import logout from 'UI/Functions/Logout';
 
 export default class MainMenu extends React.Component {
 	render() {
+		var { url } = this.context.app.state;
+		
 		return (
 			<div className="main-menu">
 				<div className="logo" />
@@ -13,8 +15,8 @@ export default class MainMenu extends React.Component {
 					{item =>
 						<a href={item.target} className={
 							item.target == '/en-admin/' ?
-								(window.location.pathname == item.target ? 'active' : '') :
-								(window.location.pathname.startsWith(item.target) ? 'active' : '')}>
+								(url == item.target ? 'active' : '') :
+								(url.startsWith(item.target) ? 'active' : '')}>
 							{getRef(item.iconRef, { className: 'fa-fw' })}
 							<Canvas>{item.bodyJson}</Canvas>
 						</a>
