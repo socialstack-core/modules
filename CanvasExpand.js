@@ -172,24 +172,10 @@ function mapTokens(obj, canvas, Canvas){
 		
 		var t = value.type;
 		switch(t){
-			case "token":
-				result[e] = props.tokens ? props.tokens[value.name] : null;
-			break;
 			case "urlToken":
-				result[e] = (props.urlTokens || canvas.context.pageRouter.state.tokens)[value.name];
-			break;
-			case "contextToken":
-				var tokenParts = (value.name || '').split('.');
-				var currentContext = (props.contextTokens || canvas.context.app.state);
-				
-				for(var i=0;i<tokenParts.length;i++){
-					currentContext && (currentContext = currentContext[tokenParts[i]]);
-				}
-				
-				result[e] = currentContext;
-			break;
-			case "prop":
-				result[e] = props[value.name];
+				var pageRouterState = canvas.context.pageRouter.state;
+				var index = pageRouterState.tokenNames.indexOf(value.name);
+				result[e] = (index == null || index == -1) ? undefined : pageRouterState.tokens[index];
 			break;
 			case "field":
 				// Field in the "item" prop. Used by renderers - they're given an item, and this essentially maps
