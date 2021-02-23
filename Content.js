@@ -12,7 +12,7 @@ export default class Content extends React.Component {
 		this.state={
 			// Get initial content object. This is to avoid very inefficient wasted renders 
 			// caused by using a promise here or componentDidUpdate only.
-			content: Content.getCached(props.type, props.id)
+			content: props.id ? Content.getCached(props.type, props.id) : null
 		};
 		this.onLiveMessage = this.onLiveMessage.bind(this);
 		this.onContentChange = this.onContentChange.bind(this);
@@ -28,8 +28,8 @@ export default class Content extends React.Component {
 			if (msg.type == "status") {
 				if (msg.connected) {
 					// Force a reload:
-					var {type, id} = this.props;
-					this.load(type, id);
+					var {type, id, primary} = this.props;
+					!primary && this.load(type, id);
 				}
 
 				this.props.onLiveStatus && this.props.onLiveStatus(msg.connected);
@@ -106,8 +106,8 @@ export default class Content extends React.Component {
 	}
 	
 	componentDidUpdate(prevProps){
-		var {type, id} = this.props;
-		if(prevProps && type == prevProps.type && id == prevProps.id){
+		var {type, id, primary} = this.props;
+		if(prevProps.primary == primary || (prevProps && type == prevProps.type && id == prevProps.id)){
 			// Cached object is fine here.
 			return;
 		}
@@ -137,7 +137,7 @@ export default class Content extends React.Component {
 		}
 		document.addEventListener("contentchange", this.onContentChange);
 		
-		if(!this.state.content){
+		if(!this.state.content && id){
 			// Content that is intentionally client only. Load now:
 			this.load(type, id);
 		}
@@ -145,7 +145,11 @@ export default class Content extends React.Component {
 	
 	render(){
 		var {content} = this.state;
-		var {children} = this.props;
+		var {children, primary} = this.props;
+		
+		if(primary){
+			content = this.context.pageRouter.state.po;
+		}
 		
 		var loading = false;
 		
@@ -160,6 +164,11 @@ export default class Content extends React.Component {
 	}
 	
 }
+
+// Gets the current page's primary content.
+Content.getPrimary = function(context){
+	return context.pageRouter.state.po;
+};
 
 // E.g:
 // content.get("blog", 1);
