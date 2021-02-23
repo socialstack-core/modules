@@ -338,12 +338,73 @@ $socialstack_default_tooltips: (
 
 $base_font_size: 16 !default; // in px
 
+// common functions defined as early as possible
+@function strip_unit($number) {
+  @if type-of($number) == 'number' and not unitless($number) {
+    @return $number / ($number * 0 + 1);
+  }
+
+  @return $number;
+}
+
+@function get_unit($value) {
+  @return str-slice($value * 0 + "", 2, -1);
+}
+
 @function px_to_em($px) {
     @return 0em + $px / $base_font_size;
 }
 
 @function px_to_rem($px) {
     @return 0rem + $px / $base_font_size;
+}
+
+@function pt_to_rem($pt) {
+  $PX_PER_PT: 1 + 1/3;
+  @return 0rem + ($pt * $PX_PER_PT) / $base_font_size;
+}
+
+@function cm_to_rem($cm) {
+  $PX_PER_CM: 96 / 2.54;
+  @return 0rem + ($cm * $PX_PER_CM) / $base_font_size;
+}
+
+@function mm_to_rem($mm) {
+  $PX_PER_MM: 96 / 25.4;
+  @return 0rem + ($mm * $PX_PER_MM) / $base_font_size;
+}
+
+@function q_to_rem($q) {
+  $PX_PER_Q: 96 / 101.6;
+  @return 0rem + ($q * $PX_PER_Q) / $base_font_size;
+}
+
+@function in_to_rem($in) {
+  @return 0rem + ($in * 96) / $base_font_size;
+}
+
+@function pc_to_rem($pc) {
+  $PX_PER_PC: 96 / 6;
+  @return 0rem + ($pc * $PX_PER_PC) / $base_font_size;
+}
+
+// convert absolute unit to rem
+// 2.54cm = 25.4mm = 101.6q (quarter mm) = 96px = 1in = 6pc (pica) = 72pt
+@function convert_to_rem($number) {
+    $value: strip_unit($number);
+    $unit: get_unit($number);
+    
+    @return map-get((
+        cm: cm_to_rem($value),
+        mm: mm_to_rem($value),
+        q: q_to_rem($value),
+        px: px_to_rem($value),
+        in: in_to_rem($value),
+        pc: pc_to_rem($value),
+        pt: pt_to_rem($value),
+        rem: $number
+    ), $unit);
+
 }
 
 $socialstack_default_theme: (
