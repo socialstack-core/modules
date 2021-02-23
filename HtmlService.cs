@@ -182,17 +182,9 @@ namespace Api.Pages
 			return "{\"page\":" + Newtonsoft.Json.JsonConvert.SerializeObject(pageAndTokens.Page, jsonSettings) +
 				", \"tokens\":" + (pageAndTokens.TokenValues != null ? Newtonsoft.Json.JsonConvert.SerializeObject(pageAndTokens.TokenValues, jsonSettings) : "null") +
 				", \"po\":" + (primaryObject != null ? Newtonsoft.Json.JsonConvert.SerializeObject(primaryObject, jsonSettings) : "null") +
-				",\"state\":" + state + "}";
+				",\"data\":" + state + "}";
 		}
-
-			/*
-			 * 
-			 * {\"page\":" + Newtonsoft.Json.JsonConvert.SerializeObject(page, jsonSettings) + 
-										", \"po\":" + (doc.PrimaryObject != null ? Newtonsoft.Json.JsonConvert.SerializeObject(doc.PrimaryObject, jsonSettings) : "null") + 
-										",\"state\":" + preRender.Data + "}
-			 * 
-			 * */
-
+		
 		/// <summary>
 		/// Note that context may only be used for the role information, not specific user details.
 		/// </summary>
@@ -310,7 +302,7 @@ namespace Api.Pages
 								new TextNode(
 									"window.pgState={\"page\":" + Newtonsoft.Json.JsonConvert.SerializeObject(page, jsonSettings) +
 										", \"po\":" + (doc.PrimaryObject != null ? Newtonsoft.Json.JsonConvert.SerializeObject(doc.PrimaryObject, jsonSettings) : "null") +
-										",\"state\":" + preRender.Data + "};"
+										",\"data\":" + preRender.Data + "};"
 								)
 							)
 						);
