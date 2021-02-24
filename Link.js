@@ -35,8 +35,7 @@ export default class Link extends React.Component {
 				{...attribs}
 			/>;
 		}else{
-			return <a href={url} 
-				dangerouslySetInnerHTML={{__html: (this.props.text)}}
+			return <a href={url}
 				{...attribs}
 				>
 					{this.props.children}
