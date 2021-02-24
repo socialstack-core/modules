@@ -2,7 +2,6 @@ import Form from 'UI/Form';
 import Input from 'UI/Input';
 import Canvas from 'UI/Canvas';
 import isNumeric from 'UI/Functions/IsNumeric';
-import getUrl from 'UI/Functions/Url';
 import getAutoForm from 'Admin/Functions/GetAutoForm';
 import webRequest from 'UI/Functions/WebRequest';
 import formatTime from "UI/Functions/FormatTime";
@@ -295,13 +294,6 @@ export default class AutoForm extends React.Component {
 						}
 
 						var data = contentNode.data;
-
-						if (data.type == 'canvas' && content.pageId) {
-							// Ref the content:
-							data.contentType = content.type;
-							data.contentId = content.id;
-							data.onPageUrl = getUrl(content);
-						}
 
 						if (data.localized && !Array.isArray(data.label)) {
 							// Show globe icon alongside the label:
