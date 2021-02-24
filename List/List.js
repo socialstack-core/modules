@@ -77,7 +77,7 @@ export default class List extends React.Component{
         }
 		
 		var contentTypeId = getContentTypeId(contentType);
-
+		
         return(
             <div className = "comments">
 				<DeleteComment comment = {deleteComment} onSuccess = {() => this.onDeleted(deleteComment)} onClose = {() => this.setState({deleteComment: null})}/>
@@ -105,8 +105,8 @@ export default class List extends React.Component{
 				}}
 				>
 					{comment => {
-
-						var isUser = (global.app.state.user && comment.creatorUser.id == global.app.state.user.id);
+						var { user } = this.context.app.state;
+						var isUser = (user && comment.creatorUser.id == user.id);
 
 						return <li style={{marginLeft: (comment.depth * 100) + 'px'}}>
 							{deletedComments[comment.id] || comment.deleted ? (comment.childCommentCount > 0 && <i>-This comment was deleted-</i>) : <> 
@@ -119,7 +119,7 @@ export default class List extends React.Component{
 									<Row className = "comment-actions">
 										<button onClick = {() => {this.replyToggle(comment)}} className = "btn"><i class="far fa-comment-alt-lines"></i> Reply</button> 
 										{isUser && <button onClick = {() => {this.editToggle(comment)}}className = "btn"><i class="fas fa-pencil"></i> Edit</button>}
-										{!isUser && global.app.state.user && <button onCLick = {() => {this.setState({reportComment: comment})}} className = "btn"><i class="far fa-flag"></i> Report</button>}
+										{!isUser && user && <button onCLick = {() => {this.setState({reportComment: comment})}} className = "btn"><i class="far fa-flag"></i> Report</button>}
 										{isUser && <button onClick = {() => {this.setState({deleteComment: comment})}} className = "btn"><i class="far fa-trash-alt"></i> Delete</button>}
 									</Row>
 								</>}
