@@ -28,8 +28,6 @@ export default class Add extends React.Component{
 			return;
 		}
 
-		console.log(global.app.state.user);
-
 		if(!global.app.state.user) {
 			return <div>
 				<p>You must be logged in to leave a comment.</p>
