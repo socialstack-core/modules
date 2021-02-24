@@ -593,11 +593,10 @@ _contentModule.getCached = (type, id) => {
 };
 
 _contentModule.listCached = (type, filter) => {
-	if (!_currentContext || type == 'userprofile') {
+	if (!_currentContext) {
 		// Invalid call site - constructors only.
 		return null;
 	}
-
 	var cctx = _currentContext;
 	var filterJson = JSON.stringify(filter);
 
@@ -615,7 +614,7 @@ _contentModule.listCached = (type, filter) => {
 	});
 };
 
-function renderCanvas(bodyJson, apiContext, publicApiContextJson, url, postData, trackContextualData, mode){
+function renderCanvas(bodyJson, apiContext, publicApiContextJson, url, pageState, trackContextualData, mode){
 	
 	// Stub app state:
 	app = {
@@ -627,10 +626,27 @@ function renderCanvas(bodyJson, apiContext, publicApiContextJson, url, postData,
 	};
 	
 	var canvas = preact.createElement(_Canvas, { children: bodyJson});
-
+	
+	var tokenNames = pageState.TokenNames;
+	
+	if(tokenNames && tokenNames.IndexOf){
+		// Fast convert to js array from the list that it is such that the frontend js (running here, on the server) can continue to use .indexOf:
+		var tn = [];
+		for(var i=0;i<tokenNames.Count;i++){
+			tn[i] = tokenNames[i];
+		}
+		tokenNames = tn;
+	}
+	
 	var context = {
 		app,
-		postData,
+		pageRouter: {
+			state: {
+				tokens: pageState.Tokens,
+				tokenNames,
+				po: pageState.PoJson ? JSON.parse(pageState.PoJson) : null
+			}
+		},
 		trackContextualData,
 		__contextualData: ''
 	};

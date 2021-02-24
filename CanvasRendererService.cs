@@ -39,9 +39,9 @@ namespace Api.CanvasRenderer
 		/// <param name="url">An optional URL of the page being rendered.</param>
 		/// <param name="trackDataRequests">Set this to true if you'd like a JS object representing the complete state that was ultimately loaded or used by the renderer.
 		/// This is vital for accurate rehydration in web clients, but a waste of cycles when it won't be used like in an email.</param>
-		/// <param name="customState">Functions like POSTed data; this is some initial state added to the context as "this.context.postData"</param>
+		/// <param name="pageState">Url tokens and the primary object's JSON.</param>
 		/// <returns></returns>
-		public async ValueTask<RenderedCanvas> Render(Contexts.Context context, string bodyJson, string url = null, bool trackDataRequests = false, object customState = null, RenderMode mode = RenderMode.Html)
+		public async ValueTask<RenderedCanvas> Render(Contexts.Context context, string bodyJson, PageState pageState, string url = null, bool trackDataRequests = false, RenderMode mode = RenderMode.Html)
 		{
 			if (context == null)
 			{
@@ -75,7 +75,7 @@ namespace Api.CanvasRenderer
 					// Must do this such that all of the hidden fields are correctly considered, and any modifications the JS makes don't affect our actual cached objects.
 					JsonConvert.SerializeObject(publicContext, jsonFormatter),
 					url,
-					customState,
+					pageState,
 					trackDataRequests,
 					(int)mode
 				) as Task<object>)) as dynamic;
@@ -96,7 +96,7 @@ namespace Api.CanvasRenderer
 			return canvas;
 		}
 
-		private JsonSerializerSettings jsonFormatter = new JsonSerializerSettings
+		private readonly JsonSerializerSettings jsonFormatter = new JsonSerializerSettings
 		{
 			ContractResolver = new DefaultContractResolver
 			{
@@ -129,8 +129,10 @@ namespace Api.CanvasRenderer
 
 			var engine = new V8ScriptEngine("Socialstack API Renderer", V8ScriptEngineFlags.DisableGlobalMembers | V8ScriptEngineFlags.EnableTaskPromiseConversion);
 			engine.Execute("SERVER=true;window=this;");
-			var jsDoc = new V8.Document();
-			jsDoc.location = new V8.Location();
+			var jsDoc = new V8.Document
+			{
+				location = new V8.Location()
+			};
 			engine.AddHostObject("document", new V8.Document());
             engine.AddHostObject("console", new V8.Console());
 			engine.AddHostObject("navigator", new V8.Navigator());
@@ -213,6 +215,42 @@ namespace Api.CanvasRenderer
 		}
 
 	}
+	
+	/// <summary>
+	/// Representation of page state data.
+	/// </summary>
+	public struct PageState{
+		
+		/// <summary>
+		/// No page state.
+		/// </summary>
+		public static readonly PageState None = new PageState(){
+			Tokens = null,
+			TokenNames = null,
+			PoJson = null
+		};
+		
+		/// <summary>
+		/// Raw direct list of url tokens.
+		/// </summary>
+		public List<string> Tokens;
+		
+		/// <summary>
+		/// Raw direct list of url token names.
+		/// </summary>
+		public List<string> TokenNames;
+
+		/// <summary>
+		/// The primary object as JSON. It's passed as JSON because of PascalCase in the API on fields, and camelCase on the frontend. JS is case sensitive.
+		/// This also prevents any risk of accidental server cache modification if the actual object is passed. Can set either this or PoJson (PoJson is ideal if you already have a JSON string).
+		/// </summary>
+		public string PoJson;
+
+		/// <summary>
+		/// Convenience route for setting PoJson. Will be serialised to json for you. Can set either this or PoJson.
+		/// </summary>
+		public object PrimaryObject;
+	}
 }
 
 namespace Api.CanvasRenderer.V8
@@ -285,6 +323,7 @@ namespace Api.CanvasRenderer.V8
 	/// <summary>
 	/// The window.document object.
 	/// </summary>
+#pragma warning disable IDE1006 // Naming Styles
 	public class Document
 	{
 		/// <summary>
@@ -296,7 +335,7 @@ namespace Api.CanvasRenderer.V8
 		/// Stub for dispatchEvent.
 		/// </summary>
 		public void dispatchEvent(object evt){ }
-		
+
 		/// <summary>
 		/// Stub for adding an event listener.
 		/// </summary>
@@ -357,4 +396,5 @@ namespace Api.CanvasRenderer.V8
 		}
 
 	}
+#pragma warning restore IDE1006 // Naming Styles
 }
