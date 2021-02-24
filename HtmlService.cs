@@ -166,11 +166,16 @@ namespace Api.Pages
 				}
 			}
 
+			var poJson = (primaryObject != null ? Newtonsoft.Json.JsonConvert.SerializeObject(primaryObject, jsonSettings) : "null");
 			string state = null;
 
 			if (_config.PreRender)
 			{
-				var preRender = await _canvasRendererService.Render(context, pageAndTokens.Page.BodyJson, path, true, null, RenderMode.None);
+				var preRender = await _canvasRendererService.Render(context, pageAndTokens.Page.BodyJson, new PageState() {
+					Tokens = pageAndTokens.TokenValues,
+					TokenNames = pageAndTokens.TokenNames,
+					PoJson = poJson
+				}, path, true, RenderMode.None);
 
 				state = preRender.Data;
 			}
@@ -182,7 +187,7 @@ namespace Api.Pages
 			return "{\"page\":" + Newtonsoft.Json.JsonConvert.SerializeObject(pageAndTokens.Page, jsonSettings) +
 				", \"tokens\":" + (pageAndTokens.TokenValues != null ? Newtonsoft.Json.JsonConvert.SerializeObject(pageAndTokens.TokenValues, jsonSettings) : "null") +
 				", \"tokenNames\":" + (pageAndTokens.TokenNames != null ? Newtonsoft.Json.JsonConvert.SerializeObject(pageAndTokens.TokenNames, jsonSettings) : "null") +
-				", \"po\":" + (primaryObject != null ? Newtonsoft.Json.JsonConvert.SerializeObject(primaryObject, jsonSettings) : "null") +
+				", \"po\":" + poJson +
 				",\"data\":" + state + "}";
 		}
 		
@@ -278,7 +283,13 @@ namespace Api.Pages
 			{
 				try
 				{
-					var preRender = await _canvasRendererService.Render(context, page.BodyJson, path, true);
+					var poJson = (doc.PrimaryObject != null ? Newtonsoft.Json.JsonConvert.SerializeObject(doc.PrimaryObject, jsonSettings) : "null");
+
+					var preRender = await _canvasRendererService.Render(context, page.BodyJson, new PageState() {
+						Tokens = pageAndTokens.TokenValues,
+						TokenNames = pageAndTokens.TokenNames,
+						PoJson = poJson
+					}, path, true);
 
 					if (preRender.Failed)
 					{
@@ -304,7 +315,7 @@ namespace Api.Pages
 									"window.pgState={\"page\":" + Newtonsoft.Json.JsonConvert.SerializeObject(page, jsonSettings) +
 										", \"tokens\":" + (pageAndTokens.TokenValues != null ? Newtonsoft.Json.JsonConvert.SerializeObject(pageAndTokens.TokenValues, jsonSettings) : "null") +
 										", \"tokenNames\":" + (pageAndTokens.TokenNames != null ? Newtonsoft.Json.JsonConvert.SerializeObject(pageAndTokens.TokenNames, jsonSettings) : "null") +
-										", \"po\":" + (doc.PrimaryObject != null ? Newtonsoft.Json.JsonConvert.SerializeObject(doc.PrimaryObject, jsonSettings) : "null") +
+										", \"po\":" + poJson +
 										",\"data\":" + preRender.Data + "};"
 								)
 							)
