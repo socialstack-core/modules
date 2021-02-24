@@ -29,10 +29,19 @@ export default class Link extends React.Component {
 			}
 		}
 
-		return <a href={url} 
-			dangerouslySetInnerHTML={{__html: (this.props.text || this.props.children)}}
-			{...attribs}
-		/>;
+		if(this.props.text){
+			return <a href={url} 
+				dangerouslySetInnerHTML={{__html: (this.props.text)}}
+				{...attribs}
+			/>;
+		}else{
+			return <a href={url} 
+				dangerouslySetInnerHTML={{__html: (this.props.text)}}
+				{...attribs}
+				>
+					{this.props.children}
+			</a>;
+		}
     }
 }
 
