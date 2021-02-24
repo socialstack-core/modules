@@ -87,15 +87,88 @@ export default class PageRouter extends React.Component{
 			{page.bodyJson}
 		</Canvas> : null;
 	}
+
+	replaceTokens(str, res) {
+		var {page, po} = res;
+
+		if(str == null)  {
+			return str;
+		}
+
+		if(po != null) {
+			var mode = 0; // 0 = text, 1 = inadie a {token.field}
+			var tokens = [];
+			var storedIndex = 0;
+
+			for(var i = 0; i < str.length; i++) {
+				var currentChar = str[i];
+				if(mode == 0) {
+					if(currentChar == "{") {
+						// now in a token.
+						mode = 1;
+						storedIndex = i;
+					}
+				} else if (mode == 1) {
+					if (currentChar == "}") {
+						// we have the end of the token, let's get it.
+						var token = str.substring(storedIndex, i+1);
+						tokens.push(token);
+						mode = 0;
+					}
+				}
+			}
+
+			tokens.forEach(token => {
+				// remove the brackets
+				var noBrackets = token.substring(1, token.length - 1);
+
+				// Let's split it - to get content and its field.
+				var contentAndField = noBrackets.split(".");
+
+				// Is this valid?
+				if(contentAndField.length != 2) {
+					// nope, no replacement or further action for this token.
+					return;
+				}
+
+				// This should have a content and field since its 2 pieces.
+				var content = contentAndField[0];
+				var field = contentAndField[1];
+
+				// does the content match the primary object type?
+				// TODO: we will probably need handling for tokens other than primary objects in the future. 
+				if(!po.type || content.toLowerCase() != po.type.toLowerCase()) {
+					return;
+				}
+
+				// Does the field exist on the primary object?
+				if(!po[field] == null) {
+					return;
+				}
+
+				var value = po[field];
+
+				str = str.replace(token, value.toString());
+			});
+		}
+
+		return str;
+	}
+
+
+	// Used to update the pages meta's such as title and description.
+	updateMetas(res) {
+		var {page} = res;
+
+		if(page && page.title){
+			// Does our title have any tokens in it?
+			document.title = this.replaceTokens(page.title, res);
+		}
+	}
 	
 	componentDidUpdate(oldProps){
 		if(oldProps.url != this.props.url){
-			webRequest("page/state", {url:this.props.url, version: getBuildDate().timestamp}).then(res => this.setState(res.json));
-		}
-		
-		var {page} = this.state;
-		if(page && page.title){
-			document.title = page.title;
+			webRequest("page/state", {url:this.props.url, version: getBuildDate().timestamp}).then(res => {this.setState(res.json); this.updateMetas(res.json);});
 		}
 	}
 }
