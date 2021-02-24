@@ -118,7 +118,11 @@ namespace Api.Emails
 			}
 
 			// Render the template now:
-			return await _canvasRendererService.Render(recipient.Context, template.BodyJson, null, false, recipient.CustomData);
+			return await _canvasRendererService.Render(recipient.Context, template.BodyJson, new PageState() {
+				Tokens = null,
+				TokenNames = null,
+				PrimaryObject = recipient.CustomData
+			});
 		}
 
 		/// <summary>
@@ -265,7 +269,9 @@ namespace Api.Emails
 					var recipient = set.Recipients[i];
 
 					// Render all. The results are in the exact same order as the recipients set.
-					var renderedResult = await _canvasRendererService.Render(recipient.Context, set.Template.BodyJson, null, false, recipient.CustomData);
+					var renderedResult = await _canvasRendererService.Render(recipient.Context, set.Template.BodyJson, new PageState() {
+						PrimaryObject = recipient.CustomData
+					}, null, false);
 
 					// Email to send to:
 					var targetEmail = recipient.User.Email;
@@ -293,11 +299,13 @@ namespace Api.Emails
 				fromAccount = _configuration.Accounts["default"];
 			}
 
-			SmtpClient client = new SmtpClient(fromAccount.Server);
-			client.UseDefaultCredentials = false;
-			client.Credentials = new NetworkCredential(fromAccount.User, fromAccount.Password);
-			client.Port = fromAccount.Port;
-			client.EnableSsl = fromAccount.Encrypted;
+			SmtpClient client = new SmtpClient(fromAccount.Server)
+			{
+				UseDefaultCredentials = false,
+				Credentials = new NetworkCredential(fromAccount.User, fromAccount.Password),
+				Port = fromAccount.Port,
+				EnableSsl = fromAccount.Encrypted
+			};
 
 			MailMessage mailMessage = new MailMessage();
 			mailMessage.IsBodyHtml = true;

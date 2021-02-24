@@ -25,11 +25,11 @@ namespace Api.Emails{
 		public Context Context;
 		
 		/// <summary>
-		/// Optional custom data fields to use in rendering the email. This arrives as this.context.postData inside React.
+		/// Optional custom data to use in rendering the email. This arrives as the primary object inside react 
+		/// (Use either &lt;Content primary&gt; or Content.getPrimary(this.context) to access it).
 		/// </summary>
 		public object CustomData;
 
-		
 		/// <summary>
 		/// Email recipient for the user and locale defined in the context.
 		/// </summary>
