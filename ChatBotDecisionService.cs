@@ -152,11 +152,31 @@ namespace Api.ChatBotSimple
 						// is the appt valid?
 						if (appt != null)
 						{
-							// Set the new Date
+							// Set the name
 							appt.FullName = message.Message;
 							appt = await _meetingsAppointments.Update(ctx, appt);
 						}
 					}
+
+					// What about an expert question?
+					if (chat.ExpertQuestionId.HasValue)
+                    {
+						if(_expertQuestions == null)
+                        {
+							_expertQuestions = Services.Get<ExpertQuestionService>();
+                        }
+
+						// Yep, let's get said expert question.
+						var exp = await _expertQuestions.Get(ctx, chat.ExpertQuestionId.Value);
+
+						// is the exp valid?
+						if (exp != null)
+                        {
+							// Set the name.
+							exp.FullName = message.Message;
+							exp = await _expertQuestions.Update(ctx, exp);
+                        }
+                    }
 
 				}
 
@@ -190,11 +210,31 @@ namespace Api.ChatBotSimple
 						// is the appt valid?
 						if (appt != null)
 						{
-							// Set the new Date
+							// Set the email
 							appt.Email = message.Message;
 							appt = await _meetingsAppointments.Update(ctx, appt);
 						}
 					}
+
+					// What about an expert question?
+					if (chat.ExpertQuestionId.HasValue)
+                    {
+						if (_expertQuestions == null)
+                        {
+							_expertQuestions = Services.Get<ExpertQuestionService>();
+                        }
+
+						// Yep, let's get the expert question.
+						var exp = await _expertQuestions.Get(ctx, chat.ExpertQuestionId.Value);
+
+						// is the exp valid?
+						if (exp != null)
+                        {
+							// Set the email
+							exp.Email = message.Message;
+							exp = await _expertQuestions.Update(ctx, exp);
+                        }
+                    }
 				}
 
 				// Is the user setting the date for the meeting?
@@ -510,7 +550,7 @@ namespace Api.ChatBotSimple
 					var chat = await _liveChat.Get(ctx, message.LiveSupportChatId);
 
 					// Let's create a new expert question entry.
-					var expertQuestion = await _expertQuestions.Create(ctx, new ExpertQuestion() { FullName = chat.FullName, Email = chat.Email});
+					var expertQuestion = await _expertQuestions.Create(ctx, new ExpertQuestion() { UserId = chat.UserId, FullName = chat.FullName, Email = chat.Email});
 
 					// Let's also set the chat to have the expert Question id.
 					chat.ExpertQuestionId = expertQuestion.Id;
