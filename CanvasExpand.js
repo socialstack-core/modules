@@ -4,7 +4,7 @@ import Text from 'UI/Text';
 /*
 * Canvas JSON has multiple conveniences - expanding it will, for example, resolve the module references.
 */
-function expand(contentNode, onContentNode){
+export function expand(contentNode, onContentNode){
 	if(!contentNode || contentNode.expanded){
 		return contentNode;
 	}
@@ -157,7 +157,7 @@ function remap(item, map){
 	return result;
 }
 
-function mapTokens(obj, canvas, Canvas){
+export function mapTokens(obj, canvas, Canvas){
 	var {props} = canvas;
 	var result = {};
 	
@@ -188,5 +188,3 @@ function mapTokens(obj, canvas, Canvas){
 	result.__canvas = canvas;
 	return result;
 }
-
-export {expand, mapTokens };
