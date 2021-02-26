@@ -4,7 +4,7 @@ export default function(custom){
 	if(!custom){
 		// Init all modules.
 		for(var m in __mm){
-			__mm[m] && global.getModule(m);
+			__mm[m] && global.require(m);
 		}
 	}
 	
