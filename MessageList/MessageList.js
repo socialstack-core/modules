@@ -71,12 +71,13 @@ export default class MessageList extends React.Component {
 	}
 
 	render(){
-		var { chat, sendLabel, sendTip, placeholder } = this.props;
+		var { chat, sendLabel, sendTip, placeholder, className } = this.props;
 		var { user } = global.app.state;
 		var { lastMessage } = this.state;
+		var messageHistoryClass = "message-history " + (className ? className : "");
 
 		return <div className="message-list">
-			<div id="message-history" ref={r => this.history = r} className="message-history" data-simplebar data-simplebar-auto-hide="false">
+			<div id="message-history" ref={r => this.history = r} className={messageHistoryClass}>
 				<div className="message-history-inner">
 					<Loop raw live='LiveSupportMessage' over='livesupportmessage/list' filter={{
 						where: {
@@ -91,7 +92,7 @@ export default class MessageList extends React.Component {
 					onLiveCreate={entity => {
 						var e = this.history;
 						setTimeout(() => {
-							var simpleBarElem = document.querySelector('#message-history .simplebar-content-wrapper');
+							var simpleBarElem = document.querySelector('#message-history');
 
 							// Brute force checking of the custom scroll bar dependency
 							if (!!simpleBarElem) {
