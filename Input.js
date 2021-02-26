@@ -1,6 +1,5 @@
 var id = 1;
 
-import getModule from 'UI/Functions/GetModule';
 import Loop from 'UI/Loop';
 import omit from 'UI/Functions/Omit';
 
@@ -209,7 +208,7 @@ export default class Input extends React.Component {
 
             switch (typeof valType) {
                 case "string":
-                    var mtd = getModule("UI/Functions/Validation/" + valType).default;
+                    var mtd = require("UI/Functions/Validation/" + valType).default;
                     vFail = mtd(v);
                     break;
                 case "function":
