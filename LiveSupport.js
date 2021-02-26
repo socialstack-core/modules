@@ -58,7 +58,7 @@ export default class LiveSupport extends React.Component {
 					<div className="livesupport">
 						{ this.state.chat &&
 							<MessageList
-								messageListClassName={messageListClassName}
+								className={messageListClassName}
 								returnToBotDecision={this.props.returnToBotDecision}
 								canClaim={!this.state.chat.assignedToUserId}
 								onClaim={chat => {
