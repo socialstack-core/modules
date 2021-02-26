@@ -11,21 +11,27 @@ export default class Link extends React.Component {
 
 		var url = (this.props.url || this.props.href);
 		
-		if(url && url[0] == '/'){
+		if(url){
+			// if url contains :// it must be as-is (which happens anyway).
+			if(url[0] == '/'){
+				if(url.length>1 && url[1] == '/'){
+					// as-is
+				}else{
+					var prefix = window.urlPrefix || '';
 
-			var prefix = window.urlPrefix || '';
+					if(prefix) {
+						if(prefix[0] != '/'){
+							// must return an absolute url
+							prefix = '/' + prefix;
+						 }
 
-			if(prefix) {
-				if(prefix[0] != '/'){
-					// must return an absolute url
-					prefix = '/' + prefix;
-				 }
-
-				if(prefix[prefix.length - 1] == "/") {
-					url = url.substring(1);
+						if(prefix[prefix.length - 1] == "/") {
+							url = url.substring(1);
+						}
+			
+						url = prefix + url;
+					}
 				}
-	
-				url = prefix + url;
 			}
 		}
 
