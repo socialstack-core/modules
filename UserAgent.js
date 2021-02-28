@@ -272,7 +272,7 @@ if (document.getElementsByTagName && document.querySelector("html")) {
 
 }
 
-module.exports = {
+export {
     getMobileSmall,
     getMobileMedium,
     getMobileLarge,
