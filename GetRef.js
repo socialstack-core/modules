@@ -20,6 +20,19 @@ function basicUrl(url, options){
 	return (<img loading="lazy" src={url} {...options.attribs} />);
 }
 
+function staticFile(ref, options, r){
+	var refParts = ref.split('/');
+	var mainDir = refParts.shift();
+	var url = '/pack/static/' + refParts.join('/');
+	
+	if(options.url){
+		return url;
+	}
+	
+	// React component by default:
+	return (<img src={url} width={options.size || undefined} loading="lazy" {...options.attribs} />);
+}
+
 function contentFile(ref, options, r){
 	var url = r.scheme == 'public' ? '/content/' : '/content-private/';
 	
@@ -98,6 +111,7 @@ function emojiStr(ref, options){
 var protocolHandlers = {
 	'public': contentFile,
 	'private': contentFile,
+	's': staticFile,
 	'url': basicUrl,
 	'http': basicUrl,
 	'https': basicUrl,
@@ -119,19 +133,14 @@ getRef.parse = (ref) => {
 		return ref;
 	}
 	var protoIndex = ref.indexOf(':')
-	
-	if(protoIndex == -1){
-		return null;
-	}
-	
-	var scheme = ref.substring(0, protoIndex);
+	var scheme = (protoIndex == -1) ? 'https' : ref.substring(0, protoIndex);
 	var handler = protocolHandlers[scheme];
 	
 	if(!handler){
 		return null;
 	}
 	
-	ref = ref.substring(protoIndex+1);
+	ref = protoIndex == -1 ? ref : ref.substring(protoIndex+1);
 	var fileParts = null;
 	var fileType = null;
 	
