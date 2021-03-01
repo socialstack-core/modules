@@ -1,6 +1,6 @@
 import getRef from 'UI/Functions/GetRef';
 import omit from 'UI/Functions/Omit';
-import logo from './logo.png';
+import logoRef from './logo.png';
 
 /*
 Used to display an image from a fileRef.
@@ -35,7 +35,7 @@ export default function Image (props) {
 }
 
 Image.propTypes = {
-	fileRef: {type: 'string', default: 'url:' + logo},
+	fileRef: {type: 'string', default: logoRef},
 	linkUrl: 'string',
 	title: 'string',
 	fullWidth: 'bool',
