@@ -188,7 +188,7 @@ namespace Api.Database
 			if (context != null && context.LocaleId > 1)
 			{
 				localeId = context.LocaleId;
-				var gl = await context.GetLocale();
+				var gl = Locales != null && localeId <= Locales.Length ? Locales[localeId - 1] : null;
 				if (gl == null || gl.Id != localeId)
 				{
 					// The locale doesn't exist - we fell back to the site default one which doesn't have a column suffix.
@@ -238,7 +238,8 @@ namespace Api.Database
 			if (context != null && context.LocaleId > 1)
 			{
 				localeId = context.LocaleId;
-				localeCode = (await context.GetLocale()).Code;
+				var locale = (Locales != null && localeId <= Locales.Length ? Locales[localeId - 1] : null);
+				localeCode = locale == null ? null : locale.Code;
 			}
 
 			var queryText = q.GetQuery(null, true, localeId, localeCode);
@@ -362,7 +363,8 @@ namespace Api.Database
 			if (context != null && context.LocaleId > 1)
 			{
 				localeId = context.LocaleId;
-				localeCode = (await context.GetLocale()).Code;
+				var locale = (Locales != null && localeId <= Locales.Length ? Locales[localeId - 1] : null);
+				localeCode = locale == null ? null : locale.Code;
 			}
 
 			// Run update:
@@ -403,7 +405,8 @@ namespace Api.Database
 			if (context != null && context.LocaleId > 1)
 			{
 				localeId = context.LocaleId;
-				localeCode = (await context.GetLocale()).Code;
+				var locale = (Locales != null && localeId <= Locales.Length ? Locales[localeId - 1] : null);
+				localeCode = locale == null ? null : locale.Code;
 			}
 
 			// Run update:
@@ -430,7 +433,8 @@ namespace Api.Database
 			if (context != null && context.LocaleId > 1)
 			{
 				localeId = context.LocaleId;
-				localeCode = (await context.GetLocale()).Code;
+				var locale = (Locales != null && localeId <= Locales.Length ? Locales[localeId - 1] : null);
+				localeCode = locale == null ? null : locale.Code;
 			}
 
 			// Run update:
@@ -461,7 +465,8 @@ namespace Api.Database
 			if (context != null && context.LocaleId > 1)
 			{
 				localeId = context.LocaleId;
-				localeCode = (await context.GetLocale()).Code;
+				var locale = (Locales != null && localeId <= Locales.Length ? Locales[localeId - 1] : null);
+				localeCode = locale == null ? null : locale.Code;
 			}
 
 			using (var connection = GetConnection())
@@ -530,7 +535,8 @@ namespace Api.Database
 			if (context != null && context.LocaleId > 1)
 			{
 				localeId = context.LocaleId;
-				localeCode = (await context.GetLocale()).Code;
+				var locale = (Locales != null && localeId <= Locales.Length ? Locales[localeId - 1] : null);
+				localeCode = locale == null ? null : locale.Code;
 			}
 
 			bool paginationActive = filter != null && filter.PageSize != 0;
