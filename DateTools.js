@@ -163,7 +163,7 @@ function minsBetween(startdate , enddate) {
 	return mins;
 }
 
-export default {
+export {
 	ordinal,
 	dayNames,
 	shortDayNames,
