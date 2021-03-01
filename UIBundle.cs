@@ -400,7 +400,15 @@ namespace Api.CanvasRenderer
 		{
 			var lastSlash = filePath.LastIndexOf(Path.DirectorySeparatorChar);
 			var fileName = filePath.Substring(lastSlash + 1);
-			var relativePath = filePath.Substring(SourcePath.Length + 1, lastSlash - SourcePath.Length - 1);
+			var relLength = lastSlash - SourcePath.Length - 1;
+			
+			if (relLength <= 0)
+			{
+				// Directory
+				return null;
+			}
+
+			var relativePath = filePath.Substring(SourcePath.Length + 1, relLength);
 			var typeDot = fileName.LastIndexOf('.');
 			var fileType = fileName.Substring(typeDot + 1).ToLower();
 			var fileNameNoType = fileName.Substring(0, typeDot);
@@ -499,15 +507,12 @@ namespace Api.CanvasRenderer
 				AddToMap(filePath);
 			}
 
-			var watcher = new FileSystemWatcher();
+			watcher = new FileSystemWatcher();
 			watcher.Path = SourcePath;
 
 			watcher.IncludeSubdirectories = true;
 
 			watcher.NotifyFilter = NotifyFilters.DirectoryName | NotifyFilters.FileName | NotifyFilters.LastWrite;
-
-			// Watch all files.  
-			watcher.Filter = "*.*";
 
 			// Add event handlers for the source files:
 			watcher.Changed += new FileSystemEventHandler(OnChanged);
@@ -528,6 +533,11 @@ namespace Api.CanvasRenderer
 				}
 			}
 		}
+
+		/// <summary>
+		/// The watcher for this bundle
+		/// </summary>
+		private FileSystemWatcher watcher;
 
 		private void OnWatcherError(object source, ErrorEventArgs e)
 		{
@@ -1273,17 +1283,19 @@ namespace Api.CanvasRenderer
 						// Add it back in:
 						file = AddToMap(change.AbsolutePath);
 
-						if (file != null)
+						if (file == null)
 						{
-							if (file.FileType == SourceFileType.Javascript)
-							{
-								jsUpdate = true;
-							}
+							continue;
+						}
+							
+						if (file.FileType == SourceFileType.Javascript)
+						{
+							jsUpdate = true;
+						}
 
-							if (file.FileType == SourceFileType.Scss)
-							{
-								cssUpdate = true;
-							}
+						if (file.FileType == SourceFileType.Scss)
+						{
+							cssUpdate = true;
 						}
 
 						// Build it:
