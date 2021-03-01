@@ -1,6 +1,7 @@
 using System;
 using Api.Database;
 using Api.Permissions;
+using Api.Translate;
 using Api.Users;
 
 namespace Api.Pages
@@ -19,16 +20,19 @@ namespace Api.Pages
 		/// <summary>
 		/// The default title for this page.
 		/// </summary>
+		[Localized]
 		public string Title;
 		
 		/// <summary>
 		/// The pages content (as canvas JSON).
 		/// </summary>
+		[Localized]
 		public string BodyJson;
 
 		/// <summary>
 		/// The default description for this page.
 		/// </summary>
+		[Localized]
 		public string Description;
 		
 		/// <summary>
