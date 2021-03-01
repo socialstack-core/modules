@@ -70,14 +70,7 @@ export function expand(contentNode, onContentNode){
 		
 		var mdRef = contentNode.module;
 		contentNode.moduleName = mdRef;
-		
-		if(mdRef.indexOf('.') == -1){
-			// Expansion of e.g. UI/Canvas to UI/Canvas/Canvas.js
-			var mdRefParts = mdRef.split('/');
-			mdRef = mdRef + '/' + mdRefParts[mdRefParts.length-1] + '.js';
-		}
-		
-		var module = global.getModule(mdRef);
+		var module = global.require(mdRef);
 		
 		if(module){
 			// Use the mapped module. It could be imported JSON, 
