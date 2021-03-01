@@ -1,4 +1,4 @@
-var THREE = require('UI/Functions/ThreeJs/ThreeJs.js');
+import * as THREE from 'UI/Functions/ThreeJs';
 
 export default class Billboard extends React.Component {
 	
