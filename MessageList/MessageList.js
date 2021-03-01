@@ -5,7 +5,7 @@ import Canvas from 'UI/Canvas';
 import MessageCreate from 'UI/LiveSupport/MessageCreate';
 import getContentTypeId from 'UI/Functions/GetContentTypeId';
 import getRef from 'UI/Functions/GetRef';
-import dateTools from 'UI/Functions/DateTools';
+import * as dateTools from 'UI/Functions/DateTools';
 
 const defaultRef = "/images/chat_default_avatar.svg";
 
