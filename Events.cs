@@ -15,6 +15,11 @@ namespace Api.Eventing
 		/// Set of events for a Locale.
 		/// </summary>
 		public static EventGroup<Locale> Locale;
+		
+		/// <summary>
+		/// Set of events for a Translation.
+		/// </summary>
+		public static EventGroup<Translation> Translation;
 	}
 
 }
