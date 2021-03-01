@@ -21,19 +21,26 @@ namespace Api.Pages
 
 	public partial class HtmlService : AutoService
     {
+		/// <summary>
+		/// Set true for dark mode error messages.
+		/// </summary>
+		public bool DarkMode;
 		private readonly PageService _pages;
 		private readonly CanvasRendererService _canvasRendererService;
 		private readonly HtmlServiceConfig _config;
+		private readonly FrontendCodeService _frontend;
 
 		/// <summary>
 		/// Instanced automatically.
 		/// </summary>
-		public HtmlService(PageService pages, CanvasRendererService canvasRendererService)
+		public HtmlService(PageService pages, CanvasRendererService canvasRendererService, FrontendCodeService frontend)
 		{
 			_pages = pages;
+			_frontend = frontend;
 			_canvasRendererService = canvasRendererService;
 
 			_config = GetConfig<HtmlServiceConfig>();
+			DarkMode = _config.DarkMode;
 
 			var pathToUIDir = AppSettings.Configuration["UI"];
 
@@ -190,7 +197,99 @@ namespace Api.Pages
 				", \"po\":" + poJson +
 				",\"data\":" + state + "}";
 		}
-		
+
+		/// <summary>
+		/// Only on development.
+		/// </summary>
+		/// <param name="errors"></param>
+		/// <returns></returns>
+		private List<DocumentNode> GenerateErrorPage(List<UIBuildError> errors)
+		{
+			// Your UI has bad syntax, but somebody might as well at least get a smile out of it :p
+			var messages = new string[] {
+				"I burnt the pastries",
+				"I burnt the pizzas",
+				"I burnt the cake again :(",
+				"I burnt the chips",
+				"I burnt the microwaveable dinner somehow",
+				"I burnt the carpet",
+				"Instructions unclear, fork wedged in ceiling",
+				"Your pet ate all the food whilst you were away, but it wasn't my fault I swear"
+			};
+
+			var rng = new Random();
+			var doc = new Document();
+			doc.Title = "Oops! Something has gone very wrong. " + messages[rng.Next(0, messages.Length)] + ".";
+
+			// Charset must be within first 1kb of the header:
+			doc.Head.AppendChild(new DocumentNode("meta", true).With("charset", "utf-8"));
+			doc.Head.AppendChild(new DocumentNode("title").AppendChild(new TextNode(doc.Title)));
+
+			// Fail in style:
+			doc.Head.AppendChild(new DocumentNode("link").With("rel", "stylesheet").With("href", "https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css"));
+			doc.Head.AppendChild(new DocumentNode("style").AppendChild(new TextNode(
+				@".callout {padding: 20px;margin: 20px 0;border: 1px solid #eee;border-left-width: 5px;border-radius: 3px;}
+				.callout h4 {margin-top: 0; margin-bottom: 5px;}
+				.callout p:last-child {margin-bottom: 0;}
+				.callout pre {border-radius: 3px;color: #e83e8c;}
+				.callout + .bs-callout {margin-top: -5px;}
+				.callout-danger {border-left-color: #d9534f;}.callout-danger h4 {color: #d9534f;}
+				.callout-bdc {border-left-color: #29527a;}
+				.callout-bdc h4 {color: #29527a;}
+				.alert-danger{margin-top: 20px;}"
+			)));
+
+			if (DarkMode)
+			{
+				doc.Head.AppendChild(new DocumentNode("style").AppendChild(new TextNode(
+					@".callout{border-color: #333}
+					body{color: white;background:#222}
+					"
+				)));
+			}
+
+			var body = doc.Body;
+			var container = new DocumentNode("div").With("class", "container");
+			body.AppendChild(container);
+
+			var introError = new DocumentNode("div").With("class", "alert alert-danger").With("role", "alert");
+			introError.AppendChild(new TextNode("<b>" + errors.Count + " error(s)</b> during UI build."));
+			container.AppendChild(introError);
+
+			foreach (var error in errors)
+			{
+				var errorMessage = new DocumentNode("div").With("class", "callout callout-danger");
+
+				var header = new DocumentNode("h4");
+				header.AppendChild(new TextNode(error.Title));
+				errorMessage.AppendChild(header);
+
+				var errorFile = new DocumentNode("p");
+				errorFile.AppendChild(new TextNode(error.File));
+				errorMessage.AppendChild(errorFile);
+
+				var descript = new DocumentNode("pre").AppendChild(new TextNode(error.Description));
+				errorMessage.AppendChild(descript);
+				container.AppendChild(errorMessage);
+			}
+
+			var flatNodes = doc.Flatten();
+
+			// Swap all the TextNodes for byte blocks.
+			for (var i = 0; i < flatNodes.Count; i++)
+			{
+				var node = flatNodes[i];
+
+				if (node is TextNode node1)
+				{
+					var bytes = System.Text.Encoding.UTF8.GetBytes(node1.TextContent);
+					flatNodes[i] = new RawBytesNode(bytes);
+				}
+			}
+
+			return flatNodes;
+		}
+
 		/// <summary>
 		/// Note that context may only be used for the role information, not specific user details.
 		/// </summary>
@@ -207,6 +306,20 @@ namespace Api.Pages
 			if (cache.TryGetValue(path, out flatNodes))
 			{
 				return flatNodes;
+			}
+#endif
+
+#if DEBUG
+			// Get the errors from the last build. If the initial one is happening right now, this'll wait for it.
+			var errorList = await _frontend.GetLastBuildErrors();
+
+			if (errorList != null)
+			{
+				// Outputting an error page - there's frontend errors, which means anything other than a helpful 
+				// error page will very likely result in a broken page anyway.
+
+				return GenerateErrorPage(errorList);
+
 			}
 #endif
 
@@ -256,9 +369,20 @@ namespace Api.Pages
 			HandleCustomHeadList(_config.StartHeadTags, head);
 
 			head.AppendChild(new DocumentNode("link", true).With("rel", "icon").With("type", "image/png").With("sizes", "32x32").With("href", "/favicon-32x32.png"))
-				.AppendChild(new DocumentNode("link", true).With("rel", "icon").With("type", "image/png").With("sizes", "16x16").With("href", "/favicon-16x16.png"))
-				.AppendChild(new DocumentNode("link", true).With("rel", "stylesheet").With("href", packDir + "styles.css?v=1"))
-				.AppendChild(new DocumentNode("meta", true).With("name", "msapplication-TileColor").With("content", "#ffffff"))
+				.AppendChild(new DocumentNode("link", true).With("rel", "icon").With("type", "image/png").With("sizes", "16x16").With("href", "/favicon-16x16.png"));
+
+			// Get the main CSS files. Note that this will (intentionally) delay on dev instances if the first compile hasn't happened yet.
+			// That's primarily because we need the hash of the contents in the URL. Note that it has an internal cache which is almost always hit.
+			var mainCssFile = await _frontend.GetMainCss(context == null ? 1 : context.LocaleId);
+			head.AppendChild(new DocumentNode("link", true).With("rel", "stylesheet").With("href", mainCssFile.PublicUrl));
+
+			if (isAdmin)
+			{
+				var mainAdminCssFile = await _frontend.GetAdminMainCss(context == null ? 1 : context.LocaleId);
+				head.AppendChild(new DocumentNode("link", true).With("rel", "stylesheet").With("href", mainAdminCssFile.PublicUrl));
+			}
+
+			head.AppendChild(new DocumentNode("meta", true).With("name", "msapplication-TileColor").With("content", "#ffffff"))
 				.AppendChild(new DocumentNode("meta", true).With("name", "theme-color").With("content", "#ffffff"))
 				.AppendChild(new DocumentNode("meta", true).With("name", "viewport").With("content", "width=device-width, initial-scale=1"))
 				.AppendChild(new DocumentNode("meta", true).With("name", "description").With("content", doc.ReplaceTokens(page.Description)))
@@ -363,7 +487,26 @@ namespace Api.Pages
 			// Handle all Before Main JS scripts
 			HandleCustomScriptList(_config.BeforeMainJs, body);
 
-			var mainJs = new DocumentNode("script").With("src", packDir + "main.generated.js?v=1");
+			body.AppendChild(
+					new DocumentNode("script")
+					.AppendChild(new TextNode(_frontend.InlineJavascriptHeader))
+			);
+
+			if (isAdmin)
+			{
+				// Get the main admin JS file. Note that this will (intentionally) delay on dev instances if the first compile hasn't happened yet.
+				// That's primarily because we need the hash of the contents in the URL. Note that it has an internal cache which is almost always hit.
+				// Admin modules must be added to page before frontend ones, as the frontend file includes UI/Start and the actual start call.
+				var mainAdminJsFile = await _frontend.GetAdminMainJs(context == null ? 1 : context.LocaleId);
+				var mainAdminJs = new DocumentNode("script").With("src", mainAdminJsFile.PublicUrl);
+				body.AppendChild(mainAdminJs);
+			}
+
+			// Get the main JS file. Note that this will (intentionally) delay on dev instances if the first compile hasn't happened yet.
+			// That's primarily because we need the hash of the contents in the URL. Note that it has an internal cache which is almost always hit.
+			var mainJsFile = await _frontend.GetMainJs(context == null ? 1 : context.LocaleId);
+			
+			var mainJs = new DocumentNode("script").With("src", mainJsFile.PublicUrl);
 			doc.MainJs = mainJs;
 			body.AppendChild(mainJs);
 			
@@ -377,8 +520,13 @@ namespace Api.Pages
 			doc = await Events.Page.Generated.Dispatch(context, doc);
 
 			// Build the flat HTML for the page:
-			cache[path] = flatNodes = doc.Flatten();
-			
+			flatNodes = doc.Flatten();
+
+			lock (cache)
+			{
+				cache[path] = flatNodes;
+			}
+
 			// Note: Although gzip does support multiple concatenated gzip blocks, browsers do not implement this part of the gzip spec correctly.
 			// Unfortunately that means no part of the stream can be pre-compressed; must compress the whole thing and output that.
 

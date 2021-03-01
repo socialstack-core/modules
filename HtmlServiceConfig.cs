@@ -17,6 +17,11 @@ namespace Api.Pages
 		public bool PreRender {get; set; } = false;
 
 		/// <summary>
+		/// True if error screen should be dark mode.
+		/// </summary>
+		public bool DarkMode { get; set; } = false;
+
+		/// <summary>
 		/// Tags added to the beginning of the head.
 		/// </summary>
 		public List<HeadTag> StartHeadTags { get; set; }
