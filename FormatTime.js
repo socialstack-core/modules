@@ -1,4 +1,4 @@
-import dateTools from 'UI/Functions/DateTools';
+import * as dateTools from 'UI/Functions/DateTools';
 
 /*
 * Very basic date/time formatting, using a US date or EU date for now format.
