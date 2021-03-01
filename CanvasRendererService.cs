@@ -10,6 +10,8 @@ using Newtonsoft.Json;
 using Newtonsoft.Json.Serialization;
 using Api.Database;
 using Api.Translate;
+using Api.Eventing;
+using Api.Contexts;
 
 namespace Api.CanvasRenderer
 {
@@ -20,13 +22,40 @@ namespace Api.CanvasRenderer
 	public partial class CanvasRendererService : AutoService
 	{
 		private readonly CanvasRendererServiceConfig _cfg;
+		private readonly FrontendCodeService _frontend;
 
 		/// <summary>
 		/// Instanced automatically.
 		/// </summary>
-		public CanvasRendererService(LocaleService locales)
+		public CanvasRendererService(LocaleService locales, FrontendCodeService frontend)
 		{
+			_frontend = frontend;
 			_cfg = GetConfig<CanvasRendererServiceConfig>();
+
+			Events.Translation.AfterUpdate.AddEventListener((Context context, Translation translation) => {
+
+				if (translation == null)
+				{
+					return new ValueTask<Translation>(translation);
+				}
+
+				// A particular locale now needs reconstructing:
+				if (_engines != null && context.LocaleId > 0 && context.LocaleId <= _engines.Length)
+				{
+					// Nullify it:
+					_engines[context.LocaleId - 1] = null;
+				}
+
+				return new ValueTask<Translation>(translation);
+			});
+
+			Events.FrontendjsAfterUpdate.AddEventListener((Context context, long buildtimestampMs) => {
+
+				// JS file changed - drop all engines:
+				_engines = null;
+
+				return new ValueTask<long>(buildtimestampMs);
+			});
 		}
 
 		/// <summary>
@@ -53,7 +82,7 @@ namespace Api.CanvasRenderer
 			var locale = await context.GetLocale();
 
 			// Get a JS engine for the locale:
-			var engine = GetEngine(locale);
+			var engine = await GetEngine(locale);
 
 			if (engine == null)
 			{
@@ -118,7 +147,7 @@ namespace Api.CanvasRenderer
 		/// </summary>
 		/// <param name="locale">The locale in use.</param>
 		/// <returns></returns>
-		private V8ScriptEngine GetEngine(Locale locale)
+		private async ValueTask<V8ScriptEngine> GetEngine(Locale locale)
 		{
 			if (_engines != null && _engines.Length >= locale.Id && _engines[locale.Id - 1] != null)
 			{
@@ -147,21 +176,16 @@ namespace Api.CanvasRenderer
 
 			var dllPath = AppDomain.CurrentDomain.BaseDirectory;
 
-
 			// Module set to use:
 			var modules = _cfg.Modules;
-			var jsFilePath = modules == "Admin" ?
-					"Admin/public/en-admin/pack/" + (locale.Id == 1 ? "main" : locale.Code) + ".generated.js" : 
-					modules + "/public/pack/" + (locale.Id == 1 ? "main" : locale.Code) + ".generated.js";
-
+			
 			string sourceContent;
 
 			try
 			{
 				// If instancing a new engine, always read the file.
-				sourceContent = File.ReadAllText(
-					jsFilePath
-				);
+				var jsFileData = await (modules == "Admin" ? _frontend.GetAdminMainJs(locale.Id) : _frontend.GetMainJs(locale.Id));
+				sourceContent = System.Text.Encoding.UTF8.GetString(jsFileData.FileContent);
 			}
 			catch
 			{
@@ -192,24 +216,6 @@ namespace Api.CanvasRenderer
 			};
 
 			_engines[locale.Id - 1] = cre;
-
-			var watcher = new FileSystemWatcher();
-			watcher.Path = Path.GetDirectoryName(jsFilePath); 
-			watcher.Filter = Path.GetFileName(jsFilePath);
-			watcher.NotifyFilter = NotifyFilters.LastWrite;
-
-			watcher.Changed += (object source, FileSystemEventArgs e) => {
-				// The js file that this engine has in memory has been changed.
-				// Drop the engine from the cache now:
-				_engines[locale.Id - 1] = null;
-
-				// Dispose of watcher:
-				watcher.EnableRaisingEvents = false;
-				watcher.Dispose();
-			};
-
-			watcher.EnableRaisingEvents = true;
-			cre.Watcher = watcher;
 
 			return engine;
 		}
@@ -261,6 +267,10 @@ namespace Api.CanvasRenderer.V8
 	/// </summary>
 	public class Location
 	{
+		/// <summary>
+		/// Location href.
+		/// </summary>
+		public string href = null;
 	}
 
 	/// <summary>
@@ -302,11 +312,6 @@ namespace Api.CanvasRenderer.V8
 		/// The V8 JS engine.
 		/// </summary>
 		public V8ScriptEngine V8Engine;
-
-		/// <summary>
-		/// A fs watcher which is looking for changes to the UI .js file that the engine has loaded.
-		/// </summary>
-		public FileSystemWatcher Watcher;
 	}
 
 	/// <summary>

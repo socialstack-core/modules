@@ -1,0 +1,289 @@
+using Api.Contexts;
+using Api.Permissions;
+using Api.Translate;
+using Microsoft.ClearScript;
+using Microsoft.ClearScript.V8;
+using System;
+using System.Collections.Generic;
+using System.IO;
+using System.Text;
+using System.Threading.Tasks;
+
+namespace Api.CanvasRenderer
+{
+	
+	/// <summary>
+	/// This service manages and generates (for devs) the frontend code.
+	/// It does it by using either precompiled (as much as possible) bundles with metadata, or by compiling in-memory for devs using V8.
+	/// </summary>
+	public class FrontendCodeService : AutoService
+	{
+		private UIBundle UIBuilder;
+		private UIBundle EmailBuilder;
+		private UIBundle AdminBuilder;
+		private Task initialBuildTask;
+		/// <summary>
+		/// The inline header. This should be served inline in the html. It includes preact, preact hooks and the ss module require function, totalling 13kb.
+		/// </summary>
+		public string InlineJavascriptHeader;
+
+		/// <summary>
+		/// Instanced automatically.
+		/// </summary>
+		public FrontendCodeService(LocaleService locales, TranslationService translations)
+		{
+			initialBuildTask = Task.Run(async () =>
+			{
+				var dllPath = AppDomain.CurrentDomain.BaseDirectory;
+
+				// The html inline header. It includes preact, preact hooks and the socialstack module require function.
+				InlineJavascriptHeader = File.ReadAllText(dllPath + "/Api/ThirdParty/CanvasRenderer/inline_header.js");
+
+#if DEBUG
+				// Get a build engine:
+				var engine = GetBuildEngine();
+
+				var globalMap = new GlobalSourceFileMap();
+
+				// Create a group of build/watchers for each bundle of files (all in parallel):
+				AddBuilder(UIBuilder = new UIBundle("UI", engine, globalMap, translations, locales));
+				AddBuilder(EmailBuilder = new UIBundle("Email", engine, globalMap, translations, locales));
+				AddBuilder(AdminBuilder = new UIBundle("Admin", engine, globalMap, translations, locales));
+
+				// Sort global map:
+				globalMap.Sort();
+
+				// Happens in a separate loop to ensure all the global SCSS has loaded first.
+				foreach (var sb in SourceBuilders)
+				{
+					// Compile everything:
+					await sb.BuildEverything();
+				}
+
+#else
+				// TODO: Load from disk, including the substitution cache.
+#endif
+
+				Console.WriteLine("Done handling UI load.");
+				initialBuildTask = null;
+			});
+		}
+
+		/// <summary>
+		/// Gets the build errors from the last build of the CSS/ JS that happened. If the initial build run is happening, this waits for it to complete.
+		/// </summary>
+		/// <returns></returns>
+		public async ValueTask<List<UIBuildError>> GetLastBuildErrors()
+		{
+#if DEBUG
+			// Special case for devs - may need to wait for first build if it hasn't happened yet.
+			if (initialBuildTask != null)
+			{
+				await initialBuildTask;
+			}
+#endif
+
+			var uiErrors = UIBuilder.GetBuildErrors();
+			var adminErrors = AdminBuilder.GetBuildErrors();
+			var emailErrors = EmailBuilder.GetBuildErrors();
+
+			if (uiErrors == null && adminErrors == null && emailErrors == null)
+			{
+				// Happy days!
+				return null;
+			}
+
+			// Usually only one:
+			if (uiErrors != null && adminErrors == null && emailErrors == null)
+			{
+				return uiErrors;
+			}
+
+			if (uiErrors == null && adminErrors != null && emailErrors == null)
+			{
+				return adminErrors;
+			}
+
+			if (uiErrors == null && adminErrors == null && emailErrors != null)
+			{
+				return emailErrors;
+			}
+
+			// >1 is failing. Merge them together:
+			var combined = new List<UIBuildError>();
+
+			if (uiErrors != null)
+			{
+				combined.AddRange(uiErrors);
+			}
+
+			if (adminErrors != null)
+			{
+				combined.AddRange(adminErrors);
+			}
+
+			if (emailErrors != null)
+			{
+				combined.AddRange(emailErrors);
+			}
+
+			return combined;
+		}
+
+		/// <summary>
+		/// Each source builder currently running (if there are any - can be null on production systems).
+		/// </summary>
+		public List<UIBundle> SourceBuilders;
+
+		/// <summary>
+		/// Adds the given builder. This primarily hooks up global file events.
+		/// </summary>
+		/// <param name="builder"></param>
+		private void AddBuilder(UIBundle builder)
+		{
+			if (SourceBuilders == null)
+			{
+				SourceBuilders = new List<UIBundle>();
+			}
+			
+			SourceBuilders.Add(builder);
+
+			builder.OnGlobalFile += async (SourceFile arg1, SourceFileChangeType arg2) => {
+				// Tell other builders about this change:
+				foreach (var otherBuilder in SourceBuilders)
+				{
+					if (otherBuilder == builder)
+					{
+						continue;
+					}
+
+					await otherBuilder.OnRemoteGlobalFileChange(arg1, arg2);
+				}
+			};
+
+			// Start it now:
+			builder.Start();
+		}
+
+		/// <summary>
+		/// Gets the main JS file as a raw, always from memory file. Note that although the initial generation of the response is dynamic, 
+		/// virtually all requests that land here are responded to from RAM without allocating.
+		/// </summary>
+		/// <param name="localeId">The locale you want the JS for.</param>
+		/// <returns></returns>
+		public async ValueTask<FrontendFile> GetMainJs(int localeId)
+		{
+#if DEBUG
+			// Special case for devs - may need to wait for first build if it hasn't happened yet.
+			if (initialBuildTask != null)
+			{
+				await initialBuildTask;
+			}
+#endif
+			return await UIBuilder.GetJs(localeId);
+		}
+		
+		/// <summary>
+		/// Gets the main CSS file as a raw, always from memory file. Note that although the initial generation of the response is dynamic, 
+		/// virtually all requests that land here are responded to from RAM without allocating.
+		/// </summary>
+		/// <param name="localeId">The locale you want the JS for.</param>
+		/// <returns></returns>
+		public async ValueTask<FrontendFile> GetMainCss(int localeId)
+		{
+#if DEBUG
+			// Special case for devs - may need to wait for first build if it hasn't happened yet.
+			if (initialBuildTask != null)
+			{
+				await initialBuildTask;
+			}
+#endif
+			return await UIBuilder.GetCss(localeId);
+		}
+
+		/// <summary>
+		/// Gets the main CSS file (for admin bundle) as a raw, always from memory file. Note that although the initial generation of the response is dynamic, 
+		/// virtually all requests that land here are responded to from RAM without allocating.
+		/// </summary>
+		/// <param name="localeId">The locale you want the JS for.</param>
+		/// <returns></returns>
+		public async ValueTask<FrontendFile> GetAdminMainCss(int localeId)
+		{
+#if DEBUG
+			// Special case for devs - may need to wait for first build if it hasn't happened yet.
+			if (initialBuildTask != null)
+			{
+				await initialBuildTask;
+			}
+#endif
+			return await AdminBuilder.GetCss(localeId);
+		}
+
+		/// <summary>
+		/// Gets the main JS file (for admin bundle) as a raw, always from memory file. Note that although the initial generation of the response is dynamic, 
+		/// virtually all requests that land here are responded to from RAM without allocating.
+		/// </summary>
+		/// <param name="localeId">The locale you want the JS for.</param>
+		/// <returns></returns>
+		public async ValueTask<FrontendFile> GetAdminMainJs(int localeId)
+		{
+#if DEBUG
+			// Special case for devs - may need to wait for first build if it hasn't happened yet.
+			if (initialBuildTask != null)
+			{
+				await initialBuildTask;
+			}
+#endif
+			return await AdminBuilder.GetJs(localeId);
+		}
+
+		/// <summary>
+		/// Gets a V8 engine used to host Babel, node-sass and other parts of the build chain. This is used for primarily development instances.
+		/// </summary>
+		/// <returns></returns>
+		private V8ScriptEngine GetBuildEngine()
+		{
+			var engine = new V8ScriptEngine("Socialstack API Builder", V8ScriptEngineFlags.DisableGlobalMembers | V8ScriptEngineFlags.EnableTaskPromiseConversion);
+			engine.Execute("window=this;");
+			// engine.AddHostObject("document", new V8.Document());
+			engine.AddHostObject("console", new V8.Console());
+			engine.AddHostObject("navigator", new V8.Navigator());
+			engine.AddHostObject("location", new V8.Location() { href = "-SocialstackCompiler-"});
+
+			var dllPath = AppDomain.CurrentDomain.BaseDirectory;
+
+			var buildHelpers = File.ReadAllText(dllPath + "/Api/ThirdParty/CanvasRenderer/compiler.generated.js");
+			engine.Execute(new DocumentInfo(new Uri("file://compiler.generated.js")), buildHelpers);
+
+			return engine;
+		}
+
+	}
+
+	/// <summary>
+	/// A file as a raw byte[] along with a hash of the content.
+	/// </summary>
+	public struct FrontendFile
+	{
+		/// <summary>
+		/// An empty file.
+		/// </summary>
+		public static FrontendFile Empty = new FrontendFile() { FileContent = null, Hash = null, PublicUrl = null };
+
+		/// <summary>
+		/// The file content.
+		/// </summary>
+		public byte[] FileContent;
+
+		/// <summary>
+		/// The hash of the file.
+		/// </summary>
+		public string Hash;
+
+		/// <summary>
+		/// The public URL of this file.
+		/// </summary>
+		public string PublicUrl;
+	}
+
+}
