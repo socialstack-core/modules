@@ -159,16 +159,19 @@ namespace Api.Pages
 				{
 					var primaryToken = pageAndTokens.Tokens[countA - 1];
 
-					if (primaryToken.IsId)
+					if (primaryToken.ContentType != null)
 					{
-						if (int.TryParse(pageAndTokens.TokenValues[countA - 1], out int primaryObjectId))
+						if (primaryToken.IsId)
 						{
-							primaryObject = await primaryToken.Service.GetObject(context, primaryObjectId);
+							if (int.TryParse(pageAndTokens.TokenValues[countA - 1], out int primaryObjectId))
+							{
+								primaryObject = await primaryToken.Service.GetObject(context, primaryObjectId);
+							}
 						}
-					}
-					else
-					{
-						primaryObject = await primaryToken.Service.GetObject(context, primaryToken.FieldName, pageAndTokens.TokenValues[countA - 1]);
+						else
+						{
+							primaryObject = await primaryToken.Service.GetObject(context, primaryToken.FieldName, pageAndTokens.TokenValues[countA - 1]);
+						}
 					}
 				}
 			}
@@ -348,16 +351,20 @@ namespace Api.Pages
 					doc.PrimaryObjectService = primaryToken.Service;
 					doc.PrimaryObjectType = primaryToken.ContentType;
 
-					if (primaryToken.IsId)
-					{
-						if (int.TryParse(pageAndTokens.TokenValues[countA - 1], out int primaryObjectId))
+
+					if (primaryToken.ContentType != null)
+                    {
+						if (primaryToken.IsId)
 						{
-							doc.PrimaryObject = await primaryToken.Service.GetObject(context, primaryObjectId);
+							if (int.TryParse(pageAndTokens.TokenValues[countA - 1], out int primaryObjectId))
+							{
+								doc.PrimaryObject = await primaryToken.Service.GetObject(context, primaryObjectId);
+							}
 						}
-					}
-					else
-					{
-						doc.PrimaryObject = await primaryToken.Service.GetObject(context, primaryToken.FieldName, pageAndTokens.TokenValues[countA - 1]);
+						else
+						{
+							doc.PrimaryObject = await primaryToken.Service.GetObject(context, primaryToken.FieldName, pageAndTokens.TokenValues[countA - 1]);
+						}
 					}
 				}
 			}

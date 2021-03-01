@@ -5,6 +5,8 @@ using System;
 using System.IO;
 using Api.Contexts;
 using System.Text;
+using Api.Eventing;
+using Api.Startup;
 
 namespace Api.Pages
 {
@@ -16,6 +18,12 @@ namespace Api.Pages
 	public partial class HtmlController : Controller
     {
 		private HtmlService _htmlService;
+		private ContextService _contexts;
+
+		/// <summary>
+		/// A date in the past used to set expiry on cookies.
+		/// </summary>
+		private static DateTimeOffset ThePast = new DateTimeOffset(1993, 1, 1, 0, 0, 0, TimeSpan.Zero);
 
 		/// <summary>
 		/// Instanced automatically per request.
@@ -55,6 +63,65 @@ namespace Api.Pages
 		public async Task CatchAll()
 		{
 			var context = Request.GetContext();
+
+			var cookieRole = context.RoleId;
+
+			if (context.UserId == 0)
+			{
+				// Anonymous - fire off the anon user event:
+				context = await Events.ContextAfterAnonymous.Dispatch(context, context, Response);
+
+				if (context == null)
+				{
+					Response.StatusCode = 404;
+				}
+
+				// Update cookie role:
+				cookieRole = context.RoleId;
+			}
+
+			if (context.RoleId != cookieRole)
+			{
+				if(_contexts == null)
+                {
+
+                }
+
+
+				// Force reset if role changed. Getting the public context will verify that the roles match.
+				Response.Cookies.Append(
+					_contexts.CookieName,
+					"",
+					new Microsoft.AspNetCore.Http.CookieOptions()
+					{
+						Path = "/",
+						Domain = _contexts.GetDomain(),
+						IsEssential = true,
+						Expires = ThePast
+					}
+				);
+
+				Response.Cookies.Append(
+					_contexts.CookieName,
+					"",
+					new Microsoft.AspNetCore.Http.CookieOptions()
+					{
+						Path = "/",
+						Expires = ThePast
+					}
+				);
+
+				Response.StatusCode = 404;
+			}
+			else
+			{
+				// Update the token:
+				context.SendToken(Response);
+			}
+
+
+
+
 			var compress = true;
 
 			Response.ContentType = "text/html";
