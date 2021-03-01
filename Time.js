@@ -1,4 +1,4 @@
-import dateTools from 'UI/Functions/DateTools';
+import * as dateTools from 'UI/Functions/DateTools';
 
 /*
 Displays "x ago" phrase, or just an absolute date/time.
