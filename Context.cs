@@ -82,7 +82,7 @@ namespace Api.Contexts
 		/// Gets the locale for this context.
 		/// </summary>
 		/// <returns></returns>
-		public async Task<Locale> GetLocale()
+		public async ValueTask<Locale> GetLocale()
 		{
 			if (_locale != null)
 			{
@@ -183,7 +183,7 @@ namespace Api.Contexts
 		/// Get the user associated to this login token.
 		/// </summary>
 		/// <returns></returns>
-		public async Task<User> GetUser()
+		public async ValueTask<User> GetUser()
 		{
 			if (_user != null)
 			{
@@ -218,7 +218,7 @@ namespace Api.Contexts
 		/// <summary>
 		/// Builds a public context. Used by e.g. self or login/ register EP's.
 		/// </summary>
-		public async Task<PublicContext> GetPublicContext()
+		public async ValueTask<PublicContext> GetPublicContext()
 		{
 			var ctx = new PublicContext();
 			ctx.User = await GetUser();
