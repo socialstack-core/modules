@@ -957,7 +957,7 @@ namespace Api.CanvasRenderer
 					File.ReadAllText(file.Path),
 					file.ModulePath, // Module path
 					file.FullModulePath,
-					true // Minified = true
+					false // Minified = true
 				) as ScriptObject;
 
 				// Get the src:
