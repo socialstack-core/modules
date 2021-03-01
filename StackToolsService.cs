@@ -52,6 +52,7 @@ namespace Api.StackTools
 		)
 		{
 			#if DEBUG
+			/*
 			// Only need to spawn a process on debug (dev) builds.
 			Task.Run(() =>
 			{
@@ -72,6 +73,7 @@ namespace Api.StackTools
 			AppDomain.CurrentDomain.ProcessExit += (object sender, EventArgs e) => {
 				StopAll();
 			};
+			*/
 			#endif
 		}
 		
