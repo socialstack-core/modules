@@ -45,10 +45,13 @@ namespace Api.CanvasRenderer
 
 				var globalMap = new GlobalSourceFileMap();
 
+				// Todo: make this into a config variable. If true, the build from the watcher will be minified.
+				var minify = false;
+
 				// Create a group of build/watchers for each bundle of files (all in parallel):
-				AddBuilder(UIBuilder = new UIBundle("UI", engine, globalMap, translations, locales));
-				AddBuilder(EmailBuilder = new UIBundle("Email", engine, globalMap, translations, locales));
-				AddBuilder(AdminBuilder = new UIBundle("Admin", engine, globalMap, translations, locales));
+				AddBuilder(UIBuilder = new UIBundle("UI", engine, globalMap, translations, locales, minify));
+				AddBuilder(EmailBuilder = new UIBundle("Email", engine, globalMap, translations, locales, minify));
+				AddBuilder(AdminBuilder = new UIBundle("Admin", engine, globalMap, translations, locales, minify));
 
 				// Sort global map:
 				globalMap.Sort();

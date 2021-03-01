@@ -21,6 +21,12 @@ namespace Api.CanvasRenderer
 	public class UIBundle
 	{
 		/// <summary>
+		/// True if builds from the watcher should be minified.
+		/// Generally recommended to leave it off, but try at least once as there are a collection of known bugs in the Babel minifier.
+		/// </summary>
+		public bool Minified;
+
+		/// <summary>
 		/// Filesystem path. e.g. "C:\\Projects\\UI".
 		/// </summary>
 		public string RootPath;
@@ -91,7 +97,7 @@ namespace Api.CanvasRenderer
 		/// <summary>
 		/// Creates a new bundle for the given filesystem path.
 		/// </summary>
-		public UIBundle(string rootPath, V8ScriptEngine buildEngine, GlobalSourceFileMap globalFileMap, TranslationService translations, LocaleService locales)
+		public UIBundle(string rootPath, V8ScriptEngine buildEngine, GlobalSourceFileMap globalFileMap, TranslationService translations, LocaleService locales, bool minify)
 		{
 			RootName = rootPath;
 			RootPath = Path.GetFullPath(rootPath);
@@ -100,6 +106,8 @@ namespace Api.CanvasRenderer
 			GlobalFileMap = globalFileMap;
 			_translationService = translations;
 			_localeService = locales;
+			Minified = minify;
+
 			if (rootPath == "Admin")
 			{
 				PackDir = "/en-admin/pack/";
@@ -879,7 +887,7 @@ namespace Api.CanvasRenderer
 				var transpiledCss = BuildEngine.Invoke(
 					"transformScss",
 					ScssHeader + rawContent,
-					false // Minified = true
+					Minified
 				) as string;
 
 				// Convert URLs:
@@ -957,7 +965,7 @@ namespace Api.CanvasRenderer
 					File.ReadAllText(file.Path),
 					file.ModulePath, // Module path
 					file.FullModulePath,
-					false // Minified = true
+					Minified
 				) as ScriptObject;
 
 				// Get the src:
