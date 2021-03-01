@@ -9,6 +9,27 @@ export default function Column (props) {
 	// only define a default col-md- width if we don't have a col-xs- / col-sm- value which overrides it
 	var sizeMd = props.sizeMd || props.size || (!props.sizeXs && !props.sizeMd ? 6 : undefined);
 
+	if (props.offset) {
+
+		if (!props.offsetXs) {
+			props.offsetXs = props.offset;
+		}
+		if (!props.offsetSm) {
+			props.offsetSm = props.offset;
+		}
+		if (!props.offsetMd) {
+			props.offsetMd = props.offset;
+		}
+		if (!props.offsetLg) {
+			props.offsetLg = props.offset;
+		}
+		if (!props.offsetXl) {
+			props.offsetXl = props.offset;
+		}
+
+	}
+
+	// size
 	if (props.sizeXs) {
 		// NB: no col-xs- prefix
 		// ref: https://getbootstrap.com/docs/4.3/layout/grid/
@@ -31,6 +52,32 @@ export default function Column (props) {
 		colClass += ' col-xl-' + props.sizeXl;
 	}
 
+	// offset
+	if (props.offsetXs) {
+		colClass += ' offset-' + props.offsetXs;
+	}
+
+	if (props.offsetSm) {
+		colClass += ' offset-sm-' + props.offsetSm;
+	}
+
+	if (props.offsetMd) {
+		colClass += ' offset-md-' + props.offsetMd;
+	}
+
+	if (props.offsetLg) {
+		colClass += ' offset-lg-' + props.offsetLg;
+	}
+
+	if (props.offsetXl) {
+		colClass += ' offset-xl-' + props.offsetXl;
+	}
+
+	// margin
+	if (props.margin) {
+		colClass += ' ' + props.margin;
+	}
+
 	if (props.noGutters) {
 		colClass += ' no-gutters';
 	}
@@ -49,6 +96,7 @@ export default function Column (props) {
 }
 
 var sizeOptions = [
+	{ name: 'Auto', value: 'auto' },
 	{ name: '1/12', value: 1 },
 	{ name: '2/12', value: 2 },
 	{ name: '3/12 (25%)', value: 3 },
@@ -63,14 +111,31 @@ var sizeOptions = [
 	{ name: '12/12 (100%)', value: 12 }
 ];
 
+var offsetOptions = sizeOptions.slice(1);
+offsetOptions.splice(0, 0, { name: 'No offset', value: 0 });
+
+var marginOptions = [
+	{ name: 'None', value: '' },
+	{ name: 'Move sibling columns right', value: 'ml-auto' },
+	{ name: 'Move sibling columns left', value: 'mr-auto' },
+	{ name: 'Move sibling columns left/right', value: 'mx-auto' }
+];
+
 Column.propTypes = {
-	noGutters: 'boolean',
+	noGutters: 'boolean', // remove?  pretty certain this applies to the parent row only
 	size: sizeOptions,
 	sizeXs: sizeOptions,
 	sizeSm: sizeOptions,
 	sizeMd: sizeOptions,
 	sizeLg: sizeOptions,
 	sizeXl: sizeOptions,
+	offset: offsetOptions,
+	offsetXs: offsetOptions,
+	offsetSm: offsetOptions,
+	offsetMd: offsetOptions,
+	offsetLg: offsetOptions,
+	offsetXl: offsetOptions,
+	margin: marginOptions,
 	children: true
 };
 
