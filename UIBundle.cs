@@ -803,6 +803,9 @@ namespace Api.CanvasRenderer
 			var builder = new StringBuilder();
 			CssBuildErrors.Clear();
 
+			// Sorted files:
+			var files = new List<SourceFile>();
+
 			foreach (var file in FileMap)
 			{
 				if (file.Value.FileType == SourceFileType.Scss)
@@ -813,9 +816,17 @@ namespace Api.CanvasRenderer
 					}
 					else
 					{
-						builder.Append(file.Value.TranspiledContent);
+						files.Add(file.Value);
 					}
 				}
+			}
+
+			// Sort the CSS files by priority:
+			files = files.OrderBy(s => s.Priority).ToList();
+
+			foreach (var file in files)
+			{
+				builder.Append(file.TranspiledContent);
 			}
 
 			BuiltCss = builder.ToString();
