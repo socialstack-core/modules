@@ -475,8 +475,11 @@ namespace Api.CanvasRenderer
 			var fileType = fileName.Substring(typeDot + 1).ToLower();
 			var fileNameNoType = fileName.Substring(0, typeDot);
 
-			// Check if the file name matters to us:
-			var tidyFileType = DetermineFileType(fileType, fileName);
+			// Check if the file name matters to us. If the path contains /static/ it never does:
+
+			var tidyFileType = filePath.IndexOf(Path.DirectorySeparatorChar + "static" + Path.DirectorySeparatorChar) == -1 ? 
+					DetermineFileType(fileType, fileName) : 
+					SourceFileType.None;
 
 			if (tidyFileType == SourceFileType.None)
 			{
