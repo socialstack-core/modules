@@ -110,24 +110,26 @@ export default class Time extends React.Component {
 		var seconds = (Date.now() - date.getTime()) / 1000;
 		
 		if(seconds < 60){
-			return 'Just now';
+			return `Just now`;
 		}
 		
 		var minutes = (seconds / 60);
 		
 		if(minutes < 60){
-			return Math.floor(minutes) + 'm ago';
+			var flooredMinutes = Math.floor(minutes);
+			return `${flooredMinutes} m ago`;
 		}
 		
 		var hours = minutes / 60;
 		
 		if(hours < 24){
-			return Math.floor(hours) + 'h ago';
+			var flooredHours = Math.floor(hours);
+			return `${flooredHours} h ago`;
 		}
 		
 		var days = hours / 24;
-		
-		return Math.floor(days) + 'd ago';
+		var flooredDays = Math.floor(days);
+		return `${flooredDays} d ago`;
 	}
 	
 	update(props){
