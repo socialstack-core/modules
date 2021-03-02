@@ -580,7 +580,7 @@ export default class Loop extends React.Component {
 				if (typeof this.props.loader === "function") {
 					return this.props.loader();
 				} else {
-					return 'Loading...';
+					return `Loading...`;
 				}
 
 			}
