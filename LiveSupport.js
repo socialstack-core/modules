@@ -1,6 +1,3 @@
-import Loop from 'UI/Loop';
-import Form from 'UI/Form';
-import Input from 'UI/Input';
 import Loading from 'UI/Loading';
 import webRequest from 'UI/Functions/WebRequest';
 import MessageList from 'UI/LiveSupport/MessageList';
@@ -93,9 +90,9 @@ export default class LiveSupport extends React.Component {
 
 
 		if(!onClickActive) {
-			return this.props.children ? this.props.children() : <button type="button" className="btn">Chat with us</button>
+			return this.props.children ? this.props.children() : <button type="button" className="btn">{`Chat with us`}</button>
 		} else {
-			return this.props.children ? this.props.children(startClick) : <button type="button" className="btn" onClick={startClick}>Chat with us</button>
+			return this.props.children ? this.props.children(startClick) : <button type="button" className="btn" onClick={startClick}>{`Chat with us`}</button>
 		}
 
 
@@ -103,13 +100,13 @@ export default class LiveSupport extends React.Component {
 
 	renderOpenChat() {
 		var { title, closeImage, closeLabel, closeCallback, sendLabel, sendTip, placeholder } = this.props;
-		var { mode } = this.state;
+		//var { mode } = this.state;
 
 		console.log(title);
-		title = title || "Chat";
+		title = title || `Chat`;
 		// TODO: default close image
 		//closeImage = closeImage || ;
-		closeLabel = closeLabel || "Close chat";
+		closeLabel = closeLabel || `Close chat`;
 
 		return <div className="open-chat">
 			<header className="chat-header">

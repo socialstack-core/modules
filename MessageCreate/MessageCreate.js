@@ -1,6 +1,5 @@
 import Form from 'UI/Form';
 import Input from 'UI/Input';
-import Alert from 'UI/Alert';
 import webRequest from 'UI/Functions/WebRequest';
 import Calendar from 'UI/Calendar';
 
@@ -11,7 +10,6 @@ export default class Create extends React.Component {
         this.state = {
             messageText: ""
         };
-        //console.log("Message Create: ");
     }
 
     messageUpdated(e) {
@@ -25,7 +23,6 @@ export default class Create extends React.Component {
         webRequest("livesupportchat/" + this.props.chat.id, { assignedToUserId: global.app.state.user.id }).then(response => {
             this.props.onClaim && this.props.onClaim(response.json);
             this.setState({ claimed: response, submitting: false });
-            console.log("Chat was claimed!");
         }).catch(error => {
             this.setState({submitting: false});
             console.log("There was an error claiming the chat.");
@@ -36,7 +33,6 @@ export default class Create extends React.Component {
         this.setState({submitting: true});
         webRequest("livesupportchat/" + this.props.chat.id, { assignedToUserId: null, enteredQueueUtc: null}).then(response => {
             this.setState({submitting: false});
-            console.log("Chat was closed!");
             this.props.onClose && this.props.onClose();
         }).catch(error => {
             this.setState({submitting: false});
@@ -54,9 +50,9 @@ export default class Create extends React.Component {
         var { sendLabel, sendTip, placeholder, lastMessage } = this.props;
         var {canDownload} = this.state;
 
-        sendLabel = sendLabel || "Send";
-        sendTip = sendTip || "Send message";
-        placeholder = placeholder || "Write your message here...";
+        sendLabel = sendLabel || `Send`;
+        sendTip = sendTip || `Send message`;
+        placeholder = placeholder || `Write your message here...`;
         var validate = [];
         var useCalendarMessage = false;
 
@@ -122,11 +118,10 @@ export default class Create extends React.Component {
                     this.createTextarea && (this.createTextarea.value = '');
                 }}
                 onFailed={response => {
-                    this.setState({ submitting: false, failure: response.message || 'Unable to send your message at the moment' });
+                    this.setState({ submitting: false, failure: response.message || `Unable to send your message at the moment` });
                 }}
                 onValues={
                     values => {
-                        console.log("submitting!");
                         values.inReplyTo = this.props.replyTo;
                         this.setState({ submitting: true, failure: false });
                         values.liveSupportChatId = this.props.chat.id;
@@ -161,13 +156,13 @@ export default class Create extends React.Component {
                     />
 
                     {this.props.canClaim ? (
-                        <a onClick={() => { !this.state.submitting && this.claimChat() }} disabled={this.state.submitting} className="btn btn-primary send-message success" title="Claim">
-                            <span>Claim!</span>
+                        <a onClick={() => { !this.state.submitting && this.claimChat() }} disabled={this.state.submitting} className="btn btn-primary send-message success" title={`Claim`}>
+                            <span>{`Claim!`}</span>
                         </a>
                     ):(
                         this.props.chat.assignedToUserId && this.props.chat.assignedToUserId == global.app.state.user.id &&
-                        <a onClick={() => { !this.state.submitting && this.closeChat() }} disabled={this.state.submitting} className="btn btn-primary send-message danger" title="Close">
-                            <span>Close</span>
+                        <a onClick={() => { !this.state.submitting && this.closeChat() }} disabled={this.state.submitting} className="btn btn-primary send-message danger" title={`Close`}>
+                            <span>{`Close`}</span>
                         </a>
                     )}
                     <button className="btn btn-primary send-message" type="submit" disabled={this.props.disableSend || this.state.submitting || this.state.messageText.trim().length === 0} title={sendTip}>
@@ -197,7 +192,7 @@ export default class Create extends React.Component {
                         if(message.message && message.message != "") {
                             text += "["+message.createdUtc+"] ";
                             if(message.fromSupport) {
-                                text += "Bridgestone Support: ";
+                                text += `Bridgestone Support: `;
                                 text += message.message + "\n";
                             } else if (message.creatorUser.id != global.app.state.user.id) {
                                 // Its from the user
@@ -205,7 +200,7 @@ export default class Create extends React.Component {
                                 text += message.message + "\n";
                             } else {
                                 // Its from the user
-                                text += "You: ";
+                                text += `You: `;
                                 text += message.message + "\n";
                             }
                         }
@@ -224,7 +219,7 @@ export default class Create extends React.Component {
 				}}
             >
                 <button type = "submit" className ="btn btn-primary send-message download-chat" onClick = {() => {console.log("Download!")}}>
-                    <span>Download Chat</span>
+                    <span>{`Download Chat`}</span>
                 </button>
 			</Form>
             }   

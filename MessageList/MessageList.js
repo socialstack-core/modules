@@ -3,7 +3,6 @@ import Loop from 'UI/Loop';
 import Form from 'UI/Form';
 import Canvas from 'UI/Canvas';
 import MessageCreate from 'UI/LiveSupport/MessageCreate';
-import getContentTypeId from 'UI/Functions/GetContentTypeId';
 import getRef from 'UI/Functions/GetRef';
 import * as dateTools from 'UI/Functions/DateTools';
 
@@ -45,7 +44,7 @@ export default class MessageList extends React.Component {
 				}
 			}}
 			onFailed={response => {
-				this.setState({submitting: false, failure: response.message || 'Unable to send your message at the moment'});
+				this.setState({submitting: false, failure: response.message || `Unable to send your message at the moment`});
 			}}
 			onValues={
 				values => {
