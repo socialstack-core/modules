@@ -410,6 +410,13 @@ namespace Api.CanvasRenderer
 
 			var relativePath = filePath.Substring(SourcePath.Length + 1, relLength);
 			var typeDot = fileName.LastIndexOf('.');
+
+			if (typeDot == -1)
+			{
+				// Directory
+				return null;
+			}
+
 			var fileType = fileName.Substring(typeDot + 1).ToLower();
 			var fileNameNoType = fileName.Substring(0, typeDot);
 
