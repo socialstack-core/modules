@@ -3,7 +3,7 @@
  * Standalone component which displays a loader (typically a spinner).
  */
 export default function Loading (props) {
-	let message = props.message || "Loading ... ";
+	let message = props.message || `Loading ... `;
 	
 	return (
 		<div className="alert alert-info loading">
