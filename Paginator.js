@@ -160,7 +160,7 @@ export default class Paginator extends React.Component {
 			pageIndex = totalPages;
 		}
 
-		var description = this.props.description || "Results";
+		var description = this.props.description || `Results`;
 		var firstIcon = this.props.firstIcon || "fas fa-fast-backward";
 		var prevIcon = this.props.prevIcon || "fas fa-play fa-xs fa-flip-horizontal";
 		var nextIcon = this.props.nextIcon || "fas fa-play fa-xs";
@@ -235,10 +235,10 @@ export default class Paginator extends React.Component {
 				{/* first page */}
 				{showFirstLastNav &&
 					<li className="page-item first-page">
-						<button type="button" className="page-link" onClick={() => this.changePage(1)} disabled={currentPage <= 1} title="First page">
+						<button type="button" className="page-link" onClick={() => this.changePage(1)} disabled={currentPage <= 1} title={`First page`}>
 							<i className={firstIcon}></i>
 							<span className="sr-only">
-								First page
+								{`First page`}
 							</span>
 						</button>
 					</li>
@@ -246,10 +246,10 @@ export default class Paginator extends React.Component {
 				{/* previous page */}
 				{showPrevNextNav &&
 					<li className="page-item prev-page">
-						<button type="button" className="page-link" onClick={() => this.changePage(currentPage - 1)} disabled={currentPage <= 1} title="Previous page">
+						<button type="button" className="page-link" onClick={() => this.changePage(currentPage - 1)} disabled={currentPage <= 1} title={`Previous page`}>
 							<i className={prevIcon}></i>
 							<span className="sr-only">
-								Previous page
+								{`Previous page`}
 							</span>
 						</button>
 					</li>
@@ -263,10 +263,10 @@ export default class Paginator extends React.Component {
 				{/* next page */}
 				{showPrevNextNav &&
 					<li className="page-item next-page">
-						<button type="button" className="page-link" onClick={() => this.changePage(currentPage + 1)} disabled={currentPage == totalPages} title="Next page">
+						<button type="button" className="page-link" onClick={() => this.changePage(currentPage + 1)} disabled={currentPage == totalPages} title={`Next page`}>
 							<i className={nextIcon}></i>
 							<span className="sr-only">
-								Next page
+								{`Next page`}
 							</span>
 						</button>
 					</li>
@@ -274,10 +274,10 @@ export default class Paginator extends React.Component {
 				{/* last page */}
 				{showFirstLastNav &&
 					<li className="page-item last-page">
-						<button type="button" className="page-link" onClick={() => this.changePage(totalPages)} disabled={currentPage == totalPages} title="Last page">
+						<button type="button" className="page-link" onClick={() => this.changePage(totalPages)} disabled={currentPage == totalPages} title={`Last page`}>
 							<i className={lastIcon}></i>
 							<span className="sr-only">
-								Last page
+								{`Last page`}
 							</span>
 						</button>
 					</li>
@@ -286,7 +286,7 @@ export default class Paginator extends React.Component {
 			<div className="pagination-overview">
 				{showInput && <>
 					<label className="page-label" for={this.props.id || this.fieldId}>
-						Viewing page
+						{`Viewing page`}
 					</label>
 					<input className="form-control" type="text" id={this.props.id || this.fieldId} value={this.props.pageIndex || '1'}
 						onkeyUp={e => {
