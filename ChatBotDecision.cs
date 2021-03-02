@@ -29,10 +29,11 @@ namespace Api.ChatBotSimple
 		/// </summary>
 		[Module("Admin/ChatBotSimple/MessageTypeSelect")]
 		public int MessageType;
-		
+
 		/// <summary>
 		/// Optional specific message provided by the user in the context of the in-reply-to message. Case insensitive.
 		/// </summary>
+		[Localized]
 		public string AnswerProvided;
 		
         /// <summary>
@@ -41,10 +42,11 @@ namespace Api.ChatBotSimple
         [DatabaseField(Length = 200)]
 		[Localized]
 		public string MessageText;
-		
+
 		/// <summary>
 		/// Payload (Canvas JSON) for more complex message types.
 		/// </summary>
+		[Localized]
 		public string PayloadJson;
 
 		/// <summary>
