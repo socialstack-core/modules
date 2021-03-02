@@ -159,40 +159,28 @@ namespace Api.Pages
 		}
 
 		/// <summary>
-		/// A cache used to identify which pages on the site are the canonical pages for each content type.
+		/// A cache used to identify which pages on the site are the canonical pages for each content type. Not locale sensitive.
 		/// </summary>
 		private UrlGenerationCache _urlGenerationCache;
 
 		/// <summary>
-		/// A cache used to identify which page to use for a particular URL.
+		/// A cache used to identify which page to use for a particular URL, per locale.
 		/// </summary>
-		private UrlLookupCache _urlLookupCache;
-
-		/// <summary>
-		/// Gets the raw list of just the URLs + pageId.
-		/// </summary>
-		/// <returns></returns>
-		public async ValueTask<List<PageIdAndUrl>> GetAllPageUrls(Context context)
-		{
-			if (_urlLookupCache == null)
-			{
-				await LoadCaches(context);
-			}
-
-			return _urlLookupCache.PageUrlList;
-		}
+		private UrlLookupCache[] _urlLookupCache;
 
 		/// <summary>
 		/// Get the page to use for the given URL.
 		/// </summary>
 		public async ValueTask<PageWithTokens> GetPage(Context context, string url, bool return404IfNotFound = true)
 		{
-			if (_urlLookupCache == null)
+			if (_urlLookupCache == null || _urlLookupCache.Length < context.LocaleId || _urlLookupCache[context.LocaleId - 1] == null)
 			{
 				await LoadCaches(context);
 			}
 
-			var pageInfo = _urlLookupCache.GetPage(url);
+			var cache = _urlLookupCache[context.LocaleId - 1];
+
+			var pageInfo = cache.GetPage(url);
 
 			if (pageInfo.Page == null)
 			{
@@ -200,7 +188,7 @@ namespace Api.Pages
 				{
 					return new PageWithTokens()
 					{
-						Page = _urlLookupCache.NotFoundPage
+						Page = cache.NotFoundPage
 					};
 				}
 			}
@@ -210,19 +198,38 @@ namespace Api.Pages
 
 		private async Task LoadCaches(Context context)
 		{
-			// Get all pages:
+			// Get all pages for this locale:
 			var allPages = await List(context, null);
 
-			// Instance and wait for it to be created:
-			_urlGenerationCache = new UrlGenerationCache();
+			if (_urlGenerationCache == null)
+			{
+				// This cache is not locale sensitive as it exclusively uses the Url field which is not localised.
 
-			// Load now:
-			_urlGenerationCache.Load(allPages);
+				// Instance and wait for it to be created:
+				_urlGenerationCache = new UrlGenerationCache();
+
+				// Load now:
+				_urlGenerationCache.Load(allPages);
+			}
 
 			// Setup url lookup cache as well:
-			_urlLookupCache = new UrlLookupCache();
+			var cache = new UrlLookupCache();
 
-			_urlLookupCache.Load(allPages);
+			if (_urlLookupCache == null)
+			{
+				// Create the cache:
+				_urlLookupCache = new UrlLookupCache[context.LocaleId];
+			}
+			else if (_urlLookupCache.Length < context.LocaleId)
+			{
+				// Resize the cache:
+				Array.Resize(ref _urlLookupCache, context.LocaleId);
+			}
+
+			// Add cache to lookup:
+			_urlLookupCache[context.LocaleId - 1] = cache;
+
+			cache.Load(allPages);
 		}
 
 		/// <summary>
