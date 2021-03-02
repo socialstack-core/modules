@@ -25,9 +25,9 @@ namespace Api.CanvasRenderer
 		{
 			_codeService = codeService;
 		}
-		
+
 		/// <summary>
-		/// Gets the main.js file (site locale 1). The URL should be of the form /pack/main.js?loc=1&v=123123123123&h=ma83md83jd7hdur8
+		/// Gets the main.js file (site locale 1). The URL should be of the form /pack/main.js?loc=1&amp;v=123123123123&amp;h=ma83md83jd7hdur8
 		/// Where loc is the locale ID, v is the original code build timestamp in ms, and h is the hash of the file.
 		/// For convenience, ask FrontendCodeService for the url via GetMainJsUrl(Context context).
 		/// </summary>
@@ -64,7 +64,7 @@ namespace Api.CanvasRenderer
 		}
 
 		/// <summary>
-		/// Gets the main.js file for the admin area (site locale 1). The URL should be of the form /en-admin/pack/main.js?loc=1&v=123123123123&h=ma83md83jd7hdur8
+		/// Gets the main.js file for the admin area (site locale 1). The URL should be of the form /en-admin/pack/main.js?loc=1&amp;v=123123123123&amp;h=ma83md83jd7hdur8
 		/// Where loc is the locale ID, v is the original code build timestamp in ms, and h is the hash of the file.
 		/// For convenience, ask FrontendCodeService for the url via GetMainJsUrl(Context context).
 		/// </summary>
@@ -101,7 +101,7 @@ namespace Api.CanvasRenderer
 		}
 
 		/// <summary>
-		/// Gets the main.css file for the ui (site locale 1). The URL should be of the form /pack/main.css?loc=1&v=123123123123&h=ma83md83jd7hdur8
+		/// Gets the main.css file for the ui (site locale 1). The URL should be of the form /pack/main.css?loc=1&amp;v=123123123123&amp;h=ma83md83jd7hdur8
 		/// Where loc is the locale ID (currently unused), v is the original code build timestamp in ms, and h is the hash of the file.
 		/// For convenience, ask FrontendCodeService for the url via GetMainJsUrl(Context context).
 		/// </summary>
@@ -128,7 +128,7 @@ namespace Api.CanvasRenderer
 			return File(file.FileContent, "text/css; charset=UTF-8");
 		}
 		/// <summary>
-		/// Gets the main.css file for the admin area (site locale 1). The URL should be of the form /en-admin/pack/main.css?loc=1&v=123123123123&h=ma83md83jd7hdur8
+		/// Gets the main.css file for the admin area (site locale 1). The URL should be of the form /en-admin/pack/main.css?loc=1&amp;v=123123123123&amp;h=ma83md83jd7hdur8
 		/// Where loc is the locale ID (currently unused), v is the original code build timestamp in ms, and h is the hash of the file.
 		/// For convenience, ask FrontendCodeService for the url via GetMainJsUrl(Context context).
 		/// </summary>

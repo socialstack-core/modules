@@ -36,36 +36,51 @@ namespace Api.CanvasRenderer
 			{
 				var dllPath = AppDomain.CurrentDomain.BaseDirectory;
 
+				var config = GetConfig<FrontendCodeServiceConfig>();
+
 				// The html inline header. It includes preact, preact hooks and the socialstack module require function.
 				InlineJavascriptHeader = File.ReadAllText(dllPath + "/Api/ThirdParty/CanvasRenderer/inline_header.js");
 
-#if DEBUG
-				// Get a build engine:
-				var engine = GetBuildEngine();
+				var prebuilt = config.Prebuilt;
 
-				var globalMap = new GlobalSourceFileMap();
-
-				// Todo: make this into a config variable. If true, the build from the watcher will be minified.
-				var minify = false;
-
-				// Create a group of build/watchers for each bundle of files (all in parallel):
-				AddBuilder(UIBuilder = new UIBundle("UI", engine, globalMap, translations, locales, minify));
-				AddBuilder(EmailBuilder = new UIBundle("Email", engine, globalMap, translations, locales, minify));
-				AddBuilder(AdminBuilder = new UIBundle("Admin", engine, globalMap, translations, locales, minify));
-
-				// Sort global map:
-				globalMap.Sort();
-
-				// Happens in a separate loop to ensure all the global SCSS has loaded first.
-				foreach (var sb in SourceBuilders)
+				// If UI/Source doesn't exist, prebuilt = true.
+				if (!Directory.Exists(Path.GetFullPath("UI/Source")))
 				{
-					// Compile everything:
-					await sb.BuildEverything();
+					prebuilt = true;
 				}
 
-#else
-				// TODO: Load from disk, including the substitution cache.
-#endif
+				if (prebuilt)
+				{
+					Console.WriteLine("Running in prebuilt mode. *Not* watching your files for changes.");
+					AddBuilder(UIBuilder = new UIBundle("UI", translations, locales));
+					AddBuilder(EmailBuilder = new UIBundle("Email", translations, locales));
+					AddBuilder(AdminBuilder = new UIBundle("Admin", translations, locales));
+				}
+				else
+				{
+					// Get a build engine:
+					var engine = GetBuildEngine();
+
+					var globalMap = new GlobalSourceFileMap();
+
+					// Todo: make this into a config variable. If true, the build from the watcher will be minified.
+					var minify = config.Minified;
+
+					// Create a group of build/watchers for each bundle of files (all in parallel):
+					AddBuilder(UIBuilder = new UIBundle("UI", translations, locales, engine, globalMap, minify));
+					AddBuilder(EmailBuilder = new UIBundle("Email", translations, locales, engine, globalMap, minify));
+					AddBuilder(AdminBuilder = new UIBundle("Admin", translations, locales, engine, globalMap, minify));
+
+					// Sort global map:
+					globalMap.Sort();
+
+					// Happens in a separate loop to ensure all the global SCSS has loaded first.
+					foreach (var sb in SourceBuilders)
+					{
+						// Compile everything:
+						await sb.BuildEverything();
+					}
+				}
 
 				Console.WriteLine("Done handling UI load.");
 				initialBuildTask = null;

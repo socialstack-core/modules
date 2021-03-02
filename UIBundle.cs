@@ -80,6 +80,11 @@ namespace Api.CanvasRenderer
 		private List<UIBuildError> CssBuildErrors = new List<UIBuildError>();
 
 		/// <summary>
+		/// True if using prebuilt UI.
+		/// </summary>
+		private bool Prebuilt;
+
+		/// <summary>
 		/// A list of UI build errors. Only exists on dev mode.
 		/// </summary>
 		public List<UIBuildError> GetBuildErrors()
@@ -98,7 +103,7 @@ namespace Api.CanvasRenderer
 		/// <summary>
 		/// Creates a new bundle for the given filesystem path.
 		/// </summary>
-		public UIBundle(string rootPath, V8ScriptEngine buildEngine, GlobalSourceFileMap globalFileMap, TranslationService translations, LocaleService locales, bool minify)
+		public UIBundle(string rootPath, TranslationService translations, LocaleService locales, V8ScriptEngine buildEngine, GlobalSourceFileMap globalFileMap, bool minify)
 		{
 			RootName = rootPath;
 			RootPath = Path.GetFullPath(rootPath);
@@ -108,6 +113,24 @@ namespace Api.CanvasRenderer
 			_translationService = translations;
 			_localeService = locales;
 			Minified = minify;
+
+			if (rootPath == "Admin")
+			{
+				PackDir = "/en-admin/pack/";
+			}
+		}
+
+		/// <summary>
+		/// Creates a new bundle for the given filesystem path.
+		/// </summary>
+		public UIBundle(string rootPath, TranslationService translations, LocaleService locales)
+		{
+			RootName = rootPath;
+			RootPath = Path.GetFullPath(rootPath);
+			SourcePath = Path.GetFullPath(rootPath + "/Source");
+			_translationService = translations;
+			_localeService = locales;
+			Prebuilt = true;
 
 			if (rootPath == "Admin")
 			{
@@ -298,8 +321,10 @@ namespace Api.CanvasRenderer
 				}
 			}
 
+			var resultJs = sb.ToString();
+
 			// Get the bytes of the result:
-			var bytes = Encoding.UTF8.GetBytes(sb.ToString());
+			var bytes = Encoding.UTF8.GetBytes(resultJs);
 
 			// Min array length is just localeId (as we use localeId-1 as the index):
 			if (_localeToMainJs == null)
@@ -520,6 +545,122 @@ namespace Api.CanvasRenderer
 		/// </summary>
 		public void Start()
 		{
+			if (Prebuilt)
+			{
+				// Load main.css (as-is):
+				var cssFilePath = RootPath + "/public" + PackDir + "main.prebuilt.css";
+				if (File.Exists(cssFilePath))
+				{
+					var mainCss = File.ReadAllText(cssFilePath);
+					BuiltCss = mainCss;
+				}
+				else {
+					Console.WriteLine(
+						"[SEVERE] Your UI is set to prebuilt mode (either in appsettings.json, or because you don't have a UI/Source folder), but the prebuilt CSS file at '" + cssFilePath + 
+						"' does not exist. Your site will be missing its CSS."
+					);
+
+					BuiltCss = "";
+				}
+
+				// Load main.js.
+				var segments = new List<JavascriptFileSegment>();
+				var jsFilePath = RootPath + "/public" + PackDir + "main.prebuilt.js";
+
+				if (File.Exists(jsFilePath))
+				{
+					var mainJs = File.ReadAllText(jsFilePath);
+
+					// Read the meta (a required file, as it includes the build date as well as localisation metadata).
+					var metaPath = RootPath + "/public" + PackDir + "meta.json";
+					PrebuiltMeta meta;
+
+					if (File.Exists(metaPath))
+					{
+						var metaJson = File.ReadAllText(metaPath);
+						meta = Newtonsoft.Json.JsonConvert.DeserializeObject<PrebuiltMeta>(metaJson);
+					}
+					else
+					{
+						meta = new PrebuiltMeta();
+
+						// This will be an accurate guess in virtually all situations 
+						// (however, it would be better to fix the problem of the missing meta file):
+						meta.Starter = RootName == "UI";
+
+						Console.WriteLine(
+							"[ERROR] Your UI is set to prebuilt mode (either in appsettings.json, or because you don't have a UI/Source folder), but the prebuilt metadata file at '" + metaPath +
+							"' does not exist. Your site will be unable to apply localised text and you'll encounter caching problems as the build number isn't being set properly."
+						);
+					}
+
+					// Build time:
+					BuildTimestampMs = meta.BuildTime;
+					ContainsStarterModule = meta.Starter;
+
+					// Construct the JS segments now.
+					var currentIndex = 0;
+
+					if (meta.Templates != null)
+					{
+						foreach (var template in meta.Templates)
+						{
+							// Create segment which goes from currentIndex -> template.Start:
+							segments.Add(
+								new JavascriptFileSegment()
+								{
+									Source = mainJs.Substring(currentIndex, template.Start - currentIndex)
+								}
+							);
+
+							// Add the template segment:
+							segments.Add(
+								new JavascriptFileSegment()
+								{
+									Module = template.Module,
+									TemplateLiteralToSearch = template.Original,
+									TemplateLiteralSource = template.Target,
+									VariableMap = template.VariableMap
+								}
+							);
+
+							// Current index is now the end of the template:
+							currentIndex = template.End;
+						}
+					}
+
+					// Final segment:
+					segments.Add(
+						new JavascriptFileSegment()
+						{
+							Source = mainJs.Substring(currentIndex)
+						}
+					);
+
+					if (ContainsStarterModule)
+					{
+						// Invoke start:
+						segments.Add(new JavascriptFileSegment() { Source = "_rq('UI/Start').default();" });
+					}
+				}
+				else
+				{
+					Console.WriteLine(
+						"[SEVERE] Your UI is set to prebuilt mode (either in appsettings.json, or because you don't have a UI/Source folder), but the prebuilt JS file at '" + jsFilePath +
+						"' does not exist. Your site will be missing its JS."
+					);
+
+					// Be as helpful as we can - output to UI as well:
+					segments.Add(new JavascriptFileSegment() {
+						Source = "console.error('This site is set to prebuilt mode but no prebuilt JS file exists. See the file location in your server log.');"
+					});
+
+				}
+
+				BuiltJavascriptSegments = segments;
+				return;
+			}
+
 			if (!Directory.Exists(SourcePath))
 			{
 				return;
