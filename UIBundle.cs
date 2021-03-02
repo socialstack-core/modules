@@ -302,15 +302,25 @@ namespace Api.CanvasRenderer
 					{
 						// Got a hit! The source is likely minified (on prod it pretty much always is) 
 						// so we'll need to consider mapping variables from the translated form.
-						if (segment.VariableMap != null)
+
+						// Do we even have a translated value?
+						if (string.IsNullOrEmpty(translation.Translated))
 						{
-							// It has a variable map so we'll need to map the variables in the translation.
-							sb.Append(RemapTemplateLiteralVariables(translation.Translated, segment.VariableMap));
+							if (segment.VariableMap != null)
+							{
+								// It has a variable map so we'll need to map the variables in the translation.
+								sb.Append(RemapTemplateLiteralVariables(translation.Translated, segment.VariableMap));
+							}
+							else
+							{
+								// It's not minified so use as-is.
+								sb.Append(translation.Translated);
+							}
 						}
 						else
 						{
-							// It's not minified so use as-is.
-							sb.Append(translation.Translated);
+							// Retain original as-is:
+							sb.Append(segment.TemplateLiteralSource);
 						}
 					}
 					else
