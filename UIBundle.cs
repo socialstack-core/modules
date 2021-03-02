@@ -7,6 +7,7 @@ using Microsoft.ClearScript.V8;
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.IO.Compression;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -200,7 +201,9 @@ namespace Api.CanvasRenderer
 
 			if (CssFile.FileContent == null)
 			{
-				CssFile.FileContent = Encoding.UTF8.GetBytes(BuiltCss);
+				var bytes = Encoding.UTF8.GetBytes(BuiltCss);
+				CssFile.FileContent = bytes;
+				CssFile.Precompressed = Compress(bytes);
 				var hash = GetHash(CssFile.FileContent);
 				CssFile.Hash = hash;
 				CssFile.PublicUrl = PackDir + "main.css?v=" + BuildTimestampMs + "&h=" + hash + "&lid=" + localeId;
@@ -318,6 +321,7 @@ namespace Api.CanvasRenderer
 			var file = new FrontendFile()
 			{
 				FileContent = bytes,
+				Precompressed = Compress(bytes),
 				Hash = hash,
 				PublicUrl = PackDir + "main.js?v=" + BuildTimestampMs + "&h=" + hash + "&lid=" + localeId
 			};
@@ -325,6 +329,22 @@ namespace Api.CanvasRenderer
 			_localeToMainJs[localeId - 1] = file;
 
 			return file;
+		}
+		
+		/// <summary>
+		/// Compresses the given array of bytes.
+		/// </summary>
+		/// <param name="data"></param>
+		/// <returns></returns>
+		private byte[] Compress(byte[] data)
+		{
+			using (var compressedStream = new MemoryStream())
+			using (var gzipStream = new GZipStream(compressedStream, CompressionMode.Compress))
+			{
+				gzipStream.Write(data, 0, data.Length);
+				gzipStream.Close();
+				return compressedStream.ToArray();
+			}
 		}
 
 		/// <summary>

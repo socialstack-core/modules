@@ -54,6 +54,12 @@ namespace Api.CanvasRenderer
 				return null;
 			}
 
+			if (file.Precompressed != null)
+			{
+				Response.Headers["Content-Encoding"] = "gzip";
+				return File(file.Precompressed, "text/javascript; charset=UTF-8");
+			}
+
 			return File(file.FileContent, "text/javascript; charset=UTF-8");
 		}
 
@@ -85,6 +91,12 @@ namespace Api.CanvasRenderer
 				return null;
 			}
 
+			if (file.Precompressed != null)
+			{
+				Response.Headers["Content-Encoding"] = "gzip";
+				return File(file.Precompressed, "text/javascript; charset=UTF-8");
+			}
+
 			return File(file.FileContent, "text/javascript; charset=UTF-8");
 		}
 
@@ -107,6 +119,12 @@ namespace Api.CanvasRenderer
 				return null;
 			}
 
+			if (file.Precompressed != null)
+			{
+				Response.Headers["Content-Encoding"] = "gzip";
+				return File(file.Precompressed, "text/css; charset=UTF-8");
+			}
+			
 			return File(file.FileContent, "text/css; charset=UTF-8");
 		}
 		/// <summary>
@@ -126,6 +144,12 @@ namespace Api.CanvasRenderer
 				// 404
 				Response.StatusCode = 404;
 				return null;
+			}
+
+			if (file.Precompressed != null)
+			{
+				Response.Headers["Content-Encoding"] = "gzip";
+				return File(file.Precompressed, "text/css; charset=UTF-8");
 			}
 
 			return File(file.FileContent, "text/css; charset=UTF-8");

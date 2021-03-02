@@ -279,6 +279,11 @@ namespace Api.CanvasRenderer
 		public byte[] FileContent;
 
 		/// <summary>
+		/// The file content, gzipped.
+		/// </summary>
+		public byte[] Precompressed;
+
+		/// <summary>
 		/// The hash of the file.
 		/// </summary>
 		public string Hash;
