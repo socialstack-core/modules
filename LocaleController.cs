@@ -17,6 +17,28 @@ namespace Api.Translate
     [Route("v1/locale")]
 	public partial class LocaleController : AutoController<Locale>
 	{
+		
+		/// <summary>
+		/// GET /v1/locale/set/2/
+		/// Sets locale by its ID.
+		/// </summary>
+		[HttpGet("set/{id}")]
+		public virtual async ValueTask<object> Set([FromRoute] int id)
+		{
+			var context = Request.GetContext();
+			
+			// Set locale ID:
+			context.LocaleId = id;
+			
+			// Regenerate the contextual token:
+			context.SendToken(Response);
+			
+			// Note: Can also set cookie called "Locale", however, using the context will 
+			// allow the locale info to be available to the frontend as well.
+			
+			return await context.GetPublicContext();
+		}
+
     }
 
 }
