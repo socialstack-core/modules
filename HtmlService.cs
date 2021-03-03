@@ -346,7 +346,7 @@ namespace Api.Pages
 			List<DocumentNode> flatNodes;
 
 #if !DEBUG
-			if (cache != null && cache.Length <= context.LocaleId)
+			if (cache != null && context.LocaleId <= cache.Length)
 			{
 				var localeCache = cache[context.LocaleId - 1];
 
