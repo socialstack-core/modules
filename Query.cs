@@ -265,9 +265,16 @@ namespace Api.Database
 						}
 						else
 						{
+							// Of the form if(FIELD_locale is null,FIELD,FIELD_locale)");
+							str.Append("if(");
 							str.Append(field.LocalisedName);
 							str.Append(localeCode);
-							str.Append('`');
+							str.Append("` is null,");
+							str.Append(field.FullName);
+							str.Append(',');
+							str.Append(field.LocalisedName);
+							str.Append(localeCode);
+							str.Append("`)");
 						}
 					}
 
