@@ -17,10 +17,24 @@ export default class AutoForm extends React.Component {
 
 	constructor(props) {
 		super(props);
-
+		
+		var locale = '1'; // Always force EN locale if it's not specified.
+		
+		if (location && location.search) {
+			var query = {};
+			location.search.substring(1).split('&').forEach(piece => {
+				var term = piece.split('=');
+				query[term[0]] = decodeURIComponent(term[1]);
+			});
+			
+			if (query.lid) {
+				locale = query.lid;
+			}
+		}
+		
 		this.state = {
 			submitting: false,
-			locale: '1', // Always force EN locale if it's not specified.
+			locale,
 			updateCount: 0
 		};
 	}
@@ -40,6 +54,8 @@ export default class AutoForm extends React.Component {
 
 		var createSuccess = false;
 		var revisionId = 0;
+		var locale = this.state.locale;
+		
 		if (location && location.search) {
 			var query = {};
 			location.search.substring(1).split('&').forEach(piece => {
@@ -56,12 +72,17 @@ export default class AutoForm extends React.Component {
 				revisionId = parseInt(query.revision);
 				delete query.revision;
 			}
+			
+			if (query.lid) {
+				locale = query.lid;
+				delete query.lid;
+			}
 		}
-
-		if (props.endpoint == this.state.endpoint && props.id == this.state.id && revisionId == this.state.revisionId) {
+		
+		if (props.endpoint == this.state.endpoint && props.id == this.state.id && revisionId == this.state.revisionId && locale == this.state.locale) {
 			return;
 		}
-
+		
 		getAutoForm((props.endpoint || '').toLowerCase()).then(formData => {
 
 			var supportsRevisions = formData && formData.form && formData.form.supportsRevisions;
@@ -82,7 +103,7 @@ export default class AutoForm extends React.Component {
 				this.setState({ failed: true });
 			}
 		});
-
+		
 		if (this.state.fieldData) {
 			this.setState({ fieldData: null });
 		}
@@ -90,9 +111,8 @@ export default class AutoForm extends React.Component {
 		var fieldData = undefined;
 
 		if (isEdit) {
-
 			// We always force locale:
-			var opts = { locale: this.state.locale };
+			var opts = { locale };
 
 			// Get the values we're editing:
 			webRequest(revisionId ? props.endpoint + '/revision/' + revisionId : props.endpoint + '/' + props.id, null, opts).then(response => {
@@ -111,6 +131,7 @@ export default class AutoForm extends React.Component {
 			endpoint: props.endpoint,
 			id: props.id,
 			revisionId,
+			locale,
 			fieldData
 		});
 	}
@@ -185,7 +206,7 @@ export default class AutoForm extends React.Component {
 		if (isEdit && parsedId) {
 			endpoint += this.props.id;
 		}
-
+		
 		return (
 			<div className="auto-form">
 				{(this.state.fieldData && this.state.fieldData.isDraft) && (
@@ -195,9 +216,10 @@ export default class AutoForm extends React.Component {
 				)}
 				{
 					isEdit && this.state.isLocalized && locales.length > 1 && <div>
-						<Input label="Select Locale" type="select" name="locale" onChange={
+						<Input label="Select Locale" type="select" name="locale" value={this.state.locale} onChange={
 							e => {
 								// Set the locale and clear the fields/ endpoint so we can load the localized info instead:
+								/*
 								this.setState({
 									locale: e.target.value,
 									endpoint: null,
@@ -206,6 +228,14 @@ export default class AutoForm extends React.Component {
 									// Load now:
 									this.load(this.props);
 								});
+								*/
+								
+								var url = location.pathname + '?lid=' + e.target.value;
+								if(this.state.revisionId){
+									url+='&revision=' + this.state.revisionId;
+								}
+								
+								global.pageRouter.go(url);
 							}
 						}>
 							{locales.map(locale => <option value={locale.id} selected={locale.id == this.state.locale}>{locale.name}</option>)}
@@ -255,7 +285,7 @@ export default class AutoForm extends React.Component {
 									if (response.revisionId) {
 										// Saved a draft
 
-										var newUrl = '/' + parts.join('/') + '?revision=' + response.revisionId;
+										var newUrl = '/' + parts.join('/') + '?revision=' + response.revisionId + '&lid=' + this.state.locale;
 
 										if (!this.state.revisionId) {
 											newUrl += '&created=1';
@@ -266,7 +296,7 @@ export default class AutoForm extends React.Component {
 
 									} else if (response.id != this.state.id || this.state.revisionId) {
 										// Published content from a draft. Go there now.
-										global.pageRouter.go('/' + parts.join('/') + '?published=1');
+										global.pageRouter.go('/' + parts.join('/') + '?published=1&lid=' + this.state.locale);
 									}
 								}
 							} else {
@@ -278,9 +308,9 @@ export default class AutoForm extends React.Component {
 
 									if (response.revisionId) {
 										// Created a draft
-										global.pageRouter.go('/' + parts.join('/') + '?created=1&revision=' + response.revisionId);
+										global.pageRouter.go('/' + parts.join('/') + '?created=1&revision=' + response.revisionId + '&lid=' + this.state.locale);
 									} else {
-										global.pageRouter.go('/' + parts.join('/') + '?created=1');
+										global.pageRouter.go('/' + parts.join('/') + '?created=1&lid=' + this.state.locale);
 									}
 								}
 							}
