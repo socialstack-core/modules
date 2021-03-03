@@ -12,6 +12,7 @@ using System.Web;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Serialization;
 using Api.CanvasRenderer;
+using Api.Translate;
 
 namespace Api.Pages
 {
@@ -59,36 +60,75 @@ namespace Api.Pages
 			
 			Events.Page.AfterUpdate.AddEventListener((Context context, Page page) =>
 			{
-				// Doesn't matter what the change was - we'll wipe the cache.
-				cache.Clear();
+				// Doesn't matter what the change was for now - we'll wipe the whole cache.
+				cache = null;
 
 				return new ValueTask<Page>(page);
 			});
 
 			Events.Page.AfterDelete.AddEventListener((Context context, Page page) =>
 			{
-				// Doesn't matter what the change was - we'll wipe the cache.
-				cache.Clear();
+				// Doesn't matter what the change was for now - we'll wipe the whole cache.
+				cache = null;
 
 				return new ValueTask<Page>(page);
 			});
 
 			Events.Page.AfterCreate.AddEventListener((Context context, Page page) =>
 			{
-				// Doesn't matter what the change was - we'll wipe the cache.
-				cache.Clear();
+				// Doesn't matter what the change was for now - we'll wipe the whole cache.
+				cache = null;
 
 				return new ValueTask<Page>(page);
 			});
 
 			Events.Page.Received.AddEventListener((Context context, Page page, int mode) => {
 
-				// Doesn't matter what the change was - we'll wipe the cache.
-				cache.Clear();
+				// Doesn't matter what the change was for now - we'll wipe the whole cache.
+				cache = null;
 
 				return new ValueTask<Page>(page);
 			});
+			
+			Events.Translation.AfterUpdate.AddEventListener((Context context, Translation tr) =>
+			{
+				// Doesn't matter what the change was for now - we'll wipe the whole cache.
+				cache = null;
+
+				return new ValueTask<Translation>(tr);
+			});
+
+			Events.Translation.AfterDelete.AddEventListener((Context context, Translation tr) =>
+			{
+				// Doesn't matter what the change was for now - we'll wipe the whole cache.
+				cache = null;
+
+				return new ValueTask<Translation>(tr);
+			});
+
+			Events.Translation.AfterCreate.AddEventListener((Context context, Translation tr) =>
+			{
+				// Doesn't matter what the change was for now - we'll wipe the whole cache.
+				cache = null;
+
+				return new ValueTask<Translation>(tr);
+			});
+
+			Events.Translation.Received.AddEventListener((Context context, Translation tr, int mode) => {
+
+				// Doesn't matter what the change was for now - we'll wipe the whole cache.
+				cache = null;
+
+				return new ValueTask<Translation>(tr);
+			});
+
+			#warning Todo: Clear entries from cache when their primary object changes.
 		}
+
+		/// <summary>
+		/// Used for thread aware cache updates.
+		/// </summary>
+		private readonly object cacheLock = new object();
 
 		/// <summary>
 		/// robots.txt
@@ -136,9 +176,9 @@ namespace Api.Pages
 		}
 		
 		/// <summary>
-		/// Url -> nodes that are as pre-generated as possible.
+		/// Url -> nodes that are as pre-generated as possible. Locale sensitive; indexed by locale.Id-1.
 		/// </summary>
-		private readonly Dictionary<string, List<DocumentNode>> cache = new Dictionary<string, List<DocumentNode>>();
+		private Dictionary<string, List<DocumentNode>>[] cache = null;
 
 		/// <summary>
 		/// Renders the state only of a page to a JSON string.
@@ -177,7 +217,7 @@ namespace Api.Pages
 			}
 
 			var poJson = (primaryObject != null ? Newtonsoft.Json.JsonConvert.SerializeObject(primaryObject, jsonSettings) : "null");
-			string state = null;
+			string state;
 
 			if (_config.PreRender)
 			{
@@ -306,9 +346,14 @@ namespace Api.Pages
 			List<DocumentNode> flatNodes;
 
 #if !DEBUG
-			if (cache.TryGetValue(path, out flatNodes))
+			if (cache != null && cache.Length <= context.LocaleId)
 			{
-				return flatNodes;
+				var localeCache = cache[context.LocaleId - 1];
+
+				if(localeCache != null && localeCache.TryGetValue(path, out flatNodes))
+				{
+					return flatNodes;
+				}
 			}
 #endif
 
@@ -529,9 +574,25 @@ namespace Api.Pages
 			// Build the flat HTML for the page:
 			flatNodes = doc.Flatten();
 
-			lock (cache)
+			lock(cacheLock)
 			{
-				cache[path] = flatNodes;
+				if (cache == null)
+				{
+					cache = new Dictionary<string, List<DocumentNode>>[context.LocaleId];
+				}
+				else if (cache.Length < context.LocaleId)
+				{
+					Array.Resize(ref cache, context.LocaleId);
+				}
+
+				var localeCache = cache[context.LocaleId - 1];
+
+				if (localeCache == null)
+				{
+					cache[context.LocaleId - 1] = localeCache = new Dictionary<string, List<DocumentNode>>();
+				}
+
+				localeCache[path] = flatNodes;
 			}
 
 			// Note: Although gzip does support multiple concatenated gzip blocks, browsers do not implement this part of the gzip spec correctly.
