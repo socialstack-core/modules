@@ -58,6 +58,15 @@ namespace Api.ChatBotSimple
 		/// If the mode is set, this indicates its the first message for a given mode.
 		/// </summary>
 		public int? Mode;
+
+		/// <summary>
+		/// The start mode for the message. i.e. is this message starting a meeting appointment or live chat?
+		/// 0 (none)
+		/// 1 (Live operator)
+		/// 2 (Meeting)
+		/// 3 (Expert question)
+		/// </summary>
+		public int StartMode; 
 	}
 
 }

@@ -35,7 +35,8 @@ namespace Api.ChatBotSimple
 			_liveChatMessages = liveChatMessages;
 			
 			InstallAdminPages("ChatBot Decisions", "fa:fa-rocket", new string[] { "id", "messageText" });
-			
+			Cache();
+
 			Events.LiveSupportChat.AfterCreate.AddEventListener(async(Context ctx, LiveSupportChat chat) => {
 				
 				if (chat == null || _inReplyToMap == null)
@@ -470,7 +471,7 @@ namespace Api.ChatBotSimple
 				}
 
 				var outOfHoursResponse = false;
-
+				/*
 				// The user is attempting to speak to an operator.
 				if(message.InReplyTo == 3 && message.Message == "Speak to a live operator")
                 {
@@ -557,7 +558,8 @@ namespace Api.ChatBotSimple
 					chat.ExpertQuestionId = expertQuestion.Id;
 					chat = await _liveChat.Update(ctx, chat);
 				}
-				
+				*/
+
 				// message.LiveSupportChatId
 				List<ChatBotDecision> list = null;
 				if(_inReplyToMap.TryGetValue(message.InReplyTo, out list) && list.Count > 0)
@@ -691,6 +693,104 @@ namespace Api.ChatBotSimple
 
 			// Check the message text for key words such as {first}
 			var returnText = dec.MessageText;
+
+			var outOfHoursResponse = false;
+
+			// Live Operator start
+			if (dec.StartMode == 1)
+            {
+				// We need to check the hours currently.
+				if (_liveChat == null)
+				{
+					_liveChat = Services.Get<LiveSupportChatService>();
+				}
+
+				if (_liveChatHours == null)
+				{
+					_liveChatHours = Services.Get<LiveChatHourService>();
+				}
+
+				// Let's grab the live chat hours
+				var hours = await _liveChatHours.Get(ctx, 1);
+
+				// Is hours null? if so, let's let things carry on.
+				if (hours != null)
+				{
+					// Let's grab the current time.
+					var now = DateTime.UtcNow;
+					var startHour = hours.AvailabilityStartUtc.Hour;
+					var endHour = startHour + hours.Duration;
+					if ((now.Hour >= startHour && now.Hour < endHour) || (now.Hour + 24 >= startHour && now.Hour + 24 < endHour))
+					{
+						// We are good!
+						outOfHoursResponse = false;
+					}
+					else
+					{
+						// We are not good, we need to override the response.
+						outOfHoursResponse = true;
+
+						var ooh = await List(ctx, new Filter<ChatBotDecision>().Equals("MessageType", 15));
+
+						if(ooh.Count > 0 )
+                        {
+							dec = ooh[0];
+                        }
+					}
+				}
+			}
+
+			// Meeting start
+			if (dec.StartMode == 2)
+            {
+				// We need to create a meeting Appointment instance - let's grab that service and the live chat service so we can get existing details. 
+				if (_liveChat == null)
+				{
+					_liveChat = Services.Get<LiveSupportChatService>();
+				}
+
+				if (_meetingsAppointments == null)
+				{
+					_meetingsAppointments = Services.Get<MeetingAppointmentService>();
+				}
+
+				// Let's grab the current live chat.
+				var chat = await _liveChat.Get(ctx, chatId);
+
+				// Let's create a new meeting appointment entry.
+				var appt = await _meetingsAppointments.Create(ctx, new MeetingAppointment() { FullName = chat.FullName, Email = chat.Email, UserId = chat.UserId });
+
+				// Let's also set the chat to have the appointment's id.
+				chat.MeetingAppointmentId = appt.Id;
+				chat = await _liveChat.Update(ctx, chat);
+			}
+
+			// expert question start.
+			if (dec.StartMode == 3)
+            {
+				// We need to create a meeting Appointment instance - let's grab that service and the live chat service so we can get existing details. 
+				if (_liveChat == null)
+				{
+					_liveChat = Services.Get<LiveSupportChatService>();
+				}
+
+				if (_expertQuestions == null)
+				{
+					_expertQuestions = Services.Get<ExpertQuestionService>();
+				}
+
+				// Let's grab the current live chat.
+				var chat = await _liveChat.Get(ctx, chatId);
+
+				// Let's create a new expert question entry.
+				var expertQuestion = await _expertQuestions.Create(ctx, new ExpertQuestion() { UserId = chat.UserId, FullName = chat.FullName, Email = chat.Email });
+
+				// Let's also set the chat to have the expert Question id.
+				chat.ExpertQuestionId = expertQuestion.Id;
+				chat = await _liveChat.Update(ctx, chat);
+			}
+
+
 
 			if (dec.MessageText.Contains("{first}"))
             {
