@@ -103,8 +103,9 @@ namespace Api.ChatBotSimple
                     }
 					else
                     {
+						var lsm = await Get(ctx, list[0].Id);
 						// In this case we can only use the first entry.
-						await SendChatBotMessage(ctx, chat.Id, list[0]);
+						await SendChatBotMessage(ctx, chat.Id, lsm);
 					}
 				}
 				
@@ -568,25 +569,28 @@ namespace Api.ChatBotSimple
 					
 					foreach(var entry in list)
 					{
+						var lsm = await Get(ctx, entry.Id);
+
+
 						if(outOfHoursResponse)
                         {
 							// We are looking for the out of hours response message type (in this project, type 15)
 							if(entry.MessageType == 15)
                             {
-								dec = entry;
+								dec = lsm;
 								break;
                             }
                         }
 						else
                         {
-							if (string.IsNullOrEmpty(entry.AnswerProvided))
+							if (string.IsNullOrEmpty(lsm.AnswerProvided))
 							{
-								noneResponse = entry;
+								noneResponse = lsm;
 							}
-							else if (entry.AnswerProvided == message.Message)
+							else if (lsm.AnswerProvided == message.Message)
 							{
 								// User selected some previous response and sent it to the chatbot
-								dec = entry;
+								dec = lsm;
 								break;
 							}
 						}
@@ -601,7 +605,9 @@ namespace Api.ChatBotSimple
 					if(dec != null)
 					{
 						// Using this one.
-						await SendChatBotMessage(ctx, message.LiveSupportChatId, dec);
+						var lsm = await Get(ctx, dec.Id);
+
+						await SendChatBotMessage(ctx, message.LiveSupportChatId, lsm);
 					}
 					
 				}
