@@ -306,6 +306,11 @@ namespace Api.CanvasRenderer
 						// Do we even have a translated value?
 						if (string.IsNullOrEmpty(translation.Translated))
 						{
+							// Retain original as-is:
+							sb.Append(segment.TemplateLiteralSource);
+						}
+						else
+						{
 							if (segment.VariableMap != null)
 							{
 								// It has a variable map so we'll need to map the variables in the translation.
@@ -316,11 +321,6 @@ namespace Api.CanvasRenderer
 								// It's not minified so use as-is.
 								sb.Append(translation.Translated);
 							}
-						}
-						else
-						{
-							// Retain original as-is:
-							sb.Append(segment.TemplateLiteralSource);
 						}
 					}
 					else
