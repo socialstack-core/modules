@@ -107,7 +107,8 @@ export default class Content extends React.Component {
 	
 	componentDidUpdate(prevProps){
 		var {type, id, primary} = this.props;
-		if(prevProps.primary == primary || (prevProps && type == prevProps.type && id == prevProps.id)){
+		
+		if((prevProps.primary && primary) || (prevProps && type == prevProps.type && id == prevProps.id)){
 			// Cached object is fine here.
 			return;
 		}
