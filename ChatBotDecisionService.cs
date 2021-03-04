@@ -54,8 +54,10 @@ namespace Api.ChatBotSimple
                         {
 							if (dec.Mode == chat.Mode)
                             {
+								var lsm = await Get(ctx, dec.Id);
+
 								// We have a match, send that message.
-								await SendChatBotMessage(ctx, chat.Id, dec);
+								await SendChatBotMessage(ctx, chat.Id, lsm);
 
 
 								// Now, do we need to make a meeting entry or ask an expert entry?
