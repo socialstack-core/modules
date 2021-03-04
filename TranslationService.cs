@@ -18,6 +18,12 @@ namespace Api.Translate
 		/// </summary>
 		public TranslationService() : base(Events.Translation)
         {
+			// Always cache by default:
+			Cache();
+			
+			// The above is such that translations are always content-synced, 
+			// which is important as they are internally cached in a variety of ways.
+			
 			// Example admin page install:
 			InstallAdminPages(null, null, new string[] { "id", "module", "original", "translation" });
 		}
