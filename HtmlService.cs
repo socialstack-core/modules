@@ -370,7 +370,10 @@ namespace Api.Pages
 
 			}
 #endif
-
+			
+			// Get the locale:
+			var locale = await context.GetLocale();
+			
 			var page = pageAndTokens.Page;
 
 			// Generate the document:
@@ -378,8 +381,8 @@ namespace Api.Pages
 			doc.Path = path;
 			doc.Title = page.Title; // Todo: permit {token} values in the title which refer to the primary object.
 			doc.SourcePage = page;
-			doc.Html.With("class", "ui web");
-
+			doc.Html.With("class", "ui web").With("lang", locale.Code);
+			
 			var packDir = isAdmin ? "/en-admin/pack/" : "/pack/";
 
 			var head = doc.Head;
