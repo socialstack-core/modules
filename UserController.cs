@@ -51,10 +51,10 @@ namespace Api.Users
 			
 			var cookieRole = context.RoleId;
 
-			if (context.UserId == 0)
+			if (context.UserId == 0 && context.CookieState != 0)
 			{
 				// Anonymous - fire off the anon user event:
-				context = await Events.ContextAfterAnonymous.Dispatch(context, context, Response);
+				context = await Events.ContextAfterAnonymous.Dispatch(context, context, Request);
 
 				if (context == null)
 				{

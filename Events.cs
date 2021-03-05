@@ -38,7 +38,7 @@ namespace Api.Eventing
 		/// <summary>
 		/// Just after an anon user has been identified.
 		/// </summary>
-		public static EndpointEventHandler<Context> ContextAfterAnonymous;
+		public static EventHandler<Context, Microsoft.AspNetCore.Http.HttpRequest> ContextAfterAnonymous;
 		
 		/// <summary>
 		/// Set of events for a User.
