@@ -58,7 +58,7 @@ namespace Api.AnonymousUsers
 				LastNames = DefaultLastNames;
 			}
 
-			Events.ContextAfterAnonymous.AddEventListener(async (Context ctx, Context result, HttpResponse response) =>
+			Events.ContextAfterAnonymous.AddEventListener(async (Context ctx, Context result, HttpRequest request) =>
 			{
 				if (result != null && result.UserId == 0)
 				{
