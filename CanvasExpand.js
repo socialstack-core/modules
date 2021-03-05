@@ -105,7 +105,11 @@ export function expand(contentNode, onContentNode){
 		}
 	}
 	
-	onContentNode && onContentNode(contentNode);
+	if(onContentNode){
+		if(onContentNode(contentNode) === null){
+			return null;
+		}
+	}
 	
 	contentNode.expanded = true;
 	return contentNode;
