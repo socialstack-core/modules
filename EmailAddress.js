@@ -10,7 +10,7 @@ export default value => {
         return {
 			error: 'FORMAT',
 			ui: <Text>
-				Please provide a valid email address
+				{`Please provide a valid email address`}
 			</Text>
 		};
     }
