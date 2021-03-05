@@ -14,7 +14,7 @@ export default value => {
 		return {
 			error: 'FORMAT',
 			ui: <Text>
-				Please provide a valid phone number
+				{`Please provide a valid phone number`}
 			</Text>
 		};
 	}
