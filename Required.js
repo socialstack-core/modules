@@ -10,7 +10,7 @@ export default value => {
 		return {
 			error: 'EMPTY',
 			ui: <Text>
-				This field is required
+				{`This field is required`}
 			</Text>
 		};
 	}
