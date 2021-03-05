@@ -144,7 +144,7 @@ namespace Api.Pages
 				
 				return new ValueTask<Page>(page);
 			});
-
+			
 			Events.Page.Received.AddEventListener((Context context, Page page, int mode) => {
 
 				// Doesn't matter what the change was - we'll wipe the caches.
@@ -156,6 +156,13 @@ namespace Api.Pages
 
 				return new ValueTask<Page>(page);
 			});
+			
+			// Pages must always have the cache on for any release site.
+			// That's because the HtmlService has a release only cache which depends on the sync messages for pages, as well as e.g. the url gen cache.
+			#if !DEBUG
+			Cache();
+			#endif
+			
 		}
 
 		/// <summary>
