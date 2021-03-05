@@ -184,7 +184,7 @@ export default class AutoForm extends React.Component {
 	render() {
 		var isEdit = isNumeric(this.props.id);
 
-		const { revisionId } = this.state;
+		const { revisionId, locale } = this.state;
 
 		if (this.state.failed) {
 			var ep = this.props.endpoint || '';
@@ -216,7 +216,7 @@ export default class AutoForm extends React.Component {
 				)}
 				{
 					isEdit && this.state.isLocalized && locales.length > 1 && <div>
-						<Input label="Select Locale" type="select" name="locale" value={this.state.locale} onChange={
+						<Input label="Select Locale" type="select" name="locale" value={locale} onChange={
 							e => {
 								// Set the locale and clear the fields/ endpoint so we can load the localized info instead:
 								/*
@@ -238,11 +238,11 @@ export default class AutoForm extends React.Component {
 								global.pageRouter.go(url);
 							}
 						}>
-							{locales.map(locale => <option value={locale.id} selected={locale.id == this.state.locale}>{locale.name}</option>)}
+							{locales.map(loc => <option value={loc.id} selected={loc.id == locale}>{loc.name + (loc.id == '1' ? ' (Primary)': '')}</option>)}
 						</Input>
 					</div>
 				}
-				<Form autoComplete="off" locale={this.state.locale} action={endpoint}
+				<Form autoComplete="off" locale={locale} action={endpoint}
 					onValues={values => {
 						if (this.draftBtn) {
 							// Set content ID if there is one already:
@@ -273,7 +273,8 @@ export default class AutoForm extends React.Component {
 					onSuccess={
 						response => {
 							var state = global.pageRouter.state;
-
+							var {locale} = this.state;
+							
 							if (isEdit) {
 								this.setState({ editFailure: false, editSuccess: true, createSuccess: false, submitting: false, fieldData: response, updateCount: this.state.updateCount + 1 });
 
@@ -285,7 +286,7 @@ export default class AutoForm extends React.Component {
 									if (response.revisionId) {
 										// Saved a draft
 
-										var newUrl = '/' + parts.join('/') + '?revision=' + response.revisionId + '&lid=' + this.state.locale;
+										var newUrl = '/' + parts.join('/') + '?revision=' + response.revisionId + '&lid=' + locale;
 
 										if (!this.state.revisionId) {
 											newUrl += '&created=1';
@@ -296,7 +297,7 @@ export default class AutoForm extends React.Component {
 
 									} else if (response.id != this.state.id || this.state.revisionId) {
 										// Published content from a draft. Go there now.
-										global.pageRouter.go('/' + parts.join('/') + '?published=1&lid=' + this.state.locale);
+										global.pageRouter.go('/' + parts.join('/') + '?published=1&lid=' + locale);
 									}
 								}
 							} else {
@@ -308,9 +309,9 @@ export default class AutoForm extends React.Component {
 
 									if (response.revisionId) {
 										// Created a draft
-										global.pageRouter.go('/' + parts.join('/') + '?created=1&revision=' + response.revisionId + '&lid=' + this.state.locale);
+										global.pageRouter.go('/' + parts.join('/') + '?created=1&revision=' + response.revisionId + '&lid=' + locale);
 									} else {
-										global.pageRouter.go('/' + parts.join('/') + '?created=1&lid=' + this.state.locale);
+										global.pageRouter.go('/' + parts.join('/') + '?created=1&lid=' + locale);
 									}
 								}
 							}
@@ -328,6 +329,11 @@ export default class AutoForm extends React.Component {
 						if (data.localized && !Array.isArray(data.label)) {
 							// Show globe icon alongside the label:
 							data.label = [(data.label || ''), <i className='fa fa-globe-europe localized-field-label' />];
+						}
+						
+						if(!data.localized && locale != '1'){
+							// Only default locale can show non-localised fields. Returning a null will ignore the contentNode.
+							return null;
 						}
 						
 						if(data.hint){
