@@ -290,7 +290,7 @@ export default class CanvasEditor extends React.Component {
 		
 		for(var modName in __mm){
 			// Attempt to get React propTypes.
-			var module = global.getModule(modName).default;
+			var module = require(modName).default;
 			
 			if(!module){
 				continue;
