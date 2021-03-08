@@ -307,7 +307,7 @@ export default class CanvasEditor extends React.Component {
 			
 			// Remove the filename, and get the super group:
 			var nameParts = modName.split('/');
-			nameParts.pop(); 
+			//nameParts.pop(); 
 			var publicName = nameParts.join('/');
 			var name = nameParts.pop();
 			
@@ -456,7 +456,6 @@ export default class CanvasEditor extends React.Component {
 			visible={this.state.selectOpenFor}
 		>
 			{set ? set.map(group => {
-				console.log(group);
 				return <div className="module-group">
 					<h6>{group.name}</h6>
 					<Loop asCols over={group.modules} size={4}>
