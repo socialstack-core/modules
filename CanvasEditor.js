@@ -466,7 +466,7 @@ export default class CanvasEditor extends React.Component {
 								<div>
 									{<i className={"fa fa-" + (module.moduleClass.icon || "puzzle-piece")} />}
 								</div>
-								{module.moduleClass.name}
+								{module.name}
 							</div>;
 							
 						}}
