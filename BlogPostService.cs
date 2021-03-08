@@ -10,6 +10,7 @@ using Api.Configuration;
 using Newtonsoft.Json.Linq;
 using Api.CanvasRenderer;
 using System;
+using Api.Users;
 
 namespace Api.Blogs
 {
@@ -21,6 +22,7 @@ namespace Api.Blogs
     {
         private readonly BlogService _blogs;
 		private CanvasRendererService _csr;
+		private UserService _users;
 		
 		/// <summary>
 		/// Instanced automatically. Use injection to use this service, or Startup.Services.Get.
@@ -33,6 +35,98 @@ namespace Api.Blogs
 			InstallAdminPages(null, null, new string[] { "id", "slug", "title" });
 			
 			var config = _blogs.GetConfig<BlogServiceConfig>();
+
+			//Before create to set the author of the blog to the author if the value passed in is not valid, or not set.
+			Events.BlogPost.BeforeCreate.AddEventListener(async (Context context, BlogPost blogPost) =>
+			{
+				if(context == null || blogPost == null)
+                {
+					return null;
+                }
+
+				// was an authorid passed in?
+				if(blogPost.AuthorId > 0)
+                {
+					if(_users == null)
+                    {
+						_users = Services.Get<UserService>();
+                    }
+
+					// Yes, is it for a valid user?
+					var author = await _users.Get(context, blogPost.AuthorId);
+
+					if(author == null)
+                    {
+						// The author is not valid, let's set the author to the creatoruser
+						blogPost.AuthorId = context.UserId;
+                    }
+                }
+				else
+                {
+					// An author wasn't passed - set to creator user.
+					blogPost.AuthorId = context.UserId;
+				}
+
+				return blogPost;
+			});
+
+			// If they are passing in an author change, just make sure its valid. If its not, just revert back to the creatorUser.
+			Events.BlogPost.BeforeUpdate.AddEventListener(async (Context context, BlogPost blogPost) =>
+			{
+				if(context == null || blogPost == null)
+                {
+					return null;
+                }
+
+				// Was an authorId pass in?
+				if(blogPost.AuthorId > 0)
+                {
+					if(_users == null)
+                    {
+						_users = Services.Get<UserService>();
+                    }
+
+					// Yes, is it for a valid user?
+					var author = await _users.Get(context, blogPost.AuthorId);
+
+					if(author == null)
+                    {
+						// The author is not valid, let's set the author to the creatorUser
+						blogPost.AuthorId = blogPost.GetCreatorUserId();
+                    }
+                }
+				else
+                {
+					// no authorId, let's return it to being the creatorUser.
+					blogPost.AuthorId = blogPost.GetCreatorUserId();
+				}
+
+				return blogPost;
+			});
+
+			// We need to handle loading the author for the blog on load.
+			Events.BlogPost.AfterLoad.AddEventListener(async (Context context, BlogPost blogPost) =>
+			{
+				if (context == null || blogPost == null)
+                {
+					return null;
+                }
+
+				// Does this user have an author?
+				if(blogPost.AuthorId > 0)
+                {
+					// Yep, let's grab the author.
+					if (_users == null)
+					{
+						_users = Services.Get<UserService>();
+					}
+
+					blogPost.Author = await _users.GetProfile(context, blogPost.AuthorId);
+				}
+
+				return blogPost;
+			});
+
 
 			// Before Create to make sure that the slug is unique.
 			Events.BlogPost.BeforeCreate.AddEventListener(async (Context context, BlogPost blogPost) =>

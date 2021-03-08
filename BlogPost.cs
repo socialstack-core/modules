@@ -63,6 +63,21 @@ namespace Api.Blogs
 		[DatabaseField(Length = 500)]
 		[Meta("description")]
 		public string Synopsis;
+
+		/// <summary>
+		/// The readtime in minutes. 
+		/// </summary>
+		public int ReadTime;
+
+		/// <summary>
+		/// The author id. Defaults to the creator user on creation unless specified otherwise.
+		/// </summary>
+		public int AuthorId;
+
+		/// <summary>
+		/// The author of the blog.
+		/// </summary>
+		public UserProfile Author { get; set; }
 	}
 	
 }
