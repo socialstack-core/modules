@@ -119,7 +119,7 @@ export default class VideoChat extends React.Component {
 		
 		// calc new position
 		var deltaX = evt.clientX - drag.startX;
-		deltaY = drag.startY - evt.clientY;
+		var deltaY = drag.startY - evt.clientY;
 		
 		drag.startX = evt.clientX;
 		drag.startY = evt.clientY;
