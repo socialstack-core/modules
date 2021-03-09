@@ -309,7 +309,7 @@ export default class HuddleClient
 		// huddleType and my role:
 		this.room.huddle = huddleInfo.json.huddle;
 		
-		var isHttps = url.indexOf("localhost") == -1;
+		var isHttps = !url.startsWith("localhost");
 		const protooTransport = new protoo.WebSocketTransport((isHttps ? 'wss' : 'ws') + '://' + url.trim());
 		this._protoo = new protoo.Peer(protooTransport);
 		
