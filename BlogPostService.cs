@@ -127,9 +127,34 @@ namespace Api.Blogs
 				return blogPost;
 			});
 
+			Events.BlogPost.AfterList.AddEventListener(async (Context context, List<BlogPost> posts) =>
+			{
+				if (context == null || posts == null)
+                {
+					return null;
+                }
 
-			// Before Create to make sure that the slug is unique.
-			Events.BlogPost.BeforeCreate.AddEventListener(async (Context context, BlogPost blogPost) =>
+				// We need to go through each post.
+				foreach(var blogPost in posts)
+                {
+					// Does this user have an author?
+					if (blogPost.AuthorId > 0)
+					{
+						// Yep, let's grab the author.
+						if (_users == null)
+						{
+							_users = Services.Get<UserService>();
+						}
+
+						blogPost.Author = await _users.GetProfile(context, blogPost.AuthorId);
+					}
+				}
+
+				return posts;
+			}); 
+
+			 // Before Create to make sure that the slug is unique.
+			 Events.BlogPost.BeforeCreate.AddEventListener(async (Context context, BlogPost blogPost) =>
 			{
 				var slug = "";
 

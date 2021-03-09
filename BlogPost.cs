@@ -1,8 +1,7 @@
-using System;
 using Api.Database;
 using Api.Startup;
 using Api.Users;
-using Api.Pages;
+using Api.AutoForms;
 
 namespace Api.Blogs
 {
@@ -70,13 +69,14 @@ namespace Api.Blogs
 		public int ReadTime;
 
 		/// <summary>
-		/// The author id. Defaults to the creator user on creation unless specified otherwise.
+		///  The Id of the author.
 		/// </summary>
 		public int AuthorId;
 
 		/// <summary>
-		/// The author of the blog.
+		/// The author of the blogpost. 
 		/// </summary>
+		[Module(Hide = true)]
 		public UserProfile Author { get; set; }
 	}
 	
