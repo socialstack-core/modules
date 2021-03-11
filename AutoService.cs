@@ -533,6 +533,47 @@ public partial class AutoService<T, ID> : AutoService
 	}
 
 	/// <summary>
+	/// Populates the given raw entity from the given entity. Any blank localised fields are copied from the primary entity.
+	/// </summary>
+	/// <param name="raw"></param>
+	/// <param name="entity"></param>
+	/// <param name="primaryEntity"></param>
+	public void PopulateRawEntityFromTarget(T raw, T entity, T primaryEntity)
+	{
+		// First, all the fields we'll be working with:
+		var allFields = listQuery.Fields.Fields;
+
+		for (var i = 0; i < allFields.Count; i++)
+		{
+			// Get the field:
+			var field = allFields[i];
+
+			// Read the value from the original object:
+			var value = field.TargetField.GetValue(entity);
+
+			// If the field is localised, and the raw value is null, use value from primaryEntity instead.
+			// Note! [Localised] fields must be a nullable type for this to ever happen.
+
+			if (field.LocalisedName != null && field.IsNullable())
+			{
+				// If the entity field matches the primary content one and the type is nullable, set a null into raw.
+				var primaryContentValue = field.TargetField.GetValue(primaryEntity);
+
+				if (primaryContentValue != null)
+				{
+					if (primaryContentValue.Equals(value))
+					{
+						// This localised type has the same value as the primary locale. Don't translate it.
+						value = null;
+					}
+				}
+			}
+
+			field.TargetField.SetValue(raw, value);
+		}
+	}
+
+	/// <summary>
 	/// Populates the given entity from the given raw entity. Any blank localised fields are copied from the primary entity.
 	/// </summary>
 	/// <param name="entity"></param>
@@ -678,6 +719,38 @@ public partial class AutoService<T, ID> : AutoService
 	}
 
 	/// <summary>
+	/// Call this when the primary object changes. It makes sure any localised versions are updated.
+	/// </summary>
+	/// <param name="entity"></param>
+	public void OnPrimaryEntityChanged(T entity)
+	{
+		// Primary locale update - must update all other caches in case they contain content from the primary locale.
+		var id = entity.GetId();
+
+		for (var i = 1; i < _cache.Length; i++)
+		{
+			var altLocaleCache = _cache[i];
+
+			if (altLocaleCache == null)
+			{
+				continue;
+			}
+
+			var altRaw = altLocaleCache.GetRaw(id);
+			var alt = altLocaleCache.Get(id);
+
+			if (altRaw == null || alt == null)
+			{
+				// This row is not in this locale.
+				continue;
+			}
+
+			// Update the alt object again:
+			PopulateTargetEntityFromRaw(alt, altRaw, entity);
+		}
+	}
+
+	/// <summary>
 	/// Updates the given entity.
 	/// </summary>
 	public virtual async ValueTask<T> Update(Context context, T entity)
@@ -713,7 +786,7 @@ public partial class AutoService<T, ID> : AutoService
 			}
 
 			// Must also update the raw object in the cache (as the given entity is _not_ the raw one).
-			T primaryEntity = null;
+			T primaryEntity;
 
 			if (cache == null)
 			{
@@ -727,37 +800,7 @@ public partial class AutoService<T, ID> : AutoService
 				primaryEntity = GetCacheForLocale(1).Get(id);
 			}
 
-			// First, all the fields we'll be working with:
-			var allFields = listQuery.Fields.Fields;
-
-			for (var i = 0; i < allFields.Count; i++)
-			{
-				// Get the field:
-				var field = allFields[i];
-
-				// Read the value from the original object:
-				var value = field.TargetField.GetValue(entity);
-
-				// If the field is localised, and the raw value is null, use value from primaryEntity instead.
-				// Note! [Localised] fields must be a nullable type for this to ever happen.
-
-				if (field.LocalisedName != null && field.IsNullable())
-				{
-					// If the entity field matches the primary content one and the type is nullable, set a null into raw.
-					var primaryContentValue = field.TargetField.GetValue(primaryEntity);
-
-					if (primaryContentValue != null)
-					{
-						if (primaryContentValue.Equals(value))
-						{
-							// This localised type has the same value as the primary locale. Don't translate it.
-							value = null;
-						}
-					}
-				}
-
-				field.TargetField.SetValue(raw, value);
-			}
+			PopulateRawEntityFromTarget(raw, entity, primaryEntity);
 		}
 
 		if (_database != null && !await _database.Run(context, updateQuery, raw, id))
@@ -771,28 +814,7 @@ public partial class AutoService<T, ID> : AutoService
 
 			if (locale == 1)
 			{
-				// Primary locale update - must update all other caches in case they contain content from the primary locale.
-				for (var i = 1; i < _cache.Length; i++)
-				{
-					var altLocaleCache = _cache[i];
-
-					if (altLocaleCache == null)
-					{
-						continue;
-					}
-
-					var altRaw = altLocaleCache.GetRaw(id);
-					var alt = altLocaleCache.Get(id);
-
-					if (altRaw == null || alt == null)
-					{
-						// This row is not in this locale.
-						continue;
-					}
-
-					// Update the alt object again:
-					PopulateTargetEntityFromRaw(alt, altRaw, entity);
-				}
+				OnPrimaryEntityChanged(entity);
 			}
 
 		}
