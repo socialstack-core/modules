@@ -80,9 +80,19 @@ namespace Api.CanvasRenderer
 		private List<UIBuildError> CssBuildErrors = new List<UIBuildError>();
 
 		/// <summary>
+		/// Invoked when the map changes.
+		/// </summary>
+		public Action OnMapChange;
+
+		/// <summary>
 		/// True if using prebuilt UI.
 		/// </summary>
 		private bool Prebuilt;
+
+		/// <summary>
+		/// (Dev mode only). True if there is at least one .ts or .tsx file that is not a .d. defs file.
+		/// </summary>
+		public bool HasTypeScript;
 
 		/// <summary>
 		/// A list of UI build errors. Only exists on dev mode.
@@ -103,7 +113,8 @@ namespace Api.CanvasRenderer
 		/// <summary>
 		/// Creates a new bundle for the given filesystem path.
 		/// </summary>
-		public UIBundle(string rootPath, TranslationService translations, LocaleService locales, V8ScriptEngine buildEngine, GlobalSourceFileMap globalFileMap, bool minify)
+		public UIBundle(
+			string rootPath, TranslationService translations, LocaleService locales, V8ScriptEngine buildEngine, GlobalSourceFileMap globalFileMap, bool minify)
 		{
 			RootName = rootPath;
 			RootPath = Path.GetFullPath(rootPath);
@@ -158,13 +169,14 @@ namespace Api.CanvasRenderer
 			{
 				return SourceFileType.Javascript;
 			}
+			else if ((fileType == "ts" || fileType == "tsx") && !fileName.EndsWith(".d.ts") && !fileName.EndsWith(".d.tsx"))
+			{
+				HasTypeScript = true;
+				return SourceFileType.Javascript;
+			}
 			else if (fileType == "css" || fileType == "scss")
 			{
 				return SourceFileType.Scss;
-			}
-			else if (fileType == "ts" || fileType == "tsx")
-			{
-				return SourceFileType.Typescript;
 			}
 			else if (fileName == "module.json")
 			{
@@ -1448,6 +1460,7 @@ namespace Api.CanvasRenderer
 				}
 
 				var jsUpdate = false;
+				var mapChange = false;
 				var cssUpdate = false;
 				var fullCssUpdate = false;
 
@@ -1455,10 +1468,14 @@ namespace Api.CanvasRenderer
 				{
 					// Commit the change to our in-memory model.
 					var path = change.AbsolutePath;
+					var existed = false;
 
 					// Remove from the map always:
 					if (FileMap.TryGetValue(path, out SourceFile file))
 					{
+						existed = true;
+						FileMap.Remove(path);
+
 						if (file.FileType == SourceFileType.Javascript)
 						{
 							jsUpdate = true;
@@ -1467,6 +1484,11 @@ namespace Api.CanvasRenderer
 						if (file.FileType == SourceFileType.Scss)
 						{
 							cssUpdate = true;
+						}
+
+						if (change.ChangeType == SourceFileChangeType.Deleted)
+						{
+							mapChange = true;
 						}
 					}
 
@@ -1479,7 +1501,12 @@ namespace Api.CanvasRenderer
 						{
 							continue;
 						}
-							
+
+						if (!existed)
+						{
+							mapChange = true;
+						}
+
 						if (file.FileType == SourceFileType.Javascript)
 						{
 							jsUpdate = true;
@@ -1512,6 +1539,12 @@ namespace Api.CanvasRenderer
 						cssUpdate = false;
 						fullCssUpdate = true;
 					}
+				}
+
+				if (mapChange)
+				{
+					// The map either gained a new file or lost one.
+					OnMapChange?.Invoke();
 				}
 
 				if (jsUpdate)
@@ -1570,10 +1603,6 @@ namespace Api.CanvasRenderer
 		/// Scss source.
 		/// </summary>
 		Scss,
-		/// <summary>
-		/// TS source.
-		/// </summary>
-		Typescript,
 		/// <summary>
 		/// module.json meta file.
 		/// </summary>

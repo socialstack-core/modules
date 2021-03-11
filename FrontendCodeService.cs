@@ -74,6 +74,9 @@ namespace Api.CanvasRenderer
 					// Sort global map:
 					globalMap.Sort();
 
+					// Make ts aliases:
+					BuildTypescriptAliases();
+
 					// Happens in a separate loop to ensure all the global SCSS has loaded first.
 					foreach (var sb in SourceBuilders)
 					{
@@ -87,6 +90,86 @@ namespace Api.CanvasRenderer
 			});
 		}
 
+		/// <summary>
+		/// Dev watcher mode only. Outputs a tsconfig.json file which lists all available JS/ JSX/ TS/ TSX files.
+		/// </summary>
+		private void BuildTypescriptAliases()
+		{
+			// Do any builders have typescript files in them?
+			var ts = false;
+			foreach (var builder in SourceBuilders)
+			{
+				if (builder.HasTypeScript)
+				{
+					ts = true;
+					break;
+				}
+			}
+
+			if (!ts)
+			{
+				return;
+			}
+
+			var output = new StringBuilder();
+
+			output.Append("{\"compilerOptions\": {\"baseUrl\": \"..\",\"paths\": {");
+			var first = true;
+			
+			foreach (var builder in SourceBuilders)
+			{
+				var rootSegment = "\":[\"" + "./" + builder.RootName + "/Source/";
+
+				foreach (var kvp in builder.FileMap)
+				{
+					var file = kvp.Value;
+
+					if (file.FileType != SourceFileType.Javascript)
+					{
+						continue;
+					}
+
+					if (first)
+					{
+						first = false;
+					}
+					else
+					{
+						output.Append(',');
+					}
+
+					var firstDot = file.FileName.IndexOf('.');
+					var nameNoType = firstDot == -1 ? file.FileName : file.FileName.Substring(0, firstDot);
+
+					output.Append('"');
+					output.Append(file.ModulePath);
+					output.Append(rootSegment);
+					output.Append(file.RelativePath.Replace('\\', '/') + '/' + nameNoType);
+					output.Append("\"]");
+				}
+			}
+
+			output.Append("}}}");
+
+			// tsconfig.json:
+			var json = output.ToString();
+
+			var tsMeta = Path.GetFullPath("TypeScript");
+
+			// Create if doesn't exist:
+			Directory.CreateDirectory(tsMeta);
+			
+			// Write tsconfig file out:
+			File.WriteAllText(Path.Combine(tsMeta, "tsconfig.json"), json);
+
+			var globalsPath = Path.Combine(tsMeta, "typings.d.ts");
+
+			if (!File.Exists(globalsPath))
+			{
+				File.WriteAllText(globalsPath, "import * as react from \"react\";\r\n\r\ndeclare global {\r\n\ttype React = typeof react;\r\n\tvar global: any;\r\n}");
+			}
+		}
+	
 		/// <summary>
 		/// Gets the build errors from the last build of the CSS/ JS that happened. If the initial build run is happening, this waits for it to complete.
 		/// </summary>
@@ -163,7 +246,14 @@ namespace Api.CanvasRenderer
 			{
 				SourceBuilders = new List<UIBundle>();
 			}
-			
+
+			builder.OnMapChange = () => {
+
+				// Rebuild aliases:
+				BuildTypescriptAliases();
+
+			};
+
 			SourceBuilders.Add(builder);
 
 			builder.OnGlobalFile += async (SourceFile arg1, SourceFileChangeType arg2) => {
