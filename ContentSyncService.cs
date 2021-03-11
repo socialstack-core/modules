@@ -801,11 +801,12 @@ namespace Api.ContentSync
 
 			if (svc == null)
 			{
-				Console.WriteLine("[WARN] Content type " + typeof(T)+  " is marked for sync, but has no service. This means it doesn't have a cache either, so syncing it doesn't gain much.");
+				Console.WriteLine("[ERROR] Content type " + typeof(T)+  " is marked for sync, but has no service. This means it doesn't have a cache either, so syncing it doesn't gain anything. Note that you can have an AutoService without it using the DB. Ignoring this sync request.");
+				return;
 			}
 
 			// Get the event group:
-			var eventGroup = svc == null ? Events.GetGroup<T>() : svc.EventGroup;
+			var eventGroup = svc.EventGroup;
 			
 			var receivedEventHandler = eventGroup.Received;
 			var afterLoad = eventGroup.AfterLoad;
@@ -930,6 +931,9 @@ namespace Api.ContentSync
 				return;
 			}
 
+			// Get the primary cache:
+			var primaryCache = svc.GetCacheForLocale(1);
+			
 			meta.OpCode = SyncServer.RegisterOpCode((uint)meta.OpCodeId, (ContentUpdate<T> message) => {
 
 				// Create the context as it was in the remote:
@@ -955,32 +959,59 @@ namespace Api.ContentSync
 					if(Verbose){
 						Console.WriteLine("Receive <= " + action + " of " + message.Content.GetType());
 					}
-					
+
+					// The message content is the resolved (not raw) object.
+					var entity = message.Content;
+
+					// Update local cache next:
+					var cache = svc.GetCacheForLocale(context.LocaleId);
+
+					T raw;
+
+					if (context.LocaleId == 1)
+					{
+						// Primary locale. Entity == raw entity, and no transferring needs to happen.
+						raw = entity;
+					}
+					else
+					{
+						// Get the raw entity from the cache. We'll copy the fields from the raw object to it.
+						raw = cache.GetRaw(entity.Id);
+
+						if (raw == null)
+						{
+							raw = new T();
+						}
+
+						// Transfer fields from raw to entity, using the primary object as a source of blank fields:
+						svc.PopulateTargetEntityFromRaw(entity, raw, primaryCache.Get(raw.Id));
+					}
+
 					// Run afterLoad events:
-					await afterLoad.Dispatch(context, message.Content);
+					await afterLoad.Dispatch(context, entity);
 
 					// Received the content object:
-					await receivedEventHandler.Dispatch(context, message.Content, action);
+					await receivedEventHandler.Dispatch(context, entity, action);
 
-					if (svc != null)
+					if (cache != null)
 					{
-						// Update local cache next:
-						var cache = svc.GetCacheForLocale(context.LocaleId);
-
-						if (cache != null)
+						lock (cache)
 						{
-							lock (cache)
+							if (action == 1 || action == 2)
 							{
-								if (action == 1 || action == 2)
+								// Created or updated
+								cache.Add(context, entity, message.Content);
+
+								if (context.LocaleId == 1)
 								{
-									// Created
-									cache.Add(context, message.Content);
+									// Primary locale update - must update all other caches in case they contain content from the primary locale.
+									svc.OnPrimaryEntityChanged(entity);
 								}
-								else if (action == 3)
-								{
-									// Deleted
-									cache.Remove(context, message.Content.Id);
-								}
+							}
+							else if (action == 3)
+							{
+								// Deleted
+								cache.Remove(context, message.Content.Id);
 							}
 						}
 					}
