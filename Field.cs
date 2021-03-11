@@ -58,6 +58,32 @@ namespace Api.Database
 			SetFullName(null);
 		}
 
+		private bool? _isNullable = null;
+
+		/// <summary>
+		/// True if this fields value is a nullable type. Either it is a reference type, or Nullable.
+		/// </summary>
+		/// <returns></returns>
+		public bool IsNullable()
+		{
+			if (_isNullable.HasValue)
+			{
+				return _isNullable.Value;
+			}
+
+			if (Nullable.GetUnderlyingType(Type) != null)
+			{
+				_isNullable = true;
+			}
+			else
+			{
+				// It's nullable if it is not a value type.
+				_isNullable = !Type.IsValueType;
+			}
+
+			return _isNullable.Value;
+		}
+
 		/// <summary>
 		/// Updates the FullName and LocalisedName fields.
 		/// </summary>

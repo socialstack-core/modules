@@ -50,6 +50,12 @@ namespace Api.Database
 		protected int Operation;
 
 		/// <summary>
+		/// True if this query gets the 'raw' object or not.
+		/// The raw object is a localised version, exactly as-is from the database.
+		/// </summary>
+		public bool Raw;
+
+		/// <summary>
 		/// The field map for any fields that are being inserted/ updated etc.
 		/// Either maps params to object fields or result row fields to object fields
 		/// depending on what the query is being used for.
@@ -262,6 +268,13 @@ namespace Api.Database
 						if (localeCode == null || field.LocalisedName == null)
 						{
 							str.Append(field.FullName);
+						}
+						else if (Raw)
+						{
+							// Using this will result in a 'raw' object being returned.
+							str.Append(field.LocalisedName);
+							str.Append(localeCode);
+							str.Append('`');
 						}
 						else
 						{
