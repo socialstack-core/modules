@@ -23,7 +23,13 @@ namespace Api.Startup{
 		public bool LazyLoadMode;
 
 		/// <summary>
-		/// The primary cached index.
+		/// The raw index - this is for caches for a particular locale, and holds "raw" objects 
+		/// (as they are in the database, with blanks where the default translation should apply).
+		/// </summary>
+		private Dictionary<PT, T> Raw = new Dictionary<PT, T>();
+
+		/// <summary>
+		/// The primary cached index. If localised, this holds objects that have had the primary locale applied to them.
 		/// </summary>
 		private Dictionary<PT, T> Primary;
 
@@ -149,6 +155,15 @@ namespace Api.Startup{
 		public Dictionary<PT, T> GetPrimary()
 		{
 			return Primary;
+		}
+
+		/// <summary>
+		/// Get the raw lookup.
+		/// </summary>
+		/// <returns></returns>
+		public Dictionary<PT, T> GetRaw()
+		{
+			return Raw;
 		}
 
 		/// <summary>
@@ -364,6 +379,17 @@ namespace Api.Startup{
 		}
 
 		/// <summary>
+		/// Attempts to get the raw object with the given ID from the cache.
+		/// </summary>
+		/// <param name="id"></param>
+		/// <returns></returns>
+		public T GetRaw(PT id)
+		{
+			Raw.TryGetValue(id, out T value);
+			return value;
+		}
+
+		/// <summary>
 		/// Attempts to get the object with the given ID from the cache.
 		/// </summary>
 		/// <param name="id"></param>
@@ -391,7 +417,8 @@ namespace Api.Startup{
 		/// </summary>
 		/// <param name="context"></param>
 		/// <param name="entry"></param>
-		public void Add(Context context, T entry)
+		/// <param name="rawEntry"></param>
+		public void Add(Context context, T entry, T rawEntry)
 		{
 			if (entry == null)
 			{
@@ -402,7 +429,7 @@ namespace Api.Startup{
 			var prev = Remove(entry.GetId(), false);
 
 			// Add:
-			AddInternal(entry);
+			AddInternal(entry, rawEntry);
 
 			OnChange?.Invoke(context, prev, entry);
 		}
@@ -439,6 +466,7 @@ namespace Api.Startup{
 			{
 				lock(Primary){
 					Primary.Remove(id);
+					Raw.Remove(id);
 				}
 			}
 
@@ -455,11 +483,14 @@ namespace Api.Startup{
 		/// Adds the given entry to the index.
 		/// </summary>
 		/// <param name="entry"></param>
-		private void AddInternal(T entry)
+		/// <param name="rawEntry"></param>
+		private void AddInternal(T entry, T rawEntry)
 		{
 			lock(Primary){
-				// Add to primary index:
-				Primary[entry.GetId()] = entry;
+				// Add to primary index, and the raw backing index:
+				var id = entry.GetId();
+				Primary[id] = entry;
+				Raw[id] = rawEntry;
 			}
 			
 			// Add to any secondary indices:

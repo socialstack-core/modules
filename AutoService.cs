@@ -65,6 +65,11 @@ public partial class AutoService<T, ID> : AutoService
 	/// A query which lists multiple entities.
 	/// </summary>
 	protected readonly Query<T> listQuery;
+	
+	/// <summary>
+	/// A query which lists multiple raw entities.
+	/// </summary>
+	protected readonly Query<T> listRawQuery;
 
 	/// <summary>
 	/// A query which updates 1 entity.
@@ -89,6 +94,8 @@ public partial class AutoService<T, ID> : AutoService
 		updateQuery = Query.Update<T>();
 		selectQuery = Query.Select<T>();
 		listQuery = Query.List<T>();
+		listRawQuery = Query.List<T>();
+		listRawQuery.Raw = true;
 
 		EventGroup = eventGroup;
 
@@ -302,7 +309,7 @@ public partial class AutoService<T, ID> : AutoService
 	/// List a filtered set of entities without using the cache.
 	/// </summary>
 	/// <returns></returns>
-	public virtual async ValueTask<List<T>> ListNoCache(Context context, Filter<T> filter)
+	public virtual async ValueTask<List<T>> ListNoCache(Context context, Filter<T> filter, bool raw = false)
 	{
 		if (_database == null)
 		{
@@ -320,7 +327,7 @@ public partial class AutoService<T, ID> : AutoService
 		filter = await EventGroup.BeforeList.Dispatch(context, filter);
 		context.NestedTypes &= NestableRemoveMask;
 		
-		var list = await _database.List(context, listQuery, filter);
+		var list = await _database.List(context, raw? listRawQuery : listQuery, filter);
 
 		context.NestedTypes |= NestableAddMask;
 		list = await EventGroup.AfterList.Dispatch(context, list);
@@ -526,13 +533,45 @@ public partial class AutoService<T, ID> : AutoService
 	}
 
 	/// <summary>
+	/// Populates the given entity from the given raw entity. Any blank localised fields are copied from the primary entity.
+	/// </summary>
+	/// <param name="entity"></param>
+	/// <param name="raw"></param>
+	/// <param name="primaryEntity"></param>
+	public void PopulateTargetEntityFromRaw(T entity, T raw, T primaryEntity)
+	{
+		// First, all the fields we'll be working with:
+		var allFields = listQuery.Fields.Fields;
+
+		for (var i = 0; i < allFields.Count; i++)
+		{
+			// Get the field:
+			var field = allFields[i];
+
+			// Read the value from the raw object:
+			var value = field.TargetField.GetValue(raw);
+
+			// If the field is localised, and the raw value is null, use value from primaryEntity instead.
+			// Note! [Localised] fields must be a nullable type for this to ever happen.
+			if (field.LocalisedName != null && value == null && primaryEntity != null)
+			{
+				// Read from primary entity instead:
+				value = field.TargetField.GetValue(primaryEntity);
+			}
+			
+			field.TargetField.SetValue(entity, value);
+		}
+
+	}
+
+	/// <summary>
 	/// Updates the database and the cache without triggering any events, based on the provided mode.
 	/// </summary>
 	/// <param name="context"></param>
-	/// <param name="entity"></param>
+	/// <param name="raw">The raw version of the entity.</param>
 	/// <param name="mode">U = update, C = Create, D = Delete</param>
 	/// <param name="deletedId"></param>
-	public async Task RawUpdateEntity(Context context, T entity, char mode, ID deletedId)
+	public async Task RawUpdateEntity(Context context, T raw, char mode, ID deletedId)
 	{
 		if (_database != null)
 		{
@@ -545,16 +584,16 @@ public partial class AutoService<T, ID> : AutoService
 			{
 				// Updated or created
 				// In both cases, check if it exists first:
-				var id = entity.GetId();
+				var id = raw.GetId();
 				if (await _database.Select(context, selectQuery, id) != null)
 				{
 					// Update
-					await _database.Run(context, updateQuery, entity, id);
+					await _database.Run(context, updateQuery, raw, id);
 				}
 				else
 				{
 					// Create
-					await _database.Run(context, createWithIdQuery, entity);
+					await _database.Run(context, createWithIdQuery, raw);
 				}
 			}
 		}
@@ -568,13 +607,36 @@ public partial class AutoService<T, ID> : AutoService
 			{
 				if (mode == 'C' || mode == 'U')
 				{
-					// Created
-					cache.Add(context, entity);
+					// Created or updated
+
+					T entity;
+
+					if (context.LocaleId == 1)
+					{
+						// Primary locale. Entity == raw entity, and no transferring needs to happen.
+						entity = raw;
+					}
+					else
+					{
+						// Get the 'real' (not raw) entity from the cache. We'll copy the fields from the raw object to it.
+						var id = raw.GetId();
+						entity = cache.Get(id);
+
+						if (entity == null)
+						{
+							entity = new T();
+						}
+
+						// Transfer fields from raw to entity, using the primary object as a source of blank fields:
+						PopulateTargetEntityFromRaw(entity, raw, GetCacheForLocale(1).Get(id));
+					}
+
+					cache.Add(context, entity, raw);
 				}
 				else if (mode == 'D')
 				{
 					// Deleted
-					cache.Remove(context, entity.GetId());
+					cache.Remove(context, raw.GetId());
 				}
 			}
 		}
@@ -585,18 +647,34 @@ public partial class AutoService<T, ID> : AutoService
 	/// 
 	/// </summary>
 	/// <param name="context"></param>
-	/// <param name="entity"></param>
+	/// <param name="raw"></param>
 	/// <returns></returns>
-	public virtual async ValueTask<T> CreatePartialComplete(Context context, T entity)
+	public virtual async ValueTask<T> CreatePartialComplete(Context context, T raw)
 	{
 		var cache = GetCacheForLocale(context == null ? 1 : context.LocaleId);
 
 		if (cache != null)
 		{
-			cache.Add(context, entity);
+			T entity;
+
+			if (context.LocaleId == 1)
+			{
+				// Primary locale. Entity == raw entity, and no transferring needs to happen. This is expected to always be the case for creations.
+				entity = raw;
+			}
+			else
+			{
+				// Get the 'real' (not raw) entity from the cache. We'll copy the fields from the raw object to it.
+				entity = new T();
+
+				// Transfer fields from raw to entity, using the primary object as a source of blank fields:
+				PopulateTargetEntityFromRaw(entity, raw, null);
+			}
+
+			cache.Add(context, entity, raw);
 		}
 
-		return await EventGroup.AfterCreate.Dispatch(context, entity);
+		return await EventGroup.AfterCreate.Dispatch(context, raw);
 	}
 
 	/// <summary>
@@ -611,16 +689,112 @@ public partial class AutoService<T, ID> : AutoService
 			return null;
 		}
 
-		if (_database != null && !await _database.Run(context, updateQuery, entity, entity.GetId()))
+		var id = entity.GetId();
+
+		T raw = null;
+
+		var locale = context == null ? 1 : context.LocaleId;
+		var cache = GetCacheForLocale(locale);
+
+		if (locale == 1)
+		{
+			raw = entity;
+		}
+		else
+		{
+			if (cache != null)
+			{
+				raw = cache.GetRaw(id);
+			}
+
+			if (raw == null)
+			{
+				raw = new T();
+			}
+
+			// Must also update the raw object in the cache (as the given entity is _not_ the raw one).
+			T primaryEntity = null;
+
+			if (cache == null)
+			{
+				primaryEntity = await Get(new Context() {
+					LocaleId = 1,
+					UserId = context.UserId
+				}, id);
+			}
+			else
+			{
+				primaryEntity = GetCacheForLocale(1).Get(id);
+			}
+
+			// First, all the fields we'll be working with:
+			var allFields = listQuery.Fields.Fields;
+
+			for (var i = 0; i < allFields.Count; i++)
+			{
+				// Get the field:
+				var field = allFields[i];
+
+				// Read the value from the original object:
+				var value = field.TargetField.GetValue(entity);
+
+				// If the field is localised, and the raw value is null, use value from primaryEntity instead.
+				// Note! [Localised] fields must be a nullable type for this to ever happen.
+
+				if (field.LocalisedName != null && field.IsNullable())
+				{
+					// If the entity field matches the primary content one and the type is nullable, set a null into raw.
+					var primaryContentValue = field.TargetField.GetValue(primaryEntity);
+
+					if (primaryContentValue != null)
+					{
+						if (primaryContentValue.Equals(value))
+						{
+							// This localised type has the same value as the primary locale. Don't translate it.
+							value = null;
+						}
+					}
+				}
+
+				field.TargetField.SetValue(raw, value);
+			}
+		}
+
+		if (_database != null && !await _database.Run(context, updateQuery, raw, id))
 		{
 			return null;
 		}
 
-		var cache = GetCacheForLocale(context == null ? 1 : context.LocaleId);
-
 		if (cache != null)
 		{
-			cache.Add(context, entity);
+			cache.Add(context, entity, raw);
+
+			if (locale == 1)
+			{
+				// Primary locale update - must update all other caches in case they contain content from the primary locale.
+				for (var i = 1; i < _cache.Length; i++)
+				{
+					var altLocaleCache = _cache[i];
+
+					if (altLocaleCache == null)
+					{
+						continue;
+					}
+
+					var altRaw = altLocaleCache.GetRaw(id);
+					var alt = altLocaleCache.Get(id);
+
+					if (altRaw == null || alt == null)
+					{
+						// This row is not in this locale.
+						continue;
+					}
+
+					// Update the alt object again:
+					PopulateTargetEntityFromRaw(alt, altRaw, entity);
+				}
+			}
+
 		}
 
 		entity = await EventGroup.AfterUpdate.Dispatch(context, entity);

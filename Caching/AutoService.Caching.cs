@@ -118,6 +118,11 @@ public partial class AutoService<T, ID> {
 
 		_cache = new ServiceCache<T, ID>[localeSet.Length];
 
+		if (localeSet.Length == 0)
+		{
+			return;
+		}
+
 		for (var i = 0; i < localeSet.Length; i++)
 		{
 			var locale = localeSet[i];
@@ -131,7 +136,9 @@ public partial class AutoService<T, ID> {
 			_cache[i] = new ServiceCache<T, ID>(indices);
 			_cache[i].OnChange = genericCfg == null ? null : genericCfg.OnChange;
 		}
-		
+
+		var primaryLocaleCache = _cache[0];
+
 		// Get everything, for each supported locale:
 		for (var i = 0; i < localeSet.Length; i++)
 		{
@@ -149,11 +156,28 @@ public partial class AutoService<T, ID> {
 				LocaleId = locale.Id
 			};
 
-			var everything = await ListNoCache(ctx, null);
+			// Get the *raw* entries (for primary locale, it makes no difference).
+			var everything = await ListNoCache(ctx, null, true);
 
-			foreach (var row in everything)
+			foreach (var raw in everything)
 			{
-				cache.Add(ctx, row);
+				if (i == 0)
+				{
+					// Primary - raw and target are the same object.
+					cache.Add(ctx, raw, raw);
+				}
+				else
+				{
+					// Secondary locale. The target object is a clone of the raw object, 
+					// but then with any unset fields from the primary locale.
+					var entity = new T();
+
+					PopulateTargetEntityFromRaw(entity, raw, primaryLocaleCache.Get(raw.GetId()));
+
+					cache.Add(ctx, entity, raw);
+				}
+
+				
 			}
 		}
 
