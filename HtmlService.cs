@@ -257,7 +257,12 @@ namespace Api.Pages
 				"I burnt the microwaveable dinner somehow",
 				"I burnt the carpet",
 				"Instructions unclear, fork wedged in ceiling",
-				"Your pet ate all the food whilst you were away, but it wasn't my fault I swear"
+				"Your pet ate all the food whilst you were away, but it wasn't my fault I swear",
+				"Have you tried turning it off, then off, then back on and off again?",
+				"Maybe the internet got deleted?",
+				"Blame Mike",
+				"Contact your system admin. If you are the system admin, I'm so sorry.",
+				"You shall not pass!"
 			};
 
 			var rng = new Random();
