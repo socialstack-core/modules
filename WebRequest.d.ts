@@ -1,9 +1,14 @@
-﻿export default function webRequest(
+﻿interface WebRequestResponse<Result> extends Omit<Response, "json"> {
+    json: Result;
+    notificationKey: unknown;
+}
+
+export default function webRequest<Data, Result>(
     origUrl: string,
-    data?: FormData | unknown,
+    data?: Data,
     opts?: object & {
         blob?: unknown;
         method?: string;
         locale?: unknown;
     }
-): Promise<unknown>;
+): Promise<WebRequestResponse<Result>>;
