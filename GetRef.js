@@ -24,7 +24,9 @@ function staticFile(ref, options, r){
 	var refParts = ref.split('/');
 	var mainDir = refParts.shift();
 	var url = '/pack/static/' + refParts.join('/');
-	
+	if(mainDir == 'admin'){
+		url = '/en-admin/' + url;
+	}
 	if(options.url){
 		return url;
 	}
