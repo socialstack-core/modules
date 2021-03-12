@@ -21,8 +21,10 @@ if(global.addEventListener){
 	global.addEventListener("xpagechange", e => e.pageInfo && e.pageInfo.page && pageChange(e.pageInfo.page));
 }
 
-module.exports = {
+var presence = {
 	event: (type, meta) => {
 		send(type,meta);
 	}
 };
+
+export default presence;
