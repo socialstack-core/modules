@@ -58,6 +58,18 @@ namespace Api.Huddles
 		/// </summary>
 		[DatabaseField(Length=100)]
 		public string Title;
+
+		/// <summary>
+		/// Optional meeting description.
+		/// </summary>
+		[DatabaseField(Length = 500)]
+		public string Description;
+
+		/// <summary>
+		/// A slug that generates uniquely for each huddle in the format of xxx-xxx-xxx. Is optional to use a slug, but they always generate.
+		/// </summary>
+		[DatabaseField(Length = 11)]
+		public string Slug;
 	}
 
 }

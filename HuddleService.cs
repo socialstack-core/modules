@@ -25,6 +25,7 @@ namespace Api.Huddles
 		private readonly SignatureService _signatures;
 		private readonly HuddleServerService _huddleServerService;
 		private readonly int userTypeId;
+		private Random random;
 
 		/// <summary>
 		/// Instanced automatically. Use injection to use this service, or Startup.Services.Get.
@@ -115,7 +116,107 @@ namespace Api.Huddles
 				
 				return huddle;
 			}, 5);
+
+			// We need to generate the huddle's slug. 
+			Events.Huddle.BeforeCreate.AddEventListener(async (Context ctx, Huddle huddle) =>
+			{
+				if (ctx == null || huddle == null)
+                {
+					return null;
+                }
+
+				// Let's generate a unique slug for this huddle.
+				huddle.Slug = await GenerateUniqueHuddleSlug(ctx);
+
+				return huddle;
+			});
+
+			// We need to handle some work on before update as well to prevent a case where we get duplicate slugs.
+			Events.Huddle.BeforeUpdate.AddEventListener(async (Context ctx, Huddle huddle) =>
+			{
+				if (ctx == null || huddle == null)
+                {
+					return null;
+                }
+
+				// Let's check that the slug they are using right now is unique, excluding itself in the check obviously.
+				var isUnique = await IsUniqueHuddleSlug(ctx, huddle.Slug, huddle.Id);
+
+				// Is it unique?
+				if (!isUnique)
+                {
+					//Nope! We need to replace it with a unique one. They can remodify it again if they aren't happy with their newly generated slug.
+					huddle.Slug = await GenerateUniqueHuddleSlug(ctx);
+                }
+
+				return huddle;
+			});
 		}
+
+		/// <summary>
+		/// Returns a huddle slug in the form of xxx-xxx-xxx alphanum excluding amigious characters 
+		/// </summary>
+		/// <returns></returns>
+		public string GenerateHuddleSlug()
+        {
+			var chars = "abcdefghjkmnpqrstuvwxyzACDEFHJKMNPRTUVWXY1234567890";
+			var slug = "";
+
+			if(random == null)
+            {
+				random = new Random();
+            }
+
+			var i = 0;
+			while (i < 8)
+            {
+				slug += chars[random.Next(chars.Length)];
+
+				if ((i + 1) % 3 == 0 && i + 1 != 9)
+                {
+					// add a dash
+					slug += "-";
+                }
+            }
+
+			return slug;
+        }
+
+		/// <summary>
+		/// Used to determine if a slug is unique.
+		/// </summary>
+		/// <param name="ctx"></param>
+		/// <param name="slug"></param>
+		/// <returns></returns>
+		public async ValueTask<bool> IsUniqueHuddleSlug(Context ctx, string slug, int? exclusionId = null)
+        {
+			var huddles = await List(ctx, new Filter<Huddle>().Equals("Slug", slug));
+
+			return huddles.Count == 0;
+		}
+
+
+		/// <summary>
+		/// Used to generate a unique huddle slug.
+		/// </summary>
+		/// <returns></returns>
+		public async ValueTask<string> GenerateUniqueHuddleSlug(Context ctx)
+        {
+			// Let's generate a slug
+			var slug = GenerateHuddleSlug();
+
+			// Is this slug unique?
+			var isUnique = await IsUniqueHuddleSlug(ctx, slug);
+
+			while (isUnique)
+            {
+				// Let's reroll and check again
+				slug = GenerateHuddleSlug();
+				isUnique = await IsUniqueHuddleSlug(ctx, slug);
+			}
+
+			return slug;
+        }
 
 		/// <summary>
 		/// True if user is permitted to access the given huddle.
