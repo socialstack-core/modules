@@ -1,0 +1,29 @@
+.admin-header{
+	
+	padding: 10px;
+	color: #100862;
+	
+	> .admin-menu {
+		i {
+			font-size: 1.6em;
+		}
+	}
+	
+	> .logo {
+		text-align: center;
+	}
+	
+	> .logged-user{
+		text-align: right;
+		
+		img	{
+			margin-left: 10px;
+			border-radius: 50%;
+			vertical-align: middle;
+		}
+	}
+}
+
+html.admin body {
+	background: #f0f3f7;
+}
