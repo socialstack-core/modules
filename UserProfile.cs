@@ -53,7 +53,16 @@ namespace Api.Users
 		{
 			return Id;
 		}
-		
+
+		/// <summary>
+		/// Sets the ID of this row.
+		/// </summary>
+		/// <returns></returns>
+		public void SetId(int id)
+		{
+			Id = id;
+		}
+
 		/// <summary>
 		/// Type of this obj.
 		/// </summary>
