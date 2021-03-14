@@ -12,5 +12,11 @@ namespace Api.Database
 		/// </summary>
 		/// <returns></returns>
 		T GetId();
+
+		/// <summary>
+		/// Sets the ID for this thing.
+		/// </summary>
+		/// <param name="id"></param>
+		void SetId(T id);
 	}
 }

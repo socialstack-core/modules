@@ -46,6 +46,15 @@ namespace Api.Database
 		{
 			return Id;
 		}
+
+		/// <summary>
+		/// Sets the ID of this row.
+		/// </summary>
+		/// <returns></returns>
+		public void SetId(T id)
+		{
+			Id = id;
+		}
 	}
 	
 }
