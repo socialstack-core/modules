@@ -1093,7 +1093,7 @@ public partial class AutoService
 			});
 		}
 	}
-
+	
 	private void InstallAdminPagesInternal(string navMenuLabel, string navMenuIconRef, string[] fields, ChildAdminPageOptions childAdminPage)
 	{
 		var pageService = Api.Startup.Services.Get("PageService");
@@ -1138,6 +1138,43 @@ public partial class AutoService
 					}
 				}
 			}
+		});
+
+	}
+
+	/// <summary>
+	/// Installs one or more roles. You must provide a Key and no Id on each one.
+	/// The permissions module is required anyway and must be up to date.
+	/// </summary>
+	protected void InstallRoles(params UserRole[] roles)
+	{
+		if (Services.Started)
+		{
+			InstallRolesInternal(roles);
+		}
+		else
+		{
+			// Must happen after services start otherwise the role service isn't necessarily available yet.
+			Events.ServicesAfterStart.AddEventListener((Context ctx, object src) =>
+			{
+				InstallRolesInternal(roles);
+				return new ValueTask<object>(src);
+			});
+		}
+	}
+	
+	private void InstallRolesInternal(UserRole[] roles)
+	{
+		var roleService = Services.Get<UserRoleService>();
+
+		if (roleService == null)
+		{
+			return;
+		}
+		
+		Task.Run(async () =>
+		{
+			await roleService.InstallNow(roles);
 		});
 
 	}

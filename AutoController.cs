@@ -17,7 +17,7 @@ using System.Threading.Tasks;
 /// </summary>
 /// <typeparam name="T"></typeparam>
 public partial class AutoController<T> : AutoController<T, int>
-	where T : Api.Database.DatabaseRow<int>, new()
+	where T : class, IHaveId<int>, new()
 {
 }
 
@@ -30,7 +30,7 @@ public partial class AutoController<T> : AutoController<T, int>
 /// <typeparam name="ID"></typeparam>
 [ApiController]
 public partial class AutoController<T,ID> : ControllerBase
-	where T : Api.Database.DatabaseRow<ID>, new()
+	where T : class, IHaveId<ID>, new()
 	where ID : struct, IConvertible
 {
 
@@ -182,7 +182,7 @@ public partial class AutoController<T,ID> : ControllerBase
 		var notes = await SetFieldsOnObject(entity, context, body, JsonFieldGroup.Default);
 
 		// Not permitted to create with a specified ID via the API. Ensure it's 0:
-		entity.Id = default;
+		entity.SetId(default);
 
 		// Fire off a create event:
 		entity = await _service.EventGroup.Create.Dispatch(context, entity, Response) as T;
@@ -336,7 +336,7 @@ public partial class AutoController<T,ID> : ControllerBase
 		}
 
 		// Make sure it's the original ID:
-		entity.Id = id;
+		entity.SetId(id);
 
 		if (entity == null)
 		{
