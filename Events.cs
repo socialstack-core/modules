@@ -21,6 +21,11 @@ namespace Api.Eventing
 		/// </summary>
 		public static EventHandler<object> CapabilityOnSetup;
 
+		/// <summary>
+		/// Events on the UserRole type.
+		/// </summary>
+		public static EventGroup<UserRole> UserRole;
+		
 	}
 	
 }
