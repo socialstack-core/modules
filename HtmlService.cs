@@ -386,7 +386,7 @@ namespace Api.Pages
 			doc.Path = path;
 			doc.Title = page.Title; // Todo: permit {token} values in the title which refer to the primary object.
 			doc.SourcePage = page;
-			doc.Html.With("class", "ui web").With("lang", locale.Code);
+			doc.Html.With("class", isAdmin ? "admin web" : "ui web").With("lang", locale.Code);
 			
 			var packDir = isAdmin ? "/en-admin/pack/" : "/pack/";
 

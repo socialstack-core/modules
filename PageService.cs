@@ -36,22 +36,14 @@ namespace Api.Pages
 				{
 					Url = "/en-admin",
 					BodyJson = @"{
-						""module"": ""Admin/Pages/Default"",
-						""content"": [
-							{
-								""module"": ""Admin/Tile"",
-								""content"": [
-									""Welcome to the administration area. Pick what you'd like to edit on the left.""
-								]
-							}
-						]
+						""module"": ""Admin/Layouts/Dashboard""
 					}"
 				},
 				new Page()
 				{
 					Url = "/en-admin/login",
 					BodyJson = @"{
-						""module"": ""Admin/Pages/Landing"",
+						""module"": ""Admin/Layouts/Landing"",
 						""content"": [
 							{
 								""module"": ""Admin/Tile"",
@@ -68,7 +60,7 @@ namespace Api.Pages
 				{
 					Url = "/en-admin/register",
 					BodyJson = @"{
-						""module"": ""Admin/Pages/Landing"",
+						""module"": ""Admin/Layouts/Landing"",
 						""content"": [
 							{
 								""module"": ""Admin/Tile"",
@@ -85,7 +77,7 @@ namespace Api.Pages
 				{
 					Url = "/en-admin/permissions",
 					BodyJson = @"{
-						""module"": ""Admin/Pages/Default"",
+						""module"": ""Admin/Layouts/Default"",
 						""content"": [
 							{
 								""module"": ""Admin/PermissionGrid""
@@ -284,7 +276,7 @@ namespace Api.Pages
 		{
 			var typeName = type.Name.ToLower();
 
-			var listPageCanvas = new CanvasNode("Admin/Pages/List").With("endpoint", typeName).With("fields", fields);
+			var listPageCanvas = new CanvasNode("Admin/Layouts/List").With("endpoint", typeName).With("fields", fields);
 
 			var listPage = new Page
 			{
@@ -300,7 +292,7 @@ namespace Api.Pages
 			listPage = await Events.Page.BeforeAdminPageInstall.Dispatch(new Context(), listPage, listPageCanvas, type, AdminPageType.List);
 			listPage.BodyJson = listPageCanvas.ToJson();
 
-			var singlePageCanvas = new CanvasNode("Admin/Pages/AutoEdit")
+			var singlePageCanvas = new CanvasNode("Admin/Layouts/AutoEdit")
 					.With("endpoint", typeName)
 					.With("id", new
 					{
