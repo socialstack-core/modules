@@ -682,7 +682,7 @@ $bootstrap_variants: (
 
                 .page-link {
                     background-color: get_theme(background-color, bootstrap, pagination, active);
-                    color: get_theme(color, bootstrap, pagination, active);
+                    /* color: get_theme(color, bootstrap, pagination, active); */
                     border-color: get_theme(border-color, bootstrap, pagination, active);
                 }
             }
