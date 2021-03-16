@@ -168,7 +168,7 @@ namespace Api.Huddles
             }
 
 			var i = 0;
-			while (i < 8)
+			while (i < 9)
             {
 				slug += chars[random.Next(chars.Length)];
 
@@ -177,6 +177,7 @@ namespace Api.Huddles
 					// add a dash
 					slug += "-";
                 }
+				i++;
             }
 
 			return slug;
@@ -190,7 +191,7 @@ namespace Api.Huddles
 		/// <returns></returns>
 		public async ValueTask<bool> IsUniqueHuddleSlug(Context ctx, string slug, int? exclusionId = null)
         {
-			var huddles = await List(ctx, new Filter<Huddle>().Equals("Slug", slug));
+			var huddles = await List(ctx, new Filter<Huddle>().Equals("Slug", slug).And().Not().Equals("Id", exclusionId));
 
 			return huddles.Count == 0;
 		}
@@ -208,7 +209,7 @@ namespace Api.Huddles
 			// Is this slug unique?
 			var isUnique = await IsUniqueHuddleSlug(ctx, slug);
 
-			while (isUnique)
+			while (!isUnique)
             {
 				// Let's reroll and check again
 				slug = GenerateHuddleSlug();
