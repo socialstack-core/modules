@@ -537,8 +537,8 @@ module = undefined;
 exports = undefined;
 
 // Get canvas and UI/Content:
-var _Canvas = getModule('UI/Canvas/Canvas.js').default;
-var _contentModule = getModule("UI/Content/Content.js").default;
+var _Canvas = require('UI/Canvas').default;
+var _contentModule = require("UI/Content").default;
 var _currentContext = null;
 
 // Stub:

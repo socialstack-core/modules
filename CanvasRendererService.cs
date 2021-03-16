@@ -21,7 +21,6 @@ namespace Api.CanvasRenderer
 	/// </summary>
 	public partial class CanvasRendererService : AutoService
 	{
-		private readonly CanvasRendererServiceConfig _cfg;
 		private readonly FrontendCodeService _frontend;
 
 		/// <summary>
@@ -30,7 +29,6 @@ namespace Api.CanvasRenderer
 		public CanvasRendererService(LocaleService locales, FrontendCodeService frontend)
 		{
 			_frontend = frontend;
-			_cfg = GetConfig<CanvasRendererServiceConfig>();
 
 			Events.Translation.AfterUpdate.AddEventListener((Context context, Translation translation) => {
 
@@ -163,7 +161,8 @@ namespace Api.CanvasRenderer
 				location = new V8.Location()
 			};
 			engine.AddHostObject("document", new V8.Document());
-            engine.AddHostObject("console", new V8.Console());
+			engine.AddHostObject("__console", new V8.Console());
+			engine.Execute("console={};console.info=console.log=console.warn=console.error=(...args)=>__console.log(...args);");
 			engine.AddHostObject("navigator", new V8.Navigator());
 			engine.AddHostObject("location", jsDoc.location);
 			
@@ -175,29 +174,27 @@ namespace Api.CanvasRenderer
 			engine.AllowReflection = true;
 
 			var dllPath = AppDomain.CurrentDomain.BaseDirectory;
-
-			// Module set to use:
-			var modules = _cfg.Modules;
 			
 			string sourceContent;
 
-			try
-			{
-				// If instancing a new engine, always read the file.
-				var jsFileData = await (modules == "Admin" ? _frontend.GetAdminMainJs(locale.Id) : _frontend.GetMainJs(locale.Id));
-				sourceContent = System.Text.Encoding.UTF8.GetString(jsFileData.FileContent);
-			}
-			catch
-			{
-				// File doesn't exist! This will most often happen when somebody runs the API 
-				// for the first time and is waiting for the initial build.
-				return null;
-			}
+			sourceContent = File.ReadAllText(dllPath + "/Api/ThirdParty/CanvasRenderer/inline_header.js");
+			engine.Execute(new DocumentInfo(new Uri("file://inline_header.js")), sourceContent);
 
-			engine.Execute(new DocumentInfo(_bundleUri), sourceContent);
+			// If instancing a new engine, always read the file.
+			var jsFileData = await _frontend.GetAdminMainJs(locale.Id) ;
+			sourceContent = System.Text.Encoding.UTF8.GetString(jsFileData.FileContent);
+			engine.Execute(new DocumentInfo(new Uri("file://admin/main.js")), sourceContent);
+
+			jsFileData = await _frontend.GetMainJs(locale.Id);
+			sourceContent = System.Text.Encoding.UTF8.GetString(jsFileData.FileContent);
+			engine.Execute(new DocumentInfo(new Uri("file://ui/main.js")), sourceContent);
+
+			jsFileData = await _frontend.GetEmailMainJs(locale.Id);
+			sourceContent = System.Text.Encoding.UTF8.GetString(jsFileData.FileContent);
+			engine.Execute(new DocumentInfo(new Uri("file://email/main.js")), sourceContent);
 
 			sourceContent = File.ReadAllText(dllPath + "/Api/ThirdParty/CanvasRenderer/renderer.js");
-			engine.Execute(new DocumentInfo(_rendererUri), sourceContent);
+			engine.Execute(new DocumentInfo(new Uri("file://renderer.js")), sourceContent);
 
 			// Add engine to locale lookup. This happens last to avoid 2 simultaneous 
 			// requests trying to use a potentially not initted engine.
@@ -300,7 +297,6 @@ namespace Api.CanvasRenderer.V8
                 System.Console.WriteLine("ERROR " + JsonConvert.SerializeObject(msgs[i]));
             }
         }
-
     }
 
 	/// <summary>

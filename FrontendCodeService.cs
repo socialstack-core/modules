@@ -346,6 +346,24 @@ namespace Api.CanvasRenderer
 		}
 
 		/// <summary>
+		/// Gets the main JS file (for admin bundle) as a raw, always from memory file. Note that although the initial generation of the response is dynamic, 
+		/// virtually all requests that land here are responded to from RAM without allocating.
+		/// </summary>
+		/// <param name="localeId">The locale you want the JS for.</param>
+		/// <returns></returns>
+		public async ValueTask<FrontendFile> GetEmailMainJs(int localeId)
+        {
+#if DEBUG
+			// Special case for devs - may need to wait for first build if it hasn't happened yet.
+			if (initialBuildTask != null)
+			{
+				await initialBuildTask;
+			}
+#endif
+			return await EmailBuilder.GetJs(localeId);
+		}
+
+		/// <summary>
 		/// Gets a V8 engine used to host Babel, node-sass and other parts of the build chain. This is used for primarily development instances.
 		/// </summary>
 		/// <returns></returns>
