@@ -54,6 +54,7 @@ export default class HuddleClient
 	constructor(
 		{
 			roomId,
+			roomSlug,
 			useSimulcast,
 			useSharingSimulcast,
 			forceTcp,
@@ -82,6 +83,7 @@ export default class HuddleClient
 		
 		this.room = {
 			id: roomId,
+			slug: roomSlug,
 			state: 'closed',
 			activeSpeakerId: 0
 		};
@@ -290,7 +292,11 @@ export default class HuddleClient
 	
 	async join()
 	{
-		var huddleInfo = await webRequest('huddle/' + this.room.id + '/join');
+		if(this.room.slug) {
+			var huddleInfo = await webRequest('huddle/' + this.room.slug + '/slug/join');
+		} else {
+			var huddleInfo = await webRequest('huddle/' + this.room.id + '/join');
+		}
 		
 		if(!huddleInfo || !huddleInfo.json){
 			return this.joinFail();
