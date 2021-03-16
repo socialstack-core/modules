@@ -254,12 +254,22 @@ export default class Input extends React.Component {
 	
     renderInput() {
 
-        const { type } = this.props;
+        const { type, contentType } = this.props;
 
         if (type instanceof Function) {
             return type(this);
         }
-
+		
+		if(contentType){
+			// contentType="a-mime-type". The mime type must be lowercase.
+			var handler = inputTypes[contentType];
+			
+			if(handler != null){
+				// Content type handlers come first.
+				return handler({ ...this.props, onChange: this.onChange, onBlur: this.onBlur }, type, this);
+			}
+		}
+		
         // TODO: wire up related controls (e.g. field A is disabled based on checkbox B)
         var disabledBy = this.props.disabledBy;
         var enabledBy = this.props.enabledBy;
