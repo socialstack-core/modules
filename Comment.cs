@@ -66,7 +66,7 @@ namespace Api.Comments
 		/// and be formatted in complex ways.
 		/// </summary>
 		// [DatabaseField(Length = 2000)]
-		public string BodyJson;
+		public string Body;
 		/// <summary>
 		/// Reactions to this comment (typically upvote/ downvote).
 		/// </summary>
