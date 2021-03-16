@@ -788,7 +788,7 @@ namespace Api.ContentSync
 		/// <param name="meta"></param>
 		/// <param name="addListeners"></param>
 		public void HandleTypeInternal<T, ID>(ContentSyncTypeMeta meta, bool addListeners)
-			where T : DatabaseRow<ID>, new()
+			where T : class, IHaveId<ID>, new()
 			where ID : struct, IConvertible
 		{
 			// NOTE: This is used by reflection by HandleType.
@@ -976,7 +976,7 @@ namespace Api.ContentSync
 					else
 					{
 						// Get the raw entity from the cache. We'll copy the fields from the raw object to it.
-						raw = cache.GetRaw(entity.Id);
+						raw = cache.GetRaw(entity.GetId());
 
 						if (raw == null)
 						{
@@ -984,7 +984,7 @@ namespace Api.ContentSync
 						}
 
 						// Transfer fields from raw to entity, using the primary object as a source of blank fields:
-						svc.PopulateTargetEntityFromRaw(entity, raw, primaryCache.Get(raw.Id));
+						svc.PopulateTargetEntityFromRaw(entity, raw, primaryCache.Get(raw.GetId()));
 					}
 
 					// Run afterLoad events:
@@ -1011,7 +1011,7 @@ namespace Api.ContentSync
 							else if (action == 3)
 							{
 								// Deleted
-								cache.Remove(context, message.Content.Id);
+								cache.Remove(context, message.Content.GetId());
 							}
 						}
 					}
