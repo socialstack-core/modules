@@ -63,6 +63,7 @@ export default class Add extends React.Component{
 							this.setState({success: true, failure: false, submitting: false});
 							this.props.onClose && this.props.onClose();
 							e.target.reset();
+							this.props.onSuccess && this.props.onSuccess();
 						}
 					}
 					onValues = { values => {return {

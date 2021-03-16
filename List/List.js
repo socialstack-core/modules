@@ -45,8 +45,6 @@ export default class List extends React.Component{
 		deletedComments[comment.id] = true;
 
 		this.setState({deletedComments, deleteComment: null});
-
-		console.log("on deleted callback");
 	}
 
     render(){
@@ -84,7 +82,7 @@ export default class List extends React.Component{
 				<Modal classname = "comment-report-modal" title = "Report comment" visible = {reportComment} onClose = {() => {this.setState({reportComment: null})}}>
 					<ReportComment onClose = {() => {this.setState({reportComment: null})}} comment = {reportComment}/>
 				</Modal>
-				<Add contentId={contentId} contentTypeId={contentTypeId} visible = {true}/>
+				<Add contentId={contentId} contentTypeId={contentTypeId} visible = {true} onSuccess = {() => {this.setState({hasComments: true})}}/>
 				<Loop over='comment/list' filter={
 					{
 						where:{
@@ -97,37 +95,66 @@ export default class List extends React.Component{
 						}
 					}	
 				}
+				groupAll
 				orNone = {() =>{
 					return <div>
 						<h3>No Comments yet?</h3>
 						<p>Be the first to leave your thoughts!</p>
 					</div>
 				}}
-				>
-					{comment => {
-						var { user } = this.context.app.state;
-						var isUser = (user && comment.creatorUser.id == user.id);
+				onResults = {(results) => {
+					console.log(results);
+					var count = 0;
+					results.forEach(result => {
+						if(result.deleted == 0) {
+							count++
+						}
+					});
 
-						return <li style={{marginLeft: (comment.depth * 100) + 'px'}}>
-							{deletedComments[comment.id] || comment.deleted ? (comment.childCommentCount > 0 && <i>-This comment was deleted-</i>) : <> 
-								<Row className = "user-info"><b className = "user-name">{comment.creatorUser.username}</b> {sinceDate(comment.createdUtc)}</Row>
-								{editComments[comment.id] ? <EditComment 
-									onSuccess = {() => this.editToggle(comment)}
-									onClose = {() => this.editToggle(comment)}
-									comment = {comment}
-								/> : <> {comment.bodyJson}
-									<Row className = "comment-actions">
-										<button onClick = {() => {this.replyToggle(comment)}} className = "btn"><i class="far fa-comment-alt-lines"></i> Reply</button> 
-										{isUser && <button onClick = {() => {this.editToggle(comment)}}className = "btn"><i class="fas fa-pencil"></i> Edit</button>}
-										{!isUser && user && <button onCLick = {() => {this.setState({reportComment: comment})}} className = "btn"><i class="far fa-flag"></i> Report</button>}
-										{isUser && <button onClick = {() => {this.setState({deleteComment: comment})}} className = "btn"><i class="far fa-trash-alt"></i> Delete</button>}
-									</Row>
+					if(count > 0) {
+						this.setState({hasComments: true});
+					}
+
+					return results;
+				}}
+				>
+					{coms => {
+						console.log(coms);
+						var { user } = this.context.app.state;
+						
+						var {hasComments} = this.state;
+
+						if(!hasComments) {
+							return <div>
+								<h3>No Comments yet?</h3>
+								<p>Be the first to leave your thoughts!</p>
+							</div>
+						}
+
+						return coms.map(comment => {
+							var isUser = (user && comment.creatorUser.id == user.id);
+
+							return <li style={{marginLeft: (comment.depth * 100) + 'px'}}>
+								{deletedComments[comment.id] || comment.deleted ? (comment.childCommentCount - comment.childCommentDeleteCount > 0 && <i>-This comment was deleted-</i>) : <> 
+									<Row className = "user-info"><b className = "user-name">{comment.creatorUser.username}</b> {sinceDate(comment.createdUtc)}</Row>
+									{editComments[comment.id] ? <EditComment 
+										onSuccess = {() => this.editToggle(comment)}
+										onClose = {() => this.editToggle(comment)}
+										comment = {comment}
+									/> : <> {comment.bodyJson}
+										<Row className = "comment-actions">
+											<button onClick = {() => {this.replyToggle(comment)}} className = "btn"><i class="far fa-comment-alt-lines"></i> Reply</button> 
+											{isUser && <button onClick = {() => {this.editToggle(comment)}}className = "btn"><i class="fas fa-pencil"></i> Edit</button>}
+											{!isUser && user && <button onCLick = {() => {this.setState({reportComment: comment})}} className = "btn"><i class="far fa-flag"></i> Report</button>}
+											{isUser && <button onClick = {() => {this.setState({deleteComment: comment})}} className = "btn"><i class="far fa-trash-alt"></i> Delete</button>}
+										</Row>
+									</>}
 								</>}
-							</>}
 							<Add onClose = {() => {this.replyToggle(comment)}} visible = {comments[comment.id]} contentId={contentId} contentTypeId={contentTypeId} parentCommentId={comment.id} />
 						</li>;
 						
-					}}
+					});
+				}}
 				</Loop>
         </div>);
     }
