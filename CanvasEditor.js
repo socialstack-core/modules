@@ -305,8 +305,8 @@ export default class CanvasEditor extends React.Component {
 			// modName is e.g. UI/Thing
 			
 			// Remove the filename, and get the super group:
-			var nameParts = modName.split('/');
-			nameParts.pop();			var publicName = nameParts.join('/');
+			var nameParts = modName.split('/');			
+			var publicName = nameParts.join('/');
 			var name = nameParts.pop();
 			
 			if(nameParts[0] == 'UI'){
