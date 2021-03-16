@@ -28,6 +28,7 @@ namespace Api.Pages
 				new Page()
 				{
 					Url = "/",
+					Title = "Homepage",
 					BodyJson = @"{
 						""content"": ""Welcome to your new SocialStack instance. This text comes from the pages table in your database in a format called canvas JSON - you can read more about this format in the documentation.""
 					}"
@@ -35,6 +36,7 @@ namespace Api.Pages
 				new Page()
 				{
 					Url = "/en-admin",
+					Title = "Welcome to the admin area",
 					BodyJson = @"{
 						""module"": ""Admin/Layouts/Dashboard""
 					}"
@@ -42,6 +44,7 @@ namespace Api.Pages
 				new Page()
 				{
 					Url = "/en-admin/login",
+					Title = "Login to the admin area",
 					BodyJson = @"{
 						""module"": ""Admin/Layouts/Landing"",
 						""content"": [
@@ -59,6 +62,7 @@ namespace Api.Pages
 				new Page()
 				{
 					Url = "/en-admin/register",
+					Title = "Create a new account",
 					BodyJson = @"{
 						""module"": ""Admin/Layouts/Landing"",
 						""content"": [
@@ -76,6 +80,7 @@ namespace Api.Pages
 				new Page()
 				{
 					Url = "/en-admin/permissions",
+					Title = "Permissions",
 					BodyJson = @"{
 						""module"": ""Admin/Layouts/Default"",
 						""content"": [
@@ -91,6 +96,7 @@ namespace Api.Pages
 				new Page()
 				{
 					Url = "/404",
+					Title = "Page not found",
 					BodyJson = @"{
 						""content"": ""The page you were looking for wasn't found here.""
 					}"
@@ -276,17 +282,26 @@ namespace Api.Pages
 		{
 			var typeName = type.Name.ToLower();
 
-			var listPageCanvas = new CanvasNode("Admin/Layouts/List").With("endpoint", typeName).With("fields", fields);
-
+			// "BlogPost" -> "Blog Post".
+			var tidySingularName = Api.Startup.Pluralise.NiceName(type.Name);
+			var tidyPluralName = Api.Startup.Pluralise.Apply(tidySingularName);
+			
+			var listPageCanvas = new CanvasNode("Admin/Layouts/List")
+				.With("endpoint", typeName)
+				.With("fields", fields)
+				.With("singular", tidySingularName)
+				.With("plural", tidyPluralName);
+			
 			var listPage = new Page
 			{
 				Url = "/en-admin/" + typeName,
 				BodyJson = TemporaryBodyJson,
+				Title = "Edit or create " + tidyPluralName,
 				VisibleToRole0 = false,
 				VisibleToRole3 = false,
 				VisibleToRole4 = false
 			};
-
+			
 			// Trigger an event to state that an admin page is being installed:
 			// - Use this event to inject additional nodes into the page, or change it however you'd like.
 			listPage = await Events.Page.BeforeAdminPageInstall.Dispatch(new Context(), listPage, listPageCanvas, type, AdminPageType.List);
@@ -294,6 +309,8 @@ namespace Api.Pages
 
 			var singlePageCanvas = new CanvasNode("Admin/Layouts/AutoEdit")
 					.With("endpoint", typeName)
+					.With("singular", tidySingularName)
+					.With("plural", tidyPluralName)
 					.With("id", new
 					{
 						name = typeName + ".id",
@@ -321,6 +338,7 @@ namespace Api.Pages
 			{
 				Url = "/en-admin/" + typeName + "/{" + typeName + ".id}",
 				BodyJson = TemporaryBodyJson,
+				Title = "Editing " + tidySingularName.ToLower(),
 				VisibleToRole0 = false,
 				VisibleToRole3 = false,
 				VisibleToRole4 = false
