@@ -13,14 +13,7 @@ export default class List extends React.Component {
 	render(){
 		return (
 			<Default>
-				{!this.props.noCreate && 
-					<Tile>
-						<a href={'/en-admin/' + this.props.endpoint + '/add'}>
-							<div className="btn btn-primary">Create</div>
-						</a>
-					</Tile>
-				}
-				<AutoList endpoint={this.props.endpoint} {...this.props} />
+				<AutoList endpoint={this.props.endpoint} {...this.props} title={'Edit or create ' + this.props.plural} create={!this.props.noCreate} searchFields={this.props.searchFields || ['title']} />
 				{this.props.children}
 			</Default>	
 		);

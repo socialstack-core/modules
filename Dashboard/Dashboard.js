@@ -3,7 +3,6 @@ import Content from 'UI/Content';
 import Canvas from 'UI/Canvas';
 import Default from 'Admin/Layouts/Default';
 
-
 export default function Dashboard (props, context) {
 	
 	var { role } = context.app.state;
@@ -17,7 +16,20 @@ export default function Dashboard (props, context) {
 					}
 					
 					if(!userRole.dashboardJson){
-						return <Tile>{`Welcome to the administration area. Use the menu in the top left to pick what you would like to do.`}</Tile>;
+						return <div className="container">
+							<Tile title={
+								<center>
+									<p>
+										<i className="fa fa-hand-peace" />
+									</p>
+									{`Hey there!`}
+								</center>}
+							>
+								<center>
+									{`You're in the administration area. Click on the 3 bars in the top left to choose something to do.`}
+								</center>
+							</Tile>
+						</div>;
 					}
 					
 					return <Canvas>
