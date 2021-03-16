@@ -34,13 +34,18 @@ export default function Image (props) {
 	return linkUrl ? <a alt={attribs.alt} title={attribs.title} href={linkUrl}>{img}</a> : img;
 }
 
+Image.defaultProps = {
+	fileRef: logoRef,
+	float: 'None'
+};
+
 Image.propTypes = {
-	fileRef: {type: 'string', default: logoRef},
+	fileRef: 'string',
 	linkUrl: 'string',
 	title: 'string',
 	fullWidth: 'bool',
 	size: ['original', '2048', '1024', '512', '256', '200', '128', '100', '64', '32'], // todo: pull from api
-	float: { type: ['None', 'Left', 'Right'], default: 'None' }
+	float: { type: ['None', 'Left', 'Right'] }
 };
 
 Image.icon = 'image';
