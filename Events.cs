@@ -14,9 +14,15 @@ namespace Api.Eventing
 		/// Set of events for a NavMenu.
 		/// </summary>
 		public static EventGroup<NavMenu> NavMenu;
+		
 		/// <summary>
 		/// Set of events for a NavMenuItem.
 		/// </summary>
 		public static EventGroup<NavMenuItem> NavMenuItem;
+		
+		/// <summary>
+		/// Set of events for a AdminNavMenuItem.
+		/// </summary>
+		public static EventGroup<AdminNavMenuItem> AdminNavMenuItem;
 	}
 }
