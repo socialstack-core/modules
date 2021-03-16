@@ -4,6 +4,9 @@ import Canvas from 'UI/Canvas';
 import Col from 'UI/Column';
 import Row from 'UI/Row';
 import Search from 'UI/Search';
+import Modal from 'UI/Modal';
+import Input from 'UI/Input';
+import webRequest from 'UI/Functions/WebRequest';
 
 
 export default class AutoList extends React.Component {
@@ -36,7 +39,7 @@ export default class AutoList extends React.Component {
 	
 	renderHeader(allContent){
 		// Header (Optional)
-		return this.props.fields.map(field => {
+		var fields = this.props.fields.map(field => {
 			
 			// Class for styling the sort buttons:
 			var sortingByThis = this.state.sort && this.state.sort.field == field;
@@ -71,13 +74,72 @@ export default class AutoList extends React.Component {
 				</th>
 			);
 		});
+		
+		// If everything in allContent is selected, mark this as selected as well.
+		var checked = false;
+		var {bulkSelections} = this.state;
+		
+		if(bulkSelections && allContent.length){
+			checked = true;
+			allContent.forEach(e => {
+				if(!bulkSelections[e.id]){
+					checked = false;
+				}
+			});
+		}
+		
+		return [
+			<th>
+				<input type='checkbox' checked={checked} onClick={() => {
+					
+					// Check or uncheck all things.
+					if(checked){
+						this.setState({bulkSelections: null});
+					}else{
+						bulkSelections = {};
+						allContent.forEach(e => bulkSelections[e.id] = true);
+						this.setState({bulkSelections});
+					}
+					
+				}} />
+			</th>
+		].concat(fields);
+	}
+	
+	selectedCount(){
+		var {bulkSelections} = this.state;
+		if(!bulkSelections){
+			return 0;
+		}
+		var c = 0;
+		for(var k in bulkSelections){
+			c++;
+		}
+		return c;
 	}
 	
 	renderEntry(entry) {
+		var {bulkSelections} = this.state;
 		var path = '/en-admin/' + this.props.endpoint + '/';
+		var checked = bulkSelections && !!bulkSelections[entry.id];
+		var checkbox = <td>
+			<input type='checkbox' checked={checked} onChange={() => {
+				
+				if(bulkSelections && bulkSelections[entry.id]){
+					delete bulkSelections[entry.id];
+				}else{
+					if(!bulkSelections){
+						bulkSelections = {};
+					}
+					bulkSelections[entry.id] = true;
+				}
+				
+				this.setState({bulkSelections});
+			}}/>
+		</td>;
 		
 		// Each row
-		return this.props.fields.map(field => {
+		return [checkbox].concat(this.props.fields.map(field => {
 			
 			var fieldValue = entry[field];
 			
@@ -96,7 +158,73 @@ export default class AutoList extends React.Component {
 				}
 				</a>
 			</td>
+		}));
+	}
+	
+	renderBulkOptions(selectedCount){
+		
+		var message = (selectedCount > 1) ? `${selectedCount} items selected` : `1 item selected`;
+		
+		return <div className="bulk-actions">
+			<p>
+				{message}
+			</p>
+			<button className="btn btn-danger" onClick={() => this.startDelete()}>
+				Delete selected
+			</button>
+		</div>;
+	}
+	
+	startDelete() {
+		this.setState({
+			confirmDelete: true
 		});
+	}
+
+	cancelDelete() {
+		this.setState({
+			confirmDelete: false
+		});
+	}
+
+	confirmDelete() {
+		this.setState({
+			confirmDelete: false,
+			deleting: true
+		});
+		
+		// get the item IDs:
+		var ids = Object.keys(this.state.bulkSelections);
+		
+		var deletes = ids.map(id => webRequest(
+			this.props.endpoint + '/' + id,
+			null,
+			{ method: 'delete' }
+		));
+		
+		Promise.all(deletes).then(response => {
+			
+			this.setState({bulkSelections: null});
+			
+		}).catch(e => {
+			console.error(e);
+			this.setState({
+				deleting: false,
+				deleteFailed: true
+			});
+		});
+	}
+	
+	renderConfirmDelete(count){
+		return <Modal visible onClose={() => this.cancelDelete()}>
+				<p>
+				{`Are you sure you want to delete ${count} item(s)?`}
+				</p>
+				<div>
+					<Input inline type="button" className="btn btn-danger" onClick={() => this.confirmDelete()}>Yes, delete</Input>
+					<Input inline type="button" className="btn btn-secondary" style={{ marginLeft: '10px' }} onClick={() => this.cancelDelete()}>Cancel</Input>
+				</div>
+		</Modal>;
 	}
 	
 	render(){
@@ -151,6 +279,8 @@ export default class AutoList extends React.Component {
 		// Todo: improve how revisions are found to be available or not
 		var revisionsSupported = (this.props.endpoint != 'user');
 		
+		var selectedCount = this.selectedCount();
+		
 		return <Tile className="auto-list" title={this.props.title}>
 			{(this.props.create || searchFields) && (
 				<Row style={{marginBottom: '10px'}}>
@@ -183,12 +313,22 @@ export default class AutoList extends React.Component {
 					]}
 				</Loop>
 			)}
-			<Loop asTable over={this.props.endpoint + "/list"} {...this.props} filter={combinedFilter} paged>
+			<Loop asTable over={this.props.endpoint + "/list"} onResults={results => {
+				// Either changed page or loaded for first time - clear bulk selects if there is any.
+				if(this.state.bulkSelections){
+					this.setState({bulkSelections: null});
+				}
+				
+				return results;
+				
+			}} {...this.props} filter={combinedFilter} paged>
 			{[
 				this.renderHeader,
 				this.renderEntry
 			]}
 			</Loop>
+			{selectedCount > 0 ? this.renderBulkOptions(selectedCount) : null}
+			{this.state.confirmDelete && this.renderConfirmDelete(selectedCount)}
 		</Tile>;
 	}
 }
