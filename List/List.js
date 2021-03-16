@@ -1,13 +1,9 @@
-import Input from "UI/Input";
-import Form from "UI/Form";
-import Alert from "UI/Alert";
 import Loop from "UI/Loop";
 import Add from "UI/Comments/Add";
 import getContentTypeId from "UI/Functions/GetContentTypeId";
 import Row from 'UI/Row';
 import sinceDate from 'UI/Functions/SinceDate';
 import Modal from 'UI/Modal';
-import Report from 'UI/Comments/Report';
 import DeleteComment from 'UI/Comments/Delete';
 import EditComment from 'UI/Comments/Edit';
 import ReportComment from 'UI/Comments/Report';
@@ -103,7 +99,6 @@ export default class List extends React.Component{
 					</div>
 				}}
 				onResults = {(results) => {
-					console.log(results);
 					var count = 0;
 					results.forEach(result => {
 						if(result.deleted == 0) {
@@ -119,7 +114,6 @@ export default class List extends React.Component{
 				}}
 				>
 					{coms => {
-						console.log(coms);
 						var { user } = this.context.app.state;
 						
 						var {hasComments} = this.state;
