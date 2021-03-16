@@ -30,6 +30,10 @@ namespace Api.Comments
 		/// </summary>
 		public int ChildCommentCount;
 		/// <summary>
+		/// Number of soft deleted child comments.
+		/// </summary>
+		public int ChildCommentDeleteCount;
+		/// <summary>
 		/// If comments are nested, this is the depth the comment is at. Root comments are depth 0 with RootComment = true.
 		/// </summary>
 		public int Depth;

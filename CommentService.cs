@@ -139,6 +139,61 @@ namespace Api.Comments
 				return comment;
 				
 			});
+
+			Events.Comment.BeforeUpdate.AddEventListener(async (Context ctx, Comment comment) =>
+			{
+				// We need to handle child comment count. Since that value determines ChildCommentNumber, we don't want
+				// to mess with that value, so we will keep track of the currently soft deleted messages through updates.
+				// The diff of ChildCommentCount and ChildCommentDeleteCount will give you the number of comments.
+				if (ctx == null || comment == null)
+                {
+					return null;
+                }
+
+				// Is there even a parent comment for this comment?
+				if (comment.ParentCommentId == null || comment.ParentCommentId.Value == 0)
+                {
+					// Nope, nothing to update in terms of counts.
+					return comment;
+                }
+
+				// Let's grab the parent comment.
+				var parentComment = await Get(ctx, comment.ParentCommentId.Value);
+
+				// Is the parent comment valid?
+				if (parentComment == null)
+                {
+					// No valid parent comment, let's move along.
+					return comment;
+                }
+
+				// Let's grab the original comment.
+				var originalComment = await Get(ctx, comment.Id);
+
+				// Excellent, has the delete state changed for this object?
+				if (comment.Deleted != originalComment.Deleted)
+                {
+					// We will either increment or decrement count based on the new deleted state.
+					if(comment.Deleted)
+                    {
+						parentComment.ChildCommentDeleteCount++;
+                    }
+					else
+                    {
+						parentComment.ChildCommentDeleteCount--;
+
+						if (parentComment.ChildCommentDeleteCount < 0)
+                        {
+							parentComment.ChildCommentDeleteCount = 0;
+						}
+                    }
+
+					// Let's update the parent comment now.
+					parentComment = await Update(ctx, parentComment);
+                }
+
+				return comment;
+			});
 		}
 	}
     
