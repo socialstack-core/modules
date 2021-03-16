@@ -1121,7 +1121,7 @@ public partial class AutoService
 			// Nav menu also?
 			if (navMenuLabel != null)
 			{
-				var navMenuItemService = Api.Startup.Services.Get("NavMenuItemService");
+				var navMenuItemService = Api.Startup.Services.Get("AdminNavMenuItemService");
 
 				if (navMenuItemService != null)
 				{

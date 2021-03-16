@@ -94,15 +94,22 @@ public partial class AutoService<T, ID> {
 		
 		// Log that the cache is on:
 		Console.WriteLine(GetType().Name + " - cache on");
-		
-		// Ping sync:
-		RemoteSync.Add(typeof(T));
-		
+
+		if (cfg.ClusterSync)
+		{
+			// Ping sync:
+			RemoteSync.Add(typeof(T));
+		}
+
 		var genericCfg = _cacheConfig as CacheConfig<T>;
 
-		var indices = _database.GetIndices(typeof(T));
+		// _database is null on in-memory only types, 
+		// however they still need to use it here for grabbing the locale set.
+		var db = _database == null ? Services.Get<DatabaseService>() : _database;
 
-		var localeSet = _database.Locales;
+		var indices = db.GetIndices(typeof(T));
+
+		var localeSet = db.Locales;
 
 		if (localeSet == null)
 		{

@@ -45,7 +45,14 @@ namespace Api.Startup{
 		/// An action which is triggered when the cache is loaded, if Preload is true.
 		/// </summary>
 		public Action OnCacheLoaded;
-		
+
+		/// <summary>
+		/// Very rare that this is false. If you are using the cache, you should almost always sync it across the cluster automatically.
+		/// Only turn this off if your type is otherwise handled. For example, you have an in-memory only 
+		/// type which is permitted to vary from server to server, or all servers know how to populate the cache anyway without it needing to be network synced.
+		/// </summary>
+		public bool ClusterSync = true;
+
 		/// <summary>
 		/// A new cache config with default settings.
 		/// </summary>
