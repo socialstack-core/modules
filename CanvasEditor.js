@@ -13,6 +13,7 @@ import Collapsible from 'UI/Collapsible';
 
 var inputTypes = global.inputTypes = global.inputTypes || {};
 
+// type="canvas"
 inputTypes.ontypecanvas = function(props, _this){
 	
 	return <CanvasEditor 
@@ -23,15 +24,13 @@ inputTypes.ontypecanvas = function(props, _this){
 	
 };
 
-inputTypes.ontyperenderer = function(props, _this){
-	
+// contentType="application/canvas"
+inputTypes['application/canvas'] = function(props, _this){
 	return <CanvasEditor 
-		moduleSet='renderer'
 		id={props.id || _this.fieldId}
 		className={props.className || "form-control"}
 		{...omit(props, ['id', 'className', 'type', 'inline'])}
 	/>;
-	
 };
 
 var __contentTypeCache = null;
@@ -303,12 +302,11 @@ export default class CanvasEditor extends React.Component {
 				continue;
 			}
 			
-			// modName is e.g. UI/Thing/Thing.js
+			// modName is e.g. UI/Thing
 			
 			// Remove the filename, and get the super group:
 			var nameParts = modName.split('/');
-			//nameParts.pop(); 
-			var publicName = nameParts.join('/');
+			nameParts.pop();			var publicName = nameParts.join('/');
 			var name = nameParts.pop();
 			
 			if(nameParts[0] == 'UI'){
@@ -1016,42 +1014,6 @@ export default class CanvasEditor extends React.Component {
 						contentNode.data.text = e.target.innerHTML;
 						this.updated();
 					}}
-					onKeyDown={e => {
-						
-						if(!e.ctrlKey){
-							return;
-						}
-						
-						switch(e.keyCode){
-							case 73:
-								// ctrl+i.
-								e.preventDefault();
-								var selection = new CanvasSelection(this);
-								selection.surroundTextWith('i');
-							break;
-							case 66:
-								// ctrl+b.
-								e.preventDefault();
-								var selection = new CanvasSelection(this);
-								selection.surroundTextWith('b');
-							break;
-							case 85:
-								// ctrl+u.
-								e.preventDefault();
-								var selection = new CanvasSelection(this);
-								selection.surroundTextWith('u');
-							break;
-							case 75:
-								// ctrl+k. (hyperlink)
-								e.preventDefault();
-								var selection = new CanvasSelection(this);
-								selection.surroundTextWith('a');
-							break;
-							
-							// Canvas level ones like ctrl+z, ctrl+s, ctrl+y are handled elsewhere.
-							// copy/paste is handled by the browser
-						}
-					}}
 					className="canvas-editor-text"
 					dangerouslySetInnerHTML={{__html: contentNode.data.text}}
 				/>
@@ -1477,22 +1439,9 @@ export default class CanvasEditor extends React.Component {
 						Source
 					</label>
 				</div>
-
-				<input type="hidden" name={this.props.name} ref={ref => {
-					this.ref = ref;
-					if (ref) {
-						ref.onGetValue = (val, field) => {
-							if (field != this.ref) {
-								return;
-							}
-
-							return JSON.stringify(this.buildJson());
-						}
-					}
-				}} />
-
+				
 				{/* preview mode */}
-				{isPreviewMode &&
+				{isPreviewMode && <>
 					<div
 						className="canvas-editor"
 						onDrop={e => {
@@ -1573,6 +1522,19 @@ export default class CanvasEditor extends React.Component {
 							)}
 						</div>
 					</div>
+					<input type="hidden" name={this.props.name} ref={ref => {
+						if (ref) {
+							this.ref = ref;
+							ref.onGetValue = (val, field) => {
+								if (field != this.ref) {
+									return;
+								}
+
+								return JSON.stringify(this.buildJson());
+							}
+						}
+					}} />
+				</>
 				}
 
 				{/* layout mode */}
@@ -1585,6 +1547,18 @@ export default class CanvasEditor extends React.Component {
 								Add component
 							</button>
 						)}
+						<input type="hidden" name={this.props.name} ref={ref => {
+							if (ref) {
+								this.ref = ref;
+								ref.onGetValue = (val, field) => {
+									if (field != this.ref) {
+										return;
+									}
+
+									return JSON.stringify(this.buildJson());
+								}
+							}
+						}} />
 					</div>
 				}
 				
@@ -1604,7 +1578,7 @@ export default class CanvasEditor extends React.Component {
 				{/* source mode */}
 				{this.state.jsonEdit &&
 					<div className="canvas-editor">
-						<Input type="textarea" className="form-control json-preview" name={this.props.name} defaultValue={this.state.jsonEdit} />
+						<Input type="textarea" contentType="application/json" className="form-control json-preview" name={this.props.name} defaultValue={this.state.jsonEdit} />
 					</div>
 				}
 
