@@ -59,6 +59,7 @@ export default class VideoChat extends React.Component {
 	mount(props){
 
 		return new HuddleClient({
+			roomSlug: props.roomSlug,
 			roomId: (props.roomId || 1).toString(),
 			produce: props.initialProduce === undefined ? true : props.initialProduce,
 			consume: props.initialConsume === undefined ? true : props.initialConsume,
@@ -398,5 +399,6 @@ VideoChat.defaultProps = {
 };
 
 VideoChat.propTypes = {
-	roomId: 'int'
+	roomId: 'int',
+	roomSlug: 'string'
 };
