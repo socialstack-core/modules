@@ -11,7 +11,7 @@ export default class Tile extends React.Component {
             <div className={'col-md-' + className + ' ' + (this.props.className || '')}>
                 <div className={this.props.empty ? "" : "component-tile"}>
                     {!this.props.empty && (
-                        <h3>
+                        <h3 className="admin-heading">
                             {this.props.title}
                         </h3>
                     )}
