@@ -121,8 +121,8 @@ html.admin {
 	body, #react-root,h1,h2,h3,h4,h5,h6 {
 		font-family: 'Montserrat', sans-serif !important;
 	}
-
-	h1,h2,h3,h4,h5,h6{
+	
+	.admin-heading {
 		background: linear-gradient(180deg, #9E40B5, #350EE5, #100862);
 			background-clip: border-box;
 		-webkit-background-clip: text;
@@ -142,7 +142,7 @@ html.admin {
 		background: #222;
 	}
 	
-	h1,h2,h3,h4,h5,h6{
+	.admin-heading {
 		background: none;
 		-webkit-background-clip: initial;
 		-webkit-text-fill-color: initial;
