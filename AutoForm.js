@@ -1,10 +1,12 @@
 import Form from 'UI/Form';
 import Input from 'UI/Input';
 import Canvas from 'UI/Canvas';
+import Modal from 'UI/Modal';
 import isNumeric from 'UI/Functions/IsNumeric';
 import getAutoForm from 'Admin/Functions/GetAutoForm';
 import webRequest from 'UI/Functions/WebRequest';
 import formatTime from "UI/Functions/FormatTime";
+import Tile from 'Admin/Tile';
 
 var locales = null;
 
@@ -160,16 +162,17 @@ export default class AutoForm extends React.Component {
 			{ method: 'delete' }
 		).then(response => {
 			var state = global.pageRouter.state;
-			var parts = state.page.url.split('/'); // e.g. ['en-admin', 'pages', '1']
+			var parts = state.page.url.split('/'); // e.g. ['', 'en-admin', 'pages', '1']
 
 			// Go to root parent page:
 			var target = this.props.deletePage;
 			if (!target || !target.length) {
-				parts = parts.slice(0, 2); // e.g. ['en-admin', 'pages']. will always go to the root.
-				target = '/' + parts.join('/');
+				parts = parts.slice(0, 3); // e.g. ['en-admin', 'pages']. will always go to the root.
+				target = parts.join('/');
 			} else {
-				target = '/' + parts[0] + '/' + target;
+				target = '/' + parts[1] + '/' + target;
 			}
+			
 			global.pageRouter.go(target);
 
 		}).catch(e => {
@@ -180,7 +183,23 @@ export default class AutoForm extends React.Component {
 			});
 		});
 	}
-
+	
+	renderConfirmDelete(){
+		return <Modal visible onClose={() => this.cancelDelete()}>
+				<p>
+					Are you sure you want to delete this?
+				</p>
+				<div>
+					<Input inline type="button" className="btn btn-danger" onClick={() => this.confirmDelete()}>Yes, delete it</Input>
+					<Input inline type="button" className="btn btn-secondary" style={{ marginLeft: '10px' }} onClick={() => this.cancelDelete()}>Cancel</Input>
+				</div>
+		</Modal>;
+	}
+	
+	capitalise(name){
+		return name.charAt(0).toUpperCase() + name.slice(1);
+	}
+	
 	render() {
 		var isEdit = isNumeric(this.props.id);
 
@@ -209,193 +228,22 @@ export default class AutoForm extends React.Component {
 		
 		return (
 			<div className="auto-form">
-				{(this.state.fieldData && this.state.fieldData.isDraft) && (
-					<span className="is-draft">
-						Draft
-					</span>
-				)}
-				{
-					isEdit && this.state.isLocalized && locales.length > 1 && <div>
-						<Input label="Select Locale" type="select" name="locale" value={locale} onChange={
-							e => {
-								// Set the locale and clear the fields/ endpoint so we can load the localized info instead:
-								/*
-								this.setState({
-									locale: e.target.value,
-									endpoint: null,
-									fields: null
-								}, () => {
-									// Load now:
-									this.load(this.props);
-								});
-								*/
-								
-								var url = location.pathname + '?lid=' + e.target.value;
-								if(this.state.revisionId){
-									url+='&revision=' + this.state.revisionId;
-								}
-								
-								global.pageRouter.go(url);
-							}
-						}>
-							{locales.map(loc => <option value={loc.id} selected={loc.id == locale}>{loc.name + (loc.id == '1' ? ' (Primary)': '')}</option>)}
-						</Input>
-					</div>
-				}
-				<Form autoComplete="off" locale={locale} action={endpoint}
-					onValues={values => {
-						if (this.draftBtn) {
-							// Set content ID if there is one already:
-							if (isEdit && parsedId) {
-								values.id = parsedId;
-							}
-
-							// Create a draft:
-							values.setAction(this.props.endpoint + "/draft");
-						} else {
-							// Potentially publishing a draft.
-							if (this.state.revisionId) {
-								// Use the publish EP.
-								values.setAction(this.props.endpoint + "/publish/" + this.state.revisionId);
-							}
-						}
-
-						this.setState({ editSuccess: false, editFailure: false, createSuccess: false, submitting: true });
-						return values;
-					}}
-
-					onFailed={
-						response => {
-							this.setState({ editFailure: true, createSuccess: false, submitting: false });
-						}
-					}
-
-					onSuccess={
-						response => {
-							var state = global.pageRouter.state;
-							var {locale} = this.state;
-							
-							if (isEdit) {
-								this.setState({ editFailure: false, editSuccess: true, createSuccess: false, submitting: false, fieldData: response, updateCount: this.state.updateCount + 1 });
-
-								if (state && state.page && state.page.url) {
-									var parts = state.page.url.split('/');
-									parts.pop();
-									parts.push(response.id);
-
-									if (response.revisionId) {
-										// Saved a draft
-
-										var newUrl = '/' + parts.join('/') + '?revision=' + response.revisionId + '&lid=' + locale;
-
-										if (!this.state.revisionId) {
-											newUrl += '&created=1';
-										}
-
-										// Go to it now:
-										global.pageRouter.go(newUrl);
-
-									} else if (response.id != this.state.id || this.state.revisionId) {
-										// Published content from a draft. Go there now.
-										global.pageRouter.go('/' + parts.join('/') + '?published=1&lid=' + locale);
-									}
-								}
-							} else {
-								this.setState({ editFailure: false, submitting: false, fieldData: response, updateCount: this.state.updateCount+1 });
-								if (state && state.page && state.page.url) {
-									var parts = state.page.url.split('/');
-									parts.pop();
-									parts.push(response.id);
-
-									if (response.revisionId) {
-										// Created a draft
-										global.pageRouter.go('/' + parts.join('/') + '?created=1&revision=' + response.revisionId + '&lid=' + locale);
-									} else {
-										global.pageRouter.go('/' + parts.join('/') + '?created=1&lid=' + locale);
-									}
-								}
-							}
-						}
-					}
-				>
-					<Canvas key = {this.state.updateCount} onContentNode={contentNode => {
-						var content = this.state.fieldData;
-						if (!contentNode.data || !contentNode.data.name || !content || contentNode.data.autoComplete == 'off') {
-							return;
-						}
-
-						var data = contentNode.data;
-
-						if (data.localized && !Array.isArray(data.label)) {
-							// Show globe icon alongside the label:
-							data.label = [(data.label || ''), <i className='fa fa-globe-europe localized-field-label' />];
-						}
-						
-						if(!data.localized && locale != '1'){
-							// Only default locale can show non-localised fields. Returning a null will ignore the contentNode.
-							return null;
-						}
-						
-						if(data.hint){
-							var hint = <i className='fa fa-question-circle hint-field-label' title={data.hint}/>;
-							
-							if(Array.isArray(data.label)){
-								data.label.push(hint);
-							}else{
-								data.label = [(data.label || ''), hint];
-							}
-						}
-						
-						data.autoComplete = 'off';
-						data.onChange = (e) => {
-							// Input field has changed. Update the content object so any redraws are reflected.
-							var val = e.target.value;
-							switch (data.type) {
-								case 'checkbox':
-								case 'radio':
-									val = e.target.checked;
-									break;
-								case 'canvas':
-									val = e.json;
-									break;
-							}
-							content[data.name] = val;
-						};
-
-						var value = content[data.name];
-						if (value !== undefined) {
-							if (data.name == "createdUtc") {
-								data.defaultValue = formatTime(value);
-							} else {
-								data.defaultValue = value;
-							}
-						}
+				<Tile className="auto-form-header">
+					{isEdit && <button className="btn btn-danger" style={{ float: 'right' }} onClick={() => this.startDelete()}>Delete</button>}
+					<Input inline type="button" disabled={this.state.submitting} onClick={() => {
+						this.draftBtn = false;
+						this.form.submit();
 					}}>
-						{this.state.fields}
-					</Canvas>
-					{isEdit && (
-						this.state.confirmDelete ? (
-							<div style={{ float: 'right' }}>
-								Are you sure you want to delete this?
-								<div>
-									<Input inline type="button" className="btn btn-danger" onClick={() => this.confirmDelete()}>Yes, delete it</Input>
-									<Input inline type="button" className="btn btn-secondary" style={{ marginLeft: '10px' }} onClick={() => this.cancelDelete()}>Cancel</Input>
-								</div>
-							</div>
-						) : (
-								<Input type="button" groupClassName="offset-2 auto-form-footer" className="btn btn-danger" style={{ float: 'right' }} onClick={() => this.startDelete()}>Delete</Input>
-							)
-					)}
-					<div className="auto-form-create-options">
-						<Input inline type="submit" disabled={this.state.submitting} onMouseDown={() => { this.draftBtn = false }}>
-							{isEdit ? "Save and Publish" : "Create"}
+						{isEdit ? "Save and Publish" : "Create"}
+					</Input>
+					{this.state.supportsRevisions && (
+						<Input inline type="button" className="btn btn-primary createDraft" onClick={() => {
+							this.draftBtn = true;
+							this.form.submit();
+						}} disabled={this.state.submitting}>
+							{isEdit ? "Save Draft" : "Create Draft"}
 						</Input>
-						{this.state.supportsRevisions && (
-							<Input inline type="submit" className="btn btn-primary createDraft" onMouseDown={() => { this.draftBtn = true }} disabled={this.state.submitting}>
-								{isEdit ? "Save Draft" : "Create Draft"}
-							</Input>
-						)}
-					</div>
+					)}
 					{
 						this.state.editFailure && (
 							<div className="alert alert-danger mt-3 mb-1">
@@ -424,7 +272,187 @@ export default class AutoForm extends React.Component {
 							</div>
 						)
 					}
-				</Form>
+				</Tile>
+				<Tile>
+					<p>
+						<a href={'/en-admin/' + this.props.endpoint}>{this.capitalise(this.props.plural)}</a> &gt; {isEdit ? <span>
+							{`Editing ${this.props.singular} #` + this.state.id + ' '}
+							{(this.state.fieldData && this.state.fieldData.isDraft) && (
+								<span className="is-draft">(Draft)</span>
+							)}
+							</span> : 'Add new'}
+					</p>
+					{
+						isEdit && this.state.isLocalized && locales.length > 1 && <div>
+							<Input label="Select Locale" type="select" name="locale" value={locale} onChange={
+								e => {
+									// Set the locale and clear the fields/ endpoint so we can load the localized info instead:
+									/*
+									this.setState({
+										locale: e.target.value,
+										endpoint: null,
+										fields: null
+									}, () => {
+										// Load now:
+										this.load(this.props);
+									});
+									*/
+									
+									var url = location.pathname + '?lid=' + e.target.value;
+									if(this.state.revisionId){
+										url+='&revision=' + this.state.revisionId;
+									}
+									
+									global.pageRouter.go(url);
+								}
+							}>
+								{locales.map(loc => <option value={loc.id} selected={loc.id == locale}>{loc.name + (loc.id == '1' ? ' (Primary)': '')}</option>)}
+							</Input>
+						</div>
+					}
+					<Form formRef={r=>this.form=r} autoComplete="off" locale={locale} action={endpoint}
+						onValues={values => {
+							if (this.draftBtn) {
+								// Set content ID if there is one already:
+								if (isEdit && parsedId) {
+									values.id = parsedId;
+								}
+
+								// Create a draft:
+								values.setAction(this.props.endpoint + "/draft");
+							} else {
+								// Potentially publishing a draft.
+								if (this.state.revisionId) {
+									// Use the publish EP.
+									values.setAction(this.props.endpoint + "/publish/" + this.state.revisionId);
+								}
+							}
+
+							this.setState({ editSuccess: false, editFailure: false, createSuccess: false, submitting: true });
+							return values;
+						}}
+
+						onFailed={
+							response => {
+								this.setState({ editFailure: true, createSuccess: false, submitting: false });
+							}
+						}
+
+						onSuccess={
+							response => {
+								var state = global.pageRouter.state;
+								var {locale} = this.state;
+								
+								if(this._timeout){
+									clearTimeout(this._timeout);
+								}
+								
+								this._timeout = setTimeout(() => {
+									this.setState({editSuccess: false, createSuccess: false});
+								}, 3000);
+								
+								if (isEdit) {
+									
+									this.setState({ editFailure: false, editSuccess: true, createSuccess: false, submitting: false, fieldData: response, updateCount: this.state.updateCount + 1 });
+
+									if (state && state.page && state.page.url) {
+										var parts = state.page.url.split('/');
+										parts.pop();
+										parts.push(response.id);
+
+										if (response.revisionId) {
+											// Saved a draft
+
+											var newUrl = parts.join('/') + '?revision=' + response.revisionId + '&lid=' + locale;
+
+											if (!this.state.revisionId) {
+												newUrl += '&created=1';
+											}
+
+											// Go to it now:
+											global.pageRouter.go(newUrl);
+
+										} else if (response.id != this.state.id || this.state.revisionId) {
+											// Published content from a draft. Go there now.
+											global.pageRouter.go(parts.join('/') + '?published=1&lid=' + locale);
+										}
+									}
+								} else {
+									this.setState({ editFailure: false, submitting: false, fieldData: response, updateCount: this.state.updateCount+1 });
+									if (state && state.page && state.page.url) {
+										var parts = state.page.url.split('/');
+										parts.pop();
+										parts.push(response.id);
+
+										if (response.revisionId) {
+											// Created a draft
+											global.pageRouter.go(parts.join('/') + '?created=1&revision=' + response.revisionId + '&lid=' + locale);
+										} else {
+											global.pageRouter.go(parts.join('/') + '?created=1&lid=' + locale);
+										}
+									}
+								}
+							}
+						}
+					>
+						<Canvas key = {this.state.updateCount} onContentNode={contentNode => {
+							var content = this.state.fieldData;
+							if (!contentNode.data || !contentNode.data.name || !content || contentNode.data.autoComplete == 'off') {
+								return;
+							}
+
+							var data = contentNode.data;
+
+							if (data.localized && !Array.isArray(data.label)) {
+								// Show globe icon alongside the label:
+								data.label = [(data.label || ''), <i className='fa fa-globe-europe localized-field-label' />];
+							}
+							
+							if(!data.localized && locale != '1'){
+								// Only default locale can show non-localised fields. Returning a null will ignore the contentNode.
+								return null;
+							}
+							
+							if(data.hint){
+								var hint = <i className='fa fa-question-circle hint-field-label' title={data.hint}/>;
+								
+								if(Array.isArray(data.label)){
+									data.label.push(hint);
+								}else{
+									data.label = [(data.label || ''), hint];
+								}
+							}
+							
+							data.autoComplete = 'off';
+							data.onChange = (e) => {
+								// Input field has changed. Update the content object so any redraws are reflected.
+								var val = e.target.value;
+								switch (data.type) {
+									case 'checkbox':
+									case 'radio':
+										val = e.target.checked;
+										break;
+									case 'canvas':
+										val = e.json;
+										break;
+								}
+								content[data.name] = val;
+							};
+
+							var value = content[data.name];
+							if (value !== undefined) {
+								if (data.name == "createdUtc") {
+									data.defaultValue = formatTime(value);
+								} else {
+									data.defaultValue = value;
+								}
+							}
+						}}>
+							{this.state.fields}
+						</Canvas>
+					</Form>
+				</Tile>
+				{this.state.confirmDelete && this.renderConfirmDelete()}
 			</div>
 		);
 	}

@@ -11,24 +11,17 @@
 	.createDraft{
 		margin-left: 10px;
 	}
-
-	// #9960: hacks to get save / delete options docked to bottom of screen
-	.auto-form-footer {
-	    padding: 1rem;
-		position: fixed;
-		bottom: -1rem;
-		right: 4rem;
-		left: 0;
-		background: #fff;
-		box-shadow: 0 -3px 5px rgba(0,0,0,.1);
-		z-index: 1;
+	
+	.auto-form-header {
+		position: sticky;
+		top: 0;
+		z-index: 999;
 	}
-
-	.auto-form-create-options {
-		position: fixed;
-		bottom: 0;
-		padding: 1rem;
-		margin-left: -1rem;
-		z-index: 2;
+	
+	.btn-danger {
+		border-radius: 2rem;
+		font-size: 1rem;
+		font-weight: bold;
+		padding: 0.75rem 4rem;
 	}
 }
