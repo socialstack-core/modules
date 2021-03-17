@@ -10,6 +10,8 @@ using Api.Eventing;
 using System.Collections;
 using System.Reflection;
 using Api.Startup;
+using Org.BouncyCastle.Security;
+using System.Text;
 
 namespace Api.Users
 {
@@ -21,6 +23,7 @@ namespace Api.Users
 	public class UserService : AutoService<User>
     {
         private ContextService _contexts;
+        private EmailTemplateService _emails;
 		private readonly Query<User> selectByEmailOrUsernameQuery;
 		private readonly Query<User> selectByUsernameQuery;
 		private readonly Query<User> selectByEmailQuery;
@@ -53,6 +56,17 @@ namespace Api.Users
 
 			var config = GetConfig<UserServiceConfig>();
 			
+			InstallEmails(
+				new EmailTemplate(){
+					Name = "Verify email address",
+					Subject = "Verify your email address",
+					Key = "verify_email",
+					BodyJson = "{\"module\":\"Email/Default\",\"content\":[{\"module\":\"Email/Centered\",\"data\":{}," +
+					"\"content\":\"An account was recently created with us. If this was you, click the following link to proceed:\"},"+
+					"{\"module\":\"Email/PrimaryButton\",\"data\":{\"label\":\"Verify my email address\",\"target\":\"/email-verify/{token}\"}}]}"
+				}
+			);
+			
 			Events.User.BeforeSettable.AddEventListener((Context ctx, JsonField<User> field) => {
 				
 				if (field == null)
@@ -66,7 +80,7 @@ namespace Api.Users
 					// Will be permission system based in the future
 					return new ValueTask<JsonField<User>>((field.ForRole == Roles.Admin || field.ForRole == Roles.SuperAdmin) ? field : null);
 				}
-				else if(field.Name == "JoinedUtc")
+				else if(field.Name == "JoinedUtc" || field.Name == "PrivateVerify")
 				{
 					// Not settable
 					field = null;
@@ -84,8 +98,11 @@ namespace Api.Users
 				if(user.Role == 0 || (ctx.Role != Roles.SuperAdmin && ctx.Role != Roles.Admin))
 				{
 					// Default role is Member:
-					user.Role = Roles.Member.Id;
+					user.Role = config.VerifyEmails ? Roles.Guest.Id : Roles.Member.Id;
 				}
+				
+				// Generate a private verify value:
+				user.PrivateVerify = RandomLong();
 				
 				// Join date:
 				user.JoinedUtc = DateTime.UtcNow;
@@ -93,6 +110,39 @@ namespace Api.Users
 				return new ValueTask<User>(user);
 			});
 
+			Events.User.AfterCreate.AddEventListener(async (Context ctx, User user) => {
+				
+				if(user == null){
+					return user;
+				}
+				
+				if(config.VerifyEmails)
+				{
+					// Send email now. The key is a hash of the user ID + registration date + verify.
+					var recipient = new Recipient(user);
+					
+					recipient.CustomData = new EmailVerifyCustomData()
+					{
+						Token = EmailVerificationHash(user)
+					};
+					
+					var recipients = new List<Recipient>();
+					recipients.Add(recipient);
+
+					if (_emails == null)
+					{
+						_emails = Services.Get<EmailTemplateService>();
+					}
+
+					await _emails.SendAsync(
+						recipients,
+						"verify_email"
+					);
+				}
+				
+				return user;
+			});
+			
 			// Let's see if the username is ok.
 			if(config.UniqueUsernames)
             {
@@ -177,7 +227,15 @@ namespace Api.Users
 			
 			InstallAdminPages("Users", "fa:fa-user", new string[] { "id", "email", "username" });
 		}
-
+		
+		/// <summary>
+		/// Generates the email verification hash for the given user.
+		/// </summary>
+		public string EmailVerificationHash(User user)
+		{
+			return CreateMD5(user.Id + "" + user.JoinedUtc.Ticks + "" + user.PrivateVerify);
+		}
+		
 		private Capability _profileLoad;
 
 		/// <summary>
@@ -194,7 +252,34 @@ namespace Api.Users
 			Capabilities.All.TryGetValue("userprofile_load", out _profileLoad);
 			return _profileLoad;
 		}
+		
+		private SecureRandom secureRandom = new SecureRandom();
+		
+		private long RandomLong() {
+			return secureRandom.NextLong();
+		}
+		
+		/// <summary>
+		/// Gets a hash of the given input.
+		/// </summary>
+		private string CreateMD5(string input)
+		{
+			// Use input string to calculate MD5 hash
+			using (System.Security.Cryptography.MD5 md5 = System.Security.Cryptography.MD5.Create())
+			{
+				byte[] inputBytes = System.Text.Encoding.ASCII.GetBytes(input);
+				byte[] hashBytes = md5.ComputeHash(inputBytes);
 
+				// Convert the byte array to hexadecimal string
+				var sb = new StringBuilder();
+				for (int i = 0; i < hashBytes.Length; i++)
+				{
+					sb.Append(hashBytes[i].ToString("X2"));
+				}
+				return sb.ToString();
+			}
+		}
+		
 		/// <summary>
 		/// Public fields of the UserProfile object which will be auto transferred.
 		/// </summary>

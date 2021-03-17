@@ -29,7 +29,13 @@ namespace Api.Users
 		[Module("Admin/ContentSelect")]
 		[Data("contentType", "role")]
 		public int Role;
-
+		
+		/// <summary>
+		/// Private server only data used to verify this user, e.g. during registration.
+		/// </summary>
+		[Newtonsoft.Json.JsonIgnore]
+		public long PrivateVerify;
+		
 		/// <summary>
 		/// The UTC date this user was created.
 		/// </summary>

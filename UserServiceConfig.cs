@@ -16,5 +16,10 @@ namespace Api.Users
         /// Determines if user usernames need to be unique.
         /// </summary>
         public bool UniqueUsernames { get; set; } = false;
+		
+        /// <summary>
+        /// Email validation required yes/no.
+        /// </summary>
+        public bool VerifyEmails { get; set; } = false;
     }
 }
