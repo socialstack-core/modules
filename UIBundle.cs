@@ -45,7 +45,7 @@ namespace Api.CanvasRenderer
 		/// <summary>
 		/// The public pack directory.
 		/// </summary>
-		public string PackDir = "/pack/";
+		public string PackDir;
 
 		/// <summary>
 		/// Map of path (relative to Path) -> a particular source file.
@@ -114,7 +114,7 @@ namespace Api.CanvasRenderer
 		/// Creates a new bundle for the given filesystem path.
 		/// </summary>
 		public UIBundle(
-			string rootPath, TranslationService translations, LocaleService locales, V8ScriptEngine buildEngine, GlobalSourceFileMap globalFileMap, bool minify)
+			string rootPath, string packDir, TranslationService translations, LocaleService locales, V8ScriptEngine buildEngine, GlobalSourceFileMap globalFileMap, bool minify)
 		{
 			RootName = rootPath;
 			RootPath = Path.GetFullPath(rootPath);
@@ -124,17 +124,13 @@ namespace Api.CanvasRenderer
 			_translationService = translations;
 			_localeService = locales;
 			Minified = minify;
-
-			if (rootPath == "Admin")
-			{
-				PackDir = "/en-admin/pack/";
-			}
+			PackDir = packDir;
 		}
 
 		/// <summary>
 		/// Creates a new bundle for the given filesystem path.
 		/// </summary>
-		public UIBundle(string rootPath, TranslationService translations, LocaleService locales)
+		public UIBundle(string rootPath, string packDir, TranslationService translations, LocaleService locales)
 		{
 			RootName = rootPath;
 			RootPath = Path.GetFullPath(rootPath);
@@ -142,11 +138,7 @@ namespace Api.CanvasRenderer
 			_translationService = translations;
 			_localeService = locales;
 			Prebuilt = true;
-
-			if (rootPath == "Admin")
-			{
-				PackDir = "/en-admin/pack/";
-			}
+			PackDir = packDir;
 		}
 
 		/// <summary>

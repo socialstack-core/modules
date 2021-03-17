@@ -27,6 +27,43 @@ namespace Api.CanvasRenderer
 		}
 
 		/// <summary>
+		/// Gets the email main.js file (site locale 1). The URL should be of the form /pack/email-static/main.js?loc=1&amp;v=123123123123&amp;h=ma83md83jd7hdur8
+		/// Where loc is the locale ID, v is the original code build timestamp in ms, and h is the hash of the file.
+		/// For convenience, ask FrontendCodeService for the url via GetMainJsUrl(Context context).
+		/// </summary>
+		/// <returns></returns>
+		[Route("/pack/email-static/main.js")]
+		public async ValueTask<FileResult> GetEmailMainJs()
+		{
+			// Get locale ID from get arg called "lid". If it isn't specified, must use default locale 1.
+			// Note that it would not be up to this code to decide a suitable locale if it is not specified.
+			int localeId = 1;
+
+			if (Request.Query.TryGetValue("lid", out StringValues value))
+			{
+				int.TryParse(value.ToString(), out localeId);
+			}
+
+			// Ask the service as it's almost always cached in there.
+			var file = await _codeService.GetEmailMainJs(localeId);
+
+			if (file.FileContent == null)
+			{
+				// 404
+				Response.StatusCode = 404;
+				return null;
+			}
+
+			if (file.Precompressed != null)
+			{
+				Response.Headers["Content-Encoding"] = "gzip";
+				return File(file.Precompressed, "text/javascript; charset=UTF-8");
+			}
+
+			return File(file.FileContent, "text/javascript; charset=UTF-8");
+		}
+
+		/// <summary>
 		/// Gets the main.js file (site locale 1). The URL should be of the form /pack/main.js?loc=1&amp;v=123123123123&amp;h=ma83md83jd7hdur8
 		/// Where loc is the locale ID, v is the original code build timestamp in ms, and h is the hash of the file.
 		/// For convenience, ask FrontendCodeService for the url via GetMainJsUrl(Context context).

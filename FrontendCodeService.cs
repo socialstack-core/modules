@@ -52,9 +52,9 @@ namespace Api.CanvasRenderer
 				if (prebuilt)
 				{
 					Console.WriteLine("Running in prebuilt mode. *Not* watching your files for changes.");
-					AddBuilder(UIBuilder = new UIBundle("UI", translations, locales));
-					AddBuilder(EmailBuilder = new UIBundle("Email", translations, locales));
-					AddBuilder(AdminBuilder = new UIBundle("Admin", translations, locales));
+					AddBuilder(UIBuilder = new UIBundle("UI", "/pack/", translations, locales));
+					AddBuilder(EmailBuilder = new UIBundle("Email", "/pack/email-static/", translations, locales));
+					AddBuilder(AdminBuilder = new UIBundle("Admin", "/en-admin/pack/", translations, locales));
 				}
 				else
 				{
@@ -67,9 +67,9 @@ namespace Api.CanvasRenderer
 					var minify = config.Minified;
 
 					// Create a group of build/watchers for each bundle of files (all in parallel):
-					AddBuilder(UIBuilder = new UIBundle("UI", translations, locales, engine, globalMap, minify));
-					AddBuilder(EmailBuilder = new UIBundle("Email", translations, locales, engine, globalMap, minify));
-					AddBuilder(AdminBuilder = new UIBundle("Admin", translations, locales, engine, globalMap, minify));
+					AddBuilder(UIBuilder = new UIBundle("UI", "/pack/", translations, locales, engine, globalMap, minify));
+					AddBuilder(EmailBuilder = new UIBundle("Email", "/pack/email-static/", translations, locales, engine, globalMap, minify));
+					AddBuilder(AdminBuilder = new UIBundle("Admin", "/en-admin/pack/", translations, locales, engine, globalMap, minify));
 
 					// Sort global map:
 					globalMap.Sort();
