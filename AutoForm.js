@@ -197,7 +197,7 @@ export default class AutoForm extends React.Component {
 	}
 	
 	capitalise(name){
-		return name.charAt(0).toUpperCase() + name.slice(1);
+		return name && name.length ? name.charAt(0).toUpperCase() + name.slice(1) : "";
 	}
 	
 	render() {
