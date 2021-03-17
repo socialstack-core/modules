@@ -136,7 +136,7 @@ public partial class AutoController<T, ID>
 		}
 
 		// Make sure it's the same ID:
-		entity.Id = id;
+		entity.SetId(id);
 
 		// Run the request update event:
 		entity = await _service.EventGroup.RevisionUpdate.Dispatch(context, entity, Response) as T;
@@ -236,7 +236,7 @@ public partial class AutoController<T, ID>
 			return null;
 		}
 		
-		var contentId = entity.Id;
+		var contentId = entity.GetId();
 		
 		// In this case the entity ID is definitely known, so we can run all fields at the same time:
 		var notes = await SetFieldsOnObject(entity, context, body, JsonFieldGroup.Any);
@@ -247,7 +247,7 @@ public partial class AutoController<T, ID>
 		}
 		
 		// Ensure the ID remains unchanged:
-		entity.Id = contentId;
+		entity.SetId(contentId);
 		
 		// Run the request update event:
 		entity = await _service.EventGroup.RevisionPublish.Dispatch(context, entity, Response) as T;
