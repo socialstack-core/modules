@@ -36,6 +36,31 @@ namespace Api.Blogs
 				}
 				
 			);
+
+			// A site has 1 blog unless configured otherwise.
+			var config = GetConfig<BlogServiceConfig>();
+
+			Events.BlogPost.BeforeSettable.AddEventListener((Context ctx, JsonField<BlogPost> field) => {
+
+				if (field == null)
+				{
+					return new ValueTask<JsonField<BlogPost>>(field);
+				}
+
+				if (field.Name == "BlogId" && !config.MultipleBlogs)
+				{
+					// Not settable if 1 blog.
+					field = null;
+				}
+
+				return new ValueTask<JsonField<BlogPost>>(field);
+			});
+
+			InstallRoles(new UserRole() {
+				Key = "blogger",
+				Name = "Blogger",
+				CanViewAdmin = true
+			});
 		}
 		
 		/// <summary>

@@ -21,5 +21,10 @@ namespace Api.Blogs
         /// Determines if synopsis are generated on creation/updates if none are provided.
         /// </summary>
         public bool GenerateSynopsis { get; set; }
+		
+        /// <summary>
+        /// True if the site has multiple blogs on it.
+        /// </summary>
+        public bool MultipleBlogs { get; set; }
     }
 }

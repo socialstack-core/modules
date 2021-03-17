@@ -44,6 +44,12 @@ namespace Api.Blogs
 					return null;
                 }
 
+				// Set blog ID to 1 if the site only has 1:
+				if (!config.MultipleBlogs)
+				{
+					blogPost.BlogId = 1;
+				}
+
 				// was an authorid passed in?
 				if(blogPost.AuthorId > 0)
                 {
