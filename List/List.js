@@ -135,7 +135,7 @@ export default class List extends React.Component{
 										onSuccess = {() => this.editToggle(comment)}
 										onClose = {() => this.editToggle(comment)}
 										comment = {comment}
-									/> : <> {comment.bodyJson}
+									/> : <> {comment.body}
 										<Row className = "comment-actions">
 											<button onClick = {() => {this.replyToggle(comment)}} className = "btn"><i class="far fa-comment-alt-lines"></i> Reply</button> 
 											{isUser && <button onClick = {() => {this.editToggle(comment)}}className = "btn"><i class="fas fa-pencil"></i> Edit</button>}

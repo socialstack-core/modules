@@ -73,7 +73,7 @@ export default class Add extends React.Component{
 						parentCommentId
 					}}}
 				>
-                <Input placeholder="Leave us your thoughts!" type="textarea" name = "bodyJson" validate={["Required"]}/>
+                <Input placeholder="Leave us your thoughts!" type="textarea" name = "body" validate={["Required"]}/>
                 <Row className = "comment-buttons">
 					<Input type="submit" label="Comment"/>
 					{this.props.onClose && <div className = "cancel-button form-group">

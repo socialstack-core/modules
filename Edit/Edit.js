@@ -40,7 +40,7 @@ export default class Edit extends React.Component{
                         }
                     }
                 >
-                    <Input placeholder="Leave us your thoughts!" name = "bodyJson" type = "textarea" defaultValue = {comment.bodyJson} validate={["Required"]}/>
+                    <Input placeholder="Leave us your thoughts!" name = "bodyJson" type = "textarea" defaultValue = {comment.body} validate={["Required"]}/>
                     <Row className = "comment-buttons">
                         <Input type="submit" label="Save changes"/>
                         <div className = "cancel-button form-group">
