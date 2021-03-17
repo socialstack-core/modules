@@ -126,11 +126,12 @@ export default class List extends React.Component{
 						}
 
 						return coms.map(comment => {
-							var isUser = (user && comment.creatorUser.id == user.id);
+							var isUser = user && comment.creatorUser && comment.creatorUser.id == user.id;
+							var username = comment.creatorUser && comment.creatorUser.username && comment.creatorUser.username.length ? comment.creatorUser.username : "User";
 
 							return <li style={{marginLeft: (comment.depth * 100) + 'px'}}>
 								{deletedComments[comment.id] || comment.deleted ? (comment.childCommentCount - comment.childCommentDeleteCount > 0 && <i>-This comment was deleted-</i>) : <> 
-									<Row className = "user-info"><b className = "user-name">{comment.creatorUser.username}</b> {sinceDate(comment.createdUtc)}</Row>
+									<Row className = "user-info"><b className = "user-name">{username}</b> {sinceDate(comment.createdUtc)}</Row>
 									{editComments[comment.id] ? <EditComment 
 										onSuccess = {() => this.editToggle(comment)}
 										onClose = {() => this.editToggle(comment)}
