@@ -4,7 +4,7 @@
 * You can use {multiple.layers} if required.
 */
 
-function applyTokens(str, tokenContext){
+export default function(str, tokenContext){
 	if(!str){
 		return str;
 	}
@@ -25,5 +25,3 @@ function applyTokens(str, tokenContext){
 		return context.toString();
 	});
 }
-
-module.exports = applyTokens;
