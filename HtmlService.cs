@@ -560,6 +560,11 @@ namespace Api.Pages
 				var mainAdminJsFile = await _frontend.GetAdminMainJs(context == null ? 1 : context.LocaleId);
 				var mainAdminJs = new DocumentNode("script").With("src", mainAdminJsFile.PublicUrl);
 				body.AppendChild(mainAdminJs);
+				
+				// Same also for the email modules:
+				var mainEmailJsFile = await _frontend.GetEmailMainJs(context == null ? 1 : context.LocaleId);
+				var mainEmailJs = new DocumentNode("script").With("src", mainEmailJsFile.PublicUrl);
+				body.AppendChild(mainEmailJs);
 			}
 
 			// Get the main JS file. Note that this will (intentionally) delay on dev instances if the first compile hasn't happened yet.
