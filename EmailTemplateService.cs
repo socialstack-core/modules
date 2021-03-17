@@ -126,6 +126,25 @@ namespace Api.Emails
 		}
 
 		/// <summary>
+		/// Installs a template (Creates it if it doesn't already exist).
+		/// </summary>
+		public async ValueTask InstallNow(EmailTemplate template)
+		{
+			var context = new Context();
+
+			// Match by target URL of the item.
+			var filter = new Filter<EmailTemplate>();
+			filter.Equals("Key", template.Key);
+
+			var existingEntry = (await List(context, filter));
+
+			if (existingEntry.Count == 0)
+			{
+				await Create(context, template);
+			}
+		}
+		
+		/// <summary>
 		/// Ensures each recipient instance has a User loaded, and that it's also set into the CustomData.
 		/// Note that we don't support sending to emails only, as a user is required to be able to track opt-out state.
 		/// </summary>
