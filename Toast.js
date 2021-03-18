@@ -28,7 +28,7 @@ function close(toastInfo) {
 	global.app.setState({toasts});
 }
 
-module.exports = {
+export {
 		pop,
 		close
 }
