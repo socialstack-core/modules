@@ -1,16 +1,14 @@
 // Module import examples - none are required:
 import omit from 'UI/Functions/Omit';
-import dateTools from 'UI/Functions/DateTools';
-var eventHandler = global.events.get('UI/Input');
+import * as dateTools from 'UI/Functions/DateTools';
+var inputTypes = global.inputTypes = global.inputTypes || {};
 
-eventHandler.ontypedatetime = function(props, _this){
-	
+inputTypes.ontypedatetime = function(props, _this){
 	return <DateTimePicker 
 		id={props.id || _this.fieldId}
 		className={props.className || "form-control"}
 		{...omit(props, ['id', 'className', 'type', 'inline'])}
 	/>;
-	
 };
 
 var zero59 = null;
