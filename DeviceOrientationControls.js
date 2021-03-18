@@ -1,4 +1,4 @@
-module.exports = function ( object ) {
+export default function deviceOrientationControl( object ) {
 	var scope = this;
 	this.object = object;
 	this.object.rotation.reorder( 'YXZ' );
