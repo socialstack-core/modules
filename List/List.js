@@ -7,6 +7,7 @@ import Modal from 'UI/Modal';
 import DeleteComment from 'UI/Comments/Delete';
 import EditComment from 'UI/Comments/Edit';
 import ReportComment from 'UI/Comments/Report';
+import Canvas from 'UI/Canvas'
 
 export default class List extends React.Component{
 	constructor(props){
@@ -136,7 +137,7 @@ export default class List extends React.Component{
 										onSuccess = {() => this.editToggle(comment)}
 										onClose = {() => this.editToggle(comment)}
 										comment = {comment}
-									/> : <> {comment.body}
+									/> : <> <Canvas>{comment.bodyJson}</Canvas>
 										<Row className = "comment-actions">
 											<button onClick = {() => {this.replyToggle(comment)}} className = "btn"><i class="far fa-comment-alt-lines"></i> Reply</button> 
 											{isUser && <button onClick = {() => {this.editToggle(comment)}}className = "btn"><i class="fas fa-pencil"></i> Edit</button>}
