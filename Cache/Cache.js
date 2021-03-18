@@ -2,7 +2,7 @@ import hlsjs from '../hls.js';
 
 var cache = {};
 
-module.exports = (src, onManifest) => {
+export default function hlsCache (src, onManifest) {
 	var hls = cache[src];
 	
 	if(hls){
