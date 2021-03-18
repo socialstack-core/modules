@@ -205,6 +205,48 @@ namespace Api.Huddles
 		}
 
 		/// <summary>
+		/// Loads a huddle by the slug. 
+		/// </summary>
+		/// <param name="slug"></param>
+		/// <returns></returns>
+		[HttpGet("{slug}/load")]
+		public async Task<object> SlugLoad(string slug)
+        {
+			var context = Request.GetContext();
+
+			if (context == null)
+            {
+				return null;
+            }
+
+			var service = (_service as HuddleService);
+
+			// Get the huddle:
+			var huddles = await service.List(context, new Filter<Huddle>().Equals("Slug", slug));
+
+			if (huddles.Count < 1)
+			{
+				return null;
+			}
+
+			var huddle = huddles[0];
+
+			// Is the huddle valid?
+			if (huddle == null)
+			{
+				return null;
+			}
+
+			if (!service.IsPermitted(context, huddle))
+			{
+				return null;
+			}
+
+			return huddle;
+		}
+
+
+		/// <summary>
 		/// Join a huddle using the slug. Provided the user is permitted, this returns the connection information.
 		/// </summary>
 		/// <param name="slug"></param>
