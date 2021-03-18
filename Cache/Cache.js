@@ -1,8 +1,9 @@
-var THREE = require('UI/Functions/ThreeJs/ThreeJs.js');
+//import THREE from 'UI/Functions/ThreeJs';
+var THREE = require('UI/Functions/ThreeJs');
 
 var _cache = {};
 
-module.exports = (url, onLoaded) => {
+export default function cache (url, onLoaded){
 	if(_cache[url]){
 		onLoaded();
 		return _cache[url];

@@ -1,4 +1,5 @@
-var THREE = require('UI/Functions/ThreeJs/ThreeJs.js');
+var THREE = require('UI/Functions/ThreeJs');
+//import THREE from 'UI/Functions/ThreeJs';
 import getRef from 'UI/Functions/GetRef';
 import omit from 'UI/Functions/Omit';
 import DeviceOrientationControls from 'UI/Functions/DeviceOrientationControls';

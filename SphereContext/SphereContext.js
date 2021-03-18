@@ -1,1 +1,1 @@
-module.exports = React.createContext(null);
+export default React.createContext(null);
