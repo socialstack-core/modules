@@ -262,7 +262,8 @@ namespace Api.Pages
 				"Maybe the internet got deleted?",
 				"Blame Mike",
 				"Contact your system admin. If you are the system admin, I'm so sorry.",
-				"You shall not pass!"
+				"You shall not pass!",
+				"Ruh-roh Rorge!"
 			};
 
 			var rng = new Random();
@@ -428,6 +429,9 @@ namespace Api.Pages
 			// Handle all Start Head Tags in the config.
 			HandleCustomHeadList(_config.StartHeadTags, head);
 
+			// Handle all Start Head Scripts in the config.
+			HandleCustomScriptList(_config.StartHeadScripts, head);
+
 			head.AppendChild(new DocumentNode("link", true).With("rel", "icon").With("type", "image/png").With("sizes", "32x32").With("href", "/favicon-32x32.png"))
 				.AppendChild(new DocumentNode("link", true).With("rel", "icon").With("type", "image/png").With("sizes", "16x16").With("href", "/favicon-16x16.png"));
 
@@ -457,6 +461,9 @@ namespace Api.Pages
 
 			// Handle all End Head tags in the config.
 			HandleCustomHeadList(_config.EndHeadTags, head);
+
+			// Handle all End Head Scripts in the config.
+			HandleCustomScriptList(_config.EndHeadScripts, head);
 			
 			var reactRoot = new DocumentNode("div").With("id", "react-root");
 
@@ -688,7 +695,11 @@ namespace Api.Pages
 				//Does this script have content?
 				DocumentNode node;
 				
-				if (bodyScript.Content != null)
+				if (!string.IsNullOrEmpty(bodyScript.NoScriptText))
+                {
+					node = new DocumentNode("noscript").AppendChild(new TextNode(bodyScript.NoScriptText));
+                }
+				else if (!string.IsNullOrEmpty(bodyScript.Content))
 				{
 					node = new DocumentNode("script").AppendChild(new TextNode(bodyScript.Content));
 				}

@@ -32,6 +32,16 @@ namespace Api.Pages
 		public List<HeadTag> EndHeadTags { get; set; }
 
 		/// <summary>
+		/// Scripts added to the beginning of the head.
+		/// </summary>
+		public List<BodyScript> StartHeadScripts { get; set; }
+
+		/// <summary>
+		/// Scripts added to the end of the head.
+		/// </summary>
+		public List<BodyScript> EndHeadScripts { get; set; }
+
+		/// <summary>
 		/// Scripts added to the config that will be added at the start of the body.
 		/// </summary>
 		public List<BodyScript> StartBodyJs { get; set; }
@@ -122,6 +132,11 @@ namespace Api.Pages
 		/// Raw js. Not recommended but available for quick and dirty drop-ins.
 		/// </summary>
 		public string Content { get; set; }
+
+		/// <summary>
+		/// Raw html content. Used for quick dropins. 
+		/// </summary>
+		public string NoScriptText { get; set; }
 	}
 	
 }
