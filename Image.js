@@ -48,4 +48,5 @@ Image.propTypes = {
 	float: { type: ['None', 'Left', 'Right'] }
 };
 
+Image.groups = 'formatting';
 Image.icon = 'image';
