@@ -1,17 +1,41 @@
-import Image from 'UI/Image';
+import Alert from 'UI/Alert';
 
+var TEXT = '#text';
 
 /*
 * Inline elements
 */
 var inlineTypes = [
-	'TEXT', 'a', 'abbr', 'acronym', 'b', 'bdo', 'big', 'br', 'button', 'cite', 'code', 'dfn', 'em', 'i', 'img', 'input', 'kbd', 'label', 
-	'map', 'object', 'output', 'q', 'samp', 'select', 'small', 'span', 'strong', 'sub', 'sup', 'textarea', 'time', 'tt', 'var'
+	TEXT, 'a', 'abbr', 'acronym', 'b', 'bdo', 'big', 'br', 'button', 'cite', 'code', 'dfn', 'em', 'i', 'img', 'input', 'kbd', 'label', 
+	'map', 'object', 'output', 'q', 's', 'samp', 'select', 'small', 'span', 'strong', 'sub', 'sup', 'textarea', 'time', 'tt', 'u', 'var'
 ];
+
+var permittedTypes = [
+	'a', 'abbr', 'acronym', 'b', 'bdo', 'big', 'br', 'cite', 'code', 'center', 'dfn', 'em', 'i', 'kbd', 
+	'output', 'q', 's', 'samp', 'small', 'span', 'strong', 'sub', 'sup', 'time', 'tt', 'u', 'var',
+	'address', 'article', 'aside', 'blockquote', 'dd', 'div', 'dl', 'dt', 'footer', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 
+	'header', 'hr', 'li', 'main', 'ol', 'p', 'pre', 'section', 'ul'
+	
+	// img, video, table - are permitted, but get converted to modules.
+	// In all of the above, the only one permitted to have an attribute is <a> href.
+];
+
+var CANVAS_JSON = 'application/x-canvas';
+
+/*
+* Inline elements that can have no child nodes.
+*/
+var inlineNoContent = {'img': 1, 'br': 1, 'input': 1};
 
 var inlines={};
 inlineTypes.forEach(type => {
-	inlines[type] = true;
+	inlines[type] = 1;
+});
+
+var permitted = {};
+
+permittedTypes.forEach(type => {
+	permitted[type] = 1;
 });
 
 /*
@@ -23,46 +47,102 @@ export default class RichEditor extends React.Component {
 		super(props);
 		this.onKeyDown = this.onKeyDown.bind(this);
 		this.onMouseUp = this.onMouseUp.bind(this);
+		this.onMouseDown = this.onMouseDown.bind(this);
+		this.onReject = this.onReject.bind(this);
 		this.onBlur = this.onBlur.bind(this);
 		this.onPaste = this.onPaste.bind(this);
+		this.onCopy = this.onCopy.bind(this);
+		this.onCut = this.onCut.bind(this);
+		
+		var rootRef =  React.createRef();
 		
 		var node = {
 			content: [],
-			dom: React.createRef()
+			dom: rootRef
 		};
 		
 		this.state={
 			node,
+			rootRef,
 			active: {}
 		};
 		
-		/*
-		this.insertHtml('<b>Hello world!</b> This is not bold <h1>This is a heading.</h1>', true);
+		var value = this.props.value || this.props.defaultValue;
 		
-		console.log(Image);
+		if(value){
+			this.loadCanvas(this.props.value || this.props.defaultValue, 1);
+		}
 		
-		this.addNode({
-			type: Image
-		}, this.state.node);
-		*/
+		// Initial snapshot:
+		this.addStateSnapshot();
 	}
 	
-	insertHtml(html, avoidState){
+	insertJson(canvasNode){
+		if(!canvasNode){
+			return;
+		}
+		
+		var toInsert = canvasNode.type ? [canvasNode] : canvasNode.content;
+		
+		if(!toInsert || !Array.isArray(toInsert) || !toInsert.length){
+			return;
+		}
+		
 		var {selection, node} = this.state;
 		
 		if(!selection){
-			// Put caret at end of content.
-			selection = {
-				startNode: node,
-				endNode: node,
-				startOffset: node.content.length,
-				endOffset: node.content.length
-			};
+			// The editor isn't focused at the moment. This content isn't for us.
+			return;
 		}
 		
-		if(selection.startOffset != selection.endOffset || selection.startNode == selection.endNode){
+		if(selection.startOffset != selection.endOffset || selection.startNode != selection.endNode){
 			// Overtyping - remove this content.
 			this.deleteContent(selection);
+		}else{
+			// Just split at the selection. This ensures pasted content gets inserted at the correct place inside text.
+			this.sliceSelection(selection);
+		}
+		
+		var start = selection.startNode;
+		var index = selection.startOffset;
+		
+		if(start.type == TEXT){
+			index = start.parent.content.indexOf(start) + 1;
+			start = start.parent;
+		}
+		
+		if(!start.content){
+			start.content = toInsert;
+			selection.startOffset = selection.endOffset = toInsert.length;
+		}else{
+			var newContent = start.content.slice(0, index).concat(toInsert);
+			start.content = newContent.concat(start.content.slice(index));
+			selection.startOffset = selection.endOffset = newContent.length;
+		}
+		
+		selection.startNode = selection.endNode = start;
+		
+		// Update parent:
+		toInsert.forEach(n => n.parent = start);
+		
+		// Tidy the tree up after inserting html:
+		this.normalise();
+	}
+	
+	insertHtml(html){
+		var {selection, node} = this.state;
+		
+		if(!selection){
+			// The editor isn't focused at the moment. This content isn't for us.
+			return;
+		}
+		
+		if(selection.startOffset != selection.endOffset || selection.startNode != selection.endNode){
+			// Overtyping - remove this content.
+			this.deleteContent(selection);
+		}else{
+			// Just split at the selection. This ensures pasted content gets inserted at the correct place inside text.
+			this.sliceSelection(selection);
 		}
 		
 		// Parse it:
@@ -72,8 +152,7 @@ export default class RichEditor extends React.Component {
 		// Convert to nodes:
 		var parent;
 		var parentOffset;
-		if(selection.startNode.type == 'TEXT'){
-			// TODO: split text when pasting in.
+		if(selection.startNode.type == TEXT){
 			parent = selection.startNode.parent;
 			parentOffset = parent.content.indexOf(selection.startNode) + 1;
 		}else{
@@ -81,17 +160,258 @@ export default class RichEditor extends React.Component {
 			parentOffset = selection.startOffset;
 		}
 		
-		// TODO: avoid block elements being children of inline ones.
-		// TODO: Pasting e.g. an <img> or other things that should preserve some or all of their attributes.
-		
 		var nodes = this.convertToNodes(div.childNodes, parent);
-		
-		var constructedContent = parent.content.slice(0, parentOffset).concat(nodes).concat(parent.content.slice(parentOffset));
+		var newContent = parent.content.slice(0, parentOffset).concat(nodes);
+		var constructedContent = newContent.concat(parent.content.slice(parentOffset));
 		parent.content = constructedContent;
 		
-		if(!avoidState){
-			this.setState({selection});
+		// Place at end:
+		selection.startNode = selection.endNode = parent;
+		selection.startOffset = selection.endOffset = newContent.length;
+		
+		// Tidy the tree up after inserting html:
+		this.normalise();
+	}
+	
+	onNewSnapshot(snap){
+		this.latestSnapshot = snap;
+		this.props.onSnapshot && this.props.onSnapshot(snap);
+	}
+	
+	loadCanvas(json, init){
+		try{
+			var root = JSON.parse(json);
+			
+			var convertedRoot = this.convertToNodesFromCanvas(root);
+			
+			if(!convertedRoot){
+				convertedRoot = {content: []};
+			}
+			
+			if(convertedRoot.type){
+				// It becomes a parent:
+				var child = convertedRoot;
+				convertedRoot = {content: [child]};
+				child.parent = convertedRoot;
+			}
+			
+			convertedRoot.dom = this.state.rootRef;
+			
+			if(init){
+				this.state.node = convertedRoot;
+			}else{
+				this.setState({error: null, node: convertedRoot});
+			}
+			
+		}catch(e){
+			if(init){
+				this.state.error = e;
+			}else{
+				this.setState({error: e});
+			}
 		}
+	}
+	
+	loadCanvasChildren(node, result){
+		var c = node.c;
+		if(typeof c == 'string'){
+			// It has one child which is a text node (no ID or templateID on this).
+			var text = {type: TEXT, text: c, parent: result};
+			result.content = [text];
+		}else{
+			if(!Array.isArray(c)){
+				// One child
+				c = [c];
+			}
+			
+			var content = [];
+		
+			for(var i=0;i<c.length;i++){
+				var child = c[i];
+				if(!child){
+					continue;
+				}
+				if(typeof child == 'string'){
+					//  (no ID or templateID on this)
+					child = {type: TEXT, text: child, parent: result};
+				}else{
+					child = this.convertToNodesFromCanvas(child);
+					if(!child){
+						continue;
+					}
+					
+					child.parent = result;
+				}
+				content.push(child);
+			}
+			
+			result.content = content;
+		}
+	}
+	
+	convertToNodesFromCanvas(node){
+		if(!node){
+			return;
+		}
+		
+		if(Array.isArray(node)){
+			if(node.length == 1){
+				node = node[0];
+			}else{
+				node = {content: node};
+			}
+		}
+		
+		var result = {};
+		var type = node.t || node.type || node.module;
+		
+		if(node.module == 'UI/Heading'){
+			type = 'h' + (node.data ? (node.data.size || '1') : '1');
+		}else if(node.module == 'UI/Align'){
+			// node.data && node.data.type == 'center'
+			type = 'p';
+		}else if(node.module == 'UI/Text'){
+			type = null;
+			node.content = node.content || node.data.text;
+		}else if(node.module == 'UI/Html'){
+			type = null;
+			node.content = node.content || node.data.text;
+		}else if(node.module == "UI/Image" || node.module == "UI/Video" || node.module == "UI/Spacer"){
+			// Retain these
+		}else if(node.module){
+			// Convert to a p:
+			type = 'p';
+			if(!node.content || !node.content.length || (node.content.length == 1 && !node.content[0])){
+				// Just destroy this.
+				console.log("Destroying ", node);
+				return;
+			}
+		}
+		
+		if(type){
+			if(type.indexOf('/') != -1){
+				result.typeName = type;
+				result.type = require(type).default;
+				
+				// Only custom nodes can have data:
+				result.props = node.d || node.data;
+				
+				// Build the roots set.
+				var roots = {};
+				
+				if(node.r){
+					if(Array.isArray(node.r)){
+						node.r.forEach((n, i) => {
+							roots[i + ''] = this.convertToNodesFromCanvas({t: 'span', c: n});
+						})
+					}else{
+						for(var key in node.r){
+							roots[key] = this.convertToNodesFromCanvas({t: 'span', c: node.r[key]});
+						}
+					}
+				}
+				
+				if(node.c){
+					// Simplified case for a common scenario of the node just having children only in it.
+					// Wrap it in a root node and set it as roots.children.
+					roots.children = this.convertToNodesFromCanvas({t: 'span', c: node.c});
+				}else if(node.content){
+					// Canvas 1 (depr)
+					roots.children = this.convertToNodesFromCanvas({type: 'span', content: node.content});
+				}
+				
+				for(var k in roots){
+					// Indicate it is a root node by removing the span type and add a dom ref/ parent:
+					var root = roots[k];
+					root.type = null;
+					root.parent = result;
+					root.dom = React.createRef();
+				}
+				
+				result.roots = roots;
+				
+			}else{
+				result.type = type;
+				
+				if(node.c){
+					// Canvas 2
+					this.loadCanvasChildren(node, result);
+				}else if(node.content){
+					// Canvas 1 (depr). Its text nodes are HTML.
+					var c = node.content;
+					
+					if(typeof c == 'string'){
+						// It has one child which is a text node (no ID or templateID on this).
+						var div = document.createElement('div');
+						div.innerHTML = c;
+						result.content = this.convertToNodes(div.childNodes, result);
+					}else{
+						if(!Array.isArray(c)){
+							// One child
+							c = [c];
+						}
+						
+						var content = [];
+					
+						for(var i=0;i<c.length;i++){
+							var child = c[i];
+							if(!child){
+								continue;
+							}
+							if(typeof child == 'string'){
+								//  (no ID or templateID on this)
+								var div = document.createElement('div');
+								div.innerHTML = child;
+								content = content.concat(this.convertToNodes(div.childNodes, result));
+								
+							}else{
+								child = this.convertToNodesFromCanvas(child, result);
+								if(!child){
+									continue;
+								}
+								
+								if(!child.type){
+									// typeless nodes from C1 must be merged in.
+									if(child.content){
+										child.content.forEach(n => n.parent = result);
+										content = content.concat(child.content);
+									}
+								}else{
+									child.parent = result;
+									content.push(child);
+								}
+							}
+						}
+						
+						result.content = content;
+					}
+				}
+				
+			}
+		}else if(node.c){
+			// a root node
+			this.loadCanvasChildren(node, result);
+		}
+		
+		if(node.i){
+			result.id = node.i;
+		}else if(node.id){
+			result.id = node.id;
+		}
+		
+		if(node.ti){
+			result.templateId = node.ti;
+		}else if(node.templateId){
+			result.templateId = node.templateId;
+		}
+		
+		if(node.s){
+			// String (text node).
+			result.text = node.s;
+			result.type = TEXT;
+		}
+		
+		return result;
 	}
 	
 	convertToNodes(nodes, parent){
@@ -110,17 +430,31 @@ export default class RichEditor extends React.Component {
 			var name = node.nodeName.toLowerCase();
 			
 			if(name == '#text'){
-				
 				output.push({
-					type: 'TEXT',
-					text: node.nodeValue,
+					type: TEXT,
+					text: node.textContent,
 					parent
 				});
 				
-			}else if(name != 'script' && name.length && name[0] != '#' && name.indexOf(':') == -1){ // Avoiding comments and garbage from Word.
+			}else if(name.length && name[0] != '#' && name.indexOf(':') == -1){ // Avoiding comments and garbage from Word.
+				
+				if(!permitted[name]){
+					// Skip it.
+					// TODO: handle <img>, <video>, <audio> and <table> if the set of permitted custom modules will accept them. <img> -> UI/Image for example.
+					continue;
+				}
+				
+				var ssComponent = name == 'span' && node.getAttribute('module');
+				
 				var n = {
-					type: name
+					type: ssComponent ? require(ssComponent).default : name,
+					parent
 				};
+				
+				if(ssComponent){
+					n.typeName = ssComponent;
+				}
+				
 				n.content = this.convertToNodes(node.childNodes, n);
 				output.push(n);
 			}
@@ -129,7 +463,16 @@ export default class RichEditor extends React.Component {
 		return output;
 	}
 	
+	onReject(e){
+		e.preventDefault();
+	}
+	
+	onMouseDown(){
+		window.addEventListener("mouseup", this.onMouseUp);
+	}
+	
 	onMouseUp(e){
+		window.removeEventListener("mouseup", this.onMouseUp);
 		// Must wait for next tick such that the window selection (default action) has occurred.
 		setTimeout(() => this.updateSelection(), 1);
 	}
@@ -144,15 +487,265 @@ export default class RichEditor extends React.Component {
 			endOffset: domSelection.focusOffset,
 			endNode: this.getNode(domSelection.focusNode)
 		};
+
+		var start = selection.startNode;
+		
+		if(!start){
+			selection = null;
+		}else{
+			// First, do we need to flip start and end? That happens if the user selected backwards.
+			if(start == selection.endNode){
+				var e = selection.endOffset;
+				if(selection.startOffset > e){
+					selection.endOffset = selection.startOffset;
+					selection.startOffset = e;
+				}
+			}else{
+				// Is the start of the selection actually after the end?
+				// If so we need to flip them over such that start is always the first one.
+				this.updateCaretPositions(this.state.node, 0);
+				var startPosition = this.getCaretPosition(start, selection.startOffset);
+				var endPosition = this.getCaretPosition(selection.endNode, selection.endOffset);
+				
+				if(startPosition > endPosition){
+					var sOffset = selection.startOffset;
+					selection.startNode = selection.endNode;
+					selection.startOffset = selection.endOffset;
+					selection.endOffset = sOffset;
+					selection.endNode = start;
+					start = selection.endNode;
+				}
+			}
+			
+			// If startNode and/ or endNode are a custom element, use the parent node for the selection instead.
+			// That's because it'll be marked contentEditable=false and the cursor won't show.
+			if(this.isCustom(start)){
+				var p = start.parent;
+				selection.startOffset = p.content.indexOf(start) + 1;
+				selection.startNode = p;
+				start = p;
+			}
+			if(this.isCustom(selection.endNode)){
+				var p = selection.endNode.parent;
+				selection.endOffset = p.content.indexOf(selection.endNode) + 1;
+				selection.endNode = p;
+			}
+		}
 		
 		var parents = this.getUniqueParents(selection);
-		
 		this.setState({selection, active: parents});
+	}
+	
+	splitIfText(node, offset){
+		if(node.type == TEXT && offset != 0 && offset < node.text.length){
+			var text = {
+				type: TEXT,
+				text: node.text.substring(offset)
+			};
+			
+			node.text = node.text.substring(0, offset);
+			
+			// Insert it:
+			this.addNode(text, node.parent, node.parent.content.indexOf(node) + 1);
+			return text;
+		}
+	}
+	
+	/**
+	* Slices the given selection, splitting any text nodes on boundaries of it. This is the only tree modification it will do.
+	* The complete "parent most" nodes inside the given selection, including any newly sliced pieces, are returned in an array.
+	*/
+	sliceSelection(selection, root){
+		if(!root){
+			root = this.state.node;
+		}
+		// If startNode is text, split it into two.
+		var newText = this.splitIfText(selection.startNode, selection.startOffset);
+		
+		if(newText){
+			// A split happened. May need to put endNode inside it.
+			if(selection.endNode == selection.startNode && selection.endOffset != selection.startOffset){
+				selection.endNode = newText;
+				selection.endOffset -= selection.startOffset;
+			}
+		}
+		
+		var newEnd = this.splitIfText(selection.endNode, selection.endOffset);
+		
+		if(newEnd){
+			// Put caret inside it:
+			selection.endNode = newEnd;
+			selection.endOffset = 0;
+		}
+		
+		// Ok, text at the start and end of the selection has been dealt with.
+		// Next, we'll gather all nodes inside the selection.
+		// Note that we now know every leaf node we encounter will be atomic - either fully inside or fully outside the range.
+		// The next goal is to return "root most" nodes inside the range, such that it is not always an array of leaf nodes but does also include their parents if a parent is fully selected.
+		
+		var results = [];
+		
+		this.updateCaretPositions(root, 0);
+		var endCaretPosition = this.getCaretPosition(selection.endNode, selection.endOffset);
+		var startCaretPosition = this.getCaretPosition(selection.startNode, selection.startOffset);
+		
+		this.addIfInRange(startCaretPosition, endCaretPosition, results, root);
+		return results;
+	}
+	
+	addIfInRange(start, end, results, node){
+		if(node.caretEnd < start || node.caretStart > end){
+			// Completely misses this node.
+			return;
+		}
+		
+		// It overlaps in some way. If it's completely inside, then add the whole thing.
+		if(node.caretStart >= start && node.caretEnd <= end){
+			results.push(node);
+		}else{
+			if(node.content){
+				// It partially overlaps. Enter its child nodes:
+				for(var i=0;i<node.content.length;i++){
+					this.addIfInRange(start, end, results, node.content[i]);
+				}
+			}
+			
+			if(node.roots){
+				for(var k in node.roots){
+					this.addIfInRange(start, end, results, node.roots[k]);
+				}
+			}
+		}
+	}
+	
+	// Gets caret position (a number). You must updateCaretPositions if you have made any tree changes since the last time it was updated.
+	getCaretPosition(node, offset){
+		if(node.type == TEXT || (node.type && typeof node.type != 'string')){
+			// It's just relative to caretStart:
+			return node.caretStart + offset;
+		}
+		
+		// Otherwise it's an offset through the child nodes:
+		if(offset == 0){
+			return node.caretStart;
+		}
+		
+		// +1 to target _this_ node's caret position.
+		if(node.roots){
+			return node.roots.children.content[offset - 1].caretEnd + 1;
+		}
+		
+		return node.content[offset - 1].caretEnd + 1;
+	}
+	
+	/*
+	* Counts the number of caret steps in the given node, up to the given offset (excluding it).
+	*/
+	updateCaretPositions(node, overall){
+		var result = 1; // At the start of the node is always 1, even if this node is empty.
+		node.caretStart = overall + result;
+		
+		if(node.type == TEXT){
+			result += node.text.length;
+			node.caretEnd = overall + result;
+		}else if(node.roots){
+			// Functions just like content
+			for(var k in node.roots){
+				var root = node.roots[k];
+				// The +1 is for the spaces between (or after all of) the nodes.
+				result += this.updateCaretPositions(root, result + overall) + 1;
+			}
+			node.caretEnd = overall + result;
+		}else if(node.content){
+			for(var i=0;i<node.content.length;i++){
+				// The +1 is for the spaces between (or after all of) the nodes.
+				result += this.updateCaretPositions(node.content[i], result + overall) + 1;
+			}
+			node.caretEnd = overall + result;
+		}else{
+			node.caretEnd = node.caretStart;
+		}
+		return result;
+	}
+	
+	getSelectionContents(){
+		var result = {html: '', text: '', json: ''};
+		var sel = window.getSelection();
+		if (sel.rangeCount) {
+			var container = document.createElement("div");
+			for (var i = 0, len = sel.rangeCount; i < len; ++i) {
+				container.appendChild(sel.getRangeAt(i).cloneContents());
+			}
+			result.html = container.innerHTML;
+			result.text = container.textContent;
+		}
+		
+		result.json = this.copyJson();
+		return result;
+	}
+	
+	onCopy(e){
+		this.handleCopy(e);
+	}
+	
+	onCut(e){
+		this.handleCopy(e, true);
+	}
+	
+	handleCopy(e, isCut){
+		var cpd = (e.clipboardData || window.clipboardData);
+		e.preventDefault();
+		var selectionData = this.getSelectionContents();
+		cpd.setData(CANVAS_JSON, selectionData.json);
+		cpd.setData('html', selectionData.html);
+		cpd.setData('text', selectionData.text);
+		
+		if(isCut){
+			this.deleteSelectedContent();
+		}
 	}
 	
 	onPaste(e){
 		e.preventDefault();
-		var paste = (e.clipboardData || window.clipboardData).getData('text/html');
+		var cpd = (e.clipboardData || window.clipboardData);
+		var paste = cpd.getData(CANVAS_JSON);
+		if(paste){
+			// Pasted canvas JSON.
+			// This is the format that permits copying custom props as well.
+			try{
+				var canvasJson = JSON.parse(paste);
+				var fromCanvas = this.convertToNodesFromCanvas(canvasJson);
+				this.insertJson(fromCanvas);
+			}catch(e){
+				console.log(e);
+			}
+			return;
+		}
+		
+		paste = cpd.getData('text/html');
+		if(paste){
+			// Windows HTML clipboard often wraps clipboard data in some garbage that we need to strip:
+			var sFrag = '<!--StartFragment-->';
+			var eFrag = '<!--EndFragment-->';
+			var index = paste.indexOf(sFrag);
+			if(index != -1){
+				paste = paste.substring(index + sFrag.length);
+				
+				index = paste.lastIndexOf(eFrag);
+				
+				if(index != -1){
+					paste = paste.substring(0, index);
+				}
+			}
+		}else{
+			paste = cpd.getData('text');
+			if(!paste){
+				return;
+			}
+			
+			paste = paste.replace(/\n/gi, '<br/>').replace(/\r/gi, '');
+		}
+		paste = paste.trim();
 		this.insertHtml(paste);
 	}
 	
@@ -160,9 +753,17 @@ export default class RichEditor extends React.Component {
 		this.setState({selection: null});
 	}
 	
+	getListType(node){
+		if(!node){
+			return null;
+		}
+		if(node.type == 'ul' || node.type == 'ol'){
+			return node.type;
+		}
+		return node.parent ? this.getListType(node.parent) : null;
+	}
+	
 	onKeyDown(e){
-		console.log(e);
-		
 		var {selection} = this.state;
 		
 		if(!selection || e.altKey){
@@ -187,7 +788,19 @@ export default class RichEditor extends React.Component {
 			
 			if(e.keyCode == 8){
 				// Delete <-
-				this.deleteSelectedContent();
+				this.deleteSelectedContent(-1);
+			}else if(e.keyCode == 9){
+				
+				if(this.state.active['li']){
+					
+					var listType = this.getListType(startNode);
+					if(!listType){
+						listType = 'ul';
+					}
+								
+					// Force insersion of list:
+					this.insertWrap(selection, [listType, 'li'], null, true);
+				}
 				
 			}else if(e.keyCode == 13){
 				
@@ -203,7 +816,7 @@ export default class RichEditor extends React.Component {
 					var brParent = selection.startNode;
 					var brOffset = selection.startOffset;
 					
-					if(startNode.type == 'TEXT'){
+					if(startNode.type == TEXT){
 						// Split the start node in two.
 						brParent = brParent.parent;
 						brOffset = brParent.content.indexOf(selection.startNode) + 1;
@@ -217,10 +830,10 @@ export default class RichEditor extends React.Component {
 						brOffset
 					);
 					
-					if(startNode.type == 'TEXT'){
+					if(startNode.type == TEXT){
 						// Insert another text node, which might involve some part of the existing text node.
 						var newText = {
-							type: 'TEXT',
+							type: TEXT,
 							text: startNode.text.substring(selection.startOffset)
 						};
 						
@@ -247,7 +860,8 @@ export default class RichEditor extends React.Component {
 						// If previous element was not inside a block element, put it and any sibling inlines in a <p>, 
 						// and we're then effectively duplicating that.
 						currentBlock = {
-							type: 'p'
+							type: 'p',
+							content: []
 						};
 						
 						var root = this.state.node;
@@ -274,20 +888,25 @@ export default class RichEditor extends React.Component {
 						currentBlock.content.forEach(child => child.parent = currentBlock);
 						
 						this.addNode(currentBlock, root, startingIndex);
-						
-						console.log(currentBlock, root);
 					}
 					
 					var insertIndex = currentBlock.parent.content.indexOf(currentBlock) + 1;
 					
+					// If the current block is a list item, duplicate it, otherwise use <p>.
+					
 					var newBlock = {
-						type: currentBlock.type
+						type: currentBlock.type == 'li' ? 'li' : 'p',
+						content: []
 					};
 					
-					if(startNode.type == 'TEXT'){
+					// TODO: This needs to move all other _inline_ elements after startNode in the current as well rather than just one and only text node.
+					// <p>Test 2 <img /></p> hit enter anywhere in the text. It leaves the img behind incorrectly.
+					// Also try it with formatting: <p><b>Tes|t 2 </b><img /></p>. In this situ it needs to duplicate any parent inline elements.
+					
+					if(startNode.type == TEXT && selection.startOffset < startNode.text.length){
 						// Insert another text node, which might involve some part of the existing text node.
 						var newText = {
-							type: 'TEXT',
+							type: TEXT,
 							text: startNode.text.substring(selection.startOffset)
 						};
 						
@@ -305,7 +924,7 @@ export default class RichEditor extends React.Component {
 					this.addNode(newBlock, currentBlock.parent, insertIndex);
 				}
 				
-				this.setState({selection});
+				this.normalise();
 				
 			}else if(e.keyCode == 46){
 				// Delete -> 
@@ -315,21 +934,62 @@ export default class RichEditor extends React.Component {
 			return;
 		}
 		
-		if(e.ctrlKey){
+		if(e.ctrlKey || e.metaKey){ // metaKey for mac
 			
 			// Special case for formatting shortcuts.
 			if(e.keyCode == 66){
 				// ctrl+b
 				e.preventDefault();
-				this.applyInline(selection, 'b');
+				this.applyWrap(selection, 'b');
 			}else if(e.keyCode == 73){
 				// ctrl+i
 				e.preventDefault();
-				this.applyInline(selection, 'i');
+				this.applyWrap(selection, 'i');
 			}else if(e.keyCode == 85){
 				// ctrl+u
 				e.preventDefault();
-				this.applyInline(selection, 'u');
+				this.applyWrap(selection, 'u');
+			}else if(e.keyCode == 89){
+				// ctrl+y (redo)
+				e.preventDefault();
+				var toRestore = this.redoSnapshot;
+				
+				if(toRestore){
+					
+					// Advance the redo stack:
+					this.redoSnapshot = toRestore.next;
+					
+					// Latest is our newest snapshot:
+					toRestore.previous = this.latestSnapshot;
+					toRestore.next = null;
+					toRestore.restore();
+					this.onNewSnapshot(toRestore);
+				}
+				
+			}else if(e.keyCode == 65){
+				e.preventDefault();
+				// ctrl+a
+				var node = this.state.node;
+				selection.startNode = selection.endNode = node;
+				selection.startOffset = 0;
+				selection.endOffset = node.content.length;
+				this.setState({selection});
+				
+			}else if(e.keyCode == 90){
+				// ctrl+z (undo)
+				e.preventDefault();
+				var latest = this.latestSnapshot;
+				
+				if(latest && latest.previous){
+					var toRestore = latest.previous;
+					
+					// Push latest onto the redo stack.
+					latest.next = this.redoSnapshot;
+					latest.previous = null;
+					this.redoSnapshot = latest;
+					toRestore.restore();
+					this.onNewSnapshot(toRestore);
+				}
 			}
 			
 			return;
@@ -345,9 +1005,9 @@ export default class RichEditor extends React.Component {
 			this.deleteContent(selection);
 		}
 		
-		if(startNode.type != 'TEXT'){
+		if(startNode.type != TEXT){
 			// Insert a text node at this location.
-			var textNode = {type: 'TEXT', text: ''};
+			var textNode = {type: TEXT, text: ''};
 			this.addNode(textNode, startNode);
 			startNode = textNode;
 			selection.startOffset = 0;
@@ -373,8 +1033,50 @@ export default class RichEditor extends React.Component {
 		selection.endOffset = selection.startOffset;
 		selection.startNode = selection.endNode = startNode;
 		
-		this.setState({selection});
+		this.normalise(true);
 	}
+	
+	/*
+	debugNode(node){
+		if(node.type == TEXT){
+			return node.text;
+		}
+		
+		var isHtml = node.type && typeof node.type == 'string';
+		
+		var res = isHtml ? "<" + node.type + ">" : "";
+		
+		if(node.content){
+			for(var i=0;i<node.content.length;i++){
+				res += this.debugNode(node.content[i]);
+			}
+		}
+		
+		if(isHtml){
+			res += "</" + node.type + ">";
+		}
+		
+		return res;
+	}
+	
+	debugUndoRedo(){
+		var undo = [];
+		var latest = this.latestSnapshot;
+		while(latest){
+			undo.push(this.debugNode(latest.node));
+			latest = latest.previous;
+		}
+		
+		var redo = [];
+		var latest = this.redoSnapshot;
+		while(latest){
+			redo.push(this.debugNode(latest.node));
+			latest = latest.next;
+		}
+		
+		console.log(undo, redo);
+	}
+	*/
 	
 	rootMostParent(node){
 		var root = this.state.node;
@@ -387,25 +1089,56 @@ export default class RichEditor extends React.Component {
 	}
 	
 	/*
-	* Gets the node that is immediately before the given one (in the render order, not necessarily siblings). By default this ignores parents of the given node.
-	* Optionally considers elements that are not a parent of node.
-	*/
-	getPrevious(node, includeParents){
-		var prev = null;
-		var found = 0;
-		this.forEachNode(this.state.node, n => {
-			if(found || n == node){
-				found = 1;
-				return;
+	getNextNode(node){
+		if(!node){
+			return;
+		}
+		
+		// If this node has any child nodes, return the first one:
+		if(node.content && node.content.length){
+			return node.content[0];
+		}
+		
+		while(node && node.parent){
+			var parent = node.parent;
+			
+			// Get the index in parent:
+			var index = parent.content.indexOf(node);
+		
+			// If it's not the last one, seek to next sibling:
+			if(index < parent.content.length - 1){
+				return parent.content[index + 1];
 			}
 			
-			if(!includeParents && this.isParentOf(n, node)){
-				// Ignore
-				return;
-			}
-			prev = n;
-		});
-		return prev;
+			// It was the last sibling. Go up another parent.
+			node = parent;
+		}
+	}
+	*/
+	
+	getPreviousNode(node){
+		if(!node || !node.parent){
+			return;
+		}
+		
+		// Get the index:
+		var index = node.parent.content.indexOf(node);
+		
+		// If index is 0, the parent node is the previous one.
+		if(index == 0){
+			return node.parent;
+		}
+		
+		// Otherwise, step into previous child by going all the way up the "rightmost" child.
+		return this.getRightmostChild(node.parent.content[index-1]);
+	}
+	
+	getRightmostChild(node){
+		var result = node;
+		while(result && result.content && result.content.length){
+			result = result.content[result.content.length-1];
+		}
+		return result;
 	}
 	
 	/* 
@@ -422,23 +1155,6 @@ export default class RichEditor extends React.Component {
 	}
 	
 	/*
-	* Gets the node that is immediately after the given one (in the render order, not necessarily siblings).
-	*/
-	getNext(node){
-		var next = null;
-		var found = 0;
-		this.forEachNode(this.state.node, n => {
-			if(n == node){
-				found = 1;
-			}else if(found == 1){
-				next = n;
-				found = 2;
-			}
-		});
-		return next;
-	}
-	
-	/*
 	* Nearest block element. Null if none.
 	*/
 	getBlock(node){
@@ -452,10 +1168,10 @@ export default class RichEditor extends React.Component {
 	}
 	
 	isInline(node){
-		return !!inlines[node.type];
+		return typeof node.type != 'string' || !!inlines[node.type];
 	}
 	
-	deleteSelectedContent(forward){
+	deleteSelectedContent(dir){
 		var {selection} = this.state;
 		
 		if(selection.startOffset == selection.endOffset && selection.startNode == selection.endNode){
@@ -463,9 +1179,11 @@ export default class RichEditor extends React.Component {
 			// No actual selection - select 1 "character", forward or back (if DEL or backspace).
 			var node = selection.startNode;
 			
-			if(forward){
+			if(dir == 1){
 				// Might just be one character.
-				if(node.type == 'TEXT' && selection.startOffset < node.text.length){
+				// TODO!
+				/*
+				if(selection.startOffset < node.text.length){
 					// Yep!
 					selection.endOffset = selection.startOffset + 1;
 				}else{
@@ -486,24 +1204,86 @@ export default class RichEditor extends React.Component {
 					selection.endNode = next;
 					selection.endOffset = 0;
 				}
-			}else{
+				*/
+			}else if(dir == -1){
 				// Might just be one character.
-				if(node.type == 'TEXT' && selection.startOffset > 0){
-					// Yep!
+				if(node.type == TEXT && selection.startOffset != 0){
 					selection.endOffset = selection.startOffset;
 					selection.startOffset--;
 				}else{
-					// Prev will already be child most node, i.e. likely a text node. 
-					// TODO: It may also be a parent of node in this case it would be wrong.
-					// However the thing we are deleting is the break *between* these nodes, meaning selection start goes just after prev.
-					var prev = this.getPrevious(node);
+					// The thing we are deleting is sometimes the break *between* these nodes, meaning selection start goes just after prev.
+					var prev;
+					
+					if(selection.startOffset != 0){
+						// We can't just delete the whole previous node because it might contain a bunch of child nodes 
+						// (some of which may be text - it might be a text node itself).
+						// Get the "rightmost" node inside it.
+						prev = this.getRightmostChild(selection.startNode.content[selection.startOffset - 1]);
+					}else{
+						prev = this.getPreviousNode(node);
+					}
+					
 					if(!prev){
 						// Backspace at start of the content.
 						return;
 					}
-					selection.startNode = prev.parent;
-					selection.startOffset = prev.parent.content.indexOf(prev) + 1;
+					
+					// If prev is a non-custom and non-text inline node:
+					while(prev.type != TEXT && !!inlines[prev.type]){
+						prev = this.getPreviousNode(prev);
+						if(!prev){
+							return;
+						}
+					}
+					
+					if(prev.type == TEXT){
+						// Enter at the end of it, -1 char (because there's nothing else between it and us).
+						selection.startNode = prev;
+						selection.startOffset = prev.text.length - 1;
+					}else if(this.isParentOf(prev, node)){
+						// It's a parent of node. Need to step back one more time to locate where the child nodes should go.
+						var prev2 = this.getPreviousNode(prev);
+						if(!prev2){
+							// Root! do nothing.
+							return;
+						}
+						var lastChild = prev;
+						// If prev is a non-custom and non-text inline node:
+						while(prev2.type != TEXT && !!inlines[prev2.type]){
+							lastChild = prev2;
+							prev2 = this.getPreviousNode(prev2);
+							if(!prev2){
+								break;
+							}
+						}
+						
+						if(!prev2){
+							prev2 = this.state.node;
+						}
+						
+						// Put the caret just after it.
+						if(prev2.type == TEXT){
+							selection.startNode = prev2;
+							selection.startOffset = prev2.text.length;
+						}else if(prev2.parent){
+							selection.startNode = prev2.parent;
+							selection.startOffset = prev2.parent.content.indexOf(prev2) + 1;
+						}else{
+							// It's in the root
+							selection.startNode = prev2;
+							selection.startOffset = prev2.content.indexOf(lastChild);
+						}
+						
+					}else{
+						// It's a block element which is not a parent of us, 
+						// so just place the caret just before it as we'll delete the whole thing:
+						selection.startNode = prev.parent;
+						selection.startOffset = prev.parent.content.indexOf(prev);
+					}
 				}
+			}else{
+				// No-op
+				return;
 			}
 			
 		}
@@ -511,18 +1291,23 @@ export default class RichEditor extends React.Component {
 		this.deleteContent(selection);
 		selection.endOffset = selection.startOffset;
 		selection.endNode = selection.startNode;
-		this.setState({selection});
+		this.normalise();
 	}
 	
 	/*
 	* Useful for setting the active state of formatting buttons on the UI. 
-	* Gets the unique parent nodes for the given selection (specifically, it's at the start of the selection).
+	* Gets the unique parent nodes for the given selection or node (specifically, it's at the start of the selection).
 	*/
-	getUniqueParents(selection){
+	getUniqueParents(node){
+		if(!node){
+			return {};
+		}
+		if(node.startNode){
+			node = node.startNode;
+		}
 		var parents = {};
-		var node = selection.startNode;
 		while(node != null){
-			if(node.type && node.type != 'TEXT'){
+			if(node.type && node.type != TEXT){
 				parents[node.type] = true;
 			}
 			node = node.parent;
@@ -532,10 +1317,9 @@ export default class RichEditor extends React.Component {
 	}
 	
 	/*
-	* Wraps (or unwraps) the given selection in an inline ele of the given type, with the given props.
-	* If there are any block elements in the selection, the inline element is effectively duplicated and inserted repeatedly.
+	* Wraps (or unwraps) the given selection in an ele of the given type, with the given props.
 	*/
-	applyInline(selection, type, props){
+	applyWrap(selection, type, props){
 		if(!selection){
 			return;
 		}
@@ -543,89 +1327,241 @@ export default class RichEditor extends React.Component {
 		
 		if(active[type]){
 			// It's already active - we'll want to remove it.
-			this.removeInline(selection, type, props);
+			this.removeWrap(selection, type);
 		}else{
 			// Insert it.
-			this.insertInline(selection, type, props);
+			this.insertWrap(selection, type, props);
+		}
+	}
+	
+	removeWrapsIn(node, type, selection){
+		if(node.content){
+			for(var i=node.content.length-1;i>=0;i--){
+				var child = node.content[i];
+				this.removeWrapsIn(child, type, selection);
+				if(child.type == type){
+					this.removeNode(child, selection, true);
+				}
+			}
 		}
 		
-		// Update active state:
-		active = this.getUniqueParents(selection);
-		this.setState({active});
+		if(node.roots){
+			for(var k in node.roots){
+				var child = node.roots[k];
+				// No need to check child.type as it's always null for a root.
+				this.removeWrapsIn(child, type, selection);
+			}
+		}
 	}
 	
 	/* Unwraps selection with inline ele of given type. May end up generating multiple ele's. */
-	removeInline(selection, type, props){
+	removeWrap(selection, type){
 		
-		var node = selection.startNode;
+		// First, split the selection:
+		var nodesInSelection = this.sliceSelection(selection);
 		
-		if(node == selection.endNode){
-			// Within the same node. Likely just all/ part of a text node.
+		// Remove from any nodes inside the sliced set.
+		nodesInSelection.forEach(node => {
+			// Check its children:
+			this.removeWrapsIn(node, type, selection);
 			
-		}else{
-			// Entire tail of startNode, head of endNode, and some unknown number of nodes in between.
-			// Nodes in between are wrapped per block node.
+			if(node.type == type){
+				this.removeNode(node, selection, true);
+			}
+		});
+		
+		// Next, for each parent of the nodes in the selection, check if it is the type we want to remove.
+		nodesInSelection.forEach(node => {
+			var n = node.parent;
+			while(n){
+				var next = n.parent;
+				if(n.type == type){
+					this.removeNode(n, selection, true);
+				}
+				n = next;
+			}
+		});
+		
+		// Future todo (if necessary) - re-add the wrap to any parent-most nodes that are not inside the selection.
+		
+		// Tidy the tree up after modifying it (this also stores an undo snapshot amongst other things).
+		this.normalise();
+	}
+	
+	deepClone(node, selection, clonedSelection){
+		if(!node){
+			return null;
+		}
+		var result = {
+			type: node.type,
+			typeName: node.typeName,
+			text: node.text,
+			id: node.id,
+			templateId: node.templateId
+		};
+		
+		if(selection){
+			if(node == selection.startNode){
+				clonedSelection.startNode = result;
+			}
+			if(node == selection.endNode){
+				clonedSelection.endNode = result;
+			}
 		}
 		
+		if(node.content){
+			var content = [];
+			for(var i=0;i<node.content.length;i++){
+				var clone = this.deepClone(node.content[i], selection, clonedSelection);
+				content.push(clone);
+				clone.parent = result;
+			}
+			result.content = content;
+		}
+		
+		if(node.roots){
+			var roots = {};
+			for(var k in node.roots){
+				var clone = this.deepClone(node.roots[k], selection, clonedSelection);
+				roots[k] = clone;
+				clone.parent = result;
+			}
+			result.roots = roots;
+		}
+		
+		if(node.props){
+			result.props = {...node.props};
+		}
+		
+		return result;
 	}
 	
 	/* Wraps selection with inline ele of given type. May end up generating multiple ele's. */
-	insertInline(selection, type, props){
+	insertWrap(selection, types, props, forceInsert){
 		
-		var node = selection.startNode;
+		var nodesThatRequireWrapping = this.sliceSelection(selection);
 		
-		if(node == selection.endNode){
-			// Within the same node. Likely just all/ part of a text node.
-			// startNode itself always ends up inside the new inline block.
-			if(node.type == 'TEXT'){
-				var parent = node.parent;
-				var index = parent.content.indexOf(node);
-				
-				// Remove from parent:
-				node.parent.content.splice(index, 1);
-				
-				var newInline = {type, props};
-				this.addNode(newInline, parent, index);
-				this.addNode(node, newInline);
-				var textAfter = selection.endOffset != node.text.length;
-				
-				if(selection.startOffset){
-					// Non-zero start offset - there's a new text node that gets inserted into node parent just before the new inline thing.
-					this.addNode({
-						type: 'TEXT',
-						text: node.text.substring(0, selection.startOffset)
-					}, parent, index);
-					index++;
-					node.text = node.text.substring(selection.startOffset);
-					selection.endOffset -= selection.startOffset;
-					selection.startOffset = 0;
-				}
-				
-				if(textAfter){
-					// Some content at the end that needs to be relocated to after the newly created inline element.
-					this.addNode({
-						type: 'TEXT',
-						text: node.text.substring(selection.endOffset)
-					}, parent, index + 1);
-					node.text = node.text.substring(0, selection.endOffset);
-				}
-				
-			}else{
-				// the new inline ele becomes a child of this node.
-				var toRelocate = this.content.splice(selection.startOffset, selection.endOffset - selection.startOffset);
-				var newInline = {type, props, content: toRelocate};
-				toRelocate.forEach(tr => tr.parent = newInline);
-				this.addNode(toRelocate, selection.startNode, selection.startOffset);
-				selection.startNode = selection.endNode = toRelocate;
-				selection.startOffset = 0;
-				selection.endOffset = toRelocate.length;
-			}
-			
-		}else{
-			// Entire tail of startNode, head of endNode, and some unknown number of nodes in between.
-			// Nodes in between are wrapped per block node.
+		if(!Array.isArray(types)){
+			types = [types];
 		}
 		
+		var primaryType = types[types.length-1];
+		
+		if(!!inlines[primaryType]){
+			
+			// Remove from the nodes if it already exists in there for tidiness:
+			nodesThatRequireWrapping.forEach(node => {
+				// Check its children:
+				this.removeWrapsIn(node, primaryType, selection);
+			});
+			
+			nodesThatRequireWrapping.forEach(node => {
+				if(node.type == primaryType){
+					// Nothing to do - it's already the type we want.
+					return;
+				}
+				
+				var newParent = {type: primaryType, props: props ? {...props} : null};
+				
+				if(!node.parent){
+					// Root: ctrl+a wrapping everything. Content becomes all of roots content, and we get pushed into it.
+					newParent.content = node.content;
+					newParent.content.forEach(n => n.parent = newParent);
+					node.content=[newParent];
+					newParent.parent = node;
+					
+					// Special case - edit the selection as well: 
+					if(selection.endNode == node){
+						selection.endOffset = 1;
+					}
+					
+					if(selection.startNode == node){
+						selection.startOffset = 0;
+					}
+				}else{
+					newParent.content = [node];
+					var index = node.parent.content.indexOf(node);
+					node.parent.content[index] = newParent;
+					newParent.parent = node.parent;
+					node.parent = newParent;
+				}
+				
+			});
+		}else{
+			// Block type. Collect all unique leaf-most block parents, and then based on heuristics either convert them or wrap all their childnodes.
+			// Note that the root node is considered a block parent in this check.
+			var uniqueBlockParents = [];
+			
+			if(!nodesThatRequireWrapping.length){
+				// Nothing actually selected, but still applies to object.
+				uniqueBlockParents.push(this.getBlockOrRoot(selection.startNode));
+			}
+			
+			nodesThatRequireWrapping.forEach(node => {
+				var block = this.getBlockOrRoot(node);
+				
+				if(uniqueBlockParents.indexOf(block) == -1){
+					uniqueBlockParents.push(block);
+				}
+			});
+			
+			uniqueBlockParents.forEach(blockNode => {
+				
+				var typeIndex = types.length-1;
+				
+				while(typeIndex >= 0){
+					
+					var type = types[typeIndex];
+					
+					// 0 = Change the type of the given node.
+					// 1 = Wrap all the children of the given node in a new block type.
+					// 2 = Wrap the given node in a new node of the new block type.
+					var action = 0;
+					
+					if(blockNode == this.state.node){
+						// Root node. Must wrap all its child nodes in the new block type.
+						action = 1;
+					}else if(forceInsert){
+						action = 1;
+					}else{
+						// Depending on the type of node that blockNode is vs. type, it may be either converted, 
+						// parented to the new node, or have the new node as a child.
+						/*if(blockNode.type == 'li' && type != 'li'){
+							action = 1;
+						}else if(type == 'li'){
+							action = 0;
+						}else{
+							action = 0;
+						}*/
+					}
+					
+					if(action == 0){
+						blockNode.type = type;
+					}else if(action == 1){
+						// Wrap blockNode's children with a new node:
+						var newNode = {type, props: props ? {...props} : null, content: blockNode.content};
+						blockNode.content = [newNode];
+						newNode.parent = blockNode;
+						newNode.content.forEach(n => n.parent = newNode);
+					}else{
+						// Wrap blockNode with new node:
+						var newNode = {type, props: props ? {...props} : null, content: [blockNode]};
+						var index = blockNode.parent.indexOf(blockNode);
+						blockNode.parent.content[index] = newNode;
+						newNode.parent = blockNode.parent;
+						blockNode.parent = newNode;
+						blockNode = newNode;
+					}
+					
+					typeIndex--;
+					blockNode = blockNode.parent;
+				}
+				
+			});
+		}
+		
+		// Normalise the tree to indicate we're done modifying it:
+		this.normalise();
 	}
 	
 	deleteContent(selection){
@@ -633,153 +1569,358 @@ export default class RichEditor extends React.Component {
 		var node = selection.startNode;
 		
 		// In case we delete start itself, get previous node:
-		var prev = this.getPrevious(node);
+		var prev = this.getPreviousNode(node);
 		
-		if(node == selection.endNode){
-			// Within same node. Likely just a substr on some text.
-			if(selection.startOffset == selection.endOffset){
-				// If they are the same, nothing happens.
-				return;
+		if(node == selection.endNode && selection.startOffset == selection.endOffset){
+			// If they are the same, nothing happens.
+			return;
+		}
+		
+		// Slice the selection, returning all the unique parent-most nodes inside it. Will only modify the tree by slicing text nodes.
+		var toDelete = this.sliceSelection(selection);
+		
+		// If any parents of endNode are marked for deletion, don't delete them.
+		// This is because if endNode has other inline siblings, they shouldn't lose their formatting, 
+		// but they should however lose all *block elements* that they are inside.
+		var relocateEnd = false;
+		var curParent = selection.endNode.parent;
+		var toMerge = [];
+		while(curParent){
+			var parentIndex = toDelete.indexOf(curParent);
+			if(parentIndex != -1){
+				// It wants to delete a parent. Is it inline?
+				if(this.isInline(curParent)){
+					// Prevent removal of inline parents:
+					toDelete.splice(parentIndex, 1);
+				}else{
+					// Block parent. This does get deleted. 
+					// Any of its children that aren't being deleted are merged into the parent of startNode.
+					toMerge.push(curParent);
+				}
 			}
-			
-			if(this.deleteFromNode(node, selection.startOffset, selection.endOffset)){
-				// Node itself was deleted.
-				this.relocateStart(selection, prev);
-			}
-		}else{
-			// Entire tail of startNode, head of endNode, and some unknown number of nodes in between.
-			var foundStart = false;
-			var foundEnd = false;
-			var toDelete = [];
-			
-			this.forEachNode(this.state.node, n => {
-				
-				if(n == selection.endNode){
-					foundEnd = true;
-				}
-				
-				if(foundStart && !foundEnd){
-					toDelete.push(n);
-				}
-				
-				if(n == node){
-					foundStart = true;
-				}
-				
+			curParent = curParent.parent;
+		}
+		
+		toDelete.map(node => this.removeNode(node, selection));
+		
+		var mergeInto = node;
+		var mergeIndex = selection.startOffset;
+		
+		if(node.type == TEXT || typeof node.type != 'string' && node.parent){
+			// Merge into the parent of node, just after it.
+			mergeInto = mergeInto.parent;
+			mergeIndex = mergeInto.content.indexOf(node) + 1;
+		} // Otherwise we merge in just after the startOffset in the start node.
+		
+		toMerge.map(n => {
+			// These elements are already in render order, so:
+			n.content.forEach(c => {
+				this.addNode(c, mergeInto, mergeIndex);
+				mergeIndex++;
 			});
+		});
+	}
+	
+	normalise(isMinorState){
+		var {selection, node} = this.state;
+		this.normaliseNode(node, selection);
+		var parents = this.getUniqueParents(selection);
+		this.setState({selection, active: parents});
+		
+		this.addStateSnapshot(isMinorState);
+	}
+	
+	getMaxId(node, currentMax){
+		if(!node){
+			return;
+		}
+		
+		if(node.id > currentMax){
+			currentMax = node.id;
+		}
+		
+		if(node.content){
+			for(var i=0;i<node.content.length;i++){
+				var check = this.getMaxId(node.content[i], currentMax);
+				if(check > currentMax){
+					currentMax = check;
+				}
+			}
+		}
+		
+		return currentMax;
+	}
+	
+	getTextOnly(node){
+		// Iterate through the tree collecting only text nodes.
+		if(!node){
+			return '';
+		}
+		
+		if(node.type == TEXT){
+			return node.text;
+		}
+		
+		var result = '';
+		if(node.content){
+			for(var i=0;i<node.content.length;i++){
+				result += this.getTextOnly(node.content[i]);
+			}
+		}
+		
+		if(node.roots && node.roots.children){
+			result += this.getTextOnly(node.roots.children);
+		}
+		
+		return result;
+	}
+	
+	toCanvasFormat(node, options){
+		if(!node){
+			return;
+		}
+		
+		if(Array.isArray(node)){
+			var content = [];
 			
-			// If any parents of endNode are marked for deletion, don't delete them.
-			// This is because if endNode has other inline siblings, they shouldn't lose their formatting, 
-			// but they should however lose all *block elements* that they are inside.
-			var relocateEnd = false;
-			var curParent = selection.endNode.parent;
-			var toMerge = [];
-			while(curParent){
-				var parentIndex = toDelete.indexOf(curParent);
-				if(parentIndex != -1){
-					// It wants to delete a parent. Is it inline?
-					if(this.isInline(curParent)){
-						// Prevent removal of inline parents:
-						toDelete.splice(parentIndex, 1);
-					}else{
-						// Block parent. This does get deleted. 
-						// Any of its children that aren't being deleted are merged into the parent of startNode.
-						toMerge.push(curParent);
+			for(var i=0;i<node.length;i++){
+				var converted = this.toCanvasFormat(node[i], options);
+				if(converted){
+					content.push(converted);
+				}
+			}
+			
+			return content;
+		}
+		
+		var resultNode = {};
+		var attribs = false;
+		
+		if(node.type == TEXT){
+			resultNode.s = node.text;
+			attribs = true;
+		}else{
+			if(node.type){
+				if(typeof node.type == 'string'){
+					resultNode.t = node.type;
+				}else{
+					// Custom components can have data (props) as well.
+					resultNode.t = node.typeName;
+					
+					if(node.props){
+						resultNode.d = node.props;
+					}
+					
+					if(node.roots){
+						// If there is only 1 key and it is children, then we apply it to resultNode.c:
+						var keys = Object.keys(node.roots);
+						
+						if(keys.length){
+							if(keys.length == 1 && keys[0] == 'children'){
+								resultNode.c = this.toCanvasFormat(node.roots.children.content, options);
+							}else{
+								resultNode.r = {};
+								for(var k in node.roots){
+									resultNode.r[k] = this.toCanvasFormat(node.roots[k].content, options);
+								}
+							}
+						}
 					}
 				}
-				curParent = curParent.parent;
+				
+				attribs = true;
 			}
 			
-			toDelete.map(node => this.removeNode(node));
-			
-			var startParent = node.parent;
-			
-			toMerge.map(node => {
-				if(node.content && node.content.length){
-					// These elements are already in render order, so can be directly merged in:
-					node.content.map(c => c.parent = startParent);
-					startParent.content = startParent.content.concat(node.content);
+			if((!node.parent || typeof node.type == 'string') && node.content && node.content.length){
+				var content = this.toCanvasFormat(node.content, options);
+				
+				if(content.length){
+					if(content.length == 1){
+						resultNode.c = content[0];
+					}else{
+						resultNode.c = content;
+					}
+					attribs = true;
 				}
-			});
-			
-			// Tail and head (must happen after the above complete nodes, just in case this removes the start/end entirely):
-			
-			if(this.deleteFromNode(node, selection.startOffset, -1)){
-				// Start node was just deleted.
-				// Select the end of the previous node, or just the root if there isn't one.
-				this.relocateStart(selection, prev);
-				node = selection.startNode;
 			}
-			
-			if(!this.deleteFromNode(selection.endNode, 0, selection.endOffset)){
+		}
+		
+		if(options && options.id){
+			// Only include id if we need to.
+			if(node.id){
+				resultNode.i = node.id;
+				attribs = true;
+			}else{
+				options.id++;
+				resultNode.i = options.id;
+				attribs = true;
+			}	
+		}else if(node.templateId){
+			// This id is required.
+			resultNode.i = node.id;
+			attribs = true;
+		}
+		
+		if(node.templateId){
+			resultNode.ti = node.templateId;
+			attribs = true;
+		}
+		
+		if(!resultNode.i && !resultNode.ti && node.type == TEXT){
+			// This is a {c: "text"} node which can be shortformed to just the text:
+			return node.text;
+		}
+		
+		// If it has no attributes at all, return null.
+		return attribs ? resultNode : null;
+	}
+	
+	cloneNodeAndSelection(node, selection){
+		var clonedSelection = {};
+		var clonedNode = this.deepClone(node, selection, clonedSelection);
+		
+		clonedSelection.startOffset = selection ? selection.startOffset : 0;
+		clonedSelection.endOffset = selection ? selection.endOffset : 0;
+		
+		// If the snapshots selection is null, select the root node.
+		// This occurs when restoring to an empty editor, and unfocuses the editor meaning you'd have to click on it otherwise.
+		if(!clonedSelection.startNode || !clonedSelection.endNode){
+			clonedSelection.startNode = clonedNode;
+			clonedSelection.endNode = clonedNode;
+			clonedSelection.startOffset = 0;
+			clonedSelection.endOffset = 0;
+		}
+		
+		return {clonedNode, clonedSelection};
+	}
+	
+	addStateSnapshot(isMinor){
+		
+		// Snap the state:
+		var {node, selection} = this.state;
+		
+		var {clonedNode, clonedSelection} = this.cloneNodeAndSelection(node, selection);
+		
+		var snapshot = {
+			isMinor,
+			time: Date.now(),
+			node: clonedNode,
+			selection: clonedSelection,
+			toCanvasJson: () => {
+				// Converts the node to canvas JSON.
 				
-				// May now have 2 text nodes as direct siblings (start and what's left of end).
-				this.tidyTextNodes(selection);
+				var options = {};
 				
+				if(this.props.withIds){
+					// Add IDs in the output if they don't already have them.
+					options.id = this.getMaxId(snapshot.node, 0) || 1;
+				}
+				
+				var json = JSON.stringify(this.toCanvasFormat(snapshot.node, options));
+				return json;
+			},
+			restore: () => {
+				// Snapshots must be cloned on restore. Otherwise if you edited it and then tried to go 
+				// back/ forward to the same snapshot, it will have been modified.
+				
+				var selection = {
+					startOffset: snapshot.selection.startOffset,
+					endOffset: snapshot.selection.endOffset
+				};
+				
+				var node = this.deepClone(snapshot.node, snapshot.selection, selection);
+				
+				// Use root dom ref:
+				node.dom = this.state.node.dom;
+				snapshot.time = Date.now();
+				
+				this.setState({node, selection});
+			}
+		};
+		
+		var latest = this.latestSnapshot;
+		snapshot.previous = latest;
+		
+		// If the latest snapshot is also minor, it just replaces it if the time diff is short enough.
+		if(isMinor && latest && latest.isMinor && (snapshot.time - latest.time) < 500){
+			// Replace it.
+			snapshot.previous = latest.previous;
+		}
+		
+		this.redoSnapshot = null;
+		this.onNewSnapshot(snapshot);
+	}
+	
+	normaliseNode(node, selection){
+		if(!node){
+			return;
+		}
+		
+		// Actions performed:
+		// - Tidy any children.
+		// - Remove any empty inline elements.
+		// - Merge side-by-side inline nodes (text nodes included).
+		
+		if(node.content){
+			// Tidy any children. Go backwards because they can remove themselves.
+			for(var i=node.content.length - 1;i>=0;i--){
+				this.normaliseNode(node.content[i], selection);
 			}
 		}
-	}
-	
-	tidyTextNodes(selection){
-		var start = selection.startNode;
-		var end = selection.endNode;
-		if(start.type == 'TEXT' && end.type == 'TEXT' && start.parent == end.parent){
-			var endIndex = end.parent.content.indexOf(end);
-			var startIndex = start.parent.content.indexOf(start);
-			
-			if(startIndex == endIndex - 1){
-				// Merge these 2 text nodes:
-				start.text += end.text;
-				this.removeNode(end);
-				selection.endNode = start;
-				selection.endOffset += start.text.length;
+		
+		if(node.roots){
+			// Tidy any children. Go backwards because they can remove themselves.
+			for(var k in node.roots){
+				this.normaliseNode(node.roots[k], selection);
 			}
 		}
-	}
-	
-	relocateStart(selection, prev){
-		if(!prev || !prev.parent){
-			selection.startNode = this.state.node;
-			selection.startOffset = 0;
-		}else if(prev.type == 'TEXT'){
-			selection.startNode = prev;
-			selection.startOffset = prev.text.length;
-		}else{
-			selection.startNode = prev.parent;
-			selection.startOffset = prev.parent.content.indexOf(prev) + 1;
-		}
-	}
-	
-	forEachNode(start, cb){
-		cb(start);
-		if(start.content){
-			for(var i=0;i<start.content.length;i++){
-				var child = start.content[i];
-				this.forEachNode(child, cb);
-			}
-		}
-	}
-	
-	deleteFromNode(node, start, end){
-		if(node.type == "TEXT") {
-			node.text = node.text.substring(0, start) + (end == -1 ? '' : node.text.substring(end));
+		
+		// Are we empty? If yes and it's an inline ele, delete the node.
+		if(node.type == TEXT){
 			if(!node.text){
-				// Remove from parent
-				this.removeNode(node);
-				return true;
+				// Empty text node.
+				this.removeNode(node, selection);
 			}
-		}else if(node.content) {
-			// Offsets are relative to the content array in this node.
-			var a = node.content;
-			var res = a.slice(0, start);
-			node.content = end == -1 ? res : res.concat(a.slice(end));
-			
-			if(!node.content.length){
-				// Remove from parent
-				this.removeNode(node);
-				return true;
+			return;
+		}else if((!node.content || !node.content.length) && !!inlines[node.type] && !inlineNoContent[node.type]){
+			// Empty inline element.
+			this.removeNode(node, selection);
+			return;
+		}
+		
+		if(node.content){
+			// Merge side by side inline nodes:
+			var prev = false;
+			for(var i=node.content.length - 1;i>=0;i--){
+				var c = node.content[i];
+				if(!this.isInline(c)){
+					prev = false;
+					continue;
+				}
+				
+				if(prev && c.type == prev.type){
+					// 2 inline nodes of the same basic html type in a row - merge them now:
+					this.removeNode(prev, selection, 2);
+					
+					if(c.type != TEXT){						
+						// Normalise it again:
+						this.normaliseNode(c, selection);
+					}
+				}
+				
+				prev = c;
 			}
 		}
+	}
+	
+	// Gets first block node by going down the tree, or root.
+	getBlockOrRoot(node){
+		if(node == this.state.node || (typeof node.type == 'string' && !inlines[node.type])){
+			// It's a block node.
+			return node;
+		}
+		
+		return this.getBlockOrRoot(node.parent);
 	}
 	
 	addNode(node, parent, index){
@@ -796,18 +1937,135 @@ export default class RichEditor extends React.Component {
 		node.parent = parent;
 	}
 	
-	removeNode(node){
-		if(!node.parent){
-			// It's the root!
+	removeNode(node, selection, retainChildren){
+		if(!node.parent || !node.type){
+			// It's a root. Just empty it instead.
+			node.content = [];
+			
+			if(selection.startNode == node){
+				selection.startOffset = 0;
+			}
+			
+			if(selection.endNode == node){
+				selection.endOffset = 0;
+			}
+			
 			return;
 		}
+	
+		var index = node.parent.content.indexOf(node);
 		
-		node.parent.content = node.parent.content.filter(n => n!=node);
-		
-		if(!node.parent.content.length){
-			// Keep the tree nice and tidy:
-			this.removeNode(node.parent);
+		if(retainChildren){
+			if(retainChildren == 2){
+				// Kids are merged into neighbour.
+				var neighbour = node.parent.content[index - 1];
+				
+				if(neighbour.type == TEXT){
+					
+					// If the caret was in node, move to the equiv position inside neighbour:
+					if(selection){
+						var origLength = neighbour.text.length;
+						
+						if(selection.startNode == node){
+							selection.startNode = neighbour;
+							selection.startOffset += origLength;
+						}
+						
+						if(selection.endNode == node){
+							selection.endNode = neighbour;
+							selection.endOffset += origLength;
+						}
+					
+						// If it was just before the node, put it at the end of the neighbour:
+						if(selection.startNode == node.parent && selection.startOffset == index){
+							selection.startNode = neighbour;
+							selection.startOffset = origLength;
+						}
+						
+						if(selection.endNode == node.parent && selection.endOffset == index){
+							selection.endNode = neighbour;
+							selection.endOffset = origLength;
+						}
+					}
+					
+					// If the first ends in a space, and the second starts with a space, use nbsp.
+					if(neighbour.text.length > 0 && node.text.length > 0 && neighbour.text[neighbour.text.length - 1] == ' ' && node.text[0] == ' '){
+						neighbour.text += '\xA0' + node.text.substring(1);
+					}else{
+						neighbour.text += node.text;
+					}
+					
+				}else{
+					// Merge children
+					var offset = neighbour.content.length;
+					neighbour.content = neighbour.content.concat(node.content);
+					node.content.forEach(n => n.parent = neighbour);
+					
+					// Was the caret in this node?
+					if(selection){
+						if(selection.startNode == node){
+							selection.startNode = neighbour;
+							selection.startOffset += offset;
+						}
+						
+						if(selection.endNode == node){
+							selection.endNode = neighbour;
+							selection.endOffset += offset;
+						}
+					}
+					
+				}
+				
+				// Remove from parent:
+				node.parent.content.splice(index, 1);
+			}else{
+				// kids are merged into parent
+				
+				node.parent.content = node.parent.content.slice(0, index).concat(node.content || []).concat(node.parent.content.slice(index + 1));
+				node.content.forEach(child => child.parent = node.parent);
+				
+				if(selection){
+					if(selection.startNode == node){
+						selection.startNode = node.parent;
+						selection.startOffset = index;
+					}
+					
+					if(selection.endNode == node){
+						selection.endNode = node.parent;
+						selection.endOffset = index;
+					}
+				}
+			}
+			
+		}else{
+			// Remove from parent:
+			node.parent.content.splice(index, 1);
+			
+			// If caret is in the node, or in any of its children, relocate to the start of the parent.
+			if(selection){
+				if(this.isParentOf(node, selection.startNode)){
+					selection.startNode = node.parent;
+					selection.startOffset = index;
+				}
+				
+				if(this.isParentOf(node, selection.endNode)){
+					selection.endNode = node.parent;
+					selection.endOffset = index;
+				}
+			}
 		}
+		
+		// Apply this in all cases - if the caret was sitting just after the now deleted node, reduce the offset:
+		if(selection){
+			if(selection.startNode == node.parent && selection.startOffset >= index){
+				selection.startOffset--;
+			}
+			
+			if(selection.endNode == node.parent && selection.endOffset >= index){
+				selection.endOffset--;
+			}
+		}
+		
 	}
 	
 	renderNode(node, parent){
@@ -817,60 +2075,181 @@ export default class RichEditor extends React.Component {
 		
 		var NodeType = node.type;
 		
-		if(NodeType == 'TEXT'){
+		if(NodeType == TEXT){
 			return node.text;
 		}else if(typeof NodeType === 'string'){
 			if(!node.dom){
 				node.dom = React.createRef();
 			}
 			
-			return <NodeType ref={node.dom} {...node.props}>{node.content ? this.renderNode(node.content, node) : null}</NodeType>;
-		}else{
-			// Custom component
-			if(!node.dom){
-				node.dom = React.createRef();
+			var childContent = null;
+			
+			if(node.content && node.content.length){
+				childContent = this.renderNode(node.content, node);
+			}else if(!this.isInline(node)){
+				// Fake a <br> such that block elements still have some sort of height.
+				childContent = this.renderNode({type:'br', props: {'rte-fake': 1}});
 			}
 			
-			return <span ref={node.dom}>
-				<NodeType ref={node.dom} {...node.props}>{node.content ? this.renderNode(node.content, node) : null}</NodeType>
-			</span>;
+			return <NodeType ref={node.dom} {...node.props}>{childContent}</NodeType>;
+		}else{
+			// Custom component
+			var props = {...node.props, _rte: this};
+			
+			if(node.roots){
+				var children = null;
+				
+				for(var k in node.roots){
+					var root = node.roots[k];
+					
+					if(!root.dom){
+						root.dom = React.createRef();
+					}
+					
+					var rendered;
+					
+					if(NodeType.editable){
+						rendered = this.renderNode(root.content);
+					}else{
+						rendered = <span ref={root.dom} contentEditable="true">{this.renderNode(root.content)}</span>;
+					}
+					
+					if(k == 'children'){
+						children = rendered;
+					}else{
+						props[k] = rendered;
+					}
+				}
+				
+				// Note that you're either oneRoot or editable - can't be both. editable implies one root.
+				if(NodeType.oneRoot){
+					props.contentEditable="false";
+					return <NodeType {...props}>{children}</NodeType>;
+				}else if(NodeType.editable){
+					return <NodeType {...props}>{children}</NodeType>;
+				}else{
+					return <span module={node.typeName} contentEditable="false">
+						<NodeType {...props}>{children}</NodeType>
+					</span>;
+				}
+				
+			}else{
+				// It has no content inside it; it's purely config driven.
+				// Either wrap it in a span (such that it only has exactly 1 DOM node, always), unless the module tells us it has one node anyway:
+				
+				// Note that you're either oneRoot or editable - can't be both. editable implies one root.
+				if(NodeType.oneRoot){
+					props.contentEditable="false";
+					return <NodeType {...props} />;
+				}else if(NodeType.editable){
+					return <NodeType {...props} />;
+				}else{
+					return <span module={node.typeName} contentEditable="false">
+						<NodeType {...props} />
+					</span>;
+				}
+			}
 		}
 	}
 	
+	isCustom(node){
+		return (node && node.type && typeof node.type != 'string');
+	}
+	
 	render() {
-		var {node} = this.state;
+		var {node, error} = this.state;
+		
+		if(error){
+			return <div className="rich-editor">
+				<Alert type='error'>
+					<p>
+						<b>Uh oh!</b>
+					</p>
+					<p>
+						This editor wasn't able to load because your JSON is invalid.
+					</p>
+					<p>{error.message}</p>
+				</Alert>
+			</div>;
+		}
+		
 		return <div className="rich-editor">
 			<div className="rte-toolbar">
-				{this.surroundButton('Bold', 'b')}
-				{this.surroundButton('Underline', 'u')}
-				{this.surroundButton('Italic', 'i')}
-				{this.surroundButton('Set as header', 'h1', <i className='fa fa-heading' />)}
-				{this.renderButton('fa fa-plus', 'Add something', () => {
+				{this.surroundButton('Bold', 'b', null, true)}
+				{this.surroundButton('Underline', 'u', null, true)}
+				{this.surroundButton('Italic', 'i', null, true)}
+				{this.surroundButton('Strike', 's', null, true)}
+				{this.surroundButton('Link', 'a', null, true, {href:'https://www.example.com/'})}
+				{this.surroundButton('Quote', 'blockquote', 'Quote')}
+				{this.menuButton('Heading..', () => {
+					return <>
+						<div>{this.surroundButton('Set as header', 'h1', 'Heading')}</div>
+						<div>{this.surroundButton('Set as header', 'h2', 'Heading 2')}</div>
+						<div>{this.surroundButton('Set as header', 'h3', 'Heading 3')}</div>
+						<div>{this.surroundButton('Set as header', 'h4', 'Heading 4')}</div>
+						<div>{this.surroundButton('Set as header', 'h5', 'Heading 5')}</div>
+						<div>{this.surroundButton('Set as header', 'h6', 'Heading 6')}</div>
+					</>;
+				})}
+				{this.menuButton('List..', () => {
+					return <>
+						<div>{this.surroundButton('List', ['ul', 'li'], 'Bullet point list')}</div>
+						<div>{this.surroundButton('List', ['ol', 'li'], 'Numbered list')}</div>
+					</>;
+				})}
+				{this.renderButton('Add something else', <i className={'fa fa-plus'} />, () => {
 					// Show modal
 					console.log("Show modal");
 				})}
 			</div>
-			<div ref={node.dom} className="rte-content" contentEditable={true} onKeyDown={this.onKeyDown} onMouseUp={this.onMouseUp} onBlur={this.onBlur} onPaste={this.onPaste}>
+			<div ref={node.dom} className="rte-content" contentEditable="true" onKeyDown={this.onKeyDown} onDragStart={this.onReject} onBlur={this.onBlur} onPaste={this.onPaste} onCopy={this.onCopy} onCut={this.onCut} onMouseDown={this.onMouseDown}>
 				{this.renderNode(node.content)}
 			</div>
 		</div>;
 	}
 	
-	surroundButton(title, type, content){
+	menuButton(title, onOpen){
+		var {openMenu} = this.state;
+		var isActiveMenu = (openMenu == title);
+		
+		return <span className="rte-submenu-container">
+			{this.renderButton(title, title, () => {
+				this.setState({openMenu: isActiveMenu ? null : title});
+			})}
+			{isActiveMenu ? <div className="rte-submenu">{onOpen()}</div> : null}
+		</span>;
+	}
+	
+	surroundButton(title, types, content, requireSelection, props){
 		if(!content){
 			content = title;
 		}
-		var {active} = this.state;
+		var {active, selection} = this.state;
+		
+		// If there's no selection, then none are clickable.
+		var disabled = !selection || (requireSelection && (selection.startNode == selection.endNode && selection.startOffset == selection.endOffset));
+		
+		var checkFor = types;
+		
+		if(Array.isArray(types)){
+			// Inserting multiple at once.
+			checkFor = types[0];
+		}
+		
 		return <button 
+			disabled={disabled}
 			title={title}
 			onMouseDown={e => {
 				// Prevent focus change
 				e.preventDefault();
 				
-				this.applyInline(this.state.selection, type);
+				// Close any drops:
+				this.setState({openMenu: null});
+				
+				this.applyWrap(this.state.selection, types, props);
 			}}
 			onMouseUp={e => e.preventDefault()}
-			className={active[type] ? "active" : ""}
+			className={active[checkFor] ? "active" : ""}
 			onClick={e => {
 				// Prevent focus change
 				e.preventDefault();
@@ -880,7 +2259,7 @@ export default class RichEditor extends React.Component {
 		</button>;
 	}
 	
-	renderButton(icon, title, onClick){
+	renderButton(title, content, onClick){
 		return <button 
 			title={title}
 			onMouseDown={e => {
@@ -894,7 +2273,7 @@ export default class RichEditor extends React.Component {
 				e.preventDefault();
 			}}
 		>
-			<i className={icon} />
+			{content}
 		</button>;
 	}
 	
@@ -906,14 +2285,27 @@ export default class RichEditor extends React.Component {
 			check = this.state.node;
 		}
 		
+		var result=this.getNodeIntl(domNode, check);
+		
+		while(!result){
+			domNode = domNode.parentNode;
+			if(!domNode || domNode == this.state.node.dom.current){
+				return null;
+			}
+			result = this.getNodeIntl(domNode, check);
+		}
+		
+		return result;
+	}
+	
+	getNodeIntl(domNode, check){
 		if(Array.isArray(check)){
 			for(var i=0;i<check.length;i++){
-				var res = this.getNode(domNode, check[i]);
+				var res = this.getNodeIntl(domNode, check[i]);
 				if(res){
 					return res;
 				}
 			}
-			
 			return;
 		}
 		
@@ -922,8 +2314,23 @@ export default class RichEditor extends React.Component {
 		}
 		
 		if(check.content){
-			return this.getNode(domNode, check.content);
+			var res = this.getNodeIntl(domNode, check.content);
+			if(res){
+				return res;
+			}
 		}
+		
+		if(check.roots){
+			for(var k in check.roots){
+				var root = check.roots[k];
+				var res = this.getNodeIntl(domNode, root);
+				if(res){
+					return res;
+				} 
+			}
+		}
+		
+		return;
 	}
 	
 	updateRefs(node, dom){
@@ -943,15 +2350,99 @@ export default class RichEditor extends React.Component {
 		// Make sure all DOM nodes are associated correctly.
 		if(!node.dom){
 			node.dom = {current: dom};
-		}else if(node.type == 'TEXT'){
+		}else if(node.type == TEXT){
 			node.dom.current = dom;
 		}
 		
+		if(node.roots){
+			for(var k in node.roots){
+				var r = node.roots[k];
+				
+				if(k == 'children' && !r.dom.current){
+					// This is an editable or oneRoot node. It needs its ref setting:
+					r.dom.current = dom;
+				}
+				
+				this.updateRefs(r, r.dom.current);
+			}
+		}
+	}
+	
+	copyJson(){
+		// Clone the tree:
+		var {node, selection} = this.state;
+		var {clonedNode, clonedSelection} = this.cloneNodeAndSelection(node, selection);
+		
+		// Get the set of all selected nodes:
+		var selectedNodes = this.sliceSelection(clonedSelection, clonedNode);
+		
+		// Get start/ end again:
+		var endCaretPosition = this.getCaretPosition(clonedSelection.endNode, clonedSelection.endOffset);
+		var startCaretPosition = this.getCaretPosition(clonedSelection.startNode, clonedSelection.startOffset);
+		
+		// Mark each and their parents as keep, unless they're a block parent:
+		selectedNodes.forEach(n => {
+			n._keepChildren = true;
+			while(n){
+				n._keep = true;
+				n = n.parent;
+				
+				if(n && n.parent && !this.isInline(n)){
+					// Block parent. Only keep this if if started in the selection.
+					if(n.caretStart < startCaretPosition || n.caretStart > endCaretPosition){
+						
+						// Remove it, but keep its child nodes.
+						this.removeNode(n, clonedSelection, true);
+					}
+				}
+				
+			}
+		});
+		
+		this.prune(clonedNode, clonedSelection, n => n._keepChildren ? 2 : (n._keep ? 1 : 0));
+		
+		var json = JSON.stringify(this.toCanvasFormat(clonedNode));
+		return json;
+	}
+	
+	prune(node, selection, filterFunc){ // filterFunc(Node) return true to keep.
+		var retain = filterFunc(node);
+		if(!retain){
+			return false;
+		}
+		
+		// Retain of 2 means don't check the children - we keep all of them anyway.
+		if(retain == 1){
+			if(node.content){
+				for(var i=node.content.length - 1;i>=0;i--){
+					var n = node.content[i];
+					if(!this.prune(n, selection, filterFunc)){
+						this.removeNode(n, selection);
+					}
+				}
+			}
+			
+			if(node.roots){
+				for(var k in node.roots){
+					var r = node.roots[k];
+					if(!this.prune(r, selection, filterFunc)){
+						this.removeNode(r, selection);
+					}
+				}
+			}
+		}
+		
+		return true;
 	}
 	
 	componentDidMount(){
 		this.updateRefs();
-		console.log("Updated refs", this.state.node);
+		console.log("Updated refs", this.state);
+		window.addEventListener('selectionchange', this.onSelectionChange);
+	}
+	
+	componentWillUnmount(){
+		window.removeEventListener('selectionchange', this.onSelectionChange);
 	}
 	
 	/*
@@ -963,7 +2454,7 @@ export default class RichEditor extends React.Component {
 	
 	componentDidUpdate() {
 		this.updateRefs();
-		console.log("Updated refs", this.state.node);
+		console.log("Updated refs", this.state);
 		global.thing = this.state.node;
 		// Locate the cursor, if we need to.
 		var {selection} = this.state;
@@ -986,19 +2477,18 @@ export default class RichEditor extends React.Component {
 // TODO:
 
 /*
-* Overtyping a whole thing deletes everything, because the parent node is briefly empty
-* Deletes need to update 'active' state (such that UI buttons reflect what's currently on the UI).
-* Parse a canvas, including HTML into the editors internal tree representation.
-* Deletes whole formatted node when it's at the start of the text (or start of block?). More broadly delete is wonky!
-* Too keen to delete empty blocks. Don't delete a parent block element if it is not included in the selection. "test\nte" then delete the "e" and the "t". The \n will go too.
-* Related: If generating a new empty block element, put a fake <br> in it until some text is entered. This ensures it has some height and is therefore visible to the caret.
+* Bullet point lists are unstable
+* Complex objects like Grid, as well as the 4 basic ones - UI/Video, UI/Link, UI/Image, UI/Token
+* <Canvas> handle new compact format
+* Deletion of block nodes could be better. A <ul> or <ol> can get stuck in the editor, even though they are being selected. Try also: <p>text<p>|text</p></p> - it won't delete the paragraph.
 
-backwards selections
-undo/ redo
-handle paste
-generic components which are *not* contenteditable
-
-Clicking *SOME* block element button on the UI (header buttons for ex) changes the type of the nearest block element to current selection.
-
-Clicking an inline element button on the UI (italic for ex, or even a link) - if something selected, will analyse all block elements and insert the style *into all of them*.
+Later: 
+* Handle e.g. page structures with nested custom components.
+* Put caret at end of pasted content
+* Shift+enter is not obvious that it has actually worked until you start typing.
+* Pressing DEL key is very minimally handled at the moment
+* The server must validate canvas JSON on save. It must check it contains only permitted types. As it's JSON and HTML nodes are never permitted to have data/ props, this validation can be non-allocating.
+* When <Canvas> encounters a HTML node, it MUST ignore all props. Only custom elements in permitted modules are allowed to have props.
+* The undo stack has no size limit atm!
+* Merge side-by-side inline elements like b, u, i etc.
 */

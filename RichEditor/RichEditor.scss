@@ -5,10 +5,11 @@
 	> .rte-toolbar{
 		background: #f2f2f2;
 		position: sticky;
+		z-index: 1000;
 		top: 0px;
 		padding: 5px;
 		
-		> button {
+		button {
 			border: none;
 			background: none;
 			margin: 2px;
@@ -16,6 +17,20 @@
 			&.active {
 				background: lightgrey;
 			}
+		}
+		
+		.rte-submenu-container{
+			position: relative;
+		}
+		
+		.rte-submenu {
+			left: 0;
+			min-width: 200px;
+			max-width: 300px;
+			position: absolute;
+			border: 1px solid lightgrey;
+			background: white;
+			padding: 5px;
 		}
 	}
 	
