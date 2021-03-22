@@ -14,7 +14,11 @@ export default class Edit extends React.Component{
 	}
 	
     render(){
-        var {comment, onClose} = this.props;
+        var {comment} = this.props;
+
+        var value = JSON.parse(comment.bodyJson);
+        console.log(comment);
+        console.log(value);
 
         return(
             <div className = "comment-edit">
@@ -33,14 +37,17 @@ export default class Edit extends React.Component{
                     }
                     onValues = {
                         values => {
+                            values.bodyJson = '{"content": "'+ values.bodyJson +'" }'
+
                             this.setState({success: false, failure: false, submitting: true})
+                            
                             return {
                                 ...values
                             }
                         }
                     }
                 >
-                    <Input placeholder="Leave us your thoughts!" name = "bodyJson" type = "textarea" defaultValue = {comment.body} validate={["Required"]}/>
+                    <Input placeholder="Leave us your thoughts!" name = "bodyJson" type = "textarea" defaultValue = {value.content} validate={["Required"]}/>
                     <Row className = "comment-buttons">
                         <Input type="submit" label="Save changes"/>
                         <div className = "cancel-button form-group">
