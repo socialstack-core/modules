@@ -72,5 +72,5 @@ Video.propTypes = {
 	width: 'int',
 	height: 'int'
 };
-
+Video.groups = 'formatting';
 Video.icon = 'play-circle';
