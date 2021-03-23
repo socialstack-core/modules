@@ -95,6 +95,7 @@ export default class List extends React.Component{
 				groupAll
 				orNone = {() =>{
 					return <div>
+						<br />
 						<h3>No Comments yet?</h3>
 						<p>Be the first to leave your thoughts!</p>
 					</div>
@@ -121,6 +122,7 @@ export default class List extends React.Component{
 
 						if(!hasComments) {
 							return <div>
+								<br />
 								<h3>No Comments yet?</h3>
 								<p>Be the first to leave your thoughts!</p>
 							</div>
