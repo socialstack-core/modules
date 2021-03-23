@@ -18,7 +18,7 @@ export default class List extends React.Component{
 			editComments: []
 		};
 	}
-	
+
 	replyToggle(comment) {
 		// Let's find out which comments are toggled.
 		var comments = this.state.comments;
@@ -28,9 +28,9 @@ export default class List extends React.Component{
 	}
 
 	editToggle(comment) {
-		var {editComments} = this.state; 
-		editComments[comment.id] = !editComments[comment.id]; 
-		
+		var {editComments} = this.state;
+		editComments[comment.id] = !editComments[comment.id];
+
 		this.setState({editComments});
 	}
 
@@ -59,20 +59,20 @@ export default class List extends React.Component{
 			deletedComments,
 			editComments
 		} = this.state;
-        
+
         if(!contentType && on){
 			contentId = on.id;
 			contentType = on.type;
 		}
-		
+
 		if(!contentType){
             // Missing required props.
             console.log("contentType not set");
 			return null;
         }
-		
+
 		var contentTypeId = getContentTypeId(contentType);
-		
+
         return(
             <div className = "comments">
 				<DeleteComment comment = {deleteComment} onSuccess = {() => this.onDeleted(deleteComment)} onClose = {() => this.setState({deleteComment: null})}/>
@@ -90,7 +90,7 @@ export default class List extends React.Component{
 						sort: {
 							field: 'Order'
 						}
-					}	
+					}
 				}
 				groupAll
 				orNone = {() =>{
@@ -116,7 +116,7 @@ export default class List extends React.Component{
 				>
 					{coms => {
 						var { user } = this.context.app.state;
-						
+
 						var {hasComments} = this.state;
 
 						if(!hasComments) {
@@ -130,16 +130,16 @@ export default class List extends React.Component{
 							var isUser = user && comment.creatorUser && comment.creatorUser.id == user.id;
 							var username = comment.creatorUser && comment.creatorUser.username && comment.creatorUser.username.length ? comment.creatorUser.username : "User";
 
-							return <li style={{marginLeft: (comment.depth * 100) + 'px'}}>
-								{deletedComments[comment.id] || comment.deleted ? (comment.childCommentCount - comment.childCommentDeleteCount > 0 && <i>-This comment was deleted-</i>) : <> 
+							return <li style={{marginLeft: (comment.depth * 50) + 'px'}}>
+								{deletedComments[comment.id] || comment.deleted ? (comment.childCommentCount - comment.childCommentDeleteCount > 0 && <i>-This comment was deleted-</i>) : <>
 									<Row className = "user-info"><b className = "user-name">{username}</b> {sinceDate(comment.createdUtc)}</Row>
-									{editComments[comment.id] ? <EditComment 
+									{editComments[comment.id] ? <EditComment
 										onSuccess = {() => this.editToggle(comment)}
 										onClose = {() => this.editToggle(comment)}
 										comment = {comment}
 									/> : <> <Canvas>{comment.bodyJson}</Canvas>
 										<Row className = "comment-actions">
-											<button onClick = {() => {this.replyToggle(comment)}} className = "btn"><i class="far fa-comment-alt-lines"></i> Reply</button> 
+											<button onClick = {() => {this.replyToggle(comment)}} className = "btn"><i class="far fa-comment-alt-lines"></i> Reply</button>
 											{isUser && <button onClick = {() => {this.editToggle(comment)}}className = "btn"><i class="fas fa-pencil"></i> Edit</button>}
 											{!isUser && user && <button onCLick = {() => {this.setState({reportComment: comment})}} className = "btn"><i class="far fa-flag"></i> Report</button>}
 											{isUser && <button onClick = {() => {this.setState({deleteComment: comment})}} className = "btn"><i class="far fa-trash-alt"></i> Delete</button>}
@@ -148,7 +148,7 @@ export default class List extends React.Component{
 								</>}
 							<Add onClose = {() => {this.replyToggle(comment)}} visible = {comments[comment.id]} contentId={contentId} contentTypeId={contentTypeId} parentCommentId={comment.id} />
 						</li>;
-						
+
 					});
 				}}
 				</Loop>

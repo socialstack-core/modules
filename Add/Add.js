@@ -14,7 +14,7 @@ export default class Add extends React.Component{
 	close() {
 		this.props.onClose && this.props.onClose();
 	}
-	
+
     render(){
 
         let {
@@ -29,7 +29,7 @@ export default class Add extends React.Component{
 		}
 
 		if(!global.app.state.user) {
-			return <div>
+			return <div className="login-prompt">
 				<p>You must be logged in to leave a comment.</p>
 				<Row className = "comment-buttons">
 					<button onClick = {() => {this.setState({login: true})}} className = "btn btn-secondary">
@@ -47,17 +47,17 @@ export default class Add extends React.Component{
 
 			</div>
 		}
-		
+
         return(
             <div className = "comment-add">
-				<Form 
-					action = "comment" 
+				<Form
+					action = "comment"
 					onFailure={
 						response => {
 							this.setState({failure: true, submitting: false});
 						}
 					}
-					
+
 					onSuccess={
 						(response, values, e) => {
 							this.setState({success: true, failure: false, submitting: false});
@@ -67,9 +67,9 @@ export default class Add extends React.Component{
 						}
 					}
 					onValues = { values => {
-						
+
 						values.bodyJson = '{"content": "'+ values.bodyJson +'" }'
-						
+
 						return {
 							...values,
 							contentId,
@@ -85,8 +85,8 @@ export default class Add extends React.Component{
 						<button className = "btn btn-danger" onClick = {() => {this.close();}}>Cancel</button>
 					</div>}
 				</Row>
-				
-				
+
+
 				{
 					this.state.failure && (
 						<Alert type='error'>
