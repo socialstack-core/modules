@@ -132,6 +132,11 @@ export default class List extends React.Component{
 							var isUser = user && comment.creatorUser && comment.creatorUser.id == user.id;
 							var username = comment.creatorUser && comment.creatorUser.username && comment.creatorUser.username.length ? comment.creatorUser.username : "User";
 
+							// If it was deleted and has no children, let's hide it.
+							if((deletedComments[comment.id] || comment.deleted) && (comment.childCommentCount - comment.childCommentDeleteCount <= 0)) {
+								return;
+							}
+
 							return <li style={{marginLeft: (comment.depth * 50) + 'px'}}>
 								{deletedComments[comment.id] || comment.deleted ? (comment.childCommentCount - comment.childCommentDeleteCount > 0 && <i>-This comment was deleted-</i>) : <>
 									<Row className = "user-info"><b className = "user-name">{username}</b> {sinceDate(comment.createdUtc)}</Row>
