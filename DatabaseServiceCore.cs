@@ -70,9 +70,9 @@ namespace Api.Database
 
 			foreach (var attrib in attributes)
 			{
-				if (attrib is DatabaseIndexAttribute)
+				if (attrib is DatabaseIndexAttribute attribute)
 				{
-					indexSet.Add(new DatabaseIndexInfo((DatabaseIndexAttribute)attrib, contentType));
+					indexSet.Add(new DatabaseIndexInfo(attribute, contentType));
 				}
 			}
 
@@ -83,9 +83,9 @@ namespace Api.Database
 
 				foreach (var attrib in attribs)
 				{
-					if (attrib is DatabaseIndexAttribute)
+					if (attrib is DatabaseIndexAttribute attribute)
 					{
-						indexSet.Add(new DatabaseIndexInfo((DatabaseIndexAttribute)attrib, field));
+						indexSet.Add(new DatabaseIndexInfo(attribute, field));
 					}
 				}
 
@@ -99,10 +99,9 @@ namespace Api.Database
 		/// </summary>
 		/// <param name="connection">The connection to use.</param>
 		/// <param name="query">The query to run.</param>
-		/// <param name="filter">A filter in use.</param>
 		/// <param name="args">The set of args to add.</param>
 		/// <returns></returns>
-		private MySqlCommand CreateCommand(MySqlConnection connection, string query, Filter filter, object[] args)
+		private static MySqlCommand CreateCommand(MySqlConnection connection, string query, object[] args)
 		{
 			var cmd = new MySqlCommand(query, connection);
 			MySqlParameter parameter;
@@ -125,7 +124,7 @@ namespace Api.Database
 		/// </summary>
 		/// <param name="intoBuilder"></param>
 		/// <param name="values"></param>
-		private void BuildInString(System.Text.StringBuilder intoBuilder, IEnumerable<int> values)
+		private static void BuildInString(System.Text.StringBuilder intoBuilder, IEnumerable<int> values)
 		{
 			if (values == null)
 			{
@@ -159,12 +158,10 @@ namespace Api.Database
 		/// <returns></returns>
 		public async Task<bool> Run(string query)
 		{
-			using (var connection = GetConnection())
-			{
-				await connection.OpenAsync();
-				var cmd = CreateCommand(connection, query, null, null);
-				return await cmd.ExecuteNonQueryAsync() > 0;
-			}
+			using var connection = GetConnection();
+			await connection.OpenAsync();
+			var cmd = CreateCommand(connection, query, null);
+			return await cmd.ExecuteNonQueryAsync() > 0;
 		}
 
 		/// <summary>
@@ -204,12 +201,10 @@ namespace Api.Database
 			var builder = new System.Text.StringBuilder();
 			builder.Append(queryText);
 			BuildInString(builder, idsToDelete);
-			using (var connection = GetConnection())
-			{
-				await connection.OpenAsync();
-				var cmd = CreateCommand(connection, builder.ToString(), null, args);
-				return await cmd.ExecuteNonQueryAsync() > 0;
-			}
+			using var connection = GetConnection();
+			await connection.OpenAsync();
+			var cmd = CreateCommand(connection, builder.ToString(), args);
+			return await cmd.ExecuteNonQueryAsync() > 0;
 		}
 
 		/// <summary>
@@ -239,7 +234,7 @@ namespace Api.Database
 			{
 				localeId = context.LocaleId;
 				var locale = (Locales != null && localeId <= Locales.Length ? Locales[localeId - 1] : null);
-				localeCode = locale == null ? null : locale.Code;
+				localeCode = locale?.Code;
 			}
 
 			var queryText = q.GetQuery(null, true, localeId, localeCode);
@@ -253,7 +248,7 @@ namespace Api.Database
 
 				if (x == 0)
 				{
-					builder.Append("(");
+					builder.Append('(');
 				}
 				else
 				{
@@ -264,43 +259,41 @@ namespace Api.Database
 				{
 					if (i != 0)
 					{
-						builder.Append(",");
+						builder.Append(',');
 					}
 					// Bind the field value:
 					var fieldValue = q.Fields[i].TargetField.GetValue(toInsert);
-					builder.Append("\"");
+					builder.Append('\"');
 					builder.Append(Escape(fieldValue.ToString()));
-					builder.Append("\"");
+					builder.Append('\"');
 				}
 			}
 
-			builder.Append(")");
+			builder.Append(')');
 			var builtQuery = builder.ToString();
 
 			// Result is the ID.
-			using (var connection = GetConnection())
+			using var connection = GetConnection();
+			await connection.OpenAsync();
+			var cmd = CreateCommand(connection, builtQuery, args);
+			if (await cmd.ExecuteNonQueryAsync() > 0)
 			{
-				await connection.OpenAsync();
-				var cmd = CreateCommand(connection, builtQuery, null, args);
-				if (await cmd.ExecuteNonQueryAsync() > 0)
+				var id = cmd.LastInsertedId;
+
+				if (q.IdField != null)
 				{
-					var id = cmd.LastInsertedId;
-
-					if (q.IdField != null)
+					// Set the IDs now. The lastInsertedId is the *first* one.
+					for (var x = 0; x < toInsertSet.Count; x++)
 					{
-						// Set the IDs now. The lastInsertedId is the *first* one.
-						for (var x = 0; x < toInsertSet.Count; x++)
-						{
-							q.IdField.SetValue(toInsertSet[x], (int)(id + x));
-						}
-
+						q.IdField.SetValue(toInsertSet[x], (int)(id + x));
 					}
 
-					return true;
 				}
 
-				return false;
+				return true;
 			}
+
+			return false;
 		}
 
 		/// <summary>
@@ -321,18 +314,14 @@ namespace Api.Database
 			// Applying to the actual entity so the object is up to date too.
 			if (q.IsUpdate)
 			{
-				var revRow = srcObject as Api.Users.RevisionRow;
-
-				if (revRow != null && context.PermitEditedUtcChange)
+				if (srcObject is Api.Users.RevisionRow revRow && context.PermitEditedUtcChange)
 				{
 					revRow.EditedUtc = DateTime.UtcNow;
 				}
 			}
 			else if(q.IsInsert)
 			{
-				var revRow = srcObject as Api.Users.RevisionRow;
-
-				if (revRow != null)
+				if (srcObject is Api.Users.RevisionRow revRow)
 				{
 					if (revRow.EditedUtc == DateTime.MinValue)
 					{
@@ -364,30 +353,28 @@ namespace Api.Database
 			{
 				localeId = context.LocaleId;
 				var locale = (Locales != null && localeId <= Locales.Length ? Locales[localeId - 1] : null);
-				localeCode = locale == null ? null : locale.Code;
+				localeCode = locale?.Code;
 			}
 
 			// Run update:
-			using (var connection = GetConnection())
+			using var connection = GetConnection();
+			await connection.OpenAsync();
+			var cmd = CreateCommand(connection, q.GetQuery(null, false, localeId, localeCode), argSet);
+			if (await cmd.ExecuteNonQueryAsync() > 0)
 			{
-				await connection.OpenAsync();
-				var cmd = CreateCommand(connection, q.GetQuery(null, false, localeId, localeCode), null, argSet);
-				if (await cmd.ExecuteNonQueryAsync() > 0)
+				if (q.IdField != null)
 				{
-					if (q.IdField != null)
-					{
-						// Set the ID now:
-						q.IdField.SetValue(srcObject, (int)cmd.LastInsertedId);
-					}
+					// Set the ID now:
+					q.IdField.SetValue(srcObject, (int)cmd.LastInsertedId);
+				}
 
-					return true;
-				}
-				else
-				{
-					return false;
-				}
+				return true;
 			}
-			
+			else
+			{
+				return false;
+			}
+
 		}
 
 		/// <summary>
@@ -406,16 +393,14 @@ namespace Api.Database
 			{
 				localeId = context.LocaleId;
 				var locale = (Locales != null && localeId <= Locales.Length ? Locales[localeId - 1] : null);
-				localeCode = locale == null ? null : locale.Code;
+				localeCode = locale?.Code;
 			}
 
 			// Run update:
-			using (var connection = GetConnection())
-			{
-				await connection.OpenAsync();
-				var cmd = CreateCommand(connection, q.GetQuery(null, false, localeId, localeCode), null, args);
-				return (await cmd.ExecuteNonQueryAsync() > 0);
-			}
+			using var connection = GetConnection();
+			await connection.OpenAsync();
+			var cmd = CreateCommand(connection, q.GetQuery(null, false, localeId, localeCode), args);
+			return (await cmd.ExecuteNonQueryAsync() > 0);
 		}
 
 		/// <summary>
@@ -434,16 +419,14 @@ namespace Api.Database
 			{
 				localeId = context.LocaleId;
 				var locale = (Locales != null && localeId <= Locales.Length ? Locales[localeId - 1] : null);
-				localeCode = locale == null ? null : locale.Code;
+				localeCode = locale?.Code;
 			}
 
 			// Run update:
-			using (var connection = GetConnection())
-			{
-				await connection.OpenAsync();
-				var cmd = CreateCommand(connection, q.GetQuery(null, false, localeId, localeCode), null, args);
-				return (await cmd.ExecuteNonQueryAsync() > 0);
-			}
+			using var connection = GetConnection();
+			await connection.OpenAsync();
+			var cmd = CreateCommand(connection, q.GetQuery(null, false, localeId, localeCode), args);
+			return (await cmd.ExecuteNonQueryAsync() > 0);
 		}
 
 		/// <summary>
@@ -466,52 +449,48 @@ namespace Api.Database
 			{
 				localeId = context.LocaleId;
 				var locale = (Locales != null && localeId <= Locales.Length ? Locales[localeId - 1] : null);
-				localeCode = locale == null ? null : locale.Code;
+				localeCode = locale?.Code;
 			}
 
-			using (var connection = GetConnection())
+			using var connection = GetConnection();
+			await connection.OpenAsync();
+			var qryString = q.GetQuery(null, false, localeId, localeCode);
+			var cmd = CreateCommand(connection, qryString, args);
+
+			using var reader = await cmd.ExecuteReaderAsync();
+			if (!await reader.ReadAsync())
 			{
-				await connection.OpenAsync();
-				var qryString = q.GetQuery(null, false, localeId, localeCode);
-				var cmd = CreateCommand(connection, qryString, null, args);
+				return default;
+			}
 
-				using (var reader = await cmd.ExecuteReaderAsync())
+			// Create the object: 
+			var result = new T();
+
+			// For each field..
+			for (var i = 0; i < reader.FieldCount; i++)
+			{
+				var value = reader.GetValue(i);
+
+				if (value is System.DBNull)
 				{
-					if (!await reader.ReadAsync())
-					{
-						return default(T);
-					}
+					continue;
+				}
 
-					// Create the object: 
-					var result = new T();
-					
-					// For each field..
-					for (var i = 0; i < reader.FieldCount; i++)
-					{
-						var value = reader.GetValue(i);
+				var field = q.Fields[i];
 
-						if (value is System.DBNull)
-						{
-							continue;
-						}
-
-						var field = q.Fields[i];
-
-						if (field.Type == typeof(bool))
-						{
-							// Set the value:
-							field.TargetField.SetValue(result, Convert.ToBoolean(value));
-						}
-						else
-						{
-							// Set the value:
-							field.TargetField.SetValue(result, value);
-						}
-					}
-
-					return result;
+				if (field.Type == typeof(bool))
+				{
+					// Set the value:
+					field.TargetField.SetValue(result, Convert.ToBoolean(value));
+				}
+				else
+				{
+					// Set the value:
+					field.TargetField.SetValue(result, value);
 				}
 			}
+
+			return result;
 		}
 
 		/// <summary>
@@ -536,7 +515,7 @@ namespace Api.Database
 			{
 				localeId = context.LocaleId;
 				var locale = (Locales != null && localeId <= Locales.Length ? Locales[localeId - 1] : null);
-				localeCode = locale == null ? null : locale.Code;
+				localeCode = locale?.Code;
 			}
 
 			bool paginationActive = filter != null && filter.PageSize != 0;
@@ -586,51 +565,49 @@ namespace Api.Database
 				}
 				else
 				{
-					cmd = CreateCommand(connection, qryText, filter, args);
+					cmd = CreateCommand(connection, qryText, args);
 				}
 
-				using (var reader = await cmd.ExecuteReaderAsync())
+				using var reader = await cmd.ExecuteReaderAsync();
+				if (paginationActive)
 				{
-					if (paginationActive)
+					await reader.ReadAsync();
+					var count = (long)reader.GetValue(0);
+					total = (int)count;
+
+					await reader.NextResultAsync();
+				}
+
+				while (await reader.ReadAsync())
+				{
+					// Create the object: 
+					var result = new T();
+
+					// For each field..
+					for (var i = 0; i < reader.FieldCount; i++)
 					{
-						await reader.ReadAsync();
-						var count = (long)reader.GetValue(0);
-						total = (int)count;
+						var value = reader.GetValue(i);
 
-						await reader.NextResultAsync();
-					}
-
-					while (await reader.ReadAsync())
-					{
-						// Create the object: 
-						var result = new T();
-
-						// For each field..
-						for (var i = 0; i < reader.FieldCount; i++)
+						if (value is System.DBNull)
 						{
-							var value = reader.GetValue(i);
-
-							if (value is System.DBNull)
-							{
-								continue;
-							}
-
-							var field = q.Fields[i];
-
-							if (field.Type == typeof(bool))
-							{
-								// Set the value:
-								field.TargetField.SetValue(result, Convert.ToBoolean(value));
-							}
-							else
-							{
-								// Set the value:
-								field.TargetField.SetValue(result, value);
-							}
+							continue;
 						}
 
-						results.Add(result);
+						var field = q.Fields[i];
+
+						if (field.Type == typeof(bool))
+						{
+							// Set the value:
+							field.TargetField.SetValue(result, Convert.ToBoolean(value));
+						}
+						else
+						{
+							// Set the value:
+							field.TargetField.SetValue(result, value);
+						}
 					}
+
+					results.Add(result);
 				}
 			}
 
@@ -719,42 +696,40 @@ namespace Api.Database
 				}
 				else
 				{
-					cmd = CreateCommand(connection, qryText, filter, args);
+					cmd = CreateCommand(connection, qryText, args);
 				}
-				
-				using (var reader = await cmd.ExecuteReaderAsync())
+
+				using var reader = await cmd.ExecuteReaderAsync();
+				while (await reader.ReadAsync())
 				{
-					while (await reader.ReadAsync())
+					// Create the object: 
+					var result = new T();
+
+					// For each field..
+					for (var i = 0; i < reader.FieldCount; i++)
 					{
-						// Create the object: 
-						var result = new T();
+						var value = reader.GetValue(i);
 
-						// For each field..
-						for (var i = 0; i < reader.FieldCount; i++)
+						if (value is System.DBNull)
 						{
-							var value = reader.GetValue(i);
-
-							if (value is System.DBNull)
-							{
-								continue;
-							}
-
-							var field = q.Fields[i];
-
-							if (field.Type == typeof(bool))
-							{
-								// Set the value:
-								field.TargetField.SetValue(result, Convert.ToBoolean(value));
-							}
-							else
-							{
-								// Set the value:
-								field.TargetField.SetValue(result, value);
-							}
+							continue;
 						}
 
-						results.Add(result);
+						var field = q.Fields[i];
+
+						if (field.Type == typeof(bool))
+						{
+							// Set the value:
+							field.TargetField.SetValue(result, Convert.ToBoolean(value));
+						}
+						else
+						{
+							// Set the value:
+							field.TargetField.SetValue(result, value);
+						}
 					}
+
+					results.Add(result);
 				}
 			}
 

@@ -61,7 +61,7 @@ namespace Api.Database
 		/// <returns></returns>
 		public static bool IsAssignableToGenericType(Type givenType, Type genericType)
 		{
-			return IsAssignableToGenericType(givenType, genericType, out Type ct);
+			return IsAssignableToGenericType(givenType, genericType, out _);
 		}
 
 		/// <summary>

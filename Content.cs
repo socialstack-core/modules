@@ -62,25 +62,12 @@ namespace Api.Database
 				return null;
 			}
 
-			var converted = false;
-			var objResult = await service.GetObject(context, contentId);
+			var objResult = await service.GetObject(context, contentId, permCheck ? DataOptions.Default : DataOptions.IgnorePermissions);
 
 			// Special case for users, up until UserProfile is removed.
 			if (convertUser && objResult is User)
 			{
-				converted = true;
 				objResult = (service as UserService).GetProfile(objResult as User);
-			}
-
-			if (permCheck)
-			{
-				// Grab the Load capability:
-				var cap = converted ? (service as UserService).GetProfileLoadCapability() : service.GetLoadCapability();
-
-				if (!await context.Role.IsGranted(cap, context, objResult))
-				{
-					throw PermissionException.Create(cap.Name, context);
-				}
 			}
 
 			return objResult;
@@ -231,7 +218,7 @@ namespace Api.Database
 				return null;
 			}
 
-			var objResult = await service.ListObjects(context, filterJson, applyPermissions);
+			var objResult = await service.ListObjects(context, filterJson, applyPermissions ? DataOptions.Default : DataOptions.IgnorePermissions);
 
 			return objResult;
 		}
@@ -278,6 +265,28 @@ namespace Api.Database
 		/// </summary>
 		/// <returns></returns>
 		public bool Equals(ContentTypeAndId other) => ContentTypeId == other.ContentTypeId && ContentId == other.ContentId;
+
+		/// <summary>
+		/// Equals convenience shortcut.
+		/// </summary>
+		/// <param name="left"></param>
+		/// <param name="right"></param>
+		/// <returns></returns>
+		public static bool operator ==(ContentTypeAndId left, ContentTypeAndId right)
+		{
+			return left.Equals(right);
+		}
+
+		/// <summary>
+		/// Not equals convenience shortcut.
+		/// </summary>
+		/// <param name="left"></param>
+		/// <param name="right"></param>
+		/// <returns></returns>
+		public static bool operator !=(ContentTypeAndId left, ContentTypeAndId right)
+		{
+			return !(left == right);
+		}
 	}
 
 	/// <summary>
@@ -312,8 +321,7 @@ namespace Api.Database
 
 			foreach (var content in contents)
 			{
-				var entry = content as IHaveId<int>;
-				if (entry == null)
+				if (content is not IHaveId<int> entry)
 				{
 					continue;
 				}
