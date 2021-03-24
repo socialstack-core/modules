@@ -31,11 +31,11 @@ namespace Api.Emails
 		/// </summary>
 		public const int EmailHandlerPriority = 1000;
 
-		private EmailConfig _configuration;
+		private readonly EmailConfig _configuration;
 
-		private CanvasRendererService _canvasRendererService;
+		private readonly CanvasRendererService _canvasRendererService;
 
-		private UserService _users;
+		private readonly UserService _users;
 
 		/// <summary>
 		/// A reference to the key index from the cache.
@@ -136,11 +136,11 @@ namespace Api.Emails
 			var filter = new Filter<EmailTemplate>();
 			filter.Equals("Key", template.Key);
 
-			var existingEntry = (await List(context, filter));
+			var existingEntry = (await ListNoCache(context, filter, false, DataOptions.IgnorePermissions));
 
 			if (existingEntry.Count == 0)
 			{
-				await Create(context, template);
+				await Create(context, template, DataOptions.IgnorePermissions);
 			}
 		}
 		
@@ -245,7 +245,7 @@ namespace Api.Emails
 
 				if (localeId <= 0)
 				{
-					localeId = recipient.User.LocaleId.HasValue ? recipient.User.LocaleId.Value : 1;
+					localeId = recipient.User.LocaleId ?? 1;
 				}
 
 				if (localeId <= 0)
@@ -280,7 +280,7 @@ namespace Api.Emails
 				var set = localeKvp.Value;
 
 				// Email subject:
-				var subject = set.Template == null ? null : set.Template.Subject;
+				var subject = set.Template?.Subject;
 
 				// For each recipient, render it.
 				for (var i=0;i<set.Recipients.Count;i++)
@@ -326,8 +326,10 @@ namespace Api.Emails
 				EnableSsl = fromAccount.Encrypted
 			};
 
-			MailMessage mailMessage = new MailMessage();
-			mailMessage.IsBodyHtml = true;
+			MailMessage mailMessage = new MailMessage
+			{
+				IsBodyHtml = true
+			};
 
 			if (!string.IsNullOrEmpty(messageId))
 			{
