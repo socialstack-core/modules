@@ -18,7 +18,6 @@ namespace Api.Eventing
 		/// <summary>
 		/// After successful reset.
 		/// </summary>
-		[DontAddPermissions]
 		public static EventHandler<PasswordResetRequest> PasswordResetRequestAfterSuccess;
 	}
 }

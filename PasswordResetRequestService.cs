@@ -28,16 +28,12 @@ namespace Api.PasswordResetRequests
 		/// </summary>
 		public int ExpiryTime = DefaultExpiryTime;
 		
-		private readonly Query<PasswordResetRequest> selectByTokenQuery;
-		
 		/// <summary>
 		/// Instanced automatically. Use injection to use this service, or Startup.Services.Get.
 		/// </summary>
 		public PasswordResetRequestService(EmailTemplateService emails, UserService users) : base(Events.PasswordResetRequest)
         {
-			selectByTokenQuery = Query.Select<PasswordResetRequest>();
-			selectByTokenQuery.Where().EqualsArg("Token", 0);
-
+			
 			Events.Page.BeforeAdminPageInstall.AddEventListener((Context context, Pages.Page page, CanvasRenderer.CanvasNode canvas, Type contentType, AdminPageType pageType) =>
 			{
 				if (contentType == typeof(User) && pageType == AdminPageType.Single)
@@ -142,18 +138,22 @@ namespace Api.PasswordResetRequests
         }
 		
 		/// <summary>
-		/// Gets a reset request by the given token.
+		/// Gets a reset request by the given token. This overload is always permitted (be careful!).
 		/// </summary>
 		/// <param name="context"></param>
 		/// <param name="token"></param>
 		/// <returns></returns>
 		public async Task<PasswordResetRequest> Get(Context context, string token)
         {
-			var item = await _database.Select(context, selectByTokenQuery, token);
-			context.NestedTypes |= NestableAddMask;
-			item = await EventGroup.AfterLoad.Dispatch(context, item);
-			context.NestedTypes &= NestableRemoveMask;
-			return item;
+			var results = await List(context, new Filter<PasswordResetRequest>().Equals("Token", token), DataOptions.IgnorePermissions);
+			
+			if(results == null || results.Count == 0)
+			{
+				return null;
+			}
+			
+			// Latest one:
+			return results[results.Count - 1];
         }
 
 	}
