@@ -43,21 +43,6 @@ namespace Api.NavMenus
 			);
 		}
 		
-        /// <summary>
-        /// Deletes a nav menu by its ID.
-        /// </summary>
-        /// <returns></returns>
-        public override async ValueTask<bool> Delete(Context context, int id)
-        {
-            await base.Delete(context, id);
-			
-			// Delete items too:
-			await _database.Run(context, deleteItemsQuery, id);
-			
-			// Ok!
-			return true;
-        }
-		
 		/// <summary>
 		/// Gets a single nav menu by its key.
 		/// </summary>

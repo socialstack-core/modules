@@ -54,12 +54,12 @@ namespace Api.NavMenus
 			var filter = new Filter<AdminNavMenuItem>();
 			filter.Equals("Target", item.Target);
 
-			var existingEntry = (await List(context, filter));
+			var existingEntry = await List(context, filter, DataOptions.IgnorePermissions);
 
 			if (existingEntry.Count == 0)
 			{
 				item.Id = Id++;
-				await Create(context, item);
+				await Create(context, item, DataOptions.IgnorePermissions);
 			}
 		}
 
