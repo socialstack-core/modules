@@ -58,7 +58,6 @@ namespace Api.Eventing
 		/// <summary>
 		/// All logging events.
 		/// </summary>
-		[DontAddPermissions]
 		public static EventHandler<Logging> Logging;
 	}
 }
