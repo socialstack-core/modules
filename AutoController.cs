@@ -29,10 +29,11 @@ public partial class AutoController<T, ID>
 			Response.StatusCode = 404;
 			return null;
 		}
-		
+
 		var context = Request.GetContext();
+		id = await _service.EventGroup.EndpointStartRevisionLoad.Dispatch(context, id, Response);
 		var result = await _service.GetRevision(context, id);
-		return await _service.EventGroup.RevisionLoad.Dispatch(context, result, Response);
+		return await _service.EventGroup.EndpointEndRevisionLoad.Dispatch(context, result, Response);
 	}
 
 	/// <summary>
@@ -50,7 +51,7 @@ public partial class AutoController<T, ID>
 		
 		var context = Request.GetContext();
 		var result = await _service.GetRevision(context, id);
-		result = await _service.EventGroup.RevisionDelete.Dispatch(context, result, Response);
+		await _service.EventGroup.EndpointStartRevisionDelete.Dispatch(context, id, Response);
 
 		if (result == null || !await _service.DeleteRevision(context, id))
 		{
@@ -58,6 +59,7 @@ public partial class AutoController<T, ID>
 			return null;
 		}
 
+		result = await _service.EventGroup.EndpointEndRevisionDelete.Dispatch(context, result, Response);
 		return result;
 	}
 
@@ -90,7 +92,7 @@ public partial class AutoController<T, ID>
 		var context = Request.GetContext();
 		var filter = new Filter<T>(filters);
 
-		filter = await _service.EventGroup.RevisionList.Dispatch(context, filter, Response);
+		filter = await _service.EventGroup.EndpointStartRevisionList.Dispatch(context, filter, Response);
 
 		if (filter == null)
 		{
@@ -139,7 +141,7 @@ public partial class AutoController<T, ID>
 		entity.SetId(id);
 
 		// Run the request update event:
-		entity = await _service.EventGroup.RevisionUpdate.Dispatch(context, entity, Response) as T;
+		entity = await _service.EventGroup.EndpointStartRevisionUpdate.Dispatch(context, entity, Response) as T;
 
 		if (entity == null)
 		{
@@ -157,7 +159,7 @@ public partial class AutoController<T, ID>
 		}
 		
 		// Run the request updated event:
-		entity = await _service.EventGroup.RevisionUpdated.Dispatch(context, entity, Response) as T;
+		entity = await _service.EventGroup.EndpointEndRevisionUpdate.Dispatch(context, entity, Response) as T;
 		
 		return entity;
 	}
@@ -188,7 +190,7 @@ public partial class AutoController<T, ID>
 		}
 		
 		// Run the request update event:
-		entity = await _service.EventGroup.RevisionPublish.Dispatch(context, entity, Response) as T;
+		entity = await _service.EventGroup.EndpointStartRevisionPublish.Dispatch(context, entity, Response) as T;
 
 		if (entity == null)
 		{
@@ -206,7 +208,7 @@ public partial class AutoController<T, ID>
 		}
 		
 		// Run the request updated event:
-		entity = await _service.EventGroup.RevisionPublished.Dispatch(context, entity, Response) as T;
+		entity = await _service.EventGroup.EndpointEndRevisionPublish.Dispatch(context, entity, Response) as T;
 		
 		return entity;
 	}
@@ -250,7 +252,7 @@ public partial class AutoController<T, ID>
 		entity.SetId(contentId);
 		
 		// Run the request update event:
-		entity = await _service.EventGroup.RevisionPublish.Dispatch(context, entity, Response) as T;
+		entity = await _service.EventGroup.EndpointStartRevisionPublish.Dispatch(context, entity, Response) as T;
 
 		if (entity == null)
 		{
@@ -268,7 +270,7 @@ public partial class AutoController<T, ID>
 		}
 		
 		// Run the request updated event:
-		entity = await _service.EventGroup.RevisionPublished.Dispatch(context, entity, Response) as T;
+		entity = await _service.EventGroup.EndpointEndRevisionPublish.Dispatch(context, entity, Response) as T;
 		
 		return entity;
 	}
@@ -323,7 +325,7 @@ public partial class AutoController<T, ID>
 		*/
 
 		// Fire off a create draft event:
-		entity = await _service.EventGroup.DraftCreate.Dispatch(context, entity, Response) as T;
+		entity = await _service.EventGroup.EndpointStartDraftCreate.Dispatch(context, entity, Response) as T;
 		
 		if (entity == null)
 		{
@@ -375,7 +377,7 @@ public partial class AutoController<T, ID>
 		}
 
 		// Fire off after create evt:
-		entity = await _service.EventGroup.DraftCreated.Dispatch(context, entity, Response) as T;
+		entity = await _service.EventGroup.EndpointEndDraftCreate.Dispatch(context, entity, Response) as T;
 
 		return entity;
 	}

@@ -91,7 +91,7 @@ public partial class AutoService<T, ID>{
 	/// <summary>
 	/// Remaps some of the query fields such that they correctly direct data to and from the entity fields/ database columns.
 	/// </summary>
-	private void SetRevisionColumns(Query<T> query){
+	private static void SetRevisionColumns(Query<T> query){
 		
 		var revisionIdField = typeof(RevisionRow<ID>).GetField("_RevisionId", BindingFlags.Instance | BindingFlags.NonPublic);
 		var idField = typeof(T).GetField("Id");
@@ -143,22 +143,29 @@ public partial class AutoService<T, ID>{
 			SetupRevisionQueries();
 		}
 		
-		filter = await EventGroup.RevisionBeforeList.Dispatch(context, filter);
+		filter = await EventGroup.BeforeRevisionList.Dispatch(context, filter);
 		var list = await _database.List(context, revisionListQuery, filter);
-		list = await EventGroup.RevisionAfterList.Dispatch(context, list);
+		list = await EventGroup.AfterRevisionList.Dispatch(context, list);
 		return list;
 	}
 
 	/// <summary>
 	/// Gets a single entity revision by its ID.
 	/// </summary>
-	public virtual async ValueTask<T> GetRevision(Context context, ID id)
+	public virtual async ValueTask<T> GetRevision(Context context, ID id, DataOptions options = DataOptions.Default)
 	{
 		if(revisionSelectQuery == null)
 		{
 			SetupRevisionQueries();
 		}
-		
+
+		var previousPermState = context.IgnorePermissions;
+		context.IgnorePermissions = options == DataOptions.IgnorePermissions;
+		context.NestedTypes |= NestableAddMask;
+		id = await EventGroup.BeforeRevisionLoad.Dispatch(context, id);
+		context.NestedTypes &= NestableRemoveMask;
+		context.IgnorePermissions = previousPermState;
+
 		if (NestableAddMask != 0 && (context.NestedTypes & NestableAddMask) == NestableAddMask)
 		{
 			// This happens when we're nesting Get calls.
@@ -169,7 +176,7 @@ public partial class AutoService<T, ID>{
 		var item = await _database.Select(context, revisionSelectQuery, id);
 		
 		context.NestedTypes |= NestableAddMask;
-		item = await EventGroup.RevisionAfterLoad.Dispatch(context, item);
+		item = await EventGroup.AfterRevisionLoad.Dispatch(context, item);
 		context.NestedTypes &= NestableRemoveMask;
 		
 		return item;
@@ -180,50 +187,56 @@ public partial class AutoService<T, ID>{
 	/// Note that this is infrequently used - most revisions are made using an optimised copy process.
 	/// The BeforeCreateRevision and AfterCreateRevision events are still triggered however.
 	/// </summary>
-	public virtual async ValueTask<T> CreateRevision(Context context, T entity)
+	public virtual async ValueTask<T> CreateRevision(Context context, T entity, DataOptions options = DataOptions.Default)
 	{
 		if(revisionCreateQuery == null)
 		{
 			SetupRevisionQueries();
 		}
-		
-		entity = await EventGroup.RevisionBeforeCreate.Dispatch(context, entity);
 
+		var previousPermState = context.IgnorePermissions;
+		context.IgnorePermissions = options == DataOptions.IgnorePermissions;
+		entity = await EventGroup.BeforeRevisionCreate.Dispatch(context, entity);
+		context.IgnorePermissions = previousPermState;
+		
 		// Note: The Id field is automatically updated by Run here.
 		if (entity == null || !await _database.Run(context, revisionCreateQuery, entity))
 		{
-			return default(T);
+			return default;
 		}
 
-		entity = await EventGroup.RevisionAfterCreate.Dispatch(context, entity);
+		entity = await EventGroup.AfterRevisionCreate.Dispatch(context, entity);
 		return entity;
 	}
 
 	/// <summary>
 	/// Updates the given entity revision.
 	/// </summary>
-	public virtual async ValueTask<T> UpdateRevision(Context context, T entity)
+	public virtual async ValueTask<T> UpdateRevision(Context context, T entity, DataOptions options = DataOptions.Default)
 	{
 		if(revisionUpdateQuery == null)
 		{
 			SetupRevisionQueries();
 		}
-		
-		entity = await EventGroup.RevisionBeforeUpdate.Dispatch(context, entity);
+
+		var previousPermState = context.IgnorePermissions;
+		context.IgnorePermissions = options == DataOptions.IgnorePermissions;
+		entity = await EventGroup.BeforeRevisionUpdate.Dispatch(context, entity);
+		context.IgnorePermissions = previousPermState;
 
 		if (entity == null || !await _database.Run(context, revisionUpdateQuery, entity, entity.GetId()))
 		{
 			return null;
 		}
 
-		entity = await EventGroup.RevisionAfterUpdate.Dispatch(context, entity);
+		entity = await EventGroup.AfterRevisionUpdate.Dispatch(context, entity);
 		return entity;
 	}
 	
 	/// <summary>
 	/// Publishes the given entity, which originated from a revision. The entity content ID may not exist at all.
 	/// </summary>
-	public virtual async ValueTask<T> PublishRevision(Context context, T entity)
+	public virtual async ValueTask<T> PublishRevision(Context context, T entity, DataOptions options = DataOptions.Default)
 	{
 		if(revisionCreateQuery == null)
 		{
@@ -237,7 +250,7 @@ public partial class AutoService<T, ID>{
 			// Id required.
 			return null;
 		}
-		
+
 		// Clear any existing drafts:
 		await _database.Run(context, clearDraftStateQuery, 0, id);
 
@@ -251,24 +264,33 @@ public partial class AutoService<T, ID>{
 		}
 
 		// Does it exist? If yes, call update, otherwise, create it (but with a prespecified ID).
-		var existingObject = await Get(context, id);
-		
-		if(existingObject != null)
+		var existingObject = await Get(context, id, options);
+
+		var previousPermState = context.IgnorePermissions;
+		context.IgnorePermissions = options == DataOptions.IgnorePermissions;
+		entity = await EventGroup.BeforeRevisionPublish.Dispatch(context, entity);
+		context.IgnorePermissions = previousPermState;
+
+		if (existingObject != null)
 		{
 			// Update
-			return await Update(context, entity);
+			entity = await Update(context, entity, options);
 		}
 		else
 		{
 			// Create
-			return await Create(context, entity);
+			entity = await Create(context, entity, options);
 		}
+
+		entity = await EventGroup.AfterRevisionPublish.Dispatch(context, entity);
+
+		return entity;
 	}
 
 	/// <summary>
 	/// Creates the given entity as a draft. It'll be assigned a content ID like anything else.
 	/// </summary>
-	public virtual async ValueTask<T> CreateDraft(Context context, T entity, Action<Context, T> postIdCallback)
+	public virtual async ValueTask<T> CreateDraft(Context context, T entity, Action<Context, T> postIdCallback, DataOptions options = DataOptions.Default)
 	{
 		if(revisionCreateQuery == null)
 		{
@@ -291,17 +313,20 @@ public partial class AutoService<T, ID>{
 			await _database.Run(context, clearDraftStateQuery, 0, id);
 		}
 
-		entity = await EventGroup.DraftBeforeCreate.Dispatch(context, entity);
-		
+		var previousPermState = context.IgnorePermissions;
+		context.IgnorePermissions = options == DataOptions.IgnorePermissions;
+		entity = await EventGroup.BeforeDraftCreate.Dispatch(context, entity);
+		context.IgnorePermissions = previousPermState;
+
 		// Note: The Id field is automatically updated by Run here.
 		if (entity == null || !await _database.Run(context, revisionCreateQuery, entity))
 		{
-			return default(T);
+			return default;
 		}
 		
 		postIdCallback?.Invoke(context, entity);
 		
-		entity = await EventGroup.DraftAfterCreate.Dispatch(context, entity);
+		entity = await EventGroup.AfterDraftCreate.Dispatch(context, entity);
 		return entity;
 	}
 }

@@ -128,40 +128,34 @@ namespace Api.Revisions
 			// Next hook up all before update events for anything which is a RevisionRow type.
 			// Essentially before the content actually goes into the database, we copy the database row into the _revisions table (with 1 database-side query), 
 			// and bump the Revision number of the about to be updated row.
-			var allBeforeUpdateEvents = Events.FindByPlacementAndVerb(EventPlacement.Before, "Update");
-
+			
 			var methodInfo = GetType().GetMethod("SetupForRevisions");
 
-			foreach (var beforeUpdateEvent in allBeforeUpdateEvents)
-			{
-				// Get the actual type. We use this to avoid Revisions etc as we're not interested in those here:
-				var contentType = ContentTypes.GetType(beforeUpdateEvent.EntityName);
-
-				if (contentType == null)
+			Events.Service.AfterCreate.AddEventListener((Context ctx, AutoService svc) => {
+				if (svc == null || svc.ServicedType == null)
 				{
-					continue;
+					return new ValueTask<AutoService>(svc);
 				}
 
-				if (!ContentTypes.IsAssignableToGenericType(contentType, typeof(RevisionRow<>)))
+				var eventGroup = svc.GetEventGroup();
+
+				if (eventGroup != null && ContentTypes.IsAssignableToGenericType(svc.ServicedType, typeof(RevisionRow<>)))
 				{
-					// nope
-					continue;
+					// Invoke setup for type:
+					var idType = svc.ServicedType.GetField("Id").FieldType;
+
+					var setupType = methodInfo.MakeGenericMethod(new Type[] {
+						svc.ServicedType,
+						idType
+					});
+
+					setupType.Invoke(this, new object[] {
+						eventGroup
+					});
 				}
 
-				// Invoke setup for type:
-				var idType = contentType.GetField("Id").FieldType;
-				
-				var setupType = methodInfo.MakeGenericMethod(new Type[] {
-					contentType,
-					idType
-				});
-
-				setupType.Invoke(this, new object[] {
-					beforeUpdateEvent.EntityName
-				});
-
-			}
-			
+				return new ValueTask<AutoService>(svc);
+			});
 		}
 
 		/// <summary>
@@ -174,20 +168,14 @@ namespace Api.Revisions
 		/// </summary>
 		/// <typeparam name="T"></typeparam>
 		/// <typeparam name="ID"></typeparam>
-		/// <param name="entityName"></param>
-		public void SetupForRevisions<T, ID>(string entityName)
+		/// <param name="evtGroup"></param>
+		public void SetupForRevisions<T, ID>(EventGroup<T> evtGroup)
 			where T : RevisionRow<ID>, new()
 			where ID: struct, IComparable
 		{
 			var contentType = typeof(T);
 
 			// Invoked by reflection
-			var evtGroup = Events.GetGroup<T>();
-			
-			if(evtGroup == null){
-				Console.WriteLine("Warning: " + typeof(T).Name + " does not have an event group. An event group is required to setup revisions on it.");
-				return;
-			}
 			
 			// Create the original field map:
 			var fieldMap = new FieldMap(contentType);

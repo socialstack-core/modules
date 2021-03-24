@@ -20,9 +20,9 @@ namespace Api.Revisions
 			Events.CapabilityOnSetup.AddEventListener((Context context, object source) =>
 			{
 				// Block all revision EPs:
-				Roles.Member.RevokeIfEndsWith("revision_list", "revision_create", "revision_load", "revision_delete");
-				Roles.Guest.RevokeIfEndsWith("revision_list", "revision_create", "revision_load", "revision_delete");
-				Roles.Public.RevokeIfEndsWith("revision_list", "revision_create", "revision_load", "revision_delete");
+				Roles.Member.RevokeFeature("RevisionList", "RevisionCreate", "RevisionLoad", "RevisionDelete");
+				Roles.Guest.RevokeFeature("RevisionList", "RevisionCreate", "RevisionLoad", "RevisionDelete");
+				Roles.Public.RevokeFeature("RevisionList", "RevisionCreate", "RevisionLoad", "RevisionDelete");
 
 				return new ValueTask<object>(source);
 			});

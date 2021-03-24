@@ -14,7 +14,7 @@ namespace Api.Eventing
 	/// Like this:
 	/// public static EventGroup{Page} Page;
 	/// </summary>
-	public partial class EventGroup<T>
+	public partial class EventGroup<T, ID>
 	{
 		#region Service events
 
@@ -22,57 +22,72 @@ namespace Api.Eventing
 		/// NOTE: Very frequently bypassed. This event will be used more regularly in future versions. Just before a new entity revision is created.
 		/// The given entity won't have an ID yet. Return null to cancel the creation of the revision.
 		/// </summary>
-		public EventHandler<T> RevisionBeforeCreate;
+		public EventHandler<T> BeforeRevisionCreate;
 
 		/// <summary>
 		/// NOTE: Very frequently bypassed. This event will be used more regularly in future versions. Called just after an entity revision has been created.
 		/// </summary>
-		public EventHandler<T> RevisionAfterCreate;
+		public EventHandler<T> AfterRevisionCreate;
 
 		/// <summary>
 		/// Called just before an entity draft has been created.
 		/// </summary>
-		public EventHandler<T> DraftBeforeCreate;
+		public EventHandler<T> BeforeDraftCreate;
 
 		/// <summary>
 		/// Called just after an entity draft has been created.
 		/// </summary>
-		public EventHandler<T> DraftAfterCreate;
+		public EventHandler<T> AfterDraftCreate;
 
 		/// <summary>
 		/// Just before an entity revision is being deleted. Return null to cancel the deletion.
 		/// </summary>
-		public EventHandler<T> RevisionBeforeDelete;
+		public EventHandler<T> BeforeRevisionDelete;
 
 		/// <summary>
 		/// Just after an entity revision has been deleted.
 		/// </summary>
-		public EventHandler<T> RevisionAfterDelete;
+		public EventHandler<T> AfterRevisionDelete;
 
 		/// <summary>
 		/// Just before updating an entity revision. Optionally make additional changes, or return null to cancel the update.
 		/// </summary>
-		public EventHandler<T> RevisionBeforeUpdate;
+		public EventHandler<T> BeforeRevisionUpdate;
 
 		/// <summary>
 		/// Just after updating an entity revision.
 		/// </summary>
-		public EventHandler<T> RevisionAfterUpdate;
+		public EventHandler<T> AfterRevisionUpdate;
+
+		/// <summary>
+		/// Just before updating an entity revision. Optionally make additional changes, or return null to cancel the update.
+		/// </summary>
+		public EventHandler<T> BeforeRevisionPublish;
+
+		/// <summary>
+		/// Just after updating an entity revision.
+		/// </summary>
+		public EventHandler<T> AfterRevisionPublish;
+
+		/// <summary>
+		/// Just before an entity revision was loaded.
+		/// </summary>
+		public EventHandler<ID> BeforeRevisionLoad;
 
 		/// <summary>
 		/// Just after an entity revision was loaded.
 		/// </summary>
-		public EventHandler<T> RevisionAfterLoad;
+		public EventHandler<T> AfterRevisionLoad;
 
 		/// <summary>
 		/// Just before a service loads an entity revision list.
 		/// </summary>
-		public EventHandler<Filter<T>> RevisionBeforeList;
+		public EventHandler<Filter<T>> BeforeRevisionList;
 
 		/// <summary>
 		/// Just after an entity revision list was loaded.
 		/// </summary>
-		public EventHandler<List<T>> RevisionAfterList;
+		public EventHandler<List<T>> AfterRevisionList;
 
 		#endregion
 		
@@ -81,43 +96,50 @@ namespace Api.Eventing
 		/// <summary>
 		/// Draft is being created.
 		/// </summary>
-		public EndpointEventHandler<T> DraftCreate;
+		public EndpointEventHandler<T> EndpointStartDraftCreate;
 
 		/// <summary>
 		/// After a draft is being created.
 		/// </summary>
-		public EndpointEventHandler<T> DraftCreated;
+		public EndpointEventHandler<T> EndpointEndDraftCreate;
 
 		/// <summary>
 		/// A revision is being published.
 		/// </summary>
-		public EndpointEventHandler<T> RevisionPublish;
+		public EndpointEventHandler<T> EndpointStartRevisionPublish;
 
 		/// <summary>
 		/// After a revision was published.
 		/// </summary>
-		public EndpointEventHandler<T> RevisionPublished;
-
+		public EndpointEventHandler<T> EndpointEndRevisionPublish;
 		/// <summary>
 		/// Delete a revision.
 		/// </summary>
-		public EndpointEventHandler<T> RevisionDelete;
+		public EndpointEventHandler<ID> EndpointStartRevisionDelete;
+		/// <summary>
+		/// Delete a revision.
+		/// </summary>
+		public EndpointEventHandler<T> EndpointEndRevisionDelete;
 		/// <summary>
 		/// Update revision metadata.
 		/// </summary>
-		public EndpointEventHandler<T> RevisionUpdate;
+		public EndpointEventHandler<T> EndpointStartRevisionUpdate;
 		/// <summary>
 		/// After a revision was updated.
 		/// </summary>
-		public EndpointEventHandler<T> RevisionUpdated;
+		public EndpointEventHandler<T> EndpointEndRevisionUpdate;
 		/// <summary>
 		/// Load revision metadata.
 		/// </summary>
-		public  EndpointEventHandler<T> RevisionLoad;
+		public  EndpointEventHandler<ID> EndpointStartRevisionLoad;
+		/// <summary>
+		/// Load revision metadata.
+		/// </summary>
+		public EndpointEventHandler<T> EndpointEndRevisionLoad;
 		/// <summary>
 		/// List revisions.
 		/// </summary>
-		public EndpointEventHandler<Filter<T>> RevisionList;
+		public EndpointEventHandler<Filter<T>> EndpointStartRevisionList;
 
 		#endregion
 
