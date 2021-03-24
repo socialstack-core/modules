@@ -44,16 +44,6 @@ namespace Api.DatabaseDiff
 		{
 			var result = new DiffSet<DatabaseTableDefinition, DiffSet<DatabaseColumnDefinition, ChangedColumn>>();
 
-			// Any tables that have been completely removed in the new schema
-			foreach (var kvp in Tables)
-			{
-				if (newSchema.GetTable(kvp.Key) == null)
-				{
-					// Removed.
-					result.Removed.Add(kvp.Value);
-				}
-			}
-
 			// Any tables that are completely new or changed
 			foreach (var kvp in newSchema.Tables)
 			{
@@ -69,7 +59,7 @@ namespace Api.DatabaseDiff
 					// Has it changed?
 					var tableDiff = existingTable.Diff(kvp.Value);
 
-					if (tableDiff.Added.Count > 0 || tableDiff.Changed.Count > 0 || tableDiff.Removed.Count > 0) {
+					if (tableDiff.Added.Count > 0 || tableDiff.Changed.Count > 0) {
 						result.Changed.Add(tableDiff);
 					}
 				}

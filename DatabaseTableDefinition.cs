@@ -55,16 +55,6 @@ namespace Api.DatabaseDiff
 		{
 			var result = new DiffSet<DatabaseColumnDefinition, ChangedColumn>();
 
-			// Any new columns:
-			foreach (var kvp in Columns)
-			{
-				if (newTable.GetColumn(kvp.Key) == null)
-				{
-					// Removed.
-					result.Removed.Add(kvp.Value);
-				}
-			}
-
 			// Any tables that are completely new or changed
 			foreach (var kvp in newTable.Columns)
 			{
