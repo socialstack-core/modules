@@ -13,7 +13,7 @@ namespace Api.Blogs
     [Route("v1/blogpost")]
 	public partial class BlogPostController : AutoController<BlogPost>
     {
-        private BlogPostService _blogPostService;
+        private readonly BlogPostService _blogPostService;
 
         /// <summary>
         /// 

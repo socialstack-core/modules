@@ -45,7 +45,19 @@ namespace Api.Blogs
                 }
 
 				// Set blog ID to 1 if the site only has 1:
-				if (!config.MultipleBlogs)
+				if (config.MultipleBlogs)
+				{
+
+					// Get the blog to obtain the default page ID:
+					var blog = await _blogs.Get(context, blogPost.BlogId);
+
+					if (blog == null)
+					{
+						// Blog doesn't exist!
+						throw new PublicException("Blog with ID " + blogPost.BlogId + " doesn't exist or is unusable.", "blog_notfound");
+					}
+				}
+				else
 				{
 					blogPost.BlogId = 1;
 				}
@@ -59,7 +71,7 @@ namespace Api.Blogs
                     }
 
 					// Yes, is it for a valid user?
-					var author = await _users.Get(context, blogPost.AuthorId);
+					var author = await _users.Get(context, blogPost.AuthorId, DataOptions.IgnorePermissions);
 
 					if(author == null)
                     {
@@ -217,22 +229,23 @@ namespace Api.Blogs
 			});
 
 			// We need event listeners for handling synopsis. It should generate when synopsis is blank on creation and update.
-			if (config.GenerateSynopsis)
-            {
-				Events.BlogPost.BeforeCreate.AddEventListener(async (Context context, BlogPost blogPost) =>
+			
+			Events.BlogPost.BeforeCreate.AddEventListener(async (Context context, BlogPost blogPost) =>
+			{
+				if (context == null || blogPost == null)
 				{
-					var synopsis = "";
+					return null;
+				}
 
-					if (context == null || blogPost == null)
-					{
-						return null;
-					}
-
+				if (config.GenerateSynopsis)
+				{
 					// Was a synopsis passed in? if so, just pass the blogPost on.
 					if (blogPost.Synopsis != null && blogPost.Synopsis != "")
 					{
 						return blogPost;
 					}
+
+					var synopsis = "";
 
 					// Was a synopsis passed in? if so, just pass the blogPost on.
 					if (blogPost.Synopsis != null && blogPost.Synopsis != "")
@@ -256,18 +269,21 @@ namespace Api.Blogs
 					}
 
 					blogPost.Synopsis = synopsis;
+				}
 
-					return blogPost;
-				});
+				return blogPost;
+			});
 
-				Events.BlogPost.BeforeUpdate.AddEventListener(async (Context context, BlogPost blogPost) =>
+			Events.BlogPost.BeforeUpdate.AddEventListener(async (Context context, BlogPost blogPost) =>
+			{
+				if (context == null || blogPost == null)
+				{
+					return null;
+				}
+
+				if (config.GenerateSynopsis)
 				{
 					var synopsis = "";
-
-					if (context == null || blogPost == null)
-					{
-						return null;
-					}
 
 					// Was a synopsis passed in? if so, just pass the blogPost on.
 					if (blogPost.Synopsis != null && blogPost.Synopsis != "")
@@ -275,10 +291,10 @@ namespace Api.Blogs
 						return blogPost;
 					}
 
-					if(_csr == null)
-                    {
-						_csr =  Services.Get<CanvasRendererService>();
-                    }
+					if (_csr == null)
+					{
+						_csr = Services.Get<CanvasRendererService>();
+					}
 
 					// No synopsis was added, let's get one based on the body json. 
 					var renderedPage = await _csr.Render(context, blogPost.BodyJson, PageState.None, null, false, RenderMode.Text);
@@ -291,10 +307,10 @@ namespace Api.Blogs
 					}
 
 					blogPost.Synopsis = synopsis;
+				}
 
-					return blogPost;
-				});
-			}	
+				return blogPost;
+			});
 		}
 
 		/// <summary>
@@ -339,7 +355,7 @@ namespace Api.Blogs
 			// Do we need a unique slug?
 			if(config.UniqueSlugs)
             {
-				var postsWithSlug = new List<BlogPost>();
+				List<BlogPost> postsWithSlug;
 
 				// Now let's see if the slug is in use.
 				if (exclusionId == null)
@@ -376,22 +392,6 @@ namespace Api.Blogs
 			return slug;
 		}
 
-		/// <summary>
-		/// Creates a new blog post.
-		/// </summary>
-		public override async ValueTask<BlogPost> Create(Context context, BlogPost post)
-		{
-			// Get the blog to obtain the default page ID:
-			var blog = await _blogs.Get(context, post.BlogId);
-
-			if (blog == null)
-			{
-				// Blog doesn't exist!
-				throw new PublicException("Blog with ID " + post.BlogId + " doesn't exist or is unusable.");
-			}
-			
-			return await base.Create(context, post);
-		}
 	}
 
 }

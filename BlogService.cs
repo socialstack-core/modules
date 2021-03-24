@@ -66,9 +66,9 @@ namespace Api.Blogs
 		/// Deletes a Blog by its ID, including all its posts
 		/// </summary>
 		/// <returns></returns>
-		public override async ValueTask<bool> Delete(Context context, int id)
+		public override async ValueTask<bool> Delete(Context context, int id, DataOptions options = DataOptions.Default)
         {
-			await base.Delete(context, id);
+			await base.Delete(context, id, options);
 			await _database.Run(context, deletePostsQuery, id);
 			
 			// Ok!
