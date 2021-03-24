@@ -37,7 +37,7 @@ public partial class AutoService
 			/*
 			 * When config is CMS backed, it'll fire this Configure event.
 			if(EventGroup != null){
-				_ = EventGroup.Configure.Dispatch(null, _loadedConfiguration);
+				_ = EventGroup.Configure.Dispatch(new Context(), _loadedConfiguration);
 			}
 			*/
 		}

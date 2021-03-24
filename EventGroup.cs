@@ -13,7 +13,7 @@ namespace Api.Eventing
 	/// A grouping of common events, such as before/ after create, update, delete etc.
 	/// These are typically added to the Events class, named directly after the type that is being used.
 	/// </summary>
-	public partial class EventGroup<T>
+	public partial class EventGroup<T, ID>
 	{
 		#region Service events
 
