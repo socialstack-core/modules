@@ -15,7 +15,8 @@ namespace Api.Eventing
 		/// Set of events for a huddle.
 		/// </summary>
 		public static EventGroup<Huddle> Huddle;
-		
+
+
 		/// <summary>
 		/// Set of events for a huddleServer.
 		/// </summary>
@@ -39,7 +40,6 @@ namespace Api.Eventing
 		/// <summary>
 		/// Called when a huddle is being joined.
 		/// </summary>
-		[DontAddPermissions]
 		public static EventHandler<HuddleJoinInfo, Huddle, User> HuddleGetJoinInfo;
 	}
 }

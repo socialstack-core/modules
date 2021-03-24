@@ -45,7 +45,7 @@ namespace Api.Huddles
                 force = true;
             }
 
-            return await (_service as HuddlePermittedUserService).Accept(context, invite, context.UserId, force);
+            return await (_service as HuddlePermittedUserService).Accept(context, invite, force);
 		}
 
         /// <summary>

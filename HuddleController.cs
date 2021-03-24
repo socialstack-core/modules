@@ -36,13 +36,13 @@ namespace Api.Huddles
 			if (!Request.Query.TryGetValue("t", out StringValues value))
 			{
 				// No timestamp
-				throw new PublicException("No timestamp");
+				throw new PublicException("No timestamp", "timestamp_required");
 			}
 
 			if (!Request.Query.TryGetValue("sig", out StringValues sigValue))
 			{
 				// No signature
-				throw new PublicException("No signature");
+				throw new PublicException("No signature", "signature_required");
 			}
 
 			var signature = sigValue.ToString();
@@ -50,7 +50,7 @@ namespace Api.Huddles
 			if (!long.TryParse(value.ToString(), out long timestamp))
 			{
 				// Bad timestamp (not a number)
-				throw new PublicException("Bad timestamp (unix timestamp in seconds)");
+				throw new PublicException("Bad timestamp (unix timestamp in seconds)", "timestamp_invalid");
 			}
 
 			// Is it within ~5 minutes (5*60) of us? It can be +/-.
@@ -59,7 +59,7 @@ namespace Api.Huddles
 			if ((timestamp > (currentUnixTime + 300)) || (timestamp < (currentUnixTime -300)))
 			{
 				// Timestamp is too far away
-				throw new PublicException("Timestamp out of range (unix timestamp in seconds)");
+				throw new PublicException("Timestamp out of range (unix timestamp in seconds)", "timestamp_invalid_range");
 			}
 
 			// Ok timestamp is recent enough - next attempt to verify the signature. The server signed the complete URL including http(s)://our hostname:
@@ -87,13 +87,13 @@ namespace Api.Huddles
 			if (huddleServer == null)
 			{
 				// Bad server identifier
-				throw new PublicException("Incorrect huddleServerIdentifier in the payload (should be the Id of a huddleServer entry on this API).");
+				throw new PublicException("Incorrect huddleServerIdentifier in the payload (should be the Id of a huddleServer entry on this API).", "huddleserver_invalid");
 			}
 
 			if (string.IsNullOrEmpty(huddleServer.PublicKey))
 			{
 				// Not setup with PKI
-				throw new PublicException("publicKey not set for that huddleServer entry.");
+				throw new PublicException("publicKey not set for that huddleServer entry.", "huddleserver_invalid_nokey");
 			}
 
 			// Got the key, got the signed data and the public key. Verify it now:
@@ -101,7 +101,7 @@ namespace Api.Huddles
 
 			if (!sigService.ValidateSignature(signedUrl, signature, huddleServer.PublicKey))
 			{
-				throw new PublicException("Signature is invalid");
+				throw new PublicException("Signature is invalid", "signature_invalid");
 			}
 
 			if (userStates != null && userStates.Users != null && userStates.Users.Count != 0)

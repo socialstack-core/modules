@@ -19,8 +19,8 @@ namespace Api.Huddles
     public partial class HuddlePermittedUserService : AutoService<HuddlePermittedUser>
     {
 		
-		private int userContentType;
-        private HuddleService _huddleService;
+		private readonly int userContentType;
+        private readonly HuddleService _huddleService;
 
         /// <summary>
         /// Instanced automatically. Use injection to use this service, or Startup.Services.Get.
@@ -439,7 +439,7 @@ namespace Api.Huddles
                             return null;
                         }
 
-                        if (!(value is JArray idArray))
+                        if (value is not JArray idArray)
                         {
                             return null;
                         }
@@ -691,10 +691,9 @@ namespace Api.Huddles
         /// </summary>
         /// <param name="context"></param>
         /// <param name="invite"></param>
-        /// <param name="userId"></param>
         /// <param name="force"></param>
         /// <returns></returns>
-        public async Task<HuddlePermittedUser> Accept(Context context, HuddlePermittedUser invite, int userId, bool force)
+        public async Task<HuddlePermittedUser> Accept(Context context, HuddlePermittedUser invite, bool force)
         {
             if (invite == null)
             {

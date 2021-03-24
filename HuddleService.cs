@@ -36,7 +36,7 @@ namespace Api.Huddles
 			_huddleServerService = huddleServerService;
 			userTypeId = ContentTypes.GetId(typeof(User));
 			
-			Events.HuddlePermittedUser.Listed.AddEventListener(async (Context context, List<HuddlePermittedUser> list, HttpResponse response) => {
+			Events.HuddlePermittedUser.EndpointEndList.AddEventListener(async (Context context, List<HuddlePermittedUser> list, HttpResponse response) => {
 
 				// If specifically using huddle permitted user list, add huddle objects to it:
 				if (list == null || list.Count == 0)
@@ -188,6 +188,7 @@ namespace Api.Huddles
 		/// </summary>
 		/// <param name="ctx"></param>
 		/// <param name="slug"></param>
+		/// <param name="exclusionId"></param>
 		/// <returns></returns>
 		public async ValueTask<bool> IsUniqueHuddleSlug(Context ctx, string slug, int? exclusionId = null)
         {
