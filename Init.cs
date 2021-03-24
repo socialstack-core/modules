@@ -203,7 +203,7 @@ namespace Api.DatabaseDiff
 			var fieldMap = new FieldMap(type);
 
 			// Invoke an event which can e.g. add additional columns or whole tables.
-			fieldMap = await Events.DatabaseDiffBeforeAdd.Dispatch(null, fieldMap, type, newSchema);
+			fieldMap = await Events.DatabaseDiffBeforeAdd.Dispatch(new Context(), fieldMap, type, newSchema);
 
 			if (fieldMap == null)
 			{
