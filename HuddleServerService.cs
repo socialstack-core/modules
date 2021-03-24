@@ -189,7 +189,7 @@ namespace Api.Huddles
 				int sliceId = (int)(i | (serverToAllocateTo << 21));
 
 				// Insert/ update each slice:
-				var measurement = await _loadMetrics.Get(context, sliceId);
+				var measurement = await _loadMetrics.Get(context, sliceId, DataOptions.IgnorePermissions);
 
 				if (measurement == null)
 				{
@@ -200,12 +200,12 @@ namespace Api.Huddles
 						LoadFactor = loadFactor,
 						HuddleServerId = serverToAllocateTo,
 						TimeSliceId = i
-					});
+					}, DataOptions.IgnorePermissions);
 				}
 				else
 				{
 					measurement.LoadFactor += loadFactor;
-					await _loadMetrics.Update(context, measurement);
+					await _loadMetrics.Update(context, measurement, DataOptions.IgnorePermissions);
 				}
 
 			}
