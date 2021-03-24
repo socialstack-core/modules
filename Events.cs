@@ -14,25 +14,21 @@ namespace Api.Eventing
 		/// <summary>
 		/// Called when a client connects.
 		/// </summary>
-		[DontAddPermissions]
 		public static EventHandler<WebSocketClient> WebSocketClientConnected;
 
 		/// <summary>
 		/// Called when a client disconnects.
 		/// </summary>
-		[DontAddPermissions]
 		public static EventHandler<WebSocketClient> WebSocketClientDisconnected;
 
 		/// <summary>
 		/// Called when a user logs in/ logs out. Note that they may have multiple 
 		/// </summary>
-		[DontAddPermissions]
 		public static EventHandler<int, UserWebsocketLinks> WebSocketUserState;
 		
 		/// <summary>
 		/// Called when a message is received of a non-core type.
 		/// </summary>
-		[DontAddPermissions]
 		public static EventHandler<JObject, WebSocketClient, string> WebSocketMessage;
 		
 	}

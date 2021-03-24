@@ -25,7 +25,7 @@ namespace Api.WebSockets
     {
 
 		private readonly ContextService _contextService;
-		private int _userContentTypeId;
+		private readonly int _userContentTypeId;
 
 		/// <summary>
 		/// Instanced automatically.
@@ -37,7 +37,7 @@ namespace Api.WebSockets
 
 			// Collect all IAmLive types.
 
-			Events.ServicesAfterStart.AddEventListener((Context ctx, object src) =>
+			Events.Service.AfterStart.AddEventListener((Context ctx, object src) =>
 			{
 				Setup();
 				return new ValueTask<object>(src);
@@ -46,29 +46,32 @@ namespace Api.WebSockets
 
 		private void Setup()
 		{
-			var loadEvents = Events.FindByType(typeof(IAmLive), "Create", EventPlacement.After);
+			var methodInfo = GetType().GetMethod(nameof(SetupForType));
 			
-			var methodInfo = GetType().GetMethod("SetupForType");
-			
-			foreach (var typeEvent in loadEvents)
+			Events.Service.AfterCreate.AddEventListener((Context ctx, AutoService svc) =>
 			{
-				// Get the actual type. We use this to avoid Revisions etc as we're not interested in those here:
-				var contentType = ContentTypes.GetType(typeEvent.EntityName);
-
-				if (contentType == null)
+				if (svc == null || svc.ServicedType == null)
 				{
-					continue;
+					return new ValueTask<AutoService>(svc);
 				}
-				
-				// Invoke setup for type:
-				var setupType = methodInfo.MakeGenericMethod(new Type[] {
-					contentType
-				});
-				
-				setupType.Invoke(this, new object[] {
-					typeEvent.EntityName
-				});
-			}
+
+				if (typeof(IAmLive).IsAssignableFrom(svc.ServicedType))
+				{
+					// This type inherits serviced type.
+					var eventGroup = svc.GetEventGroup();
+
+					// Invoke setup for type:
+					var setupType = methodInfo.MakeGenericMethod(new Type[] {
+						svc.ServicedType
+					});
+
+					setupType.Invoke(this, new object[] {
+						eventGroup
+					});
+				}
+
+				return new ValueTask<AutoService>(svc);
+			});
 
 			// Special handlers for PermittedContent (permits). Whenever one is created - locally or remote - it must update the websocket filter cache.
 			Events.PermittedContent.Received.AddEventListener((Context context, PermittedContent obj, int action) => {
@@ -154,18 +157,16 @@ namespace Api.WebSockets
 		/// Sets up a particular content type with websocket handlers.
 		/// </summary>
 		/// <typeparam name="T"></typeparam>
-		/// <param name="entityName"></param>
-		public void SetupForType<T>(string entityName) where T:new()
+		/// <param name="evtGroup"></param>
+		public void SetupForType<T>(EventGroup<T> evtGroup) where T:new()
 		{
 			// Invoked by reflection
-			
-			var evtGroup = Events.GetGroup<T>();
 			
 			// Mark as remote synced:
 			Api.Startup.RemoteSync.Add(typeof(T));
 			
 			// Get the listener:
-			var listener = GetTypeListener(typeof(T));
+			var listener = GetTypeListener(typeof(T), evtGroup.BeforeList.Capability);
 
 			if (listener == null)
 			{
@@ -173,6 +174,8 @@ namespace Api.WebSockets
 			}
 
 			var handlePermits = typeof(PermittedContent) == typeof(T);
+
+			var entityName = typeof(T).Name;
 
 			// On received is used when something came from another server:
 			evtGroup.Received.AddEventListener((Context context, T obj, int action) => {
@@ -299,7 +302,7 @@ namespace Api.WebSockets
 		/// <summary>
 		/// Gets type listener by the name. Optionally creates it if it didn't exist.
 		/// </summary>
-		private WebSocketTypeListeners GetTypeListener(Type type)
+		private WebSocketTypeListeners GetTypeListener(Type type, Capability cap = null)
 		{
 			var name = type.Name;
 
@@ -307,7 +310,7 @@ namespace Api.WebSockets
 
 				lock (ListenersByType)
 				{
-					var cap = Capabilities.All[type.Name.ToLower() + "_list"];
+					// var cap =  Capabilities.All[type.Name.ToLower() + "_list"];
 
 					if (cap == null)
 					{
@@ -953,7 +956,7 @@ namespace Api.WebSockets
 			// Get the bytes of the message:
             var jsonMessage = JsonConvert.SerializeObject(message, _serializerSettings);
 			var data = Encoding.UTF8.GetBytes(jsonMessage);
-			await Send(data, entityMessage == null ? null : entityMessage.Entity);
+			await Send(data, entityMessage?.Entity);
 		}
 		
 		/// <summary>
@@ -1102,7 +1105,7 @@ namespace Api.WebSockets
 				}
 			}
 
-			await Events.WebSocketUserState.Dispatch(client.Context != null ? client.Context : new Context(), Id, this);
+			await Events.WebSocketUserState.Dispatch(client.Context ?? new Context(), Id, this);
 		}
 		
 		/// <summary>
@@ -1119,27 +1122,25 @@ namespace Api.WebSockets
 				};
 			}
 
-			var entityMessage = message as WebSocketEntityMessage;
-
 			// Get the bytes of the message:
 			var jsonMessage = JsonConvert.SerializeObject(message, _serializerSettings);
 			var data = Encoding.UTF8.GetBytes(jsonMessage);
-			await Send(data, entityMessage == null ? null : entityMessage.Entity);
+			await Send(data);
 		}
 
 		/// <summary>
 		/// Sends a JSON message to all of a user's clients.
 		/// </summary>
-		public async Task Send(string jsonMessage, object entity = null)
+		public async Task Send(string jsonMessage)
 		{
 			var data = Encoding.UTF8.GetBytes(jsonMessage);
-			await Send(data, entity);
+			await Send(data);
 		}
 
 		/// <summary>
 		/// Sends a raw binary message to all of a user's clients.
 		/// </summary>
-		public async Task Send(byte[] message, object entity = null)
+		public async Task Send(byte[] message)
 		{
 			var arSegment = new ArraySegment<Byte>(message);
 
@@ -1235,9 +1236,11 @@ namespace Api.WebSockets
 
 			if (client == null)
 			{
-				client = new WebSocketTypeClient();
-				client.Client = this;
-				client.Id = id;
+				client = new WebSocketTypeClient
+				{
+					Client = this,
+					Id = id
+				};
 
 				// Add to the user:
 				if (LastClient == null)
@@ -1313,7 +1316,7 @@ namespace Api.WebSockets
 				}
 
 				// Trigger state event:
-				await Events.WebSocketUserState.Dispatch(Context != null ? Context : new Context(), UserSet.Id, UserSet);
+				await Events.WebSocketUserState.Dispatch(Context ?? new Context(), UserSet.Id, UserSet);
 			}
 			
 			UserSet = null;
