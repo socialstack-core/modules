@@ -13,14 +13,6 @@ namespace Api.Reactions
 	public partial class ReactionCount : MappingRow
 	{
 		/// <summary>
-		/// The content type this is a reaction to.
-		/// </summary>
-		public int ContentTypeId;
-		/// <summary>
-		/// The Id of the content that this is a reaction to.
-		/// </summary>
-		public int ContentId;
-		/// <summary>
 		/// The type of reaction (like, dislike etc - they can be custom defined).
 		/// </summary>
 		public int ReactionTypeId;
