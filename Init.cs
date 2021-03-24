@@ -149,6 +149,7 @@ namespace Api.DatabaseDiff
 
 			var existingSchema = new Schema();
 			CurrentDbSchema = existingSchema;
+			_database.Schema = CurrentDbSchema;
 
 			List<DatabaseColumnDefinition> columns;
 
