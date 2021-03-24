@@ -20,11 +20,15 @@ namespace Api.Contexts
 		/// <summary>
 		/// The identity this token represents (a generic user).
 		/// </summary>
-		private static System.Security.Principal.GenericIdentity GenericIdentity = new System.Security.Principal.GenericIdentity("User");
+		private readonly static System.Security.Principal.GenericIdentity GenericIdentity = new System.Security.Principal.GenericIdentity("User");
 		private static UserService _users;
 		private static LocaleService _locales;
 		private static ContextService _contextService;
 
+		/// <summary>
+		/// Don't set this! Use the Options argument on e.g. aService.List calls - it will manage this field for you. True if this context will skip permissions checking.
+		/// </summary>
+		public bool IgnorePermissions;
 
 		private int _localeId = 1;
 		
@@ -220,10 +224,12 @@ namespace Api.Contexts
 		/// </summary>
 		public async ValueTask<PublicContext> GetPublicContext()
 		{
-			var ctx = new PublicContext();
-			ctx.User = await GetUser();
-			ctx.Locale = await GetLocale();
-			ctx.Role = Role;
+			var ctx = new PublicContext
+			{
+				User = await GetUser(),
+				Locale = await GetLocale(),
+				Role = Role
+			};
 
 			// Get any custom extensions:
 			ctx = await Events.PubliccontextOnSetup.Dispatch(this, ctx);
