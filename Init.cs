@@ -53,9 +53,12 @@ namespace Api.Permissions
 					return new ValueTask<AutoService>(service);
 				}
 
+				var idType = contentType.GetMethod("GetId").ReturnType;
+
 				// Add List event:
 				var setupType = setupForTypeMethod.MakeGenericMethod(new Type[] {
-					contentType
+					contentType,
+					idType
 				});
 
 				setupType.Invoke(this, new object[] {
@@ -466,7 +469,7 @@ namespace Api.Permissions
 		/// </summary>
 		/// <typeparam name="T"></typeparam>
 		/// <param name="group"></param>
-		public void SetupForType<T>(EventGroup<T> group)
+		public void SetupForType<T, ID>(EventGroup<T, ID> group)
 		{
 
 			var fields = group.GetType().GetFields();
@@ -615,7 +618,6 @@ namespace Api.Permissions
 				// Both are set. Must combine them safely:
 				return new ValueTask<Filter<T>>(filter.Combine(rawGrantRule, srcFilter?.ParamValueResolvers) as Filter<T>);
 			}, 1);
-
 		}
 
 		/// <summary>
