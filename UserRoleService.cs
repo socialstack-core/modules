@@ -103,7 +103,7 @@ namespace Api.Permissions
 			}
 			else
 			{
-				Events.ServicesAfterStart.AddEventListener(async (Context ctx, object src) =>
+				Events.Service.AfterStart.AddEventListener(async (Context ctx, object src) =>
 				{
 					await InstallNow(roles);
 					return src;
@@ -127,7 +127,7 @@ namespace Api.Permissions
 				// Get the roles:
 				var filter = new Filter<UserRole>();
 				filter.Id(idSet.Select(role => role.Id));
-				var existingRoles = (await ListNoCache(context, filter)).ToDictionary(role => role.Id);
+				var existingRoles = (await ListNoCache(context, filter, false, DataOptions.IgnorePermissions)).ToDictionary(role => role.Id);
 				
 				// For each to consider for install..
 				foreach (var role in idSet)
@@ -135,7 +135,7 @@ namespace Api.Permissions
 					// If it doesn't already exist, create it.
 					if (!existingRoles.ContainsKey(role.Id))
 					{
-						await Create(context, role);
+						await Create(context, role, DataOptions.IgnorePermissions);
 					}
 				}
 			}
@@ -148,7 +148,7 @@ namespace Api.Permissions
 				// Get the roles by those keys:
 				var filter = new Filter<UserRole>();
 				filter.EqualsSet("Key", keySet.Select(role => role.Key));
-				var existingRoles = (await ListNoCache(context, filter)).ToDictionary(role => role.Key);
+				var existingRoles = (await ListNoCache(context, filter, false, DataOptions.IgnorePermissions)).ToDictionary(role => role.Key);
 
 				// For each role to consider for install..
 				foreach (var role in keySet)
@@ -156,7 +156,7 @@ namespace Api.Permissions
 					// If it doesn't already exist, create it.
 					if (!existingRoles.ContainsKey(role.Key))
 					{
-						await Create(context, role);
+						await Create(context, role, DataOptions.IgnorePermissions);
 					}
 				}
 			}

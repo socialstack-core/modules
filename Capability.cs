@@ -13,9 +13,19 @@ namespace Api.Permissions
 	public class Capability
     {
         /// <summary>
-        /// Capability string name. Of the form "LeadCreate". 
+        /// Current max assigned ID.
+        /// </summary>
+        private static int _CurrentId = 0;
+
+        /// <summary>
+        /// Capability string name. Of the form "lead_create". Always lowercase.
         /// </summary>
         public string Name = "";
+
+        /// <summary>
+        /// Just the feature. Of the form "create". Always lowercase.
+        /// </summary>
+        public string Feature = "";
         /// <summary>
         /// An index for high speed capability lookups within roles. 
         /// Not consistent across runs - don't store in the database. Use Name instead.
@@ -28,27 +38,23 @@ namespace Api.Permissions
         public Type ContentType;
 
         /// <summary>
-        /// Create a new capability. Should only do this once during startup, and typically via extending Capabilities class.
+        /// Create a new capability.
         /// </summary>
-        /// <param name="name">
-        /// A textual name to represent your capability. Always the same as the field name in the Capabilities class.
+        /// <param name ="contentType"></param>
+        /// <param name="feature">
+        /// Just the feature name, e.g. "List" or "Create".
         /// </param>
-        public Capability(string name = "")
+        public Capability(Type contentType, string feature = "")
         {
-            Name = name;
-
-            if (string.IsNullOrEmpty(name))
+            if (string.IsNullOrEmpty(feature))
             {
-                throw new ArgumentNullException("Capabilities require a name.");
+                throw new ArgumentNullException(nameof(feature), "Capabilities require a feature name.");
             }
-			
-			if(Capabilities.All == null){
-				Capabilities.All = new Dictionary<string, Capability>();
-			}
-			
-            // Add to name lookup and set the internal ID:
-            InternalId = Capabilities.All.Count;
-            Capabilities.All[name.ToLower()] = this;
+
+            ContentType = contentType;
+            Feature = feature.ToLower();
+            Name = contentType == null ? feature : contentType.Name.ToLower() + "_" + Feature;
+            InternalId = _CurrentId++;
         }
 
         /// <summary>
@@ -105,27 +111,5 @@ namespace Api.Permissions
 			return role.IsGranted(this, token, filter, extraObjectsToCheck);
 		}
 
-		/// <summary>
-		/// Always grants a capability.
-		/// Used internally by Role.Grant("..") when no handler is given.
-		/// </summary>
-		/// <returns></returns>
-		public static bool AlwaysGrant(Capability capability, Context token, object[] extraObjectsToCheck)
-        {
-            // You shall pass!
-            return true;
-        }
-
-        /// <summary>
-        /// Rejects a capability.
-        /// Used internally by isAlsoGranted if the target cap hasn't actually been granted yet.
-        /// </summary>
-        /// <returns></returns>
-        public static bool AlwaysReject(Capability capability, Context token, object[] extraObjectsToCheck)
-        {
-            // You shall not pass!
-            return false;
-        }
-		
     }
 }

@@ -27,54 +27,44 @@ namespace Api.Permissions
 		/// </summary>
 		public Init()
 		{
-			var allPermittedEvents = Events.FindByPlacement(EventPlacement.NotSpecified);
 
-			var listMethodInfo = GetType().GetMethod("SetupForListEvent");
-			var standardMethodInfo = GetType().GetMethod("SetupForStandardEvent");
+			var setupForTypeMethod = GetType().GetMethod(nameof(SetupForType));
+			
+			Events.Service.AfterCreate.AddEventListener((Context context, AutoService service) => {
 
-			foreach (var permittedEvent in allPermittedEvents)
-			{
-				if(permittedEvent.Verb.EndsWith("ed"))
+				if (service == null)
 				{
-					continue;
+					return new ValueTask<AutoService>(service);
+				}
+
+				// Get the content type for this service and event group:
+				var contentType = service.ServicedType;
+
+				if (contentType == null)
+				{
+					return new ValueTask<AutoService>(service);
 				}
 				
-				// If it had a DontAddPermissions attribute, just skip.
-				if (permittedEvent.GetCustomAttribute<DontAddPermissionsAttribute>() != null)
+				// Get its event group so we can add permission handlers:
+				var eventGroup = service.GetEventGroup();
+
+				if (eventGroup == null)
 				{
-					continue;
+					return new ValueTask<AutoService>(service);
 				}
 
-				// Create a capability for this event type - e.g. UserCreate becomes a capability called "user_create". Creating it will automatically add it to the set.
-				var capability = new Capability(permittedEvent.EntityName + "_" + permittedEvent.Verb);
-				capability.ContentType = permittedEvent.PrimaryType;
+				// Add List event:
+				var setupType = setupForTypeMethod.MakeGenericMethod(new Type[] {
+					contentType
+				});
 
-				if (permittedEvent.Verb == "List")
-				{
-					// Invoke SetupForListEvent:
-					var setupType = listMethodInfo.MakeGenericMethod(new Type[] {
-						permittedEvent.PrimaryType
-					});
+				setupType.Invoke(this, new object[] {
+					eventGroup
+				});
 
-					setupType.Invoke(this, new object[] {
-						permittedEvent,
-						capability
-					});
-				}
-				else
-				{
-					// Invoke SetupForStandardEvent:
-					var setupType = standardMethodInfo.MakeGenericMethod(new Type[] {
-						permittedEvent.PrimaryType
-					});
+				return new ValueTask<AutoService>(service);
+			}, 1);
 
-					setupType.Invoke(this, new object[] {
-						permittedEvent,
-						capability
-					});
-				}
-			}
-			
 			// Hook the default role setup. It's done like this so it can be removed by a plugin if wanted.
 			Events.RoleOnSetup.AddEventListener((Context context, object source) => {
 				
@@ -130,7 +120,7 @@ namespace Api.Permissions
 			Events.CapabilityOnSetup.AddEventListener((Context context, object source) => {
 
 				// Public - the role used by anonymous users.
-				Roles.Public.GrantVerb("load").GrantVerb("list")
+				Roles.Public.GrantFeature("load").GrantFeature("list")
 					.Revoke("user_load").Revoke("user_list")
 					.Grant("user_create");
 				
@@ -145,7 +135,7 @@ namespace Api.Permissions
 				Roles.Guest.GrantTheSameAs(Roles.Public); // <-- In this case, we grant the same as public.
 
 				// Users can update or delete any content they've created themselves:
-				Roles.Guest.If((Filter f) => f.IsSelf()).ThenGrantVerb("update", "delete");
+				Roles.Guest.If((Filter f) => f.IsSelf()).ThenGrantFeature("update", "delete");
 
 				// Member - created and (optionally) activated.
 				Roles.Member.GrantTheSameAs(Roles.Guest);
@@ -176,9 +166,9 @@ namespace Api.Permissions
 		/// Invoked by reflection. Adds user restrictions to the given event group for a particular content type.
 		/// </summary>
 		/// <typeparam name="T"></typeparam>
-		/// <param name="eventGroup"></param>
-		public void SetupUserRestrictionsForContent<T>(EventGroup<T> eventGroup) where T: IHaveId<int>, IHaveUserRestrictions
+		public void SetupUserRestrictionsForContent<T>() where T: IHaveId<int>, IHaveUserRestrictions
 		{
+			var eventGroup = Events.GetGroup<T>();
 			PermittedContentService permits = null;
 			UserService users = null;
 
@@ -250,7 +240,7 @@ namespace Api.Permissions
 					field.OnSetValue.AddEventListener(async (Context context, object value, T targetObject, JToken srcToken) =>
 					{
 						// The value should be an array of ints.
-						if (!(value is JArray permitArray))
+						if (value is not JArray permitArray)
 						{
 							return null;
 						}
@@ -286,10 +276,8 @@ namespace Api.Permissions
 							else if (token.Type == JTokenType.Object)
 							{
 								var jObj = token as JObject;
-
-								JToken v = null;
-
-								if (jObj.TryGetValue("userId", out v))
+								
+								if (jObj.TryGetValue("userId", out JToken v))
 								{
 									permitToCreate.PermittedContentId = v.Value<int>();
 									permitToCreate.PermittedContentTypeId = userContentTypeId;
@@ -368,15 +356,17 @@ namespace Api.Permissions
 						return permitList;
 					});
 
-
 				}
 
 				return new ValueTask<JsonField<T>>(field);
 			});
-			
+
 			// Permission blocks next. Ensure we only return results for things that this user is permitted to see.
 			// We'll do this by extending the grant filter.
 
+			#warning todo revisit permits.
+
+			/*
 			foreach (var role in Roles.All)
 			{
 				// Note that this applies to everybody - admins included.
@@ -394,37 +384,13 @@ namespace Api.Permissions
 				}
 
 			}
+			*/
 		}
 
-		private void SetupUserRestrictions()
+		private static void SetupPartialRoleRestrictions()
 		{
-			// For each type, add the user restriction handlers if the type requires them:
-			var userRestrictMethodInfo = GetType().GetMethod("SetupUserRestrictionsForContent");
-
-			foreach (var kvp in ContentTypes.TypeMap)
-			{
-				var contentType = kvp.Value;
-
-				if (!typeof(IHaveUserRestrictions).IsAssignableFrom(contentType))
-				{
-					continue;
-				}
-
-				// Invoke:
-				var setupType = userRestrictMethodInfo.MakeGenericMethod(new Type[] {
-					contentType
-				});
-
-				var group = Events.GetGroup(contentType);
-
-				setupType.Invoke(this, new object[] {
-					group
-				});
-			}
-		}
-
-		private void SetupPartialRoleRestrictions()
-		{
+#warning todo revisit partial role restrictions
+			/*
 			// For each type, build the field map of roles that it wants to partially restrict (if any):
 			foreach (var kvp in ContentTypes.TypeMap)
 			{
@@ -469,31 +435,151 @@ namespace Api.Permissions
 				}
 
 			}
+			*/
+		}
+
+		private void SetupUserRestrictions()
+		{
+			// For each type, add the user restriction handlers if the type requires them:
+			var userRestrictMethodInfo = GetType().GetMethod("SetupUserRestrictionsForContent");
+
+			foreach (var kvp in ContentTypes.TypeMap)
+			{
+				var contentType = kvp.Value;
+
+				if (!typeof(IHaveUserRestrictions).IsAssignableFrom(contentType))
+				{
+					continue;
+				}
+
+				// Invoke:
+				var setupType = userRestrictMethodInfo.MakeGenericMethod(new Type[] {
+					contentType
+				});
+
+				setupType.Invoke(this, Array.Empty<object>());
+			}
 		}
 
 		/// <summary>
-		/// Sets up a particular list event handler with permissions
+		/// Sets up for the given type with its event group.
 		/// </summary>
 		/// <typeparam name="T"></typeparam>
-		/// <param name="evtHandler"></param>
-		/// <param name="capability"></param>
-		public void SetupForListEvent<T>(Api.Eventing.EventHandler evtHandler, Capability capability)
+		/// <param name="group"></param>
+		public void SetupForType<T>(EventGroup<T> group)
 		{
-			var handler = evtHandler as EndpointEventHandler<Filter<T>>;
 
-			if (handler == null)
+			var fields = group.GetType().GetFields();
+
+			group.AllWithCapabilities = null;
+
+			foreach (var field in fields)
 			{
-				// We can't mount a permmission handle on this event.
-				return;
+				if (field.FieldType == typeof(Eventing.EventHandler<T>) && field.Name.StartsWith("Before"))
+				{
+					// Standard event handle.
+					var eventHandler = field.GetValue(group) as Eventing.EventHandler<T>;
+
+					// Create a capability for this event type - e.g. User.BeforeCreate becomes a capability called "User_Create".
+					if (eventHandler.Capability == null)
+					{
+						var capability = new Capability(typeof(T), field.Name[6..]);
+						eventHandler.Capability = capability;
+					}
+
+					if (group.AllWithCapabilities == null)
+					{
+						group.AllWithCapabilities = new List<Api.Eventing.EventHandler>();
+					}
+
+					group.AllWithCapabilities.Add(eventHandler);
+
+					SetupForStandardEvent<T>(eventHandler, eventHandler.Capability);
+				}
+				else if (field.FieldType == typeof(Eventing.EventHandler<T>) && field.Name.StartsWith("After") && field.Name.EndsWith("Load"))
+				{
+					// Special case for Load events because BeforeLoad is an EventHandler with just an ID and we can't use that to figure out if the load is ok or not.
+					var eventHandler = field.GetValue(group) as Eventing.EventHandler<T>;
+
+					// Create a capability for this event type - e.g. User.AfterLoad becomes a capability called "User_Load".
+
+					if (eventHandler.Capability == null)
+					{
+						var capability = new Capability(typeof(T), field.Name[5..]);
+						eventHandler.Capability = capability;
+					}
+
+					if (group.AllWithCapabilities == null)
+					{
+						group.AllWithCapabilities = new List<Api.Eventing.EventHandler>();
+					}
+
+					group.AllWithCapabilities.Add(eventHandler);
+
+					SetupForStandardEvent<T>(eventHandler, eventHandler.Capability);
+				}
+				else if (field.FieldType == typeof(Eventing.EventHandler<Filter<T>>) && field.Name.StartsWith("Before"))
+				{
+					// List handle
+					var eventHandler = field.GetValue(group) as Eventing.EventHandler<Filter<T>>;
+
+					// Create a capability for this event type - e.g. User.BeforeCreate becomes a capability called "User_Create".
+
+					if (eventHandler.Capability == null)
+					{
+						var capability = new Capability(typeof(T), field.Name[6..]);
+						eventHandler.Capability = capability;
+					}
+
+					if (group.AllWithCapabilities == null)
+					{
+						group.AllWithCapabilities = new List<Api.Eventing.EventHandler>();
+					}
+
+					group.AllWithCapabilities.Add(eventHandler);
+
+					SetupForListEvent<T>(eventHandler, eventHandler.Capability);
+				}
+
 			}
 
-			// Add an event handler at priority 1 (runs before others).
-			handler.AddEventListener((Context context, Filter<T> filter, HttpResponse response) =>
+		}
+
+		/// <summary>
+		/// Adds the given capability to all currently loaded roles.
+		/// </summary>
+		/// <param name="capability"></param>
+		private static void CapabilityCreated(Capability capability)
+		{
+			foreach (var role in Roles.All)
 			{
+				role.AddCapability(capability);
+			}
+		}
+
+		/// <summary>
+		/// Sets up a particular Before*List event handler with permissions
+		/// </summary>
+		/// <typeparam name="T"></typeparam>
+		/// <param name="handler"></param>
+		/// <param name="capability"></param>
+		public void SetupForListEvent<T>(Api.Eventing.EventHandler<Filter<T>> handler, Capability capability)
+		{
+			// Indicate to the roles that the cap exists:
+			CapabilityCreated(capability);
+
+			// Add an event handler at priority 1 (runs before others).
+			handler.AddEventListener((Context context, Filter<T> filter) =>
+			{
+				if (context.IgnorePermissions)
+				{
+					return new ValueTask<Filter<T>>(filter);
+				}
+				
 				// Check if the capability is granted.
 				// If it is, return the first arg.
 				// Otherwise, return null.
-				var role = context == null ? Roles.Public : context.Role;
+				var role = context.Role;
 
 				if (role == null)
 				{
@@ -536,20 +622,21 @@ namespace Api.Permissions
 		/// Sets up a particular non-list event handler with permissions
 		/// </summary>
 		/// <typeparam name="T"></typeparam>
-		/// <param name="evtHandler"></param>
+		/// <param name="handler"></param>
 		/// <param name="capability"></param>
-		public void SetupForStandardEvent<T>(Api.Eventing.EventHandler evtHandler, Capability capability)
+		public void SetupForStandardEvent<T>(Api.Eventing.EventHandler<T> handler, Capability capability)
 		{
-			var handler = evtHandler as EndpointEventHandler<T>;
-			if (handler == null)
-			{
-				// We can't mount a permmission handle on this event.
-				return;
-			}
+			// Indicate to the roles that the cap exists:
+			CapabilityCreated(capability);
 
 			// Add an event handler at priority 1 (runs before others).
-			handler.AddEventListener(async (Context context, T content, HttpResponse response) =>
+			handler.AddEventListener(async (Context context, T content) =>
 			{
+				if (context.IgnorePermissions)
+				{
+					return content;
+				}
+
 				// Check if the capability is granted.
 				// If it is, return the first arg.
 				// Otherwise, return null.

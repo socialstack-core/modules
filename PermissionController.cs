@@ -45,9 +45,9 @@ namespace Api.Permissions
 					
 					var caps = new List<CapabilityMeta>();
 
-					foreach (var capability in Capabilities.All)
+					foreach (var capability in Capabilities.GetAllCurrent())
 					{
-						var rule = role.GetGrantRule(capability.Value);
+						var rule = role.GetGrantRule(capability);
 
 						if (rule == null)
 						{
@@ -56,7 +56,7 @@ namespace Api.Permissions
 
 						caps.Add(new CapabilityMeta()
 						{
-							Name = capability.Key
+							Name = capability.Name
 						});
 					}
 
@@ -97,12 +97,12 @@ namespace Api.Permissions
 			var results = new List<PermissionMeta>();
 
 			// For each capability..
-			foreach (var capability in Capabilities.All)
+			foreach (var capability in Capabilities.GetAllCurrent())
 			{
 
 				var meta = new PermissionMeta()
 				{
-					Key = capability.Key,
+					Key = capability.Name,
 					Description = "Generated capability",
 					Grants = new List<GrantMeta>()
 				};
@@ -112,7 +112,7 @@ namespace Api.Permissions
 				{
 
 					// Got it set?
-					var rule = role.GetGrantRule(capability.Value);
+					var rule = role.GetGrantRule(capability);
 
 					if (rule != null)
 					{

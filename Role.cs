@@ -6,6 +6,7 @@ using Api.Contexts;
 using Api.Database;
 using Api.Startup;
 using Api.Users;
+using Newtonsoft.Json;
 
 namespace Api.Permissions
 {
@@ -44,14 +45,20 @@ namespace Api.Permissions
         }
 
 		/// <summary>
-		/// Indexed by capability InternalId.
+		/// The raw grant rules, sorted by priority (weakest first). Evaluated against only when new capabilities are added.
 		/// </summary>
-		private FilterNode[] CapabilityLookup = new FilterNode[0];
+		[JsonIgnore]
+		public List<RoleGrantRule> GrantRules = new List<RoleGrantRule>();
 
 		/// <summary>
 		/// Indexed by capability InternalId.
 		/// </summary>
-		private Filter[] CapabilityFilterLookup = new Filter[0];
+		private FilterNode[] CapabilityLookup = Array.Empty<FilterNode>();
+
+		/// <summary>
+		/// Indexed by capability InternalId.
+		/// </summary>
+		private Filter[] CapabilityFilterLookup = Array.Empty<Filter>();
 
 		/// <summary>
 		/// Grants the given capabilities unconditionally.
@@ -60,114 +67,33 @@ namespace Api.Permissions
 		/// <returns></returns>
 		public Role Grant(params string[] capabilityNames)
 		{
-			for (var i = 0; i < capabilityNames.Length; i++)
+			AddRule(new RoleGrantRule()
 			{
-				Grant(capabilityNames[i], new FilterTrue(), null);
-			}
+				RuleType = RoleGrantRuleType.Single,
+				Patterns = capabilityNames
+			});
 
 			return this;
 		}
 
 		/// <summary>
-		/// Grants the given verbs unconditionally. Any capability that ends with this verb will be granted.
-		/// For example, GrantVerb("Load") will permit UserLoad, ForumReplyLoad etc.
+		/// Grants the given features unconditionally. Any capability that uses this feature will be granted.
+		/// For example, GrantFeature("Load") will permit User Load, ForumReply Load etc.
 		/// </summary>
-		/// <param name="verbs"></param>
+		/// <param name="features"></param>
 		/// <returns></returns>
-		public Role GrantVerb(params string[] verbs)
+		public Role GrantFeature(params string[] features)
 		{
-			return GrantVerb(null, null, verbs);
-		}
+			AddRule(new RoleGrantRule()
+			{
+				RuleType = RoleGrantRuleType.Feature,
+				Patterns = features
+			});
 
-		/// <summary>
-		/// Grants the given verbs unconditionally. Any capability that ends with this verb will be granted.
-		/// For example, GrantVerb("Load") will permit UserLoad, ForumReplyLoad etc.
-		/// </summary>
-		/// <param name="node"></param>
-		/// <param name="srcFilter"></param>
-		/// <param name="verbs"></param>
-		/// <returns></returns>
-		public Role GrantVerb(FilterNode node, Filter srcFilter, params string[] verbs)
-		{
-			for (var i = 0; i < verbs.Length; i++)
-			{
-				verbs[i] = "_" + verbs[i].ToLower();
-			}
-			
-			foreach (var kvp in Capabilities.All)
-			{
-				for (var i = 0; i < verbs.Length; i++)
-				{
-					if (kvp.Key.EndsWith(verbs[i]))
-					{
-						if (node == null)
-						{
-							Grant(kvp.Value, new FilterTrue(), null);
-						}
-						else
-						{
-							Grant(kvp.Value, node, srcFilter);
-						}
-						break;
-					}
-				}
-			}
-			
 			return this;
 		}
 
-		/// <summary>
-		/// Grants the given single capability conditionally. The chain must resolve to true to grant the capability.
-		/// Note that this is used via a .If() chain.
-		/// </summary>
-		/// <param name="capabilityName"></param>
-		/// <param name="node"></param>
-		/// <param name="srcFilter"></param>
-		/// <returns></returns>
-		public Role Grant(string capabilityName, FilterNode node, Filter srcFilter)
-		{
-			Capability cap;
-			if (!Capabilities.All.TryGetValue(capabilityName.ToLower(), out cap))
-			{
-				// If you ended up here, please check to that you're instancing a capability with the given name 
-				// (it's probably a typo in your grant call).
-				throw new Exception("Role '" + Name + "' tried to grant '" + capabilityName + "' but that capability wasn't found.");
-			}
-
-			return Grant(cap, node, srcFilter);
-		}
-
-		/// <summary>
-		/// Grants the given single capability conditionally. The chain must resolve to true to grant the capability.
-		/// Note that this is used via a .If() chain.
-		/// </summary>
-		/// <param name="cap"></param>
-		/// <param name="node"></param>
-		/// <param name="srcFilter"></param>
-		public Role Grant(Capability cap, FilterNode node, Filter srcFilter)
-		{
-			// Resize lookup if we need to:
-			ResizeIfRequired(cap.InternalId);
-
-			if (CapabilityLookup[cap.InternalId] != null)
-			{
-				// Can't replace grants here. Revoke first to avoid, but the dev probably meant to use an Or()/ And() call.
-				throw new Exception(
-					"Attempted to grant '" + cap.Name + "' on role '" + Name + "' again. " +
-					"If you did want to replace the existing grant, use Revoke first to avoid this message. " +
-					"Otherwise, if you wanted to merge them, use Or() or And() calls instead."
-				);
-			}
-
-			// Add to our fast internal lookup (as 'always granted' here):
-			// NOTE: We're intentionally generating new objects for each one.
-			// The capabilities must be completely independent at all times to avoid any unexpected crossover.
-			CapabilityLookup[cap.InternalId] = node;
-			CapabilityFilterLookup[cap.InternalId] = srcFilter;
-			
-            return this;
-        }
-
+		/*
 		/// <summary>
 		/// Adds a PermittedContent requirement to the given capability.
 		/// </summary>
@@ -242,32 +168,7 @@ namespace Api.Permissions
 			CapabilityLookup[cap.InternalId] = filter.Construct(true);
 		}
 
-		/// <summary>
-		/// The content type ID of User. ContentTypes.GetId(typeof(User));
-		/// </summary>
-		private static int userContentTypeId;
-
-		/// <summary>
-		/// The permitted content service.
-		/// </summary>
-		private static PermittedContentService _permittedContents;
-
-		private void ResizeIfRequired(int index)
-		{
-			// Resize lookup if we need to:
-			if (index >= CapabilityLookup.Length)
-			{
-				// Resize it:
-				var newLookup = new FilterNode[index + 1];
-				Array.Copy(CapabilityLookup, newLookup, CapabilityLookup.Length);
-				CapabilityLookup = newLookup;
-
-				var newFilterLookup = new Filter[index + 1];
-				Array.Copy(CapabilityFilterLookup, newFilterLookup, CapabilityFilterLookup.Length);
-				CapabilityFilterLookup = newFilterLookup;
-			}
-		}
-
+		
 		/// <summary>
 		/// Extends a cap filter with a role restriction. Note that this happens after e.g. GrantTheSameAs calls, because it's always role specific.
 		/// </summary>
@@ -295,6 +196,34 @@ namespace Api.Permissions
 			filter.Equals(contentType, fieldName, true);
 			CapabilityLookup[cap.InternalId] = filter.Construct(true);
 		}
+		
+		/// <summary>
+		/// The content type ID of User. ContentTypes.GetId(typeof(User));
+		/// </summary>
+		private static int userContentTypeId;
+		
+		/// <summary>
+		/// The permitted content service.
+		/// </summary>
+		private static PermittedContentService _permittedContents;
+		
+		*/
+
+		private void ResizeIfRequired(int index)
+		{
+			// Resize lookup if we need to:
+			if (index >= CapabilityLookup.Length)
+			{
+				// Resize it:
+				var newLookup = new FilterNode[index + 1];
+				Array.Copy(CapabilityLookup, newLookup, CapabilityLookup.Length);
+				CapabilityLookup = newLookup;
+
+				var newFilterLookup = new Filter[index + 1];
+				Array.Copy(CapabilityFilterLookup, newFilterLookup, CapabilityFilterLookup.Length);
+				CapabilityFilterLookup = newFilterLookup;
+			}
+		}
 
 		/// <summary>
 		/// Start conditional grants. For example, theRole.If((Filter f) => f.IsSelf()).ThenGrant("user_update") - 
@@ -313,52 +242,14 @@ namespace Api.Permissions
 		/// <returns></returns>
         public Role Revoke(params string[] capabilityNames)
         {
-            for (var i = 0; i < capabilityNames.Length; i++)
-            {
-                var capabilityName = capabilityNames[i];
-
-                Capability cap;
-                if (!Capabilities.All.TryGetValue(capabilityName.ToLower(), out cap))
-                {
-                    // If you ended up here, please check to that you're instancing a capability with the given name 
-                    // (it's probably a typo in your revoke call).
-                    throw new Exception("Role '" + Name + "' tried to revoke '" + capabilityName + "' but that capability wasn't found.");
-                }
-
-                // Revoke at that index:
-                if (cap.InternalId >= CapabilityLookup.Length)
-                {
-                    // Out of range - already not granted.
-                    continue;
-                }
-
-                // Remove from lookup:
-                CapabilityLookup[cap.InternalId] = null;
-                CapabilityFilterLookup[cap.InternalId] = null;
-            }
-
-            return this;
-        }
-
-		/// <summary>
-		/// Revokes every capability. You can grant certain ones afterwards.
-		/// </summary>
-		/// <returns></returns>
-		public Role RevokeEverything()
-		{
-			if (CapabilityLookup == null)
+			AddRule(new RoleGrantRule()
 			{
-				return this;
-			}
-
-			for (var i = 0; i < CapabilityLookup.Length; i++)
-			{
-				CapabilityLookup[i] = null;
-				CapabilityFilterLookup[i] = null;
-			}
-
+				RuleType = RoleGrantRuleType.Revoke | RoleGrantRuleType.Single,
+				Patterns = capabilityNames
+			});
+			
 			return this;
-		}
+        }
 
 		/// <summary>
 		/// Grants every capability. You can revoke certain ones afterwards.
@@ -366,69 +257,55 @@ namespace Api.Permissions
 		/// <returns></returns>
 		public Role GrantEverything()
         {
-            foreach (var kvp in Capabilities.All)
-            {
-                Grant(kvp.Key);
-            }
-            return this;
+			AddRule(new RoleGrantRule()
+			{
+				RuleType = RoleGrantRuleType.All
+			});
+			
+			return this;
         }
 
 		/// <summary>
-		/// Revokes all caps which end with the given text.
+		/// Adds the given rule to the grant set.
 		/// </summary>
-		/// <param name="capabilityNames"></param>
-		/// <returns></returns>
-		public Role RevokeIfEndsWith(params string[] capabilityNames)
+		/// <param name="rule"></param>
+		public void AddRule(RoleGrantRule rule)
 		{
-			for (var i = 0; i < capabilityNames.Length; i++)
+			// Add rules in order of priority. 
+			// I.e. highest type int goes last in the list.
+			GrantRules.Add(rule);
+			GrantRules.Sort((a,b) => (int)a.RuleType - (int)b.RuleType);
+		}
+
+		/// <summary>
+		/// Revokes all caps which are for the given feature.
+		/// </summary>
+		/// <param name="features"></param>
+		/// <returns></returns>
+		public Role RevokeFeature(params string[] features)
+		{
+			AddRule(new RoleGrantRule()
 			{
-				var capabilityName = capabilityNames[i].ToLower();
-
-				foreach (var capKvp in Capabilities.All)
-				{
-					if (!capKvp.Key.EndsWith(capabilityName))
-					{
-						continue;
-					}
-
-					var cap = capKvp.Value;
-
-					// Revoke at that index:
-					if (cap.InternalId >= CapabilityLookup.Length)
-					{
-						// Out of range - already not granted.
-						continue;
-					}
-
-					// Remove from lookup:
-					CapabilityLookup[cap.InternalId] = null;
-					CapabilityFilterLookup[cap.InternalId] = null;
-				}
-			}
+				RuleType = RoleGrantRuleType.Revoke | RoleGrantRuleType.Feature,
+				Patterns = features
+			});
 
 			return this;
 		}
 
 		/// <summary>
 		/// Grants the same perms as the given role. 
-		/// Replaces any grants already done, but you can still call grant after this.
+		/// If no other rules apply, the given role will be used.
 		/// </summary>
 		/// <param name="copyFrom"></param>
 		/// <returns></returns>
 		public Role GrantTheSameAs(Role copyFrom)
         {
-            CapabilityLookup = new FilterNode[copyFrom.CapabilityLookup.Length];
-            CapabilityFilterLookup = new Filter[copyFrom.CapabilityFilterLookup.Length];
-
-			for (var i = 0; i < copyFrom.CapabilityLookup.Length; i++)
+			AddRule(new RoleGrantRule()
 			{
-				var node = copyFrom.CapabilityLookup[i];
-				var srcFilter = copyFrom.CapabilityFilterLookup[i];
-
-				CapabilityLookup[i] = node;
-				CapabilityFilterLookup[i] = srcFilter;
-			}
-
+				RuleType = RoleGrantRuleType.Role,
+				SameAsRole = copyFrom
+			});
             return this;
         }
 		
@@ -538,7 +415,77 @@ namespace Api.Permissions
 
 			return true;
 		}
-		
+
+		/// <summary>
+		/// Adds the given new capability to the role
+		/// </summary>
+		/// <param name="capability"></param>
+		public void AddCapability(Capability capability)
+		{
+			ResizeIfRequired(capability.InternalId);
+
+			// Clear:
+			CapabilityLookup[capability.InternalId] = null;
+
+			var rule = GetActiveRule(capability);
+
+			if (rule == null || (rule.RuleType & RoleGrantRuleType.Revoke) == RoleGrantRuleType.Revoke)
+			{
+				// Deny
+				return;
+			}
+
+			// Otherwise we're adding it. Does it have a filter resolver?
+			if (rule.FilterResolver != null)
+			{
+				var filterType = typeof(Filter<>).MakeGenericType(new Type[] { capability.ContentType });
+				var filter = Activator.CreateInstance(filterType) as Filter;
+				filter = rule.FilterResolver(filter);
+
+				if (filter == null)
+				{
+					// Don't actually grant this.
+					return;
+				}
+
+				var rootNode = filter.Construct();
+				CapabilityLookup[capability.InternalId] = rootNode;
+				CapabilityFilterLookup[capability.InternalId] = filter;
+			}
+			else
+			{
+				// Standard grant
+				CapabilityLookup[capability.InternalId] = new FilterTrue();
+				CapabilityFilterLookup[capability.InternalId] = null;
+			}
+		}
+
+		/// <summary>
+		/// Gets the active grant rule on this role for the given capability. 
+		/// Null if there isn't one and the grant is the base default (false).
+		/// </summary>
+		/// <param name="capability"></param>
+		/// <returns></returns>
+		public RoleGrantRule GetActiveRule(Capability capability)
+		{
+			// Now evaluate each rule in this role (they're already sorted in order of priority - weakest first).
+			for(var i=GrantRules.Count - 1; i>=0;i--)
+			{
+				var rule = GrantRules[i];
+
+				// Do the patterns in the rule match this capability?
+				rule = rule.AsAppliedTo(capability);
+				if (rule == null)
+				{
+					continue;
+				}
+
+				return rule;
+			}
+
+			return null;
+		}
+
 	}
 
 	/// <summary>
@@ -564,85 +511,35 @@ namespace Api.Permissions
 		/// <returns></returns>
 		public Role ThenGrant(params string[] capabilityNames)
 		{
-			// Grant the given set of caps to the given role
-			// Using new instances of this grant chain.
-			// We always use new instances in case people start directly using the grant chain on a particular capability
-			// after applying a bulk if to a bunch of them.
-			for (var i = 0; i < capabilityNames.Length; i++)
-			{
-				// Get the cap:
-				var capabilityName = capabilityNames[i];
-
-				Capability cap;
-				if (!Capabilities.All.TryGetValue(capabilityName.ToLower(), out cap))
+			Role.AddRule(
+				new RoleGrantRule()
 				{
-					// If you ended up here, please check to that you're instancing a capability with the given name 
-					// (it's probably a typo in your grant call).
-					throw new Exception("Role '" + Role.Name + "' tried to grant '" + capabilityName + "' but that capability wasn't found.");
+					FilterResolver = FilterResolver,
+					Patterns = capabilityNames,
+					RuleType = RoleGrantRuleType.Single,
 				}
-
-				GrantInternal(cap);
-			}
-
+			);
 			return Role;
-		}
-
-		private void GrantInternal(Capability cap)
-		{
-			var filterType = typeof(Filter<>).MakeGenericType(new Type[] { cap.ContentType });
-			var filter = Activator.CreateInstance(filterType) as Filter;
-			filter = FilterResolver(filter);
-
-			if (filter == null)
-			{
-				// Don't actually grant this.
-				return;
-			}
-
-			var rootNode = filter.Construct();
-			Role.Grant(cap, rootNode, filter);
 		}
 
 		/// <summary>
 		/// If the previous chain resolves to true, then all the given capabilities will be granted.
 		/// </summary>
-		/// <param name="verbs"></param>
+		/// <param name="features"></param>
 		/// <returns></returns>
-		public Role ThenGrantVerb(params string[] verbs)
+		public Role ThenGrantFeature(params string[] features)
 		{
-			for (var i = 0; i < verbs.Length; i++)
-			{
-				verbs[i] = "_" + verbs[i].ToLower();
-			}
-
-			foreach (var kvp in Capabilities.All)
-			{
-				for (var i = 0; i < verbs.Length; i++)
+			Role.AddRule(
+				new RoleGrantRule()
 				{
-					if (kvp.Key.EndsWith(verbs[i]))
-					{
-						GrantInternal(kvp.Value);
-						break;
-					}
+					FilterResolver = FilterResolver,
+					Patterns = features,
+					RuleType = RoleGrantRuleType.Feature,
 				}
-			}
-
-			/*
-			var rootNode = Construct();
-
-			// Grant the given set of caps to the given role
-			// Using *duplicates* of this grant chain.
-			// We duplicate in case people start directly using the grant chain on a particular capability
-			// after applying a bulk if to a bunch of them.
-			for (var i = 0; i < verbNames.Length; i++)
-			{
-				Role.GrantVerb(rootNode.Copy(), this, verbNames[i]);
-			}
-			*/
-
+			);
 			return Role;
 		}
-		
+
 	}
 
 	/// <summary>
@@ -653,4 +550,116 @@ namespace Api.Permissions
 	/// <param name="extraObjectsToCheck"></param>
 	/// <returns></returns>
 	public delegate bool IsGrantedHandler(Capability capability, Context token, object[] extraObjectsToCheck);
+
+	/// <summary>
+	/// A raw role grant rule. Capabilities are tested against these rules when a cap or role is added.
+	/// </summary>
+	public class RoleGrantRule
+	{
+		/// <summary>
+		/// The base type of this grant rule, defining the scope of the patterns. Rules are sorted by the numeric version of this.
+		/// </summary>
+		public RoleGrantRuleType RuleType;
+
+		/// <summary>
+		/// Called for each grant - resolves to a filter to use, if one is needed.
+		/// </summary>
+		public Func<Filter, Filter> FilterResolver;
+
+		/// <summary>
+		/// The raw pattern set inside this rule. Evaluating against these is relatively slow, 
+		/// however, it is only evaluated once when a capability is seen for the first time.
+		/// </summary>
+		public string[] Patterns;
+
+		/// <summary>
+		/// Grant the same as this named role. Defines a base inheritence rule, which is the weakest of all rules.
+		/// </summary>
+		public Role SameAsRole;
+
+		/// <summary>
+		/// Returns a rule as applied to the given capability. Essentially if this rule does not apply, it returns null.
+		/// It can inherit from other roles, thus the actual rule returned is not necessarily this one.
+		/// </summary>
+		/// <param name="cap"></param>
+		/// <returns></returns>
+		public RoleGrantRule AsAppliedTo(Capability cap)
+		{
+			if ((RuleType & RoleGrantRuleType.Role) == RoleGrantRuleType.Role)
+			{
+				var baseRule = SameAsRole.GetActiveRule(cap);
+
+				if (baseRule != null)
+				{
+					return baseRule.AsAppliedTo(cap);
+				}
+
+				// No other options valid. Return here.
+				return null;
+			}
+
+			if ((RuleType & RoleGrantRuleType.All) == RoleGrantRuleType.All)
+			{
+				return this;
+			}
+
+			if ((RuleType & RoleGrantRuleType.Feature) == RoleGrantRuleType.Feature)
+			{
+				foreach (var pattern in Patterns)
+				{
+					if (cap.Feature == pattern)
+					{
+						return this;
+					}
+				}
+			}
+
+			if ((RuleType & RoleGrantRuleType.Single) == RoleGrantRuleType.Single)
+			{
+				foreach (var pattern in Patterns)
+				{
+					if (cap.Name == pattern)
+					{
+						return this;
+					}
+				}
+			}
+
+			return null;
+		}
+	}
+
+	/// <summary>
+	/// The type of a role grant rule.
+	/// </summary>
+	public enum RoleGrantRuleType : int
+	{
+		/// <summary>
+		/// Grant the same as the given role. Revoke is not valid with this.
+		/// </summary> 
+		Role = 4,
+		/// <summary>
+		/// All capabilities will be affected by the rule.
+		/// </summary>
+		All = 8,
+		/// <summary>
+		/// Any capability declaring a particular feature will be affected by the rule.
+		/// </summary>
+		Feature = 16,
+		/// <summary>
+		/// A single, specific capability is affected by the rule.
+		/// </summary>
+		Single = 32,
+		/// <summary>
+		/// Revoke can be combined with any of the other options. Declares that this rule clears the current grant, if there is one.
+		/// For example, revoke all is resolved before revoke single is, but after a permit all.
+		/// </summary>
+		Revoke = 64,
+		/// <summary>
+		/// Inspired by how CSS selectivity works.
+		/// In this case an important rule is one which is defined by the admin panel, and overrides any of the rules that originate from code.
+		/// </summary>
+		Important = 128
+	}
+
 }
