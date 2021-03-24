@@ -58,28 +58,6 @@ namespace Api.AvailableEndpoints
             return structure;
         }
 		
-		/// <summary>
-		/// GET /v1/apievents
-		/// Returns meta about the events in this API
-		/// </summary>
-		[HttpGet("apievent/list")]
-		public Set<EventMeta> EventList()
-        {
-			// Get the event names:
-			var eventTypes = new List<EventMeta>();
-			
-			foreach (var kvp in Events.All)
-			{
-				eventTypes.Add(new EventMeta()
-				{
-					Name = kvp.Value.Name
-				});
-			}
-			
-            return new Set<EventMeta>(){
-				Results = eventTypes
-			};
-        }
     }
 
 }

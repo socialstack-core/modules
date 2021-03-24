@@ -31,7 +31,6 @@ namespace Api.AvailableEndpoints
 		public AvailableEndpointService(IActionDescriptorCollectionProvider descriptionProvider)
         {
 			_descriptionProvider = descriptionProvider;
-
 		}
 
 		/// <summary>
