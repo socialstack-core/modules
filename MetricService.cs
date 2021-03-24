@@ -72,13 +72,17 @@ namespace Api.Metrics
 					continue;
 				}
 
-				if (!Events.All.TryGetValue(source.EventName.ToLower().Trim(), out Eventing.EventHandler handler))
+				var evtName = source.EventName.ToLower().Trim();
+
+				/*
+				if (!Events.All.TryGetValue(evtName, out Eventing.EventHandler handler))
 				{
 					Console.WriteLine("[WARN] Metric source (see the metricsource table in the database) " + source.Id + " is trying to connect to an event called '" + source.EventName + "' which doesn't exist in this API. " +
 						"The source has been ignored.");
 					continue;
 				}
-				
+				*/
+
 				// A connected metric source is a "Live source" - that's one which is actively receiving triggers:
 				var liveSource = new LiveMetricSource()
 				{
