@@ -1,4 +1,5 @@
 using System;
+using Api.AutoForms;
 using Api.Database;
 using Api.Users;
 
@@ -22,8 +23,15 @@ namespace Api.Templates
 		public string Title;
 		
 		/// <summary>
+		/// The module groups that this is available for. "formatting" is the default. * is "all of them".
+		/// </summary>
+		public string ModuleGroups = "formatting";
+		
+		/// <summary>
 		/// The content (as canvas JSON).
 		/// </summary>
+		[Data("groups", "*")]
+		[Data("withIds", "1")]
 		public string BodyJson;
 	}
 	
