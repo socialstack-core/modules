@@ -90,12 +90,12 @@ namespace Api.Startup
 		/// <summary>
 		///  Common field names used by entities which are used as a title when no [Meta("title")] is declared.
 		/// </summary>
-		private static string[] CommonTitleNames = new string[] { "fullname", "username", "firstname", "title", "name", "url" }; // Title itself isn't first as some user tables have "title" (as in Mr/s etc).
+		private readonly static string[] CommonTitleNames = new string[] { "fullname", "username", "firstname", "title", "name", "url" }; // Title itself isn't first as some user tables have "title" (as in Mr/s etc).
 
 		/// <summary>
 		///  Common field names used by entities which are used as a description when no [Meta("description")] is declared.
 		/// </summary>
-		private static string[] CommonDescriptionNames = new string[] { "description", "shortdescription", "bio", "biography", "about" };
+		private readonly static string[] CommonDescriptionNames = new string[] { "description", "shortdescription", "bio", "biography", "about" };
 		
 		/// <summary>
 		/// All raw fields in this structure.
@@ -161,7 +161,7 @@ namespace Api.Startup
 		/// and for each one, triggers an event. The event can return either nothing at all - which will outright block the field - 
 		/// or the event can add a special value handler which will map the raw JSON value to the actual object for us.
 		/// </summary>
-		public async Task Build(EventGroup<T> eventSystem)
+		public async Task Build(Api.Eventing.EventHandler<JsonField<T>> beforeSettable)
 		{
 			var context = new Context();
 
@@ -178,7 +178,7 @@ namespace Api.Startup
 					TargetType = field.FieldType
 				};
 				jsonField.FieldInfo = field;
-				await TryAddField(context, jsonField, eventSystem);
+				await TryAddField(context, jsonField, beforeSettable);
 			}
 			
 			var properties = typeof(T).GetProperties();
@@ -198,7 +198,7 @@ namespace Api.Startup
 				jsonField.PropertyGet = property.GetGetMethod();
 				jsonField.PropertySet = property.GetSetMethod();
 				
-				await TryAddField(context, jsonField, eventSystem);
+				await TryAddField(context, jsonField, beforeSettable);
 			}
 
 			// Do we have a title and description meta field?
@@ -271,8 +271,8 @@ namespace Api.Startup
 		/// </summary>
 		/// <param name="context"></param>
 		/// <param name="field"></param>
-		/// <param name="eventSystem"></param>
-		private async Task TryAddField(Context context, JsonField<T> field, EventGroup<T> eventSystem)
+		/// <param name="beforeSettable"></param>
+		private async Task TryAddField(Context context, JsonField<T> field, Api.Eventing.EventHandler<JsonField<T>> beforeSettable)
 		{
 			// Set the default just before the field event:
 			field.SetDefaultDisplayModule();
@@ -282,9 +282,9 @@ namespace Api.Startup
 
 			// Set if it's numeric:
 			field.UnderlyingNullable = nullableType;
-			field.IsNumericField = IsNumericType(nullableType != null ? nullableType : field.TargetType);
+			field.IsNumericField = IsNumericType(nullableType ?? field.TargetType);
 
-			field = await eventSystem.BeforeSettable.Dispatch(context, field);
+			field = await beforeSettable.Dispatch(context, field);
 
 			string metaFieldName = null;
 
@@ -298,9 +298,9 @@ namespace Api.Startup
 						field.Hide = true;
 					}
 
-					if (attrib is MetaAttribute)
+					if (attrib is MetaAttribute attribute)
 					{
-						metaFieldName = ((MetaAttribute)attrib).FieldName;
+						metaFieldName = attribute.FieldName;
 					}
 				}
 			}
@@ -366,8 +366,7 @@ namespace Api.Startup
 		/// <returns></returns>
 		public override JsonField GetMetaField(string name)
 		{
-			JsonField<T> result;
-			MetaFields.TryGetValue(name.ToLower(), out result);
+			MetaFields.TryGetValue(name.ToLower(), out JsonField<T> result);
 			return result;
 		}
 
@@ -378,8 +377,7 @@ namespace Api.Startup
 		/// <returns></returns>
 		public JsonField<T> GetTypedMetaField(string name)
 		{
-			JsonField<T> result;
-			MetaFields.TryGetValue(name.ToLower(), out result);
+			MetaFields.TryGetValue(name.ToLower(), out JsonField<T> result);
 			return result;
 		}
 
@@ -476,14 +474,14 @@ namespace Api.Startup
 				type = "canvas";
 
 				// Remove "Json" from the end of the label:
-				labelName = labelName.Substring(0, labelName.Length - 4);
+				labelName = labelName[0..^4];
 	}
 			else if (fieldType == typeof(string) && labelName.EndsWith("Ref"))
 			{
 				type = "image";
 
 				// Remove "Ref" from the end of the label:
-				labelName = labelName.Substring(0, labelName.Length - 3);
+				labelName = labelName[0..^3];
 			}
 			else if (fieldType == typeof(string) && (labelName.EndsWith("Color") || labelName.EndsWith("Colour")))
 			{
@@ -503,10 +501,10 @@ namespace Api.Startup
 			}
 			*/
 			
-			else if ((fieldType == typeof(int) || fieldType == typeof(int?)) && labelName != "Id" && labelName.EndsWith("Id") && Api.Database.ContentTypes.GetType(labelName.Substring(0, labelName.Length - 2).ToLower()) != null)
+			else if ((fieldType == typeof(int) || fieldType == typeof(int?)) && labelName != "Id" && labelName.EndsWith("Id") && ContentTypes.GetType(labelName[0..^2].ToLower()) != null)
 			{
 				// Remove "Id" from the end of the label:
-				labelName = labelName.Substring(0, labelName.Length - 2);
+				labelName = labelName[0..^2];
 				
 				Data["contentType"] = labelName;
 				Module = "Admin/ContentSelect";
@@ -551,7 +549,7 @@ namespace Api.Startup
 			
 		}
 
-		private static Regex SplitCamelCaseRegex = new Regex(@"
+		private readonly static Regex SplitCamelCaseRegex = new Regex(@"
                 (?<=[A-Z])(?=[A-Z][a-z]) |
                  (?<=[^A-Z])(?=[A-Z]) |
                  (?<=[A-Za-z])(?=[^A-Za-z])", RegexOptions.IgnorePatternWhitespace);
@@ -576,7 +574,7 @@ namespace Api.Startup
 			if (String.IsNullOrEmpty(str) || Char.IsLower(str, 0))
 				return str;
 
-			return Char.ToLowerInvariant(str[0]) + str.Substring(1);
+			return Char.ToLowerInvariant(str[0]) + str[1..];
 		}
 
 	}
@@ -594,7 +592,7 @@ namespace Api.Startup
 		/// <summary>
 		/// An event which is called when the value is set. It returns the value it wants to be set.
 		/// </summary>
-		public EventHandler<object, T, JToken> OnSetValue = new EventHandler<object, T, JToken>(null);
+		public EventHandler<object, T, JToken> OnSetValue = new EventHandler<object, T, JToken>();
 
 
 		/// <summary>
@@ -610,7 +608,7 @@ namespace Api.Startup
 		
 		private static readonly DateTime _unixEpoch = new DateTime(1970, 1, 1, 0, 0, 0, 0);
 
-		private DateTime ConvertFromJsUnixTimestamp(double timestamp)
+		private static DateTime ConvertFromJsUnixTimestamp(double timestamp)
 		{
 			return _unixEpoch.AddSeconds(timestamp / 1000);
 		}

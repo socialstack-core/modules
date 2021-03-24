@@ -77,10 +77,7 @@ namespace Api.Startup {
 			listByObjectQuery = Query.List<M>();
 			listByObjectQuery.Where().EqualsArg("ContentTypeId", 0).And().EqualsArg("ContentId", 1).And().EqualsArg("RevisionId", 2);
 
-			// Discover the types via looking for their AfterLoad events with the interface on them:
-			var loadEvents = Events.FindByType(typeof(T), "Load", EventPlacement.After);
-
-			var methodInfo = GetType().GetMethod("SetupHandlers");
+			var methodInfo = GetType().GetMethod(nameof(SetupHandlers));
 
 			if (!string.IsNullOrEmpty(WhereFieldName))
 			{
@@ -88,23 +85,34 @@ namespace Api.Startup {
 				Filter.DeclareCustomWhereField(WhereFieldName);
 			}
 
-			foreach (var loadEvent in loadEvents)
-			{
-				// Get the actual type. We use this to avoid Revisions etc as we're not interested in those here:
-				var contentType = ContentTypes.GetType(loadEvent.EntityName);
+			Events.Service.AfterCreate.AddEventListener((Context ctx, AutoService svc) => {
 
-				if (contentType == null)
+				if (svc == null || svc.ServicedType == null)
 				{
-					continue;
+					return new ValueTask<AutoService>(svc);
 				}
 
-				// Invoke setup for type:
-				var setupType = methodInfo.MakeGenericMethod(new Type[] {
-					contentType
-				});
+				var eventGroup = svc.GetEventGroup();
 
-				setupType.Invoke(this, Array.Empty<object>());
-			}
+				if (eventGroup == null)
+				{
+					return new ValueTask<AutoService>(svc);
+				}
+
+				if (typeof(T).IsAssignableFrom(svc.ServicedType))
+				{
+					// Invoke setup for type:
+					var setupType = methodInfo.MakeGenericMethod(new Type[] {
+						svc.ServicedType
+					});
+
+						setupType.Invoke(this, new object[] {
+						eventGroup
+					});
+				}
+
+				return new ValueTask<AutoService>(svc);
+			});
 
 		}
 
@@ -112,13 +120,12 @@ namespace Api.Startup {
 		/// Sets a particular type with IHave* handlers. Used via reflection.
 		/// </summary>
 		/// <typeparam name="CT"></typeparam>
-		public virtual void SetupHandlers<CT>() where CT : DatabaseRow<int>, T, new()
+		public virtual void SetupHandlers<CT>(EventGroup<CT> evtGroup) where CT : DatabaseRow<int>, T, new()
 		{
 			UserService _users = null;
 
 			// Invoked by reflection
-			var evtGroup = Events.GetGroup<CT>();
-
+			
 			// Get the content type ID for the primary object:
 			var contentTypeId = ContentTypes.GetId(typeof(CT));
 
@@ -199,10 +206,7 @@ namespace Api.Startup {
 						field.Data["displayField"] = "fullName";
 					}
 
-					if (OnSetupAdminField != null)
-					{
-						OnSetupAdminField(field);
-					}
+					OnSetupAdminField?.Invoke(field);
 
 					// Defer the set after the ID is available:
 					field.AfterId = true;
@@ -211,7 +215,7 @@ namespace Api.Startup {
 					field.OnSetValue.AddEventListener(async (Context ctx, object value, CT targetObject, JToken srcToken) =>
 					{
 						// The value should be an array of ints.
-						if (!(value is JArray idArray))
+						if (value is not JArray idArray)
 						{
 							return null;
 						}
@@ -451,7 +455,7 @@ namespace Api.Startup {
 
 			// Next we'll add a handler for filters on List endpoints.
 			// These are the *List events (but unlike above, we're using the "NotSpecified" placement):
-			evtGroup.List.AddEventListener(async (Context context, Filter<CT> filter, HttpResponse response) =>
+			evtGroup.EndpointStartList.AddEventListener(async (Context context, Filter<CT> filter, HttpResponse response) =>
 			{
 				// These always have:
 				// args[0] is a filter object
@@ -463,9 +467,7 @@ namespace Api.Startup {
 					return filter;
 				}
 
-				var where = filter.FromRequest["where"] as JObject;
-
-				if (where == null)
+				if (filter.FromRequest["where"] is not JObject where)
 				{
 					// No where clause
 					return filter;
@@ -544,18 +546,15 @@ namespace Api.Startup {
 						return filter;
 					}
 
-					var where = filter.FromRequest["where"] as JObject;
-
-					if (where == null)
+					if (filter.FromRequest["where"] is not JObject where)
 					{
 						// No where clause
 						return filter;
 					}
 
 					// If the filter contained the field we're interested in then we'll add a join restriction:
-					var idSet = where[WhereFieldName] as JArray;
 
-					if (idSet != null)
+					if (where[WhereFieldName] is JArray idSet)
 					{
 						// We've got content that we need to filter by. For now this set must be integer thing IDs.
 						// We want to join the content table 
@@ -629,11 +628,10 @@ namespace Api.Startup {
 		/// Sets a particular type with IHave* handlers. Used via reflection.
 		/// </summary>
 		/// <typeparam name="CT"></typeparam>
-		public override void SetupHandlers<CT>()
+		public override void SetupHandlers<CT>(EventGroup<CT> evtGroup)
 		{
 			// Invoked by reflection
-			var evtGroup = Events.GetGroup<CT>();
-
+			
 			// Get the content type ID for the primary object:
 			var contentTypeId = ContentTypes.GetId(typeof(CT));
 

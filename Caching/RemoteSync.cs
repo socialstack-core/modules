@@ -31,7 +31,7 @@ namespace Api.Startup
 			All.Add(type);
 			
 			// Trigger evt:
-			Events.RemoteSyncTypeAdded.Dispatch(null, type, All.Count - 1).Wait();
+			Events.RemoteSyncTypeAdded.Dispatch(new Contexts.Context(), type, All.Count - 1).Wait();
 		}
 
 		/// <summary>

@@ -14,6 +14,8 @@ using Microsoft.AspNetCore.Diagnostics;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Configuration;
 using Microsoft.AspNetCore.Cors.Infrastructure;
+using Microsoft.AspNetCore.Mvc;
+using System.Threading.Tasks;
 
 namespace Api.Startup
 {
@@ -27,6 +29,11 @@ namespace Api.Startup
 		/// An event which fires when services are being configured.
 		/// </summary>
 		public static event Action<IServiceCollection> OnConfigureServices;
+
+		/// <summary>
+		/// An event which fires when services are being configured.
+		/// </summary>
+		public static event Action<MvcOptions> OnConfigureMvc;
 
 		/// <summary>
 		/// An event which fires when Configure occurs.
@@ -59,16 +66,25 @@ namespace Api.Startup
 
 		private List<Type> _serviceTypes;
 
-        /// <summary>
+		/// <summary>
+		/// IMVCBuilder, available during the OnConfigureServices event.
+		/// </summary>
+		public static IMvcBuilder mvcBuilder;
+
+		/// <summary>
 		/// Called by the runtime. This automatically looks for classes which end 
 		/// with *Service and implement an interface of the same name preceeded with I.
 		/// </summary>
-        public void ConfigureServices(IServiceCollection services)
+		public void ConfigureServices(IServiceCollection services)
         {
 #if NETCOREAPP2_2 || NETCOREAPP2_1
 			services.AddMvc();
 #else
-			services.AddControllers().AddNewtonsoftJson();
+			mvcBuilder = services.AddControllers(options => {
+
+				OnConfigureMvc?.Invoke(options);
+
+			}).AddNewtonsoftJson();
 #endif
 
 			// Remove .NET size limitations:
@@ -246,63 +262,27 @@ namespace Api.Startup
 
 				return loadPriority.Priority;
 			}).ToList();
-			
-            foreach (var serviceType in _serviceTypes)
+
+			Task.Run(async () =>
 			{
-				var svc = serviceProvider.GetService(serviceType);
-				
-				Services.All[serviceType] = svc;
-				Services.AllByName[serviceType.Name] = svc;
-
-				// If it's an AutoService, add it to the lookup:
-				var autoServiceType = GetAutoServiceType(svc.GetType());
-				var autoService = svc as AutoService;
-
-				if (autoService != null)
+				try
 				{
-					if (autoServiceType != null)
+					foreach (var serviceType in _serviceTypes)
 					{
-						Services.AutoServices[autoServiceType] = autoService;
+						var svc = serviceProvider.GetService(serviceType);
+
+						// Trigger startup state change:
+						await Services.StateChange(true, svc);
 					}
 
-					if (autoService.ServicedType != null)
-					{
-						Services.ServicedTypes[autoService.ServicedType] = autoService;
-						var contentId = ContentTypes.GetId(autoService.ServicedType);
-						Services.ContentTypes[contentId] = autoService;
-					}
+					// Services are now all instanced - fire off service OnStart event:
+					Services.TriggerStart();
 				}
-				
-			}
-
-			// Services are now all instanced - fire off service OnStart event:
-			Services.TriggerStart();
-		}
-		
-		/// <summary>
-		/// Attempts to find the AutoService type for the given type, or null if it isn't one.
-		/// </summary>
-		/// <param name="type"></param>
-		/// <returns></returns>
-		private Type GetAutoServiceType(Type type){
-			
-			if (type.IsGenericType)
-			{
-
-				if (type.GetGenericTypeDefinition() == typeof(AutoService<,>))
+				catch (Exception e)
 				{
-					// Yep, this is an AutoService type.
-					return type;
+					Console.WriteLine(e.ToString());
 				}
-
-			}
-
-			if (type.BaseType != null)
-			{
-				return GetAutoServiceType(type.BaseType);
-			}
-
-			return null;
+			}).Wait();
 		}
 		
 	}

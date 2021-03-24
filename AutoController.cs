@@ -67,8 +67,12 @@ public partial class AutoController<T,ID> : ControllerBase
 	public virtual async ValueTask<object> Load([FromRoute] ID id)
 	{
 		var context = Request.GetContext();
+
+		id = await _service.EventGroup.EndpointStartLoad.Dispatch(context, id, Response);
+		
 		var result = await _service.Get(context, id);
-		return await _service.EventGroup.Load.Dispatch(context, result, Response);
+		result = await _service.EventGroup.EndpointEndLoad.Dispatch(context, result, Response);
+		return result;
     }
 
     /// <summary>
@@ -80,7 +84,7 @@ public partial class AutoController<T,ID> : ControllerBase
 	{
 		var context = Request.GetContext();
 		var result = await _service.Get(context, id);
-		result = await _service.EventGroup.Delete.Dispatch(context, result, Response);
+		result = await _service.EventGroup.EndpointStartDelete.Dispatch(context, result, Response);
 
 		if (result == null)
 		{
@@ -93,7 +97,7 @@ public partial class AutoController<T,ID> : ControllerBase
 			return null;
 		}
 
-		result = await _service.EventGroup.Deleted.Dispatch(context, result, Response);
+		result = await _service.EventGroup.EndpointEndDelete.Dispatch(context, result, Response);
 		return result;
 	}
 
@@ -120,7 +124,7 @@ public partial class AutoController<T,ID> : ControllerBase
 		var context = Request.GetContext();
 		var filter = new Filter<T>(filters);
 
-		filter = await _service.EventGroup.List.Dispatch(context, filter, Response);
+		filter = await _service.EventGroup.EndpointStartList.Dispatch(context, filter, Response);
 
 		if (filter == null)
 		{
@@ -152,7 +156,7 @@ public partial class AutoController<T,ID> : ControllerBase
 			}
 		}
 
-		response.Results = await _service.EventGroup.Listed.Dispatch(context, response.Results, Response);
+		response.Results = await _service.EventGroup.EndpointEndList.Dispatch(context, response.Results, Response);
 
 		return response;
     }
@@ -185,7 +189,7 @@ public partial class AutoController<T,ID> : ControllerBase
 		entity.SetId(default);
 
 		// Fire off a create event:
-		entity = await _service.EventGroup.Create.Dispatch(context, entity, Response) as T;
+		entity = await _service.EventGroup.EndpointStartCreate.Dispatch(context, entity, Response) as T;
 
 		if (entity == null)
 		{
@@ -198,7 +202,7 @@ public partial class AutoController<T,ID> : ControllerBase
 			return null;
 		}
 
-		entity = await _service.CreatePartial(context, entity);
+		entity = await _service.CreatePartial(context, entity, DataOptions.Default);
 		
 		if(entity == null)
 		{
@@ -249,7 +253,7 @@ public partial class AutoController<T,ID> : ControllerBase
 		}
 
 		// Fire off after create evt:
-		entity = await _service.EventGroup.Created.Dispatch(context, entity, Response) as T;
+		entity = await _service.EventGroup.EndpointEndCreate.Dispatch(context, entity, Response) as T;
 
 		return entity;
 	}
@@ -317,7 +321,7 @@ public partial class AutoController<T,ID> : ControllerBase
 		}
 
 		// Run the request update event (using the original object to be updated):
-		entity = await _service.EventGroup.Update.Dispatch(context, entity, Response) as T;
+		entity = await _service.EventGroup.EndpointStartUpdate.Dispatch(context, entity, Response) as T;
 
 		if (entity == null)
 		{
@@ -354,7 +358,7 @@ public partial class AutoController<T,ID> : ControllerBase
 		}
 		
 		// Run the request updated event:
-		entity = await _service.EventGroup.Updated.Dispatch(context, entity, Response) as T;
+		entity = await _service.EventGroup.EndpointEndUpdate.Dispatch(context, entity, Response) as T;
 
 		return entity;
 	}

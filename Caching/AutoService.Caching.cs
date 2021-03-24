@@ -56,7 +56,7 @@ public partial class AutoService<T, ID> {
 		}
 		else
 		{
-			Events.ServicesAfterStart.AddEventListener(async (Context ctx, object src) =>
+			Events.Service.AfterStart.AddEventListener(async (Context ctx, object src) =>
 			{
 				await SetupCacheNow(cfg);
 				return src;
@@ -105,7 +105,7 @@ public partial class AutoService<T, ID> {
 
 		// _database is null on in-memory only types, 
 		// however they still need to use it here for grabbing the locale set.
-		var db = _database == null ? Services.Get<DatabaseService>() : _database;
+		var db = _database ?? Services.Get<DatabaseService>();
 
 		var indices = db.GetIndices(typeof(T));
 
@@ -140,8 +140,10 @@ public partial class AutoService<T, ID> {
 				continue;
 			}
 
-			_cache[i] = new ServiceCache<T, ID>(indices);
-			_cache[i].OnChange = genericCfg == null ? null : genericCfg.OnChange;
+			_cache[i] = new ServiceCache<T, ID>(indices)
+			{
+				OnChange = genericCfg?.OnChange
+			};
 		}
 
 		var primaryLocaleCache = _cache[0];
@@ -164,7 +166,7 @@ public partial class AutoService<T, ID> {
 			};
 
 			// Get the *raw* entries (for primary locale, it makes no difference).
-			var everything = await ListNoCache(ctx, null, true);
+			var everything = await ListNoCache(ctx, null, true, DataOptions.IgnorePermissions);
 
 			foreach (var raw in everything)
 			{

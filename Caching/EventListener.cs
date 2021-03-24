@@ -23,7 +23,7 @@ namespace Api.Startup
 		/// </summary>
 		public CacheSetupEventListener()
 		{
-			Events.ServicesAfterStart.AddEventListener(async (Context ctx, object src) =>
+			Events.Service.AfterStart.AddEventListener(async (Context ctx, object src) =>
 			{
 				// Get cfg from appsettings:
 				var cfg = AppSettings.GetSection("Caching").Get<SiteCacheConfig>();
@@ -34,14 +34,12 @@ namespace Api.Startup
 					
 					foreach(var kvp in cfg.Services)
 					{
-						var autoSvc = Services.Get(kvp.Key) as AutoService;
-						
-						if(autoSvc == null)
+						if (Services.Get(kvp.Key) is not AutoService autoSvc)
 						{
 							Console.WriteLine("[WARN] A service called '" + kvp.Key + "' is in your Caching config in your appsettings, but it doesn't exist in this project.");
 							continue;
 						}
-						
+
 						// Turn on caching now:
 						await autoSvc.SetupCacheNow(kvp.Value);
 					}

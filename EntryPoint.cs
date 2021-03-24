@@ -31,7 +31,7 @@ namespace Api.Startup
 		/// <summary>
 		/// The main entry point for your project's API.
 		/// </summary>
-		public static void Main(string[] args)
+		public static void Main()
         {
 			// Hello! The very first thing we'll do is instance all event handlers.
 			Api.Eventing.Events.Init();
@@ -134,7 +134,7 @@ namespace Api.Startup
 	/// </summary>
 	public static class Chmod
 	{
-		[DllImport("libc", EntryPoint="chmod", SetLastError = true)]
+		[DllImport("libc", EntryPoint="chmod", SetLastError = true, CharSet = CharSet.Unicode)]
 		[SuppressMessage("Style", "IDE1006:Naming Styles", Justification = "interop")]
 		private static extern int chmod(string pathname, int mode);
 

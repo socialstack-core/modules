@@ -12,21 +12,34 @@ namespace Api.Eventing
 	public partial class Events
 	{
 
-		#region Service events
-
 		/// <summary>
-		/// This is invoked just after services are instanced.
-		/// Use it to add additional types, or block adding this one.
+		/// Event group for a bundle of events on AutoServices.
 		/// </summary>
-		[DontAddPermissions]
-		public static EventHandler<object> ServicesAfterStart;
-		#endregion
-
+		public static Startup.ServiceEventGroup Service;
+		
 		/// <summary>
 		/// Called when a remote syncable type was added.
 		/// </summary>
-		[DontAddPermissions]
 		public static EventHandler<Type, int> RemoteSyncTypeAdded;
+		
+	}
+
+}
+
+namespace Api.Startup
+{
+	/// <summary>
+	/// The group of events for services. See also Events.Service
+	/// </summary>
+	public class ServiceEventGroup : Eventing.EventGroup<AutoService>
+	{
+
+		/// <summary>
+		/// Called just after all services have started for the first time, exactly once.
+		/// Note that services may start at random points in the future, and this handler won't be invoked then - don't use this event to e.g. loop over available services.
+		/// Instead, handle the Create and Delete events.
+		/// </summary>
+		public Api.Eventing.EventHandler<object> AfterStart;
 
 	}
 

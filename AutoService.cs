@@ -29,6 +29,24 @@ public partial class AutoService<T> : AutoService<T, int>
 }
 
 /// <summary>
+/// Options when requesting data from a service.
+/// </summary>
+public enum DataOptions : int
+{
+	/// <summary>
+	/// Default with the permission system active.
+	/// </summary>
+	Default = 1,
+	/// <summary>
+	/// Permissions will be disabled on this request for data. I hope you know what you're doing! 
+	/// As a general piece of guidance, using this is fine if the data that you obtain is not returned directly to the end user.
+	/// For example, the end user will likely be denied the ability to search users by email, but the login system needs to be able to do that.
+	/// It's ok to ignore the permission engine given we're not just outright returning the user data unless the login is valid.
+	/// </summary>
+	IgnorePermissions = 0
+}
+
+/// <summary>
 /// A general use service which manipulates an entity type. In the global namespace due to its common use.
 /// Deletes, creates, lists and updates them whilst also firing off a series of events.
 /// Note that you don't have to inherit this to create a service - it's just for convenience for common functionality.
@@ -79,12 +97,12 @@ public partial class AutoService<T, ID> : AutoService
 	/// <summary>
 	/// The set of update/ delete/ create etc events for this type.
 	/// </summary>
-	public EventGroup<T> EventGroup;
+	public EventGroup<T, ID> EventGroup;
 	
 	/// <summary>
 	/// Sets up the common service type fields.
 	/// </summary>
-	public AutoService(EventGroup<T> eventGroup) : base(typeof(T))
+	public AutoService(EventGroup eventGroup) : base(typeof(T))
 	{
 		// Start preparing the queries. Doing this ahead of time leads to excellent performance savings, 
 		// whilst also using a high-level abstraction as another plugin entry point.
@@ -97,19 +115,19 @@ public partial class AutoService<T, ID> : AutoService
 		listRawQuery = Query.List<T>();
 		listRawQuery.Raw = true;
 
-		EventGroup = eventGroup;
+		EventGroup = eventGroup as EventGroup<T, ID>;
 
 		// GetObject specifically uses integer IDs (and is only available on services that have integer IDs)
 		// We need to make a delegate that it can use for mapping that integer through to whatever typeof(ID) is.
 		if (typeof(ID) == typeof(int))
 		{
-			var getMethodDelegate = (Func<Context, ID, ValueTask<T>>)Get;
-			_getWithIntId = (getMethodDelegate as Func<Context, int, ValueTask<T>>);
+			var getMethodDelegate = (Func<Context, ID, DataOptions, ValueTask<T>>)Get;
+			_getWithIntId = (getMethodDelegate as Func<Context, int, DataOptions, ValueTask<T>>);
 		}
 
 	}
 	
-	private Func<Context, int, ValueTask<T>> _getWithIntId;
+	private readonly Func<Context, int, DataOptions, ValueTask<T>> _getWithIntId;
 	private JsonStructure<T>[] _jsonStructures = null;
 
 	/// <summary>
@@ -160,7 +178,7 @@ public partial class AutoService<T, ID> : AutoService
 		{
 			// Not built yet. Build it now:
 			_jsonStructures[roleId] = structure = new JsonStructure<T>(Roles.All[roleId]);
-			await structure.Build(EventGroup);
+			await structure.Build(EventGroup.BeforeSettable);
 		}
 		
 		return structure;
@@ -170,19 +188,23 @@ public partial class AutoService<T, ID> : AutoService
 	/// Deletes an entity by its ID.
 	/// </summary>
 	/// <returns></returns>
-	public virtual async ValueTask<bool> Delete(Context context, ID id)
+	public virtual async ValueTask<bool> Delete(Context context, ID id, DataOptions options = DataOptions.Default)
 	{
-		var result = await Get(context, id);
-		return await Delete(context, result);
+		var result = await Get(context, id, options);
+		return await Delete(context, result, options);
 	}
 
 	/// <summary>
 	/// Deletes an entity.
 	/// </summary>
 	/// <returns></returns>
-	public virtual async ValueTask<bool> Delete(Context context, T result)
+	public virtual async ValueTask<bool> Delete(Context context, T result, DataOptions options = DataOptions.Default)
 	{
+		// Ignoring the permissions only needs to occur on Before.
+		var previousPermState = context.IgnorePermissions;
+		context.IgnorePermissions = options == DataOptions.IgnorePermissions;
 		result = await EventGroup.BeforeDelete.Dispatch(context, result);
+		context.IgnorePermissions = previousPermState;
 
 		if (result == null)
 		{
@@ -212,7 +234,7 @@ public partial class AutoService<T, ID> : AutoService
 	/// List a filtered set of entities along with the total number of (unpaginated) results.
 	/// </summary>
 	/// <returns></returns>
-	public virtual async ValueTask<ListWithTotal<T>> ListWithTotal(Context context, Filter<T> filter)
+	public virtual async ValueTask<ListWithTotal<T>> ListWithTotal(Context context, Filter<T> filter, DataOptions options = DataOptions.Default)
 	{
 		if (NestableAddMask != 0 && (context.NestedTypes & NestableAddMask) == NestableAddMask)
 		{
@@ -225,9 +247,13 @@ public partial class AutoService<T, ID> : AutoService
 			};
 		}
 
+		// Ignoring the permissions only needs to occur on Before.
+		var previousPermState = context.IgnorePermissions;
+		context.IgnorePermissions = options == DataOptions.IgnorePermissions;
 		context.NestedTypes |= NestableAddMask;
 		filter = await EventGroup.BeforeList.Dispatch(context, filter);
 		context.NestedTypes &= NestableRemoveMask;
+		context.IgnorePermissions = previousPermState;
 
 		// If the filter doesn't have join or group by nodes, we can potentially run it through the cache.
 		var cache = GetCacheForLocale(context == null ? 1 : context.LocaleId);
@@ -246,8 +272,10 @@ public partial class AutoService<T, ID> : AutoService
 		}
 		else if (_database == null)
 		{
-			listAndTotal = new ListWithTotal<T>();
-			listAndTotal.Results = new List<T>();
+			listAndTotal = new ListWithTotal<T>
+			{
+				Results = new List<T>()
+			};
 		}
 		else
 		{
@@ -264,20 +292,25 @@ public partial class AutoService<T, ID> : AutoService
 	/// List a filtered set of entities.
 	/// </summary>
 	/// <returns></returns>
-	public virtual async ValueTask<List<T>> List(Context context, Filter<T> filter)
+	public virtual async ValueTask<List<T>> List(Context context, Filter<T> filter, DataOptions options = DataOptions.Default)
 	{
 		if(NestableAddMask!=0 && (context.NestedTypes & NestableAddMask) == NestableAddMask){
 			// This happens when we're nesting List calls.
 			// For example, a User has Tags which in turn have a (creator) User.
 			return new List<T>();
 		}
+
+		// Ignoring the permissions only needs to occur on Before.
+		var previousPermState = context.IgnorePermissions;
+		context.IgnorePermissions = options == DataOptions.IgnorePermissions;
 		context.NestedTypes |= NestableAddMask;
 		filter = await EventGroup.BeforeList.Dispatch(context, filter);
 		context.NestedTypes &= NestableRemoveMask;
-		
+		context.IgnorePermissions = previousPermState;
+
 		// If the filter doesn't have join or group by nodes, we can potentially run it through the cache.
 		var cache = GetCacheForLocale(context == null ? 1 : context.LocaleId);
-		
+
 		List<T> list;
 
 		if (cache != null)
@@ -288,7 +321,8 @@ public partial class AutoService<T, ID> : AutoService
 			{
 				values = await filter.ResolveValues(context);
 			}
-			list = cache.List(filter, values, out int total);
+
+			list = cache.List(filter, values, out _);
 		}
 		else if (_database == null)
 		{
@@ -309,7 +343,7 @@ public partial class AutoService<T, ID> : AutoService
 	/// List a filtered set of entities without using the cache.
 	/// </summary>
 	/// <returns></returns>
-	public virtual async ValueTask<List<T>> ListNoCache(Context context, Filter<T> filter, bool raw = false)
+	public virtual async ValueTask<List<T>> ListNoCache(Context context, Filter<T> filter, bool raw = false, DataOptions options = DataOptions.Default)
 	{
 		if (_database == null)
 		{
@@ -323,10 +357,15 @@ public partial class AutoService<T, ID> : AutoService
 			// For example, a User has Tags which in turn have a (creator) User.
 			return new List<T>();
 		}
+
+		// Ignoring the permissions only needs to occur on Before.
+		var previousPermState = context.IgnorePermissions;
+		context.IgnorePermissions = options == DataOptions.IgnorePermissions;
 		context.NestedTypes |= NestableAddMask;
 		filter = await EventGroup.BeforeList.Dispatch(context, filter);
 		context.NestedTypes &= NestableRemoveMask;
-		
+		context.IgnorePermissions = previousPermState;
+
 		var list = await _database.List(context, raw? listRawQuery : listQuery, filter);
 
 		context.NestedTypes |= NestableAddMask;
@@ -341,13 +380,14 @@ public partial class AutoService<T, ID> : AutoService
 	/// <param name="context"></param>
 	/// <param name="fieldName"></param>
 	/// <param name="fieldValue"></param>
+	/// <param name="options"></param>
 	/// <returns></returns>
-	public override async ValueTask<object> GetObject(Context context, string fieldName, object fieldValue)
+	public override async ValueTask<object> GetObject(Context context, string fieldName, object fieldValue, DataOptions options = DataOptions.Default)
 	{
 		var filter = new Filter<T>();
 		filter.EqualsField(fieldName, fieldValue);
 		filter.PageSize = 1;
-		var results = await List(context, filter);
+		var results = await List(context, filter, options);
 		if (results == null || results.Count == 0)
 		{
 			return null;
@@ -360,26 +400,28 @@ public partial class AutoService<T, ID> : AutoService
 	/// </summary>
 	/// <param name="context"></param>
 	/// <param name="id"></param>
+	/// <param name="options"></param>
 	/// <returns></returns>
-	public override async ValueTask<object> GetObject(Context context, int id)
+	public override async ValueTask<object> GetObject(Context context, int id, DataOptions options = DataOptions.Default)
 	{
 		if (_getWithIntId == null)
 		{
 			throw new Exception("Only available on types with integer IDs. " + typeof(T) + " uses an ID which is a " + typeof(ID));
 		}
 
-		return await _getWithIntId(context, id);
+		return await _getWithIntId(context, id, options);
 	}
-	
+
 	/// <summary>
 	/// Updates an object in this service.
 	/// </summary>
 	/// <param name="context"></param>
 	/// <param name="content"></param>
+	/// <param name="options"></param>
 	/// <returns></returns>
-	public override async ValueTask<object> UpdateObject(Context context, object content)
+	public override async ValueTask<object> UpdateObject(Context context, object content, DataOptions options = DataOptions.Default)
 	{
-		return await Update(context, content as T);
+		return await Update(context, content as T, options);
 	}
 
 	/// <summary>
@@ -387,8 +429,9 @@ public partial class AutoService<T, ID> : AutoService
 	/// </summary>
 	/// <param name="context"></param>
 	/// <param name="ids"></param>
+	/// <param name="options"></param>
 	/// <returns></returns>
-	public override async ValueTask<IEnumerable> ListObjects(Context context, IEnumerable<int> ids)
+	public override async ValueTask<IEnumerable> ListObjects(Context context, IEnumerable<int> ids, DataOptions options = DataOptions.Default)
 	{
 		if (ids == null || !ids.Any())
 		{
@@ -396,7 +439,7 @@ public partial class AutoService<T, ID> : AutoService
 		}
 
 		// Get the list:
-		var results = await List(context, new Filter<T>().Id(ids));
+		var results = await List(context, new Filter<T>().Id(ids), options);
 
 		return results;
 	}
@@ -406,29 +449,24 @@ public partial class AutoService<T, ID> : AutoService
 	/// </summary>
 	/// <param name="context"></param>
 	/// <param name="filterJson"></param>
-	/// <param name="applyPermissions"></param>
+	/// <param name="options"></param>
 	/// <returns></returns>
-	public override async ValueTask<ListWithTotal> ListObjects(Context context, string filterJson, bool applyPermissions = false)
+	public override async ValueTask<ListWithTotal> ListObjects(Context context, string filterJson, DataOptions options = DataOptions.Default)
 	{
 		var filters = Newtonsoft.Json.JsonConvert.DeserializeObject(filterJson) as JObject;
 		var filter = new Filter<T>(filters);
-
-		if (applyPermissions)
-		{
-			filter = await EventGroup.List.Dispatch(context, filter, null);
-		}
 
 		ListWithTotal<T> response;
 
 		if (filter.PageSize != 0 && filters != null && filters["includeTotal"] != null)
 		{
 			// Get the total number of non-paginated results as well:
-			response = await ListWithTotal(context, filter);
+			response = await ListWithTotal(context, filter, options);
 		}
 		else
 		{
 			// Not paginated or requestor doesn't care about the total.
-			var results = await List(context, filter);
+			var results = await List(context, filter, options);
 
 			response = new ListWithTotal<T>()
 			{
@@ -446,25 +484,9 @@ public partial class AutoService<T, ID> : AutoService
 	}
 
 	/// <summary>
-	/// Gets a single entity by its ID, then performs a permission system check.
-	/// Throws if the permission system rejects the call.
-	/// </summary>
-	public virtual async ValueTask<T> GetIfPermitted(Context context, ID id)
-	{
-		var result = await Get(context, id);
-		if(result == null)
-		{
-			return result;
-		}
-		
-		await context.Role.IsGranted(GetLoadCapability(), context, result);
-		return result;
-	}
-	
-	/// <summary>
 	/// Gets a single entity by its ID.
 	/// </summary>
-	public virtual async ValueTask<T> Get(Context context, ID id)
+	public virtual async ValueTask<T> Get(Context context, ID id, DataOptions options = DataOptions.Default)
 	{
 		if (NestableAddMask != 0 && (context.NestedTypes & NestableAddMask) == NestableAddMask)
 		{
@@ -473,6 +495,11 @@ public partial class AutoService<T, ID> : AutoService
 			return null;
 		}
 
+		// Note: Get is unique in that its permission check happens in the After event handler.
+		context.NestedTypes |= NestableAddMask;
+		id = await EventGroup.BeforeLoad.Dispatch(context, id);
+		context.NestedTypes &= NestableRemoveMask;
+		
 		T item = null;
 
 		var cache = GetCacheForLocale(context == null ? 1 : context.LocaleId);
@@ -487,18 +514,23 @@ public partial class AutoService<T, ID> : AutoService
 			item = await _database.Select(context, selectQuery, id);
 		}
 		
+		// Ignoring the permissions only needs to occur on *After* for Gets.
+		var previousPermState = context.IgnorePermissions;
+		context.IgnorePermissions = options == DataOptions.IgnorePermissions;
 		context.NestedTypes |= NestableAddMask;
 		item = await EventGroup.AfterLoad.Dispatch(context, item);
 		context.NestedTypes &= NestableRemoveMask;
+		context.IgnorePermissions = previousPermState;
+		
 		return item;
 	}
 
 	/// <summary>
 	/// Creates a new entity.
 	/// </summary>
-	public virtual async ValueTask<T> Create(Context context, T entity)
+	public virtual async ValueTask<T> Create(Context context, T entity, DataOptions options = DataOptions.Default)
 	{
-		entity = await CreatePartial(context, entity);
+		entity = await CreatePartial(context, entity, options);
 		return await CreatePartialComplete(context, entity);
 	}
 
@@ -506,9 +538,13 @@ public partial class AutoService<T, ID> : AutoService
 	/// Creates a new entity but without calling AfterCreate. This allows you to update fields after the ID has been set, but before AfterCreate is called.
 	/// You must always call CreatePartialComplete afterwards to trigger the AfterCreate calls.
 	/// </summary>
-	public virtual async ValueTask<T> CreatePartial(Context context, T entity)
+	public virtual async ValueTask<T> CreatePartial(Context context, T entity, DataOptions options)
 	{
+		// Ignoring the permissions only needs to occur on Before.
+		var previousPermState = context.IgnorePermissions;
+		context.IgnorePermissions = options == DataOptions.IgnorePermissions;
 		entity = await EventGroup.BeforeCreate.Dispatch(context, entity);
+		context.IgnorePermissions = previousPermState;
 
 		// Note: The Id field is automatically updated by Run here.
 		if (entity == null)
@@ -525,7 +561,7 @@ public partial class AutoService<T, ID> : AutoService
 			}
 			else if (!await _database.Run(context, createQuery, entity))
 			{
-				return default(T);
+				return default;
 			}
 		}
 
@@ -681,7 +717,15 @@ public partial class AutoService<T, ID> : AutoService
 				}
 			}
 		}
+	}
 
+	/// <summary>
+	/// Returns the EventGroup[T] for this AutoService, or null if it is an autoService without an EventGroup.
+	/// </summary>
+	/// <returns></returns>
+	public override EventGroup GetEventGroup()
+	{
+		return EventGroup;
 	}
 
 	/// <summary>
@@ -753,9 +797,12 @@ public partial class AutoService<T, ID> : AutoService
 	/// <summary>
 	/// Updates the given entity.
 	/// </summary>
-	public virtual async ValueTask<T> Update(Context context, T entity)
+	public virtual async ValueTask<T> Update(Context context, T entity, DataOptions options = DataOptions.Default)
 	{
+		var previousPermState = context.IgnorePermissions;
+		context.IgnorePermissions = options == DataOptions.IgnorePermissions;
 		entity = await EventGroup.BeforeUpdate.Dispatch(context, entity);
+		context.IgnorePermissions = previousPermState;
 
 		if (entity == null)
 		{
@@ -828,7 +875,7 @@ public partial class AutoService<T, ID> : AutoService
 /// <summary>
 /// The base class of all AutoService instances.
 /// </summary>
-public partial class AutoService
+public partial class AutoService : IHaveId<int>
 {
 	/// <summary>
 	/// The type that this AutoService is servicing. E.g. a User, ForumPost etc.
@@ -839,11 +886,6 @@ public partial class AutoService
 	/// The database service.
 	/// </summary>
 	protected DatabaseService _database;
-	
-	/// <summary>
-	/// The load capability for this service.
-	/// </summary>
-	private Capability _loadCapability;
 	
 	/// <summary>
 	/// The add mask to use for a nestable service.
@@ -870,19 +912,14 @@ public partial class AutoService
 	}
 	
 	/// <summary>
-	/// Gets the load capability.
+	/// Returns the EventGroup[T] for this AutoService, or null if it is an autoService without an EventGroup.
 	/// </summary>
-	public Capability GetLoadCapability()
+	/// <returns></returns>
+	public virtual EventGroup GetEventGroup()
 	{
-		if(_loadCapability != null)
-		{
-			return _loadCapability;
-		}
-
-		Capabilities.All.TryGetValue(ServicedType.Name.ToLower() + "_load", out _loadCapability);
-		return _loadCapability;
+		return null;
 	}
-	
+
 	/// <summary>
 	/// Creates a new AutoService.
 	/// </summary>
@@ -985,8 +1022,9 @@ public partial class AutoService
 	/// </summary>
 	/// <param name="context"></param>
 	/// <param name="content"></param>
+	/// <param name="options"></param>
 	/// <returns></returns>
-	public virtual ValueTask<object> UpdateObject(Context context, object content)
+	public virtual ValueTask<object> UpdateObject(Context context, object content, DataOptions options = DataOptions.Default)
 	{
 		return new ValueTask<object>(null);
 	}
@@ -997,8 +1035,9 @@ public partial class AutoService
 	/// <param name="context"></param>
 	/// <param name="fieldName"></param>
 	/// <param name="fieldValue"></param>
+	/// <param name="options"></param>
 	/// <returns></returns>
-	public virtual ValueTask<object> GetObject(Context context, string fieldName, object fieldValue)
+	public virtual ValueTask<object> GetObject(Context context, string fieldName, object fieldValue, DataOptions options = DataOptions.Default)
 	{
 		return new ValueTask<object>(null);
 	}
@@ -1009,8 +1048,9 @@ public partial class AutoService
 	/// </summary>
 	/// <param name="context"></param>
 	/// <param name="id"></param>
+	/// <param name="options"></param>
 	/// <returns></returns>
-	public virtual ValueTask<object> GetObject(Context context, int id)
+	public virtual ValueTask<object> GetObject(Context context, int id, DataOptions options = DataOptions.Default)
 	{
 		return new ValueTask<object>(null);
 	}
@@ -1020,8 +1060,9 @@ public partial class AutoService
 	/// </summary>
 	/// <param name="context"></param>
 	/// <param name="ids"></param>
+	/// <param name="options"></param>
 	/// <returns></returns>
-	public virtual ValueTask<IEnumerable> ListObjects(Context context, IEnumerable<int> ids)
+	public virtual ValueTask<IEnumerable> ListObjects(Context context, IEnumerable<int> ids, DataOptions options = DataOptions.Default)
 	{
 		return new ValueTask<IEnumerable>((IEnumerable)null);
 	}
@@ -1031,9 +1072,9 @@ public partial class AutoService
 	/// </summary>
 	/// <param name="context"></param>
 	/// <param name="filterJson"></param>
-	/// <param name="applyPermissions"></param>
+	/// <param name="options"></param>
 	/// <returns></returns>
-	public virtual ValueTask<ListWithTotal> ListObjects(Context context, string filterJson, bool applyPermissions = false)
+	public virtual ValueTask<ListWithTotal> ListObjects(Context context, string filterJson, DataOptions options = DataOptions.Default)
 	{
 		return new ValueTask<ListWithTotal>((ListWithTotal)null);
 	}
@@ -1086,7 +1127,7 @@ public partial class AutoService
 		else
 		{
 			// Must happen after services start otherwise the page service isn't necessarily available yet.
-			Events.ServicesAfterStart.AddEventListener((Context ctx, object src) =>
+			Events.Service.AfterStart.AddEventListener((Context ctx, object src) =>
 			{
 				InstallAdminPagesInternal(navMenuLabel, navMenuIconRef, fields, childAdminPage);
 				return new ValueTask<object>(src);
@@ -1155,7 +1196,7 @@ public partial class AutoService
 		else
 		{
 			// Must happen after services start otherwise the role service isn't necessarily available yet.
-			Events.ServicesAfterStart.AddEventListener((Context ctx, object src) =>
+			Events.Service.AfterStart.AddEventListener((Context ctx, object src) =>
 			{
 				InstallRolesInternal(roles);
 				return new ValueTask<object>(src);
@@ -1163,7 +1204,7 @@ public partial class AutoService
 		}
 	}
 	
-	private void InstallRolesInternal(UserRole[] roles)
+	private static void InstallRolesInternal(UserRole[] roles)
 	{
 		var roleService = Services.Get<UserRoleService>();
 
@@ -1193,7 +1234,7 @@ public partial class AutoService
 		else
 		{
 			// Must happen after services start otherwise the email template service isn't necessarily ready yet.
-			Events.ServicesAfterStart.AddEventListener((Context ctx, object src) =>
+			Events.Service.AfterStart.AddEventListener((Context ctx, object src) =>
 			{
 				InstallEmailsInternal(templates);
 				return new ValueTask<object>(src);
@@ -1201,7 +1242,7 @@ public partial class AutoService
 		}
 	}
 
-	private void InstallEmailsInternal(Api.Emails.EmailTemplate[] templates)
+	private static void InstallEmailsInternal(Api.Emails.EmailTemplate[] templates)
 	{
 		var emailService = Services.Get<Api.Emails.EmailTemplateService>();
 
@@ -1316,6 +1357,28 @@ public partial class AutoService
 		return mapper;
 	}
 
+	/// <summary>
+	/// The ID of the service itself.
+	/// </summary>
+	/// <returns></returns>
+	public int GetId()
+	{
+		if (ServicedType != null)
+		{
+			return ContentTypes.GetId(ServicedType);
+		}
+
+		throw new NotImplementedException("Typeless services don't have an ID. You probably meant to use something else, like Get.");
+	}
+
+	/// <summary>
+	/// The ID of the service itself.
+	/// </summary>
+	/// <param name="id"></param>
+	public void SetId(int id)
+	{
+		throw new NotImplementedException("This is readonly");
+	}
 }
 
 namespace Api.Startup {

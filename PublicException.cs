@@ -28,9 +28,9 @@ namespace Api.Startup
 		/// Make a new exception. Throw it when doing this.
 		/// </summary>
 		/// <param name="message"></param>
-		/// <param name="code"></param>
+		/// <param name="code">Used to translate your message.</param>
 		/// <param name="statusCode"></param>
-		public PublicException(string message, string code = null, int statusCode = 400) : base(message)
+		public PublicException(string message, string code, int statusCode = 400) : base(message)
 		{
 			StatusCode = statusCode;
 			Response = new ErrorResponse()
