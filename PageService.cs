@@ -330,7 +330,7 @@ namespace Api.Pages
 						name = typeName + ".id",
 						type = "urlToken"
 					})
-					.With("fields", childAdminPage.Fields == null ? new string[] { "id" } : childAdminPage.Fields)
+					.With("fields", childAdminPage.Fields ?? (new string[] { "id" }))
 				);
 			}
 
@@ -375,7 +375,7 @@ namespace Api.Pages
 			}
 			else
 			{
-				Events.ServicesAfterStart.AddEventListener(async (Context ctx, object src) =>
+				Events.Service.AfterStart.AddEventListener(async (Context ctx, object src) =>
 				{
 					await InstallInternal(pages);
 					return src;
@@ -424,7 +424,7 @@ namespace Api.Pages
 				// Get the pages by those URLs:
 				var filter = new Filter<Page>();
 				filter.Id(idSet.Select(Page => Page.Url));
-				var existingPages = (await ListNoCache(context, filter)).ToDictionary(page => page.Id);
+				var existingPages = (await ListNoCache(context, filter, false, DataOptions.IgnorePermissions)).ToDictionary(page => page.Id);
 
 				// For each page to consider for install..
 				foreach (var page in idSet)
@@ -432,7 +432,7 @@ namespace Api.Pages
 					// If it doesn't already exist, create it.
 					if (!existingPages.ContainsKey(page.Id))
 					{
-						await Create(context, page);
+						await Create(context, page, DataOptions.IgnorePermissions);
 					}
 				}
 			}
@@ -446,7 +446,7 @@ namespace Api.Pages
 				var filter = new Filter<Page>();
 				filter.EqualsSet("Url", urlSet.Select(Page => Page.Url));
 					
-				var existingPages = (await ListNoCache(context, filter)).ToDictionary(page => page.Url);
+				var existingPages = (await ListNoCache(context, filter, false, DataOptions.IgnorePermissions)).ToDictionary(page => page.Url);
 
 				// For each page to consider for install..
 				foreach (var page in urlSet)
@@ -454,7 +454,7 @@ namespace Api.Pages
 					// If it doesn't already exist, create it.
 					if (!existingPages.ContainsKey(page.Url))
 					{
-						await Create(context, page);
+						await Create(context, page, DataOptions.IgnorePermissions);
 					}
 				}
 			}

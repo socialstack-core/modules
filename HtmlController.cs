@@ -17,13 +17,13 @@ namespace Api.Pages
 
 	public partial class HtmlController : Controller
     {
-		private HtmlService _htmlService;
+		private static HtmlService _htmlService;
 		private ContextService _contexts;
 
 		/// <summary>
 		/// A date in the past used to set expiry on cookies.
 		/// </summary>
-		private static DateTimeOffset ThePast = new DateTimeOffset(1993, 1, 1, 0, 0, 0, TimeSpan.Zero);
+		private readonly static DateTimeOffset ThePast = new DateTimeOffset(1993, 1, 1, 0, 0, 0, TimeSpan.Zero);
 
 		/// <summary>
 		/// Instanced automatically per request.
@@ -84,9 +84,8 @@ namespace Api.Pages
 			{
 				if(_contexts == null)
                 {
-
+					_contexts = Services.Get<ContextService>();
                 }
-
 
 				// Force reset if role changed. Getting the public context will verify that the roles match.
 				Response.Cookies.Append(
@@ -118,9 +117,6 @@ namespace Api.Pages
 				// Update the token:
 				context.SendToken(Response);
 			}
-
-
-
 
 			var compress = true;
 

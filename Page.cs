@@ -1,4 +1,5 @@
 using System;
+using Api.AutoForms;
 using Api.Database;
 using Api.Permissions;
 using Api.Translate;
@@ -27,6 +28,7 @@ namespace Api.Pages
 		/// The pages content (as canvas JSON).
 		/// </summary>
 		[Localized]
+		[Data("groups", "*")]
 		public string BodyJson;
 
 		/// <summary>
