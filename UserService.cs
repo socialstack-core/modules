@@ -22,32 +22,16 @@ namespace Api.Users
 	/// </summary>
 	public class UserService : AutoService<User>
     {
-        private ContextService _contexts;
+        private readonly ContextService _contexts;
         private EmailTemplateService _emails;
-		private readonly Query<User> selectByEmailOrUsernameQuery;
-		private readonly Query<User> selectByUsernameQuery;
-		private readonly Query<User> selectByEmailQuery;
-		private readonly Query<User> updateAvatarQuery;
-		private readonly Query<User> updateFeatureQuery;
-
-
+		
 		/// <summary>
 		/// Instanced automatically. Use injection to use this service, or Startup.Services.Get.
 		/// </summary>
 		public UserService(ContextService context) : base(Events.User)
 		{
 			_contexts = context;
-			updateAvatarQuery = Query.Update<User>().RemoveAllBut("Id", "AvatarRef");
-			updateFeatureQuery = Query.Update<User>().RemoveAllBut("Id", "FeatureRef");
-			selectByEmailOrUsernameQuery = Query.Select<User>();
-			selectByEmailOrUsernameQuery.Where().EqualsArg("Email", 0).Or().EqualsArg("Username", 0);
-
-			selectByUsernameQuery = Query.Select<User>();
-			selectByUsernameQuery.Where().EqualsArg("Username", 0);
-
-			selectByEmailQuery = Query.Select<User>();
-			selectByEmailQuery.Where().EqualsArg("Email", 0);
-
+			
 			// Because of IHaveCreatorUser, User must be nestable:
 			MakeNestable();
 
@@ -119,15 +103,18 @@ namespace Api.Users
 				if(config.VerifyEmails)
 				{
 					// Send email now. The key is a hash of the user ID + registration date + verify.
-					var recipient = new Recipient(user);
-					
-					recipient.CustomData = new EmailVerifyCustomData()
+					var recipient = new Recipient(user)
 					{
-						Token = EmailVerificationHash(user)
+						CustomData = new EmailVerifyCustomData()
+						{
+							Token = EmailVerificationHash(user)
+						}
 					};
-					
-					var recipients = new List<Recipient>();
-					recipients.Add(recipient);
+
+					var recipients = new List<Recipient>
+					{
+						recipient
+					};
 
 					if (_emails == null)
 					{
@@ -143,88 +130,71 @@ namespace Api.Users
 				return user;
 			});
 			
-			// Let's see if the username is ok.
-			if(config.UniqueUsernames)
-            {
-				// They need to be unique, so let's create our event listener.
-				Events.User.BeforeCreate.AddEventListener(async (Context ctx, User user) =>
+			Events.User.BeforeCreate.AddEventListener(async (Context ctx, User user) =>
+			{
+				if (user == null || string.IsNullOrEmpty(user.Username))
 				{
-					if (user == null || string.IsNullOrEmpty(user.Username))
-					{
-						return user;
-					}
+					return user;
+				}
 
+				// Let's see if the username is ok.
+				if (config.UniqueUsernames)
+				{
 					// Let's make sure the username is not in use.
-					var usersWithUsername = await List(ctx, new Filter<User>().Equals("Username", user.Username));
+					var usersWithUsername = await List(ctx, new Filter<User>().Equals("Username", user.Username), DataOptions.IgnorePermissions);
 
 					if (usersWithUsername.Count > 0)
-                    {
-						throw new PublicException("This username is already in use.", "username_used");
-                    }
-
-					return user;
-				});
-
-				Events.User.BeforeUpdate.AddEventListener(async (Context ctx, User user) =>
-				{
-					if (user == null || string.IsNullOrEmpty(user.Username))
-                    {
-						return user;
-                    }
-
-					// Let's make sure the username is not in use by anyone besides this user (in case they didn't change it!).
-					var usersWithUsername = await List(ctx, new Filter<User>().Equals("Username", user.Username).And().Not().Equals("Id", user.Id));
-				
-					if (usersWithUsername.Count > 0)
-                    {
-						throw new PublicException("This username is already in use.", "username_used");
-                    }
-
-					return user;
-				});
-            }
-
-			// Let's see if the email is ok.
-			if(config.UniqueEmails)
-            {
-				// They need to be unique, so let's create our event listener.
-				Events.User.BeforeCreate.AddEventListener(async (Context ctx, User user) =>
-				{
-					if (user == null)
 					{
-						return null;
+						throw new PublicException("This username is already in use.", "username_used");
 					}
+				}
 
+				if (config.UniqueEmails)
+				{
 					// Let's make sure the username is not in use.
-					var usersWithEmail = await List(ctx, new Filter<User>().Equals("Email", user.Email));
+					var usersWithEmail = await List(ctx, new Filter<User>().Equals("Email", user.Email), DataOptions.IgnorePermissions);
 
 					if (usersWithEmail.Count > 0)
 					{
 						throw new PublicException("This email is already in use.", "email_used");
 					}
+				}
 
+				return user;
+			});
+
+			Events.User.BeforeUpdate.AddEventListener(async (Context ctx, User user) =>
+			{
+				if (user == null || string.IsNullOrEmpty(user.Username))
+                {
 					return user;
-				});
+                }
 
-				Events.User.BeforeUpdate.AddEventListener(async (Context ctx, User user) =>
+				if (config.UniqueUsernames)
 				{
-					if (user == null)
-					{
-						return null;
-					}
-
 					// Let's make sure the username is not in use by anyone besides this user (in case they didn't change it!).
-					var usersWithEmail = await List(ctx, new Filter<User>().Equals("Email", user.Email).And().Not().Equals("Id", user.Id));
+					var usersWithUsername = await List(ctx, new Filter<User>().Equals("Username", user.Username).And().Not().Equals("Id", user.Id), DataOptions.IgnorePermissions);
+
+					if (usersWithUsername.Count > 0)
+					{
+						throw new PublicException("This username is already in use.", "username_used");
+					}
+				}
+
+				if (config.UniqueEmails)
+				{
+					// Let's make sure the username is not in use by anyone besides this user (in case they didn't change it!).
+					var usersWithEmail = await List(ctx, new Filter<User>().Equals("Email", user.Email).And().Not().Equals("Id", user.Id), DataOptions.IgnorePermissions);
 
 					if (usersWithEmail.Count > 0)
 					{
 						throw new PublicException("This email is already in use.", "email_used");
 					}
+				}
 
-					return user;
-				});
-            }
-			
+				return user;
+			});
+
 			InstallAdminPages("Users", "fa:fa-user", new string[] { "id", "email", "username" });
 		}
 		
@@ -236,24 +206,7 @@ namespace Api.Users
 			return CreateMD5(user.Id + "" + user.JoinedUtc.Ticks + "" + user.PrivateVerify);
 		}
 		
-		private Capability _profileLoad;
-
-		/// <summary>
-		/// Gets the UserProfile_Load capability.
-		/// </summary>
-		/// <returns></returns>
-		public Capability GetProfileLoadCapability()
-		{
-			if (_profileLoad != null)
-			{
-				return _profileLoad;
-			}
-
-			Capabilities.All.TryGetValue("userprofile_load", out _profileLoad);
-			return _profileLoad;
-		}
-		
-		private SecureRandom secureRandom = new SecureRandom();
+		private readonly SecureRandom secureRandom = new SecureRandom();
 		
 		private long RandomLong() {
 			return secureRandom.NextLong();
@@ -262,22 +215,20 @@ namespace Api.Users
 		/// <summary>
 		/// Gets a hash of the given input.
 		/// </summary>
-		private string CreateMD5(string input)
+		private static string CreateMD5(string input)
 		{
 			// Use input string to calculate MD5 hash
-			using (System.Security.Cryptography.MD5 md5 = System.Security.Cryptography.MD5.Create())
-			{
-				byte[] inputBytes = System.Text.Encoding.ASCII.GetBytes(input);
-				byte[] hashBytes = md5.ComputeHash(inputBytes);
+			using System.Security.Cryptography.MD5 md5 = System.Security.Cryptography.MD5.Create();
+			byte[] inputBytes = System.Text.Encoding.ASCII.GetBytes(input);
+			byte[] hashBytes = md5.ComputeHash(inputBytes);
 
-				// Convert the byte array to hexadecimal string
-				var sb = new StringBuilder();
-				for (int i = 0; i < hashBytes.Length; i++)
-				{
-					sb.Append(hashBytes[i].ToString("X2"));
-				}
-				return sb.ToString();
+			// Convert the byte array to hexadecimal string
+			var sb = new StringBuilder();
+			for (int i = 0; i < hashBytes.Length; i++)
+			{
+				sb.Append(hashBytes[i].ToString("X2"));
 			}
+			return sb.ToString();
 		}
 		
 		/// <summary>
@@ -337,11 +288,10 @@ namespace Api.Users
 		/// Sets a particular type with CreatorUser handlers. Used via reflection.
 		/// </summary>
 		/// <typeparam name="T"></typeparam>
-		/// <param name="entityName"></param>
-		public void SetupForCreatorUser<T>(string entityName) where T : IHaveCreatorUser, new()
+		/// <param name="evtGroup"></param>
+		public void SetupForCreatorUser<T>(EventGroup<T> evtGroup) where T : IHaveCreatorUser, new()
 		{
 			// Invoked by reflection
-			var evtGroup = Events.GetGroup<T>();
 
 			evtGroup.AfterLoad.AddEventListener(async (Context context, T content) =>
 			{
@@ -407,7 +357,7 @@ namespace Api.Users
 				filter.EqualsSet("Id", userIds);
 
 				// Use the regular list method here:
-				var allUsers = await List(context, filter);
+				var allUsers = await List(context, filter, DataOptions.IgnorePermissions);
 
 				foreach (var user in allUsers)
 				{
@@ -441,31 +391,36 @@ namespace Api.Users
 		/// </summary>
 		private void SetupAutoUserFieldEvents()
 		{
-			var loadEvents = Events.FindByType(typeof(IHaveCreatorUser), "Load", EventPlacement.After);
-
 			var methodInfo = GetType().GetMethod("SetupForCreatorUser");
 
-			foreach (var typeEvent in loadEvents)
-			{
-				// Get the actual type. We use this to avoid Revisions etc as we're not interested in those here:
-				var contentType = ContentTypes.GetType(typeEvent.EntityName);
+			Events.Service.AfterCreate.AddEventListener((Context ctx, AutoService svc) => {
 
-				if (contentType == null)
+				if (svc == null || svc.ServicedType == null)
 				{
-					continue;
+					return new ValueTask<AutoService>(svc);
 				}
 
-				// Invoke setup for type:
-				var setupType = methodInfo.MakeGenericMethod(new Type[] {
-					contentType
-				});
+				var eventGroup = svc.GetEventGroup();
 
-				setupType.Invoke(this, new object[] {
-					typeEvent.EntityName
-				});
+				if (eventGroup == null)
+				{
+					return new ValueTask<AutoService>(svc);
+				}
 
-			}
+				if (typeof(IHaveCreatorUser).IsAssignableFrom(svc.ServicedType))
+				{
+					// Invoke setup for type:
+					var setupType = methodInfo.MakeGenericMethod(new Type[] {
+						svc.ServicedType
+					});
 
+					setupType.Invoke(this, new object[] {
+						eventGroup
+					});
+				}
+
+				return new ValueTask<AutoService>(svc);
+			});
 		}
 
 		/// <summary>
@@ -500,7 +455,7 @@ namespace Api.Users
 		public async Task<ListWithTotal<UserProfile>> ListProfilesWithTotal(Context context, Filter<User> filter)
 		{
 			// Get the user list:
-			var listAndTotal = await ListWithTotal(context, filter);
+			var listAndTotal = await ListWithTotal(context, filter, DataOptions.IgnorePermissions);
 			var list = listAndTotal.Results;
 
 			if (list == null)
@@ -534,7 +489,7 @@ namespace Api.Users
 		public async Task<UserProfile> GetProfile(Context context, int id)
 		{
 			// First get the full user info:
-			var result = await Get(context, id);
+			var result = await Get(context, id, DataOptions.IgnorePermissions);
 			return GetProfile(result);
 		}
 
@@ -579,19 +534,15 @@ namespace Api.Users
 		/// <returns></returns>
 		public async Task<User> Get(Context context, string emailOrUsername)
         {
-			if (NestableAddMask != 0 && (context.NestedTypes & NestableAddMask) == NestableAddMask)
+			var results = await List(context, new Filter<User>().Equals("Email", emailOrUsername).Or().Equals("Username", emailOrUsername), DataOptions.IgnorePermissions);
+			
+			if(results == null || results.Count == 0)
 			{
-				// This happens when we're nesting Get calls.
-				// For example, a User has Tags which in turn have a (creator) User.
 				return null;
 			}
-
-			var item = await _database.Select(context, selectByEmailOrUsernameQuery, emailOrUsername);
-
-			context.NestedTypes |= NestableAddMask;
-			item = await EventGroup.AfterLoad.Dispatch(context, item);
-			context.NestedTypes &= NestableRemoveMask;
-			return item;
+			
+			// Latest one:
+			return results[^1];
         }
 
 		/// <summary>
@@ -602,21 +553,17 @@ namespace Api.Users
 		/// <returns></returns>
 		public async Task<User> GetByEmail(Context context, string email)
 		{
-			if (NestableAddMask != 0 && (context.NestedTypes & NestableAddMask) == NestableAddMask)
+			var results = await List(context, new Filter<User>().Equals("Email", email), DataOptions.IgnorePermissions);
+			
+			if(results == null || results.Count == 0)
 			{
-				// This happens when we're nesting Get calls.
-				// For example, a User has Tags which in turn have a (creator) User.
 				return null;
 			}
-
-			var item = await _database.Select(context, selectByEmailQuery, email);
-
-			context.NestedTypes |= NestableAddMask;
-			item = await EventGroup.AfterLoad.Dispatch(context, item);
-			context.NestedTypes &= NestableRemoveMask;
-			return item;
+			
+			// Latest one:
+			return results[^1];
 		}
-
+		
 		/// <summary>
 		/// Gets a user by the given username.
 		/// </summary>
@@ -625,19 +572,15 @@ namespace Api.Users
 		/// <returns></returns>
 		public async Task<User> GetByUsername(Context context, string username)
 		{
-			if (NestableAddMask != 0 && (context.NestedTypes & NestableAddMask) == NestableAddMask)
+			var results = await List(context, new Filter<User>().Equals("Username", username), DataOptions.IgnorePermissions);
+			
+			if(results == null || results.Count == 0)
 			{
-				// This happens when we're nesting Get calls.
-				// For example, a User has Tags which in turn have a (creator) User.
 				return null;
 			}
-
-			var item = await _database.Select(context, selectByUsernameQuery, username);
-
-			context.NestedTypes |= NestableAddMask;
-			item = await EventGroup.AfterLoad.Dispatch(context, item);
-			context.NestedTypes &= NestableRemoveMask;
-			return item;
+			
+			// Latest one:
+			return results[^1];
 		}
 
 		/// <summary>
@@ -687,25 +630,6 @@ namespace Api.Users
 			}
 
 			return result;
-		}
-
-		/// <summary>
-		/// Updates a fileref for the given user.
-		/// </summary>
-		public async Task<bool> UpdateFile(Context context, int id, string uploadType, string uploadRef)
-		{
-			if (uploadType == "avatar")
-			{
-				return await _database.Run(context, updateAvatarQuery, id, uploadRef);
-			}
-			else if (uploadType == "feature")
-			{
-				return await _database.Run(context, updateFeatureQuery, id, uploadRef);
-			}
-			else
-			{
-				return false;
-			}
 		}
 	}
 
