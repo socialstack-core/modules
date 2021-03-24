@@ -1,34 +1,15 @@
 using System;
 using System.Threading;
-using System.Threading.Tasks;
 using Api.Contexts;
 using Api.Permissions;
 using Api.Startup;
-using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Hosting;
 
 namespace Api.Presence
 {
     /// <summary>
-    /// Event listener to start up the cleanup job for sending tracking information
-    /// </summary>
-    [EventListener]
-    public class EventsListner
-    {
-        public EventsListner()
-        {
-            WebServerStartupInfo.OnConfigureServices += obj =>
-            {
-                obj.AddHostedService<PagePrescenceHostedService>();
-            };
-
-        }
-    }
-    
-    /// <summary>
     /// Background task that cleans up the page presence records for this server 
     /// </summary>
-    public class PagePrescenceHostedService : IHostedService, IDisposable
+    public class PagePrescenceHostedService : AutoService
     {
         /// <summary>
         /// Timer for the updates, fires every n seconds
@@ -40,11 +21,9 @@ namespace Api.Presence
         /// </summary>
         /// <param name="stoppingToken"></param>
         /// <returns></returns>
-        public Task StartAsync(CancellationToken stoppingToken)
+        public PagePrescenceHostedService()
         {
             _timer = new Timer(CleanUpStaleRecords, null, TimeSpan.Zero, TimeSpan.FromMinutes(5));
-
-            return Task.CompletedTask;
         }
 
         /// <summary>
@@ -66,25 +45,6 @@ namespace Api.Presence
                     await service.Delete(context, entry);
                 }
             }
-        }
-
-        /// <summary>
-        /// Called when the job needs to stop
-        /// </summary>
-        /// <param name="stoppingToken"></param>
-        /// <returns></returns>
-        public Task StopAsync(CancellationToken stoppingToken)
-        {
-            return Task.CompletedTask;
-        }
-
-
-        /// <summary>
-        /// disposal
-        /// </summary>
-        public void Dispose()
-        {
-            _timer?.Dispose();
         }
     }
 }

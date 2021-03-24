@@ -57,7 +57,7 @@ namespace Api.Presence
 				// Must happen after services start otherwise the page service isn't necessarily available yet.
 				// Notably this happens immediately after services start in the first group
 				// (that's before any e.g. system pages are created).
-				Events.ServicesAfterStart.AddEventListener((Context ctx, object src) =>
+				Events.Service.AfterStart.AddEventListener((Context ctx, object src) =>
 				{
 					Start();
 					return new ValueTask<object>(src);
