@@ -73,6 +73,8 @@ namespace Api.Eventing
 		/// <returns></returns>
 		public void Add(T method, int priority)
 		{
+			#warning don't add the same method twice. Also, on service shutdown, check every event handler for methods that originate from the service class.
+
 			lock (this)
 			{
 				// Notes here:

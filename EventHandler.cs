@@ -1,5 +1,6 @@
 ﻿using Api.AutoForms;
 using Api.Contexts;
+using Api.Permissions;
 using Microsoft.AspNetCore.Http;
 using System;
 using System.Collections.Generic;
@@ -16,17 +17,9 @@ namespace Api.Eventing
 	public abstract partial class EventHandler
 	{
 		/// <summary>
-		/// Event name. Always the same as the field name in the Events class. Of the form "ForumBeforeCreate".
-		/// Word order is always EntityPlacementVerb such that events for the same entity group together in generated docs.
-		/// The verb name is required, placement is optional (but must be "Before", "After", or "On").
-		/// This strict structure helps event consistency and also allows them to be searchable in different ways - see also Events.Find.
+		/// The capability that was created for this handler, if there is one. Only available on Before* handlers.
 		/// </summary>
-		public string Name;
-
-		/// <summary>
-		/// E.g. "Update", "Load", "Create", "Delete", "List". The last word pulled from the name.
-		/// </summary>
-		public string Verb;
+		public Capability Capability;
 
 		/// <summary>
 		/// Attributes on the various event handler fields. Can be null.
@@ -35,7 +28,6 @@ namespace Api.Eventing
 
 		/// <summary>
 		/// The primary type of this event handler. If set, it's the type of the first arg (and also its return type).
-		/// Usually relates to, but isn't necessarily the same as, EntityName.
 		/// If an Api.Results.Set/ Filter type is applied here, it will be resolved into the contained type.
 		/// If you want the full original type - i.e you're after Api.Results.Set/ Filter types too - use SourcePrimaryType.
 		/// </summary>
@@ -43,104 +35,17 @@ namespace Api.Eventing
 
 		/// <summary>
 		/// The primary type of this event handler. If set, it's the type of the first arg (and also its return type).
-		/// Usually relates to, but isn't necessarily the same as, EntityName.
 		/// Unlike primary type, this is exactly as-is in the source.
 		/// </summary>
 		public Type SourcePrimaryType;
-
-		/// <summary>
-		/// The rest of the name with the verb and placement excluded.
-		/// </summary>
-		public string EntityName;
-
-		/// <summary>
-		/// "Before", "After", "On", null. The second last word from the name if it matches any of these 3, or null otherwise.
-		/// </summary>
-		public EventPlacement Placement = EventPlacement.NotSpecified;
-
-		/// <summary>
-		/// An index for high speed lookups.
-		/// Not consistent across runs - don't store in the database. Use Name instead.
-		/// </summary>
-		public readonly int InternalId;
 
 		/// <summary>
 		/// A place where event methods can be attached to handle events of a particular type.
 		/// You often don't need to construct these - they'll be created automatically during startup.
 		/// Just declare the field in the Events class.
 		/// </summary>
-		/// <param name="name">Always the same as the field name in the Events class. Of the form "ForumBeforeCreate".</param>
-		public EventHandler(string name)
+		public EventHandler()
 		{
-			Name = name;
-
-			if (string.IsNullOrEmpty(name))
-			{
-				return;
-			}
-
-			if (Events.All == null)
-			{
-				// Note that this will cause this constructor to be invoked, as it collects all 'other' event handlers.
-				// The Init method sets up the All dictionary before doing that however.
-				Events.Init();
-			}
-			
-			// Add to name lookup and set the internal ID:
-			InternalId = Events.All.Count;
-
-			var lcName = name.ToLower();
-
-			if (Events.All.ContainsKey(lcName))
-			{
-				throw new Exception("Event handler defined twice: " + lcName);
-			}
-
-			Events.All[lcName] = this;
-
-			// Split by capitals (note: This will split e.g. "SMS => S M S") but the few words we care about here won't contain this scenario.
-			var wordsFromName = System.Text.RegularExpressions.Regex.Replace(
-				name,
-				"([A-Z])",
-				" $1",
-				System.Text.RegularExpressions.RegexOptions.Compiled
-			).Trim().Split(' ');
-			
-			// Verb is always the last word:
-			Verb = wordsFromName[wordsFromName.Length-1];
-
-			var maxEntityNameLength = wordsFromName.Length - 1;
-
-			// Placement is optional but when it's present it is second last:
-			if (wordsFromName.Length > 1)
-			{
-				var secondLast = wordsFromName[wordsFromName.Length-2];
-
-				switch(secondLast)
-				{
-					case "Before":
-						maxEntityNameLength--;
-						Placement = EventPlacement.Before;
-					break;
-					case "After":
-						maxEntityNameLength--;
-						Placement = EventPlacement.After;
-					break;
-					case "On":
-						maxEntityNameLength--;
-						Placement = EventPlacement.On;
-					break;
-				}
-			}
-
-			// Build the entity name with the remaining words:
-			EntityName = "";
-
-			for (var i = 0; i < maxEntityNameLength; i++)
-			{
-				EntityName += wordsFromName[i];
-			}
-			
 		}
 
 		/// <summary>
@@ -201,7 +106,6 @@ namespace Api.Eventing
 			// Resolve Set, List and Filter types (primarily) next. This helps auto grab the most important type from e.g. List events.
 			if (type.IsConstructedGenericType)
 			{
-				var gDef = type.GetGenericTypeDefinition();
 				Type[] typeArguments = type.GetGenericArguments();
 				if(typeArguments != null && typeArguments.Length > 0)
 				{
@@ -226,8 +130,7 @@ namespace Api.Eventing
 		/// You often don't need to construct these - they'll be created automatically during startup.
 		/// Just declare the field in the Events class.
 		/// </summary>
-		/// <param name="name">Always the same as the field name in the Events class. Of the form "ForumBeforeCreate".</param>
-		public EventHandlerMethodSet(string name) : base(name) {}
+		public EventHandlerMethodSet() : base() {}
 
 		/// <summary>
 		/// The raw ordered set of methods.
@@ -267,8 +170,7 @@ namespace Api.Eventing
 		/// You often don't need to construct these - they'll be created automatically during startup.
 		/// Just declare the field in the Events class.
 		/// </summary>
-		/// <param name="name">Always the same as the field name in the Events class. Of the form "ForumBeforeCreate".</param>
-		public EventHandler(string name) : base(name) {
+		public EventHandler() : base() {
 			SetPrimaryType(typeof(T1));
 		}
 
@@ -284,6 +186,9 @@ namespace Api.Eventing
 		/// <returns></returns>
 		public async Task<T1> Dispatch(Context context, T1 v1)
 		{
+			if(context == null){
+				throw new ArgumentNullException(nameof(context));
+			}
 			var methods = MethodSet.Methods;
 			var count = MethodSet.HandlerCount;
 			for (var i = 0; i < count; i++)
@@ -312,8 +217,7 @@ namespace Api.Eventing
 		/// You often don't need to construct these - they'll be created automatically during startup.
 		/// Just declare the field in the Events class.
 		/// </summary>
-		/// <param name="name">Always the same as the field name in the Events class. Of the form "ForumBeforeCreate".</param>
-		public EventHandler(string name) : base(name)
+		public EventHandler() : base()
 		{
 			SetPrimaryType(typeof(T1));
 		}
@@ -331,6 +235,10 @@ namespace Api.Eventing
 		/// <returns></returns>
 		public async Task<T1> Dispatch(Context context, T1 v1, T2 v2)
 		{
+			if(context == null){
+				throw new ArgumentNullException(nameof(context));
+			}
+			
 			var methods = MethodSet.Methods;
 			var count = MethodSet.HandlerCount;
 			for (var i = 0; i < count; i++)
@@ -362,8 +270,7 @@ namespace Api.Eventing
 		/// You often don't need to construct these - they'll be created automatically during startup.
 		/// Just declare the field in the Events class.
 		/// </summary>
-		/// <param name="name">Always the same as the field name in the Events class. Of the form "ForumBeforeCreate".</param>
-		public EventHandler(string name) : base(name)
+		public EventHandler() : base()
 		{
 			SetPrimaryType(typeof(T1));
 		}
@@ -382,6 +289,10 @@ namespace Api.Eventing
 		/// <returns></returns>
 		public async Task<T1> Dispatch(Context context, T1 v1, T2 v2, T3 v3)
 		{
+			if(context == null){
+				throw new ArgumentNullException(nameof(context));
+			}
+			
 			var methods = MethodSet.Methods;
 			var count = MethodSet.HandlerCount;
 			for (var i = 0; i < count; i++)
@@ -416,8 +327,7 @@ namespace Api.Eventing
 		/// You often don't need to construct these - they'll be created automatically during startup.
 		/// Just declare the field in the Events class.
 		/// </summary>
-		/// <param name="name">Always the same as the field name in the Events class. Of the form "ForumBeforeCreate".</param>
-		public EventHandler(string name) : base(name)
+		public EventHandler() : base()
 		{
 			SetPrimaryType(typeof(T1));
 		}
@@ -437,6 +347,10 @@ namespace Api.Eventing
 		/// <returns></returns>
 		public async Task<T1> Dispatch(Context context, T1 v1, T2 v2, T3 v3, T4 v4)
 		{
+			if(context == null){
+				throw new ArgumentNullException(nameof(context), "Required");
+			}
+			
 			var methods = MethodSet.Methods;
 			var count = MethodSet.HandlerCount;
 			for (var i = 0; i < count; i++)
@@ -459,8 +373,7 @@ namespace Api.Eventing
 		/// You often don't need to construct these - they'll be created automatically during startup.
 		/// Just declare the field in the Events class.
 		/// </summary>
-		/// <param name="name">Always the same as the field name in the Events class. Of the form "ForumBeforeCreate".</param>
-		public EndpointEventHandler(string name) : base(name) { }
+		public EndpointEventHandler() : base() { }
 
 	}
 
@@ -477,8 +390,7 @@ namespace Api.Eventing
 		/// You often don't need to construct these - they'll be created automatically during startup.
 		/// Just declare the field in the Events class.
 		/// </summary>
-		/// <param name="name">Always the same as the field name in the Events class. Of the form "ForumBeforeCreate".</param>
-		public EndpointEventHandler(string name) : base(name) { }
+		public EndpointEventHandler() : base() { }
 
 	}
 }

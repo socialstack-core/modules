@@ -13,9 +13,22 @@ namespace Api.Eventing
 	/// These are typically added to the Events class, named directly after the type that is being used.
 	/// Like this:
 	/// public static EventGroup{Page} Page;
+	/// You can extend it with custom events as well - just do so on the base EventGroup{T, ID} type.
 	/// </summary>
 	/// <typeparam name="T"></typeparam>
-	public partial class EventGroup<T>
+	public class EventGroup<T> : EventGroup<T, int> 
+	{
+	}
+
+	/// <summary>
+	/// A grouping of common events, such as before/ after create, update, delete etc.
+	/// These are typically added to the Events class, named directly after the type that is being used.
+	/// Like this:
+	/// public static EventGroup{Page} Page;
+	/// </summary>
+	/// <typeparam name="T"></typeparam>
+	/// <typeparam name="ID"></typeparam>
+	public partial class EventGroup<T, ID> : EventGroup
 	{
 		#region Service events
 
@@ -50,6 +63,11 @@ namespace Api.Eventing
 		public EventHandler<T> AfterUpdate;
 
 		/// <summary>
+		/// Just before an entity is loaded.
+		/// </summary>
+		public EventHandler<ID> BeforeLoad;
+
+		/// <summary>
 		/// Just after an entity was loaded.
 		/// </summary>
 		public EventHandler<T> AfterLoad;
@@ -74,42 +92,46 @@ namespace Api.Eventing
 		#region Controller events
 
 		/// <summary>
-		/// Create a new entity.
+		/// Load entity metadata.
 		/// </summary>
-		public EndpointEventHandler<T> Create;
-		/// <summary>
-		/// Delete an entity.
-		/// </summary>
-		public EndpointEventHandler<T> Delete;
-		/// <summary>
-		/// Update entity metadata.
-		/// </summary>
-		public EndpointEventHandler<T> Update;
+		public EndpointEventHandler<ID> EndpointStartLoad;
 		/// <summary>
 		/// Load entity metadata.
 		/// </summary>
-		public EndpointEventHandler<T> Load;
-		
+		public EndpointEventHandler<T> EndpointEndLoad;
+		/// <summary>
+		/// List entities.
+		/// </summary>
+		public EndpointEventHandler<Filter<T>> EndpointStartList;
+		/// <summary>
+		/// List entities.
+		/// </summary>
+		public EndpointEventHandler<List<T>> EndpointEndList;
+
 		/// <summary>
 		/// Create a new entity.
 		/// </summary>
-		public EndpointEventHandler<T> Created;
+		public EndpointEventHandler<T> EndpointStartCreate;
+		/// <summary>
+		/// Create a new entity.
+		/// </summary>
+		public EndpointEventHandler<T> EndpointEndCreate;
 		/// <summary>
 		/// Delete an entity.
 		/// </summary>
-		public EndpointEventHandler<T> Deleted;
+		public EndpointEventHandler<T> EndpointStartDelete;
+		/// <summary>
+		/// Delete an entity.
+		/// </summary>
+		public EndpointEventHandler<T> EndpointEndDelete;
 		/// <summary>
 		/// Update entity metadata.
 		/// </summary>
-		public EndpointEventHandler<T> Updated;
+		public EndpointEventHandler<T> EndpointStartUpdate;
 		/// <summary>
-		/// List entities.
+		/// Update entity metadata.
 		/// </summary>
-		public EndpointEventHandler<Filter<T>> List;
-		/// <summary>
-		/// List entities.
-		/// </summary>
-		public EndpointEventHandler<List<T>> Listed;
+		public EndpointEventHandler<T> EndpointEndUpdate;
 
 		#endregion
 
@@ -118,7 +140,33 @@ namespace Api.Eventing
 		/// The object will be of the correct content type and will be populated 
 		/// by passing it through all the AfterLoad handlers.
 		/// </summary>
-		[DontAddPermissions]
 		public EventHandler<T, int> Received;
+	}
+
+	/// <summary>
+	/// The base class of all EventGroup instances.
+	/// </summary>
+	public class EventGroup
+	{
+		/// <summary>
+		/// All event handlers in this group that were assigned a capability. Can be null.
+		/// </summary>
+		public List<EventHandler> AllWithCapabilities;
+
+		/// <summary>
+		/// All event handlers in this group.
+		/// </summary>
+		public List<EventHandler> All;
+
+		/// <summary>
+		/// Creates a new instance of this event group. Automatically populates all EventHandler fields.
+		/// </summary>
+		public EventGroup() {
+			All = new List<EventHandler>();
+
+			// Setup all of the fields on it too:
+			Events.SetupEventsOnObject(this, GetType(), null, All);
+		}
+		
 	}
 }
