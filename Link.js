@@ -3,6 +3,7 @@ import omit from 'UI/Functions/Omit';
 export default function Link (props) {
 	var attribs = omit(props, ['children', 'href', '_rte']);
 	attribs.alt = attribs.alt || attribs.title;
+	attribs.ref = attribs.rootRef;
 	
 	var children = props.children || props.text;
 	var url = (props.url || props.href);
