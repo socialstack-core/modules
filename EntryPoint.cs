@@ -134,7 +134,7 @@ namespace Api.Startup
 	/// </summary>
 	public static class Chmod
 	{
-		[DllImport("libc", EntryPoint="chmod", SetLastError = true, CharSet = CharSet.Unicode)]
+		[DllImport("libc", EntryPoint="chmod", SetLastError = true)]
 		[SuppressMessage("Style", "IDE1006:Naming Styles", Justification = "interop")]
 		private static extern int chmod(string pathname, int mode);
 
