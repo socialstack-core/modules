@@ -67,7 +67,7 @@ namespace Api.Comments
 					
 					commentSet.NestedCommentCount++;
 					
-					await commentSets.Update(context, commentSet);
+					await commentSets.Update(context, commentSet, DataOptions.IgnorePermissions);
 				}
 				
 				comment.CommentSetId = commentSet.Id;
