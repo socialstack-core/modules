@@ -48,6 +48,15 @@ namespace Api.Users
 					BodyJson = "{\"module\":\"Email/Default\",\"content\":[{\"module\":\"Email/Centered\",\"data\":{}," +
 					"\"content\":\"An account was recently created with us. If this was you, click the following link to proceed:\"},"+
 					"{\"module\":\"Email/PrimaryButton\",\"data\":{\"label\":\"Verify my email address\",\"target\":\"/email-verify/{token}\"}}]}"
+				},
+				new EmailTemplate()
+                {
+					Name = "Password reset",
+					Subject = "Password reset",
+					Key = "forgot_password",
+					BodyJson = "{\"module\":\"Email/Default\",\"content\":[{\"module\":\"Email/Centered\",\"data\":{}," +
+					"\"content\":\"A password reset request was recently created with us for this email. If this was you, click the following link to proceed:\"}," +
+					"{\"module\":\"Email/PrimaryButton\",\"data\":{\"label\":\"Verify my email address\",\"target\":\"/password/reset/{token}\"}}]}"
 				}
 			);
 			
