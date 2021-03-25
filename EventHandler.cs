@@ -184,7 +184,7 @@ namespace Api.Eventing
 		/// Important for e.g. returning correctly localised database results automatically.</param>
 		/// <param name="v1">1st arg value to pass to the methods. This one is also the default return value.</param>
 		/// <returns></returns>
-		public async Task<T1> Dispatch(Context context, T1 v1)
+		public async ValueTask<T1> Dispatch(Context context, T1 v1)
 		{
 			if(context == null){
 				throw new ArgumentNullException(nameof(context));
@@ -233,7 +233,7 @@ namespace Api.Eventing
 		/// <param name="v1">1st arg value to pass to the methods. This one is also the default return value.</param>
 		/// <param name="v2">2nd arg value to pass to the methods.</param>
 		/// <returns></returns>
-		public async Task<T1> Dispatch(Context context, T1 v1, T2 v2)
+		public async ValueTask<T1> Dispatch(Context context, T1 v1, T2 v2)
 		{
 			if(context == null){
 				throw new ArgumentNullException(nameof(context));
@@ -287,7 +287,7 @@ namespace Api.Eventing
 		/// <param name="v2">2nd arg value to pass to the methods.</param>
 		/// <param name="v3">3rd arg value to pass to the methods.</param>
 		/// <returns></returns>
-		public async Task<T1> Dispatch(Context context, T1 v1, T2 v2, T3 v3)
+		public async ValueTask<T1> Dispatch(Context context, T1 v1, T2 v2, T3 v3)
 		{
 			if(context == null){
 				throw new ArgumentNullException(nameof(context));
@@ -345,7 +345,7 @@ namespace Api.Eventing
 		/// <param name="v3">3rd arg value to pass to the methods.</param>
 		/// <param name="v4">4th arg value to pass to the methods.</param>
 		/// <returns></returns>
-		public async Task<T1> Dispatch(Context context, T1 v1, T2 v2, T3 v3, T4 v4)
+		public async ValueTask<T1> Dispatch(Context context, T1 v1, T2 v2, T3 v3, T4 v4)
 		{
 			if(context == null){
 				throw new ArgumentNullException(nameof(context), "Required");
