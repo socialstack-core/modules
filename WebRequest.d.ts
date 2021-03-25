@@ -3,7 +3,7 @@
     notificationKey: unknown;
 }
 
-export default function webRequest<Data, Result>(
+export default function webRequest<Result, Data = undefined>(
     origUrl: string,
     data?: Data,
     opts?: object & {
