@@ -205,7 +205,7 @@ namespace Api.Contexts
 			}
 
 			// Get the user now:
-			_user = await _users.Get(this, UserId);
+			_user = await _users.Get(this, UserId, DataOptions.IgnorePermissions);
 			
 			if(_user ==  null)
 			{
