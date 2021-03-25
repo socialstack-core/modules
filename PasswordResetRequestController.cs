@@ -99,7 +99,7 @@ namespace Api.PasswordResetRequests
 				}
 				
 				// Get the target user account:
-				var targetUser = await _users.Get(context, request.UserId);
+				var targetUser = await _users.Get(context, request.UserId, DataOptions.IgnorePermissions);
 				
 				if (targetUser == null)
 				{
@@ -115,7 +115,7 @@ namespace Api.PasswordResetRequests
 				
 				targetUser.PasswordHash = PasswordStorage.CreateHash(newPassword.Password);
 
-				targetUser = await _users.Update(context, targetUser);
+				targetUser = await _users.Update(context, targetUser, DataOptions.IgnorePermissions);
 
 				if (targetUser == null)
 				{
@@ -126,7 +126,7 @@ namespace Api.PasswordResetRequests
 
 				// Burn the token:
 				request.IsUsed = true;
-				await _service.Update(context, request);
+				await _service.Update(context, request, DataOptions.IgnorePermissions);
 
 				// Set user:
 				context.SetUser(targetUser);
