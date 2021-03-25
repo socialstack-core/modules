@@ -103,7 +103,7 @@ namespace Api.UserFlags
 				}
 				
 				content.UserFlagCount++;
-				await Content.Update(context, content);
+				await Content.Update(context, content, DataOptions.IgnorePermissions);
 				
 				return flag;
 			});
@@ -130,7 +130,7 @@ namespace Api.UserFlags
 					content.UserFlagCount = 0;
                 }
 
-				await Content.Update(context, content);
+				await Content.Update(context, content, DataOptions.IgnorePermissions);
 
 				return flag;
 			});
