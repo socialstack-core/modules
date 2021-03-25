@@ -24,7 +24,7 @@ namespace Api.Database
 		/// <param name="context"></param>
 		/// <param name="content"></param>
 		/// <returns></returns>
-		public static async Task<object> Update(Context context, object content)
+		public static async Task<object> Update(Context context, object content, DataOptions options = DataOptions.Default)
 		{
 			if (content == null)
 			{
@@ -39,7 +39,7 @@ namespace Api.Database
 				return null;
 			}
 
-			content = await service.UpdateObject(context, content);
+			content = await service.UpdateObject(context, content, options);
 			return content;
 		}
 
