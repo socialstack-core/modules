@@ -10,7 +10,7 @@ namespace Api.Rewards
 	/// A reward.
 	/// These can be added to any IHaveRewards type.
 	/// </summary>
-	public partial class Reward : RevisionRow
+	public partial class Reward : VersionedContent<int>
 	{
 		/// <summary>
 		/// The name of the reward in the site default language.

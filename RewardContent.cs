@@ -10,7 +10,7 @@ namespace Api.Rewards
 	/// <summary>
 	/// Content tagged with a particular reward.
 	/// </summary>
-	public partial class RewardContent : MappingRow, IAmLive
+	public partial class RewardContent : MappingEntity, IAmLive
 	{
 		/// <summary>
 		/// The ID of the reward.
