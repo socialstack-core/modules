@@ -71,7 +71,7 @@ namespace Api.AutoForms
 				
 				// Must inherit revisionRow and 
 				// the revision module must be installed
-				formMeta.SupportsRevisions = revisionsSupported && Api.Database.ContentTypes.IsAssignableToGenericType(serviceKvp.Value.ServicedType, typeof(RevisionRow<>));
+				formMeta.SupportsRevisions = revisionsSupported && Api.Database.ContentTypes.IsAssignableToGenericType(serviceKvp.Value.ServicedType, typeof(VersionedContent<>));
 				
 				formMeta.Endpoint = "v1/" + formType.Name.ToLower();
 				result.Add(formMeta);
