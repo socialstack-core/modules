@@ -7,7 +7,7 @@ namespace Api.Permissions
 	/// <summary>
 	/// A PermittedContent
 	/// </summary>
-	public partial class PermittedContent : MappingRow
+	public partial class PermittedContent : MappingEntity
 	{
 		/// <summary>
 		/// Creator of this permit (e.g. the person who invited x). Not to be confused with PermittedContentId, which is the invited person.

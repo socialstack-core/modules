@@ -13,8 +13,8 @@ namespace Api.Permissions
     /// <summary>
     /// A configurable role.
     /// </summary>
-    public partial class UserRole : RevisionRow
-    {
+    public partial class UserRole : VersionedContent<int>
+	{
 		/// <summary>
 		/// The nice name of the role, usually in the site default language.
 		/// </summary>

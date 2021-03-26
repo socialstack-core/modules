@@ -18,7 +18,7 @@ namespace Api.Permissions
 			// Types that aren't UserCreatedRow or User itself return false always.
 			var isUser = DefaultType == typeof(User);
 
-			if (!isUser && !Api.Database.ContentTypes.IsAssignableToGenericType(DefaultType, typeof(UserCreatedRow<>)))
+			if (!isUser && !Api.Database.ContentTypes.IsAssignableToGenericType(DefaultType, typeof(UserCreatedContent<>)))
 			{
 				return null;
 			}
