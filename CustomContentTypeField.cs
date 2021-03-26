@@ -10,7 +10,7 @@ namespace Api.CustomContentTypes
 	/// <summary>
 	/// A custom content type field.
 	/// </summary>
-	public partial class CustomContentTypeField : RevisionRow
+	public partial class CustomContentTypeField : RevisionEntity<int>
 	{
 		/// <summary>
 		/// The content type that this field belongs to.
