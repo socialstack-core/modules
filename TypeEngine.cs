@@ -133,7 +133,7 @@ namespace Api.CustomContentTypes
 				}
 
 				// Base type to use:
-				var baseType = typeof(RevisionEntity<int>);
+				var baseType = typeof(VersionedContent<int>);
 
 				// Start building the type:
 				var typeName = TidyName(customType.Name);

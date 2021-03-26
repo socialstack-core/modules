@@ -11,7 +11,7 @@ namespace Api.CustomContentTypes
 	/// <summary>
 	/// A custom content type. Has a list of fields.
 	/// </summary>
-	public partial class CustomContentType : RevisionEntity<int>
+	public partial class CustomContentType : VersionedContent<int>
 	{
 		/// <summary>
 		/// Type name.
