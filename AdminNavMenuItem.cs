@@ -1,10 +1,6 @@
-using System;
-using System.Collections.Generic;
 using Api.Database;
-using Api.Translate;
-using Api.Users;
 using Api.Permissions;
-
+using Api.Startup;
 
 namespace Api.NavMenus
 {
@@ -12,7 +8,8 @@ namespace Api.NavMenus
 	/// <summary>
 	/// A particular entry within a navigation menu.
 	/// </summary>
-	public partial class AdminNavMenuItem : IHaveId<int>, IHaveRoleRestrictions
+	[CacheOnly]
+	public partial class AdminNavMenuItem : Content<int>, IHaveRoleRestrictions
 	{
 		/// <summary>
 		/// Entry ID.
