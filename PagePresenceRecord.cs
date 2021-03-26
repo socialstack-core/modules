@@ -11,7 +11,7 @@ namespace Api.Presence
 	/// <summary>
 	/// A PagePresenceRecord
 	/// </summary>
-	public partial class PagePresenceRecord : UserCreatedRow<ulong>, IAmLive
+	public partial class PagePresenceRecord : UserCreatedContent<ulong>, IAmLive
 	{
 		/// <summary>
 		/// Current page this user is on. Because of url tokens, these aren't as unique as URL is.

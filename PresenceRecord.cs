@@ -10,7 +10,7 @@ namespace Api.Presence
 	/// <summary>
 	/// A PresenceRecord
 	/// </summary>
-	public partial class PresenceRecord : DatabaseRow
+	public partial class PresenceRecord : Content<int>
 	{
 		/// <summary>
 		/// E.g. "Page".
