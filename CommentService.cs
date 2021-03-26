@@ -75,7 +75,7 @@ namespace Api.Comments
 				if(hasParent)
 				{
 					// Get parent comment:
-					var parent = await Get(context, comment.ParentCommentId.Value);
+					var parent = await Get(context, comment.ParentCommentId.Value, DataOptions.IgnorePermissions);
 					
 					if(parent == null)
 					{
@@ -85,7 +85,7 @@ namespace Api.Comments
 					
 					// Its comment number is the total child comments the parent has so far:
 					parent.ChildCommentCount++;
-					await Update(context, parent);
+					await Update(context, parent, DataOptions.IgnorePermissions);
 					
 					comment.Depth = parent.Depth + 1;
 					
@@ -158,7 +158,7 @@ namespace Api.Comments
                 }
 
 				// Let's grab the parent comment.
-				var parentComment = await Get(ctx, comment.ParentCommentId.Value);
+				var parentComment = await Get(ctx, comment.ParentCommentId.Value, DataOptions.IgnorePermissions);
 
 				// Is the parent comment valid?
 				if (parentComment == null)
@@ -168,7 +168,7 @@ namespace Api.Comments
                 }
 
 				// Let's grab the original comment.
-				var originalComment = await Get(ctx, comment.Id);
+				var originalComment = await Get(ctx, comment.Id, DataOptions.IgnorePermissions);
 
 				// Excellent, has the delete state changed for this object?
 				if (comment.Deleted != originalComment.Deleted)
@@ -189,7 +189,7 @@ namespace Api.Comments
                     }
 
 					// Let's update the parent comment now.
-					parentComment = await Update(ctx, parentComment);
+					parentComment = await Update(ctx, parentComment, DataOptions.IgnorePermissions);
                 }
 
 				return comment;
