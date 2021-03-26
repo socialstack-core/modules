@@ -1,9 +1,6 @@
 ﻿using Api.AutoForms;
 using Api.Database;
 using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
 
 namespace Api.Users
 {
@@ -11,7 +8,7 @@ namespace Api.Users
 	/// Use this to get a UserId, CreatedUtc and EditedUtc with automatic creator user field support.
 	/// Alternatively use DatabaseRow directly if you want total control over your table.
 	/// </summary>
-	public abstract class UserCreatedEntity<T> : Entity<T>, IHaveCreatorUser where T: struct
+	public abstract class UserCreatedEntity<T> : Entity<T>, IHaveTimestamps, IHaveCreatorUser where T: struct
 	{
 		/// <summary>
 		/// The user who created this content.
@@ -36,7 +33,25 @@ namespace Api.Users
 		/// </summary>
 		[Module(Hide = true)]
 		public UserProfile CreatorUser { get; set; }
-		
+
+		/// <summary>
+		/// Gets the CreatedUtc 
+		/// </summary>
+		/// <returns></returns>
+		public DateTime GetCreatedUtc()
+		{
+			return CreatedUtc;
+		}
+
+		/// <summary>
+		/// 
+		/// </summary>
+		/// <returns></returns>
+		public DateTime GetEditedUtc()
+        {
+			return EditedUtc;
+        }
+
 		/// <summary>
 		/// Gets the ID of the user who created this content.
 		/// </summary>
