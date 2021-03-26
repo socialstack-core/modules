@@ -314,14 +314,14 @@ namespace Api.Database
 			// Applying to the actual entity so the object is up to date too.
 			if (q.IsUpdate)
 			{
-				if (srcObject is Api.Users.RevisionEntity<int> revRow && context.PermitEditedUtcChange)
+				if (srcObject is Api.Users.VersionedContent<int> revRow && context.PermitEditedUtcChange)
 				{
 					revRow.EditedUtc = DateTime.UtcNow;
 				}
 			}
 			else if(q.IsInsert)
 			{
-				if (srcObject is Api.Users.RevisionEntity<int> revRow)
+				if (srcObject is Api.Users.VersionedContent<int> revRow)
 				{
 					if (revRow.EditedUtc == DateTime.MinValue)
 					{
