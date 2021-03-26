@@ -48,7 +48,7 @@ namespace Api.DatabaseDiff
 				}
 
 				// If type derives from DatabaseRow, we have a thing we'll potentially need to reconfigure.
-				if (ContentTypes.IsAssignableToGenericType(service.ServicedType, typeof(Entity<>)))
+				if (ContentTypes.IsAssignableToGenericType(service.ServicedType, typeof(Content<>)))
 				{
 					if (_database == null)
 					{
