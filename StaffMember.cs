@@ -10,7 +10,7 @@ namespace Api.StaffMembers
 	/// <summary>
 	/// A Staff Member that isn't a user - used for e.g. staff lists.
 	/// </summary>
-	public partial class StaffMember : RevisionRow
+	public partial class StaffMember : VersionedContent<int>
 	{
 		/// <summary>
 		/// The first name of the Staff Member (and any middle names).
