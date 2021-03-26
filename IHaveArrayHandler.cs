@@ -21,8 +21,8 @@ namespace Api.Startup {
 	/// </summary>
 	public class IHaveArrayHandler<T, U, M> 
 			where T : class
-			where U : DatabaseRow<int>, new()
-			where M : MappingRow, new()
+			where U : Content<int>, new()
+			where M : MappingEntity, new()
 	{
 		/// <summary>
 		/// The name of the field in the mapper type for the target content ID. E.g. "TagId".
@@ -120,7 +120,7 @@ namespace Api.Startup {
 		/// Sets a particular type with IHave* handlers. Used via reflection.
 		/// </summary>
 		/// <typeparam name="CT"></typeparam>
-		public virtual void SetupHandlers<CT>(EventGroup<CT> evtGroup) where CT : DatabaseRow<int>, T, new()
+		public virtual void SetupHandlers<CT>(EventGroup<CT> evtGroup) where CT : Content<int>, T, new()
 		{
 			UserService _users = null;
 
@@ -139,9 +139,9 @@ namespace Api.Startup {
 
 				int revisionId = 0;
 
-				if (content is RevisionRow<int>)
+				if (content is VersionedContent<int>)
 				{
-					var revId = (content as RevisionRow<int>).RevisionId;
+					var revId = (content as VersionedContent<int>).RevisionId;
 
 					if (revId.HasValue)
 					{
@@ -235,9 +235,9 @@ namespace Api.Startup {
 
 						int revisionId = 0;
 
-						if (targetObject is RevisionRow<int>)
+						if (targetObject is VersionedContent<int>)
 						{
-							var revId = (targetObject as RevisionRow<int>).RevisionId;
+							var revId = (targetObject as VersionedContent<int>).RevisionId;
 
 							if (revId.HasValue)
 							{
@@ -621,7 +621,7 @@ namespace Api.Startup {
 	/// <typeparam name="U"></typeparam>
 	public class IHaveArrayHandler<T, U> : IHaveArrayHandler <T, U, U>
 			where T : class
-			where U : MappingRow, new()
+			where U : MappingEntity, new()
 	{
 
 		/// <summary>
@@ -645,9 +645,9 @@ namespace Api.Startup {
 
 				int revisionId = 0;
 
-				if (content is RevisionRow<int>)
+				if (content is VersionedContent<int>)
 				{
-					var revId = (content as RevisionRow<int>).RevisionId;
+					var revId = (content as VersionedContent<int>).RevisionId;
 
 					if (revId.HasValue)
 					{

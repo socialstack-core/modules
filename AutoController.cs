@@ -175,7 +175,7 @@ public partial class AutoController<T,ID> : ControllerBase
 		var entity = new T();
 
 		// If it's revisionable we'll set the user ID now:
-		var revisionableEntity = (entity as Api.Users.RevisionRow<ID>);
+		var revisionableEntity = (entity as Api.Users.VersionedContent<ID>);
 
 		if (revisionableEntity != null)
 		{

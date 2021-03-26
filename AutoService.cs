@@ -987,7 +987,7 @@ public partial class AutoService : IHaveId<int>
 	/// <returns></returns>
 	private bool IsDatabaseRowType(Type t)
 	{
-		if (t.IsGenericType && t.GetGenericTypeDefinition() == typeof(DatabaseRow<>))
+		if (t.IsGenericType && t.GetGenericTypeDefinition() == typeof(Content<>))
 		{
 			return true;
 		}
@@ -1268,7 +1268,7 @@ public partial class AutoService : IHaveId<int>
 	/// </summary>
 	protected IHaveArrayHandler<T, U, U> DefineIHaveArrayHandler<T, U>(Action<T, List<U>> setResult, bool retainOrder = false)
 		where T : class
-		where U : MappingRow, new()
+		where U : MappingEntity, new()
 	{
 		return DefineIHaveArrayHandler<T, U, U>(null, null, setResult, retainOrder);
 	}
@@ -1279,8 +1279,8 @@ public partial class AutoService : IHaveId<int>
 	/// </summary>
 	protected IHaveArrayHandler<T, U, M> DefineIHaveArrayHandler<T, U, M>(string whereFieldName, string mapperFieldName, Action<T, List<U>> setResult, bool retainOrder = false)
 		where T : class
-		where U : DatabaseRow<int>, new()
-		where M : MappingRow, new()
+		where U : Content<int>, new()
+		where M : MappingEntity, new()
 	{
 		IHaveArrayHandler<T, U, M> mapper;
 
@@ -1318,7 +1318,7 @@ public partial class AutoService : IHaveId<int>
 	/// </summary>
 	protected IHaveArrayHandler<T, Api.Users.User, M> DefineIHaveArrayHandler<T, M>(string whereFieldName, Action<T, List<Api.Users.UserProfile>> setResult, bool retainOrder = false)
 		where T : class
-		where M : MappingRow, new()
+		where M : MappingEntity, new()
 	{
 		Api.Users.UserService _users = null;
 
