@@ -9,7 +9,7 @@ namespace Api.Blogs
 	/// <summary>
 	/// A blog post.
 	/// </summary>
-	public partial class BlogPost : RevisionRow
+	public partial class BlogPost : VersionedContent<int>
 	{
 		/// <summary>
 		/// The blog this post is in.
