@@ -174,7 +174,7 @@ namespace Api.Emails
 
 			if (idsToLoad != null)
 			{
-				var loadedUsers = await _users.List(new Context(), new Filter<User>().Id(idsToLoad));
+				var loadedUsers = await _users.List(new Context(), new Filter<User>().Id(idsToLoad), DataOptions.IgnorePermissions);
 
 				if (loadedUsers != null && loadedUsers.Count > 0)
 				{
