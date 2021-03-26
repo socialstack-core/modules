@@ -9,7 +9,7 @@ namespace Api.Users
     /// <summary>
     /// A particular user account.
     /// </summary>
-    public partial class User : Entity<int>
+    public partial class User : Content<int>
 	{
 		/// <summary>
 		/// The user's email address.

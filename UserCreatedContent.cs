@@ -8,7 +8,7 @@ namespace Api.Users
 	/// Use this to get a UserId, CreatedUtc and EditedUtc with automatic creator user field support.
 	/// Alternatively use DatabaseRow directly if you want total control over your table.
 	/// </summary>
-	public abstract class UserCreatedEntity<T> : Entity<T>, IHaveTimestamps, IHaveCreatorUser where T: struct
+	public abstract class UserCreatedContent<T> : Content<T>, IHaveTimestamps, IHaveCreatorUser where T: struct
 	{
 		/// <summary>
 		/// The user who created this content.
