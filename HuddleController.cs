@@ -116,7 +116,7 @@ namespace Api.Huddles
 					// Add or update a huddle presence record.
 
 					// Get all existing presence records for this user:
-					var thisUsersPresence = await presenceService.List(context, new Filter<HuddlePresence>().Equals("UserId", userState.UserId));
+					var thisUsersPresence = await presenceService.List(context, new Filter<HuddlePresence>().Equals("UserId", userState.UserId), DataOptions.IgnorePermissions);
 
 					// Match on huddle peer ID:
 					HuddlePresence existingRecord = null;

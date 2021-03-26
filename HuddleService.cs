@@ -45,7 +45,7 @@ namespace Api.Huddles
 				}
 
 				// Get huddle list:
-				var huddles = await List(context, new Filter<Huddle>().Id(list.Select(e => e.HuddleId)));
+				var huddles = await List(context, new Filter<Huddle>().Id(list.Select(e => e.HuddleId)), DataOptions.IgnorePermissions);
 
 				var huddleLookup = new Dictionary<int, Huddle>();
 
@@ -192,7 +192,7 @@ namespace Api.Huddles
 		/// <returns></returns>
 		public async ValueTask<bool> IsUniqueHuddleSlug(Context ctx, string slug, int? exclusionId = null)
         {
-			var huddles = await List(ctx, new Filter<Huddle>().Equals("Slug", slug).And().Not().Equals("Id", exclusionId));
+			var huddles = await List(ctx, new Filter<Huddle>().Equals("Slug", slug).And().Not().Equals("Id", exclusionId), DataOptions.IgnorePermissions);
 
 			return huddles.Count == 0;
 		}
