@@ -9,7 +9,7 @@ namespace Api.Tags
 	/// <summary>
 	/// Content tagged with a particular tag.
 	/// </summary>
-	public partial class TagContent : MappingRow
+	public partial class TagContent : MappingEntity
 	{
 		/// <summary>
 		/// The ID of the tag.
