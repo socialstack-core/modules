@@ -7,7 +7,7 @@ namespace Api.Metrics
     /// <summary>
     /// Metrics are used to measure the amount of occurrences of triggers (called a metric source) over time.
     /// </summary>
-    public partial class Metric : RevisionRow
+    public partial class Metric : VersionedContent<int>
     {
         /// <summary>
         /// A name for this metric.

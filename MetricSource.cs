@@ -8,7 +8,7 @@ namespace Api.Metrics
     /// <summary>
     /// A specific source of metrics.
     /// </summary>
-    public partial class MetricSource : RevisionRow
+    public partial class MetricSource : VersionedContent<int>
     {
 		/// <summary>
 		/// The metric that this will be supplying data to.
