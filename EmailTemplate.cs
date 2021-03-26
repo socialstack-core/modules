@@ -7,7 +7,7 @@ namespace Api.Emails
     /// <summary>
     /// A particular email template.
     /// </summary>
-    public class EmailTemplate : RevisionEntity<int>
+    public class EmailTemplate : VersionedContent<int>
 	{
 		/// <summary>
 		/// The internal key for this token. E.g. "forgot_password".
