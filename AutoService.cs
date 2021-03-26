@@ -928,16 +928,16 @@ public partial class AutoService : IHaveId<int>
 	{
 		// _database is left blank if:
 		// * Type is given.
-		// * Type does not have DatabaseRow<> in its inheritence hierarchy.
+		// * Type is marked CacheOnly.
 		// This is such that basic services without a type have a convenience database field, 
 		// but types that are in-memory only don't attempt to use the database.
-		if (type != null && !IsDatabaseRowType(type))
+		if (type != null && !IsPersistentType(type))
 		{
 			_database = null;
 		}
 		else
 		{
-			_database = Api.Startup.Services.Get<DatabaseService>();
+			_database = Services.Get<DatabaseService>();
 		}
 
 		ServicedType = type;
@@ -981,23 +981,14 @@ public partial class AutoService : IHaveId<int>
 	}
 	
 	/// <summary>
-	/// True if the given is a DatabaseRow type (i.e. if it should be persistent or not).
+	/// True if the given is a persistent type (i.e. if it should be stored in the database or not).
 	/// </summary>
 	/// <param name="t"></param>
 	/// <returns></returns>
-	private bool IsDatabaseRowType(Type t)
+	private bool IsPersistentType(Type t)
 	{
-		if (t.IsGenericType && t.GetGenericTypeDefinition() == typeof(Content<>))
-		{
-			return true;
-		}
-
-		if (t.BaseType == null)
-		{
-			return false;
-		}
-
-		return IsDatabaseRowType(t.BaseType);
+		var cacheOnlyAttribs = t.GetCustomAttributes(typeof(CacheOnlyAttribute), true);
+		return (cacheOnlyAttribs == null || cacheOnlyAttribs.Length == 0);
 	}
 
 	/// <summary>
