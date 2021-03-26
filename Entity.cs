@@ -5,20 +5,13 @@ using System;
 namespace Api.Database
 {
 	/// <summary>
-	/// Used to represent an entity to 
-	/// store in the database automatically.
+	/// Used to represent an entity which can either be stored in the cache only or in the database.
+	/// By default, unless you specify [CacheOnly] on your type, the entity will be stored in the database.
 	/// A database table will always have the columns defined here as fields.
+	/// Will often be Entity{int}
 	/// </summary>
-	public abstract partial class DatabaseRow : DatabaseRow<int>
-	{
-	}
-
-	/// <summary>
-	/// Used to represent an entity to 
-	/// store in the database automatically.
-	/// A database table will always have the columns defined here as fields.
-	/// </summary>
-	public abstract partial class DatabaseRow<T> : IHaveId<T> where T : struct
+	/// <typeparam name="T">The type of ID of your entity. Usually int.</typeparam>
+	public abstract partial class Entity<T> : IHaveId<T> where T : struct
 	{
 		/// <summary>
 		/// The row ID.

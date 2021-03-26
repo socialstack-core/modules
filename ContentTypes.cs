@@ -38,7 +38,7 @@ namespace Api.Database
 					continue;
 				}
 
-				if (!IsAssignableToGenericType(typeInfo, typeof(DatabaseRow<>)))
+				if (!IsAssignableToGenericType(typeInfo, typeof(Entity<>)))
 				{
 					continue;
 				}
