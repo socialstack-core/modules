@@ -10,7 +10,7 @@ namespace Api.UserFlags
 	/// <summary>
 	/// An UserFlag
 	/// </summary>
-	public partial class UserFlag : RevisionRow
+	public partial class UserFlag : VersionedContent<int>
 	{
 		/// <summary>
 		/// Flagged content ID.
