@@ -7,8 +7,8 @@ namespace Api.Emails
     /// <summary>
     /// A particular email template.
     /// </summary>
-    public class EmailTemplate : RevisionRow
-    {
+    public class EmailTemplate : RevisionEntity<int>
+	{
 		/// <summary>
 		/// The internal key for this token. E.g. "forgot_password".
 		/// </summary>
