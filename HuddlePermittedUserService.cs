@@ -40,7 +40,7 @@ namespace Api.Huddles
                     return null;
                 }
 
-                var huddle = await _huddleService.Get(context, permit.HuddleId);
+                var huddle = await _huddleService.Get(context, permit.HuddleId, DataOptions.IgnorePermissions);
                 if (huddle == null)
                 {
                     return null;
@@ -109,13 +109,13 @@ namespace Api.Huddles
                 }
 
                 // Get the huddle:
-                var huddle = await huddleService.Get(context, permit.HuddleId);
+                var huddle = await huddleService.Get(context, permit.HuddleId, DataOptions.IgnorePermissions);
 
                 if (huddle != null)
                 {
                     // Nudge its updated date by just updating it like so. Be careful with this though to avoid endless update loops 
                     // (as there's a huddle afterUpdate which checks if any of its permits were accepted for a previous date).
-                    await huddleService.Update(context, huddle);
+                    await huddleService.Update(context, huddle, DataOptions.IgnorePermissions);
                 }
 
                 return permit;
@@ -254,7 +254,7 @@ namespace Api.Huddles
                 if (huddle.HuddleType != 0)
                 {
                     // Get the permits:
-                    huddle.Invites = await List(context, new Filter<HuddlePermittedUser>().Equals("HuddleId", huddle.Id));
+                    huddle.Invites = await List(context, new Filter<HuddlePermittedUser>().Equals("HuddleId", huddle.Id), DataOptions.IgnorePermissions);
                 }
 
                 return huddle;
@@ -272,7 +272,7 @@ namespace Api.Huddles
                 if (huddle.HuddleType != 0)
                 {
                     // Get the permits:
-                    huddle.Invites = await List(context, new Filter<HuddlePermittedUser>().Equals("HuddleId", huddle.Id));
+                    huddle.Invites = await List(context, new Filter<HuddlePermittedUser>().Equals("HuddleId", huddle.Id), DataOptions.IgnorePermissions);
                 }
 				else
 				{
@@ -314,7 +314,7 @@ namespace Api.Huddles
                             invite.PermittedUserId = 0;
                             invite.PermittedUser = null;
 
-                            await Update(context, invite);
+                            await Update(context, invite, DataOptions.IgnorePermissions);
                         }
 
                     }
@@ -335,7 +335,7 @@ namespace Api.Huddles
                 if (huddle.HuddleType != 0 && huddle.Invites == null)
                 {
                     // Get the permits:
-                    huddle.Invites = await List(context, new Filter<HuddlePermittedUser>().Equals("HuddleId", huddle.Id));
+                    huddle.Invites = await List(context, new Filter<HuddlePermittedUser>().Equals("HuddleId", huddle.Id), DataOptions.IgnorePermissions);
                 }
 				else
 				{
@@ -353,12 +353,12 @@ namespace Api.Huddles
                 }
 
                 // Get the associated invites
-                var invites = await List(context, new Filter<HuddlePermittedUser>().Equals("HuddleId", huddle.Id));
+                var invites = await List(context, new Filter<HuddlePermittedUser>().Equals("HuddleId", huddle.Id), DataOptions.IgnorePermissions);
 
                 // For each one, remove the permitted users
                 foreach (var entry in invites)
                 {
-                    await Delete(context, entry.Id);
+                    await Delete(context, entry.Id, DataOptions.IgnorePermissions);
                 }
 
                 return huddle;
@@ -379,7 +379,7 @@ namespace Api.Huddles
                 }
 
                 // Get the permits:
-                var allPermits = await List(context, new Filter<HuddlePermittedUser>().EqualsSet("HuddleId", huddles.Select(huddle => huddle.Id)));
+                var allPermits = await List(context, new Filter<HuddlePermittedUser>().EqualsSet("HuddleId", huddles.Select(huddle => huddle.Id)), DataOptions.IgnorePermissions);
 
                 // Filter them through to the actual huddles they're for:
                 if (allPermits != null)
@@ -495,7 +495,8 @@ namespace Api.Huddles
                         // Get all invite entries for this host object:
                         var existingEntries = await List(
                             ctx,
-                            new Filter<HuddlePermittedUser>().Equals("HuddleId", huddle.Id) //.And().Equals("RevisionId", revisionId)
+                            new Filter<HuddlePermittedUser>().Equals("HuddleId", huddle.Id), //.And().Equals("RevisionId", revisionId)
+                            DataOptions.IgnorePermissions
                         );
 
                         // Identify ones being deleted, and ones being added, then update invite contents.
@@ -571,7 +572,7 @@ namespace Api.Huddles
                                 existingLookup.Remove(cTypeAndId);
 
                                 // Delete this row:
-                                await Delete(ctx, existingEntry.Id);
+                                await Delete(ctx, existingEntry.Id, DataOptions.IgnorePermissions);
                             }
                         }
 
@@ -673,7 +674,7 @@ namespace Api.Huddles
                 // Clear the user ID:
                 invite.PermittedUserId = 0;
 
-                invite = await Update(context, invite);
+                invite = await Update(context, invite, DataOptions.IgnorePermissions);
 
                 if (invite == null)
                 {
@@ -730,7 +731,7 @@ namespace Api.Huddles
                 throw new PublicException("This invite has already been accepted.", "meeting_accepted");
             }
 
-            var huddle = await _huddleService.Get(context, invite.HuddleId);
+            var huddle = await _huddleService.Get(context, invite.HuddleId, DataOptions.IgnorePermissions);
 
             if (huddle == null)
             {
@@ -749,7 +750,7 @@ namespace Api.Huddles
             }
 
             // Update the invite:
-            invite = await Update(context, invite);
+            invite = await Update(context, invite, DataOptions.IgnorePermissions);
 
             if (invite == null)
             {

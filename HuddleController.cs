@@ -81,7 +81,7 @@ namespace Api.Huddles
 
 			// Get the huddle server:
 			var huddleServerService = Services.Get<HuddleServerService>();
-			var huddleServer = await huddleServerService.Get(context, userStates.HuddleServerIdentifier);
+			var huddleServer = await huddleServerService.Get(context, userStates.HuddleServerIdentifier, DataOptions.IgnorePermissions);
 
 			// Check if the signature validates with the Huddle servers public key:
 			if (huddleServer == null)
@@ -156,13 +156,13 @@ namespace Api.Huddles
 						}
 
 						// Update user busy flag if they weren't already in a meeting:
-						var user = await userService.Get(context, userState.UserId);
+						var user = await userService.Get(context, userState.UserId, DataOptions.IgnorePermissions);
 
 						if (user != null)
 						{
 							user.InMeeting = true;
 							user.LastJoinedHuddleId = userState.HuddleId;
-							await userService.Update(context, user);
+							await userService.Update(context, user, DataOptions.IgnorePermissions);
 						}
 					}
 					else
@@ -170,20 +170,20 @@ namespace Api.Huddles
 						// The record must not exist.
 						if (existingRecord != null)
 						{
-							await presenceService.Delete(context, existingRecord);
+							await presenceService.Delete(context, existingRecord, DataOptions.IgnorePermissions);
 							change = -1;
 						}
 
 						if ((existingRecord != null && thisUsersPresence.Count == 1) || thisUsersPresence.Count == 0)
 						{
 							// Update user busy flag:
-							var user = await userService.Get(context, userState.UserId);
+							var user = await userService.Get(context, userState.UserId, DataOptions.IgnorePermissions);
 
 							if (user != null)
 							{
 								user.InMeeting = false;
 								user.LastJoinedHuddleId = 0;
-								await userService.Update(context, user);
+								await userService.Update(context, user, DataOptions.IgnorePermissions);
 							}
 						}
 					}
@@ -191,9 +191,9 @@ namespace Api.Huddles
 					if (change != 0)
 					{
 						// Update the huddle - get # of users currently in it:
-						var huddle = await huddleService.Get(context, userState.HuddleId);
+						var huddle = await huddleService.Get(context, userState.HuddleId, DataOptions.IgnorePermissions);
 						huddle.UsersInMeeting += change;
-						await huddleService.Update(context, huddle);
+						await huddleService.Update(context, huddle, DataOptions.IgnorePermissions);
 					}
 				}
 
@@ -222,7 +222,7 @@ namespace Api.Huddles
 			var service = (_service as HuddleService);
 
 			// Get the huddle:
-			var huddles = await service.List(context, new Filter<Huddle>().Equals("Slug", slug));
+			var huddles = await service.List(context, new Filter<Huddle>().Equals("Slug", slug), DataOptions.IgnorePermissions);
 
 			if (huddles.Count < 1)
 			{
@@ -264,7 +264,7 @@ namespace Api.Huddles
 			var service = (_service as HuddleService);
 
 			// Get the huddle:
-			var huddles = await service.List(context, new Filter<Huddle>().Equals("Slug", slug));
+			var huddles = await service.List(context, new Filter<Huddle>().Equals("Slug", slug), DataOptions.IgnorePermissions);
 
 			if (huddles.Count < 1)
             {
@@ -332,7 +332,7 @@ namespace Api.Huddles
 			var service = (_service as HuddleService);
 			
 			// Get the huddle:
-			var huddle = await service.Get(context, id);
+			var huddle = await service.Get(context, id, DataOptions.IgnorePermissions);
 			
 			if(huddle == null){
 				// Doesn't exist or not permitted (the permission system internally checks huddle type and invites).

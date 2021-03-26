@@ -293,7 +293,7 @@ namespace Api.Huddles
 			}
 			else
 			{
-				huddleServer = await _huddleServerService.Get(context, huddle.HuddleServerId);
+				huddleServer = await _huddleServerService.Get(context, huddle.HuddleServerId, DataOptions.IgnorePermissions);
 			}
 
 			if (huddleServer == null)
