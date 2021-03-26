@@ -9,7 +9,7 @@ namespace Api.Categories
 	/// <summary>
 	/// Content within a particular category.
 	/// </summary>
-	public partial class CategoryContent : MappingRow
+	public partial class CategoryContent : MappingEntity
 	{
 		/// <summary>
 		/// The ID of the category.
