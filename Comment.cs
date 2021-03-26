@@ -11,7 +11,7 @@ namespace Api.Comments
 	/// <summary>
 	/// A comment on some particular content.
 	/// </summary>
-	public partial class Comment : RevisionRow, IHaveReactions, IAmLive
+	public partial class Comment : VersionedContent<int>, IHaveReactions, IAmLive
 	{
 		/// <summary>
 		/// The content this comment is on.

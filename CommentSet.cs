@@ -10,7 +10,7 @@ namespace Api.Comments
 	/// <summary>
 	/// A CommentSet
 	/// </summary>
-	public partial class CommentSet : DatabaseRow
+	public partial class CommentSet : Content<int>
 	{
 		/// <summary>
 		/// The sum of direct comments on this content.
