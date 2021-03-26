@@ -37,7 +37,7 @@ namespace Api.Revisions
 				// Firstly, is this type a RevisionRow?
 				// If so, we'll need to add another table to the schema with the same set of fields only it's called _revisions.
 
-				if (!ContentTypes.IsAssignableToGenericType(typeInfo, typeof(RevisionRow<>), out Type revisionRowType))
+				if (!ContentTypes.IsAssignableToGenericType(typeInfo, typeof(VersionedContent<>), out Type revisionRowType))
 				{
 					return new ValueTask<FieldMap>(fieldMap);
 				}
@@ -139,7 +139,7 @@ namespace Api.Revisions
 
 				var eventGroup = svc.GetEventGroup();
 
-				if (eventGroup != null && ContentTypes.IsAssignableToGenericType(svc.ServicedType, typeof(RevisionRow<>)))
+				if (eventGroup != null && ContentTypes.IsAssignableToGenericType(svc.ServicedType, typeof(VersionedContent<>)))
 				{
 					// Invoke setup for type:
 					var idType = svc.ServicedType.GetField("Id").FieldType;
@@ -170,7 +170,7 @@ namespace Api.Revisions
 		/// <typeparam name="ID"></typeparam>
 		/// <param name="evtGroup"></param>
 		public void SetupForRevisions<T, ID>(EventGroup<T> evtGroup)
-			where T : RevisionRow<ID>, new()
+			where T : VersionedContent<ID>, new()
 			where ID: struct, IComparable
 		{
 			var contentType = typeof(T);

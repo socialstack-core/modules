@@ -62,7 +62,7 @@ public partial class AutoService<T, ID>{
 			return _isRevisionType.Value;
 		}
 
-		_isRevisionType = ContentTypes.IsAssignableToGenericType(typeof(T), typeof(RevisionRow<>));
+		_isRevisionType = ContentTypes.IsAssignableToGenericType(typeof(T), typeof(VersionedContent<>));
 		return _isRevisionType.Value;
 	}
 
@@ -93,7 +93,7 @@ public partial class AutoService<T, ID>{
 	/// </summary>
 	private static void SetRevisionColumns(Query<T> query){
 		
-		var revisionIdField = typeof(RevisionRow<ID>).GetField("_RevisionId", BindingFlags.Instance | BindingFlags.NonPublic);
+		var revisionIdField = typeof(VersionedContent<ID>).GetField("_RevisionId", BindingFlags.Instance | BindingFlags.NonPublic);
 		var idField = typeof(T).GetField("Id");
 		
 		// Remap the ID column, because the Id column in the database goes to the RevisionId field always.
@@ -106,7 +106,7 @@ public partial class AutoService<T, ID>{
 		}
 
 		// Include hidden draft field:
-		var isDraftField = typeof(RevisionRow<ID>).GetField("_IsDraft", BindingFlags.Instance | BindingFlags.NonPublic);
+		var isDraftField = typeof(VersionedContent<ID>).GetField("_IsDraft", BindingFlags.Instance | BindingFlags.NonPublic);
 		query.AddField(new Field(typeof(T), isDraftField, "RevisionIsDraft"));
 		
 		// Similarly the actual Id field on the entity goes to the column called RevisionOriginalContentId:
@@ -254,7 +254,7 @@ public partial class AutoService<T, ID>{
 		// Clear any existing drafts:
 		await _database.Run(context, clearDraftStateQuery, 0, id);
 
-		var rr = (entity as RevisionRow<ID>);
+		var rr = (entity as VersionedContent<ID>);
 
 		if (rr != null)
 		{
