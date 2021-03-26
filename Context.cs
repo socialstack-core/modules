@@ -104,7 +104,7 @@ namespace Api.Contexts
 			if (_locale == null)
 			{
 				// Dodgy locale in the cookie. Locale #1 always exists.
-				return await _locales.Get(this, 1);
+				return await _locales.Get(this, 1, DataOptions.IgnorePermissions);
 			}
 
 			return _locale;
