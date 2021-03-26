@@ -10,7 +10,7 @@ namespace Api.Huddles
 	/// <summary>
 	/// A HuddleLoadMetric
 	/// </summary>
-	public partial class HuddleLoadMetric : Entity<int>
+	public partial class HuddleLoadMetric : Content<int>
 	{
 		/// <summary>
 		/// 15 minute time block, based on projected durations of a huddle.
