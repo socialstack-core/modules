@@ -10,7 +10,7 @@ namespace Api.Articles
 	/// <summary>
 	/// An article, typically used in e.g. help guides or knowledge bases.
 	/// </summary>
-	public partial class Article : RevisionRow
+	public partial class Article : VersionedContent<int>
 	{
 		/// <summary>
 		/// The name of the article in the site default language.
