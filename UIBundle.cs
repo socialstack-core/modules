@@ -269,7 +269,7 @@ namespace Api.CanvasRenderer
 			// It supports the precompiled file being minified as well.
 
 			// Does the locale exist? (intentionally using a blank context here - it must only vary by localeId)
-			var locale = await _localeService.Get(new Context(), localeId);
+			var locale = await _localeService.Get(new Context(), localeId, DataOptions.IgnorePermissions);
 
 			if (locale == null)
 			{
@@ -281,7 +281,7 @@ namespace Api.CanvasRenderer
 			var translationList = await _translationService.List(new Context()
 			{
 				LocaleId = localeId
-			}, new Filter<Translation>());
+			}, new Filter<Translation>(), DataOptions.IgnorePermissions);
 
 			// Create a lookup:
 			var translationLookup = new Dictionary<string, Translation>();
