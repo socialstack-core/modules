@@ -271,6 +271,15 @@ namespace Api.Permissions
 		/// <param name="rule"></param>
 		public void AddRule(RoleGrantRule rule)
 		{
+			// If it has patterns, make sure they're lowercase:
+			if (rule.Patterns != null)
+			{
+				for (var i = 0; i < rule.Patterns.Length; i++)
+				{
+					rule.Patterns[i] = rule.Patterns[i].ToLower();
+				}
+			}
+
 			// Add rules in order of priority. 
 			// I.e. highest type int goes last in the list.
 			GrantRules.Add(rule);

@@ -53,7 +53,7 @@ namespace Api.Permissions
 
             ContentType = contentType;
             Feature = feature.ToLower();
-            Name = contentType == null ? feature : contentType.Name.ToLower() + "_" + Feature;
+            Name = contentType == null ? Feature : contentType.Name.ToLower() + "_" + Feature;
             InternalId = _CurrentId++;
         }
 
