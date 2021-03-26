@@ -10,7 +10,7 @@ namespace Api.Huddles
 	/// <summary>
 	/// A HuddleServer
 	/// </summary>
-	public partial class HuddleServer : RevisionRow
+	public partial class HuddleServer : RevisionEntity<int>
 	{
         /// <summary>
         /// The server address, excluding protocol. For example, "huddle1.site.com"

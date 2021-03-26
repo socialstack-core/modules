@@ -11,7 +11,7 @@ namespace Api.Huddles
 	/// <summary>
 	/// A Huddle
 	/// </summary>
-	public partial class Huddle : RevisionRow
+	public partial class Huddle : RevisionEntity<int>
 	{
 		/// <summary>
 		/// 0 = Public (anyone can join)

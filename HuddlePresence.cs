@@ -10,7 +10,7 @@ namespace Api.Huddles
 	/// <summary>
 	/// A HuddlePresence
 	/// </summary>
-	public partial class HuddlePresence : UserCreatedRow
+	public partial class HuddlePresence : UserCreatedEntity<int>
 	{
 		
 		/// <summary>

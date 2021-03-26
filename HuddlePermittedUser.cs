@@ -10,7 +10,7 @@ namespace Api.Huddles
 	/// <summary>
 	/// A HuddlePermittedUser
 	/// </summary>
-	public partial class HuddlePermittedUser : RevisionRow
+	public partial class HuddlePermittedUser : RevisionEntity<int>
 	{
 		/// <summary>
 		/// Usually the content type for "user".
