@@ -228,7 +228,7 @@ namespace Api.ContentSync
 		/// <typeparam name="T"></typeparam>
 		/// <param name="assigner"></param>
 		/// <param name="evtGroup"></param>
-		public void AddIdAssigner<T>(IdAssigner assigner, EventGroup<T> evtGroup) where T:DatabaseRow<int>
+		public void AddIdAssigner<T>(IdAssigner assigner, EventGroup<T> evtGroup) where T:Entity<int>
 		{
 			if (assigner is IdAssignerSigned)
 			{
@@ -295,7 +295,7 @@ namespace Api.ContentSync
 			}
 
 			// ID assigner is currently only available on int tables:
-			if (typeof(DatabaseRow<int>).IsAssignableFrom(typeof(T)))
+			if (typeof(Entity<int>).IsAssignableFrom(typeof(T)))
 			{
 				var methodInfo = GetType().GetMethod("AddIdAssigner");
 

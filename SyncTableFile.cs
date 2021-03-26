@@ -17,7 +17,7 @@ namespace Api.ContentSync
 	/// <summary>
 	/// Sync table stored in a file. Used by devs.
 	/// </summary>
-	public class SyncTableFile<T, ID> : SyncTableFile where T : DatabaseRow<ID>, new()
+	public class SyncTableFile<T, ID> : SyncTableFile where T : Entity<ID>, new()
 	where ID : struct, IConvertible
 	{
 		private string FilePath;
