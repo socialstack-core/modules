@@ -9,8 +9,8 @@ namespace Api.Users
     /// <summary>
     /// A particular user account.
     /// </summary>
-    public partial class User : DatabaseRow
-    {
+    public partial class User : Entity<int>
+	{
 		/// <summary>
 		/// The user's email address.
 		/// </summary>
