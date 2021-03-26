@@ -11,7 +11,7 @@ namespace Api.IfAThenB
 	/// <summary>
 	/// An if _ then _ rule.
 	/// </summary>
-	public partial class AThenB : RevisionRow
+	public partial class AThenB : VersionedContent<int>
 	{
 		/// <summary>
 		/// The name of the event.
