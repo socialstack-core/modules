@@ -9,7 +9,7 @@ namespace Api.Reactions
 	/// A reaction by a particular user to a particular piece of content.
 	/// ReactionCount is essentially just a counted version of these.
 	/// </summary>
-	public partial class Reaction : RevisionRow, IAmLive
+	public partial class Reaction : VersionedContent<int>, IAmLive
 	{
 		/// <summary>
 		/// The content type this is a reaction to.
