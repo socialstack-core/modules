@@ -12,7 +12,7 @@ namespace Api.NavMenus
 	/// <summary>
 	/// A particular entry within a navigation menu.
 	/// </summary>
-	public partial class NavMenuItem : RevisionRow, IHaveRoleRestrictions
+	public partial class NavMenuItem : VersionedContent<int>, IHaveRoleRestrictions
 	{
 		/// <summary>
 		/// The ID of the nav menu this item belongs to.

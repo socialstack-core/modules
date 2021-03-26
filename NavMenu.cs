@@ -9,7 +9,7 @@ namespace Api.NavMenus
 	/// <summary>
 	/// A particular nav menu.
 	/// </summary>
-	public partial class NavMenu : RevisionRow
+	public partial class NavMenu : VersionedContent<int>
 	{
 		/// <summary>
 		/// A key used to identify a menu by its purpose.
