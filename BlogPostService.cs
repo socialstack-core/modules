@@ -49,7 +49,7 @@ namespace Api.Blogs
 				{
 
 					// Get the blog to obtain the default page ID:
-					var blog = await _blogs.Get(context, blogPost.BlogId);
+					var blog = await _blogs.Get(context, blogPost.BlogId, DataOptions.IgnorePermissions);
 
 					if (blog == null)
 					{
@@ -105,7 +105,7 @@ namespace Api.Blogs
                     }
 
 					// Yes, is it for a valid user?
-					var author = await _users.Get(context, blogPost.AuthorId);
+					var author = await _users.Get(context, blogPost.AuthorId, DataOptions.IgnorePermissions);
 
 					if(author == null)
                     {
@@ -360,11 +360,11 @@ namespace Api.Blogs
 				// Now let's see if the slug is in use.
 				if (exclusionId == null)
 				{
-					postsWithSlug = await List(context, new Filter<BlogPost>().Equals("Slug", slug));
+					postsWithSlug = await List(context, new Filter<BlogPost>().Equals("Slug", slug), DataOptions.IgnorePermissions);
 				}
 				else
 				{
-					postsWithSlug = await List(context, new Filter<BlogPost>().Equals("Slug", slug).And().Not().Equals("Id", exclusionId));
+					postsWithSlug = await List(context, new Filter<BlogPost>().Equals("Slug", slug).And().Not().Equals("Id", exclusionId), DataOptions.IgnorePermissions);
 				}
 
 				var increment = 0;
@@ -375,11 +375,11 @@ namespace Api.Blogs
 					increment++;
 					if (exclusionId == null)
 					{
-						postsWithSlug = await List(context, new Filter<BlogPost>().Equals("Slug", slug + "-" + increment));
+						postsWithSlug = await List(context, new Filter<BlogPost>().Equals("Slug", slug + "-" + increment), DataOptions.IgnorePermissions);
 					}
 					else
 					{
-						postsWithSlug = await List(context, new Filter<BlogPost>().Equals("Slug", slug + "-" + increment).And().Not().Equals("Id", exclusionId));
+						postsWithSlug = await List(context, new Filter<BlogPost>().Equals("Slug", slug + "-" + increment).And().Not().Equals("Id", exclusionId), DataOptions.IgnorePermissions);
 					}
 				}
 

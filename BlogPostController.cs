@@ -54,7 +54,7 @@ namespace Api.Blogs
             var slug = await _blogPostService.GetSlug(context, title.Title);
 
             // Now let's see if the slug is in use.
-            var postsWithSlug = await _service.List(context, new Filter<BlogPost>().Equals("Slug", slug));
+            var postsWithSlug = await _service.List(context, new Filter<BlogPost>().Equals("Slug", slug), DataOptions.IgnorePermissions);
 
             var increment = 0;
 
@@ -62,7 +62,7 @@ namespace Api.Blogs
             while (postsWithSlug.Count > 0 )
             {
                 increment++;
-                postsWithSlug = await _service.List(context, new Filter<BlogPost>().Equals("Slug", slug + "-" + increment));
+                postsWithSlug = await _service.List(context, new Filter<BlogPost>().Equals("Slug", slug + "-" + increment), DataOptions.IgnorePermissions);
             }
 
             if (increment > 0)
