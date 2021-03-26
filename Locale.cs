@@ -5,8 +5,8 @@ namespace Api.Translate
 {
     /// <summary>
     /// </summary>
-    public class Locale : RevisionRow
-    {
+    public class Locale : VersionedContent<int>
+	{
 		/// <summary>
 		/// The name.
 		/// </summary>
