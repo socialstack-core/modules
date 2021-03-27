@@ -32,7 +32,7 @@ namespace Api.UserFlags
                 }
 
 				// Let's see if a user flag by this user on this content exists.
-				List<UserFlag> flagCheck = await List(ctx, new Filter<UserFlag>().Equals("UserId", flag.UserId).And().Equals("ContentId", flag.ContentId).And().Equals("ContentTypeId", flag.ContentTypeId));
+				List<UserFlag> flagCheck = await List(ctx, new Filter<UserFlag>().Equals("UserId", flag.UserId).And().Equals("ContentId", flag.ContentId).And().Equals("ContentTypeId", flag.ContentTypeId), DataOptions.IgnorePermissions);
 
 				// Does a flag exist for this content by this user?
 				if(flagCheck.Count > 0)
@@ -57,7 +57,7 @@ namespace Api.UserFlags
                 }
 
 				// Grab the user flag option
-				var flagOption = await _ufo.Get(context, flag.UserFlagOptionId);
+				var flagOption = await _ufo.Get(context, flag.UserFlagOptionId, DataOptions.IgnorePermissions);
 				flag.UserFlagOption = flagOption;
 
 				return flag;
@@ -78,7 +78,7 @@ namespace Api.UserFlags
 
 				foreach (var flag in userFlags)
                 {
-					var flagOption = await _ufo.Get(context, flag.UserFlagOptionId);
+					var flagOption = await _ufo.Get(context, flag.UserFlagOptionId, DataOptions.IgnorePermissions);
 					flag.UserFlagOption = flagOption;
 				}
 
