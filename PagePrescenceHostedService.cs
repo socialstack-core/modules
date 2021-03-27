@@ -38,11 +38,11 @@ namespace Api.Presence
             if (service != null)
             {
                 var context = new Context();
-                var priorServerEntries = await service.List(context, new Filter<PagePresenceRecord>().Equals("ServerId", service.ServerId).And().LessThan("EditedUtc" , DateTime.UtcNow.AddMinutes(5)));
+                var priorServerEntries = await service.List(context, new Filter<PagePresenceRecord>().Equals("ServerId", service.ServerId).And().LessThan("EditedUtc" , DateTime.UtcNow.AddMinutes(5)), DataOptions.IgnorePermissions);
 
                 foreach (var entry in priorServerEntries)
                 {
-                    await service.Delete(context, entry);
+                    await service.Delete(context, entry, DataOptions.IgnorePermissions);
                 }
             }
         }

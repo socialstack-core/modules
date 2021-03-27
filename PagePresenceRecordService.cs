@@ -95,11 +95,11 @@ namespace Api.Presence
 			{
 				// First time for this client. Must ensure this record doesn't exist at the server end.
 				// This happens when a server is abruptly shutdown - it leaves records in the DB.
-				var rec = await Get(client.Context, client.Id + ServerIdMask);
+				var rec = await Get(client.Context, client.Id + ServerIdMask, DataOptions.IgnorePermissions);
 			
 				if(rec != null){
 					// Delete it:
-					await Delete(client.Context, rec);
+					await Delete(client.Context, rec, DataOptions.IgnorePermissions);
 				}
 			}
 			
@@ -208,7 +208,7 @@ namespace Api.Presence
 				
 				if (client != null && client.Record != null)
 				{
-					await Delete(ctx, client.Record);
+					await Delete(ctx, client.Record, DataOptions.IgnorePermissions);
 				}
 
 				return client;
