@@ -11,7 +11,7 @@ namespace Api.LiveSupportChats
 	/// <summary>
 	/// A LiveSupportMessage
 	/// </summary>
-	public partial class LiveSupportMessage : RevisionRow, IAmLive
+	public partial class LiveSupportMessage : VersionedContent<int>, IAmLive
 	{
 		/// <summary>
 		/// The chat this message is in.
