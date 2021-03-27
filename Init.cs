@@ -195,7 +195,7 @@ namespace Api.Permissions
 					}
 
 					// Load the permitted users list:
-					content.PermittedUsers = await permits.List(context, new Filter<PermittedContent>().Equals("ContentId", content.GetId()).And().Equals("ContentTypeId", contentTypeId));
+					content.PermittedUsers = await permits.List(context, new Filter<PermittedContent>().Equals("ContentId", content.GetId()).And().Equals("ContentTypeId", contentTypeId), DataOptions.IgnorePermissions);
 
 				}
 
@@ -221,7 +221,7 @@ namespace Api.Permissions
 						}
 
 						// Load the permitted users list. These are cached so we're not hitting the database here.
-						content.PermittedUsers = await permits.List(context, new Filter<PermittedContent>().Equals("ContentId", content.GetId()).And().Equals("ContentTypeId", contentTypeId));
+						content.PermittedUsers = await permits.List(context, new Filter<PermittedContent>().Equals("ContentId", content.GetId()).And().Equals("ContentTypeId", contentTypeId), DataOptions.IgnorePermissions);
 
 					}
 				}
