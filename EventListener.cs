@@ -23,7 +23,7 @@ namespace Api.LoginOnRegister
 		/// </summary>
 		public EventListener()
 		{
-            Events.User.Created.AddEventListener(async (Context context, User user, HttpResponse response) => {
+            Events.User.EndpointEndCreate.AddEventListener(async (Context context, User user, HttpResponse response) => {
 
 				if (user == null)
 				{
