@@ -51,8 +51,8 @@ namespace Api.Metrics
 			var ctx = new Context();
 
 			// Get the list of all metrics and sources:
-			var metrics = await List(ctx, null);
-			var metricSources = await _sources.List(ctx, null);
+			var metrics = await List(ctx, null, DataOptions.IgnorePermissions);
+			var metricSources = await _sources.List(ctx, null, DataOptions.IgnorePermissions);
 
 			// Map each source to the metrics they originate from.
 			// Whilst they'll probably be rare, we want to avoid connecting sources that aren't actually in metrics.
@@ -142,7 +142,7 @@ namespace Api.Metrics
 					int measurementId = (int)(unixtime / (blockSizeInMinutes * 60)) | (liveSource.Source.Id << 21);
 
 					// Let's check to see if it exists.
-					var measurement = await _measurements.Get(context, measurementId);
+					var measurement = await _measurements.Get(context, measurementId, DataOptions.IgnorePermissions);
 
 					if (measurement == null)
 					{
@@ -157,7 +157,7 @@ namespace Api.Metrics
 					else
 					{
 						measurement.Count += count;
-						await _measurements.Update(context, measurement);
+						await _measurements.Update(context, measurement, DataOptions.IgnorePermissions);
 					}
 
 				}
