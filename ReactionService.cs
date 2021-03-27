@@ -44,17 +44,17 @@ namespace Api.Reactions
 					return null;
                 }
 
-				reaction.ReactionType = await _reactionTypes.Get(context, reaction.ReactionTypeId);
+				reaction.ReactionType = await _reactionTypes.Get(context, reaction.ReactionTypeId, DataOptions.IgnorePermissions);
 
 				// Now, list all reactions that have the same contentTypeId, contentId and UserId
-				var reactions = await List(context, new Filter<Reaction>().Equals("UserId", context.UserId).And().Equals("ContentTypeId", reaction.ContentTypeId).And().Equals("ContentId", reaction.ContentId));
+				var reactions = await List(context, new Filter<Reaction>().Equals("UserId", context.UserId).And().Equals("ContentTypeId", reaction.ContentTypeId).And().Equals("ContentId", reaction.ContentId), DataOptions.IgnorePermissions);
 
 				// Let's now loop over each reaction
 				foreach(var react in reactions)
                 {
 					if(react.ReactionType != null && react.ReactionType.GroupId == reaction.ReactionType.GroupId)
                     {
-						await Delete(context, react);
+						await Delete(context, react, DataOptions.IgnorePermissions);
                     }
                 }
 
@@ -68,7 +68,7 @@ namespace Api.Reactions
 				{
 					return null;
 				}
-				reaction.ReactionType = await _reactionTypes.Get(context, reaction.ReactionTypeId);
+				reaction.ReactionType = await _reactionTypes.Get(context, reaction.ReactionTypeId, DataOptions.IgnorePermissions);
 				return reaction;
 			});
 
@@ -103,7 +103,7 @@ namespace Api.Reactions
 				// Get now:
 				var reactionTypeFilter = new Filter<ReactionType>();
 				reactionTypeFilter.EqualsSet("Id", reactionTypeIds);
-				var reactionTypeData = await _reactionTypes.List(context, reactionTypeFilter);
+				var reactionTypeData = await _reactionTypes.List(context, reactionTypeFilter, DataOptions.IgnorePermissions);
 				// Add the reactionType info to the lookup:
 				foreach (var reactionType in reactionTypeData)
 				{
