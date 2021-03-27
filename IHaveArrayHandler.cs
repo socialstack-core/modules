@@ -167,7 +167,7 @@ namespace Api.Startup {
 					// Use a higher speed prepared statement:
 					OnSetResult(content as T, new List<U>(1)
 					{
-						await contentService.Get(context, mappings[0].TargetContentId)
+						await contentService.Get(context, mappings[0].TargetContentId, DataOptions.IgnorePermissions)
 					});
 				}
 				else
@@ -177,7 +177,7 @@ namespace Api.Startup {
 						var result = new List<U>();
 						
 						foreach(var mapping in mappings){
-							result.Add(await contentService.Get(context, mapping.TargetContentId));
+							result.Add(await contentService.Get(context, mapping.TargetContentId, DataOptions.IgnorePermissions));
 						}
 						
 						OnSetResult(content as T, result);
@@ -185,7 +185,7 @@ namespace Api.Startup {
 						// It has multiple tags. Use a filtered list here.
 						var filter = new Filter<U>();
 						filter.EqualsSet("Id", mappings.Select(t => t.TargetContentId));
-						OnSetResult(content as T, await contentService.List(context, filter));
+						OnSetResult(content as T, await contentService.List(context, filter, DataOptions.IgnorePermissions));
 					}
 				}
 
@@ -256,7 +256,7 @@ namespace Api.Startup {
 							foreach (var existingEntry in existingEntries)
 							{
 								// Delete this row:
-								await mappingService.Delete(ctx, existingEntry.Id);
+								await mappingService.Delete(ctx, existingEntry.Id, DataOptions.IgnorePermissions);
 							}
 						}
 						else
@@ -306,7 +306,7 @@ namespace Api.Startup {
 								if (!newSet.ContainsKey(existingEntry.TargetContentId))
 								{
 									// Delete this row:
-									await mappingService.Delete(ctx, existingEntry.Id);
+									await mappingService.Delete(ctx, existingEntry.Id, DataOptions.IgnorePermissions);
 								}
 							}
 						}
@@ -323,7 +323,7 @@ namespace Api.Startup {
 						}
 
 						// Get the set:
-						var contentSet = await contentService.List(ctx, new Filter<U>().EqualsSet("Id", ids));
+						var contentSet = await contentService.List(ctx, new Filter<U>().EqualsSet("Id", ids), DataOptions.IgnorePermissions);
 
 						if (typeof(U) == typeof(User))
 						{
@@ -399,7 +399,7 @@ namespace Api.Startup {
 				}
 
 				// Get all the mappings for these entities:
-				var allMappings = await mappingService.List(context, filter);
+				var allMappings = await mappingService.List(context, filter, DataOptions.IgnorePermissions);
 
 				// Build fast lookup:
 				var targetContentLookup = new Dictionary<int, U>();
@@ -424,7 +424,7 @@ namespace Api.Startup {
 				var contentFilter = new Filter<U>();
 				contentFilter.EqualsSet("Id", targetContentLookup.Keys);
 
-				var targetContents = await contentService.List(context, contentFilter);
+				var targetContents = await contentService.List(context, contentFilter, DataOptions.IgnorePermissions);
 
 				foreach (var targetContent in targetContents)
 				{
@@ -492,7 +492,7 @@ namespace Api.Startup {
 					var requiredList = await mappingService.List(context, new Filter<M>()
 						.Equals("RevisionId", 0)
 						.And().Equals("ContentTypeId", contentTypeId)
-						.And().EqualsSet(MapperFieldName, idSet.Where(token => token.Type == JTokenType.Integer).Select(token => token.Value<int>())));
+						.And().EqualsSet(MapperFieldName, idSet.Where(token => token.Type == JTokenType.Integer).Select(token => token.Value<int>())), DataOptions.IgnorePermissions);
 
 					// Build unique set of content IDs:
 					Dictionary<int, bool> uniqueIds = new Dictionary<int, bool>();
@@ -570,7 +570,7 @@ namespace Api.Startup {
 						var requiredList = await mappingService.List(context, new Filter<M>()
 							.Equals("RevisionId", 0)
 							.And().Equals("ContentTypeId", contentTypeId)
-							.And().EqualsSet(MapperFieldName, idSet.Select(token => token.Value<int>())));
+							.And().EqualsSet(MapperFieldName, idSet.Select(token => token.Value<int>())), DataOptions.IgnorePermissions);
 
 						// Build unique set of content IDs:
 						Dictionary<int, bool> uniqueIds = new Dictionary<int, bool>();
@@ -710,7 +710,7 @@ namespace Api.Startup {
 				}
 
 				// Get all the mappings for these entities:
-				var allMappings = await mappingService.List(context, filter);
+				var allMappings = await mappingService.List(context, filter, DataOptions.IgnorePermissions);
 
 				// For each mapping..
 				foreach (var mapping in allMappings)
