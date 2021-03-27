@@ -10,7 +10,7 @@ namespace Api.UserAgendaEntries
 	/// <summary>
 	/// An UserAgendaEntry
 	/// </summary>
-	public partial class UserAgendaEntry : RevisionRow
+	public partial class UserAgendaEntry : VersionedContent<int>
 	{
 		/// <summary>
 		/// The type of content that this agenda entry is for. Video, meeting etc.
