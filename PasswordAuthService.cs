@@ -99,12 +99,12 @@ namespace Api.PasswordAuth
 					{
 						user.FailedLoginTimeUtc = DateTime.UtcNow;
 						user.LoginAttempts = 1;
-						await _users.Update(context, user);
+						await _users.Update(context, user, DataOptions.IgnorePermissions);
 					}
 					else
 					{
 						user.LoginAttempts++;
-						await _users.Update(context, user);
+						await _users.Update(context, user, DataOptions.IgnorePermissions);
 					}
 					
 					// Nope!
