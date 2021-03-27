@@ -110,7 +110,7 @@ namespace Api.Translate
 		{
 			if (_codeMap == null)
 			{
-				var all = await List(new Context(), new Filter<Locale>());
+				var all = await List(new Context(), new Filter<Locale>(), DataOptions.IgnorePermissions);
 
 				var map = new Dictionary<string, int>();
 
