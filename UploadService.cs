@@ -67,7 +67,7 @@ namespace Api.Uploader
 				return null;
 			}
 
-			return await Get(context, id);
+			return await Get(context, id, DataOptions.IgnorePermissions);
 		}
 
 		/// <summary>
