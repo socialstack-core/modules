@@ -204,7 +204,7 @@ namespace Api.Pages
 		private async Task LoadCaches(Context context)
 		{
 			// Get all pages for this locale:
-			var allPages = await List(context, null);
+			var allPages = await List(context, null, DataOptions.IgnorePermissions);
 
 			if (_urlGenerationCache == null)
 			{
@@ -404,7 +404,7 @@ namespace Api.Pages
 			foreach (var page in pages)
             {
 				// If we have any pages from the previous hit, time to delete them!
-				await Delete(context, page.Id);
+				await Delete(context, page.Id, DataOptions.IgnorePermissions);
             }
         }
 
