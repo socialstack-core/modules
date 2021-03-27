@@ -439,7 +439,7 @@ namespace Api.Users
 		public async Task<List<UserProfile>> ListProfiles(Context context, Filter<User> filter)
 		{
 			// Get the user list:
-			var list = await List(context, filter);
+			var list = await List(context, filter, DataOptions.IgnorePermissions);
 
 			if (list == null)
 			{
