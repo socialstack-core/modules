@@ -38,7 +38,6 @@ namespace Api.Huddles
             // Only possible if you can load a meeting, so we use the load perm here:
             var context = Request.GetContext();
             var result = await _service.Get(context, id);
-            result = await _service.EventGroup.Load.Dispatch(context, result, Response);
 
             if (result == null)
             {
@@ -98,7 +97,6 @@ namespace Api.Huddles
 			// Only possible if you can load a meeting, so we use the load perm here:
             var context = Request.GetContext();
             var result = await _service.Get(context, id);
-            result = await _service.EventGroup.Load.Dispatch(context, result, Response);
 
             if (result == null)
             {
