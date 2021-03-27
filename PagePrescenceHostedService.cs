@@ -1,5 +1,6 @@
 using System;
 using System.Threading;
+using System.Threading.Tasks;
 using Api.Contexts;
 using Api.Permissions;
 using Api.Startup;
@@ -19,11 +20,14 @@ namespace Api.Presence
         /// <summary>
         /// Entry point for the hosted service
         /// </summary>
-        /// <param name="stoppingToken"></param>
         /// <returns></returns>
         public PagePrescenceHostedService()
         {
-            _timer = new Timer(CleanUpStaleRecords, null, TimeSpan.Zero, TimeSpan.FromMinutes(5));
+            Api.Eventing.Events.Service.AfterStart.AddEventListener((Context ctx, object svc) =>
+            {
+                _timer = new Timer(CleanUpStaleRecords, null, TimeSpan.Zero, TimeSpan.FromMinutes(5));
+                return new ValueTask<object>(svc);
+            });
         }
 
         /// <summary>
