@@ -10,7 +10,7 @@ namespace Api.PubQuizzes
 	/// <summary>
 	/// A PubQuizAnswer
 	/// </summary>
-	public partial class PubQuizAnswer : RevisionRow
+	public partial class PubQuizAnswer : VersionedContent<int>
 	{
 		/// <summary>
 		/// The answer (a canvas so it can e.g. include images)

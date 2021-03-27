@@ -11,7 +11,7 @@ namespace Api.PubQuizzes
 	/// <summary>
 	/// A PubQuizSubmission
 	/// </summary>
-	public partial class PubQuizSubmission : RevisionRow, IAmLive
+	public partial class PubQuizSubmission : VersionedContent<int>, IAmLive
 	{
 		// Example fields. None are required:
 		/// <summary>

@@ -10,7 +10,7 @@ namespace Api.PubQuizzes
 	/// <summary>
 	/// A PubQuiz
 	/// </summary>
-	public partial class PubQuiz : RevisionRow
+	public partial class PubQuiz : VersionedContent<int>
 	{
         /// <summary>
         /// The name of the PubQuiz
