@@ -10,7 +10,7 @@ namespace Api.ActiveLogins
 	/// <summary>
 	/// An ActiveLogin historical record.
 	/// </summary>
-	public partial class ActiveLoginHistory : DatabaseRow
+	public partial class ActiveLoginHistory : Content<int>
 	{
 		/// <summary>
 		/// The user logging in/ out.

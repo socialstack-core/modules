@@ -139,7 +139,7 @@ namespace Api.ActiveLogins
 				// Must happen after services start otherwise the page service isn't necessarily available yet.
 				// Notably this happens immediately after services start in the first group
 				// (that's before any e.g. system pages are created).
-				Events.ServicesAfterStart.AddEventListener(async (Context ctx, object src) =>
+				Events.Service.AfterStart.AddEventListener(async (Context ctx, object src) =>
 				{
 					await Start();
 					return src;
@@ -177,7 +177,7 @@ namespace Api.ActiveLogins
 			var ctx = new Context();
 
 			// Get the list of active logins for the server:
-			var onlineEntries = await List(ctx, new Filter<ActiveLogin>().Equals("Server", id));
+			var onlineEntries = await List(ctx, new Filter<ActiveLogin>().Equals("Server", id), DataOptions.IgnorePermissions);
 			
 			// Delete from DB now:
 			var delQuery = Query.Delete<ActiveLogin>();
@@ -244,17 +244,17 @@ namespace Api.ActiveLogins
 						}
 						// This user was online on this server, but now isn't.
 						// Update to mark as offline:
-						var user = await _users.Get(ctx, kvp.Key);
+						var user = await _users.Get(ctx, kvp.Key, DataOptions.IgnorePermissions);
 						if(user != null && user.OnlineState.HasValue && user.OnlineState != 0){
 							user.OnlineState = 0;
-							await _users.Update(ctx, user);
+							await _users.Update(ctx, user, DataOptions.IgnorePermissions);
 							
 							// Insert to historical record. This user came online across the cluster.
 							await _historicalRecord.Create(ctx, new ActiveLoginHistory(){
 								UserId = user.Id,
 								IsLogin = false,
 								CreatedUtc = now
-							});
+							}, DataOptions.IgnorePermissions);
 						}
 					}
 				}

@@ -10,7 +10,7 @@ namespace Api.ActiveLogins
 	/// <summary>
 	/// An ActiveLogin
 	/// </summary>
-	public partial class ActiveLogin : RevisionRow
+	public partial class ActiveLogin : VersionedContent<int>
 	{
 		/// <summary>
 		/// ContentSync server ID.
