@@ -11,7 +11,7 @@ namespace Api.Notifications
 	/// <summary>
 	/// A Notification
 	/// </summary>
-	public partial class Notification : UserCreatedRow, IAmLive
+	public partial class Notification : UserCreatedContent<int>, IAmLive
 	{
         /// <summary>
         /// The title text of the notification
