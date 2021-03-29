@@ -132,28 +132,28 @@ html.admin {
 
 // Dark mode
 
-/*
-html.admin {
+@media(prefers-color-scheme: dark){
+	html.admin {
 
-	.admin-header{
-		background: black;
-	}
-	body {
-		background: #222;
-	}
-	
-	.admin-heading {
-		background: none;
-		-webkit-background-clip: initial;
-		-webkit-text-fill-color: initial;
-		color: white !important;
-	}
+		.admin-header{
+			background: black;
+		}
+		body {
+			background: #222;
+		}
+		
+		.admin-heading {
+			background: none;
+			-webkit-background-clip: initial;
+			-webkit-text-fill-color: initial;
+			color: white !important;
+		}
 
-	.component-tile {
-		background: #111;
-		border-color: #222;
-		color: white;
-	}
+		.component-tile {
+			background: #111;
+			border-color: #222;
+			color: white;
+		}
 
+	}
 }
-*/
