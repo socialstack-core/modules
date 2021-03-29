@@ -22,10 +22,6 @@ namespace Api.Pages
 
 	public partial class HtmlService : AutoService
     {
-		/// <summary>
-		/// Set true for dark mode error messages.
-		/// </summary>
-		public bool DarkMode;
 		private readonly PageService _pages;
 		private readonly CanvasRendererService _canvasRendererService;
 		private readonly HtmlServiceConfig _config;
@@ -41,7 +37,6 @@ namespace Api.Pages
 			_canvasRendererService = canvasRendererService;
 
 			_config = GetConfig<HtmlServiceConfig>();
-			DarkMode = _config.DarkMode;
 
 			var pathToUIDir = AppSettings.Configuration["UI"];
 
@@ -285,18 +280,13 @@ namespace Api.Pages
 				.callout-danger {border-left-color: #d9534f;}.callout-danger h4 {color: #d9534f;}
 				.callout-bdc {border-left-color: #29527a;}
 				.callout-bdc h4 {color: #29527a;}
-				.alert-danger{margin-top: 20px;}"
-			)));
-
-			if (DarkMode)
-			{
-				doc.Head.AppendChild(new DocumentNode("style").AppendChild(new TextNode(
-					@".callout{border-color: #333}
+				.alert-danger{margin-top: 20px;}
+				@media(prefers-color-scheme: dark){
+					.callout{border-color: #333}
 					body{color: white;background:#222}
-					"
-				)));
-			}
-
+				}"
+			)));
+			
 			var body = doc.Body;
 			var container = new DocumentNode("div").With("class", "container");
 			body.AppendChild(container);
