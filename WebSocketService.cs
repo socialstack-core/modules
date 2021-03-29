@@ -310,7 +310,17 @@ namespace Api.WebSockets
 
 				lock (ListenersByType)
 				{
-					// var cap =  Capabilities.All[type.Name.ToLower() + "_list"];
+					// var cap =  Capabilities.All[type.Name.ToLower() + "_list"]; 
+                    // Does this type have a list capability.
+					var all = Services.GetByContentType(type).GetEventGroup().AllWithCapabilities;
+					
+					foreach (var evtHandler in all)
+                    {
+						if(evtHandler.Capability.Feature == "list")
+                        {
+							cap = evtHandler.Capability;
+						}
+                    }
 
 					if (cap == null)
 					{
