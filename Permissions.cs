@@ -25,8 +25,8 @@ namespace Api.Presence
 				Roles.Public.Revoke("presenceRecord_load", "presenceRecord_list", "pagePresenceRecord_load", "pagePresenceRecord_list");
 				Roles.Member.Revoke("presenceRecord_load", "presenceRecord_list", "pagePresenceRecord_load", "pagePresenceRecord_list");
 
-				Roles.Guest.Grant("pagePresenceRecord_create");
-				Roles.Member.Grant("pagePresenceRecord_create");
+				Roles.Guest.Grant("pagePresenceRecord_create", "presenceRecord_create");
+				Roles.Member.Grant("pagePresenceRecord_create", "presenceRecord_create");
 
 				return new ValueTask<object>(source);
 			}, 20);
