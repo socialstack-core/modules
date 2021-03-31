@@ -46,7 +46,7 @@ namespace Api.LiveSupportChats
 			}
 			
             // We need to get the chats within the given time range as provided by the filter.
-            var chats = await _service.List(context, new Filter<LiveSupportChat>(filters));
+            var chats = await _service.List(context, new Filter<LiveSupportChat>(filters), DataOptions.IgnorePermissions);
 
             if (chats.Count <= 0)
             {
@@ -72,7 +72,7 @@ namespace Api.LiveSupportChats
                 foreach (var chat in chats)
                 {
                     // Start by grabbing all messages from the chat.
-                    var messages = await _liveChatMessages.List(context, new Filter<LiveSupportMessage>().Equals("LiveSupportChatId", chat.Id));
+                    var messages = await _liveChatMessages.List(context, new Filter<LiveSupportMessage>().Equals("LiveSupportChatId", chat.Id), DataOptions.IgnorePermissions);
 
                     if (messages.Count > 0)
                     {

@@ -27,7 +27,7 @@ namespace Api.LiveSupportChats
 				}
 				
 				// Get the chat:
-				var chat = await chats.Get(context, message.LiveSupportChatId);
+				var chat = await chats.Get(context, message.LiveSupportChatId, DataOptions.IgnorePermissions);
 				
 				if(chat == null)
 				{

@@ -50,7 +50,7 @@ namespace Api.LiveSupportChats
 						ChatCreatorUserId = liveChat.UserId,
 						FromSupport = true
 						
-					});
+					}, DataOptions.IgnorePermissions);
 				}
 				
                 return liveChat;
