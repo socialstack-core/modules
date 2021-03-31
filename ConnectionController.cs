@@ -31,7 +31,7 @@ namespace Api.Connections
             }
 
             // Grab the connection
-            var connection = await _service.Get(context, id);
+            var connection = await _service.Get(context, id, DataOptions.IgnorePermissions);
 
             if (connection == null)
             {

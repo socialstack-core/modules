@@ -70,7 +70,7 @@ namespace Api.Connections
 				
 				var filter = new Filter<Connection>().Equals("UserId", context.UserId).And().Equals("ConnectedToId", connection.ConnectedToId);
 
-				var results = await List(context, filter);
+				var results = await List(context, filter, DataOptions.IgnorePermissions);
 				
 				if(results.Count > 0 )
                 {
