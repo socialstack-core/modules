@@ -41,7 +41,7 @@ namespace Api.SocketServerLibrary {
 		/// </summary>
 		public bool RequiresUserId;
 
-		private object PoolLock = new object();
+		protected object PoolLock = new object();
 
 		/// <summary>
 		/// Returns a list of the fields in the order they'll be written.
@@ -135,6 +135,11 @@ namespace Api.SocketServerLibrary {
 		}
 
 		/// <summary>
+		/// First pooled object
+		/// </summary>
+		protected IMessage First;
+
+		/// <summary>
 		/// Releases the given message object into this opcode pool.
 		/// </summary>
 		/// <param name="message"></param>
@@ -150,19 +155,8 @@ namespace Api.SocketServerLibrary {
 			// Pool the context object now:
 			lock (PoolLock)
 			{
-
-				/*
-				if (First == null)
-				{
-					First = this;
-					message.After = null;
-				}
-				else
-				{
-					message.After = First;
-					First = message;
-				}
-				*/
+				message.After = First;
+				First = message;
 			}
 		}
 
@@ -192,7 +186,7 @@ namespace Api.SocketServerLibrary {
 		}
 
 		/// <summary>
-		/// Kill closes the source and recycles the context in one easy call.
+		/// Kill closes the source and recycles the context msg in one easy call.
 		/// </summary>
 		public void Kill(IMessage message)
 		{
@@ -211,19 +205,8 @@ namespace Api.SocketServerLibrary {
 				
 				lock (PoolLock)
 				{
-
-					/*
-					if (First == null)
-					{
-						First = this;
-						message.After = null;
-					}
-					else
-					{
-						message.After = First;
-						First = message;
-					}
-					*/
+					message.After = First;
+					First = message;
 				}
 			}
 
@@ -251,18 +234,8 @@ namespace Api.SocketServerLibrary {
 				// Pool the object now:
 				lock (PoolLock)
 				{
-					/*
-					if (First == null)
-					{
-						First = this;
-						message.After = null;
-					}
-					else
-					{
-						message.After = First;
-						First = message;
-					}
-					*/
+					message.After = First;
+					First = message;
 				}
 			}
 			
@@ -563,8 +536,22 @@ namespace Api.SocketServerLibrary {
 		/// <returns></returns>
 		public override IMessage GetAMessageInstance()
 		{
-			// Pool these.
-			var msg = new T();
+			IMessage msg;
+
+			lock (PoolLock)
+			{
+				if (First == null)
+				{
+					msg = new T();
+				}
+				else
+				{
+					msg = First;
+					First = msg.After;
+					msg.Pooled = false;
+				}
+			}
+
 			msg.OpCode = this;
 			return msg;
 		}

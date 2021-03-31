@@ -103,7 +103,7 @@ namespace Api.SocketServerLibrary
 		}
 
 		/// <summary>When using writers you must use a start method.</summary>
-		public void StartMySQL()
+		public void StartWithLength()
 		{
 			BaseLength = 0;
 			BlockCount = 1;

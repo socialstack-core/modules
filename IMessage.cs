@@ -16,6 +16,11 @@ namespace Api.SocketServerLibrary{
 		bool Pooled { get; set; }
 		
 		/// <summary>
+		/// Pooled object after this one.
+		/// </summary>
+		IMessage After { get; set; }
+
+		/// <summary>
 		/// The ID of this request.
 		/// </summary>
 		int RequestId { get; set; }
@@ -46,6 +51,11 @@ namespace Api.SocketServerLibrary{
 		/// True if this message object is currently pooled.
 		/// </summary>
 		public bool Pooled { get; set; }
+
+		/// <summary>
+		/// Pooled object after this one.
+		/// </summary>
+		public IMessage After { get; set; }
 
 		/// <summary>
 		/// The ID of this request.
