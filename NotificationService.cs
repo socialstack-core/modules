@@ -83,7 +83,7 @@ namespace Api.Notifications
 			}
 
 			// Otherwise, create it:
-			return await Create(context, e);
+			return await Create(context, e, DataOptions.IgnorePermissions);
 		}
 
 	}
