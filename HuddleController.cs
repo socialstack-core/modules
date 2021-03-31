@@ -59,7 +59,7 @@ namespace Api.Huddles
                 }
 
                 // it is a pubquiz, let's get its questions.
-                var questions = await pubQuizQuestionService.List(context, new Filter<PubQuizQuestion>().Equals("PubQuizId", activityContentId));
+                var questions = await pubQuizQuestionService.List(context, new Filter<PubQuizQuestion>().Equals("PubQuizId", activityContentId), DataOptions.IgnorePermissions);
                 durationTicks = (1000 * questions.Count * questionDuration);
             }
 
@@ -82,7 +82,7 @@ namespace Api.Huddles
 				}
 				
 				var activityInstance = new ActivityInstance();
-				activityInstance = await activityInstanceService.Create(context, activityInstance);
+				activityInstance = await activityInstanceService.Create(context, activityInstance, DataOptions.IgnorePermissions);
 				result.ActivityInstanceId = activityInstance.Id;
 				
                 await _service.Update(context, result);
