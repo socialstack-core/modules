@@ -48,7 +48,7 @@ namespace Api.FFmpeg
 				return null;
 			}
 
-			var upload = await _uploadService.Get(ctx, id);
+			var upload = await _uploadService.Get(ctx, id, DataOptions.IgnorePermissions);
 
 			if (upload == null)
 			{
