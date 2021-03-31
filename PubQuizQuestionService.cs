@@ -29,7 +29,7 @@ namespace Api.PubQuizzes
 					return null;
 				}
 
-				var question = await Get(context, answer.PubQuizQuestionId);
+				var question = await Get(context, answer.PubQuizQuestionId, DataOptions.IgnorePermissions);
 
 				if (question == null)
 				{

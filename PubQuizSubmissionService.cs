@@ -51,7 +51,7 @@ namespace Api.PubQuizzes
 					return null;
                 }
 
-				var answer = await answers.Get(context, submission.PubQuizAnswerId);
+				var answer = await answers.Get(context, submission.PubQuizAnswerId, DataOptions.IgnorePermissions);
 
 				if (answer == null)
 				{

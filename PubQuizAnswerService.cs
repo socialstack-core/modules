@@ -31,7 +31,7 @@ namespace Api.PubQuizzes
 				}
 				
 				// Load answers:
-				question.Answers = await List(context, new Filter<PubQuizAnswer>().Equals("PubQuizQuestionId", question.Id));
+				question.Answers = await List(context, new Filter<PubQuizAnswer>().Equals("PubQuizQuestionId", question.Id), DataOptions.IgnorePermissions);
 				
 				return question;
 			});
@@ -48,7 +48,7 @@ namespace Api.PubQuizzes
 					return questions;
 				}
 				
-				var allAnswers = await List(context, new Filter<PubQuizAnswer>().EqualsSet("PubQuizQuestionId", questions.Select(q => q.Id)));
+				var allAnswers = await List(context, new Filter<PubQuizAnswer>().EqualsSet("PubQuizQuestionId", questions.Select(q => q.Id)), DataOptions.IgnorePermissions);
 				
 				// question lookup:
 				var lookup = new Dictionary<int, PubQuizQuestion>();
