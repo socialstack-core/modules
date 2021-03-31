@@ -331,7 +331,7 @@ namespace Api.Permissions
 
 							permitList.Add(permitToCreate);
 							permitToCreate.Permitted = permittedContent;
-							await permits.Create(context, permitToCreate);
+							await permits.Create(context, permitToCreate, DataOptions.IgnorePermissions);
 
 						}
 
@@ -352,7 +352,7 @@ namespace Api.Permissions
 								PermittedContentTypeId = userContentTypeId
 							};
 
-							await permits.Create(context, permitToCreate);
+							await permits.Create(context, permitToCreate, DataOptions.IgnorePermissions);
 							permitList.Add(permitToCreate);
 						}
 
