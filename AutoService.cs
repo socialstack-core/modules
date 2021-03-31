@@ -840,7 +840,7 @@ public partial class AutoService<T, ID> : AutoService
 				primaryEntity = await Get(new Context() {
 					LocaleId = 1,
 					UserId = context.UserId
-				}, id, DataOptions.IgnorePermissions);
+				}, id);
 			}
 			else
 			{

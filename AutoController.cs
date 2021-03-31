@@ -70,7 +70,7 @@ public partial class AutoController<T,ID> : ControllerBase
 
 		id = await _service.EventGroup.EndpointStartLoad.Dispatch(context, id, Response);
 		
-		var result = await _service.Get(context, id, DataOptions.IgnorePermissions);
+		var result = await _service.Get(context, id);
 		result = await _service.EventGroup.EndpointEndLoad.Dispatch(context, result, Response);
 		return result;
     }
@@ -83,7 +83,7 @@ public partial class AutoController<T,ID> : ControllerBase
     public virtual async ValueTask<object> Delete([FromRoute] ID id)
 	{
 		var context = Request.GetContext();
-		var result = await _service.Get(context, id, DataOptions.IgnorePermissions);
+		var result = await _service.Get(context, id);
 		result = await _service.EventGroup.EndpointStartDelete.Dispatch(context, result, Response);
 
 		if (result == null)
@@ -91,7 +91,7 @@ public partial class AutoController<T,ID> : ControllerBase
 			return null;
 		}
 
-		if (result == null || !await _service.Delete(context, result, DataOptions.IgnorePermissions))
+		if (result == null || !await _service.Delete(context, result))
 		{
 			// The handlers have blocked this one from happening, or it failed
 			return null;
@@ -137,12 +137,12 @@ public partial class AutoController<T,ID> : ControllerBase
 		if (filter.PageSize != 0 && filters != null && filters["includeTotal"] != null)
 		{
 			// Get the total number of non-paginated results as well:
-			response = await _service.ListWithTotal(context, filter, DataOptions.IgnorePermissions);
+			response = await _service.ListWithTotal(context, filter);
 		}
 		else
 		{
 			// Not paginated or requestor doesn't care about the total.
-			var results = await _service.List(context, filter, DataOptions.IgnorePermissions);
+			var results = await _service.List(context, filter);
 
 			response = new ListWithTotal<T>()
 			{
@@ -310,7 +310,7 @@ public partial class AutoController<T,ID> : ControllerBase
 	{
 		var context = Request.GetContext();
 		
-		var entity = await _service.Get(context, id, DataOptions.IgnorePermissions);
+		var entity = await _service.Get(context, id);
 
 		if (entity == null)
 		{
@@ -348,7 +348,7 @@ public partial class AutoController<T,ID> : ControllerBase
 			return null;
 		}
 
-		entity = await _service.Update(context, entity, DataOptions.IgnorePermissions);
+		entity = await _service.Update(context, entity);
 
 		if (entity == null)
 		{
