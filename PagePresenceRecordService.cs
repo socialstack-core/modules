@@ -89,7 +89,7 @@ namespace Api.Presence
 			if (client.Record != null)
 			{
 				// Must delete it. This ensures removals occur on the client end.
-				await Delete(client.Context, client.Record);
+				await Delete(client.Context, client.Record, DataOptions.IgnorePermissions);
 			}
 			else
 			{
@@ -118,7 +118,7 @@ namespace Api.Presence
 				EditedUtc = now
 			};
 			
-			await Create(client.Context, client.Record);
+			await Create(client.Context, client.Record, DataOptions.IgnorePermissions);
 			
 			/*
 				// MUST
