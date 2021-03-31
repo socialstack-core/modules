@@ -37,7 +37,7 @@ export default class Edit extends React.Component{
                     }
                     onValues = {
                         values => {
-                            values.bodyJson = '{"content": "'+ values.bodyJson +'" }'
+                            values.bodyJson = JSON.stringify({ content: values.bodyJson });
 
                             this.setState({success: false, failure: false, submitting: true})
                             

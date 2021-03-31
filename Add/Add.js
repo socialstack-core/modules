@@ -68,7 +68,7 @@ export default class Add extends React.Component{
 					}
 					onValues = { values => {
 
-						values.bodyJson = '{"content": "'+ values.bodyJson +'" }'
+						values.bodyJson = JSON.stringify({content: values.bodyJson});
 
 						return {
 							...values,
