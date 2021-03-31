@@ -222,7 +222,7 @@ namespace Api.Huddles
 			var service = (_service as HuddleService);
 
 			// Get the huddle:
-			var huddles = await service.List(context, new Filter<Huddle>().Equals("Slug", slug), DataOptions.IgnorePermissions);
+			var huddles = await service.List(context, new Filter<Huddle>().Equals("Slug", slug));
 
 			if (huddles.Count < 1)
 			{
@@ -264,7 +264,7 @@ namespace Api.Huddles
 			var service = (_service as HuddleService);
 
 			// Get the huddle:
-			var huddles = await service.List(context, new Filter<Huddle>().Equals("Slug", slug), DataOptions.IgnorePermissions);
+			var huddles = await service.List(context, new Filter<Huddle>().Equals("Slug", slug));
 
 			if (huddles.Count < 1)
             {
@@ -332,7 +332,7 @@ namespace Api.Huddles
 			var service = (_service as HuddleService);
 			
 			// Get the huddle:
-			var huddle = await service.Get(context, id, DataOptions.IgnorePermissions);
+			var huddle = await service.Get(context, id);
 			
 			if(huddle == null){
 				// Doesn't exist or not permitted (the permission system internally checks huddle type and invites).

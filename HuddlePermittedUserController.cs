@@ -21,7 +21,7 @@ namespace Api.Huddles
             var context = Request.GetContext();
             
             // Grab the request
-            var invite = await _service.Get(context, id, DataOptions.IgnorePermissions);
+            var invite = await _service.Get(context, id);
 			
 			if(invite == null || context == null || context.UserId == 0)
 			{
@@ -59,7 +59,7 @@ namespace Api.Huddles
             var context = Request.GetContext();
 
             // Grab the request
-            var invite = await _service.Get(context, id, DataOptions.IgnorePermissions);
+            var invite = await _service.Get(context, id);
 
             if (invite == null)
             {
