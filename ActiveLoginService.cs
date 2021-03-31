@@ -74,14 +74,14 @@ namespace Api.ActiveLogins
 						CreatedUtc = now,
 						EditedUtc = now,
 						Server = serverId
-					});
+					}, DataOptions.IgnorePermissions);
 					
 					if(activeLogin != null){
 						userSockets.ActiveLoginId = activeLogin.Id;
 					}
 					
 					// Make sure user row is definitely online:
-					var user = await _users.Get(ctx, userId);
+					var user = await _users.Get(ctx, userId, DataOptions.IgnorePermissions);
 					
 					if(user != null && (!user.OnlineState.HasValue || user.OnlineState != 1)){
 						user.OnlineState = 1;
@@ -92,7 +92,7 @@ namespace Api.ActiveLogins
 							UserId = user.Id,
 							IsLogin = true,
 							CreatedUtc = now
-						});
+						}, DataOptions.IgnorePermissions);
 					}
 				}
 				else if (userSockets.First == null)
@@ -103,14 +103,14 @@ namespace Api.ActiveLogins
 					{
 						var id = userSockets.ActiveLoginId;
 						userSockets.ActiveLoginId = 0;
-						await Delete(ctx, id);
+						await Delete(ctx, id, DataOptions.IgnorePermissions);
 						
 						// Ask the DB if this user is online anywhere currently:
-						var onlineEntries = await List(ctx, new Filter<ActiveLogin>().Equals("UserId", userId));
+						var onlineEntries = await List(ctx, new Filter<ActiveLogin>().Equals("UserId", userId), DataOptions.IgnorePermissions);
 						
 						if(onlineEntries == null || onlineEntries.Count == 0)
 						{
-							var user = await _users.Get(ctx, userId);
+							var user = await _users.Get(ctx, userId, DataOptions.IgnorePermissions);
 							if(user != null && user.OnlineState.HasValue && user.OnlineState != 0){
 								user.OnlineState = 0;
 								await _users.Update(ctx, user);
@@ -120,7 +120,7 @@ namespace Api.ActiveLogins
 									UserId = user.Id,
 									IsLogin = false,
 									CreatedUtc = DateTime.UtcNow
-								});
+								}, DataOptions.IgnorePermissions);
 							}
 						}
 						
