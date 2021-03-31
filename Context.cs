@@ -99,7 +99,7 @@ namespace Api.Contexts
 			}
 
 			// Get the user now:
-			_locale = await _locales.Get(this, LocaleId <= 0 ? 1 : LocaleId);
+			_locale = await _locales.Get(this, LocaleId <= 0 ? 1 : LocaleId, DataOptions.IgnorePermissions);
 
 			if (_locale == null)
 			{
