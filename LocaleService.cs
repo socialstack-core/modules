@@ -42,7 +42,7 @@ namespace Api.Translate
 							Code = "en",
 							Name = "English",
 							Id = 1
-						});
+						}, DataOptions.IgnorePermissions);
 					}
 
 				}
