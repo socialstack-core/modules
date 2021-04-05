@@ -24,12 +24,36 @@ namespace Api.ContentSync
 	/// <summary>
 	/// Instanced automatically. Use injection to use this service, or Startup.Services.Get.
 	/// </summary>
-	public partial class ContentSyncService
+	[LoadPriority(3)]
+	public partial class ContentSyncService : AutoService
 	{
 		/// <summary>
-		/// This server's ID from the ContentSync config.
+		/// This server's ID.
 		/// </summary>
-		public int ServerId { get; set; }
+		public uint ServerId
+		{
+			get {
+				return Self.Id;
+			}
+		}
+
+		/// <summary>
+		/// Reverses the bits in the given number.
+		/// </summary>
+		/// <param name="x"></param>
+		/// <returns></returns>
+		private uint Reverse(uint x)
+		{
+			uint reversed = 0;
+
+			for (int i = 0; i < 32; i++)
+			{
+				// If the ith bit of x is toggled, toggle the ith bit from the right of reversed
+				reversed |= (x & ((uint)1 << i)) != 0 ? (uint)1 << (31 - i) : 0;
+			}
+
+			return reversed;
+		}
 
 		/// <summary>
 		/// Handshake opcode
@@ -42,20 +66,32 @@ namespace Api.ContentSync
 		public bool Verbose = true;
 		
 		static readonly char[] InvalidFileNameChars = Path.GetInvalidFileNameChars();
-		private ContentSyncConfig _configuration;
-		private DatabaseService _database;
+		private ContentSyncServiceConfig _configuration;
+		private ClusteredServerService _clusteredServerService;
+
 		/// <summary>
 		/// Private LAN sync server.
 		/// </summary>
 		private Server<ContentSyncServer> SyncServer;
+		
 		/// <summary>
 		/// Servers connected to this one.
 		/// </summary>
-		private Dictionary<int, ContentSyncServer> RemoteServers = new Dictionary<int, ContentSyncServer>();
+		private Dictionary<uint, ContentSyncServer> RemoteServers = new Dictionary<uint, ContentSyncServer>();
+
+		/// <summary>
+		/// The port number for contentSync to use.
+		/// </summary>
+		public int Port {
+			get {
+				return _configuration.Port;
+			}
+		}
+
 		/// <summary>
 		/// Instanced automatically. Use injection to use this service, or Startup.Services.Get.
 		/// </summary>
-		public ContentSyncService(DatabaseService database)
+		public ContentSyncService(DatabaseService database, ClusteredServerService clusteredServerService)
 		{
 			// The content sync service is used to keep content created by multiple instances in sync.
 			// (which can be a cluster of servers, or a group of developers)
@@ -63,60 +99,14 @@ namespace Api.ContentSync
 			// A user is identified by the computer hostname.
 			
 			_database = database;
+			_clusteredServerService = clusteredServerService;
 
 			// Load config:
-			var isActive = SetupConfig();
-
-			if (isActive)
-			{
-				// Must happen after services start otherwise the page service isn't necessarily available yet.
-				// Notably this happens immediately after services start in the first group
-				// (that's before any e.g. system pages are created).
-				Events.Service.AfterStart.AddEventListener(async (Context ctx, object src) =>
-				{
-					await Start();
-					return src;
-				}, 1);
-			}
-		}
-		
-		/// <summary>
-		/// True if the sync file is active.
-		/// </summary>
-		private bool SyncFileMode = false;
-
-		/// <summary>
-		/// The name of this ContentSync host
-		/// </summary>
-		private string HostName;
-
-		private bool SetupConfig()
-		{
-			var section = AppSettings.GetSection("ContentSync");
-			if (section == null)
-			{
-				_configuration = null;
-				return false;
-			}
-
-			_configuration = section.Get<ContentSyncConfig>();
-
-			if (_configuration == null || _configuration.Users == null || _configuration.Users.Count == 0)
-			{
-				Console.WriteLine("[WARN] Content sync is installed but not configured.");
-				return false;
-			}
-
+			_configuration = GetConfig<ContentSyncServiceConfig>();
+			
 			if (_configuration.SyncFileMode.HasValue)
 			{
 				SyncFileMode = _configuration.SyncFileMode.Value;
-			}
-			else
-			{
-				// Devs have sync file turned on whenever sync is:
-#if DEBUG
-				SyncFileMode = true;
-#endif
 			}
 
 			Verbose = _configuration.Verbose;
@@ -130,87 +120,29 @@ namespace Api.ContentSync
 			var name = System.Environment.MachineName.ToString();
 			HostName = name;
 
-			/*
-			 * We need the ServerId to be available sooner than this so a custom name is now obsolete.
-			 * 
-			var taskCompletionSource = new TaskCompletionSource<bool>();
-			try {
-				// Get the user:
-				var stackTools = new NodeProcess("socialstack sync whoami", true);
-				var errored = false;
-				string name = null;
+			Events.Service.AfterStart.AddEventListener(async (Context ctx, object s) => {
 
-				stackTools.Process.OutputDataReceived += new DataReceivedEventHandler((sender, e) =>
-				{
-					if (string.IsNullOrEmpty(e.Data))
-					{
-						return;
-					}
+				// Start:
+				await ApplyRemoteDataAndStart();
 
-					name = e.Data.Trim();
-				});
-
-				stackTools.Process.ErrorDataReceived += new DataReceivedEventHandler((sender, e) =>
-				{
-					if (string.IsNullOrEmpty(e.Data))
-					{
-						return;
-					}
-
-					errored = true;
-				});
-
-				stackTools.OnStateChange += (NodeProcessState state) =>
-				{
-
-					if (state == NodeProcessState.EXITING)
-					{
-						if (errored || name == null)
-						{
-							name = System.Environment.MachineName.ToString();
-						}
-						Console.WriteLine("Content sync starting with config for '" + name + "'");
-
-						Task.Run(async () =>
-						{
-							await StartFor(name);
-							taskCompletionSource.SetResult(true);
-						});
-
-					}
-
-				};
-
-				stackTools.Start();
-			}
-			catch(Exception e)
-			{
-				taskCompletionSource.SetException(e);
-			}
-
-			return taskCompletionSource.Task;
-			*/
-
-			_configuration.Users.TryGetValue(name, out List<StripeRange> myRanges);
-
-			if (myRanges == null)
-			{
-				Console.WriteLine("[WARN]: Content sync disabled. This instance (" + name + ") has no allocation in the project appsettings.json ContentSync config.");
-				return false;
-			}
-			else if (myRanges.Count == 0)
-			{
-				Console.WriteLine("[WARN]: Content sync disabled. This instance (" + name + ") is in the contentsync appsettings.json, but it's setup wrong. It should be an array, like \"" + name + "\": [{..}]");
-				return false;
-			}
-
-			MyRanges = myRanges;
-			ServerId = myRanges[0].ServerId;
-			
-			return true;
+				return s;
+			});
 		}
 
-		private List<StripeRange> MyRanges;
+		/// <summary>
+		/// A bitmask used for identifying the max ID in a given server's block.
+		/// </summary>
+		private uint MaxIdMask;
+
+		/// <summary>
+		/// True if the sync file is active.
+		/// </summary>
+		private bool SyncFileMode = false;
+
+		/// <summary>
+		/// The name of this ContentSync host
+		/// </summary>
+		public string HostName;
 
 		private string FileSafeName(string name)
 		{
@@ -223,333 +155,250 @@ namespace Api.ContentSync
 		public SyncTableFileSet LocalTableSet;
 
 		/// <summary>
-		/// Adds ID assigners to the given event group.
+		/// Sets up the config required to connect to other servers.
 		/// </summary>
-		/// <typeparam name="T"></typeparam>
-		/// <param name="assigner"></param>
-		/// <param name="evtGroup"></param>
-		public void AddIdAssigner<T>(IdAssigner assigner, EventGroup<T> evtGroup) where T:Content<int>
+		/// <returns></returns>
+		public async Task Startup()
 		{
-			if (assigner is IdAssignerSigned)
+			if (AllServers != null)
 			{
-				var signedAssigner = assigner as IdAssignerSigned;
+				// Already setup.
+				return;
+			}
 
-				evtGroup.BeforeCreate.AddEventListener((Context context, T content) =>
+			var ctx = new Context();
+
+			// Get all servers:
+			AllServers = await _clusteredServerService.List(ctx, new Filter<ClusteredServer>(), DataOptions.IgnorePermissions);
+
+			ClusteredServer self = null;
+
+			uint maxId = 0;
+
+			foreach (var server in AllServers)
+			{
+				if (server.HostName == HostName)
 				{
-					if (content == null)
-					{
-						return new ValueTask<T>(content);
-					}
+					self = server;
+				}
 
-					// Assign an ID now!
-					content.Id = (int)signedAssigner.Assign();
+				if (server.Id > maxId)
+				{
+					maxId = server.Id;
+				}
+			}
 
-					return new ValueTask<T>(content);
-				});
+			var ips = await IpDiscovery.Discover();
+
+			if (self == null)
+			{
+				self = new ClusteredServer()
+				{
+					Port = Port,
+					HostName = HostName
+				};
+
+				ips.CopyTo(self);
+
+				AllServers.Add(self);
+
+				await _clusteredServerService.Create(ctx, self, DataOptions.IgnorePermissions);
+
+			}
+			else if (ips.ChangedSince(self))
+			{
+				// It changed - update it:
+				ips.CopyTo(self);
+
+				await _clusteredServerService.Update(ctx, self, DataOptions.IgnorePermissions);
+			}
+
+			if (self.Id > maxId)
+			{
+				maxId = self.Id;
+			}
+
+			MaxIdMask = CreateMask(maxId);
+
+			Self = self;
+		}
+
+		private uint CreateMask(uint maxServerId)
+		{
+			int offset;
+
+			if (maxServerId <= 8)
+			{
+				// Minimum blocked out is 3 bits (8 servers).
+				offset = 29;
+			}
+			else if (maxServerId <= 16)
+			{
+				// 4 bits
+				offset = 28;
+			}
+			else if (maxServerId <= 32)
+			{
+				offset = 27;
+			}
+			else if (maxServerId <= 64)
+			{
+				offset = 26;
+			}
+			else if (maxServerId <= 128)
+			{
+				offset = 25;
+			}
+			else if (maxServerId <= 256)
+			{
+				offset = 24;
+			}
+			else if (maxServerId <= 512)
+			{
+				offset = 23;
+			}
+			else if (maxServerId <= 1024)
+			{
+				offset = 22;
 			}
 			else
 			{
-				var unsignedAssigner = assigner as IdAssignerUnsigned;
-
-				evtGroup.BeforeCreate.AddEventListener((Context context, T content) =>
-				{
-					if (content == null)
-					{
-						return new ValueTask<T>(content);
-					}
-
-					// Assign an ID now!
-					content.Id = (int)unsignedAssigner.Assign();
-
-					return new ValueTask<T>(content);
-				});
+				throw new Exception("Server ID '" + maxServerId + "' is too high. Max cluster size is 1024.");
 			}
+
+			return ((uint)1 << offset) - 1;
 		}
 
 		/// <summary>
-		/// Sets up a particular content type with e.g. ID assign handlers.
+		/// Creates an ID assigner for the given service.
 		/// </summary>
 		/// <typeparam name="T"></typeparam>
-		public void SetupForType<T>(StripeTable table) where T: new()
+		/// <typeparam name="ID"></typeparam>
+		/// <param name="service"></param>
+		/// <returns></returns>
+		public async Task<IdAssigner<ID>> CreateAssigner<T, ID>(AutoService<T, ID> service)
+			where T : class, IHaveId<ID>, new()
+			where ID : struct, IConvertible
 		{
-			// Invoked by reflection
+			var serverId = ServerId;
 
-			var evtGroup = Events.GetGroup<T>();
+			ulong thisServersIdMask = Reverse(serverId - 1);
+			ulong maxIdMask = MaxIdMask;
 
-			if (evtGroup == null)
+			if (typeof(ID) == typeof(ulong))
 			{
-				return;
+				thisServersIdMask = thisServersIdMask << 32;
+				maxIdMask = (maxIdMask << 32) | 0xffffff;
 			}
 
-			// Db table name is..
-			var tableName = typeof(T).TableName();
-
-			// Get the assigner for this table:
-			if (!table.DataTables.TryGetValue(tableName, out IdAssigner assigner))
-			{
-				// If this ever happens, it signals an internal issue with Socialstack.
-				// Content types drive the table schema. ID assigners come from the table schema.
-				// If a content type was somehow skipped, or its name is mangled, then this would happen.
-				Console.WriteLine("[WARN] Content sync integrity issue. The content type '" + typeof(T) + "' does not have an ID assigner.");
-				return;
-			}
-
-			// ID assigner is currently only available on int tables:
-			if (typeof(Content<int>).IsAssignableFrom(typeof(T)))
-			{
-				var methodInfo = GetType().GetMethod("AddIdAssigner");
-
-				// Add ID assigner:
-				var addIdAssigner = methodInfo.MakeGenericMethod(new Type[] {
-					typeof(T)
-				});
-
-				addIdAssigner.Invoke(this, new object[] {
-					assigner, evtGroup
-				});
-			}
+			// Using the List API to collect the current max assigned ID.
+			var filter = new Filter<T>();
+			filter.GreaterThanOrEqual(typeof(T), "Id", thisServersIdMask)
+				.And()
+				.LessThanOrEqual(typeof(T), "Id", thisServersIdMask + maxIdMask);
 			
-			if (SyncFileMode && LocalTableSet != null)
+			filter.Sort("Id", "desc");
+			filter.PageSize = 1;
+			
+			var set = await service.List(new Context(), filter, DataOptions.IgnorePermissions);
+
+			// Note: this will only be for rows that are actually in the database.
+			// Empty tables for example - this set has 0 entries.
+			ID latestIdResult = set != null && set.Count > 0 ? set[0].GetId() : default;
+
+			if (typeof(ID) == typeof(ulong))
 			{
-				// Add handlers to Create, Delete and Update events, and track these in a syncfile for this user.
+				var latestResult = (ulong)((object)latestIdResult);
 
-				// Attempt to get the sync file for this type:
-				LocalTableSet.Files.TryGetValue(tableName, out SyncTableFile localSyncFile);
-
-				if (localSyncFile != null)
+				if (latestResult == 0)
 				{
-					// Hook up create/ update/ delete - we want to track modding of objects:
-					evtGroup.AfterCreate.AddEventListener((Context context, T content) =>
-					{
-						if (content == null)
-						{
-							return new ValueTask<T>(content);
-						}
-
-						// Write creation to sync file:
-						localSyncFile.Write(content, 'C', context == null ? 0 : context.LocaleId);
-
-						return new ValueTask<T>(content);
-					});
-
-					evtGroup.AfterUpdate.AddEventListener((Context context, T content) =>
-					{
-						if (content == null)
-						{
-							return new ValueTask<T>(content);
-						}
-
-						// Write update to sync file:
-						localSyncFile.Write(content, 'U', context == null ? 0 : context.LocaleId);
-
-						return new ValueTask<T>(content);
-					});
-
-					evtGroup.AfterDelete.AddEventListener((Context context, T content) =>
-					{
-						if (content == null)
-						{
-							return new ValueTask<T>(content);
-						}
-
-						// Write delete to sync file:
-						localSyncFile.Write(content, 'D', context == null ? 0 : context.LocaleId);
-
-						return new ValueTask<T>(content);
-					});
+					latestResult = thisServersIdMask;
 				}
+
+				// Create an ID assigner for this table:
+				return new IdAssignerUInt64(latestResult) as IdAssigner<ID>;
+			}
+			else
+			{
+				var latestResult = (uint)((object)latestIdResult);
+
+				if (latestResult == 0)
+				{
+					latestResult = (uint)thisServersIdMask;
+				}
+
+				// Create an ID assigner for this table:
+				return new IdAssignerUInt32(latestResult) as IdAssigner<ID>;
 			}
 		}
-
+		
 		/// <summary>
-		/// Starts the content sync service.
-		/// Must run after all other services have loaded.
+		/// Pulls in data added by other devs, and starts the cSync server. Must occur after other services have started.
 		/// </summary>
-		public async Task Start()
+		public async Task ApplyRemoteDataAndStart()
 		{
-			Console.WriteLine("Content sync starting with config for '" + HostName + "' as Server #" + ServerId);
+			/*
+			if(SyncFileMode){
+				// Create syncfile object for each known table and for each user.
 
-			// Find the biggest max value:
-			var overallMax = 0;
+				Console.WriteLine("Content sync now checking for changes");
 
-			foreach (var kvp in _configuration.Users)
-			{
-				if (kvp.Value == null || kvp.Value.Count == 0)
+				// Make sure a sync dir exists for this user.
+				// Syncfiles go in as Database/FILENAME_SAFE_USERNAME/tableName.txt
+				var dirName = FileSafeName(HostName);
+				Directory.CreateDirectory("Database/" + dirName);
+
+				try
 				{
-					continue;
-				}
+					// Load them:
+					Dictionary<string, SyncTableFileSet> loadedSyncSets = new Dictionary<string, SyncTableFileSet>();
 
-				foreach (var range in kvp.Value)
-				{
-					if (range.Max > overallMax)
+					foreach (var kvp in _configuration.Users)
 					{
-						overallMax = range.Max;
-					}
-				}
-			}
-
-			if (overallMax != 0)
-			{
-
-				// Load the allocations:
-				StripeTable table = new StripeTable(MyRanges, overallMax);
-
-				await table.Setup(_database);
-
-				Console.WriteLine("Content sync ID information obtained");
-
-				if(SyncFileMode){
-					
-					// Create syncfile object for each known table and for each user.
-
-					Console.WriteLine("Content sync now checking for changes");
-
-					// Make sure a sync dir exists for this user.
-					// Syncfiles go in as Database/FILENAME_SAFE_USERNAME/tableName.txt
-					var dirName = FileSafeName(HostName);
-					Directory.CreateDirectory("Database/" + dirName);
-
-					try
-					{
-						// Load them:
-						Dictionary<string, SyncTableFileSet> loadedSyncSets = new Dictionary<string, SyncTableFileSet>();
-
-						foreach (var kvp in _configuration.Users)
+						if (kvp.Value == null || kvp.Value.Count == 0)
 						{
-							if (kvp.Value == null || kvp.Value.Count == 0)
-							{
-								continue;
-							}
-
-							// Create the table set:
-							var syncSet = new SyncTableFileSet("Database/" + FileSafeName(kvp.Key));
-
-							// Set it up:
-							// (for "my" files, I'm going to instance them all - regardless of if the actual file exists or not).
-							var mine = kvp.Key == HostName;
-
-							if (mine)
-							{
-								LocalTableSet = syncSet;
-							}
-
-							syncSet.Setup(!mine);
-							loadedSyncSets[kvp.Key] = syncSet;
-
-							if (!mine)
-							{
-								// Apply the sync set:
-								await syncSet.Sync(_database);
-							}
+							continue;
 						}
 
-					}
-					catch (Exception e)
-					{
-						Console.WriteLine("ContentSync failed to handle other user's updates with error: " + e.ToString());
-					}
-				}
-				
-				var methodInfo = GetType().GetMethod("SetupForType");
-				
-				// Next, add Create handlers to all types.
-				// When the handler fires, we simply assign an ID from our pool.
-				// DatabaseService internally handles predefined IDs already.
-				foreach (var kvp in ContentTypes.TypeMap)
-				{
-					// Invoke setup for type:
-					var setupType = methodInfo.MakeGenericMethod(new Type[] {
-						kvp.Value
-					});
+						// Create the table set:
+						var syncSet = new SyncTableFileSet("Database/" + FileSafeName(kvp.Key));
 
-					setupType.Invoke(this, new object[] {
-						table
-					});
+						// Set it up:
+						// (for "my" files, I'm going to instance them all - regardless of if the actual file exists or not).
+						var mine = kvp.Key == HostName;
+
+						if (mine)
+						{
+							LocalTableSet = syncSet;
+						}
+
+						syncSet.Setup(!mine);
+						loadedSyncSets[kvp.Key] = syncSet;
+
+						if (!mine)
+						{
+							// Apply the sync set:
+							await syncSet.Sync(_database);
+						}
+					}
+
 				}
+				catch (Exception e)
+				{
+					Console.WriteLine("ContentSync failed to handle other user's updates with error: " + e.ToString());
+				}
+				
 			}
+			*/
+
 			// Add event handlers to all caching enabled types, *if* there are any with remote addresses.
 			// If a change (update, delete, create) happens, broadcast a cache remove message to all remote addresses.
 			// If the link drops, poll until remote is back again.
-			var servers = new List<ContentSyncServerInfo>();
-			ContentSyncServerInfo myServerInfo = new ContentSyncServerInfo();
-
-			// Instance a sync server if remote addresses are present in the config:
-			foreach (var kvp in _configuration.Users)
-			{
-				if (kvp.Value == null)
-				{
-					continue;
-				}
-
-				// Remote address?
-				var serverId = 0;
-				string remoteAddr = null;
-				var port = 0;
-				IPAddress bindAddress = IPAddress.Loopback;
-
-				foreach (var range in kvp.Value)
-				{
-					if (!string.IsNullOrWhiteSpace(range.RemoteAddress))
-					{
-						remoteAddr = range.RemoteAddress;
-					}
-
-					if (range.ServerId != 0)
-					{
-						serverId = range.ServerId;
-					}
-
-					if (!string.IsNullOrEmpty(range.BindAddress))
-					{
-						bindAddress = range.BindAddress == "*" ? IPAddress.Any : IPAddress.Parse(range.BindAddress);
-					}
-
-					if (range.Port != 0)
-					{
-						port = range.Port;
-					}
-				}
-
-				if (!string.IsNullOrWhiteSpace(remoteAddr))
-				{
-					// Remote server - We'll sync up with this server by sending it any relevant changes that we generate.
-					// A relevant change is anything cached, or anything that is e.g. live on the websocket.
-					var info = new ContentSyncServerInfo()
-					{
-						RemoteAddress = remoteAddr,
-						BindAddress = bindAddress,
-						ServerId = serverId
-					};
-
-					if (port != 0)
-					{
-						// Override default:
-						info.Port = port;
-					}
-
-					if (kvp.Key == HostName)
-					{
-						// This is "me!"
-						myServerInfo = info;
-					}
-					else
-					{
-						servers.Add(info);
-					}
-				}
-
-			}
-
-			if (servers.Count == 0)
-			{
-				return;
-			}
 			
-			// We're in a cluster.
 			// Start my server now:
 			SyncServer = new Server<ContentSyncServer>();
-			SyncServer.Port = myServerInfo.Port;
-			SyncServer.BindAddress = myServerInfo.BindAddress;
+			SyncServer.Port = Port;
+			SyncServer.BindAddress = new IPAddress(Self.PrivateIPv4);
 
 			HandshakeOpCode = SyncServer.RegisterOpCode(3, (SyncServerHandshake message) =>
 			{
@@ -663,21 +512,38 @@ namespace Api.ContentSync
 			// After HandleType calls so it can register some of the handlers:
 			SyncServer.Start();
 
-			// Try to explicitly connect to the other servers.
+			// Try to explicitly connect to the other servers. Note that AllServers is setup by EventListener.
 			// We might be the first one up, so some of these can outright fail.
 			// That's ok though - they'll contact us instead.
-			Console.WriteLine("[CSync] Started connecting to " + servers.Count + " peers");
+			Console.WriteLine("[CSync] Started connecting to peers");
 			
-			foreach (var serverInfo in servers)
+			foreach (var serverInfo in AllServers)
 			{
-				Console.WriteLine("[CSync] Connect to " + serverInfo.RemoteAddress);
-				SyncServer.ConnectTo(serverInfo.RemoteAddress, serverInfo.Port, serverInfo.ServerId, (ContentSyncServer s) => {
-					s.ServerId = serverInfo.ServerId;
+				if (serverInfo == Self)
+				{
+					continue;
+				}
+				Console.WriteLine("[CSync] Connect to " + serverInfo.PrivateIPv4);
+
+				var ipAddress = new IPAddress(serverInfo.PrivateIPv4);
+
+				SyncServer.ConnectTo(ipAddress, serverInfo.Port, serverInfo.Id, (ContentSyncServer s) => {
+					s.ServerId = serverInfo.Id;
 				});
 			}
 
 		}
 
+		/// <summary>
+		/// All servers (including "me").
+		/// </summary>
+		public List<ClusteredServer> AllServers;
+
+		/// <summary>
+		/// The clustered server representing this specific server. Has IP addresses setup and ready.
+		/// </summary>
+		public ClusteredServer Self;
+		
 		/// <summary>
 		/// A map of each content type to a set of remote server writers.
 		/// When something changes, we use the list to message the servers about it.

@@ -311,7 +311,7 @@ namespace Api.ContentSync
 			var receivedEventHandler = eventGroup.Received;
 			var afterLoad = eventGroup.AfterLoad;
 			
-			var totalLength = await ReadRows(offset, async (char mode, T row, int localeId, ID deletedId) => {
+			var totalLength = await ReadRows(offset, async (char mode, T row, uint localeId, ID deletedId) => {
 				changes++;
 
 				try
@@ -512,7 +512,7 @@ namespace Api.ContentSync
 			{
 				if (!int.TryParse(text, out int id))
 				{
-					return default(ID);
+					return default;
 				}
 
 				return (ID)(object)(id);
@@ -525,7 +525,7 @@ namespace Api.ContentSync
 			{
 				if (!uint.TryParse(text, out uint id))
 				{
-					return default(ID);
+					return default;
 				}
 
 				return (ID)(object)(id);
@@ -534,7 +534,7 @@ namespace Api.ContentSync
 			{
 				if (!long.TryParse(text, out long id))
 				{
-					return default(ID);
+					return default;
 				}
 
 				return (ID)(object)(id);
@@ -543,7 +543,7 @@ namespace Api.ContentSync
 			{
 				if (!ulong.TryParse(text, out ulong id))
 				{
-					return default(ID);
+					return default;
 				}
 
 				return (ID)(object)(id);
@@ -552,19 +552,19 @@ namespace Api.ContentSync
 			{
 				if (!Guid.TryParse(text, out Guid id))
 				{
-					return default(ID);
+					return default;
 				}
 
 				return (ID)(object)(id);
 			}
 
-			return default(ID);
+			return default;
 		}
 
 		/// <summary>
 		/// Read the rows from the file now.
 		/// </summary>
-		public async Task<long> ReadRows(long offset, Func<char, T, int, ID, Task> onReadRow)
+		public async Task<long> ReadRows(long offset, Func<char, T, uint, ID, Task> onReadRow)
 		{
 			long size = 0;
 
@@ -620,7 +620,7 @@ namespace Api.ContentSync
 							break;
 						}
 
-						if (!int.TryParse(localeIdTxt, out int localeId))
+						if (!uint.TryParse(localeIdTxt, out uint localeId))
 						{
 							break;
 						}

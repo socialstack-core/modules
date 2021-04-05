@@ -19,7 +19,7 @@ namespace Api.ContentSync
 		/// <summary>
 		/// Remote server's declared ID.
 		/// </summary>
-		public int ServerId;
+		public uint ServerId;
 		/// <summary>
 		/// The IP this server should bind to. Will almost always be on a private LAN, but * is also supported.
 		/// </summary>

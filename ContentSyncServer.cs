@@ -26,7 +26,7 @@ namespace Api.ContentSync
 		/// <summary>
 		/// Remote server Id.
 		/// </summary>
-		public int ServerId;
+		public uint ServerId;
 		/// <summary>
 		/// Content type -> message writer.
 		/// </summary>

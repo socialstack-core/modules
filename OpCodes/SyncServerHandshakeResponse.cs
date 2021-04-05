@@ -12,6 +12,6 @@ namespace Api.ContentSync
 		/// <summary>
 		/// Other server's ID ("mine" when sending this message).
 		/// </summary>
-		public int ServerId;
+		public uint ServerId;
 	}
 }

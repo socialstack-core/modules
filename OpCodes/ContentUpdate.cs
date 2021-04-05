@@ -16,15 +16,15 @@ namespace Api.ContentSync
 		/// <summary>
 		/// Locale of user who did it.
 		/// </summary>
-		public int LocaleId;
+		public uint LocaleId;
 		/// <summary>
 		/// User who did it.
 		/// </summary>
-		public int User;
+		public uint User;
 		/// <summary>
 		/// Role of user who did it.
 		/// </summary>
-		public int RoleId;
+		public uint RoleId;
 		
 		/// <summary>
 		/// The actual content.

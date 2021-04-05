@@ -10,23 +10,18 @@ namespace Api.ContentSync
 	/// <summary>
 	/// The appsettings.json config block for push notification config.
 	/// </summary>
-    public class ContentSyncConfig
+    public class ContentSyncServiceConfig
     {
 		/// <summary>
-		/// Minimum ID. Assigned IDs must never be any less than this.
+		/// The port number for csync service to use.
 		/// </summary>
-		public int Offset { get; set; }
-		
+		public int Port { get; set; } = 12020;
+
 		/// <summary>
 		/// Verbose messaging mode
 		/// </summary>
 		public bool Verbose {get; set;}
 		
-		/// <summary>
-		/// The username to stripe range config.
-		/// </summary>
-		public Dictionary<string, List<StripeRange>> Users { get; set; }
-
 		/// <summary>
 		/// True if the sync file should be explicitly enabled/ disabled.
 		/// </summary>
