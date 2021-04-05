@@ -9,7 +9,7 @@ namespace Api.Templates
 	/// <summary>
 	/// A template.
 	/// </summary>
-	public partial class Template : VersionedContent<int>
+	public partial class Template : VersionedContent<uint>
 	{
 		/// <summary>
 		/// A key used to identify a template by its purpose.
