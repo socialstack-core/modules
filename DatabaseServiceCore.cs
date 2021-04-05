@@ -286,7 +286,7 @@ namespace Api.Database
 					// Set the IDs now. The lastInsertedId is the *first* one.
 					for (var x = 0; x < toInsertSet.Count; x++)
 					{
-						q.IdField.SetValue(toInsertSet[x], (int)(id + x));
+						q.IdField.SetValue(toInsertSet[x], (uint)(id + x));
 					}
 
 				}
@@ -366,7 +366,7 @@ namespace Api.Database
 				if (q.IdField != null)
 				{
 					// Set the ID now:
-					q.IdField.SetValue(srcObject, (int)cmd.LastInsertedId);
+					q.IdField.SetValue(srcObject, (uint)cmd.LastInsertedId);
 				}
 
 				return true;
