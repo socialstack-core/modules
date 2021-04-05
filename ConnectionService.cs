@@ -154,7 +154,7 @@ namespace Api.Connections
 					return null;
 				}
 
-				var userMap = new Dictionary<int, UserProfile>();
+				var userMap = new Dictionary<uint, UserProfile>();
 
 				foreach(var connection in connections)
                 {

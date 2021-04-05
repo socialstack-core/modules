@@ -19,7 +19,7 @@ namespace Api.Connections
         /// <param name="id"></param>
         /// <returns></returns>
         [HttpPost("{id}/accept")]
-        public async Task<Connection> Accept(int id)
+        public async Task<Connection> Accept(uint id)
         {
             var context = Request.GetContext();
             var user = await context.GetUser();
