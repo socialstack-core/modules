@@ -48,6 +48,19 @@ namespace Api.Configuration
 		}
 
 		/// <summary>
+		/// Gets a string from the settings.
+		/// </summary>
+		/// <param name="name"></param>
+		/// <param name="defaultValue"></param>
+		/// <returns></returns>
+		public static string GetString(string name, string defaultValue)
+		{
+			var textValue = Configuration[name];
+
+			return string.IsNullOrEmpty(textValue) ? defaultValue : textValue;
+		}
+
+		/// <summary>
 		/// Reads a field from the appsettings.json with the given name as an int32.
 		/// Returns the default value if not set or invalid.
 		/// </summary>
