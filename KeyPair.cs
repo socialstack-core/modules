@@ -56,24 +56,34 @@ namespace Api.Signatures
 		}
 
 		/// <summary>
-		/// Loads a public key from a base64 string
+		/// Loads a public key only pair from a base64 string
 		/// </summary>
 		/// <returns></returns>
-		public static ECPublicKeyParameters LoadPublicKey(string base64)
+		public static KeyPair LoadPublicKey(string base64)
 		{
 			byte[] pubKeyBytes = Convert.FromBase64String(base64);
 			var ecPoint = Curve.Curve.DecodePoint(pubKeyBytes).Normalize();
-			return new ECPublicKeyParameters(ecPoint, DomainParams);
+			var parameters = new ECPublicKeyParameters(ecPoint, DomainParams);
+
+			return new KeyPair()
+			{
+				PublicKey = parameters
+			};
 		}
 
 		/// <summary>
-		/// Loads a public key from its raw bytes
+		/// Loads a public key only pair from its raw bytes
 		/// </summary>
 		/// <returns></returns>
-		public static ECPublicKeyParameters LoadPublicKey(byte[] pubKeyBytes)
+		public static KeyPair LoadPublicKey(byte[] pubKeyBytes)
 		{
 			var ecPoint = Curve.Curve.DecodePoint(pubKeyBytes).Normalize();
-			return new ECPublicKeyParameters(ecPoint, DomainParams);
+			var parameters = new ECPublicKeyParameters(ecPoint, DomainParams);
+
+			return new KeyPair()
+			{
+				PublicKey = parameters
+			};
 		}
 
 		/// <summary>

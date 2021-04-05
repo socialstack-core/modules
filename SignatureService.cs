@@ -12,23 +12,23 @@ namespace Api.Signatures
 	/// Handles generation and validation of signatures used for e.g. serving of private files.
 	/// Instanced automatically. Use injection to use this service, or Startup.Services.Get.
 	/// </summary>
-	public partial class SignatureService
+	public partial class SignatureService : AutoService
     {
 
 		private KeyPair _keyPair;
+		private SignatureServiceConfig _config;
 
 		/// <summary>
 		/// Instanced automatically. Use injection to use this service, or Startup.Services.Get.
 		/// </summary>
 		public SignatureService()
         {
-
 			// Generate or load keypair. First check if it's in appsettings:
-			var appsettingsConfig = AppSettings.GetSection("SignatureService").Get<SignatureServiceConfig>();
+			_config = GetConfig<SignatureServiceConfig>();
 			
-			if(appsettingsConfig != null && !string.IsNullOrEmpty(appsettingsConfig.Private))
+			if(!string.IsNullOrEmpty(_config.Private))
 			{
-				_keyPair = KeyPair.FromSerialized(appsettingsConfig.Public, appsettingsConfig.Private);
+				_keyPair = KeyPair.FromSerialized(_config.Public, _config.Private);
 			}
 			else
 			{
@@ -66,6 +66,32 @@ namespace Api.Signatures
 			return _keyPair.SignBase64(valueToSign + "?t=" + timestamp);
 		}
 
+		/// <summary>
+		/// Validates a signature for a given signed value.
+		/// </summary>
+		/// <param name="signedValue">The value - usually a URL - being signed.</param>
+		/// <param name="signature">Signature value</param>
+		/// <param name="hostName">Host name to look up the key for. Host name is case sensitive, and will not be trimmed. Lowercase recommended.
+		/// If null, uses the main keypair.</param>
+		public bool ValidateSignatureFromHost(string signedValue, string signature, string hostName)
+		{
+			if (hostName == null)
+			{
+				// No host - use default:
+				return _keyPair.Verify(signedValue, signature);
+			}
+
+			// Lookup key:
+			if (_config.Hosts != null && _config.Hosts.TryGetValue(hostName, out SignatureServiceHostConfig host))
+			{
+				var key = host.GetKey();
+				return key.Verify(signedValue, signature);
+			}
+
+			// A host was specified but it is not in the config here.
+			return false;
+		}
+			
 		/// <summary>
 		/// Validates a signature for a given signed value.
 		/// </summary>
