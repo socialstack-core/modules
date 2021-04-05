@@ -12,7 +12,7 @@ namespace Api.Permissions
 		/// <summary>
 		/// Creator of this permit (e.g. the person who invited x). Not to be confused with PermittedContentId, which is the invited person.
 		/// </summary>
-		public int UserId;
+		public uint UserId;
 
 		/// <summary>
 		/// Usually the content type for "user" but can also be e.g. a company or something else that represents a "user".
@@ -22,7 +22,7 @@ namespace Api.Permissions
 		/// <summary>
 		/// The ID of the actual permitted content. Usually a user id.
 		/// </summary>
-		public int PermittedContentId;
+		public uint PermittedContentId;
 
 		/// <summary>
 		/// The permitted content. Usually a user (specifically a UserProfile), but can also be e.g. a company.

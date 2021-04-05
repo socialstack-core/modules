@@ -169,7 +169,7 @@ namespace Api.Permissions
 		/// Invoked by reflection. Adds user restrictions to the given event group for a particular content type.
 		/// </summary>
 		/// <typeparam name="T"></typeparam>
-		public void SetupUserRestrictionsForContent<T>() where T: IHaveId<int>, IHaveUserRestrictions
+		public void SetupUserRestrictionsForContent<T>() where T: IHaveId<uint>, IHaveUserRestrictions
 		{
 			var eventGroup = Events.GetGroup<T>();
 			PermittedContentService permits = null;
@@ -273,7 +273,7 @@ namespace Api.Permissions
 
 							if (token.Type == JTokenType.Integer)
 							{
-								permitToCreate.PermittedContentId = token.Value<int>();
+								permitToCreate.PermittedContentId = token.Value<uint>();
 								permitToCreate.PermittedContentTypeId = userContentTypeId;
 							}
 							else if (token.Type == JTokenType.Object)
@@ -282,12 +282,12 @@ namespace Api.Permissions
 								
 								if (jObj.TryGetValue("userId", out JToken v))
 								{
-									permitToCreate.PermittedContentId = v.Value<int>();
+									permitToCreate.PermittedContentId = v.Value<uint>();
 									permitToCreate.PermittedContentTypeId = userContentTypeId;
 								}
 								else if (jObj.TryGetValue("contentId", out v))
 								{
-									permitToCreate.PermittedContentId = v.Value<int>();
+									permitToCreate.PermittedContentId = v.Value<uint>();
 
 									if (jObj.TryGetValue("contentTypeId", out v))
 									{
@@ -468,6 +468,7 @@ namespace Api.Permissions
 		/// Sets up for the given type with its event group.
 		/// </summary>
 		/// <typeparam name="T"></typeparam>
+		/// <typeparam name="ID"></typeparam>
 		/// <param name="group"></param>
 		public void SetupForType<T, ID>(EventGroup<T, ID> group)
 		{

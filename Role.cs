@@ -18,7 +18,7 @@ namespace Api.Permissions
 		/// <summary>
 		/// The role ID, as used by user rows.
 		/// </summary>
-        public int Id;
+        public uint Id;
 		/// <summary>
 		/// The nice name of the role, usually in the site default language.
 		/// </summary>
@@ -38,7 +38,7 @@ namespace Api.Permissions
 		/// Create a new role with the given ID.
 		/// </summary>
 		/// <param name="id"></param>
-        public Role(int id)
+        public Role(uint id)
         {
             Id = id;
             Add();

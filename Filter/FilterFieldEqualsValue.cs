@@ -76,7 +76,7 @@ namespace Api.Permissions
 
 			if (compareTo is ContentIdLookup lookup)
 			{
-				return lookup.Contains((int)fieldValue);
+				return lookup.Contains((uint)fieldValue);
 			}
 
 			return compareTo.Equals(fieldValue);
@@ -125,7 +125,7 @@ namespace Api.Permissions
 
 			if (compareWith is ContentIdLookup lookup)
 			{
-				return lookup.Contains((int)val);
+				return lookup.Contains((uint)val);
 			}
 			
 			return val.Equals(compareWith);

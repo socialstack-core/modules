@@ -11,7 +11,7 @@ namespace Api.Permissions
         /// <summary>
         /// All roles, indexed by role ID. Never null but always bounds check.
         /// </summary>
-        public static Role[] All = new Role[0];
+        public static Role[] All = System.Array.Empty<Role>();
 
 		/// <summary>
 		/// The role used by users who aren't logged in.

@@ -18,13 +18,13 @@ namespace Api.Permissions{
 		/// <summary>
 		/// Used to find content by ID.
 		/// </summary>
-		private Dictionary<int, bool> Lookup = new Dictionary<int, bool>();
+		private Dictionary<uint, bool> Lookup = new Dictionary<uint, bool>();
 		
 		
 		/// <summary>
 		/// True if given ID is in the lookup.
 		/// </summary>
-		public bool Contains(int id)
+		public bool Contains(uint id)
 		{
 			return Lookup.ContainsKey(id);
 		}
@@ -32,7 +32,7 @@ namespace Api.Permissions{
 		/// <summary>
 		/// Add content ID to lookup.
 		/// </summary>
-		public void Add(int id)
+		public void Add(uint id)
 		{
 			Lookup[id] = true;
 		}
