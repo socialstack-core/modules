@@ -9,26 +9,24 @@ namespace Api.NavMenus
 	/// A particular entry within a navigation menu.
 	/// </summary>
 	[CacheOnly]
-	public partial class AdminNavMenuItem : Content<int>, IHaveRoleRestrictions
+	public partial class AdminNavMenuItem : Content<uint>, IHaveRoleRestrictions
 	{
-		/// <summary>
-		/// Entry ID.
-		/// </summary>
-		public int Id;
-		
 		/// <summary>
 		/// The title of this nav menu entry.
 		/// </summary>
+		[DatabaseField(Length = 200)]
 		public string Title;
-		
+
 		/// <summary>
 		/// Often a URL but is be whatever the item wants to emit when it's clicked.
 		/// </summary>
+		[DatabaseField(Length = 200)]
 		public string Target;
 
 		/// <summary>
 		/// Optional image to show with this item.
 		/// </summary>
+		[DatabaseField(Length = 100)]
 		public string IconRef;
 		
 		/// <summary>
@@ -40,24 +38,6 @@ namespace Api.NavMenus
 		/// Visible to admin role by default
 		/// </summary>
 		public bool VisibleToRole2 = true;
-		
-		/// <summary>
-		/// Gets the entry ID.
-		/// </summary>
-		public int GetId()
-		{
-			return Id;
-		}
-
-		/// <summary>
-		/// Sets the ID of this row.
-		/// </summary>
-		/// <returns></returns>
-		public void SetId(int id)
-		{
-			Id = id;
-		}
-
 	}
 
 }

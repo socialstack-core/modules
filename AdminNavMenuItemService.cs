@@ -15,8 +15,6 @@ namespace Api.NavMenus
 	/// </summary>
 	public partial class AdminNavMenuItemService : AutoService<AdminNavMenuItem>
 	{
-		private int Id = 1;
-
 		/// <summary>
 		/// Instanced automatically. Use injection to use this service, or Startup.Services.Get.
 		/// </summary>
@@ -58,7 +56,6 @@ namespace Api.NavMenus
 
 			if (existingEntry.Count == 0)
 			{
-				item.Id = Id++;
 				await Create(context, item, DataOptions.IgnorePermissions);
 			}
 		}
