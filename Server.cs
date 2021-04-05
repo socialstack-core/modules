@@ -52,7 +52,7 @@ namespace Api.SocketServerLibrary {
 		/// <summary>
 		/// Explicitly connect to a remote host (another server of this type).
 		/// </summary>
-		public T ConnectTo(string host, int port, int serverId, Action<T> onSetupRemote)
+		public T ConnectTo(string host, int port, uint serverId, Action<T> onSetupRemote)
 		{
 			if (IPAddress.TryParse(host, out IPAddress addr))
 			{
@@ -94,7 +94,7 @@ namespace Api.SocketServerLibrary {
 		/// <summary>
 		/// Explicitly connect to a remote host (another server of this type).
 		/// </summary>
-		public T ConnectTo(IPAddress targetIp, int port, int serverId, Action<T> onSetupRemote)
+		public T ConnectTo(IPAddress targetIp, int port, uint serverId, Action<T> onSetupRemote)
 		{
 			var remote = new T()
 			{
