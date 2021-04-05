@@ -16,7 +16,7 @@ namespace Api.Eventing
 	/// You can extend it with custom events as well - just do so on the base EventGroup{T, ID} type.
 	/// </summary>
 	/// <typeparam name="T"></typeparam>
-	public class EventGroup<T> : EventGroup<T, int> 
+	public class EventGroup<T> : EventGroup<T, uint> 
 	{
 	}
 
