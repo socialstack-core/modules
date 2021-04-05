@@ -17,7 +17,7 @@ namespace Api.Emails{
 		/// <summary>
 		/// User ID, if there is one.
 		/// </summary>
-		public int UserId;
+		public uint UserId;
 
 		/// <summary>
 		/// Context to send to. Locale comes from this, as well as the user to send to *if* Email isn't also set.
@@ -44,7 +44,7 @@ namespace Api.Emails{
 		/// </summary>
 		/// <param name="user"></param>
 		/// <param name="localeId"></param>
-		public Recipient(User user, int localeId = 0)
+		public Recipient(User user, uint localeId = 0)
 		{
 			User = user;
 			UserId = user.Id;
@@ -59,7 +59,7 @@ namespace Api.Emails{
 		/// </summary>
 		/// <param name="userId"></param>
 		/// <param name="localeId"></param>
-		public Recipient(int userId, int localeId = 0)
+		public Recipient(uint userId, uint localeId = 0)
 		{
 			UserId = userId;
 			Context = new Context()

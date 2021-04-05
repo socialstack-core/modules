@@ -151,7 +151,7 @@ namespace Api.Emails
 		/// <param name="recipients"></param>
 		private async Task LoadUsers(IList<Recipient> recipients)
 		{
-			List<int> idsToLoad = null;
+			List<uint> idsToLoad = null;
 
 			foreach (var recipient in recipients)
 			{
@@ -165,7 +165,7 @@ namespace Api.Emails
 					// Load this user:
 					if (idsToLoad == null)
 					{
-						idsToLoad = new List<int>();
+						idsToLoad = new List<uint>();
 					}
 
 					idsToLoad.Add(recipient.UserId);
@@ -179,7 +179,7 @@ namespace Api.Emails
 				if (loadedUsers != null && loadedUsers.Count > 0)
 				{
 					// Create lookup:
-					var userLookup = new Dictionary<int, User>();
+					var userLookup = new Dictionary<uint, User>();
 					foreach (var user in loadedUsers)
 					{
 						userLookup[user.Id] = user;
@@ -231,7 +231,7 @@ namespace Api.Emails
 
 			// Next, group recipients by locale:
 			// This is because each locale effectively has a different template object.
-			var recipientsByLocale = new Dictionary<int, TemplateAndRecipientSet>();
+			var recipientsByLocale = new Dictionary<uint, TemplateAndRecipientSet>();
 
 			foreach (var recipient in recipients)
 			{
