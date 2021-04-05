@@ -67,6 +67,7 @@ namespace Api.Database
 		/// </summary>
 		/// <param name="context"></param>
 		/// <param name="content"></param>
+		/// <param name="options"></param>
 		/// <returns></returns>
 		public static async Task<object> Update(Context context, object content, DataOptions options = DataOptions.Default)
 		{
@@ -96,7 +97,7 @@ namespace Api.Database
 		/// <param name="permCheck"></param>
 		/// <param name="convertUser">Converts User objects to UserProfile if true (default).</param>
 		/// <returns></returns>
-		public static async Task<object> Get(Context context, int contentTypeId, int contentId, bool permCheck = false, bool convertUser = true)
+		public static async Task<object> Get(Context context, int contentTypeId, uint contentId, bool permCheck = false, bool convertUser = true)
 		{
 			// Get the service:
 			var service = Services.GetByContentTypeId(contentTypeId);
@@ -212,7 +213,7 @@ namespace Api.Database
 		/// <param name="contentIds"></param>
 		/// <param name="convertUser">Converts User objects to UserProfile if true (default).</param>
 		/// <returns></returns>
-		public static async Task<IEnumerable> List(Context context, int contentTypeId, IEnumerable<int> contentIds, bool convertUser = true)
+		public static async Task<IEnumerable> List(Context context, int contentTypeId, IEnumerable<uint> contentIds, bool convertUser = true)
 		{
 			// Get the service:
 			var service = Services.GetByContentTypeId(contentTypeId);
@@ -281,7 +282,7 @@ namespace Api.Database
 		/// <summary>
 		/// Content Id.
 		/// </summary>
-		public int ContentId;
+		public uint ContentId;
 
 
 		/// <summary>
@@ -289,7 +290,7 @@ namespace Api.Database
 		/// </summary>
 		/// <param name="contentTypeId"></param>
 		/// <param name="id"></param>
-		public ContentTypeAndId(int contentTypeId, int id)
+		public ContentTypeAndId(int contentTypeId, uint id)
 		{
 			ContentTypeId = contentTypeId;
 			ContentId = id;
@@ -341,13 +342,13 @@ namespace Api.Database
 		/// <summary>
 		/// The mapping of loaded contents.
 		/// </summary>
-		public Dictionary<int, object> Contents = new Dictionary<int, object>();
+		public Dictionary<uint, object> Contents = new Dictionary<uint, object>();
 
 		/// <summary>
 		/// Enumerator of content IDs.
 		/// </summary>
 		/// <returns></returns>
-		public IEnumerable<int> ContentIds()
+		public IEnumerable<uint> ContentIds()
 		{
 			return Contents.Keys;
 		}
@@ -365,7 +366,7 @@ namespace Api.Database
 
 			foreach (var content in contents)
 			{
-				if (content is not IHaveId<int> entry)
+				if (content is not IHaveId<uint> entry)
 				{
 					continue;
 				}

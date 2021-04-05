@@ -8,7 +8,7 @@ namespace Api.Database
 	/// <summary>
 	/// Maps e.g. tags to particular content.
 	/// </summary>
-	public abstract class MappingEntity : Content<int>
+	public abstract class MappingEntity : Content<uint>
 	{
 		/// <summary>
 		/// The type ID of the tagged content. See also: Api.Database.ContentTypes
@@ -17,7 +17,7 @@ namespace Api.Database
 		/// <summary>
 		/// The ID of the tagged content.
 		/// </summary>
-		public int ContentId;
+		public uint ContentId;
 		/// <summary>
 		/// The UTC creation date. Read/ delete only rows so an edited date isn't present here.
 		/// </summary>
@@ -25,12 +25,12 @@ namespace Api.Database
 		/// <summary>
 		/// The ID of a particular revision that these tags are on. Zero if it's on the live content.
 		/// </summary>
-		public int RevisionId;
+		public uint RevisionId;
 
 		/// <summary>
 		/// Target content ID (e.g. ID of the target tag).
 		/// </summary>
-		public virtual int TargetContentId
+		public virtual uint TargetContentId
 		{
 			get
 			{

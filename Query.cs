@@ -223,7 +223,7 @@ namespace Api.Database
 		/// <summary>
 		/// Builds the underlying query to run.
 		/// </summary>
-		public string GetQuery(Filter filter = null, bool bulk = false, int localeId = 0, string localeCode = null, bool includeCount = false)
+		public string GetQuery(Filter filter = null, bool bulk = false, uint localeId = 0, string localeCode = null, bool includeCount = false)
 		{
 			if (includeCount && (filter == null || Operation != SELECT))
 			{

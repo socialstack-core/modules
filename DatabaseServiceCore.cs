@@ -5,6 +5,7 @@ using System.Threading.Tasks;
 using Api.Contexts;
 using Api.Permissions;
 using Api.Translate;
+using Api.Users;
 using Microsoft.Extensions.Configuration;
 using MySql.Data.MySqlClient;
 
@@ -124,7 +125,7 @@ namespace Api.Database
 		/// </summary>
 		/// <param name="intoBuilder"></param>
 		/// <param name="values"></param>
-		private static void BuildInString(System.Text.StringBuilder intoBuilder, IEnumerable<int> values)
+		private static void BuildInString(System.Text.StringBuilder intoBuilder, IEnumerable<uint> values)
 		{
 			if (values == null)
 			{
@@ -173,14 +174,14 @@ namespace Api.Database
 		/// <param name="idsToDelete"></param>
 		/// <param name="args"></param>
 		/// <returns></returns>
-		public async Task<bool> Run<T>(Context context, Query<T> q, IEnumerable<int> idsToDelete, params object[] args)
+		public async Task<bool> Run<T>(Context context, Query<T> q, IEnumerable<uint> idsToDelete, params object[] args)
 		{
 			if (idsToDelete == null)
 			{
 				return false;
 			}
 
-			var localeId = 0;
+			uint localeId = 0;
 			string localeCode = null;
 			if (context != null && context.LocaleId > 1)
 			{
@@ -228,7 +229,7 @@ namespace Api.Database
 
 			// Note that the additional args are for any more complex args in the query.
 
-			var localeId = 0;
+			uint localeId = 0;
 			string localeCode = null;
 			if (context != null && context.LocaleId > 1)
 			{
@@ -314,23 +315,23 @@ namespace Api.Database
 			// Applying to the actual entity so the object is up to date too.
 			if (q.IsUpdate)
 			{
-				if (srcObject is Api.Users.VersionedContent<int> revRow && context.PermitEditedUtcChange)
+				if (srcObject is IHaveTimestamps revRow && context.PermitEditedUtcChange)
 				{
-					revRow.EditedUtc = DateTime.UtcNow;
+					revRow.SetEditedUtc(DateTime.UtcNow);
 				}
 			}
 			else if(q.IsInsert)
 			{
-				if (srcObject is Api.Users.VersionedContent<int> revRow)
+				if (srcObject is IHaveTimestamps revRow)
 				{
-					if (revRow.EditedUtc == DateTime.MinValue)
+					if (revRow.GetEditedUtc() == DateTime.MinValue)
 					{
-						revRow.EditedUtc = DateTime.UtcNow;
+						revRow.SetEditedUtc(DateTime.UtcNow);
 					}
 
-					if (revRow.CreatedUtc == DateTime.MinValue)
+					if (revRow.GetCreatedUtc() == DateTime.MinValue)
 					{
-						revRow.CreatedUtc = DateTime.UtcNow;
+						revRow.SetCreatedUtc(DateTime.UtcNow);
 					}
 				}
 			}
@@ -347,7 +348,7 @@ namespace Api.Database
 			// And copy in any other fields (the where args for updates):
 			Array.Copy(args, 0, argSet, fieldCount, args.Length);
 
-			var localeId = 0;
+			uint localeId = 0;
 			string localeCode = null;
 			if (context != null && context.LocaleId > 1)
 			{
@@ -387,7 +388,7 @@ namespace Api.Database
 		/// <returns></returns>
 		public async Task<bool> Run(Context context, Query q, params object[] args)
 		{
-			var localeId = 0;
+			uint localeId = 0;
 			string localeCode = null;
 			if (context != null && context.LocaleId > 1)
 			{
@@ -413,7 +414,7 @@ namespace Api.Database
 		/// <returns></returns>
 		public async Task<bool> Run<T>(Context context, Query<T> q, params object[] args)
 		{
-			var localeId = 0;
+			uint localeId = 0;
 			string localeCode = null;
 			if (context != null && context.LocaleId > 1)
 			{
@@ -443,7 +444,7 @@ namespace Api.Database
 			// This is almost exactly the same as GetRow 
 			// except it operates using the field map in the query.
 
-			var localeId = 0;
+			uint localeId = 0;
 			string localeCode = null;
 			if (context != null && context.LocaleId > 1)
 			{
@@ -509,7 +510,7 @@ namespace Api.Database
 		{
 			var results = new List<T>();
 
-			var localeId = 0;
+			uint localeId = 0;
 			string localeCode = null;
 			if (context != null && context.LocaleId > 1)
 			{
@@ -638,7 +639,7 @@ namespace Api.Database
 		{
 			var results = new List<T>();
 
-			var localeId = 0;
+			uint localeId = 0;
 			string localeCode = null;
 			if (context != null && context.LocaleId > 1)
 			{
