@@ -57,6 +57,9 @@ namespace Api.WebSockets
 
 				if (typeof(IAmLive).IsAssignableFrom(svc.ServicedType))
 				{
+					// These are always synced
+					svc.Synced = true;
+
 					// This type inherits serviced type.
 					var eventGroup = svc.GetEventGroup();
 
@@ -161,9 +164,6 @@ namespace Api.WebSockets
 		public void SetupForType<T>(EventGroup<T> evtGroup) where T:new()
 		{
 			// Invoked by reflection
-			
-			// Mark as remote synced:
-			Api.Startup.RemoteSync.Add(typeof(T));
 			
 			// Get the listener:
 			var listener = GetTypeListener(typeof(T), evtGroup.BeforeList.Capability);
@@ -275,12 +275,12 @@ namespace Api.WebSockets
 		/// <summary>
 		/// Websocket clients by user ID.
 		/// </summary>
-		public Dictionary<int, UserWebsocketLinks> ListenersByUserId = new Dictionary<int, UserWebsocketLinks>();
+		public Dictionary<uint, UserWebsocketLinks> ListenersByUserId = new Dictionary<uint, UserWebsocketLinks>();
 		
 		/// <summary>
 		/// Websocket clients by user ID.
 		/// </summary>
-		public Dictionary<int, UserWebsocketLinks> UserListeners => ListenersByUserId;
+		public Dictionary<uint, UserWebsocketLinks> UserListeners => ListenersByUserId;
 
 		/// <summary>
 		/// Gets type listener by the name. Optionally creates it if it didn't exist.
@@ -345,7 +345,7 @@ namespace Api.WebSockets
 		/// Sends the given entity and the given method name which states what has happened with this object. Typically its 'update', 'create' or 'delete'.
 		/// It's sent to everyone who can view entities of this type, unless you give a specific userId.
 		/// </summary>
-		public void Send(Context context, object entity, string methodName, int? toUserId = null)
+		public void Send(Context context, object entity, string methodName, uint? toUserId = null)
 		{
 			
 			if(entity == null)
@@ -661,7 +661,7 @@ namespace Api.WebSockets
 		/// <param name="message"></param>
 		/// <param name="toUserId"></param>
 		/// <returns></returns>
-		public async Task Send(WebSocketMessage message, int? toUserId)
+		public async Task Send(WebSocketMessage message, uint? toUserId)
 		{
 			if (toUserId.HasValue)
 			{
@@ -1036,7 +1036,7 @@ namespace Api.WebSockets
 		/// <summary>
 		/// User ID of the person who raised this event.
 		/// </summary>
-		public int By;
+		public uint By;
 		/// <summary>
 		/// The entity to send in this message.
 		/// E.g. a newly created chat message.
@@ -1058,7 +1058,7 @@ namespace Api.WebSockets
 		/// <summary>
 		/// User ID.
 		/// </summary>
-		public int Id;
+		public uint Id;
 		
 		/// <summary>
 		/// First link in their set.
@@ -1074,7 +1074,7 @@ namespace Api.WebSockets
 		/// Creates a new set of user specific clients for the given user ID.
 		/// </summary>
 		/// <param name="id"></param>
-		public UserWebsocketLinks(int id){
+		public UserWebsocketLinks(uint id){
 			Id = id;
 		}
 		
@@ -1297,7 +1297,7 @@ namespace Api.WebSockets
 		/// <summary>
 		/// Removes this client from the user set.
 		/// </summary>
-		public async Task RemoveFromUserSet(Dictionary<int, UserWebsocketLinks> all){
+		public async Task RemoveFromUserSet(Dictionary<uint, UserWebsocketLinks> all){
 			if(UserSet == null){
 				return;
 			}

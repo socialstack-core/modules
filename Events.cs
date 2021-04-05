@@ -24,7 +24,7 @@ namespace Api.Eventing
 		/// <summary>
 		/// Called when a user logs in/ logs out. Note that they may have multiple 
 		/// </summary>
-		public static EventHandler<int, UserWebsocketLinks> WebSocketUserState;
+		public static EventHandler<uint, UserWebsocketLinks> WebSocketUserState;
 		
 		/// <summary>
 		/// Called when a message is received of a non-core type.
