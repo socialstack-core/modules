@@ -14,12 +14,12 @@ namespace Api.Tags
 		/// <summary>
 		/// The ID of the tag.
 		/// </summary>
-		public int TagId;
+		public uint TagId;
 
 		/// <summary>
 		/// ID of the tag.
 		/// </summary>
-		public override int TargetContentId
+		public override uint TargetContentId
 		{
 			get{
 				return TagId;

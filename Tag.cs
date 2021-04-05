@@ -10,7 +10,7 @@ namespace Api.Tags
 	/// A tag.
 	/// These are the primary taxonomy mechanism; any site content can be grouped up in multiple tags.
 	/// </summary>
-	public partial class Tag : VersionedContent<int>
+	public partial class Tag : VersionedContent<uint>
 	{
 		/// <summary>
 		/// The name of the tag in the site default language.
