@@ -35,7 +35,7 @@ namespace Api.AutoForms
 		/// Obtains the set of all available endpoints in this API.
 		/// </summary>
 		/// <returns></returns>
-		public async Task<List<AutoFormInfo>> List(int roleId)
+		public async Task<List<AutoFormInfo>> List(uint roleId)
 		{
 			if (_cachedAutoFormInfo == null)
 			{
@@ -151,7 +151,7 @@ namespace Api.AutoForms
 
 				// Retain the word color/ colour in this one
 			}
-			else if ((fieldType == typeof(int) || fieldType == typeof(int?)) && labelName != "Id" && labelName.EndsWith("Id") && Api.Database.ContentTypes.GetType(labelName.Substring(0, labelName.Length - 2).ToLower()) != null)
+			else if ((fieldType == typeof(int) || fieldType == typeof(int?) || fieldType == typeof(uint) || fieldType == typeof(uint?)) && labelName != "Id" && labelName.EndsWith("Id") && Api.Database.ContentTypes.GetType(labelName.Substring(0, labelName.Length - 2).ToLower()) != null)
 			{
 				
 				// Remove "Id" from the end of the label:
