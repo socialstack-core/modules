@@ -10,7 +10,7 @@ namespace Api.Comments
 	/// <summary>
 	/// A CommentSet
 	/// </summary>
-	public partial class CommentSet : Content<int>
+	public partial class CommentSet : Content<uint>
 	{
 		/// <summary>
 		/// The sum of direct comments on this content.
@@ -25,7 +25,7 @@ namespace Api.Comments
 		/// <summary>
 		/// The content this comment is on.
 		/// </summary>
-		public int ContentId;
+		public uint ContentId;
 		
 		/// <summary>
 		/// The content type.

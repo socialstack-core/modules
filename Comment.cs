@@ -11,12 +11,12 @@ namespace Api.Comments
 	/// <summary>
 	/// A comment on some particular content.
 	/// </summary>
-	public partial class Comment : VersionedContent<int>, IHaveReactions, IAmLive
+	public partial class Comment : VersionedContent<uint>, IHaveReactions, IAmLive
 	{
 		/// <summary>
 		/// The content this comment is on.
 		/// </summary>
-		public int ContentId;
+		public uint ContentId;
 		/// <summary>
 		/// The content type.
 		/// </summary>
@@ -24,7 +24,7 @@ namespace Api.Comments
 		/// <summary>
 		/// The comment set (server assigned).
 		/// </summary>
-		public int CommentSetId;
+		public uint CommentSetId;
 		/// <summary>
 		/// Number of child comments.
 		/// </summary>
@@ -44,7 +44,7 @@ namespace Api.Comments
 		/// <summary>
 		/// This indicates the current root parent comment for this block of comments. Starts when comments are extreme nested.
 		/// </summary>
-		public int RootParentCommentId;
+		public uint RootParentCommentId;
 		/// <summary>
 		/// This is the xth child comment. Always set.
 		/// </summary>
@@ -53,7 +53,7 @@ namespace Api.Comments
 		/// If the comment is a reply to some other comment, then this is the parent comment Id.
 		/// The Order value is also set based on this being present.
 		/// </summary>
-		public int? ParentCommentId;
+		public uint? ParentCommentId;
 		/// <summary>
 		/// If comments can nest, this is 
 		/// used to indicate the sort order of the thread as a whole.
