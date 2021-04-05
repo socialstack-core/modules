@@ -61,7 +61,7 @@ namespace Api.DatabaseDiff
 						return service;
 					}
 
-					await HandleDatabaseType(service.ServicedType);
+					await HandleDatabaseType(service);
 				}
 
 				return service;
@@ -184,15 +184,17 @@ namespace Api.DatabaseDiff
 		/// <summary>
 		/// Sets up the table(s) for the given type.
 		/// </summary>
-		/// <param name="type"></param>
+		/// <param name="service"></param>
 		/// <returns></returns>
-		private async Task HandleDatabaseType(Type type)
+		private async Task HandleDatabaseType(AutoService service)
 		{
 
 			if (!await TryCheckVersion())
 			{
 				return;
 			}
+
+			var type = service.ServicedType;
 
 			var existingSchema = await LoadSchema();
 
@@ -222,6 +224,7 @@ namespace Api.DatabaseDiff
 				newSchema.Add(columnDefinition);
 			}
 
+			service.DatabaseSchema = newSchema;
 
 			var tableDiff = existingSchema.Diff(newSchema);
 			var altersToRun = new StringBuilder();
@@ -231,7 +234,7 @@ namespace Api.DatabaseDiff
 			{
 				System.Console.WriteLine("Creating table " + table.TableName);
 				altersToRun.Append(table.CreateTableSql());
-				altersToRun.Append(";");
+				altersToRun.Append(';');
 			}
 
 			foreach (var tableDiffs in tableDiff.Changed)
@@ -241,14 +244,26 @@ namespace Api.DatabaseDiff
 				{
 					System.Console.WriteLine("Adding column " + newColumn.TableName + "." + newColumn.ColumnName);
 					altersToRun.Append(newColumn.AlterTableSql());
-					altersToRun.Append(";");
+					altersToRun.Append(';');
 				}
 
 				// Changed columns that can't be automatically upgraded must be handled via manually specified upgrade objects.
 				foreach (var changedColumn in tableDiffs.Changed)
 				{
-					// (No support for those upgrade objects yet)
-					System.Console.WriteLine("Manual column change required: '" + changedColumn.ToColumn.AlterTableSql() + "'");
+					// We'll attempt an auto upgrade of anything changing meta values (i.e. anything that is not actually changing type).
+					if (changedColumn.FromColumn.DataType == changedColumn.ToColumn.DataType)
+					{
+						// This will fail (expectedly) if the change would result in data loss.
+						System.Console.WriteLine("Attempting to alter column  " + changedColumn.ToColumn.TableName + "." + changedColumn.ToColumn.ColumnName + ".");
+
+						altersToRun.Append(changedColumn.ToColumn.AlterTableSql(true));
+						altersToRun.Append(';');
+					}
+					else
+					{
+						// (No support for those upgrade objects yet)
+						System.Console.WriteLine("Manual column change required: '" + changedColumn.ToColumn.AlterTableSql(true) + "'");
+					}
 				}
 
 			}

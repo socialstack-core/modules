@@ -220,8 +220,12 @@ namespace Api.DatabaseDiff
 		/// Generates alter table SQL for this column.
 		/// </summary>
 		/// <returns></returns>
-		public string AlterTableSql()
+		public string AlterTableSql(bool isChange = false)
 		{
+			if (isChange)
+			{
+				return "ALTER TABLE `" + TableName + "` CHANGE COLUMN `" + ColumnName + "` `" + ColumnName + "` " + TypeAsSql();
+			}
 			return "ALTER TABLE `" + TableName + "` ADD COLUMN `" + ColumnName + "` " + TypeAsSql();
 		}
 
