@@ -10,7 +10,7 @@ namespace Api.PublishGroups
 	/// <summary>
 	/// Content within a publish group.
 	/// </summary>
-	public partial class PublishGroupContent : Content<int>
+	public partial class PublishGroupContent : Content<uint>
 	{
 		/// <summary>
 		/// The type ID of the content. See also: Api.Database.ContentTypes
