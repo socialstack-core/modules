@@ -69,7 +69,7 @@ namespace Api.Presence
 
 				// Presence record. If it's for something we recognise, store it in the DB
 				// (don't await this - we won't block the websocket for metrics):
-				_ = Create(context, record);
+				_ = Create(context, record, DataOptions.IgnorePermissions);
 				
 				return new ValueTask<JObject>(message);
 			});
