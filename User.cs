@@ -9,7 +9,7 @@ namespace Api.Users
     /// <summary>
     /// A particular user account.
     /// </summary>
-    public partial class User : Content<int>
+    public partial class User : Content<uint>
 	{
 		/// <summary>
 		/// The user's email address.
@@ -21,14 +21,14 @@ namespace Api.Users
 		/// The user's login revoke count. An incrementing number used to revoke login tokens.
 		/// </summary>
 		[Newtonsoft.Json.JsonIgnore]
-		public int LoginRevokeCount;
+		public uint LoginRevokeCount;
 
 		/// <summary>
 		/// The user's main role.
 		/// </summary>
 		[Module("Admin/ContentSelect")]
 		[Data("contentType", "role")]
-		public int Role;
+		public uint Role;
 		
 		/// <summary>
 		/// Private server only data used to verify this user, e.g. during registration.
@@ -62,7 +62,7 @@ namespace Api.Users
 		/// <summary>
 		/// The latest locale this user used. Primarily, this is used for emails being sent to them. If it's null or 0, the site default, 1, is assumed.
 		/// </summary>
-		public int? LocaleId;
+		public uint? LocaleId;
     }
     
 }

@@ -18,6 +18,17 @@ namespace Api.Users
 		/// </summary>
 		DateTime GetEditedUtc();
 
+		/// <summary>
+		/// Set the created time (UTC).
+		/// </summary>
+		/// <param name="time"></param>
+		void SetCreatedUtc(DateTime time);
+
+		/// <summary>
+		/// Set the edited time (UTC).
+		/// </summary>
+		/// <param name="time"></param>
+		void SetEditedUtc(DateTime time);
 
 	}
 }

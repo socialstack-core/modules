@@ -35,7 +35,7 @@ namespace Api.Users
 		/// Returns the data for 1 entity.
 		/// </summary>
 		[HttpGet("{id}")]
-		public virtual async Task<object> Load([FromRoute] int id)
+		public virtual async Task<object> Load([FromRoute] uint id)
 		{
 			var context = Request.GetContext();
 			var result = await _users.GetProfile(context, id);

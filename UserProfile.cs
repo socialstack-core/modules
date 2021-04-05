@@ -8,7 +8,7 @@ namespace Api.Users
     /// <summary>
     /// A typically public facing segment of a user account.
     /// </summary>
-    public partial class UserProfile: IHaveId<int>
+    public partial class UserProfile: IHaveId<uint>
     {
 		/// <summary>
 		/// Starts creating a public facing variant of the given user object.
@@ -28,7 +28,7 @@ namespace Api.Users
 		/// <summary>
 		/// The user ID.
 		/// </summary>
-		public int Id;
+		public uint Id;
 
 		/// <summary>
 		/// The feature image ref (optionally used on their profile page). See also: "Upload.Ref" in the Uploads module.
@@ -49,7 +49,7 @@ namespace Api.Users
 		/// Gets the ID of this row.
 		/// </summary>
 		/// <returns></returns>
-		public int GetId()
+		public uint GetId()
 		{
 			return Id;
 		}
@@ -58,7 +58,7 @@ namespace Api.Users
 		/// Sets the ID of this row.
 		/// </summary>
 		/// <returns></returns>
-		public void SetId(int id)
+		public void SetId(uint id)
 		{
 			Id = id;
 		}

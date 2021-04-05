@@ -14,7 +14,7 @@ namespace Api.Users
 		/// The user who created this content.
 		/// </summary>
 		[Module(Hide = true)]
-		public int UserId;
+		public uint UserId;
 
 		/// <summary>
 		/// The UTC creation date.
@@ -35,7 +35,7 @@ namespace Api.Users
 		public UserProfile CreatorUser { get; set; }
 
 		/// <summary>
-		/// Gets the CreatedUtc 
+		/// Gets the created UTC time.
 		/// </summary>
 		/// <returns></returns>
 		public DateTime GetCreatedUtc()
@@ -44,7 +44,7 @@ namespace Api.Users
 		}
 
 		/// <summary>
-		/// 
+		/// Gets the edited UTC time.
 		/// </summary>
 		/// <returns></returns>
 		public DateTime GetEditedUtc()
@@ -53,10 +53,28 @@ namespace Api.Users
         }
 
 		/// <summary>
+		/// Sets the created UTC time.
+		/// </summary>
+		/// <returns></returns>
+		public void SetCreatedUtc(DateTime time)
+		{
+			CreatedUtc = time;
+		}
+
+		/// <summary>
+		/// Sets the edited UTC time.
+		/// </summary>
+		/// <returns></returns>
+		public void SetEditedUtc(DateTime time)
+		{
+			EditedUtc = time;
+		}
+
+		/// <summary>
 		/// Gets the ID of the user who created this content.
 		/// </summary>
 		/// <returns></returns>
-		public int GetCreatorUserId()
+		public uint GetCreatorUserId()
 		{
 			return UserId;
 		}

@@ -335,7 +335,7 @@ namespace Api.Users
 				// FUTURE IMPROVEMENT: Do this in chunks of ~50k entries.
 				// (applies to at least categories/ tags).
 
-				var uniqueUsers = new Dictionary<int, UserProfile>();
+				var uniqueUsers = new Dictionary<uint, UserProfile>();
 
 				for (var i = 0; i < content.Count; i++)
 				{
@@ -495,7 +495,7 @@ namespace Api.Users
 		/// <param name="context"></param>
 		/// <param name="id"></param>
 		/// <returns></returns>
-		public async Task<UserProfile> GetProfile(Context context, int id)
+		public async Task<UserProfile> GetProfile(Context context, uint id)
 		{
 			// First get the full user info:
 			var result = await Get(context, id, DataOptions.IgnorePermissions);
