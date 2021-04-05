@@ -221,7 +221,7 @@ namespace Api.CanvasRenderer
 		/// </summary>
 		/// <param name="localeId">The locale you want the JS for.</param>
 		/// <returns></returns>
-		public ValueTask<FrontendFile> GetCss(int localeId)
+		public ValueTask<FrontendFile> GetCss(uint localeId)
 		{
 			// CSS files do not currently do any localisation specific things, but will likely do so in the future, so this is an async method.
 			// Images containing text reffed by them for example.
@@ -245,7 +245,7 @@ namespace Api.CanvasRenderer
 		/// </summary>
 		/// <param name="localeId">The locale you want the JS for.</param>
 		/// <returns></returns>
-		public async ValueTask<FrontendFile> GetJs(int localeId)
+		public async ValueTask<FrontendFile> GetJs(uint localeId)
 		{
 			if (localeId <= 0)
 			{
@@ -347,7 +347,7 @@ namespace Api.CanvasRenderer
 			}
 			else if (_localeToMainJs.Length < localeId)
 			{
-				Array.Resize(ref _localeToMainJs, localeId);
+				Array.Resize(ref _localeToMainJs, (int)localeId);
 			}
 
 			// Create a hash of the file bytes.

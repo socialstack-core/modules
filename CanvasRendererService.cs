@@ -204,7 +204,7 @@ namespace Api.CanvasRenderer
 			}
 			else if(_engines.Length < locale.Id)
 			{
-				Array.Resize(ref _engines, locale.Id);
+				Array.Resize(ref _engines, (int)locale.Id);
 			}
 
 			var cre = new V8.CanvasRendererEngine()
@@ -371,7 +371,7 @@ namespace Api.CanvasRenderer.V8
 		/// <summary>
 		/// Get content serverside by type and ID.
 		/// </summary>
-		public async Task getContentById(Contexts.Context context, int contentTypeId, int contentId, ScriptObject cb)
+		public async Task getContentById(Contexts.Context context, int contentTypeId, uint contentId, ScriptObject cb)
         {
 			// Get the content object, and when it's done, invoke the callback.
 			var content = await Content.Get(context, contentTypeId, contentId);

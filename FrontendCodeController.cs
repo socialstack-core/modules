@@ -37,11 +37,14 @@ namespace Api.CanvasRenderer
 		{
 			// Get locale ID from get arg called "lid". If it isn't specified, must use default locale 1.
 			// Note that it would not be up to this code to decide a suitable locale if it is not specified.
-			int localeId = 1;
+			uint localeId = 1;
 
 			if (Request.Query.TryGetValue("lid", out StringValues value))
 			{
-				int.TryParse(value.ToString(), out localeId);
+				if(!uint.TryParse(value.ToString(), out localeId))
+				{
+					localeId = 1;
+				}
 			}
 
 			// Ask the service as it's almost always cached in there.
@@ -74,11 +77,14 @@ namespace Api.CanvasRenderer
 		{
 			// Get locale ID from get arg called "lid". If it isn't specified, must use default locale 1.
 			// Note that it would not be up to this code to decide a suitable locale if it is not specified.
-			int localeId = 1;
+			uint localeId = 1;
 
 			if (Request.Query.TryGetValue("lid", out StringValues value))
 			{
-				int.TryParse(value.ToString(), out localeId);
+				if (!uint.TryParse(value.ToString(), out localeId))
+				{
+					localeId = 1;
+				}
 			}
 
 			// Ask the service as it's almost always cached in there.
@@ -111,11 +117,14 @@ namespace Api.CanvasRenderer
 		{
 			// Get locale ID from get arg called "lid". If it isn't specified, must use default locale 1.
 			// Note that it would not be up to this code to decide a suitable locale if it is not specified.
-			int localeId = 1;
+			uint localeId = 1;
 
 			if (Request.Query.TryGetValue("lid", out StringValues value))
 			{
-				int.TryParse(value.ToString(), out localeId);
+				if(!uint.TryParse(value.ToString(), out localeId))
+				{
+					localeId = 1;
+				}
 			}
 
 			// Ask the service as it's almost always cached in there.

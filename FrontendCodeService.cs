@@ -279,7 +279,7 @@ namespace Api.CanvasRenderer
 		/// </summary>
 		/// <param name="localeId">The locale you want the JS for.</param>
 		/// <returns></returns>
-		public async ValueTask<FrontendFile> GetMainJs(int localeId)
+		public async ValueTask<FrontendFile> GetMainJs(uint localeId)
 		{
 #if DEBUG
 			// Special case for devs - may need to wait for first build if it hasn't happened yet.
@@ -297,7 +297,7 @@ namespace Api.CanvasRenderer
 		/// </summary>
 		/// <param name="localeId">The locale you want the JS for.</param>
 		/// <returns></returns>
-		public async ValueTask<FrontendFile> GetMainCss(int localeId)
+		public async ValueTask<FrontendFile> GetMainCss(uint localeId)
 		{
 #if DEBUG
 			// Special case for devs - may need to wait for first build if it hasn't happened yet.
@@ -315,7 +315,7 @@ namespace Api.CanvasRenderer
 		/// </summary>
 		/// <param name="localeId">The locale you want the JS for.</param>
 		/// <returns></returns>
-		public async ValueTask<FrontendFile> GetAdminMainCss(int localeId)
+		public async ValueTask<FrontendFile> GetAdminMainCss(uint localeId)
 		{
 #if DEBUG
 			// Special case for devs - may need to wait for first build if it hasn't happened yet.
@@ -333,7 +333,7 @@ namespace Api.CanvasRenderer
 		/// </summary>
 		/// <param name="localeId">The locale you want the JS for.</param>
 		/// <returns></returns>
-		public async ValueTask<FrontendFile> GetAdminMainJs(int localeId)
+		public async ValueTask<FrontendFile> GetAdminMainJs(uint localeId)
 		{
 #if DEBUG
 			// Special case for devs - may need to wait for first build if it hasn't happened yet.
@@ -351,7 +351,7 @@ namespace Api.CanvasRenderer
 		/// </summary>
 		/// <param name="localeId">The locale you want the JS for.</param>
 		/// <returns></returns>
-		public async ValueTask<FrontendFile> GetEmailMainJs(int localeId)
+		public async ValueTask<FrontendFile> GetEmailMainJs(uint localeId)
         {
 #if DEBUG
 			// Special case for devs - may need to wait for first build if it hasn't happened yet.
