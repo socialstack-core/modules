@@ -12,6 +12,10 @@ namespace Api.Startup
 	public static class Services
 	{
 		/// <summary>
+		/// Environment that we're running in. Use IsDevelopment, IsStaging and IsProduction for common ones.
+		/// </summary>
+		public static string Environment;
+		/// <summary>
 		/// True when AfterStart has been called.
 		/// </summary>
 		public static bool Started;
@@ -44,6 +48,33 @@ namespace Api.Startup
 		/// The underlying service provider, used to obtain injected service instances.
 		/// </summary>
 		public static IServiceProvider Provider;
+
+		/// <summary>
+		/// True if this is the dev environment. Any of {null}, "dev" or "development" are accepted.
+		/// </summary>
+		/// <returns></returns>
+		public static bool IsDevelopment()
+		{
+			return string.IsNullOrEmpty(Environment) || Environment == "dev" || Environment == "development";
+		}
+
+		/// <summary>
+		/// True if this is the production environment. Any of "prod", "production" or "live" are accepted.
+		/// </summary>
+		/// <returns></returns>
+		public static bool IsProduction()
+		{
+			return Environment == "prod" || Environment == "production" || Environment == "live";
+		}
+
+		/// <summary>
+		/// True if this is the stage environment. Any of "stage" or "staging" are accepted.
+		/// </summary>
+		/// <returns></returns>
+		public static bool IsStaging()
+		{
+			return Environment == "stage" || Environment == "staging";
+		}
 
 		/// <summary>
 		/// Gets a service by its textual interface name. Use this if you want to make a service optional and not a hard requirement for your module.

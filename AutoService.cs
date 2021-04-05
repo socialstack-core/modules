@@ -558,7 +558,7 @@ public partial class AutoService<T, ID> : AutoService
 
 		if (_database != null)
 		{
-			if (!entity.GetId().Equals(0))
+			if (!entity.GetId().Equals(default(ID)))
 			{
 				// Explicit ID has been provided.
 				await _database.Run(context, createWithIdQuery, entity);

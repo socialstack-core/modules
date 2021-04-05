@@ -85,7 +85,18 @@ namespace Api.Startup
 					System.IO.File.Delete(apiSocketFile);
 				}catch{}
 			}
-			
+
+			// Get environment name:
+			var env = AppSettings.GetString("Environment", null);
+
+			if (string.IsNullOrEmpty(env))
+			{
+				throw new Exception("You must declare the \"Environment\" field in your appsettings.json - typically its value is either \"dev\", \"stage\" or \"prod\".");
+			}
+
+			// Set environment:
+			Services.Environment = env.ToLower().Trim();
+
 			// Create a Kestrel host:
 			var host = new WebHostBuilder()
                 .UseKestrel(options => {
