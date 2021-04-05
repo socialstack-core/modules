@@ -7,7 +7,7 @@ namespace Api.PasswordResetRequests
 	/// <summary>
 	/// A password reset request.
 	/// </summary>
-	public class PasswordResetRequest : Content<int>
+	public class PasswordResetRequest : Content<uint>
 	{
 		/// <summary>
 		/// The randomly generated token, used by the client, to prove ownership of the 2nd channel.
@@ -36,7 +36,7 @@ namespace Api.PasswordResetRequests
 		/// The user this reset request is for.
 		/// </summary>
 		[JsonIgnore]
-		public int UserId;
+		public uint UserId;
 
 	}
 }

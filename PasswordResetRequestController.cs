@@ -149,7 +149,7 @@ namespace Api.PasswordResetRequests
 		/// Admin link generation.
 		/// </summary>
 		[HttpGet("{id}/generate")]
-		public async ValueTask<object> Generate(int id)
+		public async ValueTask<object> Generate(uint id)
 		{
 			var context = Request.GetContext();
 
