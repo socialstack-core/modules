@@ -62,7 +62,7 @@ namespace Api.Uploader
 			pieces = pieces[pieces.Length - 1].Split('.');
 
 			// ID is always the first piece before any types:
-			if (!int.TryParse(pieces[0], out int id))
+			if (!uint.TryParse(pieces[0], out uint id))
 			{
 				return null;
 			}

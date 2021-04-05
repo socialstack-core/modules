@@ -12,7 +12,7 @@ namespace Api.Uploader
 	/// <summary>
 	/// Meta for uploaded files.
 	/// </summary>
-    public partial class Upload : VersionedContent<int>
+    public partial class Upload : VersionedContent<uint>
 	{
 		/// <summary>
 		/// The signature service for priv uploads.
