@@ -17,11 +17,6 @@ namespace Api.Eventing
 		/// </summary>
 		public static Startup.ServiceEventGroup Service;
 		
-		/// <summary>
-		/// Called when a remote syncable type was added.
-		/// </summary>
-		public static EventHandler<Type, int> RemoteSyncTypeAdded;
-		
 	}
 
 }

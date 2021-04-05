@@ -1,5 +1,6 @@
 using Api.Contexts;
 using Api.Database;
+using Api.DatabaseDiff;
 using Api.Eventing;
 using Api.Permissions;
 using Api.Startup;
@@ -17,8 +18,8 @@ using System.Threading.Tasks;
 /// Services are actually detected purely by name.
 /// </summary>
 /// <typeparam name="T"></typeparam>
-public partial class AutoService<T> : AutoService<T, int>
-	where T : class, IHaveId<int>, new()
+public partial class AutoService<T> : AutoService<T, uint>
+	where T : class, IHaveId<uint>, new()
 {
 	/// <summary>
 	/// Instanced automatically
@@ -102,7 +103,7 @@ public partial class AutoService<T, ID> : AutoService
 	/// <summary>
 	/// Sets up the common service type fields.
 	/// </summary>
-	public AutoService(EventGroup eventGroup) : base(typeof(T))
+	public AutoService(EventGroup eventGroup) : base(typeof(T), typeof(ID))
 	{
 		// Start preparing the queries. Doing this ahead of time leads to excellent performance savings, 
 		// whilst also using a high-level abstraction as another plugin entry point.
@@ -119,15 +120,18 @@ public partial class AutoService<T, ID> : AutoService
 
 		// GetObject specifically uses integer IDs (and is only available on services that have integer IDs)
 		// We need to make a delegate that it can use for mapping that integer through to whatever typeof(ID) is.
-		if (typeof(ID) == typeof(int))
+		if (typeof(ID) == typeof(uint))
 		{
 			var getMethodDelegate = (Func<Context, ID, DataOptions, ValueTask<T>>)Get;
-			_getWithIntId = (getMethodDelegate as Func<Context, int, DataOptions, ValueTask<T>>);
+			_getWithIntId = (getMethodDelegate as Func<Context, uint, DataOptions, ValueTask<T>>);
 		}
-
+		else if (typeof(ID) == typeof(int))
+		{
+			throw new ArgumentException("All ID's must now be unsigned types. Consider changing to Content<uint>.", nameof(ID));
+		}
 	}
 	
-	private readonly Func<Context, int, DataOptions, ValueTask<T>> _getWithIntId;
+	private readonly Func<Context, uint, DataOptions, ValueTask<T>> _getWithIntId;
 	private JsonStructure<T>[] _jsonStructures = null;
 
 	/// <summary>
@@ -151,7 +155,7 @@ public partial class AutoService<T, ID> : AutoService
 	/// <summary>
 	/// Gets the JSON structure. Defines settable fields for a particular role.
 	/// </summary>
-	public override async ValueTask<JsonStructure> GetJsonStructure(int roleId)
+	public override async ValueTask<JsonStructure> GetJsonStructure(uint roleId)
 	{
 		return await GetTypedJsonStructure(roleId);
 	}
@@ -159,7 +163,7 @@ public partial class AutoService<T, ID> : AutoService
 	/// <summary>
 	/// Gets the JSON structure. Defines settable fields for a particular role.
 	/// </summary>
-	public async ValueTask<JsonStructure<T>> GetTypedJsonStructure(int roleId)
+	public async ValueTask<JsonStructure<T>> GetTypedJsonStructure(uint roleId)
 	{
 		if(_jsonStructures == null)
 		{
@@ -402,7 +406,7 @@ public partial class AutoService<T, ID> : AutoService
 	/// <param name="id"></param>
 	/// <param name="options"></param>
 	/// <returns></returns>
-	public override async ValueTask<object> GetObject(Context context, int id, DataOptions options = DataOptions.Default)
+	public override async ValueTask<object> GetObject(Context context, uint id, DataOptions options = DataOptions.Default)
 	{
 		if (_getWithIntId == null)
 		{
@@ -431,7 +435,7 @@ public partial class AutoService<T, ID> : AutoService
 	/// <param name="ids"></param>
 	/// <param name="options"></param>
 	/// <returns></returns>
-	public override async ValueTask<IEnumerable> ListObjects(Context context, IEnumerable<int> ids, DataOptions options = DataOptions.Default)
+	public override async ValueTask<IEnumerable> ListObjects(Context context, IEnumerable<uint> ids, DataOptions options = DataOptions.Default)
 	{
 		if (ids == null || !ids.Any())
 		{
@@ -875,18 +879,31 @@ public partial class AutoService<T, ID> : AutoService
 /// <summary>
 /// The base class of all AutoService instances.
 /// </summary>
-public partial class AutoService : IHaveId<int>
+public partial class AutoService : IHaveId<uint>
 {
 	/// <summary>
-	/// The type that this AutoService is servicing. E.g. a User, ForumPost etc.
+	/// True if this type is synced. This is typically set to true if the cache is active.
+	/// </summary>
+	public bool Synced;
+	/// <summary>
+	/// The type that this AutoService is servicing, if any. E.g. a User, ForumPost etc.
 	/// </summary>
 	public Type ServicedType;
+	/// <summary>
+	/// The type that this AutoService uses for IDs, if any. Almost always int, but some use ulong.
+	/// </summary>
+	public Type IdType;
 
 	/// <summary>
 	/// The database service.
 	/// </summary>
 	protected DatabaseService _database;
-	
+
+	/// <summary>
+	/// The schema for all tables related to this service. This field is updated automatically via modding the schema during the DatabaseDiffBeforeAdd event.
+	/// </summary>
+	public Schema DatabaseSchema;
+
 	/// <summary>
 	/// The add mask to use for a nestable service.
 	/// Nested services essentially automatically block infinite recursion when loading data.
@@ -924,7 +941,8 @@ public partial class AutoService : IHaveId<int>
 	/// Creates a new AutoService.
 	/// </summary>
 	/// <param name="type"></param>
-	public AutoService(Type type = null)
+	/// <param name="idType"></param>
+	public AutoService(Type type = null, Type idType = null)
 	{
 		// _database is left blank if:
 		// * Type is given.
@@ -941,6 +959,7 @@ public partial class AutoService : IHaveId<int>
 		}
 
 		ServicedType = type;
+		IdType = idType;
 	}
 
 	/// <summary>
@@ -995,7 +1014,7 @@ public partial class AutoService : IHaveId<int>
 	/// Sets up the cache on this service. If you're not sure, use Cache instead of this.
 	/// </summary>
 	/// <returns></returns>
-	public virtual Task SetupCacheNow(CacheConfig cfg)
+	public virtual void Cache(CacheConfig cfg = null)
 	{
 		throw new NotImplementedException();
 	}
@@ -1003,7 +1022,7 @@ public partial class AutoService : IHaveId<int>
 	/// <summary>
 	/// Gets the JSON structure. Defines settable fields for a particular role.
 	/// </summary>
-	public virtual ValueTask<JsonStructure> GetJsonStructure(int roleId)
+	public virtual ValueTask<JsonStructure> GetJsonStructure(uint roleId)
 	{
 		throw new NotImplementedException();
 	}
@@ -1041,7 +1060,7 @@ public partial class AutoService : IHaveId<int>
 	/// <param name="id"></param>
 	/// <param name="options"></param>
 	/// <returns></returns>
-	public virtual ValueTask<object> GetObject(Context context, int id, DataOptions options = DataOptions.Default)
+	public virtual ValueTask<object> GetObject(Context context, uint id, DataOptions options = DataOptions.Default)
 	{
 		return new ValueTask<object>(null);
 	}
@@ -1053,7 +1072,7 @@ public partial class AutoService : IHaveId<int>
 	/// <param name="ids"></param>
 	/// <param name="options"></param>
 	/// <returns></returns>
-	public virtual ValueTask<IEnumerable> ListObjects(Context context, IEnumerable<int> ids, DataOptions options = DataOptions.Default)
+	public virtual ValueTask<IEnumerable> ListObjects(Context context, IEnumerable<uint> ids, DataOptions options = DataOptions.Default)
 	{
 		return new ValueTask<IEnumerable>((IEnumerable)null);
 	}
@@ -1270,7 +1289,7 @@ public partial class AutoService : IHaveId<int>
 	/// </summary>
 	protected IHaveArrayHandler<T, U, M> DefineIHaveArrayHandler<T, U, M>(string whereFieldName, string mapperFieldName, Action<T, List<U>> setResult, bool retainOrder = false)
 		where T : class
-		where U : Content<int>, new()
+		where U : Content<uint>, new()
 		where M : MappingEntity, new()
 	{
 		IHaveArrayHandler<T, U, M> mapper;
@@ -1352,11 +1371,11 @@ public partial class AutoService : IHaveId<int>
 	/// The ID of the service itself.
 	/// </summary>
 	/// <returns></returns>
-	public int GetId()
+	public uint GetId()
 	{
 		if (ServicedType != null)
 		{
-			return ContentTypes.GetId(ServicedType);
+			return (uint)ContentTypes.GetId(ServicedType);
 		}
 
 		throw new NotImplementedException("Typeless services don't have an ID. You probably meant to use something else, like Get.");
@@ -1366,7 +1385,7 @@ public partial class AutoService : IHaveId<int>
 	/// The ID of the service itself.
 	/// </summary>
 	/// <param name="id"></param>
-	public void SetId(int id)
+	public void SetId(uint id)
 	{
 		throw new NotImplementedException("This is readonly");
 	}

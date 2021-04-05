@@ -23,31 +23,35 @@ namespace Api.Startup
 		/// </summary>
 		public CacheSetupEventListener()
 		{
-			Events.Service.AfterStart.AddEventListener(async (Context ctx, object src) =>
+			SiteCacheConfig scc = null;
+
+			// Caching config section declares additional core services which should also have caching turned on.
+			// This handler reads that config section and applies its outcomes.
+
+			Events.Service.BeforeCreate.AddEventListener((Context ctx, AutoService svc) =>
 			{
 				// Get cfg from appsettings:
-				var cfg = AppSettings.GetSection("Caching").Get<SiteCacheConfig>();
-				
-				if(cfg != null && cfg.Services != null)
+				if (scc == null)
 				{
-					// Caching config section declares additional core services which should also have caching turned on.
-					
-					foreach(var kvp in cfg.Services)
-					{
-						if (Services.Get(kvp.Key) is not AutoService autoSvc)
-						{
-							Console.WriteLine("[WARN] A service called '" + kvp.Key + "' is in your Caching config in your appsettings, but it doesn't exist in this project.");
-							continue;
-						}
+					scc = AppSettings.GetSection("Caching").Get<SiteCacheConfig>();
 
-						// Turn on caching now:
-						await autoSvc.SetupCacheNow(kvp.Value);
+					if (scc == null)
+					{
+						scc = new SiteCacheConfig();
 					}
-					
 				}
-				
-				return src;
-			}, 50);
+
+				if(scc.Services != null)
+				{
+					if (scc.Services.TryGetValue(svc.GetType().Name, out CacheConfig cfg))
+					{
+						// Apply cache config:
+						svc.Cache(cfg);
+					}
+				}
+
+				return new ValueTask<AutoService>(svc);
+			}, 2);
 		}
 	}
 }

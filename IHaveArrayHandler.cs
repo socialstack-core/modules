@@ -21,7 +21,7 @@ namespace Api.Startup {
 	/// </summary>
 	public class IHaveArrayHandler<T, U, M> 
 			where T : class
-			where U : Content<int>, new()
+			where U : Content<uint>, new()
 			where M : MappingEntity, new()
 	{
 		/// <summary>
@@ -120,7 +120,7 @@ namespace Api.Startup {
 		/// Sets a particular type with IHave* handlers. Used via reflection.
 		/// </summary>
 		/// <typeparam name="CT"></typeparam>
-		public virtual void SetupHandlers<CT>(EventGroup<CT> evtGroup) where CT : Content<int>, T, new()
+		public virtual void SetupHandlers<CT>(EventGroup<CT> evtGroup) where CT : Content<uint>, T, new()
 		{
 			UserService _users = null;
 
@@ -137,11 +137,11 @@ namespace Api.Startup {
 					return null;
 				}
 
-				int revisionId = 0;
+				uint revisionId = 0;
 
-				if (content is VersionedContent<int>)
+				if (content is VersionedContent<uint>)
 				{
-					var revId = (content as VersionedContent<int>).RevisionId;
+					var revId = (content as VersionedContent<uint>).RevisionId;
 
 					if (revId.HasValue)
 					{
@@ -220,24 +220,24 @@ namespace Api.Startup {
 							return null;
 						}
 
-						var ids = new List<int>();
+						var ids = new List<uint>();
 
 						foreach (var token in idArray)
 						{
 							// id is..
-							var id = token.Value<int?>();
+							var id = token.Value<uint?>();
 
-							if (id.HasValue && id > 0)
+							if (id.HasValue)
 							{
 								ids.Add(id.Value);
 							}
 						}
 
-						int revisionId = 0;
+						uint revisionId = 0;
 
-						if (targetObject is VersionedContent<int>)
+						if (targetObject is VersionedContent<uint>)
 						{
-							var revId = (targetObject as VersionedContent<int>).RevisionId;
+							var revId = (targetObject as VersionedContent<uint>).RevisionId;
 
 							if (revId.HasValue)
 							{
@@ -248,7 +248,7 @@ namespace Api.Startup {
 						// Get all mapping entries for this object:
 						var existingEntries = await Database.List(ctx, listByObjectQuery, null, contentTypeId, targetObject.Id, revisionId);
 						
-						Dictionary<int, T> existingLookup = null;
+						Dictionary<uint, T> existingLookup = null;
 						
 						if(RetainOrder)
 						{
@@ -262,7 +262,7 @@ namespace Api.Startup {
 						else
 						{
 							// Identify ones being deleted, and ones being added, then update tag contents.
-							existingLookup = new Dictionary<int, T>();
+							existingLookup = new Dictionary<uint, T>();
 
 							foreach (var existingEntry in existingEntries)
 							{
@@ -273,7 +273,7 @@ namespace Api.Startup {
 						
 						var now = DateTime.UtcNow;
 
-						Dictionary<int, bool> newSet = new Dictionary<int, bool>();
+						Dictionary<uint, bool> newSet = new Dictionary<uint, bool>();
 
 						if (mappingService == null)
 						{
@@ -364,7 +364,7 @@ namespace Api.Startup {
 				// ASSUMPTION: The list is not excessively long!
 				// FUTURE IMPROVEMENT: Do this in chunks of ~50k entries.
 				// (applies to at least categories/ tags).
-				var contentLookup = new Dictionary<int, List<U>>();
+				var contentLookup = new Dictionary<uint, List<U>>();
 
 				for (var i = 0; i < content.Count; i++)
 				{
@@ -402,7 +402,7 @@ namespace Api.Startup {
 				var allMappings = await mappingService.List(context, filter);
 
 				// Build fast lookup:
-				var targetContentLookup = new Dictionary<int, U>();
+				var targetContentLookup = new Dictionary<uint, U>();
 
 				// Get the unique set of IDs so we can collect those categories. Shortly will reuse the same lookup dict.
 				foreach (var contentTag in allMappings)
@@ -492,10 +492,10 @@ namespace Api.Startup {
 					var requiredList = await mappingService.List(context, new Filter<M>()
 						.Equals("RevisionId", 0)
 						.And().Equals("ContentTypeId", contentTypeId)
-						.And().EqualsSet(MapperFieldName, idSet.Where(token => token.Type == JTokenType.Integer).Select(token => token.Value<int>())));
+						.And().EqualsSet(MapperFieldName, idSet.Where(token => token.Type == JTokenType.Integer).Select(token => token.Value<uint>())));
 
 					// Build unique set of content IDs:
-					Dictionary<int, bool> uniqueIds = new Dictionary<int, bool>();
+					Dictionary<uint, bool> uniqueIds = new Dictionary<uint, bool>();
 
 					foreach (var entry in requiredList)
 					{
@@ -570,10 +570,10 @@ namespace Api.Startup {
 						var requiredList = await mappingService.List(context, new Filter<M>()
 							.Equals("RevisionId", 0)
 							.And().Equals("ContentTypeId", contentTypeId)
-							.And().EqualsSet(MapperFieldName, idSet.Select(token => token.Value<int>())));
+							.And().EqualsSet(MapperFieldName, idSet.Select(token => token.Value<uint>())));
 
 						// Build unique set of content IDs:
-						Dictionary<int, bool> uniqueIds = new Dictionary<int, bool>();
+						Dictionary<uint, bool> uniqueIds = new Dictionary<uint, bool>();
 
 						foreach (var entry in requiredList)
 						{
@@ -643,11 +643,11 @@ namespace Api.Startup {
 					return null;
 				}
 
-				int revisionId = 0;
+				uint revisionId = 0;
 
-				if (content is VersionedContent<int>)
+				if (content is VersionedContent<uint>)
 				{
-					var revId = (content as VersionedContent<int>).RevisionId;
+					var revId = (content as VersionedContent<uint>).RevisionId;
 
 					if (revId.HasValue)
 					{
@@ -658,7 +658,7 @@ namespace Api.Startup {
 				// List the content now:
 				var mappings = await Database.List(context, listByObjectQuery, null, contentTypeId, content.Id, revisionId);
 
-				OnSetResult(content as T, mappings);
+				OnSetResult(content, mappings);
 
 				return content;
 			});
@@ -675,7 +675,7 @@ namespace Api.Startup {
 				// ASSUMPTION: The list is not excessively long!
 				// FUTURE IMPROVEMENT: Do this in chunks of ~50k entries.
 				// (applies to at least categories/ tags).
-				var contentLookup = new Dictionary<int, List<U>>();
+				var contentLookup = new Dictionary<uint, List<U>>();
 
 				for (var i = 0; i < content.Count; i++)
 				{

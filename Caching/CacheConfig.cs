@@ -25,6 +25,12 @@ namespace Api.Startup{
 	public class CacheConfig
 	{
 		/// <summary>
+		/// True if this type is created at a very low frequency and should use purely sequential IDs.
+		/// This works by adding 1 to the highest ID in the cache.
+		/// </summary>
+		public bool LowFrequencySequentialIds { get; set; } = false;
+		
+		/// <summary>
 		/// True if all content should be preloaded in the cache.
 		/// </summary>
 		public bool? Preload { get; set; } = true;

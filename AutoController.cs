@@ -16,8 +16,8 @@ using System.Threading.Tasks;
 /// Like AutoService this isn't in a namespace due to the frequency it's used.
 /// </summary>
 /// <typeparam name="T"></typeparam>
-public partial class AutoController<T> : AutoController<T, int>
-	where T : class, IHaveId<int>, new()
+public partial class AutoController<T> : AutoController<T, uint>
+	where T : class, IHaveId<uint>, new()
 {
 }
 
@@ -311,7 +311,7 @@ public partial class AutoController<T,ID> : ControllerBase
 		var context = Request.GetContext();
 		
 		var entity = await _service.Get(context, id);
-
+		
 		if (entity == null)
 		{
 			// Either not allowed to edit this, or it doesn't exist.
@@ -319,7 +319,7 @@ public partial class AutoController<T,ID> : ControllerBase
 			Response.StatusCode = 404;
 			return null;
 		}
-
+		
 		// Run the request update event (using the original object to be updated):
 		entity = await _service.EventGroup.EndpointStartUpdate.Dispatch(context, entity, Response) as T;
 

@@ -16,7 +16,7 @@ using Api.Translate;
 /// Services are actually detected purely by name.
 /// </summary>
 public partial class AutoService<T, ID> {
-
+	
 	/// <summary>
 	/// The config for the cache.
 	/// </summary>
@@ -26,6 +26,15 @@ public partial class AutoService<T, ID> {
 	/// It's an array as there's one per locale.
 	/// </summary>
 	protected ServiceCache<T, ID>[] _cache;
+
+	/// <summary>
+	/// The cache config for this service (if any).
+	/// </summary>
+	/// <returns></returns>
+	public CacheConfig GetCacheConfig()
+	{
+		return _cacheConfig;
+	}
 
 	/// <summary>
 	/// Gets the index ID of a cache index with the given key name.
@@ -46,21 +55,37 @@ public partial class AutoService<T, ID> {
 	/// Indicates that entities of this service should be cached in memory.
 	/// Auto establishes if everything should be loaded now or later.
 	/// </summary>
-	public void Cache(CacheConfig cfg = null)
+	public override void Cache(CacheConfig cfg = null)
 	{
+		if (cfg == null)
+		{
+			// Default config:
+			cfg = new CacheConfig();
+		}
+
+		var alreadyWaiting = (_cacheConfig != null);
+
+		_cacheConfig = cfg;
+		Synced = cfg == null || cfg.ClusterSync;
+
+		if (alreadyWaiting)
+		{
+			return;
+		}
+
 		if (Services.Started)
 		{
 			// Services already started - preload right now:
-			var task = SetupCacheNow(cfg);
+			var task = SetupCacheNow();
 			task.Wait();
 		}
 		else
 		{
 			Events.Service.AfterStart.AddEventListener(async (Context ctx, object src) =>
 			{
-				await SetupCacheNow(cfg);
+				await SetupCacheNow();
 				return src;
-			}, cfg == null ? 10 : cfg.PreloadPriority);
+			}, cfg.PreloadPriority);
 		}
 	}
 
@@ -69,7 +94,7 @@ public partial class AutoService<T, ID> {
 	/// </summary>
 	/// <param name="localeId"></param>
 	/// <returns></returns>
-	public ServiceCache<T, ID> GetCacheForLocale(int localeId)
+	public ServiceCache<T, ID> GetCacheForLocale(uint localeId)
 	{
 		if (_cache == null || localeId <= 0 || localeId > _cache.Length)
 		{
@@ -82,24 +107,11 @@ public partial class AutoService<T, ID> {
 	/// Sets up the cache on this service. If you're not sure, use Cache instead of this.
 	/// </summary>
 	/// <returns></returns>
-	public override async Task SetupCacheNow(CacheConfig cfg)
+	private async Task SetupCacheNow()
 	{
-		if (cfg == null)
-		{
-			// Default config:
-			cfg = new CacheConfig();
-		}
-
-		_cacheConfig = cfg;
 		
 		// Log that the cache is on:
 		Console.WriteLine(GetType().Name + " - cache on");
-
-		if (cfg.ClusterSync)
-		{
-			// Ping sync:
-			RemoteSync.Add(typeof(T));
-		}
 
 		var genericCfg = _cacheConfig as CacheConfig<T>;
 
