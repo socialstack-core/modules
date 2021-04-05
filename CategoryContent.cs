@@ -14,12 +14,12 @@ namespace Api.Categories
 		/// <summary>
 		/// The ID of the category.
 		/// </summary>
-		public int CategoryId;
+		public uint CategoryId;
 		
 		/// <summary>
 		/// ID of the category.
 		/// </summary>
-		public override int TargetContentId
+		public override uint TargetContentId
 		{
 			get{
 				return CategoryId;

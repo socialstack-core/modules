@@ -10,7 +10,7 @@ namespace Api.Categories
 	/// A category.
 	/// These are the primary taxonomy mechanism; any site content can be grouped up in multiple categories.
 	/// </summary>
-	public partial class Category : VersionedContent<int>
+	public partial class Category : VersionedContent<uint>
 	{
 		/// <summary>
 		/// The name of the category in the site default language.
