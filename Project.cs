@@ -10,7 +10,7 @@ namespace Api.Projects
 	/// <summary>
 	/// A project for that has been worked on - used for e.g. case studies.
 	/// </summary>
-	public partial class Project : VersionedContent<int>
+	public partial class Project : VersionedContent<uint>
 	{
         /// <summary>
         /// The name of the project in the site default language.
