@@ -197,10 +197,11 @@ namespace Api.SocketServerLibrary {
 				// Specialised websocket mode.
 				// Need to read off websocket headers and also unmask the data.
 
-				if (BytesUntilWebsocketHeader > length)
+				if (BytesUntilWebsocketHeader >= length)
 				{
 					// Receive them all:
-					OnReceiveXorData(0, length);
+					BytesUntilWebsocketHeader -= length;
+					OnReceiveXorData(0, length);				
 				}
 				else
 				{
@@ -223,8 +224,18 @@ namespace Api.SocketServerLibrary {
 
 						if (BytesUntilWebsocketHeader == 126)
 						{
-							// 4 byte length follows.
-							BytesUntilWebsocketHeader = Data[currentIndex++] | Data[currentIndex++] << 1 | Data[currentIndex++] << 2 | Data[currentIndex++] << 3;
+							// 2 byte length follows.
+							BytesUntilWebsocketHeader = Data[currentIndex++] << 8 | Data[currentIndex++];
+						}
+						else if (BytesUntilWebsocketHeader == 127)
+						{
+							// 8 byte length follows.
+							ulong len = (ulong)(
+								Data[currentIndex++] << 56 | Data[currentIndex++] << 48 | Data[currentIndex++] << 40 | Data[currentIndex++] << 32 |
+								Data[currentIndex++] << 24 | Data[currentIndex++] << 16 | Data[currentIndex++] << 8 | Data[currentIndex++]
+							);
+
+							BytesUntilWebsocketHeader = (int)len;
 						}
 
 						// 4 mask bytes are next:
@@ -349,7 +360,7 @@ namespace Api.SocketServerLibrary {
 			if (PendingCallback != null)
 			{
 				// How many bytes are we waiting for and how many do we now have?
-				if (WaitingFor <= length)
+				if (WaitingFor <= DataLength)
 				{
 					// Can now fully satisfy the pending read.
 
@@ -366,7 +377,7 @@ namespace Api.SocketServerLibrary {
 					{
 
 						// Copy the last chunk of data into the pending buffer:
-						lpb.CopyFrom(Data, offset, WaitingFor);
+						lpb.CopyFrom(Data, 0, WaitingFor);
 
 						// Run the read response now:
 						pc(new BufferSegment()
@@ -401,11 +412,11 @@ namespace Api.SocketServerLibrary {
 					if (LastPendingBuffer != null)
 					{
 						// It's null if we're skipping this data.
-						LastPendingBuffer = LastPendingBuffer.CopyFrom(Data, offset, DataLength);
+						LastPendingBuffer = LastPendingBuffer.CopyFrom(Data, 0, DataLength);
 					}
 
-					PendingBufferIndex += length;
-					WaitingFor -= length;
+					PendingBufferIndex += DataLength;
+					WaitingFor -= DataLength;
 
 					// Set index:
 					Index = DataLength;

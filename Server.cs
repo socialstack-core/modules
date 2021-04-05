@@ -183,17 +183,31 @@ namespace Api.SocketServerLibrary {
 		public event Action OnStopped;
 
 		/// <summary>
+		/// Call this for this server to accept connections and messaging via websockets.
+		/// </summary>
+		public void AcceptWebsockets()
+		{
+			var ocm = new WebsocketHandshake();
+			ocm.Code = 71;
+			ocm.IsHello = true;
+			AddToOpcodeMap(ocm.Code, ocm);
+
+			// Get:
+			var ocm2 = RegisterOpCode(2, (GetMessage message) => {
+				message.Done();
+			});
+
+			ocm2.RequestId = true;
+			ocm2.IsHello = true;
+		}
+
+		/// <summary>
 		/// Add an opcode handler.
 		/// </summary>
 		/// <param name="opcode"></param>
 		/// <param name="onRequest"></param>
-		public OpCode<U> RegisterOpCode<U>(uint opcode, MessageDelegate<U> onRequest) where U:IMessage, new()
+		public OpCode<U> RegisterOpCode<U>(uint opcode, MessageDelegate<U> onRequest) where U : IMessage, new()
 		{
-			if (opcode >= MaxOpCode)
-			{
-				MaxOpCode = opcode;
-			}
-
 			// Get the concrete opcode type:
 			var concreteType = typeof(OpCode<>).MakeGenericType(new Type[] { typeof(U) });
 
@@ -207,6 +221,23 @@ namespace Api.SocketServerLibrary {
 
 			// Reg fields:
 			instance.RegisterFields();
+
+			AddToOpcodeMap(opcode, instance);
+
+			return instance;
+		}
+
+		/// <summary>
+		/// Adds the given opcode instance to the opcode map
+		/// </summary>
+		/// <param name="opcode"></param>
+		/// <param name="instance"></param>
+		private void AddToOpcodeMap(uint opcode, OpCode instance)
+		{
+			if (opcode >= MaxOpCode)
+			{
+				MaxOpCode = opcode;
+			}
 
 			OpCodeMap[opcode] = instance;
 
@@ -233,8 +264,6 @@ namespace Api.SocketServerLibrary {
 					FastOpCodeMap[opcode] = instance;
 				}
 			}
-
-			return instance;
 		}
 
 		private void OnSocketConnect(IAsyncResult ar)

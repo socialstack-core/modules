@@ -419,7 +419,7 @@ namespace Api.SocketServerLibrary
 			// Get the target opcode:
 			OpCode target;
 
-			if (Source.Server.FastOpCodeMap != null)
+			if (Source.Server.FastOpCodeMap != null && ((int)opcode) < Source.Server.FastOpCodeMap.Length)
 			{
 				// Read from opcode map:
 				target = Source.Server.FastOpCodeMap[(int)opcode];
@@ -432,7 +432,7 @@ namespace Api.SocketServerLibrary
 			if(target == null || (Source.Hello && !target.IsHello))
 			{
 				// Invalid opcode.
-				Console.WriteLine("Invalid opcode received: " + opcode + ". " + Source.Hello + ", " + target.IsHello);
+				Console.WriteLine("Invalid opcode received: " + opcode + ". " + Source.Hello + ", " + (target == null ? "[Not found]" : target.IsHello));
 				Source.Socket.Close();
 				return;
 			}
