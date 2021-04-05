@@ -8,7 +8,7 @@ namespace Api.Blogs
     /// <summary>
     /// These are containers for blog posts.
     /// </summary>
-    public partial class Blog : VersionedContent<int>
+    public partial class Blog : VersionedContent<uint>
 	{
 		/// <summary>
 		/// The name of the blog in the site default language.

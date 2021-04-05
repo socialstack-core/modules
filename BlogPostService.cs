@@ -321,7 +321,7 @@ namespace Api.Blogs
 		/// <param name="slugCheck"></param>
 		/// <param name="exclusionId"></param>
 		/// <returns></returns>
-		public async ValueTask<string> GetSlug(Context context, string title, string slugCheck = null, int? exclusionId = null)
+		public async ValueTask<string> GetSlug(Context context, string title, string slugCheck = null, uint? exclusionId = null)
         {
 			var config = _blogs.GetConfig<BlogServiceConfig>();
 			string slug;

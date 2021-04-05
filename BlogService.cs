@@ -61,37 +61,6 @@ namespace Api.Blogs
 				CanViewAdmin = true
 			});
 		}
-		
-		/// <summary>
-		/// Deletes a Blog by its ID, including all its posts
-		/// </summary>
-		/// <returns></returns>
-		public override async ValueTask<bool> Delete(Context context, int id, DataOptions options = DataOptions.Default)
-        {
-			await base.Delete(context, id, options);
-			await _database.Run(context, deletePostsQuery, id);
-			
-			// Ok!
-			return true;
-        }
-        
-		/// <summary>
-		/// Deletes a Blog by its ID.
-		/// Optionally deletes the posts.
-		/// </summary>
-		/// <returns></returns>
-		public async Task<bool> Delete(Context context, int id, bool deletePosts = true)
-        {
-            // Delete the entry:
-			await _database.Run(context, deleteQuery, id);
-			
-			if(deletePosts){
-				await _database.Run(context, deletePostsQuery, id);
-			}
-			
-			// Ok!
-			return true;
-        }
 	}
     
 }

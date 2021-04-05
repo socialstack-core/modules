@@ -9,12 +9,12 @@ namespace Api.Blogs
 	/// <summary>
 	/// A blog post.
 	/// </summary>
-	public partial class BlogPost : VersionedContent<int>
+	public partial class BlogPost : VersionedContent<uint>
 	{
 		/// <summary>
 		/// The blog this post is in.
 		/// </summary>
-		public int BlogId;
+		public uint BlogId;
 		
 		/// <summary>
 		/// The post title in the site default language.
@@ -71,8 +71,8 @@ namespace Api.Blogs
 		/// <summary>
 		///  The Id of the author.
 		/// </summary>
-		public int AuthorId;
-
+		public uint AuthorId;
+		
 		/// <summary>
 		/// The author of the blogpost. 
 		/// </summary>
