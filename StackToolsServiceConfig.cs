@@ -4,6 +4,9 @@ using Api.Configuration;
 namespace Api.StackTools
 {
 	
+	/// <summary>
+	/// Config for the stack tools service.
+	/// </summary>
 	public class StackToolsServiceConfig : Config
 	{
 		/// <summary>
