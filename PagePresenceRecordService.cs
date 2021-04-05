@@ -130,6 +130,9 @@ namespace Api.Presence
 
 		private bool IdSetup;
 		private ulong ServerIdMask;
+		/// <summary>
+		/// The server ID.
+		/// </summary>
 		public uint ServerId;
 
 		private void SetupServerId()

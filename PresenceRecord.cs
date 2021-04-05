@@ -10,7 +10,7 @@ namespace Api.Presence
 	/// <summary>
 	/// A PresenceRecord
 	/// </summary>
-	public partial class PresenceRecord : Content<int>
+	public partial class PresenceRecord : Content<uint>
 	{
 		/// <summary>
 		/// E.g. "Page".
@@ -26,7 +26,7 @@ namespace Api.Presence
 		/// <summary>
 		/// Relevant content ID. E.g. this may be a page ID.
 		/// </summary>
-		public int ContentId;
+		public uint ContentId;
 		
 		/// <summary>
 		/// The meta for this presence record.
@@ -38,7 +38,7 @@ namespace Api.Presence
 		/// <summary>
 		/// The ID of the user this record was created for. Can be 0.
 		/// </summary>
-		public int UserId;
+		public uint UserId;
 		
 		/// <summary>
 		/// The time this record occurred.

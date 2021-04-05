@@ -55,7 +55,7 @@ namespace Api.Presence
 				};
 
 				var idObj = message["id"];
-				record.ContentId = idObj == null ? 0 : idObj.Value<int>();
+				record.ContentId = idObj == null ? 0 : idObj.Value<uint>();
 
 				// Special handle for presType "page":
 				if (presType == "page"){

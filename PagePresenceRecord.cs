@@ -16,7 +16,7 @@ namespace Api.Presence
 		/// <summary>
 		/// Current page this user is on. Because of url tokens, these aren't as unique as URL is.
 		/// </summary>
-		public int PageId;		
+		public uint PageId;		
 		/// <summary>
 		/// Current page url this user is on. More unique than page ID.
 		/// </summary>
