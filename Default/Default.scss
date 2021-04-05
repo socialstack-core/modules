@@ -134,7 +134,6 @@ html.admin {
 
 @media(prefers-color-scheme: dark){
 	html.admin {
-
 		.admin-header{
 			background: black;
 		}
@@ -152,7 +151,31 @@ html.admin {
 		.component-tile {
 			background: #111;
 			border-color: #222;
+			color: #8e9297;
+		}
+
+		.admin-main-area {
+			background-color: #222 !important;
+		}
+
+		.admin-aside {
+			background-color: #111 !important;
+		}
+
+		label {
+			color: #8e9297;
+		}
+
+		a {
 			color: white;
+		}
+
+		.permission-grid {
+			background: #222;
+		}
+
+		td {
+			color: #8e9297;
 		}
 
 	}
