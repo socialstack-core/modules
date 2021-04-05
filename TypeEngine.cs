@@ -133,7 +133,7 @@ namespace Api.CustomContentTypes
 				}
 
 				// Base type to use:
-				var baseType = typeof(VersionedContent<int>);
+				var baseType = typeof(VersionedContent<uint>);
 
 				// Start building the type:
 				var typeName = TidyName(customType.Name);
@@ -214,7 +214,7 @@ namespace Api.CustomContentTypes
 		/// <summary>
 		/// The ID of the CustomContentType.
 		/// </summary>
-		public int Id;
+		public uint Id;
 		/// <summary>
 		/// The underlying custom type.
 		/// </summary>

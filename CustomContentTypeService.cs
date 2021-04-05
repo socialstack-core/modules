@@ -141,7 +141,7 @@ namespace Api.CustomContentTypes
 		/// Gets the latest generated controller types.
 		/// </summary>
 		/// <returns></returns>
-		public Dictionary<int, ConstructedCustomContentType> GetGeneratedTypes()
+		public Dictionary<uint, ConstructedCustomContentType> GetGeneratedTypes()
 		{
 			return loadedTypes;
 		}
@@ -165,7 +165,7 @@ namespace Api.CustomContentTypes
 		/// <param name="context"></param>
 		/// <param name="typeId"></param>
 		/// <returns></returns>
-		public async Task UnloadCustomType(Context context, int typeId)
+		public async Task UnloadCustomType(Context context, uint typeId)
 		{
 			// Remove if exists.
 			if (loadedTypes.TryGetValue(typeId, out ConstructedCustomContentType previousCompiledType))
@@ -216,7 +216,7 @@ namespace Api.CustomContentTypes
 		public async ValueTask LoadCustomTypes(List<CustomContentType> types, List<CustomContentTypeField> fields)
 		{
 			// Initial content type map:
-			var map = new Dictionary<int, CustomContentType>();
+			var map = new Dictionary<uint, CustomContentType>();
 
 			foreach (var type in types)
 			{
@@ -268,22 +268,22 @@ namespace Api.CustomContentTypes
 		/// <summary>
 		/// Raw controller types for custom types, mapped by CustomContentType.Id -> the constructed result.
 		/// </summary>
-		private Dictionary<int, ConstructedCustomContentType> loadedTypes;
+		private Dictionary<uint, ConstructedCustomContentType> loadedTypes;
 
 		/// <summary>
 		/// Creates a service etc for the given system type and activates it. Invoked via reflection with a runtime compiled type.
 		/// </summary>
-		public async ValueTask InstallType<T>(ConstructedCustomContentType constructedType) where T : class, IHaveId<int>, new()
+		public async ValueTask InstallType<T>(ConstructedCustomContentType constructedType) where T : class, IHaveId<uint>, new()
 		{
 			// Create event group for this custom svc:
 			var events = new EventGroup<T>();
 
 			// Create the service:
-			constructedType.Service = new AutoService<T, int>(events);
+			constructedType.Service = new AutoService<T, uint>(events);
 
 			if (loadedTypes == null)
 			{
-				loadedTypes = new Dictionary<int, ConstructedCustomContentType>();
+				loadedTypes = new Dictionary<uint, ConstructedCustomContentType>();
 			}
 			else
 			{

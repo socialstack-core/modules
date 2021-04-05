@@ -10,12 +10,12 @@ namespace Api.CustomContentTypes
 	/// <summary>
 	/// A custom content type field.
 	/// </summary>
-	public partial class CustomContentTypeField : VersionedContent<int>
+	public partial class CustomContentTypeField : VersionedContent<uint>
 	{
 		/// <summary>
 		/// The content type that this field belongs to.
 		/// </summary>
-		public int CustomContentTypeId;
+		public uint CustomContentTypeId;
 		
 		/// <summary>
 		/// This fields default value.
