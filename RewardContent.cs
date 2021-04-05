@@ -15,12 +15,12 @@ namespace Api.Rewards
 		/// <summary>
 		/// The ID of the reward.
 		/// </summary>
-		public int RewardId;
+		public uint RewardId;
 		
 		/// <summary>
 		/// ID of the reward.
 		/// </summary>
-		public override int TargetContentId
+		public override uint TargetContentId
 		{
 			get{
 				return RewardId;
