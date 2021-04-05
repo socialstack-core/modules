@@ -29,6 +29,12 @@ namespace Api.ContentSync
 		public int Port;
 
 		/// <summary>
+		/// The environment this server is in.
+		/// </summary>
+		[DatabaseField(Length = 20)]
+		public string Environment;
+
+		/// <summary>
 		/// Private IPv4 address for this server.
 		/// </summary>
 		[DatabaseField(Length=4)]

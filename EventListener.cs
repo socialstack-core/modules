@@ -237,7 +237,10 @@ namespace Api.ContentSync
 				}
 
 				// Assign an ID now!
-				content.Id = assigner.Assign();
+				if (content.Id.Equals(default(ID)))
+				{
+					content.Id = assigner.Assign();
+				}
 
 				return new ValueTask<T>(content);
 			}, 1);

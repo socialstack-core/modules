@@ -120,12 +120,12 @@ namespace Api.ContentSync
 			var name = System.Environment.MachineName.ToString();
 			HostName = name;
 
-			Events.Service.AfterStart.AddEventListener(async (Context ctx, object s) => {
+			Events.Service.AfterStart.AddEventListener((Context ctx, object s) => {
 
 				// Start:
-				await ApplyRemoteDataAndStart();
+				ApplyRemoteDataAndStart();
 
-				return s;
+				return new ValueTask<object>(s);
 			});
 		}
 
@@ -166,6 +166,24 @@ namespace Api.ContentSync
 				return;
 			}
 
+			// Get environment name:
+			var env = Services.Environment;
+
+			if (Services.IsDevelopment())
+			{
+				// Dev environment always uses the same data:
+				Self = new ClusteredServer()
+				{
+					Port = Port,
+					HostName = HostName,
+					Environment = env
+				};
+
+				AllServers = new List<ClusteredServer>() { Self };
+				MaxIdMask = CreateMask(1);
+				return;
+			}
+
 			var ctx = new Context();
 
 			// Get all servers:
@@ -174,6 +192,7 @@ namespace Api.ContentSync
 			ClusteredServer self = null;
 
 			uint maxId = 0;
+			var anyDeleted = false;
 
 			foreach (var server in AllServers)
 			{
@@ -181,11 +200,24 @@ namespace Api.ContentSync
 				{
 					self = server;
 				}
+				else if (server.Environment != env)
+				{
+					anyDeleted = true;
+					await _clusteredServerService.Delete(ctx, server, DataOptions.IgnorePermissions);
+					continue;
+				}
 
 				if (server.Id > maxId)
 				{
 					maxId = server.Id;
 				}
+			}
+
+			if (anyDeleted)
+			{
+				Console.WriteLine("[WARN] A server has been deleted from " + typeof(ClusteredServer).TableName() + " because it was from a different environment. " +
+					"When copying data between environments, don't include this table. " +
+					"Doing so wastes server IDs and will in turn make your site assign large ID values unnecessarily.");
 			}
 
 			var ips = await IpDiscovery.Discover();
@@ -195,7 +227,8 @@ namespace Api.ContentSync
 				self = new ClusteredServer()
 				{
 					Port = Port,
-					HostName = HostName
+					HostName = HostName,
+					Environment = env
 				};
 
 				ips.CopyTo(self);
@@ -205,10 +238,11 @@ namespace Api.ContentSync
 				await _clusteredServerService.Create(ctx, self, DataOptions.IgnorePermissions);
 
 			}
-			else if (ips.ChangedSince(self))
+			else if (ips.ChangedSince(self) || self.Environment != env)
 			{
 				// It changed - update it:
 				ips.CopyTo(self);
+				self.Environment = env;
 
 				await _clusteredServerService.Update(ctx, self, DataOptions.IgnorePermissions);
 			}
@@ -335,7 +369,7 @@ namespace Api.ContentSync
 		/// <summary>
 		/// Pulls in data added by other devs, and starts the cSync server. Must occur after other services have started.
 		/// </summary>
-		public async Task ApplyRemoteDataAndStart()
+		public void ApplyRemoteDataAndStart()
 		{
 			/*
 			if(SyncFileMode){
@@ -390,6 +424,12 @@ namespace Api.ContentSync
 				
 			}
 			*/
+
+			if (Services.IsDevelopment())
+			{
+				// Don't set up the sync server in the dev environment.
+				return;
+			}
 
 			// Add event handlers to all caching enabled types, *if* there are any with remote addresses.
 			// If a change (update, delete, create) happens, broadcast a cache remove message to all remote addresses.
@@ -516,10 +556,12 @@ namespace Api.ContentSync
 			// We might be the first one up, so some of these can outright fail.
 			// That's ok though - they'll contact us instead.
 			Console.WriteLine("[CSync] Started connecting to peers");
-			
+
+			var env = Services.Environment;
+
 			foreach (var serverInfo in AllServers)
 			{
-				if (serverInfo == Self)
+				if (serverInfo == Self || serverInfo.Environment != env)
 				{
 					continue;
 				}
