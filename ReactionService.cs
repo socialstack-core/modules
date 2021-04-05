@@ -79,7 +79,7 @@ namespace Api.Reactions
 					return reactions;
 				}
 				// Collect all unique reactionType IDs:
-				Dictionary<int, ReactionType> reactionTypes = new Dictionary<int, ReactionType>();
+				Dictionary<uint, ReactionType> reactionTypes = new Dictionary<uint, ReactionType>();
 				foreach (var reaction in reactions)
 				{
 					if (reaction.ReactionTypeId == 0)

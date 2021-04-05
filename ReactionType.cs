@@ -8,7 +8,7 @@ namespace Api.Reactions
 	/// <summary>
 	/// Admin defined reaction types. These can be likes, dislikes, love hearts etc.
 	/// </summary>
-	public partial class ReactionType : VersionedContent<int>
+	public partial class ReactionType : VersionedContent<uint>
 	{
 		/// <summary>
 		/// The name of the forum in the site default language.
