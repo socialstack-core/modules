@@ -22,7 +22,7 @@ namespace Api.Contexts
 		/// A role change can be automatically reissued but a ref revoke requires logging in again.
 		/// </summary>
 		// TODO: Populate the revoke map on load (#208).
-		private readonly Dictionary<int, int> RevocationMap = new Dictionary<int, int>();
+		private readonly Dictionary<uint, uint> RevocationMap = new Dictionary<uint, uint>();
 
 		/// <summary>
 		/// Maps lowercase field names to the info about them.
@@ -51,8 +51,8 @@ namespace Api.Contexts
 
 			foreach (var field in fields)
 			{
-				// must be an int field.
-				if (field.PropertyType != typeof(int))
+				// must be a uint field.
+				if (field.PropertyType != typeof(uint))
 				{
 					continue;
 				}
@@ -60,7 +60,7 @@ namespace Api.Contexts
 				var lcName = field.Name.ToLower();
 				var getMethod = field.GetGetMethod();
 				
-				var defaultValue = (int)getMethod.Invoke(defaultValueChecker, System.Array.Empty<object>());
+				var defaultValue = (uint)getMethod.Invoke(defaultValueChecker, System.Array.Empty<object>());
 				
 				var fld = new ContextFieldInfo()
 				{
@@ -152,7 +152,7 @@ namespace Api.Contexts
 		/// </summary>
 		/// <param name="userId"></param>
 		/// <param name="loginRevokeCount"></param>
-		public void Revoke(int userId, int loginRevokeCount)
+		public void Revoke(uint userId, uint loginRevokeCount)
 		{
 			RevocationMap[userId] = loginRevokeCount;
 		}
@@ -177,7 +177,7 @@ namespace Api.Contexts
 
 			var tokenSig = tokenStr.Split('|');
 
-            if (tokenSig.Length != 2)
+            if (tokenSig.Length < 2 || tokenSig.Length > 3)
             {
 				return new Context()
 				{
@@ -186,7 +186,7 @@ namespace Api.Contexts
             }
 
 			// Verify the signature first:
-			if (!_signatures.ValidateSignature(tokenSig[0], tokenSig[1]))
+			if (!_signatures.ValidateSignatureFromHost(tokenSig[0], tokenSig[1], tokenSig.Length == 3 ? tokenSig[2] : null))
 			{
 				return new Context() {
 					CookieState = 4
@@ -223,8 +223,8 @@ namespace Api.Contexts
 					// Removed field. We can ignore this and permit all other changes.
 					continue;
 				}
-
-				if (!int.TryParse(fieldValue, out int id))
+				
+				if (!uint.TryParse(fieldValue, out uint id))
 				{
 					// Ancient cookie.
 					continue;
@@ -238,7 +238,7 @@ namespace Api.Contexts
 			// If we don't have a revocation for the given user ref then continue.
 			// This means a significant amount of API requests go through without a single auth related database hit.
 
-			if (RevocationMap.TryGetValue(context.UserId, out int revokedRefs))
+			if (RevocationMap.TryGetValue(context.UserId, out uint revokedRefs))
 			{
 				if (context.UserRef <= revokedRefs)
 				{
@@ -255,11 +255,54 @@ namespace Api.Contexts
 		/// <summary>
 		/// Creates a signed token for the given context.
 		/// </summary>
+		/// <param name="context">The context to create the token for.</param>
 		/// <returns></returns>
 		public string CreateToken(Context context)
 		{
 			var builder = new StringBuilder();
+			bool first = true;
 
+			foreach (var field in FieldList)
+			{
+				var value = (uint)field.Get.Invoke(context, _emptyArgs);
+
+				if (value == field.DefaultValue)
+				{
+					continue;
+				}
+
+				if (first)
+				{
+					first = false;
+				}
+				else
+				{
+					builder.Append('-');
+				}
+
+				builder.Append(field.LowercaseNameWithDash);
+				builder.Append(value);
+			}
+
+			var tokenStr = builder.ToString();
+			tokenStr += "|" + _signatures.Sign(tokenStr);
+            return tokenStr;
+        }
+
+		/// <summary>
+		/// Creates a token for accessing a remote site which permits access to the given hostname.
+		/// The given keypair must contain the private key that we'll use, and the remote system must have the public key in its SignatureService Hosts config.
+		/// </summary>
+		/// <param name="context">The context to create the token for.</param>
+		/// <param name="hostName">If provided, a hostname to use in the token. 
+		/// You can define a lookup of remote public keys in your SignatureService config, 
+		/// allowing third party systems to create valid tokens. This hostname is the key in that lookup.</param>
+		/// <param name="keyPair">A keypair just for the purpose of accessing the remote host. 
+		/// It must not be the same as the main keypair for this site.</param>
+		/// <returns></returns>
+		public string CreateRemoteToken(Context context, string hostName, KeyPair keyPair)
+		{
+			var builder = new StringBuilder();
 			bool first = true;
 
 			foreach (var field in FieldList)
@@ -285,9 +328,10 @@ namespace Api.Contexts
 			}
 
 			var tokenStr = builder.ToString();
-			tokenStr += "|" + _signatures.Sign(tokenStr);
-            return tokenStr;
-        }
-        
+			tokenStr += "|" + keyPair.SignBase64(tokenStr) + "|" + hostName;
+
+			return tokenStr;
+		}
+
     }
 }

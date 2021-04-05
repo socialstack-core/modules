@@ -37,6 +37,6 @@ namespace Api.Contexts
 		/// <summary>
 		/// Default field value.
 		/// </summary>
-		public int DefaultValue;
+		public uint DefaultValue;
 	}
 }

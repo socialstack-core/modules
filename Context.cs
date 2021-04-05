@@ -4,6 +4,7 @@ using System.Threading.Tasks;
 using Api.Configuration;
 using Api.Eventing;
 using Api.Permissions;
+using Api.Signatures;
 using Api.Startup;
 using Api.Translate;
 using Api.Users;
@@ -30,7 +31,7 @@ namespace Api.Contexts
 		/// </summary>
 		public bool IgnorePermissions;
 
-		private int _localeId = 1;
+		private uint _localeId = 1;
 		
 		/// <summary>
 		/// Set to false if editedUtc values shouldn't be updated.
@@ -40,7 +41,7 @@ namespace Api.Contexts
 		/// <summary>
 		/// True if this context has the given content in it. For example, checks if this content has User #12, or Company #120 etc.
 		/// </summary>
-		public bool HasContent(int contentTypeId, int contentId)
+		public bool HasContent(int contentTypeId, uint contentId)
 		{
 			if (_contextService == null)
 			{
@@ -55,7 +56,7 @@ namespace Api.Contexts
 			}
 			
 			// Read the ID to match with:
-			var contextsContentId = (int)fieldInfo.Get.Invoke(this, null);
+			var contextsContentId = (uint)fieldInfo.Get.Invoke(this, null);
 			
 			// This context has the content if the ID (in the context) matches the content we were asked about:
 			return contextsContentId == contentId;
@@ -64,7 +65,7 @@ namespace Api.Contexts
 		/// <summary>
 		/// The current locale or the site default.
 		/// </summary>
-		public int LocaleId
+		public uint LocaleId
 		{
 			get
 			{
@@ -110,12 +111,12 @@ namespace Api.Contexts
 			return _locale;
 		}
 
-		private int _userId;
+		private uint _userId;
 
 		/// <summary>
 		///  The logged in users ID.
 		/// </summary>
-		public int UserId {
+		public uint UserId {
 			get {
 				return _userId;
 			}
@@ -128,12 +129,12 @@ namespace Api.Contexts
 		/// <summary>
 		/// A number held in the user row which is used to check for signature revocations.
 		/// </summary>
-		public int UserRef { get; set; }
+		public uint UserRef { get; set; }
 
 		/// <summary>
 		/// The role ID from the token.
 		/// </summary>
-		public int RoleId {get; set;}
+		public uint RoleId {get; set;}
 
 		/// <summary>
 		/// The full user object, if it has been requested.
@@ -252,7 +253,25 @@ namespace Api.Contexts
 		}
 
 		/// <summary>
-		/// Sends a token into the 
+		/// Creates a remote token for this context. 
+		/// Essentially, this allows this context to be used on a remote thirdparty system, provided 
+		/// that the remote system has permitted the public key of the given keypair by adding it to its SignatureService Hosts config.
+		/// </summary>
+		/// <param name="hostName"></param>
+		/// <param name="keyPair"></param>
+		/// <returns></returns>
+		public string CreateRemoteToken(string hostName, KeyPair keyPair)
+		{
+			if (_contextService == null)
+			{
+				_contextService = Services.Get<ContextService>();
+			}
+
+			return _contextService.CreateRemoteToken(this, hostName, keyPair);
+		}
+
+		/// <summary>
+		/// Sends a token as both a header and a cookie for the given response.
 		/// </summary>
 		/// <param name="response"></param>
 		public void SendToken(HttpResponse response)

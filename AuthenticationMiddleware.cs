@@ -36,7 +36,7 @@ namespace Api.Contexts
 		/// </summary>
 		/// <param name="request"></param>
 		/// <returns></returns>
-		public static int GetUserId(this Microsoft.AspNetCore.Http.HttpRequest request)
+		public static uint GetUserId(this Microsoft.AspNetCore.Http.HttpRequest request)
 		{
 			var token = request.HttpContext.User as Context;
 
@@ -98,7 +98,7 @@ namespace Api.Contexts
 				cookie = localeIds.FirstOrDefault();
 			}
 
-			if (cookie != null && int.TryParse(cookie, out int localeId))
+			if (cookie != null && uint.TryParse(cookie, out uint localeId))
 			{
 				// Set in the ctx:
 				context.LocaleId = localeId;
