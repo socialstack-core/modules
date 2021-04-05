@@ -10,12 +10,12 @@ namespace Api.UserFlags
 	/// <summary>
 	/// An UserFlag
 	/// </summary>
-	public partial class UserFlag : VersionedContent<int>
+	public partial class UserFlag : VersionedContent<uint>
 	{
 		/// <summary>
 		/// Flagged content ID.
 		/// </summary>
-		public int ContentId;
+		public uint ContentId;
 		
 		/// <summary>
 		/// Flagged content type.
@@ -25,7 +25,7 @@ namespace Api.UserFlags
 		/// <summary>
 		/// The id of the user flag option that was selected for this flag.
 		/// </summary>
-		public int UserFlagOptionId;
+		public uint UserFlagOptionId;
 
 		/// <summary>
 		/// The user flag option that was selected for the flag.

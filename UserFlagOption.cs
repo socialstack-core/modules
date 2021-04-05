@@ -10,7 +10,7 @@ namespace Api.UserFlags
 	/// <summary>
 	/// An UserFlag
 	/// </summary>
-	public partial class UserFlagOption : VersionedContent<int>
+	public partial class UserFlagOption : VersionedContent<uint>
 	{
 		/// <summary>
 		/// The user flag option body json
