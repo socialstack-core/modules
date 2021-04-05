@@ -14,7 +14,7 @@ namespace Api.Pages
 		/// <summary>
 		/// Page ID that the above URL is from.
 		/// </summary>
-		public int PageId;
+		public uint PageId;
 	}
 	
 }

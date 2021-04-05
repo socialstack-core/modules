@@ -11,7 +11,7 @@ namespace Api.Pages
 	/// <summary>
 	/// A page.
 	/// </summary>
-	public partial class Page : VersionedContent<int>, IHaveRoleRestrictions
+	public partial class Page : VersionedContent<uint>, IHaveRoleRestrictions
 	{
 		/// <summary>
 		/// The URL for this page.

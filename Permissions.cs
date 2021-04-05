@@ -6,9 +6,15 @@ using System.Threading.Tasks;
 
 namespace Api.Pages
 {
+	/// <summary>
+	/// 
+	/// </summary>
 	[EventListener]
 	public class Permissions
     {
+		/// <summary>
+		/// 
+		/// </summary>
         public Permissions()
         {
 			// Hook the default role setup. It's done like this so it can be removed by a plugin if wanted.

@@ -116,9 +116,13 @@ namespace Api.Pages
 
 				return new ValueTask<Translation>(tr);
 			});
-
-			#warning Todo: Clear entries from cache when their primary object changes.
 		}
+
+		/// <summary>
+		/// Types that have had an update event handler added to them. These handlers listen for updates (including remote ones), 
+		/// obtain the URL of the thing that changed, and then clear the cached entry if there is one.
+		/// </summary>
+		private Dictionary<int, bool> eventHandlersByContentTypeId = new Dictionary<int, bool>();
 
 		/// <summary>
 		/// Used for thread aware cache updates.
@@ -198,7 +202,7 @@ namespace Api.Pages
 					{
 						if (primaryToken.IsId)
 						{
-							if (int.TryParse(pageAndTokens.TokenValues[countA - 1], out int primaryObjectId))
+							if (uint.TryParse(pageAndTokens.TokenValues[countA - 1], out uint primaryObjectId))
 							{
 								primaryObject = await primaryToken.Service.GetObject(context, primaryObjectId);
 							}
@@ -400,7 +404,7 @@ namespace Api.Pages
                     {
 						if (primaryToken.IsId)
 						{
-							if (int.TryParse(pageAndTokens.TokenValues[countA - 1], out int primaryObjectId))
+							if (uint.TryParse(pageAndTokens.TokenValues[countA - 1], out uint primaryObjectId))
 							{
 								doc.PrimaryObject = await primaryToken.Service.GetObject(context, primaryObjectId);
 							}
@@ -592,7 +596,7 @@ namespace Api.Pages
 				}
 				else if (cache.Length < context.LocaleId)
 				{
-					Array.Resize(ref cache, context.LocaleId);
+					Array.Resize(ref cache, (int)context.LocaleId);
 				}
 
 				var localeCache = cache[context.LocaleId - 1];
@@ -600,6 +604,31 @@ namespace Api.Pages
 				if (localeCache == null)
 				{
 					cache[context.LocaleId - 1] = localeCache = new Dictionary<string, List<DocumentNode>>();
+				}
+
+				// As it's being cached, may need to cache content type as well:
+				if (doc.PrimaryObject != null)
+				{
+					if (!eventHandlersByContentTypeId.ContainsKey(doc.PrimaryContentTypeId))
+					{
+						// Mark as added:
+						eventHandlersByContentTypeId[doc.PrimaryContentTypeId] = true;
+
+						// Get the event group:
+						var evtGroup = doc.PrimaryObjectService.GetEventGroup();
+
+						var methodInfo = GetType().GetMethod(nameof(AttachPrimaryObjectEventHandler));
+
+						// Invoke attach:
+						var setupType = methodInfo.MakeGenericMethod(new Type[] {
+							doc.PrimaryObjectService.ServicedType,
+							doc.PrimaryObjectService.IdType
+						});
+
+						setupType.Invoke(this, new object[] {
+							evtGroup
+						});
+					}
 				}
 
 				localeCache[path] = flatNodes;
@@ -615,14 +644,79 @@ namespace Api.Pages
 
 				if (node is TextNode node1)
 				{
-					var bytes = System.Text.Encoding.UTF8.GetBytes(node1.TextContent);
+					var bytes = Encoding.UTF8.GetBytes(node1.TextContent);
 					flatNodes[i] = new RawBytesNode(bytes);
 				}
 			}
 			
 			return flatNodes;
 		}
-		
+
+		/// <summary>
+		/// Adds the primary object event handlers to the given event group.
+		/// </summary>
+		/// <typeparam name="T"></typeparam>
+		/// <typeparam name="ID"></typeparam>
+		/// <param name="evtGroup"></param>
+		public void AttachPrimaryObjectEventHandler<T, ID>(EventGroup<T, ID> evtGroup)
+			 where T : new()
+			 where ID : struct
+		{
+			evtGroup.Received.AddEventListener(async (Context ctx, T content, int mode) =>
+			{
+				if (content != null && cache != null)
+				{
+					// Get the URL for this thing. If it's cached, clear it:
+					var url = await _pages.GetUrl(ctx, content, UrlGenerationScope.UI);
+
+					if (!string.IsNullOrEmpty(url))
+					{
+						// Clear from each locale cache.
+						for (var i = 0; i < cache.Length; i++)
+						{
+							var localeCache = cache[i];
+							if (localeCache == null)
+							{
+								continue;
+							}
+
+							// Request a removal:
+							localeCache.Remove(url);
+						}
+					}
+				}
+
+				return content;
+			});
+
+			evtGroup.AfterUpdate.AddEventListener(async (Context ctx, T content) =>
+			{
+				if (content != null && cache != null)
+				{
+					// Get the URL for this thing. If it's cached, clear it:
+					var url = await _pages.GetUrl(ctx, content, UrlGenerationScope.UI);
+
+					if (!string.IsNullOrEmpty(url))
+					{
+						// Clear from each locale cache.
+						for (var i = 0; i < cache.Length; i++)
+						{
+							var localeCache = cache[i];
+							if (localeCache == null)
+							{
+								continue;
+							}
+
+							// Request a removal:
+							localeCache.Remove(url);
+						}
+					}
+				}
+
+				return content;
+			});
+		}
+
 		/// <summary>
 		/// Handles adding a custom script list (if there even is one set) into the given node. They'll be appended.
 		/// </summary>

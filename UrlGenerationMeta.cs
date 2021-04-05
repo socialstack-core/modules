@@ -39,7 +39,7 @@ namespace Api.Pages
 		/// <param name="pageId"></param>
 		/// <param name="urlPieces"></param>
 		/// <param name="piecesAfter"></param>
-		public void AddPage(int pageId, string[] urlPieces, int piecesAfter)
+		public void AddPage(uint pageId, string[] urlPieces, int piecesAfter)
 		{
 			if (Pages.Count != 0 && piecesAfter > Pages[0].PiecesAfter)
 			{
@@ -118,7 +118,7 @@ namespace Api.Pages
 		/// <summary>
 		/// The page ID
 		/// </summary>
-		public int PageId;
+		public uint PageId;
 
 		/// <summary>
 		/// The # of url pieces after the primary content type is referenced. 

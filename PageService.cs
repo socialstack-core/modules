@@ -15,7 +15,7 @@ namespace Api.Pages
 	/// Handles pages.
 	/// Instanced automatically. Use injection to use this service, or Startup.Services.Get.
 	/// </summary>
-	[LoadPriority(5)]
+	[LoadPriority(9)]
 	public partial class PageService : AutoService<Page>
     {
 		/// <summary>
@@ -228,7 +228,7 @@ namespace Api.Pages
 			else if (_urlLookupCache.Length < context.LocaleId)
 			{
 				// Resize the cache:
-				Array.Resize(ref _urlLookupCache, context.LocaleId);
+				Array.Resize(ref _urlLookupCache, (int)context.LocaleId);
 			}
 
 			// Add cache to lookup:
