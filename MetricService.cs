@@ -57,7 +57,7 @@ namespace Api.Metrics
 			// Map each source to the metrics they originate from.
 			// Whilst they'll probably be rare, we want to avoid connecting sources that aren't actually in metrics.
 			// First, make a little lookup:
-			var metricLookup = new Dictionary<int, Metric>();
+			var metricLookup = new Dictionary<uint, Metric>();
 
 			foreach (var metric in metrics)
 			{
@@ -137,9 +137,12 @@ namespace Api.Metrics
 					// Got a metric measurement value to add:
 					long unixtime = (long)(DateTime.UtcNow.Subtract(epoch)).TotalSeconds;
 
-					#warning At some point, somebody will create more than 1024 sources.
-					// When they do, this optimisation will overflow.
-					int measurementId = (int)(unixtime / (blockSizeInMinutes * 60)) | (liveSource.Source.Id << 21);
+					// When there are more than 1024 sources, this optimisation will overflow.
+					if (liveSource.Source.Id >= 1024)
+					{
+						throw new Exception("Too many metric sources - it's currently limited to 1024 in order to operate at high efficiency.");
+					}
+					uint measurementId = (uint)(unixtime / (blockSizeInMinutes * 60)) | (liveSource.Source.Id << 21);
 
 					// Let's check to see if it exists.
 					var measurement = await _measurements.Get(context, measurementId, DataOptions.IgnorePermissions);

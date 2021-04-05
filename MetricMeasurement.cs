@@ -8,7 +8,7 @@ namespace Api.Metrics
     /// Metrics measurements are used to measure the number of times a metric source was triggered in 15 minute blocks. 
     /// </summary>
     [DatabaseField(AutoIncrement = false)]
-    public partial class MetricMeasurement : Content<int>
+    public partial class MetricMeasurement : Content<uint>
     {
         /// <summary>
         /// The count of triggers in this 15 minute block.
@@ -18,11 +18,11 @@ namespace Api.Metrics
 		/// <summary>
 		/// The source this came from.
 		/// </summary>
-		public int SourceId;
+		public uint SourceId;
 		
 		/// <summary>
 		/// The metric this belongs to.
 		/// </summary>
-		public int MetricId;
+		public uint MetricId;
     }
 }
