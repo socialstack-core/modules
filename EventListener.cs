@@ -142,7 +142,7 @@ namespace Api.Revisions
 				if (eventGroup != null && ContentTypes.IsAssignableToGenericType(svc.ServicedType, typeof(VersionedContent<>)))
 				{
 					// Invoke setup for type:
-					var idType = svc.ServicedType.GetField("Id").FieldType;
+					var idType = svc.IdType;
 
 					var setupType = methodInfo.MakeGenericMethod(new Type[] {
 						svc.ServicedType,
