@@ -23,7 +23,7 @@ namespace Api.Translate
 		/// Sets locale by its ID.
 		/// </summary>
 		[HttpGet("set/{id}")]
-		public virtual async ValueTask<object> Set([FromRoute] int id)
+		public virtual async ValueTask<object> Set([FromRoute] uint id)
 		{
 			var context = Request.GetContext();
 			

@@ -10,7 +10,7 @@ namespace Api.Translate
 	/// <summary>
 	/// A Translation
 	/// </summary>
-	public partial class Translation : VersionedContent<int>
+	public partial class Translation : VersionedContent<uint>
 	{
         /// <summary>
         /// E.g. "UI/AboutUs" - the exact JS module name that this translation is for.

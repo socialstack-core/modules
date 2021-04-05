@@ -5,7 +5,7 @@ namespace Api.Translate
 {
     /// <summary>
     /// </summary>
-    public class Locale : VersionedContent<int>
+    public class Locale : VersionedContent<uint>
 	{
 		/// <summary>
 		/// The name.

@@ -17,7 +17,7 @@ namespace Api.Translate
 	/// Handles locales - the core of the translation (localisation) system.
 	/// Instanced automatically. Use injection to use this service, or Startup.Services.Get.
 	/// </summary>
-	[LoadPriority(2)]
+	[LoadPriority(5)]
 	public partial class LocaleService : AutoService<Locale>
     {
 		/// <summary>
@@ -28,6 +28,7 @@ namespace Api.Translate
 			InstallAdminPages("Locales", "fa:fa-globe-europe", new string[] { "id", "name" });
 
 			Cache(new CacheConfig<Locale>() {
+				LowFrequencySequentialIds = true,
 				OnCacheLoaded = async () => {
 
 					// Get the default cache:
@@ -106,13 +107,13 @@ namespace Api.Translate
 		/// </summary>
 		/// <param name="localeCode"></param>
 		/// <returns>null if not found.</returns>
-		public async ValueTask<int?> GetId(string localeCode)
+		public async ValueTask<uint?> GetId(string localeCode)
 		{
 			if (_codeMap == null)
 			{
 				var all = await List(new Context(), new Filter<Locale>(), DataOptions.IgnorePermissions);
 
-				var map = new Dictionary<string, int>();
+				var map = new Dictionary<string, uint>();
 
 				foreach (var locale in all)
 				{
@@ -129,7 +130,7 @@ namespace Api.Translate
 				_codeMap = map;
 			}
 
-			if (!_codeMap.TryGetValue(localeCode, out int result))
+			if (!_codeMap.TryGetValue(localeCode, out uint result))
 			{
 				return null;
 			}
@@ -140,7 +141,7 @@ namespace Api.Translate
 		/// <summary>
 		/// A mapping of locale code -> ID. Uses IDs such that it does not need locale specific variations.
 		/// </summary>
-		private Dictionary<string, int> _codeMap;
+		private Dictionary<string, uint> _codeMap;
 
 		/// <summary>
 		/// The name of the cookie when locale is stored.
