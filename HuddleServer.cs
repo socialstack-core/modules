@@ -10,7 +10,7 @@ namespace Api.Huddles
 	/// <summary>
 	/// A HuddleServer
 	/// </summary>
-	public partial class HuddleServer : VersionedContent<int>
+	public partial class HuddleServer : VersionedContent<uint>
 	{
         /// <summary>
         /// The server address, excluding protocol. For example, "huddle1.site.com"

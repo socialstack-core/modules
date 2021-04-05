@@ -197,7 +197,7 @@ namespace Api.Huddles
                 );
 
                 // Get permitted user profiles:
-                var userMap = new Dictionary<int, UserProfile>();
+                var userMap = new Dictionary<uint, UserProfile>();
 
                 foreach (var huddle in huddles)
                 {
@@ -384,7 +384,7 @@ namespace Api.Huddles
                 // Filter them through to the actual huddles they're for:
                 if (allPermits != null)
                 {
-                    var huddleMap = new Dictionary<int, Huddle>();
+                    var huddleMap = new Dictionary<uint, Huddle>();
 
                     foreach (var huddle in huddles)
                     {
@@ -459,7 +459,7 @@ namespace Api.Huddles
                                 if (cTypeToken != null && idToken != null)
                                 {
                                     var cType = cTypeToken.Value<int?>();
-                                    var id = idToken.Value<int?>();
+                                    var id = idToken.Value<uint?>();
 
                                     if (id.HasValue && id > 0)
                                     {
@@ -476,7 +476,7 @@ namespace Api.Huddles
                             else if (token is JValue)
                             {
                                 // Convenience case for an array of IDs (user IDs).
-                                var id = token.Value<int?>();
+                                var id = token.Value<uint?>();
 
                                 if (id.HasValue && id > 0)
                                 {
@@ -486,7 +486,7 @@ namespace Api.Huddles
 
                         }
 
-                        int revisionId = 0;
+                        uint revisionId = 0;
                         if (huddle.RevisionId.HasValue)
                         {
                             revisionId = huddle.RevisionId.Value;
@@ -597,7 +597,7 @@ namespace Api.Huddles
 		/// <summary>
 		/// Creates a pre-accepted permit.
 		/// </summary>
-		public Task<HuddlePermittedUser> CreateAccepted(Context context, Huddle huddle, int userId)
+		public Task<HuddlePermittedUser> CreateAccepted(Context context, Huddle huddle, uint userId)
 		{
 			return CreateAccepted(context, huddle, userId, userContentType, userId);
 		}
@@ -605,9 +605,9 @@ namespace Api.Huddles
 		/// <summary>
 		/// Creates a pre-accepted permit.
 		/// </summary>
-		public async Task<HuddlePermittedUser> CreateAccepted(Context context, Huddle huddle, int userId, int contentTypeId, int contentId)
+		public async Task<HuddlePermittedUser> CreateAccepted(Context context, Huddle huddle, uint userId, int contentTypeId, uint contentId)
 		{
-			int revisionId = 0;
+			uint revisionId = 0;
 			if (huddle.RevisionId.HasValue)
 			{
 				revisionId = huddle.RevisionId.Value;

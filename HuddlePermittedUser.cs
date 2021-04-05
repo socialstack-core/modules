@@ -10,7 +10,7 @@ namespace Api.Huddles
 	/// <summary>
 	/// A HuddlePermittedUser
 	/// </summary>
-	public partial class HuddlePermittedUser : VersionedContent<int>
+	public partial class HuddlePermittedUser : VersionedContent<uint>
 	{
 		/// <summary>
 		/// Usually the content type for "user".
@@ -20,7 +20,7 @@ namespace Api.Huddles
 		/// <summary>
 		/// The ID of the invited content (usually a user ID, but can be broader - e.g. invite a company to join a meeting).
 		/// </summary>
-		public int InvitedContentId;
+		public uint InvitedContentId;
 
 		/// <summary>
 		/// The invited content. Usually a user, but can also be e.g. a company.
@@ -30,7 +30,7 @@ namespace Api.Huddles
 		/// <summary>
 		/// User allowed to a private huddle.
 		/// </summary>
-		public int PermittedUserId;
+		public uint PermittedUserId;
 		
 		/// <summary>
 		/// An invited user has rejected the invite.
@@ -40,7 +40,7 @@ namespace Api.Huddles
 		/// <summary>
 		/// The huddle ID.
 		/// </summary>
-		public int HuddleId;
+		public uint HuddleId;
 
 		/// <summary>
 		/// The permitted user (if there is one - can be null).

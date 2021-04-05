@@ -320,7 +320,7 @@ namespace Api.Huddles
 		/// Join a huddle. Provided the user is permitted, this returns the connection information.
 		/// </summary>
 		[HttpGet("{id}/join")]
-		public async Task<object> Join(int id)
+		public async Task<object> Join(uint id)
 		{
 			var context = Request.GetContext();
 
@@ -386,7 +386,7 @@ namespace Api.Huddles
 		/// <summary>
 		/// Our huddle server ID.
 		/// </summary>
-		public int HuddleServerIdentifier { get; set; }
+		public uint HuddleServerIdentifier { get; set; }
 	}
 	
 	/// <summary>
@@ -395,11 +395,11 @@ namespace Api.Huddles
 	{
 		/// <summary>
 		/// </summary>
-		public int UserId { get; set; }
+		public uint UserId { get; set; }
 
 		/// <summary>
 		/// </summary>
-		public int HuddleId { get; set; }
+		public uint HuddleId { get; set; }
 
 		/// <summary>
 		/// </summary>

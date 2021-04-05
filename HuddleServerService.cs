@@ -30,7 +30,7 @@ namespace Api.Huddles
 		private string queryStart;
 		
 		private HuddleServer[] huddleServerSet;
-		private Dictionary<int, HuddleServer> huddleServerLookup;
+		private Dictionary<uint, HuddleServer> huddleServerLookup;
 
 		private Random rand = new Random();
 
@@ -102,8 +102,8 @@ namespace Api.Huddles
 			return huddleServerSet[_currentRand++];
 		}
 		
-		private int GetTimeSlice(DateTime timeUtc){
-			return (int)((timeUtc.Subtract(_epoch)).TotalSeconds / TimeSliceSize);
+		private uint GetTimeSlice(DateTime timeUtc){
+			return (uint)((timeUtc.Subtract(_epoch)).TotalSeconds / TimeSliceSize);
 		}
 
 		/// <summary>
@@ -122,7 +122,7 @@ namespace Api.Huddles
 				return null;
 			}
 
-			var allServers = new Dictionary<int, bool>();
+			var allServers = new Dictionary<uint, bool>();
 
 			foreach (var kvp in huddleServerLookup)
 			{
@@ -162,7 +162,7 @@ namespace Api.Huddles
 				allServers.Remove(entry.HuddleServerId);
 			}
 
-			var serverToAllocateTo = 0;
+			uint serverToAllocateTo;
 
 			if (allServers.Count == 0)
 			{
@@ -186,7 +186,7 @@ namespace Api.Huddles
 			// Update the load metric table:
 			for (var i = startSliceId; i <= endSliceId; i++)
 			{
-				int sliceId = (int)(i | (serverToAllocateTo << 21));
+				uint sliceId = i | (serverToAllocateTo << 21);
 
 				// Insert/ update each slice:
 				var measurement = await _loadMetrics.Get(context, sliceId, DataOptions.IgnorePermissions);
@@ -221,7 +221,7 @@ namespace Api.Huddles
 			/// <summary>
 			/// Allocated server ID.
 			/// </summary>
-			public int HuddleServerId;
+			public uint HuddleServerId;
 
 			/// <summary>
 			/// 
@@ -231,7 +231,7 @@ namespace Api.Huddles
 			/// 
 			/// </summary>
 			/// <param name="huddleServerId"></param>
-			public AllocatedHuddleServer(int huddleServerId) {
+			public AllocatedHuddleServer(uint huddleServerId) {
 				HuddleServerId = huddleServerId;
 			}
 		}

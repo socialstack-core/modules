@@ -10,13 +10,13 @@ namespace Api.Huddles
 	/// <summary>
 	/// A HuddlePresence
 	/// </summary>
-	public partial class HuddlePresence : UserCreatedContent<int>
+	public partial class HuddlePresence : UserCreatedContent<uint>
 	{
 		
 		/// <summary>
 		/// Assigned huddle server ID.
 		/// </summary>
-		public int HuddleId;
+		public uint HuddleId;
 
 		/// <summary>
 		/// The temporary ID assigned by the huddle server to indicate which peer this is.
@@ -27,7 +27,7 @@ namespace Api.Huddles
 		/// <summary>
 		/// The ID of the huddle server that the peerId is related to.
 		/// </summary>
-		public int HuddleServerId;
+		public uint HuddleServerId;
 		
 	}
 

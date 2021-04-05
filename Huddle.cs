@@ -11,7 +11,7 @@ namespace Api.Huddles
 	/// <summary>
 	/// A Huddle
 	/// </summary>
-	public partial class Huddle : VersionedContent<int>
+	public partial class Huddle : VersionedContent<uint>
 	{
 		/// <summary>
 		/// 0 = Public (anyone can join)
@@ -30,7 +30,7 @@ namespace Api.Huddles
 		/// <summary>
 		/// Assigned automatically.
 		/// </summary>
-		public int HuddleServerId;
+		public uint HuddleServerId;
 
 		/// <summary>
 		/// Start time of the huddle. If not provided, "now" is assumed.

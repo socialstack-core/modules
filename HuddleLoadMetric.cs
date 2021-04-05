@@ -10,18 +10,18 @@ namespace Api.Huddles
 	/// <summary>
 	/// A HuddleLoadMetric
 	/// </summary>
-	public partial class HuddleLoadMetric : Content<int>
+	public partial class HuddleLoadMetric : Content<uint>
 	{
 		/// <summary>
 		/// 15 minute time block, based on projected durations of a huddle.
 		/// </summary>
 		[DatabaseIndex(Unique = false)]
-		public int TimeSliceId;
+		public uint TimeSliceId;
 		
 		/// <summary>
 		/// Assigned huddle server ID.
 		/// </summary>
-		public int HuddleServerId;
+		public uint HuddleServerId;
 		
 		/// <summary>
 		/// Calculated load factor for a particular huddle server at this time slice.
