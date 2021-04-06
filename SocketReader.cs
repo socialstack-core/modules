@@ -56,6 +56,7 @@ namespace Api.SocketServerLibrary {
 		private readonly Action<BufferSegment> ThenReadDateTime_D;
 		private readonly Action<BufferSegment> ThenReadNDateTime_D;
 		private readonly Action<BufferSegment> ThenReadNInt32_D;
+		private readonly Action<BufferSegment> ThenReadNUInt32_D;
 		private readonly Action<BufferSegment> ThenReadUInt32_D;
 		private readonly Action<BufferSegment> ThenReadUInt24_D;
 		private readonly Action<BufferSegment> ThenReadUInt16_D;
@@ -76,6 +77,7 @@ namespace Api.SocketServerLibrary {
 		private readonly Action<BufferSegment> ThenReadFloat_D;
 		private readonly Action<byte> ThenReadNDateTimeFlag_D;
 		private readonly Action<byte> ThenReadNInt32Flag_D;
+		private readonly Action<byte> ThenReadNUInt32Flag_D;
 		private readonly Action<ulong> ThenReadXBytes_D;
 		private readonly Action<ulong> ThenReadXItems_D;
 		private readonly Action<ulong> ThenReadXListItems_D;
@@ -144,8 +146,10 @@ namespace Api.SocketServerLibrary {
 			ThenReadDateTime_D = new Action<BufferSegment>(ThenReadDateTime);
 			ThenReadNDateTime_D = new Action<BufferSegment>(ThenReadNDateTime);
 			ThenReadNInt32_D = new Action<BufferSegment>(ThenReadNInt32);
+			ThenReadNUInt32_D = new Action<BufferSegment>(ThenReadNUInt32);
 			ThenReadNDateTimeFlag_D = new Action<byte>(ThenReadNDateTimeFlag);
 			ThenReadNInt32Flag_D = new Action<byte>(ThenReadNInt32Flag);
+			ThenReadNUInt32Flag_D = new Action<byte>(ThenReadNUInt32Flag);
 			ThenReadUInt32_D = new Action<BufferSegment>(ThenReadUInt32);
 			ThenReadUInt24_D = new Action<BufferSegment>(ThenReadUInt24);
 			ThenReadUInt16_D = new Action<BufferSegment>(ThenReadUInt16);
@@ -937,6 +941,19 @@ namespace Api.SocketServerLibrary {
 			ReadBytesUnverified(4, ThenReadNInt32_D);
 		}
 
+		private void ThenReadNUInt32Flag(byte flag)
+		{
+			if (flag == 0)
+			{
+				var cb = (Action<uint?>)Pop();
+				cb(null);
+				return;
+			}
+
+			// Read a nullable int
+			ReadBytesUnverified(4, ThenReadNUInt32_D);
+		}
+
 		/// <summary>
 		/// Read a datetime (UTC).
 		/// </summary>
@@ -980,6 +997,21 @@ namespace Api.SocketServerLibrary {
 #endif
 
 			Read(ThenReadNInt32Flag_D);
+		}
+
+		/// <summary>
+		/// Read a nullable uint.
+		/// </summary>
+		/// <param name="cb"></param>
+		public void ReadUInt32(Action<uint?> cb)
+		{
+			Push(cb);
+
+#if DEBUG && SOCKET_SERVER_PROBE_ON
+			Validate(MetaFieldType.Unsigned, 4);
+#endif
+
+			Read(ThenReadNUInt32Flag_D);
 		}
 
 		/// <summary>
@@ -1215,6 +1247,18 @@ namespace Api.SocketServerLibrary {
 		{
 			var cb = (Action<int?>)Pop();
 			var value = (int)buffer.Next | ((int)buffer.Next << 8) | ((int)buffer.Next << 16) | ((int)buffer.Next << 24);
+			buffer.Release();
+			cb(value);
+		}
+
+		/// <summary>
+		/// Internal - Reads a nullable 4 byte int from a buffer.
+		/// </summary>
+		/// <param name="buffer"></param>
+		private void ThenReadNUInt32(BufferSegment buffer)
+		{
+			var cb = (Action<uint?>)Pop();
+			var value = (uint)buffer.Next | ((uint)buffer.Next << 8) | ((uint)buffer.Next << 16) | ((uint)buffer.Next << 24);
 			buffer.Release();
 			cb(value);
 		}

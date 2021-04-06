@@ -409,6 +409,21 @@ namespace Api.SocketServerLibrary
 			Write(val.Value);
 		}
 
+		/// <summary>
+		/// Write a nullable uint32 value.
+		/// </summary>
+		/// <param name="val"></param>
+		public void Write(uint? val)
+		{
+			if (val == null)
+			{
+				Write((byte)0);
+				return;
+			}
+			Write((byte)1);
+			Write(val.Value);
+		}
+		
 		/// <summary>Write a 4 byte signed value to the message.</summary>
 		public void Write(int value){
 			if(Fill > (BinaryBufferPool.BufferSize-4)){

@@ -121,6 +121,12 @@ namespace Api.SocketServerLibrary
 			);
 
 			Add(
+				114,
+				(ClientReader reader) => reader.ReadUInt32(reader.ThenSetField_NUInt32_D),
+				(Writer writer, uint? value) => writer.Write(value)
+			);
+
+			Add(
 				105,
 				(ClientReader reader) => reader.ReadDateTime(reader.ThenSetField_NDateTime_D),
 				(Writer writer, DateTime? value) => writer.Write(value)
