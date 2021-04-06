@@ -25,6 +25,10 @@ namespace Api.SocketServerLibrary
 		/// </summary>
 		public readonly Action<int?> ThenSetField_NInt32_D;
 		/// <summary>
+		/// Sets nullable ui32 to current field
+		/// </summary>
+		public readonly Action<uint?> ThenSetField_NUInt32_D;
+		/// <summary>
 		/// Sets str to current field
 		/// </summary>
 		public readonly Action<BufferSegment> ThenSetField_String_D;
@@ -155,6 +159,19 @@ namespace Api.SocketServerLibrary
 		/// </summary>
 		/// <param name="value"></param>
 		public void ThenSetField_NInt32(int? value)
+		{
+			if (CurrentField.Field != null)
+			{
+				CurrentField.Field.SetValue(CurrentObject, value);
+			}
+			ReadNextField();
+		}
+		
+		/// <summary>
+		/// Sets a nulalble uint to the current field value
+		/// </summary>
+		/// <param name="value"></param>
+		public void ThenSetField_NUInt32(uint? value)
 		{
 			if (CurrentField.Field != null)
 			{
@@ -369,6 +386,7 @@ namespace Api.SocketServerLibrary
 			OnReadUserId_D = new Action<uint>(OnReadUserId);
 			ThenSetField_Int32_D = new Action<int>(ThenSetField_Int32);
 			ThenSetField_NInt32_D = new Action<int?>(ThenSetField_NInt32);
+			ThenSetField_NUInt32_D = new Action<uint?>(ThenSetField_NUInt32);
 			ThenSetField_Int64_D = new Action<long>(ThenSetField_Int64);
 			ThenSetField_String_D = new Action<BufferSegment>(ThenSetField_String);
 			ThenSetField_Bool_D = new Action<byte>(ThenSetField_Bool);
