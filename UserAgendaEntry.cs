@@ -10,7 +10,7 @@ namespace Api.UserAgendaEntries
 	/// <summary>
 	/// An UserAgendaEntry
 	/// </summary>
-	public partial class UserAgendaEntry : VersionedContent<int>
+	public partial class UserAgendaEntry : VersionedContent<uint>
 	{
 		/// <summary>
 		/// The type of content that this agenda entry is for. Video, meeting etc.
@@ -20,7 +20,7 @@ namespace Api.UserAgendaEntries
 		/// <summary>
 		/// The ID of the content that this agenda entry is for. Video ID, meeting ID etc.
 		/// </summary>
-		public int ContentId;
+		public uint ContentId;
 	
 		/// <summary>
 		/// Start time UTC.
