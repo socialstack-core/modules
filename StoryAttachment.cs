@@ -9,12 +9,12 @@ namespace Api.StoryAttachments
 	/// <summary>
 	/// Usually an attachment on activity feed entries.
 	/// </summary>
-	public partial class StoryAttachment : MappingRow
+	public partial class StoryAttachment : MappingEntity
 	{
 		/// <summary>
 		/// Creator user
 		/// </summary>
-		public int UserId;
+		public uint UserId;
 
 		/// <summary>
 		/// Target URL where this attachment can be found. Can be a ref such as page:1 or module:ComponentName
