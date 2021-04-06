@@ -41,6 +41,9 @@ namespace Api.SocketServerLibrary {
 		/// </summary>
 		public bool RequiresUserId;
 
+		/// <summary>
+		/// Handles thread access to the pool.
+		/// </summary>
 		protected object PoolLock = new object();
 
 		/// <summary>
