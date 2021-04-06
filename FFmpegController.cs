@@ -39,7 +39,7 @@ namespace Api.FFmpeg
 		/// <param name="id"></param>
 		/// <returns></returns>
 		[HttpGet("transcode/{id}")]
-		public async Task<object> Transcode([FromRoute] int id)
+		public async Task<object> Transcode([FromRoute] uint id)
 		{
 			var ctx = Request.GetContext();
 
