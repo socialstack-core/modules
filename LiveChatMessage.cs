@@ -12,7 +12,7 @@ namespace Api.LiveChatMessages
 	/// <summary>
 	/// A chat message in the live chat.
 	/// </summary>
-	public partial class LiveChatMessage : VersionedContent<int>, IAmLive, IAmFlaggable
+	public partial class LiveChatMessage : VersionedContent<uint>, IAmLive, IAmFlaggable
 	{
 		/// <summary>
 		/// The content type that this is in.
