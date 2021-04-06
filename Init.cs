@@ -367,7 +367,7 @@ namespace Api.Permissions
 			// Permission blocks next. Ensure we only return results for things that this user is permitted to see.
 			// We'll do this by extending the grant filter.
 
-			#warning todo revisit permits.
+			// #warning todo revisit permits.
 
 			/*
 			foreach (var role in Roles.All)
@@ -392,7 +392,7 @@ namespace Api.Permissions
 
 		private static void SetupPartialRoleRestrictions()
 		{
-#warning todo revisit partial role restrictions
+// #warning todo revisit partial role restrictions
 			/*
 			// For each type, build the field map of roles that it wants to partially restrict (if any):
 			foreach (var kvp in ContentTypes.TypeMap)
