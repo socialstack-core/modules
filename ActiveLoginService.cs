@@ -27,7 +27,7 @@ namespace Api.ActiveLogins
 		/// </summary>
 		public ActiveLoginService(ActiveLoginHistoryService loginHistory) : base(Events.ActiveLogin)
         {
-			var serverId = 0;
+			uint serverId = 0;
 			_historicalRecord = loginHistory;
 
 			Events.User.BeforeSettable.AddEventListener((Context context, JsonField<User> field) =>
@@ -47,7 +47,7 @@ namespace Api.ActiveLogins
 			});
 			
 			// Add event listeners for websocket users:
-			Events.WebSocketUserState.AddEventListener(async (Context ctx, int userId, UserWebsocketLinks userSockets) =>
+			Events.WebSocketUserState.AddEventListener(async (Context ctx, uint userId, UserWebsocketLinks userSockets) =>
 			{
 				// Triggers when the user login state changes *locally*.
 				if(userId == 0)
@@ -186,7 +186,7 @@ namespace Api.ActiveLogins
 			
 			// Update online state for any users who should now be marked offline:
 			if(onlineEntries != null){
-				Dictionary<int, bool> uniqueUsers = new Dictionary<int, bool>();
+				Dictionary<uint, bool> uniqueUsers = new Dictionary<uint, bool>();
 				
 				foreach(var entry in onlineEntries){
 					if(entry == null || entry.UserId == 0)
@@ -229,7 +229,7 @@ namespace Api.ActiveLogins
 					{
 						if (entry != null && entry.Count != 0)
 						{
-							uniqueUsers[(int)entry.UserId] = false;
+							uniqueUsers[(uint)entry.UserId] = false;
 						}
 					}
 					

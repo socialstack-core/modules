@@ -10,12 +10,12 @@ namespace Api.ActiveLogins
 	/// <summary>
 	/// An ActiveLogin historical record.
 	/// </summary>
-	public partial class ActiveLoginHistory : Content<int>
+	public partial class ActiveLoginHistory : Content<uint>
 	{
 		/// <summary>
 		/// The user logging in/ out.
 		/// </summary>
-		public int UserId;
+		public uint UserId;
 		
 		/// <summary>
 		/// True if this is a login, false for logout.

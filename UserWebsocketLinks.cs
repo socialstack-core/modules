@@ -10,7 +10,7 @@ namespace Api.WebSockets
 		/// <summary>
 		/// Database row ID of the current active login entry for this user on this server.
 		/// </summary>
-		public int ActiveLoginId;
+		public uint ActiveLoginId;
 	}
 	
 }

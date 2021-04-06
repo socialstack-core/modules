@@ -10,12 +10,12 @@ namespace Api.ActiveLogins
 	/// <summary>
 	/// An ActiveLogin
 	/// </summary>
-	public partial class ActiveLogin : VersionedContent<int>
+	public partial class ActiveLogin : VersionedContent<uint>
 	{
 		/// <summary>
 		/// ContentSync server ID.
 		/// </summary>
-		public int Server;
+		public uint Server;
 	}
 
 }
