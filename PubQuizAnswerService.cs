@@ -51,7 +51,7 @@ namespace Api.PubQuizzes
 				var allAnswers = await List(context, new Filter<PubQuizAnswer>().EqualsSet("PubQuizQuestionId", questions.Select(q => q.Id)), DataOptions.IgnorePermissions);
 				
 				// question lookup:
-				var lookup = new Dictionary<int, PubQuizQuestion>();
+				var lookup = new Dictionary<uint, PubQuizQuestion>();
 				
 				foreach(var question in questions){
 					if(question == null){

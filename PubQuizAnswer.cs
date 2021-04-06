@@ -10,7 +10,7 @@ namespace Api.PubQuizzes
 	/// <summary>
 	/// A PubQuizAnswer
 	/// </summary>
-	public partial class PubQuizAnswer : VersionedContent<int>
+	public partial class PubQuizAnswer : VersionedContent<uint>
 	{
 		/// <summary>
 		/// The answer (a canvas so it can e.g. include images)
@@ -26,7 +26,7 @@ namespace Api.PubQuizzes
 		/// <summary>
 		/// The question ID.
 		/// </summary>
-		public int PubQuizQuestionId;
+		public uint PubQuizQuestionId;
 		
 		/// <summary>
 		/// True if this is the correct answer.

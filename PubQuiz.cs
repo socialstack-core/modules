@@ -10,7 +10,7 @@ namespace Api.PubQuizzes
 	/// <summary>
 	/// A PubQuiz
 	/// </summary>
-	public partial class PubQuiz : VersionedContent<int>
+	public partial class PubQuiz : VersionedContent<uint>
 	{
         /// <summary>
         /// The name of the PubQuiz

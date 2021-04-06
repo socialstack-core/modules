@@ -11,7 +11,7 @@ namespace Api.PubQuizzes
 	/// <summary>
 	/// A PubQuizQuestion
 	/// </summary>
-	public partial class PubQuizQuestion : VersionedContent<int>
+	public partial class PubQuizQuestion : VersionedContent<uint>
 	{
 		/// <summary>
 		/// The quiz ID.

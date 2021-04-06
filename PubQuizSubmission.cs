@@ -11,7 +11,7 @@ namespace Api.PubQuizzes
 	/// <summary>
 	/// A PubQuizSubmission
 	/// </summary>
-	public partial class PubQuizSubmission : VersionedContent<int>, IAmLive
+	public partial class PubQuizSubmission : VersionedContent<uint>, IAmLive
 	{
 		// Example fields. None are required:
 		/// <summary>
@@ -22,7 +22,7 @@ namespace Api.PubQuizzes
 		/// <summary>
 		/// The id of the pub quiz answer
 		/// </summary>
-		public int PubQuizAnswerId;	
+		public uint PubQuizAnswerId;	
 
 		/// <summary>
 		/// The PubQuiz answer that was submitted.
