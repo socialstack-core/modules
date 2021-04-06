@@ -36,7 +36,7 @@ namespace Api.Notifications
 		/// <param name="context"></param>
 		/// <param name="userId">User ID</param>
 		/// <returns>The number cleared</returns>
-		public async Task<int> MarkAllViewed(Context context, int userId)
+		public async Task<int> MarkAllViewed(Context context, uint userId)
 		{
 			// Attempt to get similar notif:
 			var all = await _database.List(context, selectByUserNotViewed, null, userId);
