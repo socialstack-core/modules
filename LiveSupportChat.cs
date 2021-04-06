@@ -13,7 +13,7 @@ namespace Api.LiveSupportChats
 	/// <summary>
 	/// A LiveSupportChat
 	/// </summary>
-	public partial class LiveSupportChat : VersionedContent<int>, IAmLive
+	public partial class LiveSupportChat : VersionedContent<uint>, IAmLive
 	{
         /// <summary>
 		/// Total messages in this chat.

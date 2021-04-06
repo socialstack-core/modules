@@ -11,17 +11,17 @@ namespace Api.LiveSupportChats
 	/// <summary>
 	/// A LiveSupportMessage
 	/// </summary>
-	public partial class LiveSupportMessage : VersionedContent<int>, IAmLive
+	public partial class LiveSupportMessage : VersionedContent<uint>, IAmLive
 	{
 		/// <summary>
 		/// The chat this message is in.
 		/// </summary>
-		public int LiveSupportChatId;
+		public uint LiveSupportChatId;
 		
 		/// <summary>
 		/// UserId of the public user who created the chat. The same as LiveSupportChat.UserId.
 		/// </summary>
-		public int ChatCreatorUserId;
+		public uint ChatCreatorUserId;
 		
 		/// <summary>
 		/// The message text.
