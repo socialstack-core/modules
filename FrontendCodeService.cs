@@ -140,9 +140,18 @@ namespace Api.CanvasRenderer
 
 					var firstDot = file.FileName.IndexOf('.');
 					var nameNoType = firstDot == -1 ? file.FileName : file.FileName.Substring(0, firstDot);
-
+					
+					var modPath = file.ModulePath;
+					var modPathDot = file.ModulePath.LastIndexOf('.');
+					
+					
+					if(modPathDot != -1){
+						// It has a filetype - strip it:
+						modPath = modPath.Substring(0, modPathDot);
+					}
+					
 					output.Append('"');
-					output.Append(file.ModulePath);
+					output.Append(modPath);
 					output.Append(rootSegment);
 					output.Append(file.RelativePath.Replace('\\', '/') + '/' + nameNoType);
 					output.Append("\"]");

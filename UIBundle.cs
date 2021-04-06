@@ -95,6 +95,11 @@ namespace Api.CanvasRenderer
 		public bool HasTypeScript;
 
 		/// <summary>
+		/// Options when transforming the JS.
+		/// </summary>
+		private TransformOptions TransformOptions;
+
+		/// <summary>
 		/// A list of UI build errors. Only exists on dev mode.
 		/// </summary>
 		public List<UIBuildError> GetBuildErrors()
@@ -125,6 +130,10 @@ namespace Api.CanvasRenderer
 			_localeService = locales;
 			Minified = minify;
 			PackDir = packDir;
+
+			TransformOptions = new TransformOptions() {
+				minified = minify
+			};
 		}
 
 		/// <summary>
@@ -1171,7 +1180,7 @@ namespace Api.CanvasRenderer
 					File.ReadAllText(file.Path),
 					file.ModulePath, // Module path
 					file.FullModulePath,
-					Minified
+					TransformOptions
 				) as ScriptObject;
 
 				// Get the src:
