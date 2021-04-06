@@ -7,7 +7,7 @@ var cache = null;
 * Gets the list of content types on the site. Returns a promise.
 */
 export default (capName, context) => {
-	var gs = context.app.state;
+	var gs = (context.app || global.app).state;
 	
 	if(gs.loadingUser){
 		return gs.loadingUser.then(() => loadCached(capName, context));
@@ -21,7 +21,7 @@ function loadCached(capName, context) {
 		return Promise.resolve(cache).then(caps => !!caps[capName]);
 	}
 	
-	var gs = context.app.state;
+	var gs = (context.app || global.app).state;
 	var roleId = gs.user ? gs.user.role : 0;
 	
 	return cache = webRequest("permission/role/" + roleId).then(response => {
