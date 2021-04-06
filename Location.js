@@ -120,7 +120,7 @@ function distance(a, b){
 	return radius * c;
 }
 
-module.exports = (opts) => {
+export default (opts) => {
 	if(interval && latest){
 		return Promise.resolve(latest);
 	}
@@ -128,7 +128,7 @@ module.exports = (opts) => {
 	return get(opts);
 };
 
-module.exports.getFast = () => {
+export function getFast() {
 	// Only returns latest if it's actually set.
 	if(latest && latest.latitude){
 		return latest;
@@ -136,6 +136,4 @@ module.exports.getFast = () => {
 	return null;
 }
 
-module.exports.gridId = gridId;
-module.exports.gridOffset = gridOffset;
-module.exports.distance = distance;
+export { gridId, gridOffset, distance };
