@@ -3,7 +3,9 @@ import webRequest from 'UI/Functions/WebRequest';
 function clearAndNav(url, context){
 	var state = {};
 	
-	for(var k in context.app.state){
+	var ctxApp = (context.app || global.app);
+	
+	for(var k in ctxApp.state){
 		if(k == 'url' || k == 'loadingUser'){
 			continue;
 		}
@@ -11,7 +13,7 @@ function clearAndNav(url, context){
 	}
 	
 	state.role={id: 0};
-	context.app.setState(state);
+	ctxApp.setState(state);
 	global.pageRouter.go(url);
 }
 
