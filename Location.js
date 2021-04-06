@@ -17,7 +17,7 @@ function done(opts, success, coords){
 	success(coords);
 }
 
-function get(opts){
+function getInternal(opts){
 	opts = opts || {};
 	var updateTime = opts.updateTime || 15000;
 	
@@ -120,12 +120,12 @@ function distance(a, b){
 	return radius * c;
 }
 
-export default (opts) => {
+export function get(opts) {
 	if(interval && latest){
 		return Promise.resolve(latest);
 	}
 	
-	return get(opts);
+	return getInternal(opts);
 };
 
 export function getFast() {
