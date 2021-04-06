@@ -19,5 +19,10 @@ namespace Api.CanvasRenderer
 		/// True if the watcher mode should run minified JS.
 		/// </summary>
 		public bool Minified { get; set; } = false;
+
+		/// <summary>
+		/// True to use React instead of Preact (Preact is the default).
+		/// </summary>
+		public bool React { get; set; } = false;
 	}	
 }

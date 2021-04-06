@@ -14,11 +14,6 @@ namespace Api.CanvasRenderer
 		/// </summary>
 		public string Modules { get; set; } = "Admin";
 		
-		/// <summary>
-		/// True if you'd like to use react.
-		/// </summary>
-		public bool UseReact { get; set; } = false;
-		
 	}
 	
 }
