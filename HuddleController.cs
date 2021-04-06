@@ -33,7 +33,7 @@ namespace Api.Huddles
         /// </summary>
         /// <returns></returns>
         [HttpGet("{id}/startactivity/{activityContentTypeName}/{activityContentId}")]
-        public virtual async Task<object> StartActivity([FromRoute] int id, [FromRoute] string activityContentTypeName, [FromRoute] int activityContentId)
+        public virtual async Task<object> StartActivity([FromRoute] uint id, [FromRoute] string activityContentTypeName, [FromRoute] uint activityContentId)
         {
             // Only possible if you can load a meeting, so we use the load perm here:
             var context = Request.GetContext();
@@ -92,7 +92,7 @@ namespace Api.Huddles
         }
 		
         [HttpGet("{id}/endactivity")]
-		public virtual async Task<object> EndActivity([FromRoute] int id)
+		public virtual async Task<object> EndActivity([FromRoute] uint id)
         {
 			// Only possible if you can load a meeting, so we use the load perm here:
             var context = Request.GetContext();
