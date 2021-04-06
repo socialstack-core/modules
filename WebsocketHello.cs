@@ -5,10 +5,19 @@ using System.Security.Cryptography;
 
 namespace Api.SocketServerLibrary
 {
+	/// <summary>
+	/// A get request.
+	/// </summary>
 	public class GetMessage : Message
 	{
+		/// <summary>
+		/// Content type.
+		/// </summary>
 		public int ContentType;
-		public int Id;
+		/// <summary>
+		/// ID of the content.
+		/// </summary>
+		public uint Id;
 	}
 
 	/// <summary>
@@ -16,11 +25,34 @@ namespace Api.SocketServerLibrary
 	/// </summary>
 	public class WebsocketHandshake : OpCode
 	{
+		/// <summary>
+		/// 
+		/// </summary>
 		public byte[] UpperCaseKeyHeader;
+
+		/// <summary>
+		/// 
+		/// </summary>
 		public byte[] LowerCaseKeyHeader;
+
+		/// <summary>
+		/// 
+		/// </summary>
 		public byte[] HeaderTerminal;
+
+		/// <summary>
+		/// 
+		/// </summary>
 		public byte[] MagicString;
+
+		/// <summary>
+		/// 
+		/// </summary>
 		public byte[] ProtocolSwitchResponse;
+
+		/// <summary>
+		/// 
+		/// </summary>
 		public SHA1Managed Sha1;
 
 
@@ -85,6 +117,9 @@ namespace Api.SocketServerLibrary
 	/// </summary>
 	public class WebsocketHandshakeMessage : Message
 	{
+		/// <summary>
+		/// 
+		/// </summary>
 		public WebsocketHandshakeMessage()
 		{
 			SkipUntilNewline_D = new Action<byte>(SkipUntilNewline);
