@@ -39,7 +39,7 @@ namespace Api.CanvasRenderer
 				var config = GetConfig<FrontendCodeServiceConfig>();
 
 				// The html inline header. It includes preact, preact hooks and the socialstack module require function.
-				InlineJavascriptHeader = File.ReadAllText(dllPath + "/Api/ThirdParty/CanvasRenderer/inline_header.js");
+				InlineJavascriptHeader = File.ReadAllText(dllPath + "/Api/ThirdParty/CanvasRenderer/inline_header_react.js");
 
 				var prebuilt = config.Prebuilt;
 
