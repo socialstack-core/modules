@@ -242,4 +242,4 @@ MediaRecorder.isTypeSupported = mimeType => {
  */
 MediaRecorder.notSupported = !navigator.mediaDevices || !AudioContext
 
-module.exports = MediaRecorder
+export default MediaRecorder;
