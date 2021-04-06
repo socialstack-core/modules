@@ -35,6 +35,9 @@ namespace Api.Views
 			selectByContentTypeAndIdQuery = Query.Select<View>();
 			selectByContentTypeAndIdQuery.Where().EqualsArg("ContentId", 0).And().EqualsArg("ContentTypeId", 1).And().EqualsArg("UserId", 2);
 			
+			
+
+			/*
 			// First, find all events for types that implement IHaveViews:
 			var loadEvents = Events.FindByType(typeof(IHaveViews), "Load", EventPlacement.After);
 
@@ -59,6 +62,7 @@ namespace Api.Views
 				});
 
 			}
+			*/
 
 		}
 
@@ -66,7 +70,7 @@ namespace Api.Views
 		/// Sets a particular type with views handlers. Used via reflection.
 		/// </summary>
 		/// <typeparam name="T"></typeparam>
-		public void SetupForViews<T>() where T : DatabaseRow<int>, IHaveViews, new()
+		public void SetupForViews<T>() where T : Content<uint>, IHaveViews, new()
 		{
 			// Invoked by reflection
 			var evtGroup = Events.GetGroup<T>();
@@ -184,7 +188,7 @@ namespace Api.Views
 				// (applies to at least categories/ tags).
 
 				var ids = new object[list.Count];
-				var contentLookup = new Dictionary<int, T>();
+				var contentLookup = new Dictionary<uint, T>();
 				
 				for (var i = 0; i < ids.Length; i++)
 				{
@@ -227,7 +231,7 @@ namespace Api.Views
 		/// <summary>
 		/// Marks a content item of the given type as viewed.
 		/// </summary>
-		public async Task MarkViewed(Context context, int contentTypeId, int id)
+		public async Task MarkViewed(Context context, int contentTypeId, uint id)
 		{
 			
 			// Get the view state for this user:

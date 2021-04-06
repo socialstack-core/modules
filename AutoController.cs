@@ -20,7 +20,7 @@ public partial class AutoController<T>
 	/// GET /v1/entityTypeName/2/viewed/
 	/// </summary>
 	[HttpGet("{id}/viewed")]
-	public virtual async Task<object> MarkViewed([FromRoute] int id)
+	public virtual async Task<object> MarkViewed([FromRoute] uint id)
 	{
 		// Get the ctx:
 		var context = Request.GetContext();

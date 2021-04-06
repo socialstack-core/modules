@@ -8,7 +8,7 @@ namespace Api.Views
 	/// A view by a particular user to a particular piece of content.
 	/// ViewCount is essentially just a counted version of these.
 	/// </summary>
-	public partial class View : RevisionRow
+	public partial class View : VersionedContent<uint>
 	{
 		/// <summary>
 		/// The content type this is a view to.
@@ -17,7 +17,7 @@ namespace Api.Views
 		/// <summary>
 		/// The Id of the content that this is a view to.
 		/// </summary>
-		public int ContentId;
+		public uint ContentId;
 	}
 	
 }
