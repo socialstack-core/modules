@@ -2,10 +2,12 @@ import Tile from 'Admin/Tile';
 import Content from 'UI/Content';
 import Canvas from 'UI/Canvas';
 import Default from 'Admin/Layouts/Default';
+import { useSession } from 'UI/Session';
 
 export default function Dashboard (props, context) {
 	
-	var { role } = context.app.state;
+	const { session } = useSession();
+	var { role } = session;
 	
 	return (
 		<Default>
