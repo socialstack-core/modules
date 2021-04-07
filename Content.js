@@ -142,7 +142,7 @@ export default class Content extends React.Component {
 		
 	}
 	
-	rContent(){
+	rContent(content){
 		var loading = false;
 		var {children} = this.props;
 		
