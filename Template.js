@@ -16,7 +16,7 @@ export default Template = (props) => {
 				{
 					template.bodyJson
 				}
-			</Canvas> : null
+			</Canvas> : props.children
 		}
 	</Content>;
 }
