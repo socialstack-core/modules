@@ -184,12 +184,16 @@ export default class Paginator extends React.Component {
 
 		// override maxLinks if we're on mobile
 		var isMobile = false;
+		/*
+		Todo: this is unavailable serverside - use something else to identify mobile.
+		
 		var html = document.getElementsByTagName("html");
 
 		if (html.length && html[0].classList.contains("device-mobile")) {
 			isMobile = true;
 		}
-
+		*/
+		
 		var showFirstLastNav = true;
 		var showPrevNextNav = true;
 
