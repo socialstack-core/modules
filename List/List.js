@@ -8,6 +8,7 @@ import DeleteComment from 'UI/Comments/Delete';
 import EditComment from 'UI/Comments/Edit';
 import ReportComment from 'UI/Comments/Report';
 import Canvas from 'UI/Canvas'
+import {SessionConsumer} from 'UI/Session';
 
 export default class List extends React.Component{
 	constructor(props){
@@ -44,7 +45,13 @@ export default class List extends React.Component{
 		this.setState({deletedComments, deleteComment: null});
 	}
 
-    render(){
+	render(){
+		return <SessionConsumer>
+			{session => this.renderIntl(session)}
+		</SessionConsumer>;
+	}
+
+    renderIntl(session){
 
         let {
 			contentId,
@@ -116,7 +123,7 @@ export default class List extends React.Component{
 				}}
 				>
 					{coms => {
-						var { user } = this.context.app.state;
+						var { user } = session;
 
 						var {hasComments} = this.state;
 
