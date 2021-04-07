@@ -3,10 +3,11 @@ import Input from 'UI/Input';
 import Row from 'UI/Row';
 import Loop from 'UI/Loop';
 import Canvas from 'UI/Canvas';
+import { useSession } from 'UI/Session';
 import getContentTypeId from 'UI/Functions/GetContentTypeId';
 import webRequest from 'UI/Functions/WebRequest';
 
-export default class Report extends React.Component{
+class ReportIntl extends React.Component{
 	constructor(props){
 		super(props);
 		this.state={};
@@ -15,7 +16,10 @@ export default class Report extends React.Component{
 	}
 
 	load(props) {
-		webRequest("userflag/list", {where: {ContentId: props.comment.id, ContentTypeId: getContentTypeId(props.comment.type), UserId: global.app.state.user.id}}).then(response => {
+		const { session } = props;
+		const { user } = session;
+		
+		webRequest("userflag/list", {where: {ContentId: props.comment.id, ContentTypeId: getContentTypeId(props.comment.type), UserId: user.id}}).then(response => {
 			// Are there already any userflags from this user on this content?
 			if(response.json.total > 0 ) {
 				this.setState({existingReport: response.json.results[0]});
@@ -121,8 +125,8 @@ export default class Report extends React.Component{
     }
 }
 
-Report.propTypes={
-	contentId: 'string',
-	contentType: 'string'
-};
-Report.icon='comment';
+export default function Report (props) {
+	var { session } = useSession();
+	
+	return <ReportIntl session={session} {...props} />
+}

@@ -4,6 +4,7 @@ import Alert from "UI/Alert";
 import Row from "UI/Row";
 import Modal from "UI/Modal";
 import LoginForm from "UI/LoginForm";
+import {SessionConsumer} from 'UI/Session';
 
 export default class Add extends React.Component{
 	constructor(props){
@@ -15,7 +16,13 @@ export default class Add extends React.Component{
 		this.props.onClose && this.props.onClose();
 	}
 
-    render(){
+	render(){
+		return <SessionConsumer>
+			{session => this.renderIntl(session)}
+		</SessionConsumer>;
+	}
+	
+	renderIntl(session){
 
         let {
 			contentId,
