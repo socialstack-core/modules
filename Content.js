@@ -1,5 +1,6 @@
 import webRequest from 'UI/Functions/WebRequest';
 import webSocket from 'UI/Functions/WebSocket';
+import { SessionConsumer } from 'UI/Session';
 
 /*
 * A convenience mechanism for obtaining 1 piece of content. Outputs no DOM structure.
@@ -40,25 +41,6 @@ export default class Content extends React.Component {
 		// Push msg.entity into the results set:
 		if (this.state.content && msg.entity) {
 			var e = msg.entity;
-			if (msg.by && e.viewedAtUtc) {
-				// Special views specific functionality here.
-				// If we receive an update via the websocket, we must change its viewedAtUtc field (if it has one).
-				// That's because its value is user specific, and is set to the value of the person who raised the event.
-				// Lots of database traffic just isn't worthwhile given the UI can figure it out for itself.
-				
-				// If *this user* made the update, set the viewed date as the edited date.
-				// Otherwise, clear it. We don't know when this user actually last saw it.
-				var { user } = (this.context.app || global.app).state;
-
-				var userId = user ? user.id : 0;
-
-				if (msg.by == userId) {
-					e.viewedAtUtc = e.editedUtc;
-				} else {
-					e.viewedAtUtc = null;
-				}
-			}
-			
 			var entityId = e.id;
 
 			if (msg.method == 'delete') {
@@ -146,13 +128,23 @@ export default class Content extends React.Component {
 	
 	render(){
 		var {content} = this.state;
-		var {children, primary} = this.props;
+		var {primary} = this.props;
 		
 		if(primary){
-			content = this.context.pageRouter.state.po;
+			
+			return <RouterConsumer>{
+				pgState => this.rContent(pgState.po)
+			}</RouterConsumer>;
+			
+		}else{
+			return this.rContent(content);
 		}
 		
+	}
+	
+	rContent(){
 		var loading = false;
+		var {children} = this.props;
 		
 		if(!content){
 			// Null indicates loading:
