@@ -35,7 +35,7 @@ export default class Add extends React.Component{
 			return;
 		}
 
-		if(!global.app.state.user) {
+		if(!session.user) {
 			return <div className="login-prompt">
 				<p>You must be logged in to leave a comment.</p>
 				<Row className = "comment-buttons">
