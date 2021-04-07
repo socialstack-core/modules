@@ -7,6 +7,7 @@ import getAutoForm from 'Admin/Functions/GetAutoForm';
 import webRequest from 'UI/Functions/WebRequest';
 import formatTime from "UI/Functions/FormatTime";
 import Tile from 'Admin/Tile';
+import { RouterConsumer } from 'UI/Session';
 
 var locales = null;
 
@@ -150,7 +151,7 @@ export default class AutoForm extends React.Component {
 		});
 	}
 
-	confirmDelete() {
+	confirmDelete(pageState, setPage) {
 		this.setState({
 			confirmDelete: false,
 			deleting: true
@@ -161,8 +162,7 @@ export default class AutoForm extends React.Component {
 			null,
 			{ method: 'delete' }
 		).then(response => {
-			var state = global.pageRouter.state;
-			var parts = state.page.url.split('/'); // e.g. ['', 'en-admin', 'pages', '1']
+			var parts = pageState.page.url.split('/'); // e.g. ['', 'en-admin', 'pages', '1']
 
 			// Go to root parent page:
 			var target = this.props.deletePage;
@@ -173,7 +173,7 @@ export default class AutoForm extends React.Component {
 				target = '/' + parts[1] + '/' + target;
 			}
 			
-			global.pageRouter.go(target);
+			setPage(target);
 
 		}).catch(e => {
 			console.error(e);
@@ -184,13 +184,13 @@ export default class AutoForm extends React.Component {
 		});
 	}
 	
-	renderConfirmDelete(){
+	renderConfirmDelete(pageState, setPage){
 		return <Modal visible onClose={() => this.cancelDelete()}>
 				<p>
 					Are you sure you want to delete this?
 				</p>
 				<div>
-					<Input inline type="button" className="btn btn-danger" onClick={() => this.confirmDelete()}>Yes, delete it</Input>
+					<Input inline type="button" className="btn btn-danger" onClick={() => this.confirmDelete(pageState, setPage)}>Yes, delete it</Input>
 					<Input inline type="button" className="btn btn-secondary" style={{ marginLeft: '10px' }} onClick={() => this.cancelDelete()}>Cancel</Input>
 				</div>
 		</Modal>;
@@ -200,7 +200,11 @@ export default class AutoForm extends React.Component {
 		return name && name.length ? name.charAt(0).toUpperCase() + name.slice(1) : "";
 	}
 	
-	render() {
+	render(){
+		return <RouterConsumer>{(pageState, setPage) => this.renderIntl(pageState, setPage)}</RouterConsumer>;
+	}
+	
+	renderIntl(pageState, setPage) {
 		var isEdit = isNumeric(this.props.id);
 
 		const { revisionId, locale } = this.state;
@@ -303,7 +307,7 @@ export default class AutoForm extends React.Component {
 										url+='&revision=' + this.state.revisionId;
 									}
 									
-									global.pageRouter.go(url);
+									setPage(url);
 								}
 							}>
 								{locales.map(loc => <option value={loc.id} selected={loc.id == locale}>{loc.name + (loc.id == '1' ? ' (Primary)': '')}</option>)}
@@ -340,7 +344,7 @@ export default class AutoForm extends React.Component {
 
 						onSuccess={
 							response => {
-								var state = global.pageRouter.state;
+								var state = pageState;
 								var {locale} = this.state;
 								
 								if(this._timeout){
@@ -370,11 +374,11 @@ export default class AutoForm extends React.Component {
 											}
 
 											// Go to it now:
-											global.pageRouter.go(newUrl);
+											setPage(newUrl);
 
 										} else if (response.id != this.state.id || this.state.revisionId) {
 											// Published content from a draft. Go there now.
-											global.pageRouter.go(parts.join('/') + '?published=1&lid=' + locale);
+											setPage(parts.join('/') + '?published=1&lid=' + locale);
 										}
 									}
 								} else {
@@ -386,9 +390,9 @@ export default class AutoForm extends React.Component {
 
 										if (response.revisionId) {
 											// Created a draft
-											global.pageRouter.go(parts.join('/') + '?created=1&revision=' + response.revisionId + '&lid=' + locale);
+											setPage(parts.join('/') + '?created=1&revision=' + response.revisionId + '&lid=' + locale);
 										} else {
-											global.pageRouter.go(parts.join('/') + '?created=1&lid=' + locale);
+											setPage(parts.join('/') + '?created=1&lid=' + locale);
 										}
 									}
 								}
@@ -452,7 +456,7 @@ export default class AutoForm extends React.Component {
 						</Canvas>
 					</Form>
 				</Tile>
-				{this.state.confirmDelete && this.renderConfirmDelete()}
+				{this.state.confirmDelete && this.renderConfirmDelete(pageState, setPage)}
 			</div>
 		);
 	}
