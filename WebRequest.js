@@ -82,8 +82,6 @@ export default function webRequest(origUrl, data, opts) {
 }
 
 function _fetch(url, data, opts) {
-	// Get the global user state - we want to see if we're phantoming as somebody.
-	var storeState = global.app.state;
 	var credentials = global.storedToken ? undefined : 'include';
 	var mode = 'cors';
 
