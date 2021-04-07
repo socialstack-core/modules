@@ -8,7 +8,7 @@ import {expand, mapTokens} from 'UI/Functions/CanvasExpand';
 import webRequest from 'UI/Functions/WebRequest';
 import getContentTypes from 'UI/Functions/GetContentTypes';
 import Collapsible from 'UI/Collapsible';
-
+import { RouterConsumer } from 'UI/Session';
 // Connect the input "ontypecanvas" render event:
 
 var inputTypes = global.inputTypes = global.inputTypes || {};
@@ -991,13 +991,13 @@ export default class CanvasEditor extends React.Component {
 		});
 	}
 	
-	renderNode(contentNode, index){
+	renderNode(contentNode, index, pageRouter){
 		if(!contentNode){
 			return null;
 		}
 		
 		if(Array.isArray(contentNode)){
-			return contentNode.map((e,i)=>this.renderNode(e,i));
+			return contentNode.map((e,i)=>this.renderNode(e,i, pageRouter));
 		}
 		
 		var Module = contentNode.module || "div";
@@ -1019,8 +1019,7 @@ export default class CanvasEditor extends React.Component {
 				/>
 			);
 		}else{
-			
-			var dataFields = mapTokens(contentNode.data, this, Canvas);
+			var dataFields = mapTokens(contentNode.data, this, pageRouter);
 			
 			result = (
 				<Module ref={r => {
@@ -1059,7 +1058,7 @@ export default class CanvasEditor extends React.Component {
 					}, 1000);
 					
 				}} {...dataFields}>
-					{contentNode.useCanvasRender ? this.renderNode(contentNode.content) : null}
+					{contentNode.useCanvasRender ? this.renderNode(contentNode.content, 0, pageRouter) : null}
 				</Module>
 			);
 			
@@ -1513,7 +1512,10 @@ export default class CanvasEditor extends React.Component {
 							</div>
 					)}
 						<div className="canvas-editor-bordered">
-							{this.renderNode(this.state.content, 0)}
+							<RouterConsumer>
+								{pageRouter => {this.renderNode(this.state.content, 0, pageRouter)}}
+							</RouterConsumer>
+							
 							{!this.props.minimal && (
 								<button type="button" className="btn btn-secondary btn-add-component" onClick={() => { this.setState({ selectOpenFor: true }) }}>
 									<i className="far fa-plus" />
