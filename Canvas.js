@@ -1,4 +1,5 @@
 import {expand, mapTokens} from 'UI/Functions/CanvasExpand';
+import { RouterConsumer } from 'UI/Session';
 
 /**
  * This component renders canvas JSON. It takes canvas JSON as its child
@@ -48,7 +49,7 @@ class Canvas extends React.Component {
 		this.props.onCanvasChanged && this.props.onCanvasChanged();
 	}
 	
-	renderNode(contentNode, index) {
+	renderNode(contentNode, index, pageRouter) {
 		if(!contentNode){
 			return null;
 		}
@@ -62,12 +63,12 @@ class Canvas extends React.Component {
 		var Module = contentNode.module || "div";
 		
 		// Resolve runtime field values now:
-		var dataFields = mapTokens(contentNode.data, this, Canvas);
+		var dataFields = mapTokens(contentNode.data, this, pageRouter);
 		
 		return (
 			<Module key={index} {...dataFields}>
 			{
-				contentNode.useCanvasRender && contentNode.content ? contentNode.content.map((e,i)=>this.renderNode(e,i)) : contentNode.content
+				contentNode.useCanvasRender && contentNode.content ? contentNode.content.map((e,i)=>this.renderNode(e,i, pageRouter)) : contentNode.content
 			}
 			</Module>
 		);
@@ -81,11 +82,11 @@ class Canvas extends React.Component {
 			return null;
 		}
 		
-		if(Array.isArray(content)){
-			return content.map((e,i)=>this.renderNode(e,i));
-		}
-		
-		return this.renderNode(content,0);
+		return <RouterConsumer>{
+			pageRouter => Array.isArray(content) ? 
+				content.map((e,i)=>this.renderNode(e,i, pageRouter)) : 
+				this.renderNode(content, 0, pageRouter)
+		}</RouterConsumer>;
 	}
 }
 
