@@ -1064,6 +1064,58 @@ namespace Api.CanvasRenderer
 						mode = 0;
 					}
 				}
+				else if (mode == 3)
+				{
+					// 'string'
+					if (ch == '\\' && more && header[i + 1] == '\'')
+					{
+						// Escaped end quote
+						sb.Append(ch);
+						sb.Append('\'');
+						i++;
+					}
+					else if (ch == '\'')
+					{
+						// exited string
+						mode = 0;
+						sb.Append(ch);
+					}
+					else
+					{
+						sb.Append(ch);
+					}
+				}
+				else if (mode == 4)
+				{
+					// "string"
+					if (ch == '\\' && more && header[i + 1] == '"')
+					{
+						// Escaped end quote
+						sb.Append(ch);
+						sb.Append('"');
+						i++;
+					}
+					else if (ch == '"')
+					{
+						// exited string
+						mode = 0;
+						sb.Append(ch);
+					}
+					else
+					{
+						sb.Append(ch);
+					}
+				}
+				else if (ch == '\'')
+				{
+					mode = 3;
+					sb.Append(ch);
+				}
+				else if (ch == '\"')
+				{
+					mode = 4;
+					sb.Append(ch);
+				}
 				else if (ch == '/' && more && header[i + 1] == '*')
 				{
 					mode = 1;
