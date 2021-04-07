@@ -652,7 +652,7 @@ function renderCanvas(bodyJson, apiContext, publicApiContextJson, url, pageState
 		setPage: _noOp
 	}, children: canvas});
 	
-	var sessionProvider = preact.createElement(_Session.SessionProvider, { value: {
+	var sessionProvider = preact.createElement(_Session.Session.Provider, { value: {
 		session,
 		setSession: _noOp
 	}, children: pageProvider});
