@@ -1,6 +1,6 @@
 import webRequest from 'UI/Functions/WebRequest';
 import webSocket from 'UI/Functions/WebSocket';
-import { SessionConsumer } from 'UI/Session';
+import { SessionConsumer, RouterConsumer } from 'UI/Session';
 
 /*
 * A convenience mechanism for obtaining 1 piece of content. Outputs no DOM structure.
