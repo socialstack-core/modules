@@ -4,6 +4,7 @@ import Me from 'UI/VideoChat/Me';
 import Alert from 'UI/Alert';
 import Container from 'UI/Container';
 import Row from 'UI/Row';
+import {SessionConsumer} from 'UI/Session';
 
 export default class VideoChat extends React.Component {
 
@@ -170,7 +171,13 @@ export default class VideoChat extends React.Component {
 		}
 	}
 
-	render() {
+	render(){
+		return <SessionConsumer>
+			{session => this.renderIntl(session)}
+		</SessionConsumer>;
+	}
+	
+	renderIntl(session){
 		const {
 			huddleClient
 		} = this.state;
@@ -301,7 +308,7 @@ export default class VideoChat extends React.Component {
 					style={this.state.meStyle}
 					onMouseDown={e => this.onStartMeContainerDrag(e)}
 				>
-					<Me huddleClient={huddleClient} />
+					<Me huddleClient={huddleClient} session={session} />
 				</div>
 			}
 			{this.props.showRaisedHands &&
@@ -324,7 +331,7 @@ export default class VideoChat extends React.Component {
 						{personWithRaisedHand.profile.directChatIds ? <i class="fal fa-volume icon"></i> : <i class="fas fa-hand-paper icon"></i>} 
 						{this.props.isDirector ? <a href = "#" onClick = {() => {
 							huddleClient.updatePeer(personWithRaisedHand, {
-								directChatIds: [global.app.state.user.id]
+								directChatIds: [session.user.id]
 							});
 						}}>
 							{name}

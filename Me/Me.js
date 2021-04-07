@@ -21,14 +21,14 @@ export default class Me extends React.Component {
 		}
 	}
 	
-	render(){
+	renderIntl(session){
 		const {
 			huddleClient
 		} = this.props;
 
-		var {hideControls} = this.props; 
+		var {hideControls, session} = this.props; 
 		
-		var user = global.app.state.user;
+		var { user } = session;
 		
 		var displayName = 'Anonymous';
 		
