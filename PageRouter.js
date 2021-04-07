@@ -101,7 +101,7 @@ function replaceTokens(str, res) {
 
 export default () => {
 	var [pageState, setPage] = React.useState({url: initialUrl, ...initState});
-  
+	
 	function go(url) {
 		global.history.pushState({}, "", global.storedToken ? '#' + url : url);
 		document.body.parentNode.scrollTop=0;
@@ -110,7 +110,7 @@ export default () => {
 			url,
 			version: getBuildDate().timestamp
 		}).then(res => {
-			setPage({url, page: res.json});
+			setPage({url, ...res.json});
 			triggerEvent(res.json);
 		});
 	}
@@ -167,7 +167,6 @@ export default () => {
 	React.useEffect(() => {
 		if(page && page.title){
 			// Does our title have any tokens in it?
-			console.log(pageState);
 			document.title = replaceTokens(page.title, pageState);
 		}
 	});
