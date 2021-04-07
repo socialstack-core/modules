@@ -154,8 +154,7 @@ function remap(item, map){
 	return result;
 }
 
-export function mapTokens(obj, canvas, Canvas){
-	var {props} = canvas;
+export function mapTokens(obj, canvas, router){
 	var result = {};
 	
 	for(var e in obj) {
@@ -163,23 +162,12 @@ export function mapTokens(obj, canvas, Canvas){
 		var value = obj[e];
 		result[e] = value;
 		
-		if(!value || !value.type){
+		if(!value || value.type != 'urlToken'){
 			continue;
 		}
 		
-		var t = value.type;
-		switch(t){
-			case "urlToken":
-				var pageRouterState = canvas.context.pageRouter.state;
-				var index = pageRouterState.tokenNames.indexOf(value.name);
-				result[e] = (index == null || index == -1) ? undefined : pageRouterState.tokens[index];
-			break;
-			case "field":
-				// Field in the "item" prop. Used by renderers - they're given an item, and this essentially maps
-				// from that items field to a prop of the target component.
-				result[e] = props.item ? props.item[value.name] : null;
-			break;
-		}
+		var index = router.tokenNames.indexOf(value.name);
+		result[e] = (index == null || index == -1) ? undefined : router.tokens[index];
 	}
 	
 	result.__canvas = canvas;
