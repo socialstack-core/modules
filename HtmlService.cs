@@ -530,21 +530,19 @@ namespace Api.Pages
 			
 			// Handle all start body JS scripts
 			HandleCustomScriptList(_config.StartBodyJs, body);
-
-			if (!_config.PreRender) {
-				// Still add the global state init substitution node:
-				body.AppendChild(
-					new DocumentNode("script")
-					.AppendChild(new TextNode("window.gsInit="))
-					.AppendChild(new SubstituteNode(  // This is where user and page specific global state will be inserted. It gets substituted in.
-						async (Context ctx) => {
-							return await BuildUserGlobalStateJs(ctx);
-						}
-					))
-					.AppendChild(new TextNode(";"))
-				);
-			}
-
+			
+			// Still add the global state init substitution node:
+			body.AppendChild(
+				new DocumentNode("script")
+				.AppendChild(new TextNode("window.gsInit="))
+				.AppendChild(new SubstituteNode(  // This is where user and page specific global state will be inserted. It gets substituted in.
+					async (Context ctx) => {
+						return await BuildUserGlobalStateJs(ctx);
+					}
+				))
+				.AppendChild(new TextNode(";"))
+			);
+			
 			// Handle all Before Main JS scripts
 			HandleCustomScriptList(_config.BeforeMainJs, body);
 
