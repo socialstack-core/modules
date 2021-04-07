@@ -14,8 +14,8 @@ import { useSession, useRouter } from 'UI/Session';
 export default props => {	
 	const { setSession } = useSession();
 	const { setPage } = useRouter();
-	const { failed, setFailed } = React.useState(false);
-	const { moreRequired, setMoreRequired } = React.useState(null);
+	const [ failed, setFailed ] = React.useState(false);
+	const [ moreRequired, setMoreRequired ] = React.useState(null);
 	
 	return (
 		<Form className="login-form"
