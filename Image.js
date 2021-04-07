@@ -22,7 +22,7 @@ export default function Image (props) {
 			break;
 	}
 
-	if (fullWidth) {
+	if (fullWidth || size == "original") {
 		imageClass += " image-wide";
 	}
 	
