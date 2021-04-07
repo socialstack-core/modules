@@ -1,6 +1,6 @@
 import App from './App.js';
 
-export default function(custom){
+export default function start(custom){
 	if(!custom){
 		// Init all modules.
 		for(var m in __mm){
@@ -13,7 +13,7 @@ export default function(custom){
 	if(root){
 		// We're server side otherwise.
 		
-		// Start logging in now and update the loader text:
+		// Start logging in now and update the loader:
 		var loader = document.getElementById('react-loading');
 		loader && loader.parentNode.removeChild(loader);
 		
