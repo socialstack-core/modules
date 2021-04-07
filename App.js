@@ -11,8 +11,6 @@ export default class App extends React.Component{
 	constructor(props, context){
 		super(props, context);
 		var url = location.pathname + location.search;
-		global.app = this;
-		context.app = this;
 		var initState = props.init || global.gsInit;
 		
 		if(initState){
