@@ -538,6 +538,7 @@ exports = undefined;
 
 // Get canvas and UI/Content:
 var _Canvas = require('UI/Canvas').default;
+var _Session = require("UI/Session");
 var _contentModule = require("UI/Content").default;
 var _currentContext = null;
 
@@ -579,7 +580,7 @@ _contentModule.getCached = (type, id) => {
 	var cctx = _currentContext;
 
 	return new Promise(s => {
-		document.getContentById(cctx.app.apiContext, getContentTypeId(type), parseInt(id), jsonResponse => {
+		document.getContentById(cctx.apiContext, getContentTypeId(type), parseInt(id), jsonResponse => {
 			if (cctx.trackContextualData) {
 				// We're tracking contextual data
 				if(cctx.__contextualData!=""){
@@ -601,7 +602,7 @@ _contentModule.listCached = (type, filter) => {
 	var filterJson = JSON.stringify(filter);
 
 	return new Promise(s => {
-		document.getContentsByFilter(cctx.app.apiContext, getContentTypeId(type), filterJson, jsonResponse => {
+		document.getContentsByFilter(cctx.apiContext, getContentTypeId(type), filterJson, jsonResponse => {
 			if (cctx.trackContextualData) {
 				// We're tracking contextual data
 				if(cctx.__contextualData!=""){
@@ -614,18 +615,16 @@ _contentModule.listCached = (type, filter) => {
 	});
 };
 
+function _noOp(){}
+
 function renderCanvas(bodyJson, apiContext, publicApiContextJson, url, pageState, trackContextualData, mode){
 	
-	// Stub app state:
-	app = {
-		apiContext,
-		state: {
-			url,
-			...JSON.parse(publicApiContextJson)
-		}
+	// Session state:
+	var session = {
+		...JSON.parse(publicApiContextJson)
 	};
 	
-	var canvas = preact.createElement(_Canvas, { children: bodyJson});
+	// Page state with tokens etc:
 	
 	var tokenNames = pageState.TokenNames;
 	
@@ -638,21 +637,35 @@ function renderCanvas(bodyJson, apiContext, publicApiContextJson, url, pageState
 		tokenNames = tn;
 	}
 	
+	var pageState = {
+		url,
+		tokens: pageState.Tokens,
+		tokenNames,
+		po: pageState.PoJson ? JSON.parse(pageState.PoJson) : null
+	};
+	
+	var canvas = preact.createElement(_Canvas, { children: bodyJson});
+	
+	// Pass in the 2 main pieces of global state via context providers - the session and the pageRouter state:
+	var pageProvider = preact.createElement(_Session.Router.Provider, { value: {
+		pageState,
+		setPage: _noOp
+	}, children: canvas});
+	
+	var sessionProvider = preact.createElement(_Session.SessionProvider, { value: {
+		session,
+		setSession: _noOp
+	}, children: pageProvider});
+	
+	// Internal serverside only context:
 	var context = {
-		app,
-		pageRouter: {
-			state: {
-				tokens: pageState.Tokens,
-				tokenNames,
-				po: pageState.PoJson ? JSON.parse(pageState.PoJson) : null
-			}
-		},
+		apiContext,
 		trackContextualData,
 		__contextualData: ''
 	};
 	
 	// Returns a promise.
-	return renderToString(canvas, context, {mode}).then(result => {
+	return renderToString(sessionProvider, context, {mode}).then(result => {
 		result.data = trackContextualData ? '[' + context.__contextualData + ']' : '';
 		return result;
 	});
