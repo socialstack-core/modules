@@ -1,4 +1,4 @@
-import App from './App.js';
+import App from './App';
 
 export default function start(custom){
 	if(!custom){

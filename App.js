@@ -10,12 +10,7 @@ import { SessionProvider } from "UI/Session";
 export default function App() {
 	
 	return <SessionProvider>
-		<PageRouter 
-			url={this.state.url} 
-			onNavigate={url => {
-				this.setState({url});
-			}} 
-		/>
+		<PageRouter />
 	</SessionProvider>;
 	
 }
