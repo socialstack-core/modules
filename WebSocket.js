@@ -2,19 +2,19 @@ import store from 'UI/Functions/Store';
 var __user = null;
 var waitMode = 0;
 
-document.addEventListener('App/state', () => {
-	var {user, loadingUser} = global.app.state;
+document.addEventListener('xsession', (e) => {
+	var {user, loadingUser} = e.state;
 	
 	if(!waitMode){
 		if(loadingUser){
 			waitMode=1;
-			loadingUser.then(() => {
+			loadingUser.then(state => {
 				waitMode=2;
-				__user = global.app.state.user;
+				__user = state.user;
 			});
 		}else{
 			waitMode=2;
-			__user = global.app.state.user;
+			__user = user;
 		}
 		return;
 	}
@@ -132,15 +132,6 @@ function connect(){
 				token: store.get('context')
 			}));
 		}
-		
-		// Default pres:
-		var { page } = global.pageRouter.state;
-		sk.send(JSON.stringify({
-			type: "Pres",
-			c: "page",
-			m: JSON.stringify({url: global.location.pathname + global.location.search}),
-			id: page ? page.id : 0
-		}));
 		
 		for(var i=0;i<msgs.length;i++){
 			sk.send(JSON.stringify(msgs[i]));
