@@ -8,7 +8,6 @@ namespace Api.NavMenus
 	/// <summary>
 	/// A particular entry within a navigation menu.
 	/// </summary>
-	[CacheOnly]
 	public partial class AdminNavMenuItem : Content<uint>, IHaveRoleRestrictions
 	{
 		/// <summary>
