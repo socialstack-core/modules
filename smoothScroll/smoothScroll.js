@@ -423,10 +423,4 @@ function polyfill() {
   };
 }
 
-if (typeof exports === 'object' && typeof module !== 'undefined') {
-  // commonjs
-  module.exports = { polyfill: polyfill };
-} else {
-  // global
-  polyfill();
-}
+export default { polyfill };
