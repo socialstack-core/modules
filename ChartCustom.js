@@ -90,7 +90,7 @@ export default class ChartCustom extends React.Component {
 			var value;
 
 			if (stacked) {
-				var value1 = value2 = 0;
+				var value1, value2 = 0;
 
 				for (var i = 0; i < data.datasets.length; i++) {
 					value1 += data.datasets[i].data[0];
