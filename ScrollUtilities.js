@@ -435,7 +435,7 @@ function toggle(enabled) {
 
 }
 
-module.exports = {
+export default {
     pageUp,
     pageDown,
     home,
