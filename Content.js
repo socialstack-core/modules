@@ -194,10 +194,10 @@ Content.list = function(type, filter) {
 // When server side, this may return a promise. Any promises in a component's state when it has been 
 // constructed will be awaited and swapped with the resolved value before proceeding.
 Content.getCached = function(type, id) {
-	if(!global.pageRouter || global.cIndex === undefined){
+	if(!global.pgState || global.cIndex === undefined){
 		return null;
 	}
-	var {data} = global.pageRouter.state;
+	var {data} = global.pgState;
 	
 	// Purely by order.
 	return data ? data[global.cIndex++] : null;
