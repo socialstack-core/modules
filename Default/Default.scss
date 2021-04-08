@@ -134,6 +134,29 @@ html.admin {
 
 @media(prefers-color-scheme: dark){
 	html.admin {
+		
+		.table {
+			color: white;
+		}
+		
+		.table td, .table th {
+			border-top-color: rgb(40,40,40);
+		}
+		
+		.table thead th {
+			border-bottom-color: rgb(40,40,40);
+		}
+		
+		select.form-control, .date-time-picker select, input.form-control, textarea.form-control {
+			background: rgb(40,40,40);
+			border-color: rgb(20,20,20);
+			color: white;
+		}
+		
+		.rich-editor {
+			border-color: rgb(20,20,20);
+		}
+		
 		.admin-header{
 			background: black;
 		}
