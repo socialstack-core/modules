@@ -104,8 +104,11 @@ export default () => {
 	
 	function go(url) {
 		global.history.pushState({}, "", global.storedToken ? '#' + url : url);
-		document.body.parentNode.scrollTop=0;
-		
+		document.body.parentNode.scrollTop = 0;
+		setPageState(url);
+	}
+
+	function setPageState(url) {
 		webRequest("page/state", {
 			url,
 			version: getBuildDate().timestamp
@@ -116,8 +119,8 @@ export default () => {
 	}
 	
 	const onPopState = (e) => {
-		document.body.parentNode.scrollTo(0,0);
-		go(document.location.pathname);
+		document.body.parentNode.scrollTo(0, 0);
+		setPageState(document.location.pathname);
 	}
 	
 	const onLinkClick = (e) => {
@@ -153,14 +156,14 @@ export default () => {
 	}
 	
 	React.useEffect(() => {
-		document.addEventListener("popstate", onPopState);
+		window.addEventListener("popstate", onPopState);
 		document.addEventListener("click", onLinkClick);
 		
 		return () => {
-			document.removeEventListener("popstate", onPopState);
+			window.removeEventListener("popstate", onPopState);
 			document.removeEventListener("click", onLinkClick);
 		};
-	});
+	}, []);
 	
 	var { page } = pageState;
 	
