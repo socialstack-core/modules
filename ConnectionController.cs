@@ -56,8 +56,9 @@ namespace Api.Connections
                 connection.ConnectedToId = user.Id;
             }
 
+            // We have already verified this user can update, so let's ignore the permission right here.
             connection.AcceptedUtc = DateTime.UtcNow;
-            connection = await _service.Update(context, connection);
+            connection = await _service.Update(context, connection, DataOptions.IgnorePermissions);
 
             return connection;
         }
