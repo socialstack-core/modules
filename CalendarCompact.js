@@ -3,6 +3,7 @@ import Col from 'UI/Column';
 import Container from 'UI/Container';
 import { daysBetween, localToUtc, addDays, isoConvert, ordinal, shortMonthNames, monthNames, addMinutes } from 'UI/Functions/DateTools';
 import Loading from 'UI/Loading';
+import { useSession, SessionConsumer} from 'UI/Session';
 
 export default class CalendarCompact extends React.Component {
 	
@@ -104,8 +105,15 @@ export default class CalendarCompact extends React.Component {
 		offset = offset + adj;
 		this.load(offset);
 	}
-	
+
 	load(offset, props){
+		return <SessionConsumer>
+			{session => this.loadIntl(offset, props, session)}
+		</SessionConsumer>
+	}
+	
+	loadIntl(offset, props, session){
+		const { setSession } = useSession();
 		var { days } = props;
 		
 		if(!days){
@@ -133,8 +141,8 @@ export default class CalendarCompact extends React.Component {
 		}
 		
 		this.setState({currentView: dayMeta, offset: offset});
-		global.app.setState({forceCalendarRefresh : null});
-		
+		setSession({...session, forceCalendarRefresh : null})
+
 		// Request for section:
 		this.populateBetween(sliceStart, sliceEnd, dayMeta);
 	}
@@ -349,11 +357,17 @@ export default class CalendarCompact extends React.Component {
 	}
 	
 	render(){
+		return <SessionConsumer>
+			{session => this.renderIntl(session)}
+		</SessionConsumer>
+	}
+
+	renderIntl(session){
 		
 		// if we have added a new entry force calendar to redraw and focus
-		if (global.app.state.forceCalendarRefresh)
+		if (session.forceCalendarRefresh)
 		{
-			var newOffset = daysBetween(new Date() , global.app.state.forceCalendarRefresh);
+			var newOffset = daysBetween(new Date() , session.forceCalendarRefresh);
 			this.load(newOffset);
 		}
 		
