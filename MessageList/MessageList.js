@@ -5,6 +5,7 @@ import Canvas from 'UI/Canvas';
 import MessageCreate from 'UI/LiveSupport/MessageCreate';
 import getRef from 'UI/Functions/GetRef';
 import * as dateTools from 'UI/Functions/DateTools';
+import {SessionConsumer} from 'UI/Session';
 
 const defaultRef = "/images/chat_default_avatar.svg";
 
@@ -70,8 +71,14 @@ export default class MessageList extends React.Component {
 	}
 
 	render(){
+		return <SessionConsumer>
+			{session => this.renderIntl(session)}
+		</SessionConsumer>
+	}
+
+	renderIntl(session){
 		var { chat, sendLabel, sendTip, placeholder, className } = this.props;
-		var { user } = global.app.state;
+		var { user } = session;
 		var { lastMessage } = this.state;
 		var messageHistoryClass = "message-history " + (className ? className : "");
 

@@ -2,6 +2,7 @@ import Form from 'UI/Form';
 import Input from 'UI/Input';
 import webRequest from 'UI/Functions/WebRequest';
 import Calendar from 'UI/Calendar';
+import {SessionConsumer, useSession} from 'UI/Session';
 
 export default class Create extends React.Component {
 
@@ -18,9 +19,9 @@ export default class Create extends React.Component {
         })
     }
 
-    claimChat() {
+    claimChat(session) {
         this.setState({submitting: true});
-        webRequest("livesupportchat/" + this.props.chat.id, { assignedToUserId: global.app.state.user.id }).then(response => {
+        webRequest("livesupportchat/" + this.props.chat.id, { assignedToUserId: session.user.id }).then(response => {
             this.props.onClaim && this.props.onClaim(response.json);
             this.setState({ claimed: response, submitting: false });
         }).catch(error => {
@@ -46,7 +47,13 @@ export default class Create extends React.Component {
         }
     }
 
-    render() {
+    render(){
+		return <SessionConsumer>
+			{session => this.renderIntl(session)}
+		</SessionConsumer>
+	}
+
+    renderIntl(session) {
         var { sendLabel, sendTip, placeholder, lastMessage } = this.props;
         var {canDownload} = this.state;
 
@@ -90,27 +97,27 @@ export default class Create extends React.Component {
                     // If there was a success, and its for the name or email address, let's store it globally.
                     if(response.messageType == 3) {
                         // Is there a global chatIdentity?
-                        if(global.app.state.chatIdentity){
-                            var chatIdentity = global.app.state.chatIdentity;;
+                        if(session.chatIdentity){
+                            var chatIdentity = session.chatIdentity;;
                             chatIdentity.fullName = response.message;
-                            global.app.setState({chatIdentity});                     
+                            setSession({...session, chatIdentity});             
                         }
                         else {
                             var chatIdentity = {fullName: response.message, email: null};
-                            global.app.setState({chatIdentity}); 
+                            setSession({...session, chatIdentity});      
                         }
                     }
 
                     if(response.messageType == 4) {
                         // Is there a global chatIdentity?
-                        if(global.app.state.chatIdentity){
-                            var chatIdentity = global.app.state.chatIdentity;;
+                        if(session.chatIdentity){
+                            var chatIdentity = session.chatIdentity;;
                             chatIdentity.email = response.message;
-                            global.app.setState({chatIdentity});                     
+                            setSession({...session, chatIdentity});                         
                         }
                         else {
                             var chatIdentity = {fullName: null, email: response.message};
-                            global.app.setState({chatIdentity}); 
+                            setSession({...session, chatIdentity});     
                         }
                     }
 
@@ -156,11 +163,11 @@ export default class Create extends React.Component {
                     />
 
                     {this.props.canClaim ? (
-                        <a onClick={() => { !this.state.submitting && this.claimChat() }} disabled={this.state.submitting} className="btn btn-primary send-message success" title={`Claim`}>
+                        <a onClick={() => { !this.state.submitting && this.claimChat(session) }} disabled={this.state.submitting} className="btn btn-primary send-message success" title={`Claim`}>
                             <span>{`Claim!`}</span>
                         </a>
                     ):(
-                        this.props.chat.assignedToUserId && this.props.chat.assignedToUserId == global.app.state.user.id &&
+                        this.props.chat.assignedToUserId && this.props.chat.assignedToUserId == session.user.id &&
                         <a onClick={() => { !this.state.submitting && this.closeChat() }} disabled={this.state.submitting} className="btn btn-primary send-message danger" title={`Close`}>
                             <span>{`Close`}</span>
                         </a>
@@ -194,7 +201,7 @@ export default class Create extends React.Component {
                             if(message.fromSupport) {
                                 text += `Bridgestone Support: `;
                                 text += message.message + "\n";
-                            } else if (message.creatorUser.id != global.app.state.user.id) {
+                            } else if (message.creatorUser.id != session.user.id) {
                                 // Its from the user
                                 text += message.creatorUser.firstName + ": ";
                                 text += message.message + "\n";

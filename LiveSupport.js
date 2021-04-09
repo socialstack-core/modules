@@ -3,7 +3,12 @@ import webRequest from 'UI/Functions/WebRequest';
 import MessageList from 'UI/LiveSupport/MessageList';
 
 
-export default class LiveSupport extends React.Component {
+export function LiveSupport (props){
+	var chat = useChat();
+	return <LiveSupportIntl chat={chat} {...props} ></LiveSupportIntl>;
+}
+
+export default class LiveSupportIntl extends React.Component {
 
 	constructor(props) {
 		super(props);
@@ -20,20 +25,6 @@ export default class LiveSupport extends React.Component {
 		this.handleChatClose = this.handleChatClose.bind(this);
 	}
 
-	componentDidUpdate() {
-		if(global.app.state.chat && global.app.state.chat.startNew) {
-			var chat = global.app.state.chat;
-			chat.startNew = false;
-
-			// we need to fire off the start sequence again in addition to unsetting it so future hits of this doesn't just restart the chat.
-			global.app.setState({chat});
-			this.setState({
-				loading: true
-			});
-			this.start(this.props);
-		}
-
-	}
 
 	start(props){
 		var args = {};
@@ -43,7 +34,7 @@ export default class LiveSupport extends React.Component {
 		}
 
 		// We need to determine what mode we are going in with. If there is a complete chat identity, we need to change the mode and create that chat using those global values.
-		if(global.app.state && global.app.state.chatIdentity && global.app.state.chatIdentity.fullName && global.app.state.chatIdentity.email) {
+		if(props.chat.chatIdentity && props.chat.chatIdentity.fullName && props.chat.chatIdentity.email) {
 			if (props.mode) {
 				if (props.mode == 1) {
 					args.mode = 11;
@@ -57,8 +48,8 @@ export default class LiveSupport extends React.Component {
 				args.mode = 10;
 			}
 
-			args.fullName = global.app.state.chatIdentity.fullName;
-			args.email = global.app.state.chatIdentity.email;
+			args.fullName = props.chat.chatIdentity.fullName;
+			args.email = props.chat.chatIdentity.email;
 		}
 
 		webRequest('livesupportchat', args).then(response => {
@@ -76,7 +67,7 @@ export default class LiveSupport extends React.Component {
 			mode: null
 		});
 
-		global.app.setState({ chat: null });
+		props.chat.setChat(null);
 	}
 
 	renderStartChat(onClickActive) {
