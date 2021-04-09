@@ -1,7 +1,15 @@
+import {SessionConsumer} from 'UI/Session';
+
 export default class Default extends React.Component {
 	
 	render(){
-		var user = global.app.state.user || {};
+		return <SessionConsumer>
+			{session => this.renderIntl(session)}
+		</SessionConsumer>
+	}
+
+	renderIntl(session){
+		var user = session.user || {};
 		var { origin } = global.location;
 		
 		return <table border="0" cellpadding="0" cellspacing="0" id="body" style="text-align: center; min-width: 640px; width: 100%; margin: 0; padding: 0;" bgcolor="#f0f3f7">
