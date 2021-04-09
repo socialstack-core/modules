@@ -1,7 +1,7 @@
 import Container from 'UI/Container';
 import NavMenu from 'UI/NavMenu'; 
 import getRef from 'UI/Functions/GetRef'; 
-
+import {SessionConsumer} from 'UI/Session';
 
 export default class Header extends React.Component{
 	
@@ -19,7 +19,13 @@ export default class Header extends React.Component{
 		});
 	}
 
-	render() {
+	render(){
+		return <SessionConsumer>
+			{session => this.renderIntl(session)}
+		</SessionConsumer>
+	}
+
+	renderIntl(session) {
 		const collapsed = this.state.collapsed;
 		const classOne = collapsed ? 'collapse navbar-collapse' : 'collapse navbar-collapse show';
 		const classTwo = collapsed ? 'navbar-toggler navbar-toggler-right collapsed' : 'navbar-toggler navbar-toggler-right';
@@ -32,7 +38,7 @@ export default class Header extends React.Component{
 						<span className="fa fa-bars" />
 					</button>
 					<div className={`${classOne}`} id="navbarResponsive">
-						<NavMenu id={(this.props.varyForUsers && global.app.state.user) ? 'primary_loggedin' : 'primary'} inline/>
+						<NavMenu id={(this.props.varyForUsers && session.user) ? 'primary_loggedin' : 'primary'} inline/>
 					</div>
 				</Container>
 			</nav>
