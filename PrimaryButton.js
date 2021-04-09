@@ -1,4 +1,6 @@
 import applyTokens from 'Email/Functions/ApplyTokens';
+import {SessionConsumer} from 'UI/Session';
+
 
 /*
 * A large, centered button.
@@ -8,12 +10,18 @@ import applyTokens from 'Email/Functions/ApplyTokens';
 export default class PrimaryButton extends React.Component {
 	
 	render(){
+		return <SessionConsumer>
+			{session => this.renderIntl(session)}
+		</SessionConsumer>
+	}
+
+	renderIntl(session){
 		var { origin } = global.location;
 		var target = this.props.target;
 		if(!target){target = '';}
 		
 		// Apply {tokens}:
-		target = applyTokens(target, global.app.state);
+		target = applyTokens(target, session);
 		
 		if(target.indexOf('http') != 0){
 			if(target.length && target[0] == '/'){
