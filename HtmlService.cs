@@ -753,7 +753,7 @@ namespace Api.Pages
 
 					if (headTag.Content != null)
 					{
-						node.With("content", headTag.Href);
+						node.With("content", headTag.Content);
 					}
 				}
 				
