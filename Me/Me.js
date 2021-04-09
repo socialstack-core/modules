@@ -1,5 +1,6 @@
 import PeerView from 'UI/VideoChat/PeerView';
 import Modal from 'UI/Modal';
+import {SessionConsumer} from 'UI/Session';
 
 export default class Me extends React.Component {
 	
@@ -19,6 +20,12 @@ export default class Me extends React.Component {
 		}else{
 			onIgnore();
 		}
+	}
+
+	render(){
+		return <SessionConsumer>
+			{session => this.renderIntl(session)}
+		</SessionConsumer>;
 	}
 	
 	renderIntl(session){
