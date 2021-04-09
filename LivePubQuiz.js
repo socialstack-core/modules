@@ -1,13 +1,9 @@
 import webRequest from 'UI/Functions/WebRequest';
-import dateTools from 'UI/Functions/DateTools';
 import Loading from 'UI/Loading';
 import Canvas from 'UI/Canvas';
 import Input from 'UI/Input';
-import Form from 'UI/Form';
-import getContentTypeId from 'UI/Functions/GetContentTypeId';
-import { addSeconds} from 'UI/Functions/DateTools';
-import Loop from 'UI/Loop';
 import webSocket from 'UI/Functions/WebSocket';
+import {SessionConsumer} from 'UI/Session';
 
 // <LivePubQuiz startTime={time} id={quizId} />
 
@@ -191,7 +187,7 @@ export default class LivePubQuiz extends React.Component {
 		};
 	}
 	
-	renderScores(){
+	renderScores(session){
 		var score = this.state.score;
 		var users = {};
 
@@ -208,7 +204,7 @@ export default class LivePubQuiz extends React.Component {
 			}
 		})
 		
-		var { user } = global.app.state;
+		var { user } = session;
 		
 		if(user && !users[user.id]){
 			// They didn't answer anything
@@ -242,7 +238,7 @@ export default class LivePubQuiz extends React.Component {
 		});
 	}
 	
-	renderFinished(){
+	renderFinished(session){
 		var {huddleId, id} = this.props;
 		var {score} = this.state;
 		
@@ -255,7 +251,7 @@ export default class LivePubQuiz extends React.Component {
 			</p>
 			
 			<p>
-				{this.renderScores()}
+				{this.renderScores(session)}
 			</p>
 			{this.state.ending ? (<Loading />) : <button className='btn btn-primary' onClick={() => this.endActivity()}>
 				End Activity
@@ -317,8 +313,14 @@ export default class LivePubQuiz extends React.Component {
 			</p>
 		</div>;
 	}
-	
+
 	render(){
+		return <SessionConsumer>
+			{session => this.renderIntl(session)}
+		</SessionConsumer>
+	}
+	
+	renderIntl(session){
 		
 		var { active } = this.state;
 		
@@ -327,7 +329,7 @@ export default class LivePubQuiz extends React.Component {
 		}
 
 		return <div className="live-pub-quiz">
-			{active.finished && this.renderFinished()}
+			{active.finished && this.renderFinished(session)}
 			{active.before && this.renderBefore(active)}
 			{active.question && this.renderQuestion(active)}
 		</div>;
