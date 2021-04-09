@@ -11,7 +11,7 @@ export function useSession(){
 	return React.useContext(Session);
 }
 
-export const SessionProvider = (props) => {
+export const Provider = (props) => {
 	const [session, setSession] = React.useState(initState);
   
 	let dispatchWithEvent = updatedVal => {
