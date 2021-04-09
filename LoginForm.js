@@ -11,10 +11,10 @@ import { useSession, useRouter } from 'UI/Session';
  */
 
 export default function LoginForm (props) {
-	var {emailOnly} = props;
-	var { setSession } = useSession();
-	var { setPage } = useRouter();
-	var [failed,setFailed] = useState(false);
+	const {emailOnly} = props;
+	const { setSession } = useSession();
+	const { setPage } = useRouter();
+	const [failed,setFailed] = React.useState(false);
 	
 	var validate = ['Required'];
 
