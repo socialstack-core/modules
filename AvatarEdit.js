@@ -3,21 +3,29 @@ import getRef from 'UI/Functions/GetRef';
 import Loading from 'UI/Loading';
 import Uploader from 'UI/Uploader';
 import Input from 'UI/Input';
+import {useSession, SessionConsumer} from 'UI/Session';
 
 export default class AvatarEdit extends React.Component {
-	
-    setAvatar(avatarRef){
+
+    setAvatar(avatarRef, session){
+		const { setSession } = useSession();
         this.setState({updating: true, confirmDelete: false, next: null});
-		webRequest('user/' + global.app.state.user.id, {avatarRef}).then(response => {
-			global.app.setState({user: response.json});
+		webRequest('user/' + session.user.id, {avatarRef}).then(response => {
+			setSession({...session, user: response.json})
             this.setState({updating: false});
         }).catch(e=>{
             console.error(e);
             this.setState({updating: false});
         });
     }
-    
+
 	render(){
+		return <SessionConsumer>
+			{session => this.renderIntl(session)}
+		</SessionConsumer>
+	}
+    
+	renderIntl(session){
 		var { avatarRef } = this.state;
 		var {name} = this.props;
 		if(name){
@@ -25,7 +33,7 @@ export default class AvatarEdit extends React.Component {
 				avatarRef = this.props.value || this.props.defaultValue;
 			}
 		}else{
-			var { user } = global.app.state;
+			var { user } = session;
 			if(!user || !user.id){
 				return null;
 			}
@@ -60,7 +68,7 @@ export default class AvatarEdit extends React.Component {
 									<p>
 										Are you sure you want to set this as your avatar?
 									</p>
-									<button type="button" className="btn btn-success" style={{marginRight: '20px'}} onClick={() => this.setAvatar(next)}>
+									<button type="button" className="btn btn-success" style={{marginRight: '20px'}} onClick={() => this.setAvatar(next, session)}>
 										Yes
 									</button>
 									<button type="button" className="btn btn-primary" onClick={() => this.setState({next: null})}>
@@ -89,7 +97,7 @@ export default class AvatarEdit extends React.Component {
 																avatarRef: null
 															});
 														}else{
-															this.setAvatar(null);
+															this.setAvatar(null, session);
 														}
 													}}>
 													Yes - Remove it
