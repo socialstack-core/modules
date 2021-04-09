@@ -1,10 +1,16 @@
 import App from './App.js';
 
+const providers = [];
+
 export default function start(custom){
 	if(!custom){
 		// Init all modules.
 		for(var m in __mm){
-			__mm[m] && global.require(m);
+			var moduleValue = __mm[m] && global.require(m);
+
+			if(moduleValue.Provider) {
+				providers.push(moduleValue.Provider);
+			}
 		}
 	}
 	
@@ -22,7 +28,7 @@ export default function start(custom){
 		
 		// Render the root now! When the App instance is created, it sets itself up as this.context.app (as seen by other mounted components).
 		(root.childNodes.length ? React.hydrate : (React.render || ReactDom.render))(
-			<App />,
+			<App providers = {providers}/>,
 			root
 		);
 		
