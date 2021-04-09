@@ -2,17 +2,22 @@ import Row from 'UI/Row';
 import Col from 'UI/Column';
 import ChatList from 'Admin/LiveSupport/ChatList';
 import MessageList from 'UI/LiveSupport/MessageList';
-import webRequest from 'UI/Functions/WebRequest';
-
+import {SessionConsumer} from 'UI/Session';
 
 export default class LiveSupport extends React.Component {
 	
 	constructor(props){
 		super(props);
 	}
+
+	render(){
+		return <SessionConsumer>
+			{session => this.renderIntl(session)}
+		</SessionConsumer>
+	}
 	
-	render() {
-		var { user } = global.app.state;
+	renderIntl(session) {
+		var { user } = session;
 		var messageListClassName = this.props.messageListClassName || "";
 		
 		if(!user){

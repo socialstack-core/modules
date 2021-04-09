@@ -1,7 +1,7 @@
 import Time from 'UI/Time';
 import Loop from 'UI/Loop';
-import Modal from 'UI/Modal';
 import getRef from 'UI/Functions/GetRef';
+import {SessionConsumer} from 'UI/Session';
 
 export default class ChatList extends React.Component {
 
@@ -12,12 +12,12 @@ export default class ChatList extends React.Component {
 	handleHeaderToggle(replacementTitle) {
 		// only do this for mobile
 		// (effectively anything below iPad portrait res in this case)
-		if (window.matchMedia("(max-width: 767px) and (pointer: coarse)").matches) {
+		/*if (window.matchMedia("(max-width: 767px) and (pointer: coarse)").matches) {
 			global.app.setState({
 				searchableHeaderShowClose: true,
 				searchableHeaderTitle: replacementTitle
 			});
-		}
+		}*/
 	}
 	
 	renderUser(user, subject, dateEdited) {
@@ -44,8 +44,14 @@ export default class ChatList extends React.Component {
 	}
 	
 	render(){
+		return <SessionConsumer>
+			{session => this.renderIntl(session)}
+		</SessionConsumer>
+	}
+
+	renderIntl(session){
 		
-		var { user } = global.app.state;
+		var { user } = session;
 		
 		if(!user){
 			return;
