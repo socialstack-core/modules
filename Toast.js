@@ -3,32 +3,44 @@
 * toastInfo.duration defines how long it's visible for (don't set it at all if you want it to be explicitly closed by the user).
 */
 
-function pop (toastInfo) {
-	
-	var {toasts} = global.app.state;
-	
-	if(!toasts){
-		toasts = [toastInfo];
-	}else{
-		toasts.push(toastInfo);
+const SessionToasts = React.createContext();
+
+export const Provider = (props) => {
+	const [toastList, setToastList] = React.useState([]);
+
+	let close =  toastInfo => {
+		toastList = toastList.filter(toast => toast != toastInfo);
+		setToastList(toastList);
 	}
-	
-	global.app.setState({toasts});
-	
-	if(toastInfo.duration){
-		setTimeout(() => {
-			close(toastInfo);
-		}, toastInfo.duration * 1000);
+
+	let pop = toastInfo => {
+		
+		toastList.push(toastInfo);
+		
+		setToastList(toastList);
+		
+		if(toastInfo.duration){
+			setTimeout(() => {
+				close(toastInfo);
+			}, toastInfo.duration * 1000);
+		}
 	}
+
+	return (
+		<SessionToasts.Provider
+			value={{
+				toastList,
+				pop,
+				close
+			}}
+		>
+			{props.children}
+		</SessionToasts.Provider>
+	);
 };
 
-function close(toastInfo) {
-	var {toasts} = global.app.state;
-	toasts = toasts.filter(toast => toast != toastInfo);
-	global.app.setState({toasts});
-}
+export { SessionToasts }; 
 
-export {
-		pop,
-		close
+export function useToast() {
+	return React.useContext(SessionToasts);
 }
