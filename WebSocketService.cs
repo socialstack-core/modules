@@ -290,7 +290,8 @@ namespace Api.WebSockets
 
 				// Invoke setup for type:
 				var setupType = _setupForType.MakeGenericMethod(new Type[] {
-					svc.ServicedType
+					svc.ServicedType,
+					svc.IdType
 				});
 
 				setupType.Invoke(this, new object[] {
