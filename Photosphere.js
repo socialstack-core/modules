@@ -248,6 +248,7 @@ export default class Photosphere extends React.Component {
             }
 		}
 		this.props.onLoad && this.props.onLoad(fullsize);
+		this.props.loadInitialPosition && this.props.loadInitialPosition(this.getPosition())
 	}
 	
 	setup(props){
