@@ -105,34 +105,38 @@ export default class Photosphere extends React.Component {
 	}
 	
 
+
+	getPosition() {
+		var otherPersonsCameraRotation = new THREE.Quaternion().setFromEuler(this.camera.rotation);
+
+		var camForward = new THREE.Vector3(0, 0, -1);
+
+		var positionIn3DOfCenterOfRemotePersonsCamera = camForward.applyQuaternion(otherPersonsCameraRotation);
+
+		var rotationY = this.camera.rotation.y;
+		var rotationX = this.camera.rotation.x;
+		return {
+			posX: positionIn3DOfCenterOfRemotePersonsCamera.x,
+			posY: positionIn3DOfCenterOfRemotePersonsCamera.y,
+			posZ: positionIn3DOfCenterOfRemotePersonsCamera.z,
+			rotationY: rotationY,
+			rotationX: rotationX,
+			rotationZ: rotationX,
+		}
+	}
+
 	/*
 	 * If there is a change event property wired up then send the message
 	 */
     sendPositionUpdate() {
-        if (this.props.onPositionChange) { 
-
-            var otherPersonsCameraRotation = new THREE.Quaternion().setFromEuler(this.camera.rotation);
-
-            var camForward = new THREE.Vector3(0, 0, -1);
-
-            var positionIn3DOfCenterOfRemotePersonsCamera = camForward.applyQuaternion(otherPersonsCameraRotation);
-
-            var rotationY = this.camera.rotation.y;
-            var rotationX = this.camera.rotation.x;
-
-            this.props.onPositionChange({
-                posX: positionIn3DOfCenterOfRemotePersonsCamera.x,
-                posY: positionIn3DOfCenterOfRemotePersonsCamera.y,
-                posZ: positionIn3DOfCenterOfRemotePersonsCamera.z,
-                rotationY: rotationY,
-                rotationX: rotationX,
-                rotationZ: rotationX,
-            });
-        }
+        this.props.onPositionChange && this.props.onPositionChange(this.getPosition());   
     }
 
 	onMouseUp(){
 		this.setState({click: null});
+
+		// And fire our stop move prop.
+		this.props.onStopMove && this.props.onStopMove(this.getPosition());
 	}
     
     onWheel(props) {
