@@ -14,6 +14,7 @@ using Newtonsoft.Json.Linq;
 using Api.Startup;
 using Newtonsoft.Json.Serialization;
 using Api.Results;
+using System.Reflection;
 
 namespace Api.WebSockets
 {
@@ -46,36 +47,6 @@ namespace Api.WebSockets
 
 		private void Setup()
 		{
-			var methodInfo = GetType().GetMethod(nameof(SetupForType));
-			
-			Events.Service.AfterCreate.AddEventListener((Context ctx, AutoService svc) =>
-			{
-				if (svc == null || svc.ServicedType == null)
-				{
-					return new ValueTask<AutoService>(svc);
-				}
-
-				if (typeof(IAmLive).IsAssignableFrom(svc.ServicedType))
-				{
-					// These are always synced
-					svc.Synced = true;
-
-					// This type inherits serviced type.
-					var eventGroup = svc.GetEventGroup();
-
-					// Invoke setup for type:
-					var setupType = methodInfo.MakeGenericMethod(new Type[] {
-						svc.ServicedType
-					});
-
-					setupType.Invoke(this, new object[] {
-						eventGroup
-					});
-				}
-
-				return new ValueTask<AutoService>(svc);
-			});
-
 			// Special handlers for PermittedContent (permits). Whenever one is created - locally or remote - it must update the websocket filter cache.
 			Events.PermittedContent.Received.AddEventListener((Context context, PermittedContent obj, int action) => {
 
@@ -160,18 +131,15 @@ namespace Api.WebSockets
 		/// Sets up a particular content type with websocket handlers.
 		/// </summary>
 		/// <typeparam name="T"></typeparam>
-		/// <param name="evtGroup"></param>
-		public void SetupForType<T>(EventGroup<T> evtGroup) where T:new()
+		/// <typeparam name="ID"></typeparam>
+		/// <param name="svc"></param>
+		/// <param name="listener"></param>
+		public void SetupForType<T, ID>(AutoService<T, ID> svc, WebSocketTypeListeners listener) 
+			where T : Content<ID>, new()
+			where ID : struct, IConvertible
 		{
-			// Invoked by reflection
-			
-			// Get the listener:
-			var listener = GetTypeListener(typeof(T), evtGroup.BeforeList.Capability);
-
-			if (listener == null)
-			{
-				return;
-			}
+			var evtGroup = svc.EventGroup;
+			listener.Capability = evtGroup.BeforeList.Capability;
 
 			var handlePermits = typeof(PermittedContent) == typeof(T);
 
@@ -265,12 +233,9 @@ namespace Api.WebSockets
 		}
 
 		/// <summary>
-		/// Websocket clients listening by event type.
-		/// Type is typically of the form EventName?query&amp;encoded&amp;filter.
-		/// For example, if someone is listening to chat messages in a particular channel, it's:
-		/// ChannelMessageCreate?ChannelId=123
+		/// Websocket clients listening by content type.
 		/// </summary>
-		public Dictionary<string, WebSocketTypeListeners> ListenersByType = new Dictionary<string, WebSocketTypeListeners>();
+		public Dictionary<Type, WebSocketTypeListeners> ListenersByType = new Dictionary<Type, WebSocketTypeListeners>();
 		
 		/// <summary>
 		/// Websocket clients by user ID.
@@ -302,45 +267,44 @@ namespace Api.WebSockets
 		/// <summary>
 		/// Gets type listener by the name. Optionally creates it if it didn't exist.
 		/// </summary>
-		private WebSocketTypeListeners GetTypeListener(Type type, Capability cap = null)
+		private WebSocketTypeListeners GetTypeListener(Type type)
 		{
-			var name = type.Name;
+			if (!ListenersByType.TryGetValue(type, out WebSocketTypeListeners listener)){
 
-			if (!ListenersByType.TryGetValue(name, out WebSocketTypeListeners listener)){
-
+				var svc = Services.GetByContentType(type);
+				
 				lock (ListenersByType)
 				{
-					// var cap =  Capabilities.All[type.Name.ToLower() + "_list"]; 
-                    // Does this type have a list capability.
-					var all = Services.GetByContentType(type).GetEventGroup().AllWithCapabilities;
-					
-					foreach (var evtHandler in all)
-                    {
-						if(evtHandler.Capability.Feature == "list")
-                        {
-							cap = evtHandler.Capability;
-						}
-                    }
-
-					if (cap == null)
-					{
-						Console.WriteLine("'" + name + "' has no _list capability.");
-						return null;
-					}
-
 					listener = new WebSocketTypeListeners()
 					{
-						Type = type,
-						Capability = cap
+						Type = type
 					};
 
-					ListenersByType[name] = listener;
+					ListenersByType[type] = listener;
 				}
+
+				if (_setupForType == null)
+				{
+					_setupForType = GetType().GetMethod(nameof(SetupForType));
+				}
+
+				// Invoke setup for type:
+				var setupType = _setupForType.MakeGenericMethod(new Type[] {
+					svc.ServicedType
+				});
+
+				setupType.Invoke(this, new object[] {
+					svc,
+					listener
+				});
+
 			}
 			
 			return listener;
 		}
-		
+
+		private MethodInfo _setupForType;
+
 		/// <summary>
 		/// Sends the given entity and the given method name which states what has happened with this object. Typically its 'update', 'create' or 'delete'.
 		/// It's sent to everyone who can view entities of this type, unless you give a specific userId.

@@ -4,6 +4,8 @@ using Microsoft.AspNetCore.Builder;
 using Microsoft.Extensions.DependencyInjection;
 using Api.Contexts;
 using System.Threading;
+using Api.Eventing;
+using System.Threading.Tasks;
 
 namespace Api.WebSockets
 {
@@ -85,6 +87,23 @@ namespace Api.WebSockets
 					}
 				});
 			};
+
+			Events.Service.AfterCreate.AddEventListener((Context ctx, AutoService svc) =>
+			{
+				if (svc == null || svc.ServicedType == null)
+				{
+					return new ValueTask<AutoService>(svc);
+				}
+
+				if (typeof(IAmLive).IsAssignableFrom(svc.ServicedType))
+				{
+					// These are always synced
+					svc.Synced = true;
+				}
+
+				return new ValueTask<AutoService>(svc);
+			});
+			
 		}
 
 	}
