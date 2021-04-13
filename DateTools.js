@@ -20,8 +20,14 @@ const monthNames = ["January", "February", "March", "April", "May", "June", "Jul
 const shortMonthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 
 const isoConvert = (isoish) => {
+	var type = typeof isoish;
 	
-	if(typeof isoish != 'string'){
+	if(type == 'number'){
+		// milliseconds from year 0
+		return new Date(isoish - 62135596800000);
+	}
+	
+	if(type != 'string'){
 		// already a date
 		return isoish;
 	}
