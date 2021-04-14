@@ -89,6 +89,25 @@ namespace Api.PhotosphereTracking
                     client.PhotosphereTrack = position;
                     _ = Create(context, position);
                 }
+                else if(client.PhotosphereTrack.Url != url)
+                {
+                    // Delete this one.
+                    _ = Delete(context, client.PhotosphereTrack);
+
+                    // We need to create a photosphere track.
+                    var position = new PhotosphereTrack()
+                    {
+                        PosX = posX,
+                        PosY = posY,
+                        PosZ = posZ,
+                        RotationX = rotX,
+                        RotationY = rotY,
+                        Url = url,
+                        UserId = context.UserId
+                    };
+                    client.PhotosphereTrack = position;
+                    _ = Create(context, position);
+                }
                 else
                 {
                     client.PhotosphereTrack.PosX = posX;
