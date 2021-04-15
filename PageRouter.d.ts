@@ -1,3 +1,4 @@
 ﻿import { Component } from "react";
-declare class PageRouter extends Component { }
+interface PageRouterProps { shouldUpdateDocumentTitleOnPageChange?: boolean; }
+declare class PageRouter extends Component<PageRouterProps> { }
 export default PageRouter;

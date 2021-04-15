@@ -99,7 +99,9 @@ function replaceTokens(str, res) {
 	return str;
 }
 
-export default () => {
+export default (props) => {
+	const { shouldUpdateDocumentTitleOnPageChange } = props;
+
 	var [pageState, setPage] = React.useState({url: initialUrl, ...initState});
 	
 	function go(url) {
@@ -168,7 +170,7 @@ export default () => {
 	var { page } = pageState;
 	
 	React.useEffect(() => {
-		if(page && page.title){
+		if (shouldUpdateDocumentTitleOnPageChange && page && page.title) {
 			// Does our title have any tokens in it?
 			document.title = replaceTokens(page.title, pageState);
 		}
