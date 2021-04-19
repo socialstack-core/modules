@@ -118,6 +118,8 @@ namespace Api.Metrics
 			// Create a timer with a 30 second interval.
 			var metricTimer = new System.Timers.Timer(30 * 1000);
 
+			var countField = _measurements.GetChangeField("Count");
+
 			metricTimer.Elapsed += async (Object source, ElapsedEventArgs e) => {
 
 				// Timer tick. Let's store any updated metric measurements.
@@ -159,8 +161,11 @@ namespace Api.Metrics
 					}
 					else
 					{
-						measurement.Count += count;
-						await _measurements.Update(context, measurement, DataOptions.IgnorePermissions);
+						if(await _measurements.StartUpdate(context, measurement, DataOptions.IgnorePermissions)){
+							measurement.Count += count;
+							measurement.MarkChanged(countField);
+							await _measurements.FinishUpdate(context, measurement);
+						}
 					}
 
 				}
