@@ -36,7 +36,7 @@ namespace Api.LoginOnRegister
 				// Ensure user exists:
 				var usr = await context.GetUser();
 
-				if (usr != null && (context.Role == Roles.SuperAdmin || context.Role == Roles.Admin))
+				if (usr != null && (context.Role == Roles.Developer || context.Role == Roles.Admin))
 				{
 					// Not anon and is admin. Don't login this newly made account.
 					return user;
