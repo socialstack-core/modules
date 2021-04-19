@@ -136,7 +136,7 @@ namespace Api.WebSockets
 		/// <param name="listener"></param>
 		public void SetupForType<T, ID>(AutoService<T, ID> svc, WebSocketTypeListeners listener) 
 			where T : Content<ID>, new()
-			where ID : struct, IConvertible
+			where ID : struct, IConvertible, IEquatable<ID>
 		{
 			var evtGroup = svc.EventGroup;
 			listener.Capability = evtGroup.BeforeList.Capability;
