@@ -29,7 +29,7 @@ namespace Api.TemporaryGuests
                     return new ValueTask<JsonField<TemporaryGuest>>(field);
                 }
 
-                return new ValueTask<JsonField<TemporaryGuest>>((field.ForRole == Roles.Admin || field.ForRole == Roles.SuperAdmin) ? field : null);
+                return new ValueTask<JsonField<TemporaryGuest>>((field.ForRole == Roles.Admin || field.ForRole == Roles.Developer) ? field : null);
             });
 
             Events.TemporaryGuest.BeforeCreate.AddEventListener(
