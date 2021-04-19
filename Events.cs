@@ -11,11 +11,6 @@ namespace Api.Eventing
 	public partial class Events
 	{
 		/// <summary>
-		/// Set of events for tag content.
-		/// </summary>
-		public static EventGroup<TagContent> TagContent;
-		
-		/// <summary>
 		/// Set of events for a Tag.
 		/// </summary>
 		public static EventGroup<Tag> Tag;

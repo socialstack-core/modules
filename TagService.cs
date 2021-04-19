@@ -28,20 +28,7 @@ namespace Api.Tags
 			// Start preparing the queries. Doing this ahead of time leads to excellent performance savings, 
 			// whilst also using a high-level abstraction as another plugin entry point.
 
-			// Because of IHaveTags, Tag must be nestable:
-			MakeNestable();
-
 			InstallAdminPages("Tags", "fa:fa-tags", new string[] { "id", "name" });
-
-			// Define the IHaveTags handler:
-			DefineIHaveArrayHandler<IHaveTags, Tag, TagContent>(
-				"Tags",
-				"TagId",
-				(IHaveTags content, List<Tag> results) =>
-				{
-					content.Tags = results;
-				}
-			);
 		}
 
 	}

@@ -1,15 +1,16 @@
 using System;
 using Api.Database;
+using Api.Startup;
 using Api.Translate;
 using Api.Users;
 
 namespace Api.Tags
 {
-	
 	/// <summary>
 	/// A tag.
 	/// These are the primary taxonomy mechanism; any site content can be grouped up in multiple tags.
 	/// </summary>
+	[ListAs("Tags")]
 	public partial class Tag : VersionedContent<uint>
 	{
 		/// <summary>
