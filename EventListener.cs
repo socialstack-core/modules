@@ -112,7 +112,13 @@ namespace Api.Translate
 						}
 
 						fieldMap.Add(clonedField);
-						newSchema.Add(new DatabaseColumnDefinition(clonedField, field.OwningType.TableName()));
+
+						var dbColDef = new DatabaseColumnDefinition(clonedField, field.OwningType.TableName());
+
+						if (!dbColDef.Ignore)
+						{
+							newSchema.Add(dbColDef);
+						}
 					}
 					
 				}

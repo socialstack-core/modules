@@ -29,24 +29,7 @@ namespace Api.Translate
 
 			Cache(new CacheConfig<Locale>() {
 				LowFrequencySequentialIds = true,
-				OnCacheLoaded = async () => {
-
-					// Get the default cache:
-					var defaultCache = GetCacheForLocale(1);
-
-					// Does it have anything in it?
-					if (defaultCache.Count() == 0)
-					{
-						// Create the default locale now:
-						await Create(new Context(), new Locale()
-						{
-							Code = "en",
-							Name = "English",
-							Id = 1
-						}, DataOptions.IgnorePermissions);
-					}
-
-				}
+				OnCacheLoaded = OnCacheLoaded
 			});
 
 			var cfg = GetConfig<LocaleServiceConfig>();
@@ -100,6 +83,28 @@ namespace Api.Translate
 				return result;
 			});
 
+		}
+
+		/// <summary>
+		/// Runs when the cache has loaded.
+		/// </summary>
+		/// <returns></returns>
+		private async ValueTask OnCacheLoaded()
+		{
+			// Get the default cache:
+			var defaultCache = GetCacheForLocale(1);
+
+			// Does it have anything in it?
+			if (defaultCache.Count() == 0)
+			{
+				// Create the default locale now:
+				await Create(new Context(), new Locale()
+				{
+					Code = "en",
+					Name = "English",
+					Id = 1
+				}, DataOptions.IgnorePermissions);
+			}
 		}
 
 		/// <summary>
