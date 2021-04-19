@@ -12,11 +12,6 @@ namespace Api.Eventing
 	public partial class Events
 	{
 		/// <summary>
-		/// Set of events for category content.
-		/// </summary>
-		public static EventGroup<CategoryContent> CategoryContent;
-		
-		/// <summary>
 		/// Set of events for a Category.
 		/// </summary>
 		public static EventGroup<Category> Category;

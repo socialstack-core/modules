@@ -1,5 +1,6 @@
 using System;
 using Api.Database;
+using Api.Startup;
 using Api.Translate;
 using Api.Users;
 
@@ -10,6 +11,7 @@ namespace Api.Categories
 	/// A category.
 	/// These are the primary taxonomy mechanism; any site content can be grouped up in multiple categories.
 	/// </summary>
+	[ListAs("Categories")]
 	public partial class Category : VersionedContent<uint>
 	{
 		/// <summary>

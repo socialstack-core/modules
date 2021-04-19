@@ -22,20 +22,7 @@ namespace Api.Categories
 		/// </summary>
 		public CategoryService() : base(Events.Category)
 		{
-			// Because of IHaveCategories, Category must be nestable:
-			MakeNestable();
-
 			InstallAdminPages("Categories", "fa:fa-folder", new string[] { "id", "name" });
-			
-			// Define the IHaveCategories handler:
-			DefineIHaveArrayHandler<IHaveCategories, Category, CategoryContent>(
-				"Categories",
-				"CategoryId",
-				(IHaveCategories content, List<Category> results) =>
-				{
-					content.Categories = results;
-				}
-			);
 		}
 
 	}
