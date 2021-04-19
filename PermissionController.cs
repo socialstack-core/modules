@@ -1,10 +1,9 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.Text;
 using System.Threading.Tasks;
-using Api.Permissions;
-using Api.Results;
+using Api.Startup;
 using Microsoft.AspNetCore.Mvc;
+using Api.Contexts;
 
 
 namespace Api.Permissions
@@ -25,58 +24,6 @@ namespace Api.Permissions
         {
         }
 
-		private RoleMeta[] _roleMetas;
-
-		/// <summary>
-		/// Gets info for a particular role. Primarily the list of capabilities within it.
-		/// </summary>
-		/// <param name="id"></param>
-		/// <returns></returns>
-		[HttpGet("role/{id}")]
-		public RoleMeta GetRole([FromRoute] int id)
-		{
-			if (_roleMetas == null)
-			{
-				_roleMetas = new RoleMeta[Roles.All.Length];
-
-				for(var i=0;i<_roleMetas.Length;i++)
-				{
-					var role = Roles.All[i];
-					
-					var caps = new List<CapabilityMeta>();
-
-					foreach (var capability in Capabilities.GetAllCurrent())
-					{
-						var rule = role.GetGrantRule(capability);
-
-						if (rule == null)
-						{
-							continue;
-						}
-
-						caps.Add(new CapabilityMeta()
-						{
-							Name = capability.Name
-						});
-					}
-
-					_roleMetas[i] = new RoleMeta()
-					{
-						Role = role,
-						Capabilities = caps
-					};
-					
-				}
-			}
-
-			if (id < 0 || id >= _roleMetas.Length)
-			{
-				return null;
-			}
-			
-			return _roleMetas[id];
-		}
-
 		/// <summary>
 		/// The cached permission meta.
 		/// </summary>
@@ -87,19 +34,23 @@ namespace Api.Permissions
 		/// Returns meta about the list of available roles and their permission set.
 		/// </summary>
 		[HttpGet("list")]
-		public PermissionInformation List()
+		public async ValueTask<PermissionInformation> List()
 		{
 			if (_allPermissionInfo != null)
 			{
 				return _allPermissionInfo;
 			}
 
+			var context = Request.GetContext();
+
 			var results = new List<PermissionMeta>();
+
+			// All roles:
+			var roles = await Services.Get<RoleService>().List(context, new Filter<Role>());
 
 			// For each capability..
 			foreach (var capability in Capabilities.GetAllCurrent())
 			{
-
 				var meta = new PermissionMeta()
 				{
 					Key = capability.Name,
@@ -108,7 +59,7 @@ namespace Api.Permissions
 				};
 
 				// For each role..
-				foreach (var role in Roles.All)
+				foreach (var role in roles)
 				{
 
 					// Got it set?
@@ -116,7 +67,6 @@ namespace Api.Permissions
 
 					if (rule != null)
 					{
-
 						var qry = new StringBuilder();
 
 						// Note that a blank rule description means it's always true.
@@ -133,13 +83,12 @@ namespace Api.Permissions
 				}
 
 				results.Add(meta);
-
 			}
 
 			return _allPermissionInfo = new PermissionInformation()
 			{
 				Capabilities = results,
-				Roles = Roles.All
+				Roles = roles
 			};
 		}
 		
@@ -157,7 +106,7 @@ namespace Api.Permissions
 		/// <summary>
 		/// The set of available roles.
 		/// </summary>
-		public Role[] Roles;
+		public List<Role> Roles;
 		
 	}
 

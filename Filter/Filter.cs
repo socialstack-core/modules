@@ -267,7 +267,7 @@ namespace Api.Permissions
 		/// </summary>
 		/// <param name="context"></param>
 		/// <returns></returns>
-		public async Task<List<ResolvedValue>> ResolveValues(Context context)
+		public async ValueTask<List<ResolvedValue>> ResolveValues(Context context)
 		{
 			if (ParamValueResolvers == null)
 			{
@@ -282,12 +282,25 @@ namespace Api.Permissions
 
 				if (valueResolver != null)
 				{
-					var value = await valueResolver.Method(context);
-					values.Add(new ResolvedValue()
+					if (valueResolver.UintMethod != null)
 					{
-						Value = value,
-						Node = valueResolver
-					});
+						// Very common case (used by context lookups).
+						var value = await valueResolver.UintMethod(context);
+						values.Add(new ResolvedValue()
+						{
+							Value = value,
+							Node = valueResolver
+						});
+					}
+					else
+					{
+						var value = await valueResolver.Method(context);
+						values.Add(new ResolvedValue()
+						{
+							Value = value,
+							Node = valueResolver
+						});
+					}
 				}
 			}
 

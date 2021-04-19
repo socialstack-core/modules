@@ -19,12 +19,12 @@ namespace Api.Permissions
 	/// Manages user role grants.
 	/// Instanced automatically. Use injection to use this service, or Startup.Services.Get.
 	/// </summary>
-	public class UserRoleGrantService : AutoService<UserRoleGrant>
+	public class UserRoleGrantService : AutoService<RoleGrant>
     {
 		/// <summary>
 		/// Instanced automatically. Use injection to use this service, or Startup.Services.Get.
 		/// </summary>
-		public UserRoleGrantService() : base(Events.UserRoleGrant)
+		public UserRoleGrantService() : base(Events.RoleGrant)
 		{
 			Cache();
 		}

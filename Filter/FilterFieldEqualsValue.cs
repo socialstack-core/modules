@@ -27,7 +27,12 @@ namespace Api.Permissions
 		/// <summary>
 		/// The method to run to obtain a value to compare the field to.
 		/// </summary>
-		public Func<Context, Task<object>> Method;
+		public Func<Context, ValueTask<object>> Method;
+
+		/// <summary>
+		/// The method to run to obtain a value to compare the field to.
+		/// </summary>
+		public Func<Context, ValueTask<uint>> UintMethod;
 
 		/// <summary>
 		/// Create a new ifUserField node.
@@ -36,7 +41,31 @@ namespace Api.Permissions
 		/// <param name="field"></param>
 		/// <param name="valueMethod"></param>
 		/// <param name="paramId"></param>
-		public FilterFieldEqualsValue(Type type, string field, Func<Context, Task<object>> valueMethod, long paramId = -1) : base(type, field) {
+		public FilterFieldEqualsValue(Type type, string field, Func<Context, ValueTask<uint>> valueMethod, long paramId = -1) : base(type, field)
+		{
+
+			if (paramId == -1)
+			{
+				lock (_lock)
+				{
+					ParamId = NextParamId++;
+				}
+			}
+			else
+			{
+				ParamId = paramId;
+			}
+			UintMethod = valueMethod;
+		}
+		
+		/// <summary>
+		/// Create a new ifUserField node.
+		/// </summary>
+		/// <param name="type"></param>
+		/// <param name="field"></param>
+		/// <param name="valueMethod"></param>
+		/// <param name="paramId"></param>
+		public FilterFieldEqualsValue(Type type, string field, Func<Context, ValueTask<object>> valueMethod, long paramId = -1) : base(type, field) {
 
 			if (paramId == -1)
 			{
@@ -55,7 +84,7 @@ namespace Api.Permissions
 		/// <summary>
 		/// True if this particular node is granted.
 		/// </summary>
-		public override async Task<bool> IsGranted(Capability capability, Context token, object firstArg)
+		public override async ValueTask<bool> IsGranted(Capability capability, Context token, object firstArg)
 		{
 			if(firstArg == null)
 			{
@@ -70,6 +99,12 @@ namespace Api.Permissions
 			}
 
 			var fieldValue = FieldInfo.GetValue(firstArg);
+
+			if (UintMethod != null)
+			{
+				var c2 = await UintMethod(token);
+				return c2.Equals(fieldValue);
+			}
 
 			// Does it match?
 			var compareTo = await Method(token);
@@ -137,6 +172,10 @@ namespace Api.Permissions
 		/// <returns>A deep copy of the node.</returns>
 		public override FilterNode Copy()
 		{
+			if (UintMethod != null)
+			{
+				return new FilterFieldEqualsValue(Type, Field, UintMethod, ParamId);
+			}
 			return new FilterFieldEqualsValue(Type, Field, Method, ParamId);
 		}
 	}
@@ -147,7 +186,7 @@ namespace Api.Permissions
 		/// True if the given field (on an object of the given type) has the value returned by the given method.
 		/// </summary>
 		/// <returns></returns>
-		public Filter Equals(string field, Func<Context, Task<object>> valueMethod)
+		public Filter Equals(string field, Func<Context, ValueTask<uint>> valueMethod)
 		{
 			var node = new FilterFieldEqualsValue(DefaultType, field, valueMethod);
 			return Add(node);
@@ -157,7 +196,27 @@ namespace Api.Permissions
 		/// True if the given field (on an object of the given type) has the value returned by the given method.
 		/// </summary>
 		/// <returns></returns>
-		public Filter Equals(Type type, string field, Func<Context, Task<object>> valueMethod)
+		public Filter Equals(Type type, string field, Func<Context, ValueTask<uint>> valueMethod)
+		{
+			var node = new FilterFieldEqualsValue(type, field, valueMethod);
+			return Add(node);
+		}
+
+		/// <summary>
+		/// True if the given field (on an object of the given type) has the value returned by the given method.
+		/// </summary>
+		/// <returns></returns>
+		public Filter Equals(string field, Func<Context, ValueTask<object>> valueMethod)
+		{
+			var node = new FilterFieldEqualsValue(DefaultType, field, valueMethod);
+			return Add(node);
+		}
+
+		/// <summary>
+		/// True if the given field (on an object of the given type) has the value returned by the given method.
+		/// </summary>
+		/// <returns></returns>
+		public Filter Equals(Type type, string field, Func<Context, ValueTask<object>> valueMethod)
 		{
 			var node = new FilterFieldEqualsValue(type, field, valueMethod);
 			return Add(node);

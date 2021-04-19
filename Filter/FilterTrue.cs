@@ -14,10 +14,10 @@ namespace Api.Permissions
 		/// <summary>
 		/// True if this particular node is granted.
 		/// </summary>
-		public override Task<bool> IsGranted(Capability cap, Context token, object firstArg)
+		public override ValueTask<bool> IsGranted(Capability cap, Context token, object firstArg)
 		{
 			// You shall pass!
-			return Task.FromResult(true);
+			return new ValueTask<bool>(true);
 		}
 
 		/// <summary>

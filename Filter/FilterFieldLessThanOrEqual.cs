@@ -66,12 +66,12 @@ namespace Api.Permissions
 		/// <summary>
 		/// True if this particular node is granted.
 		/// </summary>
-		public override Task<bool> IsGranted(Capability capability, Context token, object firstArg)
+		public override ValueTask<bool> IsGranted(Capability capability, Context token, object firstArg)
 		{
 			// Firstly is it a direct match?
 			if (firstArg == null || firstArg.GetType() != Type)
 			{
-				return Task.FromResult(false);
+				return new ValueTask<bool>(false);
 			}
 
 			if (Value is long)
@@ -79,7 +79,7 @@ namespace Api.Permissions
 				// Try reading it:
 				var fieldValue = FieldInfo.GetValue(firstArg) as long?;
 
-				return Task.FromResult(fieldValue.HasValue && fieldValue <= (long)Value);
+				return new ValueTask<bool>(fieldValue.HasValue && fieldValue <= (long)Value);
 			}
 
 			if (Value is DateTime)
@@ -87,10 +87,10 @@ namespace Api.Permissions
 				// Try reading it:
 				var fieldValue = FieldInfo.GetValue(firstArg) as DateTime?;
 
-				return Task.FromResult(fieldValue.HasValue && fieldValue <= (DateTime)Value);
+				return new ValueTask<bool>(fieldValue.HasValue && fieldValue <= (DateTime)Value);
 			}
 
-			return Task.FromResult(false);
+			return new ValueTask<bool>(false);
 		}
 
 		/// <summary>

@@ -63,7 +63,7 @@ namespace Api.Permissions
 		/// <summary>
 		/// True if this particular node is granted.
 		/// </summary>
-		public override Task<bool> IsGranted(Capability capability, Context token, object firstArg)
+		public override ValueTask<bool> IsGranted(Capability capability, Context token, object firstArg)
 		{
 			// For each value, perform the same checks as a regular single field matching.
 			foreach(var value in Values)
@@ -73,7 +73,7 @@ namespace Api.Permissions
 				{
 					if (value == null)
 					{
-						return Task.FromResult(true);
+						return new ValueTask<bool>(true);
 					}
 
 					continue;
@@ -81,7 +81,7 @@ namespace Api.Permissions
 
 				if (firstArg.Equals(value))
 				{
-					return Task.FromResult(true);
+					return new ValueTask<bool>(true);
 				}
 
 				// Nope - try matching it via reading the field next.
@@ -92,17 +92,17 @@ namespace Api.Permissions
 
 				if (firstArg.GetType() != Type)
 				{
-					return Task.FromResult(false);
+					return new ValueTask<bool>(false);
 				}
 
 				if (value.Equals(FieldInfo.GetValue(firstArg)))
 				{
-					return Task.FromResult(true);
+					return new ValueTask<bool>(true);
 				}
 			}
 
 			// No hits
-			return Task.FromResult(false);
+			return new ValueTask<bool>(false);
 		}
 
 		/// <summary>

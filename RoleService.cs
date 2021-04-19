@@ -19,21 +19,21 @@ namespace Api.Permissions
 	/// Manages user roles.
 	/// Instanced automatically. Use injection to use this service, or Startup.Services.Get.
 	/// </summary>
-	public class UserRoleService : AutoService<UserRole>
+	[LoadPriority(4)]
+	public class RoleService : AutoService<Role>
     {
 		/// <summary>
 		/// Instanced automatically. Use injection to use this service, or Startup.Services.Get.
 		/// </summary>
-		public UserRoleService() : base(Events.UserRole)
+		public RoleService() : base(Events.Role)
 		{
-			
 			// Install the admin pages.
 			InstallAdminPages("Roles", "fa:fa-user-lock", new string[] { "id", "key", "name" });
 
 			// Core roles that must be installed always:
 			Install(
 				// Developer (Super admin) - can do everything.
-				new UserRole()
+				new Role()
 				{
 					Id = 1,
 					Name = "Developer",
@@ -43,7 +43,7 @@ namespace Api.Permissions
 				},
 				
 				// Admin - can do almost everything. Usually everything super admin can do, minus system config options/ site level config.
-				new UserRole()
+				new Role()
 				{
 					Id = 2,
 					Name = "Admin",
@@ -52,49 +52,78 @@ namespace Api.Permissions
 					// Todo: Admin homepage displays e.g. traffic metrics
 				},
 
-				// Guest - account created, not activated. Basically the same as a public account by default.
-				new UserRole()
+				// Guest - account created, not activated. Largely the same as a public account by default.
+				new Role()
 				{
 					Id = 3,
 					Name = "Guest",
 					Key = "guest"
-				}, // <-- In this case, we grant the same as public.
+				},
 
 				// Member - created and (optionally) activated.
-				new UserRole()
+				new Role()
 				{
 					Id = 4,
 					Name = "Member",
 					Key = "member"
 				},
-				
+
 				// Banned role - can do basically nothing.
-				new UserRole()
+				new Role()
 				{
 					Id = 5,
 					Name = "Banned",
 					Key = "banned"
 				},
 
-				// Public - the role used by anonymous users.
-				new UserRole()
+				// Public - the role used by anonymous users. 0 aliases to 6.
+				new Role()
 				{
 					Id = 6,
 					Name = "Public",
 					Key = "public"
 				}
 			);
-			
-			Cache();
+
+			Cache(new CacheConfig<Role>()
+			{
+				LowFrequencySequentialIds = true,
+				OnCacheLoaded = async () => {
+					started = true;
+
+					if (_toInstall != null)
+					{
+						// Install now:
+						await InstallNow(_toInstall);
+						_toInstall = null;
+					}
+
+					// Apply the major roles such as Developer etc:
+					var ctx = new Context();
+					Roles.Developer = await Get(ctx, 1, DataOptions.IgnorePermissions);
+					Roles.Admin = await Get(ctx, 2, DataOptions.IgnorePermissions);
+					Roles.Guest = await Get(ctx, 3, DataOptions.IgnorePermissions);
+					Roles.Member = await Get(ctx, 4, DataOptions.IgnorePermissions);
+					// Banned = Role 5
+					Roles.Public = await Get(ctx, 6, DataOptions.IgnorePermissions);
+
+					// Construct the default grants:
+					await Events.CapabilityOnSetup.Dispatch(ctx, null);
+				}
+			});
+
 		}
-		
+
+		private bool started;
+		private List<Role> _toInstall;
+
 		/// <summary>
 		/// Installs the given role(s). It checks if they exist by their key or ID, and if not, creates them.
 		/// </summary>
 		/// <param name="roles"></param>
-		public void Install(params UserRole[] roles)
+		public void Install(params Role[] roles)
 		{
-			if (Services.Started)
+			if (started)
 			{
 				Task.Run(async () =>
 				{
@@ -103,11 +132,12 @@ namespace Api.Permissions
 			}
 			else
 			{
-				Events.Service.AfterStart.AddEventListener(async (Context ctx, object src) =>
+				if (_toInstall == null)
 				{
-					await InstallNow(roles);
-					return src;
-				});
+					_toInstall = new List<Role>();
+				}
+
+				_toInstall.AddRange(roles);
 			}
 		}
 		
@@ -115,7 +145,7 @@ namespace Api.Permissions
 		/// Installs the given role(s). It checks if they exist by their key or ID, and if not, creates them.
 		/// </summary>
 		/// <param name="roles"></param>
-		public async ValueTask InstallNow(params UserRole[] roles)
+		public async ValueTask InstallNow(IEnumerable<Role> roles)
 		{
 			var context = new Context();
 
@@ -125,9 +155,9 @@ namespace Api.Permissions
 			if (idSet.Any())
 			{
 				// Get the roles:
-				var filter = new Filter<UserRole>();
+				var filter = new Filter<Role>();
 				filter.Id(idSet.Select(role => role.Id));
-				var existingRoles = (await ListNoCache(context, filter, false, DataOptions.IgnorePermissions)).ToDictionary(role => role.Id);
+				var existingRoles = (await List(context, filter, DataOptions.IgnorePermissions)).ToDictionary(role => role.Id);
 				
 				// For each to consider for install..
 				foreach (var role in idSet)
@@ -146,9 +176,9 @@ namespace Api.Permissions
 			if (keySet.Any())
 			{
 				// Get the roles by those keys:
-				var filter = new Filter<UserRole>();
+				var filter = new Filter<Role>();
 				filter.EqualsSet("Key", keySet.Select(role => role.Key));
-				var existingRoles = (await ListNoCache(context, filter, false, DataOptions.IgnorePermissions)).ToDictionary(role => role.Key);
+				var existingRoles = (await List(context, filter, DataOptions.IgnorePermissions)).ToDictionary(role => role.Key);
 
 				// For each role to consider for install..
 				foreach (var role in keySet)

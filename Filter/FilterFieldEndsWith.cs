@@ -66,26 +66,26 @@ namespace Api.Permissions
 		/// <summary>
 		/// True if this particular node is granted.
 		/// </summary>
-		public override Task<bool> IsGranted(Capability capability, Context token, object firstArg)
+		public override ValueTask<bool> IsGranted(Capability capability, Context token, object firstArg)
 		{
 			// Firstly is it a direct match?
 			if (firstArg == null)
 			{
-				return Task.FromResult(Value == null);
+				return new ValueTask<bool>(Value == null);
 			}
 			
 			// Try matching it via reading the field next.
 			if (Value == null)
 			{
-				return Task.FromResult(false);
+				return new ValueTask<bool>(false);
 			}
 
 			if (firstArg.GetType() != Type)
 			{
-				return Task.FromResult(false);
+				return new ValueTask<bool>(false);
 			}
 
-			return Task.FromResult(Value.Equals(FieldInfo.GetValue(firstArg) as string));
+			return new ValueTask<bool>(Value.Equals(FieldInfo.GetValue(firstArg) as string));
 		}
 
 		/// <summary>

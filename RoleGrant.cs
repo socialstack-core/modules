@@ -13,7 +13,7 @@ namespace Api.Permissions
     /// <summary>
     /// A configurable role.
     /// </summary>
-    public partial class UserRoleGrant : VersionedContent<uint>
+    public partial class RoleGrant : VersionedContent<uint>
 	{
 		/// <summary>
 		/// The ID of the role this is for.

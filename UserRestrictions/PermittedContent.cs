@@ -1,4 +1,5 @@
 using Api.Database;
+using Api.Startup;
 using Api.Users;
 using System;
 
@@ -23,11 +24,6 @@ namespace Api.Permissions
 		/// The ID of the actual permitted content. Usually a user id.
 		/// </summary>
 		public uint PermittedContentId;
-
-		/// <summary>
-		/// The permitted content. Usually a user (specifically a UserProfile), but can also be e.g. a company.
-		/// </summary>
-		public object Permitted { get; set; }
 
 		/// <summary>
 		/// The date this was accepted, if it's an accepted invite.

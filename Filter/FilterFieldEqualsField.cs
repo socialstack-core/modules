@@ -78,7 +78,7 @@ namespace Api.Permissions
 		/// <summary>
 		/// True if this particular node is granted.
 		/// </summary>
-		public override Task<bool> IsGranted(Capability capability, Context token, object extraArg)
+		public override ValueTask<bool> IsGranted(Capability capability, Context token, object extraArg)
 		{
 			throw new Exception("Field=Field doesn't support the permissions system at the moment. Got a use case? Do share!");
 		}

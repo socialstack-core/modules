@@ -10,26 +10,21 @@ namespace Api.Eventing
 	/// </summary>
 	public partial class Events
 	{
-		
-		/// <summary>
-		/// Called when roles are being setup. Use this to define new roles. Occurs before capabilities are granted.
-		/// </summary>
-		public static EventHandler<object> RoleOnSetup;
-		
+
 		/// <summary>
 		/// Called when capabilities are being granted to roles.
 		/// </summary>
 		public static EventHandler<object> CapabilityOnSetup;
 
 		/// <summary>
-		/// Events on the UserRole type.
+		/// Events on the Role type.
 		/// </summary>
-		public static EventGroup<UserRole> UserRole;
+		public static EventGroup<Role> Role;
 		
 		/// <summary>
-		/// Events on the UserRoleGrant type.
+		/// Events on the RoleGrant type.
 		/// </summary>
-		public static EventGroup<UserRoleGrant> UserRoleGrant;
+		public static EventGroup<RoleGrant> RoleGrant;
 		
 	}
 	

@@ -21,46 +21,6 @@ namespace Api.Permissions
 			// Example admin page install:
 			// InstallAdminPages("PermittedContents", "fa:fa-rocket", new string[] { "id", "name" });
 			
-			// Caching is required by this service:
-			Cache();
-			
-			Events.PermittedContent.AfterLoad.AddEventListener(async (Context context, PermittedContent permit) => {
-
-				if (permit == null)
-				{
-					permit.Permitted = await Content.Get(context, permit.PermittedContentTypeId, permit.PermittedContentId);
-				}
-
-				return permit;
-			});
-
-			Events.PermittedContent.AfterList.AddEventListener(async (Context context, List<PermittedContent> permits) => {
-
-				if (permits == null)
-				{
-					return permits;
-				}
-
-				// Can be mixed content so we'll use the Content.ApplyMixed helper:
-				await Content.ApplyMixed(
-					context,
-					permits,
-					src =>
-					{
-						// Never invoked with null.
-						var uae = (PermittedContent)src;
-						return new ContentTypeAndId(uae.PermittedContentTypeId, uae.PermittedContentId);
-					},
-					(object src, object content) =>
-					{
-						var uae = (PermittedContent)src;
-						uae.Permitted = content;
-					}
-				);
-
-				return permits;
-			});
-
 			// Caching these has a general performance improvement given many filters use them.
 			Cache();
 		}

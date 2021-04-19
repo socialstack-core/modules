@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Text;
 using System.Threading.Tasks;
+using Api.AutoForms;
 using Api.Contexts;
 using Api.Database;
 using Api.Startup;
@@ -13,12 +14,8 @@ namespace Api.Permissions
     /// <summary>
     /// A role which defines a set of capabilities to a user who is granted this particular role.
     /// </summary>
-    public partial class Role
-    {
-		/// <summary>
-		/// The role ID, as used by user rows.
-		/// </summary>
-        public uint Id;
+    public partial class Role : VersionedContent<uint>
+	{
 		/// <summary>
 		/// The nice name of the role, usually in the site default language.
 		/// </summary>
@@ -35,30 +32,27 @@ namespace Api.Permissions
 		public bool CanViewAdmin;
 
 		/// <summary>
-		/// Create a new role with the given ID.
+		/// The raw grant rules for this user role.
 		/// </summary>
-		/// <param name="id"></param>
-        public Role(uint id)
-        {
-            Id = id;
-            Add();
-        }
+		[Module("Admin/PermissionGrid")]
+		[Data("editor", "true")]
+		public string GrantRuleJson;
 
 		/// <summary>
 		/// The raw grant rules, sorted by priority (weakest first). Evaluated against only when new capabilities are added.
 		/// </summary>
 		[JsonIgnore]
-		public List<RoleGrantRule> GrantRules = new List<RoleGrantRule>();
+		public List<RoleGrantRule> GrantRules { get; } = new List<RoleGrantRule>();
 
 		/// <summary>
 		/// Indexed by capability InternalId.
 		/// </summary>
-		private FilterNode[] CapabilityLookup = Array.Empty<FilterNode>();
+		private FilterNode[] CapabilityLookup { get; set; } = Array.Empty<FilterNode>();
 
 		/// <summary>
 		/// Indexed by capability InternalId.
 		/// </summary>
-		private Filter[] CapabilityFilterLookup = Array.Empty<Filter>();
+		private Filter[] CapabilityFilterLookup { get; set; } = Array.Empty<Filter>();
 
 		/// <summary>
 		/// Grants the given capabilities unconditionally.
@@ -209,22 +203,6 @@ namespace Api.Permissions
 		
 		*/
 
-		private void ResizeIfRequired(int index)
-		{
-			// Resize lookup if we need to:
-			if (index >= CapabilityLookup.Length)
-			{
-				// Resize it:
-				var newLookup = new FilterNode[index + 1];
-				Array.Copy(CapabilityLookup, newLookup, CapabilityLookup.Length);
-				CapabilityLookup = newLookup;
-
-				var newFilterLookup = new Filter[index + 1];
-				Array.Copy(CapabilityFilterLookup, newFilterLookup, CapabilityFilterLookup.Length);
-				CapabilityFilterLookup = newFilterLookup;
-			}
-		}
-
 		/// <summary>
 		/// Start conditional grants. For example, theRole.If((Filter f) => f.IsSelf()).ThenGrant("user_update") - 
 		/// this means if the current user is the user being edited then the permission is granted.
@@ -280,10 +258,8 @@ namespace Api.Permissions
 				}
 			}
 
-			// Add rules in order of priority. 
-			// I.e. highest type int goes last in the list.
+			// Add rules in the order that they were requested.
 			GrantRules.Add(rule);
-			GrantRules.Sort((a,b) => (int)a.RuleType - (int)b.RuleType);
 		}
 
 		/// <summary>
@@ -318,48 +294,17 @@ namespace Api.Permissions
             return this;
         }
 		
-        /// <summary>
-        /// Add this role to the lookup.
-        /// </summary>
-        /// <returns></returns>
-        private void Add()
-        {
-            if (Roles.All == null || Roles.All.Length <= Id) {
-                // Resize it:
-                var all = new Role[Id + 1];
-
-                if (Roles.All != null)
-                {
-                    Array.Copy(Roles.All, all, Roles.All.Length);
-                }
-
-                Roles.All = all;
-            }
-
-            Roles.All[Id] = this;
-        }
-
 		/// <summary>Gets the raw grant rule for the given capability. This is readonly.</summary>
 		public Filter GetSourceFilter(Capability capability)
 		{
-			if (capability.InternalId >= CapabilityLookup.Length)
-			{
-				// Nope!
-				return null;
-			}
-
+			CheckForNewCapabilities();
 			return CapabilityFilterLookup[capability.InternalId];
 		}
 
 		/// <summary>Gets the raw grant rule for the given capability. This is readonly.</summary>
 		public FilterNode GetGrantRule(Capability capability)
 		{
-			if (capability.InternalId >= CapabilityLookup.Length)
-			{
-				// Nope!
-				return null;
-			}
-
+			CheckForNewCapabilities();
 			return CapabilityLookup[capability.InternalId];
 		}
 
@@ -372,20 +317,15 @@ namespace Api.Permissions
 		/// E.g. the Forum object to check if access is granted for.
 		/// </param>
 		/// <returns></returns>
-		public Task<bool> IsGranted(Capability capability, Context token, object extraArg)
-        {
-            if (capability.InternalId >= CapabilityLookup.Length)
-            {
-                // Nope!
-                return Task.FromResult(false);
-            }
-
-            var handler = CapabilityLookup[capability.InternalId];
+		public ValueTask<bool> IsGranted(Capability capability, Context token, object extraArg)
+		{
+			CheckForNewCapabilities();
+			var handler = CapabilityLookup[capability.InternalId];
 
             if (handler == null)
             {
-                return Task.FromResult(false);
-            }
+                return new ValueTask<bool>(false);
+			}
 
             // Ask the handler:
             return handler.IsGranted(capability, token, extraArg);
@@ -404,12 +344,7 @@ namespace Api.Permissions
 		/// <returns></returns>
 		public bool IsGranted(Capability capability, Context token, Filter filter, params object[] extraObjectsToCheck)
 		{
-			if (capability.InternalId >= CapabilityLookup.Length)
-			{
-				// Nope!
-				return false;
-			}
-
+			CheckForNewCapabilities();
 			var handler = CapabilityLookup[capability.InternalId];
 
 			if (handler == null)
@@ -425,14 +360,40 @@ namespace Api.Permissions
 			return true;
 		}
 
+		private void CheckForNewCapabilities()
+		{
+			var max = Capability.MaxCapId;
+			if (CapabilityLookup != null && CapabilityLookup.Length == max)
+			{
+				return;
+			}
+
+			// Resize the buffers:
+			var capLookup = CapabilityLookup;
+			Array.Resize(ref capLookup, max);
+			CapabilityLookup = capLookup;
+
+			var cfLookup = CapabilityFilterLookup;
+			Array.Resize(ref cfLookup, max);
+			CapabilityFilterLookup = cfLookup;
+
+			// For each capability, make sure it's added:
+			foreach (var capability in Capabilities.GetAllCurrent())
+			{
+				if (CapabilityLookup[capability.InternalId] == null)
+				{
+					// Add (or re-add):
+					AddCapability(capability);
+				}
+			}
+		}
+
 		/// <summary>
 		/// Adds the given new capability to the role
 		/// </summary>
 		/// <param name="capability"></param>
-		public void AddCapability(Capability capability)
+		private void AddCapability(Capability capability)
 		{
-			ResizeIfRequired(capability.InternalId);
-
 			// Clear:
 			CapabilityLookup[capability.InternalId] = null;
 
@@ -477,7 +438,7 @@ namespace Api.Permissions
 		/// <returns></returns>
 		public RoleGrantRule GetActiveRule(Capability capability)
 		{
-			// Now evaluate each rule in this role (they're already sorted in order of priority - weakest first).
+			// Now evaluate each rule in this role (they're in add order, i.e. rules added first are overriden by rules added later).
 			for(var i=GrantRules.Count - 1; i>=0;i--)
 			{
 				var rule = GrantRules[i];

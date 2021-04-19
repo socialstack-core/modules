@@ -19,7 +19,7 @@ namespace Api.Permissions
 		/// <summary>
 		/// True if this particular node is granted.
 		/// </summary>
-		public override async Task<bool> IsGranted(Capability capability, Context token, object firstArg)
+		public override async ValueTask<bool> IsGranted(Capability capability, Context token, object firstArg)
 		{
 			var a = await Input0.IsGranted(capability, token, firstArg);
 			return !a;

@@ -11,6 +11,7 @@ using Microsoft.AspNetCore.Http;
 using System.Collections.Generic;
 using Api.Users;
 using Newtonsoft.Json.Linq;
+using System.Reflection;
 
 namespace Api.Permissions
 {
@@ -69,70 +70,18 @@ namespace Api.Permissions
 			}, 1);
 
 			// Hook the default role setup. It's done like this so it can be removed by a plugin if wanted.
-			Events.RoleOnSetup.AddEventListener((Context context, object source) => {
-				
-				// Public - the role used by anonymous users.
-				Roles.Public = new Role(0)
-				{
-					Name = "Public",
-					Key = "public"
-				};
-				
-				// Super admin - can do everything.
-				// Note that you can grant everything and then revoke certain things if you want.
-				Roles.SuperAdmin = new Role(1)
-				{
-					Name = "Super Admin",
-					Key = "super_admin",
-					CanViewAdmin = true
-				};
-
-				// Admin - can do almost everything. Usually everything super admin can do, minus system config options/ site level config.
-				Roles.Admin = new Role(2)
-				{
-					Name = "Admin",
-					Key = "admin",
-					CanViewAdmin = true
-				}; // <-- In this case, we grant the same as SA.
-
-				// Guest - account created, not activated. Basically the same as a public account by default.
-				Roles.Guest = new Role(3)
-				{
-					Name = "Guest",
-					Key = "guest"
-				}; // <-- In this case, we grant the same as public.
-
-				// Member - created and (optionally) activated.
-				Roles.Member = new Role(4)
-				{
-					Name = "Member",
-					Key = "member"
-				};
-				
-				// Banned role - can do basically nothing.
-				Roles.Banned = new Role(5)
-				{
-					Name = "Banned",
-					Key = "banned"
-				};
-
-				return new ValueTask<object>(source);
-			}, 9);
-			
-			// Hook the default role setup. It's done like this so it can be removed by a plugin if wanted.
 			Events.CapabilityOnSetup.AddEventListener((Context context, object source) => {
 
 				// Public - the role used by anonymous users.
 				Roles.Public.GrantFeature("load").GrantFeature("list")
-					.Revoke("user_load").Revoke("user_list")
 					.Grant("user_create");
 				
 				// Super admin - can do everything.
 				// Note that you can grant everything and then revoke certain things if you want.
-				Roles.SuperAdmin.GrantEverything();
+				Roles.Developer.GrantEverything();
 
 				// Admin - can do almost everything. Usually everything super admin can do, minus system config options/ site level config.
-				Roles.Admin.GrantTheSameAs(Roles.SuperAdmin); // <-- In this case, we grant the same as SA.
+				Roles.Admin.GrantTheSameAs(Roles.Developer); // <-- In this case, we grant the same as SA.
 
 				// Guest - account created, not activated. Basically the same as a public account by default.
 				Roles.Guest.GrantTheSameAs(Roles.Public); // <-- In this case, we grant the same as public.
@@ -145,323 +94,6 @@ namespace Api.Permissions
 
 				return new ValueTask<object>(source);
 			}, 9);
-
-			// After all EventListener's have had a chance to be initialised..
-			Events.EventsAfterStart.AddEventListener(async (Context ctx, object source) =>
-			{
-				// Trigger RoleSetup:
-				await Events.RoleOnSetup.Dispatch(ctx, null);
-
-				// Trigger capability setup:
-				await Events.CapabilityOnSetup.Dispatch(ctx, null);
-
-				// Now all the roles and caps have been setup, inject role restrictions:
-				SetupPartialRoleRestrictions();
-
-				// Setup IHaveUserRestrictions too:
-				SetupUserRestrictions();
-
-				return Task.FromResult(source);
-			});
-		}
-
-		/// <summary>
-		/// Invoked by reflection. Adds user restrictions to the given event group for a particular content type.
-		/// </summary>
-		/// <typeparam name="T"></typeparam>
-		public void SetupUserRestrictionsForContent<T>() where T: IHaveId<uint>, IHaveUserRestrictions
-		{
-			var eventGroup = Events.GetGroup<T>();
-			PermittedContentService permits = null;
-			UserService users = null;
-
-			var contentTypeId = ContentTypes.GetId(typeof(T));
-			var userContentTypeId = ContentTypes.GetId(typeof(User));
-
-			// After load, potentially hook the list of permitted users.
-			eventGroup.AfterLoad.AddEventListener(async (Context context, T content) => {
-
-				if (content == null)
-				{
-					return content;
-				}
-
-				if (content.PermittedUsersListVisible)
-				{
-
-					if (permits == null)
-					{
-						permits = Services.Get<PermittedContentService>();
-					}
-
-					// Load the permitted users list:
-					content.PermittedUsers = await permits.List(context, new Filter<PermittedContent>().Equals("ContentId", content.GetId()).And().Equals("ContentTypeId", contentTypeId), DataOptions.IgnorePermissions);
-
-				}
-
-				return content;
-			});
-
-			// After list, potentially hook the list of permitted users.
-			eventGroup.AfterList.AddEventListener(async (Context context, List<T> set) => {
-
-				if (set == null)
-				{
-					return set;
-				}
-
-				foreach (var content in set)
-				{
-					if (content.PermittedUsersListVisible)
-					{
-
-						if (permits == null)
-						{
-							permits = Services.Get<PermittedContentService>();
-						}
-
-						// Load the permitted users list. These are cached so we're not hitting the database here.
-						content.PermittedUsers = await permits.List(context, new Filter<PermittedContent>().Equals("ContentId", content.GetId()).And().Equals("ContentTypeId", contentTypeId), DataOptions.IgnorePermissions);
-
-					}
-				}
-
-				return set;
-			});
-
-			// Hook up a MultiSelect on the underlying fields:
-			eventGroup.BeforeSettable.AddEventListener((Context ctxbset, JsonField<T> field) =>
-			{
-				if (field != null && field.Name == "PermittedUsers")
-				{
-					field.Module = null;
-
-					// Defer the set after the ID is available:
-					field.AfterId = true;
-
-					// On set, convert provided IDs into tag objects.
-					field.OnSetValue.AddEventListener(async (Context context, object value, T targetObject, JToken srcToken) =>
-					{
-						// The value should be an array of ints.
-						if (value is not JArray permitArray)
-						{
-							return null;
-						}
-
-						var permitList = new List<PermittedContent>();
-
-						// Anon can't make self-permits
-						var createSelfPermit = context.UserId != 0;
-
-						if (users == null)
-						{
-							users = Services.Get<UserService>();
-						}
-
-						var now = DateTime.UtcNow;
-
-						if (permits == null)
-						{
-							permits = Services.Get<PermittedContentService>();
-						}
-						
-						foreach (var token in permitArray)
-						{
-							// Token can be either a user ID, or {contentTypeId: x, contentId: y}, or {contentId: y} or {userId: y}
-
-							var permitToCreate = new PermittedContent();
-
-							if (token.Type == JTokenType.Integer)
-							{
-								permitToCreate.PermittedContentId = token.Value<uint>();
-								permitToCreate.PermittedContentTypeId = userContentTypeId;
-							}
-							else if (token.Type == JTokenType.Object)
-							{
-								var jObj = token as JObject;
-								
-								if (jObj.TryGetValue("userId", out JToken v))
-								{
-									permitToCreate.PermittedContentId = v.Value<uint>();
-									permitToCreate.PermittedContentTypeId = userContentTypeId;
-								}
-								else if (jObj.TryGetValue("contentId", out v))
-								{
-									permitToCreate.PermittedContentId = v.Value<uint>();
-
-									if (jObj.TryGetValue("contentTypeId", out v))
-									{
-										permitToCreate.PermittedContentTypeId = v.Value<int>();
-									}
-									else
-									{
-										permitToCreate.PermittedContentTypeId = userContentTypeId;
-									}
-								}
-								else
-								{
-									continue;
-								}
-
-							}
-							else
-							{
-								continue;
-							}
-
-							permitToCreate.UserId = context.UserId;
-							permitToCreate.ContentId = targetObject.GetId();
-							permitToCreate.ContentTypeId = contentTypeId;
-							permitToCreate.CreatedUtc = now;
-
-							// Get the targeted content, with a permission check, 
-							// just in case somebody attempts to permit something they aren't allowed to see.
-							var permittedContent = await Content.Get(context, permitToCreate.PermittedContentTypeId, permitToCreate.PermittedContentId, true);
-
-							if (permittedContent == null)
-							{
-								continue;
-							}
-
-							if (context.HasContent(permitToCreate.PermittedContentTypeId, permitToCreate.PermittedContentId))
-							{
-								// This one is for "self" so don't create it.
-								createSelfPermit = false;
-							}
-
-							permitList.Add(permitToCreate);
-							permitToCreate.Permitted = permittedContent;
-							await permits.Create(context, permitToCreate, DataOptions.IgnorePermissions);
-
-						}
-
-						if (createSelfPermit)
-						{
-							// Create a permit for "me".
-							var myProfile = users.GetProfile(await context.GetUser());
-
-							var permitToCreate = new PermittedContent()
-							{
-								UserId = context.UserId,
-								ContentId = targetObject.GetId(),
-								ContentTypeId = contentTypeId,
-								CreatedUtc = now,
-								Permitted = myProfile,
-								AcceptedUtc = now,
-								PermittedContentId = context.UserId,
-								PermittedContentTypeId = userContentTypeId
-							};
-
-							await permits.Create(context, permitToCreate, DataOptions.IgnorePermissions);
-							permitList.Add(permitToCreate);
-						}
-
-						return permitList;
-					});
-
-				}
-
-				return new ValueTask<JsonField<T>>(field);
-			});
-
-			// Permission blocks next. Ensure we only return results for things that this user is permitted to see.
-			// We'll do this by extending the grant filter.
-
-			// #warning todo revisit permits.
-
-			/*
-			foreach (var role in Roles.All)
-			{
-				// Note that this applies to everybody - admins included.
-
-				var typeName = typeof(T).Name.ToLower();
-
-				if (Capabilities.All.TryGetValue(typeName + "_load", out Capability loadCapability))
-				{
-					role.AddHasPermit(loadCapability, typeof(T), contentTypeId);
-				}
-
-				if (Capabilities.All.TryGetValue(typeName + "_list", out Capability listCapability))
-				{
-					role.AddHasPermit(listCapability, typeof(T), contentTypeId);
-				}
-
-			}
-			*/
-		}
-
-		private static void SetupPartialRoleRestrictions()
-		{
-// #warning todo revisit partial role restrictions
-			/*
-			// For each type, build the field map of roles that it wants to partially restrict (if any):
-			foreach (var kvp in ContentTypes.TypeMap)
-			{
-				var contentType = kvp.Value;
-
-				if (!typeof(IHaveRoleRestrictions).IsAssignableFrom(contentType))
-				{
-					continue;
-				}
-
-				// This type has partial role restrictions.
-				// This means it would like to restrict some content (but not all) by role.
-				foreach (var role in Roles.All)
-				{
-
-					// Is there a field called VisibleToRoleX?
-					var fieldName = "VisibleToRole" + role.Id;
-					var field = contentType.GetField(fieldName);
-
-					if (field == null)
-					{
-						continue;
-					}
-
-					// Ok - this type has visibility which varies within a role.
-					// For example, members of the public see certain pages but not e.g. the admin pages.
-
-					// Next, we'll inject into the permission filter a restriction on this field.
-					// I.e. the field must be true to go ahead.
-					var typeName = contentType.Name.ToLower();
-
-					if (Capabilities.All.TryGetValue(typeName + "_load", out Capability loadCapability))
-					{
-						role.AddRoleRestrictionToFilter(loadCapability, contentType, fieldName);
-					}
-
-					if (Capabilities.All.TryGetValue(typeName + "_list", out Capability listCapability))
-					{
-						role.AddRoleRestrictionToFilter(listCapability, contentType, fieldName);
-					}
-
-				}
-
-			}
-			*/
-		}
-
-		private void SetupUserRestrictions()
-		{
-			// For each type, add the user restriction handlers if the type requires them:
-			var userRestrictMethodInfo = GetType().GetMethod("SetupUserRestrictionsForContent");
-
-			foreach (var kvp in ContentTypes.TypeMap)
-			{
-				var contentType = kvp.Value;
-
-				if (!typeof(IHaveUserRestrictions).IsAssignableFrom(contentType))
-				{
-					continue;
-				}
-
-				// Invoke:
-				var setupType = userRestrictMethodInfo.MakeGenericMethod(new Type[] {
-					contentType
-				});
-
-				setupType.Invoke(this, Array.Empty<object>());
-			}
 		}
 
 		/// <summary>
@@ -472,6 +104,14 @@ namespace Api.Permissions
 		/// <param name="group"></param>
 		public void SetupForType<T, ID>(EventGroup<T, ID> group)
 		{
+			// If it's a mapping type, no-op.
+			var baseType = typeof(T).BaseType;
+
+			if (baseType.IsGenericType && baseType.GetGenericTypeDefinition() == typeof(Mapping<,>))
+			{
+				// Mapping types don't get mounted by the permission system.
+				return;
+			}
 
 			var fields = group.GetType().GetFields();
 
@@ -498,7 +138,7 @@ namespace Api.Permissions
 
 					group.AllWithCapabilities.Add(eventHandler);
 
-					SetupForStandardEvent<T>(eventHandler, eventHandler.Capability);
+					SetupForStandardEvent<T>(eventHandler, eventHandler.Capability, field);
 				}
 				else if (field.FieldType == typeof(Eventing.EventHandler<T>) && field.Name.StartsWith("After") && field.Name.EndsWith("Load"))
 				{
@@ -520,7 +160,7 @@ namespace Api.Permissions
 
 					group.AllWithCapabilities.Add(eventHandler);
 
-					SetupForStandardEvent<T>(eventHandler, eventHandler.Capability);
+					SetupForStandardEvent<T>(eventHandler, eventHandler.Capability, field);
 				}
 				else if (field.FieldType == typeof(Eventing.EventHandler<Filter<T>>) && field.Name.StartsWith("Before"))
 				{
@@ -550,18 +190,6 @@ namespace Api.Permissions
 		}
 
 		/// <summary>
-		/// Adds the given capability to all currently loaded roles.
-		/// </summary>
-		/// <param name="capability"></param>
-		private static void CapabilityCreated(Capability capability)
-		{
-			foreach (var role in Roles.All)
-			{
-				role.AddCapability(capability);
-			}
-		}
-
-		/// <summary>
 		/// Sets up a particular Before*List event handler with permissions
 		/// </summary>
 		/// <typeparam name="T"></typeparam>
@@ -569,9 +197,6 @@ namespace Api.Permissions
 		/// <param name="capability"></param>
 		public void SetupForListEvent<T>(Api.Eventing.EventHandler<Filter<T>> handler, Capability capability)
 		{
-			// Indicate to the roles that the cap exists:
-			CapabilityCreated(capability);
-
 			// Add an event handler at priority 1 (runs before others).
 			handler.AddEventListener((Context context, Filter<T> filter) =>
 			{
@@ -627,14 +252,21 @@ namespace Api.Permissions
 		/// <typeparam name="T"></typeparam>
 		/// <param name="handler"></param>
 		/// <param name="capability"></param>
-		public void SetupForStandardEvent<T>(Api.Eventing.EventHandler<T> handler, Capability capability)
+		/// <param name="field"></param>
+		public void SetupForStandardEvent<T>(Api.Eventing.EventHandler<T> handler, Capability capability, FieldInfo field)
 		{
-			// Indicate to the roles that the cap exists:
-			CapabilityCreated(capability);
+			var permsAttrib = field.GetCustomAttribute<PermissionsAttribute>();
+
+			if (permsAttrib != null && permsAttrib.IsManual) {
+				// Be careful out there! You *MUST* test your capability when you dispatch your event. Use handler.TestCapability instead e.g. Events.Thing.BeforeUpdate.TestCapability(..)
+				return;
+			}
 
 			// Add an event handler at priority 1 (runs before others).
 			handler.AddEventListener(async (Context context, T content) =>
 			{
+				// Note: The following code is very similar to handler.TestCapability(context, content) which is used for manual mode.
+
 				if (context.IgnorePermissions)
 				{
 					return content;

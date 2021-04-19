@@ -17,10 +17,10 @@ namespace Api.Permissions
 		/// <param name="token"></param>
 		/// <param name="firstArg"></param>
 		/// <returns></returns>
-		public virtual Task<bool> IsGranted(Capability cap, Context token, object firstArg)
+		public virtual ValueTask<bool> IsGranted(Capability cap, Context token, object firstArg)
 		{
 			// You shall not pass!
-			return Task.FromResult(false);
+			return new ValueTask<bool>(false);
 		}
 		
 		/// <summary>

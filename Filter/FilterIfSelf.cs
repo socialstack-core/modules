@@ -23,7 +23,7 @@ namespace Api.Permissions
 				return null;
 			}
 
-			return Add(new FilterFieldEqualsValue(DefaultType, isUser ? "Id" : "UserId", (Context ctx) => Task.FromResult((object)ctx.UserId)));
+			return Add(new FilterFieldEqualsValue(DefaultType, isUser ? "Id" : "UserId", (Context ctx) => new ValueTask<uint>(ctx.UserId)));
 		}
 
 	}
