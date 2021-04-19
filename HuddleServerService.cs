@@ -156,10 +156,10 @@ namespace Api.Huddles
 			query.Append(") group by HuddleServerId order by sum(LoadFactor) asc");
 			
 			// Ask the DB for huddle load entries, grouped by server, across this range of time slices:
-			var listQuery = Query.List<AllocatedHuddleServer>();
+			var listQuery = Query.List(typeof(AllocatedHuddleServer));
 			listQuery.SetRawQuery(query.ToString());
 			
-			var allocations = await _database.List(null, listQuery, null);
+			var allocations = await _database.List<AllocatedHuddleServer>(null, listQuery, null, typeof(AllocatedHuddleServer));
 
 			// Next, we need to find if there's any servers missing.
 			foreach (var entry in allocations)
