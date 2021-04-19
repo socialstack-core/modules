@@ -2,6 +2,7 @@ using System;
 using Api.Database;
 using Api.Translate;
 using Api.Users;
+using Api.Startup;
 
 namespace Api.Rewards
 {
@@ -10,6 +11,7 @@ namespace Api.Rewards
 	/// A reward.
 	/// These can be added to any IHaveRewards type.
 	/// </summary>
+	[ListAs("Rewards")]
 	public partial class Reward : VersionedContent<uint>
 	{
 		/// <summary>

@@ -25,19 +25,6 @@ namespace Api.Rewards
 			
 			// Create admin pages if they don't already exist:
 			InstallAdminPages("Rewards", "fa:fa-award", new string[]{"id", "name"});
-			
-			// Because of IHaveRewards, Reward must be nestable:
-			MakeNestable();
-			
-			// Define the IHaveTags handler:
-			DefineIHaveArrayHandler<IHaveRewards, Reward, RewardContent>(
-				"Rewards",
-				"RewardId",
-				(IHaveRewards content, List<Reward> results) =>
-				{
-					content.Rewards = results;
-				}
-			);
 		}
 		
 	}

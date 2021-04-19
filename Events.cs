@@ -11,11 +11,6 @@ namespace Api.Eventing
 	public partial class Events
 	{
 		/// <summary>
-		/// Set of events for reward content.
-		/// </summary>
-		public static EventGroup<RewardContent> RewardContent;
-		
-		/// <summary>
 		/// Set of events for a Reward.
 		/// </summary>
 		public static EventGroup<Reward> Reward;
