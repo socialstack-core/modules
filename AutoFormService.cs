@@ -77,12 +77,12 @@ namespace Api.AutoForms
 			{
 				var fieldStructure = await serviceKvp.Value.GetJsonStructure(context);
 
-				var formType = serviceKvp.Value.ServicedType;
+				var formType = serviceKvp.Value.InstanceType;
 				var formMeta = GetFormInfo(fieldStructure);
 				
 				// Must inherit revisionRow and 
 				// the revision module must be installed
-				formMeta.SupportsRevisions = revisionsSupported && Api.Database.ContentTypes.IsAssignableToGenericType(serviceKvp.Value.ServicedType, typeof(VersionedContent<>));
+				formMeta.SupportsRevisions = revisionsSupported && Api.Database.ContentTypes.IsAssignableToGenericType(serviceKvp.Value.InstanceType, typeof(VersionedContent<>));
 				
 				formMeta.Endpoint = "v1/" + formType.Name.ToLower();
 				result.Add(formMeta);
