@@ -8,7 +8,7 @@ namespace Api.NavMenus
 	/// <summary>
 	/// A particular entry within a navigation menu.
 	/// </summary>
-	public partial class AdminNavMenuItem : Content<uint>, IHaveRoleRestrictions
+	public partial class AdminNavMenuItem : Content<uint>
 	{
 		/// <summary>
 		/// The title of this nav menu entry.
@@ -27,16 +27,6 @@ namespace Api.NavMenus
 		/// </summary>
 		[DatabaseField(Length = 100)]
 		public string IconRef;
-		
-		/// <summary>
-		/// Visible to dev role by default
-		/// </summary>
-		public bool VisibleToRole1 = true;
-		
-		/// <summary>
-		/// Visible to admin role by default
-		/// </summary>
-		public bool VisibleToRole2 = true;
 	}
 
 }

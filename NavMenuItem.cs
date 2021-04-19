@@ -12,7 +12,7 @@ namespace Api.NavMenus
 	/// <summary>
 	/// A particular entry within a navigation menu.
 	/// </summary>
-	public partial class NavMenuItem : VersionedContent<uint>, IHaveRoleRestrictions
+	public partial class NavMenuItem : VersionedContent<uint>
 	{
 		/// <summary>
 		/// The ID of the nav menu this item belongs to.
@@ -52,21 +52,6 @@ namespace Api.NavMenus
 		/// Optional sort order. Higher numbers list first.
 		/// </summary>
 		public int Order;
-		
-		/// <summary>
-		/// Page visibility varies when anon users.
-		/// </summary>
-		public bool VisibleToRole0 = true;
-		
-		/// <summary>
-		/// Page visibility varies when guest user.
-		/// </summary>
-		public bool VisibleToRole3 = true;
-		
-		/// <summary>
-		/// Page visibility varies when member user.
-		/// </summary>
-		public bool VisibleToRole4 = true;
 	}
 	
 }
