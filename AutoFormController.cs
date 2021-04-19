@@ -52,7 +52,7 @@ namespace Api.AutoForms
 			// The result object:
 			var structure = new AutoFormStructure()
 			{
-				Forms = await _autoForms.List(context.RoleId),
+				Forms = await _autoForms.List(context),
 				ContentTypes = cTypes
 			};
 

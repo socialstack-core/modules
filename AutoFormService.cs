@@ -1,4 +1,5 @@
-﻿using Api.Database;
+﻿using Api.Contexts;
+using Api.Database;
 using Api.Permissions;
 using Api.Startup;
 using Api.Translate;
@@ -19,36 +20,46 @@ namespace Api.AutoForms
 	public partial class AutoFormService
 	{
 		private IActionDescriptorCollectionProvider _descriptionProvider;
+		private RoleService _roleService;
 
 
 		/// <summary>
 		/// Instanced automatically. Use injection to use this service, or Startup.Services.Get.
 		/// </summary>
-		public AutoFormService(IActionDescriptorCollectionProvider descriptionProvider)
+		public AutoFormService(IActionDescriptorCollectionProvider descriptionProvider, RoleService roleService)
         {
 			_descriptionProvider = descriptionProvider;
+			_roleService = roleService;
 		}
 
 		private List<AutoFormInfo>[] _cachedAutoFormInfo = null;
 
 		/// <summary>
-		/// Obtains the set of all available endpoints in this API.
+		/// List of autoform info for the given role.
 		/// </summary>
 		/// <returns></returns>
-		public async Task<List<AutoFormInfo>> List(uint roleId)
+		public async ValueTask<List<AutoFormInfo>> List(Context context)
 		{
-			if (_cachedAutoFormInfo == null)
-			{
-				_cachedAutoFormInfo = new List<AutoFormInfo>[Roles.All.Length];
-			}
+			var roleId = context.RoleId;
+			var role = await _roleService.Get(context, roleId);
 
-			if (roleId < 0 || roleId >= Roles.All.Length)
+			if (role == null)
 			{
 				// Bad role ID.
 				return null;
 			}
 
-			var cachedList = _cachedAutoFormInfo[roleId];
+			if (_cachedAutoFormInfo == null)
+			{
+				_cachedAutoFormInfo = new List<AutoFormInfo>[role.Id];
+			}
+			else if (_cachedAutoFormInfo.Length < role.Id)
+			{
+				// Resize it:
+				Array.Resize(ref _cachedAutoFormInfo, (int)role.Id);
+			}
+			
+			var cachedList = _cachedAutoFormInfo[roleId - 1];
 
 			if (cachedList != null)
 			{
@@ -56,15 +67,15 @@ namespace Api.AutoForms
 			}
 
 			var result = new List<AutoFormInfo>();
-			_cachedAutoFormInfo[roleId] = result;
+			_cachedAutoFormInfo[role.Id - 1] = result;
 			
 			// Try getting the revision service to see if they're supported:
-			var revisionsSupported = Api.Startup.Services.Get("RevisionService") != null;
+			var revisionsSupported = Services.Get("RevisionService") != null;
 			
 			// For each AutoService..
 			foreach (var serviceKvp in Services.AutoServices)
 			{
-				var fieldStructure = await serviceKvp.Value.GetJsonStructure(roleId);
+				var fieldStructure = await serviceKvp.Value.GetJsonStructure(context);
 
 				var formType = serviceKvp.Value.ServicedType;
 				var formMeta = GetFormInfo(fieldStructure);
