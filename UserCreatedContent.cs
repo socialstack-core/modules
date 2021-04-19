@@ -1,5 +1,6 @@
 ﻿using Api.AutoForms;
 using Api.Database;
+using Api.Startup;
 using System;
 
 namespace Api.Users
@@ -8,6 +9,7 @@ namespace Api.Users
 	/// Use this to get a UserId, CreatedUtc and EditedUtc with automatic creator user field support.
 	/// Alternatively use DatabaseRow directly if you want total control over your table.
 	/// </summary>
+	[HasVirtualField("CreatorUser", typeof(User), "UserId")]
 	public abstract class UserCreatedContent<T> : Content<T>, IHaveTimestamps, IHaveCreatorUser where T: struct
 	{
 		/// <summary>
@@ -27,12 +29,6 @@ namespace Api.Users
 		/// </summary>
 		[Module(Hide = true)]
 		public DateTime EditedUtc;
-
-		/// <summary>
-		/// The user who created this content.
-		/// </summary>
-		[Module(Hide = true)]
-		public UserProfile CreatorUser { get; set; }
 
 		/// <summary>
 		/// Gets the created UTC time.

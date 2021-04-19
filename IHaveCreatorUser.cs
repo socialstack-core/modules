@@ -16,10 +16,5 @@ namespace Api.Users
 		/// The ID of the creator user.
 		/// </summary>
 		uint GetCreatorUserId();
-
-		/// <summary>
-		/// The user who created this content.
-		/// </summary>
-		UserProfile CreatorUser { get; set; }
 	}
 }

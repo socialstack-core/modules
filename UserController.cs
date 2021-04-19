@@ -39,69 +39,11 @@ namespace Api.Users
 		/// </summary>
 		/// <returns></returns>
 		[HttpGet("self")]
-		public async Task<PublicContext> Self()
+		public async ValueTask Self()
 		{
 			var context = Request.GetContext();
-
-			if (context == null)
-			{
-				// Should never happen but just in case.
-				return null;
-			}
-			
-			var cookieRole = context.RoleId;
-
-			if (context.UserId == 0 && context.CookieState != 0)
-			{
-				// Anonymous - fire off the anon user event:
-				context = await Events.ContextAfterAnonymous.Dispatch(context, context, Request);
-
-				if (context == null)
-				{
-					return null;
-				}
-
-				// Update cookie role:
-				cookieRole = context.RoleId;
-			}
-
-			var ctx = await context.GetPublicContext();
-
-			if (context.RoleId != cookieRole)
-			{
-				// Force reset if role changed. Getting the public context will verify that the roles match.
-
-				Response.Cookies.Append(
-					_contexts.CookieName,
-					"",
-					new Microsoft.AspNetCore.Http.CookieOptions()
-					{
-						Path = "/",
-						Domain = _contexts.GetDomain(),
-						IsEssential = true,
-						Expires = ThePast
-					}
-				);
-
-				Response.Cookies.Append(
-					_contexts.CookieName,
-					"",
-					new Microsoft.AspNetCore.Http.CookieOptions()
-					{
-						Path = "/",
-						Expires = ThePast
-					}
-				);
-
-				return null;
-			}
-			else
-			{
-				// Update the token:
-				context.SendToken(Response);
-			}
-			
-			return ctx;
+			await context.RoleCheck(Request, Response);
+			await OutputContext(context);
 		}
 
 		/// <summary>
@@ -148,33 +90,30 @@ namespace Api.Users
 		/// Attempts to login. Returns either a Context or a LoginResult.
 		/// </summary>
 		[HttpPost("login")]
-		public async Task<object> Login([FromBody] UserLogin body)
+		public async ValueTask Login([FromBody] UserLogin body)
 		{
-			try{
-				var context = Request.GetContext();
+			var context = Request.GetContext();
 
-				var result = await (_service as UserService).Authenticate(context, body);
+			var result = await (_service as UserService).Authenticate(context, body);
 
-				if (result == null)
-				{
-					Response.StatusCode = 400;
-					return null;
-				}
-
-				if (result.Success)
-				{
-					// Regenerate the contextual token:
-					context.SendToken(Response);
-
-					return await context.GetPublicContext();
-				}
-				
-				return result;
-			}
-			catch(PublicException e)
+			if (result == null)
 			{
-				return e.Apply(Response);
+				Response.StatusCode = 400;
+				return;
 			}
+
+			if (!result.Success)
+			{
+				// Output the result message. 
+				// Fail message does not expose any content objects but does contain nested objects, so newtonsoft is ok here.
+				var json = Newtonsoft.Json.JsonConvert.SerializeObject(result);
+				var bytes = System.Text.Encoding.UTF8.GetBytes(json);
+				await Response.Body.WriteAsync(bytes, 0, bytes.Length);
+				return;
+			}
+
+			// output the context:
+			await OutputContext(context);
         }
 
     }
