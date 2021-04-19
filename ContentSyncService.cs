@@ -241,10 +241,16 @@ namespace Api.ContentSync
 			else if (ips.ChangedSince(self) || self.Environment != env)
 			{
 				// It changed - update it:
-				ips.CopyTo(self);
-				self.Environment = env;
+				var ipsAndEnvironmentFields = _clusteredServerService.GetChangeField("Environment")
+					.And("PublicIPv4").And("PublicIPv6").And("PrivateIPv4").And("PrivateIPv6");
 
-				await _clusteredServerService.Update(ctx, self, DataOptions.IgnorePermissions);
+				await _clusteredServerService.Update(ctx, self, (Context c, ClusteredServer cs) => {
+
+					ips.CopyTo(cs);
+					cs.Environment = env;
+					cs.MarkChanged(ipsAndEnvironmentFields);
+
+				},DataOptions.IgnorePermissions);
 			}
 
 			if (self.Id > maxId)
@@ -311,8 +317,8 @@ namespace Api.ContentSync
 		/// <param name="service"></param>
 		/// <returns></returns>
 		public async Task<IdAssigner<ID>> CreateAssigner<T, ID>(AutoService<T, ID> service)
-			where T : class, IHaveId<ID>, new()
-			where ID : struct, IConvertible
+			where T : Content<ID>, new()
+			where ID : struct, IConvertible, IEquatable<ID>
 		{
 			var serverId = ServerId;
 
@@ -696,8 +702,8 @@ namespace Api.ContentSync
 		/// <param name="meta"></param>
 		/// <param name="addListeners"></param>
 		public void HandleTypeInternal<T, ID>(ContentSyncTypeMeta meta, bool addListeners)
-			where T : class, IHaveId<ID>, new()
-			where ID : struct, IConvertible
+			where T : Content<ID>, new()
+			where ID : struct, IConvertible, IEquatable<ID>
 		{
 			// NOTE: This is used by reflection by HandleType.
 

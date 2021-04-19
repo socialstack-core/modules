@@ -74,7 +74,7 @@ namespace Api.ContentSync
 		/// <typeparam name="ID"></typeparam>
 		public async Task SetupForType<T, ID>(AutoService<T, ID> service) 
 			where T : Content<ID>, new()
-			where ID : struct, IConvertible
+			where ID : struct, IConvertible, IEquatable<ID>
 		{
 			// Invoked by reflection
 
@@ -189,7 +189,7 @@ namespace Api.ContentSync
 		/// <typeparam name="T"></typeparam>
 		/// <param name="service"></param>
 		public void AddSequentialIdAssigner<T>(AutoService<T, uint> service)
-			where T : class, IHaveId<uint>, new()
+			where T : Content<uint>, new()
 		{
 			var highestIdFilter = new Filter<T>();
 			highestIdFilter.Sort("Id", "desc");
