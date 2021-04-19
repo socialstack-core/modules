@@ -18,7 +18,6 @@ namespace Api.Pages
 	public partial class HtmlController : Controller
     {
 		private static HtmlService _htmlService;
-		private ContextService _contexts;
 
 		/// <summary>
 		/// Instanced automatically per request.
