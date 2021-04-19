@@ -271,6 +271,11 @@ public partial class AutoService<T, ID>{
 				// Directly use IDs in collector with the service.
 				await toExecute.Service.OutputJsonList(context, childCollectors, collector, writer); // Calls OutputJsonList on the service
 			}
+			else if (toExecute.MappingService == null)
+			{
+				// Write the values:
+				await toExecute.Service.OutputJsonList<uint>(context, childCollectors, collector, toExecute.MappingTargetFieldName, writer); // Calls OutputJsonList on the service
+			}
 			else
 			{
 				// Write out a mapping of src->target IDs.
@@ -359,6 +364,111 @@ public partial class AutoService<T, ID>{
 
 		// Output it:
 		await ToJson(context, content, writer);
+	}
+
+	/// <summary>
+	/// Outputs a list of things from this service as JSON into the given writer.
+	/// Executes the given collector(s) whilst it happens, which can also be null.
+	/// </summary>
+	/// <param name="context"></param>
+	/// <param name="collectors"></param>
+	/// <param name="idSet"></param>
+	/// <param name="setField"></param>
+	/// <param name="writer"></param>
+	/// <returns></returns>
+	public override async ValueTask OutputJsonList<S_ID>(Context context, IDCollector collectors, IDCollector idSet, string setField, Writer writer)
+	{
+		var collectedIds = idSet as IDCollector<S_ID>;
+
+		// If cached, directly enumerate over the IDs via the cache.
+		if (_cache != null)
+		{
+			var cache = GetCacheForLocale(0);
+			var indexRef = cache.GetIndex<S_ID>(setField) as NonUniqueIndex<T, S_ID>;
+
+			// This mapping type is cached.
+			var _enum = collectedIds.GetEnumerator();
+
+			var first = true;
+
+			while (_enum.HasMore())
+			{
+				// Get current value:
+				var valID = _enum.Current();
+
+				// Read that ID set from the cache:
+				var indexEnum = indexRef.GetEnumeratorFor(valID);
+
+				while (indexEnum.HasMore())
+				{
+					var entity = indexEnum.Current();
+					
+					if (first)
+					{
+						first = false;
+					}
+					else
+					{
+						writer.Write((byte)',');
+					}
+
+					// Output the object:
+					await ToJson(context, entity, writer);
+
+					// Collect:
+					var col = collectors;
+
+					while (col != null)
+					{
+						col.Collect(entity);
+						col = col.NextCollector;
+					}
+				}
+			}
+
+		}
+		else if (collectedIds.Count > 0)
+		{
+			// DB hit. Allocate list of IDs as well.
+			var idList = new List<S_ID>(collectedIds.Count);
+
+			var _enum = collectedIds.GetEnumerator();
+
+			while (_enum.HasMore())
+			{
+				// Get current value:
+				idList.Add(_enum.Current());
+			}
+
+			var entries = await List(context, new Filter<T>().EqualsSet(setField, idList));
+
+			var first = true;
+
+			foreach (var entity in entries)
+			{
+				// Output src, target
+				if (first)
+				{
+					first = false;
+				}
+				else
+				{
+					writer.Write((byte)',');
+				}
+
+				// Output the object:
+				await ToJson(context, entity, writer);
+
+				// Collect:
+				var col = collectors;
+
+				while (col != null)
+				{
+					col.Collect(entity);
+					col = col.NextCollector;
+				}
+			}
+		}
 	}
 	
 	/// <summary>
