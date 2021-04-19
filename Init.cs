@@ -84,10 +84,10 @@ namespace Api.DatabaseDiff
 			}
 
 			// Get MySQL version:
-			var versionQuery = Query.List<DatabaseVersion>();
+			var versionQuery = Query.List(typeof(DatabaseVersion));
 			versionQuery.SetRawQuery("SELECT VERSION() as Version");
 
-			var dbVersion = await _database.Select(null, versionQuery);
+			var dbVersion = await _database.Select<DatabaseVersion>(null, versionQuery, typeof(DatabaseVersion));
 
 			// Get DB version:
 			VersionText = dbVersion.Version;
@@ -159,7 +159,7 @@ namespace Api.DatabaseDiff
 			try
 			{
 				// Collect all the existing table meta:
-				var listQuery = Query.List<DatabaseColumnDefinition>();
+				var listQuery = Query.List(typeof(DatabaseColumnDefinition));
 				listQuery.SetRawQuery(
 					"SELECT table_name as TableName, `column_name` as ColumnName, `data_type` as DataType, " +
 					"`is_nullable` = 'YES' as IsNullable, IF(INSTR(extra, 'auto_increment')>0, TRUE, FALSE) as IsAutoIncrement, " +
@@ -169,7 +169,7 @@ namespace Api.DatabaseDiff
 					"FROM information_schema.columns WHERE table_schema = DATABASE()"
 				);
 
-				columns = await _database.List(null, listQuery, null);
+				columns = await _database.List<DatabaseColumnDefinition>(null, listQuery, null, typeof(DatabaseColumnDefinition));
 			}
 			catch
 			{
@@ -197,7 +197,7 @@ namespace Api.DatabaseDiff
 				return;
 			}
 
-			var type = service.ServicedType;
+			var type = service.InstanceType;
 
 			var existingSchema = await LoadSchema();
 
