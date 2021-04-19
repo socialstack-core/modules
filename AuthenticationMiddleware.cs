@@ -20,34 +20,7 @@ namespace Api.Contexts
 	{
 		private static ContextService _loginTokens;
 		private static LocaleService _locales;
-
-		/// <summary>
-		/// Adds the middleware which enables identifying the user on each API request.
-		/// </summary>
-		/// <param name="services"></param>
-		/// <returns></returns>
-		public static IServiceCollection AddUserAuthentication(this IServiceCollection services)
-        {
-            return services;
-        }
-
-		/// <summary>
-		/// Gets the user ID for the currently authenticated user. It's 0 if they're not logged in.
-		/// </summary>
-		/// <param name="request"></param>
-		/// <returns></returns>
-		public static uint GetUserId(this Microsoft.AspNetCore.Http.HttpRequest request)
-		{
-			var token = request.HttpContext.User as Context;
-
-			if (token == null)
-			{
-				return 0;
-			}
-
-			return token.UserId;
-		}
-
+		
 		/// <summary>
 		/// Gets the user ID for the currently authenticated user. It's 0 if they're not logged in.
 		/// </summary>

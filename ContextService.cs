@@ -1,4 +1,6 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
+using System.IO;
 using System.Reflection;
 using System.Text;
 using System.Threading.Tasks;
@@ -6,7 +8,8 @@ using Api.Configuration;
 using Api.Database;
 using Api.Eventing;
 using Api.Signatures;
-
+using Api.SocketServerLibrary;
+using Api.Startup;
 
 namespace Api.Contexts
 {
@@ -56,7 +59,12 @@ namespace Api.Contexts
 				{
 					continue;
 				}
-				
+
+				if (!field.Name.EndsWith("Id"))
+				{
+					continue;
+				}
+
 				var lcName = field.Name.ToLower();
 				var getMethod = field.GetGetMethod();
 				
@@ -71,19 +79,95 @@ namespace Api.Contexts
 					LowercaseNameWithDash = lcName + '-',
 					DefaultValue = defaultValue
 				};
-				
-				if(field.Name.EndsWith("Id")){
-					// E.g. UserId, LocaleId.
-					// Get content type ID:
-					var contentTypeId = ContentTypes.GetId(field.Name[0..^2]);
-					ContentTypeToFieldInfo[contentTypeId] = fld;
+
+				// E.g. UserId, LocaleId.
+				// Get content type ID:
+				var contentName = field.Name[0..^2];
+				var contentTypeId = ContentTypes.GetId(contentName);
+				fld.ContentTypeId = contentTypeId;
+				ContentTypeToFieldInfo[contentTypeId] = fld;
+
+				var jsonHeader = "\"" + contentName.ToLower() + "\":";
+
+				if (FieldList.Count > 0)
+				{
+					// Pre-include the comma between the fields:
+					jsonHeader = ',' + jsonHeader;
 				}
-				
+
+				fld.JsonFieldHeader = Encoding.UTF8.GetBytes(jsonHeader);
+
 				Fields[lcName] = fld;
 				FieldList.Add(fld);
 			}
         }
-		
+
+		/// <summary>
+		/// Serialises the given context.
+		/// </summary>
+		/// <param name="context"></param>
+		/// <param name="targetStream"></param>
+		/// <returns></returns>
+		public async ValueTask ToJson(Context context, Stream targetStream)
+		{
+			var writer = Writer.GetPooled();
+			writer.Start(null);
+
+			await ToJson(context, writer);
+
+			// Copy to output:
+			await writer.CopyToAsync(targetStream);
+
+			// Release writer when fully done:
+			writer.Release();
+		}
+
+		private async ValueTask ToJson(Context context, Writer writer)
+		{
+			writer.Write((byte)'{');
+
+			// Almost the same as virtual field includes, except they're always included.
+			for (var i = 0; i < FieldList.Count; i++)
+			{
+				var fld = FieldList[i];
+
+				// Write the header (Also includes a comma at the start if i!=0):
+				writer.Write(fld.JsonFieldHeader, 0, fld.JsonFieldHeader.Length);
+
+				if (fld.Service == null)
+				{
+					fld.Service = Services.GetByContentTypeId(fld.ContentTypeId);
+				}
+
+				// Note that this allocates due to the boxing of the id.
+
+				// Write the value:
+				await fld.Service.OutputById(context, (uint)fld.Get.Invoke(context, Array.Empty<object>()), writer);
+			}
+
+			writer.Write((byte)'}');
+		}
+
+		/// <summary>
+		/// Serialises the given context.
+		/// </summary>
+		/// <param name="context"></param>
+		/// <returns></returns>
+		public async ValueTask<string> ToJsonString(Context context)
+		{
+			var writer = Writer.GetPooled();
+			writer.Start(null);
+
+			await ToJson(context, writer);
+
+			var output = writer.ToUTF8String();
+
+			// Release writer when fully done:
+			writer.Release();
+
+			return output;
+		}
+
 		/// <summary>
 		/// Gets Context field info for the given contentType. Null if it doesn't exist in Context.
 		/// </summary>

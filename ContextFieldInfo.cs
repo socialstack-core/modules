@@ -38,5 +38,20 @@ namespace Api.Contexts
 		/// Default field value.
 		/// </summary>
 		public uint DefaultValue;
+
+		/// <summary>
+		/// The content type ID of the content of this field.
+		/// </summary>
+		public int ContentTypeId;
+
+		/// <summary>
+		/// The service for this field. Set on demand internally inside ContextService.
+		/// </summary>
+		public AutoService Service;
+
+		/// <summary>
+		/// E.g. "user":
+		/// </summary>
+		public byte[] JsonFieldHeader;
 	}
 }

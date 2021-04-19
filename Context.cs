@@ -2,6 +2,7 @@
 using System.Security.Claims;
 using System.Threading.Tasks;
 using Api.Configuration;
+using Api.Database;
 using Api.Eventing;
 using Api.Permissions;
 using Api.Signatures;
@@ -16,14 +17,16 @@ namespace Api.Contexts
 	/// A context constructed primarily from a cookie value. 
 	/// Uses other locale hints such as Accept-Lang when the user doesn't specifically have one set in the cookie.
 	/// </summary>
-	public partial class Context : ClaimsPrincipal
+	public partial class Context
 	{
 		/// <summary>
-		/// The identity this token represents (a generic user).
+		/// A date in the past used to set expiry on cookies.
 		/// </summary>
-		private readonly static System.Security.Principal.GenericIdentity GenericIdentity = new System.Security.Principal.GenericIdentity("User");
+		private readonly static DateTimeOffset ThePast = new DateTimeOffset(1993, 1, 1, 0, 0, 0, TimeSpan.Zero);
+		
 		private static UserService _users;
 		private static LocaleService _locales;
+		private static RoleService _roles;
 		private static ContextService _contextService;
 
 		/// <summary>
@@ -73,6 +76,11 @@ namespace Api.Contexts
 			}
 			set
 			{
+				if (value == 0)
+				{
+					value = 1;
+				}
+
 				_locale = null;
 				_localeId = value;
 			}
@@ -100,7 +108,7 @@ namespace Api.Contexts
 			}
 
 			// Get the user now:
-			_locale = await _locales.Get(this, LocaleId <= 0 ? 1 : LocaleId, DataOptions.IgnorePermissions);
+			_locale = await _locales.Get(this, LocaleId, DataOptions.IgnorePermissions);
 
 			if (_locale == null)
 			{
@@ -132,20 +140,108 @@ namespace Api.Contexts
 		public uint UserRef { get; set; }
 
 		/// <summary>
+		/// Underlying role ID.
+		/// </summary>
+		private uint _roleId = 6;  // Public is the default
+
+		/// <summary>
 		/// The role ID from the token.
 		/// </summary>
-		public uint RoleId {get; set;}
+		public uint RoleId {
+			get
+			{
+				return _roleId;
+			}
+			set
+			{
+				if (value == 0)
+				{
+					// Public (role #6):
+					value = 6;
+				}
+
+				_role = null;
+				_roleId = value;
+			}
+		}
+
+		/// <summary>
+		/// Triggers a role check which will force a logout if the role changed, 
+		/// or potentially instance a new user if they're anonymous but need to be tracked.
+		/// </summary>
+		/// <param name="request"></param>
+		/// <param name="response"></param>
+		/// <returns></returns>
+		public async ValueTask RoleCheck(HttpRequest request, HttpResponse response)
+		{
+			var uId = _userId;
+			var rId = _roleId;
+			var user = await GetUser();
+
+			var userRole = user == null ? 6 : user.Role;
+
+			if (userRole == 0)
+			{
+				userRole = 6;
+			}
+
+			if (userRole != rId)
+			{
+				if (_contextService == null)
+				{
+					_contextService = Services.Get<ContextService>();
+				}
+
+				// Set as anon:
+				UserId = 0;
+				RoleId = 6;
+			}
+
+			if (UserId == 0 && CookieState != 0)
+			{
+				// Anonymous - fire off the anon user event:
+				await Events.ContextAfterAnonymous.Dispatch(this, this, request);
+			}
+
+			/*
+			 if(UserId == 0){
+			 // Force reset if role changed. Getting the public context will verify that the roles match.
+				response.Cookies.Append(
+					_contextService.CookieName,
+					"",
+					new Microsoft.AspNetCore.Http.CookieOptions()
+					{
+						Path = "/",
+						Domain = _contextService.GetDomain(),
+						IsEssential = true,
+						Expires = ThePast
+					}
+				);
+
+				response.Cookies.Append(
+					_contextService.CookieName,
+					"",
+					new Microsoft.AspNetCore.Http.CookieOptions()
+					{
+						Path = "/",
+						Expires = ThePast
+					}
+				);
+			}
+			 */
+
+		}
+
+		/// <summary>
+		/// Full role object.
+		/// </summary>
+		private Role _role;
 
 		/// <summary>
 		/// The full user object, if it has been requested.
 		/// </summary>
 		private User _user;
 		
-		/// <summary>
-		/// The nested type mask, used to automatically detect cyclical references.
-		/// </summary>
-		public ulong NestedTypes;
-
 		/// <summary>
 		/// Used to inform about the validity of the context cookie.
 		/// </summary>
@@ -158,14 +254,22 @@ namespace Api.Contexts
 		{
 			get
 			{
-				return RoleId >= Roles.All.Length ? null : Roles.All[RoleId];
+				if (_roles == null)
+				{
+					_roles = Services.Get<RoleService>();
+				}
+
+				if (_role != null)
+				{
+					return _role;
+				}
+
+				// RoleService is always cached:
+				var cache = _roles.GetCacheForLocale(_localeId);
+				_role = cache.Get(RoleId);
+				return _role;
 			}
 		}
-
-		/// <summary>
-		/// Creates a new login token.
-		/// </summary>
-		public Context() : base(GenericIdentity) { }
 
 		/// <summary>
 		/// Sets the given user as the logged in contextual user.
@@ -218,24 +322,6 @@ namespace Api.Contexts
 			RoleId = _user.Role;
 
 			return _user;
-		}
-
-		/// <summary>
-		/// Builds a public context. Used by e.g. self or login/ register EP's.
-		/// </summary>
-		public async ValueTask<PublicContext> GetPublicContext()
-		{
-			var ctx = new PublicContext
-			{
-				User = await GetUser(),
-				Locale = await GetLocale(),
-				Role = Role
-			};
-
-			// Get any custom extensions:
-			ctx = await Events.PubliccontextOnSetup.Dispatch(this, ctx);
-
-			return ctx;
 		}
 
 		/// <summary>
@@ -301,26 +387,4 @@ namespace Api.Contexts
 
 	}
 
-	/// <summary>
-	/// The publicly (to the user themselves) exposed context.
-	/// </summary>
-	public partial class PublicContext
-	{
-
-		/// <summary>
-		/// Authed user.
-		/// </summary>
-		public User User;
-
-		/// <summary>
-		/// Authed user locale.
-		/// </summary>
-		public Locale Locale;
-
-		/// <summary>
-		/// Authed user role.
-		/// </summary>
-		public Role Role;
-
-	}
 }
