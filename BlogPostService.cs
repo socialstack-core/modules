@@ -36,6 +36,10 @@ namespace Api.Blogs
 			
 			var config = _blogs.GetConfig<BlogServiceConfig>();
 
+			var authorIdField = GetChangeField("AuthorId");
+			var slugField = GetChangeField("Slug");
+			var synopsisField = GetChangeField("Synopsis");
+
 			//Before create to set the author of the blog to the author if the value passed in is not valid, or not set.
 			Events.BlogPost.BeforeCreate.AddEventListener(async (Context context, BlogPost blogPost) =>
 			{
@@ -62,8 +66,48 @@ namespace Api.Blogs
 					blogPost.BlogId = 1;
 				}
 
+				// Was a slug passed in? if so, just pass the blogPost on.
+				if (blogPost.Slug != null && blogPost.Slug != "")
+				{
+					blogPost.Slug = await GetSlug(context, blogPost.Title, blogPost.Slug);
+				}
+				else if (config.GenerateSlugs)
+				{
+					blogPost.Slug = await GetSlug(context, blogPost.Title);
+				}
+				
+				if (config.GenerateSynopsis)
+				{
+					// Was a synopsis passed in? if so, just pass the blogPost on.
+					if (string.IsNullOrEmpty(blogPost.Synopsis))
+					{
+						var synopsis = "";
+
+						// Was a synopsis passed in? if so, just pass the blogPost on.
+						if (string.IsNullOrEmpty(blogPost.Synopsis))
+						{
+							if (_csr == null)
+							{
+								_csr = Services.Get<CanvasRendererService>();
+							}
+
+							// No synopsis was added, let's get one based on the body json. 
+							var renderedPage = await _csr.Render(context, blogPost.BodyJson, PageState.None, null, false, RenderMode.Text);
+
+							synopsis = renderedPage.Text;
+
+							if (synopsis.Length > 500)
+							{
+								synopsis = synopsis.Substring(0, 497) + "...";
+							}
+
+							blogPost.Synopsis = synopsis;
+						}
+					}
+				}
+				
 				// was an authorid passed in?
-				if(blogPost.AuthorId > 0)
+				if (blogPost.AuthorId > 0)
                 {
 					if(_users == null)
                     {
@@ -88,117 +132,6 @@ namespace Api.Blogs
 				return blogPost;
 			});
 
-			// If they are passing in an author change, just make sure its valid. If its not, just revert back to the creatorUser.
-			Events.BlogPost.BeforeUpdate.AddEventListener(async (Context context, BlogPost blogPost) =>
-			{
-				if(context == null || blogPost == null)
-                {
-					return null;
-                }
-
-				// Was an authorId pass in?
-				if(blogPost.AuthorId > 0)
-                {
-					if(_users == null)
-                    {
-						_users = Services.Get<UserService>();
-                    }
-
-					// Yes, is it for a valid user?
-					var author = await _users.Get(context, blogPost.AuthorId, DataOptions.IgnorePermissions);
-
-					if(author == null)
-                    {
-						// The author is not valid, let's set the author to the creatorUser
-						blogPost.AuthorId = blogPost.GetCreatorUserId();
-                    }
-                }
-				else
-                {
-					// no authorId, let's return it to being the creatorUser.
-					blogPost.AuthorId = blogPost.GetCreatorUserId();
-				}
-
-				return blogPost;
-			});
-
-			// We need to handle loading the author for the blog on load.
-			Events.BlogPost.AfterLoad.AddEventListener(async (Context context, BlogPost blogPost) =>
-			{
-				if (context == null || blogPost == null)
-                {
-					return null;
-                }
-
-				// Does this user have an author?
-				if(blogPost.AuthorId > 0)
-                {
-					// Yep, let's grab the author.
-					if (_users == null)
-					{
-						_users = Services.Get<UserService>();
-					}
-
-					blogPost.Author = await _users.GetProfile(context, blogPost.AuthorId);
-				}
-
-				return blogPost;
-			});
-
-			Events.BlogPost.AfterList.AddEventListener(async (Context context, List<BlogPost> posts) =>
-			{
-				if (context == null || posts == null)
-                {
-					return null;
-                }
-
-				// We need to go through each post.
-				foreach(var blogPost in posts)
-                {
-					// Does this user have an author?
-					if (blogPost.AuthorId > 0)
-					{
-						// Yep, let's grab the author.
-						if (_users == null)
-						{
-							_users = Services.Get<UserService>();
-						}
-
-						blogPost.Author = await _users.GetProfile(context, blogPost.AuthorId);
-					}
-				}
-
-				return posts;
-			}); 
-
-			 // Before Create to make sure that the slug is unique.
-			 Events.BlogPost.BeforeCreate.AddEventListener(async (Context context, BlogPost blogPost) =>
-			{
-				var slug = "";
-
-				if(context == null || blogPost == null)
-                {
-					return null;
-                }
-
-				// Was a slug passed in? if so, just pass the blogPost on.
-				if (blogPost.Slug != null && blogPost.Slug != "")
-                {
-					blogPost.Slug = await GetSlug(context, blogPost.Title, blogPost.Slug);
-					return blogPost;
-                }
-
-				// No slug was added, let's get one. 
-				if (config.GenerateSlugs)
-                {
-					slug = await GetSlug(context, blogPost.Title);
-
-					blogPost.Slug = slug;
-				}
-				
-				return blogPost;
-			});
-
 			// Before update to make sure the slug is unique.
 			Events.BlogPost.BeforeUpdate.AddEventListener(async (Context context, BlogPost blogPost) =>
 			{
@@ -209,108 +142,76 @@ namespace Api.Blogs
 					return null;
 				}
 
+				if (config.GenerateSynopsis)
+				{
+					var synopsis = "";
+
+					// Was a synopsis passed in? if so, just pass the blogPost on.
+					if (string.IsNullOrEmpty(blogPost.Synopsis))
+					{
+						if (_csr == null)
+						{
+							_csr = Services.Get<CanvasRendererService>();
+						}
+
+						// No synopsis was added, let's get one based on the body json. 
+						var renderedPage = await _csr.Render(context, blogPost.BodyJson, PageState.None, null, false, RenderMode.Text);
+
+						synopsis = renderedPage.Text;
+
+						if (synopsis.Length > 500)
+						{
+							synopsis = synopsis.Substring(0, 497) + "...";
+						}
+
+						blogPost.Synopsis = synopsis;
+						blogPost.MarkChanged(synopsisField);
+					}
+				}
+
+				// Was an authorId passed in?
+				if (blogPost.AuthorId > 0)
+				{
+					if (_users == null)
+					{
+						_users = Services.Get<UserService>();
+					}
+
+					// Yes, is it for a valid user?
+					var author = await _users.Get(context, blogPost.AuthorId, DataOptions.IgnorePermissions);
+
+					if (author == null)
+					{
+						// The author is not valid, let's set the author to the creatorUser
+						blogPost.AuthorId = blogPost.GetCreatorUserId();
+						blogPost.MarkChanged(authorIdField);
+					}
+				}
+				else
+				{
+					// no authorId, let's return it to being the creatorUser.
+					blogPost.AuthorId = blogPost.GetCreatorUserId();
+					blogPost.MarkChanged(authorIdField);
+				}
+
 				// Was a slug passed in? if so, just pass the blogPost on.
 				if (blogPost.Slug != null && blogPost.Slug != "")
 				{
 					// Let's make sure the provided slug is unique.
 					blogPost.Slug = await GetSlug(context, blogPost.Title, blogPost.Slug, blogPost.Id);
-					return blogPost;
+					blogPost.MarkChanged(slugField);
 				}
-
-				if(config.GenerateSlugs)
+				else if(config.GenerateSlugs)
                 {
 					// No slug was added, let's get one if we are generating slugs. 
 					slug = await GetSlug(context, blogPost.Title, null, blogPost.Id);
-
 					blogPost.Slug = slug;
+					blogPost.MarkChanged(slugField);
 				}
 
 				return blogPost;
 			});
 
-			// We need event listeners for handling synopsis. It should generate when synopsis is blank on creation and update.
-			
-			Events.BlogPost.BeforeCreate.AddEventListener(async (Context context, BlogPost blogPost) =>
-			{
-				if (context == null || blogPost == null)
-				{
-					return null;
-				}
-
-				if (config.GenerateSynopsis)
-				{
-					// Was a synopsis passed in? if so, just pass the blogPost on.
-					if (blogPost.Synopsis != null && blogPost.Synopsis != "")
-					{
-						return blogPost;
-					}
-
-					var synopsis = "";
-
-					// Was a synopsis passed in? if so, just pass the blogPost on.
-					if (blogPost.Synopsis != null && blogPost.Synopsis != "")
-					{
-						return blogPost;
-					}
-
-					if (_csr == null)
-					{
-						_csr = Services.Get<CanvasRendererService>();
-					}
-
-					// No synopsis was added, let's get one based on the body json. 
-					var renderedPage = await _csr.Render(context, blogPost.BodyJson, PageState.None, null, false, RenderMode.Text);
-
-					synopsis = renderedPage.Text;
-
-					if (synopsis.Length > 500)
-					{
-						synopsis = synopsis.Substring(0, 497) + "...";
-					}
-
-					blogPost.Synopsis = synopsis;
-				}
-
-				return blogPost;
-			});
-
-			Events.BlogPost.BeforeUpdate.AddEventListener(async (Context context, BlogPost blogPost) =>
-			{
-				if (context == null || blogPost == null)
-				{
-					return null;
-				}
-
-				if (config.GenerateSynopsis)
-				{
-					var synopsis = "";
-
-					// Was a synopsis passed in? if so, just pass the blogPost on.
-					if (blogPost.Synopsis != null && blogPost.Synopsis != "")
-					{
-						return blogPost;
-					}
-
-					if (_csr == null)
-					{
-						_csr = Services.Get<CanvasRendererService>();
-					}
-
-					// No synopsis was added, let's get one based on the body json. 
-					var renderedPage = await _csr.Render(context, blogPost.BodyJson, PageState.None, null, false, RenderMode.Text);
-
-					synopsis = renderedPage.Text;
-
-					if (synopsis.Length > 500)
-					{
-						synopsis = synopsis.Substring(0, 497) + "...";
-					}
-
-					blogPost.Synopsis = synopsis;
-				}
-
-				return blogPost;
-			});
 		}
 
 		/// <summary>

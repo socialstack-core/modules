@@ -5,10 +5,11 @@ using Api.AutoForms;
 
 namespace Api.Blogs
 {
-	
+
 	/// <summary>
 	/// A blog post.
 	/// </summary>
+	[HasVirtualField("Author", typeof(UserProfile), "AuthorId")]
 	public partial class BlogPost : VersionedContent<uint>
 	{
 		/// <summary>
@@ -72,12 +73,6 @@ namespace Api.Blogs
 		///  The Id of the author.
 		/// </summary>
 		public uint AuthorId;
-		
-		/// <summary>
-		/// The author of the blogpost. 
-		/// </summary>
-		[Module(Hide = true)]
-		public UserProfile Author { get; set; }
 	}
 	
 }

@@ -55,7 +55,7 @@ namespace Api.Blogs
 				return new ValueTask<JsonField<BlogPost>>(field);
 			});
 
-			InstallRoles(new UserRole() {
+			InstallRoles(new Role() {
 				Key = "blogger",
 				Name = "Blogger",
 				CanViewAdmin = true

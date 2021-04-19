@@ -32,14 +32,7 @@ namespace Api.Blogs
         public async Task<string> GetSlug([FromBody]NewTitle title)
         {
             var context = Request.GetContext();
-            var user = await context.GetUser();
-
-            // Is the user valid?
-            if(user == null)
-            {
-                return null;
-            }
-
+            
             if (context.Role == null || !context.Role.CanViewAdmin)
             {
                 // Must be an admin type user
