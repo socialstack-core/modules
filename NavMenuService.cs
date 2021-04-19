@@ -15,23 +15,11 @@ namespace Api.NavMenus
 	/// </summary>
 	public partial class NavMenuService : AutoService<NavMenu>
 	{
-		private readonly Query<NavMenuItem> deleteItemsQuery;
-		private readonly Query<NavMenu> selectByKeyQuery;
-
-		
 		/// <summary>
 		/// Instanced automatically. Use injection to use this service, or Startup.Services.Get.
 		/// </summary>
 		public NavMenuService() : base(Events.NavMenu)
         {
-			// Start preparing the queries. Doing this ahead of time leads to excellent performance savings, 
-			// whilst also using a high-level abstraction as another plugin entry point.
-			deleteItemsQuery = Query.Delete<NavMenuItem>();
-			deleteItemsQuery.Where().EqualsArg("NavMenuId", 0);
-			
-			selectByKeyQuery = Query.Select<NavMenu>();
-			selectByKeyQuery.Where().EqualsArg("Key", 0);
-			
 			InstallAdminPages(
 				"Nav Menus", "fa:fa-map-signs", new string[] { "id", "name", "key" },
 
@@ -41,23 +29,6 @@ namespace Api.NavMenus
 					Fields = new string[] { "bodyJson" }
 				}
 			);
-		}
-		
-		/// <summary>
-		/// Gets a single nav menu by its key.
-		/// </summary>
-		public async ValueTask<NavMenu> Get(Context context, string menuKey)
-		{
-			// Get the menu itself:
-			var menu = await _database.Select(context, selectByKeyQuery, menuKey);
-
-			if (menu == null)
-			{
-				// Doesn't exist.
-				return null;
-			}
-			
-			return menu;
 		}
 	}
     
