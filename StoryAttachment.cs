@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using Api.Database;
+using Api.Startup;
 using Api.Users;
 
 namespace Api.StoryAttachments
@@ -9,6 +10,7 @@ namespace Api.StoryAttachments
 	/// <summary>
 	/// Usually an attachment on activity feed entries.
 	/// </summary>
+	[ListAs("StoryAttachment")]
 	public partial class StoryAttachment : MappingEntity
 	{
 		/// <summary>

@@ -26,19 +26,6 @@ namespace Api.StoryAttachments
 		/// </summary>
 		public StoryAttachmentService() : base(Events.StoryAttachment)
         {
-			
-			// Because of IHaveStoryAttachments, must be nestable:
-			MakeNestable();
-			
-			// Define the IHaveStoryAttachments handler:
-			DefineIHaveArrayHandler<IHaveStoryAttachments, StoryAttachment>(
-				(IHaveStoryAttachments content, List<StoryAttachment> results) =>
-				{
-					content.Attachments = results;
-				}
-			);
-
-
 		}
 
     }
