@@ -164,25 +164,29 @@ namespace Api.Startup
 
 			// Invoke InstallType:
 			var setupType = installMethod.MakeGenericMethod(new Type[] {
-				compiledType,
-				srcType.IdType,
-				targetType.IdType
+				srcType.ServicedType,		// SRC
+				targetType.ServicedType,	// TARG
+				compiledType,				// T
+				srcType.IdType,				// SRC_ID
+				targetType.IdType			// TARG_ID
 			});
 
-			var svc = await (ValueTask<AutoService>)setupType.Invoke(null, new object[] { srcTypeName + "Id" });
+			var svc = await (ValueTask<AutoService>)setupType.Invoke(null, new object[] { srcTypeName + "Id", targetTypeName + "Id" });
 			return svc;
 		}
 
 		/// <summary>
 		/// Creates a service etc for the given system type and activates it. Invoked via reflection with a runtime compiled type.
 		/// </summary>
-		public static async ValueTask<AutoService> InstallType<T, SRC_ID, TARG_ID>(string srcIdName) 
+		public static async ValueTask<AutoService> InstallType<SRC,TARG,T, SRC_ID, TARG_ID>(string srcIdName, string targetIdName) 
 			where T : Mapping<SRC_ID, TARG_ID>, new()
+			where SRC : Content<SRC_ID>
+			where TARG : Content<TARG_ID>
 			where SRC_ID : struct, IEquatable<SRC_ID>
 			where TARG_ID : struct
 		{
 			// Create the service:
-			var svc = new MappingService<T, SRC_ID, TARG_ID>(srcIdName);
+			var svc = new MappingService<SRC, TARG, SRC_ID, TARG_ID>(srcIdName, targetIdName, typeof(T));
 
 			// Register:
 			await Services.StateChange(true, svc);

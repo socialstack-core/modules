@@ -13,8 +13,9 @@ namespace Api.Startup
 	/// <summary>
 	/// The AutoService for mapping types.
 	/// </summary>
-	public class MappingService<T, SRC_ID, TARG_ID> : AutoService<T, uint> 
-		where T:Mapping<SRC_ID, TARG_ID>, new()
+	public class MappingService<SRC, TARG, SRC_ID, TARG_ID> : AutoService<Mapping<SRC_ID, TARG_ID>, uint> 
+		where SRC: Content<SRC_ID>
+		where TARG : Content<TARG_ID>
 		where SRC_ID: struct, IEquatable<SRC_ID>
 		where TARG_ID: struct
 	{
@@ -30,14 +31,41 @@ namespace Api.Startup
 		/// E.g. "UserId". The field name of the source ID.
 		/// </summary>
 		private string srcIdFieldName;
-		
-		private NonUniqueIndex<T, SRC_ID> _cacheIndex;
+
+		/// <summary>
+		/// E.g. "TagId". The field name of the tag ID.
+		/// </summary>
+		private string targetIdFieldName;
+
+		private NonUniqueIndex<Mapping<SRC_ID, TARG_ID>, SRC_ID> _cacheIndex;
 
 		/// <summary>
 		/// Instanced automatically.
 		/// </summary>
-		public MappingService(string srcIdName) : base(new EventGroup<T>()) {
+		public MappingService(string srcIdName, string targetIdName, Type t) : base(new EventGroup<Mapping<SRC_ID, TARG_ID>>(), t) {
 			srcIdFieldName = srcIdName;
+			targetIdFieldName = targetIdName;
+		}
+
+		/// <summary>
+		/// Gets a list of source IDs by target ID.
+		/// </summary>
+		/// <param name="context"></param>
+		/// <param name="id"></param>
+		/// <returns></returns>
+		public async ValueTask<List<SRC_ID>> ListByTarget(Context context, TARG_ID id)
+		{
+			var entries = await List(context, new Filter<Mapping<SRC_ID, TARG_ID>>().Equals(targetIdFieldName, id));
+
+			// TODO: revisit during non-alloc list revamp
+			var set = new List<SRC_ID>();
+
+			foreach (var entry in entries)
+			{
+				set.Add(entry.SourceId);
+			}
+
+			return set;
 		}
 
 		/// <summary>
@@ -61,7 +89,7 @@ namespace Api.Startup
 				{
 					// It's a cached mapping type.
 					// Pre-obtain index ref now:
-					_cacheIndex = cache.GetIndex<SRC_ID>(srcIdFieldName) as NonUniqueIndex<T, SRC_ID>;
+					_cacheIndex = cache.GetIndex<SRC_ID>(srcIdFieldName) as NonUniqueIndex<Mapping<SRC_ID, TARG_ID>, SRC_ID>;
 				}
 			}
 			
@@ -117,7 +145,7 @@ namespace Api.Startup
 					idList.Add(_enum.Current());
 				}
 
-				var mappingEntries = await List(context, new Filter<T>().EqualsSet(srcIdFieldName, idList));
+				var mappingEntries = await List(context, new Filter<Mapping<SRC_ID, TARG_ID>>().EqualsSet(srcIdFieldName, idList));
 
 				var first = true;
 

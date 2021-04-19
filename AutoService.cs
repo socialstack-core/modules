@@ -104,7 +104,7 @@ public partial class AutoService<T, ID> : AutoService
 	/// <summary>
 	/// Sets up the common service type fields.
 	/// </summary>
-	public AutoService(EventGroup eventGroup) : base(typeof(T), typeof(ID))
+	public AutoService(EventGroup eventGroup, Type servicedType = null) : base(servicedType == null ? typeof(T) : servicedType, typeof(ID))
 	{
 		// Start preparing the queries. Doing this ahead of time leads to excellent performance savings, 
 		// whilst also using a high-level abstraction as another plugin entry point.
@@ -276,6 +276,31 @@ public partial class AutoService<T, ID> : AutoService
 		
 		listAndTotal.Results = await EventGroup.AfterList.Dispatch(context, listAndTotal.Results);
 		return listAndTotal;
+	}
+
+	/// <summary>
+	/// List a set of values from this service which are present in a mapping of the given target type.
+	/// This is backwards from the typical mapping flow - i.e. you're getting the list of sources with a given single target value.
+	/// </summary>
+	/// <typeparam name="MAP_TARGET"></typeparam>
+	/// <typeparam name="T_ID"></typeparam>
+	/// <param name="context"></param>
+	/// <param name="targetId"></param>
+	/// <returns></returns>
+	public virtual async ValueTask<List<T>> ListFromMapping<MAP_TARGET, T_ID>(Context context, T_ID targetId)
+		where T_ID: struct, IEquatable<T_ID>
+		where MAP_TARGET: Content<T_ID>
+	{
+		// Get mapping service:
+		var targetSvc = Services.GetByContentType(typeof(MAP_TARGET));
+
+		// Get the mapping type:
+		var mappingService = await MappingTypeEngine.GetOrGenerate(this, targetSvc) as MappingService<T, MAP_TARGET, ID, T_ID>;
+
+		// Ask mapping service for all source values with the given target ID.
+		var idSet = await mappingService.ListByTarget(context, targetId);
+
+		return await List(context, new Filter<T>().Id(idSet));
 	}
 
 	/// <summary>

@@ -308,7 +308,6 @@ namespace Api.SocketServerLibrary
 				idField.SetIDCollectorType(typeBuilder.CreateType());
 			}
 
-
 		}
 
 		private static JsonFieldType AddTo(Dictionary<Type, JsonFieldType> map, Type type, Action<ILGenerator, JsonField, Action> onWriteValue)
