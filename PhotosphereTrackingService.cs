@@ -45,12 +45,12 @@ namespace Api.PhotosphereTracking
                 return client;
             });
 
-            Events.WebSocketMessage.AddEventListener((Context context, JObject message, WebSocketClient client, string type) =>
+            Events.WebSocketMessage.AddEventListener(async (Context context, JObject message, WebSocketClient client, string type) =>
             {
 
                 if (type != "PhotosphereTrack")
                 {
-                    return new ValueTask<JObject>(message);
+                    return message;
                 }
 
                 var xObj = message["x"];
@@ -63,7 +63,7 @@ namespace Api.PhotosphereTracking
                 if (xObj == null || yObj == null || zObj == null || rotXObj == null 
                     || rotYObj == null || urlObj == null)
                 {
-                    return new ValueTask<JObject>(message);
+                    return message;
                 }
 
                 double posX = xObj.Value<double>();
@@ -110,17 +110,21 @@ namespace Api.PhotosphereTracking
                 }
                 else
                 {
-                    client.PhotosphereTrack.PosX = posX;
-                    client.PhotosphereTrack.PosY = posY;
-                    client.PhotosphereTrack.PosZ = posZ;
-                    client.PhotosphereTrack.RotationX = rotX;
-                    client.PhotosphereTrack.RotationY = rotY;
-                    client.PhotosphereTrack.Url = url;
                     // Let's update our clients current position.
-                    _ = Update(context, client.PhotosphereTrack, DataOptions.IgnorePermissions); // Ignore perms - if they can make it, they can update it.
+                    var psTrack = client.PhotosphereTrack;
+                    await StartUpdate(context, psTrack, DataOptions.IgnorePermissions); // Ignore perms - if they can make it, they can update it.
+
+                    psTrack.PosX = posX;
+                    psTrack.PosY = posY;
+                    psTrack.PosZ = posZ;
+                    psTrack.RotationX = rotX;
+                    psTrack.RotationY = rotY;
+                    psTrack.Url = url;
+
+                    await FinishUpdate(context, psTrack);
                 }
 
-                return new ValueTask<JObject>(message);
+                return message;
             });
 
         }
