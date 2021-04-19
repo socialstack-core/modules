@@ -50,21 +50,6 @@ namespace Api.Eventing
 		#region Controller events
 		
 		/// <summary>
-		/// A user profile was loaded.
-		/// </summary>
-		public static EndpointEventHandler<UserProfile> UserProfileLoad;
-		
-		/// <summary>
-		/// User profiles are being listed.
-		/// </summary>
-		public static EndpointEventHandler<Filter<User>> UserProfileList;
-		
-		/// <summary>
-		/// User profiles are being listed.
-		/// </summary>
-		public static EndpointEventHandler<List<UserProfile>> UserProfileListed;
-		
-		/// <summary>
 		/// Uploading files.
 		/// </summary>
 		public static EndpointEventHandler<UserImageUpload> UserOnUpload;
