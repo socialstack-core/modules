@@ -70,79 +70,88 @@ namespace Api.PasswordResetRequests
 		/// Attempts to login with a submitted new password.
 		/// </summary>
 		[HttpPost("login/{token}")]
-		public async ValueTask<object> LoginWithToken(string token, [FromBody] NewPassword newPassword)
+		public async ValueTask LoginWithToken(string token, [FromBody] NewPassword newPassword)
 		{
-			try
+			var svc = (_service as PasswordResetRequestService);
+				
+			var passwordHashField = _users.GetChangeField("PasswordHash");
+			var isUsedField = svc.GetChangeField("IsUsed");
+
+			var context = Request.GetContext();
+				
+			if (context == null || newPassword == null || string.IsNullOrWhiteSpace(newPassword.Password))
 			{
-				var context = Request.GetContext();
-				
-				if (context == null || newPassword == null || string.IsNullOrWhiteSpace(newPassword.Password))
-				{
-					return null;
-				}
-				
-				var svc = (_service as PasswordResetRequestService);
-				
-				var request = await svc.Get(context, token);
-				
-				if(request == null)
+				if (Response.StatusCode == 200)
 				{
 					Response.StatusCode = 404;
-					return null;
 				}
-				
-				// Has it expired?
-				if(svc.HasExpired(request))
-				{
-					Response.StatusCode = 400;
-					return null;
-				}
-				
-				// Get the target user account:
-				var targetUser = await _users.Get(context, request.UserId, DataOptions.IgnorePermissions);
-				
-				if (targetUser == null)
-				{
-					// User doesn't exist.
-					Response.StatusCode = 403;
-					return null;
-				}
-
-				// Set the password on the user account:
-				var authService = Services.Get<PasswordAuthService>();
-				
-				await authService.EnforcePolicy(newPassword.Password);
-				
-				targetUser.PasswordHash = PasswordStorage.CreateHash(newPassword.Password);
-
-				targetUser = await _users.Update(context, targetUser, DataOptions.IgnorePermissions);
-
-				if (targetUser == null)
-				{
-					// API forced a halt:
-					Response.StatusCode = 403;
-					return null;
-				}
-
-				// Burn the token:
-				request.IsUsed = true;
-				await _service.Update(context, request, DataOptions.IgnorePermissions);
-
-				// Set user:
-				context.SetUser(targetUser);
-				context.RoleId = targetUser.Role;
-				
-				await Events.PasswordResetRequestAfterSuccess.Dispatch(context, request);
-				
-				// Regenerate the contextual token:
-				context.SendToken(Response);
-				
-				return await context.GetPublicContext();
+				return;
 			}
-			catch (PublicException e)
+				
+			var request = await svc.Get(context, token);
+				
+			if(request == null)
 			{
-				return e.Apply(Response);
+				Response.StatusCode = 404;
+				return;
 			}
+				
+			// Has it expired?
+			if(svc.HasExpired(request))
+			{
+				Response.StatusCode = 400;
+				return;
+			}
+				
+			// Get the target user account:
+			var targetUser = await _users.Get(context, request.UserId, DataOptions.IgnorePermissions);
+				
+			if (targetUser == null)
+			{
+				// User doesn't exist.
+				Response.StatusCode = 403;
+				return;
+			}
+
+			// Set the password on the user account:
+			var authService = Services.Get<PasswordAuthService>();
+				
+			await authService.EnforcePolicy(newPassword.Password);
+
+			if (await _users.StartUpdate(context, targetUser, DataOptions.IgnorePermissions))
+			{
+				targetUser.PasswordHash = PasswordStorage.CreateHash(newPassword.Password);
+				targetUser.MarkChanged(passwordHashField);
+				targetUser = await _users.FinishUpdate(context, targetUser);
+			}
+			else
+			{
+				targetUser = null;
+			}
+
+			if (targetUser == null)
+			{
+				// API forced a halt:
+				Response.StatusCode = 403;
+				return;
+			}
+
+			// Burn the token:
+			if (await _service.StartUpdate(context, request, DataOptions.IgnorePermissions))
+			{
+				request.IsUsed = true;
+				targetUser.MarkChanged(isUsedField);
+				await _service.FinishUpdate(context, request);
+			}
+
+			// Set user:
+			context.SetUser(targetUser);
+			context.RoleId = targetUser.Role;
+				
+			await Events.PasswordResetRequestAfterSuccess.Dispatch(context, request);
+
+			// Output context:
+			await OutputContext(context);
 		}
 		
 		/// <summary>
@@ -159,7 +168,7 @@ namespace Api.PasswordResetRequests
 			}
 			
 			// must be admin/ super admin. Nobody else can do this for very clear security reasons.
-			if(context.Role != Roles.SuperAdmin && context.Role != Roles.Admin)
+			if(context.Role != Roles.Developer && context.Role != Roles.Admin)
 			{
 				return null;
 			}
