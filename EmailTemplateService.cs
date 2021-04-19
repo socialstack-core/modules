@@ -79,7 +79,7 @@ namespace Api.Emails
 		/// <param name="context"></param>
 		/// <param name="key"></param>
 		/// <returns></returns>
-		public Task<EmailTemplate> GetByKey(Context context, string key)
+		public ValueTask<EmailTemplate> GetByKey(Context context, string key)
 		{
 			// Note for future: Would be nice if this was automatic, rather than explicitly using a cache key.
 			// I.e. the rest of the service interface - namely List(..) - figures out a key to use.
@@ -87,7 +87,7 @@ namespace Api.Emails
 
 			if (cache == null)
 			{
-				return Task.FromResult((EmailTemplate)null);
+				return new ValueTask<EmailTemplate>((EmailTemplate)null);
 			}
 
 			if (KeyIndexId == -1)
@@ -97,7 +97,7 @@ namespace Api.Emails
 			}
 
 			var template = cache.GetUsingIndex(KeyIndexId, key);
-			return Task.FromResult(template);
+			return new ValueTask<EmailTemplate>(template);
 		}
 
 		/// <summary>
@@ -106,7 +106,7 @@ namespace Api.Emails
 		/// <param name="key">Template key to use.</param>
 		/// <param name="recipient">Mainly used for localisation. The end user's context.</param>
 		/// <returns></returns>
-		public async Task<RenderedCanvas> Render(string key, Recipient recipient)
+		public async ValueTask<RenderedCanvas> Render(string key, Recipient recipient)
 		{
 			var template = await GetByKey(recipient.Context, key);
 
@@ -149,7 +149,7 @@ namespace Api.Emails
 		/// Note that we don't support sending to emails only, as a user is required to be able to track opt-out state.
 		/// </summary>
 		/// <param name="recipients"></param>
-		private async Task LoadUsers(IList<Recipient> recipients)
+		private async ValueTask LoadUsers(IList<Recipient> recipients)
 		{
 			List<uint> idsToLoad = null;
 
