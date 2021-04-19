@@ -1341,7 +1341,7 @@ namespace Api.SocketServerLibrary
 
 			// Fill the first buffer:
 			target = new Span<byte>(_LastBufferBytes, Fill, space);
-			src = buffer.Slice(offset, length);
+			src = buffer.Slice(offset, space);
 			src.CopyTo(target);
 			Fill = BinaryBufferPool.BufferSize;
 			length -= space;
