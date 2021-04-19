@@ -54,12 +54,6 @@ namespace Api.Pages
 
 				var tokenSet = new List<PageUrlToken>();
 
-				PageUrlList.Add(new PageIdAndUrl()
-				{
-					PageId = page.Id,
-					Url = url
-				});
-
 				if (url == "/404")
 				{
 					NotFoundPage = page;
@@ -82,6 +76,7 @@ namespace Api.Pages
 				if (url.Length != 0)
 				{
 					var parts = url.Split('/');
+					var skip = false;
 
 					for (var i = 0; i < parts.Length; i++)
 					{
@@ -109,6 +104,13 @@ namespace Api.Pages
 									var contentType = token.Substring(0, dotIndex);
 									var fieldName = token.Substring(dotIndex + 1);
 									var type = Api.Database.ContentTypes.GetType(contentType);
+
+									if (type == null)
+									{
+										Console.WriteLine("[WARN] Bad page URL using a type that doesn't exist. It was page " + page.Id + " using type " + contentType);
+										skip = true;
+										break;
+									}
 
 									var service = Api.Startup.Services.GetByContentType(type);
 
@@ -153,11 +155,23 @@ namespace Api.Pages
 
 						pg = next;
 					}
+
+					if (skip)
+					{
+						continue;
+					}
 				}
 
 				pg.Page = page;
 				pg.UrlTokens = tokenSet;
 				pg.UrlTokenNames = tokenSet.Select(token => token.RawToken).ToList();
+
+				PageUrlList.Add(new PageIdAndUrl()
+				{
+					PageId = page.Id,
+					Url = url
+				});
+
 			}
 
 		}

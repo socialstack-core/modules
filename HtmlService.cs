@@ -26,15 +26,17 @@ namespace Api.Pages
 		private readonly CanvasRendererService _canvasRendererService;
 		private readonly HtmlServiceConfig _config;
 		private readonly FrontendCodeService _frontend;
+		private readonly ContextService _contextService;
 
 		/// <summary>
 		/// Instanced automatically.
 		/// </summary>
-		public HtmlService(PageService pages, CanvasRendererService canvasRendererService, FrontendCodeService frontend)
+		public HtmlService(PageService pages, CanvasRendererService canvasRendererService, FrontendCodeService frontend, ContextService ctxService)
 		{
 			_pages = pages;
 			_frontend = frontend;
 			_canvasRendererService = canvasRendererService;
+			_contextService = ctxService;
 
 			_config = GetConfig<HtmlServiceConfig>();
 
@@ -168,10 +170,7 @@ namespace Api.Pages
 		/// <returns></returns>
 		private async ValueTask<string> BuildUserGlobalStateJs(Context context)
 		{
-			var sb = new StringBuilder();
-			var publicContext = await context.GetPublicContext();
-			sb.Append(Newtonsoft.Json.JsonConvert.SerializeObject(publicContext, jsonSettings));
-			return sb.ToString();
+			return await _contextService.ToJsonString(context);
 		}
 		
 		/// <summary>
@@ -398,7 +397,6 @@ namespace Api.Pages
 					doc.PrimaryContentTypeId = primaryToken.ContentTypeId;
 					doc.PrimaryObjectService = primaryToken.Service;
 					doc.PrimaryObjectType = primaryToken.ContentType;
-
 
 					if (primaryToken.ContentType != null)
                     {

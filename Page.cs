@@ -11,7 +11,7 @@ namespace Api.Pages
 	/// <summary>
 	/// A page.
 	/// </summary>
-	public partial class Page : VersionedContent<uint>, IHaveRoleRestrictions
+	public partial class Page : VersionedContent<uint>
 	{
 		/// <summary>
 		/// The URL for this page.
@@ -36,22 +36,6 @@ namespace Api.Pages
 		/// </summary>
 		[Localized]
 		public string Description;
-		
-		/// <summary>
-		/// Page visibility varies when anon users.
-		/// </summary>
-		public bool VisibleToRole0 = true;
-		
-		/// <summary>
-		/// Page visibility varies when guest user.
-		/// </summary>
-		public bool VisibleToRole3 = true;
-		
-		/// <summary>
-		/// Page visibility varies when member user.
-		/// </summary>
-		public bool VisibleToRole4 = true;
-
 	}
 	
 }

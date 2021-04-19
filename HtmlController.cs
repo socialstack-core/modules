@@ -21,11 +21,6 @@ namespace Api.Pages
 		private ContextService _contexts;
 
 		/// <summary>
-		/// A date in the past used to set expiry on cookies.
-		/// </summary>
-		private readonly static DateTimeOffset ThePast = new DateTimeOffset(1993, 1, 1, 0, 0, 0, TimeSpan.Zero);
-
-		/// <summary>
 		/// Instanced automatically per request.
 		/// </summary>
 		/// <param name="htmlService"></param>
@@ -66,57 +61,10 @@ namespace Api.Pages
 
 			var cookieRole = context.RoleId;
 
-			if (context.UserId ==0 && context.CookieState != 0)
-			{
-				// Anonymous - fire off the anon user event:
-				context = await Events.ContextAfterAnonymous.Dispatch(context, context, Request);
+			await context.RoleCheck(Request, Response);
 
-				if (context == null)
-				{
-					Response.StatusCode = 404;
-				}
-
-				// Update cookie role:
-				cookieRole = context.RoleId;
-			}
-
-			if (context.RoleId != cookieRole)
-			{
-				if(_contexts == null)
-                {
-					_contexts = Services.Get<ContextService>();
-                }
-
-				// Force reset if role changed. Getting the public context will verify that the roles match.
-				Response.Cookies.Append(
-					_contexts.CookieName,
-					"",
-					new Microsoft.AspNetCore.Http.CookieOptions()
-					{
-						Path = "/",
-						Domain = _contexts.GetDomain(),
-						IsEssential = true,
-						Expires = ThePast
-					}
-				);
-
-				Response.Cookies.Append(
-					_contexts.CookieName,
-					"",
-					new Microsoft.AspNetCore.Http.CookieOptions()
-					{
-						Path = "/",
-						Expires = ThePast
-					}
-				);
-
-				Response.StatusCode = 404;
-			}
-			else
-			{
-				// Update the token:
-				context.SendToken(Response);
-			}
+			// Update the token:
+			context.SendToken(Response);
 
 			var compress = true;
 

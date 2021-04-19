@@ -88,10 +88,7 @@ namespace Api.Pages
 								""module"": ""Admin/PermissionGrid""
 							}
 						]
-					}",
-					VisibleToRole0 = false,
-					VisibleToRole3 = false,
-					VisibleToRole4 = false
+					}"
 				},
 				new Page()
 				{
@@ -296,10 +293,7 @@ namespace Api.Pages
 			{
 				Url = "/en-admin/" + typeName,
 				BodyJson = TemporaryBodyJson,
-				Title = "Edit or create " + tidyPluralName,
-				VisibleToRole0 = false,
-				VisibleToRole3 = false,
-				VisibleToRole4 = false
+				Title = "Edit or create " + tidyPluralName
 			};
 			
 			// Trigger an event to state that an admin page is being installed:
@@ -338,10 +332,7 @@ namespace Api.Pages
 			{
 				Url = "/en-admin/" + typeName + "/{" + typeName + ".id}",
 				BodyJson = TemporaryBodyJson,
-				Title = "Editing " + tidySingularName.ToLower(),
-				VisibleToRole0 = false,
-				VisibleToRole3 = false,
-				VisibleToRole4 = false
+				Title = "Editing " + tidySingularName.ToLower()
 			};
 
 			// Trigger an event to state that an admin page is being installed:

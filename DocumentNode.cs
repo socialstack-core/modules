@@ -211,14 +211,14 @@ namespace Api.Pages
 		/// <summary>
 		/// Create a new substitution node
 		/// </summary>
-		public SubstituteNode(Func<Context, Task<string>> onGenerate) : base("substitution"){
+		public SubstituteNode(Func<Context, ValueTask<string>> onGenerate) : base("substitution"){
 			OnGenerate = onGenerate;
 		}
 		
 		/// <summary>
 		/// The action to run during page loads.
 		/// </summary>
-		public Func<Context, Task<string>> OnGenerate;
+		public Func<Context, ValueTask<string>> OnGenerate;
 
 		/// <summary>
 		/// Flattens the DOM into a list of TextNode for any static html, and SubstituteNode's for any that changes per request.
@@ -374,7 +374,7 @@ namespace Api.Pages
 				_pageService = Api.Startup.Services.Get<PageService>();
 			}
 
-			return await _pageService.GetMetaFieldValue(null, fieldName, SourcePage);
+			return await _pageService.GetMetaFieldValue(context, fieldName, SourcePage);
 		}
 
 		/// <summary>
