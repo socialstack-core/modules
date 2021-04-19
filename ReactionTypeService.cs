@@ -24,10 +24,10 @@ namespace Api.Reactions
 			Task.Run(async () =>
 			{
 
-				var reactionTypeList = Query.List<ReactionType>();
+				var reactionTypeList = Query.List(typeof(ReactionType));
 				reactionTypeList.Where().PageSize = 1;
 
-				var types = await _database.List(null, reactionTypeList, null);
+				var types = await _database.List<ReactionType>(null, reactionTypeList, null, typeof(ReactionType));
 
 				if (types.Count == 0)
 				{
