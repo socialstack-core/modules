@@ -40,10 +40,10 @@ namespace Api.SocketServerLibrary
 				(Writer writer, List<string> value) => writer.Write(value)
 			);
 
-			Add(
+			Add( // UTF16 string.
 				4,
 				(ClientReader reader) => reader.ReadBytes(reader.ThenSetField_String_D),
-				(Writer writer, string value) => writer.Write(value)
+				(Writer writer, string value) => writer.WriteUTF16(value)
 			);
 
 			Add(

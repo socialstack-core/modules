@@ -1,5 +1,5 @@
 using System;
-
+using System.Runtime.InteropServices;
 
 namespace Api.SocketServerLibrary
 {
@@ -132,10 +132,10 @@ namespace Api.SocketServerLibrary
 		}
 
 		/// <summary>
-		/// Allocates the contents of this buffer as a string.
+		/// Consider using GetUString() instead. Double-allocates the contents of this buffer as a string. Originated from a WriteUTF8(string) or a Write(ustring).
 		/// </summary>
 		/// <returns></returns>
-		public string GetString()
+		public string GetStringUTF8()
 		{
 			var buffer = AllocatedBuffer();
 			if (buffer == null)
@@ -143,6 +143,38 @@ namespace Api.SocketServerLibrary
 				return null;
 			}
 			return System.Text.Encoding.UTF8.GetString(buffer);
+		}
+
+		/// <summary>
+		/// Allocates the contents of this buffer as a ustring. Originated from a WriteUTF8(string) or a Write(ustring).
+		/// </summary>
+		/// <returns></returns>
+		public ustring GetUString()
+		{
+			var buffer = AllocatedBuffer();
+			if (buffer == null)
+			{
+				return null;
+			}
+			return ustring.Make(buffer);
+		}
+
+		/// <summary>
+		/// Double-Allocates the contents of this buffer as a string. Originated from a WriteUTF16. Consider changing to read/ write ustring.
+		/// </summary>
+		/// <returns></returns>
+		public string GetStringUTF16()
+		{
+			var buffer = AllocatedBuffer();
+			if (buffer == null)
+			{
+				return null;
+			}
+
+			// Buffer contains a raw utf16 char byte array.
+			var span = MemoryMarshal.Cast<byte, char>(buffer.AsSpan());
+
+			return new string(span);
 		}
 
 		/// <summary>

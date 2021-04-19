@@ -1428,7 +1428,7 @@ namespace Api.SocketServerLibrary {
 		/// </summary>
 		public void ThenReadStringListItem(BufferSegment bs)
 		{
-			var str = bs.GetString();
+			var str = bs.GetStringUTF16();
 
 			if (CurrentStringList == null)
 			{

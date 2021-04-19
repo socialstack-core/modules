@@ -1,5 +1,9 @@
+using Api.Startup.Utf8Helpers;
 using System;
 using System.Collections.Generic;
+using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
+using System.Threading.Tasks;
 
 namespace Api.SocketServerLibrary
 {
@@ -134,7 +138,11 @@ namespace Api.SocketServerLibrary
 			_LastBufferBytes = buffer.Bytes;
 			buffer.Offset = 0;
 			ContextForRequestId = null;
-			Write(template);
+
+			if (template != null)
+			{
+				Write(template);
+			}
 		}
 
 		private Writer() {
@@ -181,17 +189,30 @@ namespace Api.SocketServerLibrary
 			Fill=0;
 		}
 
+		/// <summary>Reset by clearing the internal buffers and calls Start(template) such that the writer is ready to be used again.</summary>
+		public void Reset(byte[] template)
+		{
+			// Release all the buffers:
+			lock (BinaryBufferPool.PoolLock)
+			{
+				LastBuffer.After = BinaryBufferPool.First;
+				BinaryBufferPool.First = FirstBuffer;
+			}
+
+			// Clear:
+			LastBuffer = null;
+			FirstBuffer = null;
+			_LastBufferBytes = null;
+
+			// Start again:
+			Start(template);
+		}
+
 		/// <summary>Called when a writer is no longer needed and should now be fully released.</summary>
 		public void Release()
 		{
 			// Release all buffers back to the pool and pool the writer itself too.
-			lock (PoolLock)
-			{
-				// Shove into the pool:
-				NextInLine = FirstCached;
-				FirstCached = this;
-			}
-
+			
 			// Release all the buffers:
 			lock (BinaryBufferPool.PoolLock)
 			{
@@ -202,8 +223,15 @@ namespace Api.SocketServerLibrary
 			LastBuffer = null;
 			FirstBuffer = null;
 			_LastBufferBytes = null;
+
+			lock (PoolLock)
+			{
+				// Shove into the pool:
+				NextInLine = FirstCached;
+				FirstCached = this;
+			}
 		}
-		
+
 		/// <summary>Called when a writer was sent out and the writer object itself can now be released.</summary>
 		public void SentRelease()
 		{
@@ -317,7 +345,7 @@ namespace Api.SocketServerLibrary
 		}
 
 		/// <summary>
-		/// Writes an array of strings to the writer.
+		/// Writes an array of strings to the writer. Each one is written as a UTF16.
 		/// </summary>
 		/// <param name="value"></param>
 		public void Write(List<string> value)
@@ -332,12 +360,13 @@ namespace Api.SocketServerLibrary
 
 				foreach (var val in value)
 				{
-					Write(val);
+					WriteUTF16(val);
 				}
 			}
 		}
 
 		/// <summary>Write a single byte to the message. Write a block of bytes instead of using this if you can.</summary>
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public void Write(byte val){
 			if(Fill == BinaryBufferPool.BufferSize){
 				NextBuffer();
@@ -345,8 +374,9 @@ namespace Api.SocketServerLibrary
 			
 			_LastBufferBytes[Fill++]=val;
 		}
-		
+
 		/// <summary>Write a 2 byte unsigned value to the message.</summary>
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public void Write(ushort value){
 			if(Fill > (BinaryBufferPool.BufferSize-2)){
 				NextBuffer();
@@ -355,7 +385,7 @@ namespace Api.SocketServerLibrary
 			_LastBufferBytes[Fill++]=(byte)value;
 			_LastBufferBytes[Fill++]=(byte)(value>>8);
 		}
-		
+
 		/*
 		/// <summary>Writes a signature (as a regular buffer, with the length before it).</summary>
 		public void Sign(string message){
@@ -373,6 +403,7 @@ namespace Api.SocketServerLibrary
 		*/
 
 		/// <summary>Write a 2 byte signed value to the message.</summary>
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public void Write(short value){
 			if(Fill > (BinaryBufferPool.BufferSize-2)){
 				NextBuffer();
@@ -381,8 +412,9 @@ namespace Api.SocketServerLibrary
 			_LastBufferBytes[Fill++]=(byte)value;
 			_LastBufferBytes[Fill++]=(byte)(value>>8);
 		}
-		
+
 		/// <summary>Write a 4 byte unsigned value to the message.</summary>
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public void Write(uint value){
 			if(Fill > (BinaryBufferPool.BufferSize-4)){
 				NextBuffer();
@@ -398,6 +430,7 @@ namespace Api.SocketServerLibrary
 		/// Write a nullable int32 value.
 		/// </summary>
 		/// <param name="val"></param>
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public void Write(int? val)
 		{
 			if (val == null)
@@ -413,6 +446,7 @@ namespace Api.SocketServerLibrary
 		/// Write a nullable uint32 value.
 		/// </summary>
 		/// <param name="val"></param>
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public void Write(uint? val)
 		{
 			if (val == null)
@@ -423,8 +457,9 @@ namespace Api.SocketServerLibrary
 			Write((byte)1);
 			Write(val.Value);
 		}
-		
+
 		/// <summary>Write a 4 byte signed value to the message.</summary>
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public void Write(int value){
 			if(Fill > (BinaryBufferPool.BufferSize-4)){
 				NextBuffer();
@@ -435,8 +470,9 @@ namespace Api.SocketServerLibrary
 			_LastBufferBytes[Fill++]=(byte)(value>>16);
 			_LastBufferBytes[Fill++]=(byte)(value>>24);
 		}
-		
+
 		/// <summary>Write a 4 byte unsigned value to the message.</summary>
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public void WriteUInt24(uint value){
 			if(Fill > (BinaryBufferPool.BufferSize-3)){
 				NextBuffer();
@@ -446,8 +482,9 @@ namespace Api.SocketServerLibrary
 			_LastBufferBytes[Fill++]=(byte)(value>>8);
 			_LastBufferBytes[Fill++]=(byte)(value>>16);
 		}
-		
+
 		/// <summary>Write a 3 byte signed value to the message.</summary>
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public void WriteInt24(int value){
 			if(Fill > (BinaryBufferPool.BufferSize-3)){
 				NextBuffer();
@@ -457,8 +494,9 @@ namespace Api.SocketServerLibrary
 			_LastBufferBytes[Fill++]=(byte)(value>>8);
 			_LastBufferBytes[Fill++]=(byte)(value>>16);
 		}
-		
+
 		/// <summary>Write a float value.</summary>
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public void Write(float val){
 			if(Fill > (BinaryBufferPool.BufferSize-4)){
 				NextBuffer();
@@ -472,6 +510,7 @@ namespace Api.SocketServerLibrary
 		}
 
 		/// <summary>Write a double value.</summary>
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public void Write(double val)
 		{
 			if (Fill > (BinaryBufferPool.BufferSize - 8))
@@ -491,6 +530,7 @@ namespace Api.SocketServerLibrary
 		}
 
 		/// <summary>Write a date value.</summary>
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public void Write(DateTime val)
 		{
 			if (Fill > (BinaryBufferPool.BufferSize - 8))
@@ -524,7 +564,235 @@ namespace Api.SocketServerLibrary
 			Write(val.Value);
 		}
 
+		/// <summary>
+		/// Writes the given number out textually without allocating. Avoid unless necessary.
+		/// </summary>
+		/// <param name="n"></param>
+		public void WriteS(uint n)
+		{
+			if (n == 0)
+			{
+				Write((byte)'0');
+				return;
+			}
+
+			// Build up the output in this stack frame:
+			Span<byte> outputStr = stackalloc byte[10];
+			var index = 9;
+			
+			do
+			{
+				uint quotient = n / 10;
+				outputStr[index--] = (byte)('0' + (n - (quotient * 10)));
+				n = quotient;
+			}
+			while (n != 0);
+
+			Write(outputStr, index + 1, 9 - index);
+		}
+
+		/// <summary>
+		/// The bytes for "null"
+		/// </summary>
+		public static readonly byte[] NullBytes = new byte[] { 110, 117, 108, 108 };
+		
+		/// <summary>
+		/// Writes an escaped string surrounded in ", utf-8 encoded. Avoid whenever possible (used by e.g. JSON serialisation).
+		/// </summary>
+		/// <param name="str"></param>
+		public void WriteEscaped(ustring str)
+		{
+			if (str == null)
+			{
+				Write(NullBytes, 0, 4);
+				return;
+			}
+
+			Write((byte)'"');
+			Write((byte)'"');
+		}
+
+		/// <summary>
+		/// Writes an escaped string surrounded in ", utf-8 encoded. Avoid whenever possible (used by e.g. JSON serialisation).
+		/// </summary>
+		/// <param name="str"></param>
+		public void WriteEscaped(string str)
+		{
+			if (str == null)
+			{
+				Write(NullBytes, 0, 4);
+				return;
+			}
+
+			Write((byte)'"');
+
+			// Grab a reference to the char span:
+			var charStream = str.AsSpan();
+			var max = charStream.Length;
+
+			for (var i = 0; i < max; i++)
+			{
+				var current = charStream[i];
+				uint rune;
+				int runeBytesInUtf8;
+
+				if (char.IsHighSurrogate(current))
+				{
+					i++;
+
+					if (i != max)
+					{
+						var low = charStream[i];
+
+						if (char.IsLowSurrogate(low))
+						{
+							// Remap the codepoint.
+							rune = (uint)char.ConvertToUtf32(current, low);
+
+							// Note: don't ever get escape-worthy chars here. Always outputted as-is.
+							runeBytesInUtf8 = Utf8.RuneLen(rune);
+
+							if (Fill > (BinaryBufferPool.BufferSize - runeBytesInUtf8))
+							{
+								NextBuffer();
+							}
+
+							Utf8.EncodeRune(rune, _LastBufferBytes, Fill);
+							Fill += runeBytesInUtf8;
+						}
+					}
+
+					continue;
+				}
+				
+				// Codepoint is as-is:
+				rune = (uint)current;
+
+				// If it's a control character or any of the escapee's..
+				if (Unicode.IsControl(rune))
+				{
+					Write(TypeIOEngine.EscapedControl((byte)rune));
+					continue;
+				}
+				else if (rune == (uint)'"' || rune == (uint)'\\')
+				{
+					Write((byte)'\\');
+				}
+
+				// output the character:
+				runeBytesInUtf8 = Utf8.RuneLen(rune);
+
+				if (Fill > (BinaryBufferPool.BufferSize - runeBytesInUtf8))
+				{
+					NextBuffer();
+				}
+
+				Utf8.EncodeRune(rune, _LastBufferBytes, Fill);
+				Fill += runeBytesInUtf8;
+
+			}
+			
+			Write((byte)'"');
+		}
+		/// <summary>
+		/// Writes the given date as the number of milliseconds from year 0, UTC. Negative values are permitted, although C# DateTime doesn't support BC anyway.
+		/// The JS epoch is in 1970, so a constant offset (62135596800000) can be applied to quickly convert to a JS date unambiguously.
+		/// </summary>
+		/// <param name="date"></param>
+		public void WriteS(DateTime date)
+		{
+			// Unix epoch constant: new DateTime(1970,1,1,0,0,0,DateTimeKind.Utc).Ticks / 10000
+			WriteS((ulong)(date.Ticks / 10000));
+		}
+
+		/// <summary>
+		/// Writes the given number out textually without allocating. Avoid unless necessary.
+		/// </summary>
+		/// <param name="n"></param>
+		public void WriteS(int n)
+		{
+			if (n >= 0)
+			{
+				WriteS((uint)n);
+				return;
+			}
+
+			// It's negative.
+			Write((byte)'-');
+			WriteS((uint)-n);
+		}
+
+		/// <summary>
+		/// Ulong mod 1e9
+		/// </summary>
+		/// <param name="value"></param>
+		/// <returns></returns>
+		private static uint Int64DivMod1E9(ref ulong value)
+		{
+			uint rem = (uint)(value % 1000000000);
+			value /= 1000000000;
+			return rem;
+		}
+
+		/// <summary>
+		/// Writes the given number out textually without allocating. Avoid unless necessary.
+		/// </summary>
+		/// <param name="n"></param>
+		public void WriteS(ulong n)
+		{
+			if (n == 0)
+			{
+				Write((byte)'0');
+				return;
+			}
+
+			// Build up the output in this stack frame:
+			Span<byte> outputStr = stackalloc byte[20];
+			var index = 19;
+
+			var digits = 1;
+
+			while (((n & 0xFFFFFFFF00000000) >> 32) != 0)
+			{
+                UInt32ToDecChars(ref index, outputStr, Int64DivMod1E9(ref n), 9);
+				digits -= 9;
+
+			}
+
+			UInt32ToDecChars(ref index, outputStr, (uint)n, digits);
+
+			Write(outputStr, index + 1, 19 - index);
+		}
+
+		internal static void UInt32ToDecChars(ref int index, Span<byte> target, uint n, int digits)
+		{
+			while (--digits >= 0 || n != 0)
+			{
+				uint quotient = n / 10;
+				target[index--] = (byte)('0' + (n - (quotient * 10)));
+				n = quotient;
+			}
+		}
+
+		/// <summary>
+		/// Writes the given number out textually without allocating. Avoid unless necessary.
+		/// </summary>
+		/// <param name="n"></param>
+		public void WriteS(long n)
+		{
+			if (n >= 0)
+			{
+				WriteS((ulong)n);
+				return;
+			}
+
+			// It's negative.
+			Write((byte)'-');
+			WriteS((ulong)-n);
+		}
+
 		/// <summary>Write an 8 byte unsigned value to the message.</summary>
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public void Write(ulong value){
 			if(Fill > (BinaryBufferPool.BufferSize-8)){
 				NextBuffer();
@@ -539,8 +807,9 @@ namespace Api.SocketServerLibrary
 			_LastBufferBytes[Fill++]=(byte)(value>>48);
 			_LastBufferBytes[Fill++]=(byte)(value>>56);
 		}
-		
+
 		/// <summary>Write an 8 byte signed value to the message.</summary>
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public void Write(long value){
 			if(Fill > (BinaryBufferPool.BufferSize-8)){
 				NextBuffer();
@@ -557,6 +826,7 @@ namespace Api.SocketServerLibrary
 		}
 
 		/// <summary>Write a 5 byte signed value to the message.</summary>
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public void WriteUInt40(ulong value)
 		{
 			if (Fill > (BinaryBufferPool.BufferSize - 5))
@@ -572,6 +842,7 @@ namespace Api.SocketServerLibrary
 		}
 
 		/// <summary>Write a 6 byte signed value to the message.</summary>
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public void WriteUInt48(ulong value)
 		{
 			if (Fill > (BinaryBufferPool.BufferSize - 6))
@@ -692,7 +963,7 @@ namespace Api.SocketServerLibrary
 		}
 
 		/// <summary>
-		/// Only used by MySQL during startup. Writes a given number of nul bytes.
+		/// Writes a given number of nul bytes. Only used by MySQL during startup. 
 		/// </summary>
 		/// <param name="count"></param>
 		public void Skip(int count)
@@ -719,10 +990,10 @@ namespace Api.SocketServerLibrary
 		}
 
 		/// <summary>
-		/// Writes a string and its length.
+		/// Non-allocating string write, encoded in utf8.
 		/// </summary>
 		/// <param name="str"></param>
-		public void Write(string str)
+		public void WriteUTF8(string str)
 		{
 			if (str == null)
 			{
@@ -730,9 +1001,75 @@ namespace Api.SocketServerLibrary
 				return;
 			}
 
-			var strBytes = System.Text.Encoding.UTF8.GetBytes(str);
-			WriteCompressed((ulong)(strBytes.Length + 1));
-			Write(strBytes);
+			// Grab a reference to the char span:
+			var charStream = str.AsSpan();
+			var max = charStream.Length;
+
+			// First, how long will it be? This greatly helps the receive end.
+			ulong length = 0;
+
+			for (var i = 0; i < max; i++)
+			{
+				var current = charStream[i];
+
+				if (char.IsHighSurrogate(current))
+				{
+					i++;
+
+					if (i != max)
+					{
+						var low = charStream[i];
+
+						if (char.IsLowSurrogate(low))
+						{
+							// Remap the codepoint.
+							length += (ulong)Utf8.RuneLen((uint)char.ConvertToUtf32(current, low));
+						}
+					}
+				}
+				else
+				{
+					length += (ulong)Utf8.RuneLen((uint)current);
+				}
+			}
+
+			// Write the length:
+			WriteCompressed(length);
+
+			// Next, write the chars:
+			WriteCharStream(charStream);
+		}
+
+		/// <summary>
+		/// Non-allocating write of a utf8 string.
+		/// </summary>
+		/// <param name="str"></param>
+		public void WriteUString(ustring str)
+		{
+			if (str == null)
+			{
+				WriteCompressed(0);
+				return;
+			}
+
+			var s = str.AsSpan();
+			Write(s, 0, s.Length);
+		}
+
+		/// <summary>
+		/// Writes a string in its raw, UTF-16 byte format. Does not allocate.
+		/// </summary>
+		/// <param name="str"></param>
+		public void WriteUTF16(string str)
+		{
+			if (str == null)
+			{
+				WriteCompressed(0);
+				return;
+			}
+
+			var s = MemoryMarshal.AsBytes(str.AsSpan());
+			Write(s, 0, s.Length);
 		}
 
 		/// <summary>
@@ -743,8 +1080,8 @@ namespace Api.SocketServerLibrary
 		{
 			if (str != null)
 			{
-				var strBytes = System.Text.Encoding.UTF8.GetBytes(str);
-				Write(strBytes);
+				var charStream = str.AsSpan();
+				WriteCharStream(charStream);
 			}
 			Write((byte)0);
 		}
@@ -760,11 +1097,130 @@ namespace Api.SocketServerLibrary
 				WritePackedInt(0);
 				return;
 			}
-			var strBytes = System.Text.Encoding.UTF8.GetBytes(str);
-			WritePackedInt((ulong)strBytes.Length);
-			Write(strBytes);
+
+			// Grab a reference to the char span:
+			var charStream = str.AsSpan();
+			var max = charStream.Length;
+
+			// First, how long will it be? This greatly helps the receive end.
+			ulong length = 0;
+
+			for (var i = 0; i < max; i++)
+			{
+				var current = charStream[i];
+
+				if (char.IsHighSurrogate(current))
+				{
+					i++;
+
+					if (i != max)
+					{
+						var low = charStream[i];
+
+						if (char.IsLowSurrogate(low))
+						{
+							// Remap the codepoint.
+							length += (ulong)Utf8.RuneLen((uint)char.ConvertToUtf32(current, low));
+						}
+					}
+				}
+				else
+				{
+					length += (ulong)Utf8.RuneLen((uint)current);
+				}
+			}
+
+			// Write the length:
+			WritePackedInt(length);
+
+			// Next, write the chars:
+			WriteCharStream(charStream);
 		}
-		
+
+		private void WriteCharStream(ReadOnlySpan<char> charStream)
+		{
+			var max = charStream.Length;
+			
+			for (var i = 0; i < max; i++)
+			{
+				var current = charStream[i];
+				uint rune;
+				int runeBytesInUtf8;
+
+				if (char.IsHighSurrogate(current))
+				{
+					i++;
+
+					if (i != max)
+					{
+						var low = charStream[i];
+
+						if (char.IsLowSurrogate(low))
+						{
+							// Remap the codepoint.
+							rune = (uint)char.ConvertToUtf32(current, low);
+
+							// Note: don't ever get escape-worthy chars here. Always outputted as-is.
+							runeBytesInUtf8 = Utf8.RuneLen(rune);
+
+							if (Fill > (BinaryBufferPool.BufferSize - runeBytesInUtf8))
+							{
+								NextBuffer();
+							}
+
+							Utf8.EncodeRune(rune, _LastBufferBytes, Fill);
+							Fill += runeBytesInUtf8;
+						}
+					}
+
+					continue;
+				}
+
+				// Codepoint is as-is:
+				rune = (uint)current;
+
+				// output the character:
+				runeBytesInUtf8 = Utf8.RuneLen(rune);
+
+				if (Fill > (BinaryBufferPool.BufferSize - runeBytesInUtf8))
+				{
+					NextBuffer();
+				}
+
+				Utf8.EncodeRune(rune, _LastBufferBytes, Fill);
+				Fill += runeBytesInUtf8;
+			}
+		}
+
+		/// <summary>
+		/// Gets the whole thing as a UTF8 string.
+		/// </summary>
+		/// <returns></returns>
+		public string ToUTF8String()
+		{
+			/*
+			 * If it was UTF16 in the writer:
+			 * 
+			string.Create(length, this, (Span<char> chars, Writer writer) =>
+			{
+				var charIndex = 0;
+				var currentBuffer = FirstBuffer;
+
+				while (currentBuffer != null)
+				{
+					var blockSize = (currentBuffer == LastBuffer) ? Fill : currentBuffer.Length;
+
+					// For each pair of 2 bytes, increase charIndex and write to chars.
+
+					currentBuffer = currentBuffer.After;
+				}
+			});
+			*/
+
+			var buffer = AllocatedResult();
+			return System.Text.Encoding.UTF8.GetString(buffer);
+		}
+
 		/// <summary>
 		/// Allocates the complete chain of buffers as a byte array.
 		/// Avoid unless necessary.
@@ -784,6 +1240,38 @@ namespace Api.SocketServerLibrary
 			}
 
 			return result;
+		}
+
+		/// <summary>
+		/// Copies this writer result to the given stream.
+		/// </summary>
+		/// <param name="s"></param>
+		public void CopyTo(System.IO.Stream s)
+		{
+			var currentBuffer = FirstBuffer;
+
+			while (currentBuffer != null)
+			{
+				var blockSize = (currentBuffer == LastBuffer) ? Fill : currentBuffer.Length;
+				s.Write(currentBuffer.Bytes, 0, blockSize);
+				currentBuffer = currentBuffer.After;
+			}
+		}
+
+		/// <summary>
+		/// Copies this writer result to the given stream.
+		/// </summary>
+		/// <param name="s"></param>
+		public async ValueTask CopyToAsync(System.IO.Stream s)
+		{
+			var currentBuffer = FirstBuffer;
+
+			while (currentBuffer != null)
+			{
+				var blockSize = (currentBuffer == LastBuffer) ? Fill : currentBuffer.Length;
+				await s.WriteAsync(currentBuffer.Bytes, 0, blockSize);
+				currentBuffer = currentBuffer.After;
+			}
 		}
 
 		/// <summary>Write a whole block of bytes to this message.</summary>
@@ -827,6 +1315,59 @@ namespace Api.SocketServerLibrary
 			}
 			
 		}
-		
+
+		/// <summary>Write a specific range of bytes to this message.</summary>
+		public void Write(ReadOnlySpan<byte> buffer, int offset, int length)
+		{
+			if (BinaryBufferPool.BufferSize == Fill)
+			{
+				NextBuffer();
+			}
+
+			int space = BinaryBufferPool.BufferSize - Fill;
+
+			Span<byte> target;
+			ReadOnlySpan<byte> src;
+
+			if (length <= space)
+			{
+				// Copy the bytes in:
+				target = new Span<byte>(_LastBufferBytes, Fill, length);
+				src = buffer.Slice(offset, length);
+				src.CopyTo(target);
+				Fill += length;
+				return;
+			}
+
+			// Fill the first buffer:
+			target = new Span<byte>(_LastBufferBytes, Fill, space);
+			src = buffer.Slice(offset, length);
+			src.CopyTo(target);
+			Fill = BinaryBufferPool.BufferSize;
+			length -= space;
+			offset += space;
+
+			// Fill full size buffers:
+			while (length >= BinaryBufferPool.BufferSize)
+			{
+				NextBuffer();
+				target = new Span<byte>(_LastBufferBytes, 0, BinaryBufferPool.BufferSize);
+				src = buffer.Slice(offset, BinaryBufferPool.BufferSize);
+				src.CopyTo(target);
+				offset += BinaryBufferPool.BufferSize;
+				length -= BinaryBufferPool.BufferSize;
+			}
+
+			if (length > 0)
+			{
+				NextBuffer();
+				target = new Span<byte>(_LastBufferBytes, 0, length);
+				src = buffer.Slice(offset, length);
+				src.CopyTo(target);
+				Fill = length;
+			}
+
+		}
+
 	}
 }

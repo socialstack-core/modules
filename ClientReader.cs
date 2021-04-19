@@ -227,7 +227,7 @@ namespace Api.SocketServerLibrary
 		{
 			if (CurrentField.Field != null)
 			{
-				CurrentField.Field.SetValue(CurrentObject, value.GetString());
+				CurrentField.Field.SetValue(CurrentObject, value.GetStringUTF16());
 			}
 			ReadNextField();
 		}
@@ -362,6 +362,7 @@ namespace Api.SocketServerLibrary
 			ReadNextField();
 		}
 		
+		/*
 		/// <summary>
 		/// Pushes a string into the current field List value
 		/// </summary>
@@ -370,12 +371,13 @@ namespace Api.SocketServerLibrary
 		{
 			if (CurrentField.Field != null)
 			{
-				var str = value.GetString();
+				var str = value.GetStringUTF16();
 				CurrentField.Field.SetValue(CurrentObject, value.AllocatedBuffer());
 			}
 			ReadNextField();
 		}
-		
+		*/
+
 		/// <summary>
 		/// Creates a new client reader.
 		/// </summary>
