@@ -289,7 +289,8 @@ namespace Api.Startup
 		/// </summary>
 		public IDCollector GetCollectors()
 		{
-			IDCollector current = null;
+			IDCollector first = null;
+			IDCollector last = null;
 
 			for (var i = 0; i < IdFields.Length; i++)
 			{
@@ -297,16 +298,17 @@ namespace Api.Startup
 
 				if (i == 0)
 				{
-					current = collector;
+					first = collector;
+					last = collector;
 				}
 				else
 				{
-					current.NextCollector = collector;
-					current = collector;
+					last.NextCollector = collector;
+					last = collector;
 				}
 			}
 
-			return current;
+			return first;
 		}
 
 		/// <summary>
