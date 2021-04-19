@@ -273,7 +273,7 @@ namespace Api.CustomContentTypes
 		/// <summary>
 		/// Creates a service etc for the given system type and activates it. Invoked via reflection with a runtime compiled type.
 		/// </summary>
-		public async ValueTask InstallType<T>(ConstructedCustomContentType constructedType) where T : class, IHaveId<uint>, new()
+		public async ValueTask InstallType<T>(ConstructedCustomContentType constructedType) where T : Content<uint>, new()
 		{
 			// Create event group for this custom svc:
 			var events = new EventGroup<T>();
