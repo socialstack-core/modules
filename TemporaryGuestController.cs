@@ -26,8 +26,13 @@ namespace Api.TemporaryGuests
     [Route("v1/temporaryguest")]
     public partial class TemporaryGuestController : AutoController<TemporaryGuest>
     {
+        /// <summary>
+        /// Creates a context
+        /// </summary>
+        /// <param name="loginInfo"></param>
+        /// <returns></returns>
         [HttpPost("login")]
-        public async Task<object> Login([FromBody] TempLogin loginInfo)
+        public async ValueTask Login([FromBody] TempLogin loginInfo)
         {
             var context = Request.GetContext();
 
@@ -36,12 +41,10 @@ namespace Api.TemporaryGuests
             if (!result.Success)
             {
                 Response.StatusCode = 400;
-                return null;
+                return;
             }
 
-            context.SendToken(Response);
-
-            return await context.GetPublicContext();
+            await OutputContext(context);
         }
     }
 }
