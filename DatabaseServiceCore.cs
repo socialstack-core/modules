@@ -549,7 +549,14 @@ namespace Api.Database
 
 						if (valueResolver != null)
 						{
-							parameter.Value = await valueResolver.Method(context);
+							if (valueResolver.UintMethod != null)
+							{
+								parameter.Value = await valueResolver.UintMethod(context);
+							}
+							else
+							{
+								parameter.Value = await valueResolver.Method(context);
+							}
 						}
 					}
 
@@ -680,7 +687,14 @@ namespace Api.Database
 
 						if (valueResolver != null)
 						{
-							parameter.Value = await valueResolver.Method(context);
+							if (valueResolver.UintMethod != null)
+							{
+								parameter.Value = await valueResolver.UintMethod(context);
+							}
+							else
+							{
+								parameter.Value = await valueResolver.Method(context);
+							}
 						}
 					}
 

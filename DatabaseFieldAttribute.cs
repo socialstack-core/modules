@@ -17,6 +17,10 @@ namespace Api.Database
 		/// If you set it to false on your class, it will block the Id field from being auto increment too.
 		/// </summary>
 		public bool AutoIncrement = false;
+		/// <summary>
+		/// Indicates that this field should just be ignored entirely.
+		/// </summary>
+		public bool Ignore = false;
 
 
 		internal DatabaseFieldAttribute() { }

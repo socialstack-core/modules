@@ -1,4 +1,5 @@
 using Api.AutoForms;
+using Api.SocketServerLibrary;
 using System;
 
 
@@ -39,6 +40,51 @@ namespace Api.Database
 			set
 			{			
 			}
+		}
+	}
+
+	/// <summary>
+	/// Maps e.g. tags to particular content type. Often Mapping[uint, uint].
+	/// If it's e.g. a list of tags on a user, it has a UserId field and a TagId field, which are linked up to SourceId and TargetId.
+	/// These are fully automated and used via the include system.
+	/// </summary>
+	public abstract class Mapping<S,T> : Content<uint> 
+		where S : struct
+		where T : struct
+	{
+		/// <summary>
+		/// The UTC creation date. Read/ delete only rows so an edited date isn't present here.
+		/// </summary>
+		public DateTime CreatedUtc;
+
+		/// <summary>
+		/// Source ID.
+		/// </summary>
+		public virtual S SourceId
+		{
+			get {
+				return default(S);
+			}
+		}
+
+		/// <summary>
+		/// Target ID.
+		/// </summary>
+		public virtual T TargetId
+		{
+			get
+			{
+				return default(T);
+			}
+		}
+
+		/// <summary>
+		/// Writes ID,SourceId,TargetId to the given writer, in textual format.
+		/// </summary>
+		/// <param name="w"></param>
+		public virtual void ToJson(Writer w)
+		{
+			throw new Exception("Not implemented");
 		}
 	}
 }

@@ -7,7 +7,8 @@ using System.Collections.Generic;
 using System.Reflection;
 using System.Threading.Tasks;
 using Api.AutoForms;
-
+using Newtonsoft.Json;
+using Api.Permissions;
 
 namespace Api.Database
 {
@@ -18,7 +19,7 @@ namespace Api.Database
 	/// Will often be ContentType{int}
 	/// </summary>
 	/// <typeparam name="ID">The type of ID of your entity. Usually int.</typeparam>
-	public abstract partial class Content<ID> : IHaveId<ID> where ID : struct
+	public abstract partial class Content<ID> where ID : struct
 	{
 		/// <summary>
 		/// The row ID.
@@ -26,6 +27,7 @@ namespace Api.Database
 		[DatabaseIndex]
 		[DatabaseField(AutoIncrement = true)]
 		[Module(Hide = true)]
+		[Permissions(HideFieldByDefault = false)]
 		public ID Id;
 
 		/// <summary>
@@ -55,6 +57,47 @@ namespace Api.Database
 		{
 			Id = id;
 		}
+
+		/// <summary>
+		/// Marks field changes for this object.
+		/// Only valid during an Update.
+		/// </summary>
+		private ChangedFields _changes;
+		
+		
+		/// <summary>
+		/// The current changes on this content. Only valid during an Update.
+		/// </summary>
+		[JsonIgnore]
+		public ChangedFields Changes{
+			get{
+				return _changes;
+			}
+		}
+		
+		/// <summary>
+		/// Resets the changed fields to "none". This is called for you by StartUpdate or Update.
+		/// </summary>
+		public void ResetChanges()
+		{
+			_changes = new ChangedFields(0); // struct
+		}
+		
+		/// <summary>
+		/// Marks the given field(s) as changed.
+		/// </summary>
+		public void MarkChanged(ChangedFields fields){
+			_changes += fields; // struct = struct + struct
+		}
+
+		/// <summary>
+		/// True if the given field(s) are all marked as changed.
+		/// </summary>
+		/// <param name="fields"></param>
+		/// <returns></returns>
+		public bool HasChanged(ChangedFields fields) {
+			return _changes.Contains(fields);
+		}
 	}
 	
 	/// <summary>
@@ -67,9 +110,10 @@ namespace Api.Database
 		/// </summary>
 		/// <param name="context"></param>
 		/// <param name="content"></param>
+		/// <param name="cb"></param>
 		/// <param name="options"></param>
 		/// <returns></returns>
-		public static async Task<object> Update(Context context, object content, DataOptions options = DataOptions.Default)
+		public static async ValueTask<object> Update(Context context, object content, Action<Context, object> cb, DataOptions options = DataOptions.Default)
 		{
 			if (content == null)
 			{
@@ -84,7 +128,7 @@ namespace Api.Database
 				return null;
 			}
 
-			content = await service.UpdateObject(context, content, options);
+			content = await service.UpdateObject(context, content, cb, options);
 			return content;
 		}
 
@@ -95,9 +139,8 @@ namespace Api.Database
 		/// <param name="contentTypeId"></param>
 		/// <param name="contentId"></param>
 		/// <param name="permCheck"></param>
-		/// <param name="convertUser">Converts User objects to UserProfile if true (default).</param>
 		/// <returns></returns>
-		public static async Task<object> Get(Context context, int contentTypeId, uint contentId, bool permCheck = false, bool convertUser = true)
+		public static async ValueTask<object> Get(Context context, int contentTypeId, uint contentId, bool permCheck = false)
 		{
 			// Get the service:
 			var service = Services.GetByContentTypeId(contentTypeId);
@@ -108,12 +151,6 @@ namespace Api.Database
 			}
 
 			var objResult = await service.GetObject(context, contentId, permCheck ? DataOptions.Default : DataOptions.IgnorePermissions);
-
-			// Special case for users, up until UserProfile is removed.
-			if (convertUser && objResult is User)
-			{
-				objResult = (service as UserService).GetProfile(objResult as User);
-			}
 
 			return objResult;
 		}
@@ -130,7 +167,7 @@ namespace Api.Database
 		/// <param name="applyContent"></param>
 		/// <param name="convertUser"></param>
 		/// <returns></returns>
-		public static async Task ApplyMixed(
+		public static async ValueTask ApplyMixed(
 			Context context, IEnumerable parentContents, Func<object, ContentTypeAndId> getTypeAndId, 
 			Action<object, object> applyContent, bool convertUser = true
 		) {
@@ -175,7 +212,7 @@ namespace Api.Database
 				var loader = kvp.Value;
 
 				// Load the content list now:
-				var content = await List(context, kvp.Key, loader.ContentIds(), convertUser);
+				var content = await List(context, kvp.Key, loader.ContentIds());
 
 				// Apply it back to the loader:
 				loader.Apply(content);
@@ -211,9 +248,8 @@ namespace Api.Database
 		/// <param name="context"></param>
 		/// <param name="contentTypeId"></param>
 		/// <param name="contentIds"></param>
-		/// <param name="convertUser">Converts User objects to UserProfile if true (default).</param>
 		/// <returns></returns>
-		public static async Task<IEnumerable> List(Context context, int contentTypeId, IEnumerable<uint> contentIds, bool convertUser = true)
+		public static async ValueTask<IEnumerable> List(Context context, int contentTypeId, IEnumerable<uint> contentIds)
 		{
 			// Get the service:
 			var service = Services.GetByContentTypeId(contentTypeId);
@@ -225,22 +261,6 @@ namespace Api.Database
 
 			var objResult = await service.ListObjects(context, contentIds);
 
-			// Special case for users, up until UserProfile is removed.
-			if(objResult != null && convertUser && service.ServicedType == typeof(User))
-			{
-				var _users = service as UserService;
-
-				var result = new List<UserProfile>();
-
-				foreach (var obj in objResult)
-				{
-					// (Doesn't hit the database)
-					result.Add(_users.GetProfile(obj as User));
-				}
-
-				objResult = result;
-			}
-			
 			return objResult;
 		}
 
@@ -253,7 +273,7 @@ namespace Api.Database
 		/// <param name="convertUser">Converts User objects to UserProfile if true (default).</param>
 		/// <param name="applyPermissions"></param>
 		/// <returns></returns>
-		public static async Task<ListWithTotal> List(Context context, int contentTypeId, string filterJson, bool convertUser = true, bool applyPermissions = true)
+		public static async ValueTask<ListWithTotal> List(Context context, int contentTypeId, string filterJson, bool convertUser = true, bool applyPermissions = true)
 		{
 			// Get the service:
 			var service = Services.GetByContentTypeId(contentTypeId);
@@ -366,7 +386,7 @@ namespace Api.Database
 
 			foreach (var content in contents)
 			{
-				if (content is not IHaveId<uint> entry)
+				if (content is not Content<uint> entry)
 				{
 					continue;
 				}

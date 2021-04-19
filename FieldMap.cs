@@ -10,7 +10,7 @@ namespace Api.Database
 {
 	/// <summary>
 	/// Retains a fast lookup for fields of particular types.
-	/// These are stored in the Query objects and essentially map 
+	/// These are stored in the Query objects and essentially map name to the raw field.
 	/// </summary>
 	public class FieldMap
 	{
@@ -36,6 +36,12 @@ namespace Api.Database
 				var field = fields[i];
 
 				// (filter here if needed).
+				var dbField = field.GetCustomAttribute<DatabaseFieldAttribute>();
+
+				if (dbField != null && dbField.Ignore) {
+					// Ignore this field.
+					continue;
+				}
 
 				var fld = new Field(type, field);
 				fieldSet.Add(fld);

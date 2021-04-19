@@ -27,10 +27,21 @@ namespace Api.Database
 		/// <summary>
 		/// Typically used to declare an index in the database consisting of one or more fields.
 		/// </summary>
-		internal DatabaseIndexAttribute(params string[] fields)
+		public DatabaseIndexAttribute(params string[] fields)
 		{
 			Fields = fields;
 		}
-		
+
+		/// <summary>
+		/// A unique or non-unique index for the given field.
+		/// </summary>
+		/// <param name="unique"></param>
+		/// <param name="field"></param>
+		public DatabaseIndexAttribute(bool unique, string field)
+		{
+			Unique = unique;
+			Fields = new string[] { field };
+		}
+
 	}
 }
