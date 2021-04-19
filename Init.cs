@@ -64,6 +64,9 @@ namespace Api.DatabaseDiff
 					await HandleDatabaseType(service);
 				}
 
+				// Service can now attempt to load its cache:
+				await service.SetupCacheIfNeeded();
+
 				return service;
 			}, 2);
 			
@@ -220,8 +223,11 @@ namespace Api.DatabaseDiff
 				// Create a column definition:
 				var columnDefinition = new DatabaseColumnDefinition(field, targetTableName);
 
-				// Add to target schema:
-				newSchema.Add(columnDefinition);
+				if (!columnDefinition.Ignore)
+				{
+					// Add to target schema:
+					newSchema.Add(columnDefinition);
+				}
 			}
 
 			service.DatabaseSchema = newSchema;

@@ -71,6 +71,10 @@ namespace Api.DatabaseDiff
 		/// </summary>
 		public long? MaxCharacters2;
 
+		/// <summary>
+		/// True if this field should just be ignored.
+		/// </summary>
+		public bool Ignore;
 
 		/// <summary>
 		/// Create a new database column definition.
@@ -100,6 +104,12 @@ namespace Api.DatabaseDiff
 			if (fieldMeta != null)
 			{
 				IsAutoIncrement = fieldMeta.AutoIncrement;
+
+				if (fieldMeta.Ignore)
+				{
+					Ignore = true;
+					return;
+				}
 			}
 
 			if (ColumnName == "Id")
