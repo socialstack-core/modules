@@ -1,5 +1,6 @@
 using System;
 using Api.Database;
+using Api.Startup;
 using Api.Translate;
 using Api.Users;
 
