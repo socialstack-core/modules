@@ -35,6 +35,7 @@ namespace Api.Huddles
 		private Random rand = new Random();
 
 		private HuddleLoadMetricService _loadMetrics;
+		private ComposableChangeField _loadFactorField;
 
 		/// <summary>
 		/// Instanced automatically. Use injection to use this service, or Startup.Services.Get.
@@ -42,6 +43,8 @@ namespace Api.Huddles
 		public HuddleServerService(HuddleLoadMetricService loadMetrics) : base(Events.HuddleServer)
         {
 			_loadMetrics = loadMetrics;
+
+			_loadFactorField = _loadMetrics.GetChangeField("LoadFactor");
 
 			InstallAdminPages("Huddle Servers", "fa:fa-users", new string[] { "id", "address" });
 			
@@ -53,6 +56,8 @@ namespace Api.Huddles
 					// That'll be useful when allocating a server.
 					huddleServerLookup = GetCacheForLocale(1).GetPrimary();
 					huddleServerSet = huddleServerLookup.Values.ToArray();
+
+					return new ValueTask();
 				}
 			});
 			
@@ -204,8 +209,10 @@ namespace Api.Huddles
 				}
 				else
 				{
-					measurement.LoadFactor += loadFactor;
-					await _loadMetrics.Update(context, measurement, DataOptions.IgnorePermissions);
+					await _loadMetrics.Update(context, measurement, (Context ctx, HuddleLoadMetric hlm) => {
+						hlm.LoadFactor += loadFactor;
+						hlm.MarkChanged(_loadFactorField);
+					}, DataOptions.IgnorePermissions);
 				}
 
 			}

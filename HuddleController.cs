@@ -20,7 +20,7 @@ namespace Api.Huddles
 		/// Huddle server is informing about state updates of one or more users.
 		/// </summary>
 		[HttpPost("state")]
-		public async Task<object> State([FromBody] HuddleUserStates userStates)
+		public async ValueTask<object> State([FromBody] HuddleUserStates userStates)
 		{
 			var context = Request.GetContext();
 
@@ -109,7 +109,10 @@ namespace Api.Huddles
 				var presenceService = Services.Get<HuddlePresenceService>();
 				var userService = Services.Get<UserService>();
 				var huddleService = Services.Get<HuddleService>();
-				
+
+				var inMeetingAndLastHuddleId = userService.GetChangeField("InMeeting").And("LastJoinedHuddleId");
+				var usersInMeeting = huddleService.GetChangeField("UsersInMeeting");
+
 				// Very commonly just one update in this.
 				foreach (var userState in userStates.Users)
 				{
@@ -160,9 +163,12 @@ namespace Api.Huddles
 
 						if (user != null)
 						{
-							user.InMeeting = true;
-							user.LastJoinedHuddleId = userState.HuddleId;
-							await userService.Update(context, user, DataOptions.IgnorePermissions);
+							if(await userService.StartUpdate(context, user, DataOptions.IgnorePermissions)){
+								user.InMeeting = true;
+								user.LastJoinedHuddleId = userState.HuddleId;
+								user.MarkChanged(inMeetingAndLastHuddleId);
+								await userService.FinishUpdate(context, user);
+							}
 						}
 					}
 					else
@@ -181,9 +187,13 @@ namespace Api.Huddles
 
 							if (user != null)
 							{
-								user.InMeeting = false;
-								user.LastJoinedHuddleId = 0;
-								await userService.Update(context, user, DataOptions.IgnorePermissions);
+								if (await userService.StartUpdate(context, user, DataOptions.IgnorePermissions))
+								{
+									user.InMeeting = false;
+									user.LastJoinedHuddleId = 0;
+									user.MarkChanged(inMeetingAndLastHuddleId);
+									await userService.FinishUpdate(context, user);
+								}
 							}
 						}
 					}
@@ -192,8 +202,13 @@ namespace Api.Huddles
 					{
 						// Update the huddle - get # of users currently in it:
 						var huddle = await huddleService.Get(context, userState.HuddleId, DataOptions.IgnorePermissions);
-						huddle.UsersInMeeting += change;
-						await huddleService.Update(context, huddle, DataOptions.IgnorePermissions);
+
+						if (await huddleService.StartUpdate(context, huddle, DataOptions.IgnorePermissions))
+						{
+							huddle.UsersInMeeting += change;
+							huddle.MarkChanged(usersInMeeting);
+							await huddleService.FinishUpdate(context, huddle);
+						}
 					}
 				}
 
@@ -210,7 +225,7 @@ namespace Api.Huddles
 		/// <param name="slug"></param>
 		/// <returns></returns>
 		[HttpGet("{slug}/load")]
-		public async Task<object> SlugLoad(string slug)
+		public async ValueTask<object> SlugLoad(string slug)
         {
 			var context = Request.GetContext();
 
@@ -252,7 +267,7 @@ namespace Api.Huddles
 		/// <param name="slug"></param>
 		/// <returns></returns>
 		[HttpGet("{slug}/slug/join")]
-		public async Task<object> Join(string slug)
+		public async ValueTask<object> Join(string slug)
         {
 			var context = Request.GetContext();
 
@@ -320,7 +335,7 @@ namespace Api.Huddles
 		/// Join a huddle. Provided the user is permitted, this returns the connection information.
 		/// </summary>
 		[HttpGet("{id}/join")]
-		public async Task<object> Join(uint id)
+		public async ValueTask<object> Join(uint id)
 		{
 			var context = Request.GetContext();
 

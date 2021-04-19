@@ -21,6 +21,8 @@ namespace Api.Huddles
 		
 		private readonly int userContentType;
         private readonly HuddleService _huddleService;
+        private readonly ComposableChangeField _acceptedFields;
+        private readonly ComposableChangeField _rejectedFields;
 
         /// <summary>
         /// Instanced automatically. Use injection to use this service, or Startup.Services.Get.
@@ -30,6 +32,15 @@ namespace Api.Huddles
 
             _huddleService = huddleService;
             userContentType = ContentTypes.GetId(typeof(User));
+
+            var inviteFields = GetChangeField("InvitedContentTypeId")
+                .And("InvitedContentId").And("PermittedUserId").And("PermittedUser");
+
+            _acceptedFields = GetChangeField("PermittedUserId")
+                .And("AcceptedStartUtc").And("AcceptedEndUtc");
+            
+            _rejectedFields = GetChangeField("Rejected")
+                .And("PermittedUserId").And("AcceptedEndUtc");
 
             Events.HuddlePermittedUser.BeforeCreate.AddEventListener(async (Context context, HuddlePermittedUser permit) =>
             {
@@ -57,7 +68,7 @@ namespace Api.Huddles
 				}
                 
                 // make sure the user is allowed to invite this entity to the huddle 
-                if (context.UserId == huddle.CreatorUser.Id ||
+                if (context.UserId == huddle.UserId ||
                     (huddle.HuddleType == 1 && context.UserId == permit.InvitedContentId && permit.InvitedContentTypeId == ContentTypes.GetId("User")))
                 {
                     return permit;
@@ -89,7 +100,7 @@ namespace Api.Huddles
                 // Get the permitted user profile:
                 if (permit.PermittedUserId != 0)
                 {
-                    permit.PermittedUser = await users.GetProfile(context, permit.PermittedUserId);
+                    permit.PermittedUser = await users.Get(context, permit.PermittedUserId);
                 }
 				else
 				{
@@ -115,7 +126,7 @@ namespace Api.Huddles
                 {
                     // Nudge its updated date by just updating it like so. Be careful with this though to avoid endless update loops 
                     // (as there's a huddle afterUpdate which checks if any of its permits were accepted for a previous date).
-                    await huddleService.Update(context, huddle, DataOptions.IgnorePermissions);
+                    await huddleService.Update(context, huddle, (Context ctx, Huddle hud) => { }, DataOptions.IgnorePermissions);
                 }
 
                 return permit;
@@ -142,7 +153,7 @@ namespace Api.Huddles
                 // Get the permitted user profile:
                 if (permit.PermittedUserId != 0)
                 {
-                    permit.PermittedUser = await users.GetProfile(context, permit.PermittedUserId);
+                    permit.PermittedUser = await users.Get(context, permit.PermittedUserId);
                 }
 				else
 				{
@@ -164,7 +175,7 @@ namespace Api.Huddles
                 // Get the permitted user profile:
                 if (permit.PermittedUserId != 0)
                 {
-                    permit.PermittedUser = await users.GetProfile(context, permit.PermittedUserId);
+                    permit.PermittedUser = await users.Get(context, permit.PermittedUserId);
                 }
 				else
 				{
@@ -197,7 +208,7 @@ namespace Api.Huddles
                 );
 
                 // Get permitted user profiles:
-                var userMap = new Dictionary<uint, UserProfile>();
+                var userMap = new Dictionary<uint, User>();
 
                 foreach (var huddle in huddles)
                 {
@@ -211,7 +222,7 @@ namespace Api.Huddles
 
                 if (userMap.Count != 0)
                 {
-                    var profileSet = await users.ListProfiles(context, new Filter<User>().EqualsSet("Id", userMap.Keys));
+                    var profileSet = await users.List(context, new Filter<User>().EqualsSet("Id", userMap.Keys));
 
                     if (profileSet != null)
                     {
@@ -228,7 +239,7 @@ namespace Api.Huddles
                             continue;
                         }
 
-                        if (userMap.TryGetValue(huddle.PermittedUserId, out UserProfile profile))
+                        if (userMap.TryGetValue(huddle.PermittedUserId, out User profile))
                         {
                             huddle.PermittedUser = profile;
                         }
@@ -309,12 +320,14 @@ namespace Api.Huddles
                         {
                             // Someone (else) accepted but the time changed. We'll soft-unaccept the invite so they can check their schedule.
                             // Make sure invited content is now "them" if needed:
-                            invite.InvitedContentTypeId = userContentType;
-							invite.InvitedContentId = invite.PermittedUserId;
-                            invite.PermittedUserId = 0;
-                            invite.PermittedUser = null;
-
-                            await Update(context, invite, DataOptions.IgnorePermissions);
+                            
+                            await Update(context, invite, (Context ctx, HuddlePermittedUser inv) => {
+                                inv.InvitedContentTypeId = userContentType;
+                                inv.InvitedContentId = inv.PermittedUserId;
+                                inv.PermittedUserId = 0;
+                                inv.PermittedUser = null;
+                                inv.MarkChanged(inviteFields);
+                            },DataOptions.IgnorePermissions);
                         }
 
                     }
@@ -668,13 +681,17 @@ namespace Api.Huddles
                     return null;
                 }
 
-                // Mark as rejected:
-                invite.Rejected = true;
+                invite = await Update(context, invite, (Context context, HuddlePermittedUser inv) => {
 
-                // Clear the user ID:
-                invite.PermittedUserId = 0;
+                    // Mark as rejected:
+                    inv.Rejected = true;
 
-                invite = await Update(context, invite, DataOptions.IgnorePermissions);
+                    // Clear the user ID:
+                    inv.PermittedUserId = 0;
+
+                    inv.MarkChanged(_rejectedFields);
+
+                }, DataOptions.IgnorePermissions);
 
                 if (invite == null)
                 {
@@ -727,7 +744,7 @@ namespace Api.Huddles
             }
             else if (invite.PermittedUserId != 0)
             {
-				// It's already accepted.
+                // It's already accepted.
                 throw new PublicException("This invite has already been accepted.", "meeting_accepted");
             }
 
@@ -739,9 +756,6 @@ namespace Api.Huddles
                 throw new PublicException("This meeting no longer exists.", "meeting_deleted");
             }
 
-            invite.PermittedUserId = context.UserId;
-            invite.AcceptedStartUtc = huddle.StartTimeUtc;
-            invite.AcceptedEndUtc = huddle.EstimatedEndTimeUtc;
             invite = await Events.HuddlePermittedUser.BeforeAccept.Dispatch(context, invite);
 
             if (invite == null)
@@ -750,7 +764,12 @@ namespace Api.Huddles
             }
 
             // Update the invite:
-            invite = await Update(context, invite, DataOptions.IgnorePermissions);
+            invite = await Update(context, invite, (Context ctx, HuddlePermittedUser inv) => {
+                inv.PermittedUserId = context.UserId;
+                inv.AcceptedStartUtc = huddle.StartTimeUtc;
+                inv.AcceptedEndUtc = huddle.EstimatedEndTimeUtc;
+                inv.MarkChanged(_acceptedFields);
+            }, DataOptions.IgnorePermissions);
 
             if (invite == null)
             {

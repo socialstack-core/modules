@@ -45,7 +45,7 @@ namespace Api.Huddles
 		/// <summary>
 		/// The permitted user (if there is one - can be null).
 		/// </summary>
-		public UserProfile PermittedUser { get; set; }
+		public User  PermittedUser { get; set; }
 
 		/// <summary>
 		/// Huddle start time that was accepted (if this invite is an accepted one).

@@ -35,7 +35,9 @@ namespace Api.Huddles
 			_signatures = signatures;
 			_huddleServerService = huddleServerService;
 			userTypeId = ContentTypes.GetId(typeof(User));
-			
+
+			var slugField = GetChangeField("Slug");
+
 			Events.HuddlePermittedUser.EndpointEndList.AddEventListener(async (Context context, List<HuddlePermittedUser> list, HttpResponse response) => {
 
 				// If specifically using huddle permitted user list, add huddle objects to it:
@@ -139,19 +141,25 @@ namespace Api.Huddles
 					return null;
                 }
 
-				// Let's check that the slug they are using right now is unique, excluding itself in the check obviously.
-				var isUnique = await IsUniqueHuddleSlug(ctx, huddle.Slug, huddle.Id);
+				if (huddle.HasChanged(slugField))
+				{
+					// Let's check that the slug they are using right now is unique, excluding itself in the check obviously.
+					var isUnique = await IsUniqueHuddleSlug(ctx, huddle.Slug, huddle.Id);
 
-				// Is it unique?
-				if (!isUnique)
-                {
-					//Nope! We need to replace it with a unique one. They can remodify it again if they aren't happy with their newly generated slug.
-					huddle.Slug = await GenerateUniqueHuddleSlug(ctx);
-                }
+					// Is it unique?
+					if (!isUnique)
+					{
+						//Nope! We need to replace it with a unique one. They can remodify it again if they aren't happy with their newly generated slug.
+						huddle.Slug = await GenerateUniqueHuddleSlug(ctx);
+						huddle.MarkChanged(slugField);
+					}
+				}
 
 				return huddle;
 			});
 		}
+
+		private string slugPattern = "abcdefghjkmnpqrstuvwxyzACDEFHJKMNPRTUVWXY1234567890";
 
 		/// <summary>
 		/// Returns a huddle slug in the form of xxx-xxx-xxx alphanum excluding amigious characters 
@@ -159,26 +167,28 @@ namespace Api.Huddles
 		/// <returns></returns>
 		public string GenerateHuddleSlug()
         {
-			var chars = "abcdefghjkmnpqrstuvwxyzACDEFHJKMNPRTUVWXY1234567890";
-			var slug = "";
-
 			if(random == null)
             {
 				random = new Random();
             }
 
-			var i = 0;
-			while (i < 9)
-            {
-				slug += chars[random.Next(chars.Length)];
+			// Non-allocating random string (except for the actual string itself).
 
-				if ((i + 1) % 3 == 0 && i + 1 != 9)
-                {
-					// add a dash
-					slug += "-";
-                }
-				i++;
-            }
+			int length = 11; // 3 segments of 3, plus 2 dashes.
+			string slug = string.Create(length, random, (Span<char> chars, Random r) =>
+			{
+				for(var i=0;i<11;i++)
+				{
+					if (i == 3 || i == 7)
+					{
+						chars[i] = '-';
+					}
+					else
+					{
+						chars[i] = slugPattern[r.Next(slugPattern.Length)];
+					}
+				}
+			});
 
 			return slug;
         }
@@ -270,7 +280,7 @@ namespace Api.Huddles
 		/// <param name="localHostName">
 		/// The hostname of "this" API. Usually just the public site hostname, "www.example.com".
 		/// </param>
-		public async Task<string> SignUrl(Context context, Huddle huddle, string localHostName)
+		public async ValueTask<string> SignUrl(Context context, Huddle huddle, string localHostName)
 		{
 			var user = await context.GetUser();
 
