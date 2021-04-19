@@ -20,32 +20,32 @@ public partial class AutoService<T, ID>{
 	/// <summary>
 	/// A query which deletes 1 entity revision.
 	/// </summary>
-	protected Query<T> revisionDeleteQuery;
+	protected Query revisionDeleteQuery;
 
 	/// <summary>
 	/// A query which creates 1 entity revision.
 	/// </summary>
-	protected Query<T> revisionCreateQuery;
+	protected Query revisionCreateQuery;
 
 	/// <summary>
 	/// A query which selects 1 entity revision.
 	/// </summary>
-	protected Query<T> revisionSelectQuery;
+	protected Query revisionSelectQuery;
 
 	/// <summary>
 	/// A query which lists multiple revisions.
 	/// </summary>
-	protected Query<T> revisionListQuery;
+	protected Query revisionListQuery;
 
 	/// <summary>
 	/// A query which updates 1 entity revision.
 	/// </summary>
-	protected Query<T> revisionUpdateQuery;
+	protected Query revisionUpdateQuery;
 
 	/// <summary>
 	/// A query which clears draft state for any existing revisions of a particular content.
 	/// </summary>
-	protected Query<T> clearDraftStateQuery;
+	protected Query clearDraftStateQuery;
 
 	/// <summary>
 	/// True if this type supports revisions.
@@ -72,16 +72,16 @@ public partial class AutoService<T, ID>{
 	{
 		var tableName = typeof(T).TableName() + "_revisions";
 		
-		revisionDeleteQuery = Query.Delete<T>().SetMainTable(tableName);
-		revisionCreateQuery = Query.Insert<T>().SetMainTable(tableName);
-		revisionUpdateQuery = Query.Update<T>().SetMainTable(tableName);
-		revisionSelectQuery = Query.Select<T>().SetMainTable(tableName);
-		revisionListQuery = Query.List<T>().SetMainTable(tableName);
+		revisionDeleteQuery = Query.Delete(InstanceType).SetMainTableName(tableName);
+		revisionCreateQuery = Query.Insert(InstanceType).SetMainTableName(tableName);
+		revisionUpdateQuery = Query.Update(InstanceType).SetMainTableName(tableName);
+		revisionSelectQuery = Query.Select(InstanceType).SetMainTableName(tableName);
+		revisionListQuery = Query.List(InstanceType).SetMainTableName(tableName);
 		
-		clearDraftStateQuery = Query.Update<T>().SetMainTable(tableName);
+		clearDraftStateQuery = Query.Update(InstanceType).SetMainTableName(tableName);
 		SetRevisionColumns(clearDraftStateQuery);
 		clearDraftStateQuery.RemoveAllBut("RevisionIsDraft");
-		clearDraftStateQuery.Where().Equals("IsDraft", 1).And().EqualsArg("RevisionOriginalContentId", 0);
+		clearDraftStateQuery.Where().Equals(InstanceType, "IsDraft", 1).And().EqualsArg(InstanceType, "RevisionOriginalContentId", 0);
 
 		SetRevisionColumns(revisionCreateQuery);
 		SetRevisionColumns(revisionUpdateQuery);
@@ -92,7 +92,7 @@ public partial class AutoService<T, ID>{
 	/// <summary>
 	/// Remaps some of the query fields such that they correctly direct data to and from the entity fields/ database columns.
 	/// </summary>
-	private static void SetRevisionColumns(Query<T> query){
+	private static void SetRevisionColumns(Query query){
 		
 		var revisionIdField = typeof(VersionedContent<ID>).GetField("_RevisionId", BindingFlags.Instance | BindingFlags.NonPublic);
 		var idField = typeof(T).GetField("Id");
@@ -145,7 +145,7 @@ public partial class AutoService<T, ID>{
 		}
 		
 		filter = await EventGroup.BeforeRevisionList.Dispatch(context, filter);
-		var list = await _database.List(context, revisionListQuery, filter);
+		var list = await _database.List<T>(context, revisionListQuery, filter, InstanceType);
 		list = await EventGroup.AfterRevisionList.Dispatch(context, list);
 		return list;
 	}
@@ -165,7 +165,7 @@ public partial class AutoService<T, ID>{
 		id = await EventGroup.BeforeRevisionLoad.Dispatch(context, id);
 		context.IgnorePermissions = previousPermState;
 
-		var item = await _database.Select(context, revisionSelectQuery, id);
+		var item = await _database.Select<T>(context, revisionSelectQuery, InstanceType, id);
 		item = await EventGroup.AfterRevisionLoad.Dispatch(context, item);
 		
 		return item;

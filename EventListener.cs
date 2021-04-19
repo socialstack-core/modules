@@ -140,7 +140,7 @@ namespace Api.Revisions
 			// Essentially before the content actually goes into the database, we copy the database row into the _revisions table (with 1 database-side query), 
 			// and bump the Revision number of the about to be updated row.
 			
-			var methodInfo = GetType().GetMethod("SetupForRevisions");
+			var methodInfo = GetType().GetMethod(nameof(SetupForRevisions));
 
 			Events.Service.AfterCreate.AddEventListener((Context ctx, AutoService svc) => {
 				if (svc == null || svc.ServicedType == null)
@@ -184,7 +184,7 @@ namespace Api.Revisions
 			where T : VersionedContent<ID>, new()
 			where ID: struct, IConvertible, IEquatable<ID>
 		{
-			var contentType = typeof(T);
+			var contentType = autoService.InstanceType;
 			var evtGroup = autoService.EventGroup;
 
 			// Invoked by reflection
