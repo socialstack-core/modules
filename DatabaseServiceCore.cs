@@ -174,7 +174,7 @@ namespace Api.Database
 		/// <param name="idsToDelete"></param>
 		/// <param name="args"></param>
 		/// <returns></returns>
-		public async Task<bool> Run<T>(Context context, Query<T> q, IEnumerable<uint> idsToDelete, params object[] args)
+		public async Task<bool> Run<T>(Context context, Query q, IEnumerable<uint> idsToDelete, params object[] args)
 		{
 			if (idsToDelete == null)
 			{
@@ -217,7 +217,7 @@ namespace Api.Database
 		/// <param name="toInsertSet"></param>
 		/// <param name="args"></param>
 		/// <returns></returns>
-		public async Task<bool> Run<T>(Context context, Query<T> q, List<T> toInsertSet, params object[] args)
+		public async Task<bool> Run<T>(Context context, Query q, List<T> toInsertSet, params object[] args)
 		{
 			if (toInsertSet == null || toInsertSet.Count == 0)
 			{
@@ -306,7 +306,7 @@ namespace Api.Database
 		/// <param name="srcObject"></param>
 		/// <param name="args"></param>
 		/// <returns></returns>
-		public async Task<bool> Run<T>(Context context, Query<T> q, T srcObject, params object[] args) where T:class, new()
+		public async Task<bool> Run<T>(Context context, Query q, T srcObject, params object[] args) where T:class, new()
 		{
 			// UPDATE, DELETE and INSERT - Loop through each field in the query:
 			var fieldCount = q.Fields.Count;
@@ -412,7 +412,7 @@ namespace Api.Database
 		/// <param name="q"></param>
 		/// <param name="args"></param>
 		/// <returns></returns>
-		public async Task<bool> Run<T>(Context context, Query<T> q, params object[] args)
+		public async Task<bool> Run<T>(Context context, Query q, params object[] args)
 		{
 			uint localeId = 0;
 			string localeCode = null;
@@ -436,9 +436,10 @@ namespace Api.Database
 		/// <param name="context"></param>
 		/// <typeparam name="T"></typeparam>
 		/// <param name="q"></param>
+		/// <param name="instanceType">The type to instantiate</param>
 		/// <param name="args"></param>
 		/// <returns></returns>
-		public async Task<T> Select<T>(Context context, Query<T> q, params object[] args) where T:new()
+		public async Task<T> Select<T>(Context context, Query q, Type instanceType, params object[] args) where T:new()
 		{
 			// Only SELECT comes through here.
 			// This is almost exactly the same as GetRow 
@@ -465,7 +466,7 @@ namespace Api.Database
 			}
 
 			// Create the object: 
-			var result = new T();
+			var result = Activator.CreateInstance(instanceType);
 
 			// For each field..
 			for (var i = 0; i < reader.FieldCount; i++)
@@ -491,7 +492,7 @@ namespace Api.Database
 				}
 			}
 
-			return result;
+			return (T)result;
 		}
 
 		/// <summary>
@@ -504,9 +505,10 @@ namespace Api.Database
 		/// A runtime filter to apply to the query. It's the same as WHERE.
 		/// These filters often handle permission based filtering. 
 		/// Pass it to Capability.IsGranted to have that happen automatically.</param>
+		/// <param name="instanceType">The type to instantiate</param>
 		/// <param name="args"></param>
 		/// <returns></returns>
-		public async Task<ListWithTotal<T>> ListWithTotal<T>(Context context, Query<T> q, Filter filter, params object[] args) where T : new()
+		public async Task<ListWithTotal<T>> ListWithTotal<T>(Context context, Query q, Filter filter, Type instanceType, params object[] args) where T : new()
 		{
 			var results = new List<T>();
 
@@ -589,7 +591,7 @@ namespace Api.Database
 				while (await reader.ReadAsync())
 				{
 					// Create the object: 
-					var result = new T();
+					var result = Activator.CreateInstance(instanceType);
 
 					// For each field..
 					for (var i = 0; i < reader.FieldCount; i++)
@@ -615,7 +617,7 @@ namespace Api.Database
 						}
 					}
 
-					results.Add(result);
+					results.Add((T)result);
 				}
 			}
 
@@ -640,9 +642,10 @@ namespace Api.Database
 		/// A runtime filter to apply to the query. It's the same as WHERE.
 		/// These filters often handle permission based filtering. 
 		/// Pass it to Capability.IsGranted to have that happen automatically.</param>
+		/// <param name="instanceType">The type to instantiate</param>
 		/// <param name="args"></param>
 		/// <returns></returns>
-		public async Task<List<T>> List<T>(Context context, Query<T> q, Filter filter, params object[] args) where T : new()
+		public async Task<List<T>> List<T>(Context context, Query q, Filter filter, Type instanceType, params object[] args) where T : new()
 		{
 			var results = new List<T>();
 
@@ -718,7 +721,7 @@ namespace Api.Database
 				while (await reader.ReadAsync())
 				{
 					// Create the object: 
-					var result = new T();
+					var result = Activator.CreateInstance(instanceType);
 
 					// For each field..
 					for (var i = 0; i < reader.FieldCount; i++)
@@ -744,7 +747,7 @@ namespace Api.Database
 						}
 					}
 
-					results.Add(result);
+					results.Add((T)result);
 				}
 			}
 

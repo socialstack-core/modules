@@ -581,17 +581,6 @@ namespace Api.Database
 		}
 
 		/// <summary>
-		/// Generates a select * from rowType.TableName() query.
-		/// Defaults to using where Id=? unless you use a custom where override.
-		/// </summary>
-		public static Query<U> Select<U>()
-		{
-			var result = List<U>();
-			result.Where().EqualsArg("Id", 0);
-			return result;
-		}
-
-		/// <summary>
 		/// The same as select, only it doesn't use a where constraint.
 		/// </summary>
 		public static Query List(Type rowType)
@@ -620,24 +609,6 @@ namespace Api.Database
 		}
 
 		/// <summary>
-		/// The same as select, only it doesn't use a where constraint.
-		/// </summary>
-		public static Query<U> List<U>()
-		{
-			var result = new Query<U>
-			{
-				Operation = SELECT
-			};
-			result.SetMainTable(typeof(U));
-
-			// Fields that we'll select are mapped ahead-of-time for rapid lookup speeds.
-			// Note that these maps aren't shared between queries so the fields can be removed etc from them.
-			result.Fields = new FieldMap(typeof(U));
-
-			return result;
-		}
-
-		/// <summary>
 		/// Generates a replace into rowType.TableName() (field,field..) values(?,?,?..) query.
 		/// Type should be a DatabaseRow derived type. The type of data that will be getting inserted.
 		/// </summary>
@@ -655,24 +626,6 @@ namespace Api.Database
 		}
 
 		/// <summary>
-		/// Generates a replace into rowType.TableName() (field,field..) values(?,?,?..) query.
-		/// Type should be a DatabaseRow derived type. The type of data that will be getting inserted.
-		/// </summary>
-		public static Query<U> Replace<U>()
-		{
-			var result = new Query<U>
-			{
-				Operation = REPLACE
-			};
-			result.SetMainTable(typeof(U));
-
-			// Fields that we'll select are mapped ahead-of-time for rapid lookup speeds.
-			// Note that these maps aren't shared between queries so the fields can be removed etc from them.
-			result.Fields = new FieldMap(typeof(U));
-			return result;
-		}
-
-		/// <summary>
 		/// Generates a insert into rowType.TableName() (field,field..) values(?,?,?..) query.
 		/// rowType should be a DatabaseRow derived type. The type of data that will be getting inserted.
 		/// </summary>
@@ -680,17 +633,6 @@ namespace Api.Database
 		{
 			var result = new Query(rowType);
 			SetupInsert(result, rowType, explicitId);
-			return result;
-		}
-
-		/// <summary>
-		/// Generates a insert into rowType.TableName() (field,field..) values(?,?,?..) query.
-		/// Type should be a DatabaseRow derived type. The type of data that will be getting inserted.
-		/// </summary>
-		public static Query<U> Insert<U>(bool explicitId = false)
-		{
-			var result = new Query<U>();
-			SetupInsert(result, typeof(U), explicitId);
 			return result;
 		}
 
@@ -738,23 +680,23 @@ namespace Api.Database
 		/// Generates an update rowType.TableName() set field=?, field=?.. where.. query.
 		/// Type should be a DatabaseRow derived type. The type of data that will be getting updated.
 		/// </summary>
-		public static Query<U> Update<U>()
+		public static Query Update(Type type)
 		{
-			var result = new Query<U>
+			var result = new Query
 			{
 				Operation = UPDATE
 			};
-			result.SetMainTable(typeof(U));
+			result.SetMainTable(type);
 
 			// Fields that we'll select are mapped ahead-of-time for rapid lookup speeds.
 			// Note that these maps aren't shared between queries so the fields can be removed etc from them.
-			result.Fields = new FieldMap(typeof(U));
+			result.Fields = new FieldMap(type);
 
 			// Remove "Id" field:
 			result.RemoveField("Id");
 
 			// Default where:
-			result.Where().EqualsArg("Id", 0);
+			result.Where().EqualsArg(type, "Id", 0);
 			return result;
 		}
 
@@ -763,68 +705,27 @@ namespace Api.Database
 		/// Defaults to using where Id=? unless you use a custom where override.
 		/// Type should be a DatabaseRow derived type. The type of data that will be getting deleted.
 		/// </summary>
-		public static Query<U> Delete<U>()
+		public static Query Delete(Type type)
 		{
-			var result = new Query<U>
+			var result = new Query
 			{
 				Operation = DELETE
 			};
-			result.SetMainTable(typeof(U));
+			result.SetMainTable(type);
 
 			// Default where:
-			result.Where().EqualsArg("Id", 0);
+			result.Where().EqualsArg(type, "Id", 0);
 			return result;
-		}
-
-	}
-
-	/// <summary>
-	/// Extremely similar to WP Query. 
-	/// Essentially an abstraction layer from the underlying database technology.
-	/// Also functions as a place to cache any field mappings or other db handles for performance boosting.
-	/// </summary>
-	public class Query<T> : Query
-	{
-
-		/// <summary>
-		/// Sets the MainTable and MainTableAs fields.
-		/// </summary>
-		public Query SetMainTable()
-		{
-			return SetMainTable(typeof(T), typeof(T).TableName());
 		}
 
 		/// <summary>
 		/// Sets the MainTable and MainTableAs fields.
 		/// </summary>
 		/// <param name="name">The underlying table name.</param>
-		public Query<T> SetMainTable(string name)
+		public Query SetMainTableName(string name)
 		{
-			MainTableType = typeof(T);
 			MainTable = name;
-			MainTableAs = name + " AS `" + typeof(T).Name + "`";
-			return this;
-		}
-		
-		/// <summary>
-		/// Start building a custom WHERE filter.
-		/// </summary>
-		/// <returns></returns>
-		public new Filter<T> Where()
-		{
-			var result = new Filter<T>();
-			_where = result;
-			return result;
-		}
-
-		/// <summary>
-		/// Adds a "WHERE fieldName IS NULL".
-		/// </summary>
-		/// <param name="fieldName"></param>
-		/// <returns></returns>
-		public Query<T> WhereNull(string fieldName)
-		{
-			Where().Equals(fieldName, null);
+			MainTableAs = name + " AS `" + MainTableType.Name + "`";
 			return this;
 		}
 
@@ -838,33 +739,14 @@ namespace Api.Database
 		}
 
 		/// <summary>
-		/// Adds a "WHERE fieldName IS NOT NULL".
-		/// </summary>
-		public Query<T> WhereNotNull(string fieldName)
-		{
-			Where().Not().Equals(fieldName, null);
-			return this;
-		}
-		
-		/// <summary>
-		/// Adds a "WHERE fieldName=valueOrArg".
-		/// </summary>
-		public Query<T> WhereEquals(string fieldName, string valueOrArg)
-		{
-			Where().Equals(fieldName, valueOrArg);
-			return this;
-		}
-		
-		/// <summary>
 		/// Remove all fields except the named ones.
 		/// </summary>
 		/// <param name="fieldNames"></param>
-		public Query<T> RemoveAllBut(params string[] fieldNames)
+		public Query RemoveAllBut(params string[] fieldNames)
 		{
 			Fields.RemoveAllBut(fieldNames);
 			return this;
 		}
-		
 	}
-	
+
 }
