@@ -14,26 +14,5 @@ namespace Api.Followers
     [Route("v1/follower")]
 	public partial class FollowerController : AutoController<Follower>
     {
-        /// <summary>
-        /// Creates a follower.
-        /// </summary>
-        [HttpPost]
-        public override async ValueTask<object> Create([FromBody] JObject body)
-        {
-            var entity = new Follower();
-
-            var context = Request.GetContext();
-
-            await SetFieldsOnObject(entity, context, body, JsonFieldGroup.Default);
-
-            var follower = await _service.List(context, new Filter<Follower>().Equals("UserId", entity.UserId).And().Equals("SubscribedToId", entity.SubscribedToId));
-
-            if (follower.Any())
-            {
-                return follower.First();
-            }
-
-            return base.Create(body);
-        }
     }
 }
