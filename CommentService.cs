@@ -28,7 +28,12 @@ namespace Api.Comments
 		public CommentService(CommentSetService commentSets) : base(Events.Comment)
         {
 			InstallAdminPages("Comments", "fa:fa-comment", new string[] { "id", "name" });
-			
+
+			var countAndNestedCountFields = commentSets.GetChangeField("CommentCount").And("NestedCommentCount");
+			var childCommentCountField = GetChangeField("ChildCommentCount");
+			var childCommentDeleteCount = GetChangeField("ChildCommentDeleteCount");
+			var deletedField = GetChangeField("Deleted");
+
 			Events.Comment.BeforeCreate.AddEventListener(async (Context context, Comment comment) => {
 				
 				if(comment == null)
@@ -60,14 +65,18 @@ namespace Api.Comments
 					// Just the first one:
 					commentSet = sets[0];
 					
-					// Add to its total:
-					if(!hasParent){
-						commentSet.CommentCount++;
+					if(await commentSets.StartUpdate(context, commentSet, DataOptions.IgnorePermissions))
+					{
+						if (!hasParent)
+						{
+							commentSet.CommentCount++;
+						}
+
+						commentSet.NestedCommentCount++;
+						commentSet.MarkChanged(countAndNestedCountFields);
+						await commentSets.FinishUpdate(context,commentSet);
 					}
-					
-					commentSet.NestedCommentCount++;
-					
-					await commentSets.Update(context, commentSet, DataOptions.IgnorePermissions);
+
 				}
 				
 				comment.CommentSetId = commentSet.Id;
@@ -84,8 +93,12 @@ namespace Api.Comments
 					}
 					
 					// Its comment number is the total child comments the parent has so far:
-					parent.ChildCommentCount++;
-					await Update(context, parent, DataOptions.IgnorePermissions);
+					if (await StartUpdate(context, parent, DataOptions.IgnorePermissions))
+					{
+						parent.ChildCommentCount++;
+						parent.MarkChanged(childCommentCountField);
+						await FinishUpdate(context, parent);
+					}
 					
 					comment.Depth = parent.Depth + 1;
 					
@@ -167,29 +180,34 @@ namespace Api.Comments
 					return comment;
                 }
 
-				// Let's grab the original comment.
-				var originalComment = await Get(ctx, comment.Id, DataOptions.IgnorePermissions);
-
 				// Excellent, has the delete state changed for this object?
-				if (comment.Deleted != originalComment.Deleted)
+				if (comment.HasChanged(deletedField))
                 {
 					// We will either increment or decrement count based on the new deleted state.
-					if(comment.Deleted)
-                    {
-						parentComment.ChildCommentDeleteCount++;
-                    }
-					else
-                    {
-						parentComment.ChildCommentDeleteCount--;
-
-						if (parentComment.ChildCommentDeleteCount < 0)
-                        {
-							parentComment.ChildCommentDeleteCount = 0;
-						}
-                    }
-
+					
 					// Let's update the parent comment now.
-					parentComment = await Update(ctx, parentComment, DataOptions.IgnorePermissions);
+					parentComment = await Update(ctx, parentComment, (Context ctx, Comment parent) => {
+
+						if (comment.Deleted)
+						{
+							parent.ChildCommentDeleteCount++;
+							parent.MarkChanged(childCommentDeleteCount);
+						}
+						else
+						{
+							if (parent.ChildCommentDeleteCount < 0)
+							{
+								parent.ChildCommentDeleteCount = 0;
+								parent.MarkChanged(childCommentDeleteCount);
+							}
+							else if(parent.ChildCommentDeleteCount != 0)
+							{
+								parent.ChildCommentDeleteCount--;
+								parent.MarkChanged(childCommentDeleteCount);
+							}
+						}
+
+					}, DataOptions.IgnorePermissions);
                 }
 
 				return comment;
