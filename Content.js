@@ -29,8 +29,8 @@ export default class Content extends React.Component {
 			if (msg.type == "status") {
 				if (msg.connected) {
 					// Force a reload:
-					var {type, id, primary} = this.props;
-					!primary && this.load(type, id);
+					var {type, id, primary, includes} = this.props;
+					!primary && this.load(type, id, includes);
 				}
 
 				this.props.onLiveStatus && this.props.onLiveStatus(msg.connected);
@@ -88,17 +88,17 @@ export default class Content extends React.Component {
 	}
 	
 	componentDidUpdate(prevProps){
-		var {type, id, primary} = this.props;
+		var {type, id, primary, includes} = this.props;
 		
 		if((prevProps.primary && primary) || (prevProps && type == prevProps.type && id == prevProps.id)){
 			// Cached object is fine here.
 			return;
 		}
-		this.load(type, id);
+		this.load(type, id, includes);
 	}
 	
-	load(type, id){
-		Content.get(type, id)
+	load(type, id, includes){
+		Content.get(type, id, includes)
 			.then(content => this.setState({content}))
 			.catch(e => {
 				// E.g. doesn't exist.
@@ -114,7 +114,7 @@ export default class Content extends React.Component {
 	}
 	
 	componentDidMount(){
-		var {type, id, live} = this.props;
+		var {type, id, live, includes} = this.props;
 		if (live) {
 			webSocket.addEventListener(this.evtType(), this.onLiveMessage, {where: {Id: id}});
 		}
@@ -122,7 +122,7 @@ export default class Content extends React.Component {
 		
 		if(!this.state.content && id){
 			// Content that is intentionally client only. Load now:
-			this.load(type, id);
+			this.load(type, id, includes);
 		}
 	}
 	
@@ -169,9 +169,9 @@ Content.getPrimary = function(context){
 // Returns a promise which will either resolve directly to the object, 
 // or be rejected with a message and statusCode if there was an error.
 // You should only use this from componentDidMount and componentDidUpdate (or useEffect) for correct React usage.
-Content.get = function(type, id) {
+Content.get = function(type, id, includes) {
 	var url = type + '/' + id;
-	return webRequest(url).then(response => response.json);
+	return webRequest(url, null, includes ? {includes} : null).then(response => response.json);
 };
 
 // E.g:
@@ -180,9 +180,9 @@ Content.get = function(type, id) {
 // Returns a promise which will either resolve directly to the object, 
 // or be rejected with a message and statusCode if there was an error.
 // You should only use this from componentDidMount and componentDidUpdate (or useEffect) for correct React usage.
-Content.list = function(type, filter) {
+Content.list = function(type, filter, includes) {
 	var url = type + '/list';
-	return webRequest(url, filter).then(response => response.json);
+	return webRequest(url, filter, includes ? {includes} : null).then(response => response.json);
 };
 
 // E.g:
@@ -203,6 +203,6 @@ Content.getCached = function(type, id) {
 	return data ? data[global.cIndex++] : null;
 };
 
-Content.listCached = function(type, filter) {
+Content.listCached = function(type, filter, includes) {
 	return Content.getCached();
 };
