@@ -39,9 +39,9 @@ namespace Api.Permissions
 				}
 
 				// Get the content type for this service and event group:
-				var contentType = service.ServicedType;
+				var servicedType = service.ServicedType;
 
-				if (contentType == null)
+				if (servicedType == null)
 				{
 					return new ValueTask<AutoService>(service);
 				}
@@ -54,12 +54,10 @@ namespace Api.Permissions
 					return new ValueTask<AutoService>(service);
 				}
 
-				var idType = contentType.GetMethod("GetId").ReturnType;
-
 				// Add List event:
 				var setupType = setupForTypeMethod.MakeGenericMethod(new Type[] {
-					contentType,
-					idType
+					servicedType,
+					service.IdType
 				});
 
 				setupType.Invoke(this, new object[] {

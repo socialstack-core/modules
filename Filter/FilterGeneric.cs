@@ -1,4 +1,5 @@
 using Newtonsoft.Json.Linq;
+using System;
 using System.Collections;
 
 namespace Api.Permissions
@@ -16,6 +17,11 @@ namespace Api.Permissions
 		public Filter() :base(typeof(T)){ }
 
 		/// <summary>
+		/// Create a new filter with no restrictions by default.
+		/// </summary>
+		public Filter(Type t) : base(t) { }
+
+		/// <summary>
 		/// Builds a filter safely from a generic JSON payload.
 		/// </summary>
 		/// <param name="fromRequest"></param>
@@ -28,7 +34,7 @@ namespace Api.Permissions
 		/// <returns></returns>
 		public override Filter Copy(bool withNodes = true)
 		{
-			var filter = new Filter<T>()
+			var filter = new Filter<T>(DefaultType)
 			{
 				Role = Role,
 				FromRequest = FromRequest,
@@ -67,7 +73,7 @@ namespace Api.Permissions
 		/// <returns></returns>
 		public Filter<T> Equals(string fieldName, object value, int argIndex = 0)
 		{
-			return Add(new FilterFieldEquals(typeof(T), fieldName)
+			return Add(new FilterFieldEquals(DefaultType, fieldName)
 			{
 				Value = value,
 				ArgIndex = argIndex
@@ -84,7 +90,7 @@ namespace Api.Permissions
         /// <returns></returns>
         public Filter<T> LessThan(string fieldName, object value, int argIndex = 0)
         {
-            return Add(new FilterFieldLessThan(typeof(T), fieldName)
+            return Add(new FilterFieldLessThan(DefaultType, fieldName)
             {
                 Value = value,
                 ArgIndex = argIndex
@@ -101,7 +107,7 @@ namespace Api.Permissions
         /// <returns></returns>
         public Filter<T> GreaterThan(string fieldName, object value, int argIndex = 0)
         {
-            return Add(new FilterFieldGreaterThan(typeof(T), fieldName)
+            return Add(new FilterFieldGreaterThan(DefaultType, fieldName)
             {
                 Value = value,
                 ArgIndex = argIndex
@@ -117,7 +123,7 @@ namespace Api.Permissions
         /// <returns></returns>
         public Filter<T> EqualsArg(string fieldName, int argIndex = 0)
 		{
-			return Add(new FilterFieldEquals(typeof(T), fieldName)
+			return Add(new FilterFieldEquals(DefaultType, fieldName)
 			{
 				AlwaysArgMatch = true,
 				ArgIndex = argIndex
@@ -130,7 +136,7 @@ namespace Api.Permissions
 		/// <returns></returns>
 		public Filter<T> Id(IEnumerable ids)
 		{
-			return Add(new FilterFieldEqualsSet(typeof(T), "Id")
+			return Add(new FilterFieldEqualsSet(DefaultType, "Id")
 			{
 				Values = ids
 			});
@@ -142,7 +148,7 @@ namespace Api.Permissions
 		/// <returns></returns>
 		public Filter<T> EqualsSet(string fieldName, IEnumerable values)
 		{
-			return Add(new FilterFieldEqualsSet(typeof(T), fieldName)
+			return Add(new FilterFieldEqualsSet(DefaultType, fieldName)
 			{
 				Values = values
 			});
