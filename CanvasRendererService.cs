@@ -21,14 +21,16 @@ namespace Api.CanvasRenderer
 	/// </summary>
 	public partial class CanvasRendererService : AutoService
 	{
-		private readonly FrontendCodeService _frontend;
+		private readonly FrontendCodeService _frontendService;
+		private readonly ContextService _contextService;
 
 		/// <summary>
 		/// Instanced automatically.
 		/// </summary>
-		public CanvasRendererService(LocaleService locales, FrontendCodeService frontend)
+		public CanvasRendererService(FrontendCodeService frontend, ContextService contexts)
 		{
-			_frontend = frontend;
+			_frontendService = frontend;
+			_contextService = contexts;
 
 			Events.Translation.AfterUpdate.AddEventListener((Context context, Translation translation) => {
 
@@ -91,8 +93,8 @@ namespace Api.CanvasRenderer
 				};
 			}
 
-			// Get public version of context:
-			var publicContext = await context.GetPublicContext();
+			// Serialise the context:
+			var publicContext = await _contextService.ToJsonString(context);
 
 			// Render the canvas now. This renderCanvas function is at the bottom of renderer.js (in the same directory as this file):
 			var result = (await (engine.Invoke(
@@ -100,7 +102,7 @@ namespace Api.CanvasRenderer
 					bodyJson,
 					context,
 					// Must do this such that all of the hidden fields are correctly considered, and any modifications the JS makes don't affect our actual cached objects.
-					JsonConvert.SerializeObject(publicContext, jsonFormatter),
+					publicContext,
 					url,
 					pageState,
 					trackDataRequests,
@@ -181,15 +183,15 @@ namespace Api.CanvasRenderer
 			engine.Execute(new DocumentInfo(new Uri("file://inline_header.js")), sourceContent);
 
 			// If instancing a new engine, always read the file.
-			var jsFileData = await _frontend.GetAdminMainJs(locale.Id) ;
+			var jsFileData = await _frontendService.GetAdminMainJs(locale.Id) ;
 			sourceContent = System.Text.Encoding.UTF8.GetString(jsFileData.FileContent);
 			engine.Execute(new DocumentInfo(new Uri("file://admin/main.js")), sourceContent);
 
-			jsFileData = await _frontend.GetMainJs(locale.Id);
+			jsFileData = await _frontendService.GetMainJs(locale.Id);
 			sourceContent = System.Text.Encoding.UTF8.GetString(jsFileData.FileContent);
 			engine.Execute(new DocumentInfo(new Uri("file://ui/main.js")), sourceContent);
 
-			jsFileData = await _frontend.GetEmailMainJs(locale.Id);
+			jsFileData = await _frontendService.GetEmailMainJs(locale.Id);
 			sourceContent = System.Text.Encoding.UTF8.GetString(jsFileData.FileContent);
 			engine.Execute(new DocumentInfo(new Uri("file://email/main.js")), sourceContent);
 
