@@ -3,7 +3,7 @@ using System.Collections.Generic;
 
 namespace Api.Users 
 {
-    public partial class User : IHaveRewards
+    public partial class User
     {
 		/// <summary>
 		/// This user's rewards.
