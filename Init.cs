@@ -103,9 +103,7 @@ namespace Api.Permissions
 		public void SetupForType<T, ID>(EventGroup<T, ID> group)
 		{
 			// If it's a mapping type, no-op.
-			var baseType = typeof(T).BaseType;
-
-			if (baseType.IsGenericType && baseType.GetGenericTypeDefinition() == typeof(Mapping<,>))
+			if (ContentTypes.IsAssignableToGenericType(typeof(T), typeof(Mapping<,>)))
 			{
 				// Mapping types don't get mounted by the permission system.
 				return;
