@@ -1,15 +1,17 @@
 using System;
 using Api.Database;
+using Api.Startup;
 using Api.Translate;
 using Api.Users;
 
 
 namespace Api.UserFlags
 {
-	
+
 	/// <summary>
 	/// An UserFlag
 	/// </summary>
+	[HasVirtualField("UserFlagOption", typeof(UserFlagOption), "UserFlagOptionId")]
 	public partial class UserFlag : VersionedContent<uint>
 	{
 		/// <summary>
@@ -26,11 +28,6 @@ namespace Api.UserFlags
 		/// The id of the user flag option that was selected for this flag.
 		/// </summary>
 		public uint UserFlagOptionId;
-
-		/// <summary>
-		/// The user flag option that was selected for the flag.
-		/// </summary>
-		public UserFlagOption UserFlagOption { get; set; }
 	}
 
 }
