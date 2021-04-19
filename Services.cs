@@ -141,6 +141,9 @@ namespace Api.Startup
 						ServiceByContentType[contentId] = autoService;
 					}
 
+					// Load the content fields. This is important to make sure e.g. ListAs is loaded and available as a global field.
+					autoService.GetContentFields();
+
 					await Events.Service.AfterCreate.Dispatch(ctx, autoService);
 				}
 			}

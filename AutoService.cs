@@ -3,6 +3,7 @@ using Api.Database;
 using Api.DatabaseDiff;
 using Api.Eventing;
 using Api.Permissions;
+using Api.SocketServerLibrary;
 using Api.Startup;
 using Newtonsoft.Json.Linq;
 using System;
@@ -19,7 +20,7 @@ using System.Threading.Tasks;
 /// </summary>
 /// <typeparam name="T"></typeparam>
 public partial class AutoService<T> : AutoService<T, uint>
-	where T : class, IHaveId<uint>, new()
+	where T : Content<uint>, new()
 {
 	/// <summary>
 	/// Instanced automatically
@@ -56,8 +57,8 @@ public enum DataOptions : int
 /// <typeparam name="T"></typeparam>
 /// <typeparam name="ID">ID type (usually int)</typeparam>
 public partial class AutoService<T, ID> : AutoService 
-	where T: class, IHaveId<ID>, new()
-	where ID: struct, IConvertible
+	where T: Content<ID>, new()
+	where ID: struct, IConvertible, IEquatable<ID>
 {
 	
 	/// <summary>
@@ -99,7 +100,7 @@ public partial class AutoService<T, ID> : AutoService
 	/// The set of update/ delete/ create etc events for this type.
 	/// </summary>
 	public EventGroup<T, ID> EventGroup;
-	
+
 	/// <summary>
 	/// Sets up the common service type fields.
 	/// </summary>
@@ -141,8 +142,7 @@ public partial class AutoService<T, ID> : AutoService
 	/// </summary>
 	public async ValueTask<JsonField<T>> GetTypedMetaField(Context context, string fieldName)
 	{
-		// If a context is not given, this will use anonymous role structure:
-		var structure = await GetTypedJsonStructure(context == null ? 0 : context.RoleId);
+		var structure = await GetTypedJsonStructure(context);
 		if (structure == null)
 		{
 			return null;
@@ -155,34 +155,35 @@ public partial class AutoService<T, ID> : AutoService
 	/// <summary>
 	/// Gets the JSON structure. Defines settable fields for a particular role.
 	/// </summary>
-	public override async ValueTask<JsonStructure> GetJsonStructure(uint roleId)
+	public override async ValueTask<JsonStructure> GetJsonStructure(Context ctx)
 	{
-		return await GetTypedJsonStructure(roleId);
+		return await GetTypedJsonStructure(ctx);
 	}
 
 	/// <summary>
 	/// Gets the JSON structure. Defines settable fields for a particular role.
 	/// </summary>
-	public async ValueTask<JsonStructure<T>> GetTypedJsonStructure(uint roleId)
+	public async ValueTask<JsonStructure<T>> GetTypedJsonStructure(Context ctx)
 	{
-		if(_jsonStructures == null)
+		var roleId = ctx.RoleId;
+
+		if (_jsonStructures == null)
 		{
-			_jsonStructures = new JsonStructure<T>[Roles.All.Length];
+			_jsonStructures = new JsonStructure<T>[roleId];
 		}
-		
-		if(roleId < 0 || roleId >= Roles.All.Length)
+		else if (roleId > _jsonStructures.Length)
 		{
-			// Bad role ID.
-			return null;
+			Array.Resize(ref _jsonStructures, (int)roleId);
 		}
-		
-		var structure = _jsonStructures[roleId];
+
+		var structure = _jsonStructures[roleId - 1];
 		
 		if(structure == null)
 		{
 			// Not built yet. Build it now:
-			_jsonStructures[roleId] = structure = new JsonStructure<T>(Roles.All[roleId]);
-			await structure.Build(EventGroup.BeforeSettable);
+			var role = await Services.Get<RoleService>().Get(new Context(), roleId, DataOptions.IgnorePermissions);
+			_jsonStructures[roleId - 1] = structure = new JsonStructure<T>(role);
+			await structure.Build(GetContentFields(), EventGroup.BeforeSettable, EventGroup.BeforeGettable);
 		}
 		
 		return structure;
@@ -240,23 +241,10 @@ public partial class AutoService<T, ID> : AutoService
 	/// <returns></returns>
 	public virtual async ValueTask<ListWithTotal<T>> ListWithTotal(Context context, Filter<T> filter, DataOptions options = DataOptions.Default)
 	{
-		if (NestableAddMask != 0 && (context.NestedTypes & NestableAddMask) == NestableAddMask)
-		{
-			// This happens when we're nesting List calls.
-			// For example, a User has Tags which in turn have a (creator) User.
-			return new ListWithTotal<T>()
-			{
-				Results = new List<T>(),
-				Total = 0
-			};
-		}
-
 		// Ignoring the permissions only needs to occur on Before.
 		var previousPermState = context.IgnorePermissions;
 		context.IgnorePermissions = options == DataOptions.IgnorePermissions;
-		context.NestedTypes |= NestableAddMask;
 		filter = await EventGroup.BeforeList.Dispatch(context, filter);
-		context.NestedTypes &= NestableRemoveMask;
 		context.IgnorePermissions = previousPermState;
 
 		// If the filter doesn't have join or group by nodes, we can potentially run it through the cache.
@@ -286,9 +274,7 @@ public partial class AutoService<T, ID> : AutoService
 			listAndTotal = await _database.ListWithTotal(context, listQuery, filter);
 		}
 		
-		context.NestedTypes |= NestableAddMask;
 		listAndTotal.Results = await EventGroup.AfterList.Dispatch(context, listAndTotal.Results);
-		context.NestedTypes &= NestableRemoveMask;
 		return listAndTotal;
 	}
 
@@ -298,18 +284,10 @@ public partial class AutoService<T, ID> : AutoService
 	/// <returns></returns>
 	public virtual async ValueTask<List<T>> List(Context context, Filter<T> filter, DataOptions options = DataOptions.Default)
 	{
-		if(NestableAddMask!=0 && (context.NestedTypes & NestableAddMask) == NestableAddMask){
-			// This happens when we're nesting List calls.
-			// For example, a User has Tags which in turn have a (creator) User.
-			return new List<T>();
-		}
-
 		// Ignoring the permissions only needs to occur on Before.
 		var previousPermState = context.IgnorePermissions;
 		context.IgnorePermissions = options == DataOptions.IgnorePermissions;
-		context.NestedTypes |= NestableAddMask;
 		filter = await EventGroup.BeforeList.Dispatch(context, filter);
-		context.NestedTypes &= NestableRemoveMask;
 		context.IgnorePermissions = previousPermState;
 
 		// If the filter doesn't have join or group by nodes, we can potentially run it through the cache.
@@ -337,9 +315,7 @@ public partial class AutoService<T, ID> : AutoService
 			list = await _database.List(context, listQuery, filter);
 		}
 		
-		context.NestedTypes |= NestableAddMask;
 		list = await EventGroup.AfterList.Dispatch(context, list);
-		context.NestedTypes &= NestableRemoveMask;
 		return list;
 	}
 
@@ -355,26 +331,14 @@ public partial class AutoService<T, ID> : AutoService
 			return new List<T>();
 		}
 
-		if (NestableAddMask != 0 && (context.NestedTypes & NestableAddMask) == NestableAddMask)
-		{
-			// This happens when we're nesting List calls.
-			// For example, a User has Tags which in turn have a (creator) User.
-			return new List<T>();
-		}
-
 		// Ignoring the permissions only needs to occur on Before.
 		var previousPermState = context.IgnorePermissions;
 		context.IgnorePermissions = options == DataOptions.IgnorePermissions;
-		context.NestedTypes |= NestableAddMask;
 		filter = await EventGroup.BeforeList.Dispatch(context, filter);
-		context.NestedTypes &= NestableRemoveMask;
 		context.IgnorePermissions = previousPermState;
 
 		var list = await _database.List(context, raw? listRawQuery : listQuery, filter);
-
-		context.NestedTypes |= NestableAddMask;
 		list = await EventGroup.AfterList.Dispatch(context, list);
-		context.NestedTypes &= NestableRemoveMask;
 		return list;
 	}
 
@@ -417,15 +381,28 @@ public partial class AutoService<T, ID> : AutoService
 	}
 
 	/// <summary>
-	/// Updates an object in this service.
+	/// Updates an object in this service. The callback is the only place that is permitted to set fields. It must call object.MarkChanged.
 	/// </summary>
 	/// <param name="context"></param>
 	/// <param name="content"></param>
+	/// <param name="cb"></param>
 	/// <param name="options"></param>
 	/// <returns></returns>
-	public override async ValueTask<object> UpdateObject(Context context, object content, DataOptions options = DataOptions.Default)
+	public override async ValueTask<object> UpdateObject(Context context, object content, Action<Context, object> cb, DataOptions options = DataOptions.Default)
 	{
-		return await Update(context, content as T, options);
+		var entity = content as T;
+
+		if (options != DataOptions.IgnorePermissions && !await StartUpdate(context, entity))
+		{
+			// Note it would've thrown.
+			return null;
+		}
+
+		// Set fields now. They must call entity.MarkChanged.
+		cb(context, entity);
+
+		// And perform the save:
+		return await FinishUpdate(context, entity);
 	}
 
 	/// <summary>
@@ -492,17 +469,8 @@ public partial class AutoService<T, ID> : AutoService
 	/// </summary>
 	public virtual async ValueTask<T> Get(Context context, ID id, DataOptions options = DataOptions.Default)
 	{
-		if (NestableAddMask != 0 && (context.NestedTypes & NestableAddMask) == NestableAddMask)
-		{
-			// This happens when we're nesting Get calls.
-			// For example, a User has Tags which in turn have a (creator) User.
-			return null;
-		}
-
 		// Note: Get is unique in that its permission check happens in the After event handler.
-		context.NestedTypes |= NestableAddMask;
 		id = await EventGroup.BeforeLoad.Dispatch(context, id);
-		context.NestedTypes &= NestableRemoveMask;
 		
 		T item = null;
 
@@ -521,9 +489,7 @@ public partial class AutoService<T, ID> : AutoService
 		// Ignoring the permissions only needs to occur on *After* for Gets.
 		var previousPermState = context.IgnorePermissions;
 		context.IgnorePermissions = options == DataOptions.IgnorePermissions;
-		context.NestedTypes |= NestableAddMask;
 		item = await EventGroup.AfterLoad.Dispatch(context, item);
-		context.NestedTypes &= NestableRemoveMask;
 		context.IgnorePermissions = previousPermState;
 		
 		return item;
@@ -799,21 +765,62 @@ public partial class AutoService<T, ID> : AutoService
 	}
 
 	/// <summary>
-	/// Updates the given entity.
+	/// Performs an update on the given entity. If updating the object is permitted, the callback is executed. 
+	/// You must only set fields on the object in that callback, or in a BeforeUpdate handle.
 	/// </summary>
-	public virtual async ValueTask<T> Update(Context context, T entity, DataOptions options = DataOptions.Default)
+	public virtual async ValueTask<T> Update(Context context, T entity, Action<Context, T> cb, DataOptions options = DataOptions.Default)
 	{
-		var previousPermState = context.IgnorePermissions;
-		context.IgnorePermissions = options == DataOptions.IgnorePermissions;
-		entity = await EventGroup.BeforeUpdate.Dispatch(context, entity);
-		context.IgnorePermissions = previousPermState;
+		if (options != DataOptions.IgnorePermissions && !await StartUpdate(context, entity))
+		{
+			// Note it would've thrown.
+			return null;
+		}
+		
+		// Set fields now:
+		cb(context, entity);
 
+		// And perform the save:
+		return await FinishUpdate(context, entity);
+	}
+
+	/// <summary>
+	/// For simpler usage, see Update. This is for advanced non-allocating updates.
+	/// </summary>
+	/// <param name="context"></param>
+	/// <param name="entity"></param>
+	/// <param name="options"></param>
+	/// <returns></returns>
+	public async ValueTask<bool> StartUpdate(Context context, T entity, DataOptions options = DataOptions.Default)
+	{
+		if (options != DataOptions.IgnorePermissions)
+		{
+			// Perform the permission test now:
+			await EventGroup.BeforeUpdate.TestCapability(context, entity);
+		}
+
+		// Reset marked changes:
+		entity.ResetChanges();
+
+		return true;
+	}
+
+	/// <summary>
+	/// Used together with CanUpdate in the form if(await CanUpdate){ set fields, await DoUpdate }.
+	/// This route is used to set fields on the object without an allocation.
+	/// </summary>
+	/// <param name="context"></param>
+	/// <param name="entity"></param>
+	/// <returns></returns>
+	public async ValueTask<T> FinishUpdate(Context context, T entity)
+	{
+		entity = await EventGroup.BeforeUpdate.Dispatch(context, entity);
+		
 		if (entity == null)
 		{
 			return null;
 		}
 
-		var id = entity.GetId();
+		var id = entity.Id;
 
 		T raw = null;
 
@@ -879,7 +886,7 @@ public partial class AutoService<T, ID> : AutoService
 /// <summary>
 /// The base class of all AutoService instances.
 /// </summary>
-public partial class AutoService : IHaveId<uint>
+public partial class AutoService
 {
 	/// <summary>
 	/// True if this type is synced. This is typically set to true if the cache is active.
@@ -905,29 +912,48 @@ public partial class AutoService : IHaveId<uint>
 	public Schema DatabaseSchema;
 
 	/// <summary>
-	/// The add mask to use for a nestable service.
-	/// Nested services essentially automatically block infinite recursion when loading data.
+	/// Outputs a list of things from this service as JSON into the given writer.
+	/// Executes the given collector(s) whilst it happens, which can also be null.
 	/// </summary>
-	public ulong NestableAddMask = 0;
-
-	/// <summary>
-	/// The remove mask to use for a nestable service.
-	/// Nested services essentially automatically block infinite recursion when loading data.
-	/// </summary>
-	public ulong NestableRemoveMask = ulong.MaxValue;
-
-	/// <summary>
-	/// True if this service is 'nestable' meaning it can be used during a List event in some other service.
-	/// Nested services essentially automatically block infinite recursion when loading data.
-	/// </summary>
-	public bool IsNestable
+	/// <param name="context"></param>
+	/// <param name="collectors"></param>
+	/// <param name="idSet"></param>
+	/// <param name="writer"></param>
+	/// <returns></returns>
+	public virtual ValueTask OutputJsonList(Context context, IDCollector collectors, IDCollector idSet, Writer writer)
 	{
-		get
-		{
-			return NestableAddMask != 0;
-		}
+		// Not supported on this service.
+		return new ValueTask();
 	}
-	
+
+	/// <summary>
+	/// Outputs a mapping. Only valid on a Mapping service.
+	/// </summary>
+	/// <param name="context"></param>
+	/// <param name="mappingCollector"></param>
+	/// <param name="idSet"></param>
+	/// <param name="writer"></param>
+	/// <returns></returns>
+	public virtual ValueTask OutputMap(Context context, IDCollector mappingCollector, IDCollector idSet, Writer writer)
+	{
+		// Not supported on this service.
+		return new ValueTask();
+	}
+
+	/// <summary>
+	/// Outputs a single object from this service as JSON into the given writer. Acts like include * was specified.
+	/// Executes the given collector(s) whilst it happens, which can also be null.
+	/// </summary>
+	/// <param name="context"></param>
+	/// <param name="id"></param>
+	/// <param name="writer"></param>
+	/// <returns></returns>
+	public virtual ValueTask OutputById(Context context, uint id, Writer writer)
+	{
+		// Not supported on this service.
+		return new ValueTask();
+	}
+
 	/// <summary>
 	/// Returns the EventGroup[T] for this AutoService, or null if it is an autoService without an EventGroup.
 	/// </summary>
@@ -935,6 +961,16 @@ public partial class AutoService : IHaveId<uint>
 	public virtual EventGroup GetEventGroup()
 	{
 		return null;
+	}
+
+	/// <summary>
+	/// Sets up the cache if this service needs one.
+	/// </summary>
+	/// <returns></returns>
+	public virtual ValueTask SetupCacheIfNeeded()
+	{
+		// Not all services are AutoService<T>.
+		return new ValueTask();
 	}
 
 	/// <summary>
@@ -981,7 +1017,7 @@ public partial class AutoService : IHaveId<uint>
 	public async ValueTask<object> GetMetaFieldValue(Context context, string fieldName, object content)
 	{
 		// Get the json structure:
-		var json = await GetJsonStructure(context == null ? 0 : context.RoleId);
+		var json = await GetJsonStructure(context);
 
 		var field = json.GetMetaField(fieldName);
 
@@ -998,7 +1034,41 @@ public partial class AutoService : IHaveId<uint>
 
 		return field.FieldInfo.GetValue(content);
 	}
-	
+
+
+
+	/// <summary>
+	/// Gets the named change field. Use this in MarkChanged calls. If you're updating multiple fields, use .And("AnotherField") for convenience.
+	/// </summary>
+	/// <param name="name"></param>
+	/// <returns></returns>
+	public ComposableChangeField GetChangeField(string name)
+	{
+		var ccf = new ComposableChangeField();
+		ccf.Map = GetContentFields();
+		ccf.And(name);
+		return ccf;
+	}
+
+	/// <summary>
+	/// Gets a map which lists the available fields in the content type.
+	/// </summary>
+	/// <returns></returns>
+	public ContentFields GetContentFields()
+	{
+		if (_contentFields == null)
+		{
+			_contentFields = new ContentFields(this);
+		}
+
+		return _contentFields;
+	}
+
+	/// <summary>
+	/// The fields of this type.
+	/// </summary>
+	private ContentFields _contentFields;
+
 	/// <summary>
 	/// True if the given is a persistent type (i.e. if it should be stored in the database or not).
 	/// </summary>
@@ -1022,7 +1092,7 @@ public partial class AutoService : IHaveId<uint>
 	/// <summary>
 	/// Gets the JSON structure. Defines settable fields for a particular role.
 	/// </summary>
-	public virtual ValueTask<JsonStructure> GetJsonStructure(uint roleId)
+	public virtual ValueTask<JsonStructure> GetJsonStructure(Context ctx)
 	{
 		throw new NotImplementedException();
 	}
@@ -1032,9 +1102,10 @@ public partial class AutoService : IHaveId<uint>
 	/// </summary>
 	/// <param name="context"></param>
 	/// <param name="content"></param>
+	/// <param name="cb"></param>
 	/// <param name="options"></param>
 	/// <returns></returns>
-	public virtual ValueTask<object> UpdateObject(Context context, object content, DataOptions options = DataOptions.Default)
+	public virtual ValueTask<object> UpdateObject(Context context, object content, Action<Context, object> cb, DataOptions options = DataOptions.Default)
 	{
 		return new ValueTask<object>(null);
 	}
@@ -1089,22 +1160,6 @@ public partial class AutoService : IHaveId<uint>
 		return new ValueTask<ListWithTotal>((ListWithTotal)null);
 	}
 
-	/// <summary>
-	/// Makes this service type 'nestable'.
-	/// </summary>
-	public void MakeNestable()
-	{
-		if (IsNestable)
-		{
-			return;
-		}
-
-		var id = Api.Startup.AutoServiceNesting.TypeId++;
-
-		NestableAddMask = (ulong)1 << id;
-		NestableRemoveMask = ~NestableAddMask;
-	}
-	
 	/// <summary>
 	/// Installs generic admin pages for this service.
 	/// Does nothing if there isn't a page service installed, or if the admin pages already exist.
@@ -1197,7 +1252,7 @@ public partial class AutoService : IHaveId<uint>
 	/// Installs one or more roles. You must provide a Key and no Id on each one.
 	/// The permissions module is required anyway and must be up to date.
 	/// </summary>
-	protected void InstallRoles(params UserRole[] roles)
+	protected void InstallRoles(params Role[] roles)
 	{
 		if (Services.Started)
 		{
@@ -1214,9 +1269,9 @@ public partial class AutoService : IHaveId<uint>
 		}
 	}
 	
-	private static void InstallRolesInternal(UserRole[] roles)
+	private static void InstallRolesInternal(Role[] roles)
 	{
-		var roleService = Services.Get<UserRoleService>();
+		var roleService = Services.Get<RoleService>();
 
 		if (roleService == null)
 		{
@@ -1270,139 +1325,4 @@ public partial class AutoService : IHaveId<uint>
 		});
 
 	}
-	
-	/// <summary>
-	/// Defines a new IHave* interface.
-	/// It's added to content types to declare they have e.g. an array of tags, categories etc.
-	/// This one specifically is where the mapping type is also the array entries.
-	/// </summary>
-	protected IHaveArrayHandler<T, U, U> DefineIHaveArrayHandler<T, U>(Action<T, List<U>> setResult, bool retainOrder = false)
-		where T : class
-		where U : MappingEntity, new()
-	{
-		return DefineIHaveArrayHandler<T, U, U>(null, null, setResult, retainOrder);
-	}
-	
-	/// <summary>
-	/// Defines a new IHave* interface.
-	/// It's added to content types to declare they have e.g. an array of tags, categories etc.
-	/// </summary>
-	protected IHaveArrayHandler<T, U, M> DefineIHaveArrayHandler<T, U, M>(string whereFieldName, string mapperFieldName, Action<T, List<U>> setResult, bool retainOrder = false)
-		where T : class
-		where U : Content<uint>, new()
-		where M : MappingEntity, new()
-	{
-		IHaveArrayHandler<T, U, M> mapper;
-
-		if (typeof(U) == typeof(M))
-		{
-			mapper = new IHaveArrayHandler<T, M>()
-			{
-				WhereFieldName = whereFieldName,
-				MapperFieldName = mapperFieldName,
-				OnSetResult = setResult as Action<T, List<M>>,
-				Database = _database,
-				RetainOrder = retainOrder
-			} as IHaveArrayHandler<T, U, M>;
-		}
-		else
-		{
-			mapper = new IHaveArrayHandler<T, U, M>()
-			{
-				WhereFieldName = whereFieldName,
-				MapperFieldName = mapperFieldName,
-				OnSetResult = setResult,
-				Database = _database,
-				RetainOrder = retainOrder
-			};
-		}
-
-		mapper.Map();
-
-		return mapper;
-	}
-	
-	/// <summary>
-	/// Defines a new IHave* interface.
-	/// It's added to content types to declare they have e.g. an array of tags, categories etc.
-	/// </summary>
-	protected IHaveArrayHandler<T, Api.Users.User, M> DefineIHaveArrayHandler<T, M>(string whereFieldName, Action<T, List<Api.Users.UserProfile>> setResult, bool retainOrder = false)
-		where T : class
-		where M : MappingEntity, new()
-	{
-		Api.Users.UserService _users = null;
-
-		var mapper = new IHaveArrayHandler<T, Api.Users.User, M>() {
-			WhereFieldName = whereFieldName,
-			MapperFieldName = "UserId",
-			OnSetResult = (T content, List<Api.Users.User> users) => {
-
-				if (users == null)
-				{
-					setResult(content, null);
-					return;
-				}
-
-				if (_users == null)
-				{
-					_users = Services.Get<Api.Users.UserService>();
-				}
-
-				// Map users to a UserProfile list:
-				var set = new List<Api.Users.UserProfile>();
-
-				foreach (var user in users)
-				{
-					set.Add(_users.GetProfile(user));
-				}
-
-				setResult(content, set);
-			},
-			Database = _database,
-			RetainOrder = retainOrder
-		};
-
-		mapper.Map();
-
-		return mapper;
-	}
-
-	/// <summary>
-	/// The ID of the service itself.
-	/// </summary>
-	/// <returns></returns>
-	public uint GetId()
-	{
-		if (ServicedType != null)
-		{
-			return (uint)ContentTypes.GetId(ServicedType);
-		}
-
-		throw new NotImplementedException("Typeless services don't have an ID. You probably meant to use something else, like Get.");
-	}
-
-	/// <summary>
-	/// The ID of the service itself.
-	/// </summary>
-	/// <param name="id"></param>
-	public void SetId(uint id)
-	{
-		throw new NotImplementedException("This is readonly");
-	}
-}
-
-namespace Api.Startup {
-
-	/// <summary>
-	/// Used to help nestable AutoServices.
-	/// </summary>
-	public static class AutoServiceNesting {
-
-		/// <summary>
-		/// All nestable AutoServices are given an ID. It's not stored in the database so it's assigned at runtime as the services start.
-		/// This tracks the number assigned so far.
-		/// </summary>
-		public static int TypeId;
-	}
-
 }

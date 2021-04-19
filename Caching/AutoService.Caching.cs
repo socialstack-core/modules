@@ -67,26 +67,6 @@ public partial class AutoService<T, ID> {
 
 		_cacheConfig = cfg;
 		Synced = cfg == null || cfg.ClusterSync;
-
-		if (alreadyWaiting)
-		{
-			return;
-		}
-
-		if (Services.Started)
-		{
-			// Services already started - preload right now:
-			var task = SetupCacheNow();
-			task.Wait();
-		}
-		else
-		{
-			Events.Service.AfterStart.AddEventListener(async (Context ctx, object src) =>
-			{
-				await SetupCacheNow();
-				return src;
-			}, cfg.PreloadPriority);
-		}
 	}
 
 	/// <summary>
@@ -104,12 +84,16 @@ public partial class AutoService<T, ID> {
 	}
 
 	/// <summary>
-	/// Sets up the cache on this service. If you're not sure, use Cache instead of this.
+	/// Sets up the cache on this service. Use Cache() instead of this - SetupCacheNow is invoked during service startup.
 	/// </summary>
 	/// <returns></returns>
-	private async Task SetupCacheNow()
+	public override async ValueTask SetupCacheIfNeeded()
 	{
-		
+		if (_cacheConfig == null)
+		{
+			return;
+		}
+
 		// Log that the cache is on:
 		Console.WriteLine(GetType().Name + " - cache on");
 
@@ -202,6 +186,9 @@ public partial class AutoService<T, ID> {
 			}
 		}
 
-		_cacheConfig.OnCacheLoaded?.Invoke();
+		if (_cacheConfig.OnCacheLoaded != null)
+		{
+			await _cacheConfig.OnCacheLoaded();
+		}
 	}
 }

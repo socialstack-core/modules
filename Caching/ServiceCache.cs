@@ -14,7 +14,7 @@ namespace Api.Startup{
 	/// There is one of these per locale, stored by AutoService.
 	/// </summary>
 	public class ServiceCache<T, PT> 
-		where T:class, IHaveId<PT>
+		where T: Content<PT>
 		where PT:struct
 	{
 		/// <summary>
@@ -96,7 +96,7 @@ namespace Api.Startup{
 					indexFieldType = typeof(string);
 				}
 
-				ServiceCacheIndex<T> index = null;
+				ServiceCacheIndex<T> index;
 
 				if (indexInfo.Unique)
 				{
@@ -111,8 +111,13 @@ namespace Api.Startup{
 				else
 				{
 					// Non-unique index - it's a Dictionary<IndexFieldType, LinkedListOfT>
-					Console.WriteLine("[NOTICE] Non-unique cache indices are not currently supported.");
-					continue;
+
+					var indexType = typeof(NonUniqueIndex<,>).MakeGenericType(new Type[] {
+						typeof(T),
+						indexFieldType
+					});
+
+					index = Activator.CreateInstance(indexType) as ServiceCacheIndex<T>;
 				}
 
 				// Add to fast lookup:

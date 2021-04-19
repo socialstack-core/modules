@@ -17,7 +17,7 @@ using System.Threading.Tasks;
 /// </summary>
 /// <typeparam name="T"></typeparam>
 public partial class AutoController<T> : AutoController<T, uint>
-	where T : class, IHaveId<uint>, new()
+	where T : Content<uint>, new()
 {
 }
 
@@ -30,8 +30,8 @@ public partial class AutoController<T> : AutoController<T, uint>
 /// <typeparam name="ID"></typeparam>
 [ApiController]
 public partial class AutoController<T,ID> : ControllerBase
-	where T : class, IHaveId<ID>, new()
-	where ID : struct, IConvertible
+	where T : Content<ID>, new()
+	where ID : struct, IConvertible, IEquatable<ID>
 {
 
 	/// <summary>
@@ -60,11 +60,70 @@ public partial class AutoController<T,ID> : ControllerBase
 	}
 
 	/// <summary>
+	/// Json header
+	/// </summary>
+	private readonly static string _applicationJson = "application/json";
+
+	/// <summary>
+	/// Outputs the given content object whilst considering the field visibility rules of the role in the context.
+	/// </summary>
+	/// <param name="context"></param>
+	/// <param name="content"></param>
+	/// <param name="includes"></param>
+	/// <returns></returns>
+	protected async ValueTask OutputJson(Context context, T content, string includes)
+	{
+		if (content == null)
+		{
+			if (Response.StatusCode == 200)
+			{
+				Response.StatusCode = 404;
+			}
+			return;
+		}
+
+		Response.ContentType = _applicationJson;
+		await _service.ToJson(context, content, Response.Body, includes);
+	}
+
+	/// <summary>
+	/// Outputs the given content object list whilst considering the field visibility rules of the role in the context.
+	/// </summary>
+	/// <param name="context"></param>
+	/// <param name="list"></param>
+	/// <param name="includes"></param>
+	/// <returns></returns>
+	protected async ValueTask OutputJson(Context context, ListWithTotal<T> list, string includes)
+	{
+		if (list == null)
+		{
+			return;
+		}
+
+		Response.ContentType = _applicationJson;
+		await _service.ToJson(context, list, Response.Body, includes);
+	}
+
+	/// <summary>
+	/// Outputs a context update.
+	/// </summary>
+	/// <param name="context"></param>
+	/// <returns></returns>
+	protected async ValueTask OutputContext(Context context)
+	{
+		// Regenerate the contextual token:
+		context.SendToken(Response);
+
+		Response.ContentType = _applicationJson;
+		await Services.Get<ContextService>().ToJson(context, Response.Body);
+	}
+
+	/// <summary>
 	/// GET /v1/entityTypeName/2/
 	/// Returns the data for 1 entity.
 	/// </summary>
 	[HttpGet("{id}")]
-	public virtual async ValueTask<object> Load([FromRoute] ID id)
+	public virtual async ValueTask Load([FromRoute] ID id, [FromQuery] string includes = null)
 	{
 		var context = Request.GetContext();
 
@@ -72,15 +131,16 @@ public partial class AutoController<T,ID> : ControllerBase
 		
 		var result = await _service.Get(context, id);
 		result = await _service.EventGroup.EndpointEndLoad.Dispatch(context, result, Response);
-		return result;
+
+		await OutputJson(context, result, includes);
     }
 
-    /// <summary>
-    /// DELETE /v1/entityTypeName/2/
-    /// Deletes an entity
-    /// </summary>
-    [HttpDelete("{id}")]
-    public virtual async ValueTask<object> Delete([FromRoute] ID id)
+	/// <summary>
+	/// DELETE /v1/entityTypeName/2/
+	/// Deletes an entity
+	/// </summary>
+	[HttpDelete("{id}")]
+    public virtual async ValueTask Delete([FromRoute] ID id, [FromQuery] string includes = null)
 	{
 		var context = Request.GetContext();
 		var result = await _service.Get(context, id);
@@ -88,17 +148,25 @@ public partial class AutoController<T,ID> : ControllerBase
 
 		if (result == null)
 		{
-			return null;
+			if (Response.StatusCode == 200)
+			{
+				Response.StatusCode = 404;
+			}
+			return;
 		}
 
 		if (result == null || !await _service.Delete(context, result))
 		{
 			// The handlers have blocked this one from happening, or it failed
-			return null;
+			if (Response.StatusCode == 200)
+			{
+				Response.StatusCode = 404;
+			}
+			return;
 		}
 
 		result = await _service.EventGroup.EndpointEndDelete.Dispatch(context, result, Response);
-		return result;
+		await OutputJson(context, result, includes);
 	}
 
     /// <summary>
@@ -107,9 +175,9 @@ public partial class AutoController<T,ID> : ControllerBase
 	/// </summary>
 	/// <returns></returns>
 	[HttpGet("list")]
-	public virtual async ValueTask<object> List()
+	public virtual async ValueTask List([FromQuery] string includes = null)
 	{
-		return await List(null);
+		await List(null, includes);
 	}
 
 	/// <summary>
@@ -119,7 +187,7 @@ public partial class AutoController<T,ID> : ControllerBase
 	/// </summary>
 	/// <returns></returns>
 	[HttpPost("list")]
-	public virtual async ValueTask<object> List([FromBody] JObject filters)
+	public virtual async ValueTask List([FromBody] JObject filters, [FromQuery] string includes = null)
 	{
 		var context = Request.GetContext();
 		var filter = new Filter<T>(filters);
@@ -129,7 +197,8 @@ public partial class AutoController<T,ID> : ControllerBase
 		if (filter == null)
 		{
 			// A handler rejected this request.
-			return null;
+			Response.StatusCode = 404;
+			return;
 		}
 
 		ListWithTotal<T> response;
@@ -158,15 +227,15 @@ public partial class AutoController<T,ID> : ControllerBase
 
 		response.Results = await _service.EventGroup.EndpointEndList.Dispatch(context, response.Results, Response);
 
-		return response;
-    }
+		await OutputJson(context, response, includes);
+	}
 
     /// <summary>
     /// POST /v1/entityTypeName/
-    /// Creates a new entity. Returns the ID.
+    /// Creates a new entity. Returns the ID. Includes everything by default.
     /// </summary>
     [HttpPost]
-	public virtual async ValueTask<object> Create([FromBody] JObject body)
+	public virtual async ValueTask Create([FromBody] JObject body)
 	{
 		var context = Request.GetContext();
 
@@ -199,7 +268,12 @@ public partial class AutoController<T,ID> : ControllerBase
 				Request.Headers["Api-Notes"] = notes;
 			}
 
-			return null;
+			if (Response.StatusCode == 200)
+			{
+				Response.StatusCode = 404;
+			}
+
+			return;
 		}
 
 		entity = await _service.CreatePartial(context, entity, DataOptions.Default);
@@ -212,7 +286,12 @@ public partial class AutoController<T,ID> : ControllerBase
 				Request.Headers["Api-Notes"] = notes;
 			}
 
-			return null;
+			if (Response.StatusCode == 200)
+			{
+				Response.StatusCode = 404;
+			}
+
+			return;
 		}
 		
 		// Set post ID fields:
@@ -244,7 +323,12 @@ public partial class AutoController<T,ID> : ControllerBase
 				Request.Headers["Api-Notes"] = notes;
 			}
 
-			return null;
+			if (Response.StatusCode == 200)
+			{
+				Response.StatusCode = 404;
+			}
+
+			return;
 		}
 		
 		if (notes != null)
@@ -253,9 +337,9 @@ public partial class AutoController<T,ID> : ControllerBase
 		}
 
 		// Fire off after create evt:
-		entity = await _service.EventGroup.EndpointEndCreate.Dispatch(context, entity, Response) as T;
+		entity = await _service.EventGroup.EndpointEndCreate.Dispatch(context, entity, Response);
 
-		return entity;
+		await OutputJson(context, entity, "*");
 	}
 
 	/// <summary>
@@ -270,7 +354,7 @@ public partial class AutoController<T,ID> : ControllerBase
 	protected async ValueTask<string> SetFieldsOnObject(T target, Context context, JObject body, JsonFieldGroup fieldGroup = JsonFieldGroup.Any)
 	{
         // Get the JSON meta which will indicate exactly which fields are editable by this user (role):
-		var availableFields = await _service.GetTypedJsonStructure(context.RoleId);
+		var availableFields = await _service.GetTypedJsonStructure(context);
 
 		string notes = null;
 
@@ -295,7 +379,10 @@ public partial class AutoController<T,ID> : ControllerBase
 			}
 
 			// Try setting the value now:
-			await field.SetValue(context, target, property.Value);
+			if (await field.SetValueIfChanged(context, target, property.Value))
+			{
+				target.MarkChanged(field.ChangeFlag);
+			}
 		}
 
 		return notes;
@@ -303,10 +390,10 @@ public partial class AutoController<T,ID> : ControllerBase
 	
 	/// <summary>
 	/// POST /v1/entityTypeName/1/
-	/// Updates an entity with the given ID.
+	/// Updates an entity with the given ID. Includes everything by default.
 	/// </summary>
 	[HttpPost("{id}")]
-	public virtual async ValueTask<object> Update([FromRoute] ID id, [FromBody] JObject body)
+	public virtual async ValueTask Update([FromRoute] ID id, [FromBody] JObject body)
 	{
 		var context = Request.GetContext();
 		
@@ -314,10 +401,12 @@ public partial class AutoController<T,ID> : ControllerBase
 		
 		if (entity == null)
 		{
-			// Either not allowed to edit this, or it doesn't exist.
-			// Both situations are a 404.
-			Response.StatusCode = 404;
-			return null;
+			if (Response.StatusCode == 200)
+			{
+				Response.StatusCode = 404;
+			}
+
+			return;
 		}
 		
 		// Run the request update event (using the original object to be updated):
@@ -325,10 +414,18 @@ public partial class AutoController<T,ID> : ControllerBase
 
 		if (entity == null)
 		{
-			// Either not allowed to edit this, or it doesn't exist.
-			// Both situations are a 404.
-			Response.StatusCode = 404;
-			return null;
+			if (Response.StatusCode == 200)
+			{
+				Response.StatusCode = 404;
+			}
+
+			return;
+		}
+
+		if (!await _service.StartUpdate(context, entity))
+		{
+			// Can't start update (no permission, typically).
+			return;
 		}
 
 		// In this case the entity ID is definitely known, so we can run all fields at the same time:
@@ -345,22 +442,24 @@ public partial class AutoController<T,ID> : ControllerBase
 		if (entity == null)
 		{
 			// A handler rejected this request.
-			return null;
+			return;
 		}
 
-		entity = await _service.Update(context, entity);
+		entity = await _service.FinishUpdate(context, entity);
 
 		if (entity == null)
 		{
-			// It was blocked or went wrong, typically because of a bad request.
-			Response.StatusCode = 400;
-			return null;
+			if (Response.StatusCode == 200)
+			{
+				Response.StatusCode = 404;
+			}
+
+			return;
 		}
 		
 		// Run the request updated event:
 		entity = await _service.EventGroup.EndpointEndUpdate.Dispatch(context, entity, Response) as T;
-
-		return entity;
+		await OutputJson(context, entity, "*");
 	}
 
 }

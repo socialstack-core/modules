@@ -1,5 +1,6 @@
 using Api.Contexts;
 using System;
+using System.Threading.Tasks;
 
 namespace Api.Startup{
 	
@@ -50,7 +51,7 @@ namespace Api.Startup{
 		/// <summary>
 		/// An action which is triggered when the cache is loaded, if Preload is true.
 		/// </summary>
-		public Action OnCacheLoaded;
+		public Func<ValueTask> OnCacheLoaded;
 
 		/// <summary>
 		/// Very rare that this is false. If you are using the cache, you should almost always sync it across the cluster automatically.

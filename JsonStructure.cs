@@ -96,7 +96,16 @@ namespace Api.Startup
 		///  Common field names used by entities which are used as a description when no [Meta("description")] is declared.
 		/// </summary>
 		private readonly static string[] CommonDescriptionNames = new string[] { "description", "shortdescription", "bio", "biography", "about" };
-		
+
+		/// <summary>
+		/// Type reader writer for this structure.
+		/// </summary>
+		public TypeReaderWriter<T> TypeIO;
+
+		/// <summary>
+		/// Fields that can be read by users of the current role.
+		/// </summary>
+		public List<JsonField<T>> ReadableFields = new List<JsonField<T>>();
 		/// <summary>
 		/// All raw fields in this structure.
 		/// </summary>
@@ -126,6 +135,47 @@ namespace Api.Startup
 			MetaFields = new Dictionary<string, JsonField<T>>();
 			AfterIdFields = new Dictionary<string, JsonField<T>>();
 			BeforeIdFields = new Dictionary<string, JsonField<T>>();
+		}
+
+		/// <summary>
+		/// Counts the number of include strings in the given include line.
+		/// </summary>
+		/// <param name="includes"></param>
+		/// <returns></returns>
+		public int CountIncludes(string includes)
+		{
+			if (includes == null)
+			{
+				return 0;
+			}
+
+			var chars = includes.AsSpan();
+
+			var hasSomething = false;
+			var count = 0;
+
+			for (var i = 0; i < chars.Length; i++)
+			{
+				if (chars[i] == ',')
+				{
+					if (hasSomething)
+					{
+						count++;
+						hasSomething = false;
+					}
+				}
+				else
+				{
+					hasSomething = true;
+				}
+			}
+
+			if (hasSomething)
+			{
+				count++;
+			}
+
+			return count;
 		}
 
 		/// <summary>
@@ -161,44 +211,63 @@ namespace Api.Startup
 		/// and for each one, triggers an event. The event can return either nothing at all - which will outright block the field - 
 		/// or the event can add a special value handler which will map the raw JSON value to the actual object for us.
 		/// </summary>
-		public async Task Build(Api.Eventing.EventHandler<JsonField<T>> beforeSettable)
+		public async Task Build(ContentFields fields, Api.Eventing.EventHandler<JsonField<T>> beforeSettable, Api.Eventing.EventHandler<JsonField<T>> beforeGettable)
 		{
 			var context = new Context();
 
-			var fields = typeof(T).GetFields();
-			
-			foreach(var field in fields)
+			// Most types have all fields as readable by default:
+			var readable = true;
+
+			var permAttribute = typeof(T).GetCustomAttribute<PermissionsAttribute>();
+
+			if (permAttribute != null)
 			{
-				var jsonField = new JsonField<T>()
+				if (permAttribute.HideFieldByDefault)
 				{
-					Name = field.Name,
-					OriginalName = field.Name,
-					Attributes = field.GetCustomAttributes(),
-					Structure = this,
-					TargetType = field.FieldType
-				};
-				jsonField.FieldInfo = field;
-				await TryAddField(context, jsonField, beforeSettable);
+					// Default read state is false
+					readable = false;
+				}
 			}
-			
-			var properties = typeof(T).GetProperties();
-			
-			foreach(var property in properties)
+
+			foreach (var contentField in fields.List)
 			{
-				var jsonField = new JsonField<T>()
+				JsonField<T> jsonField;
+
+				if (contentField.FieldInfo != null)
 				{
-					Name = property.Name,
-					OriginalName = property.Name,
-					Attributes = property.GetCustomAttributes(),
-					Structure = this,
-					PropertyInfo = property,
-					TargetType = property.PropertyType
-				};
-				
-				jsonField.PropertyGet = property.GetGetMethod();
-				jsonField.PropertySet = property.GetSetMethod();
-				
-				await TryAddField(context, jsonField, beforeSettable);
+					var field = contentField.FieldInfo;
+
+					jsonField = new JsonField<T>()
+					{
+						Name = field.Name,
+						OriginalName = field.Name,
+						Attributes = field.GetCustomAttributes(),
+						Structure = this,
+						TargetType = field.FieldType,
+						FieldInfo = field,
+						ChangeFlag = contentField.ChangeFlag
+					};
+
+				}
+				else
+				{
+					var property = contentField.PropertyInfo;
+
+					jsonField = new JsonField<T>()
+					{
+						Name = property.Name,
+						OriginalName = property.Name,
+						Attributes = property.GetCustomAttributes(),
+						Structure = this,
+						PropertyInfo = property,
+						TargetType = property.PropertyType,
+						PropertyGet = property.GetGetMethod(),
+						PropertySet = property.GetSetMethod(),
+						ChangeFlag = contentField.ChangeFlag
+					};
+				}
+
+				await TryAddField(context, jsonField, readable, beforeSettable, beforeGettable);
 			}
 
 			// Do we have a title and description meta field?
@@ -271,8 +340,10 @@ namespace Api.Startup
 		/// </summary>
 		/// <param name="context"></param>
 		/// <param name="field"></param>
+		/// <param name="readableState"></param>
 		/// <param name="beforeSettable"></param>
-		private async Task TryAddField(Context context, JsonField<T> field, Api.Eventing.EventHandler<JsonField<T>> beforeSettable)
+		/// <param name="beforeGettable"></param>
+		private async Task TryAddField(Context context, JsonField<T> field, bool readableState, Api.Eventing.EventHandler<JsonField<T>> beforeSettable, Api.Eventing.EventHandler<JsonField<T>> beforeGettable)
 		{
 			// Set the default just before the field event:
 			field.SetDefaultDisplayModule();
@@ -283,6 +354,27 @@ namespace Api.Startup
 			// Set if it's numeric:
 			field.UnderlyingNullable = nullableType;
 			field.IsNumericField = IsNumericType(nullableType ?? field.TargetType);
+
+			var readable = readableState;
+
+			if (field.Attributes != null)
+			{
+				foreach (var attrib in field.Attributes)
+				{
+					var perm = attrib as PermissionsAttribute;
+					if(perm != null){
+						readable = !perm.HideFieldByDefault;
+					}
+				}
+			}
+
+			field.Readable = readable;
+			var gettableField = await beforeGettable.Dispatch(context, field);
+
+			if (gettableField != null && gettableField.Readable)
+			{
+				ReadableFields.Add(gettableField);
+			}
 
 			field = await beforeSettable.Dispatch(context, field);
 
@@ -305,7 +397,7 @@ namespace Api.Startup
 				}
 			}
 
-			// If the event didn't outright block the field..
+			// If the set event didn't outright block the field..
 			if (field == null)
 			{
 				return;
@@ -594,6 +686,10 @@ namespace Api.Startup
 		/// </summary>
 		public EventHandler<object, T, JToken> OnSetValue = new EventHandler<object, T, JToken>();
 
+		/// <summary>
+		/// The ChangeField representation of this single field.
+		/// </summary>
+		public ChangedFields ChangeFlag;
 
 		/// <summary>
 		/// The role that this is for.
@@ -613,20 +709,11 @@ namespace Api.Startup
 			return _unixEpoch.AddSeconds(timestamp / 1000);
 		}
 
-		/// <summary>
-		/// Attempts to set the value of the field.
-		/// </summary>
-		public async Task SetValue(Context context, T onObject, JToken value)
+		private async ValueTask<object> GetTargetValue(Context context, T onObject, JToken value)
 		{
 			object targetValue = value;
 
-			if (OnSetValue == null && Hide)
-			{
-				// Ignore these fields - they can only be set if they have an OnSetValue handler.
-				return;
-			}
-
-			if(OnSetValue != null)
+			if (OnSetValue != null)
 			{
 				targetValue = await OnSetValue.Dispatch(context, targetValue, onObject, value);
 			}
@@ -661,7 +748,7 @@ namespace Api.Startup
 						else
 						{
 							// Unrecognised date format.
-							return;
+							throw new PublicException("Unrecognised date format", "date_format");
 						}
 					}
 
@@ -700,6 +787,84 @@ namespace Api.Startup
 				}
 			}
 
+			return targetValue;
+		}
+
+		/// <summary>
+		/// Sets the given value on the field but only if it changed.
+		/// </summary>
+		/// <param name="context"></param>
+		/// <param name="onObject"></param>
+		/// <param name="value"></param>
+		/// <returns></returns>
+		public async ValueTask<bool> SetValueIfChanged(Context context, T onObject, JToken value)
+		{
+			if (OnSetValue == null && Hide)
+			{
+				// Ignore these fields - they can only be set if they have an OnSetValue handler.
+				return false;
+			}
+
+			var targetValue = await GetTargetValue(context, onObject, value);
+
+			// Note that both the setter and the FieldInfo can be null (readonly properties).
+			if (PropertySet != null)
+			{
+				var currentValue = PropertyGet.Invoke(onObject, Array.Empty<object>());
+
+				if (currentValue == null)
+				{
+					if (targetValue == null)
+					{
+						// No change
+						return false;
+					}
+				}
+				else if (currentValue.Equals(targetValue))
+				{
+					// No change
+					return false;
+				}
+				
+				PropertySet.Invoke(onObject, new object[] { targetValue });
+			}
+			else if (FieldInfo != null)
+			{
+				var currentValue = FieldInfo.GetValue(onObject);
+
+				if (currentValue == null)
+				{
+					if (targetValue == null)
+					{
+						// No change
+						return false;
+					}
+				}
+				else if (currentValue.Equals(targetValue))
+				{
+					// No change
+					return false;
+				}
+
+				FieldInfo.SetValue(onObject, targetValue);
+			}
+
+			return true;
+		}
+
+		/// <summary>
+		/// Attempts to set the value of the field.
+		/// </summary>
+		public async ValueTask SetValue(Context context, T onObject, JToken value)
+		{
+			if (OnSetValue == null && Hide)
+			{
+				// Ignore these fields - they can only be set if they have an OnSetValue handler.
+				return;
+			}
+
+			var targetValue = await GetTargetValue(context, onObject, value);
+
 			// Note that both the setter and the FieldInfo can be null (readonly properties).
 			if (PropertySet != null)
 			{
@@ -713,5 +878,21 @@ namespace Api.Startup
 		}
 		
 	}
-	
+
+	/// <summary>
+	/// A shared object which represents an included field.
+	/// </summary>
+	public class IncludedField
+	{
+		/// <summary>
+		/// The "Depth" of this included field. It's essentially the number of dots + 1. E.g "Tags.CreatorUser" has a depth of 2.
+		/// </summary>
+		public int Depth = 1;
+
+		/// <summary>
+		/// The structure it's from.
+		/// </summary>
+		public JsonStructure Structure;
+	}
+
 }
