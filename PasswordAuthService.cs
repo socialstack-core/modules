@@ -49,7 +49,10 @@ namespace Api.PasswordAuth
 				MinLength = _configuration.MinLength;
 				CheckIfExposed = _configuration.CheckIfExposed;
 			}
-			
+
+			var failedLoginTimeAndAttemptsField = _users.GetChangeField("FailedLoginTimeUtc").And("LoginAttempts");
+			var loginAttemptsField = _users.GetChangeField("LoginAttempts");
+
 			// Hook up to the UserOnAuthenticate event:
 			Events.UserOnAuthenticate.AddEventListener(async (Context context, LoginResult result, UserLogin loginDetails) => {
 
@@ -97,14 +100,18 @@ namespace Api.PasswordAuth
 					// Update login attempts:
 					if (!user.FailedLoginTimeUtc.HasValue || (now - user.FailedLoginTimeUtc.Value).TotalMinutes >= 20)
 					{
-						user.FailedLoginTimeUtc = DateTime.UtcNow;
-						user.LoginAttempts = 1;
-						await _users.Update(context, user, DataOptions.IgnorePermissions);
+						await _users.Update(context, user, (Context ctx, User usr) => {
+							user.FailedLoginTimeUtc = DateTime.UtcNow;
+							user.LoginAttempts = 1;
+							user.MarkChanged(failedLoginTimeAndAttemptsField);
+						}, DataOptions.IgnorePermissions);
 					}
 					else
 					{
-						user.LoginAttempts++;
-						await _users.Update(context, user, DataOptions.IgnorePermissions);
+						await _users.Update(context, user, (Context ctx, User usr) => {
+							user.LoginAttempts++;
+							user.MarkChanged(loginAttemptsField);
+						}, DataOptions.IgnorePermissions);
 					}
 					
 					// Nope!
