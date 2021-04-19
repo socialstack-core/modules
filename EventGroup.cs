@@ -55,6 +55,7 @@ namespace Api.Eventing
 		/// <summary>
 		/// Just before updating an entity. Optionally make additional changes, or return null to cancel the update.
 		/// </summary>
+		[Permissions(IsManual = true)]
 		public EventHandler<T> BeforeUpdate;
 
 		/// <summary>
@@ -86,6 +87,11 @@ namespace Api.Eventing
 		/// Just before a field is added (and made settable).
 		/// </summary>
 		public EventHandler<JsonField<T>> BeforeSettable;
+
+		/// <summary>
+		/// Just before a field is added (and made gettable).
+		/// </summary>
+		public EventHandler<JsonField<T>> BeforeGettable;
 
 		#endregion
 

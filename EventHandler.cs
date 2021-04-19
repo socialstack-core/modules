@@ -140,7 +140,6 @@ namespace Api.Eventing
 		/// <summary>
 		/// Adds a new event listener with the given priority.
 		/// Lower priorities mean it executes sooner. The default is 10.
-		/// To add a non-async handler, use Task.FromResult.
 		/// </summary>
 		/// <param name="evt">The event handler to run.</param>
 		/// <param name="priority">Lower priorities mean it executes sooner. The default is 10.</param>
@@ -172,6 +171,46 @@ namespace Api.Eventing
 		/// </summary>
 		public EventHandler() : base() {
 			SetPrimaryType(typeof(T1));
+		}
+
+		/// <summary>
+		/// Tests the capability of this handler for the given content/ context. Used when you're running manual permissions via [Permissions(IsManual=true)].
+		/// </summary>
+		/// <param name="context"></param>
+		/// <param name="content"></param>
+		/// <returns></returns>
+		public async ValueTask<T1> TestCapability(Context context, T1 content)
+		{
+			if (context.IgnorePermissions)
+			{
+				return content;
+			}
+
+			if (Capability == null)
+			{
+				// This handler doesn't have a capability. They're typically on Before* event handlers, but can also be in After handlers for e.g. AfterLoad.
+				throw PermissionException.Create("none", context, "Failed to manually test permissions on a handler because it doesn't have a capability.");
+			}
+
+			// Check if the capability is granted.
+			// If it is, return the first arg.
+			// Otherwise, return null.
+			var role = context == null ? Roles.Public : context.Role;
+
+			if (role == null)
+			{
+				// No user role - can't grant this capability.
+				// This is likely to indicate a deeper issue, so we'll warn about it:
+				throw PermissionException.Create(Capability.Name, context, "No role");
+			}
+
+			if (await role.IsGranted(Capability, context, content))
+			{
+				// It's granted - return the first arg:
+				return content;
+			}
+
+			throw PermissionException.Create(Capability.Name, context);
 		}
 
 		/// <summary>
