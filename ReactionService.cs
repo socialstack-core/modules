@@ -2,6 +2,8 @@
 using Api.Database;
 using Api.Eventing;
 using Api.Permissions;
+using Api.Startup;
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Threading.Tasks;
@@ -20,22 +22,12 @@ namespace Api.Reactions
 		/// <summary>
 		/// Instanced automatically. Use injection to use this service, or Startup.Services.Get.
 		/// </summary>
-		public ReactionService(ReactionTypeService reactionTypes) : base(Events.Reaction)
+		public ReactionService(ReactionTypeService reactionTypes, ReactionCountService reactionCounts) : base(Events.Reaction)
         {
 			
 			_reactionTypes = reactionTypes;
 			
-			// Because of IHaveReactions, Reaction must be nestable:
-			MakeNestable();
-
-			// Define the IHaveReactions handler:
-			DefineIHaveArrayHandler(
-				(IHaveReactions content, List<ReactionCount> results) =>
-                {
-					content.Reactions = results;
-                }
-			);
-
+			var totalField = reactionCounts.GetChangeField("Total");
 
 			Events.Reaction.BeforeCreate.AddEventListener(async (Context context, Reaction reaction) =>
 			{
@@ -44,88 +36,39 @@ namespace Api.Reactions
 					return null;
                 }
 
-				reaction.ReactionType = await _reactionTypes.Get(context, reaction.ReactionTypeId, DataOptions.IgnorePermissions);
+				// Ensure it's unique:
+				var existingReaction = await List(context, new Filter<Reaction>().Equals("UserId", context.UserId).And().Equals("ContentTypeId", reaction.ContentTypeId).And().Equals("ContentId", reaction.ContentId), DataOptions.IgnorePermissions);
 
-				// Now, list all reactions that have the same contentTypeId, contentId and UserId
-				var reactions = await List(context, new Filter<Reaction>().Equals("UserId", context.UserId).And().Equals("ContentTypeId", reaction.ContentTypeId).And().Equals("ContentId", reaction.ContentId), DataOptions.IgnorePermissions);
+				if (existingReaction != null && existingReaction.Count > 0)
+				{
+					throw new PublicException("Reaction already exists", "reaction_unique");
+				}
 
-				// Let's now loop over each reaction
-				foreach(var react in reactions)
-                {
-					if(react.ReactionType != null && react.ReactionType.GroupId == reaction.ReactionType.GroupId)
-                    {
-						await Delete(context, react, DataOptions.IgnorePermissions);
-                    }
-                }
+				// Add to counter:
+				var counts = await reactionCounts.List(context, new Filter<ReactionCount>().Equals("ContentTypeId", reaction.ContentTypeId).And().Equals("ContentId", reaction.ContentId));
+
+				if (counts != null && counts.Count > 0)
+				{
+					var counter = counts[0];
+					await reactionCounts.Update(context, counter, (Context ctx, ReactionCount ct) =>
+					{
+						ct.Total++;
+						ct.MarkChanged(totalField);
+					}, DataOptions.IgnorePermissions);
+				}
+				else
+				{
+					await reactionCounts.Create(context, new ReactionCount() {
+						ContentTypeId = reaction.ContentTypeId,
+						ContentId = reaction.ContentId,
+						Total = 1,
+						ReactionTypeId = reaction.ReactionTypeId,
+						CreatedUtc = DateTime.UtcNow
+					});
+				}
 
 				return reaction;
 
-			});
-
-			Events.Reaction.AfterLoad.AddEventListener(async (Context context, Reaction reaction) =>
-			{
-				if (reaction == null)
-				{
-					return null;
-				}
-				reaction.ReactionType = await _reactionTypes.Get(context, reaction.ReactionTypeId, DataOptions.IgnorePermissions);
-				return reaction;
-			});
-
-			Events.Reaction.AfterList.AddEventListener(async (Context context, List<Reaction> reactions) =>
-			{
-				if (reactions == null || reactions.Count == 0)
-				{
-					return reactions;
-				}
-				// Collect all unique reactionType IDs:
-				Dictionary<uint, ReactionType> reactionTypes = new Dictionary<uint, ReactionType>();
-				foreach (var reaction in reactions)
-				{
-					if (reaction.ReactionTypeId == 0)
-					{
-						continue;
-					}
-					reactionTypes[reaction.ReactionTypeId] = null;
-				}
-				if (reactionTypes.Count == 0)
-				{
-					// Nothing to do - just return here:
-					return reactions;
-				}
-				// Array of unique IDs:
-				var reactionTypeIds = new object[reactionTypes.Count];
-				var index = 0;
-				foreach (var kvp in reactionTypes)
-				{
-					reactionTypeIds[index++] = kvp.Key;
-				}
-				// Get now:
-				var reactionTypeFilter = new Filter<ReactionType>();
-				reactionTypeFilter.EqualsSet("Id", reactionTypeIds);
-				var reactionTypeData = await _reactionTypes.List(context, reactionTypeFilter, DataOptions.IgnorePermissions);
-				// Add the reactionType info to the lookup:
-				foreach (var reactionType in reactionTypeData)
-				{
-					reactionTypes[reactionType.Id] = reactionType;
-				}
-				// Apply reactionTypes to reactions:
-				foreach (var reaction in reactions)
-				{
-					if (reaction.ReactionTypeId == 0)
-					{
-						continue;
-					}
-					if (reactionTypes.TryGetValue(reaction.ReactionTypeId, out ReactionType rt))
-					{
-						reaction.ReactionType = rt;
-					}
-					else
-					{
-						reaction.ReactionType = null;
-					}
-				}
-				return reactions;
 			});
 
 		}

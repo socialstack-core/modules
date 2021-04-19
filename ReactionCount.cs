@@ -1,6 +1,6 @@
 using System;
 using Api.Database;
-
+using Api.Startup;
 
 namespace Api.Reactions
 {
@@ -10,20 +10,18 @@ namespace Api.Reactions
 	/// (and its data can be directly derived from the Reaction table).
 	/// Used to get e.g. x upvotes, y downvotes.
 	/// </summary>
+	[ListAs("Reactions")]
+	[HasVirtualField("ReactionType", typeof(ReactionType), "ReactionTypeId")]
 	public partial class ReactionCount : MappingEntity
 	{
 		/// <summary>
 		/// The type of reaction (like, dislike etc - they can be custom defined).
 		/// </summary>
-		public int ReactionTypeId;
+		public uint ReactionTypeId;
 		/// <summary>
 		/// The number of reactions of this type on the given content.
 		/// </summary>
 		public int Total;
-		/// <summary>
-		/// The reaction type that this is a count of. Set by demand.
-		/// </summary>
-		public ReactionType ReactionType { get; set; }
 	}
 	
 }

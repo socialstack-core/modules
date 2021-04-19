@@ -21,9 +21,6 @@ namespace Api.Reactions
 		{
 			InstallAdminPages("Reactions", "fa:fa-thumbs-up", new string[] { "id", "name" });
 
-			// Because of IHaveReactions, Reaction types must be nestable:
-			MakeNestable();
-
 			Task.Run(async () =>
 			{
 
