@@ -205,6 +205,11 @@ namespace Api.Startup
 		public ContentField MappingTargetField;
 
 		/// <summary>
+		/// Mapping target field name
+		/// </summary>
+		public string MappingTargetFieldName;
+
+		/// <summary>
 		/// The mapping service for this list node.
 		/// </summary>
 		public AutoService MappingService;
@@ -241,8 +246,17 @@ namespace Api.Startup
 			{
 				header += ",\"on\":" + Parent.InclusionOutputIndex;
 			}
-			
-			header += ",\"map\":[";
+
+			if (MappingService == null)
+			{
+				var mapField = char.ToLower(MappingTargetField.Name[0]) + MappingTargetField.Name.Substring(1);
+				header += ",\"map\":\"" + mapField + "\",\"values\":[";
+			}
+			else
+			{
+				header += ",\"map\":[";
+			}
+
 			_includeHeader = System.Text.Encoding.UTF8.GetBytes(header);
 		}
 
@@ -325,20 +339,34 @@ namespace Api.Startup
 			if (field.VirtualInfo.IsList)
 			{
 				// Do we need to map? Often yes, but occasionally not necessary.
-				var mappingService = await MappingTypeEngine.GetOrGenerate(RelativeTo.Service, svc);
+				// We don't if the target type has a virtual field of the source type, where the virtual field name is RelativeTo.ServicedType.Id + "Id"
+				var fieldOfType = result.RelativeTo.GetVirtualField(RelativeTo.ServicedType, RelativeTo.ServicedType.Name + "Id");
 
-				// We need to know what the target field is as we'll need a collector on it.
-				var mappingContentFields = mappingService.GetContentFields();
-
-				// Try to get target field (e.g. TagId):
-				if (!mappingContentFields.TryGetValue((svc.ServicedType.Name + "Id").ToLower(), out ContentField targetField))
+				if (fieldOfType != null)
 				{
-					throw new Exception("Couldn't find target field on a mapping type. This indicates an issue with the mapping engine rather than your usage.");
+					// No mapping needed - the mapping is instead to use this virtual field.
+					result.MappingService = null;
+					result.MappingTargetField = fieldOfType;
+					result.MappingTargetFieldName = fieldOfType.VirtualInfo.IdSource.Name;
 				}
+				else
+				{
+					var mappingService = await MappingTypeEngine.GetOrGenerate(RelativeTo.Service, svc);
 
-				// Store the mapping service:
-				result.MappingService = mappingService;
-				result.MappingTargetField = targetField;
+					// We need to know what the target field is as we'll need a collector on it.
+					var mappingContentFields = mappingService.GetContentFields();
+
+					// Try to get target field (e.g. TagId):
+					if (!mappingContentFields.TryGetValue((svc.ServicedType.Name + "Id").ToLower(), out ContentField targetField))
+					{
+						throw new Exception("Couldn't find target field on a mapping type. This indicates an issue with the mapping engine rather than your usage.");
+					}
+
+					// Store the mapping service:
+					result.MappingService = mappingService;
+					result.MappingTargetField = targetField;
+					result.MappingTargetFieldName = targetField.Name;
+				}
 			}
 
 			return result;

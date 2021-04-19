@@ -128,6 +128,30 @@ namespace Api.Startup {
 		}
 
 		/// <summary>
+		/// Gets a local virtual field of the given type, or null if it doesn't exist.
+		/// </summary>
+		/// <param name="ofType"></param>
+		/// <param name="name"></param>
+		/// <returns></returns>
+		public ContentField GetVirtualField(Type ofType, string name)
+		{
+			if (_vList == null)
+			{
+				return null;
+			}
+
+			foreach (var virt in _vList)
+			{
+				if (virt.VirtualInfo.Type == ofType && virt.VirtualInfo.FieldName == name)
+				{
+					return virt;
+				}
+			}
+
+			return null;
+		}
+
+		/// <summary>
 		/// Gets the include set using the given str.
 		/// </summary>
 		/// <param name="includeString"></param>

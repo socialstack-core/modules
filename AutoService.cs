@@ -927,6 +927,23 @@ public partial class AutoService
 	}
 
 	/// <summary>
+	/// Outputs a list of things from this service as JSON into the given writer.
+	/// Executes the given collector(s) whilst it happens, which can also be null.
+	/// </summary>
+	/// <param name="context"></param>
+	/// <param name="collectors"></param>
+	/// <param name="idSet"></param>
+	/// <param name="setField"></param>
+	/// <param name="writer"></param>
+	/// <returns></returns>
+	public virtual ValueTask OutputJsonList<S_ID>(Context context, IDCollector collectors, IDCollector idSet, string setField, Writer writer)
+		 where S_ID : struct, IEquatable<S_ID>
+	{
+		// Not supported on this service.
+		return new ValueTask();
+	}
+
+	/// <summary>
 	/// Outputs a mapping. Only valid on a Mapping service.
 	/// </summary>
 	/// <param name="context"></param>
