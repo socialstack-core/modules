@@ -81,8 +81,11 @@ namespace Api.Revisions
 						columnDefinition = new DatabaseColumnDefinition(field, targetTableName);
 					}
 
-					// Add to target schema:
-					newSchema.Add(columnDefinition);
+					if (!columnDefinition.Ignore)
+					{
+						// Add to target schema:
+						newSchema.Add(columnDefinition);
+					}
 				}
 
 				if (idField != null)
@@ -104,9 +107,12 @@ namespace Api.Revisions
 						IsAutoIncrement = false
 					};
 
-					newSchema.Add(
-						contentIdColumn
-					);
+					if (!contentIdColumn.Ignore)
+					{
+						newSchema.Add(
+							contentIdColumn
+						);
+					}
 				}
 
 				// Add IsDraft column:
@@ -120,8 +126,13 @@ namespace Api.Revisions
 
 				isDraft.SetFullName();
 
-				newSchema.Add(new DatabaseColumnDefinition(isDraft, targetTableName));
+				var draftColDef = new DatabaseColumnDefinition(isDraft, targetTableName);
 
+				if (!draftColDef.Ignore)
+				{
+					newSchema.Add(draftColDef);
+				}
+				
 				return new ValueTask<FieldMap>(fieldMap);
 			});
 
@@ -150,7 +161,7 @@ namespace Api.Revisions
 					});
 
 					setupType.Invoke(this, new object[] {
-						eventGroup
+						svc
 					});
 				}
 
@@ -168,15 +179,16 @@ namespace Api.Revisions
 		/// </summary>
 		/// <typeparam name="T"></typeparam>
 		/// <typeparam name="ID"></typeparam>
-		/// <param name="evtGroup"></param>
-		public void SetupForRevisions<T, ID>(EventGroup<T> evtGroup)
+		/// <param name="autoService"></param>
+		public void SetupForRevisions<T, ID>(AutoService<T, ID> autoService)
 			where T : VersionedContent<ID>, new()
-			where ID: struct, IComparable
+			where ID: struct, IConvertible, IEquatable<ID>
 		{
 			var contentType = typeof(T);
+			var evtGroup = autoService.EventGroup;
 
 			// Invoked by reflection
-			
+
 			// Create the original field map:
 			var fieldMap = new FieldMap(contentType);
 
@@ -209,6 +221,8 @@ namespace Api.Revisions
 			copyQuery.Where().EqualsArg(contentType, "Id", 0);
 
 			var str = copyQuery.GetQuery();
+
+			ComposableChangeField revisionField = null;
 
 			// And add an event handler now:
 			evtGroup.BeforeUpdate.AddEventListener(async (Context context, T content) =>
@@ -245,8 +259,14 @@ namespace Api.Revisions
 				}
 				*/
 
+				if (revisionField == null)
+				{
+					revisionField = autoService.GetChangeField("Revision");
+				}
+
 				// Bump its revision number.
 				content.Revision++;
+				content.MarkChanged(revisionField);
 
 				return content;
 			}, 11);

@@ -1,6 +1,7 @@
 ﻿using Api.Contexts;
 using Api.Database;
 using Api.Permissions;
+using Api.Startup;
 using Api.Users;
 using System;
 using System.Collections.Generic;
@@ -161,23 +162,11 @@ public partial class AutoService<T, ID>{
 
 		var previousPermState = context.IgnorePermissions;
 		context.IgnorePermissions = options == DataOptions.IgnorePermissions;
-		context.NestedTypes |= NestableAddMask;
 		id = await EventGroup.BeforeRevisionLoad.Dispatch(context, id);
-		context.NestedTypes &= NestableRemoveMask;
 		context.IgnorePermissions = previousPermState;
 
-		if (NestableAddMask != 0 && (context.NestedTypes & NestableAddMask) == NestableAddMask)
-		{
-			// This happens when we're nesting Get calls.
-			// For example, a User has Tags which in turn have a (creator) User.
-			return null;
-		}
-		
 		var item = await _database.Select(context, revisionSelectQuery, id);
-		
-		context.NestedTypes |= NestableAddMask;
 		item = await EventGroup.AfterRevisionLoad.Dispatch(context, item);
-		context.NestedTypes &= NestableRemoveMask;
 		
 		return item;
 	}
@@ -273,13 +262,14 @@ public partial class AutoService<T, ID>{
 
 		if (existingObject != null)
 		{
-			// Update
-			entity = await Update(context, entity, options);
+			// This effectively replaces the complete live row with the revision's data.
+			entity.MarkChanged(ChangedFields.All);
+			entity = await FinishUpdate(context, entity);
 		}
 		else
 		{
 			// Create
-			entity = await Create(context, entity, options);
+			entity = await Create(context, entity, DataOptions.IgnorePermissions);
 		}
 
 		entity = await EventGroup.AfterRevisionPublish.Dispatch(context, entity);
