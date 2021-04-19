@@ -80,7 +80,7 @@ namespace Api.Startup {
 		{
 			if(!Map.TryGetValue(name.ToLower(),out ContentField field))
 			{
-				throw new Exception("A field called '" + name + "' doesn't exist on the type " + Map.ServicedType.Name);
+				throw new Exception("A field called '" + name + "' doesn't exist on the type " + Map.InstanceType.Name);
 			}
 			
 			// Add it:
@@ -114,7 +114,7 @@ namespace Api.Startup {
 		/// <summary>
 		/// The type that this map is for.
 		/// </summary>
-		public Type ServicedType;
+		public Type InstanceType;
 		
 		/// <summary>
 		/// Creates a map for the given type.
@@ -123,7 +123,7 @@ namespace Api.Startup {
 		public ContentFields(AutoService service)
 		{
 			Service = service;
-			ServicedType = service.ServicedType;
+			InstanceType = service.InstanceType;
 			BuildMap();
 		}
 
@@ -237,27 +237,27 @@ namespace Api.Startup {
 
 		private void BuildMap()
 		{
-			if (ServicedType == null)
+			if (InstanceType == null)
 			{
 				// There is no type.
 				return;
 			}
 
 			// Add global listAs, if there is one:
-			var listAs = ServicedType.GetCustomAttribute<ListAsAttribute>();
+			var listAs = InstanceType.GetCustomAttribute<ListAsAttribute>();
 
 			if (listAs != null)
 			{
 				_globalVirtualFields[listAs.FieldName.ToLower()] = new ContentField(new VirtualInfo() {
 					FieldName = listAs.FieldName,
-					Type = ServicedType,
+					Type = InstanceType,
 					IsList = true,
 					IdSourceField = "Id"
 				});
 			}
 
 			// Public fields:
-			var fields = ServicedType.GetFields();
+			var fields = InstanceType.GetFields();
 
 			_nameMap = new Dictionary<string, ContentField>();
 			_list = new List<ContentField>();
@@ -272,7 +272,7 @@ namespace Api.Startup {
 				_nameMap[field.Name.ToLower()] = cf;
 			}
 			
-			var properties = ServicedType.GetProperties();
+			var properties = InstanceType.GetProperties();
 			
 			// Public properties:
 			for(var i=0;i<properties.Length;i++){
@@ -284,7 +284,7 @@ namespace Api.Startup {
 			}
 
 			// Get all the virtuals:
-			var virtualFields = ServicedType.GetCustomAttributes<HasVirtualFieldAttribute>();
+			var virtualFields = InstanceType.GetCustomAttributes<HasVirtualFieldAttribute>();
 
 			foreach (var fieldMeta in virtualFields)
 			{
@@ -297,7 +297,7 @@ namespace Api.Startup {
 
 				if (vInfo.Type == null)
 				{
-					throw new PublicException("Virtual fields require a type. '" + vInfo.FieldName + "' on '" + ServicedType.Name + "' does not have one.", "field_type_required");
+					throw new PublicException("Virtual fields require a type. '" + vInfo.FieldName + "' on '" + InstanceType.Name + "' does not have one.", "field_type_required");
 				}
 
 				// Resolve ID sources:
@@ -305,7 +305,7 @@ namespace Api.Startup {
 				{
 					if (!_nameMap.TryGetValue(vInfo.IdSourceField.ToLower(), out vInfo.IdSource))
 					{
-						throw new PublicException("A field called '" + vInfo.IdSourceField + "' doesn't exist as requested by virtual field '" + vInfo.FieldName + "' on type " + ServicedType.Name, "vfield_require_doesnt_exist");
+						throw new PublicException("A field called '" + vInfo.IdSourceField + "' doesn't exist as requested by virtual field '" + vInfo.FieldName + "' on type " + InstanceType.Name, "vfield_require_doesnt_exist");
 					}
 				}
 

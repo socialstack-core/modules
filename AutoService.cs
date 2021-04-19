@@ -64,37 +64,37 @@ public partial class AutoService<T, ID> : AutoService
 	/// <summary>
 	/// A query which deletes 1 entity.
 	/// </summary>
-	protected readonly Query<T> deleteQuery;
+	protected readonly Query deleteQuery;
 
 	/// <summary>
 	/// A query which creates 1 entity.
 	/// </summary>
-	protected readonly Query<T> createQuery;
+	protected readonly Query createQuery;
 	
 	/// <summary>
 	/// A query which creates 1 entity with a known ID.
 	/// </summary>
-	protected readonly Query<T> createWithIdQuery;
+	protected readonly Query createWithIdQuery;
 
 	/// <summary>
 	/// A query which selects 1 entity.
 	/// </summary>
-	protected readonly Query<T> selectQuery;
+	protected readonly Query selectQuery;
 
 	/// <summary>
 	/// A query which lists multiple entities.
 	/// </summary>
-	protected readonly Query<T> listQuery;
+	protected readonly Query listQuery;
 	
 	/// <summary>
 	/// A query which lists multiple raw entities.
 	/// </summary>
-	protected readonly Query<T> listRawQuery;
+	protected readonly Query listRawQuery;
 
 	/// <summary>
 	/// A query which updates 1 entity.
 	/// </summary>
-	protected readonly Query<T> updateQuery;
+	protected readonly Query updateQuery;
 
 	/// <summary>
 	/// The set of update/ delete/ create etc events for this type.
@@ -104,17 +104,17 @@ public partial class AutoService<T, ID> : AutoService
 	/// <summary>
 	/// Sets up the common service type fields.
 	/// </summary>
-	public AutoService(EventGroup eventGroup, Type servicedType = null) : base(servicedType == null ? typeof(T) : servicedType, typeof(ID))
+	public AutoService(EventGroup eventGroup, Type instanceType = null) : base(typeof(T), typeof(ID), instanceType)
 	{
 		// Start preparing the queries. Doing this ahead of time leads to excellent performance savings, 
 		// whilst also using a high-level abstraction as another plugin entry point.
-		deleteQuery = Query.Delete<T>();
-		createQuery = Query.Insert<T>();
-		createWithIdQuery = Query.Insert<T>(true);
-		updateQuery = Query.Update<T>();
-		selectQuery = Query.Select<T>();
-		listQuery = Query.List<T>();
-		listRawQuery = Query.List<T>();
+		deleteQuery = Query.Delete(InstanceType);
+		createQuery = Query.Insert(InstanceType);
+		createWithIdQuery = Query.Insert(InstanceType, true);
+		updateQuery = Query.Update(InstanceType);
+		selectQuery = Query.Select(InstanceType);
+		listQuery = Query.List(InstanceType);
+		listRawQuery = Query.List(InstanceType);
 		listRawQuery.Raw = true;
 
 		EventGroup = eventGroup as EventGroup<T, ID>;
@@ -271,7 +271,7 @@ public partial class AutoService<T, ID> : AutoService
 		}
 		else
 		{
-			listAndTotal = await _database.ListWithTotal(context, listQuery, filter);
+			listAndTotal = await _database.ListWithTotal<T>(context, listQuery, filter, InstanceType);
 		}
 		
 		listAndTotal.Results = await EventGroup.AfterList.Dispatch(context, listAndTotal.Results);
@@ -337,7 +337,7 @@ public partial class AutoService<T, ID> : AutoService
 		}
 		else
 		{
-			list = await _database.List(context, listQuery, filter);
+			list = await _database.List<T>(context, listQuery, filter, InstanceType);
 		}
 		
 		list = await EventGroup.AfterList.Dispatch(context, list);
@@ -362,7 +362,7 @@ public partial class AutoService<T, ID> : AutoService
 		filter = await EventGroup.BeforeList.Dispatch(context, filter);
 		context.IgnorePermissions = previousPermState;
 
-		var list = await _database.List(context, raw? listRawQuery : listQuery, filter);
+		var list = await _database.List<T>(context, raw ? listRawQuery : listQuery, filter, InstanceType);
 		list = await EventGroup.AfterList.Dispatch(context, list);
 		return list;
 	}
@@ -508,7 +508,7 @@ public partial class AutoService<T, ID> : AutoService
 
 		if (item == null && _database != null)
 		{
-			item = await _database.Select(context, selectQuery, id);
+			item = await _database.Select<T>(context, selectQuery, InstanceType, id);
 		}
 		
 		// Ignoring the permissions only needs to occur on *After* for Gets.
@@ -657,7 +657,7 @@ public partial class AutoService<T, ID> : AutoService
 				// Updated or created
 				// In both cases, check if it exists first:
 				var id = raw.GetId();
-				if (await _database.Select(context, selectQuery, id) != null)
+				if (await _database.Select<T>(context, selectQuery, InstanceType, id) != null)
 				{
 					// Update
 					await _database.Run(context, updateQuery, raw, id);
@@ -922,6 +922,10 @@ public partial class AutoService
 	/// </summary>
 	public Type ServicedType;
 	/// <summary>
+	/// The actual instance type of this service. This always equals ServicedType or inherits it.
+	/// </summary>
+	public Type InstanceType;
+	/// <summary>
 	/// The type that this AutoService uses for IDs, if any. Almost always int, but some use ulong.
 	/// </summary>
 	public Type IdType;
@@ -1020,7 +1024,8 @@ public partial class AutoService
 	/// </summary>
 	/// <param name="type"></param>
 	/// <param name="idType"></param>
-	public AutoService(Type type = null, Type idType = null)
+	/// <param name="instanceType"></param>
+	public AutoService(Type type = null, Type idType = null, Type instanceType = null)
 	{
 		// _database is left blank if:
 		// * Type is given.
@@ -1037,6 +1042,7 @@ public partial class AutoService
 		}
 
 		ServicedType = type;
+		InstanceType = instanceType == null ? type : instanceType;
 		IdType = idType;
 	}
 

@@ -55,7 +55,7 @@ namespace Api.Startup
 		/// <returns></returns>
 		public async ValueTask<List<SRC_ID>> ListByTarget(Context context, TARG_ID id)
 		{
-			var entries = await List(context, new Filter<Mapping<SRC_ID, TARG_ID>>().Equals(targetIdFieldName, id));
+			var entries = await List(context, new Filter<Mapping<SRC_ID, TARG_ID>>(InstanceType).Equals(targetIdFieldName, id));
 
 			// TODO: revisit during non-alloc list revamp
 			var set = new List<SRC_ID>();
@@ -145,7 +145,7 @@ namespace Api.Startup
 					idList.Add(_enum.Current());
 				}
 
-				var mappingEntries = await List(context, new Filter<Mapping<SRC_ID, TARG_ID>>().EqualsSet(srcIdFieldName, idList));
+				var mappingEntries = await List(context, new Filter<Mapping<SRC_ID, TARG_ID>>(InstanceType).EqualsSet(srcIdFieldName, idList));
 
 				var first = true;
 
