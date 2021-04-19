@@ -14,16 +14,11 @@ namespace Api.Blogs
 	/// </summary>
 	public partial class BlogService : AutoService<Blog>
     {
-		private readonly Query<BlogPost> deletePostsQuery;
-		
 		/// <summary>
 		/// Instanced automatically. Use injection to use this service, or Startup.Services.Get.
 		/// </summary>
 		public BlogService() : base(Events.Blog)
         {
-			deletePostsQuery = Query.Delete<BlogPost>();
-			deletePostsQuery.Where().EqualsArg("BlogId", 0);
-			
 			InstallAdminPages(
 				"Blogs", "fa:fa-blog", new string[] { "id", "name" },
 
