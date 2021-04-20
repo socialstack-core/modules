@@ -1,6 +1,6 @@
 import Modal from 'UI/Modal';
 import Loop from 'UI/Loop';
-import faIcons from 'Admin/IconSelector/faIcons';
+import faIcons from 'UI/FileSelector/IconSelector/faIcons';
 import Input from 'UI/Input';
 import Col from 'UI/Column';
 import Row from 'UI/Row';
