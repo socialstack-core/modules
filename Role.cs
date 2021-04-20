@@ -39,6 +39,11 @@ namespace Api.Permissions
 		public string GrantRuleJson;
 
 		/// <summary>
+		/// A role that this one inherits from. If non-zero, a GrantTheSameAs grant is applied.
+		/// </summary>
+		public uint InheritedRoleId;
+
+		/// <summary>
 		/// The raw grant rules, sorted by priority (weakest first). Evaluated against only when new capabilities are added.
 		/// </summary>
 		[JsonIgnore]

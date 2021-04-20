@@ -98,14 +98,32 @@ namespace Api.Permissions
 						_toInstall = null;
 					}
 
-					// Apply the major roles such as Developer etc:
+					// Setup grant rules.
 					var ctx = new Context();
-					Roles.Developer = await Get(ctx, 1, DataOptions.IgnorePermissions);
-					Roles.Admin = await Get(ctx, 2, DataOptions.IgnorePermissions);
-					Roles.Guest = await Get(ctx, 3, DataOptions.IgnorePermissions);
-					Roles.Member = await Get(ctx, 4, DataOptions.IgnorePermissions);
+					var all = await List(ctx, null, DataOptions.IgnorePermissions);
+
+					var map = new Dictionary<uint, Role>();
+
+					foreach (var role in all)
+					{
+						map[role.Id] = role;
+					}
+
+					foreach (var role in all)
+					{
+						if (role.InheritedRoleId != 0)
+						{
+							role.GrantTheSameAs(map[role.InheritedRoleId]);
+						}
+					}
+
+					// Apply the major roles such as Developer etc:
+					Roles.Developer = map[1];
+					Roles.Admin = map[2];
+					Roles.Guest = map[3];
+					Roles.Member = map[4];
 					// Banned = Role 5
-					Roles.Public = await Get(ctx, 6, DataOptions.IgnorePermissions);
+					Roles.Public = map[6];
 
 					// Construct the default grants:
 					await Events.CapabilityOnSetup.Dispatch(ctx, null);
