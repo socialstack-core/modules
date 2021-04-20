@@ -9,7 +9,7 @@ using System;
 using Api.ProfanityFilter;
 using Api.Startup;
 
-namespace Api.LiveChatMessages
+namespace Api.LiveChats
 {
 	/// <summary>
 	/// Handles live stream chat messages.
@@ -49,7 +49,7 @@ namespace Api.LiveChatMessages
 					return new ValueTask<JsonField<LiveChatMessage>>(field);
 				}
 
-				if(field.ForRole != Roles.Admin && field.ForRole != Roles.SuperAdmin && field.ForRole != Roles.Moderator){
+				if(field.ForRole != Roles.Admin && field.ForRole != Roles.Developer){
 					
 					if(field.Name == "ProfanityWeight"){
 						// Not settable by any other roles.

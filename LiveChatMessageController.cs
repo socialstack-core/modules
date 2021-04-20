@@ -1,6 +1,6 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 
-namespace Api.LiveChatMessages
+namespace Api.LiveChats
 {
     /// <summary>
     /// Handles live chat message endpoints.

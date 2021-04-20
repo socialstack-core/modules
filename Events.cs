@@ -1,4 +1,4 @@
-using Api.LiveChatMessages;
+using Api.LiveChats;
 using Api.Permissions;
 using System.Collections.Generic;
 

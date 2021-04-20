@@ -1,12 +1,11 @@
 using System;
 using Api.Database;
 using Api.Users;
-using System.Collections.Generic;
 using Api.WebSockets;
 using Api.UserFlags;
 using Newtonsoft.Json;
 
-namespace Api.LiveChatMessages
+namespace Api.LiveChats
 {
 	
 	/// <summary>
