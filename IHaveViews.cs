@@ -16,10 +16,5 @@ namespace Api.Views
 		/// The view counter. You MUST declare a field called TotalViews which this updates.
 		/// </summary>
 		int Views { get; set; }
-		
-		/// <summary>
-		/// Set if the user has viewed it. It's behind EditedUtc if there's updates.
-		/// </summary>
-		DateTime? ViewedAtUtc { get; set; }
 	}
 }
