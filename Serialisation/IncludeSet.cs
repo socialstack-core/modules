@@ -240,7 +240,7 @@ namespace Api.Startup
 			// lc first:
 			var fieldName = char.ToLower(listAs[0]) + listAs.Substring(1);
 
-			var header = "{\"name\":\"" + includedAs + "\",\"fieldName\":\"" + fieldName + "\"";
+			var header = "{\"name\":\"" + includedAs + "\",\"field\":\"" + fieldName + "\"";
 
 			if (Parent.InclusionOutputIndex != -1)
 			{
@@ -272,7 +272,7 @@ namespace Api.Startup
 			var fieldNameLC = char.ToLower(fieldName[0]) + fieldName.Substring(1);
 			var srcFieldLC = char.ToLower(srcField[0]) + srcField.Substring(1);
 
-			var header = "{\"name\":\"" + includedAs + "\",\"fieldName\":\"" + fieldNameLC + "\",\"src\":\"" + srcFieldLC + "\"";
+			var header = "{\"name\":\"" + includedAs + "\",\"field\":\"" + fieldNameLC + "\",\"src\":\"" + srcFieldLC + "\"";
 
 			if (Parent.InclusionOutputIndex != -1)
 			{
