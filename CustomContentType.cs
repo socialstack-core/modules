@@ -17,7 +17,13 @@ namespace Api.CustomContentTypes
 		/// Type name.
 		/// </summary>
 		public string Name;
-		
+
+		/// <summary>
+		/// Optional image to show with this item.
+		/// </summary>
+		[DatabaseField(Length = 100)]
+		public string IconRef;
+
 		/// <summary>
 		/// The fields in this type (used internally only).
 		/// </summary>
