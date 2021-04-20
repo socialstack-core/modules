@@ -28,6 +28,11 @@ namespace Api.Contexts
 		private readonly Dictionary<uint, uint> RevocationMap = new Dictionary<uint, uint>();
 
 		/// <summary>
+		/// "null"
+		/// </summary>
+		private static readonly byte[] NullText = new byte[] { (byte)'n', (byte)'u', (byte)'l', (byte)'l' };
+		
+		/// <summary>
 		/// Maps lowercase field names to the info about them.
 		/// </summary>
 		private readonly Dictionary<string, ContextFieldInfo> Fields = new Dictionary<string, ContextFieldInfo>();
@@ -140,9 +145,19 @@ namespace Api.Contexts
 				}
 
 				// Note that this allocates due to the boxing of the id.
+				var id = (uint)fld.Get.Invoke(context, Array.Empty<object>());
 
-				// Write the value:
-				await fld.Service.OutputById(context, (uint)fld.Get.Invoke(context, Array.Empty<object>()), writer);
+				if (id == 0)
+				{
+					// null. This exception is important for permissions, 
+					// as a user may not be able to access this object type yet.
+					writer.Write(NullText, 0, 4);
+				}
+				else
+				{
+					// Write the value:
+					await fld.Service.OutputById(context, id, writer);
+				}
 			}
 
 			writer.Write((byte)'}');
