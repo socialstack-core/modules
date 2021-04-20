@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using Api.Database;
 using Api.Users;
+using Api.Startup;
 
 namespace Api.Connections
 {
@@ -9,12 +10,13 @@ namespace Api.Connections
 	/// <summary>
 	/// A user following (or subscribed to) some other user.
 	/// </summary>
-	public partial class Connection : VersionedContent<uint>
+	[HasVirtualField("ConnectedToUser", typeof(User), "ConnectedToId")]
+	public partial class Connection : UserCreatedContent<uint>
 	{
 		/// <summary>
 		/// The user id this (creator) user is subscribed to.
 		/// </summary>
-		public uint? ConnectedToId;
+		public uint ConnectedToId;
 		
 		/// <summary>
 		/// Close friend, friend, aquaintance, mother, father, spouse etc.
@@ -35,13 +37,6 @@ namespace Api.Connections
 		/// The time that this friend connection was declined, meaning that the target user denied the request.
 		/// </summary>
 		public DateTime? DeclinedUtc;
-
-		/// <summary>
-		/// Property containing the connected to User.
-		/// </summary>
-		public UserProfile ConnectedToUser {
-			get; set;
-		}
 	}
 
 }
