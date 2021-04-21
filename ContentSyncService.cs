@@ -851,11 +851,7 @@ namespace Api.ContentSync
 			meta.OpCode = SyncServer.RegisterOpCode((uint)meta.OpCodeId, (ContentUpdate<T> message) => {
 
 				// Create the context as it was in the remote:
-				var context = new Context() {
-					RoleId = message.RoleId,
-					LocaleId = message.LocaleId,
-					UserId = message.User
-				};
+				var context = new Context(message.LocaleId, message.User, message.RoleId);
 
 				// Create, Update, Delete
 				var action = message.Action;
