@@ -27,39 +27,15 @@ export default class IconSelector extends React.Component {
     }
 
     closeModal() {
-        this.setState({selectIcon: false});
+        this.props.onClose && this.props.onClose();
     }
 
     render(){
         var {selectIcon, value, styleFilter, searchFilter} = this.state;
 
-        var currentRef = this.props.value || this.props.defaultValue;
-		
-		if(this.state.value !== undefined){
-			currentRef = this.state.value;
-            console.log("ref updated")
-            console.log(currentRef);
-		}
-
         return <div className = "icon-selector">
-
-            <label>Icon</label>
-            <div>
-                {value ? <i className = {"icon " + value.replace(/:/g, " ")}/> : "None Selected"}
-                <div className = "btn btn-secondary" onClick = {()=> {
-                    this.setState({selectIcon: true});
-                }}>
-                    Change
-                </div>
-                <div className = "btn btn-danger" onClick = {() => {
-                    this.setState({value: null})
-                }}>
-                    Remove
-                </div>
-            </div>
-
             <Modal
-                visible = {selectIcon}
+                visible = {this.props.visible}
                 onClose = {() => this.closeModal()}
                 isLarge 
                 title = {"Select an icon"}
@@ -96,7 +72,10 @@ export default class IconSelector extends React.Component {
                                 return icon.styles.map(style => {
                                     if(styleFilter == "all" || styleFilter == style) {
                                         return <Col className="icon-tile" size = {3} onClick= {() => {
-                                            this.setState({value: "fa"+style[0]+":fa-" + icon.name})
+                                            var newIcon = "fa"+style[0]+":fa-" + icon.name;
+                                            
+                                            this.setState({value: newIcon});
+                                            this.props.onSelected && this.props.onSelected(newIcon)
                                             this.closeModal && this.closeModal();
                                         }}>
                                             <i className={"fa"+style[0]+" fa-" + icon.name} />
@@ -109,10 +88,6 @@ export default class IconSelector extends React.Component {
                     </Loop>
                 </Row>
             </Modal>
-            {this.props.name && (
-				/* Also contains a hidden input field containing the value */
-				<input type="hidden" value={currentRef} name={this.props.name} id={this.props.id} />
-			)}
         </div>
     }
 }

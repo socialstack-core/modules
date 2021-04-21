@@ -5,7 +5,17 @@
 		}
 	}
 
+	.image {
+		i {
+			font-size: 32px;
+		}
+	}
+
 	.delete-file-btn{
 		margin-left: 10px;
+	}
+
+	.file-selector-btn-group {
+		float: left;
 	}
 }
