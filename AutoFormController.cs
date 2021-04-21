@@ -35,7 +35,7 @@ namespace Api.AutoForms
 		[HttpGet]
 		public async Task<AutoFormStructure> Get()
         {
-			var context = Request.GetContext();
+			var context = await Request.GetContext();
 
 			// Get the content types and their IDs:
 			var cTypes = new List<ContentType>();
