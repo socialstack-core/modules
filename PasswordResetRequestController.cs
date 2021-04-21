@@ -31,7 +31,7 @@ namespace Api.PasswordResetRequests
 		[HttpGet("token/{token}")]
 		public async ValueTask<object> CheckTokenExists(string token)
 		{
-			var context = Request.GetContext();
+			var context = await Request.GetContext();
 			
 			if (context == null)
 			{
@@ -77,7 +77,7 @@ namespace Api.PasswordResetRequests
 			var passwordHashField = _users.GetChangeField("PasswordHash");
 			var isUsedField = svc.GetChangeField("IsUsed");
 
-			var context = Request.GetContext();
+			var context = await Request.GetContext();
 				
 			if (context == null || newPassword == null || string.IsNullOrWhiteSpace(newPassword.Password))
 			{
@@ -145,9 +145,8 @@ namespace Api.PasswordResetRequests
 			}
 
 			// Set user:
-			context.SetUser(targetUser);
-			context.RoleId = targetUser.Role;
-				
+			context.User = targetUser;
+
 			await Events.PasswordResetRequestAfterSuccess.Dispatch(context, request);
 
 			// Output context:
@@ -160,7 +159,7 @@ namespace Api.PasswordResetRequests
 		[HttpGet("{id}/generate")]
 		public async ValueTask<object> Generate(uint id)
 		{
-			var context = Request.GetContext();
+			var context = await Request.GetContext();
 
 			if (context == null)
 			{
