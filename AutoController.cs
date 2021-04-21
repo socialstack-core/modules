@@ -30,7 +30,7 @@ public partial class AutoController<T, ID>
 			return null;
 		}
 
-		var context = Request.GetContext();
+		var context = await Request.GetContext();
 		id = await _service.EventGroup.EndpointStartRevisionLoad.Dispatch(context, id, Response);
 		var result = await _service.GetRevision(context, id);
 		return await _service.EventGroup.EndpointEndRevisionLoad.Dispatch(context, result, Response);
@@ -49,7 +49,7 @@ public partial class AutoController<T, ID>
 			return null;
 		}
 		
-		var context = Request.GetContext();
+		var context = await Request.GetContext();
 		var result = await _service.GetRevision(context, id);
 		await _service.EventGroup.EndpointStartRevisionDelete.Dispatch(context, id, Response);
 
@@ -89,7 +89,7 @@ public partial class AutoController<T, ID>
 			return null;
 		}
 		
-		var context = Request.GetContext();
+		var context = await Request.GetContext();
 		var filter = new Filter<T>(filters);
 
 		filter = await _service.EventGroup.EndpointStartRevisionList.Dispatch(context, filter, Response);
@@ -117,7 +117,7 @@ public partial class AutoController<T, ID>
 			return null;
 		}
 		
-		var context = Request.GetContext();
+		var context = await Request.GetContext();
 		
 		var entity = await _service.GetRevision(context, id);
 
@@ -177,7 +177,7 @@ public partial class AutoController<T, ID>
 			return null;
 		}
 		
-		var context = Request.GetContext();
+		var context = await Request.GetContext();
 		
 		var entity = await _service.GetRevision(context, id);
 
@@ -226,7 +226,7 @@ public partial class AutoController<T, ID>
 			return null;
 		}
 		
-		var context = Request.GetContext();
+		var context = await Request.GetContext();
 		
 		var entity = await _service.GetRevision(context, id);
 
@@ -288,7 +288,7 @@ public partial class AutoController<T, ID>
 			return null;
 		}
 		
-		var context = Request.GetContext();
+		var context = await Request.GetContext();
 
 		// Start building up our object.
 		// Most other fields, particularly custom extensions, are handled by autoform.
