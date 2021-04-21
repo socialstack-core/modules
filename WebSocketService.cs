@@ -35,96 +35,6 @@ namespace Api.WebSockets
 		{
 			_contextService = contextService;
 			_userContentTypeId = ContentTypes.GetId(typeof(User));
-
-			// Collect all IAmLive types.
-
-			Events.Service.AfterStart.AddEventListener((Context ctx, object src) =>
-			{
-				Setup();
-				return new ValueTask<object>(src);
-			});
-		}
-
-		private void Setup()
-		{
-			// Special handlers for PermittedContent (permits). Whenever one is created - locally or remote - it must update the websocket filter cache.
-			Events.PermittedContent.Received.AddEventListener((Context context, PermittedContent obj, int action) => {
-
-				if (obj == null)
-				{
-					return new ValueTask<PermittedContent>(obj);
-				}
-
-				if (action == 1)
-				{
-					AddNewPermit(obj);
-				}
-
-				return new ValueTask<PermittedContent>(obj);
-			}, 45);
-
-			Events.PermittedContent.AfterCreate.AddEventListener((Context context, PermittedContent obj) => {
-
-				if (obj == null)
-				{
-					return new ValueTask<PermittedContent>(obj);
-				}
-
-				AddNewPermit(obj);
-				
-				return new ValueTask<PermittedContent>(obj);
-			}, 45);
-
-		}
-
-		/// <summary>
-		/// Adds a newly created (either remote or local) permit. These are handled specially because, for performance, the set of a user's permits are cached in their live filters.
-		/// This finds any live filters a particular user has and makes sure the new permit is added to it.
-		/// </summary>
-		/// <param name="permit"></param>
-		public void AddNewPermit(PermittedContent permit)
-		{
-			if (permit == null)
-			{
-				return;
-			}
-
-			if (permit.PermittedContentTypeId == _userContentTypeId)
-			{
-				// Very common permitted user scenario.
-				// Use the fast userID lookup to very quickly find the relevant user.
-				if (ListenersByUserId.TryGetValue(permit.PermittedContentId, out UserWebsocketLinks links))
-				{
-					var link = links.First;
-					while (link != null)
-					{
-						link.AddNewPermit(permit);
-						link = link.UserNext;
-					}
-				}
-			}
-			else
-			{
-				// Permit for e.g. a company. Must scan all listeners.
-				foreach (var kvp in ListenersByUserId)
-				{
-					var link = kvp.Value.First;
-					while (link != null)
-					{
-						if (link.Context != null)
-						{
-							if (link.Context.HasContent(permit.PermittedContentTypeId, permit.PermittedContentId))
-							{
-								// This link may potentially have a filter we need to update.
-								link.AddNewPermit(permit);
-							}
-						}
-
-						link = link.UserNext;
-					}
-				}
-			}
-
 		}
 
 		/// <summary>
@@ -140,8 +50,6 @@ namespace Api.WebSockets
 		{
 			var evtGroup = svc.EventGroup;
 			listener.Capability = evtGroup.BeforeList.Capability;
-
-			var handlePermits = typeof(PermittedContent) == typeof(T);
 
 			var entityName = typeof(T).Name;
 
@@ -455,7 +363,7 @@ namespace Api.WebSockets
 							var authToken = jToken.Value<string>();
 
 							// Load the context:
-							var ctx = _contextService.Get(authToken);
+							var ctx = await _contextService.Get(authToken);
 
 							if (ctx == null)
 							{
@@ -713,36 +621,6 @@ namespace Api.WebSockets
 			await SetupFilter();
 		}
 
-		/// <summary>
-		/// Adds a newly created (either remote or local) permit. These are handled specially because, for performance, the set of a user's permits are cached in their live filters.
-		/// This finds any live filters a particular user has and makes sure the new permit is added to it.
-		/// </summary>
-		/// <param name="permit"></param>
-		public void AddNewPermit(PermittedContent permit)
-		{
-			if (ResolvedValues == null)
-			{
-				return;
-			}
-
-			foreach (var rv in ResolvedValues)
-			{
-				if (rv == null || rv.Value == null)
-				{
-					continue;
-				}
-
-				if (rv.Value is ContentIdLookup lookup)
-				{
-					// We got one! Check we're looking for the right content and if so, add it:
-					if (permit.ContentTypeId == lookup.ContentTypeId)
-					{
-						lookup.Add(permit.ContentId);
-					}
-				}
-			}
-		}
-		
 		/// <summary>
 		/// Call this to setup the filter object again, pre-calculating permissions etc.
 		/// This is used directly only when the socket is reauthenticated.
@@ -1183,23 +1061,6 @@ namespace Api.WebSockets
 		/// </summary>
 		public WebSocketTypeClient LastClient;
 
-
-		/// <summary>
-		/// Adds a newly created (either remote or local) permit. These are handled specially because, for performance, the set of a user's permits are cached in their live filters.
-		/// This finds any live filters a particular user has and makes sure the new permit is added to it.
-		/// </summary>
-		/// <param name="permit"></param>
-		public void AddNewPermit(PermittedContent permit)
-		{
-			// For each active type client, check if any of its filters are listening for this content type and using a ContentIdLookup.
-			var c = FirstClient;
-
-			while (c != null)
-			{
-				c.AddNewPermit(permit);
-				c = c.NextClient;
-			}
-		}
 
 		/// <summary>
 		/// Adds a listener for messages of the given type. Returns null if it was already being listened to.

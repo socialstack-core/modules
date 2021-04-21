@@ -60,7 +60,7 @@ namespace Api.WebSockets
 						}
 					}
 
-					var context = http.Request.GetContext();
+					var context = await http.Request.GetContext();
 
 					var client = new WebSocketClient()
 					{
