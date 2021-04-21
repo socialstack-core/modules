@@ -565,6 +565,47 @@ namespace Api.SocketServerLibrary
 		}
 
 		/// <summary>
+		/// Writes the given short ascii string to this writer.
+		/// </summary>
+		/// <param name="str"></param>
+		public void WriteASCII(string str)
+		{
+			if (Fill > (BinaryBufferPool.BufferSize - str.Length))
+			{
+				NextBuffer();
+			}
+
+			for (var i = 0; i < str.Length; i++)
+			{
+				_LastBufferBytes[Fill++] = (byte)str[i];
+			}
+		}
+
+		/// <summary>
+		/// Writes a series of bytes from the given buffer as 2 letters. Somewhat like hex, but only uses letters.
+		/// a = 0, b = 1, c = 2 etc.
+		/// </summary>
+		/// <param name="srcBuffer"></param>
+		/// <param name="offset"></param>
+		/// <param name="length"></param>
+		public void WriteAlphaChar(byte[] srcBuffer, int offset, int length)
+		{
+			if (Fill > (BinaryBufferPool.BufferSize - (length * 2)))
+			{
+				NextBuffer();
+			}
+
+			var target = _LastBufferBytes;
+			
+			for (var i = 0; i < length; i++)
+			{
+				var value = srcBuffer[offset + i];
+				target[Fill++] = (byte)((value & 15) + 97);
+				target[Fill++] = (byte)((value >> 4) + 97);
+			}
+		}
+
+		/// <summary>
 		/// Writes the given number out textually without allocating. Avoid unless necessary.
 		/// </summary>
 		/// <param name="n"></param>
@@ -1201,7 +1242,7 @@ namespace Api.SocketServerLibrary
 			/*
 			 * If it was UTF16 in the writer:
 			 * 
-			string.Create(length, this, (Span<char> chars, Writer writer) =>
+			string.Create(Length, this, (Span<char> chars, Writer writer) =>
 			{
 				var charIndex = 0;
 				var currentBuffer = FirstBuffer;
@@ -1219,6 +1260,32 @@ namespace Api.SocketServerLibrary
 
 			var buffer = AllocatedResult();
 			return System.Text.Encoding.UTF8.GetString(buffer);
+		}
+
+		/// <summary>
+		/// Allocates an ASCII string from the bytes of this writer.
+		/// </summary>
+		/// <returns></returns>
+		public string ToASCIIString()
+		{
+			return string.Create(Length, this, (Span<char> chars, Writer writer) =>
+			{
+				var charIndex = 0;
+				var currentBuffer = FirstBuffer;
+
+				while (currentBuffer != null)
+				{
+					var blockSize = (currentBuffer == LastBuffer) ? Fill : currentBuffer.Length;
+
+					// For each byte, increase charIndex and write to chars.
+					for (var i = 0; i < blockSize; i++)
+					{
+						chars[charIndex++] = (char)currentBuffer.Bytes[i];
+					}
+
+					currentBuffer = currentBuffer.After;
+				}
+			});
 		}
 
 		/// <summary>
