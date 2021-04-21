@@ -36,7 +36,7 @@ namespace Api.Uploader
 		[HttpPost("upload")]
 		public async Task<object> Upload([FromRoute] int id, [FromForm] FileUploadBody body)
 		{
-			var context = Request.GetContext();
+			var context = await Request.GetContext();
 
 			// body = await Events.Upload.Create.Dispatch(context, body, Response) as FileUploadBody;
 
