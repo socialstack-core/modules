@@ -23,23 +23,23 @@ namespace Api.LoginOnRegister
 		/// </summary>
 		public EventListener()
 		{
-            Events.User.EndpointEndCreate.AddEventListener(async (Context context, User user, HttpResponse response) => {
+            Events.User.EndpointEndCreate.AddEventListener((Context context, User user, HttpResponse response) => {
 
 				if (user == null)
 				{
-					return null;
+					return new ValueTask<User>(user);
 				}
 
 				// If you're anonymous then it logs in.
 				// Otherwise you stay as-is.
 
 				// Ensure user exists:
-				var usr = await context.GetUser();
+				var usr = context.User;
 
 				if (usr != null && (context.Role == Roles.Developer || context.Role == Roles.Admin))
 				{
 					// Not anon and is admin. Don't login this newly made account.
-					return user;
+					return new ValueTask<User>(user);
 				}
 
 				if (_contexts == null)
@@ -47,13 +47,10 @@ namespace Api.LoginOnRegister
 					_contexts = Services.Get<ContextService>();
 				}
 
-				context.UserId = user.Id;
-				context.UserRef = user.LoginRevokeCount;
-				context.RoleId = user.Role;
-
+				context.User = user;
 				context.SendToken(response);
 
-				return user;
+				return new ValueTask<User>(user);
 			});
 		}
 	}
