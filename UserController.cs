@@ -41,7 +41,7 @@ namespace Api.Users
 		[HttpGet("self")]
 		public async ValueTask Self()
 		{
-			var context = Request.GetContext();
+			var context = await Request.GetContext();
 			await context.RoleCheck(Request, Response);
 			await OutputContext(context);
 		}
@@ -92,7 +92,7 @@ namespace Api.Users
 		[HttpPost("login")]
 		public async ValueTask Login([FromBody] UserLogin body)
 		{
-			var context = Request.GetContext();
+			var context = await Request.GetContext();
 
 			var result = await (_service as UserService).Authenticate(context, body);
 

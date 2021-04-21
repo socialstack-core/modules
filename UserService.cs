@@ -22,16 +22,13 @@ namespace Api.Users
 	/// </summary>
 	public class UserService : AutoService<User>
     {
-        private readonly ContextService _contexts;
         private EmailTemplateService _emails;
 		
 		/// <summary>
 		/// Instanced automatically. Use injection to use this service, or Startup.Services.Get.
 		/// </summary>
-		public UserService(ContextService context) : base(Events.User)
+		public UserService() : base(Events.User)
 		{
-			_contexts = context;
-			
 			var config = GetConfig<UserServiceConfig>();
 			
 			InstallEmails(
@@ -336,12 +333,10 @@ namespace Api.Users
 
 			if (result.MoreDetailRequired == null)
 			{
-				result.CookieName = _contexts.CookieName;
+				result.CookieName = Context.CookieName;
 
 				// Create a new context token (basically a signed string which can identify a context with this user/ role/ locale etc):
-				context.UserId = result.User.Id;
-				context.UserRef = result.User.LoginRevokeCount;
-				context.RoleId = result.User.Role;
+				context.User = result.User;
 
 				await Events.UserOnLogin.Dispatch(context, result);
 
