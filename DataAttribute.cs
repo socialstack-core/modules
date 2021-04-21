@@ -7,7 +7,7 @@ namespace Api.AutoForms
 	/// Use this to define a prop value for your UI module. [Data("placeholder", "Enter a name here")]
 	/// It's the same structure as canvas JSON.
 	/// </summary>
-	[AttributeUsage(AttributeTargets.Field, Inherited = false, AllowMultiple = true)]
+	[AttributeUsage(AttributeTargets.Field | AttributeTargets.Property, Inherited = false, AllowMultiple = true)]
 	internal class DataAttribute : Attribute
 	{
 		/// <summary>
