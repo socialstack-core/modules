@@ -125,7 +125,7 @@ public partial class AutoController<T,ID> : ControllerBase
 	[HttpGet("{id}")]
 	public virtual async ValueTask Load([FromRoute] ID id, [FromQuery] string includes = null)
 	{
-		var context = Request.GetContext();
+		var context = await Request.GetContext();
 
 		id = await _service.EventGroup.EndpointStartLoad.Dispatch(context, id, Response);
 		
@@ -142,7 +142,7 @@ public partial class AutoController<T,ID> : ControllerBase
 	[HttpDelete("{id}")]
     public virtual async ValueTask Delete([FromRoute] ID id, [FromQuery] string includes = null)
 	{
-		var context = Request.GetContext();
+		var context = await Request.GetContext();
 		var result = await _service.Get(context, id);
 		result = await _service.EventGroup.EndpointStartDelete.Dispatch(context, result, Response);
 
@@ -189,7 +189,7 @@ public partial class AutoController<T,ID> : ControllerBase
 	[HttpPost("list")]
 	public virtual async ValueTask List([FromBody] JObject filters, [FromQuery] string includes = null)
 	{
-		var context = Request.GetContext();
+		var context = await Request.GetContext();
 		var filter = new Filter<T>(filters);
 
 		filter = await _service.EventGroup.EndpointStartList.Dispatch(context, filter, Response);
@@ -237,7 +237,7 @@ public partial class AutoController<T,ID> : ControllerBase
     [HttpPost]
 	public virtual async ValueTask Create([FromBody] JObject body)
 	{
-		var context = Request.GetContext();
+		var context = await Request.GetContext();
 
 		// Start building up our object.
 		// Most other fields, particularly custom extensions, are handled by autoform.
@@ -395,7 +395,7 @@ public partial class AutoController<T,ID> : ControllerBase
 	[HttpPost("{id}")]
 	public virtual async ValueTask Update([FromRoute] ID id, [FromBody] JObject body)
 	{
-		var context = Request.GetContext();
+		var context = await Request.GetContext();
 		
 		var entity = await _service.Get(context, id);
 		

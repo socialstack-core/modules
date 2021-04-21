@@ -353,7 +353,7 @@ namespace Api.Startup
 				}
 				else
 				{
-					var mappingService = await MappingTypeEngine.GetOrGenerate(RelativeTo.Service, svc);
+					var mappingService = await MappingTypeEngine.GetOrGenerate(RelativeTo.Service, svc, field.VirtualInfo.FieldName);
 
 					// We need to know what the target field is as we'll need a collector on it.
 					var mappingContentFields = mappingService.GetContentFields();

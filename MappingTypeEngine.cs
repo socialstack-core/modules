@@ -30,12 +30,13 @@ namespace Api.Startup
 		/// </summary>
 		/// <param name="srcType"></param>
 		/// <param name="targetType"></param>
+		/// <param name="listAs"></param>
 		/// <returns></returns>
-		public static async ValueTask<AutoService> GetOrGenerate(AutoService srcType, AutoService targetType)
+		public static async ValueTask<AutoService> GetOrGenerate(AutoService srcType, AutoService targetType, string listAs)
 		{
 			var srcTypeName = srcType.ServicedType.Name;
 			var targetTypeName = targetType.ServicedType.Name;
-			var typeName = srcTypeName + "_" + targetTypeName + "_Map";
+			var typeName = srcTypeName + "_" + targetTypeName + "_Map_" + listAs;
 
 			if (_mappers.TryGetValue(typeName, out AutoService mapper))
 			{

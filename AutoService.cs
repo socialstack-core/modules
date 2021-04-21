@@ -286,8 +286,9 @@ public partial class AutoService<T, ID> : AutoService
 	/// <typeparam name="T_ID"></typeparam>
 	/// <param name="context"></param>
 	/// <param name="targetId"></param>
+	/// <param name="mappingName"></param>
 	/// <returns></returns>
-	public virtual async ValueTask<List<T>> ListFromMapping<MAP_TARGET, T_ID>(Context context, T_ID targetId)
+	public virtual async ValueTask<List<T>> ListFromMapping<MAP_TARGET, T_ID>(Context context, T_ID targetId, string mappingName)
 		where T_ID: struct, IEquatable<T_ID>
 		where MAP_TARGET: Content<T_ID>
 	{
@@ -295,7 +296,7 @@ public partial class AutoService<T, ID> : AutoService
 		var targetSvc = Services.GetByContentType(typeof(MAP_TARGET));
 
 		// Get the mapping type:
-		var mappingService = await MappingTypeEngine.GetOrGenerate(this, targetSvc) as MappingService<T, MAP_TARGET, ID, T_ID>;
+		var mappingService = await MappingTypeEngine.GetOrGenerate(this, targetSvc, mappingName) as MappingService<T, MAP_TARGET, ID, T_ID>;
 
 		// Ask mapping service for all source values with the given target ID.
 		var idSet = await mappingService.ListByTarget(context, targetId);
@@ -873,10 +874,7 @@ public partial class AutoService<T, ID> : AutoService
 
 			if (cache == null)
 			{
-				primaryEntity = await Get(new Context() {
-					LocaleId = 1,
-					UserId = context.UserId
-				}, id);
+				primaryEntity = await Get(new Context(1, context.User, context.RoleId), id);
 			}
 			else
 			{
