@@ -4,7 +4,7 @@ using Org.BouncyCastle.Crypto.Signers;
 using Org.BouncyCastle.Math;
 using System.Security.Cryptography;
 using System;
-
+using Api.SocketServerLibrary;
 
 namespace Api.Signatures
 {
@@ -55,7 +55,148 @@ namespace Api.Signatures
 				throw new Exception("You have a broken signatureService.key - delete it, and restart the API to generate a new one.");
 			}
 		}
-		
+
+		private int PoolSize;
+		private PooledHMac _pool;
+		private object poolLock = new object();
+
+		private void ReturnToPool(PooledHMac mac)
+		{
+			lock (poolLock)
+			{
+				if (PoolSize > 1000)
+				{
+					// Prevent excessive pool growth
+					return;
+				}
+
+				PoolSize++;
+				mac.Next = _pool;
+				_pool = mac;
+			}
+		}
+
+		/// <summary>
+		/// Gets a hmac helper, which may come from a pool.
+		/// </summary>
+		/// <returns></returns>
+		private PooledHMac GetHmac()
+		{
+			PooledHMac result = null;
+
+			lock (poolLock)
+			{
+				if (_pool != null)
+				{
+					PoolSize--;
+					result = _pool;
+					_pool = _pool.Next;
+				}
+			}
+
+			if (result == null)
+			{
+				// Create an instance:
+				var hmacSha256 = new Org.BouncyCastle.Crypto.Macs.HMac(new Org.BouncyCastle.Crypto.Digests.Sha256Digest());
+				hmacSha256.Init(new Org.BouncyCastle.Crypto.Parameters.KeyParameter(_keyPair.PrivateKeyBytes));
+
+				result = new PooledHMac()
+				{
+					Mac = hmacSha256
+				};
+
+			}
+			else
+			{
+				result.Next = null;
+			}
+
+			return result;
+		}
+
+		/// <summary>
+		/// Validates that the given string ends with an alphachar signature.
+		/// </summary>
+		/// <param name="str"></param>
+		/// <returns></returns>
+		public bool ValidateHmac256AlphaChar(string str)
+		{
+			var hmac = GetHmac();
+
+			var writer = Writer.GetPooled();
+			writer.Start(null);
+			writer.WriteASCII(str);
+
+			var input = writer.FirstBuffer.Bytes;
+
+			// Write block to hmac:
+			hmac.Mac.BlockUpdate(input, 0, writer.Length - 64);
+
+			// Write resulting hmac to a scratch area of the writer buffer:
+			hmac.Mac.DoFinal(input, 256);
+
+			// Compare bytes of the generated hmac to the alphachar bytes located at writer.Length-64
+			var offset = writer.Length - 64;
+			var success = true;
+
+			for (var i = 0; i < 32; i++)
+			{
+				var hmacLocalByte = input[256 + i];
+
+				if (input[offset++] != (byte)((hmacLocalByte & 15) + 97))
+				{
+					success = false;
+					break;
+				}
+
+				if (input[offset++] != (byte)((hmacLocalByte >> 4) + 97))
+				{
+					success = false;
+					break;
+				}
+			}
+
+			writer.Release();
+			ReturnToPool(hmac);
+			return success;
+		}
+
+		/// <summary>
+		/// Signs the given writer content with a sha256 HMAC using the internal private key.
+		/// The outputted HMAC goes into the writer's buffer as hex.
+		/// </summary>
+		/// <param name="writer"></param>
+		public void SignHmac256AlphaChar(Writer writer)
+		{
+			if (writer.Length > 64)
+			{
+				// Writer content is longer than the length of the hash. 
+				// Whilst this is usually handled by just compounding the blocks together, this is an error condition here.
+				// That's in part because no signed context should ever be this long anyway, but also because collision attacks become possible
+				// (even though with sha256 they're practically impossible, but better safe than sorry!)
+				throw new Exception("Unable to sign content as it is too long.");
+			}
+
+			// Note that also due to the above length check, we know for certain that we have 
+			// enough space in the writer's buffer for the complete hex encoding of the hmac, meaning we can short out buffer overrun checks as well.
+			// We'll use the writer's buffer as a scratch space too.
+
+			var hmac = GetHmac();
+
+			var input = writer.FirstBuffer.Bytes;
+
+			// Write block to hmac:
+			hmac.Mac.BlockUpdate(input, 0, writer.Length);
+
+			// Write resulting hmac to a scratch area of the writer buffer:
+			hmac.Mac.DoFinal(input, 256);
+
+			// Write alphachar bytes:
+			writer.WriteAlphaChar(input, 256, 32);
+
+			ReturnToPool(hmac);
+		}
+
 		/// <summary>
 		/// Generates a signature for the given piece of text.
 		/// The timestamp will be appended to the end of the valueToSign as ?t={timestamp}.
@@ -163,6 +304,21 @@ namespace Api.Signatures
 			return _keyPair.Verify(signedValue, signature);
 		}
 
+	}
+
+	/// <summary>
+	/// A pooled reusable hmac helper.
+	/// </summary>
+	public class PooledHMac
+	{
+		/// <summary>
+		/// The hmac engine.
+		/// </summary>
+		public Org.BouncyCastle.Crypto.Macs.HMac Mac;
+		/// <summary>
+		/// Next in pool.
+		/// </summary>
+		public PooledHMac Next;
 	}
 
 }
