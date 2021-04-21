@@ -10,6 +10,7 @@ using Api.Eventing;
 using Api.Signatures;
 using Api.SocketServerLibrary;
 using Api.Startup;
+using Api.Users;
 
 namespace Api.Contexts
 {
@@ -20,18 +21,20 @@ namespace Api.Contexts
 	public class ContextService
     {
 		/// <summary>
-		/// Tracks any active revocations. A revoke occurs when either a user is forcefully logged out (e.g. account was declared stolen)
-		/// Or because their role was explicitly changed. Essentially rare admin tasks. 
-		/// A role change can be automatically reissued but a ref revoke requires logging in again.
-		/// </summary>
-		// TODO: Populate the revoke map on load (#208).
-		private readonly Dictionary<uint, uint> RevocationMap = new Dictionary<uint, uint>();
-
-		/// <summary>
 		/// "null"
 		/// </summary>
 		private static readonly byte[] NullText = new byte[] { (byte)'n', (byte)'u', (byte)'l', (byte)'l' };
 		
+		/// <summary>
+		/// "1"
+		/// </summary>
+		private static readonly byte[] VersionField = new byte[] { (byte)'1' };
+
+		/// <summary>
+		/// Fields by the shortcode, which is usually the first character of a context field name.
+		/// </summary>
+		private readonly ContextFieldInfo[] FieldsByShortcode = new ContextFieldInfo[64];
+
 		/// <summary>
 		/// Maps lowercase field names to the info about them.
 		/// </summary>
@@ -43,21 +46,31 @@ namespace Api.Contexts
 		/// </summary>
 		private readonly Dictionary<int, ContextFieldInfo> ContentTypeToFieldInfo = new Dictionary<int, ContextFieldInfo>();
 		private readonly SignatureService _signatures;
+		private readonly UserService _users;
 
 
 		/// <summary>
 		/// Instanced automatically.
 		/// </summary>
-        public ContextService(SignatureService signatures)
+        public ContextService(SignatureService signatures, UserService users)
         {
 			_signatures = signatures;
+			_users = users;
 
 			// Load all the props now.
-			var fields = typeof(Context).GetProperties(BindingFlags.Public | BindingFlags.Instance);
+			var properties = typeof(Context).GetProperties(BindingFlags.Public | BindingFlags.Instance);
+			var fields = typeof(Context).GetFields(BindingFlags.NonPublic | BindingFlags.Instance);
+
+			var mapping = new Dictionary<string, FieldInfo>();
+
+			foreach (var field in fields)
+			{
+				mapping[field.Name.ToLower()] = field;
+			}
 
 			var defaultValueChecker = new Context();
 
-			foreach (var field in fields)
+			foreach (var field in properties)
 			{
 				// must be a uint field.
 				if (field.PropertyType != typeof(uint))
@@ -74,16 +87,45 @@ namespace Api.Contexts
 				var getMethod = field.GetGetMethod();
 				
 				var defaultValue = (uint)getMethod.Invoke(defaultValueChecker, System.Array.Empty<object>());
-				
+
+				if(!mapping.TryGetValue("_" + lcName, out FieldInfo privateField))
+				{
+					throw new Exception(
+						"For '" + field.Name + "' to be a valid Context property, it must have a private backing field called _" + lcName + 
+						". This is such that you can restrict setting your context field from anything other than a token or an object set."
+					);
+				}
+
 				var fld = new ContextFieldInfo()
 				{
-					Set = field.GetSetMethod(),
-					Get = getMethod,
+					PrivateFieldInfo = privateField,
 					Property = field,
 					Name = field.Name,
-					LowercaseNameWithDash = lcName + '-',
-					DefaultValue = defaultValue
+					DefaultValue = defaultValue,
+					SkipOutput = lcName == "roleid"
 				};
+
+				var shortCodeAttrib = field.GetCustomAttribute<ContextShortcodeAttribute>();
+
+				var shortcode = shortCodeAttrib == null ? lcName[0] : shortCodeAttrib.Shortcode;
+
+				var shortIndex = shortcode - 'A';
+
+				if (shortIndex < 0 || shortIndex >= 64)
+				{
+					throw new Exception("Can't use " + shortcode + " as a context field shortcode - it must be A-Z or a-z.");
+				}
+
+				fld.Shortcode = shortcode;
+
+				if (FieldsByShortcode[shortIndex] != null)
+				{
+					throw new Exception(
+						"Context field '" + field.Name + "' can't use context field short name '" + shortcode + 
+						"' because it's in use. Specify one to use with [ContextShortcode('...')] on the field.");
+				}
+
+				FieldsByShortcode[shortIndex] = fld;
 
 				// E.g. UserId, LocaleId.
 				// Get content type ID:
@@ -145,7 +187,7 @@ namespace Api.Contexts
 				}
 
 				// Note that this allocates due to the boxing of the id.
-				var id = (uint)fld.Get.Invoke(context, Array.Empty<object>());
+				var id = (uint)fld.PrivateFieldInfo.GetValue(context);
 
 				if (id == 0)
 				{
@@ -199,7 +241,7 @@ namespace Api.Contexts
         {
             get
             {
-                return "user";
+                return Context.CookieName;
             }
         }
 
@@ -247,110 +289,104 @@ namespace Api.Contexts
 		}
 
 		/// <summary>
-		/// Revokes all previous login tokens for the given user.
-		/// </summary>
-		/// <param name="userId"></param>
-		/// <param name="loginRevokeCount"></param>
-		public void Revoke(uint userId, uint loginRevokeCount)
-		{
-			RevocationMap[userId] = loginRevokeCount;
-		}
-
-		/// <summary>
 		/// Gets a login token from the given cookie text.
 		/// </summary>
 		/// <param name="tokenStr"></param>
 		/// <returns></returns>
-		public Context Get(string tokenStr)
+		public async ValueTask<Context> Get(string tokenStr)
         {
             if (tokenStr == null)
             {
-				return new Context()
-				{
-					CookieState = 6
-				};
+				return null;
             }
 
-			// Default token str format is:
-			// userid-X-roleid-Y-userref-Z|Base64SignatureOfEverythingElse
+			// Token format is:
+			// (1 digit) - Version
+			// Y digits - Timestamp, in ms
+			// N fields, where a field is:
+			// (1 character) - Field identifier
+			// (X digits) - the ID
+			// (64 alphanum) - The hex encoded HMAC-SHA256 of everything before it.
 
-			var tokenSig = tokenStr.Split('|');
-
-            if (tokenSig.Length < 2 || tokenSig.Length > 3)
-            {
-				return new Context()
-				{
-					CookieState = 5
-				};
-            }
-
-			// Verify the signature first:
-			if (!_signatures.ValidateSignatureFromHost(tokenSig[0], tokenSig[1], tokenSig.Length == 3 ? tokenSig[2] : null))
+			if (tokenStr[0] != '1' || tokenStr.Length < 65)
 			{
-				return new Context() {
-					CookieState = 4
-				};
+				// Must start with version 1
+				return null;
 			}
-			
-			// Verified! Build the token based on what was in the cookie:
-			var tokenParts = tokenSig[0].Split('-');
 
-			var length = tokenParts.Length;
-
-			if ((length % 2) != 0)
+			if (!_signatures.ValidateHmac256AlphaChar(tokenStr))
 			{
-				// Must have an even # of parts.
-				return new Context()
-				{
-					CookieState = 7
-				};
+				return null;
 			}
-			
-			var context = new Context();
 
-			// Every even token part is a field name, odd parts are the value.
-			// Default values - the value seen when creating a new context - are not stored.
-			var args = new object[1];
+			var ctx = new Context();
 
-			for (var i = 0; i < length; i += 2)
+			var sigStart = tokenStr.Length - 64;
+
+			uint currentId = 0;
+
+			// If any field does not pass, we reject the whole thing.
+			var i = 1;
+
+			// Skip timestamp:
+			while (i < sigStart)
 			{
-				var fieldName = tokenParts[i];
-				var fieldValue = tokenParts[i + 1];
-
-				if (!Fields.TryGetValue(fieldName, out ContextFieldInfo field))
+				var current = tokenStr[i];
+				if (current >= 48 && current <= 57)
 				{
-					// Removed field. We can ignore this and permit all other changes.
-					continue;
+					i++;
 				}
-				
-				if (!uint.TryParse(fieldValue, out uint id))
+				else
 				{
-					// Ancient cookie.
-					continue;
+					break;
 				}
-
-				args[0] = id;
-
-				field.Set.Invoke(context, args);
 			}
-			
-			// If we don't have a revocation for the given user ref then continue.
-			// This means a significant amount of API requests go through without a single auth related database hit.
 
-			if (RevocationMap.TryGetValue(context.UserId, out uint revokedRefs))
+			while (i < sigStart)
 			{
-				if (context.UserRef <= revokedRefs)
+				var fieldIndex = tokenStr[i] - 'A';
+
+				if (fieldIndex < 0 || fieldIndex > 64)
 				{
-					// This token is revoked permanently.
+					// Invalid field index.
 					return null;
 				}
-			}
-			
 
-			return context;
+				var field = FieldsByShortcode[fieldIndex];
+
+				if (field == null)
+				{
+					// Invalid field index.
+					return null;
+				}
+
+				i++;
+
+				// keep reading numbers until there aren't anymore:
+				var current = tokenStr[i];
+
+				while (current >= 48 && current <= 57 && i < sigStart)
+				{
+					i++;
+					currentId = currentId * 10;
+					currentId += (uint)(current - 48);
+					current = tokenStr[i];
+				}
+
+				// Completed the ID for field at 'fieldIndex'.
+				field.PrivateFieldInfo.SetValue(ctx, currentId);
+				currentId = 0;
+			}
+
+			if (ctx.UserId != 0)
+			{
+				// Get the user row and apply now:
+				ctx.User = await _users.Get(ctx, ctx.UserId, DataOptions.IgnorePermissions);
+			}
+
+			return ctx;
 		}
 
-		private readonly object[] _emptyArgs = System.Array.Empty<object>();
 		/// <summary>
 		/// Creates a signed token for the given context.
 		/// </summary>
@@ -358,34 +394,32 @@ namespace Api.Contexts
 		/// <returns></returns>
 		public string CreateToken(Context context)
 		{
-			var builder = new StringBuilder();
-			bool first = true;
+			var writer = Writer.GetPooled();
+			writer.Start(VersionField);
+			writer.WriteS(DateTime.UtcNow);
 
 			foreach (var field in FieldList)
 			{
-				var value = (uint)field.Get.Invoke(context, _emptyArgs);
+				if (field.SkipOutput)
+				{
+					continue;
+				}
+
+				var value = (uint)field.PrivateFieldInfo.GetValue(context);
 
 				if (value == field.DefaultValue)
 				{
 					continue;
 				}
 
-				if (first)
-				{
-					first = false;
-				}
-				else
-				{
-					builder.Append('-');
-				}
-
-				builder.Append(field.LowercaseNameWithDash);
-				builder.Append(value);
+				writer.Write((byte)field.Shortcode);
+				writer.WriteS(value);
 			}
 
-			var tokenStr = builder.ToString();
-			tokenStr += "|" + _signatures.Sign(tokenStr);
-            return tokenStr;
+			_signatures.SignHmac256AlphaChar(writer);
+			var tokenStr = writer.ToASCIIString();
+			writer.Release();
+			return tokenStr;
         }
 
 		/// <summary>
@@ -401,12 +435,13 @@ namespace Api.Contexts
 		/// <returns></returns>
 		public string CreateRemoteToken(Context context, string hostName, KeyPair keyPair)
 		{
+			/*
 			var builder = new StringBuilder();
 			bool first = true;
 
 			foreach (var field in FieldList)
 			{
-				var value = (int)field.Get.Invoke(context, _emptyArgs);
+				var value = (int)field.PrivateFieldInfo.GetValue(context);
 
 				if (value == field.DefaultValue)
 				{
@@ -430,6 +465,9 @@ namespace Api.Contexts
 			tokenStr += "|" + keyPair.SignBase64(tokenStr) + "|" + hostName;
 
 			return tokenStr;
+			*/
+
+			throw new NotImplementedException("Remote tokens are WIP.");
 		}
 
     }

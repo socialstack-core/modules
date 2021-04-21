@@ -15,14 +15,14 @@ namespace Api.Contexts
 		public PropertyInfo Property;
 
 		/// <summary>
-		/// The set method.
+		/// True if this field should be skipped. RoleId is always obtained through the user row so it is skipped for example.
 		/// </summary>
-		public MethodInfo Set;
+		public bool SkipOutput;
 
 		/// <summary>
-		/// The get method.
+		/// Private backing field. Name must be of the form _propertyName.
 		/// </summary>
-		public MethodInfo Get;
+		public FieldInfo PrivateFieldInfo;
 
 		/// <summary>
 		/// Full name.
@@ -30,9 +30,9 @@ namespace Api.Contexts
 		public string Name;
 
 		/// <summary>
-		/// The name pre lowercased with a dash at the end.
+		/// Shortcode of this field.
 		/// </summary>
-		public string LowercaseNameWithDash;
+		public char Shortcode;
 
 		/// <summary>
 		/// Default field value.

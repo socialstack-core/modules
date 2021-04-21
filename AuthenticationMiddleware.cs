@@ -26,7 +26,7 @@ namespace Api.Contexts
 		/// </summary>
 		/// <param name="request"></param>
 		/// <returns></returns>
-		public static Context GetContext(this Microsoft.AspNetCore.Http.HttpRequest request)
+		public static async ValueTask<Context> GetContext(this Microsoft.AspNetCore.Http.HttpRequest request)
 		{
 			if (_loginTokens == null)
 			{
@@ -53,17 +53,18 @@ namespace Api.Contexts
 				}
 			}
 
-			var context = cookie == null ? null : _loginTokens.Get(cookie);
+			var context = cookie == null ? null : await _loginTokens.Get(cookie);
 
 			if (context == null)
 			{
-				context = new Context() { CookieState = (cookie == null) ? 1 : 2 };
+				context = new Context() { };
 			}
 
 			// Handle locale next. The cookie comes lower precedence to the Locale header.
 			cookie = request.Cookies[_locales.CookieName];
 			
 			StringValues localeIds;
+
 			// Could also handle Accept-Language here. For now we use a custom header called Locale (an ID).
 			if (request.Headers.TryGetValue("Locale", out localeIds) && !string.IsNullOrEmpty(localeIds))
 			{
