@@ -23,7 +23,7 @@ public partial class AutoController<T>
 	public virtual async Task<object> MarkViewed([FromRoute] uint id)
 	{
 		// Get the ctx:
-		var context = Request.GetContext();
+		var context = await Request.GetContext();
 		
         try
         {
