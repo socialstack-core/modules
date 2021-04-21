@@ -41,7 +41,7 @@ namespace Api.Permissions
 				return _allPermissionInfo;
 			}
 
-			var context = Request.GetContext();
+			var context = await Request.GetContext();
 
 			var results = new List<PermissionMeta>();
 
