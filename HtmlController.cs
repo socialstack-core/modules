@@ -35,7 +35,7 @@ namespace Api.Pages
 		[Route("/en-admin/{*url}", Order = 9998)]
 		public async Task CatchAllAdmin()
 		{
-			var context = Request.GetContext();
+			var context = await Request.GetContext();
 			var compress = true;
 
 			Response.ContentType = "text/html";
@@ -56,7 +56,7 @@ namespace Api.Pages
 		[Route("{*url}", Order = 9999)]
 		public async Task CatchAll()
 		{
-			var context = Request.GetContext();
+			var context = await Request.GetContext();
 
 			var cookieRole = context.RoleId;
 

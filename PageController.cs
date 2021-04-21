@@ -31,7 +31,7 @@ namespace Api.Pages
 		[HttpPost("state")]
 		public async Task<ContentResult> PageState([FromBody] PageDetails pageDetails)
 		{
-			var context = Request.GetContext();
+			var context = await Request.GetContext();
 
 			// we first need to get the pageAndTokens
 			var pageAndTokens = await _pageService.GetPage(context, pageDetails.Url);
