@@ -77,7 +77,7 @@ namespace Api.Startup
 		private async Task HandleError(Exception e, HttpContext context, int statusCode)
 		{
 			byte[] responseBody;
-			var ctx = context.Request.GetContext();
+			var ctx = await context.Request.GetContext();
 
 			// Request URL:
 			var path = context.Request.Method + " " + context.Request.Path;
