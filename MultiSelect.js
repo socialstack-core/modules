@@ -54,7 +54,7 @@ export default class MultiSelect extends React.Component {
 											return v;
 										}
 										
-										return this.state.value.map(entry => {return {id:entry.id, type: entry.type});
+										return this.state.value.map(entry => entry.id);
 									}
 								}
 							}
