@@ -115,10 +115,11 @@ export default class AutoForm extends React.Component {
 
 		if (isEdit) {
 			// We always force locale:
-			var opts = { locale };
+			var opts = { locale, includes: '*' };
 
 			// Get the values we're editing:
-			webRequest(revisionId ? props.endpoint + '/revision/' + revisionId : props.endpoint + '/' + props.id, null, opts).then(response => {
+			var url = revisionId ? props.endpoint + '/revision/' + revisionId : props.endpoint + '/' + props.id;
+			webRequest(url, null, opts).then(response => {
 
 				this.setState({ fieldData: response.json, createSuccess });
 
