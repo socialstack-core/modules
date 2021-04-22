@@ -1,4 +1,6 @@
 import Alert from 'UI/Alert';
+import Token from 'UI/Token';
+import Input from 'UI/Input';
 
 var TEXT = '#text';
 
@@ -48,6 +50,7 @@ export default class RichEditor extends React.Component {
 		this.onKeyDown = this.onKeyDown.bind(this);
 		this.onMouseUp = this.onMouseUp.bind(this);
 		this.onMouseDown = this.onMouseDown.bind(this);
+		this.onContextMenu = this.onContextMenu.bind(this);
 		this.onReject = this.onReject.bind(this);
 		this.onBlur = this.onBlur.bind(this);
 		this.onPaste = this.onPaste.bind(this);
@@ -184,6 +187,10 @@ export default class RichEditor extends React.Component {
 			
 			var convertedRoot = this.convertToNodesFromCanvas(root);
 			
+			if(!convertedRoot.type && !convertedRoot.content){
+				convertedRoot = {content: []};
+			}
+			
 			if(!convertedRoot){
 				convertedRoot = {content: []};
 			}
@@ -255,6 +262,9 @@ export default class RichEditor extends React.Component {
 		}
 		
 		if(Array.isArray(node)){
+			// Remove any nulls in there.
+			node = node.filter(n => n);
+			
 			if(node.length == 1){
 				node = node[0];
 			}else{
@@ -278,8 +288,7 @@ export default class RichEditor extends React.Component {
 			node.content = node.content || node.data.text;
 		}else if(node.module == "UI/Image" || node.module == "UI/Video" || node.module == "UI/Spacer"){
 			// Retain these
-		}else if(node.module){
-			// Convert to a p:
+		}else if(node.module == 'UI/Column'){ // If on a blogpost only!
 			type = 'p';
 			if(!node.content || !node.content.length || (node.content.length == 1 && !node.content[0])){
 				// Just destroy this.
@@ -444,18 +453,37 @@ export default class RichEditor extends React.Component {
 					continue;
 				}
 				
-				var ssComponent = name == 'span' && node.getAttribute('module');
+				var props = undefined;
+				var ssComponent = null;
+				
+				if(name == 'a'){
+					// href is allowed.
+					props = {
+						href: node.getAttribute('href')
+					};
+					
+					ssComponent = 'UI/Link';
+					
+				}else{
+					ssComponent = name == 'span' && node.getAttribute('module');
+				}
 				
 				var n = {
 					type: ssComponent ? require(ssComponent).default : name,
-					parent
+					parent,
+					props
 				};
 				
 				if(ssComponent){
 					n.typeName = ssComponent;
+					n.roots = {
+						children: {
+							content: this.convertToNodes(node.childNodes, n)
+						}
+					};
+				}else{
+					n.content = this.convertToNodes(node.childNodes, n);
 				}
-				
-				n.content = this.convertToNodes(node.childNodes, n);
 				output.push(n);
 			}
 		}
@@ -467,73 +495,123 @@ export default class RichEditor extends React.Component {
 		e.preventDefault();
 	}
 	
-	onMouseDown(){
-		window.addEventListener("mouseup", this.onMouseUp);
+	onContextMenu(e){
+		e.preventDefault();
+		
+		// Right click menu
+		var {node} = this.state;
+		var current = e.target;
+		var target = this.getNode(current, node);
+		while(!target && current){
+			current = current.parentNode;
+			target = this.getNode(current, node);
+		}
+		
+		e.preventDefault();
+
+		this.setState({
+			rightClick: {
+				node: target,
+				x: e.clientX,
+				y: e.clientY
+			}
+		});
+		
+		return false;
+	}
+	
+	onMouseDown(e){
+		this._mDown = true;
 	}
 	
 	onMouseUp(e){
-		window.removeEventListener("mouseup", this.onMouseUp);
-		// Must wait for next tick such that the window selection (default action) has occurred.
-		setTimeout(() => this.updateSelection(), 1);
+		// Needs to look out for e.g. selecting text but mouse-up outside the text area.
+		// Because of the above, this is a global mouseup handler. Ensure it does the minimal amount possible.
+		
+		if(this.state.rightClick){
+			this.setState({rightClick: null});
+		}
+		
+		if(this.state.sourceMode){
+			this._mDown = 0;
+			return;
+		}
+		
+		if(this._mDown || this.state.selection){
+			// If mouse down was on us, or we had a selection, update selection.
+			this._mDown = 0;
+			this.updateSelection();
+		}
+	}
+	
+	mapSelection(domSelection, selection){
+		var {node} = this.state;
+		this.updateRefs(node, node.dom.current);
+		
+		selection.startOffset = domSelection.anchorOffset;
+		selection.startNode = this.getNode(domSelection.anchorNode, node);
+		selection.endOffset = domSelection.focusOffset;
+		selection.endNode = this.getNode(domSelection.focusNode, node);
+		
+		var start = selection.startNode;
+		if(!start || !selection.endNode){
+			return null;
+		}
+		
+		// First, do we need to flip start and end? That happens if the user selected backwards.
+		if(start == selection.endNode){
+			var e = selection.endOffset;
+			if(selection.startOffset > e){
+				selection.endOffset = selection.startOffset;
+				selection.startOffset = e;
+			}
+		}else{
+			// Is the start of the selection actually after the end?
+			// If so we need to flip them over such that start is always the first one.
+			this.updateCaretPositions(node, 0);
+			
+			var startPosition = this.getCaretPosition(start, selection.startOffset);
+			var endPosition = this.getCaretPosition(selection.endNode, selection.endOffset);
+			
+			if(startPosition > endPosition){
+				var sOffset = selection.startOffset;
+				selection.startNode = selection.endNode;
+				selection.startOffset = selection.endOffset;
+				selection.endOffset = sOffset;
+				selection.endNode = start;
+				start = selection.endNode;
+			}
+		}
+		
+		// If startNode and/ or endNode are a custom element, use the parent node for the selection instead.
+		// That's because it'll be marked contentEditable=false and the cursor won't show.
+		if(this.isCustom(start)){
+			var p = start.parent;
+			selection.startOffset = p.content.indexOf(start) + 1;
+			selection.startNode = p;
+		}
+		
+		if(this.isCustom(selection.endNode)){
+			var p = selection.endNode.parent;
+			selection.endOffset = p.content.indexOf(selection.endNode) + 1;
+			selection.endNode = p;
+		}
+		
+		return selection;
 	}
 	
 	updateSelection(){
 		// Updates our state selection based on wherever the browser elected to put the cursor.
-		var domSelection = window.getSelection();
+		// We also track the complete tree of nodes with config options.
+		var selection = this.mapSelection(window.getSelection(), {});
 		
-		var selection = {
-			startOffset: domSelection.anchorOffset,
-			startNode: this.getNode(domSelection.anchorNode),
-			endOffset: domSelection.focusOffset,
-			endNode: this.getNode(domSelection.focusNode)
-		};
-
-		var start = selection.startNode;
-		
-		if(!start){
-			selection = null;
-		}else{
-			// First, do we need to flip start and end? That happens if the user selected backwards.
-			if(start == selection.endNode){
-				var e = selection.endOffset;
-				if(selection.startOffset > e){
-					selection.endOffset = selection.startOffset;
-					selection.startOffset = e;
-				}
-			}else{
-				// Is the start of the selection actually after the end?
-				// If so we need to flip them over such that start is always the first one.
-				this.updateCaretPositions(this.state.node, 0);
-				var startPosition = this.getCaretPosition(start, selection.startOffset);
-				var endPosition = this.getCaretPosition(selection.endNode, selection.endOffset);
-				
-				if(startPosition > endPosition){
-					var sOffset = selection.startOffset;
-					selection.startNode = selection.endNode;
-					selection.startOffset = selection.endOffset;
-					selection.endOffset = sOffset;
-					selection.endNode = start;
-					start = selection.endNode;
-				}
-			}
-			
-			// If startNode and/ or endNode are a custom element, use the parent node for the selection instead.
-			// That's because it'll be marked contentEditable=false and the cursor won't show.
-			if(this.isCustom(start)){
-				var p = start.parent;
-				selection.startOffset = p.content.indexOf(start) + 1;
-				selection.startNode = p;
-				start = p;
-			}
-			if(this.isCustom(selection.endNode)){
-				var p = selection.endNode.parent;
-				selection.endOffset = p.content.indexOf(selection.endNode) + 1;
-				selection.endNode = p;
-			}
+		if(!this.state.selection && !selection){
+			// no-op
+			return;
 		}
 		
 		var parents = this.getUniqueParents(selection);
-		this.setState({selection, active: parents});
+		this.setState({selection, active: parents, highlight: selection ? selection.startNode : null, highlightLocked: true});
 	}
 	
 	splitIfText(node, offset){
@@ -1021,6 +1099,49 @@ export default class RichEditor extends React.Component {
 			}
 		}
 		
+		if(key == '@'){
+			// Possible @mention. Permitted if at start of text (startOffset=0) or prev char is a space/ nbsp.
+			var isMention = selection.startOffset == 0;
+			if(!isMention){
+				var p = startNode.text[selection.startOffset - 1];
+				if(p == ' ' || p == '\xA0'){
+					isMention = true;
+				}
+			}
+			
+			if(isMention && this.props.handleMentions){
+				
+				// Insert a token instead:
+				this.sliceSelection(selection);
+				
+				var parent;
+				var insertIndex;
+				
+				if(selection.startNode.type == TEXT){
+					parent = selection.startNode.parent;
+					insertIndex = parent.content.indexOf(selection.startNode) + 1;
+				}else{
+					parent = selection.startNode;
+					insertIndex = selection.startOffset;
+				}
+				
+				var token = {
+					type: Token,
+					typeName: 'UI/Token'
+				};
+				
+				selection.startNode = selection.endNode = this.addNode({type: TEXT, text: '@'}, token);
+				
+				this.addNode(token, parent, insertIndex);
+				
+				// Update current position:
+				selection.startOffset = selection.endOffset = 1;
+				
+				this.normalise(true);
+				return;
+			}
+		}
+		
 		if(selection.startOffset == startNode.text.length){
 			startNode.text += key;
 		}else{
@@ -1078,6 +1199,86 @@ export default class RichEditor extends React.Component {
 	}
 	*/
 	
+	displayModuleName(name){
+		if(!name){
+			return '';
+		}
+		var parts = name.split('/');
+		if(parts[0] == 'UI'){
+			parts.shift();
+		}
+		
+		return parts.join(' > ');
+	}
+	
+	renderContextMenu(){
+		var {rightClick} = this.state;
+		
+		var buttons = [];
+		
+		var {node} = rightClick;
+		
+		var cur = node;
+		while(cur){
+			if(cur.type){
+				if(typeof cur.type != 'string'){
+					var displayName = this.displayModuleName(cur.typeName);
+					
+					buttons.push({
+						onClick: () => this.setState({optionsVisibleFor: contentNode, rightClick: null}),
+						icon: 'cog',
+						text: 'Edit ' + displayName
+					});
+					
+					/*
+					buttons.push({
+						onClick: () => {
+							this.setState({rightClick: null});
+							var parent = this.findParent(contentNode);
+							this.removeFrom(contentNode, parent);
+							if(parent == this.state){
+								this.setState({content: parent.content});
+							}
+							this.updated();
+						},
+						icon: 'minus',
+						text: 'Delete ' + displayName
+					});
+					*/
+				}
+			}
+			cur = cur.parent;
+		}
+		
+		buttons.push({
+			onClick: () => this.setState({sourceMode: {src: this.latestSnapshot.toCanvasJson(true) || '{"c": ""}'}}),
+			icon: 'code',
+			text: 'Edit JSON source'
+		});
+		
+		return <div className="context-menu" style={{
+				left: rightClick.x + 'px',
+				top: rightClick.y + 'px'
+			}}>
+			{buttons.map(cfg => {
+				
+				return (
+					<button className="context-btn" onMouseDown={cfg.onClick}>
+						<i className={"fa fa-fw fa-" + cfg.icon} />
+						{cfg.text}
+					</button>
+				);
+				
+			})}
+		</div>;
+	}
+	
+	clearContextMenu(e){
+		if(this.state.rightClick){
+			this.setState({rightClick: null});
+		}
+	}
+	
 	rootMostParent(node){
 		var root = this.state.node;
 		while(node){
@@ -1088,57 +1289,17 @@ export default class RichEditor extends React.Component {
 		}
 	}
 	
-	/*
-	getNextNode(node){
-		if(!node){
-			return;
-		}
-		
-		// If this node has any child nodes, return the first one:
-		if(node.content && node.content.length){
-			return node.content[0];
-		}
-		
-		while(node && node.parent){
-			var parent = node.parent;
-			
-			// Get the index in parent:
-			var index = parent.content.indexOf(node);
-		
-			// If it's not the last one, seek to next sibling:
-			if(index < parent.content.length - 1){
-				return parent.content[index + 1];
-			}
-			
-			// It was the last sibling. Go up another parent.
-			node = parent;
-		}
-	}
+	/* 
+		True if the given parent object is a parent of (or equal to) the given DOM node.
 	*/
-	
-	getPreviousNode(node){
-		if(!node || !node.parent){
-			return;
+	isDomParentOf(parent, node){
+		var p = node;
+		while(p){
+			if(p == parent){
+				return true;
+			}
+			p = p.parentNode;
 		}
-		
-		// Get the index:
-		var index = node.parent.content.indexOf(node);
-		
-		// If index is 0, the parent node is the previous one.
-		if(index == 0){
-			return node.parent;
-		}
-		
-		// Otherwise, step into previous child by going all the way up the "rightmost" child.
-		return this.getRightmostChild(node.parent.content[index-1]);
-	}
-	
-	getRightmostChild(node){
-		var result = node;
-		while(result && result.content && result.content.length){
-			result = result.content[result.content.length-1];
-		}
-		return result;
 	}
 	
 	/* 
@@ -1177,113 +1338,18 @@ export default class RichEditor extends React.Component {
 		if(selection.startOffset == selection.endOffset && selection.startNode == selection.endNode){
 			
 			// No actual selection - select 1 "character", forward or back (if DEL or backspace).
-			var node = selection.startNode;
+			// The best way to do that is via the widely supported getSelection.modify method - the browser is fully in control of the caret movement as a result.
+			var sel = window.getSelection();
+			sel.modify("extend", dir == 1 ? "forward" : "backward", "character");
 			
-			if(dir == 1){
-				// Might just be one character.
-				// TODO!
-				/*
-				if(selection.startOffset < node.text.length){
-					// Yep!
-					selection.endOffset = selection.startOffset + 1;
-				}else{
-					// Next will often be a block element. 
-					// It's often the thing we're actually deleting, but we need to get its child-most node and put the selection at the start of it.
-					// This is such that any inline elements are merged etc.
-					var next = this.getNext(node);
-					
-					if(!next){
-						// Hit del at end of content.
-						return;
-					}
-					
-					while(next.content && next.content.length){
-						next = next.content[0];
-					}
-					
-					selection.endNode = next;
-					selection.endOffset = 0;
-				}
-				*/
-			}else if(dir == -1){
-				// Might just be one character.
-				if(node.type == TEXT && selection.startOffset != 0){
-					selection.endOffset = selection.startOffset;
-					selection.startOffset--;
-				}else{
-					// The thing we are deleting is sometimes the break *between* these nodes, meaning selection start goes just after prev.
-					var prev;
-					
-					if(selection.startOffset != 0){
-						// We can't just delete the whole previous node because it might contain a bunch of child nodes 
-						// (some of which may be text - it might be a text node itself).
-						// Get the "rightmost" node inside it.
-						prev = this.getRightmostChild(selection.startNode.content[selection.startOffset - 1]);
-					}else{
-						prev = this.getPreviousNode(node);
-					}
-					
-					if(!prev){
-						// Backspace at start of the content.
-						return;
-					}
-					
-					// If prev is a non-custom and non-text inline node:
-					while(prev.type != TEXT && !!inlines[prev.type]){
-						prev = this.getPreviousNode(prev);
-						if(!prev){
-							return;
-						}
-					}
-					
-					if(prev.type == TEXT){
-						// Enter at the end of it, -1 char (because there's nothing else between it and us).
-						selection.startNode = prev;
-						selection.startOffset = prev.text.length - 1;
-					}else if(this.isParentOf(prev, node)){
-						// It's a parent of node. Need to step back one more time to locate where the child nodes should go.
-						var prev2 = this.getPreviousNode(prev);
-						if(!prev2){
-							// Root! do nothing.
-							return;
-						}
-						var lastChild = prev;
-						// If prev is a non-custom and non-text inline node:
-						while(prev2.type != TEXT && !!inlines[prev2.type]){
-							lastChild = prev2;
-							prev2 = this.getPreviousNode(prev2);
-							if(!prev2){
-								break;
-							}
-						}
-						
-						if(!prev2){
-							prev2 = this.state.node;
-						}
-						
-						// Put the caret just after it.
-						if(prev2.type == TEXT){
-							selection.startNode = prev2;
-							selection.startOffset = prev2.text.length;
-						}else if(prev2.parent){
-							selection.startNode = prev2.parent;
-							selection.startOffset = prev2.parent.content.indexOf(prev2) + 1;
-						}else{
-							// It's in the root
-							selection.startNode = prev2;
-							selection.startOffset = prev2.content.indexOf(lastChild);
-						}
-						
-					}else{
-						// It's a block element which is not a parent of us, 
-						// so just place the caret just before it as we'll delete the whole thing:
-						selection.startNode = prev.parent;
-						selection.startOffset = prev.parent.content.indexOf(prev);
-					}
-				}
+			// Make our selection from the window one:
+			this.mapSelection(sel, selection);
+			
+			// Un extend the selection:
+			if(dir == 1) {
+				sel.collapseToStart();
 			}else{
-				// No-op
-				return;
+				sel.collapseToEnd();
 			}
 			
 		}
@@ -1308,7 +1374,11 @@ export default class RichEditor extends React.Component {
 		var parents = {};
 		while(node != null){
 			if(node.type && node.type != TEXT){
-				parents[node.type] = true;
+				if(typeof node.type === 'string'){
+					parents[node.type] = true;
+				}else{
+					parents[node.typeName] = true;
+				}
 			}
 			node = node.parent;
 		}
@@ -1319,7 +1389,7 @@ export default class RichEditor extends React.Component {
 	/*
 	* Wraps (or unwraps) the given selection in an ele of the given type, with the given props.
 	*/
-	applyWrap(selection, type, props){
+	applyWrap(selection, type, props, roots){
 		if(!selection){
 			return;
 		}
@@ -1330,7 +1400,7 @@ export default class RichEditor extends React.Component {
 			this.removeWrap(selection, type);
 		}else{
 			// Insert it.
-			this.insertWrap(selection, type, props);
+			this.insertWrap(selection, type, props, false, roots);
 		}
 	}
 	
@@ -1437,7 +1507,7 @@ export default class RichEditor extends React.Component {
 	}
 	
 	/* Wraps selection with inline ele of given type. May end up generating multiple ele's. */
-	insertWrap(selection, types, props, forceInsert){
+	insertWrap(selection, types, props, forceInsert, roots){
 		
 		var nodesThatRequireWrapping = this.sliceSelection(selection);
 		
@@ -1447,7 +1517,17 @@ export default class RichEditor extends React.Component {
 		
 		var primaryType = types[types.length-1];
 		
-		if(!!inlines[primaryType]){
+		// Is it a module?
+		var typeName = undefined;
+		var customType = false;
+		
+		if(primaryType.indexOf('/') != -1){
+			typeName = primaryType;
+			primaryType = require(primaryType).default;
+			customType = true;
+		}
+		
+		if(!!inlines[primaryType] || (primaryType.editable && primaryType.editable.inline)){
 			
 			// Remove from the nodes if it already exists in there for tidiness:
 			nodesThatRequireWrapping.forEach(node => {
@@ -1461,12 +1541,40 @@ export default class RichEditor extends React.Component {
 					return;
 				}
 				
-				var newParent = {type: primaryType, props: props ? {...props} : null};
+				var newParent = {type: primaryType, typeName, props: props ? {...props} : null};
 				
-				if(!node.parent){
+				var origParent = node.parent;
+				var nodeContent = origParent ? [node] : node.content;
+				
+				if(customType){
+					// it's a root:
+					var childRoot = {
+						content: nodeContent
+					};
+					
+					var clonedRoots = {};
+					for(var k in roots){
+						clonedRoots[k] = this.deepClone(roots[k]);
+					}
+					clonedRoots.children = childRoot;
+					newParent.roots = clonedRoots;
+					
+					for(var k in clonedRoots){
+						clonedRoots[k].parent = newParent;
+					}
+					
+					nodeContent.forEach(n => n.parent = childRoot);
+				}else{
+					newParent.content = nodeContent;
+					nodeContent.forEach(n => n.parent = newParent);
+				}
+				
+				if(origParent){
+					var index = origParent.content.indexOf(node);
+					origParent.content[index] = newParent;
+					newParent.parent = origParent;
+				}else{
 					// Root: ctrl+a wrapping everything. Content becomes all of roots content, and we get pushed into it.
-					newParent.content = node.content;
-					newParent.content.forEach(n => n.parent = newParent);
 					node.content=[newParent];
 					newParent.parent = node;
 					
@@ -1478,12 +1586,6 @@ export default class RichEditor extends React.Component {
 					if(selection.startNode == node){
 						selection.startOffset = 0;
 					}
-				}else{
-					newParent.content = [node];
-					var index = node.parent.content.indexOf(node);
-					node.parent.content[index] = newParent;
-					newParent.parent = node.parent;
-					node.parent = newParent;
 				}
 				
 			});
@@ -1568,9 +1670,6 @@ export default class RichEditor extends React.Component {
 		// Delete everything from start -> end
 		var node = selection.startNode;
 		
-		// In case we delete start itself, get previous node:
-		var prev = this.getPreviousNode(node);
-		
 		if(node == selection.endNode && selection.startOffset == selection.endOffset){
 			// If they are the same, nothing happens.
 			return;
@@ -1625,7 +1724,7 @@ export default class RichEditor extends React.Component {
 		var {selection, node} = this.state;
 		this.normaliseNode(node, selection);
 		var parents = this.getUniqueParents(selection);
-		this.setState({selection, active: parents});
+		this.setState({selection, active: parents, highlight: selection ? selection.startNode : null, highlightLocked: true});
 		
 		this.addStateSnapshot(isMinorState);
 	}
@@ -1794,10 +1893,13 @@ export default class RichEditor extends React.Component {
 		return {clonedNode, clonedSelection};
 	}
 	
-	addStateSnapshot(isMinor){
+	addStateSnapshot(isMinor, node, selection){
 		
-		// Snap the state:
-		var {node, selection} = this.state;
+		if(!node){
+			// Snap the state:
+			node = this.state.node;
+			selection = this.state.selection;
+		}
 		
 		var {clonedNode, clonedSelection} = this.cloneNodeAndSelection(node, selection);
 		
@@ -1806,7 +1908,7 @@ export default class RichEditor extends React.Component {
 			time: Date.now(),
 			node: clonedNode,
 			selection: clonedSelection,
-			toCanvasJson: () => {
+			toCanvasJson: (pretty) => {
 				// Converts the node to canvas JSON.
 				
 				var options = {};
@@ -1816,7 +1918,13 @@ export default class RichEditor extends React.Component {
 					options.id = this.getMaxId(snapshot.node, 0) || 1;
 				}
 				
-				var json = JSON.stringify(this.toCanvasFormat(snapshot.node, options));
+				var cfNode = this.toCanvasFormat(snapshot.node, options);
+				
+				if(!cfNode){
+					return '';
+				}
+				
+				var json = JSON.stringify(cfNode, null, pretty ? '\t' : null);
 				return json;
 			},
 			restore: () => {
@@ -1849,6 +1957,7 @@ export default class RichEditor extends React.Component {
 		
 		this.redoSnapshot = null;
 		this.onNewSnapshot(snapshot);
+		return snapshot;
 	}
 	
 	normaliseNode(node, selection){
@@ -1858,7 +1967,7 @@ export default class RichEditor extends React.Component {
 		
 		// Actions performed:
 		// - Tidy any children.
-		// - Remove any empty inline elements.
+		// - Remove any empty inline elements. This includes any custom ele's that act inline.
 		// - Merge side-by-side inline nodes (text nodes included).
 		
 		if(node.content){
@@ -1871,7 +1980,22 @@ export default class RichEditor extends React.Component {
 		if(node.roots){
 			// Tidy any children. Go backwards because they can remove themselves.
 			for(var k in node.roots){
-				this.normaliseNode(node.roots[k], selection);
+				var root = node.roots[k];
+				this.normaliseNode(root, selection);
+				
+				if(k == 'children' && (!root.content || !root.content.length)){
+					var editInfo = node.type.editable;
+					if(editInfo && editInfo.inline){
+						// Remove the parent custom node as well - it's empty and acts like an inline element.
+						this.removeNode(node, selection);
+						return;
+					}
+				}
+				
+				// Roots aren't allowed to be empty though, so ensure they have at least one thing in them:
+				if(!root.content.length){
+					root.content[0] = {type: TEXT, text: ' ', parent: root};
+				}
 			}
 		}
 		
@@ -1893,7 +2017,7 @@ export default class RichEditor extends React.Component {
 			var prev = false;
 			for(var i=node.content.length - 1;i>=0;i--){
 				var c = node.content[i];
-				if(!this.isInline(c)){
+				if(!inlines[c.type]){ // use inlines - don't merge custom types
 					prev = false;
 					continue;
 				}
@@ -1924,7 +2048,21 @@ export default class RichEditor extends React.Component {
 	}
 	
 	addNode(node, parent, index){
-		if(!parent.content){
+		if(parent.type && typeof parent.type != 'string'){
+			// It's a custom component. Child content goes into a root called children.
+			var roots = parent.roots;
+			
+			if(!roots){
+				parent.roots = roots = {};
+			}
+			
+			if(!roots.children){
+				roots.children = {parent, content: []};
+			}
+			
+			// Add into the child root:
+			return this.addNode(node, roots.children, index);
+		} else if(!parent.content) {
 			parent.content = [];
 		}
 		
@@ -1935,6 +2073,7 @@ export default class RichEditor extends React.Component {
 			parent.content.splice(index,0,node);
 		}
 		node.parent = parent;
+		return node;
 	}
 	
 	removeNode(node, selection, retainChildren){
@@ -2046,31 +2185,26 @@ export default class RichEditor extends React.Component {
 				if(this.isParentOf(node, selection.startNode)){
 					selection.startNode = node.parent;
 					selection.startOffset = index;
+				}else if(selection.startNode == node.parent && selection.startOffset >= index){
+					// The caret was somewhere after this node - relocate it.
+					selection.startOffset--;
 				}
 				
 				if(this.isParentOf(node, selection.endNode)){
 					selection.endNode = node.parent;
 					selection.endOffset = index;
+				}else if(selection.endNode == node.parent && selection.endOffset >= index){
+					// The caret was somewhere after this node - relocate it.
+					selection.endOffset--;
 				}
-			}
-		}
-		
-		// Apply this in all cases - if the caret was sitting just after the now deleted node, reduce the offset:
-		if(selection){
-			if(selection.startNode == node.parent && selection.startOffset >= index){
-				selection.startOffset--;
-			}
-			
-			if(selection.endNode == node.parent && selection.endOffset >= index){
-				selection.endOffset--;
 			}
 		}
 		
 	}
 	
-	renderNode(node, parent){
+	renderNode(node){
 		if(Array.isArray(node)){
-			return node.map((n,i) => this.renderNode(n, parent));
+			return node.map((n,i) => this.renderNode(n));
 		}
 		
 		var NodeType = node.type;
@@ -2095,6 +2229,10 @@ export default class RichEditor extends React.Component {
 		}else{
 			// Custom component
 			var props = {...node.props, _rte: this};
+	
+			if(!node.dom){
+				node.dom = React.createRef();
+			}
 			
 			if(node.roots){
 				var children = null;
@@ -2102,33 +2240,39 @@ export default class RichEditor extends React.Component {
 				for(var k in node.roots){
 					var root = node.roots[k];
 					
-					if(!root.dom){
+					var isChildren = k == 'children';
+					
+					if(isChildren && NodeType.editable){
+						root.dom = node.dom;
+					}else if(!root.dom){
 						root.dom = React.createRef();
 					}
 					
 					var rendered;
 					
-					if(NodeType.editable){
+					if(isChildren && NodeType.editable){
 						rendered = this.renderNode(root.content);
 					}else{
 						rendered = <span ref={root.dom} contentEditable="true">{this.renderNode(root.content)}</span>;
 					}
 					
-					if(k == 'children'){
+					if(isChildren){
 						children = rendered;
 					}else{
 						props[k] = rendered;
 					}
 				}
 				
-				// Note that you're either oneRoot or editable - can't be both. editable implies one root.
+				// Note that you're either oneRoot or editable - can't be both. editable implies oneRoot which is directly editable (it has no additional wrappers).
 				if(NodeType.oneRoot){
 					props.contentEditable="false";
+					props.rootRef = node.dom;
 					return <NodeType {...props}>{children}</NodeType>;
 				}else if(NodeType.editable){
+					props.rootRef = node.dom;
 					return <NodeType {...props}>{children}</NodeType>;
 				}else{
-					return <span module={node.typeName} contentEditable="false">
+					return <span ref={node.dom} module={node.typeName} contentEditable="false">
 						<NodeType {...props}>{children}</NodeType>
 					</span>;
 				}
@@ -2140,11 +2284,13 @@ export default class RichEditor extends React.Component {
 				// Note that you're either oneRoot or editable - can't be both. editable implies one root.
 				if(NodeType.oneRoot){
 					props.contentEditable="false";
+					props.rootRef = node.dom;
 					return <NodeType {...props} />;
 				}else if(NodeType.editable){
+					props.rootRef = node.dom;
 					return <NodeType {...props} />;
 				}else{
-					return <span module={node.typeName} contentEditable="false">
+					return <span ref={node.dom} module={node.typeName} contentEditable="false">
 						<NodeType {...props} />
 					</span>;
 				}
@@ -2157,7 +2303,7 @@ export default class RichEditor extends React.Component {
 	}
 	
 	render() {
-		var {node, error} = this.state;
+		var {node, error, sourceMode} = this.state;
 		
 		if(error){
 			return <div className="rich-editor">
@@ -2173,13 +2319,33 @@ export default class RichEditor extends React.Component {
 			</div>;
 		}
 		
-		return <div className="rich-editor">
-			<div className="rte-toolbar">
+		if(sourceMode){
+			return <div className="rich-editor with-toolbar">
+				<div className="rte-toolbar">
+					<button onClick={() => {
+						if(!this.ir){
+							return;
+						}
+						
+						var val = this.ir.getValue ? this.ir.getValue() : this.ir.value;
+						// todo: handle val
+					}}>Preview</button>
+				</div>
+				<Input inputRef={ir=>this.ir=ir} type="textarea" contentType="application/json" className="form-control json-preview" defaultValue={sourceMode.src} />
+			</div>;
+			
+		}
+		
+		var { toolbar } = this.props;
+		
+		return <div className={"rich-editor " + (toolbar ? "with-toolbar" : "no-toolbar")} onContextMenu={this.onContextMenu} onMouseDown={this.onMouseDown}>
+			{toolbar && (<div className="rte-toolbar">
 				{this.surroundButton('Bold', 'b', null, true)}
 				{this.surroundButton('Underline', 'u', null, true)}
 				{this.surroundButton('Italic', 'i', null, true)}
 				{this.surroundButton('Strike', 's', null, true)}
-				{this.surroundButton('Link', 'a', null, true, {href:'https://www.example.com/'})}
+				{this.surroundButton('Link', 'UI/Link', null, true, null, {href:{content:[{type: TEXT, text:'https://www.example.com/'}]}})}
+				{this.surroundButton('Token', 'UI/Token', null, true)}
 				{this.surroundButton('Quote', 'blockquote', 'Quote')}
 				{this.menuButton('Heading..', () => {
 					return <>
@@ -2197,14 +2363,18 @@ export default class RichEditor extends React.Component {
 						<div>{this.surroundButton('List', ['ol', 'li'], 'Numbered list')}</div>
 					</>;
 				})}
-				{this.renderButton('Add something else', <i className={'fa fa-plus'} />, () => {
+				{this.props.modules && this.renderButton('Add something else', <i className={'fa fa-plus'} />, () => {
 					// Show modal
 					console.log("Show modal");
 				})}
-			</div>
-			<div ref={node.dom} className="rte-content" contentEditable="true" onKeyDown={this.onKeyDown} onDragStart={this.onReject} onBlur={this.onBlur} onPaste={this.onPaste} onCopy={this.onCopy} onCut={this.onCut} onMouseDown={this.onMouseDown}>
+			</div>)}
+			<div ref={node.dom} className="rte-content" contentEditable="true" 
+				onKeyDown={this.onKeyDown} onDragStart={this.onReject} onBlur={this.onBlur} 
+				onPaste={this.onPaste} onCopy={this.onCopy} onCut={this.onCut}>
 				{this.renderNode(node.content)}
 			</div>
+			
+			{this.state.rightClick && this.renderContextMenu()}
 		</div>;
 	}
 	
@@ -2220,7 +2390,7 @@ export default class RichEditor extends React.Component {
 		</span>;
 	}
 	
-	surroundButton(title, types, content, requireSelection, props){
+	surroundButton(title, types, content, requireSelection, props, roots){
 		if(!content){
 			content = title;
 		}
@@ -2246,7 +2416,7 @@ export default class RichEditor extends React.Component {
 				// Close any drops:
 				this.setState({openMenu: null});
 				
-				this.applyWrap(this.state.selection, types, props);
+				this.applyWrap(this.state.selection, types, props, roots);
 			}}
 			onMouseUp={e => e.preventDefault()}
 			className={active[checkFor] ? "active" : ""}
@@ -2278,30 +2448,12 @@ export default class RichEditor extends React.Component {
 	}
 	
 	/*
-	* Gets the state node related to the given dom node.
+	* Gets the state node related to the given dom node. Must updateRefs before using this.
 	*/
 	getNode(domNode, check){
-		if(!check){
-			check = this.state.node;
-		}
-		
-		var result=this.getNodeIntl(domNode, check);
-		
-		while(!result){
-			domNode = domNode.parentNode;
-			if(!domNode || domNode == this.state.node.dom.current){
-				return null;
-			}
-			result = this.getNodeIntl(domNode, check);
-		}
-		
-		return result;
-	}
-	
-	getNodeIntl(domNode, check){
 		if(Array.isArray(check)){
 			for(var i=0;i<check.length;i++){
-				var res = this.getNodeIntl(domNode, check[i]);
+				var res = this.getNode(domNode, check[i]);
 				if(res){
 					return res;
 				}
@@ -2314,7 +2466,7 @@ export default class RichEditor extends React.Component {
 		}
 		
 		if(check.content){
-			var res = this.getNodeIntl(domNode, check.content);
+			var res = this.getNode(domNode, check.content);
 			if(res){
 				return res;
 			}
@@ -2323,7 +2475,10 @@ export default class RichEditor extends React.Component {
 		if(check.roots){
 			for(var k in check.roots){
 				var root = check.roots[k];
-				var res = this.getNodeIntl(domNode, root);
+				if(!root.dom.current){
+					continue;
+				}
+				var res = this.getNode(domNode, root);
 				if(res){
 					return res;
 				} 
@@ -2334,36 +2489,34 @@ export default class RichEditor extends React.Component {
 	}
 	
 	updateRefs(node, dom){
-		if(!node){
-			node = this.state.node;
-			dom = node.dom.current;
-		}
-		
 		if(Array.isArray(node.content)){
 			node.content.forEach((n,i) => {
-				// Basic 1:1 assumption.
+				// 1:1 assumption:
 				this.updateRefs(n, dom.childNodes[i]);
 			});
-			return;
 		}
 		
-		// Make sure all DOM nodes are associated correctly.
-		if(!node.dom){
-			node.dom = {current: dom};
-		}else if(node.type == TEXT){
-			node.dom.current = dom;
+		// Make sure all DOM text nodes are associated correctly.
+		if(node.type == TEXT){
+			if(node.dom){
+				node.dom.current = dom;
+			}else{
+				node.dom = {current: dom};
+			}
 		}
 		
 		if(node.roots){
 			for(var k in node.roots){
 				var r = node.roots[k];
 				
-				if(k == 'children' && !r.dom.current){
-					// This is an editable or oneRoot node. It needs its ref setting:
-					r.dom.current = dom;
+				if(r.dom.current){
+					// Roots can actually be unmounted. This happens if a custom component conditionally renders them.
+					// Note that if it is editable or oneRoot it must not conditionally render the root.
+					
+					// Always use the ref in this root. Don't use dom.
+					// This is the "root" part of these fields - they act as independent roots in the dom from our point of view.
+					this.updateRefs(r, r.dom.current);
 				}
-				
-				this.updateRefs(r, r.dom.current);
 			}
 		}
 	}
@@ -2436,37 +2589,49 @@ export default class RichEditor extends React.Component {
 	}
 	
 	componentDidMount(){
-		this.updateRefs();
+		var {node} = this.state;
+		this.updateRefs(node, node.dom.current);
 		console.log("Updated refs", this.state);
-		window.addEventListener('selectionchange', this.onSelectionChange);
+		window.addEventListener("mouseup", this.onMouseUp);
 	}
 	
 	componentWillUnmount(){
-		window.removeEventListener('selectionchange', this.onSelectionChange);
+		window.removeEventListener("mouseup", this.onMouseUp);
 	}
 	
 	/*
-	* Gets dom node for the given state node. This is only valid in DidUpdate or DidMount.
+	* Gets dom node for the given state node. This is only valid after updateRefs.
 	*/
 	getDom(node){
 		return node.dom ? node.dom.current : null;
 	}
 	
 	componentDidUpdate() {
-		this.updateRefs();
-		console.log("Updated refs", this.state);
-		global.thing = this.state.node;
-		// Locate the cursor, if we need to.
-		var {selection} = this.state;
+		var {node, sourceMode, selection} = this.state;
 		
-		if(!selection){
+		if(sourceMode){
 			return;
 		}
 		
+		// Relocate the cursor, if we need to.
 		var domSelection = window.getSelection();
+		var cur = node.dom.current;
+		
+		if(!selection){
+			// If domSelection is inside the editor, clear it.
+			if(domSelection && domSelection.anchorNode && cur){
+				if(this.isDomParentOf(cur, domSelection.anchorNode) || this.isDomParentOf(cur, domSelection.focusNode)){
+					domSelection.removeAllRanges();
+				}
+			}
+			return;
+		}
+		
 		domSelection.removeAllRanges();
 		
 		var range = document.createRange();
+		this.updateRefs(node, cur);
+		console.log("Updated refs", this.state);
 		range.setStart(this.getDom(selection.startNode), selection.startOffset);
 		range.setEnd(this.getDom(selection.endNode), selection.endOffset);
 		domSelection.addRange(range);
@@ -2490,5 +2655,4 @@ Later:
 * The server must validate canvas JSON on save. It must check it contains only permitted types. As it's JSON and HTML nodes are never permitted to have data/ props, this validation can be non-allocating.
 * When <Canvas> encounters a HTML node, it MUST ignore all props. Only custom elements in permitted modules are allowed to have props.
 * The undo stack has no size limit atm!
-* Merge side-by-side inline elements like b, u, i etc.
 */
