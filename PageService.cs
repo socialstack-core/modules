@@ -390,7 +390,7 @@ namespace Api.Pages
 			// Get any pages by those URLs:
 			var filter = new Filter<Page>().Equals("Url", adminIdUrl).Or().Equals("Url", oldIdUrl);
 
-			var pages = await ListNoCache(context, filter);
+			var pages = await ListNoCache(context, filter, DataOptions.IgnorePermissions);
 
 			foreach (var page in pages)
             {
