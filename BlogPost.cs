@@ -10,7 +10,7 @@ namespace Api.Blogs
 	/// A blog post.
 	/// </summary>
 	[HasVirtualField("Author", typeof(UserProfile), "AuthorId")]
-	public partial class BlogPost : VersionedContent<uint>
+	public partial class BlogPost : UserCreatedContent<uint>
 	{
 		/// <summary>
 		/// The blog this post is in.
