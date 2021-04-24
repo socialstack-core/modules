@@ -323,6 +323,14 @@ namespace Api.Startup
 				throw new System.Exception("Can't add to an include set after it has been baked.");
 			}
 
+			var svc = field.VirtualInfo.Service;
+
+			if (field.VirtualInfo.IsList && RelativeTo.InstanceType == svc.InstanceType)
+			{
+				// Can't include a list field which is of the same type as the parent.
+				return null;
+			}
+
 			var name = field.VirtualInfo.FieldName;
 
 			if (UniqueChildNodes.TryGetValue(name, out InclusionNode result))
@@ -331,7 +339,6 @@ namespace Api.Startup
 			}
 
 			// Get its service and add:
-			var svc = field.VirtualInfo.Service;
 			result = new InclusionNode(svc.GetContentFields(), this);
 			result.Service = svc;
 			result.HostField = field;
