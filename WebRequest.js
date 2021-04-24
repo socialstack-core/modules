@@ -155,6 +155,16 @@ function _fetch(url, data, opts) {
 		headers['Locale'] = opts.locale;
 	}
 	
+	var includes = opts && opts.includes;
+	
+	if(Array.isArray(includes)){
+		includes = includes.map(x=>x.trim()).join(',');
+	}
+	
+	if(includes){
+		url += '?includes=' + includes;
+	}
+	
 	if (!data) {
 		return fetch(url, { method: opts && opts.method ? opts.method : 'get', mode, credentials, headers });
 	}
@@ -167,12 +177,6 @@ function _fetch(url, data, opts) {
             credentials,
 			headers
 		});
-	}
-	
-	var includes = opts && opts.includes;
-	
-	if(Array.isArray(includes)){
-		includes = includes.map(x=>x.trim()).join(',');
 	}
 	
 	return fetch(url + (includes ? '?includes=' + includes : ''), {
