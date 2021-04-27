@@ -132,6 +132,11 @@ namespace Api.Pages
 		/// Raw html content. Used for quick dropins. 
 		/// </summary>
 		public string NoScriptText { get; set; }
+
+		/// <summary>
+		/// Special case for google ads
+		/// </summary>
+		public string DataAdClient { get; set; }
 	}
 	
 }
