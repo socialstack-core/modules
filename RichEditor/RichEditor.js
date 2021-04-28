@@ -634,6 +634,8 @@ export default class RichEditor extends React.Component {
 	* The complete "parent most" nodes inside the given selection, including any newly sliced pieces, are returned in an array.
 	*/
 	sliceSelection(selection, root){
+		console.log("sliceSelection selection", {...selection});
+
 		if(!root){
 			root = this.state.node;
 		}
@@ -670,18 +672,92 @@ export default class RichEditor extends React.Component {
 		this.addIfInRange(startCaretPosition, endCaretPosition, results, root);
 		return results;
 	}
+
+	slicePartialSelection(selection, root){
+		console.log("slicePartialSelection selection", {...selection});
+
+		if(!root){
+			root = this.state.node;
+		}
+		// If startNode is text, split it into two.
+		var newText = this.splitIfText(selection.startNode, selection.startOffset);
+		
+		if(newText){
+			// A split happened. May need to put endNode inside it.
+			if(selection.endNode == selection.startNode && selection.endOffset != selection.startOffset){
+				selection.endNode = newText;
+				selection.endOffset -= selection.startOffset;
+			}
+		}
+		
+		var newEnd = this.splitIfText(selection.endNode, selection.endOffset);
+		
+		if(newEnd){
+			// Put caret inside it:
+			selection.endNode = newEnd;
+			selection.endOffset = 0;
+		}
+		
+		// Ok, text at the start and end of the selection has been dealt with.
+		// Next, we'll gather all nodes inside the selection.
+		// Note that we now know every leaf node we encounter will be atomic - either fully inside or fully outside the range.
+		// The next goal is to return "root most" nodes inside the range, such that it is not always an array of leaf nodes but does also include their parents if a parent is fully selected.
+		
+		var results = [];
+		
+		this.updateCaretPositions(root, 0);
+		var endCaretPosition = this.getCaretPosition(selection.endNode, selection.endOffset);
+		var startCaretPosition = this.getCaretPosition(selection.startNode, selection.startOffset);
+		
+		this.addIfInPartialRange(startCaretPosition, endCaretPosition, results, root);
+		return results;
+	}
 	
-	addIfInRange(start, end, results, node){
+	addIfInPartialRange(start, end, results, node){
+		console.log("addIfInPartialRange#1", start, end, results, node);
 		if(node.caretEnd < start || node.caretStart > end){
+			console.log("addIfInRange#2");
+			// Completely misses this node.
+			return;
+		}
+		
+		// It overlaps in some way. If it's completely inside, then add the whole thing.
+		if(node.caretStart >= start || node.caretEnd <= end){
+			console.log("addIfInPartialRange#3");
+			results.push(node);
+		}else{
+			if(node.content){
+				console.log("addIfInPartialRange#4");
+				// It partially overlaps. Enter its child nodes:
+				for(var i=0;i<node.content.length;i++){
+					this.addIfInPartialRange(start, end, results, node.content[i]);
+				}
+			}
+			
+			if(node.roots){
+				console.log("addIfInPartialRange#5");
+				for(var k in node.roots){
+					this.addIfInPartialRange(start, end, results, node.roots[k]);
+				}
+			}
+		}
+	}
+
+	addIfInRange(start, end, results, node){
+		console.log("addIfInRange#1", start, end, results, node);
+		if(node.caretEnd < start || node.caretStart > end){
+			console.log("addIfInRange#2");
 			// Completely misses this node.
 			return;
 		}
 		
 		// It overlaps in some way. If it's completely inside, then add the whole thing.
 		if(node.caretStart >= start && node.caretEnd <= end){
+			console.log("addIfInRange#3");
 			results.push(node);
 		}else{
 			if(node.content){
+				console.log("addIfInRange#4");
 				// It partially overlaps. Enter its child nodes:
 				for(var i=0;i<node.content.length;i++){
 					this.addIfInRange(start, end, results, node.content[i]);
@@ -689,6 +765,7 @@ export default class RichEditor extends React.Component {
 			}
 			
 			if(node.roots){
+				console.log("addIfInRange#5");
 				for(var k in node.roots){
 					this.addIfInRange(start, end, results, node.roots[k]);
 				}
@@ -843,6 +920,7 @@ export default class RichEditor extends React.Component {
 	
 	onKeyDown(e){
 		var {selection} = this.state;
+		console.log("onKeyDown selection", selection);
 		
 		if(!selection || e.altKey){
 			return;
@@ -866,6 +944,7 @@ export default class RichEditor extends React.Component {
 			
 			if(e.keyCode == 8){
 				// Delete <-
+				console.log("e.keyCode == 8");
 				this.deleteSelectedContent(-1);
 			}else if(e.keyCode == 9){
 				
@@ -1333,18 +1412,20 @@ export default class RichEditor extends React.Component {
 	}
 	
 	deleteSelectedContent(dir){
+		console.log("deleteSelectedContent#1");
 		var {selection} = this.state;
-		
+		console.log("selection", {...selection});
 		if(selection.startOffset == selection.endOffset && selection.startNode == selection.endNode){
-			
+			console.log("deleteSelectedContent#2");
 			// No actual selection - select 1 "character", forward or back (if DEL or backspace).
 			// The best way to do that is via the widely supported getSelection.modify method - the browser is fully in control of the caret movement as a result.
 			var sel = window.getSelection();
 			sel.modify("extend", dir == 1 ? "forward" : "backward", "character");
 			
+			console.log("before mapSelection", {...selection});
 			// Make our selection from the window one:
 			this.mapSelection(sel, selection);
-			
+			console.log("after mapSelection", {...selection});
 			// Un extend the selection:
 			if(dir == 1) {
 				sel.collapseToStart();
@@ -1667,31 +1748,47 @@ export default class RichEditor extends React.Component {
 	}
 	
 	deleteContent(selection){
+		console.log("deleteContent#1");
+		console.log("selection", {...selection});
 		// Delete everything from start -> end
 		var node = selection.startNode;
 		
 		if(node == selection.endNode && selection.startOffset == selection.endOffset){
+			console.log("deleteContent#2");
 			// If they are the same, nothing happens.
 			return;
 		}
 		
 		// Slice the selection, returning all the unique parent-most nodes inside it. Will only modify the tree by slicing text nodes.
+		console.log("before sliceSelection")
 		var toDelete = this.sliceSelection(selection);
-		
+		var alsoToDelete = this.slicePartialSelection(selection); // This is an attempt at slicing out a parent caught in a partial selection. 
+		console.log("after slice selection. toDelete", {...toDelete});
+		console.log("alsoToDelete from slicePartialSelection", {...alsoToDelete});
 		// If any parents of endNode are marked for deletion, don't delete them.
 		// This is because if endNode has other inline siblings, they shouldn't lose their formatting, 
 		// but they should however lose all *block elements* that they are inside.
 		var relocateEnd = false;
 		var curParent = selection.endNode.parent;
 		var toMerge = [];
+		console.log("selection", {...selection});
 		while(curParent){
+			console.log("deleteContentWhile#1");
+			console.log("curParent", {...curParent});
 			var parentIndex = toDelete.indexOf(curParent);
+			console.log("parentIndex", parentIndex);
 			if(parentIndex != -1){
+				console.log("deleteContentWhile#2");
+
 				// It wants to delete a parent. Is it inline?
 				if(this.isInline(curParent)){
+					console.log("deleteContentWhile#3");
+
 					// Prevent removal of inline parents:
 					toDelete.splice(parentIndex, 1);
 				}else{
+					console.log("deleteContentWhile#4");
+
 					// Block parent. This does get deleted. 
 					// Any of its children that aren't being deleted are merged into the parent of startNode.
 					toMerge.push(curParent);
@@ -1700,6 +1797,7 @@ export default class RichEditor extends React.Component {
 			curParent = curParent.parent;
 		}
 		
+		console.log("toDelete.map", toDelete);
 		toDelete.map(node => this.removeNode(node, selection));
 		
 		var mergeInto = node;
@@ -1711,6 +1809,7 @@ export default class RichEditor extends React.Component {
 			mergeIndex = mergeInto.content.indexOf(node) + 1;
 		} // Otherwise we merge in just after the startOffset in the start node.
 		
+		console.log("toMerge.map", toMerge);
 		toMerge.map(n => {
 			// These elements are already in render order, so:
 			n.content.forEach(c => {
@@ -2323,12 +2422,16 @@ export default class RichEditor extends React.Component {
 			return <div className="rich-editor with-toolbar">
 				<div className="rte-toolbar">
 					<button onClick={() => {
+						this.setState({sourceMode: null});
 						if(!this.ir){
 							return;
 						}
 						
 						var val = this.ir.getValue ? this.ir.getValue() : this.ir.value;
 						// todo: handle val
+						// todo: fix the below setState, was added for quick debug help.
+						
+
 					}}>Preview</button>
 				</div>
 				<Input inputRef={ir=>this.ir=ir} type="textarea" contentType="application/json" className="form-control json-preview" defaultValue={sourceMode.src} />
@@ -2509,6 +2612,8 @@ export default class RichEditor extends React.Component {
 			for(var k in node.roots){
 				var r = node.roots[k];
 				
+				console.log("r.dom.current", r.dom.current);
+
 				if(r.dom.current){
 					// Roots can actually be unmounted. This happens if a custom component conditionally renders them.
 					// Note that if it is editable or oneRoot it must not conditionally render the root.
@@ -2646,6 +2751,10 @@ export default class RichEditor extends React.Component {
 * Complex objects like Grid, as well as the 4 basic ones - UI/Video, UI/Link, UI/Image, UI/Token
 * <Canvas> handle new compact format
 * Deletion of block nodes could be better. A <ul> or <ol> can get stuck in the editor, even though they are being selected. Try also: <p>text<p>|text</p></p> - it won't delete the paragraph.
+* On Firefox, when deleting mixed text (bold, regular, strikethrough) if transitioning from a text type to regular when holding down the back button, it skips deletion of the first regular text char it sees.
+	example - ab<b>c</b>    Given that value, holding backspace from the very end will result in 'b' being skipped over and 'c' and 'a' being deleted. 
+* If the last character in the content editor is not content editable, you can not select the end to add text. such as the case with value='{"c":["a",{"t":"UI/Link","r":{"href":"testcomurl"},"c":["bc"]}]}'
+	where Link's last's char is an uneditable ')'.
 
 Later: 
 * Handle e.g. page structures with nested custom components.
