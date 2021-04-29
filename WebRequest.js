@@ -33,22 +33,21 @@ function expandIncludes(response){
 				});
 			}else if(inc.map){
 				// It's an array of tuples. The first is a source ID, second is target ID.
-				var targetIdMap = {};
+				var srcIdMap = {};
 				targetValues.forEach(v => {
-					targetIdMap[v.id] = v;
+					srcIdMap[v.id] = v;
 					v[inc.field] = [];
 				});
-				var srcIdMap = {};
-				inc.values.forEach(v => srcIdMap[v.id] = v);
+				var targetIdMap = {};
+				inc.values.forEach(v => targetIdMap[v.id] = v);
 				for(var n=0;n<inc.map.length;n+=3){
 					var id = inc.map[n]; // the mapping entry ID.
 					var a = srcIdMap[inc.map[n+1]];
 					var b = targetIdMap[inc.map[n+2]];
-					
 					if(a && b){
 						// todo: only push a if id not already in set.
 						// where should id be stored though? (it's not the same thing as a.id - it's the actual mapping row's id).
-						b[inc.field].push(a);
+						a[inc.field].push(b);
 					}
 				}
 			}
@@ -56,6 +55,82 @@ function expandIncludes(response){
 	}
 	
 	return response.result ? response.result : response;
+}
+
+function mapWhere(where, args){
+	var str = '';
+	if(Array.isArray(where)){
+		for(var i=0;i<where.length;i++){
+			if(str){
+				str += where[i].and ? ' and ' : ' or ';
+			}
+			str+='(' + mapWhere(where[i], args) + ')';
+		}
+	}else{
+		for(var k in where){
+			if(k == 'and' || k == 'op'){
+				continue;
+			}
+			var v = where[k];
+			if(str != ''){str += ' and ';}
+			
+			if(Array.isArray(v)){
+				str += k +'=[?]';
+				args.push(v);
+			}else if(typeof v === 'object'){
+				for(var f in v){
+					
+					switch (f)
+					{
+						case "startsWith":
+							str += k + " sw ?";
+							args.push(v[f]);
+						break;
+						case "contains":
+							str += k + " contains " + (Array.isArray(v[f]) ? '[?]' : '?');
+							args.push(v[f]);
+						break;
+						case "endsWith":
+							str += k + " endsWith ?";
+							args.push(v[f]);
+						break;
+						case "geq":
+						case "greaterThanOrEqual":
+							str += k + ">=?";
+							args.push(v[f]);
+						break;
+						case "greaterThan":
+							str += k + ">?";
+							args.push(v[f]);
+						break;
+						case "lessThan":
+							str += k + "<?";
+							args.push(v[f]);
+						break;
+						case "leq":
+						case "lessThanOrEqual":
+							str += k + "<=?";
+							args.push(v[f]);
+						break;
+						case "not":
+							str += k + "!=" + (Array.isArray(v[f]) ? '[?]' : '?');
+							args.push(v[f]);
+							break;
+						case "equals":
+							str += k + "=" + (Array.isArray(v[f]) ? '[?]' : '?');
+							args.push(v[f]);
+						break;
+					}
+					
+				}
+			}else{
+				str += k +'=?';
+				args.push(v);
+			}
+		}
+	}
+	
+	return str;
 }
 
 export default function webRequest(origUrl, data, opts) {
@@ -177,6 +252,38 @@ function _fetch(url, data, opts) {
             credentials,
 			headers
 		});
+	}
+	
+	// Data exists - does it have an old format filter?
+	if(data.where){
+		var where = data.where;
+		var d2 = {...data};
+		delete d2.where;
+		var args = [];
+		var str = '';
+		
+		if(where.from && where.from.type && where.from.id){
+			str = 'From(' + where.from.type + ',?,' + where.from.map + ')';
+			args.push(where.from.id);
+			delete where.from;
+		}else{
+			str = '';
+		}
+		
+		var q = mapWhere(where, args);
+		
+		if(q){
+			if(str){
+				// "On()" can only be combined with an and:
+				str += ' and ' + q;
+			}else{
+				str = q;
+			}
+		}
+		
+		d2.query = str;
+		d2.args = args;
+		data = d2;
 	}
 	
 	return fetch(url + (includes ? '?includes=' + includes : ''), {
