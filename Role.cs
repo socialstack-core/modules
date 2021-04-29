@@ -52,12 +52,7 @@ namespace Api.Permissions
 		/// <summary>
 		/// Indexed by capability InternalId.
 		/// </summary>
-		private FilterNode[] CapabilityLookup { get; set; } = Array.Empty<FilterNode>();
-
-		/// <summary>
-		/// Indexed by capability InternalId.
-		/// </summary>
-		private Filter[] CapabilityFilterLookup { get; set; } = Array.Empty<Filter>();
+		private FilterBase[] CapabilityLookup { get; set; } = Array.Empty<FilterBase>();
 
 		/// <summary>
 		/// Grants the given capabilities unconditionally.
@@ -209,13 +204,13 @@ namespace Api.Permissions
 		*/
 
 		/// <summary>
-		/// Start conditional grants. For example, theRole.If((Filter f) => f.IsSelf()).ThenGrant("user_update") - 
+		/// Start conditional grants. For example, theRole.If("IsSelf()").ThenGrant("user_update") - 
 		/// this means if the current user is the user being edited then the permission is granted.
 		/// </summary>
 		/// <returns></returns>
-		public RoleIfResolver If(Func<Filter, Filter> resolver)
+		public RoleIfResolver If(string filterQuery)
 		{
-			return new RoleIfResolver() { Role = this, FilterResolver = resolver };
+			return new RoleIfResolver() { Role = this, FilterQuery = filterQuery };
 		}
 		
 		/// <summary>
@@ -299,15 +294,8 @@ namespace Api.Permissions
             return this;
         }
 		
-		/// <summary>Gets the raw grant rule for the given capability. This is readonly.</summary>
-		public Filter GetSourceFilter(Capability capability)
-		{
-			CheckForNewCapabilities();
-			return CapabilityFilterLookup[capability.InternalId];
-		}
-
-		/// <summary>Gets the raw grant rule for the given capability. This is readonly.</summary>
-		public FilterNode GetGrantRule(Capability capability)
+		/// <summary>Gets the raw grant rule for the given capability. This is readonly. If it's null, it's not granted.</summary>
+		public FilterBase GetGrantRule(Capability capability)
 		{
 			CheckForNewCapabilities();
 			return CapabilityLookup[capability.InternalId];
@@ -317,53 +305,24 @@ namespace Api.Permissions
 		/// Is the given capability granted to this role? Don't use this directly - use ACapability.IsGranted instead.
 		/// </summary>
 		/// <param name="capability">The capability to check for. This is required.</param>
-		/// <param name="token">The requesting user account.</param>
+		/// <param name="context">The requesting context.</param>
 		/// <param name="extraArg">
 		/// E.g. the Forum object to check if access is granted for.
 		/// </param>
 		/// <returns></returns>
-		public ValueTask<bool> IsGranted(Capability capability, Context token, object extraArg)
+		public bool IsGranted(Capability capability, Context context, object extraArg)
 		{
 			CheckForNewCapabilities();
 			var handler = CapabilityLookup[capability.InternalId];
 
             if (handler == null)
             {
-                return new ValueTask<bool>(false);
-			}
-
-            // Ask the handler:
-            return handler.IsGranted(capability, token, extraArg);
-        }
-
-		/// <summary>
-		/// Is the given capability granted to this role? Don't use this directly - use ACapability.IsGranted instead.
-		/// </summary>
-		/// <param name="capability">The capability to check for. This is required.</param>
-		/// <param name="token">The requesting user account.</param>
-		/// <param name="extraObjectsToCheck">
-		/// Any additional args used by the capability to check access rights.
-		/// For example - can a user access forum post x? Check ForumPostLoad perm and give it x.
-		/// </param>
-		/// <param name="filter">Used to role restrict searches.</param>
-		/// <returns></returns>
-		public bool IsGranted(Capability capability, Context token, Filter filter, params object[] extraObjectsToCheck)
-		{
-			CheckForNewCapabilities();
-			var handler = CapabilityLookup[capability.InternalId];
-
-			if (handler == null)
-			{
-				// Definitely not.
 				return false;
 			}
 
-			// This role does have some kind of grant, so we're good to go ahead and add to the filter.
-			// We don't use IsGranted in this scenario though - instead, we'll copy the rules *into the filter* with an AND.
-			filter.AndAppendConstructed(handler);
-
-			return true;
-		}
+            // Ask the handler:
+            return handler.Match(context, extraArg, handler);
+        }
 
 		private void CheckForNewCapabilities()
 		{
@@ -377,10 +336,6 @@ namespace Api.Permissions
 			var capLookup = CapabilityLookup;
 			Array.Resize(ref capLookup, max);
 			CapabilityLookup = capLookup;
-
-			var cfLookup = CapabilityFilterLookup;
-			Array.Resize(ref cfLookup, max);
-			CapabilityFilterLookup = cfLookup;
 
 			// For each capability, make sure it's added:
 			foreach (var capability in Capabilities.GetAllCurrent())
@@ -410,29 +365,9 @@ namespace Api.Permissions
 				return;
 			}
 
-			// Otherwise we're adding it. Does it have a filter resolver?
-			if (rule.FilterResolver != null)
-			{
-				var filterType = typeof(Filter<>).MakeGenericType(new Type[] { capability.ContentType });
-				var filter = Activator.CreateInstance(filterType) as Filter;
-				filter = rule.FilterResolver(filter);
-
-				if (filter == null)
-				{
-					// Don't actually grant this.
-					return;
-				}
-
-				var rootNode = filter.Construct();
-				CapabilityLookup[capability.InternalId] = rootNode;
-				CapabilityFilterLookup[capability.InternalId] = filter;
-			}
-			else
-			{
-				// Standard grant
-				CapabilityLookup[capability.InternalId] = new FilterTrue();
-				CapabilityFilterLookup[capability.InternalId] = null;
-			}
+			// Otherwise we're adding it.
+			var filter = capability.Service.GetGeneralFilterFor(rule.FilterQuery, true);
+			CapabilityLookup[capability.InternalId] = filter;
 		}
 
 		/// <summary>
@@ -474,9 +409,9 @@ namespace Api.Permissions
 		public Role Role;
 
 		/// <summary>
-		/// Called for each grant.
+		/// The underlying filter query.
 		/// </summary>
-		public Func<Filter, Filter> FilterResolver;
+		public string FilterQuery;
 
 
 		/// <summary>
@@ -489,7 +424,7 @@ namespace Api.Permissions
 			Role.AddRule(
 				new RoleGrantRule()
 				{
-					FilterResolver = FilterResolver,
+					FilterQuery = FilterQuery,
 					Patterns = capabilityNames,
 					RuleType = RoleGrantRuleType.Single,
 				}
@@ -507,7 +442,7 @@ namespace Api.Permissions
 			Role.AddRule(
 				new RoleGrantRule()
 				{
-					FilterResolver = FilterResolver,
+					FilterQuery = FilterQuery,
 					Patterns = features,
 					RuleType = RoleGrantRuleType.Feature,
 				}
@@ -537,9 +472,9 @@ namespace Api.Permissions
 		public RoleGrantRuleType RuleType;
 
 		/// <summary>
-		/// Called for each grant - resolves to a filter to use, if one is needed.
+		/// A filter query string.
 		/// </summary>
-		public Func<Filter, Filter> FilterResolver;
+		public string FilterQuery;
 
 		/// <summary>
 		/// The raw pattern set inside this rule. Evaluating against these is relatively slow, 

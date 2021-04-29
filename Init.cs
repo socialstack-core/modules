@@ -46,14 +46,6 @@ namespace Api.Permissions
 					return new ValueTask<AutoService>(service);
 				}
 				
-				// Get its event group so we can add permission handlers:
-				var eventGroup = service.GetEventGroup();
-
-				if (eventGroup == null)
-				{
-					return new ValueTask<AutoService>(service);
-				}
-
 				// Add List event:
 				var setupType = setupForTypeMethod.MakeGenericMethod(new Type[] {
 					servicedType,
@@ -61,7 +53,7 @@ namespace Api.Permissions
 				});
 
 				setupType.Invoke(this, new object[] {
-					eventGroup
+					service
 				});
 
 				return new ValueTask<AutoService>(service);
@@ -85,7 +77,7 @@ namespace Api.Permissions
 				Roles.Guest.GrantTheSameAs(Roles.Public); // <-- In this case, we grant the same as public.
 
 				// Users can update or delete any content they've created themselves:
-				Roles.Guest.If((Filter f) => f.IsSelf()).ThenGrantFeature("update", "delete");
+				Roles.Guest.If("IsSelf()").ThenGrantFeature("update", "delete");
 
 				// Member - created and (optionally) activated.
 				Roles.Member.GrantTheSameAs(Roles.Guest);
@@ -99,8 +91,10 @@ namespace Api.Permissions
 		/// </summary>
 		/// <typeparam name="T"></typeparam>
 		/// <typeparam name="ID"></typeparam>
-		/// <param name="group"></param>
-		public void SetupForType<T, ID>(EventGroup<T, ID> group)
+		/// <param name="service"></param>
+		public void SetupForType<T, ID>(AutoService<T, ID> service)
+			where T : Content<ID>, new()
+			where ID : struct, IConvertible, IEquatable<ID>
 		{
 			// If it's a mapping type, no-op.
 			if (ContentTypes.IsAssignableToGenericType(typeof(T), typeof(Mapping<,>)))
@@ -108,6 +102,8 @@ namespace Api.Permissions
 				// Mapping types don't get mounted by the permission system.
 				return;
 			}
+
+			var group = service.EventGroup;
 
 			var fields = group.GetType().GetFields();
 
@@ -123,7 +119,7 @@ namespace Api.Permissions
 					// Create a capability for this event type - e.g. User.BeforeCreate becomes a capability called "User_Create".
 					if (eventHandler.Capability == null)
 					{
-						var capability = new Capability(typeof(T), field.Name[6..]);
+						var capability = new Capability(service, field.Name[6..]);
 						eventHandler.Capability = capability;
 					}
 
@@ -145,7 +141,7 @@ namespace Api.Permissions
 
 					if (eventHandler.Capability == null)
 					{
-						var capability = new Capability(typeof(T), field.Name[5..]);
+						var capability = new Capability(service, field.Name[5..]);
 						eventHandler.Capability = capability;
 					}
 
@@ -158,16 +154,16 @@ namespace Api.Permissions
 
 					SetupForStandardEvent<T>(eventHandler, eventHandler.Capability, field);
 				}
-				else if (field.FieldType == typeof(Eventing.EventHandler<Filter<T>>) && field.Name.StartsWith("Before"))
+				else if (field.FieldType == typeof(Eventing.EventHandler<QueryPair<T, ID>>) && field.Name.StartsWith("Before"))
 				{
 					// List handle
-					var eventHandler = field.GetValue(group) as Eventing.EventHandler<Filter<T>>;
+					var eventHandler = field.GetValue(group) as Eventing.EventHandler<QueryPair<T, ID>>;
 
 					// Create a capability for this event type - e.g. User.BeforeCreate becomes a capability called "User_Create".
 
 					if (eventHandler.Capability == null)
 					{
-						var capability = new Capability(typeof(T), field.Name[6..]);
+						var capability = new Capability(service, field.Name[6..]);
 						eventHandler.Capability = capability;
 					}
 
@@ -178,7 +174,7 @@ namespace Api.Permissions
 
 					group.AllWithCapabilities.Add(eventHandler);
 
-					SetupForListEvent<T>(eventHandler, eventHandler.Capability);
+					SetupForListEvent<T, ID>(eventHandler, eventHandler.Capability);
 				}
 
 			}
@@ -189,16 +185,20 @@ namespace Api.Permissions
 		/// Sets up a particular Before*List event handler with permissions
 		/// </summary>
 		/// <typeparam name="T"></typeparam>
+		/// <typeparam name="ID"></typeparam>
 		/// <param name="handler"></param>
 		/// <param name="capability"></param>
-		public void SetupForListEvent<T>(Api.Eventing.EventHandler<Filter<T>> handler, Capability capability)
+		public void SetupForListEvent<T, ID>(Api.Eventing.EventHandler<QueryPair<T, ID>> handler, Capability capability)
+			where T : Content<ID>, new()
+			where ID : struct, IConvertible, IEquatable<ID>
 		{
 			// Add an event handler at priority 1 (runs before others).
-			handler.AddEventListener((Context context, Filter<T> filter) =>
+			handler.AddEventListener((Context context, QueryPair<T, ID> pair) =>
 			{
 				if (context.IgnorePermissions)
 				{
-					return new ValueTask<Filter<T>>(filter);
+					// Unchanged
+					return new ValueTask<QueryPair<T, ID>>(pair);
 				}
 				
 				// Check if the capability is granted.
@@ -215,30 +215,18 @@ namespace Api.Permissions
 				}
 
 				// Get the grant rule (a filter) for this role + capability:
-				var rawGrantRule = role.GetGrantRule(capability);
-				var srcFilter = role.GetSourceFilter(capability);
+				var rawGrantRule = role.GetGrantRule(capability) as Filter<T, ID>;
 
 				// If it's outright rejected..
 				if (rawGrantRule == null)
 				{
 					throw PermissionException.Create(capability.Name, context);
 				}
-
-				// Otherwise, merge the user filter with the one from the grant system (if we need to).
-				// Special case for the common true always node:
-				if (rawGrantRule is FilterTrue)
-				{
-					return new ValueTask<Filter<T>>(filter);
-				}
-
-				if (filter == null)
-				{
-					// All permission handled List calls require a filter.
-					throw PermissionException.Create("Internal issue: A filter is required", context);
-				}
+				
+				pair.QueryB = rawGrantRule;
 
 				// Both are set. Must combine them safely:
-				return new ValueTask<Filter<T>>(filter.Combine(rawGrantRule, srcFilter?.ParamValueResolvers) as Filter<T>);
+				return new ValueTask<QueryPair<T, ID>>(pair);
 			}, 1);
 		}
 
@@ -254,18 +242,19 @@ namespace Api.Permissions
 			var permsAttrib = field.GetCustomAttribute<PermissionsAttribute>();
 
 			if (permsAttrib != null && permsAttrib.IsManual) {
-				// Be careful out there! You *MUST* test your capability when you dispatch your event. Use handler.TestCapability instead e.g. Events.Thing.BeforeUpdate.TestCapability(..)
+				// Be careful out there! You *MUST* test your capability when you dispatch your event. 
+				// Use handler.TestCapability instead e.g. Events.Thing.BeforeUpdate.TestCapability(..)
 				return;
 			}
 
 			// Add an event handler at priority 1 (runs before others).
-			handler.AddEventListener(async (Context context, T content) =>
+			handler.AddEventListener((Context context, T content) =>
 			{
 				// Note: The following code is very similar to handler.TestCapability(context, content) which is used for manual mode.
 
 				if (context.IgnorePermissions)
 				{
-					return content;
+					return new ValueTask<T>(content);
 				}
 
 				// Check if the capability is granted.
@@ -280,10 +269,10 @@ namespace Api.Permissions
 					throw PermissionException.Create(capability.Name, context, "No role");
 				}
 
-				if (await role.IsGranted(capability, context, content))
+				if (role.IsGranted(capability, context, content))
 				{
 					// It's granted - return the first arg:
-					return content;
+					return new ValueTask<T>(content);
 				}
 
 				throw PermissionException.Create(capability.Name, context);

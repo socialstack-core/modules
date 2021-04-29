@@ -43,22 +43,28 @@ namespace Api.Permissions
         public Type ContentType;
 
         /// <summary>
+        /// The service that it's on.
+        /// </summary>
+        public AutoService Service;
+
+        /// <summary>
         /// Create a new capability.
         /// </summary>
-        /// <param name ="contentType"></param>
+        /// <param name ="service"></param>
         /// <param name="feature">
         /// Just the feature name, e.g. "List" or "Create".
         /// </param>
-        public Capability(Type contentType, string feature = "")
+        public Capability(AutoService service, string feature = "")
         {
             if (string.IsNullOrEmpty(feature))
             {
                 throw new ArgumentNullException(nameof(feature), "Capabilities require a feature name.");
             }
 
-            ContentType = contentType;
+            Service = service;
+            ContentType = service.ServicedType;
             Feature = feature.ToLower();
-            Name = contentType == null ? Feature : contentType.Name.ToLower() + "_" + Feature;
+            Name = ContentType == null ? Feature : ContentType.Name.ToLower() + "_" + Feature;
             InternalId = _CurrentId++;
         }
 

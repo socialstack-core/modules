@@ -46,7 +46,7 @@ namespace Api.Permissions
 			var results = new List<PermissionMeta>();
 
 			// All roles:
-			var roles = await Services.Get<RoleService>().List(context, new Filter<Role>());
+			var roles = await Services.Get<RoleService>().Where(DataOptions.IgnorePermissions).ListAll(context);
 
 			// For each capability..
 			foreach (var capability in Capabilities.GetAllCurrent())
@@ -67,16 +67,13 @@ namespace Api.Permissions
 
 					if (rule != null)
 					{
-						var qry = new StringBuilder();
-
 						// Note that a blank rule description means it's always true.
 						// I.e. it's granted and there is no rule around when it is active.
-						rule.BuildQuery(qry, 0, null);
-
+						
 						meta.Grants.Add(new GrantMeta()
 						{
 							Role = role,
-							RuleDescription = qry.ToString()
+							RuleDescription = rule.GetQuery()
 						});
 					}
 

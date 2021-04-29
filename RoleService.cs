@@ -100,7 +100,7 @@ namespace Api.Permissions
 
 					// Setup grant rules.
 					var ctx = new Context();
-					var all = await List(ctx, null, DataOptions.IgnorePermissions);
+					var all = await Where(DataOptions.IgnorePermissions).ListAll(ctx);
 
 					var map = new Dictionary<uint, Role>();
 
@@ -173,9 +173,8 @@ namespace Api.Permissions
 			if (idSet.Any())
 			{
 				// Get the roles:
-				var filter = new Filter<Role>();
-				filter.Id(idSet.Select(role => role.Id));
-				var existingRoles = (await List(context, filter, DataOptions.IgnorePermissions)).ToDictionary(role => role.Id);
+				var roleIds = idSet.Select(role => role.Id);
+				var existingRoles = (await Where("Id=[?]", DataOptions.IgnorePermissions).Bind(roleIds).ListAll(context)).ToDictionary(role => role.Id);
 				
 				// For each to consider for install..
 				foreach (var role in idSet)
@@ -194,9 +193,8 @@ namespace Api.Permissions
 			if (keySet.Any())
 			{
 				// Get the roles by those keys:
-				var filter = new Filter<Role>();
-				filter.EqualsSet("Key", keySet.Select(role => role.Key));
-				var existingRoles = (await List(context, filter, DataOptions.IgnorePermissions)).ToDictionary(role => role.Key);
+				var keys = keySet.Select(role => role.Key);
+				var existingRoles = (await Where("Key=[?]", DataOptions.IgnorePermissions).Bind(keys).ListAll(context)).ToDictionary(role => role.Key);
 
 				// For each role to consider for install..
 				foreach (var role in keySet)
