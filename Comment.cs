@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using Api.Database;
 using Api.Reactions;
+using Api.Startup;
 using Api.Users;
 using Api.WebSockets;
 
@@ -11,20 +12,9 @@ namespace Api.Comments
 	/// <summary>
 	/// A comment on some particular content.
 	/// </summary>
-	public partial class Comment : VersionedContent<uint>, IHaveReactions, IAmLive
+	[ListAs("Comments")]
+	public partial class Comment : VersionedContent<uint>, IAmLive
 	{
-		/// <summary>
-		/// The content this comment is on.
-		/// </summary>
-		public uint ContentId;
-		/// <summary>
-		/// The content type.
-		/// </summary>
-		public int ContentTypeId;
-		/// <summary>
-		/// The comment set (server assigned).
-		/// </summary>
-		public uint CommentSetId;
 		/// <summary>
 		/// Number of child comments.
 		/// </summary>
@@ -67,10 +57,6 @@ namespace Api.Comments
 		/// </summary>
 		// [DatabaseField(Length = 2000)]
 		public string BodyJson;
-		/// <summary>
-		/// Reactions to this comment (typically upvote/ downvote).
-		/// </summary>
-		public List<ReactionCount> Reactions { get; set; }
 		/// <summary>
 		/// Since hierarchy matter, deletes need to be soft so keep the tree together.
 		/// </summary>

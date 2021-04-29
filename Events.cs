@@ -14,11 +14,5 @@ namespace Api.Eventing
 		/// Set of events for a Comment.
 		/// </summary>
 		public static EventGroup<Comment> Comment;
-		
-		
-		/// <summary>
-		/// Set of events for a commentSet.
-		/// </summary>
-		public static EventGroup<CommentSet> CommentSet;
 	}
 }

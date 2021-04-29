@@ -25,11 +25,10 @@ namespace Api.Comments
 		/// <summary>
 		/// Instanced automatically. Use injection to use this service, or Startup.Services.Get.
 		/// </summary>
-		public CommentService(CommentSetService commentSets) : base(Events.Comment)
+		public CommentService() : base(Events.Comment)
         {
 			InstallAdminPages("Comments", "fa:fa-comment", new string[] { "id", "name" });
 
-			var countAndNestedCountFields = commentSets.GetChangeField("CommentCount").And("NestedCommentCount");
 			var childCommentCountField = GetChangeField("ChildCommentCount");
 			var childCommentDeleteCount = GetChangeField("ChildCommentDeleteCount");
 			var deletedField = GetChangeField("Deleted");
@@ -41,45 +40,7 @@ namespace Api.Comments
 					return comment;
 				}
 				
-				// Get comment set or create one if needed:
-				var sets = await commentSets.List(context, new Filter<CommentSet>().Equals("ContentTypeId", comment.ContentTypeId).And().Equals("ContentId", comment.ContentId));
-				
 				var hasParent = comment.ParentCommentId.HasValue && comment.ParentCommentId != 0;
-				
-				CommentSet commentSet;
-				
-				if(sets == null || sets.Count == 0)
-				{
-					// Create one for this content.
-					commentSet = new CommentSet(){
-						ContentTypeId = comment.ContentTypeId,
-						ContentId = comment.ContentId,
-						NestedCommentCount = 1,
-						CommentCount = 1
-					};
-					
-					await commentSets.Create(context, commentSet);
-				}
-				else
-				{
-					// Just the first one:
-					commentSet = sets[0];
-					
-					if(await commentSets.StartUpdate(context, commentSet, DataOptions.IgnorePermissions))
-					{
-						if (!hasParent)
-						{
-							commentSet.CommentCount++;
-						}
-
-						commentSet.NestedCommentCount++;
-						commentSet.MarkChanged(countAndNestedCountFields);
-						await commentSets.FinishUpdate(context,commentSet);
-					}
-
-				}
-				
-				comment.CommentSetId = commentSet.Id;
 				
 				if(hasParent)
 				{
@@ -118,7 +79,7 @@ namespace Api.Comments
 					// Construct the Order field.
 					// It's just the parent order field concatted with the new child comment number.
 					
-					comment.Order = new byte[(comment.Depth + 1) * 2];
+					comment.Order = new byte[(comment.Depth * 2) + 4];
 
 					var maxLength = comment.Order.Length - 2;
 
@@ -139,13 +100,15 @@ namespace Api.Comments
 				}
 				else
 				{
-					// No parent
-					comment.ChildCommentNumber = commentSet.CommentCount;
-					
+					// A root comment. The initial order field is based directly on the timestamp in seconds.
+					var nowOffset = (uint)(DateTime.UtcNow.Subtract(new DateTime(2021, 4, 1))).TotalSeconds;
+
 					// Construct the Order field:
 					comment.Order = new byte[]{
-						(byte)(comment.ChildCommentNumber >> 8),
-						(byte)(comment.ChildCommentNumber & 255)
+						(byte)((nowOffset >> 24) & 255),
+						(byte)((nowOffset >> 16) & 255),
+						(byte)((nowOffset >> 8) & 255),
+						(byte)(nowOffset & 255)
 					};
 				}
 				
