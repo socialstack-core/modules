@@ -187,7 +187,7 @@ namespace Api.ContentSync
 			var ctx = new Context();
 
 			// Get all servers:
-			AllServers = await _clusteredServerService.List(ctx, new Filter<ClusteredServer>(), DataOptions.IgnorePermissions);
+			AllServers = await _clusteredServerService.Where(DataOptions.IgnorePermissions).ListAll(ctx);
 
 			ClusteredServer self = null;
 
@@ -331,16 +331,21 @@ namespace Api.ContentSync
 				maxIdMask = (maxIdMask << 32) | 0xffffff;
 			}
 
-			// Using the List API to collect the current max assigned ID.
-			var filter = new Filter<T>();
-			filter.GreaterThanOrEqual(typeof(T), "Id", thisServersIdMask)
-				.And()
-				.LessThanOrEqual(typeof(T), "Id", thisServersIdMask + maxIdMask);
-			
-			filter.Sort("Id", "desc");
-			filter.PageSize = 1;
-			
-			var set = await service.List(new Context(), filter, DataOptions.IgnorePermissions);
+			// Using the filter API to collect the current max assigned ID.
+			var f = service.Where("Id>=? and Id<=?", DataOptions.IgnorePermissions);
+			f.Sort("Id", false);
+			f.PageSize = 1;
+
+			if (typeof(ID) == typeof(uint))
+			{
+				f.Bind((uint)thisServersIdMask).Bind((uint)(thisServersIdMask + maxIdMask));
+			}
+			else
+			{
+				f.Bind(thisServersIdMask).Bind(thisServersIdMask + maxIdMask);
+			}
+
+			var set = await f.ListAll(new Context());
 
 			// Note: this will only be for rows that are actually in the database.
 			// Empty tables for example - this set has 0 entries.

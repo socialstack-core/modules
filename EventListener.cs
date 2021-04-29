@@ -191,10 +191,6 @@ namespace Api.ContentSync
 		public void AddSequentialIdAssigner<T>(AutoService<T, uint> service)
 			where T : Content<uint>, new()
 		{
-			var highestIdFilter = new Filter<T>();
-			highestIdFilter.Sort("Id", "desc");
-			highestIdFilter.PageSize = 1;
-
 			service.EventGroup.BeforeCreate.AddEventListener(async (Context context, T content) =>
 			{
 				if (content == null)
@@ -203,7 +199,11 @@ namespace Api.ContentSync
 				}
 
 				// Assign an ID now! First get the current highest ID for this type:
-				var latest = await service.List(context, highestIdFilter, DataOptions.IgnorePermissions);
+				var f = service.Where(DataOptions.IgnorePermissions);
+				f.Sort("Id", false);
+				f.PageSize = 1;
+				
+				var latest = await f.ListAll(context);
 
 				uint latestId = 0;
 
@@ -227,7 +227,7 @@ namespace Api.ContentSync
 			/// <param name="evtGroup"></param>
 			private void AddIdAssigner<T, ID>(IdAssigner<ID> assigner, EventGroup<T, ID> evtGroup)
 			where T : Content<ID>, new()
-			where ID : struct
+			where ID : struct, IConvertible, IEquatable<ID>
 		{
 			evtGroup.BeforeCreate.AddEventListener((Context context, T content) =>
 			{
