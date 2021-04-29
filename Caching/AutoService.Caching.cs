@@ -99,11 +99,11 @@ public partial class AutoService<T, ID> {
 
 		var genericCfg = _cacheConfig as CacheConfig<T>;
 
+		var indices = GetContentFields().IndexList;
+
 		// _database is null on in-memory only types, 
 		// however they still need to use it here for grabbing the locale set.
 		var db = _database ?? Services.Get<DatabaseService>();
-
-		var indices = db.GetIndices(typeof(T));
 
 		var localeSet = db.Locales;
 
@@ -162,7 +162,7 @@ public partial class AutoService<T, ID> {
 			};
 
 			// Get the *raw* entries (for primary locale, it makes no difference).
-			var everything = await ListNoCache(ctx, null, true, DataOptions.IgnorePermissions);
+			var everything = await Where(DataOptions.NoCacheIgnorePermissions | DataOptions.RawFlag).ListAll(ctx);
 
 			foreach (var raw in everything)
 			{

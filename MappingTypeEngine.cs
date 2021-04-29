@@ -53,17 +53,22 @@ namespace Api.Startup
 		/// </summary>
 		private static async ValueTask<AutoService> Generate(AutoService srcType, AutoService targetType, string typeName)
 		{
+			Type srcServicedType = srcType.ServicedType;
+			Type srcIdType = srcType.IdType;
+			Type targetServicedType = targetType.ServicedType;
+			Type targetIdType = targetType.IdType;
+
 			AssemblyName assemblyName = new AssemblyName("GeneratedMappings_" + counter);
 			counter++;
 			AssemblyBuilder assemblyBuilder = AssemblyBuilder.DefineDynamicAssembly(assemblyName, AssemblyBuilderAccess.RunAndCollect);
 			ModuleBuilder moduleBuilder = assemblyBuilder.DefineDynamicModule(assemblyName.Name);
 
 			// Base type to use:
-			var baseType = typeof(Mapping<,>).MakeGenericType(new Type[] { srcType.IdType, targetType.IdType });
+			var baseType = typeof(Mapping<,>).MakeGenericType(new Type[] { srcIdType, targetIdType });
 
 			// Start building the type:
-			var srcTypeName = srcType.ServicedType.Name;
-			var targetTypeName = targetType.ServicedType.Name;
+			var srcTypeName = srcServicedType.Name;
+			var targetTypeName = targetServicedType.Name;
 			TypeBuilder typeBuilder = moduleBuilder.DefineType(typeName, TypeAttributes.Public, baseType);
 
 			// Setup constructor:
@@ -79,14 +84,17 @@ namespace Api.Startup
 			var srcIdName = srcTypeName + "Id";
 
 			// Source ID:
-			var srcField = typeBuilder.DefineField(srcIdName, srcType.IdType, FieldAttributes.Public);
+			var srcField = typeBuilder.DefineField(srcIdName, srcIdType, FieldAttributes.Public);
 
 			// Target ID:
-			var targetField = typeBuilder.DefineField(targetTypeName + "Id", targetType.IdType, FieldAttributes.Public);
+			var targetField = typeBuilder.DefineField(targetTypeName + "Id", targetIdType, FieldAttributes.Public);
 
 			// Create srcId property:
-			var srcId = typeBuilder.DefineProperty("SourceId", PropertyAttributes.None, srcType.IdType, new Type[] { srcType.IdType });
-			var getSrcId = typeBuilder.DefineMethod("get_SourceId", MethodAttributes.Public | MethodAttributes.HideBySig | MethodAttributes.Virtual | MethodAttributes.SpecialName, srcType.IdType, Array.Empty<Type>());
+			var srcIdTypeArr = new Type[] { srcIdType };
+			var srcId = typeBuilder.DefineProperty("SourceId", PropertyAttributes.None, srcIdType, srcIdTypeArr);
+			
+			// Get method:
+			var getSrcId = typeBuilder.DefineMethod("get_SourceId", MethodAttributes.Public | MethodAttributes.HideBySig | MethodAttributes.Virtual | MethodAttributes.SpecialName, srcIdType, Array.Empty<Type>());
 
 			var body = getSrcId.GetILGenerator();
 
@@ -96,9 +104,25 @@ namespace Api.Startup
 
 			srcId.SetGetMethod(getSrcId);
 
+			// Set method:
+			var setSrcId = typeBuilder.DefineMethod("set_SourceId", MethodAttributes.Public | MethodAttributes.HideBySig | MethodAttributes.Virtual | MethodAttributes.SpecialName, typeof(void), srcIdTypeArr);
+
+			body = setSrcId.GetILGenerator();
+
+			body.Emit(OpCodes.Ldarg_0);
+			body.Emit(OpCodes.Ldarg_1);
+			body.Emit(OpCodes.Stfld, srcField);
+			body.Emit(OpCodes.Ret);
+
+			srcId.SetSetMethod(setSrcId);
+
+
 			// Create targetId property:
-			var targetId = typeBuilder.DefineProperty("TargetId", PropertyAttributes.None, targetType.IdType, new Type[] { targetType.IdType });
-			var getTargetId = typeBuilder.DefineMethod("get_TargetId", MethodAttributes.Public | MethodAttributes.HideBySig | MethodAttributes.Virtual | MethodAttributes.SpecialName, targetType.IdType, Array.Empty<Type>());
+			var targetIdTypeArr = new Type[] { targetIdType };
+			var targetId = typeBuilder.DefineProperty("TargetId", PropertyAttributes.None, targetIdType, targetIdTypeArr);
+			
+			// Get method:
+			var getTargetId = typeBuilder.DefineMethod("get_TargetId", MethodAttributes.Public | MethodAttributes.HideBySig | MethodAttributes.Virtual | MethodAttributes.SpecialName, targetIdType, Array.Empty<Type>());
 
 			body = getTargetId.GetILGenerator();
 
@@ -107,6 +131,19 @@ namespace Api.Startup
 			body.Emit(OpCodes.Ret);
 
 			targetId.SetGetMethod(getTargetId);
+
+			// Set method:
+			var setTargetId = typeBuilder.DefineMethod("set_TargetId", MethodAttributes.Public | MethodAttributes.HideBySig | MethodAttributes.Virtual | MethodAttributes.SpecialName, typeof(void), targetIdTypeArr);
+
+			body = setTargetId.GetILGenerator();
+
+			body.Emit(OpCodes.Ldarg_0);
+			body.Emit(OpCodes.Ldarg_1);
+			body.Emit(OpCodes.Stfld, targetField);
+			body.Emit(OpCodes.Ret);
+
+			targetId.SetSetMethod(setTargetId);
+
 
 			var writerType = typeof(Writer);
 
@@ -136,7 +173,7 @@ namespace Api.Startup
 			body.Emit(OpCodes.Ldarg_1);
 			body.Emit(OpCodes.Ldarg_0);
 			body.Emit(OpCodes.Ldfld, srcField);
-			body.Emit(OpCodes.Callvirt, srcType.IdType == typeof(uint) ? writeSUint : writeSUlong);
+			body.Emit(OpCodes.Callvirt, srcIdType == typeof(uint) ? writeSUint : writeSUlong);
 
 			// Comma:
 			body.Emit(OpCodes.Ldarg_1);
@@ -147,7 +184,7 @@ namespace Api.Startup
 			body.Emit(OpCodes.Ldarg_1);
 			body.Emit(OpCodes.Ldarg_0);
 			body.Emit(OpCodes.Ldfld, targetField);
-			body.Emit(OpCodes.Callvirt, srcType.IdType == typeof(uint) ? writeSUint : writeSUlong);
+			body.Emit(OpCodes.Callvirt, srcIdType == typeof(uint) ? writeSUint : writeSUlong);
 			
 			body.Emit(OpCodes.Ret);
 
@@ -165,29 +202,35 @@ namespace Api.Startup
 
 			// Invoke InstallType:
 			var setupType = installMethod.MakeGenericMethod(new Type[] {
-				srcType.ServicedType,		// SRC
-				targetType.ServicedType,	// TARG
+				srcServicedType,		// SRC
+				targetServicedType,	// TARG
 				compiledType,				// T
-				srcType.IdType,				// SRC_ID
-				targetType.IdType			// TARG_ID
+				srcIdType,				// SRC_ID
+				targetIdType			// TARG_ID
 			});
 
-			var svc = await (ValueTask<AutoService>)setupType.Invoke(null, new object[] { srcTypeName + "Id", targetTypeName + "Id" });
+			var svc = await (ValueTask<AutoService>)setupType.Invoke(null, new object[] {
+				srcType,
+				targetType,
+				srcTypeName + "Id",
+				targetTypeName + "Id"
+			});
+
 			return svc;
 		}
 
 		/// <summary>
 		/// Creates a service etc for the given system type and activates it. Invoked via reflection with a runtime compiled type.
 		/// </summary>
-		public static async ValueTask<AutoService> InstallType<SRC,TARG,T, SRC_ID, TARG_ID>(string srcIdName, string targetIdName) 
+		public static async ValueTask<AutoService> InstallType<SRC,TARG,T, SRC_ID, TARG_ID>(AutoService<SRC, SRC_ID> src, AutoService<TARG, TARG_ID> targ, string srcIdName, string targetIdName) 
 			where T : Mapping<SRC_ID, TARG_ID>, new()
-			where SRC : Content<SRC_ID>
-			where TARG : Content<TARG_ID>
-			where SRC_ID : struct, IEquatable<SRC_ID>
-			where TARG_ID : struct
+			where SRC : Content<SRC_ID>, new()
+			where TARG : Content<TARG_ID>, new()
+			where SRC_ID : struct, IEquatable<SRC_ID>, IConvertible
+			where TARG_ID : struct, IEquatable<TARG_ID>, IConvertible
 		{
 			// Create the service:
-			var svc = new MappingService<SRC, TARG, SRC_ID, TARG_ID>(srcIdName, targetIdName, typeof(T));
+			var svc = new MappingService<SRC, TARG, SRC_ID, TARG_ID>(src, targ, srcIdName, targetIdName, typeof(T));
 
 			// Register:
 			await Services.StateChange(true, svc);

@@ -4,8 +4,10 @@ using Api.Permissions;
 using Api.Results;
 using System;
 using System.Collections;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
-
+using System.Reflection;
+using System.Threading.Tasks;
 
 namespace Api.Startup{
 	
@@ -14,8 +16,8 @@ namespace Api.Startup{
 	/// There is one of these per locale, stored by AutoService.
 	/// </summary>
 	public class ServiceCache<T, PT> 
-		where T: Content<PT>
-		where PT:struct
+		where T: Content<PT>, new()
+		where PT : struct, IConvertible, IEquatable<PT>
 	{
 		/// <summary>
 		/// True if this cache is in lazy loading mode.
@@ -26,12 +28,12 @@ namespace Api.Startup{
 		/// The raw index - this is for caches for a particular locale, and holds "raw" objects 
 		/// (as they are in the database, with blanks where the default translation should apply).
 		/// </summary>
-		private Dictionary<PT, T> Raw = new Dictionary<PT, T>();
+		private ConcurrentDictionary<PT, T> Raw = new ConcurrentDictionary<PT, T>();
 
 		/// <summary>
 		/// The primary cached index. If localised, this holds objects that have had the primary locale applied to them.
 		/// </summary>
-		private Dictionary<PT, T> Primary;
+		private ConcurrentDictionary<PT, T> Primary;
 
 		/// <summary>
 		/// The indices of the cache. The name of the index is the same as it is in the database 
@@ -80,14 +82,12 @@ namespace Api.Startup{
 				indexId++;
 
 				if (indexInfo.Columns == null || 
-					indexInfo.Columns.Length == 0 ||
-					indexInfo.ColumnFields == null ||
-					indexInfo.ColumnFields.Length != indexInfo.Columns.Length
+					indexInfo.Columns.Length == 0
 				) {
 					continue;
 				}
 
-				var firstCol = indexInfo.ColumnFields[0];
+				var firstCol = indexInfo.Columns[0].FieldInfo;
 				var indexFieldType = firstCol.FieldType;
 
 				if (indexInfo.Columns.Length > 1)
@@ -96,29 +96,8 @@ namespace Api.Startup{
 					indexFieldType = typeof(string);
 				}
 
-				ServiceCacheIndex<T> index;
-
-				if (indexInfo.Unique)
-				{
-					// Unique index - it's a Dictionary<IndexFieldType, T>:
-					var indexType = typeof(UniqueIndex<,>).MakeGenericType(new Type[] {
-						typeof(T),
-						indexFieldType
-					});
-
-					index = Activator.CreateInstance(indexType) as ServiceCacheIndex<T>;
-				}
-				else
-				{
-					// Non-unique index - it's a Dictionary<IndexFieldType, LinkedListOfT>
-
-					var indexType = typeof(NonUniqueIndex<,>).MakeGenericType(new Type[] {
-						typeof(T),
-						indexFieldType
-					});
-
-					index = Activator.CreateInstance(indexType) as ServiceCacheIndex<T>;
-				}
+				// Instance each one next:
+				var index = indexInfo.CreateIndex<T>();
 
 				// Add to fast lookup:
 				IndexLookup[indexId] = index;
@@ -129,27 +108,19 @@ namespace Api.Startup{
 					index.Primary = true;
 
 					// Primary - grab the underlying dictionary ref:
-					Primary = index.GetUnderlyingStructure() as Dictionary<PT, T>;
+					Primary = index.GetUnderlyingStructure() as ConcurrentDictionary<PT, T>;
 				}
 				else
 				{
 					SecondaryIndices.Add(index);
 				}
 
-				if (indexInfo.Columns.Length == 1)
-				{
-					index.OneColumn = firstCol;
-				}
-				else
-				{
-					index.Columns = indexInfo.ColumnFields;
-				}
 				Indices[indexInfo.IndexName] = index;
 			}
 
 			if (Primary == null)
 			{
-				Primary = new Dictionary<PT, T>();
+				Primary = new ConcurrentDictionary<PT, T>();
 			}
 		}
 
@@ -157,7 +128,7 @@ namespace Api.Startup{
 		/// Get the primary index.
 		/// </summary>
 		/// <returns></returns>
-		public Dictionary<PT, T> GetPrimary()
+		public ConcurrentDictionary<PT, T> GetPrimary()
 		{
 			return Primary;
 		}
@@ -166,172 +137,136 @@ namespace Api.Startup{
 		/// Get the raw lookup.
 		/// </summary>
 		/// <returns></returns>
-		public Dictionary<PT, T> GetRaw()
+		public ConcurrentDictionary<PT, T> GetRaw()
 		{
 			return Raw;
 		}
 
 		/// <summary>
-		/// Gets list with total number of results. Regularly used by pagination.
+		/// Gets a list of results from the cache, calling the given callback each time one is discovered.
 		/// </summary>
-		/// <param name="filter"></param>
-		/// <param name="values"></param>
-		/// <returns></returns>
-		public ListWithTotal<T> ListWithTotal(Filter<T> filter, List<ResolvedValue> values)
+		/// <param name="context"></param>
+		/// <param name="queryPair">Must have both queries set.</param>
+		/// <param name="onResult"></param>
+		/// <param name="srcA"></param>
+		/// <param name="srcB"></param>
+		public async ValueTask<int> GetResults(Context context, QueryPair<T, PT> queryPair, Func<Context, T, int, object, object, ValueTask> onResult, object srcA, object srcB)
 		{
-			var results = List(filter, values, out int total);
-			return new ListWithTotal<T>()
-			{
-				Results = results,
-				Total = total
-			};
-		}
+			// FilterA and FilterB are never null.
+			var filterA = queryPair.QueryA;
+			var filterB = queryPair.QueryB;
 
-		/// <summary>
-		/// List objects with the given filter.
-		/// </summary>
-		/// <param name="filter">Can be null.</param>
-		/// <param name="values">Resolved value set</param>
-		/// <param name="total">Total number of results, regardless of any pagination happening.</param>
-		/// <returns></returns>
-		public List<T> List(Filter<T> filter, List<ResolvedValue> values, out int total)
-		{
-			var set = new List<T>();
+			var total = 0;
+			var includeTotal = filterA.IncludeTotal;
 
-			if (filter == null || !filter.HasContent)
+			// TODO: index selection is now possible to avoid these full scans.
+			// a list allocation is required if a sort is specified but there is no sorted index.
+			if (filterA.SortField != null)
 			{
-				// Everything in whatever order the PK returns them in. Can be paginated.
-				lock(Primary){
-					foreach (var kvp in Primary)
+				var set = new List<T>();
+
+				foreach (var kvp in Primary)
+				{
+					if (filterA.Match(context, kvp.Value, filterA) && filterB.Match(context, kvp.Value, filterA))
 					{
 						set.Add(kvp.Value);
+					}
+				}
+
+				total = set.Count;
+				HandleSorting(set, filterA.SortField.FieldInfo, filterA.SortAscending);
+
+				var rowStart = filterA.Offset;
+
+				if (rowStart >= set.Count)
+				{
+					return total;
+				}
+				
+				// Limit happens after sorting:
+				if (filterA.PageSize != 0)
+				{
+					var max = rowStart + filterA.PageSize;
+
+					if (max > total)
+					{
+						max = total;
+					}
+
+					for (var i = rowStart; i < max; i++)
+					{
+						await onResult(context, set[i], i - rowStart, srcA, srcB);
+					}
+				}
+				else
+				{
+					// All:
+					for (var i = rowStart; i < set.Count; i++)
+					{
+						await onResult(context, set[i], i - rowStart, srcA, srcB);
 					}
 				}
 			}
 			else
 			{
-				FilterFieldEqualsSet setNode = filter.Nodes.Count == 1 ? filter.Nodes[0] as FilterFieldEqualsSet : null;
-
-				if (setNode != null && setNode.Field == "Id")
+				foreach (var kvp in Primary)
 				{
-					// Very common special case where we're getting a specific set of rows.
-					// Directly hit the primary key to return results.
-					foreach (var id in setNode.Values)
+					if (filterA.Match(context, kvp.Value, filterA) && filterB.Match(context, kvp.Value, filterA))
 					{
-						PT intId = default;
+						var pageFill = total - filterA.Offset;
+						total++;
 
-						if (id is PT pT)
+						if (pageFill < 0)
 						{
-							intId = pT;
+							continue;
 						}
-						else
+						else if (filterA.PageSize != 0 && pageFill > filterA.PageSize)
 						{
-							// Also a type conversion
-							// Currently when this happens, id is a long, and PT is int.
-							var idObj = (object)((int)((long)id));
-							intId = (PT)idObj;
+							if (includeTotal)
+							{
+								continue;
+							}
+
+							break;
 						}
 
-						if (Primary.TryGetValue(intId, out T value))
-						{
-							set.Add(value);
-						}
+						await onResult(context, kvp.Value, pageFill, srcA, srcB);
 					}
+				}
+			}
+
+			return total;
+		}
+
+		private void HandleSorting(List<T> set, FieldInfo sort, bool ascend)
+		{		
+			set.Sort((a, b) => {
+					
+				var valA = sort.GetValue(a);
+				var valB = sort.GetValue(b);
+				int comparison;
+
+				if (valA == null)
+				{
+					comparison = (valB == null) ? 0 : 1;
 				}
 				else
 				{
-					var rootNode = filter.Construct();
-					lock(Primary){
-						foreach (var kvp in Primary)
-						{
-							if (rootNode.Matches(values, kvp.Value))
-							{
-								set.Add(kvp.Value);
-							}
-						}
-					}
+					comparison = (valA as IComparable).CompareTo(valB);
 				}
-			}
-
-			if (filter != null && filter.Sorts != null && filter.Sorts.Count > 0)
-			{
-				HandleSorting(set, filter.Sorts);
-			}
-
-			total = set.Count;
-
-			// Limit happens after sorting:
-			if (filter != null && filter.PageSize != 0)
-			{
-				var rowStart = filter == null ? 0 : filter.PageIndex * filter.PageSize;
-
-				if (rowStart >= set.Count)
+					
+				// If a and b compare equal, proceed to check the next sort node
+				// Otherwise, return the compare value
+				if (comparison != 0)
 				{
-					return new List<T>();
-				}
-
-				var count = set.Count - rowStart;
-
-				if (count > filter.PageSize)
-				{
-					count = filter.PageSize;
-				}
-				
-				
-				
-				return set.GetRange(rowStart, count);
-			}
-
-			return set;
-		}
-
-		private void HandleSorting(List<T> set, List<FilterSort> sorts)
-		{
-			foreach (var sort in sorts)
-			{
-				if (sort.FieldInfo == null)
-				{
-					sort.FieldInfo = sort.Type.GetField(char.IsLower(sort.Field[0]) ? char.ToUpper(sort.Field[0]) + sort.Field.Substring(1) : sort.Field);
-
-					if (sort.FieldInfo == null)
+					if (ascend)
 					{
-						throw new Exception(sort.Field + " sort field doesn't exist on type '" + sort.Type.Name + "'");
-					}
-				}
-			}
-
-			set.Sort((a, b) => {
-
-				for (var i = 0; i < sorts.Count; i++)
-				{
-					var sort = sorts[i];
-
-					var valA = sort.FieldInfo.GetValue(a);
-					var valB = sort.FieldInfo.GetValue(b);
-					int comparison;
-
-					if (valA == null)
-					{
-						comparison = (valB == null) ? 0 : 1;
+						return comparison;
 					}
 					else
 					{
-						comparison = (valA as IComparable).CompareTo(valB);
-					}
-					
-					// If a and b compare equal, proceed to check the next sort node
-					// Otherwise, return the compare value
-					if (comparison != 0)
-					{
-						if (sort.Ascending)
-						{
-							return comparison;
-						}
-						else
-						{
-							// Invert:
-							return -comparison;
-						}
+						// Invert:
+						return -comparison;
 					}
 				}
 
@@ -361,26 +296,6 @@ namespace Api.Startup{
 				return value.Id;
 			}
 			return -1;
-		}
-
-		/// <summary>
-		/// Gets an object with the given key value from the given index.
-		/// </summary>
-		public T GetUsingIndex(int indexId, object key)
-		{
-			var indexToUse = IndexLookup[indexId];
-			if (indexToUse == null)
-			{
-				return null;
-			}
-
-			var result = indexToUse.Get(key);
-			if (result == null)
-			{
-				return null;
-			}
-
-			return result;
 		}
 
 		/// <summary>
@@ -470,8 +385,8 @@ namespace Api.Startup{
 			if (fromPrimary)
 			{
 				lock(Primary){
-					Primary.Remove(id);
-					Raw.Remove(id);
+					Primary.Remove(id, out _);
+					Raw.Remove(id, out _);
 				}
 			}
 

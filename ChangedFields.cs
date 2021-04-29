@@ -1,4 +1,6 @@
 
+using Api.Database;
+using Api.Translate;
 using System;
 using System.Collections.Generic;
 using System.Reflection;
@@ -235,6 +237,17 @@ namespace Api.Startup {
 			}
 		}
 
+		/// <summary>
+		/// The db index list.
+		/// </summary>
+		public List<DatabaseIndexInfo> IndexList {
+			get {
+				return _indexSet;
+			}
+		}
+
+		private List<DatabaseIndexInfo> _indexSet;
+
 		private void BuildMap()
 		{
 			if (InstanceType == null)
@@ -242,6 +255,9 @@ namespace Api.Startup {
 				// There is no type.
 				return;
 			}
+
+			// Start collecting db indices:
+			_indexSet = new List<DatabaseIndexInfo>();
 
 			// Add global listAs, if there is one:
 			var listAs = InstanceType.GetCustomAttribute<ListAsAttribute>();
@@ -270,11 +286,74 @@ namespace Api.Startup {
 				_list.Add(cf);
 				cf.Id = _list.Count;
 				_nameMap[field.Name.ToLower()] = cf;
+				
+				// Get field attributes:
+				var attribs = field.GetCustomAttributes(true);
+
+				foreach (var attrib in attribs)
+				{
+					if (attrib is DatabaseIndexAttribute attribute)
+					{
+						// Add db index:
+						var dbi = new DatabaseIndexInfo(attribute, new ContentField[] { cf });
+						dbi.Id = _indexSet.Count;
+						cf.AddIndex(dbi);
+						_indexSet.Add(dbi);
+					}
+
+					if (attrib is LocalizedAttribute)
+					{
+						cf.Localised = true;
+					}
+				}
+
 			}
-			
+
+			// Collect any databaseIndex attributes on the type itself:
+			var attributes = InstanceType.GetCustomAttributes(true);
+
+			foreach (var attrib in attributes)
+			{
+				if (attrib is DatabaseIndexAttribute attribute)
+				{
+					var indexFields = attribute.Fields;
+
+					if (indexFields == null || indexFields.Length == 0)
+					{
+						throw new ArgumentException("You've got a [DatabaseIndex] on " + InstanceType.Name + " which requires fields but has none.");
+					}
+
+					var columnFields = new ContentField[indexFields.Length];
+
+					for (var i = 0; i < indexFields.Length; i++)
+					{
+						if (!_nameMap.TryGetValue(indexFields[i].ToLower(), out ContentField reffedIndexField))
+						{
+							// All the reffed fields must exist.
+							throw new ArgumentException(
+								"A [DatabaseIndex] on '" + InstanceType.Name + "' tries to use a field called '" + indexFields[i] + "' which doesn't exist. " +
+								"Note that properties can't be used in an index."
+							);
+						}
+
+						columnFields[i] = reffedIndexField;
+					}
+
+					var dbi = new DatabaseIndexInfo(attribute, columnFields);
+					dbi.Id = _indexSet.Count;
+
+					for (var i = 0; i < columnFields.Length; i++)
+					{
+						columnFields[i].AddIndex(dbi);
+					}
+
+					_indexSet.Add(dbi);
+				}
+			}
+
 			var properties = InstanceType.GetProperties();
 			
-			// Public properties:
+			// Public properties (can't be localised):
 			for(var i=0;i<properties.Length;i++){
 				var property = properties[i];
 				var cf = new ContentField(property);
@@ -300,6 +379,8 @@ namespace Api.Startup {
 					throw new PublicException("Virtual fields require a type. '" + vInfo.FieldName + "' on '" + InstanceType.Name + "' does not have one.", "field_type_required");
 				}
 
+				var cf = new ContentField(vInfo);
+
 				// Resolve ID sources:
 				if (!string.IsNullOrEmpty(vInfo.IdSourceField))
 				{
@@ -307,9 +388,13 @@ namespace Api.Startup {
 					{
 						throw new PublicException("A field called '" + vInfo.IdSourceField + "' doesn't exist as requested by virtual field '" + vInfo.FieldName + "' on type " + InstanceType.Name, "vfield_require_doesnt_exist");
 					}
+
+					if (vInfo.IdSource != null && vInfo.IdSource.UsedByVirtual == null)
+					{
+						vInfo.IdSource.UsedByVirtual = cf;
+					}
 				}
 
-				var cf = new ContentField(vInfo);
 				_vList.Add(cf);
 				cf.Id = _vList.Count;
 				_vNameMap[vInfo.FieldName.ToLower()] = cf;
@@ -334,7 +419,17 @@ namespace Api.Startup {
 		/// The depth of a virtual field. "A.B" has a depth of 1, "A" a depth of 0 and "A.B.C" a depth of 2.
 		/// </summary>
 		public int VirtualDepth;
-		
+
+		/// <summary>
+		/// The first virtual field that this field is used by (applies to local mappings only).
+		/// </summary>
+		public ContentField UsedByVirtual;
+
+		/// <summary>
+		/// True if this field is [Localised]
+		/// </summary>
+		public bool Localised;
+
 		/// <summary>
 		/// This fields ID. It also directly represents the change flag.
 		/// </summary>
@@ -427,19 +522,6 @@ namespace Api.Startup {
 		}
 
 		/// <summary>
-		/// Shallow clones this field. 
-		/// </summary>
-		/// <returns></returns>
-		public ContentField Clone() {
-			var cf = new ContentField(FieldInfo);
-			cf.PropertyInfo = PropertyInfo;
-			cf.VirtualInfo = VirtualInfo;
-			cf._id = _id;
-			cf._changeFlag = _changeFlag;
-			return cf;
-		}
-
-		/// <summary>
 		/// The flag used to indicate this field has changed.
 		/// </summary>
 		public ChangedFields ChangeFlag{
@@ -484,6 +566,25 @@ namespace Api.Startup {
 		public VirtualInfo VirtualInfo;
 
 		/// <summary>
+		/// Set if this field is used by any database indices. Only available on fields, not properties.
+		/// </summary>
+		public List<DatabaseIndexInfo> UsedByIndices;
+
+		/// <summary>
+		/// Adds an index to the usedByIndices set. Does not check if it was already in there.
+		/// </summary>
+		/// <param name="index"></param>
+		public void AddIndex(DatabaseIndexInfo index)
+		{
+			if (UsedByIndices == null)
+			{
+				UsedByIndices = new List<DatabaseIndexInfo>();
+			}
+
+			UsedByIndices.Add(index);
+		}
+
+		/// <summary>
 		/// </summary>
 		public ContentField(FieldInfo info){
 			FieldInfo = info;
@@ -501,6 +602,18 @@ namespace Api.Startup {
 		public ContentField(VirtualInfo info)
 		{
 			VirtualInfo = info;
+		}
+
+		/// <summary>
+		/// True if this field is highspeed indexable - either it's used by a virtual field 
+		/// (the index is the map for that vfield), or it's e.g. the Id field.
+		/// </summary>
+		public bool IsIndexable
+		{
+			get
+			{
+				return UsedByIndices != null || UsedByVirtual != null;
+			}
 		}
 
 		/// <summary>
@@ -600,6 +713,7 @@ namespace Api.Startup {
 				return _service;
 			}
 		}
+
 	}
 
 }

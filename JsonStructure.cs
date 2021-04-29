@@ -85,7 +85,9 @@ namespace Api.Startup
 	/// Describes the available fields on a particular type.
 	/// This exists so we can, for example, role restrict setting particular fields.
 	/// </summary>
-	public class JsonStructure<T> : JsonStructure
+	public class JsonStructure<T, ID> : JsonStructure
+		where T : Content<ID>, new()
+		where ID : struct, IConvertible, IEquatable<ID>
 	{
 		/// <summary>
 		///  Common field names used by entities which are used as a title when no [Meta("title")] is declared.
@@ -98,6 +100,11 @@ namespace Api.Startup
 		private readonly static string[] CommonDescriptionNames = new string[] { "description", "shortdescription", "bio", "biography", "about" };
 
 		/// <summary>
+		/// The host service.
+		/// </summary>
+		public AutoService<T, ID> Service;
+
+		/// <summary>
 		/// Type reader writer for this structure.
 		/// </summary>
 		public TypeReaderWriter<T> TypeIO;
@@ -105,23 +112,23 @@ namespace Api.Startup
 		/// <summary>
 		/// Fields that can be read by users of the current role.
 		/// </summary>
-		public List<JsonField<T>> ReadableFields = new List<JsonField<T>>();
+		public List<JsonField<T, ID>> ReadableFields = new List<JsonField<T, ID>>();
 		/// <summary>
 		/// All raw fields in this structure.
 		/// </summary>
-		public Dictionary<string, JsonField<T>> Fields;
+		public Dictionary<string, JsonField<T, ID>> Fields;
 		/// <summary>
 		/// All meta fields in this structure. Common ones are e.g. "title" and "description".
 		/// </summary>
-		public Dictionary<string, JsonField<T>> MetaFields;
+		public Dictionary<string, JsonField<T, ID>> MetaFields;
 		/// <summary>
 		/// The after ID fields in this structure.
 		/// </summary>
-		public Dictionary<string, JsonField<T>> AfterIdFields;
+		public Dictionary<string, JsonField<T, ID>> AfterIdFields;
 		/// <summary>
 		/// The before ID fields in this structure.
 		/// </summary>
-		public Dictionary<string, JsonField<T>> BeforeIdFields;
+		public Dictionary<string, JsonField<T, ID>> BeforeIdFields;
 
 		
 		/// <summary>
@@ -131,10 +138,10 @@ namespace Api.Startup
 		public JsonStructure(Role forRole)
 		{
 			ForRole = forRole;
-			Fields = new Dictionary<string, JsonField<T>>();
-			MetaFields = new Dictionary<string, JsonField<T>>();
-			AfterIdFields = new Dictionary<string, JsonField<T>>();
-			BeforeIdFields = new Dictionary<string, JsonField<T>>();
+			Fields = new Dictionary<string, JsonField<T, ID>>();
+			MetaFields = new Dictionary<string, JsonField<T, ID>>();
+			AfterIdFields = new Dictionary<string, JsonField<T, ID>>();
+			BeforeIdFields = new Dictionary<string, JsonField<T, ID>>();
 		}
 
 		/// <summary>
@@ -211,7 +218,7 @@ namespace Api.Startup
 		/// and for each one, triggers an event. The event can return either nothing at all - which will outright block the field - 
 		/// or the event can add a special value handler which will map the raw JSON value to the actual object for us.
 		/// </summary>
-		public async Task Build(ContentFields fields, Api.Eventing.EventHandler<JsonField<T>> beforeSettable, Api.Eventing.EventHandler<JsonField<T>> beforeGettable)
+		public async Task Build(ContentFields fields, Api.Eventing.EventHandler<JsonField<T, ID>> beforeSettable, Api.Eventing.EventHandler<JsonField<T, ID>> beforeGettable)
 		{
 			var context = new Context();
 
@@ -231,13 +238,13 @@ namespace Api.Startup
 
 			foreach (var contentField in fields.List)
 			{
-				JsonField<T> jsonField;
+				JsonField<T, ID> jsonField;
 
 				if (contentField.FieldInfo != null)
 				{
 					var field = contentField.FieldInfo;
 
-					jsonField = new JsonField<T>()
+					jsonField = new JsonField<T, ID>()
 					{
 						Name = field.Name,
 						OriginalName = field.Name,
@@ -245,6 +252,7 @@ namespace Api.Startup
 						Structure = this,
 						TargetType = field.FieldType,
 						FieldInfo = field,
+						ContentField = contentField,
 						ChangeFlag = contentField.ChangeFlag
 					};
 
@@ -253,7 +261,7 @@ namespace Api.Startup
 				{
 					var property = contentField.PropertyInfo;
 
-					jsonField = new JsonField<T>()
+					jsonField = new JsonField<T, ID>()
 					{
 						Name = property.Name,
 						OriginalName = property.Name,
@@ -263,9 +271,36 @@ namespace Api.Startup
 						TargetType = property.PropertyType,
 						PropertyGet = property.GetGetMethod(),
 						PropertySet = property.GetSetMethod(),
+						ContentField = contentField,
 						ChangeFlag = contentField.ChangeFlag
 					};
 				}
+
+				await TryAddField(context, jsonField, readable, beforeSettable, beforeGettable);
+			}
+
+			// Add global virtual fields:
+			foreach (var kvp in ContentFields._globalVirtualFields)
+			{
+				var field = kvp.Value;
+
+				// Get the ID type of the field:
+				var idType = field.VirtualInfo.Type.GetField("Id").FieldType;
+
+				var jsonField = new JsonField<T, ID>()
+				{
+					Name = field.VirtualInfo.FieldName,
+					OriginalName = field.VirtualInfo.FieldName,
+					Structure = this,
+					TargetType = typeof(IEnumerable<>).MakeGenericType(idType),
+					ContentField = field,
+					ChangeFlag = field.ChangeFlag,
+					Attributes = Array.Empty<Attribute>(),
+					AfterId = true
+				};
+
+				jsonField.Data["contentType"] = field.VirtualInfo.Type.Name;
+				// Note: initial module is set by TryAdd.
 
 				await TryAddField(context, jsonField, readable, beforeSettable, beforeGettable);
 			}
@@ -296,11 +331,11 @@ namespace Api.Startup
 		/// </summary>
 		/// <param name="fieldNames"></param>
 		/// <returns></returns>
-		public JsonField<T> TryGetAnyOf(string[] fieldNames)
+		public JsonField<T, ID> TryGetAnyOf(string[] fieldNames)
 		{
 			for (var i = 0; i < fieldNames.Length; i++)
 			{
-				if(Fields.TryGetValue(fieldNames[i], out JsonField<T> result))
+				if(Fields.TryGetValue(fieldNames[i], out JsonField<T, ID> result))
 				{
 					return result;
 				}
@@ -343,7 +378,7 @@ namespace Api.Startup
 		/// <param name="readableState"></param>
 		/// <param name="beforeSettable"></param>
 		/// <param name="beforeGettable"></param>
-		private async Task TryAddField(Context context, JsonField<T> field, bool readableState, Api.Eventing.EventHandler<JsonField<T>> beforeSettable, Api.Eventing.EventHandler<JsonField<T>> beforeGettable)
+		private async Task TryAddField(Context context, JsonField<T, ID> field, bool readableState, Api.Eventing.EventHandler<JsonField<T, ID>> beforeSettable, Api.Eventing.EventHandler<JsonField<T, ID>> beforeGettable)
 		{
 			// Set the default just before the field event:
 			field.SetDefaultDisplayModule();
@@ -430,9 +465,9 @@ namespace Api.Startup
 		/// </summary>
 		/// <param name="name"></param>
 		/// <param name="fieldGroup"></param>
-		public JsonField<T> GetField(string name, JsonFieldGroup fieldGroup)
+		public JsonField<T, ID> GetField(string name, JsonFieldGroup fieldGroup)
 		{
-			JsonField<T> result;
+			JsonField<T, ID> result;
 
 			switch (fieldGroup)
 			{
@@ -458,7 +493,7 @@ namespace Api.Startup
 		/// <returns></returns>
 		public override JsonField GetMetaField(string name)
 		{
-			MetaFields.TryGetValue(name.ToLower(), out JsonField<T> result);
+			MetaFields.TryGetValue(name.ToLower(), out JsonField<T, ID> result);
 			return result;
 		}
 
@@ -467,9 +502,9 @@ namespace Api.Startup
 		/// </summary>
 		/// <param name="name"></param>
 		/// <returns></returns>
-		public JsonField<T> GetTypedMetaField(string name)
+		public JsonField<T, ID> GetTypedMetaField(string name)
 		{
-			MetaFields.TryGetValue(name.ToLower(), out JsonField<T> result);
+			MetaFields.TryGetValue(name.ToLower(), out JsonField<T, ID> result);
 			return result;
 		}
 
@@ -496,6 +531,10 @@ namespace Api.Startup
 		/// If this is a field, the underlying FieldInfo. Null otherwise.
 		/// </summary>
 		public FieldInfo FieldInfo;
+		/// <summary>
+		/// The content field that this originated from. Can be a global virtual one.
+		/// </summary>
+		public ContentField ContentField;
 		/// <summary>
 		/// Set this to true if it should only be applied after an objects ID is known.
 		/// </summary>
@@ -554,7 +593,7 @@ namespace Api.Startup
 		/// </summary>
 		public void SetDefaultDisplayModule()
 		{
-			Module = "UI/Input";
+			Module = ContentField != null && ContentField.VirtualInfo != null ? "Admin/MultiSelect" : "UI/Input";
 			var type = "text";
 			var name = OriginalName;
 			var labelName = name;
@@ -675,12 +714,16 @@ namespace Api.Startup
 	/// A field within a JsonStructure.
 	/// </summary>
 	/// <typeparam name="T"></typeparam>
-	public class JsonField<T> : JsonField {
+	/// <typeparam name="ID"></typeparam>
+	public class JsonField<T, ID> : JsonField
+		where T : Content<ID>, new()
+		where ID : struct, IConvertible, IEquatable<ID>
+	{
 
 		/// <summary>
 		/// The structure this field belongs to.
 		/// </summary>
-		public JsonStructure<T> Structure;
+		public JsonStructure<T, ID> Structure;
 		/// <summary>
 		/// An event which is called when the value is set. It returns the value it wants to be set.
 		/// </summary>
@@ -825,7 +868,7 @@ namespace Api.Startup
 					// No change
 					return false;
 				}
-				
+
 				PropertySet.Invoke(onObject, new object[] { targetValue });
 			}
 			else if (FieldInfo != null)
@@ -848,35 +891,25 @@ namespace Api.Startup
 
 				FieldInfo.SetValue(onObject, targetValue);
 			}
+			else if (ContentField.VirtualInfo != null)
+			{
+				// It's a virtual list field. TargetValue is an IEnumerable<TARGET_ID_TYPE>.
+				// Force uint for now:
+				var idSet = targetValue as IEnumerable<uint>;
+				var targetService = ContentField.VirtualInfo.Service;
+				
+				if (idSet != null && targetService != null)
+				{
+					// Create mappings from onObject -> entry.Id
+					// * We have write access to the "source" object because we're in SetIfChanged.
+					// * We have read access to the "target" because we just got it successfully.
+					await Structure.Service.EnsureMapping(context, onObject, targetService, idSet, ContentField.VirtualInfo.FieldName);
+				}
+			}
 
 			return true;
 		}
 
-		/// <summary>
-		/// Attempts to set the value of the field.
-		/// </summary>
-		public async ValueTask SetValue(Context context, T onObject, JToken value)
-		{
-			if (OnSetValue == null && Hide)
-			{
-				// Ignore these fields - they can only be set if they have an OnSetValue handler.
-				return;
-			}
-
-			var targetValue = await GetTargetValue(context, onObject, value);
-
-			// Note that both the setter and the FieldInfo can be null (readonly properties).
-			if (PropertySet != null)
-			{
-				PropertySet.Invoke(onObject, new object[]{targetValue});
-			}
-			else if(FieldInfo != null)
-			{
-				FieldInfo.SetValue(onObject, targetValue);
-			}
-			
-		}
-		
 	}
 
 	/// <summary>

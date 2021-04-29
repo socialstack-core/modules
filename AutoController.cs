@@ -3,6 +3,7 @@ using Api.Database;
 using Api.Eventing;
 using Api.Permissions;
 using Api.Results;
+using Api.SocketServerLibrary;
 using Api.Startup;
 using Microsoft.AspNetCore.Mvc;
 using Newtonsoft.Json.Linq;
@@ -83,25 +84,11 @@ public partial class AutoController<T,ID> : ControllerBase
 		}
 
 		Response.ContentType = _applicationJson;
-		await _service.ToJson(context, content, Response.Body, includes);
-	}
 
-	/// <summary>
-	/// Outputs the given content object list whilst considering the field visibility rules of the role in the context.
-	/// </summary>
-	/// <param name="context"></param>
-	/// <param name="list"></param>
-	/// <param name="includes"></param>
-	/// <returns></returns>
-	protected async ValueTask OutputJson(Context context, ListWithTotal<T> list, string includes)
-	{
-		if (list == null)
-		{
-			return;
-		}
-
-		Response.ContentType = _applicationJson;
-		await _service.ToJson(context, list, Response.Body, includes);
+		var writer = Writer.GetPooled();
+		writer.Start(null);
+		await _service.ToJson(context, content, writer, Response.Body, includes);
+		writer.Release();
 	}
 
 	/// <summary>
@@ -190,8 +177,8 @@ public partial class AutoController<T,ID> : ControllerBase
 	public virtual async ValueTask List([FromBody] JObject filters, [FromQuery] string includes = null)
 	{
 		var context = await Request.GetContext();
-		var filter = new Filter<T>(filters);
 
+		var filter = _service.LoadFilter(filters) as Filter<T, ID>;
 		filter = await _service.EventGroup.EndpointStartList.Dispatch(context, filter, Response);
 
 		if (filter == null)
@@ -201,33 +188,23 @@ public partial class AutoController<T,ID> : ControllerBase
 			return;
 		}
 
-		ListWithTotal<T> response;
+		Response.ContentType = _applicationJson;
+		var writer = Writer.GetPooled();
+		writer.Start(null);
+		await _service.ToJson(context, filter, async (Context ctx, Filter<T, ID> filt, Func<T, int, ValueTask> onResult) => {
 
-		if (filter.PageSize != 0 && filters != null && filters["includeTotal"] != null)
-		{
-			// Get the total number of non-paginated results as well:
-			response = await _service.ListWithTotal(context, filter);
-		}
-		else
-		{
-			// Not paginated or requestor doesn't care about the total.
-			var results = await _service.List(context, filter);
+			return await _service.GetResults(ctx, filt, async (Context ctx2, T result, int index, object src, object srcB) => {
 
-			response = new ListWithTotal<T>()
-			{
-				Results = results
-			};
+				var _onResult = src as Func<T, int, ValueTask>;
+				await _onResult(result, index);
 
-			if (filter.PageSize == 0)
-			{
-				// Trivial instance - pagination is off so the total is just the result set length.
-				response.Total = results == null ? 0 : results.Count;
-			}
-		}
+			}, onResult, null);
 
-		response.Results = await _service.EventGroup.EndpointEndList.Dispatch(context, response.Results, Response);
+		}, writer, Response.Body, includes);
+		writer.Release();
 
-		await OutputJson(context, response, includes);
+		filter = await _service.EventGroup.EndpointEndList.Dispatch(context, filter, Response);
+		filter.Release();
 	}
 
     /// <summary>

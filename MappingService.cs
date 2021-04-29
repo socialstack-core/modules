@@ -9,15 +9,14 @@ using System.Threading.Tasks;
 
 namespace Api.Startup
 {
-	
 	/// <summary>
 	/// The AutoService for mapping types.
 	/// </summary>
-	public class MappingService<SRC, TARG, SRC_ID, TARG_ID> : AutoService<Mapping<SRC_ID, TARG_ID>, uint> 
-		where SRC: Content<SRC_ID>
-		where TARG : Content<TARG_ID>
-		where SRC_ID: struct, IEquatable<SRC_ID>
-		where TARG_ID: struct
+	public class MappingService<SRC, TARG, SRC_ID, TARG_ID> : MappingService<SRC_ID, TARG_ID>
+		where SRC: Content<SRC_ID>, new()
+		where TARG : Content<TARG_ID>, new()
+		where SRC_ID: struct, IEquatable<SRC_ID>, IConvertible
+		where TARG_ID: struct, IEquatable<TARG_ID>, IConvertible
 	{
 
 		/// <summary>
@@ -42,30 +41,170 @@ namespace Api.Startup
 		/// <summary>
 		/// Instanced automatically.
 		/// </summary>
-		public MappingService(string srcIdName, string targetIdName, Type t) : base(new EventGroup<Mapping<SRC_ID, TARG_ID>>(), t) {
+		public MappingService(AutoService<SRC, SRC_ID> src, AutoService<TARG, TARG_ID> targ, string srcIdName, string targetIdName, Type t) : base(t) {
 			srcIdFieldName = srcIdName;
 			targetIdFieldName = targetIdName;
+			targetIdFieldEquals = targetIdName + "=?";
+			srcIdFieldEquals = srcIdName + "=?";
+			srcIdFieldNameEqSet = srcIdFieldName + "=[?]";
+			srcAndTargEq = srcIdName + "=? and " + targetIdName + "=?";
+			Source = src;
+			Target = targ;
 		}
+
+		/// <summary>
+		/// Source service.
+		/// </summary>
+		public AutoService<SRC, SRC_ID> Source;
+
+		/// <summary>
+		/// Target service.
+		/// </summary>
+		public AutoService<TARG, TARG_ID> Target;
+
+		/// <summary>
+		/// Src=? and Targ=?
+		/// </summary>
+		private string srcAndTargEq;
+		
+		/// <summary>
+		/// TargetName=?
+		/// </summary>
+		private string targetIdFieldEquals;
+		
+		/// <summary>
+		/// SrcName=?
+		/// </summary>
+		private string srcIdFieldEquals;
+		
+		/// <summary>
+		/// SrcName=[?]
+		/// </summary>
+		private string srcIdFieldNameEqSet;
 
 		/// <summary>
 		/// Gets a list of source IDs by target ID.
 		/// </summary>
 		/// <param name="context"></param>
 		/// <param name="id"></param>
+		/// <param name="onResult"></param>
+		/// <param name="rSrc"></param>
 		/// <returns></returns>
-		public async ValueTask<List<SRC_ID>> ListByTarget(Context context, TARG_ID id)
+		public async ValueTask ListByTarget(Context context, TARG_ID id, Func<Context, SRC_ID, object, ValueTask> onResult, object rSrc)
 		{
-			var entries = await List(context, new Filter<Mapping<SRC_ID, TARG_ID>>(InstanceType).Equals(targetIdFieldName, id));
+			await Where(targetIdFieldEquals)
+			.Bind(id)
+			.ListAll(context, async (Context ctx, Mapping<SRC_ID, TARG_ID> entity, int index, object src, object rSrc) =>
+				{
+					// Passing in onResult prevents a delegate frame allocation.
+					var _onResult = (Func<Context, SRC_ID, object, ValueTask>)src;
 
-			// TODO: revisit during non-alloc list revamp
-			var set = new List<SRC_ID>();
+					// Emit the result:
+					await _onResult(ctx, entity.SourceId, rSrc);
+				},
+				onResult,
+				rSrc
+			);
+		}
 
-			foreach (var entry in entries)
+		/// <summary>
+		/// Ensures the given set of target IDs are exactly what is present in the map.
+		/// </summary>
+		/// <param name="context"></param>
+		/// <param name="src"></param>
+		/// <param name="targetIds"></param>
+		/// <returns></returns>
+		public override async ValueTask EnsureMapping(Context context, SRC_ID src, IEnumerable<TARG_ID> targetIds)
+		{
+			// First, get all entries by src.
+			var uniques = new Dictionary<TARG_ID, Mapping<SRC_ID, TARG_ID>>();
+
+			await Where(srcIdFieldEquals).Bind(src).ListAll(context, (Context c, Mapping<SRC_ID, TARG_ID> map, int index, object a, object b) =>
 			{
-				set.Add(entry.SourceId);
+				uniques[map.TargetId] = map;
+				return new ValueTask();
+			});
+
+			if (targetIds != null)
+			{
+				foreach (var id in targetIds)
+				{
+					if (uniques.Remove(id))
+					{
+						// Already exists
+						continue;
+					}
+
+					// Permitted to view this? Get will permission check for us:
+					var entity = await Target.Get(context, id);
+
+					if (entity == null)
+					{
+						continue;
+					}
+
+					// Add it:
+					var entry = Activator.CreateInstance(InstanceType) as Mapping<SRC_ID, TARG_ID>;
+					entry.SourceId = src;
+					entry.TargetId = id;
+					entry.CreatedUtc = DateTime.UtcNow;
+
+					await Create(context, entry, DataOptions.IgnorePermissions);
+				}
 			}
 
-			return set;
+			// Delete anything that remains in uniques:
+			foreach (var entry in uniques)
+			{
+				await Delete(context, entry.Value, DataOptions.IgnorePermissions);
+			}
+
+		}
+		
+		/// <summary>
+		/// Returns true if a mapping from src_id => targ_id exists.
+		/// </summary>
+		/// <param name="context"></param>
+		/// <param name="src"></param>
+		/// <param name="targ"></param>
+		/// <returns></returns>
+		public async ValueTask<bool> CheckIfExists(Context context, SRC_ID src, TARG_ID targ)
+		{
+			if (_cache != null && _cacheIndex == null)
+			{
+
+				var cache = GetCacheForLocale(0);
+
+				if (cache != null)
+				{
+					// It's a cached mapping type.
+					// Pre-obtain index ref now:
+					_cacheIndex = cache.GetIndex<SRC_ID>(srcIdFieldName) as NonUniqueIndex<Mapping<SRC_ID, TARG_ID>, SRC_ID>;
+				}
+			}
+
+			if (_cacheIndex != null)
+			{
+				// Using an index scan
+				var indexEnum = _cacheIndex.GetEnumeratorFor(src);
+
+				while (indexEnum.HasMore())
+				{
+					// Get current value:
+					var mappingEntry = indexEnum.Current();
+
+					if (mappingEntry.TargetId.Equals(targ))
+					{
+						return true;
+					}
+				}
+
+				return false;
+			}
+			else
+			{
+				return await Where(srcAndTargEq).Bind(src).Bind(targ).Any(context);
+			}
 		}
 
 		/// <summary>
@@ -145,7 +284,7 @@ namespace Api.Startup
 					idList.Add(_enum.Current());
 				}
 
-				var mappingEntries = await List(context, new Filter<Mapping<SRC_ID, TARG_ID>>(InstanceType).EqualsSet(srcIdFieldName, idList));
+				var mappingEntries = await Where(srcIdFieldNameEqSet).Bind(idList).ListAll(context);
 
 				var first = true;
 
@@ -173,5 +312,35 @@ namespace Api.Startup
 		}
 		
 	}
-	
+
+	/// <summary>
+	/// An intermediate mapping service to make maps more generally accessible, for instances where you only know the src and target ID types.
+	/// </summary>
+	/// <typeparam name="SRC_ID"></typeparam>
+	/// <typeparam name="TARG_ID"></typeparam>
+	public class MappingService<SRC_ID, TARG_ID> : AutoService<Mapping<SRC_ID, TARG_ID>, uint>
+		where SRC_ID : struct, IEquatable<SRC_ID>, IConvertible
+		where TARG_ID : struct, IEquatable<TARG_ID>, IConvertible
+	{
+		/// <summary>
+		/// Creates a mapping service using the given type as the mapping object.
+		/// </summary>
+		/// <param name="t"></param>
+		public MappingService(Type t) : base(new EventGroup<Mapping<SRC_ID, TARG_ID>>(), t)
+		{
+
+		}
+
+		/// <summary>
+		/// Ensures the given set of target IDs are exactly what is present in the map.
+		/// </summary>
+		/// <param name="context"></param>
+		/// <param name="src"></param>
+		/// <param name="targetIds"></param>
+		/// <returns></returns>
+		public virtual ValueTask EnsureMapping(Context context, SRC_ID src, IEnumerable<TARG_ID> targetIds)
+		{
+			throw new NotImplementedException("Don't instance a MappingService<,> directly. Use the more concrete MappingService<,,,> instead.");
+		}
+	}
 }

@@ -1,3 +1,4 @@
+using Api.Database;
 using Api.Startup;
 using Api.Users;
 using System;
@@ -23,9 +24,11 @@ namespace Api.SocketServerLibrary
 		/// <summary>
 		/// Generates a system native write for the given structure.
 		/// </summary>
-		public static TypeReaderWriter<T> Generate<T>(JsonStructure<T> fieldSet)
+		public static TypeReaderWriter<T> Generate<T, ID>(JsonStructure<T,ID> fieldSet)
+			where T : Content<ID>, new()
+			where ID : struct, IConvertible, IEquatable<ID>
 		{
-			var set = new List<JsonStructure<T>>
+			var set = new List<JsonStructure<T, ID>>
 			{
 				fieldSet
 			};
@@ -109,10 +112,14 @@ namespace Api.SocketServerLibrary
 						escapedChar[3] = (byte)'0';
 
 						// Upper nibble:
-						escapedChar[4] = (byte)((i >> 4) + '0');
+						var n = (i >> 4);
+						n += (n > 9) ? 87 : 48; // ('a'- 10) : '0';
+						escapedChar[4] = (byte)n;
 
 						// Lower nibble:
-						escapedChar[5] = (byte)((i & 15) + '0');
+						n = (i & 15);
+						n += (n > 9) ? 87 : 48; // ('a' - 10) : '0';
+						escapedChar[5] = (byte)n;
 					}
 
 					_controlMap[i] = escapedChar;
@@ -134,6 +141,9 @@ namespace Api.SocketServerLibrary
 			var writeSUlong = typeof(Writer).GetMethod("WriteS", new Type[] { typeof(ulong) });
 			var writeSLong = typeof(Writer).GetMethod("WriteS", new Type[] { typeof(long) });
 			var writeSDateTime = typeof(Writer).GetMethod("WriteS", new Type[] { typeof(DateTime) });
+			var writeSDouble = typeof(Writer).GetMethod("WriteS", new Type[] { typeof(double) });
+			var writeSFloat = typeof(Writer).GetMethod("WriteS", new Type[] { typeof(float) });
+			var writeSDecimal = typeof(Writer).GetMethod("WriteS", new Type[] { typeof(decimal) });
 			var writeEscapedUString = typeof(Writer).GetMethod("WriteEscaped", new Type[] { typeof(ustring) });
 			var writeEscapedString = typeof(Writer).GetMethod("WriteEscaped", new Type[] { typeof(string) });
 
@@ -221,9 +231,27 @@ namespace Api.SocketServerLibrary
 				code.Emit(OpCodes.Callvirt, writeEscapedString);
 			});
 
-			// double
-			// float
-			// decimal
+			AddTo(map, typeof(double), (ILGenerator code, JsonField field, Action emitValue) =>
+			{
+				code.Emit(OpCodes.Ldarg_2); // Writer
+				emitValue();
+				code.Emit(OpCodes.Callvirt, writeSDouble);
+			});
+
+			AddTo(map, typeof(float), (ILGenerator code, JsonField field, Action emitValue) =>
+			{
+				code.Emit(OpCodes.Ldarg_2); // Writer
+				emitValue();
+				code.Emit(OpCodes.Callvirt, writeSFloat);
+			});
+
+			AddTo(map, typeof(decimal), (ILGenerator code, JsonField field, Action emitValue) =>
+			{
+				code.Emit(OpCodes.Ldarg_2); // Writer
+				emitValue();
+				code.Emit(OpCodes.Callvirt, writeSDecimal);
+			});
+
 			// https://github.com/dotnet/runtime/blob/927b1c54956ddb031a2e1a3eddb94ccc16004c27/src/libraries/System.Private.CoreLib/src/System/Number.Formatting.cs#L1333
 
 			return map;
@@ -320,7 +348,9 @@ namespace Api.SocketServerLibrary
 		/// <summary>
 		/// Generates a system native write for the given structures. This list will usually be the list of all roles for a type on the first run.
 		/// </summary>
-		public static List<TypeReaderWriter<T>> Generate<T>(List<JsonStructure<T>> fieldSets)
+		public static List<TypeReaderWriter<T>> Generate<T, ID>(List<JsonStructure<T, ID>> fieldSets)
+			where T : Content<ID>, new()
+			where ID : struct, IConvertible, IEquatable<ID>
 		{
 			var result = new List<TypeReaderWriter<T>>();
 			

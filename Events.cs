@@ -26,7 +26,7 @@ namespace Api.Startup
 	/// <summary>
 	/// The group of events for services. See also Events.Service
 	/// </summary>
-	public class ServiceEventGroup : Eventing.EventGroup<AutoService>
+	public class ServiceEventGroup : Eventing.EventGroupCore<AutoService, uint>
 	{
 
 		/// <summary>

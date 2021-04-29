@@ -36,16 +36,39 @@ public partial class AutoService<T> : AutoService<T, uint>
 public enum DataOptions : int
 {
 	/// <summary>
-	/// Default with the permission system active.
+	/// Set this flag true to get the raw data from the db.
 	/// </summary>
-	Default = 1,
+	RawFlag = 4,
+
+	/// <summary>
+	/// Cache flag
+	/// </summary>
+	CacheFlag = 2,
+
+	/// <summary>
+	/// Perms flag
+	/// </summary>
+	PermissionsFlag = 1,
+
+	/// <summary>
+	/// Only use the database but permissions are active.
+	/// </summary>
+	NoCache = 1,
+	/// <summary>
+	/// Ignore permissions and only use the database.
+	/// </summary>
+	NoCacheIgnorePermissions = 0,
+	/// <summary>
+	/// Default with the permission system and cache active.
+	/// </summary>
+	Default = 3,
 	/// <summary>
 	/// Permissions will be disabled on this request for data. I hope you know what you're doing! 
 	/// As a general piece of guidance, using this is fine if the data that you obtain is not returned directly to the end user.
 	/// For example, the end user will likely be denied the ability to search users by email, but the login system needs to be able to do that.
 	/// It's ok to ignore the permission engine given we're not just outright returning the user data unless the login is valid.
 	/// </summary>
-	IgnorePermissions = 0
+	IgnorePermissions = 2
 }
 
 /// <summary>
@@ -133,14 +156,14 @@ public partial class AutoService<T, ID> : AutoService
 	}
 	
 	private readonly Func<Context, uint, DataOptions, ValueTask<T>> _getWithIntId;
-	private JsonStructure<T>[] _jsonStructures = null;
+	private JsonStructure<T,ID>[] _jsonStructures = null;
 
 	/// <summary>
 	/// Gets a particular metadata field by its name. Common ones are "title" and "description".
 	/// Use this to generically read common descriptive things about a given content type.
 	/// Note that as fields vary by role, it is possible for users of different roles to obtain different meta values.
 	/// </summary>
-	public async ValueTask<JsonField<T>> GetTypedMetaField(Context context, string fieldName)
+	public async ValueTask<JsonField<T,ID>> GetTypedMetaField(Context context, string fieldName)
 	{
 		var structure = await GetTypedJsonStructure(context);
 		if (structure == null)
@@ -163,13 +186,13 @@ public partial class AutoService<T, ID> : AutoService
 	/// <summary>
 	/// Gets the JSON structure. Defines settable fields for a particular role.
 	/// </summary>
-	public async ValueTask<JsonStructure<T>> GetTypedJsonStructure(Context ctx)
+	public async ValueTask<JsonStructure<T,ID>> GetTypedJsonStructure(Context ctx)
 	{
 		var roleId = ctx.RoleId;
 
 		if (_jsonStructures == null)
 		{
-			_jsonStructures = new JsonStructure<T>[roleId];
+			_jsonStructures = new JsonStructure<T,ID>[roleId];
 		}
 		else if (roleId > _jsonStructures.Length)
 		{
@@ -182,7 +205,8 @@ public partial class AutoService<T, ID> : AutoService
 		{
 			// Not built yet. Build it now:
 			var role = await Services.Get<RoleService>().Get(new Context(), roleId, DataOptions.IgnorePermissions);
-			_jsonStructures[roleId - 1] = structure = new JsonStructure<T>(role);
+			_jsonStructures[roleId - 1] = structure = new JsonStructure<T,ID>(role);
+			structure.Service = this;
 			await structure.Build(GetContentFields(), EventGroup.BeforeSettable, EventGroup.BeforeGettable);
 		}
 		
@@ -207,7 +231,7 @@ public partial class AutoService<T, ID> : AutoService
 	{
 		// Ignoring the permissions only needs to occur on Before.
 		var previousPermState = context.IgnorePermissions;
-		context.IgnorePermissions = options == DataOptions.IgnorePermissions;
+		context.IgnorePermissions = (options & DataOptions.PermissionsFlag) != DataOptions.PermissionsFlag;
 		result = await EventGroup.BeforeDelete.Dispatch(context, result);
 		context.IgnorePermissions = previousPermState;
 
@@ -219,7 +243,7 @@ public partial class AutoService<T, ID> : AutoService
 		// Delete the entry:
 		if (_database != null)
 		{
-			await _database.Run(context, deleteQuery, result.GetId());
+			await _database.RunWithId(context, deleteQuery, result.Id);
 		}
 
 		var cache = GetCacheForLocale(context == null ? 1 : context.LocaleId);
@@ -236,46 +260,23 @@ public partial class AutoService<T, ID> : AutoService
 	}
 
 	/// <summary>
-	/// List a filtered set of entities along with the total number of (unpaginated) results.
+	/// Gets the underlying mapping service from this type to the given type, with the given map name. The map name is the same as the "list as" attribute on the target type.
 	/// </summary>
+	/// <typeparam name="MAP_TARGET"></typeparam>
+	/// <typeparam name="T_ID"></typeparam>
+	/// <param name="mappingName"></param>
 	/// <returns></returns>
-	public virtual async ValueTask<ListWithTotal<T>> ListWithTotal(Context context, Filter<T> filter, DataOptions options = DataOptions.Default)
+	public async ValueTask<MappingService<T, MAP_TARGET, ID, T_ID>> GetMap<MAP_TARGET, T_ID>(string mappingName)
+		where T_ID : struct, IEquatable<T_ID>, IConvertible
+		where MAP_TARGET : Content<T_ID>, new()
 	{
-		// Ignoring the permissions only needs to occur on Before.
-		var previousPermState = context.IgnorePermissions;
-		context.IgnorePermissions = options == DataOptions.IgnorePermissions;
-		filter = await EventGroup.BeforeList.Dispatch(context, filter);
-		context.IgnorePermissions = previousPermState;
+		// Get mapping service:
+		var targetSvc = Services.GetByContentType(typeof(MAP_TARGET));
 
-		// If the filter doesn't have join or group by nodes, we can potentially run it through the cache.
-		var cache = GetCacheForLocale(context == null ? 1 : context.LocaleId);
+		// Get the mapping type:
+		var mappingService = await MappingTypeEngine.GetOrGenerate(this, targetSvc, mappingName) as MappingService<T, MAP_TARGET, ID, T_ID>;
 
-		ListWithTotal<T> listAndTotal;
-
-		if (cache != null)
-		{
-			List<ResolvedValue> values = null;
-
-			if (filter != null)
-			{
-				values = await filter.ResolveValues(context);
-			}
-			listAndTotal = cache.ListWithTotal(filter, values);
-		}
-		else if (_database == null)
-		{
-			listAndTotal = new ListWithTotal<T>
-			{
-				Results = new List<T>()
-			};
-		}
-		else
-		{
-			listAndTotal = await _database.ListWithTotal<T>(context, listQuery, filter, InstanceType);
-		}
-		
-		listAndTotal.Results = await EventGroup.AfterList.Dispatch(context, listAndTotal.Results);
-		return listAndTotal;
+		return mappingService;
 	}
 
 	/// <summary>
@@ -289,83 +290,178 @@ public partial class AutoService<T, ID> : AutoService
 	/// <param name="mappingName"></param>
 	/// <returns></returns>
 	public virtual async ValueTask<List<T>> ListFromMapping<MAP_TARGET, T_ID>(Context context, T_ID targetId, string mappingName)
-		where T_ID: struct, IEquatable<T_ID>
-		where MAP_TARGET: Content<T_ID>
+		where T_ID: struct, IEquatable<T_ID>, IConvertible
+		where MAP_TARGET: Content<T_ID>, new()
 	{
-		// Get mapping service:
-		var targetSvc = Services.GetByContentType(typeof(MAP_TARGET));
-
-		// Get the mapping type:
-		var mappingService = await MappingTypeEngine.GetOrGenerate(this, targetSvc, mappingName) as MappingService<T, MAP_TARGET, ID, T_ID>;
+		// Get map:
+		var mappingService = await GetMap<MAP_TARGET, T_ID>(mappingName);
 
 		// Ask mapping service for all source values with the given target ID.
-		var idSet = await mappingService.ListByTarget(context, targetId);
+		var collector = new IDCollector<ID>();
 
-		return await List(context, new Filter<T>().Id(idSet));
+		await mappingService.ListByTarget(context, targetId, (Context ctx, ID id, object src) => {
+			var _collector = (IDCollector<ID>)src;
+			_collector.Add(id);
+			return new ValueTask();
+		}, collector);
+
+		var result = await Where("Id=[?]").Bind(collector).ListAll(context);
+		collector.Release();
+		return result;
+	}
+
+	private Dictionary<string, FilterMeta<T,ID>> _filterSets = new Dictionary<string, FilterMeta<T,ID>>();
+
+	/// <summary>
+	/// Gets a fast filter for the given query text.
+	/// </summary>
+	/// <param name="query"></param>
+	/// <param name="canContainConstants"></param>
+	/// <returns></returns>
+	public override FilterBase GetGeneralFilterFor(string query, bool canContainConstants = false)
+	{
+		return GetFilterFor(query, DataOptions.Default, canContainConstants);
 	}
 
 	/// <summary>
-	/// List a filtered set of entities.
+	/// Gets a fast filter for the given query text.
+	/// </summary>
+	/// <param name="query"></param>
+	/// <param name="opts"></param>
+	/// <param name="canContainConstants"></param>
+	/// <returns></returns>
+	public Filter<T,ID> GetFilterFor(string query, DataOptions opts = DataOptions.Default, bool canContainConstants = false)
+	{
+		if (query == null)
+		{
+			query = string.Empty;
+		}
+
+		if (!_filterSets.TryGetValue(query, out FilterMeta<T,ID> meta))
+		{
+			if (_filterSets.Count >= 10000)
+			{
+				Console.WriteLine("[WARN] Clearing large filter cache. If this happens frequently it's a symptom of poorly designed filters.");
+				_filterSets.Clear();
+			}
+
+			meta = new FilterMeta<T,ID>(this, query, canContainConstants);
+			meta.Construct();
+			_filterSets[query] = meta;
+		}
+
+		// Get from pool:
+		var filt = meta.GetPooled();
+		filt.DataOptions = opts;
+		return filt;
+	}
+
+	/// <summary>
+	/// Non-allocating where selection of objects from this service. On the returned object, use e.g. GetList()
 	/// </summary>
 	/// <returns></returns>
-	public virtual async ValueTask<List<T>> List(Context context, Filter<T> filter, DataOptions options = DataOptions.Default)
+	public Filter<T, ID> Where(DataOptions opts = DataOptions.Default)
 	{
+		// Get the filter for the user query:
+		return GetFilterFor("", opts);
+	}
+
+	/// <summary>
+	/// Non-allocating where selection of objects from this service. On the returned object, use e.g. GetList()
+	/// </summary>
+	/// <param name="query"></param>
+	/// <param name="opts"></param>
+	/// <returns></returns>
+	public Filter<T,ID> Where(string query, DataOptions opts = DataOptions.Default)
+	{
+		// Get the filter for the user query:
+		return GetFilterFor(query, opts);
+	}
+
+	/// <summary>
+	/// A filter which is simply empty (the filter for "")
+	/// </summary>
+	private Filter<T, ID> _emptyFilter;
+
+	/// <summary>
+	/// A filter which is simply empty (the filter for "")
+	/// </summary>
+	public Filter<T, ID> EmptyFilter {
+		get {
+			if (_emptyFilter == null)
+			{
+				_emptyFilter = GetFilterFor("");
+			}
+
+			return _emptyFilter;
+		}
+	}
+
+	/// <summary>
+	/// Starts cycling results for the given filter with the given callback function. Usually use Where and then one if its convenience functions instead.
+	/// </summary>
+	/// <param name="context"></param>
+	/// <param name="filter"></param>
+	/// <param name="onResult"></param>
+	/// <param name="srcA"></param>
+	/// <param name="srcB"></param>
+	/// <returns>Total, if filter.IncludeTotal is set. Otherwise its meaning is undefined.</returns>
+	public async ValueTask<int> GetResults(Context context, Filter<T, ID> filter, Func<Context, T, int, object, object, ValueTask> onResult, object srcA, object srcB)
+	{
+		if (!filter.FullyBound())
+		{
+			// Safety check - filters come from a pool, so if a filter has not been fully 
+			// bound then it is likely to have other data from a previous request in it.
+			throw new PublicException(
+				"This filter has " + filter.Pool.ArgTypes.Count + " args but not all were bound. Make sure you .Bind() all args.",
+				"filter_invalid"
+			);
+		}
+		
+		var total = 0;
+
+		// struct:
+		var queryPair = new QueryPair<T, ID>()
+		{
+			QueryA = filter == null ? EmptyFilter : filter
+			// QueryB is set by perm system.
+		};
+
 		// Ignoring the permissions only needs to occur on Before.
 		var previousPermState = context.IgnorePermissions;
-		context.IgnorePermissions = options == DataOptions.IgnorePermissions;
-		filter = await EventGroup.BeforeList.Dispatch(context, filter);
+		context.IgnorePermissions = (filter.DataOptions & DataOptions.PermissionsFlag) != DataOptions.PermissionsFlag;
+		queryPair = await EventGroup.BeforeList.Dispatch(context, queryPair);
 		context.IgnorePermissions = previousPermState;
 
-		// If the filter doesn't have join or group by nodes, we can potentially run it through the cache.
-		var cache = GetCacheForLocale(context == null ? 1 : context.LocaleId);
+		if (queryPair.QueryB == null)
+		{
+			queryPair.QueryB = EmptyFilter;
+		}
 
-		List<T> list;
+		if (queryPair.QueryA == null)
+		{
+			queryPair.QueryA = EmptyFilter;
+		}
+
+		// Do we have a cache?
+		var cache = (filter.DataOptions & DataOptions.CacheFlag) == DataOptions.CacheFlag ? GetCacheForLocale(context.LocaleId) : null;
 
 		if (cache != null)
 		{
-			List<ResolvedValue> values = null;
-
-			if (filter != null)
-			{
-				values = await filter.ResolveValues(context);
-			}
-
-			list = cache.List(filter, values, out _);
+			// Great - we're using the cache:
+			total = await cache.GetResults(context, queryPair, onResult, srcA, srcB);
 		}
-		else if (_database == null)
+		else if (_database != null)
 		{
-			list = new List<T>();
-		}
-		else
-		{
-			list = await _database.List<T>(context, listQuery, filter, InstanceType);
-		}
-		
-		list = await EventGroup.AfterList.Dispatch(context, list);
-		return list;
-	}
+			// "Raw" results are as-is from the database.
+			// That means the fields are not automatically filled in with the default locale when they're empty.
+			var raw = (filter.DataOptions & DataOptions.RawFlag) == DataOptions.RawFlag;
 
-	/// <summary>
-	/// List a filtered set of entities without using the cache.
-	/// </summary>
-	/// <returns></returns>
-	public virtual async ValueTask<List<T>> ListNoCache(Context context, Filter<T> filter, bool raw = false, DataOptions options = DataOptions.Default)
-	{
-		if (_database == null)
-		{
-			// Non database backed services start empty.
-			return new List<T>();
+			// Get the results from the database:
+			total = await _database.GetResults(context, queryPair, onResult, srcA, srcB, InstanceType, raw ? listRawQuery : listQuery);
 		}
 
-		// Ignoring the permissions only needs to occur on Before.
-		var previousPermState = context.IgnorePermissions;
-		context.IgnorePermissions = options == DataOptions.IgnorePermissions;
-		filter = await EventGroup.BeforeList.Dispatch(context, filter);
-		context.IgnorePermissions = previousPermState;
-
-		var list = await _database.List<T>(context, raw ? listRawQuery : listQuery, filter, InstanceType);
-		list = await EventGroup.AfterList.Dispatch(context, list);
-		return list;
+		return total;
 	}
 
 	/// <summary>
@@ -376,17 +472,9 @@ public partial class AutoService<T, ID> : AutoService
 	/// <param name="fieldValue"></param>
 	/// <param name="options"></param>
 	/// <returns></returns>
-	public override async ValueTask<object> GetObject(Context context, string fieldName, object fieldValue, DataOptions options = DataOptions.Default)
+	public override async ValueTask<object> GetObject(Context context, string fieldName, string fieldValue, DataOptions options = DataOptions.Default)
 	{
-		var filter = new Filter<T>();
-		filter.EqualsField(fieldName, fieldValue);
-		filter.PageSize = 1;
-		var results = await List(context, filter, options);
-		if (results == null || results.Count == 0)
-		{
-			return null;
-		}
-		return results[0];
+		return await Where(fieldName + "=?", options).BindFromString(fieldValue).First(context);
 	}
 
 	/// <summary>
@@ -404,90 +492,6 @@ public partial class AutoService<T, ID> : AutoService
 		}
 
 		return await _getWithIntId(context, id, options);
-	}
-
-	/// <summary>
-	/// Updates an object in this service. The callback is the only place that is permitted to set fields. It must call object.MarkChanged.
-	/// </summary>
-	/// <param name="context"></param>
-	/// <param name="content"></param>
-	/// <param name="cb"></param>
-	/// <param name="options"></param>
-	/// <returns></returns>
-	public override async ValueTask<object> UpdateObject(Context context, object content, Action<Context, object> cb, DataOptions options = DataOptions.Default)
-	{
-		var entity = content as T;
-
-		if (options != DataOptions.IgnorePermissions && !await StartUpdate(context, entity))
-		{
-			// Note it would've thrown.
-			return null;
-		}
-
-		// Set fields now. They must call entity.MarkChanged.
-		cb(context, entity);
-
-		// And perform the save:
-		return await FinishUpdate(context, entity);
-	}
-
-	/// <summary>
-	/// Gets an object from this service.
-	/// </summary>
-	/// <param name="context"></param>
-	/// <param name="ids"></param>
-	/// <param name="options"></param>
-	/// <returns></returns>
-	public override async ValueTask<IEnumerable> ListObjects(Context context, IEnumerable<uint> ids, DataOptions options = DataOptions.Default)
-	{
-		if (ids == null || !ids.Any())
-		{
-			return null;
-		}
-
-		// Get the list:
-		var results = await List(context, new Filter<T>().Id(ids), options);
-
-		return results;
-	}
-
-	/// <summary>
-	/// Gets objects from this service using a generic serialized filter. Use List instead whenever possible.
-	/// </summary>
-	/// <param name="context"></param>
-	/// <param name="filterJson"></param>
-	/// <param name="options"></param>
-	/// <returns></returns>
-	public override async ValueTask<ListWithTotal> ListObjects(Context context, string filterJson, DataOptions options = DataOptions.Default)
-	{
-		var filters = Newtonsoft.Json.JsonConvert.DeserializeObject(filterJson) as JObject;
-		var filter = new Filter<T>(filters);
-
-		ListWithTotal<T> response;
-
-		if (filter.PageSize != 0 && filters != null && filters["includeTotal"] != null)
-		{
-			// Get the total number of non-paginated results as well:
-			response = await ListWithTotal(context, filter, options);
-		}
-		else
-		{
-			// Not paginated or requestor doesn't care about the total.
-			var results = await List(context, filter, options);
-
-			response = new ListWithTotal<T>()
-			{
-				Results = results
-			};
-
-			if (filter.PageSize == 0)
-			{
-				// Trivial instance - pagination is off so the total is just the result set length.
-				response.Total = results == null ? 0 : results.Count;
-			}
-		}
-
-		return response;
 	}
 
 	/// <summary>
@@ -509,16 +513,38 @@ public partial class AutoService<T, ID> : AutoService
 
 		if (item == null && _database != null)
 		{
-			item = await _database.Select<T>(context, selectQuery, InstanceType, id);
+			item = await _database.Select<T, ID>(context, selectQuery, InstanceType, id);
 		}
 		
 		// Ignoring the permissions only needs to occur on *After* for Gets.
 		var previousPermState = context.IgnorePermissions;
-		context.IgnorePermissions = options == DataOptions.IgnorePermissions;
+		context.IgnorePermissions = (options & DataOptions.PermissionsFlag) != DataOptions.PermissionsFlag;
 		item = await EventGroup.AfterLoad.Dispatch(context, item);
 		context.IgnorePermissions = previousPermState;
 		
 		return item;
+	}
+
+	/// <summary>
+	/// Ensures the list of target IDs are mapped to the given source in the given named map.
+	/// </summary>
+	/// <param name="context"></param>
+	/// <param name="src"></param>
+	/// <param name="target"></param>
+	/// <param name="targetIds"></param>
+	/// <param name="mapName"></param>
+	public virtual async ValueTask EnsureMapping<T_ID>(Context context, T src, AutoService target, IEnumerable<T_ID> targetIds, string mapName)
+		where T_ID : struct, IEquatable<T_ID>, IConvertible
+	{
+		// First, get the mapping service:
+		var mapping = await MappingTypeEngine.GetOrGenerate(
+			this,
+			target,
+			mapName
+		) as MappingService<ID, T_ID>;
+
+		// Ask it to validate:
+		await mapping.EnsureMapping(context, src.Id, targetIds);
 	}
 
 	/// <summary>
@@ -538,7 +564,7 @@ public partial class AutoService<T, ID> : AutoService
 	{
 		// Ignoring the permissions only needs to occur on Before.
 		var previousPermState = context.IgnorePermissions;
-		context.IgnorePermissions = options == DataOptions.IgnorePermissions;
+		context.IgnorePermissions = (options & DataOptions.PermissionsFlag) != DataOptions.PermissionsFlag;
 		entity = await EventGroup.BeforeCreate.Dispatch(context, entity);
 		context.IgnorePermissions = previousPermState;
 
@@ -553,9 +579,9 @@ public partial class AutoService<T, ID> : AutoService
 			if (!entity.GetId().Equals(default(ID)))
 			{
 				// Explicit ID has been provided.
-				await _database.Run(context, createWithIdQuery, entity);
+				await _database.Run<T,ID>(context, createWithIdQuery, entity);
 			}
-			else if (!await _database.Run(context, createQuery, entity))
+			else if (!await _database.Run<T, ID>(context, createQuery, entity))
 			{
 				return default;
 			}
@@ -651,22 +677,22 @@ public partial class AutoService<T, ID> : AutoService
 			if (mode == 'D')
 			{
 				// Delete
-				await _database.Run(context, deleteQuery, deletedId);
+				await _database.RunWithId(context, deleteQuery, deletedId);
 			}
 			else if (mode == 'U' || mode == 'C')
 			{
 				// Updated or created
 				// In both cases, check if it exists first:
 				var id = raw.GetId();
-				if (await _database.Select<T>(context, selectQuery, InstanceType, id) != null)
+				if (await _database.Select<T, ID>(context, selectQuery, InstanceType, id) != null)
 				{
 					// Update
-					await _database.Run(context, updateQuery, raw, id);
+					await _database.Run<T, ID>(context, updateQuery, raw, id);
 				}
 				else
 				{
 					// Create
-					await _database.Run(context, createWithIdQuery, raw);
+					await _database.Run<T, ID>(context, createWithIdQuery, raw);
 				}
 			}
 		}
@@ -759,6 +785,62 @@ public partial class AutoService<T, ID> : AutoService
 	}
 
 	/// <summary>
+	/// Gets objects from this service using a generic serialized filter. Use List instead whenever possible.
+	/// </summary>
+	/// <param name="context"></param>
+	/// <param name="filterJson"></param>
+	/// <param name="includes"></param>
+	/// <param name="so"></param>
+	/// <returns></returns>
+	public async Task ListForSSR(Context context, string filterJson, string includes, Microsoft.ClearScript.ScriptObject so)
+	{
+		var filterNs = Newtonsoft.Json.JsonConvert.DeserializeObject(filterJson) as JObject;
+
+		var filter = LoadFilter(filterNs) as Filter<T, ID>;
+
+		// Write:
+		var writer = Writer.GetPooled();
+		writer.Start(null);
+
+		await ToJson(context, filter, async (Context ctx, Filter<T, ID> filt, Func<T, int, ValueTask> onResult) => {
+
+			return await GetResults(ctx, filt, async (Context ctx2, T result, int index, object src, object src2) => {
+
+				var _onResult = src as Func<T, int, ValueTask>;
+				await _onResult(result, index);
+
+			}, onResult, null);
+
+		}, writer, null, includes);
+
+		filter.Release();
+		var jsonResult = writer.ToUTF8String();
+		writer.Release();
+		so.Invoke(false, jsonResult);
+	}
+	
+	/// <summary>
+	/// Gets an object from this service for use by the serverside renderer. Returns it by executing the given callback.
+	/// </summary>
+	/// <param name="context"></param>
+	/// <param name="id"></param>
+	/// <param name="includes"></param>
+	/// <param name="so"></param>
+	public async Task GetForSSR(Context context, ID id, string includes, Microsoft.ClearScript.ScriptObject so)
+	{
+		// Get the object (includes the perm checks):
+		var content = await Get(context, id);
+
+		// Write:
+		var writer = Writer.GetPooled();
+		writer.Start(null);
+		await ToJson(context, content, writer, null, includes);
+		var jsonResult = writer.ToUTF8String();
+		writer.Release();
+		so.Invoke(false, jsonResult);
+	}
+
+	/// <summary>
 	/// Call this when the primary object changes. It makes sure any localised versions are updated.
 	/// </summary>
 	/// <param name="entity"></param>
@@ -816,18 +898,18 @@ public partial class AutoService<T, ID> : AutoService
 	/// <param name="entity"></param>
 	/// <param name="options"></param>
 	/// <returns></returns>
-	public async ValueTask<bool> StartUpdate(Context context, T entity, DataOptions options = DataOptions.Default)
+	public ValueTask<bool> StartUpdate(Context context, T entity, DataOptions options = DataOptions.Default)
 	{
 		if (options != DataOptions.IgnorePermissions)
 		{
 			// Perform the permission test now:
-			await EventGroup.BeforeUpdate.TestCapability(context, entity);
+			EventGroup.BeforeUpdate.TestCapability(context, entity);
 		}
 
 		// Reset marked changes:
 		entity.ResetChanges();
 
-		return true;
+		return new ValueTask<bool>(true);
 	}
 
 	/// <summary>
@@ -884,7 +966,7 @@ public partial class AutoService<T, ID> : AutoService
 			PopulateRawEntityFromTarget(raw, entity, primaryEntity);
 		}
 
-		if (_database != null && !await _database.Run(context, updateQuery, raw, id))
+		if (_database != null && !await _database.Run<T, ID>(context, updateQuery, raw, id))
 		{
 			return null;
 		}
@@ -941,29 +1023,165 @@ public partial class AutoService
 	/// <summary>
 	/// Outputs a list of things from this service as JSON into the given writer.
 	/// Executes the given collector(s) whilst it happens, which can also be null.
+	/// Does not perform permission checks internally.
 	/// </summary>
 	/// <param name="context"></param>
 	/// <param name="collectors"></param>
 	/// <param name="idSet"></param>
 	/// <param name="writer"></param>
+	/// <param name="viaInclude">True if it's via an include, and therefore the "from" filter field is implied true.</param>
 	/// <returns></returns>
-	public virtual ValueTask OutputJsonList(Context context, IDCollector collectors, IDCollector idSet, Writer writer)
+	public virtual ValueTask OutputJsonList(Context context, IDCollector collectors, IDCollector idSet, Writer writer, bool viaInclude)
 	{
 		// Not supported on this service.
 		return new ValueTask();
 	}
 
 	/// <summary>
+	/// Loads a filter from the given newtonsoft representation. You must .Release() this filter when you're done with it.
+	/// </summary>
+	/// <param name="newtonsoft"></param>
+	/// <returns></returns>
+	public FilterBase LoadFilter(JObject newtonsoft)
+	{
+		string str;
+
+		if (newtonsoft == null)
+		{
+			str = "";
+		}
+		else
+		{
+			var query = newtonsoft["query"];
+			str = query == null ? "" : query.Value<string>();
+		}
+
+		// Get the filter base:
+		var filter = GetGeneralFilterFor(str);
+
+		if (newtonsoft == null)
+		{
+			return filter;
+		}
+
+		var argTypes = filter.GetArgTypes();
+
+		if (argTypes != null && argTypes.Count > 0)
+		{
+			var argSet = newtonsoft["args"] as JArray;
+			if (argSet == null)
+			{
+				throw new PublicException(
+					"Your filter has arguments (?) in it, but no args were given, or the args were not an array. Please provide an array of args.",
+					"filter_invalid"
+				);
+			}
+
+			if (argSet.Count != argTypes.Count)
+			{
+				throw new PublicException(
+					"Not enough arguments were given. Your filter has " + argTypes.Count + " but the given args array only has " + argSet.Count,
+					"filter_invalid"
+				);
+			}
+
+			for (var i = 0; i < argSet.Count; i++)
+			{
+				var value = argSet[i] as JValue;
+
+				if (value == null)
+				{
+					throw new PublicException(
+						"Arg #"+ (i+1) + " in the args set is invalid - it can't be an object, only a string or numeric/ bool value.",
+						"filter_invalid"
+					);
+				}
+
+				// The underlying JSON token is textual, so we'll use a general use bind from string method.
+				if (value.Type == JTokenType.Null)
+				{
+					filter.BindUnknown(null);
+				}
+				else
+				{
+					filter.BindUnknown(value.Value<string>());
+				}
+			}
+
+		}
+
+		// Handle universal pagination:
+		var pageSizeJToken = newtonsoft["pageSize"];
+		int? pageSize = null;
+
+		if (pageSizeJToken != null && pageSizeJToken.Type == JTokenType.Integer)
+		{
+			pageSize = pageSizeJToken.Value<int>();
+		}
+
+		var pageIndexJToken = newtonsoft["pageIndex"];
+		int? pageIndex = null;
+
+		if (pageIndexJToken != null && pageSizeJToken.Type == JTokenType.Integer)
+		{
+			pageIndex = pageIndexJToken.Value<int>();
+		}
+
+		if (pageSize.HasValue)
+		{
+			filter.SetPage(pageIndex.HasValue ? pageIndex.Value : 0, pageSize.Value);
+		}
+		else if (pageIndex.HasValue)
+		{
+			// Default page size used
+			filter.SetPage(pageIndex.Value);
+		}
+
+		var sort = newtonsoft["sort"] as JObject;
+		if (sort != null)
+		{
+			if (sort["field"] != null)
+			{
+				string field = sort["field"].ToString();
+
+				if (sort["direction"] != null && sort["direction"].ToString() == "desc")
+				{
+					filter.Sort(field, false);
+				}
+				else
+				{
+					filter.Sort(field);
+				}
+			}
+		}
+
+		return filter;
+	}
+
+	/// <summary>
+	/// Gets a fast filter for the given query text.
+	/// </summary>
+	/// <param name="query"></param>
+	/// <param name="canContainConstants"></param>
+	/// <returns></returns>
+	public virtual FilterBase GetGeneralFilterFor(string query, bool canContainConstants = false)
+	{
+		return null;
+	}
+
+	/// <summary>
 	/// Outputs a list of things from this service as JSON into the given writer.
 	/// Executes the given collector(s) whilst it happens, which can also be null.
+	/// Does not perform permission checks internally.
 	/// </summary>
 	/// <param name="context"></param>
 	/// <param name="collectors"></param>
 	/// <param name="idSet"></param>
 	/// <param name="setField"></param>
 	/// <param name="writer"></param>
+	/// <param name="viaIncludes">True if the list is via includes</param>
 	/// <returns></returns>
-	public virtual ValueTask OutputJsonList<S_ID>(Context context, IDCollector collectors, IDCollector idSet, string setField, Writer writer)
+	public virtual ValueTask OutputJsonList<S_ID>(Context context, IDCollector collectors, IDCollector idSet, string setField, Writer writer, bool viaIncludes)
 		 where S_ID : struct, IEquatable<S_ID>
 	{
 		// Not supported on this service.
@@ -1144,19 +1362,6 @@ public partial class AutoService
 	}
 
 	/// <summary>
-	/// Updates an object in this service.
-	/// </summary>
-	/// <param name="context"></param>
-	/// <param name="content"></param>
-	/// <param name="cb"></param>
-	/// <param name="options"></param>
-	/// <returns></returns>
-	public virtual ValueTask<object> UpdateObject(Context context, object content, Action<Context, object> cb, DataOptions options = DataOptions.Default)
-	{
-		return new ValueTask<object>(null);
-	}
-
-	/// <summary>
 	/// Gets an object from this service which matches the given particular field/value. If multiple match, it's only ever the first one.
 	/// </summary>
 	/// <param name="context"></param>
@@ -1164,7 +1369,7 @@ public partial class AutoService
 	/// <param name="fieldValue"></param>
 	/// <param name="options"></param>
 	/// <returns></returns>
-	public virtual ValueTask<object> GetObject(Context context, string fieldName, object fieldValue, DataOptions options = DataOptions.Default)
+	public virtual ValueTask<object> GetObject(Context context, string fieldName, string fieldValue, DataOptions options = DataOptions.Default)
 	{
 		return new ValueTask<object>(null);
 	}
@@ -1180,30 +1385,6 @@ public partial class AutoService
 	public virtual ValueTask<object> GetObject(Context context, uint id, DataOptions options = DataOptions.Default)
 	{
 		return new ValueTask<object>(null);
-	}
-
-	/// <summary>
-	/// Gets an list of objects from this service.
-	/// </summary>
-	/// <param name="context"></param>
-	/// <param name="ids"></param>
-	/// <param name="options"></param>
-	/// <returns></returns>
-	public virtual ValueTask<IEnumerable> ListObjects(Context context, IEnumerable<uint> ids, DataOptions options = DataOptions.Default)
-	{
-		return new ValueTask<IEnumerable>((IEnumerable)null);
-	}
-
-	/// <summary>
-	/// Gets objects from this service using a generic serialized filter. Use List instead whenever possible.
-	/// </summary>
-	/// <param name="context"></param>
-	/// <param name="filterJson"></param>
-	/// <param name="options"></param>
-	/// <returns></returns>
-	public virtual ValueTask<ListWithTotal> ListObjects(Context context, string filterJson, DataOptions options = DataOptions.Default)
-	{
-		return new ValueTask<ListWithTotal>((ListWithTotal)null);
 	}
 
 	/// <summary>

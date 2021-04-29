@@ -1,5 +1,6 @@
 ﻿using Api.Eventing;
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 using System.Transactions;
@@ -22,27 +23,27 @@ namespace Api.Startup
 		/// <summary>
 		/// A textual lookup of all services. Use Get instead. Textual key is e.g. "PageService".
 		/// </summary>
-		public static readonly Dictionary<string, object> AllByName = new Dictionary<string, object>();
+		public static readonly ConcurrentDictionary<string, object> AllByName = new ConcurrentDictionary<string, object>();
 		
 		/// <summary>
 		/// The lookup of services. Use Get instead.
 		/// </summary>
-		public static readonly Dictionary<Type, object> All = new Dictionary<Type, object>();
+		public static readonly ConcurrentDictionary<Type, object> All = new ConcurrentDictionary<Type, object>();
 		
 		/// <summary>
 		/// A lookup specifically for AutoService implementations.
 		/// </summary>
-		public static readonly Dictionary<Type, AutoService> AutoServices = new Dictionary<Type, AutoService>();
+		public static readonly ConcurrentDictionary<Type, AutoService> AutoServices = new ConcurrentDictionary<Type, AutoService>();
 
 		/// <summary>
 		/// A lookup by content type ID to the autoService relating to it.
 		/// </summary>
-		public static readonly Dictionary<int, AutoService> ServiceByContentType = new Dictionary<int, AutoService>();
+		public static readonly ConcurrentDictionary<int, AutoService> ServiceByContentType = new ConcurrentDictionary<int, AutoService>();
 
 		/// <summary>
 		/// A lookup by actual content type to the autoService relating to it.
 		/// </summary>
-		public static readonly Dictionary<Type, AutoService> ServicedTypes = new Dictionary<Type, AutoService>();
+		public static readonly ConcurrentDictionary<Type, AutoService> ServicedTypes = new ConcurrentDictionary<Type, AutoService>();
 
 		/// <summary>
 		/// The underlying service provider, used to obtain injected service instances.
@@ -150,14 +151,14 @@ namespace Api.Startup
 			else
 			{
 				// Shutdown - deregister this service.
-				if (!All.Remove(serviceType))
+				if (!All.Remove(serviceType, out _))
 				{
 					// Wasn't registered anyway.
 					return;
 				}
 
 
-				AllByName.Remove(serviceType.Name);
+				AllByName.Remove(serviceType.Name, out _);
 
 				if (autoService != null)
 				{
@@ -170,14 +171,14 @@ namespace Api.Startup
 					
 					if (autoServiceType != null)
 					{
-						AutoServices.Remove(autoServiceType);
+						AutoServices.Remove(autoServiceType, out _);
 					}
 
 					if (autoService.ServicedType != null)
 					{
-						ServicedTypes.Remove(autoService.ServicedType);
+						ServicedTypes.Remove(autoService.ServicedType, out _);
 						var contentId = Database.ContentTypes.GetId(autoService.ServicedType);
-						ServiceByContentType.Remove(contentId);
+						ServiceByContentType.Remove(contentId, out _);
 					}
 
 					await Events.Service.AfterDelete.Dispatch(ctx, autoService);

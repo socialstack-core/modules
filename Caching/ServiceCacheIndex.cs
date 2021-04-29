@@ -1,6 +1,7 @@
 using Api.Database;
 using System;
 using System.Collections;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 
 
@@ -8,21 +9,12 @@ namespace Api.Startup{
 	
 	/// <summary>
 	/// </summary>
-	public class ServiceCacheIndex<T> where T : class
+	public abstract class ServiceCacheIndex<T> where T : class
 	{
 		/// <summary>
 		/// The ID of this index. Does not persist across restarts etc.
 		/// </summary>
 		public int Id;
-		/// <summary>
-		/// The columns that are used to form the value for this index.
-		/// </summary>
-		public System.Reflection.FieldInfo[] Columns;
-
-		/// <summary>
-		/// If single column, the fieldInfo.
-		/// </summary>
-		public System.Reflection.FieldInfo OneColumn;
 
 		/// <summary>
 		/// True if this is the primary index.
@@ -39,32 +31,11 @@ namespace Api.Startup{
 		}
 
 		/// <summary>
-		/// Looks up a value for the given key.
-		/// </summary>
-		/// <param name="key"></param>
-		/// <returns></returns>
-		public virtual T Get(object key)
-		{
-			return null;
-		}
-
-		/// <summary>
-		/// Look up a non-unique result set for the given key.
-		/// </summary>
-		/// <param name="key"></param>
-		/// <returns></returns>
-		public virtual IEnumerable<T> GetAll(object key)
-		{
-			return null;
-		}
-
-		/// <summary>
 		/// Adds the given object to this index. Do not call this directly - add or remove an object from the ServiceCache instead.
 		/// </summary>
 		/// <param name="entry"></param>
 		internal virtual void Add(T entry)
 		{
-		
 		}
 
 		/// <summary>
@@ -78,15 +49,59 @@ namespace Api.Startup{
 	}
 
 	/// <summary>
+	/// A service cache index which also declares its key type.
 	/// </summary>
 	/// <typeparam name="T"></typeparam>
 	/// <typeparam name="U"></typeparam>
-	public class UniqueIndex<T, U> : ServiceCacheIndex<T> where T : class {
-
-		private Dictionary<U, T> Index = new Dictionary<U, T>();
+	public abstract class ServiceCacheIndex<T, U> : ServiceCacheIndex<T>
+		where T : class
+	{
 
 		/// <summary>
-		/// Gets the underlying datastructure, usually a Dictionary.
+		/// Child index metadata to pass to a followup index when they form a tree.
+		/// </summary>
+		public ChildIndexMeta ChildIndexMeta;
+
+
+		/// <summary>
+		/// Creates a new service cache index with the given meta.
+		/// </summary>
+		/// <param name="childIndexMeta"></param>
+		public ServiceCacheIndex(ChildIndexMeta childIndexMeta)
+		{
+			ChildIndexMeta = childIndexMeta;
+		}
+
+		/// <summary>
+		/// Gets the key value for the given entry.
+		/// </summary>
+		/// <param name="entry"></param>
+		/// <returns></returns>
+		public virtual U GetKeyValue(T entry)
+		{
+			throw new NotImplementedException();
+		}
+
+	}
+
+	/// <summary>
+	/// </summary>
+	/// <typeparam name="T"></typeparam>
+	/// <typeparam name="U"></typeparam>
+	public class UniqueIndex<T, U> : ServiceCacheIndex<T, U> where T : class {
+
+		private ConcurrentDictionary<U, T> Index = new ConcurrentDictionary<U, T>();
+
+		/// <summary>
+		/// Create a new unique index.
+		/// </summary>
+		/// <param name="childIndexMeta"></param>
+		public UniqueIndex(ChildIndexMeta childIndexMeta) : base(childIndexMeta)
+		{
+		}
+
+		/// <summary>
+		/// Gets the underlying datastructure, usually a ConcurrentDictionary.
 		/// </summary>
 		/// <returns></returns>
 		public override object GetUnderlyingStructure()
@@ -95,63 +110,15 @@ namespace Api.Startup{
 		}
 
 		/// <summary>
-		/// Look up a non-unique result set for the given key.
-		/// </summary>
-		/// <param name="key"></param>
-		/// <returns></returns>
-		public override IEnumerable<T> GetAll(object key)
-		{
-			Index.TryGetValue((U)key, out T result);
-			yield return result;
-		}
-
-		/// <summary>
-		/// Looks up a value for the given key.
-		/// </summary>
-		/// <param name="key"></param>
-		/// <returns></returns>
-		public override T Get(object key)
-		{
-			Index.TryGetValue((U)key, out T result);
-			return result;
-		}
-
-		/// <summary>
-		/// Gets the key value for the given entry.
-		/// </summary>
-		/// <param name="entry"></param>
-		/// <returns></returns>
-		public object GetKeyValue(T entry)
-		{
-			if (OneColumn != null)
-			{
-				return OneColumn.GetValue(entry);
-			}
-
-			var keyValue = "";
-
-			for (var i = 0; i < Columns.Length; i++)
-			{
-				if (i != 0)
-				{
-					keyValue += "_";
-				}
-				keyValue += Columns[i].GetValue(entry).ToString();
-			}
-
-			return keyValue;
-		}
-
-		/// <summary>
 		/// Adds the given object to this index. Do not call this directly - add or remove an object from the ServiceCache instead.
 		/// </summary>
 		/// <param name="entry"></param>
 		internal override void Add(T entry)
 		{
-			var keyValue = (U)GetKeyValue(entry);
+			var keyValue = GetKeyValue(entry);
 
 			// Add is used here as an exception if the given key value is already in the index.
-			Index.Add(keyValue, entry);
+			Index.TryAdd(keyValue, entry);
 		}
 
 		/// <summary>
@@ -160,10 +127,10 @@ namespace Api.Startup{
 		/// <param name="entry"></param>
 		internal override void Remove(T entry)
 		{
-			var keyValue = (U)GetKeyValue(entry);
+			var keyValue = GetKeyValue(entry);
 
 			// Add is used here as an exception if the given key value is already in the index.
-			Index.Remove(keyValue);
+			Index.Remove(keyValue, out _);
 		}
 
 	}
@@ -233,17 +200,80 @@ namespace Api.Startup{
 	}
 
 	/// <summary>
+	/// Used for multi-key indices, this is used to represent the upper level index mapping to a lower level one.
+	/// </summary>
+	/// <typeparam name="T"></typeparam>
+	/// <typeparam name="UA"></typeparam>
+	/// <typeparam name="UB"></typeparam>
+	public class IndexIndex<T, UA, UB> : ServiceCacheIndex<T, UA> where T : class
+	{
+		private ConcurrentDictionary<UA, ServiceCacheIndex<T, UB>> Index = new ConcurrentDictionary<UA, ServiceCacheIndex<T, UB>>();
+
+		/// <summary>
+		/// Create a new index of indices.
+		/// </summary>
+		/// <param name="childIndexMeta"></param>
+		public IndexIndex(ChildIndexMeta childIndexMeta) : base(childIndexMeta)
+		{
+		}
+
+		/// <summary>
+		/// Gets the underlying datastructure, usually a ConcurrentDictionary.
+		/// </summary>
+		/// <returns></returns>
+		public override object GetUnderlyingStructure()
+		{
+			return Index;
+		}
+		
+		internal override void Add(T entry)
+		{
+			var localKey = GetKeyValue(entry);
+
+			if (!Index.TryGetValue(localKey, out ServiceCacheIndex<T, UB> svcCache))
+			{
+				// Instance an svcCache:
+				svcCache = (ServiceCacheIndex<T, UB>)Activator.CreateInstance(ChildIndexMeta.ChildType, ChildIndexMeta.Meta);
+				Index[localKey] = svcCache;
+			}
+
+			svcCache.Add(entry);
+		}
+	}
+
+	/// <summary>
+	/// Used for describing a tree of multi-column indices.
+	/// </summary>
+	public class ChildIndexMeta {
+		/// <summary>
+		/// The child index type.
+		/// </summary>
+		public Type ChildType;
+		/// <summary>
+		/// The meta to pass to it.
+		/// </summary>
+		public ChildIndexMeta Meta;
+	}
+
+	/// <summary>
 	/// Non unique index.
 	/// </summary>
 	/// <typeparam name="T"></typeparam>
 	/// <typeparam name="U"></typeparam>
-	public class NonUniqueIndex<T, U> : ServiceCacheIndex<T> where T : class
+	public class NonUniqueIndex<T, U> : ServiceCacheIndex<T, U> where T : class
 	{
-
-		private Dictionary<U, IndexLinkedList<T>> Index = new Dictionary<U, IndexLinkedList<T>>();
+		private ConcurrentDictionary<U, IndexLinkedList<T>> Index = new ConcurrentDictionary<U, IndexLinkedList<T>>();
 
 		/// <summary>
-		/// Gets the underlying datastructure, usually a Dictionary.
+		/// Create a new index of indices.
+		/// </summary>
+		/// <param name="childIndexMeta"></param>
+		public NonUniqueIndex(ChildIndexMeta childIndexMeta) : base(childIndexMeta)
+		{
+		}
+
+		/// <summary>
+		/// Gets the underlying datastructure, usually a ConcurrentDictionary.
 		/// </summary>
 		/// <returns></returns>
 		public override object GetUnderlyingStructure()
@@ -252,7 +282,7 @@ namespace Api.Startup{
 		}
 
 		/// <summary>
-		/// Gets a non-alloc enumeration tracker. Only use this if 
+		/// Gets a non-alloc enumeration tracker.
 		/// </summary>
 		/// <returns></returns>
 		public IndexEnum<T> GetEnumeratorFor(U key)
@@ -266,38 +296,12 @@ namespace Api.Startup{
 		}
 		
 		/// <summary>
-		/// Gets the key value for the given entry.
-		/// </summary>
-		/// <param name="entry"></param>
-		/// <returns></returns>
-		public object GetKeyValue(T entry)
-		{
-			if (OneColumn != null)
-			{
-				return OneColumn.GetValue(entry);
-			}
-
-			var keyValue = "";
-
-			for (var i = 0; i < Columns.Length; i++)
-			{
-				if (i != 0)
-				{
-					keyValue += "_";
-				}
-				keyValue += Columns[i].GetValue(entry).ToString();
-			}
-
-			return keyValue;
-		}
-
-		/// <summary>
 		/// Adds the given object to this index. Do not call this directly - add or remove an object from the ServiceCache instead.
 		/// </summary>
 		/// <param name="entry"></param>
 		internal override void Add(T entry)
 		{
-			var keyValue = (U)GetKeyValue(entry);
+			var keyValue = GetKeyValue(entry);
 
 			var linkNode = new IndexLinkNode<T>() { Current = entry };
 
@@ -327,7 +331,7 @@ namespace Api.Startup{
 		/// <param name="entry"></param>
 		internal override void Remove(T entry)
 		{
-			var keyValue = (U)GetKeyValue(entry);
+			var keyValue = GetKeyValue(entry);
 
 			// Cache removal is a relatively expensive operation.
 			if (Index.TryGetValue(keyValue, out IndexLinkedList<T> value))
@@ -365,7 +369,7 @@ namespace Api.Startup{
 				if (value.First == null)
 				{
 					// Empty list - remove key entirely:
-					Index.Remove(keyValue);
+					Index.Remove(keyValue, out _);
 				}
 			}
 		}
