@@ -81,7 +81,7 @@ function mapWhere(where, args){
 			if(Array.isArray(v)){
 				str += k +'=[?]';
 				args.push(v);
-			}else if(typeof v === 'object'){
+			}else if(v!==null && typeof v === 'object'){
 				for(var f in v){
 					
 					switch (f)
@@ -120,6 +120,7 @@ function mapWhere(where, args){
 							str += k + "!=" + (Array.isArray(v[f]) ? '[?]' : '?');
 							args.push(v[f]);
 							break;
+						default:
 						case "equals":
 							str += k + "=" + (Array.isArray(v[f]) ? '[?]' : '?');
 							args.push(v[f]);
@@ -290,7 +291,7 @@ function _fetch(url, data, opts) {
 		data = d2;
 	}
 	
-	return fetch(url + (includes ? '?includes=' + includes : ''), {
+	return fetch(url, {
 		method: opts && opts.method ? opts.method : 'post',
 		headers: {
 			'Accept': 'application/json',
