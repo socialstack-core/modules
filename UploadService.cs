@@ -293,12 +293,12 @@ namespace Api.Uploader
 			if (result.Id != 0)
 			{
 				// Explicit ID has been provided.
-				await _database.Run(context, createWithIdQuery, result);
+				await _database.Run<Upload, uint>(context, createWithIdQuery, result);
 			}
 			else
 			{
 				// Obtain an ID now:
-				await _database.Run(context, createQuery, result);
+				await _database.Run<Upload, uint>(context, createQuery, result);
 			}
 			
 			// The path where we'll write the image:
