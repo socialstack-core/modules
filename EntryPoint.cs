@@ -147,42 +147,6 @@ namespace Api.Startup
 			var userService = Services.Get<Api.Users.UserService>();
 			var locale = Services.Get<Api.Translate.LocaleService>();
 
-			var idAndUsername = userService.GetFilterFor("Username=?");
-			var username = userService.GetFilterFor("Id=4", DataOptions.Default, true);
-			var selfTest = userService.GetFilterFor("IsSelf()", DataOptions.Default, true);
-
-			Console.WriteLine("Self? " + selfTest.Match(new Contexts.Context(), new Users.User() { Id = 4 }, selfTest));
-			Console.WriteLine("Self? " + selfTest.Match(new Contexts.Context(1, 4, 1), new Users.User() { Id = 4 }, selfTest));
-
-			idAndUsername.Bind("Test");
-			Console.WriteLine("Matched? " + idAndUsername.Match(new Contexts.Context(), new Users.User() { Id = 4, Username = "Test" }, idAndUsername));
-
-			idAndUsername.Reset();
-			idAndUsername.Bind("Test2");
-			Console.WriteLine("Matched? " + idAndUsername.Match(new Contexts.Context(), new Users.User() { Id = 4, Username = "Test" }, idAndUsername));
-
-			idAndUsername.Reset();
-			idAndUsername.Bind("");
-			Console.WriteLine("Matched? " + idAndUsername.Match(new Contexts.Context(), new Users.User() { Id = 4 }, idAndUsername));
-
-			Task.Run(async () =>
-			{
-				var context = new Contexts.Context();
-
-				var urlToSearchFor = "English";
-				var pages = await locale.Where("Name=?").Bind(urlToSearchFor).ListAll(context);
-
-				Console.WriteLine("Page results: " + pages.Count);
-
-			}).Wait();
-
-			/*
-			Debug(Services.Get<Users.UserService>(), "Id=4 and Username='Hello world'", true, new Users.User() { Id = 4, Username = "Hello world" });
-			Debug(Services.Get<Users.UserService>(), "Id=4 and Username='Hello world'", true, new Users.User() { Id = 5});
-			Debug(Services.Get<Users.UserService>(), "Id=4 and Username='Hello world'", true, new Users.User() { Id = 5, Username = "Hello world"});
-			// Debug("(Id<4 and (IsPermitted=1 or IsPermitted=5)) or (Id>5 and IsPermitted=3)", true);
-			*/
-
 			if (apiSocketFile != null)
 			{
 				Chmod.Set(apiSocketFile); // 777
