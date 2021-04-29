@@ -225,7 +225,7 @@ namespace Api.Database
 			where T : Content<ID>, new()
 			where ID : struct, IConvertible, IEquatable<ID>
 		{
-			var filterEmpty = qP.QueryA.Empty && qP.QueryB.Empty;
+			var filterEmpty = qP.QueryA.Empty && qP.QueryB.Empty && qP.QueryA.PageSize == 0 && qP.QueryA.Offset == 0;
 
 			if (includeCount && (filterEmpty || Operation != SELECT))
 			{
@@ -472,7 +472,10 @@ namespace Api.Database
 				// SELECT .. FROM .. WHERE .. first:
 				if (!filterEmpty)
 				{
-					str.WriteS(" WHERE ");
+					if (!qP.QueryA.Empty || !qP.QueryB.Empty)
+					{
+						str.WriteS(" WHERE ");
+					}
 
 					if (!qP.QueryA.Empty)
 					{
@@ -511,7 +514,10 @@ namespace Api.Database
 
 				if (!filterEmpty)
 				{
-					str.WriteS(" WHERE ");
+					if (!qP.QueryA.Empty || !qP.QueryB.Empty)
+					{
+						str.WriteS(" WHERE ");
+					}
 
 					if (!qP.QueryA.Empty)
 					{

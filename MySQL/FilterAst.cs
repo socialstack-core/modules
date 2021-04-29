@@ -67,6 +67,11 @@ namespace Api.Permissions{
 		where ID : struct, IConvertible, IEquatable<ID>
 	{
 		/// <summary>
+		/// A generator for making IN(..) strings for arrays.
+		/// </summary>
+		private InStringGenerator _generator;
+		
+		/// <summary>
 		/// Steps through this tree, building an SQL-format where query. Very similar to how it actually starts out.
 		/// Note that if it encounters an array node, it will immediately resolve the value using values stored in the given filter instance.
 		/// </summary>
@@ -83,6 +88,45 @@ namespace Api.Permissions{
 				writer.WriteS(" not (");
 				A.ToSql(cmd, writer, ref collectors, localeCode, filter, context);
 				writer.Write((byte)')');
+				return;
+			}
+
+			if (A is MemberFilterTreeNode<T, ID> member && member.Collect)
+			{
+				// Use up a collector:
+				var collector = collectors;
+				collectors = collector.NextCollector;
+
+				// Output as an Id IN(..) statement.
+				writer.WriteS("Id IN(");
+
+				if (_generator == null)
+				{
+					var collectorType = collector.GetType();
+
+					if (!collectorType.IsGenericType)
+					{
+						// This happens most of the time because collectors are generated objects.
+						// Their base type is the generic collector type that we're interested in:
+						collectorType = collectorType.BaseType;
+					}
+
+					_generator = InStringGenerator.Get(collectorType);
+
+					if (_generator == null)
+					{
+						// Can't use this type as an enumerable array
+						throw new Exception("Attempted to use a field value that isn't supported for an array argument in a filter. It was a collector.");
+					}
+				}
+
+				if (!_generator.GenerateFromCollector(writer, collector))
+				{
+					// It didn't output anything. As we've already written out Id In(, avoid a failure by outputting a 0:
+					writer.WriteS(0);
+				}
+				writer.Write((byte)')');
+
 				return;
 			}
 
@@ -449,7 +493,11 @@ namespace Api.Permissions{
 				}
 
 				writer.WriteASCII("IN(");
-				_generator.Generate(writer, Binding.ConstructedField.GetValue(filter));
+				if(!_generator.Generate(writer, Binding.ConstructedField.GetValue(filter)))
+				{
+					// It didn't output anything. As we've already written out IN(, avoid a syntax failure by outputting effectively IN(0):
+					writer.WriteS(0);
+				}
 				writer.Write((byte)')');
 			}
 			else
