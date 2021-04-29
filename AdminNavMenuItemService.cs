@@ -48,13 +48,9 @@ namespace Api.NavMenus
 		{
 			var context = new Context();
 
-			// Match by target URL of the item.
-			var filter = new Filter<AdminNavMenuItem>();
-			filter.Equals("Target", item.Target);
+			var existingEntry = await Where("Target=?", DataOptions.IgnorePermissions).Bind(item.Target).Any(context);
 
-			var existingEntry = await List(context, filter, DataOptions.IgnorePermissions);
-
-			if (existingEntry.Count == 0)
+			if (!existingEntry)
 			{
 				await Create(context, item, DataOptions.IgnorePermissions);
 			}
