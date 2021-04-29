@@ -126,12 +126,12 @@ namespace Api.PasswordAuth
 
 			// Handle user creation too.
 			// Add a mapper for a field called Password -> PasswordHash.
-			Events.User.BeforeSettable.AddEventListener((Context context, JsonField<User> field) =>
+			Events.User.BeforeSettable.AddEventListener((Context context, JsonField<User, uint> field) =>
 			{
 				if(field == null)
 				{
 					// Something else doesn't want this field to show.
-					return new ValueTask<JsonField<User>>(field);
+					return new ValueTask<JsonField<User, uint>>(field);
 				}
 				
 				if (field.Name == "PasswordHash")
@@ -154,7 +154,7 @@ namespace Api.PasswordAuth
 
 				}
 
-				return new ValueTask<JsonField<User>>(field);
+				return new ValueTask<JsonField<User, uint>>(field);
 			});
 			
 		}
