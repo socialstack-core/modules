@@ -8,6 +8,7 @@ using Api.Startup;
 using System;
 using System.Text;
 using System.Linq;
+using System.Collections.Concurrent;
 
 namespace Api.Huddles
 {
@@ -30,7 +31,7 @@ namespace Api.Huddles
 		private string queryStart;
 		
 		private HuddleServer[] huddleServerSet;
-		private Dictionary<uint, HuddleServer> huddleServerLookup;
+		private ConcurrentDictionary<uint, HuddleServer> huddleServerLookup;
 
 		private Random rand = new Random();
 
@@ -159,7 +160,7 @@ namespace Api.Huddles
 			var listQuery = Query.List(typeof(AllocatedHuddleServer));
 			listQuery.SetRawQuery(query.ToString());
 			
-			var allocations = await _database.List<AllocatedHuddleServer>(null, listQuery, null, typeof(AllocatedHuddleServer));
+			var allocations = await _database.List<AllocatedHuddleServer>(null, listQuery, typeof(AllocatedHuddleServer));
 
 			// Next, we need to find if there's any servers missing.
 			foreach (var entry in allocations)

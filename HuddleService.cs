@@ -37,46 +37,6 @@ namespace Api.Huddles
 			userTypeId = ContentTypes.GetId(typeof(User));
 
 			var slugField = GetChangeField("Slug");
-
-			Events.HuddlePermittedUser.EndpointEndList.AddEventListener(async (Context context, List<HuddlePermittedUser> list, HttpResponse response) => {
-
-				// If specifically using huddle permitted user list, add huddle objects to it:
-				if (list == null || list.Count == 0)
-				{
-					return list;
-				}
-
-				// Get huddle list:
-				var huddles = await List(context, new Filter<Huddle>().Id(list.Select(e => e.HuddleId)), DataOptions.IgnorePermissions);
-
-				var huddleLookup = new Dictionary<uint, Huddle>();
-
-				foreach (var huddle in huddles)
-				{
-					huddleLookup[huddle.Id] = huddle;
-				}
-
-				foreach (var entry in list)
-				{
-					huddleLookup.TryGetValue(entry.HuddleId, out Huddle huddle);
-					if (huddle == null)
-					{
-						entry.HuddleMeta = null;
-					}
-					else
-					{
-						entry.HuddleMeta = new HuddleMeta()
-						{
-							Title = huddle.Title,
-							StartTimeUtc = huddle.StartTimeUtc,
-							EstimatedEndTimeUtc = huddle.EstimatedEndTimeUtc,
-						};
-					}
-				}
-
-				return list;
-				
-			});
 			
 			Events.Huddle.BeforeCreate.AddEventListener(async (Context ctx, Huddle huddle) =>
 			{
@@ -202,11 +162,13 @@ namespace Api.Huddles
 		/// <returns></returns>
 		public async ValueTask<bool> IsUniqueHuddleSlug(Context ctx, string slug, uint? exclusionId = null)
         {
-			var huddles = await List(ctx, new Filter<Huddle>().Equals("Slug", slug).And().Not().Equals("Id", exclusionId), DataOptions.IgnorePermissions);
+			if (!exclusionId.HasValue)
+			{
+				return await Where("Slug=?", DataOptions.IgnorePermissions).Bind(slug).Any(ctx);
+			}
 
-			return huddles.Count == 0;
+			return await Where("Slug=? and Id!=?", DataOptions.IgnorePermissions).Bind(slug).Bind(exclusionId.Value).Any(ctx);
 		}
-
 
 		/// <summary>
 		/// Used to generate a unique huddle slug.
@@ -229,49 +191,7 @@ namespace Api.Huddles
 
 			return slug;
         }
-
-		/// <summary>
-		/// True if user is permitted to access the given huddle.
-		/// </summary>
-		/// <returns></returns>
-		public bool IsPermitted(Context context, Huddle huddle)
-		{
-			if (huddle == null)
-			{
-				return false;
-			}
-
-			if (huddle.HuddleType == 0 || huddle.HuddleType == 4)
-			{
-				// Public open
-				return true;
-			}
-
-			if (huddle.Invites == null)
-			{
-				return false;
-			}
-
-			if (context.UserId == huddle.UserId)
-			{
-				return true;
-			}
-
-			foreach (var invite in huddle.Invites)
-			{
-				if (invite.PermittedUserId != 0 && invite.PermittedUserId == context.UserId)
-				{
-					return true;
-				}
-				else if (invite.PermittedUserId == 0 && invite.InvitedContentTypeId == userTypeId && invite.InvitedContentId == context.UserId)
-				{
-					return true;
-				}
-			}
-
-			return false;
-		}
-
+		
 		/// <summary>
 		/// Creates a signed join URL.
 		/// </summary>
@@ -282,8 +202,7 @@ namespace Api.Huddles
 		/// </param>
 		public async ValueTask<string> SignUrl(Context context, Huddle huddle, string localHostName)
 		{
-			var user = await context.GetUser();
-
+			var user = context.User;
 
 			var joinInfo = new HuddleJoinInfo()
 			{

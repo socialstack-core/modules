@@ -22,7 +22,7 @@ namespace Api.Huddles
 		[HttpPost("state")]
 		public async ValueTask<object> State([FromBody] HuddleUserStates userStates)
 		{
-			var context = Request.GetContext();
+			var context = await Request.GetContext();
 
 			if (context == null)
 			{
@@ -119,7 +119,7 @@ namespace Api.Huddles
 					// Add or update a huddle presence record.
 
 					// Get all existing presence records for this user:
-					var thisUsersPresence = await presenceService.List(context, new Filter<HuddlePresence>().Equals("UserId", userState.UserId), DataOptions.IgnorePermissions);
+					var thisUsersPresence = await presenceService.Where("UserId=?", DataOptions.IgnorePermissions).Bind(userState.UserId).ListAll(context);
 
 					// Match on huddle peer ID:
 					HuddlePresence existingRecord = null;
@@ -225,41 +225,15 @@ namespace Api.Huddles
 		/// <param name="slug"></param>
 		/// <returns></returns>
 		[HttpGet("{slug}/load")]
-		public async ValueTask<object> SlugLoad(string slug)
+		public async ValueTask SlugLoad(string slug)
         {
-			var context = Request.GetContext();
-
-			if (context == null)
-            {
-				return null;
-            }
-
-			var service = (_service as HuddleService);
+			var context = await Request.GetContext();
 
 			// Get the huddle:
-			var huddles = await service.List(context, new Filter<Huddle>().Equals("Slug", slug));
+			var huddle = await _service.Where("Slug=?").Bind(slug).First(context);
 
-			if (huddles.Count < 1)
-			{
-				return null;
-			}
-
-			var huddle = huddles[0];
-
-			// Is the huddle valid?
-			if (huddle == null)
-			{
-				return null;
-			}
-
-			if (!service.IsPermitted(context, huddle))
-			{
-				return null;
-			}
-
-			return huddle;
+			await OutputJson(context, huddle, null);
 		}
-
 
 		/// <summary>
 		/// Join a huddle using the slug. Provided the user is permitted, this returns the connection information.
@@ -269,7 +243,7 @@ namespace Api.Huddles
 		[HttpGet("{slug}/slug/join")]
 		public async ValueTask<object> Join(string slug)
         {
-			var context = Request.GetContext();
+			var context = await Request.GetContext();
 
 			if (context == null)
 			{
@@ -278,23 +252,10 @@ namespace Api.Huddles
 
 			var service = (_service as HuddleService);
 
-			// Get the huddle:
-			var huddles = await service.List(context, new Filter<Huddle>().Equals("Slug", slug));
+			// Get the huddle (this will only go through if the permission system allows it):
+			var huddle = await _service.Where("Slug=?").Bind(slug).First(context);
 
-			if (huddles.Count < 1)
-            {
-				return null;
-            }
-
-			var huddle = huddles[0];
-
-			// Is the huddle valid?
-			if(huddle == null)
-            {
-				return null;
-            }
-
-			if (!service.IsPermitted(context, huddle))
+			if (huddle == null)
 			{
 				return null;
 			}
@@ -337,7 +298,7 @@ namespace Api.Huddles
 		[HttpGet("{id}/join")]
 		public async ValueTask<object> Join(uint id)
 		{
-			var context = Request.GetContext();
+			var context = await Request.GetContext();
 
 			if (context == null)
 			{
@@ -351,13 +312,6 @@ namespace Api.Huddles
 			
 			if(huddle == null){
 				// Doesn't exist or not permitted (the permission system internally checks huddle type and invites).
-				return null;
-			}
-
-			// Is the current contextual user permitted to join?
-			// Either it's open, or they must be on the invite list (don't have to specifically have accepted though):
-			if (!service.IsPermitted(context, huddle))
-			{
 				return null;
 			}
 			

@@ -33,11 +33,6 @@ namespace Api.Eventing
 		public static EventGroup<HuddleLoadMetric> HuddleLoadMetric;
 		
 		/// <summary>
-		/// Set of events for a huddlePermittedUser.
-		/// </summary>
-		public static HuddlePermittedUserEventGroup HuddlePermittedUser;
-		
-		/// <summary>
 		/// Called when a huddle is being joined.
 		/// </summary>
 		public static EventHandler<HuddleJoinInfo, Huddle, User> HuddleGetJoinInfo;

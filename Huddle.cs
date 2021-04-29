@@ -49,11 +49,6 @@ namespace Api.Huddles
 		public int EstimatedParticipants;
 
 		/// <summary>
-		/// Invited users to this huddle.
-		/// </summary>
-		public List<HuddlePermittedUser> Invites { get; set; }
-		
-		/// <summary>
 		/// Optional meeting title.
 		/// </summary>
 		[DatabaseField(Length=100)]

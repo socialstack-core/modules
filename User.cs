@@ -14,14 +14,5 @@ namespace Api.Users{
 		public bool InMeeting;
 		
 	}
-	
-	public partial class UserProfile{
-		
-		/// <summary>
-		/// True if this user is in a meeting.
-		/// </summary>
-		public bool InMeeting;
-		
-	}
-	
+
 }
