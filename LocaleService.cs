@@ -116,7 +116,7 @@ namespace Api.Translate
 		{
 			if (_codeMap == null)
 			{
-				var all = await List(new Context(), new Filter<Locale>(), DataOptions.IgnorePermissions);
+				var all = await Where(DataOptions.IgnorePermissions).ListAll(new Context());
 
 				var map = new Dictionary<string, uint>();
 

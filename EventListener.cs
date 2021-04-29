@@ -44,7 +44,7 @@ namespace Api.Translate
 
 				try
 				{
-					locales = await _database.List<Locale>(new Context(), Query.List(typeof(Locale)), null, typeof(Locale));
+					locales = await _database.List<Locale>(new Context(), Query.List(typeof(Locale)), typeof(Locale));
 				}
 				catch
 				{
