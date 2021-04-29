@@ -38,11 +38,6 @@ namespace Api.Emails
 		private readonly UserService _users;
 
 		/// <summary>
-		/// A reference to the key index from the cache.
-		/// </summary>
-		private int KeyIndexId = -1;
-
-		/// <summary>
 		/// Instanced automatically. Use injection to use this service, or Startup.Services.Get.
 		/// </summary>
 		public EmailTemplateService(CanvasRendererService canvasRendererService, UserService users) : base(Events.EmailTemplate)
@@ -53,11 +48,11 @@ namespace Api.Emails
 			
 			InstallAdminPages("Emails", "fa:fa-paper-plane", new string[] { "id", "name", "key" });
 			
-			Events.User.BeforeSettable.AddEventListener((Context context, JsonField<User> field) =>
+			Events.User.BeforeSettable.AddEventListener((Context context, JsonField<User, uint> field) =>
 			{
 				if (field == null)
 				{
-					return new ValueTask<JsonField<User>>(field);
+					return new ValueTask<JsonField<User, uint>>(field);
 				}
 				
 				if(field.Name == "EmailOptOutFlags")
@@ -66,7 +61,7 @@ namespace Api.Emails
 					field = null;
 				}
 
-				return new ValueTask<JsonField<User>>(field);
+				return new ValueTask<JsonField<User, uint>>(field);
 			});
 			
 			// Cache all in memory:
@@ -79,25 +74,9 @@ namespace Api.Emails
 		/// <param name="context"></param>
 		/// <param name="key"></param>
 		/// <returns></returns>
-		public ValueTask<EmailTemplate> GetByKey(Context context, string key)
+		public async ValueTask<EmailTemplate> GetByKey(Context context, string key)
 		{
-			// Note for future: Would be nice if this was automatic, rather than explicitly using a cache key.
-			// I.e. the rest of the service interface - namely List(..) - figures out a key to use.
-			var cache = GetCacheForLocale(context == null ? 1 : context.LocaleId);
-
-			if (cache == null)
-			{
-				return new ValueTask<EmailTemplate>((EmailTemplate)null);
-			}
-
-			if (KeyIndexId == -1)
-			{
-				// Get the index ID of the DB index called 'Key':
-				KeyIndexId = GetCacheIndexId("Key");
-			}
-
-			var template = cache.GetUsingIndex(KeyIndexId, key);
-			return new ValueTask<EmailTemplate>(template);
+			return await Where("Key=?").Bind(key).First(context);
 		}
 
 		/// <summary>
@@ -133,10 +112,7 @@ namespace Api.Emails
 			var context = new Context();
 
 			// Match by target URL of the item.
-			var filter = new Filter<EmailTemplate>();
-			filter.Equals("Key", template.Key);
-
-			var existingEntry = (await ListNoCache(context, filter, false, DataOptions.IgnorePermissions));
+			var existingEntry = await Where("Key=?", DataOptions.NoCacheIgnorePermissions).Bind(template.Key).ListAll(context);
 
 			if (existingEntry.Count == 0)
 			{
@@ -174,7 +150,7 @@ namespace Api.Emails
 
 			if (idsToLoad != null)
 			{
-				var loadedUsers = await _users.List(new Context(), new Filter<User>().Id(idsToLoad), DataOptions.IgnorePermissions);
+				var loadedUsers = await _users.Where("Id=[?]", DataOptions.IgnorePermissions).Bind(idsToLoad).ListAll(new Context());
 
 				if (loadedUsers != null && loadedUsers.Count > 0)
 				{
