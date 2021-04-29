@@ -598,7 +598,12 @@ namespace Api.WebSockets
 		/// <summary>
 		/// The underlying filter to use.
 		/// </summary>
-		public FilterNode FilterNode;
+		public FilterBase UserFilter;
+
+		/// <summary>
+		/// The underlying filter to use.
+		/// </summary>
+		public FilterBase PermFilter;
 
 		/// <summary>
 		/// The raw filter object.
@@ -606,30 +611,22 @@ namespace Api.WebSockets
 		private JObject FilterObject;
 
 		/// <summary>
-		/// Resolved values for fast use with Matches calls.
-		/// </summary>
-		public List<ResolvedValue> ResolvedValues;
-
-		/// <summary>
 		/// Set filter
 		/// </summary>
 		/// <param name="filterObj"></param>
-		public async Task SetFilter(JObject filterObj)
+		public void SetFilter(JObject filterObj)
 		{
 			// Note that filter can be null.
 			FilterObject = filterObj;
-			await SetupFilter();
+			SetupFilter();
 		}
 
 		/// <summary>
 		/// Call this to setup the filter object again, pre-calculating permissions etc.
 		/// This is used directly only when the socket is reauthenticated.
 		/// </summary>
-		public async Task SetupFilter()
+		public void SetupFilter()
 		{
-			// Create the filter:
-			var filter = new Filter(FilterObject, TypeSet.Type);
-
 			if (Client.Context == null)
 			{
 				Skip = true;
@@ -647,31 +644,18 @@ namespace Api.WebSockets
 			}
 
 			// Get the grant rule (a filter) for this role + capability:
-			var rawGrantRule = role.GetGrantRule(TypeSet.Capability);
-			var srcFilter = role.GetSourceFilter(TypeSet.Capability);
+			PermFilter = role.GetGrantRule(TypeSet.Capability);
+			UserFilter = null;
 
 			// If it's outright rejected..
-			if (rawGrantRule == null)
+			if (PermFilter == null)
 			{
 				Skip = true;
 				return;
 			}
 
-			// Otherwise, merge the user filter with the one from the grant system (if we need to).
-			// Special case for the common true always node:
-			if (!(rawGrantRule is FilterTrue))
-			{
-				// Both are set. Must combine them safely:
-				filter = filter.Combine(rawGrantRule, srcFilter?.ParamValueResolvers);
-			}
-
+			UserFilter = TypeSet.Capability.Service.LoadFilter(FilterObject);
 			Skip = false;
-
-			// Next, construct the filter:
-			FilterNode = filter.Construct();
-
-			// Finally, we'll precalc the param values for this context:
-			ResolvedValues = await filter.ResolveValues(Client.Context);
 		}
 
 		/// <summary>
@@ -834,9 +818,18 @@ namespace Api.WebSockets
 			
 			while(current != null){
 
-				if (entity != null && current.FilterNode != null)
+				if (entity != null)
 				{
-					if (!current.FilterNode.Matches(current.ResolvedValues, entity))
+					var ctx = current.Client.Context;
+					// Note that the last arg of Match is the UserFilter because it's stateful.
+					if (current.PermFilter != null && !current.PermFilter.Match(ctx, entity, current.UserFilter))
+					{
+						// Skip this user
+						current = current.Next;
+						continue;
+					}
+
+					if (current.UserFilter != null && !current.UserFilter.Match(ctx, entity, current.UserFilter))
 					{
 						// Skip this user
 						current = current.Next;
@@ -1065,7 +1058,7 @@ namespace Api.WebSockets
 		/// <summary>
 		/// Adds a listener for messages of the given type. Returns null if it was already being listened to.
 		/// </summary>
-		public async Task<WebSocketTypeClient> AddEventListener(WebSocketTypeListeners type, JObject filter, int id = -1){
+		public ValueTask<WebSocketTypeClient> AddEventListener(WebSocketTypeListeners type, JObject filter, int id = -1){
 
 			// Already got a listener with this ID? If so, replace its filter.
 			var client = id == -1 ? null : GetById(id);
@@ -1094,9 +1087,9 @@ namespace Api.WebSockets
 			}
 
 			// Apply the filter now (must be after type.Add):
-			await client.SetFilter(filter);
+			client.SetFilter(filter);
 
-			return client;
+			return new ValueTask<WebSocketTypeClient>(client);
 		}
 
 		/// <summary>
