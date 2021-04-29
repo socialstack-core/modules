@@ -5,12 +5,11 @@ using Api.Startup;
 using MySql.Data.MySqlClient;
 using System;
 using System.Collections.Generic;
-using System.Reflection;
-using System.Text;
 using System.Threading.Tasks;
 
-namespace Api.Permissions{
-	
+namespace Api.Permissions
+{
+
 	/// <summary>
 	/// A non-allocating mechanism for obtaining a list of things from a service.
 	/// </summary>
@@ -52,6 +51,13 @@ namespace Api.Permissions{
 		public FilterAst<T, ID> Ast;
 
 		/// <summary>
+		/// Used when the filter has virtual field lists e.g. Tags=[?].
+		/// The execution plan will first collect all the IDs of content that has the given tag(s) into one of these collectors.
+		/// As this is just the metadata, this stores information about how to rent the collectors, rather than the collectors themselves.
+		/// </summary>
+		public ReverseMappingInfo[] CollectorMeta;
+
+		/// <summary>
 		/// True if the filter has a From(..) statement. It must have one only and can only be a child of an AND statement.
 		/// </summary>
 		public bool HasFrom;
@@ -75,6 +81,48 @@ namespace Api.Permissions{
 		/// </summary>
 		public List<ArgBinding> ArgTypes;
 
+		/// <summary>
+		/// Sets up collectors and their mappings.
+		/// </summary>
+		public async ValueTask SetupCollectors(AutoService serviceForFiltersType)
+		{
+			if (Ast == null || Ast.Collectors == null)
+			{
+				CollectorMeta = Array.Empty<ReverseMappingInfo>();
+				return;
+			}
+
+			var set = new ReverseMappingInfo[Ast.Collectors.Count];
+			var collectorFields = new ContentField[Ast.Collectors.Count];
+
+			for (var i = 0; i < Ast.Collectors.Count; i++)
+			{
+				var mappingService = await Ast.Collectors[i].GetMappingService(serviceForFiltersType.GetContentFields());
+
+				// Get the *source* field (as we're running backwards)
+				var mappingContentFields = mappingService.GetContentFields();
+
+				// Try to get target field (e.g. TagId):
+				if (!mappingContentFields.TryGetValue((serviceForFiltersType.ServicedType.Name + "Id").ToLower(), out ContentField sourceField))
+				{
+					throw new Exception("Couldn't find target field on a mapping type. This indicates an issue with the mapping engine rather than your usage.");
+				}
+
+				collectorFields[i] = sourceField;
+				
+				set[i] = new ReverseMappingInfo()
+				{
+					Service = mappingService,
+					SourceField = sourceField
+				};
+			}
+
+			// Ensure the actual types are constructed and ready to go:
+			TypeIOEngine.GenerateIDCollectors(collectorFields);
+
+			CollectorMeta = set;
+		}
+		
 		/// <summary>
 		/// Parses the queries and constructs the filters now.
 		/// </summary>
@@ -165,6 +213,27 @@ namespace Api.Permissions{
 		/// </summary>
 		/// <returns></returns>
 		public bool HasFrom;
+
+		/// <summary>
+		/// First IDcollector for filter A. Both chains are stored on filterA as it's user specific.
+		/// </summary>
+		public IDCollector FirstACollector;
+
+		/// <summary>
+		/// First IDcollector for filter B. Both chains are stored on filterA as it's user specific.
+		/// </summary>
+		public IDCollector FirstBCollector;
+
+		/// <summary>
+		/// Errors when a null is given for a non-nullable field.
+		/// </summary>
+		public void NullCheck(string s)
+		{
+			if (s == null)
+			{
+				throw new PublicException("Attempted to use a null as an arg for a non-nullable field. Did you mean to use something else?", "filter_invalid");
+			}
+		}
 
 		/// <summary>
 		/// Binds the current arg using the given textual representation.
@@ -326,6 +395,60 @@ namespace Api.Permissions{
 		}
 
 		/// <summary>
+		/// Collects using the given service and the given collectorId. The ID determines which field is read.
+		/// </summary>
+		/// <param name="context"></param>
+		/// <param name="mappingService"></param>
+		/// <param name="collectorId"></param>
+		/// <param name="collector"></param>
+		public virtual ValueTask Collect(Context context, AutoService mappingService, int collectorId, IDCollector collector)
+		{
+			return new ValueTask();
+		}
+
+		/// <summary>
+		/// Rents the set of ID collectors needed for handling various types of map.
+		/// </summary>
+		/// <param name="context"></param>
+		/// <param name="src"></param>
+		/// <returns></returns>
+		public async ValueTask<IDCollector> RentAndCollect(Context context, AutoService src)
+		{
+			if (Pool.CollectorMeta == null)
+			{
+				// Construct collector metadata now from the AST:
+				await Pool.SetupCollectors(src);
+			}
+
+			IDCollector first = null;
+			IDCollector last = null;
+
+			for (var i = 0; i < Pool.CollectorMeta.Length; i++)
+			{
+				var meta = Pool.CollectorMeta[i];
+
+				// Rent the collector:
+				var collector = meta.SourceField.RentCollector();
+
+				// Collect now - for each value in the set, find all sources that relate to it.
+				// Add that ID to the collector.
+				await Collect(context, meta.Service, i, collector);
+
+				if (last == null)
+				{
+					first = collector;
+				}
+				else
+				{
+					last.NextCollector = collector;
+				}
+				last = collector;
+			}
+
+			return first;
+		}
+
+		/// <summary>
 		/// Return back to pool.
 		/// </summary>
 		public void Release()
@@ -358,16 +481,6 @@ namespace Api.Permissions{
 
 			return false;
 		}
-
-		/// <summary>
-		/// First IDcollector for filter A. Both chains are stored on filterA as it's user specific.
-		/// </summary>
-		public IDCollector FirstACollector;
-
-		/// <summary>
-		/// First IDcollector for filter B. Both chains are stored on filterA as it's user specific.
-		/// </summary>
-		public IDCollector FirstBCollector;
 
 		/// <summary>
 		/// Gets the set of argument types for this filter. Can be null if there are none.
@@ -444,6 +557,17 @@ namespace Api.Permissions{
 			IncludeTotal = false;
 			SortField = null;
 			SortAscending = true;
+		}
+
+		/// <summary>
+		/// Called when no collectors were able to answer a collect request.
+		/// </summary>
+		/// <returns></returns>
+		public ValueTask CollectFail()
+		{
+			throw new Exception("Internal IDCollector alignment failure. " +
+				"This happens when there is a mismatch between the number of declared collectors, and the number that it attempts to actually use. " +
+				"This error indicates a core issue with filter resolution of virtual list fields.");
 		}
 
 		/// <summary>

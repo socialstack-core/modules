@@ -10,6 +10,7 @@ using System.Collections.Generic;
 using System.Reflection;
 using System.Reflection.Emit;
 using System.Text;
+using System.Threading.Tasks;
 
 namespace Api.Permissions{
 
@@ -188,6 +189,26 @@ namespace Api.Permissions{
 	public static class FilterAst
 	{
 		/// <summary>
+		/// FilterBase.FirstACollector
+		/// </summary>
+		public static FieldInfo _firstACollector;
+		
+		/// <summary>
+		/// FilterBase.NullCheck
+		/// </summary>
+		public static MethodInfo _baseNullCheck;
+		
+		/// <summary>
+		/// The Type[] signature for generated Collect methods.
+		/// </summary>
+		public static Type[] _collectSignature;
+
+		/// <summary>
+		/// FilterBase.FirstBCollector
+		/// </summary>
+		public static FieldInfo _firstBCollector;
+
+		/// <summary>
 		/// 
 		/// </summary>
 		/// <param name="service"></param>
@@ -207,6 +228,7 @@ namespace Api.Permissions{
 			result.Service = service;
 			result.AllowConstants = allowConstants;
 			result.AllowArgs = allowArgs;
+			result.ConsumeWhitespace();
 			result.Root = result.ParseAny(0);
 			return result;
 		}
@@ -301,9 +323,183 @@ namespace Api.Permissions{
 		private ILGenerator BindStringMethod;
 
 		/// <summary>
+		/// ValueTask Collect(Context context, AutoService mappingService, int collectorId, IDCollector collector)
+		/// </summary>
+		private ILGenerator CollectMethod;
+
+		/// <summary>
 		/// an array of just typeof(string)
 		/// </summary>
 		private static Type[] _strTypeInArray = new Type[] { typeof(string) };
+
+		/// <summary>
+		/// Emits a read field value for the given node into the given generator.
+		/// </summary>
+		/// <param name="generator"></param>
+		/// <param name="node"></param>
+		/// <param name="fieldType"></param>
+		public bool EmitReadValue(ILGenerator generator, FilterTreeNode<T, ID> node, Type fieldType)
+		{
+			var isEnumerable = false;
+
+			var value = node as ConstFilterTreeNode<T, ID>; 
+			
+			if (value == null)
+			{
+				// Another member (e.g. CtxField = ObjectField)
+				var member2 = node as MemberFilterTreeNode<T, ID>;
+
+				if (member2.Field == null)
+				{
+					// Context field
+
+					// Arg 1 is ctx:
+					generator.Emit(OpCodes.Ldarg_1);
+					generator.Emit(OpCodes.Callvirt, member2.ContextField.Property.GetGetMethod());
+				}
+				else
+				{
+					// Field on object
+
+					// Arg 2 is the object being checked (Arg 1 is ctx):
+					generator.Emit(OpCodes.Ldarg_2);
+					generator.Emit(OpCodes.Ldfld, member2.Field.FieldInfo);
+				}
+			}
+			else
+			{
+				// The field's type dictates what we'll read the value as.
+
+				// Emit the value. This will vary a little depending on what fieldType is.
+				var argNode = value as ArgFilterTreeNode<T, ID>;
+
+				if (argNode == null)
+				{
+					// Constant. Cooerce the constant to being of the same type as the field.
+
+					if (fieldType == typeof(string))
+					{
+						generator.Emit(OpCodes.Ldstr, value.AsString());
+					}
+					else if (fieldType == typeof(float))
+					{
+						generator.Emit(OpCodes.Ldc_R4, (float)value.AsDecimal());
+					}
+					else if (fieldType == typeof(double))
+					{
+						generator.Emit(OpCodes.Ldc_R8, (double)value.AsDecimal());
+					}
+					else if (fieldType == typeof(uint) || fieldType == typeof(int) || fieldType == typeof(short) ||
+						fieldType == typeof(ushort) || fieldType == typeof(byte) || fieldType == typeof(sbyte))
+					{
+						generator.Emit(OpCodes.Ldc_I4, value.AsInt());
+					}
+					else if (fieldType == typeof(ulong) || fieldType == typeof(long))
+					{
+						generator.Emit(OpCodes.Ldc_I8, value.AsInt());
+					}
+					else if (fieldType == typeof(bool))
+					{
+						generator.Emit(OpCodes.Ldc_I4, value.AsBool() ? 1 : 0);
+					}
+				}
+				else
+				{
+					// Create the arg now:
+					isEnumerable = argNode.Array;
+					var argField = DeclareArg(argNode.Id, argNode.Array ? typeof(IEnumerable<>).MakeGenericType(fieldType) : fieldType);
+					argNode.Binding = argField;
+					generator.Emit(OpCodes.Ldarg_0);
+					generator.Emit(OpCodes.Ldfld, argField.Builder);
+				}
+			}
+
+			return isEnumerable;
+		}
+
+		/// <summary>
+		/// Adds a collector to the set. Field must be a virtual ListAs field.
+		/// </summary>
+		public void DeclareCollector(ContentField field, FilterTreeNode<T,ID> node)
+		{
+
+			if (Collectors == null)
+			{
+				Collectors = new List<ContentField>();
+			}
+
+			var currentIndex = Collectors.Count;
+			Collectors.Add(field);
+
+			if (CollectMethod == null)
+			{
+				if (FilterAst._collectSignature == null)
+				{
+					// ValueTask Collect(Context context, AutoService mappingService, int collectorId, IDCollector collector)
+					FilterAst._collectSignature = new Type[] {
+						typeof(Context), // Arg1
+						typeof(AutoService), // Arg2
+						typeof(int), // Arg3
+						typeof(IDCollector) // Arg4
+					};
+				}
+
+				var collectMethod = TypeBuilder.DefineMethod("Collect", MethodAttributes.Public | MethodAttributes.HideBySig | MethodAttributes.Virtual, typeof(ValueTask), FilterAst._collectSignature);
+				CollectMethod = collectMethod.GetILGenerator();
+			}
+
+			// if(indexToCollect == currentIndex)
+			// {
+			//      Note that "service" is being implicitly cast by simply using a strong-typed CollectSources method.
+			//      return service.CollectByTarget(context, collector, ID_VALUE);
+			//      OR, if it is a single value in the given value node
+			//      return service.CollectByTarget(context, collector, ID_VALUE);
+			// }
+
+			var afterBlock = CollectMethod.DefineLabel();
+			CollectMethod.Emit(OpCodes.Ldarg_3);
+			CollectMethod.Emit(OpCodes.Ldc_I4, currentIndex);
+			CollectMethod.Emit(OpCodes.Ceq);
+			CollectMethod.Emit(OpCodes.Brfalse, afterBlock);
+
+			// Inside the if statement
+
+			CollectMethod.Emit(OpCodes.Ldarg_2); // service.
+			CollectMethod.Emit(OpCodes.Ldarg_1); // (context,
+			CollectMethod.Emit(OpCodes.Ldarg, 4); // collector, 
+
+			var targetType = field.VirtualInfo.Type;
+
+			// Get the ID type of the field:
+			var idType = targetType.GetField("Id").FieldType;
+			
+			var isAnArray = EmitReadValue(CollectMethod, node, idType);
+
+			if (isAnArray)
+			{
+				// CollectByTargetSet(Context context, IDCollector<SRC_ID> collector, IEnumerable<TARG_ID> idSet)
+				var iEnumMethod = typeof(MappingService<,,,>)
+					.MakeGenericType(typeof(T), targetType, typeof(ID), idType)
+					.GetMethod("CollectByTargetSet");
+
+				CollectMethod.Emit(OpCodes.Callvirt, iEnumMethod);
+			}
+			else
+			{
+				// CollectByTarget(Context context, IDCollector<SRC_ID> collector, TARG_ID id)
+				var singleValueMethod = typeof(MappingService<,,,>)
+					.MakeGenericType(typeof(T), targetType, typeof(ID), idType)
+					.GetMethod("CollectByTarget");
+
+				CollectMethod.Emit(OpCodes.Callvirt, singleValueMethod);
+			}
+
+			// Return the ValueTask
+			CollectMethod.Emit(OpCodes.Ret);
+			// End of if statement
+
+			CollectMethod.MarkLabel(afterBlock);
+		}
 
 		/// <summary>
 		/// 
@@ -396,6 +592,11 @@ namespace Api.Permissions{
 			// Next, on the BindFromString method. These are only ever valuetypes, which should mean they have a Parse method that we can use.
 			var parseMethod = isString ? null : argType.GetMethod("Parse", BindingFlags.Static | BindingFlags.Public, null, _strTypeInArray, null);
 
+			if (FilterAst._baseNullCheck == null)
+			{
+				FilterAst._baseNullCheck = typeof(FilterBase).GetMethod(nameof(FilterBase.NullCheck));
+			}
+
 			if (isString || parseMethod != null)
 			{
 				// We've got a parse method that can be used (or it just is a string anyway).
@@ -405,6 +606,15 @@ namespace Api.Permissions{
 				BindStringMethod.Emit(OpCodes.Ldc_I4, index);
 				BindStringMethod.Emit(OpCodes.Ceq);
 				BindStringMethod.Emit(OpCodes.Brfalse, label);
+					
+					if (argType.IsValueType)
+					{
+						// Null is not permitted. If one is given, error:
+						BindStringMethod.Emit(OpCodes.Ldarg_0);
+						BindStringMethod.Emit(OpCodes.Ldarg_1);
+						BindStringMethod.Emit(OpCodes.Callvirt, FilterAst._baseNullCheck);
+					}
+
 					// Set the value
 					BindStringMethod.Emit(OpCodes.Ldarg_0);
 					BindStringMethod.Emit(OpCodes.Ldarg_1);
@@ -518,6 +728,12 @@ namespace Api.Permissions{
 				typeof(bool), new Type[] { typeof(Context), typeof(object), typeof(FilterBase) }
 			);
 
+			if (FilterAst._firstACollector == null)
+			{
+				FilterAst._firstACollector = typeof(FilterBase).GetField("FirstACollector");
+				FilterAst._firstBCollector = typeof(FilterBase).GetField("FirstBCollector");
+			}
+
 			ILGenerator writerBody = matchMethod.GetILGenerator();
 
 			if (Root == null)
@@ -527,12 +743,39 @@ namespace Api.Permissions{
 			}
 			else
 			{
+				if (Collectors != null && Collectors.Count > 0)
+				{
+					// Create a var which ref's the current collector (always local 0):
+					writerBody.DeclareLocal(typeof(IDCollector));
+
+					// Set its value to the first collector. We know which to use based on if the given filter arg == this one.
+					// If they are the same, then "this" is filter A.
+					var isFilterB = writerBody.DefineLabel();
+					var storeAsLocal = writerBody.DefineLabel();
+
+					// For the Ldfld (both load from same target object, arg3):
+					writerBody.Emit(OpCodes.Ldarg_3);
+
+					// If this==Arg_3
+					writerBody.Emit(OpCodes.Ldarg_0);
+					writerBody.Emit(OpCodes.Ldarg_3);
+					writerBody.Emit(OpCodes.Ceq);
+					writerBody.Emit(OpCodes.Brfalse, isFilterB);
+					writerBody.Emit(OpCodes.Ldfld, FilterAst._firstACollector);
+					writerBody.Emit(OpCodes.Br, storeAsLocal);
+					writerBody.MarkLabel(isFilterB);
+					writerBody.Emit(OpCodes.Ldfld, FilterAst._firstBCollector);
+					writerBody.MarkLabel(storeAsLocal);
+					writerBody.Emit(OpCodes.Stloc_0);
+				}
+
 				Root.Emit(writerBody, this);
 			}
 
 			writerBody.Emit(OpCodes.Ret);
 
 			var baseFail = filterT.GetMethod(nameof(Filter<T, ID>.Fail));
+			var baseCollectFail = filterT.GetMethod(nameof(Filter<T, ID>.CollectFail));
 
 			for (var i = 0; i < Args.Count; i++)
 			{
@@ -558,6 +801,14 @@ namespace Api.Permissions{
 				BindStringMethod.Emit(OpCodes.Call, baseFail);
 				BindStringMethod.Emit(OpCodes.Ldarg_0);
 				BindStringMethod.Emit(OpCodes.Ret);
+			}
+
+			if (CollectMethod != null)
+			{
+				// At the bottom of the bind string method is a fail method which indicates current arg X is not of the current type.
+				CollectMethod.Emit(OpCodes.Ldarg_0);
+				CollectMethod.Emit(OpCodes.Call, baseCollectFail);
+				CollectMethod.Emit(OpCodes.Ret);
 			}
 
 			// Bake the type:
@@ -1229,112 +1480,48 @@ namespace Api.Permissions{
 				throw new Exception("Invalid filter - operation '" + Operation + "' must be performed as Member=Value, not Value=Member.");
 			}
 
-			// If it's a virtual field, it's a set type.
-			if (member.Field.IsVirtual)
+			// Is it a collector? This indicates it was a virtual listAs field.
+			if (member.Collect)
 			{
-				// Actual thing emitted is a collector pop + ID in set
+				// Test the current collector. The collector is:
+				ast.DeclareCollector(member.Field, B);
 
-				#warning todo - filtering based on a virtual field
-				// close relative of FROM(..) as well.
-				throw new Exception("Not supported yet!");
+				// loc0=loc0.NextCollector;
+				generator.Emit(OpCodes.Ldloc_0);
+				generator.Emit(OpCodes.Dup);
+				generator.Emit(OpCodes.Ldfld, IDCollector.NextCollectorFieldInfo);
+				generator.Emit(OpCodes.Stloc_0);
+
+				var matchAny = typeof(IDCollector<ID>).GetMethod(nameof(IDCollector<ID>.MatchAny));
+				var idField = typeof(T).GetField("Id");
+
+				// Collector is currently on the stack.
+
+				// Push ID field to stack:
+				generator.Emit(OpCodes.Ldarg_2);
+				generator.Emit(OpCodes.Ldfld, idField);
+
+				// collector.MatchAny(ID) => bool on stack
+				generator.Emit(OpCodes.Callvirt, matchAny);
 			}
 			else
 			{
 				// It has an actual field. It can either be a context or a field on the target.
-
 				Type fieldType;
 
 				if (member.Field == null)
 				{
 					// Context field
 					fieldType = member.ContextField.PrivateFieldInfo.FieldType;
-
-					// Arg 1 is ctx:
-					generator.Emit(OpCodes.Ldarg_1);
-					generator.Emit(OpCodes.Callvirt, member.ContextField.Property.GetGetMethod());
 				}
 				else
 				{
 					// Field on object
 					fieldType = member.Field.FieldInfo.FieldType;
-
-					// Arg 2 is the object being checked (Arg 1 is ctx):
-					generator.Emit(OpCodes.Ldarg_2);
-					generator.Emit(OpCodes.Ldfld, member.Field.FieldInfo);
 				}
-				
-				var value = B as ConstFilterTreeNode<T, ID>;
-				var isEnumerable = false;
 
-				if (value == null)
-				{
-					// Another member (e.g. CtxField = ObjectField)
-					var member2 = B as MemberFilterTreeNode<T, ID>;
-
-					if (member2.Field == null)
-					{
-						// Context field
-
-						// Arg 1 is ctx:
-						generator.Emit(OpCodes.Ldarg_1);
-						generator.Emit(OpCodes.Callvirt, member2.ContextField.Property.GetGetMethod());
-					}
-					else
-					{
-						// Field on object
-						
-						// Arg 2 is the object being checked (Arg 1 is ctx):
-						generator.Emit(OpCodes.Ldarg_2);
-						generator.Emit(OpCodes.Ldfld, member2.Field.FieldInfo);
-					}
-				}
-				else
-				{
-					// The field's type dictates what we'll read the value as.
-					
-					// Emit the value. This will vary a little depending on what fieldType is.
-					var argNode = value as ArgFilterTreeNode<T, ID>;
-
-					if (argNode == null)
-					{
-						// Constant. Cooerce the constant to being of the same type as the field.
-
-						if (fieldType == typeof(string))
-						{
-							generator.Emit(OpCodes.Ldstr, value.AsString());
-						}
-						else if (fieldType == typeof(float))
-						{
-							generator.Emit(OpCodes.Ldc_R4, (float)value.AsDecimal());
-						}
-						else if (fieldType == typeof(double))
-						{
-							generator.Emit(OpCodes.Ldc_R8, (double)value.AsDecimal());
-						}
-						else if (fieldType == typeof(uint) || fieldType == typeof(int) || fieldType == typeof(short) ||
-							fieldType == typeof(ushort) || fieldType == typeof(byte) || fieldType == typeof(sbyte))
-						{
-							generator.Emit(OpCodes.Ldc_I4, value.AsInt());
-						}
-						else if (fieldType == typeof(ulong) || fieldType == typeof(long))
-						{
-							generator.Emit(OpCodes.Ldc_I8, value.AsInt());
-						}
-						else if (fieldType == typeof(bool))
-						{
-							generator.Emit(OpCodes.Ldc_I4, value.AsBool() ? 1 : 0);
-						}
-					}
-					else
-					{
-						// Create the arg now:
-						isEnumerable = argNode.Array;
-						var argField = ast.DeclareArg(argNode.Id, argNode.Array ? typeof(IEnumerable<>).MakeGenericType(fieldType) : fieldType);
-						argNode.Binding = argField;
-						generator.Emit(OpCodes.Ldarg_0);
-						generator.Emit(OpCodes.Ldfld, argField.Builder);
-					}
-				}
+				ast.EmitReadValue(generator, member, fieldType);
+				var isEnumerable = ast.EmitReadValue(generator, B, fieldType);
 
 				if (Operation == "=")
 				{
@@ -1596,6 +1783,10 @@ namespace Api.Permissions{
 		/// </summary>
 		public bool OnContext;
 
+		/// <summary>
+		/// True if this field should be collected with an ID collector.
+		/// </summary>
+		public bool Collect;
 
 		/// <summary>
 		/// 
@@ -1738,14 +1929,30 @@ namespace Api.Permissions{
 				}
 				else
 				{
-					if (ast.Collectors == null)
+					// Some mappings are handled via ID fields on the actual target type.
+					// We can short those out and replace them with regular array fields instead.
+
+					// For example, imagine a virtual list field called CallToActions, and it is being used in a filter on a Video.
+					// "CallToActions=[?]"
+					// However the actual video only has a CallToActionId field, and only stores one.
+					// In this situation, a mapping is "not required" and the "local" field will be that CallToActionId one.
+					// Ultimately, that means the filter executes the same as this faster one:
+					// "CallToActionId=[?]"
+
+					var localMappedField = field.GetIdFieldIfMappingNotRequired(fields);
+
+					if (localMappedField != null)
 					{
-						ast.Collectors = new List<ContentField>();
+						// Nice! No mapping is required, because this type has the field on it.
+						field = localMappedField;
+					}
+					else
+					{
+						// Must use A->B mapping via collecting IDs from some map service.
+						Collect = true;
 					}
 
-					ast.Collectors.Add(field);
-
-					// This field will use an ID collector:
+					// Either way, it has an array node.
 					ast.HasArrayNodes = true;
 				}
 			}
