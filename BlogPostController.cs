@@ -31,7 +31,7 @@ namespace Api.Blogs
         [HttpPost("getslug")]
         public async Task<string> GetSlug([FromBody]NewTitle title)
         {
-            var context = Request.GetContext();
+            var context = await Request.GetContext();
             
             if (context.Role == null || !context.Role.CanViewAdmin)
             {
@@ -47,7 +47,7 @@ namespace Api.Blogs
             var slug = await _blogPostService.GetSlug(context, title.Title);
 
             // Now let's see if the slug is in use.
-            var postsWithSlug = await _service.List(context, new Filter<BlogPost>().Equals("Slug", slug), DataOptions.IgnorePermissions);
+            var postsWithSlug = await _service.Where("Slug=?", DataOptions.IgnorePermissions).Bind(slug).ListAll(context);
 
             var increment = 0;
 
@@ -55,7 +55,7 @@ namespace Api.Blogs
             while (postsWithSlug.Count > 0 )
             {
                 increment++;
-                postsWithSlug = await _service.List(context, new Filter<BlogPost>().Equals("Slug", slug + "-" + increment), DataOptions.IgnorePermissions);
+                postsWithSlug = await _service.Where("Slug=?", DataOptions.IgnorePermissions).Bind(slug + "-" + increment).ListAll(context);
             }
 
             if (increment > 0)

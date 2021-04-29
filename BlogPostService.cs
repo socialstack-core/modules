@@ -261,11 +261,11 @@ namespace Api.Blogs
 				// Now let's see if the slug is in use.
 				if (exclusionId == null)
 				{
-					postsWithSlug = await List(context, new Filter<BlogPost>().Equals("Slug", slug), DataOptions.IgnorePermissions);
+					postsWithSlug = await Where("Slug=?", DataOptions.IgnorePermissions).Bind(slug).ListAll(context);
 				}
 				else
 				{
-					postsWithSlug = await List(context, new Filter<BlogPost>().Equals("Slug", slug).And().Not().Equals("Id", exclusionId), DataOptions.IgnorePermissions);
+					postsWithSlug = await Where("Slug=? and Id!=?", DataOptions.IgnorePermissions).Bind(slug).Bind(exclusionId.Value).ListAll(context);
 				}
 
 				var increment = 0;
@@ -276,11 +276,11 @@ namespace Api.Blogs
 					increment++;
 					if (exclusionId == null)
 					{
-						postsWithSlug = await List(context, new Filter<BlogPost>().Equals("Slug", slug + "-" + increment), DataOptions.IgnorePermissions);
+						postsWithSlug = await Where("Slug=?", DataOptions.IgnorePermissions).Bind(slug + "-" + increment).ListAll(context);
 					}
 					else
 					{
-						postsWithSlug = await List(context, new Filter<BlogPost>().Equals("Slug", slug + "-" + increment).And().Not().Equals("Id", exclusionId), DataOptions.IgnorePermissions);
+						postsWithSlug = await Where("Slug=? and Id!=?", DataOptions.IgnorePermissions).Bind(slug + "-" + increment).Bind(exclusionId.Value).ListAll(context);
 					}
 				}
 

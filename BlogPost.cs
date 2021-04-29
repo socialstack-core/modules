@@ -9,7 +9,7 @@ namespace Api.Blogs
 	/// <summary>
 	/// A blog post.
 	/// </summary>
-	[HasVirtualField("Author", typeof(UserProfile), "AuthorId")]
+	[HasVirtualField("Author", typeof(User), "AuthorId")]
 	public partial class BlogPost : VersionedContent<uint>
 	{
 		/// <summary>

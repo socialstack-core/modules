@@ -34,11 +34,11 @@ namespace Api.Blogs
 			// A site has 1 blog unless configured otherwise.
 			var config = GetConfig<BlogServiceConfig>();
 
-			Events.BlogPost.BeforeSettable.AddEventListener((Context ctx, JsonField<BlogPost> field) => {
+			Events.BlogPost.BeforeSettable.AddEventListener((Context ctx, JsonField<BlogPost, uint> field) => {
 
 				if (field == null)
 				{
-					return new ValueTask<JsonField<BlogPost>>(field);
+					return new ValueTask<JsonField<BlogPost, uint>>(field);
 				}
 
 				if (field.Name == "BlogId" && !config.MultipleBlogs)
@@ -47,7 +47,7 @@ namespace Api.Blogs
 					field = null;
 				}
 
-				return new ValueTask<JsonField<BlogPost>>(field);
+				return new ValueTask<JsonField<BlogPost, uint>>(field);
 			});
 
 			InstallRoles(new Role() {
