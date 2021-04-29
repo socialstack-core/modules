@@ -5,6 +5,7 @@ using Api.Startup;
 using Api.Users;
 using MySql.Data.MySqlClient;
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Reflection;
 using System.Reflection.Emit;
@@ -18,6 +19,11 @@ namespace Api.Permissions{
 	public static partial class FilterFunctions
 	{
 		/// <summary>
+		/// The available methods
+		/// </summary>
+		private static ConcurrentDictionary<string, MethodInfo> _methods;
+
+		/// <summary>
 		/// Gets a filter function by its given lowercase name, or null if it wasn't found.
 		/// </summary>
 		/// <typeparam name="T"></typeparam>
@@ -28,24 +34,32 @@ namespace Api.Permissions{
 			where T : Content<ID>, new()
 			where ID : struct, IConvertible, IEquatable<ID>
 		{
-			if (name == "isself")
+			if (_methods == null)
 			{
-				return IsSelf;
-			}
-			else if (name == "hasuserpermit")
-			{
-				return HasUserPermit;
-			}
-			else if (name == "hasrolepermit")
-			{
-				return HasRolePermit;
-			}
-			else if (name == "hasfrom")
-			{
-				return HasFrom;
+				_methods = new ConcurrentDictionary<string, MethodInfo>();
+
+				// Get public static methods:
+				var set = typeof(FilterFunctions).GetMethods(BindingFlags.Public | BindingFlags.Static);
+
+				foreach (var method in set)
+				{
+					var mtdName = method.Name.ToLower();
+					if (mtdName == "get")
+					{
+						continue;
+					}
+					_methods[mtdName] = method;
+				}
 			}
 
-			return null;
+			if (!_methods.TryGetValue(name, out MethodInfo mtd))
+			{
+				return null;
+			}
+
+			mtd = mtd.MakeGenericMethod(typeof(T), typeof(ID));
+			var result = mtd.CreateDelegate<Func<MemberFilterTreeNode<T, ID>, FilterAst<T, ID>, FilterTreeNode<T, ID>>>();
+			return result;
 		}
 
 		/// <summary>
@@ -1218,6 +1232,8 @@ namespace Api.Permissions{
 			// If it's a virtual field, it's a set type.
 			if (member.Field.IsVirtual)
 			{
+				// Actual thing emitted is a collector pop + ID in set
+
 				#warning todo - filtering based on a virtual field
 				// close relative of FROM(..) as well.
 				throw new Exception("Not supported yet!");
