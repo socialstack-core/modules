@@ -815,6 +815,10 @@ namespace Api.Pages
 					node.With("id", bodyScript.Id);
 				}
 
+				if (bodyScript.DataAdClient != null)
+                {
+					node.With("data-ad-client", bodyScript.DataAdClient);
+                }
 				body.AppendChild(node);
 			}
 			
