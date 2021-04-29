@@ -4,6 +4,9 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Reflection;
 using Api.Permissions;
+using Api.SocketServerLibrary;
+using MySql.Data.MySqlClient;
+using Api.Contexts;
 
 namespace Api.Database
 {
@@ -35,11 +38,6 @@ namespace Api.Database
 		protected const int DELETE = 4;
 
 		/// <summary>
-		/// REPLACE queries.
-		/// </summary>
-		protected const int REPLACE = 5;
-
-		/// <summary>
 		/// INSERT .. SELECT queries.
 		/// </summary>
 		protected const int COPY = 6;
@@ -68,9 +66,9 @@ namespace Api.Database
 		public FieldTransferMap TransferMap;
 
 		/// <summary>
-		/// The WHERE filter on this query.
+		/// A custom WHERE .. part of this query.
 		/// </summary>
-		public Filter _where;
+		public string _where;
 
 		/// <summary>
 		/// Primary table type.
@@ -221,18 +219,369 @@ namespace Api.Database
 		}
 
 		/// <summary>
-		/// Builds the underlying query to run.
+		/// Builds the underlying query to run. QueryPair must be fully populated.
 		/// </summary>
-		public string GetQuery(Filter filter = null, bool bulk = false, uint localeId = 0, string localeCode = null, bool includeCount = false)
+		public void ApplyQuery<T,ID>(Context context, MySqlCommand cmd, QueryPair<T,ID> qP, bool bulk = false, uint localeId = 0, string localeCode = null, bool includeCount = false)
+			where T : Content<ID>, new()
+			where ID : struct, IConvertible, IEquatable<ID>
 		{
-			if (includeCount && (filter == null || Operation != SELECT))
+			var filterEmpty = qP.QueryA.Empty && qP.QueryB.Empty;
+
+			if (includeCount && (filterEmpty || Operation != SELECT))
 			{
 				throw new ArgumentException("You can only include the count on SELECT statements with a LIMIT.");
 				// Otherwise just use the result count.
 				// This check however exists to avoid a multitude of potential caching problems.
 			}
 
-			if (filter == null && !bulk)
+			if (filterEmpty && !bulk)
+			{
+				if (localeId < 2)
+				{
+					if (_query != null)
+					{
+						cmd.CommandText = _query;
+						return;
+					}
+				}
+				else if (_localisedQuery != null && _localisedQuery[localeId - 2] != null)
+				{
+					// The query is similar 
+					// except the fields typically have _localeCode on the end (e.g. _fr or _it).
+					cmd.CommandText = _localisedQuery[localeId - 2];
+					return;
+				}
+			}
+
+			var str = Writer.GetPooled();
+			str.Start(null);
+			int fromLocation = 0;
+
+			switch (Operation)
+			{
+				case SELECT:
+					str.WriteS("SELECT ");
+					// List of fields next!
+					for (var i = 0; i < Fields.Count; i++)
+					{
+						var field = Fields[i];
+						if (i != 0)
+						{
+							str.WriteS(", ");
+						}
+						if (localeCode == null || field.LocalisedName == null)
+						{
+							str.WriteS(field.FullName);
+						}
+						else if (Raw)
+						{
+							// Using this will result in a 'raw' object being returned.
+							str.WriteS(field.LocalisedName);
+							str.WriteS(localeCode);
+							str.Write((byte)'`');
+						}
+						else
+						{
+							// Of the form if(FIELD_locale is null,FIELD,FIELD_locale)");
+							str.WriteS("if(");
+							str.WriteS(field.LocalisedName);
+							str.WriteS(localeCode);
+							str.WriteS("` is null,");
+							str.WriteS(field.FullName);
+							str.Write((byte)',');
+							str.WriteS(field.LocalisedName);
+							str.WriteS(localeCode);
+							str.WriteS("`)");
+						}
+					}
+
+					fromLocation = str.Length;
+					str.WriteS(" FROM ");
+					str.WriteS(MainTableAs);
+					break;
+				case DELETE:
+					str.WriteS("DELETE `");
+					str.WriteS(MainTableType.Name);
+					str.WriteS("` FROM ");
+					str.WriteS(MainTableAs);
+
+					if (bulk)
+					{
+						str.WriteS("WHERE Id ");
+						var res = str.ToUTF8String();
+						str.Release();
+						cmd.CommandText = res;
+						return;
+					}
+					break;
+				case UPDATE:
+					str.WriteS("UPDATE ");
+					str.WriteS(MainTableAs);
+					str.WriteS(" SET ");
+
+					// List of parametric fields next!
+					for (var i = 0; i < Fields.Count; i++)
+					{
+						var field = Fields[i];
+						if (i != 0)
+						{
+							str.WriteS(", ");
+						}
+						if (localeCode == null || field.LocalisedName == null)
+						{
+							str.WriteS(field.FullName);
+						}
+						else
+						{
+							str.WriteS(field.LocalisedName);
+							str.WriteS(localeCode);
+							str.Write((byte)'`');
+						}
+						str.WriteS("=@p");
+						str.WriteS(i);
+					}
+
+					break;
+				case COPY:
+
+					// Insert..Select query.
+					str.WriteS("INSERT INTO ");
+					str.WriteS(TransferMap.TargetType.TableName());
+					if (TransferMap.TargetTypeNameExtension != null)
+					{
+						str.WriteS(TransferMap.TargetTypeNameExtension);
+					}
+					str.Write((byte)'(');
+
+					// List of field names next!
+					for (var i = 0; i < TransferMap.Transfers.Count; i++)
+					{
+						if (i != 0)
+						{
+							str.WriteS(", ");
+						}
+						str.Write((byte)'`');
+						str.WriteS(TransferMap.Transfers[i].To.Name);
+						str.Write((byte)'`');
+					}
+
+					str.WriteS(") SELECT ");
+
+					// List of fields next!
+					for (var i = 0; i < TransferMap.Transfers.Count; i++)
+					{
+						var transfer = TransferMap.Transfers[i];
+
+						if (i != 0)
+						{
+							str.WriteS(", ");
+						}
+
+						if (transfer.IsConstant)
+						{
+							if (transfer.Constant == null)
+							{
+								str.WriteS("NULL");
+							}
+							else if (transfer.Constant is string)
+							{
+								str.Write((byte)'"');
+								str.WriteS(MySql.Data.MySqlClient.MySqlHelper.EscapeString((string)transfer.Constant));
+								str.Write((byte)'"');
+							}
+							else
+							{
+								// True, false, int etc.
+								str.WriteS(transfer.Constant.ToString());
+							}
+							str.WriteS(" AS `");
+							str.WriteS(transfer.To.Name);
+							str.Write((byte)'`');
+						}
+						else
+						{
+							str.Write((byte)'`');
+							str.WriteS(transfer.From.Name);
+							str.WriteS("` AS `");
+							str.WriteS(transfer.To.Name);
+							str.Write((byte)'`');
+						}
+					}
+
+					str.WriteS(" FROM ");
+					str.WriteS(TransferMap.SourceType.TableName());
+					str.WriteS(" AS `");
+					str.WriteS(TransferMap.SourceType.Name);
+					str.Write((byte)'`');
+					if (TransferMap.SourceTypeNameExtension != null)
+					{
+						str.WriteS(TransferMap.SourceTypeNameExtension);
+					}
+
+					break;
+				case INSERT:
+					// Single or multiple row insert.
+					str.WriteS("INSERT INTO ");
+					str.WriteS(MainTable);
+					str.Write((byte)'(');
+
+					// List of field names next!
+					for (var i = 0; i < Fields.Count; i++)
+					{
+						if (i != 0)
+						{
+							str.WriteS(", ");
+						}
+						str.Write('`');
+						str.WriteS(Fields[i].Name);
+						str.Write((byte)'`');
+					}
+					if (bulk)
+					{
+						str.WriteS(") VALUES ");
+					}
+					else
+					{
+						str.WriteS(") VALUES (");
+						// And list the parameter set:
+						for (var i = 0; i < Fields.Count; i++)
+						{
+							if (i != 0)
+							{
+								str.WriteS(", ");
+							}
+							str.Write((byte)'?');
+						}
+						str.Write((byte)')');
+					}
+
+					if (_where != null || !filterEmpty)
+					{
+						throw new Exception("Where isn't permitted on insert statements");
+					}
+					break;
+			}
+
+			string result;
+
+			var firstACollector = qP.QueryA.FirstACollector;
+			var firstBCollector = qP.QueryA.FirstBCollector;
+
+			if (includeCount)
+			{
+				// SELECT .. FROM .. WHERE .. first:
+				if (!filterEmpty)
+				{
+					str.WriteS(" WHERE ");
+
+					if (!qP.QueryA.Empty)
+					{
+						qP.QueryA.BuildWhereQuery(cmd, str, firstACollector, localeCode, context, qP.QueryA);
+
+						if (!qP.QueryB.Empty)
+						{
+							str.WriteS(" AND ");
+						}
+					}
+
+					if (!qP.QueryB.Empty)
+					{
+						qP.QueryB.BuildWhereQuery(cmd, str, firstBCollector, localeCode, context, qP.QueryA);
+					}
+				}
+
+				// Bake to a string as we're mostly interested in the WHERE part:
+				var whereSegment = str.ToUTF8String();
+
+				// Clear the str builder and start constructing the next one:
+				str.Reset(null);
+				str.WriteS("SELECT COUNT(*) as Count ");
+				str.WriteS(whereSegment.Substring(fromLocation));
+				str.Write((byte)';');
+				str.WriteS(whereSegment);
+
+				// Limit/ sort only comes from QueryA:
+				qP.QueryA.BuildOrderLimitQuery(str, localeCode);
+
+				result = str.ToUTF8String();
+				str.Release();
+			}
+			else
+			{
+
+				if (!filterEmpty)
+				{
+					str.WriteS(" WHERE ");
+
+					if (!qP.QueryA.Empty)
+					{
+						qP.QueryA.BuildWhereQuery(cmd, str, firstACollector, localeCode, context, qP.QueryA);
+
+						if (!qP.QueryB.Empty)
+						{
+							str.WriteS(" AND ");
+						}
+					}
+
+					if (!qP.QueryB.Empty)
+					{
+						qP.QueryB.BuildWhereQuery(cmd, str, firstBCollector, localeCode, context, qP.QueryA);
+					}
+
+					// Limit/ sort only comes from QueryA:
+					qP.QueryA.BuildOrderLimitQuery(str, localeCode);
+				}
+				else if (_where != null)
+				{
+					str.WriteS(_where);
+				}
+
+				result = str.ToUTF8String();
+				str.Release();
+			}
+
+			if (!bulk && filterEmpty)
+			{
+				if (localeId < 2)
+				{
+					_query = result;
+				}
+				else
+				{
+					// Cache it in the localised set of strings:
+					var minSize = localeId + 5;
+					if (_localisedQuery == null)
+					{
+						_localisedQuery = new string[minSize];
+					}
+					else if (minSize > _localisedQuery.Length)
+					{
+						// Resize it:
+						var newLQ = new string[minSize];
+						Array.Copy(_localisedQuery, 0, newLQ, 0, _localisedQuery.Length);
+						_localisedQuery = newLQ;
+					}
+
+					_localisedQuery[localeId - 2] = result;
+				}
+			}
+
+			cmd.CommandText = result;
+		}
+		
+		/// <summary>
+		/// Builds the underlying query to run.
+		/// </summary>
+		public string GetQuery(bool bulk = false, uint localeId = 0, string localeCode = null, bool includeCount = false)
+		{
+			if (includeCount && Operation != SELECT)
+			{
+				throw new ArgumentException("You can only include the count on SELECT statements with a LIMIT.");
+				// Otherwise just use the result count.
+				// This check however exists to avoid a multitude of potential caching problems.
+			}
+
+			if (!bulk)
 			{
 				if (localeId < 2)
 				{
@@ -336,47 +685,6 @@ namespace Api.Database
 
 					paramOffset = Fields.Count;
 
-					break;
-				case REPLACE:
-					// Single or multiple row replace.
-					str.Append("REPLACE INTO ");
-					str.Append(MainTable);
-					str.Append('(');
-
-					// List of field names next!
-					for (var i = 0; i < Fields.Count; i++)
-					{
-						if (i != 0)
-						{
-							str.Append(", ");
-						}
-						str.Append('`');
-						str.Append(Fields[i].Name);
-						str.Append('`');
-					}
-					if (bulk)
-					{
-						str.Append(") VALUES ");
-					}
-					else
-					{
-						str.Append(") VALUES (");
-						// And list the parameter set:
-						for (var i = 0; i < Fields.Count; i++)
-						{
-							if (i != 0)
-							{
-								str.Append(", ");
-							}
-							str.Append('?');
-						}
-						str.Append(")");
-					}
-
-					if (_where != null || filter != null)
-					{
-						throw new Exception("Where isn't permitted on replace statements");
-					}
 					break;
 				case COPY:
 
@@ -486,7 +794,7 @@ namespace Api.Database
 						str.Append(")");
 					}
 
-					if (_where != null || filter != null)
+					if (_where != null)
 					{
 						throw new Exception("Where isn't permitted on insert statements");
 					}
@@ -494,40 +802,15 @@ namespace Api.Database
 			}
 
 			string result;
-
-			if (includeCount)
+			
+			if (_where != null)
 			{
-				// SELECT .. FROM .. WHERE .. first:
-				filter.BuildWhereQuery(str, paramOffset, localeCode);
-
-				// Bake to a string as we're mostly interested in the WHERE part:
-				var whereSegment = str.ToString();
-
-				// Clear the str builder and start constructing the next one:
-				str.Clear();
-				str.Append("SELECT COUNT(*) as Count ");
-				str.Append(whereSegment.Substring(fromLocation));
-				str.Append(';');
-				str.Append(whereSegment);
-				filter.BuildOrderLimitQuery(str, paramOffset, localeCode);
-				result = str.ToString();
-			}
-			else
-			{
-
-				if (filter != null)
-				{
-					filter.BuildFullQuery(str, paramOffset, localeCode);
-				}
-				else if (_where != null)
-				{
-					_where.BuildFullQuery(str, paramOffset, localeCode);
-				}
-
-				result = str.ToString();
+				str.Append(_where);
 			}
 
-			if (!bulk && filter == null)
+			result = str.ToString();
+
+			if (!bulk)
 			{
 				if (localeId < 2)
 				{
@@ -576,7 +859,7 @@ namespace Api.Database
 		public static Query Select(Type rowType)
 		{
 			var result = List(rowType);
-			result.Where().EqualsArg(rowType, "Id", 0);
+			result.Where("Id=@id");
 			return result;
 		}
 
@@ -601,28 +884,9 @@ namespace Api.Database
 		/// Start building a custom WHERE filter.
 		/// </summary>
 		/// <returns></returns>
-		public Filter Where()
+		public void Where(string where)
 		{
-			var result = new Filter(MainTableType);
-			_where = result;
-			return result;
-		}
-
-		/// <summary>
-		/// Generates a replace into rowType.TableName() (field,field..) values(?,?,?..) query.
-		/// Type should be a DatabaseRow derived type. The type of data that will be getting inserted.
-		/// </summary>
-		public static Query Replace(Type rowType)
-		{
-			var result = new Query(rowType)
-			{
-				Operation = REPLACE,
-
-				// Fields that we'll select are mapped ahead-of-time for rapid lookup speeds.
-				// Note that these maps aren't shared between queries so the fields can be removed etc from them.
-				Fields = new FieldMap(rowType)
-			};
-			return result;
+			_where = " WHERE " + where;
 		}
 
 		/// <summary>
@@ -696,7 +960,7 @@ namespace Api.Database
 			result.RemoveField("Id");
 
 			// Default where:
-			result.Where().EqualsArg(type, "Id", 0);
+			result.Where("Id=@id");
 			return result;
 		}
 
@@ -714,7 +978,7 @@ namespace Api.Database
 			result.SetMainTable(type);
 
 			// Default where:
-			result.Where().EqualsArg(type, "Id", 0);
+			result.Where("Id=@id");
 			return result;
 		}
 

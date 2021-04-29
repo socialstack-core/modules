@@ -55,70 +55,7 @@ namespace Api.Database
 			return MySql.Data.MySqlClient.MySqlHelper.EscapeString(text);
 		}
 		
-		/// <summary>
-		/// Gets the index information for the given type. Does not cache internally.
-		/// </summary>
-		public List<DatabaseIndexInfo> GetIndices(Type contentType){
 
-			var indexSet = new List<DatabaseIndexInfo>();
-
-			// For each public field, including inherited ones, look out for [DatabaseIndex]
-			// It can also be used on the type to declare multi-field indices.
-			var attributes = contentType.GetCustomAttributes(true);
-
-			// Get the field set:
-			var fields = contentType.GetFields();
-
-			foreach (var attrib in attributes)
-			{
-				if (attrib is DatabaseIndexAttribute attribute)
-				{
-					indexSet.Add(new DatabaseIndexInfo(attribute, contentType));
-				}
-			}
-
-			// For each field, get the db index attributes:
-			foreach (var field in fields)
-			{
-				var attribs = field.GetCustomAttributes(true);
-
-				foreach (var attrib in attribs)
-				{
-					if (attrib is DatabaseIndexAttribute attribute)
-					{
-						indexSet.Add(new DatabaseIndexInfo(attribute, field));
-					}
-				}
-
-			}
-
-			return indexSet;
-		}
-		
-		/// <summary>
-		/// A helper to generate a command object with the given arguments.
-		/// </summary>
-		/// <param name="connection">The connection to use.</param>
-		/// <param name="query">The query to run.</param>
-		/// <param name="args">The set of args to add.</param>
-		/// <returns></returns>
-		private static MySqlCommand CreateCommand(MySqlConnection connection, string query, object[] args)
-		{
-			var cmd = new MySqlCommand(query, connection);
-			MySqlParameter parameter;
-
-			if (args != null)
-			{
-				for (var i = 0; i < args.Length; i++)
-				{
-					parameter = cmd.CreateParameter();
-					parameter.ParameterName = "p" + i;
-					parameter.Value = args[i];
-					cmd.Parameters.Add(parameter);
-				}
-			}
-			return cmd;
-		}
 
 		/// <summary>
 		/// Builds an IN(x,y,z) string using the given value enumerator.
@@ -161,7 +98,7 @@ namespace Api.Database
 		{
 			using var connection = GetConnection();
 			await connection.OpenAsync();
-			var cmd = CreateCommand(connection, query, null);
+			var cmd = new MySqlCommand(query, connection);
 			return await cmd.ExecuteNonQueryAsync() > 0;
 		}
 
@@ -172,9 +109,8 @@ namespace Api.Database
 		/// <param name="context"></param>
 		/// <param name="q"></param>
 		/// <param name="idsToDelete"></param>
-		/// <param name="args"></param>
 		/// <returns></returns>
-		public async Task<bool> Run<T>(Context context, Query q, IEnumerable<uint> idsToDelete, params object[] args)
+		public async Task<bool> Run<T>(Context context, Query q, IEnumerable<uint> idsToDelete)
 		{
 			if (idsToDelete == null)
 			{
@@ -198,13 +134,13 @@ namespace Api.Database
 				}
 			}
 
-			var queryText = q.GetQuery(null, true, localeId, localeCode);
+			var queryText = q.GetQuery(true, localeId, localeCode);
 			var builder = new System.Text.StringBuilder();
 			builder.Append(queryText);
 			BuildInString(builder, idsToDelete);
 			using var connection = GetConnection();
 			await connection.OpenAsync();
-			var cmd = CreateCommand(connection, builder.ToString(), args);
+			var cmd = new MySqlCommand(builder.ToString(), connection);
 			return await cmd.ExecuteNonQueryAsync() > 0;
 		}
 
@@ -215,9 +151,8 @@ namespace Api.Database
 		/// <param name="context"></param>
 		/// <param name="q"></param>
 		/// <param name="toInsertSet"></param>
-		/// <param name="args"></param>
 		/// <returns></returns>
-		public async Task<bool> Run<T>(Context context, Query q, List<T> toInsertSet, params object[] args)
+		public async Task<bool> Run<T>(Context context, Query q, List<T> toInsertSet)
 		{
 			if (toInsertSet == null || toInsertSet.Count == 0)
 			{
@@ -238,7 +173,7 @@ namespace Api.Database
 				localeCode = locale?.Code;
 			}
 
-			var queryText = q.GetQuery(null, true, localeId, localeCode);
+			var queryText = q.GetQuery(true, localeId, localeCode);
 			var builder = new System.Text.StringBuilder();
 			builder.Append(queryText);
 
@@ -276,7 +211,7 @@ namespace Api.Database
 			// Result is the ID.
 			using var connection = GetConnection();
 			await connection.OpenAsync();
-			var cmd = CreateCommand(connection, builtQuery, args);
+			var cmd = new MySqlCommand(builtQuery, connection);
 			if (await cmd.ExecuteNonQueryAsync() > 0)
 			{
 				var id = cmd.LastInsertedId;
@@ -304,9 +239,11 @@ namespace Api.Database
 		/// <param name="context"></param>
 		/// <param name="q"></param>
 		/// <param name="srcObject"></param>
-		/// <param name="args"></param>
+		/// <param name="id"></param>
 		/// <returns></returns>
-		public async Task<bool> Run<T>(Context context, Query q, T srcObject, params object[] args) where T:class, new()
+		public async Task<bool> Run<T, ID>(Context context, Query q, T srcObject, ID? id = null)
+			where T:class, new()
+			where ID : struct, IConvertible, IEquatable<ID>
 		{
 			// UPDATE, DELETE and INSERT - Loop through each field in the query:
 			var fieldCount = q.Fields.Count;
@@ -336,18 +273,6 @@ namespace Api.Database
 				}
 			}
 			
-			// Note that the additional args are for custom WHERE params.
-			var argSet = new object[fieldCount + args.Length];
-
-			for (var i = 0; i < fieldCount; i++)
-			{
-				// Bind the field value:
-				argSet[i] = q.Fields[i].TargetField.GetValue(srcObject);
-			}
-			
-			// And copy in any other fields (the where args for updates):
-			Array.Copy(args, 0, argSet, fieldCount, args.Length);
-
 			uint localeId = 0;
 			string localeCode = null;
 			if (context != null && context.LocaleId > 1)
@@ -360,7 +285,24 @@ namespace Api.Database
 			// Run update:
 			using var connection = GetConnection();
 			await connection.OpenAsync();
-			var cmd = CreateCommand(connection, q.GetQuery(null, false, localeId, localeCode), argSet);
+			var cmd = new MySqlCommand(q.GetQuery(false, localeId, localeCode), connection);
+
+			for (var i = 0; i < fieldCount; i++)
+			{
+				var parameter = cmd.CreateParameter();
+				parameter.ParameterName = "p" + i;
+				parameter.Value = q.Fields[i].TargetField.GetValue(srcObject);
+				cmd.Parameters.Add(parameter);
+			}
+
+			if (id.HasValue)
+			{
+				var parameter = cmd.CreateParameter();
+				parameter.ParameterName = "id";
+				parameter.Value = id.Value;
+				cmd.Parameters.Add(parameter);
+			}
+
 			if (await cmd.ExecuteNonQueryAsync() > 0)
 			{
 				if (q.IdField != null)
@@ -379,14 +321,14 @@ namespace Api.Database
 		}
 
 		/// <summary>
-		/// Runs the given query using the given arguments to bind.
+		/// Runs the given query using the given ID arg to bind.
 		/// Does not return any values other than a true/ false if it succeeded.
 		/// </summary>
 		/// <param name="context"></param>
 		/// <param name="q"></param>
-		/// <param name="args"></param>
+		/// <param name="id"></param>
 		/// <returns></returns>
-		public async Task<bool> Run(Context context, Query q, params object[] args)
+		public async Task<bool> RunWithId<ID>(Context context, Query q, ID id)
 		{
 			uint localeId = 0;
 			string localeCode = null;
@@ -400,33 +342,13 @@ namespace Api.Database
 			// Run update:
 			using var connection = GetConnection();
 			await connection.OpenAsync();
-			var cmd = CreateCommand(connection, q.GetQuery(null, false, localeId, localeCode), args);
-			return (await cmd.ExecuteNonQueryAsync() > 0);
-		}
+			var cmd = new MySqlCommand(q.GetQuery(false, localeId, localeCode), connection);
 
-		/// <summary>
-		/// Runs the given query using the given arguments to bind.
-		/// Does not return any values other than a true/ false if it succeeded.
-		/// </summary>
-		/// <param name="context"></param>
-		/// <param name="q"></param>
-		/// <param name="args"></param>
-		/// <returns></returns>
-		public async Task<bool> Run<T>(Context context, Query q, params object[] args)
-		{
-			uint localeId = 0;
-			string localeCode = null;
-			if (context != null && context.LocaleId > 1)
-			{
-				localeId = context.LocaleId;
-				var locale = (Locales != null && localeId <= Locales.Length ? Locales[localeId - 1] : null);
-				localeCode = locale?.Code;
-			}
+			var parameter = cmd.CreateParameter();
+			parameter.ParameterName = "id";
+			parameter.Value = id;
+			cmd.Parameters.Add(parameter);
 
-			// Run update:
-			using var connection = GetConnection();
-			await connection.OpenAsync();
-			var cmd = CreateCommand(connection, q.GetQuery(null, false, localeId, localeCode), args);
 			return (await cmd.ExecuteNonQueryAsync() > 0);
 		}
 
@@ -435,11 +357,12 @@ namespace Api.Database
 		/// </summary>
 		/// <param name="context"></param>
 		/// <typeparam name="T"></typeparam>
+		/// <typeparam name="ID"></typeparam>
 		/// <param name="q"></param>
 		/// <param name="instanceType">The type to instantiate</param>
-		/// <param name="args"></param>
+		/// <param name="id"></param>
 		/// <returns></returns>
-		public async Task<T> Select<T>(Context context, Query q, Type instanceType, params object[] args) where T:new()
+		public async Task<T> Select<T, ID>(Context context, Query q, Type instanceType, ID id) where T:new()
 		{
 			// Only SELECT comes through here.
 			// This is almost exactly the same as GetRow 
@@ -456,8 +379,13 @@ namespace Api.Database
 
 			using var connection = GetConnection();
 			await connection.OpenAsync();
-			var qryString = q.GetQuery(null, false, localeId, localeCode);
-			var cmd = CreateCommand(connection, qryString, args);
+			var qryString = q.GetQuery(false, localeId, localeCode);
+			var cmd = new MySqlCommand(qryString, connection);
+
+			var parameter = cmd.CreateParameter();
+			parameter.ParameterName = "id";
+			parameter.Value = id;
+			cmd.Parameters.Add(parameter);
 
 			using var reader = await cmd.ExecuteReaderAsync();
 			if (!await reader.ReadAsync())
@@ -496,22 +424,22 @@ namespace Api.Database
 		}
 
 		/// <summary>
-		/// Runs the given query with the given args to bind. Returns the results mapped as the given object, along with the total number of results.
+		/// Gets a list of results from the cache, calling the given callback each time one is discovered.
 		/// </summary>
 		/// <param name="context"></param>
-		/// <typeparam name="T"></typeparam>
+		/// <param name="queryPair">Both filterA and filterB must have values.</param>
+		/// <param name="onResult"></param>
+		/// <param name="srcA"></param>
+		/// <param name="srcB"></param>
+		/// <param name="instanceType"></param>
 		/// <param name="q"></param>
-		/// <param name="filter">
-		/// A runtime filter to apply to the query. It's the same as WHERE.
-		/// These filters often handle permission based filtering. 
-		/// Pass it to Capability.IsGranted to have that happen automatically.</param>
-		/// <param name="instanceType">The type to instantiate</param>
-		/// <param name="args"></param>
-		/// <returns></returns>
-		public async Task<ListWithTotal<T>> ListWithTotal<T>(Context context, Query q, Filter filter, Type instanceType, params object[] args) where T : new()
+		public async ValueTask<int> GetResults<T, ID>(
+			Context context, QueryPair<T, ID> queryPair, Func<Context, T, int, object, object, ValueTask> onResult,
+			object srcA, object srcB, Type instanceType, Query q
+		)
+			where T : Content<ID>, new()
+			where ID : struct, IConvertible, IEquatable<ID>
 		{
-			var results = new List<T>();
-
 			uint localeId = 0;
 			string localeCode = null;
 			if (context != null && context.LocaleId > 1)
@@ -521,65 +449,23 @@ namespace Api.Database
 				localeCode = locale?.Code;
 			}
 
-			bool paginationActive = filter != null && filter.PageSize != 0;
-			int? total = 0;
+			var includeTotal = queryPair.QueryA == null ? false : queryPair.QueryA.IncludeTotal;
+
+			int total = 0;
 
 			using (var connection = GetConnection())
 			{
 				await connection.OpenAsync();
 
+				var cmd = new MySqlCommand();
+				cmd.Connection = connection;
+				
 				// When pagination is active and a total has to be calculated separately, qryText is actually a comma separated double query.
-				var qryText = q.GetQuery(filter, false, localeId, localeCode, paginationActive);
-
-				MySqlCommand cmd;
-
-				// If the filter has additional value resolvers..
-				if (filter != null && filter.ParamValueResolvers != null)
-				{
-					// This means the filter wants some additional values to be calculated when it's called.
-					// So, go ahead and invoke that now:
-					cmd = new MySqlCommand(qryText, connection);
-					MySqlParameter parameter;
-
-					for (var i = 0; i < filter.ParamValueResolvers.Count; i++)
-					{
-						var valueResolver = filter.ParamValueResolvers[i];
-
-						parameter = cmd.CreateParameter();
-						parameter.ParameterName = "v" + valueResolver.ParamId;
-						cmd.Parameters.Add(parameter);
-
-						if (valueResolver != null)
-						{
-							if (valueResolver.UintMethod != null)
-							{
-								parameter.Value = await valueResolver.UintMethod(context);
-							}
-							else
-							{
-								parameter.Value = await valueResolver.Method(context);
-							}
-						}
-					}
-
-					if (args != null)
-					{
-						for (var i = 0; i < args.Length; i++)
-						{
-							parameter = cmd.CreateParameter();
-							parameter.ParameterName = "p" + i;
-							parameter.Value = args[i];
-							cmd.Parameters.Add(parameter);
-						}
-					}
-				}
-				else
-				{
-					cmd = CreateCommand(connection, qryText, args);
-				}
+				q.ApplyQuery(context, cmd, queryPair, false, localeId, localeCode, includeTotal);
 
 				using var reader = await cmd.ExecuteReaderAsync();
-				if (paginationActive)
+
+				if (includeTotal)
 				{
 					await reader.ReadAsync();
 					var count = (long)reader.GetValue(0);
@@ -587,6 +473,8 @@ namespace Api.Database
 
 					await reader.NextResultAsync();
 				}
+
+				var index = 0;
 
 				while (await reader.ReadAsync())
 				{
@@ -617,38 +505,25 @@ namespace Api.Database
 						}
 					}
 
-					results.Add((T)result);
+					await onResult(context, (T)result, index, srcA, srcB);
+					index++;
 				}
 			}
 
-			if (!paginationActive)
-			{
-				total = results.Count;
-			}
-
-			return new ListWithTotal<T>() {
-				Results = results,
-				Total = total
-			};
+			return total;
 		}
-
+		
 		/// <summary>
 		/// Runs the given query with the given args to bind. Returns the results mapped as a list of the given type.
 		/// </summary>
 		/// <param name="context"></param>
 		/// <typeparam name="T"></typeparam>
 		/// <param name="q"></param>
-		/// <param name="filter">
-		/// A runtime filter to apply to the query. It's the same as WHERE.
-		/// These filters often handle permission based filtering. 
-		/// Pass it to Capability.IsGranted to have that happen automatically.</param>
 		/// <param name="instanceType">The type to instantiate</param>
-		/// <param name="args"></param>
 		/// <returns></returns>
-		public async Task<List<T>> List<T>(Context context, Query q, Filter filter, Type instanceType, params object[] args) where T : new()
+		public async Task<List<T>> List<T>(Context context, Query q, Type instanceType) where T : new()
 		{
 			var results = new List<T>();
-
 			uint localeId = 0;
 			string localeCode = null;
 			if (context != null && context.LocaleId > 1)
@@ -668,54 +543,9 @@ namespace Api.Database
 			using (var connection = GetConnection())
 			{
 				await connection.OpenAsync();
-				var qryText = q.GetQuery(filter, false, localeId, localeCode);
+				var qryText = q.GetQuery(false, localeId, localeCode);
 
-				MySqlCommand cmd;
-
-				// If the filter has additional value resolvers..
-				if (filter != null && filter.ParamValueResolvers != null)
-				{
-					// This means the filter wants some additional values to be calculated when it's called.
-					// So, go ahead and invoke that now:
-					cmd = new MySqlCommand(qryText, connection);
-					MySqlParameter parameter;
-
-					for (var i = 0; i < filter.ParamValueResolvers.Count; i++)
-					{
-						var valueResolver = filter.ParamValueResolvers[i];
-						
-						parameter = cmd.CreateParameter();
-						parameter.ParameterName = "v" + valueResolver.ParamId;
-						cmd.Parameters.Add(parameter);
-
-						if (valueResolver != null)
-						{
-							if (valueResolver.UintMethod != null)
-							{
-								parameter.Value = await valueResolver.UintMethod(context);
-							}
-							else
-							{
-								parameter.Value = await valueResolver.Method(context);
-							}
-						}
-					}
-
-					if (args != null)
-					{
-						for (var i = 0; i < args.Length; i++)
-						{
-							parameter = cmd.CreateParameter();
-							parameter.ParameterName = "p" + i;
-							parameter.Value = args[i];
-							cmd.Parameters.Add(parameter);
-						}
-					}
-				}
-				else
-				{
-					cmd = CreateCommand(connection, qryText, args);
-				}
+				MySqlCommand cmd = new MySqlCommand(qryText, connection);
 
 				using var reader = await cmd.ExecuteReaderAsync();
 				while (await reader.ReadAsync())

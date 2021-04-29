@@ -1,0 +1,466 @@
+using Api.Contexts;
+using Api.Database;
+using Api.SocketServerLibrary;
+using Api.Startup;
+using MySql.Data.MySqlClient;
+using System;
+using System.Collections.Generic;
+using System.Reflection;
+using System.Reflection.Emit;
+using System.Text;
+
+namespace Api.Permissions{
+
+	/// <summary>
+	/// A tree of parsed filter nodes.
+	/// </summary>
+	public partial class FilterAst<T, ID>
+		where T : Content<ID>, new()
+		where ID : struct, IConvertible, IEquatable<ID>
+	{
+		/// <summary>
+		/// Steps through this tree, building an SQL-format where query. Very similar to how it actually starts out.
+		/// Note that if it encounters an array node, it will immediately resolve the value using values stored in the given filter instance.
+		/// </summary>
+		/// <param name="cmd"></param>
+		/// <param name="writer"></param>
+		/// <param name="collectors"></param>
+		/// <param name="localeCode"></param>
+		/// <param name="filter"></param>
+		/// <param name="context"></param>
+		public void ToSql(MySqlCommand cmd, Writer writer, ref IDCollector collectors, string localeCode, Filter<T, ID> filter, Context context)
+		{
+			if (Root != null)
+			{
+				Root.ToSql(cmd, writer, ref collectors, localeCode, filter, context);
+			}
+		}
+	}
+
+	/// <summary>
+	/// Base tree node
+	/// </summary>
+	public partial class FilterTreeNode<T, ID>
+		where T : Content<ID>, new()
+		where ID : struct, IConvertible, IEquatable<ID>
+	{
+		/// <summary>
+		/// Steps through this tree, building an SQL-format where query. Very similar to how it actually starts out.
+		/// Note that if it encounters an array node, it will immediately resolve the value using values stored in the given filter instance.
+		/// </summary>
+		/// <param name="cmd"></param>
+		/// <param name="writer"></param>
+		/// <param name="collectors"></param>
+		/// <param name="localeCode"></param>
+		/// <param name="filter"></param>
+		/// <param name="context"></param>
+		public virtual void ToSql(MySqlCommand cmd, Writer writer, ref IDCollector collectors, string localeCode, Filter<T, ID> filter, Context context)
+		{
+		}
+	}
+
+	/// <summary>
+	/// 
+	/// </summary>
+	public partial class OpFilterTreeNode<T, ID> : FilterTreeNode<T, ID>
+		where T : Content<ID>, new()
+		where ID : struct, IConvertible, IEquatable<ID>
+	{
+		/// <summary>
+		/// Steps through this tree, building an SQL-format where query. Very similar to how it actually starts out.
+		/// Note that if it encounters an array node, it will immediately resolve the value using values stored in the given filter instance.
+		/// </summary>
+		/// <param name="cmd"></param>
+		/// <param name="writer"></param>
+		/// <param name="collectors"></param>
+		/// <param name="localeCode"></param>
+		/// <param name="filter"></param>
+		/// <param name="context"></param>
+		public override void ToSql(MySqlCommand cmd, Writer writer, ref IDCollector collectors, string localeCode, Filter<T, ID> filter, Context context)
+		{
+			if (Operation == "not")
+			{
+				writer.WriteS(" not (");
+				A.ToSql(cmd, writer, ref collectors, localeCode, filter, context);
+				writer.Write((byte)')');
+				return;
+			}
+
+			if (Operation == "and" || Operation == "&&" || Operation == "or" || Operation == "||")
+			{
+				writer.Write((byte)'(');
+				A.ToSql(cmd, writer, ref collectors, localeCode, filter, context);
+				writer.Write((byte)' ');
+				writer.WriteS(Operation);
+				writer.Write((byte)' ');
+				B.ToSql(cmd, writer, ref collectors, localeCode, filter, context);
+				writer.Write((byte)')');
+			}
+			else if (Operation == "=")
+			{
+				// Special case if RHS is either null or an array.
+				A.ToSql(cmd, writer, ref collectors, localeCode, filter, context);
+
+				if (B is NullFilterTreeNode<T, ID>)
+				{
+					// Null has a special "is null" syntax:
+					writer.WriteASCII(" IS NULL");
+				}
+				else if (B is ArgFilterTreeNode<T, ID> arg && arg.Array)
+				{
+					// It'll output an IN(..) statement. Don't include the =.
+					writer.Write((byte)' ');
+					B.ToSql(cmd, writer, ref collectors, localeCode, filter, context);
+				}
+				else
+				{
+					// Regular field op
+					writer.WriteS(Operation);
+					B.ToSql(cmd, writer, ref collectors, localeCode, filter, context);
+				}
+			}
+			else if (Operation == "!=")
+			{
+				// Special case if RHS is either null or an array.
+				A.ToSql(cmd, writer, ref collectors, localeCode, filter, context);
+
+				if (B is NullFilterTreeNode<T, ID>)
+				{
+					// Null has a special "is not null" syntax:
+					writer.WriteASCII(" IS NOT NULL");
+				}
+				else if (B is ArgFilterTreeNode<T, ID> arg && arg.Array)
+				{
+					// It'll output an IN(..) statement. we need a NOT infront:
+					writer.WriteASCII(" NOT ");
+					B.ToSql(cmd, writer, ref collectors, localeCode, filter, context);
+				}
+				else
+				{
+					// Regular field op
+					writer.WriteS(Operation);
+					B.ToSql(cmd, writer, ref collectors, localeCode, filter, context);
+				}
+			}
+			else if (Operation == ">=" || Operation == ">" || Operation == "<" || Operation == "<=")
+			{
+				// Field op
+				A.ToSql(cmd, writer, ref collectors, localeCode, filter, context);
+				writer.WriteS(Operation);
+				B.ToSql(cmd, writer, ref collectors, localeCode, filter, context);
+			}
+			else if (Operation == "startswith")
+			{
+				// Starts with. Like has equal performance to INSTR, 
+				// but like gains the lead considerably when the column is indexed, so like it is.
+				A.ToSql(cmd, writer, ref collectors, localeCode, filter, context);
+				writer.WriteS(" like concat('%', ");
+				B.ToSql(cmd, writer, ref collectors, localeCode, filter, context);
+				writer.WriteS(")");
+			}
+			else if (Operation == "endswith")
+			{
+				// Ends with. Can only perform a like here:
+				A.ToSql(cmd, writer, ref collectors, localeCode, filter, context);
+				writer.WriteS(" like concat(");
+				B.ToSql(cmd, writer, ref collectors, localeCode, filter, context);
+				writer.WriteS(", '%')");
+			}
+			else if (Operation == "contains")
+			{
+				// Contains. Uses INSTR to avoid % in args as much as possible.
+				writer.WriteS("instr(");
+				A.ToSql(cmd, writer, ref collectors, localeCode, filter, context);
+				writer.Write((byte)',');
+				B.ToSql(cmd, writer, ref collectors, localeCode, filter, context);
+				writer.WriteS(")!=0");
+			}
+			else
+			{
+				throw new Exception("Not supported via MySQL yet: " + Operation);
+			}
+		}
+	}
+
+	/// <summary>
+	/// 
+	/// </summary>
+	public partial class MemberFilterTreeNode<T, ID> : FilterTreeNode<T, ID>
+		where T : Content<ID>, new()
+		where ID : struct, IConvertible, IEquatable<ID>
+	{
+		/// <summary>
+		/// Steps through this tree, building an SQL-format where query. Very similar to how it actually starts out.
+		/// Note that if it encounters an array node, it will immediately resolve the value using values stored in the given filter instance.
+		/// </summary>
+		/// <param name="cmd"></param>
+		/// <param name="writer"></param>
+		/// <param name="collectors"></param>
+		/// <param name="localeCode"></param>
+		/// <param name="filter"></param>
+		/// <param name="context"></param>
+		public override void ToSql(MySqlCommand cmd, Writer writer, ref IDCollector collectors, string localeCode, Filter<T, ID> filter, Context context)
+		{
+			if (OnContext)
+			{
+				// Uses an arg.
+				var name = "@a" + cmd.Parameters.Count;
+				var parameter = cmd.CreateParameter();
+				parameter.ParameterName = name;
+				parameter.Value = ContextField.PrivateFieldInfo.GetValue(context);
+				writer.WriteASCII(name);
+				cmd.Parameters.Add(parameter);
+			}
+			else
+			{
+				// Regular field.
+				writer.Write((byte)'`');
+				writer.WriteS(Field.FieldInfo.Name);
+
+				if (Field.Localised && localeCode != null)
+				{
+					writer.Write((byte)'_');
+					writer.WriteS(localeCode);
+				}
+
+				writer.Write((byte)'`');
+			}
+		}
+	}
+
+
+	/// <summary>
+	/// A from(..) tree node.
+	/// </summary>
+	public partial class FromFilterTreeNode<T, ID> : FilterTreeNode<T, ID>
+		where T : Content<ID>, new()
+		where ID : struct, IConvertible, IEquatable<ID>
+	{
+		/// <summary>
+		/// The type name.
+		/// </summary>
+		public string Type;
+		/// <summary>
+		/// The map name. If null, it uses the primary mapping for the given type.
+		/// </summary>
+		public string MapName;
+		
+		/// <summary>
+		/// True if the node has an on statement.
+		/// Most nodes return false - only and will accept one as a child.
+		/// </summary>
+		/// <returns></returns>
+		public override bool HasFrom()
+		{
+			return true;
+		}
+	}
+
+	/// <summary>
+	/// 
+	/// </summary>
+	public partial class HasFromFilterTreeNode<T, ID> : FilterTreeNode<T, ID>
+		where T : Content<ID>, new()
+		where ID : struct, IConvertible, IEquatable<ID>
+	{
+		/// <summary>
+		/// Steps through this tree, building an SQL-format where query. Very similar to how it actually starts out.
+		/// Note that if it encounters an array node, it will immediately resolve the value using values stored in the given filter instance.
+		/// </summary>
+		/// <param name="cmd"></param>
+		/// <param name="writer"></param>
+		/// <param name="collectors"></param>
+		/// <param name="localeCode"></param>
+		/// <param name="filter"></param>
+		/// <param name="context"></param>
+		public override void ToSql(MySqlCommand cmd, Writer writer, ref IDCollector collectors, string localeCode, Filter<T, ID> filter, Context context)
+		{
+			if (filter.HasFrom)
+			{
+				writer.WriteS("true");
+			}
+			else
+			{
+				writer.WriteS("false");
+			}
+		}
+
+	}
+	
+	/// <summary>
+	/// 
+	/// </summary>
+	public partial class StringFilterTreeNode<T, ID> : ConstFilterTreeNode<T, ID>
+		where T : Content<ID>, new()
+		where ID : struct, IConvertible, IEquatable<ID>
+	{
+		/// <summary>
+		/// Steps through this tree, building an SQL-format where query. Very similar to how it actually starts out.
+		/// Note that if it encounters an array node, it will immediately resolve the value using values stored in the given filter instance.
+		/// </summary>
+		/// <param name="cmd"></param>
+		/// <param name="writer"></param>
+		/// <param name="collectors"></param>
+		/// <param name="localeCode"></param>
+		/// <param name="filter"></param>
+		/// <param name="context"></param>
+		public override void ToSql(MySqlCommand cmd, Writer writer, ref IDCollector collectors, string localeCode, Filter<T, ID> filter, Context context)
+		{
+			if (Value == null)
+			{
+				writer.WriteS("null");
+			}
+			else
+			{
+				writer.WriteEscaped(Value);
+			}
+		}
+	}
+
+	/// <summary>
+	/// 
+	/// </summary>
+	public partial class NumberFilterTreeNode<T, ID> : ConstFilterTreeNode<T, ID>
+		where T : Content<ID>, new()
+		where ID : struct, IConvertible, IEquatable<ID>
+	{
+		/// <summary>
+		/// Steps through this tree, building an SQL-format where query. Very similar to how it actually starts out.
+		/// Note that if it encounters an array node, it will immediately resolve the value using values stored in the given filter instance.
+		/// </summary>
+		/// <param name="cmd"></param>
+		/// <param name="writer"></param>
+		/// <param name="collectors"></param>
+		/// <param name="localeCode"></param>
+		/// <param name="filter"></param>
+		/// <param name="context"></param>
+		public override void ToSql(MySqlCommand cmd, Writer writer, ref IDCollector collectors, string localeCode, Filter<T, ID> filter, Context context)
+		{
+			writer.WriteS(Value);
+		}
+
+	}
+
+	/// <summary>
+	/// 
+	/// </summary>
+	public partial class DecimalFilterTreeNode<T, ID> : ConstFilterTreeNode<T, ID>
+		where T : Content<ID>, new()
+		where ID : struct, IConvertible, IEquatable<ID>
+	{
+		/// <summary>
+		/// Steps through this tree, building an SQL-format where query. Very similar to how it actually starts out.
+		/// Note that if it encounters an array node, it will immediately resolve the value using values stored in the given filter instance.
+		/// </summary>
+		/// <param name="cmd"></param>
+		/// <param name="writer"></param>
+		/// <param name="collectors"></param>
+		/// <param name="localeCode"></param>
+		/// <param name="filter"></param>
+		/// <param name="context"></param>
+		public override void ToSql(MySqlCommand cmd, Writer writer, ref IDCollector collectors, string localeCode, Filter<T, ID> filter, Context context)
+		{
+			writer.WriteASCII(Value.ToString());
+		}
+
+	}
+
+	/// <summary>
+	/// 
+	/// </summary>
+	public partial class BoolFilterTreeNode<T, ID> : ConstFilterTreeNode<T, ID>
+		where T : Content<ID>, new()
+		where ID : struct, IConvertible, IEquatable<ID>
+	{
+		/// <summary>
+		/// Steps through this tree, building an SQL-format where query. Very similar to how it actually starts out.
+		/// Note that if it encounters an array node, it will immediately resolve the value using values stored in the given filter instance.
+		/// </summary>
+		/// <param name="cmd"></param>
+		/// <param name="writer"></param>
+		/// <param name="collectors"></param>
+		/// <param name="localeCode"></param>
+		/// <param name="filter"></param>
+		/// <param name="context"></param>
+		public override void ToSql(MySqlCommand cmd, Writer writer, ref IDCollector collectors, string localeCode, Filter<T, ID> filter, Context context)
+		{
+			writer.WriteASCII(Value ? "true" : "false");
+		}
+	}
+
+	/// <summary>
+	/// 
+	/// </summary>
+	public partial class NullFilterTreeNode<T, ID> : ConstFilterTreeNode<T, ID>
+		where T : Content<ID>, new()
+		where ID : struct, IConvertible, IEquatable<ID>
+	{
+		/// <summary>
+		/// Steps through this tree, building an SQL-format where query. Very similar to how it actually starts out.
+		/// Note that if it encounters an array node, it will immediately resolve the value using values stored in the given filter instance.
+		/// </summary>
+		/// <param name="cmd"></param>
+		/// <param name="writer"></param>
+		/// <param name="collectors"></param>
+		/// <param name="localeCode"></param>
+		/// <param name="filter"></param>
+		/// <param name="context"></param>
+		public override void ToSql(MySqlCommand cmd, Writer writer, ref IDCollector collectors, string localeCode, Filter<T, ID> filter, Context context)
+		{
+			writer.WriteASCII("null");
+		}
+	}
+
+	/// <summary>
+	/// 
+	/// </summary>
+	public partial class ArgFilterTreeNode<T, ID> : ConstFilterTreeNode<T, ID>
+		where T : Content<ID>, new()
+		where ID : struct, IConvertible, IEquatable<ID>
+	{
+		/// <summary>
+		/// A generator for making IN(..) strings for arrays.
+		/// </summary>
+		private InStringGenerator _generator;
+
+		/// <summary>
+		/// Steps through this tree, building an SQL-format where query. Very similar to how it actually starts out.
+		/// Note that if it encounters an array node, it will immediately resolve the value using values stored in the given filter instance.
+		/// </summary>
+		/// <param name="cmd"></param>
+		/// <param name="writer"></param>
+		/// <param name="collectors"></param>
+		/// <param name="localeCode"></param>
+		/// <param name="filter"></param>
+		/// <param name="context"></param>
+		public override void ToSql(MySqlCommand cmd, Writer writer, ref IDCollector collectors, string localeCode, Filter<T, ID> filter, Context context)
+		{
+			if (Array)
+			{
+				if (_generator == null)
+				{
+					_generator = InStringGenerator.Get(Binding.ArgType);
+
+					if (_generator == null)
+					{
+						// Can't use this type as an enumerable array
+						throw new Exception("Attempted to use a field value that isn't supported for an array argument in a filter. It was a " + Binding.ArgType.Name);
+					}
+				}
+
+				writer.WriteASCII("IN(");
+				_generator.Generate(writer, Binding.ConstructedField.GetValue(filter));
+				writer.Write((byte)')');
+			}
+			else
+			{
+				var name = "@a" + cmd.Parameters.Count;
+				var parameter = cmd.CreateParameter();
+				parameter.ParameterName = name;
+				parameter.Value = Binding.ConstructedField.GetValue(filter);
+				writer.WriteASCII(name);
+				cmd.Parameters.Add(parameter);
+			}
+		}
+	}
+}

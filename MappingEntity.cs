@@ -65,6 +65,9 @@ namespace Api.Database
 			get {
 				return default(S);
 			}
+			set {
+				
+			}
 		}
 
 		/// <summary>
@@ -75,6 +78,10 @@ namespace Api.Database
 			get
 			{
 				return default(T);
+			}
+			set
+			{
+
 			}
 		}
 
