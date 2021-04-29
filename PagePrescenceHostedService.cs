@@ -42,7 +42,12 @@ namespace Api.Presence
             if (service != null)
             {
                 var context = new Context();
-                var priorServerEntries = await service.List(context, new Filter<PagePresenceRecord>().Equals("ServerId", service.ServerId).And().LessThan("EditedUtc" , DateTime.UtcNow.AddMinutes(5)), DataOptions.IgnorePermissions);
+                
+                var priorServerEntries = await service
+                    .Where("ServerId=? and EditedUtc<?", DataOptions.IgnorePermissions)
+                    .Bind(service.ServerId)
+                    .Bind(DateTime.UtcNow.AddMinutes(5))
+                    .ListAll(context);
 
                 foreach (var entry in priorServerEntries)
                 {
