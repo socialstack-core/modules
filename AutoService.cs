@@ -1,6 +1,7 @@
 ﻿using Api.Contexts;
 using Api.Database;
 using Api.Permissions;
+using Api.Revisions;
 using Api.Startup;
 using Api.Users;
 using System;
@@ -17,36 +18,6 @@ using System.Threading.Tasks;
 /// </summary>
 public partial class AutoService<T, ID>{
 	
-	/// <summary>
-	/// A query which deletes 1 entity revision.
-	/// </summary>
-	protected Query revisionDeleteQuery;
-
-	/// <summary>
-	/// A query which creates 1 entity revision.
-	/// </summary>
-	protected Query revisionCreateQuery;
-
-	/// <summary>
-	/// A query which selects 1 entity revision.
-	/// </summary>
-	protected Query revisionSelectQuery;
-
-	/// <summary>
-	/// A query which lists multiple revisions.
-	/// </summary>
-	protected Query revisionListQuery;
-
-	/// <summary>
-	/// A query which updates 1 entity revision.
-	/// </summary>
-	protected Query revisionUpdateQuery;
-
-	/// <summary>
-	/// A query which clears draft state for any existing revisions of a particular content.
-	/// </summary>
-	protected Query clearDraftStateQuery;
-
 	/// <summary>
 	/// True if this type supports revisions.
 	/// </summary>
@@ -67,256 +38,33 @@ public partial class AutoService<T, ID>{
 		return _isRevisionType.Value;
 	}
 
-	/// <summary>Sets up the revision queries.</summary>
-	private void SetupRevisionQueries()
-	{
-		var tableName = typeof(T).TableName() + "_revisions";
-		
-		revisionDeleteQuery = Query.Delete(InstanceType).SetMainTableName(tableName);
-		revisionCreateQuery = Query.Insert(InstanceType).SetMainTableName(tableName);
-		revisionUpdateQuery = Query.Update(InstanceType).SetMainTableName(tableName);
-		revisionSelectQuery = Query.Select(InstanceType).SetMainTableName(tableName);
-		revisionListQuery = Query.List(InstanceType).SetMainTableName(tableName);
-		
-		clearDraftStateQuery = Query.Update(InstanceType).SetMainTableName(tableName);
-		SetRevisionColumns(clearDraftStateQuery);
-		clearDraftStateQuery.RemoveAllBut("RevisionIsDraft");
-		clearDraftStateQuery.Where().Equals(InstanceType, "IsDraft", 1).And().EqualsArg(InstanceType, "RevisionOriginalContentId", 0);
-
-		SetRevisionColumns(revisionCreateQuery);
-		SetRevisionColumns(revisionUpdateQuery);
-		SetRevisionColumns(revisionSelectQuery);
-		SetRevisionColumns(revisionListQuery);
-	}
-	
-	/// <summary>
-	/// Remaps some of the query fields such that they correctly direct data to and from the entity fields/ database columns.
-	/// </summary>
-	private static void SetRevisionColumns(Query query){
-		
-		var revisionIdField = typeof(VersionedContent<ID>).GetField("_RevisionId", BindingFlags.Instance | BindingFlags.NonPublic);
-		var idField = typeof(T).GetField("Id");
-		
-		// Remap the ID column, because the Id column in the database goes to the RevisionId field always.
-		query.IdField = revisionIdField;
-		
-		var contentIdField = query.GetField("Id");
-		if (contentIdField != null)
-		{
-			contentIdField.TargetField = revisionIdField;
-		}
-
-		// Include hidden draft field:
-		var isDraftField = typeof(VersionedContent<ID>).GetField("_IsDraft", BindingFlags.Instance | BindingFlags.NonPublic);
-		query.AddField(new Field(typeof(T), isDraftField, "RevisionIsDraft"));
-		
-		// Similarly the actual Id field on the entity goes to the column called RevisionOriginalContentId:
-		query.AddField(new Field(typeof(T), idField, "RevisionOriginalContentId"));
-	}
-	
-	/// <summary>
-	/// Deletes an entity revision by its ID.
-	/// Optionally includes uploaded content refs in there too.
-	/// </summary>
-	/// <returns></returns>
-	public virtual async ValueTask<bool> DeleteRevision(Context context, ID id)
-	{
-		if(revisionDeleteQuery == null)
-		{
-			SetupRevisionQueries();
-		}
-		
-		// Delete the entry:
-		await _database.Run(context, revisionDeleteQuery, id);
-
-		// Ok!
-		return true;
-	}
+	// private RevisionService<T, ID> _revs;
 
 	/// <summary>
-	/// List a filtered set of revisions.
+	/// The revision service (null if this type doesn't support them).
 	/// </summary>
-	/// <returns></returns>
-	public virtual async ValueTask<List<T>> ListRevisions(Context context, Filter<T> filter)
+	public RevisionService<T, ID> Revisions
 	{
-		if(revisionListQuery == null)
+		get
 		{
-			SetupRevisionQueries();
+			if (!IsRevisionType())
+			{
+				return null;
+			}
+
+			throw new Exception("Unsafe, incomplete");
+			// Because RevisionService hasn't been specialised enough yet.
+			// Deleting a revision will delete the actual row.
+
+			/*
+			if (_revs == null)
+			{
+				_revs = new RevisionService<T, ID>(this);
+			}
+
+			return _revs;
+			*/
 		}
-		
-		filter = await EventGroup.BeforeRevisionList.Dispatch(context, filter);
-		var list = await _database.List<T>(context, revisionListQuery, filter, InstanceType);
-		list = await EventGroup.AfterRevisionList.Dispatch(context, list);
-		return list;
 	}
 
-	/// <summary>
-	/// Gets a single entity revision by its ID.
-	/// </summary>
-	public virtual async ValueTask<T> GetRevision(Context context, ID id, DataOptions options = DataOptions.Default)
-	{
-		if(revisionSelectQuery == null)
-		{
-			SetupRevisionQueries();
-		}
-
-		var previousPermState = context.IgnorePermissions;
-		context.IgnorePermissions = options == DataOptions.IgnorePermissions;
-		id = await EventGroup.BeforeRevisionLoad.Dispatch(context, id);
-		context.IgnorePermissions = previousPermState;
-
-		var item = await _database.Select<T>(context, revisionSelectQuery, InstanceType, id);
-		item = await EventGroup.AfterRevisionLoad.Dispatch(context, item);
-		
-		return item;
-	}
-	
-	/// <summary>
-	/// Creates a new entity revision.
-	/// Note that this is infrequently used - most revisions are made using an optimised copy process.
-	/// The BeforeCreateRevision and AfterCreateRevision events are still triggered however.
-	/// </summary>
-	public virtual async ValueTask<T> CreateRevision(Context context, T entity, DataOptions options = DataOptions.Default)
-	{
-		if(revisionCreateQuery == null)
-		{
-			SetupRevisionQueries();
-		}
-
-		var previousPermState = context.IgnorePermissions;
-		context.IgnorePermissions = options == DataOptions.IgnorePermissions;
-		entity = await EventGroup.BeforeRevisionCreate.Dispatch(context, entity);
-		context.IgnorePermissions = previousPermState;
-		
-		// Note: The Id field is automatically updated by Run here.
-		if (entity == null || !await _database.Run(context, revisionCreateQuery, entity))
-		{
-			return default;
-		}
-
-		entity = await EventGroup.AfterRevisionCreate.Dispatch(context, entity);
-		return entity;
-	}
-
-	/// <summary>
-	/// Updates the given entity revision.
-	/// </summary>
-	public virtual async ValueTask<T> UpdateRevision(Context context, T entity, DataOptions options = DataOptions.Default)
-	{
-		if(revisionUpdateQuery == null)
-		{
-			SetupRevisionQueries();
-		}
-
-		var previousPermState = context.IgnorePermissions;
-		context.IgnorePermissions = options == DataOptions.IgnorePermissions;
-		entity = await EventGroup.BeforeRevisionUpdate.Dispatch(context, entity);
-		context.IgnorePermissions = previousPermState;
-
-		if (entity == null || !await _database.Run(context, revisionUpdateQuery, entity, entity.GetId()))
-		{
-			return null;
-		}
-
-		entity = await EventGroup.AfterRevisionUpdate.Dispatch(context, entity);
-		return entity;
-	}
-	
-	/// <summary>
-	/// Publishes the given entity, which originated from a revision. The entity content ID may not exist at all.
-	/// </summary>
-	public virtual async ValueTask<T> PublishRevision(Context context, T entity, DataOptions options = DataOptions.Default)
-	{
-		if(revisionCreateQuery == null)
-		{
-			SetupRevisionQueries();
-		}
-
-		var id = entity.GetId();
-
-		if (id.Equals(0))
-		{
-			// Id required.
-			return null;
-		}
-
-		// Clear any existing drafts:
-		await _database.Run(context, clearDraftStateQuery, 0, id);
-
-		var rr = (entity as VersionedContent<ID>);
-
-		if (rr != null)
-		{
-			// Clear revision ID:
-			rr.RevisionId = default;
-			rr.IsDraft = false;
-		}
-
-		// Does it exist? If yes, call update, otherwise, create it (but with a prespecified ID).
-		var existingObject = await Get(context, id, options);
-
-		var previousPermState = context.IgnorePermissions;
-		context.IgnorePermissions = options == DataOptions.IgnorePermissions;
-		entity = await EventGroup.BeforeRevisionPublish.Dispatch(context, entity);
-		context.IgnorePermissions = previousPermState;
-
-		if (existingObject != null)
-		{
-			// This effectively replaces the complete live row with the revision's data.
-			entity.MarkChanged(ChangedFields.All);
-			entity = await FinishUpdate(context, entity);
-		}
-		else
-		{
-			// Create
-			entity = await Create(context, entity, DataOptions.IgnorePermissions);
-		}
-
-		entity = await EventGroup.AfterRevisionPublish.Dispatch(context, entity);
-
-		return entity;
-	}
-
-	/// <summary>
-	/// Creates the given entity as a draft. It'll be assigned a content ID like anything else.
-	/// </summary>
-	public virtual async ValueTask<T> CreateDraft(Context context, T entity, Action<Context, T> postIdCallback, DataOptions options = DataOptions.Default)
-	{
-		if(revisionCreateQuery == null)
-		{
-			SetupRevisionQueries();
-		}
-
-		var id = entity.GetId();
-
-		if (id.Equals(0))
-		{
-			// For simplicity for other consuming API's (such as publishing draft content), as well as 
-			// so we can track all revisions of draft content, we'll get a content ID.
-			// We do that by creating the object in the database, then immediately deleting it.
-			await _database.Run(context, createQuery, entity);
-			await _database.Run(context, deleteQuery, id);
-		}
-		else
-		{
-			// Clear any existing drafts:
-			await _database.Run(context, clearDraftStateQuery, 0, id);
-		}
-
-		var previousPermState = context.IgnorePermissions;
-		context.IgnorePermissions = options == DataOptions.IgnorePermissions;
-		entity = await EventGroup.BeforeDraftCreate.Dispatch(context, entity);
-		context.IgnorePermissions = previousPermState;
-
-		// Note: The Id field is automatically updated by Run here.
-		if (entity == null || !await _database.Run(context, revisionCreateQuery, entity))
-		{
-			return default;
-		}
-		
-		postIdCallback?.Invoke(context, entity);
-		
-		entity = await EventGroup.AfterDraftCreate.Dispatch(context, entity);
-		return entity;
-	}
 }

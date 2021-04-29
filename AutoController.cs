@@ -9,6 +9,7 @@ using Newtonsoft.Json.Linq;
 using Api.AutoForms;
 using Api.Startup;
 using Api.Users;
+using Api.SocketServerLibrary;
 
 /// <summary>
 /// A convenience controller for defining common endpoints like create, list, delete etc. Requires an AutoService of the same type to function.
@@ -22,18 +23,23 @@ public partial class AutoController<T, ID>
 	/// Returns the data for 1 entity revision.
 	/// </summary>
 	[HttpGet("revision/{id}")]
-	public virtual async ValueTask<T> LoadRevision([FromRoute] ID id)
+	public virtual async ValueTask LoadRevision([FromRoute] ID id, [FromQuery] string includes = null)
 	{
-		if (!_service.IsRevisionType())
+		var revisions = _service.Revisions;
+
+		if (revisions == null)
 		{
 			Response.StatusCode = 404;
-			return null;
+			return;
 		}
 
 		var context = await Request.GetContext();
-		id = await _service.EventGroup.EndpointStartRevisionLoad.Dispatch(context, id, Response);
-		var result = await _service.GetRevision(context, id);
-		return await _service.EventGroup.EndpointEndRevisionLoad.Dispatch(context, result, Response);
+
+		id = await revisions.EventGroup.EndpointStartLoad.Dispatch(context, id, Response);
+		var result = await _service.Get(context, id);
+		result = await revisions.EventGroup.EndpointEndLoad.Dispatch(context, result, Response);
+
+		await OutputJson(context, result, includes);
 	}
 
 	/// <summary>
@@ -41,26 +47,41 @@ public partial class AutoController<T, ID>
 	/// Deletes an entity
 	/// </summary>
 	[HttpDelete("revision/{id}")]
-	public virtual async ValueTask<T> DeleteRevision([FromRoute] ID id)
+	public virtual async ValueTask DeleteRevision([FromRoute] ID id, [FromQuery] string includes = null)
 	{
-		if (!_service.IsRevisionType())
+		var revisions = _service.Revisions;
+
+		if (revisions == null)
 		{
 			Response.StatusCode = 404;
-			return null;
+			return;
 		}
-		
-		var context = await Request.GetContext();
-		var result = await _service.GetRevision(context, id);
-		await _service.EventGroup.EndpointStartRevisionDelete.Dispatch(context, id, Response);
 
-		if (result == null || !await _service.DeleteRevision(context, id))
+		var context = await Request.GetContext();
+		var result = await revisions.Get(context, id);
+		result = await revisions.EventGroup.EndpointStartDelete.Dispatch(context, result, Response);
+
+		if (result == null)
+		{
+			if (Response.StatusCode == 200)
+			{
+				Response.StatusCode = 404;
+			}
+			return;
+		}
+
+		if (result == null || !await revisions.Delete(context, result))
 		{
 			// The handlers have blocked this one from happening, or it failed
-			return null;
+			if (Response.StatusCode == 200)
+			{
+				Response.StatusCode = 404;
+			}
+			return;
 		}
 
-		result = await _service.EventGroup.EndpointEndRevisionDelete.Dispatch(context, result, Response);
-		return result;
+		result = await revisions.EventGroup.EndpointEndDelete.Dispatch(context, result, Response);
+		await OutputJson(context, result, includes);
 	}
 
 	/// <summary>
@@ -69,9 +90,9 @@ public partial class AutoController<T, ID>
 	/// </summary>
 	/// <returns></returns>
 	[HttpGet("revision/list")]
-	public virtual async ValueTask<Set<T>> ListRevisions()
+	public virtual async ValueTask ListRevisions()
 	{
-		return await ListRevisions(null);
+		await ListRevisions(null);
 	}
 
 	/// <summary>
@@ -81,27 +102,45 @@ public partial class AutoController<T, ID>
 	/// </summary>
 	/// <returns></returns>
 	[HttpPost("revision/list")]
-	public virtual async ValueTask<Set<T>> ListRevisions([FromBody] JObject filters)
+	public virtual async ValueTask ListRevisions([FromBody] JObject filters, [FromQuery] string includes = null)
 	{
-		if (!_service.IsRevisionType())
+		var revisions = _service.Revisions;
+
+		if (revisions == null)
 		{
 			Response.StatusCode = 404;
-			return null;
+			return;
 		}
-		
-		var context = await Request.GetContext();
-		var filter = new Filter<T>(filters);
 
-		filter = await _service.EventGroup.EndpointStartRevisionList.Dispatch(context, filter, Response);
+		var context = await Request.GetContext();
+
+		var filter = revisions.LoadFilter(filters) as Filter<T, ID>;
+		filter = await revisions.EventGroup.EndpointStartList.Dispatch(context, filter, Response);
 
 		if (filter == null)
 		{
 			// A handler rejected this request.
-			return null;
+			Response.StatusCode = 404;
+			return;
 		}
 
-		var results = await _service.ListRevisions(context, filter);
-		return new Set<T>() { Results = results };
+		Response.ContentType = _applicationJson;
+		var writer = Writer.GetPooled();
+		writer.Start(null);
+		await revisions.ToJson(context, filter, async (Context ctx, Filter<T, ID> filt, Func<T, int, ValueTask> onResult) => {
+
+			return await revisions.GetResults(ctx, filt, async (Context ctx2, T result, int index, object src, object srcB) => {
+
+				// Passing this in avoids a delegate frame allocation:
+				var _onResult = src as Func<T, int, ValueTask>;
+				await _onResult(result, index);
+
+			}, onResult, null);
+
+		}, writer, Response.Body, includes);
+		writer.Release();
+		filter = await revisions.EventGroup.EndpointEndList.Dispatch(context, filter, Response);
+		filter.Release();
 	}
 	
 	/// <summary>
@@ -109,24 +148,46 @@ public partial class AutoController<T, ID>
 	/// Updates an entity revision with the given RevisionId.
 	/// </summary>
 	[HttpPost("revision/{id}")]
-	public virtual async ValueTask<T> UpdateRevision([FromRoute] ID id, [FromBody] JObject body)
+	public virtual async ValueTask UpdateRevision([FromRoute] ID id, [FromBody] JObject body)
 	{
-		if (!_service.IsRevisionType())
+		var revisions = _service.Revisions;
+
+		if (revisions == null)
 		{
 			Response.StatusCode = 404;
-			return null;
+			return;
 		}
-		
 		var context = await Request.GetContext();
-		
-		var entity = await _service.GetRevision(context, id);
+
+		var entity = await revisions.Get(context, id);
 
 		if (entity == null)
 		{
-			// Either not allowed to edit this, or it doesn't exist.
-			// Both situations are a 404.
-			Response.StatusCode = 404;
-			return null;
+			if (Response.StatusCode == 200)
+			{
+				Response.StatusCode = 404;
+			}
+
+			return;
+		}
+
+		// Run the request update event (using the original object to be updated):
+		entity = await revisions.EventGroup.EndpointStartUpdate.Dispatch(context, entity, Response) as T;
+
+		if (entity == null)
+		{
+			if (Response.StatusCode == 200)
+			{
+				Response.StatusCode = 404;
+			}
+
+			return;
+		}
+
+		if (!await revisions.StartUpdate(context, entity))
+		{
+			// Can't start update (no permission, typically).
+			return;
 		}
 
 		// In this case the entity ID is definitely known, so we can run all fields at the same time:
@@ -137,31 +198,30 @@ public partial class AutoController<T, ID>
 			Request.Headers["Api-Notes"] = notes;
 		}
 
-		// Make sure it's the same ID:
+		// Make sure it's the original ID:
 		entity.SetId(id);
-
-		// Run the request update event:
-		entity = await _service.EventGroup.EndpointStartRevisionUpdate.Dispatch(context, entity, Response) as T;
 
 		if (entity == null)
 		{
 			// A handler rejected this request.
-			return null;
+			return;
 		}
 
-		entity = await _service.UpdateRevision(context, entity);
+		entity = await revisions.FinishUpdate(context, entity);
 
 		if (entity == null)
 		{
-			// It was blocked or went wrong, typically because of a bad request.
-			Response.StatusCode = 400;
-			return null;
+			if (Response.StatusCode == 200)
+			{
+				Response.StatusCode = 404;
+			}
+
+			return;
 		}
-		
+
 		// Run the request updated event:
-		entity = await _service.EventGroup.EndpointEndRevisionUpdate.Dispatch(context, entity, Response) as T;
-		
-		return entity;
+		entity = await revisions.EventGroup.EndpointEndUpdate.Dispatch(context, entity, Response) as T;
+		await OutputJson(context, entity, "*");
 	}
 	
 	/// <summary>
@@ -169,217 +229,45 @@ public partial class AutoController<T, ID>
 	/// Publishes the given revision as the new live entry.
 	/// </summary>
 	[HttpGet("publish/{id}")]
-	public virtual async ValueTask<T> PublishRevision([FromRoute] ID id, [FromBody] JObject body)
+	public virtual async ValueTask PublishRevision([FromRoute] ID id)
 	{
-		if (!_service.IsRevisionType())
-		{
-			Response.StatusCode = 404;
-			return null;
-		}
-		
-		var context = await Request.GetContext();
-		
-		var entity = await _service.GetRevision(context, id);
-
-		if (entity == null)
-		{
-			// Either not allowed to edit this, or it doesn't exist.
-			// Both situations are a 404.
-			Response.StatusCode = 404;
-			return null;
-		}
-		
-		// Run the request update event:
-		entity = await _service.EventGroup.EndpointStartRevisionPublish.Dispatch(context, entity, Response) as T;
-
-		if (entity == null)
-		{
-			// A handler rejected this request.
-			return null;
-		}
-
-		entity = await _service.PublishRevision(context, entity);
-
-		if (entity == null)
-		{
-			// It was blocked or went wrong, typically because of a bad request.
-			Response.StatusCode = 400;
-			return null;
-		}
-		
-		// Run the request updated event:
-		entity = await _service.EventGroup.EndpointEndRevisionPublish.Dispatch(context, entity, Response) as T;
-		
-		return entity;
+		await PublishRevision(id, null);
 	}
 	
 	/// <summary>
 	/// POST /v1/entityTypeName/publish/1
-	/// Publishes the given posted object as an extension to the given revision.
+	/// Publishes the given posted object as an extension to the given revision (if body is not null).
 	/// </summary>
 	[HttpPost("publish/{id}")]
-	public virtual async ValueTask<T> PublishAndUpdateRevision([FromRoute] ID id, [FromBody] JObject body)
+	public virtual ValueTask PublishRevision([FromRoute] ID id, [FromBody] JObject body)
 	{
-		if (!_service.IsRevisionType())
+		var revisions = _service.Revisions;
+
+		if (revisions == null)
 		{
 			Response.StatusCode = 404;
-			return null;
-		}
-		
-		var context = await Request.GetContext();
-		
-		var entity = await _service.GetRevision(context, id);
-
-		if (entity == null)
-		{
-			// Either not allowed to edit this, or it doesn't exist.
-			// Both situations are a 404.
-			Response.StatusCode = 404;
-			return null;
-		}
-		
-		var contentId = entity.GetId();
-		
-		// In this case the entity ID is definitely known, so we can run all fields at the same time:
-		var notes = await SetFieldsOnObject(entity, context, body, JsonFieldGroup.Any);
-
-		if (notes != null)
-		{
-			Request.Headers["Api-Notes"] = notes;
-		}
-		
-		// Ensure the ID remains unchanged:
-		entity.SetId(contentId);
-		
-		// Run the request update event:
-		entity = await _service.EventGroup.EndpointStartRevisionPublish.Dispatch(context, entity, Response) as T;
-
-		if (entity == null)
-		{
-			// A handler rejected this request.
-			return null;
+			return new ValueTask();
 		}
 
-		entity = await _service.PublishRevision(context, entity);
-
-		if (entity == null)
-		{
-			// It was blocked or went wrong, typically because of a bad request.
-			Response.StatusCode = 400;
-			return null;
-		}
-		
-		// Run the request updated event:
-		entity = await _service.EventGroup.EndpointEndRevisionPublish.Dispatch(context, entity, Response) as T;
-		
-		return entity;
+		throw new PublicException("Publishing is incomplete", "incomplete");
 	}
 	
 	/// <summary>
 	/// POST /v1/entityTypeName/draft/
-	/// Updates an entity revision with the given ID.
+	/// Creates a draft.
 	/// </summary>
 	[HttpPost("draft")]
-	public virtual async ValueTask<T> CreateDraft([FromBody] JObject body)
+	public virtual ValueTask CreateDraft([FromBody] JObject body)
 	{
-		if (!_service.IsRevisionType())
+		var revisions = _service.Revisions;
+
+		if (revisions == null)
 		{
 			Response.StatusCode = 404;
-			return null;
-		}
-		
-		var context = await Request.GetContext();
-
-		// Start building up our object.
-		// Most other fields, particularly custom extensions, are handled by autoform.
-		var entity = new T();
-
-		// If it's revisionable we'll set the user ID now:
-		var revisionableEntity = (entity as Api.Users.VersionedContent<ID>);
-
-		if (revisionableEntity != null)
-		{
-			revisionableEntity.UserId = context.UserId;
-
-			// Mark it as a draft:
-			revisionableEntity.IsDraft = true;
-		}
-		
-		// Set the actual fields now:
-		var notes = await SetFieldsOnObject(entity, context, body, JsonFieldGroup.Default);
-		
-		/*
-		// Note: Providing an Id is acceptable here.
-		if (entity.Id != 0)
-		{
-			// Get the entity that this is a draft for:
-			var draftOfThisContent = await _service.Get(context, entity.Id);
-
-			if (draftOfThisContent == null)
-			{
-				// Note: fails if creating another draft of already draft content.
-				Response.StatusCode = 404;
-				return null;
-			}
-		}
-		*/
-
-		// Fire off a create draft event:
-		entity = await _service.EventGroup.EndpointStartDraftCreate.Dispatch(context, entity, Response) as T;
-		
-		if (entity == null)
-		{
-			// A handler rejected this request.
-			if (notes != null)
-			{
-				Request.Headers["Api-Notes"] = notes;
-			}
-
-			return null;
-		}
-		
-		entity = await _service.CreateDraft(context, entity, async (Context c, T ent) => {
-
-			// Set post ID fields:
-			var secondaryNotes = await SetFieldsOnObject(entity, context, body, JsonFieldGroup.AfterId);
-
-			if (secondaryNotes != null)
-			{
-				if (notes == null)
-				{
-					notes = secondaryNotes;
-				}
-				else
-				{
-					notes += ", " + secondaryNotes;
-				}
-
-			}
-		
-		});
-		
-		if (entity == null)
-		{
-			// It was blocked or went wrong, typically because of a bad request.
-			Response.StatusCode = 400;
-
-			if (notes != null)
-			{
-				Request.Headers["Api-Notes"] = notes;
-			}
-
-			return null;
-		}
-		
-		if (notes != null)
-		{
-			Request.Headers["Api-Notes"] = notes;
+			return new ValueTask();
 		}
 
-		// Fire off after create evt:
-		entity = await _service.EventGroup.EndpointEndDraftCreate.Dispatch(context, entity, Response) as T;
-
-		return entity;
+		throw new PublicException("Drafts are incomplete", "incomplete");
 	}
 
 }

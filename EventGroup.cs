@@ -82,12 +82,12 @@ namespace Api.Eventing
 		/// <summary>
 		/// Just before a service loads an entity revision list.
 		/// </summary>
-		public EventHandler<Filter<T>> BeforeRevisionList;
+		public EventHandler<Filter<T, ID>> BeforeRevisionList;
 
 		/// <summary>
 		/// Just after an entity revision list was loaded.
 		/// </summary>
-		public EventHandler<List<T>> AfterRevisionList;
+		public EventHandler<Filter<T, ID>> AfterRevisionList;
 
 		#endregion
 		
@@ -139,7 +139,12 @@ namespace Api.Eventing
 		/// <summary>
 		/// List revisions.
 		/// </summary>
-		public EndpointEventHandler<Filter<T>> EndpointStartRevisionList;
+		public EndpointEventHandler<Filter<T, ID>> EndpointStartRevisionList;
+
+		/// <summary>
+		/// List revisions.
+		/// </summary>
+		public EndpointEventHandler<Filter<T, ID>> EndpointEndRevisionList;
 
 		#endregion
 

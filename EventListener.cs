@@ -218,7 +218,7 @@ namespace Api.Revisions
 
 			// The query itself:
 			var copyQuery = Query.Copy(transferMap);
-			copyQuery.Where().EqualsArg(contentType, "Id", 0);
+			copyQuery.Where("Id=@id");
 
 			var str = copyQuery.GetQuery();
 
@@ -245,7 +245,7 @@ namespace Api.Revisions
 				*/
 
 				// Run the copy query now:
-				await database.Run(context, copyQuery, content.Id);
+				await database.RunWithId(context, copyQuery, content.Id);
 
 				// TODO: Trigger the before and after events (#208):
 				// - Requires collecting the ID from the above copy call.
@@ -292,7 +292,7 @@ namespace Api.Revisions
 				*/
 
 				// Run the copy query now:
-				await database.Run(context, copyQuery, content.Id);
+				await database.RunWithId(context, copyQuery, content.Id);
 
 				// TODO: Trigger the before and after events (#208):
 				// - Requires collecting the ID from the above copy call.
