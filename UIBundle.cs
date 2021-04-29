@@ -287,10 +287,10 @@ namespace Api.CanvasRenderer
 			}
 
 			// Load all the translations:
-			var translationList = await _translationService.List(new Context()
+			var translationList = await _translationService.Where(DataOptions.IgnorePermissions).ListAll(new Context()
 			{
 				LocaleId = localeId
-			}, new Filter<Translation>(), DataOptions.IgnorePermissions);
+			});
 
 			// Create a lookup:
 			var translationLookup = new Dictionary<string, Translation>();

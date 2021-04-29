@@ -12,6 +12,7 @@ using Api.Database;
 using Api.Translate;
 using Api.Eventing;
 using Api.Contexts;
+using Api.SocketServerLibrary;
 
 namespace Api.CanvasRenderer
 {
@@ -369,35 +370,16 @@ namespace Api.CanvasRenderer.V8
 			},
 			Formatting = Formatting.None
 		};
-
+		
 		/// <summary>
-		/// Get content serverside by type and ID.
+		/// Gets a service by the given content type ID.
 		/// </summary>
-		public async Task getContentById(Contexts.Context context, int contentTypeId, uint contentId, ScriptObject cb)
-        {
-			// Get the content object, and when it's done, invoke the callback.
-			var content = await Content.Get(context, contentTypeId, contentId);
-
-            // Must serialize to JSON to avoid field case sensitivity problems.
-            var jsonResult = JsonConvert.SerializeObject(content, jsonFormatter);
-
-            cb.Invoke(false, jsonResult);
-        }
-
-		/// <summary>
-		/// Get content serverside by type and ID.
-		/// </summary>
-		public async Task getContentsByFilter(Contexts.Context context, int contentTypeId, string filterJson, ScriptObject cb)
+		/// <param name="contentTypeId"></param>
+		/// <returns></returns>
+		public AutoService getService(int contentTypeId)
 		{
-			// Get the content object, and when it's done, invoke the callback.
-			var content = await Content.List(context, contentTypeId, filterJson);
-
-			// Must serialize to JSON to avoid field case sensitivity problems.
-			var jsonResult = JsonConvert.SerializeObject(content, jsonFormatter);
-
-			cb.Invoke(false, jsonResult);
+			return Api.Startup.Services.GetByContentTypeId(contentTypeId);
 		}
-
 	}
 #pragma warning restore IDE1006 // Naming Styles
 }

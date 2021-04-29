@@ -571,7 +571,7 @@ _contentModule.list = (type, filter) => {
 	});
 };
 
-_contentModule.getCached = (type, id) => {
+_contentModule.getCached = (type, id, includes) => {
 	if (!_currentContext) {
 		// Invalid call site - constructors only.
 		return null;
@@ -580,7 +580,10 @@ _contentModule.getCached = (type, id) => {
 	var cctx = _currentContext;
 
 	return new Promise(s => {
-		document.getContentById(cctx.apiContext, getContentTypeId(type), parseInt(id), jsonResponse => {
+		// Get the underlying service:
+		var svc = document.getService(getContentTypeId(type));
+
+		svc.GetForSSR(cctx.apiContext, parseInt(id), includes, jsonResponse => {
 			if (cctx.trackContextualData) {
 				// We're tracking contextual data
 				if(cctx.__contextualData!=""){
@@ -593,7 +596,7 @@ _contentModule.getCached = (type, id) => {
 	});
 };
 
-_contentModule.listCached = (type, filter) => {
+_contentModule.listCached = (type, filter, includes) => {
 	if (!_currentContext) {
 		// Invalid call site - constructors only.
 		return null;
@@ -602,7 +605,10 @@ _contentModule.listCached = (type, filter) => {
 	var filterJson = JSON.stringify(filter);
 
 	return new Promise(s => {
-		document.getContentsByFilter(cctx.apiContext, getContentTypeId(type), filterJson, jsonResponse => {
+		// Get the underlying service:
+		var svc = document.getService(getContentTypeId(type));
+		
+		svc.ListForSSR(cctx.apiContext, filterJson, includes, jsonResponse => {
 			if (cctx.trackContextualData) {
 				// We're tracking contextual data
 				if(cctx.__contextualData!=""){
