@@ -606,6 +606,35 @@ namespace Api.SocketServerLibrary
 		}
 
 		/// <summary>
+		/// Writes the given number out textually, allocates. Avoid unless necessary.
+		/// </summary>
+		/// <param name="f"></param>
+		public void WriteS(float f)
+		{
+			// TODO: Replace this (+decimal and double) with a copy from the internal method to avoid the str alloc:
+			// https://github.com/dotnet/runtime/blob/927b1c54956ddb031a2e1a3eddb94ccc16004c27/src/libraries/System.Private.CoreLib/src/System/Number.Formatting.cs#L520
+			WriteS(f.ToString());
+		}
+
+		/// <summary>
+		/// Writes the given number out textually, allocates. Avoid unless necessary.
+		/// </summary>
+		/// <param name="f"></param>
+		public void WriteS(decimal f)
+		{
+			WriteS(f.ToString());
+		}
+
+		/// <summary>
+		/// Writes the given number out textually, allocates. Avoid unless necessary.
+		/// </summary>
+		/// <param name="d"></param>
+		public void WriteS(double d)
+		{
+			WriteS(d.ToString());
+		}
+
+		/// <summary>
 		/// Writes the given number out textually without allocating. Avoid unless necessary.
 		/// </summary>
 		/// <param name="n"></param>
@@ -651,6 +680,7 @@ namespace Api.SocketServerLibrary
 
 			Write((byte)'"');
 			Write((byte)'"');
+			throw new NotSupportedException();
 		}
 
 		/// <summary>
@@ -1031,6 +1061,23 @@ namespace Api.SocketServerLibrary
 		}
 
 		/// <summary>
+		/// Writes the given string as UTF8 bytes, but without the length.
+		/// </summary>
+		/// <param name="str"></param>
+		public void WriteS(string str)
+		{
+			if (str == null)
+			{
+				return;
+			}
+			
+			var charStream = str.AsSpan();
+
+			// Next, write the chars:
+			WriteCharStream(charStream);
+		}
+
+		/// <summary>
 		/// Non-allocating string write, encoded in utf8.
 		/// </summary>
 		/// <param name="str"></param>
@@ -1110,6 +1157,7 @@ namespace Api.SocketServerLibrary
 			}
 
 			var s = MemoryMarshal.AsBytes(str.AsSpan());
+			WriteCompressed((ulong)s.Length);
 			Write(s, 0, s.Length);
 		}
 
@@ -1231,6 +1279,33 @@ namespace Api.SocketServerLibrary
 				Utf8.EncodeRune(rune, _LastBufferBytes, Fill);
 				Fill += runeBytesInUtf8;
 			}
+		}
+
+		/// <summary>
+		/// Get this writers current position as a 0 length BufferSegment.
+		/// </summary>
+		/// <returns></returns>
+		public BufferSegment GetLocation()
+		{
+			return new BufferSegment()
+			{
+				FirstBuffer = FirstBuffer,
+				LastBuffer = LastBuffer,
+				CurrentBuffer = LastBuffer,
+				Offset = Fill,
+				Length = 0
+			};
+		}
+
+		/// <summary>
+		/// Converts the given segment to a UTF8 string.
+		/// </summary>
+		/// <param name="selection"></param>
+		/// <returns></returns>
+		public string ToUTF8String(BufferSegment selection)
+		{
+			var buffer = selection.AllocatedBuffer();
+			return System.Text.Encoding.UTF8.GetString(buffer);
 		}
 
 		/// <summary>

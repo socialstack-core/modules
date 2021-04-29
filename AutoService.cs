@@ -9,7 +9,7 @@ using System.Reflection;
 using System.Threading.Tasks;
 using Api.SocketServerLibrary;
 using System.IO;
-
+using System.Collections.Concurrent;
 
 /// <summary>
 /// A general use service which manipulates an entity type. In the global namespace due to its common use.
@@ -27,7 +27,7 @@ public partial class AutoService<T, ID>{
 	/// <summary>
 	/// {"total": 
 	/// </summary>
-	private static readonly byte[] TotalHeader = new byte[] { (byte)'{', (byte)'"', (byte)'t', (byte)'o', (byte)'t', (byte)'a', (byte)'l', (byte)'"', (byte)':' };
+	private static readonly byte[] TotalHeader = new byte[] { (byte)']', (byte)',', (byte)'"', (byte)'t', (byte)'o', (byte)'t', (byte)'a', (byte)'l', (byte)'"', (byte)':' };
 
 	/// <summary>
 	/// ,"results": (comes after total)
@@ -68,7 +68,11 @@ public partial class AutoService<T, ID>{
 	/// and also may use a per-object cache which contains string segments.
 	/// addResultWrap will wrap the object with {"result":...}. It is assumed true if includes is not null.
 	/// </summary>
-	public async ValueTask ToJson(Context context, ListWithTotal<T> entities, Stream targetStream, string includes = null)
+	public async ValueTask ToJson(
+		Context context, Filter<T, ID> filter, 
+		Func<Context, Filter<T, ID>, Func<T, int, ValueTask>, ValueTask<int>> onGetData, 
+		Writer writer,
+		Stream targetStream = null, string includes = null)
 	{
 		// Get the json structure:
 		var jsonStructure = await GetTypedJsonStructure(context);
@@ -81,31 +85,17 @@ public partial class AutoService<T, ID>{
 		// Get the include set (can be null). Must happen first such that if it errors, nothing was written out to the stream.
 		var includeSet = await GetContentFields().GetIncludeSet(includes);
 		
-		var writer = Writer.GetPooled();
-		writer.Start(null);
-
-		if (entities.Total.HasValue)
-		{
-			writer.Write(TotalHeader, 0, 9);
-			writer.WriteS(entities.Total.Value);
-			writer.Write(ResultsHeaderAfterTotal, 0, 12);
-		}
-		else
-		{
-			writer.Write(ResultsHeader, 0, 12);
-		}
-
+		writer.Write(ResultsHeader, 0, 12);
+		
 		// Obtain ID collectors, and then collect the IDs.
 		var firstCollector = includeSet == null ? null : includeSet.RootInclude.GetCollectors();
-		
-		for (var i = 0; i < entities.Results.Count; i++)
+
+		var total = await onGetData(context, filter, async (T entity, int index) =>
 		{
-			if (i != 0)
+			if (index != 0)
 			{
 				writer.Write((byte)',');
 			}
-
-			var entity = entities.Results[i];
 
 			if (entity == null)
 			{
@@ -120,41 +110,71 @@ public partial class AutoService<T, ID>{
 
 				while (current != null)
 				{
-					current.Collect(entities.Results[i]);
+					current.Collect(entity);
 					current = current.NextCollector;
 				}
 			}
 
-			// Flush after each one:
-			await writer.CopyToAsync(targetStream);
-			writer.Reset(null);
-		}
+			if (targetStream != null)
+			{
+				// Flush after each one:
+				await writer.CopyToAsync(targetStream);
+				writer.Reset(null);
+			}
+		});
 
 		if (includeSet == null)
 		{
-			writer.Write(ResultsFooter,0, 2);
-			await writer.CopyToAsync(targetStream);
-			writer.Release();
+			if (filter.IncludeTotal)
+			{
+				writer.Write(TotalHeader, 0, 10);
+				writer.WriteS(total);
+				writer.Write((byte)'}');
+			}
+			else
+			{
+				writer.Write(ResultsFooter, 0, 2);
+			}
+
+			if (targetStream != null)
+			{
+				await writer.CopyToAsync(targetStream);
+			}
 		}
 		else
 		{
 			// We've got some includes to add.
 			// Write the includes header, then write out the data so far.
-			writer.Write((byte)']');
+			
+			if (filter.IncludeTotal)
+			{
+				writer.Write(TotalHeader, 0, 10);
+				writer.WriteS(total);
+			}
+			else
+			{
+				writer.Write((byte)']');
+			}
+
+			// Starts with a ,
 			writer.Write(IncludesHeader, 0, 13);
-			await writer.CopyToAsync(targetStream);
-			writer.Reset(null);
+
+			if (targetStream != null)
+			{
+				await writer.CopyToAsync(targetStream);
+				writer.Reset(null);
+			}
 
 			// Execute all inclusions (internally releases the collectors):
 			await ExecuteIncludes(context, targetStream, writer, firstCollector, includeSet.RootInclude);
 
 			writer.Write(IncludesFooter, 0, 2);
 
-			// Copy remaining bits:
-			await writer.CopyToAsync(targetStream);
-
-			// Release writer when fully done:
-			writer.Release();
+			if (targetStream != null)
+			{
+				// Copy remaining bits:
+				await writer.CopyToAsync(targetStream);
+			}
 		}
 	}
 
@@ -164,7 +184,7 @@ public partial class AutoService<T, ID>{
 	/// and also may use a per-object cache which contains string segments.
 	/// addResultWrap will wrap the object with {"result":...}. It is assumed true if includes is not null.
 	/// </summary>
-	public async ValueTask ToJson(Context context, T entity, Stream targetStream, string includes = null)
+	public async ValueTask ToJson(Context context, T entity, Writer writer, Stream targetStream = null, string includes = null)
 	{
 		// Get the json structure:
 		var jsonStructure = await GetTypedJsonStructure(context);
@@ -177,9 +197,6 @@ public partial class AutoService<T, ID>{
 		// Get the include set (can be null):
 		var includeSet = await GetContentFields().GetIncludeSet(includes);
 		
-		var writer = Writer.GetPooled();
-		writer.Start(null);
-
 		writer.Write(ResultHeader, 0, 10);
 
 		if (entity == null)
@@ -194,16 +211,23 @@ public partial class AutoService<T, ID>{
 		if (includeSet == null)
 		{
 			writer.Write((byte)'}');
-			await writer.CopyToAsync(targetStream);
-			writer.Release();
+
+			if (targetStream != null)
+			{
+				await writer.CopyToAsync(targetStream);
+			}
 		}
 		else
 		{
 			// We've got some includes to add.
 			// Write the includes header, then write out the data so far.
 			writer.Write(IncludesHeader, 0, 13);
-			await writer.CopyToAsync(targetStream);
-			writer.Reset(null);
+
+			if (targetStream != null)
+			{
+				await writer.CopyToAsync(targetStream);
+				writer.Reset(null);
+			}
 
 			// First we need to obtain ID collectors, and then collect the IDs.
 			var firstCollector = includeSet.RootInclude.GetCollectors();
@@ -224,11 +248,11 @@ public partial class AutoService<T, ID>{
 
 			writer.Write(IncludesFooter, 0, 2);
 
-			// Copy remaining bits:
-			await writer.CopyToAsync(targetStream);
-
-			// Release writer when fully done:
-			writer.Release();
+			if (targetStream != null)
+			{
+				// Copy remaining bits:
+				await writer.CopyToAsync(targetStream);
+			}
 		}
 	}
 
@@ -269,12 +293,12 @@ public partial class AutoService<T, ID>{
 			if (toExecute.MappingTargetField == null)
 			{
 				// Directly use IDs in collector with the service.
-				await toExecute.Service.OutputJsonList(context, childCollectors, collector, writer); // Calls OutputJsonList on the service
+				await toExecute.Service.OutputJsonList(context, childCollectors, collector, writer, true); // Calls OutputJsonList on the service
 			}
 			else if (toExecute.MappingService == null)
 			{
 				// Write the values:
-				await toExecute.Service.OutputJsonList<uint>(context, childCollectors, collector, toExecute.MappingTargetFieldName, writer); // Calls OutputJsonList on the service
+				await toExecute.Service.OutputJsonList<uint>(context, childCollectors, collector, toExecute.MappingTargetFieldName, writer, true); // Calls OutputJsonList on the service
 			}
 			else
 			{
@@ -284,12 +308,15 @@ public partial class AutoService<T, ID>{
 				// Output the mapping array, whilst also collecting the IDs of the things it is mapping to.
 				await toExecute.MappingService.OutputMap(context, mappingCollector, collector, writer);
 
-				// Write out the mapping data to the target stream:
-				await writer.CopyToAsync(targetStream);
-				writer.Reset(null);
+				if (targetStream != null)
+				{
+					// Write out the mapping data to the target stream:
+					await writer.CopyToAsync(targetStream);
+					writer.Reset(null);
+				}
 
 				// Write the values:
-				await toExecute.Service.OutputJsonList(context, childCollectors, mappingCollector, writer); // Calls OutputJsonList on the service
+				await toExecute.Service.OutputJsonList(context, childCollectors, mappingCollector, writer, true); // Calls OutputJsonList on the service
 
 				// Release mapping collector:
 				mappingCollector.Release();
@@ -347,7 +374,7 @@ public partial class AutoService<T, ID>{
 	/// <summary>
 	/// Short ref to the primary index.
 	/// </summary>
-	private Dictionary<ID, T> _primaryIndexRef;
+	private ConcurrentDictionary<ID, T> _primaryIndexRef;
 
 	/// <summary>
 	/// Outputs a single object from this service as JSON into the given writer. Acts like include * was specified.
@@ -375,8 +402,9 @@ public partial class AutoService<T, ID>{
 	/// <param name="idSet"></param>
 	/// <param name="setField"></param>
 	/// <param name="writer"></param>
+	/// <param name="viaIncludes"></param>
 	/// <returns></returns>
-	public override async ValueTask OutputJsonList<S_ID>(Context context, IDCollector collectors, IDCollector idSet, string setField, Writer writer)
+	public override async ValueTask OutputJsonList<S_ID>(Context context, IDCollector collectors, IDCollector idSet, string setField, Writer writer, bool viaIncludes)
 	{
 		var collectedIds = idSet as IDCollector<S_ID>;
 
@@ -440,37 +468,44 @@ public partial class AutoService<T, ID>{
 				idList.Add(_enum.Current());
 			}
 
-			var entries = await List(context, new Filter<T>().EqualsSet(setField, idList));
+			var f = Where(setField + "=[?]")
+			.Bind(idList);
+			f.HasFrom = viaIncludes;
 
-			var first = true;
+			await f
+			.ListAll(
+				context,
+				async (Context ctx, T entity, int index, object src, object src2) => {
 
-			foreach (var entity in entries)
-			{
-				// Output src, target
-				if (first)
-				{
-					first = false;
-				}
-				else
-				{
-					writer.Write((byte)',');
-				}
+					// Passing these in avoids a delegate frame allocation.
+					// The casts are free because they're reference types.
+					var _writer = (Writer)src;
+					var _col = (IDCollector)src2;
 
-				// Output the object:
-				await ToJson(context, entity, writer);
+					if (index != 0)
+					{
+						_writer.Write((byte)',');
+					}
 
-				// Collect:
-				var col = collectors;
+					// Output the object:
+					await ToJson(context, entity, _writer);
 
-				while (col != null)
-				{
-					col.Collect(entity);
-					col = col.NextCollector;
-				}
-			}
+					// Collect:
+					var col = _col;
+
+					while (col != null)
+					{
+						col.Collect(entity);
+						col = col.NextCollector;
+					}
+
+				},
+				writer,
+				collectors
+			);
 		}
 	}
-	
+
 	/// <summary>
 	/// Outputs a list of things from this service as JSON into the given writer.
 	/// Executes the given collector(s) whilst it happens, which can also be null.
@@ -479,8 +514,9 @@ public partial class AutoService<T, ID>{
 	/// <param name="collectors"></param>
 	/// <param name="idSet"></param>
 	/// <param name="writer"></param>
+	/// <param name="viaIncludes"></param>
 	/// <returns></returns>
-	public override async ValueTask OutputJsonList(Context context, IDCollector collectors, IDCollector idSet, Writer writer)
+	public override async ValueTask OutputJsonList(Context context, IDCollector collectors, IDCollector idSet, Writer writer, bool viaIncludes)
 	{
 		var collectedIds = idSet as IDCollector<ID>;
 
@@ -551,34 +587,39 @@ public partial class AutoService<T, ID>{
 				idList.Add(_enum.Current());
 			}
 
-			var entries = await List(context, new Filter<T>().Id(idList));
+			var f = Where("Id=[?]", DataOptions.IgnorePermissions)
+			.Bind(idList);
+			f.HasFrom = viaIncludes;
 
-			var first = true;
+			await f.ListAll(
+				context,
+				async (Context ctx, T entity, int index, object src, object src2) => {
 
-			foreach (var entity in entries)
-			{
-				// Output src, target
-				if (first)
-				{
-					first = false;
-				}
-				else
-				{
-					writer.Write((byte)',');
-				}
+					// Passing these in avoids a delegate frame allocation.
+					// The casts are free because they're reference types.
+					var _writer = (Writer)src;
+					var _cols = (IDCollector)src2;
 
-				// Output the object:
-				await ToJson(context, entity, writer);
+					if (index != 0)
+					{
+						_writer.Write((byte)',');
+					}
 
-				// Collect:
-				var col = collectors;
+					// Output the object:
+					await ToJson(context, entity, _writer);
 
-				while (col != null)
-				{
-					col.Collect(entity);
-					col = col.NextCollector;
-				}
-			}
+					// Collect:
+					var col = _cols;
+
+					while (col != null)
+					{
+						col.Collect(entity);
+						col = col.NextCollector;
+					}
+				},
+				writer,
+				collectors
+			);
 		}
 	}
 
