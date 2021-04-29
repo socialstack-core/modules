@@ -87,7 +87,7 @@ namespace Api.DatabaseDiff
 			var versionQuery = Query.List(typeof(DatabaseVersion));
 			versionQuery.SetRawQuery("SELECT VERSION() as Version");
 
-			var dbVersion = await _database.Select<DatabaseVersion>(null, versionQuery, typeof(DatabaseVersion));
+			var dbVersion = await _database.Select<DatabaseVersion, uint>(null, versionQuery, typeof(DatabaseVersion), 0);
 
 			// Get DB version:
 			VersionText = dbVersion.Version;
@@ -169,7 +169,7 @@ namespace Api.DatabaseDiff
 					"FROM information_schema.columns WHERE table_schema = DATABASE()"
 				);
 
-				columns = await _database.List<DatabaseColumnDefinition>(null, listQuery, null, typeof(DatabaseColumnDefinition));
+				columns = await _database.List<DatabaseColumnDefinition>(null, listQuery, typeof(DatabaseColumnDefinition));
 			}
 			catch
 			{
