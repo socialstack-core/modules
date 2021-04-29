@@ -34,7 +34,7 @@ namespace Api.TemporaryGuests
         [HttpPost("login")]
         public async ValueTask Login([FromBody] TempLogin loginInfo)
         {
-            var context = Request.GetContext();
+            var context = await Request.GetContext();
 
             var result = await (_service as TemporaryGuestService).Login(context, loginInfo);
 

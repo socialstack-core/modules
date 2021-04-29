@@ -16,20 +16,23 @@ namespace Api.TemporaryGuests
     /// </summary>
     public partial class TemporaryGuestService : AutoService<TemporaryGuest>
     {
+        /// <summary>
+        /// Instanced automatically.
+        /// </summary>
         public TemporaryGuestService()
             : base(Events.TemporaryGuest)
         {
             // Example admin page install:
             InstallAdminPages("TemporaryGuests", "fa:fa-gavel", new string[] { "id", "email" , "startsutc" });
 
-            Events.TemporaryGuest.BeforeSettable.AddEventListener((Context ctx, JsonField<TemporaryGuest> field) => {
+            Events.TemporaryGuest.BeforeSettable.AddEventListener((Context ctx, JsonField<TemporaryGuest, uint> field) => {
 
                 if (field == null)
                 {
-                    return new ValueTask<JsonField<TemporaryGuest>>(field);
+                    return new ValueTask<JsonField<TemporaryGuest, uint>>(field);
                 }
 
-                return new ValueTask<JsonField<TemporaryGuest>>((field.ForRole == Roles.Admin || field.ForRole == Roles.Developer) ? field : null);
+                return new ValueTask<JsonField<TemporaryGuest, uint>>((field.ForRole == Roles.Admin || field.ForRole == Roles.Developer) ? field : null);
             });
 
             Events.TemporaryGuest.BeforeCreate.AddEventListener(
@@ -51,16 +54,26 @@ namespace Api.TemporaryGuests
                 });
         }
 
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="context"></param>
+        /// <param name="loginInfo"></param>
+        /// <returns></returns>
         public async Task<LoginResult> Login(Context context, TempLogin loginInfo)
         {
-            var verified = PasswordStorage.VerifyPassword(loginInfo.Email , loginInfo.Token);
+            #warning TODO - This code requires an audit. Do not publish a site with this code present.
+            
+            // Email addresses are being used as passwords/ tokens, effectively meaning if you know an email address you can pass this test.
+            // Note that:
+            // - Simply leave the password field as null to safely create a passwordless account.
+            // - You don't need to use userService.Authenticate to obtain a successful login result. 
+            //   It can just be inferred provided other tests are accurate and safe, and just issue a new context token via context.User=x and await SendContext(context).
+            var verified = PasswordStorage.VerifyPassword(loginInfo.Email, loginInfo.Token);
 
             if (verified)
             {
-                var filter = new Filter<TemporaryGuest>();
-                filter.EqualsField("Email", loginInfo.Email);
-                
-                var tempUser = (await List(context, filter, DataOptions.IgnorePermissions)).FirstOrDefault();
+                var tempUser = await Where("Email=?", DataOptions.IgnorePermissions).Bind(loginInfo.Email).First(context);
 
                 if (tempUser != null && tempUser.ExpiresUtc > DateTime.UtcNow && tempUser.StartsUtc < DateTime.UtcNow)
                 {
