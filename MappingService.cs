@@ -124,11 +124,12 @@ namespace Api.Startup
 		{
 			await Where(targetIdFieldEquals)
 			.Bind(id)
-			.ListAll(context, async (Context ctx, Mapping<SRC_ID, TARG_ID> entity, int index, object src, object rSrc) =>
+			.ListAll(context, (Context ctx, Mapping<SRC_ID, TARG_ID> entity, int index, object src, object rSrc) =>
 			{
 				// Passing in onResult prevents a delegate frame allocation.
 				var _col = (IDCollector<SRC_ID>)src;
 				_col.Collect(entity);
+				return new ValueTask();
 			},
 				collector
 			);
@@ -145,11 +146,12 @@ namespace Api.Startup
 		{
 			await Where(targetIdFieldNameEqSet)
 			.Bind(idSet)
-			.ListAll(context, async (Context ctx, Mapping<SRC_ID, TARG_ID> entity, int index, object src, object rSrc) =>
+			.ListAll(context, (Context ctx, Mapping<SRC_ID, TARG_ID> entity, int index, object src, object rSrc) =>
 			{
 				// Passing in onResult prevents a delegate frame allocation.
 				var _col = (IDCollector<SRC_ID>)src;
 				_col.Collect(entity);
+				return new ValueTask();
 			},
 				collector
 			);
