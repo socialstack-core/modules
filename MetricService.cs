@@ -51,8 +51,8 @@ namespace Api.Metrics
 			var ctx = new Context();
 
 			// Get the list of all metrics and sources:
-			var metrics = await List(ctx, null, DataOptions.IgnorePermissions);
-			var metricSources = await _sources.List(ctx, null, DataOptions.IgnorePermissions);
+			var metrics = await Where(DataOptions.IgnorePermissions).ListAll(ctx);
+			var metricSources = await _sources.Where(DataOptions.IgnorePermissions).ListAll(ctx);
 
 			// Map each source to the metrics they originate from.
 			// Whilst they'll probably be rare, we want to avoid connecting sources that aren't actually in metrics.
