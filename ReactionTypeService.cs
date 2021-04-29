@@ -21,15 +21,11 @@ namespace Api.Reactions
 		{
 			InstallAdminPages("Reactions", "fa:fa-thumbs-up", new string[] { "id", "name" });
 
-			Task.Run(async () =>
+			Events.Service.AfterStart.AddEventListener(async (Context context, object src) => 
 			{
+				var any = await Where(DataOptions.IgnorePermissions).Any(context);
 
-				var reactionTypeList = Query.List(typeof(ReactionType));
-				reactionTypeList.Where().PageSize = 1;
-
-				var types = await _database.List<ReactionType>(null, reactionTypeList, null, typeof(ReactionType));
-
-				if (types.Count == 0)
+				if (!any)
 				{
 					// The table is completely empty - let's install the defaults now.
 					var defaults = new ReactionType[] {
@@ -181,13 +177,14 @@ namespace Api.Reactions
 
 					};
 
-					var context = new Context();
-
 					foreach(var defaultType in defaults)
 					{
 						await Create(context, defaultType);
 					}
+
 				}
+
+				return src;
 			});
 		}
 	}

@@ -29,6 +29,8 @@ namespace Api.Reactions
 			
 			var totalField = reactionCounts.GetChangeField("Total");
 
+#warning todo requires upgrade to non ContentTypeId setup
+
 			Events.Reaction.BeforeCreate.AddEventListener(async (Context context, Reaction reaction) =>
 			{
 				if (reaction == null)
@@ -37,19 +39,21 @@ namespace Api.Reactions
                 }
 
 				// Ensure it's unique:
-				var existingReaction = await List(context, new Filter<Reaction>().Equals("UserId", context.UserId).And().Equals("ContentTypeId", reaction.ContentTypeId).And().Equals("ContentId", reaction.ContentId), DataOptions.IgnorePermissions);
-
-				if (existingReaction != null && existingReaction.Count > 0)
+				var existingReaction = await Where(
+					"UserId=? and ContentTypeId=? and ContentId=?",
+					DataOptions.IgnorePermissions
+				).Bind(context.UserId).Bind(reaction.ContentTypeId).Bind(reaction.ContentId).Any(context);
+				
+				if (existingReaction)
 				{
 					throw new PublicException("Reaction already exists", "reaction_unique");
 				}
 
 				// Add to counter:
-				var counts = await reactionCounts.List(context, new Filter<ReactionCount>().Equals("ContentTypeId", reaction.ContentTypeId).And().Equals("ContentId", reaction.ContentId));
+				var counter = await reactionCounts.Where("ContentTypeId=? and ContentId=?", DataOptions.IgnorePermissions).Bind(reaction.ContentTypeId).Bind(reaction.ContentId).First(context);
 
-				if (counts != null && counts.Count > 0)
+				if (counter != null)
 				{
-					var counter = counts[0];
 					await reactionCounts.Update(context, counter, (Context ctx, ReactionCount ct) =>
 					{
 						ct.Total++;
