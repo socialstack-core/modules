@@ -21,24 +21,6 @@ namespace Api.Eventing
 		public static EventHandler<object> EventsAfterStart;
 
 		/// <summary>
-		/// Gets an event group by the content type.
-		/// </summary>
-		/// <typeparam name="T"></typeparam>
-		/// <returns></returns>
-		public static EventGroup<T> GetGroup<T>()
-		{
-			// Get the service then get its group:
-			var svc = Api.Startup.Services.GetByContentType(typeof(T));
-
-			if (svc == null)
-			{
-				return null;
-			}
-
-			return svc.GetEventGroup() as EventGroup<T>;
-		}
-
-		/// <summary>
 		/// Call this to trigger the OnStart event.
 		/// </summary>
 		public static async Task TriggerStart()

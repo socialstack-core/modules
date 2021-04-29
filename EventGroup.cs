@@ -5,6 +5,7 @@ using Api.AutoForms;
 using Api.Database;
 using Api.Permissions;
 using Api.Startup;
+using Newtonsoft.Json.Linq;
 
 namespace Api.Eventing
 {
@@ -16,7 +17,8 @@ namespace Api.Eventing
 	/// You can extend it with custom events as well - just do so on the base EventGroup{T, ID} type.
 	/// </summary>
 	/// <typeparam name="T"></typeparam>
-	public class EventGroup<T> : EventGroup<T, uint> 
+	public class EventGroup<T> : EventGroup<T, uint>
+		where T : Content<uint>, new()
 	{
 	}
 
@@ -28,7 +30,46 @@ namespace Api.Eventing
 	/// </summary>
 	/// <typeparam name="T"></typeparam>
 	/// <typeparam name="ID"></typeparam>
-	public partial class EventGroup<T, ID> : EventGroup
+	public partial class EventGroup<T, ID> : EventGroupCore<T, ID>
+		where T : Content<ID>, new()
+		where ID : struct, IConvertible, IEquatable<ID>
+	{
+		/// <summary>
+		/// Just before a service loads an entity list.
+		/// </summary>
+		public EventHandler<QueryPair<T, ID>> BeforeList;
+
+		/// <summary>
+		/// Just after an entity list was loaded.
+		/// </summary>
+		public EventHandler<Filter<T, ID>> AfterList;
+
+		/// <summary>
+		/// List entities.
+		/// </summary>
+		public EndpointEventHandler<Filter<T, ID>> EndpointStartList;
+		/// <summary>
+		/// List entities.
+		/// </summary>
+		public EndpointEventHandler<Filter<T, ID>> EndpointEndList;
+
+		/// <summary>
+		/// Just before a field is added (and made settable).
+		/// </summary>
+		public EventHandler<JsonField<T, ID>> BeforeSettable;
+
+		/// <summary>
+		/// Just before a field is added (and made gettable).
+		/// </summary>
+		public EventHandler<JsonField<T, ID>> BeforeGettable;
+	}
+
+	/// <summary>
+	/// Core event group which can be used by any general type and ID pairing.
+	/// </summary>
+	/// <typeparam name="T"></typeparam>
+	/// <typeparam name="ID"></typeparam>
+	public partial class EventGroupCore<T, ID> : EventGroup
 	{
 		#region Service events
 
@@ -73,26 +114,6 @@ namespace Api.Eventing
 		/// </summary>
 		public EventHandler<T> AfterLoad;
 
-		/// <summary>
-		/// Just before a service loads an entity list.
-		/// </summary>
-		public EventHandler<Filter<T>> BeforeList;
-
-		/// <summary>
-		/// Just after an entity list was loaded.
-		/// </summary>
-		public EventHandler<List<T>> AfterList;
-
-		/// <summary>
-		/// Just before a field is added (and made settable).
-		/// </summary>
-		public EventHandler<JsonField<T>> BeforeSettable;
-
-		/// <summary>
-		/// Just before a field is added (and made gettable).
-		/// </summary>
-		public EventHandler<JsonField<T>> BeforeGettable;
-
 		#endregion
 
 		#region Controller events
@@ -105,15 +126,6 @@ namespace Api.Eventing
 		/// Load entity metadata.
 		/// </summary>
 		public EndpointEventHandler<T> EndpointEndLoad;
-		/// <summary>
-		/// List entities.
-		/// </summary>
-		public EndpointEventHandler<Filter<T>> EndpointStartList;
-		/// <summary>
-		/// List entities.
-		/// </summary>
-		public EndpointEventHandler<List<T>> EndpointEndList;
-
 		/// <summary>
 		/// Create a new entity.
 		/// </summary>

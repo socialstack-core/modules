@@ -179,7 +179,7 @@ namespace Api.Eventing
 		/// <param name="context"></param>
 		/// <param name="content"></param>
 		/// <returns></returns>
-		public async ValueTask<T1> TestCapability(Context context, T1 content)
+		public T1 TestCapability(Context context, T1 content)
 		{
 			if (context.IgnorePermissions)
 			{
@@ -189,7 +189,12 @@ namespace Api.Eventing
 			if (Capability == null)
 			{
 				// This handler doesn't have a capability. They're typically on Before* event handlers, but can also be in After handlers for e.g. AfterLoad.
-				throw PermissionException.Create("none", context, "Failed to manually test permissions on a handler because it doesn't have a capability.");
+				throw PermissionException.Create(
+					"none", 
+					context, 
+					"Failed to manually test permissions on a handler because it doesn't have a capability. " +
+					"This usually means the wrong event handler was used."
+				);
 			}
 
 			// Check if the capability is granted.
@@ -204,7 +209,7 @@ namespace Api.Eventing
 				throw PermissionException.Create(Capability.Name, context, "No role");
 			}
 
-			if (await role.IsGranted(Capability, context, content))
+			if (role.IsGranted(Capability, context, content))
 			{
 				// It's granted - return the first arg:
 				return content;
