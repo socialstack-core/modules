@@ -8,6 +8,9 @@ namespace Api.PhotosphereTracking
     /// </summary>
     public class PhotosphereTrackingWsMessage: WebSocketMessage
     {
+        /// <summary>
+        /// 
+        /// </summary>
         public PhotosphereTrackingWsMessage() {
             Type = "PhotosphereTrack";
         }

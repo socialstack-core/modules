@@ -23,10 +23,12 @@ namespace Api.PhotosphereTracking
         {
             Cache();
 
+            /*
             Events.PhotosphereTrack.AfterList.AddEventListener(async (Context context, List<PhotosphereTrack> list) =>
             {
                 return list;
             });
+            */
 
             Events.WebSocketClientDisconnected.AddEventListener(async (Context ctx, WebSocketClient client) =>
             {

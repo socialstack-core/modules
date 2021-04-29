@@ -12,6 +12,9 @@ namespace Api.PhotosphereTracking
     [EventListener]
     public class Permissions
     {
+        /// <summary>
+        /// 
+        /// </summary>
         public Permissions()
         {
             Events.CapabilityOnSetup.AddEventListener((Context context, object source) =>
