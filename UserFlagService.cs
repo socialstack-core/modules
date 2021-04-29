@@ -19,6 +19,11 @@ namespace Api.UserFlags
 		/// </summary>
 		public UserFlagService() : base(Events.UserFlag)
         {
+
+			#warning todo upgrade this!
+			// Flags are using the old ContentTypeId and ContentId format which is no longer permitted as there can be a variety of IDs.
+
+			/*
 			// Note that there's a unique index on the table which blocks users
 			// from flagging something twice.
 			Events.UserFlag.BeforeCreate.AddEventListener(async (Context ctx, UserFlag flag) =>
@@ -108,6 +113,7 @@ namespace Api.UserFlags
 
 				return flag;
 			});
+			*/
 		}
 	}
     
