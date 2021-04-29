@@ -28,11 +28,13 @@ namespace Api.Views
 		/// </summary>
 		public async Task MarkViewed(Context context, int contentTypeId, uint id)
 		{
-			
+
 			// Get the view state for this user:
-			var viewEntries = await List(context, 
-				new Filter<View>().Equals("Id", id).And().Equals("ContentTypeId", contentTypeId).And().Equals("UserId", context.UserId)
-			);
+			var viewEntries = await Where("Id=? and ContentTypeId=? and UserId=?")
+				.Bind(id)
+				.Bind(contentTypeId)
+				.Bind(context.UserId)
+				.ListAll(context);
 
 			var viewEntry = viewEntries == null || viewEntries.Count == 0 ? null : viewEntries[0];
 
