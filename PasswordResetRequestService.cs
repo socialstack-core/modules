@@ -145,15 +145,7 @@ namespace Api.PasswordResetRequests
 		/// <returns></returns>
 		public async Task<PasswordResetRequest> Get(Context context, string token)
         {
-			var results = await List(context, new Filter<PasswordResetRequest>().Equals("Token", token), DataOptions.IgnorePermissions);
-			
-			if(results == null || results.Count == 0)
-			{
-				return null;
-			}
-			
-			// Latest one:
-			return results[results.Count - 1];
+			return await Where("Token=?", DataOptions.IgnorePermissions).Bind(token).Last(context);
         }
 
 	}
