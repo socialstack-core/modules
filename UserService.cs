@@ -51,18 +51,18 @@ namespace Api.Users
 				}
 			);
 			
-			Events.User.BeforeSettable.AddEventListener((Context ctx, JsonField<User> field) => {
+			Events.User.BeforeSettable.AddEventListener((Context ctx, JsonField<User, uint> field) => {
 				
 				if (field == null)
 				{
-					return new ValueTask<JsonField<User>>(field);
+					return new ValueTask<JsonField<User, uint>>(field);
 				}
 				
 				if(field.Name == "Role")
 				{
 					// Only admins can update this field.
 					// Will be permission system based in the future
-					return new ValueTask<JsonField<User>>((field.ForRole == Roles.Admin || field.ForRole == Roles.Developer) ? field : null);
+					return new ValueTask<JsonField<User, uint>>((field.ForRole == Roles.Admin || field.ForRole == Roles.Developer) ? field : null);
 				}
 				else if(field.Name == "JoinedUtc" || field.Name == "PrivateVerify")
 				{
@@ -70,14 +70,14 @@ namespace Api.Users
 					field = null;
 				}
 
-				return new ValueTask<JsonField<User>>(field);
+				return new ValueTask<JsonField<User, uint>>(field);
 			});
 
-			Events.User.BeforeGettable.AddEventListener((Context ctx, JsonField<User> field) => {
+			Events.User.BeforeGettable.AddEventListener((Context ctx, JsonField<User, uint> field) => {
 
 				if (field == null)
 				{
-					return new ValueTask<JsonField<User>>(field);
+					return new ValueTask<JsonField<User, uint>>(field);
 				}
 
 				if (field.ForRole == Roles.Admin || field.ForRole == Roles.Developer)
@@ -86,7 +86,7 @@ namespace Api.Users
 					field.Readable = true;
 				}
 
-				return new ValueTask<JsonField<User>>(field);
+				return new ValueTask<JsonField<User, uint>>(field);
 			});
 
 			Events.User.BeforeCreate.AddEventListener((Context ctx, User user) => {
@@ -157,9 +157,9 @@ namespace Api.Users
 				if (config.UniqueUsernames)
 				{
 					// Let's make sure the username is not in use.
-					var usersWithUsername = await List(ctx, new Filter<User>().Equals("Username", user.Username), DataOptions.IgnorePermissions);
+					var usersWithUsername = await Where("Username=?", DataOptions.IgnorePermissions).Bind(user.Username).Any(ctx);
 
-					if (usersWithUsername.Count > 0)
+					if (usersWithUsername)
 					{
 						throw new PublicException("This username is already in use.", "username_used");
 					}
@@ -168,9 +168,9 @@ namespace Api.Users
 				if (config.UniqueEmails)
 				{
 					// Let's make sure the username is not in use.
-					var usersWithEmail = await List(ctx, new Filter<User>().Equals("Email", user.Email), DataOptions.IgnorePermissions);
+					var usersWithEmail = await Where("Email=?", DataOptions.IgnorePermissions).Bind(user.Email).Any(ctx);
 
-					if (usersWithEmail.Count > 0)
+					if (usersWithEmail)
 					{
 						throw new PublicException("This email is already in use.", "email_used");
 					}
@@ -189,9 +189,9 @@ namespace Api.Users
 				if (config.UniqueUsernames)
 				{
 					// Let's make sure the username is not in use by anyone besides this user (in case they didn't change it!).
-					var usersWithUsername = await List(ctx, new Filter<User>().Equals("Username", user.Username).And().Not().Equals("Id", user.Id), DataOptions.IgnorePermissions);
+					var usersWithUsername = await Where("Username=? and Id!=?", DataOptions.IgnorePermissions).Bind(user.Username).Bind(user.Id).Any(ctx);
 
-					if (usersWithUsername.Count > 0)
+					if (usersWithUsername)
 					{
 						throw new PublicException("This username is already in use.", "username_used");
 					}
@@ -200,9 +200,9 @@ namespace Api.Users
 				if (config.UniqueEmails)
 				{
 					// Let's make sure the username is not in use by anyone besides this user (in case they didn't change it!).
-					var usersWithEmail = await List(ctx, new Filter<User>().Equals("Email", user.Email).And().Not().Equals("Id", user.Id), DataOptions.IgnorePermissions);
+					var usersWithEmail = await Where("Email=? and Id!=?", DataOptions.IgnorePermissions).Bind(user.Email).Bind(user.Id).Any(ctx);
 
-					if (usersWithEmail.Count > 0)
+					if (usersWithEmail)
 					{
 						throw new PublicException("This email is already in use.", "email_used");
 					}
@@ -255,15 +255,7 @@ namespace Api.Users
 		/// <returns></returns>
 		public async ValueTask<User> Get(Context context, string emailOrUsername)
         {
-			var results = await List(context, new Filter<User>().Equals("Email", emailOrUsername).Or().Equals("Username", emailOrUsername), DataOptions.IgnorePermissions);
-			
-			if(results == null || results.Count == 0)
-			{
-				return null;
-			}
-			
-			// Latest one:
-			return results[^1];
+			return await Where("Email=? or Username=?", DataOptions.IgnorePermissions).Bind(emailOrUsername).Bind(emailOrUsername).Last(context);
         }
 
 		/// <summary>
@@ -274,15 +266,7 @@ namespace Api.Users
 		/// <returns></returns>
 		public async ValueTask<User> GetByEmail(Context context, string email)
 		{
-			var results = await List(context, new Filter<User>().Equals("Email", email), DataOptions.IgnorePermissions);
-			
-			if(results == null || results.Count == 0)
-			{
-				return null;
-			}
-			
-			// Latest one:
-			return results[^1];
+			return await Where("Email=?", DataOptions.IgnorePermissions).Bind(email).Last(context);
 		}
 		
 		/// <summary>
@@ -293,15 +277,7 @@ namespace Api.Users
 		/// <returns></returns>
 		public async ValueTask<User> GetByUsername(Context context, string username)
 		{
-			var results = await List(context, new Filter<User>().Equals("Username", username), DataOptions.IgnorePermissions);
-			
-			if(results == null || results.Count == 0)
-			{
-				return null;
-			}
-			
-			// Latest one:
-			return results[^1];
+			return await Where("Username=?", DataOptions.IgnorePermissions).Bind(username).Last(context);
 		}
 
 		/// <summary>
