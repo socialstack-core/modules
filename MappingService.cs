@@ -47,6 +47,7 @@ namespace Api.Startup
 			targetIdFieldEquals = targetIdName + "=?";
 			srcIdFieldEquals = srcIdName + "=?";
 			srcIdFieldNameEqSet = srcIdFieldName + "=[?]";
+			targetIdFieldNameEqSet = targetIdFieldName + "=[?]";
 			srcAndTargEq = srcIdName + "=? and " + targetIdName + "=?";
 			Source = src;
 			Target = targ;
@@ -81,6 +82,11 @@ namespace Api.Startup
 		/// SrcName=[?]
 		/// </summary>
 		private string srcIdFieldNameEqSet;
+		
+		/// <summary>
+		/// TargetName=[?]
+		/// </summary>
+		private string targetIdFieldNameEqSet;
 
 		/// <summary>
 		/// Gets a list of source IDs by target ID.
@@ -104,6 +110,48 @@ namespace Api.Startup
 				},
 				onResult,
 				rSrc
+			);
+		}
+
+		/// <summary>
+		/// Gets a list of source IDs by target ID.
+		/// </summary>
+		/// <param name="context"></param>
+		/// <param name="id"></param>
+		/// <param name="collector"></param>
+		/// <returns></returns>
+		public async ValueTask CollectByTarget(Context context, IDCollector<SRC_ID> collector, TARG_ID id)
+		{
+			await Where(targetIdFieldEquals)
+			.Bind(id)
+			.ListAll(context, async (Context ctx, Mapping<SRC_ID, TARG_ID> entity, int index, object src, object rSrc) =>
+			{
+				// Passing in onResult prevents a delegate frame allocation.
+				var _col = (IDCollector<SRC_ID>)src;
+				_col.Collect(entity);
+			},
+				collector
+			);
+		}
+
+		/// <summary>
+		/// Gets a list of source IDs by target ID.
+		/// </summary>
+		/// <param name="context"></param>
+		/// <param name="idSet"></param>
+		/// <param name="collector"></param>
+		/// <returns></returns>
+		public async ValueTask CollectByTargetSet(Context context, IDCollector<SRC_ID> collector, IEnumerable<TARG_ID> idSet)
+		{
+			await Where(targetIdFieldNameEqSet)
+			.Bind(idSet)
+			.ListAll(context, async (Context ctx, Mapping<SRC_ID, TARG_ID> entity, int index, object src, object rSrc) =>
+			{
+				// Passing in onResult prevents a delegate frame allocation.
+				var _col = (IDCollector<SRC_ID>)src;
+				_col.Collect(entity);
+			},
+				collector
 			);
 		}
 

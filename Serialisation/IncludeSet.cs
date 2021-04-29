@@ -347,35 +347,10 @@ namespace Api.Startup
 
 			if (field.VirtualInfo.IsList)
 			{
-				// Do we need to map? Often yes, but occasionally not necessary.
-				// We don't if the target type has a virtual field of the source type, where the virtual field name is RelativeTo.ServicedType.Id + "Id"
-				var fieldOfType = result.RelativeTo.GetVirtualField(RelativeTo.InstanceType, RelativeTo.InstanceType.Name + "Id");
-
-				if (fieldOfType != null)
-				{
-					// No mapping needed - the mapping is instead to use this virtual field.
-					result.MappingService = null;
-					result.MappingTargetField = fieldOfType;
-					result.MappingTargetFieldName = fieldOfType.VirtualInfo.IdSource.Name;
-				}
-				else
-				{
-					var mappingService = await MappingTypeEngine.GetOrGenerate(RelativeTo.Service, svc, field.VirtualInfo.FieldName);
-
-					// We need to know what the target field is as we'll need a collector on it.
-					var mappingContentFields = mappingService.GetContentFields();
-
-					// Try to get target field (e.g. TagId):
-					if (!mappingContentFields.TryGetValue((svc.ServicedType.Name + "Id").ToLower(), out ContentField targetField))
-					{
-						throw new Exception("Couldn't find target field on a mapping type. This indicates an issue with the mapping engine rather than your usage.");
-					}
-
-					// Store the mapping service:
-					result.MappingService = mappingService;
-					result.MappingTargetField = targetField;
-					result.MappingTargetFieldName = targetField.Name;
-				}
+				var mapInfo = await field.GetOptionalMappingService(RelativeTo);
+				result.MappingService = mapInfo.Service;
+				result.MappingTargetField = mapInfo.TargetField;
+				result.MappingTargetFieldName = mapInfo.TargetFieldName;
 			}
 
 			return result;

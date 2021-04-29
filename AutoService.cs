@@ -408,6 +408,8 @@ public partial class AutoService<T, ID> : AutoService
 	/// <returns>Total, if filter.IncludeTotal is set. Otherwise its meaning is undefined.</returns>
 	public async ValueTask<int> GetResults(Context context, Filter<T, ID> filter, Func<Context, T, int, object, object, ValueTask> onResult, object srcA, object srcB)
 	{
+		// Filter is not optional. As it holds state for a particular run, it also cannot be an instance shared with other runs.
+
 		if (!filter.FullyBound())
 		{
 			// Safety check - filters come from a pool, so if a filter has not been fully 
@@ -423,7 +425,7 @@ public partial class AutoService<T, ID> : AutoService
 		// struct:
 		var queryPair = new QueryPair<T, ID>()
 		{
-			QueryA = filter == null ? EmptyFilter : filter
+			QueryA = filter
 			// QueryB is set by perm system.
 		};
 
@@ -438,10 +440,10 @@ public partial class AutoService<T, ID> : AutoService
 			queryPair.QueryB = EmptyFilter;
 		}
 
-		if (queryPair.QueryA == null)
-		{
-			queryPair.QueryA = EmptyFilter;
-		}
+		// Next, rent any necessary collectors, and execute the collections.
+		// The first time this happens on a given filter type may also cause the mapping services to load, thus it is awaitable.
+		queryPair.QueryA.FirstACollector = await queryPair.QueryA.RentAndCollect(context, this);
+		queryPair.QueryA.FirstBCollector = await queryPair.QueryB.RentAndCollect(context, this);
 
 		// Do we have a cache?
 		var cache = (filter.DataOptions & DataOptions.CacheFlag) == DataOptions.CacheFlag ? GetCacheForLocale(context.LocaleId) : null;

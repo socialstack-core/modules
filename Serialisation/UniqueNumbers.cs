@@ -1,6 +1,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.Reflection;
 
 namespace Api.Startup
 {
@@ -9,6 +10,27 @@ namespace Api.Startup
 	/// </summary>
 	public class IDCollector
 	{
+		/// <summary>
+		/// The fieldInfo for NextCollector.
+		/// </summary>
+		private static FieldInfo _nextCollectorField;
+
+		/// <summary>
+		/// The fieldInfo for NextCollector.
+		/// </summary>
+		public static FieldInfo NextCollectorFieldInfo
+		{
+			get
+			{
+				if (_nextCollectorField == null)
+				{
+					_nextCollectorField = typeof(IDCollector).GetField("NextCollector");
+				}
+
+				return _nextCollectorField;
+			}
+		}
+
 		/// <summary>
 		/// Next collector.
 		/// </summary>
@@ -123,6 +145,27 @@ namespace Api.Startup
 			get {
 				return (FullBlockCount * 64) + CurrentFill;
 			}
+		}
+
+		/// <summary>
+		/// True if any value in the collector matches the given one.
+		/// </summary>
+		/// <param name="id"></param>
+		/// <returns></returns>
+		public bool MatchAny(T id)
+		{
+			var en = GetEnumerator();
+			while (en.HasMore())
+			{
+				var toCheck = en.Current();
+
+				if (id.Equals(toCheck))
+				{
+					return true;
+				}
+			}
+
+			return false;
 		}
 
 		/// <summary>

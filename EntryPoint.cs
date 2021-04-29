@@ -29,18 +29,6 @@ namespace Api.Startup
 		public static event Action<IWebHostBuilder> OnConfigureHost;
 
 
-		private static Permissions.Filter<T, ID> Debug<T, ID>(AutoService<T, ID> svc, string filter, bool withC)
-			where T : Database.Content<ID>, new()
-			where ID : struct, IConvertible, IEquatable<ID>
-		{
-			var a = Api.Permissions.FilterAst.Parse(svc, filter, withC);
-
-			var type = a.ConstructType();
-
-			var filt = Activator.CreateInstance(type) as Permissions.Filter<T, ID>;
-			return filt;
-		}
-
 		/// <summary>
 		/// The main entry point for your project's API.
 		/// </summary>
@@ -143,9 +131,6 @@ namespace Api.Startup
                 .Build();
 
 			builtHost.Start();
-
-			var userService = Services.Get<Api.Users.UserService>();
-			var locale = Services.Get<Api.Translate.LocaleService>();
 
 			if (apiSocketFile != null)
 			{

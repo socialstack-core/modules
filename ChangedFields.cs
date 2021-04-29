@@ -585,6 +585,69 @@ namespace Api.Startup {
 		}
 
 		/// <summary>
+		/// Gets the "local"
+		/// </summary>
+		/// <param name="relativeTo"></param>
+		/// <returns></returns>
+		public ContentField GetIdFieldIfMappingNotRequired(ContentFields relativeTo)
+		{
+
+			// Do we need to map? Often yes, but occasionally not necessary.
+			// We don't if the target type has a virtual field of the source type, where the virtual field name is RelativeTo.ServicedType.Id + "Id"
+			return VirtualInfo.Service.GetContentFields().GetVirtualField(relativeTo.InstanceType, relativeTo.InstanceType.Name + "Id");
+
+		}
+
+		/// <summary>
+		/// Gets the mapping service for a virtual list field. Can be null if one isn't actually necessary.
+		/// </summary>
+		/// <returns></returns>
+		public async ValueTask<MappingInfo> GetOptionalMappingService(ContentFields relativeTo)
+		{
+			var fieldOfType = GetIdFieldIfMappingNotRequired(relativeTo);
+
+			if (fieldOfType != null)
+			{
+				// No mapping needed - the mapping is instead to use this virtual field.
+				return new MappingInfo {
+					Service = null,
+					TargetField = fieldOfType,
+					TargetFieldName = fieldOfType.VirtualInfo.IdSource.Name
+				};
+			}
+
+			var mappingService = await GetMappingService(relativeTo);
+
+			// We need to know what the target field is as we'll need a collector on it.
+			var mappingContentFields = mappingService.GetContentFields();
+
+			// Try to get target field (e.g. TagId):
+			if (!mappingContentFields.TryGetValue((VirtualInfo.Service.ServicedType.Name + "Id").ToLower(), out ContentField targetField))
+			{
+				throw new Exception("Couldn't find target field on a mapping type. This indicates an issue with the mapping engine rather than your usage.");
+			}
+
+			return new MappingInfo
+			{
+				Service = mappingService,
+				TargetField = targetField,
+				TargetFieldName = targetField.Name
+			};
+		}
+
+		/// <summary>
+		/// Gets a mapping service but doesn't consider if it is optional.
+		/// It would be optional if the mapped from type has an ID field that relates to the mapped to type.
+		/// </summary>
+		/// <param name="relativeTo"></param>
+		/// <returns></returns>
+		public async ValueTask<AutoService> GetMappingService(ContentFields relativeTo)
+		{
+			var svc = VirtualInfo.Service;
+			return await MappingTypeEngine.GetOrGenerate(relativeTo.Service, svc, VirtualInfo.FieldName);
+		}
+
+		/// <summary>
 		/// </summary>
 		public ContentField(FieldInfo info){
 			FieldInfo = info;
@@ -657,6 +720,41 @@ namespace Api.Startup {
 				return null;
 			}
 		}
+	}
+
+
+	/// <summary>
+	/// Meta about a particular map to use (in reverse, target->source)
+	/// </summary>
+	public struct ReverseMappingInfo
+	{
+		/// <summary>
+		/// The service. Will always exist.
+		/// </summary>
+		public AutoService Service;
+		/// <summary>
+		/// The source ID field.
+		/// </summary>
+		public ContentField SourceField;
+	}
+	
+	/// <summary>
+	/// Meta about a particular map to use.
+	/// </summary>
+	public struct MappingInfo
+	{
+		/// <summary>
+		/// The service, if there is one. This is a MappingService.
+		/// </summary>
+		public AutoService Service;
+		/// <summary>
+		/// The target ID field.
+		/// </summary>
+		public ContentField TargetField;
+		/// <summary>
+		/// The name of the target field.
+		/// </summary>
+		public string TargetFieldName;
 	}
 
 	/// <summary>
