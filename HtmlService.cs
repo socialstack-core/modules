@@ -13,6 +13,7 @@ using Newtonsoft.Json;
 using Newtonsoft.Json.Serialization;
 using Api.CanvasRenderer;
 using Api.Translate;
+using Api.Database;
 
 namespace Api.Pages
 {
@@ -655,8 +656,8 @@ namespace Api.Pages
 		/// <typeparam name="ID"></typeparam>
 		/// <param name="evtGroup"></param>
 		public void AttachPrimaryObjectEventHandler<T, ID>(EventGroup<T, ID> evtGroup)
-			 where T : new()
-			 where ID : struct
+			 where T : Content<ID>, new()
+			where ID : struct, IConvertible, IEquatable<ID>
 		{
 			evtGroup.Received.AddEventListener(async (Context ctx, T content, int mode) =>
 			{

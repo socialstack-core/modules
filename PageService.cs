@@ -151,7 +151,7 @@ namespace Api.Pages
 
 				return new ValueTask<Page>(page);
 			});
-			
+
 			// Pages must always have the cache on for any release site.
 			// That's because the HtmlService has a release only cache which depends on the sync messages for pages, as well as e.g. the url gen cache.
 			#if !DEBUG
@@ -201,7 +201,7 @@ namespace Api.Pages
 		private async Task LoadCaches(Context context)
 		{
 			// Get all pages for this locale:
-			var allPages = await List(context, null, DataOptions.IgnorePermissions);
+			var allPages = await Where(DataOptions.IgnorePermissions).ListAll(context);
 
 			if (_urlGenerationCache == null)
 			{
@@ -388,9 +388,7 @@ namespace Api.Pages
 			var oldIdUrl = "/en-admin/" + typeName + "/:id";
 
 			// Get any pages by those URLs:
-			var filter = new Filter<Page>().Equals("Url", adminIdUrl).Or().Equals("Url", oldIdUrl);
-
-			var pages = await ListNoCache(context, filter, DataOptions.IgnorePermissions);
+			var pages = await Where("Url=? or Url=?", DataOptions.NoCacheIgnorePermissions).Bind(adminIdUrl).Bind(oldIdUrl).ListAll(context);
 
 			foreach (var page in pages)
             {
@@ -412,10 +410,12 @@ namespace Api.Pages
 
 			if (idSet.Any())
 			{
-				// Get the pages by those URLs:
-				var filter = new Filter<Page>();
-				filter.Id(idSet.Select(Page => Page.Url));
-				var existingPages = (await ListNoCache(context, filter, false, DataOptions.IgnorePermissions)).ToDictionary(page => page.Id);
+				IEnumerable<uint> ids = idSet.Select(Page => Page.Id);
+
+				// Get the pages by those IDs:
+				var existingPages = (await Where("Id=[?]", DataOptions.NoCacheIgnorePermissions)
+						.Bind(ids)
+						.ListAll(context)).ToDictionary(page => page.Id);
 
 				// For each page to consider for install..
 				foreach (var page in idSet)
@@ -433,11 +433,13 @@ namespace Api.Pages
 
 			if (urlSet.Any())
 			{
+				IEnumerable<string> urls = urlSet.Select(Page => Page.Url);
+
 				// Get the pages by those URLs:
-				var filter = new Filter<Page>();
-				filter.EqualsSet("Url", urlSet.Select(Page => Page.Url));
-					
-				var existingPages = (await ListNoCache(context, filter, false, DataOptions.IgnorePermissions)).ToDictionary(page => page.Url);
+				var existingPages = (await Where("Url=[?]", DataOptions.NoCacheIgnorePermissions)
+						.Bind(urls)
+						.ListAll(context))
+						.ToDictionary(page => page.Url);
 
 				// For each page to consider for install..
 				foreach (var page in urlSet)
