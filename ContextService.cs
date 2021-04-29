@@ -15,48 +15,34 @@ using Api.Users;
 namespace Api.Contexts
 {
 	/// <summary>
-	/// Used to establish primary user context - role, locale and the user ID - when possible.
-	/// This is signature based - it doesn't generate any database traffic.
+	/// Holds useful information about Context objects.
 	/// </summary>
-	public class ContextService
-    {
-		/// <summary>
-		/// "null"
-		/// </summary>
-		private static readonly byte[] NullText = new byte[] { (byte)'n', (byte)'u', (byte)'l', (byte)'l' };
-		
-		/// <summary>
-		/// "1"
-		/// </summary>
-		private static readonly byte[] VersionField = new byte[] { (byte)'1' };
+	public static class ContextFields
+	{
 
 		/// <summary>
 		/// Fields by the shortcode, which is usually the first character of a context field name.
 		/// </summary>
-		private readonly ContextFieldInfo[] FieldsByShortcode = new ContextFieldInfo[64];
+		public static readonly ContextFieldInfo[] FieldsByShortcode = new ContextFieldInfo[64];
 
 		/// <summary>
 		/// Maps lowercase field names to the info about them.
 		/// </summary>
-		private readonly Dictionary<string, ContextFieldInfo> Fields = new Dictionary<string, ContextFieldInfo>();
-		private readonly List<ContextFieldInfo> FieldList = new List<ContextFieldInfo>();
+		public static readonly Dictionary<string, ContextFieldInfo> Fields = new Dictionary<string, ContextFieldInfo>();
+
+		/// <summary>
+		/// The raw list of fields.
+		/// </summary>
+		public static readonly List<ContextFieldInfo> FieldList = new List<ContextFieldInfo>();
 
 		/// <summary>
 		/// Maps a content type ID to the context field info. Your context property must end with 'Id' to get an entry here.
 		/// </summary>
-		private readonly Dictionary<int, ContextFieldInfo> ContentTypeToFieldInfo = new Dictionary<int, ContextFieldInfo>();
-		private readonly SignatureService _signatures;
-		private readonly UserService _users;
+		public static readonly Dictionary<int, ContextFieldInfo> ContentTypeToFieldInfo = new Dictionary<int, ContextFieldInfo>();
 
 
-		/// <summary>
-		/// Instanced automatically.
-		/// </summary>
-        public ContextService(SignatureService signatures, UserService users)
-        {
-			_signatures = signatures;
-			_users = users;
-
+		static ContextFields()
+		{
 			// Load all the props now.
 			var properties = typeof(Context).GetProperties(BindingFlags.Public | BindingFlags.Instance);
 			var fields = typeof(Context).GetFields(BindingFlags.NonPublic | BindingFlags.Instance);
@@ -85,13 +71,13 @@ namespace Api.Contexts
 
 				var lcName = field.Name.ToLower();
 				var getMethod = field.GetGetMethod();
-				
+
 				var defaultValue = (uint)getMethod.Invoke(defaultValueChecker, System.Array.Empty<object>());
 
-				if(!mapping.TryGetValue("_" + lcName, out FieldInfo privateField))
+				if (!mapping.TryGetValue("_" + lcName, out FieldInfo privateField))
 				{
 					throw new Exception(
-						"For '" + field.Name + "' to be a valid Context property, it must have a private backing field called _" + lcName + 
+						"For '" + field.Name + "' to be a valid Context property, it must have a private backing field called _" + lcName +
 						". This is such that you can restrict setting your context field from anything other than a token or an object set."
 					);
 				}
@@ -121,7 +107,7 @@ namespace Api.Contexts
 				if (FieldsByShortcode[shortIndex] != null)
 				{
 					throw new Exception(
-						"Context field '" + field.Name + "' can't use context field short name '" + shortcode + 
+						"Context field '" + field.Name + "' can't use context field short name '" + shortcode +
 						"' because it's in use. Specify one to use with [ContextShortcode('...')] on the field.");
 				}
 
@@ -147,6 +133,36 @@ namespace Api.Contexts
 				Fields[lcName] = fld;
 				FieldList.Add(fld);
 			}
+		}
+	}
+
+	/// <summary>
+	/// Used to establish primary user context - role, locale and the user ID - when possible.
+	/// This is signature based - it doesn't generate any database traffic.
+	/// </summary>
+	public class ContextService
+    {
+		/// <summary>
+		/// "null"
+		/// </summary>
+		private static readonly byte[] NullText = new byte[] { (byte)'n', (byte)'u', (byte)'l', (byte)'l' };
+		
+		/// <summary>
+		/// "1"
+		/// </summary>
+		private static readonly byte[] VersionField = new byte[] { (byte)'1' };
+
+		private readonly SignatureService _signatures;
+		private readonly UserService _users;
+
+
+		/// <summary>
+		/// Instanced automatically.
+		/// </summary>
+        public ContextService(SignatureService signatures, UserService users)
+        {
+			_signatures = signatures;
+			_users = users;
         }
 
 		/// <summary>
@@ -174,9 +190,9 @@ namespace Api.Contexts
 			writer.Write((byte)'{');
 
 			// Almost the same as virtual field includes, except they're always included.
-			for (var i = 0; i < FieldList.Count; i++)
+			for (var i = 0; i < ContextFields.FieldList.Count; i++)
 			{
-				var fld = FieldList[i];
+				var fld = ContextFields.FieldList[i];
 
 				// Write the header (Also includes a comma at the start if i!=0):
 				writer.Write(fld.JsonFieldHeader, 0, fld.JsonFieldHeader.Length);
@@ -230,7 +246,7 @@ namespace Api.Contexts
 		/// </summary>
 		public ContextFieldInfo FieldByContentType(int contentTypeId)
 		{
-			ContentTypeToFieldInfo.TryGetValue(contentTypeId, out ContextFieldInfo result);
+			ContextFields.ContentTypeToFieldInfo.TryGetValue(contentTypeId, out ContextFieldInfo result);
 			return result;
 		}
 		
@@ -352,7 +368,7 @@ namespace Api.Contexts
 					return null;
 				}
 
-				var field = FieldsByShortcode[fieldIndex];
+				var field = ContextFields.FieldsByShortcode[fieldIndex];
 
 				if (field == null)
 				{
@@ -398,7 +414,7 @@ namespace Api.Contexts
 			writer.Start(VersionField);
 			writer.WriteS(DateTime.UtcNow);
 
-			foreach (var field in FieldList)
+			foreach (var field in ContextFields.FieldList)
 			{
 				if (field.SkipOutput)
 				{
