@@ -72,6 +72,10 @@ function mapWhere(where, args){
 				continue;
 			}
 			var v = where[k];
+			if(v === undefined){
+				continue;
+			}
+			
 			if(str != ''){str += ' and ';}
 			
 			if(Array.isArray(v)){
@@ -274,7 +278,7 @@ function _fetch(url, data, opts) {
 		
 		if(q){
 			if(str){
-				// "On()" can only be combined with an and:
+				// "From()" can only be combined with an and:
 				str += ' and ' + q;
 			}else{
 				str = q;
