@@ -30,8 +30,8 @@ namespace Api.CustomContentTypes
 			Events.Service.AfterStart.AddEventListener(async (Context ctx, object x) =>
 			{
 				// Get all types:
-				var allTypes = await List(ctx, new Filter<CustomContentType>(), DataOptions.IgnorePermissions);
-				var allTypeFields = await fieldService.List(ctx, new Filter<CustomContentTypeField>(), DataOptions.IgnorePermissions);
+				var allTypes = await Where(DataOptions.IgnorePermissions).ListAll(ctx);
+				var allTypeFields = await fieldService.Where(DataOptions.IgnorePermissions).ListAll(ctx);
 
 				// Load them now:
 				await LoadCustomTypes(allTypes, allTypeFields);
@@ -189,7 +189,7 @@ namespace Api.CustomContentTypes
 			}
 
 			// Apply the fields:
-			type.Fields = await _fieldService.List(context, new Filter<CustomContentTypeField>().Equals("CustomContentTypeId", type.Id));
+			type.Fields = await _fieldService.Where("CustomContentTypeId=?").Bind(type.Id).ListAll(context);
 			
 			// Generate it now:
 			var compiledType = TypeEngine.Generate(type);
