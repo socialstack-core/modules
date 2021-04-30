@@ -121,7 +121,7 @@ namespace Api.Permissions{
 			else
 			{
 				// If the object does not have a UserId field (e.g. it's just a regular Content<>), then return a const false.
-				if (!typeof(T).IsAssignableFrom(typeof(UserCreatedContent<ID>)))
+				if (!typeof(UserCreatedContent<ID>).IsAssignableFrom(typeof(T)))
 				{
 					// A false:
 					return new BoolFilterTreeNode<T, ID>();
