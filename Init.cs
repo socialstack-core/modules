@@ -252,7 +252,7 @@ namespace Api.Permissions
 			{
 				// Note: The following code is very similar to handler.TestCapability(context, content) which is used for manual mode.
 
-				if (context.IgnorePermissions)
+				if (context.IgnorePermissions || content == null)
 				{
 					return new ValueTask<T>(content);
 				}
