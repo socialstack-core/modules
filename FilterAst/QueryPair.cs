@@ -578,19 +578,19 @@ namespace Api.Permissions
 		{
 			if (Pool == null)
 			{
-				throw new Exception("Argument #" + _arg + " of this filter is not a '" + type.Name + "'.");
+				throw new PublicException("Argument #" + _arg + " of this filter is not a '" + type.Name + "'.", "filter_invalid");
 			}
 
 			var max = Pool.ArgTypes == null ? 0 : Pool.ArgTypes.Count;
 
 			if (_arg >= max)
 			{
-				throw new Exception("Too many args being provided. This filter has " + max);
+				throw new PublicException("Too many args being provided. This filter has " + max, "filter_invalid");
 			}
 
 			var arg = Pool.ArgTypes[_arg];
 
-			throw new Exception("Argument #" + _arg + " must be a '" + arg.ArgType.Name + "', but you used Bind('" + type.Name + "') for it.");
+			throw new PublicException("Argument #" + _arg + " must be a '" + arg.ArgType.Name + "', but you used Bind('" + type.Name + "') for it.", "filter_invalid");
 		}
 
 		/// <summary>
@@ -664,19 +664,29 @@ namespace Api.Permissions
 		/// </summary>
 		public Filter<T, ID> Bind(object v)
 		{
-			var t = v.GetType();
-
 			if (Pool.ArgTypes == null || _arg >= Pool.ArgTypes.Count)
 			{
-				Fail(t);
+				Fail(v == null ? typeof(object) : v.GetType());
 				return this;
 			}
 
 			var argInfo = Pool.ArgTypes[_arg];
 
-			if (!argInfo.ArgType.IsAssignableFrom(t))
+			if (v == null)
 			{
-				Fail(t);
+				// Is this field nullable?
+				if (!argInfo.IsNullable)
+				{
+					throw new PublicException("Can't use null as arg #" + (_arg+1) + " because it's not nullable", "filter_invalid");
+				}
+			}
+			else
+			{
+				var t = v.GetType();
+				if (!argInfo.ArgType.IsAssignableFrom(t))
+				{
+					Fail(t);
+				}
 			}
 
 			argInfo.ConstructedField.SetValue(this, v);
@@ -690,6 +700,12 @@ namespace Api.Permissions
 		/// <param name="str"></param>
 		public override FilterBase BindUnknown(string str)
 		{
+			if (str == null)
+			{
+				// Special case for null - the field isn't necessarily a null string field.
+				return Bind((object)null);
+			}
+
 			return BindFromString(str);
 		}
 

@@ -199,6 +199,11 @@ namespace Api.Permissions{
 		public static MethodInfo _baseNullCheck;
 		
 		/// <summary>
+		/// FilterBase.CheckParseSuccess
+		/// </summary>
+		public static MethodInfo _checkParseSuccess;
+		
+		/// <summary>
 		/// The Type[] signature for generated Collect methods.
 		/// </summary>
 		public static Type[] _collectSignature;
@@ -207,6 +212,19 @@ namespace Api.Permissions{
 		/// FilterBase.FirstBCollector
 		/// </summary>
 		public static FieldInfo _firstBCollector;
+
+		/// <summary>
+		/// Checks if a TryParse was successful and if not emits a friendly error.
+		/// Consumes a single bool from the stack.
+		/// </summary>
+		/// <param name="state"></param>
+		public static void CheckParseSuccess(bool state)
+		{
+			if (!state)
+			{
+				throw new PublicException("Invalid format for one of your filter args. Make sure the value is correct for each one.", "filter_invalid");
+			}
+		}
 
 		/// <summary>
 		/// 
@@ -239,6 +257,10 @@ namespace Api.Permissions{
 	/// </summary>
 	public class ArgBinding
 	{
+		/// <summary>
+		/// True if this arg can be null. Either it is not a valuetype, or it is a generic Nullable
+		/// </summary>
+		public bool IsNullable;
 		/// <summary>
 		/// Field type
 		/// </summary>
@@ -511,7 +533,13 @@ namespace Api.Permissions{
 		{
 			var builder = TypeBuilder.DefineField("Arg_" + index, argType, System.Reflection.FieldAttributes.Public);
 
-			var binding = new ArgBinding() { Builder = builder, ArgType = argType };
+			var nullableBaseType = Nullable.GetUnderlyingType(argType);
+
+			var binding = new ArgBinding() {
+				Builder = builder,
+				ArgType = argType,
+				IsNullable = !argType.IsValueType || nullableBaseType != null // Not a value type, OR is is a Nullable<>
+			};
 
 			for (var i = 0; i < Args.Count; i++)
 			{
@@ -590,11 +618,16 @@ namespace Api.Permissions{
 			binding.BindMethod.MarkLabel(label);
 
 			// Next, on the BindFromString method. These are only ever valuetypes, which should mean they have a Parse method that we can use.
-			var parseMethod = isString ? null : argType.GetMethod("Parse", BindingFlags.Static | BindingFlags.Public, null, _strTypeInArray, null);
+
+			var parseType = (nullableBaseType != null ? nullableBaseType : argType);
+
+			var parseMethod = isString ? null : parseType.GetMethod("TryParse", BindingFlags.Static | BindingFlags.Public, null, new Type[] { typeof(string), parseType.MakeByRefType() }, null);
 
 			if (FilterAst._baseNullCheck == null)
 			{
 				FilterAst._baseNullCheck = typeof(FilterBase).GetMethod(nameof(FilterBase.NullCheck));
+				FilterAst._checkParseSuccess = typeof(FilterAst)
+					.GetMethod(nameof(FilterAst.CheckParseSuccess), BindingFlags.Static | BindingFlags.Public);
 			}
 
 			if (isString || parseMethod != null)
@@ -620,9 +653,14 @@ namespace Api.Permissions{
 					BindStringMethod.Emit(OpCodes.Ldarg_1);
 					if (parseMethod != null)
 					{
-						// Convert now - the string is on the stack:
+					// TryParse. The string is on the stack at the moment, so we just need to push a temp local ref:
+						var tryParseScratchSpace = BindStringMethod.DeclareLocal(parseType);
+						BindStringMethod.Emit(OpCodes.Ldloca, tryParseScratchSpace);
 						BindStringMethod.Emit(OpCodes.Call, parseMethod);
-						// Now a value suitable for the target field is on the stack.
+						BindStringMethod.Emit(OpCodes.Call, FilterAst._checkParseSuccess);
+
+						// CheckParse throws if it was invalid, so we can proceed to just put the parsed val straight onto the stack:
+						BindStringMethod.Emit(OpCodes.Ldloc, tryParseScratchSpace);
 					}
 					BindStringMethod.Emit(OpCodes.Stfld, builder);
 					// Increase _arg:
