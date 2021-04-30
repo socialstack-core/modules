@@ -97,11 +97,13 @@ export default class PropEditor extends React.Component {
 	}
 
     renderOptions(contentNode, module){
+		console.log("render Options");
+		console.log("contentNode", contentNode);
 		if(!contentNode){
 			return;
 		}
 
-		var Module = module || contentNode.type || "div";
+		var Module = module || contentNode || "div";
 		var dataValues = {...contentNode.data};
 
 		var props = Module.propTypes;
@@ -111,6 +113,7 @@ export default class PropEditor extends React.Component {
 			props = Module.rendererPropTypes || props;
 		}
 		
+		console.log("Module", Module);
 		var dataFields = {};
 		var atLeastOneDataField = false;
 		if(props){
@@ -118,11 +121,31 @@ export default class PropEditor extends React.Component {
 				if(this.specialField(fieldName)){
 					continue;
 				}
+				console.log("fieldName", fieldName);
 				var propType = props[fieldName];
 				if(!propType.type){
 					propType = {type: propType};
 				}
-				dataFields[fieldName] = { propType, defaultValue: defaultProps[fieldName], value: dataValues[fieldName]};
+
+				console.log("propType type check", propType.type);
+				var value = null;
+
+				// What is our proptype type? if its jsx, we need to check the roots for the value.
+				if(propType.type == "jsx") {
+					console.log("jsx value");
+					// Let's get the jsx value.
+
+				} else {
+					// Let's look in the props
+					if(Module.props && Module.props[fieldName]) {
+						value = Module.props[fieldName];
+						console.log("not jsx value", value);
+					}
+				}
+
+				var val = { propType, defaultValue: defaultProps[fieldName], value};
+				console.log("field value", val);
+				dataFields[fieldName] = val;
 				atLeastOneDataField = true;
 			}
 		}

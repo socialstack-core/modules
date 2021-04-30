@@ -503,6 +503,7 @@ export default class RichEditor extends React.Component {
 	
 	onContextMenu(e){
 		e.preventDefault();
+		console.log("onContextMenu");
 		
 		// Right click menu
 		var {node} = this.state;
@@ -531,10 +532,12 @@ export default class RichEditor extends React.Component {
 	}
 	
 	onMouseUp(e){
+		console.log("onMouseUp");
 		// Needs to look out for e.g. selecting text but mouse-up outside the text area.
 		// Because of the above, this is a global mouseup handler. Ensure it does the minimal amount possible.
 		
-		if(this.state.rightClick){
+		if(this.state.rightClick && !this.state.optionsVisibleFor){
+			console.log("right click nullified");
 			this.setState({rightClick: null});
 		}
 		
@@ -1306,7 +1309,6 @@ export default class RichEditor extends React.Component {
 		var cur = node;
 
 		console.log("renderContextMenu");
-		console.log("cur", {...cur});
 
 		while(cur){
 			if(cur.type){
@@ -1314,8 +1316,9 @@ export default class RichEditor extends React.Component {
 					var displayName = this.displayModuleName(cur.typeName);
 					
 					console.log("cur", {...cur});
+					var clone = {...cur};
 					buttons.push({
-						onClick: (e) => {e.preventDefault(); this.setState({optionsVisibleFor: cur, selectionSnapshot: {...this.state.selection}});},
+						onClick: (e) => {e.preventDefault(); console.log("cur", {...cur}); console.log("state", {...this.state}); this.setState({optionsVisibleFor: clone});},
 						icon: 'cog',
 						text: 'Edit ' + displayName
 					});
@@ -1364,6 +1367,7 @@ export default class RichEditor extends React.Component {
 	}
 	
 	clearContextMenu(e){
+		console.log("clearContextMenu");
 		if(this.state.rightClick){
 			this.setState({rightClick: null});
 		}
@@ -1642,7 +1646,7 @@ export default class RichEditor extends React.Component {
 					return;
 				}
 				
-				var newParent = {type: primaryType, typeName, props: props ? {...props} : null, propTypes: props ? {...props} : null};
+				var newParent = {type: primaryType, typeName, props: {}, propTypes: props ? {...props} : null};
 				
 				var origParent = node.parent;
 				var nodeContent = origParent ? [node] : node.content;
@@ -2437,7 +2441,8 @@ export default class RichEditor extends React.Component {
 		console.log("closeModal");
 		this.setState({
 			selectOpenFor: null,
-			optionsVisibleFor: null
+			optionsVisibleFor: null,
+			rightClick: null
 		});
 		//this.updated();
 	}
@@ -2535,9 +2540,9 @@ export default class RichEditor extends React.Component {
 						closeModal = {() => {
 							// First, let's get our selectionSnapshot.
 							console.log("Prop Editor close");
-							console.log({...this.state});
-							this.setState({selectionSnapshot: null});
-							this.normalise(true);
+							//console.log({...this.state});
+							//this.setState({selectionSnapshot: null});
+							//this.normalise(true);
 							this.closeModal()
 						}}
 						optionsVisibleFor = {this.state.optionsVisibleFor}
