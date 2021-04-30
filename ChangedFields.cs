@@ -2,6 +2,7 @@
 using Api.Database;
 using Api.Translate;
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Reflection;
 using System.Threading.Tasks;
@@ -106,7 +107,7 @@ namespace Api.Startup {
 		/// <summary>
 		/// Inclusion sets that have been pre-generated, rooted from this set.
 		/// </summary>
-		public Dictionary<string, IncludeSet> includeSets = new Dictionary<string, IncludeSet>();
+		public ConcurrentDictionary<string, IncludeSet> includeSets = new ConcurrentDictionary<string, IncludeSet>();
 
 		/// <summary>
 		/// The AutoService that this map is for.
