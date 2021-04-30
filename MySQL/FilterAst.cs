@@ -70,7 +70,7 @@ namespace Api.Permissions{
 		/// A generator for making IN(..) strings for arrays.
 		/// </summary>
 		private InStringGenerator _generator;
-		
+
 		/// <summary>
 		/// Steps through this tree, building an SQL-format where query. Very similar to how it actually starts out.
 		/// Note that if it encounters an array node, it will immediately resolve the value using values stored in the given filter instance.
@@ -150,11 +150,29 @@ namespace Api.Permissions{
 					// Null has a special "is null" syntax:
 					writer.WriteASCII(" IS NULL");
 				}
-				else if (B is ArgFilterTreeNode<T, ID> arg && arg.Array)
+				else if (B is ArgFilterTreeNode<T, ID> arg)
 				{
-					// It'll output an IN(..) statement. Don't include the =.
-					writer.Write((byte)' ');
-					B.ToSql(cmd, writer, ref collectors, localeCode, filter, context);
+					if (arg.Array)
+					{
+						// It'll output an IN(..) statement. Don't include the =.
+						writer.Write((byte)' ');
+						B.ToSql(cmd, writer, ref collectors, localeCode, filter, context);
+					}
+					else
+					{
+						// Handle null special case:
+						var val = arg.Binding.ConstructedField.GetValue(filter);
+
+						if (val == null)
+						{
+							writer.WriteASCII(" IS NULL");
+						}
+						else
+						{
+							writer.WriteS(Operation);
+							OutputArg(cmd, writer, val);
+						}
+					}
 				}
 				else
 				{
@@ -173,11 +191,29 @@ namespace Api.Permissions{
 					// Null has a special "is not null" syntax:
 					writer.WriteASCII(" IS NOT NULL");
 				}
-				else if (B is ArgFilterTreeNode<T, ID> arg && arg.Array)
+				else if (B is ArgFilterTreeNode<T, ID> arg)
 				{
-					// It'll output an IN(..) statement. we need a NOT infront:
-					writer.WriteASCII(" NOT ");
-					B.ToSql(cmd, writer, ref collectors, localeCode, filter, context);
+					if (arg.Array)
+					{
+						// It'll output an IN(..) statement. we need a NOT infront:
+						writer.WriteASCII(" NOT ");
+						B.ToSql(cmd, writer, ref collectors, localeCode, filter, context);
+					}
+					else
+					{
+						// Handle null special case:
+						var val = arg.Binding.ConstructedField.GetValue(filter);
+
+						if (val == null)
+						{
+							writer.WriteASCII(" IS NOT NULL");
+						}
+						else
+						{
+							writer.WriteS(Operation);
+							OutputArg(cmd, writer, val);
+						}
+					}
 				}
 				else
 				{
@@ -223,6 +259,23 @@ namespace Api.Permissions{
 			{
 				throw new Exception("Not supported via MySQL yet: " + Operation);
 			}
+		}
+
+		/// <summary>
+		/// Attempts to output an arg for a particular value. If the value is null, this returns false. You must use "is null" syntax instead.
+		/// </summary>
+		/// <param name="cmd"></param>
+		/// <param name="writer"></param>
+		/// <param name="val"></param>
+		/// <returns></returns>
+		private void OutputArg(MySqlCommand cmd, Writer writer, object val)
+		{
+			var name = "@a" + cmd.Parameters.Count;
+			var parameter = cmd.CreateParameter();
+			parameter.ParameterName = name;
+			parameter.Value = val;
+			writer.WriteASCII(name);
+			cmd.Parameters.Add(parameter);
 		}
 	}
 
@@ -493,7 +546,7 @@ namespace Api.Permissions{
 				}
 
 				writer.WriteASCII("IN(");
-				if(!_generator.Generate(writer, Binding.ConstructedField.GetValue(filter)))
+				if (!_generator.Generate(writer, Binding.ConstructedField.GetValue(filter)))
 				{
 					// It didn't output anything. As we've already written out IN(, avoid a syntax failure by outputting effectively IN(0):
 					writer.WriteS(0);
@@ -502,10 +555,13 @@ namespace Api.Permissions{
 			}
 			else
 			{
+				// output an arg. This occurs for args used by e.g. contains or startsWith, 
+				// where use of a null makes no sense and would (expectedly) return no results.
+				var val = Binding.ConstructedField.GetValue(filter);
 				var name = "@a" + cmd.Parameters.Count;
 				var parameter = cmd.CreateParameter();
 				parameter.ParameterName = name;
-				parameter.Value = Binding.ConstructedField.GetValue(filter);
+				parameter.Value = val;
 				writer.WriteASCII(name);
 				cmd.Parameters.Add(parameter);
 			}
