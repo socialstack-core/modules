@@ -1,6 +1,10 @@
 import Alert from 'UI/Alert';
 import Token from 'UI/Token';
 import Input from 'UI/Input';
+import Modal from 'UI/Modal';
+import Loop from 'UI/Loop';
+import ModuleSelector from 'Admin/CanvasEditor/ModuleSelector'
+import PropEditor from 'Admin/CanvasEditor/PropEditor';
 
 var TEXT = '#text';
 
@@ -56,6 +60,8 @@ export default class RichEditor extends React.Component {
 		this.onPaste = this.onPaste.bind(this);
 		this.onCopy = this.onCopy.bind(this);
 		this.onCut = this.onCut.bind(this);
+		this.closeModal = this.closeModal.bind(this);
+		this.normalise = this.normalise.bind(this);
 		
 		var rootRef =  React.createRef();
 		
@@ -303,7 +309,7 @@ export default class RichEditor extends React.Component {
 				result.type = require(type).default;
 				
 				// Only custom nodes can have data:
-				result.props = node.d || node.data;
+				result.props = result.propTypes = node.d || node.data;
 				
 				// Build the roots set.
 				var roots = {};
@@ -1298,13 +1304,18 @@ export default class RichEditor extends React.Component {
 		var {node} = rightClick;
 		
 		var cur = node;
+
+		console.log("renderContextMenu");
+		console.log("cur", {...cur});
+
 		while(cur){
 			if(cur.type){
 				if(typeof cur.type != 'string'){
 					var displayName = this.displayModuleName(cur.typeName);
 					
+					console.log("cur", {...cur});
 					buttons.push({
-						onClick: () => this.setState({optionsVisibleFor: contentNode, rightClick: null}),
+						onClick: (e) => {e.preventDefault(); this.setState({optionsVisibleFor: cur, selectionSnapshot: {...this.state.selection}});},
 						icon: 'cog',
 						text: 'Edit ' + displayName
 					});
@@ -1606,6 +1617,15 @@ export default class RichEditor extends React.Component {
 			typeName = primaryType;
 			primaryType = require(primaryType).default;
 			customType = true;
+
+			var props = null;		
+		
+			if(primaryType && primaryType.propTypes){
+				props = primaryType.propTypes;
+				var nameParts = typeName.split('/');			
+				var publicName = nameParts.join('/');
+				var name = nameParts.pop();
+			}
 		}
 		
 		if(!!inlines[primaryType] || (primaryType.editable && primaryType.editable.inline)){
@@ -1622,7 +1642,7 @@ export default class RichEditor extends React.Component {
 					return;
 				}
 				
-				var newParent = {type: primaryType, typeName, props: props ? {...props} : null};
+				var newParent = {type: primaryType, typeName, props: props ? {...props} : null, propTypes: props ? {...props} : null};
 				
 				var origParent = node.parent;
 				var nodeContent = origParent ? [node] : node.content;
@@ -1633,7 +1653,7 @@ export default class RichEditor extends React.Component {
 						content: nodeContent
 					};
 					
-					var clonedRoots = {};
+					var clonedRoots = {}; 
 					for(var k in roots){
 						clonedRoots[k] = this.deepClone(roots[k]);
 					}
@@ -1643,7 +1663,7 @@ export default class RichEditor extends React.Component {
 					for(var k in clonedRoots){
 						clonedRoots[k].parent = newParent;
 					}
-					
+					this.setState({optionsVisibleFor: newParent, selectionSnapshot: this.state.selection});
 					nodeContent.forEach(n => n.parent = childRoot);
 				}else{
 					newParent.content = nodeContent;
@@ -1762,9 +1782,21 @@ export default class RichEditor extends React.Component {
 		// Slice the selection, returning all the unique parent-most nodes inside it. Will only modify the tree by slicing text nodes.
 		console.log("before sliceSelection")
 		var toDelete = this.sliceSelection(selection);
-		var alsoToDelete = this.slicePartialSelection(selection); // This is an attempt at slicing out a parent caught in a partial selection. 
+		var partialSelections = this.slicePartialSelection(selection); // This is an attempt at slicing out a parent caught in a partial selection. 
 		console.log("after slice selection. toDelete", {...toDelete});
-		console.log("alsoToDelete from slicePartialSelection", {...alsoToDelete});
+		console.log("alsoToDelete from slicePartialSelection", {...partialSelections});
+
+		// Do we need to handle our partial selections? We only worry about those when our sliceSelection didn't produce a clean result.
+		if(toDelete.length == 0) {
+			// Let's step through the partial selections.
+			partialSelections.forEach(partial => {
+				if(partial == selection.endNode.parent) {
+					toDelete.push(partial);
+				}
+			})
+		}
+
+
 		// If any parents of endNode are marked for deletion, don't delete them.
 		// This is because if endNode has other inline siblings, they shouldn't lose their formatting, 
 		// but they should however lose all *block elements* that they are inside.
@@ -2400,6 +2432,16 @@ export default class RichEditor extends React.Component {
 	isCustom(node){
 		return (node && node.type && typeof node.type != 'string');
 	}
+
+	closeModal(){
+		console.log("closeModal");
+		this.setState({
+			selectOpenFor: null,
+			optionsVisibleFor: null
+		});
+		//this.updated();
+	}
+
 	
 	render() {
 		var {node, error, sourceMode} = this.state;
@@ -2468,6 +2510,7 @@ export default class RichEditor extends React.Component {
 				})}
 				{this.props.modules && this.renderButton('Add something else', <i className={'fa fa-plus'} />, () => {
 					// Show modal
+					this.setState({ selectOpenFor: true })
 					console.log("Show modal");
 				})}
 			</div>)}
@@ -2478,6 +2521,37 @@ export default class RichEditor extends React.Component {
 			</div>
 			
 			{this.state.rightClick && this.renderContextMenu()}
+				<div className="canvas-editor-popups" 
+					onContextMenu={e => {
+						e.preventDefault();
+						return false;
+				}}>
+					<ModuleSelector 
+						closeModal = {() => this.closeModal()} 
+						selectOpenFor = {this.state.selectOpenFor} 
+						groups = {this.props.groups}
+					/>
+					<PropEditor
+						closeModal = {() => {
+							// First, let's get our selectionSnapshot.
+							console.log("Prop Editor close");
+							console.log({...this.state});
+							this.setState({selectionSnapshot: null});
+							this.normalise(true);
+							this.closeModal()
+						}}
+						optionsVisibleFor = {this.state.optionsVisibleFor}
+						selectionSnapshot  = {this.state.selectionSnapshot}
+						normalise = {() => this.normalise(true)}
+						updateTargetNode = {(targetNode) => {
+
+							this.setState({optionsVisibleFor: targetNode});
+							console.log("updateSelection called!!!", this.state.selectionSnapshot);
+							console.log("targetNode", targetNode);
+						}}
+					/>
+				</div>
+
 		</div>;
 	}
 	
@@ -2696,7 +2770,7 @@ export default class RichEditor extends React.Component {
 	componentDidMount(){
 		var {node} = this.state;
 		this.updateRefs(node, node.dom.current);
-		console.log("Updated refs", this.state);
+		console.log("Updated refs", {...this.state});
 		window.addEventListener("mouseup", this.onMouseUp);
 	}
 	
