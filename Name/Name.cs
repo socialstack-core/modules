@@ -17,10 +17,16 @@ namespace Api.Users
         public string FirstName;
 
         /// <summary>
-        /// The last name of the user. 
+        /// The last name(s) of the user. 
         /// </summary>
         [DatabaseField(Length = 40)]
         public string LastName;
+		
+		/// <summary>
+		/// First + last concatted with a space.
+        /// </summary>
+        [DatabaseField(Length = 90)]
+		public string FullName;
     }
     
 }
