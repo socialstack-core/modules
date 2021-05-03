@@ -99,6 +99,16 @@ function replaceTokens(str, res) {
 	return str;
 }
 
+function historyLength(){
+	return window && window.history ? window.history.length : 0;
+}
+
+var initLength = historyLength();
+
+function canGoBack(){
+	return historyLength() > initLength;
+}
+
 export default (props) => {
 	const { shouldUpdateDocumentTitleOnPageChange } = props;
 
@@ -178,6 +188,7 @@ export default (props) => {
 	
 	return <Router.Provider
 			value={{
+				canGoBack,
 				pageState,
 				setPage: go
 			}}
