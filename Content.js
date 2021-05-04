@@ -155,7 +155,7 @@ export default class Content extends React.Component {
 			return <RouterConsumer>{
 				pgState => {
 					this._po = pgState.po;
-					this.rContent(pgState.po);
+					return this.rContent(pgState.po);
 				}
 			}</RouterConsumer>;
 			
