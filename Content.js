@@ -20,7 +20,13 @@ export default class Content extends React.Component {
 	}
 	
 	evtType(){
-		var name = this.props.type;
+		var content = (this.props.primary) ? this._po : this.state.content;
+		
+		if(!content){
+			return null;
+		}
+		
+		var name = content.type;
 		return name.charAt(0).toUpperCase() + name.slice(1);
 	}
 	
@@ -90,10 +96,13 @@ export default class Content extends React.Component {
 	componentDidUpdate(prevProps){
 		var {type, id, primary, includes} = this.props;
 		
+		this.updateWS();
+		
 		if((prevProps.primary && primary) || (prevProps && type == prevProps.type && id == prevProps.id)){
 			// Cached object is fine here.
 			return;
 		}
+		
 		this.load(type, id, includes);
 	}
 	
@@ -107,17 +116,28 @@ export default class Content extends React.Component {
 	}
 	
 	componentWillUnmount() {
-		if (this.props.live) {
-			webSocket.removeEventListener(this.evtType(), this.onLiveMessage);
+		if (this.mountedType) {
+			webSocket.removeEventListener(this.mountedType, this.onLiveMessage);
+			this.mountedType = null;
 		}
 		document.removeEventListener("contentchange", this.onContentChange);
 	}
 	
-	componentDidMount(){
-		var {type, id, live, includes} = this.props;
+	updateWS(){
+		var {live, id} = this.props;
 		if (live) {
-			webSocket.addEventListener(this.evtType(), this.onLiveMessage, {where: {Id: id}});
+			var idealType = this.evtType();
+			
+			if(idealType && idealType != this.mountedType){
+				this.mountedType = idealType;
+				webSocket.addEventListener(this.mountedType, this.onLiveMessage, {where: {Id: id}});
+			}
 		}
+	}
+	
+	componentDidMount(){
+		var {type, id, includes} = this.props;
+		this.updateWS();
 		document.addEventListener("contentchange", this.onContentChange);
 		
 		if(!this.state.content && id){
@@ -133,7 +153,10 @@ export default class Content extends React.Component {
 		if(primary){
 			
 			return <RouterConsumer>{
-				pgState => this.rContent(pgState.po)
+				pgState => {
+					this._po = pgState.po;
+					this.rContent(pgState.po);
+				}
 			}</RouterConsumer>;
 			
 		}else{
