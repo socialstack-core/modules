@@ -14,6 +14,7 @@ using Newtonsoft.Json.Serialization;
 using Api.CanvasRenderer;
 using Api.Translate;
 using Api.Database;
+using Api.SocketServerLibrary;
 
 namespace Api.Pages
 {
@@ -467,7 +468,16 @@ namespace Api.Pages
 			{
 				try
 				{
-					var poJson = (doc.PrimaryObject != null ? Newtonsoft.Json.JsonConvert.SerializeObject(doc.PrimaryObject, jsonSettings) : "null");
+					string poJson = "null";
+
+
+					if (doc.PrimaryObject != null) {
+						var writer = Writer.GetPooled();
+						writer.Start(null);
+						await doc.PrimaryObjectService.ObjectToJson(context, doc.PrimaryObject, writer, null, "*");
+						poJson = writer.ToUTF8String();
+						writer.Release();
+					}
 
 					var preRender = await _canvasRendererService.Render(context, page.BodyJson, new PageState() {
 						Tokens = pageAndTokens.TokenValues,
