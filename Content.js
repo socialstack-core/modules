@@ -1,4 +1,4 @@
-import webRequest from 'UI/Functions/WebRequest';
+import webRequest, {expandIncludes} from 'UI/Functions/WebRequest';
 import webSocket from 'UI/Functions/WebSocket';
 import { SessionConsumer, RouterConsumer } from 'UI/Session';
 
@@ -154,8 +154,11 @@ export default class Content extends React.Component {
 			
 			return <RouterConsumer>{
 				pgState => {
-					this._po = pgState.po;
-					return this.rContent(pgState.po);
+					if(this.po != pgState.po){
+						this.po = pgState.po;
+						this._po = expandIncludes(pgState.po);
+					}
+					return this.rContent(this._po);
 				}
 			}</RouterConsumer>;
 			
