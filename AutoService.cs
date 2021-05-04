@@ -9,6 +9,7 @@ using Newtonsoft.Json.Linq;
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
 
@@ -1034,6 +1035,21 @@ public partial class AutoService
 	/// <param name="viaInclude">True if it's via an include, and therefore the "from" filter field is implied true.</param>
 	/// <returns></returns>
 	public virtual ValueTask OutputJsonList(Context context, IDCollector collectors, IDCollector idSet, Writer writer, bool viaInclude)
+	{
+		// Not supported on this service.
+		return new ValueTask();
+	}
+
+	/// <summary>
+	/// Outputs the given object (an entity from this service) to JSON in the given writer.
+	/// </summary>
+	/// <param name="context"></param>
+	/// <param name="entity"></param>
+	/// <param name="writer"></param>
+	/// <param name="targetStream"></param>
+	/// <param name="includes"></param>
+	/// <returns></returns>
+	public virtual ValueTask ObjectToJson(Context context, object entity, Writer writer, Stream targetStream = null, string includes = null)
 	{
 		// Not supported on this service.
 		return new ValueTask();
