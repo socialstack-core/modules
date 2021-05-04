@@ -1,10 +1,41 @@
 import Alert from 'UI/Alert';
 import Token from 'UI/Token';
 import Input from 'UI/Input';
-import Modal from 'UI/Modal';
-import Loop from 'UI/Loop';
 import ModuleSelector from 'Admin/CanvasEditor/ModuleSelector'
 import PropEditor from 'Admin/CanvasEditor/PropEditor';
+import omit from 'UI/Functions/Omit';
+
+// Connect the input "ontypecanvas" render event:
+
+var inputTypes = global.inputTypes = global.inputTypes || {};
+
+// type="canvas"
+/*
+inputTypes.ontypecanvas = function(props, _this){
+	
+	return <RichEditor
+		id={props.id || _this.fieldId}
+		className={props.className || "form-control"}
+		toolbar 
+		modules
+		groups = {"formatting"}
+		{...omit(props, ['id', 'className', 'type', 'inline'])}
+	/>;
+	
+};
+
+// contentType="application/canvas"
+inputTypes['application/canvas'] = function(props, _this){
+	return <RichEditor
+		id={props.id || _this.fieldId}
+		className={props.className || "form-control"}
+		toolbar 
+		modules
+		groups = {"formatting"}
+		{...omit(props, ['id', 'className', 'type', 'inline'])}
+	/>;
+};
+*/
 
 var TEXT = '#text';
 
@@ -263,6 +294,7 @@ export default class RichEditor extends React.Component {
 	}
 	
 	convertToNodesFromCanvas(node){
+		console.log("convertToNodesFromCanvas");
 		if(!node){
 			return;
 		}
@@ -305,11 +337,13 @@ export default class RichEditor extends React.Component {
 		
 		if(type){
 			if(type.indexOf('/') != -1){
+				console.log("type", type);
 				result.typeName = type;
 				result.type = require(type).default;
+				console.log("module",result.type);
 				
 				// Only custom nodes can have data:
-				result.props = result.propTypes = node.d || node.data;
+				result.props = result.propTypes = node.d || node.data || {};
 				
 				// Build the roots set.
 				var roots = {};
@@ -503,7 +537,6 @@ export default class RichEditor extends React.Component {
 	
 	onContextMenu(e){
 		e.preventDefault();
-		console.log("onContextMenu");
 		
 		// Right click menu
 		var {node} = this.state;
@@ -532,12 +565,10 @@ export default class RichEditor extends React.Component {
 	}
 	
 	onMouseUp(e){
-		console.log("onMouseUp");
 		// Needs to look out for e.g. selecting text but mouse-up outside the text area.
 		// Because of the above, this is a global mouseup handler. Ensure it does the minimal amount possible.
 		
 		if(this.state.rightClick && !this.state.optionsVisibleFor){
-			console.log("right click nullified");
 			this.setState({rightClick: null});
 		}
 		
@@ -1308,14 +1339,11 @@ export default class RichEditor extends React.Component {
 		
 		var cur = node;
 
-		console.log("renderContextMenu");
-
 		while(cur){
 			if(cur.type){
 				if(typeof cur.type != 'string'){
 					var displayName = this.displayModuleName(cur.typeName);
-					
-					console.log("cur", {...cur});
+
 					var clone = {...cur};
 					buttons.push({
 						onClick: (e) => {e.preventDefault(); console.log("cur", {...cur}); console.log("state", {...this.state}); this.setState({optionsVisibleFor: clone});},
@@ -1487,6 +1515,8 @@ export default class RichEditor extends React.Component {
 	*/
 	applyWrap(selection, type, props, roots){
 		if(!selection){
+			console.log("no selection");
+			console.log("this.state", {...this.state})
 			return;
 		}
 		var active = this.getUniqueParents(selection);
@@ -1604,9 +1634,15 @@ export default class RichEditor extends React.Component {
 	
 	/* Wraps selection with inline ele of given type. May end up generating multiple ele's. */
 	insertWrap(selection, types, props, forceInsert, roots){
-		
+		console.log("insertWrap");
+		console.log("selection", selection);
+		console.log("types", types);
+		console.log("props", props);
+		console.log("forceInsert", forceInsert);
+		console.log("roots", roots);
 		var nodesThatRequireWrapping = this.sliceSelection(selection);
 		
+		console.log("nodesThatRequireWrapping", nodesThatRequireWrapping);
 		if(!Array.isArray(types)){
 			types = [types];
 		}
@@ -1627,8 +1663,6 @@ export default class RichEditor extends React.Component {
 			if(primaryType && primaryType.propTypes){
 				props = primaryType.propTypes;
 				var nameParts = typeName.split('/');			
-				var publicName = nameParts.join('/');
-				var name = nameParts.pop();
 			}
 		}
 		
@@ -1646,7 +1680,7 @@ export default class RichEditor extends React.Component {
 					return;
 				}
 				
-				var newParent = {type: primaryType, typeName, props: {}, propTypes: props ? {...props} : null};
+				var newParent = {type: primaryType, typeName, props: {}};
 				
 				var origParent = node.parent;
 				var nodeContent = origParent ? [node] : node.content;
@@ -1667,6 +1701,8 @@ export default class RichEditor extends React.Component {
 					for(var k in clonedRoots){
 						clonedRoots[k].parent = newParent;
 					}
+
+					// We are adding our custom type to the optionsVisible for prop editing.
 					this.setState({optionsVisibleFor: newParent, selectionSnapshot: this.state.selection});
 					nodeContent.forEach(n => n.parent = childRoot);
 				}else{
@@ -1743,14 +1779,21 @@ export default class RichEditor extends React.Component {
 					}
 					
 					if(action == 0){
+						console.log("action0", action)
 						blockNode.type = type;
 					}else if(action == 1){
+						console.log("action1", action)
 						// Wrap blockNode's children with a new node:
 						var newNode = {type, props: props ? {...props} : null, content: blockNode.content};
+						console.log("newNode", newNode);
+						console.log("blockNode", blockNode);
 						blockNode.content = [newNode];
 						newNode.parent = blockNode;
 						newNode.content.forEach(n => n.parent = newNode);
+						console.log("newNode", newNode);
+						console.log("blockNode", blockNode);
 					}else{
+						console.log("actionElse", action)
 						// Wrap blockNode with new node:
 						var newNode = {type, props: props ? {...props} : null, content: [blockNode]};
 						var index = blockNode.parent.indexOf(blockNode);
@@ -1856,12 +1899,16 @@ export default class RichEditor extends React.Component {
 	}
 	
 	normalise(isMinorState){
-		var {selection, node} = this.state;
+		console.log("==========normalise");
+		var {node} = this.state;
+		var selection = this.state.selection || this.state.selectionSnapshot;
 		this.normaliseNode(node, selection);
 		var parents = this.getUniqueParents(selection);
-		this.setState({selection, active: parents, highlight: selection ? selection.startNode : null, highlightLocked: true});
-		
-		this.addStateSnapshot(isMinorState);
+		console.log(selection, parents);
+		console.log(node)
+		this.setState({selection, active: parents, highlight: selection ? selection.startNode : null, highlightLocked: true});		
+		this.addStateSnapshot(isMinorState, node, selection);
+		console.log("====================");
 	}
 	
 	getMaxId(node, currentMax){
@@ -2438,7 +2485,6 @@ export default class RichEditor extends React.Component {
 	}
 
 	closeModal(){
-		console.log("closeModal");
 		this.setState({
 			selectOpenFor: null,
 			optionsVisibleFor: null,
@@ -2515,9 +2561,9 @@ export default class RichEditor extends React.Component {
 				})}
 				{this.props.modules && this.renderButton('Add something else', <i className={'fa fa-plus'} />, () => {
 					// Show modal
-					this.setState({ selectOpenFor: true })
+					this.setState({ selectOpenFor: true, selectionSnapshot: this.state.selection })
 					console.log("Show modal");
-				})}
+				}, !this.state.selection)}
 			</div>)}
 			<div ref={node.dom} className="rte-content" contentEditable="true" 
 				onKeyDown={this.onKeyDown} onDragStart={this.onReject} onBlur={this.onBlur} 
@@ -2525,34 +2571,49 @@ export default class RichEditor extends React.Component {
 				{this.renderNode(node.content)}
 			</div>
 			
-			{this.state.rightClick && this.renderContextMenu()}
+			
 				<div className="canvas-editor-popups" 
 					onContextMenu={e => {
 						e.preventDefault();
 						return false;
 				}}>
+					{this.state.rightClick && this.renderContextMenu()}
 					<ModuleSelector 
 						closeModal = {() => this.closeModal()} 
 						selectOpenFor = {this.state.selectOpenFor} 
 						groups = {this.props.groups}
+						selectionSnapshot  = {this.state.selectionSnapshot}
+						updated = {(module) => {
+							console.log("ModuleSelector.updated");
+							var selection = this.state.selection || this.state.selectionSnapshot;
+							var parent = selection.startNode;
+							var insertIndex = selection.startOffset;
+
+							var module = {
+								typeName: module.publicName,
+								type: module.moduleClass,
+								props: {}
+							}
+
+							selection.startNode = selection.endNode = this.addNode(module, parent, insertIndex);
+							// Update current position:
+							selection.startOffset = selection.endOffset = 1;
+							
+							this.normalise(true);
+							this.closeModal();
+						}}
 					/>
 					<PropEditor
 						closeModal = {() => {
-							// First, let's get our selectionSnapshot.
-							console.log("Prop Editor close");
-							//console.log({...this.state});
-							//this.setState({selectionSnapshot: null});
-							//this.normalise(true);
-							this.closeModal()
+							console.log("closeModal");
+							
+							this.normalise(true);
+							this.closeModal();
 						}}
 						optionsVisibleFor = {this.state.optionsVisibleFor}
-						selectionSnapshot  = {this.state.selectionSnapshot}
-						normalise = {() => this.normalise(true)}
 						updateTargetNode = {(targetNode) => {
-
+							console.log("updatingTargetNode", targetNode);
 							this.setState({optionsVisibleFor: targetNode});
-							console.log("updateSelection called!!!", this.state.selectionSnapshot);
-							console.log("targetNode", targetNode);
 						}}
 					/>
 				</div>
@@ -2611,8 +2672,9 @@ export default class RichEditor extends React.Component {
 		</button>;
 	}
 	
-	renderButton(title, content, onClick){
+	renderButton(title, content, onClick, disabled){
 		return <button 
+			disabled={disabled}
 			title={title}
 			onMouseDown={e => {
 				// Prevent focus change
@@ -2834,6 +2896,8 @@ export default class RichEditor extends React.Component {
 	example - ab<b>c</b>    Given that value, holding backspace from the very end will result in 'b' being skipped over and 'c' and 'a' being deleted. 
 * If the last character in the content editor is not content editable, you can not select the end to add text. such as the case with value='{"c":["a",{"t":"UI/Link","r":{"href":"testcomurl"},"c":["bc"]}]}'
 	where Link's last's char is an uneditable ')'.
+* Component editor - need more robust features such as url link etc. Rn its just basic string entry.
+* Ability to add components.
 
 Later: 
 * Handle e.g. page structures with nested custom components.
@@ -2843,4 +2907,12 @@ Later:
 * The server must validate canvas JSON on save. It must check it contains only permitted types. As it's JSON and HTML nodes are never permitted to have data/ props, this validation can be non-allocating.
 * When <Canvas> encounters a HTML node, it MUST ignore all props. Only custom elements in permitted modules are allowed to have props.
 * The undo stack has no size limit atm!
+
+Other todo from Rob's feedbacK:
+* In the template and editor, you must be able to disable text input, ie a content area may only be made of images, so in a way a the text element is actually a component.
+* for any given template layout the text features that are available must be configurable.  For example in blogs the body content may only allow H2,H3 and no font changes, However in the about page we may allow for H1-H5.
+* Any one section of the site must be able to support a defined number of content types.  I can demonstrate this to you in NWS in Umbraco, it might also allow you to see where we need to end up
+* Failure handling when json is messed up - offer to use older revisions if exist or to delete it.
+* Failure handling when component is jacked up - offer to delete bad components that cause breaking error.
+* Failure handling on crash - We need to store the session data on system crashes.
 */

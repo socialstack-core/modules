@@ -74,7 +74,7 @@ export default class ModuleSelector extends React.Component {
 				group.modules.push({
 					name,
 					publicName,
-					props: set == sets.renderer && module.rendererPropTypes ? module.rendererPropTypes : props,
+					props: set == sets.renderer && module.rendererPropTypes ? module.rendererPropTypes : props || {},
 					moduleClass: module
 				});
 			}
@@ -97,68 +97,6 @@ export default class ModuleSelector extends React.Component {
 			__moduleGroups[setName] = moduleGroups;
 		}
 		
-	}
-
-	addModule(moduleInfo, contentNode){
-		var content = contentNode.content;
-		var changed = false;
-		
-		if(!Array.isArray(content)){
-			if(content === null){
-				content = [];
-			}else{
-				content = [content];
-			}
-			changed = true;
-		}
-		
-		var component = {
-			module: moduleInfo.moduleClass,
-			moduleName: moduleInfo.publicName,
-			data: {},
-			expanded: true
-		};
-		
-		content.push(component);
-		
-		var {propTypes} = component.module;
-		
-		if(propTypes){
-			if(propTypes.children && propTypes.children.default){
-				component.content = expand(propTypes.children.default);
-				component.useCanvasRender = true;
-			}
-			
-			// Apply defaults:
-			for(var key in propTypes){
-				var prop = propTypes[key];
-				if(prop.default){
-					component.data[key] = prop.default;
-				}
-			}
-		}
-		
-		if(changed){
-			if(contentNode == this.state){
-				this.setState({
-					content,
-					selectOpenFor: null
-				});
-			}else{
-				contentNode.content = content;
-				contentNode.useCanvasRender = true;
-				this.setState({
-					selectOpenFor: null
-				});
-			}
-		}else{
-			this.setState({
-				selectOpenFor: null
-			});
-		}
-		
-        console.log("this.updated");
-		//this.updated(); // Todo: what does this become.
 	}
 
     render(){
@@ -191,7 +129,7 @@ export default class ModuleSelector extends React.Component {
 					<Loop asCols over={group.modules} size={4}>
 						{module => {
 							return <div className="module-tile" onClick={() => {
-									this.addModule(module, this.props.selectOpenFor === true ? this.props : this.props.selectOpenFor);
+									this.props.updated && this.props.updated(module)	
 								}}>
 								<div>
 									{<i className={"fa fa-" + (module.moduleClass.icon || "puzzle-piece")} />}
