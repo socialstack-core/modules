@@ -29,6 +29,11 @@ namespace Api.PasswordAuth
 		public int MinLength = 10;
 		
 		/// <summary>
+		/// Custom function to select the user to use.
+		/// </summary>
+		public Func<Context, UserLogin, ValueTask<User>> OnSelectUser;
+		
+		/// <summary>
 		/// True if new passwords should be checked for public exposure.
 		/// </summary>
 		public bool CheckIfExposed = true;
@@ -70,8 +75,17 @@ namespace Api.PasswordAuth
 					return null;
 				}
 
-				// First, get the user by the email address:
-				var user = await _users.Get(context, loginDetails.EmailOrUsername);
+				// First, get the user to authenticate:
+				User user = null;
+				
+				if(OnSelectUser != null)
+				{
+					user = await OnSelectUser(context, loginDetails);
+				}
+				else
+				{
+					user = await _users.Get(context, loginDetails.EmailOrUsername);
+				}
 				
 				if (user == null)
 				{
