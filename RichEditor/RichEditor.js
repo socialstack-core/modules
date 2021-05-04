@@ -3,7 +3,6 @@ import Token from 'UI/Token';
 import Input from 'UI/Input';
 import ModuleSelector from 'Admin/CanvasEditor/ModuleSelector'
 import PropEditor from 'Admin/CanvasEditor/PropEditor';
-import omit from 'UI/Functions/Omit';
 
 // Connect the input "ontypecanvas" render event:
 
@@ -318,10 +317,7 @@ export default class RichEditor extends React.Component {
 		}else if(node.module == 'UI/Align'){
 			// node.data && node.data.type == 'center'
 			type = 'p';
-		}else if(node.module == 'UI/Text'){
-			type = null;
-			node.content = node.content || node.data.text;
-		}else if(node.module == 'UI/Html'){
+		}else if(node.module == 'UI/Text' || node.module == 'UI/Html'){
 			type = null;
 			node.content = node.content || node.data.text;
 		}else if(node.module == "UI/Image" || node.module == "UI/Video" || node.module == "UI/Spacer"){
@@ -2889,7 +2885,7 @@ export default class RichEditor extends React.Component {
 
 /*
 * Bullet point lists are unstable
-* Complex objects like Grid, as well as the 4 basic ones - UI/Video, UI/Link, UI/Image, UI/Token
+* Complex objects like Grid, as well as the 4 basic ones - xUI/Video, xUI/Link, xUI/Image, UI/Token
 * <Canvas> handle new compact format
 * Deletion of block nodes could be better. A <ul> or <ol> can get stuck in the editor, even though they are being selected. Try also: <p>text<p>|text</p></p> - it won't delete the paragraph.
 * On Firefox, when deleting mixed text (bold, regular, strikethrough) if transitioning from a text type to regular when holding down the back button, it skips deletion of the first regular text char it sees.
