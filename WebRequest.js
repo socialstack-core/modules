@@ -138,6 +138,8 @@ function mapWhere(where, args){
 	return str;
 }
 
+export { expandIncludes };
+
 export default function webRequest(origUrl, data, opts) {
 	var url = (global.apiHost || '') + '/v1/' + origUrl;
 	
