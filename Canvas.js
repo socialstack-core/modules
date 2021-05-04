@@ -25,10 +25,10 @@ class Canvas extends React.Component {
 		if(typeof dataSource == 'string'){
 			try{
 				content = JSON.parse(dataSource);
-				}catch(e){
+			}catch(e){
 				console.log("Canvas failed to load JSON: ", dataSource);
 				console.error(e);
-				}
+			}
 		}else{
 			content = dataSource;
 		}
@@ -49,7 +49,7 @@ class Canvas extends React.Component {
 		this.props.onCanvasChanged && this.props.onCanvasChanged();
 	}
 	
-	renderNode(contentNode, index, pageRouter) {
+	renderNodeC1(contentNode, index, pageRouter) {
 		if(!contentNode){
 			return null;
 		}
@@ -68,10 +68,64 @@ class Canvas extends React.Component {
 		return (
 			<Module key={index} {...dataFields}>
 			{
-				contentNode.useCanvasRender && contentNode.content ? contentNode.content.map((e,i)=>this.renderNode(e,i, pageRouter)) : contentNode.content
+				contentNode.useCanvasRender && contentNode.content ? contentNode.content.map((e,i)=>this.renderNodeC1(e,i, pageRouter)) : contentNode.content
 			}
 			</Module>
 		);
+	}
+	
+	renderNode(node){
+		if(Array.isArray(node)){
+			return node.map((n,i) => this.renderNode(n));
+		}
+		
+		var NodeType = node.type;
+		
+		if(NodeType == '#text'){
+			return node.text;
+		}else if(typeof NodeType === 'string'){
+			if(!node.dom){
+				node.dom = React.createRef();
+			}
+			
+			var childContent = null;
+			
+			if(node.content && node.content.length){
+				childContent = this.renderNode(node.content);
+			}else if(!node.isInline){
+				// Fake a <br> such that block elements still have some sort of height.
+				childContent = this.renderNode({type:'br', props: {'rte-fake': 1}});
+			}
+			
+			return <NodeType ref={node.dom} {...node.props}>{childContent}</NodeType>;
+		}else{
+			// Custom component
+			var props = {...node.props};
+			
+			if(node.roots){
+				var children = null;
+				
+				for(var k in node.roots){
+					var root = node.roots[k];
+					
+					var isChildren = k == 'children';
+					
+					var rendered = this.renderNode(root.content);
+					
+					if(isChildren){
+						children = rendered;
+					}else{
+						props[k] = rendered;
+					}
+				}
+				
+				return <NodeType {...props}>{children}</NodeType>
+			}else{
+				// It has no content inside it; it's purely config driven.
+				// Either wrap it in a span (such that it only has exactly 1 DOM node, always), unless the module tells us it has one node anyway:
+				return <NodeType {...props} />;
+			}
+		}
 	}
 	
 	render() {
@@ -83,9 +137,18 @@ class Canvas extends React.Component {
 		}
 		
 		return <RouterConsumer>{
-			pageRouter => Array.isArray(content) ? 
-				content.map((e,i)=>this.renderNode(e,i, pageRouter)) : 
-				this.renderNode(content, 0, pageRouter)
+			pageRouter => {
+				if(content.c2){
+					// Canvas 2
+					return this.renderNode(content, 0, pageRouter);
+					
+				}else{
+					return Array.isArray(content) ? 
+					content.map((e,i)=>this.renderNodeC1(e,i, pageRouter)) : 
+					this.renderNodeC1(content, 0, pageRouter);
+				}
+				
+			}
 		}</RouterConsumer>;
 	}
 }
