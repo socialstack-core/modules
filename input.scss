@@ -34,3 +34,8 @@ input[type="checkbox"].form-control {
 	margin-top: 0;
 	margin-bottom: .25rem;
 }
+
+.is-required-field::after{
+	content: '*';
+	color: red;
+}

@@ -64,6 +64,7 @@ export default class Input extends React.Component {
                 this.props.label && this.props.type !== "submit" && this.props.type !== "checkbox" && this.props.type !== "radio" && (
                     <label htmlFor={this.props.id || this.fieldId} className={labelClass}>
                         {this.props.label}
+						{!this.props.hideRequiredStar && this.props.validate && this.props.validate.indexOf("Required")!=-1 && <span className="is-required-field"></span>}
                     </label>
                 )
             }
