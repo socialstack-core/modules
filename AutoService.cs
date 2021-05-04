@@ -178,6 +178,19 @@ public partial class AutoService<T, ID>{
 		}
 	}
 
+	/// <summary>
+	/// Outputs the given object (an entity from this service) to JSON in the given writer.
+	/// </summary>
+	/// <param name="context"></param>
+	/// <param name="entity"></param>
+	/// <param name="writer"></param>
+	/// <param name="targetStream"></param>
+	/// <param name="includes"></param>
+	/// <returns></returns>
+	public override ValueTask ObjectToJson(Context context, object entity, Writer writer, Stream targetStream = null, string includes = null)
+	{
+		return ToJson(context, (T)entity, writer, targetStream, includes);
+	}
 
 	/// <summary>
 	/// Serialises the given object into the given stream (usually a response stream). By using this method, it will consider the fields a user is permitted to see (based on the role in the context)
