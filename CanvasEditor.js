@@ -1513,7 +1513,7 @@ export default class CanvasEditor extends React.Component {
 					)}
 						<div className="canvas-editor-bordered">
 							<RouterConsumer>
-								{pageRouter => {this.renderNode(this.state.content, 0, pageRouter)}}
+								{pageRouter => this.renderNode(this.state.content, 0, pageRouter)}
 							</RouterConsumer>
 							
 							{!this.props.minimal && (
