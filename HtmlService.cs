@@ -523,15 +523,35 @@ namespace Api.Pages
 			}
 			else
 			{
+				var writer = Writer.GetPooled();
+				writer.Start(null);
+
+				writer.WriteS("window.pgState={\"page\":");
+				writer.WriteS(Newtonsoft.Json.JsonConvert.SerializeObject(page, jsonSettings));
+				writer.WriteS(", \"tokens\":");
+				writer.WriteS((pageAndTokens.TokenValues != null ? Newtonsoft.Json.JsonConvert.SerializeObject(pageAndTokens.TokenValues, jsonSettings) : "null"));
+				writer.WriteS(", \"tokenNames\":");
+				writer.WriteS((pageAndTokens.TokenNames != null ? Newtonsoft.Json.JsonConvert.SerializeObject(pageAndTokens.TokenNames, jsonSettings) : "null"));
+				writer.WriteS(", \"po\":");
+
+				if (doc.PrimaryObject != null)
+				{
+					await doc.PrimaryObjectService.ObjectToJson(context, doc.PrimaryObject, writer, null, "*");
+				}
+				else
+				{
+					writer.WriteS("null");
+				}
+
+				writer.WriteS("};");
+				var poJson = writer.ToUTF8String();
+				writer.Release();
+
 				body.AppendChild(
 					new DocumentNode("script")
 					.AppendChild(
 						new TextNode(
-							"window.pgState={\"page\":" + Newtonsoft.Json.JsonConvert.SerializeObject(page, jsonSettings) +
-							", \"tokens\":" + (pageAndTokens.TokenValues != null ? Newtonsoft.Json.JsonConvert.SerializeObject(pageAndTokens.TokenValues, jsonSettings) : "null") +
-							", \"tokenNames\":" + (pageAndTokens.TokenNames != null ? Newtonsoft.Json.JsonConvert.SerializeObject(pageAndTokens.TokenNames, jsonSettings) : "null") +
-							", \"po\":" + (doc.PrimaryObject != null ? Newtonsoft.Json.JsonConvert.SerializeObject(doc.PrimaryObject, jsonSettings) : "null") + 
-							"};"
+							 poJson
 						)
 					)
 				);
