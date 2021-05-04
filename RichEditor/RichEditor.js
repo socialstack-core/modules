@@ -2176,6 +2176,13 @@ export default class RichEditor extends React.Component {
 				}
 			}
 		}
+
+		// Is a custom object.
+		if(node.typeName) {
+			if(node.type.onEdit) {
+				node.type.onEdit(node);
+			}
+		}
 		
 		// Are we empty? If yes and it's an inline ele, delete the node.
 		if(node.type == TEXT){
