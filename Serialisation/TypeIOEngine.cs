@@ -114,12 +114,12 @@ namespace Api.SocketServerLibrary
 
 						// Upper nibble:
 						var n = (i >> 4);
-						n += (n > 9) ? 87 : 48; // ('a'- 10) : '0';
+						n += (n > 9u) ? 87u : 48u; // ('a'- 10) : '0';
 						escapedChar[4] = (byte)n;
 
 						// Lower nibble:
 						n = (i & 15);
-						n += (n > 9) ? 87 : 48; // ('a' - 10) : '0';
+						n += (n > 9u) ? 87u : 48u; // ('a' - 10) : '0';
 						escapedChar[5] = (byte)n;
 					}
 
