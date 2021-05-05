@@ -2,6 +2,7 @@ using Api.Database;
 using Api.Startup;
 using Api.Users;
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Reflection;
 using System.Reflection.Emit;
@@ -50,7 +51,7 @@ namespace Api.SocketServerLibrary
 		/// </summary>
 		public static readonly byte[] NullBytes = new byte[] { 110, 117, 108, 108 };
 
-		private static Dictionary<Type, JsonFieldType> _typeMap;
+		private static ConcurrentDictionary<Type, JsonFieldType> _typeMap;
 
 		/// <summary>
 		/// Escape the given control char. The given control char value must be true for Unicode.IsControl.
@@ -67,7 +68,7 @@ namespace Api.SocketServerLibrary
 		/// </summary>
 		private static byte[][] _controlMap;
 
-		private static Dictionary<Type, JsonFieldType> GetTypeMap()
+		private static ConcurrentDictionary<Type, JsonFieldType> GetTypeMap()
 		{
 			if (_typeMap != null)
 			{
@@ -126,7 +127,7 @@ namespace Api.SocketServerLibrary
 				}
 			}
 
-			var map = new Dictionary<Type, JsonFieldType>();
+			var map = new ConcurrentDictionary<Type, JsonFieldType>();
 			_typeMap = map;
 
 			AddTo(map, typeof(bool), (ILGenerator code, JsonField field, Action emitValue) =>
@@ -338,7 +339,7 @@ namespace Api.SocketServerLibrary
 
 		}
 
-		private static JsonFieldType AddTo(Dictionary<Type, JsonFieldType> map, Type type, Action<ILGenerator, JsonField, Action> onWriteValue)
+		private static JsonFieldType AddTo(ConcurrentDictionary<Type, JsonFieldType> map, Type type, Action<ILGenerator, JsonField, Action> onWriteValue)
 		{
 			var fieldType = new JsonFieldType(type, onWriteValue);
 			map[type] = fieldType;
