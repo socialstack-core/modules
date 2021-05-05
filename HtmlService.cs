@@ -190,6 +190,7 @@ namespace Api.Pages
 		public async ValueTask<string> RenderState(Context context, PageWithTokens pageAndTokens, string path)
 		{
 			object primaryObject = null;
+			AutoService primaryService = null;
 
 			if (pageAndTokens.Tokens != null && pageAndTokens.TokenValues != null)
 			{
@@ -201,6 +202,8 @@ namespace Api.Pages
 
 					if (primaryToken.ContentType != null)
 					{
+						primaryService = primaryToken.Service;
+
 						if (primaryToken.IsId)
 						{
 							if (uint.TryParse(pageAndTokens.TokenValues[countA - 1], out uint primaryObjectId))
@@ -216,8 +219,19 @@ namespace Api.Pages
 				}
 			}
 
-			var poJson = (primaryObject != null ? Newtonsoft.Json.JsonConvert.SerializeObject(primaryObject, jsonSettings) : "null");
 			string state;
+			
+			var writer = Writer.GetPooled();
+			writer.Start(null);
+			if (primaryObject != null)
+			{
+				await primaryService.ObjectToJson(context, primaryObject, writer, null, "*");
+			}
+			else
+			{
+				writer.WriteS("null");
+			}
+			var poJson = writer.ToUTF8String();
 
 			if (_config.PreRender)
 			{
