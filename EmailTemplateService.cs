@@ -16,6 +16,8 @@ using Api.Contexts;
 using Api.Eventing;
 using Api.Startup;
 using Api.Users;
+using Newtonsoft.Json;
+using Newtonsoft.Json.Serialization;
 
 namespace Api.Emails
 {
@@ -100,9 +102,18 @@ namespace Api.Emails
 			return await _canvasRendererService.Render(recipient.Context, template.BodyJson, new PageState() {
 				Tokens = null,
 				TokenNames = null,
-				PrimaryObject = recipient.CustomData
+				PoJson = Newtonsoft.Json.JsonConvert.SerializeObject(recipient.CustomData, jsonSettings)
 			});
 		}
+
+		private readonly JsonSerializerSettings jsonSettings = new JsonSerializerSettings
+		{
+			ContractResolver = new DefaultContractResolver
+			{
+				NamingStrategy = new CamelCaseNamingStrategy()
+			},
+			Formatting = Formatting.None
+		};
 
 		/// <summary>
 		/// Installs a template (Creates it if it doesn't already exist).
@@ -239,7 +250,11 @@ namespace Api.Emails
 					var template = await GetByKey(new Context() {
 						LocaleId = localeId
 					}, key);
-
+					
+					if(template == null){
+						throw new Exception("Email template with key '" + key + "' doesn't exist.");
+					}
+					
 					set.Template = template;
 
 					// Add it:
@@ -265,7 +280,7 @@ namespace Api.Emails
 
 					// Render all. The results are in the exact same order as the recipients set.
 					var renderedResult = await _canvasRendererService.Render(recipient.Context, set.Template.BodyJson, new PageState() {
-						PrimaryObject = recipient.CustomData
+						PoJson = Newtonsoft.Json.JsonConvert.SerializeObject(recipient.CustomData, jsonSettings)
 					}, null, false);
 
 					// Email to send to:
