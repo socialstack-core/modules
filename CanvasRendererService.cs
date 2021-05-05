@@ -13,6 +13,7 @@ using Api.Translate;
 using Api.Eventing;
 using Api.Contexts;
 using Api.SocketServerLibrary;
+using Api.Configuration;
 
 namespace Api.CanvasRenderer
 {
@@ -32,6 +33,8 @@ namespace Api.CanvasRenderer
 		{
 			_frontendService = frontend;
 			_contextService = contexts;
+
+			publicOrigin = AppSettings.Configuration["PublicUrl"];
 
 			Events.Translation.AfterUpdate.AddEventListener((Context context, Translation translation) => {
 
@@ -136,6 +139,11 @@ namespace Api.CanvasRenderer
 		};
 
 		/// <summary>
+		/// The origin to use in the JS context.
+		/// </summary>
+		private string publicOrigin;
+
+		/// <summary>
 		/// Engines per locale.
 		/// </summary>
 		private V8.CanvasRendererEngine[] _engines;
@@ -163,6 +171,9 @@ namespace Api.CanvasRenderer
 			{
 				location = new V8.Location()
 			};
+
+			jsDoc.location.origin = publicOrigin;
+
 			engine.AddHostObject("document", new V8.Document());
 			engine.AddHostObject("__console", new V8.Console());
 			engine.Execute("console={};console.info=console.log=console.warn=console.error=(...args)=>__console.log(...args);");
@@ -251,11 +262,6 @@ namespace Api.CanvasRenderer
 		/// This also prevents any risk of accidental server cache modification if the actual object is passed. Can set either this or PoJson (PoJson is ideal if you already have a JSON string).
 		/// </summary>
 		public string PoJson;
-
-		/// <summary>
-		/// Convenience route for setting PoJson. Will be serialised to json for you. Can set either this or PoJson.
-		/// </summary>
-		public object PrimaryObject;
 	}
 }
 
@@ -271,6 +277,11 @@ namespace Api.CanvasRenderer.V8
 		/// Location href.
 		/// </summary>
 		public string href = null;
+
+		/// <summary>
+		/// Location href.
+		/// </summary>
+		public string origin = null;
 	}
 
 	/// <summary>
