@@ -4,7 +4,7 @@
 * You can use {multiple.layers} if required.
 */
 
-export default function(str, tokenContext){
+export default function(str, tokenContext, primary){
 	if(!str){
 		return str;
 	}
@@ -12,6 +12,10 @@ export default function(str, tokenContext){
 	return str.replace(/\{\w+\}/g, function(textToken) {
 		var parts = textToken.substring(1, textToken.length - 1).split('.');
 		var context = tokenContext;
+		
+		if(parts.length == 1){
+			context = primary;
+		}
 		
 		for(var i=0;i<parts.length;i++){
 			context && (context = context[parts[i]]);
