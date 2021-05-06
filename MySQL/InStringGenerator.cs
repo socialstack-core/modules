@@ -157,7 +157,7 @@ namespace Api.Permissions{
 		{
 			var values = (IDCollector<double>)vals;
 			bool first = true;
-			var it = values.GetEnumerator();
+			var it = values.GetNonAllocEnumerator();
 			while(it.HasMore())
 			{
 				if (first) { first = false; } else { writer.Write((byte)','); }
@@ -198,7 +198,7 @@ namespace Api.Permissions{
 		{
 			var values = (IDCollector<float>)vals;
 			bool first = true;
-			var it = values.GetEnumerator();
+			var it = values.GetNonAllocEnumerator();
 			while (it.HasMore())
 			{
 				if (first) { first = false; } else { writer.Write((byte)','); }
@@ -239,7 +239,7 @@ namespace Api.Permissions{
 		{
 			var values = (IDCollector<decimal>)vals;
 			bool first = true;
-			var it = values.GetEnumerator();
+			var it = values.GetNonAllocEnumerator();
 			while (it.HasMore())
 			{
 				if (first) { first = false; } else { writer.Write((byte)','); }
@@ -280,7 +280,7 @@ namespace Api.Permissions{
 		{
 			var values = (IDCollector<bool>)vals;
 			bool first = true;
-			var it = values.GetEnumerator();
+			var it = values.GetNonAllocEnumerator();
 			while (it.HasMore())
 			{
 				if (first) { first = false; } else { writer.Write((byte)','); }
@@ -321,7 +321,7 @@ namespace Api.Permissions{
 		{
 			var values = (IDCollector<ulong>)vals;
 			bool first = true;
-			var it = values.GetEnumerator();
+			var it = values.GetNonAllocEnumerator();
 			while (it.HasMore())
 			{
 				if (first) { first = false; } else { writer.Write((byte)','); }
@@ -362,7 +362,7 @@ namespace Api.Permissions{
 		{
 			var values = (IDCollector<long>)vals;
 			bool first = true;
-			var it = values.GetEnumerator();
+			var it = values.GetNonAllocEnumerator();
 			while (it.HasMore())
 			{
 				if (first) { first = false; } else { writer.Write((byte)','); }
@@ -403,7 +403,7 @@ namespace Api.Permissions{
 		{
 			var values = (IDCollector<uint>)vals;
 			bool first = true;
-			var it = values.GetEnumerator();
+			var it = values.GetNonAllocEnumerator();
 			while (it.HasMore())
 			{
 				if (first) { first = false; } else { writer.Write((byte)','); }
@@ -444,7 +444,7 @@ namespace Api.Permissions{
 		{
 			var values = (IDCollector<int>)vals;
 			bool first = true;
-			var it = values.GetEnumerator();
+			var it = values.GetNonAllocEnumerator();
 			while (it.HasMore())
 			{
 				if (first) { first = false; } else { writer.Write((byte)','); }
@@ -485,7 +485,7 @@ namespace Api.Permissions{
 		{
 			var values = (IDCollector<ushort>)vals;
 			bool first = true;
-			var it = values.GetEnumerator();
+			var it = values.GetNonAllocEnumerator();
 			while (it.HasMore())
 			{
 				if (first) { first = false; } else { writer.Write((byte)','); }
@@ -526,7 +526,7 @@ namespace Api.Permissions{
 		{
 			var values = (IDCollector<short>)vals;
 			bool first = true;
-			var it = values.GetEnumerator();
+			var it = values.GetNonAllocEnumerator();
 			while (it.HasMore())
 			{
 				if (first) { first = false; } else { writer.Write((byte)','); }
@@ -567,7 +567,7 @@ namespace Api.Permissions{
 		{
 			var values = (IDCollector<byte>)vals;
 			bool first = true;
-			var it = values.GetEnumerator();
+			var it = values.GetNonAllocEnumerator();
 			while (it.HasMore())
 			{
 				if (first) { first = false; } else { writer.Write((byte)','); }
@@ -608,7 +608,7 @@ namespace Api.Permissions{
 		{
 			var values = (IDCollector<sbyte>)vals;
 			bool first = true;
-			var it = values.GetEnumerator();
+			var it = values.GetNonAllocEnumerator();
 			while (it.HasMore())
 			{
 				if (first) { first = false; } else { writer.Write((byte)','); }
