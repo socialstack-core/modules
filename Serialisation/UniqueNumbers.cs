@@ -227,7 +227,7 @@ namespace Api.Startup
 			}
 			else
 			{
-				if (PrevValue.Equals(id))
+				if (PrevValue.Equals(id) || id.Equals(default))
 				{
 					// Skip common scenario of everything being the same ID.
 					return;
