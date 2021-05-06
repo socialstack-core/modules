@@ -1,5 +1,6 @@
 
 using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Reflection;
 
@@ -117,7 +118,7 @@ namespace Api.Startup
 	/// Collects IDs of the given type. Uses a pool of buffers for fast, non-allocating performance.
 	/// The ID collector itself can also be pooled.
 	/// </summary>
-	public class IDCollector<T>: IDCollector where T:struct, IEquatable<T>
+	public class IDCollector<T>: IDCollector, IEnumerable<T> where T:struct, IEquatable<T>
 	{
 		/// <summary>
 		/// Linked list of blocks in this collector.
@@ -154,7 +155,7 @@ namespace Api.Startup
 		/// <returns></returns>
 		public bool MatchAny(T id)
 		{
-			var en = GetEnumerator();
+			var en = GetNonAllocEnumerator();
 			while (en.HasMore())
 			{
 				var toCheck = en.Current();
@@ -172,7 +173,7 @@ namespace Api.Startup
 		/// Gets a non-alloc enumeration tracker. Only use this if 
 		/// </summary>
 		/// <returns></returns>
-		public IDCollectorEnum<T> GetEnumerator()
+		public IDCollectorEnum<T> GetNonAllocEnumerator()
 		{
 			return new IDCollectorEnum<T>()
 			{
@@ -246,6 +247,36 @@ namespace Api.Startup
 
 			Last.Entries[CurrentFill++] = id;
 			PrevValue = id;
+		}
+
+		/// <summary>
+		/// Gets an enumerator
+		/// </summary>
+		/// <returns></returns>
+		IEnumerator<T> IEnumerable<T>.GetEnumerator()
+		{
+			var enumerator  = GetNonAllocEnumerator();
+
+			while (enumerator.HasMore())
+			{
+				var next = enumerator.Current();
+				yield return next;
+			}
+		}
+
+		/// <summary>
+		/// Gets an enumerator
+		/// </summary>
+		/// <returns></returns>
+		IEnumerator IEnumerable.GetEnumerator()
+		{
+			var enumerator = GetNonAllocEnumerator();
+
+			while (enumerator.HasMore())
+			{
+				var next = enumerator.Current();
+				yield return next;
+			}
 		}
 	}
 

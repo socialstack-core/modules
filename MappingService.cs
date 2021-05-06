@@ -286,7 +286,7 @@ namespace Api.Startup
 			if (_cacheIndex != null)
 			{
 				// This mapping type is cached.
-				var _enum = collectedIds.GetEnumerator();
+				var _enum = collectedIds.GetNonAllocEnumerator();
 
 				var first = true;
 
@@ -326,7 +326,7 @@ namespace Api.Startup
 				// DB hit. Allocate list of IDs as well.
 				var idList = new List<SRC_ID>(collectedIds.Count);
 
-				var _enum = collectedIds.GetEnumerator();
+				var _enum = collectedIds.GetNonAllocEnumerator();
 
 				while (_enum.HasMore())
 				{
