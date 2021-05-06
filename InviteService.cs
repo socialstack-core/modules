@@ -143,7 +143,14 @@ namespace Api.Invites
 					throw new PublicException("This invite has expired", "invite_expired");
 				}
 
+				var loginResult = new LoginResult();
+				loginResult.CookieName = Context.CookieName;
+				loginResult.User = user;
 				context.User = user;
+
+				// Act like a login:
+				await Events.UserOnLogin.Dispatch(context, loginResult);
+
 			}
 
 			return result;
