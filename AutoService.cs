@@ -428,7 +428,7 @@ public partial class AutoService<T, ID>{
 			var indexRef = cache.GetIndex<S_ID>(setField) as NonUniqueIndex<T, S_ID>;
 
 			// This mapping type is cached.
-			var _enum = collectedIds.GetEnumerator();
+			var _enum = collectedIds.GetNonAllocEnumerator();
 
 			var first = true;
 
@@ -473,7 +473,7 @@ public partial class AutoService<T, ID>{
 			// DB hit. Allocate list of IDs as well.
 			var idList = new List<S_ID>(collectedIds.Count);
 
-			var _enum = collectedIds.GetEnumerator();
+			var _enum = collectedIds.GetNonAllocEnumerator();
 
 			while (_enum.HasMore())
 			{
@@ -551,7 +551,7 @@ public partial class AutoService<T, ID>{
 		if (_primaryIndexRef != null)
 		{
 			// This mapping type is cached.
-			var _enum = collectedIds.GetEnumerator();
+			var _enum = collectedIds.GetNonAllocEnumerator();
 
 			var first = true;
 
@@ -592,7 +592,7 @@ public partial class AutoService<T, ID>{
 			// DB hit. Allocate list of IDs as well.
 			var idList = new List<ID>(collectedIds.Count);
 
-			var _enum = collectedIds.GetEnumerator();
+			var _enum = collectedIds.GetNonAllocEnumerator();
 
 			while (_enum.HasMore())
 			{
