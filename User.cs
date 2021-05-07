@@ -1,5 +1,4 @@
 using Api.Database;
-using Api.TaggedInterests;
 using Api.Tags;
 using System.Collections.Generic;
 
