@@ -12,7 +12,7 @@ namespace Api.PrivateChats
 	/// <summary>
 	/// A PrivateChat
 	/// </summary>
-	public partial class PrivateChat : RevisionRow, IHaveUserRestrictions, IAmLive
+	public partial class PrivateChat : VersionedContent<uint>, IAmLive
 	{
 		/// <summary>
 		/// Total messages in this chat.
@@ -34,11 +34,6 @@ namespace Api.PrivateChats
 		/// Users are allowed to see other users who are in the chat with them.
 		/// </summary>
 		public bool PermittedUsersListVisible => true;
-
-		/// <summary>
-		/// Users in a chat
-		/// </summary>
-		public List<PermittedContent> PermittedUsers { get; set; }
 	}
 
 }

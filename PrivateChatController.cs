@@ -28,10 +28,10 @@ namespace Api.PrivateChats
         [HttpGet("{id}/loadbyuser")]
         public async Task<PrivateChat> LoadByUser(int id)
         {
-            var context = Request.GetContext();
+            var context = await Request.GetContext();
             var secondUserId = id;
             var userId = context.UserId;
-            var privateChats = await _service.List(context, new Filter<PrivateChat>());
+            var privateChats = await _service.Where(DataOptions.IgnorePermissions).ListAll(context);
             var results = new List<PrivateChat>();
             foreach (var privateChat in privateChats)
             {

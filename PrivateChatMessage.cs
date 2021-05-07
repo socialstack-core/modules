@@ -10,7 +10,7 @@ namespace Api.PrivateChats
 	/// <summary>
 	/// A PrivateChatMessage
 	/// </summary>
-	public partial class PrivateChatMessage : RevisionRow
+	public partial class PrivateChatMessage : VersionedContent<uint>
 	{
 		/// <summary>
 		/// The private chat this message is in.
