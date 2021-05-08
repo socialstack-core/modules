@@ -313,6 +313,7 @@ namespace Api.Users
 
 				// Create a new context token (basically a signed string which can identify a context with this user/ role/ locale etc):
 				context.User = result.User;
+				result.LoginData = body;
 
 				await Events.UserOnLogin.Dispatch(context, result);
 

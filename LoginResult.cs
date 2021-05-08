@@ -28,5 +28,10 @@ namespace Api.Users
 		/// The signed token. Usually set to a cookie.
 		/// </summary>
 		public bool Success;
+
+		/// <summary>
+		/// Original info given during login. Can be null if this is a server driven auth.
+		/// </summary>
+		public UserLogin LoginData;
 	}
 }
