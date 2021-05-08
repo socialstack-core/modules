@@ -24,7 +24,7 @@ namespace Api.Invites
 			var context = await Request.GetContext();
 			
 			// Attempt to redeem invite:
-			var invite = await (_service as InviteService).Redeem(context, inviteData.Token);
+			var invite = await (_service as InviteService).Redeem(context, inviteData);
 			
 			if (invite == null)
 			{
@@ -38,9 +38,10 @@ namespace Api.Invites
 	}
 	
 	/// <summary>
-	/// Redeems an invite by its token
+	/// Redeems an invite by its token. 
+	/// As redeeming an invite may result in a login, additional login data can also be carried here.
 	/// </summary>
-	public class InviteData
+	public class InviteData : UserLogin
 	{
 		/// <summary>
 		/// The token.

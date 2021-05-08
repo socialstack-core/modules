@@ -115,10 +115,10 @@ namespace Api.Invites
 		/// <summary>
 		/// Redeem an invite by its token.
 		/// </summary>
-		public async ValueTask<Invite> Redeem(Context context, string token)
+		public async ValueTask<Invite> Redeem(Context context, InviteData inviteData)
 		{
 			// Get the invite:
-			var result = await Where("Token=?", DataOptions.IgnorePermissions).Bind(token).First(context);
+			var result = await Where("Token=?", DataOptions.IgnorePermissions).Bind(inviteData.Token).First(context);
 			
 			if(result == null)
 			{
@@ -147,6 +147,7 @@ namespace Api.Invites
 				loginResult.CookieName = Context.CookieName;
 				loginResult.User = user;
 				context.User = user;
+				loginResult.LoginData = inviteData;
 
 				// Act like a login:
 				await Events.UserOnLogin.Dispatch(context, loginResult);
