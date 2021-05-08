@@ -14,7 +14,7 @@ namespace Api.Notifications
 		[HttpGet("clear")]
 		public async Task<object> MarkAllViewed()
 		{
-			var ctx = Request.GetContext();
+			var ctx = await Request.GetContext();
 			
 			if(ctx == null || ctx.UserId == 0)
 			{

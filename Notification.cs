@@ -20,16 +20,6 @@ namespace Api.Notifications
 		public string Title;
 		
 		/// <summary>
-		/// Optional related content type ID.
-		/// </summary>
-		public int ContentTypeId;
-		
-		/// <summary>
-		/// Optional related content ID.
-		/// </summary>
-		public int ContentId;
-		
-		/// <summary>
 		/// Target URL.
 		/// </summary>
 		public string Url;
