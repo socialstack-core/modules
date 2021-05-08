@@ -27,18 +27,6 @@ namespace Api.Startup
 		};
 
 		/// <summary>
-		/// E.g. "UserId". The field name of the source ID.
-		/// </summary>
-		private string srcIdFieldName;
-
-		/// <summary>
-		/// E.g. "TagId". The field name of the tag ID.
-		/// </summary>
-		private string targetIdFieldName;
-
-		private NonUniqueIndex<Mapping<SRC_ID, TARG_ID>, SRC_ID> _cacheIndex;
-
-		/// <summary>
 		/// Instanced automatically.
 		/// </summary>
 		public MappingService(AutoService<SRC, SRC_ID> src, AutoService<TARG, TARG_ID> targ, string srcIdName, string targetIdName, Type t) : base(t) {
@@ -64,31 +52,6 @@ namespace Api.Startup
 		public AutoService<TARG, TARG_ID> Target;
 
 		/// <summary>
-		/// Src=? and Targ=?
-		/// </summary>
-		private string srcAndTargEq;
-		
-		/// <summary>
-		/// TargetName=?
-		/// </summary>
-		private string targetIdFieldEquals;
-		
-		/// <summary>
-		/// SrcName=?
-		/// </summary>
-		private string srcIdFieldEquals;
-		
-		/// <summary>
-		/// SrcName=[?]
-		/// </summary>
-		private string srcIdFieldNameEqSet;
-		
-		/// <summary>
-		/// TargetName=[?]
-		/// </summary>
-		private string targetIdFieldNameEqSet;
-
-		/// <summary>
 		/// Gets a list of source IDs by target ID.
 		/// </summary>
 		/// <param name="context"></param>
@@ -96,7 +59,7 @@ namespace Api.Startup
 		/// <param name="onResult"></param>
 		/// <param name="rSrc"></param>
 		/// <returns></returns>
-		public async ValueTask ListByTarget(Context context, TARG_ID id, Func<Context, SRC_ID, object, ValueTask> onResult, object rSrc)
+		public async ValueTask ListSourceIdByTarget(Context context, TARG_ID id, Func<Context, SRC_ID, object, ValueTask> onResult, object rSrc)
 		{
 			await Where(targetIdFieldEquals)
 			.Bind(id)
@@ -110,6 +73,56 @@ namespace Api.Startup
 				},
 				onResult,
 				rSrc
+			);
+		}
+
+		/// <summary>
+		/// Gets a list of source IDs by target ID.
+		/// </summary>
+		/// <param name="context"></param>
+		/// <param name="id"></param>
+		/// <param name="onResult"></param>
+		/// <param name="tSrc"></param>
+		/// <returns></returns>
+		public async ValueTask ListTargetIdBySource(Context context, IDCollector<SRC_ID> id, Func<Context, TARG_ID, object, ValueTask> onResult, object tSrc)
+		{
+			await Where(srcIdFieldNameEqSet)
+			.Bind(id)
+			.ListAll(context, async (Context ctx, Mapping<SRC_ID, TARG_ID> entity, int index, object src, object rSrc) =>
+			{
+				// Passing in onResult prevents a delegate frame allocation.
+				var _onResult = (Func<Context, TARG_ID, object, ValueTask>)src;
+
+				// Emit the result:
+				await _onResult(ctx, entity.TargetId, rSrc);
+			},
+				onResult,
+				tSrc
+			);
+		}
+		
+		/// <summary>
+		/// Gets a list of source IDs by target ID.
+		/// </summary>
+		/// <param name="context"></param>
+		/// <param name="id"></param>
+		/// <param name="onResult"></param>
+		/// <param name="tSrc"></param>
+		/// <returns></returns>
+		public async ValueTask ListTargetIdBySource(Context context, SRC_ID id, Func<Context, TARG_ID, object, ValueTask> onResult, object tSrc)
+		{
+			await Where(srcIdFieldEquals)
+			.Bind(id)
+			.ListAll(context, async (Context ctx, Mapping<SRC_ID, TARG_ID> entity, int index, object src, object rSrc) =>
+				{
+					// Passing in onResult prevents a delegate frame allocation.
+					var _onResult = (Func<Context, TARG_ID, object, ValueTask>)src;
+
+					// Emit the result:
+					await _onResult(ctx, entity.TargetId, rSrc);
+				},
+				onResult,
+				tSrc
 			);
 		}
 
@@ -209,52 +222,6 @@ namespace Api.Startup
 				await Delete(context, entry.Value, DataOptions.IgnorePermissions);
 			}
 
-		}
-		
-		/// <summary>
-		/// Returns true if a mapping from src_id => targ_id exists.
-		/// </summary>
-		/// <param name="context"></param>
-		/// <param name="src"></param>
-		/// <param name="targ"></param>
-		/// <returns></returns>
-		public async ValueTask<bool> CheckIfExists(Context context, SRC_ID src, TARG_ID targ)
-		{
-			if (_cache != null && _cacheIndex == null)
-			{
-
-				var cache = GetCacheForLocale(0);
-
-				if (cache != null)
-				{
-					// It's a cached mapping type.
-					// Pre-obtain index ref now:
-					_cacheIndex = cache.GetIndex<SRC_ID>(srcIdFieldName) as NonUniqueIndex<Mapping<SRC_ID, TARG_ID>, SRC_ID>;
-				}
-			}
-
-			if (_cacheIndex != null)
-			{
-				// Using an index scan
-				var indexEnum = _cacheIndex.GetEnumeratorFor(src);
-
-				while (indexEnum.HasMore())
-				{
-					// Get current value:
-					var mappingEntry = indexEnum.Current();
-
-					if (mappingEntry.TargetId.Equals(targ))
-					{
-						return true;
-					}
-				}
-
-				return false;
-			}
-			else
-			{
-				return await Where(srcAndTargEq).Bind(src).Bind(targ).Any(context);
-			}
 		}
 
 		/// <summary>
@@ -372,6 +339,47 @@ namespace Api.Startup
 		where SRC_ID : struct, IEquatable<SRC_ID>, IConvertible
 		where TARG_ID : struct, IEquatable<TARG_ID>, IConvertible
 	{
+
+		/// <summary>
+		/// E.g. "UserId". The field name of the source ID.
+		/// </summary>
+		protected string srcIdFieldName;
+
+		/// <summary>
+		/// E.g. "TagId". The field name of the tag ID.
+		/// </summary>
+		protected string targetIdFieldName;
+
+		/// <summary>
+		/// Src=? and Targ=?
+		/// </summary>
+		protected string srcAndTargEq;
+
+		/// <summary>
+		/// TargetName=?
+		/// </summary>
+		protected string targetIdFieldEquals;
+
+		/// <summary>
+		/// SrcName=?
+		/// </summary>
+		protected string srcIdFieldEquals;
+
+		/// <summary>
+		/// SrcName=[?]
+		/// </summary>
+		protected string srcIdFieldNameEqSet;
+
+		/// <summary>
+		/// TargetName=[?]
+		/// </summary>
+		protected string targetIdFieldNameEqSet;
+
+		/// <summary>
+		/// Quick ref to cache index, if it is cached.
+		/// </summary>
+		protected NonUniqueIndex<Mapping<SRC_ID, TARG_ID>, SRC_ID> _cacheIndex;
+		
 		/// <summary>
 		/// Creates a mapping service using the given type as the mapping object.
 		/// </summary>
@@ -381,6 +389,77 @@ namespace Api.Startup
 
 		}
 
+		/// <summary>
+		/// Returns true if a mapping from src_id => targ_id exists.
+		/// </summary>
+		/// <param name="context"></param>
+		/// <param name="src"></param>
+		/// <param name="targ"></param>
+		/// <returns></returns>
+		public async ValueTask<bool> CheckIfExists(Context context, SRC_ID src, TARG_ID targ)
+		{
+			if (_cache != null && _cacheIndex == null)
+			{
+
+				var cache = GetCacheForLocale(0);
+
+				if (cache != null)
+				{
+					// It's a cached mapping type.
+					// Pre-obtain index ref now:
+					_cacheIndex = cache.GetIndex<SRC_ID>(srcIdFieldName) as NonUniqueIndex<Mapping<SRC_ID, TARG_ID>, SRC_ID>;
+				}
+			}
+
+			if (_cacheIndex != null)
+			{
+				// Using an index scan
+				var indexEnum = _cacheIndex.GetEnumeratorFor(src);
+
+				while (indexEnum.HasMore())
+				{
+					// Get current value:
+					var mappingEntry = indexEnum.Current();
+
+					if (mappingEntry.TargetId.Equals(targ))
+					{
+						return true;
+					}
+				}
+
+				return false;
+			}
+			else
+			{
+				return await Where(srcAndTargEq).Bind(src).Bind(targ).Any(context);
+			}
+		}
+		
+		/// <summary>
+		/// Returns true if a mapping from src_id => targ_id was just created. False if it already existed.
+		/// </summary>
+		/// <param name="context"></param>
+		/// <param name="src"></param>
+		/// <param name="targ"></param>
+		/// <returns></returns>
+		public async ValueTask<bool> CreateIfNotExists(Context context, SRC_ID src, TARG_ID targ)
+		{
+			if (await CheckIfExists(context, src, targ))
+			{
+				return false;
+			}
+
+			// Add it:
+			var entry = Activator.CreateInstance(InstanceType) as Mapping<SRC_ID, TARG_ID>;
+			entry.SourceId = src;
+			entry.TargetId = targ;
+			entry.CreatedUtc = DateTime.UtcNow;
+
+			await Create(context, entry, DataOptions.IgnorePermissions);
+
+			return true;
+		}
+		
 		/// <summary>
 		/// Ensures the given set of target IDs are exactly what is present in the map.
 		/// </summary>

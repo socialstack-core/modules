@@ -290,9 +290,105 @@ public partial class AutoService<T, ID> : AutoService
 	/// <param name="targetId"></param>
 	/// <param name="mappingName"></param>
 	/// <returns></returns>
-	public virtual async ValueTask<List<T>> ListFromMapping<MAP_TARGET, T_ID>(Context context, T_ID targetId, string mappingName)
-		where T_ID: struct, IEquatable<T_ID>, IConvertible
-		where MAP_TARGET: Content<T_ID>, new()
+	public async ValueTask<List<T>> ListByTarget<MAP_TARGET, T_ID>(Context context, T_ID targetId, string mappingName)
+		where T_ID : struct, IEquatable<T_ID>, IConvertible
+		where MAP_TARGET : Content<T_ID>, new()
+	{
+		var res = new List<T>();
+		await ListByTarget<MAP_TARGET, T_ID>(context, targetId, mappingName, (Context c, T r, int ind, object a, object b) =>
+		{
+			var set = (List<T>)a;
+			set.Add(r);
+			return new ValueTask();
+		}, res, null);
+
+		return res;
+	}
+
+	/// <summary>
+	/// List a set of values from this service which are present in a mapping of the given target type.
+	/// This is backwards from the typical mapping flow - i.e. you're getting the list of sources with a given single target value.
+	/// </summary>
+	/// <typeparam name="MAP_SOURCE"></typeparam>
+	/// <typeparam name="S_ID"></typeparam>
+	/// <param name="context"></param>
+	/// <param name="src"></param>
+	/// <param name="srcId"></param>
+	/// <param name="mappingName"></param>
+	/// <param name="onResult"></param>
+	/// <param name="a"></param>
+	/// <param name="b"></param>
+	/// <returns></returns>
+	public async ValueTask ListBySource<MAP_SOURCE, S_ID>(Context context, AutoService<MAP_SOURCE, S_ID> src, S_ID srcId, string mappingName, Func<Context, T, int, object, object, ValueTask> onResult, object a, object b)
+		where S_ID : struct, IEquatable<S_ID>, IConvertible
+		where MAP_SOURCE : Content<S_ID>, new()
+	{
+		// Get map:
+		var mappingService = await src.GetMap<T, ID>(mappingName);
+
+		var collector = new IDCollector<ID>();
+		
+		// Ask mapping service for all target values with the given source ID.
+		await mappingService.ListTargetIdBySource(context, srcId, (Context ctx, ID id, object src) => {
+			var _collector = (IDCollector<ID>)src;
+			_collector.Add(id);
+			return new ValueTask();
+		}, collector);
+
+		await Where("Id=[?]").Bind(collector).ListAll(context, onResult, a, b);
+		collector.Release();
+	}
+
+	/// <summary>
+	/// List a set of values from this service which are present in a mapping of the given target type.
+	/// This is backwards from the typical mapping flow - i.e. you're getting the list of sources with a given single target value.
+	/// </summary>
+	/// <typeparam name="MAP_SOURCE"></typeparam>
+	/// <typeparam name="S_ID"></typeparam>
+	/// <param name="context"></param>
+	/// <param name="src"></param>
+	/// <param name="srcIds"></param>
+	/// <param name="mappingName"></param>
+	/// <param name="onResult"></param>
+	/// <param name="a"></param>
+	/// <param name="b"></param>
+	/// <returns></returns>
+	public async ValueTask ListBySource<MAP_SOURCE, S_ID>(Context context, AutoService<MAP_SOURCE, S_ID> src, IDCollector<S_ID> srcIds, string mappingName, Func<Context, T, int, object, object, ValueTask> onResult, object a, object b)
+		where S_ID : struct, IEquatable<S_ID>, IConvertible
+		where MAP_SOURCE : Content<S_ID>, new()
+	{
+		// Get map:
+		var mappingService = await src.GetMap<T, ID>(mappingName);
+
+		var collector = new IDCollector<ID>();
+
+		// Ask mapping service for all target values with the given source ID.
+		await mappingService.ListTargetIdBySource(context, srcIds, (Context ctx, ID id, object src) => {
+			var _collector = (IDCollector<ID>)src;
+			_collector.Add(id);
+			return new ValueTask();
+		}, collector);
+
+		await Where("Id=[?]").Bind(collector).ListAll(context, onResult, a, b);
+		collector.Release();
+	}
+
+	/// <summary>
+	/// List a set of values from this service which are present in a mapping of the given target type.
+	/// This is backwards from the typical mapping flow - i.e. you're getting the list of sources with a given single target value.
+	/// </summary>
+	/// <typeparam name="MAP_TARGET"></typeparam>
+	/// <typeparam name="T_ID"></typeparam>
+	/// <param name="context"></param>
+	/// <param name="targetId"></param>
+	/// <param name="mappingName"></param>
+	/// <param name="onResult"></param>
+	/// <param name="a"></param>
+	/// <param name="b"></param>
+	/// <returns></returns>
+	public async ValueTask ListByTarget<MAP_TARGET, T_ID>(Context context, T_ID targetId, string mappingName, Func<Context, T, int, object, object, ValueTask> onResult, object a, object b)
+	where T_ID: struct, IEquatable<T_ID>, IConvertible
+	where MAP_TARGET: Content<T_ID>, new()
 	{
 		// Get map:
 		var mappingService = await GetMap<MAP_TARGET, T_ID>(mappingName);
@@ -300,15 +396,14 @@ public partial class AutoService<T, ID> : AutoService
 		// Ask mapping service for all source values with the given target ID.
 		var collector = new IDCollector<ID>();
 
-		await mappingService.ListByTarget(context, targetId, (Context ctx, ID id, object src) => {
+		await mappingService.ListSourceIdByTarget(context, targetId, (Context ctx, ID id, object src) => {
 			var _collector = (IDCollector<ID>)src;
 			_collector.Add(id);
 			return new ValueTask();
 		}, collector);
 
-		var result = await Where("Id=[?]").Bind(collector).ListAll(context);
+		await Where("Id=[?]").Bind(collector).ListAll(context, onResult, a, b);
 		collector.Release();
-		return result;
 	}
 
 	private Dictionary<string, FilterMeta<T,ID>> _filterSets = new Dictionary<string, FilterMeta<T,ID>>();
@@ -526,6 +621,28 @@ public partial class AutoService<T, ID> : AutoService
 		context.IgnorePermissions = previousPermState;
 		
 		return item;
+	}
+
+	/// <summary>
+	/// Ensures the given target Id is mapped to the given source in the given named map.
+	/// </summary>
+	/// <param name="context"></param>
+	/// <param name="srcId"></param>
+	/// <param name="target"></param>
+	/// <param name="targetId"></param>
+	/// <param name="mapName"></param>
+	public async ValueTask<bool> CreateMappingIfNotExists<T_ID>(Context context, ID srcId, AutoService target, T_ID targetId, string mapName)
+		where T_ID : struct, IEquatable<T_ID>, IConvertible
+	{
+		// First, get the mapping service:
+		var mapping = await MappingTypeEngine.GetOrGenerate(
+			this,
+			target,
+			mapName
+		) as MappingService<ID, T_ID>;
+
+		// Create if not exists:
+		return await mapping.CreateIfNotExists(context, srcId, targetId);
 	}
 
 	/// <summary>
