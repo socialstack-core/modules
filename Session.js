@@ -1,6 +1,18 @@
-import webRequest from "UI/Functions/WebRequest";
+import webRequest, {expandIncludes} from "UI/Functions/WebRequest";
 
-const initState = global.gsInit ? {...global.gsInit, loadingUser: false} : {loadingUser: true};
+let initState = null;
+
+if(global.gsInit){
+	initState = global.gsInit;
+	
+	for(var k in initState){
+		initState[k] = expandIncludes(initState[k]);
+	}
+	
+	initState.loadingUser = false;
+}else{
+	initState = {loadingUser: true};
+}
 
 const Session = React.createContext();
 const Router = React.createContext();
@@ -36,6 +48,9 @@ export const Provider = (props) => {
 	const [session, setSession] = React.useState(initState);
   
 	let dispatchWithEvent = updatedVal => {
+		for(var k in updatedVal){
+			updatedVal[k] = expandIncludes(updatedVal[k]);
+		}
 		var e = new Event('xsession');
 		e.state = updatedVal;
 		document.dispatchEvent && document.dispatchEvent(e);
