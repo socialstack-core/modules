@@ -184,7 +184,7 @@ namespace Api.Pages
 		public PageWithTokens GetPage(string url)
 		{
 			url = url.Split('?')[0].Trim();
-			if (url[0] == '/')
+			if (url.Length != 0 && url[0] == '/')
 			{
 				url = url.Substring(1);
 			}
