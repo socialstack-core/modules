@@ -1222,24 +1222,50 @@ public partial class AutoService
 
 			for (var i = 0; i < argSet.Count; i++)
 			{
-				var value = argSet[i] as JValue;
+				var array = argSet[i] as JArray;
 
-				if (value == null)
+				if (array != null)
 				{
-					throw new PublicException(
-						"Arg #"+ (i+1) + " in the args set is invalid - it can't be an object, only a string or numeric/ bool value.",
-						"filter_invalid"
-					);
-				}
+					// Act like an array of uint's.
+					var idSet = new List<uint>();
 
-				// The underlying JSON token is textual, so we'll use a general use bind from string method.
-				if (value.Type == JTokenType.Null)
-				{
-					filter.BindUnknown(null);
+					foreach (var jValue in array)
+					{
+						if (!(jValue is JValue))
+						{
+							throw new PublicException(
+								"Arg #" + (i + 1) + " in the args set is invalid - an array of objects was given, but it can only be an array of IDs.",
+								"filter_invalid"
+							);
+						}
+
+						var id = jValue.Value<uint>();
+						idSet.Add(id);
+					}
+
+					filter.BindUnknown(idSet);
 				}
 				else
 				{
-					filter.BindUnknown(value.Value<string>());
+					var value = argSet[i] as JValue;
+
+					if (value == null)
+					{
+						throw new PublicException(
+							"Arg #" + (i + 1) + " in the args set is invalid - it can't be an object, only a string or numeric/ bool value.",
+							"filter_invalid"
+						);
+					}
+
+					// The underlying JSON token is textual, so we'll use a general use bind from string method.
+					if (value.Type == JTokenType.Null)
+					{
+						filter.BindUnknown(null);
+					}
+					else
+					{
+						filter.BindUnknown(value.Value<string>());
+					}
 				}
 			}
 
