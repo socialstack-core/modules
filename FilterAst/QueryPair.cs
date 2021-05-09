@@ -244,6 +244,15 @@ namespace Api.Permissions
 			return this;
 		}
 
+		/// <summary>
+		/// Binds the current arg using the given textual representation.
+		/// </summary>
+		/// <param name="enumerable"></param>
+		public virtual FilterBase BindUnknown(object enumerable)
+		{
+			return this;
+		}
+
 		/// <summary>Builds an SQL Where query.</summary>
 		/// <param name="cmd"></param>
 		/// <param name="builder"></param>
@@ -694,6 +703,15 @@ namespace Api.Permissions
 			return this;
 		}
 
+		/// <summary>
+		/// Binds the current arg using the given textual representation.
+		/// </summary>
+		/// <param name="enumerable"></param>
+		public override FilterBase BindUnknown(object enumerable)
+		{
+			return Bind(enumerable);
+		}
+		
 		/// <summary>
 		/// Binds the current arg using the given textual representation.
 		/// </summary>
