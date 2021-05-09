@@ -1,4 +1,5 @@
-﻿using System;
+﻿using Api.Permissions;
+using System;
 using System.Reflection;
 
 
@@ -18,6 +19,11 @@ namespace Api.Contexts
 		/// True if this field should be skipped. RoleId is always obtained through the user row so it is skipped for example.
 		/// </summary>
 		public bool SkipOutput;
+
+		/// <summary>
+		/// The capability which indicates if the field can be loaded.
+		/// </summary>
+		public Capability ViewCapability;
 
 		/// <summary>
 		/// Private backing field. Name must be of the form _propertyName.

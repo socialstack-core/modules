@@ -120,13 +120,11 @@ namespace Api.Contexts
 				fld.ContentTypeId = contentTypeId;
 				ContentTypeToFieldInfo[contentTypeId] = fld;
 
-				var jsonHeader = "\"" + contentName.ToLower() + "\":";
+				var svc = Services.GetByContentTypeId(contentTypeId);
 
-				if (FieldList.Count > 0)
-				{
-					// Pre-include the comma between the fields:
-					jsonHeader = ',' + jsonHeader;
-				}
+				fld.ViewCapability = svc.GetEventGroup().GetLoadCapability();
+
+				var jsonHeader = "\"" + contentName.ToLower() + "\":";
 
 				fld.JsonFieldHeader = Encoding.UTF8.GetBytes(jsonHeader);
 
@@ -190,9 +188,25 @@ namespace Api.Contexts
 			writer.Write((byte)'{');
 
 			// Almost the same as virtual field includes, except they're always included.
+			var first = true;
+
 			for (var i = 0; i < ContextFields.FieldList.Count; i++)
 			{
 				var fld = ContextFields.FieldList[i];
+
+				if (context.Role.GetGrantRule(fld.ViewCapability) == null)
+				{
+					continue;
+				}
+
+				if (first)
+				{
+					first = false;
+				}
+				else
+				{
+					writer.Write((byte)',');
+				}
 
 				// Write the header (Also includes a comma at the start if i!=0):
 				writer.Write(fld.JsonFieldHeader, 0, fld.JsonFieldHeader.Length);
