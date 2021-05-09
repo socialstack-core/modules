@@ -403,7 +403,7 @@ public partial class AutoService<T, ID>{
 		var content = await _getWithIntId(context, id, DataOptions.Default);
 
 		// Output it:
-		await ToJson(context, content, writer);
+		await ToJson(context, content, writer, null, "*");
 	}
 
 	/// <summary>
