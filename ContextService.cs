@@ -108,7 +108,7 @@ namespace Api.Contexts
 				{
 					throw new Exception(
 						"Context field '" + field.Name + "' can't use context field short name '" + shortcode +
-						"' because it's in use. Specify one to use with [ContextShortcode('...')] on the field.");
+						"' because it's in use. Specify one to use with [ContextShortcode('...')] on the public property.");
 				}
 
 				FieldsByShortcode[shortIndex] = fld;
