@@ -11,6 +11,27 @@ export function useSession(){
 	return React.useContext(Session);
 }
 
+export function getDeviceId(){
+	var store = window.localStorage;
+	if(!store){
+		return null;
+	}
+	var device = store.getItem("device");
+	if(device != null){
+		device = JSON.parse(device);
+	}else{
+		device = {v: 1, id: generateId(20)};
+		store.setItem("device", JSON.stringify(device));
+	}
+	return device.id;
+}
+
+function generateId (len) {
+	var arr = new Uint8Array(len / 2);
+	window.crypto.getRandomValues(arr);
+	return arr.map(dec => dec.toString(16).padStart(2, '0')).join('');
+}
+
 export const Provider = (props) => {
 	const [session, setSession] = React.useState(initState);
   
