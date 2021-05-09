@@ -159,6 +159,17 @@ namespace Api.Eventing
 		/// by passing it through all the AfterLoad handlers.
 		/// </summary>
 		public EventHandler<T, int> Received;
+
+
+		/// <summary>
+		/// Gets the capability for loading something of this type.
+		/// </summary>
+		/// <returns></returns>
+		public override Capability GetLoadCapability()
+		{
+			return AfterLoad.Capability;
+		}
+
 	}
 
 	/// <summary>
@@ -184,6 +195,15 @@ namespace Api.Eventing
 
 			// Setup all of the fields on it too:
 			Events.SetupEventsOnObject(this, GetType(), null, All);
+		}
+
+		/// <summary>
+		/// Gets the capability for loading something of this type.
+		/// </summary>
+		/// <returns></returns>
+		public virtual Capability GetLoadCapability()
+		{
+			return null;
 		}
 		
 	}
