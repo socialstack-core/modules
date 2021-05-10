@@ -996,6 +996,22 @@ public partial class AutoService<T, ID> : AutoService
 	/// Performs an update on the given entity. If updating the object is permitted, the callback is executed. 
 	/// You must only set fields on the object in that callback, or in a BeforeUpdate handle.
 	/// </summary>
+	public virtual async ValueTask<T> Update(Context context, ID id, Action<Context, T> cb, DataOptions options = DataOptions.Default)
+	{
+		var entity = await Get(context, id);
+		
+		if (entity == null)
+		{
+			return null;
+		}
+		
+		return await Update(context, entity, cb, options);
+	}
+	
+	/// <summary>
+	/// Performs an update on the given entity. If updating the object is permitted, the callback is executed. 
+	/// You must only set fields on the object in that callback, or in a BeforeUpdate handle.
+	/// </summary>
 	public virtual async ValueTask<T> Update(Context context, T entity, Action<Context, T> cb, DataOptions options = DataOptions.Default)
 	{
 		if (options != DataOptions.IgnorePermissions && !await StartUpdate(context, entity))
