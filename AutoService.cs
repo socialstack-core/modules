@@ -315,6 +315,34 @@ public partial class AutoService<T, ID> : AutoService
 	/// <param name="src"></param>
 	/// <param name="srcId"></param>
 	/// <param name="mappingName"></param>
+	/// <returns></returns>
+	public async ValueTask<List<T>> ListBySource<MAP_SOURCE, S_ID>(Context context, AutoService<MAP_SOURCE, S_ID> src, S_ID srcId, string mappingName)
+		where S_ID : struct, IEquatable<S_ID>, IConvertible
+		where MAP_SOURCE : Content<S_ID>, new()
+	{
+		var set = new List<T>();
+
+		await ListBySource(context, src, srcId, mappingName, (Context c, T obj, int index, object a, object b) => {
+
+			var passedSet = (List<T>)a;
+			passedSet.Add(obj);
+			return new ValueTask();
+
+		}, set, null);
+
+		return set;
+	}
+	
+	/// <summary>
+	/// List a set of values from this service which are present in a mapping of the given target type.
+	/// This is backwards from the typical mapping flow - i.e. you're getting the list of sources with a given single target value.
+	/// </summary>
+	/// <typeparam name="MAP_SOURCE"></typeparam>
+	/// <typeparam name="S_ID"></typeparam>
+	/// <param name="context"></param>
+	/// <param name="src"></param>
+	/// <param name="srcId"></param>
+	/// <param name="mappingName"></param>
 	/// <param name="onResult"></param>
 	/// <param name="a"></param>
 	/// <param name="b"></param>
