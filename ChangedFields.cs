@@ -594,8 +594,8 @@ namespace Api.Startup {
 		{
 
 			// Do we need to map? Often yes, but occasionally not necessary.
-			// We don't if the target type has a virtual field of the source type, where the virtual field name is RelativeTo.ServicedType.Id + "Id"
-			return VirtualInfo.Service.GetContentFields().GetVirtualField(relativeTo.InstanceType, relativeTo.InstanceType.Name + "Id");
+			// We don't if the target type has a virtual field of the source type, where the virtual field name is simply the same as the instance type
+			return VirtualInfo.Service.GetContentFields().GetVirtualField(relativeTo.InstanceType, relativeTo.InstanceType.Name);
 
 		}
 
