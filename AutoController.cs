@@ -33,9 +33,9 @@ public partial class AutoController<T,ID>
 	/// </summary>
 	/// <returns></returns>
 	[HttpGet("list.csv")]
-	public virtual async Task<FileResult> ListCSV()
+	public virtual async ValueTask ListCSV([FromQuery] string includes = null)
 	{
-		return await ListCSV(null);
+		await ListCSV(null, includes);
 	}
 
 	/// <summary>
@@ -45,11 +45,18 @@ public partial class AutoController<T,ID>
 	/// </summary>
 	/// <returns></returns>
 	[HttpPost("list.csv")]
-	public virtual async Task<FileResult> ListCSV([FromBody] JObject filters)
+	public virtual async Task<FileResult> ListCSV([FromBody] JObject filters, [FromQuery] string includes = null)
 	{
-		var listWithTotal = await List(filters) as ListWithTotal<T>;
-		
-		if(listWithTotal == null){
+		var context = await Request.GetContext();
+		var results = await _service.Where().ListAll(context);
+
+		var listWithTotal = new ListWithTotal<T>()
+		{
+			Results = results
+		};
+
+		if (listWithTotal == null){
+			Response.StatusCode = 400;
 			return null;
 		}
 
