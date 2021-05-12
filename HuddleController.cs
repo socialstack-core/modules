@@ -1,16 +1,8 @@
 using System;
-using System.Linq;
 using System.Threading.Tasks;
-using Api.Permissions;
 using Microsoft.AspNetCore.Mvc;
 using Api.Database;
 using Api.Contexts;
-using Api.Eventing;
-using Api.Huddles;
-using Api.UserAgendaEntries;
-using Api.Users;
-using Newtonsoft.Json.Linq;
-using System.Collections.Generic;
 using Api.Startup;
 using Api.PubQuizzes;
 using Api.ActivityInstances;
@@ -26,6 +18,9 @@ namespace Api.Huddles
         PubQuizQuestionService pubQuizQuestionService = null;
         ActivityInstanceService activityInstanceService = null;
         int questionDuration = 15;
+ 
+
+
         /// <summary>
         /// GET /v1/huddle/:id/startactivity/:activityContentTypeName/:activityContentId
         /// E.g. /v1/huddle/14/startactivity/PubQuiz/1
@@ -36,7 +31,7 @@ namespace Api.Huddles
         public virtual async Task<object> StartActivity([FromRoute] uint id, [FromRoute] string activityContentTypeName, [FromRoute] uint activityContentId)
         {
             // Only possible if you can load a meeting, so we use the load perm here:
-            var context = Request.GetContext();
+            var context = await Request.GetContext();
             var result = await _service.Get(context, id);
 
             if (result == null)
@@ -46,72 +41,77 @@ namespace Api.Huddles
             
             int contentTypeId = ContentTypes.GetId(activityContentTypeName);
 
-            // Can only set content that the user is permitted to actually use - so try getting it first:
-            var sourceContent = await Api.Database.Content.Get(context, contentTypeId, activityContentId, true);
-
             int? durationTicks = null;
-            // If the source isn't null, let's see if its a quiz. If yes, lets get all questions with that quiz id to get total number of questions.
-            if (sourceContent != null && contentTypeId == pubQuizsContentTypeId)
-            {
+
                 if(pubQuizQuestionService == null)
                 {
                     pubQuizQuestionService = Services.Get<PubQuizQuestionService>();
                 }
 
                 // it is a pubquiz, let's get its questions.
-                var questions = await pubQuizQuestionService.List(context, new Filter<PubQuizQuestion>().Equals("PubQuizId", activityContentId), DataOptions.IgnorePermissions);
+                var questions = await pubQuizQuestionService.Where("PubQuizId=?", DataOptions.IgnorePermissions).Bind(activityContentId).ListAll(context);
                 durationTicks = (1000 * questions.Count * questionDuration);
-            }
+       
 
-            if (sourceContent != null)
-            {
-                // Ok - activity starts in 10s:
-                result.ActivityStartUtc = DateTime.UtcNow.AddSeconds(10);
-                result.ActivityContentTypeId = contentTypeId;
-                result.ActivityContentId = activityContentId;
+	
+                await _service.Update(context, result, async (Context ctx, Huddle hud) => {
+                    // Ok - activity starts in 10s:
+                    hud.ActivityStartUtc = DateTime.UtcNow.AddSeconds(10);
+                    hud.MarkChanged(_service.GetChangeField("ActivityStartUtc"));
+                    hud.ActivityContentTypeId = contentTypeId;
+                    hud.MarkChanged(_service.GetChangeField("ActivityContentTypeId"));
+                    hud.ActivityContentId = activityContentId;
+                    hud.MarkChanged(_service.GetChangeField("ActivityContentId"));
 
-                if(durationTicks != null)
-                {
-                    result.ActivityDurationTicks = durationTicks;
-                }
-				
-				// Create an instance:
-				if (activityInstanceService == null)
-				{
-					activityInstanceService = Services.Get<ActivityInstanceService>();
-				}
-				
-				var activityInstance = new ActivityInstance();
-				activityInstance = await activityInstanceService.Create(context, activityInstance, DataOptions.IgnorePermissions);
-				result.ActivityInstanceId = activityInstance.Id;
-				
-                await _service.Update(context, result);
-            }
+                    if (durationTicks != null)
+                    {
+                        hud.ActivityDurationTicks = durationTicks;
+                        hud.MarkChanged(_service.GetChangeField("ActivityDurationTicks"));
+                    }
+
+                    // Create an instance:
+                    if (activityInstanceService == null)
+                    {
+                        activityInstanceService = Services.Get<ActivityInstanceService>();
+                    }
+
+                    var activityInstance = new ActivityInstance();
+                    activityInstance = await activityInstanceService.Create(context, activityInstance, DataOptions.IgnorePermissions);
+                    hud.ActivityInstanceId = activityInstance.Id;               
+                    hud.MarkChanged(_service.GetChangeField("ActivityInstanceId"));
+                });
+            
 
             return Task.FromResult(result);
         }
 		
         [HttpGet("{id}/endactivity")]
-		public virtual async Task<object> EndActivity([FromRoute] uint id)
+		public virtual async ValueTask EndActivity([FromRoute] uint id)
         {
 			// Only possible if you can load a meeting, so we use the load perm here:
-            var context = Request.GetContext();
+            var context = await Request.GetContext();
             var result = await _service.Get(context, id);
 
             if (result == null)
             {
-                return null;
+                Response.StatusCode = 400;
+                return;
             }
             
 			if(result.ActivityContentId != 0)
 			{
-				result.ActivityContentId = 0;
-				result.ActivityContentTypeId = 0;
-				result.ActivityStartUtc = null;
-				result = await _service.Update(context, result);
+				result = await _service.Update(context, result, (Context c, Huddle h) => {
+                    h.ActivityContentId = 0;
+                    h.ActivityContentTypeId = 0;
+                    h.ActivityStartUtc = null;
+
+                    h.MarkChanged(_service.GetChangeField("ActivityContentId"));
+                    h.MarkChanged(_service.GetChangeField("ActivityContentTypeId"));
+                    h.MarkChanged(_service.GetChangeField("ActivityStartUtc"));
+                });
 			}
 			
-			return Task.FromResult(result);
+			await OutputJson(context, result, null);
 		}
     }
 }

@@ -25,6 +25,10 @@ namespace Api.Huddles
 		/// </summary>
 		public HuddleActivityEventHandler()
         {
+			/*
+			This can be replaced by using includes and making the activity attached to the huddle not a content type.
+
+
 			Events.Huddle.AfterLoad.AddEventListener(async (Context context, Huddle huddle) =>
 			{
 				if (huddle == null)
@@ -89,7 +93,7 @@ namespace Api.Huddles
 
 				return huddle;
 			});
-
+			*/
 		}
 
 	}
