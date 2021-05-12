@@ -64,8 +64,7 @@ namespace Api.AnonymousUsers
 				{
 					// Create an account and use a context for it:
 					var user = await CreateAccount();
-					result.RoleId = user.Role;
-					result.SetUser(user);
+					result.User = user;
 				}
 
 				return result;
@@ -88,10 +87,7 @@ namespace Api.AnonymousUsers
 			}
 
 			// Must use admin role in order to specify a role for the user like this.
-			return await _users.Create(new Context()
-			{
-				RoleId = Roles.SuperAdmin.Id
-			},
+			return await _users.Create(new Context(Roles.Developer),
 			new User() {
 				FirstName = firstName,
 				LastName = lastName,
@@ -102,7 +98,7 @@ namespace Api.AnonymousUsers
 		/// <summary>
 		/// Role to assign.
 		/// </summary>
-		private int Role = 3;
+		private uint Role = 3;
 
 		/// <summary>
 		/// First names in use.
