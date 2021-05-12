@@ -41,7 +41,7 @@ namespace Api.FFmpeg
 		[HttpGet("transcode/{id}")]
 		public async Task<object> Transcode([FromRoute] uint id)
 		{
-			var ctx = Request.GetContext();
+			var ctx = await Request.GetContext();
 
 			if (ctx.RoleId != 1 && ctx.RoleId != 2)
 			{
