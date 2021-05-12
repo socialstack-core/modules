@@ -3,7 +3,7 @@ import Alert from 'UI/Alert';
 import Loading from 'UI/Loading';
 import Form from 'UI/Form';
 import Input from 'UI/Input';
-
+import {RouterConsumer} from 'UI/Session';
 
 export default class PasswordReset extends React.Component {
 	
@@ -37,6 +37,12 @@ export default class PasswordReset extends React.Component {
     }
     
 	render(){
+		return <RouterConsumer>
+			{(page, setPage) => this.renderIntl(setPage)}
+		</RouterConsumer> 
+	}
+
+	renderIntl(setPage){
 		var {policy} = this.state;
 		
 		return <div className="password-reset">
@@ -65,7 +71,7 @@ export default class PasswordReset extends React.Component {
 									this.props.onSuccess(response);
 								}else{
 									// Go to homepage:
-									global.pageRouter.go('/');
+									setPage('/');
 								}
 							}}
 							onValues={v => {
