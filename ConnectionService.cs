@@ -27,7 +27,7 @@ namespace Api.Connections
 					return null;
                 }
 
-				var user = await context.GetUser();
+				var user = context.User;
 
 				if(user == null)
                 {
@@ -59,9 +59,7 @@ namespace Api.Connections
                     }
 				}
 				
-				var filter = new Filter<Connection>().Equals("UserId", context.UserId).And().Equals("ConnectedToId", connection.ConnectedToId);
-
-				var results = await List(context, filter, DataOptions.IgnorePermissions);
+				var results = await Where("ConnectedToId=?", DataOptions.IgnorePermissions).Bind(connection.ConnectedToId).ListAll(context);
 				
 				if(results.Count > 0 )
                 {

@@ -21,8 +21,8 @@ namespace Api.Connections
         [HttpPost("{id}/accept")]
         public async Task<Connection> Accept(uint id)
         {
-            var context = Request.GetContext();
-            var user = await context.GetUser();
+            var context = await Request.GetContext();
+            var user = context.User;
 
             // Is the user valid?
             if(user == null)
