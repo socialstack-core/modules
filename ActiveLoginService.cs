@@ -30,11 +30,11 @@ namespace Api.ActiveLogins
 			uint serverId = 0;
 			_historicalRecord = loginHistory;
 
-			Events.User.BeforeSettable.AddEventListener((Context context, JsonField<User> field) =>
+			Events.User.BeforeSettable.AddEventListener((Context context, JsonField<User, uint> field) =>
 			{
 				if (field == null)
 				{
-					return new ValueTask<JsonField<User>>(field);
+					return new ValueTask<JsonField<User, uint>>(field);
 				}
 				
 				if(field.Name == "OnlineState")
@@ -43,12 +43,14 @@ namespace Api.ActiveLogins
 					field = null;
 				}
 				
-				return new ValueTask<JsonField<User>>(field);
+				return new ValueTask<JsonField<User, uint>>(field);
 			});
 			
 			// Add event listeners for websocket users:
 			Events.WebSocketUserState.AddEventListener(async (Context ctx, uint userId, UserWebsocketLinks userSockets) =>
 			{
+				var onlineStateField = GetChangeField("OnlineState");
+
 				// Triggers when the user login state changes *locally*.
 				if(userId == 0)
 				{
@@ -85,7 +87,7 @@ namespace Api.ActiveLogins
 					
 					if(user != null && (!user.OnlineState.HasValue || user.OnlineState != 1)){
 						user.OnlineState = 1;
-						await _users.Update(ctx, user);
+						user.MarkChanged(onlineStateField);
 						
 						// Insert to historical record. This user came online across the cluster.
 						await _historicalRecord.Create(ctx, new ActiveLoginHistory(){
@@ -106,15 +108,15 @@ namespace Api.ActiveLogins
 						await Delete(ctx, id, DataOptions.IgnorePermissions);
 						
 						// Ask the DB if this user is online anywhere currently:
-						var onlineEntries = await List(ctx, new Filter<ActiveLogin>().Equals("UserId", userId), DataOptions.IgnorePermissions);
+						var onlineEntries = await Where("UserId=?", DataOptions.IgnorePermissions).Bind(userId).ListAll(ctx);
 						
 						if(onlineEntries == null || onlineEntries.Count == 0)
 						{
 							var user = await _users.Get(ctx, userId, DataOptions.IgnorePermissions);
 							if(user != null && user.OnlineState.HasValue && user.OnlineState != 0){
 								user.OnlineState = 0;
-								await _users.Update(ctx, user);
-								
+								user.MarkChanged(onlineStateField);
+
 								// Insert to historical record. This user came online across the cluster.
 								await _historicalRecord.Create(ctx, new ActiveLoginHistory(){
 									UserId = user.Id,
@@ -155,6 +157,7 @@ namespace Api.ActiveLogins
 		/// </summary>
 		public async Task<bool> Start()
 		{
+			var onlineStateField = GetChangeField("OnlineState");
 			// Get server ID:
 			var contentSyncService = Services.Get<ContentSyncService>();
 			
@@ -177,13 +180,8 @@ namespace Api.ActiveLogins
 			var ctx = new Context();
 
 			// Get the list of active logins for the server:
-			var onlineEntries = await List(ctx, new Filter<ActiveLogin>().Equals("Server", id), DataOptions.IgnorePermissions);
-			
-			// Delete from DB now:
-			var delQuery = Query.Delete<ActiveLogin>();
-			delQuery.SetRawQuery("DELETE FROM " + typeof(ActiveLogin).TableName() + " WHERE Server=" + id);
-			await _database.Run(null, delQuery);
-			
+			var onlineEntries = await Where("Server=?", DataOptions.IgnorePermissions).Bind(id).ListAll(ctx);
+
 			// Update online state for any users who should now be marked offline:
 			if(onlineEntries != null){
 				Dictionary<uint, bool> uniqueUsers = new Dictionary<uint, bool>();
@@ -194,6 +192,9 @@ namespace Api.ActiveLogins
 						continue;
 					}
 					uniqueUsers[entry.UserId] = true;
+
+					// Delete it!
+					await Delete(ctx, entry, DataOptions.IgnorePermissions);
 				}
 				
 				if(uniqueUsers.Count > 0)
@@ -219,9 +220,9 @@ namespace Api.ActiveLogins
 					
 					// For each unique user, check if they should now be offline.
 					// Do this by counting the # of other online records they have.
-					var countQuery = Query.List<ActiveLoginCount>();
+					var countQuery = Query.List(typeof(ActiveLoginCount));
 					countQuery.SetRawQuery(inQuery.ToString());
-					var counts = await _database.List(null, countQuery, null);
+					var counts = await _database.List<ActiveLoginCount>(null, countQuery, null);
 
 					// NB: could be done in a query, but going through the update API
 					// means other servers will become aware of the user(s) going offline.
@@ -247,7 +248,7 @@ namespace Api.ActiveLogins
 						var user = await _users.Get(ctx, kvp.Key, DataOptions.IgnorePermissions);
 						if(user != null && user.OnlineState.HasValue && user.OnlineState != 0){
 							user.OnlineState = 0;
-							await _users.Update(ctx, user, DataOptions.IgnorePermissions);
+							user.MarkChanged(onlineStateField);
 							
 							// Insert to historical record. This user came online across the cluster.
 							await _historicalRecord.Create(ctx, new ActiveLoginHistory(){

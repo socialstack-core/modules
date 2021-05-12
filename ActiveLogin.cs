@@ -16,6 +16,11 @@ namespace Api.ActiveLogins
 		/// ContentSync server ID.
 		/// </summary>
 		public uint Server;
+
+		/// <summary>
+		/// 0 = Offline, 1 = Online, 2 = Away (away unused at the moment).
+		/// </summary>
+		public int? OnlineState;
 	}
 
 }
