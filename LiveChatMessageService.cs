@@ -42,11 +42,11 @@ namespace Api.LiveChats
 				return new ValueTask<LiveChatMessage>(chatMessage);
 			});
 			
-			Events.LiveChatMessage.BeforeSettable.AddEventListener((Context context, JsonField<LiveChatMessage> field) =>
+			Events.LiveChatMessage.BeforeSettable.AddEventListener((Context context, JsonField<LiveChatMessage, uint> field) =>
 			{
 				if (field == null)
 				{
-					return new ValueTask<JsonField<LiveChatMessage>>(field);
+					return new ValueTask<JsonField<LiveChatMessage, uint>>(field);
 				}
 
 				if(field.ForRole != Roles.Admin && field.ForRole != Roles.Developer){
@@ -58,7 +58,7 @@ namespace Api.LiveChats
 					
 				}
 				
-				return new ValueTask<JsonField<LiveChatMessage>>(field);
+				return new ValueTask<JsonField<LiveChatMessage, uint>>(field);
 			});
 			
         }
