@@ -21,6 +21,7 @@ namespace Api.PubQuizzes
 			var pubQuizAnswerContentTypeId = ContentTypes.GetId(typeof(PubQuizAnswer));
 			// Example admin page install:
 			// InstallAdminPages("PubQuizSubmissions", "fa:fa-rocket", new string[] { "id", "name" });
+			/*
 			Events.PubQuizSubmission.AfterList.AddEventListener(async (Context context, List<PubQuizSubmission> submissions) =>
 			{
 				if (submissions == null)
@@ -42,7 +43,7 @@ namespace Api.PubQuizzes
 				);
 
 				return submissions;
-			});
+			});*/
 
 			Events.PubQuizSubmission.BeforeCreate.AddEventListener(async (Context context, PubQuizSubmission submission) =>
 			{

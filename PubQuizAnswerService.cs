@@ -21,6 +21,9 @@ namespace Api.PubQuizzes
         {
 			InstallAdminPages(null, null, new string[] { "id", "answerJson" });
 			
+			/*
+			 * These are commented out since they are used to get PubQuizAnswers 
+			 * 
 			Events.PubQuizQuestion.AfterLoad.AddEventListener(async (Context context, PubQuizQuestion question) =>
 			{
 				if (question == null)
@@ -33,6 +36,8 @@ namespace Api.PubQuizzes
 				// Load answers:
 				question.Answers = await List(context, new Filter<PubQuizAnswer>().Equals("PubQuizQuestionId", question.Id), DataOptions.IgnorePermissions);
 				
+
+
 				return question;
 			});
 			
@@ -79,6 +84,7 @@ namespace Api.PubQuizzes
 				
 				return questions;
 			});
+			*/
 		}
 	}
     

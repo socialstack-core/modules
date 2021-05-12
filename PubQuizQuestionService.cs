@@ -41,11 +41,11 @@ namespace Api.PubQuizzes
 				return answer;
 			});
 
-			Events.PubQuizAnswer.BeforeSettable.AddEventListener((Context context, JsonField<PubQuizAnswer> field) =>
+			Events.PubQuizAnswer.BeforeSettable.AddEventListener((Context context, JsonField<PubQuizAnswer, uint> field) =>
 			{
 				if (field == null)
 				{
-					return new ValueTask<JsonField<PubQuizAnswer>>(field);
+					return new ValueTask<JsonField<PubQuizAnswer, uint>>(field);
 				}
 
 				if (field.Name == "PubQuizId")
@@ -54,15 +54,15 @@ namespace Api.PubQuizzes
 					field = null;
 				}
 
-				return new ValueTask<JsonField<PubQuizAnswer>>(field);
+				return new ValueTask<JsonField<PubQuizAnswer, uint>>(field);
 			}
 			);
 
-			Events.PubQuizQuestion.BeforeSettable.AddEventListener((Context context, JsonField<PubQuizQuestion> field) =>
+			Events.PubQuizQuestion.BeforeSettable.AddEventListener((Context context, JsonField<PubQuizQuestion, uint> field) =>
 				{
 					if (field == null)
 					{
-						return new ValueTask<JsonField<PubQuizQuestion>>(field);
+						return new ValueTask<JsonField<PubQuizQuestion, uint>>(field);
 					}
 
 					if (field.Name == "Answers")
@@ -71,7 +71,7 @@ namespace Api.PubQuizzes
 						field = null;
 					}
 
-					return new ValueTask<JsonField<PubQuizQuestion>>(field);
+					return new ValueTask<JsonField<PubQuizQuestion, uint>>(field);
 				}
 			);
 		}
