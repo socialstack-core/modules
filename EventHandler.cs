@@ -44,13 +44,7 @@ namespace Api.UserAgendaEntries
                     huddles = Services.Get<HuddleService>();
                 }
 
-				var userAgendaFilter = new Filter<UserAgendaEntry>()
-                    .Equals("ContentTypeId", ContentTypes.GetId("Huddle"))
-                    .And()
-                    .Equals("ContentId", huddle.Id);
-
-                // Get the entries:
-                var agendaEntries = await agenda.List(context, userAgendaFilter);
+				var agendaEntries = await agenda.Where("ContentTypeId=? and ContentId=?", DataOptions.IgnorePermissions).Bind(ContentTypes.GetId("Huddle")).Bind(huddle.Id).ListAll(context);
 
                 // For each one, remove the agendaEntries
                 foreach (var entry in agendaEntries)
@@ -78,6 +72,9 @@ namespace Api.UserAgendaEntries
                 }
 
 				// For each invite, if AgendaEntryId is non-zero, update the entry.
+				/* 
+				 * TODO: we need to use the new way of view 
+				 * 
 				if (huddle.Invites != null && huddle.Invites.Count > 0)
 				{
 					var ids = new List<int>();
@@ -104,11 +101,14 @@ namespace Api.UserAgendaEntries
 						}
 					}
 
-				}
+				}*/
 
 				return huddle;
 			}, 20);
 
+
+
+			/*
 			Events.HuddlePermittedUser.BeforeCancel.AddEventListener(async (Context context, HuddlePermittedUser invite) =>
 			{
 
@@ -204,7 +204,7 @@ namespace Api.UserAgendaEntries
 				invite.AgendaEntryId = 0;
 				return invite;
 			}, 20);
-
+			*//*
 			Events.HuddlePermittedUser.BeforeAccept.AddEventListener(async (Context context, HuddlePermittedUser invite) => {
 				
 				if(invite == null || invite.PermittedUserId == 0)
@@ -238,7 +238,7 @@ namespace Api.UserAgendaEntries
 				Simplifies to:
 				
 				ENTRY.EndUtc > HUDDLE.StartUtc && ENTRY.StartUtc < HUDDLE.EndUtc
-				*/
+				*//*
 				// Before moving on, check the config policy on collisions. 
 				if (Config == null)
                 {
@@ -303,7 +303,7 @@ namespace Api.UserAgendaEntries
 				}
 
 				return invite;
-			}, 1);
+			}, 1);*/
 		}
 	}
 }
