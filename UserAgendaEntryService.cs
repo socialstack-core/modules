@@ -25,6 +25,8 @@ namespace Api.UserAgendaEntries
 					return null;
 				}
 
+
+				/* Todo this will be handled with includes which means all proper virtual fields need to be added.
 				if (agendaEntry.ContentId != 0)
 				{
 					// Get the content info:
@@ -33,7 +35,7 @@ namespace Api.UserAgendaEntries
 				else
 				{
 					agendaEntry.Content = null;
-				}
+				}*/
 
 				return agendaEntry;
 			}, 5);
@@ -45,6 +47,7 @@ namespace Api.UserAgendaEntries
 					return null;
 				}
 
+				/*Todo this will be handled with includes which means all proper virtual fields need to be added.
 				if (agendaEntry.ContentId != 0)
 				{
 					// Get the content info (throws if permission fails):
@@ -53,7 +56,7 @@ namespace Api.UserAgendaEntries
 				else
 				{
 					agendaEntry.Content = null;
-				}
+				}*/
 
 				return agendaEntry;
 			}, 5);
@@ -65,6 +68,7 @@ namespace Api.UserAgendaEntries
 					return null;
 				}
 
+				/*Todo this will be handled with includes which means all proper virtual fields need to be added.
 				if (agendaEntry.ContentId != 0)
 				{
 					// Get the content info (throws if permission fails):
@@ -73,10 +77,13 @@ namespace Api.UserAgendaEntries
 				else
 				{
 					agendaEntry.Content = null;
-				}
+				}*/
 
 				return agendaEntry;
 			}, 5);
+
+
+			/*
 
 			Events.UserAgendaEntry.AfterList.AddEventListener(async (Context context, List<UserAgendaEntry> list) =>
 			{
@@ -102,6 +109,7 @@ namespace Api.UserAgendaEntries
 				
 				return list;
 			}, 5);
+			*/
 			
 		}
 	}
