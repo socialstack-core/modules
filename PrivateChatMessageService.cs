@@ -29,12 +29,13 @@ namespace Api.PrivateChats
 
 				// User able to msg this channel?
 				// Get the channel:
+				/*
 				var channel = await _chats.Get(context, msg.PrivateChatId);
 					
 				if(channel == null){
 					// Doesn't exist.
 					return null;
-				}
+				}*/
 
 				// Must be permitted to access the channel.
 #warning todo check context has channel access
@@ -46,11 +47,12 @@ namespace Api.PrivateChats
 					return null;
 				}
 				*/
-
-				// Update the channel with the number of messages in it:
-				channel.MessageCount++;
 					
-				await _chats.Update(context, channel);
+				await _chats.Update(context, msg.PrivateChatId, (Context c, PrivateChat channel) => {
+					// Update the channel with the number of messages in it:
+					channel.MessageCount++;
+					channel.MarkChanged(_chats.GetChangeField("MessageCount"));
+				});
 
 				// Ok:
 				return msg;

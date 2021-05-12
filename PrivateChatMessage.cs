@@ -15,7 +15,7 @@ namespace Api.PrivateChats
 		/// <summary>
 		/// The private chat this message is in.
 		/// </summary>
-		public int PrivateChatId;
+		public uint PrivateChatId;
 		
 		/// <summary>
 		/// The message text.

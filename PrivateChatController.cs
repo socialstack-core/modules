@@ -15,7 +15,7 @@ namespace Api.PrivateChats
 	public partial class PrivateChatController : AutoController<PrivateChat>
     {
         private PrivateChatService _chatService;
-        private PermittedContentService _permittedContentService;
+        //private PermittedContentService _permittedContentService;
         private UserService _userService;
         private int userContentTypeId = ContentTypes.GetId(typeof(User));
         private int privateChatContentTypeId = ContentTypes.GetId(typeof(PrivateChat));
@@ -25,6 +25,7 @@ namespace Api.PrivateChats
         /// </summary>
         /// <param name="id"></param>
         /// <returns></returns>
+        /*
         [HttpGet("{id}/loadbyuser")]
         public async Task<PrivateChat> LoadByUser(int id)
         {
@@ -66,5 +67,6 @@ namespace Api.PrivateChats
                 return results[0];
             }
         }
+        */
     }
 }
