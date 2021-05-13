@@ -1,5 +1,5 @@
 import webRequest from 'UI/Functions/WebRequest';
-import hlsjs from './hls.js';
+import {Hls as hlsjs} from 'UI/HlsVideo/hls';
 import omit from 'UI/Functions/Omit';
 import getRef from 'UI/Functions/GetRef';
 import cache from 'UI/HlsVideo/Cache';

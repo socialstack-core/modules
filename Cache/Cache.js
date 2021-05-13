@@ -1,4 +1,4 @@
-import hlsjs from '../hls.js';
+import {Hls as hlsjs} from 'UI/HlsVideo/hls';
 
 var cache = {};
 
