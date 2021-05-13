@@ -18,13 +18,19 @@ const shortDayNames = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 
 const monthNames = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
 const shortMonthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+const epochTicks = 62135596800000;
+const ticksPerMillisecond = 10000;
+
+const ticks = (date) => {
+	return epochTicks + (date.getTime() * ticksPerMillisecond);
+}
 
 const isoConvert = (isoish) => {
 	var type = typeof isoish;
 	
 	if(type == 'number'){
 		// milliseconds from year 0
-		return new Date(isoish - 62135596800000);
+		return new Date(isoish - epochTicks);
 	}
 	
 	if(type != 'string'){
@@ -186,5 +192,6 @@ export {
 	addSeconds,
 	daysUntilDate,
 	daysBetween,
-	minsBetween
+	minsBetween,
+	ticks
 };
