@@ -33,7 +33,7 @@ export default class Me extends React.Component {
 			huddleClient
 		} = this.props;
 
-		var {hideControls, session} = this.props; 
+		var {hideControls} = this.props; 
 		
 		var { user } = session;
 		
