@@ -50,15 +50,18 @@ namespace Api.Connections
                 return null;
             }
 
-            // Now we need to update the DB. First off, if the ConnectedToUserId is not set, let's set it. 
-            if (connection.ConnectedToId == null)
-            {
-                connection.ConnectedToId = user.Id;
-            }
+            connection = await _service.Update(context, connection, (Context ctx, Connection con) => {
+                // Now we need to update the DB. First off, if the ConnectedToUserId is not set, let's set it. 
+                if (con.ConnectedToId == null)
+                {
+                    con.ConnectedToId = user.Id;
+                    con.MarkChanged(_service.GetChangeField("ConnectedToId"));
+                }
 
-            // We have already verified this user can update, so let's ignore the permission right here.
-            connection.AcceptedUtc = DateTime.UtcNow;
-            connection = await _service.Update(context, connection, null, DataOptions.IgnorePermissions);
+                con.AcceptedUtc = DateTime.UtcNow;
+                con.MarkChanged(_service.GetChangeField("AcceptedUtc"));
+                
+            }, DataOptions.IgnorePermissions);
 
             return connection;
         }

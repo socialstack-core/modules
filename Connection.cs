@@ -11,6 +11,7 @@ namespace Api.Connections
 	/// A user following (or subscribed to) some other user.
 	/// </summary>
 	[HasVirtualField("ConnectedToUser", typeof(User), "ConnectedToId")]
+	[HasVirtualField("CreatorUser", typeof(User), "UserId")]
 	public partial class Connection : UserCreatedContent<uint>
 	{
 		/// <summary>

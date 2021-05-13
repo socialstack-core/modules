@@ -67,6 +67,10 @@ namespace Api.Connections
 					throw new PublicException("You have already sent an invitation to this user or are friends already.", "already_sent");
 				}
 
+				// TODO: I noticed that for some reason the user Id is not being set as the creator user properly - so for now, just a manual set here is occuring. 
+				// The real TODO here is to make sure there isn't a better way to handle this later.
+				connection.UserId = context.UserId;
+
 				return connection;
 			});
 		}
