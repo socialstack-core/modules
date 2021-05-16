@@ -59,7 +59,8 @@ export default class Content extends React.Component {
 	
 	onContentChange(e) {
 		// Content changed! Is it a thing relative to us?
-		var { content } = this.state;
+		var content = this.props.primary ? this._po : this.state.content;
+		
 		if (!content) {
 			// Nothing loaded yet
 			return;
@@ -85,7 +86,9 @@ export default class Content extends React.Component {
 			});
 		} else {
 			// Update or add. id match?
-			if(this.props.id == entity.id){
+			if(content.id == entity.id){
+				this.props.primary && (this._po = entity);
+				
 				this.setState({
 					content: entity
 				});
