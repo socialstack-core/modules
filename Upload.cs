@@ -6,6 +6,7 @@ using Api.Startup;
 using System;
 using System.Web;
 using Api.Users;
+using Api.SocketServerLibrary;
 
 namespace Api.Uploader
 {
@@ -69,55 +70,42 @@ namespace Api.Uploader
 				return (IsPrivate ? "private:" : "public:") + Id + "." + FileType;
 			}
 		}
-
+		
+		private static byte[] TimestampStart = new byte[]{(byte)'?', (byte)'t', (byte)'='};
+		private static byte[] SignatureStart = new byte[]{(byte)'&', (byte)'s', (byte)'='};
+		
 		/// <summary>
-		/// The public url of this content (including the domain from the site configuration).
+		/// Gets a HMAC signed ref.
+		/// The HMAC is for the complete string "private:ID.FILETYPE?t=TIMESTAMP&amp;s="
 		/// </summary>
-		public string GetPublicUrl(string sizeName, bool omitExt = false, string altExt = null)
+		public string RefSigned
 		{
-			if (altExt != null)
-			{
-				omitExt = true;
-			}
-
-			var path =  "/content" + (IsPrivate ? "-private/" : "/") + GetRelativePath(sizeName, omitExt);
-
-			if (altExt != null) {
-				path += "." + altExt;
-			}
-
-			var url = AppSettings.Configuration["PublicUrl"] + path;
-
-			if (IsPrivate){
-				var timestamp = GetUnixTimestamp();
-
-				if (_sigService == null)
-				{
-					_sigService = Services.Get<SignatureService>();
+			get{
+				if(IsPrivate){
+					if (_sigService == null)
+					{
+						_sigService = Services.Get<SignatureService>();
+					}
+					
+					var writer = Writer.GetPooled();
+					writer.Start(null);
+					writer.WriteASCII("private:");
+					writer.WriteS(Id);
+					writer.Write((byte)'.');
+					writer.WriteASCII(FileType);
+					writer.Write(TimestampStart, 0, 3);
+					writer.WriteS(DateTime.UtcNow.Ticks);
+					writer.Write(SignatureStart, 0, 3);
+					_sigService.SignHmac256AlphaChar(writer);
+					var result = writer.ToASCIIString();
+					writer.Release();
+					return result;
 				}
-
-				var sig = _sigService.Sign(path, timestamp);
-
-				url += "?s=" + HttpUtility.UrlEncode(sig) + "&t=" + timestamp;
+				
+				return "public:" + Id + "." + FileType;
 			}
-
-			return url;
-        }
-
-		/// <summary>
-		/// Unix epoch
-		/// </summary>
-		private readonly DateTime _unixEpoch = new DateTime(1970, 1, 1);
-
-		/// <summary>
-		/// Current unix timestamp as a long
-		/// </summary>
-		/// <returns></returns>
-		public long GetUnixTimestamp()
-		{
-			return (long)(DateTime.UtcNow.Subtract(_unixEpoch)).TotalSeconds;
 		}
-
+		
         /// <summary>
         /// File path to this content using the given size name.
 		/// It's either "original" or a specific width in pixels, e.g. "400".

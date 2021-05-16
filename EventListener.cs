@@ -24,6 +24,11 @@ namespace Api.Uploader
 		private SignatureService _signatureService;
 
 		/// <summary>
+		/// Maximum amount of ticks that can occur before a private file timestamp expires. Default is 1 hour worth.
+		/// </summary>
+		public const long MaxTimestampTicks = 60 * 60 * (long)10000000; // There are 10m ticks in one second.
+
+		/// <summary>
 		/// Instanced automatically.
 		/// </summary>
 		public EventListener()
@@ -95,14 +100,25 @@ namespace Api.Uploader
 						
 						if (!string.IsNullOrWhiteSpace(signature) && !string.IsNullOrWhiteSpace(timestamp))
 						{
-							if (int.TryParse(timestamp, out int timestampVal))
+							if (long.TryParse(timestamp, out long timestampVal))
 							{
-								// Validate the signature itself:
-								var signedValue = context.Context.Request.Path + "?t=" + timestamp;
+								// Timestamp delta:
+								var deltaTime = DateTime.UtcNow.Ticks - timestampVal;
 
-								if (_signatureService.ValidateSignature(signedValue, signature))
+								if (deltaTime <= MaxTimestampTicks)
 								{
-									return;
+									var path = context.Context.Request.Path.Value + context.Context.Request.QueryString.Value;
+									var endingStart = path.IndexOf('.');
+									var idEnd = path.LastIndexOf('-');
+									var idStart = path.LastIndexOf('/', idEnd);
+
+									var signedRef = "private:" + path.Substring(idStart + 1, idEnd - idStart - 1) + path.Substring(endingStart);
+
+									// Validate the signature itself:
+									if (_signatureService.ValidateHmac256AlphaChar(signedRef))
+									{
+										return;
+									}
 								}
 							}
 						}

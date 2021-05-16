@@ -28,13 +28,12 @@ namespace Api.Uploader
         }
 		
 		/// <summary>
-		/// Upload a file for this user.
+		/// Upload a file.
 		/// </summary>
-		/// <param name="id"></param>
 		/// <param name="body"></param>
 		/// <returns></returns>
 		[HttpPost("upload")]
-		public async Task<object> Upload([FromRoute] int id, [FromForm] FileUploadBody body)
+		public async ValueTask Upload([FromForm] FileUploadBody body)
 		{
 			var context = await Request.GetContext();
 
@@ -49,16 +48,10 @@ namespace Api.Uploader
 			if (upload == null)
 			{
 				// It failed.
-				return null;
+				return;
 			}
-			
-			return new
-			{
-				id = upload.Id,
-				uploadRef = upload.Ref,
-				publicUrl = upload.GetPublicUrl("original"),
-				isImage = upload.IsImage
-			};
+
+			await OutputJson(context, upload, "*");
 		}
 
     }
