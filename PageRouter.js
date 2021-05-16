@@ -1,4 +1,4 @@
-import webRequest from 'UI/Functions/WebRequest';
+import webRequest, { expandIncludes } from 'UI/Functions/WebRequest';
 import Canvas from 'UI/Canvas';
 import { Router } from 'UI/Session';
 import getBuildDate from 'UI/Functions/GetBuildDate';
@@ -17,6 +17,10 @@ const initialUrl = hashRouter ? location.hash?.substring(1) ?? "/" : `${location
 // Initial event:
 const initState = global.pgState || {};
 triggerEvent(initState.page);
+
+if(initState.po){
+	initState.po = expandIncludes(initState.po);
+}
 
 function triggerEvent(pgInfo) {
 	if(pgInfo){
@@ -125,7 +129,13 @@ export default (props) => {
 			url,
 			version: getBuildDate().timestamp
 		}).then(res => {
-			setPage({url, ...res.json});
+			var pgState = {url, ...res.json};
+			
+			if(pgState.po){
+				pgState.po = expandIncludes(pgState.po);
+			}
+			
+			setPage(pgState);
 			triggerEvent(res.json);
 		});
 	}
@@ -168,12 +178,23 @@ export default (props) => {
 	}
 	
 	React.useEffect(() => {
+		
+		const onContentChange = (e) => {
+			var {po} = pageState;
+			if(po && po.type == e.type && po.id == e.entity.id){
+				var pgState = {...pageState, po};
+				setPage(pgState);
+			}
+		};
+		
 		window.addEventListener("popstate", onPopState);
 		document.addEventListener("click", onLinkClick);
+		document.addEventListener("contentchange", onContentChange);
 		
 		return () => {
 			window.removeEventListener("popstate", onPopState);
 			document.removeEventListener("click", onLinkClick);
+			document.removeEventListener("contentchange", onContentChange);
 		};
 	}, []);
 	
