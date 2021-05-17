@@ -15,8 +15,12 @@ namespace Api.Database
 		/// <summary>
 		/// Instanced automatically. Use injection to use this service, or Startup.Services.Get.
 		/// </summary>
-		public DatabaseService() : base (AppSettings.Configuration.GetConnectionString(System.Environment.GetEnvironmentVariable("ConnectionStringName") ?? "DefaultConnection")){
-			
+		public DatabaseService() : base (
+			System.Environment.GetEnvironmentVariable("DatabaseConnectionString") ?? 
+				AppSettings.Configuration.GetConnectionString(
+					System.Environment.GetEnvironmentVariable("ConnectionStringName") ?? "DefaultConnection"
+				)
+		){
 		}
 	}
 }
