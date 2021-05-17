@@ -1,4 +1,6 @@
 import store from 'UI/Functions/Store';
+import {expandIncludes} from 'UI/Functions/WebRequest';
+
 var __user = null;
 var waitMode = 0;
 
@@ -187,12 +189,23 @@ function connect(){
 		}else if(message.type){
 			var handlers = messageTypes[message.type];
 			
+			if(message.entity){
+				message.entity = expandIncludes(message.entity);
+			}
+			
 			if(handlers && handlers.length){
 				for(var i=0;i<handlers.length;i++){
 					handlers[i].method(message);
 				}
 			}
 		}
+		
+		var e = document.createEvent('Event');
+		e.initEvent('websocketmessage', true, true);
+		e.message = message;
+		
+		// Dispatch the event:
+		document.dispatchEvent(e);
 	});
     
 }
