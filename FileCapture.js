@@ -40,7 +40,7 @@ export default class FileCapture extends React.Component {
         return (
             this.state.file ? (
                 <div>
-                    <div style = {{width: "100%"}} className = "btn btn-primary" onClick = {() => {
+                    <div style = {{width: "100%"}} className = "btn btn-secondary" onClick = {() => {
 						this.setState({file: null});
 						this.props.onChange && this.props.onChange(null);
 					}}><i className="fas fa-trash-alt" />{'Delete ' + nameText}</div>
@@ -64,7 +64,7 @@ export default class FileCapture extends React.Component {
                 </div>
             ) : (
                 <div className="file-capture" style = {{position: "relative", width: "100%"}}> 
-                    <div style = {{width: "100%"}} className = "btn btn-primary"><i className={icon}></i> {ctaText}</div>
+                    <div style = {{width: "100%"}} className = "btn btn-secondary"><i className={icon}></i> {ctaText}</div>
                     <input className = "hiddenInput" type='file' onChange = {this.selectImage} accept={accept} capture={capture} />
                 </div>
             )
