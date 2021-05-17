@@ -15,6 +15,7 @@ using Api.Startup;
 using Newtonsoft.Json.Serialization;
 using Api.Results;
 using System.Reflection;
+using Api.SocketServerLibrary;
 
 namespace Api.WebSockets
 {
@@ -64,7 +65,7 @@ namespace Api.WebSockets
 				if (action == 1)
 				{
 					// Create
-					_=listener.Send(new WebSocketEntityMessage()
+					_=listener.Send(new WebSocketEntityMessage<T, ID>(svc)
 					{
 						Type = entityName,
 						Method = "create",
@@ -75,7 +76,7 @@ namespace Api.WebSockets
 				else if (action == 2)
 				{
 					// Update
-					_=listener.Send(new WebSocketEntityMessage()
+					_=listener.Send(new WebSocketEntityMessage<T, ID>(svc)
 					{
 						Type = entityName,
 						Method = "update",
@@ -86,7 +87,7 @@ namespace Api.WebSockets
 				else if (action == 3)
 				{
 					// Delete
-					_=listener.Send(new WebSocketEntityMessage()
+					_=listener.Send(new WebSocketEntityMessage<T, ID>(svc)
 					{
 						Type = entityName,
 						Method = "delete",
@@ -101,7 +102,7 @@ namespace Api.WebSockets
 			evtGroup.AfterCreate.AddEventListener((Context context, T obj) => {
 
 				// Send without waiting:
-				_ = listener.Send(new WebSocketEntityMessage()
+				_ = listener.Send(new WebSocketEntityMessage<T, ID>(svc)
 				{
 					Type = entityName,
 					Method = "create",
@@ -114,7 +115,7 @@ namespace Api.WebSockets
 
 			evtGroup.AfterUpdate.AddEventListener((Context context, T obj) => {
 
-				_=listener.Send(new WebSocketEntityMessage()
+				_=listener.Send(new WebSocketEntityMessage<T, ID>(svc)
 				{
 					Type = entityName,
 					Method = "update",
@@ -127,7 +128,7 @@ namespace Api.WebSockets
 
 			evtGroup.AfterDelete.AddEventListener((Context context, T obj) => {
 				
-				_= listener.Send(new WebSocketEntityMessage()
+				_= listener.Send(new WebSocketEntityMessage<T,ID>(svc)
 				{
 					Type = entityName,
 					Method = "delete",
@@ -218,24 +219,19 @@ namespace Api.WebSockets
 		/// Sends the given entity and the given method name which states what has happened with this object. Typically its 'update', 'create' or 'delete'.
 		/// It's sent to everyone who can view entities of this type, unless you give a specific userId.
 		/// </summary>
-		public void Send(Context context, object entity, string methodName, uint? toUserId = null)
+		public void Send<T,ID>(Context context, WebSocketEntityMessage<T,ID> msg, string methodName, uint? toUserId = null)
+			where T : Content<ID>, new()
+			where ID : struct, IConvertible, IEquatable<ID>
 		{
 			
-			if(entity == null)
+			if(msg == null)
 			{
 				return;
 			}
 			
-			var typeName = entity.GetType().Name;
-			
 			// Send via the websocket service:
 			_=Send(
-				new WebSocketEntityMessage() {
-					Type = typeName,
-					Method = methodName,
-					Entity = entity,
-					By = context == null ? 0 : context.UserId
-				},
+				msg,
 				toUserId
 			);
 		}
@@ -534,7 +530,9 @@ namespace Api.WebSockets
 		/// <param name="message"></param>
 		/// <param name="toUserId"></param>
 		/// <returns></returns>
-		public async Task Send(WebSocketMessage message, uint? toUserId)
+		public async Task Send<T,ID>(WebSocketEntityMessage<T,ID> message, uint? toUserId)
+			where T : Content<ID>, new()
+			where ID : struct, IConvertible, IEquatable<ID>
 		{
 			if (toUserId.HasValue)
 			{
@@ -777,7 +775,9 @@ namespace Api.WebSockets
 		/// <summary>
 		/// Sends a message to all listeners for this type by encoding it as JSON.
 		/// </summary>
-		public async Task Send(WebSocketMessage message)
+		public async Task Send<T, ID>(WebSocketEntityMessage<T, ID> message)
+			where T : Content<ID>, new()
+			where ID : struct, IConvertible, IEquatable<ID>
 		{
 
 			if (_serializerSettings == null)
@@ -788,12 +788,23 @@ namespace Api.WebSockets
 				};
 			}
 
-			var entityMessage = message as WebSocketEntityMessage;
+			var writer = Writer.GetPooled();
+			writer.Start(null);
+			writer.WriteASCII("{\"by\":");
+			writer.WriteS(message.By);
+			writer.WriteASCII(",\"method\":\"");
+			writer.WriteASCII(message.Method);
+			writer.WriteASCII("\",\"type\":\"");
+			writer.WriteASCII(message.Type);
+			writer.WriteASCII("\", \"entity\":");
+			await message.Service.ToJson(new Context(Roles.Developer), message.Entity, writer, null, "*");
+			writer.WriteASCII("}");
+			var result = writer.AllocatedResult();
+			writer.Release();
 
 			// Get the bytes of the message:
-            var jsonMessage = JsonConvert.SerializeObject(message, _serializerSettings);
-			var data = Encoding.UTF8.GetBytes(jsonMessage);
-			await Send(data, entityMessage?.Entity);
+			var data = result;
+			await Send(result, message.Entity);
 		}
 		
 		/// <summary>
@@ -867,7 +878,10 @@ namespace Api.WebSockets
 	/// <summary>
 	/// A message to send via websockets with an entity of a particular type.
 	/// </summary>
-	public class WebSocketEntityMessage : WebSocketMessage{
+	public class WebSocketEntityMessage<T,ID> : WebSocketMessage
+		where T : Content<ID>, new()
+		where ID : struct, IConvertible, IEquatable<ID>
+	{
 		
 		/// <summary>
 		/// User ID of the person who raised this event.
@@ -877,11 +891,24 @@ namespace Api.WebSockets
 		/// The entity to send in this message.
 		/// E.g. a newly created chat message.
 		/// </summary>
-		public object Entity;
+		public T Entity;
+
+		/// <summary>
+		/// Owning service
+		/// </summary>
+		public AutoService<T,ID> Service;
 		/// <summary>
 		/// Lowercase, "update", "delete" or "create".
 		/// </summary>
 		public string Method;
+
+		/// <summary>
+		/// 
+		/// </summary>
+		/// <param name="svc"></param>
+		public WebSocketEntityMessage(AutoService<T,ID> svc) {
+			Service = svc;
+		}
 	}
 	
 	/// <summary>
