@@ -136,9 +136,9 @@ export default class VideoCapture extends React.Component {
         return (
             <div ref={vidRef => this.videoHost = vidRef} className="video"> 
                 <div>
-                    {video != null ? <div style = {{width: "100%"}} className = "btn btn-primary" onClick = {e => {this.deleteMedia()}}><i className="fas fa-trash-alt" /> Delete Video</div> : 
-                    !recording ? <div style = {{width: "100%"}} className = "btn btn-primary" onClick={e => this.startRecording(e)}><i className="fas fa-video" /> Record Video</div> :
-                    recording && <div style = {{width: "100%", color: "black", backgroundColor: "#FFEB3B"}} className = "btn btn-primary" onClick={e => this.stopRecording(e)}><i className="fas fa-stop" /> Stop</div>}
+                    {video != null ? <div style = {{width: "100%"}} className = "btn btn-secondary" onClick = {e => {this.deleteMedia()}}><i className="fas fa-trash-alt" /> Delete Video</div> : 
+                    !recording ? <div style = {{width: "100%"}} className = "btn btn-secondary" onClick={e => this.startRecording(e)}><i className="fas fa-video" /> Record Video</div> :
+                    recording && <div style = {{width: "100%", color: "black", backgroundColor: "#FFEB3B"}} className = "btn btn-secondary" onClick={e => this.stopRecording(e)}><i className="fas fa-stop" /> Stop</div>}
                 </div>
                 <div>
 					{video ? (
