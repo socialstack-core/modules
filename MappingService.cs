@@ -171,6 +171,19 @@ namespace Api.Startup
 		}
 
 		/// <summary>
+		/// Delete an entity.
+		/// </summary>
+		public virtual async ValueTask<Mapping<SRC_ID, TARG_ID>> Delete(Context context, SRC_ID src, TARG_ID targ, DataOptions options = DataOptions.Default)
+		{
+			var entity = await Where(srcAndTargEq, options).Bind(src).Bind(targ).Last(context);
+			if (entity != null)
+			{
+				await Delete(context, entity, options);
+			}
+			return entity;
+		}
+
+		/// <summary>
 		/// Ensures the given set of target IDs are exactly what is present in the map.
 		/// </summary>
 		/// <param name="context"></param>
