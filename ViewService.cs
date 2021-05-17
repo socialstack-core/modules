@@ -47,13 +47,13 @@ namespace Api.Views
 				viewEntry.ContentId = id;
 				viewEntry.ContentTypeId = contentTypeId;
 				
-				await Create(context, viewEntry);
+				await Create(context, viewEntry, DataOptions.IgnorePermissions);
 				
 			}else{
 				// Update viewed time:
 				await Update(context, viewEntry, (Context c, View v) => {
 					// Only updating time
-				});
+				}, DataOptions.IgnorePermissions);
 			}
 			
 		}
