@@ -29,11 +29,11 @@ export default function PrimaryButton (props) {
 				}
 			}
 			
-			return <table role="presentation" style="margin: auto;" cellspacing="0" cellpadding="0" border="0" align="center">
+			return <table role="presentation" style={{margin: "auto"}} cellspacing="0" cellpadding="0" border="0" align="center">
 					<tbody>
 						<tr>
-							<td class="button-td button-td-primary" style="border-radius: 4px; background: #222222;">
-								 <a class="button-a button-a-primary" href={target} style="background: #222222; border: 1px solid #000000; font-family: sans-serif; font-size: 15px; line-height: 15px; text-decoration: none; padding: 13px 17px; color: #ffffff; display: block; border-radius: 4px;">
+							<td class="button-td button-td-primary" style={{borderRadius: "4px", background: "#222222"}}>
+								 <a class="button-a button-a-primary" href={target} style={{background: "#222222", border: "1px solid #000000", fontFamily: "sans-serif", fontSize: "15px", lineHeight: "15px", textDecoration: "none", padding: "13px 17px", color: "#ffffff", display: "block", borderRadius: "4px"}}>
 									{props.label || 'Click here'}
 								 </a>
 							</td>
