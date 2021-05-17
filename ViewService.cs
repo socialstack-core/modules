@@ -30,7 +30,7 @@ namespace Api.Views
 		{
 
 			// Get the view state for this user:
-			var viewEntries = await Where("Id=? and ContentTypeId=? and UserId=?")
+			var viewEntries = await Where("Id=? and ContentTypeId=? and UserId=?", DataOptions.IgnorePermissions)
 				.Bind(id)
 				.Bind(contentTypeId)
 				.Bind(context.UserId)
