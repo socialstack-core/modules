@@ -8,6 +8,7 @@ using Api.Startup;
 using Newtonsoft.Json.Linq;
 using System;
 using System.Collections;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -406,7 +407,7 @@ public partial class AutoService<T, ID> : AutoService
 		collector.Release();
 	}
 
-	private Dictionary<string, FilterMeta<T,ID>> _filterSets = new Dictionary<string, FilterMeta<T,ID>>();
+	private ConcurrentDictionary<string, FilterMeta<T,ID>> _filterSets = new ConcurrentDictionary<string, FilterMeta<T,ID>>();
 
 	/// <summary>
 	/// Gets a fast filter for the given query text.
