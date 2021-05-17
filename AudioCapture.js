@@ -149,9 +149,9 @@ export default class AudioCapture extends React.Component {
         return (
             <div className="audio">
                 <div>
-                    {audio != null ? <div style = {{width: "100%"}} className = "btn btn-primary" onClick = {e => {this.deleteMedia()}}><i className="fas fa-trash-alt" /> Delete Audio</div> : 
-                    !recording ? <div style = {{width: "100%"}} className = "btn btn-primary" onClick={e => this.startRecording(e)}><i className="fas fa-microphone" /> Record Audio</div> :
-                    recording && <div style = {{width: "100%", color: "black", backgroundColor: "#FFEB3B"}} className = "btn btn-primary" onClick={e => this.stopRecording(e)}><i className="fas fa-stop" /> Stop</div>}
+                    {audio != null ? <div style = {{width: "100%"}} className = "btn btn-secondary" onClick = {e => {this.deleteMedia()}}><i className="fas fa-trash-alt" /> Delete Audio</div> : 
+                    !recording ? <div style = {{width: "100%"}} className = "btn btn-secondary" onClick={e => this.startRecording(e)}><i className="fas fa-microphone" /> Record Audio</div> :
+                    recording && <div style = {{width: "100%", color: "black", backgroundColor: "#FFEB3B"}} className = "btn btn-secondary" onClick={e => this.stopRecording(e)}><i className="fas fa-stop" /> Stop</div>}
                 </div>
                 <div>
                     {audio != null && <div key={`audio`}>
