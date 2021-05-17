@@ -182,7 +182,15 @@ export default (props) => {
 		const onContentChange = (e) => {
 			var {po} = pageState;
 			if(po && po.type == e.type && po.id == e.entity.id){
-				var pgState = {...pageState, po};
+				var pgState = {...pageState, po: e.entity};
+				setPage(pgState);
+			}
+		};
+		
+		const onWsMessage = (e) => {
+			var {po} = pageState;
+			if(po && po.type == e.message.type && po.id == e.message.entity.id){
+				var pgState = {...pageState, po: e.message.entity};
 				setPage(pgState);
 			}
 		};
@@ -190,11 +198,13 @@ export default (props) => {
 		window.addEventListener("popstate", onPopState);
 		document.addEventListener("click", onLinkClick);
 		document.addEventListener("contentchange", onContentChange);
+		document.addEventListener("websocketmessage", onWsMessage);
 		
 		return () => {
 			window.removeEventListener("popstate", onPopState);
 			document.removeEventListener("click", onLinkClick);
 			document.removeEventListener("contentchange", onContentChange);
+			document.removeEventListener("websocketmessage", onWsMessage);
 		};
 	}, []);
 	
