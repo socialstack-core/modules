@@ -297,7 +297,7 @@ namespace Api.Contexts
 						// Localhost
 						return null;
 					#else
-					_domain = AppSettings.Configuration["PublicUrl"].Replace("https://", "");
+					_domain = AppSettings.Configuration["PublicUrl"].Replace("https://", "").Replace("http://", "");
 					if (_domain.StartsWith("www."))
 					{
 						_domain = _domain.Substring(4);
