@@ -249,7 +249,7 @@ namespace Api.Startup
 
 			if (MappingService == null)
 			{
-				var mapField = char.ToLower(MappingTargetField.Name[0]) + MappingTargetField.Name.Substring(1);
+				var mapField = char.ToLower(MappingTargetFieldName[0]) + MappingTargetFieldName.Substring(1);
 				header += ",\"map\":\"" + mapField + "\",\"values\":[";
 			}
 			else
