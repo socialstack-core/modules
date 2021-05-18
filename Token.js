@@ -17,7 +17,7 @@ export default function Token (props, context) {
 	var content;
 	
 	if(props.mode == 'primary' || props.mode == 'p'){
-		content = Content.getPrimary();
+		content = Content.getPrimary(context);
 	}else{
 		content = context[props.mode];
 	}
