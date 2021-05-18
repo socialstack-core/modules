@@ -5,6 +5,7 @@ using Api.Translate;
 using Microsoft.ClearScript;
 using Microsoft.ClearScript.V8;
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.IO;
 using System.IO.Compression;
@@ -50,7 +51,7 @@ namespace Api.CanvasRenderer
 		/// <summary>
 		/// Map of path (relative to Path) -> a particular source file.
 		/// </summary>
-		public Dictionary<string, SourceFile> FileMap = new Dictionary<string, SourceFile>();
+		public ConcurrentDictionary<string, SourceFile> FileMap = new ConcurrentDictionary<string, SourceFile>();
 
 		/// <summary>
 		/// Map of path (relative to Path) -> a particular *global* source file.
@@ -1524,10 +1525,9 @@ namespace Api.CanvasRenderer
 					var existed = false;
 
 					// Remove from the map always:
-					if (FileMap.TryGetValue(path, out SourceFile file))
+					if (FileMap.TryRemove(path, out SourceFile file))
 					{
 						existed = true;
-						FileMap.Remove(path);
 
 						if (file.FileType == SourceFileType.Javascript)
 						{
