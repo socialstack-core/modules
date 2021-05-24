@@ -12,7 +12,8 @@ export default props => {
 	
 	const { session, setSession } = useSession();
 	const { pageState, setPage } = useRouter();
-	const [menuOpen, setMenuOpen] = React.useState(false);
+	const [menuOpen, setMenuOpen ] = React.useState(false);
+    const [userMenuOpen, setUserMenuOpen ] = React.useState(false); 
 	var { url } = pageState;
 	
 	
@@ -55,9 +56,15 @@ export default props => {
 				<div className="logo col-4">
 					<a href='/en-admin/'>{getRef(logo, {size: '80'})}</a>
 				</div>
-				<div className="logged-user col-4">
-					{user.fullname || user.username || user.email} {user.avatarRef ? getRef(user.avatarRef, {size: 32}) : null}
-				</div>
+				<div className="logged-user col-4 dropdown" onClick={() => setUserMenuOpen(!userMenuOpen)}>
+					    {user.fullname || user.username || user.email} {user.avatarRef ? getRef(user.avatarRef, {size: 32}) : null}
+                        <div className={ "dropdown-menu dropdown-menu-right" + (userMenuOpen? " show" : "")} >
+                            <a className="dropdown-item" href='/' >Return To Site</a>
+                            <a className="dropdown-item" href={'#'} onClick={()=>logout('/en-admin/', setSession, setPage)}>
+                            Logout
+                           </a>
+                        </div> 
+                </div>
 			</div>
 			{props.children}
 			{menuOpen && 
