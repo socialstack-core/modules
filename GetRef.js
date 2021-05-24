@@ -23,7 +23,8 @@ function basicUrl(url, options){
 function staticFile(ref, options, r){
 	var refParts = ref.split('/');
 	var mainDir = refParts.shift();
-	var url = '/pack/static/' + refParts.join('/');
+	var cfg = global.config;
+	var url = (cfg && cfg.pageRouter && cfg.pageRouter.hash ? 'pack/static/' : '/pack/static/') + refParts.join('/');
 	if(mainDir == 'admin'){
 		url = '/en-admin' + url;
 	}
