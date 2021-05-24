@@ -15,6 +15,7 @@ using Api.CanvasRenderer;
 using Api.Translate;
 using Api.Database;
 using Api.SocketServerLibrary;
+using Api.Permissions;
 
 namespace Api.Pages
 {
@@ -29,16 +30,18 @@ namespace Api.Pages
 		private readonly HtmlServiceConfig _config;
 		private readonly FrontendCodeService _frontend;
 		private readonly ContextService _contextService;
+		private readonly LocaleService _localeService;
 
 		/// <summary>
 		/// Instanced automatically.
 		/// </summary>
-		public HtmlService(PageService pages, CanvasRendererService canvasRendererService, FrontendCodeService frontend, ContextService ctxService)
+		public HtmlService(PageService pages, CanvasRendererService canvasRendererService, FrontendCodeService frontend, ContextService ctxService, LocaleService localeService)
 		{
 			_pages = pages;
 			_frontend = frontend;
 			_canvasRendererService = canvasRendererService;
 			_contextService = ctxService;
+			_localeService = localeService;
 
 			_config = GetConfig<HtmlServiceConfig>();
 
@@ -352,6 +355,151 @@ namespace Api.Pages
 		/// Note that context may only be used for the role information, not specific user details.
 		/// </summary>
 		/// <param name="context"></param>
+		/// <param name="locale"></param>
+		/// <param name="pageMeta"></param>
+		/// <returns></returns>
+		private async ValueTask<List<DocumentNode>> RenderMobilePage(Context context, Locale locale, MobilePageMeta pageMeta)
+		{
+			// Generate the document:
+			var doc = new Document();
+			doc.Path = "/";
+			doc.Title = ""; // Todo: permit {token} values in the title which refer to the primary object.
+			doc.Html.With("class", "ui mobile").With("lang", locale.Code);
+
+			var head = doc.Head;
+
+			// If there are tokens, get the primary object:
+			
+			// Charset must be within first 1kb of the header:
+			head.AppendChild(new DocumentNode("meta", true).With("charset", "utf-8"));
+
+			// Handle all Start Head Tags in the config.
+			HandleCustomHeadList(_config.StartHeadTags, head, false);
+
+			// Handle all Start Head Scripts in the config.
+			HandleCustomScriptList(_config.StartHeadScripts, head, false);
+
+			head.AppendChild(new DocumentNode("link", true).With("rel", "icon").With("type", "image/png").With("sizes", "32x32").With("href", "/favicon-32x32.png"))
+				.AppendChild(new DocumentNode("link", true).With("rel", "icon").With("type", "image/png").With("sizes", "16x16").With("href", "/favicon-16x16.png"));
+
+			// Get the main CSS files. Note that this will (intentionally) delay on dev instances if the first compile hasn't happened yet.
+			// That's primarily because we need the hash of the contents in the URL. Note that it has an internal cache which is almost always hit.
+			head.AppendChild(new DocumentNode("link", true).With("rel", "stylesheet").With("href", "pack/main." + locale.Code + ".css"));
+
+			head.AppendChild(new DocumentNode("meta", true).With("name", "msapplication-TileColor").With("content", "#ffffff"))
+				.AppendChild(new DocumentNode("meta", true).With("name", "theme-color").With("content", "#ffffff"))
+				.AppendChild(new DocumentNode("meta", true).With("name", "viewport").With("content", "width=device-width, initial-scale=1"));
+
+			if (pageMeta.Cordova)
+			{
+				head.AppendChild(
+						new DocumentNode("script")
+						.With("src", "cordova.js")
+				);
+			}
+
+			/*
+			 * PWA headers that should only be added if PWA mode is turned on and these files exist
+			  .AppendChild(new DocumentNode("link", true).With("rel", "apple-touch-icon").With("sizes", "180x180").With("href", "/apple-touch-icon.png"))
+			  .AppendChild(new DocumentNode("link", true).With("rel", "manifest").With("href", "/site.webmanifest"))
+			  .AppendChild(new DocumentNode("link", true).With("rel", "mask-icon").With("href", "/safari-pinned-tab.svg").With("color", "#ffffff"))
+			 */
+
+			// Handle all End Head tags in the config.
+			HandleCustomHeadList(_config.EndHeadTags, head, false);
+
+			// Handle all End Head Scripts in the config.
+			HandleCustomScriptList(_config.EndHeadScripts, head, false);
+
+			var reactRoot = new DocumentNode("div").With("id", "react-root");
+
+			var body = doc.Body;
+			body.AppendChild(reactRoot);
+
+			// Handle all start body JS scripts
+			HandleCustomScriptList(_config.StartBodyJs, body, false);
+
+			// Handle all Before Main JS scripts
+			HandleCustomScriptList(_config.BeforeMainJs, body, false);
+
+			body.AppendChild(
+					new DocumentNode("script")
+					.AppendChild(new TextNode(_frontend.InlineJavascriptHeader))
+			);
+
+			if (pageMeta.IncludePages)
+			{
+				var allPages = await _pages.Where("!(Url startsWith ?)").Bind("/en-admin").ListAll(context);
+
+				var writer = Writer.GetPooled();
+				writer.Start(null);
+				writer.WriteASCII("var pages=[");
+				for (var i = 0; i < allPages.Count; i++)
+				{
+					if (i != 0)
+					{
+						writer.Write((byte)',');
+					}
+					await _pages.ToJson(context, allPages[i], writer);
+				}
+				writer.Write((byte)']');
+				var outputUtf8Bytes = writer.AllocatedResult();
+				writer.Release();
+
+				body.AppendChild(
+						new DocumentNode("script")
+						.AppendChild(new RawBytesNode(outputUtf8Bytes))
+				);
+			}
+
+			if (!string.IsNullOrEmpty(pageMeta.CustomJs))
+			{
+				body.AppendChild(
+						new DocumentNode("script")
+						.AppendChild(new TextNode(pageMeta.CustomJs))
+				);
+			}
+
+			body.AppendChild(
+					new DocumentNode("script")
+					.AppendChild(new TextNode("storedToken=true;apiHost='" + pageMeta.ApiHost + "';config={pageRouter:{hash:true,localRouter:onRoutePage}};"))
+			);
+
+			var mainJs = new DocumentNode("script").With("src", "pack/main." + locale.Code + ".js");
+			doc.MainJs = mainJs;
+			body.AppendChild(mainJs);
+
+			// Handle all After Main JS scripts
+			HandleCustomScriptList(_config.AfterMainJs, body, false);
+
+			// Handle all End Body JS scripts
+			HandleCustomScriptList(_config.EndBodyJs, body, false);
+
+			// Build the flat HTML for the page:
+			var flatNodes = doc.Flatten();
+
+			// Note: Although gzip does support multiple concatenated gzip blocks, browsers do not implement this part of the gzip spec correctly.
+			// Unfortunately that means no part of the stream can be pre-compressed; must compress the whole thing and output that.
+
+			// Swap all the TextNodes for byte blocks.
+			for (var i = 0; i < flatNodes.Count; i++)
+			{
+				var node = flatNodes[i];
+
+				if (node is TextNode node1)
+				{
+					var bytes = Encoding.UTF8.GetBytes(node1.TextContent);
+					flatNodes[i] = new RawBytesNode(bytes);
+				}
+			}
+
+			return flatNodes;
+		}
+
+		/// <summary>
+		/// Note that context may only be used for the role information, not specific user details.
+		/// </summary>
+		/// <param name="context"></param>
 		/// <param name="pageAndTokens"></param>
 		/// <param name="path"></param>
 		/// <returns></returns>
@@ -398,7 +546,7 @@ namespace Api.Pages
 			doc.SourcePage = page;
 			doc.Html.With("class", isAdmin ? "admin web" : "ui web").With("lang", locale.Code);
 			
-			var packDir = isAdmin ? "/en-admin/pack/" : "/pack/";
+			// var packDir = isAdmin ? "/en-admin/pack/" : "/pack/";
 
 			var head = doc.Head;
 
@@ -761,7 +909,7 @@ namespace Api.Pages
 		/// <summary>
 		/// Handles adding a custom script list (if there even is one set) into the given node. They'll be appended.
 		/// </summary>
-		private void HandleCustomHeadList(List<HeadTag> list, DocumentNode head)
+		private void HandleCustomHeadList(List<HeadTag> list, DocumentNode head, bool permitRemote = true)
 		{
 			if(list == null)
 			{
@@ -775,6 +923,11 @@ namespace Api.Pages
 				// is the headTag a link or meta?
 				if (headTag.Rel != null)
 				{
+					if (!permitRemote)
+					{
+						continue;
+					}
+
 					node = new DocumentNode("link", true);
 					node.With("rel", headTag.Rel);
 
@@ -808,7 +961,7 @@ namespace Api.Pages
 		/// <summary>
 		/// Handles adding a custom script list (if there even is one set) into the given node. They'll be appended.
 		/// </summary>
-		private void HandleCustomScriptList(List<BodyScript> list, DocumentNode body)
+		private void HandleCustomScriptList(List<BodyScript> list, DocumentNode body, bool permitRemote = true)
 		{
 			if(list == null)
 			{
@@ -830,6 +983,12 @@ namespace Api.Pages
 				}
 				else
 				{
+
+					if (!permitRemote)
+					{
+						continue;
+					}
+					
 					node = new DocumentNode("script");
 					
 					// Expect an src:
@@ -876,7 +1035,7 @@ namespace Api.Pages
 		/// <param name="responseStream"></param>
 		/// <param name="compress"></param>
 		/// <returns></returns>
-		public async Task BuildPage(Context context, string path, Stream responseStream, bool compress = true)
+		public async ValueTask BuildPage(Context context, string path, Stream responseStream, bool compress = true)
 		{
 			var pageAndTokens = await _pages.GetPage(context, path);
 
@@ -907,6 +1066,41 @@ namespace Api.Pages
 
 			await outputStream.FlushAsync();
 			// Todo: Preload templates used by the page as well
+		}
+
+		/// <summary>
+		/// Generates the base HTML for native mobile apps.
+		/// </summary>
+		/// <param name="context"></param>
+		/// <param name="responseStream"></param>
+		/// <param name="mobileMeta"></param>
+		/// <returns></returns>
+		public async ValueTask BuildMobileHomePage(Context context, Stream responseStream, MobilePageMeta mobileMeta)
+		{
+
+			// Does the locale exist? (intentionally using a blank context here - it must only vary by localeId)
+			var locale = await _localeService.Get(new Context(), mobileMeta.LocaleId, DataOptions.IgnorePermissions);
+
+			if (locale == null)
+			{
+				// Dodgy locale - quit:
+				return;
+			}
+			
+			List<DocumentNode> flatNodes = await RenderMobilePage(context, locale, mobileMeta);
+
+			// Build the final output.
+			for (var i = 0; i < flatNodes.Count; i++)
+			{
+				var node = flatNodes[i];
+
+				if (node is RawBytesNode node1)
+				{
+					await responseStream.WriteAsync(node1.Bytes);
+				}
+			}
+
+			await responseStream.FlushAsync();
 		}
 
 	}

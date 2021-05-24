@@ -290,6 +290,27 @@ namespace Api.Pages
 			Bytes = bytes;
 		}
 
+		/// <summary>
+		/// Convert to suitable html
+		/// </summary>
+		/// <param name="results"></param>
+		/// <param name="currentText"></param>
+		public override void Flatten(List<DocumentNode> results, StringBuilder currentText)
+		{
+			// Close previous text node:
+			if (currentText.Length != 0)
+			{
+				// Add text node:
+				results.Add(new TextNode(currentText.ToString()));
+			}
+
+			// Push this as-is:
+			results.Add(this);
+
+			// Start text again:
+			currentText.Clear();
+		}
+		
 	}
 
 	/// <summary>

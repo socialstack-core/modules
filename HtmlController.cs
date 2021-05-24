@@ -7,6 +7,7 @@ using Api.Contexts;
 using System.Text;
 using Api.Eventing;
 using Api.Startup;
+using Microsoft.Extensions.Primitives;
 
 namespace Api.Pages
 {
@@ -27,13 +28,27 @@ namespace Api.Pages
 		{
 			_htmlService = htmlService;
 		}
+
+		/// <summary>
+		/// Lists all available static files.
+		/// </summary>
+		[HttpPost("/pack/static-assets/mobile-html")]
+		public async ValueTask GetMobileHtml([FromBody] MobilePageMeta mobileMeta)
+		{
+			var context = await Request.GetContext();
+
+			Response.ContentType = "text/html";
+			Response.Headers["Cache-Control"] = "no-store";
+
+			await _htmlService.BuildMobileHomePage(context, Response.Body, mobileMeta);
+		}
 		
 		/// <summary>
 		/// The catch all admin panel handler. If you're looking for /content/ etc, you'll find that over in Uploads/EventListener.cs
 		/// </summary>
 		/// <returns></returns>
 		[Route("/en-admin/{*url}", Order = 9998)]
-		public async Task CatchAllAdmin()
+		public async ValueTask CatchAllAdmin()
 		{
 			var context = await Request.GetContext();
 			var compress = true;
@@ -54,7 +69,7 @@ namespace Api.Pages
 		/// </summary>
 		/// <returns></returns>
 		[Route("{*url}", Order = 9999)]
-		public async Task CatchAll()
+		public async ValueTask CatchAll()
 		{
 			var context = await Request.GetContext();
 
