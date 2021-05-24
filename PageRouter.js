@@ -3,23 +3,26 @@ import Canvas from 'UI/Canvas';
 import { Router } from 'UI/Session';
 import getBuildDate from 'UI/Functions/GetBuildDate';
 
-try{
-	var preloadedPages = global.getModule('UI/PreloadedPages/PreloadedPages.json');
-}
-catch{
-	var preloadedPages = null;
+const { config, location } = global;
+const routerCfg = config && config.pageRouter || {};
+const { hash, localRouter } = routerCfg;
+
+function currentUrl(){
+	return hash ? location.hash?.substring(1) ?? "/" : `${location.pathname}${location.search}`;
 }
 
-const { hashRouter, location } = global;
-
-const initialUrl = hashRouter ? location.hash?.substring(1) ?? "/" : `${location.pathname}${location.search}`;
+const initialUrl = currentUrl();
 
 // Initial event:
-const initState = global.pgState || {};
-triggerEvent(initState.page);
 
-if(initState.po){
-	initState.po = expandIncludes(initState.po);
+const initState = localRouter ? localRouter(initialUrl, webRequest) : (global.pgState || {});
+
+if(!initState.loading){
+	triggerEvent(initState.page);
+
+	if(initState.po){
+		initState.po = expandIncludes(initState.po);
+	}
 }
 
 function triggerEvent(pgInfo) {
@@ -114,35 +117,61 @@ function canGoBack(){
 }
 
 export default (props) => {
-	const { shouldUpdateDocumentTitleOnPageChange } = props;
-
 	var [pageState, setPage] = React.useState({url: initialUrl, ...initState});
 	
-	function go(url) {
-		global.history.pushState({}, "", global.storedToken ? '#' + url : url);
-		document.body.parentNode.scrollTop = 0;
-		setPageState(url);
-	}
-
-	function setPageState(url) {
-		webRequest("page/state", {
-			url,
-			version: getBuildDate().timestamp
-		}).then(res => {
-			var pgState = {url, ...res.json};
+	if(pageState.loading && !pageState.handled){
+		pageState.loading.then(pgState => {
+			triggerEvent(pgState.page);
 			
 			if(pgState.po){
 				pgState.po = expandIncludes(pgState.po);
 			}
 			
 			setPage(pgState);
-			triggerEvent(res.json);
 		});
+		pageState.handled = true;
+	}
+	
+	function go(url) {
+		global.history.pushState({}, "", hash ? '#' + url : url);
+		document.body.parentNode.scrollTop = 0;
+		return setPageState(url);
+	}
+	
+	function setPageState(url) {
+		if(localRouter){
+			var pgState = localRouter(url, webRequest);
+			pgState.url = url;
+			
+			if(pgState.loading){
+				pgState.loading.then(pgState => {
+					setPage(pgState);
+					triggerEvent(pgState);
+				});
+			}else{
+				setPage(pgState);
+				triggerEvent(pgState);
+			}
+		}else{
+			return webRequest("page/state", {
+				url,
+				version: getBuildDate().timestamp
+			}).then(res => {
+				var pgState = {url, ...res.json};
+				
+				if(pgState.po){
+					pgState.po = expandIncludes(pgState.po);
+				}
+				
+				setPage(pgState);
+				triggerEvent(res.json);
+			});
+		}
 	}
 	
 	const onPopState = (e) => {
 		document.body.parentNode.scrollTo(0, 0);
-		setPageState(document.location.pathname);
+		setPageState(currentUrl());
 	}
 	
 	const onLinkClick = (e) => {
@@ -211,7 +240,7 @@ export default (props) => {
 	var { page } = pageState;
 	
 	React.useEffect(() => {
-		if (shouldUpdateDocumentTitleOnPageChange && page && page.title) {
+		if (page && page.title) {
 			// Does our title have any tokens in it?
 			document.title = replaceTokens(page.title, pageState);
 		}
