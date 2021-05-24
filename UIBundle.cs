@@ -462,40 +462,59 @@ namespace Api.CanvasRenderer
 		}
 
 		/// <summary>
-		/// Adds the file at the given source-relative path to the map.
+		/// Get filetype meta for the given path.
 		/// </summary>
 		/// <param name="filePath"></param>
-		private SourceFile AddToMap(string filePath)
+		/// <param name="fileName"></param>
+		/// <param name="fileNameNoType"></param>
+		/// <param name="fileType"></param>
+		/// <param name="relativePath"></param>
+		/// <returns></returns>
+		public SourceFileType GetTypeMeta(string filePath, out string fileName, out string fileNameNoType, out string fileType, out string relativePath)
 		{
 			var lastSlash = filePath.LastIndexOf(Path.DirectorySeparatorChar);
-			var fileName = filePath.Substring(lastSlash + 1);
+			fileName = filePath.Substring(lastSlash + 1);
 			var relLength = lastSlash - SourcePath.Length - 1;
-			
+			fileNameNoType = null;
+			fileType = null;
+			relativePath = null;
+
 			if (relLength <= 0)
 			{
 				// Directory
-				return null;
+				return SourceFileType.Directory;
 			}
 
-			var relativePath = filePath.Substring(SourcePath.Length + 1, relLength);
+			relativePath = filePath.Substring(SourcePath.Length + 1, relLength);
 			var typeDot = fileName.LastIndexOf('.');
 
 			if (typeDot == -1)
 			{
 				// Directory
-				return null;
+				return SourceFileType.Directory;
 			}
 
-			var fileType = fileName.Substring(typeDot + 1).ToLower();
-			var fileNameNoType = fileName.Substring(0, typeDot);
+			fileType = fileName.Substring(typeDot + 1).ToLower();
+			fileNameNoType = fileName.Substring(0, typeDot);
 
 			// Check if the file name matters to us. If the path contains /static/ it never does:
 
-			var tidyFileType = filePath.IndexOf(Path.DirectorySeparatorChar + "static" + Path.DirectorySeparatorChar) == -1 ? 
-					DetermineFileType(fileType, fileName) : 
+			var tidyFileType = filePath.IndexOf(Path.DirectorySeparatorChar + "static" + Path.DirectorySeparatorChar) == -1 ?
+					DetermineFileType(fileType, fileName) :
 					SourceFileType.None;
 
-			if (tidyFileType == SourceFileType.None)
+			return tidyFileType;
+		}
+
+		/// <summary>
+		/// Adds the file at the given source-relative path to the map.
+		/// </summary>
+		/// <param name="filePath"></param>
+		private SourceFile AddToMap(string filePath)
+		{
+			var tidyFileType = GetTypeMeta(filePath, out string fileName, out string fileNameNoType, out string fileType, out string relativePath);
+
+			if (tidyFileType == SourceFileType.None || tidyFileType == SourceFileType.Directory)
 			{
 				// Nope
 				return null;
@@ -1667,7 +1686,11 @@ namespace Api.CanvasRenderer
 		/// <summary>
 		/// Locale for a particular country.
 		/// </summary>
-		Locale
+		Locale,
+		/// <summary>
+		/// Not a source file we care about.
+		/// </summary>
+		Directory
 	}
 
 	/// <summary>

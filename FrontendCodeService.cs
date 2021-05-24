@@ -28,6 +28,11 @@ namespace Api.CanvasRenderer
 		public string InlineJavascriptHeader;
 
 		/// <summary>
+		/// True if we're in prebuilt mode.
+		/// </summary>
+		private bool Prebuilt;
+
+		/// <summary>
 		/// Instanced automatically.
 		/// </summary>
 		public FrontendCodeService(LocaleService locales, TranslationService translations)
@@ -51,6 +56,8 @@ namespace Api.CanvasRenderer
 				{
 					prebuilt = true;
 				}
+
+				Prebuilt = prebuilt;
 
 				if (prebuilt)
 				{
@@ -91,6 +98,55 @@ namespace Api.CanvasRenderer
 				Console.WriteLine("Done handling UI load.");
 				initialBuildTask = null;
 			});
+		}
+
+		/// <summary>
+		/// Gets the set of static files. Only used during an app build process as it needs to collect all static files.
+		/// </summary>
+		/// <returns></returns>
+		public async ValueTask<List<StaticFileInfo>> GetStaticFiles()
+		{
+#if DEBUG
+			// Special case for devs - may need to wait for first build if it hasn't happened yet.
+			if (initialBuildTask != null)
+			{
+				await initialBuildTask;
+			}
+#endif
+			var set = new List<StaticFileInfo>();
+
+			var path = Prebuilt ? "" : UIBuilder.SourcePath;
+			
+			foreach (var filePath in Directory.EnumerateFiles(path, "*", new EnumerationOptions()
+			{
+				RecurseSubdirectories = true
+			}))
+			{
+				// What sort of file are we looking at?
+				// We're only interested in static files.
+				
+				var type = UIBuilder.GetTypeMeta(filePath, out string fileName, out string _, out string _, out string relativePath);
+
+				if (type != SourceFileType.None || filePath.EndsWith(".d.ts"))
+				{
+					// Is a source file, or a directory otherwise.
+					continue;
+				}
+
+				// Get file info:
+				FileInfo fi = new FileInfo(filePath);
+
+				var refString = "s:" + (UIBuilder.RootName + '/' + relativePath.Replace('\\', '/') + '/' + fileName).ToLower();
+
+				set.Add(new StaticFileInfo()
+				{
+					Size = fi.Length,
+					ModifiedUtc = (ulong)(fi.LastWriteTimeUtc.Ticks) / 10000,
+					Ref = refString
+				});
+			}
+
+			return set;
 		}
 
 		/// <summary>

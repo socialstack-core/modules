@@ -1,4 +1,6 @@
 ﻿using System.Threading.Tasks;
+using System.Collections;
+using System.Collections.Generic;
 using Microsoft.AspNetCore.Mvc;
 using Api.Configuration;
 using System;
@@ -24,6 +26,16 @@ namespace Api.CanvasRenderer
 		public FrontendCodeController(FrontendCodeService codeService)
 		{
 			_codeService = codeService;
+		}
+
+		/// <summary>
+		/// Lists all available static files.
+		/// </summary>
+		[Route("/pack/static-assets/list.json")]
+		public async ValueTask<List<StaticFileInfo>> GetStaticFileList()
+		{
+			var set = await _codeService.GetStaticFiles();
+			return set;
 		}
 
 		/// <summary>
