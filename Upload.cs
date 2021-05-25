@@ -54,31 +54,25 @@ namespace Api.Uploader
 		public bool IsPrivate;
 		
 		
-		/// <summary>
-		/// The upload file ref is of either of these forms:
-		/// Private files: private:{optionalServerDomainName/}Id.fileType
-		/// Public files: public:{optionalServerDomainName/}Id.fileType
-		/// E.g. public:4.jpg or public:node14.cdn.site.com/4.jpg.
-		/// From this a full public URL can be constructed. If the server domain name is omitted, 
-		/// it is simply "this" one.
-		/// To view a private file you must obtain a signed URL.
-		/// </summary>
-		public string Ref
-		{
-			get
-			{
-				return (IsPrivate ? "private:" : "public:") + Id + "." + FileType;
-			}
-		}
-		
 		private static byte[] TimestampStart = new byte[]{(byte)'?', (byte)'t', (byte)'='};
 		private static byte[] SignatureStart = new byte[]{(byte)'&', (byte)'s', (byte)'='};
 		
 		/// <summary>
-		/// Gets a HMAC signed ref.
-		/// The HMAC is for the complete string "private:ID.FILETYPE?t=TIMESTAMP&amp;s="
+		/// Depreciated - use Ref always.
 		/// </summary>
 		public string RefSigned
+		{
+			get
+			{
+				return Ref;
+			}
+		}
+		
+		/// <summary>
+		/// Gets a ref which may be signed.
+		/// The HMAC is for the complete string "private:ID.FILETYPE?t=TIMESTAMP&amp;s="
+		/// </summary>
+		public string Ref
 		{
 			get{
 				if(IsPrivate){
