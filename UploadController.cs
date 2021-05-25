@@ -17,7 +17,7 @@ namespace Api.Uploader
     /// Handles file upload endpoints.
     /// </summary>
 
-    [Route("v1/uploader")]
+    [Route("v1/upload")]
 	public partial class UploadController : AutoController<Upload>
     {
 		/// <summary>
@@ -32,7 +32,7 @@ namespace Api.Uploader
 		/// </summary>
 		/// <param name="body"></param>
 		/// <returns></returns>
-		[HttpPost("upload")]
+		[HttpPost("create")]
 		public async ValueTask Upload([FromForm] FileUploadBody body)
 		{
 			var context = await Request.GetContext();

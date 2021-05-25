@@ -25,6 +25,7 @@ namespace Api.Uploader
 		/// The original file name.
 		/// </summary>
 		[DatabaseField(Length = 300)]
+		[Meta("title")]
 		public string OriginalName;
 		
 		/// <summary>
@@ -56,17 +57,6 @@ namespace Api.Uploader
 		
 		private static byte[] TimestampStart = new byte[]{(byte)'?', (byte)'t', (byte)'='};
 		private static byte[] SignatureStart = new byte[]{(byte)'&', (byte)'s', (byte)'='};
-		
-		/// <summary>
-		/// Depreciated - use Ref always.
-		/// </summary>
-		public string RefSigned
-		{
-			get
-			{
-				return Ref;
-			}
-		}
 		
 		/// <summary>
 		/// Gets a ref which may be signed.
