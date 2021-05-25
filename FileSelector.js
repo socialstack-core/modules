@@ -107,7 +107,7 @@ export default class FileSelector extends React.Component {
 						<th>Name</th>
 						<th></th>
 					</tr>
-					<Loop over="uploader/list" filter={{sort: {field: 'CreatedUtc', direction: 'desc'}}} asRaw paged>
+					<Loop over="upload/list" filter={{sort: {field: 'CreatedUtc', direction: 'desc'}}} asRaw paged>
 					{
 						entry => <tr onClick={() => this.updateValue(entry)}>
 							<td width='85%'>
