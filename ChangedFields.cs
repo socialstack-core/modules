@@ -99,6 +99,17 @@ namespace Api.Startup {
 	/// </summary>
 	public class ContentFields
 	{
+
+		/// <summary>
+		///  Common field names used by entities which are used as a title when no [Meta("title")] is declared.
+		/// </summary>
+		private readonly static string[] CommonTitleNames = new string[] { "fullname", "username", "firstname", "title", "name", "url" }; // Title itself isn't first as some user tables have "title" (as in Mr/s etc).
+
+		/// <summary>
+		///  Common field names used by entities which are used as a description when no [Meta("description")] is declared.
+		/// </summary>
+		private readonly static string[] CommonDescriptionNames = new string[] { "description", "shortdescription", "bio", "biography", "about" };
+		
 		/// <summary>
 		/// Global virtual fields. ListAs appears in here.
 		/// </summary>
@@ -194,6 +205,11 @@ namespace Api.Startup {
 		private Dictionary<string, ContentField> _nameMap;
 		
 		/// <summary>
+		/// Meta field mapping.
+		/// </summary>
+		private Dictionary<string, ContentField> _metaMap;
+		
+		/// <summary>
 		/// The underlying mapping.
 		/// </summary>
 		private Dictionary<string, ContentField> _vNameMap;
@@ -204,6 +220,17 @@ namespace Api.Startup {
 		public List<ContentField> List{
 			get{
 				return _list;
+			}
+		}
+
+		/// <summary>
+		/// Map of meta field name -> field.
+		/// </summary>
+		public Dictionary<string, ContentField> MetaFieldMap
+		{
+			get
+			{
+				return _metaMap;
 			}
 		}
 
@@ -249,6 +276,24 @@ namespace Api.Startup {
 
 		private List<DatabaseIndexInfo> _indexSet;
 
+		/// <summary>
+		/// Gets the first match of any of the given field names. They must be lowercase. Null if none exist.
+		/// </summary>
+		/// <param name="fieldNames"></param>
+		/// <returns></returns>
+		public ContentField TryGetAnyOf(string[] fieldNames)
+		{
+			for (var i = 0; i < fieldNames.Length; i++)
+			{
+				if (_nameMap.TryGetValue(fieldNames[i], out ContentField result))
+				{
+					return result;
+				}
+			}
+
+			return null;
+		}
+		
 		private void BuildMap()
 		{
 			if (InstanceType == null)
@@ -263,20 +308,26 @@ namespace Api.Startup {
 			// Add global listAs, if there is one:
 			var listAs = InstanceType.GetCustomAttribute<ListAsAttribute>();
 
+			ContentField listAsField = null;
+
 			if (listAs != null)
 			{
-				_globalVirtualFields[listAs.FieldName.ToLower()] = new ContentField(new VirtualInfo() {
+				listAsField = new ContentField(new VirtualInfo()
+				{
 					FieldName = listAs.FieldName,
 					Type = InstanceType,
 					IsList = true,
 					IdSourceField = "Id"
 				});
+
+				_globalVirtualFields[listAs.FieldName.ToLower()] = listAsField;
 			}
 
 			// Public fields:
 			var fields = InstanceType.GetFields();
 
 			_nameMap = new Dictionary<string, ContentField>();
+			_metaMap = new Dictionary<string, ContentField>();
 			_list = new List<ContentField>();
 			_vNameMap = new Dictionary<string, ContentField>();
 			_vList = new List<ContentField>();
@@ -306,8 +357,32 @@ namespace Api.Startup {
 					{
 						cf.Localised = true;
 					}
+
+					if (attrib is MetaAttribute)
+					{
+						_metaMap[(attrib as MetaAttribute).FieldName.ToLower()] = cf;
+					}
 				}
 
+				// Do we have a title and description meta field?
+				// If not, we'll attempt to invent them based on some common names.
+				if (!_metaMap.ContainsKey("title"))
+				{
+					var titleField = TryGetAnyOf(CommonTitleNames);
+					if (titleField != null)
+					{
+						_metaMap["title"] = titleField;
+					}
+				}
+
+				if (!_metaMap.ContainsKey("description"))
+				{
+					var descriptionField = TryGetAnyOf(CommonDescriptionNames);
+					if (descriptionField != null)
+					{
+						_metaMap["description"] = descriptionField;
+					}
+				}
 			}
 
 			// Collect any databaseIndex attributes on the type itself:
@@ -400,6 +475,16 @@ namespace Api.Startup {
 				cf.Id = _vList.Count;
 				_vNameMap[vInfo.FieldName.ToLower()] = cf;
 			}
+
+			if (listAsField != null)
+			{
+				// Mark its meta title field.
+				if (_metaMap.TryGetValue("title", out ContentField cf))
+				{
+					listAsField.VirtualInfo.MetaTitleField = cf;
+				}
+			}
+
 		}
 
 		/// <summary>
@@ -767,6 +852,11 @@ namespace Api.Startup {
 		/// The effective name of the field.
 		/// </summary>
 		public string FieldName;
+
+		/// <summary>
+		/// The meta="title" field for this listAs field. Used for searching through them.
+		/// </summary>
+		public ContentField MetaTitleField;
 
 		/// <summary>
 		/// True if list

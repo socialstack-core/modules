@@ -90,16 +90,6 @@ namespace Api.Startup
 		where ID : struct, IConvertible, IEquatable<ID>
 	{
 		/// <summary>
-		///  Common field names used by entities which are used as a title when no [Meta("title")] is declared.
-		/// </summary>
-		private readonly static string[] CommonTitleNames = new string[] { "fullname", "username", "firstname", "title", "name", "url" }; // Title itself isn't first as some user tables have "title" (as in Mr/s etc).
-
-		/// <summary>
-		///  Common field names used by entities which are used as a description when no [Meta("description")] is declared.
-		/// </summary>
-		private readonly static string[] CommonDescriptionNames = new string[] { "description", "shortdescription", "bio", "biography", "about" };
-
-		/// <summary>
 		/// The host service.
 		/// </summary>
 		public AutoService<T, ID> Service;
@@ -305,43 +295,15 @@ namespace Api.Startup
 				await TryAddField(context, jsonField, readable, beforeSettable, beforeGettable);
 			}
 
-			// Do we have a title and description meta field?
-			// If not, we'll attempt to invent them based on some common names.
-			if (!MetaFields.ContainsKey("title"))
+
+			foreach (var kvp in fields.MetaFieldMap)
 			{
-				var titleField = TryGetAnyOf(CommonTitleNames);
-				if (titleField != null)
+				// Get the JsonField for the given ContentField.
+				if (Fields.TryGetValue(kvp.Value.Name.ToLower(), out JsonField<T, ID> jsonField))
 				{
-					MetaFields["title"] = titleField;
+					MetaFields[kvp.Key] = jsonField;
 				}
 			}
-
-			if (!MetaFields.ContainsKey("description"))
-			{
-				var descriptionField = TryGetAnyOf(CommonDescriptionNames);
-				if (descriptionField != null)
-				{
-					MetaFields["description"] = descriptionField;
-				}
-			}
-		}
-
-		/// <summary>
-		/// Gets the first match of any of the given field names. They must be lowercase. Null if none exist.
-		/// </summary>
-		/// <param name="fieldNames"></param>
-		/// <returns></returns>
-		public JsonField<T, ID> TryGetAnyOf(string[] fieldNames)
-		{
-			for (var i = 0; i < fieldNames.Length; i++)
-			{
-				if(Fields.TryGetValue(fieldNames[i], out JsonField<T, ID> result))
-				{
-					return result;
-				}
-			}
-
-			return null;
 		}
 
 		/// <summary>
@@ -413,8 +375,6 @@ namespace Api.Startup
 
 			field = await beforeSettable.Dispatch(context, field);
 
-			string metaFieldName = null;
-
 			if (field != null && field.Attributes != null)
 			{
 				foreach (var attrib in field.Attributes)
@@ -423,11 +383,6 @@ namespace Api.Startup
 					{
 						// We'll ignore these too.
 						field.Hide = true;
-					}
-
-					if (attrib is MetaAttribute attribute)
-					{
-						metaFieldName = attribute.FieldName;
 					}
 				}
 			}
@@ -450,11 +405,6 @@ namespace Api.Startup
 				{
 					BeforeIdFields[lowerName] = field;
 				}
-			}
-
-			if (!string.IsNullOrEmpty(metaFieldName))
-			{
-				MetaFields[metaFieldName.ToLower()] = field;
 			}
 
 			Fields[lowerName] = field;
@@ -593,11 +543,21 @@ namespace Api.Startup
 		/// </summary>
 		public void SetDefaultDisplayModule()
 		{
-			Module = ContentField != null && ContentField.VirtualInfo != null ? "Admin/MultiSelect" : "UI/Input";
+			var isVirtualList = ContentField != null && ContentField.VirtualInfo != null;
+			Module = isVirtualList ? "Admin/MultiSelect" : "UI/Input";
 			var type = "text";
 			var name = OriginalName;
 			var labelName = name;
 			var fieldType = TargetType;
+
+			if (isVirtualList)
+			{
+				var titleField = ContentField.VirtualInfo.MetaTitleField;
+				if (titleField != null)
+				{
+					Data["field"] = titleField.Name;
+				}
+			}
 
 			// If the field is a string and ends with Json, it's canvas:
 			if (fieldType == typeof(string) && labelName.EndsWith("Json"))
@@ -766,7 +726,7 @@ namespace Api.Startup
 			{
 				// Still a JToken - lets try and map it through now.
 
-				if (TargetType == typeof(DateTime))
+				if (TargetType == typeof(DateTime) || TargetType == typeof(DateTime?))
 				{
 					// Special case for a date. If the value is numeric, it's a JS compatible timestamp (unix timestamp in *milliseconds*).
 					// Otherwise, it's the JS compatible date string.
@@ -780,8 +740,18 @@ namespace Api.Startup
 					}
 					else
 					{
-						if (DateTime.TryParse(
-							value.ToObject<string>(),
+						var str = value.ToObject<string>();
+
+						if (string.IsNullOrWhiteSpace(str))
+						{
+							if (TargetType == typeof(DateTime))
+							{
+								throw new PublicException("A date is required for " + Name, "date_format");
+							}
+							targetValue = null;
+						}
+						else if (DateTime.TryParse(
+							str,
 							CultureInfo.InvariantCulture,
 							System.Globalization.DateTimeStyles.RoundtripKind,
 							out DateTime dateResult))
