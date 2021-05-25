@@ -33,6 +33,10 @@ export default class MultiSelect extends React.Component {
 	render() {
 		var fieldName = this.props.field || 'name';
 		var displayFieldName = this.props.displayField || fieldName;
+		if(displayFieldName.length){
+			displayFieldName = displayFieldName[0].toLowerCase() + displayFieldName.substring(1);
+		}
+		
 		return (
 			<div className="form-group">
 				{this.props.label && (
@@ -60,7 +64,7 @@ export default class MultiSelect extends React.Component {
 							}
 						}
 						name={this.props.name} />
-						<Search for={this.props.contentType} field={fieldName} limit={5} placeholder={"Find " + this.props.label + " to add.."} onFind={entry => {
+						<Search for={this.props.contentType.toLowerCase()} field={fieldName} limit={5} placeholder={"Find " + this.props.label + " to add.."} onFind={entry => {
 							if(!entry){
 								return;
 							}
