@@ -19,10 +19,6 @@ const initState = localRouter ? localRouter(initialUrl, webRequest) : (global.pg
 
 if(!initState.loading){
 	triggerEvent(initState.page);
-
-	if(initState.po){
-		initState.po = expandIncludes(initState.po);
-	}
 }
 
 function triggerEvent(pgInfo) {
@@ -122,11 +118,6 @@ export default (props) => {
 	if(pageState.loading && !pageState.handled){
 		pageState.loading.then(pgState => {
 			triggerEvent(pgState.page);
-			
-			if(pgState.po){
-				pgState.po = expandIncludes(pgState.po);
-			}
-			
 			setPage(pgState);
 		});
 		pageState.handled = true;
@@ -158,11 +149,6 @@ export default (props) => {
 				version: getBuildDate().timestamp
 			}).then(res => {
 				var pgState = {url, ...res.json};
-				
-				if(pgState.po){
-					pgState.po = expandIncludes(pgState.po);
-				}
-				
 				setPage(pgState);
 				triggerEvent(res.json);
 			});
