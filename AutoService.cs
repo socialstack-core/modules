@@ -1216,6 +1216,19 @@ public partial class AutoService
 		// Not supported on this service.
 		return new ValueTask();
 	}
+	
+	/// <summary>
+	/// Outputs the given object (an entity from this service) to JSON in the given writer.
+	/// </summary>
+	/// <param name="context"></param>
+	/// <param name="entity"></param>
+	/// <param name="writer"></param>
+	/// <returns></returns>
+	public virtual ValueTask ObjectToTypeAndIdJson(Context context, object entity, Writer writer)
+	{
+		// Not supported on this service.
+		return new ValueTask();
+	}
 
 	/// <summary>
 	/// Loads a filter from the given newtonsoft representation. You must .Release() this filter when you're done with it.

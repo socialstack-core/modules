@@ -25,6 +25,16 @@ namespace Api.Startup
 		}
 
 		/// <summary>
+		/// Writes only the type and id fields of the given object.
+		/// </summary>
+		/// <param name="obj"></param>
+		/// <param name="writer"></param>
+		public virtual void WriteJsonPartial(T obj, Writer writer)
+		{
+
+		}
+
+		/// <summary>
 		/// Writes the given object to the given writer in JSON format.
 		/// </summary>
 		/// <param name="obj"></param>

@@ -42,6 +42,11 @@ namespace Api.SocketServerLibrary
 		public static readonly byte[] TrueBytes = new byte[] { 116, 114, 117, 101 };
 
 		/// <summary>
+		/// The bytes for ',"id":
+		/// </summary>
+		public static readonly byte[] IdHeader = new byte[] { (byte)',', (byte)'"', (byte)'i', (byte)'d', (byte)'"', (byte)':' };
+
+		/// <summary>
 		/// The bytes for "false"
 		/// </summary>
 		public static readonly byte[] FalseBytes = new byte[] { 102, 97, 108, 115 , 101 }; 
@@ -362,7 +367,7 @@ namespace Api.SocketServerLibrary
 
 			foreach (var set in fieldSets)
 			{
-				if(set == null)
+				if (set == null)
 				{
 					continue;
 				}
@@ -379,19 +384,50 @@ namespace Api.SocketServerLibrary
 
 				// The JSON "header" which will be of the form {"type":"typename"
 				var header = AddField(typeBuilder, fieldsToInit, "{\"type\":\"" + typeName + "\"");
-				
-				var writeBinary = typeBuilder.DefineMethod("WriteJson", MethodAttributes.Public | MethodAttributes.HideBySig | MethodAttributes.Virtual, typeof(void), new Type[] {
+
+				var writeJsonPartialMethod = typeBuilder.DefineMethod("WriteJsonPartial", MethodAttributes.Public | MethodAttributes.HideBySig | MethodAttributes.Virtual, typeof(void), new Type[] {
 					typeof(T),
 					typeof(Writer)
 				});
-				ILGenerator writerBody = writeBinary.GetILGenerator();
+
+				ILGenerator writerPartialBody = writeJsonPartialMethod.GetILGenerator();
+
+				// Write the header:
+				header.Write(writerPartialBody);
+
+				if (IdHeaderRef == null)
+				{
+					IdHeaderRef = GetFromCommonField(nameof(IdHeader), IdHeader);
+				}
+
+				var typeMap = GetTypeMap();
+
+				// The ID:
+				var idField = set.GetField("id", JsonFieldGroup.Any);
+
+				if (typeMap.TryGetValue(idField.FieldInfo.FieldType, out JsonFieldType idJft))
+				{
+					// ,"id":
+					IdHeaderRef.Write(writerPartialBody);
+
+					idJft.EmitWrite(writerPartialBody, idField, null);
+				}
+
+				// }
+				WriteChar(writerPartialBody, '}');
+
+				writerPartialBody.Emit(OpCodes.Ret);
+
+				var writeJsonMethod = typeBuilder.DefineMethod("WriteJson", MethodAttributes.Public | MethodAttributes.HideBySig | MethodAttributes.Virtual, typeof(void), new Type[] {
+					typeof(T),
+					typeof(Writer)
+				});
+				ILGenerator writerBody = writeJsonMethod.GetILGenerator();
 
 				// Write the header:
 				header.Write(writerBody);
 				
 				if (set.ReadableFields != null){
-
-					var typeMap = GetTypeMap();
 
 					// Add each field
 					foreach(var field in set.ReadableFields)
@@ -486,6 +522,7 @@ namespace Api.SocketServerLibrary
 		private static PreGeneratedByteField True;
 		private static PreGeneratedByteField False;
 		private static PreGeneratedByteField Null;
+		private static PreGeneratedByteField IdHeaderRef;
 
 		/// <summary>
 		/// Writes either "true" or "false" based on the current value on the top of the stack.

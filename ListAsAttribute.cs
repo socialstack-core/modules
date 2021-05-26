@@ -13,10 +13,21 @@ namespace Api.Startup
 		/// The virtual field name.
 		/// </summary>
 		public string FieldName;
+
+		/// <summary>
+		/// True if this ListAs declaration is the primary one. A type can have multiple ListAs declarations, but only one can be primary.
+		/// </summary>
+		public bool IsPrimary = true;
 		
 		public ListAsAttribute(string fieldName){
 			FieldName = fieldName;
 		}
-		
+
+		public ListAsAttribute(string fieldName, bool isPrimary)
+		{
+			FieldName = fieldName;
+			IsPrimary = isPrimary;
+		}
+
 	}
 }
