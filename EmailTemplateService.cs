@@ -102,7 +102,7 @@ namespace Api.Emails
 			return await _canvasRendererService.Render(recipient.Context, template.BodyJson, new PageState() {
 				Tokens = null,
 				TokenNames = null,
-				PoJson = Newtonsoft.Json.JsonConvert.SerializeObject(recipient.CustomData, jsonSettings)
+				PrimaryObject = Newtonsoft.Json.JsonConvert.SerializeObject(recipient.CustomData, jsonSettings)
 			});
 		}
 
@@ -280,7 +280,7 @@ namespace Api.Emails
 
 					// Render all. The results are in the exact same order as the recipients set.
 					var renderedResult = await _canvasRendererService.Render(recipient.Context, set.Template.BodyJson, new PageState() {
-						PoJson = Newtonsoft.Json.JsonConvert.SerializeObject(recipient.CustomData, jsonSettings)
+						PrimaryObject = Newtonsoft.Json.JsonConvert.SerializeObject(recipient.CustomData, jsonSettings)
 					}, null, false);
 
 					// Email to send to:
