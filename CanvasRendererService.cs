@@ -244,7 +244,7 @@ namespace Api.CanvasRenderer
 		public static readonly PageState None = new PageState(){
 			Tokens = null,
 			TokenNames = null,
-			PoJson = null
+			PrimaryObject = null
 		};
 		
 		/// <summary>
@@ -258,10 +258,9 @@ namespace Api.CanvasRenderer
 		public List<string> TokenNames;
 
 		/// <summary>
-		/// The primary object as JSON. It's passed as JSON because of PascalCase in the API on fields, and camelCase on the frontend. JS is case sensitive.
-		/// This also prevents any risk of accidental server cache modification if the actual object is passed. Can set either this or PoJson (PoJson is ideal if you already have a JSON string).
+		/// The primary object. The Id and Type are read from this, if it exists.
 		/// </summary>
-		public string PoJson;
+		public object PrimaryObject;
 	}
 }
 

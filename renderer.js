@@ -647,7 +647,7 @@ function renderCanvas(bodyJson, apiContext, publicApiContextJson, url, pageState
 		url,
 		tokens: pageState.Tokens,
 		tokenNames,
-		po: pageState.PoJson ? JSON.parse(pageState.PoJson) : null
+		po: pageState.PrimaryObject ? (typeof pageState.PrimaryObject == 'string' ? JSON.parse(pageState.PrimaryObject) :  { type: pageState.PrimaryObject.type, id: pageState.PrimaryObject.Id }): null
 	};
 	
 	var canvas = preact.createElement(_Canvas, { children: bodyJson});
