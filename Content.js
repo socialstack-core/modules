@@ -2,11 +2,7 @@ import webRequest, {expandIncludes} from 'UI/Functions/WebRequest';
 import webSocket from 'UI/Functions/WebSocket';
 import { SessionConsumer, RouterConsumer } from 'UI/Session';
 
-/*
-* A convenience mechanism for obtaining 1 piece of content. Outputs no DOM structure.
-* Very similar to <Loop> with a where:{Id: x}.
-*/
-export default class Content extends React.Component {
+class ContentIntl extends React.Component {
 	
 	constructor(props){
 		super(props);
@@ -20,7 +16,7 @@ export default class Content extends React.Component {
 	}
 	
 	evtType(){
-		var content = (this.props.primary) ? this._po : this.state.content;
+		var content = this.state.content;
 		
 		if(!content){
 			return null;
@@ -35,8 +31,8 @@ export default class Content extends React.Component {
 			if (msg.type == "status") {
 				if (msg.connected) {
 					// Force a reload:
-					var {type, id, primary, includes} = this.props;
-					!primary && this.load(type, id, includes);
+					var {type, id, includes} = this.props;
+					this.load(type, id, includes);
 				}
 
 				this.props.onLiveStatus && this.props.onLiveStatus(msg.connected);
@@ -59,7 +55,7 @@ export default class Content extends React.Component {
 	
 	onContentChange(e) {
 		// Content changed! Is it a thing relative to us?
-		var content = this.props.primary ? this._po : this.state.content;
+		var content = this.state.content;
 		
 		if (!content) {
 			// Nothing loaded yet
@@ -87,8 +83,6 @@ export default class Content extends React.Component {
 		} else {
 			// Update or add. id match?
 			if(content.id == entity.id){
-				this.props.primary && (this._po = entity);
-				
 				this.setState({
 					content: entity
 				});
@@ -97,11 +91,11 @@ export default class Content extends React.Component {
 	}
 	
 	componentDidUpdate(prevProps){
-		var {type, id, primary, includes} = this.props;
+		var {type, id, includes} = this.props;
 		
 		this.updateWS();
 		
-		if((prevProps.primary && primary) || (prevProps && type == prevProps.type && id == prevProps.id)){
+		if(prevProps && type == prevProps.type && id == prevProps.id){
 			// Cached object is fine here.
 			return;
 		}
@@ -151,29 +145,9 @@ export default class Content extends React.Component {
 	
 	render(){
 		var {content} = this.state;
-		var {primary} = this.props;
-		
-		if(primary){
-			
-			return <RouterConsumer>{
-				pgState => {
-					if(this.po != pgState.po){
-						this.po = pgState.po;
-						this._po = expandIncludes(pgState.po);
-					}
-					return this.rContent(this._po);
-				}
-			}</RouterConsumer>;
-			
-		}else{
-			return this.rContent(content);
-		}
-		
-	}
-	
-	rContent(content){
-		var loading = false;
 		var {children} = this.props;
+		
+		var loading = false;
 		
 		if(!content){
 			// Null indicates loading:
@@ -182,15 +156,23 @@ export default class Content extends React.Component {
 			// It failed - indicate null but not loading to children:
 			content = null;
 		}
+		
 		return children ? children(content, loading) : null;
 	}
 	
 }
 
-// Gets the current page's primary content.
-Content.getPrimary = function(context){
-	return context.pageRouter.state.po;
-};
+/*
+* A convenience mechanism for obtaining 1 piece of content. Outputs no DOM structure.
+* Very similar to <Loop> with a where:{Id: x}.
+*/
+export default function Content(props) {
+	
+	return (props.primary) ? <RouterConsumer>{
+		pgState => pgState.po ? <ContentIntl type={pgState.po.type} id={pgState.po.id} {...props}/> : null
+	}</RouterConsumer> : <ContentIntl {...props}/>;
+	
+}
 
 // E.g:
 // content.get("blog", 1);
