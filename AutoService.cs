@@ -139,6 +139,7 @@ public partial class AutoService<T, ID>{
 			if (targetStream != null)
 			{
 				await writer.CopyToAsync(targetStream);
+				writer.Reset(null);
 			}
 		}
 		else
@@ -174,6 +175,7 @@ public partial class AutoService<T, ID>{
 			{
 				// Copy remaining bits:
 				await writer.CopyToAsync(targetStream);
+				writer.Reset(null);
 			}
 		}
 	}
@@ -190,6 +192,26 @@ public partial class AutoService<T, ID>{
 	public override ValueTask ObjectToJson(Context context, object entity, Writer writer, Stream targetStream = null, string includes = null)
 	{
 		return ToJson(context, (T)entity, writer, targetStream, includes);
+	}
+
+	/// <summary>
+	/// Outputs the given object (an entity from this service) to JSON in the given writer.
+	/// </summary>
+	/// <param name="context"></param>
+	/// <param name="entity"></param>
+	/// <param name="writer"></param>
+	/// <returns></returns>
+	public override async ValueTask ObjectToTypeAndIdJson(Context context, object entity, Writer writer)
+	{
+		// Get the json structure:
+		var jsonStructure = await GetTypedJsonStructure(context);
+
+		if (jsonStructure.TypeIO == null)
+		{
+			jsonStructure.TypeIO = TypeIOEngine.Generate(jsonStructure);
+		}
+
+		jsonStructure.TypeIO.WriteJsonPartial((T)entity, writer);
 	}
 
 	/// <summary>
@@ -228,6 +250,7 @@ public partial class AutoService<T, ID>{
 			if (targetStream != null)
 			{
 				await writer.CopyToAsync(targetStream);
+				writer.Reset(null);
 			}
 		}
 		else
@@ -265,6 +288,7 @@ public partial class AutoService<T, ID>{
 			{
 				// Copy remaining bits:
 				await writer.CopyToAsync(targetStream);
+				writer.Reset(null);
 			}
 		}
 	}
