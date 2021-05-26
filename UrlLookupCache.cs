@@ -1,3 +1,5 @@
+using Newtonsoft.Json;
+using Newtonsoft.Json.Serialization;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -29,6 +31,15 @@ namespace Api.Pages
 		/// </summary>
 		public List<PageIdAndUrl> PageUrlList = new List<PageIdAndUrl>();
 
+		private readonly JsonSerializerSettings jsonSettings = new JsonSerializerSettings
+		{
+			ContractResolver = new DefaultContractResolver
+			{
+				NamingStrategy = new CamelCaseNamingStrategy()
+			},
+			Formatting = Formatting.None
+		};
+		
 		/// <summary>
 		/// Loads the cache from the given list of all pages.
 		/// </summary>
@@ -166,6 +177,15 @@ namespace Api.Pages
 				pg.UrlTokens = tokenSet;
 				pg.UrlTokenNames = tokenSet.Select(token => token.RawToken).ToList();
 
+				if (pg.UrlTokenNames == null || pg.UrlTokenNames.Count == 0)
+				{
+					pg.UrlTokenNamesJson = "null";
+				}
+				else
+				{
+					pg.UrlTokenNamesJson = Newtonsoft.Json.JsonConvert.SerializeObject(pg.UrlTokenNames, jsonSettings);
+				}
+
 				PageUrlList.Add(new PageIdAndUrl()
 				{
 					PageId = page.Id,
@@ -248,6 +268,7 @@ namespace Api.Pages
 				Page = curNode.Page,
 				Tokens = curNode.UrlTokens,
 				TokenNames = curNode.UrlTokenNames,
+				TokenNamesJson = curNode.UrlTokenNamesJson,
 				TokenValues = wildcardTokens
 			};
 		}
@@ -266,6 +287,10 @@ namespace Api.Pages
 		/// The tokens associated with the page itself (just their names).
 		/// </summary>
 		public List<string> TokenNames;
+		/// <summary>
+		/// The token names as preformatted JSON. Can be the string "null".
+		/// </summary>
+		public string TokenNamesJson;
 		/// <summary>
 		/// The page.
 		/// </summary>
@@ -289,6 +314,10 @@ namespace Api.Pages
 		/// If this node has a page associated with it, this is the set of url tokens. The primary object is always derived from the last one. This is just the names only.
 		/// </summary>
 		public List<string> UrlTokenNames;
+		/// <summary>
+		/// Preformatted JSON array of the url token names. ["A", "B", ..]. will be the string "null" if it is null.
+		/// </summary>
+		public string UrlTokenNamesJson;
 		/// <summary>
 		/// The page
 		/// </summary>

@@ -189,8 +189,9 @@ namespace Api.Pages
 		/// <param name="context"></param>
 		/// <param name="pageAndTokens"></param>
 		/// <param name="path"></param>
+		/// <param name="responseStream"></param>
 		/// <returns></returns>
-		public async ValueTask<string> RenderState(Context context, PageWithTokens pageAndTokens, string path)
+		public async ValueTask RenderState(Context context, PageWithTokens pageAndTokens, string path, Stream responseStream = null)
 		{
 			object primaryObject = null;
 			AutoService primaryService = null;
@@ -222,40 +223,41 @@ namespace Api.Pages
 				}
 			}
 
-			string state;
-			
 			var writer = Writer.GetPooled();
 			writer.Start(null);
-			if (primaryObject != null)
-			{
-				await primaryService.ObjectToJson(context, primaryObject, writer, null, "*");
-			}
-			else
-			{
-				writer.WriteS("null");
-			}
-			var poJson = writer.ToUTF8String();
+
+			writer.WriteASCII("{\"page\":");
+			await _pages.ToJson(context, pageAndTokens.Page, writer);
+			writer.WriteASCII(",\"data\":");
 
 			if (_config.PreRender)
 			{
 				var preRender = await _canvasRendererService.Render(context, pageAndTokens.Page.BodyJson, new PageState() {
 					Tokens = pageAndTokens.TokenValues,
 					TokenNames = pageAndTokens.TokenNames,
-					PoJson = poJson
+					PrimaryObject = primaryObject
 				}, path, true, RenderMode.None);
 
-				state = preRender.Data;
+				writer.WriteASCII(preRender.Data);
 			}
 			else
 			{
-				state = "null";
+				writer.WriteASCII("null");
 			}
 
-			return "{\"page\":" + Newtonsoft.Json.JsonConvert.SerializeObject(pageAndTokens.Page, jsonSettings) +
-				", \"tokens\":" + (pageAndTokens.TokenValues != null ? Newtonsoft.Json.JsonConvert.SerializeObject(pageAndTokens.TokenValues, jsonSettings) : "null") +
-				", \"tokenNames\":" + (pageAndTokens.TokenNames != null ? Newtonsoft.Json.JsonConvert.SerializeObject(pageAndTokens.TokenNames, jsonSettings) : "null") +
-				", \"po\":" + poJson +
-				",\"data\":" + state + "}";
+			writer.WriteASCII(",\"tokenNames\":");
+			writer.WriteS(pageAndTokens.TokenNamesJson);
+			writer.WriteASCII(",\"tokens\":");
+			writer.WriteS(pageAndTokens.TokenValues != null ? Newtonsoft.Json.JsonConvert.SerializeObject(pageAndTokens.TokenValues, jsonSettings) : "null");
+			
+			if (primaryObject != null)
+			{
+				writer.WriteASCII(",\"po\":");
+				await primaryService.ObjectToTypeAndIdJson(context, primaryObject, writer);
+			}
+			writer.Write((byte)'}');
+			await writer.CopyToAsync(responseStream);
+			writer.Release();
 		}
 
 		/// <summary>
@@ -630,21 +632,11 @@ namespace Api.Pages
 			{
 				try
 				{
-					string poJson = "null";
-
-
-					if (doc.PrimaryObject != null) {
-						var writer = Writer.GetPooled();
-						writer.Start(null);
-						await doc.PrimaryObjectService.ObjectToJson(context, doc.PrimaryObject, writer, null, "*");
-						poJson = writer.ToUTF8String();
-						writer.Release();
-					}
 
 					var preRender = await _canvasRendererService.Render(context, page.BodyJson, new PageState() {
 						Tokens = pageAndTokens.TokenValues,
 						TokenNames = pageAndTokens.TokenNames,
-						PoJson = poJson
+						PrimaryObject = doc.PrimaryObject
 					}, path, true);
 
 					if (preRender.Failed)
@@ -664,15 +656,38 @@ namespace Api.Pages
 						// Add the data which populates the initial cache. This is important for a variety of reasons, but it primarily ensures that e.g. site template data doesn't have to be immediately requested.
 						// If it did have to be immediately requested, the first render run results in a totally blank output, which conflicts with what the server has already rendered.
 						// The end result of the conflict is it gets duplicated in the DOM and server effort is largely wasted.
+
+						var writer = Writer.GetPooled();
+						writer.Start(null);
+
+						writer.WriteS("window.pgState={\"page\":");
+						await _pages.ToJson(context, pageAndTokens.Page, writer);
+						writer.WriteS(",\"tokens\":");
+						writer.WriteS(",\"data\":");
+						writer.WriteS(preRender.Data);
+						writer.WriteS((pageAndTokens.TokenValues != null ? Newtonsoft.Json.JsonConvert.SerializeObject(pageAndTokens.TokenValues, jsonSettings) : "null"));
+						writer.WriteS(",\"tokenNames\":");
+						writer.WriteS(pageAndTokens.TokenNamesJson);
+						writer.WriteS(",\"po\":");
+
+						if (doc.PrimaryObject != null)
+						{
+							await doc.PrimaryObjectService.ObjectToTypeAndIdJson(context, doc.PrimaryObject, writer);
+						}
+						else
+						{
+							writer.WriteS("null");
+						}
+
+						writer.WriteS("};");
+						var pgState = writer.AllocatedResult();
+						writer.Release();
+
 						body.AppendChild(
 							new DocumentNode("script")
 							.AppendChild(
-								new TextNode(
-									"window.pgState={\"page\":" + Newtonsoft.Json.JsonConvert.SerializeObject(page, jsonSettings) +
-										", \"tokens\":" + (pageAndTokens.TokenValues != null ? Newtonsoft.Json.JsonConvert.SerializeObject(pageAndTokens.TokenValues, jsonSettings) : "null") +
-										", \"tokenNames\":" + (pageAndTokens.TokenNames != null ? Newtonsoft.Json.JsonConvert.SerializeObject(pageAndTokens.TokenNames, jsonSettings) : "null") +
-										", \"po\":" + poJson +
-										",\"data\":" + preRender.Data + "};"
+								new RawBytesNode(
+									pgState
 								)
 							)
 						);
@@ -689,16 +704,16 @@ namespace Api.Pages
 				writer.Start(null);
 
 				writer.WriteS("window.pgState={\"page\":");
-				writer.WriteS(Newtonsoft.Json.JsonConvert.SerializeObject(page, jsonSettings));
-				writer.WriteS(", \"tokens\":");
+				await _pages.ToJson(context, pageAndTokens.Page, writer);
+				writer.WriteS(",\"tokens\":");
 				writer.WriteS((pageAndTokens.TokenValues != null ? Newtonsoft.Json.JsonConvert.SerializeObject(pageAndTokens.TokenValues, jsonSettings) : "null"));
-				writer.WriteS(", \"tokenNames\":");
-				writer.WriteS((pageAndTokens.TokenNames != null ? Newtonsoft.Json.JsonConvert.SerializeObject(pageAndTokens.TokenNames, jsonSettings) : "null"));
-				writer.WriteS(", \"po\":");
+				writer.WriteS(",\"tokenNames\":");
+				writer.WriteS(pageAndTokens.TokenNamesJson);
+				writer.WriteS(",\"po\":");
 
 				if (doc.PrimaryObject != null)
 				{
-					await doc.PrimaryObjectService.ObjectToJson(context, doc.PrimaryObject, writer, null, "*");
+					await doc.PrimaryObjectService.ObjectToTypeAndIdJson(context, doc.PrimaryObject, writer);
 				}
 				else
 				{
@@ -706,14 +721,14 @@ namespace Api.Pages
 				}
 
 				writer.WriteS("};");
-				var poJson = writer.ToUTF8String();
+				var pgState = writer.AllocatedResult();
 				writer.Release();
 
 				body.AppendChild(
 					new DocumentNode("script")
 					.AppendChild(
-						new TextNode(
-							 poJson
+						new RawBytesNode(
+							 pgState
 						)
 					)
 				);

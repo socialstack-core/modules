@@ -29,7 +29,7 @@ namespace Api.Pages
 		/// <param name="pageDetails"></param>
 		/// <returns></returns>
 		[HttpPost("state")]
-		public async Task<ContentResult> PageState([FromBody] PageDetails pageDetails)
+		public async ValueTask PageState([FromBody] PageDetails pageDetails)
 		{
 			var context = await Request.GetContext();
 
@@ -41,8 +41,8 @@ namespace Api.Pages
 				_htmlService = Services.Get<HtmlService>();
 			}
 
-			var stateJson = await _htmlService.RenderState(context, pageAndTokens, pageDetails.Url);
-            return Content(stateJson, "application/json");
+            Response.ContentType = "application/json";
+			await _htmlService.RenderState(context, pageAndTokens, pageDetails.Url, Response.Body);
 		}
 
         /// <summary>
