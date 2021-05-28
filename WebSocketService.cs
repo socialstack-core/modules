@@ -643,7 +643,12 @@ namespace Api.WebSockets
 
 			// Get the grant rule (a filter) for this role + capability:
 			PermFilter = role.GetGrantRule(TypeSet.Capability);
-			UserFilter = null;
+
+			if (UserFilter != null)
+			{
+				UserFilter.Release();
+				UserFilter = null;
+			}
 
 			// If it's outright rejected..
 			if (PermFilter == null)
@@ -840,12 +845,18 @@ namespace Api.WebSockets
 						continue;
 					}
 
+					/*
+					 * Always send updates when listening to a given type. We passed the above perm filter
+					 * so these updates are safe, but if we filter out an update, it may be that an object changed and is _no longer_ visible.
+					 * User must be sent these updates in order to spot such a situation.
+					 * 
 					if (current.UserFilter != null && !current.UserFilter.Match(ctx, entity, current.UserFilter))
 					{
 						// Skip this user
 						current = current.Next;
 						continue;
 					}
+					*/
 				}
 				
 				if(current.Client.Socket.State == WebSocketState.Open){
