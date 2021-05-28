@@ -70,6 +70,7 @@ export default class CalendarCompact extends React.Component {
 	}
 	
 	componentDidMount(){
+		console.log("CalendarCompact above load");
 		this.load(0, this.props);
 	}
 	
@@ -107,13 +108,8 @@ export default class CalendarCompact extends React.Component {
 	}
 
 	load(offset, props){
-		return <SessionConsumer>
-			{session => this.loadIntl(offset, props, session)}
-		</SessionConsumer>
-	}
-	
-	loadIntl(offset, props, session){
-		const { setSession } = useSession();
+		console.log("in loadIntl");
+
 		var { days } = props;
 		
 		if(!days){
@@ -140,8 +136,9 @@ export default class CalendarCompact extends React.Component {
 			});
 		}
 		
+		console.log("loadIntl currentView set", dayMeta);
 		this.setState({currentView: dayMeta, offset: offset});
-		setSession({...session, forceCalendarRefresh : null})
+		this.props.setSession({...this.props.session, forceCalendarRefresh : null})
 
 		// Request for section:
 		this.populateBetween(sliceStart, sliceEnd, dayMeta);
@@ -236,6 +233,7 @@ export default class CalendarCompact extends React.Component {
 			}
 		}
 		
+		console.log("build currentView set:", this.state.currentView);
 		this.setState({currentView: this.state.currentView});
 	}
 	
