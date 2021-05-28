@@ -494,20 +494,10 @@ public partial class AutoService<T, ID>{
 		}
 		else if (collectedIds.Count > 0)
 		{
-			// DB hit. Allocate list of IDs as well.
-			var idList = new List<S_ID>(collectedIds.Count);
-
-			var _enum = collectedIds.GetNonAllocEnumerator();
-
-			while (_enum.HasMore())
-			{
-				// Get current value:
-				idList.Add(_enum.Current());
-			}
-
+			// DB hit.
 			var f = Where(setField + "=[?]")
-			.Bind(idList);
-			f.HasFrom = viaIncludes;
+			.Bind(collectedIds);
+			f.Included = viaIncludes;
 
 			await f
 			.ListAll(
@@ -613,20 +603,10 @@ public partial class AutoService<T, ID>{
 		}
 		else if(collectedIds.Count > 0)
 		{
-			// DB hit. Allocate list of IDs as well.
-			var idList = new List<ID>(collectedIds.Count);
-
-			var _enum = collectedIds.GetNonAllocEnumerator();
-
-			while (_enum.HasMore())
-			{
-				// Get current value:
-				idList.Add(_enum.Current());
-			}
-
+			// DB hit.
 			var f = Where("Id=[?]", DataOptions.IgnorePermissions)
-			.Bind(idList);
-			f.HasFrom = viaIncludes;
+			.Bind(collectedIds);
+			f.Included = viaIncludes;
 
 			await f.ListAll(
 				context,
