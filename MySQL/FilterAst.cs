@@ -324,39 +324,11 @@ namespace Api.Permissions{
 			}
 		}
 	}
-
-
-	/// <summary>
-	/// A from(..) tree node.
-	/// </summary>
-	public partial class FromFilterTreeNode<T, ID> : FilterTreeNode<T, ID>
-		where T : Content<ID>, new()
-		where ID : struct, IConvertible, IEquatable<ID>
-	{
-		/// <summary>
-		/// The type name.
-		/// </summary>
-		public string Type;
-		/// <summary>
-		/// The map name. If null, it uses the primary mapping for the given type.
-		/// </summary>
-		public string MapName;
-		
-		/// <summary>
-		/// True if the node has an on statement.
-		/// Most nodes return false - only and will accept one as a child.
-		/// </summary>
-		/// <returns></returns>
-		public override bool HasFrom()
-		{
-			return true;
-		}
-	}
-
+	
 	/// <summary>
 	/// 
 	/// </summary>
-	public partial class HasFromFilterTreeNode<T, ID> : FilterTreeNode<T, ID>
+	public partial class IsIncludedFilterTreeNode<T, ID> : FilterTreeNode<T, ID>
 		where T : Content<ID>, new()
 		where ID : struct, IConvertible, IEquatable<ID>
 	{
@@ -372,7 +344,7 @@ namespace Api.Permissions{
 		/// <param name="context"></param>
 		public override void ToSql(MySqlCommand cmd, Writer writer, ref IDCollector collectors, string localeCode, Filter<T, ID> filter, Context context)
 		{
-			if (filter.HasFrom)
+			if (filter.Included)
 			{
 				writer.WriteS("true");
 			}
