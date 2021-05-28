@@ -58,11 +58,6 @@ namespace Api.Permissions
 		public ReverseMappingInfo[] CollectorMeta;
 
 		/// <summary>
-		/// True if the filter has a From(..) statement. It must have one only and can only be a child of an AND statement.
-		/// </summary>
-		public bool HasFrom;
-
-		/// <summary>
 		/// Creates filter metadata for the given query pair.
 		/// </summary>
 		public FilterMeta(AutoService<T, ID> service, string query, bool allowConstants = false){
@@ -140,11 +135,6 @@ namespace Api.Permissions
 			// Build the type:
 			_constructedType = tree.ConstructType();
 
-			if (tree.Root != null)
-			{
-				HasFrom = tree.Root.HasFrom();
-			}
-
 			ArgTypes = tree.Args;
 
 			for (var i = 0; i < ArgTypes.Count; i++)
@@ -173,7 +163,7 @@ namespace Api.Permissions
 				f.Empty = false;
 			}
 
-			f.HasFrom = HasFrom;
+			f.Included = false;
 			f.Pool = this;
 			return f;
 		}
@@ -209,10 +199,10 @@ namespace Api.Permissions
 		public bool SortAscending = true;
 
 		/// <summary>
-		/// True if the filter has a "From" target. This is also set to true if arriving via includes.
+		/// Set to true if arriving via includes (or an "on":{} list filter).
 		/// </summary>
 		/// <returns></returns>
-		public bool HasFrom;
+		public bool Included;
 
 		/// <summary>
 		/// First IDcollector for filter A. Both chains are stored on filterA as it's user specific.
@@ -233,6 +223,14 @@ namespace Api.Permissions
 			{
 				throw new PublicException("Attempted to use a null as an arg for a non-nullable field. Did you mean to use something else?", "filter_invalid");
 			}
+		}
+
+		/// <summary>
+		/// Return to pool it came from
+		/// </summary>
+		public virtual void Release()
+		{
+			
 		}
 
 		/// <summary>
@@ -460,7 +458,7 @@ namespace Api.Permissions
 		/// <summary>
 		/// Return back to pool.
 		/// </summary>
-		public void Release()
+		public override void Release()
 		{
 			Reset();
 		}

@@ -64,23 +64,23 @@ namespace Api.Permissions{
 		}
 
 		/// <summary>
-		/// True if the user filter has an On(..)
+		/// True if the filter is being executed via an inclusion.
 		/// </summary>
 		/// <typeparam name="T"></typeparam>
 		/// <typeparam name="ID"></typeparam>
 		/// <param name="node"></param>
 		/// <param name="ast"></param>
-		public static FilterTreeNode<T, ID> HasFrom<T, ID>(MemberFilterTreeNode<T, ID> node, FilterAst<T, ID> ast)
+		public static FilterTreeNode<T, ID> IsIncluded<T, ID>(MemberFilterTreeNode<T, ID> node, FilterAst<T, ID> ast)
 			where T : Content<ID>, new()
 			where ID : struct, IConvertible, IEquatable<ID>
 		{
 			if (node.Args.Count != 0)
 			{
-				throw new PublicException("HasFrom in a filter call takes 0 arguments", "filter_invalid");
+				throw new PublicException("IsIncluded in a filter call takes 0 arguments", "filter_invalid");
 			}
 
 			// Use specialised hasFrom node:
-			return new HasFromFilterTreeNode<T,ID>();
+			return new IsIncludedFilterTreeNode<T,ID>();
 		}
 		
 		/// <summary>
@@ -1358,17 +1358,6 @@ namespace Api.Permissions{
 		where T : Content<ID>, new()
 		where ID : struct, IConvertible, IEquatable<ID>
 	{
-
-		/// <summary>
-		/// True if the node has an on statement.
-		/// Most nodes return false - only and will accept one as a child.
-		/// </summary>
-		/// <returns></returns>
-		public virtual bool HasFrom()
-		{
-			return false;
-		}
-
 		/// <summary>
 		/// 
 		/// </summary>
@@ -1447,21 +1436,6 @@ namespace Api.Permissions{
 			return Operation == "and" || Operation == "&&" ||
 				Operation == "or" || Operation == "||" ||
 				Operation == "not";
-		}
-
-		/// <summary>
-		/// True if the node has an on statement.
-		/// Most nodes return false - only and will accept one as a child.
-		/// </summary>
-		/// <returns></returns>
-		public override bool HasFrom()
-		{
-			if (Operation == "and" || Operation == "&&")
-			{
-				return A.HasFrom() || B.HasFrom();
-			}
-
-			return false;
 		}
 
 		/// <summary>
@@ -2010,7 +1984,7 @@ namespace Api.Permissions{
 	/// <summary>
 	/// 
 	/// </summary>
-	public partial class HasFromFilterTreeNode<T, ID> : FilterTreeNode<T, ID>
+	public partial class IsIncludedFilterTreeNode<T, ID> : FilterTreeNode<T, ID>
 		where T : Content<ID>, new()
 		where ID : struct, IConvertible, IEquatable<ID>
 	{
@@ -2020,11 +1994,11 @@ namespace Api.Permissions{
 		/// </summary>
 		public override void ToString(StringBuilder builder)
 		{
-			builder.Append("HasFrom()");
+			builder.Append("IsIncluded()");
 		}
 
 		/// <summary>
-		/// The FilterBase.HasFrom field.
+		/// The FilterBase.Included field.
 		/// </summary>
 		private static FieldInfo _fromField;
 
@@ -2037,10 +2011,10 @@ namespace Api.Permissions{
 		{
 			if (_fromField == null)
 			{
-				_fromField = typeof(FilterBase).GetField(nameof(FilterBase.HasFrom));
+				_fromField = typeof(FilterBase).GetField(nameof(FilterBase.Included));
 			}
 
-			// Arg 3 is the filter that holds state, such as the "From" status:
+			// Arg 3 is the filter that holds state, such as the "Included" status:
 			generator.Emit(OpCodes.Ldarg_3);
 			generator.Emit(OpCodes.Ldfld, _fromField);
 		}
