@@ -272,13 +272,15 @@ export default class Loop extends React.Component {
 		this.props.onLiveCreate && this.props.onLiveCreate(entity);
 		this.setState({ results });
 	}
-
+	
 	testFilter(ent) {
-
 		var { filter } = this.props;
 
 		if (filter && filter.where) {
 			var w = filter.where;
+			
+			console.log("test filter", w, ent);
+			
 			if(Array.isArray(w)){
 				if(!w.length){
 					return true;
@@ -307,7 +309,11 @@ export default class Loop extends React.Component {
 			}
 			
 			var value = where[key];
-
+			
+			if(value === undefined){
+				continue;
+			}
+			
 			// Lowercase the key as it's an exact field match:
 			var entityKeyName = key.charAt(0).toLowerCase() + key.slice(1);
 
@@ -315,6 +321,7 @@ export default class Loop extends React.Component {
 
 			// value can be an array of options:
 			if (Array.isArray(value)) {
+				console.log(value, reqValue);
 				// Failed the filter if the reqd value is not in the array.
 				return value.indexOf(reqValue) != -1;
 			} else if (value && typeof value == 'object') {
