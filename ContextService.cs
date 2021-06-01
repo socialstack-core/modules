@@ -138,7 +138,7 @@ namespace Api.Contexts
 	/// Used to establish primary user context - role, locale and the user ID - when possible.
 	/// This is signature based - it doesn't generate any database traffic.
 	/// </summary>
-	public class ContextService
+	public class ContextService : AutoService
     {
 		/// <summary>
 		/// "null"
