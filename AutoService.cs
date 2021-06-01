@@ -1378,18 +1378,7 @@ public partial class AutoService
 				}
 			}
 		}
-
-		var on = newtonsoft["on"] as JObject;
-
-		if (on == null)
-		{
-			filter.Included = false;
-		}
-		else
-		{
-			filter.Included = true;
-		}
-
+		
 		return filter;
 	}
 
