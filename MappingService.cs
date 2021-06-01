@@ -399,7 +399,8 @@ namespace Api.Startup
 		/// <param name="t"></param>
 		public MappingService(Type t) : base(new EventGroup<Mapping<SRC_ID, TARG_ID>>(), t)
 		{
-
+			// Mapping services are cached by default:
+			Cache();
 		}
 
 		/// <summary>
