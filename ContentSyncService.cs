@@ -704,10 +704,12 @@ namespace Api.ContentSync
 		/// </summary>
 		/// <typeparam name="T"></typeparam>
 		/// <typeparam name="ID"></typeparam>
+		/// <typeparam name="INST_T"></typeparam>
 		/// <param name="meta"></param>
 		/// <param name="addListeners"></param>
-		public void HandleTypeInternal<T, ID>(ContentSyncTypeMeta meta, bool addListeners)
+		public void HandleTypeInternal<T, ID, INST_T>(ContentSyncTypeMeta meta, bool addListeners)
 			where T : Content<ID>, new()
+			where INST_T : T, new()
 			where ID : struct, IConvertible, IEquatable<ID>
 		{
 			// NOTE: This is used by reflection by HandleType.
@@ -715,8 +717,7 @@ namespace Api.ContentSync
 			// - Hook up the events which then builds the messages too
 
 			// Get the service:
-			var a = Services.GetByContentType(typeof(T));
-			var svc = a as AutoService<T, ID>;
+			var svc = meta.Service as AutoService<T, ID>;
 
 			if (svc == null)
 			{
@@ -895,7 +896,7 @@ namespace Api.ContentSync
 
 						if (raw == null)
 						{
-							raw = new T();
+							raw = new INST_T();
 						}
 
 						// Transfer fields from raw to entity, using the primary object as a source of blank fields:
@@ -943,11 +944,11 @@ namespace Api.ContentSync
 		private void HandleType(ContentSyncTypeMeta meta, bool addListeners)
 		{
 			// This is only called a handful of times during startup
-			var idType = meta.Type.GetField("Id").FieldType;
 
-			var handleTypeInternal = GetType().GetMethod("HandleTypeInternal").MakeGenericMethod(new Type[] {
-				meta.Type,
-				idType
+			var handleTypeInternal = GetType().GetMethod(nameof(HandleTypeInternal)).MakeGenericMethod(new Type[] {
+				meta.Service.ServicedType,
+				meta.Service.IdType,
+				meta.Service.InstanceType
 			});
 
 			handleTypeInternal.Invoke(this, new object[] {
@@ -971,15 +972,15 @@ namespace Api.ContentSync
 		/// <summary>
 		/// Informs CSync to start syncing the given type as the given opcode.
 		/// </summary>
-		/// <param name="type"></param>
+		/// <param name="service"></param>
 		/// <param name="opcode"></param>
-		public void SyncRemoteType(Type type, int opcode)
+		public void SyncRemoteType(AutoService service, int opcode)
 		{
 			var meta = new ContentSyncTypeMeta()
 			{
-				Type = type,
+				Service = service,
 				OpCodeId = (uint)opcode,
-				ContentTypeId = ContentTypes.GetId(type)
+				ContentTypeId = ContentTypes.GetId(service.InstanceType)
 			};
 
 			RemoteTypes.Add(meta);
@@ -994,9 +995,9 @@ namespace Api.ContentSync
 	public class ContentSyncTypeMeta
 	{
 		/// <summary>
-		/// The content type
+		/// The service for the type.
 		/// </summary>
-		public Type Type;
+		public AutoService Service;
 
 		/// <summary>
 		/// The content type ID for Type.

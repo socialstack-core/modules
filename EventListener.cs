@@ -98,7 +98,7 @@ namespace Api.ContentSync
 			OpCode++;
 
 			// Add as a remote synced type:
-			contentSyncService.SyncRemoteType(service.InstanceType, opcode);
+			contentSyncService.SyncRemoteType(service, opcode);
 
 			// Create an ID assigner for the type next.
 			var cacheConfig = service.GetCacheConfig();
