@@ -274,6 +274,11 @@ namespace Api.Startup {
 			}
 		}
 
+		/// <summary>
+		/// The name of the primary ListAs, if there is one.
+		/// </summary>
+		public string PrimaryMapName;
+
 		private List<DatabaseIndexInfo> _indexSet;
 
 		/// <summary>
@@ -305,22 +310,49 @@ namespace Api.Startup {
 			// Start collecting db indices:
 			_indexSet = new List<DatabaseIndexInfo>();
 
-			// Add global listAs, if there is one:
-			var listAs = InstanceType.GetCustomAttribute<ListAsAttribute>();
+			// Add global listAs attribs, if there is any:
+			var listAsSet = InstanceType.GetCustomAttributes<ListAsAttribute>();
 
-			ContentField listAsField = null;
+			List<ContentField> listAsFields = null;
 
-			if (listAs != null)
+			if (listAsSet != null)
 			{
-				listAsField = new ContentField(new VirtualInfo()
-				{
-					FieldName = listAs.FieldName,
-					Type = InstanceType,
-					IsList = true,
-					IdSourceField = "Id"
-				});
+				ListAsAttribute primary = null;
 
-				_globalVirtualFields[listAs.FieldName.ToLower()] = listAsField;
+				foreach (var listAs in listAsSet)
+				{
+					var listAsField = new ContentField(new VirtualInfo()
+					{
+						FieldName = listAs.FieldName,
+						Type = InstanceType,
+						IsList = true,
+						IdSourceField = "Id"
+					});
+
+					if (listAs.IsPrimary)
+					{
+						if (primary != null)
+						{
+							throw new Exception(
+								"Multiple primary ListAs attributes specified on type '" + InstanceType.Name + 
+								"'. If a type has more than one ListAs, only one can be the primary one. " + 
+								primary.FieldName + " and " + listAs.FieldName + " are currently both set to primary. Use IsPrimary=false on one of them."
+							);
+						}
+
+						primary = listAs;
+						PrimaryMapName = listAs.FieldName;
+					}
+
+					_globalVirtualFields[listAs.FieldName.ToLower()] = listAsField;
+
+					if (listAsFields == null)
+					{
+						listAsFields = new List<ContentField>();
+					}
+
+					listAsFields.Add(listAsField);
+				}
 			}
 
 			// Public fields:
@@ -476,12 +508,15 @@ namespace Api.Startup {
 				_vNameMap[vInfo.FieldName.ToLower()] = cf;
 			}
 
-			if (listAsField != null)
+			if (listAsFields != null)
 			{
 				// Mark its meta title field.
 				if (_metaMap.TryGetValue("title", out ContentField cf))
 				{
-					listAsField.VirtualInfo.MetaTitleField = cf;
+					for (var i = 0; i < listAsFields.Count; i++)
+					{
+						listAsFields[i].VirtualInfo.MetaTitleField = cf;
+					}
 				}
 			}
 

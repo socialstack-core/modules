@@ -23,12 +23,12 @@ namespace Api.Startup
 		/// <summary>
 		/// A textual lookup of all services. Use Get instead. Textual key is e.g. "PageService".
 		/// </summary>
-		public static readonly ConcurrentDictionary<string, object> AllByName = new ConcurrentDictionary<string, object>();
+		public static readonly ConcurrentDictionary<string, AutoService> AllByName = new ConcurrentDictionary<string, AutoService>();
 		
 		/// <summary>
 		/// The lookup of services. Use Get instead.
 		/// </summary>
-		public static readonly ConcurrentDictionary<Type, object> All = new ConcurrentDictionary<Type, object>();
+		public static readonly ConcurrentDictionary<Type, AutoService> All = new ConcurrentDictionary<Type, AutoService>();
 		
 		/// <summary>
 		/// A lookup specifically for AutoService implementations.
@@ -81,14 +81,14 @@ namespace Api.Startup
 		/// Gets a service by its textual interface name. Use this if you want to make a service optional and not a hard requirement for your module.
 		/// </summary>
 		/// <returns></returns>
-		public static object Get(string name)
+		public static AutoService Get(string name)
 		{
 			if(name == null || name.Length == 0)
 			{
 				return null;
 			}
 			
-			AllByName.TryGetValue(name, out object result);
+			AllByName.TryGetValue(name, out AutoService result);
 			return result;
 		}
 
@@ -112,12 +112,12 @@ namespace Api.Startup
 					return;
 				}
 
-				All[serviceType] = service;
-				AllByName[serviceType.Name] = service;
-
 				// If it's an AutoService, add it to the lookup:
 				if (autoService != null)
 				{
+					All[serviceType] = autoService;
+					AllByName[serviceType.Name] = autoService;
+					
 					var ctx = new Contexts.Context() {
 						IgnorePermissions = true
 					};
@@ -241,9 +241,9 @@ namespace Api.Startup
 		/// </summary>
 		/// <typeparam name="T">The services interface.</typeparam>
 		/// <returns></returns>
-		public static T Get<T>()
+		public static T Get<T>() where T : AutoService
 		{
-			All.TryGetValue(typeof(T), out object result);
+			All.TryGetValue(typeof(T), out AutoService result);
 			return (T)result;
 		}
 

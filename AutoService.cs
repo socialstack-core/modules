@@ -1048,7 +1048,12 @@ public partial class AutoService<T, ID> : AutoService
 			// Note it would've thrown.
 			return null;
 		}
-		
+
+		if (cb == null)
+		{
+			throw new ArgumentNullException("An update callback is required. Inside this callback is the only place where you can safely set field values, aside from BeforeUpdate event handlers.");
+		}
+
 		// Set fields now:
 		cb(context, entity);
 
@@ -1372,6 +1377,17 @@ public partial class AutoService
 					filter.Sort(field);
 				}
 			}
+		}
+
+		var on = newtonsoft["on"] as JObject;
+
+		if (on == null)
+		{
+			filter.Included = false;
+		}
+		else
+		{
+			filter.Included = true;
 		}
 
 		return filter;
