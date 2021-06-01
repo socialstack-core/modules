@@ -16,7 +16,7 @@ namespace Api.Database
 	/// A reusable database service core, enabling multiple database connections.
 	/// Connects to a database with the given connection string.
 	/// </summary>
-	public partial class DatabaseServiceCore
+	public partial class DatabaseServiceCore : AutoService
 	{
 		/// <summary>
 		/// The connection string to use.
