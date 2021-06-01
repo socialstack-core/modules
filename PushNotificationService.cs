@@ -20,7 +20,7 @@ namespace Api.PushNotifications
     /// Handles sending of push notifications.
     /// Intanced automatically. Use Injection to use this service, or Startup.Services.Get.
     /// </summary>
-    public partial class PushNotificationService : IPushNotificationService
+    public partial class PushNotificationService : AutoService
     {
 		private HttpClient _firebaseClient = new HttpClient();
         private PushNotificationConfig _configuration;
