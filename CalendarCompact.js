@@ -4,6 +4,7 @@ import Container from 'UI/Container';
 import { daysBetween, localToUtc, addDays, isoConvert, ordinal, shortMonthNames, monthNames, addMinutes } from 'UI/Functions/DateTools';
 import Loading from 'UI/Loading';
 import { useSession, SessionConsumer} from 'UI/Session';
+import webRequest from 'UI/Functions/WebRequest';
 
 export default class CalendarCompact extends React.Component {
 	
@@ -151,6 +152,23 @@ export default class CalendarCompact extends React.Component {
 	}
 	
 	populateBetween(start, end, dayMeta){
+		var {dataHandlers} = this.props;
+
+		var dataRequests = dataHandlers.map(handler => webRequest(handler.type + '/list', {where: handler.onGetFilter && handler.onGetFilter(start, end) || {}},
+		{includes: handler.includes}));
+
+		Promise.all(dataRequests).then(response => {
+			console.log("Promise.all request", response);
+			//if(response.json){
+				// Can either give us an array or a raw API response.
+				response = response[1].json.results;
+			//}
+			this.build(response, dayMeta);
+		});
+		
+
+
+		/*
 		this.props.onGetData && this.props.onGetData(start, end).then(response => {
 			
 			if(response.json){
@@ -162,7 +180,7 @@ export default class CalendarCompact extends React.Component {
 			// response=this.rand();
 			
 			this.build(response, dayMeta);
-		});
+		});*/
 	}
 	
 	/*
@@ -195,6 +213,7 @@ export default class CalendarCompact extends React.Component {
 	*/
 	
 	build(response, dayMeta){
+		console.log("CalendarCompact build", response);
 		for(var i=0;i<dayMeta.length;i++){
 			dayMeta[i].results = [];
 		}
@@ -213,7 +232,10 @@ export default class CalendarCompact extends React.Component {
 				// Is startUtc in between this days start/ ends?
 				var day = dayMeta[d];
 				
+				//console.log("entry", entry);
+
 				if(day.start <= startUtc && day.end >= startUtc){
+					console.log("entry in range", entry);
 					entry.minuteStart = Math.floor(((startUtc - day.start)/1000)/60);
 					entry.minuteEnd = Math.floor(((entry.endUtc - day.start)/1000)/60);
 					day.results.push(entry);
