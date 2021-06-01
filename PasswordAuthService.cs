@@ -20,7 +20,7 @@ namespace Api.PasswordAuth
 	/// You can either add additional schemes or just outright replace this one if you want something else.
 	/// Instanced automatically. Use injection to use this service, or Startup.Services.Get.
 	/// </summary>
-	public partial class PasswordAuthService
+	public partial class PasswordAuthService : AutoService
     {
 		
 		/// <summary>
