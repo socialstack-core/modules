@@ -59,6 +59,58 @@ namespace Api.Permissions{
 		}
 	}
 
+	public partial class MappingFilterTreeNode<T, ID> : FilterTreeNode<T, ID>
+		where T : Content<ID>, new()
+		where ID : struct, IConvertible, IEquatable<ID>
+	{
+		/// <summary>
+		/// Mapping table name.
+		/// </summary>
+		private string MappingTableName;
+
+		/// <summary>
+		/// Steps through this tree, building an SQL-format where query. Very similar to how it actually starts out.
+		/// Note that if it encounters an array node, it will immediately resolve the value using values stored in the given filter instance.
+		/// </summary>
+		/// <param name="cmd"></param>
+		/// <param name="writer"></param>
+		/// <param name="collectors"></param>
+		/// <param name="localeCode"></param>
+		/// <param name="filter"></param>
+		/// <param name="context"></param>
+		public override void ToSql(MySqlCommand cmd, Writer writer, ref IDCollector collectors, string localeCode, Filter<T, ID> filter, Context context)
+		{
+			if (MappingTableName == null)
+			{
+				// Only thing that actually matters with regards to source/ target direction is just the table name:
+				MappingTableName = SourceMapping ? 
+					MappingTypeEngine.GetTableName(OtherService.ServicedType, typeof(T), MapName) : 
+					MappingTypeEngine.GetTableName(typeof(T), OtherService.ServicedType, MapName);
+			}
+
+			writer.WriteASCII(" EXISTS (SELECT Id from ");
+			writer.WriteASCII(MappingTableName);
+			writer.WriteASCII(" WHERE ");
+
+			var otherTypeName = OtherService.ServicedType.Name;
+			var thisTypeName = typeof(T).Name;
+
+			// The given thing is the source. I.e. the value stored in Id == source Id.
+			writer.WriteASCII(thisTypeName); // target ID
+			writer.WriteASCII("Id");
+			writer.WriteASCII("=`");
+			writer.WriteASCII(thisTypeName);
+			writer.WriteASCII("`.`Id`");
+			writer.WriteASCII(" and ");
+			writer.WriteASCII(otherTypeName);
+			writer.WriteASCII("Id"); // source
+
+			writer.Write((byte)'=');
+			Id.ToSql(cmd, writer, ref collectors, localeCode, filter, context);
+			writer.WriteASCII(")");
+		}
+	}
+
 	/// <summary>
 	/// 
 	/// </summary>
