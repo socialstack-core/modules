@@ -71,7 +71,6 @@ export default class CalendarCompact extends React.Component {
 	}
 	
 	componentDidMount(){
-		console.log("CalendarCompact above load");
 		this.load(0, this.props);
 	}
 	
@@ -109,7 +108,6 @@ export default class CalendarCompact extends React.Component {
 	}
 
 	load(offset, props){
-		console.log("in loadIntl");
 
 		var { days } = props;
 		
@@ -136,8 +134,7 @@ export default class CalendarCompact extends React.Component {
 				results: null // Not loaded yet
 			});
 		}
-		
-		console.log("loadIntl currentView set", dayMeta);
+
 		this.setState({currentView: dayMeta, offset: offset});
 		this.props.setSession({...this.props.session, forceCalendarRefresh : null})
 
@@ -157,13 +154,16 @@ export default class CalendarCompact extends React.Component {
 		var dataRequests = dataHandlers.map(handler => webRequest(handler.type + '/list', {where: handler.onGetFilter && handler.onGetFilter(start, end) || {}},
 		{includes: handler.includes}));
 
-		Promise.all(dataRequests).then(response => {
-			console.log("Promise.all request", response);
+		Promise.all(dataRequests).then(responses => {
+
+			var rsps = [];
 			//if(response.json){
 				// Can either give us an array or a raw API response.
-				response = response[1].json.results;
+			responses.forEach(response => {
+				rsps = rsps.concat(response.json.results);
+			});
 			//}
-			this.build(response, dayMeta);
+			this.build(rsps, dayMeta);
 		});
 		
 
@@ -213,7 +213,6 @@ export default class CalendarCompact extends React.Component {
 	*/
 	
 	build(response, dayMeta){
-		console.log("CalendarCompact build", response);
 		for(var i=0;i<dayMeta.length;i++){
 			dayMeta[i].results = [];
 		}
@@ -224,6 +223,8 @@ export default class CalendarCompact extends React.Component {
 			var entry = response[i];
 			entry.startUtc = isoConvert(entry.startUtc);
 			entry.endUtc = isoConvert(entry.endUtc);
+			entry.startTimeUtc = isoConvert(entry.startTimeUtc);
+			entry.estimatedEndTimeUtc = isoConvert(entry.estimatedEndTimeUtc);
 			
 			// Start time:
 			var startUtc = entry.startUtc;
@@ -234,7 +235,7 @@ export default class CalendarCompact extends React.Component {
 				
 				//console.log("entry", entry);
 
-				if(day.start <= startUtc && day.end >= startUtc){
+				if((day.start <= startUtc && day.end >= startUtc) || (day.start <= entry.startTimeUtc && day.end >= entry.startTimeUtc)){
 					console.log("entry in range", entry);
 					entry.minuteStart = Math.floor(((startUtc - day.start)/1000)/60);
 					entry.minuteEnd = Math.floor(((entry.endUtc - day.start)/1000)/60);
