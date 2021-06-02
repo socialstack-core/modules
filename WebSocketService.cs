@@ -178,9 +178,20 @@ namespace Api.WebSockets
 		/// </summary>
 		private WebSocketTypeListeners GetTypeListener(Type type)
 		{
+			if (_setupForType == null)
+			{
+				_setupForType = GetType().GetMethod(nameof(SetupForType));
+			}
+			
 			if (!ListenersByType.TryGetValue(type, out WebSocketTypeListeners listener)){
 
 				var svc = Services.GetByContentType(type);
+
+				// Invoke setup for type:
+				var setupType = _setupForType.MakeGenericMethod(new Type[] {
+					svc.ServicedType,
+					svc.IdType
+				});
 				
 				lock (ListenersByType)
 				{
@@ -191,17 +202,6 @@ namespace Api.WebSockets
 
 					ListenersByType[type] = listener;
 				}
-
-				if (_setupForType == null)
-				{
-					_setupForType = GetType().GetMethod(nameof(SetupForType));
-				}
-
-				// Invoke setup for type:
-				var setupType = _setupForType.MakeGenericMethod(new Type[] {
-					svc.ServicedType,
-					svc.IdType
-				});
 
 				setupType.Invoke(this, new object[] {
 					svc,
