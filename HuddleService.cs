@@ -164,10 +164,10 @@ namespace Api.Huddles
         {
 			if (!exclusionId.HasValue)
 			{
-				return await Where("Slug=?", DataOptions.IgnorePermissions).Bind(slug).Any(ctx);
+				return !await Where("Slug=?", DataOptions.IgnorePermissions).Bind(slug).Any(ctx);
 			}
 
-			return await Where("Slug=? and Id!=?", DataOptions.IgnorePermissions).Bind(slug).Bind(exclusionId.Value).Any(ctx);
+			return !await Where("Slug=? and Id!=?", DataOptions.IgnorePermissions).Bind(slug).Bind(exclusionId.Value).Any(ctx);
 		}
 
 		/// <summary>
