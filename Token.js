@@ -1,5 +1,5 @@
 import Content from 'UI/Content';
-import Session from 'UI/Session';
+import { useSession } from 'UI/Session';
 
 /*
 * Contextual token. 
