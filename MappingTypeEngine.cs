@@ -1,3 +1,4 @@
+using Api.Configuration;
 using Api.Database;
 using Api.Eventing;
 using Api.SocketServerLibrary;
@@ -24,6 +25,21 @@ namespace Api.Startup
 		/// Generated mapper services.
 		/// </summary>
 		private static Dictionary<string, AutoService> _mappers = new Dictionary<string, AutoService>();
+
+		/// <summary>
+		/// Gets just the table name.
+		/// </summary>
+		/// <param name="src"></param>
+		/// <param name="target"></param>
+		/// <param name="listAs"></param>
+		/// <returns></returns>
+		public static string GetTableName(Type src, Type target, string listAs)
+		{
+			var srcTypeName = src.Name;
+			var targetTypeName = target.Name;
+			var typeName = srcTypeName + "_" + targetTypeName + "_map_" + listAs;
+			return AppSettings.DatabaseTablePrefix + typeName.ToLower();
+		}
 
 		/// <summary>
 		/// Gets or generates a mapping from src to target.

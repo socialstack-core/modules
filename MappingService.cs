@@ -252,7 +252,7 @@ namespace Api.Startup
 			// Get its locale 0 cache (it's a mapping type, so it's never localised):
 			if (_cache != null && _cacheIndex == null){
 				
-				var cache = GetCacheForLocale(0);
+				var cache = GetCacheForLocale(1);
 				
 				if (cache != null)
 				{
@@ -404,6 +404,54 @@ namespace Api.Startup
 		}
 
 		/// <summary>
+		/// True if the given mapping entry exists in this services cache. Note that if the cache is not active, this returns false.
+		/// </summary>
+		/// <param name="src"></param>
+		/// <param name="targ"></param>
+		/// <returns></returns>
+		public bool ExistsInCache(SRC_ID src, TARG_ID targ)
+		{
+			if (_cache == null)
+			{
+				return false;
+			}
+
+			if (_cacheIndex == null)
+			{
+
+				var cache = GetCacheForLocale(1);
+
+				if (cache != null)
+				{
+					// It's a cached mapping type.
+					// Pre-obtain index ref now:
+					_cacheIndex = cache.GetIndex<SRC_ID>(srcIdFieldName) as NonUniqueIndex<Mapping<SRC_ID, TARG_ID>, SRC_ID>;
+				}
+
+				if (_cacheIndex == null)
+				{
+					return false;
+				}
+			}
+
+			// Using an index scan
+			var indexEnum = _cacheIndex.GetEnumeratorFor(src);
+
+			while (indexEnum.HasMore())
+			{
+				// Get current value:
+				var mappingEntry = indexEnum.Current();
+
+				if (mappingEntry.TargetId.Equals(targ))
+				{
+					return true;
+				}
+			}
+
+			return false;
+		}
+		
+		/// <summary>
 		/// Returns true if a mapping from src_id => targ_id exists.
 		/// </summary>
 		/// <param name="context"></param>
@@ -415,7 +463,7 @@ namespace Api.Startup
 			if (_cache != null && _cacheIndex == null)
 			{
 
-				var cache = GetCacheForLocale(0);
+				var cache = GetCacheForLocale(1);
 
 				if (cache != null)
 				{

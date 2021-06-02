@@ -449,7 +449,8 @@ public partial class AutoService<T, ID> : AutoService
 	}
 
 	/// <summary>
-	/// Gets a fast filter for the given query text.
+	/// Gets a fast filter for the given query text. 
+	/// You should ensure the query text is constant and that you use binded args on the filter instead of baking values into a string.
 	/// </summary>
 	/// <param name="query"></param>
 	/// <param name="opts"></param>
@@ -482,7 +483,7 @@ public partial class AutoService<T, ID> : AutoService
 	}
 
 	/// <summary>
-	/// Non-allocating where selection of objects from this service. On the returned object, use e.g. GetList()
+	/// Non-allocating where selection of objects from this service. On the returned object, use e.g. .List()
 	/// </summary>
 	/// <returns></returns>
 	public Filter<T, ID> Where(DataOptions opts = DataOptions.Default)
@@ -492,7 +493,8 @@ public partial class AutoService<T, ID> : AutoService
 	}
 
 	/// <summary>
-	/// Non-allocating where selection of objects from this service. On the returned object, use e.g. GetList()
+	/// Non-allocating where selection of objects from this service. On the returned object, use e.g. List()
+	/// You should ensure the query text is constant and that you use binded args on the filter instead of baking values into a string.
 	/// </summary>
 	/// <param name="query"></param>
 	/// <param name="opts"></param>
@@ -534,6 +536,7 @@ public partial class AutoService<T, ID> : AutoService
 	public async ValueTask<int> GetResults(Context context, Filter<T, ID> filter, Func<Context, T, int, object, object, ValueTask> onResult, object srcA, object srcB)
 	{
 		// Filter is not optional. As it holds state for a particular run, it also cannot be an instance shared with other runs.
+		// Note that the above is not true for QueryB filters (see below) as they are stateless by design in order to maximise rapid reuse.
 
 		if (!filter.FullyBound())
 		{
