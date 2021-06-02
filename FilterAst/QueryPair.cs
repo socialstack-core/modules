@@ -817,7 +817,19 @@ namespace Api.Permissions
 			Fail(typeof(string));
 			return this;
 		}
-		
+
+		/// <summary>
+		/// A convenience variant of SetPage which returns a stronger typed filter.
+		/// </summary>
+		/// <param name="offset"></param>
+		/// <param name="size"></param>
+		/// <returns></returns>
+		public Filter<T, ID> Page(int offset, int size = 50)
+		{
+			SetPage(offset, size);
+			return this;
+		}
+
 		/// <summary>
 		/// Binds given value to current argument.
 		/// </summary>
