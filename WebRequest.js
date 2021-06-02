@@ -296,6 +296,23 @@ function _fetch(url, data, opts) {
 		data = d2;
 	}
 	
+	if(data.on && data.on.type && data.on.id){
+		var on = data.on;
+		var d2 = {...data};
+		delete d2.on;
+		var onStatement = 'On(' + data.on.type + ',?' + (data.on.map ? ',"' + data.on.map + '"' : '') + ')';
+		if(d2.query){
+			d2.query = '(' + d2.query + ') and ' + onStatement;
+		}else{
+			d2.query = onStatement;
+		}
+		if(!d2.args){
+			d2.args = [];
+		}
+		d2.args.push(data.on.id);
+		data = d2;
+	}
+	
 	return fetch(url, {
 		method: opts && opts.method ? opts.method : 'post',
 		headers: {
