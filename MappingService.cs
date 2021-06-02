@@ -77,6 +77,35 @@ namespace Api.Startup
 		}
 
 		/// <summary>
+		///  Creates a mapping from the given src to the given target. Only available on mapping services.
+		///  It's more ideal to use the type specific overloads whenever possible (particularly as they're available on regular services, rather than this mapping service specific one).
+		///  See also: CreateMappingIfNotExists, EnsureMapping
+		/// </summary>
+		/// <param name="context"></param>
+		/// <param name="a"></param>
+		/// <param name="b"></param>
+		/// <param name="opts"></param>
+		/// <returns></returns>
+		public override async ValueTask<bool> CreateMapping(Context context, object a, object b, DataOptions opts = DataOptions.Default)
+		{
+			var src = (SRC)a;
+			var targ = (TARG)b;
+
+			if (src == null || targ == null)
+			{
+				return false;
+			}
+
+			// Add it:
+			var entry = Activator.CreateInstance(InstanceType) as Mapping<SRC_ID, TARG_ID>;
+			entry.SourceId = src.Id;
+			entry.TargetId = targ.Id;
+			entry.CreatedUtc = DateTime.UtcNow;
+
+			return await Create(context, entry, DataOptions.IgnorePermissions) != null;
+		}
+		
+		/// <summary>
 		/// Gets a list of source IDs by target ID.
 		/// </summary>
 		/// <param name="context"></param>

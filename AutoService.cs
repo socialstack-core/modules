@@ -1211,6 +1211,21 @@ public partial class AutoService
 	}
 
 	/// <summary>
+	///  Creates a mapping from the given src to the given target. Only available on mapping services. 
+	///  It's more ideal to use the type specific overloads whenever possible (particularly as they're available on regular services, rather than this mapping service specific one).
+	///  See also: CreateMappingIfNotExists, EnsureMapping
+	/// </summary>
+	/// <param name="context"></param>
+	/// <param name="a"></param>
+	/// <param name="b"></param>
+	/// <param name="opts"></param>
+	/// <returns></returns>
+	public virtual ValueTask<bool> CreateMapping(Context context, object a, object b, DataOptions opts = DataOptions.Default)
+	{
+		throw new NotImplementedException("Only available on a mapping service.");
+	}
+
+	/// <summary>
 	/// Outputs the given object (an entity from this service) to JSON in the given writer.
 	/// </summary>
 	/// <param name="context"></param>

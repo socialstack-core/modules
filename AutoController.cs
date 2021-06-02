@@ -287,6 +287,66 @@ public partial class AutoController<T,ID> : ControllerBase
 
 		}
 
+		// If it has an on object, create the mapping entry now if we have read visibility of the target:
+		var on = body["on"];
+
+		if (on != null && on.Type == JTokenType.Object)
+		{
+			// Get relevant fields:
+			var type = on["type"];
+			var id = on["id"];
+			var map = on["map"];
+
+			// If map is null, we'll use the primary map. First though, attempt to get the actual content type:
+			var contentType = ContentTypes.GetType(type.Value<string>());
+
+			if (contentType != null)
+			{
+				var svc = Services.GetByContentType(contentType);
+
+				if (svc != null)
+				{
+					var srcObject = await svc.GetObject(context, "Id", id.Value<string>());
+
+					if (srcObject != null)
+					{
+						// Mapping permitted.
+						string mapName;
+
+						if (map == null)
+						{
+							// "this" service is the one which has a ListAs:
+							mapName = _service.GetContentFields().PrimaryMapName;
+
+							if (string.IsNullOrEmpty(mapName))
+							{
+								throw new PublicException(
+									"This type '" + typeof(T).Name + "' doesn't have a primary map name so you'll need to specify a particular map: in your on:{}.",
+									"no_map"
+								);
+							}
+						}
+						else
+						{
+							mapName = map.Value<string>();
+
+							if (!ContentFields._globalVirtualFields.ContainsKey(mapName.ToLower()))
+							{
+								throw new PublicException(
+									"A map called '" + mapName + "' doesn't exist.",
+									"no_map"
+								);
+							}
+						}
+
+						// Create map from srcObject -> entity via the map called MapName. First though, get the mapping service:
+						var mappingService = await MappingTypeEngine.GetOrGenerate(svc, _service, mapName);
+						await mappingService.CreateMapping(context, srcObject, entity, DataOptions.IgnorePermissions);
+					}
+				}
+			}
+		}
+
 		// Complete the call (runs AfterCreate):
 		entity = await _service.CreatePartialComplete(context, entity);
 
@@ -337,6 +397,11 @@ public partial class AutoController<T,ID> : ControllerBase
 
 		foreach (var property in body.Properties())
 		{
+			if (property.Name == "on")
+			{
+				continue;
+			}
+
 			// Attempt to get the available field:
 			var field = availableFields.GetField(property.Name, fieldGroup);
 
