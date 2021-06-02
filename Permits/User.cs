@@ -2,7 +2,7 @@ using Api.Startup;
 
 namespace Api.Users{
 	
-	[ListAs("UserPermits")]
+	[ListAs("UserPermits", IsPrimary = false)]
 	public partial class User{}
 	
 }

@@ -58,6 +58,11 @@ namespace Api.Permissions
 		public ReverseMappingInfo[] CollectorMeta;
 
 		/// <summary>
+		/// True if the filter has a rooted On(..) statement. It can only be a child of an AND statement.
+		/// </summary>
+		public bool HasRootedOn;
+		
+		/// <summary>
 		/// Creates filter metadata for the given query pair.
 		/// </summary>
 		public FilterMeta(AutoService<T, ID> service, string query, bool allowConstants = false){
@@ -75,6 +80,61 @@ namespace Api.Permissions
 		/// Type info for the args.
 		/// </summary>
 		public List<ArgBinding> ArgTypes;
+
+		/// <summary>
+		/// Underlying mapping bindings (if any).
+		/// </summary>
+		public List<MappingBinding<T, ID>> MappingBindings;
+
+		/// <summary>
+		/// True if the mapping bindings have been setup.
+		/// </summary>
+		public bool MappingBindingsLoaded;
+
+		/// <summary>
+		/// Task if mapping binding is going to be a slow load.
+		/// </summary>
+		private Task MappingBindingLoader = null;
+
+		/// <summary>
+		/// Underlying loop setting up each one
+		/// </summary>
+		/// <returns></returns>
+		private async ValueTask SetupMappingBindingsRawTask()
+		{
+			for (var i = 0; i < MappingBindings.Count; i++)
+			{
+				await MappingBindings[i].Setup();
+			}
+		}
+
+		/// <summary>
+		/// Ensures the mapping bindings are setup and ready to go. Essentially makes sure the actual mapping services are loaded and their cache is warm.
+		/// </summary>
+		/// <returns></returns>
+		public async ValueTask SetupMappingBindings()
+		{
+			if (MappingBindingLoader != null)
+			{
+				// Some other thread is actively setting these up - just wait for the task:
+				await MappingBindingLoader;
+			}
+			else if (MappingBindings != null)
+			{
+				// Set them up now:
+				var vt = SetupMappingBindingsRawTask();
+
+				if (!vt.IsCompleted)
+				{
+					// Apply the task:
+					MappingBindingLoader = vt.AsTask();
+					await MappingBindingLoader;
+				}
+			}
+
+			// Mark as loaded:
+			MappingBindingsLoaded = true;
+		}
 
 		/// <summary>
 		/// Sets up collectors and their mappings.
@@ -132,9 +192,16 @@ namespace Api.Permissions
 				return;
 			}
 
+			MappingBindings = tree.Mappings;
+
 			// Build the type:
 			_constructedType = tree.ConstructType();
 
+			if (tree.Root != null)
+			{
+				HasRootedOn = tree.Root.HasRootedOnStatement();
+			}
+			
 			ArgTypes = tree.Args;
 
 			for (var i = 0; i < ArgTypes.Count; i++)
@@ -163,7 +230,7 @@ namespace Api.Permissions
 				f.Empty = false;
 			}
 
-			f.Included = false;
+			f.Included = HasRootedOn;
 			f.Pool = this;
 			return f;
 		}
@@ -389,6 +456,17 @@ namespace Api.Permissions
 		protected int _arg = 0;
 
 		/// <summary>
+		/// Gets the map at the given index. Is always a mappingservice, 
+		/// and is setup before this ever gets invoked provided GetResults is used with the filter.
+		/// </summary>
+		/// <param name="index"></param>
+		/// <returns></returns>
+		public AutoService GetMap(int index)
+		{
+			return Pool.MappingBindings[index].Map;
+		}
+
+		/// <summary>
 		/// True if every arg has been bound.
 		/// </summary>
 		/// <returns></returns>
@@ -421,6 +499,11 @@ namespace Api.Permissions
 		/// <returns></returns>
 		public async ValueTask<IDCollector> RentAndCollect(Context context, AutoService src)
 		{
+			if (!Pool.MappingBindingsLoaded)
+			{
+				await Pool.SetupMappingBindings();
+			}
+
 			if (Pool.CollectorMeta == null)
 			{
 				// Construct collector metadata now from the AST:

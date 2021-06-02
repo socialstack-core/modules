@@ -79,8 +79,36 @@ namespace Api.Permissions{
 				throw new PublicException("IsIncluded in a filter call takes 0 arguments", "filter_invalid");
 			}
 
-			// Use specialised hasFrom node:
+			// Use specialised IsIncluded node:
 			return new IsIncludedFilterTreeNode<T,ID>();
+		}
+		
+		/// <summary>
+		/// True if a 
+		/// </summary>
+		/// <typeparam name="T"></typeparam>
+		/// <typeparam name="ID"></typeparam>
+		/// <param name="node"></param>
+		/// <param name="ast"></param>
+		public static FilterTreeNode<T, ID> On<T, ID>(MemberFilterTreeNode<T, ID> node, FilterAst<T, ID> ast)
+			where T : Content<ID>, new()
+			where ID : struct, IConvertible, IEquatable<ID>
+		{
+			if (node.Args.Count < 2)
+			{
+				throw new PublicException("On in a filter call takes 2 or 3 arguments", "filter_invalid");
+			}
+
+			// Uses if mapping node:
+
+			// Note that On() has custom arg parsing as it is permitted to contain constants always, so these casts are ok.
+			return new MappingFilterTreeNode<T, ID>()
+			{
+				SourceMapping = true,
+				TypeName = (node.Args[0] as StringFilterTreeNode<T, ID>).Value,
+				Id = node.Args[1] as ArgFilterTreeNode<T, ID>,
+				MapName = node.Args.Count > 2 ? (node.Args[2] as StringFilterTreeNode<T, ID>).Value : null
+			}.Add(ast);
 		}
 		
 		/// <summary>
@@ -153,10 +181,17 @@ namespace Api.Permissions{
 				throw new PublicException("HasUserPermit in a filter call takes 0 arguments", "filter_invalid");
 			}
 
-			// Get the mapping T->User called UserPermits:
-			// var mappingSvc = ast.Service.GetMap<Users.User, uint>("UserPermits");
-
-			return IsSelf(node, ast);
+			return new MappingFilterTreeNode<T, ID>()
+			{
+				SourceMapping = false,
+				TypeName = "User",
+				Id = new MemberFilterTreeNode<T, ID>()
+				{
+					Name = "UserId",
+					OnContext = true
+				}.Resolve(ast),
+				MapName = "UserPermits"
+			}.Add(ast);
 		}
 
 		/// <summary>
@@ -175,10 +210,17 @@ namespace Api.Permissions{
 				throw new PublicException("HasRolePermit in a filter call takes 0 arguments", "filter_invalid");
 			}
 
-			// Get the mapping T->Role called RolePermits:
-			// var mappingSvc = ast.Service.GetMap<Role, uint>("RolePermits");
-
-			return IsSelf(node, ast);
+			return new MappingFilterTreeNode<T, ID>()
+			{
+				SourceMapping = false,
+				TypeName = "Role",
+				Id = new MemberFilterTreeNode<T, ID>()
+				{
+					Name = "RoleId",
+					OnContext = true
+				}.Resolve(ast),
+				MapName = "RolePermits"
+			}.Add(ast);
 		}
 
 	}
@@ -284,6 +326,83 @@ namespace Api.Permissions{
 	}
 
 	/// <summary>
+	/// Raw mapping binding
+	/// </summary>
+	public class MappingBinding<T, ID>
+		where T : Content<ID>, new()
+		where ID : struct, IConvertible, IEquatable<ID>
+	{
+		/// <summary>
+		/// The underlying node.
+		/// </summary>
+		public MappingFilterTreeNode<T, ID> Node;
+
+		/// <summary>
+		/// The mapping service.
+		/// </summary>
+		public AutoService Map;
+		
+		/// <summary>
+		/// Resolves this node, collecting the mapping service to use.
+		/// </summary>
+		/// <returns></returns>
+		public async ValueTask Setup()
+		{
+			// var thisContentType = typeof(T);
+			var thisService = Node.ThisService;
+			var otherService = Node.OtherService;
+
+			var mapName = Node.MapName;
+
+			if (mapName != null)
+			{
+				// Ensure this map name exists:
+				if (!ContentFields._globalVirtualFields.ContainsKey(mapName.ToLower()))
+				{
+					throw new PublicException(
+						"A map called '" + mapName + "' doesn't exist (likely used by an On declaration in your filter).",
+						"no_map"
+					);
+				}
+			}
+			else
+			{
+				// Use the primary map name. Map is from the target service.
+				var cf = (Node.SourceMapping ? thisService : otherService).GetContentFields();
+
+				if (cf.PrimaryMapName == null)
+				{
+					throw new PublicException(
+						"This type doesn't have a primary map, meaning you'll need to specify a map name via \"map\":\"name_here\" in your \"on\":{}. " +
+						"The map name is the name of a ListAs field. For example, ListAs(\"Tags\") on Tag means it has a map called 'Tags'. " +
+						"On Tag specifically however, ListAs(\"Tags\") is the primary map (because it's the most obvious name) and as a result you can omit the map name when using it.",
+						"no_primary_map"
+					);
+				}
+
+				Node.MapName = cf.PrimaryMapName;
+				mapName = cf.PrimaryMapName;
+			}
+
+			// If SourceMapping is true, "this" is the target.
+			if (Node.SourceMapping)
+			{
+				// target = thisContentType, thisService
+				// source = otherContentType, otherService
+				Map = await MappingTypeEngine.GetOrGenerate(otherService, thisService, mapName);
+			}
+			else
+			{
+				// target = otherContentType, otherService
+				// source = thisContentType, thisService
+				Map = await MappingTypeEngine.GetOrGenerate(thisService, otherService, mapName);
+			}
+
+		}
+		
+	}
+
+	/// <summary>
 	/// A tree of parsed filter nodes.
 	/// </summary>
 	/// <typeparam name="T"></typeparam>
@@ -353,6 +472,11 @@ namespace Api.Permissions{
 		/// an array of just typeof(string)
 		/// </summary>
 		private static Type[] _strTypeInArray = new Type[] { typeof(string) };
+
+		/// <summary>
+		/// The set of mappings in this AST.
+		/// </summary>
+		public List<MappingBinding<T, ID>> Mappings;
 
 		/// <summary>
 		/// Emits a read field value for the given node into the given generator.
@@ -1121,7 +1245,7 @@ namespace Api.Permissions{
 		/// Parses a constant-like value.
 		/// </summary>
 		/// <returns></returns>
-		public FilterTreeNode<T, ID> ParseValue(bool allowMember = false)
+		public FilterTreeNode<T, ID> ParseValue()
 		{
 			// Value - typically "?" but can be a const if const is permissable
 
@@ -1259,12 +1383,6 @@ namespace Api.Permissions{
 				return ReadString('\'');
 			}
 
-			if (allowMember)
-			{
-				// TODO: Handle fields inside a methodCall, e.g. MyFunc(Id)
-				// Be careful for the above true/false/null though - fields that start with t/f/n will fail to come down here
-			}
-
 			throw new PublicException(
 				"Unexpected character in filter string. Expected a value but got '" + current + "' at position " + Index + " in " + Query,
 				"filter_invalid"
@@ -1273,7 +1391,12 @@ namespace Api.Permissions{
 
 		private StringBuilder sb = new StringBuilder();
 
-		private StringFilterTreeNode<T, ID> ReadString(char terminal)
+		/// <summary>
+		/// Read a string from this AST
+		/// </summary>
+		/// <param name="terminal"></param>
+		/// <returns></returns>
+		public StringFilterTreeNode<T, ID> ReadString(char terminal)
 		{
 			// Read off the first quote:
 			var start = Index;
@@ -1359,6 +1482,16 @@ namespace Api.Permissions{
 		where ID : struct, IConvertible, IEquatable<ID>
 	{
 		/// <summary>
+		/// True if the node has an on statement.
+		/// Most nodes return false - only and will accept one as a child.
+		/// </summary>
+		/// <returns></returns>
+		public virtual bool HasRootedOnStatement()
+		{
+			return false;
+		}
+		
+		/// <summary>
 		/// 
 		/// </summary>
 		/// <param name="generator"></param>
@@ -1437,7 +1570,22 @@ namespace Api.Permissions{
 				Operation == "or" || Operation == "||" ||
 				Operation == "not";
 		}
+		
+		/// <summary>
+		/// True if the node has an on statement.
+		/// Most nodes return false - only and will accept one as a child.
+		/// </summary>
+		/// <returns></returns>
+		public override bool HasRootedOnStatement()
+		{
+			if (Operation == "and" || Operation == "&&")
+			{
+				return A.HasRootedOnStatement() || B.HasRootedOnStatement();
+			}
 
+			return false;
+		}
+		
 		/// <summary>
 		/// 
 		/// </summary>
@@ -1861,16 +2009,92 @@ namespace Api.Permissions{
 
 			// Name is start->index:
 			Name = ast.SubstringFrom(start);
-			
+
 			if (Args != null)
 			{
 				// Skip the opening bracket:
 				ast.Index++;
 				ast.ConsumeWhitespace();
 
+				if (Name == "On" || Name == "on")
+				{
+					Name = "on";
+
+					// First arg should be a type name:
+					start = ast.Index;
+
+					while (ast.More())
+					{
+						var current = ast.Peek();
+
+						if (char.IsHighSurrogate(current))
+						{
+							ast.Index++;
+							if (char.IsLowSurrogate(ast.Peek()))
+							{
+								ast.Index++;
+							}
+						}
+						else if (char.IsLetterOrDigit(current))
+						{
+							ast.Index++;
+						}
+						else
+						{
+							break;
+						}
+					}
+
+					var typeName = ast.SubstringFrom(start);
+
+					if (ast.Peek() != ',')
+					{
+						throw new PublicException("On() requires at least two parameters", "filter_invalid");
+					}
+
+					Args.Add(new StringFilterTreeNode<T, ID>() { Value = typeName });
+
+					// Consume next method arg, which must only be an argument value:
+					ast.Index++;
+					ast.ConsumeWhitespace();
+
+					if (ast.Peek() != '?')
+					{
+						throw new PublicException("The second parameter of On() can only be a ?", "filter_invalid");
+					}
+
+					ast.Index++;
+					ast.ConsumeWhitespace();
+
+					Args.Add(new ArgFilterTreeNode<T, ID>());
+
+					if (ast.Peek() == ',')
+					{
+						// 3rd is the map name, a regular string:
+						ast.Index++;
+						ast.ConsumeWhitespace();
+
+						var terminal = ast.Peek();
+
+						if (terminal == '"' || terminal == '\'')
+						{
+							Args.Add(ast.ReadString(terminal));
+						}
+						else
+						{
+							throw new PublicException("The optional third parameter of On() can only be a constant string", "filter_invalid");
+						}
+					}
+
+					if (ast.Peek() != ')')
+					{
+						throw new PublicException("Too many parameters given to On(). It accepts either two or three.", "filter_invalid");
+					}
+				}
+
 				while (ast.Peek() != ')')
 				{
-					Args.Add(ast.ParseValue(true));
+					Args.Add(ast.ParseValue());
 					ast.ConsumeWhitespace();
 					var current = ast.Peek();
 					if (!ast.More() || (current != ',' && current != ')'))
@@ -1982,11 +2206,196 @@ namespace Api.Permissions{
 	}
 
 	/// <summary>
+	/// A node which is true if a mapping exists. This node is why mappings are cached as it expects to resolve instantly.
+	/// </summary>
+	/// <typeparam name="T"></typeparam>
+	/// <typeparam name="ID"></typeparam>
+	public partial class MappingFilterTreeNode<T, ID> : FilterTreeNode<T, ID>
+		where T : Content<ID>, new()
+		where ID : struct, IConvertible, IEquatable<ID>
+	{
+		/// <summary>
+		/// Index of this mapping in the Ast.Mappings set.
+		/// </summary>
+		public int Index;
+		
+		/// <summary>
+		/// True if the thing we are checking for a mapping with is the source object (meaning "this" is a target).
+		/// </summary>
+		public bool SourceMapping;
+
+		/// <summary>
+		/// The name of the type at the other end of the mapping, e.g. Video
+		/// </summary>
+		public string TypeName;
+
+		/// <summary>
+		/// The node where the ID will come from.
+		/// </summary>
+		public FilterTreeNode<T, ID> Id;
+
+		/// <summary>
+		/// Optional map name. If null, primary map is used.
+		/// </summary>
+		public string MapName;
+
+		/// <summary>
+		/// The service for type T.
+		/// </summary>
+		public AutoService<T, ID> ThisService;
+
+		/// <summary>
+		/// The other service (it'll either be target service, or source service, depending on SourceMapping).
+		/// </summary>
+		public AutoService OtherService;
+
+		/// <summary>
+		/// The mapping binding which stores the resolved map.
+		/// </summary>
+		public MappingBinding<T, ID> Binding;
+
+		/// <summary>
+		/// 
+		/// </summary>
+		/// <param name="generator"></param>
+		/// <param name="ast"></param>
+		public override void Emit(ILGenerator generator, FilterAst<T, ID> ast)
+		{
+			// Code being emitted is approximately like this:
+			// var map = Filter<T,ID>.GetMap(Index); // Is a MappingService<SRC_ID, TARG_ID>
+			// if(SourceMapping){
+			// return map.ExistsInCache(Id, CurrentObjectId); // The provided ID is the source
+			// }else{
+			// return map.ExistsInCache(CurrentObjectId, Id); // The provided ID is the target
+			// }
+
+			// Grab the GetMap func:
+			var getMapMethod = typeof(Filter<T, ID>).GetMethod("GetMap");
+
+			// thisFilter.GetMap(Index)
+			generator.Emit(OpCodes.Ldarg_0); // thisFilter
+			generator.Emit(OpCodes.Ldc_I4, Index); // (Index)
+			generator.Emit(OpCodes.Callvirt, getMapMethod);
+
+			// Stack now has the MappingService on it.
+
+			// What type actually is it?
+			Type mappingServiceType;
+			
+			if (SourceMapping)
+			{
+				// "this" is the target.
+				mappingServiceType = typeof(MappingService<,>).MakeGenericType(OtherService.IdType, ThisService.IdType);
+			}
+			else
+			{
+				mappingServiceType = typeof(MappingService<,>).MakeGenericType(ThisService.IdType, OtherService.IdType);
+			}
+
+			// Get the existsInCache method:
+			var existsInCache = mappingServiceType.GetMethod("ExistsInCache");
+
+			if (SourceMapping)
+			{
+				// "this" (the actual object being tested) is the target.
+				ast.EmitReadValue(generator, Id, OtherService.IdType); // Emit source (other service) ID.
+				
+				// Read the ID:
+				generator.Emit(OpCodes.Ldarg_2); // Emit source (this service) ID.
+				generator.Emit(OpCodes.Ldfld, ThisService.InstanceType.GetField("Id"));
+
+				generator.Emit(OpCodes.Callvirt, existsInCache);
+			}
+			else
+			{
+				generator.Emit(OpCodes.Ldarg_2); // Emit source (this service) ID.
+				generator.Emit(OpCodes.Ldfld, ThisService.InstanceType.GetField("Id"));
+
+				// Emit source (this service) ID.
+				ast.EmitReadValue(generator, Id, OtherService.IdType); // Emit target (other service) ID.
+				generator.Emit(OpCodes.Callvirt, existsInCache);
+			}
+
+		}
+
+		/// <summary>
+		/// Add this node to the given AST.
+		/// </summary>
+		/// <param name="ast"></param>
+		/// <returns></returns>
+		public MappingFilterTreeNode<T, ID> Add(FilterAst<T, ID> ast)
+		{
+			if (ast.Mappings == null)
+			{
+				ast.Mappings = new List<MappingBinding<T, ID>>();
+			}
+
+			// Other type and its service:
+			var typeName = TypeName;
+			var otherContentType = ContentTypes.GetType(typeName);
+
+			if (otherContentType == null)
+			{
+				throw new PublicException("A content type called '" + typeName + "' doesn't exist.", "filter_invalid");
+			}
+
+			OtherService = Services.GetByContentType(otherContentType);
+
+			if (OtherService == null)
+			{
+				throw new PublicException("A content type called '" + typeName + "' can't be used via mappings.", "filter_invalid");
+			}
+
+			ThisService = ast.Service;
+			Index = ast.Mappings.Count;
+			Binding = new MappingBinding<T, ID>()
+			{
+				Node = this
+			};
+
+			ast.Mappings.Add(Binding);
+			return this;
+		}
+
+		/// <summary>
+		/// 
+		/// </summary>
+		public override void ToString(StringBuilder builder)
+		{
+			builder.Append("On(");
+			
+			if (string.IsNullOrWhiteSpace(MapName))
+			{
+				builder.Append("NO_TYPE_SPECIFIED");
+			}
+			else
+			{
+				builder.Append(TypeName);
+			}
+
+			builder.Append(',');
+			
+			if (Id != null)
+			{
+				Id.ToString(builder);
+			}
+
+			if (!string.IsNullOrWhiteSpace(MapName))
+			{
+				builder.Append(',');
+				builder.Append(MapName);
+			}
+
+			builder.Append(')');
+		}
+	}
+
+	/// <summary>
 	/// 
 	/// </summary>
 	public partial class IsIncludedFilterTreeNode<T, ID> : FilterTreeNode<T, ID>
-		where T : Content<ID>, new()
-		where ID : struct, IConvertible, IEquatable<ID>
+	where T : Content<ID>, new()
+	where ID : struct, IConvertible, IEquatable<ID>
 	{
 
 		/// <summary>
