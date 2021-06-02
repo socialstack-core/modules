@@ -1,4 +1,5 @@
 import Content from 'UI/Content';
+import Session from 'UI/Session';
 
 /*
 * Contextual token. 
@@ -7,6 +8,8 @@ import Content from 'UI/Content';
 
 export default function Token (props, context) {
 	// If editor, display the thing and its children:
+	var {session} = useSession();
+	
 	if(props._rte){
 		return <span className="context-token" ref={props.rootRef}>
 			{props.children}
@@ -18,6 +21,8 @@ export default function Token (props, context) {
 	
 	if(props.mode == 'primary' || props.mode == 'p'){
 		content = Content.getPrimary(context);
+	}else if(props.mode == 'session'){
+		content = session;
 	}else{
 		content = context[props.mode];
 	}
