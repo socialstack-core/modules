@@ -286,17 +286,17 @@ namespace Api.Permissions{
 				// Starts with. Like has equal performance to INSTR, 
 				// but like gains the lead considerably when the column is indexed, so like it is.
 				A.ToSql(cmd, writer, ref collectors, localeCode, filter, context);
-				writer.WriteS(" like concat('%', ");
+				writer.WriteS(" like concat(");
 				B.ToSql(cmd, writer, ref collectors, localeCode, filter, context);
-				writer.WriteS(")");
+				writer.WriteS(", '%')");
 			}
 			else if (Operation == "endswith")
 			{
 				// Ends with. Can only perform a like here:
 				A.ToSql(cmd, writer, ref collectors, localeCode, filter, context);
-				writer.WriteS(" like concat(");
+				writer.WriteS(" like concat('%', ");
 				B.ToSql(cmd, writer, ref collectors, localeCode, filter, context);
-				writer.WriteS(", '%')");
+				writer.WriteS(")");
 			}
 			else if (Operation == "contains")
 			{
