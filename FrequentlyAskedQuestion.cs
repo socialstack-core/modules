@@ -11,7 +11,7 @@ namespace Api.FrequentlyAskedQuestions
 	/// <summary>
 	/// A FrequentlyAskedQuestion
 	/// </summary>
-	public partial class FrequentlyAskedQuestion : RevisionRow, IHaveTags
+	public partial class FrequentlyAskedQuestion : VersionedContent<uint>
 	{
         /// <summary>
         /// The question people ask.
@@ -25,11 +25,6 @@ namespace Api.FrequentlyAskedQuestions
 		/// </summary>
 		[Localized]
 		public string AnswerJson;
-
-		/// <summary>
-		/// Tags
-		/// </summary>
-		public List<Tag> Tags { get; set; }
 	}
 
 }

@@ -13,6 +13,6 @@ namespace Api.Eventing
 		/// <summary>
 		/// Set of events for a frequentlyAskedQuestion.
 		/// </summary>
-		public static EventGroup<FrequentlyAskedQuestion> FrequentlyAskedQuestion;
+		public static EventGroup<FrequentlyAskedQuestion, uint> FrequentlyAskedQuestion;
 	}
 }
