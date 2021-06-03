@@ -26,16 +26,16 @@ namespace Api.Users
 		/// </summary>
 		/// <returns></returns>
 		[HttpPost("setup2fa/confirm")]
-		public async Task<object> TwoFactorSetup([FromBody] PinCarrierModel pinCarrier)
+		public async ValueTask<object> TwoFactorSetup([FromBody] PinCarrierModel pinCarrier)
 		{
-			var context = Request.GetContext();
+			var context = await Request.GetContext();
 
 			if (context == null || pinCarrier == null)
 			{
 				return null;
 			}
 			
-			var user = await context.GetUser();
+			var user = context.User;
 			
 			if(user.TwoFactorSecretPending == null)
 			{
@@ -47,9 +47,11 @@ namespace Api.Users
 			{
 				// Ok! Successful setup.
 				// Apply pending -> active right now.
-				user.TwoFactorSecret = user.TwoFactorSecretPending;
-				user.TwoFactorSecretPending = null;
-				await _service.Update(context, user);
+				
+				await _service.Update(context, user, (Context c, User u) => {
+					u.TwoFactorSecret = u.TwoFactorSecretPending;
+					u.TwoFactorSecretPending = null;
+				});
 			}
 			
 			return new {
@@ -62,9 +64,9 @@ namespace Api.Users
 		/// </summary>
 		/// <returns></returns>
 		[HttpGet("setup2fa/newkey")]
-		public async Task<IActionResult> TwoFactorNewKey()
+		public async ValueTask<IActionResult> TwoFactorNewKey()
 		{
-			var context = Request.GetContext();
+			var context = await Request.GetContext();
 
 			if (context == null)
 			{
@@ -72,7 +74,7 @@ namespace Api.Users
 			}
 			
 			// Get ctx user:
-			var user = await context.GetUser();
+			var user = context.User;
 			
 			if(user == null)
 			{
@@ -84,8 +86,9 @@ namespace Api.Users
 			// Generate a key and apply to pending:
 			var key = twoFA.GenerateKey();
 			
-			user.TwoFactorSecretPending = key;
-			user = await _service.Update(context, user);
+			user = await _service.Update(context, user, (Context c, User u) => {
+				user.TwoFactorSecretPending = key;
+			});
 			
 			var imageBytes = twoFA.GenerateProvisioningImage(key);
 			

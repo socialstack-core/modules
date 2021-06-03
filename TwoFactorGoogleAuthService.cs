@@ -18,7 +18,7 @@ namespace Api.TwoFactorGoogleAuth
 	/// Google authenticator based 2FA.
 	/// Instanced automatically. Use injection to use this service, or Startup.Services.Get.
 	/// </summary>
-	public partial class TwoFactorGoogleAuthService
+	public partial class TwoFactorGoogleAuthService : AutoService
 	{
 		private readonly GoogleAuthenticator _ga;
 		private readonly TwoFactorAuthConfig config;
@@ -27,7 +27,7 @@ namespace Api.TwoFactorGoogleAuth
 		/// <summary>
 		/// Instanced automatically. Use injection to use this service, or Startup.Services.Get.
 		/// </summary>
-		public TwoFactorGoogleAuthService(UserService _users)
+		public TwoFactorGoogleAuthService(UserService _users, RoleService _roles)
         {
 			_ga = new GoogleAuthenticator();
 			config = AppSettings.GetSection("TwoFactorAuth").Get<TwoFactorAuthConfig>();
@@ -54,8 +54,8 @@ namespace Api.TwoFactorGoogleAuth
 				{
 					// If it's required for this account and the setup meta has not been submitted, require setup.
 					var user = result.User;
-					var role = Roles.Get(user.Role);
-					
+					var role = await _roles.Get(context, user.Role);
+
 					if(config.Required || (config.RequiredForAdmin && role != null && role.CanViewAdmin))
 					{
 						if (string.IsNullOrEmpty(loginDetails.Google2FAPin) || result.User.TwoFactorSecretPending == null)
@@ -64,8 +64,11 @@ namespace Api.TwoFactorGoogleAuth
 							if(user.TwoFactorSecretPending == null)
 							{
 								var key = GenerateKey();
-								user.TwoFactorSecretPending = key;
-								user = await _users.Update(context, user);
+								
+								user = await _users.Update(context, user, (Context c, User u) => {
+									u.TwoFactorSecretPending = key;
+								});
+
 								result.User = user;
 							}
 							
@@ -83,9 +86,10 @@ namespace Api.TwoFactorGoogleAuth
 							if(Validate(result.User.TwoFactorSecretPending, loginDetails.Google2FAPin))
 							{
 								// Apply pending -> active right now.
-								user.TwoFactorSecret = user.TwoFactorSecretPending;
-								user.TwoFactorSecretPending = null;
-								user = await _users.Update(context, user);
+								user = await _users.Update(context, user, (Context c, User u) => {
+									u.TwoFactorSecret = u.TwoFactorSecretPending;
+									u.TwoFactorSecretPending = null;
+								});
 								result.User = user;
 							}
 							else
