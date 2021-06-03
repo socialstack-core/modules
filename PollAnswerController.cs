@@ -4,7 +4,7 @@ namespace Api.Polls
 {
     /// <summary>Handles poll answer endpoints.</summary>
     [Route("v1/pollanswer")]
-	public partial class PollAnswerController : AutoController<PollAnswer>
+	public partial class PollAnswerController : AutoController<PollAnswer, uint>
     {
     }
 }

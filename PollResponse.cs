@@ -11,7 +11,7 @@ namespace Api.Polls
 	/// A Poll
 	/// </summary>
 	[DatabaseIndex(Fields = new string[] { "UserId", "PollId" }, Unique = true)]
-	public partial class PollResponse : DatabaseRow
+	public partial class PollResponse : Content<uint>
 	{
 		/// <summary>
 		/// The time this response was created.
@@ -21,17 +21,17 @@ namespace Api.Polls
 		/// <summary>
 		/// The user Id.
 		/// </summary>
-		public int UserId;
+		public uint UserId;
 		
 		/// <summary>
 		/// The selected answer.
 		/// </summary>
-		public int AnswerId;
+		public uint AnswerId;
 		
 		/// <summary>
 		/// The parent poll ID
 		/// </summary>
-		public int PollId;
+		public uint PollId;
 	}
 
 }

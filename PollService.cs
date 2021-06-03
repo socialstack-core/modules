@@ -12,7 +12,7 @@ namespace Api.Polls
 	/// Handles polls.
 	/// Instanced automatically. Use injection to use this service, or Startup.Services.Get.
 	/// </summary>
-	public partial class PollService : AutoService<Poll>
+	public partial class PollService : AutoService<Poll, uint>
     {
 		/// <summary>
 		/// Instanced automatically. Use injection to use this service, or Startup.Services.Get.
@@ -22,11 +22,11 @@ namespace Api.Polls
 			// Example admin page install:
 			InstallAdminPages("Polls", "fa:fa-poll", new string[] { "id", "title" });
 			
-			Events.Poll.BeforeSettable.AddEventListener((Context context, JsonField<Poll> field) =>
+			Events.Poll.BeforeSettable.AddEventListener((Context context, JsonField<Poll, uint> field) =>
 			{
 				if (field == null)
 				{
-					return new ValueTask<JsonField<Poll>>(field);
+					return new ValueTask<JsonField<Poll, uint>>(field);
 				}
 				
 				if(field.Name == "Answers")
@@ -35,7 +35,7 @@ namespace Api.Polls
 					field = null;
 				}
 				
-				return new ValueTask<JsonField<Poll>>(field);
+				return new ValueTask<JsonField<Poll, uint>>(field);
 			});
 			
 		}

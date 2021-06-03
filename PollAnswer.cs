@@ -10,7 +10,7 @@ namespace Api.Polls
 	/// <summary>
 	/// A Poll
 	/// </summary>
-	public partial class PollAnswer : RevisionRow
+	public partial class PollAnswer : VersionedContent<uint>
 	{
         /// <summary>
         /// Title text
@@ -22,7 +22,7 @@ namespace Api.Polls
 		/// <summary>
 		/// The parent poll ID
 		/// </summary>
-		public int PollId;
+		public uint PollId;
 		
 		/// <summary>
 		/// Total votes for this answer.

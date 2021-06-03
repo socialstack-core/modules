@@ -13,16 +13,16 @@ namespace Api.Eventing
 		/// <summary>
 		/// Set of events for a poll.
 		/// </summary>
-		public static EventGroup<Poll> Poll;
+		public static EventGroup<Poll, uint> Poll;
 		
 		/// <summary>
 		/// Set of events for a PollAnswer.
 		/// </summary>
-		public static EventGroup<PollAnswer> PollAnswer;
+		public static EventGroup<PollAnswer, uint> PollAnswer;
 		
 		/// <summary>
 		/// Set of events for a PollResponse.
 		/// </summary>
-		public static EventGroup<PollResponse> PollResponse;
+		public static EventGroup<PollResponse, uint> PollResponse;
 	}
 }

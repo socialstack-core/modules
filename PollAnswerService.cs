@@ -13,7 +13,7 @@ namespace Api.Polls
 	/// Handles polls.
 	/// Instanced automatically. Use injection to use this service, or Startup.Services.Get.
 	/// </summary>
-	public partial class PollAnswerService : AutoService<PollAnswer>
+	public partial class PollAnswerService : AutoService<PollAnswer, uint>
     {
 		/// <summary>
 		/// Instanced automatically. Use injection to use this service, or Startup.Services.Get.
@@ -22,11 +22,11 @@ namespace Api.Polls
         {
 			InstallAdminPages(null, null, new string[] { "id", "name" });
 			
-			Events.PollAnswer.BeforeSettable.AddEventListener((Context context, JsonField<PollAnswer> field) =>
+			Events.PollAnswer.BeforeSettable.AddEventListener((Context context, JsonField<PollAnswer,uint> field) =>
 			{
 				if (field == null)
 				{
-					return new ValueTask<JsonField<PollAnswer>>(field);
+					return new ValueTask<JsonField<PollAnswer, uint>>(field);
 				}
 				
 				if(field.Name == "Votes")
@@ -35,109 +35,8 @@ namespace Api.Polls
 					field = null;
 				}
 				
-				return new ValueTask<JsonField<PollAnswer>>(field);
+				return new ValueTask<JsonField<PollAnswer, uint>>(field);
 			});
-			
-			Events.Poll.AfterLoad.AddEventListener(async (Context context, Poll poll) =>
-			{
-				if (poll == null)
-				{
-					// Due to the way how event chains work, the primary object can be null.
-					// Safely ignore this.
-					return null;
-				}
-				
-				// Get the answers:
-				poll.Answers = await List(context, new Filter<PollAnswer>().Equals("PollId", poll.Id));
-				return poll;
-			});
-			
-			Events.Poll.AfterUpdate.AddEventListener(async (Context context, Poll poll) =>
-			{
-				if (poll == null)
-				{
-					// Due to the way how event chains work, the primary object can be null.
-					// Safely ignore this.
-					return null;
-				}
-				
-				// Get the answers:
-				poll.Answers = await List(context, new Filter<PollAnswer>().Equals("PollId", poll.Id));
-				
-				return poll;
-			});
-			
-			Events.Poll.AfterCreate.AddEventListener(async (Context context, Poll poll) =>
-			{
-				if (poll == null)
-				{
-					// Due to the way how event chains work, the primary object can be null.
-					// Safely ignore this.
-					return null;
-				}
-				
-				// Get the answers:
-				poll.Answers = await List(context, new Filter<PollAnswer>().Equals("PollId", poll.Id));
-				
-				return poll;
-			});
-			
-			Events.Poll.AfterList.AddEventListener(async (Context context, List<Poll> polls) =>
-			{
-				if (polls == null)
-				{
-					// Due to the way how event chains work, the primary object can be null.
-					// Safely ignore this.
-					return null;
-				}
-
-				if (polls.Count == 0)
-				{
-					return polls;
-				}
-
-				// Get the answers:
-				var allAnswers = await List(context, new Filter<PollAnswer>().EqualsSet("PollId", polls.Select(poll => poll.Id)));
-				
-				// Filter them through to the actual polls they're for:
-				if(allAnswers != null)
-				{
-					var pollMap = new Dictionary<int, Poll>();
-					
-					foreach(var poll in polls)
-					{
-						if(poll == null)
-						{
-							continue;
-						}
-						poll.Answers = null;
-						pollMap[poll.Id] = poll;
-					}
-					
-					foreach(var answer in allAnswers)
-					{
-						if(answer == null)
-						{
-							continue;
-						}
-						
-						if(pollMap.TryGetValue(answer.PollId, out Poll poll))
-						{
-							
-							if(poll.Answers == null)
-							{
-								poll.Answers = new List<PollAnswer>();
-							}
-							
-							poll.Answers.Add(answer);
-						}
-					}
-				}
-				
-				return polls;
-			});
-
-			
 		}
 	}
     

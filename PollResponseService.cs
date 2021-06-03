@@ -12,7 +12,7 @@ namespace Api.Polls
 	/// Handles polls.
 	/// Instanced automatically. Use injection to use this service, or Startup.Services.Get.
 	/// </summary>
-	public partial class PollResponseService : AutoService<PollResponse>
+	public partial class PollResponseService : AutoService<PollResponse, uint>
     {
 		/// <summary>
 		/// Instanced automatically. Use injection to use this service, or Startup.Services.Get.
@@ -43,8 +43,9 @@ namespace Api.Polls
 				response.UserId = context.UserId;
 				response.CreatedUtc = DateTime.UtcNow;
 				
-				answer.Votes++;
-				await answers.Update(context, answer);
+				await answers.Update(context, answer, (Context c, PollAnswer ans) => {
+					answer.Votes++;
+				});
 				
 				return response;
 			});

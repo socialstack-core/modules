@@ -11,7 +11,7 @@ namespace Api.Polls
 	/// <summary>
 	/// A Poll
 	/// </summary>
-	public partial class Poll : RevisionRow
+	public partial class Poll : VersionedContent<uint>
 	{
         /// <summary>
         /// The name of the poll
@@ -19,11 +19,6 @@ namespace Api.Polls
         [DatabaseField(Length = 200)]
 		[Localized]
 		public string Title;
-		
-		/// <summary>
-		/// Thet set of answers for the poll.
-		/// </summary>
-		public List<PollAnswer> Answers { get; set; }
 	}
 
 }
