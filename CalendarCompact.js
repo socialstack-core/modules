@@ -151,18 +151,18 @@ export default class CalendarCompact extends React.Component {
 	populateBetween(start, end, dayMeta){
 		var {dataHandlers} = this.props;
 
-		var dataRequests = dataHandlers.map(handler => webRequest(handler.type + '/list', {where: handler.onGetFilter && handler.onGetFilter(start, end) || {}},
-		{includes: handler.includes}));
+		var dataRequests = dataHandlers.map((handler) =>
+			webRequest(handler.type + "/list", { where: (handler.onGetFilter && handler.onGetFilter(start, end)) || {} }, { includes: handler.includes }).then((response) => {
+				handler.onFixEntries && handler.onFixEntries(response.json.results);
+				return response;
+			})
+		);
 
 		Promise.all(dataRequests).then(responses => {
-
 			var rsps = [];
-			//if(response.json){
-				// Can either give us an array or a raw API response.
 			responses.forEach(response => {
 				rsps = rsps.concat(response.json.results);
 			});
-			//}
 			this.build(rsps, dayMeta);
 		});
 		
@@ -233,7 +233,6 @@ export default class CalendarCompact extends React.Component {
 				// Is startUtc in between this days start/ ends?
 				var day = dayMeta[d];
 				
-				//console.log("entry", entry);
 
 				if((day.start <= startUtc && day.end >= startUtc) || (day.start <= entry.startTimeUtc && day.end >= entry.startTimeUtc)){
 					console.log("entry in range", entry);
