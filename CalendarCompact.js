@@ -235,7 +235,6 @@ export default class CalendarCompact extends React.Component {
 				
 
 				if((day.start <= startUtc && day.end >= startUtc) || (day.start <= entry.startTimeUtc && day.end >= entry.startTimeUtc)){
-					console.log("entry in range", entry);
 					entry.minuteStart = Math.floor(((startUtc - day.start)/1000)/60);
 					entry.minuteEnd = Math.floor(((entry.endUtc - day.start)/1000)/60);
 					day.results.push(entry);
@@ -254,8 +253,7 @@ export default class CalendarCompact extends React.Component {
 				day.results.sort((a,b) => (a.startUtc > b.startUtc) ? 1 : ((b.startUtc > a.startUtc) ? -1 : 0));
 			}
 		}
-		
-		console.log("build currentView set:", this.state.currentView);
+
 		this.setState({currentView: this.state.currentView});
 	}
 	
