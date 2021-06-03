@@ -14,7 +14,7 @@ namespace Api.ProfanityFilter
 	/// A very simplistic profanity filter, which only matches whole words. Profanity filtering is generally a bad practise as it damages legitimate 
 	/// communication whilst also not providing any friction at all - instead it's a fun challenge - to genuine trolls.
 	/// </summary>
-	public partial class ProfanityFilterService : IProfanityFilterService
+	public partial class ProfanityFilterService : AutoService
     {
 		private ProfanityFilterConfig _configuration;
 		
