@@ -76,7 +76,10 @@ namespace Api.Uploader
 					writer.WriteASCII("private:");
 					writer.WriteS(Id);
 					writer.Write((byte)'.');
-					writer.WriteASCII(FileType);
+					if (FileType != null)
+					{
+						writer.WriteASCII(FileType);
+					}
 					writer.Write(TimestampStart, 0, 3);
 					writer.WriteS(DateTime.UtcNow.Ticks);
 					writer.Write(SignatureStart, 0, 3);
