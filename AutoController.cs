@@ -1,21 +1,11 @@
 using Api.Contexts;
-using Api.Database;
-using Api.Eventing;
-using Api.Permissions;
-using Api.Results;
 using Api.Startup;
 using Microsoft.AspNetCore.Mvc;
 using Newtonsoft.Json.Linq;
-using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
-using CsvHelper;
-using System.IO;
-using System.Globalization;
-using CsvHelper.Configuration;
-using System.Reflection;
-using Newtonsoft.Json;
 using Api.SocketServerLibrary;
+
 
 /// <summary>
 /// A convenience controller for defining common endpoints like create, list, delete etc. Requires an AutoService of the same type to function.
