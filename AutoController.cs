@@ -89,12 +89,12 @@ public partial class AutoController<T,ID>
 
 				if (rawFieldValue is string)
 				{
-					writer.WriteASCII(EscapeForPo((string)rawFieldValue));
+					writer.WriteS(EscapeForPo((string)rawFieldValue));
 				}
 				else if(rawFieldValue != null)
 				{
 					// E.g. prices
-					writer.WriteASCII(rawFieldValue.ToString());
+					writer.WriteS(rawFieldValue.ToString());
 				}
 
 				// The final quote to close msgid:
