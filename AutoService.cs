@@ -66,13 +66,13 @@ public partial class AutoService<T, ID>{
 	/// <summary>
 	/// Serialises the given object into the given stream (usually a response stream). By using this method, it will consider the fields a user is permitted to see (based on the role in the context)
 	/// and also may use a per-object cache which contains string segments.
-	/// addResultWrap will wrap the object with {"result":...}. It is assumed true if includes is not null.
+	/// dataSource is often a filter.
 	/// </summary>
-	public async ValueTask ToJson(
-		Context context, Filter<T, ID> filter, 
-		Func<Context, Filter<T, ID>, Func<T, int, ValueTask>, ValueTask<int>> onGetData, 
+	public async ValueTask ToJson<ANY>(
+		Context context, ANY dataSource, 
+		Func<Context, ANY, Func<T, int, ValueTask>, ValueTask<int>> onGetData, 
 		Writer writer,
-		Stream targetStream = null, string includes = null)
+		Stream targetStream = null, string includes = null, bool includeTotal = false)
 	{
 		// Get the json structure:
 		var jsonStructure = await GetTypedJsonStructure(context);
@@ -90,7 +90,7 @@ public partial class AutoService<T, ID>{
 		// Obtain ID collectors, and then collect the IDs.
 		var firstCollector = includeSet == null ? null : includeSet.RootInclude.GetCollectors();
 
-		var total = await onGetData(context, filter, async (T entity, int index) =>
+		var total = await onGetData(context, dataSource, async (T entity, int index) =>
 		{
 			if (index != 0)
 			{
@@ -125,7 +125,7 @@ public partial class AutoService<T, ID>{
 
 		if (includeSet == null)
 		{
-			if (filter.IncludeTotal)
+			if (includeTotal)
 			{
 				writer.Write(TotalHeader, 0, 10);
 				writer.WriteS(total);
@@ -147,7 +147,7 @@ public partial class AutoService<T, ID>{
 			// We've got some includes to add.
 			// Write the includes header, then write out the data so far.
 			
-			if (filter.IncludeTotal)
+			if (includeTotal)
 			{
 				writer.Write(TotalHeader, 0, 10);
 				writer.WriteS(total);
