@@ -137,7 +137,7 @@ public partial class AutoController<T, ID>
 
 			}, onResult, null);
 
-		}, writer, Response.Body, includes);
+		}, writer, Response.Body, includes, filter.IncludeTotal);
 		writer.Release();
 		filter = await revisions.EventGroup.EndpointEndList.Dispatch(context, filter, Response);
 		filter.Release();
