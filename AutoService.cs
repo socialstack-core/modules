@@ -290,8 +290,9 @@ public partial class AutoService<T, ID> : AutoService
 	/// <param name="context"></param>
 	/// <param name="targetId"></param>
 	/// <param name="mappingName"></param>
+	/// <param name="options"></param>
 	/// <returns></returns>
-	public async ValueTask<List<T>> ListByTarget<MAP_TARGET, T_ID>(Context context, T_ID targetId, string mappingName)
+	public async ValueTask<List<T>> ListByTarget<MAP_TARGET, T_ID>(Context context, T_ID targetId, string mappingName, DataOptions options = DataOptions.Default)
 		where T_ID : struct, IEquatable<T_ID>, IConvertible
 		where MAP_TARGET : Content<T_ID>, new()
 	{
@@ -301,7 +302,7 @@ public partial class AutoService<T, ID> : AutoService
 			var set = (List<T>)a;
 			set.Add(r);
 			return new ValueTask();
-		}, res, null);
+		}, res, null, options);
 
 		return res;
 	}
@@ -316,8 +317,9 @@ public partial class AutoService<T, ID> : AutoService
 	/// <param name="src"></param>
 	/// <param name="srcId"></param>
 	/// <param name="mappingName"></param>
+	/// <param name="options"></param>
 	/// <returns></returns>
-	public async ValueTask<List<T>> ListBySource<MAP_SOURCE, S_ID>(Context context, AutoService<MAP_SOURCE, S_ID> src, S_ID srcId, string mappingName)
+	public async ValueTask<List<T>> ListBySource<MAP_SOURCE, S_ID>(Context context, AutoService<MAP_SOURCE, S_ID> src, S_ID srcId, string mappingName, DataOptions options = DataOptions.Default)
 		where S_ID : struct, IEquatable<S_ID>, IConvertible
 		where MAP_SOURCE : Content<S_ID>, new()
 	{
@@ -329,11 +331,11 @@ public partial class AutoService<T, ID> : AutoService
 			passedSet.Add(obj);
 			return new ValueTask();
 
-		}, set, null);
+		}, set, null, options);
 
 		return set;
 	}
-	
+
 	/// <summary>
 	/// List a set of values from this service which are present in a mapping of the given target type.
 	/// This is backwards from the typical mapping flow - i.e. you're getting the list of sources with a given single target value.
@@ -347,8 +349,9 @@ public partial class AutoService<T, ID> : AutoService
 	/// <param name="onResult"></param>
 	/// <param name="a"></param>
 	/// <param name="b"></param>
+	/// <param name="options"></param>
 	/// <returns></returns>
-	public async ValueTask ListBySource<MAP_SOURCE, S_ID>(Context context, AutoService<MAP_SOURCE, S_ID> src, S_ID srcId, string mappingName, Func<Context, T, int, object, object, ValueTask> onResult, object a, object b)
+	public async ValueTask ListBySource<MAP_SOURCE, S_ID>(Context context, AutoService<MAP_SOURCE, S_ID> src, S_ID srcId, string mappingName, Func<Context, T, int, object, object, ValueTask> onResult, object a, object b, DataOptions options = DataOptions.Default)
 		where S_ID : struct, IEquatable<S_ID>, IConvertible
 		where MAP_SOURCE : Content<S_ID>, new()
 	{
@@ -364,7 +367,7 @@ public partial class AutoService<T, ID> : AutoService
 			return new ValueTask();
 		}, collector);
 
-		await Where("Id=[?]").Bind(collector).ListAll(context, onResult, a, b);
+		await Where("Id=[?]", options).Bind(collector).ListAll(context, onResult, a, b);
 		collector.Release();
 	}
 
@@ -381,8 +384,9 @@ public partial class AutoService<T, ID> : AutoService
 	/// <param name="onResult"></param>
 	/// <param name="a"></param>
 	/// <param name="b"></param>
+	/// <param name="options"></param>
 	/// <returns></returns>
-	public async ValueTask ListBySource<MAP_SOURCE, S_ID>(Context context, AutoService<MAP_SOURCE, S_ID> src, IDCollector<S_ID> srcIds, string mappingName, Func<Context, T, int, object, object, ValueTask> onResult, object a, object b)
+	public async ValueTask ListBySource<MAP_SOURCE, S_ID>(Context context, AutoService<MAP_SOURCE, S_ID> src, IDCollector<S_ID> srcIds, string mappingName, Func<Context, T, int, object, object, ValueTask> onResult, object a, object b, DataOptions options = DataOptions.Default)
 		where S_ID : struct, IEquatable<S_ID>, IConvertible
 		where MAP_SOURCE : Content<S_ID>, new()
 	{
@@ -398,7 +402,7 @@ public partial class AutoService<T, ID> : AutoService
 			return new ValueTask();
 		}, collector);
 
-		await Where("Id=[?]").Bind(collector).ListAll(context, onResult, a, b);
+		await Where("Id=[?]", options).Bind(collector).ListAll(context, onResult, a, b);
 		collector.Release();
 	}
 
@@ -414,8 +418,9 @@ public partial class AutoService<T, ID> : AutoService
 	/// <param name="onResult"></param>
 	/// <param name="a"></param>
 	/// <param name="b"></param>
+	/// <param name="options"></param>
 	/// <returns></returns>
-	public async ValueTask ListByTarget<MAP_TARGET, T_ID>(Context context, T_ID targetId, string mappingName, Func<Context, T, int, object, object, ValueTask> onResult, object a, object b)
+	public async ValueTask ListByTarget<MAP_TARGET, T_ID>(Context context, T_ID targetId, string mappingName, Func<Context, T, int, object, object, ValueTask> onResult, object a, object b, DataOptions options = DataOptions.Default)
 	where T_ID: struct, IEquatable<T_ID>, IConvertible
 	where MAP_TARGET: Content<T_ID>, new()
 	{
@@ -431,7 +436,7 @@ public partial class AutoService<T, ID> : AutoService
 			return new ValueTask();
 		}, collector);
 
-		await Where("Id=[?]").Bind(collector).ListAll(context, onResult, a, b);
+		await Where("Id=[?]", options).Bind(collector).ListAll(context, onResult, a, b);
 		collector.Release();
 	}
 
@@ -963,7 +968,7 @@ public partial class AutoService<T, ID> : AutoService
 
 			}, onResult, null);
 
-		}, writer, null, includes);
+		}, writer, null, includes, filter.IncludeTotal);
 
 		filter.Release();
 		var jsonResult = writer.ToUTF8String();

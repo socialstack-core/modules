@@ -66,6 +66,43 @@ public partial class AutoController<T,ID> : ControllerBase
 	private readonly static string _applicationJson = "application/json";
 
 	/// <summary>
+	/// Outputs the given content object set whilst considering the field visibility rules of the role in the context.
+	/// To avoid an IEnumerable allocation, also consider using the non-alloc mechanism inside this function directly on high traffic usage.
+	/// </summary>
+	/// <param name="context"></param>
+	/// <param name="content"></param>
+	/// <param name="includes"></param>
+	/// <param name="withTotal"></param>
+	/// <returns></returns>
+	protected async ValueTask OutputJson(Context context, IEnumerable<T> content, string includes, bool withTotal = false)
+	{
+		if (content == null)
+		{
+			if (Response.StatusCode == 200)
+			{
+				Response.StatusCode = 404;
+			}
+			return;
+		}
+
+		Response.ContentType = _applicationJson;
+
+		var writer = Writer.GetPooled();
+		writer.Start(null);
+		await _service.ToJson(context, content, async (Context context, IEnumerable<T> data, Func<T, int, ValueTask> onResult) => {
+			int i = 0;
+
+			foreach (var entry in data)
+			{
+				await onResult(entry, i++);
+			}
+
+			return i;
+		}, writer, Response.Body, includes, withTotal);
+		writer.Release();
+	}
+
+	/// <summary>
 	/// Outputs the given content object whilst considering the field visibility rules of the role in the context.
 	/// </summary>
 	/// <param name="context"></param>
@@ -200,7 +237,7 @@ public partial class AutoController<T,ID> : ControllerBase
 
 			}, onResult, null);
 
-		}, writer, Response.Body, includes);
+		}, writer, Response.Body, includes, filter.IncludeTotal);
 		writer.Release();
 
 		filter = await _service.EventGroup.EndpointEndList.Dispatch(context, filter, Response);
