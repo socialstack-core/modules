@@ -42,7 +42,7 @@ export default class FileSelector extends React.Component {
 			newRef = '';
 		}
 		
-		if(newRef.result.ref){
+		if(newRef.result && newRef.result.ref){
 			// Accept upload objects also.
 			newRef = newRef.result.ref;
 		}else if(newRef.ref){
