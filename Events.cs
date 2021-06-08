@@ -43,18 +43,21 @@ namespace Api.Eventing
 		/// <summary>
 		/// Set of events for a User.
 		/// </summary>
-		public static EventGroup<User> User;
+		public static UserEventGroup User;
 		
 		#endregion
+	}
 
-		#region Controller events
-		
+	/// <summary>
+	/// Custom user specific events.
+	/// </summary>
+	public class UserEventGroup : EventGroup<User>
+	{
+
 		/// <summary>
-		/// Uploading files.
+		/// During a login. This is where you can make context changes due to a user logging in.
 		/// </summary>
-		public static EndpointEventHandler<UserImageUpload> UserOnUpload;
-
-		#endregion
+		public EventHandler<LogoutResult> Logout;
 
 	}
 

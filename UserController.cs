@@ -56,33 +56,41 @@ namespace Api.Users
 		/// </summary>
 		/// <returns></returns>
         [HttpGet("logout")]
-        public Success Logout() {
+        public async ValueTask Logout() {
+			var context = await Request.GetContext();
 
-			// var context = Request.GetContext();
+			var result = await ((UserEventGroup)(_service.EventGroup)).Logout.Dispatch(context, new LogoutResult());
 
-            Response.Cookies.Append(
-                _contexts.CookieName,
-                "",
-                new Microsoft.AspNetCore.Http.CookieOptions()
-                {
-                    Path = "/",
-					Domain = _contexts.GetDomain(),
-					IsEssential = true,
-					Expires = ThePast
-				}
-            );
-			
-            Response.Cookies.Append(
-                _contexts.CookieName,
-                "",
-                new Microsoft.AspNetCore.Http.CookieOptions()
-                {
-                    Path = "/",
-					Expires = ThePast
-				}
-            );
+			if (result.SendContext)
+			{
+				// Send context:
+				await OutputContext(context);
+			}
+			else
+			{
+				// Regular empty cookie:
+				Response.Cookies.Append(
+					_contexts.CookieName,
+					"",
+					new Microsoft.AspNetCore.Http.CookieOptions()
+					{
+						Path = "/",
+						Domain = _contexts.GetDomain(),
+						IsEssential = true,
+						Expires = ThePast
+					}
+				);
 
-            return new Success();
+				Response.Cookies.Append(
+					_contexts.CookieName,
+					"",
+					new Microsoft.AspNetCore.Http.CookieOptions()
+					{
+						Path = "/",
+						Expires = ThePast
+					}
+				);
+			}
         }
 
 		/// <summary>
