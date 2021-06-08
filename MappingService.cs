@@ -433,6 +433,71 @@ namespace Api.Startup
 		}
 
 		/// <summary>
+		/// Deletes a mapping by the src and target IDs.
+		/// </summary>
+		/// <param name="context"></param>
+		/// <param name="src"></param>
+		/// <param name="targ"></param>
+		/// <returns></returns>
+		public async ValueTask<bool> DeleteByIds(Context context, SRC_ID src, TARG_ID targ)
+		{
+			var mapping = await GetByIds(context, src, targ);
+
+			if (mapping != null)
+			{
+				return await Delete(context, mapping);
+			}
+
+			return false;
+		}
+			
+		/// <summary>
+		/// Gets a mapping by the src and target IDs.
+		/// </summary>
+		/// <param name="context"></param>
+		/// <param name="src"></param>
+		/// <param name="targ"></param>
+		/// <returns></returns>
+		public async ValueTask<Mapping<SRC_ID, TARG_ID>> GetByIds(Context context, SRC_ID src, TARG_ID targ)
+		{
+			if (_cache != null && _cacheIndex == null)
+			{
+
+				var cache = GetCacheForLocale(1);
+
+				if (cache != null)
+				{
+					// It's a cached mapping type.
+					// Pre-obtain index ref now:
+					_cacheIndex = cache.GetIndex<SRC_ID>(srcIdFieldName) as NonUniqueIndex<Mapping<SRC_ID, TARG_ID>, SRC_ID>;
+				}
+			}
+
+			if (_cacheIndex != null)
+			{
+				// Using an index scan
+				var indexEnum = _cacheIndex.GetEnumeratorFor(src);
+
+				while (indexEnum.HasMore())
+				{
+					// Get current value:
+					var mappingEntry = indexEnum.Current();
+
+					if (mappingEntry.TargetId.Equals(targ))
+					{
+						return mappingEntry;
+					}
+				}
+
+				return null;
+			}
+			else
+			{
+				return await Where(srcAndTargEq).Bind(src).Bind(targ).First(context);
+			}
+		}
+
+		/// <summary>
 		/// True if the given mapping entry exists in this services cache. Note that if the cache is not active, this returns false.
 		/// </summary>
 		/// <param name="src"></param>
@@ -489,41 +554,7 @@ namespace Api.Startup
 		/// <returns></returns>
 		public async ValueTask<bool> CheckIfExists(Context context, SRC_ID src, TARG_ID targ)
 		{
-			if (_cache != null && _cacheIndex == null)
-			{
-
-				var cache = GetCacheForLocale(1);
-
-				if (cache != null)
-				{
-					// It's a cached mapping type.
-					// Pre-obtain index ref now:
-					_cacheIndex = cache.GetIndex<SRC_ID>(srcIdFieldName) as NonUniqueIndex<Mapping<SRC_ID, TARG_ID>, SRC_ID>;
-				}
-			}
-
-			if (_cacheIndex != null)
-			{
-				// Using an index scan
-				var indexEnum = _cacheIndex.GetEnumeratorFor(src);
-
-				while (indexEnum.HasMore())
-				{
-					// Get current value:
-					var mappingEntry = indexEnum.Current();
-
-					if (mappingEntry.TargetId.Equals(targ))
-					{
-						return true;
-					}
-				}
-
-				return false;
-			}
-			else
-			{
-				return await Where(srcAndTargEq).Bind(src).Bind(targ).Any(context);
-			}
+			return (await GetByIds(context, src, targ)) != null;
 		}
 		
 		/// <summary>

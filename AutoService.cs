@@ -661,6 +661,50 @@ public partial class AutoService<T, ID> : AutoService
 	}
 
 	/// <summary>
+	/// Checks if the given target Id is mapped to the given source in the given named map.
+	/// </summary>
+	/// <param name="context"></param>
+	/// <param name="srcId"></param>
+	/// <param name="target"></param>
+	/// <param name="targetId"></param>
+	/// <param name="mapName"></param>
+	public async ValueTask<bool> CheckIfMappingExists<T_ID>(Context context, ID srcId, AutoService target, T_ID targetId, string mapName)
+		where T_ID : struct, IEquatable<T_ID>, IConvertible
+	{
+		// First, get the mapping service:
+		var mapping = await MappingTypeEngine.GetOrGenerate(
+			this,
+			target,
+			mapName
+		) as MappingService<ID, T_ID>;
+
+		// Create if not exists:
+		return await mapping.CheckIfExists(context, srcId, targetId);
+	}
+	
+	/// <summary>
+	/// Deletes a given src->target map entry, returning true if it existed and has been removed.
+	/// </summary>
+	/// <param name="context"></param>
+	/// <param name="srcId"></param>
+	/// <param name="target"></param>
+	/// <param name="targetId"></param>
+	/// <param name="mapName"></param>
+	public async ValueTask<bool> DeleteMapping<T_ID>(Context context, ID srcId, AutoService target, T_ID targetId, string mapName)
+		where T_ID : struct, IEquatable<T_ID>, IConvertible
+	{
+		// First, get the mapping service:
+		var mapping = await MappingTypeEngine.GetOrGenerate(
+			this,
+			target,
+			mapName
+		) as MappingService<ID, T_ID>;
+
+		// Delete:
+		return await mapping.DeleteByIds(context, srcId, targetId);
+	}
+	
+	/// <summary>
 	/// Ensures the given target Id is mapped to the given source in the given named map.
 	/// </summary>
 	/// <param name="context"></param>
