@@ -324,19 +324,6 @@ namespace Api.CanvasRenderer
 
 			SourceBuilders.Add(builder);
 
-			builder.OnGlobalFile += async (SourceFile arg1, SourceFileChangeType arg2) => {
-				// Tell other builders about this change:
-				foreach (var otherBuilder in SourceBuilders)
-				{
-					if (otherBuilder == builder)
-					{
-						continue;
-					}
-
-					await otherBuilder.OnRemoteGlobalFileChange(arg1, arg2);
-				}
-			};
-
 			// Start it now:
 			builder.Start();
 		}

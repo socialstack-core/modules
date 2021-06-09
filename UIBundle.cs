@@ -59,12 +59,6 @@ namespace Api.CanvasRenderer
 		public GlobalSourceFileMap GlobalFileMap;
 
 		/// <summary>
-		/// Handler for whenever a global file has changed (deleted, changed).
-		/// These are currently exclusively SCSS globals like variables and mixins.
-		/// </summary>
-		public event Action<SourceFile, SourceFileChangeType> OnGlobalFile;
-
-		/// <summary>
 		/// The build engine which does compilation for us.
 		/// </summary>
 		public V8ScriptEngine BuildEngine;
@@ -149,14 +143,6 @@ namespace Api.CanvasRenderer
 			_localeService = locales;
 			Prebuilt = true;
 			PackDir = packDir;
-		}
-
-		/// <summary>
-		/// Called when a global file (exclusively SCSS variables and mixins) changed/ was deleted/ was seen for the first time.
-		/// </summary>
-		public async ValueTask OnRemoteGlobalFileChange(SourceFile file, SourceFileChangeType changeType)
-		{
-			await BuildAllCss();
 		}
 
 		/// <summary>
@@ -591,6 +577,11 @@ namespace Api.CanvasRenderer
 		/// </summary>
 		public void Start()
 		{
+			// Add callback for when remote global file changes happen:
+			GlobalFileMap.OnUpdated += async () => {
+				await BuildAllCss();
+			};
+
 			if (Prebuilt)
 			{
 				// Load main.css (as-is):
@@ -1556,6 +1547,15 @@ namespace Api.CanvasRenderer
 						if (file.FileType == SourceFileType.Scss)
 						{
 							cssUpdate = true;
+
+							if (file.IsGlobal)
+							{
+								// Remove from global map:
+								if (GlobalFileMap.FileMap.Remove(file.Path))
+								{
+									fullCssUpdate = true;
+								}
+							}
 						}
 
 						if (change.ChangeType == SourceFileChangeType.Deleted)
@@ -1606,9 +1606,13 @@ namespace Api.CanvasRenderer
 						Console.WriteLine("A slow global SCSS change happened which takes a little longer to process. We'll let you know when it's done.");
 						Console.WriteLine("Tip: Put a mixin, function etc you're working on in a non-global file just whilst you build it out.");
 
-						// Tell other bundles:
-						OnGlobalFile(file, change.ChangeType);
-						cssUpdate = false;
+						// Update content:
+						file.Content = File.ReadAllText(file.Path);
+
+						// Add to GSM:
+						GlobalFileMap.FileMap[file.Path] = file;
+
+						// Complete CSS update occurring:
 						fullCssUpdate = true;
 					}
 				}
@@ -1624,14 +1628,17 @@ namespace Api.CanvasRenderer
 					await ConstructJs();
 				}
 
-				if (cssUpdate)
-				{
-					await ConstructCss();
-				}
-
 				if (fullCssUpdate)
 				{
-					await BuildAllCss();
+					// Sort the GSM:
+					GlobalFileMap.Sort();
+
+					// Tell bundles they need to rebuild (this includes telling this one anyway):
+					await GlobalFileMap.HasChanged();
+				}
+				else if (cssUpdate)
+				{
+					await ConstructCss();
 				}
 
 				// Now (local time, because this is for developers).
@@ -1707,6 +1714,20 @@ namespace Api.CanvasRenderer
 		/// Global files sorted by order of priority.
 		/// </summary>
 		public List<SourceFile> SortedGlobalFiles = new List<SourceFile>();
+
+		/// <summary>
+		/// Called when the GSM has been updated.
+		/// </summary>
+		public event Func<ValueTask> OnUpdated;
+
+		/// <summary>
+		/// Indicate the GSM has changed.
+		/// </summary>
+		/// <returns></returns>
+		public async ValueTask HasChanged()
+		{
+			await OnUpdated();
+		}
 
 		/// <summary>
 		/// Reconstructs sorted global files based on the map.
