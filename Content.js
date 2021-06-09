@@ -2,6 +2,8 @@ import webRequest, {expandIncludes} from 'UI/Functions/WebRequest';
 import webSocket from 'UI/Functions/WebSocket';
 import { SessionConsumer, RouterConsumer } from 'UI/Session';
 
+const ContentContext = React.createContext();
+
 class ContentIntl extends React.Component {
 	
 	constructor(props){
@@ -157,7 +159,11 @@ class ContentIntl extends React.Component {
 			content = null;
 		}
 		
-		return children ? children(content, loading) : null;
+		return <ContentContext.Provider
+			value={{content}}
+		>
+			{children ? children(content, loading) : null}
+		</ContentContext.Provider>;
 	}
 	
 }
@@ -173,6 +179,13 @@ export default function Content(props) {
 	}</RouterConsumer> : <ContentIntl {...props}/>;
 	
 }
+
+export function useContent(){
+	return React.useContext(ContentContext);
+}
+
+// Use this to use <Content> via context. Used primarily by tokens.
+export const ContentConsumer = ContentContext.Consumer;
 
 // E.g:
 // content.get("blog", 1);
