@@ -1,18 +1,23 @@
 import Modal from 'UI/Modal';
 import Loop from 'UI/Loop';
-import faIcons from 'UI/FileSelector/IconSelector/faIcons';
+import faIconsRef from './faIcons.json';
 import Input from 'UI/Input';
 import Col from 'UI/Column';
 import Row from 'UI/Row';
+import Loading from 'UI/Loading';
 import Spacer from 'UI/Spacer';
 import Debounce from 'UI/Functions/Debounce';
+import webRequest from 'UI/Functions/WebRequest';
+import getRef from 'UI/Functions/GetRef';
 
+let icons = [];
 
 export default class IconSelector extends React.Component {
     constructor(props){
 		super(props);
         this.search = this.search.bind(this);
 		this.state = {
+			icons,
 			selectIcon: false,
             selectedIcon: null,
             styleFilter: "all",
@@ -20,7 +25,16 @@ export default class IconSelector extends React.Component {
 		};
 		
 	}
-
+	
+	componentDidMount(){
+		if(!this.state.icons.length){
+			webRequest(getRef(faIconsRef, {url: true})).then(response => {
+				icons = response.json;
+				this.setState({icons});
+			});
+		}
+	}
+	
     search(query) {
         console.log(query);
         this.setState({searchFilter: query})
@@ -63,9 +77,10 @@ export default class IconSelector extends React.Component {
                     this.state.debounce.handle(e.target.value);
                 }}/>
                 <Row>
-                    <Loop
+					<Loop
                         raw
-                        over = {faIcons}
+                        over = {icons}
+						orNone = {() => <Loading />}
                     >
                         {icon => {
                             if(icon.name.includes(searchFilter) ||icon.name.replace(/-/g, " ").includes(searchFilter) || !searchFilter) {
