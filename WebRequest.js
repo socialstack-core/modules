@@ -144,7 +144,7 @@ function mapWhere(where, args){
 export { expandIncludes };
 
 export default function webRequest(origUrl, data, opts) {
-	var url = (global.apiHost || '') + '/v1/' + origUrl;
+	var url = (origUrl.indexOf('http') === 0 || origUrl[0] == '/') ? origUrl : (global.apiHost || '') + '/v1/' + origUrl;
 	
 	return new Promise((success, reject) => {
 		_fetch(url, data, opts).then(response => {
