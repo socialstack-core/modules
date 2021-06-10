@@ -1,16 +1,9 @@
 ﻿using System;
 using System.Threading.Tasks;
-using Api.Permissions;
 using Microsoft.AspNetCore.Mvc;
-using Api.Database;
-using Api.Emails;
 using Api.Contexts;
-using Api.Uploader;
-using Api.Results;
 using Api.Eventing;
-using Newtonsoft.Json.Linq;
-using Api.AutoForms;
-using Api.Startup;
+
 
 namespace Api.Users
 {
