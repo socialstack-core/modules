@@ -1,6 +1,4 @@
-﻿using Api.Contexts;
-using Api.Results;
-using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Mvc;
 using System.Threading.Tasks;
 
 namespace Api.NavMenus
