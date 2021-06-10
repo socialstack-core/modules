@@ -1,15 +1,6 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
-using Api.Permissions;
+﻿using System.Threading.Tasks;
 using Microsoft.AspNetCore.Mvc;
-using System.Dynamic;
 using Api.Contexts;
-using Api.Results;
-using Api.Eventing;
-using Newtonsoft.Json.Linq;
-using Api.AutoForms;
 
 namespace Api.Uploader
 {
