@@ -1,8 +1,6 @@
 using Api.Contexts;
 using Api.Database;
-using Api.Eventing;
 using Api.Permissions;
-using Api.Results;
 using Api.SocketServerLibrary;
 using Api.Startup;
 using Microsoft.AspNetCore.Mvc;
