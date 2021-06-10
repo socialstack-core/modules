@@ -1,10 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
-using Api.Permissions;
 using Microsoft.AspNetCore.Mvc;
-using Api.Results;
-using Api.Eventing;
 
 
 namespace Api.AvailableEndpoints
