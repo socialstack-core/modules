@@ -35,6 +35,9 @@ function _getContentTypeIdFactory(){
 
 const getContentTypeId = _getContentTypeIdFactory();
 
+// E.g. https://site.com - never ends with a /
+const siteOrigin = global.location.origin;
+
 /*
 * Originates from preact-render-to-string.
 * Custom source version is to make it async friendly such that it can wait on fetch 
@@ -436,7 +439,22 @@ function reactPreRender(){
 						}
 					}
 					if (opts.mode & 1) {
-						opts.result.body += ` ${name}="${encodeEntities(v)}"`;
+						if(name == 'src' || name == 'href'){
+							// Make absolute
+							var url = encodeEntities(v);
+							
+							if(!url.startsWith('http:') && !url.startsWith('https:') && !url.startsWith('//')){
+								if(url.length && url[0] == '/'){
+									url = siteOrigin + url;
+								}else{
+									url = siteOrigin + '/' + url;
+								}
+							}
+							
+							opts.result.body += ` ${name}="${url}"`;
+						}else{
+							opts.result.body += ` ${name}="${encodeEntities(v)}"`;
+						}
 					}
 				}
 			}
