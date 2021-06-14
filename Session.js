@@ -53,6 +53,7 @@ export const Provider = (props) => {
 		}
 		var e = new Event('xsession');
 		e.state = updatedVal;
+		e.setSession = setSession;
 		document.dispatchEvent && document.dispatchEvent(e);
 		return setSession(updatedVal);
 	}
