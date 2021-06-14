@@ -1,44 +1,56 @@
 import Content from 'UI/Content';
-import { useSession } from 'UI/Session';
+import { useSession, useRouter } from 'UI/Session';
 import { useContent } from 'UI/Content';
 
-/*
-* Contextual token. 
-* Available values either come from the primary type on the page, or the global state. The RTE establishes the options though.
-*/
+var modes = {'content': 1, 'session': 1, 'url': 1};
 
-export default function Token (props) {
-	// If editor, display the thing and its children:
+export function TokenResolver(props){
 	var {session} = useSession();
 	var localContent = useContent();
+	var {pageState} = useRouter();
 	
-	if(props._rte){
-		return <span className="context-token" ref={props.rootRef}>
-			{props.children}
-		</span>;
-	}
+	var text = (props.value || '').replace(/\$\{(\w|\.)+\}/g, function(textToken) {
+		var fields = textToken.substring(2, textToken.length - 1).split('.');
+		
+		var mode = '';
+		
+		if(modes[fields[0]]){
+			mode = fields.shift();
+		}
+		
+		return resolveValue(mode,fields,session, localContent, pageState);
+	});
 	
-	// Resolved value. No wrapper - just plain value.
+	return props.children(text);
+}
+
+function resolveValue(mode, fields, session, localContent, pageState){
 	var token;
 	
-	if(props.mode == "content"){
+	if(mode == "content"){
 		token = localContent ? localContent.content : null;
+	}else if(mode == "url"){
+		if(!pageState || !pageState.tokenNames){
+			return '';
+		}
+		var index = pageState.tokenNames.indexOf(fields.join('.'));
+		return (index == null || index == -1) ? '' : pageState.tokens[index];
 	}else{
 		token = session;
 	}
 	
 	if(!token){
-		return null;
+		return '';
 	}
 	
-	var fields = props.fields;
+	var fields = fields;
 	
 	if(Array.isArray(fields) && fields.length){
 		try{
 			for(var i=0;i<fields.length;i++){
 				token = token[fields[i]];
 				if(token === undefined || token === null){
-					return null;
+					return '';
 				}
 			}
 		}catch(e){
@@ -50,6 +62,27 @@ export default function Token (props) {
 	}else if(typeof fields == 'string'){
 		return token[fields];
 	}
+}
+
+/*
+* Contextual token. 
+* Available values either come from the primary type on the page, or the global state. The RTE establishes the options though.
+*/
+
+export default function Token (props) {
+	// If editor, display the thing and its children:
+	var {session} = useSession();
+	var localContent = useContent();
+	var {pageState} = useRouter();
+	
+	if(props._rte){
+		return <span className="context-token" ref={props.rootRef}>
+			{props.children}
+		</span>;
+	}
+	
+	// Resolved value. No wrapper - just plain value.
+	return resolveValue(props.mode, props.fields, session, localContent, pageState);
 }
 
 Token.editable = {
@@ -78,8 +111,6 @@ Token.editable = {
 		nodeInfo.d = null;
 	},
 	onSave: nodeInfo => {
-		console.log('onSave', nodeInfo);
-		
 		// Ensure children root is pure text:
 		var childRoot = nodeInfo.c && typeof nodeInfo.c === 'string';
 		
@@ -90,7 +121,7 @@ Token.editable = {
 			
 			nodeInfo.d = {};
 			
-			if(first == 'session' || first == 'content'){
+			if(modes[first]){
 				nodeInfo.d.mode = first;
 				pieces.shift();
 			}
@@ -98,7 +129,6 @@ Token.editable = {
 			nodeInfo.d.fields = pieces;
 			delete nodeInfo.c;
 		}
-		
 	}
 };
 
