@@ -21,7 +21,7 @@ export default function Row(props) {
 
 	return <div 
 		className={rowClass}
-		{...(omit(props, ['className', 'noGutters', 'children', '__canvas']))}
+		{...(omit(props, ['className', 'noGutters']))}
 	>
 		{props.children}
 	</div>;
