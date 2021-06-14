@@ -1,4 +1,4 @@
-import {expand, mapTokens} from 'UI/Functions/CanvasExpand';
+import {expand} from 'UI/Functions/CanvasExpand';
 import { RouterConsumer } from 'UI/Session';
 
 /**
@@ -63,7 +63,7 @@ class Canvas extends React.Component {
 		var Module = contentNode.module || "div";
 		
 		// Resolve runtime field values now:
-		var dataFields = mapTokens(contentNode.data, this, pageRouter);
+		var dataFields = contentNode.data;
 		
 		return (
 			<Module key={index} {...dataFields}>
