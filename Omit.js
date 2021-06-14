@@ -4,7 +4,7 @@
 * For example
 * omit({a: 1, b: 2}, 'b') will return {a: 1}.
 * omit({a: 1, b: 2, c: 3}, ['b', 'c']) will return {a: 1}.
-* keys called 'children' and '__canvas' are ignored by default unless you set noDefaults to true.
+* keys called 'children' are ignored by default unless you set noDefaults to true.
 */
 export default function(object, keyOrKeys, noDefaults){
 	if(!object){
@@ -14,7 +14,7 @@ export default function(object, keyOrKeys, noDefaults){
 	var result = {};
 	for(var key in object){
 		if(!noDefaults){
-			if(key == '__canvas' || key == 'children'){
+			if(key == 'children'){
 				// exclude
 				continue;
 			}
