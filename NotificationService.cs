@@ -33,7 +33,7 @@ namespace Api.Notifications
 		/// <returns>The number cleared</returns>
 		public async Task<int> MarkAllViewed(Context context, uint userId)
 		{
-			var all = await Where("UserId=? and ViewedDateUtc=null", DataOptions.IgnorePermissions).Bind(userId).ListAll(context);
+			var all = await Where("UserId=? and ViewedDateUtc=?", DataOptions.IgnorePermissions).Bind(userId).Bind("null").ListAll(context);
 			
 			// We go through them sequentially like this so websockets and caches are updated (amongst anything else that handlers want to do).
 			foreach(var notif in all)
