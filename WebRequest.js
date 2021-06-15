@@ -296,7 +296,8 @@ function _fetch(url, data, opts) {
 		data = d2;
 	}
 	
-	if(data.on && data.on.type && data.on.id){
+	// this is done on list calls.
+	if(data.on && data.on.type && data.on.id && url.endsWith("/list")){
 		var on = data.on;
 		var d2 = {...data};
 		delete d2.on;
