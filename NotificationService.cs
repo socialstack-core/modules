@@ -52,10 +52,10 @@ namespace Api.Notifications
 		/// <summary>
 		/// Send a notification.
 		/// </summary>
-		public async Task<Notification> Send(Context context, Notification e)
+		public async Task<Notification> Send(Context context, Notification e, DataOptions opts = DataOptions.Default)
 		{
 			// Create it:
-			return await Create(context, e);
+			return await Create(context, e, opts);
 		}
 
 	}
