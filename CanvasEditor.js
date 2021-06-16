@@ -1019,7 +1019,7 @@ export default class CanvasEditor extends React.Component {
 				/>
 			);
 		}else{
-			var dataFields = mapTokens(contentNode.data, this, pageRouter);
+			var dataFields = contentNode.data;
 			
 			result = (
 				<Module ref={r => {
