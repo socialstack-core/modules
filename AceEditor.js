@@ -43,11 +43,12 @@ export default class AceEditor extends React.Component{
 			var p = this.props;
 			// this.d
 			var editor = ace.edit(this.d);
+			this.setState({editor});
 			global.editor = editor;
 			// editor.setTheme("ace/theme/monokai"); (dark mode)
 			editor.session.setMode("ace/mode/json");
-			editor.session.setValue(p.defaultValue || p.value);
-			this.setState({editor});
+			editor.session.setValue(p.defaultValue || p.value || '');
+			
 		})
 	}
 	
@@ -56,6 +57,7 @@ export default class AceEditor extends React.Component{
 			<div ref={d => this.d = d} />
 			<input type="hidden" name={this.props.name} ref={ref => {
 				this.ref = ref;
+				this.props.inputRef && this.props.inputRef(ref);
 				if (ref) {
 					ref.onGetValue = (val, field) => {
 						if (field != this.ref) {
