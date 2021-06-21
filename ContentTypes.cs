@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Data.Common;
 using System.Linq;
@@ -9,47 +10,90 @@ using System.Threading.Tasks;
 namespace Api.Database
 {
 	/// <summary>
+	/// Metadata about a content type, such as its ID, the service and the type.
+	/// </summary>
+	public class ContentTypeMeta
+	{
+		/// <summary>
+		/// Content type name.
+		/// </summary>
+		public string Name;
+		/// <summary>
+		/// Content type.
+		/// </summary>
+		public Type ContentType;
+		/// <summary>
+		/// The ID.
+		/// </summary>
+		public int Id;
+		/// <summary>
+		/// The service.
+		/// </summary>
+		public AutoService Service;
+	}
+
+	/// <summary>
 	/// Types - which must inherit DatabaseRow - can be assigned a numeric ID.
 	/// This numeric ID - the ContentTypeId - is used in a variety of modules (reactions, comments, uploads etc)
 	/// to identify content being related to other content.
 	/// </summary>
 	public static class ContentTypes
 	{
+		/// <summary>
+		/// A set of all available content types from lowercase name to ID. Use GetId rather than this directly.
+		/// </summary>
+		public static ConcurrentDictionary<string, ContentTypeMeta> Map;
+
+		/// <summary>
+		/// A set of all available content types from lowercase name to ID. Use GetId rather than this directly.
+		/// </summary>
+		public static ConcurrentDictionary<Type, ContentTypeMeta> TypeMap;
+
+		/// <summary>
+		/// Reverse mapping from ID to type name.
+		/// Setup during DB service startup.
+		/// </summary>
+		public static ConcurrentDictionary<int, ContentTypeMeta> ReverseMap;
+		
 		static ContentTypes()
 		{
-			// Setup the reverse content type map:
-			Map = new Dictionary<string, int>();
-			TypeMap = new Dictionary<string, Type>();
-			ReverseMap = new Dictionary<int, string>();
-			ReverseTypeMap = new Dictionary<int, Type>();
-			
-			// Collect all the DatabaseRow classes:
-			var allTypes = typeof(ContentTypes).Assembly.DefinedTypes;
+			// Setup the content maps:
+			Map = new ConcurrentDictionary<string, ContentTypeMeta>();
+			TypeMap = new ConcurrentDictionary<Type, ContentTypeMeta>();
+			ReverseMap = new ConcurrentDictionary<int, ContentTypeMeta>();
+		}
 
-			foreach (var typeInfo in allTypes)
+		/// <summary>
+		/// Adds or removes the given type from the lookups.
+		/// </summary>
+		/// <param name="active">True if it's now active, false if it's inactive.</param>
+		/// <param name="service">The content types parent service.</param>
+		/// <param name="type">The contentType.</param>
+		public static void StateChange(bool active, AutoService service, Type type)
+		{
+			var name = type.Name.ToLower();
+			var id = GetId(name);
+
+			if (active)
 			{
-				// If it:
-				// - Is a class
-				// - Inherits DatabaseRow
-				// Then add to reverse map
-
-				if (!typeInfo.IsClass || typeInfo.IsAbstract)
-				{
-					continue;
-				}
-
-				if (!IsAssignableToGenericType(typeInfo, typeof(Content<>)))
-				{
-					continue;
-				}
-
 				// Add now:
-				var name = typeInfo.Name.ToLower();
-				var id = GetId(name);
-				Map[name] = id;
-				TypeMap[name] = typeInfo;
-				ReverseMap[id] = name;
-				ReverseTypeMap[id] = typeInfo;
+				var typeMeta = new ContentTypeMeta()
+				{
+					ContentType = type,
+					Name = type.Name,
+					Service = service,
+					Id = id
+				};
+				Map[name] = typeMeta;
+				TypeMap[type] = typeMeta;
+ 				ReverseMap[id] = typeMeta;
+			}
+			else
+			{
+				// Remove from the maps:
+				Map.Remove(name, out ContentTypeMeta _);
+				TypeMap.Remove(type, out ContentTypeMeta _);
+				ReverseMap.Remove(id, out ContentTypeMeta _);
 			}
 		}
 
@@ -101,54 +145,13 @@ namespace Api.Database
 		}
 
 		/// <summary>
-		/// A set of all available content types from lowercase name to ID. Use GetId rather than this directly.
-		/// </summary>
-		public static Dictionary<string, int> Map;
-
-		/// <summary>
-		/// A set of all available content types from lowercase name to the system type.
-		/// </summary>
-		public static Dictionary<string, Type> TypeMap;
-
-		/// <summary>
-		/// Reverse mapping from ID to type name.
-		/// Setup during DB service startup.
-		/// </summary>
-		public static Dictionary<int, string> ReverseMap;
-		
-		/// <summary>
-		/// Reverse mapping from ID to type.
-		/// Setup during DB service startup.
-		/// </summary>
-		public static Dictionary<int, Type> ReverseTypeMap;
-
-		/// <summary>
 		/// True if given type is a content type.
 		/// </summary>
 		/// <param name="type"></param>
 		/// <returns></returns>
 		public static bool IsContentType(Type type)
 		{
-			foreach (var kvp in TypeMap)
-			{
-				if (kvp.Value == type)
-				{
-					return true;
-				}
-			}
-
-			return false;
-		}
-
-		/// <summary>
-		/// Gets a name from the given ID.
-		/// </summary>
-		/// <param name="id"></param>
-		/// <returns></returns>
-		public static string GetName(int id)
-		{
-			ReverseMap.TryGetValue(id, out string res);
-			return res;
+			return TypeMap.TryGetValue(type, out ContentTypeMeta _);
 		}
 
 		/// <summary>
@@ -158,8 +161,11 @@ namespace Api.Database
 		/// <returns></returns>
 		public static Type GetType(string name)
 		{
-			TypeMap.TryGetValue(name.ToLower(), out Type result);
-			return result;
+			if (Map.TryGetValue(name.ToLower(), out ContentTypeMeta meta))
+			{
+				return meta.ContentType;
+			}
+			return null;
 		}
 
 		/// <summary>
@@ -169,8 +175,11 @@ namespace Api.Database
 		/// <returns></returns>
 		public static Type GetType(int id)
 		{
-			ReverseTypeMap.TryGetValue(id, out Type result);
-			return result;
+			if (ReverseMap.TryGetValue(id, out ContentTypeMeta meta))
+			{
+				return meta.ContentType;
+			}
+			return null;
 		}
 
 		/// <summary>
