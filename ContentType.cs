@@ -8,7 +8,7 @@ namespace Api.AutoForms
 	/// <summary>
 	/// A particular type of content available through this API.
 	/// </summary>
-	public class ContentType
+	public struct ContentType
 	{
 		/// <summary>
 		/// The ID of the content type.

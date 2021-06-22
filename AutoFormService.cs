@@ -6,6 +6,7 @@ using Api.Translate;
 using Api.Users;
 using Microsoft.AspNetCore.Mvc.Infrastructure;
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Reflection;
 using System.Text.RegularExpressions;
@@ -27,51 +28,102 @@ namespace Api.AutoForms
 		/// Instanced automatically. Use injection to use this service, or Startup.Services.Get.
 		/// </summary>
 		public AutoFormService(IActionDescriptorCollectionProvider descriptionProvider, RoleService roleService)
-        {
+		{
 			_descriptionProvider = descriptionProvider;
 			_roleService = roleService;
+
+			contentCache = new AutoFormCache(PopulateContentCache, roleService);
+
+			// When any service changes state, ensure the content cache is clear. This permits runtime created types to have autoforms.
+			Api.Eventing.Events.Service.AfterCreate.AddEventListener((Context context, AutoService svc) =>
+			{
+				contentCache.Clear();
+				return new ValueTask<AutoService>(svc);
+			});
 		}
 
-		private List<AutoFormInfo>[] _cachedAutoFormInfo = null;
+		private AutoFormCache contentCache;
 
 		/// <summary>
-		/// List of autoform info for the given role.
+		/// The underlying caches
 		/// </summary>
-		/// <returns></returns>
-		public async ValueTask<List<AutoFormInfo>> List(Context context)
-		{
-			var roleId = context.RoleId;
-			var role = await _roleService.Get(context, roleId);
+		private ConcurrentDictionary<string, AutoFormCache> _caches = new ConcurrentDictionary<string, AutoFormCache>();
 
-			if (role == null)
+		/// <summary>
+		/// Registers a custom AutoForm type.
+		/// </summary>
+		/// <param name="typeName"></param>
+		/// <param name="populate"></param>
+		public void RegisterCustomFormType(string typeName, Func<Context, Dictionary<string, AutoFormInfo>, ValueTask> populate)
+		{
+			_caches[typeName] = new AutoFormCache(populate, _roleService);
+		}
+
+		/// <summary>
+		/// Gets autoform info for a particular type.
+		/// </summary>
+		/// <param name="context"></param>
+		/// <param name="type"></param>
+		/// <param name="name"></param>
+		/// <returns></returns>
+		public async ValueTask<AutoFormInfo> Get(Context context, string type, string name)
+		{
+			// Type is usually "content", "config" or "component".
+			// We only directly handle content here - config is handled by an AutoForm extension in ConfigService and component is via FrontendCodeService.
+			AutoFormCache cache;
+
+			if (type == "content")
 			{
-				// Bad role ID.
+				cache = contentCache;
+			}
+			else
+			{
+				_caches.TryGetValue(type, out cache);
+			}
+
+			if (cache == null)
+			{
+				// Bad cache name
 				return null;
 			}
 
-			if (_cachedAutoFormInfo == null)
+			var set = await cache.GetForRole(context);
+			if (set == null)
 			{
-				_cachedAutoFormInfo = new List<AutoFormInfo>[role.Id];
+				// Bad role
+				return null;
 			}
-			else if (_cachedAutoFormInfo.Length < role.Id)
-			{
-				// Resize it:
-				Array.Resize(ref _cachedAutoFormInfo, (int)role.Id);
-			}
-			
-			var cachedList = _cachedAutoFormInfo[roleId - 1];
+			set.TryGetValue(name, out AutoFormInfo result);
+			return result;
+		}
 
-			if (cachedList != null)
+		/// <summary>
+		/// Enumerates all the content types.
+		/// </summary>
+		/// <returns></returns>
+		public IEnumerable<ContentType> AllContentTypes()
+		{
+			// Get the content types and their IDs:
+			foreach (var kvp in Database.ContentTypes.TypeMap)
 			{
-				return cachedList;
+				yield return new ContentType()
+				{
+					Id = kvp.Value.Id,
+					Name = kvp.Value.Name
+				};
 			}
+		}
 
-			var result = new List<AutoFormInfo>();
-			_cachedAutoFormInfo[role.Id - 1] = result;
-			
+		/// <summary>
+		/// Populate the given cache for the given context.
+		/// </summary>
+		/// <param name="context"></param>
+		/// <param name="cache"></param>
+		private async ValueTask PopulateContentCache(Context context, Dictionary<string, AutoFormInfo> cache)
+		{
 			// Try getting the revision service to see if they're supported:
 			var revisionsSupported = Services.Get("RevisionService") != null;
-			
+
 			// For each AutoService..
 			foreach (var serviceKvp in Services.AutoServices)
 			{
@@ -79,16 +131,24 @@ namespace Api.AutoForms
 
 				var formType = serviceKvp.Value.InstanceType;
 				var formMeta = GetFormInfo(fieldStructure);
-				
+
 				// Must inherit revisionRow and 
 				// the revision module must be installed
 				formMeta.SupportsRevisions = revisionsSupported && Api.Database.ContentTypes.IsAssignableToGenericType(serviceKvp.Value.InstanceType, typeof(VersionedContent<>));
-				
-				formMeta.Endpoint = "v1/" + formType.Name.ToLower();
-				result.Add(formMeta);
+
+				var name = formType.Name.ToLower();
+				formMeta.Endpoint = "v1/" + name;
+				cache[name] = formMeta;
 			}
-			
-			return result;
+		}
+
+		/// <summary>
+		/// List of autoform info for the given role.
+		/// </summary>
+		/// <returns></returns>
+		public async ValueTask<Dictionary<string, AutoFormInfo>> AllContentForms(Context context)
+		{
+			return await contentCache.GetForRole(context);
 		}
 
 		/// <summary>

@@ -13,11 +13,11 @@ namespace Api.AutoForms
 		/// <summary>
 		/// The forms in this API.
 		/// </summary>
-		public List<AutoFormInfo> Forms;
+		public IEnumerable<AutoFormInfo> Forms;
 
 		/// <summary>
 		/// The content types in this API.
 		/// </summary>
-		public List<ContentType> ContentTypes;
+		public IEnumerable<ContentType> ContentTypes;
 	}
 }
