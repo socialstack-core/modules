@@ -136,7 +136,6 @@ export default class CalendarCompact extends React.Component {
 		}
 
 		this.setState({currentView: dayMeta, offset: offset});
-		this.props.setSession({...this.props.session, forceCalendarRefresh : null})
 
 		// Request for section:
 		this.populateBetween(sliceStart, sliceEnd, dayMeta);
@@ -375,20 +374,6 @@ export default class CalendarCompact extends React.Component {
 	}
 	
 	render(){
-		return <SessionConsumer>
-			{session => this.renderIntl(session)}
-		</SessionConsumer>
-	}
-
-	renderIntl(session){
-		
-		// if we have added a new entry force calendar to redraw and focus
-		if (session.forceCalendarRefresh)
-		{
-			var newOffset = daysBetween(new Date() , session.forceCalendarRefresh);
-			this.load(newOffset);
-		}
-		
 		var { days , showNav , showToday } = this.props;
 		
 		if(!days){
@@ -462,7 +447,6 @@ export default class CalendarCompact extends React.Component {
 				</Row>
 			</Container>
 		</div>;
-		
 	}
 	
 }
