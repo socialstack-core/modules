@@ -74,9 +74,13 @@ namespace Api.CanvasRenderer
 				if (prebuilt)
 				{
 					Console.WriteLine("Running in prebuilt mode. *Not* watching your files for changes.");
-					AddBuilder(UIBuilder = new UIBundle("UI", "/pack/", translations, locales) { CssPrepend = cssVariables });
-					AddBuilder(EmailBuilder = new UIBundle("Email", "/pack/email-static/", translations, locales));
-					AddBuilder(AdminBuilder = new UIBundle("Admin", "/en-admin/pack/", translations, locales));
+					try{
+						AddBuilder(UIBuilder = new UIBundle("UI", "/pack/", translations, locales) { CssPrepend = cssVariables });
+						AddBuilder(EmailBuilder = new UIBundle("Email", "/pack/email-static/", translations, locales));
+						AddBuilder(AdminBuilder = new UIBundle("Admin", "/en-admin/pack/", translations, locales));
+					}catch(Exception e){
+						Console.WriteLine("[SEVERE] " + e.ToString());
+					}
 				}
 				else
 				{

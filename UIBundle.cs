@@ -171,7 +171,7 @@ namespace Api.CanvasRenderer
 				if (File.Exists(cssFilePath))
 				{
 					var mainCss = File.ReadAllText(cssFilePath);
-					BuiltCss = CssPrepend + mainCss;
+					BuiltCss = (CssPrepend == null ? "" : CssPrepend) + mainCss;
 				}
 			}
 			else
@@ -625,7 +625,7 @@ namespace Api.CanvasRenderer
 				if (File.Exists(cssFilePath))
 				{
 					var mainCss = File.ReadAllText(cssFilePath);
-					BuiltCss = CssPrepend + mainCss;
+					BuiltCss = (CssPrepend == null ? "" : CssPrepend) + mainCss;
 				}
 				else {
 					Console.WriteLine(
