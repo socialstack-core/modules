@@ -614,9 +614,12 @@ namespace Api.CanvasRenderer
 		public void Start()
 		{
 			// Add callback for when remote global file changes happen:
-			GlobalFileMap.OnUpdated += async () => {
-				await BuildAllCss();
-			};
+			if(GlobalFileMap != null)
+			{
+				GlobalFileMap.OnUpdated += async () => {
+					await BuildAllCss();
+				};
+			}
 
 			if (Prebuilt)
 			{
