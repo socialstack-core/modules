@@ -140,6 +140,7 @@ namespace Api.Startup
 						ServicedTypes[autoService.ServicedType] = autoService;
 						var contentId = Api.Database.ContentTypes.GetId(autoService.ServicedType);
 						ServiceByContentType[contentId] = autoService;
+						Api.Database.ContentTypes.StateChange(true, autoService, autoService.ServicedType);
 					}
 
 					// Load the content fields. This is important to make sure e.g. ListAs is loaded and available as a global field.
@@ -179,6 +180,7 @@ namespace Api.Startup
 						ServicedTypes.Remove(autoService.ServicedType, out _);
 						var contentId = Database.ContentTypes.GetId(autoService.ServicedType);
 						ServiceByContentType.Remove(contentId, out _);
+						Api.Database.ContentTypes.StateChange(false, autoService, autoService.ServicedType);
 					}
 
 					await Events.Service.AfterDelete.Dispatch(ctx, autoService);
