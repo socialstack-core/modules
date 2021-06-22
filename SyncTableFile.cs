@@ -824,10 +824,12 @@ namespace Api.ContentSync
 
 			foreach (var kvp in ContentTypes.TypeMap)
 			{
+				var type = kvp.Value.ContentType;
+				
 				// Get the service for this thing (if there is one):
-				var svc = Services.Get(kvp.Value.Name + "Service");
+				var svc = kvp.Value.Service;
 
-				var tableName = kvp.Value.TableName();
+				var tableName = type.TableName();
 				var filePath = ParentDirectory + "/" + tableName + ".txt";
 				if (ifExistsOnly && !File.Exists(filePath))
 				{
@@ -835,10 +837,10 @@ namespace Api.ContentSync
 				}
 
 				// Get ID field type:
-				var idFieldType = kvp.Value.GetField("Id").FieldType;
+				var idFieldType = svc.IdType;
 
 				// Get the table file type now:
-				var stfType = typeof(SyncTableFile<,>).MakeGenericType(kvp.Value, idFieldType);
+				var stfType = typeof(SyncTableFile<,>).MakeGenericType(type, idFieldType);
 
 				// Instance it:
 				var stf = (SyncTableFile)Activator.CreateInstance(stfType, new object[] { filePath });
