@@ -1,6 +1,7 @@
+using System;
 using System.Collections;
 using System.Collections.Generic;
-
+using System.Threading.Tasks;
 
 namespace Api.Configuration
 {
@@ -16,7 +17,23 @@ namespace Api.Configuration
 	/// </summary>
 	public partial class Config
 	{
-		
+		/// <summary>
+		/// Triggered when this config object is updated.
+		/// </summary>
+		public event Func<ValueTask> OnChange;
+
+
+		/// <summary>
+		/// Invoke this to indicate a change has happened.
+		/// </summary>
+		public async ValueTask Changed()
+		{
+			if (OnChange == null)
+			{
+				return;
+			}
+			await OnChange();
+		}
 	}
 	
 }

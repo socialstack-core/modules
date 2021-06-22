@@ -1,6 +1,8 @@
 using Api.Configuration;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Configuration;
+using Api.Startup;
+using System;
 
 /// <summary>
 /// A general use service which manipulates an entity type. In the global namespace due to its common use.
@@ -16,17 +18,56 @@ public partial class AutoService
 	private object _loadedConfiguration;
 	
 	/// <summary>
-	/// Service config. Always returns the latest configuration.
+	/// Get config. Always returns the latest configuration.
 	/// You can safely reuse references to the object returned - if the config changes, it'll still be the same object.
-	/// You can find when it changes (or loads the first time) via the Configure event.
+	/// You can find when it changes (or loads the first time) via the Config.OnChange event.
+	/// Also note that the config section key is the name of the given type, minus "Config" or "Configuration" from the end.
 	/// </summary>
 	public T GetConfig<T>() where T:new()
 	{
 		if(_loadedConfiguration == null)
 		{
-			// For now this is only from appsettings:
-			var sectionName = GetType().Name;
-			_loadedConfiguration = AppSettings.GetSection(sectionName).Get<T>();
+			// Ask the cache of the config service. The key is based on the name of the type.
+			var configService = Services.Get<ConfigurationService>();
+
+			var name = typeof(T).Name;
+
+			if (name.EndsWith("Config"))
+			{
+				// Trim it:
+				name = name.Substring(0, name.Length - 6);
+			}
+			else if (name.EndsWith("Configuration"))
+			{
+				// Trim it:
+				name = name.Substring(0, name.Length - 13);
+			}
+
+			if (configService != null)
+			{
+				var result = configService.FromCache(name);
+
+				if (result != null)
+				{
+					// Parse as obj:
+					try
+					{
+						var res = Newtonsoft.Json.JsonConvert.DeserializeObject<T>(result.ConfigJson);
+						_loadedConfiguration = res;
+						result.ConfigObject = res;
+						return res;
+					}
+					catch (Exception e)
+					{
+						Console.WriteLine("[WARN] Invalid JSON detected in config for '" + name + 
+							"'. It's in the site_configuration database table as row #" + result.Id + ". The full error is below.");
+						Console.WriteLine(e.ToString());
+					}
+				}
+			}
+
+			//Try from appsettings:
+			_loadedConfiguration = AppSettings.GetSection(name).Get<T>();
 
 			if (_loadedConfiguration == null)
 			{
@@ -34,12 +75,6 @@ public partial class AutoService
 				_loadedConfiguration = new T();
 			}
 
-			/*
-			 * When config is CMS backed, it'll fire this Configure event.
-			if(EventGroup != null){
-				_ = EventGroup.Configure.Dispatch(new Context(), _loadedConfiguration);
-			}
-			*/
 		}
 		
 		return (T)_loadedConfiguration;

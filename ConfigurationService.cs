@@ -1,0 +1,193 @@
+using Api.Database;
+using System.Threading.Tasks;
+using System.Collections.Generic;
+using Api.Permissions;
+using Api.Contexts;
+using Api.Eventing;
+using Api.AutoForms;
+using Api.Startup;
+using System.Reflection;
+using System;
+
+namespace Api.Configuration
+{
+	/// <summary>
+	/// Handles configurations.
+	/// Instanced automatically. Use injection to use this service, or Startup.Services.Get.
+	/// </summary>
+	[LoadPriority(4)]
+	public partial class ConfigurationService : AutoService<Api.Configuration.Configuration>
+    {
+		/// <summary>
+		/// Instanced automatically. Use injection to use this service, or Startup.Services.Get.
+		/// </summary>
+		public ConfigurationService(AutoFormService autoForms) : base(Events.Configuration)
+        {
+			// Example admin page install:
+			InstallAdminPages("Settings", "fa:fa-rocket", new string[] { "id", "name" });
+
+			Cache();
+
+			Events.Configuration.Received.AddEventListener(async (Context context, Configuration config, int type) => {
+
+				// Some other server in the cluster updated config.
+				try
+				{
+					await LoadConfig(config);
+				}
+				catch (Exception e)
+				{
+					Console.WriteLine("[WARN] Remote config update failed to load: " + e.ToString());
+				}
+
+				return config;
+			});
+
+			Events.Configuration.BeforeUpdate.AddEventListener(async (Context context, Configuration config) => {
+
+				// Attempt to parse the JSON:
+				try
+				{
+					await LoadConfig(config);
+				}
+				catch (Exception)
+				{
+					throw new PublicException("Unable to save configuration - the JSON is invalid.", "invalid_json");
+				}
+
+				return config;
+			});
+
+			// Register the autoforms for config entries:
+			autoForms.RegisterCustomFormType("config", (Context context, Dictionary<string, AutoFormInfo> cache) => {
+				
+				// Populate the given cache now.
+				// Do this by discovering all :Config classes in the code, then constructing the form for them.
+				
+				var allTypes = typeof(ConfigurationService).Assembly.DefinedTypes;
+
+				foreach (var typeInfo in allTypes)
+				{
+					// If it:
+					// - Is a class
+					// - Inherits :Config
+					// Then add to map
+
+					if (!typeInfo.IsClass || typeInfo.IsAbstract)
+					{
+						continue;
+					}
+
+					if (!typeof(Config).IsAssignableFrom(typeInfo))
+					{
+						continue;
+					}
+
+					var name = typeInfo.Name;
+
+					if (name.EndsWith("Config"))
+					{
+						// Trim it:
+						name = name.Substring(0, name.Length - 6);
+					}
+					else if (name.EndsWith("Configuration"))
+					{
+						// Trim it:
+						name = name.Substring(0, name.Length - 13);
+					}
+
+					var fields = new List<AutoFormField>();
+
+					cache[name.ToLower()] = new AutoFormInfo(){
+						Fields = fields
+					};
+
+					var props = typeInfo.GetProperties();
+
+					foreach (var property in props)
+					{
+						var field = new JsonField()
+						{
+							Name = property.Name,
+							OriginalName = property.Name,
+							PropertyInfo = property,
+							Attributes = property.GetCustomAttributes(),
+							TargetType = property.PropertyType,
+							PropertyGet = property.GetGetMethod(),
+							PropertySet = property.GetSetMethod()
+						};
+
+						field.SetDefaultDisplayModule();
+
+						fields.Add(autoForms.BuildFieldInfo(field));
+					}
+
+				}
+
+				return new ValueTask();
+			});
+			
+		}
+
+		/// <summary>
+		/// Updates the loaded config object, if there is one. May throw a JSON related error.
+		/// </summary>
+		/// <param name="config"></param>
+		private async ValueTask LoadConfig(Configuration config)
+		{
+			if (config != null && config.ConfigObject != null)
+			{
+				// Deserialise it:
+				var type = config.ConfigObject.GetType();
+				var res = Newtonsoft.Json.JsonConvert.DeserializeObject(config.ConfigJson, type);
+
+				// Copy values to existing object.
+				// By doing this, any refs to the existing object are still valid.
+				foreach (var property in type.GetProperties())
+				{
+					property.SetValue(config.ConfigObject, property.GetValue(res));
+				}
+
+				foreach (var field in type.GetFields())
+				{
+					if (field.Name == "OnChange")
+					{
+						// Retain original event set for this field.
+						continue;
+					}
+
+					field.SetValue(config.ConfigObject, field.GetValue(res));
+				}
+
+				if (config.ConfigObject is Config)
+				{
+					await ((Config)config.ConfigObject).Changed();
+				}
+			}
+		}
+
+		/// <summary>
+		/// Gets config from the cache via the given key.
+		/// </summary>
+		/// <param name="key"></param>
+		/// <returns></returns>
+		public Configuration FromCache(string key)
+		{
+			var cache = GetCacheForLocale(1);
+			if (cache == null)
+			{
+				return null;
+			}
+
+			var keyIndex = cache.GetIndex<string>("Key") as NonUniqueIndex<Configuration, string>;
+			var loop = keyIndex.GetEnumeratorFor(key);
+			Configuration latest = null;
+			while (loop.HasMore())
+			{
+				latest = loop.Current();
+			}
+			return latest;
+		}
+	}
+    
+}
