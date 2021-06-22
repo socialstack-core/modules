@@ -39,7 +39,7 @@ export default props => {
 				if(!props.noRedirect){
 					setPage(props.redirectTo || '/');
 				}
-				props.onLogin && props.onLogin(response);
+				props.onLogin && props.onLogin(response, setPage, setSession, props);
 			}}
 			onValues={v => {
 				setFailed(false);
@@ -64,15 +64,15 @@ export default props => {
 					</Col>
 				</Row>
 				<Spacer height="20" />
-				<Input type="submit" label="Login"/>
+				<Input type="submit" label={props.loginCta || `Login`}/>
 				{failed && (
 					<Alert type="fail">
 						{`Those login details weren't right - please try again.`}
 					</Alert>
 				)}
-				<div className="form-group">
+				{props.noRegister ? null : <div className="form-group">
 					{`Don't have an account?`} <a href={props.registerUrl || "/register"}>{`Register here`}</a>
-				</div>
+				</div>}
 			</div>
 		</Form>
 	);
