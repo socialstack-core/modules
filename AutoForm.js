@@ -49,9 +49,26 @@ export default class AutoForm extends React.Component {
 	componentDidMount() {
 		this.load(this.props);
 	}
-
+	
+	loadField(props) {
+		var value = {};
+		
+		try{
+			value = JSON.parse(props.defaultValue || props.value);
+		}catch(e){
+			console.log(e);
+		}
+		
+		getAutoForm(props.formType || 'content', (props.formName || '').toLowerCase()).then(formData => {
+			this.setState({ value, fields: formData ? formData.canvas: {content: 'Form load error - the form type was not found.'} });
+		});
+	}
+	
 	load(props) {
 		if (!props.endpoint) {
+			if(props.name){
+				this.loadField(props);
+			}
 			return;
 		}
 
@@ -86,7 +103,7 @@ export default class AutoForm extends React.Component {
 			return;
 		}
 		
-		getAutoForm((props.endpoint || '').toLowerCase()).then(formData => {
+		getAutoForm(props.formType || 'content', (props.endpoint || '').toLowerCase()).then(formData => {
 
 			var supportsRevisions = formData && formData.form && formData.form.supportsRevisions;
 			var isLocalized = formData && formData.form && formData.form.fields && formData.form.fields.find(fld => fld.data.localized);
@@ -202,7 +219,86 @@ export default class AutoForm extends React.Component {
 	}
 	
 	render(){
+		if(this.props.name){
+			// Render as an input within some other form.
+			return <div>
+				<Input type='hidden' label={this.props.label} name={this.props.name} inputRef={ir => {
+					this.ir = ir;
+					if(ir){
+						ir.onGetValue = (val, ref) => {
+							if(ref != this.ir){
+								return;
+							}
+							return JSON.stringify(this.state.value);
+						};
+					}
+				}} />
+				{this.renderFormFields()}
+			</div>
+		}
+		
 		return <RouterConsumer>{(pageState, setPage) => this.renderIntl(pageState, setPage)}</RouterConsumer>;
+	}
+	
+	renderFormFields() {
+		const { locale } = this.state;
+		
+		return <Canvas key = {this.state.updateCount} onContentNode={contentNode => {
+			var content = this.state.value || this.state.fieldData;
+			if (!contentNode.data || !contentNode.data.name || !content || contentNode.data.autoComplete == 'off') {
+				return;
+			}
+
+			var data = contentNode.data;
+
+			if (data.localized && !Array.isArray(data.label)) {
+				// Show globe icon alongside the label:
+				data.label = [(data.label || ''), <i className='fa fa-globe-europe localized-field-label' />];
+			}
+			
+			if(!data.localized && locale != '1'){
+				// Only default locale can show non-localised fields. Returning a null will ignore the contentNode.
+				return null;
+			}
+			
+			if(data.hint){
+				var hint = <i className='fa fa-question-circle hint-field-label' title={data.hint}/>;
+				
+				if(Array.isArray(data.label)){
+					data.label.push(hint);
+				}else{
+					data.label = [(data.label || ''), hint];
+				}
+			}
+			
+			data.currentContent = content;
+			data.autoComplete = 'off';
+			data.onChange = (e) => {
+				// Input field has changed. Update the content object so any redraws are reflected.
+				var val = e.target.value;
+				switch (data.type) {
+					case 'checkbox':
+					case 'radio':
+						val = e.target.checked;
+						break;
+					case 'canvas':
+						val = e.json;
+						break;
+				}
+				content[data.name] = val;
+			};
+
+			var value = content[data.name];
+			if (value !== undefined) {
+				if (data.name == "createdUtc") {
+					data.defaultValue = formatTime(value);
+				} else {
+					data.defaultValue = value;
+				}
+			}
+		}}>
+			{this.state.fields}
+		</Canvas>
 	}
 	
 	renderIntl(pageState, setPage) {
@@ -400,61 +496,7 @@ export default class AutoForm extends React.Component {
 							}
 						}
 					>
-						<Canvas key = {this.state.updateCount} onContentNode={contentNode => {
-							var content = this.state.fieldData;
-							if (!contentNode.data || !contentNode.data.name || !content || contentNode.data.autoComplete == 'off') {
-								return;
-							}
-
-							var data = contentNode.data;
-
-							if (data.localized && !Array.isArray(data.label)) {
-								// Show globe icon alongside the label:
-								data.label = [(data.label || ''), <i className='fa fa-globe-europe localized-field-label' />];
-							}
-							
-							if(!data.localized && locale != '1'){
-								// Only default locale can show non-localised fields. Returning a null will ignore the contentNode.
-								return null;
-							}
-							
-							if(data.hint){
-								var hint = <i className='fa fa-question-circle hint-field-label' title={data.hint}/>;
-								
-								if(Array.isArray(data.label)){
-									data.label.push(hint);
-								}else{
-									data.label = [(data.label || ''), hint];
-								}
-							}
-							
-							data.autoComplete = 'off';
-							data.onChange = (e) => {
-								// Input field has changed. Update the content object so any redraws are reflected.
-								var val = e.target.value;
-								switch (data.type) {
-									case 'checkbox':
-									case 'radio':
-										val = e.target.checked;
-										break;
-									case 'canvas':
-										val = e.json;
-										break;
-								}
-								content[data.name] = val;
-							};
-
-							var value = content[data.name];
-							if (value !== undefined) {
-								if (data.name == "createdUtc") {
-									data.defaultValue = formatTime(value);
-								} else {
-									data.defaultValue = value;
-								}
-							}
-						}}>
-							{this.state.fields}
-						</Canvas>
+						{this.renderFormFields()}
 					</Form>
 				</Tile>
 				{this.state.confirmDelete && this.renderConfirmDelete(pageState, setPage)}
