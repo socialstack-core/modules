@@ -1,37 +1,26 @@
 import webRequest from 'UI/Functions/WebRequest';
 
 /* Autoform cache */
-var cache = null;
-let cacheLoading = null;
+var cache = {};
 
 /*
 * Gets info for a particular autoform. Returns a promise.
-* Endpoint is e.g. "forum/thread" or "comment" for /v1/comment (create/ update).
+* Type is the autoform type, usually "content" or e.g. "config".
+* Name is the form name, e.g. "content","user"
 */
-export default (endpoint) => {
-	endpoint = 'v1/' + endpoint;
-	
-	if(cache != null){
-		return Promise.resolve(cache[endpoint]);
+export default (type, name) => {
+	if(!cache[type]){
+		cache[type]={};
 	}
 	
-	if(cacheLoading == null){
-		
-		cacheLoading = webRequest("autoform").then(response => {
-			var structure = response.json;
-			cache = {};
-			
-			// Ignoring structure.contentTypes for now - we won't need it.
-			for(var i=0;i<structure.forms.length;i++){
-				var form = structure.forms[i];
-				cache[form.endpoint] = {form, canvas: JSON.stringify({content: form.fields})};
-			}
-			
-		});
-		
+	if(cache[type][name]){
+		return Promise.resolve(cache[type][name]);
 	}
 	
-	return cacheLoading.then(() => {
-		return cache[endpoint];
+	return webRequest("autoform/" + type + "/" + name).then(response => {
+		var form = response.json;
+		form = {form, canvas: JSON.stringify({content: form.fields})};
+		cache[type][name] = form;
+		return form;
 	});
 }
