@@ -51,8 +51,8 @@ export default props => {
 				<Canvas>{moreRequired}</Canvas>
 			)}
 			<div style={{display: moreRequired ? 'none' : 'initial'}}>
-				<Input label = {emailOnly ? `Email` : `Email or username`}  name="emailOrUsername" placeholder={emailOnly ? `Email` : `Email or username`} validate={validate} />
-				<Input label = {`Password`} name="password" placeholder={`Password`} type="password" />
+				<Input label = {props.noLabels ? null : (emailOnly ? `Email` : `Email or username`)}  name="emailOrUsername" placeholder={emailOnly ? `Email` : `Email or username`} validate={validate} />
+				<Input label = {props.noLabels ? null : `Password`} name="password" placeholder={`Password`} type="password" />
 				<Row>
 					<Col size="6">
 						<label className="checkbox-label">
