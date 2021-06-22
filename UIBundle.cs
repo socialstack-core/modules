@@ -146,6 +146,42 @@ namespace Api.CanvasRenderer
 		}
 
 		/// <summary>
+		/// Prepend text to add to the CSS. Use SetCssPrepend except during construction.
+		/// </summary>
+		public string CssPrepend;
+
+		/// <summary>
+		/// Sets the given CSS to be prepended to any CSS this outputs.
+		/// </summary>
+		/// <param name="css"></param>
+		public async ValueTask SetCssPrepend(string css)
+		{
+			CssPrepend = css;
+
+			if (BuiltCss == null)
+			{
+				// Not loaded yet.
+				return;
+			}
+
+			if (Prebuilt)
+			{
+				// Load main.css (as-is):
+				var cssFilePath = RootPath + "/public" + PackDir + "main.prebuilt.css";
+				if (File.Exists(cssFilePath))
+				{
+					var mainCss = File.ReadAllText(cssFilePath);
+					BuiltCss = CssPrepend + mainCss;
+				}
+			}
+			else
+			{
+				// Reconstruct the CSS:
+				await ConstructCss();
+			}
+		}
+
+		/// <summary>
 		/// Determines the given file name + type as a particular useful source file type. "None" if it didn't.
 		/// </summary>
 		/// <param name="fileType"></param>
@@ -589,7 +625,7 @@ namespace Api.CanvasRenderer
 				if (File.Exists(cssFilePath))
 				{
 					var mainCss = File.ReadAllText(cssFilePath);
-					BuiltCss = mainCss;
+					BuiltCss = CssPrepend + mainCss;
 				}
 				else {
 					Console.WriteLine(
@@ -839,6 +875,11 @@ namespace Api.CanvasRenderer
 		{
 			var builder = new StringBuilder();
 			CssBuildErrors.Clear();
+
+			if (CssPrepend != null)
+			{
+				builder.Append(CssPrepend);
+			}
 
 			// Sorted files:
 			var files = new List<SourceFile>();

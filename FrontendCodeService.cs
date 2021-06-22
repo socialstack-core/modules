@@ -35,8 +35,20 @@ namespace Api.CanvasRenderer
 		/// <summary>
 		/// Instanced automatically.
 		/// </summary>
-		public FrontendCodeService(LocaleService locales, TranslationService translations)
+		public FrontendCodeService(LocaleService locales, TranslationService translations, Themes.ThemeService themeService)
 		{
+			var themeConfig = themeService.GetConfig();
+			var cssVariables = themeService.OutputCssVariables(themeConfig);
+
+			themeConfig.OnChange += async () => {
+
+				// The theme was reconfigured (this also includes when the message came via contentsync as well).
+				// Reconstruct the CSS variable list now.
+				cssVariables = themeService.OutputCssVariables(themeConfig);
+
+				await UIBuilder.SetCssPrepend(cssVariables);
+			};
+
 			initialBuildTask = Task.Run(async () =>
 			{
 				var dllPath = AppDomain.CurrentDomain.BaseDirectory;
@@ -62,7 +74,7 @@ namespace Api.CanvasRenderer
 				if (prebuilt)
 				{
 					Console.WriteLine("Running in prebuilt mode. *Not* watching your files for changes.");
-					AddBuilder(UIBuilder = new UIBundle("UI", "/pack/", translations, locales));
+					AddBuilder(UIBuilder = new UIBundle("UI", "/pack/", translations, locales) { CssPrepend = cssVariables });
 					AddBuilder(EmailBuilder = new UIBundle("Email", "/pack/email-static/", translations, locales));
 					AddBuilder(AdminBuilder = new UIBundle("Admin", "/en-admin/pack/", translations, locales));
 				}
@@ -77,7 +89,7 @@ namespace Api.CanvasRenderer
 					var minify = config.Minified;
 
 					// Create a group of build/watchers for each bundle of files (all in parallel):
-					AddBuilder(UIBuilder = new UIBundle("UI", "/pack/", translations, locales, engine, globalMap, minify));
+					AddBuilder(UIBuilder = new UIBundle("UI", "/pack/", translations, locales, engine, globalMap, minify) { CssPrepend = cssVariables });
 					AddBuilder(EmailBuilder = new UIBundle("Email", "/pack/email-static/", translations, locales, engine, globalMap, minify));
 					AddBuilder(AdminBuilder = new UIBundle("Admin", "/en-admin/pack/", translations, locales, engine, globalMap, minify));
 
