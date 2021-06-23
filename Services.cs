@@ -106,12 +106,6 @@ namespace Api.Startup
 			
 			if (startup)
 			{
-				if (All.ContainsKey(serviceType))
-				{
-					// Already registered.
-					return;
-				}
-
 				// If it's an AutoService, add it to the lookup:
 				if (autoService != null)
 				{
@@ -152,13 +146,7 @@ namespace Api.Startup
 			else
 			{
 				// Shutdown - deregister this service.
-				if (!All.Remove(serviceType, out _))
-				{
-					// Wasn't registered anyway.
-					return;
-				}
-
-
+				All.Remove(serviceType, out _);
 				AllByName.Remove(serviceType.Name, out _);
 
 				if (autoService != null)
