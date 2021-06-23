@@ -1,7 +1,7 @@
 import Loading from 'UI/Loading';
 import Form from 'UI/Form';
 import Input from 'UI/Input';
-
+import {SessionConsumer} from 'UI/Session';
 
 export default class TwoFactorGoogleSetup extends React.Component {
 	
@@ -15,6 +15,12 @@ export default class TwoFactorGoogleSetup extends React.Component {
 	*/
 	
 	render(){
+		return <SessionConsumer>
+			{session => this.renderIntl(session)}
+		</SessionConsumer>
+	}
+
+	renderIntl(session) {
 		
 		if(this.props.loginForm){
 			if(this.props.setupUrl){
@@ -45,7 +51,7 @@ export default class TwoFactorGoogleSetup extends React.Component {
 			}
 		}
 		
-		var {user} = global.app.state;
+		var {user} = session;
 		
 		if(!user){
 			return <Loading />;
