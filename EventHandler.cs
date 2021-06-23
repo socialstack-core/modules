@@ -12,6 +12,7 @@ using Api.Configuration;
 
 namespace Api.UserAgendaEntries
 {
+	#warning this module is obsolete. Directly list meetings instead.
 
 	/// <summary>
 	/// Listens out for the DatabaseDiff run to add additional revision tables, as well as BeforeUpdate events to then automatically create the revision rows.
