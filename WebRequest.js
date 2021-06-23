@@ -82,7 +82,7 @@ function mapWhere(where, args){
 			if(str != ''){str += ' and ';}
 			
 			if(Array.isArray(v)){
-				str += k +'=[?]';
+				str += k +' contains [?]'; // contains on an array is the same as containsAll. Different from containsAny and containsNone.
 				args.push(v);
 			}else if(v!==null && typeof v === 'object'){
 				for(var f in v){
@@ -95,6 +95,12 @@ function mapWhere(where, args){
 						break;
 						case "contains":
 							str += k + " contains " + (Array.isArray(v[f]) ? '[?]' : '?');
+							args.push(v[f]);
+						break;
+						case "containsNone":
+						case "containsAny":
+						case "containsAll":
+							str += k + " " + f + " [?]";
 							args.push(v[f]);
 						break;
 						case "endsWith":
