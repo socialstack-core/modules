@@ -6,7 +6,8 @@ using Api.Users;
 
 namespace Api.UserAgendaEntries
 {
-	
+	#warning This module is obsolete. Consider using multiple requests for mixed content types instead of mixed endpoints.
+
 	/// <summary>
 	/// An UserAgendaEntry
 	/// </summary>
