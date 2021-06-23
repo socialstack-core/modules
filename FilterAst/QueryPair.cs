@@ -680,7 +680,20 @@ namespace Api.Permissions
 
 			var arg = Pool.ArgTypes[_arg];
 
-			throw new PublicException("Argument #" + _arg + " must be a '" + arg.ArgType.Name + "', but you used Bind('" + type.Name + "') for it.", "filter_invalid");
+			var nullableBaseType = Nullable.GetUnderlyingType(arg.ArgType);
+
+			string typeName;
+
+			if (nullableBaseType == null)
+			{
+				typeName = arg.ArgType.Name;
+			}
+			else
+			{
+				typeName = "nullable: " + nullableBaseType.Name + "?";
+			}
+
+			throw new PublicException("Argument #" + _arg + " must be a '" + typeName + "', but you used Bind('" + type.Name + "') for it.", "filter_invalid");
 		}
 
 		/// <summary>

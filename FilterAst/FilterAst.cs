@@ -244,6 +244,11 @@ namespace Api.Permissions{
 		/// FilterBase.CheckParseSuccess
 		/// </summary>
 		public static MethodInfo _checkParseSuccess;
+
+		/// <summary>
+		/// FilterAst.TryParseDate
+		/// </summary>
+		public static MethodInfo _tryParseDate;
 		
 		/// <summary>
 		/// The Type[] signature for generated Collect methods.
@@ -254,6 +259,26 @@ namespace Api.Permissions{
 		/// FilterBase.FirstBCollector
 		/// </summary>
 		public static FieldInfo _firstBCollector;
+
+		/// <summary>
+		/// Date parsing. Supports numeric tick counts as well as actual date strings.
+		/// </summary>
+		/// <param name="s"></param>
+		/// <param name="field"></param>
+		/// <returns></returns>
+		public static bool TryParseDate(string s, out DateTime field)
+		{
+			// If it's numeric, then use ticks:
+			if (long.TryParse(s, out long ticks))
+			{
+				// Ticks to/ from the frontend are in ms. Scale to the ns used by dotnet:
+				ticks *= 10000;
+				field = new DateTime(ticks);
+				return true;
+			}
+
+			return DateTime.TryParse(s, out field);
+		}
 
 		/// <summary>
 		/// Checks if a TryParse was successful and if not emits a friendly error.
@@ -745,7 +770,22 @@ namespace Api.Permissions{
 
 			var parseType = (nullableBaseType != null ? nullableBaseType : argType);
 
-			var parseMethod = isString ? null : parseType.GetMethod("TryParse", BindingFlags.Static | BindingFlags.Public, null, new Type[] { typeof(string), parseType.MakeByRefType() }, null);
+			MethodInfo parseMethod;
+
+			// Special case for date parsing, as we'd like to support either a date string or a numeric tick count.
+			if (parseType == typeof(DateTime))
+			{
+				if (FilterAst._tryParseDate == null)
+				{
+					FilterAst._tryParseDate = typeof(FilterAst).GetMethod(nameof(FilterAst.TryParseDate), BindingFlags.Static | BindingFlags.Public);
+				}
+
+				parseMethod = FilterAst._tryParseDate;
+			}
+			else
+			{
+				parseMethod = isString ? null : parseType.GetMethod("TryParse", BindingFlags.Static | BindingFlags.Public, null, new Type[] { typeof(string), parseType.MakeByRefType() }, null);
+			}
 
 			if (FilterAst._baseNullCheck == null)
 			{
@@ -766,10 +806,36 @@ namespace Api.Permissions{
 					
 					if (argType.IsValueType)
 					{
-						// Null is not permitted. If one is given, error:
-						BindStringMethod.Emit(OpCodes.Ldarg_0);
-						BindStringMethod.Emit(OpCodes.Ldarg_1);
-						BindStringMethod.Emit(OpCodes.Callvirt, FilterAst._baseNullCheck);
+						if (nullableBaseType == null)
+						{
+							// Null is not permitted. If one is given, error:
+							BindStringMethod.Emit(OpCodes.Ldarg_0);
+							BindStringMethod.Emit(OpCodes.Ldarg_1);
+							BindStringMethod.Emit(OpCodes.Callvirt, FilterAst._baseNullCheck);
+						}
+						else
+						{
+							// Check if user provided a null. If they did, set the target field to null.
+							var nullLabel = BindStringMethod.DefineLabel();
+							BindStringMethod.Emit(OpCodes.Ldarg_1);
+							BindStringMethod.Emit(OpCodes.Ldnull);
+							BindStringMethod.Emit(OpCodes.Ceq);
+							BindStringMethod.Emit(OpCodes.Brfalse, nullLabel);
+							// The given value is a null. Set a nullable representation of null to the field.
+							BindStringMethod.Emit(OpCodes.Ldarg_0);
+							BindStringMethod.Emit(OpCodes.Ldflda, builder);
+							BindStringMethod.Emit(OpCodes.Initobj, argType);
+							// Increase _arg:
+							BindStringMethod.Emit(OpCodes.Ldarg_0);
+							BindStringMethod.Emit(OpCodes.Ldloc_0);
+							BindStringMethod.Emit(OpCodes.Ldc_I4_1);
+							BindStringMethod.Emit(OpCodes.Add);
+							BindStringMethod.Emit(OpCodes.Stfld, _argField);
+							BindStringMethod.Emit(OpCodes.Ldarg_0);
+							BindStringMethod.Emit(OpCodes.Ret);
+
+							BindStringMethod.MarkLabel(nullLabel);
+						}
 					}
 
 					// Set the value
@@ -777,7 +843,7 @@ namespace Api.Permissions{
 					BindStringMethod.Emit(OpCodes.Ldarg_1);
 					if (parseMethod != null)
 					{
-					// TryParse. The string is on the stack at the moment, so we just need to push a temp local ref:
+						// TryParse. The string is on the stack at the moment, so we just need to push a temp local ref:
 						var tryParseScratchSpace = BindStringMethod.DeclareLocal(parseType);
 						BindStringMethod.Emit(OpCodes.Ldloca, tryParseScratchSpace);
 						BindStringMethod.Emit(OpCodes.Call, parseMethod);
@@ -785,7 +851,15 @@ namespace Api.Permissions{
 
 						// CheckParse throws if it was invalid, so we can proceed to just put the parsed val straight onto the stack:
 						BindStringMethod.Emit(OpCodes.Ldloc, tryParseScratchSpace);
+
+						// If target type is nullable, the parseType isn't. Handle the new nullable struct:
+						if (nullableBaseType != null)
+						{
+							var ctor = argType.GetConstructors();
+							BindStringMethod.Emit(OpCodes.Newobj, ctor[0]);
+						}
 					}
+
 					BindStringMethod.Emit(OpCodes.Stfld, builder);
 					// Increase _arg:
 					BindStringMethod.Emit(OpCodes.Ldarg_0);
