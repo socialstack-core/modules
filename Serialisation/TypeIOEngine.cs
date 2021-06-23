@@ -300,9 +300,12 @@ namespace Api.SocketServerLibrary
 					continue;
 				}
 
+				// If the field type is nullable, use the base type here.
+				var nullableBaseType = Nullable.GetUnderlyingType(idField.FieldType);
+
 				var baseType = typeof(IDCollector<>).MakeGenericType(new Type[] {
-						idField.FieldType
-					});
+					nullableBaseType == null ? idField.FieldType : nullableBaseType
+				});
 
 				// Get the Add method:
 				var addMethod = baseType.GetMethod("Add");
@@ -332,6 +335,26 @@ namespace Api.SocketServerLibrary
 					// Property
 					body.Emit(OpCodes.Ldarg_1);
 					body.Emit(OpCodes.Callvirt, idField.PropertyInfo.GetGetMethod());
+				}
+
+				if (nullableBaseType != null)
+				{
+					// If nullable, and it's null, do nothing. To check though, we need an address. We'll need to store it in a local for that:
+					var loc = body.DeclareLocal(idField.FieldType);
+					var after = body.DefineLabel();
+					body.Emit(OpCodes.Stloc, loc);
+					body.Emit(OpCodes.Ldloca, 0);
+					body.Emit(OpCodes.Dup);
+					body.Emit(OpCodes.Callvirt, idField.FieldType.GetProperty("HasValue").GetGetMethod());
+					// The t/f is now on the stack. Check if it's null, and if so, ret.
+					body.Emit(OpCodes.Ldc_I4_0);
+					body.Emit(OpCodes.Ceq);
+					body.Emit(OpCodes.Brfalse, after);
+					body.Emit(OpCodes.Pop); // Remove the Ldarg_0 and the val (which we duped above to read HasValue) from the stack.
+					body.Emit(OpCodes.Pop);
+					body.Emit(OpCodes.Ret);
+					body.MarkLabel(after);
+					body.Emit(OpCodes.Callvirt, idField.FieldType.GetProperty("Value").GetGetMethod());
 				}
 
 				// Add:
