@@ -24,7 +24,7 @@ export function TokenResolver(props){
 	return props.children(text);
 }
 
-function resolveValue(mode, fields, session, localContent, pageState){
+export function resolveValue(mode, fields, session, localContent, pageState){
 	var token;
 	
 	if(mode == "content"){
