@@ -47,8 +47,8 @@ export default class VideoChat extends React.Component {
 			currentX: 20,
 			currentY: 70,
 			meStyle: {
-				bottom: '5px',
-				left: '55px'
+				bottom: '0px',
+				left: '50px'
 			}
 		};
 		
