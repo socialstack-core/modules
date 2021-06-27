@@ -24,7 +24,7 @@ export default function PrimaryButton (props) {
 								 borderRadius: "4px"
 							}
 						}>
-							{props.label || `Click here`}
+							{props.label}
 						</a>
 					</td>
 				</tr>
@@ -34,6 +34,6 @@ export default function PrimaryButton (props) {
 }
 
 PrimaryButton.propTypes = {
-	label: {type: 'jsx', default: 'Click here'},
+	label: {type: 'jsx', default: `Click here`},
 	target: 'token'
 };
