@@ -14,7 +14,6 @@ export default class PermissionGrid extends React.Component {
 		this.state={
 			roles: [],
 			capabilities: [],
-			grants: [],
 			editingCell: null
 		};
 	}
@@ -29,6 +28,24 @@ export default class PermissionGrid extends React.Component {
 	
 	load(props){
 		webRequest('permission/list').then(permissionInfo => {
+			
+			if(props.editor){
+				var grants = {};
+				try{
+					grants = JSON.parse(this.props.value || this.props.defaultValue);
+					
+					if(Array.isArray(grants)){
+						grants = {};
+					}
+				}catch(e){
+					console.log("Bad grant json: ", e);
+				}
+				
+				this.setState({
+					grants
+				});
+			}
+			
 			// Has .capabilities and .roles
 			this.setState(permissionInfo.json);
 		});
@@ -102,21 +119,20 @@ export default class PermissionGrid extends React.Component {
         );
 	}
 
-	renderCell(currentGrantRule, grantJsonRuleValue){
+	renderCell(grantInfo){
 
-		if((grantJsonRuleValue !== undefined && (grantJsonRuleValue === false || grantJsonRuleValue == 'false')) || (grantJsonRuleValue === undefined && (currentGrantRule === null || currentGrantRule === undefined || currentGrantRule === false))){
+		if(grantInfo.value === false)
+		{
 			// red x
 			return <i className='fa fa-minus-circle' style={{color: 'red'}}/>;
 		}
-		else if((grantJsonRuleValue !== undefined && typeof(grantJsonRuleValue) === 'string' && grantJsonRuleValue != 'true' && grantJsonRuleValue != 'false') || (grantJsonRuleValue === undefined && currentGrantRule.ruleDescription && currentGrantRule.ruleDescription.length)) {
-			
-			var ruleDescription = grantJsonRuleValue || currentGrantRule.ruleDescription;
-			
+		else if(typeof grantInfo.value === 'string')
+		{
 			// text assumed:
 			return <div>
 				<i className='fa fa-check' style={{color: 'orange'}}/>
 				<p style={{fontSize: 'smaller'}}>
-					{ruleDescription}
+					{grantInfo.value}
 				</p>
 			</div>
 		}
@@ -124,36 +140,48 @@ export default class PermissionGrid extends React.Component {
 		//tick
 		return <i className='fa fa-check' style={{color: 'green'}}/>;
 	}
-
-	currentCellValue(currentGrantRule, grantJsonRuleValue){
-		if((grantJsonRuleValue !== undefined && grantJsonRuleValue === false || grantJsonRuleValue == 'false') || (grantJsonRuleValue === undefined && (currentGrantRule === null || currentGrantRule === undefined || currentGrantRule === false))){
-			// red x
-			return false
-		}else if((grantJsonRuleValue !== undefined && typeof(grantJsonRuleValue) === 'string' && grantJsonRuleValue != 'true' && grantJsonRuleValue != 'false') || (grantJsonRuleValue === undefined && currentGrantRule.ruleDescription && currentGrantRule.ruleDescription.length)) {			
-			// text assumed:
-			return grantJsonRuleValue || currentGrantRule.ruleDescription;
+	
+	getGrantInfo(capability) {
+		var capGrant = null; // Not granted is the default
+		if(capability.grants){
+			var grantSet = capability.grants;
+			for(var i=0;i<grantSet.length;i++){
+				if(grantSet[i].role.key == this.props.currentContent.key){
+					capGrant = grantSet[i];
+					break;
+				}
+			}
+			
 		}
 		
-		//tick
-		return true;
+		var current = {
+			inherited: true
+		};
+		
+		if(!capGrant){
+			// Inherited grant is x:
+			current.value = false;
+		}else if(capGrant.ruleDescription && capGrant.ruleDescription.length){
+			current.value = capGrant.ruleDescription;
+		}else{
+			// Inherited is a tick:
+			current.value = true;
+		}
+		
+		if(this.state.grants && this.state.grants[capability.key] !== undefined){
+			current.inherited = false;
+			current.value = this.state.grants[capability.key];
+		}
+		
+		return current;
 	}
-	
 	
 	renderEditMode(){
 
-		if(!this.state.capabilities){
+		if(!this.state.grants || !this.state.capabilities){
 			return null;
 		}
-
-		var initialJson = this.state.updatedJson || this.props.value || this.props.defaultValue || "{}";
 		
-		initialJson = JSON.parse(initialJson);
-
-		var currentEdit = null
-		if(this.state.editingCell) {
-			currentEdit = this.currentCellValue(this.state.editingCell.currentGrantRule, this.state.editingCell.currentJsonGrantRule)
-		}
-
 		return [
 			<Input type='hidden' inputRef={ref => {
 				this.ref = ref;
@@ -162,7 +190,7 @@ export default class PermissionGrid extends React.Component {
 						return JSON.stringify(this.state.grants);
 					};
 				}
-			}} label={`Grants`} />,
+			}} label={`Grants`} name={this.props.name} />,
             <div className={'permission-grid'}>
 				<table className="table">
 					<tr>
@@ -178,17 +206,10 @@ export default class PermissionGrid extends React.Component {
 						})}
 					</tr>
 					{this.state.capabilities.map(cap => {
-
-						var map = {};
-												
-						if(cap.grants){
-							cap.grants.forEach(grant => {
-								map[grant.role.key] = grant;
-							});
-						}
-
-						var currentGrantRule = map[this.props.currentContent.key];
-
+						
+						// Is it overriden? If yes, we have a custom value (otherwise it's inherited).
+						var grantInfo = this.getGrantInfo(cap);
+						
 						return (
 							<tr>
 								<td>
@@ -198,84 +219,96 @@ export default class PermissionGrid extends React.Component {
 									this.setState({
 										editingCell: {
 											key: cap.key,
-											currentGrantRule,
-											currentJsonGrantRule: initialJson[cap.key]
-										}
+											grantInfo
+										},
+										dropdownType: this.dropdownType(grantInfo)
 									});
-
-									// We also need to trigger the modal to open if this is a custom rule, so lets do a quick check:
-									if(typeof(this.currentCellValue(currentGrantRule, initialJson[cap.key])) === 'string') {
-										// its a custom grant, let's let the modal know.
-										this.setState({customRule: true});
-									}
-
 								}}>
-									{this.renderCell(currentGrantRule, initialJson[cap.key])}
+									{this.renderCell(grantInfo)}
 								</td>
 							</tr>);
 					})}
 				</table>
 
-				{this.state.editingCell && <Modal title = {this.state.editingCell.key + " for " + this.props.currentContent.name} visible = {true} isExtraLarge onClose = {() => {
-					this.setState({editingCell: null, customRule: false});
-				}}>
-					<Form
-						action = {"role/"+ this.props.currentContent.id}
-						onValues = {values => {
-							// Let's grab the json for this role
-							var valueJson = initialJson;
-
-							valueJson[this.state.editingCell.key] = values.rule;
-
-							if(values.rule == "custom") {
-								valueJson[this.state.editingCell.key] = values.customRule;
-							}
-
-							values = {};
-							values.grantRuleJson = JSON.stringify(valueJson);
-								
-							return values;
-						}}
-						onSuccess = {(response) => {
-							// Print out response.
-							this.setState({updatedJson: response.grantRuleJson, editingCell: null});
-						}}
-						onFailed = {(error) => {
-							this.setState({updateFail: error})
-						}}
-					>
-						<Input 
-							label = "Rule"
-							type = "select"
-							name = "rule" 
-							onChange = {(e) => {
-								if(e.target.value == "custom" != this.state.customRule) { // if check to avoid needless updating
-									this.setState({customRule: e.target.value == "custom"}); // if custom rule, render custom rule input
-								}
-								
-							}}
-						>
-							[
-								<option value = {false} selected={currentEdit === false}>
-									Always denied
-								</option>,
-								<option value = {true} selected={currentEdit === true}>
-									Always granted
-								</option>,
-								<option value = {"custom"} selected={typeof(currentEdit) === "string"}>
-								 	Custom rule
-								</option>
-							]
-						</Input>
-						{this.state.customRule && <Input defaultValue = {currentEdit} validate = {['Required']} label = "Custom Rule" type = "text" name = "customRule"/>}
-						<Input type = "submit">Update and close</Input>
-					</Form>
-					{this.state.updateFail && <Alert type = "error">{"An error has occurred: " + this.state.updateFail}</Alert>}
-				</Modal>}
+				{this.state.editingCell && this.renderEditModal()}
 			</div>
 		];
 	}
-
+	
+	dropdownType(grantInfo){
+		if(grantInfo.inherited){
+			return "inherited";
+		}
+		
+		if(grantInfo.value === true){
+			return "always";
+		}
+		
+		if(grantInfo.value === false){
+			return "never";
+		}
+		
+		return "custom";
+	}
+	
+	renderEditModal(){
+		var cell = this.state.editingCell;
+		var { grantInfo } = cell;
+		
+		return <Modal title = {cell.key + " for " + this.props.currentContent.name} visible = {true} isExtraLarge onClose = {() => {
+			this.setState({editingCell: null});
+		}}>
+			<Input 
+				label = "Rule"
+				type = "select"
+				name = "rule" 
+				onChange = {(e) => {
+					this.setState({dropdownType: e.target.value});
+				}}
+				value={this.state.dropdownType}
+			>
+				[
+					<option value = {"inherited"}>
+						Inherited
+					</option>,
+					<option value = {"never"}>
+						Always denied
+					</option>,
+					<option value = {"always"}>
+						Always granted
+					</option>,
+					<option value = {"custom"}>
+						Custom rule
+					</option>
+				]
+			</Input>
+			{this.state.dropdownType == 'custom' && <Input inputRef={crRef => this.customRuleRef = crRef} defaultValue = {typeof grantInfo.value === 'string' ? grantInfo.value : ''} validate = {['Required']} label = "Custom Rule" type = "text" name = "customRule"/>}
+			<Input type="button" onClick={(e) => {
+				e.preventDefault();
+				
+				// Apply the change to grants now.
+				var type = this.state.dropdownType;
+				
+				if(type === "inherited"){
+					delete this.state.grants[cell.key];
+				}else if(type === "never"){
+					this.state.grants[cell.key] = false;
+				}else if(type === "always"){
+					this.state.grants[cell.key] = true;
+				}else if(type === "custom"){
+					this.state.grants[cell.key] = this.customRuleRef.value || "";
+				}
+				
+				this.setState({
+					editingCell: null
+				});
+				
+			}}>
+				Apply
+			</Input>
+		</Modal>
+	}
+	
 	render() {
 		if(this.props.editor) {
 			return this.renderEditMode();
