@@ -36,7 +36,7 @@ function _getContentTypeIdFactory(){
 const getContentTypeId = _getContentTypeIdFactory();
 
 // E.g. https://site.com - never ends with a /
-const siteOrigin = global.location.origin;
+const siteOrigin = location.origin;
 
 /*
 * Originates from preact-render-to-string.
@@ -665,7 +665,7 @@ function renderCanvas(bodyJson, apiContext, publicApiContextJson, url, pageState
 		url,
 		tokens: pageState.Tokens,
 		tokenNames,
-		po: pageState.PrimaryObject ? (typeof pageState.PrimaryObject == 'string' ? JSON.parse(pageState.PrimaryObject) :  { type: pageState.PrimaryObject.type, id: pageState.PrimaryObject.Id }): null
+		po: pageState.PrimaryObject ? (typeof pageState.PrimaryObject == 'string' ? JSON.parse(pageState.PrimaryObject) :  { type: pageState.PrimaryObject.Type, id: pageState.PrimaryObject.Id }): null
 	};
 	
 	var canvas = preact.createElement(_Canvas, { children: bodyJson});
