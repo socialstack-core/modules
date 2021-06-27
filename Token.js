@@ -2,7 +2,7 @@ import Content from 'UI/Content';
 import { useSession, useRouter } from 'UI/Session';
 import { useContent } from 'UI/Content';
 
-var modes = {'content': 1, 'session': 1, 'url': 1};
+var modes = {'content': 1, 'session': 1, 'url': 1, 'customdata': 1, 'primary':1};
 
 export function TokenResolver(props){
 	var {session} = useSession();
@@ -13,9 +13,10 @@ export function TokenResolver(props){
 		var fields = textToken.substring(2, textToken.length - 1).split('.');
 		
 		var mode = '';
-		
-		if(modes[fields[0]]){
-			mode = fields.shift();
+		var first = fields[0].toLowerCase();
+		if(modes[first]){
+			fields.shift();
+			mode = first;
 		}
 		
 		return resolveValue(mode,fields,session, localContent, pageState);
@@ -26,7 +27,6 @@ export function TokenResolver(props){
 
 export function resolveValue(mode, fields, session, localContent, pageState){
 	var token;
-	
 	if(mode == "content"){
 		token = localContent ? localContent.content : null;
 	}else if(mode == "url"){
@@ -35,6 +35,12 @@ export function resolveValue(mode, fields, session, localContent, pageState){
 		}
 		var index = pageState.tokenNames.indexOf(fields.join('.'));
 		return (index == null || index == -1) ? '' : pageState.tokens[index];
+	}else if(mode == "customdata" || mode == "primary"){
+		// Used by emails mostly. Passes through via primary object.
+		if(!pageState || !pageState.po){
+			return '';
+		}
+		token = pageState.po;
 	}else{
 		token = session;
 	}
