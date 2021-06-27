@@ -76,7 +76,7 @@ namespace Api.CanvasRenderer
 					Console.WriteLine("Running in prebuilt mode. *Not* watching your files for changes.");
 					try{
 						AddBuilder(UIBuilder = new UIBundle("UI", "/pack/", translations, locales) { CssPrepend = cssVariables });
-						AddBuilder(EmailBuilder = new UIBundle("Email", "/pack/email-static/", translations, locales));
+						AddBuilder(EmailBuilder = new UIBundle("Email", "/pack/", translations, locales));
 						AddBuilder(AdminBuilder = new UIBundle("Admin", "/en-admin/pack/", translations, locales));
 					}catch(Exception e){
 						Console.WriteLine("[SEVERE] " + e.ToString());
@@ -94,7 +94,7 @@ namespace Api.CanvasRenderer
 
 					// Create a group of build/watchers for each bundle of files (all in parallel):
 					AddBuilder(UIBuilder = new UIBundle("UI", "/pack/", translations, locales, engine, globalMap, minify) { CssPrepend = cssVariables });
-					AddBuilder(EmailBuilder = new UIBundle("Email", "/pack/email-static/", translations, locales, engine, globalMap, minify));
+					AddBuilder(EmailBuilder = new UIBundle("Email", "/pack/", translations, locales, engine, globalMap, minify));
 					AddBuilder(AdminBuilder = new UIBundle("Admin", "/en-admin/pack/", translations, locales, engine, globalMap, minify));
 
 					// Sort global map:
