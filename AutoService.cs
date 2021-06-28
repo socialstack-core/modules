@@ -553,6 +553,20 @@ public partial class AutoService<T, ID> : AutoService
 							filter.Bind(date.Value);
 						}
 					}
+					else if (value.Type == JTokenType.Boolean)
+					{
+						var boolVal = value.Value as bool?;
+
+						// The target value could be a nullable bool, in which case we'd need to use Bind(bool?)
+						if (filter.NextBindType == typeof(bool?))
+						{
+							filter.Bind(boolVal);
+						}
+						else
+						{
+							filter.Bind(boolVal.Value);
+						}
+					}
 					else if(value.Type == JTokenType.Null)
 					{
 						filter.BindFromString(null);
