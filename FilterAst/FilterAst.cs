@@ -509,7 +509,7 @@ namespace Api.Permissions{
 		/// <param name="generator"></param>
 		/// <param name="node"></param>
 		/// <param name="fieldType"></param>
-		public bool EmitReadValue(ILGenerator generator, FilterTreeNode<T, ID> node, Type fieldType)
+		public bool EmitReadValue(ILGenerator generator, FilterTreeNode<T, ID> node, Type fieldType, bool unwrapNullables = true)
 		{
 			var isEnumerable = false;
 
@@ -535,6 +535,23 @@ namespace Api.Permissions{
 					// Arg 2 is the object being checked (Arg 1 is ctx):
 					generator.Emit(OpCodes.Ldarg_2);
 					generator.Emit(OpCodes.Ldfld, member2.Field.FieldInfo);
+				}
+
+				// If it's nullable, unwrap it.
+				if (unwrapNullables)
+				{
+					var underlyingType = Nullable.GetUnderlyingType(fieldType);
+
+					if (underlyingType != null)
+					{
+						// GetValueOrDefault call:
+						var valOrDefault = fieldType.GetMethod("GetValueOrDefault", BindingFlags.Public | BindingFlags.Instance, null, Array.Empty<Type>(), null);
+
+						if (valOrDefault != null)
+						{
+							generator.Emit(OpCodes.Call, valOrDefault);
+						}
+					}
 				}
 			}
 			else
@@ -582,6 +599,23 @@ namespace Api.Permissions{
 					argNode.Binding = argField;
 					generator.Emit(OpCodes.Ldarg_0);
 					generator.Emit(OpCodes.Ldfld, argField.Builder);
+
+					// If it's nullable, unwrap it.
+					if (unwrapNullables)
+					{
+						var underlyingType = Nullable.GetUnderlyingType(fieldType);
+
+						if (underlyingType != null)
+						{
+							// GetValueOrDefault call:
+							var valOrDefault = fieldType.GetMethod("GetValueOrDefault", BindingFlags.Public | BindingFlags.Instance, null, Array.Empty<Type>(), null);
+
+							if (valOrDefault != null)
+							{
+								generator.Emit(OpCodes.Call, valOrDefault);
+							}
+						}
+					}
 				}
 			}
 
@@ -1754,6 +1788,12 @@ namespace Api.Permissions{
 					fieldType = member.Field.FieldInfo.FieldType;
 				}
 
+				var nonNullable = Nullable.GetUnderlyingType(fieldType);
+				if (nonNullable == null)
+				{
+					nonNullable = fieldType;
+				}
+
 				ast.EmitReadValue(generator, member, fieldType);
 				var isEnumerable = ast.EmitReadValue(generator, B, fieldType);
 
@@ -1778,7 +1818,20 @@ namespace Api.Permissions{
 					}
 					else
 					{
-						generator.Emit(OpCodes.Ceq);
+						// If it has a dedicated equals method:
+						var equalsMethod = nonNullable.GetMethod("op_Equality", BindingFlags.Static | BindingFlags.Public, null, new Type[] {
+						nonNullable,
+						nonNullable
+					}, null);
+
+						if (equalsMethod != null)
+						{
+							generator.Emit(OpCodes.Call, equalsMethod);
+						}
+						else
+						{
+							generator.Emit(OpCodes.Ceq);
+						}
 					}
 				}
 				else if (Operation == "!=")
@@ -1795,29 +1848,94 @@ namespace Api.Permissions{
 					}
 					else
 					{
-						generator.Emit(OpCodes.Ceq);
+						// If it has a dedicated equals method:
+						var equalsMethod = nonNullable.GetMethod("op_Equality", BindingFlags.Static | BindingFlags.Public, null, new Type[] {
+						nonNullable,
+						nonNullable
+					}, null);
+
+						if (equalsMethod != null)
+						{
+							generator.Emit(OpCodes.Call, equalsMethod);
+						}
+						else
+						{
+							generator.Emit(OpCodes.Ceq);
+						}
 					}
 					generator.Emit(OpCodes.Not);
 				}
 				else if (Operation == ">=")
 				{
 					// A>=B is the same as !A<B
-					generator.Emit(OpCodes.Clt);
+
+					// If it has a dedicated LessThan method:
+					var lessThanMethod = nonNullable.GetMethod("op_LessThan", BindingFlags.Static | BindingFlags.Public, null, new Type[] {
+						nonNullable,
+						nonNullable
+					}, null);
+
+					if (lessThanMethod != null)
+					{
+						generator.Emit(OpCodes.Call, lessThanMethod);
+					}
+					else
+					{
+						generator.Emit(OpCodes.Clt);
+					}
 					generator.Emit(OpCodes.Not);
 				}
 				else if (Operation == "<=")
 				{
 					// A<=B is the same as !A>B
-					generator.Emit(OpCodes.Cgt);
+
+					var greaterThanMethod = nonNullable.GetMethod("op_GreaterThan", BindingFlags.Static | BindingFlags.Public, null, new Type[] {
+						nonNullable,
+						nonNullable
+					}, null);
+
+					if (greaterThanMethod != null)
+					{
+						generator.Emit(OpCodes.Call, greaterThanMethod);
+					}
+					else
+					{
+						generator.Emit(OpCodes.Cgt);
+					}
+
 					generator.Emit(OpCodes.Not);
 				}
 				else if (Operation == ">")
 				{
-					generator.Emit(OpCodes.Cgt);
+					var greaterThanMethod = nonNullable.GetMethod("op_GreaterThan", BindingFlags.Static | BindingFlags.Public, null, new Type[] {
+						nonNullable,
+						nonNullable
+					}, null);
+
+					if (greaterThanMethod != null)
+					{
+						generator.Emit(OpCodes.Call, greaterThanMethod);
+					}
+					else
+					{
+						generator.Emit(OpCodes.Cgt);
+					}
 				}
 				else if (Operation == "<")
 				{
-					generator.Emit(OpCodes.Clt);
+					var lessThanMethod = nonNullable.GetMethod("op_LessThan", BindingFlags.Static | BindingFlags.Public, null, new Type[] {
+						nonNullable,
+						nonNullable
+					}, null);
+
+					if (lessThanMethod != null)
+					{
+						generator.Emit(OpCodes.Call, lessThanMethod);
+					}
+					else
+					{
+						generator.Emit(OpCodes.Clt);
+					}
 				}
 				else if (Operation == "contains")
 				{
