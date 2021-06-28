@@ -522,7 +522,7 @@ namespace Api.Permissions{
 
 				if (member2.Field == null)
 				{
-					// Context field
+					// Context field - never contains nullables.
 
 					// Arg 1 is ctx:
 					generator.Emit(OpCodes.Ldarg_1);
@@ -534,23 +534,35 @@ namespace Api.Permissions{
 
 					// Arg 2 is the object being checked (Arg 1 is ctx):
 					generator.Emit(OpCodes.Ldarg_2);
-					generator.Emit(OpCodes.Ldfld, member2.Field.FieldInfo);
-				}
 
-				// If it's nullable, unwrap it.
-				if (unwrapNullables)
-				{
-					var underlyingType = Nullable.GetUnderlyingType(fieldType);
-
-					if (underlyingType != null)
+					// If it's nullable, unwrap it.
+					if (unwrapNullables)
 					{
-						// GetValueOrDefault call:
-						var valOrDefault = fieldType.GetMethod("GetValueOrDefault", BindingFlags.Public | BindingFlags.Instance, null, Array.Empty<Type>(), null);
+						var underlyingType = Nullable.GetUnderlyingType(fieldType);
 
-						if (valOrDefault != null)
+						if (underlyingType != null)
 						{
-							generator.Emit(OpCodes.Call, valOrDefault);
+							// GetValueOrDefault call:
+							var valOrDefault = fieldType.GetMethod("GetValueOrDefault", BindingFlags.Public | BindingFlags.Instance, null, Array.Empty<Type>(), null);
+
+							if (valOrDefault != null)
+							{
+								generator.Emit(OpCodes.Ldflda, member2.Field.FieldInfo);
+								generator.Emit(OpCodes.Call, valOrDefault);
+							}
+							else
+							{
+								generator.Emit(OpCodes.Ldfld, member2.Field.FieldInfo);
+							}
 						}
+						else
+						{
+							generator.Emit(OpCodes.Ldfld, member2.Field.FieldInfo);
+						}
+					}
+					else
+					{
+						generator.Emit(OpCodes.Ldfld, member2.Field.FieldInfo);
 					}
 				}
 			}
@@ -598,7 +610,6 @@ namespace Api.Permissions{
 					var argField = DeclareArg(argNode.Id, argNode.Array ? typeof(IEnumerable<>).MakeGenericType(fieldType) : fieldType);
 					argNode.Binding = argField;
 					generator.Emit(OpCodes.Ldarg_0);
-					generator.Emit(OpCodes.Ldfld, argField.Builder);
 
 					// If it's nullable, unwrap it.
 					if (unwrapNullables)
@@ -612,9 +623,22 @@ namespace Api.Permissions{
 
 							if (valOrDefault != null)
 							{
+								generator.Emit(OpCodes.Ldflda, argField.Builder);
 								generator.Emit(OpCodes.Call, valOrDefault);
 							}
+							else
+							{
+								generator.Emit(OpCodes.Ldfld, argField.Builder);
+							}
 						}
+						else
+						{
+							generator.Emit(OpCodes.Ldfld, argField.Builder);
+						}
+					}
+					else
+					{
+						generator.Emit(OpCodes.Ldfld, argField.Builder);
 					}
 				}
 			}

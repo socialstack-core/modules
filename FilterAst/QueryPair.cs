@@ -456,6 +456,19 @@ namespace Api.Permissions
 		protected int _arg = 0;
 
 		/// <summary>
+		/// The type of the next arg to bind. Null if there are no more args.
+		/// </summary>
+		public Type NextBindType {
+			get {
+				if (_arg >= Pool.ArgTypes.Count)
+				{
+					return null;
+				}
+				return Pool.ArgTypes[_arg].ArgType;
+			}
+		}
+
+		/// <summary>
 		/// Gets the map at the given index. Is always a mappingservice, 
 		/// and is setup before this ever gets invoked provided GetResults is used with the filter.
 		/// </summary>
@@ -812,12 +825,6 @@ namespace Api.Permissions
 		/// <param name="str"></param>
 		public override FilterBase BindUnknown(string str)
 		{
-			if (str == null)
-			{
-				// Special case for null - the field isn't necessarily a null string field.
-				return Bind((object)null);
-			}
-
 			return BindFromString(str);
 		}
 
