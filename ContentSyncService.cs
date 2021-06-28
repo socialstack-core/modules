@@ -176,7 +176,8 @@ namespace Api.ContentSync
 				{
 					Port = Port,
 					HostName = HostName,
-					Environment = env
+					Environment = env,
+					Id = 1
 				};
 
 				AllServers = new List<ClusteredServer>() { Self };
