@@ -5,11 +5,15 @@ import { useContent } from 'UI/Content';
 var modes = {'content': 1, 'session': 1, 'url': 1, 'customdata': 1, 'primary':1};
 
 export function TokenResolver(props){
+	return props.children(useTokens(props.value));
+}
+
+export function useTokens(str){
 	var {session} = useSession();
 	var localContent = useContent();
 	var {pageState} = useRouter();
 	
-	var text = (props.value || '').replace(/\$\{(\w|\.)+\}/g, function(textToken) {
+	return (str || '').replace(/\$\{(\w|\.)+\}/g, function(textToken) {
 		var fields = textToken.substring(2, textToken.length - 1).split('.');
 		
 		var mode = '';
@@ -21,8 +25,6 @@ export function TokenResolver(props){
 		
 		return resolveValue(mode,fields,session, localContent, pageState);
 	});
-	
-	return props.children(text);
 }
 
 export function resolveValue(mode, fields, session, localContent, pageState){
