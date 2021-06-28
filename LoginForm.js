@@ -67,7 +67,7 @@ export default props => {
 				<Input type="submit" label={props.loginCta || `Login`}/>
 				{failed && (
 					<Alert type="fail">
-						{`Those login details weren't right - please try again.`}
+						{failed.message || `Those login details weren't right - please try again.`}
 					</Alert>
 				)}
 				{props.noRegister ? null : <div className="form-group">
