@@ -15,7 +15,7 @@ namespace Api.Permissions
 	/// </summary>
 	public struct QueryPair<T, ID>
 		where T : Content<ID>, new()
-		where ID : struct, IConvertible, IEquatable<ID>
+		where ID : struct, IConvertible, IEquatable<ID>, IComparable<ID>
 	{
 		/// <summary>
 		/// Primary user provided query. Will be effectively AND-ed with QueryB.
@@ -32,7 +32,7 @@ namespace Api.Permissions
 	/// </summary>
 	public class FilterMeta<T, ID>
 		where T : Content<ID>, new()
-		where ID : struct, IConvertible, IEquatable<ID>
+		where ID : struct, IConvertible, IEquatable<ID>, IComparable<ID>
 	{
 		private string _query;
 		/// <summary>
@@ -443,7 +443,7 @@ namespace Api.Permissions
 	/// </summary>
 	public class Filter<T,ID> : FilterBase
 		where T : Content<ID>, new()
-		where ID : struct, IConvertible, IEquatable<ID>
+		where ID : struct, IConvertible, IEquatable<ID>, IComparable<ID>
 	{
 		/// <summary>
 		/// The pool that the object came from.

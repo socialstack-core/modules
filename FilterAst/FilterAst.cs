@@ -33,7 +33,7 @@ namespace Api.Permissions{
 		/// <returns></returns>
 		public static Func<MemberFilterTreeNode<T, ID>, FilterAst<T, ID>, FilterTreeNode<T, ID>> Get<T, ID>(string name)
 			where T : Content<ID>, new()
-			where ID : struct, IConvertible, IEquatable<ID>
+			where ID : struct, IConvertible, IEquatable<ID>, IComparable<ID>
 		{
 			if (_methods == null)
 			{
@@ -72,7 +72,7 @@ namespace Api.Permissions{
 		/// <param name="ast"></param>
 		public static FilterTreeNode<T, ID> IsIncluded<T, ID>(MemberFilterTreeNode<T, ID> node, FilterAst<T, ID> ast)
 			where T : Content<ID>, new()
-			where ID : struct, IConvertible, IEquatable<ID>
+			where ID : struct, IConvertible, IEquatable<ID>, IComparable<ID>
 		{
 			if (node.Args.Count != 0)
 			{
@@ -92,7 +92,7 @@ namespace Api.Permissions{
 		/// <param name="ast"></param>
 		public static FilterTreeNode<T, ID> On<T, ID>(MemberFilterTreeNode<T, ID> node, FilterAst<T, ID> ast)
 			where T : Content<ID>, new()
-			where ID : struct, IConvertible, IEquatable<ID>
+			where ID : struct, IConvertible, IEquatable<ID>, IComparable<ID>
 		{
 			if (node.Args.Count < 2)
 			{
@@ -120,7 +120,7 @@ namespace Api.Permissions{
 		/// <param name="ast"></param>
 		public static FilterTreeNode<T, ID> IsSelf<T, ID>(MemberFilterTreeNode<T, ID> node, FilterAst<T, ID> ast)
 		where T : Content<ID>, new()
-		where ID : struct, IConvertible, IEquatable<ID>
+		where ID : struct, IConvertible, IEquatable<ID>, IComparable<ID>
 		{
 			if (node.Args.Count != 0)
 			{
@@ -174,7 +174,7 @@ namespace Api.Permissions{
 		/// <param name="ast"></param>
 		public static FilterTreeNode<T, ID> HasUserPermit<T, ID>(MemberFilterTreeNode<T, ID> node, FilterAst<T, ID> ast)
 			where T : Content<ID>, new()
-			where ID : struct, IConvertible, IEquatable<ID>
+			where ID : struct, IConvertible, IEquatable<ID>, IComparable<ID>
 		{
 			if (node.Args.Count != 0)
 			{
@@ -203,7 +203,7 @@ namespace Api.Permissions{
 		/// <param name="ast"></param>
 		public static FilterTreeNode<T, ID> HasRolePermit<T, ID>(MemberFilterTreeNode<T, ID> node, FilterAst<T, ID> ast)
 			where T : Content<ID>, new()
-			where ID : struct, IConvertible, IEquatable<ID>
+			where ID : struct, IConvertible, IEquatable<ID>, IComparable<ID>
 		{
 			if (node.Args.Count != 0)
 			{
@@ -303,7 +303,7 @@ namespace Api.Permissions{
 		/// <returns></returns>
 		public static FilterAst<T, ID> Parse<T, ID>(AutoService<T,ID> service, string q, bool allowConstants = true, bool allowArgs = true)
 			where T : Content<ID>, new()
-			where ID : struct, IConvertible, IEquatable<ID>
+			where ID : struct, IConvertible, IEquatable<ID>, IComparable<ID>
 		{
 			if (string.IsNullOrEmpty(q))
 			{
@@ -355,7 +355,7 @@ namespace Api.Permissions{
 	/// </summary>
 	public class MappingBinding<T, ID>
 		where T : Content<ID>, new()
-		where ID : struct, IConvertible, IEquatable<ID>
+		where ID : struct, IConvertible, IEquatable<ID>, IComparable<ID>
 	{
 		/// <summary>
 		/// The underlying node.
@@ -434,7 +434,7 @@ namespace Api.Permissions{
 	/// <typeparam name="ID"></typeparam>
 	public partial class FilterAst<T, ID>
 		where T : Content<ID>, new()
-		where ID : struct, IConvertible, IEquatable<ID>
+		where ID : struct, IConvertible, IEquatable<ID>, IComparable<ID>
 	{
 		/// <summary>
 		/// Fields that will require ID collectors (if any - can be null).
@@ -1611,7 +1611,7 @@ namespace Api.Permissions{
 	/// </summary>
 	public partial class FilterTreeNode<T, ID>
 		where T : Content<ID>, new()
-		where ID : struct, IConvertible, IEquatable<ID>
+		where ID : struct, IConvertible, IEquatable<ID>, IComparable<ID>
 	{
 		/// <summary>
 		/// True if the node has an on statement.
@@ -1656,7 +1656,7 @@ namespace Api.Permissions{
 	/// </summary>
 	public partial class OpFilterTreeNode<T, ID> : FilterTreeNode<T, ID>
 		where T : Content<ID>, new()
-		where ID : struct, IConvertible, IEquatable<ID>
+		where ID : struct, IConvertible, IEquatable<ID>, IComparable<ID>
 	{
 		/// <summary>
 		/// string.Equals static method
@@ -2136,7 +2136,7 @@ namespace Api.Permissions{
 	/// </summary>
 	public partial class MemberFilterTreeNode<T, ID> : FilterTreeNode<T, ID>
 		where T : Content<ID>, new()
-		where ID : struct, IConvertible, IEquatable<ID>
+		where ID : struct, IConvertible, IEquatable<ID>, IComparable<ID>
 	{
 		/// <summary>
 		/// The member name
@@ -2442,7 +2442,7 @@ namespace Api.Permissions{
 	/// <typeparam name="ID"></typeparam>
 	public partial class MappingFilterTreeNode<T, ID> : FilterTreeNode<T, ID>
 		where T : Content<ID>, new()
-		where ID : struct, IConvertible, IEquatable<ID>
+		where ID : struct, IConvertible, IEquatable<ID>, IComparable<ID>
 	{
 		/// <summary>
 		/// Index of this mapping in the Ast.Mappings set.
@@ -2625,7 +2625,7 @@ namespace Api.Permissions{
 	/// </summary>
 	public partial class IsIncludedFilterTreeNode<T, ID> : FilterTreeNode<T, ID>
 	where T : Content<ID>, new()
-	where ID : struct, IConvertible, IEquatable<ID>
+	where ID : struct, IConvertible, IEquatable<ID>, IComparable<ID>
 	{
 
 		/// <summary>
@@ -2664,7 +2664,7 @@ namespace Api.Permissions{
 	/// </summary>
 	public partial class ConstFilterTreeNode<T, ID> : FilterTreeNode<T, ID>
 		where T : Content<ID>, new()
-		where ID : struct, IConvertible, IEquatable<ID>
+		where ID : struct, IConvertible, IEquatable<ID>, IComparable<ID>
 	{
 
 		/// <summary>
@@ -2714,7 +2714,7 @@ namespace Api.Permissions{
 	/// </summary>
 	public partial class StringFilterTreeNode<T, ID> : ConstFilterTreeNode<T, ID>
 		where T : Content<ID>, new()
-		where ID : struct, IConvertible, IEquatable<ID>
+		where ID : struct, IConvertible, IEquatable<ID>, IComparable<ID>
 	{
 		/// <summary>
 		/// 
@@ -2780,7 +2780,7 @@ namespace Api.Permissions{
 	/// </summary>
 	public partial class NumberFilterTreeNode<T, ID> : ConstFilterTreeNode<T, ID>
 		where T : Content<ID>, new()
-		where ID : struct, IConvertible, IEquatable<ID>
+		where ID : struct, IConvertible, IEquatable<ID>, IComparable<ID>
 	{
 		/// <summary>
 		/// 
@@ -2825,7 +2825,7 @@ namespace Api.Permissions{
 	/// </summary>
 	public partial class DecimalFilterTreeNode<T, ID> : ConstFilterTreeNode<T, ID>
 		where T : Content<ID>, new()
-		where ID : struct, IConvertible, IEquatable<ID>
+		where ID : struct, IConvertible, IEquatable<ID>, IComparable<ID>
 	{
 		/// <summary>
 		/// 
@@ -2870,7 +2870,7 @@ namespace Api.Permissions{
 	/// </summary>
 	public partial class BoolFilterTreeNode<T, ID> : ConstFilterTreeNode<T, ID>
 		where T : Content<ID>, new()
-		where ID : struct, IConvertible, IEquatable<ID>
+		where ID : struct, IConvertible, IEquatable<ID>, IComparable<ID>
 	{
 		/// <summary>
 		/// 
@@ -2934,7 +2934,7 @@ namespace Api.Permissions{
 	/// </summary>
 	public partial class NullFilterTreeNode<T, ID> : ConstFilterTreeNode<T, ID>
 		where T : Content<ID>, new()
-		where ID : struct, IConvertible, IEquatable<ID>
+		where ID : struct, IConvertible, IEquatable<ID>, IComparable<ID>
 	{
 		/// <summary>
 		/// 
@@ -2969,7 +2969,7 @@ namespace Api.Permissions{
 	/// </summary>
 	public partial class ArgFilterTreeNode<T, ID> : ConstFilterTreeNode<T, ID>
 		where T : Content<ID>, new()
-		where ID : struct, IConvertible, IEquatable<ID>
+		where ID : struct, IConvertible, IEquatable<ID>, IComparable<ID>
 	{
 		/// <summary>
 		/// Assigned arg ID

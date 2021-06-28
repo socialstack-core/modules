@@ -94,7 +94,7 @@ namespace Api.Permissions
 		/// <param name="service"></param>
 		public void SetupForType<T, ID>(AutoService<T, ID> service)
 			where T : Content<ID>, new()
-			where ID : struct, IConvertible, IEquatable<ID>
+			where ID : struct, IConvertible, IEquatable<ID>, IComparable<ID>
 		{
 			// If it's a mapping type, no-op.
 			if (ContentTypes.IsAssignableToGenericType(typeof(T), typeof(Mapping<,>)))
@@ -190,7 +190,7 @@ namespace Api.Permissions
 		/// <param name="capability"></param>
 		public void SetupForListEvent<T, ID>(Api.Eventing.EventHandler<QueryPair<T, ID>> handler, Capability capability)
 			where T : Content<ID>, new()
-			where ID : struct, IConvertible, IEquatable<ID>
+			where ID : struct, IConvertible, IEquatable<ID>, IComparable<ID>
 		{
 			// Add an event handler at priority 1 (runs before others).
 			handler.AddEventListener((Context context, QueryPair<T, ID> pair) =>
