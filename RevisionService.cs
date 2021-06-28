@@ -29,7 +29,7 @@ namespace Api.Revisions
 	/// <typeparam name="ID"></typeparam>
 	public class RevisionService<T, ID> : AutoService<T, ID>
 		where T : Content<ID>, new()
-		where ID : struct, IConvertible, IEquatable<ID>
+		where ID : struct, IConvertible, IEquatable<ID>, IComparable<ID>
 	{
 
 		/// <summary>

@@ -182,7 +182,7 @@ namespace Api.Revisions
 		/// <param name="autoService"></param>
 		public void SetupForRevisions<T, ID>(AutoService<T, ID> autoService)
 			where T : VersionedContent<ID>, new()
-			where ID: struct, IConvertible, IEquatable<ID>
+			where ID: struct, IConvertible, IEquatable<ID>, IComparable<ID>
 		{
 			var contentType = autoService.InstanceType;
 			var evtGroup = autoService.EventGroup;
