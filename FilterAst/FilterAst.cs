@@ -1963,12 +1963,26 @@ namespace Api.Permissions{
 				}
 				else if (Operation == "contains")
 				{
-					if (_strContains == null)
+					if (isEnumerable)
 					{
-						_strContains = typeof(string).GetMethod("Contains", BindingFlags.Public | BindingFlags.Instance, null, new Type[] { typeof(string) }, null);
+						var baseMethod = typeof(Filter<T, ID>).GetMethod(nameof(Filter<T, ID>.HasAny));
+						var hasAny = baseMethod.MakeGenericMethod(fieldType);
+						// It's a static method so no "this" is needed. The two field values are also already on the stack.
+						generator.Emit(OpCodes.Call, hasAny);
 					}
+					else if (fieldType == typeof(string))
+					{
+						if (_strContains == null)
+						{
+							_strContains = typeof(string).GetMethod("Contains", BindingFlags.Public | BindingFlags.Instance, null, new Type[] { typeof(string) }, null);
+						}
 
-					generator.Emit(OpCodes.Call, _strContains);
+						generator.Emit(OpCodes.Call, _strContains);
+					}
+					else
+					{
+						throw new PublicException("Contains can only be used on strings and array-like fields.", "filter_invalid");
+					}
 				}
 				else if (Operation == "startswith")
 				{
