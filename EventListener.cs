@@ -74,7 +74,7 @@ namespace Api.ContentSync
 		/// <typeparam name="ID"></typeparam>
 		public async Task SetupForType<T, ID>(AutoService<T, ID> service) 
 			where T : Content<ID>, new()
-			where ID : struct, IConvertible, IEquatable<ID>
+			where ID : struct, IConvertible, IEquatable<ID>, IComparable<ID>
 		{
 			// Invoked by reflection
 
@@ -227,7 +227,7 @@ namespace Api.ContentSync
 			/// <param name="evtGroup"></param>
 			private void AddIdAssigner<T, ID>(IdAssigner<ID> assigner, EventGroup<T, ID> evtGroup)
 			where T : Content<ID>, new()
-			where ID : struct, IConvertible, IEquatable<ID>
+			where ID : struct, IConvertible, IEquatable<ID>, IComparable<ID>
 		{
 			evtGroup.BeforeCreate.AddEventListener((Context context, T content) =>
 			{

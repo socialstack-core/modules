@@ -318,7 +318,7 @@ namespace Api.ContentSync
 		/// <returns></returns>
 		public async Task<IdAssigner<ID>> CreateAssigner<T, ID>(AutoService<T, ID> service)
 			where T : Content<ID>, new()
-			where ID : struct, IConvertible, IEquatable<ID>
+			where ID : struct, IConvertible, IEquatable<ID>, IComparable<ID>
 		{
 			var serverId = ServerId;
 
@@ -710,7 +710,7 @@ namespace Api.ContentSync
 		public void HandleTypeInternal<T, ID, INST_T>(ContentSyncTypeMeta meta, bool addListeners)
 			where T : Content<ID>, new()
 			where INST_T : T, new()
-			where ID : struct, IConvertible, IEquatable<ID>
+			where ID : struct, IConvertible, IEquatable<ID>, IComparable<ID>
 		{
 			// NOTE: This is used by reflection by HandleType.
 
