@@ -267,12 +267,8 @@ namespace Api.Startup
 			}
 			else
 			{
-				// Let's start iterating through
-				var currentBlock = First;
-				var currentValue = id;
-
 				// Pass this onto sort.
-				Sort(currentBlock, currentValue);
+				Sort(First, id);
 			}
 		}
 
@@ -298,25 +294,30 @@ namespace Api.Startup
 				}
 
 				// Is our current value greater or lesser?
-				if(currentValue.CompareTo(currentBlock.Entries[i]) >= 0 )
-                {
-					// we can move onto the next value now.
-					continue;
-                }
-
-                else
-                {
+				if (currentValue.CompareTo(currentBlock.Entries[i]) < 0)
+				{
 					// We need to replace this value and move on up with the new value. 
 					var newValue = currentBlock.Entries[i];
 					currentBlock.Entries[i] = currentValue;
 
-					sorted = Sort(currentBlock, newValue, i); 
+					sorted = Sort(currentBlock, newValue, i);
+					break;
 				}
 			}
 
 			// Are we sorted after this block? if not, let go to the next one.
 			if(!sorted)
             {
+				// Is there a next block?
+				if(currentBlock.Next == null)
+                {
+					currentBlock.Next = IDBlockPool<T>.Get();
+
+					Last = currentBlock.Next;
+					CurrentFill = 0;
+					FullBlockCount++;
+				}
+
 				sorted = Sort(currentBlock.Next, currentValue, 0);
             }
 
@@ -325,7 +326,7 @@ namespace Api.Startup
 
 		/// <summary>
 		/// Used to eliminate takes the sorted array or repetitions
-		/// and turns it into a set with no repitiions and removes values that don't have the 
+		/// and turns it into a set with no repitions and removes values that don't have the 
 		/// minimum repetiions.
 		/// </summary>
 		/// <param name="minRepetitions"></param>
