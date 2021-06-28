@@ -114,22 +114,10 @@ namespace Api.Permissions
 		/// <returns></returns>
 		public async ValueTask SetupMappingBindings()
 		{
-			if (MappingBindingLoader != null)
-			{
-				// Some other thread is actively setting these up - just wait for the task:
-				await MappingBindingLoader;
-			}
-			else if (MappingBindings != null)
+			if (MappingBindings != null)
 			{
 				// Set them up now:
-				var vt = SetupMappingBindingsRawTask();
-
-				if (!vt.IsCompleted)
-				{
-					// Apply the task:
-					MappingBindingLoader = vt.AsTask();
-					await MappingBindingLoader;
-				}
+				await SetupMappingBindingsRawTask();
 			}
 
 			// Mark as loaded:

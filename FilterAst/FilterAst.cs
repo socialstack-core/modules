@@ -373,6 +373,11 @@ namespace Api.Permissions{
 		/// <returns></returns>
 		public async ValueTask Setup()
 		{
+			if (Map != null)
+			{
+				return;
+			}
+
 			// var thisContentType = typeof(T);
 			var thisService = Node.ThisService;
 			var otherService = Node.OtherService;
@@ -509,6 +514,7 @@ namespace Api.Permissions{
 		/// <param name="generator"></param>
 		/// <param name="node"></param>
 		/// <param name="fieldType"></param>
+		/// <param name="unwrapNullables"></param>
 		public bool EmitReadValue(ILGenerator generator, FilterTreeNode<T, ID> node, Type fieldType, bool unwrapNullables = true)
 		{
 			var isEnumerable = false;
@@ -649,7 +655,7 @@ namespace Api.Permissions{
 		/// <summary>
 		/// Adds a collector to the set. Field must be a virtual ListAs field.
 		/// </summary>
-		public void DeclareCollector(ContentField field, FilterTreeNode<T,ID> node)
+		public void DeclareCollector(ContentField field, FilterTreeNode<T,ID> node, ILGenerator writerBody)
 		{
 
 			if (Collectors == null)
@@ -659,6 +665,33 @@ namespace Api.Permissions{
 
 			var currentIndex = Collectors.Count;
 			Collectors.Add(field);
+
+			if (currentIndex == 0)
+			{
+				// Load initial value:
+				// Create a var which ref's the current collector (always local 0):
+				writerBody.DeclareLocal(typeof(IDCollector));
+
+				// Set its value to the first collector. We know which to use based on if the given filter arg == this one.
+				// If they are the same, then "this" is filter A.
+				var isFilterB = writerBody.DefineLabel();
+				var storeAsLocal = writerBody.DefineLabel();
+
+				// For the Ldfld (both load from same target object, arg3):
+				writerBody.Emit(OpCodes.Ldarg_3);
+
+				// If this==Arg_3
+				writerBody.Emit(OpCodes.Ldarg_0);
+				writerBody.Emit(OpCodes.Ldarg_3);
+				writerBody.Emit(OpCodes.Ceq);
+				writerBody.Emit(OpCodes.Brfalse, isFilterB);
+				writerBody.Emit(OpCodes.Ldfld, FilterAst._firstACollector);
+				writerBody.Emit(OpCodes.Br, storeAsLocal);
+				writerBody.MarkLabel(isFilterB);
+				writerBody.Emit(OpCodes.Ldfld, FilterAst._firstBCollector);
+				writerBody.MarkLabel(storeAsLocal);
+				writerBody.Emit(OpCodes.Stloc_0);
+			}
 
 			if (CollectMethod == null)
 			{
@@ -702,7 +735,7 @@ namespace Api.Permissions{
 			// Get the ID type of the field:
 			var idType = targetType.GetField("Id").FieldType;
 			
-			var isAnArray = EmitReadValue(CollectMethod, node, idType);
+			var isAnArray = EmitReadValue(CollectMethod, node, idType, false);
 
 			if (isAnArray)
 			{
@@ -1037,32 +1070,6 @@ namespace Api.Permissions{
 			}
 			else
 			{
-				if (Collectors != null && Collectors.Count > 0)
-				{
-					// Create a var which ref's the current collector (always local 0):
-					writerBody.DeclareLocal(typeof(IDCollector));
-
-					// Set its value to the first collector. We know which to use based on if the given filter arg == this one.
-					// If they are the same, then "this" is filter A.
-					var isFilterB = writerBody.DefineLabel();
-					var storeAsLocal = writerBody.DefineLabel();
-
-					// For the Ldfld (both load from same target object, arg3):
-					writerBody.Emit(OpCodes.Ldarg_3);
-
-					// If this==Arg_3
-					writerBody.Emit(OpCodes.Ldarg_0);
-					writerBody.Emit(OpCodes.Ldarg_3);
-					writerBody.Emit(OpCodes.Ceq);
-					writerBody.Emit(OpCodes.Brfalse, isFilterB);
-					writerBody.Emit(OpCodes.Ldfld, FilterAst._firstACollector);
-					writerBody.Emit(OpCodes.Br, storeAsLocal);
-					writerBody.MarkLabel(isFilterB);
-					writerBody.Emit(OpCodes.Ldfld, FilterAst._firstBCollector);
-					writerBody.MarkLabel(storeAsLocal);
-					writerBody.Emit(OpCodes.Stloc_0);
-				}
-
 				Root.Emit(writerBody, this);
 			}
 
@@ -1507,12 +1514,12 @@ namespace Api.Permissions{
 			else if (current == '"')
 			{
 				// a string. Only thing that requires escaping is "
-				return ReadString('"');
+				return ReadString('"', AllowConstants);
 			}
 			else if (current == '\'')
 			{
 				// a string. Only thing that requires escaping is '
-				return ReadString('\'');
+				return ReadString('\'', AllowConstants);
 			}
 
 			throw new PublicException(
@@ -1527,8 +1534,9 @@ namespace Api.Permissions{
 		/// Read a string from this AST
 		/// </summary>
 		/// <param name="terminal"></param>
+		/// <param name="allowConstants"></param>
 		/// <returns></returns>
-		public StringFilterTreeNode<T, ID> ReadString(char terminal)
+		public StringFilterTreeNode<T, ID> ReadString(char terminal, bool allowConstants)
 		{
 			// Read off the first quote:
 			var start = Index;
@@ -1561,7 +1569,7 @@ namespace Api.Permissions{
 			var result = sb.ToString();
 			sb.Clear();
 
-			if (!AllowConstants)
+			if (!allowConstants)
 			{
 				throw new PublicException(
 					NoConstants + " Encountered the string '" + result + "' at position " + start + " in " + Query,
@@ -1776,7 +1784,7 @@ namespace Api.Permissions{
 			if (member.Collect)
 			{
 				// Test the current collector. The collector is:
-				ast.DeclareCollector(member.Field, B);
+				ast.DeclareCollector(member.Field, B, generator);
 
 				// loc0=loc0.NextCollector;
 				generator.Emit(OpCodes.Ldloc_0);
@@ -2308,7 +2316,7 @@ namespace Api.Permissions{
 
 						if (terminal == '"' || terminal == '\'')
 						{
-							Args.Add(ast.ReadString(terminal));
+							Args.Add(ast.ReadString(terminal, true));
 						}
 						else
 						{
@@ -2500,7 +2508,7 @@ namespace Api.Permissions{
 			// }
 
 			// Grab the GetMap func:
-			var getMapMethod = typeof(Filter<T, ID>).GetMethod("GetMap");
+			var getMapMethod = typeof(Filter<T, ID>).GetMethod(nameof(Filter<T,ID>.GetMap));
 
 			// thisFilter.GetMap(Index)
 			generator.Emit(OpCodes.Ldarg_0); // thisFilter
