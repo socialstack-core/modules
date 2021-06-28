@@ -454,6 +454,167 @@ public partial class AutoService<T, ID> : AutoService
 	}
 
 	/// <summary>
+	/// Loads a filter from the given newtonsoft representation. You must .Release() this filter when you're done with it.
+	/// </summary>
+	/// <param name="newtonsoft"></param>
+	/// <returns></returns>
+	public override FilterBase LoadFilter(JObject newtonsoft)
+	{
+		string str;
+
+		if (newtonsoft == null)
+		{
+			str = "";
+		}
+		else
+		{
+			var query = newtonsoft["query"];
+			str = query == null ? "" : query.Value<string>();
+		}
+
+		// Get the filter base:
+		var filter = GetFilterFor(str, DataOptions.Default, false);
+
+		if (newtonsoft == null)
+		{
+			return filter;
+		}
+
+		var argTypes = filter.GetArgTypes();
+
+		if (argTypes != null && argTypes.Count > 0)
+		{
+			var argSet = newtonsoft["args"] as JArray;
+			if (argSet == null)
+			{
+				throw new PublicException(
+					"Your filter has arguments (?) in it, but no args were given, or the args were not an array. Please provide an array of args.",
+					"filter_invalid"
+				);
+			}
+
+			if (argSet.Count != argTypes.Count)
+			{
+				throw new PublicException(
+					"Not enough arguments were given. Your filter has " + argTypes.Count + " but the given args array only has " + argSet.Count,
+					"filter_invalid"
+				);
+			}
+
+			for (var i = 0; i < argSet.Count; i++)
+			{
+				var array = argSet[i] as JArray;
+
+				if (array != null)
+				{
+					// Act like an array of uint's.
+					var idSet = new List<uint>();
+
+					foreach (var jValue in array)
+					{
+						if (!(jValue is JValue))
+						{
+							throw new PublicException(
+								"Arg #" + (i + 1) + " in the args set is invalid - an array of objects was given, but it can only be an array of IDs.",
+								"filter_invalid"
+							);
+						}
+
+						var id = jValue.Value<uint>();
+						idSet.Add(id);
+					}
+
+					filter.BindUnknown(idSet);
+				}
+				else
+				{
+					var value = argSet[i] as JValue;
+
+					if (value == null)
+					{
+						throw new PublicException(
+							"Arg #" + (i + 1) + " in the args set is invalid - it can't be an object, only a string or numeric/ bool value.",
+							"filter_invalid"
+						);
+					}
+
+					// The underlying JSON token is textual, so we'll use a general use bind from string method.
+					if (value.Type == JTokenType.Date)
+					{
+						var date = value.Value as DateTime?;
+
+						// The target value could be a nullable date, in which case we'd need to use Bind(DateTime?)
+						if (filter.NextBindType == typeof(DateTime?))
+						{
+							filter.Bind(date);
+						}
+						else
+						{
+							filter.Bind(date.Value);
+						}
+					}
+					else if(value.Type == JTokenType.Null)
+					{
+						filter.BindFromString(null);
+					}
+					else
+					{
+						filter.BindFromString(value.Value<string>());
+					}
+				}
+			}
+
+		}
+
+		// Handle universal pagination:
+		var pageSizeJToken = newtonsoft["pageSize"];
+		int? pageSize = null;
+
+		if (pageSizeJToken != null && pageSizeJToken.Type == JTokenType.Integer)
+		{
+			pageSize = pageSizeJToken.Value<int>();
+		}
+
+		var pageIndexJToken = newtonsoft["pageIndex"];
+		int? pageIndex = null;
+
+		if (pageIndexJToken != null && pageSizeJToken.Type == JTokenType.Integer)
+		{
+			pageIndex = pageIndexJToken.Value<int>();
+		}
+
+		if (pageSize.HasValue)
+		{
+			filter.SetPage(pageIndex.HasValue ? pageIndex.Value : 0, pageSize.Value);
+		}
+		else if (pageIndex.HasValue)
+		{
+			// Default page size used
+			filter.SetPage(pageIndex.Value);
+		}
+
+		var sort = newtonsoft["sort"] as JObject;
+		if (sort != null)
+		{
+			if (sort["field"] != null)
+			{
+				string field = sort["field"].ToString();
+
+				if (sort["direction"] != null && sort["direction"].ToString() == "desc")
+				{
+					filter.Sort(field, false);
+				}
+				else
+				{
+					filter.Sort(field);
+				}
+			}
+		}
+
+		return filter;
+	}
+	
+	/// <summary>
 	/// Gets a fast filter for the given query text. 
 	/// You should ensure the query text is constant and that you use binded args on the filter instead of baking values into a string.
 	/// </summary>
@@ -1303,159 +1464,22 @@ public partial class AutoService
 	}
 
 	/// <summary>
-	/// Loads a filter from the given newtonsoft representation. You must .Release() this filter when you're done with it.
-	/// </summary>
-	/// <param name="newtonsoft"></param>
-	/// <returns></returns>
-	public FilterBase LoadFilter(JObject newtonsoft)
-	{
-		string str;
-
-		if (newtonsoft == null)
-		{
-			str = "";
-		}
-		else
-		{
-			var query = newtonsoft["query"];
-			str = query == null ? "" : query.Value<string>();
-		}
-
-		// Get the filter base:
-		var filter = GetGeneralFilterFor(str);
-
-		if (newtonsoft == null)
-		{
-			return filter;
-		}
-
-		var argTypes = filter.GetArgTypes();
-
-		if (argTypes != null && argTypes.Count > 0)
-		{
-			var argSet = newtonsoft["args"] as JArray;
-			if (argSet == null)
-			{
-				throw new PublicException(
-					"Your filter has arguments (?) in it, but no args were given, or the args were not an array. Please provide an array of args.",
-					"filter_invalid"
-				);
-			}
-
-			if (argSet.Count != argTypes.Count)
-			{
-				throw new PublicException(
-					"Not enough arguments were given. Your filter has " + argTypes.Count + " but the given args array only has " + argSet.Count,
-					"filter_invalid"
-				);
-			}
-
-			for (var i = 0; i < argSet.Count; i++)
-			{
-				var array = argSet[i] as JArray;
-
-				if (array != null)
-				{
-					// Act like an array of uint's.
-					var idSet = new List<uint>();
-
-					foreach (var jValue in array)
-					{
-						if (!(jValue is JValue))
-						{
-							throw new PublicException(
-								"Arg #" + (i + 1) + " in the args set is invalid - an array of objects was given, but it can only be an array of IDs.",
-								"filter_invalid"
-							);
-						}
-
-						var id = jValue.Value<uint>();
-						idSet.Add(id);
-					}
-
-					filter.BindUnknown(idSet);
-				}
-				else
-				{
-					var value = argSet[i] as JValue;
-
-					if (value == null)
-					{
-						throw new PublicException(
-							"Arg #" + (i + 1) + " in the args set is invalid - it can't be an object, only a string or numeric/ bool value.",
-							"filter_invalid"
-						);
-					}
-
-					// The underlying JSON token is textual, so we'll use a general use bind from string method.
-					if (value.Type == JTokenType.Null)
-					{
-						filter.BindUnknown(null);
-					}
-					else
-					{
-						filter.BindUnknown(value.Value<string>());
-					}
-				}
-			}
-
-		}
-
-		// Handle universal pagination:
-		var pageSizeJToken = newtonsoft["pageSize"];
-		int? pageSize = null;
-
-		if (pageSizeJToken != null && pageSizeJToken.Type == JTokenType.Integer)
-		{
-			pageSize = pageSizeJToken.Value<int>();
-		}
-
-		var pageIndexJToken = newtonsoft["pageIndex"];
-		int? pageIndex = null;
-
-		if (pageIndexJToken != null && pageSizeJToken.Type == JTokenType.Integer)
-		{
-			pageIndex = pageIndexJToken.Value<int>();
-		}
-
-		if (pageSize.HasValue)
-		{
-			filter.SetPage(pageIndex.HasValue ? pageIndex.Value : 0, pageSize.Value);
-		}
-		else if (pageIndex.HasValue)
-		{
-			// Default page size used
-			filter.SetPage(pageIndex.Value);
-		}
-
-		var sort = newtonsoft["sort"] as JObject;
-		if (sort != null)
-		{
-			if (sort["field"] != null)
-			{
-				string field = sort["field"].ToString();
-
-				if (sort["direction"] != null && sort["direction"].ToString() == "desc")
-				{
-					filter.Sort(field, false);
-				}
-				else
-				{
-					filter.Sort(field);
-				}
-			}
-		}
-		
-		return filter;
-	}
-
-	/// <summary>
 	/// Gets a fast filter for the given query text.
 	/// </summary>
 	/// <param name="query"></param>
 	/// <param name="canContainConstants"></param>
 	/// <returns></returns>
 	public virtual FilterBase GetGeneralFilterFor(string query, bool canContainConstants = false)
+	{
+		return null;
+	}
+
+	/// <summary>
+	/// Loads a filter from the given newtonsoft representation. You must .Release() this filter when you're done with it.
+	/// </summary>
+	/// <param name="newtonsoft"></param>
+	/// <returns></returns>
+	public virtual FilterBase LoadFilter(JObject newtonsoft)
 	{
 		return null;
 	}
