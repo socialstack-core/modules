@@ -46,7 +46,7 @@ namespace Api.WebSockets
 		/// <param name="listener"></param>
 		public void SetupForType<T, ID>(AutoService<T, ID> svc, WebSocketTypeListeners listener) 
 			where T : Content<ID>, new()
-			where ID : struct, IConvertible, IEquatable<ID>
+			where ID : struct, IConvertible, IEquatable<ID>, IComparable<ID>
 		{
 			var evtGroup = svc.EventGroup;
 			listener.Capability = evtGroup.BeforeList.Capability;
@@ -220,7 +220,7 @@ namespace Api.WebSockets
 		/// </summary>
 		public void Send<T,ID>(Context context, WebSocketEntityMessage<T,ID> msg, string methodName, uint? toUserId = null)
 			where T : Content<ID>, new()
-			where ID : struct, IConvertible, IEquatable<ID>
+			where ID : struct, IConvertible, IEquatable<ID>, IComparable<ID>
 		{
 			
 			if(msg == null)
@@ -531,7 +531,7 @@ namespace Api.WebSockets
 		/// <returns></returns>
 		public async Task Send<T,ID>(WebSocketEntityMessage<T,ID> message, uint? toUserId)
 			where T : Content<ID>, new()
-			where ID : struct, IConvertible, IEquatable<ID>
+			where ID : struct, IConvertible, IEquatable<ID>, IComparable<ID>
 		{
 			if (toUserId.HasValue)
 			{
@@ -781,7 +781,7 @@ namespace Api.WebSockets
 		/// </summary>
 		public async Task Send<T, ID>(WebSocketEntityMessage<T, ID> message)
 			where T : Content<ID>, new()
-			where ID : struct, IConvertible, IEquatable<ID>
+			where ID : struct, IConvertible, IEquatable<ID>, IComparable<ID>
 		{
 
 			if (_serializerSettings == null)
@@ -890,7 +890,7 @@ namespace Api.WebSockets
 	/// </summary>
 	public class WebSocketEntityMessage<T,ID> : WebSocketMessage
 		where T : Content<ID>, new()
-		where ID : struct, IConvertible, IEquatable<ID>
+		where ID : struct, IConvertible, IEquatable<ID>, IComparable<ID>
 	{
 		
 		/// <summary>
