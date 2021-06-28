@@ -16,7 +16,7 @@ namespace Api.Permissions{
 	/// </summary>
 	public partial class FilterAst<T, ID>
 		where T : Content<ID>, new()
-		where ID : struct, IConvertible, IEquatable<ID>
+		where ID : struct, IConvertible, IEquatable<ID>, IComparable<ID>
 	{
 		/// <summary>
 		/// Steps through this tree, building an SQL-format where query. Very similar to how it actually starts out.
@@ -42,7 +42,7 @@ namespace Api.Permissions{
 	/// </summary>
 	public partial class FilterTreeNode<T, ID>
 		where T : Content<ID>, new()
-		where ID : struct, IConvertible, IEquatable<ID>
+		where ID : struct, IConvertible, IEquatable<ID>, IComparable<ID>
 	{
 		/// <summary>
 		/// Steps through this tree, building an SQL-format where query. Very similar to how it actually starts out.
@@ -61,7 +61,7 @@ namespace Api.Permissions{
 
 	public partial class MappingFilterTreeNode<T, ID> : FilterTreeNode<T, ID>
 		where T : Content<ID>, new()
-		where ID : struct, IConvertible, IEquatable<ID>
+		where ID : struct, IConvertible, IEquatable<ID>, IComparable<ID>
 	{
 		/// <summary>
 		/// Mapping table name.
@@ -116,7 +116,7 @@ namespace Api.Permissions{
 	/// </summary>
 	public partial class OpFilterTreeNode<T, ID> : FilterTreeNode<T, ID>
 		where T : Content<ID>, new()
-		where ID : struct, IConvertible, IEquatable<ID>
+		where ID : struct, IConvertible, IEquatable<ID>, IComparable<ID>
 	{
 		/// <summary>
 		/// A generator for making IN(..) strings for arrays.
@@ -336,7 +336,7 @@ namespace Api.Permissions{
 	/// </summary>
 	public partial class MemberFilterTreeNode<T, ID> : FilterTreeNode<T, ID>
 		where T : Content<ID>, new()
-		where ID : struct, IConvertible, IEquatable<ID>
+		where ID : struct, IConvertible, IEquatable<ID>, IComparable<ID>
 	{
 		/// <summary>
 		/// Steps through this tree, building an SQL-format where query. Very similar to how it actually starts out.
@@ -382,7 +382,7 @@ namespace Api.Permissions{
 	/// </summary>
 	public partial class IsIncludedFilterTreeNode<T, ID> : FilterTreeNode<T, ID>
 		where T : Content<ID>, new()
-		where ID : struct, IConvertible, IEquatable<ID>
+		where ID : struct, IConvertible, IEquatable<ID>, IComparable<ID>
 	{
 		/// <summary>
 		/// Steps through this tree, building an SQL-format where query. Very similar to how it actually starts out.
@@ -413,7 +413,7 @@ namespace Api.Permissions{
 	/// </summary>
 	public partial class StringFilterTreeNode<T, ID> : ConstFilterTreeNode<T, ID>
 		where T : Content<ID>, new()
-		where ID : struct, IConvertible, IEquatable<ID>
+		where ID : struct, IConvertible, IEquatable<ID>, IComparable<ID>
 	{
 		/// <summary>
 		/// Steps through this tree, building an SQL-format where query. Very similar to how it actually starts out.
@@ -443,7 +443,7 @@ namespace Api.Permissions{
 	/// </summary>
 	public partial class NumberFilterTreeNode<T, ID> : ConstFilterTreeNode<T, ID>
 		where T : Content<ID>, new()
-		where ID : struct, IConvertible, IEquatable<ID>
+		where ID : struct, IConvertible, IEquatable<ID>, IComparable<ID>
 	{
 		/// <summary>
 		/// Steps through this tree, building an SQL-format where query. Very similar to how it actually starts out.
@@ -467,7 +467,7 @@ namespace Api.Permissions{
 	/// </summary>
 	public partial class DecimalFilterTreeNode<T, ID> : ConstFilterTreeNode<T, ID>
 		where T : Content<ID>, new()
-		where ID : struct, IConvertible, IEquatable<ID>
+		where ID : struct, IConvertible, IEquatable<ID>, IComparable<ID>
 	{
 		/// <summary>
 		/// Steps through this tree, building an SQL-format where query. Very similar to how it actually starts out.
@@ -491,7 +491,7 @@ namespace Api.Permissions{
 	/// </summary>
 	public partial class BoolFilterTreeNode<T, ID> : ConstFilterTreeNode<T, ID>
 		where T : Content<ID>, new()
-		where ID : struct, IConvertible, IEquatable<ID>
+		where ID : struct, IConvertible, IEquatable<ID>, IComparable<ID>
 	{
 		/// <summary>
 		/// Steps through this tree, building an SQL-format where query. Very similar to how it actually starts out.
@@ -514,7 +514,7 @@ namespace Api.Permissions{
 	/// </summary>
 	public partial class NullFilterTreeNode<T, ID> : ConstFilterTreeNode<T, ID>
 		where T : Content<ID>, new()
-		where ID : struct, IConvertible, IEquatable<ID>
+		where ID : struct, IConvertible, IEquatable<ID>, IComparable<ID>
 	{
 		/// <summary>
 		/// Steps through this tree, building an SQL-format where query. Very similar to how it actually starts out.
@@ -537,7 +537,7 @@ namespace Api.Permissions{
 	/// </summary>
 	public partial class ArgFilterTreeNode<T, ID> : ConstFilterTreeNode<T, ID>
 		where T : Content<ID>, new()
-		where ID : struct, IConvertible, IEquatable<ID>
+		where ID : struct, IConvertible, IEquatable<ID>, IComparable<ID>
 	{
 		/// <summary>
 		/// A generator for making IN(..) strings for arrays.

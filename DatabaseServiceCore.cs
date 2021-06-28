@@ -438,7 +438,7 @@ namespace Api.Database
 			object srcA, object srcB, Type instanceType, Query q
 		)
 			where T : Content<ID>, new()
-			where ID : struct, IConvertible, IEquatable<ID>
+			where ID : struct, IConvertible, IEquatable<ID>, IComparable<ID>
 		{
 			uint localeId = 0;
 			string localeCode = null;

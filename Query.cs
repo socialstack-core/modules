@@ -223,7 +223,7 @@ namespace Api.Database
 		/// </summary>
 		public void ApplyQuery<T,ID>(Context context, MySqlCommand cmd, QueryPair<T,ID> qP, bool bulk = false, uint localeId = 0, string localeCode = null, bool includeCount = false)
 			where T : Content<ID>, new()
-			where ID : struct, IConvertible, IEquatable<ID>
+			where ID : struct, IConvertible, IEquatable<ID>, IComparable<ID>
 		{
 			var filterEmpty = qP.QueryA.Empty && qP.QueryB.Empty && qP.QueryA.PageSize == 0 && qP.QueryA.Offset == 0;
 
