@@ -67,7 +67,7 @@ namespace Api.TwoFactorGoogleAuth
 								
 								user = await _users.Update(context, user, (Context c, User u) => {
 									u.TwoFactorSecretPending = key;
-								});
+								}, DataOptions.IgnorePermissions);
 
 								result.User = user;
 							}
@@ -89,7 +89,7 @@ namespace Api.TwoFactorGoogleAuth
 								user = await _users.Update(context, user, (Context c, User u) => {
 									u.TwoFactorSecret = u.TwoFactorSecretPending;
 									u.TwoFactorSecretPending = null;
-								});
+								}, DataOptions.IgnorePermissions);
 								result.User = user;
 							}
 							else
