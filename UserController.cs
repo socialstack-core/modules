@@ -3,6 +3,8 @@ using System.Threading.Tasks;
 using Microsoft.AspNetCore.Mvc;
 using Api.Contexts;
 using Api.Eventing;
+using Newtonsoft.Json;
+using Newtonsoft.Json.Serialization;
 
 
 namespace Api.Users
@@ -87,6 +89,18 @@ namespace Api.Users
         }
 
 		/// <summary>
+		/// Json serialization settings for canvases
+		/// </summary>
+		private static readonly JsonSerializerSettings jsonSettings = new JsonSerializerSettings
+		{
+			ContractResolver = new DefaultContractResolver
+			{
+				NamingStrategy = new CamelCaseNamingStrategy()
+			},
+			Formatting = Formatting.None
+		};
+		
+		/// <summary>
 		/// POST /v1/user/login/
 		/// Attempts to login. Returns either a Context or a LoginResult.
 		/// </summary>
@@ -107,7 +121,7 @@ namespace Api.Users
 			{
 				// Output the result message. 
 				// Fail message does not expose any content objects but does contain nested objects, so newtonsoft is ok here.
-				var json = Newtonsoft.Json.JsonConvert.SerializeObject(result);
+				var json = JsonConvert.SerializeObject(result, jsonSettings);
 				var bytes = System.Text.Encoding.UTF8.GetBytes(json);
 				await Response.Body.WriteAsync(bytes, 0, bytes.Length);
 				return;
