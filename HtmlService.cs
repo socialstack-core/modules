@@ -864,7 +864,7 @@ namespace Api.Pages
 		/// <param name="evtGroup"></param>
 		public void AttachPrimaryObjectEventHandler<T, ID>(EventGroup<T, ID> evtGroup)
 			 where T : Content<ID>, new()
-			where ID : struct, IConvertible, IEquatable<ID>
+			where ID : struct, IConvertible, IEquatable<ID>, IComparable<ID>
 		{
 			evtGroup.Received.AddEventListener(async (Context ctx, T content, int mode) =>
 			{
