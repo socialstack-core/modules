@@ -4,6 +4,7 @@ using Api.Eventing;
 using Api.SocketServerLibrary;
 using Api.Users;
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Reflection;
 using System.Reflection.Emit;
@@ -17,6 +18,24 @@ namespace Api.Startup
 	public static class MappingTypeEngine
     {
 		/// <summary>
+		/// Stores meta for a mapping type.
+		/// </summary>
+		private class MappingTypeMeta
+		{
+			/// <summary>
+			/// The service.
+			/// </summary>
+			public AutoService Service;
+
+			/// <summary>
+			/// A task which exists whilst the service is instancing.
+			/// As mappings are cached, the generation process can last multiple seconds, 
+			/// thus it's important for threads to not repeatedly generate the same mapping.
+			/// </summary>
+			public Task<AutoService> Generating;
+		}
+
+		/// <summary>
 		/// Ensures unique names for assemblies generated during this session.
 		/// </summary>
 		private static int counter = 1;
@@ -24,7 +43,7 @@ namespace Api.Startup
 		/// <summary>
 		/// Generated mapper services.
 		/// </summary>
-		private static Dictionary<string, AutoService> _mappers = new Dictionary<string, AutoService>();
+		private static ConcurrentDictionary<string, MappingTypeMeta> _mappers = new ConcurrentDictionary<string, MappingTypeMeta>();
 
 		/// <summary>
 		/// Gets just the table name.
@@ -54,14 +73,29 @@ namespace Api.Startup
 			var targetTypeName = targetType.ServicedType.Name;
 			var typeName = srcTypeName + "_" + targetTypeName + "_Map_" + listAs;
 
-			if (_mappers.TryGetValue(typeName, out AutoService mapper))
+			if (_mappers.TryGetValue(typeName, out MappingTypeMeta meta))
 			{
-				return mapper;
+				if (meta.Generating != null)
+				{
+					// wait for the task to complete:
+					return await meta.Generating;
+				}
+
+				return meta.Service;
 			}
 
-			mapper = await Generate(srcType, targetType, typeName);
-			_mappers[typeName] = mapper;
-			return mapper;
+			Task<AutoService> generationTask;
+
+			lock (_mappers)
+			{
+				meta = new MappingTypeMeta();
+				_mappers[typeName] = meta;
+				generationTask = Generate(srcType, targetType, typeName).AsTask();
+				meta.Generating = generationTask;
+			}
+
+			meta.Service = await generationTask;
+			return meta.Service;
 		}
 
 		/// <summary>

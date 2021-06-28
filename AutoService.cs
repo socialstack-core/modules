@@ -524,7 +524,7 @@ public partial class AutoService<T, ID> : AutoService
 						idSet.Add(id);
 					}
 
-					filter.BindUnknown(idSet);
+					filter.BindUnknown(idSet as IEnumerable<uint>);
 				}
 				else
 				{
