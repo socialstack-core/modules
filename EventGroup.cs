@@ -32,7 +32,7 @@ namespace Api.Eventing
 	/// <typeparam name="ID"></typeparam>
 	public partial class EventGroup<T, ID> : EventGroupCore<T, ID>
 		where T : Content<ID>, new()
-		where ID : struct, IConvertible, IEquatable<ID>
+		where ID : struct, IConvertible, IEquatable<ID>, IComparable<ID>
 	{
 		/// <summary>
 		/// Just before a service loads an entity list.
