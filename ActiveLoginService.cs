@@ -222,7 +222,7 @@ namespace Api.ActiveLogins
 					// Do this by counting the # of other online records they have.
 					var countQuery = Query.List(typeof(ActiveLoginCount));
 					countQuery.SetRawQuery(inQuery.ToString());
-					var counts = await _database.List<ActiveLoginCount>(null, countQuery, null);
+					var counts = await _database.List<ActiveLoginCount>(null, countQuery, typeof(ActiveLoginCount));
 
 					// NB: could be done in a query, but going through the update API
 					// means other servers will become aware of the user(s) going offline.
