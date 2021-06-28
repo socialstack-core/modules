@@ -63,17 +63,17 @@ export default props => {
 						<a href="/forgot">{`I forgot my password`}</a>
 					</Col>
 				</Row>
-				<Spacer height="20" />
-				<Input type="submit" label={props.loginCta || `Login`}/>
-				{failed && (
-					<Alert type="fail">
-						{failed.message || `Those login details weren't right - please try again.`}
-					</Alert>
-				)}
-				{props.noRegister ? null : <div className="form-group">
-					{`Don't have an account?`} <a href={props.registerUrl || "/register"}>{`Register here`}</a>
-				</div>}
 			</div>
+			<Spacer height="20" />
+			<Input type="submit" label={props.loginCta || `Login`}/>
+			{failed && (
+				<Alert type="fail">
+					{failed.message || `Those login details weren't right - please try again.`}
+				</Alert>
+			)}
+			{props.noRegister ? null : <div className="form-group">
+				{`Don't have an account?`} <a href={props.registerUrl || "/register"}>{`Register here`}</a>
+			</div>}
 		</Form>
 	);
 }
