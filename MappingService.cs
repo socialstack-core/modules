@@ -15,8 +15,8 @@ namespace Api.Startup
 	public class MappingService<SRC, TARG, SRC_ID, TARG_ID> : MappingService<SRC_ID, TARG_ID>
 		where SRC: Content<SRC_ID>, new()
 		where TARG : Content<TARG_ID>, new()
-		where SRC_ID: struct, IEquatable<SRC_ID>, IConvertible
-		where TARG_ID: struct, IEquatable<TARG_ID>, IConvertible
+		where SRC_ID: struct, IEquatable<SRC_ID>, IConvertible, IComparable<SRC_ID>
+		where TARG_ID: struct, IEquatable<TARG_ID>, IConvertible, IComparable<TARG_ID>
 	{
 
 		/// <summary>

@@ -242,8 +242,8 @@ namespace Api.Startup
 			where T : Mapping<SRC_ID, TARG_ID>, new()
 			where SRC : Content<SRC_ID>, new()
 			where TARG : Content<TARG_ID>, new()
-			where SRC_ID : struct, IEquatable<SRC_ID>, IConvertible
-			where TARG_ID : struct, IEquatable<TARG_ID>, IConvertible
+			where SRC_ID : struct, IEquatable<SRC_ID>, IConvertible, IComparable<SRC_ID>
+			where TARG_ID : struct, IEquatable<TARG_ID>, IConvertible, IComparable<TARG_ID>
 		{
 			// Create the service:
 			var svc = new MappingService<SRC, TARG, SRC_ID, TARG_ID>(src, targ, srcIdName, targetIdName, typeof(T));

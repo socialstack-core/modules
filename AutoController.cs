@@ -30,7 +30,7 @@ public partial class AutoController<T> : AutoController<T, uint>
 [ApiController]
 public partial class AutoController<T,ID> : ControllerBase
 	where T : Content<ID>, new()
-	where ID : struct, IConvertible, IEquatable<ID>
+	where ID : struct, IConvertible, IEquatable<ID>, IComparable<ID>
 {
 
 	/// <summary>

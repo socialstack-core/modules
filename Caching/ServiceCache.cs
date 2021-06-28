@@ -15,7 +15,7 @@ namespace Api.Startup{
 	/// </summary>
 	public class ServiceCache<T, PT> 
 		where T: Content<PT>, new()
-		where PT : struct, IConvertible, IEquatable<PT>
+		where PT : struct, IConvertible, IEquatable<PT>, IComparable<PT>
 	{
 		/// <summary>
 		/// True if this cache is in lazy loading mode.

@@ -118,7 +118,7 @@ namespace Api.Startup
 	/// Collects IDs of the given type. Uses a pool of buffers for fast, non-allocating performance.
 	/// The ID collector itself can also be pooled.
 	/// </summary>
-	public class IDCollector<T>: IDCollector, IEnumerable<T> where T:struct, IEquatable<T>
+	public class IDCollector<T>: IDCollector, IEnumerable<T> where T:struct, IEquatable<T>, IComparable<T>
 	{
 		/// <summary>
 		/// Linked list of blocks in this collector.
@@ -247,6 +247,131 @@ namespace Api.Startup
 
 			Last.Entries[CurrentFill++] = id;
 			PrevValue = id;
+		}
+
+		/// <summary>
+		/// Adds the given ID to the set and sorts it for you.
+		/// </summary>
+		public void AddSorted(T id)
+		{
+			if (First == null)
+			{
+				First = Last = IDBlockPool<T>.Get();
+				var index = CurrentFill++;
+
+				Last.Entries[index] = id;
+				PrevValue = id;
+
+				// And done - we just added the first id.
+				return;
+			}
+			else
+			{
+				// Let's start iterating through
+				var currentBlock = First;
+				var currentValue = id;
+
+				// Pass this onto sort.
+				Sort(currentBlock, currentValue);
+			}
+		}
+
+		/// <summary>
+		/// Sorts the value into the set.
+		/// </summary>
+		public bool Sort(IDBlock<T> currentBlock, T currentValue, int currentIndex = 0)
+        {
+			var sorted = false;
+			// Let's iterate over the values of our currentBlock
+			for(int i = currentIndex; i < currentBlock.Entries.Length; i++)
+            {
+				// If we hit a 0 value, we are on the very last value in the entry and the linked list.
+				if(currentBlock.Entries[i].Equals(0))
+                {
+					// Let's put our value here and we are done!
+					currentBlock.Entries[i] = currentValue;
+
+					FullBlockCount++;
+
+					// And done!
+					return true;
+				}
+
+				// Is our current value greater or lesser?
+				if(currentValue.CompareTo(currentBlock.Entries[i]) >= 0 )
+                {
+					// we can move onto the next value now.
+					continue;
+                }
+
+                else
+                {
+					// We need to replace this value and move on up with the new value. 
+					var newValue = currentBlock.Entries[i];
+					currentBlock.Entries[i] = currentValue;
+
+					sorted = Sort(currentBlock, newValue, i); 
+				}
+			}
+
+			// Are we sorted after this block? if not, let go to the next one.
+			if(!sorted)
+            {
+				sorted = Sort(currentBlock.Next, currentValue, 0);
+            }
+
+			return sorted;
+        }
+
+		/// <summary>
+		/// Used to eliminate takes the sorted array or repetitions
+		/// and turns it into a set with no repitiions and removes values that don't have the 
+		/// minimum repetiions.
+		/// </summary>
+		/// <param name="minRepetitions"></param>
+		public void Eliminate(int minRepetitions)
+        {
+			var eliminate = "test";
+        }
+
+		/// <summary>
+		/// Used to debug the current state of the IDCollector
+		/// </summary>
+		public void Debug()
+        {
+			Console.WriteLine("IDCollector debug: ");
+
+			if(First == null)
+            {
+				return;
+            }
+
+			// Let's start going through our entries
+			PrintBlock(First);
+        }
+
+		public void PrintBlock(IDBlock<T> currentBlock)
+        {
+			Console.Write("[");
+			for (var i = 0; i < currentBlock.Entries.Length; i++)
+			{
+				if (currentBlock.Entries[i].Equals(0))
+                {
+					// We hit the end. - no need to continue
+					Console.WriteLine("]");
+					return;
+                }
+
+				Console.Write(currentBlock.Entries[i] + ", ");
+			}
+			Console.WriteLine("]");
+
+			// We safely hit the end - is there another block after this one?
+			if (currentBlock.Next != null)
+            {
+				// There is an additional block
+				PrintBlock(currentBlock.Next);
+            }
 		}
 
 		/// <summary>

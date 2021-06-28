@@ -83,7 +83,7 @@ public enum DataOptions : int
 /// <typeparam name="ID">ID type (usually int)</typeparam>
 public partial class AutoService<T, ID> : AutoService 
 	where T: Content<ID>, new()
-	where ID: struct, IConvertible, IEquatable<ID>
+	where ID: struct, IConvertible, IEquatable<ID>, IComparable<ID>
 {
 	
 	/// <summary>
@@ -269,7 +269,7 @@ public partial class AutoService<T, ID> : AutoService
 	/// <param name="mappingName"></param>
 	/// <returns></returns>
 	public async ValueTask<MappingService<T, MAP_TARGET, ID, T_ID>> GetMap<MAP_TARGET, T_ID>(string mappingName)
-		where T_ID : struct, IEquatable<T_ID>, IConvertible
+		where T_ID : struct, IEquatable<T_ID>, IConvertible, IComparable<T_ID>
 		where MAP_TARGET : Content<T_ID>, new()
 	{
 		// Get mapping service:
@@ -293,7 +293,7 @@ public partial class AutoService<T, ID> : AutoService
 	/// <param name="options"></param>
 	/// <returns></returns>
 	public async ValueTask<List<T>> ListByTarget<MAP_TARGET, T_ID>(Context context, T_ID targetId, string mappingName, DataOptions options = DataOptions.Default)
-		where T_ID : struct, IEquatable<T_ID>, IConvertible
+		where T_ID : struct, IEquatable<T_ID>, IConvertible, IComparable<T_ID>
 		where MAP_TARGET : Content<T_ID>, new()
 	{
 		var res = new List<T>();
@@ -320,7 +320,7 @@ public partial class AutoService<T, ID> : AutoService
 	/// <param name="options"></param>
 	/// <returns></returns>
 	public async ValueTask<List<T>> ListBySource<MAP_SOURCE, S_ID>(Context context, AutoService<MAP_SOURCE, S_ID> src, S_ID srcId, string mappingName, DataOptions options = DataOptions.Default)
-		where S_ID : struct, IEquatable<S_ID>, IConvertible
+		where S_ID : struct, IEquatable<S_ID>, IConvertible, IComparable<S_ID>
 		where MAP_SOURCE : Content<S_ID>, new()
 	{
 		var set = new List<T>();
@@ -352,7 +352,7 @@ public partial class AutoService<T, ID> : AutoService
 	/// <param name="options"></param>
 	/// <returns></returns>
 	public async ValueTask ListBySource<MAP_SOURCE, S_ID>(Context context, AutoService<MAP_SOURCE, S_ID> src, S_ID srcId, string mappingName, Func<Context, T, int, object, object, ValueTask> onResult, object a, object b, DataOptions options = DataOptions.Default)
-		where S_ID : struct, IEquatable<S_ID>, IConvertible
+		where S_ID : struct, IEquatable<S_ID>, IConvertible, IComparable<S_ID>
 		where MAP_SOURCE : Content<S_ID>, new()
 	{
 		// Get map:
@@ -387,7 +387,7 @@ public partial class AutoService<T, ID> : AutoService
 	/// <param name="options"></param>
 	/// <returns></returns>
 	public async ValueTask ListBySource<MAP_SOURCE, S_ID>(Context context, AutoService<MAP_SOURCE, S_ID> src, IDCollector<S_ID> srcIds, string mappingName, Func<Context, T, int, object, object, ValueTask> onResult, object a, object b, DataOptions options = DataOptions.Default)
-		where S_ID : struct, IEquatable<S_ID>, IConvertible
+		where S_ID : struct, IEquatable<S_ID>, IConvertible, IComparable<S_ID>
 		where MAP_SOURCE : Content<S_ID>, new()
 	{
 		// Get map:
@@ -421,7 +421,7 @@ public partial class AutoService<T, ID> : AutoService
 	/// <param name="options"></param>
 	/// <returns></returns>
 	public async ValueTask ListByTarget<MAP_TARGET, T_ID>(Context context, T_ID targetId, string mappingName, Func<Context, T, int, object, object, ValueTask> onResult, object a, object b, DataOptions options = DataOptions.Default)
-	where T_ID: struct, IEquatable<T_ID>, IConvertible
+	where T_ID: struct, IEquatable<T_ID>, IConvertible, IComparable<T_ID>
 	where MAP_TARGET: Content<T_ID>, new()
 	{
 		// Get map:
@@ -1497,7 +1497,7 @@ public partial class AutoService
 	/// <param name="viaIncludes">True if the list is via includes</param>
 	/// <returns></returns>
 	public virtual ValueTask OutputJsonList<S_ID>(Context context, IDCollector collectors, IDCollector idSet, string setField, Writer writer, bool viaIncludes)
-		 where S_ID : struct, IEquatable<S_ID>
+		 where S_ID : struct, IEquatable<S_ID>, IComparable<S_ID>
 	{
 		// Not supported on this service.
 		return new ValueTask();

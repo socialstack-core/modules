@@ -87,7 +87,7 @@ namespace Api.Startup
 	/// </summary>
 	public class JsonStructure<T, ID> : JsonStructure
 		where T : Content<ID>, new()
-		where ID : struct, IConvertible, IEquatable<ID>
+		where ID : struct, IConvertible, IEquatable<ID>, IComparable<ID>
 	{
 		/// <summary>
 		/// The host service.
@@ -677,7 +677,7 @@ namespace Api.Startup
 	/// <typeparam name="ID"></typeparam>
 	public class JsonField<T, ID> : JsonField
 		where T : Content<ID>, new()
-		where ID : struct, IConvertible, IEquatable<ID>
+		where ID : struct, IConvertible, IEquatable<ID>, IComparable<ID>
 	{
 
 		/// <summary>

@@ -27,7 +27,7 @@ namespace Api.SocketServerLibrary
 		/// </summary>
 		public static TypeReaderWriter<T> Generate<T, ID>(JsonStructure<T,ID> fieldSet)
 			where T : Content<ID>, new()
-			where ID : struct, IConvertible, IEquatable<ID>
+			where ID : struct, IConvertible, IEquatable<ID>, IComparable<ID>
 		{
 			var set = new List<JsonStructure<T, ID>>
 			{
@@ -379,7 +379,7 @@ namespace Api.SocketServerLibrary
 		/// </summary>
 		public static List<TypeReaderWriter<T>> Generate<T, ID>(List<JsonStructure<T, ID>> fieldSets)
 			where T : Content<ID>, new()
-			where ID : struct, IConvertible, IEquatable<ID>
+			where ID : struct, IConvertible, IEquatable<ID>, IComparable<ID>
 		{
 			var result = new List<TypeReaderWriter<T>>();
 			
