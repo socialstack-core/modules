@@ -13,7 +13,7 @@ export function useTokens(str){
 	var localContent = useContent();
 	var {pageState} = useRouter();
 	
-	return (str || '').replace(/\$\{(\w|\.)+\}/g, function(textToken) {
+	return (str || '').toString().replace(/\$\{(\w|\.)+\}/g, function(textToken) {
 		var fields = textToken.substring(2, textToken.length - 1).split('.');
 		
 		var mode = '';
