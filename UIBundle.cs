@@ -47,6 +47,11 @@ namespace Api.CanvasRenderer
 		/// The public pack directory.
 		/// </summary>
 		public string PackDir;
+		
+		/// <summary>
+		/// Overrides PackDir for the actual file during prebuilt load.
+		/// </summary>
+		public string FilePathOverride;
 
 		/// <summary>
 		/// Map of path (relative to Path) -> a particular source file.
@@ -646,8 +651,15 @@ namespace Api.CanvasRenderer
 
 			if (Prebuilt)
 			{
+				var dir = PackDir;
+
+				if (!string.IsNullOrEmpty(FilePathOverride))
+				{
+					dir = FilePathOverride;
+				}
+
 				// Load main.css (as-is):
-				var cssFilePath = RootPath + "/public" + PackDir + "main.prebuilt.css";
+				var cssFilePath = RootPath + "/public" + dir + "main.prebuilt.css";
 				if (File.Exists(cssFilePath))
 				{
 					var mainCss = File.ReadAllText(cssFilePath);
@@ -664,14 +676,14 @@ namespace Api.CanvasRenderer
 
 				// Load main.js.
 				var segments = new List<JavascriptFileSegment>();
-				var jsFilePath = RootPath + "/public" + PackDir + "main.prebuilt.js";
+				var jsFilePath = RootPath + "/public" + dir + "main.prebuilt.js";
 
 				if (File.Exists(jsFilePath))
 				{
 					var mainJs = File.ReadAllText(jsFilePath);
 
 					// Read the meta (a required file, as it includes the build date as well as localisation metadata).
-					var metaPath = RootPath + "/public" + PackDir + "meta.json";
+					var metaPath = RootPath + "/public" + dir + "meta.json";
 					PrebuiltMeta meta;
 
 					if (File.Exists(metaPath))
