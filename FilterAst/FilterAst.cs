@@ -655,7 +655,7 @@ namespace Api.Permissions{
 		/// <summary>
 		/// Adds a collector to the set. Field must be a virtual ListAs field.
 		/// </summary>
-		public void DeclareCollector(ContentField field, FilterTreeNode<T,ID> node, ILGenerator writerBody)
+		public void DeclareCollector(ContentField field, FilterTreeNode<T,ID> node, ILGenerator writerBody, string Operation)
 		{
 
 			if (Collectors == null)
@@ -737,23 +737,86 @@ namespace Api.Permissions{
 			
 			var isAnArray = EmitReadValue(CollectMethod, node, idType, false);
 
-			if (isAnArray)
+			if (Operation == "containsAny")
 			{
-				// CollectByTargetSet(Context context, IDCollector<SRC_ID> collector, IEnumerable<TARG_ID> idSet)
-				var iEnumMethod = typeof(MappingService<,,,>)
-					.MakeGenericType(typeof(T), targetType, typeof(ID), idType)
-					.GetMethod("CollectByTargetSet");
+				if (isAnArray)
+				{
+					// CollectByTargetSet(Context context, IDCollector<SRC_ID> collector, IEnumerable<TARG_ID> idSet)
+					var iEnumMethod = typeof(MappingService<,,,>)
+						.MakeGenericType(typeof(T), targetType, typeof(ID), idType)
+						.GetMethod("CollectByTargetSet");
 
-				CollectMethod.Emit(OpCodes.Callvirt, iEnumMethod);
+					CollectMethod.Emit(OpCodes.Callvirt, iEnumMethod);
+				}
+				else
+				{
+					// CollectByTarget(Context context, IDCollector<SRC_ID> collector, TARG_ID id)
+					var singleValueMethod = typeof(MappingService<,,,>)
+						.MakeGenericType(typeof(T), targetType, typeof(ID), idType)
+						.GetMethod("CollectByTarget");
+
+					CollectMethod.Emit(OpCodes.Callvirt, singleValueMethod);
+				}
 			}
-			else
+			else if (Operation == "contains")
 			{
-				// CollectByTarget(Context context, IDCollector<SRC_ID> collector, TARG_ID id)
-				var singleValueMethod = typeof(MappingService<,,,>)
-					.MakeGenericType(typeof(T), targetType, typeof(ID), idType)
-					.GetMethod("CollectByTarget");
+				if (isAnArray)
+				{
+					var iEnumMethod = typeof(MappingService<,,,>)
+						.MakeGenericType(typeof(T), targetType, typeof(ID), idType)
+						.GetMethod("CollectByTargetSetContains");
 
-				CollectMethod.Emit(OpCodes.Callvirt, singleValueMethod);
+					CollectMethod.Emit(OpCodes.Callvirt, iEnumMethod);
+				}
+				else
+				{
+					// CollectByTarget(Context context, IDCollector<SRC_ID> collector, TARG_ID id)
+					var singleValueMethod = typeof(MappingService<,,,>)
+						.MakeGenericType(typeof(T), targetType, typeof(ID), idType)
+						.GetMethod("CollectByTarget");
+
+					CollectMethod.Emit(OpCodes.Callvirt, singleValueMethod);
+				}
+			}
+			else if (Operation == "containsAll" || Operation == "containsNone")
+			{
+				if (isAnArray)
+				{
+					var iEnumMethod = typeof(MappingService<,,,>)
+						.MakeGenericType(typeof(T), targetType, typeof(ID), idType)
+						.GetMethod("CollectByTargetSetContains");
+
+					CollectMethod.Emit(OpCodes.Callvirt, iEnumMethod);
+				}
+				else
+				{
+					// CollectByTarget(Context context, IDCollector<SRC_ID> collector, TARG_ID id)
+					var singleValueMethod = typeof(MappingService<,,,>)
+						.MakeGenericType(typeof(T), targetType, typeof(ID), idType)
+						.GetMethod("CollectByTarget");
+
+					CollectMethod.Emit(OpCodes.Callvirt, singleValueMethod);
+				}
+			}
+			else if (Operation == "=" || Operation == "!=")
+			{
+				if (isAnArray)
+				{
+					var iEnumMethod = typeof(MappingService<,,,>)
+						.MakeGenericType(typeof(T), targetType, typeof(ID), idType)
+						.GetMethod("CollectByTargetSetEquals");
+
+					CollectMethod.Emit(OpCodes.Callvirt, iEnumMethod);
+				}
+				else
+				{
+					// CollectByTarget(Context context, IDCollector<SRC_ID> collector, TARG_ID id)
+					var singleValueMethod = typeof(MappingService<,,,>)
+						.MakeGenericType(typeof(T), targetType, typeof(ID), idType)
+						.GetMethod("CollectByTargetEquals");
+
+					CollectMethod.Emit(OpCodes.Callvirt, singleValueMethod);
+				}
 			}
 
 			// Return the ValueTask
@@ -1784,7 +1847,7 @@ namespace Api.Permissions{
 			if (member.Collect)
 			{
 				// Test the current collector. The collector is:
-				ast.DeclareCollector(member.Field, B, generator);
+				ast.DeclareCollector(member.Field, B, generator, Operation);
 
 				// loc0=loc0.NextCollector;
 				generator.Emit(OpCodes.Ldloc_0);
@@ -1803,6 +1866,11 @@ namespace Api.Permissions{
 
 				// collector.MatchAny(ID) => bool on stack
 				generator.Emit(OpCodes.Callvirt, matchAny);
+
+				if(Operation == "containsNone" || Operation == "!=")
+                {
+					generator.Emit(OpCodes.Not);
+				}
 			}
 			else
 			{
@@ -1970,6 +2038,29 @@ namespace Api.Permissions{
 					}
 				}
 				else if (Operation == "contains")
+				{
+					if (isEnumerable)
+					{
+						var baseMethod = typeof(Filter<T, ID>).GetMethod(nameof(Filter<T, ID>.HasAny));
+						var hasAny = baseMethod.MakeGenericMethod(fieldType);
+						// It's a static method so no "this" is needed. The two field values are also already on the stack.
+						generator.Emit(OpCodes.Call, hasAny);
+					}
+					else if (fieldType == typeof(string))
+					{
+						if (_strContains == null)
+						{
+							_strContains = typeof(string).GetMethod("Contains", BindingFlags.Public | BindingFlags.Instance, null, new Type[] { typeof(string) }, null);
+						}
+
+						generator.Emit(OpCodes.Call, _strContains);
+					}
+					else
+					{
+						throw new PublicException("Contains can only be used on strings and array-like fields.", "filter_invalid");
+					}
+				}
+				else if (Operation == "containsAny")
 				{
 					if (isEnumerable)
 					{
