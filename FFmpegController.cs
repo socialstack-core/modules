@@ -4,7 +4,6 @@ using System.Text;
 using System.Threading.Tasks;
 using Api.Contexts;
 using Api.Permissions;
-using Api.Results;
 using Api.Uploader;
 using Microsoft.AspNetCore.Mvc;
 
