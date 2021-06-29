@@ -63,7 +63,7 @@ namespace Api.Pgp
             }
 			
 			var stream = new MemoryStream(Encoding.UTF8.GetBytes(key));
-			return ReadPublicKey(stream);
+			return LoadKey(stream);
 		}
 		
 		/// <summary>
