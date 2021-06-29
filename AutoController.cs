@@ -2,7 +2,6 @@ using Api.Contexts;
 using Api.Database;
 using Api.Eventing;
 using Api.Permissions;
-using Api.Results;
 using Api.Startup;
 using Microsoft.AspNetCore.Mvc;
 using Newtonsoft.Json.Linq;
