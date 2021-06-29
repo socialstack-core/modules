@@ -6,6 +6,7 @@ using Api.SocketServerLibrary;
 using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
+using System.Linq;
 
 namespace Api.Startup
 {
@@ -181,6 +182,30 @@ namespace Api.Startup
 		/// Gets a list of source IDs by target ID.
 		/// </summary>
 		/// <param name="context"></param>
+		/// <param name="id"></param>
+		/// <param name="collector"></param>
+		/// <returns></returns>
+		public async ValueTask CollectByTargetEquals(Context context, IDCollector<SRC_ID> collector, TARG_ID id)
+		{
+			await Where(targetIdFieldEquals)
+			.Bind(id)
+			.ListAll(context, (Context ctx, Mapping<SRC_ID, TARG_ID> entity, int index, object src, object rSrc) =>
+			{
+				// Passing in onResult prevents a delegate frame allocation.
+				var _col = (IDCollector<SRC_ID>)src;
+				_col.Collect(entity);
+				return new ValueTask();
+			},
+				collector
+			);
+
+			collector.Eliminate(1, true);
+		}
+
+		/// <summary>
+		/// Gets a list of source IDs by target ID.
+		/// </summary>
+		/// <param name="context"></param>
 		/// <param name="idSet"></param>
 		/// <param name="collector"></param>
 		/// <returns></returns>
@@ -197,6 +222,54 @@ namespace Api.Startup
 			},
 				collector
 			);
+		}
+
+		/// <summary>
+		/// Gets a list of source IDs by target ID and eliminates values that do not have the number of entries to match idSet count
+		/// </summary>
+		/// <param name="context"></param>
+		/// <param name="collector"></param>
+		/// <param name="idSet"></param>
+		/// <returns></returns>
+		public async ValueTask CollectByTargetSetContains(Context context, IDCollector<SRC_ID> collector, IEnumerable<TARG_ID> idSet)
+        {
+			await Where(targetIdFieldNameEqSet)
+			.Bind(idSet)
+			.ListAll(context, (Context ctx, Mapping<SRC_ID, TARG_ID> entity, int index, object src, object rSrc) =>
+			{
+				// Passing in onResult prevents a delegate frame allocation.
+				var _col = (IDCollector<SRC_ID>)src;
+				_col.AddSorted(entity.SourceId);
+				return new ValueTask();
+			},
+				collector
+			);
+
+			collector.Eliminate(idSet.Count());
+		}
+
+		/// <summary>
+		/// Gets a list of source IDs by target ID and eliminates values that do not have the number of entries to match idSet count
+		/// </summary>
+		/// <param name="context"></param>
+		/// <param name="collector"></param>
+		/// <param name="idSet"></param>
+		/// <returns></returns>
+		public async ValueTask CollectByTargetSetEquals(Context context, IDCollector<SRC_ID> collector, IEnumerable<TARG_ID> idSet)
+		{
+			await Where(targetIdFieldNameEqSet)
+			.Bind(idSet)
+			.ListAll(context, (Context ctx, Mapping<SRC_ID, TARG_ID> entity, int index, object src, object rSrc) =>
+			{
+				// Passing in onResult prevents a delegate frame allocation.
+				var _col = (IDCollector<SRC_ID>)src;
+				_col.AddSorted(entity.SourceId);
+				return new ValueTask();
+			},
+				collector
+			);
+
+			collector.Eliminate(idSet.Count(), true);
 		}
 
 		/// <summary>
