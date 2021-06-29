@@ -287,7 +287,7 @@ namespace Api.Startup
 					// Let's put our value here and we are done!
 					currentBlock.Entries[i] = currentValue;
 
-					FullBlockCount++;
+					CurrentFill++;
 
 					// And done!
 					return true;
@@ -330,10 +330,110 @@ namespace Api.Startup
 		/// minimum repetiions.
 		/// </summary>
 		/// <param name="minRepetitions"></param>
-		public void Eliminate(int minRepetitions)
+		/// <param name="exact"></param> this value is true if minRepetitions must match the count exactly.
+		public void Eliminate(int minRepetitions, bool exact = false)
+		{
+			if (First == null)
+			{
+				return;
+			}
+
+			T currentValue = new T();
+			var currentValueCount = 0;
+			var currentBlock = First;
+
+			var newBlock = new IDBlock<T>();
+
+			while (currentBlock != null)
+			{
+				// Let's iterate the current array
+				for (int i = 0; i < currentBlock.Entries.Length; i++)
+				{
+					var curEntry = currentBlock.Entries[i];
+
+					// Is our value 0? if so, we are at the end of the array
+					if (curEntry.Equals(0))
+					{
+						// We hit the end
+						break;
+					}
+
+					//  Is our curEntry the same as the currentValue?
+					if (curEntry.Equals(currentValue))
+					{
+						// increment the count.
+						currentValueCount++;
+						continue;
+					}
+
+					// Its not, which means we need to handle our current value and set the new one.
+					// Did we have enough of that value for it to qualify?
+					if ((!exact && currentValueCount >= minRepetitions) || (exact && currentValueCount == minRepetitions))
+					{
+						// Sort it into our newBlock
+						Sort(newBlock, currentValue);
+					}
+
+					// We took care of that value, move onto our new one
+					currentValueCount = 1;
+					currentValue = curEntry;
+				}
+
+				// We iterated that entire bit, is there a next block?
+				currentBlock = currentBlock.Next;
+
+				// if the next is null, let's real quickly handle its last element
+				if(currentBlock == null)
+                {
+					if ((!exact && currentValueCount >= minRepetitions) || (exact && currentValueCount == minRepetitions))
+					{
+						// Sort it into our newBlock
+						Sort(newBlock, currentValue);
+					}
+				}
+			}
+
+			// Now that we have constructed our new block, let's release the old.
+			Release();
+
+			// Set First to our new Block
+			First = newBlock;
+
+			// Update count
+			UpdateCounts(First);
+		}
+
+		/// <summary>
+		/// Resets the current fill and full block count
+		/// </summary>
+		public void UpdateCounts(IDBlock<T> currentBlock)
         {
-			var eliminate = "test";
-        }
+			
+			for (var i = 0; i < currentBlock.Entries.Length; i++)
+			{
+				if (currentBlock.Entries[i].Equals(0))
+				{
+					// Set the current fill.
+					CurrentFill = i;
+
+					// We hit the end. - no need to continue - set the current
+					return;
+				}
+			}
+			FullBlockCount++;
+
+			// Is there a next block?
+			if(currentBlock != null)
+            {
+				// Yep, let's continue updating counts on the next block
+				UpdateCounts(currentBlock.Next);
+				return;
+            }
+			else
+            {
+				CurrentFill = 64;
+            }
+		}
 
 		/// <summary>
 		/// Used to debug the current state of the IDCollector
@@ -349,7 +449,11 @@ namespace Api.Startup
 
 			// Let's start going through our entries
 			PrintBlock(First);
-        }
+			Console.Write("Full Block Count: ");
+			Console.WriteLine(FullBlockCount);
+			Console.Write("Current Fill: ");
+			Console.WriteLine(CurrentFill);
+		}
 
 		public void PrintBlock(IDBlock<T> currentBlock)
         {
