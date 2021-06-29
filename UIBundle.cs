@@ -573,6 +573,29 @@ namespace Api.CanvasRenderer
 				modulePath = modulePath.Replace("/ThirdParty/", "/");
 			}
 
+			if (modulePath.IndexOf(".Bundle/") != -1)
+			{
+				// Remove *.Bundle/ and build module path that it represents:
+				var pieces = modulePath.Split('/');
+				var newPath = "";
+				for (var i = 0; i < pieces.Length; i++)
+				{
+					if (pieces[i].EndsWith(".Bundle"))
+					{
+						continue;
+					}
+
+					if (newPath != "")
+					{
+						newPath += "/";
+					}
+
+					newPath += pieces[i];
+				}
+
+				modulePath = newPath;
+			}
+
 			// Use shortform module name if the last directory of the modulePath matches the filename.
 			if (!modulePath.EndsWith("/" + fileNameNoType))
 			{
