@@ -98,7 +98,7 @@ class Canvas extends React.Component {
 			}
 			
 			return <NodeType ref={node.dom} {...node.props}>{childContent}</NodeType>;
-		}else{
+		}else if(NodeType){
 			// Custom component
 			var props = {...node.props};
 			
@@ -125,6 +125,8 @@ class Canvas extends React.Component {
 				// Either wrap it in a span (such that it only has exactly 1 DOM node, always), unless the module tells us it has one node anyway:
 				return <NodeType {...props} />;
 			}
+		}else if(node.content){
+			return this.renderNode(node.content);
 		}
 	}
 	
