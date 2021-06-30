@@ -18,6 +18,11 @@ namespace Api.Configuration
 	public partial class Config
 	{
 		/// <summary>
+		/// The config ID, if applicable.
+		/// </summary>
+		public uint Id;
+		
+		/// <summary>
 		/// Triggered when this config object is updated.
 		/// </summary>
 		public event Func<ValueTask> OnChange;
@@ -35,5 +40,16 @@ namespace Api.Configuration
 			await OnChange();
 		}
 	}
-	
+
+	/// <summary>
+	/// A set of configs.
+	/// </summary>
+	public partial class ConfigSet<T> : Config
+	{
+		/// <summary>
+		/// The underlying list of configs.
+		/// </summary>
+		public List<T> Configurations;
+	}
+
 }

@@ -135,7 +135,12 @@ namespace Api.Configuration
 		/// <param name="config"></param>
 		private async ValueTask LoadConfig(Configuration config)
 		{
-			if (config != null && config.ConfigObject != null)
+			if (config == null)
+			{
+				return;
+			}
+				
+			if (config.ConfigObject != null)
 			{
 				// Deserialise it:
 				var type = config.ConfigObject.GetType();
@@ -164,6 +169,28 @@ namespace Api.Configuration
 					await ((Config)config.ConfigObject).Changed();
 				}
 			}
+
+			if (config.SetObject is Config)
+			{
+				await ((Config)config.SetObject).Changed();
+			}
+		}
+
+		/// <summary>
+		/// Gets config from the cache via the given key.
+		/// </summary>
+		/// <param name="key"></param>
+		/// <returns></returns>
+		public IndexEnum<Configuration> AllFromCache(string key)
+		{
+			var cache = GetCacheForLocale(1);
+			if (cache == null)
+			{
+				return default(IndexEnum<Configuration>);
+			}
+
+			var keyIndex = cache.GetIndex<string>("Key") as NonUniqueIndex<Configuration, string>;
+			return keyIndex.GetEnumeratorFor(key);
 		}
 
 		/// <summary>
@@ -173,14 +200,7 @@ namespace Api.Configuration
 		/// <returns></returns>
 		public Configuration FromCache(string key)
 		{
-			var cache = GetCacheForLocale(1);
-			if (cache == null)
-			{
-				return null;
-			}
-
-			var keyIndex = cache.GetIndex<string>("Key") as NonUniqueIndex<Configuration, string>;
-			var loop = keyIndex.GetEnumeratorFor(key);
+			var loop = AllFromCache(key);
 			Configuration latest = null;
 			while (loop.HasMore())
 			{

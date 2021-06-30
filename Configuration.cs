@@ -39,6 +39,11 @@ namespace Api.Configuration
 		/// </summary>
 		[JsonIgnore]
 		public object ConfigObject { get; set; }
+		/// <summary>
+		/// Retains the parent set of the parsed version of ConfigJson. This is directly the same object as config that have been loaded via AutoService.GetAllConfig.
+		/// </summary>
+		[JsonIgnore]
+		public object SetObject { get; set; }
 	}
 
 }
