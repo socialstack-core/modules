@@ -126,13 +126,31 @@ namespace Api.Themes
 		public string OutputCssVariables(ThemeConfig config)
 		{
 			var builder = new StringBuilder();
-			builder.Append("*[data-theme=\"");
-			builder.Append(config.Id);
-			builder.Append("\"]{");
+
+			if (config.DarkModeOfThemeId != 0)
+			{
+				builder.Append("@media(prefers-color-scheme:dark){*[data-theme=\"");
+				builder.Append(config.DarkModeOfThemeId);
+				builder.Append("\"]{");
+			}
+			else
+			{
+				builder.Append("*[data-theme=\"");
+				builder.Append(config.Id);
+				builder.Append("\"]{");
+			}
 
 			OutputObject(builder, null, config);
 
-			builder.Append('}');
+			if (config.DarkModeOfThemeId != 0)
+			{
+				builder.Append("}}");
+			}
+			else
+			{
+				builder.Append('}');
+			}
+
 			var result = builder.ToString();
 			return result;
 		}

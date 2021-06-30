@@ -12,19 +12,26 @@ namespace Api.Themes
 	public partial class ThemeConfig : Config
 	{
 		/// <summary>
-		/// Primary palette
+		/// Set this if the current theme config is the dark mode variant of another theme config with the given ID.
+		/// For example, let's say theme #1 is "Admin (light)" and theme #2 is "Admin (dark)"
+		/// Theme #2 would have this field set to 1, indicating that it is the dark mode version of theme #1.
+		/// </summary>
+		public uint DarkModeOfThemeId { get; set; }
+
+		/// <summary>
+		/// Default palette, describing e.g. the main text/ bg colour of a component.
+		/// </summary>
+		public ThemePalette Default { get; set; }
+
+		/// <summary>
+		/// Primary palette, typically describing things that should stand out the most to the user.
 		/// </summary>
 		public ThemePalette Primary { get; set; }
 
 		/// <summary>
-		/// Secondary palette
+		/// Secondary palette, typically describing things that are interactive but not as important as the primary ones.
 		/// </summary>
 		public ThemePalette Secondary { get; set; }
-
-		/// <summary>
-		/// Tertiary palette
-		/// </summary>
-		public ThemePalette Tertiary { get; set; }
 
 		/// <summary>
 		/// Success palette
