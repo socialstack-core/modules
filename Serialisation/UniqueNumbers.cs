@@ -170,6 +170,16 @@ namespace Api.Startup
 		}
 
 		/// <summary>
+		/// Used to get the inverse of current value on stack
+		/// </summary>
+		/// <param name="c"></param>
+		/// <returns></returns>
+		public static bool NotStackValue(bool c)
+        {
+			return !c;
+        }
+
+		/// <summary>
 		/// Gets a non-alloc enumeration tracker. Only use this if 
 		/// </summary>
 		/// <returns></returns>
@@ -275,19 +285,29 @@ namespace Api.Startup
 		/// <summary>
 		/// Sorts the value into the set.
 		/// </summary>
-		public bool Sort(IDBlock<T> currentBlock, T currentValue, int currentIndex = 0)
-        {
+		public bool Sort(IDBlock<T> currentBlock, T currentValue, int currentIndex = 0, bool notMainBlock = false, int fillCount = 0) // pass notMainBlock = true if you are not sorting into the main IDBLock list
+		{
 			var sorted = false;
 			// Let's iterate over the values of our currentBlock
 			for(int i = currentIndex; i < currentBlock.Entries.Length; i++)
             {
+				var curEntryValue = currentBlock.Entries[i];
 				// If we hit a 0 value, we are on the very last value in the entry and the linked list.
-				if(currentBlock.Entries[i].Equals(0))
+				var curFill = CurrentFill;
+				if(notMainBlock)
+                {
+					curFill = fillCount;
+                }
+
+				if (currentBlock.Next == null && i == curFill)
                 {
 					// Let's put our value here and we are done!
 					currentBlock.Entries[i] = currentValue;
 
-					CurrentFill++;
+					if(!notMainBlock) // can we increment?
+                    {
+						CurrentFill++;
+					}
 
 					// And done!
 					return true;
@@ -296,7 +316,7 @@ namespace Api.Startup
 				// Is our current value greater or lesser?
 				if (currentValue.CompareTo(currentBlock.Entries[i]) < 0)
 				{
-					// We need to replace this value and move on up with the new value. 
+					// Its lesser - We need to replace this value and move on up with the new value. 
 					var newValue = currentBlock.Entries[i];
 					currentBlock.Entries[i] = currentValue;
 
@@ -314,8 +334,11 @@ namespace Api.Startup
 					currentBlock.Next = IDBlockPool<T>.Get();
 
 					Last = currentBlock.Next;
-					CurrentFill = 0;
-					FullBlockCount++;
+					if (!notMainBlock) // can we increment?
+					{
+						CurrentFill = 0;
+						FullBlockCount++;
+					}
 				}
 
 				sorted = Sort(currentBlock.Next, currentValue, 0);
@@ -341,10 +364,13 @@ namespace Api.Startup
 			T currentValue = new T();
 			var currentValueCount = 0;
 			var currentBlock = First;
+			var valueFillCount = 0;
+			bool initialValueSet = false;
+			bool fullyIterated = false;
 
 			var newBlock = new IDBlock<T>();
 
-			while (currentBlock != null)
+			while (!fullyIterated)
 			{
 				// Let's iterate the current array
 				for (int i = 0; i < currentBlock.Entries.Length; i++)
@@ -352,9 +378,16 @@ namespace Api.Startup
 					var curEntry = currentBlock.Entries[i];
 
 					// Is our value 0? if so, we are at the end of the array
-					if (curEntry.Equals(0))
+					if (currentBlock.Next == null && i == CurrentFill)
 					{
-						// We hit the end
+
+						if ((!exact && currentValueCount >= minRepetitions && initialValueSet) || (exact && currentValueCount == minRepetitions && initialValueSet))
+						{
+							// Sort it into our newBlock
+							Sort(newBlock, currentValue, 0, true, valueFillCount);
+							valueFillCount++;
+						}
+						fullyIterated = true;
 						break;
 					}
 
@@ -368,28 +401,17 @@ namespace Api.Startup
 
 					// Its not, which means we need to handle our current value and set the new one.
 					// Did we have enough of that value for it to qualify?
-					if ((!exact && currentValueCount >= minRepetitions) || (exact && currentValueCount == minRepetitions))
+					if ((!exact && currentValueCount >= minRepetitions && initialValueSet) || (exact && currentValueCount == minRepetitions && initialValueSet))
 					{
 						// Sort it into our newBlock
-						Sort(newBlock, currentValue);
+						Sort(newBlock, currentValue, 0, true);
+						valueFillCount++;
 					}
 
 					// We took care of that value, move onto our new one
 					currentValueCount = 1;
 					currentValue = curEntry;
-				}
-
-				// We iterated that entire bit, is there a next block?
-				currentBlock = currentBlock.Next;
-
-				// if the next is null, let's real quickly handle its last element
-				if(currentBlock == null)
-                {
-					if ((!exact && currentValueCount >= minRepetitions) || (exact && currentValueCount == minRepetitions))
-					{
-						// Sort it into our newBlock
-						Sort(newBlock, currentValue);
-					}
+					initialValueSet = true;
 				}
 			}
 
@@ -400,39 +422,8 @@ namespace Api.Startup
 			First = newBlock;
 
 			// Update count
-			UpdateCounts(First);
-		}
-
-		/// <summary>
-		/// Resets the current fill and full block count
-		/// </summary>
-		public void UpdateCounts(IDBlock<T> currentBlock)
-        {
-			
-			for (var i = 0; i < currentBlock.Entries.Length; i++)
-			{
-				if (currentBlock.Entries[i].Equals(0))
-				{
-					// Set the current fill.
-					CurrentFill = i;
-
-					// We hit the end. - no need to continue - set the current
-					return;
-				}
-			}
-			FullBlockCount++;
-
-			// Is there a next block?
-			if(currentBlock != null)
-            {
-				// Yep, let's continue updating counts on the next block
-				UpdateCounts(currentBlock.Next);
-				return;
-            }
-			else
-            {
-				CurrentFill = 64;
-            }
+			CurrentFill = valueFillCount % 64;
+			FullBlockCount = valueFillCount / 64;
 		}
 
 		/// <summary>

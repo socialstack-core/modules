@@ -217,11 +217,13 @@ namespace Api.Startup
 			{
 				// Passing in onResult prevents a delegate frame allocation.
 				var _col = (IDCollector<SRC_ID>)src;
-				_col.Collect(entity);
+				_col.AddSorted(entity.SourceId);
 				return new ValueTask();
 			},
 				collector
 			);
+
+			collector.Eliminate(1); // Only needs to appear once so let's eliminate the repeats. 
 		}
 
 		/// <summary>
