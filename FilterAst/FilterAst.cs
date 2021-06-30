@@ -737,7 +737,7 @@ namespace Api.Permissions{
 			
 			var isAnArray = EmitReadValue(CollectMethod, node, idType, false);
 
-			if (Operation == "containsAny")
+			if (Operation == "containsany")
 			{
 				if (isAnArray)
 				{
@@ -758,27 +758,7 @@ namespace Api.Permissions{
 					CollectMethod.Emit(OpCodes.Callvirt, singleValueMethod);
 				}
 			}
-			else if (Operation == "contains")
-			{
-				if (isAnArray)
-				{
-					var iEnumMethod = typeof(MappingService<,,,>)
-						.MakeGenericType(typeof(T), targetType, typeof(ID), idType)
-						.GetMethod("CollectByTargetSetContains");
-
-					CollectMethod.Emit(OpCodes.Callvirt, iEnumMethod);
-				}
-				else
-				{
-					// CollectByTarget(Context context, IDCollector<SRC_ID> collector, TARG_ID id)
-					var singleValueMethod = typeof(MappingService<,,,>)
-						.MakeGenericType(typeof(T), targetType, typeof(ID), idType)
-						.GetMethod("CollectByTarget");
-
-					CollectMethod.Emit(OpCodes.Callvirt, singleValueMethod);
-				}
-			}
-			else if (Operation == "containsAll" || Operation == "containsNone")
+			else if (Operation == "contains" || Operation == "containsall" || Operation == "containsnone")
 			{
 				if (isAnArray)
 				{
@@ -1867,9 +1847,11 @@ namespace Api.Permissions{
 				// collector.MatchAny(ID) => bool on stack
 				generator.Emit(OpCodes.Callvirt, matchAny);
 
-				if(Operation == "containsNone" || Operation == "!=")
+				if(Operation == "containsnone" || Operation == "!=")
                 {
-					generator.Emit(OpCodes.Not);
+					var notStackValue = typeof(IDCollector<ID>).GetMethod(nameof(IDCollector<ID>.NotStackValue));
+
+					generator.Emit(OpCodes.Call, notStackValue);
 				}
 			}
 			else
