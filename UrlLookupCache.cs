@@ -229,7 +229,7 @@ namespace Api.Pages
 
 			if (url.Length != 0)
 			{
-				var parts = url.Split('/');
+				var parts = url.ToLower().Split('/');
 
 				for (var i = 0; i < parts.Length; i++)
 				{
@@ -329,7 +329,7 @@ namespace Api.Pages
 		/// <summary>
 		/// The child nodes.
 		/// </summary>
-		public Dictionary<string, UrlLookupNode> Children = new Dictionary<string, UrlLookupNode>();
+		public Dictionary<string, UrlLookupNode> Children = new Dictionary<string, UrlLookupNode>(StringComparer.OrdinalIgnoreCase);
 
 	}
 
