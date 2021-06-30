@@ -236,12 +236,14 @@ namespace Api.Contexts
 					_user = null;
 					_userId = 0;
 					_roleId = 6;
+					_role = null;
 					return;
 				}
 
 				_user = value;
 				_userId = value.Id;
 				_roleId = value.Role;
+				_role = null;
 			}
 		}
 
