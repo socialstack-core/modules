@@ -1,15 +1,15 @@
 using Org.BouncyCastle.Crypto.Parameters;
 using System;
 using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
+using Api.Configuration;
+
 
 namespace Api.Signatures
 {
 	/// <summary>
 	/// The appsettings.json config for the sig service. Usually used for prod/ stage.
 	/// </summary>
-	public class SignatureServiceConfig
+	public class SignatureServiceConfig : Config
 	{
 		/// <summary>
 		/// Private key (base 64).
