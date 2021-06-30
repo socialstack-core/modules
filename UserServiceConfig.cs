@@ -5,7 +5,7 @@ namespace Api.Users
     /// <summary>
     /// Configurations used by the User Service.
     /// </summary>
-    public class UserServiceConfig
+    public class UserServiceConfig : Config
     {
         /// <summary>
         /// Determines if user emails need to be unique.
