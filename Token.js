@@ -2,7 +2,7 @@ import Content from 'UI/Content';
 import { useSession, useRouter } from 'UI/Session';
 import { useContent } from 'UI/Content';
 
-var modes = {'content': 1, 'session': 1, 'url': 1, 'customdata': 1, 'primary':1};
+var modes = {'content': 1, 'session': 1, 'url': 1, 'customdata': 1, 'primary':1, 'theme':1};
 
 export function TokenResolver(props){
 	return props.children(useTokens(props.value));
@@ -37,6 +37,8 @@ export function resolveValue(mode, fields, session, localContent, pageState){
 		}
 		var index = pageState.tokenNames.indexOf(fields.join('.'));
 		return (index == null || index == -1) ? '' : pageState.tokens[index];
+	}else if(mode == "theme"){
+		return 'var(--' + fields.join('-') + ')';
 	}else if(mode == "customdata" || mode == "primary"){
 		// Used by emails mostly. Passes through via primary object.
 		if(!pageState || !pageState.po){
