@@ -1,8 +1,4 @@
-using System;
-using System.Collections;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
+using Api.Configuration;
 
 
 namespace Api.ContentSync
@@ -10,7 +6,7 @@ namespace Api.ContentSync
 	/// <summary>
 	/// The appsettings.json config block for push notification config.
 	/// </summary>
-    public class ContentSyncServiceConfig
+    public class ContentSyncServiceConfig : Config
     {
 		/// <summary>
 		/// The port number for csync service to use.
