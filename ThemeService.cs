@@ -2,6 +2,11 @@ using System.Text;
 using System.Drawing;
 using System;
 using System.Linq;
+using Api.Configuration;
+using Api.Eventing;
+using Api.Contexts;
+using System.Threading.Tasks;
+using System.Collections.Generic;
 
 namespace Api.Themes
 {
@@ -17,26 +22,22 @@ namespace Api.Themes
 		/// </summary>
 		public ThemeService()
 		{
+			_current = GetAllConfig<ThemeConfig>();
 		}
 
 		/// <summary>
-		/// Current config. Whenever the config is saved, this object ref remains the same (it never goes stale).
-		/// </summary>
-		private ThemeConfig _current;
-
-		/// <summary>
-		/// Gets the theme config.
+		/// Gets all the available theme config.
 		/// </summary>
 		/// <returns></returns>
-		public ThemeConfig GetConfig()
+		public ConfigSet<ThemeConfig> GetAllConfig()
 		{
-			if (_current == null)
-			{
-				_current = GetConfig<ThemeConfig>();
-			}
-
 			return _current;
 		}
+
+		/// <summary>
+		/// Current config.
+		/// </summary>
+		private ConfigSet<ThemeConfig> _current;
 
 		private void OutputObject(StringBuilder builder, string prefix, object varSet)
 		{
@@ -95,6 +96,29 @@ namespace Api.Themes
 		}
 
 		/// <summary>
+		/// Builds the given set of configs as a collection of css variables.
+		/// </summary>
+		/// <param name="set"></param>
+		/// <returns></returns>
+		public string OutputCssVariables(ConfigSet<ThemeConfig> set)
+		{
+			var builder = new StringBuilder();
+
+			foreach (var config in set.Configurations)
+			{
+				builder.Append("*[data-theme=\"");
+				builder.Append(config.Id);
+				builder.Append("\"]{");
+
+				OutputObject(builder, null, config);
+
+				builder.Append('}');
+			}
+			var result = builder.ToString();
+			return result;
+		}
+
+		/// <summary>
 		/// Builds the given config as a collection of css variables.
 		/// </summary>
 		/// <param name="config"></param>
@@ -102,8 +126,10 @@ namespace Api.Themes
 		public string OutputCssVariables(ThemeConfig config)
 		{
 			var builder = new StringBuilder();
-			builder.Append("*{");
-			
+			builder.Append("*[data-theme=\"");
+			builder.Append(config.Id);
+			builder.Append("\"]{");
+
 			OutputObject(builder, null, config);
 
 			builder.Append('}');

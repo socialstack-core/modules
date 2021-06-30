@@ -37,7 +37,7 @@ namespace Api.CanvasRenderer
 		/// </summary>
 		public FrontendCodeService(LocaleService locales, TranslationService translations, Themes.ThemeService themeService)
 		{
-			var themeConfig = themeService.GetConfig();
+			var themeConfig = themeService.GetAllConfig();
 			var cssVariables = themeService.OutputCssVariables(themeConfig);
 
 			themeConfig.OnChange += async () => {
