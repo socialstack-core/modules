@@ -53,7 +53,17 @@ namespace Api.Themes
 				var value = property.GetValue(varSet);
 				Color fgColor, hoverColor, hoverBorderColor, activeColor, activeBorderColor, focusShadowColor;
 
-				if (property.PropertyType == typeof(string) && value != null)
+				if (lcName == "customcss")
+				{
+					// Output its contents as is:
+					if (value == null)
+					{
+						continue;
+					}
+
+					builder.Append((string)value);
+
+				}else if (property.PropertyType == typeof(string) && value != null)
 				{
 					var str = (string)value;
 

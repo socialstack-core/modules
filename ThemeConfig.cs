@@ -52,6 +52,12 @@ namespace Api.Themes
 		/// Danger palette
 		/// </summary>
 		public ThemePalette Danger { get; set; }
+
+		/// <summary>
+		/// Escape hatch custom CSS to apply when this theme is active. 
+		/// You should always aim to keep this CSS minimal and generic - i.e. don't target specific components with this.
+		/// </summary>
+		public string CustomCss { get; set; }
 	}
 
 	/// <summary>
