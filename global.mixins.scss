@@ -1,0 +1,192 @@
+// outputs the given property with both a fallback automatic value (generated from a background colour),
+// optionally overridden with a manual value (specified in config)
+@mixin cssvar-with-backup($property, $prefix, $name) {
+    $autoValue: #{$prefix}-auto-#{$name};
+    $manualValue: #{$prefix}-#{$name};
+
+    @if ($property == "box-shadow") {
+        #{$property}: 0 0 0 .25rem var($autoValue);
+        #{$property}: 0 0 0 .25rem var($manualValue);
+    } @else {
+        #{$property}: var($manualValue, var($autoValue));
+    }
+
+}
+
+// generates overriding styles for the given button variant (e.g. btn-primary)
+// updated styles will use pre-existing CSS theme vars injected into the page
+@mixin themed-button-variant($variant) {
+    $prefix: --#{$variant};
+
+    // default state
+    $backgroundColor: #{$prefix}-background;
+    $borderColor: #{$prefix}-border;
+    $color: #{$prefix}-color;
+
+    background-color: var($backgroundColor);
+    //border-color: var($borderColor);
+    //color: var($color);
+    @include cssvar-with-backup(border-color, $prefix, border);
+    @include cssvar-with-backup(color, $prefix, color);
+
+    // hover state
+    //$hoverBackgroundColor: #{$prefix}-hover-background;
+    //$hoverBorderColor: #{$prefix}-hover-border;
+    //$hoverColor: #{$prefix}-hover-color;
+
+    &:hover {
+        @include cssvar-with-backup(background-color, $prefix, hover-background);
+        @include cssvar-with-backup(border-color, $prefix, hover-border);
+        @include cssvar-with-backup(color, $prefix, hover-color);
+        //background-color: var($hoverBackgroundColor);
+        //border-color: var($hoverBorderColor);
+        //color: var($hoverColor, $color);
+    }
+
+    // focus state
+    //$focusBackgroundColor: #{$prefix}-focus-background;
+    //$focusBorderColor: #{$prefix}-focus-border;
+    //$focusColor: #{$prefix}-focus-color;
+    //$focusBoxShadowColor: #{$prefix}-focus-shadow;
+            
+    .btn-check:focus + &,
+    &:focus {
+        @include cssvar-with-backup(background-color, $prefix, focus-background);
+        @include cssvar-with-backup(border-color, $prefix, focus-border);
+        @include cssvar-with-backup(color, $prefix, focus-color);
+        @include cssvar-with-backup(box-shadow, $prefix, focus-shadow);
+        //background-color: var($focusBackgroundColor);
+        //border-color: var($focusBorderColor);
+        //color: var($focusColor, $color);
+        //box-shadow: 0 0 0 .25rem var($focusBoxShadowColor);
+    }
+            
+    // active state
+    //$activeBackgroundColor: #{$prefix}-active-background;
+    //$activeBorderColor: #{$prefix}-active-border;
+    //$activeColor: #{$prefix}-active-color;
+    
+    .btn-check:checked + &,
+    .btn-check:active + &,
+    &:active,
+    &.active,
+    .show > &.dropdown-toggle {
+        @include cssvar-with-backup(background-color, $prefix, active-background);
+        @include cssvar-with-backup(border-color, $prefix, active-border);
+        @include cssvar-with-backup(color, $prefix, active-color);
+        //background-color: var($activeBackgroundColor);
+        //border-color: var($activeBorderColor);
+        //color: var($activeColor, $color);
+                
+        &:focus {
+            //box-shadow: 0 0 0 .25rem var($focusBoxShadowColor);
+            @include cssvar-with-backup(box-shadow, $prefix, active-shadow);
+        }
+
+    }
+           
+    // disabled state
+    //$disabledBackgroundColor: #{$prefix}-disabled-background;
+    //$disabledBorderColor: #{$prefix}-disabled-border;
+    //$disabledColor: #{$prefix}-disabled-color;
+
+    &:disabled,
+    &.disabled {
+        //background-color: var($disabledBackgroundColor);
+        //border-color: var($disabledBorderColor);
+        //color: var($disabledColor, $color);
+        @include cssvar-with-backup(background-color, $prefix, disabled-background);
+        @include cssvar-with-backup(border-color, $prefix, disabled-border);
+        @include cssvar-with-backup(color, $prefix, disabled-color);
+    }
+
+}
+
+// generates overriding styles for the given outline button variant (e.g. btn-outline-primary)
+// updated styles will use pre-existing CSS theme vars injected into the page
+@mixin themed-button-outline-variant($variant) {
+    $prefix: --#{$variant};
+
+    // default state
+    /*
+    $borderColor: #{$prefix}-background;
+    $color: #{$prefix}-background;
+    border-color: var($borderColor);
+    color: var($color);
+    */
+    @include cssvar-with-backup(border-color, $prefix, border);
+    @include cssvar-with-backup(color, $prefix, color);
+
+    // hover state
+    /*
+    $hoverBackgroundColor: #{$prefix}-background;
+    $hoverBorderColor: #{$prefix}-background;
+    $hoverColor: #{$prefix}-color;
+    $focusBoxShadowColor: #{$prefix}-focus-shadow;
+    */
+
+    &:hover {
+        //background-color: var($hoverBackgroundColor);
+        //border-color: var($hoverBorderColor);
+        //color: var($hoverColor);
+        @include cssvar-with-backup(background-color, $prefix, hover-background);
+        @include cssvar-with-backup(border-color, $prefix, hover-border);
+        @include cssvar-with-backup(color, $prefix, hover-color);
+    }
+    
+    .btn-check:focus + &,
+    &:focus {
+        //box-shadow: 0 0 0 .25rem $focusBoxShadowColor;
+        @include cssvar-with-backup(box-shadow, $prefix, hover-shadow);
+    }
+    
+    // active state
+    //$activeBackgroundColor: #{$prefix}-background;
+    //$activeBorderColor: #{$prefix}-background;
+    //$activeColor: #{$prefix}-color;
+
+    .btn-check:checked + &,
+    .btn-check:active + &,
+    &:active,
+    &.active,
+    &.dropdown-toggle.show {
+        //background-color: var($activeBackgroundColor);
+        //border-color: var($activeBorderColor);
+        //color: var($activeColor);
+        @include cssvar-with-backup(background-color, $prefix, active-background);
+        @include cssvar-with-backup(border-color, $prefix, active-border);
+        @include cssvar-with-backup(color, $prefix, active-color);
+
+        &:focus {
+            //box-shadow: 0 0 0 .25rem $focusBoxShadowColor;
+            @include cssvar-with-backup(box-shadow, $prefix, active-shadow);
+        }
+
+    }
+
+    // disabled state
+    //$disabledColor: #{$prefix}-background;
+
+    &:disabled,
+    &.disabled {
+        background-color: transparent;
+        //color: var($disabledColor);
+        @include cssvar-with-backup(color, $prefix, disabled-color);
+    }
+
+}
+
+// overrides btn / btn-sm / btn-lg styling
+// updated styles will use pre-existing CSS theme vars injected into the page
+@mixin themed-button-size($size) {
+    $prefix: --button-size-#{$size};
+    $paddingX: #{$prefix}-padding-x;
+    $paddingY: #{$prefix}-padding-y;
+    $fontSize: #{$prefix}-font-size;
+    $fontWeight: #{$prefix}-font-weight;
+    $borderRadius: #{$prefix}-border-radius;
+
+    padding: var($paddingY) var($paddingX);
+    font-size: calc(1rem * (var(#{$fontSize}) / #{$themeBaseFontSize}));
+    border-radius: var($borderRadius);
+}
