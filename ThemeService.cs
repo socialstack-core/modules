@@ -18,6 +18,21 @@ namespace Api.Themes
 	public class ThemeService : AutoService
 	{
 		/// <summary>
+		/// 
+		/// </summary>
+		public Dictionary<string, string> bootstrapVariants = new Dictionary<string, string>()
+		{
+			{ "primary",	"#0d6efd" }, 
+			{ "secondary",	"#6c757d" },
+			{ "success",	"#198754" },
+			{ "danger",		"#dc3545" },
+			{ "warning",	"#ffc107" },
+			{ "info",		"#0dcaf0" },
+			{ "light",		"#f8f9fa" },
+			{ "dark",		"#212529" }
+		};
+
+		/// <summary>
 		/// Instanced automatically.
 		/// </summary>
 		public ThemeService()
@@ -42,9 +57,6 @@ namespace Api.Themes
 		private void OutputObject(StringBuilder builder, string prefix, object varSet)
 		{
 			var properties = varSet.GetType().GetProperties();
-			string[] bootstrapVariants = { 
-				"primary", "secondary", "success", "info", "warning", "danger", "light", "dark"
-				};
 
 			foreach (var property in properties)
 			{
@@ -88,14 +100,36 @@ namespace Api.Themes
 					builder.Append(';');
 
 					// produce hover/active/focus supporting colours based on each Bootrap variant
-					if (bootstrapVariants.Contains(prefix) && lcName == "background") {
-						UpdateContrastVariant(value.ToString(), out fgColor, out hoverColor, out hoverBorderColor, out activeColor, out activeBorderColor, out focusShadow);
+					if (bootstrapVariants.ContainsKey(prefix) && lcName == "background") {
+						UpdateContrastVariant(str, out fgColor, out hoverColor, out hoverBorderColor, out activeColor, out activeBorderColor, out focusShadow);
+						AddGeneratedColor(ref builder, prefix, "auto-border", HexToColor(str));
 						AddGeneratedColor(ref builder, prefix, "auto-color", fgColor);
 						AddGeneratedColor(ref builder, prefix, "auto-hover-background", hoverColor);
 						AddGeneratedColor(ref builder, prefix, "auto-hover-border", hoverBorderColor);
+						AddGeneratedColor(ref builder, prefix, "auto-hover-color", GetContrastColor(hoverColor));
 						AddGeneratedColor(ref builder, prefix, "auto-active-background", activeColor);
 						AddGeneratedColor(ref builder, prefix, "auto-active-border", activeBorderColor);
+						AddGeneratedColor(ref builder, prefix, "auto-active-color", GetContrastColor(activeColor));
 						AddGeneratedString(ref builder, prefix, "auto-focus-shadow", focusShadow);
+					}
+
+					var prefixSegments = prefix.Split("-");
+
+					// ensure text contrast is sufficient for hover / active states
+					if (bootstrapVariants.ContainsKey(prefixSegments[0]) && prefixSegments.Length > 1 && lcName == "background") {
+
+						switch (prefixSegments[1])
+                        {
+							case "hover":
+								AddGeneratedColor(ref builder, prefix, "color", GetContrastColor(HexToColor(str)));
+								break;
+
+							case "active":
+								AddGeneratedColor(ref builder, prefix, "color", GetContrastColor(HexToColor(str)));
+								break;
+
+                        }
+
 					}
 				}
 				else if(value != null)
@@ -113,6 +147,8 @@ namespace Api.Themes
 		public string OutputCssVariables(ConfigSet<ThemeConfig> set)
 		{
 			var builder = new StringBuilder();
+
+			OutputCssDefaults(builder);
 
 			foreach (var config in set.Configurations)
 			{
@@ -136,6 +172,8 @@ namespace Api.Themes
 		public string OutputCssVariables(ThemeConfig config)
 		{
 			var builder = new StringBuilder();
+
+			OutputCssDefaults(builder);
 
 			// TODO:
 			// add support for high-contrast themes
@@ -171,6 +209,35 @@ namespace Api.Themes
 			var result = builder.ToString();
 			return result;
 		}
+
+		/// <summary>
+		/// 
+		/// </summary>
+		/// <param name="builder"></param>
+		public void OutputCssDefaults(StringBuilder builder)
+        {
+			builder.Append(":root {");
+
+			// ensure we have fallback defaults
+			foreach (KeyValuePair<string, string> variant in bootstrapVariants)
+			{
+				Color fgColor, hoverColor, hoverBorderColor, activeColor, activeBorderColor;
+				string focusShadow;
+
+				UpdateContrastVariant(variant.Value, out fgColor, out hoverColor, out hoverBorderColor, out activeColor, out activeBorderColor, out focusShadow);
+				AddGeneratedColor(ref builder, variant.Key, "auto-border", HexToColor(variant.Value));
+				AddGeneratedColor(ref builder, variant.Key, "auto-color", fgColor);
+				AddGeneratedColor(ref builder, variant.Key, "auto-hover-background", hoverColor);
+				AddGeneratedColor(ref builder, variant.Key, "auto-hover-border", hoverBorderColor);
+				AddGeneratedColor(ref builder, variant.Key, "auto-hover-color", GetContrastColor(hoverColor));
+				AddGeneratedColor(ref builder, variant.Key, "auto-active-background", activeColor);
+				AddGeneratedColor(ref builder, variant.Key, "auto-active-border", activeBorderColor);
+				AddGeneratedColor(ref builder, variant.Key, "auto-active-color", GetContrastColor(activeColor));
+				AddGeneratedString(ref builder, variant.Key, "auto-focus-shadow", focusShadow);
+			}
+
+			builder.Append('}');
+        }
 
 		/// <summary>
 		/// 
