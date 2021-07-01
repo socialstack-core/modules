@@ -319,12 +319,8 @@ namespace Api.Pages
 					.With("filterField", type.Name + "Id")
 					.With("create", childAdminPage.CreateButton)
 					.With("searchFields", childAdminPage.SearchFields)
-					.With("filterValue", new
-					{
-						name = typeName + ".id",
-						type = "urlToken"
-					})
-					.With("fields", childAdminPage.Fields ?? (new string[] { "id" }))
+                    .With("filterValue", "${primary.id}")
+                    .With("fields", childAdminPage.Fields ?? (new string[] { "id" }))
 				);
 			}
 
