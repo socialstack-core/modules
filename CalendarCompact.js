@@ -30,12 +30,24 @@ export default class CalendarCompact extends React.Component {
 				time: this.blockTime(spacing, i)
 			});
 		}
-		
+
+		// Let's get the current time in minutes after midnight
+		var now = new Date();
+		var nowMinutes = this.getMinutesSinceMidnight(now);
+		var nowRelativeToStart = nowMinutes - (start * 60);
+
+		if(nowRelativeToStart < 0){
+			nowRelativeToStart = 0;
+		}
+
+		var domNodeIndex = Math.floor(nowRelativeToStart / spacing);
+
 		this.state = {
 			heightMinutes: ( end - start ) * spacing,
 			startMinutes: start * spacing,
 			currentView: [],
-			spaces
+			spaces,
+			domNodeIndex
 		};
 		
 		// mobile is rendered as a single day (central column)
@@ -45,7 +57,12 @@ export default class CalendarCompact extends React.Component {
 			this.state.mobile = true;
 		}
 		
-		
+		this.calendarRef = React.createRef();
+	}
+
+	getMinutesSinceMidnight(d){
+		var e = new Date(d);
+		return (d - e.setHours(0,0,0,0)) / 1000 / 60;
 	}
 	
 	blockTime(spacing, blockId){
@@ -73,12 +90,6 @@ export default class CalendarCompact extends React.Component {
 	componentDidMount(){
 		this.load(0, this.props);
 	}
-	
-	/*
-	componentWillReceiveProps(props){
-		this.load(this.props):
-	}
-	*/
 	
 	dayStartUtc(offset, props){
 		// Local day start:
@@ -108,7 +119,6 @@ export default class CalendarCompact extends React.Component {
 	}
 
 	load(offset, props){
-
 		var { days } = props;
 		
 		if(!days){
@@ -145,8 +155,18 @@ export default class CalendarCompact extends React.Component {
 		if(props.date && props.date != this.props.date){
 			this.load(0, props);
 		}
+		
 	}
 	
+	componentDidUpdate(p){
+		var {domNodeIndex} = this.state;
+
+		if(this.calendarRef.current){
+			this.calendarRef.current.childNodes[domNodeIndex].scrollIntoView(true);
+			console.log(this.calendarRef.current.childNodes);
+		}
+	}
+
 	populateBetween(start, end, dayMeta){
 		var {dataHandlers} = this.props;
 
@@ -351,9 +371,9 @@ export default class CalendarCompact extends React.Component {
 	}
 	
 	renderDay(sortedEntries){
-		
+
 		return <div className="day">
-			<div className="times">
+			<div className="times" ref = {this.calendarRef}>
 				{this.state.spaces.map(spaceInfo => {
 					
 					return <div className="time-info" style={{
@@ -384,6 +404,12 @@ export default class CalendarCompact extends React.Component {
 		
 		if(mobile){
 			days = 1;
+		}
+
+		console.log("render calendarRef", {...this.calendarRef});
+		if(this.calendarRef.base){
+			console.log("has current!");
+			console.log({...this.calendarRef.base});
 		}
 		
 		var colSize = 12/days;
@@ -431,7 +457,7 @@ export default class CalendarCompact extends React.Component {
 						
 					})}
 				</Row>
-				<Row className="calendar-body">
+				<Row className="calendar-body" >
 					{this.state.currentView.map((viewInfo, index) => {
 						var colClass = "calendar-body-col";
 
@@ -439,7 +465,7 @@ export default class CalendarCompact extends React.Component {
 							colClass += ' bordered';
 						}
 						
-						return <Col size={colSize} className={colClass}>
+						return <Col size={colSize} className={colClass} ref = {ref => this.calendarRef = ref}>
 							{viewInfo.results ? this.renderDay(viewInfo.results) : <Loading />}
 						</Col>;
 						
