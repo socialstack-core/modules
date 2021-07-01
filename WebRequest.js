@@ -129,12 +129,15 @@ function mapWhere(where, args){
 							str += k + "!=" + (Array.isArray(v[f]) ? '[?]' : '?');
 							args.push(v[f]);
 							break;
-						default:
+
+						case "name":
 						case "equals":
 							str += k + "=" + (Array.isArray(v[f]) ? '[?]' : '?');
 							args.push(v[f]);
-						break;
-					}
+                            break;
+						default:
+                            break;
+                    }
 					
 				}
 			}else{
