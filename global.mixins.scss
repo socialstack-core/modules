@@ -4,13 +4,7 @@
     $autoValue: #{$prefix}-auto-#{$name};
     $manualValue: #{$prefix}-#{$name};
 
-    @if ($property == "box-shadow") {
-        #{$property}: 0 0 0 .25rem var($autoValue);
-        #{$property}: 0 0 0 .25rem var($manualValue);
-    } @else {
-        #{$property}: var($manualValue, var($autoValue));
-    }
-
+    #{$property}: var($manualValue, var($autoValue));
 }
 
 // generates overriding styles for the given button variant (e.g. btn-primary)
@@ -20,10 +14,11 @@
 
     // default state
     $backgroundColor: #{$prefix}-background;
-    $borderColor: #{$prefix}-border;
-    $color: #{$prefix}-color;
+    //$borderColor: #{$prefix}-border;
+    //$color: #{$prefix}-color;
 
-    background-color: var($backgroundColor);
+    // NB: relies on Bootstrap CSS vars (e.g. --primary)
+    background-color: var($backgroundColor, var($prefix));
     //border-color: var($borderColor);
     //color: var($color);
     @include cssvar-with-backup(border-color, $prefix, border);
@@ -51,9 +46,9 @@
             
     .btn-check:focus + &,
     &:focus {
-        @include cssvar-with-backup(background-color, $prefix, focus-background);
-        @include cssvar-with-backup(border-color, $prefix, focus-border);
-        @include cssvar-with-backup(color, $prefix, focus-color);
+        //@include cssvar-with-backup(background-color, $prefix, focus-background);
+        //@include cssvar-with-backup(border-color, $prefix, focus-border);
+        //@include cssvar-with-backup(color, $prefix, focus-color);
         @include cssvar-with-backup(box-shadow, $prefix, focus-shadow);
         //background-color: var($focusBackgroundColor);
         //border-color: var($focusBorderColor);
@@ -115,7 +110,8 @@
     color: var($color);
     */
     @include cssvar-with-backup(border-color, $prefix, border);
-    @include cssvar-with-backup(color, $prefix, color);
+    //@include cssvar-with-backup(color, $prefix, color);
+    color: var(#{$prefix}-background, var($prefix));
 
     // hover state
     /*
@@ -129,15 +125,16 @@
         //background-color: var($hoverBackgroundColor);
         //border-color: var($hoverBorderColor);
         //color: var($hoverColor);
-        @include cssvar-with-backup(background-color, $prefix, hover-background);
-        @include cssvar-with-backup(border-color, $prefix, hover-border);
+        //@include cssvar-with-backup(background-color, $prefix, hover-background);
+        //@include cssvar-with-backup(border-color, $prefix, hover-border);
+        @include cssvar-with-backup(background-color, $prefix, background);
         @include cssvar-with-backup(color, $prefix, hover-color);
     }
     
     .btn-check:focus + &,
     &:focus {
         //box-shadow: 0 0 0 .25rem $focusBoxShadowColor;
-        @include cssvar-with-backup(box-shadow, $prefix, hover-shadow);
+        @include cssvar-with-backup(box-shadow, $prefix, focus-shadow);
     }
     
     // active state
@@ -179,6 +176,8 @@
 // overrides btn / btn-sm / btn-lg styling
 // updated styles will use pre-existing CSS theme vars injected into the page
 @mixin themed-button-size($size) {
+    // TODO: requires defaults
+    /*
     $prefix: --button-size-#{$size};
     $paddingX: #{$prefix}-padding-x;
     $paddingY: #{$prefix}-padding-y;
@@ -189,4 +188,5 @@
     padding: var($paddingY) var($paddingX);
     font-size: calc(1rem * (var(#{$fontSize}) / #{$themeBaseFontSize}));
     border-radius: var($borderRadius);
+    */
 }

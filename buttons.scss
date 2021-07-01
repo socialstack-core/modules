@@ -1,101 +1,105 @@
-// base styles
-.btn {
-    //font-family: $btn-font-family;
-    //font-weight: $btn-font-weight;
-    //line-height: $btn-line-height;
-    cursor: pointer;
-    @include themed-button-size(normal);
+[data-theme] {
+
+    // base styles
+    .btn {
+        //font-family: $btn-font-family;
+        //font-weight: $btn-font-weight;
+        //line-height: $btn-line-height;
+        cursor: pointer;
+        @include themed-button-size(normal);
         
-    // update default focus styling
-    /*
-    // apply default for browsers without :focus-visible support
-    .btn-check:focus + &,
-    &:focus {
-        outline: var($themeFocusOutline);
-        box-shadow: var($themeFocusBoxShadow);
-    }
+        // update default focus styling
+        /*
+        // apply default for browsers without :focus-visible support
+        .btn-check:focus + &,
+        &:focus {
+            outline: var($themeFocusOutline);
+            box-shadow: var($themeFocusBoxShadow);
+        }
         
-    // remove focus indicator on mouse focus
-    // NB: this will still apply for focused elements expecting input
-    .btn-check:focus:not(:focus-visible) + &,
-    &:focus:not(:focus-visible) {
-        outline: 0;
+        // remove focus indicator on mouse focus
+        // NB: this will still apply for focused elements expecting input
+        .btn-check:focus:not(:focus-visible) + &,
+        &:focus:not(:focus-visible) {
+            outline: 0;
+        }
+
+        // apply focus indicator on keyboard focus
+        .btn-check:focus-visible) + &,
+        &:focus-visible {
+            outline: var($themeFocusOutline);
+            box-shadow: var($themeFocusBoxShadow);
+        }
+        */
+        
+        /*
+        .btn-check:checked + &,
+        .btn-check:active + &,
+        &:active,
+        &.active {
+            @include box-shadow($btn-active-box-shadow);
+            
+            &:focus {
+                @include box-shadow($btn-focus-box-shadow, $btn-active-box-shadow);
+            }
+        }
+        
+        &:disabled,
+        &.disabled,
+        fieldset:disabled & {
+            pointer-events: none;
+            opacity: $btn-disabled-opacity;
+            @include box-shadow(none);
+        }
+        */
     }
 
-    // apply focus indicator on keyboard focus
-    .btn-check:focus-visible) + &,
-    &:focus-visible {
-        outline: var($themeFocusOutline);
-        box-shadow: var($themeFocusBoxShadow);
-    }
-    */
-        
-    /*
-    .btn-check:checked + &,
-    .btn-check:active + &,
-    &:active,
-    &.active {
-        @include box-shadow($btn-active-box-shadow);
-            
-        &:focus {
-            @include box-shadow($btn-focus-box-shadow, $btn-active-box-shadow);
+    // alternate buttons
+    // (primary, secondary, etc.)
+    @each $variant in $theme_bootstrap_variants {
+
+        // solid button variants
+        .btn.btn-#{$variant} {
+            @include themed-button-variant($variant);
+        }
+
+        // outlined button variants
+        .btn.btn-outline-#{$variant} {
+            @include themed-button-outline-variant($variant);
         }
     }
+
+    // link buttons
+    .btn-link {
+        /*
+        font-weight: $font-weight-normal;
+        color: $btn-link-color;
+        text-decoration: $link-decoration;
         
-    &:disabled,
-    &.disabled,
-    fieldset:disabled & {
-        pointer-events: none;
-        opacity: $btn-disabled-opacity;
-        @include box-shadow(none);
-    }
-    */
-}
-
-// alternate buttons
-// (primary, secondary, etc.)
-@each $variant in $theme_bootstrap_variants {
-
-    // solid button variants
-    .btn.btn-#{$variant} {
-        @include themed-button-variant($variant);
-    }
-
-    // outlined button variants
-    .btn.btn-outline-#{$variant} {
-        @include themed-button-outline-variant($variant);
-    }
-}
-
-// link buttons
-.btn-link {
-    /*
-    font-weight: $font-weight-normal;
-    color: $btn-link-color;
-    text-decoration: $link-decoration;
+        &:hover {
+            color: $btn-link-hover-color;
+            text-decoration: $link-hover-decoration;
+        }
         
-    &:hover {
-        color: $btn-link-hover-color;
-        text-decoration: $link-hover-decoration;
-    }
+        &:focus {
+            text-decoration: $link-hover-decoration;
+        }
         
-    &:focus {
-        text-decoration: $link-hover-decoration;
+        &:disabled,
+        &.disabled {
+            color: $btn-link-disabled-color;
+        }
+        */
+
     }
-        
-    &:disabled,
-    &.disabled {
-        color: $btn-link-disabled-color;
+
+    // button sizes
+    .btn-lg {
+        @include themed-button-size(lg);
     }
-    */
 
-}
+    .btn-sm {
+        @include themed-button-size(sm);
+    }
 
-// button sizes
-.btn-lg {
-    @include themed-button-size(lg);
-}
-
-.btn-sm {
-    @include themed-button-size(sm);
 }
