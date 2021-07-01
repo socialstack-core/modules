@@ -43,15 +43,15 @@ namespace Api.Themes
 		{
 			var properties = varSet.GetType().GetProperties();
 			string[] bootstrapVariants = { 
-				"Primary", "Secondary", "Tertiary",
-				"Success", "Info", "Warning", "Danger", "Light", "Dark"
+				"primary", "secondary", "success", "info", "warning", "danger", "light", "dark"
 				};
 
 			foreach (var property in properties)
 			{
 				var lcName = property.Name.ToLower();
 				var value = property.GetValue(varSet);
-				Color fgColor, hoverColor, hoverBorderColor, activeColor, activeBorderColor, focusShadowColor;
+				Color fgColor, hoverColor, hoverBorderColor, activeColor, activeBorderColor;
+				string focusShadow;
 
 				if (lcName == "customcss")
 				{
@@ -88,14 +88,14 @@ namespace Api.Themes
 					builder.Append(';');
 
 					// produce hover/active/focus supporting colours based on each Bootrap variant
-					if (bootstrapVariants.Contains(property.Name)) {
-						UpdateContrastVariant(value.ToString(), out fgColor, out hoverColor, out hoverBorderColor, out activeColor, out activeBorderColor, out focusShadowColor);
-						AddGeneratedColor(ref builder, prefix, lcName + "foreground", fgColor);
-						AddGeneratedColor(ref builder, prefix, lcName + "hover", hoverColor);
-						AddGeneratedColor(ref builder, prefix, lcName + "hoverborder", hoverBorderColor);
-						AddGeneratedColor(ref builder, prefix, lcName + "active", activeColor);
-						AddGeneratedColor(ref builder, prefix, lcName + "activeborder", activeBorderColor);
-						AddGeneratedColor(ref builder, prefix, lcName + "focusshadow", focusShadowColor);
+					if (bootstrapVariants.Contains(prefix) && lcName == "background") {
+						UpdateContrastVariant(value.ToString(), out fgColor, out hoverColor, out hoverBorderColor, out activeColor, out activeBorderColor, out focusShadow);
+						AddGeneratedColor(ref builder, prefix, "auto-color", fgColor);
+						AddGeneratedColor(ref builder, prefix, "auto-hover-background", hoverColor);
+						AddGeneratedColor(ref builder, prefix, "auto-hover-border", hoverBorderColor);
+						AddGeneratedColor(ref builder, prefix, "auto-active-background", activeColor);
+						AddGeneratedColor(ref builder, prefix, "auto-active-border", activeBorderColor);
+						AddGeneratedString(ref builder, prefix, "auto-focus-shadow", focusShadow);
 					}
 				}
 				else if(value != null)
@@ -136,6 +136,13 @@ namespace Api.Themes
 		public string OutputCssVariables(ThemeConfig config)
 		{
 			var builder = new StringBuilder();
+
+			// TODO:
+			// add support for high-contrast themes
+			// - high contrast mode on Windows can be detected via "@media(forced-colors:active)" *
+			// - longer-term, we should aim to use "@media(prefers-contrast:more)", but as of July 2020, this has zero support
+			// 
+			// * note that this mode disables box-shadow effects
 
 			if (config.DarkModeOfThemeId != 0)
 			{
@@ -192,18 +199,42 @@ namespace Api.Themes
 		/// <summary>
 		/// 
 		/// </summary>
+		/// <param name="builder"></param>
+		/// <param name="prefix"></param>
+		/// <param name="name"></param>
+		/// <param name="value"></param>
+		public void AddGeneratedString(ref StringBuilder builder, string prefix, string name, string value)
+        {
+			builder.Append("--");
+
+			if (prefix != null)
+			{
+				builder.Append(prefix);
+				builder.Append('-');
+			}
+
+			builder.Append(name);
+
+			builder.Append(':');
+			builder.Append(value);
+			builder.Append(';');
+        }
+
+		/// <summary>
+		/// 
+		/// </summary>
 		/// <param name="hex"></param>
 		/// <param name="fgColor"></param>
 		/// <param name="hoverColor"></param>
 		/// <param name="hoverBorderColor"></param>
 		/// <param name="activeColor"></param>
 		/// <param name="activeBorderColor"></param>
-		/// <param name="focusShadowColor"></param>
+		/// <param name="focusShadow"></param>
 		public void UpdateContrastVariant(string hex, 
 			out Color fgColor, 
 			out Color hoverColor, out Color hoverBorderColor,
 			out Color activeColor, out Color activeBorderColor,
-			out Color focusShadowColor)
+			out String focusShadow)
         {
 			var bgColor = HexToColor(hex);
 			fgColor = GetContrastColor(bgColor);
@@ -214,7 +245,8 @@ namespace Api.Themes
 			activeColor = (fgColor == Color.White) ? ShadeColor(bgColor, 20) : TintColor(bgColor, 20);
 			activeBorderColor = (fgColor == Color.White) ? ShadeColor(bgColor, 25) : TintColor(bgColor, 10);
 
-			focusShadowColor = MixColor(fgColor, bgColor, 15);
+			Color focusShadowColor = MixColor(fgColor, bgColor, 15);
+			focusShadow = "0 0 0 .25rem " + ColorToHex(focusShadowColor, 50);
         }
 
 		/// <summary>
@@ -225,18 +257,42 @@ namespace Api.Themes
 		public Color HexToColor(string hex)
         {
 			var colorConverter = new ColorConverter();
+			var alpha = 255;
 
-			return (Color)colorConverter.ConvertFromString(hex);
+			// NB: check for #RRGGBBAA format colours - 
+			// ConvertFromString() returns the last 6 chars
+			if (hex.Length > 7)
+            {
+				var alphaString = hex.Substring(hex.Length - 2);
+				alpha = int.Parse(alphaString, System.Globalization.NumberStyles.HexNumber);
+				hex = hex.TrimEnd(hex[hex.Length - 2]);
+            }
+
+			var color = (Color)colorConverter.ConvertFromString(hex);
+			return Color.FromArgb(alpha, color);
         }
 
 		/// <summary>
 		/// 
 		/// </summary>
 		/// <param name="color"></param>
+		/// <param name="opacity"></param>
 		/// <returns></returns>
-		public string ColorToHex(Color color)
+		public string ColorToHex(Color color, int opacity = 100)
         {
-			return ColorTranslator.ToHtml(color);
+			// optionally include opacity - this has the added benefit of always returning colours in #RRGGBB format
+			// (possible to get named HTML colours without this, e.g. #FFF returns as "White")
+			int alpha = (int)Math.Round((opacity / 100d) * 255d);
+			Color colWithAlpha = Color.FromArgb(alpha, color);
+			var hex = ColorTranslator.ToHtml(colWithAlpha);
+
+			// NB: ColorTranslator.ToHtml() doesn't include opacity info
+			if (alpha < 255)
+            {
+				hex += alpha.ToString("X2");
+            }
+
+			return hex;
         }
 
 		/// <summary>
