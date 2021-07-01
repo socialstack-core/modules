@@ -7,6 +7,7 @@ import Search from 'UI/Search';
 import Modal from 'UI/Modal';
 import Input from 'UI/Input';
 import webRequest from 'UI/Functions/WebRequest';
+import {useTokens} from 'UI/Token';
 
 
 export default class AutoList extends React.Component {
@@ -231,6 +232,8 @@ export default class AutoList extends React.Component {
 		var {filter, filterField, filterValue, searchFields} = this.props;
 		
 		if(filterField){
+            filterValue = useTokens(filterValue);
+
 			var where = {};
 			where[filterField] = filterValue;
 			filter = {
@@ -280,8 +283,12 @@ export default class AutoList extends React.Component {
 		var revisionsSupported = (this.props.endpoint != 'user');
 		
 		var selectedCount = this.selectedCount();
+
+        if (!filterField)
+            filterField = "";
+
+		return  <Tile className="auto-list" title={this.props.title}>
 		
-		return <Tile className="auto-list" title={this.props.title}>
 			{(this.props.create || searchFields) && (
 				<Row style={{marginBottom: '10px'}}>
 					<Col>
@@ -329,6 +336,7 @@ export default class AutoList extends React.Component {
 			</Loop>
 			{selectedCount > 0 ? this.renderBulkOptions(selectedCount) : null}
 			{this.state.confirmDelete && this.renderConfirmDelete(selectedCount)}
+
 		</Tile>;
-	}
+    }
 }
