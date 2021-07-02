@@ -163,7 +163,6 @@ export default class CalendarCompact extends React.Component {
 
 		if(this.calendarRef.current){
 			this.calendarRef.current.childNodes[domNodeIndex].scrollIntoView(true);
-			console.log(this.calendarRef.current.childNodes);
 		}
 	}
 
@@ -404,12 +403,6 @@ export default class CalendarCompact extends React.Component {
 		
 		if(mobile){
 			days = 1;
-		}
-
-		console.log("render calendarRef", {...this.calendarRef});
-		if(this.calendarRef.base){
-			console.log("has current!");
-			console.log({...this.calendarRef.base});
 		}
 		
 		var colSize = 12/days;
