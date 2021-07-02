@@ -404,7 +404,7 @@ namespace Api.Startup
 					if ((!exact && currentValueCount >= minRepetitions && initialValueSet) || (exact && currentValueCount == minRepetitions && initialValueSet))
 					{
 						// Sort it into our newBlock
-						Sort(newBlock, currentValue, 0, true);
+						Sort(newBlock, currentValue, 0, true, valueFillCount);
 						valueFillCount++;
 					}
 
@@ -424,6 +424,15 @@ namespace Api.Startup
 			// Update count
 			CurrentFill = valueFillCount % 64;
 			FullBlockCount = valueFillCount / 64;
+
+			// Set our Last Block
+			Last = First;
+
+            while (Last.Next != null)
+            {
+				Last = Last.Next;
+            }
+
 		}
 
 		/// <summary>

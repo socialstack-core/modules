@@ -771,6 +771,17 @@ public partial class AutoService<T, ID> : AutoService
 			total = await _database.GetResults(context, queryPair, onResult, srcA, srcB, InstanceType, raw ? listRawQuery : listQuery);
 		}
 
+		// If collectors were made, let's now release them.
+		if(queryPair.QueryA.FirstACollector != null)
+        {
+			queryPair.QueryA.FirstACollector.Release();
+		}
+
+		if (queryPair.QueryA.FirstBCollector != null)
+		{
+			queryPair.QueryA.FirstBCollector.Release();
+		}
+
 		return total;
 	}
 
