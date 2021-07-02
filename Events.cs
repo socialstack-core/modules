@@ -22,11 +22,6 @@ namespace Api.Eventing
 		/// </summary>
 		public static EventGroup<Role> Role;
 		
-		/// <summary>
-		/// Events on the RoleGrant type.
-		/// </summary>
-		public static EventGroup<RoleGrant> RoleGrant;
-		
 	}
 	
 }

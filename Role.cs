@@ -302,7 +302,7 @@ namespace Api.Permissions
 		}
 
 		/// <summary>
-		/// Is the given capability granted to this role? Don't use this directly - use ACapability.IsGranted instead.
+		/// Is the given capability granted to this role?
 		/// </summary>
 		/// <param name="capability">The capability to check for. This is required.</param>
 		/// <param name="context">The requesting context.</param>
