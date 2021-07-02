@@ -232,7 +232,7 @@ export default function webRequest(origUrl, data, opts) {
 }
 
 function _fetch(url, data, opts) {
-	var origUrl = origUrl;
+	var origUrl = url;
 	var credentials = global.storedToken ? undefined : 'include';
 	var mode = 'cors';
 
