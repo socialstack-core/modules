@@ -252,6 +252,8 @@ export default class Loop extends React.Component {
 						bField = isoConvert(bField).getTime();
 					} else if (bField && bField.getTime) {
 						bField = bField.getTime();
+					} else {
+						bField = isoConvert(bField).getTime();
 					}
 				}
 
