@@ -1,15 +1,19 @@
+using Api.Contexts;
+using Api.Eventing;
+using Api.Permissions;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Serialization;
 using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
+using System.Threading.Tasks;
 
 namespace Api.Pages
 {
 
 	/// <summary>
-	/// Caches information about URLs on the site in order to aid with generating a URL for a particular piece of content.
+	/// Caches information about URLs on the site in order to resolve a URL quickly for a given role.
 	/// </summary>
 	public partial class UrlLookupCache
 	{
@@ -39,7 +43,198 @@ namespace Api.Pages
 			},
 			Formatting = Formatting.None
 		};
-		
+
+		/// <summary>
+		/// Add a redirect to the cache.
+		/// </summary>
+		/// <param name="url"></param>
+		/// <param name="redirectTo"></param>
+		/// <returns></returns>
+		public UrlLookupNode Add(string url, Func<string, UrlLookupNode, List<string>, ValueTask<string>> redirectTo)
+		{
+			var node = Add(url);
+
+			if (node != null)
+			{
+				node.Redirection = redirectTo;
+			}
+
+			return node;
+		}
+
+		/// <summary>
+		/// Adds the given url to the cache, returning the node that it ended at.
+		/// </summary>
+		/// <param name="url"></param>
+		public UrlLookupNode Add(string url)
+		{
+			if (string.IsNullOrEmpty(url))
+			{
+				return null;
+			}
+
+			var tokenSet = new List<PageUrlToken>();
+
+			if (url.Length != 0 && url[0] == '/')
+			{
+				url = url.Substring(1);
+			}
+
+			if (url.Length != 0 && url[url.Length - 1] == '/')
+			{
+				url = url.Substring(0, url.Length - 1);
+			}
+
+			// URL parts:
+
+			var pg = rootPage;
+
+			if (url.Length != 0)
+			{
+				var parts = url.Split('/');
+				var skip = false;
+
+				for (var i = 0; i < parts.Length; i++)
+				{
+
+					var part = parts[i];
+					string token = null;
+
+					if (part.Length != 0)
+					{
+						if (part[0] == ':')
+						{
+							token = part.Substring(1);
+							tokenSet.Add(new PageUrlToken()
+							{
+								RawToken = token
+							});
+						}
+						else if (part[0] == '{')
+						{
+							token = (part[part.Length - 1] == '}') ? part.Substring(1, part.Length - 2) : part.Substring(1);
+
+							var dotIndex = token.IndexOf('.');
+
+							if (dotIndex != -1)
+							{
+								var contentType = token.Substring(0, dotIndex);
+								var fieldName = token.Substring(dotIndex + 1);
+								var type = Api.Database.ContentTypes.GetType(contentType);
+
+								if (type == null)
+								{
+									Console.WriteLine("[WARN] Bad page URL using a type that doesn't exist. It was " + url + " using type " + contentType);
+									skip = true;
+									break;
+								}
+
+								var service = Api.Startup.Services.GetByContentType(type);
+
+								tokenSet.Add(new PageUrlToken()
+								{
+									RawToken = token,
+									TypeName = contentType,
+									FieldName = fieldName,
+									ContentType = type,
+									Service = service,
+									IsId = fieldName.ToLower() == "id",
+									ContentTypeId = Api.Database.ContentTypes.GetId(type)
+								});
+							}
+							else
+							{
+								tokenSet.Add(new PageUrlToken()
+								{
+									RawToken = token
+								});
+							}
+
+						}
+					}
+
+					if (token != null)
+					{
+						// Anything. Treat these tokens as *:
+						part = "*";
+					}
+
+					if (!pg.Children.TryGetValue(part, out UrlLookupNode next))
+					{
+						pg.Children[part] = next = new UrlLookupNode();
+
+						if (token != null)
+						{
+							// It's the wildcard one:
+							pg.Wildcard = next;
+						}
+					}
+
+					pg = next;
+				}
+
+				if (skip)
+				{
+					return null;
+				}
+			}
+
+			pg.UrlTokens = tokenSet;
+			pg.UrlTokenNames = tokenSet.Select(token => token.RawToken).ToList();
+
+			if (pg.UrlTokenNames == null || pg.UrlTokenNames.Count == 0)
+			{
+				pg.UrlTokenNamesJson = "null";
+			}
+			else
+			{
+				pg.UrlTokenNamesJson = Newtonsoft.Json.JsonConvert.SerializeObject(pg.UrlTokenNames, jsonSettings);
+			}
+			
+			return pg;
+		}
+
+		/// <summary>
+		/// Adds the given page to the cache.
+		/// </summary>
+		/// <param name="page"></param>
+		public UrlLookupNode Add(Page page)
+		{
+
+			if (page == null)
+			{
+				return null;
+			}
+
+			if (page.Url == "/404")
+			{
+				NotFoundPage = page;
+			}
+
+			var pg = Add(page.Url);
+
+			if (pg == null)
+			{
+				// skipped
+				return null;
+			}
+
+			if (pg.Pages == null)
+			{
+				pg.Pages = new List<Page>();
+			}
+
+			pg.Pages.Add(page);
+
+			PageUrlList.Add(new PageIdAndUrl()
+			{
+				PageId = page.Id,
+				Url = page.Url
+			});
+
+			return pg;
+		}
+
 		/// <summary>
 		/// Loads the cache from the given list of all pages.
 		/// </summary>
@@ -50,148 +245,7 @@ namespace Api.Pages
 			for (var p = 0; p < allPages.Count; p++)
 			{
 				var page = allPages[p];
-
-				if (page == null)
-				{
-					continue;
-				}
-
-				var url = page.Url;
-
-				if (string.IsNullOrEmpty(url))
-				{
-					continue;
-				}
-
-				var tokenSet = new List<PageUrlToken>();
-
-				if (url == "/404")
-				{
-					NotFoundPage = page;
-				}
-
-				if (url.Length != 0 && url[0] == '/')
-				{
-					url = url.Substring(1);
-				}
-
-				if (url.Length != 0 && url[url.Length - 1] == '/')
-				{
-					url = url.Substring(0, url.Length - 1);
-				}
-
-				// URL parts:
-
-				var pg = rootPage;
-
-				if (url.Length != 0)
-				{
-					var parts = url.Split('/');
-					var skip = false;
-
-					for (var i = 0; i < parts.Length; i++)
-					{
-
-						var part = parts[i];
-						string token = null;
-
-						if (part.Length != 0)
-						{
-							if (part[0] == ':')
-							{
-								token = part.Substring(1);
-								tokenSet.Add(new PageUrlToken() {
-									RawToken = token
-								});
-							}
-							else if (part[0] == '{')
-							{
-								token = (part[part.Length - 1] == '}') ? part.Substring(1, part.Length - 2) : part.Substring(1);
-
-								var dotIndex = token.IndexOf('.');
-
-								if (dotIndex != -1)
-								{
-									var contentType = token.Substring(0, dotIndex);
-									var fieldName = token.Substring(dotIndex + 1);
-									var type = Api.Database.ContentTypes.GetType(contentType);
-
-									if (type == null)
-									{
-										Console.WriteLine("[WARN] Bad page URL using a type that doesn't exist. It was page " + page.Id + " using type " + contentType);
-										skip = true;
-										break;
-									}
-
-									var service = Api.Startup.Services.GetByContentType(type);
-
-									tokenSet.Add(new PageUrlToken()
-									{
-										RawToken = token,
-										TypeName = contentType,
-										FieldName = fieldName,
-										ContentType = type,
-										Service = service,
-										IsId = fieldName.ToLower() == "id",
-										ContentTypeId = Api.Database.ContentTypes.GetId(type)
-									});
-								}
-								else
-								{
-									tokenSet.Add(new PageUrlToken()
-									{
-										RawToken = token
-									});
-								}
-								
-							}
-						}
-						
-						if (token != null)
-						{
-							// Anything. Treat these tokens as *:
-							part = "*";
-						}
-
-						if (!pg.Children.TryGetValue(part, out UrlLookupNode next))
-						{
-							pg.Children[part] = next = new UrlLookupNode();
-
-							if (token != null)
-							{
-								// It's the wildcard one:
-								pg.Wildcard = next;
-							}
-						}
-
-						pg = next;
-					}
-
-					if (skip)
-					{
-						continue;
-					}
-				}
-
-				pg.Page = page;
-				pg.UrlTokens = tokenSet;
-				pg.UrlTokenNames = tokenSet.Select(token => token.RawToken).ToList();
-
-				if (pg.UrlTokenNames == null || pg.UrlTokenNames.Count == 0)
-				{
-					pg.UrlTokenNamesJson = "null";
-				}
-				else
-				{
-					pg.UrlTokenNamesJson = Newtonsoft.Json.JsonConvert.SerializeObject(pg.UrlTokenNames, jsonSettings);
-				}
-
-				PageUrlList.Add(new PageIdAndUrl()
-				{
-					PageId = page.Id,
-					Url = url
-				});
-
+				Add(page);
 			}
 
 		}
@@ -199,9 +253,10 @@ namespace Api.Pages
 		/// <summary>
 		/// Gets the page to use for the given URL.
 		/// </summary>
+		/// <param name="context"></param>
 		/// <param name="url"></param>
 		/// <returns></returns>
-		public PageWithTokens GetPage(string url)
+		public async ValueTask<PageWithTokens> GetPage(Context context, string url)
 		{
 			url = url.Split('?')[0].Trim();
 			if (url.Length != 0 && url[0] == '/')
@@ -221,7 +276,8 @@ namespace Api.Pages
 				return new PageWithTokens()
 				{
 					Page = null,
-					TokenValues = null
+					TokenValues = null,
+					TokenNamesJson = "null"
 				};
 			}
 
@@ -255,7 +311,8 @@ namespace Api.Pages
 						return new PageWithTokens()
 						{
 							Page = null,
-							TokenValues = null
+							TokenValues = null,
+							TokenNamesJson = "null"
 						};
 					}
 
@@ -263,9 +320,83 @@ namespace Api.Pages
 				}
 			}
 
+
+			if (curNode.Redirection != null)
+			{
+				var targetUrl = await curNode.Redirection(url, curNode, wildcardTokens);
+
+				if (targetUrl == null)
+				{
+					// 404
+					return new PageWithTokens()
+					{
+						Page = null,
+						TokenValues = null,
+						TokenNamesJson = "null"
+					};
+				}
+
+				return new PageWithTokens()
+				{
+					RedirectTo = targetUrl,
+					TokenNamesJson = "null"
+				};
+			}
+			
+			Page result = null;
+
+			if (curNode.Pages != null)
+			{
+
+				// Permission testing next. Establish which page is ok (if any).
+				var role = context.Role;
+
+				if (role == null)
+				{
+					role = Roles.Public;
+				}
+
+				var pageLoadCapability = Events.Page.GetLoadCapability();
+
+				for (var i = 0; i < curNode.Pages.Count; i++)
+				{
+					var page = curNode.Pages[i];
+
+					if (role.IsGranted(pageLoadCapability, context, page))
+					{
+						result = page;
+						break;
+					}
+				}
+
+				if (result == null && curNode.Pages.Count > 0)
+				{
+					// The user was rejected on a permission error.
+					// This can often lead to a redirect to the login page, but we'll make the handling of 
+					// this project specific such that it can e.g. redirect to a subscribe page or whatever it would like to do.
+					return new PageWithTokens()
+					{
+						Page = null,
+						TokenValues = null,
+						TokenNamesJson = "null"
+					};
+				}
+
+			}
+
+			if (result == null)
+			{
+				// 404
+				return new PageWithTokens()
+				{
+					Page = null,
+					TokenValues = null,
+					TokenNamesJson = "null"
+				};
+			}
 			return new PageWithTokens()
 			{
-				Page = curNode.Page,
+				Page = result,
 				Tokens = curNode.UrlTokens,
 				TokenNames = curNode.UrlTokenNames,
 				TokenNamesJson = curNode.UrlTokenNamesJson,
@@ -299,6 +430,10 @@ namespace Api.Pages
 		/// Any token values in the URL.
 		/// </summary>
 		public List<string> TokenValues;
+		/// <summary>
+		/// Set if this is a redirection (to the given URL, as a 302).
+		/// </summary>
+		public string RedirectTo;
 	}
 
 	/// <summary>
@@ -306,6 +441,10 @@ namespace Api.Pages
 	/// </summary>
 	public partial class UrlLookupNode
 	{
+		/// <summary>
+		/// Set if this node performs a redirect.
+		/// </summary>
+		public Func<string, UrlLookupNode, List<string>, ValueTask<string>> Redirection;
 		/// <summary>
 		/// If this node has a page associated with it, this is the set of url tokens. The primary object is always derived from the last one.
 		/// </summary>
@@ -319,9 +458,9 @@ namespace Api.Pages
 		/// </summary>
 		public string UrlTokenNamesJson;
 		/// <summary>
-		/// The page
+		/// Usually only has one page in it, but multiple pages on the same URL can happen with e.g. the homepage, if there are permission based matchings.
 		/// </summary>
-		public Page Page;
+		public List<Page> Pages;
 		/// <summary>
 		/// The wildcard resolver if there is one for this node. Same as Children["*"].
 		/// </summary>

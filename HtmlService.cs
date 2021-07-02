@@ -16,6 +16,7 @@ using Api.Translate;
 using Api.Database;
 using Api.SocketServerLibrary;
 using Api.Permissions;
+using Microsoft.AspNetCore.Http;
 
 namespace Api.Pages
 {
@@ -1047,12 +1048,30 @@ namespace Api.Pages
 		/// </summary>
 		/// <param name="context"></param>
 		/// <param name="path"></param>
-		/// <param name="responseStream"></param>
+		/// <param name="response"></param>
 		/// <param name="compress"></param>
 		/// <returns></returns>
-		public async ValueTask BuildPage(Context context, string path, Stream responseStream, bool compress = true)
+		public async ValueTask BuildPage(Context context, string path, HttpResponse response, bool compress = true)
 		{
+			response.ContentType = "text/html";
+			response.Headers["Cache-Control"] = "no-store";
+
+			if (compress)
+			{
+				response.Headers["Content-Encoding"] = "gzip";
+			}
+
 			var pageAndTokens = await _pages.GetPage(context, path);
+
+			if (pageAndTokens.RedirectTo != null)
+			{
+				// Redirecting to the given url, as a 302:
+				response.Headers["Location"] = pageAndTokens.RedirectTo;
+				response.StatusCode = 302;
+				return;
+			}
+
+			var responseStream = response.Body;
 
 			List<DocumentNode> flatNodes = await RenderPage(context, pageAndTokens, path);
 

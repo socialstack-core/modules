@@ -28,6 +28,11 @@ namespace Api.Eventing
 		public EventHandler<Document> Generated;
 
 		/// <summary>
+		/// Url lookup is ready. Use to add e.g. custom redirects to the lookup tree.
+		/// </summary>
+		public EventHandler<UrlLookupCache> AfterLookupReady;
+
+		/// <summary>
 		/// On admin page install.
 		/// </summary>
 		public EventHandler<Page, CanvasRenderer.CanvasNode, System.Type, AdminPageType> BeforeAdminPageInstall;

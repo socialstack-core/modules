@@ -182,17 +182,11 @@ namespace Api.Pages
 
 			var cache = _urlLookupCache[context.LocaleId - 1];
 
-			var pageInfo = cache.GetPage(url);
+			var pageInfo = await cache.GetPage(context, url);
 
-			if (pageInfo.Page == null)
+			if (pageInfo.Page == null && return404IfNotFound)
 			{
-				if (return404IfNotFound)
-				{
-					return new PageWithTokens()
-					{
-						Page = cache.NotFoundPage
-					};
-				}
+				pageInfo.Page = cache.NotFoundPage;
 			}
 
 			return pageInfo;
@@ -232,6 +226,9 @@ namespace Api.Pages
 			_urlLookupCache[context.LocaleId - 1] = cache;
 
 			cache.Load(allPages);
+
+			// Next, indicate that the cache has loaded. This is the event you'd use to add in things like custom redirect functions.
+			await Events.Page.AfterLookupReady.Dispatch(context, cache);
 		}
 
 		/// <summary>
@@ -304,12 +301,7 @@ namespace Api.Pages
 			var singlePageCanvas = new CanvasNode("Admin/Layouts/AutoEdit")
 					.With("endpoint", typeName)
 					.With("singular", tidySingularName)
-					.With("plural", tidyPluralName)
-					.With("id", new
-					{
-						name = typeName + ".id",
-						type = "urlToken"
-					});
+					.With("plural", tidyPluralName);
 
 			if (childAdminPage != null && childAdminPage.ChildType != null)
 			{

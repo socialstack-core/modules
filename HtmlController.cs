@@ -51,17 +51,7 @@ namespace Api.Pages
 		public async ValueTask CatchAllAdmin()
 		{
 			var context = await Request.GetContext();
-			var compress = true;
-
-			Response.ContentType = "text/html";
-			Response.Headers["Cache-Control"] = "no-store";
-
-			if (compress)
-			{
-				Response.Headers["Content-Encoding"] = "gzip";
-			}
-
-			await _htmlService.BuildPage(context, Request.Path, Response.Body, compress);
+			await _htmlService.BuildPage(context, Request.Path, Response);
 		}
 		
 		/// <summary>
@@ -73,24 +63,12 @@ namespace Api.Pages
 		{
 			var context = await Request.GetContext();
 
-			var cookieRole = context.RoleId;
-
 			await context.RoleCheck(Request, Response);
 
 			// Update the token:
 			context.SendToken(Response);
 
-			var compress = true;
-
-			Response.ContentType = "text/html";
-			Response.Headers["Cache-Control"] = "no-store";
-
-			if (compress)
-			{
-				Response.Headers["Content-Encoding"] = "gzip";
-			}
-
-			await _htmlService.BuildPage(context, Request.Path, Response.Body, compress);
+			await _htmlService.BuildPage(context, Request.Path, Response);
 		}
 
 		/// <summary>
