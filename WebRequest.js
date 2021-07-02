@@ -232,6 +232,7 @@ export default function webRequest(origUrl, data, opts) {
 }
 
 function _fetch(url, data, opts) {
+	var origUrl = origUrl;
 	var credentials = global.storedToken ? undefined : 'include';
 	var mode = 'cors';
 
@@ -306,7 +307,7 @@ function _fetch(url, data, opts) {
 	}
 	
 	// this is done on list calls.
-	if(data.on && data.on.type && data.on.id && url.endsWith("/list")){
+	if(data.on && data.on.type && data.on.id && origUrl.endsWith("/list")){
 		var on = data.on;
 		var d2 = {...data};
 		delete d2.on;
