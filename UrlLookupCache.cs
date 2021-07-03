@@ -362,7 +362,7 @@ namespace Api.Pages
 				{
 					var page = curNode.Pages[i];
 
-					if (role.IsGranted(pageLoadCapability, context, page))
+					if (await role.IsGranted(pageLoadCapability, context, page, false))
 					{
 						result = page;
 						break;
