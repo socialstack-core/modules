@@ -396,7 +396,7 @@ namespace Api.Permissions{
 		/// <param name="context"></param>
 		public override void ToSql(MySqlCommand cmd, Writer writer, ref IDCollector collectors, string localeCode, Filter<T, ID> filter, Context context)
 		{
-			if (filter.Included)
+			if (filter.IsIncluded)
 			{
 				writer.WriteS("true");
 			}

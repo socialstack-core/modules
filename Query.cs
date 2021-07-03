@@ -464,8 +464,7 @@ namespace Api.Database
 
 			string result;
 
-			var firstACollector = qP.QueryA.FirstACollector;
-			var firstBCollector = qP.QueryA.FirstBCollector;
+			var firstCollector = qP.QueryA.FirstCollector;
 
 			if (includeCount)
 			{
@@ -479,7 +478,7 @@ namespace Api.Database
 
 					if (!qP.QueryA.Empty)
 					{
-						qP.QueryA.BuildWhereQuery(cmd, str, firstACollector, localeCode, context, qP.QueryA);
+						qP.QueryA.BuildWhereQuery(cmd, str, firstCollector, localeCode, context, qP.QueryA);
 
 						if (!qP.QueryB.Empty)
 						{
@@ -489,7 +488,7 @@ namespace Api.Database
 
 					if (!qP.QueryB.Empty)
 					{
-						qP.QueryB.BuildWhereQuery(cmd, str, firstBCollector, localeCode, context, qP.QueryA);
+						qP.QueryB.BuildWhereQuery(cmd, str, null, localeCode, context, qP.QueryA);
 					}
 				}
 
@@ -521,7 +520,7 @@ namespace Api.Database
 
 					if (!qP.QueryA.Empty)
 					{
-						qP.QueryA.BuildWhereQuery(cmd, str, firstACollector, localeCode, context, qP.QueryA);
+						qP.QueryA.BuildWhereQuery(cmd, str, firstCollector, localeCode, context, qP.QueryA);
 
 						if (!qP.QueryB.Empty)
 						{
@@ -531,7 +530,7 @@ namespace Api.Database
 
 					if (!qP.QueryB.Empty)
 					{
-						qP.QueryB.BuildWhereQuery(cmd, str, firstBCollector, localeCode, context, qP.QueryA);
+						qP.QueryB.BuildWhereQuery(cmd, str, null, localeCode, context, qP.QueryA);
 					}
 
 					// Limit/ sort only comes from QueryA:
