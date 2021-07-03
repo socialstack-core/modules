@@ -47,12 +47,34 @@ namespace Api.Permissions
 		/// The raw grant rules, sorted by priority (weakest first). Evaluated against only when new capabilities are added.
 		/// </summary>
 		[JsonIgnore]
-		public List<RoleGrantRule> GrantRules { get; } = new List<RoleGrantRule>();
+		public List<RoleGrantRule> GrantRules {
+			get {
+				return _grantRules;
+			}
+		}
+
+		private List<RoleGrantRule> _grantRules = new List<RoleGrantRule>();
 
 		/// <summary>
 		/// Indexed by capability InternalId.
 		/// </summary>
 		private FilterBase[] CapabilityLookup { get; set; } = Array.Empty<FilterBase>();
+
+		/// <summary>
+		/// Grants the given capabilities unconditionally.
+		/// </summary>
+		/// <param name="capabilityNames"></param>
+		/// <returns></returns>
+		public Role GrantImportant(params string[] capabilityNames)
+		{
+			AddRule(new RoleGrantRule()
+			{
+				RuleType = RoleGrantRuleType.Single | RoleGrantRuleType.Important,
+				Patterns = capabilityNames
+			});
+
+			return this;
+		}
 
 		/// <summary>
 		/// Grants the given capabilities unconditionally.
@@ -87,122 +109,6 @@ namespace Api.Permissions
 			return this;
 		}
 
-		/*
-		/// <summary>
-		/// Adds a PermittedContent requirement to the given capability.
-		/// </summary>
-		/// <param name="cap"></param>
-		/// <param name="contentType"></param>
-		/// <param name="contentTypeId">The content type ID of the permit. This means a content type can use permits from another type.
-		/// For example, permits on a private chat can be used directly by private chat *messages*.</param>
-		/// <param name="field">The field on ContentType that will be checked for a permit.</param>
-		public void AddHasPermit(Capability cap, Type contentType, int contentTypeId, string field = "Id")
-		{
-			ResizeIfRequired(cap.InternalId);
-			
-			var filter = CapabilityFilterLookup[cap.InternalId];
-			if (filter == null)
-			{
-				filter = new Filter(contentType)
-				{
-					Role = this
-				};
-				CapabilityFilterLookup[cap.InternalId] = filter;
-			}
-
-			if (filter.HasContent)
-			{
-				filter.And();
-			}
-
-			// Must have a PermittedContent obj for the contextual user.
-			// This means for each permit on the content object being filtered, 
-			// check if at least one belongs to the contextual user.
-			filter.Equals(field, async (Context context) => {
-
-				if (_permittedContents == null)
-				{
-					userContentTypeId = ContentTypes.GetId(typeof(User));
-					_permittedContents = Services.Get<PermittedContentService>();
-				}
-
-				// All permits for this user for the given type of content.
-				var permits = await _permittedContents.List(context,
-					new Filter<PermittedContent>()
-						.Equals("PermittedContentId", context.UserId)
-						.And()
-						.Equals("PermittedContentTypeId", userContentTypeId)
-						.And()
-						.Equals("ContentTypeId", contentTypeId)
-				);
-
-				if (permits == null || permits.Count == 0)
-				{
-					// User is not permitted to any of this content. Just return a 0:
-					return 0;
-				}
-
-				// User is permitted to something of this type.
-				// Can be hundreds of results, so at this point build a dictionary.
-				// When the cache is running objects through the Equals node of the filter, 
-				// it knows to perform a lookup in <int, bool> dictionaries.
-				var results = new ContentIdLookup()
-				{
-					ContentTypeId = contentTypeId
-				};
-
-				foreach (var permit in permits)
-				{
-					results.Add(permit.ContentId);
-				}
-
-				return results;
-			});
-
-			CapabilityLookup[cap.InternalId] = filter.Construct(true);
-		}
-
-		
-		/// <summary>
-		/// Extends a cap filter with a role restriction. Note that this happens after e.g. GrantTheSameAs calls, because it's always role specific.
-		/// </summary>
-		/// <param name="cap"></param>
-		/// <param name="contentType"></param>
-		/// <param name="fieldName"></param>
-		public void AddRoleRestrictionToFilter(Capability cap, Type contentType, string fieldName)
-		{
-			ResizeIfRequired(cap.InternalId);
-
-			var filter = CapabilityFilterLookup[cap.InternalId];
-			if (filter == null)
-			{
-				filter = new Filter(contentType) {
-					Role = this
-				};
-				CapabilityFilterLookup[cap.InternalId] = filter;
-			}
-
-			if (filter.HasContent)
-			{
-				filter.And();
-			}
-
-			filter.Equals(contentType, fieldName, true);
-			CapabilityLookup[cap.InternalId] = filter.Construct(true);
-		}
-		
-		/// <summary>
-		/// The content type ID of User. ContentTypes.GetId(typeof(User));
-		/// </summary>
-		private static int userContentTypeId;
-		
-		/// <summary>
-		/// The permitted content service.
-		/// </summary>
-		private static PermittedContentService _permittedContents;
-		
-		*/
-
 		/// <summary>
 		/// Start conditional grants. For example, theRole.If("IsSelf()").ThenGrant("user_update") - 
 		/// this means if the current user is the user being edited then the permission is granted.
@@ -212,6 +118,22 @@ namespace Api.Permissions
 		{
 			return new RoleIfResolver() { Role = this, FilterQuery = filterQuery };
 		}
+		
+		/// <summary>
+		/// Revokes the named capabilities. Often used when merging or copying from roles.
+		/// </summary>
+		/// <param name="capabilityNames"></param>
+		/// <returns></returns>
+        public Role RevokeImportant(params string[] capabilityNames)
+        {
+			AddRule(new RoleGrantRule()
+			{
+				RuleType = RoleGrantRuleType.Revoke | RoleGrantRuleType.Single | RoleGrantRuleType.Important,
+				Patterns = capabilityNames
+			});
+			
+			return this;
+        }
 		
 		/// <summary>
 		/// Revokes the named capabilities. Often used when merging or copying from roles.
@@ -244,6 +166,48 @@ namespace Api.Permissions
         }
 
 		/// <summary>
+		/// Revokes every capability. You can grant certain ones afterwards.
+		/// </summary>
+		/// <returns></returns>
+		public Role RevokeEverything()
+		{
+			AddRule(new RoleGrantRule()
+			{
+				RuleType = RoleGrantRuleType.Revoke | RoleGrantRuleType.All
+			});
+
+			return this;
+		}
+		
+		/// <summary>
+		/// Grants every capability. You can revoke certain ones afterwards.
+		/// </summary>
+		/// <returns></returns>
+		public Role GrantEverythingImportant()
+        {
+			AddRule(new RoleGrantRule()
+			{
+				RuleType = RoleGrantRuleType.All | RoleGrantRuleType.Important
+			});
+			
+			return this;
+        }
+
+		/// <summary>
+		/// Revokes every capability. You can grant certain ones afterwards.
+		/// </summary>
+		/// <returns></returns>
+		public Role RevokeEverythingImportant()
+		{
+			AddRule(new RoleGrantRule()
+			{
+				RuleType = RoleGrantRuleType.Revoke | RoleGrantRuleType.All | RoleGrantRuleType.Important
+			});
+
+			return this;
+		}
+
+		/// <summary>
 		/// Adds the given rule to the grant set.
 		/// </summary>
 		/// <param name="rule"></param>
@@ -260,6 +224,28 @@ namespace Api.Permissions
 
 			// Add rules in the order that they were requested.
 			GrantRules.Add(rule);
+		}
+
+		/// <summary>
+		/// Removes all important marked rules from the role.
+		/// </summary>
+		public void ClearImportantRules()
+		{
+			// Capability lookup will need regeneration:
+			CapabilityLookup = Array.Empty<FilterBase>();
+
+			var ruleSet = new List<RoleGrantRule>();
+
+			for (var i = 0; i < GrantRules.Count; i++)
+			{
+				var rule = GrantRules[i];
+				if ((rule.RuleType & RoleGrantRuleType.Important) != RoleGrantRuleType.Important)
+				{
+					ruleSet.Add(rule);
+				}
+			}
+
+			_grantRules = ruleSet;
 		}
 
 		/// <summary>
@@ -289,6 +275,22 @@ namespace Api.Permissions
 			AddRule(new RoleGrantRule()
 			{
 				RuleType = RoleGrantRuleType.Role,
+				SameAsRole = copyFrom
+			});
+            return this;
+        }
+		
+		/// <summary>
+		/// Grants the same perms as the given role. 
+		/// If no other rules apply, the given role will be used.
+		/// </summary>
+		/// <param name="copyFrom"></param>
+		/// <returns></returns>
+		public Role GrantTheSameAsImportant(Role copyFrom)
+        {
+			AddRule(new RoleGrantRule()
+			{
+				RuleType = RoleGrantRuleType.Role | RoleGrantRuleType.Important,
 				SameAsRole = copyFrom
 			});
             return this;
@@ -421,6 +423,24 @@ namespace Api.Permissions
 		public string FilterQuery;
 
 
+		/// <summary>
+		/// If the previous chain resolves to true, then all the given capabilities will be granted.
+		/// </summary>
+		/// <param name="capabilityNames"></param>
+		/// <returns></returns>
+		public Role ThenGrantImportant(params string[] capabilityNames)
+		{
+			Role.AddRule(
+				new RoleGrantRule()
+				{
+					FilterQuery = FilterQuery,
+					Patterns = capabilityNames,
+					RuleType = RoleGrantRuleType.Single | RoleGrantRuleType.Important,
+				}
+			);
+			return Role;
+		}
+		
 		/// <summary>
 		/// If the previous chain resolves to true, then all the given capabilities will be granted.
 		/// </summary>

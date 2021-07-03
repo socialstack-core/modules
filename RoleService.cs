@@ -11,6 +11,7 @@ using System.Collections;
 using System.Reflection;
 using Api.Startup;
 using System.Linq;
+using Newtonsoft.Json.Linq;
 
 namespace Api.Permissions
 {
@@ -109,27 +110,174 @@ namespace Api.Permissions
 						map[role.Id] = role;
 					}
 
-					foreach (var role in all)
-					{
-						if (role.InheritedRoleId != 0)
-						{
-							role.GrantTheSameAs(map[role.InheritedRoleId]);
-						}
-					}
-
 					// Apply the major roles such as Developer etc:
 					Roles.Developer = map[1];
 					Roles.Admin = map[2];
 					Roles.Guest = map[3];
 					Roles.Member = map[4];
-					// Banned = Role 5
+					Roles.Banned = map[5];
 					Roles.Public = map[6];
 
 					// Construct the default grants:
 					await Events.CapabilityOnSetup.Dispatch(ctx, null);
+
+					// Override:
+					foreach (var role in all)
+					{
+						var sameAs = role.InheritedRoleId == 0 ? null : map[role.InheritedRoleId];
+
+						// Load its grant rule JSON:
+						SetupGrants(role, sameAs);
+					}
+
 				}
 			});
 
+			Events.Role.AfterCreate.AddEventListener(async (Context context, Role role) =>
+			{
+				if (role == null)
+				{
+					return null;
+				}
+
+				Role inheritRole = null;
+
+				if (role.InheritedRoleId != 0)
+				{
+					// Get the role:
+					inheritRole = await Get(context, role.InheritedRoleId, DataOptions.IgnorePermissions);
+				}
+
+				SetupGrants(role, inheritRole);
+
+				return role;
+			});
+
+			Events.Role.AfterUpdate.AddEventListener(async (Context context, Role role) =>
+			{
+				if (role == null)
+				{
+					return null;
+				}
+
+				Role inheritRole = null;
+
+				if (role.InheritedRoleId != 0)
+				{
+					// Get the role:
+					inheritRole = await Get(context, role.InheritedRoleId, DataOptions.IgnorePermissions);
+				}
+
+				SetupGrants(role, inheritRole);
+
+				return role;
+			});
+
+			Events.Role.Received.AddEventListener(async (Context context, Role role, int type) =>
+			{
+				if (role == null)
+				{
+					return null;
+				}
+
+				Role inheritRole = null;
+
+				if (role.InheritedRoleId != 0)
+				{
+					// Get the role:
+					inheritRole = await Get(context, role.InheritedRoleId, DataOptions.IgnorePermissions);
+				}
+
+				SetupGrants(role, inheritRole);
+
+				return role;
+			});
+
+		}
+
+		/// <summary>
+		/// Loads the grant rules from the roles custom JSON.
+		/// </summary>
+		/// <param name="role"></param>
+		/// <param name="grantSameAs"></param>
+		private void SetupGrants(Role role, Role grantSameAs)
+		{
+			if (role == null)
+			{
+				return;
+			}
+
+			// Clear all important grants:
+			role.ClearImportantRules();
+
+			if (grantSameAs != null)
+			{
+				role.GrantTheSameAsImportant(grantSameAs);
+			}
+
+			if (string.IsNullOrWhiteSpace(role.GrantRuleJson))
+			{
+				return;
+			}
+
+			try
+			{
+				var ruleJson = Newtonsoft.Json.JsonConvert.DeserializeObject(role.GrantRuleJson) as JObject;
+
+				// Special case if we have a * - resolve it first:
+				if (ruleJson["*"] != null)
+				{
+					var grantEverythingRule = ruleJson["*"];
+
+					if (grantEverythingRule.Type == JTokenType.Boolean)
+					{
+						if (grantEverythingRule.Value<bool>())
+						{
+							role.GrantEverythingImportant();
+						}
+						else
+						{
+							role.RevokeEverythingImportant();
+						}
+					}
+				}
+
+				foreach (var kvp in ruleJson)
+				{
+					// Capability name:
+					var capName = kvp.Key.Trim().ToLower();
+
+					if (capName == "*")
+					{
+						continue;
+					}
+
+					// Grant rule:
+					var grantRule = kvp.Value;
+
+					if (grantRule.Type == JTokenType.Boolean)
+					{
+						// True = always granted, false = always denied.
+						if (grantRule.Value<bool>())
+						{
+							role.GrantImportant(capName);
+						}
+						else
+						{
+							role.RevokeImportant(capName);
+						}
+					}
+					else if (grantRule.Type == JTokenType.String)
+					{
+						var grant = grantRule.Value<string>();
+						role.If(grant).ThenGrantImportant(capName);
+					}
+				}
+			}
+			catch (Exception e)
+			{
+				Console.WriteLine("[WARN] Unable to parse role JSON for role #" + role.Id + ". Here was the error:" + e.ToString());
+			}
 		}
 
 		private bool started;

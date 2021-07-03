@@ -26,6 +26,10 @@ namespace Api.Permissions
 		/// </summary>
 		public static Role Member;
 		/// <summary>
+		/// The role used by users that have been marked as banned.
+		/// </summary>
+		public static Role Banned;
+		/// <summary>
 		/// The role used by users who aren't logged in.
 		/// </summary>
 		public static Role Public;

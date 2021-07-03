@@ -1,4 +1,5 @@
 using Api.Permissions;
+using System;
 using System.Collections.Generic;
 
 
@@ -23,5 +24,5 @@ namespace Api.Eventing
 		public static EventGroup<Role> Role;
 		
 	}
-	
+
 }
