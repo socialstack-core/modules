@@ -34,7 +34,7 @@ export default class PermissionGrid extends React.Component {
 				try{
 					grants = JSON.parse(this.props.value || this.props.defaultValue);
 					
-					if(Array.isArray(grants)){
+					if(!grants || Array.isArray(grants)){
 						grants = {};
 					}
 				}catch(e){
@@ -266,6 +266,7 @@ export default class PermissionGrid extends React.Component {
 					this.setState({dropdownType: e.target.value});
 				}}
 				value={this.state.dropdownType}
+				defaultValue={this.state.dropdownType}
 			>
 				[
 					<option value = {"inherited"}>
