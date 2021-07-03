@@ -836,8 +836,8 @@ namespace Api.WebSockets
 				if (entity != null)
 				{
 					var ctx = current.Client.Context;
-					// Note that the last arg of Match is the UserFilter because it's stateful.
-					if (current.PermFilter != null && !current.PermFilter.Match(ctx, entity, current.UserFilter))
+					// Never in an included scope here.
+					if (current.PermFilter != null && !current.PermFilter.Match(ctx, entity, false))
 					{
 						// Skip this user
 						current = current.Next;
