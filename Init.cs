@@ -248,13 +248,13 @@ namespace Api.Permissions
 			}
 
 			// Add an event handler at priority 1 (runs before others).
-			handler.AddEventListener((Context context, T content) =>
+			handler.AddEventListener(async (Context context, T content) =>
 			{
 				// Note: The following code is very similar to handler.TestCapability(context, content) which is used for manual mode.
 
 				if (context.IgnorePermissions || content == null)
 				{
-					return new ValueTask<T>(content);
+					return content;
 				}
 
 				// Check if the capability is granted.
@@ -269,10 +269,10 @@ namespace Api.Permissions
 					throw PermissionException.Create(capability.Name, context, "No role");
 				}
 
-				if (role.IsGranted(capability, context, content))
+				if (await role.IsGranted(capability, context, content, false))
 				{
 					// It's granted - return the first arg:
-					return new ValueTask<T>(content);
+					return content;
 				}
 
 				throw PermissionException.Create(capability.Name, context);

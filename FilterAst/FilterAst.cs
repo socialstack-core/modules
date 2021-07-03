@@ -82,9 +82,9 @@ namespace Api.Permissions{
 			// Use specialised IsIncluded node:
 			return new IsIncludedFilterTreeNode<T,ID>();
 		}
-		
+
 		/// <summary>
-		/// True if a 
+		/// True for rows that have a mapping to the given target object.
 		/// </summary>
 		/// <typeparam name="T"></typeparam>
 		/// <typeparam name="ID"></typeparam>
@@ -231,9 +231,9 @@ namespace Api.Permissions{
 	public static class FilterAst
 	{
 		/// <summary>
-		/// FilterBase.FirstACollector
+		/// FilterBase.FirstCollector
 		/// </summary>
-		public static FieldInfo _firstACollector;
+		public static FieldInfo _firstCollector;
 		
 		/// <summary>
 		/// FilterBase.NullCheck
@@ -254,11 +254,6 @@ namespace Api.Permissions{
 		/// The Type[] signature for generated Collect methods.
 		/// </summary>
 		public static Type[] _collectSignature;
-
-		/// <summary>
-		/// FilterBase.FirstBCollector
-		/// </summary>
-		public static FieldInfo _firstBCollector;
 
 		/// <summary>
 		/// Date parsing. Supports numeric tick counts as well as actual date strings.
@@ -672,24 +667,9 @@ namespace Api.Permissions{
 				// Create a var which ref's the current collector (always local 0):
 				writerBody.DeclareLocal(typeof(IDCollector));
 
-				// Set its value to the first collector. We know which to use based on if the given filter arg == this one.
-				// If they are the same, then "this" is filter A.
-				var isFilterB = writerBody.DefineLabel();
-				var storeAsLocal = writerBody.DefineLabel();
-
-				// For the Ldfld (both load from same target object, arg3):
-				writerBody.Emit(OpCodes.Ldarg_3);
-
-				// If this==Arg_3
+				// For the Ldfld (both load from same target object, this):
 				writerBody.Emit(OpCodes.Ldarg_0);
-				writerBody.Emit(OpCodes.Ldarg_3);
-				writerBody.Emit(OpCodes.Ceq);
-				writerBody.Emit(OpCodes.Brfalse, isFilterB);
-				writerBody.Emit(OpCodes.Ldfld, FilterAst._firstACollector);
-				writerBody.Emit(OpCodes.Br, storeAsLocal);
-				writerBody.MarkLabel(isFilterB);
-				writerBody.Emit(OpCodes.Ldfld, FilterAst._firstBCollector);
-				writerBody.MarkLabel(storeAsLocal);
+				writerBody.Emit(OpCodes.Ldfld, FilterAst._firstCollector);
 				writerBody.Emit(OpCodes.Stloc_0);
 			}
 
@@ -1095,13 +1075,12 @@ namespace Api.Permissions{
 			var matchMethod = TypeBuilder.DefineMethod(
 				"Match",
 				MethodAttributes.Public | MethodAttributes.HideBySig | MethodAttributes.Virtual,
-				typeof(bool), new Type[] { typeof(Context), typeof(object), typeof(FilterBase) }
+				typeof(bool), new Type[] { typeof(Context), typeof(object), typeof(bool) }
 			);
 
-			if (FilterAst._firstACollector == null)
+			if (FilterAst._firstCollector == null)
 			{
-				FilterAst._firstACollector = typeof(FilterBase).GetField("FirstACollector");
-				FilterAst._firstBCollector = typeof(FilterBase).GetField("FirstBCollector");
+				FilterAst._firstCollector = typeof(FilterBase).GetField(nameof(FilterBase.FirstCollector));
 			}
 
 			ILGenerator writerBody = matchMethod.GetILGenerator();
@@ -2718,25 +2697,14 @@ namespace Api.Permissions{
 		}
 
 		/// <summary>
-		/// The FilterBase.Included field.
-		/// </summary>
-		private static FieldInfo _fromField;
-
-		/// <summary>
 		/// 
 		/// </summary>
 		/// <param name="generator"></param>
 		/// <param name="ast"></param>
 		public override void Emit(ILGenerator generator, FilterAst<T, ID> ast)
 		{
-			if (_fromField == null)
-			{
-				_fromField = typeof(FilterBase).GetField(nameof(FilterBase.Included));
-			}
-
-			// Arg 3 is the filter that holds state, such as the "Included" status:
+			// Arg 3 is the the isIncluded arg on Match:
 			generator.Emit(OpCodes.Ldarg_3);
-			generator.Emit(OpCodes.Ldfld, _fromField);
 		}
 	}
 

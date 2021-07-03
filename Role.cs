@@ -309,19 +309,26 @@ namespace Api.Permissions
 		/// <param name="extraArg">
 		/// E.g. the Forum object to check if access is granted for.
 		/// </param>
+		/// <param name="isIncluded">True if we're currently evaluating from within an included context.</param>
 		/// <returns></returns>
-		public bool IsGranted(Capability capability, Context context, object extraArg)
+		public async ValueTask<bool> IsGranted(Capability capability, Context context, object extraArg, bool isIncluded)
 		{
 			CheckForNewCapabilities();
 			var handler = CapabilityLookup[capability.InternalId];
 
-            if (handler == null)
+			if (handler == null)
             {
 				return false;
 			}
 
-            // Ask the handler:
-            return handler.Match(context, extraArg, handler);
+			// Ensure perm filter is prepped:
+			if (handler.RequiresSetup)
+			{
+				await handler.Setup();
+			}
+
+			// Ask the handler:
+			return handler.Match(context, extraArg, isIncluded);
         }
 
 		private void CheckForNewCapabilities()

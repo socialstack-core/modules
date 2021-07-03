@@ -92,11 +92,6 @@ namespace Api.Permissions
 		public bool MappingBindingsLoaded;
 
 		/// <summary>
-		/// Task if mapping binding is going to be a slow load.
-		/// </summary>
-		private Task MappingBindingLoader = null;
-
-		/// <summary>
 		/// Underlying loop setting up each one
 		/// </summary>
 		/// <returns></returns>
@@ -218,7 +213,7 @@ namespace Api.Permissions
 				f.Empty = false;
 			}
 
-			f.Included = HasRootedOn;
+			f.IsIncluded = HasRootedOn;
 			f.Pool = this;
 			return f;
 		}
@@ -254,20 +249,29 @@ namespace Api.Permissions
 		public bool SortAscending = true;
 
 		/// <summary>
-		/// Set to true if arriving via includes (or an "on":{} list filter).
-		/// </summary>
-		/// <returns></returns>
-		public bool Included;
-
-		/// <summary>
 		/// First IDcollector for filter A. Both chains are stored on filterA as it's user specific.
 		/// </summary>
-		public IDCollector FirstACollector;
+		public IDCollector FirstCollector;
 
 		/// <summary>
-		/// First IDcollector for filter B. Both chains are stored on filterA as it's user specific.
+		/// True if this filter requires Setup() to be called.
 		/// </summary>
-		public IDCollector FirstBCollector;
+		/// <returns></returns>
+		public virtual bool RequiresSetup
+		{
+			get
+			{
+				return false;
+			}
+		}
+
+		/// <summary>
+		/// Call this to perform any async setup. Must ensure this has been done before attempting Match.
+		/// </summary>
+		public virtual ValueTask Setup()
+		{
+			return new ValueTask();
+		}
 
 		/// <summary>
 		/// Errors when a null is given for a non-nullable field.
@@ -407,9 +411,9 @@ namespace Api.Permissions
 		/// </summary>
 		/// <param name="context"></param>
 		/// <param name="value"></param>
-		/// <param name="filterA">A filter which can hold state. Permission system filters can't hold state, so use the given one instead.</param>
+		/// <param name="isIncluded">True if the match is taking place within an inclusion context.</param>
 		/// <returns></returns>
-		public virtual bool Match(Context context, object value, FilterBase filterA)
+		public virtual bool Match(Context context, object value, bool isIncluded)
 		{
 			// No filter - pass by default.
 			return true;
@@ -434,6 +438,10 @@ namespace Api.Permissions
 		where ID : struct, IConvertible, IEquatable<ID>, IComparable<ID>
 	{
 		/// <summary>
+		/// True if we're in an inclusion context.
+		/// </summary>
+		public bool IsIncluded;
+		/// <summary>
 		/// The pool that the object came from.
 		/// </summary>
 		public FilterMeta<T, ID> Pool;
@@ -456,6 +464,26 @@ namespace Api.Permissions
 			}
 		}
 
+		/// <summary>
+		/// True if this filter requires Setup() to be called.
+		/// </summary>
+		/// <returns></returns>
+		public override bool RequiresSetup
+		{
+			get
+			{
+				return Pool != null && !Pool.MappingBindingsLoaded;
+			}
+		}
+
+		/// <summary>
+		/// Call this to perform any async setup. Must ensure this has been done before attempting Match.
+		/// </summary>
+		public override async ValueTask Setup()
+		{
+			await Pool.SetupMappingBindings();
+		}
+	
 		/// <summary>
 		/// Gets the map at the given index. Is always a mappingservice, 
 		/// and is setup before this ever gets invoked provided GetResults is used with the filter.
@@ -500,9 +528,9 @@ namespace Api.Permissions
 		/// <returns></returns>
 		public async ValueTask<IDCollector> RentAndCollect(Context context, AutoService src)
 		{
-			if (!Pool.MappingBindingsLoaded)
+			if (RequiresSetup)
 			{
-				await Pool.SetupMappingBindings();
+				await Setup();
 			}
 
 			if (Pool.CollectorMeta == null)
