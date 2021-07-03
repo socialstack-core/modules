@@ -497,7 +497,7 @@ public partial class AutoService<T, ID>{
 			// DB hit.
 			var f = Where(setField + "=[?]")
 			.Bind(collectedIds);
-			f.Included = viaIncludes;
+			f.IsIncluded = viaIncludes;
 
 			await f
 			.ListAll(
@@ -606,7 +606,7 @@ public partial class AutoService<T, ID>{
 			// DB hit.
 			var f = Where("Id=[?]", DataOptions.IgnorePermissions)
 			.Bind(collectedIds);
-			f.Included = viaIncludes;
+			f.IsIncluded = viaIncludes;
 
 			await f.ListAll(
 				context,
