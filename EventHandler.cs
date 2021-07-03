@@ -179,7 +179,7 @@ namespace Api.Eventing
 		/// <param name="context"></param>
 		/// <param name="content"></param>
 		/// <returns></returns>
-		public T1 TestCapability(Context context, T1 content)
+		public async ValueTask<T1> TestCapability(Context context, T1 content)
 		{
 			if (context.IgnorePermissions)
 			{
@@ -209,7 +209,7 @@ namespace Api.Eventing
 				throw PermissionException.Create(Capability.Name, context, "No role");
 			}
 
-			if (role.IsGranted(Capability, context, content))
+			if (await role.IsGranted(Capability, context, content, false))
 			{
 				// It's granted - return the first arg:
 				return content;
