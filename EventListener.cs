@@ -17,7 +17,134 @@ namespace Api.Users
 	   /// </summary>
 	   public NameEventHandler()
 	   {
-		   
+
+			ComposableChangeField fullName = null;
+			ComposableChangeField firstLast = null;
+			
+			Events.User.BeforeSettable.AddEventListener((Context ctx, JsonField<User, uint> field) => {
+
+				if (field == null)
+				{
+					return new ValueTask<JsonField<User, uint>>(field);
+				}
+
+				if (field.Name == "FirstName")
+				{
+					// When FirstName is set, update FullName automatically.
+					field.OnSetValue.AddEventListener((Context ctx, object v, User user, Newtonsoft.Json.Linq.JToken token) =>
+					{
+						if (fullName == null)
+						{
+							fullName = Services.Get<UserService>().GetChangeField("FullName");
+						}
+
+						var fName = v as string;
+
+						if (string.IsNullOrEmpty(fName))
+						{
+							if (string.IsNullOrEmpty(user.LastName))
+							{
+								user.FullName = "";
+							}
+							else
+							{
+								user.FullName = user.LastName;
+							}
+						}
+						else if (string.IsNullOrEmpty(user.LastName))
+						{
+							user.FullName = fName;
+						}
+						else
+						{
+							user.FullName = fName + " " + user.LastName;
+						}
+
+						user.MarkChanged(fullName);
+
+						return new ValueTask<object>(v);
+					});
+				}
+				else if (field.Name == "LastName")
+				{
+					// When LastName is set, update FullName automatically.
+					field.OnSetValue.AddEventListener((Context ctx, object v, User user, Newtonsoft.Json.Linq.JToken token) =>
+					{
+						if (fullName == null)
+						{
+							fullName = Services.Get<UserService>().GetChangeField("FullName");
+						}
+
+						var lName = v as string;
+
+						if (string.IsNullOrEmpty(user.FirstName))
+						{
+							if (string.IsNullOrEmpty(lName))
+							{
+								user.FullName = "";
+							}
+							else
+							{
+								user.FullName = lName;
+							}
+						}
+						else if (string.IsNullOrEmpty(lName))
+						{
+							user.FullName = user.FirstName;
+						}
+						else
+						{
+							user.FullName = user.FirstName + " " + lName;
+						}
+
+						user.MarkChanged(fullName);
+
+						return new ValueTask<object>(v);
+					});
+				}
+				else if (field.Name == "FullName")
+				{
+					// When FullName is set, update First + LastName automatically.
+					field.OnSetValue.AddEventListener((Context ctx, object v, User user, Newtonsoft.Json.Linq.JToken token) =>
+					{
+						if (firstLast == null)
+						{
+							firstLast = Services.Get<UserService>().GetChangeField("FirstName").And("LastName");
+						}
+
+						var fullName = v as string;
+
+						if (fullName == null)
+						{
+							user.FirstName = null;
+							user.LastName = null;
+						}
+						else
+						{
+							fullName = fullName.Trim();
+							var firstSpace = fullName.IndexOf(' ');
+							if (firstSpace == -1)
+							{
+								user.FirstName = fullName;
+								user.LastName = null;
+							}
+							else
+							{
+								user.FirstName = fullName.Substring(0, firstSpace);
+								user.LastName = fullName.Substring(firstSpace + 1);
+							}
+						}
+
+						user.MarkChanged(firstLast);
+
+						return new ValueTask<object>(v);
+					});
+				}
+
+				return new ValueTask<JsonField<User, uint>>(field);
+			});
+
+			// For users created via other APIs:
 		   Events.User.BeforeCreate.AddEventListener((Context ctx, User user) => {
 			   
 			   if(user == null)
@@ -47,8 +174,6 @@ namespace Api.Users
 			   
 			   return new ValueTask<User>(user);
 		   });
-
-			ComposableChangeField fullName = null;
 
 		   Events.User.BeforeUpdate.AddEventListener((Context ctx, User user) => {
 			   
