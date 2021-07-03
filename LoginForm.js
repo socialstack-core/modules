@@ -36,7 +36,24 @@ export default props => {
 				}
 				
 				setSession(response);
+				
 				if(!props.noRedirect){
+					// If there is a then arg in the url, redirect to that.
+					if(location.search){
+						var args = {};
+						var pieces = location.search.substring(1).split('&');
+						for(var i=0;i<pieces.length;i++){
+							var queryPart = pieces[i].split('=', 2);
+							args[queryPart[0]] = queryPart.length == 2 ? decodeURIComponent(queryPart[1]) : true;
+						}
+						
+						// The provided URL must be relative to site root only.
+						if(args.then && args.then.length>1 && args.then[0] == '/' && args.then[1] != '/'){
+							setPage(args.then);
+							return;
+						}
+					}
+					
 					setPage(props.redirectTo || '/');
 				}
 				props.onLogin && props.onLogin(response, setPage, setSession, props);
