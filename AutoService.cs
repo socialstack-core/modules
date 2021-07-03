@@ -748,10 +748,15 @@ public partial class AutoService<T, ID> : AutoService
 			queryPair.QueryB = EmptyFilter;
 		}
 
-		// Next, rent any necessary collectors, and execute the collections.
+		// Next, rent any necessary collectors, and execute the collections. RentAndCollect internally performs Setup as well.
 		// The first time this happens on a given filter type may also cause the mapping services to load, thus it is awaitable.
-		queryPair.QueryA.FirstACollector = await queryPair.QueryA.RentAndCollect(context, this);
-		queryPair.QueryA.FirstBCollector = await queryPair.QueryB.RentAndCollect(context, this);
+		queryPair.QueryA.FirstCollector = await queryPair.QueryA.RentAndCollect(context, this);
+
+		// Ensure B is setup:
+		if (queryPair.QueryB.RequiresSetup)
+		{
+			await queryPair.QueryB.Setup();
+		}
 
 		// Do we have a cache?
 		var cache = (filter.DataOptions & DataOptions.CacheFlag) == DataOptions.CacheFlag ? GetCacheForLocale(context.LocaleId) : null;
@@ -772,14 +777,15 @@ public partial class AutoService<T, ID> : AutoService
 		}
 
 		// If collectors were made, let's now release them.
-		if(queryPair.QueryA.FirstACollector != null)
+		if(queryPair.QueryA.FirstCollector != null)
         {
-			queryPair.QueryA.FirstACollector.Release();
-		}
-
-		if (queryPair.QueryA.FirstBCollector != null)
-		{
-			queryPair.QueryA.FirstBCollector.Release();
+			var col = queryPair.QueryA.FirstCollector;
+			while (col != null)
+			{
+				var next = col.NextCollector;
+				col.Release();
+				col = next;
+			}
 		}
 
 		return total;
@@ -1306,18 +1312,18 @@ public partial class AutoService<T, ID> : AutoService
 	/// <param name="entity"></param>
 	/// <param name="options"></param>
 	/// <returns></returns>
-	public ValueTask<bool> StartUpdate(Context context, T entity, DataOptions options = DataOptions.Default)
+	public async ValueTask<bool> StartUpdate(Context context, T entity, DataOptions options = DataOptions.Default)
 	{
 		if (options != DataOptions.IgnorePermissions)
 		{
 			// Perform the permission test now:
-			EventGroup.BeforeUpdate.TestCapability(context, entity);
+			await EventGroup.BeforeUpdate.TestCapability(context, entity);
 		}
 
 		// Reset marked changes:
 		entity.ResetChanges();
 
-		return new ValueTask<bool>(true);
+		return true;
 	}
 
 	/// <summary>

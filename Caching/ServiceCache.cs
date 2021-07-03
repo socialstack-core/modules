@@ -153,6 +153,7 @@ namespace Api.Startup{
 			// FilterA and FilterB are never null.
 			var filterA = queryPair.QueryA;
 			var filterB = queryPair.QueryB;
+			var isIncluded = filterA.IsIncluded;
 
 			var total = 0;
 			var includeTotal = filterA.IncludeTotal;
@@ -165,7 +166,7 @@ namespace Api.Startup{
 
 				foreach (var kvp in Primary)
 				{
-					if (filterA.Match(context, kvp.Value, filterA) && filterB.Match(context, kvp.Value, filterA))
+					if (filterA.Match(context, kvp.Value, isIncluded) && filterB.Match(context, kvp.Value, isIncluded))
 					{
 						set.Add(kvp.Value);
 					}
@@ -209,7 +210,7 @@ namespace Api.Startup{
 			{
 				foreach (var kvp in Primary)
 				{
-					if (filterA.Match(context, kvp.Value, filterA) && filterB.Match(context, kvp.Value, filterA))
+					if (filterA.Match(context, kvp.Value, isIncluded) && filterB.Match(context, kvp.Value, isIncluded))
 					{
 						var pageFill = total - filterA.Offset;
 						total++;
