@@ -1374,10 +1374,11 @@ namespace Api.SocketServerLibrary {
 		/// <param name="length"></param>
 		public void ThenReadXListItems(ulong length)
 		{
-			ArrayCount1 = length;
+			// Length is offset by 1. 0 indicates null, 1 is empty set.
+			ArrayCount1 = length - 1;
 			CurrentStringList = null;
 
-			if (length == 0)
+			if (length <= 1)
 			{
 				var cb = (Action<List<string>>)Pop(); // cb
 				cb(CurrentStringList);

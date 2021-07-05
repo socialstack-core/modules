@@ -356,7 +356,7 @@ namespace Api.SocketServerLibrary
 			}
 			else
 			{
-				WriteCompressed((ulong)value.Count);
+				WriteCompressed((ulong)(value.Count + 1));
 
 				foreach (var val in value)
 				{
@@ -1121,8 +1121,8 @@ namespace Api.SocketServerLibrary
 				}
 			}
 
-			// Write the length:
-			WriteCompressed(length);
+			// Write the length (offset by 1 for null):
+			WriteCompressed(length+1);
 
 			// Next, write the chars:
 			WriteCharStream(charStream);
@@ -1141,6 +1141,7 @@ namespace Api.SocketServerLibrary
 			}
 
 			var s = str.AsSpan();
+			WriteCompressed((ulong)(s.Length + 1));
 			Write(s, 0, s.Length);
 		}
 
@@ -1157,7 +1158,7 @@ namespace Api.SocketServerLibrary
 			}
 
 			var s = MemoryMarshal.AsBytes(str.AsSpan());
-			WriteCompressed((ulong)s.Length);
+			WriteCompressed((ulong)(s.Length+1));
 			Write(s, 0, s.Length);
 		}
 
