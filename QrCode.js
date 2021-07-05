@@ -1,4 +1,6 @@
-import Qr from 'UI/Functions/Qr';
+import {lazyLoad} from 'UI/Functions/WebRequest';
+import getRef from 'UI/Functions/GetRef';
+import qrRef from './static/qr.js';
 
 // Uses https://github.com/davidshimjs/qrcodejs (the imported module)
 export default class QrCode extends React.Component{
@@ -16,19 +18,21 @@ export default class QrCode extends React.Component{
 	}
 	
 	redraw(props){
-		var div = this.divRef.current;
+		lazyLoad(getRef(qrRef, {url:1})).then(exp => {
+			var div = this.divRef.current;
 
-		while(div.firstChild){
-			div.removeChild(div.firstChild);
-		}
+			while(div.firstChild){
+				div.removeChild(div.firstChild);
+			}
 
-		var qrcode = new Qr(this.divRef.current, {
-			text: this.props.text,
-			width: this.props.width || 128,
-			height: this.props.height || 128,
-			colorDark : "#000000",
-			colorLight : "#ffffff",
-			correctLevel : Qr.CorrectLevel.H
+			var qrcode = new exp.QRCode(this.divRef.current, {
+				text: this.props.text,
+				width: this.props.width || 128,
+				height: this.props.height || 128,
+				colorDark : "#000000",
+				colorLight : "#ffffff",
+				correctLevel : exp.QRCode.CorrectLevel.H
+			});
 		});
 	}
 	
