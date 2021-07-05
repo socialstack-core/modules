@@ -150,7 +150,26 @@ function mapWhere(where, args){
 	return str;
 }
 
-export { expandIncludes };
+const _lazyCache = {};
+
+/*
+* Lazy loads a .js file represented by a url.
+*/
+function lazyLoad(url){
+	var entry = _lazyCache[url];
+	if(!entry){
+		entry = webRequest(url, null, {blob:1})
+		.then(resp => resp.blob.text())
+		.then(js => {
+			_lazyCache[url]=eval('var ex={};(function(global,exports){'+js+'})(global,ex);Promise.resolve(ex);');
+			return _lazyCache[url];
+		});
+		_lazyCache[url] = entry;
+	}
+	return entry;
+}
+
+export { expandIncludes, lazyLoad };
 
 export default function webRequest(origUrl, data, opts) {
 	var url = (origUrl.indexOf('http') === 0 || origUrl[0] == '/') ? origUrl : (global.apiHost || '') + '/v1/' + origUrl;
