@@ -2,6 +2,7 @@
 using Api.Eventing;
 using Api.Startup;
 using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
 using System.Threading.Tasks;
 
 namespace Api.Users
@@ -38,7 +39,7 @@ namespace Api.Users
 							fullName = Services.Get<UserService>().GetChangeField("FullName");
 						}
 
-						var fName = v as string;
+						var fName = token.Type == JTokenType.String ? (token as JToken).Value<string>() : null;
 
 						if (string.IsNullOrEmpty(fName))
 						{
@@ -75,7 +76,7 @@ namespace Api.Users
 							fullName = Services.Get<UserService>().GetChangeField("FullName");
 						}
 
-						var lName = v as string;
+						var lName = token.Type == JTokenType.String ? (token as JToken).Value<string>() : null;
 
 						if (string.IsNullOrEmpty(user.FirstName))
 						{
@@ -112,7 +113,7 @@ namespace Api.Users
 							firstLast = Services.Get<UserService>().GetChangeField("FirstName").And("LastName");
 						}
 
-						var fullName = v as string;
+						var fullName = token.Type == JTokenType.String ? (token as JToken).Value<string>() : null;
 
 						if (fullName == null)
 						{
