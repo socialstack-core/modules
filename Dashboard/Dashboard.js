@@ -7,11 +7,11 @@ import { useSession } from 'UI/Session';
 export default function Dashboard (props, context) {
 	
 	const { session } = useSession();
-	var { role } = session;
+	var { role, user } = session;
 	
 	return (
 		<Default>
-			<Content type='userrole' id={role.id}>
+			{role && user && <Content type='userrole' id={role.id}>
 				{userRole => {
 					if(!userRole){
 						return null;
@@ -38,7 +38,7 @@ export default function Dashboard (props, context) {
 						{userRole.dashboardJson}
 					</Canvas>;
 				}}
-			</Content>
+			</Content>}
 		</Default>	
 	);
 	
