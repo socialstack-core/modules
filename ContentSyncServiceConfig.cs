@@ -22,6 +22,11 @@ namespace Api.ContentSync
 		/// True if the sync file should be explicitly enabled/ disabled.
 		/// </summary>
 		public bool? SyncFileMode { get; set; }
+
+		/// <summary>
+		/// Custom hostname override. Usually leave this blank.
+		/// </summary>
+		public string HostName { get; set; }
 	}
 	
 }

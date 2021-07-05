@@ -117,7 +117,7 @@ namespace Api.ContentSync
 			}
 
 			// Get system name:
-			var name = System.Environment.MachineName.ToString();
+			var name = string.IsNullOrEmpty(_configuration.HostName) ? System.Environment.MachineName.ToString() : _configuration.HostName;
 			HostName = name;
 
 			Events.Service.AfterStart.AddEventListener((Context ctx, object s) => {
@@ -577,9 +577,10 @@ namespace Api.ContentSync
 				{
 					continue;
 				}
-				Console.WriteLine("[CSync] Connect to " + serverInfo.PrivateIPv4);
 
 				var ipAddress = new IPAddress(serverInfo.PrivateIPv4);
+
+				Console.WriteLine("[CSync] Connect to " + ipAddress);
 
 				SyncServer.ConnectTo(ipAddress, serverInfo.Port, serverInfo.Id, (ContentSyncServer s) => {
 					s.ServerId = serverInfo.Id;
