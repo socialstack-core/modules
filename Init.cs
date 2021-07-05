@@ -171,9 +171,10 @@ namespace Api.DatabaseDiff
 
 				columns = await _database.List<DatabaseColumnDefinition>(null, listQuery, typeof(DatabaseColumnDefinition));
 			}
-			catch
+			catch(Exception e)
 			{
-				System.Console.WriteLine("[WARNING] DatabaseDiff module disabled. Unsupported version: " + VersionText);
+				System.Console.WriteLine("[WARNING] DatabaseDiff module disabled due to a failure during query execution. The version (which is supported) was: " + VersionText + ". The complete error that occurred follows.");
+				System.Console.WriteLine(e.ToString());
 				VersionCheckResult = false;
 				return null;
 			}
@@ -197,9 +198,14 @@ namespace Api.DatabaseDiff
 				return;
 			}
 
-			var type = service.InstanceType;
-
 			var existingSchema = await LoadSchema();
+			
+			if(existingSchema == null)
+			{
+				return;
+			}
+			
+			var type = service.InstanceType;
 
 			// New schema for this type:
 			var newSchema = new Schema();
