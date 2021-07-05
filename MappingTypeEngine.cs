@@ -78,7 +78,7 @@ namespace Api.Startup
 				if (meta.Generating != null)
 				{
 					// wait for the task to complete:
-					return await meta.Generating;
+					await meta.Generating;
 				}
 
 				return meta.Service;
@@ -90,7 +90,12 @@ namespace Api.Startup
 			{
 				meta = new MappingTypeMeta();
 				_mappers[typeName] = meta;
-				generationTask = Generate(srcType, targetType, typeName).AsTask();
+				
+				generationTask = Task.Run(async () => {
+					meta.Service = await Generate(srcType, targetType, typeName);
+					return meta.Service;
+				});
+
 				meta.Generating = generationTask;
 			}
 
