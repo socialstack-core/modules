@@ -29,8 +29,8 @@ export default class QrCode extends React.Component{
 				text: this.props.text,
 				width: this.props.width || 128,
 				height: this.props.height || 128,
-				colorDark : "#000000",
-				colorLight : "#ffffff",
+				colorDark : this.props.dark || "#000000",
+				colorLight : this.props.light || "#ffffff",
 				correctLevel : exp.QRCode.CorrectLevel.H
 			});
 		});
