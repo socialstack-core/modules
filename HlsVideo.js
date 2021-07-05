@@ -1,9 +1,10 @@
-import webRequest from 'UI/Functions/WebRequest';
-import {Hls as hlsjs} from 'UI/HlsVideo/hls';
+import webRequest, {lazyLoad} from 'UI/Functions/WebRequest';
+import hlsjsRef from './static/hls.js';
 import omit from 'UI/Functions/Omit';
 import getRef from 'UI/Functions/GetRef';
 import cache from 'UI/HlsVideo/Cache';
 
+// {Hls as hlsjs}
 
 export default class HlsVideo extends React.Component {
 	
@@ -69,12 +70,15 @@ export default class HlsVideo extends React.Component {
 	}
 	
 	load(props){
-		if(!hlsjs.isSupported()){
-			return;
-		}
-		this.clear();
-        var hls = this.state.hls = cache(this.getSource(props), this.onManifest);
-		props.onPlayer && props.onPlayer(hls);
+		lazyLoad(getRef(hlsjsRef, {url:1})).then(imported => {
+			var Hls = imported.Hls;
+			if(!Hls.isSupported()){
+				return;
+			}
+			this.clear();
+			var hls = this.state.hls = cache(this.getSource(props), this.onManifest, Hls);
+			props.onPlayer && props.onPlayer(hls);
+		});
 	}
 	
 	getSource(props){

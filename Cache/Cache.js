@@ -1,8 +1,7 @@
-import {Hls as hlsjs} from 'UI/HlsVideo/hls';
 
 var cache = {};
 
-export default function hlsCache (src, onManifest) {
+export default function hlsCache (src, onManifest, Hlsjs) {
 	var hls = cache[src];
 	
 	if(hls){
@@ -12,10 +11,10 @@ export default function hlsCache (src, onManifest) {
 			hls.___manifest.push(onManifest);
 		}
 	}else{
-		hls = new hlsjs({startFragPrefetch: true, liveMaxLatencyDuration: 12, liveSyncDuration: 3});
+		hls = new Hlsjs({startFragPrefetch: true, liveMaxLatencyDuration: 12, liveSyncDuration: 3});
 		hls.loadSource(src);
 		hls.__manif = [onManifest];
-		hls.on(hlsjs.Events.MANIFEST_PARSED, () => {
+		hls.on(Hlsjs.Events.MANIFEST_PARSED, () => {
 			hls.___manifest = true;			
 			hls.__manif.map(s => {
 				s && s();
@@ -73,7 +72,7 @@ export default function hlsCache (src, onManifest) {
 				};
 				hls.__eTimer = setInterval(hls.__tick, 100);
 				
-				hls.on(hlsjs.Events.DESTROYING, () => {
+				hls.on(Hlsjs.Events.DESTROYING, () => {
 					clearInterval(hls.__eTimer);
 				});
 			}
