@@ -54,7 +54,7 @@ namespace Api.Themes
 		/// </summary>
 		private ConfigSet<ThemeConfig> _current;
 
-		private void OutputObject(StringBuilder builder, string prefix, object varSet)
+		private void OutputObject(StringBuilder builder, string prefix, object varSet, bool isDefault = false)
 		{
 			var properties = varSet.GetType().GetProperties();
 
@@ -64,6 +64,13 @@ namespace Api.Themes
 				var value = property.GetValue(varSet);
 				Color fgColor, hoverColor, hoverBorderColor, activeColor, activeBorderColor;
 				string focusShadow;
+
+				var currentIsDefault = isDefault;
+
+				if (lcName == "default")
+				{
+					currentIsDefault = true;
+				}
 
 				if (lcName == "customcss")
 				{
@@ -98,6 +105,16 @@ namespace Api.Themes
 					builder.Append(':');
 					builder.Append(value);
 					builder.Append(';');
+
+					if (currentIsDefault)
+					{
+						builder.Append(lcName);
+
+						// Also very rough!
+						builder.Append(':');
+						builder.Append(value);
+						builder.Append(';');
+					}
 
 					// produce hover/active/focus supporting colours based on each Bootrap variant
 					if (bootstrapVariants.ContainsKey(prefix) && lcName == "background") {
@@ -134,7 +151,7 @@ namespace Api.Themes
 				}
 				else if(value != null)
 				{
-					OutputObject(builder, prefix == null ? lcName : prefix + "-" + lcName, value);
+					OutputObject(builder, prefix == null ? lcName : prefix + "-" + lcName, value, currentIsDefault);
 				}
 			}
 		}
