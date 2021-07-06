@@ -105,6 +105,7 @@ namespace Api.Permissions{
 			return new MappingFilterTreeNode<T, ID>()
 			{
 				SourceMapping = true,
+				IsOn = true,
 				TypeName = (node.Args[0] as StringFilterTreeNode<T, ID>).Value,
 				Id = node.Args[1] as ArgFilterTreeNode<T, ID>,
 				MapName = node.Args.Count > 2 ? (node.Args[2] as StringFilterTreeNode<T, ID>).Value : null
@@ -2543,6 +2544,21 @@ namespace Api.Permissions{
 		/// The mapping binding which stores the resolved map.
 		/// </summary>
 		public MappingBinding<T, ID> Binding;
+
+		/// <summary>
+		/// True if this is an On(..) node
+		/// </summary>
+		public bool IsOn;
+
+		/// <summary>
+		/// True if the node has an on statement.
+		/// Most nodes return false - only and will accept one as a child.
+		/// </summary>
+		/// <returns></returns>
+		public override bool HasRootedOnStatement()
+		{
+			return IsOn;
+		}
 
 		/// <summary>
 		/// 
