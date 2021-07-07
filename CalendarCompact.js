@@ -148,11 +148,24 @@ export default class CalendarCompact extends React.Component {
 		this.setState({currentView: dayMeta, offset: offset});
 
 		// Request for section:
-		this.populateBetween(sliceStart, sliceEnd, dayMeta);
+		this.populateBetween(sliceStart, sliceEnd, dayMeta, props);
 	}
 	
 	componentWillReceiveProps(props){
-		if(props.date && props.date != this.props.date){
+		if((props.date && props.date != this.props.date)){
+			console.log("DATE UPDATED");
+			this.load(0, props);
+			return;
+		}
+
+		console.log("old props", this.props);
+		console.log("new props", props)
+		
+		
+		
+		// If our dataHandlers were updated, let's go ahead and re load the data in the calendar.
+		if((props.dataHandlers && props.dataHandlers != this.props.dataHandlers)) {
+			console.log("I RAN!!!!");
 			this.load(0, props);
 		}
 		
@@ -161,13 +174,16 @@ export default class CalendarCompact extends React.Component {
 	componentDidUpdate(p){
 		var {domNodeIndex} = this.state;
 
-		if(this.calendarRef.current){
+		if(this.calendarRef.current && !this.state.updatedOnce){
 			this.calendarRef.current.childNodes[domNodeIndex].scrollIntoView(true);
+			this.setState({updatedOnce: true})
 		}
+
+
 	}
 
-	populateBetween(start, end, dayMeta){
-		var {dataHandlers} = this.props;
+	populateBetween(start, end, dayMeta, props){
+		var {dataHandlers} = props;
 
 		var dataRequests = dataHandlers.map((handler) =>
 			webRequest(handler.type + "/list", { where: (handler.onGetFilter && handler.onGetFilter(start, end)) || {} }, { includes: handler.includes }).then((response) => {
