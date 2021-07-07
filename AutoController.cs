@@ -24,7 +24,7 @@ using Newtonsoft.Json;
 public partial class AutoController<T,ID>
 {
 
-	private CsvMapping _csvMapping;
+	private CsvMapping<T> _csvMapping;
 
 	/// <summary>
 	/// GET /v1/entityTypeName/list.csv
@@ -32,9 +32,9 @@ public partial class AutoController<T,ID>
 	/// </summary>
 	/// <returns></returns>
 	[HttpGet("list.csv")]
-	public virtual async ValueTask ListCSV([FromQuery] string includes = null)
+	public virtual async Task<FileResult> ListCSV([FromQuery] string includes = null)
 	{
-		await ListCSV(null, includes);
+		return await ListCSV(null, includes);
 	}
 
 	/// <summary>
@@ -61,33 +61,12 @@ public partial class AutoController<T,ID>
 
 		if (_csvMapping == null)
 		{
-			_csvMapping = new CsvMapping(typeof(T));
+			_csvMapping = new CsvMapping<T>();
 		}
 
 		// Not expecting huge CSV's here.
-		var ms = new MemoryStream();
-		var writer = new StreamWriter(ms, System.Text.Encoding.UTF8, -1, true);
-
-		using (var csv = new CsvWriter(writer, CultureInfo.InvariantCulture))
-		{
-			foreach (var field in _csvMapping.Entries)
-			{
-				csv.WriteField(field.Name);
-			}
-
-			foreach (var row in listWithTotal.Results)
-			{
-				csv.NextRecord();
-
-				foreach (var field in _csvMapping.Entries)
-				{
-					csv.WriteField(field.GetValue(row));
-				}
-			}
-		}
-
+		var ms = await _csvMapping.OutputStream(results);
 		ms.Seek(0, SeekOrigin.Begin);
-
 		return File(ms, "text/csv", typeof(T).Name + ".csv");
 	}
 
@@ -96,15 +75,108 @@ public partial class AutoController<T,ID>
 /// <summary>
 /// Custom CSV file mapper
 /// </summary>
-public class CsvMapping
+public class CsvMapping<T>
 {
+	/// <summary>
+	/// Creates a mapping with specific fields
+	/// </summary>
+	/// <param name="customFields"></param>
+	public CsvMapping(string[] customFields)
+	{
+		var t = typeof(T);
+
+		foreach(var fieldName in customFields)
+		{
+			var field = t.GetField(fieldName);
+
+			if (field != null)
+			{
+				Add(new CsvFieldMap<T>()
+				{
+					Name = field.Name,
+					SrcField = field
+				}, field.FieldType);
+				continue;
+			}
+
+			var property = t.GetProperty(fieldName);
+
+			if (property == null)
+			{
+				continue;
+			}
+
+			Add(new CsvFieldMap<T>()
+			{
+				Name = property.Name,
+				SrcProperty = property.GetGetMethod()
+			}, property.PropertyType);
+		}
+	}
+
+	/// <summary>
+	/// The GB culture, primarily for date formatting in DD/MM/YYYY
+	/// </summary>
+	private static CultureInfo _culture;
+
+	/// <summary>
+	/// Use when not expecting a large CSV.
+	/// </summary>
+	/// <param name="results"></param>
+	/// <returns></returns>
+	public async ValueTask<MemoryStream> OutputStream(IEnumerable<T> results)
+	{
+		var ms = new MemoryStream();
+		var writer = new StreamWriter(ms, System.Text.Encoding.UTF8, -1, true);
+
+		if (_culture == null)
+		{
+			_culture = CultureInfo.GetCultureInfo("en-GB");
+		}
+
+		using (var csv = new CsvWriter(writer, _culture))
+		{
+			foreach (var field in Entries)
+			{
+				csv.WriteField(field.Name);
+			}
+
+			foreach (var row in results)
+			{
+				csv.NextRecord();
+
+				foreach (var field in Entries)
+				{
+					await field.WriteValue(row, csv);
+				}
+			}
+		}
+
+		return ms;
+	}
+
+	/// <summary>
+	/// Adds a dynamic field to the CSV set
+	/// </summary>
+	/// <param name="name"></param>
+	/// <param name="onWrite"></param>
+	public void Add(string name, Func<T, CsvWriter, ValueTask> onWrite)
+	{
+		Entries.Add(new CsvFieldMap<T>()
+		{
+			Name = name,
+			AdvancedHandler = onWrite
+		});
+	}
 
 	/// <summary>
 	/// 
 	/// </summary>
 	/// <param name="t"></param>
-	public CsvMapping(Type t)
+	public CsvMapping()
 	{
+		var t = typeof(T);
+
 		// Get all fields (DB fields) - we'll omit them if they're JsonIgnore'd:
 		var fields = t.GetFields();
 
@@ -119,7 +191,7 @@ public class CsvMapping
 				continue;
 			}
 
-			Add(new CsvFieldMap() {
+			Add(new CsvFieldMap<T>() {
 				Name = field.Name,
 				SrcField = field
 			}, field.FieldType);
@@ -133,7 +205,7 @@ public class CsvMapping
 				continue;
 			}
 
-			Add(new CsvFieldMap()
+			Add(new CsvFieldMap<T>()
 			{
 				Name = property.Name,
 				SrcProperty = property.GetGetMethod()
@@ -141,10 +213,17 @@ public class CsvMapping
 		}
 	}
 
-	private void Add(CsvFieldMap map, Type type)
+	private void Add(CsvFieldMap<T> map, Type type)
 	{
 		// If type is an advanced field, apply an AdvancedMapper to the fieldMap.
-		if (type != typeof(int) && type != typeof(string) && type != typeof(DateTime) && type != typeof(bool) && type != typeof(int?))
+		var baseType = Nullable.GetUnderlyingType(type);
+
+		if (baseType == null)
+		{
+			baseType = type;
+		}
+
+		if (!baseType.IsPrimitive && baseType != typeof(string) && baseType != typeof(DateTime))
 		{
 			return;
 		}
@@ -155,14 +234,15 @@ public class CsvMapping
 	/// <summary>
 	/// The list of fields in the mapping.
 	/// </summary>
-	public List<CsvFieldMap> Entries = new List<CsvFieldMap>();
+	public List<CsvFieldMap<T>> Entries = new List<CsvFieldMap<T>>();
 
 }
 
 /// <summary>
 /// A particular field in a CSV map.
 /// </summary>
-public class CsvFieldMap {
+public class CsvFieldMap<T>
+{
 	/// <summary>
 	/// Field name, as it will appear in the CSV.
 	/// </summary>
@@ -179,15 +259,22 @@ public class CsvFieldMap {
 	/// <summary>
 	/// Maps an 'advanced' object. E.g. a list of interests -> comma separated ID's.
 	/// </summary>
-	public Func<object, string> AdvancedHandler;
+	public Func<T, CsvWriter, ValueTask> AdvancedHandler;
 
 	/// <summary>
 	/// Gets this field value for the given object.
 	/// </summary>
 	/// <param name="src"></param>
+	/// <param name="writer"></param>
 	/// <returns></returns>
-	public string GetValue(object src)
+	public async ValueTask WriteValue(T src, CsvWriter writer)
 	{
+		if (AdvancedHandler != null)
+		{
+			await AdvancedHandler(src, writer);
+			return;
+		}
+
 		object value;
 
 		if (SrcField != null)
@@ -199,12 +286,6 @@ public class CsvFieldMap {
 			value = SrcProperty.Invoke(src, null);
 		}
 
-		// If this is a "simple" value type, return it via toString.
-		if (AdvancedHandler == null)
-		{
-			return value == null ? "" : value.ToString();
-		}
-
-		return AdvancedHandler(value);
+		writer.WriteField(value);
 	}
 }
