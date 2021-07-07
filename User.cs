@@ -10,7 +10,7 @@ namespace Api.Users
 	/// A particular user account.
 	/// </summary>
 	[Permissions(HideFieldByDefault = true)]
-	public partial class User : Content<uint>
+	public partial class User : VersionedContent<uint>
 	{
 		/// <summary>
 		/// The user's email address.
@@ -38,11 +38,6 @@ namespace Api.Users
 		public long PrivateVerify;
 		
 		/// <summary>
-		/// The UTC date this user was created.
-		/// </summary>
-		public DateTime JoinedUtc;
-
-		/// <summary>
 		/// The feature image ref (optionally used on their profile page). See also: "Upload.Ref" in the Uploads module.
 		/// </summary>
 		[DatabaseField(Length = 80)]
@@ -67,6 +62,18 @@ namespace Api.Users
 		/// The latest locale this user used. Primarily, this is used for emails being sent to them. If it's null or 0, the site default, 1, is assumed.
 		/// </summary>
 		public uint? LocaleId;
+
+		/// <summary>
+		/// The UTC date this user was created.
+		/// </summary>
+		[Obsolete("Use CreatedUtc instead")]
+		public DateTime JoinedUtc
+		{
+			get {
+				return CreatedUtc;
+			}
+		}
+
 	}
-    
+
 }

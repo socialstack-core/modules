@@ -104,9 +104,6 @@ namespace Api.Users
 				// Generate a private verify value:
 				user.PrivateVerify = RandomLong();
 				
-				// Join date:
-				user.JoinedUtc = DateTime.UtcNow;
-
 				return new ValueTask<User>(user);
 			});
 
@@ -219,7 +216,7 @@ namespace Api.Users
 		/// </summary>
 		public string EmailVerificationHash(User user)
 		{
-			return CreateMD5(user.Id + "" + user.JoinedUtc.Ticks + "" + user.PrivateVerify);
+			return CreateMD5(user.Id + "" + user.CreatedUtc.Ticks + "" + user.PrivateVerify);
 		}
 		
 		private readonly SecureRandom secureRandom = new SecureRandom();
