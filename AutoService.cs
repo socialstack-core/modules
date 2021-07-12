@@ -67,11 +67,11 @@ public partial class AutoService
 				try
 				{
 					var res = Newtonsoft.Json.JsonConvert.DeserializeObject<T>(entry.ConfigJson);
-					_loadedConfiguration = res;
 					res.Id = entry.Id;
 					entry.SetObject = set;
 					entry.ConfigObject = res;
 					set.Configurations.Add(res);
+					configService.UpdateFrontendConfig(res, set);
 				}
 				catch (Exception e)
 				{
@@ -124,6 +124,7 @@ public partial class AutoService
 						_loadedConfiguration = res;
 						result.ConfigObject = res;
 						res.Id = result.Id;
+						configService.UpdateFrontendConfig(res, null);
 						return res;
 					}
 					catch (Exception e)

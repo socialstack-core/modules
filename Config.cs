@@ -1,6 +1,7 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Text;
 using System.Threading.Tasks;
 
 namespace Api.Configuration
@@ -27,6 +28,25 @@ namespace Api.Configuration
 		/// </summary>
 		public event Func<ValueTask> OnChange;
 
+		/// <summary>
+		/// The contents of this config converted to the frontend only JSON. Null if no fields are frontend marked.
+		/// </summary>
+		public string FrontendJson;
+
+		/// <summary>
+		/// True if this is a set of configs.
+		/// </summary>
+		public virtual void AddFrontendJson(StringBuilder sb)
+		{
+			if (FrontendJson == null)
+			{
+				sb.Append("null");
+			}
+			else
+			{
+				sb.Append(FrontendJson);
+			}
+		}
 
 		/// <summary>
 		/// Invoke this to indicate a change has happened.
@@ -45,11 +65,38 @@ namespace Api.Configuration
 	/// A set of configs.
 	/// </summary>
 	public partial class ConfigSet<T> : Config
+		where T:Config
 	{
 		/// <summary>
 		/// The underlying list of configs.
 		/// </summary>
 		public List<T> Configurations;
+
+		/// <summary>
+		/// True if this is a set of configs.
+		/// </summary>
+		public override void AddFrontendJson(StringBuilder sb)
+		{
+			sb.Append('[');
+
+			if (Configurations != null)
+			{
+				for (var i=0;i<Configurations.Count;i++)
+				{
+					if (i != 0)
+					{
+						sb.Append(',');
+					}
+
+					var config = Configurations[i];
+					config.AddFrontendJson(sb);
+				}
+			}
+
+			sb.Append(']');
+
+		}
+
 	}
 
 }
