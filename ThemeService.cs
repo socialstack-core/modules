@@ -38,6 +38,16 @@ namespace Api.Themes
 		public ThemeService()
 		{
 			_current = GetAllConfig<ThemeConfig>();
+			_globalCfg = GetConfig<GlobalThemeConfig>();
+		}
+
+		/// <summary>
+		/// Gets the current latest global config. Use this for e.g. the site logo.
+		/// </summary>
+		/// <returns></returns>
+		public GlobalThemeConfig GetConfig()
+		{
+			return _globalCfg;
 		}
 
 		/// <summary>
@@ -50,9 +60,14 @@ namespace Api.Themes
 		}
 
 		/// <summary>
-		/// Current config.
+		/// Current configured themes.
 		/// </summary>
 		private ConfigSet<ThemeConfig> _current;
+		
+		/// <summary>
+		/// Current global config.
+		/// </summary>
+		private GlobalThemeConfig _globalCfg;
 
 		private void OutputObject(StringBuilder builder, string prefix, object varSet, bool isDefault = false)
 		{

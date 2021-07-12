@@ -3,7 +3,29 @@ using System;
 
 namespace Api.Themes
 {
-	
+
+	/// <summary>
+	/// Global theme configuration values, such as the site logo. Use themeService.GetConfig to access the current instance of this.
+	/// </summary>
+	[Frontend]
+	public partial class GlobalThemeConfig : Config
+	{
+		/// <summary>
+		/// Site logo ref.
+		/// </summary>
+		public string LogoRef { get; set; }
+
+		/// <summary>
+		/// Default theme ID. This is applied to the body if it is non-zero.
+		/// </summary>
+		public uint DefaultThemeId { get; set; }
+
+		/// <summary>
+		/// Default theme ID. This is applied to the body if it is non-zero.
+		/// </summary>
+		public uint DefaultAdminThemeId { get; set; }
+	}
+
 	/// <summary>
 	/// Config for themes.
 	/// The properties on this object directly influences the available fields in the admin panel. So, if you'd like additional theme config options, 
