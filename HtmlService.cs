@@ -17,6 +17,7 @@ using Api.Database;
 using Api.SocketServerLibrary;
 using Api.Permissions;
 using Microsoft.AspNetCore.Http;
+using Api.Themes;
 
 namespace Api.Pages
 {
@@ -31,18 +32,23 @@ namespace Api.Pages
 		private readonly HtmlServiceConfig _config;
 		private readonly FrontendCodeService _frontend;
 		private readonly ContextService _contextService;
+		private readonly ThemeService _themeService;
 		private readonly LocaleService _localeService;
+		private readonly ConfigurationService _configurationService;
 
 		/// <summary>
 		/// Instanced automatically.
 		/// </summary>
-		public HtmlService(PageService pages, CanvasRendererService canvasRendererService, FrontendCodeService frontend, ContextService ctxService, LocaleService localeService)
+		public HtmlService(PageService pages, CanvasRendererService canvasRendererService, FrontendCodeService frontend, ContextService ctxService, 
+				LocaleService localeService, ConfigurationService configurationService, ThemeService themeService)
 		{
 			_pages = pages;
 			_frontend = frontend;
 			_canvasRendererService = canvasRendererService;
 			_contextService = ctxService;
 			_localeService = localeService;
+			_configurationService = configurationService;
+			_themeService = themeService;
 
 			_config = GetConfig<HtmlServiceConfig>();
 
@@ -500,6 +506,11 @@ namespace Api.Pages
 		}
 
 		/// <summary>
+		/// The config json, if there is any.
+		/// </summary>
+		private RawBytesNode _configJson = new RawBytesNode(Array.Empty<byte>());
+
+		/// <summary>
 		/// Note that context may only be used for the role information, not specific user details.
 		/// </summary>
 		/// <param name="context"></param>
@@ -510,6 +521,17 @@ namespace Api.Pages
 		{
 			var isAdmin = path.StartsWith("/en-admin");
 			List<DocumentNode> flatNodes;
+
+			var latestConfigJson = _configurationService.GetNewFrontendConfig();
+
+			if (latestConfigJson != null)
+			{
+				// Cache dump:
+				cache = null;
+				_configJson = new RawBytesNode(Encoding.UTF8.GetBytes(latestConfigJson));
+			}
+
+			var themeConfig = _themeService.GetConfig();
 
 #if !DEBUG
 			if (cache != null && context.LocaleId <= cache.Length)
@@ -547,7 +569,10 @@ namespace Api.Pages
 			doc.Path = path;
 			doc.Title = page.Title; // Todo: permit {token} values in the title which refer to the primary object.
 			doc.SourcePage = page;
-			doc.Html.With("class", isAdmin ? "admin web" : "ui web").With("lang", locale.Code);
+			doc.Html
+				.With("class", isAdmin ? "admin web" : "ui web")
+				.With("lang", locale.Code)
+				.With("data-theme", isAdmin ? themeConfig.DefaultAdminThemeId.ToString() : themeConfig.DefaultThemeId.ToString());
 			
 			// var packDir = isAdmin ? "/en-admin/pack/" : "/pack/";
 
@@ -741,6 +766,7 @@ namespace Api.Pages
 			// Still add the global state init substitution node:
 			body.AppendChild(
 				new DocumentNode("script")
+				.AppendChild(_configJson)
 				.AppendChild(new TextNode("window.gsInit="))
 				.AppendChild(new SubstituteNode(  // This is where user and page specific global state will be inserted. It gets substituted in.
 					async (Context ctx) => {
@@ -750,6 +776,8 @@ namespace Api.Pages
 				.AppendChild(new TextNode(";"))
 			);
 			
+
+
 			// Handle all Before Main JS scripts
 			HandleCustomScriptList(_config.BeforeMainJs, body);
 
@@ -842,7 +870,9 @@ namespace Api.Pages
 			// Note: Although gzip does support multiple concatenated gzip blocks, browsers do not implement this part of the gzip spec correctly.
 			// Unfortunately that means no part of the stream can be pre-compressed; must compress the whole thing and output that.
 
-			// Swap all the TextNodes for byte blocks.
+			// Swap all the TextNodes for byte blocks. 
+			// Virtually all of the request is pre-utf8 encoded and remains that way for multiple requests, up until the cache clears.
+			// The only place it isn't the case is on any substitution nodes, such as the spot where user state is swapped in per-request.
 			for (var i = 0; i < flatNodes.Count; i++)
 			{
 				var node = flatNodes[i];
