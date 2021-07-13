@@ -153,19 +153,12 @@ export default class CalendarCompact extends React.Component {
 	
 	componentWillReceiveProps(props){
 		if((props.date && props.date != this.props.date)){
-			console.log("DATE UPDATED");
 			this.load(0, props);
 			return;
 		}
-
-		console.log("old props", this.props);
-		console.log("new props", props)
-		
-		
 		
 		// If our dataHandlers were updated, let's go ahead and re load the data in the calendar.
 		if((props.dataHandlers && props.dataHandlers != this.props.dataHandlers)) {
-			console.log("I RAN!!!!");
 			this.load(0, props);
 		}
 		
