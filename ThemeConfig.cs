@@ -17,9 +17,9 @@ namespace Api.Themes
 		public string LogoRef { get; set; }
 
 		/// <summary>
-		/// Default theme ID. This is applied to the body if it is non-zero.
+		/// Default theme key. This is applied to the body if it is not null.
 		/// </summary>
-		public uint DefaultThemeId { get; set; }
+		public string DefaultThemeId { get; set; }
 
 		/// <summary>
 		/// Default theme ID. This is applied to the body if it is non-zero.
@@ -35,11 +35,16 @@ namespace Api.Themes
 	public partial class ThemeConfig : Config
 	{
 		/// <summary>
-		/// Set this if the current theme config is the dark mode variant of another theme config with the given ID.
+		/// A key used to reference this particular theme config.
+		/// </summary>
+		public string Key {get; set;}
+		
+		/// <summary>
+		/// Set this if the current theme config is the dark mode variant of another theme config with the given ID/ key.
 		/// For example, let's say theme #1 is "Admin (light)" and theme #2 is "Admin (dark)"
 		/// Theme #2 would have this field set to 1, indicating that it is the dark mode version of theme #1.
 		/// </summary>
-		public uint DarkModeOfThemeId { get; set; }
+		public string DarkModeOfThemeId { get; set; }
 
 		/// <summary>
 		/// List of variables and their values.

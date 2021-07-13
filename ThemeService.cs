@@ -186,7 +186,7 @@ namespace Api.Themes
 
 			foreach (var config in set.Configurations)
 			{
-				if (config.DarkModeOfThemeId != 0)
+				if (!string.IsNullOrEmpty(config.DarkModeOfThemeId))
 				{
 					builder.Append("@media(prefers-color-scheme:dark){*[data-theme=\"");
 					builder.Append(config.DarkModeOfThemeId);
@@ -195,7 +195,14 @@ namespace Api.Themes
 				else
 				{
 					builder.Append("*[data-theme=\"");
-					builder.Append(config.Id);
+					if(string.IsNullOrEmpty(config.Key))
+					{
+						builder.Append(config.Id);
+					}
+					else
+					{
+						builder.Append(config.Key);
+					}
 					builder.Append("\"]{");
 				}
 				
