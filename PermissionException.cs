@@ -23,8 +23,16 @@ namespace Api.Permissions
 		/// <returns></returns>
 		public static PermissionException Create(string capability, Context context, string notes = null)
 		{
-			var userId = context == null ? 0 : context.UserId;
-			var msg = $"The user {userId} has no access to {capability}";
+			string msg;
+
+			if (context == null || context.UserId == 0)
+			{
+				msg = "Anonymous users don't have access to " + capability;
+			}
+			else
+			{
+				msg = $"The user #{userId} has no access to {capability}";
+			}
 
 			if (notes != null)
 			{
