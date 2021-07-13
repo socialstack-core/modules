@@ -38,13 +38,13 @@ namespace Api.CanvasRenderer
 		public FrontendCodeService(LocaleService locales, TranslationService translations, Themes.ThemeService themeService)
 		{
 			var themeConfig = themeService.GetAllConfig();
-			var cssVariables = themeService.OutputCssVariables(themeConfig);
+			var cssVariables = themeService.OutputCss(themeConfig);
 
 			themeConfig.OnChange += async () => {
 
-				// The theme was reconfigured (this also includes when the message came via contentsync as well).
-				// Reconstruct the CSS variable list now.
-				cssVariables = themeService.OutputCssVariables(themeConfig);
+				// A theme was reconfigured (this also includes when the message came via contentsync as well).
+				// Reconstruct the CSS now.
+				cssVariables = themeService.OutputCss(themeConfig);
 
 				await UIBuilder.SetCssPrepend(cssVariables);
 			};

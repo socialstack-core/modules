@@ -1,5 +1,6 @@
 using Api.Configuration;
 using System;
+using System.Collections.Generic;
 
 namespace Api.Themes
 {
@@ -41,89 +42,14 @@ namespace Api.Themes
 		public uint DarkModeOfThemeId { get; set; }
 
 		/// <summary>
-		/// Default palette, describing e.g. the main text/ bg colour of a component.
+		/// List of variables and their values.
 		/// </summary>
-		public ThemePalette Default { get; set; }
+		public Dictionary<string, string> Variables { get; set; }
 
 		/// <summary>
-		/// Primary palette, typically describing things that should stand out the most to the user.
+		/// The CSS in this theme. Typically uses the variable values.
 		/// </summary>
-		public ThemePalette Primary { get; set; }
-
-		/// <summary>
-		/// Secondary palette, typically describing things that are interactive but not as important as the primary ones.
-		/// </summary>
-		public ThemePalette Secondary { get; set; }
-
-		/// <summary>
-		/// Success palette
-		/// </summary>
-		public ThemePalette Success { get; set; }
-
-		/// <summary>
-		/// Info palette
-		/// </summary>
-		public ThemePalette Info { get; set; }
-
-		/// <summary>
-		/// Warning palette
-		/// </summary>
-		public ThemePalette Warning { get; set; }
-
-		/// <summary>
-		/// Danger palette
-		/// </summary>
-		public ThemePalette Danger { get; set; }
-
-		/// <summary>
-		/// Escape hatch custom CSS to apply when this theme is active. 
-		/// You should always aim to keep this CSS minimal and generic - i.e. don't target specific components with this.
-		/// </summary>
-		public string CustomCss { get; set; }
+		public string Css { get; set; }
 	}
 
-	/// <summary>
-	/// A particular palette within a theme. 
-	/// Note that the default (rest) styles are directly on the palette, because it is also a ThemeUnit.
-	/// </summary>
-	public partial class ThemePalette : ThemeUnit
-	{
-		/// <summary>
-		/// Hover mode
-		/// </summary>
-		public ThemeUnit Hover { get; set; }
-
-		/// <summary>
-		/// Focus mode
-		/// </summary>
-		public ThemeUnit Focus { get; set; }
-
-		/// <summary>
-		/// Active mode
-		/// </summary>
-		public ThemeUnit Active { get; set; }
-	}
-
-	/// <summary>
-	/// A particular unit within the theme config. This declares a set of common css properties that can be edited within other theme segments.
-	/// </summary>
-	public partial class ThemeUnit
-	{
-		/// <summary>
-		/// Bg color
-		/// </summary>
-		public string Background { get; set; }
-		/// <summary>
-		/// Text color
-		/// </summary>
-		public string Color { get; set; }
-		/// <summary>
-		/// Border color
-		/// </summary>
-		public string Border { get; set; }
-		/// <summary>
-		/// Shadow color
-		/// </summary>
-		public string Shadow { get; set; }
-	}
 }

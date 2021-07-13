@@ -69,6 +69,7 @@ namespace Api.Themes
 		/// </summary>
 		private GlobalThemeConfig _globalCfg;
 
+		/*
 		private void OutputObject(StringBuilder builder, string prefix, object varSet, bool isDefault = false)
 		{
 			var properties = varSet.GetType().GetProperties();
@@ -170,74 +171,62 @@ namespace Api.Themes
 				}
 			}
 		}
+		*/
 
 		/// <summary>
-		/// Builds the given set of configs as a collection of css variables.
+		/// Builds the given set of configs out to the CSS rules.
 		/// </summary>
 		/// <param name="set"></param>
 		/// <returns></returns>
-		public string OutputCssVariables(ConfigSet<ThemeConfig> set)
+		public string OutputCss(ConfigSet<ThemeConfig> set)
 		{
 			var builder = new StringBuilder();
 
-			OutputCssDefaults(builder);
+			// OutputCssDefaults(builder);
 
 			foreach (var config in set.Configurations)
 			{
-				builder.Append("*[data-theme=\"");
-				builder.Append(config.Id);
-				builder.Append("\"]{");
+				if (config.DarkModeOfThemeId != 0)
+				{
+					builder.Append("@media(prefers-color-scheme:dark){*[data-theme=\"");
+					builder.Append(config.DarkModeOfThemeId);
+					builder.Append("\"]{");
+				}
+				else
+				{
+					builder.Append("*[data-theme=\"");
+					builder.Append(config.Id);
+					builder.Append("\"]{");
+				}
+				
+				if (config.Variables != null)
+				{
+					// Output each one:
+					foreach (var kvp in config.Variables)
+					{
+						if (kvp.Value == null)
+						{
+							continue;
+						}
 
-				OutputObject(builder, null, config);
+						builder.Append("--");
+						var lcName = kvp.Key.ToLower();
+
+						builder.Append(lcName);
+
+						// Very rough!
+						builder.Append(':');
+						builder.Append(kvp.Value);
+						builder.Append(';');
+
+					}
+				}
+
+				// And the CSS block:
+				builder.Append(config.Css);
 
 				builder.Append('}');
 			}
-			var result = builder.ToString();
-			return result;
-		}
-
-		/// <summary>
-		/// Builds the given config as a collection of css variables.
-		/// </summary>
-		/// <param name="config"></param>
-		/// <returns></returns>
-		public string OutputCssVariables(ThemeConfig config)
-		{
-			var builder = new StringBuilder();
-
-			OutputCssDefaults(builder);
-
-			// TODO:
-			// add support for high-contrast themes
-			// - high contrast mode on Windows can be detected via "@media(forced-colors:active)" *
-			// - longer-term, we should aim to use "@media(prefers-contrast:more)", but as of July 2020, this has zero support
-			// 
-			// * note that this mode disables box-shadow effects
-
-			if (config.DarkModeOfThemeId != 0)
-			{
-				builder.Append("@media(prefers-color-scheme:dark){*[data-theme=\"");
-				builder.Append(config.DarkModeOfThemeId);
-				builder.Append("\"]{");
-			}
-			else
-			{
-				builder.Append("*[data-theme=\"");
-				builder.Append(config.Id);
-				builder.Append("\"]{");
-			}
-
-			OutputObject(builder, null, config);
-
-			if (config.DarkModeOfThemeId != 0)
-			{
-				builder.Append("}}");
-			}
-			else
-			{
-				builder.Append('}');
-			}
-
 			var result = builder.ToString();
 			return result;
 		}
