@@ -303,7 +303,10 @@ namespace Api.Contexts
 						Path = "/",
 						Expires = expiry,
 						Domain = _contextService.GetDomain(),
-						IsEssential = true
+						IsEssential = true,
+						HttpOnly = true,
+						Secure = true,
+						SameSite = SameSiteMode.Lax
 					}
 				);
 		}
