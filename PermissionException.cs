@@ -31,7 +31,7 @@ namespace Api.Permissions
 			}
 			else
 			{
-				msg = $"The user #{userId} has no access to {capability}";
+				msg = $"The user #{context.UserId} has no access to {capability}";
 			}
 
 			if (notes != null)
