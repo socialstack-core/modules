@@ -8,9 +8,12 @@ using Microsoft.AspNetCore.Mvc.ActionConstraints;
 #endif
 using Newtonsoft.Json;
 using System;
+using Api.Contexts;
 using System.Collections.Generic;
 using System.Reflection;
 using Newtonsoft.Json.Linq;
+using System.Threading.Tasks;
+using Api.Eventing;
 
 namespace Api.AvailableEndpoints
 {
@@ -19,7 +22,7 @@ namespace Api.AvailableEndpoints
 	/// Instanced automatically. Use injection to use this service, or Startup.Services.Get.
 	/// </summary>
 
-	public partial class AvailableEndpointService
+	public partial class AvailableEndpointService : AutoService<ApiStructure, uint>
 	{
 		private List<Endpoint> _cachedList;
 		private IActionDescriptorCollectionProvider _descriptionProvider;
@@ -28,9 +31,38 @@ namespace Api.AvailableEndpoints
 		/// <summary>
 		/// Instanced automatically. Use injection to use this service, or Startup.Services.Get.
 		/// </summary>
-		public AvailableEndpointService(IActionDescriptorCollectionProvider descriptionProvider)
+		public AvailableEndpointService(IActionDescriptorCollectionProvider descriptionProvider) : base(Events.AvailableEndpoints)
         {
 			_descriptionProvider = descriptionProvider;
+		}
+
+		/// <summary>
+		/// Gets the API structure, considering user permissions.
+		/// </summary>
+		/// <returns></returns>
+		public async ValueTask<ApiStructure> GetStructure(Context context)
+		{
+
+			// Get the content types and their IDs:
+			var cTypes = new List<ContentType>();
+
+			foreach (var kvp in Database.ContentTypes.TypeMap)
+			{
+				cTypes.Add(new ContentType()
+				{
+					Id = Database.ContentTypes.GetId(kvp.Key),
+					Name = kvp.Value.Name
+				});
+			}
+
+			// The result object:
+			var structure = new ApiStructure()
+			{
+				Endpoints = List(),
+				ContentTypes = cTypes
+			};
+
+			return await Events.AvailableEndpoints.AfterLoad.Dispatch(context, structure);
 		}
 
 		/// <summary>

@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
+using Api.Contexts;
 using Microsoft.AspNetCore.Mvc;
 
 
@@ -56,28 +57,11 @@ namespace Api.AvailableEndpoints
 		/// Returns meta about what's available from this API. Includes endpoints and content types.
 		/// </summary>
 		[HttpGet]
-		public ApiStructure Get()
+		public async ValueTask<ApiStructure> Get()
         {
-			// Get the content types and their IDs:
-			var cTypes = new List<ContentType>();
+			var context = await Request.GetContext();
 
-			foreach (var kvp in Database.ContentTypes.TypeMap)
-			{
-				cTypes.Add(new ContentType()
-				{
-					Id = Database.ContentTypes.GetId(kvp.Key),
-					Name = kvp.Value.Name
-				});
-			}
-
-			// The result object:
-			var structure = new ApiStructure()
-			{
-				Endpoints = _availableEndpoints.List(),
-				ContentTypes = cTypes
-			};
-
-            return structure;
+			return await _availableEndpoints.GetStructure(context);
         }
 		
     }
