@@ -111,7 +111,56 @@ namespace Api.Permissions{
 				MapName = node.Args.Count > 2 ? (node.Args[2] as StringFilterTreeNode<T, ID>).Value : null
 			}.Add(ast);
 		}
-		
+
+		/// <summary>
+		/// True if the given role object is a direct match, or it has a field called Role and matches.
+		/// </summary>
+		/// <typeparam name="T"></typeparam>
+		/// <typeparam name="ID"></typeparam>
+		/// <param name="node"></param>
+		/// <param name="ast"></param>
+		public static FilterTreeNode<T, ID> IsSelfRole<T, ID>(MemberFilterTreeNode<T, ID> node, FilterAst<T, ID> ast)
+		where T : Content<ID>, new()
+		where ID : struct, IConvertible, IEquatable<ID>, IComparable<ID>
+		{
+			if (node.Args.Count != 0)
+			{
+				throw new PublicException("IsSelfRole in a filter call takes 0 arguments", "filter_invalid");
+			}
+
+			var op = new OpFilterTreeNode<T, ID>()
+			{
+				Operation = "="
+			};
+
+			// Context RoleId field:
+			op.B = new MemberFilterTreeNode<T, ID>()
+			{
+				Name = "RoleId",
+				OnContext = true
+			}.Resolve(ast);
+
+			if (typeof(T) == typeof(Permissions.Role))
+			{
+				// Id=context.RoleId
+
+				op.A = new MemberFilterTreeNode<T, ID>()
+				{
+					Name = "Id"
+				}.Resolve(ast);
+			}
+			else
+			{
+				// Role=context.RoleId
+				op.A = new MemberFilterTreeNode<T, ID>()
+				{
+					Name = "Role"
+				}.Resolve(ast);
+			}
+
+			return op;
+		}
+
 		/// <summary>
 		/// True if either the object is a User and is a direct match, or if this user is the creator user.
 		/// </summary>
