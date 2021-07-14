@@ -229,13 +229,198 @@ namespace Api.Themes
 					}
 				}
 
-				// And the CSS block:
-				builder.Append(config.Css);
+				// And the CSS block.
+				if (!string.IsNullOrWhiteSpace(config.Css))
+				{
+					// Internally closes the block (as it might add some properties to it):
 
-				builder.Append('}');
+					var blockRoot = "*[data-theme=\"";
+					if (string.IsNullOrEmpty(config.Key))
+					{
+						blockRoot += config.Id.ToString();
+					}
+					else
+					{
+						blockRoot += config.Key;
+					}
+					blockRoot += "\"]";
+
+					ReconstructCss(builder, config.Css, blockRoot);
+				}
+				else
+				{
+					// Close the block:
+					builder.Append('}');
+				}
 			}
 			var result = builder.ToString();
 			return result;
+		}
+
+		private void ReconstructCss(StringBuilder builder, string css, string blockRoot)
+		{
+			// Parse the CSS. Any :root properties are emitted immediately into the builder. Any selectors have the theme prepended to it.
+			var lexer = new CssLexer(css);
+			var state = 0;
+			char strDelim = '\0';
+			lexer.SkipJunk(true);
+
+			string selector = null;
+			StringBuilder tokenBuilder = new StringBuilder();
+			StringBuilder additionalSelectors = null;
+
+			while (lexer.More())
+			{
+				var current = lexer.Current;
+
+				if (state == 0)
+				{
+					if (current == '/' && lexer.Peek() == '*')
+					{
+						// comment state
+						state = 1;
+					}
+					else if (current == '{')
+					{
+						// Finished reading a selector.
+						selector = tokenBuilder.ToString();
+						tokenBuilder.Clear();
+						state = 2;
+					}
+					else
+					{
+						tokenBuilder.Append(current);
+						lexer.SkipJunk(false);
+					}
+				}
+				else if (state == 1)
+				{
+					// Skip until */
+					if (current == '*' && lexer.Peek() == '/')
+					{
+						// Skip the /
+						lexer.Skip();
+						state = 0;
+					}
+				}
+				else if (state == 2)
+				{
+					// Read property block until }
+
+					if (current == '"')
+					{
+						// Entering string mode.
+						state = 3;
+						strDelim = current;
+						tokenBuilder.Append(current);
+					}
+					else if (current == '\'')
+					{
+						// Entering string mode.
+						state = 3;
+						strDelim = current;
+						tokenBuilder.Append(current);
+					}
+					else if (current == '}')
+					{
+						// Done!
+						var propertyBlock = tokenBuilder.ToString();
+						tokenBuilder.Clear();
+						state = 0;
+
+						// Add the selector + propertyBlock now.
+						selector = selector.Trim();
+
+						if (selector == ":root")
+						{
+							// property block goes direct into the builder.
+							builder.Append(propertyBlock);
+						}
+						else
+						{
+							if (additionalSelectors == null)
+							{
+								additionalSelectors = new StringBuilder();
+							}
+
+							if (selector.IndexOf(',') != -1)
+							{
+								// Multiple selectors - each needs the prefix. Might even have :root in here.
+								var subSelectors = selector.Split(',');
+								for (var i = 0; i < subSelectors.Length; i++)
+								{
+									var subSelector = subSelectors[i].Trim();
+
+									if (i != 0)
+									{
+										additionalSelectors.Append(',');
+									}
+									
+									additionalSelectors.Append(blockRoot);
+
+									if (subSelector != ":root")
+									{
+										additionalSelectors.Append(' ');
+										additionalSelectors.Append(subSelector);
+									}
+
+								}
+							}
+							else
+							{
+								// Prefix the selector:
+								additionalSelectors.Append(blockRoot);
+								additionalSelectors.Append(' ');
+								additionalSelectors.Append(selector);
+							}
+
+							additionalSelectors.Append('{');
+							additionalSelectors.Append(propertyBlock);
+							additionalSelectors.Append('}');
+						}
+					}
+					else
+					{
+						tokenBuilder.Append(current);
+						lexer.SkipJunk(false);
+					}
+				}
+				else if (state == 3)
+				{
+					// String reading.
+					if (current == '\\')
+					{
+						var literal = lexer.Peek();
+						lexer.Skip();
+						if (literal != '\0')
+						{
+							tokenBuilder.Append(literal);
+						}
+					}
+					else if (current == strDelim)
+					{
+						// Done!
+						tokenBuilder.Append(current);
+						state = 2;
+					}
+					else
+					{
+						tokenBuilder.Append(current);
+					}
+				}
+
+			}
+
+			// Close data theme block:
+			builder.Append('}');
+			
+			if (additionalSelectors != null)
+			{
+				// Got extra selectors.
+
+				// Output them:
+				builder.Append(additionalSelectors.ToString());
+			}
 		}
 
 		/// <summary>
