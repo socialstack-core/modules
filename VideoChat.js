@@ -5,6 +5,7 @@ import Alert from 'UI/Alert';
 import Container from 'UI/Container';
 import Row from 'UI/Row';
 import {SessionConsumer} from 'UI/Session';
+import CallUI from 'UI/CallUI';
 
 export default class VideoChat extends React.Component {
 
@@ -49,7 +50,8 @@ export default class VideoChat extends React.Component {
 			meStyle: {
 				bottom: '0px',
 				left: '50px'
-			}
+			},
+			ringing: this.props.ringing
 		};
 		
 		this.onRoomUpdate = this.onRoomUpdate.bind(this);
@@ -72,12 +74,47 @@ export default class VideoChat extends React.Component {
 	}
 	
 	componentWillReceiveProps(newProps){
+		console.log("componentWillReceiveProps", this.props, newProps);
+
 		if(newProps.roomId != this.props.roomId){
+			console.log("room changed", this.props, newProps);
 			// Room change!
 			this.state.huddleClient.close();
 			var huddleClient = this.mount(newProps);
+			console.log("new huddleClient", huddleClient);
 			this.setState({huddleClient});
 			this.connect(huddleClient);
+		}
+	}
+
+	componentDidUpdate(prevProps) {
+		console.log("componentDidUpdate prevProps", prevProps);
+		this.updateRingingList();
+	}
+
+	// Used to update the ringing mechanism and UI's
+	updateRingingList() {
+		var {ringing} = this.state;
+		var updated = false; // This will toggle to true if there is a need to update the ringing list.
+
+		// There is a chance that a user we are ringing may have connected, let's verify.
+		if(this.state.huddleClient.peers && this.state.huddleClient.peers.length && ringing && ringing.length) {
+			this.state.huddleClient.peers.forEach((peer) => {
+				// Let's iterate our currently ringing users - is this user any of them?
+				ringing.forEach((ringer, index) => {
+
+					if(ringer.id == peer.profile.userId || ringer.id == this.state.huddleClient.me.profile.userId) {
+						// We have a hit, let's remove this user from the ringing list.
+						ringing.splice(index, 1);
+						updated = true;
+					}
+				});
+			});
+		}
+		
+		if(updated) {
+			console.log("ringingList updated.");
+			this.setState({ringing});
 		}
 	}
 	
@@ -145,6 +182,8 @@ export default class VideoChat extends React.Component {
 	}
 	
 	onRoomUpdate(evt) {
+
+
 		this.props.onRoomUpdate && this.props.onRoomUpdate(evt, this.state.huddleClient);
 		this.setState({ huddleClient: this.state.huddleClient, error: null });
 	}
@@ -153,17 +192,20 @@ export default class VideoChat extends React.Component {
 		huddleClient.addEventListener('roomupdate', this.onRoomUpdate);
 		huddleClient.addEventListener('error', this.onError);
 		if (!this.state.test) {
+			console.log("about to join huddleClient");
 			huddleClient.join();
 		}
 	}
 	
 	componentDidMount() {
 		const { huddleClient } = this.state;
+		console.log("componentDidMount", huddleClient);
 		this.connect(huddleClient);
 	}
 
 	componentWillUnmount() {
 		const { huddleClient } = this.state;
+		console.log("componentWillUnmount", huddleClient);
 		huddleClient.removeEventListener('roomupdate', this.onRoomUpdate);
 		huddleClient.removeEventListener('error', this.onError);
 		if (!this.state.test) {
@@ -352,6 +394,10 @@ export default class VideoChat extends React.Component {
 				})}
 			</div>
 			}
+			
+			{this.state.ringing && this.state.ringing.length && <CallUI users = {this.state.ringing} onClose = {() => {
+				this.setState({ringing: []});
+			}}/>}
 
 			{//These buttons turn off everyone else's video or audio (from your point of view)
 			//Useful for personal bandwidth control, but unlikely that people will actually use them.
