@@ -1,0 +1,46 @@
+.dropdown {
+	position: relative;
+
+	&.dropdown--split {
+
+		.btn:not(.dropdown-toggle) {
+			flex: 1 0 auto;
+		}
+
+		.btn.dropdown-toggle {
+			flex: 0 0 0%;
+		}
+
+	}
+
+	.dropdown-toggle {
+		width: 100%;
+		height: 100%;
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
+
+		&::after {
+			content: none;
+		}
+
+		> * {
+			pointer-events: none;
+		}
+
+	}
+
+	.dropdown__left,
+	.dropdown__right {
+		display: flex;
+		align-items: center;
+	}
+
+	.dropdown-menu {
+		display: block;
+		position: absolute;
+		right: 0;
+		margin: 0;
+	}
+
+}
