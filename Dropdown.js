@@ -6,6 +6,8 @@
   label:            override label text / JSX ("dropdown" by default)
   arrow:            override arrow icon (caret SVG by default)
   variant:          Bootstrap variant to use (e.g. primary / secondary / danger / success, etc.
+  isLarge:			renders large size version
+  isSmall:			renders small size version
   splitCallback:    optional function to be called when pressing button (dropdown controlled by a separate button)
 
   example usage:
@@ -25,8 +27,14 @@
         }
     </Dropdown>
  
+    to insert a heading in the dropdown, use:
+	<li>
+		<h6 class="dropdown-header">
+			Dropdown header
+		</h6>
+	</li>
+ 
     to insert a divider in the dropdown, use:
-
     <li>
         <hr class="dropdown-divider">
     </li>
@@ -47,7 +55,7 @@ function newId() {
 }
 
 export default function Dropdown(props) {
-	var { className, variant, label, arrow, splitCallback, children, stayOpenOnSelection } = props;
+	var { className, variant, label, arrow, isLarge, isSmall, splitCallback, children, stayOpenOnSelection } = props;
 	var dropdownClass = "dropdown " + className + (splitCallback ? " dropdown--split" : "");
 	const [open, setOpen] = useState(false);
 	const dropdownWrapperRef = useRef(null);
@@ -60,6 +68,15 @@ export default function Dropdown(props) {
 	}
 
 	var btnClass = "btn btn-" + variant;
+	
+	if (isSmall) {
+		btnClass += " btn-sm";
+	}
+	
+	if (isLarge) {
+		btnClass += " btn-lg";
+	}
+		
 	var btnClassSplit = btnClass + " dropdown-toggle";
 
 	var dropdownId = newId();
