@@ -124,6 +124,9 @@ export default class Modal extends React.Component {
 			style.backgroundSize= "cover";
 		}
 
+		var closeClass = this.props.closeIcon ? "close custom-icon" : "close";
+		var closeIconClass = this.props.closeIcon ? "close-icon custom-icon-content" : "close-icon";
+
         return [
 			this.props.noBackdrop ? null : <div className={this.backdropClassName()} onClick={() => this.closeModal()}></div>,
 			<div className={this.modalClassName()} tabIndex="-1" role="dialog" aria-labelledby={this.modalTitleId}>
@@ -131,9 +134,20 @@ export default class Modal extends React.Component {
 					<div className="modal-content" style = {style}>
 						{this.props.noHeader ? <></> : <div className="modal-header">
 							{typeof this.props.title === 'string' ? <h5 className="modal-title" id={this.modalTitleId}>{this.props.title}</h5> : this.props.title}
-							{this.props.noClose ? <></> : <button type="button" className="close" data-dismiss="modal" aria-label="Close"
+							{this.props.noClose ? <></> : <button type="button" className={closeClass} data-dismiss="modal" aria-label="Close"
 									onClick={() => this.closeModal()}>
-								<span aria-hidden="true">&times;</span>
+								<span aria-hidden="true" className={closeIconClass}>
+										{!this.props.closeIcon && (
+											<>
+												&times;
+											</>
+										)}
+										{this.props.closeIcon && (
+											<>
+												{this.props.closeIcon}
+											</>
+										)}
+								</span>
 							</button>}
 						</div>}
 						<div className="modal-body">
