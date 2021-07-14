@@ -10,6 +10,8 @@ using System.Reflection;
 using System;
 using System.Text;
 using System.Collections.Concurrent;
+using Newtonsoft.Json;
+using Newtonsoft.Json.Serialization;
 
 namespace Api.Configuration
 {
@@ -181,6 +183,31 @@ namespace Api.Configuration
 		}
 
 		/// <summary>
+		/// Json serialization settings for canvases
+		/// </summary>
+		private static readonly JsonSerializerSettings jsonSettings = new JsonSerializerSettings
+		{
+			ContractResolver = new DefaultContractResolver
+			{
+				NamingStrategy = new CamelCaseNamingStrategy()
+			},
+			Formatting = Formatting.None
+		};
+
+		/// <summary>
+		/// Lowercases first letter of a given string
+		/// </summary>
+		/// <param name="str"></param>
+		/// <returns></returns>
+		private static string FirstCharToLowerCase(string str)
+		{
+			if (string.IsNullOrEmpty(str) || char.IsLower(str[0]))
+				return str;
+
+			return char.ToLower(str[0]) + str.Substring(1);
+		}
+
+		/// <summary>
 		///  Potentially adds/ updates the given config object to the frontend config, 
 		///  depending on if it is marked with [Frontend] attributes or not.
 		/// </summary>
@@ -213,9 +240,9 @@ namespace Api.Configuration
 						sb.Append(',');
 					}
 					sb.Append('"');
-					sb.Append(property.Name);
+					sb.Append(FirstCharToLowerCase(property.Name));
 					sb.Append("\":");
-					sb.Append(Newtonsoft.Json.JsonConvert.SerializeObject(property.GetValue(configObject)));
+					sb.Append(Newtonsoft.Json.JsonConvert.SerializeObject(property.GetValue(configObject), jsonSettings));
 				}
 
 				sb.Append('}');
@@ -247,9 +274,9 @@ namespace Api.Configuration
 							sb.Append(',');
 						}
 						sb.Append('"');
-						sb.Append(property.Name);
+						sb.Append(FirstCharToLowerCase(property.Name));
 						sb.Append("\":");
-						sb.Append(Newtonsoft.Json.JsonConvert.SerializeObject(property.GetValue(configObject)));
+						sb.Append(Newtonsoft.Json.JsonConvert.SerializeObject(property.GetValue(configObject), jsonSettings));
 					}
 				}
 
