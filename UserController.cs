@@ -5,7 +5,7 @@ using Api.Contexts;
 using Api.Eventing;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Serialization;
-
+using Api.Startup;
 
 namespace Api.Users
 {
@@ -104,43 +104,6 @@ namespace Api.Users
 		/// POST /v1/user/login/
 		/// Attempts to login. Returns either a Context or a LoginResult.
 		/// </summary>
-		[HttpPost("login-unsafe")]
-		public async ValueTask Login2([FromBody] UserLogin body)
-		{
-			var context = await Request.GetContext();
-
-			Console.WriteLine("Login occurred " + JsonConvert.SerializeObject(body, jsonSettings));
-
-			var result = await (_service as UserService).Authenticate(context, body);
-
-			if (result == null)
-			{
-				Console.WriteLine("Result was null - API replying with 400");
-
-				Response.StatusCode = 400;
-				return;
-			}
-
-			Console.WriteLine("Result exists. Success? " + result.Success);
-
-			if (!result.Success)
-			{
-				// Output the result message. 
-				// Fail message does not expose any content objects but does contain nested objects, so newtonsoft is ok here.
-				var json = JsonConvert.SerializeObject(result, jsonSettings);
-				var bytes = System.Text.Encoding.UTF8.GetBytes(json);
-				await Response.Body.WriteAsync(bytes, 0, bytes.Length);
-				return;
-			}
-
-			// output the context:
-			await OutputContext(context);
-		}
-
-		/// <summary>
-		/// POST /v1/user/login/
-		/// Attempts to login. Returns either a Context or a LoginResult.
-		/// </summary>
 		[HttpPost("login")]
 		public async ValueTask Login([FromBody] UserLogin body)
 		{
@@ -150,8 +113,7 @@ namespace Api.Users
 
 			if (result == null)
 			{
-				Response.StatusCode = 400;
-				return;
+				throw new PublicException("Incorrect user details. Either the account does not exist or the attempt was unsuccessful.", "user_not_found");
 			}
 
 			if (!result.Success)
