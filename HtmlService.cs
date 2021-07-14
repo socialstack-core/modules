@@ -563,7 +563,7 @@ namespace Api.Pages
 			var locale = await context.GetLocale();
 			
 			var page = pageAndTokens.Page;
-
+			
 			// Generate the document:
 			var doc = new Document();
 			doc.Path = path;
@@ -572,7 +572,7 @@ namespace Api.Pages
 			doc.Html
 				.With("class", isAdmin ? "admin web" : "ui web")
 				.With("lang", locale.Code)
-				.With("data-theme", isAdmin ? themeConfig.DefaultAdminThemeId.ToString() : themeConfig.DefaultThemeId.ToString());
+				.With("data-theme", isAdmin ? themeConfig.DefaultAdminThemeId : themeConfig.DefaultThemeId);
 			
 			// var packDir = isAdmin ? "/en-admin/pack/" : "/pack/";
 
