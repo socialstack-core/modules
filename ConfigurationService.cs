@@ -322,8 +322,19 @@ namespace Api.Configuration
 
 			sb.Append("window.__cfg={");
 
+			var first = true;
+
 			foreach (var kvp in _allFrontendConfigs)
 			{
+				if (first)
+				{
+					first = false;
+				}
+				else
+				{
+					sb.Append(',');
+				}
+
 				var config = kvp.Key;
 
 				var name = config.GetType().Name;
