@@ -24,7 +24,7 @@ namespace Api.Themes
 		/// <summary>
 		/// Default theme ID. This is applied to the body if it is non-zero.
 		/// </summary>
-		public uint DefaultAdminThemeId { get; set; }
+		public string DefaultAdminThemeId { get; set; }
 	}
 
 	/// <summary>
