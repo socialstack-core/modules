@@ -1,198 +1,14 @@
 /*
-
-    *** WARNING: DEPRECATED
-
 	global button styles
     NB: named global-buttons.35.scss to allow for project-specific overrides to these styles (see UI/Source/GeneralStyle/buttons.40.scss)
 */
 
-// Bootstrap overrides
-@if ($socialstack_theme_version == 1) {
-
-    .btn {
-        @include base_button_styling();
-
-        &.btn-primary {
-            @include primary_button_styling();
-        }
-
-        &.btn-secondary {
-            @include secondary_button_styling();
-        }
-
-        &.btn-success {
-            background-color: $theme_success_bg;
-            color: $theme_success_fg;
-            border: 0;
-
-            &:hover {
-                background-color: darken($theme_success_bg, 5%);
-                color: darken($theme_success_fg, 5%);
-                border: 0;
-            }
-
-            &:active {
-                background-color: darken($theme_success_bg, 10%);
-                color: darken($theme_success_fg, 10%);
-                border: 0;
-            }
-
-            &:focus {
-                outline: 0;
-                box-shadow: 0 0 0 0.2rem rgba($theme_success_bg, .5);
-            }
-        }
-
-        &.btn-danger {
-            background-color: $theme_danger_bg;
-            color: $theme_danger_fg;
-            border: 0;
-
-            &:hover {
-                background-color: darken($theme_danger_bg, 5%);
-                color: darken($theme_danger_fg, 5%);
-                border: 0;
-            }
-
-            &:active {
-                background-color: darken($theme_danger_bg, 10%);
-                color: darken($theme_danger_fg, 10%);
-                border: 0;
-            }
-
-            &:focus {
-                outline: 0;
-                box-shadow: 0 0 0 0.2rem rgba($theme_danger_bg, .5);
-            }
-        }
-
-        &.btn-warning {
-            background-color: $theme_warning_bg;
-            color: $theme_warning_fg;
-            border: 0;
-
-            &:hover {
-                background-color: darken($theme_warning_bg, 5%);
-                color: darken($theme_warning_fg, 5%);
-                border: 0;
-            }
-
-            &:active {
-                background-color: darken($theme_warning_bg, 10%);
-                color: darken($theme_warning_fg, 10%);
-                border: 0;
-            }
-
-            &:focus {
-                outline: 0;
-                box-shadow: 0 0 0 0.2rem rgba($theme_warning_bg, .5);
-            }
-        }
-
-        &.btn-info {
-            background-color: $theme_info_bg;
-            color: $theme_info_fg;
-            border: 0;
-
-            &:hover {
-                background-color: darken($theme_info_bg, 5%);
-                color: darken($theme_info_fg, 5%);
-                border: 0;
-            }
-
-            &:active {
-                background-color: darken($theme_info_bg, 10%);
-                color: darken($theme_info_fg, 10%);
-                border: 0;
-            }
-
-            &:focus {
-                outline: 0;
-                box-shadow: 0 0 0 0.2rem rgba($theme_info_bg, .5);
-            }
-        }
-
-        &.btn-light {
-            background-color: $theme_light_bg;
-            color: $theme_light_fg;
-            border: 0;
-
-            &:hover {
-                background-color: darken($theme_light_bg, 5%);
-                color: darken($theme_light_fg, 5%);
-                border: 0;
-            }
-
-            &:active {
-                background-color: darken($theme_light_bg, 10%);
-                color: darken($theme_light_fg, 10%);
-                border: 0;
-            }
-
-            &:focus {
-                outline: 0;
-                box-shadow: 0 0 0 0.2rem rgba($theme_light_bg, .5);
-            }
-        }
-
-        &.btn-dark {
-            background-color: $theme_dark_bg;
-            color: $theme_dark_fg;
-            border: 0;
-
-            &:hover {
-                background-color: darken($theme_dark_bg, 5%);
-                color: darken($theme_dark_fg, 5%);
-                border: 0;
-            }
-
-            &:active {
-                background-color: darken($theme_dark_bg, 10%);
-                color: darken($theme_dark_fg, 10%);
-                border: 0;
-            }
-
-            &:focus {
-                outline: 0;
-                box-shadow: 0 0 0 0.2rem rgba($theme_dark_bg, .5);
-            }
-        }
-
-        &.btn-lg {
-            padding: $theme_primary_btn_padding_lg;
-            font-size: $theme_primary_btn_font_size_lg;
-            //line-height: 1.5;
-            //border-radius: $theme_primary_btn_border_radius_lg;
-        }
-
-        &.btn-sm {
-            padding: $theme_secondary_btn_padding_sm;
-            font-size: $theme_secondary_btn_font_size_sm;
-            //line-height: 1.5;
-            //border-radius: $theme_secondary_btn_border_radius_lg;
-        }
-    }
-
-}
-
 input {
-
-    @if ($socialstack_theme_version == 1) {
-        // form buttons
-        &[type='button'],
-        &[type='submit'] {
-            @include primary_button_styling();
-        }
-
-        &[type='reset'] {
-            @include secondary_button_styling();
-        }
-    }
-
+	
     // file upload
     // NB: for this to work, the file input must have a following label, e.g.
     // <input type="file" name="file" id="file" />
-    // <label for="file">Choose a file</label>
+    // <label for="file" class="btn btn-primary">Choose a file</label>
     // ref http://tympanus.net/codrops/2015/09/15/styling-customizing-file-inputs-smart-way/
     &[type='file'][id] {
         // NB: not 0 as this can affect tab order on some browsers
@@ -202,16 +18,7 @@ input {
         overflow: hidden;
         position: absolute;
         z-index: -1;
-
-        @if ($socialstack_theme_version == 1) {
-            + label {
-                @include base_button_styling();
-                //@include primary_button_styling();
-                @include secondary_button_styling();
-                display: inline-block; // necessary to prevent optional hidden form labels from hiding this
-            }
-        }
-
+		
         &:focus + label {
             //@include focus_styling;
             cursor: pointer;

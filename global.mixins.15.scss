@@ -75,8 +75,108 @@
     outline: -webkit-focus-ring-color auto 5px;
 }
 
+$input-btn-focus-width:       .2rem !default;
+$btn-focus-width:             $input-btn-focus-width !default;
+
+// Set a specific jump point for requesting color jumps
+$theme-color-interval:      8% !default;
+
+@function theme-color-level($color-name: "primary", $level: 0) {
+  //$color: theme-color($color-name);
+  $color: get_palette(color, $color-name);
+  $color-base: if($level > 0, #000, #fff);
+  $level: abs($level);
+
+  @return mix($color-base, $color, $level * $theme-color-interval);
+}
+
+$badge-focus-width:                 $input-btn-focus-width !default;
+
+
+$grid_breakpoints: get_theme(grid-breakpoints, bootstrap);
+
+@function breakpoint-next($name, $breakpoints: $grid_breakpoints, $breakpoint-names: map-keys($breakpoints)) {
+  $n: index($breakpoint-names, $name);
+  @return if($n != null and $n < length($breakpoint-names), nth($breakpoint-names, $n + 1), null);
+}
+
+@function breakpoint-min($name, $breakpoints: $grid_breakpoints) {
+  $min: map-get($breakpoints, $name);
+  @return if($min != 0, $min, null);
+}
+
+@function breakpoint-max($name, $breakpoints: $grid_breakpoints) {
+  $next: breakpoint-next($name, $breakpoints);
+  @return if($next, breakpoint-min($next, $breakpoints) - .02, null);
+}
+
+@function breakpoint-infix($name, $breakpoints: $grid_breakpoints) {
+  @return if(breakpoint-min($name, $breakpoints) == null, "", "-#{$name}");
+}
+
+@mixin media-breakpoint-up($name, $breakpoints: $grid_breakpoints) {
+    $min: breakpoint-min($name, $breakpoints);
+    
+    @if $min {
+        @media (min-width: $min) {
+            @content;
+        }
+    } @else {
+        @content;
+    }
+}
+
+@mixin media-breakpoint-down($name, $breakpoints: $grid_breakpoints) {
+    $max: breakpoint-max($name, $breakpoints);
+    
+    @if $max {
+        @media (max-width: $max) {
+            @content;
+        }
+    } @else {
+        @content;
+    }
+}
+
+@mixin media-breakpoint-between($lower, $upper, $breakpoints: $grid_breakpoints) {
+  $min: breakpoint-min($lower, $breakpoints);
+  $max: breakpoint-max($upper, $breakpoints);
+
+  @if $min != null and $max != null {
+    @media (min-width: $min) and (max-width: $max) {
+      @content;
+    }
+  } @else if $max == null {
+    @include media-breakpoint-up($lower, $breakpoints) {
+      @content;
+    }
+  } @else if $min == null {
+    @include media-breakpoint-down($upper, $breakpoints) {
+      @content;
+    }
+  }
+}
+
+@mixin media-breakpoint-only($name, $breakpoints: $grid_breakpoints) {
+  $min: breakpoint-min($name, $breakpoints);
+  $max: breakpoint-max($name, $breakpoints);
+
+  @if $min != null and $max != null {
+    @media (min-width: $min) and (max-width: $max) {
+      @content;
+    }
+  } @else if $max == null {
+    @include media-breakpoint-up($name, $breakpoints) {
+      @content;
+    }
+  } @else if $min == null {
+    @include media-breakpoint-down($name, $breakpoints) {
+      @content;
+    }
+  }
+}
+
 @mixin button_styling($text_align: center) {
-    background: none;
     text-align: $text_align;
     vertical-align: middle;
     -webkit-user-select: none;
@@ -88,11 +188,6 @@
     transition-property: color, background-color, border-color;
     border: 0;
     @include padding(1, 6);
-
-    &:focus {
-        // TODO: looks terrible
-        //@include focus_styling;
-    }
 }
 
 @mixin link_styling($hasIcon: true, $font_size: 1.25em) {
@@ -134,8 +229,40 @@
     }
 }
 
-$input-btn-focus-width:       .2rem !default;
-$btn-focus-width:             $input-btn-focus-width !default;
+/*
+@mixin badge-variant($bg) {
+  color: color-yiq($bg);
+  background-color: $bg;
+
+  @at-root a#{&} {
+
+    &:hover,
+    &:focus {
+      color: color-yiq($bg);
+      background-color: darken($bg, 10%);
+    }
+
+    &:focus,
+    &.focus {
+      outline: 0;
+      box-shadow: 0 0 0 $badge-focus-width rgba($bg, .5);
+    }
+  }
+}
+
+@mixin alert-variant($background, $border, $color) {
+  color: $color;
+  background-color: $background;
+  border-color: $border;
+
+  hr {
+    border-top-color: darken($border, 5%);
+  }
+
+  .alert-link {
+    color: darken($color, 10%);
+  }
+}
 
 @mixin button-variant($foreground, $background, $border: $background, 
     $hover-background: darken($background, 7.5%), 
@@ -279,138 +406,6 @@ $btn-focus-width:             $input-btn-focus-width !default;
   border-radius: $border-radius;
 }
 
-// Set a specific jump point for requesting color jumps
-$theme-color-interval:      8% !default;
-
-@function theme-color-level($color-name: "primary", $level: 0) {
-  //$color: theme-color($color-name);
-  $color: get_palette(color, $color-name);
-  $color-base: if($level > 0, #000, #fff);
-  $level: abs($level);
-
-  @return mix($color-base, $color, $level * $theme-color-interval);
-}
-
-$badge-focus-width:                 $input-btn-focus-width !default;
-
-@mixin badge-variant($bg) {
-  color: color-yiq($bg);
-  background-color: $bg;
-
-  @at-root a#{&} {
-
-    &:hover,
-    &:focus {
-      color: color-yiq($bg);
-      background-color: darken($bg, 10%);
-    }
-
-    &:focus,
-    &.focus {
-      outline: 0;
-      box-shadow: 0 0 0 $badge-focus-width rgba($bg, .5);
-    }
-  }
-}
-
-@mixin alert-variant($background, $border, $color) {
-  color: $color;
-  background-color: $background;
-  border-color: $border;
-
-  hr {
-    border-top-color: darken($border, 5%);
-  }
-
-  .alert-link {
-    color: darken($color, 10%);
-  }
-}
-
-$grid_breakpoints: get_theme(grid-breakpoints, bootstrap);
-
-@function breakpoint-next($name, $breakpoints: $grid_breakpoints, $breakpoint-names: map-keys($breakpoints)) {
-  $n: index($breakpoint-names, $name);
-  @return if($n != null and $n < length($breakpoint-names), nth($breakpoint-names, $n + 1), null);
-}
-
-@function breakpoint-min($name, $breakpoints: $grid_breakpoints) {
-  $min: map-get($breakpoints, $name);
-  @return if($min != 0, $min, null);
-}
-
-@function breakpoint-max($name, $breakpoints: $grid_breakpoints) {
-  $next: breakpoint-next($name, $breakpoints);
-  @return if($next, breakpoint-min($next, $breakpoints) - .02, null);
-}
-
-@function breakpoint-infix($name, $breakpoints: $grid_breakpoints) {
-  @return if(breakpoint-min($name, $breakpoints) == null, "", "-#{$name}");
-}
-
-@mixin media-breakpoint-up($name, $breakpoints: $grid_breakpoints) {
-    $min: breakpoint-min($name, $breakpoints);
-    
-    @if $min {
-        @media (min-width: $min) {
-            @content;
-        }
-    } @else {
-        @content;
-    }
-}
-
-@mixin media-breakpoint-down($name, $breakpoints: $grid_breakpoints) {
-    $max: breakpoint-max($name, $breakpoints);
-    
-    @if $max {
-        @media (max-width: $max) {
-            @content;
-        }
-    } @else {
-        @content;
-    }
-}
-
-@mixin media-breakpoint-between($lower, $upper, $breakpoints: $grid_breakpoints) {
-  $min: breakpoint-min($lower, $breakpoints);
-  $max: breakpoint-max($upper, $breakpoints);
-
-  @if $min != null and $max != null {
-    @media (min-width: $min) and (max-width: $max) {
-      @content;
-    }
-  } @else if $max == null {
-    @include media-breakpoint-up($lower, $breakpoints) {
-      @content;
-    }
-  } @else if $min == null {
-    @include media-breakpoint-down($upper, $breakpoints) {
-      @content;
-    }
-  }
-}
-
-@mixin media-breakpoint-only($name, $breakpoints: $grid_breakpoints) {
-  $min: breakpoint-min($name, $breakpoints);
-  $max: breakpoint-max($name, $breakpoints);
-
-  @if $min != null and $max != null {
-    @media (min-width: $min) and (max-width: $max) {
-      @content;
-    }
-  } @else if $max == null {
-    @include media-breakpoint-up($name, $breakpoints) {
-      @content;
-    }
-  } @else if $min == null {
-    @include media-breakpoint-down($name, $breakpoints) {
-      @content;
-    }
-  }
-}
-
-
 @mixin base_button_styling() {
     @include button_styling; // NB: includes focus styling
     display: inline-block;
@@ -495,7 +490,7 @@ $grid_breakpoints: get_theme(grid-breakpoints, bootstrap);
         box-shadow: 0 0 0 0.2rem rgba($theme_secondary_btn_bg, .5);
     }
 }
-
+*/
 
 
 // breakpoints used by data-clamp-xs / -sm / -md / -lg / -xl variants
