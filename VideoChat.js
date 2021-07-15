@@ -78,6 +78,11 @@ export default class VideoChat extends React.Component {
 			this.setState({huddleClient});
 			this.connect(huddleClient);
 		}
+
+		// did we receive a new list of user that need to be rung?
+		if(newProps.ringing != this.props.ringing){
+			this.setState({ringing: newProps.ringing});
+		}
 	}
 
 	componentDidUpdate(prevProps) {
@@ -199,6 +204,8 @@ export default class VideoChat extends React.Component {
 		if (!this.state.test) {
 			huddleClient.close();
 		}
+
+		this.props.clearRinging && this.props.clearRinging();
 	}
 
 	render(){
@@ -424,13 +431,9 @@ export default class VideoChat extends React.Component {
 					<i className="icon fas fa-hand-paper"/> 
 				</button>}
 			</div>
-
 			{me.profile.directChatIds && me.profile.directChatIds.length && (<span className="producer"><i class="fal fa-volume"></i> Speaking with Producer</span>)}
-
 		</div>;
-
 	}
-
 }
 
 VideoChat.defaultProps = {
