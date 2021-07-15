@@ -15,9 +15,6 @@ export default class VideoChat extends React.Component {
 
 		var huddleClient = this.mount(props);
 
-		console.log("huddle client");
-		console.log(huddleClient);
-
 		if (typeof props.roomId === 'string' && props.roomId.length > 1) {
 			if (props.roomId[0] == 't') {
 				// tX where X is the number of peers in the meeting.
@@ -74,21 +71,16 @@ export default class VideoChat extends React.Component {
 	}
 	
 	componentWillReceiveProps(newProps){
-		console.log("componentWillReceiveProps", this.props, newProps);
-
 		if(newProps.roomId != this.props.roomId){
-			console.log("room changed", this.props, newProps);
 			// Room change!
 			this.state.huddleClient.close();
 			var huddleClient = this.mount(newProps);
-			console.log("new huddleClient", huddleClient);
 			this.setState({huddleClient});
 			this.connect(huddleClient);
 		}
 	}
 
 	componentDidUpdate(prevProps) {
-		console.log("componentDidUpdate prevProps", prevProps);
 		this.updateRingingList();
 	}
 
@@ -113,7 +105,6 @@ export default class VideoChat extends React.Component {
 		}
 		
 		if(updated) {
-			console.log("ringingList updated.");
 			this.setState({ringing});
 		}
 	}
@@ -192,20 +183,17 @@ export default class VideoChat extends React.Component {
 		huddleClient.addEventListener('roomupdate', this.onRoomUpdate);
 		huddleClient.addEventListener('error', this.onError);
 		if (!this.state.test) {
-			console.log("about to join huddleClient");
 			huddleClient.join();
 		}
 	}
 	
 	componentDidMount() {
 		const { huddleClient } = this.state;
-		console.log("componentDidMount", huddleClient);
 		this.connect(huddleClient);
 	}
 
 	componentWillUnmount() {
 		const { huddleClient } = this.state;
-		console.log("componentWillUnmount", huddleClient);
 		huddleClient.removeEventListener('roomupdate', this.onRoomUpdate);
 		huddleClient.removeEventListener('error', this.onError);
 		if (!this.state.test) {
