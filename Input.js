@@ -3,6 +3,8 @@ var id = 1;
 import Loop from 'UI/Loop';
 import omit from 'UI/Functions/Omit';
 
+const DefaultPasswordStrength = 5;
+
 var inputTypes = global.inputTypes = global.inputTypes || {};
 
 /**
@@ -198,6 +200,10 @@ export default class Input extends React.Component {
         var v = field.type=='checkbox' ? field.checked : field.value;
         var vFail = null;
 
+        if (field.type === 'password') {
+            this.setState({strength: this.passwordStrength(this.inputRef.value)});
+        }
+
         for (var i = 0; i < validations.length; i++) {
             // If it's a string, include the module.
             // Otherwise it's assumed to be a function that we directly run.
@@ -242,6 +248,66 @@ export default class Input extends React.Component {
             this.setState({ validationFailure: invalid });
         }
 		return !!invalid;
+    }
+
+    passwordStrength(pw) {
+        var reUpperCase = /[A-Z]+/;
+        var reLowerCase = /[a-z]+/;
+        var reNum       = /[0-9]+/;
+        var reUnique    = /[^A-Za-z0-9]+/;
+
+        var rePass     = /[Pp][Aa4][Ss5$]{2}[Ww][Oo0][Rr][Dd]/;
+        var reAlphaSeq = /abcdef?g?h?i?j?k?l?m?n?o?p?q?r?s?t?u?v?w?x?y?z?/;
+        var reKbWalk1  = /[1!][2"][3£][4$][5%][6^]?[7&]?[8*]?[9(]?[0)]?[-_]?[=+]?/;
+        var reKbWalk2  = /[Qq][Ww][Ee][Rr][Tt][Yy]?[Uu]?[Ii]?[Oo]?[Pp]?[[{]?[\]}]?/;
+        var reKbWalk3  = /asdfgh?j?k?l?;?'?#?/;
+        var reKbWalk4  = /zxcvbn?m?,?\.?\/?/;
+
+        var reward = 0;
+        reward += reUpperCase.test(pw) ? 3 : 0;
+        reward += reLowerCase.test(pw) ? 3 : 0;
+        reward += reNum.test(pw)       ? 3 : 0;
+        reward += reUnique.test(pw)    ? 3 : 0;
+
+        var penalty = 0;
+        penalty += rePass.test(pw)     ? 30 : 0;
+        penalty += reAlphaSeq.test(pw) ? 20 : 0;
+        penalty += reKbWalk1.test(pw)  ? 20 : 0;
+        penalty += reKbWalk2.test(pw)  ? 20 : 0;
+        penalty += reKbWalk3.test(pw)  ? 20 : 0;
+        penalty += reKbWalk4.test(pw)  ? 20 : 0;
+
+        var symbolPool = 0;
+        symbolPool += reUpperCase.test(pw) ? 26 : 0;
+        symbolPool += reLowerCase.test(pw) ? 26 : 0;
+        symbolPool += reNum.test(pw)       ? 10 : 0;
+        symbolPool += reUnique.test(pw)    ? 33 : 0;
+
+        var uniqueChars = [];
+        for (let char of pw) {
+            if (!uniqueChars.includes(char)) {
+                uniqueChars.push(char);
+            }
+        }
+        var uniqueCharCount = uniqueChars.length;
+        reward += (uniqueCharCount) / 4;
+
+
+        var possibleCombos = Math.pow(symbolPool, pw.length);
+        var entropy = Math.log2(possibleCombos);
+        var strength = (entropy + reward - penalty) / 1.5;
+
+        return strength;
+    }
+
+    pwStrengthClass(strength) {
+        if (strength >= 55) {
+            return 'strong';
+        } else if (strength >= 45) {
+            return 'medium';
+        } else {
+            return 'weak';
+        }
     }
 	
 	setRef(ref) {
@@ -397,35 +463,51 @@ export default class Input extends React.Component {
             );
 		}else if(type === "password"){
 			var { pwVisible } = this.state;
-			
+
 			if(this.props.visible !== undefined){
 				pwVisible = this.props.visible;
 			}
-			
-			return <div className="input-group">
-					<input
-						ref={this.setRef}
-						id={this.props.id || this.fieldId}
-						className={this.props.className || "form-control"}
-                    aria-describedby={this.describedById}
-						type={pwVisible ? 'text' : type}
-						onChange={this.onChange}
-						onBlur={this.onBlur}
-						onInput={this.onInput}
-						data-validation={this.state.validationFailure ? true : undefined}
-                        {...omit(this.props, ['id', 'className', 'onChange', 'onBlur', 'type', 'inline', 'help', 'helpIcon', 'fieldName'])}
-					/>
-                {!this.props.noVisiblityButton && !this.props.noVisibilityButton && (
-						<div className="input-group-append clickable" onClick={() => {
-							this.setState({pwVisible: !pwVisible});
-						}}>
-							<span className="input-group-text">
-								<i className={"fa fa-eye" + (pwVisible ? '-slash' : '')} />
-							</span>
-						</div>
-					)}
-				</div>;
-			
+
+            if (this.props.showMeter) {
+                var strengthClass = 'none';
+                var strength = DefaultPasswordStrength;
+
+                if (this.state.strength) {
+                    strength = this.state.strength;
+                    strengthClass = this.pwStrengthClass(strength);
+                }
+            }
+
+			return <div className="form-group">
+                        <div className="input-group">
+                        <input
+                            ref={this.setRef}
+                            id={this.props.id || this.fieldId}
+                            className={this.props.className || "form-control"}
+                            aria-describedby={this.describedById}
+                            type={pwVisible ? 'text' : type}
+                            onChange={this.onChange}
+                            onBlur={this.onBlur}
+                            onInput={this.onInput}
+                            data-validation={this.state.validationFailure ? true : undefined}
+                            {...omit(this.props, ['id', 'className', 'onChange', 'onBlur', 'type', 'inline', 'help', 'helpIcon', 'fieldName'])}
+                        />
+                        {!this.props.noVisiblityButton && !this.props.noVisibilityButton && (
+                            <div className="input-group-append clickable" onClick={() => {
+                                this.setState({pwVisible: !pwVisible});
+                            }}>
+                                <span className="input-group-text">
+                                    <i className={"fa fa-eye" + (pwVisible ? '-slash' : '')} />
+                                </span>
+                            </div>
+                        )}
+                        </div>
+                        {this.props.showMeter && (
+                            <div className={'password-strength ' + strengthClass}>
+                                <progress max="100" value={strength}></progress>
+                            </div>
+                        )}
+                   </div>;
         } else {
             // E.g. ontypecanvas will fire. This gives a generic entry point for custom input types by just installing them:
             var handler = inputTypes['ontype' + type];
