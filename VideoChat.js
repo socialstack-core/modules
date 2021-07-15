@@ -5,7 +5,7 @@ import Alert from 'UI/Alert';
 import Container from 'UI/Container';
 import Row from 'UI/Row';
 import {SessionConsumer} from 'UI/Session';
-import CallUI from 'UI/CallUI';
+import CallUI from 'UI/VideoChat/CallUI';
 
 export default class VideoChat extends React.Component {
 
