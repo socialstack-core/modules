@@ -39,13 +39,24 @@ export default class Input extends React.Component {
         this.helpIconFieldId = this.fieldId + "-help-icon";
         this.describedById = this.helpBeforeFieldId || this.helpAfterFieldId || this.helpIconFieldId;
     }
-
-    renderField() {
-        // possible to hide all labels globally with $ss_form_field_label_hidden;
+	
+	renderLabel() {
+		// possible to hide all labels globally with $ss_form_field_label_hidden;
         // this allows us to specify fields which should always display their label
         var labelClass = this.props.labelImportant ? "label-important" : "form-label";
 
-        var help = this.props.help;
+		if(!this.props.label || this.props.type == "submit" || this.props.type == "checkbox" || this.props.type == "radio"){
+			return null;
+		}
+		
+		return <label htmlFor={this.props.id || this.fieldId} className={labelClass}>
+			{this.props.label}
+			{!this.props.hideRequiredStar && this.props.validate && this.props.validate.indexOf("Required")!=-1 && <span className="is-required-field"></span>}
+		</label>;
+	}
+	
+    renderField() {
+        var { help, labelPosition } = this.props;
         var helpPosition = 'above';
 
         if (help) {
@@ -59,17 +70,10 @@ export default class Input extends React.Component {
             }
 
         }
-
+		
         return (
             <>
-            {
-                this.props.label && this.props.type !== "submit" && this.props.type !== "checkbox" && this.props.type !== "radio" && (
-                    <label htmlFor={this.props.id || this.fieldId} className={labelClass}>
-                        {this.props.label}
-						{!this.props.hideRequiredStar && this.props.validate && this.props.validate.indexOf("Required")!=-1 && <span className="is-required-field"></span>}
-                    </label>
-                )
-            }
+				{labelPosition != 'float' && this.renderLabel()}
                 {
                     help && (helpPosition == 'above' || helpPosition == 'top') && (
                         <div id={this.helpBeforeFieldId} className="form-text form-text-above">
@@ -101,7 +105,9 @@ export default class Input extends React.Component {
                         this.renderInput()
                     )
                 }
-
+				
+				{labelPosition == 'float' && this.renderLabel()}
+				
                 {
                     help && (helpPosition == 'below' || helpPosition == 'bottom') && (
                         <div id={this.helpAfterFieldId} className="form-text">
@@ -129,8 +135,12 @@ export default class Input extends React.Component {
         if (this.props.noWrapper) {
             return this.renderField();
         }
-
+		
         var groupClass = this.props.groupClassName ? "mb-3 " + this.props.groupClassName : "mb-3";
+		
+		if(this.props.labelPosition == 'float'){
+			groupClass = 'form-floating ' + groupClass;
+		}
 
         return (
             <div className={groupClass}>
