@@ -41,36 +41,6 @@ $dropdown_svg: 'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" 
 
     &:focus {
     }
-
-    &:placeholder-shown {
-        // for styling whenever placeholder is visible
-    }
-
-    &::placeholder {
-        @include input_field_placeholder();
-    }
-
-    &::-webkit-input-placeholder {
-        @include input_field_placeholder();
-    }
-
-    &::-moz-placeholder {
-        @include input_field_placeholder();
-        // TODO: test Firefox doesn't automatically override opacity level
-        // opacity: 1;
-    }
-
-    &:-ms-input-placeholder {
-        @include input_field_placeholder();
-    }
-
-    &::-ms-input-placeholder {
-        @include input_field_placeholder();
-    }
-
-    &:-moz-placeholder {
-        @include input_field_placeholder();
-    }
 }
 
 fieldset {
