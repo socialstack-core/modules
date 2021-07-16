@@ -461,10 +461,6 @@ $site_bg: #fff !default;
 $unbranded_dark: #aaa;
 $unbranded_light: #fff;
 
-// typography
-$theme_font_family: "Open Sans", Arial, sans-serif !default;
-
-$title_font_family: $theme_font_family !default;
 $title_font_weight: 700 !default;
 $title_line_height: 1.2 !default;
 $serif_font_family: Georgia, Times, Times New Roman, serif !default;
@@ -478,17 +474,7 @@ $theme_h6_font_size: 1rem !default;
 $theme_header: $unbranded_dark;
 
 $regular_font_size: 1rem;
-$regular_font_family: $theme_font_family !default;
-$regular_font_weight: 400 !default;
 $regular_line_height: 1.5 !default;
-
-$bold_font_family: $theme_font_family !default;
-$bold_font_weight: 700 !default;
-
-$light_font_family: $theme_font_family !default;
-$light_font_weight: 400 !default;
-
-$installed_font: $theme_font_family; // for backwards compatibility (original variable name)
 
 // colours
 $theme_success_bg: #28a745 !default;

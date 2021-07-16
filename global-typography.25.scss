@@ -14,7 +14,7 @@ html {
 
         h1, h2, h3, h4, h5, h6,
         .h1, .h2, .h3, .h4, .h5, .h6 {
-            font-family: $title_font_family;
+            font-family: var(--title-font);
             font-weight: $title_font_weight;
         }
 
@@ -40,11 +40,6 @@ html {
 
         h6, .h6 {
             font-size: $theme_h6_font_size;
-        }
-
-        b, strong {
-            font-family: $bold_font_family;
-            font-weight: $bold_font_weight;
         }
     //}
 }

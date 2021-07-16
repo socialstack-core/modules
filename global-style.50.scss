@@ -7,12 +7,10 @@ html, body, #react-view, #react-root, #content-root, #content-page, #react-loadi
 
 html {
 	overflow-x: hidden;
-	font-family: $regular_font_family !important;
-	font-weight: $regular_font_weight !important;
+	font-family: var(--font) !important;
 
 	body, #react-view, #react-root, #content-root, #content-page, #react-loading {
-		font-family: $regular_font_family;
-		font-weight: $regular_font_weight;
+		font-family: var(--font);
 	}
 
 	body {
