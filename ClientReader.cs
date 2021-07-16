@@ -33,6 +33,10 @@ namespace Api.SocketServerLibrary
 		/// </summary>
 		public readonly Action<BufferSegment> ThenSetField_String_D;
 		/// <summary>
+		/// Sets ustring to current field
+		/// </summary>
+		public readonly Action<BufferSegment> ThenSetField_UString_D;
+		/// <summary>
 		/// Sets bool to current field
 		/// </summary>
 		public readonly Action<byte> ThenSetField_Bool_D;
@@ -231,6 +235,19 @@ namespace Api.SocketServerLibrary
 			}
 			ReadNextField();
 		}
+		
+		/// <summary>
+		/// Sets str to the current field value
+		/// </summary>
+		/// <param name="value"></param>
+		public void ThenSetField_UString(BufferSegment value)
+		{
+			if (CurrentField.Field != null)
+			{
+				CurrentField.Field.SetValue(CurrentObject, value.GetUString());
+			}
+			ReadNextField();
+		}
 
 		/// <summary>
 		/// Sets bool to the current field value
@@ -391,6 +408,7 @@ namespace Api.SocketServerLibrary
 			ThenSetField_NUInt32_D = new Action<uint?>(ThenSetField_NUInt32);
 			ThenSetField_Int64_D = new Action<long>(ThenSetField_Int64);
 			ThenSetField_String_D = new Action<BufferSegment>(ThenSetField_String);
+			ThenSetField_UString_D = new Action<BufferSegment>(ThenSetField_UString);
 			ThenSetField_Bool_D = new Action<byte>(ThenSetField_Bool);
 			ThenSetField_Byte_D = new Action<byte>(ThenSetField_Byte);
 			ThenSetField_DateTime_D = new Action<DateTime>(ThenSetField_DateTime);

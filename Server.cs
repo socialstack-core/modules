@@ -185,20 +185,13 @@ namespace Api.SocketServerLibrary {
 		/// <summary>
 		/// Call this for this server to accept connections and messaging via websockets.
 		/// </summary>
-		public void AcceptWebsockets()
+		/// <param name="requireApplicationHello"></param>
+		public void AcceptWebsockets(bool requireApplicationHello = true)
 		{
-			var ocm = new WebsocketHandshake();
+			var ocm = new WebsocketHandshake(requireApplicationHello);
 			ocm.Code = 71;
 			ocm.IsHello = true;
 			AddToOpcodeMap(ocm.Code, ocm);
-
-			// Get:
-			var ocm2 = RegisterOpCode(2, (GetMessage message) => {
-				message.Done();
-			});
-
-			ocm2.RequestId = true;
-			ocm2.IsHello = true;
 		}
 
 		/// <summary>

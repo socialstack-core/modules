@@ -113,7 +113,13 @@ namespace Api.SocketServerLibrary
 				(ClientReader reader) => reader.ReadUInt64(reader.ThenSetField_UInt64_D),
 				(Writer writer, ulong value) => writer.Write(value)
 			);
-			
+
+			Add( // UTF8 string.
+				16,
+				(ClientReader reader) => reader.ReadBytes(reader.ThenSetField_UString_D),
+				(Writer writer, ustring value) => writer.WriteUString(value)
+			);
+
 			Add(
 				110,
 				(ClientReader reader) => reader.ReadInt32(reader.ThenSetField_NInt32_D),

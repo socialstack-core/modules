@@ -21,6 +21,40 @@ namespace Api.SocketServerLibrary
 	}
 
 	/// <summary>
+	/// A list request.
+	/// </summary>
+	public class ListMessage : Message
+	{
+		/// <summary>
+		/// Content type.
+		/// </summary>
+		public int ContentType;
+		/// <summary>
+		/// ID of the content.
+		/// </summary>
+		public uint Id;
+	}
+
+	/// <summary>
+	/// A simple ping. Does not pong though.
+	/// </summary>
+	public class PingMessage : Message
+	{
+		
+	}
+
+	/// <summary>
+	/// A wrapped JSON request.
+	/// </summary>
+	public class JsonMessage : Message
+	{
+		/// <summary>
+		/// The complete JSON string.
+		/// </summary>
+		public ustring Json;
+	}
+
+	/// <summary>
 	/// Used when a websocket is connecting.
 	/// </summary>
 	public class WebsocketHandshake : OpCode
@@ -55,13 +89,19 @@ namespace Api.SocketServerLibrary
 		/// </summary>
 		public SHA1Managed Sha1;
 
+		/// <summary>
+		/// True if the application has a hello message of its own, expected immediately after the WS header.
+		/// </summary>
+		public bool RequireApplicationHello;
 
 		/// <summary>
 		/// Instanced by calling aServer.AcceptWebsockets()
 		/// </summary>
-		public WebsocketHandshake()
+		/// <param name="requireApplicationHello"></param>
+		public WebsocketHandshake(bool requireApplicationHello)
 		{
 			Sha1 = new SHA1Managed();
+			RequireApplicationHello = requireApplicationHello;
 
 			UpperCaseKeyHeader = System.Text.Encoding.ASCII.GetBytes("sec-websocket-key:");
 			LowerCaseKeyHeader = System.Text.Encoding.ASCII.GetBytes("SEC-WEBSOCKET-KEY:");
@@ -319,10 +359,13 @@ namespace Api.SocketServerLibrary
 			// Immediately expecting a websocket header:
 			Client.Reader.BytesUntilWebsocketHeader = 0;
 
-			opcode.Done(this, true);
+			// Successful handshake. Clear hello flag if the application wishes to do so:
+			if (!opcode.RequireApplicationHello)
+			{
+				Client.Hello = false;
+			}
 
-			// Note that although we got a successful handshake, we don't clear the hello flag.
-			// That's because websocket just wraps other messages - our actual protocol hasn't done its hello yet.
+			opcode.Done(this, true);
 		}
 
 
