@@ -378,7 +378,8 @@ namespace Api.Pages
 					{
 						Page = null,
 						TokenValues = null,
-						TokenNamesJson = "null"
+						TokenNamesJson = "null",
+						RedirectTo = url == "login" ? "/" : "/login?then=" + System.Web.HttpUtility.UrlEncode("/" + url)
 					};
 				}
 
