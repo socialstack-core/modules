@@ -18,10 +18,12 @@ export default function Checkbox(props) {
 
 	className.unshift("form-check");
 
+	/* wrapped by UI/Input
 	// ensure we include a standard bottom margin if one hasn't been supplied
 	if (!className.find(element => element.startsWith("mb-"))) {
 		className.push("mb-3");
 	}
+	*/
 
 	var checkClass = className.join(" ");
 	var inputClass = "form-check-input" + solid ? " form-check-input--solid" : "";

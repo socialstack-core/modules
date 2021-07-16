@@ -47,7 +47,11 @@ export default class Input extends React.Component {
         // this allows us to specify fields which should always display their label
         var labelClass = this.props.labelImportant ? "label-important" : "form-label";
 
-		if(!this.props.label || this.props.type == "submit" || this.props.type == "checkbox" || this.props.type == "radio"){
+		if(!this.props.label || 
+            this.props.type == "submit" || 
+            this.props.type == "checkbox" || 
+            this.props.type == "radio" ||
+            this.props.type == "toggle"){
 			return null;
 		}
 		
