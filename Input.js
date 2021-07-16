@@ -2,6 +2,8 @@ var id = 1;
 
 import Loop from 'UI/Loop';
 import omit from 'UI/Functions/Omit';
+import Checkbox from 'UI/Input/Checkbox';
+import Radio from 'UI/Input/Radio';
 
 const DefaultPasswordStrength = 5;
 
@@ -427,49 +429,42 @@ export default class Input extends React.Component {
 
         } else if (type === "checkbox") {
             return (
-                <div className="custom-control custom-checkbox">
-                    <input
-						ref={this.setRef}
-                        id={this.props.id || this.fieldId}
-                        className={this.props.className || "form-control custom-control-input"}
-                        aria-describedby={this.describedById}
-                        type={type}
-                        onChange={this.onChange}
-                        onBlur={this.onBlur}
-                        data-field={fieldName}
-                        data-validation={this.state.validationFailure ? true : undefined}
-                        {...omit(this.props, ['id', 'className', 'onChange', 'onBlur', 'type', 'inline', 'value', 'defaultValue', 'help', 'helpIcon', 'fieldName'])}
-                        checked={this.props.value || this.props.defaultValue}
-                    />
-                    <label htmlFor={this.props.id || this.fieldId} className="custom-control-label">
-                        {this.props.label}
-                    </label>
-                </div>
+                <Checkbox
+					ref={this.setRef}
+                    id={this.props.id || this.fieldId}
+                    className={this.props.className}
+                    label={this.props.label}
+                    aria-describedby={this.describedById}
+                    onChange={this.onChange}
+                    onBlur={this.onBlur}
+                    data-field={fieldName}
+                    invalid={this.state.validationFailure ? true : undefined}
+                    {...omit(this.props, ['id', 'className', 'onChange', 'onBlur', 'type', 'inline', 'value', 'defaultValue', 'help', 'helpIcon', 'fieldName'])}
+                    checked={this.props.value || this.props.defaultValue}
+                    disabled={false}
+                    isSwitch={false}
+                />
             );
         } else if (type === "radio") {
 
             return (
-                <div className="custom-control custom-radio">
-                    <input
-						ref={this.setRef}
-                        id={this.props.id || this.fieldId}
-                        className={(this.props.className || "form-control custom-control-input") + (this.state.validationFailure ? ' is-invalid' : '')}
-                        name={this.props.name}
-                        aria-describedby={this.describedById}
-                        type={type}
-                        onChange={this.onChange}
-                        onBlur={this.onBlur}
-                        data-field={fieldName}
-                        data-validation={this.state.validationFailure ? true : undefined}
-                        {...omit(this.props, ['id', 'className', 'onChange', 'onBlur', 'type', 'inline', 'value', 'defaultValue', 'help', 'helpIcon', 'fieldName'])}
-                        checked={this.props.value || this.props.defaultValue}
-                    />
-                    <label htmlFor={this.props.id || this.fieldId} className="custom-control-label">
-                        {this.props.label}
-                    </label>
-                </div>
+                <Radio
+					ref={this.setRef}
+                    id={this.props.id || this.fieldId}
+                    className={this.props.className}
+                    name={this.props.name}
+                    label={this.props.label}
+                    aria-describedby={this.describedById}
+                    onChange={this.onChange}
+                    onBlur={this.onBlur}
+                    data-field={fieldName}
+                    invalid={this.state.validationFailure ? true : undefined}
+                    {...omit(this.props, ['id', 'className', 'onChange', 'onBlur', 'type', 'inline', 'value', 'defaultValue', 'help', 'helpIcon', 'fieldName'])}
+                    checked={this.props.value || this.props.defaultValue}
+                    disabled={false}
+                />
             );
-		}else if(type === "password"){
+		} else if(type === "password"){
 			var { pwVisible } = this.state;
 
 			if(this.props.visible !== undefined){
