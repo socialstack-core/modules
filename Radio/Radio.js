@@ -6,7 +6,7 @@
 export default function Radio(props) {
 	var { id, className, name, label, onChange, onBlur, invalid, checked, disabled, solid } = props;
 	
-	className = className.split(" ") || [];
+	className = className ? className.split(" ") : [];
 
 	if (invalid) {
 		className.push("is-invalid");

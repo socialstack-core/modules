@@ -6,7 +6,7 @@
 export default function Checkbox(props) {
 	var { id, className, label, onChange, onBlur, invalid, checked, disabled, solid, isSwitch } = props;
 	
-	className = className.split(" ") || [];
+	className = className ? className.split(" ") : [];
 
 	if (isSwitch) {
 		checkClass.unshift("form-switch");
