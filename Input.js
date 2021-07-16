@@ -490,13 +490,11 @@ export default class Input extends React.Component {
                             {...omit(this.props, ['id', 'className', 'onChange', 'onBlur', 'type', 'inline', 'help', 'helpIcon', 'fieldName'])}
                         />
                         {!this.props.noVisiblityButton && !this.props.noVisibilityButton && (
-                            <div className="input-group-append clickable" onClick={() => {
+							<span className="input-group-text clickable" onClick={() => {
                                 this.setState({pwVisible: !pwVisible});
                             }}>
-                                <span className="input-group-text">
-                                    <i className={"fa fa-eye" + (pwVisible ? '-slash' : '')} />
-                                </span>
-                            </div>
+								<i className={"fa fa-eye" + (pwVisible ? '-slash' : '')} />
+							</span>
                         )}
                         </div>
                         {this.props.showMeter && (
