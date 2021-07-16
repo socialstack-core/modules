@@ -2,7 +2,7 @@
 // (UI/Source/GeneralStyle/Forms.50.scss for project-specific styling)
 
 .validation-error{
-	color: red;
+	color: var(--danger);
 	font-size: smaller;
 	margin-top: 4px;
 }
@@ -37,7 +37,7 @@ input[type="checkbox"].form-control {
 
 .is-required-field::after{
 	content: '*';
-	color: red;
+	color: var(--danger);
 }
 
 .password-strength {
