@@ -28,7 +28,6 @@ $dropdown_svg: 'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" 
 
 @mixin input_field_styling($font_size: $ss_form_field_font_size) {
     @include font_size($font_size);
-    @include padding($ss_form_field_padding_y, $ss_form_field_padding_x);
     @include border_radius($ss_form_field_border_radius);
     background-color: $ss_form_field_bg;
     color: $ss_form_field_fg;
