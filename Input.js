@@ -365,7 +365,7 @@ export default class Input extends React.Component {
                     onBlur={this.onBlur}
                     value={defaultValue}
                     id={this.props.id || this.fieldId}
-                    className={(this.props.className || "form-control") + (this.state.validationFailure ? ' is-invalid' : ' is-valid')}
+                    className={(this.props.className || "form-control") + (this.state.validationFailure ? ' is-invalid' : '')}
                     {...omit(this.props, ['id', 'className', 'onChange', 'onBlur', 'type', 'children', 'defaultValue', 'value', 'inline', 'help', 'helpIcon', 'fieldName'])}
                     data-field={fieldName}
                 >
@@ -392,7 +392,7 @@ export default class Input extends React.Component {
                     onChange={this.onChange}
                     onBlur={this.onBlur}
                     id={this.props.id || this.fieldId}
-                    className={(this.props.className || "form-control") + (this.state.validationFailure ? ' is-invalid' : ' is-valid')}
+                    className={(this.props.className || "form-control") + (this.state.validationFailure ? ' is-invalid' : '')}
                     {...omit(this.props, ['id', 'className', 'onChange', 'onBlur', 'type', 'inline', 'help', 'helpIcon', 'fieldName'])}
                 />
             );
@@ -443,7 +443,7 @@ export default class Input extends React.Component {
                     <input
 						ref={this.setRef}
                         id={this.props.id || this.fieldId}
-                        className={(this.props.className || "form-control custom-control-input") + (this.state.validationFailure ? ' is-invalid' : ' is-valid')}
+                        className={(this.props.className || "form-control custom-control-input") + (this.state.validationFailure ? ' is-invalid' : '')}
                         name={this.props.name}
                         aria-describedby={this.describedById}
                         type={type}
@@ -481,7 +481,7 @@ export default class Input extends React.Component {
                         <input
                             ref={this.setRef}
                             id={this.props.id || this.fieldId}
-                            className={(this.props.className || "form-control") + (this.state.validationFailure ? ' is-invalid' : ' is-valid')}
+                            className={(this.props.className || "form-control") + (this.state.validationFailure ? ' is-invalid' : '')}
                             aria-describedby={this.describedById}
                             type={pwVisible ? 'text' : type}
                             onChange={this.onChange}
@@ -516,7 +516,7 @@ export default class Input extends React.Component {
                 <input
                     ref={this.setRef}
                     id={this.props.id || this.fieldId}
-                    className={(this.props.className || "form-control") + (this.state.validationFailure ? ' is-invalid' : ' is-valid')}
+                    className={(this.props.className || "form-control") + (this.state.validationFailure ? ' is-invalid' : '')}
                     aria-describedby={this.describedById}
                     type={type}
                     onChange={this.onChange}
