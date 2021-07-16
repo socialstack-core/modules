@@ -43,7 +43,7 @@ export default class Input extends React.Component {
     renderField() {
         // possible to hide all labels globally with $ss_form_field_label_hidden;
         // this allows us to specify fields which should always display their label
-        var labelClass = this.props.labelImportant ? "label-important" : "";
+        var labelClass = this.props.labelImportant ? "label-important" : "form-label";
 
         var help = this.props.help;
         var helpPosition = 'above';
@@ -72,9 +72,9 @@ export default class Input extends React.Component {
             }
                 {
                     help && (helpPosition == 'above' || helpPosition == 'top') && (
-                        <small id={this.helpBeforeFieldId} className="form-text text-muted form-text-above">
+                        <div id={this.helpBeforeFieldId} className="form-text form-text-above">
                             {help}
-                        </small>
+                        </div>
                     )
             }
             {
@@ -104,9 +104,9 @@ export default class Input extends React.Component {
 
                 {
                     help && (helpPosition == 'below' || helpPosition == 'bottom') && (
-                        <small id={this.helpAfterFieldId} className="form-text text-muted">
+                        <div id={this.helpAfterFieldId} className="form-text">
                             {help}
-                        </small>
+                        </div>
                     )
                 }
 
@@ -130,7 +130,7 @@ export default class Input extends React.Component {
             return this.renderField();
         }
 
-        var groupClass = this.props.groupClassName ? "form-group " + this.props.groupClassName : "form-group";
+        var groupClass = this.props.groupClassName ? "mb-3 " + this.props.groupClassName : "mb-3";
 
         return (
             <div className={groupClass}>
@@ -476,7 +476,7 @@ export default class Input extends React.Component {
                 }
             }
 
-			return <div className="form-group">
+			return <div className="mb-3">
                         <div className="input-group">
                         <input
                             ref={this.setRef}
