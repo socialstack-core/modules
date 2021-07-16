@@ -282,6 +282,17 @@ namespace Api.Startup{
 		}
 
 		/// <summary>
+		/// Gets the linked list of values for a particular key.
+		/// </summary>
+		/// <param name="key"></param>
+		/// <returns></returns>
+		public IndexLinkedList<T> GetIndexList(U key)
+		{
+			Index.TryGetValue(key, out IndexLinkedList<T> value);
+			return value;
+		}
+
+		/// <summary>
 		/// Gets a non-alloc enumeration tracker.
 		/// </summary>
 		/// <returns></returns>
