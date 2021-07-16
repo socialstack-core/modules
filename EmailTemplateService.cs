@@ -197,11 +197,13 @@ namespace Api.Emails
 		/// </summary>
 		/// <param name="recipients"></param>
 		/// <param name="key"></param>
-		public void Send(IList<Recipient> recipients, string key)
+		/// <param name="messageId"></param>
+		/// <param name="attachments"></param>
+		public void Send(IList<Recipient> recipients, string key, string messageId = null, IEnumerable<Attachment> attachments = null)
 		{
 			Task.Run(async () =>
 			{
-				await SendAsync(recipients, key);
+				await SendAsync(recipients, key, messageId, attachments);
 			});
 		}
 
@@ -210,8 +212,10 @@ namespace Api.Emails
 		/// </summary>
 		/// <param name="recipients"></param>
 		/// <param name="key"></param>
+		/// <param name="messageId"></param>
+		/// <param name="attachments">Optional attachments.</param>
 		/// <returns></returns>
-		public async Task<bool> SendAsync(IList<Recipient> recipients, string key)
+		public async Task<bool> SendAsync(IList<Recipient> recipients, string key, string messageId = null, IEnumerable<Attachment> attachments = null)
 		{
 			// First, make sure we have users loaded for all recipients.
 			await LoadUsers(recipients);
@@ -287,7 +291,7 @@ namespace Api.Emails
 					var targetEmail = recipient.User.Email;
 
 					// Send now:
-					await Send(targetEmail, subject, renderedResult.Body);
+					await Send(targetEmail, subject, renderedResult.Body, messageId, null, attachments);
 				}
 			}
 
@@ -302,7 +306,8 @@ namespace Api.Emails
 		/// <param name="body">Email body (HTML).</param>
 		/// <param name="messageId">Optional message ID.</param>
 		/// <param name="fromAccount">Optionally select a particular from account. The default (in your appsettings.json) is used otherwise.</param>
-		public async Task Send(string toAddress, string subject, string body, string messageId = null, EmailAccount fromAccount = null)
+		/// <param name="attachments">Optional attachments.</param>
+		public async Task Send(string toAddress, string subject, string body, string messageId = null, EmailAccount fromAccount = null, IEnumerable<Attachment> attachments = null)
 		{
 			if (fromAccount == null)
 			{
@@ -332,6 +337,15 @@ namespace Api.Emails
 			mailMessage.From = new MailAddress(fromAccount.FromAddress);
 			mailMessage.To.Add(toAddress);
 			mailMessage.Body = body;
+
+			if (attachments != null)
+			{
+				foreach (var attachment in attachments)
+				{
+					// Add attachment:
+					mailMessage.Attachments.Add(attachment);
+				}
+			}
 
 			if (!string.IsNullOrEmpty(fromAccount.ReplyTo))
 			{
