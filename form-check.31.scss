@@ -1,0 +1,45 @@
+$form-check-size: 0rem + 24/16;
+$form-check-margin: 0rem + 10/16;
+$form-check-padding: $form-check-size + $form-check-margin;
+
+$form-switch-size: 0rem + 48/16;
+$form-switch-padding: $form-switch-size + $form-check-margin;
+
+.form-check {
+
+    .form-check-input {
+        height: $form-check-size;
+        margin-top: 0;
+    }
+
+    .form-check-label {
+        margin: 0;
+        font-weight: normal;
+    }
+
+    // standard checkbox / radio button
+    &:not(.form-switch) {
+        padding-left: $form-check-padding;
+
+        .form-check-input {
+            margin-left: -$form-check-padding;
+            width: $form-check-size;
+
+            // use solid colour for selected checkbox / radio options
+            &.form-check-input--solid:checked {
+                background-image: none;
+            }
+
+        }
+    }
+
+    // switch checkbox variant
+    &.form-switch {
+        padding-left: $form-switch-padding;
+
+        .form-check-input {
+            margin-left: -$form-switch-padding;
+            width: $form-switch-size;
+        }
+    }
+}
