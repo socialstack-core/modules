@@ -365,10 +365,9 @@ export default class Input extends React.Component {
                     onBlur={this.onBlur}
                     value={defaultValue}
                     id={this.props.id || this.fieldId}
-                    className={this.props.className || "form-control"}
+                    className={(this.props.className || "form-control") + (this.state.validationFailure ? ' is-invalid' : ' is-valid')}
                     {...omit(this.props, ['id', 'className', 'onChange', 'onBlur', 'type', 'children', 'defaultValue', 'value', 'inline', 'help', 'helpIcon', 'fieldName'])}
                     data-field={fieldName}
-                    data-validation={this.state.validationFailure ? true : undefined}
                 >
                     {this.props.contentType ? [
                         <option value={noSelectionValue}>{noSelection}</option>,
@@ -393,9 +392,8 @@ export default class Input extends React.Component {
                     onChange={this.onChange}
                     onBlur={this.onBlur}
                     id={this.props.id || this.fieldId}
-                    className={this.props.className || "form-control"}
+                    className={(this.props.className || "form-control") + (this.state.validationFailure ? ' is-invalid' : ' is-valid')}
                     {...omit(this.props, ['id', 'className', 'onChange', 'onBlur', 'type', 'inline', 'help', 'helpIcon', 'fieldName'])}
-                    data-validation={this.state.validationFailure ? true : undefined}
                 />
             );
 
@@ -445,7 +443,7 @@ export default class Input extends React.Component {
                     <input
 						ref={this.setRef}
                         id={this.props.id || this.fieldId}
-                        className={this.props.className || "form-control custom-control-input"}
+                        className={(this.props.className || "form-control custom-control-input") + (this.state.validationFailure ? ' is-invalid' : ' is-valid')}
                         name={this.props.name}
                         aria-describedby={this.describedById}
                         type={type}
@@ -483,13 +481,12 @@ export default class Input extends React.Component {
                         <input
                             ref={this.setRef}
                             id={this.props.id || this.fieldId}
-                            className={this.props.className || "form-control"}
+                            className={(this.props.className || "form-control") + (this.state.validationFailure ? ' is-invalid' : ' is-valid')}
                             aria-describedby={this.describedById}
                             type={pwVisible ? 'text' : type}
                             onChange={this.onChange}
                             onBlur={this.onBlur}
                             onInput={this.onInput}
-                            data-validation={this.state.validationFailure ? true : undefined}
                             {...omit(this.props, ['id', 'className', 'onChange', 'onBlur', 'type', 'inline', 'help', 'helpIcon', 'fieldName'])}
                         />
                         {!this.props.noVisiblityButton && !this.props.noVisibilityButton && (
@@ -519,7 +516,7 @@ export default class Input extends React.Component {
                 <input
                     ref={this.setRef}
                     id={this.props.id || this.fieldId}
-                    className={this.props.className || "form-control"}
+                    className={(this.props.className || "form-control") + (this.state.validationFailure ? ' is-invalid' : ' is-valid')}
                     aria-describedby={this.describedById}
                     type={type}
                     onChange={this.onChange}
@@ -527,7 +524,6 @@ export default class Input extends React.Component {
                     onInput={this.onInput}
                     data-disabled-by={disabledBy}
                     data-enabled-by={enabledBy}
-                    data-validation={this.state.validationFailure ? true : undefined}
                     {...omit(this.props, ['id', 'className', 'onChange', 'onBlur', 'type', 'inline', 'help', 'helpIcon', 'fieldName'])}
                 />
             );
