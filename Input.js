@@ -374,14 +374,21 @@ export default class Input extends React.Component {
                 noSelection = mobileNoSelection;
             }
 
+            var selectClass = this.props.className || "form-select" + (this.state.validationFailure ? ' is-invalid' : '');
+
+            if (defaultValue == undefined) {
+                selectClass += " no-selection";
+            }
+
             return (
                 <select
 					ref={this.setRef}
                     onChange={this.onSelectChange}
                     onBlur={this.onBlur}
+                    autocomplete={this.props.autocomplete}
                     value={defaultValue}
                     id={this.props.id || this.fieldId}
-                    className={(this.props.className || "form-control") + (this.state.validationFailure ? ' is-invalid' : '')}
+                    className={selectClass}
                     {...omit(this.props, ['id', 'className', 'onChange', 'onBlur', 'type', 'children', 'defaultValue', 'value', 'inline', 'help', 'helpIcon', 'fieldName'])}
                     data-field={fieldName}
                 >
@@ -407,6 +414,7 @@ export default class Input extends React.Component {
 					ref={this.setRef}
                     onChange={this.onChange}
                     onBlur={this.onBlur}
+                    autocomplete={this.props.autocomplete}
                     id={this.props.id || this.fieldId}
                     className={(this.props.className || "form-control") + (this.state.validationFailure ? ' is-invalid' : '')}
                     {...omit(this.props, ['id', 'className', 'onChange', 'onBlur', 'type', 'inline', 'help', 'helpIcon', 'fieldName'])}
@@ -485,14 +493,15 @@ export default class Input extends React.Component {
                 }
             }
 
-			return <div className="mb-3">
-                        <div className="input-group">
+			return <>
+                    <div className="input-group">
                         <input
                             ref={this.setRef}
                             id={this.props.id || this.fieldId}
                             className={(this.props.className || "form-control") + (this.state.validationFailure ? ' is-invalid' : '')}
                             aria-describedby={this.describedById}
                             type={pwVisible ? 'text' : type}
+                            autocomplete={this.props.autocomplete}
                             onChange={this.onChange}
                             onBlur={this.onBlur}
                             onInput={this.onInput}
@@ -502,16 +511,14 @@ export default class Input extends React.Component {
 							<span className="input-group-text clickable" onClick={() => {
                                 this.setState({pwVisible: !pwVisible});
                             }}>
-								<i className={"fa fa-eye" + (pwVisible ? '-slash' : '')} />
+								<i className={"fa fa-fw fa-eye" + (pwVisible ? '-slash' : '')} />
 							</span>
                         )}
-                        </div>
-                        {this.props.showMeter && (
-                            <div className={'password-strength ' + strengthClass}>
-                                <progress max="100" value={strength}></progress>
-                            </div>
-                        )}
-                   </div>;
+                    </div>
+                    {this.props.showMeter && (
+                        <meter className="meter" min="0" max="100" value={strength} low="44" high="55" optimum="80"></meter>
+                    )}
+                </>;
         } else {
             // E.g. ontypecanvas will fire. This gives a generic entry point for custom input types by just installing them:
             var handler = inputTypes['ontype' + type];
@@ -529,6 +536,7 @@ export default class Input extends React.Component {
                     onChange={this.onChange}
                     onBlur={this.onBlur}
                     onInput={this.onInput}
+                    autocomplete={this.props.autocomplete}
                     data-disabled-by={disabledBy}
                     data-enabled-by={enabledBy}
                     {...omit(this.props, ['id', 'className', 'onChange', 'onBlur', 'type', 'inline', 'help', 'helpIcon', 'fieldName'])}
