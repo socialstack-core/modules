@@ -464,6 +464,10 @@ namespace Api.Startup
 			Console.WriteLine(CurrentFill);
 		}
 
+        /// <summary>
+		/// 
+		/// </summary>
+		/// <param name="currentBlock"></param>
 		public void PrintBlock(IDBlock<T> currentBlock)
         {
 			Console.Write("[");

@@ -573,6 +573,60 @@ namespace Api.Startup
 		}
 
 		/// <summary>
+		/// Gets a cache iterator for the given source ID (if the cache is active, and it exists).
+		/// </summary>
+		/// <param name="src"></param>
+		/// <returns></returns>
+		public IndexLinkedList<Mapping<SRC_ID, TARG_ID>> GetRawCacheList(SRC_ID src)
+		{
+			if (_cache == null)
+			{
+				return null;
+			}
+
+			if (_cacheIndex == null)
+			{
+
+				var cache = GetCacheForLocale(1);
+
+				if (cache != null)
+				{
+					// It's a cached mapping type.
+					// Pre-obtain index ref now:
+					_cacheIndex = cache.GetIndex<SRC_ID>(srcIdFieldName) as NonUniqueIndex<Mapping<SRC_ID, TARG_ID>, SRC_ID>;
+				}
+
+				if (_cacheIndex == null)
+				{
+					return null;
+				}
+			}
+
+			// Using an index scan
+			return _cacheIndex.GetIndexList(src);
+		}
+
+		/// <summary>
+		/// Gets a cache iterator for the given source ID (if the cache is active, and it exists).
+		/// </summary>
+		/// <param name="src"></param>
+		/// <returns></returns>
+		public IndexEnum<Mapping<SRC_ID, TARG_ID>> GetSourceFromCache(SRC_ID src)
+		{
+			var cacheList = GetRawCacheList(src);
+
+			if (cacheList == null)
+			{
+				return default(IndexEnum<Mapping<SRC_ID, TARG_ID>>);
+			}
+
+			return new IndexEnum<Mapping<SRC_ID, TARG_ID>>()
+			{
+				Node = cacheList.First
+			};
+		}
+		
+		/// <summary>
 		/// True if the given mapping entry exists in this services cache. Note that if the cache is not active, this returns false.
 		/// </summary>
 		/// <param name="src"></param>
