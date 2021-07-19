@@ -1,6 +1,5 @@
 /*
 	global form styles
-    NB: named global-forms.45.scss to allow for project-specific overrides to these styles (see UI/Source/GeneralStyle/forms.50.scss)
 */
 
 // standard chevron icon (used on restyled select dropdown controls)
@@ -27,6 +26,7 @@ $dropdown_svg: 'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" 
 }
 
 @mixin input_field_styling($font_size: $ss_form_field_font_size) {
+    /*
     @include font_size($font_size);
     @include border_radius($ss_form_field_border_radius);
     background-color: $ss_form_field_bg;
@@ -41,31 +41,8 @@ $dropdown_svg: 'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" 
 
     &:focus {
     }
+    */
 }
-
-fieldset {
-
-    legend {
-
-    }
-
-}
-
-//html:not(.admin),
-//html.admin.fullscreen-preview {
-    label,
-    .field-label {
-        @include font_size($ss_form_field_label_font_size);
-        color: $ss_form_field_label;
-        font-weight: $ss_form_field_label_font_weight;
-		
-        &:not(.label-important):not(.custom-control-label) {
-            @if $ss_form_field_label_hidden {
-                display: none;
-            }
-        }
-    }
-//}
 
 .form-group {
     // see ThirdParty/Input - used when optionally providing an icon class
@@ -81,101 +58,10 @@ fieldset {
     }
 }
 
-// specify .form-control to ensure we override Bootstrap classes where necessary
-input.form-control {
-    // form buttons
-    // NB: see global-buttons.35.scss
-    /*
-&[type='button'],
-&[type='reset'],
-&[type='submit'] {
-}
-*/
-    // checkboxes
-    &[type='checkbox'] {
-    }
-    // radio buttons
-    &[type='radio'] {
-    }
-    // text entry
-    &:not([type]),
-    &[type=""],
-    &[type='date'],
-    &[type='datetime'], // obsolete
-    &[type='datetime-local'],
-    &[type='email'],
-    &[type='month'],
-    &[type='number'],
-    &[type='password'],
-    &[type='search'],
-    &[type='tel'],
-    &[type='text'],
-    &[type='time'],
-    &[type='url'],
-    &[type='week'] {
-        @include input_field_styling;
-    }
-    // colour picker
-    &[type='color'] {
-    }
-    // file upload
-    // NB: see global-buttons.35.scss
-    //&[type='file'] {
-    //}
-    // range
-    &[type='range'] {
-    }
-}
-
-// file upload (TODO)
 /*
-input {
-    // file upload
-    // NB: for this to work, the file input must have a following label, e.g.
-    // <input type="file" name="file" id="file" />
-    // <label for="file">Choose a file</label>
-    // ref http://tympanus.net/codrops/2015/09/15/styling-customizing-file-inputs-smart-way/
-    &[type='file'][id] {
-        // NB: not 0 as this can affect tab order on some browsers
-        width: 0.1px;
-        height: 0.1px;
-        opacity: 0;
-        overflow: hidden;
-        position: absolute;
-        z-index: -1;
-
-        @if ($socialstack_theme_version == 1) {
-            + label {
-                @include base_button_styling();
-                //@include primary_button_styling();
-                @include secondary_button_styling();
-                display: inline-block; // necessary to prevent optional hidden form labels from hiding this
-            }
-        }
-
-        &:focus + label {
-            //@include focus_styling;
-            cursor: pointer;
-            //pointer-events: none;
-            //box-shadow: 0 0 0 0.2rem rgba($theme_primary_btn_bg, .5);
-            box-shadow: 0 0 0 0.2rem rgba($theme_secondary_btn_bg, .5);
-        }
-
-        ~ .upload-limit {
-            @include font_size(12);
-            display: block;
-        }
-    }
-}
-*/
-
-textarea.form-control {
-    @include input_field_styling;
-}
-
 select.form-control,
+select.form-select,
 .date-time-picker select {
-    @include input_field_styling;
     //line-height: 1.3;
     //display: inline-block;
     box-sizing: border-box;
@@ -195,6 +81,7 @@ select.form-control,
         font-weight: normal !important;
     }
 }
+*/
 
 .white-fields {
 
