@@ -301,6 +301,7 @@ namespace Api.Pages
 			var singlePageCanvas = new CanvasNode("Admin/Layouts/AutoEdit")
 					.With("endpoint", typeName)
 					.With("singular", tidySingularName)
+					.With("id", "${primary.id}")
 					.With("plural", tidyPluralName);
 
 			if (childAdminPage != null && childAdminPage.ChildType != null)
