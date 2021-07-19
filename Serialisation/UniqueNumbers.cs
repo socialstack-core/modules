@@ -361,10 +361,11 @@ namespace Api.Startup
 				return;
 			}
 
-			T currentValue = new T();
+			T currentValue = default;
 			var currentValueCount = 0;
 			var currentBlock = First;
 			var valueFillCount = 0;
+			var newFullBlockCount = 0;
 			bool initialValueSet = false;
 			bool fullyIterated = false;
 
@@ -372,6 +373,7 @@ namespace Api.Startup
 
 			while (!fullyIterated)
 			{
+				valueFillCount = 0;
 				// Let's iterate the current array
 				for (int i = 0; i < currentBlock.Entries.Length; i++)
 				{
@@ -406,6 +408,12 @@ namespace Api.Startup
 						// Sort it into our newBlock
 						Sort(newBlock, currentValue, 0, true, valueFillCount);
 						valueFillCount++;
+
+						if(valueFillCount == 64)
+                        {
+							valueFillCount = 0;
+							newFullBlockCount++;
+                        }
 					}
 
 					// We took care of that value, move onto our new one
@@ -413,6 +421,7 @@ namespace Api.Startup
 					currentValue = curEntry;
 					initialValueSet = true;
 				}
+				currentBlock = currentBlock.Next;
 			}
 
 			// Now that we have constructed our new block, let's release the old.
@@ -422,8 +431,8 @@ namespace Api.Startup
 			First = newBlock;
 
 			// Update count
-			CurrentFill = valueFillCount % 64;
-			FullBlockCount = valueFillCount / 64;
+			CurrentFill = valueFillCount;
+			FullBlockCount = newFullBlockCount;
 
 			// Set our Last Block
 			Last = First;
