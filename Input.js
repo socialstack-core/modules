@@ -43,9 +43,6 @@ export default class Input extends React.Component {
     }
 	
 	renderLabel() {
-		// possible to hide all labels globally with $ss_form_field_label_hidden;
-        // this allows us to specify fields which should always display their label
-        var labelClass = this.props.labelImportant ? "label-important" : "form-label";
 
 		if(!this.props.label || 
             this.props.type == "submit" || 
@@ -55,7 +52,7 @@ export default class Input extends React.Component {
 			return null;
 		}
 		
-		return <label htmlFor={this.props.id || this.fieldId} className={labelClass}>
+		return <label htmlFor={this.props.id || this.fieldId} className="form-label">
 			{this.props.label}
 			{!this.props.hideRequiredStar && this.props.validate && this.props.validate.indexOf("Required")!=-1 && <span className="is-required-field"></span>}
 		</label>;
