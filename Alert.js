@@ -16,6 +16,7 @@ export default Alert = props => {
 		case "failure":
 		case "failed":
 		case "error":
+		case "danger":
 			alertClass = 'alert alert-danger';
 			alertIcon = 'fas fa-times-circle';
 			break;
