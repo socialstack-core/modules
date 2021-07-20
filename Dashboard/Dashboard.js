@@ -11,13 +11,13 @@ export default function Dashboard (props, context) {
 	
 	return (
 		<Default>
-			{role && user && <Content type='userrole' id={role.id}>
+			{role && user && <Content type='role' id={role.id}>
 				{userRole => {
 					if(!userRole){
 						return null;
 					}
 					
-					if(!userRole.dashboardJson){
+					if(!userRole.adminDashboardJson){
 						return <div className="container">
 							<Tile title={
 								<center>
@@ -35,7 +35,7 @@ export default function Dashboard (props, context) {
 					}
 					
 					return <Canvas>
-						{userRole.dashboardJson}
+						{userRole.adminDashboardJson}
 					</Canvas>;
 				}}
 			</Content>}
