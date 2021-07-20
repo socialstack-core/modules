@@ -173,6 +173,22 @@ namespace Api.Permissions
 				return role;
 			});
 
+			Events.Role.BeforeGettable.AddEventListener((Context ctx, JsonField<Role, uint> field) => {
+
+				if (field == null)
+				{
+					return new ValueTask<JsonField<Role, uint>>(field);
+				}
+
+				if (field.Name == "AdminDashboardJson")
+				{
+					// Not readable if can't view admin.
+					field.Readable = (field.ForRole != null && field.ForRole.CanViewAdmin);
+				}
+
+				return new ValueTask<JsonField<Role, uint>>(field);
+			});
+		
 			Events.Role.Received.AddEventListener(async (Context context, Role role, int type) =>
 			{
 				if (role == null)

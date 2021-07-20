@@ -32,6 +32,11 @@ namespace Api.Permissions
 		public bool CanViewAdmin;
 
 		/// <summary>
+		/// Admin dashboard JSON. Only sent to roles which can view the admin panel.
+		/// </summary>
+		public string AdminDashboardJson;
+
+		/// <summary>
 		/// The raw grant rules for this user role.
 		/// </summary>
 		[Module("Admin/PermissionGrid")]
