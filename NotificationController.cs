@@ -26,5 +26,35 @@ namespace Api.Notifications
 			return new {};
 		}
 		
+		/// <summary>
+		/// Clears a set of a user's notifications, based on ids.
+		/// </summary>
+		/// <param name="ids"></param>
+		/// <returns></returns>
+		[HttpPost("markViewed")]
+		public async Task<object> MarkViewedByIds([FromBody] IdSetBody ids)
+        {
+			var ctx = await Request.GetContext();
+
+			if(ctx == null || ctx.UserId == 0)
+            {
+				return null;
+            }
+
+			await (_service as NotificationService).MarkSetViewed(ctx, ctx.UserId, ids.Ids);
+
+			return new {};
+        }
+    }
+
+	/// <summary>
+	/// Ids sent to be marked as view.
+	/// </summary>
+	public class IdSetBody
+    {
+		/// <summary>
+		/// The array of notificaiton ids.
+		/// </summary>
+		public uint[] Ids;
     }
 }

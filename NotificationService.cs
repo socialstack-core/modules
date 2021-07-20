@@ -33,20 +33,43 @@ namespace Api.Notifications
 		/// <returns>The number cleared</returns>
 		public async Task<int> MarkAllViewed(Context context, uint userId)
 		{
-			var all = await Where("UserId=? and ViewedDateUtc=?", DataOptions.IgnorePermissions).Bind(userId).Bind("null").ListAll(context);
-			
-			// We go through them sequentially like this so websockets and caches are updated (amongst anything else that handlers want to do).
-			foreach(var notif in all)
+			var all = await Where("UserId=? and ViewedDateUtc=?", DataOptions.IgnorePermissions).Bind(userId).Bind((DateTime?)null).ListAll(context);
+			return await MarkChanged(all, context);
+		}
+
+		/// <summary>
+		/// Mark the given set of notif id's as viewed.
+		/// </summary>
+		/// <param name="context"></param>
+		/// <param name="userId"></param>
+		/// <param name="ids"></param>
+		/// <returns></returns>
+		public async Task<int> MarkSetViewed(Context context, uint userId, uint[] ids)
+        {
+			// With our ids, let's list the notifications based on the ids and the user id of the context.
+			// We aren't ignoring permissions so we can verify the user is authed to handle the target notifications.
+			var notifs = await Where("UserId=? and ViewedDateUtc=? and Id=[?]").Bind(userId).Bind((DateTime?)null).Bind(ids).ListAll(context);
+			return await MarkChanged(notifs, context);
+		}
+
+		/// <summary>
+		/// Used to mark a set of notifications as Viewed. 
+		/// </summary>
+		/// <param name="notifs"></param>
+		/// <param name="context"></param>
+		/// <returns></returns>
+		public async Task<int> MarkChanged(List<Notification> notifs, Context context)
+        {
+			foreach (var notif in notifs)
 			{
 				await Update(context, notif, (Context c, Notification n) => {
-					
+
 					n.ViewedDateUtc = DateTime.UtcNow;
 					n.MarkChanged(viewedDateChanged);
 				});
 			}
-			
-			return all.Count;
-			
+
+			return notifs.Count;
 		}
 
 		/// <summary>
