@@ -158,10 +158,21 @@ export default class CalendarCompact extends React.Component {
 		}
 		
 		// If our dataHandlers were updated, let's go ahead and re load the data in the calendar.
-		if((props.dataHandlers && props.dataHandlers != this.props.dataHandlers)) {
-			this.load(0, props);
-		}
-		
+		if(props.dataHandlers && this.props.dataHandlers){
+			if(props.dataHandlers.length == this.props.dataHandlers.length) {
+				// The length's match, let's make sure the values are the same.
+				for(var i = 0; i < props.dataHandlers.length; i++)
+				{
+					if(props.dataHandlers[i].type != this.props.dataHandlers[i].type) {
+						this.load(0, props);
+						break;
+					}
+				}
+			} else {
+				// Let's reload.
+				this.load(0, props)
+			}
+		} 
 	}
 	
 	componentDidUpdate(p){
@@ -171,8 +182,6 @@ export default class CalendarCompact extends React.Component {
 			this.calendarRef.current.childNodes[domNodeIndex].scrollIntoView(true);
 			this.setState({updatedOnce: true})
 		}
-
-
 	}
 
 	populateBetween(start, end, dayMeta, props){
