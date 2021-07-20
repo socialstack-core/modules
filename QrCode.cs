@@ -1,4 +1,5 @@
 using System;
+using Api.AutoForms;
 using Api.Database;
 using Api.Translate;
 using Api.Users;
@@ -24,6 +25,7 @@ namespace Api.QrCodes
         /// </summary>
         [DatabaseField(Length = 200)]
 		[Localized]
+		[Module("Admin/QrPreview")]
 		public string Url;
 		
 	}
