@@ -427,14 +427,20 @@ namespace Api.Pages
 				// Get the pages by those URLs:
 				var existingPages = (await Where("Url=[?]", DataOptions.NoCacheIgnorePermissions)
 						.Bind(urls)
-						.ListAll(context))
-						.ToDictionary(page => page.Url);
+						.ListAll(context));
+
+				var existingPagesLookup = new Dictionary<string, Page>();
+
+				foreach (var pg in existingPages)
+				{
+					existingPagesLookup[pg.Url] = pg;
+				}
 
 				// For each page to consider for install..
 				foreach (var page in urlSet)
 				{
 					// If it doesn't already exist, create it.
-					if (!existingPages.ContainsKey(page.Url))
+					if (!existingPagesLookup.ContainsKey(page.Url))
 					{
 						await Create(context, page, DataOptions.IgnorePermissions);
 					}
