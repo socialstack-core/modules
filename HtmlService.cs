@@ -361,6 +361,71 @@ namespace Api.Pages
 		}
 
 		/// <summary>
+		/// Only renders the header. The body is blank.
+		/// </summary>
+		/// <param name="context"></param>
+		/// <param name="locale"></param>
+		/// <returns></returns>
+		private async ValueTask<List<DocumentNode>> RenderHeaderOnly(Context context, Locale locale)
+		{
+			var themeConfig = _themeService.GetConfig();
+
+			// Generate the document:
+			var doc = new Document();
+			doc.Path = "/";
+			doc.Title = ""; // Todo: permit {token} values in the title which refer to the primary object.
+			doc.Html.With("class", "ui head-only").With("lang", locale.Code)
+				.With("data-theme", themeConfig.DefaultAdminThemeId);
+
+			var head = doc.Head;
+
+			// If there are tokens, get the primary object:
+
+			// Charset must be within first 1kb of the header:
+			head.AppendChild(new DocumentNode("meta", true).With("charset", "utf-8"));
+
+			// Handle all Start Head Tags in the config.
+			HandleCustomHeadList(_config.StartHeadTags, head, false);
+
+			head.AppendChild(new DocumentNode("link", true).With("rel", "icon").With("type", "image/png").With("sizes", "32x32").With("href", "/favicon-32x32.png"))
+				.AppendChild(new DocumentNode("link", true).With("rel", "icon").With("type", "image/png").With("sizes", "16x16").With("href", "/favicon-16x16.png"));
+
+			// Get the main CSS files. Note that this will (intentionally) delay on dev instances if the first compile hasn't happened yet.
+			// That's primarily because we need the hash of the contents in the URL. Note that it has an internal cache which is almost always hit.
+			var mainCssFile = await _frontend.GetMainCss(context == null ? 1 : context.LocaleId);
+			head.AppendChild(new DocumentNode("link", true).With("rel", "stylesheet").With("href", mainCssFile.PublicUrl));
+				
+			var mainAdminCssFile = await _frontend.GetAdminMainCss(context == null ? 1 : context.LocaleId);
+			head.AppendChild(new DocumentNode("link", true).With("rel", "stylesheet").With("href", mainAdminCssFile.PublicUrl));
+			head.AppendChild(new DocumentNode("meta", true).With("name", "msapplication-TileColor").With("content", "#ffffff"))
+				.AppendChild(new DocumentNode("meta", true).With("name", "theme-color").With("content", "#ffffff"))
+				.AppendChild(new DocumentNode("meta", true).With("name", "viewport").With("content", "width=device-width, initial-scale=1"));
+
+			// Handle all End Head tags in the config.
+			HandleCustomHeadList(_config.EndHeadTags, head, false);
+
+			// Build the flat HTML for the page:
+			var flatNodes = doc.Flatten();
+
+			// Note: Although gzip does support multiple concatenated gzip blocks, browsers do not implement this part of the gzip spec correctly.
+			// Unfortunately that means no part of the stream can be pre-compressed; must compress the whole thing and output that.
+
+			// Swap all the TextNodes for byte blocks.
+			for (var i = 0; i < flatNodes.Count; i++)
+			{
+				var node = flatNodes[i];
+
+				if (node is TextNode node1)
+				{
+					var bytes = Encoding.UTF8.GetBytes(node1.TextContent);
+					flatNodes[i] = new RawBytesNode(bytes);
+				}
+			}
+
+			return flatNodes;
+		}
+		
+		/// <summary>
 		/// Note that context may only be used for the role information, not specific user details.
 		/// </summary>
 		/// <param name="context"></param>
@@ -369,11 +434,15 @@ namespace Api.Pages
 		/// <returns></returns>
 		private async ValueTask<List<DocumentNode>> RenderMobilePage(Context context, Locale locale, MobilePageMeta pageMeta)
 		{
+			var themeConfig = _themeService.GetConfig();
+
 			// Generate the document:
 			var doc = new Document();
 			doc.Path = "/";
 			doc.Title = ""; // Todo: permit {token} values in the title which refer to the primary object.
-			doc.Html.With("class", "ui mobile").With("lang", locale.Code);
+			doc.Html
+				.With("class", "ui mobile").With("lang", locale.Code)
+				.With("data-theme", themeConfig.DefaultThemeId);
 
 			var head = doc.Head;
 
@@ -1130,6 +1199,40 @@ namespace Api.Pages
 
 			await outputStream.FlushAsync();
 			// Todo: Preload templates used by the page as well
+		}
+
+		/// <summary>
+		/// Generates the base HTML for native mobile apps.
+		/// </summary>
+		/// <param name="context"></param>
+		/// <param name="responseStream"></param>
+		/// <param name="mobileMeta"></param>
+		/// <returns></returns>
+		public async ValueTask BuildHeaderOnly(Context context, Stream responseStream)
+		{
+			// Does the locale exist? (intentionally using a blank context here - it must only vary by localeId)
+			var locale = await context.GetLocale();
+
+			if (locale == null)
+			{
+				// Dodgy locale - quit:
+				return;
+			}
+
+			List<DocumentNode> flatNodes = await RenderHeaderOnly(context, locale);
+
+			// Build the final output.
+			for (var i = 0; i < flatNodes.Count; i++)
+			{
+				var node = flatNodes[i];
+
+				if (node is RawBytesNode node1)
+				{
+					await responseStream.WriteAsync(node1.Bytes);
+				}
+			}
+
+			await responseStream.FlushAsync();
 		}
 
 		/// <summary>

@@ -42,7 +42,22 @@ namespace Api.Pages
 
 			await _htmlService.BuildMobileHomePage(context, Response.Body, mobileMeta);
 		}
-		
+
+		/// <summary>
+		/// RTE config popup base HTML.
+		/// </summary>
+		[HttpGet("/pack/rte.html")]
+		public async ValueTask GetRteConfigPage()
+		{
+			var context = await Request.GetContext();
+
+			Response.ContentType = "text/html";
+			Response.Headers["Cache-Control"] = "no-store";
+
+			// header only. The body is empty.
+			await _htmlService.BuildHeaderOnly(context, Response.Body);
+		}
+
 		/// <summary>
 		/// The catch all admin panel handler. If you're looking for /content/ etc, you'll find that over in Uploads/EventListener.cs
 		/// </summary>
