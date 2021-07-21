@@ -76,6 +76,15 @@ namespace Api.CanvasRenderer
 		/// </summary>
 		private long BuildTimestampMs = 1;
 
+		/// <summary>
+		/// UTC timestamp in milliseconds of last build. 
+		/// </summary>
+		public long BuildTimestamp {
+			get {
+				return BuildTimestampMs;
+			}
+		}
+
 		private List<UIBuildError> JsBuildErrors = new List<UIBuildError>();
 		private List<UIBuildError> CssBuildErrors = new List<UIBuildError>();
 
@@ -270,7 +279,7 @@ namespace Api.CanvasRenderer
 				CssFile.Precompressed = Compress(bytes);
 				var hash = GetHash(CssFile.FileContent);
 				CssFile.Hash = hash;
-				CssFile.PublicUrl = PackDir + "main.css?v=" + BuildTimestampMs + "&h=" + hash + "&lid=" + localeId;
+				SetCssPath(localeId);
 			}
 
 			return new ValueTask<FrontendFile>(CssFile);
@@ -899,8 +908,8 @@ namespace Api.CanvasRenderer
 			BuiltJavascriptSegments = segments;
 
 			// Clear cache:
-			_localeToMainJs = null;
 			UpdateBuildTimestamp();
+			_localeToMainJs = null;
 
 			// JS file has updated - tell the world:
 			await Events.FrontendjsAfterUpdate.Dispatch(new Context(), BuildTimestampMs);
@@ -946,8 +955,8 @@ namespace Api.CanvasRenderer
 			}
 
 			BuiltCss = builder.ToString();
-			CssFile.FileContent = null;
 			UpdateBuildTimestamp();
+			CssFile.FileContent = null;
 
 			// CSS file has updated - tell the world:
 			await Events.FrontendCssAfterUpdate.Dispatch(new Context(), BuildTimestampMs);
@@ -1087,12 +1096,35 @@ namespace Api.CanvasRenderer
 			return sb.ToString();
 		}
 
+		private void SetCssPath(uint localeId)
+		{
+			CssFile.PublicUrl = PackDir + "main.css?v=" + BuildTimestampMs + "&h=" + CssFile.Hash + "&lid=" + localeId;
+		}
+
 		/// <summary>
 		/// Updates the build timestamp. Only happens on dev instances whenever css/js file is updated. On production builds, this originates from the meta.json file in the output.
 		/// </summary>
 		private void UpdateBuildTimestamp()
 		{
 			BuildTimestampMs = (long)((DateTime.UtcNow.Subtract(new DateTime(1970, 1, 1))).TotalMilliseconds);
+
+			if (CssFile.FileContent != null)
+			{
+				SetCssPath(1);
+			}
+
+			if (_localeToMainJs != null)
+			{
+				for (var i = 0; i < _localeToMainJs.Length; i++)
+				{
+					if (_localeToMainJs[i].FileContent != null)
+					{
+						// Update its path:
+						_localeToMainJs[i].PublicUrl = PackDir + "main.js?v=" + BuildTimestampMs + "&h=" + _localeToMainJs[i].Hash + "&lid=" + (i+1);
+					}
+				}
+			}
+
 		}
 
 		/// <summary>
