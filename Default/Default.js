@@ -7,13 +7,13 @@ import logout from 'UI/Functions/Logout';
 import getRef from 'UI/Functions/GetRef';
 import logo from './logo.png';
 import { useSession, useRouter } from 'UI/Session';
+import Dropdown from 'UI/Dropdown';
 
 export default props => {
 	
 	const { session, setSession } = useSession();
 	const { pageState, setPage } = useRouter();
 	const [menuOpen, setMenuOpen ] = React.useState(false);
-    const [userMenuOpen, setUserMenuOpen ] = React.useState(false); 
 	var { url } = pageState;
 	
 	
@@ -46,6 +46,10 @@ export default props => {
 			</Tile>
 		</Landing>;
 	}
+
+	var dropdownLabelJsx = <>
+			{user.fullname || user.username || user.email} <span className="avatar">{user.avatarRef ? getRef(user.avatarRef, {size: 32}) : null}</span>
+		</>;
 	
 	return (
 		<>
@@ -56,15 +60,23 @@ export default props => {
 				<div className="logo col-4">
 					<a href='/en-admin/'>{getRef(logo, {size: '80'})}</a>
 				</div>
-				<div className="logged-user col-4 dropdown" onClick={() => setUserMenuOpen(!userMenuOpen)}>
-					    {user.fullname || user.username || user.email} {user.avatarRef ? getRef(user.avatarRef, {size: 32}) : null}
-                        <div className={ "dropdown-menu dropdown-menu-right" + (userMenuOpen? " show" : "")} >
-                            <a className="dropdown-item" href='/' >Return To Site</a>
-                            <a className="dropdown-item" href={'#'} onClick={()=>logout('/en-admin/', setSession, setPage)}>
-                            Logout
-                           </a>
-                        </div> 
-                </div>
+				<div className="user col-4">
+					<Dropdown className="logged-user" label={dropdownLabelJsx} variant="link">
+						<li>
+							<a href="/" className="btn dropdown-item">
+								Return to site
+							</a>
+						</li>
+						<li>
+							<hr class="dropdown-divider" />
+						</li>
+					    <li>
+							<button type="button" className="btn dropdown-item" onClick={() => logout('/en-admin/', setSession, setPage)}>
+								Logout
+							</button>
+						</li>
+					</Dropdown>
+				</div>
 			</div>
 			{props.children}
 			{menuOpen && 

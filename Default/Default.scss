@@ -46,14 +46,22 @@ html.admin {
 		> .logo {
 			text-align: center;
 		}
-		
-		> .logged-user{
+
+		> .user {
 			text-align: right;
-			
-			img	{
+		}
+		
+		.logged-user {
+			display: inline-block;
+			color: #fff;
+
+			> .btn {
+				text-decoration: none;
+			}
+		
+			.avatar	img {
 				margin-left: 10px;
 				border-radius: 50%;
-				vertical-align: middle;
 			}
 		}
 		
