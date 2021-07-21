@@ -10,7 +10,7 @@ export default () => {
 		for(var i=0;i<scr.length;i++){
 			var src = scr[i].src;
 			
-			if(!src || (src.indexOf("/main.js?") == -1 && src.indexOf("/main.generated.js?") == -1)){
+			if(!src || src.indexOf("pack/main.js?") == -1 || src.indexOf('en-admin/') != -1){
 				continue;
 			}
 			
