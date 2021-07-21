@@ -5,6 +5,11 @@ html, body, #react-view, #react-root, #content-root, #content-page, #react-loadi
 	touch-action: manipulation;
 }
 
+#react-root {
+    height: auto;
+    min-height: 100%;
+}
+
 html {
 	overflow-x: hidden;
 	font-family: var(--font) !important;
