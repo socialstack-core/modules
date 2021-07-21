@@ -57,7 +57,14 @@ namespace Api.Startup
 			var srcTypeName = src.Name;
 			var targetTypeName = target.Name;
 			var typeName = srcTypeName + "_" + targetTypeName + "_map_" + listAs;
-			return AppSettings.DatabaseTablePrefix + typeName.ToLower();
+			var name = AppSettings.DatabaseTablePrefix + typeName.ToLower();
+
+			if (name.Length > 64)
+			{
+				name = name.Substring(0, 64);
+			}
+
+			return name;
 		}
 
 		/// <summary>
