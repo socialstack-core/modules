@@ -72,12 +72,12 @@ export default props => {
 				<Input label = {props.noLabels ? null : `Password`} name="password" placeholder={`Password`} type="password" />
 				<Row>
 					<Col size="6">
-						<label className="checkbox-label">
-							<input name="remember" type="checkbox" /> {`Remember me`}
-						</label>
+						<Input type="checkbox" label={`Remember me`} name="remember" />
 					</Col>
-					<Col size="6" className="text-right">
-						<a href="/forgot">{`I forgot my password`}</a>
+					<Col size="6">
+						<a href="/forgot" className="forgot-password-link">
+							{`I forgot my password`}
+						</a>
 					</Col>
 				</Row>
 			</div>
@@ -89,7 +89,7 @@ export default props => {
 				</Alert>
 			)}
 			{props.noRegister ? null : <div className="form-group">
-				{`Don't have an account?`} <a href={props.registerUrl || "/register"}>{`Register here`}</a>
+				<span className="fa fa-info-circle"></span> {`Don't have an account?`} <a href={props.registerUrl || "/register"}>{`Register here`}</a>
 			</div>}
 		</Form>
 	);
