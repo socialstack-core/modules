@@ -26,7 +26,7 @@ export default function Checkbox(props) {
 	*/
 
 	var checkClass = className.join(" ");
-	var inputClass = "form-check-input" + solid ? " form-check-input--solid" : "";
+	var inputClass = "form-check-input" + (solid ? " form-check-input--solid" : "");
 
 	return (
 		<div className={checkClass}>

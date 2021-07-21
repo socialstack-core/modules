@@ -25,7 +25,7 @@ export default function Radio(props) {
 	*/
 
 	var radioClass = className.join(" ");
-	var inputClass = "form-check-input" + solid ? " form-check-input--solid" : "";
+	var inputClass = "form-check-input" + (solid ? " form-check-input--solid" : "");
 
 	return (
 		<div className={radioClass}>
