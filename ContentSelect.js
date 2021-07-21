@@ -55,9 +55,9 @@ export default class ContentSelect extends React.Component {
 			
 			var value = this.props.defaultValue || this.props.value;
 			
-			return <div className="form-group content-select">
+			return <div className="mb-3 content-select">
 				{this.props.label && (
-					<label>{this.props.label}</label>
+					<label className="form-label">{this.props.label}</label>
 				)}
 				<input type="hidden" ref={
 					ele => {
