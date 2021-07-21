@@ -16,7 +16,14 @@ namespace Api.Database
 		public static string TableName(this Type type)
 		{
 			// Just prefixed (e.g. sstack_Product by default):
-			return AppSettings.DatabaseTablePrefix + type.Name.ToLower();
+			var name = AppSettings.DatabaseTablePrefix + type.Name.ToLower();
+
+			if (name.Length > 64)
+			{
+				name = name.Substring(0, 64);
+			}
+
+			return name;
 		}
 		
 	}
