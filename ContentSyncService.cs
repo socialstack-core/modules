@@ -906,7 +906,10 @@ namespace Api.ContentSync
 					}
 
 					// Run afterLoad events:
+					var previousPermState = context.IgnorePermissions;
+					context.IgnorePermissions = true;
 					await afterLoad.Dispatch(context, entity);
+					context.IgnorePermissions = previousPermState;
 
 					// Received the content object:
 					await receivedEventHandler.Dispatch(context, entity, action);
