@@ -38,9 +38,9 @@ export default class MultiSelect extends React.Component {
 		}
 		
 		return (
-			<div className="form-group">
+			<div className="mb-3">
 				{this.props.label && (
-					<label>{this.props.label}</label>
+					<label className="form-label">{this.props.label}</label>
 				)}
 				<div className="admin-multiselect">
 					{this.state.value.map((entry, i) => (
