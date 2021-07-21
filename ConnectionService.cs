@@ -59,7 +59,7 @@ namespace Api.Connections
                     }
 				}
 				
-				var results = await Where("ConnectedToId=?", DataOptions.IgnorePermissions).Bind(connection.ConnectedToId).ListAll(context);
+				var results = await Where("ConnectedToId=? AND UserId=?", DataOptions.IgnorePermissions).Bind(connection.ConnectedToId).Bind(context.UserId).ListAll(context);
 				
 				if(results.Count > 0 )
                 {
