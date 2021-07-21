@@ -19,7 +19,7 @@ export default class Default extends React.Component {
 				</tr>
 				<tr class="header">
 					<td style={{fontFamily: "&quot;Helvetica Neue&quot;, Helvetica, Arial, sans-serif", fontSize: "13px", lineHeight: "1.6", color: "#5c5c5c", padding: "25px 0"}}>
-						<img alt="" src={origin + "/email_logo.png"} width="55" height="50" />
+						{this.props.customLogo || <img alt="" src={origin + "/email_logo.png"} width="55" height="50" />}
 					</td>
 				</tr>
 				<tr>
@@ -59,5 +59,6 @@ export default class Default extends React.Component {
 
 Default.propTypes = {
 	children: true,
-	hideGreeting: 'bool'
+	hideGreeting: 'bool',
+	customLogo: 'jsx'
 };
