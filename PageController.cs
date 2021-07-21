@@ -2,6 +2,7 @@
 using System.Threading.Tasks;
 using Api.Contexts;
 using Api.Startup;
+using Api.CanvasRenderer;
 
 namespace Api.Pages
 {
@@ -12,8 +13,10 @@ namespace Api.Pages
     [Route("v1/page")]
     public partial class PageController : AutoController<Page>
     {
+        private static HtmlService _htmlService;
+        private static FrontendCodeService _frontendService;
+        private static byte[] _oldVersion = System.Text.Encoding.UTF8.GetBytes("{\"oldVersion\":1}");
         private PageService _pageService;
-        private HtmlService _htmlService;
 
         /// <summary>
         /// 
@@ -30,16 +33,24 @@ namespace Api.Pages
 		/// <returns></returns>
 		[HttpPost("state")]
 		public async ValueTask PageState([FromBody] PageDetails pageDetails)
-		{
+        {
+            if (_htmlService == null)
+            {
+                _htmlService = Services.Get<HtmlService>();
+                _frontendService = Services.Get<FrontendCodeService>();
+            }
+
+            // Version check - are they out of date?
+            if (pageDetails.version < _frontendService.Version)
+            {
+                await Response.Body.WriteAsync(_oldVersion);
+                return;
+            }
+
 			var context = await Request.GetContext();
 
 			// we first need to get the pageAndTokens
 			var pageAndTokens = await _pageService.GetPage(context, pageDetails.Url);
-
-			if (_htmlService == null)
-			{
-				_htmlService = Services.Get<HtmlService>();
-			}
 
             Response.ContentType = "application/json";
 			await _htmlService.RenderState(context, pageAndTokens, pageDetails.Url, Response.Body);

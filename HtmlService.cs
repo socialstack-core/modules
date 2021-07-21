@@ -133,6 +133,17 @@ namespace Api.Pages
 		}
 
 		/// <summary>
+		/// The frontend version.
+		/// </summary>
+		/// <returns></returns>
+		public long Version {
+			get
+			{
+				return _frontend.Version;
+			}
+		}
+
+		/// <summary>
 		/// Types that have had an update event handler added to them. These handlers listen for updates (including remote ones), 
 		/// obtain the URL of the thing that changed, and then clear the cached entry if there is one.
 		/// </summary>
@@ -1206,7 +1217,6 @@ namespace Api.Pages
 		/// </summary>
 		/// <param name="context"></param>
 		/// <param name="responseStream"></param>
-		/// <param name="mobileMeta"></param>
 		/// <returns></returns>
 		public async ValueTask BuildHeaderOnly(Context context, Stream responseStream)
 		{
