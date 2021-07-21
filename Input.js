@@ -557,7 +557,9 @@ export default class Input extends React.Component {
 Input.propTypes={
 	type: 'string',
 	name: 'string',
+	help: 'string',
 	placeholder: 'string',
+	label: 'string',
 	value: 'string',
 };
 
