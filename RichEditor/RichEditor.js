@@ -1359,20 +1359,26 @@ export default class RichEditor extends React.Component {
 										"toolbar=no,location=no,directories=no,status=no,menubar=no,scrollbars=yes,resizable=yes,width=600,height=400"
 									);
 									
-									cfgWin.addEventListener("load", e => {
-										if(this.cfgWindow.window != cfgWin){
-											return;
-										}
-										
-										var { loaders } = this.cfgWindow;
-										this.cfgWindow.loaders = null;
-										loaders.map(loader => loader(cfgWin));
-									});
-									
 									this.cfgWindow = {
-										window: cfgWin,
-										loaders: []
+										window: cfgWin
 									};
+									
+									// The window was already loaded otherwise - we don't have to wait for the load event.
+									if(!cfgWin.document || !cfgWin.document.body.parentNode.className){
+										this.cfgWindow.loaders = [];
+										
+										cfgWin.addEventListener("load", e => {
+											if(this.cfgWindow.window != cfgWin){
+												return;
+											}
+											
+											var { loaders } = this.cfgWindow;
+											this.cfgWindow.loaders = null;
+											loaders.map(loader => loader(cfgWin));
+										}, false);
+									}
+									
+									
 								}else{
 									var cfgWin = this.cfgWindow.window;
 									cfgWin.focus && cfgWin.focus();
@@ -1390,7 +1396,10 @@ export default class RichEditor extends React.Component {
 								if(this.cfgWindow.loaders){
 									this.cfgWindow.loaders.push(configReady);
 								}else{
-									configReady(this.cfgWindow.window);
+									// This delay helps avoid issues when the window was already open but wasn't set to cfgWin.
+									setTimeout(() => {
+										configReady(this.cfgWindow.window);
+									}, 50);
 								}
 							},
 							icon: 'cog',
