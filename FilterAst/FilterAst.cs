@@ -1992,7 +1992,17 @@ namespace Api.Permissions{
 					}
 					else
 					{
-						generator.Emit(OpCodes.Clt);
+						// Is unsigned?
+						var unsigned = nonNullable == typeof(ushort) || nonNullable == typeof(uint) || nonNullable == typeof(ulong) || nonNullable == typeof(byte);
+
+						if (unsigned)
+						{
+							generator.Emit(OpCodes.Clt_Un);
+						}
+						else
+						{
+							generator.Emit(OpCodes.Clt);
+						}
 					}
 					generator.Emit(OpCodes.Not);
 				}
@@ -2011,7 +2021,17 @@ namespace Api.Permissions{
 					}
 					else
 					{
-						generator.Emit(OpCodes.Cgt);
+						// Is unsigned?
+						var unsigned = nonNullable == typeof(ushort) || nonNullable == typeof(uint) || nonNullable == typeof(ulong) || nonNullable == typeof(byte);
+
+						if (unsigned)
+						{
+							generator.Emit(OpCodes.Cgt_Un);
+						}
+						else
+						{
+							generator.Emit(OpCodes.Cgt);
+						}
 					}
 
 					generator.Emit(OpCodes.Not);
@@ -2029,7 +2049,17 @@ namespace Api.Permissions{
 					}
 					else
 					{
-						generator.Emit(OpCodes.Cgt);
+						// Is unsigned?
+						var unsigned = nonNullable == typeof(ushort) || nonNullable == typeof(uint) || nonNullable == typeof(ulong) || nonNullable == typeof(byte);
+
+						if (unsigned)
+						{
+							generator.Emit(OpCodes.Cgt_Un);
+						}
+						else
+						{
+							generator.Emit(OpCodes.Cgt);
+						}
 					}
 				}
 				else if (Operation == "<")
@@ -2045,7 +2075,17 @@ namespace Api.Permissions{
 					}
 					else
 					{
-						generator.Emit(OpCodes.Clt);
+						// Is unsigned?
+						var unsigned = nonNullable == typeof(ushort) || nonNullable == typeof(uint) || nonNullable == typeof(ulong) || nonNullable == typeof(byte);
+
+						if (unsigned)
+						{
+							generator.Emit(OpCodes.Clt_Un);
+						}
+						else
+						{
+							generator.Emit(OpCodes.Clt);
+						}
 					}
 				}
 				else if (Operation == "contains")
