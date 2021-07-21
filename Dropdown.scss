@@ -1,6 +1,10 @@
 .dropdown {
 	position: relative;
 
+	> .btn {
+		color: currentColor;
+	}
+
 	&.dropdown--split {
 
 		.btn:not(.dropdown-toggle) {
@@ -35,6 +39,16 @@
 		display: flex;
 		align-items: center;
 	}
+
+	.dropdown__right {
+		flex: 1 0 auto;
+		justify-content: flex-end;
+		margin-inline-start: px_to_rem(24);
+	}
+
+    .dropdown__chevron {
+        width: px_to_rem(13);
+    }
 
 	.dropdown-menu {
 		display: block;
