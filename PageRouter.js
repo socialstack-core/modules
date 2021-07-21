@@ -124,11 +124,27 @@ export default (props) => {
 	}
 	
 	function go(url) {
+		if(goingExternal(document.location.pathname, url)){
+			document.location = url;
+			return;
+		}
+		
 		global.history.pushState({}, "", hash ? '#' + url : url);
 		document.body.parentNode.scrollTop = 0;
 		return setPageState(url);
 	}
 	
+	function goingExternal(a,b){
+		if(b.indexOf(':') != -1 || (b[0] == '/' && (b.length>1 && b[1] == '/'))){
+			return true;
+		}
+		
+		var isOnExternPage = a.indexOf('/en-admin') == 0 || a.indexOf('/v1') == 0;
+		var targetIsExternPage = b[0] == '/' ? (b.indexOf('/en-admin') == 0 || b.indexOf('/v1') == 0) : isOnExternPage;
+		
+		return isOnExternPage != targetIsExternPage;
+	}
+	 
 	function setPageState(url) {
 		if(localRouter){
 			var pgState = localRouter(url, webRequest);
@@ -148,6 +164,12 @@ export default (props) => {
 				url,
 				version: getBuildDate().timestamp
 			}).then(res => {
+				if(res.json.oldVersion){
+					console.log("UI updated - forced reload");
+					document.location = url;
+					return;
+				}
+				
 				var pgState = {url, ...res.json};
 				setPage(pgState);
 				triggerEvent(res.json);
@@ -175,16 +197,11 @@ export default (props) => {
 				
 				if(href && href.length){
 					var pn = document.location.pathname;
-					var isOnExternPage = pn.indexOf('/en-admin') == 0 || pn.indexOf('/v1') == 0;
-					var targetIsExternPage = href[0] == '/' ? (href.indexOf('/en-admin') == 0 || href.indexOf('/v1') == 0) : isOnExternPage;
-					
-					if(href.indexOf(':') != -1 || (href[0] == '/' && (href.length>1 && href[1] == '/'))){
+					if(goingExternal(pn, href)){
 						return;
 					}
-					if(targetIsExternPage == isOnExternPage){
-						e.preventDefault();
-						go(cur.pathname + cur.search);
-					}
+					e.preventDefault();
+					go(cur.pathname + cur.search);
 					return;
 				}
 			}
