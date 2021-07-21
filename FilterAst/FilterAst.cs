@@ -2004,7 +2004,10 @@ namespace Api.Permissions{
 							generator.Emit(OpCodes.Clt);
 						}
 					}
-					generator.Emit(OpCodes.Not);
+
+					// Must use == 0 to invert them.
+					generator.Emit(OpCodes.Ldc_I4_0);
+					generator.Emit(OpCodes.Ceq);
 				}
 				else if (Operation == "<=")
 				{
@@ -2034,7 +2037,9 @@ namespace Api.Permissions{
 						}
 					}
 
-					generator.Emit(OpCodes.Not);
+					// Must use == 0 to invert them.
+					generator.Emit(OpCodes.Ldc_I4_0);
+					generator.Emit(OpCodes.Ceq);
 				}
 				else if (Operation == ">")
 				{
