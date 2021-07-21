@@ -1,17 +1,21 @@
-import Modal from 'UI/Modal';
 import Input from 'UI/Input';
 import Loop from 'UI/Loop';
+import Alert from 'UI/Alert';
+import getContentTypes from 'UI/Functions/GetContentTypes';
+import webRequest from 'UI/Functions/WebRequest';
 
 var TEXT = '#text';
-var __linkTypes = null;
+
+var __contentTypeCache = null;
+var __themeCache = null;
+var __contentCacheByType = {};
 
 export default class PropEditor extends React.Component {
 
     constructor(props){
         super(props);
-
         this.state = {
-
+			mode: 'options'
         };
     }
 
@@ -24,23 +28,7 @@ export default class PropEditor extends React.Component {
 		label = label.replace(/([^A-Z])([A-Z])/g, '$1 $2');
 		return label[0].toUpperCase() + label.substring(1);
 	}
-
-    getLinkLabel(label, targetNode, fieldInfo) {
-		return [label, <i className='fa fa-link value-link' onClick={e => {
-			// This blocks the input field click that happens as we're surrounded by a <label>
-			e.preventDefault();
-			
-			this.setState({
-				linkSelectionFor: {
-					targetNode,
-					fieldInfo
-				}
-			});
-			
-		}}/>];
-		
-	}
-
+	
     displayModuleName(name){
 		if(!name){
 			return '';
@@ -54,63 +42,26 @@ export default class PropEditor extends React.Component {
 	}
 
     updateField(targetNode, fieldInfo, value){
-		console.log("updateField");
 		fieldInfo.value = value;
-		console.log("targetNode",targetNode);
-		console.log("fieldInfo", fieldInfo);
-		console.log("value", value);
-		if(targetNode.typeName.indexOf('/') != -1){
-			// Targeting a contentNode. Must go into the roots.
-			if(targetNode.type.propTypes.hasOwnProperty(fieldInfo.name)) {
-				// what is the propType? If its jsx, it needs to live in the roots.
-				if(targetNode.type.propTypes[fieldInfo.name] == "jsx") {
-					// This means, we need to place it in a jsx object. Let's see if there one.
-					if(targetNode.roots.hasOwnProperty(fieldInfo.name) && targetNode.roots[fieldInfo.name].content) {
-
-						if(Array.isArray(targetNode.roots[fieldInfo.name].content)) {
-							targetNode.roots[fieldInfo.name].content.forEach(con => {
-								if(con.type == TEXT) {
-									con.text = value;
-								}
-							})
-						}
-					}
-				} else {
-					console.log("not a root");
-
-					// Let's set it straight to the prop value since its not jsx.
-					if(!targetNode.props) {
-						targetNode.props = {};
-					}
-					targetNode.props[fieldInfo.name] = value;
-					console.log("targetNode after update");
-					console.log(targetNode);
-				}
-			}
-		}else{
-			// Goes direct into targetNode:
-			targetNode[fieldInfo.name] = value;
-		}
 		
-		// At this point, we need to update the target node in state which will update the values in real time in the editor.
-		this.props.updateTargetNode && this.props.updateTargetNode(targetNode);
+		if(!targetNode.props) {
+			targetNode.props = {};
+		}
+		targetNode.props[fieldInfo.name] = value;
+		
+		// Tell the editor:
+		this.props.onChange(targetNode, fieldInfo, value);
 	}
 
-    renderOptions(contentNode, module){
+    renderOptions(contentNode){
 		if(!contentNode){
 			return;
 		}
-
-		var Module = module || contentNode || "div";
-		console.log("Module", Module);
-		var dataValues = {...contentNode.data};
-
-		var props = Module.type.propTypes;
-		var defaultProps = Module.type.defaultProps || {};
 		
-		if(this.props.moduleSet == 'renderer'){
-			props = Module.rendererPropTypes || props;
-		}
+		var dataValues = {...contentNode.props};
+
+		var props = contentNode.type.propTypes;
+		var defaultProps = contentNode.type.defaultProps || {};
 		
 		var dataFields = {};
 		var atLeastOneDataField = false;
@@ -124,46 +75,22 @@ export default class PropEditor extends React.Component {
 				if(!propType.type){
 					propType = {type: propType};
 				}
-
-				var value = null;
-
-				// What is our proptype type? if its jsx, we need to check the roots for the value.
+				
 				if(propType.type == "jsx") {
-					// Let's get the jsx value in the roots.
-					if(Module.roots && Module.roots[fieldName]) {
-						var root = Module.roots[fieldName];
-
-						if(Array.isArray(Module.roots[fieldName].content)) {
-							Module.roots[fieldName].content.forEach(con => {
-								if(con.type == TEXT) {
-									value = con.text;
-								}
-							})
-						}
-					}
-
-				} else {
-					// Not a root, let's look in the props
-					if(Module.props && Module.props[fieldName]) {
-						value = Module.props[fieldName];
-					}
+					continue;
 				}
-
+				
+				var value = null;
+				
+				// Got a value?
+				if(dataValues[fieldName]) {
+					value = dataValues[fieldName];
+				}
+				
 				var val = { propType, defaultValue: defaultProps[fieldName], value};
 				dataFields[fieldName] = val;
 				atLeastOneDataField = true;
 			}
-		}
-		
-		for(var fieldName in dataValues){
-			if(this.specialField(fieldName) || dataFields[fieldName]){
-				continue;
-			}
-			
-			// This data field is in the JSON, but not a prop. The module is essentially missing its public interface.
-			// We'll still display it though so it can be edited:
-			dataFields[fieldName] = { propType: { type: 'string' }, defaultValue: defaultProps[fieldName], value: dataValues[fieldName]};
-			atLeastOneDataField = true;
 		}
 		
 		if(atLeastOneDataField){
@@ -180,104 +107,81 @@ export default class PropEditor extends React.Component {
 	specialField(fieldName){
 		return fieldName == 'children' || fieldName == 'editButton'
 	}
-
-	collectLinkTypes(){
+	
+	getContentDropdown(typeName){
+		if(!__contentCacheByType[typeName]){
+			__contentCacheByType[typeName] = [];
+			
+			webRequest(typeName.toLowerCase() + '/list').then(result => {
+				__contentCacheByType[typeName] = result.json.results;
+				this.setState({});
+			});
+		}
 		
-		if(__linkTypes == null){
+		return __contentCacheByType[typeName].map(item => {
+			var name = (item.name || item.title || item.firstName || 'Untitled') + ' (#' + item.id + ')';
 			
-			var all = [];
+			return (
+				<option value={item.id}>{name}</option>
+			);
+		});
+	}
+	
+	getContentTypeDropdown(){
+		if(!__contentTypeCache){
+			__contentTypeCache = [];
 			
-			__linkTypes = {all};
-			
-			all.push({
-				icon: 'terminal',
-				type: 'urlToken',
-				propTypes: {
-					name: 'string'
-				}
+			getContentTypes().then(set => {
+				__contentTypeCache = set;
+				this.setState({});
 			});
+		}
+		
+		return __contentTypeCache.map(item => {
+			var name = item.name;
 			
-			all.push({
-				icon: 'paper-plane',
-				type: 'contextToken',
-				propTypes: {
-					name: 'string'
-				}
-			});
+			return (
+				<option value={item.name.toLowerCase()}>{name}</option>
+			);
+		});
+	}
+	
+	getThemeDropdown(){
+		if(!__themeCache){
+			__themeCache = [];
 			
-			all.push({
-				icon: 'server',
-				type: 'endpoint',
-				propTypes: {
-					url: 'string'
-				}
-			});
-			
-			all.push({
-				icon: 'list',
-				type: 'set',
-				propTypes: {
-					contentType: 'contentType',
-					filter: {
-						type: 'filter',
-						forContent: {
-							type: 'field',
-							name: 'contentType'
-						}
-					},
-					renderer: {
-						type: 'renderer',
-						forContent: {
-							type: 'field',
-							name: 'contentType'
-						}
+			webRequest("configuration/list", {where:{key: 'Theme'}}).then(set => {
+				var res = set.json.results;
+				var themes = [];
+				res.forEach(result => {
+					try{
+						result.configJson = JSON.parse(result.configJson);
+						result.key = result.configJson.key;
+						themes.push(result);
+					}catch(e){
+						console.log("Invalid theme JSON: ", result, e);
 					}
-				}
-			});
-			
-			var map = __linkTypes.map = {};
-			
-			all.forEach(linker => {
-				if(linker.name){
-					return;
-				}
-				var type = linker.type;
-				map[type] = linker;
-				linker.name = this.niceName(type);
+				});
+				__themeCache = themes;
+				
+				
+				
+				this.setState({});
 			});
 		}
 		
-		// __linkTypes is any globally available ones.
-		// Next add scope-specific ones (such as fields available to a renderer).
-		var all = __linkTypes.all;
-		var map = __linkTypes.map;
-		if(this.props.itemMeta){
-			var fieldLinker = {
-				icon: '',
-				type: 'field',
-				name: this.niceName(this.props.itemMeta.contentType),
-				propTypes: {
-					name: this.props.itemMeta.fields.map(field => field.data.name)
-				}
-			};
+		return __themeCache.map(item => {
+			var name = item.name;
 			
-			all = __linkTypes.all.concat(fieldLinker);
-			map = {...map};
-			map[fieldLinker.type] = fieldLinker;
-		}
-		
-		return {
-			all,
-			map
-		};
-		
+			return (
+				<option value={item.key.toLowerCase()}>{name}</option>
+			);
+		});
 	}
 	
 	renderOptionSet(dataFields, targetNode){
 		
 		var options = [];
-
-		
 		
 		Object.keys(dataFields).forEach(fieldName => {
 			
@@ -289,28 +193,12 @@ export default class PropEditor extends React.Component {
 			var inputContent = undefined;
 			var propType = fieldInfo.propType;
 			
-			if(propType.type == 'set' && (!fieldInfo.value || !fieldInfo.value.type)){
-				// The same as rendering a set linker.
-				this.updateField(targetNode, fieldInfo, {
-					type: 'set',
-					renderer: {
-						module: propType.defaultRenderer
-					}
-				});
-			}
-			
 			if(fieldInfo.value && fieldInfo.value.type && fieldInfo.value.type != 'module'){
-				console.log("fieldInfo", fieldInfo);
-				console.log("fieldInfo.value", fieldInfo.value);
-				console.log("fieldInfo.value.type", fieldInfo.value.type);
 				// It's a linked field.
 				// Show its options instead.
 				var linkTypes = this.collectLinkTypes();
-				console.log(linkTypes);
 				var typeInfo = this.collectLinkTypes().map[fieldInfo.value.type];
-				console.log
-
-
+				
 				var fields = typeInfo.propTypes;
 				var linkDF = {};
 				
@@ -322,6 +210,11 @@ export default class PropEditor extends React.Component {
 					if(!linkPT.type){
 						linkPT = {type: linkPT};
 					}
+					
+					if(linkPT.type == 'jsx'){
+						continue;
+					}
+					
 					linkDF[linkFN] = {propType: linkPT, value: fieldInfo.value[linkFN]};
 				}
 				
@@ -363,8 +256,6 @@ export default class PropEditor extends React.Component {
 					);
 				})
 				inputContent.unshift(<option>Pick a value</option>);
-			} else if (propType.type == 'color' || propType.type == 'colour') {
-				inputType = 'color';
 			} else if (propType.type == 'checkbox' || propType.type == 'bool' || propType.type == 'boolean') {
 				inputType = 'checkbox';
 			}else if(propType.type == 'id'){
@@ -375,38 +266,6 @@ export default class PropEditor extends React.Component {
 				inputType = 'select';
 				inputContent = this.getContentTypeDropdown();
 				inputContent.unshift(<option>Pick a content type</option>);
-			}else if(propType.type == 'filter'){
-				return ("Filter WIP");
-			}else if(propType.type == 'renderer'){
-				inputType = 'renderer';
-				
-				// resolve forContent.
-				if(propType.forContent){
-					var contentType = propType.forContent;
-					if(propType.forContent.type == "field"){
-						var contentTypeField = dataFields[propType.forContent.name];
-						if(contentTypeField){
-							contentType = contentTypeField.value;
-						}else{
-							contentType = null;
-						}
-					}
-				}
-				
-				// Get the info for that content type, if we haven't already.
-				if(contentType){
-					this.getFieldsForType(contentType, (fields, fromCache) => {
-						if(fromCache){
-							extraProps.itemMeta = {
-								fields,
-								contentType
-							};
-						}else{
-							this.setState({});
-						}
-						
-					});
-				}
 			}else if(propType.type == 'string'){
 				inputType = 'text';
 			}else{
@@ -436,14 +295,12 @@ export default class PropEditor extends React.Component {
 			}
 
 			options.push(
-				<Input label={this.getLinkLabel(this.niceName(label, propType.label), targetNode, fieldInfo)} type={inputType} defaultValue={val} placeholder={placeholder}
+				<Input label={this.niceName(label, propType.label)} type={inputType} defaultValue={val} placeholder={placeholder}
 					help={propType.help} helpPosition={propType.helpPosition}
 					fieldName={fieldName} disabledBy={propType.disabledBy} enabledBy={propType.enabledBy} onChange={e => {
 					var value = e.target.value;
 
-					if (inputType == 'renderer') {
-						value = e.json;
-					} else if (inputType == 'checkbox') {
+					if (inputType == 'checkbox') {
 						value = !!e.target.checked;
 					}
 
@@ -451,9 +308,7 @@ export default class PropEditor extends React.Component {
 				}} onKeyUp={e => {
 					var value = e.target.value;
 
-					if (inputType == 'renderer') {
-						value = e.json;
-					} else if (inputType == 'checkbox') {
+					if (inputType == 'checkbox') {
 						value = !!e.target.checked;
 					}
 
@@ -469,97 +324,42 @@ export default class PropEditor extends React.Component {
 		
 		return options;
 	}
-
-	closeLinkModal(){
-		this.setState({
-			linkSelectionFor: null
-		});
-		//this.props.updateTargetNode && this.props.updateTargetNode(targetNode);
-	}
-
-	renderLinkSelectionModal(){
-		var lsf = this.state.linkSelectionFor;
-		if(!lsf){
-			return;
-		}
-
-		console.log("lsf", lsf);
+	
+	renderTheme(contentNode){
+		var val = contentNode.props ? contentNode.props['data-theme'] : null;
 		
-		var targetNode = lsf.targetNode;
-		var fieldInfo = lsf.fieldInfo;
-		var scopeLinks = this.collectLinkTypes().all;
-		
-		return <Modal
-			className={"module-link-selection-modal"}
-			buttons={[
-				{
-					label: "Close",
-					onClick: this.closeLinkModal
-				}
-			]}
-			title={'Linking ' + fieldInfo.name}
-			onClose={this.closeLinkModal}
-			visible={true}
-		>
-			<p>
-				Your field value can also be set dynamically - this is called linking. For example if you want it to come from something in the URL. Here's the linking options you have:
-			</p>
-			<Loop asCols over={scopeLinks} size={4}>
-				{linker => {
-					return <div className="module-tile" onClick={() => {
-							//if(targetNode.module){
-								if(!targetNode.data){
-									targetNode.data = {};
-								}
-								targetNode.data[fieldInfo.name] = {
-									type: linker.type
-								};
-							/*}else{
-								targetNode[fieldInfo.name] = {
-									type: linker.type
-								};
-							}*/
-							
-							this.closeLinkModal();
-						}}>
-						<div>
-							{<i className={"fa fa-" + (linker.icon || "puzzle-piece")} />}
-						</div>
-						{linker.name}
-					</div>;
-					
-				}}
-			</Loop>
-		</Modal>
-	}
+		return <div>
+			<Alert type='info'>
+				Visual theme editing - Coming soon
+			</Alert>
+			
+			<Input label={"Theme"} type={"select"} defaultValue={val}
+				fieldName={'data-theme'} onChange={e => {
+				var value = e.target.value;
 
+				this.updateField(contentNode, {name: 'data-theme', value}, value);
+			}}>{this.getThemeDropdown()}</Input>
+			
+		</div>;
+	}
+	
     render(){
 		var content = this.props.optionsVisibleFor;
-		console.log("PropEditor");
-		console.log("content", content);
+		
 		if(!content){
-			console.log("!content");
 			return;
 		}
-
-		return <>
-			<Modal
-				className={"module-options-modal"}
-				buttons={[
-					{
-						label: "Close",
-						onClick: this.props.closeModal
-					}
-				]}
-				title={this.displayModuleName(content.typeName)}
-				onClose={this.props.closeModal}
-				visible={true}
-			>
-				{
-					this.renderOptions(content)
-				}
-			</Modal>
-			{this.renderLinkSelectionModal()}
-		</>
+		
+		var {mode} = this.state;
+		
+		return <div className="prop-editor">
+			<div className="toolbar">
+				<button className={"btn " + (mode == 'options' ? 'btn-primary' : 'btn-outline-primary')} onClick={()=>this.setState({mode: 'options'})}>Options</button>
+				<button className={"btn " + (mode == 'theme' ? 'btn-primary' : 'btn-outline-primary')} onClick={()=>this.setState({mode: 'theme'})}>Theme</button>
+			</div>
+			<div className="p-3">
+				{mode == 'options' ? this.renderOptions(content) : this.renderTheme(content)}
+			</div>
+		</div>
 	}
 }

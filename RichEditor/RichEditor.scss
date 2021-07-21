@@ -1,3 +1,24 @@
+.canvas-editor-popups{
+	
+	.module-select-modal, .module-link-selection-modal{
+		.module-group{
+			margin-bottom: 10px;
+		}
+	
+		.module-tile{
+			border: 1px solid lightgrey;
+			border-radius: 4px;
+			text-align: center;
+			padding: 20px;
+			
+			&:hover{
+				cursor:pointer;
+			}
+		}
+	}
+	
+}
+
 .rich-editor{
 	border: 1px solid #e5e5e5;
 	border-radius: 2px;
