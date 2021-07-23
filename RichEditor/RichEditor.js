@@ -220,7 +220,7 @@ export default class RichEditor extends React.Component {
 	loadCanvas(json, init){
 		try{
 			var root = JSON.parse(json);
-			
+
 			var convertedRoot = this.convertToNodesFromCanvas(root);
 			
 			if(!convertedRoot.type && !convertedRoot.content){
@@ -326,7 +326,7 @@ export default class RichEditor extends React.Component {
 			if(node.length == 1){
 				node = node[0];
 			}else{
-				node = {content: node};
+				node = { c: node};
 			}
 		}
 		
