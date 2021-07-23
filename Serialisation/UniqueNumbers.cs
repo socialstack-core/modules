@@ -215,6 +215,17 @@ namespace Api.Startup
 				Pool.AddToPool(this);
 			}
 
+			ReleaseBlocks();
+
+			FullBlockCount = 0;
+			CurrentFill = 0;
+		}
+
+		/// <summary>
+		/// Releases all ID blocks.
+		/// </summary>
+		public void ReleaseBlocks()
+        {
 			lock (IDBlockPool<T>.PoolLock)
 			{
 				Last.Next = IDBlockPool<T>.First;
@@ -222,9 +233,18 @@ namespace Api.Startup
 				Last = null;
 				First = null;
 			}
+		}
 
-			FullBlockCount = 0;
-			CurrentFill = 0;
+		/// <summary>
+		/// Release a single ID block
+		/// </summary>
+		public void ReleaseBlock(IDBlock<T> block)
+        {
+			lock (IDBlockPool<T>.PoolLock)
+			{
+				block.Next = IDBlockPool<T>.First;
+				IDBlockPool<T>.First = block;
+			}
 		}
 
 		/// <summary>
@@ -332,10 +352,10 @@ namespace Api.Startup
 				if(currentBlock.Next == null)
                 {
 					currentBlock.Next = IDBlockPool<T>.Get();
-
-					Last = currentBlock.Next;
+					
 					if (!notMainBlock) // can we increment?
 					{
+						Last = currentBlock.Next;
 						CurrentFill = 0;
 						FullBlockCount++;
 					}
@@ -362,86 +382,58 @@ namespace Api.Startup
 			}
 
 			T currentValue = default;
-			var currentValueCount = 0;
-			var currentBlock = First;
-			var valueFillCount = 0;
-			var newFullBlockCount = 0;
+			int currentValueCount = 0;
 			bool initialValueSet = false;
-			bool fullyIterated = false;
+			var uneliminatedBlock = First;
+			var uneliminatedFillCount = CurrentFill;
+			CurrentFill = FullBlockCount = 0;
 
-			var newBlock = new IDBlock<T>();
+			First = Last = null;
 
-			while (!fullyIterated)
+			while (uneliminatedBlock != null)
 			{
-				valueFillCount = 0;
-				// Let's iterate the current array
-				for (int i = 0; i < currentBlock.Entries.Length; i++)
+				var currentBlockFill = uneliminatedBlock.Next != null ? 64 : uneliminatedFillCount;
+				for (var i = 0; i < currentBlockFill; i++)
 				{
-					var curEntry = currentBlock.Entries[i];
+					var curEntry = uneliminatedBlock.Entries[i];
 
-					// Is our value 0? if so, we are at the end of the array
-					if (currentBlock.Next == null && i == CurrentFill)
-					{
-
-						if ((!exact && currentValueCount >= minRepetitions && initialValueSet) || (exact && currentValueCount == minRepetitions && initialValueSet))
-						{
-							// Sort it into our newBlock
-							Sort(newBlock, currentValue, 0, true, valueFillCount);
-							valueFillCount++;
-						}
-						fullyIterated = true;
-						break;
-					}
-
-					//  Is our curEntry the same as the currentValue?
-					if (curEntry.Equals(currentValue))
+					if (initialValueSet && curEntry.Equals(currentValue))
 					{
 						// increment the count.
 						currentValueCount++;
-						continue;
 					}
-
-					// Its not, which means we need to handle our current value and set the new one.
-					// Did we have enough of that value for it to qualify?
-					if ((!exact && currentValueCount >= minRepetitions && initialValueSet) || (exact && currentValueCount == minRepetitions && initialValueSet))
+					else
 					{
-						// Sort it into our newBlock
-						Sort(newBlock, currentValue, 0, true, valueFillCount);
-						valueFillCount++;
-
-						if(valueFillCount == 64)
+						if (initialValueSet)
+						{
+							if ((!exact && currentValueCount >= minRepetitions) || (exact && currentValueCount == minRepetitions))
+							{
+								Add(currentValue);
+							}
+						}
+                        else
                         {
-							valueFillCount = 0;
-							newFullBlockCount++;
-                        }
+							initialValueSet = true;
+						}
+						currentValue = curEntry;
+						currentValueCount = 1;
 					}
-
-					// We took care of that value, move onto our new one
-					currentValueCount = 1;
-					currentValue = curEntry;
-					initialValueSet = true;
 				}
-				currentBlock = currentBlock.Next;
-			}
 
-			// Now that we have constructed our new block, let's release the old.
-			Release();
+				var next = uneliminatedBlock.Next;
+				ReleaseBlock(uneliminatedBlock);
 
-			// Set First to our new Block
-			First = newBlock;
-
-			// Update count
-			CurrentFill = valueFillCount;
-			FullBlockCount = newFullBlockCount;
-
-			// Set our Last Block
-			Last = First;
-
-            while (Last.Next != null)
-            {
-				Last = Last.Next;
+				uneliminatedBlock = next;
             }
 
+			// Add the final value we just iterated over.
+			if (initialValueSet)
+			{
+				if ((!exact && currentValueCount >= minRepetitions) || (exact && currentValueCount == minRepetitions))
+				{
+					Add(currentValue);
+				}
+			}
 		}
 
 		/// <summary>
