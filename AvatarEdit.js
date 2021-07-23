@@ -114,7 +114,7 @@ export default class AvatarEdit extends React.Component {
 									}
 								</div>
 							) : (
-								'No avatar yet'
+							this.props.noAvatarText
 							)
 						)
 					}
@@ -127,13 +127,15 @@ export default class AvatarEdit extends React.Component {
 				 */}
 				<Uploader label={this.props.label} id={this.props.id} maxSize={this.props.maxSize} onUploaded={info => {
 					console.log(info);
+					var ref = info.result.ref;
+					
 					if(this.props.name){
 						this.setState({
-							avatarRef: info.uploadRef
+							avatarRef: ref
 						});
 					}else{
 						this.setState({
-							next: info.uploadRef
+							next: ref
 						});
 					}
                 }}/>
