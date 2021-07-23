@@ -179,7 +179,7 @@ namespace Api.Reactions
 
 					foreach(var defaultType in defaults)
 					{
-						await Create(context, defaultType);
+						await Create(context, defaultType, DataOptions.IgnorePermissions);
 					}
 
 				}
