@@ -164,9 +164,9 @@ namespace Api.Themes
 				sb.Append("rgba(");
 				sb.Append(r);
 				sb.Append(',');
-				sb.Append(b);
-				sb.Append(',');
 				sb.Append(g);
+				sb.Append(',');
+				sb.Append(b);
 				sb.Append(',');
 				sb.Append(A);
 				sb.Append(')');

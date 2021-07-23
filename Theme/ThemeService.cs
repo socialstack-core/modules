@@ -265,6 +265,7 @@ namespace Api.Themes
 								else if (kvp.Key.EndsWith("shadow"))
 								{
 									targetColor = fgColor.Mix(bgColor, 0.15f);
+									targetColor.A = 0.5f;
 								}
 
 							}
