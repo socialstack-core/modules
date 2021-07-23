@@ -98,7 +98,7 @@ export default class Uploader extends React.Component {
 					<input type="file" id={this.props.id} onChange={e => this.onSelectedFile(e)} className="form-control-file" />
 				)}
 				{this.props.id && !loading &&
-					<label htmlFor={this.props.id}>
+					<label htmlFor={this.props.id} className="btn btn-outline-primary">
 						{this.props.label || "Upload file"}
 					</label>
 				}
