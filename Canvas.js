@@ -75,6 +75,7 @@ class Canvas extends React.Component {
 	}
 	
 	renderNode(node){
+		console.log(node);
 		if(Array.isArray(node)){
 			return node.map((n,i) => this.renderNode(n));
 		}
@@ -92,7 +93,7 @@ class Canvas extends React.Component {
 			
 			if(node.content && node.content.length){
 				childContent = this.renderNode(node.content);
-			}else if(!node.isInline){
+			}else if(!node.isInline && node.type != 'br'){
 				// Fake a <br> such that block elements still have some sort of height.
 				childContent = this.renderNode({type:'br', props: {'rte-fake': 1}});
 			}
