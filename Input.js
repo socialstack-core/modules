@@ -513,7 +513,7 @@ export default class Input extends React.Component {
                         )}
                     </div>
                     {this.props.showMeter && (
-                        <meter className="meter" min="0" max="100" value={strength} low="44" high="55" optimum="80"></meter>
+                        <meter className="meter password-meter" min="0" max="100" value={strength} low="44" high="55" optimum="80"></meter>
                     )}
                 </>;
         } else {
