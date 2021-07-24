@@ -8,7 +8,7 @@ export default function Row(props) {
 	var rowClass = "row ";
 
 	if (props.noGutters) {
-		rowClass += "no-gutters ";
+		rowClass += "gx-0 ";
 	}
 
 	if (props.horizontalAlignment) {
