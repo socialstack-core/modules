@@ -79,7 +79,7 @@ export default function Column (props) {
 	}
 
 	if (props.noGutters) {
-		colClass += ' no-gutters';
+		colClass += ' gx-0';
 	}
 
 	if (props.className) {
