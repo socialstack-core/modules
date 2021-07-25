@@ -59,13 +59,7 @@ function isMobile() {
 function getTabletInfo() {
     var tabletInfo = {
         isTablet: false,
-        isIPad: false,
-        isIPadMini: false,
-        isIPadPro: false,
-        isIPad10_2: false, // 10.2"
-        isIPad10_5: false, // 10.5"
-        isIPad11: false, // 11"
-        isIPad12_9: false // 12.9"
+        isIPad: false
     };
 
     // iPad Mini
@@ -73,7 +67,6 @@ function getTabletInfo() {
         window.matchMedia('(device-width: 1024px) and (device-height: 768px) and (orientation: landscape)').matches) {
         tabletInfo.isTablet = true;
         tabletInfo.isIPad = true;
-        tabletInfo.isIPadMini = true;
     }
 
     // iPad Pro 10.2"
@@ -81,8 +74,6 @@ function getTabletInfo() {
         window.matchMedia('(device-width: 1080px) and (device-height: 810px) and (orientation: landscape)').matches) {
         tabletInfo.isTablet = true;
         tabletInfo.isIPad = true;
-        tabletInfo.isIPadPro = true;
-        tabletInfo.isIPad10_2 = true;
     }
 
     // iPad Pro 10.5"
@@ -90,8 +81,6 @@ function getTabletInfo() {
         window.matchMedia('(device-width: 1112px) and (device-height: 834px) and (orientation: landscape)').matches) {
         tabletInfo.isTablet = true;
         tabletInfo.isIPad = true;
-        tabletInfo.isIPadPro = true;
-        tabletInfo.isIPad10_5 = true;
     }
 
     // iPad Pro 11"
@@ -99,8 +88,6 @@ function getTabletInfo() {
         window.matchMedia('(device-width: 1194px) and (device-height: 834px) and (orientation: landscape)').matches) {
         tabletInfo.isTablet = true;
         tabletInfo.isIPad = true;
-        tabletInfo.isIPadPro = true;
-        tabletInfo.isIPad11 = true;
     }
 
     // iPad Pro 12.9"
@@ -108,8 +95,6 @@ function getTabletInfo() {
         window.matchMedia('(device-width: 1366px) and (device-height: 1024px) and (orientation: landscape)').matches) {
         tabletInfo.isTablet = true;
         tabletInfo.isIPad = true;
-        tabletInfo.isIPadPro = true;
-        tabletInfo.isIPad12_9 = true;
     }
 
     return tabletInfo;
@@ -150,8 +135,6 @@ if (document.getElementsByTagName && document.querySelector("html")) {
 	
     // user agent detection
     var userAgent = navigator.userAgent || navigator.vendor || window.opera;
-    var isWindowsPhone = /windows phone/i.test(userAgent);
-    var isAndroid = /android/i.test(userAgent);
     var isIOS = (/iPad|iPhone|iPod/.test(navigator.platform) ||
         (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1)) &&
         !window.MSStream;
@@ -168,22 +151,11 @@ if (document.getElementsByTagName && document.querySelector("html")) {
         //window.navigator.vendor === "Google Inc." &&
         !isOpera &&
         !isEdge;
-    var isIE = window.document.documentMode;
-    var isIE10Plus = window.matchMedia("(-ms-high-contrast: active)").matches || window.matchMedia("(-ms-high-contrast: none)").matches;
 
     var htmlClassList = document.querySelector("html").classList;
 
-    if (isWindowsPhone) {
-        htmlClassList.add("windows-phone");
-    }
-    if (isAndroid) {
-        htmlClassList.add("android");
-    }
     if (isIOS) {
         htmlClassList.add("ios");
-    }
-    if (isChromeIOS) {
-        htmlClassList.add("chrome-ios");
     }
     if (isSafari) {
         htmlClassList.add("safari");
@@ -194,23 +166,9 @@ if (document.getElementsByTagName && document.querySelector("html")) {
     if (isChrome) {
         htmlClassList.add("chrome");
     }
-    if (isIE) {
-        htmlClassList.add("ie");
-    }
-    if (isIE10Plus) {
-        htmlClassList.add("ie10-plus");
-    }
 
     // platform checks
     var platform = navigator.platform.toLowerCase();
-
-    if (platform.startsWith("win")) {
-        htmlClassList.add("platform-win");
-    }
-
-    if (platform.startsWith("mac")) {
-        htmlClassList.add("platform-mac");
-    }
 
     // mobile checks
     var mobileInfo = getMobileInfo();
@@ -240,31 +198,6 @@ if (document.getElementsByTagName && document.querySelector("html")) {
 
         if (tabletInfo.isIPad) {
             htmlClassList.add("device-ipad");
-
-            if (tabletInfo.isIPadMini) {
-                htmlClassList.add("device-ipad-mini");
-            }
-
-            if (tabletInfo.isIPadPro) {
-                htmlClassList.add("device-ipad-pro");
-            }
-
-            if (tabletInfo.isIPad10_2) {
-                htmlClassList.add("device-ipad-pro-10-2");
-            }
-
-            if (tabletInfo.isIPad10_5) {
-                htmlClassList.add("device-ipad-pro-10-5");
-            }
-
-            if (tabletInfo.isIPad11) {
-                htmlClassList.add("device-ipad-pro-11");
-            }
-
-            if (tabletInfo.isIPad12_9) {
-                htmlClassList.add("device-ipad-pro-12-9");
-            }
-
         }
 
     }
