@@ -433,24 +433,6 @@ $bootstrap_variants: (
             }
         }
     }
-
-    html.device-mobile {
-
-        .modal {
-
-            &.modal-fullscreen-mobile {
-
-                .modal-dialog {
-                    margin: 0;
-
-                    .modal-content {
-                        height: 100vh;
-                        padding-bottom: 4rem; // account for possible docked menu obscuring content
-                    }
-                }
-            }
-        }
-    }
 }
 
 @if ($socialstack_theme_version > 1) {
