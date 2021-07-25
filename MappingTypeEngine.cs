@@ -18,24 +18,6 @@ namespace Api.Startup
 	public static class MappingTypeEngine
     {
 		/// <summary>
-		/// Stores meta for a mapping type.
-		/// </summary>
-		private class MappingTypeMeta
-		{
-			/// <summary>
-			/// The service.
-			/// </summary>
-			public AutoService Service;
-
-			/// <summary>
-			/// A task which exists whilst the service is instancing.
-			/// As mappings are cached, the generation process can last multiple seconds, 
-			/// thus it's important for threads to not repeatedly generate the same mapping.
-			/// </summary>
-			public Task<AutoService> Generating;
-		}
-
-		/// <summary>
 		/// Ensures unique names for assemblies generated during this session.
 		/// </summary>
 		private static int counter = 1;
@@ -43,7 +25,7 @@ namespace Api.Startup
 		/// <summary>
 		/// Generated mapper services.
 		/// </summary>
-		private static ConcurrentDictionary<string, MappingTypeMeta> _mappers = new ConcurrentDictionary<string, MappingTypeMeta>();
+		private static ConcurrentDictionary<string, AutoService> _mappers = new ConcurrentDictionary<string, AutoService>();
 
 		/// <summary>
 		/// Gets just the table name.
@@ -67,6 +49,8 @@ namespace Api.Startup
 			return name;
 		}
 
+		private static object generationLock = new object();
+
 		/// <summary>
 		/// Gets or generates a mapping from src to target.
 		/// </summary>
@@ -80,34 +64,35 @@ namespace Api.Startup
 			var targetTypeName = targetType.ServicedType.Name;
 			var typeName = srcTypeName + "_" + targetTypeName + "_Map_" + listAs;
 
-			if (_mappers.TryGetValue(typeName, out MappingTypeMeta meta))
+			if (_mappers.TryGetValue(typeName, out AutoService svc))
 			{
-				if (meta.Generating != null)
+				return svc;
+			}
+
+			// It doesn't exist yet.
+			// Start generating it - note that multiple threads can be generating at the same time.
+			// This is ok though; they will just ultimately use the same one at the end.
+
+			svc = await Generate(srcType, targetType, typeName);
+
+			lock (generationLock)
+			{
+				if (_mappers.TryGetValue(typeName, out AutoService existing))
 				{
-					// wait for the task to complete:
-					await meta.Generating;
+					if (existing != null)
+					{
+						// Use the existing one:
+						svc = existing;
+					}
+					else
+					{
+						// Add now:
+						_mappers[typeName] = svc;
+					}
 				}
-
-				return meta.Service;
 			}
 
-			Task<AutoService> generationTask;
-
-			lock (_mappers)
-			{
-				meta = new MappingTypeMeta();
-				_mappers[typeName] = meta;
-				
-				generationTask = Task.Run(async () => {
-					meta.Service = await Generate(srcType, targetType, typeName);
-					return meta.Service;
-				});
-
-				meta.Generating = generationTask;
-			}
-
-			meta.Service = await generationTask;
-			return meta.Service;
+			return svc;
 		}
 
 		/// <summary>

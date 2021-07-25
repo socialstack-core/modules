@@ -1,4 +1,5 @@
 using Api.Database;
+using Api.SocketServerLibrary;
 using Api.Startup;
 using Api.Users;
 using System;
@@ -8,7 +9,7 @@ using System.Reflection;
 using System.Reflection.Emit;
 using System.Runtime.CompilerServices;
 
-namespace Api.SocketServerLibrary
+namespace Api.Startup
 {
 	/// <summary>
 	/// Generates a method which will write out all the fields of a type using raw byte copying whenever possible.

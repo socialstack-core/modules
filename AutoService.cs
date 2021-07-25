@@ -186,30 +186,66 @@ public partial class AutoService<T, ID> : AutoService
 	}
 
 	/// <summary>
+	/// Used whilst building json structures.
+	/// </summary>
+	private object structureLock = new object();
+
+	/// <summary>
 	/// Gets the JSON structure. Defines settable fields for a particular role.
 	/// </summary>
 	public async ValueTask<JsonStructure<T,ID>> GetTypedJsonStructure(Context ctx)
 	{
 		var roleId = ctx.RoleId;
 
-		if (_jsonStructures == null)
+		var size = _jsonStructures == null ? 0 : _jsonStructures.Length;
+
+		if(size < roleId)
 		{
-			_jsonStructures = new JsonStructure<T,ID>[roleId];
-		}
-		else if (roleId > _jsonStructures.Length)
-		{
-			Array.Resize(ref _jsonStructures, (int)roleId);
+			lock (structureLock)
+			{
+				// Check again, just in case a thread we were waiting for has already done what we need.
+				if (size < roleId)
+				{
+					if (_jsonStructures == null)
+					{
+						_jsonStructures = new JsonStructure<T, ID>[roleId];
+					}
+					else if (roleId > _jsonStructures.Length)
+					{
+						Array.Resize(ref _jsonStructures, (int)roleId);
+					}
+				}
+			}
 		}
 
-		var structure = _jsonStructures[roleId - 1];
+		var index = roleId - 1;
+		var structure = _jsonStructures[index];
 		
 		if(structure == null)
 		{
 			// Not built yet. Build it now:
 			var role = await Services.Get<RoleService>().Get(new Context(), roleId, DataOptions.IgnorePermissions);
-			_jsonStructures[roleId - 1] = structure = new JsonStructure<T,ID>(role);
+			structure = new JsonStructure<T,ID>(role);
 			structure.Service = this;
 			await structure.Build(GetContentFields(), EventGroup.BeforeSettable, EventGroup.BeforeGettable);
+
+			// Note that multiple threads can build the structure simultaneously because we apply the created structure set afterwards.
+			// It has no other side effects though so its a non-issue if it happens.
+			
+			lock (structureLock)
+			{
+				// In the event that multiple threads have been making it at the same time, this check 
+				// just ensures we're not using multiple different structures and are just using one of them.
+				var existing = _jsonStructures[index];
+				if (existing == null)
+				{
+					_jsonStructures[index] = structure;
+				}
+				else
+				{
+					structure = existing;
+				}
+			}
 		}
 		
 		return structure;

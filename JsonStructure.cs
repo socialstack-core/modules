@@ -208,7 +208,7 @@ namespace Api.Startup
 		/// and for each one, triggers an event. The event can return either nothing at all - which will outright block the field - 
 		/// or the event can add a special value handler which will map the raw JSON value to the actual object for us.
 		/// </summary>
-		public async Task Build(ContentFields fields, Api.Eventing.EventHandler<JsonField<T, ID>> beforeSettable, Api.Eventing.EventHandler<JsonField<T, ID>> beforeGettable)
+		public async ValueTask Build(ContentFields fields, Api.Eventing.EventHandler<JsonField<T, ID>> beforeSettable, Api.Eventing.EventHandler<JsonField<T, ID>> beforeGettable)
 		{
 			var context = new Context();
 
@@ -340,7 +340,7 @@ namespace Api.Startup
 		/// <param name="readableState"></param>
 		/// <param name="beforeSettable"></param>
 		/// <param name="beforeGettable"></param>
-		private async Task TryAddField(Context context, JsonField<T, ID> field, bool readableState, Api.Eventing.EventHandler<JsonField<T, ID>> beforeSettable, Api.Eventing.EventHandler<JsonField<T, ID>> beforeGettable)
+		private async ValueTask TryAddField(Context context, JsonField<T, ID> field, bool readableState, Api.Eventing.EventHandler<JsonField<T, ID>> beforeSettable, Api.Eventing.EventHandler<JsonField<T, ID>> beforeGettable)
 		{
 			// Set the default just before the field event:
 			field.SetDefaultDisplayModule();
