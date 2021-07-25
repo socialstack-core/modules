@@ -112,7 +112,7 @@ select.form-select,
     }
 }
 
-html.ios {
+@include mq_iOS {
     // ensure iOS uses a minimum font size of 16px
     // (otherwise page will zoom in when inputs gain focus)
     input.form-control {
