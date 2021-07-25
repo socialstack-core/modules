@@ -144,6 +144,10 @@ function isLandscape() {
 }
 
 if (document.getElementsByTagName && document.querySelector("html")) {
+	console.log("UserAgent module is deprecated");
+	// Use feature sniffing. Over in CSS, modules should be made mobile 
+	// first using the bootstrap media-breakpoint-up/ down mixins to apply larger screen overrides.
+	
     // user agent detection
     var userAgent = navigator.userAgent || navigator.vendor || window.opera;
     var isWindowsPhone = /windows phone/i.test(userAgent);
