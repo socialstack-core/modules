@@ -362,7 +362,7 @@ export default class Input extends React.Component {
             var mobileNoSelection = this.props.mobileNoSelection || "None Specified";
 			if(noSelectionValue === undefined)
 			{
-				noSelectionValue = '0';
+				noSelectionValue = '';
 			}
 			
             var html = document.getElementsByTagName("html");
