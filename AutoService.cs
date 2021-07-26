@@ -643,6 +643,19 @@ public partial class AutoService<T, ID> : AutoService
 			filter.SetPage(pageIndex.Value);
 		}
 
+		var includeTotalJToken = newtonsoft["includeTotal"];
+		bool? includeTotal = null;
+
+		if (includeTotalJToken != null && includeTotalJToken.Type == JTokenType.Boolean)
+		{
+			includeTotal = includeTotalJToken.Value<bool>();
+		}
+
+		if (includeTotal.HasValue)
+		{
+			filter.IncludeTotal = includeTotal.Value;
+		}
+
 		var sort = newtonsoft["sort"] as JObject;
 		if (sort != null)
 		{
