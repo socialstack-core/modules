@@ -117,24 +117,40 @@ public class CsvMapping<T>
 	/// <summary>
 	/// The GB culture, primarily for date formatting in DD/MM/YYYY
 	/// </summary>
-	private static CultureInfo _culture;
+	private static CsvConfiguration _defaultConfig;
+
+	/// <summary>
+	/// Gets the default culture.
+	/// </summary>
+	public CultureInfo Culture
+	{
+		get
+		{
+			return CultureInfo.GetCultureInfo("en-GB");
+		}
+	}
 
 	/// <summary>
 	/// Use when not expecting a large CSV.
 	/// </summary>
 	/// <param name="results"></param>
 	/// <returns></returns>
-	public async ValueTask<MemoryStream> OutputStream(IEnumerable<T> results)
+	public async ValueTask<MemoryStream> OutputStream(IEnumerable<T> results, CsvConfiguration config = null)
 	{
 		var ms = new MemoryStream();
 		var writer = new StreamWriter(ms, System.Text.Encoding.UTF8, -1, true);
 
-		if (_culture == null)
+		if (_defaultConfig == null)
 		{
-			_culture = CultureInfo.GetCultureInfo("en-GB");
+			_defaultConfig = new CsvConfiguration(Culture);
 		}
 
-		using (var csv = new CsvWriter(writer, _culture))
+		if (config == null)
+		{
+			config = _defaultConfig;
+		}
+
+		using (var csv = new CsvWriter(writer, config))
 		{
 			foreach (var field in Entries)
 			{
