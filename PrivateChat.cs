@@ -12,7 +12,7 @@ namespace Api.PrivateChats
 	/// <summary>
 	/// A PrivateChat
 	/// </summary>
-	public partial class PrivateChat : VersionedContent<uint>, IAmLive
+	public partial class PrivateChat : VersionedContent<uint>
 	{
 		/// <summary>
 		/// Total messages in this chat.

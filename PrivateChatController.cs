@@ -14,6 +14,7 @@ namespace Api.PrivateChats
     [Route("v1/privateChat")]
 	public partial class PrivateChatController : AutoController<PrivateChat>
     {
+        /*
         private PrivateChatService _chatService;
         //private PermittedContentService _permittedContentService;
         private UserService _userService;
@@ -25,7 +26,6 @@ namespace Api.PrivateChats
         /// </summary>
         /// <param name="id"></param>
         /// <returns></returns>
-        /*
         [HttpGet("{id}/loadbyuser")]
         public async Task<PrivateChat> LoadByUser(int id)
         {
