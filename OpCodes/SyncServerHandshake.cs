@@ -7,7 +7,7 @@ namespace Api.ContentSync
 	/// <summary>
 	/// Initial hello message
 	/// </summary>
-	public class SyncServerHandshake : Message
+	public class SyncServerHandshake : Message<SyncServerHandshake>
 	{
 		/// <summary>
 		/// Other server's ID ("mine" when sending this message).

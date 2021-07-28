@@ -18,6 +18,8 @@ using System.Reflection;
 using System.Net;
 using Api.Signatures;
 using Api.AutoForms;
+using System.Text;
+using System.Collections.Concurrent;
 
 namespace Api.ContentSync
 {
@@ -124,9 +126,9 @@ namespace Api.ContentSync
 
 				// Start:
 				ApplyRemoteDataAndStart();
-
 				return new ValueTask<object>(s);
 			});
+
 		}
 
 		/// <summary>
@@ -452,7 +454,7 @@ namespace Api.ContentSync
 			SyncServer.Port = Port;
 			SyncServer.BindAddress = new IPAddress(Self.PrivateIPv4);
 
-			HandshakeOpCode = SyncServer.RegisterOpCode(3, (SyncServerHandshake message) =>
+			HandshakeOpCode = SyncServer.RegisterOpCode(3, (Client client, SyncServerHandshake message) =>
 			{
 				// Grab the values from the context:
 				var theirId = message.ServerId;
@@ -464,7 +466,8 @@ namespace Api.ContentSync
 				if (!Services.Get<SignatureService>().ValidateSignature(signData, signature))
 				{
 					// Fail there:
-					message.Kill();
+					client.Close();
+					return;
 
 					// Check the serverInfo.json on the server that threw this exception 
 					// and make sure its ID matches whatever is in the global server map.
@@ -473,7 +476,7 @@ namespace Api.ContentSync
 				}
 
 				// Ok - It's definitely a permitted server.
-				var server = (message.Client as ContentSyncServer);
+				var server = client as ContentSyncServer;
 				server.Hello = false;
 
 				// Add server to set of servers that have connected:
@@ -483,29 +486,23 @@ namespace Api.ContentSync
 					RemoteServers[theirId] = server;
 				}
 
-				foreach (var meta in RemoteTypes)
-				{
-					SendMetaTo(meta, server);
-				}
-
 				// Let it know that we're happy:
-				var helloResponse = Writer.GetPooled();
-				helloResponse.Start(4);
-				helloResponse.Write(ServerId);
+				var msg = SyncServerHandshakeResponse.Get();
+				msg.ServerId = ServerId;
+				var response = msg.Write(4);
 
 				// Respond with hello response:
-				server.Send(helloResponse);
-				
+				server.Send(response);
+				response.Release();
+				msg.Release();
+
 				Console.WriteLine("[CSync] Connected to " + theirId);
-				
-				// That's all folks:
-				message.Done();
 			});
 
 			HandshakeOpCode.IsHello = true;
-
-			SyncServer.RegisterOpCode(4, (SyncServerHandshakeResponse message) => {
-				var server = (message.Client as ContentSyncServer);
+			
+			SyncServer.RegisterOpCode(4, (Client client, SyncServerHandshakeResponse message) => {
+				var server = (client as ContentSyncServer);
 
 				if (!server.Hello)
 				{
@@ -516,50 +513,25 @@ namespace Api.ContentSync
 					{
 						RemoteServers[message.ServerId] = server;
 					}
-
-					foreach (var meta in RemoteTypes)
-					{
-						SendMetaTo(meta, server);
-					}
-
 				}
 
 				Console.WriteLine("[CSync] Connected to " + message.ServerId);
-				
-				// That's all folks:
-				message.Done();
 			});
 
-			TypeRegOpcode = SyncServer.RegisterOpCode(5, (TypeRegistration message) => {
+			var reader = new SyncServerRemoteReader(1, this);
+			reader.OpCode = SyncServer.RegisterOpCode(21, (Client client, SyncServerRemoteType message) => {
+				// Note: this callback is never run. The remoteReader does all the work, as it can identify the concrete types of things.
+			}, reader);
 
-				// Remote server is telling us that it is listening 
-				// for a particular content type as a given opcode, as well as the object structure.
-				var server = (message.Client as ContentSyncServer);
+			reader = new SyncServerRemoteReader(2, this);
+			reader.OpCode = SyncServer.RegisterOpCode(22, (Client client, SyncServerRemoteType message) => {
+				// Note: this callback is never run. The remoteReader does all the work, as it can identify the concrete types of things.
+			}, reader);
 
-				var type = ContentTypes.GetType(message.ContentTypeId);
-
-				if (type != null)
-				{
-					// The message type we'll receive is..
-					var messageType = typeof(ContentUpdate<>).MakeGenericType(new Type[] {type});
-
-					var ocmWriter = new OpCodeMessageWriter(message.OpCodeToListenFor, message.FieldInfo, messageType);
-
-					// Add to OCM:
-					server.OpCodeMap[type] = ocmWriter;
-
-					// Add to type writers (may overwrite if a particular server declared twice - that's fine):
-					AddTypeWriter(type, ocmWriter, server);
-				}
-				
-				// That's all folks:
-				message.Done();
-			});
-
-			foreach (var meta in RemoteTypes)
-			{
-				HandleType(meta, false);
-			}
+			reader = new SyncServerRemoteReader(3, this);
+			reader.OpCode = SyncServer.RegisterOpCode(23, (Client client, SyncServerRemoteType message) => {
+				// Note: this callback is never run. The remoteReader does all the work, as it can identify the concrete types of things.
+			}, reader);
 
 			// After HandleType calls so it can register some of the handlers:
 			SyncServer.Start();
@@ -600,31 +572,6 @@ namespace Api.ContentSync
 		public ClusteredServer Self;
 		
 		/// <summary>
-		/// A map of each content type to a set of remote server writers.
-		/// When something changes, we use the list to message the servers about it.
-		/// </summary>
-		private Dictionary<Type, List<ContentSyncTypeWriter>> TypeWriters = new Dictionary<Type, List<ContentSyncTypeWriter>>();
-
-		/// <summary>
-		/// Gets the set of type writers for the given type.
-		/// </summary>
-		/// <param name="type"></param>
-		/// <returns></returns>
-		private List<ContentSyncTypeWriter> GetTypeWriters(Type type)
-		{
-			lock (TypeWriters)
-			{
-				if (!TypeWriters.TryGetValue(type, out List<ContentSyncTypeWriter> set))
-				{
-					set = new List<ContentSyncTypeWriter>();
-					TypeWriters[type] = set;
-				}
-
-				return set;
-			}
-		}
-
-		/// <summary>
 		/// Removes the given server from the lookups.
 		/// </summary>
 		/// <param name="server"></param>
@@ -634,71 +581,6 @@ namespace Api.ContentSync
 			{
 				RemoteServers.Remove(server.ServerId);
 			}
-
-			foreach (var kvp in TypeWriters)
-			{
-				var set = kvp.Value;
-
-				ContentSyncTypeWriter toRemove = null;
-
-				foreach (var entry in set)
-				{
-					if (entry.Server == server)
-					{
-						toRemove = entry;
-						break;
-					}
-				}
-
-				if (toRemove != null)
-				{
-					set.Remove(toRemove);
-				}
-			}
-		}
-
-		/// <summary>
-		/// Adds a type writer. Note that a given server can only have one of the given type.
-		/// </summary>
-		/// <param name="type"></param>
-		/// <param name="writer"></param>
-		/// <param name="server"></param>
-		private void AddTypeWriter(Type type, OpCodeMessageWriter writer, ContentSyncServer server)
-		{
-			var writers = GetTypeWriters(type);
-
-			for (var i = 0; i < writers.Count; i++)
-			{
-				if (writers[i].Server == server)
-				{
-					writers[i].Writer = writer;
-					return;
-				}
-			}
-
-			lock (writers)
-			{
-				writers.Add(new ContentSyncTypeWriter()
-				{
-					Server = server,
-					Writer = writer
-				});
-			}
-		}
-
-		private OpCode<TypeRegistration> TypeRegOpcode;
-
-		private void SendMetaTo(ContentSyncTypeMeta meta, ContentSyncServer server)
-		{
-			var fields = meta.FieldList;
-
-			var msg = TypeRegOpcode.Write(new TypeRegistration() {
-				ContentTypeId = meta.ContentTypeId,
-				OpCodeToListenFor = meta.OpCodeId,
-				FieldInfo = fields
-			});
-
-			server.Send(msg);
 		}
 
 		/// <summary>
@@ -707,289 +589,254 @@ namespace Api.ContentSync
 		/// <typeparam name="T"></typeparam>
 		/// <typeparam name="ID"></typeparam>
 		/// <typeparam name="INST_T"></typeparam>
-		/// <param name="meta"></param>
-		/// <param name="addListeners"></param>
-		public void HandleTypeInternal<T, ID, INST_T>(ContentSyncTypeMeta meta, bool addListeners)
+		/// <param name="svc"></param>
+		public void HandleTypeInternal<T, ID, INST_T>(AutoService<T, ID> svc)
 			where T : Content<ID>, new()
 			where INST_T : T, new()
 			where ID : struct, IConvertible, IEquatable<ID>, IComparable<ID>
 		{
-			// NOTE: This is used by reflection by HandleType.
-
 			// - Hook up the events which then builds the messages too
-
-			// Get the service:
-			var svc = meta.Service as AutoService<T, ID>;
 
 			if (svc == null)
 			{
-				Console.WriteLine("[ERROR] Content type " + typeof(T)+  " is marked for sync, but has no service. This means it doesn't have a cache either, so syncing it doesn't gain anything. Note that you can have an AutoService without it using the DB. Ignoring this sync request.");
+				Console.WriteLine("[ERROR] Content type " + typeof(T)+  " is marked for sync, but has no service. " +
+					"This means it doesn't have a cache either, so syncing it doesn't gain anything. Note that you can have an AutoService without it using the DB. Ignoring this sync request.");
 				return;
 			}
+
+			// Create the meta:
+			var meta = new ContentSyncTypeMeta<T, ID, INST_T>(svc);
+
+			var name = svc.InstanceType.Name.ToLower();
+
+			RemoteTypes[name] = meta;
 
 			// Get the event group:
 			var eventGroup = svc.EventGroup;
 			
-			var receivedEventHandler = eventGroup.Received;
-			var afterLoad = eventGroup.AfterLoad;
+			// Same as the generic message handler - opcode + 4 byte size.
+			var basicHeader = new byte[5];
+			var boltIO = meta.ReaderWriter;
 
-			if (addListeners)
+			// Type name buffer:
+			var nameBytes = System.Text.Encoding.UTF8.GetBytes(name);
+
+			// Add the event listeners now!
+			eventGroup.AfterCreate.AddEventListener((Context ctx, T src) =>
 			{
-				var servers = GetTypeWriters(typeof(T));
-
-				// Add the event listeners now!
-				eventGroup.AfterCreate.AddEventListener((Context ctx, T src) =>
+				if (src == null)
 				{
-					if (src == null || servers.Count == 0)
-					{
-						return new ValueTask<T>(src);
-					}
-
-					try
-					{
-
-						// Create the content update message:
-						var message = new ContentUpdate<T>();
-						message.Action = 1;
-						message.User = ctx.UserId;
-						message.LocaleId = ctx.LocaleId;
-						message.RoleId = ctx.RoleId;
-						message.Content = src;
-
-						// Tell each server about it:
-						foreach (var server in servers)
-						{
-							if(Verbose){
-								Console.WriteLine("[Create " + typeof(T).Name + "]=>" + server.Server.ServerId);
-							}
-							var msg = server.Writer.Write(message);
-							server.Server.Send(msg);
-						}
-
-					}
-					catch (Exception e)
-					{
-						Console.WriteLine(e);
-					}
-
 					return new ValueTask<T>(src);
-				}, 1000); // Always absolutely last
-
-				eventGroup.AfterUpdate.AddEventListener((Context ctx, T src) =>
-				{
-					if (src == null || servers.Count == 0)
-					{
-						return new ValueTask<T>(src);
-					}
-
-					try
-					{
-						// Create the content update message:
-						var message = new ContentUpdate<T>();
-						message.Action = 2;
-						message.User = ctx.UserId;
-						message.LocaleId = ctx.LocaleId;
-						message.RoleId = ctx.RoleId;
-						message.Content = src;
-						
-						// Tell each server about it:
-						foreach (var server in servers)
-						{
-							if(Verbose){
-								Console.WriteLine("[Update " + typeof(T).Name + "]=>" + server.Server.ServerId);
-							}
-							var msg = server.Writer.Write(message);
-							server.Server.Send(msg);
-						}
-					}
-						catch (Exception e)
-					{
-						Console.WriteLine(e);
-					}
-
-				return new ValueTask<T>(src);
-				}, 1000); // Always absolutely last
-
-				eventGroup.AfterDelete.AddEventListener((Context ctx, T src) =>
-				{
-					if (src == null || servers.Count == 0)
-					{
-						return new ValueTask<T>(src);
-					}
-
-					try
-					{
-						// Create the content update message:
-						var message = new ContentUpdate<T>();
-						message.Action = 3;
-						message.User = ctx.UserId;
-						message.LocaleId = ctx.LocaleId;
-						message.RoleId = ctx.RoleId;
-						message.Content = src;
-
-						// Tell each server about it:
-						foreach (var server in servers)
-						{
-							if(Verbose){
-								Console.WriteLine("[Delete " + typeof(T).Name + "]=>"+server.Server.ServerId);
-							}
-							var msg = server.Writer.Write(message);
-							server.Server.Send(msg);
-						}
-					}
-					catch (Exception e)
-					{
-						Console.WriteLine(e);
-					}
-
-				return new ValueTask<T>(src);
-				}, 1000); // Always absolutely last
-
-			}
-
-			if (SyncServer == null)
-			{
-				// Server isn't ready yet - it'll call this again when it is.
-				return;
-			}
-
-			// Get the primary cache:
-			var primaryCache = svc.GetCacheForLocale(1);
-			
-			meta.OpCode = SyncServer.RegisterOpCode((uint)meta.OpCodeId, (ContentUpdate<T> message) => {
-
-				// Create the context as it was in the remote:
-				var context = new Context(message.LocaleId, message.User, message.RoleId);
-
-				// Create, Update, Delete
-				var action = message.Action;
-
-				if (message.Content == null)
-				{
-					// That's all folks:
-					message.Done();
-					return;
 				}
 
-				// Dispatch events:
-				Task.Run(async () =>{
-					
-					if(Verbose){
-						Console.WriteLine("Receive <= " + action + " of " + message.Content.GetType());
-					}
+				// Start creating the sync message. This is much the same as what Message does internally when sending generic messages.
+				// We just require some custom handling here to handle the type-within-a-message scenario.
 
-					// The message content is the resolved (not raw) object.
-					var entity = message.Content;
+				var writer = Writer.GetPooled();
+				writer.Start(basicHeader);
+				var firstBuffer = writer.FirstBuffer.Bytes;
+				firstBuffer[0] = 21;
+				writer.WriteCompressed(ctx.LocaleId);
+				writer.Write(nameBytes);
+				boltIO.Write((INST_T)src, writer);
 
-					// Update local cache next:
-					var cache = svc.GetCacheForLocale(context.LocaleId);
+				// Write the length of the JSON to the 3 bytes at the start:
+				var msgLength = (uint)(writer.Length - 5);
+				firstBuffer[1] = (byte)msgLength;
+				firstBuffer[2] = (byte)(msgLength >> 8);
+				firstBuffer[3] = (byte)(msgLength >> 16);
+				firstBuffer[4] = (byte)(msgLength >> 24);
 
-					T raw;
+				// Mappings don't have a network room.
+				if (svc.NetworkRooms != null)
+				{
+					var room = svc.NetworkRooms.GetRoom(src);
 
-					if (context.LocaleId == 1)
+					if (room != null)
 					{
-						// Primary locale. Entity == raw entity, and no transferring needs to happen.
-						raw = entity;
+						// Also send it to any network rooms (locally).
+						room.SendLocally(writer);
 					}
-					else
+				}
+				
+				try
+				{
+					// Tell every server about it:
+					foreach (var kvp in RemoteServers)
 					{
-						// Get the raw entity from the cache. We'll copy the fields from the raw object to it.
-						raw = cache.GetRaw(entity.GetId());
-
-						if (raw == null)
-						{
-							raw = new INST_T();
+						var server = kvp.Value;
+							
+						if (Verbose){
+							Console.WriteLine("[Create " + typeof(T).Name + "]=>" + server.ServerId);
 						}
 
-						// Transfer fields from raw to entity, using the primary object as a source of blank fields:
-						svc.PopulateTargetEntityFromRaw(entity, raw, primaryCache.Get(raw.GetId()));
+						server.Send(writer);
 					}
 
-					// Run afterLoad events:
-					var previousPermState = context.IgnorePermissions;
-					context.IgnorePermissions = true;
-					await afterLoad.Dispatch(context, entity);
-					context.IgnorePermissions = previousPermState;
+					writer.Release();
+				}
+				catch (Exception e)
+				{
+					Console.WriteLine(e);
+				}
 
-					// Received the content object:
-					await receivedEventHandler.Dispatch(context, entity, action);
+				return new ValueTask<T>(src);
+			}, 1000); // Always absolutely last
 
-					if (cache != null)
+			eventGroup.AfterUpdate.AddEventListener((Context ctx, T src) =>
+			{
+				if (src == null)
+				{
+					return new ValueTask<T>(src);
+				}
+
+				// Start creating the sync message. This is much the same as what Message does internally when sending generic messages.
+				// We just require some custom handling here to handle the type-within-a-message scenario.
+
+				var writer = Writer.GetPooled();
+				writer.Start(basicHeader);
+				var firstBuffer = writer.FirstBuffer.Bytes;
+				firstBuffer[0] = 22;
+				writer.WriteCompressed(ctx.LocaleId);
+				writer.Write(nameBytes);
+				boltIO.Write((INST_T)src, writer);
+
+				// Write the length of the JSON to the 3 bytes at the start:
+				var msgLength = (uint)(writer.Length - 5);
+				firstBuffer[1] = (byte)msgLength;
+				firstBuffer[2] = (byte)(msgLength >> 8);
+				firstBuffer[3] = (byte)(msgLength >> 16);
+				firstBuffer[4] = (byte)(msgLength >> 24);
+
+				// Mappings don't have a network room.
+				if (svc.NetworkRooms != null)
+				{
+					var room = svc.NetworkRooms.GetRoom(src);
+
+					if (room != null)
 					{
-						lock (cache)
-						{
-							if (action == 1 || action == 2)
-							{
-								// Created or updated
-								cache.Add(context, entity, message.Content);
-
-								if (context.LocaleId == 1)
-								{
-									// Primary locale update - must update all other caches in case they contain content from the primary locale.
-									svc.OnPrimaryEntityChanged(entity);
-								}
-							}
-							else if (action == 3)
-							{
-								// Deleted
-								cache.Remove(context, message.Content.GetId());
-							}
-						}
+						// Also send it to any network rooms (locally).
+						room.SendLocally(writer);
 					}
-				});
+				}
 
-				// That's all folks:
-				message.Done();
-			});
+				try
+				{
+					// Tell every server about it:
+					foreach (var kvp in RemoteServers)
+					{
+						var server = kvp.Value;
 
-			// Collect the field list:
-			meta.FieldList = meta.OpCode.FieldList();
+						if (Verbose)
+						{
+							Console.WriteLine("[Update " + typeof(T).Name + "]=>" + server.ServerId);
+						}
+
+						server.Send(writer);
+					}
+
+					writer.Release();
+				}
+				catch (Exception e)
+				{
+					Console.WriteLine(e);
+				}
+
+				return new ValueTask<T>(src);
+			}, 1000); // Always absolutely last
+
+			eventGroup.AfterDelete.AddEventListener((Context ctx, T src) =>
+			{
+				if (src == null)
+				{
+					return new ValueTask<T>(src);
+				}
+
+				// Start creating the sync message. This is much the same as what Message does internally when sending generic messages.
+				// We just require some custom handling here to handle the type-within-a-message scenario.
+
+				var writer = Writer.GetPooled();
+				writer.Start(basicHeader);
+				var firstBuffer = writer.FirstBuffer.Bytes;
+				firstBuffer[0] = 23;
+				writer.WriteCompressed(ctx.LocaleId);
+				writer.Write(nameBytes);
+				boltIO.Write((INST_T)src, writer);
+
+				// Write the length of the JSON to the 3 bytes at the start:
+				var msgLength = (uint)(writer.Length - 5);
+				firstBuffer[1] = (byte)msgLength;
+				firstBuffer[2] = (byte)(msgLength >> 8);
+				firstBuffer[3] = (byte)(msgLength >> 16);
+				firstBuffer[4] = (byte)(msgLength >> 24);
+
+				// Mappings don't have a network room.
+				if (svc.NetworkRooms != null)
+				{
+					var room = svc.NetworkRooms.GetRoom(src);
+
+					if (room != null)
+					{
+						// Also send it to any network rooms (locally).
+						room.SendLocally(writer);
+					}
+				}
+
+				try
+				{
+					// Tell every server about it:
+					foreach (var kvp in RemoteServers)
+					{
+						var server = kvp.Value;
+
+						if (Verbose)
+						{
+							Console.WriteLine("[Delete " + typeof(T).Name + "]=>" + server.ServerId);
+						}
+
+						server.Send(writer);
+					}
+
+					writer.Release();
+				}
+				catch (Exception e)
+				{
+					Console.WriteLine(e);
+				}
+
+				return new ValueTask<T>(src);
+			}, 1000); // Always absolutely last
+
 		}
 
-		private void HandleType(ContentSyncTypeMeta meta, bool addListeners)
+		/// <summary>
+		/// Gets meta by the given lowercase name.
+		/// </summary>
+		/// <param name="name"></param>
+		/// <returns></returns>
+		public ContentSyncTypeMeta GetMeta(string name)
 		{
-			// This is only called a handful of times during startup
-
-			var handleTypeInternal = GetType().GetMethod(nameof(HandleTypeInternal)).MakeGenericMethod(new Type[] {
-				meta.Service.ServicedType,
-				meta.Service.IdType,
-				meta.Service.InstanceType
-			});
-
-			handleTypeInternal.Invoke(this, new object[] {
-				meta,
-				addListeners
-			});
-
-			// If we've already connected to some servers, tell them about this type:
-			if (RemoteServers != null)
-			{
-				foreach (var kvp in RemoteServers)
-				{
-					var server = kvp.Value;
-					SendMetaTo(meta, server);
-				}
-			}
+			RemoteTypes.TryGetValue(name, out ContentSyncTypeMeta meta);
+			return meta;
 		}
 
-		private List<ContentSyncTypeMeta> RemoteTypes = new List<ContentSyncTypeMeta>();
+		private ConcurrentDictionary<string, ContentSyncTypeMeta> RemoteTypes = new ConcurrentDictionary<string, ContentSyncTypeMeta>();
 
 		/// <summary>
 		/// Informs CSync to start syncing the given type as the given opcode.
 		/// </summary>
 		/// <param name="service"></param>
-		/// <param name="opcode"></param>
-		public void SyncRemoteType(AutoService service, int opcode)
+		public void SyncRemoteType(AutoService service)
 		{
-			var meta = new ContentSyncTypeMeta()
-			{
-				Service = service,
-				OpCodeId = (uint)opcode,
-				ContentTypeId = ContentTypes.GetId(service.InstanceType)
-			};
+			var handleTypeInternal = GetType().GetMethod(nameof(HandleTypeInternal)).MakeGenericMethod(new Type[] {
+				service.ServicedType,
+				service.IdType,
+				service.InstanceType
+			});
 
-			RemoteTypes.Add(meta);
-			HandleType(meta, true);
+			handleTypeInternal.Invoke(this, new object[] {
+				service
+			});
 		}
 
 	}
@@ -1000,45 +847,133 @@ namespace Api.ContentSync
 	public class ContentSyncTypeMeta
 	{
 		/// <summary>
-		/// The service for the type.
-		/// </summary>
-		public AutoService Service;
-
-		/// <summary>
-		/// The content type ID for Type.
-		/// </summary>
-		public int ContentTypeId;
-
-		/// <summary>
-		/// The opcode
-		/// </summary>
-		public uint OpCodeId;
-
-		/// <summary>
 		/// The opcode
 		/// </summary>
 		public OpCode OpCode;
 
 		/// <summary>
-		/// The field meta from the opcode.
+		/// Reads an object of this type from the given client.
 		/// </summary>
-		public List<string> FieldList;
+		/// <param name="opcode"></param>
+		/// <param name="client"></param>
+		/// <param name="remoteType"></param>
+		/// <param name="action"></param>
+		/// <returns></returns>
+		public virtual void Handle(OpCode<SyncServerRemoteType>  opcode, Client client, SyncServerRemoteType remoteType, int action)
+		{
+		}
 	}
 
 	/// <summary>
-	/// Server/ writer combo
+	/// Stores sync meta for a given type.
 	/// </summary>
-	public class ContentSyncTypeWriter
+	public class ContentSyncTypeMeta<T, ID, INST_T> : ContentSyncTypeMeta
+		where T : Content<ID>, new()
+		where INST_T : T, new()
+		where ID : struct, IConvertible, IEquatable<ID>, IComparable<ID>
 	{
 		/// <summary>
-		/// The server to send to.
+		/// The reader/writer.
 		/// </summary>
-		public ContentSyncServer Server;
+		public BoltReaderWriter<INST_T> ReaderWriter;
 
 		/// <summary>
-		/// The writer that helps us build the actual msg.
+		/// The service for the type.
 		/// </summary>
-		public OpCodeMessageWriter Writer;
+		public AutoService<T,ID> Service;
+
+		private ServiceCache<T, ID> _primaryCache;
+
+		private EventHandler<T, int> _receivedEventHandler;
+
+		/// <summary>
+		/// Creates new type meta.
+		/// </summary>
+		/// <param name="svc"></param>
+		public ContentSyncTypeMeta(AutoService<T,ID> svc)
+		{
+			Service = svc;
+			ReaderWriter = TypeIOEngine.GetBolt<INST_T>();
+
+			_primaryCache = Service.GetCacheForLocale(1);
+			_receivedEventHandler = Service.EventGroup.Received;
+		}
+
+		private async ValueTask OnReceiveUpdate(int action, uint localeId, T entity)
+		{
+			// Create the context using role 1:
+			var context = new Context(localeId, null, 1);
+
+			// Update local cache next:
+			var cache = Service.GetCacheForLocale(context.LocaleId);
+
+			T raw;
+
+			if (context.LocaleId == 1)
+			{
+				// Primary locale. Entity == raw entity, and no transferring needs to happen.
+				raw = entity;
+			}
+			else
+			{
+				// Get the raw entity from the cache. We'll copy the fields from the raw object to it.
+				raw = cache.GetRaw(entity.Id);
+
+				if (raw == null)
+				{
+					raw = new INST_T();
+				}
+
+				// Transfer fields from entity to raw, using the primary object as a source of blank fields.
+				// If fields on the raw object were changed, this makes sure they're up to date.
+				Service.PopulateRawEntityFromTarget(entity, raw, _primaryCache.Get(raw.Id));
+			}
+
+			// Received the content object:
+			await _receivedEventHandler.Dispatch(context, entity, action);
+
+			if (cache != null)
+			{
+				lock (cache)
+				{
+					if (action == 1 || action == 2)
+					{
+						// Created or updated
+						cache.Add(context, entity, raw);
+
+						if (context.LocaleId == 1)
+						{
+							// Primary locale update - must update all other caches in case they contain content from the primary locale.
+							Service.OnPrimaryEntityChanged(entity);
+						}
+					}
+					else if (action == 3)
+					{
+						// Deleted
+						cache.Remove(context, entity.Id);
+					}
+				}
+			}
+		}
+
+		/// <summary>
+		/// Reads an object of this type from the given client.
+		/// </summary>
+		/// <param name="opcode"></param>
+		/// <param name="client"></param>
+		/// <param name="remoteType"></param>
+		/// <param name="action"></param>
+		/// <returns></returns>
+		public override void Handle(OpCode<SyncServerRemoteType> opcode, Client client, SyncServerRemoteType remoteType, int action)
+		{
+			// Read with bolt IO from the stream:
+			var obj = ReaderWriter.Read(client);
+
+			_ = OnReceiveUpdate(action, remoteType.LocaleId, obj);
+
+			// Release the message:
+			remoteType.Release();
+		}
 	}
 
 }

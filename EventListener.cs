@@ -1,136 +1,113 @@
-
-using Api.Contexts;
-using Api.Database;
-using Api.Eventing;
-using Api.Permissions;
+﻿using System;
 using Api.Startup;
-using System;
-using System.Collections.Generic;
+using Microsoft.AspNetCore.Builder;
+using Microsoft.Extensions.DependencyInjection;
+using Api.Contexts;
+using System.Threading;
+using Api.Eventing;
 using System.Threading.Tasks;
+using Api.Configuration;
+using Api.SocketServerLibrary;
+using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
+using Api.Database;
+using Api.ContentSync;
+using System.Collections.Generic;
 
 namespace Api.ContentSync
 {
 
 	/// <summary>
-	/// Listens for the remote sync type added event which indicates syncable types.
+	/// Listens for service starts so it can start syncing it.
 	/// </summary>
 	[EventListener]
 	public class EventListener
 	{
-
 		/// <summary>
-		/// Instanced automatically
+		/// Instanced automatically.
 		/// </summary>
 		public EventListener()
 		{
-
-			var methodInfo = GetType().GetMethod(nameof(SetupForType));
-
-			// Must happen after services start otherwise the page service isn't necessarily available yet.
-			// Notably this happens immediately after services start in the first group
-			// (that's before any e.g. system pages are created).
 			Events.Service.AfterCreate.AddEventListener(async (Context ctx, AutoService svc) =>
 			{
-				if (svc == null)
+				if (svc == null || svc.ServicedType == null)
 				{
 					return svc;
 				}
 
-				// Does this service require sync or ID allocation? SetupForType checks internally.
-
-				// Add Create handler.
-				// When the handler fires, we simply assign an ID from our pool.
-				// DatabaseService internally handles predefined IDs already.
-				if (svc.ServicedType != null)
+				// Has CSync started yet?
+				if (contentSyncService == null)
 				{
-					// Invoke setup for type:
-					var setupType = methodInfo.MakeGenericMethod(new Type[] {
-						svc.ServicedType,
-						svc.IdType
-					});
-
-					await (setupType.Invoke(this, new object[] {
-						svc
-					}) as Task);
+					contentSyncService = Services.Get<ContentSyncService>();
 				}
 
+				if (contentSyncService == null)
+				{
+					// Still unavailable.
+					pendingStartup.Add(svc);
+					return svc;
+				}
+
+				// Start any that were pending startup, plus this one.
+				if (pendingStartup != null)
+				{
+					var set = pendingStartup;
+					pendingStartup = null;
+
+					foreach (var pending in set)
+					{
+						await Setup(pending);
+					}
+				}
+
+				await Setup(svc);
+
 				return svc;
-			}, 5); // Before most things, but after db diff has setup the schema and ensured the tables exist.
+			}, 5); // Before most things. Ensures everything has an ID handler.
+			
+		}
+
+		/// <summary>
+		/// Sets up the given autoservice, potentially adding ID management etc to it.
+		/// </summary>
+		/// <param name="svc"></param>
+		/// <returns></returns>
+		private async ValueTask Setup(AutoService svc)
+		{
+			var setupServiceMethod = GetType().GetMethod(nameof(SetupService));
+			
+			// Setup network management if it is not a generic AutoService:
+			var genericMethod = setupServiceMethod.MakeGenericMethod(new Type[] {
+					svc.ServicedType,
+					svc.IdType
+				});
+
+			var task = (Task)genericMethod.Invoke(this, new object[] { svc });
+			await task;
 		}
 
 		private DatabaseService databaseService;
 		private ContentSyncService contentSyncService;
 		private ClusteredServerService clusteredServerService;
 
-		/// <summary>
-		/// Opcode to use when talking with other servers.
-		/// </summary>
-		private int OpCode;
+		private List<AutoService> pendingStartup = new List<AutoService>();
 
 		/// <summary>
-		/// Sets up a particular content type with e.g. ID assign handlers.
+		/// Sets up a given non-mapping service.
 		/// </summary>
 		/// <typeparam name="T"></typeparam>
 		/// <typeparam name="ID"></typeparam>
-		public async Task SetupForType<T, ID>(AutoService<T, ID> service) 
+		/// <param name="service"></param>
+		/// <returns></returns>
+		public async Task SetupService<T, ID>(AutoService<T,ID> service)
 			where T : Content<ID>, new()
 			where ID : struct, IConvertible, IEquatable<ID>, IComparable<ID>
+
 		{
 			// Invoked by reflection
 
-			if (!service.Synced)
-			{
-				// No need for contentSync on this one.
-				return;
-			}
-
-			if (contentSyncService == null)
-			{
-				contentSyncService = Services.Get<ContentSyncService>();
-				databaseService = Services.Get<DatabaseService>();
-				clusteredServerService = Services.Get<ClusteredServerService>();
-
-				// Not setup yet - hook up now.
-				await contentSyncService.Startup();
-			}
-
-			var opcode = OpCode + 10;
-			OpCode++;
-
-			// Add as a remote synced type:
-			contentSyncService.SyncRemoteType(service, opcode);
-
-			// Create an ID assigner for the type next.
-			var cacheConfig = service.GetCacheConfig();
-
-			if (cacheConfig != null && cacheConfig.LowFrequencySequentialIds)
-			{
-				// Used by e.g. locales. The objects must be created at low frequency (to avoid collisions) but will always have exact, sequential IDs.
-				if (service.IdType != typeof(uint))
-				{
-					throw new Exception("Type " + typeof(T).Name + " is set to use a sequential ID assigner. This is only available with an ID type of uint.");
-				}
-
-				// Now need it as an AutoService<T, uint> - we'll need to use reflection for that, as the compiler doesn't know that ID is actually typeof(uint).
-				var addSequential = GetType().GetMethod(nameof(AddSequentialIdAssigner));
-
-				var setupIdAssigner = addSequential.MakeGenericMethod(new Type[] {
-					service.ServicedType
-				});
-
-				setupIdAssigner.Invoke(this, new object[] {
-					service
-				});
-			}
-			else
-			{
-				// Create a regular clustered ID assigner:
-				var assigner = await contentSyncService.CreateAssigner(service);
-				AddIdAssigner(assigner, service.EventGroup);
-			}
-
 			/*
-			if (SyncFileMode && LocalTableSet != null)
+			 if (SyncFileMode && LocalTableSet != null)
 			{
 				// Add handlers to Create, Delete and Update events, and track these in a syncfile for this user.
 
@@ -180,7 +157,94 @@ namespace Api.ContentSync
 					});
 				}
 			}
-			*/
+			 */
+
+			// If it is not a mapping service then instance its network room management.
+			// That includes the network room mapping system:
+			if (!service.IsMapping)
+			{
+				// Get the network room mapping.
+				// This is done on type startup to ensure that it is cached and syncing.
+				var mapping = await MappingTypeEngine.GetOrGenerate(
+						service,
+						Services.Get<ClusteredServerService>(),
+						"NetworkRoomServers"
+					) as MappingService<ID, uint>;
+
+				// Create the set:
+				service.NetworkRooms = new NetworkRoomSet<T, ID>(service, mapping);
+			}
+
+			if (service.Synced || service.IsMapping)
+			{
+				if (clusteredServerService == null)
+				{
+					databaseService = Services.Get<DatabaseService>();
+					clusteredServerService = Services.Get<ClusteredServerService>();
+
+					// Not setup yet - hook up now.
+					await contentSyncService.Startup();
+				}
+
+				// Add as a remote synced type:
+				contentSyncService.SyncRemoteType(service);
+
+				// Create an ID assigner for the type next.
+				var cacheConfig = service.GetCacheConfig();
+
+				if (cacheConfig != null && cacheConfig.LowFrequencySequentialIds)
+				{
+					// Used by e.g. locales. The objects must be created at low frequency (to avoid collisions) but will always have exact, sequential IDs.
+					if (service.IdType != typeof(uint))
+					{
+						throw new Exception("Type " + typeof(T).Name + " is set to use a sequential ID assigner. This is only available with an ID type of uint.");
+					}
+
+					// Now need it as an AutoService<T, uint> - we'll need to use reflection for that, as the compiler doesn't know that ID is actually typeof(uint).
+					var addSequential = GetType().GetMethod(nameof(AddSequentialIdAssigner));
+
+					var setupIdAssigner = addSequential.MakeGenericMethod(new Type[] {
+						service.ServicedType
+					});
+
+					setupIdAssigner.Invoke(this, new object[] {
+						service
+					});
+				}
+				else
+				{
+					// Create a regular clustered ID assigner:
+					var assigner = await contentSyncService.CreateAssigner(service);
+					AddIdAssigner(assigner, service.EventGroup);
+				}
+			}
+			else
+			{
+				// Ensure any network rooms are in sync.
+
+				service.EventGroup.AfterCreate.AddEventListener(async (Context c, T item) =>
+				{
+					// Broadcast the create to rooms/ servers that want it.
+
+					return item;
+				}, 1000);
+
+				service.EventGroup.AfterUpdate.AddEventListener(async (Context c, T item) =>
+				{
+					// Broadcast the update to rooms/ servers that want it.
+
+					return item;
+				}, 1000);
+
+				service.EventGroup.AfterDelete.AddEventListener((Context c, T item) =>
+				{
+					// Broadcast the delete to rooms/ servers that want it.
+
+					return new ValueTask<T>(item);
+				}, 1000);
+
+			}
+
 		}
 
 		/// <summary>
@@ -202,7 +266,7 @@ namespace Api.ContentSync
 				var f = service.Where(DataOptions.IgnorePermissions);
 				f.Sort("Id", false);
 				f.PageSize = 1;
-				
+
 				var latest = await f.ListAll(context);
 
 				uint latestId = 0;
@@ -217,17 +281,17 @@ namespace Api.ContentSync
 			}, 1);
 
 		}
-			
-			/// <summary>
-			/// Adds ID assigners to the given event group.
-			/// </summary>
-			/// <typeparam name="T"></typeparam>
-			/// <typeparam name="ID"></typeparam>
-			/// <param name="assigner"></param>
-			/// <param name="evtGroup"></param>
-			private void AddIdAssigner<T, ID>(IdAssigner<ID> assigner, EventGroup<T, ID> evtGroup)
-			where T : Content<ID>, new()
-			where ID : struct, IConvertible, IEquatable<ID>, IComparable<ID>
+
+		/// <summary>
+		/// Adds ID assigners to the given event group.
+		/// </summary>
+		/// <typeparam name="T"></typeparam>
+		/// <typeparam name="ID"></typeparam>
+		/// <param name="assigner"></param>
+		/// <param name="evtGroup"></param>
+		private void AddIdAssigner<T, ID>(IdAssigner<ID> assigner, EventGroup<T, ID> evtGroup)
+		where T : Content<ID>, new()
+		where ID : struct, IConvertible, IEquatable<ID>, IComparable<ID>
 		{
 			evtGroup.BeforeCreate.AddEventListener((Context context, T content) =>
 			{
@@ -245,6 +309,16 @@ namespace Api.ContentSync
 				return new ValueTask<T>(content);
 			}, 1);
 		}
+
 	}
-	
+
+
+}
+
+public partial class AutoService<T, ID>
+{
+	/// <summary>
+	/// The network room set for the given svc.
+	/// </summary>
+	public NetworkRoomSet<T, ID> NetworkRooms;
 }

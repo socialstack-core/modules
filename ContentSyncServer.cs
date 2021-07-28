@@ -27,10 +27,6 @@ namespace Api.ContentSync
 		/// Remote server Id.
 		/// </summary>
 		public uint ServerId;
-		/// <summary>
-		/// Content type -> message writer.
-		/// </summary>
-		public Dictionary<Type, OpCodeMessageWriter> OpCodeMap = new Dictionary<Type, OpCodeMessageWriter>();
 
 		/// <summary>
 		/// Called on disconnect
@@ -38,15 +34,6 @@ namespace Api.ContentSync
 		public override void Close()
 		{
 			base.Close();
-
-			// Clear opcodeMap set and the entries in the fast lookups:
-			var map = OpCodeMap;
-			OpCodeMap = null;
-
-			if (map == null)
-			{
-				return;
-			}
 
 			Console.WriteLine("[CSync] A server disconnected. Bye!");
 
@@ -70,12 +57,13 @@ namespace Api.ContentSync
 				// Sign our ID + their ID:
 				var signature = Services.Get<SignatureService>().Sign(syncService.ServerId + "=>" + ServerId);
 
-				var msg = syncService.HandshakeOpCode.Write(new SyncServerHandshake() {
-					ServerId = syncService.ServerId,
-					Signature = signature
-				});
-
-				Send(msg);
+				var msg = SyncServerHandshake.Get();
+				msg.ServerId = syncService.ServerId;
+				msg.Signature = signature;
+				var writer = msg.Write(3);
+				Send(writer);
+				writer.Release();
+				msg.Release();
 			}
 		}
 	}
