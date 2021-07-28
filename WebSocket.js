@@ -99,12 +99,103 @@ function setPing(){
 		// If this fails the socket disconnects and we get informed about it that way.
 		if(ws && ws.readyState == WebSocket.OPEN)
 		{
-			// Just an empty message will ping the server:
-			ws.send('{}');
+			// Opcode 1 (ping, no pong):
+			ws.send(Uint8Array.from([1]));
 		}
 		
 	}, 30000);
 	
+}
+
+var te8 = new TextEncoder("utf-8");
+
+class Writer{
+	
+	constructor(){
+		this.bytes = [];
+	}
+	
+	writeCompressed(value){
+		var b = this.bytes;
+		
+		if (value< 251){
+			
+			// Single byte:
+			b.push(value);
+			
+		}else if (value <= 65535){
+			
+			// Status 251 for a 2 byte num:
+			b.push(251);
+			b.push(value & 255);
+			b.push((value>>8) & 255);
+			
+		}else if (value < 16777216){
+			
+			// Status 252 for a 3 byte num:
+			b.push(252);
+			b.push(value & 255);
+			b.push((value>>8) & 255);
+			b.push((value>>16) & 255);
+			
+		}else if(value <= 4294967295){
+			
+			// Status 253 for a 4 byte num:
+			b.push(253);
+			b.push(value & 255);
+			b.push((value>>8) & 255);
+			b.push((value>>16) & 255);
+			b.push((value>>24) & 255);
+			
+		}else{
+			
+			// Status 254 for an 8 byte num:
+			b.push(254);
+			b.push(value & 255);
+			b.push((value>>8) & 255);
+			b.push((value>>16) & 255);
+			b.push((value>>24) & 255);
+			b.push((value>>32) & 255);
+			b.push((value>>40) & 255);
+			b.push((value>>48) & 255);
+			b.push((value>>56) & 255);
+			
+		}
+	}
+	
+	writeByte(i){
+		this.bytes.push(i);
+	}
+	
+	writeUtf8(str){
+		if(str === null){
+			this.writeByte(0);
+			return;
+		}
+		var buf = te8.encode(str);
+		this.writeCompressed(buf.length + 1);
+		for(var i=0;i<buf.length;i++){
+			this.bytes.push(buf[i]);
+		}
+	}
+	
+	toBuffer(){
+		return Uint8Array.from(this.bytes);
+	}
+}
+
+function getAsBuffer(obj){
+	if(obj && obj.toBuffer){
+		// It was already a writer.
+		return obj.toBuffer();
+	}
+	var json = JSON.stringify(obj);
+	
+	var w = new Writer();
+	w.writeByte(2); // Wrapped JSON
+	w.writeUtf8(json);
+	
+	return w.toBuffer();
 }
 
 // Connects the websocket
@@ -115,7 +206,8 @@ function connect(){
 	}
 	
 	// Fire up the websocket:
-	var sk = new WebSocket((global.wsHost || global.apiHost || global.location.origin).replace("http", "ws") + "/live-websocket/");
+	var sk = new WebSocket('ws://localhost:5051/'); // (global.wsHost || global.apiHost || global.location.origin).replace("http", "ws") + "/live-websocket/");
+	sk.binaryType = "arraybuffer";
 	ws = sk;
 	setPing();
 	
@@ -129,14 +221,14 @@ function connect(){
 		
 		if(global.storedToken){
 			// Auth msg:
-			sk.send(JSON.stringify({
+			sk.send(getAsBuffer({
 				type: 'Auth',
 				token: store.get('context')
 			}));
 		}
 		
 		for(var i=0;i<msgs.length;i++){
-			sk.send(JSON.stringify(msgs[i]));
+			sk.send(msgs[i]);
 		}
 		
 		var set = [];
@@ -155,7 +247,7 @@ function connect(){
 		}
 		
 		if(set.length){
-			sk.send(JSON.stringify({type: '+*', set}));
+			sk.send(getAsBuffer({type: '+*', set}));
 		}
 	});
 	
@@ -212,11 +304,10 @@ function connect(){
 
 function send(msg){
 	start();
-	if(!ws){
-		connect();
-	}
+	
+	msg = getAsBuffer(msg);
 	if(ws.readyState == WebSocket.OPEN){
-		ws.send(JSON.stringify(msg));
+		ws.send(msg);
 	}else{
 		onConnectedMessages.push(msg);
 	}
@@ -266,7 +357,7 @@ function addEventListener (type, method, filter){
 	}
 	
 	if(ws && ws.readyState == WebSocket.OPEN){
-		ws.send(JSON.stringify(msg));
+		ws.send(getAsBuffer(msg));
 	}
 }
 
@@ -288,7 +379,7 @@ function removeEventListener(type, method) {
 	messageTypes[type] = messageTypes[type].filter(a => a != entry);
 	
 	if(ws && ws.readyState == WebSocket.OPEN){
-		ws.send(JSON.stringify({type: '-', i: entry.id}));
+		ws.send(getAsBuffer({type: '-', i: entry.id}));
 	}
 	
 	if(!messageTypes[type].length){
@@ -312,8 +403,15 @@ function removeEventListener(type, method) {
 	}
 }
 
+function getSocket(){
+	start();
+	return ws;
+}
+
 export default {
+	getSocket,
     addEventListener,
 	removeEventListener,
-	send
+	send,
+	Writer
 };
