@@ -632,21 +632,7 @@ namespace Api.ContentSync
 				// Start creating the sync message. This is much the same as what Message does internally when sending generic messages.
 				// We just require some custom handling here to handle the type-within-a-message scenario.
 
-				var writer = Writer.GetPooled();
-				writer.Start(basicHeader);
-				var firstBuffer = writer.FirstBuffer.Bytes;
-				firstBuffer[0] = 21;
-				writer.WriteCompressed(ctx.LocaleId);
-				writer.Write(nameBytes);
-				boltIO.Write((INST_T)src, writer);
-
-				// Write the length of the JSON to the 3 bytes at the start:
-				var msgLength = (uint)(writer.Length - 5);
-				firstBuffer[1] = (byte)msgLength;
-				firstBuffer[2] = (byte)(msgLength >> 8);
-				firstBuffer[3] = (byte)(msgLength >> 16);
-				firstBuffer[4] = (byte)(msgLength >> 24);
-
+				/*
 				// Mappings don't have a network room.
 				if (svc.NetworkRooms != null)
 				{
@@ -658,6 +644,7 @@ namespace Api.ContentSync
 						room.SendLocally(writer);
 					}
 				}
+				*/
 				
 				try
 				{
@@ -670,10 +657,25 @@ namespace Api.ContentSync
 							Console.WriteLine("[Create " + typeof(T).Name + "]=>" + server.ServerId);
 						}
 
+						var writer = Writer.GetPooled();
+						writer.Start(basicHeader);
+						var firstBuffer = writer.FirstBuffer.Bytes;
+						firstBuffer[0] = 21;
+						writer.WriteCompressed(ctx.LocaleId);
+						writer.Write(nameBytes);
+						boltIO.Write((INST_T)src, writer);
+
+						// Write the length of the JSON to the 3 bytes at the start:
+						var msgLength = (uint)(writer.Length - 5);
+						firstBuffer[1] = (byte)msgLength;
+						firstBuffer[2] = (byte)(msgLength >> 8);
+						firstBuffer[3] = (byte)(msgLength >> 16);
+						firstBuffer[4] = (byte)(msgLength >> 24);
+
 						server.Send(writer);
+						writer.Release();
 					}
 
-					writer.Release();
 				}
 				catch (Exception e)
 				{
@@ -693,21 +695,7 @@ namespace Api.ContentSync
 				// Start creating the sync message. This is much the same as what Message does internally when sending generic messages.
 				// We just require some custom handling here to handle the type-within-a-message scenario.
 
-				var writer = Writer.GetPooled();
-				writer.Start(basicHeader);
-				var firstBuffer = writer.FirstBuffer.Bytes;
-				firstBuffer[0] = 22;
-				writer.WriteCompressed(ctx.LocaleId);
-				writer.Write(nameBytes);
-				boltIO.Write((INST_T)src, writer);
-
-				// Write the length of the JSON to the 3 bytes at the start:
-				var msgLength = (uint)(writer.Length - 5);
-				firstBuffer[1] = (byte)msgLength;
-				firstBuffer[2] = (byte)(msgLength >> 8);
-				firstBuffer[3] = (byte)(msgLength >> 16);
-				firstBuffer[4] = (byte)(msgLength >> 24);
-
+/*
 				// Mappings don't have a network room.
 				if (svc.NetworkRooms != null)
 				{
@@ -719,6 +707,7 @@ namespace Api.ContentSync
 						room.SendLocally(writer);
 					}
 				}
+*/
 
 				try
 				{
@@ -732,10 +721,25 @@ namespace Api.ContentSync
 							Console.WriteLine("[Update " + typeof(T).Name + "]=>" + server.ServerId);
 						}
 
+						var writer = Writer.GetPooled();
+						writer.Start(basicHeader);
+						var firstBuffer = writer.FirstBuffer.Bytes;
+						firstBuffer[0] = 22;
+						writer.WriteCompressed(ctx.LocaleId);
+						writer.Write(nameBytes);
+						boltIO.Write((INST_T)src, writer);
+
+						// Write the length of the JSON to the 3 bytes at the start:
+						var msgLength = (uint)(writer.Length - 5);
+						firstBuffer[1] = (byte)msgLength;
+						firstBuffer[2] = (byte)(msgLength >> 8);
+						firstBuffer[3] = (byte)(msgLength >> 16);
+						firstBuffer[4] = (byte)(msgLength >> 24);
+
 						server.Send(writer);
+						writer.Release();
 					}
 
-					writer.Release();
 				}
 				catch (Exception e)
 				{
@@ -754,22 +758,8 @@ namespace Api.ContentSync
 
 				// Start creating the sync message. This is much the same as what Message does internally when sending generic messages.
 				// We just require some custom handling here to handle the type-within-a-message scenario.
-
-				var writer = Writer.GetPooled();
-				writer.Start(basicHeader);
-				var firstBuffer = writer.FirstBuffer.Bytes;
-				firstBuffer[0] = 23;
-				writer.WriteCompressed(ctx.LocaleId);
-				writer.Write(nameBytes);
-				boltIO.Write((INST_T)src, writer);
-
-				// Write the length of the JSON to the 3 bytes at the start:
-				var msgLength = (uint)(writer.Length - 5);
-				firstBuffer[1] = (byte)msgLength;
-				firstBuffer[2] = (byte)(msgLength >> 8);
-				firstBuffer[3] = (byte)(msgLength >> 16);
-				firstBuffer[4] = (byte)(msgLength >> 24);
-
+		
+		/*
 				// Mappings don't have a network room.
 				if (svc.NetworkRooms != null)
 				{
@@ -781,6 +771,7 @@ namespace Api.ContentSync
 						room.SendLocally(writer);
 					}
 				}
+*/
 
 				try
 				{
@@ -794,10 +785,25 @@ namespace Api.ContentSync
 							Console.WriteLine("[Delete " + typeof(T).Name + "]=>" + server.ServerId);
 						}
 
+						var writer = Writer.GetPooled();
+						writer.Start(basicHeader);
+						var firstBuffer = writer.FirstBuffer.Bytes;
+						firstBuffer[0] = 23;
+						writer.WriteCompressed(ctx.LocaleId);
+						writer.Write(nameBytes);
+						boltIO.Write((INST_T)src, writer);
+
+						// Write the length of the JSON to the 3 bytes at the start:
+						var msgLength = (uint)(writer.Length - 5);
+						firstBuffer[1] = (byte)msgLength;
+						firstBuffer[2] = (byte)(msgLength >> 8);
+						firstBuffer[3] = (byte)(msgLength >> 16);
+						firstBuffer[4] = (byte)(msgLength >> 24);
+
 						server.Send(writer);
+						writer.Release();
 					}
 
-					writer.Release();
 				}
 				catch (Exception e)
 				{
