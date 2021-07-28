@@ -1484,6 +1484,17 @@ public partial class AutoService
 	public Schema DatabaseSchema;
 
 	/// <summary>
+	/// True if this is a mapping service.
+	/// </summary>
+	public virtual bool IsMapping
+	{
+		get
+		{
+			return false;
+		}
+	}
+
+	/// <summary>
 	/// Outputs a list of things from this service as JSON into the given writer.
 	/// Executes the given collector(s) whilst it happens, which can also be null.
 	/// Does not perform permission checks internally.

@@ -25,7 +25,7 @@ namespace Api.Startup
 		/// <summary>
 		/// Generated mapper services.
 		/// </summary>
-		private static ConcurrentDictionary<string, AutoService> _mappers = new ConcurrentDictionary<string, AutoService>();
+		private static ConcurrentDictionary<string, MappingServiceGenerationMeta> _mappers = new ConcurrentDictionary<string, MappingServiceGenerationMeta>();
 
 		/// <summary>
 		/// Gets just the table name.
@@ -48,7 +48,7 @@ namespace Api.Startup
 
 			return name;
 		}
-
+		
 		private static object generationLock = new object();
 
 		/// <summary>
@@ -64,35 +64,37 @@ namespace Api.Startup
 			var targetTypeName = targetType.ServicedType.Name;
 			var typeName = srcTypeName + "_" + targetTypeName + "_Map_" + listAs;
 
-			if (_mappers.TryGetValue(typeName, out AutoService svc))
+			if (_mappers.TryGetValue(typeName, out MappingServiceGenerationMeta meta))
 			{
-				return svc;
+				if (meta.Service != null)
+				{
+					return meta.Service;
+				}
+
+				return await meta.GenTask;
 			}
-
-			// It doesn't exist yet.
-			// Start generating it - note that multiple threads can be generating at the same time.
-			// This is ok though; they will just ultimately use the same one at the end.
-
-			svc = await Generate(srcType, targetType, typeName);
 
 			lock (generationLock)
 			{
-				if (_mappers.TryGetValue(typeName, out AutoService existing))
+				// Check again:
+				if (!_mappers.TryGetValue(typeName, out meta))
 				{
-					if (existing != null)
-					{
-						// Use the existing one:
-						svc = existing;
-					}
-					else
-					{
-						// Add now:
-						_mappers[typeName] = svc;
-					}
+					// It definitely doesn't exist yet.
+					// It is vital that a service is only generated once. Generating it repeatedly causes things 
+					// like ContentSync to reference a different copy of the same service.
+					meta = new MappingServiceGenerationMeta();
+					meta.GenTask = Task.Run(async () => {
+						var svc = await Generate(srcType, targetType, typeName);
+						meta.Service = svc;
+						return svc;
+					});
+					_mappers[typeName] = meta;
 				}
 			}
 
-			return svc;
+			// Either it just created it, or some other thread just created it.
+			// We never clear genTask, so it's safe to await it like so:
+			return await meta.GenTask;
 		}
 
 		/// <summary>
@@ -284,6 +286,22 @@ namespace Api.Startup
 
 			return svc;
 		}
+	}
+
+	/// <summary>
+	/// Generation meta used whilst a mapping service starts.
+	/// </summary>
+	public class MappingServiceGenerationMeta
+	{
+		/// <summary>
+		/// The service
+		/// </summary>
+		public AutoService Service;
+
+		/// <summary>
+		/// The generation task. If not null, await it.
+		/// </summary>
+		public Task<AutoService> GenTask;
 	}
 
 }

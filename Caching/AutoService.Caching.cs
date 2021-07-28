@@ -94,8 +94,11 @@ public partial class AutoService<T, ID> {
 			return;
 		}
 
-		// Log that the cache is on:
-		Console.WriteLine(GetType().Name + " - cache on");
+		if (!IsMapping)
+		{
+			// Log that the cache is on:
+			Console.WriteLine(InstanceType.Name + " - cache on");
+		}
 
 		var genericCfg = _cacheConfig as CacheConfig<T>;
 

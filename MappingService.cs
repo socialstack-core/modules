@@ -508,6 +508,17 @@ namespace Api.Startup
 		}
 
 		/// <summary>
+		/// True if this is a mapping service.
+		/// </summary>
+		public override bool IsMapping
+		{
+			get
+			{
+				return true;
+			}
+		}
+
+		/// <summary>
 		/// Deletes a mapping by the src and target IDs.
 		/// </summary>
 		/// <param name="context"></param>

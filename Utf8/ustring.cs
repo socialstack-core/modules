@@ -408,7 +408,7 @@ public abstract class ustring : IComparable<ustring>, IComparable, IConvertible,
 	}
 
 	/// <summary>
-	/// Implicit conversion from a C# string into a ustring.
+	/// explicit conversion from a C# string into a ustring.
 	/// </summary>
 	/// <returns>The ustring with the same contents as the string.</returns>
 	/// <param name="str">The string to encode as a ustring.</param>
@@ -416,13 +416,13 @@ public abstract class ustring : IComparable<ustring>, IComparable, IConvertible,
 	/// This will allocate a byte array and copy the contents of the 
 	/// string encoded as UTF8 into it.
 	/// </remarks>
-	public static implicit operator ustring (string str)
+	public static explicit operator ustring (string str)
 	{
 		return new ByteBufferUString (str);
 	}
 
 	/// <summary>
-	/// Implicit conversion from a byte array into a ustring.
+	/// explicit conversion from a byte array into a ustring.
 	/// </summary>
 	/// <returns>The ustring wrapping the existing byte array.</returns>
 	/// <param name="buffer">The buffer containing the data.</param>
@@ -431,7 +431,7 @@ public abstract class ustring : IComparable<ustring>, IComparable, IConvertible,
 	/// means that changes done to the buffer will be reflected into the
 	/// ustring.
 	/// </remarks>
-	public static implicit operator ustring (byte [] buffer)
+	public static explicit operator ustring (byte [] buffer)
 	{
 		return new ByteBufferUString (buffer);
 	}
@@ -1365,7 +1365,7 @@ public abstract class ustring : IComparable<ustring>, IComparable, IConvertible,
 	{
 		if (n == 0)
 			return Array.Empty<ustring> ();
-		if (sep == "")
+		if (sep.IsEmpty)
 			return Explode (n);
 		if (n < 0 || n == Int32.MaxValue)
 			n = Count (sep) + 1;
