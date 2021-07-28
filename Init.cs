@@ -6,6 +6,7 @@ using System.Threading.Tasks;
 using Api.Database;
 using System.Collections.Generic;
 using System.Text;
+using MySql.Data.MySqlClient;
 
 namespace Api.DatabaseDiff
 {
@@ -291,8 +292,19 @@ namespace Api.DatabaseDiff
 
 			if (queryToRun.Length > 0)
 			{
-				await _database.Run(queryToRun);
-
+				try
+				{
+					await _database.Run(queryToRun);
+				}
+				catch(MySqlException e)
+				{
+					// Check if this is an already exists error
+					if (e.Number != 1050)
+					{
+						// Something more severe - e.g. db link failure.
+						throw;
+					}
+				}
 				await Events.DatabaseDiffAfterAdd.Dispatch(new Context(), tableDiff);
 			}
 
