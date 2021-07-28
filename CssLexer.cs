@@ -6,16 +6,31 @@ namespace Api.Themes
 	/// </summary>
 	public struct CssLexer
 	{
+		/// <summary>
+		/// Raw CSS
+		/// </summary>
 		public string Text;
+		/// <summary>
+		/// Current index in the lexer.
+		/// </summary>
 		public int Index;
 		
 		
+		/// <summary>
+		/// 
+		/// </summary>
+		/// <param name="text"></param>
 		public CssLexer(string text)
 		{
 			Text = text;
 			Index = 0;
-			
+
 			// If starts with BOM, skip it.
+			if (text.Length > 1 && text[0] == '\uFEFF')
+			{
+				Index = 1;
+			}
+
 		}
 		
 		/// <summary>
