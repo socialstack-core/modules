@@ -2,8 +2,10 @@ using Api.WebSockets;
 using Api.Permissions;
 using Newtonsoft.Json.Linq;
 
+
 namespace Api.Eventing
 {
+
 	/// <summary>
 	/// Events are instanced automatically. 
 	/// You can however specify a custom type or instance them yourself if you'd like to do so.
@@ -12,24 +14,42 @@ namespace Api.Eventing
 	{
 
 		/// <summary>
-		/// Called when a client connects.
-		/// </summary>
-		public static EventHandler<WebSocketClient> WebSocketClientConnected;
-
-		/// <summary>
-		/// Called when a client disconnects.
-		/// </summary>
-		public static EventHandler<WebSocketClient> WebSocketClientDisconnected;
-
-		/// <summary>
-		/// Called when a user logs in/ logs out. Note that they may have multiple 
-		/// </summary>
-		public static EventHandler<uint, UserWebsocketLinks> WebSocketUserState;
-		
-		/// <summary>
-		/// Called when a message is received of a non-core type.
+		/// Called when a wrapped JSON message is received of a non-core type.
 		/// </summary>
 		public static EventHandler<JObject, WebSocketClient, string> WebSocketMessage;
-		
+
+		/// <summary>
+		/// Event group for a bundle of events on AutoServices.
+		/// </summary>
+		public static Api.WebSockets.WebSocketEventGroup WebSocket;
+
 	}
+
+}
+
+namespace Api.WebSockets
+{
+	/// <summary>
+	/// The group of events for services. See also Events.Service
+	/// </summary>
+	public class WebSocketEventGroup : Eventing.EventGroupCore<AutoService, uint>
+	{
+
+		/// <summary>
+		/// A WS connected. This is before their identity is known. The context is always an anonymous one here.
+		/// </summary>
+		public Api.Eventing.EventHandler<WebSocketClient> Connected;
+
+		/// <summary>
+		/// WebSocket user change (or first time set).
+		/// </summary>
+		public Api.Eventing.EventHandler<WebSocketClient> AfterUser;
+
+		/// <summary>
+		/// A WS disconnected.
+		/// </summary>
+		public Api.Eventing.EventHandler<WebSocketClient> Disconnected;
+
+	}
+
 }
