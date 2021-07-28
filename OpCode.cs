@@ -7,14 +7,11 @@ using System.Reflection.Emit;
 using System.Reflection;
 using Api.SocketServerLibrary;
 using Api.Database;
+using System.Threading.Tasks;
+using Api.Contexts;
+using Api.WebSockets;
 
 namespace Api.SocketServerLibrary {
-
-	/// <summary>
-	/// Used when a context is provided to a callback.
-	/// </summary>
-	/// <param name="message"></param>
-	public delegate void MessageDelegate<T>(T message);
 
 	/// <summary>
 	/// An opcode for a message to/ from the server.
@@ -27,227 +24,42 @@ namespace Api.SocketServerLibrary {
 		public uint Code;
 
 		/// <summary>
-		/// True if this opcode is a request/ response system, and the message includes a request ID.
+		/// A message reader. Often this is a generated class, but can be custom crafted.
 		/// </summary>
-		public bool RequestId;
-		
+		public MessageReader MessageReader;
+
+		/// <summary>
+		/// True if this opcode has some sort of handler. Set this false to ignore an opcode entirely.
+		/// </summary>
+		public bool HasSomethingToDo = true;
+
 		/// <summary>
 		/// True if this opcode is for a hello message.
 		/// </summary>
 		public bool IsHello;
 		
 		/// <summary>
-		/// True if this opcode requires a user ID.
-		/// </summary>
-		public bool RequiresUserId;
-
-		/// <summary>
-		/// Handles thread access to the pool.
-		/// </summary>
-		protected object PoolLock = new object();
-
-		/// <summary>
-		/// Returns a list of the fields in the order they'll be written.
+		/// Starts handling this opcode.
 		/// </summary>
 		/// <returns></returns>
-		public virtual List<string> FieldList()
+		public virtual void Start(Client client)
 		{
-			return null;
-		}
+			// Reset the opcode frame:
+			client.RecvStack[0].Phase = 0;
+			client.RecvStack[0].BytesRequired = 1;
 
-		/// <summary>
-		/// Runs when the given message has started to be received.
-		/// </summary>
-		/// <param name="message"></param>
-		public virtual void OnStartReceive(IMessage message)
-		{
-		}
-		
-		/// <summary>
-		/// Runs when the given message has been completely received.
-		/// </summary>
-		/// <param name="message"></param>
-		public virtual void OnReceive(IMessage message)
-		{
-		}
+			// Push a stack frame which processes this message. It MUST pop itself.
+			var msgReader = MessageReader;
 
-		/// <summary>
-		/// Gets a message instance to use for this opcode.
-		/// </summary>
-		/// <returns></returns>
-		public virtual IMessage GetAMessageInstance()
-		{
-			return null;
-		}
-
-		/*
-		/// <summary>
-		/// Uses ResponseCode. If it's 0, a Success response is sent. 
-		/// Otherwise, a Fail one is sent instead. Optionally then releases the context.
-		/// </summary>
-		public void Respond(bool release = true)
-		{
-			if(ResponseCode > 0)
+			if (msgReader != null)
 			{
-				Fail((byte)ResponseCode, release);
-			}
-			else
-			{
-				Success(release);
-			}
-		}
-		*/
-
-		/// <summary>
-		/// Used to setup a writer for user/ responseId. The writer is also set to the Writer property of the context.
-		/// </summary>
-		/// <returns></returns>
-		public Writer SetupResponseWriter(IMessage message)
-		{
-			var writer = Writer.GetPooled();
-			// 40 indicates a successful request reply.
-			writer.Start(40);
-			
-			// Request ID is always first:
-			writer.Write(message.RequestId);
-			
-			return writer;
-		}
-
-		/// <summary>
-		/// This replies to a particular RequestId with a simple "done" success. Optionally then releases the context.
-		/// </summary>
-		/// <param name="message"></param>
-		/// <param name="release"></param>
-		public void Success(IMessage message, bool release = true)
-		{
-			// 40 indicates a successful request reply.
-			var writer = Writer.GetPooled();
-			writer.Start(40);
-
-			// Request ID is always first:
-			writer.Write(message.RequestId);
-
-			// Send it now:
-			message.Client.Send(writer);
-
-			if (release)
-			{
-				Release(message);
+				client.RecvStackPointer++;
+				client.RecvStack[client.RecvStackPointer].Phase = 0;
+				client.RecvStack[client.RecvStackPointer].Reader = msgReader;
+				client.RecvStack[client.RecvStackPointer].BytesRequired = msgReader.FirstDataRequired;
 			}
 		}
 
-		/// <summary>
-		/// First pooled object
-		/// </summary>
-		protected IMessage First;
-
-		/// <summary>
-		/// Releases the given message object into this opcode pool.
-		/// </summary>
-		/// <param name="message"></param>
-		public void Release(IMessage message)
-		{
-			if (message.Pooled)
-			{
-				return;
-			}
-
-			message.Pooled = true;
-
-			// Pool the context object now:
-			lock (PoolLock)
-			{
-				message.After = First;
-				First = message;
-			}
-		}
-
-		/// <summary>
-		/// This replies to a particular RequestId with an error code. Optionally releases the context.
-		/// </summary>
-		/// <param name="message"></param>
-		/// <param name="errorCode"></param>
-		/// <param name="release"></param>
-		public void Fail(IMessage message, byte errorCode, bool release = true)
-		{
-			// 41 indicates a failed request reply.
-			var writer = Writer.GetPooled();
-			writer.Start(41);
-			
-			// Request ID is always first:
-			writer.Write(message.RequestId);
-			
-			writer.Write(errorCode);
-
-			// Send it now:
-			message.Client.Send(writer);
-			
-			if(release){
-				Release(message);
-			}
-		}
-
-		/// <summary>
-		/// Kill closes the source and recycles the context msg in one easy call.
-		/// </summary>
-		public void Kill(IMessage message)
-		{
-			message.Client.Close();
-			Done(message, true);
-		}
-
-		///<summary>Done method. Reads any following opcode or waits for one.</summary>
-		public void DoneUnvalidated(IMessage message, bool alsoRelease)
-		{
-			// Message is done.
-			if (alsoRelease && !message.Pooled)
-			{
-				// Pool the object now:
-				message.Pooled = true;
-				
-				lock (PoolLock)
-				{
-					message.After = First;
-					First = message;
-				}
-			}
-
-			if (message.Client.Socket != null)
-			{
-				// Got another opcode available already?
-				message.Client.Reader.StartNextOpcode();
-			}
-		}
-
-		/// <summary>
-		/// The done method. Reads any following opcode or waits for one.
-		/// </summary>
-		public void Done(IMessage message, bool alsoRelease) {
-			// Message is done.
-
-#if DEBUG && SOCKET_SERVER_PROBE_ON
-			Reader.ValidateDone();
-#endif
-
-			if (alsoRelease && !message.Pooled)
-			{
-				message.Pooled = true;
-
-				// Pool the object now:
-				lock (PoolLock)
-				{
-					message.After = First;
-					First = message;
-				}
-			}
-			
-			if(message.Client.Socket != null)
-			{
-				// Got another opcode available already?
-				message.Client.Reader.StartNextOpcode();
-			}
-		}
 	}
 
 	/// <summary>
@@ -329,11 +141,6 @@ namespace Api.SocketServerLibrary {
 		public FieldInfo Field;
 
 		/// <summary>
-		/// Called to read the field from the message.
-		/// </summary>
-		public Action<ClientReader> OnRead;
-		
-		/// <summary>
 		/// Next field
 		/// </summary>
 		public MessageFieldMeta Next;
@@ -361,12 +168,17 @@ namespace Api.SocketServerLibrary {
 	/// An opcode handling the given message type.
 	/// </summary>
 	/// <typeparam name="T"></typeparam>
-	public class OpCode<T> : OpCode where T:IMessage, new()
+	public class OpCode<T> : OpCode where T: Message<T>, new()
 	{
 		/// <summary>
 		/// The delegate which runs when this opcode triggers.
 		/// </summary>
-		public MessageDelegate<T> OnRequest;
+		public Action<Client, T> OnRequest;
+
+		/// <summary>
+		/// The delegate which runs when this opcode triggers (async callback)
+		/// </summary>
+		public Func<Client, T, ValueTask> OnRequestAsync;
 
 		/// <summary>
 		/// Creates a new opcode.
@@ -376,187 +188,72 @@ namespace Api.SocketServerLibrary {
 		}
 
 		/// <summary>
-		/// The first field to read/ write.
+		/// True if this opcode uses the async mode, where OnReceiveAsync will be called. Note that it MUST have a message type.
 		/// </summary>
-		public MessageFieldMeta FirstField;
-		/// <summary>
-		/// Last field to read/ write.
-		/// </summary>
-		public MessageFieldMeta LastField;
-
+		public bool Async;
 
 		/// <summary>
-		/// Writes the given message uisng the opcode field meta.
-		/// </summary>
-		/// <param name="message"></param>
-		public Writer Write(T message)
-		{
-			var writer = Writer.GetPooled();
-			writer.Start(Code);
-			var current = FirstField;
-			object ctx = message;
-
-			while (current != null)
-			{
-				current.Write(writer, message, ref ctx);
-				current = current.Next;
-			}
-
-			return writer;
-		}
-
-		/// <summary>
-		/// Returns a list of the fields in the order they'll be written.
+		/// Starts handling this opcode.
 		/// </summary>
 		/// <returns></returns>
-		public override List<string> FieldList()
+		public override void Start(Client client)
 		{
-			var fields = new List<string>();
+			// Reset the opcode frame:
+			client.RecvStack[0].Phase = 0;
+			client.RecvStack[0].BytesRequired = 1;
 
-			var current = FirstField;
-
-			while (current != null)
-			{
-				fields.Add(current.FieldDescription);
-				current = current.Next;
-			}
-
-			return fields;
-		}
-
-		/// <summary>
-		/// Registers a field
-		/// </summary>
-		/// <param name="field"></param>
-		/// <param name="prefix"></param>
-		private void RegisterField(FieldInfo field, string prefix)
-		{
-			var fieldType = field.FieldType;
+			// Create a message for this opcode:
+			var msg = Message<T>.Get();
+			msg.OpCode = this;
+			msg.Client = client;
 			
-			var fieldMetaType = typeof(MessageFieldMeta<>).MakeGenericType(new Type[] { fieldType });
-			var fm = Activator.CreateInstance(fieldMetaType) as MessageFieldMeta;
-			fm.Field = field;
-			
-			// Get sys type:
-			var fieldTypeInfo = OpCodeFieldTypes.Get(fieldType);
+			// Push a stack frame which processes this message. It MUST pop itself.
+			var msgReader = MessageReader;
 
-			if (fieldTypeInfo != null)
+			if (msgReader == null)
 			{
-				fm.FieldDescription = field.Name + "=" + fieldTypeInfo.Id;
-				
-				fm.OnRead = fieldTypeInfo.Reader;
-				fm.SetWrite(fieldTypeInfo.Writer);
-				Add(fm);
-			}
-			else if (prefix == "" && ContentTypes.IsContentType(fieldType))
-			{
-				// Register the fields of this sub-object as if it was inline with everything else.
-				fm.FieldDescription =  field.Name + "=C:" + ContentTypes.GetId(fieldType.Name) + "@V";
-				fm.ChangeToFieldValue = true;
-				Add(fm);
-
-				// Register all of the objects fields now:
-				RegisterFields(fieldType, field.Name + ".");
-
-				// NB: This works even if it registered no fields.
-				LastField.ChangeToMessage = true;
-				LastField.FieldDescription += "@M";
+				// Nothing else to read.
+				if (HasSomethingToDo)
+				{
+					// trigger the callback, which usually happens on a task pool thread if it needs to do some work.
+					OnReceive(client, msg);
+				}
 			}
 			else
 			{
-				throw new Exception("A content type has an invalid field type which wasn't recognised: " + fieldType.ToString());
-			}
-		}
-
-		private void Add(MessageFieldMeta fm)
-		{
-			if (LastField == null)
-			{
-				FirstField = LastField = fm;
-			}
-			else
-			{
-				LastField.Next = fm;
-				LastField = fm;
+				client.RecvStackPointer++;
+				client.RecvStack[client.RecvStackPointer].Phase = 0;
+				client.RecvStack[client.RecvStackPointer].Reader = msgReader;
+				client.RecvStack[client.RecvStackPointer].TargetObject = msg; // can be null
+				client.RecvStack[client.RecvStackPointer].BytesRequired = msgReader.FirstDataRequired;
 			}
 		}
 
 		/// <summary>
-		/// Auto field IO
+		/// Runs when the given message has been completely received. The message object can be null.
 		/// </summary>
-		public void RegisterFields()
-		{
-			RegisterFields(typeof(T), "");
-		}
-
-		/// <summary>
-		/// Auto field IO
-		/// </summary>
-		public void RegisterFields(Type fromType, string prefix)
-		{
-			// Get the public field set:
-			var fieldSet = fromType.GetFields();
-
-			foreach (var field in fieldSet)
-			{
-				RegisterField(field, prefix);
-			}
-
-		}
-
-		/// <summary>
-		/// Runs when the given message has started to be received.
-		/// </summary>
+		/// <param name="client"></param>
 		/// <param name="message"></param>
-		public override void OnStartReceive(IMessage message)
+		public void OnReceive(Client client, T message)
 		{
-			// We have full control of the current client.
-			// This must read the messages fields, then call OnReceive.
-
-			if (FirstField == null)
+			// A message type is always required on asyncs.
+			// That's because the callback delegate is stored on the message itself.
+			if (Async)
 			{
-				OnReceive(message);
+				if (message != null)
+				{
+					// The message object is used as a state holder. This async handler will ultimately call our OnRequestAsync func.
+					_ = message.AsyncHandler();
+				}
 				return;
 			}
 
-			var reader = message.Client.Reader;
-			reader.CurrentField = FirstField;
-			FirstField.OnRead(reader);
+			// Run the inline request:
+			OnRequest(client, message);
+			
+			// Release the message:
+			message.Release();
 		}
 
-		/// <summary>
-		/// Runs when the given message has been completely received.
-		/// </summary>
-		/// <param name="message"></param>
-		public override void OnReceive(IMessage message)
-		{
-			OnRequest((T)message);
-		}
-
-		/// <summary>
-		/// Gets a message instance to use for this opcode.
-		/// </summary>
-		/// <returns></returns>
-		public override IMessage GetAMessageInstance()
-		{
-			IMessage msg;
-
-			lock (PoolLock)
-			{
-				if (First == null)
-				{
-					msg = new T();
-				}
-				else
-				{
-					msg = First;
-					First = msg.After;
-					msg.Pooled = false;
-				}
-			}
-
-			msg.OpCode = this;
-			return msg;
-		}
 	}
 }

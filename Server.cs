@@ -7,6 +7,8 @@ using System.Reflection.Emit;
 using System.Timers;
 using Api.Startup;
 using Api.Signatures;
+using System.Threading.Tasks;
+using Api.Contexts;
 
 namespace Api.SocketServerLibrary {
 
@@ -19,7 +21,7 @@ namespace Api.SocketServerLibrary {
 		/// <summary>
 		/// Called when a client connected.
 		/// </summary>
-		public event Action<T> OnConnected;
+		public Func<T, ValueTask> OnConnected;
 
 		/// <summary>
 		/// Called when a client connected.
@@ -29,13 +31,22 @@ namespace Api.SocketServerLibrary {
 		}
 
 		/// <summary>
+		/// Current latest locally assigned client ID.
+		/// </summary>
+		private uint Id = 1;
+
+		/// <summary>
 		/// Called when the given socket connected.
 		/// </summary>
 		/// <param name="socket"></param>
 		protected override void SocketConnected(Socket socket)
 		{
+			var id = Id;
+			Id++;
+
 			T c = new T()
 			{
+				Id = id,
 				Server = this,
 				Socket = socket,
 				CanProcessSend = true
@@ -45,7 +56,11 @@ namespace Api.SocketServerLibrary {
 			c.Start();
 
 			Connected(c);
-			OnConnected?.Invoke(c);
+
+			if (OnConnected != null)
+			{
+				_ = OnConnected(c);
+			}
 		}
 
 
@@ -195,11 +210,63 @@ namespace Api.SocketServerLibrary {
 		}
 
 		/// <summary>
+		/// Adds a handler for an opcode - it just recognises the opcode, and then effectively does nothing.
+		/// </summary>
+		/// <param name="opcode"></param>
+		public OpCode RegisterOpCode(uint opcode)
+		{
+			var instance = new OpCode();
+			instance.Code = opcode;
+			instance.HasSomethingToDo = false;
+			AddToOpcodeMap(opcode, instance);
+			return instance;
+		}
+
+		/// <summary>
 		/// Add an opcode handler.
 		/// </summary>
 		/// <param name="opcode"></param>
 		/// <param name="onRequest"></param>
-		public OpCode<U> RegisterOpCode<U>(uint opcode, MessageDelegate<U> onRequest) where U : IMessage, new()
+		/// <param name="reader"></param>
+		public OpCode<U> RegisterOpCode<U>(uint opcode, Func<Client, U, ValueTask> onRequest, MessageReader reader = null) where U : Message<U>, new()
+		{
+			// Get the concrete opcode type:
+			var concreteType = typeof(OpCode<>).MakeGenericType(new Type[] { typeof(U) });
+
+			// Instance the message specific opcode class:
+			var instance = (OpCode<U>)Activator.CreateInstance(concreteType);
+
+			// Set the request delegate:
+			instance.OnRequestAsync = onRequest;
+
+			instance.Async = true;
+
+			instance.Code = opcode;
+
+			if (reader == null)
+			{
+				// Get the reader:
+				var boltMsg = TypeIOEngine.GetBolt<U>();
+
+				instance.MessageReader = new GenericMessageReader<U>(boltMsg, instance);
+			}
+			else
+			{
+				instance.MessageReader = reader;
+			}
+			
+			AddToOpcodeMap(opcode, instance);
+
+			return instance;
+		}
+
+		/// <summary>
+		/// Add an opcode handler.
+		/// </summary>
+		/// <param name="opcode"></param>
+		/// <param name="onRequest"></param>
+		/// <param name="reader"></param>
+		public OpCode<U> RegisterOpCode<U>(uint opcode, Action<Client, U> onRequest, MessageReader reader = null) where U : Message<U>, new()
 		{
 			// Get the concrete opcode type:
 			var concreteType = typeof(OpCode<>).MakeGenericType(new Type[] { typeof(U) });
@@ -212,8 +279,17 @@ namespace Api.SocketServerLibrary {
 
 			instance.Code = opcode;
 
-			// Reg fields:
-			instance.RegisterFields();
+			if (reader == null)
+			{
+				// Get the reader:
+				var boltMsg = TypeIOEngine.GetBolt<U>();
+
+				instance.MessageReader = new GenericMessageReader<U>(boltMsg, instance);
+			}
+			else
+			{
+				instance.MessageReader = reader;
+			}
 
 			AddToOpcodeMap(opcode, instance);
 

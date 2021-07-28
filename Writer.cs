@@ -46,26 +46,53 @@ namespace Api.SocketServerLibrary
 			}
 
 			result.NextInLine = null;
+			result.SendQueueCount = 0;
+			result.ReleaseOnSent = false;
 			return result;
 		}
-		
+
+		/// <summary>
+		/// Removes this writer from a send queue.
+		/// </summary>
+		public void RemoveFromSendQueue()
+		{
+			var count = 0;
+
+			lock (this)
+			{
+				SendQueueCount--;
+				count = SendQueueCount;
+			}
+				
+			if (count == 0 && ReleaseOnSent)
+			{
+				Release();
+			}
+		}
+
+		/// <summary>
+		/// Number of send queues this writer is currently in.
+		/// Releasing the writer will wait for this number to go down to 0.
+		/// </summary>
+		public int SendQueueCount = 0;
+
+		/// <summary>
+		/// True if this writer should be released when it's done being sent.
+		/// </summary>
+		private bool ReleaseOnSent;
+
 		/// <summary>
 		/// Base length.
 		/// </summary>
 		public int BaseLength;
 		private int BlockCount=1;
 		private int Fill;
-		private int ReplyIdOffset;
 		/// <summary>The linked list of buffers that form this message.</summary>
 		public BufferedBytes FirstBuffer;
 		/// <summary>The linked list of buffers that form this message.</summary>
 		public BufferedBytes LastBuffer;
 		/// <summary>Next writer in a queue after this one.</summary>
 		public Writer NextInLine;
-		/// <summary>
-		/// The context to use to grab the request ID.
-		/// </summary>
-		public IMessage ContextForRequestId;
 		private byte[] _LastBufferBytes;
 		
 		
@@ -82,31 +109,8 @@ namespace Api.SocketServerLibrary
 			
 			// Write the opcode:
 			WriteCompressed(opcode);
-			ContextForRequestId = null;
 		}
 		
-		/// <summary>When using writers you must use a start method.</summary>
-		public void Start(uint opcode, IMessage replyContext, Action<byte> onDone){
-			BaseLength = 0;
-			BlockCount = 1;
-			Fill = 0;
-			var buffer = BinaryBufferPool.Get();
-			LastBuffer = buffer;
-			FirstBuffer = buffer;
-			_LastBufferBytes = buffer.Bytes;
-			buffer.Offset = 0;
-			
-			// Write the opcode:
-			WriteCompressed(opcode);
-			ReplyIdOffset = Fill;
-			
-			// 2 bytes for the reply ID.
-			Fill+=2;
-			
-			// replyContext.Push(onDone);
-			ContextForRequestId = replyContext;
-		}
-
 		/// <summary>When using writers you must use a start method.</summary>
 		public void StartWithLength()
 		{
@@ -123,8 +127,7 @@ namespace Api.SocketServerLibrary
 			Fill += 4;
 
 			// Make sure sequence is set to 0:
-			_LastBufferBytes[3] = (byte)0;
-			ContextForRequestId = null;
+			_LastBufferBytes[3] = 0;
 		}
 
 		/// <summary>When using writers you must use a start method.</summary>
@@ -138,11 +141,10 @@ namespace Api.SocketServerLibrary
 			FirstBuffer = buffer;
 			_LastBufferBytes = buffer.Bytes;
 			buffer.Offset = 0;
-			ContextForRequestId = null;
 
 			if (template != null)
 			{
-				Write(template);
+				WriteNoLength(template);
 			}
 		}
 
@@ -167,15 +169,6 @@ namespace Api.SocketServerLibrary
 		}
 		
 		/// <summary>
-		/// Sets the request ID to a writer which was started with space for one.
-		/// </summary>
-		/// <param name="requestId"></param>
-		public void SetRequestId(int requestId){
-			FirstBuffer.Bytes[ReplyIdOffset] = (byte)requestId;
-			FirstBuffer.Bytes[ReplyIdOffset+1] = (byte)(requestId>>8);
-		}
-		
-		/// <summary>
 		/// Used when the current buffer is totally full and a new one is required.
 		/// </summary>
 		private void NextBuffer(){
@@ -193,6 +186,11 @@ namespace Api.SocketServerLibrary
 		/// <summary>Reset by clearing the internal buffers and calls Start(template) such that the writer is ready to be used again.</summary>
 		public void Reset(byte[] template)
 		{
+			if (SendQueueCount > 0)
+			{
+				throw new Exception("Can't reset a writer that is still being actively sent");
+			}
+
 			// Release all the buffers:
 			lock (BinaryBufferPool.PoolLock)
 			{
@@ -212,6 +210,12 @@ namespace Api.SocketServerLibrary
 		/// <summary>Called when a writer is no longer needed and should now be fully released.</summary>
 		public void Release()
 		{
+			if (SendQueueCount > 0)
+			{
+				ReleaseOnSent = true;
+				return;
+			}
+
 			// Release all buffers back to the pool and pool the writer itself too.
 			
 			// Release all the buffers:
@@ -225,26 +229,6 @@ namespace Api.SocketServerLibrary
 			FirstBuffer = null;
 			_LastBufferBytes = null;
 
-			lock (PoolLock)
-			{
-				// Shove into the pool:
-				NextInLine = FirstCached;
-				FirstCached = this;
-			}
-		}
-
-		/// <summary>Called when a writer was sent out and the writer object itself can now be released.</summary>
-		public void SentRelease()
-		{
-			// Set last fill:
-			LastBuffer.Length = Fill;
-
-			// Just clear the buffer refs in this case - the buffers will be released as they are sent individually:
-			LastBuffer = null;
-			FirstBuffer = null;
-			_LastBufferBytes = null;
-
-			// Release the writer itself:
 			lock (PoolLock)
 			{
 				// Shove into the pool:
@@ -331,18 +315,12 @@ namespace Api.SocketServerLibrary
 		}
 
 		/// <summary>
-		/// Writes a segment to this writer.
+		///  Writes a bool to this writer.
 		/// </summary>
-		/// <param name="segment"></param>
-		public void Write(BufferSegment segment)
+		/// <param name="value"></param>
+		public void Write(bool value)
 		{
-			// Move our copy (because it's a struct) to the start of the segment:
-			segment.Reset();
-			var count = segment.Length;
-			for (var i = 0; i < count; i++)
-			{
-				Write(segment.Next);
-			}
+			Write((byte)(value ? 1 : 0));
 		}
 
 		/// <summary>
@@ -403,6 +381,22 @@ namespace Api.SocketServerLibrary
 		}
 		*/
 
+		/// <summary>
+		///  Writes a nullable bool to this writer.
+		/// </summary>
+		/// <param name="value"></param>
+		public void Write(bool? value)
+		{
+			if (value == null)
+			{
+				Write((byte)0);
+			}
+			else
+			{
+				Write((byte)(value.Value ? 2 : 1));
+			}
+		}
+		
 		/// <summary>Write a 2 byte signed value to the message.</summary>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public void Write(short value){
@@ -428,6 +422,22 @@ namespace Api.SocketServerLibrary
 		}
 
 		/// <summary>
+		/// Write a nullable int16 value.
+		/// </summary>
+		/// <param name="val"></param>
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public void Write(short? val)
+		{
+			if (val == null)
+			{
+				Write((byte)0);
+				return;
+			}
+			Write((byte)1);
+			Write(val.Value);
+		}
+
+		/// <summary>
 		/// Write a nullable int32 value.
 		/// </summary>
 		/// <param name="val"></param>
@@ -449,6 +459,22 @@ namespace Api.SocketServerLibrary
 		/// <param name="val"></param>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public void Write(uint? val)
+		{
+			if (val == null)
+			{
+				Write((byte)0);
+				return;
+			}
+			Write((byte)1);
+			Write(val.Value);
+		}
+
+		/// <summary>
+		/// Write a nullable uint16 value.
+		/// </summary>
+		/// <param name="val"></param>
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public void Write(ushort? val)
 		{
 			if (val == null)
 			{
@@ -550,6 +576,30 @@ namespace Api.SocketServerLibrary
 			_LastBufferBytes[Fill++] = (byte)(value >> 56);
 		}
 
+		/// <summary>Write a float value.</summary>
+		public void Write(float? val)
+		{
+			if (val == null)
+			{
+				Write((byte)0);
+				return;
+			}
+			Write((byte)1);
+			Write(val.Value);
+		}
+
+		/// <summary>Write a double value.</summary>
+		public void Write(double? val)
+		{
+			if (val == null)
+			{
+				Write((byte)0);
+				return;
+			}
+			Write((byte)1);
+			Write(val.Value);
+		}
+		
 		/// <summary>
 		/// Write a nullable date value.
 		/// </summary>
@@ -743,7 +793,7 @@ namespace Api.SocketServerLibrary
 				// If it's a control character or any of the escapee's..
 				if (Unicode.IsControl(rune))
 				{
-					Write(TypeIOEngine.EscapedControl((byte)rune));
+					WriteNoLength(TypeIOEngine.EscapedControl((byte)rune));
 					continue;
 				}
 				else if (rune == (uint)'"' || rune == (uint)'\\')
@@ -1050,7 +1100,7 @@ namespace Api.SocketServerLibrary
 		/// Writes bytes and its length.
 		/// </summary>
 		/// <param name="bytes"></param>
-		public void WriteBuffer(byte[] bytes)
+		public void Write(byte[] bytes)
 		{
 			if (bytes == null)
 			{
@@ -1058,7 +1108,7 @@ namespace Api.SocketServerLibrary
 				return;
 			}
 			WriteCompressed((ulong)(bytes.Length + 1));
-			Write(bytes);
+			WriteNoLength(bytes);
 		}
 
 		/// <summary>
@@ -1133,7 +1183,7 @@ namespace Api.SocketServerLibrary
 		/// Non-allocating write of a utf8 string.
 		/// </summary>
 		/// <param name="str"></param>
-		public void WriteUString(ustring str)
+		public void Write(ustring str)
 		{
 			if (str == null)
 			{
@@ -1284,33 +1334,6 @@ namespace Api.SocketServerLibrary
 		}
 
 		/// <summary>
-		/// Get this writers current position as a 0 length BufferSegment.
-		/// </summary>
-		/// <returns></returns>
-		public BufferSegment GetLocation()
-		{
-			return new BufferSegment()
-			{
-				FirstBuffer = FirstBuffer,
-				LastBuffer = LastBuffer,
-				CurrentBuffer = LastBuffer,
-				Offset = Fill,
-				Length = 0
-			};
-		}
-
-		/// <summary>
-		/// Converts the given segment to a UTF8 string.
-		/// </summary>
-		/// <param name="selection"></param>
-		/// <returns></returns>
-		public string ToUTF8String(BufferSegment selection)
-		{
-			var buffer = selection.AllocatedBuffer();
-			return System.Text.Encoding.UTF8.GetString(buffer);
-		}
-
-		/// <summary>
 		/// Gets the whole thing as a UTF8 string.
 		/// </summary>
 		/// <returns></returns>
@@ -1419,7 +1442,7 @@ namespace Api.SocketServerLibrary
 		}
 
 		/// <summary>Write a whole block of bytes to this message.</summary>
-		public void Write(byte[] buffer){
+		public void WriteNoLength(byte[] buffer){
 			Write(buffer,0,buffer.Length);
 		}
 		

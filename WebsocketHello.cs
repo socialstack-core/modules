@@ -1,14 +1,15 @@
 using Api.Contexts;
+using Api.WebSockets;
 using System;
 using System.Security.Cryptography;
-
+using System.Threading.Tasks;
 
 namespace Api.SocketServerLibrary
 {
 	/// <summary>
 	/// A get request.
 	/// </summary>
-	public class GetMessage : Message
+	public class GetMessage : Message<GetMessage>
 	{
 		/// <summary>
 		/// Content type.
@@ -18,12 +19,35 @@ namespace Api.SocketServerLibrary
 		/// ID of the content.
 		/// </summary>
 		public uint Id;
+	}
+
+	/// <summary>
+	/// A content update.
+	/// </summary>
+	public class ContentUpdate : Message<ContentUpdate>
+	{
+		/// <summary>
+		/// Number of bytes in the JSON.
+		/// </summary>
+		public int JsonLength;
+		/// <summary>
+		/// Mode.
+		/// </summary>
+		public byte Mode;
+		/// <summary>
+		/// Locale.
+		/// </summary>
+		public uint LocaleId;
+		/// <summary>
+		/// Raw json.
+		/// </summary>
+		public string Json;
 	}
 
 	/// <summary>
 	/// A list request.
 	/// </summary>
-	public class ListMessage : Message
+	public class ListMessage : Message<ListMessage>
 	{
 		/// <summary>
 		/// Content type.
@@ -36,22 +60,14 @@ namespace Api.SocketServerLibrary
 	}
 
 	/// <summary>
-	/// A simple ping. Does not pong though.
-	/// </summary>
-	public class PingMessage : Message
-	{
-		
-	}
-
-	/// <summary>
 	/// A wrapped JSON request.
 	/// </summary>
-	public class JsonMessage : Message
+	public class JsonMessage : Message<JsonMessage>
 	{
 		/// <summary>
 		/// The complete JSON string.
 		/// </summary>
-		public ustring Json;
+		public string Json;
 	}
 
 	/// <summary>
@@ -59,15 +75,73 @@ namespace Api.SocketServerLibrary
 	/// </summary>
 	public class WebsocketHandshake : OpCode
 	{
+		
 		/// <summary>
-		/// 
+		/// Instanced by calling aServer.AcceptWebsockets()
 		/// </summary>
-		public byte[] UpperCaseKeyHeader;
+		/// <param name="requireApplicationHello"></param>
+		public WebsocketHandshake(bool requireApplicationHello)
+		{
+			// Custom crafted msg reader:
+			MessageReader = new WebSocketHandshakeReader(requireApplicationHello);
+		}
+
+		private ContextService _ctxService;
+
+		/// <summary>
+		/// Gets the context service.
+		/// </summary>
+		public ContextService ContextService
+		{
+			get {
+				if (_ctxService == null)
+				{
+					_ctxService = Startup.Services.Get<ContextService>();
+				}
+
+				return _ctxService;
+			}
+		}
+
+	}
+
+	/// <summary>
+	/// Reads websocket handshakes. Is a global shared instance as it has no connection specific state.
+	/// </summary>
+	public class WebSocketHandshakeReader : MessageReader
+	{
+
+		private bool RequireApplicationHello;
 
 		/// <summary>
 		/// 
 		/// </summary>
-		public byte[] LowerCaseKeyHeader;
+		private byte[] UpperCaseKeyHeader;
+
+		/// <summary>
+		/// 
+		/// </summary>
+		private byte[] LowerCaseKeyHeader;
+
+		/// <summary>
+		/// 
+		/// </summary>
+		private byte[] UserCookiePrefix;
+
+		/// <summary>
+		/// 
+		/// </summary>
+		private byte[] UpperCaseCookieHeader;
+
+		/// <summary>
+		/// 
+		/// </summary>
+		private byte[] LowerCaseCookieHeader;
+
+		/// <summary>
+		/// 
+		/// </summary>
+		private byte[] MagicString;
 
 		/// <summary>
 		/// 
@@ -77,200 +151,53 @@ namespace Api.SocketServerLibrary
 		/// <summary>
 		/// 
 		/// </summary>
-		public byte[] MagicString;
+		private byte[] ProtocolSwitchResponse;
 
 		/// <summary>
 		/// 
 		/// </summary>
-		public byte[] ProtocolSwitchResponse;
+		private SHA1Managed Sha1;
 
 		/// <summary>
-		/// 
+		/// Context service
 		/// </summary>
-		public SHA1Managed Sha1;
+		private ContextService ContextService;
 
 		/// <summary>
-		/// True if the application has a hello message of its own, expected immediately after the WS header.
+		/// The WS handshake reader
 		/// </summary>
-		public bool RequireApplicationHello;
-
-		/// <summary>
-		/// Instanced by calling aServer.AcceptWebsockets()
-		/// </summary>
-		/// <param name="requireApplicationHello"></param>
-		public WebsocketHandshake(bool requireApplicationHello)
+		public WebSocketHandshakeReader(bool requireApplicationHello)
 		{
-			Sha1 = new SHA1Managed();
 			RequireApplicationHello = requireApplicationHello;
 
+			// Bytes required for these frames is always just 1.
+			FirstDataRequired = 1;
+
+			Sha1 = new SHA1Managed();
 			UpperCaseKeyHeader = System.Text.Encoding.ASCII.GetBytes("sec-websocket-key:");
 			LowerCaseKeyHeader = System.Text.Encoding.ASCII.GetBytes("SEC-WEBSOCKET-KEY:");
+			UserCookiePrefix = System.Text.Encoding.ASCII.GetBytes("user=");
+			UpperCaseCookieHeader = System.Text.Encoding.ASCII.GetBytes("cookie:");
+			LowerCaseCookieHeader = System.Text.Encoding.ASCII.GetBytes("COOKIE:");
 			MagicString = System.Text.Encoding.ASCII.GetBytes("258EAFA5-E914-47DA-95CA-C5AB0DC85B11");
 			HeaderTerminal = System.Text.Encoding.ASCII.GetBytes("\r\n\r\n");
 			ProtocolSwitchResponse = System.Text.Encoding.ASCII.GetBytes("HTTP/1.1 101 Switching Protocols\r\nUpgrade: websocket\r\nConnection: Upgrade\r\nSec-WebSocket-Accept: ");
 		}
 
 		/// <summary>
-		/// Gets a message instance to use for this opcode.
+		/// Counts whitespace at the start of the given buffer.
 		/// </summary>
+		/// <param name="buffer"></param>
 		/// <returns></returns>
-		public override IMessage GetAMessageInstance()
+		public int WhitespaceOffset(BufferedBytes buffer)
 		{
-			IMessage msg;
-
-			lock (PoolLock)
-			{
-				if (First == null)
-				{
-					msg = new WebsocketHandshakeMessage();
-				}
-				else
-				{
-					msg = First;
-					First = msg.After;
-					msg.Pooled = false;
-				}
-			}
-
-			msg.OpCode = this;
-			return msg;
-		}
-
-		/// <summary>
-		/// Runs when the given message has started to be received.
-		/// </summary>
-		/// <param name="message"></param>
-		public override void OnStartReceive(IMessage message)
-		{
-			// We have full control of the current client.
-			// This must read the websocket header, then call OnReceive.
-
-			// So far we have read a 'G' - the following bytes include a URL which we don't use and can be anything.
-			// So instead, we just keep skipping bytes until we encounter \n.
-			(message as WebsocketHandshakeMessage).Handle();
-		}
-
-	}
-
-	/// <summary>
-	/// Stores context during a websocket handshake. Like all other primary message types, these objects are pooled.
-	/// </summary>
-	public class WebsocketHandshakeMessage : Message
-	{
-		/// <summary>
-		/// 
-		/// </summary>
-		public WebsocketHandshakeMessage()
-		{
-			SkipUntilNewline_D = new Action<byte>(SkipUntilNewline);
-			OnCheckSecHeader_D = new Action<byte>(OnCheckSecHeader);
-			CheckEndOfHeader_D = new Action<byte>(CheckEndOfHeader);
-			ReadSecHeaderValue_D = new Action<byte>(ReadSecHeaderValue);
-		}
-
-		/// <summary>
-		/// Start receiving this msg.
-		/// </summary>
-		public void Handle()
-		{
-			var reader = Client.Reader;
-
-			// Clear str_1 - the fact that it's set later indicates a sec header was sent.
-			String_1 = null;
-
-			// Read the first line is "GET /url HTTP/1.1\r\n". When we're done reading it, we need to find the Sec-WebSocket-Key header
-			reader.Read(SkipUntilNewline_D);
-		}
-
-		private int Int32_1;
-		private string String_1;
-		private readonly Action<byte> SkipUntilNewline_D;
-		private readonly Action<byte> OnCheckSecHeader_D;
-		private readonly Action<byte> CheckEndOfHeader_D;
-		private readonly Action<byte> ReadSecHeaderValue_D;
-
-		private void SkipUntilNewline(byte lastReadByte)
-		{
-			if (lastReadByte != '\n')
-			{
-				// Go again
-				Client.Reader.Read(SkipUntilNewline_D);
-				return;
-			}
-
-			// Find the Sec-WebSocket-Key header.
-
-			// We'll do this by keeping track of which character we're up to in the message and read a byte at a time.
-			// If we encounter a character other than what we're expecting next, we just skip until a newline and try again.
-			Int32_1 = 0;
-			Client.Reader.Read(OnCheckSecHeader_D);
-		}
-
-		private void OnCheckSecHeader(byte character)
-		{
-			var opcode = OpCode as WebsocketHandshake;
-
-			// Character MUST be either..
-			if (character == opcode.UpperCaseKeyHeader[Int32_1] || character == opcode.LowerCaseKeyHeader[Int32_1])
-			{
-
-				// Great - get the next character:
-				Int32_1++;
-
-				if (Int32_1 >= opcode.UpperCaseKeyHeader.Length)
-				{
-					// That's the lot! Next we have the value.
-					// Grab a buffer from the pool where we'll store the field value.
-					Client.Reader.Push(BinaryBufferPool.Get());
-					Int32_1 = 0;
-
-					Client.Reader.Read(ReadSecHeaderValue_D);
-
-				}
-				else
-				{
-					Client.Reader.Read(OnCheckSecHeader_D);
-				}
-
-				return;
-			}
-
-			// Not the header we're after. Skip until we get a \n:
-			Client.Reader.Read(SkipUntilNewline_D);
-		}
-
-		/// <summary>
-		/// Reading for the value of Sec-WebSocket-Key
-		/// </summary>
-		private void ReadSecHeaderValue(byte character)
-		{
-			var binaryBuffer = (BufferedBytes)Client.Reader.Peek();
-
-			if (character != '\r')
-			{
-				binaryBuffer.Bytes[Int32_1++] = character;
-				Client.Reader.Read(ReadSecHeaderValue_D);
-				return;
-			}
-
-			// That's the end of the field. Write the magic string into the buffer too (it's more than big enough to support this).
-			Client.Reader.Pop();
-
-			var opcode = OpCode as WebsocketHandshake;
-
-			for (var i = 0; i < opcode.MagicString.Length; i++)
-			{
-				binaryBuffer.Bytes[Int32_1++] = opcode.MagicString[i];
-			}
-
-			// First establish how much whitespace is at the start (it'll be either 0 or 1, but the spec permits no particular limit so we permit 5).
-			var whitespaceCount = 0;
+			var whitespaceOffset = 0;
 
 			for (var i = 0; i < 5; i++)
 			{
-				if (binaryBuffer.Bytes[i] == ' ')
+				if (buffer.Bytes[i] == ' ')
 				{
-					whitespaceCount = i + 1;
+					whitespaceOffset++;
 				}
 				else
 				{
@@ -278,96 +205,279 @@ namespace Api.SocketServerLibrary
 				}
 			}
 
-			// Need to now create the SHA1 of binaryBuffer.Bytes[whitespaceCount] to binaryBuffer.Bytes[context.Int32_1-1], then the base64 of that.
-			String_1 = Convert.ToBase64String(opcode.Sha1.ComputeHash(binaryBuffer.Bytes, whitespaceCount, Int32_1 - whitespaceCount));
-
-			// Release the buffer:
-			binaryBuffer.Release();
-
-			// Now must burn bytes until we see \r\n\r\n at the end of the header.
-			Int32_1 = 0;
-
-			Client.Reader.Read(CheckEndOfHeader_D);
+			return whitespaceOffset;
 		}
 
 		/// <summary>
-		/// Watches out for \r\n\r\n at the end of the header.
+		/// 
 		/// </summary>
-		private void CheckEndOfHeader(byte currentByte)
+		/// <param name="frame"></param>
+		/// <param name="client"></param>
+		public override void Process(ref RecvStackFrame frame, Client client)
 		{
-			var opcode = OpCode as WebsocketHandshake;
+			byte current;
 
-			if (currentByte == opcode.HeaderTerminal[Int32_1])
+			// While we have more bytes..
+			while (client.BytesAvailable > 0)
 			{
-				// Read the next byte of the terminal - expect the next one:
-				Int32_1++;
-
-				if (Int32_1 == 4)
+				if (frame.Phase == 0)
 				{
-					// That's the end of the header - we've received the whole thing!
-					// Now send back our websocket handshake response.
-					SendWebsocketHandshakeResponse();
+					// Skip bytes until a \n.
+					while (client.BytesAvailable > 0)
+					{
+						current = client.Next();
+
+						if (current == '\n')
+						{
+							frame.Phase = 1;
+							break;
+						}
+					}
+				}
+				else if (frame.Phase == 1)
+				{
+					current = client.Next();
+					
+					if (current == '\r')
+					{
+						// End of header! We're all done here.
+						frame.Phase = 4;
+					}
+					else if (current == UpperCaseKeyHeader[0] || current == LowerCaseKeyHeader[0])
+					{
+						// Possibly reading a key header.
+						frame.Phase = 1 << 8 | 1;
+					}
+					else if (current == UpperCaseCookieHeader[0] || current == LowerCaseCookieHeader[0])
+					{
+						// Possibly reading a cookie header.
+						frame.Phase = 2 << 8 | 1;
+					}
+					else
+					{
+						// We don't care about this header - skip it.
+						frame.Phase = 0;
+					}
+				}
+				else if (frame.Phase == 2)
+				{
+					// Read sec value
+					
+					while (client.BytesAvailable > 0)
+					{
+						current = client.Next();
+
+						if (current == '\r')
+						{
+							// Finished reading this header line.
+
+							// Next, write the magic string into the buffer too (it's more than big enough to support this).
+							for (var i = 0; i < MagicString.Length; i++)
+							{
+								client.ScratchSpace.Bytes[client.ScratchSpace.Offset++] = MagicString[i];
+							}
+
+							// Count whitespace at the start:
+							var whitespace = WhitespaceOffset(client.ScratchSpace);
+
+							// Convert to b64:
+							string b64 = Convert.ToBase64String(Sha1.ComputeHash(client.ScratchSpace.Bytes, whitespace, client.ScratchSpace.Offset - whitespace));
+
+							// Release the scratch buffer:
+							client.ScratchSpace.Release();
+							client.ScratchSpace = null;
+
+							// Send protocol switch.
+							var writer = Writer.GetPooled();
+							writer.Start(ProtocolSwitchResponse);
+
+							// Write each byte of the string:
+							for (var i = 0; i < b64.Length; i++)
+							{
+								writer.Write((byte)b64[i]);
+							}
+
+							// Write \r\n\r\n:
+							for (var i = 0; i < 4; i++)
+							{
+								writer.Write(HeaderTerminal[i]);
+							}
+
+							client.Send(writer);
+							
+
+							frame.Phase = 0;
+							break;
+						}
+						else
+						{
+							// This byte is part of our header line.
+							client.ScratchSpace.Bytes[client.ScratchSpace.Offset++] = current;
+						}
+					}
+
+				}
+				else if (frame.Phase == 3)
+				{
+					// Read cookie value
+
+					while (client.BytesAvailable > 0)
+					{
+						current = client.Next();
+
+						if (current == '\r')
+						{
+							// Finished reading this header line.
+
+							// Count whitespace at the start:
+							var whitespace = WhitespaceOffset(client.ScratchSpace);
+
+							// Next, is the cookie a user one? It's identified by it starting with the string "user="
+							var length = client.ScratchSpace.Offset - whitespace;
+
+							if (length > UserCookiePrefix.Length)
+							{
+								var isUserCookie = true;
+
+								for (var i = 0; i < UserCookiePrefix.Length; i++)
+								{
+
+									if (client.ScratchSpace.Bytes[i + whitespace] != UserCookiePrefix[i])
+									{
+										isUserCookie = false;
+										break;
+									}
+
+								}
+
+								if (isUserCookie)
+								{
+									// Read the cookie now:
+									var userCookie = System.Text.Encoding.UTF8.GetString(client.ScratchSpace.Bytes, whitespace + UserCookiePrefix.Length, length - UserCookiePrefix.Length);
+										
+									// Apply context:
+									if (ContextService == null)
+									{
+										ContextService = Startup.Services.Get<ContextService>();
+									}
+
+									// Gets the context and applies it to the given client.
+									Task.Run(async () =>
+									{
+										var context = await ContextService.Get(userCookie);
+										await client.SetContext(context);
+									});
+								}
+							}
+
+							// Release the scratch buffer:
+							client.ScratchSpace.Release();
+							client.ScratchSpace = null;
+
+							frame.Phase = 0;
+							break;
+						}
+						else
+						{
+							// This byte is part of our header line.
+							client.ScratchSpace.Bytes[client.ScratchSpace.Offset++] = current;
+						}
+					}
+
+				}
+				else if (frame.Phase == 4)
+				{
+					// Exiting. Read the \n:
+					client.Next();
+
+					// Pop this frame:
+					client.Pop();
+
+
+					// New clients always need to allocate anyway, so it's better to allocate this now
+					// (particularly as it will last throughout the duration of the websocket link anyway).
+					client.WebsocketMask = new byte[4];
+
+					// Immediately expecting a websocket header - Push a header reader onto the stack.
+					client.BytesUntilWebsocketHeader = 0;
+
+					client.RecvStackPointer++;
+					client.RecvStack[client.RecvStackPointer] = new RecvStackFrame()
+					{
+						Reader = WsHeaderReader.Instance,
+						Phase = 0,
+						BytesRequired = 2
+					};
+
+					// Successful handshake. Clear hello flag if the application wishes to do so:
+					if (!RequireApplicationHello)
+					{
+						client.Hello = false;
+					}
+
 					return;
 				}
-			}
-			else
-			{
-				// Nope - not the terminal yet; reset to 0.
-				Int32_1 = 0;
-			}
+				else
+				{
+					var phase = frame.Phase >> 8; // 1 or 2.
+					var index = frame.Phase & 255; // 0->255
 
-			Client.Reader.Read(CheckEndOfHeader_D);
+					// Listening out for cookie and sec header values.
+					current = client.Next();
+
+					if (phase == 1)
+					{
+						// sec header
+						if (current == UpperCaseKeyHeader[index] || current == LowerCaseKeyHeader[index])
+						{
+							// Test the next one.
+							if (index == LowerCaseKeyHeader.Length - 1)
+							{
+								// Sec header is indeed incoming!
+								client.ScratchSpace = BinaryBufferPool.Get();
+								client.ScratchSpace.Offset = 0;
+								frame.Phase = 2;
+							}
+							else
+							{
+								frame.Phase++;
+							}
+						}
+						else
+						{
+							// Not a header we care about.
+							frame.Phase = 0;
+						}
+					}
+					else
+					{
+						// Cookie header
+						if (current == UpperCaseCookieHeader[index] || current == LowerCaseCookieHeader[index])
+						{
+							// Test the next one.
+							if (index == LowerCaseCookieHeader.Length - 1)
+							{
+								// Cookie header is indeed incoming!
+								client.ScratchSpace = BinaryBufferPool.Get();
+								client.ScratchSpace.Offset = 0;
+								frame.Phase = 3;
+							}
+							else
+							{
+								frame.Phase++;
+							}
+						}
+						else
+						{
+							// Not a header we care about.
+							frame.Phase = 0;
+						}
+					}
+
+				}
+
+			}
 		}
-
-		/// <summary>
-		/// Sends the websocket handshake response.
-		/// </summary>
-		private void SendWebsocketHandshakeResponse()
-		{
-
-			var opcode = OpCode as WebsocketHandshake;
-
-			if (String_1 == null)
-			{
-				// Didn't send the ws key header. Kill the request.
-				opcode.Kill(this);
-				return;
-			}
-			
-			// Most of this response header is just totally static data.
-			var writer = Writer.GetPooled();
-			writer.Start(opcode.ProtocolSwitchResponse);
-
-			// Write each byte of the string:
-			for (var i = 0; i < String_1.Length; i++)
-			{
-				writer.Write((byte)String_1[i]);
-			}
-
-			// Write \r\n\r\n:
-			for (var i = 0; i < 4; i++)
-			{
-				writer.Write(opcode.HeaderTerminal[i]);
-			}
-
-			Client.Send(writer);
-
-			// New clients always need to allocate anyway, so it's better to allocate this now
-			// (particularly as it will last throughout the duration of the websocket link anyway).
-			Client.Reader.WebsocketMask = new byte[4];
-
-			// Immediately expecting a websocket header:
-			Client.Reader.BytesUntilWebsocketHeader = 0;
-
-			// Successful handshake. Clear hello flag if the application wishes to do so:
-			if (!opcode.RequireApplicationHello)
-			{
-				Client.Hello = false;
-			}
-
-			opcode.Done(this, true);
-		}
-
 
 	}
 }

@@ -11,9 +11,9 @@ namespace Api.SocketServerLibrary
 	public class SocketAsyncArgs : SocketAsyncEventArgs
 	{
 		/// <summary>
-		/// The sendqueue that this is stored in.
+		/// The client this is in.
 		/// </summary>
-		public SendQueue SendQueue;
+		public Client Client;
 
 		/// <summary>
 		/// Called when done sending.
@@ -21,7 +21,7 @@ namespace Api.SocketServerLibrary
 		/// <param name="args"></param>
 		protected override void OnCompleted(SocketAsyncEventArgs args)
 		{
-			SendQueue.SendNextBlock();
+			Client.CompletedCurrentSend();
 		}
 
 	}
