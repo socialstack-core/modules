@@ -134,6 +134,7 @@ public class CsvMapping<T>
 	/// Use when not expecting a large CSV.
 	/// </summary>
 	/// <param name="results"></param>
+	/// <param name="config"></param>
 	/// <returns></returns>
 	public async ValueTask<MemoryStream> OutputStream(IEnumerable<T> results, CsvConfiguration config = null)
 	{
