@@ -14,13 +14,4 @@ namespace Api.Users{
 		
 	}
 	
-	public partial class UserProfile
-	{
-		
-		/// <summary>
-		/// 0 = Offline, 1 = Online, 2 = Away (away unused at the moment).
-		/// </summary>
-		public int? OnlineState;
-		
-	}
 }

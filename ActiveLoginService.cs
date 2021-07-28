@@ -47,14 +47,14 @@ namespace Api.ActiveLogins
 			});
 			
 			// Add event listeners for websocket users:
-			Events.WebSocketUserState.AddEventListener(async (Context ctx, uint userId, UserWebsocketLinks userSockets) =>
+			Events.WebSocket.AfterUser.AddEventListener(async (Context ctx, WebSocketClient client) =>
 			{
 				var onlineStateField = GetChangeField("OnlineState");
 
 				// Triggers when the user login state changes *locally*.
-				if(userId == 0)
+				if(client == null)
 				{
-					return userId;
+					return client;
 				}
 				
 				if(serverId == 0){
@@ -65,7 +65,9 @@ namespace Api.ActiveLogins
 				{
 					_users = Services.Get<UserService>();
 				}
-				
+
+#warning revisit - this will now sit on top of personal network rooms
+				/*
 				if (userSockets.ContainsOne)
 				{
 					// Logged in (first time on this server)
@@ -128,8 +130,9 @@ namespace Api.ActiveLogins
 						
 					}
 				}
+				*/
 
-				return userId;
+				return client;
 			});
 
 			if (Services.Started)
