@@ -190,7 +190,9 @@ namespace Api.SocketServerLibrary
 			{
 				throw new Exception("Can't reset a writer that is still being actively sent");
 			}
-
+			
+			SendQueueCount = 0;
+			
 			// Release all the buffers:
 			lock (BinaryBufferPool.PoolLock)
 			{

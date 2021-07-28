@@ -39,7 +39,7 @@ namespace Api.SocketServerLibrary
 			{
 				// Read the size:
 				frame.Phase = 1;
-				frame.BytesRequired = client.Next() | client.Next() >> 8 | client.Next() >> 16 | client.Next() >> 24;
+				frame.BytesRequired = client.Next() | client.Next() << 8 | client.Next() << 16 | client.Next() << 24;
 			}
 			else if(frame.Phase == 1)
 			{
