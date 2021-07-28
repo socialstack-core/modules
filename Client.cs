@@ -384,6 +384,8 @@ namespace Api.SocketServerLibrary
 						if (frame.Current == null)
 						{
 							Console.WriteLine("Writer appears to have been released prematurely. " + frame.Writer.SendQueueCount);
+							Close();
+							return;
 						}
 
 					}
