@@ -52,18 +52,30 @@ namespace Api.SocketServerLibrary
 		}
 
 		/// <summary>
+		/// Starts sending this writer by increasing its send queue counter.
+		/// </summary>
+		public void StartSending()
+		{
+			lock (sendQueueCountLock)
+			{
+				SendQueueCount++;
+				LastBuffer.Length = Fill;
+			}
+		}
+
+		/// <summary>
 		/// Removes this writer from a send queue.
 		/// </summary>
 		public void RemoveFromSendQueue()
 		{
 			var count = 0;
 
-			lock (this)
+			lock (sendQueueCountLock)
 			{
 				SendQueueCount--;
 				count = SendQueueCount;
 			}
-				
+			
 			if (count == 0 && ReleaseOnSent)
 			{
 				Release();
@@ -162,13 +174,6 @@ namespace Api.SocketServerLibrary
 		}
 
 		/// <summary>
-		/// Sets the last buffers fill amount to the writers fill.
-		/// </summary>
-		public void SetLastFill() {
-			LastBuffer.Length = Fill;
-		}
-		
-		/// <summary>
 		/// Used when the current buffer is totally full and a new one is required.
 		/// </summary>
 		private void NextBuffer(){
@@ -192,7 +197,8 @@ namespace Api.SocketServerLibrary
 			}
 			
 			SendQueueCount = 0;
-			
+			ReleaseOnSent = false;
+
 			// Release all the buffers:
 			lock (BinaryBufferPool.PoolLock)
 			{
@@ -209,15 +215,20 @@ namespace Api.SocketServerLibrary
 			Start(template);
 		}
 
+		private object sendQueueCountLock = new object();
+
 		/// <summary>Called when a writer is no longer needed and should now be fully released.</summary>
 		public void Release()
 		{
-			if (SendQueueCount > 0)
+			lock (sendQueueCountLock)
 			{
-				ReleaseOnSent = true;
-				return;
+				if (SendQueueCount > 0)
+				{
+					ReleaseOnSent = true;
+					return;
+				}
 			}
-
+			
 			// Release all buffers back to the pool and pool the writer itself too.
 			
 			// Release all the buffers:

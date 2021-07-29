@@ -19,7 +19,8 @@ namespace Api.SocketServerLibrary
 		{
 			// Remove from Q:
 			Writer.RemoveFromSendQueue();
-			
+			Writer = null;
+
 			// Pool the context object now:
 			lock (PoolLock)
 			{
@@ -49,6 +50,7 @@ namespace Api.SocketServerLibrary
 				}
 			}
 
+			frame.After = null;
 			return frame;
 		}
 

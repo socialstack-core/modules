@@ -210,15 +210,13 @@ namespace Api.SocketServerLibrary
 			}
 
 			// Add the writer to the queue:
-			lock (writer)
-			{
-				writer.SendQueueCount++;
-				writer.SetLastFill();
-			}
+			writer.StartSending();
 
 			var frame = SendStackFrame.Get();
 			frame.Writer = writer;
 			frame.Current = null;
+
+			var goImmediately = false;
 
 			lock (this)
 			{
@@ -226,19 +224,23 @@ namespace Api.SocketServerLibrary
 				{
 					FirstSendFrame = frame;
 					LastSendFrame = frame;
+					goImmediately = CanProcessSend;
 				}
 				else
 				{
 					LastSendFrame.After = frame;
 					LastSendFrame = frame;
 				}
+
+				if (goImmediately)
+				{
+					// The queue is empty - Send immediately:
+					CanProcessSend = false;
+				}
 			}
 
-			if (CanProcessSend && frame == FirstSendFrame)
+			if (goImmediately)
 			{
-				// The queue is empty - Send immediately:
-				CanProcessSend = false;
-
 				if (WebsocketMask != null)
 				{
 					// Must send WS header first.
@@ -324,33 +326,33 @@ namespace Api.SocketServerLibrary
 					frame.Current = frame.Current.After;
 				}
 
-				var halt = false;
-
 				if (frame.Current == null)
 				{
 					// Done sending this writer.
 
 					// Pop the first send frame:
+					SendStackFrame next;
+
 					lock (this)
 					{
-						FirstSendFrame = frame.After;
+						next = frame.After;
+						FirstSendFrame = next;
 
-						if (FirstSendFrame == null)
+						if (next == null)
 						{
 							LastSendFrame = null;
-							halt = true;
 						}
 					}
 
 					frame.Release();
 					
-					if (halt)
+					if (next == null)
 					{
 						CanProcessSend = true;
 						return;
 					}
 
-					frame = FirstSendFrame;
+					frame = next;
 
 					if (frame.Current == null)
 					{
