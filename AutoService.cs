@@ -47,16 +47,15 @@ public partial class AutoService<T, ID>{
 	{
 		get
 		{
+			// Revisions temporarily disabled
+			return null;
+
+			/*
 			if (!IsRevisionType())
 			{
 				return null;
 			}
 
-			throw new Exception("Unsafe, incomplete");
-			// Because RevisionService hasn't been specialised enough yet.
-			// Deleting a revision will delete the actual row.
-
-			/*
 			if (_revs == null)
 			{
 				_revs = new RevisionService<T, ID>(this);
