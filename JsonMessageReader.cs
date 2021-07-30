@@ -37,7 +37,7 @@ namespace Api.WebSockets{
 					if (length < 251)
 					{
 						frame.Phase = 4;
-						frame.BytesRequired = length;
+						frame.BytesRequired = length - 1; // -1 as it is null offset.
 						return;
 					}
 					else if (length == 251)
@@ -64,17 +64,17 @@ namespace Api.WebSockets{
 				case 1:
 					// Compressed (ushort)
 					frame.Phase = 4;
-					frame.BytesRequired = (int)(client.Next() | (client.Next() << 8));
+					frame.BytesRequired = (int)(client.Next() | (client.Next() << 8)) - 1;
 					return;
 				case 2:
 					// Compressed (3 byte)
 					frame.Phase = 4;
-					frame.BytesRequired = (int)(client.Next() | (client.Next() << 8) | (client.Next() << 16));
+					frame.BytesRequired = (int)(client.Next() | (client.Next() << 8) | (client.Next() << 16)) - 1;
 					return;
 				case 3:
 					// Compressed (4 byte)
 					frame.Phase = 4;
-					frame.BytesRequired = (int)(client.Next() | (client.Next() << 8) | (client.Next() << 16) | (client.Next() << 24));
+					frame.BytesRequired = (int)(client.Next() | (client.Next() << 8) | (client.Next() << 16) | (client.Next() << 24)) - 1;
 					return;
 				case 4:
 					// The JSON.
