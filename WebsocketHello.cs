@@ -354,16 +354,16 @@ namespace Api.SocketServerLibrary
 								{
 									// Read the cookie now:
 									var userCookie = System.Text.Encoding.UTF8.GetString(client.ScratchSpace.Bytes, whitespace + UserCookiePrefix.Length, length - UserCookiePrefix.Length);
-										
-									// Apply context:
-									if (ContextService == null)
-									{
-										ContextService = Startup.Services.Get<ContextService>();
-									}
-
+									
 									// Gets the context and applies it to the given client.
 									Task.Run(async () =>
 									{
+										// Apply context:
+										if (ContextService == null)
+										{
+											ContextService = Startup.Services.Get<ContextService>();
+										}
+										
 										var context = await ContextService.Get(userCookie);
 										await client.SetContext(context);
 									});
