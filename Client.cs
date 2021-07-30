@@ -182,9 +182,28 @@ namespace Api.SocketServerLibrary
 		}
 
 		/// <summary>
-		/// Pops from the receive stack.
+		/// Pops from the receive stack, excluding websocket header readers.
 		/// </summary>
 		public void Pop()
+		{
+			if (RecvStackPointer == 0)
+			{
+				return;
+			}
+
+			if (RecvStack[RecvStackPointer].Reader is WsHeaderReader)
+			{
+				// Relocate top of stack over the one below it.
+				RecvStack[RecvStackPointer - 1] = RecvStack[RecvStackPointer];
+			}
+
+			RecvStackPointer--;
+		}
+		
+		/// <summary>
+		/// Pops from the receive stack.
+		/// </summary>
+		public void PopIgnoreWsHeader()
 		{
 			if (RecvStackPointer == 0)
 			{

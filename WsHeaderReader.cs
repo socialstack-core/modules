@@ -98,7 +98,7 @@ namespace Api.SocketServerLibrary
 						else
 						{
 							// Done reading the WS header.
-							client.Pop();
+							client.PopIgnoreWsHeader();
 						}
 
 						return;
