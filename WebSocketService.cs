@@ -23,6 +23,7 @@ namespace Api.WebSockets
 	/// Handles creations of galleries - containers for image uploads.
 	/// Instanced automatically. Use injection to use this service, or Startup.Services.Get.
 	/// </summary>
+	[LoadPriority(11)]
 	public partial class WebSocketService : AutoService
     {
 
