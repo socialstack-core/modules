@@ -17,6 +17,11 @@ namespace Api.Themes
 		public string LogoRef { get; set; }
 
 		/// <summary>
+		/// Site logo ref (admin area). Typically a white version of the logo.
+		/// </summary>
+		public string AdminLogoRef { get; set; }
+		
+		/// <summary>
 		/// Default theme key. This is applied to the body if it is not null.
 		/// </summary>
 		public string DefaultThemeId { get; set; }

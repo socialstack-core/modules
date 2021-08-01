@@ -1,3 +1,5 @@
+using Api.Configuration;
+using Api.ContentSync;
 using Api.Contexts;
 using Api.Permissions;
 using Api.Translate;
@@ -26,17 +28,64 @@ namespace Api.CanvasRenderer
 		/// The inline header. This should be served inline in the html. It includes preact, preact hooks and the ss module require function, totalling 13kb.
 		/// </summary>
 		public string InlineJavascriptHeader;
+		private string rawInlineHeader;
 
 		/// <summary>
 		/// True if we're in prebuilt mode.
 		/// </summary>
 		private bool Prebuilt;
 
+		private FrontendCodeServiceConfig _config;
+		private ContentSyncService _contentSync;
+
+		/// <summary>
+		/// Generates the ws url.
+		/// </summary>
+		/// <returns></returns>
+		private void SetWebSocketUrl()
+		{
+			var wsUrl = _config.WebSocketUrl;
+
+			if (string.IsNullOrEmpty(wsUrl))
+			{
+				// Generate the ws host now, based on the public URL.
+				// A dev site will always assume localhost:WSPORT.
+				if (Configuration.Environment.IsDevelopment())
+				{
+					var portNumber = AppSettings.GetInt32("WebsocketPort", AppSettings.GetInt32("Port", 5000) + 1);
+
+					wsUrl = "ws://localhost:" + portNumber + "/live-websocket/";
+				}
+				else
+				{
+					var pUrl = AppSettings.Configuration["PublicUrl"].Replace("http", "ws");
+
+					if (pUrl.EndsWith('/'))
+					{
+						wsUrl = pUrl + "live-websocket/";
+					}
+					else
+					{
+						wsUrl = pUrl + "/live-websocket/";
+					}
+				}
+			}
+			else
+			{
+				// Attempt server ID substitution:
+				wsUrl = wsUrl.Replace("${server.id}", _contentSync.ServerId.ToString());
+			}
+
+			var websocketJs = "wsUrl='" + wsUrl + "';";
+			InlineJavascriptHeader = websocketJs + rawInlineHeader;
+		}
+
 		/// <summary>
 		/// Instanced automatically.
 		/// </summary>
-		public FrontendCodeService(LocaleService locales, TranslationService translations, Themes.ThemeService themeService)
+		public FrontendCodeService(LocaleService locales, TranslationService translations, Themes.ThemeService themeService, ContentSyncService contentSync)
 		{
+			_contentSync = contentSync;
 			var themeConfig = themeService.GetAllConfig();
 			var cssVariables = themeService.OutputCss(themeConfig);
 
@@ -49,19 +98,20 @@ namespace Api.CanvasRenderer
 				await UIBuilder.SetCssPrepend(cssVariables);
 			};
 
+			_config = GetConfig<FrontendCodeServiceConfig>();
+
 			initialBuildTask = Task.Run(async () =>
 			{
 				var dllPath = AppDomain.CurrentDomain.BaseDirectory;
 
-				var config = GetConfig<FrontendCodeServiceConfig>();
-
 				// The html inline header. It includes preact, preact hooks and the socialstack module require function.
+				
+				var headerFile = _config.React ? "inline_header_react" : "inline_header";
 
-				var headerFile = config.React ? "inline_header_react" : "inline_header";
-
-				InlineJavascriptHeader = File.ReadAllText(dllPath + "/Api/ThirdParty/CanvasRenderer/"+ headerFile + ".js");
-
-				var prebuilt = config.Prebuilt;
+				rawInlineHeader = File.ReadAllText(dllPath + "/Api/ThirdParty/CanvasRenderer/"+ headerFile + ".js");
+				SetWebSocketUrl();
+				
+				var prebuilt = _config.Prebuilt;
 
 				// If UI/Source doesn't exist, prebuilt = true.
 				if (!Directory.Exists(Path.GetFullPath("UI/Source")))
@@ -90,7 +140,7 @@ namespace Api.CanvasRenderer
 					var globalMap = new GlobalSourceFileMap();
 
 					// Todo: make this into a config variable. If true, the build from the watcher will be minified.
-					var minify = config.Minified;
+					var minify = _config.Minified;
 
 					// Create a group of build/watchers for each bundle of files (all in parallel):
 					AddBuilder(UIBuilder = new UIBundle("UI", "/pack/", translations, locales, engine, globalMap, minify) { CssPrepend = cssVariables });
@@ -114,6 +164,14 @@ namespace Api.CanvasRenderer
 				Console.WriteLine("Done handling UI load.");
 				initialBuildTask = null;
 			});
+
+			_config.OnChange += () => {
+
+				SetWebSocketUrl();
+
+				return new ValueTask();
+			};
+
 		}
 
 		/// <summary>

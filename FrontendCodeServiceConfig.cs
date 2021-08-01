@@ -24,5 +24,11 @@ namespace Api.CanvasRenderer
 		/// True to use React instead of Preact (Preact is the default).
 		/// </summary>
 		public bool React { get; set; } = false;
+
+		/// <summary>
+		/// Custom websocket URL. Use this to customise where the websocket is. It can contain a token - ${server.id} - to allow a cluster to have direct WS connectivity.
+		/// e.g. wss://node${server.id}.mysite.com/live-websocket/
+		/// </summary>
+		public string WebSocketUrl { get; set; } = null;
 	}	
 }
