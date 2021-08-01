@@ -75,9 +75,11 @@ export default props => {
 						<Input type="checkbox" label={`Remember me`} name="remember" />
 					</Col>
 					<Col size="6">
+					{!props.noForgot && (
 						<a href="/forgot" className="forgot-password-link">
 							{`I forgot my password`}
 						</a>
+					)}
 					</Col>
 				</Row>
 			</div>
