@@ -206,7 +206,7 @@ function connect(){
 	}
 	
 	// Fire up the websocket:
-	var sk = new WebSocket('ws://localhost:5051/'); // (global.wsHost || global.apiHost || global.location.origin).replace("http", "ws") + "/live-websocket/");
+	var sk = new WebSocket(global.wsUrl);
 	sk.binaryType = "arraybuffer";
 	ws = sk;
 	setPing();
