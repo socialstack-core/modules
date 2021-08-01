@@ -1152,7 +1152,7 @@ namespace Api.Pages
 			}
 			
 		}
-		
+
 		/// <summary>
 		/// Generates the base HTML for the given site relative url.
 		/// </summary>
@@ -1160,8 +1160,9 @@ namespace Api.Pages
 		/// <param name="path"></param>
 		/// <param name="response"></param>
 		/// <param name="compress"></param>
+		/// <param name="searchQuery"></param>
 		/// <returns></returns>
-		public async ValueTask BuildPage(Context context, string path, HttpResponse response, bool compress = true)
+		public async ValueTask BuildPage(Context context, string path, Microsoft.AspNetCore.Http.QueryString searchQuery, HttpResponse response, bool compress = true)
 		{
 			response.ContentType = "text/html";
 			response.Headers["Cache-Control"] = "no-store";
@@ -1171,7 +1172,7 @@ namespace Api.Pages
 				response.Headers["Content-Encoding"] = "gzip";
 			}
 
-			var pageAndTokens = await _pages.GetPage(context, path);
+			var pageAndTokens = await _pages.GetPage(context, path, searchQuery, true);
 
 			if (pageAndTokens.RedirectTo != null)
 			{

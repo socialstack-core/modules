@@ -173,7 +173,7 @@ namespace Api.Pages
 		/// <summary>
 		/// Get the page to use for the given URL.
 		/// </summary>
-		public async ValueTask<PageWithTokens> GetPage(Context context, string url, bool return404IfNotFound = true)
+		public async ValueTask<PageWithTokens> GetPage(Context context, string url, Microsoft.AspNetCore.Http.QueryString searchQuery, bool return404IfNotFound = true)
 		{
 			if (_urlLookupCache == null || _urlLookupCache.Length < context.LocaleId || _urlLookupCache[context.LocaleId - 1] == null)
 			{
@@ -182,7 +182,7 @@ namespace Api.Pages
 
 			var cache = _urlLookupCache[context.LocaleId - 1];
 
-			var pageInfo = await cache.GetPage(context, url);
+			var pageInfo = await cache.GetPage(context, url, searchQuery);
 
 			if (pageInfo.Page == null && return404IfNotFound)
 			{

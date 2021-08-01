@@ -50,7 +50,7 @@ namespace Api.Pages
 			var context = await Request.GetContext();
 
 			// we first need to get the pageAndTokens
-			var pageAndTokens = await _pageService.GetPage(context, pageDetails.Url);
+			var pageAndTokens = await _pageService.GetPage(context, pageDetails.Url, Microsoft.AspNetCore.Http.QueryString.Empty);
 
             Response.ContentType = "application/json";
 			await _htmlService.RenderState(context, pageAndTokens, pageDetails.Url, Response.Body);

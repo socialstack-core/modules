@@ -255,10 +255,11 @@ namespace Api.Pages
 		/// </summary>
 		/// <param name="context"></param>
 		/// <param name="url"></param>
+		/// <param name="searchQuery">Optional, Including the ? at the start</param>
 		/// <returns></returns>
-		public async ValueTask<PageWithTokens> GetPage(Context context, string url)
-		{
-			url = url.Split('?')[0].Trim();
+		public async ValueTask<PageWithTokens> GetPage(Context context, string url, Microsoft.AspNetCore.Http.QueryString searchQuery)
+		{	
+			url = url.Trim();
 			if (url.Length != 0 && url[0] == '/')
 			{
 				url = url.Substring(1);
@@ -268,7 +269,10 @@ namespace Api.Pages
 			{
 				url = url.Substring(0, url.Length - 1);
 			}
-
+			
+			var origUrl = url;
+			url = url.Split('?')[0]; // Just in case
+			
 			var curNode = rootPage;
 
 			if (curNode == null)
@@ -379,7 +383,8 @@ namespace Api.Pages
 						Page = null,
 						TokenValues = null,
 						TokenNamesJson = "null",
-						RedirectTo = url == "login" ? "/" : "/login?then=" + System.Web.HttpUtility.UrlEncode("/" + url)
+						RedirectTo = url == "login" ? "/" : "/login?then=" + 
+							System.Web.HttpUtility.UrlEncode(searchQuery.HasValue ? "/" + origUrl + searchQuery.Value : "/" + origUrl)
 					};
 				}
 
