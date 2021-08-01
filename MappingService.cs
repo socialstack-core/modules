@@ -536,7 +536,29 @@ namespace Api.Startup
 
 			return false;
 		}
-			
+
+		/// <summary>
+		/// Gets the index for source values.
+		/// </summary>
+		/// <returns></returns>
+		public NonUniqueIndex<Mapping<SRC_ID, TARG_ID>, SRC_ID> GetSourceIndex()
+		{
+			if (_cache != null && _cacheIndex == null)
+			{
+
+				var cache = GetCacheForLocale(1);
+
+				if (cache != null)
+				{
+					// It's a cached mapping type.
+					// Pre-obtain index ref now:
+					_cacheIndex = cache.GetIndex<SRC_ID>(srcIdFieldName) as NonUniqueIndex<Mapping<SRC_ID, TARG_ID>, SRC_ID>;
+				}
+			}
+
+			return _cacheIndex;
+		}
+
 		/// <summary>
 		/// Gets a mapping by the src and target IDs.
 		/// </summary>
