@@ -6,7 +6,7 @@ import Alert from 'UI/Alert';
 import logout from 'UI/Functions/Logout';
 import getRef from 'UI/Functions/GetRef';
 import logo from './logo.png';
-import { useSession, useRouter } from 'UI/Session';
+import { useSession, useRouter, useTheme } from 'UI/Session';
 import Dropdown from 'UI/Dropdown';
 
 export default props => {
@@ -14,6 +14,7 @@ export default props => {
 	const { session, setSession } = useSession();
 	const { pageState, setPage } = useRouter();
 	const [menuOpen, setMenuOpen ] = React.useState(false);
+	const { adminLogoRef } = useTheme();
 	var { url } = pageState;
 	
 	
@@ -58,7 +59,7 @@ export default props => {
 					<button onClick={() => setMenuOpen(!menuOpen)}><i className="fa fa-bars" /></button>
 				</div>
 				<div className="logo col-4">
-					<a href='/en-admin/'>{getRef(logo, {size: '80'})}</a>
+					<a href='/en-admin/'>{getRef(adminLogoRef || logo, {attribs: {height: '38'}})}</a>
 				</div>
 				<div className="user col-4">
 					<Dropdown className="logged-user" label={dropdownLabelJsx} variant="link">
