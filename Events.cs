@@ -1,7 +1,7 @@
 using Api.WebSockets;
 using Api.Permissions;
 using Newtonsoft.Json.Linq;
-
+using Api.SocketServerLibrary;
 
 namespace Api.Eventing
 {
@@ -34,6 +34,11 @@ namespace Api.WebSockets
 	/// </summary>
 	public class WebSocketEventGroup : Eventing.EventGroupCore<AutoService, uint>
 	{
+
+		/// <summary>
+		/// Before a WS server is about to start. Use this to add custom opcodes.
+		/// </summary>
+		public Api.Eventing.EventHandler<Server<WebSocketClient>> BeforeStart;
 
 		/// <summary>
 		/// A WS connected. This is before their identity is known. The context is always an anonymous one here.

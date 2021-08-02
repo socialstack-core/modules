@@ -46,7 +46,7 @@ namespace Api.WebSockets
 		/// <returns></returns>
 		public UserInRoom GetInNetworkRoom(NetworkRoom room)
 		{
-			if (room.IsEmpty)
+			if (room == null || room.IsEmpty)
 			{
 				// The room is known to be empty. The user can't be in it.
 				return null;
@@ -67,7 +67,31 @@ namespace Api.WebSockets
 
 			return null;
 		}
-		
+
+		/// <summary>
+		/// Gets the UserInRoom for the given custom ID. 
+		/// Can only be obtained if such an ID was actually set in the first place.
+		/// </summary>
+		/// <param name="id"></param>
+		/// <returns></returns>
+		public UserInRoom GetRoomById(uint id)
+		{
+			var current = FirstRoom;
+
+			// Expects that users will be in very few rooms at once.
+			while (current != null)
+			{
+				if (current.CustomId == id)
+				{
+					return current;
+				}
+
+				current = current.NextForClient;
+			}
+
+			return null;
+		}
+
 		/// <summary>
 		/// Called when the client dc's (either intentionally or otherwise).
 		/// </summary>
@@ -111,18 +135,27 @@ namespace Api.WebSockets
 
 			await Events.WebSocket.AfterUser.Dispatch(context, this);
 
-#warning todo - personal room
 			if (newId != prevUserId)
 			{
 				if (prevUserId != 0)
 				{
 					// Remove from user personal room.
+					var personalRoom = WebSocketService.PersonalRooms.GetRoom(prevUserId);
 
+					var roomRef = GetInNetworkRoom(personalRoom);
+
+					if (roomRef != null)
+					{
+						roomRef.Remove();
+					}
 				}
 
 				if(newId != 0)
 				{
 					// Add to user personal room.
+					var personalRoom = WebSocketService.PersonalRooms.GetOrCreateRoom(newId);
+
+					await personalRoom.Add(this);
 				}
 			}
 

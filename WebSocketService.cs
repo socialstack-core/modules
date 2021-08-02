@@ -16,6 +16,7 @@ using Newtonsoft.Json.Serialization;
 using System.Reflection;
 using Api.SocketServerLibrary;
 using Api.Configuration;
+using Api.ContentSync;
 
 namespace Api.WebSockets
 {
@@ -29,25 +30,51 @@ namespace Api.WebSockets
 
 		private readonly ContextService _contextService;
 		private readonly int _userContentTypeId;
+		/// <summary>
+		/// The set of personal rooms.
+		/// </summary>
+		public NetworkRoomSet<User, uint> PersonalRooms;
 
 		/// <summary>
 		/// Instanced automatically.
 		/// </summary>
-		public WebSocketService(ContextService contextService)
+		public WebSocketService(ContextService contextService, UserService userService, ContentSyncService contentSync)
 		{
 			_contextService = contextService;
 			_userContentTypeId = ContentTypes.GetId(typeof(User));
 
-			Start();
+			Task.Run(async () => {
+				await Start(userService, contentSync);
+			});
 		}
 
 		private Server<WebSocketClient> wsServer;
 
 		/// <summary>
+		/// Sends the given message to the given user, on all their connected devices.
+		/// </summary>
+		/// <param name="id"></param>
+		/// <param name="message"></param>
+		public void SendToUser(uint id, Writer message)
+		{
+			// Send to the given room:
+			PersonalRooms.Send(id, message);
+		}
+
+		/// <summary>
 		/// Starts the ws service.
 		/// </summary>
-		public void Start()
+		public async ValueTask Start(UserService userService, ContentSyncService contentSync)
 		{
+			// Create personal room set:
+			var personalRoomMap = await MappingTypeEngine.GetOrGenerate(
+					userService,
+					Services.Get<ClusteredServerService>(),
+					"PersonalRoomServers"
+				) as MappingService<uint, uint>;
+
+			PersonalRooms = new NetworkRoomSet<User, uint>(userService, personalRoomMap, contentSync);
+
 			// Start public bolt server:
 			var portNumber = AppSettings.GetInt32("WebsocketPort", AppSettings.GetInt32("Port", 5000) + 1);
 
@@ -105,9 +132,6 @@ namespace Api.WebSockets
 					return;
 				}
 
-#warning disabled
-
-				/*
 				var type = jToken.Value<string>();
 				var handled = false;
 				JArray jArray = null;
@@ -138,6 +162,7 @@ namespace Api.WebSockets
 						}
 						await client.SetContext(ctx);
 						break;
+					/*
 					case "+":
 						// Adds a single listener with an optional filter. id required.
 						name = message["n"].Value<string>();
@@ -188,6 +213,7 @@ namespace Api.WebSockets
 						}
 
 						break;
+					*/
 					case "-":
 						// Removes a listener identified by its ID.
 						handled = true;
@@ -200,7 +226,7 @@ namespace Api.WebSockets
 						}
 
 						// Get the listener by ID:
-						var listener = client.GetById(jToken.Value<int>());
+						var listener = client.GetRoomById(jToken.Value<uint>());
 
 						if (listener != null)
 						{
@@ -214,9 +240,11 @@ namespace Api.WebSockets
 				{
 					await Events.WebSocketMessage.Dispatch(client.Context, message, client, type);
 				}
-				*/
 
 			}, jsonMessageReader);
+
+			// Add any other events:
+			await Events.WebSocket.BeforeStart.Dispatch(new Context(), wsServer);
 
 			// Start it:
 			wsServer.Start();
