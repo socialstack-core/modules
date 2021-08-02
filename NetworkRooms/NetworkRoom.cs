@@ -47,8 +47,8 @@ namespace Api.ContentSync
 	/// You can also add e.g. room state by creating a parent class.
 	/// </summary>
 	public partial class NetworkRoom<T, ID> : NetworkRoom
-		where T: class, new()
-		where ID : struct, IEquatable<ID>, IConvertible
+		where T : Content<ID>, new()
+		where ID : struct, IConvertible, IEquatable<ID>, IComparable<ID>
 	{
 		/// <summary>
 		/// The ID of the content this room is for. Can be default(ID), often a 0, if there isn't any.
@@ -56,20 +56,20 @@ namespace Api.ContentSync
 		public ID Id;
 
 		/// <summary>
-		/// Context to use when creating/ removing server mappings.
+		/// The set that this room is in. Always exists.
 		/// </summary>
-		private static Context serverContext;
-
-		/// <summary>
-		/// A local copy of this servers ID.
-		/// </summary>
-		private static uint serverId;
+		public NetworkRoomSet<T, ID> ParentSet;
 
 		/// <summary>
 		/// Mapping from the source object -> cluster servers. The mapping is called NetworkRoomServers.
 		/// </summary>
-		private static MappingService<ID, uint> mappingService;
-
+		private MappingService<ID, uint> MappingService
+		{
+			get {
+				return ParentSet.RemoteServers;
+			}
+		}
+		
 		/// <summary>
 		/// First local user in this room.
 		/// </summary>
@@ -147,14 +147,14 @@ namespace Api.ContentSync
 
 			if (cacheServerList == null)
 			{
-				serverList = mappingService.GetRawCacheList(Id);
+				serverList = MappingService.GetRawCacheList(Id);
 				cacheServerList = new WeakReference<IndexLinkedList<Mapping<ID, uint>>>(serverList);
 			}
 			else
 			{
 				if (!cacheServerList.TryGetTarget(out serverList))
 				{
-					serverList = mappingService.GetRawCacheList(Id);
+					serverList = MappingService.GetRawCacheList(Id);
 
 					if (serverList != null)
 					{
@@ -201,22 +201,10 @@ namespace Api.ContentSync
 		/// Sends a message to all users in this room except the given sender.
 		/// </summary>
 		/// <returns></returns>
-		public async ValueTask Send(Writer message, WebSocketClient sender = null)
+		public void Send(Writer message, WebSocketClient sender = null)
 		{
 			SendLocally(message, sender);
 			
-			// Loop through mapping
-			if (mappingService == null)
-			{
-				serverId = Services.Get<ContentSyncService>().ServerId;
-				serverContext = new Context(1, null, 1);
-				mappingService = await MappingTypeEngine.GetOrGenerate(
-					Services.GetByContentType(typeof(T)),
-					Services.Get<ClusteredServerService>(),
-					"NetworkRoomServers"
-				) as MappingService<ID, uint>;
-			}
-
 			var remotes = GetRemoteServers();
 
 			if (remotes != null)
@@ -226,9 +214,15 @@ namespace Api.ContentSync
 				{
 					var mapping = currentRemoteServer.Current;
 
-					if (mapping != null && mapping.TargetId != serverId)
+					if (mapping != null)
 					{
 						// Send to this server by ID. Must also prepend something that allows the other server to identify the target room.
+						var server = ParentSet.ContentSync.GetServer(mapping.TargetId);
+
+						if (server != null)
+						{
+							server.Send(message);
+						}
 					}
 					currentRemoteServer = currentRemoteServer.Next;
 				}
@@ -241,17 +235,6 @@ namespace Api.ContentSync
 		/// </summary>
 		public async ValueTask<UserInRoom> AddUnchecked(WebSocketClient client)
 		{
-			if (mappingService == null)
-			{
-				serverId = Services.Get<ContentSyncService>().ServerId;
-				serverContext = new Context(1, null, 1);
-				mappingService = await MappingTypeEngine.GetOrGenerate(
-					Services.GetByContentType(typeof(T)),
-					Services.Get<ClusteredServerService>(),
-					"NetworkRoomServers"
-				) as MappingService<ID, uint>;
-			}
-
 			var block = UserInRoom<T,ID>.GetPooled();
 			block.Room = this;
 			block.Client = client;
@@ -274,7 +257,7 @@ namespace Api.ContentSync
 			if (wasEmpty)
 			{
 				// Add this server to the mapping:
-				await mappingService.CreateIfNotExists(serverContext, Id, serverId);
+				await MappingService.CreateIfNotExists(ParentSet.ServerContext, Id, ParentSet.ContentSync.ServerId);
 			}
 
 			// Add to clients room chain:
@@ -297,8 +280,8 @@ namespace Api.ContentSync
 	/// Network room enumeration cursor.
 	/// </summary>
 	public struct NetworkRoomEnum<T,ID>
-		where T : class, new()
-		where ID : struct, IEquatable<ID>, IConvertible
+		where T : Content<ID>, new()
+		where ID : struct, IConvertible, IEquatable<ID>, IComparable<ID>
 	{
 		/// <summary>
 		/// Current block.
@@ -347,6 +330,11 @@ namespace Api.ContentSync
 		public UserInRoom NextForClient;
 
 		/// <summary>
+		/// A specified ID. Often 0.
+		/// </summary>
+		public uint CustomId;
+
+		/// <summary>
 		/// The room the user is in (without its concrete type)
 		/// </summary>
 		public virtual NetworkRoom RoomBase
@@ -370,8 +358,8 @@ namespace Api.ContentSync
 	/// A particular user in a particular networkRoom as seen by this server.
 	/// </summary>
 	public class UserInRoom<T, ID>: UserInRoom
-		where T : class, new()
-		where ID : struct, IEquatable<ID>, IConvertible
+		where T : Content<ID>, new()
+		where ID : struct, IConvertible, IEquatable<ID>, IComparable<ID>
 	{
 		private const int MaxPoolCount = 10000;
 		

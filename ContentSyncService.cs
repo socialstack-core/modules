@@ -77,9 +77,9 @@ namespace Api.ContentSync
 		private Server<ContentSyncServer> SyncServer;
 		
 		/// <summary>
-		/// Servers connected to this one.
+		/// Servers connected to this one, indexed by its ID. To prevent ID allocation being wasteful, servers MUST be given ascending IDs, making this array particularly efficient.
 		/// </summary>
-		private Dictionary<uint, ContentSyncServer> RemoteServers = new Dictionary<uint, ContentSyncServer>();
+		private ContentSyncServer[] RemoteServers = new ContentSyncServer[0];
 
 		/// <summary>
 		/// The port number for contentSync to use.
@@ -480,12 +480,9 @@ namespace Api.ContentSync
 				server.Hello = false;
 
 				// Add server to set of servers that have connected:
-				server.ServerId = theirId;
-				lock (RemoteServers)
-				{
-					RemoteServers[theirId] = server;
-				}
-
+				server.Id = theirId;
+				AddRemote(server);
+				
 				// Let it know that we're happy:
 				var msg = SyncServerHandshakeResponse.Get();
 				msg.ServerId = ServerId;
@@ -507,12 +504,9 @@ namespace Api.ContentSync
 				if (!server.Hello)
 				{
 					// Hello other server! Add it to lookup:
-					server.ServerId = message.ServerId;
+					server.Id = message.ServerId;
+					AddRemote(server);
 
-					lock (RemoteServers)
-					{
-						RemoteServers[message.ServerId] = server;
-					}
 				}
 
 				Console.WriteLine("[CSync] Connected to " + message.ServerId);
@@ -555,10 +549,40 @@ namespace Api.ContentSync
 				Console.WriteLine("[CSync] Connect to " + ipAddress);
 
 				SyncServer.ConnectTo(ipAddress, serverInfo.Port, serverInfo.Id, (ContentSyncServer s) => {
-					s.ServerId = serverInfo.Id;
+					s.Id = serverInfo.Id;
 				});
 			}
 
+		}
+
+		/// <summary>
+		/// Gets the given server. Returns null if it is "this".
+		/// </summary>
+		/// <param name="id"></param>
+		/// <returns></returns>
+		public ContentSyncServer GetServer(uint id)
+		{
+			if (id == Self.Id)
+			{
+				return null;
+			}
+			return RemoteServers[id - 1];
+		}
+
+		private void AddRemote(ContentSyncServer server)
+		{
+			lock (remoteServerLock)
+			{
+				if (server.Id > RemoteServers.Length)
+				{
+					// Must resize it.
+					// This array benefits most from not having any spaces. 
+					// I.e. if it resizes a bunch of times during startup, it's less of a drain than constantly iterating over gaps.
+					Array.Resize(ref RemoteServers, (int)server.Id);
+				}
+			}
+
+			RemoteServers[server.Id - 1] = server;
 		}
 
 		/// <summary>
@@ -570,16 +594,21 @@ namespace Api.ContentSync
 		/// The clustered server representing this specific server. Has IP addresses setup and ready.
 		/// </summary>
 		public ClusteredServer Self;
-		
+
+		private object remoteServerLock = new object();
+
 		/// <summary>
 		/// Removes the given server from the lookups.
 		/// </summary>
 		/// <param name="server"></param>
 		public void RemoveServer(ContentSyncServer server)
 		{
-			lock (RemoteServers)
+			lock (remoteServerLock)
 			{
-				RemoteServers.Remove(server.ServerId);
+				if (RemoteServers.Length >= server.Id)
+				{
+					RemoteServers[server.Id - 1] = null;
+				}
 			}
 		}
 
@@ -632,50 +661,49 @@ namespace Api.ContentSync
 				// Start creating the sync message. This is much the same as what Message does internally when sending generic messages.
 				// We just require some custom handling here to handle the type-within-a-message scenario.
 
-				/*
+				var writer = Writer.GetPooled();
+				writer.Start(basicHeader);
+				var firstBuffer = writer.FirstBuffer.Bytes;
+				firstBuffer[0] = 21;
+				writer.WriteCompressed(ctx.LocaleId);
+				writer.Write(nameBytes);
+				boltIO.Write((INST_T)src, writer);
+
+				// Write the length of the JSON to the 3 bytes at the start:
+				var msgLength = (uint)(writer.Length - 5);
+				firstBuffer[1] = (byte)msgLength;
+				firstBuffer[2] = (byte)(msgLength >> 8);
+				firstBuffer[3] = (byte)(msgLength >> 16);
+				firstBuffer[4] = (byte)(msgLength >> 24);
+
 				// Mappings don't have a network room.
 				if (svc.NetworkRooms != null)
 				{
-					var room = svc.NetworkRooms.GetRoom(src);
-
-					if (room != null)
-					{
-						// Also send it to any network rooms (locally).
-						room.SendLocally(writer);
-					}
+					svc.NetworkRooms.SendLocally(src, writer);
 				}
-				*/
 				
 				try
 				{
 					// Tell every server about it:
-					foreach (var kvp in RemoteServers)
+					var set = RemoteServers;
+
+					for (var i = 0; i < set.Length; i++)
 					{
-						var server = kvp.Value;
-							
-						if (Verbose){
-							Console.WriteLine("[Create " + typeof(T).Name + "]=>" + server.ServerId);
+						var server = set[i];
+
+						if (server == null)
+						{
+							continue;
 						}
 
-						var writer = Writer.GetPooled();
-						writer.Start(basicHeader);
-						var firstBuffer = writer.FirstBuffer.Bytes;
-						firstBuffer[0] = 21;
-						writer.WriteCompressed(ctx.LocaleId);
-						writer.Write(nameBytes);
-						boltIO.Write((INST_T)src, writer);
-
-						// Write the length of the JSON to the 3 bytes at the start:
-						var msgLength = (uint)(writer.Length - 5);
-						firstBuffer[1] = (byte)msgLength;
-						firstBuffer[2] = (byte)(msgLength >> 8);
-						firstBuffer[3] = (byte)(msgLength >> 16);
-						firstBuffer[4] = (byte)(msgLength >> 24);
+						if (Verbose){
+							Console.WriteLine("[Create " + typeof(T).Name + "]=>" + server.Id);
+						}
 
 						server.Send(writer);
-						writer.Release();
 					}
 
+					writer.Release();
 				}
 				catch (Exception e)
 				{
@@ -695,51 +723,50 @@ namespace Api.ContentSync
 				// Start creating the sync message. This is much the same as what Message does internally when sending generic messages.
 				// We just require some custom handling here to handle the type-within-a-message scenario.
 
-/*
+				var writer = Writer.GetPooled();
+				writer.Start(basicHeader);
+				var firstBuffer = writer.FirstBuffer.Bytes;
+				firstBuffer[0] = 22;
+				writer.WriteCompressed(ctx.LocaleId);
+				writer.Write(nameBytes);
+				boltIO.Write((INST_T)src, writer);
+
+				// Write the length of the JSON to the 3 bytes at the start:
+				var msgLength = (uint)(writer.Length - 5);
+				firstBuffer[1] = (byte)msgLength;
+				firstBuffer[2] = (byte)(msgLength >> 8);
+				firstBuffer[3] = (byte)(msgLength >> 16);
+				firstBuffer[4] = (byte)(msgLength >> 24);
+				
 				// Mappings don't have a network room.
 				if (svc.NetworkRooms != null)
 				{
-					var room = svc.NetworkRooms.GetRoom(src);
-
-					if (room != null)
-					{
-						// Also send it to any network rooms (locally).
-						room.SendLocally(writer);
-					}
+					svc.NetworkRooms.SendLocally(src, writer);
 				}
-*/
 
 				try
 				{
 					// Tell every server about it:
-					foreach (var kvp in RemoteServers)
-					{
-						var server = kvp.Value;
+					var set = RemoteServers;
 
+					for (var i = 0; i < set.Length; i++)
+					{
+						var server = set[i];
+
+						if (server == null)
+						{
+							continue;
+						}
+					
 						if (Verbose)
 						{
-							Console.WriteLine("[Update " + typeof(T).Name + "]=>" + server.ServerId);
+							Console.WriteLine("[Update " + typeof(T).Name + "]=>" + server.Id);
 						}
 
-						var writer = Writer.GetPooled();
-						writer.Start(basicHeader);
-						var firstBuffer = writer.FirstBuffer.Bytes;
-						firstBuffer[0] = 22;
-						writer.WriteCompressed(ctx.LocaleId);
-						writer.Write(nameBytes);
-						boltIO.Write((INST_T)src, writer);
-
-						// Write the length of the JSON to the 3 bytes at the start:
-						var msgLength = (uint)(writer.Length - 5);
-						firstBuffer[1] = (byte)msgLength;
-						firstBuffer[2] = (byte)(msgLength >> 8);
-						firstBuffer[3] = (byte)(msgLength >> 16);
-						firstBuffer[4] = (byte)(msgLength >> 24);
-
 						server.Send(writer);
-						writer.Release();
 					}
 
+					writer.Release();
 				}
 				catch (Exception e)
 				{
@@ -758,51 +785,51 @@ namespace Api.ContentSync
 
 				// Start creating the sync message. This is much the same as what Message does internally when sending generic messages.
 				// We just require some custom handling here to handle the type-within-a-message scenario.
-		
-		/*
+
+				var writer = Writer.GetPooled();
+				writer.Start(basicHeader);
+				var firstBuffer = writer.FirstBuffer.Bytes;
+				firstBuffer[0] = 23;
+				writer.WriteCompressed(ctx.LocaleId);
+				writer.Write(nameBytes);
+				boltIO.Write((INST_T)src, writer);
+
+				// Write the length of the JSON to the 3 bytes at the start:
+				var msgLength = (uint)(writer.Length - 5);
+				firstBuffer[1] = (byte)msgLength;
+				firstBuffer[2] = (byte)(msgLength >> 8);
+				firstBuffer[3] = (byte)(msgLength >> 16);
+				firstBuffer[4] = (byte)(msgLength >> 24);
+				
 				// Mappings don't have a network room.
 				if (svc.NetworkRooms != null)
 				{
-					var room = svc.NetworkRooms.GetRoom(src);
-
-					if (room != null)
-					{
-						// Also send it to any network rooms (locally).
-						room.SendLocally(writer);
-					}
+					svc.NetworkRooms.SendLocally(src, writer);
 				}
-*/
 
 				try
 				{
 					// Tell every server about it:
-					foreach (var kvp in RemoteServers)
-					{
-						var server = kvp.Value;
+					var set = RemoteServers;
 
+					for (var i = 0; i < set.Length; i++)
+					{
+						var server = set[i];
+
+						if (server == null)
+						{
+							continue;
+						}
+						
 						if (Verbose)
 						{
-							Console.WriteLine("[Delete " + typeof(T).Name + "]=>" + server.ServerId);
+							Console.WriteLine("[Delete " + typeof(T).Name + "]=>" + server.Id);
 						}
 
-						var writer = Writer.GetPooled();
-						writer.Start(basicHeader);
-						var firstBuffer = writer.FirstBuffer.Bytes;
-						firstBuffer[0] = 23;
-						writer.WriteCompressed(ctx.LocaleId);
-						writer.Write(nameBytes);
-						boltIO.Write((INST_T)src, writer);
-
-						// Write the length of the JSON to the 3 bytes at the start:
-						var msgLength = (uint)(writer.Length - 5);
-						firstBuffer[1] = (byte)msgLength;
-						firstBuffer[2] = (byte)(msgLength >> 8);
-						firstBuffer[3] = (byte)(msgLength >> 16);
-						firstBuffer[4] = (byte)(msgLength >> 24);
-
 						server.Send(writer);
-						writer.Release();
 					}
+
+					writer.Release();
 
 				}
 				catch (Exception e)

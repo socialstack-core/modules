@@ -24,11 +24,6 @@ namespace Api.ContentSync
 	public class ContentSyncServer : Client
 	{
 		/// <summary>
-		/// Remote server Id.
-		/// </summary>
-		public uint ServerId;
-
-		/// <summary>
 		/// Called on disconnect
 		/// </summary>
 		public override void Close()
@@ -55,7 +50,7 @@ namespace Api.ContentSync
 
 				// Send the hello.
 				// Sign our ID + their ID:
-				var signature = Services.Get<SignatureService>().Sign(syncService.ServerId + "=>" + ServerId);
+				var signature = Services.Get<SignatureService>().Sign(syncService.ServerId + "=>" + Id);
 
 				var msg = SyncServerHandshake.Get();
 				msg.ServerId = syncService.ServerId;

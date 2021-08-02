@@ -172,7 +172,7 @@ namespace Api.ContentSync
 					) as MappingService<ID, uint>;
 
 				// Create the set:
-				service.NetworkRooms = new NetworkRoomSet<T, ID>(service, mapping);
+				service.NetworkRooms = new NetworkRoomSet<T, ID>(service, mapping, contentSyncService);
 			}
 
 			if (service.Synced || service.IsMapping)
