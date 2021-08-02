@@ -109,10 +109,121 @@ function setPing(){
 
 var te8 = new TextEncoder("utf-8");
 
+class Reader{
+	
+	constructor(bytes){
+		this.bytes = new Uint8Array(bytes);
+		this.i = 0;
+	}
+	
+	next(){
+		return this.bytes[this.i++];
+	}
+	
+	readCompressed()
+	{
+		var first = this.next();
+		switch (first)
+		{
+			case 251:
+				// 2 bytes:
+				return this.readUInt16();
+			case 252:
+				// 3 bytes:
+				return this.readUInt24();
+			case 253:
+				// 4 bytes:
+				return this.readUInt32();
+			case 254:
+				// 8 bytes:
+				return this.readUInt64();
+			default:
+				return first;
+		}
+	}
+
+	readByte()
+	{
+		return this.next();
+	}
+	
+	readInt16()
+	{
+		// todo: use views
+		return this.readUInt16();
+	}
+
+	readUInt16()
+	{
+		return this.next() | (this.next() << 8);
+	}
+
+	readInt24()
+	{
+		// todo: use views
+		return this.readUInt24();
+	}
+
+	readUInt24()
+	{
+		return (this.next()) | (this.next() << 8) | (this.next() << 16);
+	}
+
+	readInt32()
+	{
+		// todo: use views
+		return this.readUInt32();
+	}
+
+	readUInt32()
+	{
+		return (this.next()) | (this.next() << 8) | (this.next() << 16) | (this.next() << 24);
+	}
+
+	readInt64()
+	{
+		// todo: use views
+		return this.readUInt64();
+	}
+
+	readUInt64()
+	{
+		return this.next() | (this.next() << 8) | (this.next() << 16) | (this.next() << 24) |
+				(this.next() << 32) | (this.next() << 40) | (this.next() << 48) | (this.next() << 56);
+	}
+	
+}
+
 class Writer{
 	
 	constructor(){
 		this.bytes = [];
+	}
+	
+	writeUInt32(value){
+		var b = this.bytes;
+		b.push(value & 255);
+		b.push((value>>8) & 255);
+		b.push((value>>16) & 255);
+		b.push((value>>24) & 255);
+	}
+	
+	writeUInt64(value){
+		var b = this.bytes;
+		b.push(value & 255);
+		b.push((value>>8) & 255);
+		b.push((value>>16) & 255);
+		b.push((value>>24) & 255);
+		b.push((value>>32) & 255);
+		b.push((value>>40) & 255);
+		b.push((value>>48) & 255);
+		b.push((value>>56) & 255);
+	}
+	
+	writeUInt16(value){
+		var b = this.bytes;
+		b.push(value & 255);
+		b.push((value>>8) & 255);
 	}
 	
 	writeCompressed(value){
@@ -142,23 +253,13 @@ class Writer{
 			
 			// Status 253 for a 4 byte num:
 			b.push(253);
-			b.push(value & 255);
-			b.push((value>>8) & 255);
-			b.push((value>>16) & 255);
-			b.push((value>>24) & 255);
+			this.writeUInt32(value);
 			
 		}else{
 			
 			// Status 254 for an 8 byte num:
 			b.push(254);
-			b.push(value & 255);
-			b.push((value>>8) & 255);
-			b.push((value>>16) & 255);
-			b.push((value>>24) & 255);
-			b.push((value>>32) & 255);
-			b.push((value>>40) & 255);
-			b.push((value>>48) & 255);
-			b.push((value>>56) & 255);
+			this.writeUInt64(value);
 			
 		}
 	}
@@ -264,6 +365,22 @@ function connect(){
 	sk.addEventListener("error", onClose);
 	
 	sk.addEventListener("message", e => {
+		if(e.data[0] != '{'){
+			// standard bolt message
+			var r = new Reader(e.data);
+			var opcode = r.readCompressed();
+			var handler = _opcodes[opcode];
+			if(handler){
+				if(handler.size){
+					r.readUInt32();
+				}
+				handler.onReceive(r);
+			}else{
+				r.readUInt32();
+			}
+			return;
+		}
+		
 		var message = JSON.parse(e.data);
 		if(!message){
 			return;
@@ -408,10 +525,22 @@ function getSocket(){
 	return ws;
 }
 
+var _opcodes = {};
+
+function registerOpcode(id, onReceive){
+	var oc = {onReceive, size: true, unregister: () => {
+		delete _opcodes[id];
+	}};
+	_opcodes[id] = oc;
+	return oc;
+}
+
 export default {
+	registerOpcode,
 	getSocket,
     addEventListener,
 	removeEventListener,
 	send,
-	Writer
+	Writer,
+	Reader
 };
