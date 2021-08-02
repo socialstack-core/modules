@@ -4,6 +4,7 @@ import {
 } from './WebRtc.js';
 
 import webRequest from 'UI/Functions/WebRequest';
+import webSocket from 'UI/Functions/WebSocket';
 
 // If more people than this in a meeting, the camera does not enable by default when more people join.
 // Still usable, but just not on by default anymore.
@@ -2232,4 +2233,33 @@ export default class HuddleClient
 
 		return this._externalVideoStream;
 	}
+}
+
+var activeRings = {};
+
+export function ring(userId){
+	if(activeRings[userId]){
+		return activeRings[userId];
+	}
+	
+	var sendRing = () => {
+		var writer = new webSocket.Writer();
+		writer.writeByte(40);
+		writer.writeUInt32(4);
+		writer.writeUInt32(parseInt(userId));
+		webSocket.send(writer);
+	}
+	
+	var ring = {
+	};
+	
+	ring.i = setInterval(sendRing, 1000);
+	
+	ring.stop = () => {
+		delete activeRings[userId];
+		clearInterval(ring.i);
+	};
+	
+	activeRings[userId] = ring;
+	return ring;
 }
