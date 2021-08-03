@@ -5,7 +5,7 @@ import * as dateTools from 'UI/Functions/DateTools';
 */
 const longMonths = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
 
-export default function FormatTime(date, format){
+export default function FormatTime(date, format, noTime = false, delimiter = null){
     if(!date){
         return '-';
     }
@@ -37,11 +37,21 @@ export default function FormatTime(date, format){
         return month + "/" + day + "/" + year + " " + hour + ":" + minute + " " + meridiem;
     }
     else if(format == "eu") {
-        return day + "-" + month + "-" + year + " " + hour + ":" + minute + " " + meridiem;
+        if(!delimiter) {
+            delimiter = "-"
+        }
+
+        var dateString = day + delimiter + month + delimiter + year;
+        
+        if(!noTime) {
+            dateString += " " + hour + ":" + minute + " " + meridiem;
+        }
+
+        return dateString;
     }
     else if (format == "eu-readable") {
         return day + " " + longMonths[month - 1] + " " + year;
-    }
+    } 
     else {
         // Defaulting to Euro, even though its listed twice.
         return day + "-" + month + "-" + year + " " + hour + ":" + minute + " " + meridiem;
