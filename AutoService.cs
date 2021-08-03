@@ -910,7 +910,7 @@ public partial class AutoService<T, ID> : AutoService
 	/// <param name="targetId"></param>
 	/// <param name="mapName"></param>
 	public async ValueTask<bool> CheckIfMappingExists<T_ID>(Context context, ID srcId, AutoService target, T_ID targetId, string mapName)
-		where T_ID : struct, IEquatable<T_ID>, IConvertible
+		where T_ID : struct, IEquatable<T_ID>, IConvertible, IComparable<T_ID>
 	{
 		// First, get the mapping service:
 		var mapping = await MappingTypeEngine.GetOrGenerate(
@@ -932,7 +932,7 @@ public partial class AutoService<T, ID> : AutoService
 	/// <param name="targetId"></param>
 	/// <param name="mapName"></param>
 	public async ValueTask<bool> DeleteMapping<T_ID>(Context context, ID srcId, AutoService target, T_ID targetId, string mapName)
-		where T_ID : struct, IEquatable<T_ID>, IConvertible
+		where T_ID : struct, IEquatable<T_ID>, IConvertible, IComparable<T_ID>
 	{
 		// First, get the mapping service:
 		var mapping = await MappingTypeEngine.GetOrGenerate(
@@ -954,7 +954,7 @@ public partial class AutoService<T, ID> : AutoService
 	/// <param name="targetId"></param>
 	/// <param name="mapName"></param>
 	public async ValueTask<bool> CreateMappingIfNotExists<T_ID>(Context context, ID srcId, AutoService target, T_ID targetId, string mapName)
-		where T_ID : struct, IEquatable<T_ID>, IConvertible
+		where T_ID : struct, IEquatable<T_ID>, IConvertible, IComparable<T_ID>
 	{
 		// First, get the mapping service:
 		var mapping = await MappingTypeEngine.GetOrGenerate(
@@ -976,7 +976,7 @@ public partial class AutoService<T, ID> : AutoService
 	/// <param name="targetIds"></param>
 	/// <param name="mapName"></param>
 	public virtual async ValueTask EnsureMapping<T_ID>(Context context, T src, AutoService target, IEnumerable<T_ID> targetIds, string mapName)
-		where T_ID : struct, IEquatable<T_ID>, IConvertible
+		where T_ID : struct, IEquatable<T_ID>, IConvertible, IComparable<T_ID>
 	{
 		// First, get the mapping service:
 		var mapping = await MappingTypeEngine.GetOrGenerate(

@@ -13,7 +13,7 @@ namespace Api.Startup
 	/// <summary>
 	/// The AutoService for mapping types.
 	/// </summary>
-	public class MappingService<SRC, TARG, SRC_ID, TARG_ID> : MappingService<SRC_ID, TARG_ID>
+	public partial class MappingService<SRC, TARG, SRC_ID, TARG_ID> : MappingService<SRC_ID, TARG_ID>
 		where SRC: Content<SRC_ID>, new()
 		where TARG : Content<TARG_ID>, new()
 		where SRC_ID: struct, IEquatable<SRC_ID>, IConvertible, IComparable<SRC_ID>
@@ -452,9 +452,9 @@ namespace Api.Startup
 	/// </summary>
 	/// <typeparam name="SRC_ID"></typeparam>
 	/// <typeparam name="TARG_ID"></typeparam>
-	public class MappingService<SRC_ID, TARG_ID> : AutoService<Mapping<SRC_ID, TARG_ID>, uint>
-		where SRC_ID : struct, IEquatable<SRC_ID>, IConvertible
-		where TARG_ID : struct, IEquatable<TARG_ID>, IConvertible
+	public partial class MappingService<SRC_ID, TARG_ID> : AutoService<Mapping<SRC_ID, TARG_ID>, uint>
+		where SRC_ID : struct, IEquatable<SRC_ID>, IConvertible, IComparable<SRC_ID>
+		where TARG_ID : struct, IEquatable<TARG_ID>, IConvertible, IComparable<TARG_ID>
 	{
 
 		/// <summary>
