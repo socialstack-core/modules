@@ -45,7 +45,19 @@ namespace Api.Invites{
 		/// </summary>
 		[JsonIgnore]
 		public string EmailAddress {get; set;}
-		
+
+		/// <summary>
+		/// A temporary first name, used only when creating an invite.
+		/// </summary>
+		[JsonIgnore]
+		public string FirstName { get; set; }
+
+		/// <summary>
+		/// A temporary last name, used only when creating an invite.
+		/// </summary>
+		[JsonIgnore]
+		public string LastName { get; set; }
+
 		/// <summary>
 		/// True if this invite has not been accepted yet.
 		/// </summary>

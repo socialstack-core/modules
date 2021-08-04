@@ -49,13 +49,13 @@ namespace Api.Invites
 				
 				// Generate a token, which will be hidden from the user except in the email/ whatever sends the invite:
 				invite.Token = RandomToken.Generate(20);
-				
-				if(!string.IsNullOrEmpty(invite.EmailAddress))
+
+				if (!string.IsNullOrEmpty(invite.EmailAddress))
 				{
 					// First, get the user. They may already exist.
 					User user = null;
-					
-					if(OnSelectUser != null)
+
+					if (OnSelectUser != null)
 					{
 						user = await OnSelectUser(context, invite.EmailAddress);
 					}
@@ -63,18 +63,23 @@ namespace Api.Invites
 					{
 						user = await users.Get(context, invite.EmailAddress);
 					}
-					
-					if(user != null && user.PasswordHash != null)
+
+					if (user != null && user.PasswordHash != null)
 					{
 						throw new PublicException("A user with that email address has an account already.", "user_exists");
 					}
-					
+
+					var fullName = (invite.FirstName != null && invite.LastName != null) ? invite.FirstName + " " + invite.LastName : null;
+
 					if(user == null)
 					{
 						// Create the user now, as a member:
 						user = await users.Create(context,
 							new User() {
-								Email = invite.EmailAddress
+								Email = invite.EmailAddress,
+								FirstName = invite.FirstName,
+								LastName = invite.LastName,
+								FullName = fullName
 							}, DataOptions.IgnorePermissions);
 					}
 					
