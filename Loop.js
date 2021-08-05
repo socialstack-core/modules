@@ -454,11 +454,50 @@ export default class Loop extends React.Component {
 		return filter;
 	}
 	
+	liveType(props){
+		// Type name:
+		var type = props.over.split('/')[0].toLowerCase();
+		var id=0;
+		
+		// If the filter is the equiv of "Id=?", it's type with the provided ID:
+		var filter = props.filter;
+		if(filter){
+			if(filter.where){
+				if(!Array.isArray(filter.where)){
+					var {where} = filter;
+					var keySet = Object.keys(where);
+					if(keySet.length == 1){
+						var firstKey = keySet[0].toLowerCase();
+						if(firstKey == 'id' && typeof where[keySet[0]] != 'object'){
+							id = parseInt(where[keySet[0]]);
+						}
+					}
+				}
+			}else if(filter.on){
+				// Mapping type instead.
+				// source_target_map_mapname.
+				var on = filter.on;
+				
+				if(!on.map){
+					console.warn("Can't go live on a mapping without the map name. You must specify map: x inside your on:{..}. Went live on all target objects instead.");
+					type = on.type;
+					id = 0;
+				}else{
+					type = (on.type + "_" + type + "_map_" + on.map);
+					id = parseInt(on.id);
+				}
+			}
+		}
+		
+		return {type, id};
+	}
+	
 	load(props, newPageIndex) {
 		if (typeof props.over == 'string') {
 			if (props.live) {
 				// Note: onLiveMessage is used to detect if the filter changed
-				webSocket.addEventListener(props.live, this.onLiveMessage, props.filter);
+				var liveInfo = this.liveType(props);
+				webSocket.addEventListener(liveInfo.type, this.onLiveMessage, liveInfo.id);
 			}
 			
 			var newState = {
