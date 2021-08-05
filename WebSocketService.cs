@@ -29,11 +29,12 @@ namespace Api.WebSockets
     {
 
 		private readonly ContextService _contextService;
+		private readonly ContentSyncService _contentSync;
 		private readonly int _userContentTypeId;
 		/// <summary>
 		/// The set of personal rooms.
 		/// </summary>
-		public NetworkRoomSet<User, uint> PersonalRooms;
+		public NetworkRoomSet<User, uint, uint> PersonalRooms;
 
 		/// <summary>
 		/// Instanced automatically.
@@ -41,6 +42,7 @@ namespace Api.WebSockets
 		public WebSocketService(ContextService contextService, UserService userService, ContentSyncService contentSync)
 		{
 			_contextService = contextService;
+			_contentSync = contentSync;
 			_userContentTypeId = ContentTypes.GetId(typeof(User));
 
 			Task.Run(async () => {
@@ -73,7 +75,7 @@ namespace Api.WebSockets
 					"PersonalRoomServers"
 				) as MappingService<uint, uint>;
 
-			PersonalRooms = new NetworkRoomSet<User, uint>(userService, personalRoomMap, contentSync);
+			PersonalRooms = new NetworkRoomSet<User, uint, uint>(userService, personalRoomMap, contentSync);
 
 			// Start public bolt server:
 			var portNumber = AppSettings.GetInt32("WebsocketPort", AppSettings.GetInt32("Port", 5000) + 1);
@@ -135,9 +137,9 @@ namespace Api.WebSockets
 				var type = jToken.Value<string>();
 				var handled = false;
 				JArray jArray = null;
-				string name;
-				int id;
-				JObject filter;
+				string typeName;
+				uint customId;
+				ulong roomId;
 
 				switch (type)
 				{
@@ -162,24 +164,13 @@ namespace Api.WebSockets
 						}
 						await client.SetContext(ctx);
 						break;
-					/*
 					case "+":
-						// Adds a single listener with an optional filter. id required.
-						name = message["n"].Value<string>();
-						id = message["i"].Value<int>();
-						filter = message["f"] as JObject; // Can be null, but is a complete filter incl. {where:..}
+						// Adds a single listener with an optional filter. custom id required.
+						typeName = message["n"].Value<string>();
+						customId = message["ci"].Value<uint>();
+						roomId = message["id"].Value<ulong>();
 
-						var listeners = GetTypeListener(name);
-
-						if (listeners != null)
-						{
-							// Add the listener now:
-							client.AddEventListener(
-								listeners,
-								filter,
-								id
-							);
-						}
+						await _contentSync.RegisterRoomClient(typeName, customId, roomId, client);
 
 						break;
 					case "+*":
@@ -199,25 +190,20 @@ namespace Api.WebSockets
 						foreach (var entry in jArray)
 						{
 							var jo = entry as JObject;
-							name = jo["n"].Value<string>();
-							listeners = GetTypeListener(name);
+							typeName = jo["n"].Value<string>();
 
-							if (listeners != null)
-							{
-								id = jo["i"].Value<int>();
-								filter = jo["f"] as JObject; // Can be null, but is a complete filter incl. {where:..}
+							customId = jo["ci"].Value<uint>();
+							roomId = jo["id"].Value<ulong>();
 
-								// Add the listener now:
-								client.AddEventListener(listeners, filter, id);
-							}
+							// Add the client now:
+							await _contentSync.RegisterRoomClient(typeName, customId, roomId, client);
 						}
 
 						break;
-					*/
 					case "-":
 						// Removes a listener identified by its ID.
 						handled = true;
-						jToken = message["i"];
+						jToken = message["ci"];
 
 						if (jToken == null || jToken.Type != JTokenType.Integer)
 						{

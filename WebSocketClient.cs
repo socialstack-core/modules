@@ -46,7 +46,7 @@ namespace Api.WebSockets
 		/// <returns></returns>
 		public UserInRoom GetInNetworkRoom(NetworkRoom room)
 		{
-			if (room == null || room.IsEmpty)
+			if (room == null || room.IsEmptyLocally)
 			{
 				// The room is known to be empty. The user can't be in it.
 				return null;
@@ -155,7 +155,7 @@ namespace Api.WebSockets
 					// Add to user personal room.
 					var personalRoom = WebSocketService.PersonalRooms.GetOrCreateRoom(newId);
 
-					await personalRoom.Add(this);
+					await personalRoom.Add(this, 0);
 				}
 			}
 
