@@ -20,6 +20,8 @@ using Api.Signatures;
 using Api.AutoForms;
 using System.Text;
 using System.Collections.Concurrent;
+using Newtonsoft.Json.Linq;
+using Api.WebSockets;
 
 namespace Api.ContentSync
 {
@@ -149,6 +151,49 @@ namespace Api.ContentSync
 		private string FileSafeName(string name)
 		{
 			return new string(name.Where(ch => !InvalidFileNameChars.Contains(ch)).ToArray());
+		}
+
+		/// <summary>
+		/// Adds a network room client.
+		/// </summary>
+		/// <param name="typeName"></param>
+		/// <param name="customId"></param>
+		/// <param name="roomId"></param>
+		/// <param name="client"></param>
+		public async ValueTask RegisterRoomClient(string typeName, uint customId, ulong roomId, WebSocketClient client)
+		{
+			// First, get the type meta:
+			if (RemoteTypes.TryGetValue(typeName, out ContentSyncTypeMeta meta))
+			{
+				// Ok - the type exists.
+				// Which room are we going for?
+				var room = meta.GetOrCreateRoom(roomId);
+
+				if (room != null)
+				{
+					FilterBase perm = null;
+
+					if (!meta.IsMapping)
+					{
+						// Get perm:
+						perm = client.Context.Role.GetGrantRule(meta.LoadCapability);
+
+						if (perm == null)
+						{
+							// They have no visibility of this type - do nothing.
+							return;
+						}
+
+						// Otherwise, ensure the cap is ready:
+						if (perm.RequiresSetup)
+						{
+							await perm.Setup();
+						}
+					}
+
+					await room.Add(client, customId, perm);
+				}
+			}
 		}
 
 		/// <summary>
@@ -619,22 +664,28 @@ namespace Api.ContentSync
 		/// <typeparam name="ID"></typeparam>
 		/// <typeparam name="INST_T"></typeparam>
 		/// <param name="svc"></param>
-		public void HandleTypeInternal<T, ID, INST_T>(AutoService<T, ID> svc)
+		/// <param name="sendToEveryServer"></param>
+		public async ValueTask AddStandardTypeInternal<T, ID, INST_T>(AutoService<T, ID> svc, bool sendToEveryServer)
 			where T : Content<ID>, new()
 			where INST_T : T, new()
 			where ID : struct, IConvertible, IEquatable<ID>, IComparable<ID>
 		{
 			// - Hook up the events which then builds the messages too
 
-			if (svc == null)
-			{
-				Console.WriteLine("[ERROR] Content type " + typeof(T)+  " is marked for sync, but has no service. " +
-					"This means it doesn't have a cache either, so syncing it doesn't gain anything. Note that you can have an AutoService without it using the DB. Ignoring this sync request.");
-				return;
-			}
+			// Get the network room mapping.
+			// This is done on type startup to ensure that it is cached and syncing.
+			var mapping = await MappingTypeEngine.GetOrGenerate(
+					svc,
+					Services.Get<ClusteredServerService>(),
+					"NetworkRoomServers"
+				) as MappingService<ID, uint>;
+
+			// Create the room set:
+			var rooms = new NetworkRoomSet<T, ID, ID>(svc, mapping, this);
+			svc.StandardNetworkRooms = rooms;
 
 			// Create the meta:
-			var meta = new ContentSyncTypeMeta<T, ID, INST_T>(svc);
+			var meta = new ContentSyncStandardMeta<T, ID, INST_T>(svc);
 
 			var name = svc.InstanceType.Name.ToLower();
 
@@ -650,12 +701,317 @@ namespace Api.ContentSync
 			// Type name buffer:
 			var nameBytes = System.Text.Encoding.UTF8.GetBytes(name);
 
-			// Add the event listeners now!
-			eventGroup.AfterCreate.AddEventListener((Context ctx, T src) =>
+			// Create is unlike update and delete for a non-mapping type.
+			// Nothing will be listening to its network room because it's just been created, 
+			// Thus it doesn't need to consider network rooms or the dont send to every sever scenario.
+			if (sendToEveryServer)
+			{
+				eventGroup.AfterCreate.AddEventListener((Context ctx, T src) =>
+				{
+					if (src == null)
+					{
+						return new ValueTask<T>(src);
+					}
+
+					// Start creating the sync message. This is much the same as what Message does internally when sending generic messages.
+					// We just require some custom handling here to handle the type-within-a-message scenario.
+
+					var writer = Writer.GetPooled();
+					writer.Start(basicHeader);
+					var firstBuffer = writer.FirstBuffer.Bytes;
+					firstBuffer[0] = 21;
+					writer.WriteCompressed(ctx.LocaleId);
+					writer.Write(nameBytes);
+					boltIO.Write((INST_T)src, writer);
+
+					// Write the length of the JSON to the 3 bytes at the start:
+					var msgLength = (uint)(writer.Length - 5);
+					firstBuffer[1] = (byte)msgLength;
+					firstBuffer[2] = (byte)(msgLength >> 8);
+					firstBuffer[3] = (byte)(msgLength >> 16);
+					firstBuffer[4] = (byte)(msgLength >> 24);
+
+					try
+					{
+						// Tell every server about it:
+						var set = RemoteServers;
+
+						for (var i = 0; i < set.Length; i++)
+						{
+							var server = set[i];
+
+							if (server == null)
+							{
+								continue;
+							}
+
+							server.Send(writer);
+						}
+
+						writer.Release();
+					}
+					catch (Exception e)
+					{
+						Console.WriteLine(e);
+					}
+					return new ValueTask<T>(src);
+				}, 1000); // Always absolutely last
+			}
+
+			eventGroup.AfterUpdate.AddEventListener(async (Context ctx, T src) =>
 			{
 				if (src == null)
 				{
-					return new ValueTask<T>(src);
+					return src;
+				}
+
+				// Get the network room:
+				// It's created just in case there is no local clients but there is remote ones.
+				NetworkRoom<T, ID, ID> netRoom;
+				NetworkRoom<T, ID, ID> globalMsgRoom = rooms.AnyUpdateRoom;
+
+				if (sendToEveryServer)
+				{
+					// Local room delivery only - get the room only if it exists; no need to instance it.
+					netRoom = rooms.GetRoom(src.Id);
+				}
+				else
+				{
+					// Room required in this scenario.
+					// We need to know if it has remote servers to send to.
+					netRoom = rooms.GetOrCreateRoom(src.Id);
+
+					if (netRoom.IsEmpty && globalMsgRoom.IsEmpty)
+					{
+						// Not sending to every server and the network room is empty. Do nothing.
+						return src;
+					}
+				}
+
+				// Start creating the sync message. This is much the same as what Message does internally when sending generic messages.
+				// We just require some custom handling here to handle the type-within-a-message scenario.
+
+				var writer = Writer.GetPooled();
+				writer.Start(basicHeader);
+				var firstBuffer = writer.FirstBuffer.Bytes;
+				firstBuffer[0] = 22;
+				writer.WriteCompressed(ctx.LocaleId);
+				writer.Write(nameBytes);
+				boltIO.Write((INST_T)src, writer);
+
+				// Write the length of the JSON to the 3 bytes at the start:
+				var msgLength = (uint)(writer.Length - 5);
+				firstBuffer[1] = (byte)msgLength;
+				firstBuffer[2] = (byte)(msgLength >> 8);
+				firstBuffer[3] = (byte)(msgLength >> 16);
+				firstBuffer[4] = (byte)(msgLength >> 24);
+
+				// Send to network room:
+				if (netRoom != null)
+				{
+					await netRoom.SendLocallyIfPermitted(src, 22);
+				}
+
+				if (globalMsgRoom != null)
+				{
+					await globalMsgRoom.SendLocallyIfPermitted(src, 22);
+				}
+
+				try
+				{
+					if (sendToEveryServer)
+					{
+						// Tell every server about it:
+						var set = RemoteServers;
+
+						for (var i = 0; i < set.Length; i++)
+						{
+							var server = set[i];
+
+							if (server == null)
+							{
+								continue;
+							}
+
+							server.Send(writer);
+						}
+					}
+					else
+					{
+						// Send only to room relevant servers:
+						netRoom.SendRemote(writer, false);
+						globalMsgRoom.SendRemote(writer, false);
+					}
+
+					writer.Release();
+				}
+				catch (Exception e)
+				{
+					Console.WriteLine(e);
+				}
+				return src;
+			}, 1000); // Always absolutely last
+
+			eventGroup.AfterDelete.AddEventListener(async (Context ctx, T src) =>
+			{
+				if (src == null)
+				{
+					return src;
+				}
+
+				// Get the network room:
+				// It's created just in case there is no local clients but there is remote ones.
+				NetworkRoom<T, ID, ID> netRoom;
+				NetworkRoom<T, ID, ID> globalMsgRoom = rooms.AnyUpdateRoom;
+
+				if (sendToEveryServer)
+				{
+					// Local room delivery only - get the room only if it exists; no need to instance it.
+					netRoom = rooms.GetRoom(src.Id);
+				}
+				else
+				{
+					// Room required in this scenario.
+					// We need to know if it has remote servers to send to.
+					netRoom = rooms.GetOrCreateRoom(src.Id);
+
+					if (netRoom.IsEmpty && globalMsgRoom.IsEmpty)
+					{
+						// Not sending to every server and the network room is empty. Do nothing.
+						return src;
+					}
+				}
+
+				// Start creating the sync message. This is much the same as what Message does internally when sending generic messages.
+				// We just require some custom handling here to handle the type-within-a-message scenario.
+
+				var writer = Writer.GetPooled();
+				writer.Start(basicHeader);
+				var firstBuffer = writer.FirstBuffer.Bytes;
+				firstBuffer[0] = 23;
+				writer.WriteCompressed(ctx.LocaleId);
+				writer.Write(nameBytes);
+				boltIO.Write((INST_T)src, writer);
+
+				// Write the length of the JSON to the 3 bytes at the start:
+				var msgLength = (uint)(writer.Length - 5);
+				firstBuffer[1] = (byte)msgLength;
+				firstBuffer[2] = (byte)(msgLength >> 8);
+				firstBuffer[3] = (byte)(msgLength >> 16);
+				firstBuffer[4] = (byte)(msgLength >> 24);
+
+				// Send to network room:
+				if (netRoom != null)
+				{
+					await netRoom.SendLocallyIfPermitted(src, 23);
+				}
+
+				if (globalMsgRoom != null)
+				{
+					await globalMsgRoom.SendLocallyIfPermitted(src, 23);
+				}
+
+				try
+				{
+					if (sendToEveryServer)
+					{
+						// Tell every server about it:
+						var set = RemoteServers;
+
+						for (var i = 0; i < set.Length; i++)
+						{
+							var server = set[i];
+
+							if (server == null)
+							{
+								continue;
+							}
+
+							server.Send(writer);
+						}
+					}
+					else
+					{
+						// Send only to room relevant servers:
+						netRoom.SendRemote(writer, false);
+						globalMsgRoom.SendRemote(writer, false);
+					}
+
+					writer.Release();
+				}
+				catch (Exception e)
+				{
+					Console.WriteLine(e);
+				}
+				return src;
+			}, 1000); // Always absolutely last
+
+		}
+
+		/// <summary>
+		/// Register a content type as an opcode.
+		/// </summary>
+		/// <typeparam name="SRC_ID"></typeparam>
+		/// <typeparam name="TARG_ID"></typeparam>
+		/// <typeparam name="INST_T"></typeparam>
+		/// <param name="svc"></param>
+		/// <param name="sendToEveryServer"></param>
+		public void AddMappingTypeInternal<SRC_ID, TARG_ID, INST_T>(MappingService<SRC_ID, TARG_ID> svc, bool sendToEveryServer)
+			where SRC_ID : struct, IEquatable<SRC_ID>, IConvertible, IComparable<SRC_ID>
+			where TARG_ID : struct, IEquatable<TARG_ID>, IConvertible, IComparable<TARG_ID>
+			where INST_T : Mapping<SRC_ID, TARG_ID>, new()
+		{
+			// - Hook up the events which then builds the messages too
+
+			// Create the room set:
+			var rooms = new NetworkRoomSet<Mapping<SRC_ID, TARG_ID>, uint, SRC_ID>(svc, null, this);
+			svc.MappingNetworkRooms = rooms;
+
+			// Create the meta:
+			var meta = new ContentSyncMappingdMeta<SRC_ID, TARG_ID, INST_T>(svc);
+
+			var name = svc.InstanceType.Name.ToLower();
+
+			RemoteTypes[name] = meta;
+
+			// Get the event group:
+			var eventGroup = svc.EventGroup;
+
+			// Same as the generic message handler - opcode + 4 byte size.
+			var basicHeader = new byte[5];
+			var boltIO = meta.ReaderWriter;
+
+			// Type name buffer:
+			var nameBytes = System.Text.Encoding.UTF8.GetBytes(name);
+
+			// Add the event listeners now!
+			eventGroup.AfterCreate.AddEventListener(async (Context ctx, Mapping<SRC_ID, TARG_ID> src) =>
+			{
+				if (src == null)
+				{
+					return src;
+				}
+
+				// Get the network room:
+				// It's created just in case there is no local clients but there is remote ones.
+				NetworkRoom<Mapping<SRC_ID, TARG_ID>, uint, SRC_ID> netRoom;
+
+				if (sendToEveryServer)
+				{
+					// Local room delivery only - get the room only if it exists; no need to instance it.
+					netRoom = rooms.GetRoom(src.SourceId);
+				}
+				else
+				{
+					// Room required in this scenario.
+					// We need to know if it has remote servers to send to.
+					netRoom = rooms.GetOrCreateRoom(src.SourceId);
+
+					if (netRoom.IsEmpty)
+					{
+						// Not sending to every server and the network room is empty. Do nothing.
+						return src;
+					}
 				}
 
 				// Start creating the sync message. This is much the same as what Message does internally when sending generic messages.
@@ -676,31 +1032,35 @@ namespace Api.ContentSync
 				firstBuffer[3] = (byte)(msgLength >> 16);
 				firstBuffer[4] = (byte)(msgLength >> 24);
 
-				// Mappings don't have a network room.
-				if (svc.NetworkRooms != null)
+				// Send to network room:
+				if (netRoom != null)
 				{
-					svc.NetworkRooms.SendLocally(src, writer);
+					await netRoom.SendLocallyIfPermitted(src, 21);
 				}
-				
+
 				try
 				{
-					// Tell every server about it:
-					var set = RemoteServers;
-
-					for (var i = 0; i < set.Length; i++)
+					if (sendToEveryServer)
 					{
-						var server = set[i];
+						// Tell every server about it:
+						var set = RemoteServers;
 
-						if (server == null)
+						for (var i = 0; i < set.Length; i++)
 						{
-							continue;
-						}
+							var server = set[i];
 
-						if (Verbose){
-							Console.WriteLine("[Create " + typeof(T).Name + "]=>" + server.Id);
-						}
+							if (server == null)
+							{
+								continue;
+							}
 
-						server.Send(writer);
+							server.Send(writer);
+						}
+					}
+					else
+					{
+						// Send only to room relevant servers:
+						netRoom.SendRemote(writer, false);
 					}
 
 					writer.Release();
@@ -709,15 +1069,36 @@ namespace Api.ContentSync
 				{
 					Console.WriteLine(e);
 				}
-
-				return new ValueTask<T>(src);
+				return src;
 			}, 1000); // Always absolutely last
 
-			eventGroup.AfterUpdate.AddEventListener((Context ctx, T src) =>
+			eventGroup.AfterUpdate.AddEventListener(async (Context ctx, Mapping<SRC_ID, TARG_ID> src) =>
 			{
 				if (src == null)
 				{
-					return new ValueTask<T>(src);
+					return src;
+				}
+
+				// Get the network room:
+				// It's created just in case there is no local clients but there is remote ones.
+				NetworkRoom<Mapping<SRC_ID, TARG_ID>, uint, SRC_ID> netRoom;
+
+				if (sendToEveryServer)
+				{
+					// Local room delivery only - get the room only if it exists; no need to instance it.
+					netRoom = rooms.GetRoom(src.SourceId);
+				}
+				else
+				{
+					// Room required in this scenario.
+					// We need to know if it has remote servers to send to.
+					netRoom = rooms.GetOrCreateRoom(src.SourceId);
+
+					if (netRoom.IsEmpty)
+					{
+						// Not sending to every server and the network room is empty. Do nothing.
+						return src;
+					}
 				}
 
 				// Start creating the sync message. This is much the same as what Message does internally when sending generic messages.
@@ -737,33 +1118,36 @@ namespace Api.ContentSync
 				firstBuffer[2] = (byte)(msgLength >> 8);
 				firstBuffer[3] = (byte)(msgLength >> 16);
 				firstBuffer[4] = (byte)(msgLength >> 24);
-				
-				// Mappings don't have a network room.
-				if (svc.NetworkRooms != null)
+
+				// Send to network room:
+				if (netRoom != null)
 				{
-					svc.NetworkRooms.SendLocally(src, writer);
+					await netRoom.SendLocallyIfPermitted(src, 22);
 				}
 
 				try
 				{
-					// Tell every server about it:
-					var set = RemoteServers;
-
-					for (var i = 0; i < set.Length; i++)
+					if (sendToEveryServer)
 					{
-						var server = set[i];
+						// Tell every server about it:
+						var set = RemoteServers;
 
-						if (server == null)
+						for (var i = 0; i < set.Length; i++)
 						{
-							continue;
-						}
-					
-						if (Verbose)
-						{
-							Console.WriteLine("[Update " + typeof(T).Name + "]=>" + server.Id);
-						}
+							var server = set[i];
 
-						server.Send(writer);
+							if (server == null)
+							{
+								continue;
+							}
+
+							server.Send(writer);
+						}
+					}
+					else
+					{
+						// Send only to room relevant servers:
+						netRoom.SendRemote(writer, false);
 					}
 
 					writer.Release();
@@ -772,15 +1156,36 @@ namespace Api.ContentSync
 				{
 					Console.WriteLine(e);
 				}
-
-				return new ValueTask<T>(src);
+				return src;
 			}, 1000); // Always absolutely last
 
-			eventGroup.AfterDelete.AddEventListener((Context ctx, T src) =>
+			eventGroup.AfterDelete.AddEventListener(async (Context ctx, Mapping<SRC_ID, TARG_ID> src) =>
 			{
 				if (src == null)
 				{
-					return new ValueTask<T>(src);
+					return src;
+				}
+
+				// Get the network room:
+				// It's created just in case there is no local clients but there is remote ones.
+				NetworkRoom<Mapping<SRC_ID, TARG_ID>, uint, SRC_ID> netRoom;
+
+				if (sendToEveryServer)
+				{
+					// Local room delivery only - get the room only if it exists; no need to instance it.
+					netRoom = rooms.GetRoom(src.SourceId);
+				}
+				else
+				{
+					// Room required in this scenario.
+					// We need to know if it has remote servers to send to.
+					netRoom = rooms.GetOrCreateRoom(src.SourceId);
+
+					if (netRoom.IsEmpty)
+					{
+						// Not sending to every server and the network room is empty. Do nothing.
+						return src;
+					}
 				}
 
 				// Start creating the sync message. This is much the same as what Message does internally when sending generic messages.
@@ -800,44 +1205,45 @@ namespace Api.ContentSync
 				firstBuffer[2] = (byte)(msgLength >> 8);
 				firstBuffer[3] = (byte)(msgLength >> 16);
 				firstBuffer[4] = (byte)(msgLength >> 24);
-				
-				// Mappings don't have a network room.
-				if (svc.NetworkRooms != null)
+
+				// Send to network room:
+				if (netRoom != null)
 				{
-					svc.NetworkRooms.SendLocally(src, writer);
+					await netRoom.SendLocallyIfPermitted(src, 23);
 				}
 
 				try
 				{
-					// Tell every server about it:
-					var set = RemoteServers;
-
-					for (var i = 0; i < set.Length; i++)
+					if (sendToEveryServer)
 					{
-						var server = set[i];
+						// Tell every server about it:
+						var set = RemoteServers;
 
-						if (server == null)
+						for (var i = 0; i < set.Length; i++)
 						{
-							continue;
-						}
-						
-						if (Verbose)
-						{
-							Console.WriteLine("[Delete " + typeof(T).Name + "]=>" + server.Id);
-						}
+							var server = set[i];
 
-						server.Send(writer);
+							if (server == null)
+							{
+								continue;
+							}
+
+							server.Send(writer);
+						}
+					}
+					else
+					{
+						// Send only to room relevant servers:
+						netRoom.SendRemote(writer, false);
 					}
 
 					writer.Release();
-
 				}
 				catch (Exception e)
 				{
 					Console.WriteLine(e);
 				}
-
-				return new ValueTask<T>(src);
+				return src;
 			}, 1000); // Always absolutely last
 
 		}
@@ -859,17 +1265,41 @@ namespace Api.ContentSync
 		/// Informs CSync to start syncing the given type as the given opcode.
 		/// </summary>
 		/// <param name="service"></param>
-		public void SyncRemoteType(AutoService service)
+		/// <param name="sendToEveryServer"></param>
+		public void SyncRemoteType(AutoService service, bool sendToEveryServer)
 		{
-			var handleTypeInternal = GetType().GetMethod(nameof(HandleTypeInternal)).MakeGenericMethod(new Type[] {
-				service.ServicedType,
-				service.IdType,
-				service.InstanceType
-			});
+			if (service.IsMapping)
+			{
+				// Mappings are handled slightly differently due to the way how they use the SourceId as the network room ID.
 
-			handleTypeInternal.Invoke(this, new object[] {
-				service
-			});
+				// Mapping<SRC_ID, TARG_ID>
+				var mappingFullArgs = service.GetType().BaseType.GetGenericArguments();
+
+				var handleTypeInternal = GetType().GetMethod(nameof(AddMappingTypeInternal)).MakeGenericMethod(new Type[] {
+					mappingFullArgs[0],
+					mappingFullArgs[1],
+					service.InstanceType
+				});
+
+				handleTypeInternal.Invoke(this, new object[] {
+					service,
+					sendToEveryServer
+				});
+
+			}
+			else
+			{
+				var handleTypeInternal = GetType().GetMethod(nameof(AddStandardTypeInternal)).MakeGenericMethod(new Type[] {
+					service.ServicedType,
+					service.IdType,
+					service.InstanceType
+				});
+
+					handleTypeInternal.Invoke(this, new object[] {
+					service,
+					sendToEveryServer
+				});
+			}
 		}
 
 	}
@@ -885,6 +1315,20 @@ namespace Api.ContentSync
 		public OpCode OpCode;
 
 		/// <summary>
+		/// Gets the load capability from the host service.
+		/// </summary>
+		public virtual Capability LoadCapability { get; }
+
+		/// <summary>
+		/// True if this is a mapping type.
+		/// </summary>
+		public virtual bool IsMapping {
+			get {
+				return false;
+			}
+		}
+
+		/// <summary>
 		/// Reads an object of this type from the given client.
 		/// </summary>
 		/// <param name="opcode"></param>
@@ -895,12 +1339,21 @@ namespace Api.ContentSync
 		public virtual void Handle(OpCode<SyncServerRemoteType>  opcode, Client client, SyncServerRemoteType remoteType, int action)
 		{
 		}
+
+		/// <summary>
+		/// Gets or creates the network room of the given ID.
+		/// </summary>
+		/// <param name="roomId"></param>
+		public virtual NetworkRoom GetOrCreateRoom(ulong roomId)
+		{
+			return null;
+		}
 	}
 
 	/// <summary>
 	/// Stores sync meta for a given type.
 	/// </summary>
-	public class ContentSyncTypeMeta<T, ID, INST_T> : ContentSyncTypeMeta
+	public class ContentSyncStandardMeta<T, ID, INST_T> : ContentSyncTypeMeta
 		where T : Content<ID>, new()
 		where INST_T : T, new()
 		where ID : struct, IConvertible, IEquatable<ID>, IComparable<ID>
@@ -913,17 +1366,35 @@ namespace Api.ContentSync
 		/// <summary>
 		/// The service for the type.
 		/// </summary>
-		public AutoService<T,ID> Service;
+		public AutoService<T, ID> Service;
 
 		private ServiceCache<T, ID> _primaryCache;
 
 		private EventHandler<T, int> _receivedEventHandler;
 
+		private Capability _loadCapability;
+
+		/// <summary>
+		/// Gets the load capability from the host service.
+		/// </summary>
+		public override Capability LoadCapability
+		{
+			get
+			{
+				if (_loadCapability == null)
+				{
+					_loadCapability = Service.EventGroup.GetLoadCapability();
+				}
+
+				return _loadCapability;
+			}
+		}
+
 		/// <summary>
 		/// Creates new type meta.
 		/// </summary>
 		/// <param name="svc"></param>
-		public ContentSyncTypeMeta(AutoService<T,ID> svc)
+		public ContentSyncStandardMeta(AutoService<T, ID> svc)
 		{
 			Service = svc;
 			ReaderWriter = TypeIOEngine.GetBolt<INST_T>();
@@ -932,60 +1403,89 @@ namespace Api.ContentSync
 			_receivedEventHandler = Service.EventGroup.Received;
 		}
 
+		/// <summary>
+		/// Gets or creates the network room of the given ID.
+		/// </summary>
+		/// <param name="roomId"></param>
+		public override NetworkRoom GetOrCreateRoom(ulong roomId)
+		{
+			// Convert roomId to ID:
+			var rId = (ID)((object)((uint)(roomId)));
+
+			return Service.StandardNetworkRooms.GetOrCreateRoom(rId);
+		}
+
 		private async ValueTask OnReceiveUpdate(int action, uint localeId, T entity)
 		{
-			// Create the context using role 1:
-			var context = new Context(localeId, null, 1);
+			try {
+				// Update local cache next:
+				var cache = Service.GetCacheForLocale(localeId);
 
-			// Update local cache next:
-			var cache = Service.GetCacheForLocale(context.LocaleId);
-
-			T raw;
-
-			if (context.LocaleId == 1)
-			{
-				// Primary locale. Entity == raw entity, and no transferring needs to happen.
-				raw = entity;
-			}
-			else
-			{
-				// Get the raw entity from the cache. We'll copy the fields from the raw object to it.
-				raw = cache.GetRaw(entity.Id);
-
-				if (raw == null)
+				// The cache will be null if this is a non-cached type.
+				// That can happen if it was identified that an object needed to be synced specifically for network rooms.
+				if (cache != null)
 				{
-					raw = new INST_T();
-				}
+					// Create the context using role 1:
+					var context = new Context(localeId, null, 1);
 
-				// Transfer fields from entity to raw, using the primary object as a source of blank fields.
-				// If fields on the raw object were changed, this makes sure they're up to date.
-				Service.PopulateRawEntityFromTarget(entity, raw, _primaryCache.Get(raw.Id));
-			}
+					T raw;
 
-			// Received the content object:
-			await _receivedEventHandler.Dispatch(context, entity, action);
-
-			if (cache != null)
-			{
-				lock (cache)
-				{
-					if (action == 1 || action == 2)
+					if (context.LocaleId == 1)
 					{
-						// Created or updated
-						cache.Add(context, entity, raw);
+						// Primary locale. Entity == raw entity, and no transferring needs to happen.
+						raw = entity;
+					}
+					else
+					{
+						// Get the raw entity from the cache. We'll copy the fields from the raw object to it.
+						raw = cache.GetRaw(entity.Id);
 
-						if (context.LocaleId == 1)
+						if (raw == null)
 						{
-							// Primary locale update - must update all other caches in case they contain content from the primary locale.
-							Service.OnPrimaryEntityChanged(entity);
+							raw = new INST_T();
+						}
+
+						// Transfer fields from entity to raw, using the primary object as a source of blank fields.
+						// If fields on the raw object were changed, this makes sure they're up to date.
+						Service.PopulateRawEntityFromTarget(entity, raw, _primaryCache.Get(raw.Id));
+					}
+
+					// Received the content object:
+					await _receivedEventHandler.Dispatch(context, entity, action);
+						
+					lock (cache)
+					{
+						if (action == 1 || action == 2)
+						{
+							// Created or updated
+							cache.Add(context, entity, raw);
+
+							if (context.LocaleId == 1)
+							{
+								// Primary locale update - must update all other caches in case they contain content from the primary locale.
+								Service.OnPrimaryEntityChanged(entity);
+							}
+						}
+						else if (action == 3)
+						{
+							// Deleted
+							cache.Remove(context, entity.Id);
 						}
 					}
-					else if (action == 3)
-					{
-						// Deleted
-						cache.Remove(context, entity.Id);
-					}
 				}
+
+				// Network room update next.
+				// The 20 is because action 1 (create) maps to opcode 21. Action 2 => 22 and action 3 => 23.
+				var room = Service.StandardNetworkRooms.GetRoom(entity.Id);
+
+				if (room != null)
+				{
+					await room.SendLocallyIfPermitted(entity, (byte)(action + 20));
+				}
+
+			}catch(Exception e)
+			{
+				Console.WriteLine("Sync non-fatal error:" + e.ToString());
 			}
 		}
 
@@ -1009,4 +1509,154 @@ namespace Api.ContentSync
 		}
 	}
 
+
+	/// <summary>
+	/// Stores sync meta for a given type.
+	/// </summary>
+	public class ContentSyncMappingdMeta<SRC_ID, TARG_ID, INST_T> : ContentSyncTypeMeta
+		where SRC_ID : struct, IEquatable<SRC_ID>, IConvertible, IComparable<SRC_ID>
+		where TARG_ID : struct, IEquatable<TARG_ID>, IConvertible, IComparable<TARG_ID>
+		where INST_T : Mapping<SRC_ID, TARG_ID>, new()
+	{
+		/// <summary>
+		/// The reader/writer.
+		/// </summary>
+		public BoltReaderWriter<INST_T> ReaderWriter;
+
+		/// <summary>
+		/// The service for the type.
+		/// </summary>
+		public MappingService<SRC_ID, TARG_ID> Service;
+
+		private ServiceCache<Mapping<SRC_ID, TARG_ID>, uint> cache;
+
+		private EventHandler<Mapping<SRC_ID, TARG_ID>, int> _receivedEventHandler;
+
+		private Context context;
+
+		private Capability _loadCapability;
+
+		/// <summary>
+		/// True if this is a mapping type.
+		/// </summary>
+		public override bool IsMapping
+		{
+			get
+			{
+				return true;
+			}
+		}
+
+		/// <summary>
+		/// Gets the load capability from the host service.
+		/// </summary>
+		public override Capability LoadCapability
+		{
+			get
+			{
+				if (_loadCapability == null)
+				{
+					_loadCapability = Service.EventGroup.GetLoadCapability();
+				}
+
+				return _loadCapability;
+			}
+		}
+		
+		/// <summary>
+		/// Creates new type meta.
+		/// </summary>
+		/// <param name="svc"></param>
+		public ContentSyncMappingdMeta(MappingService<SRC_ID, TARG_ID> svc)
+		{
+			Service = svc;
+			ReaderWriter = TypeIOEngine.GetBolt<INST_T>();
+
+			cache = Service.GetCacheForLocale(1);
+			_receivedEventHandler = Service.EventGroup.Received;
+
+			// Mappings are always locale free.
+			context = new Context(1, null, 1);
+		}
+
+		private async ValueTask OnReceiveUpdate(int action, uint localeId, INST_T entity)
+		{
+			try
+			{
+				// Update local cache next.
+
+				// The cache will be null if this is a non-cached type.
+				// That can happen if it was identified that an object needed to be synced specifically for network rooms.
+				if (cache != null)
+				{
+					Mapping<SRC_ID, TARG_ID> raw = entity;
+
+					// Received the content object:
+					await _receivedEventHandler.Dispatch(context, entity, action);
+					
+					lock (cache)
+					{
+						if (action == 1 || action == 2)
+						{
+							// Created or updated
+							cache.Add(context, entity, raw);
+									
+							// Primary locale update - must update all other caches in case they contain content from the primary locale.
+							Service.OnPrimaryEntityChanged(entity);
+						}
+						else if (action == 3)
+						{
+							// Deleted
+							cache.Remove(context, entity.Id);
+						}
+					}
+				}
+
+				// Network room update next.
+				// The 20 is because action 1 (create) maps to opcode 21. Action 2 => 22 and action 3 => 23.
+				var room = Service.MappingNetworkRooms.GetRoom(entity.SourceId);
+
+				if (room != null)
+				{
+					await room.SendLocallyIfPermitted(entity, (byte)(action + 20));
+				}
+
+			}
+			catch (Exception e)
+			{
+				Console.WriteLine("Sync non-fatal error:" + e.ToString());
+			}
+		}
+
+		/// <summary>
+		/// Gets or creates the network room of the given ID.
+		/// </summary>
+		/// <param name="roomId"></param>
+		public override NetworkRoom GetOrCreateRoom(ulong roomId)
+		{
+			// Convert roomId to ID:
+			var rId = (SRC_ID)((object)(uint)roomId);
+
+			return Service.MappingNetworkRooms.GetOrCreateRoom(rId);
+		}
+		
+		/// <summary>
+		/// Reads an object of this type from the given client.
+		/// </summary>
+		/// <param name="opcode"></param>
+		/// <param name="client"></param>
+		/// <param name="remoteType"></param>
+		/// <param name="action"></param>
+		/// <returns></returns>
+		public override void Handle(OpCode<SyncServerRemoteType> opcode, Client client, SyncServerRemoteType remoteType, int action)
+		{
+			// Read with bolt IO from the stream:
+			var obj = ReaderWriter.Read(client);
+
+			_ = OnReceiveUpdate(action, remoteType.LocaleId, obj);
+
+			// Release the message:
+			remoteType.Release();
+		}
+	}
 }

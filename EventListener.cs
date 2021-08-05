@@ -159,35 +159,19 @@ namespace Api.ContentSync
 			}
 			 */
 
-			// If it is not a mapping service then instance its network room management.
-			// That includes the network room mapping system:
-			if (!service.IsMapping)
+			if (clusteredServerService == null)
 			{
-				// Get the network room mapping.
-				// This is done on type startup to ensure that it is cached and syncing.
-				var mapping = await MappingTypeEngine.GetOrGenerate(
-						service,
-						Services.Get<ClusteredServerService>(),
-						"NetworkRoomServers"
-					) as MappingService<ID, uint>;
+				databaseService = Services.Get<DatabaseService>();
+				clusteredServerService = Services.Get<ClusteredServerService>();
 
-				// Create the set:
-				service.NetworkRooms = new NetworkRoomSet<T, ID>(service, mapping, contentSyncService);
+				// Not setup yet - hook up now.
+				await contentSyncService.Startup();
 			}
 
 			if (service.Synced || service.IsMapping)
 			{
-				if (clusteredServerService == null)
-				{
-					databaseService = Services.Get<DatabaseService>();
-					clusteredServerService = Services.Get<ClusteredServerService>();
-
-					// Not setup yet - hook up now.
-					await contentSyncService.Startup();
-				}
-
 				// Add as a remote synced type:
-				contentSyncService.SyncRemoteType(service);
+				contentSyncService.SyncRemoteType(service, true);
 
 				// Create an ID assigner for the type next.
 				var cacheConfig = service.GetCacheConfig();
@@ -222,27 +206,8 @@ namespace Api.ContentSync
 			{
 				// Ensure any network rooms are in sync.
 
-				service.EventGroup.AfterCreate.AddEventListener(async (Context c, T item) =>
-				{
-					// Broadcast the create to rooms/ servers that want it.
-
-					return item;
-				}, 1000);
-
-				service.EventGroup.AfterUpdate.AddEventListener(async (Context c, T item) =>
-				{
-					// Broadcast the update to rooms/ servers that want it.
-
-					return item;
-				}, 1000);
-
-				service.EventGroup.AfterDelete.AddEventListener((Context c, T item) =>
-				{
-					// Broadcast the delete to rooms/ servers that want it.
-
-					return new ValueTask<T>(item);
-				}, 1000);
-
+				// Add as a remote synced type:
+				contentSyncService.SyncRemoteType(service, false);
 			}
 
 		}
@@ -319,6 +284,26 @@ public partial class AutoService<T, ID>
 {
 	/// <summary>
 	/// The network room set for the given svc.
+	/// Note that this is null for mapping services - use MappingNetworkRooms on those instead, as they are indexed by SourceId.
 	/// </summary>
-	public NetworkRoomSet<T, ID> NetworkRooms;
+	public NetworkRoomSet<T, ID, ID> StandardNetworkRooms;
+}
+
+
+
+namespace Api.Startup
+{
+	/// <summary>
+	/// The AutoService for mapping types.
+	/// </summary>
+	public partial class MappingService<SRC_ID, TARG_ID>
+	{
+
+		/// <summary>
+		/// The network room set specifically for mappings.
+		/// This is indexed by SourceId.
+		/// </summary>
+		public NetworkRoomSet<Mapping<SRC_ID, TARG_ID>, uint, SRC_ID> MappingNetworkRooms;
+
+	}
 }

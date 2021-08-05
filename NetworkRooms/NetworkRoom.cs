@@ -2,6 +2,7 @@ using System;
 using System.Threading.Tasks;
 using Api.Contexts;
 using Api.Database;
+using Api.Permissions;
 using Api.Presence;
 using Api.SocketServerLibrary;
 using Api.Startup;
@@ -30,6 +31,25 @@ namespace Api.ContentSync
 		}
 
 		/// <summary>
+		/// Add if the given client is not in the room.
+		/// </summary>
+		public virtual ValueTask<UserInRoom> Add(WebSocketClient client, uint customId, FilterBase permFilter = null)
+		{
+			return new ValueTask<UserInRoom>();
+		}
+
+		/// <summary>
+		/// True if this room is empty locally
+		/// </summary>
+		public virtual bool IsEmptyLocally
+		{
+			get
+			{
+				return true;
+			}
+		}
+
+		/// <summary>
 		/// True if users joining/ leaving the room should be broadcast to other users in the room.
 		/// </summary>
 		public virtual bool ShouldBroadcastPresence
@@ -46,24 +66,25 @@ namespace Api.ContentSync
 	/// Stores information for a particular network room for this particular server only.
 	/// You can also add e.g. room state by creating a parent class.
 	/// </summary>
-	public partial class NetworkRoom<T, ID> : NetworkRoom
+	public partial class NetworkRoom<T, ID, ROOM_ID> : NetworkRoom
 		where T : Content<ID>, new()
 		where ID : struct, IConvertible, IEquatable<ID>, IComparable<ID>
+		where ROOM_ID : struct, IConvertible, IEquatable<ROOM_ID>, IComparable<ROOM_ID>
 	{
 		/// <summary>
 		/// The ID of the content this room is for. Can be default(ID), often a 0, if there isn't any.
 		/// </summary>
-		public ID Id;
+		public ROOM_ID Id;
 
 		/// <summary>
 		/// The set that this room is in. Always exists.
 		/// </summary>
-		public NetworkRoomSet<T, ID> ParentSet;
+		public NetworkRoomSet<T, ID, ROOM_ID> ParentSet;
 
 		/// <summary>
 		/// Mapping from the source object -> cluster servers. The mapping is called NetworkRoomServers.
 		/// </summary>
-		private MappingService<ID, uint> MappingService
+		private MappingService<ROOM_ID, uint> MappingService
 		{
 			get {
 				return ParentSet.RemoteServers;
@@ -73,17 +94,33 @@ namespace Api.ContentSync
 		/// <summary>
 		/// First local user in this room.
 		/// </summary>
-		public UserInRoom<T, ID> First { get; set; }
+		public UserInRoom<T, ID, ROOM_ID> First { get; set; }
 
 		/// <summary>
 		/// Last local user in this room.
 		/// </summary>
-		public UserInRoom<T, ID> Last { get; set; }
+		public UserInRoom<T, ID, ROOM_ID> Last { get; set; }
 
 		/// <summary>
 		/// True if this room is empty.
 		/// </summary>
 		public override bool IsEmpty
+		{
+			get {
+				if (First != null)
+				{
+					return false;
+				}
+
+				var remotes = GetRemoteServers();
+				return remotes == null || remotes.First == null;
+			}
+		}
+
+		/// <summary>
+		/// True if this room is empty locally.
+		/// </summary>
+		public override bool IsEmptyLocally
 		{
 			get {
 				return First == null;
@@ -93,15 +130,15 @@ namespace Api.ContentSync
 		/// <summary>
 		/// A weak reference to the cached list of server IDs.
 		/// </summary>
-		private WeakReference<IndexLinkedList<Mapping<ID, uint>>> cacheServerList;
+		private WeakReference<IndexLinkedList<Mapping<ROOM_ID, uint>>> cacheServerList;
 
 		/// <summary>
 		/// Gets a non-alloc enumeration tracker.
 		/// </summary>
 		/// <returns></returns>
-		public NetworkRoomEnum<T, ID> GetNonAllocEnumerator()
+		public NetworkRoomEnum<T, ID, ROOM_ID> GetNonAllocEnumerator()
 		{
-			return new NetworkRoomEnum<T,ID>()
+			return new NetworkRoomEnum<T,ID, ROOM_ID>()
 			{
 				Block = First
 			};
@@ -129,7 +166,7 @@ namespace Api.ContentSync
 		/// <summary>
 		/// Add if the given client is not in the room.
 		/// </summary>
-		public async ValueTask<UserInRoom> Add(WebSocketClient client)
+		public override async ValueTask<UserInRoom> Add(WebSocketClient client, uint customId, FilterBase permFilter = null)
 		{
 			var roomEntry = client.GetInNetworkRoom(this);
 
@@ -138,23 +175,34 @@ namespace Api.ContentSync
 				return roomEntry;
 			}
 			
-			return await AddUnchecked(client);
+			return await AddUnchecked(client, customId, permFilter);
 		}
 
-		private IndexLinkedList<Mapping<ID, uint>> GetRemoteServers()
+		/// <summary>
+		/// Gets the list of remote servers to to send to.
+		/// </summary>
+		/// <returns></returns>
+		public IndexLinkedList<Mapping<ROOM_ID, uint>> GetRemoteServers()
 		{
-			IndexLinkedList<Mapping<ID, uint>> serverList;
+			var ms = MappingService;
+
+			if (ms == null)
+			{
+				return null;
+			}
+
+			IndexLinkedList<Mapping<ROOM_ID, uint>> serverList;
 
 			if (cacheServerList == null)
 			{
-				serverList = MappingService.GetRawCacheList(Id);
-				cacheServerList = new WeakReference<IndexLinkedList<Mapping<ID, uint>>>(serverList);
+				serverList = ms.GetRawCacheList(Id);
+				cacheServerList = new WeakReference<IndexLinkedList<Mapping<ROOM_ID, uint>>>(serverList);
 			}
 			else
 			{
 				if (!cacheServerList.TryGetTarget(out serverList))
 				{
-					serverList = MappingService.GetRawCacheList(Id);
+					serverList = ms.GetRawCacheList(Id);
 
 					if (serverList != null)
 					{
@@ -166,6 +214,91 @@ namespace Api.ContentSync
 			return serverList;
 		}
 
+		/// <summary>
+		/// Sends the given writer to every relevant room for the given source (local delivery only).
+		/// </summary>
+		/// <param name="src"></param>
+		/// <param name="opcode"></param>
+		public async ValueTask SendLocallyIfPermitted(T src, byte opcode)
+		{
+			if (First == null)
+			{
+				return;
+			}
+
+			// Build the JSON:
+			var writer = Writer.GetPooled();
+			writer.Start(null);
+			writer.Write(opcode);
+			writer.Write((uint)0); // Temporary size
+
+			if (ParentSet.Service.IsMapping)
+			{
+				await ParentSet.Service.ToJson(ParentSet.SharedGuestContext, src, writer);
+			}
+			else
+			{
+				await ParentSet.Service.ToJson(ParentSet.SharedGuestContext, src, writer, null, "*");
+			}
+
+			// msg length:
+			var firstBuffer = writer.FirstBuffer.Bytes;
+
+			// Write the length of the JSON to the 4 bytes at the start:
+			var msgLength = (uint)(writer.Length - 5);
+			firstBuffer[1] = (byte)msgLength;
+			firstBuffer[2] = (byte)(msgLength >> 8);
+			firstBuffer[3] = (byte)(msgLength >> 16);
+			firstBuffer[4] = (byte)(msgLength >> 24);
+
+			SendLocallyIfPermitted(src, writer);
+		}
+
+		/// <summary>
+		/// Local delivery only.
+		/// </summary>
+		/// <param name="src"></param>
+		/// <param name="writer"></param>
+		/// <param name="sender"></param>
+		/// <returns></returns>
+		public void SendLocallyIfPermitted(T src, Writer writer, WebSocketClient sender = null)
+		{
+			var isIncluded = ParentSet.Service.IsMapping;
+
+			// Loop through locals
+			var current = First;
+
+			while (current != null)
+			{
+				// Send to current.
+				var next = current.Next;
+
+				if (current.Client == sender)
+				{
+					// Skip the sender.
+					current = next;
+					continue;
+				}
+
+				// Perm check:
+				if (current.LoadPermission != null && !current.LoadPermission.Match(current.Client.Context, src, isIncluded))
+				{
+					// Skip this user - they can't receive the message.
+					current = next;
+					continue;
+				}
+
+				if (!current.Client.Send(writer))
+				{
+					// client is invalid - remove it from this room.
+					current.Remove();
+				}
+
+				current = next;
+			}
+
+		}
+		
 		/// <summary>
 		/// Local delivery only.
 		/// </summary>
@@ -204,7 +337,16 @@ namespace Api.ContentSync
 		public void Send(Writer message, WebSocketClient sender = null)
 		{
 			SendLocally(message, sender);
-			
+			SendRemote(message, true);
+		}
+
+		/// <summary>
+		/// Send to remote servers only. Optionally prefixes a forward to this room header.
+		/// </summary>
+		/// <param name="message"></param>
+		/// <param name="prefix"></param>
+		public void SendRemote(Writer message, bool prefix)
+		{
 			var remotes = GetRemoteServers();
 
 			if (remotes != null)
@@ -218,6 +360,8 @@ namespace Api.ContentSync
 					{
 						// Send to this server by ID. Must also prepend something that allows the other server to identify the target room.
 						var server = ParentSet.ContentSync.GetServer(mapping.TargetId);
+
+						#warning todo add prefix if it is required
 
 						if (server != null)
 						{
@@ -233,12 +377,13 @@ namespace Api.ContentSync
 		/// <summary>
 		/// Adds the given client to the set. Does not check if the client is already in the set.
 		/// </summary>
-		public async ValueTask<UserInRoom> AddUnchecked(WebSocketClient client)
+		public async ValueTask<UserInRoom> AddUnchecked(WebSocketClient client, uint customId, FilterBase permFilter)
 		{
-			var block = UserInRoom<T,ID>.GetPooled();
+			var block = UserInRoom<T,ID, ROOM_ID>.GetPooled();
 			block.Room = this;
 			block.Client = client;
-			
+			block.LoadPermission = permFilter;
+
 			// Add to rooms user chain:
 			block.Next = null;
 
@@ -254,10 +399,19 @@ namespace Api.ContentSync
 				Last = block;
 			}
 
+			if (block.Previous != null)
+			{
+				block.Previous.Next = block;
+			}
+
 			if (wasEmpty)
 			{
 				// Add this server to the mapping:
-				await MappingService.CreateIfNotExists(ParentSet.ServerContext, Id, ParentSet.ContentSync.ServerId);
+				var ms = MappingService;
+				if (ms != null)
+				{
+					await ms.CreateIfNotExists(ParentSet.ServerContext, Id, ParentSet.ContentSync.ServerId);
+				}
 			}
 
 			// Add to clients room chain:
@@ -270,7 +424,7 @@ namespace Api.ContentSync
 			
 			block.PreviousForClient = client.LastRoom;
 			client.LastRoom = block;
-			
+			block.CustomId = customId;
 			return block;
 		}
 
@@ -279,14 +433,15 @@ namespace Api.ContentSync
 	/// <summary>
 	/// Network room enumeration cursor.
 	/// </summary>
-	public struct NetworkRoomEnum<T,ID>
+	public struct NetworkRoomEnum<T,ID, ROOM_ID>
 		where T : Content<ID>, new()
 		where ID : struct, IConvertible, IEquatable<ID>, IComparable<ID>
+		where ROOM_ID : struct, IConvertible, IEquatable<ROOM_ID>, IComparable<ROOM_ID>
 	{
 		/// <summary>
 		/// Current block.
 		/// </summary>
-		public UserInRoom<T,ID> Block;
+		public UserInRoom<T,ID, ROOM_ID> Block;
 		
 		/// <summary>
 		/// True if there's more.
@@ -357,24 +512,31 @@ namespace Api.ContentSync
 	/// <summary>
 	/// A particular user in a particular networkRoom as seen by this server.
 	/// </summary>
-	public class UserInRoom<T, ID>: UserInRoom
+	public class UserInRoom<T, ID, ROOM_ID> : UserInRoom
 		where T : Content<ID>, new()
 		where ID : struct, IConvertible, IEquatable<ID>, IComparable<ID>
+		where ROOM_ID : struct, IConvertible, IEquatable<ROOM_ID>, IComparable<ROOM_ID>
 	{
 		private const int MaxPoolCount = 10000;
 		
 		private static int PoolCount;
 		
-		private static UserInRoom<T, ID> FirstPooled;
+		private static UserInRoom<T, ID, ROOM_ID> FirstPooled;
 		
 		private static object PoolLock = new object();
-		
+
+		/// <summary>
+		/// The filter to use when testing if this user can load the object or not.
+		/// If it's null but they're in the room they can receive any message.
+		/// </summary>
+		public FilterBase LoadPermission;
+
 		/// <summary>
 		/// Gets a pooled UserInRoom.
 		/// </summary>
-		public static UserInRoom<T, ID> GetPooled()
+		public static UserInRoom<T, ID, ROOM_ID> GetPooled()
 		{
-			UserInRoom<T, ID> node = null;
+			UserInRoom<T, ID, ROOM_ID> node = null;
 			
 			lock(PoolLock)
 			{
@@ -388,7 +550,7 @@ namespace Api.ContentSync
 			
 			if(node == null)
 			{
-				node = new UserInRoom<T, ID>();
+				node = new UserInRoom<T, ID, ROOM_ID>();
 			}
 			
 			return node;
@@ -408,17 +570,17 @@ namespace Api.ContentSync
 		/// <summary>
 		/// The room they're in.
 		/// </summary>
-		public NetworkRoom<T, ID> Room;
+		public NetworkRoom<T, ID, ROOM_ID> Room;
 		
 		/// <summary>
 		/// Previous in the chain of user entries in the room.
 		/// </summary>
-		public UserInRoom<T, ID> Previous;
+		public UserInRoom<T, ID, ROOM_ID> Previous;
 
 		/// <summary>
 		/// Next in the chain of user entries in the room.
 		/// </summary>
-		public UserInRoom<T, ID> Next;
+		public UserInRoom<T, ID, ROOM_ID> Next;
 
 		/// <summary>
 		/// Removes this client from the room. Returns this UserInRoom node to the pool.
