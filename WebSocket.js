@@ -107,8 +107,8 @@ function setPing(){
 	
 }
 
-var te8 = new TextEncoder("utf-8");
-var de8 = new TextDecoder("utf-8");
+var te8 = null;
+var de8 = null;
 
 class Reader{
 	
@@ -281,6 +281,9 @@ class Writer{
 		if(str === null){
 			this.writeByte(0);
 			return;
+		}
+		if(!te8){
+			te8 = new TextEncoder("utf-8");
 		}
 		var buf = te8.encode(str);
 		this.writeCompressed(buf.length + 1);
@@ -558,6 +561,9 @@ function receiveJson(json, method){
 function syncUpdate(method, reader){
 	var size = reader.readUInt32();
 	var bytesArr = reader.readBytes(size);
+	if(!de8){
+		de8 = new TextDecoder("utf-8");
+	}
 	var json = de8.decode(bytesArr);
 	receiveJson(json, method);
 }
