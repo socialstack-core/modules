@@ -10,7 +10,7 @@ namespace Api.Huddles
 	/// <summary>
 	/// A Huddle
 	/// </summary>
-	public partial class Huddle : IAmLive
+	public partial class Huddle
 	{
 		/// <summary>
 		/// If there's an active activity, the time it started at.
