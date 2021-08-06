@@ -108,6 +108,7 @@ function setPing(){
 }
 
 var te8 = new TextEncoder("utf-8");
+var de8 = new TextDecoder("utf-8");
 
 class Reader{
 	
@@ -141,7 +142,15 @@ class Reader{
 				return first;
 		}
 	}
-
+	
+	readBytes(size){
+		var set = new Uint8Array(size);
+		for(var i=0;i<size;i++){
+			set[i]=this.next();
+		}
+		return set;
+	}
+	
 	readByte()
 	{
 		return this.next();
@@ -342,7 +351,7 @@ function connect(){
 			var s = messageTypes[name];
 			for(var type in s){
 				var entry = s[type];
-				set.push({n: name, f: entry.filter, i: entry.id});
+				set.push({n: name, id: entry.id, ci: entry.customId});
 			}
 			
 		}
@@ -365,56 +374,18 @@ function connect(){
 	sk.addEventListener("error", onClose);
 	
 	sk.addEventListener("message", e => {
-		if(e.data[0] != '{'){
-			// standard bolt message
-			var r = new Reader(e.data);
-			var opcode = r.readCompressed();
-			var handler = _opcodes[opcode];
-			if(handler){
-				if(handler.size){
-					r.readUInt32();
-				}
-				handler.onReceive(r);
-			}else{
+		// standard bolt message(s)
+		var r = new Reader(e.data);
+		var opcode = r.readCompressed();
+		var handler = _opcodes[opcode];
+		if(handler){
+			if(handler.size){
 				r.readUInt32();
 			}
-			return;
+			handler.onReceive(r);
+		}else{
+			r.readUInt32();
 		}
-		
-		var message = JSON.parse(e.data);
-		if(!message){
-			return;
-		}
-		
-		if(message.host){
-			if(message.reload && global.location && global.location.reload){
-				global.location.reload(true);
-			}
-			return;
-		}
-		
-		if(message.all){
-			tellAllHandlers(message);
-		}else if(message.type){
-			var handlers = messageTypes[message.type];
-			
-			if(message.entity){
-				message.entity = expandIncludes(message.entity);
-			}
-			
-			if(handlers && handlers.length){
-				for(var i=0;i<handlers.length;i++){
-					handlers[i].method(message);
-				}
-			}
-		}
-		
-		var e = document.createEvent('Event');
-		e.initEvent('websocketmessage', true, true);
-		e.message = message;
-		
-		// Dispatch the event:
-		document.dispatchEvent(e);
 	});
     
 }
@@ -432,7 +403,12 @@ function send(msg){
 
 var refId = 1;
 
-function addEventListener (type, method, filter){
+function addEventListener (type, method, id){
+	
+	if(id !== undefined && typeof id != 'number'){
+		// Change the 3rd arg to a room ID.
+		throw new Error('Old websocket event listener usage detected.');
+	}
 	
 	if(!method){
 		method = type;
@@ -443,8 +419,10 @@ function addEventListener (type, method, filter){
 		start();
 	}
 	
+	type = type.toLowerCase();
+	
 	// Already got this listener?
-	// If so, must re-add it, essentially re-registering the filter.
+	// If so, must re-add it, essentially re-registering the ID.
 	// Note that we assume the user called this because it changed - we don't check for non-change here.
 	var entry;
 	
@@ -452,14 +430,14 @@ function addEventListener (type, method, filter){
 		entry = messageTypes[type].find(mf => mf.method == method);
 		if(entry){
 			// Actually an update of existing one
-			entry.filter = filter;
+			entry.id = id;
 		}else{
-			entry = {method,filter, id: refId++};
+			entry = {method, id, customId: refId++};
 			messageTypes[type].push(entry);
 		}
 	}else{
 		typeCount++;
-		entry = {method,filter, id: refId++};
+		entry = {method,id, customId: refId++};
 		messageTypes[type] = [entry];
 	}
 	
@@ -467,7 +445,7 @@ function addEventListener (type, method, filter){
 		return;
 	}
 	
-	var msg = {type: '+', n: type, f: filter, i: entry.id};
+	var msg = {type: '+', n: type, id, ci: entry.customId};
 	
 	if(!ws){
 		connect();
@@ -484,6 +462,8 @@ function removeEventListener(type, method) {
 		type = '_all_';
 	}
 	
+	type = type.toLowerCase();
+	
 	if(!messageTypes[type]){
 		return;
 	}
@@ -496,7 +476,7 @@ function removeEventListener(type, method) {
 	messageTypes[type] = messageTypes[type].filter(a => a != entry);
 	
 	if(ws && ws.readyState == WebSocket.OPEN){
-		ws.send(getAsBuffer({type: '-', i: entry.id}));
+		ws.send(getAsBuffer({type: '-', ci: entry.id}));
 	}
 	
 	if(!messageTypes[type].length){
@@ -527,13 +507,64 @@ function getSocket(){
 
 var _opcodes = {};
 
-function registerOpcode(id, onReceive){
-	var oc = {onReceive, size: true, unregister: () => {
+function registerOpcode(id, onReceive, size){
+	var oc = {onReceive, size: size === undefined ? true : size, unregister: () => {
 		delete _opcodes[id];
 	}};
 	_opcodes[id] = oc;
 	return oc;
 }
+
+function receiveJson(json, method){
+	var message = JSON.parse(json);
+	if(!message){
+		return;
+	}
+	
+	if(message.host){
+		if(message.reload && global.location && global.location.reload){
+			global.location.reload(true);
+		}
+		return;
+	}
+	
+	if(message.all){
+		tellAllHandlers(message);
+	}else if(message.result && message.result.type){
+		var handlers = messageTypes[message.result.type.toLowerCase()];
+		
+		expandIncludes(message);
+		
+		message = {
+			entity: message.result,
+			method
+		};
+		
+		if(handlers && handlers.length){
+			for(var i=0;i<handlers.length;i++){
+				handlers[i].method(message);
+			}
+		}
+	}
+	
+	var e = document.createEvent('Event');
+	e.initEvent('websocketmessage', true, true);
+	e.message = message;
+	
+	// Dispatch the event:
+	document.dispatchEvent(e);
+}
+
+function syncUpdate(method, reader){
+	var size = reader.readUInt32();
+	var bytesArr = reader.readBytes(size);
+	var json = de8.decode(bytesArr);
+	receiveJson(json, method);
+}
+
+registerOpcode(21, reader => syncUpdate('create', reader), false);
+registerOpcode(22, reader => syncUpdate('update', reader), false);
+registerOpcode(23, reader => syncUpdate('delete', reader), false);
 
 export default {
 	registerOpcode,
