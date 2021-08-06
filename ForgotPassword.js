@@ -33,15 +33,9 @@ export default class ForgotPassword extends React.Component {
 							<Input name="email" placeholder="Email address" validate="Required" />
 						</Form>
 				]}
-				{this.props.children || 
-					<div className="form-group quicklinks">
-						<Row>
-							<div className="col-6">
-								<a href="/login">Back to login</a>
-							</div>
-						</Row>
-					</div>
-				}
+				{this.props.children || <div className="form-group">	
+					<a className = "btn btn-primary" href={this.props.loginLink || "/login"}>Back to login</a>		
+				</div>}
 		</div>;
 	}
 }
