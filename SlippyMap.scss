@@ -1,0 +1,15 @@
+.slippy-map {
+	position: relative;
+	width: 100%;
+	height: 80vh;
+	
+	.overhead-ui {
+		position: absolute;
+		top: 0;
+		
+		.zoom {
+			margin: 0.5rem;
+			display: block;
+		}
+	}
+}
