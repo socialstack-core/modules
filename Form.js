@@ -18,6 +18,17 @@ export default class Form extends React.Component {
 		this.onSubmit=this.onSubmit.bind(this);
 	}
 	
+	componentWillReceiveProps(props){
+		if(this.props.action != props.action){
+			// Different form. Clear the submit state.
+			this.setState({
+				failure: false,
+				success: false,
+				loading: false
+			});
+		}
+	}
+	
 	onSubmit(e){
 		if(!e){
 			e={
@@ -60,8 +71,9 @@ export default class Form extends React.Component {
 					loading: undefined,
 					failed: true,
 					failure: r
+				}, () => {
+					onFailed && onFailed(r,v,evt);
 				});
-				onFailed && onFailed(r,v,evt);
 			},
 			onSuccess: (r, v, evt) => {
 
@@ -73,8 +85,9 @@ export default class Form extends React.Component {
 					loading: undefined,
 					failed: false,
 					success: true
+				}, () => {
+					onSuccess && onSuccess(r,v,evt);
 				});
-				onSuccess && onSuccess(r,v,evt);
 			},
 			requestOpts
 		});
