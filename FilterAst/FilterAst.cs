@@ -1840,7 +1840,8 @@ namespace Api.Permissions{
 			else if (Operation == "not")
 			{
 				A.Emit(generator, ast);
-				generator.Emit(OpCodes.Not);
+				generator.Emit(OpCodes.Ldc_I4_0);
+				generator.Emit(OpCodes.Ceq);
 				return;
 			}
 			
@@ -1974,7 +1975,8 @@ namespace Api.Permissions{
 							generator.Emit(OpCodes.Ceq);
 						}
 					}
-					generator.Emit(OpCodes.Not);
+					generator.Emit(OpCodes.Ldc_I4_0);
+					generator.Emit(OpCodes.Ceq);
 				}
 				else if (Operation == ">=")
 				{
