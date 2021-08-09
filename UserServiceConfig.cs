@@ -1,4 +1,5 @@
 ﻿using Api.Configuration;
+using Api.Translate;
 
 namespace Api.Users
 {
@@ -21,5 +22,15 @@ namespace Api.Users
         /// Email validation required yes/no.
         /// </summary>
         public bool VerifyEmails { get; set; } = false;
+
+        /// <summary>
+        /// Message which appears when performing unique email check. Note that this text will also pass through the locale system.
+        /// </summary>
+        public string UniqueEmailMessage { get; set; } = "This email is already in use.";
+
+        /// <summary>
+        /// Message which appears when performing unique username check. Note that this text will also pass through the locale system.
+        /// </summary>
+        public string UniqueUsernameMessage { get; set; } = "This username is already in use.";
     }
 }

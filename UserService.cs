@@ -158,7 +158,7 @@ namespace Api.Users
 
 					if (usersWithUsername)
 					{
-						throw new PublicException("This username is already in use.", "username_used");
+						throw new PublicException(config.UniqueUsernameMessage, "username_used");
 					}
 				}
 
@@ -169,7 +169,7 @@ namespace Api.Users
 
 					if (usersWithEmail)
 					{
-						throw new PublicException("This email is already in use.", "email_used");
+						throw new PublicException(config.UniqueEmailMessage, "email_used");
 					}
 				}
 
@@ -178,30 +178,30 @@ namespace Api.Users
 
 			Events.User.BeforeUpdate.AddEventListener(async (Context ctx, User user) =>
 			{
-				if (user == null || string.IsNullOrEmpty(user.Username))
+				if (user == null)
                 {
 					return user;
                 }
 
-				if (config.UniqueUsernames)
+				if (config.UniqueUsernames && !string.IsNullOrEmpty(user.Username))
 				{
 					// Let's make sure the username is not in use by anyone besides this user (in case they didn't change it!).
 					var usersWithUsername = await Where("Username=? and Id!=?", DataOptions.IgnorePermissions).Bind(user.Username).Bind(user.Id).Any(ctx);
 
 					if (usersWithUsername)
 					{
-						throw new PublicException("This username is already in use.", "username_used");
+						throw new PublicException(config.UniqueUsernameMessage, "username_used");
 					}
 				}
 
-				if (config.UniqueEmails)
+				if (config.UniqueEmails && !string.IsNullOrEmpty(user.Email))
 				{
 					// Let's make sure the username is not in use by anyone besides this user (in case they didn't change it!).
 					var usersWithEmail = await Where("Email=? and Id!=?", DataOptions.IgnorePermissions).Bind(user.Email).Bind(user.Id).Any(ctx);
 
 					if (usersWithEmail)
 					{
-						throw new PublicException("This email is already in use.", "email_used");
+						throw new PublicException(config.UniqueEmailMessage, "email_used");
 					}
 				}
 
