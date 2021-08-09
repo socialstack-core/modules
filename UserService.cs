@@ -176,6 +176,9 @@ namespace Api.Users
 				return user;
 			});
 
+			var emailField = GetChangeField("Email");
+			var usernameField = GetChangeField("Username");
+
 			Events.User.BeforeUpdate.AddEventListener(async (Context ctx, User user) =>
 			{
 				if (user == null)
@@ -183,7 +186,7 @@ namespace Api.Users
 					return user;
                 }
 
-				if (config.UniqueUsernames && !string.IsNullOrEmpty(user.Username))
+				if (config.UniqueUsernames && !string.IsNullOrEmpty(user.Username) && user.HasChanged(usernameField))
 				{
 					// Let's make sure the username is not in use by anyone besides this user (in case they didn't change it!).
 					var usersWithUsername = await Where("Username=? and Id!=?", DataOptions.IgnorePermissions).Bind(user.Username).Bind(user.Id).Any(ctx);
@@ -194,8 +197,8 @@ namespace Api.Users
 					}
 				}
 
-				if (config.UniqueEmails && !string.IsNullOrEmpty(user.Email))
-				{
+				if (config.UniqueEmails && !string.IsNullOrEmpty(user.Email) && user.HasChanged(emailField))
+			{		
 					// Let's make sure the username is not in use by anyone besides this user (in case they didn't change it!).
 					var usersWithEmail = await Where("Email=? and Id!=?", DataOptions.IgnorePermissions).Bind(user.Email).Bind(user.Id).Any(ctx);
 
