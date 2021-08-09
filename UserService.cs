@@ -145,13 +145,13 @@ namespace Api.Users
 			
 			Events.User.BeforeCreate.AddEventListener(async (Context ctx, User user) =>
 			{
-				if (user == null || string.IsNullOrEmpty(user.Username))
+				if (user == null)
 				{
 					return user;
 				}
 
 				// Let's see if the username is ok.
-				if (config.UniqueUsernames)
+				if (config.UniqueUsernames && !string.IsNullOrEmpty(user.Username))
 				{
 					// Let's make sure the username is not in use.
 					var usersWithUsername = await Where("Username=?", DataOptions.IgnorePermissions).Bind(user.Username).Any(ctx);
@@ -162,7 +162,7 @@ namespace Api.Users
 					}
 				}
 
-				if (config.UniqueEmails)
+				if (config.UniqueEmails && !string.IsNullOrEmpty(user.Email))
 				{
 					// Let's make sure the username is not in use.
 					var usersWithEmail = await Where("Email=?", DataOptions.IgnorePermissions).Bind(user.Email).Any(ctx);
