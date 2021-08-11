@@ -225,7 +225,7 @@ namespace Api.Database
 			where T : Content<ID>, new()
 			where ID : struct, IConvertible, IEquatable<ID>, IComparable<ID>
 		{
-			var filterEmpty = qP.QueryA.Empty && qP.QueryB.Empty && qP.QueryA.PageSize == 0 && qP.QueryA.Offset == 0;
+			var filterEmpty = qP.QueryA.Empty && qP.QueryB.Empty && qP.QueryA.PageSize == 0 && qP.QueryA.Offset == 0 && qP.QueryA.SortField == null;
 
 			if (includeCount && (filterEmpty || Operation != SELECT))
 			{
