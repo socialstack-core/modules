@@ -94,21 +94,19 @@ export default class Carousel extends React.Component {
 		// The renderer is regularly a Canvas which performs a bunch of substitutions.
 		var Module = items.renderer;
         var padNum = 0;
-		var itemStyle;
-        var itemInternalStyle = '';
+        var itemInternalStyle = null;
 		
 		if(spacing){
 			padNum = parseInt(spacing);
 			if(!isNaN(padNum)){
-                spacing = padNum + 'px';
-                itemStyle = { margin: spacing };
+                spacing = (padNum /2) + 'px';
 			}
 		}
 
 		if (centred) {
 
             if (spacing) {
-                itemInternalStyle = { marginRight: spacing };
+                itemInternalStyle = { marginRight: spacing, marginLeft: spacing };
             }
 
 		}

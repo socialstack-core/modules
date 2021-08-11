@@ -179,11 +179,11 @@ $max_slides: 20;
             &.slider-align-first {
 
                 .content-list.content.first {
-                    margin-left: calc( (100% - 930px) / 2) !important;
+                    margin-left: calc( (100% - 946px) / 2) !important;
 
                     .content-item {
                         // TODO: account for different spacing
-                        //flex: 0 0 calc( (930px / 2) + (16px / 2));
+                        //flex: 0 0 calc( (946px / 2) + (16px / 2));
                         flex: 0 0 calc(930px + 16px);
                     }
                 }
