@@ -13,10 +13,12 @@ export default function StdOut() {
 	React.useEffect(() => {
 		var update = () => {
 			webRequest('monitoring/stdout').then(response => {
-				setLog(response.json.log.replace(/\r/gi, '').replace(/\n/gi, '<br/>'));
-				setTimeout(() => {
+				var newLog = response.json.log.replace(/\r/gi, '').replace(/\n/gi, '<br/>');
+				setLog(newLog);
+				
+				if(window.scrollY >= (window.scrollMaxY - 100)){
 					window.scroll(0,window.scrollMaxY);
-				}, 100);
+				}
 			});
 		};
 		
