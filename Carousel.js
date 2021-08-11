@@ -1,3 +1,6 @@
+import Icon from 'UI/Icon';
+
+
 export default class Carousel extends React.Component {
     constructor(props) {
         super(props);
@@ -51,6 +54,12 @@ export default class Carousel extends React.Component {
 	
 	content(){
 		return this.props.items || [];
+	}
+	
+	renderButton(left){
+		return <span className="chev-circle">
+			{left ? <Icon type='chevron-left' light/> : <Icon type='chevron-right' light/>}
+		</span>;
 	}
 	
     render() {
@@ -159,11 +168,7 @@ export default class Carousel extends React.Component {
 								<button type="button" className="slider-back" onClick={() => {
 									this.movePrevious();
 								}}>
-									{/* effectively fa-chevron-left without the icon font dependency */}
-									<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 474.133 474.133" height="1792" width="1792">
-										<path d="M346.918 435.883c11.485-11.554 11.485-30.214 0-41.768l-157-157 157-156.705c11.616-11.616 11.616-30.45 0-42.065-11.615-11.616-30.448-11.616-42.064 0L127.117 216.082c-11.486 11.554-11.486 30.214 0 41.769l177.737 177.736a29.61 29.61 0 0042.065.291z" fill="#111820" />
-									</svg>
-									<span className="sr-only">{`Back`}</span>
+									{this.renderButton(true)}
 								</button>
 							</div>
 						}
@@ -194,11 +199,7 @@ export default class Carousel extends React.Component {
 								<button type="button" className="slider-next" onClick={() => {
 									this.moveNext();
 								}}>
-									{/* effectively fa-chevron-right without the icon font dependency */}
-									<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 474.133 474.133" height="1792" width="1792">
-										<path d="M127.215 38.25c-11.485 11.555-11.485 30.214 0 41.768l157 157-157 156.706c-11.616 11.616-11.616 30.448 0 42.064 11.615 11.616 30.448 11.616 42.064 0l177.737-177.736c11.486-11.555 11.486-30.215 0-41.77L169.279 38.547a29.61 29.61 0 00-42.065-.291z" fill="#111820" />
-									</svg>
-									<span className="sr-only">{`Back`}</span>
+									{this.renderButton(false)}
 								</button>
 							</div>
 						}
