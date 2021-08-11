@@ -61,6 +61,19 @@ namespace Api.Pages
 				},
 				new Page()
 				{
+					Url = "/en-admin/stdout",
+					Title = "Server log monitoring",
+					BodyJson = @"{
+						""module"": ""Admin/Layouts/Default"",
+						""content"": [
+							{
+								""module"": ""Admin/Dashboards/Stdout""
+							}
+						]
+					}"
+				},
+				new Page()
+				{
 					Url = "/en-admin/register",
 					Title = "Create a new account",
 					BodyJson = @"{
