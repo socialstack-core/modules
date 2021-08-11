@@ -67,6 +67,11 @@ namespace Api.Startup
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static byte[] EscapedControl(byte control)
 		{
+			if (_controlMap == null)
+			{
+				GetTypeMap();
+			}
+
 			return _controlMap[control];
 		}
 

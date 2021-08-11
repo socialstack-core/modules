@@ -42,6 +42,10 @@ namespace Api.Startup
 				Console.WriteLine(e.Exception.ToString());
 			};
 			
+			// Clone stdout into error engine:
+			StdOut.Writer = new ConsoleWriter(Console.Out);
+			Console.SetOut(StdOut.Writer);
+			
 			// Next we find any EventListener classes.
 			var allTypes = typeof(EntryPoint).Assembly.DefinedTypes; 
 			
