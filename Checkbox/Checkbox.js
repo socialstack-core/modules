@@ -4,7 +4,7 @@
  */
 
 export default function Checkbox(props) {
-	var { id, className, label, onChange, onBlur, invalid, checked, disabled, solid, isSwitch } = props;
+	var { id, className, label, name, onChange, onBlur, invalid, checked, disabled, solid, isSwitch } = props;
 	
 	className = className ? className.split(" ") : [];
 
@@ -30,7 +30,7 @@ export default function Checkbox(props) {
 
 	return (
 		<div className={checkClass}>
-			<input class={inputClass} type="checkbox" id={id} 
+			<input class={inputClass} type="checkbox" name = {name} id={id} 
 				onChange={onChange}
 				onBlur={onBlur}
 				checked={checked ? "checked" : undefined} 
