@@ -44,18 +44,10 @@ export default class IconSelector extends React.Component {
         this.props.onClose && this.props.onClose();
     }
 
-    render(){
-        var {selectIcon, value, styleFilter, searchFilter} = this.state;
-
-        return <div className = "icon-selector">
-            <Modal
-                visible = {this.props.visible}
-                onClose = {() => this.closeModal()}
-                isLarge 
-                title = {"Select an icon"}
-                className={"icon-select-modal"}
-            >
-                <Spacer/>
+    renderHeader(){
+        return <div className = "row header-container">
+            <h5>Select an icon</h5>
+            <Col size = {6}>
                 <label>
                     Style
                 </label>
@@ -70,13 +62,30 @@ export default class IconSelector extends React.Component {
                     <option value = {"solid"}>Solid</option>
                     <option value = {"brands"}>Brands</option>
                 </Input>
+            </Col>
+            <Col size = {6}>
                 <label>
                     Search
                 </label>
                 <Input type = "text" name = "search" onKeyUp = {(e) => {
                     this.state.debounce.handle(e.target.value);
                 }}/>
-                <Row>
+            </Col>
+        </div>;
+    }
+
+    render(){
+        var {selectIcon, value, styleFilter, searchFilter} = this.state;
+
+        return <div className = "icon-selector">
+            <Modal
+                visible = {this.props.visible}
+                onClose = {() => this.closeModal()}
+                isLarge 
+                className={"icon-select-modal"}
+                title = {this.renderHeader()}
+            >
+                <div className = "row icon-container">
 					<Loop
                         raw
                         over = {icons}
@@ -101,7 +110,7 @@ export default class IconSelector extends React.Component {
                             }
                         }}
                     </Loop>
-                </Row>
+                </div>
             </Modal>
         </div>
     }
