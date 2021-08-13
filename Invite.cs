@@ -9,7 +9,7 @@ namespace Api.Invites{
 	/// <summary>
 	/// An invite which typically invites a user to join.
 	/// </summary>
-	public class Invite : UserCreatedContent<uint>{
+	public partial class Invite : UserCreatedContent<uint>{
 		
 		/// <summary>
 		/// The date this expires. If not specified by creator, it defaults to 48h from now.
