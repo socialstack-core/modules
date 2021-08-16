@@ -188,7 +188,7 @@ namespace Api.FFmpeg
 				if (upload.IsVideo) {
 
 					// Check if we need to probe it.
-					switch (upload.Type)
+					switch (upload.FileType)
 					{
 						case "webm":
 						case "ogg":
