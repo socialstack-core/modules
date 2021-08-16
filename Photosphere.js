@@ -13,6 +13,9 @@ try{
 
 import SphereContext from 'UI/Photosphere/SphereContext';
 
+const defaultMinFov = 30;
+const defaultMaxFov = 70;
+
 export default class Photosphere extends React.Component {
 	
 	constructor(props){
@@ -144,8 +147,8 @@ export default class Photosphere extends React.Component {
 			return;
 		}	
         var scaleFactor = 2;
-        var maxFov = this.props.maxFov || 70;
-        var minFov = this.props.minFov || 30;
+        var maxFov = this.props.maxFov || defaultMaxFov;
+        var minFov = this.props.minFov || defaultMinFov;
         this.camera.fov = Math.max(Math.min(this.camera.fov + (Math.sign(props.deltaY) * scaleFactor), maxFov), minFov);
         this.camera.updateProjectionMatrix();
 
@@ -284,9 +287,10 @@ export default class Photosphere extends React.Component {
 		// hostEle.appendChild(renderer.domElement);
 		
 		var camera = this.camera;
+		var fov = this.props.maxFov || defaultMaxFov;
 		
 		if(!camera){
-			camera = new THREE.PerspectiveCamera(70, size.w / size.h, 0.1, 100);
+			camera = new THREE.PerspectiveCamera(fov, size.w / size.h, 0.1, 100);
 			camera.rotation.order = 'YXZ';
 			this.camera = camera;
 			scene.add(camera);
