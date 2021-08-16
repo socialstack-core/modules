@@ -4,7 +4,6 @@ using System.Text;
 using System.Threading.Tasks;
 using Api.Contexts;
 using Api.Permissions;
-using Api.Results;
 using Api.Uploader;
 using Microsoft.AspNetCore.Mvc;
 
@@ -39,16 +38,16 @@ namespace Api.FFmpeg
 		/// <param name="id"></param>
 		/// <returns></returns>
 		[HttpGet("transcode/{id}")]
-		public async Task<object> Transcode([FromRoute] int id)
+		public async Task<object> Transcode([FromRoute] uint id)
 		{
-			var ctx = Request.GetContext();
+			var ctx = await Request.GetContext();
 
 			if (ctx.RoleId != 1 && ctx.RoleId != 2)
 			{
 				return null;
 			}
 
-			var upload = await _uploadService.Get(ctx, id);
+			var upload = await _uploadService.Get(ctx, id, DataOptions.IgnorePermissions);
 
 			if (upload == null)
 			{

@@ -253,8 +253,10 @@ namespace Api.FFmpeg
 					Run("-i \"" + originalPath + "\" -c:v h264 -c:a aac -f ssegment -segment_list \"" + baseDir + "manifest.m3u8\" -segment_time 1 -hls_time 1 -g 30 \"" + baseDir + "chunk%d.ts\"", async () => {
 						
 						// Done! (NB can trigger twice if multi-transcoding)
-						upload.TranscodeState = 2;
-						await _uploads.Update(context, upload);
+						upload = await _uploads.Update(context, upload, (Context c, Upload upl) => {
+							upl.TranscodeState = 2;
+							upl.MarkChanged(_uploads.GetChangeField("TranscodeState"));
+						}, DataOptions.IgnorePermissions);
 						await Events.UploadAfterTranscode.Dispatch(context, upload);
 					});
 				}
@@ -265,8 +267,10 @@ namespace Api.FFmpeg
 					Run("-i \"" + originalPath + "\" \"" + targetPath + "\"", async () => {
 						
 						// Done! (NB can trigger twice if multi-transcoding)
-						upload.TranscodeState = 2;
-						await _uploads.Update(context, upload);
+						upload = await _uploads.Update(context, upload, (Context c, Upload upl) => {
+							upl.TranscodeState = 2;
+							upl.MarkChanged(_uploads.GetChangeField("TranscodeState"));
+						}, DataOptions.IgnorePermissions);
 						await Events.UploadAfterTranscode.Dispatch(context, upload);
 					});
 				}
@@ -276,10 +280,12 @@ namespace Api.FFmpeg
 				// Is audio
 				targetPath = originalPathWithoutExt + ".mp3";
 				Run("-i \"" + originalPath + "\" \"" + targetPath + "\"", async () => {
-					
+
 					// Done!
-					upload.TranscodeState = 2;
-					await _uploads.Update(context, upload);
+					upload = await _uploads.Update(context, upload, (Context c, Upload upl) => {
+						upl.TranscodeState = 2;
+						upl.MarkChanged(_uploads.GetChangeField("TranscodeState"));
+					}, DataOptions.IgnorePermissions);
 					await Events.UploadAfterTranscode.Dispatch(context, upload);
 				});
 				
