@@ -3,7 +3,6 @@ using System.Threading.Tasks;
 using Api.Contexts;
 using Api.Database;
 using Api.Permissions;
-using Api.Presence;
 using Api.SocketServerLibrary;
 using Api.Startup;
 using Api.Translate;
