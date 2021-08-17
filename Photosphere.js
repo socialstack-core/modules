@@ -167,7 +167,9 @@ export default class Photosphere extends React.Component {
 		click.y = e.clientY;
 		
 		// sphere.rotation.y = startRotation * deg2rad;
-		this.rotateCamera(deltaX, deltaY, 0.001);
+		if (!this.props.disableCameraRotation) {
+			this.rotateCamera(deltaX, deltaY, 0.001);
+		}
 	}
 	
 	rotateCamera(deltaX, deltaY, scale){
