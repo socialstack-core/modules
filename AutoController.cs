@@ -189,7 +189,6 @@ public class CsvMapping<T>
 	/// <summary>
 	/// 
 	/// </summary>
-	/// <param name="t"></param>
 	public CsvMapping()
 	{
 		var t = typeof(T);
