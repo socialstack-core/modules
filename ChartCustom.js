@@ -170,7 +170,6 @@ export default class ChartCustom extends React.Component {
 			chartData.options.animation.onComplete = function () {
 				var ctx = this.chart.ctx;
 				var data = this.data;
-				debugger;
 				if (annotateColumn1to2 != "") {
 					that.drawArrow(ctx, data, 0, 1, false, {
 						alignRight: true,
