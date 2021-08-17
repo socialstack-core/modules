@@ -387,39 +387,7 @@ $bootstrap_variants: (
             }
 
         }
-
-        &.no-title:not(.no-header) {
-
-            .modal-dialog {
-
-                .modal-content {
-
-                    .modal-header {
-                        border: 0;
-
-                        .modal-title {
-                            display: none;
-                        }
-
-                        .close {
-                            z-index: 1;
-                        }
-                    }
-
-                    .modal-body {
-                        margin-top: -$theme_modal_header_height;
-                        // NB: note titles defined within modal body will need to be wary of being partially obscured by the close button without the following line
-                        // (commented as this has the side effect of making content too narrow / bringing footer contrls too far left)
-                        //padding-right: calc(1rem + #{$theme_modal_header_height});
-
-                        .modal-internal-footer {
-                            //margin-right: -$theme_modal_header_height;
-                        }
-                    }
-                }
-            }
-        }
-
+		
         &.no-footer {
 
             .modal-dialog {
