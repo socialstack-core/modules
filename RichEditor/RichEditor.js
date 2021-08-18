@@ -564,8 +564,8 @@ export default class RichEditor extends React.Component {
 		this.setState({
 			rightClick: {
 				node: target,
-				x: e.clientX,
-				y: e.clientY
+				x: e.clientX - 2,
+				y: e.clientY - 2
 			}
 		});
 		
