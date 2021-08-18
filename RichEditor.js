@@ -2,8 +2,6 @@ import Alert from 'UI/Alert';
 import Token from 'UI/Token';
 import Input from 'UI/Input';
 import getBuildDate from 'UI/Functions/GetBuildDate';
-import ModuleSelector from 'Admin/CanvasEditor/ModuleSelector'
-import PropEditor from 'Admin/CanvasEditor/PropEditor';
 import omit from 'UI/Functions/Omit';
 
 
@@ -2611,30 +2609,7 @@ export default class RichEditor extends React.Component {
 						return false;
 				}}>
 					{this.state.rightClick && this.renderContextMenu()}
-					<ModuleSelector 
-						closeModal = {() => this.closeModal()} 
-						selectOpenFor = {this.state.selectOpenFor} 
-						groups = {this.props.groups}
-						selectionSnapshot  = {this.state.selectionSnapshot}
-						updated = {(module) => {
-							var selection = this.state.selection || this.state.selectionSnapshot;
-							var parent = selection.startNode;
-							var insertIndex = selection.startOffset;
-
-							var module = {
-								typeName: module.publicName,
-								type: module.moduleClass,
-								props: {}
-							}
-
-							selection.startNode = selection.endNode = this.addNode(module, parent, insertIndex);
-							// Update current position:
-							selection.startOffset = selection.endOffset = 1;
-							
-							this.normalise(true);
-							this.closeModal();
-						}}
-					/>
+					
 				</div>
 
 		</div>;
