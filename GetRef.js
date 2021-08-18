@@ -28,6 +28,9 @@ function staticFile(ref, options, r){
 	if(mainDir == 'admin'){
 		url = '/en-admin' + url;
 	}
+	
+	url = (global.staticContentSource || global.contentSource || '') + url;
+	
 	if(options.url){
 		return url;
 	}
