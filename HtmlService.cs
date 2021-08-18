@@ -1215,7 +1215,11 @@ namespace Api.Pages
 			}
 
 			await outputStream.FlushAsync();
-			// Todo: Preload templates used by the page as well
+
+			if (compress)
+			{
+				await outputStream.DisposeAsync();
+			}
 		}
 
 		/// <summary>
