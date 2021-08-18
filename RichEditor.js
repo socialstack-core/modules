@@ -6,6 +6,8 @@ import ModuleSelector from 'Admin/CanvasEditor/ModuleSelector'
 import PropEditor from 'Admin/CanvasEditor/PropEditor';
 import omit from 'UI/Functions/Omit';
 
+
+
 // Connect the input "ontypecanvas" render event:
 
 var inputTypes = global.inputTypes = global.inputTypes || {};
