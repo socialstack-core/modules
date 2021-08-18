@@ -58,7 +58,12 @@ namespace Api.Pages
 			{
 				pathToUIDir = "UI/public";
 			}
-			
+
+			_config.OnChange += () => {
+				cache = null;
+				return new ValueTask();
+			};
+
 			var pathToAdminDir = AppSettings.Configuration["Admin"];
 
 			if (string.IsNullOrEmpty(pathToAdminDir))
@@ -404,10 +409,10 @@ namespace Api.Pages
 			// Get the main CSS files. Note that this will (intentionally) delay on dev instances if the first compile hasn't happened yet.
 			// That's primarily because we need the hash of the contents in the URL. Note that it has an internal cache which is almost always hit.
 			var mainCssFile = await _frontend.GetMainCss(context == null ? 1 : context.LocaleId);
-			head.AppendChild(new DocumentNode("link", true).With("rel", "stylesheet").With("href", mainCssFile.PublicUrl));
+			head.AppendChild(new DocumentNode("link", true).With("rel", "stylesheet").With("href", _config.FullyQualifyUrls ? mainCssFile.FqPublicUrl : mainCssFile.PublicUrl));
 				
 			var mainAdminCssFile = await _frontend.GetAdminMainCss(context == null ? 1 : context.LocaleId);
-			head.AppendChild(new DocumentNode("link", true).With("rel", "stylesheet").With("href", mainAdminCssFile.PublicUrl));
+			head.AppendChild(new DocumentNode("link", true).With("rel", "stylesheet").With("href", _config.FullyQualifyUrls ? mainAdminCssFile.FqPublicUrl : mainAdminCssFile.PublicUrl));
 			head.AppendChild(new DocumentNode("meta", true).With("name", "msapplication-TileColor").With("content", "#ffffff"))
 				.AppendChild(new DocumentNode("meta", true).With("name", "theme-color").With("content", "#ffffff"))
 				.AppendChild(new DocumentNode("meta", true).With("name", "viewport").With("content", "width=device-width, initial-scale=1"));
@@ -702,12 +707,12 @@ namespace Api.Pages
 			// Get the main CSS files. Note that this will (intentionally) delay on dev instances if the first compile hasn't happened yet.
 			// That's primarily because we need the hash of the contents in the URL. Note that it has an internal cache which is almost always hit.
 			var mainCssFile = await _frontend.GetMainCss(context == null ? 1 : context.LocaleId);
-			head.AppendChild(new DocumentNode("link", true).With("rel", "stylesheet").With("href", mainCssFile.PublicUrl));
+			head.AppendChild(new DocumentNode("link", true).With("rel", "stylesheet").With("href", _config.FullyQualifyUrls ? mainCssFile.FqPublicUrl : mainCssFile.PublicUrl));
 
 			if (isAdmin)
 			{
 				var mainAdminCssFile = await _frontend.GetAdminMainCss(context == null ? 1 : context.LocaleId);
-				head.AppendChild(new DocumentNode("link", true).With("rel", "stylesheet").With("href", mainAdminCssFile.PublicUrl));
+				head.AppendChild(new DocumentNode("link", true).With("rel", "stylesheet").With("href", _config.FullyQualifyUrls ? mainAdminCssFile.FqPublicUrl : mainAdminCssFile.PublicUrl));
 			}
 
 			head.AppendChild(new DocumentNode("meta", true).With("name", "msapplication-TileColor").With("content", "#ffffff"))
@@ -872,12 +877,12 @@ namespace Api.Pages
 				// That's primarily because we need the hash of the contents in the URL. Note that it has an internal cache which is almost always hit.
 				// Admin modules must be added to page before frontend ones, as the frontend file includes UI/Start and the actual start call.
 				var mainAdminJsFile = await _frontend.GetAdminMainJs(context == null ? 1 : context.LocaleId);
-				var mainAdminJs = new DocumentNode("script").With("src", mainAdminJsFile.PublicUrl);
+				var mainAdminJs = new DocumentNode("script").With("src", _config.FullyQualifyUrls ? mainAdminJsFile.FqPublicUrl : mainAdminJsFile.PublicUrl);
 				body.AppendChild(mainAdminJs);
 				
 				// Same also for the email modules:
 				var mainEmailJsFile = await _frontend.GetEmailMainJs(context == null ? 1 : context.LocaleId);
-				var mainEmailJs = new DocumentNode("script").With("src", mainEmailJsFile.PublicUrl);
+				var mainEmailJs = new DocumentNode("script").With("src", _config.FullyQualifyUrls ? mainEmailJsFile.FqPublicUrl : mainEmailJsFile.PublicUrl);
 				body.AppendChild(mainEmailJs);
 			}
 
@@ -885,7 +890,7 @@ namespace Api.Pages
 			// That's primarily because we need the hash of the contents in the URL. Note that it has an internal cache which is almost always hit.
 			var mainJsFile = await _frontend.GetMainJs(context == null ? 1 : context.LocaleId);
 			
-			var mainJs = new DocumentNode("script").With("src", mainJsFile.PublicUrl);
+			var mainJs = new DocumentNode("script").With("src", _config.FullyQualifyUrls ? mainJsFile.FqPublicUrl : mainJsFile.PublicUrl);
 			doc.MainJs = mainJs;
 			body.AppendChild(mainJs);
 			

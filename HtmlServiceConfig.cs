@@ -10,6 +10,10 @@ namespace Api.Pages
 	/// </summary>
 	public class HtmlServiceConfig : Config
 	{
+		/// <summary>
+		/// True if core URLs should be fully qualified with your site's PublicUrl.
+		/// </summary>
+		public bool FullyQualifyUrls { get; set; } = false;
 		
 		/// <summary>
 		/// True if React should be pre-rendered on pages.
