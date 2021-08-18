@@ -73,10 +73,6 @@ function contentFile(ref, options, r){
 	
 	url = url + id + '-' + ((video || type == 'svg' || type == 'apng' || type == 'gif') ? 'original' : (options.size || 'original')) + '.' + type;
 	
-	if(global.apiHost){
-		url = global.apiHost + url;
-	}
-	
 	if(options.url){
 		return url;
 	}
