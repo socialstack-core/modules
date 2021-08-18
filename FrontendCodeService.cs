@@ -533,7 +533,7 @@ namespace Api.CanvasRenderer
 		/// <summary>
 		/// An empty file.
 		/// </summary>
-		public static FrontendFile Empty = new FrontendFile() { FileContent = null, Hash = null, PublicUrl = null };
+		public static FrontendFile Empty = new FrontendFile() { FileContent = null, Hash = null, PublicUrl = null, FqPublicUrl = null };
 
 		/// <summary>
 		/// The file content.
@@ -554,6 +554,11 @@ namespace Api.CanvasRenderer
 		/// The public URL of this file.
 		/// </summary>
 		public string PublicUrl;
+
+		/// <summary>
+		/// The fully qualified public URL of this file. It's the PublicUrl prepended to the PublicUrl.
+		/// </summary>
+		public string FqPublicUrl;
 	}
 
 }

@@ -1,4 +1,5 @@
-﻿using Api.Contexts;
+﻿using Api.Configuration;
+using Api.Contexts;
 using Api.Eventing;
 using Api.Permissions;
 using Api.Translate;
@@ -402,13 +403,16 @@ namespace Api.CanvasRenderer
 			// (On prod, this order is covered just by the pregenerated js file - it ultimately only gets lightly edited).
 			var hash = GetHash(bytes);
 
+			var pubUrl = PackDir + "main.js?v=" + BuildTimestampMs + "&h=" + hash + "&lid=" + localeId;
+
 			// Add to cache:
 			var file = new FrontendFile()
 			{
 				FileContent = bytes,
 				Precompressed = Compress(bytes),
 				Hash = hash,
-				PublicUrl = PackDir + "main.js?v=" + BuildTimestampMs + "&h=" + hash + "&lid=" + localeId
+				PublicUrl = pubUrl,
+				FqPublicUrl = FullyQualify(pubUrl)
 			};
 
 			_localeToMainJs[localeId - 1] = file;
@@ -1096,9 +1100,45 @@ namespace Api.CanvasRenderer
 			return sb.ToString();
 		}
 
+		/// <summary>
+		/// Public URL of the site. Originates from PublicUrl config setting.
+		/// </summary>
+		private string _publicPath;
+
+		/// <summary>
+		/// Fully qualifies the given url. It MUST always be absolute, i.e. starting with a /.
+		/// </summary>
+		/// <param name="url"></param>
+		/// <returns></returns>
+		private string FullyQualify(string url)
+		{
+			if (_publicPath == null)
+			{
+				var pubUrl = AppSettings.Configuration["PublicUrl"];
+
+				if (string.IsNullOrEmpty(pubUrl))
+				{
+					_publicPath = "";
+				}
+				else
+				{
+					if (pubUrl.EndsWith('/'))
+					{
+						pubUrl = pubUrl.Substring(0,pubUrl.Length - 1);
+					}
+
+					_publicPath = pubUrl;
+				}
+
+			}
+
+			return _publicPath + url;
+		}
+
 		private void SetCssPath(uint localeId)
 		{
 			CssFile.PublicUrl = PackDir + "main.css?v=" + BuildTimestampMs + "&h=" + CssFile.Hash + "&lid=" + localeId;
+			CssFile.FqPublicUrl = FullyQualify(CssFile.PublicUrl);
 		}
 
 		/// <summary>
@@ -1121,6 +1161,7 @@ namespace Api.CanvasRenderer
 					{
 						// Update its path:
 						_localeToMainJs[i].PublicUrl = PackDir + "main.js?v=" + BuildTimestampMs + "&h=" + _localeToMainJs[i].Hash + "&lid=" + (i+1);
+						_localeToMainJs[i].FqPublicUrl = FullyQualify(_localeToMainJs[i].PublicUrl);
 					}
 				}
 			}
