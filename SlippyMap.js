@@ -4,7 +4,7 @@ import MapInteraction from './Map';
 export default function SlippyMap(props) {
 	
     return (
-		<div className="slippy-map">
+		<div className="slippy-map" data-theme={props['data-theme']}>
 			<MapInteraction
 			  showControls
 			>
