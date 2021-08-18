@@ -35,7 +35,23 @@ namespace Api.Startup
 		/// Json header
 		/// </summary>
 		private readonly static string _applicationJson = "application/json";
-		
+
+		/// <summary>
+		/// Forces a GC run. Convenience for testing for memory leaks.
+		/// </summary>
+		[HttpGet("gc")]
+		public async ValueTask GC()
+		{
+			var context = await Request.GetContext();
+
+			if (context.Role == null || !context.Role.CanViewAdmin)
+			{
+				throw PermissionException.Create("monitoring_gc", context);
+			}
+
+			System.GC.Collect();
+		}
+
 		/// <summary>
 		/// Gets the latest block of text from the stdout.
 		/// </summary>
