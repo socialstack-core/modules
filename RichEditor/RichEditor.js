@@ -549,26 +549,6 @@ export default class RichEditor extends React.Component {
 	
 	onContextMenu(e){
 		e.preventDefault();
-		
-		// Right click menu
-		var {node} = this.state;
-		var current = e.target;
-		var target = this.getNode(current, node);
-		while(!target && current){
-			current = current.parentNode;
-			target = this.getNode(current, node);
-		}
-		
-		e.preventDefault();
-
-		this.setState({
-			rightClick: {
-				node: target,
-				x: e.clientX - 2,
-				y: e.clientY - 2
-			}
-		});
-		
 		return false;
 	}
 	
@@ -582,6 +562,23 @@ export default class RichEditor extends React.Component {
 		
 		if(this.state.rightClick){
 			this.setState({rightClick: null});
+		}else if(e.button == 2){
+			// Right click menu
+			var {node} = this.state;
+			var current = e.target;
+			var target = this.getNode(current, node);
+			while(!target && current){
+				current = current.parentNode;
+				target = this.getNode(current, node);
+			}
+			
+			this.setState({
+				rightClick: {
+					node: target,
+					x: e.clientX,
+					y: e.clientY
+				}
+			});
 		}
 		
 		if(this.state.sourceMode){
