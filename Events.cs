@@ -11,11 +11,6 @@ namespace Api.Eventing
 	public partial class Events
 	{
 		/// <summary>
-		/// Set of events for an activeLogin.
-		/// </summary>
-		public static EventGroup<ActiveLogin> ActiveLogin;
-		
-		/// <summary>
 		/// Set of events for an ActiveLoginHistory.
 		/// </summary>
 		public static EventGroup<ActiveLoginHistory> ActiveLoginHistory;

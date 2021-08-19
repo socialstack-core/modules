@@ -6,5 +6,6 @@ namespace Api.ActiveLogins
     [Route("v1/activeLoginHistory")]
 	public partial class ActiveLoginHistoryController : AutoController<ActiveLoginHistory>
     {
+
     }
 }
