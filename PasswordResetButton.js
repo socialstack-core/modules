@@ -1,49 +1,47 @@
 import webRequest from 'UI/Functions/WebRequest';
+import {useTokens} from 'UI/Token';
 import Alert from 'UI/Alert';
+import Loading from 'UI/Loading';
 
 
-export default class PasswordResetButton extends React.Component {
+export default function PasswordResetButton (props) {
+	var [loading, setLoading] = React.useState();
+	var [url, setUrl] = React.useState();
+	var userId = useTokens('${url.user.id}');
 	
-	constructor(props){
-		super(props);
-		this.state={};
-	}
-	
-	generate(){
-		webRequest('passwordresetrequest/' + this.props.userId + '/generate').then(response => {
-			
+	function generate(){
+		setLoading(true);
+		webRequest('passwordresetrequest/' + userId + '/generate').then(response => {
 			var relativeUrl = response.json.url;
 			var url = location.origin + relativeUrl;
 			
-			this.setState({
-				loading: false,
-				url
-			});
+			setUrl(url);
+			setLoading(false);
 		})
 	}
 	
-	render(){
-		
-		return <div className="password-reset-button">
-			<button className="btn btn-secondary" onClick={() => this.generate()}
-				disabled={this.state.loading}
+	return <div className="password-reset-button">
+		{loading ? (
+			<Loading />
+		) : <>
+			<button className="btn btn-secondary" onClick={() => generate()}
+				disabled={loading}
 			>
 				Generate password reset link
 			</button>
-			{this.state.url && (
+			{url && (
 				<div>
 					<Alert type="info">
 						Send this to the user - when they open it in a browser, they'll be able to set a password and login. 
 					</Alert>
 					<p>
-						{this.state.url}
+						{url}
 					</p>
 				</div>
 			)}
-		</div>;
-		
-	}
-	
+			</>
+		}
+	</div>;
 }
 
 PasswordResetButton.propTypes = {
