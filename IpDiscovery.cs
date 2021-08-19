@@ -1,4 +1,6 @@
 
+using Api.Contexts;
+using Api.Eventing;
 using System;
 using System.IO;
 using System.Net;
@@ -93,6 +95,8 @@ namespace Api.ContentSync
 				// Ipv6 unsupported
 				Console.WriteLine("[WARN] Ipv6 appears to be unsupported or not configured.");
 			}
+
+			ips = await Events.Service.AfterDiscoverIPs.Dispatch(new Context(), ips);
 
 			return ips;
 		}
@@ -195,4 +199,22 @@ namespace Api.ContentSync
 		}
 
 	}
+}
+
+
+namespace Api.Startup
+{
+	/// <summary>
+	/// The group of events for services. See also Events.Service
+	/// </summary>
+	public partial class ServiceEventGroup : Eventing.EventGroupCore<AutoService, uint>
+	{
+
+		/// <summary>
+		/// Just after IPs are discovered. You can modify the IP results if needed.
+		/// </summary>
+		public Api.Eventing.EventHandler<ContentSync.IpSet> AfterDiscoverIPs;
+
+	}
+
 }
