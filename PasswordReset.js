@@ -3,99 +3,83 @@ import Alert from 'UI/Alert';
 import Loading from 'UI/Loading';
 import Form from 'UI/Form';
 import Input from 'UI/Input';
-import {RouterConsumer} from 'UI/Session';
+import {useSession, useRouter} from 'UI/Session';
+import {useTokens} from 'UI/Token';
 
-export default class PasswordReset extends React.Component {
+
+export default function PasswordReset(props) {
 	
-	constructor(props){
-		super(props);
-		this.state = {
-		};
-	}
+	var {setPage} = useRouter();
+	var {session, setSession} = useSession();
+	var [loading, setLoading] = React.useState();
+	var [failed, setFailed] = React.useState();
+	var [policy, setPolicy] = React.useState();
+	var token = useTokens('${url.token}');
 	
-    componentDidMount(){
-        this.load(this.props);
-    }
-    
-	componentWillReceiveProps(props){
-        this.load(props);
-    }
-    
-    load(props){
-		const token = props.token;
+    React.useEffect(() => {
 		if(!token){
 			return;
 		}
 		
-        this.setState({token, loading: true});
-        
+		setLoading(true);
+		
         webRequest("passwordresetrequest/token/" + token + "/").then(response => {
-            this.setState({loading: false, failed: !response.json || !response.json.token});
+			setLoading(false);
+			setFailed(!response.json || !response.json.token);
         }).catch(e => {
-            this.setState({failed: true});
-        })
-    }
+			setFailed(true);
+        });
+		
+    }, []);
     
-	render(){
-		return <RouterConsumer>
-			{(page, setPage) => this.renderIntl(setPage)}
-		</RouterConsumer> 
-	}
-
-	renderIntl(setPage){
-		var {policy} = this.state;
-		
-		return <div className="password-reset">
-			{
-                this.state.failed ? (
-                    <Alert type="error">
-						Invalid or expired token. You'll need to request another one if this token is too old or was already used.
-                    </Alert>
-                ) : (
-                    this.state.loading ? (
-                        <div>
-                            <Loading />
-                        </div>
-                    ) : (
-                        <Form
-							successMessage="Password has been set."
-							failureMessage="Unable to set your password. Your token may have expired."
-							submitLabel="Set my password"
-                            action={"passwordresetrequest/login/" + this.props.token + "/"}
-							onSuccess={response => {
-								// Response is the new context.
-								// Set to global state:
-								this.context.app.setState(response);
-								
-								if(this.props.onSuccess){
-									this.props.onSuccess(response);
-								}else{
-									// Go to homepage:
-									setPage('/');
-								}
-							}}
-							onValues={v => {
-								this.setState({policy: null});
-								return v;
-							}}
-							onFailed={e => {
-								this.setState({policy: e});
-							}}
-                        >
-                            <Input name="password" type="password" placeholder="Your password" />
-							{policy && (
-								<Alert type="error">{
-									policy.message || 'Unable to set your password - the request may have expired'
-								}</Alert>
-							)}
-                        </Form>
-                    )
-                )
-            }
-		</div>;
-		
-	}
-	
+	return <div className="password-reset">
+		{
+			this.state.failed ? (
+				<Alert type="error">
+					Invalid or expired token. You'll need to request another one if this token is too old or was already used.
+				</Alert>
+			) : (
+				this.state.loading ? (
+					<div>
+						<Loading />
+					</div>
+				) : (
+					<Form
+						successMessage="Password has been set."
+						failureMessage="Unable to set your password. Your token may have expired."
+						submitLabel="Set my password"
+						action={"passwordresetrequest/login/" + token + "/"}
+						onSuccess={response => {
+							// Response is the new context.
+							// Set to global state:
+							setSession(response);
+							
+							if(props.onSuccess){
+								props.onSuccess(response);
+							}else{
+								// Go to homepage:
+								setPage('/');
+							}
+						}}
+						onValues={v => {
+							setPolicy(null);
+							return v;
+						}}
+						onFailed={e => {
+							setPolicy(e);
+						}}
+					>
+						<Input name="password" type="password" placeholder="Your password" />
+						{policy && (
+							<Alert type="error">{
+								policy.message || 'Unable to set your password - the request may have expired'
+							}</Alert>
+						)}
+					</Form>
+				)
+			)
+		}
+	</div>;
 }
 
 PasswordReset.propTypes = {
