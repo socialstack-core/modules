@@ -2,6 +2,8 @@ using Api.WebSockets;
 using Api.Permissions;
 using Newtonsoft.Json.Linq;
 using Api.SocketServerLibrary;
+using Api.ContentSync;
+using Api.Users;
 
 namespace Api.Eventing
 {
@@ -46,9 +48,14 @@ namespace Api.WebSockets
 		public Api.Eventing.EventHandler<WebSocketClient> Connected;
 
 		/// <summary>
-		/// WebSocket user change (or first time set).
+		/// WebSocket user login.
 		/// </summary>
-		public Api.Eventing.EventHandler<WebSocketClient> AfterUser;
+		public Api.Eventing.EventHandler<WebSocketClient, NetworkRoom<User, uint, uint>> AfterLogin;
+
+		/// <summary>
+		/// WebSocket user logout.
+		/// </summary>
+		public Api.Eventing.EventHandler<WebSocketClient, NetworkRoom<User, uint, uint>> AfterLogout;
 
 		/// <summary>
 		/// A WS disconnected.

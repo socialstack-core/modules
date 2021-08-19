@@ -45,9 +45,14 @@ namespace Api.WebSockets
 			_contentSync = contentSync;
 			_userContentTypeId = ContentTypes.GetId(typeof(User));
 
-			Task.Run(async () => {
+			Events.Service.AfterStart.AddEventListener(async (Context ctx, object s) => {
+
+				// Start:
 				await Start(userService, contentSync);
-			});
+				return s;
+
+				// After contentSync has obtained an ID.
+			}, 11);
 		}
 
 		private Server<WebSocketClient> wsServer;
@@ -74,6 +79,9 @@ namespace Api.WebSockets
 					Services.Get<ClusteredServerService>(),
 					"PersonalRoomServers"
 				) as MappingService<uint, uint>;
+
+			// Scan the mapping to purge any entries for this server:
+			await personalRoomMap.DeleteByTarget(new Context(), contentSync.ServerId, DataOptions.IgnorePermissions);
 
 			PersonalRooms = new NetworkRoomSet<User, uint, uint>(userService, personalRoomMap, contentSync);
 
