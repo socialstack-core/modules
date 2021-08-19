@@ -508,6 +508,28 @@ namespace Api.Startup
 		}
 
 		/// <summary>
+		/// Deletes all rows by target ID.
+		/// </summary>
+		/// <param name="context"></param>
+		/// <param name="id"></param>
+		/// <param name="options"></param>
+		/// <returns></returns>
+		public async ValueTask DeleteByTarget(Context context, TARG_ID id, DataOptions options = DataOptions.Default)
+		{
+			var set = await Where(targetIdFieldEquals, options)
+			.Bind(id)
+			.ListAll(context);
+
+			if (set != null && set.Count > 0)
+			{
+				foreach (var entry in set)
+				{
+					await Delete(context, entry, options);
+				}
+			}
+		}
+
+		/// <summary>
 		/// True if this is a mapping service.
 		/// </summary>
 		public override bool IsMapping
