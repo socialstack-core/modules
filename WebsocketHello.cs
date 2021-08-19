@@ -126,11 +126,6 @@ namespace Api.SocketServerLibrary
 		/// <summary>
 		/// 
 		/// </summary>
-		private byte[] UserCookiePrefix;
-
-		/// <summary>
-		/// 
-		/// </summary>
 		private byte[] UpperCaseCookieHeader;
 
 		/// <summary>
@@ -176,7 +171,6 @@ namespace Api.SocketServerLibrary
 			Sha1 = new SHA1Managed();
 			UpperCaseKeyHeader = System.Text.Encoding.ASCII.GetBytes("sec-websocket-key:");
 			LowerCaseKeyHeader = System.Text.Encoding.ASCII.GetBytes("SEC-WEBSOCKET-KEY:");
-			UserCookiePrefix = System.Text.Encoding.ASCII.GetBytes("user=");
 			UpperCaseCookieHeader = System.Text.Encoding.ASCII.GetBytes("cookie:");
 			LowerCaseCookieHeader = System.Text.Encoding.ASCII.GetBytes("COOKIE:");
 			MagicString = System.Text.Encoding.ASCII.GetBytes("258EAFA5-E914-47DA-95CA-C5AB0DC85B11");
@@ -335,39 +329,30 @@ namespace Api.SocketServerLibrary
 							// Next, is the cookie a user one? It's identified by it starting with the string "user="
 							var length = client.ScratchSpace.Offset - whitespace;
 
-							if (length > UserCookiePrefix.Length)
+							// There's almost always going to be a user cookie in here so grab the whole thing:
+							var cookies = System.Text.Encoding.UTF8.GetString(client.ScratchSpace.Bytes, whitespace, length);
+
+							var cookiePrefixLocation = cookies.IndexOf("user=");
+
+							if (cookiePrefixLocation != -1)
 							{
-								var isUserCookie = true;
+								// Read the cookie now:
+								var colon = cookies.IndexOf("; ", cookiePrefixLocation);
 
-								for (var i = 0; i < UserCookiePrefix.Length; i++)
+								var userCookie = colon == -1 ? cookies.Substring(cookiePrefixLocation + 5) : cookies.Substring(cookiePrefixLocation + 5, colon - cookiePrefixLocation - 5);
+
+								// Gets the context and applies it to the given client.
+								Task.Run(async () =>
 								{
-
-									if (client.ScratchSpace.Bytes[i + whitespace] != UserCookiePrefix[i])
+									// Apply context:
+									if (ContextService == null)
 									{
-										isUserCookie = false;
-										break;
+										ContextService = Startup.Services.Get<ContextService>();
 									}
-
-								}
-
-								if (isUserCookie)
-								{
-									// Read the cookie now:
-									var userCookie = System.Text.Encoding.UTF8.GetString(client.ScratchSpace.Bytes, whitespace + UserCookiePrefix.Length, length - UserCookiePrefix.Length);
-									
-									// Gets the context and applies it to the given client.
-									Task.Run(async () =>
-									{
-										// Apply context:
-										if (ContextService == null)
-										{
-											ContextService = Startup.Services.Get<ContextService>();
-										}
 										
-										var context = await ContextService.Get(userCookie);
-										await client.SetContext(context);
-									});
-								}
+									var context = await ContextService.Get(userCookie);
+									await client.SetContext(context);
+								});
 							}
 
 							// Release the scratch buffer:
