@@ -9,6 +9,7 @@ using Api.Startup;
 using Api.Signatures;
 using System.Threading.Tasks;
 using Api.Contexts;
+using System.Runtime.InteropServices;
 
 namespace Api.SocketServerLibrary {
 
@@ -161,7 +162,12 @@ namespace Api.SocketServerLibrary {
 		/// True if this server is going down.
 		/// </summary>
 		public bool GoingDown;
-
+		
+		/// <summary>
+		/// If this is set, the socket will also listen on a Unix socket file with the given name.
+		/// </summary>
+		public string UnixSocketFileName;
+		
 		/// <summary>
 		/// The server socket.
 		/// </summary>
@@ -386,12 +392,33 @@ namespace Api.SocketServerLibrary {
 			{
 				FastOpCodeMap = null;
 			}
-
-			ServerSocket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
-
-			ServerSocket.Bind(
-				new IPEndPoint(BindAddress, Port)
-			);
+			
+			string apiSocketFile = null;
+			
+			if(UnixSocketFileName != null && RuntimeInformation.IsOSPlatform(OSPlatform.Linux))
+			{
+				// Listen on a Unix socket too:
+				apiSocketFile = System.IO.Path.GetFullPath(UnixSocketFileName);
+				
+				try{
+					// Delete if exists:
+					System.IO.File.Delete(apiSocketFile);
+				}catch{}
+				
+				ServerSocket = new Socket(AddressFamily.Unix, SocketType.Stream, ProtocolType.Unspecified);
+				
+				ServerSocket.Bind(
+					new UnixDomainSocketEndPoint(apiSocketFile)
+				);
+			}
+			else
+			{
+				ServerSocket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
+				
+				ServerSocket.Bind(
+					new IPEndPoint(BindAddress, Port)
+				);
+			}
 
 			ServerSocket.Blocking = false;
 			ServerSocket.Listen(100);
