@@ -188,14 +188,17 @@ namespace Api.CanvasRenderer
 		/// Gets the set of static files. Only used during an app build process as it needs to collect all static files.
 		/// </summary>
 		/// <returns></returns>
+#if DEBUG
 		public async ValueTask<List<StaticFileInfo>> GetStaticFiles()
 		{
-#if DEBUG
 			// Special case for devs - may need to wait for first build if it hasn't happened yet.
 			if (initialBuildTask != null)
 			{
 				await initialBuildTask;
 			}
+#else
+		public ValueTask<List<StaticFileInfo>> GetStaticFiles()
+		{
 #endif
 			var set = new List<StaticFileInfo>();
 
@@ -230,7 +233,11 @@ namespace Api.CanvasRenderer
 				});
 			}
 
+#if DEBUG
 			return set;
+#else
+			return new ValueTask<List<StaticFileInfo>>(set);
+#endif
 		}
 
 		/// <summary>
@@ -321,20 +328,19 @@ namespace Api.CanvasRenderer
 				File.WriteAllText(globalsPath, "import * as react from \"react\";\r\n\r\ndeclare global {\r\n\ttype React = typeof react;\r\n\tvar global: any;\r\n}");
 			}
 		}
-	
+
 		/// <summary>
 		/// Gets the build errors from the last build of the CSS/ JS that happened. If the initial build run is happening, this waits for it to complete.
 		/// </summary>
 		/// <returns></returns>
+#if DEBUG
 		public async ValueTask<List<UIBuildError>> GetLastBuildErrors()
 		{
-#if DEBUG
 			// Special case for devs - may need to wait for first build if it hasn't happened yet.
 			if (initialBuildTask != null)
 			{
 				await initialBuildTask;
 			}
-#endif
 
 			var uiErrors = UIBuilder.GetBuildErrors();
 			var adminErrors = AdminBuilder.GetBuildErrors();
@@ -382,6 +388,7 @@ namespace Api.CanvasRenderer
 
 			return combined;
 		}
+#endif
 
 		/// <summary>
 		/// Each source builder currently running (if there are any - can be null on production systems).
