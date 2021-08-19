@@ -117,6 +117,18 @@ namespace Api.ContentSync
 		}
 
 		/// <summary>
+		/// Don't call this - it's used specifically by the last leaving client to mark this room as being empty.
+		/// </summary>
+		public void MarkEmpty()
+		{
+			var ms = MappingService;
+			if (ms != null)
+			{
+				_ = ms.DeleteByIds(ParentSet.ServerContext, Id, ParentSet.ContentSync.ServerId);
+			}
+		}
+
+		/// <summary>
 		/// True if this room is empty locally.
 		/// </summary>
 		public override bool IsEmptyLocally
@@ -629,7 +641,12 @@ namespace Api.ContentSync
 			{
 				PreviousForClient.NextForClient = NextForClient;
 			}
-			
+
+			if (Room.IsEmptyLocally)
+			{
+				// This room is now empty. Make sure other servers are aware of this by removing the NR record.
+				Room.MarkEmpty();
+			}
 			
 			// Return to pool.
 			lock(PoolLock)

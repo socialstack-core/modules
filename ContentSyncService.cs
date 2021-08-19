@@ -680,6 +680,9 @@ namespace Api.ContentSync
 					"NetworkRoomServers"
 				) as MappingService<ID, uint>;
 
+			// Scan the mapping to purge any entries for this server:
+			await mapping.DeleteByTarget(new Context(), ServerId, DataOptions.IgnorePermissions);
+
 			// Create the room set:
 			var rooms = new NetworkRoomSet<T, ID, ID>(svc, mapping, this);
 			svc.StandardNetworkRooms = rooms;
