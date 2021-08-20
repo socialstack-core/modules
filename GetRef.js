@@ -25,7 +25,7 @@ function staticFile(ref, options, r){
 	var mainDir = refParts.shift();
 	var cfg = global.config;
 	var url = (cfg && cfg.pageRouter && cfg.pageRouter.hash ? 'pack/static/' : '/pack/static/') + refParts.join('/');
-	if(mainDir == 'admin'){
+	if(mainDir == 'Admin'){
 		url = '/en-admin' + url;
 	}
 	
