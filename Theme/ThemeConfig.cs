@@ -24,12 +24,12 @@ namespace Api.Themes
 		/// <summary>
 		/// Default theme key. This is applied to the body if it is not null.
 		/// </summary>
-		public string DefaultThemeId { get; set; }
+		public string DefaultThemeId { get; set; } = "main";
 
 		/// <summary>
 		/// Default theme ID. This is applied to the body if it is non-zero.
 		/// </summary>
-		public string DefaultAdminThemeId { get; set; }
+		public string DefaultAdminThemeId { get; set; } = "admin";
 	}
 
 	/// <summary>
@@ -59,7 +59,7 @@ namespace Api.Themes
 		/// <summary>
 		/// The CSS in this theme. Typically uses the variable values.
 		/// </summary>
-		public string Css { get; set; }
+		public string Css { get; set; } = "";
 	}
 
 }

@@ -7,6 +7,7 @@ using Api.Eventing;
 using Api.Contexts;
 using System.Threading.Tasks;
 using System.Collections.Generic;
+using Api.Startup;
 
 namespace Api.Themes
 {
@@ -37,8 +38,88 @@ namespace Api.Themes
 		/// </summary>
 		public ThemeService()
 		{
-			_current = GetAllConfig<ThemeConfig>();
 			_globalCfg = GetConfig<GlobalThemeConfig>();
+			_current = GetAllConfig<ThemeConfig>();
+			
+			// If the theme list doesn't contain anything, two are created - admin and main.
+			if(_current.Configurations == null || _current.Configurations.Count == 0)
+			{
+				var defaultVars = new Dictionary<string, string>(){
+					{ "primary", "#0d6efd" },
+					{ "primary-fg", "" },
+					{ "primary-shadow", "" },
+					{ "primary-hover", "" },
+					{ "primary-hover-border", "" },
+					{ "primary-active", "" },
+					{ "primary-active-border", "" },
+					{ "secondary", "#6c757d" },
+					{ "secondary-shadow", "" },
+					{ "secondary-fg", "" },
+					{ "secondary-hover", "" },
+					{ "secondary-hover-border", "" },
+					{ "secondary-active", "" },
+					{ "secondary-active-border", "" },
+					{ "success", "#198754" },
+					{ "success-fg", "" },
+					{ "success-shadow", "" },
+					{ "success-hover", "" },
+					{ "success-hover-border", "" },
+					{ "success-active", "" },
+					{ "success-active-border", "" },
+					{ "info", "#0dcaf0" },
+					{ "info-shadow", "" },
+					{ "info-fg", "" },
+					{ "info-hover", "" },
+					{ "info-hover-border", "" },
+					{ "info-active", "" },
+					{ "info-active-border", "" },
+					{ "warning", "#ffc107" },
+					{ "warning-shadow", "" },
+					{ "warning-fg", "" },
+					{ "warning-hover", "" },
+					{ "warning-hover-border", "" },
+					{ "warning-active", "" },
+					{ "warning-active-border", "" },
+					{ "danger", "#dc3545" },
+					{ "danger-shadow", "" },
+					{ "danger-fg", "" },
+					{ "danger-hover", "" },
+					{ "danger-hover-border", "" },
+					{ "danger-active", "" },
+					{ "danger-active-border", "" },
+					{ "light", "#f8f9fa" },
+					{ "light-shadow", "" },
+					{ "light-fg", "" },
+					{ "light-hover", "" },
+					{ "light-hover-border", "" },
+					{ "light-active", "" },
+					{ "light-active-border", "" },
+					{ "dark", "#212529" },
+					{ "dark-shadow", "" },
+					{ "dark-fg", "" },
+					{ "dark-hover", "" },
+					{ "dark-hover-border", "" },
+					{ "dark-active", "" },
+					{ "dark-active-border", "" },
+					{ "font-mono", "SFMono-Regular,Menlo,Monaco,Consolas,\"Liberation Mono\",\"Courier New\",monospace" },
+					{ "font", "\"OpenSans\",\"Helvetica Neue\",Arial,\"Noto Sans\",\"Liberation Sans\",sans-serif,\"Apple Color Emoji\",\"Segoe UI Emoji\",\"Segoe UI Symbol\",\"Noto Color Emoji\"" }
+				};
+				
+				var admin = new ThemeConfig(){
+					Key = "admin",
+					Variables = defaultVars
+				};
+				
+				var main = new ThemeConfig(){
+					Key = "main",
+					Variables = defaultVars
+				};
+
+				var configService = Services.Get<ConfigurationService>();
+
+				_ = configService.InstallConfig(admin, "Admin Theme", "Theme", _current);
+				_ = configService.InstallConfig(main, "Main Site Theme", "Theme", _current);
+			}
 		}
 
 		/// <summary>
