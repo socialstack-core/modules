@@ -1009,7 +1009,7 @@ namespace Api.CanvasRenderer
 					}
 				}
 
-				return "./static/" + string.Join('/', builtPath).ToLower();
+				return "./static/" + string.Join('/', builtPath);
 			}
 
 			// Unchanged otherwise as it's absolute.
