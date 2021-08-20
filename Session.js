@@ -24,7 +24,7 @@ export function useSession(){
 }
 
 export function useTheme(){
-	return getCfg('globaltheme');
+	return getCfg('globaltheme') || {};
 }
 
 export function useConfig(name){
