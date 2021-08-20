@@ -31,6 +31,7 @@ namespace Api.UserAgendaEntries
 			var huddleContentTypeId = ContentTypes.GetId(typeof(Huddle));
 			//AddMeetingsToAgendaConfig Config = null;
 
+			/*
 			Events.Huddle.BeforeDelete.AddEventListener(async (Context context, Huddle huddle) =>
             {
                 if (huddle == null)
@@ -102,11 +103,11 @@ namespace Api.UserAgendaEntries
 						}
 					}
 
-				}*/
+				}
 
 				return huddle;
 			}, 20);
-
+			*/
 
 
 			/*
