@@ -1412,8 +1412,18 @@ namespace Api.ContentSync
 		/// <param name="roomId"></param>
 		public override NetworkRoom GetOrCreateRoom(ulong roomId)
 		{
-			// Convert roomId to ID:
-			var rId = (ID)((object)((uint)(roomId)));
+			ID rId;
+			if(typeof(ID) == typeof(ulong))
+            {
+				// Don't cast
+				rId = (ID)((object)roomId);
+			}
+            else 
+			{
+				// Convert roomId to ID:
+				rId = (ID)((object)((uint)(roomId)));
+			}
+			
 
 			return Service.StandardNetworkRooms.GetOrCreateRoom(rId);
 		}
