@@ -208,6 +208,30 @@ namespace Api.Configuration
 		}
 
 		/// <summary>
+		/// Creates a config row. The given object is jsonified and put into the DB.
+		/// </summary>
+		/// <returns></returns>
+		public async ValueTask InstallConfig(Config cfg, string name, string key, Config set = null)
+		{
+			var cfgRow = new Configuration()
+			{
+				Name = name,
+				Key = key,
+				ConfigJson = JsonConvert.SerializeObject(cfg, Formatting.Indented)
+			};
+			cfgRow.ConfigObject = cfg;
+			cfgRow.SetObject = set;
+			await Create(new Context(), cfgRow, DataOptions.IgnorePermissions);
+			cfg.Id = cfgRow.Id;
+			UpdateFrontendConfig(cfg, null);
+
+			if (set != null)
+			{
+				set.AddToSet(cfg);
+			}
+		}
+
+		/// <summary>
 		///  Potentially adds/ updates the given config object to the frontend config, 
 		///  depending on if it is marked with [Frontend] attributes or not.
 		/// </summary>

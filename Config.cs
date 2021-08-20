@@ -1,3 +1,4 @@
+using Newtonsoft.Json;
 using System;
 using System.Collections;
 using System.Collections.Generic;
@@ -21,8 +22,9 @@ namespace Api.Configuration
 		/// <summary>
 		/// The config ID, if applicable.
 		/// </summary>
+		[JsonIgnore]
 		public uint Id;
-		
+
 		/// <summary>
 		/// Triggered when this config object is updated.
 		/// </summary>
@@ -31,7 +33,17 @@ namespace Api.Configuration
 		/// <summary>
 		/// The contents of this config converted to the frontend only JSON. Null if no fields are frontend marked.
 		/// </summary>
+		[JsonIgnore]
 		public string FrontendJson;
+
+		/// <summary>
+		/// Adds to this set (if it is a ConfigSet).
+		/// </summary>
+		/// <param name="cfg"></param>
+		public virtual void AddToSet(Config cfg)
+		{
+			
+		}
 
 		/// <summary>
 		/// True if this is a set of configs.
@@ -71,6 +83,20 @@ namespace Api.Configuration
 		/// The underlying list of configs.
 		/// </summary>
 		public List<T> Configurations;
+
+		/// <summary>
+		/// Adds to this set (if it is a ConfigSet).
+		/// </summary>
+		/// <param name="cfg"></param>
+		public override void AddToSet(Config cfg)
+		{
+			if (Configurations == null)
+			{
+				Configurations = new List<T>();
+			}
+
+			Configurations.Add((T)cfg);
+		}
 
 		/// <summary>
 		/// True if this is a set of configs.

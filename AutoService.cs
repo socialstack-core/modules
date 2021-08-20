@@ -142,7 +142,14 @@ public partial class AutoService
 			if (_loadedConfiguration == null)
 			{
 				// default cfg:
-				_loadedConfiguration = new T();
+				var dflt = new T();
+				_loadedConfiguration = dflt;
+
+				// Store in the DB:
+				if (configService != null)
+				{
+					_ = configService.InstallConfig(dflt, name, name);
+				}
 			}
 
 		}
