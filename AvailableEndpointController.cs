@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Threading.Tasks;
 using Api.Contexts;
+using Api.Permissions;
 using Microsoft.AspNetCore.Mvc;
 
 
@@ -60,7 +61,12 @@ namespace Api.AvailableEndpoints
 		public async ValueTask<ApiStructure> Get()
         {
 			var context = await Request.GetContext();
-
+			
+			if(context.Role == null || !context.Role.CanViewAdmin)
+			{
+				throw PermissionException.Create("api_home", context);
+			}
+			
 			return await _availableEndpoints.GetStructure(context);
         }
 		
