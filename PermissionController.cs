@@ -36,12 +36,17 @@ namespace Api.Permissions
 		[HttpGet("list")]
 		public async ValueTask<PermissionInformation> List()
 		{
+			var context = await Request.GetContext();
+			
+			if(context.Role == null || !context.Role.CanViewAdmin)
+			{
+				throw PermissionException.Create("permission_list", context);
+			}
+			
 			if (_allPermissionInfo != null)
 			{
 				return _allPermissionInfo;
 			}
-
-			var context = await Request.GetContext();
 
 			var results = new List<PermissionMeta>();
 
