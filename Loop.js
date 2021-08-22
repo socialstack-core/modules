@@ -415,7 +415,8 @@ export default class Loop extends React.Component {
 
 	componentWillUnmount() {
 		if (this.props.live) {
-			webSocket.removeEventListener(this.props.live, this.onLiveMessage);
+			var liveInfo = this.liveType(this.props);
+			webSocket.removeEventListener(liveInfo.type, this.onLiveMessage);
 		}
 
 		document.removeEventListener("contentchange", this.onContentChange);
