@@ -94,9 +94,30 @@ export default class HlsVideo extends React.Component {
 		
 		return '/content/video/' + videoId + '/manifest.m3u8';
 	}
+
+	openFullscreen() {
+		if(this.video) {
+			if (this.video.requestFullscreen) {
+				this.video.requestFullscreen();
+			} else if (this.video.webkitRequestFullscreen) { /* Safari */
+				this.video.webkitRequestFullscreen();
+			} else if (this.video.msRequestFullscreen) { /* IE11 */
+				this.video.msRequestFullscreen();
+			}
+		} else {
+			console.log("failed fullscreen");
+		}
+	}
 	
 	render(){
-		return <div className="hlsVideo">
+
+		if(this.props.fullScreen) {
+			this.openFullscreen();
+		}
+
+		var className = this.props.className ? this.props.className + "-wrapper hlsVideo" : "hlsVideo";
+
+		return <div className={className}>
 			<video {...omit(this.props, ['videoId', 'videoRef', 'ref', 'autoplay'])} ref={video => {
 				if(!video){
 					return;
