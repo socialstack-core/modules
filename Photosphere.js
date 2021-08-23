@@ -145,14 +145,17 @@ export default class Photosphere extends React.Component {
     onWheel(props) {
 		if(props.target != this.hostEle && props.target != this.containerEle && props.target != this.root3DEle && props.target != this.canvasEle) {
 			return;
-		}	
-        var scaleFactor = 2;
-        var maxFov = this.props.maxFov || defaultMaxFov;
-        var minFov = this.props.minFov || defaultMinFov;
-        this.camera.fov = Math.max(Math.min(this.camera.fov + (Math.sign(props.deltaY) * scaleFactor), maxFov), minFov);
-        this.camera.updateProjectionMatrix();
+		}
 
-        this.sendPositionUpdate();
+		if (!this.props.disableCameraZooming) {
+			var scaleFactor = 2;
+			var maxFov = this.props.maxFov || defaultMaxFov;
+			var minFov = this.props.minFov || defaultMinFov;
+			this.camera.fov = Math.max(Math.min(this.camera.fov + (Math.sign(props.deltaY) * scaleFactor), maxFov), minFov);
+			this.camera.updateProjectionMatrix();
+
+			this.sendPositionUpdate();
+		}
     }
 	
 	onMouseMove(e){
@@ -160,14 +163,14 @@ export default class Photosphere extends React.Component {
 		if(!click){
 			return;
 		}
-		
-		var deltaX=e.clientX - click.x;
-		var deltaY=e.clientY - click.y;
-		click.x = e.clientX;
-		click.y = e.clientY;
-		
-		// sphere.rotation.y = startRotation * deg2rad;
-		if (!this.props.disableCameraRotation) {
+
+		if (!this.props.disableCameraPanning) {
+			var deltaX=e.clientX - click.x;
+			var deltaY=e.clientY - click.y;
+			click.x = e.clientX;
+			click.y = e.clientY;
+
+			// sphere.rotation.y = startRotation * deg2rad;
 			this.rotateCamera(deltaX, deltaY, 0.001);
 		}
 	}
