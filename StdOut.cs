@@ -19,13 +19,6 @@ namespace Api.Startup
 		[HttpGet("whoami")]
 		public async ValueTask WhoAmI()
 		{
-			var context = await Request.GetContext();
-
-			if (context.Role == null || !context.Role.CanViewAdmin)
-			{
-				throw PermissionException.Create("monitoring_whoami", context);
-			}
-
 			// Get server ID from csync service:
 			var id = Services.Get<ContentSyncService>().ServerId;
 			
