@@ -23,15 +23,6 @@ $max_slides: 20;
 
         &.slider-align-first {
 
-            .content-list.content.first {
-                // optionally indent carousel so it appears to be centred for the first slide
-                // (mimics being parented by a <Container> without the width limitation)
-                // TODO: reference default theme container width here
-                // typically 1140px, overridden to 960px within AVT-EBY project
-                //margin-left: calc((100% - 960px) / 2) !important;
-                margin-left: 15px;
-            }
-
             .content-item {
                 // TODO: account for different spacing
                 flex: 0 0 calc(100% + 16px);
@@ -71,10 +62,12 @@ $max_slides: 20;
             justify-content: center;
         }
     }
-
+	
+	.container-offset {
+        transition: margin-left 600ms ease-in-out;
+	}
+	
     .content-list {
-        transition: all 600ms ease-in-out;
-        transition-property: margin-left transform;
         //display: block !important;
         display: flex;
         white-space: nowrap;
@@ -134,10 +127,8 @@ $max_slides: 20;
         .slider {
 
             &.slider-align-first {
-
                 .content-list.content.first {
-                    margin-left: calc( (100% - 510px) / 2) !important;
-
+					
                     .content-item {
                         // TODO: account for different spacing
                         flex: 0 0 calc(510px + 16px);
@@ -155,10 +146,8 @@ $max_slides: 20;
         .slider {
 
             &.slider-align-first {
-
                 .content-list.content.first {
-                    margin-left: calc( (100% - 690px) / 2) !important;
-
+					
                     .content-item {
                         // TODO: account for different spacing
                         //flex: 0 0 calc( (690px / 2) + (16px / 2));
@@ -177,10 +166,8 @@ $max_slides: 20;
         .slider {
 
             &.slider-align-first {
-
                 .content-list.content.first {
-                    margin-left: calc( (100% - 946px) / 2) !important;
-
+					
                     .content-item {
                         // TODO: account for different spacing
                         //flex: 0 0 calc( (946px / 2) + (16px / 2));
@@ -191,66 +178,3 @@ $max_slides: 20;
         }
     }
 }
-
-// TODO: unlikely to apply to every instance of a Carousel
-/*
-@media only screen and (max-width: 1199px) {
-
-    .carousel {
-
-        .content-item {
-
-            > div {
-                height: 380px !important;
-
-                h1 {
-                    font-weight: normal;
-                }
-
-            }
-
-        }
-
-    }
-
-}
-
-@media only screen and (max-width: 991px) {
-
-    .carousel {
-
-        .content-item {
-
-            > div {
-                height: 300px !important;
-            }
-        }
-    }
-}
-
-@media only screen and (max-width: 767px) {
-
-    .carousel {
-
-        .content-item {
-
-            > div {
-                height: 320px !important;
-            }
-        }
-    }
-}
-
-@media only screen and (max-width: 575px) {
-
-    .carousel {
-
-        .content-item {
-
-            > div {
-                height: 460px !important;
-            }
-        }
-    }
-}
-*/

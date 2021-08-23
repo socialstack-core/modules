@@ -62,6 +62,23 @@ export default class Carousel extends React.Component {
 		</span>;
 	}
 	
+	containerWidth(screenWidth)
+	{
+		if(screenWidth >= 1400) {
+			return 1320;
+		} else if (screenWidth >= 1200) {
+			return 1140;
+		} else if (screenWidth >= 992) {
+			return 960;
+		} else if (screenWidth >= 768) {
+			return 720;
+		} else if (screenWidth >= 576) {
+			return 540;
+		}
+
+		return screenWidth;
+	}
+	
     render() {
 		
 		var {
@@ -114,7 +131,7 @@ export default class Carousel extends React.Component {
 		//var contentClass = this.state.currentIndex === 0 ? "content-list content first" : "content-list content";
 		var contentClass = toggleOpacity ? "content-list content first toggle-opacity" : "content-list content first";
 		var width = 0;
-
+		
 		// TODO: update media query matches in realtime
 		if (window.matchMedia('(max-width: 575px)').matches) {
 			width = window.innerWidth - 32;
@@ -134,7 +151,11 @@ export default class Carousel extends React.Component {
 			visCount = visCountLg || visCount;
 			width = 930;
 		}
-
+		
+		var screenWidth = window.innerWidth || window.screen.width;
+		var container = this.containerWidth(screenWidth);
+		var containerLeftEdge = (screenWidth/2) - (container/2);
+		
 		// hide controls if nothing to page
 		if (visCount >= items.length) {
 			showBack = false;
@@ -144,19 +165,17 @@ export default class Carousel extends React.Component {
 		var transformCalc = '';
 		var slideWidthCalc = '';
 		var slideWidth = '';
-
-		if (centred) {
-			transformCalc = spacing ?
-				(width / visCount) + (padNum / visCount) :
-				width / visCount;
-			slideWidthCalc = transformCalc + "px";
-			slideWidth = { flex: "0 0 " + slideWidthCalc };
-		}
-
+			
+		transformCalc = spacing ?
+			(width / visCount) + (padNum / visCount) :
+			width / visCount;
+		slideWidthCalc = transformCalc + "px";
+		slideWidth = { flex: "0 0 " + slideWidthCalc };
+		
 		var slideOffset = centred ?
-			{ transform: "translateX(calc(-" + transformCalc + "px * " + this.state.currentIndex + "))" } :
-			{ marginLeft: (-((1 / visCount) * 100) * this.state.currentIndex) + '%' };
-
+			{ marginLeft: (containerLeftEdge - (transformCalc * this.state.currentIndex)) + 'px' } :
+			{ marginLeft: '-' + transformCalc + 'px' };
+		
 		return (
 			<div className="carousel">
 				<div className="slider-container">
@@ -170,28 +189,30 @@ export default class Carousel extends React.Component {
 								</button>
 							</div>
 						}
-						<ul className={contentClass} style={slideOffset} data-offset={this.state.currentIndex}>
-							{
-								items.map((item,i) => {
-									var content = React.isValidElement(item) ? item : null;
-									
-									if(this.props.children && this.props.children.length){
-										content = this.props.children(item, i, this);
-									}else if(!content && Module){
-										content = <Module item={item} container={this.props}/>;
-									}
-									
-                                    return (
-										<li className="content-item" style={slideWidth}>
-                                            <div className="content-item-internal" style={itemInternalStyle}>
-                                                {content}
-                                            </div>
-										</li>
-									);
-									
-								})
-							}
-						</ul>
+						<div className="container-offset" style={slideOffset}>
+							<ul className={contentClass} data-offset={this.state.currentIndex}>
+								{
+									items.map((item,i) => {
+										var content = React.isValidElement(item) ? item : null;
+										
+										if(this.props.children && this.props.children.length){
+											content = this.props.children(item, i, this);
+										}else if(!content && Module){
+											content = <Module item={item} container={this.props}/>;
+										}
+										
+										return (
+											<li className="content-item" style={slideWidth}>
+												<div className="content-item-internal" style={itemInternalStyle}>
+													{content}
+												</div>
+											</li>
+										);
+										
+									})
+								}
+							</ul>
+						</div>
 						{showNext && this.state.currentIndex < items.length - 1 &&
 							<div className="slider-next-wrapper">
 								<button type="button" className="slider-next" onClick={() => {
