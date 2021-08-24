@@ -176,7 +176,7 @@ namespace Api.CanvasRenderer
 
 			engine.AddHostObject("document", new V8.Document());
 			engine.AddHostObject("__console", new V8.Console());
-			engine.Execute("console={};console.info=console.log=console.warn=console.error=(...args)=>__console.log(...args);");
+			engine.Execute("window.addEventListener=document.addEventListener;console={};console.info=console.log=console.warn=console.error=(...args)=>__console.log(...args);");
 			engine.AddHostObject("navigator", new V8.Navigator());
 			engine.AddHostObject("location", jsDoc.location);
 			
