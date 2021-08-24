@@ -582,6 +582,4 @@ export default {
 	Reader
 };
 
-window.addEventListener('load', () => {
-	start();
-})
+global.addEventListener('load', () => start());
