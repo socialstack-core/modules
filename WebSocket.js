@@ -581,3 +581,7 @@ export default {
 	Writer,
 	Reader
 };
+
+window.addEventListener('load', () => {
+	start();
+})
