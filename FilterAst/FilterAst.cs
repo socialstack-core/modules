@@ -1879,9 +1879,9 @@ namespace Api.Permissions{
 
 				if(Operation == "containsnone" || Operation == "!=")
                 {
-					var notStackValue = typeof(IDCollector<ID>).GetMethod(nameof(IDCollector<ID>.NotStackValue));
-
-					generator.Emit(OpCodes.Call, notStackValue);
+					// Invert:
+					generator.Emit(OpCodes.Ldc_I4_0);
+					generator.Emit(OpCodes.Ceq);
 				}
 			}
 			else

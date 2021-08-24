@@ -773,7 +773,22 @@ namespace Api.Permissions
 			var results = await ListAll(context);
 			return results.Count > 0 ? results[results.Count - 1] : null;
 		}
-		
+
+		/// <summary>
+		/// Execute this filter now, obtaining a count using an allocated delegate.
+		/// </summary>
+		/// <returns></returns>
+		public async ValueTask<int> Count(Context context)
+		{
+			var count = 0;
+			await ListAll(context, (Context ctx, T val, int index, object src, object src2) =>
+			{
+				count++;
+				return new ValueTask();
+			}, null);
+			return count;
+		}
+
 		/// <summary>
 		/// Execute this filter now, obtaining an allocated list of results. 
 		/// Consider using the callback overload instead if you wish to avoid the list allocation.
