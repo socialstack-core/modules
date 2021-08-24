@@ -12,17 +12,7 @@ namespace Api.LiveChats
 	/// A chat message in the live chat.
 	/// </summary>
 	public partial class LiveChatMessage : VersionedContent<uint>, IAmFlaggable
-	{
-		/// <summary>
-		/// The content type that this is in.
-		/// </summary>
-		public int ContentTypeId;
-		
-		/// <summary>
-		/// The content Id this is in.
-		/// </summary>
-		public int ContentId;
-		
+	{	
 		/// <summary>
 		/// The message itself. Can contain emoji.
 		/// </summary>
