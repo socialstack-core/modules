@@ -2,7 +2,9 @@ using System;
 using Api.Database;
 using Api.Translate;
 using Api.Users;
+using Api.Chats;
 using Api.Startup;
+
 
 namespace Api.Messages
 {
@@ -12,6 +14,7 @@ namespace Api.Messages
 	/// </summary>
 	[ListAs("Messages")]
 	[HasVirtualField("CreatorUser", typeof(User), "UserId")]
+	[HasVirtualField("Chat", typeof(Chat), "ChatId")]
 	public partial class Message : UserCreatedContent<uint>
 	{
 		/// <summary>
