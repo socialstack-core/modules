@@ -26,6 +26,11 @@ namespace Api.Chats
 		/// </summary>
 		public uint LastMessageId;
 		
+		/// <summary>
+		/// Initial message to add to the chat, if any.
+		/// </summary>
+		public string Message {get; set;}
+		
 	}
 
 }
