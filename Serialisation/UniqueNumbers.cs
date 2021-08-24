@@ -170,16 +170,6 @@ namespace Api.Startup
 		}
 
 		/// <summary>
-		/// Used to get the inverse of current value on stack
-		/// </summary>
-		/// <param name="c"></param>
-		/// <returns></returns>
-		public static bool NotStackValue(bool c)
-        {
-			return !c;
-        }
-
-		/// <summary>
 		/// Gets a non-alloc enumeration tracker. Only use this if 
 		/// </summary>
 		/// <returns></returns>
