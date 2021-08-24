@@ -230,52 +230,16 @@ namespace Api.ContentSync
 		/// </summary>
 		/// <param name="src"></param>
 		/// <param name="opcode"></param>
-		public async ValueTask SendLocallyIfPermitted(T src, byte opcode)
+		/// <param name="sender"></param>
+		public async ValueTask SendLocallyIfPermitted(T src, byte opcode, WebSocketClient sender = null)
 		{
 			if (First == null)
 			{
 				return;
 			}
 
-			// Build the JSON:
-			var writer = Writer.GetPooled();
-			writer.Start(null);
-			writer.Write(opcode);
-			writer.Write((uint)0); // Temporary size
-
-			if (ParentSet.Service.IsMapping)
-			{
-				await ParentSet.Service.ToJson(ParentSet.SharedGuestContext, src, writer);
-			}
-			else
-			{
-				await ParentSet.Service.ToJson(ParentSet.SharedGuestContext, src, writer, null, "*");
-			}
-
-			// msg length:
-			var firstBuffer = writer.FirstBuffer.Bytes;
-
-			// Write the length of the JSON to the 4 bytes at the start:
-			var msgLength = (uint)(writer.Length - 5);
-			firstBuffer[1] = (byte)msgLength;
-			firstBuffer[2] = (byte)(msgLength >> 8);
-			firstBuffer[3] = (byte)(msgLength >> 16);
-			firstBuffer[4] = (byte)(msgLength >> 24);
-
-			SendLocallyIfPermitted(src, writer);
-		}
-
-		/// <summary>
-		/// Local delivery only.
-		/// </summary>
-		/// <param name="src"></param>
-		/// <param name="writer"></param>
-		/// <param name="sender"></param>
-		/// <returns></returns>
-		public void SendLocallyIfPermitted(T src, Writer writer, WebSocketClient sender = null)
-		{
 			var isIncluded = ParentSet.Service.IsMapping;
-
+			
 			// Loop through locals
 			var current = First;
 
@@ -291,19 +255,48 @@ namespace Api.ContentSync
 					continue;
 				}
 
+				var ctx = current.Client.Context;
+
 				// Perm check:
-				if (current.LoadPermission != null && !current.LoadPermission.Match(current.Client.Context, src, isIncluded))
+				if (current.LoadPermission != null && !current.LoadPermission.Match(ctx, src, isIncluded))
 				{
 					// Skip this user - they can't receive the message.
 					current = next;
 					continue;
 				}
 
+				// Build the JSON:
+				var writer = Writer.GetPooled();
+				writer.Start(null);
+				writer.Write(opcode);
+				writer.Write((uint)0); // Temporary size
+
+				if (ParentSet.Service.IsMapping)
+				{
+					await ParentSet.Service.ToJson(ctx, src, writer);
+				}
+				else
+				{
+					await ParentSet.Service.ToJson(ctx, src, writer, null, "*");
+				}
+
+				// msg length:
+				var firstBuffer = writer.FirstBuffer.Bytes;
+
+				// Write the length of the JSON to the 4 bytes at the start:
+				var msgLength = (uint)(writer.Length - 5);
+				firstBuffer[1] = (byte)msgLength;
+				firstBuffer[2] = (byte)(msgLength >> 8);
+				firstBuffer[3] = (byte)(msgLength >> 16);
+				firstBuffer[4] = (byte)(msgLength >> 24);
+
 				if (!current.Client.Send(writer))
 				{
 					// client is invalid - remove it from this room.
 					current.Remove();
 				}
+
+				writer.Release();
 
 				current = next;
 			}
