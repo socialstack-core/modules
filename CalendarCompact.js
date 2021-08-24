@@ -115,7 +115,7 @@ export default class CalendarCompact extends React.Component {
 		}
 		
 		offset = offset + adj;
-		this.load(offset);
+		this.load(offset, this.props);
 	}
 
 	load(offset, props){
