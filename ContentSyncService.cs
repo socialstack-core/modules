@@ -705,36 +705,40 @@ namespace Api.ContentSync
 			var nameBytes = System.Text.Encoding.UTF8.GetBytes(name);
 
 			// Create is unlike update and delete for a non-mapping type.
-			// Nothing will be listening to its network room because it's just been created, 
-			// Thus it doesn't need to consider network rooms or the dont send to every sever scenario.
-			if (sendToEveryServer)
+			eventGroup.AfterCreate.AddEventListener(async (Context ctx, T src) =>
 			{
-				eventGroup.AfterCreate.AddEventListener((Context ctx, T src) =>
+				if (src == null)
 				{
-					if (src == null)
-					{
-						return new ValueTask<T>(src);
-					}
+					return src;
+				}
 
-					// Start creating the sync message. This is much the same as what Message does internally when sending generic messages.
-					// We just require some custom handling here to handle the type-within-a-message scenario.
+				// Start creating the sync message. This is much the same as what Message does internally when sending generic messages.
+				// We just require some custom handling here to handle the type-within-a-message scenario.
+				NetworkRoom<T, ID, ID> globalMsgRoom = rooms.AnyUpdateRoom;
 
-					var writer = Writer.GetPooled();
-					writer.Start(basicHeader);
-					var firstBuffer = writer.FirstBuffer.Bytes;
-					firstBuffer[0] = 21;
-					writer.WriteCompressed(ctx.LocaleId);
-					writer.Write(nameBytes);
-					boltIO.Write((INST_T)src, writer);
+				var writer = Writer.GetPooled();
+				writer.Start(basicHeader);
+				var firstBuffer = writer.FirstBuffer.Bytes;
+				firstBuffer[0] = 21;
+				writer.WriteCompressed(ctx.LocaleId);
+				writer.Write(nameBytes);
+				boltIO.Write((INST_T)src, writer);
 
-					// Write the length of the JSON to the 3 bytes at the start:
-					var msgLength = (uint)(writer.Length - 5);
-					firstBuffer[1] = (byte)msgLength;
-					firstBuffer[2] = (byte)(msgLength >> 8);
-					firstBuffer[3] = (byte)(msgLength >> 16);
-					firstBuffer[4] = (byte)(msgLength >> 24);
+				// Write the length of the JSON to the 3 bytes at the start:
+				var msgLength = (uint)(writer.Length - 5);
+				firstBuffer[1] = (byte)msgLength;
+				firstBuffer[2] = (byte)(msgLength >> 8);
+				firstBuffer[3] = (byte)(msgLength >> 16);
+				firstBuffer[4] = (byte)(msgLength >> 24);
 
-					try
+				if (globalMsgRoom != null)
+				{
+					await globalMsgRoom.SendLocallyIfPermitted(src, 21);
+				}
+				
+				try
+				{
+					if (sendToEveryServer)
 					{
 						// Tell every server about it:
 						var set = RemoteServers;
@@ -750,17 +754,23 @@ namespace Api.ContentSync
 
 							server.Send(writer);
 						}
-
-						writer.Release();
 					}
-					catch (Exception e)
+					else
 					{
-						Console.WriteLine(e);
+						// Send only to room relevant servers:
+						globalMsgRoom.SendRemote(writer, false);
 					}
-					return new ValueTask<T>(src);
-				}, 1000); // Always absolutely last
-			}
+					
+					writer.Release();
+				}
+				catch (Exception e)
+				{
+					Console.WriteLine(e);
+				}
 
+				return src;
+			}, 1000); // Always absolutely last
+			
 			eventGroup.AfterUpdate.AddEventListener(async (Context ctx, T src) =>
 			{
 				if (src == null)
