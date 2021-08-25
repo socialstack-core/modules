@@ -69,6 +69,7 @@ namespace Api.Presence
 
 		}
 
+		/*
 		/// <summary>
 		/// Sets the presence of the given websocket client to the given page record.
 		/// </summary>
@@ -125,9 +126,9 @@ namespace Api.Presence
 				client.Record.Url = url;
 				client.Record.PageId = record.ContentId;
 				await Update(client.Context, client.Record);
-			*/
-		}
-
+			*
+		}*/
+		
 		private bool IdSetup;
 		private ulong ServerIdMask;
 		/// <summary>

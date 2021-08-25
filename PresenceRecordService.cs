@@ -25,55 +25,31 @@ namespace Api.Presence
 		/// <summary>
 		/// Instanced automatically. Use injection to use this service, or Startup.Services.Get.
 		/// </summary>
-		public PresenceRecordService(PagePresenceRecordService pagePresence) : base(Events.PresenceRecord)
+		public PresenceRecordService() : base(Events.PresenceRecord)
         {
 			var pageContentTypeId = ContentTypes.GetId(typeof(Page));
-			
-			Events.WebSocketMessage.AddEventListener((Context context,JObject message, WebSocketClient client, string type) => {
-				
-				if(type != "Pres"){
-					return new ValueTask<JObject>(message);
-				}
-				
-				var typeObj = message["c"];
-				
-				if(typeObj == null){
-					return new ValueTask<JObject>(message);
-					
-				}
-				
-				string presType = typeObj.Value<string>();
-				
-				var metaObj = message["m"];
-				var meta = metaObj == null ? null : metaObj.Value<string>();
-				
-				var record = new PresenceRecord(){
-					EventName = presType,
-					UserId = context.UserId,
-					CreatedUtc = DateTime.UtcNow,
-					MetaJson = meta
-				};
 
-				var idObj = message["id"];
-				record.ContentId = idObj == null ? 0 : idObj.Value<uint>();
+			Events.Page.BeforeNavigate.AddEventListener((Context context, Page page, string url) => {
+				// Hot path - don't block it up for analytics.
 
-				// Special handle for presType "page":
-				if (presType == "page"){
-					record.ContentTypeId = pageContentTypeId;
-					
-					if(pagePresence.Active){
-						// (don't await this - we won't block the websocket for metrics): 
-						_ = pagePresence.SetPresence(client, record);
-					}
+				if (page != null)
+				{
+					var record = new PresenceRecord()
+					{
+						EventName = "page",
+						ContentTypeId = pageContentTypeId,
+						ContentId = page.Id,
+						UserId = context.UserId,
+						CreatedUtc = DateTime.UtcNow,
+						MetaJson = "{\"url\":\"" + url + "\"}"
+					};
+
+					// Don't wait:
+					_ = Create(context, record, DataOptions.IgnorePermissions);
 				}
 
-				// Presence record. If it's for something we recognise, store it in the DB
-				// (don't await this - we won't block the websocket for metrics):
-				_ = Create(context, record, DataOptions.IgnorePermissions);
-				
-				return new ValueTask<JObject>(message);
+				return new ValueTask<Page>(page);
 			});
-			
 		}
 	}
     
