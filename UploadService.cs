@@ -13,6 +13,7 @@ using System.Threading.Tasks;
 using Microsoft.Extensions.Configuration;
 using System.Runtime.InteropServices;
 using Api.Startup;
+using Api.Pages;
 //using ImageMagick;
 
 namespace Api.Uploader
@@ -37,6 +38,31 @@ namespace Api.Uploader
 				// Create a default object:
 				_configuration = new UploaderConfig();
 			}
+			
+			Events.Page.BeforeAdminPageInstall.AddEventListener((Context context, Pages.Page page, CanvasRenderer.CanvasNode canvas, Type contentType, AdminPageType pageType) =>
+			{
+				if (contentType == typeof(Upload))
+				{
+					if(pageType == AdminPageType.Single)
+					{
+						// Installing admin page for a particular upload.
+						/*
+						 Add media display.
+						*/
+					}
+					else if(pageType == AdminPageType.List)
+					{
+						// Installing admin page for the list of uploads.
+						// The create button is actually an uploader.
+						canvas.Module = "Admin/Dashboards/MediaCenter";
+						canvas.Data.Clear();
+					}
+				}
+
+				return new ValueTask<Pages.Page>(page);
+			});
+			
+			InstallAdminPages("Media", "fa:fa-film", new string[] { "id", "name" });
 		}
 
 		/// <summary>
