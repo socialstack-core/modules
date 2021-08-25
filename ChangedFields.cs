@@ -278,6 +278,11 @@ namespace Api.Startup {
 		/// The name of the primary ListAs, if there is one.
 		/// </summary>
 		public string PrimaryMapName;
+		
+		/// <summary>
+		/// The primary ListAs, if there is one.
+		/// </summary>
+		public ContentField PrimaryMap;
 
 		private List<DatabaseIndexInfo> _indexSet;
 
@@ -342,6 +347,7 @@ namespace Api.Startup {
 
 						primary = listAs;
 						PrimaryMapName = listAs.FieldName;
+						PrimaryMap = listAsField;
 					}
 
 					_globalVirtualFields[listAs.FieldName.ToLower()] = listAsField;
