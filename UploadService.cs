@@ -54,7 +54,7 @@ namespace Api.Uploader
 					{
 						// Installing admin page for the list of uploads.
 						// The create button is actually an uploader.
-						canvas.Module = "Admin/Dashboards/MediaCenter";
+						canvas.Module = "Admin/Layouts/MediaCenter";
 						canvas.Data.Clear();
 					}
 				}
