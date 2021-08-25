@@ -477,7 +477,7 @@ export default class Loop extends React.Component {
 				}
 			}else if(filter.on){
 				var on = filter.on;
-				onFilter = {query: on.map ? 'On(' + on.type + ',?)' : 'On(' + on.type + ',?,' + on.map + ')', args: [parseInt(on.id)]};
+				onFilter = {query: on.map ? 'On(' + on.type + ',?,"' + on.map + '")' : 'On(' + on.type + ',?)', args: [parseInt(on.id)]};
 			}
 		}
 		
