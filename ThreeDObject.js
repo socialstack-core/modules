@@ -53,36 +53,42 @@ export default class ThreeDObject extends React.Component {
 	
 	transform(props){
 		var obj = this.obj;
-		var {position, 
-			rotation, 
-			scale, 
+		var {position,
+			rotation,
+			scale,
+			crop,
 			circularCoords,
-			radius,
-			angle,
-			height,
 			positionX,
 			positionY,
 			positionZ,
+			rotationX,
+			rotationY,
+			rotationZ,
 			scaleX,
 			scaleY,
 			scaleZ,
-			rotationX,
-			rotationY,
-			rotationZ
+			cropT,
+			cropR,
+			cropB,
+			cropL,
+			radius,
+			angle,
+			height,
 		} = props;
 
-		if(!circularCoords && (radius || angle || height)) {
-			circularCoords = {};
-			circularCoords.radius = radius;
-			circularCoords.angle = angle;
-			circularCoords.height = height;
-		}
 
 		if(!position && (positionX || positionY || positionZ)) {
 			position = {};
 			position.x = positionX;
 			position.y = positionY;
 			position.z = positionZ;
+		}
+
+		if(!rotation && (rotationX || rotationY || rotationZ)) {
+			rotation = {};
+			rotation.x = rotationX;
+			rotation.y = rotationY;
+			rotation.z = rotationZ;
 		}
 
 		if(!scale && (scaleX || scaleY || scaleZ)) {
@@ -92,34 +98,41 @@ export default class ThreeDObject extends React.Component {
 			scale.z = scaleZ;
 		}
 
-		if(!rotation && (rotationX || rotationY || rotationZ)) {
-			rotation = {};
-			rotation.x = rotationX;
-			rotation.y = rotationY;
-			rotation.z = rotationZ;
+		if(!crop && (cropT || cropR || cropB || cropL)) {
+			crop = {};
+			crop.t = cropT;
+			crop.r = cropR;
+			crop.b = cropB;
+			crop.l = cropL;
 		}
-        
+
+		if(!circularCoords && (radius || angle || height)) {
+			circularCoords = {};
+			circularCoords.radius = radius;
+			circularCoords.angle = angle;
+			circularCoords.height = height;
+		}
+
         if (circularCoords) {
             var degToRad = Math.PI / 180;
             obj.position.x = circularCoords.radius * Math.sin(circularCoords.angle * degToRad);
             obj.position.z = -circularCoords.radius * Math.cos(circularCoords.angle * degToRad);
-            obj.position.y = circularCoords.height;            
+            obj.position.y = circularCoords.height;
             obj.rotation.y = -circularCoords.angle * degToRad;
             obj.rotation.x = rotationX || 0;
             obj.rotation.z = rotationY || 0;
-            
         } else {
             if(position){
                 obj.position.x = position.x || 0;
                 obj.position.y = position.y || 0;
                 obj.position.z = position.z || 0;
             }
-            
+
             if(rotation){
                 obj.rotation.x = rotation.x || 0;
                 obj.rotation.y = rotation.y || 0;
-                obj.rotation.z = rotation.z || 0;	
-            }            
+                obj.rotation.z = rotation.z || 0;
+            }
         }
 
 		if(scale){
@@ -127,7 +140,16 @@ export default class ThreeDObject extends React.Component {
 			obj.scale.y = scale.y || 1;
 			obj.scale.z = scale.z || 1;
 		}
-		
+
+		if (crop) {
+			var {t, r, b, l} = crop;
+			t = t || 0;
+			r = r || 0;
+			b = b || 0;
+			l = l || 0;
+			obj.element.style.clipPath = `inset(${t*100}% ${r*100}% ${b*100}% ${l*100}%)`;
+		}
+
 		obj.update();
 	}
 	
@@ -148,19 +170,24 @@ export default class ThreeDObject extends React.Component {
 	}
 	
 }
+
 ThreeDObject.propTypes = {
 	className: 'string',
-	radius: 'int',
-	angle: 'float',
-	height: 'int',
 	positionX: 'int',
 	positionY: 'int',
 	positionZ: 'int',
-	scaleX: 'float',
-	scaleY: 'float',
-	scaleZ: 'float',
 	rotationX: 'float',
 	rotationY: 'float',
 	rotationZ: 'float',
+	scaleX: 'float',
+	scaleY: 'float',
+	scaleZ: 'float',
+	cropT: 'float',
+	cropR: 'float',
+	cropB: 'float',
+	cropL: 'float',
+	radius: 'int',
+	angle: 'float',
+	height: 'int',
 	children: true
 }
