@@ -146,6 +146,7 @@ namespace Api.WebSockets
 				var handled = false;
 				JArray jArray = null;
 				string typeName;
+				JObject filt;
 				uint customId;
 				ulong roomId;
 
@@ -177,8 +178,9 @@ namespace Api.WebSockets
 						typeName = message["n"].Value<string>();
 						customId = message["ci"].Value<uint>();
 						roomId = message["id"].Value<ulong>();
+						filt = message["f"] as JObject;
 
-						await _contentSync.RegisterRoomClient(typeName, customId, roomId, client);
+						await _contentSync.RegisterRoomClient(typeName, customId, roomId, client, filt);
 
 						break;
 					case "+*":
@@ -199,12 +201,13 @@ namespace Api.WebSockets
 						{
 							var jo = entry as JObject;
 							typeName = jo["n"].Value<string>();
+							filt = jo["f"] as JObject;
 
 							customId = jo["ci"].Value<uint>();
 							roomId = jo["id"].Value<ulong>();
 
 							// Add the client now:
-							await _contentSync.RegisterRoomClient(typeName, customId, roomId, client);
+							await _contentSync.RegisterRoomClient(typeName, customId, roomId, client, filt);
 						}
 
 						break;
