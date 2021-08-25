@@ -459,6 +459,7 @@ export default class Loop extends React.Component {
 		// Type name:
 		var type = props.over.split('/')[0].toLowerCase();
 		var id=0;
+		var onFilter = null;
 		
 		// If the filter is the equiv of "Id=?", it's type with the provided ID:
 		var filter = props.filter;
@@ -475,22 +476,12 @@ export default class Loop extends React.Component {
 					}
 				}
 			}else if(filter.on){
-				// Mapping type instead.
-				// source_target_map_mapname.
 				var on = filter.on;
-				
-				if(!on.map){
-					console.warn("Can't go live on a mapping without the map name. You must specify map: x inside your on:{..}. Went live on all target objects instead.");
-					type = on.type;
-					id = 0;
-				}else{
-					type = (on.type + "_" + type + "_map_" + on.map);
-					id = parseInt(on.id);
-				}
+				onFilter = {query: on.map ? 'On(' + on.type + ',?)' : 'On(' + on.type + ',?,' + on.map + ')', args: [parseInt(on.id)]};
 			}
 		}
 		
-		return {type, id};
+		return {type, id, onFilter};
 	}
 	
 	load(props, newPageIndex) {
@@ -498,7 +489,7 @@ export default class Loop extends React.Component {
 			if (props.live) {
 				// Note: onLiveMessage is used to detect if the filter changed
 				var liveInfo = this.liveType(props);
-				webSocket.addEventListener(liveInfo.type, this.onLiveMessage, liveInfo.id);
+				webSocket.addEventListener(liveInfo.type, this.onLiveMessage, liveInfo.id, liveInfo.onFilter);
 			}
 			
 			var newState = {
