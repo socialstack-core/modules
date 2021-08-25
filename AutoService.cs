@@ -1223,7 +1223,12 @@ public partial class AutoService<T, ID> : AutoService
 			cache.Add(context, entity, raw);
 		}
 
-		return await EventGroup.AfterCreate.Dispatch(context, raw);
+		raw = await EventGroup.AfterCreate.Dispatch(context, raw);
+
+		// Reset marked changes:
+		raw.ResetChanges();
+
+		return raw;
 	}
 
 	/// <summary>
@@ -1369,9 +1374,6 @@ public partial class AutoService<T, ID> : AutoService
 			await EventGroup.BeforeUpdate.TestCapability(context, entity);
 		}
 
-		// Reset marked changes:
-		entity.ResetChanges();
-
 		return true;
 	}
 
@@ -1446,6 +1448,10 @@ public partial class AutoService<T, ID> : AutoService
 		}
 
 		entity = await EventGroup.AfterUpdate.Dispatch(context, entity);
+
+		// Reset marked changes:
+		entity.ResetChanges();
+
 		return entity;
 	}
 	
