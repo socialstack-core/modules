@@ -8,6 +8,7 @@ using Api.Startup;
 using Api.Translate;
 using Api.Users;
 using Api.WebSockets;
+using Newtonsoft.Json.Linq;
 
 namespace Api.ContentSync
 {
@@ -32,7 +33,7 @@ namespace Api.ContentSync
 		/// <summary>
 		/// Add if the given client is not in the room.
 		/// </summary>
-		public virtual ValueTask<UserInRoom> Add(WebSocketClient client, uint customId, FilterBase permFilter = null)
+		public virtual ValueTask<UserInRoom> Add(WebSocketClient client, uint customId, FilterBase permFilter = null, JObject filter = null)
 		{
 			return new ValueTask<UserInRoom>();
 		}
@@ -177,7 +178,7 @@ namespace Api.ContentSync
 		/// <summary>
 		/// Add if the given client is not in the room.
 		/// </summary>
-		public override async ValueTask<UserInRoom> Add(WebSocketClient client, uint customId, FilterBase permFilter = null)
+		public override async ValueTask<UserInRoom> Add(WebSocketClient client, uint customId, FilterBase permFilter = null, JObject filter = null)
 		{
 			var roomEntry = client.GetInNetworkRoom(this);
 
@@ -186,7 +187,7 @@ namespace Api.ContentSync
 				return roomEntry;
 			}
 			
-			return await AddUnchecked(client, customId, permFilter);
+			return await AddUnchecked(client, customId, permFilter, filter);
 		}
 
 		/// <summary>
@@ -238,8 +239,6 @@ namespace Api.ContentSync
 				return;
 			}
 
-			var isIncluded = ParentSet.Service.IsMapping;
-			
 			// Loop through locals
 			var current = First;
 
@@ -256,6 +255,20 @@ namespace Api.ContentSync
 				}
 
 				var ctx = current.Client.Context;
+
+				var isIncluded = false;
+
+				if (current.UserFilter != null)
+				{
+					isIncluded = current.UserFilter.IsIncluded;
+
+					if (!current.UserFilter.Match(ctx, src, isIncluded))
+					{
+						// Skip this user - they can't receive the message.
+						current = next;
+						continue;
+					}
+				}
 
 				// Perm check:
 				if (current.LoadPermission != null && !current.LoadPermission.Match(ctx, src, isIncluded))
@@ -381,12 +394,33 @@ namespace Api.ContentSync
 		/// <summary>
 		/// Adds the given client to the set. Does not check if the client is already in the set.
 		/// </summary>
-		public async ValueTask<UserInRoom> AddUnchecked(WebSocketClient client, uint customId, FilterBase permFilter)
+		public async ValueTask<UserInRoom> AddUnchecked(WebSocketClient client, uint customId, FilterBase permFilter, JObject userFilter = null)
 		{
 			var block = UserInRoom<T,ID, ROOM_ID>.GetPooled();
 			block.Room = this;
 			block.Client = client;
 			block.LoadPermission = permFilter;
+
+			if (userFilter == null)
+			{
+				block.UserFilter = null;
+			}
+			else
+			{
+				// This user filter will be tested before sending.
+				// It typically exists to define the inclusion state.
+				block.UserFilter = ParentSet.Service.LoadFilter(userFilter) as Filter<T, ID>;
+
+				// Next, rent any necessary collectors, and execute the collections. RentAndCollect internally performs Setup as well.
+				// The first time this happens on a given filter type may also cause the mapping services to load, thus it is awaitable.
+				block.UserFilter.FirstCollector = await block.UserFilter.RentAndCollect(client.Context, ParentSet.Service);
+			}
+
+			// Ensure perm filter is setup also:
+			if (permFilter != null && permFilter.RequiresSetup)
+			{
+				await permFilter.Setup();
+			}
 
 			// Add to rooms user chain:
 			block.Next = null;
@@ -536,6 +570,11 @@ namespace Api.ContentSync
 		public FilterBase LoadPermission;
 
 		/// <summary>
+		/// User filter. Typically for On() based filters as it can specify if it's included or not.
+		/// </summary>
+		public Filter<T, ID> UserFilter;
+
+		/// <summary>
 		/// Gets a pooled UserInRoom.
 		/// </summary>
 		public static UserInRoom<T, ID, ROOM_ID> GetPooled()
@@ -640,7 +679,22 @@ namespace Api.ContentSync
 				// This room is now empty. Make sure other servers are aware of this by removing the NR record.
 				Room.MarkEmpty();
 			}
-			
+
+			// Return collectors:
+			if (UserFilter != null)
+			{
+				if (UserFilter.FirstCollector != null)
+				{
+					var col = UserFilter.FirstCollector;
+					while (col != null)
+					{
+						var next = col.NextCollector;
+						col.Release();
+						col = next;
+					}
+				}
+			}
+
 			// Return to pool.
 			lock(PoolLock)
 			{

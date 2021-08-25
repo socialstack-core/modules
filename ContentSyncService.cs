@@ -160,7 +160,8 @@ namespace Api.ContentSync
 		/// <param name="customId"></param>
 		/// <param name="roomId"></param>
 		/// <param name="client"></param>
-		public async ValueTask RegisterRoomClient(string typeName, uint customId, ulong roomId, WebSocketClient client)
+		/// <param name="filter"></param>
+		public async ValueTask RegisterRoomClient(string typeName, uint customId, ulong roomId, WebSocketClient client, JObject filter = null)
 		{
 			// First, get the type meta:
 			if (RemoteTypes.TryGetValue(typeName, out ContentSyncTypeMeta meta))
@@ -191,7 +192,7 @@ namespace Api.ContentSync
 						}
 					}
 
-					await room.Add(client, customId, perm);
+					await room.Add(client, customId, perm, filter);
 				}
 			}
 		}
