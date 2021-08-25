@@ -45,7 +45,7 @@ namespace Api.Huddles
 
 						var writer = ring.Write(41);
 
-						websocketService.SendToUser(ring.UserId, writer);
+						websocketService.SendToUser(callee, writer);
 
 						writer.Release();
 					}
