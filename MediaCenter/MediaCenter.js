@@ -44,11 +44,11 @@ export default class MediaCenter extends React.Component {
 		
 	}
 	
-	showRef(ref){
+	showRef(ref, url){
 		// Check if it's an image/ video/ audio file. If yes, a preview is shown. Otherwise it'll be a preview link.
 		var canShowImage = getRef.isImage(ref);
 		
-		return <a href={getRef(ref, {url: true})} alt={ref} target={'_blank'}>
+		return <a href={url} alt={ref} target={'_blank'}>
 			{
 				canShowImage ? (
 					<Image fileRef={ref} size={256} alt={ref}/>
@@ -144,7 +144,7 @@ export default class MediaCenter extends React.Component {
 	
 	renderEntry(entry) {
 		var {bulkSelections} = this.state;
-		var path = '/en-admin/upload/';
+		var url = getRef(entry.ref, {url: true});
 		var checked = bulkSelections && !!bulkSelections[entry.id];
 		var checkbox = <td>
 			<input type='checkbox' checked={checked} onChange={() => {
@@ -163,7 +163,7 @@ export default class MediaCenter extends React.Component {
 		</td>;
 		
 		// Each row
-		return [checkbox, <td>{this.showRef(entry.ref)}</td>].concat(fields.map(field => {
+		return [checkbox, <td>{this.showRef(entry.ref, url)}</td>].concat(fields.map(field => {
 			
 			var fieldValue = entry[field];
 			
@@ -176,7 +176,7 @@ export default class MediaCenter extends React.Component {
 			}
 			
 			return <td>
-				<a href={path + '' + entry.id + (entry.revisionId ? '?revision=' + entry.revisionId : '')}>
+				<a href={url}>
 				{
 					fieldValue
 				}
