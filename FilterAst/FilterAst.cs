@@ -306,6 +306,22 @@ namespace Api.Permissions{
 		public static Type[] _collectSignature;
 
 		/// <summary>
+		/// Performs a string.contains if both args are not null.
+		/// </summary>
+		/// <param name="a"></param>
+		/// <param name="b"></param>
+		/// <returns></returns>
+		public static bool GuardedContains(string a, string b)
+		{
+			if (a == null || b == null)
+			{
+				return false;
+			}
+
+			return a.Contains(b);
+		}
+
+		/// <summary>
 		/// Date parsing. Supports numeric tick counts as well as actual date strings.
 		/// </summary>
 		/// <param name="s"></param>
@@ -2064,7 +2080,7 @@ namespace Api.Permissions{
 					{
 						if (_strContains == null)
 						{
-							_strContains = typeof(string).GetMethod("Contains", BindingFlags.Public | BindingFlags.Instance, null, new Type[] { typeof(string) }, null);
+							_strContains = typeof(FilterAst).GetMethod(nameof(FilterAst.GuardedContains), BindingFlags.Public | BindingFlags.Static, null, new Type[] { typeof(string), typeof(string) }, null);
 						}
 
 						generator.Emit(OpCodes.Call, _strContains);
@@ -2087,7 +2103,7 @@ namespace Api.Permissions{
 					{
 						if (_strContains == null)
 						{
-							_strContains = typeof(string).GetMethod("Contains", BindingFlags.Public | BindingFlags.Instance, null, new Type[] { typeof(string) }, null);
+							_strContains = typeof(FilterAst).GetMethod(nameof(FilterAst.GuardedContains), BindingFlags.Public | BindingFlags.Static, null, new Type[] { typeof(string), typeof(string) }, null);
 						}
 
 						generator.Emit(OpCodes.Call, _strContains);
