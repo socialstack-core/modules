@@ -441,7 +441,7 @@ function addEventListener (type, method, id, onFilter){
 		}
 	}else{
 		typeCount++;
-		entry = {method,id, customId: refId++};
+		entry = {method,id, customId: refId++, onFilter};
 		messageTypes[type] = [entry];
 	}
 	
