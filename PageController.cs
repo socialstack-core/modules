@@ -3,6 +3,7 @@ using System.Threading.Tasks;
 using Api.Contexts;
 using Api.Startup;
 using Api.CanvasRenderer;
+using Api.Eventing;
 
 namespace Api.Pages
 {
@@ -51,6 +52,8 @@ namespace Api.Pages
 
 			// we first need to get the pageAndTokens
 			var pageAndTokens = await _pageService.GetPage(context, pageDetails.Url, Microsoft.AspNetCore.Http.QueryString.Empty);
+
+            await Events.Page.BeforeNavigate.Dispatch(context, pageAndTokens.Page, pageDetails.Url);
 
             Response.ContentType = "application/json";
 			await _htmlService.RenderState(context, pageAndTokens, pageDetails.Url, Response.Body);

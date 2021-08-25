@@ -193,7 +193,7 @@ namespace Api.Pages
 		};
 
 		/// <summary>
-		/// PageRouter state data as a js string. This data is always the same until a page is added/ deleted/ a url is changed.
+		/// User specific state data. This combined with pageState indicates a page load.
 		/// </summary>
 		/// <returns></returns>
 		private async ValueTask<string> BuildUserGlobalStateJs(Context context)
@@ -1186,6 +1186,8 @@ namespace Api.Pages
 				response.StatusCode = 302;
 				return;
 			}
+
+			await Events.Page.BeforeNavigate.Dispatch(context, pageAndTokens.Page, path);
 
 			var responseStream = response.Body;
 

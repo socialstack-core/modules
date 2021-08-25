@@ -26,6 +26,11 @@ namespace Api.Eventing
 		/// During page generation.
 		/// </summary>
 		public EventHandler<Document> Generated;
+		
+		/// <summary>
+		/// Before a user is about to navigate to a page (the server is generating either just the state or the html for them).
+		/// </summary>
+		public EventHandler<Page, string> BeforeNavigate;
 
 		/// <summary>
 		/// Url lookup is ready. Use to add e.g. custom redirects to the lookup tree.
