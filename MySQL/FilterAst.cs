@@ -88,26 +88,69 @@ namespace Api.Permissions{
 					MappingTypeEngine.GetTableName(typeof(T), OtherService.ServicedType, MapName);
 			}
 
-			writer.WriteASCII(" EXISTS (SELECT Id from ");
-			writer.WriteASCII(MappingTableName);
-			writer.WriteASCII(" WHERE ");
+			if (TargetField != null)
+			{
+				// The same as just Field=x.
 
-			var otherTypeName = OtherService.ServicedType.Name;
-			var thisTypeName = typeof(T).Name;
+				writer.Write((byte)'`');
+				writer.WriteS(TargetField.FieldInfo.Name);
 
-			// The given thing is the source. I.e. the value stored in Id == source Id.
-			writer.WriteASCII(thisTypeName); // target ID
-			writer.WriteASCII("Id");
-			writer.WriteASCII("=`");
-			writer.WriteASCII(thisTypeName);
-			writer.WriteASCII("`.`Id`");
-			writer.WriteASCII(" and ");
-			writer.WriteASCII(otherTypeName);
-			writer.WriteASCII("Id"); // source
+				if (TargetField.Localised && localeCode != null)
+				{
+					writer.Write((byte)'_');
+					writer.WriteS(localeCode);
+				}
 
-			writer.Write((byte)'=');
-			Id.ToSql(cmd, writer, ref collectors, localeCode, filter, context);
-			writer.WriteASCII(")");
+				writer.Write((byte)'`');
+
+				var idNode = Id as ArgFilterTreeNode<T, ID>;
+
+				// Read the ID:
+				var val = idNode.Binding.ConstructedField.GetValue(filter);
+
+				writer.WriteS("=");
+				OutputArg(cmd, writer, val);
+			}
+			else
+			{
+				writer.WriteASCII(" EXISTS (SELECT Id from ");
+				writer.WriteASCII(MappingTableName);
+				writer.WriteASCII(" WHERE ");
+
+				var otherTypeName = OtherService.ServicedType.Name;
+				var thisTypeName = typeof(T).Name;
+
+				// The given thing is the source. I.e. the value stored in Id == source Id.
+				writer.WriteASCII(thisTypeName); // target ID
+				writer.WriteASCII("Id");
+				writer.WriteASCII("=`");
+				writer.WriteASCII(thisTypeName);
+				writer.WriteASCII("`.`Id`");
+				writer.WriteASCII(" and ");
+				writer.WriteASCII(otherTypeName);
+				writer.WriteASCII("Id"); // source
+
+				writer.Write((byte)'=');
+				Id.ToSql(cmd, writer, ref collectors, localeCode, filter, context);
+				writer.WriteASCII(")");
+			}
+		}
+
+		/// <summary>
+		/// Attempts to output an arg for a particular value. If the value is null, this returns false. You must use "is null" syntax instead.
+		/// </summary>
+		/// <param name="cmd"></param>
+		/// <param name="writer"></param>
+		/// <param name="val"></param>
+		/// <returns></returns>
+		private void OutputArg(MySqlCommand cmd, Writer writer, object val)
+		{
+			var name = "@a" + cmd.Parameters.Count;
+			var parameter = cmd.CreateParameter();
+			parameter.ParameterName = name;
+			parameter.Value = val;
+			writer.WriteASCII(name);
+			cmd.Parameters.Add(parameter);
 		}
 	}
 
