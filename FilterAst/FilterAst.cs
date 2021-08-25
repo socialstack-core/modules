@@ -408,7 +408,7 @@ namespace Api.Permissions{
 		public MappingFilterTreeNode<T, ID> Node;
 
 		/// <summary>
-		/// The mapping service.
+		/// The mapping service, if there is one. Doesn't exist if this is a field only mapping and really just translates to Field=x.
 		/// </summary>
 		public AutoService Map;
 		
@@ -418,61 +418,17 @@ namespace Api.Permissions{
 		/// <returns></returns>
 		public async ValueTask Setup()
 		{
-			if (Map != null)
+			if (Map != null || Node.TargetField != null)
 			{
 				return;
 			}
 
-			// var thisContentType = typeof(T);
-			var thisService = Node.ThisService;
-			var otherService = Node.OtherService;
+			// Because TargetField is null, this is definitely a "real" map.
+			// Must now load it up.
 
-			var mapName = Node.MapName;
-
-			if (mapName != null)
-			{
-				// Ensure this map name exists:
-				if (!ContentFields._globalVirtualFields.ContainsKey(mapName.ToLower()))
-				{
-					throw new PublicException(
-						"A map called '" + mapName + "' doesn't exist (likely used by an On declaration in your filter).",
-						"no_map"
-					);
-				}
-			}
-			else
-			{
-				// Use the primary map name. Map is from the target service.
-				var cf = (Node.SourceMapping ? thisService : otherService).GetContentFields();
-
-				if (cf.PrimaryMapName == null)
-				{
-					throw new PublicException(
-						"This type doesn't have a primary map, meaning you'll need to specify a map name via \"map\":\"name_here\" in your \"on\":{}. " +
-						"The map name is the name of a ListAs field. For example, ListAs(\"Tags\") on Tag means it has a map called 'Tags'. " +
-						"On Tag specifically however, ListAs(\"Tags\") is the primary map (because it's the most obvious name) and as a result you can omit the map name when using it.",
-						"no_primary_map"
-					);
-				}
-
-				Node.MapName = cf.PrimaryMapName;
-				mapName = cf.PrimaryMapName;
-			}
-
-			// If SourceMapping is true, "this" is the target.
-			if (Node.SourceMapping)
-			{
-				// target = thisContentType, thisService
-				// source = otherContentType, otherService
-				Map = await MappingTypeEngine.GetOrGenerate(otherService, thisService, mapName);
-			}
-			else
-			{
-				// target = otherContentType, otherService
-				// source = thisContentType, thisService
-				Map = await MappingTypeEngine.GetOrGenerate(thisService, otherService, mapName);
-			}
-
+			// Get the map info:
+			var relativeTo = (Node.SourceMapping ? Node.OtherService : Node.ThisService).GetContentFields();
+			Map = await Node.ListAsField.GetMappingService(relativeTo);
 		}
 		
 	}
@@ -2642,6 +2598,16 @@ namespace Api.Permissions{
 		public MappingBinding<T, ID> Binding;
 
 		/// <summary>
+		/// The underlying ListAsField to use. Set automatically.
+		/// </summary>
+		public ContentField ListAsField;
+		
+		/// <summary>
+		/// Set automatically. Exists if the ListAs field on this pair of types has a field shortcut (null if it is a full mapping).
+		/// </summary>
+		public ContentField TargetField;
+		
+		/// <summary>
 		/// True if this is an On(..) node
 		/// </summary>
 		public bool IsOn;
@@ -2663,61 +2629,76 @@ namespace Api.Permissions{
 		/// <param name="ast"></param>
 		public override void Emit(ILGenerator generator, FilterAst<T, ID> ast)
 		{
-			// Code being emitted is approximately like this:
-			// var map = Filter<T,ID>.GetMap(Index); // Is a MappingService<SRC_ID, TARG_ID>
-			// if(SourceMapping){
-			// return map.ExistsInCache(Id, CurrentObjectId); // The provided ID is the source
-			// }else{
-			// return map.ExistsInCache(CurrentObjectId, Id); // The provided ID is the target
-			// }
-
-			// Grab the GetMap func:
-			var getMapMethod = typeof(Filter<T, ID>).GetMethod(nameof(Filter<T,ID>.GetMap));
-
-			// thisFilter.GetMap(Index)
-			generator.Emit(OpCodes.Ldarg_0); // thisFilter
-			generator.Emit(OpCodes.Ldc_I4, Index); // (Index)
-			generator.Emit(OpCodes.Callvirt, getMapMethod);
-
-			// Stack now has the MappingService on it.
-
-			// What type actually is it?
-			Type mappingServiceType;
-			
-			if (SourceMapping)
+			if (TargetField != null)
 			{
-				// "this" is the target.
-				mappingServiceType = typeof(MappingService<,>).MakeGenericType(OtherService.IdType, ThisService.IdType);
+				// Actually just a field=x regular emit.
+				var opNode = new OpFilterTreeNode<T, ID>();
+				opNode.Operation = "=";
+				var mem = new MemberFilterTreeNode<T, ID>();
+				mem.Field = TargetField;
+				opNode.A = mem;
+				opNode.B = Id;
+
+				opNode.Emit(generator, ast);
+				return;
 			}
 			else
 			{
-				mappingServiceType = typeof(MappingService<,>).MakeGenericType(ThisService.IdType, OtherService.IdType);
+				// Code being emitted is approximately like this:
+				// var map = Filter<T,ID>.GetMap(Index); // Is a MappingService<SRC_ID, TARG_ID>
+				// if(SourceMapping){
+				// return map.ExistsInCache(Id, CurrentObjectId); // The provided ID is the source
+				// }else{
+				// return map.ExistsInCache(CurrentObjectId, Id); // The provided ID is the target
+				// }
+
+				// Grab the GetMap func:
+				var getMapMethod = typeof(Filter<T, ID>).GetMethod(nameof(Filter<T, ID>.GetMap));
+
+				// thisFilter.GetMap(Index)
+				generator.Emit(OpCodes.Ldarg_0); // thisFilter
+				generator.Emit(OpCodes.Ldc_I4, Index); // (Index)
+				generator.Emit(OpCodes.Callvirt, getMapMethod);
+
+				// Stack now has the MappingService on it.
+
+				// What type actually is it?
+				Type mappingServiceType;
+
+				if (SourceMapping)
+				{
+					// "this" is the target.
+					mappingServiceType = typeof(MappingService<,>).MakeGenericType(OtherService.IdType, ThisService.IdType);
+				}
+				else
+				{
+					mappingServiceType = typeof(MappingService<,>).MakeGenericType(ThisService.IdType, OtherService.IdType);
+				}
+
+				// Get the existsInCache method:
+				var existsInCache = mappingServiceType.GetMethod("ExistsInCache");
+
+				if (SourceMapping)
+				{
+					// "this" (the actual object being tested) is the target.
+					ast.EmitReadValue(generator, Id, OtherService.IdType); // Emit source (other service) ID.
+
+					// Read the ID:
+					generator.Emit(OpCodes.Ldarg_2); // Emit source (this service) ID.
+					generator.Emit(OpCodes.Ldfld, ThisService.InstanceType.GetField("Id"));
+
+					generator.Emit(OpCodes.Callvirt, existsInCache);
+				}
+				else
+				{
+					generator.Emit(OpCodes.Ldarg_2); // Emit source (this service) ID.
+					generator.Emit(OpCodes.Ldfld, ThisService.InstanceType.GetField("Id"));
+
+					// Emit source (this service) ID.
+					ast.EmitReadValue(generator, Id, OtherService.IdType); // Emit target (other service) ID.
+					generator.Emit(OpCodes.Callvirt, existsInCache);
+				}
 			}
-
-			// Get the existsInCache method:
-			var existsInCache = mappingServiceType.GetMethod("ExistsInCache");
-
-			if (SourceMapping)
-			{
-				// "this" (the actual object being tested) is the target.
-				ast.EmitReadValue(generator, Id, OtherService.IdType); // Emit source (other service) ID.
-				
-				// Read the ID:
-				generator.Emit(OpCodes.Ldarg_2); // Emit source (this service) ID.
-				generator.Emit(OpCodes.Ldfld, ThisService.InstanceType.GetField("Id"));
-
-				generator.Emit(OpCodes.Callvirt, existsInCache);
-			}
-			else
-			{
-				generator.Emit(OpCodes.Ldarg_2); // Emit source (this service) ID.
-				generator.Emit(OpCodes.Ldfld, ThisService.InstanceType.GetField("Id"));
-
-				// Emit source (this service) ID.
-				ast.EmitReadValue(generator, Id, OtherService.IdType); // Emit target (other service) ID.
-				generator.Emit(OpCodes.Callvirt, existsInCache);
-			}
-
 		}
 
 		/// <summary>
@@ -2750,6 +2731,53 @@ namespace Api.Permissions{
 
 			ThisService = ast.Service;
 			Index = ast.Mappings.Count;
+
+			// var thisContentType = typeof(T);
+			
+			var mapName = MapName;
+
+			if (mapName != null)
+			{
+				// Ensure this map name exists:
+				if (!ContentFields._globalVirtualFields.TryGetValue(mapName.ToLower(), out ListAsField))
+				{
+					throw new PublicException(
+						"A map called '" + mapName + "' doesn't exist (likely used by an On declaration in your filter).",
+						"no_map"
+					);
+				}
+			}
+			else
+			{
+				// Use the primary map name. Map is from the target service.
+				var cf = (SourceMapping ? ThisService : OtherService).GetContentFields();
+
+				if (cf.PrimaryMapName == null)
+				{
+					throw new PublicException(
+						"This type doesn't have a primary map, meaning you'll need to specify a map name via \"map\":\"name_here\" in your \"on\":{}. " +
+						"The map name is the name of a ListAs field. For example, ListAs(\"Tags\") on Tag means it has a map called 'Tags'. " +
+						"On Tag specifically however, ListAs(\"Tags\") is the primary map (because it's the most obvious name) and as a result you can omit the map name when using it.",
+						"no_primary_map"
+					);
+				}
+
+				MapName = cf.PrimaryMapName;
+				ListAsField = cf.PrimaryMap;
+			}
+
+			// Next, establish if this is a real mapping or just a field shortcut.
+			var relativeTo = (SourceMapping ? OtherService : ThisService).GetContentFields();
+
+			// Set target field if there is one:
+			var targetVirtualField = ListAsField.GetIdFieldIfMappingNotRequired(relativeTo);
+
+			if (targetVirtualField != null)
+			{
+				// get its ID source:
+				TargetField = targetVirtualField.VirtualInfo.IdSource;
+			}
+
 			Binding = new MappingBinding<T, ID>()
 			{
 				Node = this
