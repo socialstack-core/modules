@@ -354,7 +354,7 @@ function connect(){
 			var s = messageTypes[name];
 			for(var type in s){
 				var entry = s[type];
-				set.push({n: name, id: entry.id, ci: entry.customId});
+				set.push({n: name, id: entry.id, ci: entry.customId, f: entry.onFilter});
 			}
 			
 		}
@@ -406,7 +406,7 @@ function send(msg){
 
 var refId = 1;
 
-function addEventListener (type, method, id){
+function addEventListener (type, method, id, onFilter){
 	
 	if(id !== undefined && typeof id != 'number'){
 		// Change the 3rd arg to a room ID.
@@ -434,8 +434,9 @@ function addEventListener (type, method, id){
 		if(entry){
 			// Actually an update of existing one
 			entry.id = id;
+			entry.onFilter = onFilter;
 		}else{
-			entry = {method, id, customId: refId++};
+			entry = {method, id, customId: refId++, onFilter};
 			messageTypes[type].push(entry);
 		}
 	}else{
@@ -448,7 +449,7 @@ function addEventListener (type, method, id){
 		return;
 	}
 	
-	var msg = {type: '+', n: type, id, ci: entry.customId};
+	var msg = {type: '+', n: type, id, ci: entry.customId, f: entry.onFilter};
 	
 	if(!ws){
 		connect();
