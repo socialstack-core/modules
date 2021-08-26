@@ -77,10 +77,10 @@ function CallUI(props){
 	var style = { "background-image": "url(" + avatarUrl + ")" };
 	var wrapperClassName = "profile-avatar has-image";
 	
-	return <div className="modal show" data-theme={props.theme || 'huddle-ring-theme'}>
+	return <div className="modal show">
 		<div className="modal-dialog show modal-dialog-centered">
 			<div className="modal-content">
-			<section className="huddle-call-ui">
+			<section className="huddle-call-ui" data-theme={props.theme || 'huddle-ring-theme'}>
 				<div className={wrapperClassName} style={style}>
 					<span className="profile-initials">{getInitials(user.fullName)}</span>
 				</div>
