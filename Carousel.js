@@ -177,7 +177,7 @@ export default class Carousel extends React.Component {
 			{ marginLeft: '-' + transformCalc + 'px' };
 		
 		return (
-			<div className="carousel">
+			<div className="carousel" data-theme={this.props['data-theme']}>
 				<div className="slider-container">
 					<div className={sliderClass}>
 						{showBack && this.state.currentIndex > 0 &&
