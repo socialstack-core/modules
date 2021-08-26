@@ -2,6 +2,7 @@ using System;
 using Api.Database;
 using Api.Translate;
 using Api.Users;
+using Api.Startup;
 
 
 namespace Api.Polls
@@ -10,6 +11,8 @@ namespace Api.Polls
 	/// <summary>
 	/// A Poll
 	/// </summary>
+	[ListAs("PollAnswers")]
+	[HasVirtualField("Poll", typeof(Poll), "PollId")]
 	public partial class PollAnswer : VersionedContent<uint>
 	{
         /// <summary>
