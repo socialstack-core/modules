@@ -281,8 +281,6 @@ export default class Loop extends React.Component {
 		if (filter && filter.where) {
 			var w = filter.where;
 			
-			console.log("test filter", w, ent);
-			
 			if(Array.isArray(w)){
 				if(!w.length){
 					return true;
