@@ -1,0 +1,89 @@
+$incoming_call_avatar_em: px_to_em(60);
+
+
+.huddle-call-ui {
+    width: 100%;
+    padding: 6rem 6rem 3rem 6rem;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+	
+	.hint-text {
+		margin-top: 0.5rem;
+		font-size: 0.8rem;
+	}
+	
+	.hang-up {
+		border-radius: 50%;
+		width: 3rem;
+		height: 3rem;
+		
+		.fa-phone {
+			transform: rotate(225deg);
+		}
+	}
+	
+	.call-options {
+		margin-top: 2rem;
+	}
+	
+    .profile-avatar {
+        text-shadow: 2px 2px 3px rgba(#000, 0.85);
+        border-radius: 50%;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: 500;
+        font-size: 1.3em;
+        flex: 0 0 $incoming_call_avatar_em;
+        width: $incoming_call_avatar_em;
+        height: $incoming_call_avatar_em;
+        background-size: cover;
+        background-position: center;
+        background-repeat: no-repeat;
+        margin-bottom: 2rem;
+        position: relative;
+
+        &:before,
+        &:after {
+            position: absolute;
+            content: '';
+            height: 100%;
+            width: 100%;
+            top: 0%;
+            left: 0%;
+            border-radius: 50%;
+            box-shadow: 0 0 px_to_rem(15) #0054a5;
+            animation: call-pulse 2s ease-out infinite;
+        }
+
+        &:after {
+            animation-delay: .66s;
+        }
+    }
+	
+    &.has-image {
+        .profile-avatar {
+            .profile-initials {
+                opacity: 0;
+            }
+        }
+    }
+}
+
+@keyframes call-pulse {
+    0% {
+        opacity: 0;
+        transform: scale(1);
+    }
+
+    80% {
+        opacity: 1;
+    }
+
+    100% {
+        transform: scale(1.5);
+        opacity: 0;
+    }
+}
