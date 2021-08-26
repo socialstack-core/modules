@@ -502,7 +502,12 @@ namespace Api.Themes
 							{
 								// Prefix the selector:
 								additionalSelectors.Append(blockRoot);
-								additionalSelectors.Append(' ');
+								
+								if(!(selector.Length > 2 && selector[0] == ':' && selector[1] == ':')){
+									// ::before otherwise, no space
+									additionalSelectors.Append(' ');
+								}
+								
 								additionalSelectors.Append(selector);
 							}
 
