@@ -232,7 +232,7 @@ export default function webRequest(origUrl, data, opts) {
 				
 				success(response);
 				
-				if(response.json && response.json.id && response.json.type){
+				if(response.json && response.json.id && response.json.type && method != 'get'){
 					
 					// If method was 'delete' then this entity was deleted.
 					// Otherwise, as it's not specified, contentchange will establish if it was added or deleted based on the given url.
