@@ -361,12 +361,16 @@ export default class Photosphere extends React.Component {
 			var sphere = new THREE.Mesh( geometry, material );
 			material._url = imgUrlLoad;
 			this.sphere = sphere;
-			var scaleFactor = 0.1;
-			
-			sphere.scale.x = -scaleFactor;
-			sphere.scale.y = scaleFactor;
-			sphere.scale.z = scaleFactor;
+
+			sphere.scale.x = -props.sphereScale;
+			sphere.scale.y = props.sphereScale;
+			sphere.scale.z = props.sphereScale;
 			scene.add( sphere );
+		}
+
+		if(this.camera){
+			this.camera.aspect = size.w / size.h;
+			this.camera.updateProjectionMatrix();
 		}
 		
 		// material.map.needsUpdate = true;
@@ -446,5 +450,11 @@ export default class Photosphere extends React.Component {
 }
 
 Photosphere.propTypes={
-	imageRef: 'image'
+	imageRef: 'image',
+	sphereScale: 'float',
 };
+
+Photosphere.defaultProps={
+	imageRef: null,
+	sphereScale: 0.1,
+}
