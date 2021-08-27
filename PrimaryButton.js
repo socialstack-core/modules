@@ -5,6 +5,7 @@ import { TokenResolver } from 'UI/Token';
 */
 
 export default function PrimaryButton (props) {
+	
 	return <TokenResolver value={props.target}>
 		{target => <table role="presentation" cellspacing="0" style={{margin: "auto"}} cellpadding="0" border="0" align="center">
 			<tbody>
@@ -37,3 +38,5 @@ PrimaryButton.propTypes = {
 	label: {type: 'jsx', default: `Click here`},
 	target: 'token'
 };
+
+PrimaryButton.groups = 'email';
