@@ -17,3 +17,5 @@ export default class Centered extends React.Component {
 Centered.propTypes = {
 	children: true
 };
+
+Centered.groups = 'email';
