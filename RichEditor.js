@@ -3,7 +3,9 @@ import Token from 'UI/Token';
 import Input from 'UI/Input';
 import getBuildDate from 'UI/Functions/GetBuildDate';
 import omit from 'UI/Functions/Omit';
-
+import ModuleSelector from 'UI/RichEditor/ModuleSelector';
+import PropEditor from 'UI/RichEditor/PropEditor';
+import {lazyLoad} from 'UI/Functions/WebRequest';
 
 
 // Connect the input "ontypecanvas" render event:
@@ -18,7 +20,7 @@ inputTypes.ontypecanvas = function(props, _this){
 		className={props.className || "form-control"}
 		toolbar 
 		modules
-		groups = {"formatting"}
+		//groups = {"formatting"}
 		{...omit(props, ['id', 'className', 'type', 'inline'])}
 	/>;
 	
@@ -31,7 +33,7 @@ inputTypes['application/canvas'] = function(props, _this){
 		className={props.className || "form-control"}
 		toolbar 
 		modules
-		groups = {"formatting"}
+		//groups = {"formatting"}
 		{...omit(props, ['id', 'className', 'type', 'inline'])}
 	/>;
 };
@@ -74,6 +76,22 @@ permittedTypes.forEach(type => {
 	permitted[type] = 1;
 });
 
+function loadEmails(){
+	if(aceLoading){
+		return aceLoading;
+	}
+	
+	return aceLoading = new Promise((s, r) => {
+		// Ace is lazy loaded. Go get it now:
+		var script = document.createElement("script");
+		script.src = getRef(aceJs, {url: true});
+		script.onload = () => {
+			s(global.ace);
+		};
+		document.head.appendChild(script);
+	});
+}
+
 /*
 * Socialstack's RTE. Influenced by the UX of TinyMCE, and the code design of draft.js
 */
@@ -92,6 +110,7 @@ export default class RichEditor extends React.Component {
 		this.onCut = this.onCut.bind(this);
 		this.closeModal = this.closeModal.bind(this);
 		this.normalise = this.normalise.bind(this);
+
 		
 		var rootRef =  React.createRef();
 		
@@ -107,7 +126,21 @@ export default class RichEditor extends React.Component {
 		};
 		
 		var value = this.props.value || this.props.defaultValue;
+
+
+		if( (value && value.indexOf("Email") != -1) || this.props.groups == "email") { 
+			lazyLoad("/pack/email-static/main.js").then(() => {
+				this.initialLoad(value);
+			});
+	   	} else {
+			this.initialLoad(value);
+		}
+
+
 		
+	}
+
+	initialLoad(value) {
 		if(value){
 			this.loadCanvas(this.props.value || this.props.defaultValue, 1);
 		}
@@ -115,6 +148,7 @@ export default class RichEditor extends React.Component {
 		// Initial snapshot:
 		this.addStateSnapshot();
 	}
+	
 	
 	insertJson(canvasNode){
 		if(!canvasNode){
@@ -2581,10 +2615,10 @@ export default class RichEditor extends React.Component {
 						<div>{this.surroundButton('List', ['ol', 'li'], 'Numbered list')}</div>
 					</>;
 				})*/}
-				{/*this.props.modules && this.renderButton('Add something else', <i className={'fa fa-plus'} />, () => {
+				{this.props.modules && this.renderButton('Add something else', <i className={'fa fa-plus'} />, () => {
 					// Show modal
 					this.setState({ selectOpenFor: true, selectionSnapshot: this.state.selection })
-				}, !this.state.selection)*/}
+				}, !this.state.selection)}
 			</div>)}
 			<div ref={node.dom} className="rte-content" contentEditable="true" 
 				onKeyDown={this.onKeyDown} onDragStart={this.onReject} onBlur={this.onBlur} 
@@ -2609,7 +2643,30 @@ export default class RichEditor extends React.Component {
 						return false;
 				}}>
 					{this.state.rightClick && this.renderContextMenu()}
-					
+					<ModuleSelector 
+						closeModal = {() => this.closeModal()} 
+						selectOpenFor = {this.state.selectOpenFor} 
+						groups = {this.props.groups}
+						selectionSnapshot  = {this.state.selectionSnapshot}
+						updated = {(module) => {
+							var selection = this.state.selection || this.state.selectionSnapshot;
+							var parent = selection.startNode;
+							var insertIndex = selection.startOffset;
+
+							var module = {
+								typeName: module.publicName,
+								type: module.moduleClass,
+								props: {}
+							}
+
+							selection.startNode = selection.endNode = this.addNode(module, parent, insertIndex);
+							// Update current position:
+							selection.startOffset = selection.endOffset = 1;
+							
+							this.normalise(true);
+							this.closeModal();
+						}}
+					/>
 				</div>
 
 		</div>;
