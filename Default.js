@@ -62,3 +62,5 @@ Default.propTypes = {
 	hideGreeting: 'bool',
 	customLogo: 'jsx'
 };
+
+Default.groups = 'email';
