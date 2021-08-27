@@ -44,8 +44,8 @@ export default class Loop extends React.Component {
 			
 			var firstSlash = props.over.indexOf('/');
 			var cached;
-			if(props.over.substring(firstSlash+1) == 'list'){
-				cached = Content.listCached(props.over.substring(0, firstSlash), props.filter, props.includes);
+			if(firstSlash == -1 || props.over.substring(firstSlash+1) == 'list'){
+				cached = Content.listCached(firstSlash == -1 ? props.over : props.over.substring(0, firstSlash), props.filter, props.includes);
 			}
 			
 			if(cached){
@@ -281,8 +281,6 @@ export default class Loop extends React.Component {
 		if (filter && filter.where) {
 			var w = filter.where;
 			
-			console.log("test filter", w, ent);
-			
 			if(Array.isArray(w)){
 				if(!w.length){
 					return true;
@@ -504,7 +502,7 @@ export default class Loop extends React.Component {
 			var filter = this.getPagedFilter(props.filter, newPageIndex || this.state.pageIndex, props.paged);
 			
 			// NB: still using webRequest here rather than Content.list because props.over can also be custom named endpoints (for now!)
-			webRequest(props.over, filter, {includes: props.includes}).then(responseJson => {
+			webRequest(props.over.indexOf('/') == -1 ? props.over + '/list' : props.over, filter, {includes: props.includes}).then(responseJson => {
 				var responseJson = responseJson.json;
 				var results = (responseJson && responseJson.results) ? responseJson.results : [];
 
