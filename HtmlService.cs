@@ -607,13 +607,13 @@ namespace Api.Pages
 			var isAdmin = path.StartsWith("/en-admin");
 			List<DocumentNode> flatNodes;
 
-			var latestConfigJson = _configurationService.GetNewFrontendConfig();
+			var latestConfigBytes = _configurationService.GetLatestFrontendConfigBytes();
 
-			if (latestConfigJson != null)
+			if (latestConfigBytes != _configJson.Bytes)
 			{
 				// Cache dump:
 				cache = null;
-				_configJson = new RawBytesNode(Encoding.UTF8.GetBytes(latestConfigJson));
+				_configJson.Bytes = latestConfigBytes;
 			}
 
 			var themeConfig = _themeService.GetConfig();
