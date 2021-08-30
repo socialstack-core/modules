@@ -200,6 +200,18 @@ class Reader{
 		return this.next() | (this.next() << 8) | (this.next() << 16) | (this.next() << 24) |
 				(this.next() << 32) | (this.next() << 40) | (this.next() << 48) | (this.next() << 56);
 	}
+
+	readUtf8(){
+		var size = this.readCompressed();
+		if(size == 0){
+		 	return null;
+		}
+		var bytesArr = this.readBytes(size - 1);
+		if(!de8){
+			de8 = new TextDecoder("utf-8");
+		}
+		return de8.decode(bytesArr);
+	}
 	
 }
 
