@@ -602,15 +602,19 @@ _contentModule.getCached = (type, id, includes) => {
 		// Get the underlying service:
 		var svc = document.getService(type);
 
-		svc.GetForSSR(cctx.apiContext, parseInt(id), includes, jsonResponse => {
+		svc.GetForSSR(cctx.apiContext, parseInt(id), includes == null ? '' : includes.join(','), jsonResponse => {
+			// Expand includes:
+			jsonResponse = _webRequestModule.expandIncludes(JSON.parse(jsonResponse));
+			
 			if (cctx.trackContextualData) {
 				// We're tracking contextual data
 				if(cctx.__contextualData!=""){
 					cctx.__contextualData += ",";
 				}
-				cctx.__contextualData += jsonResponse;
+				cctx.__contextualData += JSON.stringify(jsonResponse);
 			}
-			s(JSON.parse(jsonResponse));
+			
+			s(jsonResponse);
 		});
 	});
 };
@@ -639,14 +643,18 @@ _contentModule.listCached = (type, filter, includes) => {
 		var svc = document.getService(type);
 		
 		svc.ListForSSR(cctx.apiContext, filterJson, includesText, jsonResponse => {
+			
+			// Expand includes:
+			jsonResponse = _webRequestModule.expandIncludes(JSON.parse(jsonResponse));
+			
 			if (cctx.trackContextualData) {
 				// We're tracking contextual data
 				if(cctx.__contextualData!=""){
 					cctx.__contextualData += ",";
 				}
-				cctx.__contextualData += jsonResponse;
+				cctx.__contextualData += JSON.stringify(jsonResponse);
 			}
-			s(JSON.parse(jsonResponse));
+			s(jsonResponse);
 		});
 	});
 };
