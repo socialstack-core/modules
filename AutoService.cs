@@ -144,20 +144,21 @@ public partial class AutoService<T, ID> : AutoService
 
 		EventGroup = eventGroup as EventGroup<T, ID>;
 
-		// GetObject specifically uses integer IDs (and is only available on services that have integer IDs)
-		// We need to make a delegate that it can use for mapping that integer through to whatever typeof(ID) is.
 		if (typeof(ID) == typeof(uint))
 		{
-			var getMethodDelegate = (Func<Context, ID, DataOptions, ValueTask<T>>)Get;
-			_getWithIntId = (getMethodDelegate as Func<Context, uint, DataOptions, ValueTask<T>>);
+			_idConverter = new UInt32IDConverter() as IDConverter<ID>;
 		}
-		else if (typeof(ID) == typeof(int))
+		else if (typeof(ID) == typeof(ulong))
 		{
-			throw new ArgumentException("All ID's must now be unsigned types. Consider changing to Content<uint>.", nameof(ID));
+			_idConverter = new UInt64IDConverter() as IDConverter<ID>;
+		}
+		else
+		{
+			throw new ArgumentException("Currently unrecognised ID type: ", nameof(ID));
 		}
 	}
-	
-	private readonly Func<Context, uint, DataOptions, ValueTask<T>> _getWithIntId;
+
+	private IDConverter<ID> _idConverter;
 	private JsonStructure<T,ID>[] _jsonStructures = null;
 
 	/// <summary>
@@ -860,14 +861,10 @@ public partial class AutoService<T, ID> : AutoService
 	/// <param name="id"></param>
 	/// <param name="options"></param>
 	/// <returns></returns>
-	public override async ValueTask<object> GetObject(Context context, uint id, DataOptions options = DataOptions.Default)
+	public override async ValueTask<object> GetObject(Context context, ulong id, DataOptions options = DataOptions.Default)
 	{
-		if (_getWithIntId == null)
-		{
-			throw new Exception("Only available on types with integer IDs. " + typeof(T) + " uses an ID which is a " + typeof(ID));
-		}
-
-		return await _getWithIntId(context, id, options);
+		var convertedId = _idConverter.Convert(id);
+		return await Get(context, convertedId, options);
 	}
 
 	/// <summary>
@@ -1232,6 +1229,16 @@ public partial class AutoService<T, ID> : AutoService
 	}
 
 	/// <summary>
+	/// Converts the given ulong ID to one this autoservice can use.
+	/// </summary>
+	/// <param name="input"></param>
+	/// <returns></returns>
+	public ID ConvertId(ulong input)
+	{
+		return _idConverter.Convert(input);
+	}
+
+	/// <summary>
 	/// Gets objects from this service using a generic serialized filter. Use List instead whenever possible.
 	/// </summary>
 	/// <param name="context"></param>
@@ -1239,7 +1246,7 @@ public partial class AutoService<T, ID> : AutoService
 	/// <param name="includes"></param>
 	/// <param name="so"></param>
 	/// <returns></returns>
-	public async Task ListForSSR(Context context, string filterJson, string includes, Microsoft.ClearScript.ScriptObject so)
+	public override async Task ListForSSR(Context context, string filterJson, string includes, Microsoft.ClearScript.ScriptObject so)
 	{
 		var filterNs = Newtonsoft.Json.JsonConvert.DeserializeObject(filterJson) as JObject;
 
@@ -1265,7 +1272,7 @@ public partial class AutoService<T, ID> : AutoService
 		writer.Release();
 		so.Invoke(false, jsonResult);
 	}
-	
+
 	/// <summary>
 	/// Gets an object from this service for use by the serverside renderer. Returns it by executing the given callback.
 	/// </summary>
@@ -1273,10 +1280,10 @@ public partial class AutoService<T, ID> : AutoService
 	/// <param name="id"></param>
 	/// <param name="includes"></param>
 	/// <param name="so"></param>
-	public async Task GetForSSR(Context context, ID id, string includes, Microsoft.ClearScript.ScriptObject so)
+	public override async ValueTask GetForSSR(Context context, ulong id, string includes, Microsoft.ClearScript.ScriptObject so)
 	{
 		// Get the object (includes the perm checks):
-		var content = await Get(context, id);
+		var content = await Get(context, _idConverter.Convert(id));
 
 		// Write:
 		var writer = Writer.GetPooled();
@@ -1501,6 +1508,32 @@ public partial class AutoService
 	}
 
 	/// <summary>
+	/// Gets objects from this service using a generic serialized filter. Use List instead whenever possible.
+	/// </summary>
+	/// <param name="context"></param>
+	/// <param name="filterJson"></param>
+	/// <param name="includes"></param>
+	/// <param name="so"></param>
+	/// <returns></returns>
+	public virtual Task GetForSSR(Context context, string filterJson, string includes, Microsoft.ClearScript.ScriptObject so)
+	{
+		return null;
+	}
+
+	/// <summary>
+	/// Gets objects from this service using a generic serialized filter. Use List instead whenever possible.
+	/// </summary>
+	/// <param name="context"></param>
+	/// <param name="filterJson"></param>
+	/// <param name="includes"></param>
+	/// <param name="so"></param>
+	/// <returns></returns>
+	public virtual Task ListForSSR(Context context, string filterJson, string includes, Microsoft.ClearScript.ScriptObject so)
+	{
+		return null;
+	}
+	
+	/// <summary>
 	/// Outputs a list of things from this service as JSON into the given writer.
 	/// Executes the given collector(s) whilst it happens, which can also be null.
 	/// Does not perform permission checks internally.
@@ -1622,7 +1655,7 @@ public partial class AutoService
 	/// <param name="id"></param>
 	/// <param name="writer"></param>
 	/// <returns></returns>
-	public virtual ValueTask OutputById(Context context, uint id, Writer writer)
+	public virtual ValueTask OutputById(Context context, ulong id, Writer writer)
 	{
 		// Not supported on this service.
 		return new ValueTask();
@@ -1788,13 +1821,25 @@ public partial class AutoService
 
 
 	/// <summary>
+	/// Gets an object from this service for use by the serverside renderer. Returns it by executing the given callback.
+	/// </summary>
+	/// <param name="context"></param>
+	/// <param name="id"></param>
+	/// <param name="includes"></param>
+	/// <param name="so"></param>
+	public virtual ValueTask GetForSSR(Context context, ulong id, string includes, Microsoft.ClearScript.ScriptObject so)
+	{
+		return new ValueTask();
+	}
+
+	/// <summary>
 	/// Gets an object from this service.
 	/// </summary>
 	/// <param name="context"></param>
 	/// <param name="id"></param>
 	/// <param name="options"></param>
 	/// <returns></returns>
-	public virtual ValueTask<object> GetObject(Context context, uint id, DataOptions options = DataOptions.Default)
+	public virtual ValueTask<object> GetObject(Context context, ulong id, DataOptions options = DataOptions.Default)
 	{
 		return new ValueTask<object>(null);
 	}
