@@ -64,7 +64,17 @@ namespace Api.Huddles
 	/// </summary>
 	public class HuddleRing : Message<HuddleRing>
 	{
-
+        /// <summary>
+        /// The slug for the huddle
+        /// </summary>
+        public string HuddleSlug;
+        
+        /// <summary>
+        /// Used to indicate the mode of this particular message.
+        /// [1 = ring, 2 = accept, 3 = decline]
+		/// </summary>
+        public byte Mode;
+       
 		/// <summary>
 		/// ID of the user to ring.
 		/// </summary>
