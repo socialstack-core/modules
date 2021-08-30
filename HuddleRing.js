@@ -1,4 +1,4 @@
-import {ring} from 'UI/Functions/HuddleClient';
+import {ring, sendRing} from 'UI/Functions/HuddleClient';
 import Modal from 'UI/Modal';
 import Icon from 'UI/Icon';
 import Content from 'UI/Content';
@@ -47,7 +47,7 @@ function HuddleRinger(props){
 	};
 	
 	React.useEffect(() => {
-		var r = ring(props.guests[0].id);
+		var r = ring([props.guests[0].id], "xxx-xxx-xxx"); // todo: change from temporary slug.
 		setActiveRing(r);
 	}, []);
 	
@@ -102,10 +102,18 @@ export function RingListener(props){
 	React.useEffect(() => {
 		
 		var opcode = websocket.registerOpcode(41, reader => {
+			
+			var slug = reader.readUtf8();
+			var mode = reader.readByte();
 			var userId = reader.readUInt32();
+
+			console.log("slug", slug);
+			console.log("mode", mode);
+			console.log("userId", userId);
+
 			
 			if(!incomingRing){
-				incomingRing = {userId};
+				incomingRing = {userId, slug};
 				setIncomingRing(incomingRing);
 			}else if(incomingRing.userId == userId){
 				// Pushback the kill interval.
@@ -126,6 +134,16 @@ export function RingListener(props){
 		};
 		
 	});
+
+	var hangup = (incomingRing) => {
+		console.log("hang up clicked");
+		sendRing(incomingRing.slug, 3, incomingRing.userId);
+	}
+
+	var answer = (incomingRing) => {
+		console.log("answer clicked");
+		sendRing(incomingRing.slug, 2, incomingRing.userId);
+	}
 	
 	if(incomingRing){
 		
@@ -136,10 +154,10 @@ export function RingListener(props){
 				}
 				
 				return <CallUI user={user} theme={props['data-theme']}>
-						<button type="button" className="btn btn-primary me-3" onclick={() => {console.log("Accept call")}}>
+						<button type="button" className="btn btn-primary me-3" onclick={() => {answer(incomingRing)}}>
 							{`Accept`}
 						</button>
-						<button type="button" className="btn btn-secondary" onclick={() => {console.log("Decline call")}}>
+						<button type="button" className="btn btn-secondary" onclick={() => hangup(incomingRing)}>
 							{`Decline`}
 						</button>
 				</CallUI>;
