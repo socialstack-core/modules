@@ -251,7 +251,7 @@ export default function webRequest(origUrl, data, opts) {
 }
 
 // Converts where and on into a query formatted filter.
-export function remapData(data){
+export function remapData(data, origUrl){
 	
 	// Data exists - does it have an old format filter?
 	if(data.where){
@@ -349,7 +349,7 @@ function _fetch(url, data, opts) {
 		});
 	}
 	
-	data = remapData(data);
+	data = remapData(data, origUrl);
 	
 	return fetch(url, {
 		method: opts && opts.method ? opts.method : 'post',
