@@ -88,7 +88,7 @@ namespace Api.Startup
 				return null;
 			}
 			
-			AllByName.TryGetValue(name, out AutoService result);
+			AllByName.TryGetValue(name.ToLower(), out AutoService result);
 			return result;
 		}
 
@@ -110,7 +110,7 @@ namespace Api.Startup
 				if (autoService != null)
 				{
 					All[serviceType] = autoService;
-					AllByName[serviceType.Name] = autoService;
+					AllByName[serviceType.Name.ToLower()] = autoService;
 					
 					var ctx = new Contexts.Context() {
 						IgnorePermissions = true
@@ -147,7 +147,7 @@ namespace Api.Startup
 			{
 				// Shutdown - deregister this service.
 				All.Remove(serviceType, out _);
-				AllByName.Remove(serviceType.Name, out _);
+				AllByName.Remove(serviceType.Name.ToLower(), out _);
 
 				if (autoService != null)
 				{
