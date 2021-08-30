@@ -205,8 +205,13 @@ class Reader{
 
 class Writer{
 	
-	constructor(){
+	constructor(opcode){
 		this.bytes = [];
+		
+		if(opcode){
+			writeCompressed(opcode);
+			writeUInt32(0); // payload size
+		}
 	}
 	
 	writeUInt32(value){
@@ -295,11 +300,25 @@ class Writer{
 	toBuffer(){
 		return Uint8Array.from(this.bytes);
 	}
+	
+	setSize(){
+		var b = this.bytes;
+		
+		// Size of the byte array minus opcode (assumed 1 byte) and the payload size itself
+		var opcodeSize = 1;
+		var value = b.length - (4 + opcodeSize);
+		
+		b[opcodeSize] = value & 255;
+		b[opcodeSize + 1] = (value>>8) & 255;
+		b[opcodeSize + 2] = (value>>16) & 255;
+		b[opcodeSize + 3] = (value>>24) & 255;
+	}
 }
 
 function getAsBuffer(obj){
 	if(obj && obj.toBuffer){
-		// It was already a writer.
+		// It was already a writer. Just set its payload size:
+		obj.setSize();
 		return obj.toBuffer();
 	}
 	var json = JSON.stringify(obj);
