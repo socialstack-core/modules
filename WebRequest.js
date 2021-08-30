@@ -2,7 +2,7 @@
 import store from 'UI/Functions/Store';
 import contentChange from 'UI/Functions/ContentChange';
 
-function expandIncludes(response){
+export function expandIncludes(response){
 	if(!response || (!response.result && !response.results)){
 		return response;
 	}
