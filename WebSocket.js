@@ -209,8 +209,8 @@ class Writer{
 		this.bytes = [];
 		
 		if(opcode){
-			writeCompressed(opcode);
-			writeUInt32(0); // payload size
+			this.writeCompressed(opcode);
+			this.writeUInt32(0); // payload size
 		}
 	}
 	
