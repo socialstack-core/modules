@@ -421,10 +421,10 @@ public partial class AutoService<T, ID>{
 	/// <param name="id"></param>
 	/// <param name="writer"></param>
 	/// <returns></returns>
-	public override async ValueTask OutputById(Context context, uint id, Writer writer)
+	public override async ValueTask OutputById(Context context, ulong id, Writer writer)
 	{
 		// Get the object:
-		var content = await _getWithIntId(context, id, DataOptions.Default);
+		var content = await Get(context, ConvertId(id), DataOptions.Default);
 
 		// Output it:
 		await ToJson(context, content, writer, null, "*");
