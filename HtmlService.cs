@@ -233,7 +233,7 @@ namespace Api.Pages
 
 						if (primaryToken.IsId)
 						{
-							if (uint.TryParse(pageAndTokens.TokenValues[countA - 1], out uint primaryObjectId))
+							if (ulong.TryParse(pageAndTokens.TokenValues[countA - 1], out ulong primaryObjectId))
 							{
 								primaryObject = await primaryToken.Service.GetObject(context, primaryObjectId);
 							}
@@ -679,7 +679,7 @@ namespace Api.Pages
                     {
 						if (primaryToken.IsId)
 						{
-							if (uint.TryParse(pageAndTokens.TokenValues[countA - 1], out uint primaryObjectId))
+							if (ulong.TryParse(pageAndTokens.TokenValues[countA - 1], out ulong primaryObjectId))
 							{
 								doc.PrimaryObject = await primaryToken.Service.GetObject(context, primaryObjectId);
 							}
