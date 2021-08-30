@@ -250,48 +250,8 @@ export default function webRequest(origUrl, data, opts) {
 	});
 }
 
-function _fetch(url, data, opts) {
-	var origUrl = url;
-	var credentials = global.storedToken ? undefined : 'include';
-	var mode = 'cors';
-
-	var headers = {};
-
-	if (global.settings && global.settings._version_) {
-		headers.Version = global.settings._version_;
-	}
-    
-	if(global.storedToken){
-		headers['Token'] = store.get('context');
-	}
-	
-	if(opts && opts.locale){
-		headers['Locale'] = opts.locale;
-	}
-	
-	var includes = opts && opts.includes;
-	
-	if(Array.isArray(includes)){
-		includes = includes.map(x=>x.trim()).join(',');
-	}
-	
-	if(includes){
-		url += '?includes=' + includes;
-	}
-	
-	if (!data) {
-		return fetch(url, { method: opts && opts.method ? opts.method : 'get', mode, credentials, headers });
-	}
-    
-	if (global.FormData && data instanceof global.FormData) {
-		return fetch(url, {
-			method: opts && opts.method ? opts.method : 'post',
-            body: data,
-			mode,
-            credentials,
-			headers
-		});
-	}
+// Converts where and on into a query formatted filter.
+export function remapData(data){
 	
 	// Data exists - does it have an old format filter?
 	if(data.where){
@@ -342,6 +302,54 @@ function _fetch(url, data, opts) {
 		d2.args.push(data.on.id);
 		data = d2;
 	}
+	
+	return data;
+}
+
+function _fetch(url, data, opts) {
+	var origUrl = url;
+	var credentials = global.storedToken ? undefined : 'include';
+	var mode = 'cors';
+
+	var headers = {};
+
+	if (global.settings && global.settings._version_) {
+		headers.Version = global.settings._version_;
+	}
+    
+	if(global.storedToken){
+		headers['Token'] = store.get('context');
+	}
+	
+	if(opts && opts.locale){
+		headers['Locale'] = opts.locale;
+	}
+	
+	var includes = opts && opts.includes;
+	
+	if(Array.isArray(includes)){
+		includes = includes.map(x=>x.trim()).join(',');
+	}
+	
+	if(includes){
+		url += '?includes=' + includes;
+	}
+	
+	if (!data) {
+		return fetch(url, { method: opts && opts.method ? opts.method : 'get', mode, credentials, headers });
+	}
+    
+	if (global.FormData && data instanceof global.FormData) {
+		return fetch(url, {
+			method: opts && opts.method ? opts.method : 'post',
+            body: data,
+			mode,
+            credentials,
+			headers
+		});
+	}
+	
+	data = remapData(data);
 	
 	return fetch(url, {
 		method: opts && opts.method ? opts.method : 'post',
