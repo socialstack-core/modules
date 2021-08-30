@@ -631,7 +631,7 @@ _contentModule.listCached = (type, filter, includes) => {
 	
 	if(filter){
 		// Remap it:
-		filterJson = JSON.stringify(_webRequestModule.remapData(filter));
+		filterJson = JSON.stringify(_webRequestModule.remapData(filter, "/list"));
 	}
 	
 	if(includes && includes.length > 0){
