@@ -339,7 +339,8 @@ namespace Api.Configuration
 				}
 			}
 
-			_frontendConfigChanged = true;
+			// Clear cached config bytes:
+			_frontendConfigBytes = null;
 		}
 
 		/// <summary>
@@ -347,25 +348,35 @@ namespace Api.Configuration
 		/// </summary>
 		private ConcurrentDictionary<Config, bool> _allFrontendConfigs;
 
-		private bool _frontendConfigChanged;
+		private byte[] _frontendConfigBytes;
+		
+		private string _frontendConfigJs;
 
 		/// <summary>
-		/// Gets the frontend config as a string if it has changed. Null otherwise.
+		/// Gets the frontend config as a JS string.
 		/// </summary>
 		/// <returns></returns>
-		public string GetNewFrontendConfig()
+		public string GetLatestFrontendConfigJs()
 		{
-			if (!_frontendConfigChanged)
+			GetLatestFrontendConfigBytes();
+			return _frontendConfigJs;
+		}
+
+		/// <summary>
+		/// Gets the frontend config as a UTF8 encoded block of bytes.
+		/// </summary>
+		/// <returns></returns>
+		public byte[] GetLatestFrontendConfigBytes()
+		{
+			if (_frontendConfigBytes != null)
 			{
-				return null;
+				return _frontendConfigBytes;
 			}
-
-			_frontendConfigChanged = false;
-
 
 			if (_allFrontendConfigs == null)
 			{
-				return "";
+				_frontendConfigBytes = Array.Empty<byte>();
+				return _frontendConfigBytes;
 			}
 
 			// For each FE config object..
@@ -411,7 +422,10 @@ namespace Api.Configuration
 
 			sb.Append("};");
 
-			return sb.ToString();
+			var configStr = sb.ToString();
+			_frontendConfigJs = configStr;
+			_frontendConfigBytes = Encoding.UTF8.GetBytes(configStr);
+			return _frontendConfigBytes;
 		}
 
 		/// <summary>
