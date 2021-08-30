@@ -37,6 +37,12 @@ namespace Api.Emails{
 		public Recipient(Context contextForUserAndLocale)
 		{
 			Context = contextForUserAndLocale;
+
+			if (Context != null)
+			{
+				User = Context.User;
+				UserId = Context.UserId;
+			}
 		}
 
 		/// <summary>

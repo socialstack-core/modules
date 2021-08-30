@@ -78,7 +78,7 @@ namespace Api.Emails
 		/// <returns></returns>
 		public async ValueTask<EmailTemplate> GetByKey(Context context, string key)
 		{
-			return await Where("Key=?").Bind(key).First(context);
+			return await Where("Key=?", DataOptions.IgnorePermissions).Bind(key).First(context);
 		}
 
 		/// <summary>
@@ -147,7 +147,7 @@ namespace Api.Emails
 					continue;
 				}
 
-				if (recipient.UserId != 0)
+				if (recipient.UserId != 0 && recipient.User == null)
 				{
 					// Load this user:
 					if (idsToLoad == null)
@@ -251,9 +251,7 @@ namespace Api.Emails
 					set = new TemplateAndRecipientSet();
 					
 					// Load the template:
-					var template = await GetByKey(new Context() {
-						LocaleId = localeId
-					}, key);
+					var template = await GetByKey(new Context(localeId, 0, Roles.Developer.Id), key);
 					
 					if(template == null){
 						throw new Exception("Email template with key '" + key + "' doesn't exist.");
