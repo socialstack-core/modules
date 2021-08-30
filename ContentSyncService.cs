@@ -1423,20 +1423,7 @@ namespace Api.ContentSync
 		/// <param name="roomId"></param>
 		public override NetworkRoom GetOrCreateRoom(ulong roomId)
 		{
-			ID rId;
-			if(typeof(ID) == typeof(ulong))
-            {
-				// Don't cast
-				rId = (ID)((object)roomId);
-			}
-            else 
-			{
-				// Convert roomId to ID:
-				rId = (ID)((object)((uint)(roomId)));
-			}
-			
-
-			return Service.StandardNetworkRooms.GetOrCreateRoom(rId);
+			return Service.StandardNetworkRooms.GetOrCreateRoom(Service.ConvertId(roomId));
 		}
 
 		private async ValueTask OnReceiveUpdate(int action, uint localeId, T entity)
@@ -1601,7 +1588,24 @@ namespace Api.ContentSync
 
 			// Mappings are always locale free.
 			context = new Context(1, null, 1);
+
+
+			if (typeof(SRC_ID) == typeof(uint))
+			{
+				_srcIdConverter = new UInt32IDConverter() as IDConverter<SRC_ID>;
+			}
+			else if (typeof(SRC_ID) == typeof(ulong))
+			{
+				_srcIdConverter = new UInt64IDConverter() as IDConverter<SRC_ID>;
+			}
+			else
+			{
+				throw new ArgumentException("Currently unrecognised ID type: ", nameof(SRC_ID));
+			}
+
 		}
+
+		private IDConverter<SRC_ID> _srcIdConverter;
 
 		private async ValueTask OnReceiveUpdate(int action, uint localeId, INST_T entity)
 		{
@@ -1658,10 +1662,7 @@ namespace Api.ContentSync
 		/// <param name="roomId"></param>
 		public override NetworkRoom GetOrCreateRoom(ulong roomId)
 		{
-			// Convert roomId to ID:
-			var rId = (SRC_ID)((object)(uint)roomId);
-
-			return Service.MappingNetworkRooms.GetOrCreateRoom(rId);
+			return Service.MappingNetworkRooms.GetOrCreateRoom(_srcIdConverter.Convert(roomId));
 		}
 		
 		/// <summary>
