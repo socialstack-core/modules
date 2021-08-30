@@ -382,13 +382,13 @@ namespace Api.CanvasRenderer.V8
 		};
 		
 		/// <summary>
-		/// Gets a service by the given content type ID.
+		/// Gets a service by the given content type name.
 		/// </summary>
-		/// <param name="contentTypeId"></param>
+		/// <param name="type"></param>
 		/// <returns></returns>
-		public AutoService getService(int contentTypeId)
+		public AutoService getService(string type)
 		{
-			return Api.Startup.Services.GetByContentTypeId(contentTypeId);
+			return Api.Startup.Services.Get(type.ToLower() + "service");
 		}
 	}
 #pragma warning restore IDE1006 // Naming Styles

@@ -599,7 +599,7 @@ _contentModule.getCached = (type, id, includes) => {
 
 	return new Promise(s => {
 		// Get the underlying service:
-		var svc = document.getService(getContentTypeId(type));
+		var svc = document.getService(type);
 
 		svc.GetForSSR(cctx.apiContext, parseInt(id), includes, jsonResponse => {
 			if (cctx.trackContextualData) {
@@ -624,7 +624,7 @@ _contentModule.listCached = (type, filter, includes) => {
 
 	return new Promise(s => {
 		// Get the underlying service:
-		var svc = document.getService(getContentTypeId(type));
+		var svc = document.getService(type);
 		
 		svc.ListForSSR(cctx.apiContext, filterJson, includes, jsonResponse => {
 			if (cctx.trackContextualData) {
