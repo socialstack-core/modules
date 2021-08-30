@@ -2237,29 +2237,41 @@ export default class HuddleClient
 
 var activeRings = {};
 
-export function ring(userId){
-	if(activeRings[userId]){
-		return activeRings[userId];
+export function ringReject(slug, userId){
+	if(activeRings[slug]){
+		var ring = activeRings[slug];
+		ring.userIds = ring.userIds.filter(id => id != userId); 
 	}
-	
-	var sendRing = () => {
-		var writer = new webSocket.Writer();
-		writer.writeByte(40);
-		writer.writeUInt32(4);
-		writer.writeUInt32(parseInt(userId));
-		webSocket.send(writer);
+}
+
+export function sendRing(slug, mode, userId){
+	console.log("send ring", slug, mode, userId);
+	var writer = new webSocket.Writer(40);
+	writer.writeUtf8(slug);
+	writer.writeByte(mode);
+	writer.writeUInt32(parseInt(userId));
+	webSocket.send(writer);
+}
+
+export function ring(userIds, slug){
+	if(activeRings[slug]){
+		return activeRings[slug];
 	}
 	
 	var ring = {
 	};
 	
-	ring.i = setInterval(sendRing, 1000);
+	ring.i = setInterval(() => {
+		userIds.forEach(userId => {
+			sendRing(slug, 1, userId)
+		});
+	}, 1000);
 	
 	ring.stop = () => {
-		delete activeRings[userId];
+		delete activeRings[slug];
 		clearInterval(ring.i);
 	};
 	
-	activeRings[userId] = ring;
+	activeRings[slug] = ring;
 	return ring;
 }
