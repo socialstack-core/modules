@@ -25,14 +25,16 @@ namespace Api.CanvasRenderer
 	{
 		private readonly FrontendCodeService _frontendService;
 		private readonly ContextService _contextService;
+		private readonly ConfigurationService _configService;
 
 		/// <summary>
 		/// Instanced automatically.
 		/// </summary>
-		public CanvasRendererService(FrontendCodeService frontend, ContextService contexts)
+		public CanvasRendererService(FrontendCodeService frontend, ContextService contexts, ConfigurationService config)
 		{
 			_frontendService = frontend;
 			_contextService = contexts;
+			_configService = config;
 
 			publicOrigin = AppSettings.Configuration["PublicUrl"];
 
@@ -179,7 +181,10 @@ namespace Api.CanvasRenderer
 			engine.Execute("window.addEventListener=document.addEventListener;console={};console.info=console.log=console.warn=console.error=(...args)=>__console.log(...args);");
 			engine.AddHostObject("navigator", new V8.Navigator());
 			engine.AddHostObject("location", jsDoc.location);
-			
+
+			// Need to load config into its scope as well:
+			engine.Execute(_configService.GetLatestFrontendConfigJs());
+
 			/* engine.AddHostObject("host", new ExtendedHostFunctions());
 				engine.AddHostObject("lib", HostItemFlags.GlobalMembers, 
 				new HostTypeCollection("mscorlib", "System", "System.Core", "System.Numerics", "ClearScript.Core", "ClearScript.V8"));

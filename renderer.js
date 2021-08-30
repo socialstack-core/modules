@@ -558,6 +558,7 @@ exports = undefined;
 var _Canvas = require('UI/Canvas').default;
 var _Session = require("UI/Session");
 var _contentModule = require("UI/Content").default;
+var _webRequestModule = require("UI/Functions/WebRequest");
 var _currentContext = null;
 
 // Stub:
@@ -620,13 +621,24 @@ _contentModule.listCached = (type, filter, includes) => {
 		return null;
 	}
 	var cctx = _currentContext;
-	var filterJson = JSON.stringify(filter);
-
+	
+	var filterJson = "";
+	var includesText = "";
+	
+	if(filter){
+		// Remap it:
+		filterJson = JSON.stringify(_webRequestModule.remapData(filter));
+	}
+	
+	if(includes && includes.length > 0){
+		includesText = includes.join(',');
+	}
+	
 	return new Promise(s => {
 		// Get the underlying service:
 		var svc = document.getService(type);
 		
-		svc.ListForSSR(cctx.apiContext, filterJson, includes, jsonResponse => {
+		svc.ListForSSR(cctx.apiContext, filterJson, includesText, jsonResponse => {
 			if (cctx.trackContextualData) {
 				// We're tracking contextual data
 				if(cctx.__contextualData!=""){
