@@ -152,8 +152,6 @@ export default class Carousel extends React.Component {
 			visCount = visCountLg || visCount;
 		}
 		
-		visCount = 1;
-		
 		var width = container;
 		
 		var containerLeftEdge = (screenWidth/2) - (container/2);
