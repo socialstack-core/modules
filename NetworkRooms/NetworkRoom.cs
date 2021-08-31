@@ -92,6 +92,25 @@ namespace Api.ContentSync
 		}
 		
 		/// <summary>
+		/// Local user count.
+		/// </summary>
+		public int LocalCount
+		{
+			get {
+				var result = 0;
+				var iterator = First;
+
+				while (iterator != null)
+				{
+					iterator = iterator.Next;
+					result++;
+				}
+
+				return result;
+			}
+		}
+
+		/// <summary>
 		/// First local user in this room.
 		/// </summary>
 		public UserInRoom<T, ID, ROOM_ID> First { get; set; }
@@ -454,13 +473,22 @@ namespace Api.ContentSync
 
 			// Add to clients room chain:
 			block.NextForClient = null;
-			
-			if(client.FirstRoom == null)
+
+			if (client.FirstRoom == null)
 			{
 				client.FirstRoom = block;
+				block.PreviousForClient = null;
+			}
+			else
+			{
+				block.PreviousForClient = client.LastRoom;
+			}
+
+			if (client.LastRoom != null)
+			{
+				client.LastRoom.NextForClient = block;
 			}
 			
-			block.PreviousForClient = client.LastRoom;
 			client.LastRoom = block;
 			block.CustomId = customId;
 			return block;
@@ -590,10 +618,16 @@ namespace Api.ContentSync
 					FirstPooled = node.Next;
 				}
 			}
-			
-			if(node == null)
+
+			if (node == null)
 			{
 				node = new UserInRoom<T, ID, ROOM_ID>();
+			}
+			else
+			{
+				node.Previous = null;
+				node.Next = null;
+				node.Room = null;
 			}
 			
 			return node;
@@ -631,7 +665,8 @@ namespace Api.ContentSync
 		public override void Remove()
 		{
 			// Remove from room chain.
-			if(Next == null)
+			
+			if (Next == null)
 			{
 				lock(Room)
 				{
