@@ -12,4 +12,62 @@
 			display: block;
 		}
 	}
+	
+	.action-hotspots{
+		position: absolute;
+		width: 100%;
+		height: 100%;
+		top: 0;
+		left: 0;
+	}
+	
+	.hotspot {
+		position: absolute;
+		
+		> .spot-marker {
+			margin-left: -50%;
+			margin-top: -100%;
+			background: none;
+			padding: 0;
+			border: none;
+			position: relative;
+			top: 0;
+			left: 0;
+			
+			> .fal {
+				color: white;
+				position: absolute;
+				top: 35%;
+				left: 41%;
+			}
+			
+		}
+		
+		> .open-marker {
+			position: absolute;
+			visibility: none;
+			z-index: -1;
+			padding: 1rem 3rem 1rem 1rem;
+			border-radius: 0.5rem;
+			right: 100%;
+			top: -50%;
+			background: white;
+			color: black;
+			opacity: 0;
+			transition: opacity 0.5s;
+		}
+		
+		&.is-open {
+			.spot-marker {
+				z-index: 3;
+			}
+			
+			> .open-marker {
+				opacity: 1;
+				z-index: 2;
+				visibility: visible;
+			}
+		}
+		
+	}
 }
