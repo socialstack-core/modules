@@ -180,7 +180,10 @@ namespace Api.WebSockets
 						roomId = message["id"].Value<ulong>();
 						filt = message["f"] as JObject;
 
-						await _contentSync.RegisterRoomClient(typeName, customId, roomId, client, filt);
+						if (customId != 0)
+						{
+							await _contentSync.RegisterRoomClient(typeName, customId, roomId, client, filt);
+						}
 
 						break;
 					case "+*":
@@ -206,8 +209,11 @@ namespace Api.WebSockets
 							customId = jo["ci"].Value<uint>();
 							roomId = jo["id"].Value<ulong>();
 
-							// Add the client now:
-							await _contentSync.RegisterRoomClient(typeName, customId, roomId, client, filt);
+							if (customId != 0)
+							{
+								// Add the client now:
+								await _contentSync.RegisterRoomClient(typeName, customId, roomId, client, filt);
+							}
 						}
 
 						break;
@@ -222,12 +228,17 @@ namespace Api.WebSockets
 							return;
 						}
 
-						// Get the listener by ID:
-						var listener = client.GetRoomById(jToken.Value<uint>());
+						var cId = jToken.Value<uint>();
 
-						if (listener != null)
+						if (cId != 0)
 						{
-							listener.Remove();
+							// Get the listener by ID:
+							var listener = client.GetRoomById(cId);
+
+							if (listener != null)
+							{
+								listener.Remove();
+							}
 						}
 
 						break;
