@@ -511,7 +511,7 @@ function removeEventListener(type, method) {
 	messageTypes[type] = messageTypes[type].filter(a => a != entry);
 	
 	if(ws && ws.readyState == WebSocket.OPEN){
-		ws.send(getAsBuffer({type: '-', ci: entry.id}));
+		ws.send(getAsBuffer({type: '-', ci: entry.customId}));
 	}
 	
 	if(!messageTypes[type].length){
