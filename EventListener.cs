@@ -67,7 +67,7 @@ namespace Api.Huddles
         /// <summary>
         /// The slug for the huddle
         /// </summary>
-        public string HuddleSlug;
+        public ustring HuddleSlug;
         
         /// <summary>
         /// Used to indicate the mode of this particular message.
