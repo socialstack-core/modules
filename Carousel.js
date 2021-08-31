@@ -132,6 +132,9 @@ export default class Carousel extends React.Component {
 		var contentClass = toggleOpacity ? "content-list content first toggle-opacity" : "content-list content first";
 		var width = 0;
 		
+		var screenWidth = window.innerWidth || window.screen.width;
+		var container = this.containerWidth(screenWidth);
+		
 		// TODO: update media query matches in realtime
 		if (window.matchMedia('(max-width: 575px)').matches) {
 			width = window.innerWidth - 32;
@@ -139,21 +142,20 @@ export default class Carousel extends React.Component {
 
 		if (window.matchMedia('(min-width: 576px)').matches) {
 			visCount = visCountSm || visCount;
-			width = 510;
 		}
 
 		if (window.matchMedia('(min-width: 768px)').matches) {
 			visCount = visCountMd || visCount;
-			width = 690;
 		}
 
 		if (window.matchMedia('(min-width: 992px)').matches) {
 			visCount = visCountLg || visCount;
-			width = 930;
 		}
 		
-		var screenWidth = window.innerWidth || window.screen.width;
-		var container = this.containerWidth(screenWidth);
+		visCount = 1;
+		
+		var width = container;
+		
 		var containerLeftEdge = (screenWidth/2) - (container/2);
 		
 		// hide controls if nothing to page
@@ -165,22 +167,24 @@ export default class Carousel extends React.Component {
 		var transformCalc = '';
 		var slideWidthCalc = '';
 		var slideWidth = '';
-			
+		
 		transformCalc = spacing ?
 			(width / visCount) + (padNum / visCount) :
 			width / visCount;
 		slideWidthCalc = transformCalc + "px";
 		slideWidth = { flex: "0 0 " + slideWidthCalc };
 		
+		var currentIndex = this.state.currentIndex;
+		
 		var slideOffset = centred ?
-			{ marginLeft: (containerLeftEdge - (transformCalc * this.state.currentIndex)) + 'px' } :
+			{ marginLeft: (containerLeftEdge - (transformCalc * currentIndex)) + 'px' } :
 			{ marginLeft: '-' + transformCalc + 'px' };
 		
 		return (
 			<div className="carousel" data-theme={this.props['data-theme']}>
 				<div className="slider-container">
 					<div className={sliderClass}>
-						{showBack && this.state.currentIndex > 0 &&
+						{showBack && currentIndex > 0 &&
 							<div className="slider-back-wrapper">
 								<button type="button" className="slider-back" onClick={() => {
 									this.movePrevious();
@@ -190,7 +194,7 @@ export default class Carousel extends React.Component {
 							</div>
 						}
 						<div className="container-offset" style={slideOffset}>
-							<ul className={contentClass} data-offset={this.state.currentIndex}>
+							<ul className={contentClass} data-offset={currentIndex}>
 								{
 									items.map((item,i) => {
 										var content = React.isValidElement(item) ? item : null;
@@ -201,8 +205,10 @@ export default class Carousel extends React.Component {
 											content = <Module item={item} container={this.props}/>;
 										}
 										
+										var isOffscreen = i < currentIndex || i >= (currentIndex + visCount);
+										
 										return (
-											<li className="content-item" style={slideWidth}>
+											<li className={isOffscreen ? "content-item offscreen-item" : "content-item"} style={slideWidth}>
 												<div className="content-item-internal" style={itemInternalStyle}>
 													{content}
 												</div>
