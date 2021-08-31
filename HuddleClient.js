@@ -2259,10 +2259,11 @@ export function ring(userIds, slug){
 	}
 	
 	var ring = {
+		userIds
 	};
 	
 	ring.i = setInterval(() => {
-		userIds.forEach(userId => {
+		ring.userIds.forEach(userId => {
 			sendRing(slug, 1, userId)
 		});
 	}, 1000);
