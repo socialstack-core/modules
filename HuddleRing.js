@@ -3,6 +3,7 @@ import Modal from 'UI/Modal';
 import Icon from 'UI/Icon';
 import Content from 'UI/Content';
 import websocket from 'UI/Functions/WebSocket';
+import webRequest from 'UI/Functions/WebRequest';
 import getRef from 'UI/Functions/GetRef';
 
 
@@ -47,8 +48,11 @@ function HuddleRinger(props){
 	};
 	
 	React.useEffect(() => {
-		var r = ring([props.guests[0].id], "xxx-xxx-xxx"); // todo: change from temporary slug.
-		setActiveRing(r);
+		webRequest("huddle", { userPermits: props.guests.map(guest => guest.id) }).then(response => {
+			var huddle = response.json;
+			var r = ring([props.guests[0].id], huddle.slug);
+			setActiveRing(r);
+		});
 	}, []);
 	
 	return <div>
