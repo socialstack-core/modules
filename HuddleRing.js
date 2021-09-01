@@ -71,24 +71,22 @@ function HuddleRinger(props){
 			setActiveRinger(r);
 		});
 
-		var opcode = websocket.registerOpcode(41, reader => {
-			var slug = reader.readUtf8();
-			var mode = reader.readByte();
-			var userId = reader.readUInt32();
-
-			if(mode == 2) {
-				props.setPage(props.huddleUrl + slug);
-				ringReject(slug, userId);
-			} else if (mode == 3) {
-				ringReject(slug, userId);
-				declined.push(userId);
-
+		var onring = (e) => {
+			if(e.mode == 2) {
+				props.setPage(props.huddleUrl + e.slug);
+				ringReject(e.slug, e.userId);
+			} else if (e.mode == 3) {
+				ringReject(e.slug, e.userId);
+				declined.push(e.userId);
 				setDeclined(declined.slice());
 			}
-		});
+		}
 
+		document.addEventListener("huddlering", onring);
+
+				
 		return () => {
-			opcode.unregister();
+			document.removeEventListener("huddlering", onring);
 		};
 
 	}, []);
@@ -188,6 +186,9 @@ export function RingListener(props){
 		
 		var opcode = websocket.registerOpcode(41, reader => {
 
+			console.log("Ring Listener heard a call!");
+
+
 			var slug = reader.readUtf8();
 			var mode = reader.readByte();
 			var userId = reader.readUInt32();
@@ -207,7 +208,14 @@ export function RingListener(props){
 				incomingRing.i = setTimeout(() => {
 					setIncomingRing(null);
 				}, 2000);
-			}
+			} 
+
+			var e = document.createEvent("Event"); // Dispatch an event so that way the Ringer can update.
+			e.slug = slug;
+			e.mode = mode;
+			e.userId = userId;
+			e.initEvent('huddlering', true, true);
+			document.dispatchEvent(e);
 
 		});
 		
@@ -215,7 +223,7 @@ export function RingListener(props){
 			opcode.unregister();
 		};
 		
-	}, []);
+	});
 
 	var hangup = (incomingRing) => {
 		sendRing(incomingRing.slug, 3, incomingRing.userId);
