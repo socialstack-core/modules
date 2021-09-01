@@ -19,7 +19,7 @@ export default function SlippyMap(props) {
 				{hotspot.description}
 			</p>}
 			{hotspot.ctaUrl && <a href={hotspot.ctaUrl}>
-				{hotspot.cta}
+				<span className="hotspot-cta">{hotspot.cta}</span>
 			</a>}
 		</>;
 	};
@@ -85,7 +85,7 @@ export default function SlippyMap(props) {
 						  transformOrigin: '0 0 '
 						}}
 					  >
-						{getRef(props.imageRef, {attribs: {style: {pointerEvents: 'none'}}})}
+						{getRef(props.imageRef, {attribs: {style: {pointerEvents: 'none', opacity: '.5'}}})}
 						
 						{props.hotspots && <div className="action-hotspots">
 							{props.hotspots.map((hs, i) => onHotspot(hs, openHotspot == i, i))}
