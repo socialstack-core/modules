@@ -21,7 +21,7 @@ export default function HuddleRing(props){
 
 function renderCallNow(props) {
 	var [activeRinger, setActiveRinger] = React.useState(false);
-	var [guests, setGuests] = React.useState(props.guests);
+	var [guests, setGuests] = React.useState(props.guests || []);
 	var [declined, setDeclined] = React.useState([]);	
 
 	var btnClass = props.btnClass ? props.btnClass : "huddle-ring-call-button";
@@ -43,20 +43,20 @@ function renderCallNow(props) {
 
 function HuddleRinger(props){
 	var {activeRinger, setActiveRinger, guests, setGuests, declined, setDeclined} = props;
-	
+	var setPage = useRouter();
 	var hangUp = () => {
 		activeRinger && activeRinger.stop();
+		setDeclined([]);
+		setGuests([]);
 		props.onHangUp && props.onHangUp();
 	};
 
-	console.log("declined", declined);
-	
 	React.useEffect(() => {
 		
 		var args = {};
 		// Check if we are passing in extra args for the creation of the huddle that may be project specific. Defaults to only adding permitted users.
-		if (this.props.extraArgs) {
-			args = {...this.props.extraArgs, userPermits: props.guests.map(guest => guest.id)}
+		if (props.extraArgs) {
+			args = {...props.extraArgs, userPermits: props.guests.map(guest => guest.id)}
 		}
 		else {
 			args = {userPermits: props.guests.map(guest => guest.id)}
@@ -65,31 +65,25 @@ function HuddleRinger(props){
 		webRequest("huddle", args).then(response => {
 			var huddle = response.json;
 			var guestIds = [];
-			props.guests.forEach(g => {console.log("guest!!!", g); guestIds.push(g.id)});
-
-			console.log("guestIds", guestIds);
+			props.guests.forEach(g => {guestIds.push(g.id)});
 
 			var r = ring(guestIds, huddle.slug);
 			setActiveRinger(r);
 		});
 
 		var opcode = websocket.registerOpcode(41, reader => {
-			console.log("reader ", reader);
 			var slug = reader.readUtf8();
 			var mode = reader.readByte();
 			var userId = reader.readUInt32();
 
-			console.log("slug", slug);
-			console.log("mode", mode);
-			console.log("userId", userId);
-
 			if(mode == 2) {
-				console.log("they are answering!");
+				props.setPage(props.huddleUrl + slug);
+				ringReject(slug, userId);
 			} else if (mode == 3) {
-				console.log("they are declining!");
 				ringReject(slug, userId);
 				declined.push(userId);
-				setDeclined(declined);
+
+				setDeclined(declined.slice());
 			}
 		});
 
@@ -140,12 +134,8 @@ function CallUI(props){
 				<p className="profile-name">
 					{
 						guests.map(guest => {
-							console.log("checking guests!");
-							console.log("declined", declined);
-							console.log("guest id", guest.id);
-							console.log("decline includes guest id", declined.includes(guest.id));
 							var declinedCall = false;
-							declined.forEach(d => {console.log("the declined id", d, "guest id", guest.id); if(d == guest.id) {declinedCall = true}})
+							declined.forEach(d => {if(d == guest.id) {declinedCall = true}})
 
 							if(declinedCall) {
 								return <>{guest.fullName} <i class="fas fa-phone-slash"></i></>
@@ -164,14 +154,8 @@ function CallUI(props){
 }
 
 function CallFromUI(props) {
-	var {activeRinger, setActiveRinger, guests, setGuests, declined, setDeclined, user} = props;
+	var {user} = props;
 
-	// How many guests does our activeRing have?
-	console.log("activeRinger", activeRinger);
-	console.log("guests", guests);
-	console.log("declined", declined);
-
-	//var user = guests[0];
 	var avatarUrl = user.avatarRef ? getRef(user.avatarRef, { url: true, size: 100 }) : "";
 	var style = { "background-image": "url(" + avatarUrl + ")" };
 	var wrapperClassName = "profile-avatar has-image";
@@ -231,7 +215,7 @@ export function RingListener(props){
 			opcode.unregister();
 		};
 		
-	});
+	}, []);
 
 	var hangup = (incomingRing) => {
 		sendRing(incomingRing.slug, 3, incomingRing.userId);
