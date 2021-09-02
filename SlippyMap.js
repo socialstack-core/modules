@@ -1,9 +1,13 @@
 import getRef from 'UI/Functions/GetRef'; 
 import Icon from 'UI/Icon'; 
 import MapInteraction from './Map';
+import Modal from 'UI/Modal';
+import store from 'UI/Functions/Store';
+
+const SHOW_MAP_MODAL = 'show_map_modal';
 
 export default function SlippyMap(props) {
-	
+	var [showingModal, setShowingModal] = React.useState(store.get(SHOW_MAP_MODAL) ?? true);
 	var [openHotspot, setOpenHotspot] = React.useState(-1);
 	
 	var onHotspotClick = props.onHotspotClick ? props.onHotspotClick : (hotspot, isOpen, index, setOpenHotspot) => {
@@ -34,7 +38,9 @@ export default function SlippyMap(props) {
 					<div className="open-marker" data-theme={props['open-hotspot-theme'] || 'map-open-hotspot-theme'}>
 						{onHotspotContent(hotspot)}
 					</div>
-					<button className="spot-marker" onClick={e => onHotspotClick(hotspot, isOpen, index, setOpenHotspot)}>
+					<button type="button" className="spot-marker" 
+						onClick={e => onHotspotClick(hotspot, isOpen, index, setOpenHotspot)}
+						onTouchEnd={e => onHotspotClick(hotspot, isOpen, index, setOpenHotspot)}>
 						{getRef(hotspot.iconRef)}
 						<Icon type='times' light />
 					</button>
@@ -44,7 +50,9 @@ export default function SlippyMap(props) {
 					<div className="open-marker" data-theme={props['open-hotspot-theme'] || 'map-open-hotspot-theme'}>
 						{onHotspotContent(hotspot)}
 					</div>
-					<button className="spot-marker" onClick={e => onHotspotClick(hotspot, isOpen, index, setOpenHotspot)}>
+					<button type="button" className="spot-marker" 
+						onClick={e => onHotspotClick(hotspot, isOpen, index, setOpenHotspot)}
+						onTouchEnd={e => onHotspotClick(hotspot, isOpen, index, setOpenHotspot)}>
 						{getRef(hotspot.iconRef)}
 						<Icon type='plus' light />
 					</button>
@@ -54,7 +62,12 @@ export default function SlippyMap(props) {
 		
 	};
 	
-    return (
+	function closeModal() {
+		setShowingModal(false);
+		store.set(SHOW_MAP_MODAL, false);
+	}
+
+    return <>
 		<div className="slippy-map" data-theme={props['data-theme']}>
 			<MapInteraction
 			  showControls
@@ -97,7 +110,16 @@ export default function SlippyMap(props) {
 			  }
 			</MapInteraction>
 		</div>
-	  );
+
+        <Modal className="modal--blue" isLarge={true}
+                visible={showingModal}
+                onClose={() => closeModal()}>
+			<h2 className="slippy-map__instructions">
+				{`Click on a hotspot to discover the IDS stand`}
+			</h2>
+        </Modal>
+
+	</>;
 }
 
 SlippyMap.propTypes = {

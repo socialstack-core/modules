@@ -375,10 +375,10 @@ export class MapInteractionControlled extends Component {
   renderControls() {
     const step = this.discreteScaleStepSize();
 	  return <div className="overhead-ui">
-			<button className="btn btn-secondary zoom zoom-out" onClick={() => this.changeScale(step)}>
+			<button type="button" className="btn btn-secondary zoom zoom-out" onClick={() => this.changeScale(step)} onTouchEnd={() => this.changeScale(step)}>
 				<Icon type='plus' />
 			</button>
-			<button className="btn btn-secondary zoom zoom-in" onClick={() => this.changeScale(-step)}>
+			<button type="button" className="btn btn-secondary zoom zoom-in" onClick={() => this.changeScale(-step)} onTouchEnd={() => this.changeScale(-step)}>
 				<Icon type='minus' />
 			</button>
 		</div>;
@@ -443,11 +443,15 @@ class MapInteractionController extends Component {
         lastKnownValueFromProps: props.value
       };
     } else {
+        var isSmallDisplay = screen.width < 768;
+
       // Set the necessary state for controlling map interaction ourselves
       this.state = {
         value: props.defaultValue || {
-          scale: 1,
-          translation: { x: 0, y: 0 }
+          scale: isSmallDisplay ? .4 : .75,
+          translation: { 
+              x: isSmallDisplay ? -(screen.width * .75) : 0, 
+              y: isSmallDisplay ? (screen.height * .1) : 0 }
         },
         lastKnownValueFromProps: undefined
       };

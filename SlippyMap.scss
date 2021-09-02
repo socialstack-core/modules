@@ -1,11 +1,11 @@
 .slippy-map {
 	position: relative;
 	width: 100%;
-	height: 80vh;
+	height: calc(100vh - #{$header_size});
 	
 	.overhead-ui {
 		position: absolute;
-		top: 0;
+		bottom: 0;
 		
 		.zoom {
 			margin: 0.5rem;
@@ -66,8 +66,9 @@
 			min-width: 250px;
 
 			> h1 {
-				font-size: 1.5rem;
+				font-size: 24px;
 				font-weight: bold !important;
+				color: #3D3935;
 			}
 
 			> a {
@@ -75,7 +76,7 @@
 				font-weight: bold;
 				display: inline-flex;
 				align-items: center;
-				color: #000;
+				color: #3D3935;
 				transition: all .2s ease;
 
 				&::after {
@@ -110,4 +111,64 @@
 		}
 		
 	}
+
+	+ .modal-backdrop {
+		background: rgba(#000, .5);
+		top: $header_size;
+		height: calc(100vh - #{$header_size});
+	}
+
+}
+
+.slippy-map__instructions {
+	font-weight: bold;
+	font-size: px_to_rem(36);
+	line-height: px_to_rem(46);
+	max-width: 22.5vw;
+	margin: 0 auto;
+}
+
+.modal--blue {
+	top: $header_size;
+	height: calc(100vh - #{$header_size});
+
+	.modal-dialog {
+
+		.modal-content {
+			background-color: #00A4DC;
+			color: #fff;
+			min-height: px_to_rem(225);
+			text-align: center;
+
+			.modal-header {
+
+				.close {
+					background: transparent;
+					border: 0;
+				}
+			}
+		}
+
+	}
+
+}
+
+@include mq_mobile {
+
+	.slippy-map__instructions {
+		max-width: none;
+	}
+
+	.modal--blue {
+
+		.modal-dialog {
+
+			.modal-content {
+				min-height: none;
+			}
+
+		}
+
+	}
+
 }
