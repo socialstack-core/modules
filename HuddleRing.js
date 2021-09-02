@@ -34,7 +34,7 @@ function renderCallNow(props) {
 		}}>
 			{props.children || <Icon type="phone" light/>}
 		</button>
-		{activeRinger && <CallUI declined = {declined} setDeclined = {setDeclined} guests = {guests} setGuests = {setGuests} activeRinger = {activeRinger} setActiveRinger = {setActiveRinger} guests={props.guests} intro={`Calling...`} theme={props['data-theme']}>
+		{activeRinger && <CallUI modalClass = {props.modalClass} declined = {declined} setDeclined = {setDeclined} guests = {guests} setGuests = {setGuests} activeRinger = {activeRinger} setActiveRinger = {setActiveRinger} guests={props.guests} intro={`Calling...`} theme={props['data-theme']}>
 			<HuddleRinger declined = {declined} setDeclined = {setDeclined} guests = {guests} setGuests = {setGuests} activeRinger = {activeRinger} setActiveRinger = {setActiveRinger} {...props} onHangUp={() => setActiveRinger(null)}/>
 		</CallUI>}
 	</>
@@ -121,7 +121,15 @@ function CallUI(props){
 	var wrapperClassName = "profile-avatar has-image";
 	var everyoneHungup = guests.length == declined.length;
 
-	return <div className="modal show">
+	console.log("CallUI props", props);
+
+	var modalClass = "modal show";
+	if(props.modalClass) {
+		modalClass += " ";
+		modalClass += props.modalClass;
+	}
+
+	return <div className={modalClass}>
 		<div className="modal-dialog show modal-dialog-centered">
 			<div className="modal-content">
 			<section className="huddle-call-ui" data-theme={props.theme || 'huddle-ring-theme'}>
