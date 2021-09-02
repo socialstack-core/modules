@@ -20,6 +20,10 @@ export default function Image (props) {
 		case "Right":
 			imageClass += " image-right";
 			break;
+
+		case "Center":
+			imageClass += " image-center";
+			break;
 	}
 
 	if (fullWidth || size == "original") {
@@ -45,7 +49,7 @@ Image.propTypes = {
 	title: 'string',
 	fullWidth: 'bool',
 	size: ['original', '2048', '1024', '512', '256', '200', '128', '100', '64', '32'], // todo: pull from api
-	float: { type: ['None', 'Left', 'Right'] }
+	float: { type: ['None', 'Left', 'Right', 'Center'] }
 };
 
 Image.groups = 'formatting';
