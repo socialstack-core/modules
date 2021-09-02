@@ -21,19 +21,29 @@ export default class Carousel extends React.Component {
 			index = 0;
 		}
 		
-		this.setState({currentIndex: index});
+		if(this.isExternallyControlled()){
+			this.props.shouldMoveTo && this.props.shouldMoveTo(index);
+		}else{
+			this.setState({currentIndex: index});
+		}
 	}
 	
 	moveNext() {
-		this.moveTo(((this.state.currentIndex || 0) >= this.count() - 1) ? 0 : ((this.state.currentIndex || 0) + 1));
+		var curIndex = this.getCurrentIndex();
+		this.moveTo(((curIndex || 0) >= this.count() - 1) ? 0 : ((curIndex || 0) + 1));
 	}
 
 	movePrevious() {
-		this.moveTo(((this.state.currentIndex || 0) <= 0) ? this.count() - 1 : (this.state.currentIndex || 0) - 1);
+		var curIndex = this.getCurrentIndex();
+		this.moveTo(((curIndex || 0) <= 0) ? this.count() - 1 : (curIndex || 0) - 1);
+	}
+	
+	isExternallyControlled() {
+		return this.props.currentIndex !== undefined;
 	}
 	
 	componentDidMount() {
-		if(this.interval || this.props.static){
+		if(this.interval || this.props.static || this.isExternallyControlled()){
 			return;
 		}
 		
@@ -77,6 +87,10 @@ export default class Carousel extends React.Component {
 		}
 
 		return screenWidth;
+	}
+	
+	getCurrentIndex(){
+		return this.props.currentIndex === undefined ? this.state.currentIndex : this.props.currentIndex;
 	}
 	
     render() {
@@ -172,7 +186,7 @@ export default class Carousel extends React.Component {
 		slideWidthCalc = transformCalc + "px";
 		slideWidth = { flex: "0 0 " + slideWidthCalc };
 		
-		var currentIndex = this.state.currentIndex;
+		var currentIndex = this.getCurrentIndex();
 		
 		var slideOffset = centred ?
 			{ marginLeft: (containerLeftEdge - (transformCalc * currentIndex)) + 'px' } :
@@ -217,7 +231,7 @@ export default class Carousel extends React.Component {
 								}
 							</ul>
 						</div>
-						{showNext && this.state.currentIndex < items.length - 1 &&
+						{showNext && currentIndex < items.length - 1 &&
 							<div className="slider-next-wrapper">
 								<button type="button" className="slider-next" onClick={() => {
 									this.moveNext();
