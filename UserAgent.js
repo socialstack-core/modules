@@ -116,8 +116,7 @@ function isDesktop() {
     var mobileInfo = getMobileInfo();
     var tabletInfo = getTabletInfo();
 
-    // NB: fallback for IE10+ which doesn't support pointer media queries
-    return !mobileInfo.isMobile && !tabletInfo.isTablet && (window.matchMedia('(pointer: fine)').matches || isIE10Plus);
+    return !mobileInfo.isMobile && !tabletInfo.isTablet && (window.matchMedia('(pointer: fine)').matches);
 }
 
 function isPortrait() {
