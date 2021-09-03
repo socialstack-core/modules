@@ -357,6 +357,18 @@ export default class CalendarCompact extends React.Component {
 		for(var i=0;i<output.length;i++){
 			var entry = output[i];
 			
+			var minuteLength = entry.minuteEnd - entry.minuteStart;
+			
+			var fontSize = "1rem";
+
+			if(minuteLength <= 5) {
+				fontSize = ".3rem";
+			} else if(minuteLength <= 10) {
+				fontSize = ".6rem";
+			} else if(minuteLength <= 15) {
+				fontSize = ".8rem";
+			}
+
 			entry._computedStyle = {
 				// NB: 14px offset is based on h3.time being set to 28px tall - this gets events lining up
 				top: this.minutesToSize(entry.minuteStart - this.state.startMinutes, 14 - 1),
@@ -364,6 +376,7 @@ export default class CalendarCompact extends React.Component {
 				height: this.minutesToSize(entry.minuteEnd - entry.minuteStart, 1),
 				width: entry._column == 0 ? 'calc(' + (width * 100) + '% - 3.5rem)' : (width * 100) + '%',
 				left: entry._column == 0 ? 'calc(' + ((entry._column/(col+1)) * 100) + '% + 3.5rem)' : ((entry._column/(col+1)) * 100) + '%',
+				fontSize: fontSize
 			};
 			
 		}
