@@ -119,11 +119,11 @@ class Canvas extends React.Component {
 					}
 				}
 				
-				return <NodeType {...props}>{children}</NodeType>
+				return <ErrorCatcher node={node}><NodeType {...props}>{children}</NodeType></ErrorCatcher>;
 			}else{
 				// It has no content inside it; it's purely config driven.
 				// Either wrap it in a span (such that it only has exactly 1 DOM node, always), unless the module tells us it has one node anyway:
-				return <NodeType {...props} />;
+				return <ErrorCatcher node={node}><NodeType {...props} /></ErrorCatcher>;
 			}
 		}else if(node.content){
 			return this.renderNode(node.content);
@@ -156,3 +156,34 @@ class Canvas extends React.Component {
 }
 
 export default Canvas;
+
+export class ErrorCatcher extends React.Component {
+	
+	constructor(props) {
+		super(props);
+		this.state = { hasError: false };
+	}
+
+	static getDerivedStateFromError(error) {
+		// Update state so the next render will show the fallback UI.
+		return { hasError: true };
+	}
+	
+	componentDidCatch(error, errorInfo) {
+		console.error(error, errorInfo);
+	}
+	
+	render() {
+		if (this.state.hasError) {
+			var { node } = this.props;
+			
+			var name = node ? node.typeName : 'Unknown';
+			
+			return <Alert type='error'>{`The component "${name}" has unfortunately crashed. The error it had has been logged to the console.`}</Alert>;
+		}
+		
+		return this.props.children; 
+	}
+	
+}
+
