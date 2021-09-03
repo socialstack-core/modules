@@ -2,6 +2,7 @@ import Input from 'UI/Input';
 import Loop from 'UI/Loop';
 import Alert from 'UI/Alert';
 import getContentTypes from 'UI/Functions/GetContentTypes';
+import ArrayEditor from 'UI/RichEditor/PropEditor/ArrayEditor';
 import webRequest from 'UI/Functions/WebRequest';
 
 var TEXT = '#text';
@@ -266,6 +267,8 @@ export default class PropEditor extends React.Component {
 				inputType = 'select';
 				inputContent = this.getContentTypeDropdown();
 				inputContent.unshift(<option>Pick a content type</option>);
+			/*}else if(propType.type == 'array'){
+				inputType = ArrayEditor;*/
 			}else if(propType.type == 'string'){
 				inputType = 'text';
 			}else{
