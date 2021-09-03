@@ -21,7 +21,24 @@
 
 .rich-editor{
 	border: 1px solid #e5e5e5;
+	background: white;
 	border-radius: 2px;
+	
+	.rte-fake-root{
+		&:hover{
+			cursor: text;
+		}
+		
+		&::before{
+			content: 'Click here to type';
+			font-style: italic;
+			opacity: 0.4;
+		}
+		
+		&:focus{
+			background: HighlightText;
+		}
+	}
 	
 	&.no-toolbar {
 		border-radius: 0.4375rem 0.4375rem 0.4375rem 0.4375rem;

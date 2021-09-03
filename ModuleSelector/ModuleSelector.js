@@ -129,7 +129,7 @@ export default class ModuleSelector extends React.Component {
 					<Loop asCols over={group.modules} size={4}>
 						{module => {
 							return <div className="module-tile" onClick={() => {
-									this.props.updated && this.props.updated(module)	
+									this.props.onSelected && this.props.onSelected(module)	
 								}}>
 								<div>
 									{<i className={"fa fa-" + (module.moduleClass.icon || "puzzle-piece")} />}
