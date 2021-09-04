@@ -16,12 +16,17 @@ export default props => {
 	const { setPage } = useRouter();
 	const [ failed, setFailed ] = React.useState(false);
 	const [ moreRequired, setMoreRequired ] = React.useState(null);
-	const {emailOnly} = props;
+	const {emailOnly, passwordRequired} = props;
 	
 	var validate = ['Required'];
 
 	if (emailOnly) {
 		validate.push("EmailAddress")
+	}
+
+	var validatePassword = [];
+	if (passwordRequired) {
+		validatePassword.push('Required');
 	}
 
 	return (
@@ -69,7 +74,7 @@ export default props => {
 			)}
 			<div style={{display: moreRequired ? 'none' : 'initial'}}>
 				<Input label = {props.noLabels ? null : (emailOnly ? `Email` : `Email or username`)}  name="emailOrUsername" placeholder={emailOnly ? `Email` : `Email or username`} validate={validate} />
-				<Input label = {props.noLabels ? null : `Password`} name="password" placeholder={`Password`} type="password" />
+				<Input label = {props.noLabels ? null : `Password`} name="password" placeholder={`Password`} type="password" validate = {validatePassword} />
 				<Row>
 					<Col size="6">
 						<Input type="checkbox" label={`Remember me`} name="remember" />
