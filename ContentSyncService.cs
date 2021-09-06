@@ -608,7 +608,7 @@ namespace Api.ContentSync
 		/// <returns></returns>
 		public ContentSyncServer GetServer(uint id)
 		{
-			if (id == Self.Id)
+			if (id == Self.Id || id == 0 || id>RemoteServers.Length)
 			{
 				return null;
 			}
