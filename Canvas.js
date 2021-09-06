@@ -75,6 +75,10 @@ class Canvas extends React.Component {
 	}
 	
 	renderNode(node){
+		if(!node){
+			console.log("Empty node encountered");
+			return null;
+		}
 		if(Array.isArray(node)){
 			return node.map((n,i) => this.renderNode(n));
 		}
