@@ -11,7 +11,8 @@ namespace Api.Polls
 	/// <summary>
 	/// A Poll
 	/// </summary>
-	[ListAs("PollAnswers")]
+	[ListAs("PollAnswers", Explicit = true)]
+	[ImplicitFor("PollAnswers", typeof(Api.Polls.Poll))]
 	[HasVirtualField("Poll", typeof(Poll), "PollId")]
 	public partial class PollAnswer : VersionedContent<uint>
 	{
