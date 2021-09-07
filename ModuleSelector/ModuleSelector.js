@@ -84,14 +84,29 @@ export default class ModuleSelector extends React.Component {
 			var set = sets[setName];
 			
 			var moduleGroups = [];
-			if(set[""]){
+			
+			var ui = set[""];
+			
+			if(ui){
 				// UI group first always:
-				moduleGroups.push(set[""]);
+				moduleGroups.push(ui);
+				
+				if(ui.modules){
+					ui.modules.sort((a,b) => (a.name > b.name) ? 1 : ((b.name > a.name) ? -1 : 0));
+				}
+				
 				delete set[""];
 			}
 			
 			for(var gName in set){
-				moduleGroups.push(set[gName]);
+				var subSet = set[gName];
+				
+				// Sort the modules:
+				if(subSet.modules){
+					subSet.modules.sort((a,b) => (a.name > b.name) ? 1 : ((b.name > a.name) ? -1 : 0));
+				}
+				
+				moduleGroups.push(subSet);
 			}
 			
 			__moduleGroups[setName] = moduleGroups;
