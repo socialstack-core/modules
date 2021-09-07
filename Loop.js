@@ -316,9 +316,16 @@ export default class Loop extends React.Component {
 			
 			// Lowercase the key as it's an exact field match:
 			var entityKeyName = key.charAt(0).toLowerCase() + key.slice(1);
-
+			
+			// Date field? Special case for those:
+			var isDate = entityKeyName.endsWith('Utc');
+			
 			var reqValue = ent[entityKeyName];
-
+			
+			if(isDate){
+				reqValue = isoConvert(reqValue).getTime();
+			}
+			
 			// value can be an array of options:
 			if (Array.isArray(value)) {
 				console.log(value, reqValue);
@@ -334,9 +341,14 @@ export default class Loop extends React.Component {
 
 					// Basic check to make sure it's not a function.
 					// - It can be null though
-					if (fValue !== undefined && (fValue === null || typeof fValue != 'object')) {
+					
+					if (fValue !== undefined && (fValue === null || isDate || typeof fValue != 'object')) {
 
-						// Use this operator:
+						// Use this operator. Special case for dates.
+						if(isDate){
+							fValue = isoConvert(fValue).getTime();
+						}
+						
 						if (!filterOperators[filterField](reqValue, fValue)) {
 							return false;
 						} else {
@@ -351,7 +363,11 @@ export default class Loop extends React.Component {
 					continue;
 				}
 			}
-
+			
+			if(isDate){
+				value = isoConvert(value).getTime();
+			}
+			
 			if (reqValue != value) {
 				return false;
 			}
