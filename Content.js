@@ -20,7 +20,7 @@ class ContentIntl extends React.Component {
 	evtType(){
 		var content = this.state.content;
 		
-		if(!content){
+		if(!content || content._err){
 			return null;
 		}
 		
