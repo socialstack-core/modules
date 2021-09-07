@@ -13,7 +13,7 @@ namespace Api.Uploader
 	/// <summary>
 	/// Meta for uploaded files.
 	/// </summary>
-	[ListAs("Uploads")]
+	[ListAs("Uploads", Explicit=true)]
     public partial class Upload : VersionedContent<uint>
 	{
 		/// <summary>
