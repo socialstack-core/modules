@@ -67,7 +67,7 @@ export default class MultiSelect extends React.Component {
 		
 		return (
 			<div className="mb-3">
-				{this.props.label && (
+				{this.props.label && !this.props.hideLabel && (
 					<label className="form-label">{this.props.label}</label>
 				)}
 				<div className="admin-multiselect">
