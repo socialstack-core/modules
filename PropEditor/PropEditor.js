@@ -267,8 +267,8 @@ export default class PropEditor extends React.Component {
 				inputType = 'select';
 				inputContent = this.getContentTypeDropdown();
 				inputContent.unshift(<option>Pick a content type</option>);
-			/*}else if(propType.type == 'array'){
-				inputType = ArrayEditor;*/
+			}else if(propType.type == 'array'){
+				inputType = ArrayEditor;
 			}else if(propType.type == 'string'){
 				inputType = 'text';
 			}else{
@@ -300,6 +300,7 @@ export default class PropEditor extends React.Component {
 			options.push(
 				<Input label={this.niceName(label, propType.label)} type={inputType} defaultValue={val} placeholder={placeholder}
 					help={propType.help} helpPosition={propType.helpPosition}
+					customMeta={propType}
 					fieldName={fieldName} disabledBy={propType.disabledBy} enabledBy={propType.enabledBy} onChange={e => {
 					var value = e.target.value;
 
