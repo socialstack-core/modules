@@ -484,7 +484,10 @@ namespace Api.Permissions{
 		/// Current index in the query
 		/// </summary>
 		public int Index;
-		private int ArgIndex;
+		/// <summary>
+		/// Current arg index.
+		/// </summary>
+		public int ArgIndex;
 		/// <summary>
 		/// The autoservice.
 		/// </summary>
@@ -2425,7 +2428,7 @@ namespace Api.Permissions{
 					ast.Index++;
 					ast.ConsumeWhitespace();
 
-					Args.Add(new ArgFilterTreeNode<T, ID>());
+					Args.Add(new ArgFilterTreeNode<T, ID>() { Id = ast.ArgIndex++ });
 
 					if (ast.Peek() == ',')
 					{
