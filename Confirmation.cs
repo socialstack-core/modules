@@ -11,7 +11,7 @@ namespace Api.Confirmations
 	/// <summary>
 	/// A Confirmation. Typically indicates that a user has accepted (or rejected) a particular request.
 	/// </summary>
-	[ListAs("Confirmations")]
+	[ListAs("Confirmations", Explicit = true)]
 	public partial class Confirmation : UserCreatedContent<uint>
 	{
 		/// <summary>
