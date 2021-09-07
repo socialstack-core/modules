@@ -318,6 +318,9 @@ namespace Api.Startup {
 			// Add global listAs attribs, if there is any:
 			var listAsSet = InstanceType.GetCustomAttributes<ListAsAttribute>();
 
+			// Get the implicit types, if there are any:
+			var implicitSet = InstanceType.GetCustomAttributes<ImplicitForAttribute>();
+
 			List<ContentField> listAsFields = null;
 
 			if (listAsSet != null)
@@ -326,10 +329,31 @@ namespace Api.Startup {
 
 				foreach (var listAs in listAsSet)
 				{
+					List<Type> implicitTypes = null;
+
+					foreach(var implicitAttrib in implicitSet)
+					{
+						if (implicitAttrib.ListAsName == listAs.FieldName)
+						{
+							if (implicitTypes == null)
+							{
+								implicitTypes = new List<Type>();
+							}
+
+							implicitTypes.Add(implicitAttrib.Type);
+						}
+					}
+
+					if (listAs.Explicit && implicitTypes == null)
+					{
+						implicitTypes = new List<Type>();
+					}
+
 					var listAsField = new ContentField(new VirtualInfo()
 					{
 						FieldName = listAs.FieldName,
 						Type = InstanceType,
+						ImplicitTypes = implicitTypes,
 						IsList = true,
 						IdSourceField = "Id"
 					});
@@ -893,6 +917,31 @@ namespace Api.Startup {
 		/// The effective name of the field.
 		/// </summary>
 		public string FieldName;
+
+		/// <summary>
+		/// Exists if this is an explicit ListAs field. This is the set of source types for which the ListAs * is implicit.
+		/// </summary>
+		public List<Type> ImplicitTypes;
+
+		/// <summary>
+		/// Don't use this ListAs field in an * if it is explicit, and the source type is not in the ImplicitTypes set.
+		/// </summary>
+		public bool IsExplicit
+		{
+			get {
+				return ImplicitTypes != null;
+			}
+		}
+
+		/// <summary>
+		/// Usually a one-off to establish if this ListAs field is implicit for the given source type.
+		/// </summary>
+		/// <param name="type"></param>
+		/// <returns></returns>
+		public bool IsImplicitFor(Type type)
+		{
+			return ImplicitTypes != null && ImplicitTypes.Contains(type);
+		}
 
 		/// <summary>
 		/// The meta="title" field for this listAs field. Used for searching through them.

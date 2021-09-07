@@ -274,6 +274,19 @@ namespace Api.Startup
 			{
 				var field = kvp.Value;
 
+				var isExplicit = field.VirtualInfo.IsExplicit;
+
+				if (isExplicit)
+				{
+					// This field exists, but should only appear if it is explicitly asked for.
+					// This is important for includes and also e.g. autoform.
+					// First though, we need to identify if we're one of the exlusions.
+					if (field.VirtualInfo.IsImplicitFor(typeof(T)))
+					{
+						isExplicit = false;
+					}
+				}
+
 				// Get the ID type of the field:
 				var idType = field.VirtualInfo.Type.GetField("Id").FieldType;
 
@@ -282,8 +295,10 @@ namespace Api.Startup
 					Name = field.VirtualInfo.FieldName,
 					OriginalName = field.VirtualInfo.FieldName,
 					Structure = this,
+					Hide = isExplicit,
 					TargetType = typeof(IEnumerable<>).MakeGenericType(idType),
 					ContentField = field,
+					IsExplicit = isExplicit,
 					ChangeFlag = field.ChangeFlag,
 					Attributes = Array.Empty<Attribute>(),
 					AfterId = true
@@ -481,6 +496,11 @@ namespace Api.Startup
 		/// If this is a field, the underlying FieldInfo. Null otherwise.
 		/// </summary>
 		public FieldInfo FieldInfo;
+		/// <summary>
+		/// True if this is an explicit field. It only appears in includes if it is explicitly asked for. It doesn't appear on AutoForm.
+		/// Note that Hide is also set to true when this is true.
+		/// </summary>
+		public bool IsExplicit;
 		/// <summary>
 		/// The content field that this originated from. Can be a global virtual one.
 		/// </summary>

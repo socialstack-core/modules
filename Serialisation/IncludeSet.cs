@@ -97,8 +97,21 @@ namespace Api.Startup
 						await current.Add(field, rootRelativeFieldName);
 					}
 
+					// Add every ListAs field except for the explicit ones where this is not an implicit type.
 					foreach (var kvp in ContentFields._globalVirtualFields)
 					{
+						var virtInfo = kvp.Value.VirtualInfo;
+
+						if (virtInfo != null && virtInfo.IsExplicit)
+						{
+							// Check if this is one of the implicit types.
+							if (!virtInfo.IsImplicitFor(current.RelativeTo.InstanceType))
+							{
+								// Skip!
+								continue;
+							}
+						}
+
 						await current.Add(kvp.Value, rootRelativeFieldName);
 					}
 
