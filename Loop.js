@@ -151,7 +151,7 @@ export default class Loop extends React.Component {
 
 						if (keep) {
 							// Re-add it (into a sorted list). This allows an updated entity to move change order.
-							this.add(e, res);
+							this.add(e, res, msg);
 						} else {
 							this.setState({ results: res });
 						}
@@ -160,7 +160,7 @@ export default class Loop extends React.Component {
 
 					// Does it pass the filter? If it does, add it.
 					if (this.testFilter(e)) {
-						this.add(e, res);
+						this.add(e, res, msg);
 					}
 
 				}
@@ -175,7 +175,7 @@ export default class Loop extends React.Component {
 					// Nope - potentially adding it.
 					// First though, make sure it passes the filter if there is one.
 					if (this.testFilter(msg.entity)) {
-						this.add(msg.entity, results);
+						this.add(msg.entity, results, msg);
 					}
 				}
 
@@ -208,7 +208,7 @@ export default class Loop extends React.Component {
 		return filter && filter.sort && filter.sort.field;
 	}
 
-	add(entity, results) {
+	add(entity, results, msg) {
 
 		var { filter, reverse } = this.props;
 
@@ -271,7 +271,7 @@ export default class Loop extends React.Component {
 			results.push(entity);
 		}
 
-		this.props.onLiveCreate && this.props.onLiveCreate(entity);
+		this.props.onLiveCreate && this.props.onLiveCreate(entity, msg);
 		this.setState({ results });
 	}
 	
