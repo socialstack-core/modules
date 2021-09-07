@@ -1,4 +1,5 @@
 import Search from 'UI/Search';
+import webRequest from 'UI/Functions/WebRequest';
 
 /**
  * A general use "multi-selection"; primarily used for tags and categories.
@@ -9,12 +10,37 @@ export default class MultiSelect extends React.Component {
     constructor(props) {
         super(props);
 		
+		var mustLoad = false;
+		var initVal = (props.value || props.defaultValue || []).filter(t => t!=null);
+		
+		if(initVal.length && typeof initVal[0] == 'number'){
+			initVal = initVal.map(id => {return {id}});
+			mustLoad = true;
+		}
 		
 		this.state = {
-			value: (props.value || props.defaultValue || []).filter(t => t!=null)
+			value: initVal,
+			mustLoad
 		};
 		
     }
+	
+	componentDidMount(){
+		if(this.state.mustLoad){
+			webRequest(this.props.contentType + '/list', {where: {Id: this.state.value.map(e => e.id)}}).then(response => {
+				
+				// Loading the values and preserving order:
+				var idLookup = {};
+				response.json.results.forEach(r => {idLookup[r.id+''] = r;});
+				
+				this.setState({
+					mustLoad: false,
+					value: this.state.value.map(e => idLookup[e.id+'']).filter(t=>t!=null)
+				});
+				
+			});
+		}
+	}
 	
 	componentWillReceiveProps(props){
 		if(props.value){
@@ -25,9 +51,11 @@ export default class MultiSelect extends React.Component {
 	}
 	
 	remove(entry) {
+		var value = this.state.value.filter(t => t!=entry && t!=null);
         this.setState({
-			value: this.state.value.filter(t => t!=entry && t!=null)
+			value
 		});
+		this.props.onChange && this.props.onChange({target: {value: value.map(e => e.id)}, fullValue: value});
     }
 	
 	render() {
@@ -73,6 +101,7 @@ export default class MultiSelect extends React.Component {
 							this.setState({
 								value
 							});
+							this.props.onChange && this.props.onChange({target: {value: value.map(e => e.id)}, fullValue: value});
 						}}/>
 					</div>
 				</div>
