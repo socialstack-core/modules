@@ -12,7 +12,7 @@ namespace Api.Messages
 	/// <summary>
 	/// A Message
 	/// </summary>
-	[ListAs("Messages")]
+	[ListAs("Messages", Explicit = true)]
 	[HasVirtualField("CreatorUser", typeof(User), "UserId")]
 	[HasVirtualField("Chat", typeof(Chat), "ChatId")]
 	public partial class Message : UserCreatedContent<uint>
