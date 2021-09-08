@@ -96,8 +96,10 @@ namespace Api.Invites
 				if(invite == null || !invite.InvitedUserId.HasValue || invite.InvitedUserId == 0 || string.IsNullOrEmpty(invite.EmailAddress)){
 					return invite;
 				}
-				
-				var recipient = new Recipient(invite.InvitedUserId.Value);
+
+				var recipientUser = await users.Get(context, invite.InvitedUserId.Value, DataOptions.IgnorePermissions);
+
+				var recipient = new Recipient(recipientUser);
 				
 				recipient.CustomData = new InviteCustomEmailData()
 				{
