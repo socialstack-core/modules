@@ -51,7 +51,8 @@ namespace Api.FileTypeBlocker
 			"mpg",
 			"mp2",
 			"avi",
-			"mov"
+			"mov",
+			"mkv"
 		};
 		
 		/// <summary>
