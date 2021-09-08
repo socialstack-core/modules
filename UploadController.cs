@@ -38,7 +38,8 @@ namespace Api.Uploader
 
 			if (upload == null)
 			{
-				// It failed.
+				// It failed. Usually because white/blacklisted.
+				Response.StatusCode = 401;
 				return;
 			}
 

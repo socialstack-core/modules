@@ -92,12 +92,12 @@ namespace Api.Uploader
 				return "public:" + Id + "." + FileType;
 			}
 		}
-		
-        /// <summary>
-        /// File path to this content using the given size name.
+
+		/// <summary>
+		/// File path to this content using the given size name.
 		/// It's either "original" or a specific width in pixels, e.g. "400".
-        /// </summary>
-        public string GetFilePath(string sizeName, bool omitExt = false)
+		/// </summary>
+		public string GetFilePath(string sizeName, bool omitExt = false)
         {
             return AppSettings.Configuration[IsPrivate ? "ContentPrivate" : "Content"] + GetRelativePath(sizeName, omitExt);
         }
@@ -120,5 +120,106 @@ namespace Api.Uploader
             }
         }
     }
+
+	/// <summary>
+	/// A parsed fileref.
+	/// </summary>
+	public struct FileRef
+	{
+
+		/// <summary>
+		/// Parses general meta out of a textual ref.
+		/// </summary>
+		/// <param name="refText"></param>
+		/// <returns></returns>
+		public static FileRef Parse(string refText)
+		{
+			if (string.IsNullOrEmpty(refText))
+			{
+				return new FileRef() {
+				};
+			}
+
+			var protoIndex = refText.IndexOf(':');
+			var scheme = (protoIndex == -1) ? "https" : refText.Substring(0, protoIndex);
+			
+			refText = protoIndex == -1 ? refText : refText.Substring(protoIndex + 1);
+			string fileParts;
+			string fileType = null;
+
+			var lastIndexOf = refText.LastIndexOf('.');
+
+			if (lastIndexOf != -1)
+			{
+				fileType = refText.Substring(lastIndexOf + 1);
+				fileParts = refText.Substring(0, lastIndexOf);
+			}
+			else
+			{
+				fileParts = refText;
+			}
+
+			return new FileRef(){
+				Scheme = scheme,
+				FileType = fileType,
+				File = fileParts
+			};
+		}
+
+		/// <summary>
+		/// The ref's scheme.
+		/// </summary>
+		public string Scheme;
+
+		/// <summary>
+		/// The filetype of the ref, if there is one.
+		/// </summary>
+		public string FileType;
+
+		/// <summary>
+		/// The filename parts. Required. Excludes type.
+		/// </summary>
+		public string File;
+
+		/// <summary>
+		/// Outputs the textual ref.
+		/// </summary>
+		/// <returns></returns>
+		public override string ToString()
+		{
+			return Scheme + ':' + File + '.' + FileType;
+		}
+
+		/// <summary>
+		/// Gets the file path of this ref.
+		/// </summary>
+		/// <returns></returns>
+		public string GetFilePath(string sizeName, string altExtension = null)
+		{
+			return AppSettings.Configuration[Scheme == "private" ? "ContentPrivate" : "Content"] + GetRelativePath(sizeName, false, altExtension);
+		}
+
+		/// <summary>
+		/// Relative path of this ref.
+		/// </summary>
+		/// <param name="sizeName"></param>
+		/// <param name="omitExt"></param>
+		/// <returns></returns>
+		public string GetRelativePath(string sizeName, bool omitExt = false, string altExtension = null)
+		{
+			if (altExtension != null)
+			{
+				return File + "-" + sizeName + "." + altExtension;
+			}
+			else if (omitExt)
+			{
+				return File + "-" + sizeName;
+			}
+			else
+			{
+				return File + "-" + sizeName + "." + FileType;
+			}
+		}
+	}
 
 }
