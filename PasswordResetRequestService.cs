@@ -96,8 +96,9 @@ namespace Api.PasswordResetRequests
 				if(reset == null || reset.UserId == 0 || reset.Email == null){
 					return reset;
 				}
-				
-				var recipient = new Recipient(reset.UserId);
+
+				var resetUser = await users.Get(context, reset.UserId, DataOptions.IgnorePermissions);
+				var recipient = new Recipient(resetUser);
 
 				recipient.CustomData = new PasswordResetCustomEmailData()
 				{
