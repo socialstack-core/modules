@@ -4,7 +4,8 @@ import Content from 'UI/Content';
 import websocket from 'UI/Functions/WebSocket';
 import webRequest from 'UI/Functions/WebRequest';
 import getRef from 'UI/Functions/GetRef';
-import { useRouter } from 'UI/Session';
+import { useRouter, useSession } from 'UI/Session';
+import CallModal from './CallModal';
 
 export default function HuddleRing(props){
 	// a call now button.
@@ -22,32 +23,61 @@ export default function HuddleRing(props){
 function renderCallNow(props) {
 	var [activeRinger, setActiveRinger] = React.useState(false);
 	var [guests, setGuests] = React.useState(props.guests || []);
-	var [declined, setDeclined] = React.useState([]);	
+	var [declined, setDeclined] = React.useState([]);
+	var [activeCallSlug, setActiveCallSlug] = React.useState(false);
 
 	var btnClass = props.btnClass ? props.btnClass : "huddle-ring-call-button";
+
+	var hangup = () => {
+		if (activeCallSlug && guests && guests.length > 0) {
+			guests.forEach(guest => {
+				sendRing(activeCallSlug, 3, guest.id);
+			});
+		}
+
+		activeRinger && activeRinger.stop();
+
+		setDeclined([]);
+		setGuests([]);
+		setActiveRinger(null);
+		setActiveCallSlug(null);
+
+		props.onHangUp && props.onHangUp();
+	};
+
+	if (props.showCallInModal && activeCallSlug) {
+		return <CallModal callSlug={activeCallSlug} hangup={() => hangup()}/>;
+	}
 	
 	return <>
 		<button className={btnClass} type="button" onClick={e => {
 			e.stopPropagation();
 			e.preventDefault();
 			setActiveRinger(1);
+			setDeclined([]);
 		}}>
 			{props.children || <Icon type="phone" light/>}
 		</button>
 		{activeRinger && <CallUI modalClass = {props.modalClass} declined = {declined} setDeclined = {setDeclined} guests = {guests} setGuests = {setGuests} activeRinger = {activeRinger} setActiveRinger = {setActiveRinger} guests={props.guests} intro={`Calling...`} theme={props['data-theme']}>
-			<HuddleRinger declined = {declined} setDeclined = {setDeclined} guests = {guests} setGuests = {setGuests} activeRinger = {activeRinger} setActiveRinger = {setActiveRinger} {...props} onHangUp={() => setActiveRinger(null)}/>
+			<HuddleRinger declined = {declined} setDeclined = {setDeclined} guests = {guests} setGuests = {setGuests} activeRinger = {activeRinger} setActiveRinger = {setActiveRinger} {...props} onHangUp={() => setActiveRinger(null)} setActiveCallSlug = {setActiveCallSlug} />
 		</CallUI>}
 	</>
 }
 
 
 function HuddleRinger(props){
-	var {activeRinger, setActiveRinger, guests, setGuests, declined, setDeclined} = props;
-	var setPage = useRouter();
+	var {activeRinger, setActiveRinger, guests, setGuests, declined, setDeclined, setActiveCallSlug} = props;
+	var {setPage} = useRouter();
+	var {session} = useSession();
+
 	var hangUp = () => {
-		activeRinger && activeRinger.stop();
+		activeRinger && activeRinger.stop && activeRinger.stop();
+
 		setDeclined([]);
 		setGuests([]);
+		setActiveCallSlug(null);
+		setActiveRinger(null);
+
 		props.onHangUp && props.onHangUp();
 	};
 
@@ -56,10 +86,11 @@ function HuddleRinger(props){
 		var args = {};
 		// Check if we are passing in extra args for the creation of the huddle that may be project specific. Defaults to only adding permitted users.
 		if (props.extraArgs) {
-			args = {...props.extraArgs, userPermits: props.guests.map(guest => guest.id)}
+			args = {...props.extraArgs, userPermits: props.guests.map(guest => guest.id)};
 		}
 		else {
-			args = {userPermits: props.guests.map(guest => guest.id)}
+			args = {userPermits: props.guests.map(guest => guest.id)};
+			args.userPermits.push(session.user.id);
 		}
 
 		webRequest("huddle", args).then(response => {
@@ -73,20 +104,26 @@ function HuddleRinger(props){
 
 		var onring = (e) => {
 			if(e.mode == 2) {
-				props.setPage(props.huddleUrl + e.slug);
+				if (props.showCallInModal) {
+					setActiveCallSlug(e.slug);
+				}
+				else {
+					setPage(props.HuddleRing + e.slug);
+				}
 				ringReject(e.slug, e.userId);
 			} else if (e.mode == 3) {
 				ringReject(e.slug, e.userId);
 				declined.push(e.userId);
 				setDeclined(declined.slice());
+				hangUp && hangUp();
 			}
 		}
 
 		document.addEventListener("huddlering", onring);
-
 				
 		return () => {
-			document.removeEventListener("huddlering", onring);
+			// commenting out for now - unsure of purpose
+			//document.removeEventListener("huddlering", onring);
 		};
 
 	}, []);
@@ -120,8 +157,6 @@ function CallUI(props){
 	var style = { "background-image": "url(" + avatarUrl + ")" };
 	var wrapperClassName = "profile-avatar has-image";
 	var everyoneHungup = guests.length == declined.length;
-
-	console.log("CallUI props", props);
 
 	var modalClass = "modal show";
 	if(props.modalClass) {
@@ -189,14 +224,11 @@ function CallFromUI(props) {
 export function RingListener(props){
 	const {setPage} = useRouter();
 	var [incomingRing, setIncomingRing] = React.useState();
+	var [activeCall, setActiveCall] = React.useState(false);
 	
 	React.useEffect(() => {
 		
 		var opcode = websocket.registerOpcode(41, reader => {
-
-			console.log("Ring Listener heard a call!");
-
-
 			var slug = reader.readUtf8();
 			var mode = reader.readByte();
 			var userId = reader.readUInt32();
@@ -216,7 +248,10 @@ export function RingListener(props){
 				incomingRing.i = setTimeout(() => {
 					setIncomingRing(null);
 				}, 2000);
-			} 
+			}else if (mode == 3) {//Mode 3 is to end the call
+				setIncomingRing(null);
+				setActiveCall(null);
+			}
 
 			var e = document.createEvent("Event"); // Dispatch an event so that way the Ringer can update.
 			e.slug = slug;
@@ -233,15 +268,25 @@ export function RingListener(props){
 		
 	});
 
-	var hangup = (incomingRing) => {
-		sendRing(incomingRing.slug, 3, incomingRing.userId);
+	var hangup = (call) => {
+		if (call) {
+			sendRing(call.slug, 3, call.userId);
+		}
 		setIncomingRing(null);
+		setActiveCall(null);
 	}
 
 	var answer = (incomingRing) => {
 		sendRing(incomingRing.slug, 2, incomingRing.userId);
 		setIncomingRing(null);
-		setPage(props.huddleUrl + incomingRing.slug)
+		setActiveCall(incomingRing);
+		if (!props.showCallInModal) {
+			setPage(props.huddleUrl + incomingRing.slug);
+		}	
+	}
+
+	if (props.showCallInModal && activeCall?.slug) {
+		return <CallModal callSlug={activeCall.slug} hangup={() => hangup(activeCall)}/>;
 	}
 	
 	if(incomingRing){
