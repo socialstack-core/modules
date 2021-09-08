@@ -257,7 +257,7 @@ export default class VideoChat extends React.Component {
 			</Container>;
 		}
 		
-		var {children, allowFullscreen, onRenderPeer, onPreRender} = this.props;
+		var {children, allowFullscreen, onRenderPeer, onPreRender, onClose} = this.props;
 		
 		// If we have at least 1 actual child node, then there is a visible activity.
 		// It acts like a fullscreen peer.
@@ -313,6 +313,12 @@ export default class VideoChat extends React.Component {
 		});
 		
 		onPreRender && onPreRender(cfg, peers, sharedPeers);
+
+		var closeButtonHref = "/";
+
+		if (onClose) {
+			closeButtonHref = "#";
+		}
 		
 		return <div className={cfg.className} onMouseMove={e => this.onMoveMeContainerDrag(e)}>
 			{/*<Notifications />*/}
@@ -321,7 +327,7 @@ export default class VideoChat extends React.Component {
 			</div>
 
 			{/* close button */}
-			<a href="/" className="btn btn-close" title="Leave chat">
+			<a href={closeButtonHref} className="btn btn-close" title="Leave chat" onClick={onClose ? () => onClose() : undefined}>
 				<i className="fr fr-times"></i>
 				<span className="sr-only">Leave chat</span>
 			</a>
