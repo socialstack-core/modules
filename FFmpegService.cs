@@ -230,7 +230,55 @@ namespace Api.FFmpeg
 				return await Task.FromResult(upload);
 			});
 		}
-		
+
+		/// <summary>
+		/// Creates an ffmpeg -i flag from an upload ref.
+		/// </summary>
+		/// <param name="uploadRef"></param>
+		/// <param name="sizeName"></param>
+		/// <returns></returns>
+		public string InputFromRef(string uploadRef, string sizeName = "original")
+		{
+			return InputFromRef(FileRef.Parse(uploadRef), sizeName);
+		}
+
+		/// <summary>
+		/// Creates an ffmpeg -i flag from an upload ref.
+		/// </summary>
+		/// <param name="uploadRef"></param>
+		/// <param name="sizeName"></param>
+		/// <returns></returns>
+		public string InputFromRef(FileRef uploadRef, string sizeName = "original")
+		{
+			var fsPath = uploadRef.GetFilePath(sizeName);
+			return "-i \"" + fsPath + "\" ";
+		}
+
+		/// <summary>
+		/// Gets an output filesys path for the given ref and sizename.
+		/// </summary>
+		/// <param name="uploadRef"></param>
+		/// <param name="sizeName"></param>
+		/// <param name="altExtension"></param>
+		/// <returns></returns>
+		public string OutputForRef(string uploadRef, string sizeName = "transcoded", string altExtension = null)
+		{
+			return OutputForRef(FileRef.Parse(uploadRef), sizeName, altExtension);
+		}
+
+		/// <summary>
+		/// Gets an output filesys path for the given ref and sizename.
+		/// </summary>
+		/// <param name="outputRef"></param>
+		/// <param name="sizeName"></param>
+		/// <param name="altExtension"></param>
+		/// <returns></returns>
+		public string OutputForRef(FileRef outputRef, string sizeName, string altExtension = null)
+		{
+			var fsPath = outputRef.GetFilePath(sizeName, altExtension);
+			return " \"" + fsPath + "\"";
+		}
+
 		/// <summary>
 		/// Transcodes the given upload now.
 		/// </summary>
