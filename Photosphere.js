@@ -414,6 +414,12 @@ export default class Photosphere extends React.Component {
 		
 		var width = size.w + 'px';
 		var height= size.h + 'px';
+
+		if (this.props.position && (this.camera.rotation.x !== this.props.position.x || this.camera.rotation.y !== this.props.position.y)) {
+			this.camera.rotation.x = this.props.position.x;
+			this.camera.rotation.y = this.props.position.y;
+			this.sendPositionUpdate();
+		}
 		
 		return (
 		<SphereContext.Provider value={{scene: this.state.scene }}>
