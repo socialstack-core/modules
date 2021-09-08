@@ -9,8 +9,9 @@ export default class Default extends React.Component {
 	}
 
 	renderIntl(session){
-		var user = session.user || {};
+		var user = session.user.result || {};
 		var { origin } = global.location;
+
 		
 		return <table border="0" cellpadding="0" cellspacing="0" id="body" style={{textAlign: "center", minWidth: "640px", width: "100%", margin: "0", padding: "0"}} bgcolor="#f0f3f7">
 			<tbody>
@@ -19,15 +20,15 @@ export default class Default extends React.Component {
 				</tr>
 				<tr class="header">
 					<td style={{fontFamily: "&quot;Helvetica Neue&quot;, Helvetica, Arial, sans-serif", fontSize: "13px", lineHeight: "1.6", color: "#5c5c5c", padding: "25px 0"}}>
-						{this.props.customLogo || <img alt="" src={origin + "/email_logo.png"} width="55" height="50" />}
+						{!this.props.hideLogo && (this.props.customLogo || <img alt="" src={origin + "/email_logo.png"} width="55" height="50" />)}
 					</td>
 				</tr>
 				<tr>
 					<td style={{fontFamily: "&quot;Helvetica Neue&quot;, Helvetica, Arial, sans-serif"}}>
 						<table border="0" cellpadding="0" cellspacing="0" class="wrapper" style={{width: "640px", borderCollapse: "separate", borderSpacing: "0", margin: "0 auto"}}>
-							<tbody>
+							<tbody style = {{padding: "1rem"}}>
 								<tr>
-									<td class="wrapper-cell" style={{fontFamily: "&quot;Helvetica Neue&quot;, Helvetica, Arial, sans-serif", borderRadius: "3px", overflow: "hidden", padding: "18px 25px", border: "1px solid #ededed"}} align="left" bgcolor="#ffffff">
+									<td class="wrapper-cell"  align="left" bgcolor="#ffffff" style={{ borderRadius: "3px", overflow: "hidden", padding: "1rem", border: "1px solid #ededed"}}>
 										{!this.props.hideGreeting && (
 											<p>
 												Hi {user.firstName},
@@ -60,7 +61,8 @@ export default class Default extends React.Component {
 Default.propTypes = {
 	children: true,
 	hideGreeting: 'bool',
-	customLogo: 'jsx'
+	customLogo: 'jsx',
+	hideLogo: 'bool'
 };
 
 Default.groups = 'email';
