@@ -328,7 +328,6 @@ export default class Loop extends React.Component {
 			
 			// value can be an array of options:
 			if (Array.isArray(value)) {
-				console.log(value, reqValue);
 				// Failed the filter if the reqd value is not in the array.
 				return value.indexOf(reqValue) != -1;
 			} else if (value && typeof value == 'object') {
