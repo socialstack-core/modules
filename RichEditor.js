@@ -1503,6 +1503,18 @@ export default class RichEditor extends React.Component {
 						}
 					})(cur);
 				}
+			} else {
+
+				((c) => {
+					buttons.push({
+						onClick: (e) => {
+							e.preventDefault();
+							this.setState({selectOpenFor: {node: c, isAfter: false}})
+						},
+						icon: 'plus',
+						text: 'Add here'
+					});
+				})(cur);
 			}
 			cur = cur.parent;
 		}
@@ -1512,7 +1524,7 @@ export default class RichEditor extends React.Component {
 			icon: 'code',
 			text: 'Edit JSON source'
 		});
-		
+
 		return <div className="context-menu" style={{
 				left: rightClick.x + 'px',
 				top: rightClick.y + 'px'
@@ -2752,11 +2764,20 @@ export default class RichEditor extends React.Component {
 						groups = {this.props.groups}
 						onSelected = {module => {
 							
-							var {selectOpenFor} = this.state;
+							var {selectOpenFor, highlight} = this.state;
 							var insertIndex;
+						
 							var insertInto = selectOpenFor.node.parent;
+							var insertIntoRoot = false;
+							if(!selectOpenFor.node.parent) {
+								// This means we are likely the parent most object, so let's find what is active and place on it.
+								insertInto = selectOpenFor.node;
+								insertIntoRoot = true;
+							}
 							
-							if(insertInto.roots){
+							if(insertIntoRoot){
+								insertIndex = insertInto.content.indexOf(highlight);
+							}else if(insertInto.roots){
 								insertIndex = insertInto.roots.children.content.indexOf(selectOpenFor.node);
 							}else{
 								insertIndex = insertInto.content.indexOf(selectOpenFor.node);
@@ -3074,7 +3095,7 @@ export default class RichEditor extends React.Component {
 * If the last character in the content editor is not content editable, you can not select the end to add text. such as the case with value='{"c":["a",{"t":"UI/Link","r":{"href":"testcomurl"},"c":["bc"]}]}'
 	where Link's last's char is an uneditable ')'.
 * Component editor - need more robust features such as url link etc. Rn its just basic string entry.
-* Ability to add components.
+* Ability to add components is added and seems stable, but please use and provide feeback if broken! -Michael R
 
 Later: 
 * Handle e.g. page structures with nested custom components.
