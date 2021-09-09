@@ -41,13 +41,13 @@ export default class Default extends React.Component {
 						</table>
 					</td>
 				</tr>
-				<tr class="footer">
+				{!this.props.hideFooter && <tr class="footer">
 					<td style={{fontFamily: "&quot;Helvetica Neue&quot;, Helvetica, Arial, sans-serif", fontSize: "13px", lineHeight: "1.6", color: "#5c5c5c", padding: "25px 0"}}>
 						<div>
 							You're receiving this email because of your account with us. <a class="mng-notif-link" href={origin + "/email/preferences"} style={{color: "#3777b0", textDecoration: "none"}}>Change preferences here</a>
 						</div>
 					</td>
-				</tr>
+				</tr>}
 				<tr>
 					<td class="footer-message" style={{fontFamily: "&quot;Helvetica Neue&quot;, Helvetica, Arial, sans-serif", fontSize: "13px", lineHeight: "1.6", color: "#5c5c5c", padding: "25px 0"}}>
 					</td>
@@ -62,7 +62,8 @@ Default.propTypes = {
 	children: true,
 	hideGreeting: 'bool',
 	customLogo: 'jsx',
-	hideLogo: 'bool'
+	hideLogo: 'bool',
+	hideFooter: 'bool'
 };
 
 Default.groups = 'email';
