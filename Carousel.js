@@ -74,7 +74,9 @@ export default class Carousel extends React.Component {
 	
 	containerWidth(screenWidth)
 	{
-		if(screenWidth >= 1400) {
+		if(screenWidth == 3840) {
+			return 1600;
+		} else if (screenWidth >= 1400) {
 			return 1320;
 		} else if (screenWidth >= 1200) {
 			return 1140;
