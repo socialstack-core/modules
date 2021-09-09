@@ -129,7 +129,7 @@ export default class Modal extends React.Component {
 
         return [
 			this.props.noBackdrop ? null : <div className={this.backdropClassName()} onClick={() => this.closeModal()}></div>,
-			<div className={this.modalClassName()} tabIndex="-1" role="dialog" aria-labelledby={this.modalTitleId}>
+			<div className={this.modalClassName()} tabIndex="-1" role="dialog" aria-labelledby={this.modalTitleId} data-theme={this.props['data-theme'] || 'modal-theme'}>
 				<div className={this.modalDialogClassName()} role="document">
 					<div className="modal-content" style = {style}>
 						{this.props.noHeader ? <></> : <div className="modal-header">
