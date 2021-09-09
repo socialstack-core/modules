@@ -438,7 +438,7 @@ export default class CalendarCompact extends React.Component {
 		
 		var colSize = 12/days;
 		
-		return <div className="calendar-compact">
+		return <div className="calendar-compact" data-theme={this.props['data-theme']}>
 			<Container>
 				<Row className="calendar-header">
 					{this.state.currentView.map((viewInfo,index) => {
