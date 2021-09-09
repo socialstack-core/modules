@@ -130,13 +130,13 @@ export default class Search extends React.Component {
 			</div>;
 		}
 		
-		return <div className="search">
+		return <div className="search" data-theme={this.props['data-theme'] || 'search-theme'}>
 			<input ref={
 				ele =>{
 					this.input = ele
 				}
 			}
-			autoComplete="false" className="form-control" placeholder={this.props.placeholder || 'Search..'} type="text" 
+			autoComplete="false" className="form-control" placeholder={this.props.placeholder || 'Search...'} type="text" 
 			onKeyUp={(e) => {
 				this.state.debounce.handle(e.target.value);
 			}} 
