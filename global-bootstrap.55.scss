@@ -302,9 +302,10 @@ $bootstrap_variants: (
                     .close {
                         width: $theme_modal_header_height;
                         height: $theme_modal_header_height;
-                        background-color: $theme_modal_close_bg;
+                        background-color: color: var(--primary);
                         opacity: 1;
-                        color: $theme_modal_close_fg;
+                        color: var(--primary-fg);
+						border: none;
 
                         &:not(.custom-icon) {
 
