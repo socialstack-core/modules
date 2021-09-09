@@ -194,6 +194,9 @@ export default class Carousel extends React.Component {
 			{ marginLeft: (containerLeftEdge - (transformCalc * currentIndex)) + 'px' } :
 			{ marginLeft: '-' + transformCalc + 'px' };
 		
+		// # to appear focused at once:
+		var focusCount = this.props.focusCount || visCount;
+		
 		return (
 			<div className="carousel" data-theme={this.props['data-theme']}>
 				<div className="slider-container">
@@ -219,7 +222,7 @@ export default class Carousel extends React.Component {
 											content = <Module item={item} container={this.props}/>;
 										}
 										
-										var isOffscreen = i < currentIndex || i >= (currentIndex + visCount);
+										var isOffscreen = i < currentIndex || i >= (currentIndex + focusCount);
 										
 										return (
 											<li className={isOffscreen ? "content-item offscreen-item" : "content-item"} style={slideWidth}>
@@ -254,6 +257,7 @@ Carousel.icon = 'columns';
 Carousel.propTypes = {
 	delay: 'int',
 	imageSize: 'int',
+	focusCount: 'int',
 	items: {
 		type: 'set',
 		defaultRenderer: 'UI/Carousel/Default'
