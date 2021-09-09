@@ -369,6 +369,11 @@ export default class CalendarCompact extends React.Component {
 				fontSize = ".8rem";
 			}
 
+			if (entry.endUtc > day.end) {
+				entry.endUtc = day.end;
+				entry.minuteEnd = (this.props.endTime || 18) * 60;
+			}
+
 			entry._computedStyle = {
 				// NB: 14px offset is based on h3.time being set to 28px tall - this gets events lining up
 				top: this.minutesToSize(entry.minuteStart - this.state.startMinutes, 14 - 1),
@@ -543,5 +548,5 @@ CalendarCompact.defaultProps = {
 	verticalScale: 3.33,
 	spacing: 30,
 	startTime: 9, // 9AM
-	endTime: 18 // 6PM
+	endTime: 24 // 6PM
 };
