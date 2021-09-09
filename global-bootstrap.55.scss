@@ -302,7 +302,7 @@ $bootstrap_variants: (
                     .close {
                         width: $theme_modal_header_height;
                         height: $theme_modal_header_height;
-                        background-color: color: var(--primary);
+                        background-color: var(--primary);
                         opacity: 1;
                         color: var(--primary-fg);
 						border: none;
