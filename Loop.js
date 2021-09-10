@@ -237,7 +237,15 @@ export default class Loop extends React.Component {
 
 			if (isDate) {
 				// Load str:
-				fieldValue = fieldValue ? isoConvert(fieldValue).getTime() : null;
+
+				if(fieldValue) {
+					fieldValue = isoConvert(fieldValue)
+					if(fieldValue) {
+						fieldValue = fieldValue.getTime();
+					}
+				} else {
+					fieldValue = null;
+				}
 			}
 
 			// Search for the target index:
@@ -249,11 +257,18 @@ export default class Loop extends React.Component {
 				if (isDate) {
 					// Parse the date:
 					if (typeof bField == 'string') {
-						bField = isoConvert(bField).getTime();
+						bField = isoConvert(bField);
+						if(bField) {
+							bField = bField.getTime();
+						}
+
 					} else if (bField && bField.getTime) {
 						bField = bField.getTime();
 					} else {
-						bField = isoConvert(bField).getTime();
+						bField = isoConvert(bField);
+						if(bField) {
+							bField = bField.getTime();
+						}
 					}
 				}
 
@@ -323,7 +338,10 @@ export default class Loop extends React.Component {
 			var reqValue = ent[entityKeyName];
 			
 			if(isDate){
-				reqValue = isoConvert(reqValue).getTime();
+				reqValue = isoConvert(reqValue)
+				if(reqValue){
+					reqValue = reqValue.getTime()
+				}
 			}
 			
 			// value can be an array of options:
@@ -345,7 +363,10 @@ export default class Loop extends React.Component {
 
 						// Use this operator. Special case for dates.
 						if(isDate){
-							fValue = isoConvert(fValue).getTime();
+							fValue = isoConvert(fValue)
+							if(fValue){
+								fValue = fValue.getTime();
+							}
 						}
 						
 						if (!filterOperators[filterField](reqValue, fValue)) {
@@ -364,7 +385,10 @@ export default class Loop extends React.Component {
 			}
 			
 			if(isDate){
-				value = isoConvert(value).getTime();
+				value = isoConvert(value);
+				if(value) {
+					value = value.getTime();
+				}
 			}
 			
 			if (reqValue != value) {
