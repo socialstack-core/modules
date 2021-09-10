@@ -89,7 +89,10 @@ namespace Api.WebSockets
 			var portNumber = AppSettings.GetInt32("WebsocketPort", AppSettings.GetInt32("Port", 5000) + 1);
 
 			wsServer = new Server<WebSocketClient>();
-			wsServer.UnixSocketFileName = "ws.sock";
+
+			var unixFileIsActive = AppSettings.GetInt32("WebSocketUnixFileActive", 1);
+			var wsFileName = AppSettings.GetString("WebSocketUnixFileName", "ws.sock");
+			wsServer.UnixSocketFileName = unixFileIsActive == 0 || string.IsNullOrEmpty(wsFileName) ? null : wsFileName;
 			wsServer.Port = portNumber;
 
 			wsServer.AcceptWebsockets(false);
