@@ -108,7 +108,7 @@ function HuddleRinger(props){
 					setActiveCallSlug(e.slug);
 				}
 				else {
-					setPage(props.HuddleRing + e.slug);
+					setPage(props.huddleUrl + e.slug);
 				}
 				ringReject(e.slug, e.userId);
 			} else if (e.mode == 3) {
