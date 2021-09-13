@@ -30,7 +30,7 @@ export default class CalendarCompact extends React.Component {
 				time: this.blockTime(spacing, i)
 			});
 		}
-
+		
 		// Let's get the current time in minutes after midnight
 		var now = new Date();
 		var nowMinutes = this.getMinutesSinceMidnight(now);
@@ -584,5 +584,5 @@ CalendarCompact.defaultProps = {
 	verticalScale: 3.33,
 	spacing: 30,
 	startTime: 9, // 9AM
-	endTime: 24 // 6PM
+	endTime: 18 // 6PM
 };
