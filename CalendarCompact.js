@@ -178,7 +178,7 @@ export default class CalendarCompact extends React.Component {
 	componentDidUpdate(p){
 		var {domNodeIndex} = this.state;
 
-		if(this.calendarRef.current && !this.state.updatedOnce){
+		if(this.calendarRef.current && !this.state.updatedOnce && !this.props.noScroll){
 			this.calendarRef.current.childNodes[domNodeIndex].scrollIntoView(true);
 			this.setState({updatedOnce: true})
 		}
