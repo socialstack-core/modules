@@ -318,7 +318,7 @@ namespace Api.Permissions{
 				return false;
 			}
 
-			return a.Contains(b);
+			return a.Contains(b, StringComparison.OrdinalIgnoreCase);
 		}
 
 		/// <summary>
