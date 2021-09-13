@@ -126,8 +126,8 @@ class ContentIntl extends React.Component {
 		var {live, id} = this.props;
 		if (live) {
 			var idealType = this.evtType();
-			
-			if((idealType && idealType != this.mountedType) || idChange){
+
+			if((idealType && idealType != this.mountedType) || (idChange && this.mountedType)){
 				this.mountedType = idealType;
 				webSocket.addEventListener(this.mountedType, this.onLiveMessage, id);
 			}
