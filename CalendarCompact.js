@@ -58,6 +58,7 @@ export default class CalendarCompact extends React.Component {
 		}
 		
 		this.calendarRef = React.createRef();
+		this.onContentChange = this.onContentChange.bind(this);
 	}
 
 	getMinutesSinceMidnight(d){
@@ -87,8 +88,43 @@ export default class CalendarCompact extends React.Component {
 		return today == timestamp;
 	}
 	
+	onContentChange(e){
+		// If the content type is the same as any of the ones we're displaying, force a load.
+		if(!e || !e.entity || !this.props.dataHandlers){
+			return;
+		}
+		
+		var {type} = e.entity;
+		var {dataHandlers} = this.props;
+		
+		type = type.toLowerCase();
+		var reload = false;
+		
+		for(var i=0;i<dataHandlers.length;i++){
+			var hType = dataHandlers[i].type;
+			
+			if(hType.toLowerCase() == type){
+				// Something we're interested in was created or updated.
+				// Reload the calendar.
+				reload = true;
+				break;
+			}
+		}
+		
+		if(reload){
+			this.load(this.state.offset, this.props);
+		}
+	}
+	
 	componentDidMount(){
 		this.load(0, this.props);
+		
+		// Add contentchange event handler to identify when we may need to force a load:
+		document.addEventListener("contentchange", this.onContentChange);
+	}
+	
+	componentWillUnmount(){
+		document.removeEventListener("contentchange", this.onContentChange);
 	}
 	
 	dayStartUtc(offset, props){
