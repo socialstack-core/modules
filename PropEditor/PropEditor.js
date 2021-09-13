@@ -194,7 +194,7 @@ export default class PropEditor extends React.Component {
 			var inputContent = undefined;
 			var propType = fieldInfo.propType;
 			
-			if(fieldInfo.value && fieldInfo.value.type && fieldInfo.value.type != 'module'){
+			{/*if(fieldInfo.value && fieldInfo.value.type && fieldInfo.value.type != 'module'){
 				// It's a linked field.
 				// Show its options instead.
 				var linkTypes = this.collectLinkTypes();
@@ -234,7 +234,7 @@ export default class PropEditor extends React.Component {
 					</div>
 				);
 				return;
-			}
+			}*/}
 			
 			var extraProps = {};
 			
