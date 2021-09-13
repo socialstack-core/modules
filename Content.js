@@ -95,7 +95,7 @@ class ContentIntl extends React.Component {
 	componentDidUpdate(prevProps){
 		var {type, id, includes} = this.props;
 		
-		this.updateWS();
+		this.updateWS(prevProps && id != prevProps.id);
 		
 		if(prevProps && type == prevProps.type && id == prevProps.id){
 			// Cached object is fine here.
@@ -122,12 +122,12 @@ class ContentIntl extends React.Component {
 		document.removeEventListener("contentchange", this.onContentChange);
 	}
 	
-	updateWS(){
+	updateWS(idChange){
 		var {live, id} = this.props;
 		if (live) {
 			var idealType = this.evtType();
 			
-			if(idealType && idealType != this.mountedType){
+			if((idealType && idealType != this.mountedType) || idChange){
 				this.mountedType = idealType;
 				webSocket.addEventListener(this.mountedType, this.onLiveMessage, id);
 			}
