@@ -61,6 +61,11 @@ export default class Search extends React.Component {
 	}
 	
 	search(query){
+		if(this.props.onSearch){
+			this.props.onSearch(query);
+			return;
+		}
+		
 		// do we have a minimum length to activate query (0 will show all for emoty query)
 		if (this.props.minLength && query.length < this.props.minLength) {
 			var results = null;
