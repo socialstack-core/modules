@@ -223,11 +223,28 @@ export default class CalendarCompact extends React.Component {
 	populateBetween(start, end, dayMeta, props){
 		var {dataHandlers} = props;
 
-		var dataRequests = dataHandlers.map((handler) =>
-			webRequest(handler.type + "/list", { where: (handler.onGetFilter && handler.onGetFilter(start, end)) || {} }, { includes: handler.includes }).then((response) => {
-				handler.onFixEntries && handler.onFixEntries(response.json.results);
+		var dataRequests = dataHandlers.map((handler) => {
+			
+			var handlerFilter = handler.onGetFilter && handler.onGetFilter(start, end) || {};
+			var filter;
+			
+			if(handlerFilter && handlerFilter.where){
+				filter = handlerFilter;
+			}else{
+				filter = {where: handlerFilter};
+			}
+			
+			return webRequest(handler.type + "/list", filter, { includes: handler.includes }).then((response) => {
+				var e = handler.onFixEntries && handler.onFixEntries(response.json.results);
+				
+				if(e){
+					// It returned a new set - use it:
+					response.json.results = e;
+				}
+				
 				return response;
 			})
+			}
 		);
 
 		Promise.all(dataRequests).then(responses => {
