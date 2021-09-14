@@ -140,6 +140,15 @@ namespace Api.Startup
 		private int CurrentFill;
 
 		/// <summary>
+		/// True if there's exactly 1 entry.
+		/// </summary>
+		public bool OneEntry {
+			get {
+				return CurrentFill == 1;
+			}
+		}
+
+		/// <summary>
 		/// Total number added so far.
 		/// </summary>
 		public int Count {

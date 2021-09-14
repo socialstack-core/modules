@@ -165,6 +165,10 @@ namespace Api.Startup{
 		/// </summary>
 		public IndexLinkNode<T> Last;
 
+		/// <summary>
+		/// Count of nodes in this list. Usually small.
+		/// </summary>
+		public int Count;
 	}
 
 	/// <summary>
@@ -273,6 +277,17 @@ namespace Api.Startup{
 		}
 
 		/// <summary>
+		/// Underlying index dictionary
+		/// </summary>
+		public ConcurrentDictionary<U, IndexLinkedList<T>> Dictionary
+		{
+			get
+			{
+				return Index;
+			}
+		}
+
+		/// <summary>
 		/// Gets the underlying datastructure, usually a ConcurrentDictionary.
 		/// </summary>
 		/// <returns></returns>
@@ -322,6 +337,7 @@ namespace Api.Startup{
 				{
 					value.Last.Next = linkNode;
 					value.Last = linkNode;
+					value.Count++;
 				}
 			}
 			else
@@ -329,7 +345,8 @@ namespace Api.Startup{
 				value = new IndexLinkedList<T>()
 				{
 					First = linkNode,
-					Last = linkNode
+					Last = linkNode,
+					Count = 1
 				};
 
 				Index[keyValue] = value;
@@ -356,18 +373,23 @@ namespace Api.Startup{
 					{
 						// Found it.
 
-						if (prev == null)
+						lock (value)
 						{
-							value.First = node.Next;
-						}
-						else
-						{
-							prev.Next = node.Next;
-						}
+							if (prev == null)
+							{
+								value.First = node.Next;
+							}
+							else
+							{
+								prev.Next = node.Next;
+							}
 
-						if (node.Next == null)
-						{
-							value.Last = prev;
+							if (node.Next == null)
+							{
+								value.Last = prev;
+							}
+
+							value.Count--;
 						}
 
 						break;

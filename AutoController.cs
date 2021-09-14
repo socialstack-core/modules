@@ -255,12 +255,12 @@ public partial class AutoController<T,ID> : ControllerBase
 		// Most other fields, particularly custom extensions, are handled by autoform.
 		var entity = new T();
 
-		// If it's revisionable we'll set the user ID now:
-		var revisionableEntity = (entity as Api.Users.VersionedContent<ID>);
+		// If it's user created we'll set the user ID now:
+		var userCreated = (entity as Api.Users.UserCreatedContent<ID>);
 
-		if (revisionableEntity != null)
+		if (userCreated != null)
 		{
-			revisionableEntity.UserId = context.UserId;
+			userCreated.UserId = context.UserId;
 		}
 		
 		// Set the actual fields now:
