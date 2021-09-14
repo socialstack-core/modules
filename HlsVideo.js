@@ -133,7 +133,9 @@ export default class HlsVideo extends React.Component {
 					// This is using the built-in support of the plain video element, without using hls.js.
 					// Note: it would be more normal to wait on the 'canplay' event below however on Safari (where you are most likely to find built-in HLS support) the video.src URL must be on the user-driven
 					// white-list before a 'canplay' event will be emitted; the last video event that can be reliably listened-for when the URL is not on the white-list is 'loadedmetadata'.
-					video.src = src;
+					
+					//video.src = src;
+					video.src = this.getSource(this.props);
 					video.onloadedmetadata = this.onManifest;
 				}
 				
