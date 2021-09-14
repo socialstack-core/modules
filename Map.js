@@ -148,7 +148,11 @@ export class MapInteractionControlled extends Component {
   }
 
   onTouchStart(e) {
-    e.preventDefault();
+    // prevent default only if we are not clicking on an anchor tag
+    if (!(e?.target?.nodeName === "A" || e?.target?.parentNode?.nodeName === "A")) {
+      e.preventDefault();
+    }
+
     this.setPointerState(e.touches);
   }
 
