@@ -6,6 +6,152 @@ import Loading from 'UI/Loading';
 import { useSession, SessionConsumer} from 'UI/Session';
 import webRequest from 'UI/Functions/WebRequest';
 
+
+export function populateBetween(start, end, dayMeta, dataHandlers, handleCollisions){
+	
+	if(!dayMeta.length){
+		dayMeta.start = start;
+		dayMeta.end = end;
+		dayMeta.offset = 0;
+		dayMeta = [dayMeta];
+	}
+	
+	var dataRequests = dataHandlers.map((handler) => {
+		
+		var handlerFilter = handler.onGetFilter && handler.onGetFilter(start, end) || {};
+		var filter;
+		
+		if(handlerFilter && handlerFilter.where){
+			filter = handlerFilter;
+		}else{
+			filter = {where: handlerFilter};
+		}
+		
+		return webRequest(handler.type + "/list", filter, { includes: handler.includes }).then((response) => {
+			var e = handler.onFixEntries && handler.onFixEntries(response.json.results);
+			
+			if(e){
+				// It returned a new set - use it:
+				response.json.results = e;
+			}
+			
+			return response;
+		})
+		}
+	);
+
+	return Promise.all(dataRequests).then(responses => {
+		var rsps = [];
+		responses.forEach(response => {
+			rsps = rsps.concat(response.json.results);
+		});
+		build(rsps, dayMeta, handleCollisions);
+	});
+}
+	
+function build(response, dayMeta, handleCollisions){
+	for(var i=0;i<dayMeta.length;i++){
+		dayMeta[i].results = [];
+	}
+	
+	// Handle the sorting of results into each day now:
+	for(var i=0;i<response.length;i++){
+		
+		var entry = response[i];
+		entry.startUtc = isoConvert(entry.startUtc);
+		entry.endUtc = isoConvert(entry.endUtc);
+		entry.startTimeUtc = isoConvert(entry.startTimeUtc);
+		entry.estimatedEndTimeUtc = isoConvert(entry.estimatedEndTimeUtc);
+		
+		// Start time:
+		var startUtc = entry.startUtc;
+		
+		for(var d=0;d<dayMeta.length;d++){
+			// Is startUtc in between this days start/ ends?
+			var day = dayMeta[d];
+			
+			if((day.start <= startUtc && day.end >= startUtc) || (day.start <= entry.startTimeUtc && day.end >= entry.startTimeUtc)){
+				entry.minuteStart = Math.floor(((startUtc - day.start)/1000)/60);
+				entry.minuteEnd = Math.floor(((entry.endUtc - day.start)/1000)/60);
+				day.results.push(entry);
+				break;
+			}
+		}
+		
+	}
+	
+	// Detect collisions in the results set
+	for(var d=0;d<dayMeta.length;d++){
+		var day = dayMeta[d];
+		if(handleCollisions){
+			var col = 0;
+			var iter = collisionIteration(day.results, 0);
+			var {output} = iter;
+			
+			while(iter.next){
+				iter = collisionIteration(iter.next, ++col);
+				output = output.concat(iter.output);
+			}
+			
+			day.results = output;
+			day.maxColumn = col;
+		}else{
+			day.results.sort((a,b) => (a.startUtc > b.startUtc) ? 1 : ((b.startUtc > a.startUtc) ? -1 : 0));
+		}
+	}
+}
+
+
+/*
+* Returns set of things that time collided with entry from the given entry set.
+*/
+function checkIfCollides(entry, entrySet){
+	for(var i=0;i<entrySet.length;i++){
+		
+		var checkWith = entrySet[i];
+		
+		if(checkWith.startUtc < entry.endUtc && checkWith.endUtc > entry.startUtc){
+			return true;
+		}
+		
+	}
+	
+	return false;
+}
+
+function collisionIteration(set, colIndex){
+	var next = null;
+	var output = [];
+	
+	// Add unless there is a collision:
+	for(var i=0;i<set.length;i++){
+		var entry = set[i];
+		if(!entry){
+			continue;
+		}
+		entry._column = colIndex; // col index
+		
+		if(checkIfCollides(entry, output)){
+			// This entry collides - add to set of things to resolve in the second+ iteration.
+			if(!next){
+				next=[entry];
+			}else{
+				next.push(entry);
+			}
+		}else{
+			// Doesn't collide - add as-is:
+			output.push(entry);
+		}
+	}
+	
+	return {
+		output,
+		next
+	};
+}
+
+
+
 export default class CalendarCompact extends React.Component {
 	
 	constructor(props){
@@ -180,11 +326,20 @@ export default class CalendarCompact extends React.Component {
 				results: null // Not loaded yet
 			});
 		}
-
+		
 		this.setState({currentView: dayMeta, offset: offset});
-
+		
 		// Request for section:
-		this.populateBetween(sliceStart, sliceEnd, dayMeta, props);
+		populateBetween(sliceStart, sliceEnd, dayMeta, props.dataHandlers, props.handleCollisions).then(() => {
+			
+			// Compute styles:
+			for(var d=0;d<dayMeta.length;d++){
+				var day = dayMeta[d];
+				this.computeStyle(day);
+			}
+			
+			this.setState({currentView: this.state.currentView});
+		});
 	}
 	
 	componentWillReceiveProps(props){
@@ -219,58 +374,6 @@ export default class CalendarCompact extends React.Component {
 			this.setState({updatedOnce: true})
 		}
 	}
-
-	populateBetween(start, end, dayMeta, props){
-		var {dataHandlers} = props;
-
-		var dataRequests = dataHandlers.map((handler) => {
-			
-			var handlerFilter = handler.onGetFilter && handler.onGetFilter(start, end) || {};
-			var filter;
-			
-			if(handlerFilter && handlerFilter.where){
-				filter = handlerFilter;
-			}else{
-				filter = {where: handlerFilter};
-			}
-			
-			return webRequest(handler.type + "/list", filter, { includes: handler.includes }).then((response) => {
-				var e = handler.onFixEntries && handler.onFixEntries(response.json.results);
-				
-				if(e){
-					// It returned a new set - use it:
-					response.json.results = e;
-				}
-				
-				return response;
-			})
-			}
-		);
-
-		Promise.all(dataRequests).then(responses => {
-			var rsps = [];
-			responses.forEach(response => {
-				rsps = rsps.concat(response.json.results);
-			});
-			this.build(rsps, dayMeta);
-		});
-		
-
-
-		/*
-		this.props.onGetData && this.props.onGetData(start, end).then(response => {
-			
-			if(response.json){
-				// Can either give us an array or a raw API response.
-				response = response.json.results;
-			}
-			
-			// Test:
-			// response=this.rand();
-			
-			this.build(response, dayMeta);
-		});*/
-	}
 	
 	/*
 	rand(){
@@ -301,114 +404,15 @@ export default class CalendarCompact extends React.Component {
 	}
 	*/
 	
-	build(response, dayMeta){
-		for(var i=0;i<dayMeta.length;i++){
-			dayMeta[i].results = [];
-		}
+	computeStyle(day) {
+		var maxCol = (day.maxColumn || 0);
+		var width = 1/(maxCol+1);
 		
-		// Handle the sorting of results into each day now:
-		for(var i=0;i<response.length;i++){
-			
-			var entry = response[i];
-			entry.startUtc = isoConvert(entry.startUtc);
-			entry.endUtc = isoConvert(entry.endUtc);
-			entry.startTimeUtc = isoConvert(entry.startTimeUtc);
-			entry.estimatedEndTimeUtc = isoConvert(entry.estimatedEndTimeUtc);
-			
-			// Start time:
-			var startUtc = entry.startUtc;
-			
-			for(var d=0;d<dayMeta.length;d++){
-				// Is startUtc in between this days start/ ends?
-				var day = dayMeta[d];
-				
-
-				if((day.start <= startUtc && day.end >= startUtc) || (day.start <= entry.startTimeUtc && day.end >= entry.startTimeUtc)){
-					entry.minuteStart = Math.floor(((startUtc - day.start)/1000)/60);
-					entry.minuteEnd = Math.floor(((entry.endUtc - day.start)/1000)/60);
-					day.results.push(entry);
-					break;
-				}
-			}
-			
-		}
-		
-		// Detect collisions in the results set
-		for(var d=0;d<dayMeta.length;d++){
-			var day = dayMeta[d];
-			if(this.props.handleCollisions){
-				this.organiseEntries(day);
-			}else{
-				day.results.sort((a,b) => (a.startUtc > b.startUtc) ? 1 : ((b.startUtc > a.startUtc) ? -1 : 0));
-			}
-		}
-
-		this.setState({currentView: this.state.currentView});
-	}
-	
-	/*
-	* Returns set of things that time collided with entry from the given entry set.
-	*/
-	checkIfCollides(entry, entrySet){
-		for(var i=0;i<entrySet.length;i++){
-			
-			var checkWith = entrySet[i];
-			
-			if(checkWith.startUtc < entry.endUtc && checkWith.endUtc > entry.startUtc){
-				return true;
-			}
-			
-		}
-		
-		return false;
-	}
-	
-	collisionIteration(set, colIndex){
-		var next = null;
-		var output = [];
-		
-		// Add unless there is a collision:
-		for(var i=0;i<set.length;i++){
-			var entry = set[i];
-			if(!entry){
-				continue;
-			}
-			entry._column = colIndex; // col index
-			
-			if(this.checkIfCollides(entry, output)){
-				// This entry collides - add to set of things to resolve in the second+ iteration.
-				if(!next){
-					next=[entry];
-				}else{
-					next.push(entry);
-				}
-			}else{
-				// Doesn't collide - add as-is:
-				output.push(entry);
-			}
-		}
-		
-		return {
-			output,
-			next
-		};
-	}
-	
-	organiseEntries(day) {
-		var col = 0;
-		var iter = this.collisionIteration(day.results, 0);
-		var {output} = iter;
-		
-		while(iter.next){
-			iter = this.collisionIteration(iter.next, ++col);
-			output = output.concat(iter.output);
-		}
-		
-		var width = 1/(col+1);
+		var {results} = day;
 		
 		// Finally build computed style:
-		for(var i=0;i<output.length;i++){
-			var entry = output[i];
+		for(var i=0;i<results.length;i++){
+			var entry = results[i];
 			
 			var minuteLength = entry.minuteEnd - entry.minuteStart;
 			
@@ -433,13 +437,12 @@ export default class CalendarCompact extends React.Component {
 				// extra pixel to cover start / end lines
 				height: this.minutesToSize(entry.minuteEnd - entry.minuteStart, 1),
 				width: entry._column == 0 ? 'calc(' + (width * 100) + '% - 3.5rem)' : (width * 100) + '%',
-				left: entry._column == 0 ? 'calc(' + ((entry._column/(col+1)) * 100) + '% + 3.5rem)' : ((entry._column/(col+1)) * 100) + '%',
-				fontSize: fontSize
+				left: entry._column == 0 ? 'calc(' + ((entry._column/(maxCol+1)) * 100) + '% + 3.5rem)' : ((entry._column/(maxCol+1)) * 100) + '%',
+				fontSize
 			};
 			
 		}
 		
-		day.results = output;
 	}
 	
 	minutesToSize(mins, offset) {
