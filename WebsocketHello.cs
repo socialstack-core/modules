@@ -342,17 +342,28 @@ namespace Api.SocketServerLibrary
 								var userCookie = colon == -1 ? cookies.Substring(cookiePrefixLocation + 5) : cookies.Substring(cookiePrefixLocation + 5, colon - cookiePrefixLocation - 5);
 
 								// Gets the context and applies it to the given client.
-								Task.Run(async () =>
+								// MUST wait for this before processing anything else from the socket.
+								var task = Task.Run(async () =>
 								{
 									// Apply context:
 									if (ContextService == null)
 									{
 										ContextService = Startup.Services.Get<ContextService>();
 									}
-										
+									
 									var context = await ContextService.Get(userCookie);
 									await client.SetContext(context);
+
+									// Allow the client to continue:
+									client.TaskCompletedContinueReceive();
 								});
+
+								if (!task.IsCompleted)
+								{
+									// It hasn't completed inline and will start soon - mark beforeReceive as true.
+									client.WaitForTaskBeforeReceive = task;
+								}
+
 							}
 
 							// Release the scratch buffer:

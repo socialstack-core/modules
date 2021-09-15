@@ -42,6 +42,11 @@ namespace Api.SocketServerLibrary
 		public bool CanProcessSend = true;
 
 		/// <summary>
+		/// Task to wait for before processing anything else, if it exists.
+		/// </summary>
+		public Task WaitForTaskBeforeReceive;
+
+		/// <summary>
 		/// Sets the context on this client.
 		/// </summary>
 		/// <param name="context"></param>
@@ -530,6 +535,9 @@ namespace Api.SocketServerLibrary
 			DoReceive();
 		}
 
+		/// <summary>
+		/// Receive the next frame. Never call this directly except in very specific circumstances.
+		/// </summary>
 		private void DoReceive() {
 
 			if (Socket == null)
@@ -605,6 +613,47 @@ namespace Api.SocketServerLibrary
 
 				// Ask the top of stack to process the data:
 				RecvStack[RecvStackPointer].Reader.Process(ref RecvStack[RecvStackPointer], this);
+
+				if (WaitForTaskBeforeReceive != null && !WaitForTaskBeforeReceive.IsCompleted)
+				{
+					// The task will call TaskCompletedContinueReceive when it is done.
+					return;
+				}
+			}
+
+			// Receive again. If there is no more space, queue up another buffer.
+			DoReceive();
+		}
+
+		/// <summary>
+		/// If you set WaitForTaskBeforeReceive to true, call this when you're done in order to continue receiving the latest message.
+		/// </summary>
+		public void TaskCompletedContinueReceive()
+		{
+			if (WaitForTaskBeforeReceive == null)
+			{
+				// E.g. The task completed inline and we don't actually have to wait for it.
+				return;
+			}
+
+			WaitForTaskBeforeReceive = null;
+
+			while (BytesInBuffer >= RecvStack[RecvStackPointer].BytesRequired)
+			{
+				if (Socket == null)
+				{
+					// Process requested the socket to close.
+					return;
+				}
+
+				// Ask the top of stack to process the data:
+				RecvStack[RecvStackPointer].Reader.Process(ref RecvStack[RecvStackPointer], this);
+
+				if (WaitForTaskBeforeReceive != null && !WaitForTaskBeforeReceive.IsCompleted)
+				{
+					// The task will call TaskCompletedContinueReceive when it is done. Halt and wait for it to call.
+					return;
+				}
 			}
 
 			// Receive again. If there is no more space, queue up another buffer.
