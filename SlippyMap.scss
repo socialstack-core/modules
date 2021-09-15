@@ -116,6 +116,7 @@
 		background: rgba(#000, .5);
 		top: $header_size;
 		height: calc(100vh - #{$header_size});
+		z-index: 899; // display below header dropdown menus (@ z-index: 900)
 	}
 
 }
@@ -153,6 +154,45 @@
 
 }
 
+@media only screen and (pointer: coarse) {
+
+	.slippy-map {
+
+		.overhead-ui {
+			bottom: 4rem;
+			left: 2rem;
+
+			.zoom {
+				padding: 1.25rem 1.5rem;
+
+				> i {
+					font-size: 1.5em;
+				}
+			}
+		}
+
+	}
+}
+
+@media only screen and (max-width: 767px) {
+
+	.slippy-map {
+		height: calc(100vh - #{$header_size_mobile});
+
+		+ .modal-backdrop {
+			top: $header_size_mobile;
+			height: calc(100vh - #{$header_size_mobile});
+		}
+
+	}
+
+	.modal--blue {
+		top: $header_size_mobile;
+		height: calc(100vh - #{$header_size_mobile});
+	}
+
+}
+
 @include mq_mobile {
 
 	.slippy-map__instructions {
@@ -164,7 +204,7 @@
 		.modal-dialog {
 
 			.modal-content {
-				min-height: none;
+				min-height: 0;
 			}
 
 		}
