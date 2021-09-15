@@ -120,7 +120,7 @@ export default class ThreeDObject extends React.Component {
             obj.position.y = circularCoords.height;
             obj.rotation.y = -circularCoords.angle * degToRad;
             obj.rotation.x = rotationX || 0;
-            obj.rotation.z = rotationY || 0;
+            obj.rotation.z = rotationZ || 0;
         } else {
             if(position){
                 obj.position.x = position.x || 0;
