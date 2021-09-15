@@ -73,10 +73,12 @@ export default class HlsVideo extends React.Component {
 		lazyLoad(getRef(hlsjsRef, {url:1})).then(imported => {
 			var Hls = imported.Hls;
 			if(!Hls.isSupported()){
+				this.setState({loaded: 1});
 				return;
 			}
 			this.clear();
-			var hls = this.state.hls = cache(this.getSource(props), this.onManifest, Hls);
+			var hls = cache(this.getSource(props), this.onManifest, Hls);
+			this.setState({hls, loaded: 1});
 			props.onPlayer && props.onPlayer(hls);
 		});
 	}
@@ -110,7 +112,10 @@ export default class HlsVideo extends React.Component {
 	}
 	
 	render(){
-
+		if(!this.state.loaded){
+			return null;
+		}
+		
 		if(this.props.fullScreen) {
 			this.openFullscreen();
 		}
@@ -127,14 +132,11 @@ export default class HlsVideo extends React.Component {
 				var hls = this.state.hls;
 				
 				if (!hls && video.canPlayType('application/vnd.apple.mpegurl')) {
-					
 					// hls.js is not supported on platforms that do not have Media Source Extensions (MSE) enabled.
 					// When the browser has built-in HLS support (check using `canPlayType`), we can provide an HLS manifest (i.e. .m3u8 URL) directly to the video element throught the `src` property.
 					// This is using the built-in support of the plain video element, without using hls.js.
 					// Note: it would be more normal to wait on the 'canplay' event below however on Safari (where you are most likely to find built-in HLS support) the video.src URL must be on the user-driven
 					// white-list before a 'canplay' event will be emitted; the last video event that can be reliably listened-for when the URL is not on the white-list is 'loadedmetadata'.
-					
-					//video.src = src;
 					video.src = this.getSource(this.props);
 					video.onloadedmetadata = this.onManifest;
 				}
