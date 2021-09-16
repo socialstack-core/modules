@@ -611,6 +611,7 @@ namespace Api.Pages
 
 			if (latestConfigBytes != _configJson.Bytes)
 			{
+				// Note: this happens to also force theme css to be reobtained as well.
 				// Cache dump:
 				cache = null;
 				_configJson.Bytes = latestConfigBytes;
