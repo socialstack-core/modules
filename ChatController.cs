@@ -15,8 +15,6 @@ namespace Api.Chats
     [Route("v1/chat")]
 	public partial class ChatController : AutoController<Chat>
     {
-        private UserService _userService;
-		
 		/// <summary>
 		/// Creates or reuses a chat.
 		/// </summary>
