@@ -28,7 +28,7 @@ namespace Api.Configuration
 		public ConfigurationService(AutoFormService autoForms) : base(Events.Configuration)
         {
 			// Example admin page install:
-			InstallAdminPages("Settings", "fa:fa-rocket", new string[] { "id", "name" });
+			InstallAdminPages("Configuration", "fa:fa-cogs", new string[] { "id", "name" });
 
 			Cache();
 
