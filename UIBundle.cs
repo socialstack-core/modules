@@ -187,6 +187,7 @@ namespace Api.CanvasRenderer
 				{
 					var mainCss = File.ReadAllText(cssFilePath);
 					BuiltCss = (CssPrepend == null ? "" : CssPrepend) + mainCss;
+					CssFile.FileContent = null;
 				}
 			}
 			else

@@ -165,7 +165,7 @@ namespace Api.CanvasRenderer
 		/// </summary>
 		/// <returns></returns>
 		[Route("/pack/main.css")]
-		public async ValueTask<FileResult> GetAdminMainCss()
+		public async ValueTask<FileResult> GetMainCss()
 		{
 			// Ask the service as it's almost always cached in there.
 			var file = await _codeService.GetMainCss(1);
@@ -192,7 +192,7 @@ namespace Api.CanvasRenderer
 		/// </summary>
 		/// <returns></returns>
 		[Route("/en-admin/pack/main.css")]
-		public async ValueTask<FileResult> GetMainCss()
+		public async ValueTask<FileResult> GetAdminMainCss()
 		{
 			// Ask the service as it's almost always cached in there.
 			var file = await _codeService.GetAdminMainCss(1);
