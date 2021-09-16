@@ -75,13 +75,23 @@ namespace Api.SocketServerLibrary
 		/// Writes this message to a writer.
 		/// </summary>
 		/// <returns></returns>
-		public Writer Write(byte opcode)
+		public Writer Write(byte opcode, Writer w = null)
 		{
-			var w = Writer.GetPooled();
-			w.Start(basicHeader);
-			var buff = w.FirstBuffer.Bytes;
-			buff[0] = opcode;
+			byte[] buff;
 
+			if (w == null)
+			{
+				w = Writer.GetPooled();
+				w.Start(basicHeader);
+				buff = w.FirstBuffer.Bytes;
+				buff[0] = opcode;
+			}
+			else
+			{
+				buff = w.FirstBuffer.Bytes;
+				w.Write(opcode);
+			}
+			
 			// Get the type description:
 			if (_boltIO == null)
 			{

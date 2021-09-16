@@ -460,6 +460,19 @@ namespace Api.SocketServerLibrary
 		}
 
 		/// <summary>
+		/// Transfers a block of bytes
+		/// </summary>
+		/// <param name="bytes"></param>
+		/// <param name="intoWriter"></param>
+		public void BlockTransfer(int bytes, Writer intoWriter)
+		{
+			for (var i = 0; i < bytes; i++)
+			{
+				intoWriter.Write(Next());
+			}
+		}
+
+		/// <summary>
 		/// Gets the next byte in the current buffer.
 		/// </summary>
 		/// <returns></returns>

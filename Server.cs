@@ -229,6 +229,21 @@ namespace Api.SocketServerLibrary {
 		}
 
 		/// <summary>
+		/// Adds a handler for an opcode - it just recognises the opcode, and then effectively does nothing.
+		/// </summary>
+		/// <param name="opcode"></param>
+		/// <param name="onRequest"></param>
+		public OpCode RegisterOpCode(uint opcode, Action<Client, Writer> onRequest)
+		{
+			var instance = new CompleteMessageOpCode();
+			instance.Code = opcode;
+			instance.OnRequest = onRequest;
+			instance.MessageReader = new CompleteMessageReader(instance);
+			AddToOpcodeMap(opcode, instance);
+			return instance;
+		}
+
+		/// <summary>
 		/// Add an opcode handler.
 		/// </summary>
 		/// <param name="opcode"></param>

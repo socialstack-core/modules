@@ -165,6 +165,41 @@ namespace Api.SocketServerLibrary {
 	}
 
 	/// <summary>
+	/// Used when reading a complete message as-is into a writer.
+	/// </summary>
+	public class CompleteMessageOpCode : OpCode
+	{
+		/// <summary>
+		/// The action to use
+		/// </summary>
+		public Action<Client, Writer> OnRequest;
+
+		/// <summary>
+		/// Start receive
+		/// </summary>
+		/// <param name="client"></param>
+		public override void Start(Client client)
+		{
+			// Reset the opcode frame:
+			client.RecvStack[0].Phase = 0;
+			client.RecvStack[0].BytesRequired = 1;
+
+			// Push a stack frame which processes this message. It MUST pop itself.
+			var msgReader = MessageReader;
+
+			// Start a writer with the opcode in it:
+			var writer = Writer.GetPooled();
+			writer.Start(Code);
+
+			client.RecvStackPointer++;
+			client.RecvStack[client.RecvStackPointer].Phase = 0;
+			client.RecvStack[client.RecvStackPointer].Reader = msgReader;
+			client.RecvStack[client.RecvStackPointer].TargetObject = writer; // can be null
+			client.RecvStack[client.RecvStackPointer].BytesRequired = msgReader.FirstDataRequired;
+		}
+	}
+
+	/// <summary>
 	/// An opcode handling the given message type.
 	/// </summary>
 	/// <typeparam name="T"></typeparam>

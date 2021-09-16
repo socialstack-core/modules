@@ -360,8 +360,15 @@ namespace Api.SocketServerLibrary
 
 								if (!task.IsCompleted)
 								{
+									// Release the scratch buffer and halt.
+									client.ScratchSpace.Release();
+									client.ScratchSpace = null;
+									frame.Phase = 0;
+
 									// It hasn't completed inline and will start soon - mark beforeReceive as true.
 									client.WaitForTaskBeforeReceive = task;
+
+									return;
 								}
 
 							}

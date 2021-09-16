@@ -1045,6 +1045,37 @@ namespace Api.SocketServerLibrary
 			}
 		}
 
+		/// <summary>
+		/// Use this to read a compressed number in the first block of a writer.
+		/// </summary>
+		/// <param name="index"></param>
+		/// <returns></returns>
+		public ulong ReadCompressedAt(ref int index)
+		{
+			var buff = FirstBuffer.Bytes;
+
+			var first = buff[index++];
+			switch (first)
+			{
+				case 251:
+					// 2 bytes:
+					return (ulong)(buff[index++] | (buff[index++] << 8));
+				case 252:
+					// 3 bytes:
+					return (ulong)(buff[index++] | (buff[index++] << 8) | (buff[index++] << 16));
+				case 253:
+					// 4 bytes:
+					return (ulong)(buff[index++] | (buff[index++] << 8) | (buff[index++] << 16) | (buff[index++] << 24));
+				case 254:
+					// 8 bytes:
+					return (ulong)buff[index++] | ((ulong)buff[index++] << 8) | ((ulong)buff[index++] << 16) | ((ulong)buff[index++] << 24) |
+						((ulong)buff[index++] << 32) | ((ulong)buff[index++] << 40) | ((ulong)buff[index++] << 48) | ((ulong)buff[index++] << 56);
+				default:
+					return first;
+			}
+
+		}
+
 		/// <summary>Write a compressed value to the message.</summary>
 		public void WritePackedInt(ulong value)
 		{
