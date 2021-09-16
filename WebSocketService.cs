@@ -58,17 +58,6 @@ namespace Api.WebSockets
 		private Server<WebSocketClient> wsServer;
 
 		/// <summary>
-		/// Sends the given message to the given user, on all their connected devices.
-		/// </summary>
-		/// <param name="id"></param>
-		/// <param name="message"></param>
-		public void SendToUser(uint id, Writer message)
-		{
-			// Send to the given room:
-			PersonalRooms.Send(id, message);
-		}
-
-		/// <summary>
 		/// Starts the ws service.
 		/// </summary>
 		public async ValueTask Start(UserService userService, ContentSyncService contentSync)
@@ -83,7 +72,7 @@ namespace Api.WebSockets
 			// Scan the mapping to purge any entries for this server:
 			await personalRoomMap.DeleteByTarget(new Context(), contentSync.ServerId, DataOptions.IgnorePermissions);
 
-			PersonalRooms = new NetworkRoomSet<User, uint, uint>(userService, personalRoomMap, contentSync);
+			PersonalRooms = await NetworkRoomSet<User, uint, uint>.CreateSet(userService, personalRoomMap, contentSync);
 
 			// Start public bolt server:
 			var portNumber = AppSettings.GetInt32("WebsocketPort", AppSettings.GetInt32("Port", 5000) + 1);
