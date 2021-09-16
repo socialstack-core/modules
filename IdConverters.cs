@@ -22,6 +22,16 @@ namespace Api.Startup
 			return default(ID);
 		}
 
+		/// <summary>
+		/// Converts the given ID into a ulong.
+		/// </summary>
+		/// <param name="input"></param>
+		/// <returns></returns>
+		public virtual ulong Reverse(ID input)
+		{
+			return 0;
+		}
+
 	}
 
 	/// <summary>
@@ -38,6 +48,17 @@ namespace Api.Startup
 		{
 			return (uint)input;
 		}
+
+		/// <summary>
+		/// Converts the given ID into a ulong.
+		/// </summary>
+		/// <param name="input"></param>
+		/// <returns></returns>
+		public override ulong Reverse(uint input)
+		{
+			return input;
+		}
+
 	}
 
 
@@ -55,6 +76,17 @@ namespace Api.Startup
 		{
 			return input;
 		}
+
+		/// <summary>
+		/// Converts the given ID into a ulong.
+		/// </summary>
+		/// <param name="input"></param>
+		/// <returns></returns>
+		public override ulong Reverse(ulong input)
+		{
+			return input;
+		}
+
 	}
 
 }

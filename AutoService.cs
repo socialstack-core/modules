@@ -1239,6 +1239,16 @@ public partial class AutoService<T, ID> : AutoService
 	}
 
 	/// <summary>
+	/// Converts the given ID for this service into a ulong.
+	/// </summary>
+	/// <param name="input"></param>
+	/// <returns></returns>
+	public ulong ReverseId(ID input)
+	{
+		return _idConverter.Reverse(input);
+	}
+
+	/// <summary>
 	/// Gets objects from this service using a generic serialized filter. Use List instead whenever possible.
 	/// </summary>
 	/// <param name="context"></param>

@@ -363,6 +363,7 @@ namespace Api.Startup
 					// It's a cached mapping type.
 					// Pre-obtain index ref now:
 					_cacheIndex = cache.GetIndex<SRC_ID>(srcIdFieldName) as NonUniqueIndex<Mapping<SRC_ID, TARG_ID>, SRC_ID>;
+					_reverseCacheIndex = cache.GetIndex<TARG_ID>(targetIdFieldName) as NonUniqueIndex<Mapping<SRC_ID, TARG_ID>, TARG_ID>;
 				}
 			}
 			
@@ -498,6 +499,11 @@ namespace Api.Startup
 		protected NonUniqueIndex<Mapping<SRC_ID, TARG_ID>, SRC_ID> _cacheIndex;
 		
 		/// <summary>
+		/// Quick ref to reverse cache index, if it is cached.
+		/// </summary>
+		protected NonUniqueIndex<Mapping<SRC_ID, TARG_ID>, TARG_ID> _reverseCacheIndex;
+		
+		/// <summary>
 		/// Creates a mapping service using the given type as the mapping object.
 		/// </summary>
 		/// <param name="t"></param>
@@ -575,12 +581,229 @@ namespace Api.Startup
 					// It's a cached mapping type.
 					// Pre-obtain index ref now:
 					_cacheIndex = cache.GetIndex<SRC_ID>(srcIdFieldName) as NonUniqueIndex<Mapping<SRC_ID, TARG_ID>, SRC_ID>;
+					_reverseCacheIndex = cache.GetIndex<TARG_ID>(targetIdFieldName) as NonUniqueIndex<Mapping<SRC_ID, TARG_ID>, TARG_ID>;
 				}
 			}
 
 			return _cacheIndex;
 		}
 
+		/// <summary>
+		/// Adds source IDs to the given collector if the source contains any of the given target IDs.
+		/// </summary>
+		/// <param name="collector"></param>
+		/// <param name="idSet"></param>
+		/// <returns></returns>
+		public void SourceContainsAny(IDCollector<SRC_ID> collector, IDCollector<TARG_ID> idSet)
+		{
+			if (_cache != null && _cacheIndex == null)
+			{
+				var cache = GetCacheForLocale(1);
+
+				if (cache != null)
+				{
+					// It's a cached mapping type.
+					// Pre-obtain index ref now:
+					_cacheIndex = cache.GetIndex<SRC_ID>(srcIdFieldName) as NonUniqueIndex<Mapping<SRC_ID, TARG_ID>, SRC_ID>;
+					_reverseCacheIndex = cache.GetIndex<TARG_ID>(targetIdFieldName) as NonUniqueIndex<Mapping<SRC_ID, TARG_ID>, TARG_ID>;
+				}
+			}
+
+			if (_cacheIndex == null || _reverseCacheIndex == null)
+			{
+				throw new PublicException("Mappings must be cached to use containsAll or containsAny filters on them.", "filter_invalid");
+			}
+
+			var idSetCount = idSet.Count;
+
+			if (idSetCount == 0)
+			{
+				// Note to filter developers: the result for this particular scenario is either going to be:
+				// - Every source
+				// - Every source not in the mapping index
+				// The above scenarios must be handled outside the mapping service itself.
+				throw new PublicException("An empty set of IDs was used where it is not supported.", "filter_invalid");
+			}
+
+			// Optimisation: If the idSet has exactly 1 entry, we'll use the reverse lookup instead.
+			if (idSetCount == 1)
+			{
+				// For each target..
+				var targetIterator = _reverseCacheIndex.GetEnumeratorFor(idSet.First.Entries[0]);
+
+				while (targetIterator.HasMore())
+				{
+					// Get current source:
+					var src = targetIterator.Current();
+					
+					// src is a valid result.
+					collector.Add(src.SourceId);
+				}
+			}
+			else
+			{
+				// For each source..
+				foreach (var kvp in _cacheIndex.Dictionary)
+				{
+					var src = kvp.Key;
+					var targets = kvp.Value;
+
+					// Targets must contain at least one of the given IDs.
+					var idsToCheck = idSet.GetNonAllocEnumerator();
+					
+					while (idsToCheck.HasMore())
+					{
+						var idToCheck = idsToCheck.Current();
+						var targToCheck = targets.First;
+
+						while (targToCheck != null)
+						{
+							if (targToCheck.Current.TargetId.Equals(idToCheck))
+							{
+								// Valid source
+								collector.Add(src);
+								goto NextSource;
+							}
+
+							targToCheck = targToCheck.Next;
+						}
+					}
+
+					NextSource:
+					continue;
+				}
+			}
+		}
+
+		/// <summary>
+		/// Adds IDs to the given collector for any sources which contain all of the given IDs.
+		/// </summary>
+		/// <param name="collector"></param>
+		/// <param name="idSet">MUST be sorted in ascending order.</param>
+		/// <param name="exactMatch">True if it must match all and only all - there are no additional ones.</param>
+		/// <returns></returns>
+		public void SourceContainsAll(IDCollector<SRC_ID> collector, IDCollector<TARG_ID> idSet, bool exactMatch)
+		{
+			if (_cache != null && _cacheIndex == null)
+			{
+
+				var cache = GetCacheForLocale(1);
+
+				if (cache != null)
+				{
+					// It's a cached mapping type.
+					// Pre-obtain index ref now:
+					_cacheIndex = cache.GetIndex<SRC_ID>(srcIdFieldName) as NonUniqueIndex<Mapping<SRC_ID, TARG_ID>, SRC_ID>;
+					_reverseCacheIndex = cache.GetIndex<TARG_ID>(targetIdFieldName) as NonUniqueIndex<Mapping<SRC_ID, TARG_ID>, TARG_ID>;
+				}
+			}
+
+			if (_cacheIndex == null || _reverseCacheIndex == null)
+			{
+				throw new PublicException("Mappings must be cached to use containsAll or containsAny filters on them.", "filter_invalid");
+			}
+			
+			var idSetCount = idSet.Count;
+
+			if (idSetCount == 0)
+			{
+				// Note to filter developers: the result for this particular scenario is either going to be:
+				// - Every source
+				// - Every source not in the mapping index
+				// The above scenarios must be handled outside the mapping service itself.
+				throw new PublicException("An empty set of IDs was used where it is not supported.", "filter_invalid");
+			}
+
+			// Optimisation: If the idSet has exactly 1 entry, we'll use the reverse lookup instead.
+			if (idSetCount == 1)
+			{
+				// For each target..
+				var targetIterator = _reverseCacheIndex.GetEnumeratorFor(idSet.First.Entries[0]);
+
+				while (targetIterator.HasMore())
+				{
+					// Get current source:
+					var src = targetIterator.Current();
+
+					if (!exactMatch)
+					{
+						// src is a valid result.
+						collector.Add(src.SourceId);
+					}
+					else
+					{
+						// src is a valid result only if it has nothing else.
+						// Check if the forward lookup has any secondary records:
+						var fwdLookup = _cacheIndex.GetEnumeratorFor(src.SourceId);
+
+						if (fwdLookup.HasMore())
+						{
+							// This first record can only be the targetId if there are no more because of the reverse lookup.
+							if (fwdLookup.Node.Next == null)
+							{
+								// src is a valid result.
+								collector.Add(src.SourceId);
+							}
+						}
+					}
+				}
+			}
+			else
+			{
+				// For each source..
+				foreach (var kvp in _cacheIndex.Dictionary)
+				{
+					var src = kvp.Key;
+					var targets = kvp.Value;
+
+					if (exactMatch)
+					{
+						// If the counts aren't an exact match, we must fail the source.
+						if (targets.Count != idSetCount)
+						{
+							continue;
+						}
+					}
+
+					// Targets must contain all the given IDs.
+					// if there are any misses, we fail the source.
+					var idsToCheck = idSet.GetNonAllocEnumerator();
+					var success = true;
+
+					while (idsToCheck.HasMore())
+					{
+						var idToCheck = idsToCheck.Current();
+
+						var targToCheck = targets.First;
+						var contains = false;
+
+						while (targToCheck != null)
+						{
+							if (targToCheck.Current.TargetId.Equals(idToCheck))
+							{
+								contains = true;
+								break;
+							}
+							targToCheck = targToCheck.Next;
+						}
+
+						if (!contains)
+						{
+							// Source has failed.
+							success = false;
+							break;
+						}
+					}
+
+					if (success)
+					{
+						// src is a valid result.
+						collector.Add(src);
+					}
+				}
+			}
+		}
+		
 		/// <summary>
 		/// Gets a mapping by the src and target IDs.
 		/// </summary>
@@ -600,6 +823,7 @@ namespace Api.Startup
 					// It's a cached mapping type.
 					// Pre-obtain index ref now:
 					_cacheIndex = cache.GetIndex<SRC_ID>(srcIdFieldName) as NonUniqueIndex<Mapping<SRC_ID, TARG_ID>, SRC_ID>;
+					_reverseCacheIndex = cache.GetIndex<TARG_ID>(targetIdFieldName) as NonUniqueIndex<Mapping<SRC_ID, TARG_ID>, TARG_ID>;
 				}
 			}
 
@@ -649,6 +873,7 @@ namespace Api.Startup
 					// It's a cached mapping type.
 					// Pre-obtain index ref now:
 					_cacheIndex = cache.GetIndex<SRC_ID>(srcIdFieldName) as NonUniqueIndex<Mapping<SRC_ID, TARG_ID>, SRC_ID>;
+					_reverseCacheIndex = cache.GetIndex<TARG_ID>(targetIdFieldName) as NonUniqueIndex<Mapping<SRC_ID, TARG_ID>, TARG_ID>;
 				}
 
 				if (_cacheIndex == null)
@@ -704,6 +929,7 @@ namespace Api.Startup
 					// It's a cached mapping type.
 					// Pre-obtain index ref now:
 					_cacheIndex = cache.GetIndex<SRC_ID>(srcIdFieldName) as NonUniqueIndex<Mapping<SRC_ID, TARG_ID>, SRC_ID>;
+					_reverseCacheIndex = cache.GetIndex<TARG_ID>(targetIdFieldName) as NonUniqueIndex<Mapping<SRC_ID, TARG_ID>, TARG_ID>;
 				}
 
 				if (_cacheIndex == null)
