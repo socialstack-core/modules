@@ -20,7 +20,7 @@ namespace Api.Presence
 		/// <summary>
 		/// Current page url this user is on. More unique than page ID.
 		/// </summary>
-		[DatabaseField(Length=100)]
+		[DatabaseField(Length=500)]
 		public string Url;
 		/// <summary>
 		/// ContentSync server ID.
