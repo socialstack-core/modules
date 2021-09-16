@@ -43,9 +43,16 @@ namespace Api.Huddles
 						// We'll largely forward the ring message, but replace the userID with the caller.
 						ring.UserId = client.Context.UserId;
 
-						var writer = ring.Write(41);
+						// Get the network room:
+						var room = websocketService.PersonalRooms.GetOrCreateRoom(callee);
 
-						websocketService.SendToUser(callee, writer);
+						// Start sending to it:
+						var writer = room.StartSend();
+
+						// Write the ring msg:
+						ring.Write(41, writer);
+
+						room.Send(writer);
 
 						writer.Release();
 					}
