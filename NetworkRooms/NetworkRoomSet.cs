@@ -11,23 +11,22 @@ namespace Api.ContentSync
 {
 
 	/// <summary>
-	/// Set of network rooms for a given service.
+	/// Used to find network rooms based on type ID.
 	/// </summary>
-	public partial class NetworkRoomSet<T, ID, ROOM_ID>
-		where T : Content<ID>, new()
-		where ID : struct, IConvertible, IEquatable<ID>, IComparable<ID>
-		where ROOM_ID : struct, IConvertible, IEquatable<ROOM_ID>, IComparable<ROOM_ID>
+	public static class NetworkRoomLookup
 	{
 		/// <summary>
-		/// The service this set is for.
+		/// Network room sets by type ID.
 		/// </summary>
-		public AutoService<T, ID> Service;
+		public static NetworkRoomSet[] NetworkRoomSets = new NetworkRoomSet[50];	
 
-		/// <summary>
-		/// The mapping of servers listening to particular IDs of things in this service.
-		/// Can be null if this is itself a mapping, which are always cached.
-		/// </summary>
-		public MappingService<ROOM_ID, uint> RemoteServers;
+	}
+
+	/// <summary>
+	/// A set of network rooms.
+	/// </summary>
+	public class NetworkRoomSet
+	{
 
 		/// <summary>
 		/// The content sync service.
@@ -45,6 +44,40 @@ namespace Api.ContentSync
 		public Context SharedGuestContext;
 
 		/// <summary>
+		/// Forwards the given complete message to a room in this set.
+		/// </summary>
+		/// <param name="roomId"></param>
+		/// <param name="completeMessage"></param>
+		public virtual void ForwardToRoom(ulong roomId, Writer completeMessage)
+		{
+		}
+	}
+
+	/// <summary>
+	/// Set of network rooms for a given service.
+	/// </summary>
+	public partial class NetworkRoomSet<T, ID, ROOM_ID> : NetworkRoomSet
+		where T : Content<ID>, new()
+		where ID : struct, IConvertible, IEquatable<ID>, IComparable<ID>
+		where ROOM_ID : struct, IConvertible, IEquatable<ROOM_ID>, IComparable<ROOM_ID>
+	{
+		/// <summary>
+		/// The service this set is for.
+		/// </summary>
+		public AutoService<T, ID> Service;
+
+		/// <summary>
+		/// Converts IDs to and from ROOM_ID. It's most often the same as the services IdConverter.
+		/// </summary>
+		public IDConverter<ROOM_ID> IdConverter;
+
+		/// <summary>
+		/// The mapping of servers listening to particular IDs of things in this service.
+		/// Can be null if this is itself a mapping, which are always cached.
+		/// </summary>
+		public MappingService<ROOM_ID, uint> RemoteServers;
+
+		/// <summary>
 		/// A room used for hosting "any" updates on this type. Not used by mapping network room sets.
 		/// </summary>
 		public NetworkRoom<T, ID, ROOM_ID> AnyUpdateRoom;
@@ -55,7 +88,42 @@ namespace Api.ContentSync
 		/// <param name="svc"></param>
 		/// <param name="mapping"></param>
 		/// <param name="contentSync"></param>
-		public NetworkRoomSet(AutoService<T, ID> svc, MappingService<ROOM_ID, uint> mapping, ContentSyncService contentSync)
+		/// <returns></returns>
+		public static async ValueTask<NetworkRoomSet<T, ID, ROOM_ID>> CreateSet(AutoService<T, ID> svc, MappingService<ROOM_ID, uint> mapping, ContentSyncService contentSync)
+		{
+			var s = new NetworkRoomSet<T, ID, ROOM_ID>(svc, mapping, contentSync);
+			await s.SetupTypeId(new Context(), contentSync._nrts);
+			return s;
+		}
+
+		/// <summary>
+		/// Forwards the given complete message to a room in this set.
+		/// </summary>
+		/// <param name="roomId"></param>
+		/// <param name="completeMessage"></param>
+		public override void ForwardToRoom(ulong roomId, Writer completeMessage)
+		{
+			var typedRoomId = IdConverter.Convert(roomId);
+
+			// get the room:
+			var roomToSendTo = GetRoom(typedRoomId);
+
+			if (roomToSendTo == null)
+			{
+				return;
+			}
+
+			// Send to the room:
+			roomToSendTo.SendLocally(completeMessage);
+		}
+
+		/// <summary>
+		/// Creates a network room set.
+		/// </summary>
+		/// <param name="svc"></param>
+		/// <param name="mapping"></param>
+		/// <param name="contentSync"></param>
+		private NetworkRoomSet(AutoService<T, ID> svc, MappingService<ROOM_ID, uint> mapping, ContentSyncService contentSync)
 		{
 			Service = svc;
 			ContentSync = contentSync;
@@ -64,23 +132,81 @@ namespace Api.ContentSync
 			SharedGuestContext = new Context(1, null, 3);
 
 			AnyUpdateRoom = GetOrCreateRoom(default(ROOM_ID));
-		}
 
-		private ConcurrentDictionary<ROOM_ID, NetworkRoom<T, ID, ROOM_ID>> _rooms = new ConcurrentDictionary<ROOM_ID, NetworkRoom<T, ID, ROOM_ID>>();
+			if (typeof(ROOM_ID) == typeof(uint))
+			{
+				IdConverter = new UInt32IDConverter() as IDConverter<ROOM_ID>;
+			}
+			else if (typeof(ROOM_ID) == typeof(ulong))
+			{
+				IdConverter = new UInt64IDConverter() as IDConverter<ROOM_ID>;
+			}
+			else
+			{
+				throw new ArgumentException("Currently unrecognised ID type: ", nameof(ROOM_ID));
+			}
+
+		}
 
 		/// <summary>
-		/// Sends to the given room globally.
+		/// Sets up the network room type ID.
 		/// </summary>
-		/// <param name="id"></param>
-		/// <param name="writer"></param>
-		public void Send(ROOM_ID id, Writer writer)
+		/// <returns></returns>
+		public async ValueTask SetupTypeId(Context context, NetworkRoomTypeService nrtService)
 		{
-			// It's better to just instance the room if it's empty locally.
-			// That way we don't need to handle a global only send here, 
-			// which would also be slower as it wouldn't be able to cache the server index for the room.
-			var room = GetOrCreateRoom(id);
-			room.Send(writer, null);
+			// Unique name is the mapping name, unless its null, in which case use svc name_M (because svc is a mapping).
+			string uniqueName;
+
+			if (RemoteServers == null)
+			{
+				uniqueName = Service.InstanceType.Name + "_m";
+			}
+			else
+			{
+				uniqueName = RemoteServers.InstanceType.Name;
+			}
+
+			// Get type ID:
+			var tn = await nrtService
+				.Where("TypeName=?", DataOptions.IgnorePermissions)
+				.Bind(uniqueName)
+				.First(context);
+
+			if (tn == null)
+			{
+				// Create it:
+				var entry = await nrtService.Create(context, new () {
+					TypeName = uniqueName
+				}, DataOptions.IgnorePermissions);
+
+				RoomTypeId = entry.Id;
+			}
+			else
+			{
+				RoomTypeId = tn.Id;
+			}
+
+			if (RoomTypeId > 2000)
+			{
+				throw new Exception("Your _networkroomtype table needs tidying up as it has assigned an abnormally large ID. Truncate it and restart this server.");
+			}
+
+			if (RoomTypeId >= NetworkRoomLookup.NetworkRoomSets.Length)
+			{
+				// Resize:
+				Array.Resize(ref NetworkRoomLookup.NetworkRoomSets, (int)RoomTypeId + 10);
+			}
+
+			// Add:
+			NetworkRoomLookup.NetworkRoomSets[RoomTypeId] = this;
 		}
+
+		/// <summary>
+		/// The globally unique room type ID.
+		/// </summary>
+		public uint RoomTypeId;
+
+		private ConcurrentDictionary<ROOM_ID, NetworkRoom<T, ID, ROOM_ID>> _rooms = new ConcurrentDictionary<ROOM_ID, NetworkRoom<T, ID, ROOM_ID>>();
 
 		/// <summary>
 		/// Gets the room for the object with the given ID.

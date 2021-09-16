@@ -93,9 +93,14 @@ namespace Api.ContentSync
 		}
 
 		/// <summary>
+		/// Network room type service.
+		/// </summary>
+		public NetworkRoomTypeService _nrts;
+
+		/// <summary>
 		/// Instanced automatically. Use injection to use this service, or Startup.Services.Get.
 		/// </summary>
-		public ContentSyncService(DatabaseService database, ClusteredServerService clusteredServerService)
+		public ContentSyncService(DatabaseService database, ClusteredServerService clusteredServerService, NetworkRoomTypeService nrts)
 		{
 			// The content sync service is used to keep content created by multiple instances in sync.
 			// (which can be a cluster of servers, or a group of developers)
@@ -103,6 +108,7 @@ namespace Api.ContentSync
 			// A user is identified by the computer hostname.
 			
 			_database = database;
+			_nrts = nrts;
 			_clusteredServerService = clusteredServerService;
 
 			// Load config:
@@ -500,6 +506,35 @@ namespace Api.ContentSync
 			SyncServer.Port = Port;
 			SyncServer.BindAddress = new IPAddress(Self.PrivateIPv4);
 
+			SyncServer.RegisterOpCode(8, (Client client, Writer entireMessage) => {
+
+				// Get the referenced network room.
+
+				// The message contains the following:
+				// [1 byte, "8"]
+				// [4 byte size]
+				// [Network room type, compressed number]
+				// [Network room ID, compressed number]
+
+				int index = 5;
+				int roomType = (int)entireMessage.ReadCompressedAt(ref index);
+				ulong roomId = entireMessage.ReadCompressedAt(ref index);
+
+				if (NetworkRoomLookup.NetworkRoomSets.Length > roomType)
+				{
+					var networkRoomSet = NetworkRoomLookup.NetworkRoomSets[roomType];
+
+					if (networkRoomSet != null)
+					{
+						networkRoomSet.ForwardToRoom(roomId, entireMessage);
+					}
+				}
+
+				// Done:
+				entireMessage.Release();
+
+			});
+
 			HandshakeOpCode = SyncServer.RegisterOpCode(3, (Client client, SyncServerHandshake message) =>
 			{
 				// Grab the values from the context:
@@ -666,7 +701,7 @@ namespace Api.ContentSync
 		/// <typeparam name="INST_T"></typeparam>
 		/// <param name="svc"></param>
 		/// <param name="sendToEveryServer"></param>
-		public async ValueTask AddStandardTypeInternal<T, ID, INST_T>(AutoService<T, ID> svc, bool sendToEveryServer)
+		public async Task AddStandardTypeInternal<T, ID, INST_T>(AutoService<T, ID> svc, bool sendToEveryServer)
 			where T : Content<ID>, new()
 			where INST_T : T, new()
 			where ID : struct, IConvertible, IEquatable<ID>, IComparable<ID>
@@ -685,7 +720,7 @@ namespace Api.ContentSync
 			await mapping.DeleteByTarget(new Context(), ServerId, DataOptions.IgnorePermissions);
 
 			// Create the room set:
-			var rooms = new NetworkRoomSet<T, ID, ID>(svc, mapping, this);
+			var rooms = await NetworkRoomSet<T, ID, ID>.CreateSet(svc, mapping, this);
 			svc.StandardNetworkRooms = rooms;
 
 			// Create the meta:
@@ -759,7 +794,7 @@ namespace Api.ContentSync
 					else
 					{
 						// Send only to room relevant servers:
-						globalMsgRoom.SendRemote(writer, false);
+						globalMsgRoom.SendRemote(writer);
 					}
 					
 					writer.Release();
@@ -853,8 +888,8 @@ namespace Api.ContentSync
 					else
 					{
 						// Send only to room relevant servers:
-						netRoom.SendRemote(writer, false);
-						globalMsgRoom.SendRemote(writer, false);
+						netRoom.SendRemote(writer);
+						globalMsgRoom.SendRemote(writer);
 					}
 
 					writer.Release();
@@ -947,8 +982,8 @@ namespace Api.ContentSync
 					else
 					{
 						// Send only to room relevant servers:
-						netRoom.SendRemote(writer, false);
-						globalMsgRoom.SendRemote(writer, false);
+						netRoom.SendRemote(writer);
+						globalMsgRoom.SendRemote(writer);
 					}
 
 					writer.Release();
@@ -970,7 +1005,7 @@ namespace Api.ContentSync
 		/// <typeparam name="INST_T"></typeparam>
 		/// <param name="svc"></param>
 		/// <param name="sendToEveryServer"></param>
-		public void AddMappingTypeInternal<SRC_ID, TARG_ID, INST_T>(MappingService<SRC_ID, TARG_ID> svc, bool sendToEveryServer)
+		public async Task AddMappingTypeInternal<SRC_ID, TARG_ID, INST_T>(MappingService<SRC_ID, TARG_ID> svc, bool sendToEveryServer)
 			where SRC_ID : struct, IEquatable<SRC_ID>, IConvertible, IComparable<SRC_ID>
 			where TARG_ID : struct, IEquatable<TARG_ID>, IConvertible, IComparable<TARG_ID>
 			where INST_T : Mapping<SRC_ID, TARG_ID>, new()
@@ -978,7 +1013,7 @@ namespace Api.ContentSync
 			// - Hook up the events which then builds the messages too
 
 			// Create the room set:
-			var rooms = new NetworkRoomSet<Mapping<SRC_ID, TARG_ID>, uint, SRC_ID>(svc, null, this);
+			var rooms = await NetworkRoomSet<Mapping<SRC_ID, TARG_ID>, uint, SRC_ID>.CreateSet(svc, null, this);
 			svc.MappingNetworkRooms = rooms;
 
 			// Create the meta:
@@ -1074,7 +1109,7 @@ namespace Api.ContentSync
 					else
 					{
 						// Send only to room relevant servers:
-						netRoom.SendRemote(writer, false);
+						netRoom.SendRemote(writer);
 					}
 
 					writer.Release();
@@ -1161,7 +1196,7 @@ namespace Api.ContentSync
 					else
 					{
 						// Send only to room relevant servers:
-						netRoom.SendRemote(writer, false);
+						netRoom.SendRemote(writer);
 					}
 
 					writer.Release();
@@ -1248,7 +1283,7 @@ namespace Api.ContentSync
 					else
 					{
 						// Send only to room relevant servers:
-						netRoom.SendRemote(writer, false);
+						netRoom.SendRemote(writer);
 					}
 
 					writer.Release();
@@ -1280,7 +1315,7 @@ namespace Api.ContentSync
 		/// </summary>
 		/// <param name="service"></param>
 		/// <param name="sendToEveryServer"></param>
-		public void SyncRemoteType(AutoService service, bool sendToEveryServer)
+		public async ValueTask SyncRemoteType(AutoService service, bool sendToEveryServer)
 		{
 			if (service.IsMapping)
 			{
@@ -1295,7 +1330,7 @@ namespace Api.ContentSync
 					service.InstanceType
 				});
 
-				handleTypeInternal.Invoke(this, new object[] {
+				await (Task)handleTypeInternal.Invoke(this, new object[] {
 					service,
 					sendToEveryServer
 				});
@@ -1309,7 +1344,7 @@ namespace Api.ContentSync
 					service.InstanceType
 				});
 
-					handleTypeInternal.Invoke(this, new object[] {
+				await (Task)handleTypeInternal.Invoke(this, new object[] {
 					service,
 					sendToEveryServer
 				});

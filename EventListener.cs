@@ -171,7 +171,7 @@ namespace Api.ContentSync
 			if (service.Synced || service.IsMapping)
 			{
 				// Add as a remote synced type:
-				contentSyncService.SyncRemoteType(service, true);
+				await contentSyncService.SyncRemoteType(service, true);
 
 				// Create an ID assigner for the type next.
 				var cacheConfig = service.GetCacheConfig();
@@ -207,7 +207,7 @@ namespace Api.ContentSync
 				// Ensure any network rooms are in sync.
 
 				// Add as a remote synced type:
-				contentSyncService.SyncRemoteType(service, false);
+				await contentSyncService.SyncRemoteType(service, false);
 			}
 
 		}

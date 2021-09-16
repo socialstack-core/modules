@@ -366,22 +366,42 @@ namespace Api.ContentSync
 			
 		}
 
+		private static byte[] basicHeader = new byte[5]; // Opcode followed by 4 byte size.
+
 		/// <summary>
-		/// Sends a message to all users in this room except the given sender.
+		/// Starts a writer setup for this particular room. Use .Send(writer) when you've written your payload to it.
+		/// </summary>
+		/// <returns></returns>
+		public Writer StartSend()
+		{
+			var writer = Writer.GetPooled();
+			writer.Start(basicHeader);
+			writer.FirstBuffer.Bytes[0] = 8; // Netroom opcode is 8
+			writer.WriteCompressed(ParentSet.RoomTypeId);
+			writer.WriteCompressed(ParentSet.IdConverter.Reverse(Id));
+			return writer;
+		}
+
+		/// <summary>
+		/// Sends a message to all users in this room except the given sender. The message being sent MUST have a network room prefix.
 		/// </summary>
 		/// <returns></returns>
 		public void Send(Writer message, WebSocketClient sender = null)
 		{
+			if (message.FirstBuffer == null || message.FirstBuffer.Bytes[0] != 8)
+			{
+				throw new Exception("Incorrectly attempted to send a writer to a network room. The writer must originate from the networkRoom.StartSend() method.");
+			}
+
 			SendLocally(message, sender);
-			SendRemote(message, true);
+			SendRemote(message);
 		}
 
 		/// <summary>
-		/// Send to remote servers only. Optionally prefixes a forward to this room header.
+		/// Send to remote servers only.
 		/// </summary>
 		/// <param name="message"></param>
-		/// <param name="prefix"></param>
-		public void SendRemote(Writer message, bool prefix)
+		public void SendRemote(Writer message)
 		{
 			var remotes = GetRemoteServers();
 
@@ -394,10 +414,8 @@ namespace Api.ContentSync
 
 					if (mapping != null)
 					{
-						// Send to this server by ID. Must also prepend something that allows the other server to identify the target room.
+						// Send to this server by ID.
 						var server = ParentSet.ContentSync.GetServer(mapping.TargetId);
-
-						#warning todo add prefix if it is required
 
 						if (server != null)
 						{
