@@ -604,6 +604,25 @@ registerOpcode(21, reader => syncUpdate('create', reader), false);
 registerOpcode(22, reader => syncUpdate('update', reader), false);
 registerOpcode(23, reader => syncUpdate('delete', reader), false);
 
+registerOpcode(8, r => {
+	var payloadSize = r.readUInt32();
+	// Skip 2 compressed numbers (the network room type + id)
+	// The rest is the actual payload to do something with.
+	
+	r.viaNetRoom = true;
+	r.roomType = r.readCompressed();
+	r.roomId = r.readCompressed();
+	
+	// read OC:
+	var opcode = r.readCompressed();
+	
+	var handler = _opcodes[opcode];
+	if(handler){
+		handler.onReceive(r);
+	}
+	
+}, false);
+
 export default {
 	registerOpcode,
 	getSocket,
