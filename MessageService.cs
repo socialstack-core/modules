@@ -18,20 +18,6 @@ namespace Api.Messages
 		/// </summary>
 		public MessageService() : base(Events.Message)
         {
-			// Example admin page install:
-			// InstallAdminPages("Messages", "fa:fa-rocket", new string[] { "id", "name" });
-
-			Events.Message.BeforeCreate.AddEventListener(async (Context context, Message message) =>
-			{
-				if(context == null || message == null)
-                {
-					return message;
-                }
-
-				message.UserId = context.UserId;
-
-				return message;
-			});
 		}
 	}
     
