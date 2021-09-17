@@ -161,6 +161,14 @@ namespace Api.CanvasRenderer
 		}
 
 		/// <summary>
+		/// Reloads a prebuilt UI bundle from the filesystem.
+		/// </summary>
+		public void ReloadPrebuilt()
+		{
+			
+		}
+
+		/// <summary>
 		/// Prepend text to add to the CSS. Use SetCssPrepend except during construction.
 		/// </summary>
 		public string CssPrepend;

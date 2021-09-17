@@ -81,6 +81,20 @@ namespace Api.CanvasRenderer
 		}
 
 		/// <summary>
+		/// Reloads a prebuilt UI from the filesystem. Use this for zero downtime UI only deployments.
+		/// </summary>
+		public void ReloadFromFilesystem()
+		{
+			if (SourceBuilders != null && Prebuilt)
+			{
+				foreach (var bundle in SourceBuilders)
+				{
+					bundle.ReloadPrebuilt();
+				}
+			}
+		}
+
+		/// <summary>
 		/// Instanced automatically.
 		/// </summary>
 		public FrontendCodeService(LocaleService locales, TranslationService translations, Themes.ThemeService themeService, ContentSyncService contentSync)
