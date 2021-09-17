@@ -360,7 +360,7 @@ namespace Api.FFmpeg
 				cmdArgs = "-hide_banner -loglevel fatal " + cmdArgs;
 			}
 
-			var cmd = "ffmpeg " + cmdArgs;
+			var cmd = "ffmpeg -threads 1 " + cmdArgs;
 			
 			// Configure the process using the StartInfo properties.
 			process.StartInfo.FileName = isWindows ? "cmd.exe" : "/bin/bash";
