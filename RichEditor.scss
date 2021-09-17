@@ -1,4 +1,9 @@
 .canvas-editor-popups{
+	.context-menu {
+		max-height: 300px;
+		overflow-y: auto;
+	}
+
 	
 	.module-select-modal, .module-link-selection-modal{
 		.module-group{
