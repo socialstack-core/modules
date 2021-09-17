@@ -148,16 +148,22 @@ getRef.parse = (ref) => {
 	
 	if(ref.indexOf('.') != -1){
 		fileParts = ref.split('.');
-		fileType = fileParts[fileParts.length-1];
+		fileType = fileParts.pop();
 	}
 	
-	return {
+	var refInfo = {
 		scheme,
 		handler,
 		ref,
 		fileType,
 		fileParts
 	};
+	
+	refInfo.toString = () => {
+		return refInfo.scheme + ':' + refInfo.fileParts.join('.') + '.' + refInfo.fileType;
+	};
+	
+	return refInfo;
 };
 
 /*
