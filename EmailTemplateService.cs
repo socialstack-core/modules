@@ -305,7 +305,8 @@ namespace Api.Emails
 		/// <param name="messageId">Optional message ID.</param>
 		/// <param name="fromAccount">Optionally select a particular from account. The default (in your appsettings.json) is used otherwise.</param>
 		/// <param name="attachments">Optional attachments.</param>
-		public async Task Send(string toAddress, string subject, string body, string messageId = null, EmailAccount fromAccount = null, IEnumerable<Attachment> attachments = null)
+		/// <param name="additionalHeaders">Optional headers. E.g. put Reply-To in here.</param>
+		public async Task Send(string toAddress, string subject, string body, string messageId = null, EmailAccount fromAccount = null, IEnumerable<Attachment> attachments = null, Dictionary<string, string> additionalHeaders = null)
 		{
 			if (fromAccount == null)
 			{
@@ -329,6 +330,14 @@ namespace Api.Emails
 			{
 				// Got a message ID:
 				mailMessage.Headers.Add("Message-Id", messageId);
+			}
+
+			if (additionalHeaders != null)
+			{
+				foreach (var header in additionalHeaders)
+				{
+					mailMessage.Headers.Add(header.Key, header.Value);
+				}
 			}
 
 			mailMessage.DeliveryNotificationOptions = DeliveryNotificationOptions.OnSuccess | DeliveryNotificationOptions.OnFailure | DeliveryNotificationOptions.Delay;

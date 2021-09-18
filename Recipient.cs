@@ -31,6 +31,11 @@ namespace Api.Emails{
 		public object CustomData;
 
 		/// <summary>
+		/// Just their email address if this email is not targeted at a user.
+		/// </summary>
+		public string EmailAddress;
+
+		/// <summary>
 		/// Email recipient for the user and locale defined in the context.
 		/// </summary>
 		/// <param name="contextForUserAndLocale"></param>
@@ -74,6 +79,31 @@ namespace Api.Emails{
 			};
 		}
 
+		/// <summary>
+		/// Emails the given address.
+		/// </summary>
+		/// <param name="emailAddress"></param>
+		/// <param name="localeContext"></param>
+		public Recipient(string emailAddress, Context localeContext)
+		{
+			EmailAddress = emailAddress;
+			Context = localeContext;
+		}
+
+		/// <summary>
+		/// Emails the given address.
+		/// </summary>
+		/// <param name="emailAddress"></param>
+		/// <param name="localeId"></param>
+		public Recipient(string emailAddress, uint localeId = 0)
+		{
+			EmailAddress = emailAddress;
+			Context = new Context()
+			{
+				LocaleId = localeId
+			};
+		}
+
 	}
-	
+
 }
