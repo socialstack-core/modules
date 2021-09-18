@@ -4,6 +4,7 @@ using Api.Contexts;
 using Api.Startup;
 using Api.CanvasRenderer;
 using Api.Eventing;
+using Api.SocketServerLibrary;
 
 namespace Api.Pages
 {
@@ -53,6 +54,20 @@ namespace Api.Pages
 			// we first need to get the pageAndTokens
 			var pageAndTokens = await _pageService.GetPage(context, pageDetails.Url, Microsoft.AspNetCore.Http.QueryString.Empty);
 
+            if (pageAndTokens.RedirectTo != null)
+            {
+                // Redirecting to the given url, as a 302:
+                var writer = Writer.GetPooled();
+                writer.Start(null);
+
+                writer.WriteASCII("{\"redirect\":");
+                writer.WriteEscaped(pageAndTokens.RedirectTo);
+                writer.Write((byte)'}');
+                await writer.CopyToAsync(Response.Body);
+                writer.Release();
+                return;
+            }
+        
             await Events.Page.BeforeNavigate.Dispatch(context, pageAndTokens.Page, pageDetails.Url);
 
             Response.ContentType = "application/json";
