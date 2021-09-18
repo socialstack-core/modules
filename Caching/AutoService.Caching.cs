@@ -100,6 +100,36 @@ public partial class AutoService<T, ID> {
 			Console.WriteLine(InstanceType.Name + " - cache on");
 		}
 
+		await SetupCache();
+	}
+
+	/*
+	/// <summary>
+	/// Dumps some metadata about the cache
+	/// </summary>
+	/// <returns></returns>
+	public async ValueTask DumpCacheMeta(Microsoft.AspNetCore.Http.HttpResponse response)
+	{
+
+	}
+	*/
+
+	/// <summary>
+	/// Sets up the cache.
+	/// </summary>
+	/// <returns></returns>
+	public async ValueTask Recache()
+	{
+		if (_cacheConfig == null)
+		{
+			throw new PublicException("Not a cached service - no cache to reload", "no_cache");
+		}
+
+		await SetupCache();
+	}
+
+	private async ValueTask SetupCache()
+	{
 		var genericCfg = _cacheConfig as CacheConfig<T>;
 
 		var indices = GetContentFields().IndexList;

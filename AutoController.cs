@@ -191,7 +191,26 @@ public partial class AutoController<T,ID> : ControllerBase
 		await OutputJson(context, result, includes);
 	}
 
-    /// <summary>
+	/// <summary>
+	/// GET /v1/entityTypeName/recache
+	/// Repopulates the cache for this service (if it is cached, and if you are an admin).
+	/// </summary>
+	/// <returns></returns>
+	[HttpGet("recache")]
+	public virtual async ValueTask Recache()
+	{
+		var context = await Request.GetContext();
+
+		if (context.Role == null || !context.Role.CanViewAdmin)
+		{
+			throw PermissionException.Create("recache", context);
+		}
+
+
+		await _service.Recache();
+	}
+
+	/// <summary>
 	/// GET /v1/entityTypeName/list
 	/// Lists all entities of this type available to this user.
 	/// </summary>
