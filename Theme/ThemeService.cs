@@ -36,7 +36,7 @@ namespace Api.Themes
 		/// <summary>
 		/// Instanced automatically.
 		/// </summary>
-		public ThemeService()
+		public ThemeService(ConfigurationService configService)
 		{
 			_globalCfg = GetConfig<GlobalThemeConfig>();
 			_current = GetAllConfig<ThemeConfig>();
@@ -114,8 +114,6 @@ namespace Api.Themes
 					Key = "main",
 					Variables = defaultVars
 				};
-
-				var configService = Services.Get<ConfigurationService>();
 
 				_ = configService.InstallConfig(admin, "Admin Theme", "Theme", _current);
 				_ = configService.InstallConfig(main, "Main Site Theme", "Theme", _current);
