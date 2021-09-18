@@ -164,9 +164,14 @@ export default (props) => {
 				url,
 				version: getBuildDate().timestamp
 			}).then(res => {
-				if(res.json.oldVersion){
+				if (res.json.oldVersion) {
 					console.log("UI updated - forced reload");
 					document.location = url;
+					return;
+				} else if (res.json.redirect) {
+					// Bounce:
+					console.log("Redirect");
+					document.location = res.json.redirect;
 					return;
 				}
 				
