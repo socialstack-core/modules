@@ -29,6 +29,15 @@ namespace Api.CanvasRenderer
 		}
 
 		/// <summary>
+		/// Reloads a prebuilt UI
+		/// </summary>
+		[Route("/v1/monitoring/ui-reload")]
+		public void Reload()
+		{
+			_codeService.ReloadFromFilesystem();
+		}
+
+		/// <summary>
 		/// Lists all available static files.
 		/// </summary>
 		[Route("/pack/static-assets/list.json")]

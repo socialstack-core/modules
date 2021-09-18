@@ -165,7 +165,11 @@ namespace Api.CanvasRenderer
 		/// </summary>
 		public void ReloadPrebuilt()
 		{
-			
+			if (Prebuilt)
+			{
+				// Load it now:
+				LoadPrebuiltUI();
+			}
 		}
 
 		/// <summary>
@@ -658,6 +662,132 @@ namespace Api.CanvasRenderer
 			return file;
 		}
 
+		private void LoadPrebuiltUI()
+		{
+			var dir = PackDir;
+
+			if (!string.IsNullOrEmpty(FilePathOverride))
+			{
+				dir = FilePathOverride;
+			}
+
+			// Load main.css (as-is):
+			var cssFilePath = RootPath + "/public" + dir + "main.prebuilt.css";
+			if (File.Exists(cssFilePath))
+			{
+				var mainCss = File.ReadAllText(cssFilePath);
+				BuiltCss = (CssPrepend == null ? "" : CssPrepend) + mainCss;
+			}
+			else
+			{
+				Console.WriteLine(
+					"[SEVERE] Your UI is set to prebuilt mode (either in appsettings.json, or because you don't have a UI/Source folder), but the prebuilt CSS file at '" + cssFilePath +
+					"' does not exist. Your site will be missing its CSS."
+				);
+
+				BuiltCss = "";
+			}
+
+			// Load main.js.
+			var segments = new List<JavascriptFileSegment>();
+			var jsFilePath = RootPath + "/public" + dir + "main.prebuilt.js";
+
+			if (File.Exists(jsFilePath))
+			{
+				var mainJs = File.ReadAllText(jsFilePath);
+
+				// Read the meta (a required file, as it includes the build date as well as localisation metadata).
+				var metaPath = RootPath + "/public" + dir + "meta.json";
+				PrebuiltMeta meta;
+
+				if (File.Exists(metaPath))
+				{
+					var metaJson = File.ReadAllText(metaPath);
+					meta = Newtonsoft.Json.JsonConvert.DeserializeObject<PrebuiltMeta>(metaJson);
+				}
+				else
+				{
+					meta = new PrebuiltMeta();
+
+					// This will be an accurate guess in virtually all situations 
+					// (however, it would be better to fix the problem of the missing meta file):
+					meta.Starter = RootName == "UI";
+
+					Console.WriteLine(
+						"[ERROR] Your UI is set to prebuilt mode (either in appsettings.json, or because you don't have a UI/Source folder), but the prebuilt metadata file at '" + metaPath +
+						"' does not exist. Your site will be unable to apply localised text and you'll encounter caching problems as the build number isn't being set properly."
+					);
+				}
+
+				// Build time:
+				BuildTimestampMs = meta.BuildTime;
+				ContainsStarterModule = meta.Starter;
+
+				// Construct the JS segments now.
+				var currentIndex = 0;
+
+				if (meta.Templates != null)
+				{
+					foreach (var template in meta.Templates)
+					{
+						// Create segment which goes from currentIndex -> template.Start:
+						segments.Add(
+							new JavascriptFileSegment()
+							{
+								Source = mainJs.Substring(currentIndex, template.Start - currentIndex)
+							}
+						);
+
+						// Add the template segment:
+						segments.Add(
+							new JavascriptFileSegment()
+							{
+								Module = template.Module,
+								TemplateLiteralToSearch = template.Original,
+								TemplateLiteralSource = template.Target,
+								VariableMap = template.VariableMap
+							}
+						);
+
+						// Current index is now the end of the template:
+						currentIndex = template.End;
+					}
+				}
+
+				// Final segment:
+				segments.Add(
+					new JavascriptFileSegment()
+					{
+						Source = mainJs.Substring(currentIndex)
+					}
+				);
+
+				if (ContainsStarterModule)
+				{
+					// Invoke start:
+					segments.Add(new JavascriptFileSegment() { Source = "_rq('UI/Start').default();" });
+				}
+			}
+			else
+			{
+				Console.WriteLine(
+					"[SEVERE] Your UI is set to prebuilt mode (either in appsettings.json, or because you don't have a UI/Source folder), but the prebuilt JS file at '" + jsFilePath +
+					"' does not exist. Your site will be missing its JS."
+				);
+
+				// Be as helpful as we can - output to UI as well:
+				segments.Add(new JavascriptFileSegment()
+				{
+					Source = "console.error('This site is set to prebuilt mode but no prebuilt JS file exists. See the file location in your server log.');"
+				});
+
+			}
+
+			BuiltJavascriptSegments = segments;
+			_localeToMainJs = null;
+			CssFile.FileContent = null;
+		}
+
 		/// <summary>
 		/// Starts the watcher and loads files ready for first build.
 		/// </summary>
@@ -673,124 +803,7 @@ namespace Api.CanvasRenderer
 
 			if (Prebuilt)
 			{
-				var dir = PackDir;
-
-				if (!string.IsNullOrEmpty(FilePathOverride))
-				{
-					dir = FilePathOverride;
-				}
-
-				// Load main.css (as-is):
-				var cssFilePath = RootPath + "/public" + dir + "main.prebuilt.css";
-				if (File.Exists(cssFilePath))
-				{
-					var mainCss = File.ReadAllText(cssFilePath);
-					BuiltCss = (CssPrepend == null ? "" : CssPrepend) + mainCss;
-				}
-				else {
-					Console.WriteLine(
-						"[SEVERE] Your UI is set to prebuilt mode (either in appsettings.json, or because you don't have a UI/Source folder), but the prebuilt CSS file at '" + cssFilePath + 
-						"' does not exist. Your site will be missing its CSS."
-					);
-
-					BuiltCss = "";
-				}
-
-				// Load main.js.
-				var segments = new List<JavascriptFileSegment>();
-				var jsFilePath = RootPath + "/public" + dir + "main.prebuilt.js";
-
-				if (File.Exists(jsFilePath))
-				{
-					var mainJs = File.ReadAllText(jsFilePath);
-
-					// Read the meta (a required file, as it includes the build date as well as localisation metadata).
-					var metaPath = RootPath + "/public" + dir + "meta.json";
-					PrebuiltMeta meta;
-
-					if (File.Exists(metaPath))
-					{
-						var metaJson = File.ReadAllText(metaPath);
-						meta = Newtonsoft.Json.JsonConvert.DeserializeObject<PrebuiltMeta>(metaJson);
-					}
-					else
-					{
-						meta = new PrebuiltMeta();
-
-						// This will be an accurate guess in virtually all situations 
-						// (however, it would be better to fix the problem of the missing meta file):
-						meta.Starter = RootName == "UI";
-
-						Console.WriteLine(
-							"[ERROR] Your UI is set to prebuilt mode (either in appsettings.json, or because you don't have a UI/Source folder), but the prebuilt metadata file at '" + metaPath +
-							"' does not exist. Your site will be unable to apply localised text and you'll encounter caching problems as the build number isn't being set properly."
-						);
-					}
-
-					// Build time:
-					BuildTimestampMs = meta.BuildTime;
-					ContainsStarterModule = meta.Starter;
-
-					// Construct the JS segments now.
-					var currentIndex = 0;
-
-					if (meta.Templates != null)
-					{
-						foreach (var template in meta.Templates)
-						{
-							// Create segment which goes from currentIndex -> template.Start:
-							segments.Add(
-								new JavascriptFileSegment()
-								{
-									Source = mainJs.Substring(currentIndex, template.Start - currentIndex)
-								}
-							);
-
-							// Add the template segment:
-							segments.Add(
-								new JavascriptFileSegment()
-								{
-									Module = template.Module,
-									TemplateLiteralToSearch = template.Original,
-									TemplateLiteralSource = template.Target,
-									VariableMap = template.VariableMap
-								}
-							);
-
-							// Current index is now the end of the template:
-							currentIndex = template.End;
-						}
-					}
-
-					// Final segment:
-					segments.Add(
-						new JavascriptFileSegment()
-						{
-							Source = mainJs.Substring(currentIndex)
-						}
-					);
-
-					if (ContainsStarterModule)
-					{
-						// Invoke start:
-						segments.Add(new JavascriptFileSegment() { Source = "_rq('UI/Start').default();" });
-					}
-				}
-				else
-				{
-					Console.WriteLine(
-						"[SEVERE] Your UI is set to prebuilt mode (either in appsettings.json, or because you don't have a UI/Source folder), but the prebuilt JS file at '" + jsFilePath +
-						"' does not exist. Your site will be missing its JS."
-					);
-
-					// Be as helpful as we can - output to UI as well:
-					segments.Add(new JavascriptFileSegment() {
-						Source = "console.error('This site is set to prebuilt mode but no prebuilt JS file exists. See the file location in your server log.');"
-					});
-
-				}
-
-				BuiltJavascriptSegments = segments;
+				LoadPrebuiltUI();
 				return;
 			}
 
