@@ -8,6 +8,7 @@ using System.IO;
 using Api.Contexts;
 using System.Text;
 using Microsoft.Extensions.Primitives;
+using Api.SocketServerLibrary;
 
 namespace Api.CanvasRenderer
 {
@@ -32,9 +33,17 @@ namespace Api.CanvasRenderer
 		/// Reloads a prebuilt UI
 		/// </summary>
 		[Route("/v1/monitoring/ui-reload")]
-		public void Reload()
+		public async ValueTask Reload()
 		{
 			_codeService.ReloadFromFilesystem();
+
+			Response.ContentType = "application/json";
+
+			var writer = Writer.GetPooled();
+			writer.Start(null);
+			writer.WriteASCII("{\"success\":1}");
+			await writer.CopyToAsync(Response.Body);
+			writer.Release();
 		}
 
 		/// <summary>
