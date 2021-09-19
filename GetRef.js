@@ -175,6 +175,7 @@ getRef.parse = (ref) => {
 * Convenience method for identifying visual refs (including videos).
 */
 var imgTypes = ['png', 'jpeg', 'jpg', 'gif', 'mp4', 'svg', 'bmp', 'apng', 'avif', 'webp'];
+var vidTypes = ['mp4', 'webm', 'avif'];
 
 getRef.isImage = (ref) => {
 	var info = getRef.parse(ref);
@@ -190,4 +191,19 @@ getRef.isImage = (ref) => {
 	
 	// All other ref types are visual:
 	return true;
+}
+
+getRef.isVideo = (ref) => {
+	var info = getRef.parse(ref);
+	if(!info){
+		return false;
+	}
+	
+	if(info.scheme == 'private'){
+		return false;
+	}else if(info.scheme == 'url' || info.scheme == 'http' || info.scheme == 'https' || info.scheme == 'public'){
+		return (vidTypes.indexOf(info.fileType) != -1);
+	}
+	
+	return false;
 }
