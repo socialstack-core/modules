@@ -160,6 +160,11 @@ getRef.parse = (ref) => {
 	};
 	
 	refInfo.toString = () => {
+
+		if (refInfo.fileParts === null) {
+			return null;
+		}
+
 		return refInfo.scheme + ':' + refInfo.fileParts.join('.') + '.' + refInfo.fileType;
 	};
 	
