@@ -1517,6 +1517,7 @@ namespace Api.SocketServerLibrary
 				Array.Copy(buffer, offset, _LastBufferBytes, 0, BinaryBufferPool.BufferSize);
 				offset += BinaryBufferPool.BufferSize;
 				length -= BinaryBufferPool.BufferSize;
+				Fill = BinaryBufferPool.BufferSize;
 			}
 			
 			if(length > 0){
@@ -1567,6 +1568,7 @@ namespace Api.SocketServerLibrary
 				src.CopyTo(target);
 				offset += BinaryBufferPool.BufferSize;
 				length -= BinaryBufferPool.BufferSize;
+				Fill = BinaryBufferPool.BufferSize;
 			}
 
 			if (length > 0)
