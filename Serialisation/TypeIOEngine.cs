@@ -425,6 +425,14 @@ namespace Api.Startup
 		}
 
 		/// <summary>
+		/// Used for debugging bolt generated IO.
+		/// </summary>
+		public static void DebugField(string s)
+		{
+			Console.WriteLine(s);
+		}
+
+		/// <summary>
 		/// Creates a reader/ writer for the given message or content type.
 		/// </summary>
 		/// <typeparam name="T"></typeparam>
@@ -498,7 +506,13 @@ namespace Api.Startup
 			{
 				// Get the .Write(VALUE) method:
 				var method = field.OutputType.WriteMethod;
-
+				
+				/*
+				var debugField = typeof(TypeIOEngine).GetMethod("DebugField", BindingFlags.Public | BindingFlags.Static);
+				writerBody.Emit(OpCodes.Ldstr, "write " + field.Name);
+				writerBody.Emit(OpCodes.Call, debugField);
+				*/
+				
 				// get the writer:
 				writerBody.Emit(OpCodes.Ldarg_2);
 
@@ -523,7 +537,13 @@ namespace Api.Startup
 			{
 				// Get the client.Read*() method:
 				var method = field.OutputType.ReadMethod;
-
+				
+				/*
+				var debugField = typeof(TypeIOEngine).GetMethod("DebugField", BindingFlags.Public | BindingFlags.Static);
+				readerBody.Emit(OpCodes.Ldstr, "read "+ field.Name);
+				readerBody.Emit(OpCodes.Call, debugField);
+				*/
+				
 				// Set the field value to the arg.
 				readerBody.Emit(OpCodes.Ldarg_1);
 
