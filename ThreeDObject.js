@@ -1,22 +1,52 @@
 import * as THREE from 'UI/Functions/ThreeJs';
+import ObjectTransformer from './ObjectTransformer';
+import deviceInput from './DeviceInput';
+
 
 export default class ThreeDObject extends React.Component {
+	static objTransform = new ObjectTransformer();
+	static lastTransformedObj = null;
 	
+	static getObjTransformDetails() {
+		return this.objTransform.outputDetails(this.lastTransformedObj);
+	}
+
+	static setTransformControlsEnabled(enabled) {
+		this.objTransform.setEnabled(enabled);
+	}
+
 	constructor(props){
 		super(props);
+		this.state = {
+			editMode: false,
+		};
+
+		this.objTransform = this.constructor.objTransform;
+
+		this.objTransform.addDetailsUpdateListener(() => {
+			if (this.props.onTransformDetailsUpdate) {
+				this.props.onTransformDetailsUpdate(this.constructor.getObjTransformDetails());
+			}
+		})
+
 		this.refChange = this.refChange.bind(this);
+		this.processMouseMove = this.processMouseMove.bind(this);
+		this.processMouseUp = this.processMouseUp.bind(this);
+
+		deviceInput.addMouseMoveListener(null, this.processMouseMove);
+		deviceInput.addMouseUpListener(null, this.processMouseUp);
 	}
-	
+
 	componentWillUnmount(){
 		var scene = global.scene;
 		scene && this.obj && scene.remove(this.obj);
 		this.obj = null;
 	}
-	
+
 	componentDidMount(){
 		this.setup(this.props);
 	}
-	
+
 	refChange(ref){
 		if(!ref){
 			return;
@@ -25,6 +55,42 @@ export default class ThreeDObject extends React.Component {
 		this.setup(this.props);
 		this.props.onDivRef && this.props.onDivRef(ref);
 	}
+
+	processMouseMove(e) {
+        if (this.mouseDrag && this.props.enableMouseDrag) {
+			this.objTransform.transform3DObject({x: e.movementX, y: -e.movementY}, this);
+        }
+    }
+
+	processMouseUp(e) {
+        this.mouseDrag = false;
+		this.lastTransformedObj = null;
+    }
+
+	decorateElement(ele) {
+		if (ele && !ele.decorated) {
+			ele.decorated = true;
+
+			// Prevent element selection, which can occur when
+			// panning a camera with the mouse
+			ele.classList.add('unselectable');
+
+			ele.onmousedown = (e) => {
+				// Disable element dragging
+				e.preventDefault();
+
+				if (this.props.enableMouseDrag) {
+					this.mouseDrag = true;
+					ThreeDObject.lastTransformedObj = this;
+
+					if (this.props.onTransform) {
+						this.props.onTransform();
+					}
+				}
+			}
+		}
+	}
+
 	
 	setup(props){
 		var ref = this.ref;
@@ -49,6 +115,7 @@ export default class ThreeDObject extends React.Component {
 		this.obj = new THREE.CSS3DObject(ref);
 		scene._css.nodes.push(this.obj);
 		this.transform(props);
+		this.decorateElement(ref);
 	}
 	
 	transform(props){
