@@ -2253,6 +2253,14 @@ export function sendRing(slug, mode, userId){
 	webSocket.send(writer);
 }
 
+// TODO: This will be deprecated near instantly when huddle uses the room presence setup.
+export function joinHuddle(huddleId, huddleStatus){
+	var writer = new webSocket.Writer(41);
+	writer.writeUInt32(parseInt(huddleId));
+	writer.writeByte(huddleStatus ? 1 : 0);
+	webSocket.send(writer);
+}
+
 export function ring(userIds, slug){
 	if(activeRings[slug]){
 		return activeRings[slug];
