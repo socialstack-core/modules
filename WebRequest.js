@@ -308,21 +308,38 @@ export function remapData(data, origUrl){
 
 function _fetch(url, data, opts) {
 	var origUrl = url;
-	var credentials = global.storedToken ? undefined : 'include';
+	var credentials = undefined;
 	var mode = 'cors';
 
 	var headers = {};
-
-	if (global.settings && global.settings._version_) {
-		headers.Version = global.settings._version_;
-	}
-    
-	if(global.storedToken){
-		headers['Token'] = store.get('context');
+	
+	var toOrigin = true;
+	
+	// It's not to the origin if url is absolute and is a different server to our location origin
+	if(url.indexOf('http') === 0){
+		// different origin?
+		
+		if(!((opts && opts.toOrigin) || (global.apiHost && url.indexOf(global.apiHost) === 0) || url.indexOf(location.origin) === 0)){
+			// Non-origin request
+			toOrigin = false;
+		}
+		
 	}
 	
-	if(opts && opts.locale){
-		headers['Locale'] = opts.locale;
+	if(toOrigin){
+		if (global.settings && global.settings._version_) {
+			headers.Version = global.settings._version_;
+		}
+		
+		if(global.storedToken){
+			headers['Token'] = store.get('context');
+		}
+		
+		if(opts && opts.locale){
+			headers['Locale'] = opts.locale;
+		}
+		
+		credentials = global.storedToken ? undefined : 'include';
 	}
 	
 	var includes = opts && opts.includes;
