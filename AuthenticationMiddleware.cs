@@ -32,12 +32,18 @@ namespace Api.Contexts
 			{
 				_loginTokens = Api.Startup.Services.Get<ContextService>();
 			}
-
+			
 			if (_locales == null)
 			{
 				_locales = Api.Startup.Services.Get<LocaleService>();
 			}
-
+			
+			// If still null, site is very early in the startup process.
+			if(_loginTokens == null || _locales == null)
+			{
+				return new Context();
+			}
+			
 			var cookie = request.Cookies[_loginTokens.CookieName];
 
 			if (string.IsNullOrEmpty(cookie))
