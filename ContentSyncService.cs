@@ -22,6 +22,8 @@ using System.Text;
 using System.Collections.Concurrent;
 using Newtonsoft.Json.Linq;
 using Api.WebSockets;
+using System.Net.Http;
+using Newtonsoft.Json;
 
 namespace Api.ContentSync
 {
@@ -68,7 +70,7 @@ namespace Api.ContentSync
 		/// True if sync should be in verbose mode.
 		/// </summary>
 		public bool Verbose = true;
-		
+
 		static readonly char[] InvalidFileNameChars = Path.GetInvalidFileNameChars();
 		private ContentSyncServiceConfig _configuration;
 		private ClusteredServerService _clusteredServerService;
@@ -77,7 +79,7 @@ namespace Api.ContentSync
 		/// Private LAN sync server.
 		/// </summary>
 		private Server<ContentSyncServer> SyncServer;
-		
+
 		/// <summary>
 		/// Servers connected to this one, indexed by its ID. To prevent ID allocation being wasteful, servers MUST be given ascending IDs, making this array particularly efficient.
 		/// </summary>
@@ -106,14 +108,14 @@ namespace Api.ContentSync
 			// (which can be a cluster of servers, or a group of developers)
 			// It does this by setting up 'stripes' of IDs which are assigned to particular users.
 			// A user is identified by the computer hostname.
-			
+
 			_database = database;
 			_nrts = nrts;
 			_clusteredServerService = clusteredServerService;
 
 			// Load config:
 			_configuration = GetConfig<ContentSyncServiceConfig>();
-			
+
 			if (_configuration.SyncFileMode.HasValue)
 			{
 				SyncFileMode = _configuration.SyncFileMode.Value;
@@ -154,6 +156,116 @@ namespace Api.ContentSync
 		/// </summary>
 		public string HostName;
 
+		/// <summary>
+		/// Generate a diffset with the configured remote host.
+		/// </summary>
+		/// <param name="subfolder"></param>
+		/// <returns></returns>
+		public async Task<ContentFileDiffSet> Diff(string subfolder = null)
+		{
+			// Local file set:
+			var fileList = new List<ContentFileInfo>();
+			CollectFiles(subfolder, fileList);
+
+			// Remote file set:
+			var remoteFileList = await GetRemoteFileList(_configuration.UpstreamCookie, _configuration.UpstreamHost);
+
+			return new ContentFileDiffSet(fileList, remoteFileList);
+		}
+
+		/// <summary>
+		/// Get local files
+		/// </summary>
+		/// <param name="subfolder"></param>
+		/// <returns></returns>
+		public List<ContentFileInfo> GetLocalFiles(string subfolder = null)
+		{
+			var fileList = new List<ContentFileInfo>();
+
+			CollectFiles(subfolder, fileList);
+
+			return fileList;
+		}
+
+		/// <summary>
+		/// Performs a sync with the configured upstream host.
+		/// </summary>
+		/// <param name="subfolder"></param>
+		/// <returns></returns>
+		public async Task<SyncStats> SyncContentFiles(string subfolder = null)
+		{
+			var diffset = await Diff(subfolder);
+
+			// Ends with /
+			var localContentPath = AppSettings.Configuration["Content"];
+
+			// Download all the remote files next.
+			var i = 0;
+
+			foreach (var file in diffset.RemoteOnly)
+			{
+				i++;
+				var client = new HttpClient();
+				var fileBytes = await client.GetByteArrayAsync(_configuration.UpstreamHost + "/content/" + file.Path);
+
+				var localPath = localContentPath + file.Path;
+				(new FileInfo(localPath)).Directory.Create();
+				System.IO.File.WriteAllBytes(localPath, fileBytes);
+				System.IO.File.SetLastWriteTimeUtc(localPath, new DateTime(file.ModifiedTicksUtc));
+
+				Console.WriteLine(i + "/" + diffset.RemoteOnly.Count);
+			}
+
+			return new SyncStats()
+			{
+				Downloaded = diffset.RemoteOnly.Count
+			};
+		}
+
+		/// <summary>
+		/// Gets a remote file list.
+		/// </summary>
+		/// <param name="remoteCookieValue"></param>
+		/// <param name="remoteHost"></param>
+		/// <returns></returns>
+		private async Task<List<ContentFileInfo>> GetRemoteFileList(string remoteCookieValue, string remoteHost) // Remote host includes http(s)
+		{
+			var client = new HttpClient();
+			client.DefaultRequestHeaders.Add("Cookie", "user=" + remoteCookieValue);
+			HttpResponseMessage tokenResponse = await client.GetAsync(remoteHost + "/v1/contentsync/fileset");
+			var jsonContent = await tokenResponse.Content.ReadAsStringAsync();
+			return JsonConvert.DeserializeObject<List<ContentFileInfo>>(jsonContent);
+		}
+
+		private void CollectFiles(string subfolder, List<ContentFileInfo> list)
+		{
+
+			// Ends with /
+			var baseDir = AppSettings.Configuration["Content"];
+
+			if (subfolder != null)
+			{
+				// Must not start with /
+				baseDir += subfolder;
+			}
+
+			DirectoryInfo di = new DirectoryInfo(baseDir);
+			var fnLength = di.FullName.Length;
+
+			foreach (var file in di.EnumerateFiles("*", SearchOption.AllDirectories))
+			{
+				var cfi = new ContentFileInfo()
+				{
+					Size = file.Length,
+					ModifiedTicksUtc = file.LastWriteTimeUtc.Ticks,
+					Path = file.FullName.Substring(fnLength).Replace('\\', '/')
+				};
+
+				list.Add(cfi);
+			}
+
+		}
+		
 		private string FileSafeName(string name)
 		{
 			return new string(name.Where(ch => !InvalidFileNameChars.Contains(ch)).ToArray());

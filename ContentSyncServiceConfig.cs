@@ -27,6 +27,16 @@ namespace Api.ContentSync
 		/// Custom hostname override. Usually leave this blank.
 		/// </summary>
 		public string HostName { get; set; }
+
+		/// <summary>
+		/// Upstream host when syncing db/files
+		/// </summary>
+		public string UpstreamHost { get; set; }
+
+		/// <summary>
+		/// Upstream cookie when syncing db/files
+		/// </summary>
+		public string UpstreamCookie { get; set; }
 	}
 	
 }
