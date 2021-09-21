@@ -185,7 +185,7 @@ namespace Api.FFmpeg
                 string originalPathWithoutExt = upload.GetFilePath("original", true);
                 string originalPath = originalPathWithoutExt + "." + upload.FileType;
 
-				if (upload.IsVideo) {
+				if (_configuration.ProbeGenericContainers && upload.IsVideo) {
 
 					// Check if we need to probe it.
 					switch (upload.FileType)
@@ -221,7 +221,7 @@ namespace Api.FFmpeg
 					}
 					
 				}
-				
+
 				Transcode(context, upload);
 				
 				// File is:

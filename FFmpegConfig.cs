@@ -14,7 +14,12 @@ namespace Api.FFmpeg
 		/// Set this to true if uploads should be automatically transcoded.
 		/// </summary>
 		public bool TranscodeUploads { get; set; }
-		
+
+		/// <summary>
+		/// True if files like mp4 should be checked if they are audio only.
+		/// </summary>
+		public bool ProbeGenericContainers { get; set; }
+
 		/// <summary>
 		/// Video transcode target format(s). "hls" is the default if not specified. Can comma separate, e.g. "hls,h264/aac"
 		/// </summary>
