@@ -61,7 +61,7 @@ namespace Api.Messages
 			await _emailService.Send(
 				_config.SupportEmailAddress,
 				"New support request", 
-				"Their email address<br>" + supportEmailRequest.EmailAddress + "<br><br>Their message<br>" + supportEmailRequest.Body + "<br><br>---<br><br>Replies to this email will be sent to " + supportEmailRequest.EmailAddress + ".",
+				"Their email address<br>" + replyTo + "<br><br>Their message<br>" + supportEmailRequest.Body + "<br><br>---<br><br>Replies to this email will be sent to " + replyTo + ".",
 				null, 
 				null,
 				null,
