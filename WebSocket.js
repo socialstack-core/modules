@@ -115,6 +115,7 @@ class Reader{
 	constructor(bytes){
 		this.bytes = new Uint8Array(bytes);
 		this.i = 0;
+		this.view =  new DataView(this.bytes.buffer);
 	}
 	
 	next(){
@@ -158,21 +159,24 @@ class Reader{
 	
 	readInt16()
 	{
-		// todo: use views
-		return this.readUInt16();
+		var val = this.view.getInt16(this.i, true);
+		this.i+=2;
+		return val;
 	}
 
 	readUInt16()
 	{
-		return this.next() | (this.next() << 8);
+		return (this.next()) | (this.next() << 8);
 	}
-
+	
+	/*
 	readInt24()
 	{
 		// todo: use views
 		return this.readUInt24();
 	}
-
+	*/
+	
 	readUInt24()
 	{
 		return (this.next()) | (this.next() << 8) | (this.next() << 16);
@@ -180,25 +184,30 @@ class Reader{
 
 	readInt32()
 	{
-		// todo: use views
-		return this.readUInt32();
+		var val = this.view.getInt32(this.i, true);
+		this.i+=4;
+		return val;
 	}
 
 	readUInt32()
 	{
-		return (this.next()) | (this.next() << 8) | (this.next() << 16) | (this.next() << 24);
+		var val = this.view.getUint32(this.i, true);
+		this.i+=4;
+		return val;
 	}
 
 	readInt64()
 	{
-		// todo: use views
-		return this.readUInt64();
+		var val = this.view.getBigInt64(this.i, true);
+		this.i+=8;
+		return val;
 	}
 
 	readUInt64()
 	{
-		return this.next() | (this.next() << 8) | (this.next() << 16) | (this.next() << 24) |
-				(this.next() << 32) | (this.next() << 40) | (this.next() << 48) | (this.next() << 56);
+		var val = this.view.getBigUint64(this.i, true);
+		this.i+=8;
+		return val;
 	}
 
 	readUtf8(){
@@ -226,30 +235,29 @@ class Writer{
 		}
 	}
 	
+	writeView(dv) {
+		var n = new Uint8Array(dv.buffer);
+        for(var i=0;i<n.length;i++){
+           this.bytes.push(n[i]);
+        }
+	}
+
 	writeUInt32(value){
-		var b = this.bytes;
-		b.push(value & 255);
-		b.push((value>>8) & 255);
-		b.push((value>>16) & 255);
-		b.push((value>>24) & 255);
+		var dataView =  new DataView(new ArrayBuffer(4));
+		dataView.setUint32(0, value, true);
+		this.writeView(dataView);
 	}
 	
 	writeUInt64(value){
-		var b = this.bytes;
-		b.push(value & 255);
-		b.push((value>>8) & 255);
-		b.push((value>>16) & 255);
-		b.push((value>>24) & 255);
-		b.push((value>>32) & 255);
-		b.push((value>>40) & 255);
-		b.push((value>>48) & 255);
-		b.push((value>>56) & 255);
+		var dataView =  new DataView(new ArrayBuffer(8));
+		dataView.setBigUint64(0, value, true);
+		this.writeView(dataView);
 	}
 	
 	writeUInt16(value){
-		var b = this.bytes;
-		b.push(value & 255);
-		b.push((value>>8) & 255);
+		var dataView =  new DataView(new ArrayBuffer(2));
+		dataView.setUint16(0, value, true);
+		this.writeView(dataView);
 	}
 	
 	writeCompressed(value){
