@@ -147,6 +147,16 @@ namespace Api.SocketServerLibrary
 		/// 
 		/// </summary>
 		private byte[] ProtocolSwitchResponse;
+		
+		/// <summary>
+		/// 
+		/// </summary>
+		public byte[] UpperCaseUserStart;
+
+		/// <summary>
+		/// 
+		/// </summary>
+		private byte[] LowerCaseUserStart;
 
 		/// <summary>
 		/// 
@@ -176,6 +186,8 @@ namespace Api.SocketServerLibrary
 			MagicString = System.Text.Encoding.ASCII.GetBytes("258EAFA5-E914-47DA-95CA-C5AB0DC85B11");
 			HeaderTerminal = System.Text.Encoding.ASCII.GetBytes("\r\n\r\n");
 			ProtocolSwitchResponse = System.Text.Encoding.ASCII.GetBytes("HTTP/1.1 101 Switching Protocols\r\nUpgrade: websocket\r\nConnection: Upgrade\r\nSec-WebSocket-Accept: ");
+			UpperCaseUserStart = System.Text.Encoding.ASCII.GetBytes("USER=");
+			LowerCaseUserStart = System.Text.Encoding.ASCII.GetBytes("user=");
 		}
 
 		/// <summary>
@@ -319,27 +331,38 @@ namespace Api.SocketServerLibrary
 					{
 						current = client.Next();
 
-						if (current == '\r')
+						if (current == ';' || current == '\r')
 						{
-							// Finished reading this header line.
-
-							// Count whitespace at the start:
+							// Completed reading a cookie - try processing it and clear the scratch space.
+							var nonUser = false;
 							var whitespace = WhitespaceOffset(client.ScratchSpace);
 
-							// Next, is the cookie a user one? It's identified by it starting with the string "user="
-							var length = client.ScratchSpace.Offset - whitespace;
-
-							// There's almost always going to be a user cookie in here so grab the whole thing:
-							var cookies = System.Text.Encoding.UTF8.GetString(client.ScratchSpace.Bytes, whitespace, length);
-
-							var cookiePrefixLocation = cookies.IndexOf("user=");
-
-							if (cookiePrefixLocation != -1)
+							if ((client.ScratchSpace.Offset - whitespace) >= 5)
 							{
-								// Read the cookie now:
-								var colon = cookies.IndexOf("; ", cookiePrefixLocation);
+								for (var i = 0; i < 5; i++)
+								{
+									var currentChar = client.ScratchSpace.Bytes[whitespace + i];
 
-								var userCookie = colon == -1 ? cookies.Substring(cookiePrefixLocation + 5) : cookies.Substring(cookiePrefixLocation + 5, colon - cookiePrefixLocation - 5);
+									if (currentChar != UpperCaseUserStart[i] && currentChar != LowerCaseUserStart[i])
+									{
+										nonUser = true;
+										break;
+									}
+								}
+							}
+
+							if (nonUser)
+							{
+								// Not a user cookie. Just ignore this data.
+								client.ScratchSpace.Offset = 0;
+							}
+							else
+							{
+								// User cookie!
+								// Its value starts at whitespace + 5.
+								var length = client.ScratchSpace.Offset - (whitespace + 5);
+								
+								var userCookie = System.Text.Encoding.UTF8.GetString(client.ScratchSpace.Bytes, whitespace + 5, length);
 
 								// Gets the context and applies it to the given client.
 								// MUST wait for this before processing anything else from the socket.
@@ -350,7 +373,7 @@ namespace Api.SocketServerLibrary
 									{
 										ContextService = Startup.Services.Get<ContextService>();
 									}
-									
+
 									var context = await ContextService.Get(userCookie);
 									await client.SetContext(context);
 
@@ -373,17 +396,30 @@ namespace Api.SocketServerLibrary
 
 							}
 
-							// Release the scratch buffer:
-							client.ScratchSpace.Release();
-							client.ScratchSpace = null;
+							if (current == '\r')
+							{
+								// Release the scratch buffer:
+								client.ScratchSpace.Release();
+								client.ScratchSpace = null;
 
-							frame.Phase = 0;
-							break;
+								frame.Phase = 0;
+								break;
+							}
+
 						}
 						else
 						{
-							// This byte is part of our header line.
-							client.ScratchSpace.Bytes[client.ScratchSpace.Offset++] = current;
+							// This byte is part of our cookie header line.
+							// If we're about to blow the limit, this cookie is too long to be a user cookie so just treat it as junk.
+							if (client.ScratchSpace.Offset == BinaryBufferPool.BufferSize)
+							{
+								// Little bit of space for the cookie name:
+								client.ScratchSpace.Offset = 40;
+							}
+							else
+							{
+								client.ScratchSpace.Bytes[client.ScratchSpace.Offset++] = current;
+							}
 						}
 					}
 
