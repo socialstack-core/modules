@@ -77,7 +77,7 @@ export default class ObjectTransformer {
     }
 
     transform3DObject(vector2d, threeDObj) {
-        var flipX = threeDObj.props.position && threeDObj.props.position.z < 0;
+        var flipX = threeDObj.props.position && threeDObj.props.position.z > 0;
         var flipZ = threeDObj.props.position && threeDObj.props.position.x < 0;
         this.setTranslateFlipX(flipX);
         this.setTranslateFlipZ(flipZ);
