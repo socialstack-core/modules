@@ -56,6 +56,18 @@ namespace Api.ContentSync
 			
 			return _contentSyncService.GetLocalFiles(subfolder);
 		}
+
+		/// <summary>
+		/// Gets a fileset within a particular folder in the public content directory.
+		/// </summary>
+		/// <returns></returns>
+		[HttpGet("videosync")]
+		public async ValueTask<bool> VideoSync([FromQuery] int videoId, int firstChunk, int lastChunkId)
+		{
+			var result = await _contentSyncService.VideoSync(videoId, firstChunk, lastChunkId);
+			return result;
+		}
+		
 		/// <summary>
 		/// Gets a fileset within a particular folder in the public content directory.
 		/// </summary>
