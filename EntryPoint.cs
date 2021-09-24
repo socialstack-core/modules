@@ -8,6 +8,8 @@ using Microsoft.Extensions.Logging;
 using System.Threading.Tasks;
 using System.Runtime.InteropServices;
 using System.Diagnostics.CodeAnalysis;
+using Microsoft.Extensions.Configuration;
+using System.Text.RegularExpressions;
 
 namespace Api.Startup
 {
@@ -72,6 +74,19 @@ namespace Api.Startup
 
 			// Ok - modules have now connected any core events or have performed early startup functionality.
 
+			// Set the host type:
+			var hostTypeConfig = AppSettings.GetSection("HostTypes").Get<HostTypeConfig>();
+
+			if (hostTypeConfig != null && hostTypeConfig.HostNameMappings != null)
+			{
+				Services.HostNameMappings = hostTypeConfig.HostNameMappings;
+
+				var hostName = System.Environment.MachineName.ToString();
+
+				// Establish which host type this server is.
+				Services.HostMapping = Services.GetHostMapping(hostName);
+			}
+			
 			Task.Run(async () =>
 			{
 				// Fire off initial OnStart handlers:
@@ -101,6 +116,7 @@ namespace Api.Startup
 
 			// Set environment:
 			Services.Environment = env.ToLower().Trim();
+
 
 			// Create a Kestrel host:
 			var host = new WebHostBuilder()

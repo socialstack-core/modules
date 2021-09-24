@@ -2,6 +2,7 @@
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using System.Transactions;
 
@@ -49,6 +50,94 @@ namespace Api.Startup
 		/// The underlying service provider, used to obtain injected service instances.
 		/// </summary>
 		public static IServiceProvider Provider;
+
+		/// <summary>
+		/// Server type.
+		/// </summary>
+		/// <returns></returns>
+		public static HostMapping HostMapping;
+
+		/// <summary>
+		/// Underlying host mappings.
+		/// </summary>
+		public static List<HostMapping> HostNameMappings;
+
+		/// <summary>
+		/// Gets a mapping for the given host name or returns a default if none.
+		/// </summary>
+		/// <param name="hostName"></param>
+		/// <returns></returns>
+		public static HostMapping GetHostMapping(string hostName)
+		{
+			if (HostNameMappings != null)
+			{
+				foreach (var hostMapping in HostNameMappings)
+				{
+					var reg = new Regex(hostMapping.Regex, RegexOptions.IgnoreCase);
+
+					if (reg.Match(hostName).Success)
+					{
+						// It's one of these!
+						return hostMapping;
+					}
+				}
+			}
+
+			return new HostMapping()
+			{
+				HostType = "api",
+				ShouldSync = true
+			};
+		}
+
+		/// <summary>
+		/// True if this server has the given host type.
+		/// </summary>
+		/// <param name="typeName"></param>
+		/// <returns></returns>
+		public static bool HasHostType(string typeName)
+		{
+			// Scope for multiple
+			return HostType == typeName;
+		}
+			
+		/// <summary>
+		/// True if the given host type is declared in this cluster.
+		/// </summary>
+		/// <param name="typeName"></param>
+		/// <returns></returns>
+		public static bool IsHostTypeDefined(string typeName)
+		{
+			if (typeName == "api")
+			{
+				return true;
+			}
+
+			if (HostNameMappings != null)
+			{
+				foreach (var hostMapping in HostNameMappings)
+				{
+					if (hostMapping.HostType == typeName)
+					{
+						return true;
+					}
+				}
+			}
+
+			return false;
+		}
+
+		/// <summary>
+		/// Server type.
+		/// </summary>
+		/// <returns></returns>
+		public static string HostType
+		{
+			get
+			{
+				return HostMapping != null ? HostMapping.HostType : "api";
+			}
+		}
 
 		/// <summary>
 		/// True if this is the dev environment. Any of {null}, "dev" or "development" are accepted.
@@ -247,6 +336,38 @@ namespace Api.Startup
 			await Events.Service.AfterStart.Dispatch(new Contexts.Context(), null);
 		}
 
+	}
+
+	/// <summary>
+	/// Host type config from "HostTypes" appsettings block.
+	/// </summary>
+	public class HostTypeConfig
+	{
+		/// <summary>
+		/// Used to map hostname to a particular host type.
+		/// </summary>
+		public List<HostMapping> HostNameMappings { get; set; }
+	}
+
+	/// <summary>
+	/// Host name mapping
+	/// </summary>
+	public class HostMapping
+	{
+		/// <summary>
+		/// The hostname regex to use.
+		/// </summary>
+		public string Regex { get; set; }
+
+		/// <summary>
+		/// Host type e.g. "api, "huddle", "transcoder" etc.
+		/// </summary>
+		public string HostType { get; set; }
+
+		/// <summary>
+		/// True if this host type should sync with its cluster.
+		/// </summary>
+		public bool ShouldSync { get; set; } = true;
 	}
 
 }
