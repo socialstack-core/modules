@@ -64,7 +64,9 @@ export default class MultiSelect extends React.Component {
 		if(displayFieldName.length){
 			displayFieldName = displayFieldName[0].toLowerCase() + displayFieldName.substring(1);
 		}
-		
+
+		var contentTypeLower = this.props.contentType ? this.props.contentType.toLowerCase() : "";
+
 		return (
 			<div className="mb-3">
 				{this.props.label && !this.props.hideLabel && (
@@ -92,7 +94,7 @@ export default class MultiSelect extends React.Component {
 							}
 						}
 						name={this.props.name} />
-						<Search for={this.props.contentType.toLowerCase()} field={fieldName} limit={5} placeholder={"Find " + this.props.label + " to add.."} onFind={entry => {
+						<Search for={contentTypeLower} field={fieldName} limit={5} placeholder={"Find " + this.props.label + " to add.."} onFind={entry => {
 							if(!entry){
 								return;
 							}
