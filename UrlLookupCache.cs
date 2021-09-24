@@ -224,7 +224,15 @@ namespace Api.Pages
 				pg.Pages = new List<Page>();
 			}
 
-			pg.Pages.Add(page);
+			// If there are >1, ensure that the page at the start of the set is the one that is favoured (if any are favoured).
+			if (page.PreferIfLoggedIn)
+			{
+				pg.Pages.Insert(0, page);
+			}
+			else
+			{
+				pg.Pages.Add(page);
+			}
 
 			PageUrlList.Add(new PageIdAndUrl()
 			{

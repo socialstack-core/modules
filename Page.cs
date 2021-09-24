@@ -36,6 +36,12 @@ namespace Api.Pages
 		/// </summary>
 		[Localized]
 		public string Description;
+		
+		/// <summary>
+		/// A disambiguation mechanism when the permission system returns multiple pages.
+		/// Typically happens on the homepage.
+		/// </summary>
+		public bool PreferIfLoggedIn;
 	}
 	
 }
