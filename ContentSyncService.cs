@@ -723,6 +723,12 @@ namespace Api.ContentSync
 			// After HandleType calls so it can register some of the handlers:
 			SyncServer.Start();
 
+			if (Services.HostMapping != null && !Services.HostMapping.ShouldSync)
+			{
+				Console.WriteLine("ContentSync disabled on this node because appsettings declares the hostType '" + Services.HostType + "' should not sync.");
+				return;
+			}
+			
 			// Try to explicitly connect to the other servers. Note that AllServers is setup by EventListener.
 			// We might be the first one up, so some of these can outright fail.
 			// That's ok though - they'll contact us instead.
@@ -733,6 +739,13 @@ namespace Api.ContentSync
 			foreach (var serverInfo in AllServers)
 			{
 				if (serverInfo == Self || serverInfo.Environment != env)
+				{
+					continue;
+				}
+
+				var hostMapping = Services.GetHostMapping(serverInfo.HostName);
+
+				if (!hostMapping.ShouldSync)
 				{
 					continue;
 				}
