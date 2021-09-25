@@ -15,6 +15,7 @@ using Microsoft.Extensions.Configuration;
 using Api.Configuration;
 using Microsoft.Extensions.Hosting;
 using System.IO;
+using Api.Startup;
 
 namespace Api.FFmpeg
 {
@@ -45,6 +46,20 @@ namespace Api.FFmpeg
 			
 			if(_configuration != null && _configuration.TranscodeUploads)
 			{
+				// Got dedicated transcoders in this cluster?
+				if(Services.IsHostTypeDefined("transcoder"))
+				{
+					if (!Services.HasHostType("transcoder"))
+					{
+						Console.WriteLine("FFmpeg won't transcode on this server as there is a dedicated transcoder HostType in the appsettings.");
+						return;
+					}
+					else
+					{
+						Console.WriteLine("Starting as a dedicated transcoder");
+					}
+				}
+				
 				var formats = _configuration.TranscodeTargets;
 				
 				if(string.IsNullOrEmpty(formats)){
@@ -61,7 +76,6 @@ namespace Api.FFmpeg
 					}else if(fmt == "h264" || fmt == "h264/aac"){
 						h264Transcode = true;
 					}
-					
 				}
 				
 				StartUploadTranscode();
