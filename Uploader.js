@@ -18,13 +18,11 @@ export default class Uploader extends React.Component {
 	
 	onSelectedFile(e) {
 		this.setState({ loading: true, failed: false, success: false,progress: "" });
-		var formData = new FormData();
 		var file = e.target.files[0];
-		formData.append('file', file);
-		this.props.onStarted && this.props.onStarted(file, formData);
+		this.props.onStarted && this.props.onStarted(file, file);
 		
 		var xhr = new global.XMLHttpRequest();
-			
+		
 		xhr.onreadystatechange = () => {
 			if (xhr.readyState == 4) {
 				var uploadInfo;
@@ -70,8 +68,9 @@ export default class Uploader extends React.Component {
 		
 		var ep = this.props.endpoint || "upload/create";
 		
-		xhr.open('POST', global.ingestUrl ? global.ingestUrl + 'v1/' + ep : ((global.apiHost || '') + '/v1/' + ep), true);
-		xhr.send(formData);
+		xhr.open('PUT', global.ingestUrl ? global.ingestUrl + 'v1/' + ep : ((global.apiHost || '') + '/v1/' + ep), true);
+		xhr.setRequestHeader("Content-Name", file.name);
+		xhr.send(file);
 	}
 
 	formatBytes(bytes, decimals = 2) {
