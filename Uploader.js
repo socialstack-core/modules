@@ -1,6 +1,8 @@
 import Loading from 'UI/Loading';
 import Alert from 'UI/Alert';
 
+var DEFAULT_ERROR = `Unable to upload that file - this often means it was too big.`;
+
 /*
 * General purpose file uploader. Doesn't delcare a form so can be used inline anywhere.
 */
@@ -25,28 +27,38 @@ export default class Uploader extends React.Component {
 			
 		xhr.onreadystatechange = () => {
 			if (xhr.readyState == 4) {
-				if (xhr.responseText) {
-					var uploadInfo;
-					try{
-						uploadInfo = JSON.parse(xhr.responseText);
-					}catch(e){
-						
-					}
-					console.log(uploadInfo);
+				var uploadInfo;
+				try{
+					uploadInfo = JSON.parse(xhr.responseText);
+				}catch(e){
 					
-					if(!uploadInfo || uploadInfo.errors){
-						this.setState({loading: false, success: false, failed: true});
-						return;
-					}
-					
-					// uploadInfo contains the upload file info, such as its original public url and ref.
-					
-					// Run the main callback:
-					this.props.onUploaded && this.props.onUploaded(uploadInfo);
-					
-					this.setState({loading: false, success: true, failed: false});
+				}
+				
+				if(!uploadInfo || xhr.status > 300){
+					this.setState({loading: false, success: false, failed: uploadInfo && uploadInfo.message ? uploadInfo.message : DEFAULT_ERROR});
+					return;
+				}
+				
+				// uploadInfo contains the upload file info, such as its original public url and ref.
+				
+				// Run the main callback:
+				this.props.onUploaded && this.props.onUploaded(uploadInfo);
+				
+				this.setState({loading: false, success: true, failed: false});
+				
+				
+			}else if(xhr.readyState == 2) {
+				// Headers received
+				
+				if(xhr.status > 300){
+					this.setState({loading: false, success: false, failed: DEFAULT_ERROR});
 				}
 			}
+		};
+		
+		xhr.onerror = (e) => {
+			console.log("XHR onerror", e);
+			this.setState({loading: false, success: false, failed: DEFAULT_ERROR});
 		};
 		
 		xhr.upload.onprogress = (evt) => {
@@ -91,7 +103,7 @@ export default class Uploader extends React.Component {
 				)}
 				{failed && (
 					<Alert type="error">
-						Unable to upload that file - it may be a format we don't support.
+					{failed}
 					</Alert>
 				)}
 				{!loading && (
