@@ -73,7 +73,7 @@ namespace Api.CanvasRenderer
 			else
 			{
 				// Attempt server ID substitution:
-				wsUrl = wsUrl.Replace("${server.id}", _contentSync.ServerId.ToString());
+				wsUrl = wsUrl.Replace("${server.id}", _contentSync.ServerId.ToString()).Replace("${server.id-1}", (_contentSync.ServerId-1).ToString());
 			}
 
 			var websocketJs = "wsUrl='" + wsUrl + "';";
