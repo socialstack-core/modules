@@ -20,19 +20,13 @@ namespace Api.ProfanityFilter
 		
 		/// <summary>Char to visually similar characters.</summary>
 		public Dictionary<char,char[]> VisuallySimilar = new Dictionary<char, char[]>();
-		
+
 		/// <summary>
 		/// Instanced automatically. Use injection to use this service, or Startup.Services.Get.
 		/// </summary>
 		public ProfanityFilterService()
-        {
-			_configuration = AppSettings.GetSection("Profanity").Get<ProfanityFilterConfig>();
-			
-			// Build fast maps of the patterns next.
-			if(_configuration == null || _configuration.Patterns == null)
-			{
-				return;
-			}
+		{
+			_configuration = GetConfig<ProfanityFilterConfig>();
 
 			VisuallySimilar['a'] = new char[] { '@', '4' };
 			VisuallySimilar['b'] = new char[] { '8' };
@@ -41,6 +35,23 @@ namespace Api.ProfanityFilter
 			VisuallySimilar['l'] = new char[] { '1' };
 			VisuallySimilar['o'] = new char[] { '0' };
 			VisuallySimilar['s'] = new char[] { '5', '$' };
+
+			_configuration.OnChange += () => {
+				LoadAllPatterns();
+				return new ValueTask();
+			};
+
+			LoadAllPatterns();
+		}
+
+		private void LoadAllPatterns()
+		{
+			Root = new CharTreeNode();
+
+			if (_configuration.Patterns == null)
+			{
+				return;
+			}
 
 			for (var i=0;i<_configuration.Patterns.Length;i++){
 				AddPattern(_configuration.Patterns[i]);
@@ -96,7 +107,7 @@ namespace Api.ProfanityFilter
 			}
 		}
 		
-		private CharTreeNode Root = new CharTreeNode();
+		private CharTreeNode Root;
 		
 		/// <summary>
 		/// Returns the number of profanity filter hits the given text has.

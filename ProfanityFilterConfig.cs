@@ -1,3 +1,4 @@
+using Api.Configuration;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -8,7 +9,7 @@ namespace Api.ProfanityFilter
 	/// <summary>
 	/// The appsettings.json config block for the profanity filter.
 	/// </summary>
-    public class ProfanityFilterConfig
+    public class ProfanityFilterConfig : Config
     {
 		/// <summary>
 		/// The raw patterns that are word-word matched.
