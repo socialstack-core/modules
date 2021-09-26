@@ -36,8 +36,6 @@ export default class FileSelector extends React.Component {
 	}
 	
 	updateValue(newRef) {
-		console.log("updateValue");
-		console.log(newRef);
 		if(!newRef){
 			newRef = '';
 		}
