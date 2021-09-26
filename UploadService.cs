@@ -31,14 +31,8 @@ namespace Api.Uploader
 		/// </summary>
 		public UploadService() : base(Events.Upload)
         {
-			_configuration = AppSettings.GetSection("Uploader").Get<UploaderConfig>();
+			_configuration = GetConfig<UploaderConfig>();
 
-			if (_configuration == null)
-			{
-				// Create a default object:
-				_configuration = new UploaderConfig();
-			}
-			
 			Events.Page.BeforeAdminPageInstall.AddEventListener((Context context, Pages.Page page, CanvasRenderer.CanvasNode canvas, Type contentType, AdminPageType pageType) =>
 			{
 				if (contentType == typeof(Upload))
@@ -61,7 +55,126 @@ namespace Api.Uploader
 
 				return new ValueTask<Pages.Page>(page);
 			});
-			
+
+			Events.Upload.Process.AddEventListener(async (Context context, Upload upload) => {
+
+				Image current = null;
+
+				if (IsSupportedImage(upload.FileType))
+				{
+					upload.IsImage = true;
+
+					if (_configuration.ProcessImages)
+					{
+						try
+						{
+							current = Image.FromFile(upload.TemporaryPath);
+
+							if (NormalizeOrientation(current))
+							{
+								// The image was rotated - we need to overwrite the original:
+								current.Save(upload.TemporaryPath);
+							}
+
+							// Resize
+
+							var sizes = _configuration.ImageSizes;
+
+							if (sizes != null)
+							{
+								foreach (var imageSize in sizes)
+								{
+									// Resize it now:
+									var resizedTempFile = Resize(current, imageSize);
+
+									// Ask to store it:
+									await Events.Upload.StoreFile.Dispatch(context, upload, resizedTempFile, imageSize.ToString());
+
+									//MagickResize(tempFile, imageSize);
+								}
+							}
+
+							upload.Width = current.Width;
+							upload.Height = current.Height;
+
+							// Done with it:
+							current.Dispose();
+						}
+						catch (OutOfMemoryException e)
+						{
+							// https://msdn.microsoft.com/en-us/library/4sahykhd(v=vs.110).aspx
+							// Not actually an image (or not an image we support).
+							// Dump the file and reject the request.
+							File.Delete(upload.TemporaryPath);
+							upload.TemporaryPath = null;
+
+							Console.WriteLine("Uploaded file is a corrupt image or is too big. Underlying exception: " + e.ToString());
+						}
+						catch (Exception e)
+						{
+							// Either the image format is unknown or you don't have the required libraries to decode this format [GDI+ status: UnknownImageFormat]
+							// Just ignore this one.
+							Console.WriteLine("Unsupported image format was not resized. Underlying exception: " + e.ToString());
+						}
+					}
+				}
+				else if (IsOtherImage(upload.FileType))
+				{
+					upload.IsImage = true;
+				}
+
+				return upload;
+			}, 10);
+
+			Events.Upload.Process.AddEventListener(async (Context context, Upload upload) =>
+			{
+
+				if (upload != null && upload.TemporaryPath != null)
+				{
+					// Store the original
+					await Events.Upload.StoreFile.Dispatch(context, upload, upload.TemporaryPath, "original");
+				
+				}
+
+				return upload;
+			}, 50);
+
+			Events.Upload.StoreFile.AddEventListener((Context context, Upload upload, string tempFile, string variantName) => {
+
+				// Default filesystem move:
+				if (upload != null)
+				{
+					var writePath = System.IO.Path.GetFullPath(upload.GetFilePath(variantName));
+
+					// Create the dirs:
+					var dir = System.IO.Path.GetDirectoryName(writePath);
+
+					if (!Directory.Exists(dir))
+					{
+						Directory.CreateDirectory(dir);
+					}
+
+					System.IO.File.Move(tempFile, writePath);
+
+					if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux))
+					{
+						// Set perms on the newly uploaded file:
+						try
+						{
+							Chmod.SetRead(writePath);
+						}
+						catch (Exception e)
+						{
+							Console.WriteLine("Unable to set file permissions - skipping. File was " + writePath + " with error " + e.ToString());
+						}
+					}
+					
+					upload = null;
+				}
+
+				return new ValueTask<Upload>(upload);
+			}, 15);
+
 			InstallAdminPages("Media", "fa:fa-film", new string[] { "id", "name" });
 		}
 
@@ -100,10 +213,9 @@ namespace Api.Uploader
 		/// Resizes the given image such that it becomes the given width. Retains the aspect ratio and performs no cropping.
 		/// </summary>
 		/// <param name="current"></param>
-		/// <param name="targetPath"></param>
 		/// <param name="width"></param>
-		/// <returns></returns>
-        public bool Resize(Image current, string targetPath, int width)
+		/// <returns>The temp file path the image is at.</returns>
+        public string Resize(Image current, int width)
         {
             int height = Convert.ToInt32(width * (double)current.Height / (double)current.Width);
             var canvas = new Bitmap(width, height);
@@ -116,12 +228,14 @@ namespace Api.Uploader
                 graphics.DrawImage(current, 0, 0, width, height);
             }
 
+			var targetPath = System.IO.Path.GetTempFileName();
+
             using (var stream = new FileStream(targetPath, FileMode.OpenOrCreate))
             {
                 canvas.Save(stream, current.RawFormat);
             }
 
-            return true;
+            return targetPath;
          }
 
 		/*
@@ -225,34 +339,32 @@ namespace Api.Uploader
 
 			return false;
 		}
-		
+
 		/// <summary>
 		/// Writes an uploaded file into the content folder.
 		/// </summary>
 		/// <param name="context"></param>
-		/// <param name="file">The contents of the file. The name is used to get the filetype.</param>
+		/// <param name="fileName">The contents of the file. The name is used to get the filetype.</param>
+		/// <param name="tempFilePath">The contents of the file.</param>
 		/// <param name="sizes">The list of sizes, in pixels, to use if it's an image. These are width values. Optional.</param>
 		/// <returns>Throws exceptions if it failed. Otherwise, returns the information about the file.</returns>
-		public async Task<Upload> Create(Context context, IFormFile file, int[] sizes = null)
+		public async Task<Upload> Create(Context context, string fileName, string tempFilePath, int[] sizes = null)
         {
-            if (file == null || string.IsNullOrEmpty(file.FileName))
+            if (tempFilePath == null || string.IsNullOrEmpty(fileName))
             {
-                throw new ArgumentNullException("Uploaded file must be provided and the name must be set");
+                throw new PublicException("Uploaded file must be provided and the name must be set", "no_name");
             }
             
             // Get the filetype:
-            var fileName = file.FileName.Trim();
+            fileName = fileName.Trim();
             var nameParts = fileName.Split('.');
             if (nameParts.Length == 1)
             {
-                throw new Exception("Uploaded file has a name, but not a filetype. The name was '" + file.FileName + "'");
+                throw new PublicException("Uploaded file has a name, but not a filetype. The name was '" + fileName + "'", "no_name");
             }
 
             var fileType = nameParts[nameParts.Length - 1];
             fileType = fileType.ToLower();
-
-			// Write to a temporary path first:
-			var tempFile = System.IO.Path.GetTempFileName();
 
 			// Start building up the result:
 			var result = new Upload()
@@ -260,7 +372,8 @@ namespace Api.Uploader
 				OriginalName = fileName,
 				FileType = fileType,
 				UserId = context.UserId,
-				CreatedUtc = DateTime.UtcNow
+				CreatedUtc = DateTime.UtcNow,
+				TemporaryPath = tempFilePath
 			};
 
 			result = await Events.Upload.BeforeCreate.Dispatch(context, result);
@@ -269,51 +382,6 @@ namespace Api.Uploader
 			{
 				// Reject it.
 				return null;
-			}
-
-			// Save the content now:
-			using (var fileStream = new FileStream(tempFile, FileMode.OpenOrCreate))
-			{
-				await file.CopyToAsync(fileStream);
-			}
-			
-			var saveOriginal = false;
-			Image current = null;
-
-			if (IsSupportedImage(fileType))
-			{
-				result.IsImage = true;
-				try
-				{
-					current = Image.FromFile(tempFile);
-					
-					if(NormalizeOrientation(current)){
-						// The image was rotated - we need to save it as the original.
-						saveOriginal = true;
-					}
-					
-					result.Width = current.Width;
-					result.Height = current.Height;
-					
-				}
-				catch (OutOfMemoryException e)
-				{
-					// https://msdn.microsoft.com/en-us/library/4sahykhd(v=vs.110).aspx
-					// Not actually an image (or not an image we support).
-					// Dump the file and reject the request.
-					File.Delete(tempFile);
-
-					Console.WriteLine("Uploaded file is a corrupt image or is too big. Underlying exception: " + e.ToString());
-				}
-				catch (Exception e)
-				{
-					// Either the image format is unknown or you don't have the required libraries to decode this format [GDI+ status: UnknownImageFormat]
-					// Just ignore this one.
-					Console.WriteLine("Unsupported image format was not resized. Underlying exception: " + e.ToString());
-				}
-			}else if(IsOtherImage(fileType))
-			{
-				result.IsImage = true;
 			}
 
 			if (result.Id != 0)
@@ -327,75 +395,12 @@ namespace Api.Uploader
 				await _database.Run<Upload, uint>(context, createQuery, result);
 			}
 			
-			// The path where we'll write the image:
-			var writePath = System.IO.Path.GetFullPath(result.GetFilePath("original"));
+			// Process the upload:
+			await Events.Upload.Process.Dispatch(context, result);
 
-			// Create the dirs:
-			var dir = System.IO.Path.GetDirectoryName(writePath);
-
-			if (!Directory.Exists(dir))
-			{
-				Directory.CreateDirectory(dir);
-			}
-			
-			// Resize
-            if (current != null)
-			{
-				if (sizes == null)
-				{
-					// Use the default set of sizes.
-					sizes = _configuration.ImageSizes;
-				}
-
-				foreach (var imageSize in sizes)
-                {
-					// Resize it now:
-					Resize(current, result.GetFilePath(imageSize.ToString()), imageSize);
-					//MagickResize(tempFile, imageSize);
-				}
-
-			}
-			
-			if(saveOriginal){
-				// Save img as the original file:
-				current.Save(writePath);
-
-				if (current != null)
-				{
-					current.Dispose();
-					current = null;
-				}
-			
-			}
-			else
-			{
-				if (current != null)
-				{
-					current.Dispose();
-					current = null;
-				}
-				
-				// Relocate the temp file:
-				System.IO.File.Move(tempFile, writePath);
-			}
-			
-			if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux))
-			{
-				// Set perms on the newly uploaded file:
-				try
-				{
-					Chmod.SetRead(writePath);
-				}
-				catch(Exception e)
-				{
-					Console.WriteLine("Unable to set file permissions - skipping. File was " + writePath + " with error " + e.ToString());
-				}
-			}
-			
 			result = await Events.Upload.AfterCreate.Dispatch(context, result);
 			return result;
         }
 	
 	}
-    
 }

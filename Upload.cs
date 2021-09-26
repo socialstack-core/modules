@@ -54,6 +54,10 @@ namespace Api.Uploader
 		/// </summary>
 		public bool IsPrivate;
 		
+		/// <summary>
+		/// Working memory only temporary filesystem path. Can be null if something has already relocated the upload and it is "done".
+		/// </summary>
+		public string TemporaryPath { get; set; }
 		
 		private static byte[] TimestampStart = new byte[]{(byte)'?', (byte)'t', (byte)'='};
 		private static byte[] SignatureStart = new byte[]{(byte)'&', (byte)'s', (byte)'='};

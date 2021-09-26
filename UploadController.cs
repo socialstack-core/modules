@@ -1,6 +1,9 @@
 ﻿using System.Threading.Tasks;
 using Microsoft.AspNetCore.Mvc;
 using Api.Contexts;
+using System.IO;
+using Microsoft.Extensions.Primitives;
+using Api.Startup;
 
 namespace Api.Uploader
 {
@@ -30,10 +33,27 @@ namespace Api.Uploader
 
 			// body = await Events.Upload.Create.Dispatch(context, body, Response) as FileUploadBody;
 
+			var fileName = body.File.FileName;
+
+			if (string.IsNullOrEmpty(fileName) || fileName.IndexOf('.') == -1)
+			{
+				throw new PublicException("Content-Name header should be a filename with the type.", "invalid_name");
+			}
+			
+			// Write to a temporary path first:
+			var tempFile = System.IO.Path.GetTempFileName();
+
+			// Save the content now:
+			var fileStream = new FileStream(tempFile, FileMode.OpenOrCreate);
+
+			await body.File.CopyToAsync(fileStream);
+			fileStream.Close();
+
 			// Upload the file:
 			var upload = await (_service as UploadService).Create(
 				context,
-				body.File
+				fileName,
+				tempFile
 			);
 
 			if (upload == null)
@@ -45,7 +65,53 @@ namespace Api.Uploader
 
 			await OutputJson(context, upload, "*");
 		}
+		
+		/// <summary>
+		/// Upload a file with efficient support for huge ones.
+		/// </summary>
+		/// <returns></returns>
+		[HttpPut("create")]
+		public async ValueTask Upload()
+		{
+			if (!Request.Headers.TryGetValue("Content-Name", out StringValues name))
+			{
+				throw new PublicException("Content-Name header is required", "no_name");
+			}
 
+			var fileName = name.ToString();
+
+			if (string.IsNullOrEmpty(fileName) || fileName.IndexOf('.') == -1)
+			{
+				throw new PublicException("Content-Name header should be a filename with the type.", "invalid_name");
+			}
+
+			var context = await Request.GetContext();
+			
+			// The stream for the actual file is just the entire body:
+			var contentStream = Request.Body;
+
+			var tempFile = System.IO.Path.GetTempFileName();
+
+			var fileStream = new FileStream(tempFile, System.IO.FileMode.OpenOrCreate);
+			await contentStream.CopyToAsync(fileStream);
+			fileStream.Close();
+			
+			// Create the upload entry for it:
+			var upload = await (_service as UploadService).Create(
+				context,
+				fileName,
+				tempFile
+			);
+
+			if (upload == null)
+			{
+				// It failed for some generic reason.
+				Response.StatusCode = 401;
+				return;
+			}
+
+			await OutputJson(context, upload, "*");
+		}
     }
 
 }
