@@ -1636,12 +1636,20 @@ namespace Api.ContentSync
 				// The 20 is because action 1 (create) maps to opcode 21. Action 2 => 22 and action 3 => 23.
 				var room = Service.StandardNetworkRooms.GetRoom(entity.Id);
 
+				NetworkRoom<T, ID, ID> globalMsgRoom = Service.StandardNetworkRooms.AnyUpdateRoom;
+
 				if (room != null)
 				{
 					await room.SendLocallyIfPermitted(entity, (byte)(action + 20));
 				}
 
-			}catch(Exception e)
+				if (globalMsgRoom != null)
+				{
+					await globalMsgRoom.SendLocallyIfPermitted(entity, (byte)(action + 20));
+				}
+
+			}
+			catch(Exception e)
 			{
 				Console.WriteLine("Sync non-fatal error:" + e.ToString());
 			}
