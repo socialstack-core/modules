@@ -141,7 +141,7 @@ export default class Search extends React.Component {
 					this.input = ele
 				}
 			}
-			autoComplete="false" className="form-control" placeholder={this.props.placeholder || 'Search...'} type="text" 
+			autoComplete="false" className="form-control" defaultValue={this.props.defaultSearch} value={this.props.searchText} placeholder={this.props.placeholder || 'Search...'} type="text" 
 			onKeyUp={(e) => {
 				this.state.debounce.handle(e.target.value);
 			}} 
