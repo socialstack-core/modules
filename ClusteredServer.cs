@@ -63,7 +63,7 @@ namespace Api.ContentSync
 		/// </summary>
 		[DatabaseField(Length=80)]
 		public string HostName;
-		
+
 	}
 
 }

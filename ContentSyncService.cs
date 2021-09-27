@@ -174,6 +174,44 @@ namespace Api.ContentSync
 		}
 
 		/// <summary>
+		/// Sync a video from the upstream host.
+		/// </summary>
+		/// <param name="videoId"></param>
+		/// <param name="firstChunk"></param>
+		/// <param name="lastChunkId"></param>
+		/// <returns></returns>
+		public async Task<bool> VideoSync(int videoId, int firstChunk, int lastChunkId)
+		{
+			// Ends with /
+			var localContentPath = AppSettings.Configuration["Content"];
+
+			// m3u8:
+			var path = "video/" + videoId + "/manifest.m3u8";
+			var client = new HttpClient();
+			var fileBytes = await client.GetByteArrayAsync(_configuration.UpstreamHost + "/content/" + path);
+
+			var localPath = localContentPath + path;
+			(new FileInfo(localPath)).Directory.Create();
+			System.IO.File.WriteAllBytes(localPath, fileBytes);
+
+			for (var i = firstChunk; i<= lastChunkId; i++)
+			{
+				path = "video/" + videoId + "/chunk" + i + ".ts";
+
+				client = new HttpClient();
+				fileBytes = await client.GetByteArrayAsync(_configuration.UpstreamHost + "/content/" + path);
+
+				localPath = localContentPath + path;
+				(new FileInfo(localPath)).Directory.Create();
+				System.IO.File.WriteAllBytes(localPath, fileBytes);
+
+				Console.WriteLine("Chunk " + i + "/" + lastChunkId);
+			}
+
+			return true;
+		}
+
+		/// <summary>
 		/// Get local files
 		/// </summary>
 		/// <param name="subfolder"></param>
@@ -723,6 +761,12 @@ namespace Api.ContentSync
 			// After HandleType calls so it can register some of the handlers:
 			SyncServer.Start();
 
+			if (Services.HostMapping != null && !Services.HostMapping.ShouldSync)
+			{
+				Console.WriteLine("ContentSync disabled on this node because appsettings declares the hostType '" + Services.HostType + "' should not sync.");
+				return;
+			}
+			
 			// Try to explicitly connect to the other servers. Note that AllServers is setup by EventListener.
 			// We might be the first one up, so some of these can outright fail.
 			// That's ok though - they'll contact us instead.
@@ -733,6 +777,13 @@ namespace Api.ContentSync
 			foreach (var serverInfo in AllServers)
 			{
 				if (serverInfo == Self || serverInfo.Environment != env)
+				{
+					continue;
+				}
+
+				var hostMapping = Services.GetHostMapping(serverInfo.HostName);
+
+				if (!hostMapping.ShouldSync)
 				{
 					continue;
 				}
