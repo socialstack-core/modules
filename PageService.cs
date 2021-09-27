@@ -197,6 +197,8 @@ namespace Api.Pages
 
 			var pageInfo = await cache.GetPage(context, url, searchQuery);
 
+			pageInfo = await Events.Page.BeforeResolveUrl.Dispatch(context, pageInfo, url, searchQuery);
+			
 			if (pageInfo.Page == null && return404IfNotFound)
 			{
 				pageInfo.Page = cache.NotFoundPage;

@@ -21,6 +21,11 @@ namespace Api.Eventing
 	/// </summary>
 	public class PageEventGroup : EventGroup<Page>
 	{
+		/// <summary>
+		/// Called just before a page is about to resolve from the given URL and search query string.
+		/// This can be used for e.g. enforcing universal access requirements.
+		/// </summary>
+		public EventHandler<PageWithTokens, string, Microsoft.AspNetCore.Http.QueryString> BeforeResolveUrl;
 
 		/// <summary>
 		/// During page generation.
