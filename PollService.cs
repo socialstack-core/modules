@@ -21,7 +21,16 @@ namespace Api.Polls
         {
 			// Example admin page install:
 			InstallAdminPages("Polls", "fa:fa-poll", new string[] { "id", "title" });
-			
+
+			InstallAdminPages(
+				"Polls", "fa:fa-poll", new string[] { "id", "title" },
+				new ChildAdminPageOptions()
+				{
+					ChildType = "PollAnswer",
+					Fields = new string[] { "title" }
+				}
+			);
+
 			Events.Poll.BeforeSettable.AddEventListener((Context context, JsonField<Poll, uint> field) =>
 			{
 				if (field == null)
