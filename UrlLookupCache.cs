@@ -414,7 +414,8 @@ namespace Api.Pages
 				Tokens = curNode.UrlTokens,
 				TokenNames = curNode.UrlTokenNames,
 				TokenNamesJson = curNode.UrlTokenNamesJson,
-				TokenValues = wildcardTokens
+				TokenValues = wildcardTokens,
+				Multiple = curNode.Pages.Count > 1
 			};
 		}
 	}
@@ -448,6 +449,10 @@ namespace Api.Pages
 		/// Set if this is a redirection (to the given URL, as a 302).
 		/// </summary>
 		public string RedirectTo;
+		/// <summary>
+		/// True if there are multiple variants of a page and it shouldn't get cached
+		/// </summary>
+		public bool Multiple;
 	}
 
 	/// <summary>
