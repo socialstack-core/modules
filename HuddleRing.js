@@ -118,12 +118,11 @@ function HuddleRinger(props){
 				hangUp && hangUp();
 			}
 		}
-
+		
 		document.addEventListener("huddlering", onring);
-				
+		
 		return () => {
-			// commenting out for now - unsure of purpose
-			//document.removeEventListener("huddlering", onring);
+			document.removeEventListener("huddlering", onring);
 		};
 
 	}, []);
