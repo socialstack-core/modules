@@ -212,12 +212,26 @@ $ss_mobileLarge: map-get($ss_mobile, large);
 
 // mobile MQ
 // covers all mobile sizes (small / medium / large)
-@mixin mq_mobile {
+// use mq_mobile(false) for rules which should apply when mobile devices are _not_ detected
+@mixin mq_mobile($default: true) {
   $to: map-get($ss_mobileLarge, to);
-  @media (max-width: #{$to}) and (pointer: coarse) and (orientation: portrait),
-         (max-height: #{$to}) and (pointer: coarse) and (orientation: landscape) {
-    @content;
+
+  @if not ($default) {
+      @media not screen and (max-width: #{$to}) and (pointer: coarse) and (orientation: portrait) {
+          @media not screen and (max-height: #{$to}) and (pointer: coarse) and (orientation: landscape) {
+              @content;
+          }
+
+      }
+
+  } @else {
+      @media (max-width: #{$to}) and (pointer: coarse) and (orientation: portrait),
+             (max-height: #{$to}) and (pointer: coarse) and (orientation: landscape) {
+        @content;
+      }
+
   }
+
 }
 
 @mixin mq_mobilePortrait {
