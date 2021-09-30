@@ -425,25 +425,25 @@ namespace Api.Startup {
 						_metaMap[(attrib as MetaAttribute).FieldName.ToLower()] = cf;
 					}
 				}
+			}
 
-				// Do we have a title and description meta field?
-				// If not, we'll attempt to invent them based on some common names.
-				if (!_metaMap.ContainsKey("title"))
+			// Do we have a title and description meta field?
+			// If not, we'll attempt to invent them based on some common names.
+			if (!_metaMap.ContainsKey("title"))
+			{
+				var titleField = TryGetAnyOf(CommonTitleNames);
+				if (titleField != null)
 				{
-					var titleField = TryGetAnyOf(CommonTitleNames);
-					if (titleField != null)
-					{
-						_metaMap["title"] = titleField;
-					}
+					_metaMap["title"] = titleField;
 				}
+			}
 
-				if (!_metaMap.ContainsKey("description"))
+			if (!_metaMap.ContainsKey("description"))
+			{
+				var descriptionField = TryGetAnyOf(CommonDescriptionNames);
+				if (descriptionField != null)
 				{
-					var descriptionField = TryGetAnyOf(CommonDescriptionNames);
-					if (descriptionField != null)
-					{
-						_metaMap["description"] = descriptionField;
-					}
+					_metaMap["description"] = descriptionField;
 				}
 			}
 
