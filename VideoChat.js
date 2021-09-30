@@ -54,6 +54,7 @@ export default class VideoChat extends React.Component {
 		this.onRoomUpdate = this.onRoomUpdate.bind(this);
 		this.onEndMeContainerDrag = this.onEndMeContainerDrag.bind(this);
 		this.onError = this.onError.bind(this);
+		this.onPeerAdd = this.onPeerAdd.bind(this);
 	}
 	
 	mount(props){
@@ -178,15 +179,19 @@ export default class VideoChat extends React.Component {
 	}
 	
 	onRoomUpdate(evt) {
-
-
 		this.props.onRoomUpdate && this.props.onRoomUpdate(evt, this.state.huddleClient);
 		this.setState({ huddleClient: this.state.huddleClient, error: null });
+	}
+
+	onPeerAdd(evt) {
+		// Peer changed
+		this.setState({});
 	}
 	
 	connect(huddleClient){
 		huddleClient.addEventListener('roomupdate', this.onRoomUpdate);
 		huddleClient.addEventListener('error', this.onError);
+		huddleClient.addEventListener('peeradd', this.onPeerAdd);
 		if (!this.state.test) {
 			huddleClient.join();
 		}
@@ -201,6 +206,8 @@ export default class VideoChat extends React.Component {
 		const { huddleClient } = this.state;
 		huddleClient.removeEventListener('roomupdate', this.onRoomUpdate);
 		huddleClient.removeEventListener('error', this.onError);
+		huddleClient.removeEventListener('peeradd', this.onPeerAdd);
+
 		if (!this.state.test) {
 			huddleClient.close();
 		}
