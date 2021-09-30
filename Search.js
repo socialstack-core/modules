@@ -120,6 +120,11 @@ export default class Search extends React.Component {
 		
 		var field = this.props.field || 'name';
 		field = field.charAt(0).toLowerCase() + field.slice(1);
+		
+		if(field == 'fullName' && result.email){
+			return result[field] + ' (' + result.email + ')';
+		}
+		
 		return result[field];
 	}
 	
