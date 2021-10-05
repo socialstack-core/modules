@@ -102,7 +102,9 @@ class ContentIntl extends React.Component {
 			return;
 		}
 		
-		this.load(type, id, includes);
+		if (type !== '' && id !== 0) {
+			this.load(type, id, includes);
+		}
 	}
 	
 	load(type, id, includes){
