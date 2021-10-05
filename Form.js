@@ -98,11 +98,13 @@ export default class Form extends React.Component {
 			action,
 			loadingMessage,
 			submitLabel,
+			submitEnabled,
 			failedMessage,
 			successMessage
 		} = this.props;
 		
 		var showFormResponse = !!(loadingMessage || submitLabel || failedMessage);
+		var submitDisabled = this.state.loading || (submitEnabled !== undefined && submitEnabled != true);
 		
 		return (
 			<form
@@ -145,7 +147,7 @@ export default class Form extends React.Component {
 							)
 						}
 						{
-							submitLabel && <Input type="submit" label={submitLabel} disabled={this.state.loading} />
+							submitLabel && <Input type="submit" label={submitLabel} disabled={submitDisabled} />
 						}
 						{
 							this.state.loading && loadingMessage && (
