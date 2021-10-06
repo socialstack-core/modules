@@ -1084,7 +1084,15 @@ namespace Api.Pages
 						node.With("content", headTag.Content);
 					}
 				}
-				
+
+				if (headTag.Attributes != null)
+				{
+					foreach (var kvp in headTag.Attributes)
+					{
+						node.With(kvp.Key, kvp.Value);
+					}
+				}
+
 				head.AppendChild(node);
 			}
 
@@ -1150,10 +1158,14 @@ namespace Api.Pages
 					node.With("id", bodyScript.Id);
 				}
 
-				if (bodyScript.DataAdClient != null)
-                {
-					node.With("data-ad-client", bodyScript.DataAdClient);
-                }
+				if (bodyScript.Attributes != null)
+				{
+					foreach (var kvp in bodyScript.Attributes)
+					{
+						node.With(kvp.Key, kvp.Value);
+					}
+				}
+
 				body.AppendChild(node);
 			}
 			

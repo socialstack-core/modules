@@ -77,6 +77,11 @@ namespace Api.Pages
 		public string CrossOrigin { get; set; } = "anonymous";
 
 		/// <summary>
+		/// Custom attributes
+		/// </summary>
+		public Dictionary<string, string> Attributes { get; set; }
+
+		/// <summary>
 		/// Link as="" attribute for preloads.
 		/// </summary>
 		public string As { get; set; }
@@ -138,9 +143,10 @@ namespace Api.Pages
 		public string NoScriptText { get; set; }
 
 		/// <summary>
-		/// Special case for google ads
+		/// Custom attributes
 		/// </summary>
-		public string DataAdClient { get; set; }
+		public Dictionary<string, string> Attributes { get; set; }
+
 	}
-	
+
 }
