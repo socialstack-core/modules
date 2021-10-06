@@ -226,7 +226,7 @@ namespace Api.Emails
 
 			foreach (var recipient in recipients)
 			{
-				if (recipient == null || recipient.User == null || recipient.User.Email == null || recipient.Context == null)
+				if (recipient == null || (recipient.EmailAddress == null && (recipient.User == null || recipient.User.Email == null)) || recipient.Context == null)
 				{
 					continue;
 				}
@@ -286,7 +286,7 @@ namespace Api.Emails
 					}, null, false);
 
 					// Email to send to:
-					var targetEmail = recipient.User.Email;
+					var targetEmail = recipient.EmailAddress == null ? recipient.User.Email : recipient.EmailAddress;
 
 					// Send now:
 					await Send(targetEmail, subject, renderedResult.Body, messageId, null, attachments);
