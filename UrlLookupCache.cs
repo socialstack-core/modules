@@ -368,34 +368,45 @@ namespace Api.Pages
 					role = Roles.Public;
 				}
 
-				var pageLoadCapability = Events.Page.GetLoadCapability();
-
-				for (var i = 0; i < curNode.Pages.Count; i++)
+				if (url == "login")
 				{
-					var page = curNode.Pages[i];
-
-					if (await role.IsGranted(pageLoadCapability, context, page, false))
+					// Always permitted (assuming it exists!)
+					// This helps avoid any redirect cycles in the event the user is unable to see either the login or homepage.
+					if (curNode.Pages.Count > 0)
 					{
-						result = page;
-						break;
+						result = curNode.Pages[0];
 					}
 				}
-
-				if (result == null && curNode.Pages.Count > 0)
+				else
 				{
-					// The user was rejected on a permission error.
-					// This can often lead to a redirect to the login page, but we'll make the handling of 
-					// this project specific such that it can e.g. redirect to a subscribe page or whatever it would like to do.
-					return new PageWithTokens()
-					{
-						Page = null,
-						TokenValues = null,
-						TokenNamesJson = "null",
-						RedirectTo = url == "login" ? "/" : "/login?then=" + 
-							System.Web.HttpUtility.UrlEncode(searchQuery.HasValue ? "/" + origUrl + searchQuery.Value : "/" + origUrl)
-					};
-				}
+					var pageLoadCapability = Events.Page.GetLoadCapability();
 
+					for (var i = 0; i < curNode.Pages.Count; i++)
+					{
+						var page = curNode.Pages[i];
+
+						if (await role.IsGranted(pageLoadCapability, context, page, false))
+						{
+							result = page;
+							break;
+						}
+					}
+
+					if (result == null && curNode.Pages.Count > 0)
+					{
+						// The user was rejected on a permission error.
+						// This can often lead to a redirect to the login page, but we'll make the handling of 
+						// this project specific such that it can e.g. redirect to a subscribe page or whatever it would like to do.
+						return new PageWithTokens()
+						{
+							Page = null,
+							TokenValues = null,
+							TokenNamesJson = "null",
+							RedirectTo = "/login?then=" +
+								System.Web.HttpUtility.UrlEncode(searchQuery.HasValue ? "/" + origUrl + searchQuery.Value : "/" + origUrl)
+						};
+					}
+				}
 			}
 
 			if (result == null)
@@ -414,7 +425,8 @@ namespace Api.Pages
 				Tokens = curNode.UrlTokens,
 				TokenNames = curNode.UrlTokenNames,
 				TokenNamesJson = curNode.UrlTokenNamesJson,
-				TokenValues = wildcardTokens
+				TokenValues = wildcardTokens,
+				Multiple = curNode.Pages.Count > 1
 			};
 		}
 	}
@@ -448,6 +460,10 @@ namespace Api.Pages
 		/// Set if this is a redirection (to the given URL, as a 302).
 		/// </summary>
 		public string RedirectTo;
+		/// <summary>
+		/// True if there are multiple variants of a page and it shouldn't get cached
+		/// </summary>
+		public bool Multiple;
 	}
 
 	/// <summary>

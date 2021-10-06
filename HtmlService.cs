@@ -620,7 +620,7 @@ namespace Api.Pages
 			var themeConfig = _themeService.GetConfig();
 
 #if !DEBUG
-			if (cache != null && context.LocaleId <= cache.Length)
+			if (cache != null && context.LocaleId <= cache.Length && !pageAndTokens.Multiple)
 			{
 				var localeCache = cache[context.LocaleId - 1];
 
