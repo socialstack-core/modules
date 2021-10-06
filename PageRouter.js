@@ -175,6 +175,13 @@ export default (props) => {
 					return;
 				}
 				
+				var {config} = res.json;
+				
+				if(config){
+					delete res.json.config;
+					global.__cfg = config;
+				}
+				
 				var pgState = {url, ...res.json};
 				setPage(pgState);
 				triggerEvent(res.json);
