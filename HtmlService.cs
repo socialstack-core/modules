@@ -268,6 +268,14 @@ namespace Api.Pages
 				writer.WriteASCII("null");
 			}
 
+			var cfgBytes = _configurationService.GetLatestFrontendConfigBytesJson();
+
+			if (cfgBytes != null)
+			{
+				writer.WriteASCII(",\"config\":");
+				writer.WriteNoLength(cfgBytes);
+			}
+
 			writer.WriteASCII(",\"tokenNames\":");
 			writer.WriteS(pageAndTokens.TokenNamesJson);
 			writer.WriteASCII(",\"tokens\":");
