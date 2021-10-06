@@ -71,6 +71,7 @@ public partial class AutoService
 					entry.SetObject = set;
 					entry.ConfigObject = res;
 					set.Configurations.Add(res);
+					configService.Map[entry.Id] = entry;
 					configService.UpdateFrontendConfig(res, set);
 				}
 				catch (Exception e)
@@ -124,6 +125,7 @@ public partial class AutoService
 						_loadedConfiguration = res;
 						result.ConfigObject = res;
 						res.Id = result.Id;
+						configService.Map[result.Id] = result;
 						configService.UpdateFrontendConfig(res, null);
 						return res;
 					}

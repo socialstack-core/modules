@@ -23,6 +23,11 @@ namespace Api.Configuration
 	public partial class ConfigurationService : AutoService<Api.Configuration.Configuration>
     {
 		/// <summary>
+		/// Loaded config map
+		/// </summary>
+		public Dictionary<uint, Configuration> Map = new Dictionary<uint, Configuration>();
+
+		/// <summary>
 		/// Instanced automatically. Use injection to use this service, or Startup.Services.Get.
 		/// </summary>
 		public ConfigurationService(AutoFormService autoForms) : base(Events.Configuration)
@@ -35,6 +40,17 @@ namespace Api.Configuration
 			Events.Configuration.Received.AddEventListener(async (Context context, Configuration config, int type) => {
 
 				// Some other server in the cluster updated config.
+
+				Map.TryGetValue(config.Id, out Configuration existingLoadedConfig);
+
+				if (existingLoadedConfig != null)
+				{
+					config.ConfigObject = existingLoadedConfig.ConfigObject;
+					config.SetObject = existingLoadedConfig.SetObject;
+				}
+
+				Map[config.Id] = config;
+
 				try
 				{
 					await LoadConfig(config);
@@ -340,7 +356,8 @@ namespace Api.Configuration
 			}
 
 			// Clear cached config bytes:
-			_frontendConfigBytes = null;
+			_frontendConfigBytesJs = null;
+			_frontendConfigBytesJson = null;
 		}
 
 		/// <summary>
@@ -348,7 +365,9 @@ namespace Api.Configuration
 		/// </summary>
 		private ConcurrentDictionary<Config, bool> _allFrontendConfigs;
 
-		private byte[] _frontendConfigBytes;
+		private byte[] _frontendConfigBytesJson;
+
+		private byte[] _frontendConfigBytesJs;
 		
 		private string _frontendConfigJs;
 
@@ -363,26 +382,36 @@ namespace Api.Configuration
 		}
 
 		/// <summary>
+		/// Gets the frontend config as a UTF8 encoded block of bytes. Can be null if there isn't any.
+		/// </summary>
+		/// <returns></returns>
+		public byte[] GetLatestFrontendConfigBytesJson()
+		{
+			GetLatestFrontendConfigBytes();
+			return _frontendConfigBytesJson;
+		}
+
+		/// <summary>
 		/// Gets the frontend config as a UTF8 encoded block of bytes.
 		/// </summary>
 		/// <returns></returns>
 		public byte[] GetLatestFrontendConfigBytes()
 		{
-			if (_frontendConfigBytes != null)
+			if (_frontendConfigBytesJs != null)
 			{
-				return _frontendConfigBytes;
+				return _frontendConfigBytesJs;
 			}
 
 			if (_allFrontendConfigs == null)
 			{
-				_frontendConfigBytes = Array.Empty<byte>();
-				return _frontendConfigBytes;
+				_frontendConfigBytesJs = Array.Empty<byte>();
+				return _frontendConfigBytesJs;
 			}
 
 			// For each FE config object..
 			StringBuilder sb = new StringBuilder();
 
-			sb.Append("window.__cfg={");
+			sb.Append("{");
 
 			var first = true;
 
@@ -420,12 +449,13 @@ namespace Api.Configuration
 				config.AddFrontendJson(sb);
 			}
 
-			sb.Append("};");
+			sb.Append("}");
 
-			var configStr = sb.ToString();
-			_frontendConfigJs = configStr;
-			_frontendConfigBytes = Encoding.UTF8.GetBytes(configStr);
-			return _frontendConfigBytes;
+			var configStrJson = sb.ToString();
+			_frontendConfigJs = "window.__cfg=" + configStrJson + ";";
+			_frontendConfigBytesJs = Encoding.UTF8.GetBytes(_frontendConfigJs);
+			_frontendConfigBytesJson = Encoding.UTF8.GetBytes(configStrJson);
+			return _frontendConfigBytesJs;
 		}
 
 		/// <summary>
