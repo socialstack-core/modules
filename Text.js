@@ -7,22 +7,47 @@ import omit from 'UI/Functions/Omit';
  * <Text group='header' key='hello_world'>Hello world</Text>
  */
 export default function Text (props) {
-	var className = this.props.className || undefined;
-	var Tag = props.paragraph ? "p" : "span";
+	const { paragraph, bold, animate } = props;
 
-	return <Tag className={className}
+	var className = props.className || undefined;
+	var animation = animate ? "fade-up" : undefined;
+	var Tag = paragraph ? "p" : "span";
+
+	if (bold && !paragraph) {
+		Tag = "strong";
+	}
+
+	if (bold && paragraph) {
+		return <p className={className} data-aos={animation}
+				{...omit(props, ['text', 'children', 'paragraph', 'bold', 'animate'])}>
+				<strong dangerouslySetInnerHTML={{__html: (props.text || props.children)}}>
+				</strong>
+			</p>;
+	}
+
+	return <Tag className={className} data-aos={animation}
 				dangerouslySetInnerHTML={{__html: (props.text || props.children)}}
-				{...omit(props, ['text', 'children', 'paragraph'])}>
+				{...omit(props, ['text', 'children', 'paragraph', 'bold', 'animate'])}>
 		</Tag>;
 }
 
 Text.propTypes = {
-	paragraph: 'boolean'
+	paragraph: 'boolean',
+	bold: 'boolean',
+	animate: 'boolean'
+};
+
+Text.defaultProps = {
+	paragraph: false,
+	bold: false,
+	animate: true
 };
 
 Text.icon = 'align-justify';
 
 Text.rendererPropTypes = {
 	text: 'string',
-	paragraph: 'boolean'
+	paragraph: 'boolean',
+	bold: 'boolean',
+	animate: 'boolean'
 };
