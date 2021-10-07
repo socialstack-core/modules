@@ -419,7 +419,7 @@ export default class Input extends React.Component {
                             this.setState({textAreaLength: e.target.textLength});
                         }}
                     />
-                    {this.props.maxlength && this.props.showLength && <div>
+                    {this.props.maxlength && this.props.showLength && <div className = "textarea-char-count">
                         {(this.state.textAreaLength ? this.state.textAreaLength : this.props.defaultValue ? this.props.defaultValue.length : 0) + "/" + this.props.maxlength}
                     </div>}
                 </>
