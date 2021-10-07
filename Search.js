@@ -146,22 +146,37 @@ export default class Search extends React.Component {
 					this.input = ele
 				}
 			}
+			onblur = {() => {
+				this.setState({results: null})
+			}}
 			autoComplete="false" className="form-control" defaultValue={this.props.defaultSearch} value={this.props.searchText} placeholder={this.props.placeholder || 'Search...'} type="text" 
 			onKeyUp={(e) => {
-				this.state.debounce.handle(e.target.value);
+				if(e.keyCode != 27){
+					this.state.debounce.handle(e.target.value);
+				}
 			}} 
+			onFocus={(e) =>{
+				if(e.target.value.length > 0) {
+					this.state.debounce.handle(e.target.value);
+				}
+			}}
 			onKeyDown={(e) => {
 				if (e.keyCode == 13){
 					if (this.state.results && !this.props.onResults && this.state.results.length == 1) {
 						this.selectResult(this.state.results[0]);
-					}		
+					}	
 					e.preventDefault();
-				}}}/>
+				}
+				if (e.keyCode == 27){
+					this.setState({results: null})
+				}
+
+			}}/>
 			{this.state.results && !this.props.onResults && (
 				<div className="suggestions">
 					{this.state.results.length ? (
 						this.state.results.map((result, i) => (
-							<button type="button" key={i} onClick={() => this.selectResult(result)} className="btn suggestion">
+							<button type="button" key={i} onMouseDown={() => this.selectResult(result)} className="btn suggestion">
 								{this.display(result, true)}
 							</button>
 						))
