@@ -406,16 +406,23 @@ export default class Input extends React.Component {
 
         } else if (type === "textarea") {
 
-            return (
-                <textarea
-					ref={this.setRef}
-                    onChange={this.onChange}
-                    onBlur={this.onBlur}
-                    autocomplete={this.props.autocomplete}
-                    id={this.props.id || this.fieldId}
-                    className={(this.props.className || "form-control") + (this.state.validationFailure ? ' is-invalid' : '')}
-                    {...omit(this.props, ['id', 'className', 'onChange', 'onBlur', 'type', 'inline', 'help', 'helpIcon', 'fieldName'])}
-                />
+            return (<>
+                    <textarea
+                        ref={this.setRef}
+                        onChange={this.onChange}
+                        onBlur={this.onBlur}
+                        autocomplete={this.props.autocomplete}
+                        id={this.props.id || this.fieldId}
+                        className={(this.props.className || "form-control") + (this.state.validationFailure ? ' is-invalid' : '')}
+                        {...omit(this.props, ['id', 'className', 'onChange', 'onBlur', 'type', 'inline', 'help', 'helpIcon', 'fieldName'])}
+                        oninput ={e => {
+                            this.setState({textAreaLength: e.target.textLength});
+                        }}
+                    />
+                    {this.props.maxlength && this.props.showLength && <div>
+                        {(this.state.textAreaLength ? this.state.textAreaLength : this.props.defaultValue ? this.props.defaultValue.length : 0) + "/" + this.props.maxlength}
+                    </div>}
+                </>
             );
 
         } else if (type === "submit" || type === "button") {
