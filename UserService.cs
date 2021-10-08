@@ -134,10 +134,14 @@ namespace Api.Users
 						_emails = Services.Get<EmailTemplateService>();
 					}
 
-					await _emails.SendAsync(
-						recipients,
-						"verify_email"
-					);
+					if(!config.NoVerificationEmail)
+                    {
+						await _emails.SendAsync(
+							recipients,
+							"verify_email"
+						);
+					}
+
 				}
 				
 				return user;

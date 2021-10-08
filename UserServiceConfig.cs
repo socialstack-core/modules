@@ -32,5 +32,10 @@ namespace Api.Users
         /// Message which appears when performing unique username check. Note that this text will also pass through the locale system.
         /// </summary>
         public string UniqueUsernameMessage { get; set; } = "This username is already in use.";
+
+        /// <summary>
+        ///  If this is set to true, a verification email will not be sent to the user on creation.
+        /// </summary>
+        public bool NoVerificationEmail { get; set; } = false;
     }
 }
