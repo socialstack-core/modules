@@ -36,7 +36,8 @@ namespace Api.CanvasRenderer
 					app.UseStaticFiles(new StaticFileOptions()
 					{
 						FileProvider = new PhysicalFileProvider(pubPath),
-						RequestPath = new PathString("/pack/static")
+						RequestPath = new PathString("/pack/static"),
+						ServeUnknownFileTypes = true
 					});
 				}
 				
@@ -46,7 +47,8 @@ namespace Api.CanvasRenderer
 					app.UseStaticFiles(new StaticFileOptions()
 					{
 						FileProvider = new PhysicalFileProvider(pubPath),
-						RequestPath = new PathString("/en-admin/pack/static")
+						RequestPath = new PathString("/en-admin/pack/static"),
+						ServeUnknownFileTypes = true
 					});
 				}
 			};
