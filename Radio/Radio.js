@@ -4,8 +4,13 @@
  */
 
 export default function Radio(props) {
-	var { id, className, name, label, onChange, onBlur, invalid, checked, disabled, solid } = props;
+	var { id, className, name, label, onClick, onChange, onBlur, invalid, checked, disabled, solid } = props;
 	
+	// check if we mistakenly used onClick instead of onChange
+	if (onClick && !onChange) {
+		onChange = onClick;
+	}
+
 	className = className ? className.split(" ") : [];
 
 	if (invalid) {
