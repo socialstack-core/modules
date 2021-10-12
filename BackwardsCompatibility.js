@@ -1,8 +1,4 @@
-var document = global.document;
-
-if(!document){
-	return;
-}
+if(typeof SERVER == 'undefined'){
 
 // startsWith polyfill
 if (!String.prototype.startsWith) {
@@ -661,5 +657,7 @@ document.addEventListener('DOMContentLoaded', function (event) {
     // trigger IE11 object-fit / object-position polyfill
     objectFitImages();
 })
+
+}
 
 
