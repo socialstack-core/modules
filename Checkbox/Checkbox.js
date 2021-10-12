@@ -4,7 +4,12 @@
  */
 
 export default function Checkbox(props) {
-	var { id, className, label, name, onChange, onBlur, invalid, checked, disabled, solid, isSwitch } = props;
+	var { id, className, label, name, onChange, onClick, onBlur, invalid, checked, disabled, solid, isSwitch } = props;
+
+	// check if we mistakenly used onClick instead of onChange
+	if (onClick && !onChange) {
+		onChange = onClick;
+	}
 	
 	className = className ? className.split(" ") : [];
 
