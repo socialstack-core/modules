@@ -203,7 +203,15 @@ namespace Api.Emails
 		{
 			Task.Run(async () =>
 			{
-				await SendAsync(recipients, key, messageId, attachments);
+				try
+				{
+					await SendAsync(recipients, key, messageId, attachments);
+				}
+				catch (Exception e)
+				{
+					Console.WriteLine(e.ToString());
+					throw;
+				}
 			});
 		}
 
