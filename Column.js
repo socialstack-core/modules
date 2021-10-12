@@ -116,8 +116,8 @@ offsetOptions.splice(0, 0, { name: 'No offset', value: 0 });
 
 var marginOptions = [
 	{ name: 'None', value: '' },
-	{ name: 'Move sibling columns right', value: 'ml-auto' },
-	{ name: 'Move sibling columns left', value: 'mr-auto' },
+	{ name: 'Move sibling columns right', value: 'ml-auto ms-auto' },
+	{ name: 'Move sibling columns left', value: 'mr-auto me-auto' },
 	{ name: 'Move sibling columns left/right', value: 'mx-auto' }
 ];
 

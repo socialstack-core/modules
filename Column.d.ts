@@ -21,7 +21,7 @@ interface ColumnProps {
 	/**
 		Optionally add a specific type of margin to your column. See the bootstrap docs for what the available options do.
 	*/
-	margin?: "" | "ml-auto" | "mr-auto" | "mx-auto";
+	margin?: "" | "ml-auto ms-auto" | "mr-auto me-auto" | "mx-auto";
 	
 	/**
 		Set this to true if you don't want gutters on your column.
