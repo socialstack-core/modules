@@ -1,5 +1,9 @@
 var document = global.document;
 
+if(!document){
+	return;
+}
+
 // startsWith polyfill
 if (!String.prototype.startsWith) {
     Object.defineProperty(String.prototype, 'startsWith', {
