@@ -178,7 +178,18 @@ class ContentIntl extends React.Component {
 export default function Content(props) {
 	
 	return (props.primary) ? <RouterConsumer>{
-		pgState => pgState.po ? <ContentIntl type={pgState.po.type} id={pgState.po.id} {...props}/> : null
+		pgState => {
+			if(!pgState.po){
+				return null;
+			}
+			
+			if(pgState.po.type && pgState.po.id){
+				return <ContentIntl type={pgState.po.type} id={pgState.po.id} {...props}/>;
+			}
+			
+			// Occurs when po is a customData object:
+			return props.children ? props.children(pgState.po, false) : null;
+		}
 	}</RouterConsumer> : <ContentIntl {...props}/>;
 	
 }
