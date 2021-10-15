@@ -76,13 +76,13 @@ export default props => {
 				<Input label = {props.noLabels ? null : (emailOnly ? `Email` : `Email or username`)}  name="emailOrUsername" placeholder={emailOnly ? `Email` : `Email or username`} validate={validate} />
 				<Input label = {props.noLabels ? null : `Password`} name="password" placeholder={`Password`} type="password" validate = {validatePassword} />
 				<Row>
-					<Col size="6">
+					{!props.noRemember && <Col size="6">
 						<Input type="checkbox" label={`Remember me`} name="remember" />
-					</Col>
+					</Col>}
 					<Col size="6">
 					{!props.noForgot && (
 						<a href="/forgot" className="forgot-password-link">
-							{`I forgot my password`}
+							{props.forgotPasswordText || `I forgot my password`}
 						</a>
 					)}
 					</Col>
