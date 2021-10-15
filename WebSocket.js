@@ -14,17 +14,16 @@ document.addEventListener('xsession', (e) => {
 				waitMode=2;
 				__user = state.user;
 			});
+
+			return;
 		}else{
 			waitMode=2;
-			__user = user;
 		}
-		return;
 	}
 	
 	if(waitMode==2 && user != __user){
 		__user = user;
 		if(ws){
-			console.log('Reconnecting websocket for new user');
 			try{
 				// setting ws to null prevents the close handler from running here.
 				var _ws = ws;
