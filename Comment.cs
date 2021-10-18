@@ -13,7 +13,7 @@ namespace Api.Comments
 	/// A comment on some particular content.
 	/// </summary>
 	[ListAs("Comments")]
-	public partial class Comment : VersionedContent<uint>, IAmLive
+	public partial class Comment : VersionedContent<uint>
 	{
 		/// <summary>
 		/// Number of child comments.
