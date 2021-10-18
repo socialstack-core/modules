@@ -11,7 +11,7 @@ namespace Api.Reactions
 	/// ReactionCount is essentially just a counted version of these.
 	/// </summary>
 	[HasVirtualField("ReactionType", typeof(ReactionType), "ReactionTypeId")]
-	public partial class Reaction : VersionedContent<uint>, IAmLive
+	public partial class Reaction : VersionedContent<uint>
 	{
 		/// <summary>
 		/// The content type this is a reaction to.
