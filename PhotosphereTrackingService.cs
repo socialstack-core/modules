@@ -30,7 +30,7 @@ namespace Api.PhotosphereTracking
             });
             */
 
-            Events.WebSocketClientDisconnected.AddEventListener(async (Context ctx, WebSocketClient client) =>
+            Events.WebSocket.Disconnected.AddEventListener(async (Context ctx, WebSocketClient client) =>
             {
 
                 // Triggers when the user login state changes *locally*.

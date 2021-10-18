@@ -9,7 +9,7 @@ namespace Api.PhotosphereTracking
 	/// A Video
 	/// </summary>
 	[CacheOnly]
-	public partial class PhotosphereTrack : Content<uint>, IAmLive
+	public partial class PhotosphereTrack : Content<uint>
 	{
 		/// <summary>
 		/// Current page this user is on. Because of url tokens, these aren't as unique as URL is.
