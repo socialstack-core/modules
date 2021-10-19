@@ -92,7 +92,7 @@ public partial class AutoService
 	/// You can find when it changes (or loads the first time) via the Config.OnChange event.
 	/// Also note that the config section key is the name of the given type, minus "Config" or "Configuration" from the end.
 	/// </summary>
-	public T GetConfig<T>() where T:Config, new()
+	public T GetConfig<T>(Action<T> onNewConfig = null) where T:Config, new()
 	{
 		if(_loadedConfiguration == null)
 		{
@@ -146,6 +146,11 @@ public partial class AutoService
 				// default cfg:
 				var dflt = new T();
 				_loadedConfiguration = dflt;
+
+				if (onNewConfig != null)
+				{
+					onNewConfig(dflt);
+				}
 
 				// Store in the DB:
 				if (configService != null)
