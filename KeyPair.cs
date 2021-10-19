@@ -184,6 +184,24 @@ namespace Api.Signatures
 		}
 
 		/// <summary>
+		/// Base64 PK
+		/// </summary>
+		/// <returns></returns>
+		public string PrivateKeyBase64()
+		{
+			return Convert.ToBase64String(PrivateKeyBytes);
+		}
+
+		/// <summary>
+		/// Base64 PK
+		/// </summary>
+		/// <returns></returns>
+		public string PublicKeyBase64()
+		{
+			return Convert.ToBase64String(PublicKey.Q.GetEncoded(false));
+		}
+
+		/// <summary>
 		/// The private key parameters.
 		/// </summary>
 		public ECPrivateKeyParameters PrivateKey;

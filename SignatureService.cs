@@ -5,6 +5,7 @@ using Org.BouncyCastle.Math;
 using System.Security.Cryptography;
 using System;
 using Api.SocketServerLibrary;
+using Api.Startup;
 
 namespace Api.Signatures
 {
@@ -22,29 +23,35 @@ namespace Api.Signatures
 		/// Instanced automatically. Use injection to use this service, or Startup.Services.Get.
 		/// </summary>
 		public SignatureService()
-        {
+		{
 			// Generate or load keypair. First check if it's in appsettings:
-			_config = GetConfig<SignatureServiceConfig>();
-			
-			if(!string.IsNullOrEmpty(_config.Private))
-			{
-				_keyPair = KeyPair.FromSerialized(_config.Public, _config.Private);
-			}
-			else
-			{
-				var filePath = "signatureService.key";
+			_config = GetConfig((SignatureServiceConfig newConfig) => {
 
-				if (System.IO.File.Exists(filePath))
-				{
-					_keyPair = KeyPair.FromSerialized(System.IO.File.ReadAllText(filePath));
-				}
-				else
-				{
-					_keyPair = KeyPair.Generate();
-					System.IO.File.WriteAllText(filePath, _keyPair.Serialize());
-				}
+				// Create a new key now:
+				var keypair = KeyPair.Generate();
+
+				newConfig.Public = keypair.PublicKeyBase64();
+				newConfig.Private = keypair.PrivateKeyBase64();
+
+			});
+
+			_config.OnChange += () => {
+				LoadKey();
+				return new System.Threading.Tasks.ValueTask();
+			};
+
+			LoadKey();
+		}
+
+		private void LoadKey()
+		{
+			if(string.IsNullOrEmpty(_config.Private))
+			{
+				throw new PublicException("Invalid signature service configuration. signatureService.key is now never generated or used and instead the key always comes from the database, but your database entry doesn't have a private key set. Delete the SignatureService config from your database to let it be recreated.", "key_invalid");
 			}
-			
+
+			_keyPair = KeyPair.FromSerialized(_config.Public, _config.Private);
+
 			// Test the integrity of the key:
 			var roundTrip = "signatureServiceTest";
 			var sig = Sign(roundTrip);
@@ -52,7 +59,7 @@ namespace Api.Signatures
 
 			if (!result)
 			{
-				throw new Exception("You have a broken signatureService.key - delete it, and restart the API to generate a new one.");
+				throw new PublicException("You have a broken SignatureService config - delete it, and restart the API to generate a new one.", "key_invalid_no_rt");
 			}
 		}
 
