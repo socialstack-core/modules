@@ -19,7 +19,7 @@ namespace Api.Pages
 		/// <summary>
 		/// Block wall password. Explicitly don't define this if you don't want the block wall to appear.
 		/// </summary>
-		public string BlockWallPassword { get; set; } = "test.lol";
+		public string BlockWallPassword { get; set; } = null;
 
 		/// <summary>
 		/// A date that the block wall is active until (UTC)
