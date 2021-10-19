@@ -1,4 +1,5 @@
 using Api.Configuration;
+using System;
 using System.Collections.Generic;
 
 
@@ -14,7 +15,17 @@ namespace Api.Pages
 		/// True if core URLs should be fully qualified with your site's PublicUrl.
 		/// </summary>
 		public bool FullyQualifyUrls { get; set; } = false;
-		
+
+		/// <summary>
+		/// Block wall password. Explicitly don't define this if you don't want the block wall to appear.
+		/// </summary>
+		public string BlockWallPassword { get; set; } = "test.lol";
+
+		/// <summary>
+		/// A date that the block wall is active until (UTC)
+		/// </summary>
+		public DateTime? BlockWallActiveUntil { get; set; }
+
 		/// <summary>
 		/// True if React should be pre-rendered on pages.
 		/// </summary>

@@ -18,6 +18,7 @@ using Api.SocketServerLibrary;
 using Api.Permissions;
 using Microsoft.AspNetCore.Http;
 using Api.Themes;
+using Api.Startup;
 
 namespace Api.Pages
 {
@@ -289,6 +290,99 @@ namespace Api.Pages
 			writer.Write((byte)'}');
 			await writer.CopyToAsync(responseStream);
 			writer.Release();
+		}
+
+		/// <summary>
+		/// Generated block page (it's always the same).
+		/// </summary>
+		private List<DocumentNode> _blockPage;
+
+		/// <summary>
+		/// Typically only on stage. It's the same every time.
+		/// </summary>
+		/// <returns></returns>
+		private List<DocumentNode> GenerateBlockPage()
+		{
+			if (_blockPage != null)
+			{
+				return _blockPage;
+			}
+
+			var doc = new Document();
+			doc.Title = "Unpublished website";
+
+			// Charset must be within first 1kb of the header:
+			doc.Head.AppendChild(new DocumentNode("meta", true).With("charset", "utf-8"));
+			doc.Head.AppendChild(new DocumentNode("title").AppendChild(new TextNode(doc.Title)));
+
+			// Fail in style:
+			doc.Head.AppendChild(new DocumentNode("link").With("rel", "stylesheet").With("href", "https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css"));
+			doc.Head.AppendChild(new DocumentNode("style").AppendChild(new TextNode(
+				@"
+				body{background:#263238 !important; color: white;}
+				"
+			)));
+
+			var body = doc.Body;
+
+			var center = new DocumentNode("div").With("class", "d-flex justify-content-center align-items-center").With("style", "height:100vh");
+			body.AppendChild(center);
+
+			var container = new DocumentNode("div").With("class", "pwd-box");
+			center.AppendChild(container);
+
+			var header = new DocumentNode("h2");
+			header.AppendChild(new TextNode("Welcome! This site hasn't been published yet"));
+			container.AppendChild(header);
+
+			header = new DocumentNode("h4");
+			header.AppendChild(new TextNode("If you're a content owner, you can preview this site by entering the password below."));
+			container.AppendChild(header);
+
+			var form = new DocumentNode("form").With("action", "/").With("method", "GET").With("id", "content_pwd_form").With("class", "d-flex justify-content-center mt-5");
+			form.AppendChild(new DocumentNode("input").With("type", "password").With("id", "password"));
+			form.AppendChild(new DocumentNode("input").With("type", "submit").With("class", "btn btn-secondary ml-2").With("value", "Go"));
+
+			container.AppendChild(form);
+
+			body.AppendChild(new DocumentNode("script").With("type", "text/javascript").AppendChild(new TextNode(
+				@"
+				function setCookie(name,value,days) {
+					var expires = """";
+					if (days) {
+						var date = new Date();
+						date.setTime(date.getTime() + (days*24*60*60*1000));
+						expires = ""; expires = "" + date.toUTCString();
+
+					}
+					document.cookie = name + ""="" + (value || """")  + expires + ""; path=/"";
+				}
+				var pwd_form = document.getElementById('content_pwd_form');
+
+				pwd_form.onsubmit = function()
+				{
+					var password = document.getElementById('password').value;
+					setCookie(""protect"", password, 60);
+				};
+			"
+			)));
+
+			var flatNodes = doc.Flatten();
+
+			// Swap all the TextNodes for byte blocks.
+			for (var i = 0; i < flatNodes.Count; i++)
+			{
+				var node = flatNodes[i];
+
+				if (node is TextNode node1)
+				{
+					var bytes = System.Text.Encoding.UTF8.GetBytes(node1.TextContent);
+					flatNodes[i] = new RawBytesNode(bytes);
+				}
+			}
+
+			_blockPage = flatNodes;
+			return flatNodes;
 		}
 
 		/// <summary>
@@ -1183,13 +1277,15 @@ namespace Api.Pages
 		/// Generates the base HTML for the given site relative url.
 		/// </summary>
 		/// <param name="context"></param>
-		/// <param name="path"></param>
+		/// <param name="request"></param>
 		/// <param name="response"></param>
 		/// <param name="compress"></param>
-		/// <param name="searchQuery"></param>
 		/// <returns></returns>
-		public async ValueTask BuildPage(Context context, string path, Microsoft.AspNetCore.Http.QueryString searchQuery, HttpResponse response, bool compress = true)
+		public async ValueTask BuildPage(Context context, HttpRequest request, HttpResponse response, bool compress = true)
 		{
+			string path = request.Path;
+			Microsoft.AspNetCore.Http.QueryString searchQuery = request.QueryString;
+
 			response.ContentType = "text/html";
 			response.Headers["Cache-Control"] = "no-store";
 
@@ -1212,7 +1308,28 @@ namespace Api.Pages
 
 			var responseStream = response.Body;
 
-			List<DocumentNode> flatNodes = await RenderPage(context, pageAndTokens, path);
+			List<DocumentNode> flatNodes = null;
+
+			// If we have a block wall password set, and there either isn't a time limit or the limit is in the future, and the user is not an admin:
+			if (
+				_config.BlockWallPassword != null && 
+				(_config.BlockWallActiveUntil == null || _config.BlockWallActiveUntil.Value > DateTime.UtcNow) && 
+				(context.Role == null || !context.Role.CanViewAdmin)
+			)
+			{
+				// Cookie check - have they set the password cookie?
+				var cookie = request.Cookies["protect"];
+
+				if (string.IsNullOrEmpty(cookie) || cookie != _config.BlockWallPassword)
+				{
+					flatNodes = GenerateBlockPage();
+				}
+			}
+
+			if (flatNodes == null)
+			{
+				flatNodes = await RenderPage(context, pageAndTokens, path);
+			}
 
 			var outputStream = compress ? new GZipStream(responseStream, CompressionMode.Compress) : responseStream;
 

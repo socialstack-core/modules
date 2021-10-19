@@ -66,7 +66,7 @@ namespace Api.Pages
 		public async ValueTask CatchAllAdmin()
 		{
 			var context = await Request.GetContext();
-			await _htmlService.BuildPage(context, Request.Path, Request.QueryString, Response);
+			await _htmlService.BuildPage(context, Request, Response);
 		}
 		
 		/// <summary>
@@ -83,7 +83,7 @@ namespace Api.Pages
 			// Update the token:
 			context.SendToken(Response);
 
-			await _htmlService.BuildPage(context, Request.Path, Request.QueryString, Response);
+			await _htmlService.BuildPage(context, Request, Response);
 		}
 
 		/// <summary>
