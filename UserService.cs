@@ -12,6 +12,7 @@ using System.Reflection;
 using Api.Startup;
 using Org.BouncyCastle.Security;
 using System.Text;
+using Api.PasswordAuth;
 
 namespace Api.Users
 {
@@ -115,33 +116,9 @@ namespace Api.Users
 				
 				if(config.VerifyEmails)
 				{
-					// Send email now. The key is a hash of the user ID + registration date + verify.
-					var recipient = new Recipient(user)
-					{
-						CustomData = new EmailVerifyCustomData()
-						{
-							Token = EmailVerificationHash(user)
-						}
-					};
+					var token = await SendVerificationEmail(ctx, user);
 
-					var recipients = new List<Recipient>
-					{
-						recipient
-					};
-
-					if (_emails == null)
-					{
-						_emails = Services.Get<EmailTemplateService>();
-					}
-
-					if(!config.NoVerificationEmail)
-                    {
-						await _emails.SendAsync(
-							recipients,
-							"verify_email"
-						);
-					}
-
+					user.EmailVerifyToken = token;
 				}
 				
 				return user;
@@ -331,6 +308,93 @@ namespace Api.Users
 
 			return result;
 		}
+
+		/// <summary>
+		/// Send a verification email to the user.
+		/// </summary>
+		/// <param name="context"></param>
+		/// // <param name="user"></param>
+		/// <returns>The token sent to the user</returns>
+		public async ValueTask<string> SendVerificationEmail(Context context, User user)
+        {
+			var token = EmailVerificationHash(user);
+
+			// Send email now. The key is a hash of the user ID + registration date + verify.
+			var recipient = new Recipient(user)
+			{
+				CustomData = new EmailVerifyCustomData()
+				{
+					Token = token,
+					UserId = user.Id
+				}
+			};
+
+			var recipients = new List<Recipient>
+			{
+				recipient
+			};
+
+			if (_emails == null)
+			{
+				_emails = Services.Get<EmailTemplateService>();
+			}
+
+			await _emails.SendAsync(
+				recipients,
+				"verify_email"
+			);
+
+			var userChangeFields = GetChangeField("EmailVerifyToken");
+
+			if (await StartUpdate(context, user, DataOptions.IgnorePermissions))
+            {
+				user.EmailVerifyToken = token;
+
+				user.MarkChanged(userChangeFields);
+
+				user = await FinishUpdate(context, user);
+            }
+
+			return token;
+        }
+
+		/// <summary>
+		/// Verify the users email. If a password is supplied, the users password is also set.
+		/// </summary>
+		/// <param name="context"></param>
+		/// <param name="user"></param>
+		/// <param name="newPassword"></param>
+		/// <returns>The user</returns>
+		public async ValueTask<User> VerifyEmail(Context context, User user, string newPassword)
+        {
+			var userChangeFields = GetChangeField("Role");
+
+			if (await StartUpdate(context, user, DataOptions.IgnorePermissions))
+			{
+				if (!string.IsNullOrWhiteSpace(newPassword))
+				{
+					userChangeFields = userChangeFields.And("PasswordHash");
+				
+					var authService = Services.Get<PasswordAuthService>();
+				
+					await authService.EnforcePolicy(newPassword);
+
+					user.PasswordHash = PasswordStorage.CreateHash(newPassword);
+				}
+				
+				user.Role = Roles.Member.Id;
+
+				user.MarkChanged(userChangeFields);
+
+				user = await FinishUpdate(context, user);
+			}
+			else
+			{
+				user = null;
+			}
+
+			return user;
+        }
 	}
 
 }

@@ -13,5 +13,10 @@ namespace Api.Users
 		/// The secret token which is included in the button's URL.
 		/// </summary>
 		public string Token;
+
+		/// <summary>
+		/// The userId which is included in the button's URL.
+		/// </summary>
+		public uint UserId;
 	}
 }
