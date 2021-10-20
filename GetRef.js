@@ -29,7 +29,7 @@ function staticFile(ref, options, r){
 		url = '/en-admin' + url;
 	}
 	
-	url = (global.staticContentSource || global.contentSource || '') + url;
+	url = (global.staticContentSource || '') + url;
 	
 	if(options.url){
 		return url;
