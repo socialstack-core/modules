@@ -39,7 +39,7 @@ namespace Api.Users
 					Key = "verify_email",
 					BodyJson = "{\"module\":\"Email/Default\",\"content\":[{\"module\":\"Email/Centered\",\"data\":{}," +
 					"\"content\":\"An account was recently created with us. If this was you, click the following link to proceed:\"},"+
-					"{\"module\":\"Email/PrimaryButton\",\"data\":{\"label\":\"Verify my email address\",\"target\":\"/email-verify/{token}\"}}]}"
+					"{\"module\":\"Email/PrimaryButton\",\"data\":{\"label\":\"Verify my email address\",\"target\":\"/email-verify/${customData.userId}/${customData.token}\"}}]}"
 				},
 				new EmailTemplate()
                 {
