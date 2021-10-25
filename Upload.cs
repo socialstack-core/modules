@@ -208,6 +208,7 @@ namespace Api.Uploader
 		/// </summary>
 		/// <param name="sizeName"></param>
 		/// <param name="omitExt"></param>
+		/// <param name="altExtension"></param>
 		/// <returns></returns>
 		public string GetRelativePath(string sizeName, bool omitExt = false, string altExtension = null)
 		{
