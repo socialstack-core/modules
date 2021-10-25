@@ -204,8 +204,14 @@ namespace Api.ContentSync
 
 	}
 
+	/// <summary>
+	/// 
+	/// </summary>
 	public struct SyncStats
 	{
+		/// <summary>
+		/// 
+		/// </summary>
 		public int Downloaded;
 	}
 
