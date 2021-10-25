@@ -5,8 +5,8 @@ import * as dateTools from 'UI/Functions/DateTools';
 */
 const longMonths = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
 
-export default function FormatTime(date, format, noTime = false, delimiter = null){
-    if(!date){
+export default function FormatTime(date, format, noTime = false, delimiter = null, noDate = false){
+    if(!date || (noDate && noTime)){
         return '-';
     }
 	
@@ -34,14 +34,28 @@ export default function FormatTime(date, format, noTime = false, delimiter = nul
         minute = "0" + minute;
     }
     if(format == "us") {
-        return month + "/" + day + "/" + year + " " + hour + ":" + minute + " " + meridiem;
+        var dateString = "";
+
+        if(!noDate) {
+            dateString += month + "/" + day + "/" + year;
+        }
+        
+        if(!noTime) {
+            dateString += " " + hour + ":" + minute + " " + meridiem;
+        }
+
+        return dateString;
     }
     else if(format == "eu") {
         if(!delimiter) {
             delimiter = "-"
         }
 
-        var dateString = day + delimiter + month + delimiter + year;
+        var dateString = "";
+
+        if(!noDate) {
+            dateString += day + delimiter + month + delimiter + year;
+        }
         
         if(!noTime) {
             dateString += " " + hour + ":" + minute + " " + meridiem;
@@ -50,10 +64,30 @@ export default function FormatTime(date, format, noTime = false, delimiter = nul
         return dateString;
     }
     else if (format == "eu-readable") {
-        return day + " " + longMonths[month - 1] + " " + year;
+        var dateString = "";
+
+        if(!noDate) {
+            dateString += day + " " + longMonths[month - 1] + " " + year;
+        }
+        
+        if(!noTime) {
+            dateString += " " + hour + ":" + minute + " " + meridiem;
+        }
+
+        return dateString
     } 
     else {
         // Defaulting to Euro, even though its listed twice.
-        return day + "-" + month + "-" + year + " " + hour + ":" + minute + " " + meridiem;
+        var dateString = "";
+
+        if(!noDate) {
+            dateString += day + "-" + month + "-" + year
+        }
+        
+        if(!noTime) {
+            dateString += " " + hour + ":" + minute + " " + meridiem;
+        }
+
+        return dateString;
     }
 }
