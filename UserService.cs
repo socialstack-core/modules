@@ -21,7 +21,7 @@ namespace Api.Users
 	/// Manages user accounts.
 	/// Instanced automatically. Use injection to use this service, or Startup.Services.Get.
 	/// </summary>
-	public class UserService : AutoService<User>
+	public partial class UserService : AutoService<User>
     {
         private EmailTemplateService _emails;
 		
