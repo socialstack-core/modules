@@ -56,8 +56,6 @@ export default function (e, options) {
 		// Map the values:
 		values = options.onValues(values, e);
 	}
-
-	var html = document.querySelector("html");
 	
 	// Resolve the values. This permits onValues to do async logic:
 	Promise.resolve(values).then(values => {
@@ -72,19 +70,11 @@ export default function (e, options) {
 			options.onSuccess && options.onSuccess({formHasNoAction: true, ...values}, values, e);
 			return;
 		}
-
-		if (html) {
-			html.style.cursor = "wait";
-		}
-
+		
 		// Send it off now:
 		return webRequest(action, values, options.requestOpts).then(
 			response => {
-
-				if (html) {
-					html.style.cursor = "pointer";
-				}
-
+				
 				if (response.ok) {
 					// How successful was it? (Did we get a 200 response?)
 					// NB: Run success last and after a small delay 
@@ -102,11 +92,7 @@ export default function (e, options) {
 		
 	}).catch(err => {
 		console.log(err);
-
-		if (html) {
-			html.style.cursor = "pointer";
-		}
-
+		
 		options.onFailed && options.onFailed(err);
 	});
 	
