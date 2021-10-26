@@ -63,6 +63,21 @@ namespace Api.ContentSync
 		/// </summary>
 		[DatabaseField(Length=80)]
 		public string HostName;
+		
+		/// <summray>
+		/// Socialstack server type. Often 0 if undeclared.
+		/// </summary>
+		public uint ServerTypeId;
+		
+		/// <summray>
+		/// Socialstack host platform ID. Often 0 if undeclared.
+		/// </summary>
+		public uint HostPlatformId;
+		
+		/// <summray>
+		/// Socialstack region ID for a given host platform.
+		/// </summary>
+		public uint RegionId;
 
 	}
 

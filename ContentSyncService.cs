@@ -425,6 +425,30 @@ namespace Api.ContentSync
 					"Doing so wastes server IDs and will in turn make your site assign large ID values unnecessarily.");
 			}
 
+			uint regionId = 0;
+			uint serverTypeId = 0;
+			uint hostPlatformId = 0;
+
+			// Check for platform.json to obtain region etc:
+			var root = Directory.GetDirectoryRoot(Directory.GetCurrentDirectory());
+
+			var platformJson = root + "platform.json";
+
+			try
+			{
+				var rawJson = File.ReadAllText(platformJson);
+
+				var platformJsonContent = JsonConvert.DeserializeObject<PlatformJsonFile>(rawJson);
+
+				regionId = platformJsonContent.Region;
+				serverTypeId = platformJsonContent.Type;
+				hostPlatformId = platformJsonContent.Host;
+			}
+			catch
+			{
+				// File didn't exist or we can't read it - this is fine to just completely ignore.
+			}
+
 			var ips = await IpDiscovery.Discover();
 
 			if (self == null)
@@ -433,7 +457,10 @@ namespace Api.ContentSync
 				{
 					Port = Port,
 					HostName = HostName,
-					Environment = env
+					Environment = env,
+					RegionId = regionId,
+					ServerTypeId = serverTypeId,
+					HostPlatformId = hostPlatformId
 				};
 
 				ips.CopyTo(self);
@@ -443,7 +470,7 @@ namespace Api.ContentSync
 				await _clusteredServerService.Create(ctx, self, DataOptions.IgnorePermissions);
 
 			}
-			else if (ips.ChangedSince(self) || self.Environment != env)
+			else if (ips.ChangedSince(self) || self.Environment != env || self.RegionId != regionId || self.ServerTypeId != serverTypeId || self.HostPlatformId != hostPlatformId)
 			{
 				// It changed - update it:
 				var ipsAndEnvironmentFields = _clusteredServerService.GetChangeField("Environment")
@@ -453,6 +480,9 @@ namespace Api.ContentSync
 
 					ips.CopyTo(cs);
 					cs.Environment = env;
+					cs.RegionId = regionId;
+					cs.ServerTypeId = serverTypeId;
+					cs.HostPlatformId = hostPlatformId;
 					cs.MarkChanged(ipsAndEnvironmentFields);
 
 				},DataOptions.IgnorePermissions);
@@ -1889,5 +1919,28 @@ namespace Api.ContentSync
 			// Release the message:
 			remoteType.Release();
 		}
+	}
+
+	/// <summary>
+	/// The platform JSON file.
+	/// </summary>
+	public class PlatformJsonFile
+	{
+
+		/// <summary>
+		/// The server region ID.
+		/// </summary>
+		public uint Region { get; set; }
+
+		/// <summary>
+		/// The server host ID.
+		/// </summary>
+		public uint Host { get; set; }
+
+		/// <summary>
+		/// The server type ID.
+		/// </summary>
+		public uint Type { get; set; }
+
 	}
 }
