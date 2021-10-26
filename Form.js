@@ -106,6 +106,14 @@ export default class Form extends React.Component {
 		var showFormResponse = !!(loadingMessage || submitLabel || failedMessage);
 		var submitDisabled = this.state.loading || (submitEnabled !== undefined && submitEnabled != true);
 		
+		var apiUrl = global.apiHost || '';
+		
+		if(!apiUrl.endsWith('/')){
+			apiUrl += '/';
+		}
+		
+		apiUrl += 'v1/';
+		
 		return (
 			<form
 				onSubmit={this.onSubmit}
@@ -116,7 +124,7 @@ export default class Form extends React.Component {
 					}
 					this.props.formRef && this.props.formRef(f);
 				}}
-				action={(global.apiHost || '') + '/v1/' + action}
+				action={apiUrl + action}
 				method={this.props.method || "post"}
 				{...(omit(this.props, ['action', 'method', 'onSuccess', 'onFailed', 'onValues', 'children', 'locale']))}
 			>
