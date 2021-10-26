@@ -172,7 +172,15 @@ function lazyLoad(url){
 export { expandIncludes, lazyLoad };
 
 export default function webRequest(origUrl, data, opts) {
-	var url = (origUrl.indexOf('http') === 0 || origUrl[0] == '/') ? origUrl : (global.apiHost || '') + '/v1/' + origUrl;
+	var apiUrl = global.apiHost || '';
+	
+	if(!apiUrl.endsWith('/')){
+		apiUrl += '/';
+	}
+	
+	apiUrl += 'v1/';
+	
+	var url = (origUrl.indexOf('http') === 0 || origUrl[0] == '/') ? origUrl : apiUrl + origUrl;
 	
 	return new Promise((success, reject) => {
 		_fetch(url, data, opts).then(response => {
