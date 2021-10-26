@@ -67,8 +67,13 @@ export default class Uploader extends React.Component {
 		};
 		
 		var ep = this.props.endpoint || "upload/create";
+		var apiUrl = global.ingestUrl || global.apiHost || '';
+		if(!apiUrl.endsWith('/')){
+			apiUrl += '/';
+		}
+		apiUrl += 'v1/';
 		
-		xhr.open('PUT', global.ingestUrl ? global.ingestUrl + 'v1/' + ep : ((global.apiHost || '') + '/v1/' + ep), true);
+		xhr.open('PUT', apiUrl + ep, true);
 		xhr.setRequestHeader("Content-Name", file.name);
 		xhr.send(file);
 	}
