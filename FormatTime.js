@@ -5,7 +5,7 @@ import * as dateTools from 'UI/Functions/DateTools';
 */
 const longMonths = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
 
-export default function FormatTime(date, format, noTime = false, delimiter = null, noDate = false){
+export default function FormatTime(date, format, noTime = false, delimiter = null, noDate = false, isHtml = false){
     if(!date || (noDate && noTime)){
         return '-';
     }
@@ -41,7 +41,17 @@ export default function FormatTime(date, format, noTime = false, delimiter = nul
         }
         
         if(!noTime) {
+
+            if (isHtml) {
+                dateString += "<time>";
+            }
+
             dateString += " " + hour + ":" + minute + " " + meridiem;
+
+            if (isHtml) {
+                dateString += "</time>";
+            }
+
         }
 
         return dateString;
@@ -58,7 +68,17 @@ export default function FormatTime(date, format, noTime = false, delimiter = nul
         }
         
         if(!noTime) {
+
+            if (isHtml) {
+                dateString += "<time>";
+            }
+
             dateString += " " + hour + ":" + minute + " " + meridiem;
+
+            if (isHtml) {
+                dateString += "</time>";
+            }
+
         }
 
         return dateString;
@@ -71,10 +91,20 @@ export default function FormatTime(date, format, noTime = false, delimiter = nul
         }
         
         if(!noTime) {
+
+            if (isHtml) {
+                dateString += "<time>";
+            }
+
             dateString += " " + hour + ":" + minute + " " + meridiem;
+
+            if (isHtml) {
+                dateString += "</time>";
+            }
+
         }
 
-        return dateString
+        return dateString;
     } 
     else {
         // Defaulting to Euro, even though its listed twice.
@@ -85,7 +115,17 @@ export default function FormatTime(date, format, noTime = false, delimiter = nul
         }
         
         if(!noTime) {
+
+            if (isHtml) {
+                dateString += "<time>";
+            }
+
             dateString += " " + hour + ":" + minute + " " + meridiem;
+
+            if (isHtml) {
+                dateString += "</time>";
+            }
+
         }
 
         return dateString;
