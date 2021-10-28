@@ -5,6 +5,21 @@ import * as dateTools from 'UI/Functions/DateTools';
 */
 const longMonths = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
 
+function ordinal_suffix_of(i) {
+    var j = i % 10,
+        k = i % 100;
+    if (j == 1 && k != 11) {
+        return i + "st";
+    }
+    if (j == 2 && k != 12) {
+        return i + "nd";
+    }
+    if (j == 3 && k != 13) {
+        return i + "rd";
+    }
+    return i + "th";
+}
+
 export default function FormatTime(date, format, noTime = false, delimiter = null, noDate = false, isHtml = false){
     if(!date || (noDate && noTime)){
         return '-';
@@ -87,7 +102,7 @@ export default function FormatTime(date, format, noTime = false, delimiter = nul
         var dateString = "";
 
         if(!noDate) {
-            dateString += day + " " + longMonths[month - 1] + " " + year;
+            dateString += ordinal_suffix_of(day) + " " + longMonths[month - 1] + " " + year;
         }
         
         if(!noTime) {
