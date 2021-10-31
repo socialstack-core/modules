@@ -70,6 +70,7 @@ export default class Uploader extends React.Component {
 		
 		xhr.open('PUT', global.ingestUrl ? global.ingestUrl + 'v1/' + ep : ((global.apiHost || '') + '/v1/' + ep), true);
 		xhr.setRequestHeader("Content-Name", file.name);
+		xhr.setRequestHeader("Private-Upload", this.props.isPrivate ? '1' : '0');
 		xhr.send(file);
 	}
 
