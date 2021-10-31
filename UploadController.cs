@@ -53,7 +53,9 @@ namespace Api.Uploader
 			var upload = await (_service as UploadService).Create(
 				context,
 				fileName,
-				tempFile
+				tempFile,
+				null,
+				body.IsPrivate
 			);
 
 			if (upload == null)
@@ -85,6 +87,15 @@ namespace Api.Uploader
 				throw new PublicException("Content-Name header should be a filename with the type.", "invalid_name");
 			}
 
+			var isPrivate = false;
+
+			if (Request.Headers.TryGetValue("Private-Upload", out StringValues privateState))
+			{
+				var privState = privateState.ToString().ToLower().Trim();
+
+				isPrivate = privState == "true" || privState == "1" || privState == "yes";
+			}
+			
 			var context = await Request.GetContext();
 			
 			// The stream for the actual file is just the entire body:
@@ -100,7 +111,9 @@ namespace Api.Uploader
 			var upload = await (_service as UploadService).Create(
 				context,
 				fileName,
-				tempFile
+				tempFile,
+				null,
+				isPrivate
 			);
 
 			if (upload == null)

@@ -103,7 +103,18 @@ namespace Api.Uploader
 		/// </summary>
 		public string GetFilePath(string sizeName, bool omitExt = false)
         {
-            return AppSettings.Configuration[IsPrivate ? "ContentPrivate" : "Content"] + GetRelativePath(sizeName, omitExt);
+			string basePath;
+
+			if (IsPrivate)
+			{
+				basePath = "Content/content-private/";
+			}
+			else
+			{
+				basePath = "Content/content/";
+			}
+
+			return basePath + GetRelativePath(sizeName, omitExt);
         }
 
 		/// <summary>
@@ -195,12 +206,27 @@ namespace Api.Uploader
 		}
 
 		/// <summary>
-		/// Gets the file path of this ref.
+		/// Gets the file path of this ref. Null if it is not a file ref.
 		/// </summary>
 		/// <returns></returns>
 		public string GetFilePath(string sizeName, string altExtension = null)
 		{
-			return AppSettings.Configuration[Scheme == "private" ? "ContentPrivate" : "Content"] + GetRelativePath(sizeName, false, altExtension);
+			string basePath;
+
+			if (Scheme == "private")
+			{
+				basePath = "Content/content-private/";
+			}
+			else if (Scheme == "public")
+			{
+				basePath = "Content/content/";
+			}
+			else
+			{
+				return null;
+			}
+
+			return basePath + GetRelativePath(sizeName, false, altExtension);
 		}
 
 		/// <summary>

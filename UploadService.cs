@@ -179,6 +179,24 @@ namespace Api.Uploader
 		}
 
 		/// <summary>
+		/// Gets the file bytes of the given ref, if it is a file ref. Supports remote filesystems as well.
+		/// </summary>
+		/// <param name="fileRef"></param>
+		/// <param name="sizeName"></param>
+		/// <param name="altExtension"></param>
+		/// <returns></returns>
+		public ValueTask<byte[]> GetFileBytes(string fileRef, string sizeName = "original", string altExtension = null)
+		{
+			var refMeta = FileRef.Parse(fileRef);
+
+			var path = refMeta.GetFilePath(sizeName, altExtension);
+
+			var result = File.ReadAllBytes(path);
+
+			return new ValueTask<byte[]>(result);
+		}
+
+		/// <summary>
 		/// Gets an upload by its ref.
 		/// </summary>
 		/// <param name="context"></param>
@@ -346,9 +364,10 @@ namespace Api.Uploader
 		/// <param name="context"></param>
 		/// <param name="fileName">The contents of the file. The name is used to get the filetype.</param>
 		/// <param name="tempFilePath">The contents of the file.</param>
+		/// <param name="privateUpload">True if this is a private upload.</param>
 		/// <param name="sizes">The list of sizes, in pixels, to use if it's an image. These are width values. Optional.</param>
 		/// <returns>Throws exceptions if it failed. Otherwise, returns the information about the file.</returns>
-		public async Task<Upload> Create(Context context, string fileName, string tempFilePath, int[] sizes = null)
+		public async Task<Upload> Create(Context context, string fileName, string tempFilePath, int[] sizes = null, bool privateUpload = false)
         {
             if (tempFilePath == null || string.IsNullOrEmpty(fileName))
             {
@@ -370,6 +389,7 @@ namespace Api.Uploader
 			var result = new Upload()
 			{
 				OriginalName = fileName,
+				IsPrivate = privateUpload,
 				FileType = fileType,
 				UserId = context.UserId,
 				CreatedUtc = DateTime.UtcNow,

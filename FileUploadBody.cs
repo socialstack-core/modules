@@ -12,5 +12,10 @@ namespace Api.Uploader
 		/// The file being uploaded.
 		/// </summary>
         public IFormFile File { get; set; }
+
+        /// <summary>
+        /// True if this is a private upload.
+        /// </summary>
+        public bool IsPrivate { get; set; }
     }
 }

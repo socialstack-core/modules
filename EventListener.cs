@@ -187,19 +187,8 @@ namespace Api.Uploader
 		
 		private string SetupDirectory(bool priv)
 		{
-			var settingName = priv ? "ContentPrivate" : "Content";
-			var contentPath = AppSettings.Configuration[settingName];
-
-			if (string.IsNullOrEmpty(contentPath))
-			{
-				throw new Exception(
-					"You're missing the '" + settingName + 
-					"' configuration setting in your appsettings.json. " +
-					"This is the path to your content directory which will hold uploads. " +
-					"It's usually (public) 'Content/content' or (private) 'Content/content-private' by default. "
-				);
-			}
-
+			var contentPath = priv ? "Content/content-private/" : "Content/content/";
+			
 			contentPath = Path.GetFullPath(contentPath);
 
 			if (!Directory.Exists(contentPath))
