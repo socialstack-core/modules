@@ -300,6 +300,13 @@ $ss_mobileLarge: map-get($ss_mobile, large);
   }
 }
 
+@mixin mq_mobileMediumUp {
+  $from: map-get($ss_mobileMedium, from);
+  @media (min-width: #{$from}) {
+    @content;
+  }
+}
+
 // mobile MQ (large)
 @mixin mq_mobileLarge {
   $from: map-get($ss_mobileLarge, from);
@@ -322,6 +329,13 @@ $ss_mobileLarge: map-get($ss_mobile, large);
   $from: map-get($ss_mobileLarge, from);
   $to: map-get($ss_mobileLarge, to);
   @media (min-height: #{$from}) and (max-height: #{$to}) and (pointer: coarse) and (orientation: landscape) {
+    @content;
+  }
+}
+
+@mixin mq_mobileLargeUp {
+  $from: map-get($ss_mobileLarge, from);
+  @media (min-width: #{$from}) {
     @content;
   }
 }
