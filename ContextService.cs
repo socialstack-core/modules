@@ -298,20 +298,21 @@ namespace Api.Contexts
 						// Localhost - Can't use localhost:AppSettings.GetInt32("Port", 5000) because the websocket request would omit the cookie.
 						return null;
 					#else
-					_domain = Services.Get<FrontendCodeService>().GetPublicUrl().Replace("https://", "").Replace("http://", "");
-					if (_domain.StartsWith("www."))
+					var domain = Services.Get<FrontendCodeService>().GetPublicUrl().Replace("https://", "").Replace("http://", "");
+					if (domain.StartsWith("www."))
 					{
-						_domain = _domain.Substring(4);
+						domain = domain.Substring(4);
 					}
 					
-					var fwdSlash = _domain.IndexOf('/');
+					var fwdSlash = domain.IndexOf('/');
 					
 					if(fwdSlash != -1)
 					{
 						// Trim everything else off:
-						_domain = _domain.Substring(0, fwdSlash);
+						domain = domain.Substring(0, fwdSlash);
 					}
 					
+					_domain = domain;
 					#endif
 				}
 			}
