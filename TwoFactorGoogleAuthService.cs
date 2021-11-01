@@ -10,7 +10,7 @@ using Api.Permissions;
 using System;
 using System.Text;
 using Microsoft.Extensions.Configuration;
-
+using Api.CanvasRenderer;
 
 namespace Api.TwoFactorGoogleAuth
 {
@@ -27,18 +27,17 @@ namespace Api.TwoFactorGoogleAuth
 		/// <summary>
 		/// Instanced automatically. Use injection to use this service, or Startup.Services.Get.
 		/// </summary>
-		public TwoFactorGoogleAuthService(UserService _users, RoleService _roles)
+		public TwoFactorGoogleAuthService(UserService _users, RoleService _roles, FrontendCodeService _frontend)
         {
 			_ga = new GoogleAuthenticator();
-			config = AppSettings.GetSection("TwoFactorAuth").Get<TwoFactorAuthConfig>();
-
+			config = GetConfig<TwoFactorAuthConfig>();
+			
 			if (config == null)
 			{
 				config = new TwoFactorAuthConfig();
 			}
-
-
-			siteUrl = AppSettings.Configuration["PublicUrl"].Replace("https:", "").Replace("http:", "").Replace("/", "");
+			
+			siteUrl = _frontend.GetPublicUrl().Replace("https:", "").Replace("http:", "").Replace("/", "");
 
 			// Hook up to the UserOnAuthenticate event:
 			Events.UserOnAuthenticate.AddEventListener(async (Context context, LoginResult result, UserLogin loginDetails) => {
