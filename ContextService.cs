@@ -4,6 +4,7 @@ using System.IO;
 using System.Reflection;
 using System.Text;
 using System.Threading.Tasks;
+using Api.CanvasRenderer;
 using Api.Configuration;
 using Api.Database;
 using Api.Eventing;
