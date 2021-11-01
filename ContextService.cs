@@ -279,6 +279,7 @@ namespace Api.Contexts
 		/// Cookie domain
 		/// </summary>
 		private static string _domain = null;
+		
 		/// <summary>
 		/// Cookie domain to use
 		/// </summary>
@@ -294,10 +295,10 @@ namespace Api.Contexts
 				else
 				{
 					#if DEBUG
-						// Localhost
+						// Localhost - Can't use localhost:AppSettings.GetInt32("Port", 5000) because the websocket request would omit the cookie.
 						return null;
 					#else
-					_domain = AppSettings.Configuration["PublicUrl"].Replace("https://", "").Replace("http://", "");
+					_domain = Services.Get<FrontendCodeService>().GetPublicUrl().Replace("https://", "").Replace("http://", "");
 					if (_domain.StartsWith("www."))
 					{
 						_domain = _domain.Substring(4);
