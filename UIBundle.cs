@@ -1,7 +1,9 @@
 ﻿using Api.Configuration;
 using Api.Contexts;
 using Api.Eventing;
+using Api.Pages;
 using Api.Permissions;
+using Api.Startup;
 using Api.Translate;
 using Microsoft.ClearScript;
 using Microsoft.ClearScript.V8;
@@ -129,7 +131,7 @@ namespace Api.CanvasRenderer
 		/// Creates a new bundle for the given filesystem path.
 		/// </summary>
 		public UIBundle(
-			string rootPath, string packDir, TranslationService translations, LocaleService locales, V8ScriptEngine buildEngine, GlobalSourceFileMap globalFileMap, bool minify)
+			string rootPath, string packDir, TranslationService translations, LocaleService locales, FrontendCodeService frontend, V8ScriptEngine buildEngine, GlobalSourceFileMap globalFileMap, bool minify)
 		{
 			RootName = rootPath;
 			RootPath = Path.GetFullPath(rootPath);
@@ -140,6 +142,7 @@ namespace Api.CanvasRenderer
 			_localeService = locales;
 			Minified = minify;
 			PackDir = packDir;
+			_frontend = frontend;
 
 			TransformOptions = new TransformOptions() {
 				minified = minify
@@ -149,13 +152,14 @@ namespace Api.CanvasRenderer
 		/// <summary>
 		/// Creates a new bundle for the given filesystem path.
 		/// </summary>
-		public UIBundle(string rootPath, string packDir, TranslationService translations, LocaleService locales)
+		public UIBundle(string rootPath, string packDir, TranslationService translations, LocaleService locales, FrontendCodeService frontend)
 		{
 			RootName = rootPath;
 			RootPath = Path.GetFullPath(rootPath);
 			SourcePath = Path.GetFullPath(rootPath + "/Source");
 			_translationService = translations;
 			_localeService = locales;
+			_frontend = frontend;
 			Prebuilt = true;
 			PackDir = packDir;
 		}
@@ -1127,6 +1131,8 @@ namespace Api.CanvasRenderer
 		/// </summary>
 		private string _publicPath;
 
+		private FrontendCodeService _frontend;
+
 		/// <summary>
 		/// Fully qualifies the given url. It MUST always be absolute, i.e. starting with a /.
 		/// </summary>
@@ -1136,7 +1142,7 @@ namespace Api.CanvasRenderer
 		{
 			if (_publicPath == null)
 			{
-				var pubUrl = AppSettings.Configuration["PublicUrl"];
+				var pubUrl = _frontend.GetPublicUrl();
 
 				if (string.IsNullOrEmpty(pubUrl))
 				{

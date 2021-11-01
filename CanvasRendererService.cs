@@ -35,8 +35,8 @@ namespace Api.CanvasRenderer
 			_frontendService = frontend;
 			_contextService = contexts;
 			_configService = config;
-
-			publicOrigin = AppSettings.Configuration["PublicUrl"];
+			
+			publicOrigin = frontend.GetPublicUrl();
 
 			Events.Translation.AfterUpdate.AddEventListener((Context context, Translation translation) => {
 

@@ -39,6 +39,20 @@ namespace Api.CanvasRenderer
 		private ContentSyncService _contentSync;
 
 		/// <summary>
+		/// The site public URL. Never ends with a path - always just the origin and scheme, e.g. https://www.example.com
+		/// </summary>
+		/// <returns></returns>
+		public string GetPublicUrl()
+		{
+			if (!string.IsNullOrEmpty(_config.PublicUrl))
+			{
+				return _config.PublicUrl;
+			}
+
+			return AppSettings.Configuration["PublicUrl"];
+		}
+		
+		/// <summary>
 		/// Generates the ws url.
 		/// </summary>
 		/// <returns></returns>
@@ -58,7 +72,7 @@ namespace Api.CanvasRenderer
 				}
 				else
 				{
-					var pUrl = AppSettings.Configuration["PublicUrl"].Replace("http", "ws");
+					var pUrl = GetPublicUrl().Replace("http", "ws");
 
 					if (pUrl.EndsWith('/'))
 					{
@@ -139,9 +153,9 @@ namespace Api.CanvasRenderer
 				{
 					Console.WriteLine("Running in prebuilt mode. *Not* watching your files for changes.");
 					try{
-						AddBuilder(UIBuilder = new UIBundle("UI", "/pack/", translations, locales) { CssPrepend = cssVariables });
-						AddBuilder(EmailBuilder = new UIBundle("Email", "/pack/email-static/", translations, locales) { FilePathOverride = "/pack/" });
-						AddBuilder(AdminBuilder = new UIBundle("Admin", "/en-admin/pack/", translations, locales));
+						AddBuilder(UIBuilder = new UIBundle("UI", "/pack/", translations, locales, this) { CssPrepend = cssVariables });
+						AddBuilder(EmailBuilder = new UIBundle("Email", "/pack/email-static/", translations, locales, this) { FilePathOverride = "/pack/" });
+						AddBuilder(AdminBuilder = new UIBundle("Admin", "/en-admin/pack/", translations, locales, this));
 					}catch(Exception e){
 						Console.WriteLine("[SEVERE] " + e.ToString());
 					}
@@ -157,9 +171,9 @@ namespace Api.CanvasRenderer
 					var minify = _config.Minified;
 
 					// Create a group of build/watchers for each bundle of files (all in parallel):
-					AddBuilder(UIBuilder = new UIBundle("UI", "/pack/", translations, locales, engine, globalMap, minify) { CssPrepend = cssVariables });
-					AddBuilder(EmailBuilder = new UIBundle("Email", "/pack/email-static/", translations, locales, engine, globalMap, minify));
-					AddBuilder(AdminBuilder = new UIBundle("Admin", "/en-admin/pack/", translations, locales, engine, globalMap, minify));
+					AddBuilder(UIBuilder = new UIBundle("UI", "/pack/", translations, locales, this, engine, globalMap, minify) { CssPrepend = cssVariables });
+					AddBuilder(EmailBuilder = new UIBundle("Email", "/pack/email-static/", translations, locales, this, engine, globalMap, minify));
+					AddBuilder(AdminBuilder = new UIBundle("Admin", "/en-admin/pack/", translations, locales, this, engine, globalMap, minify));
 
 					// Sort global map:
 					globalMap.Sort();
