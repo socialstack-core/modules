@@ -20,7 +20,14 @@ namespace Api.Configuration
         /// </summary>
         [DatabaseField(Length = 200)]
 		public string Name;
-		
+
+		/// <summary>
+		/// If this is set, this configuration applies to the specified comma separated environments. It is completely ignored otherwise.
+		/// Valid environments are typically "dev", "stage" and "prod" (but it ultimately derives from whatever is in your appsettings.json "Environment" field).
+		/// </summary>
+		[DatabaseField(Length = 100)]
+		public string Environments;
+
 		/// <summary>
         /// The key that things use to identify this config. Usually the same as the English name but without spaces.
         /// </summary>
