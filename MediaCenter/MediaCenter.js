@@ -288,6 +288,7 @@ export default class MediaCenter extends React.Component {
 				<Row style={{marginBottom: '10px'}}>
 					<Col>
 						<Uploader onUploaded={() => window.location.reload(true)}/>
+							{/*<Uploader onUploaded={() => window.location.reload(true)} isPrivate />*/}
 					</Col>
 					<Col>
 						{searchFields && (
