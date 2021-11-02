@@ -1,4 +1,5 @@
 ﻿using System;
+using Api.Configuration;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
@@ -8,7 +9,7 @@ namespace Api.Emails
 	/// <summary>
 	/// The appsettings.json config block for email config.
 	/// </summary>
-    public class EmailConfig
+    public class EmailConfig : Config
     {
         /// <summary>
         ///  Scope for multiple sending addresses.

@@ -46,7 +46,7 @@ namespace Api.Emails
 		{
 			_users = users;
 			_canvasRendererService = canvasRendererService;
-			_configuration = AppSettings.GetSection("Email").Get<EmailConfig>();
+			_configuration = GetConfig<EmailConfig>();
 			
 			InstallAdminPages("Emails", "fa:fa-paper-plane", new string[] { "id", "name", "key" });
 			
