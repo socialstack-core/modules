@@ -459,36 +459,74 @@ namespace Api.Configuration
 		}
 
 		/// <summary>
-		/// Gets config from the cache via the given key.
+		/// Gets config from the cache via the given key. Note that this actively omits entries from other environments.
 		/// </summary>
 		/// <param name="key"></param>
 		/// <returns></returns>
-		public IndexEnum<Configuration> AllFromCache(string key)
+		public List<Configuration> AllFromCache(string key)
 		{
+			var set = new List<Configuration>();
+
 			var cache = GetCacheForLocale(1);
 			if (cache == null)
 			{
-				return default(IndexEnum<Configuration>);
+				return set;
 			}
 
 			var keyIndex = cache.GetIndex<string>("Key") as NonUniqueIndex<Configuration, string>;
-			return keyIndex.GetEnumeratorFor(key);
-		}
+			var loop = keyIndex.GetEnumeratorFor(key);
+			var thisEnvironment = Services.Environment;
 
+			while (loop.HasMore())
+			{
+				var current = loop.Current();
+
+				if (!string.IsNullOrEmpty(current.Environments))
+				{
+					// Must contain the current environment.
+					var environmentSet = current.Environments.ToLower().Split(',');
+					var matched = false;
+
+					for (var i = 0; i < environmentSet.Length; i++)
+					{
+						var checkWith = environmentSet[i].Trim();
+
+						if (thisEnvironment == checkWith)
+						{
+							matched = true;
+							break;
+						}
+					}
+
+					if (!matched)
+					{
+						// Skip this config.
+						continue;
+					}
+				}
+
+				set.Add(current);
+			}
+
+			return set;
+		}
+		
 		/// <summary>
-		/// Gets config from the cache via the given key.
+		/// Gets config from the cache via the given key. Note that this actively omits entries from other environments.
 		/// </summary>
 		/// <param name="key"></param>
 		/// <returns></returns>
 		public Configuration FromCache(string key)
 		{
-			var loop = AllFromCache(key);
-			Configuration latest = null;
-			while (loop.HasMore())
+			var set = AllFromCache(key);
+
+			if (set.Count > 0)
 			{
-				latest = loop.Current();
+				// Last one:
+				return set[set.Count - 1];
 			}
-			return latest;
+
+			return null;
 		}
 	}
     

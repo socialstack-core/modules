@@ -59,11 +59,10 @@ public partial class AutoService
 				name = name.Substring(0, name.Length - 13);
 			}
 			
-			var loop = configService.AllFromCache(name);
+			var allConfig = configService.AllFromCache(name);
 
-			while (loop.HasMore())
+			foreach(var entry in allConfig)
 			{
-				var entry = loop.Current();
 				try
 				{
 					var res = Newtonsoft.Json.JsonConvert.DeserializeObject<T>(entry.ConfigJson);
