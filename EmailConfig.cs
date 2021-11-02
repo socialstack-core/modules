@@ -11,10 +11,12 @@ namespace Api.Emails
 	/// </summary>
     public class EmailConfig : Config
     {
-        /// <summary>
-        ///  Scope for multiple sending addresses.
-        /// </summary>
-        public Dictionary<string, EmailAccount> Accounts { get; set; }
+		/// <summary>
+		///  Scope for multiple sending addresses.
+		/// </summary>
+		public Dictionary<string, EmailAccount> Accounts { get; set; } = new Dictionary<string, EmailAccount>() {
+			{ "default", new EmailAccount(){ } }
+		};
     }
 
 	/// <summary>
