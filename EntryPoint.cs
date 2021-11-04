@@ -136,7 +136,7 @@ namespace Api.Startup
 						options.ListenUnixSocket(apiSocketFile);
 					}
 
-					options.Limits.MaxRequestBodySize = AppSettings.GetInt64("MaxBodySize", 512000000); // 512MB by default
+					options.Limits.MaxRequestBodySize = AppSettings.GetInt64("MaxBodySize", 5120000000); // 5G by default
 
 					// Fire event so modules can also configure Kestrel:
 					OnConfigureKestrel?.Invoke(options);
