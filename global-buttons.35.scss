@@ -23,8 +23,7 @@ input {
             //@include focus_styling;
             cursor: pointer;
             //pointer-events: none;
-            //box-shadow: 0 0 0 0.2rem rgba($theme_primary_btn_bg, .5);
-            box-shadow: 0 0 0 0.2rem rgba($theme_secondary_btn_bg, .5);
+            box-shadow: 0 0 0 0.2rem var(--secondary-shadow);
         }
 
         ~ .upload-limit {

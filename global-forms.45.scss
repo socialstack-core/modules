@@ -5,83 +5,17 @@
 // standard chevron icon (used on restyled select dropdown controls)
 $dropdown_svg: 'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="101" height="34"><path d="M28.989 34c-1.1 0-2.1-.4-2.9-1.2l-25-26C.389 6-.011 5-.011 4c0-1.1.4-2.1 1.2-2.9 1.6-1.5 4.1-1.5 5.7.1l22.1 23 22.1-23c1.5-1.6 4.1-1.6 5.7-.1 1.6 1.5 1.6 4.1.1 5.7l-25 26c-.8.8-1.8 1.2-2.9 1.2z" fill="%23000000"/></svg>';
 
-@mixin input_field_placeholder() {
-    /* NB: placeholder only supports the following properties:
-        font properties
-        color
-        background properties
-        word-spacing
-        letter-spacing
-        text-decoration
-        vertical-align
-        text-transform
-        line-height
-        text-indent
-        opacity
-    */
-    color: $ss_form_field_placeholder !important;
-    font-weight: $ss_form_field_placeholder_weight;
-    font-style: $ss_form_field_placeholder_style;
-    line-height: 1.3;
-}
-
-@mixin input_field_styling($font_size: $ss_form_field_font_size) {
-    /*
-    @include font_size($font_size);
-    @include border_radius($ss_form_field_border_radius);
-    background-color: $ss_form_field_bg;
-    color: $ss_form_field_fg;
-    border: $ss_form_field_border;
-    font-family: $ss_form_field_font_family;
-    font-weight: $ss_form_field_font_weight;
-    height: auto;
-    //transition: all 0.2s ease-in-out;
-    &:hover {
-    }
-
-    &:focus {
-    }
-    */
-}
-
 .form-group {
     // see ThirdParty/Input - used when optionally providing an icon class
     .input-wrapper {
         display: flex;
         align-items: center;
-
+		
         input + i {
-            @include font_size($ss_form_field_icon_size);
             @include margin(0, 0, 0, 16);
-            color: $ss_form_field_icon;
         }
     }
 }
-
-/*
-select.form-control,
-select.form-select,
-.date-time-picker select {
-    //line-height: 1.3;
-    //display: inline-block;
-    box-sizing: border-box;
-    -moz-appearance: none;
-    -webkit-appearance: none;
-    appearance: none;
-    background-image: url(replace-svg-fill($dropdown_svg, '%23000000', $ss_form_field_icon));
-    background-repeat: no-repeat;
-    background-position: $ss_form_field_background_position;
-    background-size: $ss_form_field_background_size;
-
-    &::-ms-expand {
-        display: none;
-    }
-
-    option {
-        font-weight: normal !important;
-    }
-}
-*/
 
 .white-fields {
 
@@ -109,48 +43,5 @@ select.form-select,
     textarea.form-control,
     select.form-control {
         background-color: #fff;
-    }
-}
-
-@include mq_iOS {
-    // ensure iOS uses a minimum font size of 16px
-    // (otherwise page will zoom in when inputs gain focus)
-    input.form-control {
-        // checkboxes
-        &[type='checkbox'] {
-        }
-        // radio buttons
-        &[type='radio'] {
-        }
-        // text entry
-        &[type='date'],
-        &[type='datetime'], // obsolete
-        &[type='datetime-local'],
-        &[type='email'],
-        &[type='month'],
-        &[type='number'],
-        &[type='password'],
-        &[type='search'],
-        &[type='tel'],
-        &[type='text'],
-        &[type='time'],
-        &[type='url'],
-        &[type='week'] {
-            @include font_size(16);
-        }
-        // colour picker
-        &[type='color'] {
-        }
-        // range
-        &[type='range'] {
-        }
-    }
-
-    textarea.form-control {
-        @include font_size(16);
-    }
-
-    select.form-control {
-        @include font_size(16);
     }
 }
