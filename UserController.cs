@@ -140,7 +140,7 @@ namespace Api.Users
 		{
 			var context = await Request.GetContext();
 
-			var user = await (_service as UserService).Where("Email=?", DataOptions.IgnorePermissions).Bind(body.Email).Last(context);
+			var user = await (_service as UserService).Where("Email=?", DataOptions.IgnorePermissions).Bind(body.Email == null ? null : body.Email.Trim()).Last(context);
 
 			if (user == null)
 			{
@@ -151,7 +151,7 @@ namespace Api.Users
 
 			if (string.IsNullOrEmpty(result))
 			{
-				throw new PublicException("The attempt was unsuccessful, please try again laetr", "user_verify_failed");
+				throw new PublicException("The attempt was unsuccessful, please try again later", "user_verify_failed");
 			}
 
 			// output the context:
