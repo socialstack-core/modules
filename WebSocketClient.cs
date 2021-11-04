@@ -110,23 +110,26 @@ namespace Api.WebSockets
 
 		private async ValueTask ClientDisconnectedEvent()
 		{
-			if (Context != null && Context.UserId != 0)
+			if (Context != null)
 			{
-				// Try getting personal network room:
-				NetworkRoom<User, uint, uint> personalRoomForCurrentId = WebSocketService.PersonalRooms.GetRoom(Context.UserId);
+				if (Context.UserId != 0)
+				{
+					// Try getting personal network room:
+					NetworkRoom<User, uint, uint> personalRoomForCurrentId = WebSocketService.PersonalRooms.GetRoom(Context.UserId);
 
-				// Trigger WS logout:
-				await Events.WebSocket.AfterLogout.Dispatch(Context, this, personalRoomForCurrentId);
-			}
-			
-			try
-			{
-				// Trigger disconnected event:
-				await Events.WebSocket.Disconnected.Dispatch(Context, this);
-			}
-			catch (Exception e)
-			{
-				Console.WriteLine(e.ToString());
+					// Trigger WS logout:
+					await Events.WebSocket.AfterLogout.Dispatch(Context, this, personalRoomForCurrentId);
+				}
+
+				try
+				{
+					// Trigger disconnected event:
+					await Events.WebSocket.Disconnected.Dispatch(Context, this);
+				}
+				catch (Exception e)
+				{
+					Console.WriteLine(e.ToString());
+				}
 			}
 		}
 
