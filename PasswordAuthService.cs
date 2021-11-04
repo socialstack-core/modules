@@ -84,7 +84,13 @@ namespace Api.PasswordAuth
 				}
 				else
 				{
-					user = await _users.Get(context, loginDetails.EmailOrUsername);
+					var emailOrUser = loginDetails.EmailOrUsername;
+					if (emailOrUser != null)
+					{
+						emailOrUser = emailOrUser.Trim();
+					}
+
+					user = await _users.Get(context, emailOrUser);
 				}
 				
 				if (user == null)
