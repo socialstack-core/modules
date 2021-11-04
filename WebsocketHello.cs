@@ -375,6 +375,13 @@ namespace Api.SocketServerLibrary
 									}
 
 									var context = await ContextService.Get(userCookie);
+
+									if (context == null)
+									{
+										// Use an anon one instead:
+										context = new Context();
+									}
+
 									await client.SetContext(context);
 
 									// Allow the client to continue:
