@@ -179,6 +179,24 @@ namespace Api.Uploader
                 return (string.IsNullOrEmpty(Subdirectory) ? "" : Subdirectory + '/') + Id + "-" + sizeName + "." + FileType;
             }
         }
+
+		/// <summary>
+		/// The filename, excluding any subdirectory.
+		/// </summary>
+		/// <param name="sizeName"></param>
+		/// <param name="omitExt"></param>
+		/// <returns></returns>
+		public string GetStoredFilename(string sizeName, bool omitExt = false)
+		{
+			if (omitExt)
+			{
+				return Id + "-" + sizeName;
+			}
+			else
+			{
+				return Id + "-" + sizeName + "." + FileType;
+			}
+		}
     }
 
 	/// <summary>
