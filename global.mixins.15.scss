@@ -75,7 +75,13 @@
     outline: -webkit-focus-ring-color auto 5px;
 }
 
-$grid_breakpoints: get_theme(grid-breakpoints, bootstrap);
+$grid_breakpoints: (
+	xs: 0,
+	sm: 576px,
+	md: 768px,
+	lg: 992px,
+	xl: 1200px
+);
 
 @function breakpoint-next($name, $breakpoints: $grid_breakpoints, $breakpoint-names: map-keys($breakpoints)) {
   $n: index($breakpoint-names, $name);
