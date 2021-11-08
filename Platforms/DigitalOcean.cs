@@ -111,7 +111,7 @@ namespace Api.CloudHosts
                 TransferUtility utility = new TransferUtility(_uploadClient);
                 var fileTransferUtilityRequest = new TransferUtilityUploadRequest
                 {
-                    BucketName = _spaceName + (upload.IsPrivate ? "/content-private" : "/content") + (string.IsNullOrEmpty(upload.Subdirectory) ? "" : upload.Subdirectory),
+                    BucketName = _spaceName + (upload.IsPrivate ? "/content-private" : "/content") + (string.IsNullOrEmpty(upload.Subdirectory) ? "" : "/" + upload.Subdirectory),
                     FilePath = tempFile,
                     StorageClass = S3StorageClass.Standard,
                     PartSize = 6291456, // 6 MB
