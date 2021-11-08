@@ -1,0 +1,5 @@
+{
+	"dependencies":[
+		"nuget:AWSSDK.S3"
+	]
+}
