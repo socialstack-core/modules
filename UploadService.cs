@@ -393,7 +393,8 @@ namespace Api.Uploader
 				FileType = fileType,
 				UserId = context.UserId,
 				CreatedUtc = DateTime.UtcNow,
-				TemporaryPath = tempFilePath
+				TemporaryPath = tempFilePath,
+				Subdirectory = _configuration.Subdirectory
 			};
 
 			result = await Events.Upload.BeforeCreate.Dispatch(context, result);

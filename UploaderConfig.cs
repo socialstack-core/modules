@@ -20,6 +20,11 @@ namespace Api.Uploader
 		/// True if image uploads should be processed.
 		/// </summary>
 		public bool ProcessImages { get; set; } = true;
+
+		/// <summary>
+		/// Uploader subdirectory (optional)
+		/// </summary>
+		public string Subdirectory { get; set; }
     }
 	
 }

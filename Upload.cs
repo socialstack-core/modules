@@ -27,7 +27,7 @@ namespace Api.Uploader
 		[DatabaseField(Length = 300)]
 		[Meta("title")]
 		public string OriginalName;
-		
+
 		/// <summary>
 		/// The lowercased file type, e.g. "png".
 		/// </summary>
@@ -53,7 +53,13 @@ namespace Api.Uploader
 		/// True if this is a private upload and requires a signature in order to access it publicly.
 		/// </summary>
 		public bool IsPrivate;
-		
+
+		/// <summary>
+		/// The subdirectory that this upload was put into, if any. Ensure that users can't directly set this.
+		/// </summary>
+		[JsonIgnore]
+		public string Subdirectory;
+
 		/// <summary>
 		/// Working memory only temporary filesystem path. Can be null if something has already relocated the upload and it is "done".
 		/// </summary>
@@ -69,15 +75,25 @@ namespace Api.Uploader
 		public string Ref
 		{
 			get{
-				if(IsPrivate){
+
+				var writer = Writer.GetPooled();
+				writer.Start(null);
+
+				if (IsPrivate)
+				{
 					if (_sigService == null)
 					{
 						_sigService = Services.Get<SignatureService>();
 					}
-					
-					var writer = Writer.GetPooled();
-					writer.Start(null);
+
 					writer.WriteASCII("private:");
+
+					if (!string.IsNullOrEmpty(Subdirectory))
+					{
+						writer.WriteASCII(Subdirectory);
+						writer.Write((byte)'/');
+					}
+
 					writer.WriteS(Id);
 					writer.Write((byte)'.');
 					if (FileType != null)
@@ -88,15 +104,44 @@ namespace Api.Uploader
 					writer.WriteS(DateTime.UtcNow.Ticks);
 					writer.Write(SignatureStart, 0, 3);
 					_sigService.SignHmac256AlphaChar(writer);
-					var result = writer.ToASCIIString();
-					writer.Release();
-					return result;
 				}
-				
-				return "public:" + Id + "." + FileType;
+				else
+				{
+					writer.WriteASCII("public:");
+
+					if (!string.IsNullOrEmpty(Subdirectory))
+					{
+						writer.WriteASCII(Subdirectory);
+						writer.Write((byte)'/');
+					}
+
+					writer.WriteS(Id);
+					writer.Write((byte)'.');
+					if (FileType != null)
+					{
+						writer.WriteASCII(FileType);
+					}
+				}
+
+				var result = writer.ToASCIIString();
+				writer.Release();
+				return result;
 			}
 		}
-
+		
+		/// <summary>
+		/// Gets an appropriate mime type, when possible, based on the file type.
+		/// </summary>
+		public string GetMimeType()
+		{
+			if(string.IsNullOrEmpty(FileType))
+			{
+				return "application/octet-stream";
+			}
+			
+			return MimeTypeMap.GetMimeType(FileType);
+		}
+		
 		/// <summary>
 		/// File path to this content using the given size name.
 		/// It's either "original" or a specific width in pixels, e.g. "400".
@@ -127,11 +172,11 @@ namespace Api.Uploader
         {
             if (omitExt)
             {
-                return Id + "-" + sizeName;
+				return (string.IsNullOrEmpty(Subdirectory) ? "" : Subdirectory + '/') +  Id + "-" + sizeName;
             }
             else
             {
-                return Id + "-" + sizeName + "." + FileType;
+                return (string.IsNullOrEmpty(Subdirectory) ? "" : Subdirectory + '/') + Id + "-" + sizeName + "." + FileType;
             }
         }
     }
