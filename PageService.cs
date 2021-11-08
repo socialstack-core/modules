@@ -74,6 +74,19 @@ namespace Api.Pages
 				},
 				new Page()
 				{
+					Url = "/en-admin/database",
+					Title = "Developer Database Access",
+					BodyJson = @"{
+						""module"": ""Admin/Layouts/Default"",
+						""content"": [
+							{
+								""module"": ""Admin/Dashboards/Database""
+							}
+						]
+					}"
+				},
+				new Page()
+				{
 					Url = "/en-admin/register",
 					Title = "Create a new account",
 					BodyJson = @"{
