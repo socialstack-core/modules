@@ -74,6 +74,19 @@ namespace Api.Pages
 				},
 				new Page()
 				{
+					Url = "/en-admin/stress-test",
+					Title = "Stress testing the API",
+					BodyJson = @"{
+						""module"": ""Admin/Layouts/Default"",
+						""content"": [
+							{
+								""module"": ""Admin/Dashboards/StressTest""
+							}
+						]
+					}"
+				},
+				new Page()
+				{
 					Url = "/en-admin/database",
 					Title = "Developer Database Access",
 					BodyJson = @"{
