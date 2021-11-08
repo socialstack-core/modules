@@ -97,7 +97,7 @@ namespace Api.CloudHosts
                     FilePath = tempFile,
                     StorageClass = S3StorageClass.Standard,
                     PartSize = 6291456, // 6 MB
-                    Key = upload.GetRelativePath(variantName),
+                    Key = upload.GetStoredFilename(variantName),
                     ContentType = upload.GetMimeType(),
                     CannedACL = upload.IsPrivate ? S3CannedACL.AuthenticatedRead : S3CannedACL.PublicRead
                 };
