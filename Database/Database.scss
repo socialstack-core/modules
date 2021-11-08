@@ -1,0 +1,16 @@
+.dashboards-database{
+	.db-run {
+		overflow-x: auto;
+	}
+	
+	textarea, .aceeditor > div{
+		height: 150px;
+	}
+	
+	.result-set{
+		th {
+			border: 1px solid lightgray;
+			padding: 1rem;
+		}
+	}
+}
