@@ -124,7 +124,7 @@ export default (props) => {
 	}
 	
 	function go(url) {
-		if(goingExternal(document.location.pathname, url)){
+		if(useDefaultNav(document.location.pathname, url)){
 			document.location = url;
 			return;
 		}
@@ -134,8 +134,8 @@ export default (props) => {
 		return setPageState(url);
 	}
 	
-	function goingExternal(a,b){
-		if(b.indexOf(':') != -1 || (b[0] == '/' && (b.length>1 && b[1] == '/'))){
+	function useDefaultNav(a,b){
+		if(b.indexOf(':') != -1 || b[0]=='#' || (b[0] == '/' && (b.length>1 && b[1] == '/'))){
 			return true;
 		}
 		
@@ -190,8 +190,19 @@ export default (props) => {
 	}
 	
 	const onPopState = (e) => {
+		var current = currentUrl();
+		var prev = pageState.url;
+		
+		if(current == prev){
+			// If page not actually changing, do nothing.
+			// Note that as currentUrl excludes the #, this allows a hash link to perform a 
+			// native browser jump including when pressing back.
+			return;
+		}
+		
 		document.body.parentNode.scrollTo(0, 0);
-		setPageState(currentUrl());
+		
+		setPageState(current);
 	}
 	
 	const onLinkClick = (e) => {
@@ -209,7 +220,7 @@ export default (props) => {
 				
 				if(href && href.length){
 					var pn = document.location.pathname;
-					if(goingExternal(pn, href)){
+					if(useDefaultNav(pn, href)){
 						return;
 					}
 					e.preventDefault();
