@@ -61,7 +61,7 @@ namespace Api.CloudHosts
             }, 10);
 
         }
-
+		
         private List<CloudHostPlatform> _platforms;
 
         /// <summary>
