@@ -358,7 +358,12 @@ var OrbitControls = function ( object, domElement ) {
 		sphericalDelta.phi -= angle;
 
 	}
-
+	
+	this.setRotation = (theta, phi) => {
+		sphericalDelta.theta = theta;
+		sphericalDelta.phi = phi;
+	};
+	
 	var panLeft = function () {
 
 		var v = new Vector3();
