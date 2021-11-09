@@ -124,7 +124,7 @@ export default class Modal extends React.Component {
 			style.backgroundSize= "cover";
 		}
 
-		var closeClass = this.props.closeIcon ? "close custom-icon" : "close";
+		var closeClass = this.props.closeIcon ? "close btn-close custom-icon" : "close btn-close";
 		var closeIconClass = this.props.closeIcon ? "close-icon custom-icon-content" : "close-icon";
 
         return [
