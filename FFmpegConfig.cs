@@ -24,6 +24,12 @@ namespace Api.FFmpeg
 		/// Video transcode target format(s). "hls" is the default if not specified. Can comma separate, e.g. "hls,h264/aac"
 		/// </summary>
 		public string TranscodeTargets { get; set; }
+		
+		/// <summary>
+		/// Max video length permitted. If not set, there is no limit.
+		/// Only applies to non-admin users.
+		/// </summary>
+		public uint MaxVideoLengthSeconds { get; set; }
 	}
 	
 }
