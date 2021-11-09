@@ -77,6 +77,11 @@ export default function Developer() {
 							Restart the API (will prompt first)
 						</a>
 					</li>
+					<li>
+						<a href='/en-admin/stress-test'>
+							Stress tester
+						</a>
+					</li>
 				</ul>
 			</Tile>
 			{confirmer && <Modal visible onClose={() => setConfirmer(null)} title={`Are you sure?`}>
