@@ -22,7 +22,7 @@ namespace Api.FFmpeg
 	/// <summary>
 	/// This service is used to invoke ffmpeg on the command line. You must have it in your path or installed on Linux.
 	/// </summary>
-	public partial class FFmpegService
+	public partial class FFmpegService : AutoService
 	{
 		private bool Verbose = false;
 
@@ -42,24 +42,10 @@ namespace Api.FFmpeg
 		public FFmpegService(UploadService uploads, IHostApplicationLifetime lifetime)
 		{
 			_uploads = uploads;
-			_configuration = AppSettings.GetSection("FFmpeg").Get<FFmpegConfig>();
+			_configuration = GetConfig<FFmpegConfig>();
 			
 			if(_configuration != null && _configuration.TranscodeUploads)
 			{
-				// Got dedicated transcoders in this cluster?
-				if(Services.IsHostTypeDefined("transcoder"))
-				{
-					if (!Services.HasHostType("transcoder"))
-					{
-						Console.WriteLine("FFmpeg won't transcode on this server as there is a dedicated transcoder HostType in the appsettings.");
-						return;
-					}
-					else
-					{
-						Console.WriteLine("Starting as a dedicated transcoder");
-					}
-				}
-				
 				var formats = _configuration.TranscodeTargets;
 				
 				if(string.IsNullOrEmpty(formats)){
@@ -125,48 +111,6 @@ namespace Api.FFmpeg
 				if(upload == null){
 					return new ValueTask<Upload>(upload);
 				}
-				
-				switch (upload.FileType)
-                {
-                    // Videos
-                    case "avi":
-                    case "wmv":
-                    case "ts":
-                    case "m3u8":
-                    case "ogv":
-                    case "flv":
-                    case "h264": 
-                    case "h265":
-                        upload.IsVideo = true;
-                    break;
-
-                    // Audio
-                    case "wav":
-                    case "oga":
-                    case "aac":
-                    case "mp3":
-                    case "opus":
-                    case "weba":
-                        upload.IsAudio = true;
-                    break;
-
-                    // Maybe A/V
-                    case "webm":
-                    case "ogg":
-                    case "mp4":
-                    case "mkv":
-                    case "mpeg":
-                    case "3g2":
-                    case "3gp":
-                    case "mov":
-                    case "media":
-						// Assume video for now - we can't probe it until we have the file itself.
-						upload.IsVideo = true;
-                    break;
-					default:
-						// do nothing.
-					break;
-                }
 				
 				// If A/V, we'll be transcoding shortly.
 				if(upload.IsVideo || upload.IsAudio){

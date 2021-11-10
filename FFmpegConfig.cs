@@ -1,3 +1,4 @@
+using Api.Configuration;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -8,7 +9,7 @@ namespace Api.FFmpeg
 	/// <summary>
 	/// The appsettings.json config block for push notification config.
 	/// </summary>
-    public class FFmpegConfig
+    public class FFmpegConfig : Config
     {
 		/// <summary>
 		/// Set this to true if uploads should be automatically transcoded.
