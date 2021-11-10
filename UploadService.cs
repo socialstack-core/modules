@@ -14,6 +14,10 @@ using Microsoft.Extensions.Configuration;
 using System.Runtime.InteropServices;
 using Api.Startup;
 using Api.Pages;
+using Api.Signatures;
+using Api.SocketServerLibrary;
+using System.Text;
+using Api.CanvasRenderer;
 //using ImageMagick;
 
 namespace Api.Uploader
@@ -55,6 +59,64 @@ namespace Api.Uploader
 
 				return new ValueTask<Pages.Page>(page);
 			});
+
+			Events.Upload.BeforeCreate.AddEventListener((Context context, Upload upload) => {
+
+				if (upload == null)
+				{
+					return new ValueTask<Upload>(upload);
+				}
+
+				var isVideo = false;
+				var isAudio = false;
+
+				switch (upload.FileType)
+				{
+					// Videos
+					case "avi":
+					case "wmv":
+					case "ts":
+					case "m3u8":
+					case "ogv":
+					case "flv":
+					case "h264":
+					case "h265":
+						isVideo = true;
+						break;
+
+					// Audio
+					case "wav":
+					case "oga":
+					case "aac":
+					case "mp3":
+					case "opus":
+					case "weba":
+						isAudio = true;
+						break;
+
+					// Maybe A/V
+					case "webm":
+					case "ogg":
+					case "mp4":
+					case "mkv":
+					case "mpeg":
+					case "3g2":
+					case "3gp":
+					case "mov":
+					case "media":
+						// Assume video for now - we can't probe it until we have the file itself.
+						isVideo = true;
+						break;
+					default:
+						// do nothing.
+						break;
+				}
+
+				upload.IsVideo = isVideo;
+				upload.IsAudio = isAudio;
+
+				return new ValueTask<Upload>(upload);
+			}, 9);
 
 			Events.Upload.Process.AddEventListener(async (Context context, Upload upload) => {
 
@@ -194,6 +256,203 @@ namespace Api.Uploader
 			var result = File.ReadAllBytes(path);
 
 			return new ValueTask<byte[]>(result);
+		}
+
+		private SignatureService _sigService;
+
+		/// <summary>
+		/// Extracts a tar to storage.
+		/// </summary>
+		/// <param name="context"></param>
+		/// <param name="uploadId"></param>
+		/// <param name="targetDirectory"></param>
+		/// <param name="tarStream"></param>
+		/// <returns></returns>
+		public async ValueTask ExtractTarToStorage(Context context, uint uploadId, string targetDirectory, Stream tarStream)
+		{
+			// Get the upload:
+			var upload = await Get(context, uploadId, DataOptions.IgnorePermissions);
+
+			// First, extract the tar to a series of temporary files.
+			// Each time it happens, the temporary file path and its name are given to us.
+			await ExtractTar(tarStream, (string path, string name) => {
+
+				// Transfer to storage now.
+
+				// Name may start with output directory:
+				if (name.StartsWith("output/"))
+				{
+					name = name.Substring(7);
+				}
+
+				// Don't await this one:
+				_ = Task.Run(async () => {
+
+					await Events.Upload.StoreFile.Dispatch(context, upload, path, targetDirectory + "/" + name);
+
+					// Delete the temporary file:
+					File.Delete(path);
+
+				});
+			});
+		}
+
+		private async ValueTask ExtractTar(Stream stream, Action<string, string> onFile)
+		{
+			var buffer = new byte[512];
+
+			var streamBytesRead = 0;
+
+			while (true)
+			{
+				await stream.ReadAsync(buffer, 0, 100);
+
+				var stringEnd = 0;
+				for (var i = 0; i < 100; i++)
+				{
+					if (buffer[i] < 10)
+					{
+						stringEnd = i;
+						break;
+					}
+
+				}
+
+				var name = Encoding.ASCII.GetString(buffer, 0, stringEnd).Trim('\0').Trim();
+
+				if (String.IsNullOrWhiteSpace(name))
+					break;
+
+				// Skip 24 bytes
+				await stream.ReadAsync(buffer, 0, 24);
+
+				// read the size, a 12 byte string:
+				await stream.ReadAsync(buffer, 0, 12);
+				var sizeString = Encoding.ASCII.GetString(buffer, 0, 12).Trim('\0').Trim();
+				var size = Convert.ToInt64(sizeString, 8);
+
+				// 512 byte alignment:
+				await stream.ReadAsync(buffer, 0, 376);
+				streamBytesRead += 512;
+
+				// Directories have size=0.
+				if (size > 0)
+				{
+					var tempFile = System.IO.Path.GetTempFileName();
+
+					using (var str = File.Open(tempFile, FileMode.OpenOrCreate, FileAccess.Write))
+					{
+						// Block transfer:
+						while (size > 0)
+						{
+							var bytesToTransfer = size > 512 ? 512 : (int)size;
+
+							var bytesRead = await stream.ReadAsync(buffer, 0, bytesToTransfer);
+							await str.WriteAsync(buffer, 0, bytesRead);
+
+							streamBytesRead += bytesRead;
+							size -= bytesRead;
+						}
+
+					}
+
+					// Completed transferring a file:
+					onFile(tempFile, name);
+				}
+
+				// 512 alignment:
+				int offset = 512 - ((int)streamBytesRead % 512);
+				if (offset == 512)
+					offset = 0;
+
+				await stream.ReadAsync(buffer, 0, offset);
+				streamBytesRead += offset;
+			}
+		}
+
+		/// <summary>
+		/// Gets a transcode token for the given upload ID. It lasts 24h.
+		/// </summary>
+		/// <returns></returns>
+		public string GetTranscodeToken(uint id)
+		{
+			if (_sigService == null)
+			{
+				_sigService = Services.Get<SignatureService>();
+			}
+
+			// Note: this must of course be a different format from the main user cookie to avoid someone attempting to auth with it.
+			var writer = Writer.GetPooled();
+			writer.Start(null);
+			writer.Write((byte)'1');
+			writer.WriteS(DateTime.UtcNow);
+			writer.Write((byte)'-');
+			writer.WriteS(id);
+			writer.WriteASCII("TC");
+
+			_sigService.SignHmac256AlphaChar(writer);
+			var tokenStr = writer.ToASCIIString();
+			writer.Release();
+			return tokenStr;
+		}
+
+		/// <summary>
+		/// True if the given transcode token is a valid one.
+		/// </summary>
+		/// <param name="id"></param>
+		/// <param name="tokenStr"></param>
+		/// <returns></returns>
+		public bool IsValidTranscodeToken(uint id, string tokenStr)
+		{
+			if (_sigService == null)
+			{
+				_sigService = Services.Get<SignatureService>();
+			}
+			
+			if (tokenStr[0] != '1' || tokenStr.Length < 67)
+			{
+				// Must start with version 1
+				return false;
+			}
+
+			if (!_sigService.ValidateHmac256AlphaChar(tokenStr))
+			{
+				return false;
+			}
+
+			// Next, the end of the tx token must be TC, before the signature.
+
+			var sigStart = tokenStr.Length - 64;
+			if (tokenStr[sigStart - 1] != 'C' || tokenStr[sigStart - 2] != 'T')
+			{
+				return false;
+			}
+
+			var pieces = tokenStr.Substring(1, sigStart - 3).Split('-');
+
+			if (pieces.Length != 2)
+			{
+				return false;
+			}
+
+			long.TryParse(pieces[0], out long dateStamp);
+			uint.TryParse(pieces[1], out uint signedId);
+
+			if (signedId != id)
+			{
+				return false;
+			}
+
+			var dateTime = new DateTime(dateStamp * 10000);
+
+			// 24h expiry.
+			if (dateTime.AddDays(1) < DateTime.UtcNow)
+			{
+				// Expired
+				return false;
+			}
+
+			return true;
 		}
 
 		/// <summary>

@@ -7,6 +7,7 @@ using System;
 using System.Web;
 using Api.Users;
 using Api.SocketServerLibrary;
+using Api.CanvasRenderer;
 
 namespace Api.Uploader
 {
@@ -53,6 +54,15 @@ namespace Api.Uploader
 		/// True if this is a private upload and requires a signature in order to access it publicly.
 		/// </summary>
 		public bool IsPrivate;
+
+		/// <summary>True if this is a video.</summary>
+		public bool IsVideo;
+
+		/// <summary>True if this is audio.</summary>
+		public bool IsAudio;
+
+		/// <summary>The transcode state. 2 means it's been transcoded, 1 is transcode in progress.</summary>
+		public int TranscodeState;
 
 		/// <summary>
 		/// The subdirectory that this upload was put into, if any. Ensure that users can't directly set this.
@@ -141,7 +151,16 @@ namespace Api.Uploader
 			
 			return MimeTypeMap.GetMimeType(FileType);
 		}
-		
+
+		/// <summary>
+		/// Gets a transcode callback URL. This allows trustless file manipulation.
+		/// </summary>
+		/// <returns></returns>
+		public string GetTranscodeCallbackUrl()
+		{
+			return Services.Get<FrontendCodeService>().GetPublicUrl() + "/v1/upload/transcoded/" + Id + "?token=" + Services.Get<UploadService>().GetTranscodeToken(Id);
+		}
+
 		/// <summary>
 		/// File path to this content using the given size name.
 		/// It's either "original" or a specific width in pixels, e.g. "400".
@@ -170,7 +189,7 @@ namespace Api.Uploader
 		/// <returns></returns>
 		public string GetRelativePath(string sizeName, bool omitExt = false)
         {
-            if (omitExt)
+            if (omitExt || sizeName.IndexOf('.') != -1)
             {
 				return (string.IsNullOrEmpty(Subdirectory) ? "" : Subdirectory + '/') +  Id + "-" + sizeName;
             }
@@ -188,7 +207,7 @@ namespace Api.Uploader
 		/// <returns></returns>
 		public string GetStoredFilename(string sizeName, bool omitExt = false)
 		{
-			if (omitExt)
+			if (omitExt || sizeName.IndexOf('.') != -1)
 			{
 				return Id + "-" + sizeName;
 			}

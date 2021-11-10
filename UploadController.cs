@@ -4,6 +4,7 @@ using Api.Contexts;
 using System.IO;
 using Microsoft.Extensions.Primitives;
 using Api.Startup;
+using System;
 
 namespace Api.Uploader
 {
@@ -125,6 +126,30 @@ namespace Api.Uploader
 
 			await OutputJson(context, upload, "*");
 		}
-    }
+
+		/// <summary>
+		/// Uploads a transcoded file. The body of the client request is expected to be a tar of the files, using a directory called "output" at its root.
+		/// </summary>
+		/// <returns></returns>
+		[HttpPut("transcoded/{id}")]
+		public async ValueTask TranscodedTar([FromRoute] uint id, [FromQuery] string token)
+		{
+			if (!(_service as UploadService).IsValidTranscodeToken(id, token))
+			{
+				throw new PublicException("Invalid transcode token", "tx_token_bad");
+			}
+
+			var context = await Request.GetContext();
+
+			// Proceed only if the target doesn't already exist.
+			// Then there must be a GET arg called sig containing an alphachar HMAC of recent time-id. It expires in 24h.
+
+			// The stream for the actual file is just the entire body:
+			var contentStream = Request.Body;
+
+			// Expect a tar:
+			await (_service as UploadService).ExtractTarToStorage(context, id, "chunks", contentStream);
+		}
+	}
 
 }
