@@ -138,18 +138,31 @@ namespace Api.Uploader
 				return result;
 			}
 		}
-		
+
 		/// <summary>
 		/// Gets an appropriate mime type, when possible, based on the file type.
 		/// </summary>
-		public string GetMimeType()
+		public string GetMimeType(string variant = "original")
 		{
-			if(string.IsNullOrEmpty(FileType))
+			var fileType = FileType;
+
+			if (variant != null)
+			{
+				var lastDot = variant.LastIndexOf('.');
+
+				if (lastDot != -1)
+				{
+					// This is actually a transcoded file and is of a different type.
+					fileType = variant.Substring(lastDot + 1);
+				}
+			}
+
+			if(string.IsNullOrEmpty(fileType))
 			{
 				return "application/octet-stream";
 			}
 			
-			return MimeTypeMap.GetMimeType(FileType);
+			return MimeTypeMap.GetMimeType(fileType);
 		}
 
 		/// <summary>
