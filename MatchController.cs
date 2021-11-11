@@ -1,4 +1,5 @@
 using Api.Contexts;
+using Api.Startup;
 using Microsoft.AspNetCore.Mvc;
 using System.Threading.Tasks;
 
@@ -22,9 +23,11 @@ namespace Api.Matchmakers
 			}
 			
 			// Get matchmaker:
-			var service = (_service as MatchService);
-			
-			var match = await service.Matchmake(context, matchmakerId, 1);
+			var service = Services.Get<MatchmakerService>();
+
+			var matchmaker = await service.Get(context, matchmakerId);
+
+			var match = await service.Matchmake(context, matchmaker, 1);
 			
 			if(match == null)
 			{
@@ -35,7 +38,7 @@ namespace Api.Matchmakers
 			// Note! We don't care if a match has already started - we'll still generate the join URL.
 			// This permits friend spectators and similar.
 			// It's up to the server to decide if people can actually join a match or not.
-			var connectionUrl = await service.Join(context, match);
+			var connectionUrl = await (_service as MatchService).Join(context, match);
 			
 			return new {
 				match,
@@ -62,7 +65,7 @@ namespace Api.Matchmakers
 			var match = await service.Get(context, id);
 			
 			if(match == null){
-				// Doesn't exist or not permitted (the permission system internally checks huddle type and invites).
+				// Doesn't exist or not permitted (the permission system internally checks).
 				return null;
 			}
 			
