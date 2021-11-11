@@ -225,7 +225,7 @@ namespace Api.FFmpeg
 		/// <summary>
 		/// Gets the duration of the given file.
 		/// </summary>
-		/// <param name="localVideoFilePath"></param>
+		/// <param name="localFilePath"></param>
 		/// <returns></returns>
 		public async Task<double?> GetDurationInSeconds(string localFilePath)
 		{
