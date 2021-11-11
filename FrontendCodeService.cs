@@ -51,12 +51,51 @@ namespace Api.CanvasRenderer
 
 			return AppSettings.Configuration["PublicUrl"];
 		}
-		
+
 		/// <summary>
-		/// Generates the ws url.
+		/// The host of the /content/ and /content-private/ paths.
 		/// </summary>
 		/// <returns></returns>
-		private void SetWebSocketUrl()
+		public string GetContentUrl()
+		{
+			if (_contentUrl != null)
+			{
+				return _contentUrl;
+			}
+
+			return GetPublicUrl();
+		}
+
+		private string _contentUrl;
+
+		/// <summary>
+		/// Sets the contentSource. Null is valid.
+		/// </summary>
+		/// <param name="contentUrl"></param>
+		public void SetContentUrl(string contentUrl)
+		{
+			if (string.IsNullOrEmpty(contentUrl))
+			{
+				contentUrl = null;
+			}
+			
+			if (_contentUrl == contentUrl)
+			{
+				return;
+			}
+
+			_contentUrl = contentUrl;
+
+			// Clear caches and make sure url is suitable:
+			SetServiceUrls();
+
+		}
+
+		/// <summary>
+		/// Generates service URLs, such as the content source and websocket one.
+		/// </summary>
+		/// <returns></returns>
+		private void SetServiceUrls()
 		{
 			var wsUrl = _config.WebSocketUrl;
 
@@ -90,8 +129,14 @@ namespace Api.CanvasRenderer
 				wsUrl = wsUrl.Replace("${server.id}", _contentSync.ServerId.ToString()).Replace("${server.id-1}", (_contentSync.ServerId-1).ToString());
 			}
 
-			var websocketJs = "wsUrl='" + wsUrl + "';";
-			InlineJavascriptHeader = websocketJs + rawInlineHeader;
+			var servicePaths = "wsUrl='" + wsUrl + "';";
+
+			if (_contentUrl != null)
+			{
+				servicePaths += "contentSource='" + _contentUrl + "';";
+			}
+
+			InlineJavascriptHeader = servicePaths + rawInlineHeader;
 		}
 
 		/// <summary>
@@ -137,7 +182,7 @@ namespace Api.CanvasRenderer
 				var headerFile = _config.React ? "inline_header_react" : "inline_header";
 
 				rawInlineHeader = File.ReadAllText(dllPath + "/Api/ThirdParty/CanvasRenderer/"+ headerFile + ".js");
-				SetWebSocketUrl();
+				SetServiceUrls();
 				
 				var prebuilt = _config.Prebuilt;
 
@@ -195,7 +240,7 @@ namespace Api.CanvasRenderer
 
 			_config.OnChange += () => {
 
-				SetWebSocketUrl();
+				SetServiceUrls();
 
 				return new ValueTask();
 			};
