@@ -7,6 +7,9 @@ using Newtonsoft.Json;
 using Newtonsoft.Json.Serialization;
 using Api.Startup;
 using Api.PasswordResetRequests;
+using Microsoft.Extensions.Primitives;
+using System.Linq;
+using Microsoft.AspNetCore.Http;
 
 namespace Api.Users
 {
@@ -157,6 +160,99 @@ namespace Api.Users
 			// output the context:
 			await OutputContext(context);
         }
+
+		/// <summary>
+		/// Impersonate a user by their ID. This is a hard cookie switch. You will loose all admin functionality to make the impersonation as accurate as possible.
+		/// </summary>
+		[HttpGet("{id}/impersonate")]
+		public async ValueTask Imepersonate([FromRoute] uint id)
+		{
+			// Firstly, are they an admin?
+			var context = await Request.GetContext();
+
+			if (context.Role == null || !context.Role.CanViewAdmin)
+			{
+				throw new PublicException("Unavailable", "no_access");
+			}
+
+			// Next, is this an elevation? Currently a simple role ID based check. 
+			// You can't impersonate someone of a role "higher" than yours (or a user that you can't load).
+			var targetUser = await _service.Get(context, id);
+
+			if (targetUser == null || targetUser.Role < context.Role.Id)
+			{
+				throw new PublicException("Cannot elevate to a higher role", "elevation_required");
+			}
+
+			var _loginTokens = Services.Get<ContextService>();
+
+			var cookie = Request.Cookies[_loginTokens.CookieName];
+			var impCookie = Request.Cookies[_loginTokens.ImpersonationCookieName];
+
+			// If we were already impersonating, don't overwrite the existing impersonation cookie.
+			if (impCookie == null || impCookie.Length == 0)
+			{
+				// Set impersonation backup cookie:
+				var expiry = DateTime.UtcNow.AddDays(120);
+
+				Response.Cookies.Append(
+					_loginTokens.ImpersonationCookieName,
+					cookie,
+					new Microsoft.AspNetCore.Http.CookieOptions()
+					{
+						Path = "/",
+						Expires = expiry,
+						Domain = _loginTokens.GetDomain(),
+						IsEssential = true,
+						HttpOnly = true,
+						Secure = true,
+						SameSite = SameSiteMode.Lax
+					}
+				);
+			}
+
+			// Update the context to the new user:
+			context.User = targetUser;
+
+			await OutputContext(context);
+		}
+
+		/// <summary>
+		/// Reverses an impersonation.
+		/// </summary>
+		[HttpGet("unpersonate")]
+		public async ValueTask Unpersonate()
+		{
+			var _loginTokens = Services.Get<ContextService>();
+			
+			var impCookie = Request.Cookies[_loginTokens.ImpersonationCookieName];
+
+			if (impCookie == null || impCookie.Length == 0)
+			{
+				return;
+			}
+			
+			var context = await _loginTokens.Get(impCookie);
+
+			// Remove the impersonation cookie:
+			Response.Cookies.Append(
+				_loginTokens.ImpersonationCookieName,
+				"",
+				new Microsoft.AspNetCore.Http.CookieOptions()
+				{
+					Path = "/",
+					Expires = ThePast,
+					Domain = _loginTokens.GetDomain(),
+					IsEssential = true,
+					HttpOnly = true,
+					Secure = true,
+					SameSite = SameSiteMode.Lax
+				}
+			);
+
+			// Note that this will also generate a new token:
+			await OutputContext(context);
+		}
 
 		/// <summary>
 		/// POST /v1/user/verify/{userid}/{token}
