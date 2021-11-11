@@ -9,22 +9,22 @@ using System.Web;
 using System;
 using Api.Startup;
 
-namespace Api.Matchmaking
+namespace Api.Matchmakers
 {
 	/// <summary>
 	/// Handles matches.
 	/// Instanced automatically. Use injection to use this service, or Startup.Services.Get.
 	/// </summary>
-	public partial class MatchService : AutoService<Match>, IMatchService
+	public partial class MatchService : AutoService<Match>
     {
-		private ISignatureService _signatures;
-		private IMatchServerService _serverService;
-		private IMatchmakerService _matchmakers;
+		private SignatureService _signatures;
+		private MatchServerService _serverService;
+		private MatchmakerService _matchmakers;
 		
 		/// <summary>
 		/// Instanced automatically. Use injection to use this service, or Startup.Services.Get.
 		/// </summary>
-		public MatchService(ISignatureService signatures, IMatchServerService serverService, IMatchmakerService matchmakers) : base(Events.Match)
+		public MatchService(SignatureService signatures, MatchServerService serverService, MatchmakerService matchmakers) : base(Events.Match)
         {
 			_signatures = signatures;
 			_matchmakers = matchmakers;
@@ -35,9 +35,9 @@ namespace Api.Matchmaking
 		/// <summary>
 		/// Generates a join link for the given match.
 		/// </summary>
-		public async Task<string> Join(Context context, Match match)
+		public async ValueTask<string> Join(Context context, Match match)
 		{
-			var user = await context.GetUser();
+			var user = context.User;
 			string displayName = user == null ? "Anonymous" : user.Username;
 			string avatarRef = user == null ? (string)null : user.AvatarRef;
 			
@@ -60,7 +60,7 @@ namespace Api.Matchmaking
 			return server.Address + "/?" + queryStr + "&sig=" + HttpUtility.UrlEncode(sig);
 		}
 		
-		private void StartMatch(int matchId){
+		private void StartMatch(uint matchId){
 			
 			// Tell the match server that it should start immediately, as we're no longer matchmaking people to the match.
 			
@@ -69,7 +69,7 @@ namespace Api.Matchmaking
 		/// <summary>
 		/// Matchmakes using the given matchmaker.
 		/// </summary>
-		public async Task<Match> Matchmake(Context context, int matchmakerId, int teamSize)
+		public async Task<Match> Matchmake(Context context, uint matchmakerId, int teamSize)
 		{
 			// Get the matchmaker:
 			var matchmaker = await _matchmakers.Get(context, matchmakerId);
@@ -142,7 +142,9 @@ namespace Api.Matchmaking
 				matchmaker.StartTimeUtc = DateTime.UtcNow.AddSeconds(matchmaker.MaxQueueTime);
 			}
 			
-			await _matchmakers.Update(context, matchmaker);
+			await _matchmakers.Update(context, matchmaker, (Context c, Matchmaker mm) => {
+				
+			});
 			
 			return result;
 		}

@@ -1,6 +1,6 @@
 using Microsoft.AspNetCore.Mvc;
 
-namespace Api.Matchmaking
+namespace Api.Matchmakers
 {
     /// <summary>Handles matchmaker endpoints.</summary>
     [Route("v1/matchmaker")]

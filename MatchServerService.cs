@@ -6,18 +6,19 @@ using Api.Contexts;
 using Api.Eventing;
 using Api.Startup;
 using System;
+using System.Collections.Concurrent;
 
-namespace Api.Matchmaking
+namespace Api.Matchmakers
 {
 	/// <summary>
 	/// Handles matchServers.
 	/// Instanced automatically. Use injection to use this service, or Startup.Services.Get.
 	/// </summary>
-	public partial class MatchServerService : AutoService<MatchServer>, IMatchServerService
+	public partial class MatchServerService : AutoService<MatchServer>
     {
-		private Dictionary<int, MatchServer> matchServerLookup;
+		private ConcurrentDictionary<uint, MatchServer> matchServerLookup;
 		private Random randomiser = new Random();
-		private Dictionary<int, List<MatchServer>> matchServerRegionalLookup = new Dictionary<int, List<MatchServer>>();
+		private ConcurrentDictionary<uint, List<MatchServer>> matchServerRegionalLookup = new ConcurrentDictionary<uint, List<MatchServer>>();
 
 		/// <summary>
 		/// Instanced automatically. Use injection to use this service, or Startup.Services.Get.
@@ -43,6 +44,8 @@ namespace Api.Matchmaking
 
 						region.Add(ms);
 					}
+
+					return new ValueTask();
 				}
 			});
 		}

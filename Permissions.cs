@@ -4,7 +4,7 @@ using Api.Contexts;
 using Api.Permissions;
 using System.Threading.Tasks;
 
-namespace Api.Matchmaking
+namespace Api.Matchmakers
 {
 	/// <summary>
 	/// Instances capabilities during the very earliest phases of startup.
@@ -72,7 +72,7 @@ namespace Api.Matchmaking
 				Roles.Member.Revoke("matchServer_load", "matchServer_list");
 				*/
 				
-				return Task.FromResult(source);
+				return new ValueTask<object>(source);
 			}, 20);
 		}
 	}

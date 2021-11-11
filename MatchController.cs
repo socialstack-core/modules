@@ -2,7 +2,7 @@ using Api.Contexts;
 using Microsoft.AspNetCore.Mvc;
 using System.Threading.Tasks;
 
-namespace Api.Matchmaking
+namespace Api.Matchmakers
 {
     /// <summary>Handles match endpoints.</summary>
     [Route("v1/match")]
@@ -12,9 +12,9 @@ namespace Api.Matchmaking
 		/// Asks the given matchmaker to matchmake. Provided the user is permitted, this returns the connection information.
 		/// </summary>
 		[HttpGet("{matchmakerId}/matchmake")]
-		public async Task<object> Matchmake(int matchmakerId)
+		public async ValueTask<object> Matchmake(uint matchmakerId)
 		{
-			var context = Request.GetContext();
+			var context = await Request.GetContext();
 
 			if (context == null)
 			{
@@ -22,7 +22,7 @@ namespace Api.Matchmaking
 			}
 			
 			// Get matchmaker:
-			var service = (_service as IMatchService);
+			var service = (_service as MatchService);
 			
 			var match = await service.Matchmake(context, matchmakerId, 1);
 			
@@ -47,16 +47,16 @@ namespace Api.Matchmaking
 		/// Join match. Provided the user is permitted, this returns the connection information.
 		/// </summary>
 		[HttpGet("{id}/join")]
-		public async Task<object> Join(int id)
+		public async Task<object> Join(uint id)
 		{
-			var context = Request.GetContext();
+			var context = await Request.GetContext();
 
 			if (context == null)
 			{
 				return null;
 			}
 			
-			var service = (_service as IMatchService);
+			var service = (_service as MatchService);
 			
 			// Get the match:
 			var match = await service.Get(context, id);

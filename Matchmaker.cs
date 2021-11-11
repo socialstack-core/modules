@@ -4,13 +4,13 @@ using Api.Translate;
 using Api.Users;
 
 
-namespace Api.Matchmaking
+namespace Api.Matchmakers
 {
 	
 	/// <summary>
 	/// A Matchmaker
 	/// </summary>
-	public partial class Matchmaker : RevisionRow
+	public partial class Matchmaker : VersionedContent<uint>
 	{
 		/// <summary>
 		/// Server region. Use 0 to indicate no use of regions.
@@ -18,13 +18,13 @@ namespace Api.Matchmaking
 		/// E.g. 1=Europe, 2=Asia, 3=NA East, 4=NA West, 5=Oceania, 6=South America, 7=Africa
 		/// This indicates which region the matchmaker will exclusively use when selecting a server.
 		/// </summary>
-		public int RegionId;
+		public uint RegionId;
 		
 		/// <summary>
 		/// The activity that we're matchmaking. This can be e.g. a game ID, or a game mode ID.
 		/// Current assumption is all servers can handle all activities.
 		/// </summary>
-		public int ActivityId;
+		public uint ActivityId;
 		
 		/// <summary>
 		/// Max users in a single match.
@@ -52,7 +52,7 @@ namespace Api.Matchmaking
 		/// <summary>
 		/// ID of the match that is currently being packed.
 		/// </summary>
-		public int CurrentMatchId;
+		public uint CurrentMatchId;
 		
 		/// <summary>
 		/// Number of teams (squads, duo's etc) added to the current match so far.

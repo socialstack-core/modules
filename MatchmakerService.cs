@@ -6,13 +6,13 @@ using Api.Contexts;
 using Api.Eventing;
 using Api.Startup;
 
-namespace Api.Matchmaking
+namespace Api.Matchmakers
 {
 	/// <summary>
 	/// Handles matchmakers.
 	/// Instanced automatically. Use injection to use this service, or Startup.Services.Get.
 	/// </summary>
-	public partial class MatchmakerService : AutoService<Matchmaker>, IMatchmakerService
+	public partial class MatchmakerService : AutoService<Matchmaker>
     {
 		// private Dictionary<int, Matchmaker> matchmakerLookup;
 		
@@ -30,6 +30,8 @@ namespace Api.Matchmaking
 				OnCacheLoaded = () => {
 					// The cache ID index is a matchmaker lookup.
 					// matchmakerLookup = GetCacheForLocale(1).GetPrimary();
+
+					return new ValueTask();
 				}
 			});
 		}

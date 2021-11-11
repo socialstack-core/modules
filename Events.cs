@@ -1,4 +1,4 @@
-using Api.Matchmaking;
+using Api.Matchmakers;
 using Api.Permissions;
 using System.Collections.Generic;
 
