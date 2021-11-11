@@ -71,7 +71,15 @@ function contentFile(ref, options, r){
 	
 	var video = (type == 'mp4' || type == 'ogg' || type == 'webm' || type == 'avi');
 	
-	url = url + id + '-' + ((video || type == 'svg' || type == 'apng' || type == 'gif') ? (options.videoSize || 'original') : (options.size || 'original')) + (options.sizeExt || '') + '.' + type;
+	
+	
+	url = url + id + '-';
+	
+	if(options.size && options.size.indexOf('.') != -1){
+		url += options.size;
+	}else{
+		url+=((video || type == 'svg' || type == 'apng' || type == 'gif') ? (options.videoSize || 'original') : (options.size || 'original')) + (options.sizeExt || '') + '.' + type;
+	}
 	
 	if(options.url){
 		return url;
