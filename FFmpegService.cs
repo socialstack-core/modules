@@ -67,6 +67,28 @@ namespace Api.FFmpeg
 				StartUploadTranscode();
 			}
 
+
+			Events.Upload.BeforeCreate.AddEventListener(async (Context context, Upload upload) => {
+
+				if (upload == null)
+				{
+					return null;
+				}
+
+				if (_configuration.MaxVideoLengthSeconds > 0 && upload.IsVideo && (context.Role == null || !context.Role.CanViewAdmin))
+				{
+					// We have a video length restriction.
+					var duration = await GetDurationInSeconds(upload.TemporaryPath);
+
+					if (duration.HasValue && duration > _configuration.MaxVideoLengthSeconds)
+					{
+						throw new PublicException("That video is too long - the max length is " + _configuration.MaxVideoLengthSeconds + " seconds.", "too_long");
+					}
+				}
+
+				return upload;
+			});
+
 			lifetime.ApplicationStopping.Register(() => {
 				StopAll();
 			});
@@ -158,7 +180,7 @@ namespace Api.FFmpeg
 						case "mov":
 						case "media":
 
-							var result = await Probe("-i \"" + originalPath + "\"");
+							var result = await Probe("-v quiet -print_format json -select_streams v -show_streams -i \"" + originalPath + "\"");
 							var jobj = JObject.Parse(result);
 							var streams = jobj.SelectToken("streams");
 
@@ -198,6 +220,34 @@ namespace Api.FFmpeg
 		public string InputFromRef(string uploadRef, string sizeName = "original")
 		{
 			return InputFromRef(FileRef.Parse(uploadRef), sizeName);
+		}
+
+		/// <summary>
+		/// Gets the duration of the given file.
+		/// </summary>
+		/// <param name="localVideoFilePath"></param>
+		/// <returns></returns>
+		public async Task<double?> GetDurationInSeconds(string localFilePath)
+		{
+			try
+			{
+				// Probe the file:
+				var response = await Probe("-v error -show_entries format=duration -of default=noprint_wrappers=1:nokey=1  \"" + localFilePath + "\"");
+
+				// Format of the response is simply a textual time in seconds.
+				if (!double.TryParse(response.Replace('\r', ' ').Replace('\n', ' ').Trim(), out double length))
+				{
+					return null;
+				}
+
+				return length;
+			}
+			catch (Exception e)
+			{
+				Console.WriteLine("Failed probing a video, but proceeding: " + e.ToString());
+
+				return null;
+			}
 		}
 
 		/// <summary>
@@ -401,7 +451,7 @@ namespace Api.FFmpeg
 
             Process process = new Process();
 
-            var cmd = "ffprobe -v quiet -print_format json -select_streams v -show_streams " + cmdArgs;
+            var cmd = "ffprobe " + cmdArgs;
 
             // Configure the process using the StartInfo properties.
             process.StartInfo.FileName = isWindows ? "cmd.exe" : "/bin/bash";
