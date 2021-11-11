@@ -69,6 +69,13 @@ namespace Api.CloudHosts
 
                         // Restore https:
                         _spaceRegionUrl = "https://" + nameAndZone[1];
+                        _cdnUrl = "https://" + partUrl.Replace(".digitaloceanspaces.com", ".cdn.digitaloceanspaces.com");
+
+                        if (_cdnUrl.EndsWith('/'))
+                        {
+                            // Remove the last slash:
+                            _cdnUrl = _cdnUrl.Substring(0, _cdnUrl.Length - 1);
+                        }
 
                         // Got a space which can be uploaded to:
                         SetConfigured("upload");
@@ -78,11 +85,21 @@ namespace Api.CloudHosts
         }
 
         private string _spaceName;
+        private string _cdnUrl;
 
         private string _spaceRegionUrl;
 
         private IAmazonS3 _uploadClient;
 
+        /// <summary>
+        /// The URL for the upload host (excluding any paths) if this host platform is providing file services. e.g. https://thing.ams.cdn.digitaloceanspaces.com
+        /// </summary>
+        /// <returns></returns>
+        public override string GetContentUrl()
+        {
+            return _cdnUrl;
+        }
+        
         /// <summary>
         /// Runs when uploading a file.
         /// </summary>

@@ -26,6 +26,15 @@ namespace Api.CloudHosts
         }
 
         /// <summary>
+        /// The URL for the upload host (excluding /content/) if this host platform is providing file services.
+        /// </summary>
+        /// <returns></returns>
+        public virtual string GetContentUrl()
+        {
+            return null;
+        }
+
+        /// <summary>
         /// True if this host platform has the given service type configured. Key is e.g. "upload".
         /// </summary>
         public virtual bool HasService(string serviceType)
