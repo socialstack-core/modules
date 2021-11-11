@@ -75,7 +75,7 @@ function contentFile(ref, options, r){
 	
 	url = url + id + '-';
 	
-	if(options.size && options.size.indexOf('.') != -1){
+	if(options.size && options.size.indexOf && options.size.indexOf('.') != -1){
 		url += options.size;
 	}else{
 		url+=((video || type == 'svg' || type == 'apng' || type == 'gif') ? (options.videoSize || 'original') : (options.size || 'original')) + (options.sizeExt || '') + '.' + type;
