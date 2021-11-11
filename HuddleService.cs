@@ -13,6 +13,10 @@ using Api.Users;
 using Api.Startup;
 using Microsoft.AspNetCore.Http;
 using System.Linq;
+using Api.Uploader;
+using System.Net.Http;
+using System.Text;
+using Api.CanvasRenderer;
 
 namespace Api.Huddles
 {
@@ -22,6 +26,7 @@ namespace Api.Huddles
 	/// </summary>
 	public partial class HuddleService : AutoService<Huddle>
     {
+		private HuddleConfig _config;
 		private readonly SignatureService _signatures;
 		private readonly HuddleServerService _huddleServerService;
 		private readonly int userTypeId;
@@ -35,6 +40,7 @@ namespace Api.Huddles
 			_signatures = signatures;
 			_huddleServerService = huddleServerService;
 			userTypeId = ContentTypes.GetId(typeof(User));
+			_config = GetConfig<HuddleConfig>();
 
 			var slugField = GetChangeField("Slug");
 			
@@ -117,6 +123,72 @@ namespace Api.Huddles
 
 				return huddle;
 			});
+
+			// Huddle Transcode:
+			Events.Upload.AfterCreate.AddEventListener(async (Context context, Upload upload) => {
+
+				if (_config.TranscodeUploads)
+				{
+					// Is this a transcode-able upload?
+
+					// If video, request a transcode.
+					if (upload.IsVideo)
+					{
+						await RequestTranscode(upload);
+					}
+				}
+
+				return upload;
+			});
+		}
+
+		/// <summary>
+		/// Asks the huddle cluster to transcode the given upload.
+		/// </summary>
+		/// <param name="upload"></param>
+		/// <returns></returns>
+		public async Task RequestTranscode(Upload upload)
+		{
+			var sourceUrl = upload.GetUrl("original");
+
+			// Get the callback url:
+			var callbackUrl = upload.GetTranscodeCallbackUrl();
+
+			var client = new HttpClient();
+
+			var bodyJson = Newtonsoft.Json.JsonConvert.SerializeObject(new {
+				sourceUrl = sourceUrl,
+				callbackUrl = callbackUrl
+			});
+
+			var json = Newtonsoft.Json.JsonConvert.SerializeObject(new {
+				header = new {
+					signature = "todo"
+				},
+				body = bodyJson
+			});
+
+			var randomServer = _huddleServerService.RandomServer();
+
+			if (randomServer == null)
+			{
+				// Unable to request a transcode.
+				return;
+			}
+
+			string addr;
+
+			if (randomServer.Address.StartsWith("localhost"))
+			{
+				// Local huddle server special case - it's the only one that can run on http.
+				addr = "http://" + randomServer.Address;
+			}
+			else
+			{
+				addr = "https://" + randomServer.Address;
+			}
+
+			await client.PostAsync(addr + "/transcode", new StringContent(json, Encoding.UTF8, "application/json"));
 		}
 
 		private string slugPattern = "abcdefghjkmnpqrstuvwxyzACDEFHJKMNPRTUVWXY1234567890";
