@@ -295,6 +295,12 @@ namespace Api.Uploader
 
 				});
 			});
+
+			// Update the upload:
+			await Update(context, upload, (Context c, Upload u) => {
+				u.TranscodeState = 2;
+			}, DataOptions.IgnorePermissions);
+
 		}
 
 		private async ValueTask ExtractTar(Stream stream, Action<string, string> onFile)
