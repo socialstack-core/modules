@@ -84,17 +84,18 @@ export default class HlsVideo extends React.Component {
 	}
 	
 	getSource(props){
-		var {videoId, videoRef, url} = props;
+		var {videoRef, url, deprMode} = props;
 		if(url){
 			return url;
 		}
-		if(!videoId && videoRef){
+		
+		if(deprMode){
 			// extract id from ref:
 			var refParts = getRef(videoRef, {url: true, dirs: ['video']}).split('-');
 			return refParts[0] + '/manifest.m3u8';
 		}
 		
-		return '/content/video/' + videoId + '/manifest.m3u8';
+		return getRef(videoRef, {url: true, size: 'chunks/manifest.m3u8'});
 	}
 
 	openFullscreen() {
@@ -121,9 +122,16 @@ export default class HlsVideo extends React.Component {
 		}
 
 		var className = this.props.className ? this.props.className + "-wrapper hlsVideo" : "hlsVideo";
-
+		
+		var poster = this.props.poster;
+		
+		if(poster === true){
+			// Read it from the ref:
+			poster = getRef(this.props.videoRef, {url: true, size: 'chunks/thumbnail.jpg'});
+		}
+		
 		return <div className={className}>
-			<video {...omit(this.props, ['videoId', 'videoRef', 'ref', 'autoplay'])} ref={video => {
+			<video {...omit(this.props, ['videoId', 'videoRef', 'ref', 'autoplay'])} poster={poster} ref={video => {
 				if(!video){
 					return;
 				}
