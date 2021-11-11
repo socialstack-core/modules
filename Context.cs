@@ -25,6 +25,11 @@ namespace Api.Contexts
 		public static readonly string CookieName = "user";
 
 		/// <summary>
+		/// Main cookie name (when impersonating)
+		/// </summary>
+		public static readonly string ImpersonationCookieName = "real_user";
+
+		/// <summary>
 		/// Create a default anonymous context.
 		/// </summary>
 		public Context() { }

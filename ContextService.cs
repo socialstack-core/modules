@@ -264,11 +264,22 @@ namespace Api.Contexts
 			ContextFields.ContentTypeToFieldInfo.TryGetValue(contentTypeId, out ContextFieldInfo result);
 			return result;
 		}
-		
+
 		/// <summary>
 		/// The name of the cookie in use.
 		/// </summary>
-        public string CookieName
+		public string ImpersonationCookieName
+		{
+			get
+			{
+				return Context.ImpersonationCookieName;
+			}
+		}
+
+		/// <summary>
+		/// The name of the cookie in use.
+		/// </summary>
+		public string CookieName
         {
             get
             {
