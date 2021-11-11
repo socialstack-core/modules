@@ -133,24 +133,29 @@ namespace Api.CloudHosts
                     StorageClass = S3StorageClass.Standard,
                     PartSize = 6291456, // 6 MB
                     Key = upload.GetStoredFilename(variantName),
-                    ContentType = upload.GetMimeType(),
+                    ContentType = upload.GetMimeType(variantName),
                     CannedACL = upload.IsPrivate ? S3CannedACL.AuthenticatedRead : S3CannedACL.PublicRead
                 };
 
-                if (!string.IsNullOrEmpty(upload.OriginalName))
+                if (variantName == "original")
                 {
-                    if (upload.OriginalName.Length > 100)
+                    if (!string.IsNullOrEmpty(upload.OriginalName))
                     {
-                        // This is very likely just someone trying to break things.
-                        upload.OriginalName = upload.OriginalName.Substring(0, 100);
+                        var name = upload.OriginalName;
+
+                        if (name.Length > 100)
+                        {
+                            // This is very likely just someone trying to break things.
+                            name = name.Substring(0, 100);
+                        }
+
+                        var escapedName = Uri.EscapeDataString(name);
+
+                        // The filename* helps with non-English filenames.
+                        fileTransferUtilityRequest.Headers.ContentDisposition = "attachment; filename=\"" + escapedName + "\"; filename*=utf-8''" + escapedName;
                     }
-
-                    var escapedName = Uri.EscapeDataString(upload.OriginalName);
-
-                    // The filename* helps with non-English filenames.
-                    fileTransferUtilityRequest.Headers.ContentDisposition = "attachment; filename=\"" + escapedName + "\"; filename*=utf-8''" + escapedName;
                 }
-                
+
                 await utility.UploadAsync(fileTransferUtilityRequest);
                 return true;
             }
