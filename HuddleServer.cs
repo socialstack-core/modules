@@ -17,11 +17,16 @@ namespace Api.Huddles
         /// </summary>
         [DatabaseField(Length = 200)]
 		public string Address;
+
+		/// <summary>
+		/// Optional region ID. Can be used to localise people to a nearby huddle server.
+		/// </summary>
+		public uint RegionId;
 		
-        /// <summary>
-        /// The server public key in hex format. Used to validate status updates are legitimate.
-        /// </summary>
-        [DatabaseField(Length = 200)]
+		/// <summary>
+		/// The server public key in hex format. Used to validate status updates are legitimate.
+		/// </summary>
+		[DatabaseField(Length = 200)]
 		public string PublicKey;
 	}
 

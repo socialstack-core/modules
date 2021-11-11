@@ -68,7 +68,7 @@ namespace Api.Huddles
 				if(huddle.HuddleType != 4)
 				{
 					// Assign a server now.
-					var serverToUse = await _huddleServerService.Allocate(ctx, huddle.StartTimeUtc, huddle.EstimatedEndTimeUtc, loadFactor);
+					var serverToUse = await _huddleServerService.Allocate(ctx, huddle.StartTimeUtc, huddle.EstimatedEndTimeUtc, loadFactor, huddle.RegionId);
 
 					if (serverToUse == null)
 					{

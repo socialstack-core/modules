@@ -119,8 +119,9 @@ namespace Api.Huddles
 		/// <param name="startTimeUtc"></param>
 		/// <param name="projectedEndTimeUtc"></param>
 		/// <param name="loadFactor"></param>
+		/// <param name="regionId"></param>
 		/// <returns></returns>
-		public async Task<HuddleServer> Allocate(Context context, DateTime startTimeUtc, DateTime projectedEndTimeUtc, int loadFactor)
+		public async Task<HuddleServer> Allocate(Context context, DateTime startTimeUtc, DateTime projectedEndTimeUtc, int loadFactor, uint regionId)
 		{
 			if (huddleServerLookup == null || huddleServerLookup.Count == 0)
 			{
@@ -132,7 +133,10 @@ namespace Api.Huddles
 
 			foreach (var kvp in huddleServerLookup)
 			{
-				allServers[kvp.Key] = true;
+				if (kvp.Value.RegionId == regionId)
+				{
+					allServers[kvp.Key] = true;
+				}
 			}
 				
 			// Start and end times:
@@ -153,8 +157,10 @@ namespace Api.Huddles
 				}
 				query.Append(i.ToString());
 			}
-			
-			query.Append(") group by HuddleServerId order by sum(LoadFactor) asc");
+
+			query.Append(") and RegionId=");
+			query.Append(regionId.ToString());
+			query.Append(" group by HuddleServerId order by sum(LoadFactor) asc");
 			
 			// Ask the DB for huddle load entries, grouped by server, across this range of time slices:
 			var listQuery = Query.List(typeof(AllocatedHuddleServer));

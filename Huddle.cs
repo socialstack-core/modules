@@ -23,6 +23,11 @@ namespace Api.Huddles
 		public int HuddleType;
 
 		/// <summary>
+		/// Optional region ID. If specified, the allocated server will be from this region.
+		/// </summary>
+		public uint RegionId;
+
+		/// <summary>
 		/// Note: This is only set when a compatible Huddle server (v1.1 or greater) is in use. All socialstack cloud servers are compatible.
 		/// </summary>
 		public int UsersInMeeting;
