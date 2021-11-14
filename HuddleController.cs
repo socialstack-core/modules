@@ -2,6 +2,7 @@ using Api.Contexts;
 using Api.Database;
 using Api.Permissions;
 using Api.Startup;
+using Api.Uploader;
 using Api.Users;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Primitives;
@@ -15,6 +16,32 @@ namespace Api.Huddles
     [Route("v1/huddle")]
 	public partial class HuddleController : AutoController<Huddle>
     {
+
+		/// <summary>
+		/// Requests a transcode (or re-transcode) of the given upload.
+		/// </summary>
+		/// <param name="uploadId"></param>
+		/// <returns></returns>
+		[HttpGet("transcode/{uploadId}")]
+		public async ValueTask RequestTranscode([FromRoute] uint uploadId)
+		{
+			var context = await Request.GetContext();
+
+			if (context == null || context.Role == null || !context.Role.CanViewAdmin)
+			{
+				throw new PublicException("Must be an admin role to request a transcode", "not_permitted");
+			}
+
+			// Get the upload:
+			var upload = await Services.Get<UploadService>().Get(context, uploadId);
+
+			if (upload == null)
+			{
+				throw new PublicException("Upload wasn't found", "upload_missing");
+			}
+
+			await (_service as HuddleService).RequestTranscode(upload);
+		}
 
 		/// <summary>
 		/// Huddle server is informing about state updates of one or more users.
