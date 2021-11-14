@@ -81,6 +81,7 @@ namespace Api.Uploader
 					case "flv":
 					case "h264":
 					case "h265":
+					case "avif":
 						isVideo = true;
 						break;
 
