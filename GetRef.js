@@ -69,9 +69,8 @@ function contentFile(ref, options, r){
 	var id = fileParts.shift();
 	var type = fileParts.join('.');
 	
-	var video = (type == 'mp4' || type == 'ogg' || type == 'webm' || type == 'avi');
-	
-	
+	// Web video only:
+	var video = (type == 'mp4' || type == 'webm' || type == 'avif');
 	
 	url = url + id + '-';
 	
@@ -184,6 +183,7 @@ getRef.parse = (ref) => {
 */
 var imgTypes = ['png', 'jpeg', 'jpg', 'gif', 'mp4', 'svg', 'bmp', 'apng', 'avif', 'webp'];
 var vidTypes = ['mp4', 'webm', 'avif'];
+var allVidTypes = ['avi','wmv','ts','m3u8','ogv','flv','h264','h265','webm','ogg','mp4','mkv','mpeg','3g2','3gp','mov','media','avif'];
 
 getRef.isImage = (ref) => {
 	var info = getRef.parse(ref);
@@ -197,11 +197,11 @@ getRef.isImage = (ref) => {
 		return (imgTypes.indexOf(info.fileType) != -1);
 	}
 	
-	// All other ref types are visual:
+	// All other ref types are visual (fontawesome etc):
 	return true;
 }
 
-getRef.isVideo = (ref) => {
+getRef.isVideo = (ref, webOnly) => {
 	var info = getRef.parse(ref);
 	if(!info){
 		return false;
@@ -210,7 +210,7 @@ getRef.isVideo = (ref) => {
 	if(info.scheme == 'private'){
 		return false;
 	}else if(info.scheme == 'url' || info.scheme == 'http' || info.scheme == 'https' || info.scheme == 'public'){
-		return (vidTypes.indexOf(info.fileType) != -1);
+		return ((webOnly ? vidTypes : allVidTypes).indexOf(info.fileType) != -1);
 	}
 	
 	return false;
