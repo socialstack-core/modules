@@ -12,6 +12,7 @@ using System.IO;
 using System;
 using Api.Startup;
 using Api.CanvasRenderer;
+using System.Net.Http;
 
 namespace Api.CloudHosts
 {
@@ -63,8 +64,49 @@ namespace Api.CloudHosts
                 return upload;
             }, 10);
 
+            Events.Upload.ReadFile.AddEventListener(async (Context context, byte[] result, string relativePath, bool isPrivate) => {
+
+                if (result != null)
+                {
+                    // Something else handled it.
+                    return result;
+                }
+                    
+                // If configured, the default file move is disabled and we're instead reading uploads from the configured host platform.
+                if (_uploadHost != null)
+                {
+                    if (isPrivate)
+                    {
+                        // To implement: Will need to use the respective API to directly read the file bytes, or obtain a signed URL to read it.
+                        throw new NotImplementedException("Whoops! ReadFile is unavailable for private files via a cloud host at the moment.");
+                    }
+                    else
+                    {
+                        // Public URL:
+                        var url = _uploadHost.GetContentUrl() + "/content/" + relativePath;
+
+                        // Request the file:
+                        var client = new HttpClient();
+
+                        try
+                        {
+                            // Get the bytes:
+                            result = await client.GetByteArrayAsync(url);
+                        }
+                        catch(Exception e)
+                        {
+                            Console.WriteLine("Likely temporary error whilst trying to read a file from a remote host: " + e.ToString());
+                            // Unavailable or unreachable.
+                            return null;
+                        }
+                    }
+                }
+
+                return result;
+            }, 10);
+
         }
-		
+
         private List<CloudHostPlatform> _platforms;
 
         /// <summary>
