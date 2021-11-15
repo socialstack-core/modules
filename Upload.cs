@@ -8,6 +8,7 @@ using System.Web;
 using Api.Users;
 using Api.SocketServerLibrary;
 using Api.CanvasRenderer;
+using System.Threading.Tasks;
 
 namespace Api.Uploader
 {
@@ -137,6 +138,16 @@ namespace Api.Uploader
 				writer.Release();
 				return result;
 			}
+		}
+
+		/// <summary>
+		/// Read the bytes of the given variant of this upload. Convenience method for the method of the same name on UploadService.
+		/// </summary>
+		/// <param name="variant"></param>
+		/// <returns></returns>
+		public async ValueTask<byte[]> ReadFile(string variant = "original")
+		{
+			return await Services.Get<UploadService>().ReadFile(this, variant);
 		}
 
 		/// <summary>
@@ -313,7 +324,7 @@ namespace Api.Uploader
 		/// Gets the file path of this ref. Null if it is not a file ref.
 		/// </summary>
 		/// <returns></returns>
-		public string GetFilePath(string sizeName, string altExtension = null)
+		public string GetFilePath(string sizeName)
 		{
 			string basePath;
 
@@ -330,7 +341,7 @@ namespace Api.Uploader
 				return null;
 			}
 
-			return basePath + GetRelativePath(sizeName, false, altExtension);
+			return basePath + GetRelativePath(sizeName, false);
 		}
 
 		/// <summary>
@@ -338,15 +349,10 @@ namespace Api.Uploader
 		/// </summary>
 		/// <param name="sizeName"></param>
 		/// <param name="omitExt"></param>
-		/// <param name="altExtension"></param>
 		/// <returns></returns>
-		public string GetRelativePath(string sizeName, bool omitExt = false, string altExtension = null)
+		public string GetRelativePath(string sizeName, bool omitExt = false)
 		{
-			if (altExtension != null)
-			{
-				return File + "-" + sizeName + "." + altExtension;
-			}
-			else if (omitExt)
+			if (omitExt || sizeName.IndexOf('.') != -1)
 			{
 				return File + "-" + sizeName;
 			}

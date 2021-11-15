@@ -238,7 +238,40 @@ namespace Api.Uploader
 				return new ValueTask<Upload>(upload);
 			}, 15);
 
+			Events.Upload.ReadFile.AddEventListener(async (Context context, byte[] result, string storagePath, bool isPrivate) => {
+
+				if (result != null)
+				{
+					// Something else has handled this.
+					return result;
+				}
+
+				// Default filesystem handler.
+				// Get the complete path:
+				var basePath = isPrivate ? "Content/content-private/" : "Content/content/";
+
+				var filePath = System.IO.Path.GetFullPath(basePath + storagePath);
+
+				result = await File.ReadAllBytesAsync(filePath);
+
+				return result;
+			}, 15);
+
 			InstallAdminPages("Media", "fa:fa-film", new string[] { "id", "name" });
+		}
+
+		/// <summary>
+		/// Gets the file bytes of the given ref, if it is a file ref. Supports remote filesystems as well.
+		/// </summary>
+		/// <param name="upload"></param>
+		/// <param name="sizeName"></param>
+		/// <returns></returns>
+		public ValueTask<byte[]> ReadFile(Upload upload, string sizeName = "original")
+		{
+			// Get path relative to the storage engine:
+			var uploadPath = upload.GetRelativePath(sizeName);
+
+			return GetFileBytesForStoragePath(uploadPath, upload.IsPrivate);
 		}
 
 		/// <summary>
@@ -246,17 +279,42 @@ namespace Api.Uploader
 		/// </summary>
 		/// <param name="fileRef"></param>
 		/// <param name="sizeName"></param>
-		/// <param name="altExtension"></param>
 		/// <returns></returns>
-		public ValueTask<byte[]> GetFileBytes(string fileRef, string sizeName = "original", string altExtension = null)
+		public ValueTask<byte[]> ReadFile(string fileRef, string sizeName = "original")
 		{
 			var refMeta = FileRef.Parse(fileRef);
 
-			var path = refMeta.GetFilePath(sizeName, altExtension);
+			var uploadPath = refMeta.GetRelativePath(sizeName);
 
-			var result = File.ReadAllBytes(path);
+			return GetFileBytesForStoragePath(uploadPath, refMeta.Scheme == "private");
+		}
 
-			return new ValueTask<byte[]>(result);
+		/// <summary>
+		/// Gets the file bytes of the given ref, if it is a file ref. Supports remote filesystems as well.
+		/// </summary>
+		/// <param name="fileRef"></param>
+		/// <param name="sizeName"></param>
+		/// <returns></returns>
+		public ValueTask<byte[]> ReadFile(FileRef fileRef, string sizeName = "original")
+		{
+			var uploadPath = fileRef.GetRelativePath(sizeName);
+
+			return GetFileBytesForStoragePath(uploadPath, fileRef.Scheme == "private");
+		}
+
+		private Context readBytesContext = new Context();
+
+		/// <summary>
+		/// Gets the file bytes for a given storage path. Usually use GetFileBytes with a ref or an Upload instead.
+		/// </summary>
+		/// <param name="storagePath"></param>
+		/// <param name="isPrivate">True if this is in the private storage area.</param>
+		/// <returns></returns>
+		public async ValueTask<byte[]> GetFileBytesForStoragePath(string storagePath, bool isPrivate)
+		{ 
+			// Trigger a read file event. The default handler will read from the file system, 
+			// and the CloudHosts module adds a handler if it is handling uploads.
+			return await Events.Upload.ReadFile.Dispatch(readBytesContext, null, storagePath, isPrivate);
 		}
 
 		private SignatureService _sigService;
