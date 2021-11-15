@@ -267,11 +267,10 @@ namespace Api.FFmpeg
 		/// </summary>
 		/// <param name="uploadRef"></param>
 		/// <param name="sizeName"></param>
-		/// <param name="altExtension"></param>
 		/// <returns></returns>
-		public string OutputForRef(string uploadRef, string sizeName = "transcoded", string altExtension = null)
+		public string OutputForRef(string uploadRef, string sizeName = "transcoded")
 		{
-			return OutputForRef(FileRef.Parse(uploadRef), sizeName, altExtension);
+			return OutputForRef(FileRef.Parse(uploadRef), sizeName);
 		}
 
 		/// <summary>
@@ -279,11 +278,10 @@ namespace Api.FFmpeg
 		/// </summary>
 		/// <param name="outputRef"></param>
 		/// <param name="sizeName"></param>
-		/// <param name="altExtension"></param>
 		/// <returns></returns>
-		public string OutputForRef(FileRef outputRef, string sizeName, string altExtension = null)
+		public string OutputForRef(FileRef outputRef, string sizeName)
 		{
-			var fsPath = outputRef.GetFilePath(sizeName, altExtension);
+			var fsPath = outputRef.GetFilePath(sizeName);
 			return " \"" + fsPath + "\"";
 		}
 
