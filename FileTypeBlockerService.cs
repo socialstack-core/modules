@@ -70,8 +70,9 @@ namespace Api.FileTypeBlocker
 
 			Events.Upload.BeforeCreate.AddEventListener((Context context, Upload upload) => {
 				
-				if(upload == null)
+				if(upload == null || (context.Role != null && context.Role.CanViewAdmin))
 				{
+					// Admins also aren't restricted.
 					return new ValueTask<Upload>(upload);
 				}
 				
