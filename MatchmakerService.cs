@@ -106,7 +106,7 @@ namespace Api.Matchmakers
 					result.MatchServerId = matchServer.Id;
 				}
 
-				result = await _matchService.Create(context, result);
+				result = await _matchService.Create(context, result, DataOptions.IgnorePermissions);
 				matchmaker.CurrentMatchId = result.Id;
 				matchmaker.TeamsAdded = 1;
 				matchmaker.UsersAdded = teamSize;
@@ -115,6 +115,7 @@ namespace Api.Matchmakers
 			{
 				matchmaker.TeamsAdded++;
 				matchmaker.UsersAdded += teamSize;
+				result = await _matchService.Get(context, matchmaker.CurrentMatchId, DataOptions.IgnorePermissions);
 			}
 
 			if (matchmaker.StartTimeUtc == null && matchmaker.TeamsAdded >= matchmaker.MinTeamCount)
@@ -125,7 +126,7 @@ namespace Api.Matchmakers
 
 			await Update(context, matchmaker, (Context c, Matchmaker mm) => {
 
-			});
+			}, DataOptions.IgnorePermissions);
 
 			return result;
 		}
