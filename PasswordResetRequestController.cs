@@ -75,6 +75,7 @@ namespace Api.PasswordResetRequests
 			var svc = (_service as PasswordResetRequestService);
 				
 			var passwordHashField = _users.GetChangeField("PasswordHash");
+			var roleField = _users.GetChangeField("Role");
 			var isUsedField = svc.GetChangeField("IsUsed");
 
 			var context = await Request.GetContext();
@@ -122,6 +123,14 @@ namespace Api.PasswordResetRequests
 			{
 				targetUser.PasswordHash = PasswordStorage.CreateHash(newPassword.Password);
 				targetUser.MarkChanged(passwordHashField);
+
+				// This also effectively validates the user's email address, so if they were still a guest, elevate them to member.
+				if (targetUser.Role == Roles.Guest.Id)
+				{
+					targetUser.Role = Roles.Member.Id;
+					targetUser.MarkChanged(roleField);
+				}
+
 				targetUser = await _users.FinishUpdate(context, targetUser);
 			}
 			else
@@ -140,9 +149,10 @@ namespace Api.PasswordResetRequests
 			if (await _service.StartUpdate(context, request, DataOptions.IgnorePermissions))
 			{
 				request.IsUsed = true;
-				targetUser.MarkChanged(isUsedField);
+				request.MarkChanged(isUsedField);
 				await _service.FinishUpdate(context, request);
 			}
+
 
 			// Set user:
 			context.User = targetUser;
