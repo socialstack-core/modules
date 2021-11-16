@@ -24,6 +24,11 @@ namespace Api.Huddles
 		public uint HuddleServerId;
 		
 		/// <summary>
+		/// The huddle servers region.
+		/// </summary>
+		public uint RegionId;
+		
+		/// <summary>
 		/// Calculated load factor for a particular huddle server at this time slice.
 		/// </summary>
 		public int LoadFactor;

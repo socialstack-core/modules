@@ -211,6 +211,7 @@ namespace Api.Huddles
 						Id = sliceId,
 						LoadFactor = loadFactor,
 						HuddleServerId = serverToAllocateTo,
+						RegionId = targetServer.RegionId,
 						TimeSliceId = i
 					}, DataOptions.IgnorePermissions);
 				}
