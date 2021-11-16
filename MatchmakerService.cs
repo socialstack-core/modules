@@ -7,6 +7,7 @@ using Api.Eventing;
 using Api.Startup;
 using Api.Signatures;
 using System;
+using Api.Users;
 
 namespace Api.Matchmakers
 {
@@ -59,6 +60,30 @@ namespace Api.Matchmakers
 			{
 				// E.g. squad queued up in a solo queue.
 				throw new PublicException("Team too big to join this queue.", "too_big");
+			}
+
+			MappingService<Match, User, uint, uint> stickyMapping = null;
+
+			if (matchmaker.Sticky && context.UserId != 0)
+			{
+				// Has this user already been matchmade?
+				stickyMapping = await _matchService.GetMap<User, uint>("UserInMatch");
+
+				uint matchId = 0;
+
+				await stickyMapping.ListSourceIdByTarget(context, context.UserId, (Context c, uint src, object scope) => {
+
+					matchId = src;
+
+					return new ValueTask();
+				}, null);
+
+				if (matchId != 0)
+				{
+					var stickyMatch = await _matchService.Get(context, matchId, DataOptions.IgnorePermissions);
+					return stickyMatch;
+				}
+
 			}
 
 			// Note: under extreme pressure spread over a cluster, this matchmaking will result in duplicated updates to matchmakers.
@@ -127,6 +152,12 @@ namespace Api.Matchmakers
 			await Update(context, matchmaker, (Context c, Matchmaker mm) => {
 
 			}, DataOptions.IgnorePermissions);
+
+			if (stickyMapping != null)
+			{
+				// Add match->user to the sticky map:
+				await stickyMapping.CreateIfNotExists(context, result.Id, context.UserId);
+			}
 
 			return result;
 		}
