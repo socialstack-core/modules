@@ -85,17 +85,27 @@ export default class HlsVideo extends React.Component {
 	
 	getSource(props){
 		var {videoRef, url, deprMode} = props;
-		if(url){
-			return url;
+		
+		var result = url;
+		
+		if(!result){
+			
+			if(deprMode){
+				// extract id from ref:
+				var refParts = getRef(videoRef, {url: true, dirs: ['video']}).split('-');
+				result = refParts[0] + '/manifest.m3u8';
+			}else{
+				result = getRef(videoRef, {url: true, size: 'chunks/manifest.m3u8'});
+			}
+			
 		}
 		
-		if(deprMode){
-			// extract id from ref:
-			var refParts = getRef(videoRef, {url: true, dirs: ['video']}).split('-');
-			return refParts[0] + '/manifest.m3u8';
+		if(result.indexOf('?') == -1){
+			// Timestamp to avoid local caching:
+			result += '?t=' + Date.now();
 		}
 		
-		return getRef(videoRef, {url: true, size: 'chunks/manifest.m3u8'});
+		return result;
 	}
 
 	openFullscreen() {
