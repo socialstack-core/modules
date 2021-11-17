@@ -69,6 +69,7 @@ export default class HuddleClient
 			busyMeeting,
 			directChatOnly,
 			excludeRoles,
+			cameraQuality, // camera stream quality to use. hd, qvga, vga.
 			shareAudio // True if it should capture screenshare audio instead of mic audio
 		}
 	)
@@ -204,7 +205,9 @@ export default class HuddleClient
 		// Map of webcam MediaDeviceInfos indexed by deviceId.
 		// @type {Map<String, MediaDeviceInfos>}
 		this._webcams = new Map();
-
+		
+		this.defaultCameraQuality = cameraQuality || 'hd';
+		
 		// Local Webcam.
 		// @type {Object} with:
 		// - {MediaDeviceInfo} [device]
@@ -212,7 +215,7 @@ export default class HuddleClient
 		this._webcam =
 		{
 			device     : null,
-			resolution : 'hd'
+			resolution : this.defaultCameraQuality
 		};
 
 		// Set custom SVC scalability mode.
@@ -1153,8 +1156,8 @@ export default class HuddleClient
 
 			this._webcam.device = this._webcams.get(array[idx]);
 			
-			// Reset video resolution to HD.
-			this._webcam.resolution = 'hd';
+			// Reset video resolution
+			this._webcam.resolution = this.defaultCameraQuality;
 
 			if (!this._webcam.device)
 				throw new Error('no webcam devices');
