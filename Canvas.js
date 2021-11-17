@@ -34,7 +34,7 @@ class Canvas extends React.Component {
 		}
 		
 		if(content){
-			content = expand(content, this.props.onContentNode);
+			content = expand(content, props.onContentNode);
 		}
 		
 		return content;
