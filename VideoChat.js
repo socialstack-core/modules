@@ -67,7 +67,8 @@ export default class VideoChat extends React.Component {
 			useSimulcast: true,
 			useSharingSimulcast: true,
 			directChatOnly: props.directChatOnly,
-			excludeRoles: props.excludeRoles
+			excludeRoles: props.excludeRoles,
+			cameraQuality: props.cameraQuality
 		});
 	}
 	
