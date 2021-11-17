@@ -28,6 +28,11 @@ namespace Api.Eventing
 		public EventHandler<Upload> Process;
 
 		/// <summary>
+		/// After a chunk group has been uploaded by a transcoder.
+		/// </summary>
+		public EventHandler<Upload> AfterChunksUploaded;
+
+		/// <summary>
 		/// Called when the upload system must store a file.
 		/// Given the upload, the temp file path and the variant name.
 		/// </summary>

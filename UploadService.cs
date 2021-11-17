@@ -360,6 +360,9 @@ namespace Api.Uploader
 				u.TranscodeState = 2;
 			}, DataOptions.IgnorePermissions);
 
+			// Event:
+			await Events.Upload.AfterChunksUploaded.Dispatch(context, upload);
+
 		}
 
 		private async ValueTask ExtractTar(Stream stream, Action<string, string> onFile)
