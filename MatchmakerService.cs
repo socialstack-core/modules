@@ -62,25 +62,16 @@ namespace Api.Matchmakers
 				throw new PublicException("Team too big to join this queue.", "too_big");
 			}
 
-			MappingService<Match, User, uint, uint> stickyMapping = null;
-
 			if (matchmaker.Sticky && context.UserId != 0)
 			{
 				// Has this user already been matchmade?
-				stickyMapping = await _matchService.GetMap<User, uint>("UserInMatch");
+				var stickyMatch = await _matchService.Where("MatchmakerId=? and UserInMatch=?", DataOptions.IgnorePermissions)
+					.Bind(matchmaker.Id)
+					.Bind(context.UserId)
+					.First(context);
 
-				uint matchId = 0;
-
-				await stickyMapping.ListSourceIdByTarget(context, context.UserId, (Context c, uint src, object scope) => {
-
-					matchId = src;
-
-					return new ValueTask();
-				}, null);
-
-				if (matchId != 0)
+				if (stickyMatch != null)
 				{
-					var stickyMatch = await _matchService.Get(context, matchId, DataOptions.IgnorePermissions);
 					return stickyMatch;
 				}
 
@@ -153,8 +144,10 @@ namespace Api.Matchmakers
 
 			}, DataOptions.IgnorePermissions);
 
-			if (stickyMapping != null)
+			if (matchmaker.Sticky && context.UserId != 0)
 			{
+				var stickyMapping = await _matchService.GetMap<User, uint>("UserInMatch");
+
 				// Add match->user to the sticky map:
 				await stickyMapping.CreateIfNotExists(context, result.Id, context.UserId);
 			}

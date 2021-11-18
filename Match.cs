@@ -1,5 +1,6 @@
 using System;
 using Api.Database;
+using Api.Startup;
 using Api.Translate;
 using Api.Users;
 
@@ -42,4 +43,12 @@ namespace Api.Matchmakers
 		public int MaxQueueTime;
 	}
 
+}
+
+namespace Api.Users
+{
+	[ListAs("UserInMatch", false)]
+	[ImplicitFor("UserInMatch", typeof(Matchmakers.Match))]
+	public partial class User
+	{ }
 }
