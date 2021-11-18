@@ -684,7 +684,15 @@ namespace Api.ContentSync
 			// Start my server now:
 			SyncServer = new Server<ContentSyncServer>();
 			SyncServer.Port = Port;
-			SyncServer.BindAddress = new IPAddress(Self.PrivateIPv4);
+
+			if (_configuration.GlobalCluster)
+			{
+				Console.WriteLine("ContentSync running as global cluster.");
+			}
+			else
+			{
+				SyncServer.BindAddress = new IPAddress(Self.PrivateIPv4);
+			}
 
 			SyncServer.RegisterOpCode(8, (Client client, Writer entireMessage) => {
 
@@ -818,7 +826,18 @@ namespace Api.ContentSync
 					continue;
 				}
 
-				var ipAddress = new IPAddress(serverInfo.PrivateIPv4);
+				// Is it the same datacenter?
+				// If not, use the public IP.
+				IPAddress ipAddress;
+
+				if (serverInfo.HostPlatformId != Self.HostPlatformId || serverInfo.RegionId != Self.RegionId)
+				{
+					ipAddress = new IPAddress(serverInfo.PublicIPv4);
+				}
+				else
+				{
+					ipAddress = new IPAddress(serverInfo.PrivateIPv4);
+				}
 
 				Console.WriteLine("[CSync] Connect to " + ipAddress);
 

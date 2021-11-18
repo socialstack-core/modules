@@ -19,6 +19,11 @@ namespace Api.ContentSync
 		public bool Verbose {get; set;}
 		
 		/// <summary>
+		/// True if this cluster is global and will instead bind the any interface.
+		/// </summary>
+		public bool GlobalCluster { get; set;}
+		
+		/// <summary>
 		/// True if the sync file should be explicitly enabled/ disabled.
 		/// </summary>
 		public bool? SyncFileMode { get; set; }
