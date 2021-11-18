@@ -565,7 +565,7 @@ export default class HuddleClient
 					consumer.pause();
 					
 					var c = this.consumersById[consumerId];
-					c.remotePaused = true;
+					c.remotelyPaused = true;
 					this.dispatchEvent({
 						type: 'consumerpaused',
 						consumer: c
@@ -585,7 +585,7 @@ export default class HuddleClient
 					consumer.resume();
 
 					var c = this.consumersById[consumerId];
-					c.remotePaused = false;
+					c.remotelyPaused = false;
 					this.dispatchEvent({
 						type: 'consumerresumed',
 						consumer: c
