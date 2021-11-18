@@ -39,7 +39,10 @@ export default function Checkbox(props) {
 				onChange={onChange}
 				onBlur={onBlur}
 				checked={checked ? "checked" : undefined} 
-				disabled={disabled ? "disabled" : undefined} />
+				disabled={disabled ? "disabled" : undefined}
+				value={props.value}
+				defaultValue={props.defaultValue}
+			/>
 			<label class="form-check-label" htmlFor={id}>
 				{label}
 			</label>

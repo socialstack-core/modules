@@ -475,8 +475,8 @@ export default class Input extends React.Component {
                     onBlur={this.onBlur}
                     data-field={fieldName}
                     invalid={this.state.validationFailure ? true : undefined}
-                    {...omit(this.props, ['id', 'className', 'onChange', 'onBlur', 'type', 'inline', 'value', 'defaultValue', 'help', 'helpIcon', 'fieldName'])}
-                    checked={this.props.value || this.props.defaultValue}
+                    {...omit(this.props, ['id', 'className', 'onChange', 'onBlur', 'type', 'inline', 'defaultValue', 'help', 'helpIcon', 'fieldName'])}
+                    checked={this.props.defaultValue == this.props.value}
                     disabled={false}
                 />
             );
