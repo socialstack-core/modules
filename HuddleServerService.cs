@@ -138,7 +138,13 @@ namespace Api.Huddles
 					allServers[kvp.Key] = true;
 				}
 			}
-				
+
+			if (allServers.Count == 0)
+			{
+				Console.WriteLine("Requested a huddle server in region #" + regionId +" but there are none.");
+				return null;
+			}
+
 			// Start and end times:
 			var startSliceId = GetTimeSlice(startTimeUtc);
 			var endSliceId = GetTimeSlice(projectedEndTimeUtc);
