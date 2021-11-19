@@ -2,6 +2,7 @@ import Input from 'UI/Input';
 import Loop from 'UI/Loop';
 import Alert from 'UI/Alert';
 import getContentTypes from 'UI/Functions/GetContentTypes';
+import ArrayBuilder from 'Admin/CanvasEditor/PropEditor/ArrayBuilder';
 import ArrayEditor from 'Admin/CanvasEditor/PropEditor/ArrayEditor';
 import webRequest from 'UI/Functions/WebRequest';
 
@@ -269,7 +270,11 @@ export default class PropEditor extends React.Component {
 				inputContent = this.getContentTypeDropdown();
 				inputContent.unshift(<option>Pick a content type</option>);
 			}else if(propType.type == 'array'){
-				inputType = ArrayEditor;
+				if (propType.fields) {
+					inputType = ArrayBuilder;
+				} else {
+					inputType = ArrayEditor;
+				}
 			}else if(propType.type == 'string'){
 				inputType = 'text';
 			}else{
@@ -307,6 +312,8 @@ export default class PropEditor extends React.Component {
 
 					if (inputType == 'checkbox') {
 						value = !!e.target.checked;
+					} else if (inputType?.name == 'ArrayBuilder') {
+						value = e.target.groupData;
 					}
 
 					this.updateField(targetNode, fieldInfo, value);
@@ -315,6 +322,8 @@ export default class PropEditor extends React.Component {
 
 					if (inputType == 'checkbox') {
 						value = !!e.target.checked;
+					} else if (inputType?.name == 'ArrayBuilder') {
+						value = e.target.groupData;
 					}
 
 					this.updateField(targetNode, fieldInfo, value);
