@@ -580,6 +580,8 @@ namespace Api.Uploader
                 canvas.Save(stream, current.RawFormat);
             }
 
+			canvas.Dispose();
+
             return targetPath;
          }
 
