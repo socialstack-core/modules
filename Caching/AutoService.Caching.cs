@@ -208,7 +208,7 @@ public partial class AutoService<T, ID> {
 				{
 					// Secondary locale. The target object is a clone of the raw object, 
 					// but then with any unset fields from the primary locale.
-					var entity = new T();
+					var entity = (T)Activator.CreateInstance(InstanceType);
 
 					PopulateTargetEntityFromRaw(entity, raw, primaryLocaleCache.Get(raw.GetId()));
 
