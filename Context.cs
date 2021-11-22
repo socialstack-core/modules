@@ -219,7 +219,7 @@ namespace Api.Contexts
 				}
 
 				// RoleService is always cached:
-				var cache = _roles.GetCacheForLocale(_localeId);
+				var cache = _roles.GetCacheForLocale(1);
 				_role = cache.Get(RoleId);
 				return _role;
 			}
