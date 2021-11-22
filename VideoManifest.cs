@@ -165,8 +165,6 @@ namespace Api.Uploader
 		{
 			var ms = new MemoryStream();
 
-			_lastBufferStreamTime = currentStreamTime;
-
 			// File header lines:
 			if (Metadata != null)
 			{
@@ -215,7 +213,10 @@ namespace Api.Uploader
 				}
 			}
 
-			_cachedBuffer = ms.ToArray();
+			var cb = ms.ToArray();
+
+			_lastBufferStreamTime = currentStreamTime;
+			_cachedBuffer = cb;
 		}
 
 		/// <summary>
