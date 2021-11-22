@@ -90,6 +90,11 @@ namespace Api.Matchmakers
 		/// </summary>
 		[JsonIgnore]
 		public System.Threading.Tasks.Task<Match> MatchCreateTask { get; set; }
+
+		/// <summary>
+		/// True if this matchmaker always returns CurrentMatchId.
+		/// </summary>
+		public bool SameResponseAlways;
 	}
 
 }

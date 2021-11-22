@@ -81,7 +81,7 @@ namespace Api.Matchmakers
 			
 			lock (matchmaker)
 			{
-				if ((matchmaker.UsersAdded + teamSize) > matchmaker.MaxMatchSize)
+				if (!matchmaker.SameResponseAlways && (matchmaker.UsersAdded + teamSize) > matchmaker.MaxMatchSize)
 				{
 					// Match is full - start packing a new one.
 					matchmaker.CurrentMatchId = 0;
