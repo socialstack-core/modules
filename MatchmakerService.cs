@@ -36,9 +36,6 @@ namespace Api.Matchmakers
 				Retain = true,
 				Preload = true,
 				OnCacheLoaded = () => {
-					// The cache ID index is a matchmaker lookup.
-					// matchmakerLookup = GetCacheForLocale(1).GetPrimary();
-
 					return new ValueTask();
 				}
 			});
@@ -77,69 +74,83 @@ namespace Api.Matchmakers
 
 			}
 
-			// Note: under extreme pressure spread over a cluster, this matchmaking will result in duplicated updates to matchmakers.
-			// It may, for example, generate 2 new matches.
+			// Note: if rps pressure is expected, you should direct all matchmaking requests to 1 server in your cluster to eliminate match creation collisions.
 
 			Match result = null;
-			var now = DateTime.UtcNow;
-			var alreadyStarted = matchmaker.StartTimeUtc != null && matchmaker.StartTimeUtc < now;
-
-			if (alreadyStarted || ((matchmaker.UsersAdded + teamSize) > matchmaker.MaxMatchSize))
+			var thisThreadCreated = false;
+			
+			lock (matchmaker)
 			{
-				// Close off this previous match and essentially mark it full. Matchmaker will no longer pack users into it.
-				if (!alreadyStarted)
+				if ((matchmaker.UsersAdded + teamSize) > matchmaker.MaxMatchSize)
 				{
-					StartMatch(matchmaker.CurrentMatchId);
-				}
-				matchmaker.CurrentMatchId = 0;
-				matchmaker.TeamsAdded = 0;
-				matchmaker.UsersAdded = 0;
-				matchmaker.StartTimeUtc = null;
-			}
-
-			if (matchmaker.CurrentMatchId == 0)
-			{
-				// Spawn a new match now:
-
-				result = new Match()
-				{
-					CreatedUtc = now,
-					EditedUtc = now,
-					MatchmakerId = matchmaker.Id,
-					RegionId = matchmaker.RegionId,
-					ActivityId = matchmaker.ActivityId
-				};
-				
-				if (matchmaker.UsesServers)
-				{
-					var matchServer = _serverService.Allocate(context, matchmaker);
-
-					if (matchServer == null)
-					{
-						throw new PublicException("No servers available", "no_servers");
-					}
-
-					result.MatchServerId = matchServer.Id;
+					// Match is full - start packing a new one.
+					matchmaker.CurrentMatchId = 0;
+					matchmaker.TeamsAdded = 0;
+					matchmaker.UsersAdded = 0;
 				}
 
-				result = await _matchService.Create(context, result, DataOptions.IgnorePermissions);
-				matchmaker.CurrentMatchId = result.Id;
-				matchmaker.TeamsAdded = 1;
-				matchmaker.UsersAdded = teamSize;
+				if (matchmaker.CurrentMatchId == 0)
+				{
+					thisThreadCreated = true;
+
+					matchmaker.MatchCreateTask = Task.Run(async () => {
+						var now = DateTime.UtcNow;
+						
+						var res = new Match()
+						{
+							CreatedUtc = now,
+							EditedUtc = now,
+							MatchmakerId = matchmaker.Id,
+							RegionId = matchmaker.RegionId,
+							ActivityId = matchmaker.ActivityId
+						};
+
+						result = res;
+
+						if (matchmaker.UsesServers)
+						{
+							var matchServer = _serverService.Allocate(context, matchmaker);
+
+							if (matchServer == null)
+							{
+								throw new PublicException("No servers available", "no_servers");
+							}
+
+							res.MatchServerId = matchServer.Id;
+						}
+
+						res = await _matchService.Create(context, res, DataOptions.IgnorePermissions);
+						matchmaker.CurrentMatchId = res.Id;
+						matchmaker.TeamsAdded = 1;
+						matchmaker.UsersAdded = teamSize;
+
+						// Done:
+						matchmaker.MatchCreateTask = null;
+
+						return res;
+					});
+
+				}
 			}
-			else
+
+			if (matchmaker.MatchCreateTask != null)
 			{
-				matchmaker.TeamsAdded++;
-				matchmaker.UsersAdded += teamSize;
+				result = await matchmaker.MatchCreateTask;
+			}
+
+			if (!thisThreadCreated)
+			{
+				lock (matchmaker)
+				{
+					// Add user to match:
+					matchmaker.TeamsAdded++;
+					matchmaker.UsersAdded += teamSize;
+				}
+
 				result = await _matchService.Get(context, matchmaker.CurrentMatchId, DataOptions.IgnorePermissions);
 			}
 
-			if (matchmaker.StartTimeUtc == null && matchmaker.TeamsAdded >= matchmaker.MinTeamCount)
-			{
-				// Countdown now starting - where we droppin' boys!
-				matchmaker.StartTimeUtc = DateTime.UtcNow.AddSeconds(matchmaker.MaxQueueTime);
-			}
-
+			// Save matchmaker changes to DB.
 			await Update(context, matchmaker, (Context c, Matchmaker mm) => {
 
 			}, DataOptions.IgnorePermissions);

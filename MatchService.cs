@@ -27,6 +27,8 @@ namespace Api.Matchmakers
         {
 			_signatures = signatures;
 			_serverService = serverService;
+
+			Cache();
 		}
 		
 		

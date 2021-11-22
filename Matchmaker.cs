@@ -2,7 +2,7 @@ using System;
 using Api.Database;
 using Api.Translate;
 using Api.Users;
-
+using Newtonsoft.Json;
 
 namespace Api.Matchmakers
 {
@@ -84,6 +84,12 @@ namespace Api.Matchmakers
 		/// It's overwritten however if a match becomes completely full.
 		/// </summary>
 		public DateTime? StartTimeUtc;
+
+		/// <summary>
+		/// Match creation task, if there is one.
+		/// </summary>
+		[JsonIgnore]
+		public System.Threading.Tasks.Task<Match> MatchCreateTask { get; set; }
 	}
 
 }

@@ -31,7 +31,7 @@ namespace Api.Matchmakers
 				Retain = true,
 				Preload = true,
 				OnCacheLoaded = () => {
-					// The cache ID index is a math server lookup.
+					// The cache ID index is a match server lookup.
 					// That'll be useful when allocating a server.
 					matchServerLookup = GetCacheForLocale(1).GetPrimary();
 					foreach (var ms in matchServerLookup.Values)
