@@ -64,6 +64,37 @@ namespace Api.Huddles
 			
 			queryStart = "select HuddleServerId from " + typeof(HuddleLoadMetric).TableName() + 
 				" where TimeSliceId in (";
+
+			// Local and remote updates should mod the internally cached versions:
+			Events.HuddleServer.AfterCreate.AddEventListener((Context context, HuddleServer huddleServer) => {
+				return UpdateCache(huddleServer);
+			});
+
+			Events.HuddleServer.AfterUpdate.AddEventListener((Context context, HuddleServer huddleServer) => {
+				return UpdateCache(huddleServer);
+			});
+
+			Events.HuddleServer.AfterDelete.AddEventListener((Context context, HuddleServer huddleServer) => {
+				return UpdateCache(huddleServer);
+			});
+
+			Events.HuddleServer.Received.AddEventListener((Context context, HuddleServer huddleServer, int mode) => {
+				return UpdateCache(huddleServer);
+			});
+		}
+
+		private ValueTask<HuddleServer> UpdateCache(HuddleServer huddleServer)
+		{
+			if (huddleServer == null)
+			{
+				return new ValueTask<HuddleServer>(huddleServer);
+			}
+
+			// Update the server set.
+			huddleServerLookup = GetCacheForLocale(1).GetPrimary();
+			huddleServerSet = huddleServerLookup.Values.ToArray();
+
+			return new ValueTask<HuddleServer>(huddleServer);
 		}
 
 		private string[] _hostList;
