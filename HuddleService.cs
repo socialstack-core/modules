@@ -33,6 +33,11 @@ namespace Api.Huddles
 		private Random random;
 
 		/// <summary>
+		/// Custom display name function.
+		/// </summary>
+		public Func<User, string> OnGetDisplayName;
+
+		/// <summary>
 		/// Instanced automatically. Use injection to use this service, or Startup.Services.Get.
 		/// </summary>
 		public HuddleService(SignatureService signatures, HuddleServerService huddleServerService) : base(Events.Huddle)
@@ -278,7 +283,7 @@ namespace Api.Huddles
 
 			var joinInfo = new HuddleJoinInfo()
 			{
-				DisplayName = user == null ? "Anonymous" : user.Username,
+				DisplayName = OnGetDisplayName == null ? (user == null ? "Anonymous" : user.Username) : OnGetDisplayName(user),
 				AvatarRef = user == null ? (string)null : user.AvatarRef
 			};
 
