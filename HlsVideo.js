@@ -1,7 +1,15 @@
-import webRequest, {lazyLoad} from 'UI/Functions/WebRequest';
+import {lazyLoad} from 'UI/Functions/WebRequest';
 import hlsjsRef from './static/hls.js';
 import omit from 'UI/Functions/Omit';
 import getRef from 'UI/Functions/GetRef';
+import Dropdown from 'UI/Dropdown';
+import defaultPlayIcon from './play.svg';
+import defaultPauseIcon from './pause.svg';
+import defaultCcIcon from './cc.svg';
+import defaultVolumeOnIcon from './volume-on.svg';
+import defaultVolumeOffIcon from './volume-off.svg';
+import defaultEnterFullscreenIcon from './enter-fullscreen.svg';
+import defaultExitFullscreenIcon from './exit-fullscreen.svg';
 
 // {Hls as hlsjs}
 
@@ -9,42 +17,202 @@ export default class HlsVideo extends React.Component {
 	
 	constructor(props){
 		super(props);
-		this.state = {};
+		this.state = {
+			wrapperState: null,
+			customControlsState: props.controlsBelow ? 'visible' : 'hidden',
+			playState: 'hidden',
+			volumeState: 'hidden',
+			fullscreenState: 'off',
+			fullscreenStyle: null,
+			duration: 0,
+			currentTime: 0,
+			hasCaptions: false,
+			captionIndex: -1,
+			hasAudio: false,
+			autoplayBlocked: false
+		};
 		this.onManifest = this.onManifest.bind(this);
+		this.onAudioDetected = this.onAudioDetected.bind(this);
+		this.toggleControls = this.toggleControls.bind(this);
+		this.togglePlayState = this.togglePlayState.bind(this);
+		this.toggleVolume = this.toggleVolume.bind(this);
+		this.switchSubtitleTrack = this.switchSubtitleTrack.bind(this);
+		this.dropdownWrapperRef = React.createRef();
 		this.load(props);
 	}
+
+	// format seconds to HH:MM:SS
+	formatTime(seconds) {
+		var date = new Date(null);
+		date.setSeconds(seconds);
+		var iso = date.toISOString();
+
+		// returns hh:mm:ss or mm:ss if less than an hour
+		return seconds >= 3600 ? iso.substr(11, 8) : iso.substr(14, 5);
+	}
+
+    // toggle visibility of custom video controls
+    toggleControls(visible) {
+
+		if (!this.props.controlsBelow) {
+			this.setState({customControlsState: visible ? "visible" : "hidden"});
+		}
+
+    }
 	
-	onManifest(){
-		if(!this.video){
+    // toggle play button state (play/paused)
+    togglePlayState() {
+
+		if (!this.video) {
 			return;
 		}
+
+		var videoState = this.video.paused || this.video.ended ? 'play' : 'pause';
+
+		this.setState({
+			wrapperState: videoState,
+			playState: videoState
+		});
+    }
+
+    // toggle volume button state (on/muted)
+    toggleVolume() {
+
+		if (!this.video) {
+			return;
+		}
+
+		this.setState({ volumeState: this.video.muted ? 'off' : 'on' });
+    }
+
+	// switch subtitle track
+	switchSubtitleTrack(index) {
+
+		if (!this.video) {
+			return;
+		}
+
+		// switch all tracks off
+		for (var i = 0; i < this.video.textTracks.length; i++) {
+			this.video.textTracks[i].mode = 'hidden';
+		}
+
+		var selectedTrack = this.state.hls.subtitleTracks.filter(track => track.id == index);
+
+		if (!selectedTrack || selectedTrack.length == 0) {
+			this.setState({ captionIndex: -1 });
+			return;
+		}
+
+		var lang = selectedTrack[0].lang.toLowerCase().trim();
+		var videoTracks = this.video.textTracks;
+
+		for (var i = 0; i < videoTracks.length; i++) {
+			var track = videoTracks[i];
+
+			if (track.language.toLowerCase().trim() == lang) {
+				track.mode = 'showing';
+			}
+		}
+
+		this.setState({ captionIndex: index });
+	}
+
+    // toggle fullscreen state
+	/*
+    toggleFullscreen() {
 		
+		if (isFullScreen()) {
+			
+			if (document.exitFullscreen) {
+				document.exitFullscreen();
+			} else if (document.mozCancelFullScreen) {
+				document.mozCancelFullScreen();
+			} else if (document.webkitCancelFullScreen) {
+				document.webkitCancelFullScreen();
+			} else if (document.msExitFullscreen) {
+				document.msExitFullscreen();
+			} else if (document.webkitExitFullscreen) {
+				document.webkitExitFullscreen();
+			}
+			
+		}
+		else {
+
+			if (!videoWrapperRef || !videoWrapperRef.current) {
+				return;
+			}
+			
+			if (videoWrapperRef.current.requestFullscreen) {
+				videoWrapperRef.current.requestFullscreen();
+			} else if (videoWrapperRef.current.mozRequestFullScreen) {
+				videoWrapperRef.current.mozRequestFullScreen();
+			} else if (videoWrapperRef.current.webkitRequestFullScreen) {
+				videoWrapperRef.current.webkitRequestFullScreen(); 
+			} else if (videoWrapperRef.current.msRequestFullscreen) {
+				videoWrapperRef.current.msRequestFullscreen();
+			}
+			
+			if (video && video.webkitEnterFullscreen) {
+				video.webkitEnterFullscreen();
+			}
+			
+		}
+
+    }
+	*/
+
+    // is fullscreen mode available?
+	/*
+    var fullScreenEnabled = !!(document.fullscreenEnabled || 
+        document.mozFullScreenEnabled || document.msFullscreenEnabled || 
+        document.webkitSupportsFullscreen || document.webkitFullscreenEnabled || 
+        document.createElement('video').webkitRequestFullScreen);
+*/
+
+	// check - in full screen mode?
+    isFullScreen() {
+       return !!(document.fullscreen || document.webkitIsFullScreen || document.mozFullScreen || document.msFullscreenElement || document.fullscreenElement);
+    }
+
+	onManifest(){
+
+		if (!this.video){
+			return;
+		}
+
 		var { hls }  = this.state;
 		
-		if(hls && hls.media != this.video){
+		if (hls && hls.media != this.video){
 			hls.detachMedia();
 			hls.attachMedia(this.video);
 		}
-		
-		if(this.props.autoplay){
+
+		if (this.props.autoplay) {
 			try{
 				this.video.pause();
 				this.video.currentTime = 0;
 				this.video.load();
 				var playPromise = this.video.play();
 				
-				if(playPromise && playPromise.then){
+				if (playPromise && playPromise.then){
 					playPromise.catch(e => {
+						this.setState({ autoplayBlocked: true });
 						this.props.onAutoplayBlocked && this.props.onAutoplayBlocked();
 					})
 				}
-			}catch(e){
+			} catch(e) {
 				// autoplay block
+				this.setState({ autoplayBlocked: true });
 				this.props.onAutoplayBlocked && this.props.onAutoplayBlocked();
 			}
 		}
 	}
-	
+
+	onAudioDetected() {
+		this.setState({ hasAudio: true });
+	};
+
 	componentWillUnmount(){
 		this.clear();
 	}
@@ -80,17 +248,44 @@ export default class HlsVideo extends React.Component {
 		});
 		
 		hls.on(Hlsjs.Events.SUBTITLE_TRACKS_UPDATED, () => {
-			
-			if(this.video && this.props.forcedCC){
+			this.setState({ hasCaptions: hls.subtitleTracks.length > 0 });
+
+			if (!this.video) {
+				return;
+			}
+
+			// add tracks to video.textTracks
+			for (var i = 0; i < hls.subtitleTracks.length; i++) {
+				var stTrack = hls.subtitleTracks[i];
+				var hasTrack = false;
+
+				for (var j = 0; j < this.video.textTracks.length; j++) {
+					var videoTrack = this.video.textTracks[j];
+					
+					if (stTrack.language.toLowerCase().trim() == videoTrack.language.toLowerCase().trim()) {
+						hasTrack = true;
+					}
+
+				}
+
+				if (!hasTrack) {
+				   this.video.addTextTrack(stTrack.kind, stTrack.label, stTrack.language);
+				}
+
+			}
+
+			if (this.props.forcedCC){
 				var subtitleTracks = this.video.textTracks;
 				
-				if(subtitleTracks){
+				if (subtitleTracks) {
 					var fcc = this.props.forcedCC.trim().toLowerCase();
-					for(var i=0;i<subtitleTracks.length;i++){
+
+					for (var i = 0; i < subtitleTracks.length; i++) {
 						var stTrack = subtitleTracks[i];
-						if(stTrack.language.toLowerCase().trim() == fcc){
+
+						if (stTrack.language.toLowerCase().trim() == fcc) {
 							stTrack.mode = 'showing';
-						}else{
+						} else {
 							stTrack.mode = 'disabled';
 						}
 					}
@@ -270,6 +465,11 @@ export default class HlsVideo extends React.Component {
 		}
 
 		var className = this.props.className ? this.props.className + "-wrapper hlsVideo" : "hlsVideo";
+
+		// always show controls below video (as opposed to overlaying on hover)?
+		if (this.props.controlsBelow) {
+			className += " hlsVideo--controls-below";
+		}
 		
 		var poster = this.props.poster;
 		
@@ -278,6 +478,24 @@ export default class HlsVideo extends React.Component {
 			poster = getRef(this.props.videoRef, {url: true, size: 'chunks/thumbnail.jpg'});
 		}
 		
+		var showPlayPause = this.props.showPlayPause;
+		var playIconImage = getRef(this.props.playIcon || defaultPlayIcon);
+		var pauseIconImage = getRef(this.props.pauseIcon || defaultPauseIcon);
+
+		var ccIconImage = getRef(this.props.ccIcon || defaultCcIcon);
+
+		var volumeOnIconImage = getRef(this.props.volumeOnIcon || defaultVolumeOnIcon);
+		var volumeOffIconImage = getRef(this.props.volumeOffIcon || defaultVolumeOffIcon);
+
+		var enterFullscreenIconImage = getRef(this.props.enterFullscreenIcon || defaultEnterFullscreenIcon);
+		var exitFullscreenIconImage = getRef(this.props.exitFullscreenIcon || defaultExitFullscreenIcon);
+
+		var videoControlsClass = "video__controls";
+
+		if (this.props.invert) {
+			videoControlsClass += " video__controls--invert";
+		}
+
 		return <div className={className}>
 			<video {...omit(this.props, ['videoId', 'videoRef', 'ref', 'autoplay'])} poster={poster} ref={video => {
 				if(!video){
@@ -286,6 +504,8 @@ export default class HlsVideo extends React.Component {
 				this.video = video;
 				this.props.onVideo && this.props.onVideo(video);
 				var hls = this.state.hls;
+
+				video.oncanplaythrough = this.onAudioDetected;
 				
 				if (!hls && video.canPlayType('application/vnd.apple.mpegurl')) {
 					// hls.js is not supported on platforms that do not have Media Source Extensions (MSE) enabled.
@@ -296,8 +516,168 @@ export default class HlsVideo extends React.Component {
 					video.src = this.getSource(this.props);
 					video.onloadedmetadata = this.onManifest;
 				}
-				
+
+				/*
+                video.addEventListener("webkitendfullscreen", function(){
+                    setFullscreenData(false);
+                }, false);
+				*/
+
+                // update progress
+				/*
+                video.addEventListener('timeupdate', function() {
+					setDuration(video.duration);
+                    setCurrentTime(video.currentTime);
+                });
+				*/
+
+                // always show controls for touch devices
+                if (!window.matchMedia('(hover: hover)').matches) {
+                    this.toggleControls(true);
+                }
+
+                // toggle play button icon based on state returned by video
+                video.addEventListener('play', this.togglePlayState, false);
+                
+                video.addEventListener('pause', this.togglePlayState, false);
+                
+                // rewind video when finished
+                video.addEventListener('ended', function() {
+                    this.video.currentTime = 0;
+                    this.setCurrentTime(0);
+                });
+
+				/*
+                // display fullscreen option if supported
+                if (fullScreenEnabled) {
+					setFullscreenStyle({ 'display': 'flex' });
+                }
+				*/
+
 			}}/> 
+			{!this.props.controls && <div className="video__controls-wrapper" data-state={this.state.customControlsState} 
+				onMouseOver={() => { if (!this.props.controlsBelow) { this.toggleControls(true); }}} 
+				onMouseOut={() => { if (!this.props.controlsBelow) { this.toggleControls(false); }}} 
+				onClick={(e) => {
+
+					if (e.target.classList.contains("dropdown-toggle") || this.dropdownWrapperRef?.current?.contains(e.target)) {
+						return;
+					}
+
+					// toggle play/pause by clicking video
+					if (showPlayPause || this.state.autoplayBlocked) {
+
+						if (this.video.paused || this.video.ended) {
+							this.video.play();
+						} else {
+							this.video.pause();
+						}
+					}
+				}}>
+				<div className={videoControlsClass}>
+					{/* play / pause */}
+					{(showPlayPause || this.state.autoplayBlocked) && <button className="btn video__controls-playtoggle" type="button" data-state={this.state.playState}
+						onClick={(e) => {
+							// click to toggle play/pause
+							e.stopPropagation();
+
+							if (this.video.paused || this.video.ended) {
+								this.video.play();
+							} else {
+								this.video.pause();
+							}
+
+						}}>
+						<span className="video__controls-playtoggle--play">
+							{playIconImage}
+						</span>
+						<span className="video__controls-playtoggle--pause">
+							{pauseIconImage}
+						</span>
+					</button>}
+
+					{/* position */}
+					{this.props.showPosition && <span className="video__controls-position">
+						{this.formatTime(this.state.currentTime)}
+					</span>}
+
+					{/* progress bar */}
+					{this.props.showProgress && <div className="video__controls-progress-wrapper">
+						<progress className="video__controls-progress" value={this.state.currentTime} min="0" max={this.state.duration} 
+							onClick={(e) => {
+								e.stopPropagation();
+
+								// allow click to skip
+								if (showPlayPause || this.state.autoplayBlocked) {
+									var rect = this.getBoundingClientRect();
+									var pos = (e.pageX  - rect.left) / this.offsetWidth;
+									this.video.currentTime = pos * this.video.duration;
+									this.setState({ currentTime: this.video.currentTime });
+								}
+
+							}}
+						/>
+					</div>}
+
+					{/* remaining */}
+					{this.props.showRemaining && <span className="video__controls-remaining">
+						{this.formatTime(this.state.duration - this.state.currentTime)}
+					</span>}
+
+					{/* mute */}
+					{this.state.hasAudio && <button className="btn video__controls-volume" type="button" data-state={this.state.volumeState}
+						onClick={(e) => {
+							e.stopPropagation();
+							this.video.muted = !this.video.muted;
+							this.toggleVolume();
+						}}>
+						<span className="video__controls-volume--on">
+							{volumeOnIconImage}
+						</span>
+						<span className="video__controls-volume--off">
+							{volumeOffIconImage}
+						</span>
+					</button>}
+
+					{/* cc */}
+					{this.video && this.state.hasCaptions && this.state.hls && <div className="video__controls-cc" ref={this.dropdownWrapperRef}>
+						<Dropdown className="dropup" label={ccIconImage} variant="link">
+							<li>
+								<button type="button" className={this.state.captionIndex == -1 ? "btn dropdown-item active" : "btn dropdown-item"} onClick={() => this.switchSubtitleTrack(-1)}>
+									Off
+								</button>
+							</li>
+							{
+								this.state.hls.subtitleTracks.map((track, index) => {
+									return (
+										<li key={track.id}>
+											<button type="button" className={this.state.captionIndex == index ? "btn dropdown-item active" : "btn dropdown-item"} 
+												onClick={() => this.switchSubtitleTrack(index)}>
+												{track.name}
+											</button>
+										</li>
+									);
+								})
+							}
+						</Dropdown>
+					</div>}
+
+					{/* fullscreen */}
+					{this.props.showFullscreen && <button className="btn video__controls-fullscreen" type="button" data-state={this.state.fullscreenState} style={this.state.fullscreenStyle}
+						onClick={(e) => {
+							e.stopPropagation();
+							this.toggleFullscreen();
+						}}>
+						<span className="video__controls-fullscreen--on">
+							{enterFullscreenIconImage}
+						</span>
+						<span className="video__controls-fullscreen--off">
+							{exitFullscreenIconImage}
+						</span>
+					</button>}
+				</div>
+			</div>
+			}
 		</div>;
 		
 	}
