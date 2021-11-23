@@ -17,6 +17,17 @@ class Canvas extends React.Component {
 	}
 	
 	componentWillReceiveProps(props){
+		// Only do something if canvas JSON provided has changed.
+		var dataSource = props.bodyJson || props.children;
+		
+		if(this.props){
+			var prevDataSource = this.props.bodyJson || this.props.children;
+			
+			if(typeof dataSource == 'string' && prevDataSource == dataSource){
+				return;
+			}
+		}
+		
 		this.setState({content: this.loadJson(props)});
 	}
 	
