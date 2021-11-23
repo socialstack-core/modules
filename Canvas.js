@@ -1,6 +1,8 @@
 import {expand} from 'UI/Functions/CanvasExpand';
 import { RouterConsumer } from 'UI/Session';
 
+var uniqueKey = 1;
+
 /**
  * This component renders canvas JSON. It takes canvas JSON as its child
  */
@@ -76,11 +78,15 @@ class Canvas extends React.Component {
 	
 	renderNode(node){
 		if(!node){
-			console.log("Empty node encountered");
 			return null;
 		}
 		if(Array.isArray(node)){
 			return node.map((n,i) => this.renderNode(n));
+		}
+		
+		if(!node.__key){
+			node.__key = "_canvas_" + uniqueKey;
+			uniqueKey++;
 		}
 		
 		var NodeType = node.type;
@@ -101,7 +107,7 @@ class Canvas extends React.Component {
 				childContent = this.renderNode({type:'br', props: {'rte-fake': 1}});
 			}
 			
-			return <NodeType ref={node.dom} {...node.props}>{childContent}</NodeType>;
+			return <NodeType key={node.__key} ref={node.dom} {...node.props}>{childContent}</NodeType>;
 		}else if(NodeType){
 			// Custom component
 			var props = {...node.props};
@@ -123,11 +129,11 @@ class Canvas extends React.Component {
 					}
 				}
 				
-				return <ErrorCatcher node={node}><NodeType {...props}>{children}</NodeType></ErrorCatcher>;
+				return <ErrorCatcher node={node}><NodeType key={node.__key} {...props}>{children}</NodeType></ErrorCatcher>;
 			}else{
 				// It has no content inside it; it's purely config driven.
 				// Either wrap it in a span (such that it only has exactly 1 DOM node, always), unless the module tells us it has one node anyway:
-				return <ErrorCatcher node={node}><NodeType {...props} /></ErrorCatcher>;
+				return <ErrorCatcher node={node}><NodeType key={node.__key} {...props} /></ErrorCatcher>;
 			}
 		}else if(node.content){
 			return this.renderNode(node.content);
