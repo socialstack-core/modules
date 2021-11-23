@@ -114,6 +114,18 @@ namespace Api.Uploader
 						var targetInfo = GetLatestInfo(currentMode);
 						targetInfo.AddMeta(line);
 					}
+					else if (line.StartsWith("#EXT-X-MEDIA:TYPE=SUBTITLES"))
+					{
+						// This line is meta for whatever the current mode is, but we'll need to remap the URI.
+
+						if (absolutePath != null)
+						{
+							line = line.Replace("URI=\"","URI=\"" + absolutePath).Replace(".m3u8", "_evt.m3u8");
+						}
+
+						var targetInfo = GetLatestInfo(currentMode);
+						targetInfo.AddMeta(line);
+					}
 					else
 					{
 						// This line is meta for whatever the current mode is.
