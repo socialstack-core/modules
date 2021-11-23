@@ -55,6 +55,17 @@ namespace Api.WebSockets
 			}, 11);
 		}
 
+		private int _clientCount;
+
+		/// <summary>
+		/// Current client count.
+		/// </summary>
+		/// <returns></returns>
+		public int GetClientCount()
+		{
+			return _clientCount;
+		}
+
 		private Server<WebSocketClient> wsServer;
 
 		/// <summary>
@@ -88,10 +99,19 @@ namespace Api.WebSockets
 
 			wsServer.OnConnected += async (WebSocketClient client) => {
 
+				_clientCount++;
+
 				// Trigger connected event:
 				await Events.WebSocket.Connected.Dispatch(client.Context, client);
 
 			};
+
+			Events.WebSocket.Disconnected.AddEventListener((Context context, WebSocketClient c) => {
+
+				_clientCount--;
+
+				return new ValueTask<WebSocketClient>(c);
+			});
 
 			/*
 			wsServer.RegisterOpCode(5, async (Client client, GetMessage get) => {
