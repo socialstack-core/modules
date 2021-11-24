@@ -228,7 +228,7 @@ export default class HlsVideo extends React.Component {
 	}
 	
 	clear(){
-		if(this.state.hls){
+		if(this.state.hls && this.video){
 			try{
 				this.video.stop && this.video.stop();
 				this.state.hls.stopLoad && this.state.hls.stopLoad();
@@ -413,11 +413,16 @@ export default class HlsVideo extends React.Component {
 		lazyLoad(getRef(hlsjsRef, {url:1})).then(imported => {
 			var Hls = imported.Hls;
 			if(!Hls.isSupported()){
-				console.log("no support for hls.js");
-				this.setState({loaded: 1});
+				
+				if(document.createElement('video').canPlayType('application/vnd.apple.mpegurl')){
+					this.setState({nativeMode: true, loaded: 1});
+				}else{
+					this.setState({loaded: 1});
+				}
+				
+				
 				return;
 			}
-			console.log("support for hls.js");
 			this.clear();
 			var hls = this.createPlayer(props, Hls);
 			this.setState({hls, loaded: 1});
@@ -511,21 +516,34 @@ export default class HlsVideo extends React.Component {
 			volumeOffClass += " mute-warning";
 		}
 		
-		var nativeControls = this.props.controls || this.state.nativeControls;
+		var nativeMode = this.state.nativeMode;
 		
-		console.log("-hls render-");
+		console.log("-hls render-", nativeMode);
+		
+		if(nativeMode){
+			// hls.js is not supported on platforms that do not have Media Source Extensions (MSE) enabled.
+			return <div className={className}>
+				<video {...omit(this.props, ['videoId', 'videoRef', 'ref', 'autoplay', 'hlsconfig'])} poster={poster} onLoadedMetadata={this.onManifest} src={this.getSource(this.props)} controls />
+			</div>;
+		}
 		
 		return <div className={className}>
 			<video {...omit(this.props, ['videoId', 'videoRef', 'ref', 'autoplay', 'hlsconfig'])} poster={poster} ref={video => {
-				if(!video  || this.video == video){
+				if(!video){
 					return;
 				}
 				
 				this.video = video;
 				this.props.onVideo && this.props.onVideo(video);
 				var hls = this.state.hls;
-
+				
+				if(!hls){
+					return;
+				}
+				
 				video.oncanplaythrough = this.onAudioDetected;
+				
+				/*
 				
 				if (!hls && video.canPlayType('application/vnd.apple.mpegurl')) {
 					// hls.js is not supported on platforms that do not have Media Source Extensions (MSE) enabled.
@@ -536,12 +554,10 @@ export default class HlsVideo extends React.Component {
 					video.src = this.getSource(this.props);
 					video.onloadedmetadata = this.onManifest;
 					
-					if(!this.state.nativeControls){
-						this.setState({nativeControls: true});
-					}
 					return;
 				}
-
+				*/
+				
 				/*
                 video.addEventListener("webkitendfullscreen", function(){
                     setFullscreenData(false);
@@ -559,7 +575,7 @@ export default class HlsVideo extends React.Component {
                 // always show controls for touch devices
 				/*
                 if (!window.matchMedia('(hover: hover)').matches) {
-                    this.toggleControls(true); // sets state - infinite render loop
+                    this.toggleControls(true);
                 }
 				*/
 				
@@ -587,7 +603,7 @@ export default class HlsVideo extends React.Component {
 				*/
 
 			}}/> 
-			{!nativeControls && <div className="video__controls-wrapper" data-state={this.state.customControlsState} 
+			{!this.props.controls && <div className="video__controls-wrapper" data-state={this.state.customControlsState} 
 				onMouseOver={() => { if (!this.props.controlsBelow) { this.toggleControls(true); }}} 
 				onMouseOut={() => { if (!this.props.controlsBelow) { this.toggleControls(false); }}} 
 				onClick={(e) => {
