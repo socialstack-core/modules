@@ -161,10 +161,13 @@ function lazyLoad(url){
 	if(!entry){
 		entry = webRequest(url, null, {rawText:1})
 		.then(resp => {
-			console.log("Lazy loaded - got response");
-			console.log("Resp" + resp.text.length);
 			var js = resp.text;
-			_lazyCache[url]=eval('var ex={};(function(global,exports){'+js+'})(global,ex);Promise.resolve(ex);');
+			try{
+				_lazyCache[url]=eval('var ex={};(function(global,exports){'+js+'})(global,ex);Promise.resolve(ex);');
+			}catch(e){
+				console.log(e);
+			}
+			console.log("lc loaded");
 			return _lazyCache[url];
 		});
 		_lazyCache[url] = entry;
