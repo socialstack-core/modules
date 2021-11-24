@@ -156,7 +156,6 @@ const _lazyCache = {};
 * Lazy loads a .js file represented by a url.
 */
 function lazyLoad(url){
-			console.log("Lazy loading now.");
 	var entry = _lazyCache[url];
 	if(!entry){
 		entry = webRequest(url, null, {rawText:1})
@@ -167,7 +166,6 @@ function lazyLoad(url){
 			}catch(e){
 				console.log(e);
 			}
-			console.log("lc loaded");
 			return _lazyCache[url];
 		});
 		_lazyCache[url] = entry;
