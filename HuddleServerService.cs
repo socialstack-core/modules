@@ -38,6 +38,8 @@ namespace Api.Huddles
 		private HuddleLoadMetricService _loadMetrics;
 		private ComposableChangeField _loadFactorField;
 
+		private ConcurrentDictionary<uint, ServerByRegionSet> _serversByRegion = new ConcurrentDictionary<uint, ServerByRegionSet>();
+
 		/// <summary>
 		/// Instanced automatically. Use injection to use this service, or Startup.Services.Get.
 		/// </summary>
@@ -57,6 +59,8 @@ namespace Api.Huddles
 					// That'll be useful when allocating a server.
 					huddleServerLookup = GetCacheForLocale(1).GetPrimary();
 					huddleServerSet = huddleServerLookup.Values.ToArray();
+
+					SetupByRegion();
 
 					return new ValueTask();
 				}
@@ -94,7 +98,28 @@ namespace Api.Huddles
 			huddleServerLookup = GetCacheForLocale(1).GetPrimary();
 			huddleServerSet = huddleServerLookup.Values.ToArray();
 
+			SetupByRegion();
+
 			return new ValueTask<HuddleServer>(huddleServer);
+		}
+
+		private void SetupByRegion()
+		{
+
+			_serversByRegion = new ConcurrentDictionary<uint, ServerByRegionSet>();
+
+			foreach (var hs in huddleServerSet)
+			{
+				if (!_serversByRegion.TryGetValue(hs.RegionId, out ServerByRegionSet set))
+				{
+					set = new ServerByRegionSet();
+					_serversByRegion[hs.RegionId] = set;
+				}
+
+				set.huddleServerSet.Add(hs);
+			}
+
+			Console.WriteLine("Huddle server regions loaded");
 		}
 
 		private string[] _hostList;
@@ -138,7 +163,20 @@ namespace Api.Huddles
 			
 			return huddleServerSet[_currentRand++];
 		}
-		
+
+		/// <summary>
+		/// The next random server.
+		/// </summary>
+		public HuddleServer RandomServerByRegion(uint regionId)
+		{
+			if (!_serversByRegion.TryGetValue(regionId, out ServerByRegionSet set))
+			{
+				return null;
+			}
+
+			return set.RandomServer();
+		}
+
 		private uint GetTimeSlice(DateTime timeUtc){
 			return (uint)((timeUtc.Subtract(_epoch)).TotalSeconds / TimeSliceSize);
 		}
@@ -154,6 +192,9 @@ namespace Api.Huddles
 		/// <returns></returns>
 		public async Task<HuddleServer> Allocate(Context context, DateTime startTimeUtc, DateTime projectedEndTimeUtc, int loadFactor, uint regionId)
 		{
+			return RandomServerByRegion(regionId);
+
+
 			if (huddleServerLookup == null || huddleServerLookup.Count == 0)
 			{
 				// Can't allocate yet (e.g. because there aren't any!)
@@ -288,5 +329,37 @@ namespace Api.Huddles
 			}
 		}
 	}
-    
+
+	public class ServerByRegionSet
+	{
+
+		public int RandomIndex;
+		public List<HuddleServer> huddleServerSet = new List<HuddleServer>();
+
+		private int _currentRand;
+
+		private object _lock = new object();
+
+		public HuddleServer RandomServer()
+		{
+			if (huddleServerSet == null || huddleServerSet.Count == 0)
+			{
+				return null;
+			}
+
+			lock (_lock)
+			{
+				if (_currentRand >= huddleServerSet.Count)
+				{
+					// Wrap:
+					_currentRand = 0;
+				}
+
+				return huddleServerSet[_currentRand++];
+			}
+		}
+
+	}
+
+
 }
