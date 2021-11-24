@@ -510,7 +510,9 @@ export default class HlsVideo extends React.Component {
 		if (this.state.showMuteWarning) {
 			volumeOffClass += " mute-warning";
 		}
-
+		
+		var nativeControls = this.props.controls || this.state.nativeControls;
+		
 		return <div className={className}>
 			<video {...omit(this.props, ['videoId', 'videoRef', 'ref', 'autoplay', 'hlsconfig'])} poster={poster} ref={video => {
 				if(!video){
@@ -531,6 +533,11 @@ export default class HlsVideo extends React.Component {
 					// white-list before a 'canplay' event will be emitted; the last video event that can be reliably listened-for when the URL is not on the white-list is 'loadedmetadata'.
 					video.src = this.getSource(this.props);
 					video.onloadedmetadata = this.onManifest;
+					
+					if(!this.state.nativeControls){
+						this.setState({nativeControls: true});
+					}
+					return;
 				}
 
 				/*
@@ -548,10 +555,12 @@ export default class HlsVideo extends React.Component {
 				*/
 
                 // always show controls for touch devices
+				/*
                 if (!window.matchMedia('(hover: hover)').matches) {
-                    this.toggleControls(true);
+                    this.toggleControls(true); // sets state - infinite render loop
                 }
-
+				*/
+				
                 // toggle play button icon based on state returned by video
                 video.addEventListener('play', this.togglePlayState, false);
                 
@@ -576,7 +585,7 @@ export default class HlsVideo extends React.Component {
 				*/
 
 			}}/> 
-			{!this.props.controls && <div className="video__controls-wrapper" data-state={this.state.customControlsState} 
+			{!nativeControls && <div className="video__controls-wrapper" data-state={this.state.customControlsState} 
 				onMouseOver={() => { if (!this.props.controlsBelow) { this.toggleControls(true); }}} 
 				onMouseOut={() => { if (!this.props.controlsBelow) { this.toggleControls(false); }}} 
 				onClick={(e) => {
