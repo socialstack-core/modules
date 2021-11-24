@@ -247,7 +247,7 @@ export default class HlsVideo extends React.Component {
 	createPlayer(props, Hlsjs){
 		var src = this.getSource(props);
 		
-		var hlsConfig = {startFragPrefetch: true, liveMaxLatencyDuration: 12, liveSyncDuration: 3, ...(props.hlsConfig || {})};
+		var hlsConfig = {startFragPrefetch: true, ...(props.hlsConfig || {})};
 		
 		var hls = new Hlsjs(hlsConfig);
 		hls.loadSource(src);
