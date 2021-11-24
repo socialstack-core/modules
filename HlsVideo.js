@@ -29,7 +29,8 @@ export default class HlsVideo extends React.Component {
 			hasCaptions: false,
 			captionIndex: -1,
 			hasAudio: false,
-			autoplayBlocked: false
+			autoplayBlocked: false,
+			showMuteWarning: true
 		};
 		this.onManifest = this.onManifest.bind(this);
 		this.onAudioDetected = this.onAudioDetected.bind(this);
@@ -80,6 +81,10 @@ export default class HlsVideo extends React.Component {
 
 		if (!this.video) {
 			return;
+		}
+
+		if (!this.video.muted) {
+			this.setState({ showMuteWarning: false });
 		}
 
 		this.setState({ volumeState: this.video.muted ? 'off' : 'on' });
@@ -186,6 +191,10 @@ export default class HlsVideo extends React.Component {
 		if (hls && hls.media != this.video){
 			hls.detachMedia();
 			hls.attachMedia(this.video);
+		}
+
+		if (this.video.muted) {
+			this.setState({ volumeState: this.video.muted ? 'off' : 'on' });
 		}
 
 		if (this.props.autoplay) {
@@ -496,8 +505,14 @@ export default class HlsVideo extends React.Component {
 			videoControlsClass += " video__controls--invert";
 		}
 
+		var volumeOffClass = "video__controls-volume--off";
+
+		if (this.state.showMuteWarning) {
+			volumeOffClass += " mute-warning";
+		}
+
 		return <div className={className}>
-			<video {...omit(this.props, ['videoId', 'videoRef', 'ref', 'autoplay'])} poster={poster} ref={video => {
+			<video {...omit(this.props, ['videoId', 'videoRef', 'ref', 'autoplay', 'hlsconfig'])} poster={poster} ref={video => {
 				if(!video){
 					return;
 				}
@@ -634,7 +649,7 @@ export default class HlsVideo extends React.Component {
 						<span className="video__controls-volume--on">
 							{volumeOnIconImage}
 						</span>
-						<span className="video__controls-volume--off">
+						<span className={volumeOffClass}>
 							{volumeOffIconImage}
 						</span>
 					</button>}

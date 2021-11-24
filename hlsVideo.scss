@@ -5,6 +5,10 @@ $video_controls_height: 58px;
 .hlsVideo {
     position: relative;
 
+    video {
+        width: 100%;
+    }
+
     &--controls-below {
         padding-bottom: $video_controls_height;
 
@@ -165,6 +169,35 @@ $video_controls_height: 58px;
 
                 .video__controls-volume--off {
                     display: block;
+                    position: relative;
+
+                    &.mute-warning {
+
+                        &::before {
+                            content: "Audio is currently muted - click here to listen";
+                            background: red;
+                            color: #fff;
+                            display: block;
+                            padding: 0.5rem;
+                            position: absolute;
+                            bottom: 38px;
+                            left: -105px;
+                            width: 210px;
+                            border-radius: 5px;
+                        }
+
+                        &::after {
+                            content: "";
+                            width: 0;
+                            height: 0;
+                            border-left: 10px solid transparent;
+                            border-right: 10px solid transparent;
+                            border-top: 10px solid red;
+                            left: -5px;
+                            position: absolute;
+                            bottom: 28px;
+                        }
+                    }
                 }
             }
         }
