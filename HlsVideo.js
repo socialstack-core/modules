@@ -518,8 +518,6 @@ export default class HlsVideo extends React.Component {
 		
 		var nativeMode = this.state.nativeMode;
 		
-		console.log("-hls render-", nativeMode);
-		
 		if(nativeMode){
 			// hls.js is not supported on platforms that do not have Media Source Extensions (MSE) enabled.
 			return <div className={className}>
