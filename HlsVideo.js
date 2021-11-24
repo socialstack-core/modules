@@ -513,11 +513,14 @@ export default class HlsVideo extends React.Component {
 		
 		var nativeControls = this.props.controls || this.state.nativeControls;
 		
+		console.log("-hls render-");
+		
 		return <div className={className}>
 			<video {...omit(this.props, ['videoId', 'videoRef', 'ref', 'autoplay', 'hlsconfig'])} poster={poster} ref={video => {
-				if(!video){
+				if(!video  || this.video == video){
 					return;
 				}
+				
 				this.video = video;
 				this.props.onVideo && this.props.onVideo(video);
 				var hls = this.state.hls;
@@ -525,7 +528,6 @@ export default class HlsVideo extends React.Component {
 				video.oncanplaythrough = this.onAudioDetected;
 				
 				if (!hls && video.canPlayType('application/vnd.apple.mpegurl')) {
-					console.log("Trying native playback", this.getSource(this.props));
 					// hls.js is not supported on platforms that do not have Media Source Extensions (MSE) enabled.
 					// When the browser has built-in HLS support (check using `canPlayType`), we can provide an HLS manifest (i.e. .m3u8 URL) directly to the video element throught the `src` property.
 					// This is using the built-in support of the plain video element, without using hls.js.
