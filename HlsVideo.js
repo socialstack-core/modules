@@ -587,6 +587,13 @@ export default class HlsVideo extends React.Component {
 
 						if (this.video.paused || this.video.ended) {
 							this.video.play();
+							
+							if (this.props.disablepause) {
+								this.setState({
+									showPlayPause: false,
+									autoplayBlocked: false
+								});
+							}
 						} else {
 							this.video.pause();
 						}
@@ -601,6 +608,13 @@ export default class HlsVideo extends React.Component {
 
 							if (this.video.paused || this.video.ended) {
 								this.video.play();
+
+								if (this.props.disablepause) {
+									this.setState({
+										showPlayPause: false,
+										autoplayBlocked: false
+									});
+								}
 							} else {
 								this.video.pause();
 							}
