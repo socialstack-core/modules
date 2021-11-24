@@ -518,6 +518,10 @@ export default class Loop extends React.Component {
 			}
 		}
 		
+		if(props.liveFilter){
+			onFilter = props.liveFilter;
+		}
+		
 		return {type, id, onFilter};
 	}
 	
