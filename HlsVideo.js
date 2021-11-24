@@ -99,7 +99,8 @@ export default class HlsVideo extends React.Component {
 
 		// switch all tracks off
 		for (var i = 0; i < this.video.textTracks.length; i++) {
-			this.video.textTracks[i].mode = 'hidden';
+			this.video.textTracks[i].default = false;
+			this.video.textTracks[i].mode = 'disabled';
 		}
 
 		var selectedTrack = this.state.hls.subtitleTracks.filter(track => track.id == index);
@@ -116,11 +117,11 @@ export default class HlsVideo extends React.Component {
 			var track = videoTracks[i];
 
 			if (track.language.toLowerCase().trim() == lang) {
+				track.default = true;
 				track.mode = 'showing';
 			}
 		}
 
-		this.setState({ captionIndex: index });
 	}
 
     // toggle fullscreen state
@@ -263,28 +264,15 @@ export default class HlsVideo extends React.Component {
 				return;
 			}
 
-			// add tracks to video.textTracks
-			for (var i = 0; i < hls.subtitleTracks.length; i++) {
-				var stTrack = hls.subtitleTracks[i];
-				var hasTrack = false;
+			var subtitleTracks = this.video.textTracks;
 
-				for (var j = 0; j < this.video.textTracks.length; j++) {
-					var videoTrack = this.video.textTracks[j];
-					
-					if (stTrack.language.toLowerCase().trim() == videoTrack.language.toLowerCase().trim()) {
-						hasTrack = true;
-					}
-
-				}
-
-				if (!hasTrack) {
-				   this.video.addTextTrack(stTrack.kind, stTrack.label, stTrack.language);
-				}
-
+			// disable all tracks by default
+			for (var i = 0; i < subtitleTracks.length; i++) {
+				subtitleTracks[i].default = false;
+				subtitleTracks[i].mode = 'disabled';
 			}
 
 			if (this.props.forcedCC){
-				var subtitleTracks = this.video.textTracks;
 				
 				if (subtitleTracks) {
 					var fcc = this.props.forcedCC.trim().toLowerCase();
@@ -293,8 +281,10 @@ export default class HlsVideo extends React.Component {
 						var stTrack = subtitleTracks[i];
 
 						if (stTrack.language.toLowerCase().trim() == fcc) {
+							stTrack.default = true;
 							stTrack.mode = 'showing';
 						} else {
+							stTrack.default = false;
 							stTrack.mode = 'disabled';
 						}
 					}
@@ -303,6 +293,14 @@ export default class HlsVideo extends React.Component {
 			
 		});
 		
+		hls.on(Hlsjs.Events.SUBTITLE_TRACK_SWITCH, (eventType, data) => {
+
+			if (data?.id >= 0) {
+				this.setState({ captionIndex: data.id });
+			}
+
+		});
+
 		// When adding these, only the ones in the future and the latest from the past will be triggered.
 		// Each entry is {time: serverTime, mtd: methodToTrigger}.
 		// If it has an id field, it will ensure that it is ticked only ever once, even if you add it repeatedly.
@@ -558,8 +556,13 @@ export default class HlsVideo extends React.Component {
                 
                 // rewind video when finished
                 video.addEventListener('ended', function() {
-                    this.video.currentTime = 0;
-                    this.setCurrentTime(0);
+
+					if (!this.video) {
+						return;
+					}
+
+					this.video.currentTime = 0;
+                    this.setState({ currentTime: 0 });
                 });
 
 				/*
