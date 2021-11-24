@@ -158,9 +158,9 @@ const _lazyCache = {};
 function lazyLoad(url){
 	var entry = _lazyCache[url];
 	if(!entry){
-		entry = webRequest(url, null, {blob:1})
-		.then(resp => resp.blob.text())
-		.then(js => {
+		entry = webRequest(url, null, {rawText:1})
+		.then(resp => {
+			var js = resp.text;
 			_lazyCache[url]=eval('var ex={};(function(global,exports){'+js+'})(global,ex);Promise.resolve(ex);');
 			return _lazyCache[url];
 		});
@@ -199,6 +199,18 @@ export default function webRequest(origUrl, data, opts) {
 					
 					// Run success now:
 					response.json = response.blob = blob;
+					success(response);
+				})
+			}
+			
+			if(opts && opts.rawText){
+				return response.text().then(text => {
+					if (!response.ok) {
+						return reject({ error: 'invalid response', text });
+					}
+					
+					// Run success now:
+					response.json = response.text = text;
 					success(response);
 				})
 			}
