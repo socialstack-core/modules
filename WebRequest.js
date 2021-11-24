@@ -156,10 +156,13 @@ const _lazyCache = {};
 * Lazy loads a .js file represented by a url.
 */
 function lazyLoad(url){
+			console.log("Lazy loading now.");
 	var entry = _lazyCache[url];
 	if(!entry){
 		entry = webRequest(url, null, {rawText:1})
 		.then(resp => {
+			console.log("Lazy loaded - got response");
+			console.log("Resp" + resp.text.length);
 			var js = resp.text;
 			_lazyCache[url]=eval('var ex={};(function(global,exports){'+js+'})(global,ex);Promise.resolve(ex);');
 			return _lazyCache[url];
