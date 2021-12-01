@@ -17,6 +17,7 @@ using System.Reflection;
 using Api.SocketServerLibrary;
 using Api.Configuration;
 using Api.ContentSync;
+using System.Collections.Concurrent;
 
 namespace Api.WebSockets
 {
@@ -45,7 +46,27 @@ namespace Api.WebSockets
 			_contentSync = contentSync;
 			_userContentTypeId = ContentTypes.GetId(typeof(User));
 
+			var _config = GetConfig<WebSocketServiceConfig>();
+
 			Events.Service.AfterStart.AddEventListener(async (Context ctx, object s) => {
+
+				var trackClients = false;
+
+				if (_config.TrackAllClients.HasValue)
+				{
+					trackClients = _config.TrackAllClients.Value;
+				}
+				#if DEBUG
+				else
+				{
+					trackClients = true;
+				}
+				#endif
+
+				if (trackClients)
+				{
+					_allClients = new ConcurrentDictionary<uint, WebSocketClient>();
+				}
 
 				// Start:
 				await Start(userService, contentSync);
@@ -67,6 +88,13 @@ namespace Api.WebSockets
 		}
 
 		private Server<WebSocketClient> wsServer;
+
+		private ConcurrentDictionary<uint, WebSocketClient> _allClients;
+
+		/// <summary>
+		/// A set of all clients (only available if configured, or in debug mode).
+		/// </summary>
+		public ConcurrentDictionary<uint, WebSocketClient> AllClients => _allClients;
 
 		/// <summary>
 		/// Starts the ws service.
@@ -99,6 +127,11 @@ namespace Api.WebSockets
 
 			wsServer.OnConnected += async (WebSocketClient client) => {
 
+				if (_allClients != null)
+				{
+					_allClients[client.Id] = client;
+				}
+
 				_clientCount++;
 
 				// Trigger connected event:
@@ -108,6 +141,11 @@ namespace Api.WebSockets
 
 			Events.WebSocket.Disconnected.AddEventListener((Context context, WebSocketClient c) => {
 
+				if (_allClients != null)
+				{
+					_allClients.Remove(c.Id, out _);
+				}
+	
 				_clientCount--;
 
 				return new ValueTask<WebSocketClient>(c);
