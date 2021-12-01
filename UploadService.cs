@@ -305,7 +305,7 @@ namespace Api.Uploader
 		private Context readBytesContext = new Context();
 
 		/// <summary>
-		/// Gets the file bytes for a given storage path. Usually use GetFileBytes with a ref or an Upload instead.
+		/// Gets the file bytes for a given storage path. Usually use ReadFile with a ref or an Upload instead.
 		/// </summary>
 		/// <param name="storagePath"></param>
 		/// <param name="isPrivate">True if this is in the private storage area.</param>
