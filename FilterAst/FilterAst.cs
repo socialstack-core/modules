@@ -1075,6 +1075,9 @@ namespace Api.Permissions{
 
 		private static int counter = 1;
 
+		// Type.GetTypeFromHandle
+		private static MethodInfo _getTypeFromHandle;
+
 		/// <summary>
 		/// True if there's any array args or Id collectors.
 		/// </summary>
@@ -1125,6 +1128,11 @@ namespace Api.Permissions{
 			var baseFail = filterT.GetMethod(nameof(Filter<T, ID>.Fail));
 			var baseCollectFail = filterT.GetMethod(nameof(Filter<T, ID>.CollectFail));
 
+			if (_getTypeFromHandle == null)
+			{
+				_getTypeFromHandle = typeof(Type).GetMethod(nameof(Type.GetTypeFromHandle));
+			}
+
 			for (var i = 0; i < Args.Count; i++)
 			{
 				// Close them off:
@@ -1135,6 +1143,7 @@ namespace Api.Permissions{
 					// At the bottom of the bind method is a fail method which indicates current arg X is not of the current type.
 					arg.BindMethod.Emit(OpCodes.Ldarg_0);
 					arg.BindMethod.Emit(OpCodes.Ldtoken, arg.ArgType);
+					arg.BindMethod.Emit(OpCodes.Call, _getTypeFromHandle);
 					arg.BindMethod.Emit(OpCodes.Call, baseFail);
 					arg.BindMethod.Emit(OpCodes.Ldarg_0);
 					arg.BindMethod.Emit(OpCodes.Ret);
@@ -1146,6 +1155,7 @@ namespace Api.Permissions{
 				// At the bottom of the bind string method is a fail method which indicates current arg X is not of the current type.
 				BindStringMethod.Emit(OpCodes.Ldarg_0);
 				BindStringMethod.Emit(OpCodes.Ldtoken, typeof(string));
+				BindStringMethod.Emit(OpCodes.Call, _getTypeFromHandle);
 				BindStringMethod.Emit(OpCodes.Call, baseFail);
 				BindStringMethod.Emit(OpCodes.Ldarg_0);
 				BindStringMethod.Emit(OpCodes.Ret);
