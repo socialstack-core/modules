@@ -161,7 +161,7 @@ namespace Api.SocketServerLibrary
 		/// <summary>
 		/// 
 		/// </summary>
-		private SHA1Managed Sha1;
+		private SHA1 Sha1;
 
 		/// <summary>
 		/// Context service
@@ -178,7 +178,7 @@ namespace Api.SocketServerLibrary
 			// Bytes required for these frames is always just 1.
 			FirstDataRequired = 1;
 
-			Sha1 = new SHA1Managed();
+			Sha1 = SHA1.Create();
 			UpperCaseKeyHeader = System.Text.Encoding.ASCII.GetBytes("sec-websocket-key:");
 			LowerCaseKeyHeader = System.Text.Encoding.ASCII.GetBytes("SEC-WEBSOCKET-KEY:");
 			UpperCaseCookieHeader = System.Text.Encoding.ASCII.GetBytes("cookie:");
