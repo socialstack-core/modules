@@ -39,8 +39,8 @@ namespace Api.Permissions
 					Id = 1,
 					Name = "Developer",
 					Key = "developer",
-					CanViewAdmin = true
-					// Todo: Admin homepage displays e.g. error metrics
+					CanViewAdmin = true,
+					AdminDashboardJson = "{\"t\":\"Admin/Dashboards/Developer\"}"
 				},
 				
 				// Admin - can do almost everything. Usually everything super admin can do, minus system config options/ site level config.
