@@ -1,14 +1,17 @@
-﻿using System.Security.Cryptography;
+﻿using System;
+using System.Security.Cryptography;
 using System.Text;
 
 
 namespace Api.PasswordResetRequests
 {
-	/// <summary>
-	/// Used for generating random strings.
-	/// </summary>
+    /// <summary>
+    /// Used for generating random strings.
+    /// </summary>
     public static class RandomToken
     {
+        private static char[] pattern;
+        
         /// <summary>
         /// Generates a crypto safe random token of the given length.
         /// </summary>
@@ -16,22 +19,22 @@ namespace Api.PasswordResetRequests
         /// <returns></returns>
         public static string Generate(int maxSize)
         {
-            char[] chars = new char[62];
-            chars =
-            "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890".ToCharArray();
-            byte[] data = new byte[1];
-            using (RNGCryptoServiceProvider crypto = new RNGCryptoServiceProvider())
+            if(pattern == null)
             {
-                crypto.GetNonZeroBytes(data);
-                data = new byte[maxSize];
-                crypto.GetNonZeroBytes(data);
+                pattern = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890".ToCharArray();
             }
-            StringBuilder result = new StringBuilder(maxSize);
-            foreach (byte b in data)
+
+            return string.Create(maxSize, null, (Span<char> chars, Random r) =>
             {
-                result.Append(chars[b % (chars.Length)]);
-            }
-            return result.ToString();
+                Span<byte> randomSpan = stackalloc byte[1];
+
+                for (var i = 0; i < chars.Length; i++)
+                {
+                    RandomNumberGenerator.Fill(randomSpan);
+                    var randomByte = randomSpan[0];
+                    chars[i] = pattern[randomByte % pattern.Length];
+                }
+            });
         }
     }
 }
