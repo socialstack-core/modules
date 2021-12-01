@@ -2,6 +2,7 @@ using Api.Configuration;
 using Api.ContentSync;
 using Api.Contexts;
 using Api.Permissions;
+using Api.Startup;
 using Api.Translate;
 using Microsoft.ClearScript;
 using Microsoft.ClearScript.V8;
@@ -153,6 +154,8 @@ namespace Api.CanvasRenderer
 			}
 		}
 
+		private readonly string reloadMessage = "{\"host\":1,\"reload\":1}";
+
 		/// <summary>
 		/// Instanced automatically.
 		/// </summary>
@@ -172,6 +175,47 @@ namespace Api.CanvasRenderer
 			};
 
 			_config = GetConfig<FrontendCodeServiceConfig>();
+
+			#if DEBUG
+			Eventing.Events.FrontendAfterUpdate.AddEventListener((Context context, long buildNumber) => {
+
+				if (_config.AutoReload)
+				{
+					try
+					{
+						// Send refresh websocket message to all clients
+						var refreshMessage = SocketServerLibrary.Writer.GetPooled();
+						refreshMessage.Start(21);
+						refreshMessage.Write((uint)reloadMessage.Length);
+						refreshMessage.WriteASCII(reloadMessage);
+
+						var wsService = Services.Get<WebSockets.WebSocketService>();
+
+						if (wsService.AllClients != null)
+						{
+							foreach (var kvp in wsService.AllClients)
+							{
+								var client = kvp.Value;
+								if (client != null)
+								{
+									client.Send(refreshMessage);
+								}
+							}
+						}
+						else
+						{
+							Console.WriteLine("[NOTICE] AutoReload is on, but you've specifically disabled TrackAllClients on websocket service. Unable to send the reload message.");
+						}
+					}
+					catch (Exception ex)
+					{
+						Console.WriteLine("[WARN] Failed sending auto reload message to some or all clients: " + ex.ToString());
+					}
+				}
+
+				return new ValueTask<long>(buildNumber);
+			});
+			#endif
 
 			initialBuildTask = Task.Run(async () =>
 			{

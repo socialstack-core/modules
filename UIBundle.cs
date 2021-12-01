@@ -1823,6 +1823,9 @@ namespace Api.CanvasRenderer
 
 				// Now (local time, because this is for developers).
 				Console.WriteLine("[" + DateTime.Now.ToString("T") + "] Done handling UI changes.");
+
+				// Trigger event:
+				await Events.FrontendAfterUpdate.Dispatch(new Context(), BuildTimestampMs);
 			};
 			_fileSystemTimer.Start();
 		}

@@ -21,6 +21,11 @@ namespace Api.CanvasRenderer
 		public bool Prebuilt {get; set; } = false;
 
 		/// <summary>
+		/// Developer instances will automatically reload the UI whenever it updates (UI files are saved) if this is set true.
+		/// </summary>
+		public bool AutoReload { get; set; } = true;
+
+		/// <summary>
 		/// True if the watcher mode should run minified JS.
 		/// </summary>
 		public bool Minified { get; set; } = false;

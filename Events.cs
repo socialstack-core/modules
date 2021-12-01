@@ -21,6 +21,12 @@ namespace Api.Eventing
 		/// Triggers most often on development environments; often only once on startup for prod.
 		/// </summary>
 		public static EventHandler<long> FrontendCssAfterUpdate;
+
+		/// <summary>
+		/// Triggers whenever the frontend changed at all.
+		/// </summary>
+		public static EventHandler<long> FrontendAfterUpdate;
+
 	}
 
 }
