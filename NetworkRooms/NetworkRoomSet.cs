@@ -209,6 +209,11 @@ namespace Api.ContentSync
 		private ConcurrentDictionary<ROOM_ID, NetworkRoom<T, ID, ROOM_ID>> _rooms = new ConcurrentDictionary<ROOM_ID, NetworkRoom<T, ID, ROOM_ID>>();
 
 		/// <summary>
+		/// All rooms in this set.
+		/// </summary>
+		public ConcurrentDictionary<ROOM_ID, NetworkRoom<T, ID, ROOM_ID>> AllRooms => _rooms;
+
+		/// <summary>
 		/// Gets the room for the object with the given ID.
 		/// </summary>
 		/// <param name="id"></param>
