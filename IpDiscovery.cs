@@ -4,6 +4,7 @@ using Api.Eventing;
 using System;
 using System.IO;
 using System.Net;
+using System.Net.Http;
 using System.Net.Sockets;
 using System.Text;
 using System.Threading.Tasks;
@@ -18,27 +19,20 @@ namespace Api.ContentSync
 		/// <summary>
 		/// Ipv4 helper site (in future, will be provided by socialstack cloud).
 		/// </summary>
-		private static string IPv4Site="https://ipv4.icanhazip.com/";
-		
+		private static readonly string IPv4Site="https://ipv4.icanhazip.com/";
+
 		/// <summary>
 		/// Ipv6 helper site (in future, will be provided by socialstack cloud).
 		/// </summary>
-		private static string IPv6Site="https://ipv6.icanhazip.com/";
+		private static readonly string IPv6Site="https://ipv6.icanhazip.com/";
 		
-		
-		private static async Task<byte[]> GetBytesAsync(string url) {
-			var request = (HttpWebRequest)WebRequest.Create(url);
-			using (var response = await request.GetResponseAsync())
-			using (var content = new MemoryStream())
-			using (var responseStream = response.GetResponseStream()) {
-				await responseStream.CopyToAsync(content);
-				return content.ToArray();
-			}
-		}
 		
 		private static async Task<string> GetStringAsync(string url) {
-			var bytes = await GetBytesAsync(url);
-			return Encoding.UTF8.GetString(bytes, 0, bytes.Length);
+			// No need to reuse this client
+			using (var client = new HttpClient())
+			{
+				return await client.GetStringAsync(url);
+			}
 		}
 		
 		/// <summary>Finds the public IPv4 address.</summary>
@@ -49,14 +43,13 @@ namespace Api.ContentSync
 			if(string.IsNullOrEmpty(httpResult)){
 				return null;
 			}
-			
+
 			// So far so good:
-			IPAddress res;
-			if(!IPAddress.TryParse(httpResult.Trim(), out res))
+			if (!IPAddress.TryParse(httpResult.Trim(), out IPAddress res))
 			{
 				return null;
 			}
-			
+
 			return res;
 		}
 		
