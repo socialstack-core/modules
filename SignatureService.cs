@@ -263,7 +263,7 @@ namespace Api.Signatures
 				var messageBytes = System.Text.Encoding.UTF8.GetBytes(signedValue);
 
 				// Can't share this as it has internal properties which get set during ComputeHash
-				var sha256 = new SHA256Managed();
+				var sha256 = SHA256.Create();
 
 				// Double sha256 hash (Bitcoin compatible):
 				messageBytes = sha256.ComputeHash(messageBytes, 0, messageBytes.Length);
