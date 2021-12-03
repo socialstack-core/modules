@@ -61,6 +61,8 @@ export default class VideoChat extends React.Component {
 
 		return new HuddleClient({
 			roomSlug: props.roomSlug,
+			meetingUrl: props.meetingUrl, // Can use this + huddle prop instead of roomSlug or roomId
+			huddle: props.huddle,
 			roomId: (props.roomId || 1).toString(),
 			produce: props.initialProduce === undefined ? true : props.initialProduce,
 			consume: props.initialConsume === undefined ? true : props.initialConsume,
