@@ -53,9 +53,12 @@ export default class HuddleClient
 {
 	
 	constructor(
-		{
-			roomId,
-			roomSlug,
+		props
+	)
+	{
+		const {
+			// roomId, roomSlug or joinUrl - one of these is required.
+			joinUrl,
 			useSimulcast,
 			useSharingSimulcast,
 			forceTcp,
@@ -71,9 +74,10 @@ export default class HuddleClient
 			excludeRoles,
 			cameraQuality, // camera stream quality to use. hd, qvga, vga.
 			shareAudio // True if it should capture screenshare audio instead of mic audio
-		}
-	)
-	{
+		} = props;
+		
+		this.props = props;
+		
 		this.events = {};
 		this.producers = [];
 		this.producersById = {};
@@ -84,8 +88,6 @@ export default class HuddleClient
 		this.device = device || {};
 		
 		this.room = {
-			id: roomId,
-			slug: roomSlug,
 			state: 'closed',
 			activeSpeakerId: 0
 		};
@@ -296,17 +298,29 @@ export default class HuddleClient
 	
 	async join()
 	{
-		if(this.room.slug) {
-			var huddleInfo = await webRequest('huddle/' + this.room.slug + '/slug/join');
-		} else {
-			var huddleInfo = await webRequest('huddle/' + this.room.id + '/join');
-		}
+		var url;
+		var huddle;
 		
-		if(!huddleInfo || !huddleInfo.json){
-			return this.joinFail();
+		if(this.props.huddle && this.props.meetingUrl){
+			// Use these instead.
+			url = this.props.meetingUrl;
+			huddle = this.props.huddle;
+		}else{
+			var joinUrl = this.props.joinUrl;
+			
+			if(!joinUrl){
+				joinUrl = this.props.roomSlug ? 'huddle/' + this.props.roomSlug + '/slug/join' : 'huddle/' + this.props.roomId + '/join';
+			}
+			
+			var huddleInfo = await webRequest(joinUrl);
+			
+			if(!huddleInfo || !huddleInfo.json){
+				return this.joinFail();
+			}
+			
+			url = huddleInfo.json.connectionUrl;
+			huddle = huddleInfo.json.huddle;
 		}
-		
-		var url = huddleInfo.json.connectionUrl;
 		
 		if(!url){
 			return this.joinFail();
@@ -316,8 +330,8 @@ export default class HuddleClient
 			return;
 		}
 		
-		// huddleType and my role:
-		this.room.huddle = huddleInfo.json.huddle;
+		// huddleType comes from here:
+		this.room.huddle = huddle;
 		
 		var isHttps = !url.startsWith("localhost");
 		const protooTransport = new protoo.WebSocketTransport((isHttps ? 'wss' : 'ws') + '://' + url.trim());
@@ -2102,9 +2116,7 @@ export default class HuddleClient
 	
 	isBusy()
 	{
-		return (this.peers && this.peers.length > CAM_MAX) || 
-		(this.room.huddle && this.room.huddle.invites && this.room.huddle.invites.length > CAM_MAX) || 
-		this._busyMeeting
+		return (this.peers && this.peers.length > CAM_MAX) || this._busyMeeting;
 	}
 	
 	async _updateWebcams()
@@ -2248,20 +2260,40 @@ export function ringReject(slug, userId){
 }
 
 export function sendRing(slug, mode, userId){
-	console.log("send ring", slug, mode, userId);
-	var writer = new webSocket.Writer(40);
-	writer.writeUtf8(slug);
-	writer.writeByte(mode);
-	writer.writeUInt32(parseInt(userId));
-	webSocket.send(writer);
+	if(webSocket.Writer){
+		// Bolt mode
+		var writer = new webSocket.Writer(40);
+		writer.writeUtf8(slug);
+		writer.writeByte(mode);
+		writer.writeUInt32(parseInt(userId));
+		webSocket.send(writer);
+	}else{
+		// JSON mode
+		webSocket.send({
+			type: 'huddle/ring',
+			slug,
+			mode,
+			userId
+		});
+	}
 }
 
-// TODO: This will be deprecated near instantly when huddle uses the room presence setup.
+// TODO: This will be deprecated when huddle uses the room presence setup.
 export function joinHuddle(huddleId, huddleStatus){
-	var writer = new webSocket.Writer(41);
-	writer.writeUInt32(parseInt(huddleId));
-	writer.writeByte(huddleStatus ? 1 : 0);
-	webSocket.send(writer);
+	if(webSocket.Writer){
+		// Bolt mode
+		var writer = new webSocket.Writer(41);
+		writer.writeUInt32(parseInt(huddleId));
+		writer.writeByte(huddleStatus ? 1 : 0);
+		webSocket.send(writer);
+	}else{
+		// JSON mode
+		webSocket.send({
+			type: 'huddle/join',
+			huddleId,
+			status: huddleStatus ? 1 : 0
+		});
+	}
 }
 
 export function ring(userIds, slug){
