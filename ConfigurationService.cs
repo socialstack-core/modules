@@ -299,7 +299,7 @@ namespace Api.Configuration
 					if (propAttribute != null)
 					{
 						// Got some frontend config
-						if (sb != null)
+						if (sb == null)
 						{
 							sb = new StringBuilder();
 							sb.Append('{');
