@@ -1,0 +1,15 @@
+.stripe-payment-form {
+	.submit-btn, .stripe-payment-form-error {
+		margin-top: 1rem;
+	}
+}
+
+/*
+Size overrides. See bootstrap breakpoints for more information:
+https://getbootstrap.com/docs/5.0/layout/breakpoints/#min-width
+
+@include media-breakpoint-up(md) {
+	.stripe-payment-form {
+	}
+}
+*/
