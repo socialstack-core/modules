@@ -90,8 +90,8 @@ export default function ArrayBuilder(props){
 			var dataRow = rowData[i];
 			var row = dataRow.row;
 	
-			for (let i = 0; i < row.length; i++) {
-				var input = row[i];
+			for (let j = 0; j < row.length; j++) {
+				var input = row[j];
 				input.props.onInput = onChangeFunc;
 			}
 		}
