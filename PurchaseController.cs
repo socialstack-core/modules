@@ -1,0 +1,96 @@
+using Api.Contexts;
+using Api.PaymentGateways;
+using Microsoft.AspNetCore.Mvc;
+using Stripe;
+using System;
+using System.IO;
+using System.Threading.Tasks;
+
+namespace Api.Purchases
+{
+    /// <summary>Handles purchase endpoints.</summary>
+    [Route("v1/purchase")]
+	public partial class PurchaseController : AutoController<Purchase>
+    {
+        private string _stripePaymentEndpointSecret;
+
+        /// <summary>
+		/// Instanced automatically.
+		/// </summary>
+        public PurchaseController(PaymentGatewayService paymentGateways) : base()
+        {
+            var paymentGatewayConfig = paymentGateways.GetConfig<PaymentGatewayConfig>();
+            _stripePaymentEndpointSecret = paymentGatewayConfig.StripePaymentEndpointSecret;
+        }
+
+        /// <summary>
+		/// Updates a purchase based on a webhook event from a stripe payment.
+		/// </summary>
+		/// <returns></returns>
+        [HttpPost("stripe/webhook")]
+        public async Task<IActionResult> StripeWebhook()
+        {
+            var json = await new StreamReader(HttpContext.Request.Body).ReadToEndAsync();
+
+            // use a default context
+            var context = new Context();
+
+            try
+            {
+                var stripeEvent = EventUtility.ParseEvent(json);
+                var signatureHeader = Request.Headers["Stripe-Signature"];
+
+                stripeEvent = EventUtility.ConstructEvent(json,
+                        signatureHeader, _stripePaymentEndpointSecret);
+
+                var intent = (PaymentIntent)stripeEvent.Data.Object;
+
+                var purchase = await (_service as PurchaseService).Where("ThirdPartyId=?", DataOptions.IgnorePermissions).Bind(intent.Id).First(context);
+
+                if (purchase == null)
+                {
+                    Console.WriteLine("Failed to process stripe webhook event: " + stripeEvent.Type + ". No purchase found for stripe payment intent: " + intent.Id);
+                    return StatusCode(500);
+                }
+
+                if (stripeEvent.Type == Events.PaymentIntentPaymentFailed)
+                {
+                    purchase.DidPaymentFail = true;
+                }
+                else if (stripeEvent.Type == Events.PaymentIntentRequiresAction)
+                {
+                    purchase.DoesPaymentRequireAction = true;
+                    // todo: inform user that action is required
+                }
+                else if (stripeEvent.Type == Events.PaymentIntentSucceeded)
+                {
+                    purchase.IsPaymentProcessed = true;
+                }
+                // ... handle other event types
+                else
+                {
+                    Console.WriteLine("Unhandled event type: {0}", stripeEvent.Type);
+                    return Ok();
+                }
+
+                // update purchase with Id from payment intent
+                if(await (_service as PurchaseService).StartUpdate(context, purchase))
+                {
+                    purchase = await (_service as PurchaseService).FinishUpdate(context, purchase);
+                }
+
+                return Ok();
+            }
+            catch (StripeException e)
+            {
+                Console.WriteLine("Error: {0}", e.Message);
+                return BadRequest();
+            }
+            catch (Exception e)
+            {
+                Console.WriteLine("Error: {0}", e.Message);
+                return StatusCode(500);
+            }
+        }
+    }
+}
