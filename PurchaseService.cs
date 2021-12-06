@@ -32,6 +32,7 @@ namespace Api.Purchases
 		public async ValueTask<Purchase> CreatePurchase(Context context, PaymentIntentCreateRequest request, long cost, string currency)
         {
             var purchase = await Create(context, new Purchase { 
+				UserId = context.UserId,
 				TotalCostPence = cost,
 				Currency = currency
 			});
