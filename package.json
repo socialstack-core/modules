@@ -1,8 +1,8 @@
 {
 	"dependencies":[
-		"UI/PaymentGateways",
-		"UI/Products",
-		"UI/PurchaseProducts",
-		"UI/Purchases"
+		"API/PaymentGateways",
+		"API/Products",
+		"API/PurchaseProducts",
+		"API/Purchases"
 	]
 }
