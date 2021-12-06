@@ -1,3 +1,4 @@
+using Api.Contexts;
 using Api.Startup;
 using Microsoft.AspNetCore.Mvc;
 using Stripe;
@@ -22,7 +23,9 @@ namespace Api.PaymentGateways
                 throw new PublicException("No products are being purchased", "no_products");
             }
 
-            var result = await (_service as PaymentGatewayService).CreateStripePaymentIntent(request);
+            var context = await Request.GetContext();
+
+            var result = await (_service as PaymentGatewayService).CreateStripePaymentIntent(context, request);
 
             return result;
         }

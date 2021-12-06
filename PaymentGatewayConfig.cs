@@ -23,6 +23,11 @@ namespace Api.PaymentGateways
         public string StripeSecretKey { get; set; } = "";
 
         /// <summary>
+		/// Your stripe payment webhook endpoint secret
+		/// </summary>
+        public string StripePaymentEndpointSecret { get; set; } = "";
+
+        /// <summary>
 		/// Your payment currency;
 		/// </summary>
         public string PaymentCurrency { get; set; } = "gbp";
