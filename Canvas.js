@@ -92,12 +92,13 @@ class Canvas extends React.Component {
 			return null;
 		}
 		if(Array.isArray(node)){
-			return node.map((n,i) => this.renderNode(n));
-		}
-		
-		if(!node.__key){
-			node.__key = "_canvas_" + uniqueKey;
-			uniqueKey++;
+			return node.map((n,i) => {
+				if(n && !n.__key){
+					n.__key = "_canvas_" + uniqueKey;
+					uniqueKey++;
+				}
+				return this.renderNode(n);
+			});
 		}
 		
 		var NodeType = node.type;
