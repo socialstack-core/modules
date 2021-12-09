@@ -94,7 +94,11 @@ class Canvas extends React.Component {
 		if(Array.isArray(node)){
 			return node.map((n,i) => {
 				if(n && !n.__key){
-					n.__key = "_canvas_" + uniqueKey;
+					if(n.id){
+						n.__key = n.id;
+					}else{
+						n.__key = "_canvas_" + uniqueKey;
+					}
 					uniqueKey++;
 				}
 				return this.renderNode(n);
