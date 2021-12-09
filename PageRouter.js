@@ -129,9 +129,21 @@ export default (props) => {
 			return;
 		}
 		
-		global.history.pushState({}, "", hash ? '#' + url : url);
-		document.body.parentNode.scrollTop = 0;
-		return setPageState(url);
+		// Store the scroll position:
+		var html = document.body.parentNode;
+		global.history.replaceState({
+			scrollTop: html.scrollTop,
+			scrollLeft: html.scrollLeft
+		}, '');
+		
+		// Push nav event:
+		global.history.pushState({
+			scrollTop: 0
+		}, '', hash ? '#' + url : url);
+		
+		return setPageState(url).then(() => {
+			html.scrollTo({top: 0, left: 0, behavior: 'instant'});
+		});
 	}
 	
 	function useDefaultNav(a,b){
@@ -159,6 +171,8 @@ export default (props) => {
 				setPage(pgState);
 				triggerEvent(pgState);
 			}
+			
+			return Promise.resolve(true);
 		}else{
 			return webRequest("page/state", {
 				url,
@@ -190,19 +204,22 @@ export default (props) => {
 	}
 	
 	const onPopState = (e) => {
-		var current = currentUrl();
-		var prev = pageState.url;
+		// todo: # support when pressing back
 		
-		if(current == prev){
-			// If page not actually changing, do nothing.
-			// Note that as currentUrl excludes the #, this allows a hash link to perform a 
-			// native browser jump including when pressing back.
-			return;
+		var scrollTarget = null;
+		
+		if(e && e.state && e.state.scrollTop !== undefined){
+			scrollTarget = {
+				x: e.state.scrollLeft,
+				y: e.state.scrollTop
+			};
 		}
 		
-		document.body.parentNode.scrollTo(0, 0);
-		
-		setPageState(current);
+		setPageState(currentUrl()).then(() => {
+			if(scrollTarget){
+				document.body.parentNode.scrollTo({top: scrollTarget.y, left: scrollTarget.x, behavior: 'instant'});
+			}
+		});
 	}
 	
 	const onLinkClick = (e) => {
