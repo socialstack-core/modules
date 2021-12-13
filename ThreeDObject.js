@@ -58,6 +58,7 @@ export default class ThreeDObject extends React.Component {
 
 	processMouseMove(e) {
         if (this.mouseDrag && this.props.enableMouseDrag) {
+			console.log('transform!');
 			this.objTransform.transform3DObject({x: e.movementX, y: -e.movementY}, this);
         }
     }

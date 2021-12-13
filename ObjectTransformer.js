@@ -4,10 +4,11 @@ const planeModKey    = 'ShiftLeft';
 const propModeKey    = 'ControlLeft';
 const reduceScaleKey = 'IntlBackslash';
 
-const translateScale = 1.0;
-const rotateScale = 0.004;
-const scaleScale = 0.001;
-const cropScale = 0.005;
+const dTranslateScale = 1.0;
+const dRotateScale = 0.004;
+const dScaleScale = 0.001;
+const dCropScale = 0.005;
+const dCurveScale = 0.001;
 
 /**
  * Provides transform controls as a helper for
@@ -38,7 +39,13 @@ export default class ObjectTransformer {
 		this.rotateAxisMode = 'x';
 		this.scaleAxisMode = 'xy';
         this.cropAxisMode = 't';
+        this.curveAxisMode = 'c';
         this.globalScale = 1.0;
+        this.translateScale = dTranslateScale;
+        this.rotateScale = dRotateScale;
+        this.scaleScale = dScaleScale;
+        this.cropScale = dCropScale;
+        this.curveScale = dCurveScale;
         this.detailsUpdateSubscribers = [];
 
         this.processKeyDown = this.processKeyDown.bind(this);
@@ -111,6 +118,7 @@ export default class ObjectTransformer {
         this.rotateAxisMode = 'x';
         this.scaleAxisMode  = 'xy';
         this.cropAxisMode   = 't';
+        this.curveAxisMode = 'c';
     }
 
     cycleAxisMode() {
@@ -120,6 +128,8 @@ export default class ObjectTransformer {
             this.scaleAxisMode = this.nextScaleAxis(this.scaleAxisMode);
         } else if (this.propMode === 'crop') {
             this.cropAxisMode = this.nextCropAxis(this.cropAxisMode);
+        } else if (this.propMode === 'curve') {
+            this.curveAxisMode = this.nextCurveAxis(this.curveAxisMode);
         }
     }
 
@@ -155,6 +165,26 @@ export default class ObjectTransformer {
         this.globalScale = value;
     }
 
+    setTranslateScale(value) {
+        this.translateScale = value;
+    }
+
+    setRotateScale(value) {
+        this.translateScale = value;
+    }
+
+    setScaleScale(value) {
+        this.scaleScale = value;
+    }
+
+    setCropScale(value) {
+        this.cropScale = value;
+    }
+
+    setCurveScale(value) {
+        this.curveScale = value;
+    }
+
     resetGlobalScale() {
         this.globalScale = 1.0;
     }
@@ -169,22 +199,22 @@ export default class ObjectTransformer {
             var flipModY = this.flipTranslateAxes.y ? -1 : 1;
             var flipModZ = this.flipTranslateAxes.z ? -1 : 1;
             if (!this.planeModActive) {
-                comp.props.position.x += (vector2d.x * translateScale * this.globalScale * flipModX);
+                comp.props.position.x += (vector2d.x * this.translateScale * this.globalScale * flipModX);
             } else {
-                comp.props.position.z += (vector2d.x * translateScale * this.globalScale * flipModZ);
+                comp.props.position.z += (vector2d.x * this.translateScale * this.globalScale * flipModZ);
             }
-            comp.props.position.y += (vector2d.y * translateScale * this.globalScale * flipModY);
+            comp.props.position.y += (vector2d.y * this.translateScale * this.globalScale * flipModY);
         } else if (this.propMode === 'rotate') {
             if (!comp.props.rotation) {
                 comp.props.rotation = {x: 0.0, y: 0.0, z: 0.0};
             }
 
             if (this.rotateAxisMode === 'x') {
-                comp.props.rotation.x += (vector2d.x * rotateScale * this.globalScale);
+                comp.props.rotation.x += (vector2d.x * this.rotateScale * this.globalScale);
             } else if (this.rotateAxisMode === 'y') {
-                comp.props.rotation.y += (vector2d.x * rotateScale * this.globalScale);
+                comp.props.rotation.y += (vector2d.x * this.rotateScale * this.globalScale);
             } else if (this.rotateAxisMode === 'z') {
-                comp.props.rotation.z += (vector2d.x * rotateScale * this.globalScale);
+                comp.props.rotation.z += (vector2d.x * this.rotateScale * this.globalScale);
             }
         } else if (this.propMode === 'scale') {
             if (!comp.props.scale) {
@@ -192,12 +222,12 @@ export default class ObjectTransformer {
             }
 
             if (this.scaleAxisMode === 'xy') {
-                comp.props.scale.x += (vector2d.x * scaleScale * this.globalScale);
-                comp.props.scale.y += (vector2d.x * scaleScale * this.globalScale);
+                comp.props.scale.x += (vector2d.x * this.scaleScale * this.globalScale);
+                comp.props.scale.y += (vector2d.x * this.scaleScale * this.globalScale);
             } else if (this.scaleAxisMode === 'x') {
-                comp.props.scale.x += (vector2d.x * scaleScale * this.globalScale);
+                comp.props.scale.x += (vector2d.x * this.scaleScale * this.globalScale);
             } else if (this.scaleAxisMode === 'y') {
-                comp.props.scale.y += (vector2d.x * scaleScale * this.globalScale);
+                comp.props.scale.y += (vector2d.x * this.scaleScale * this.globalScale);
             }
         } else if (this.propMode === 'crop') {
             if (!comp.props.crop) {
@@ -205,17 +235,32 @@ export default class ObjectTransformer {
             }
 
             if (this.cropAxisMode === 't') {
-                comp.props.crop.t += (vector2d.x * cropScale * this.globalScale);
+                comp.props.crop.t += (vector2d.x * this.cropScale * this.globalScale);
                 comp.props.crop.t = this.clamp(comp.props.crop.t, 0.0, 1.0);
             } else if (this.cropAxisMode === 'r') {
-                comp.props.crop.r += (vector2d.x * cropScale * this.globalScale);
+                comp.props.crop.r += (vector2d.x * this.cropScale * this.globalScale);
                 comp.props.crop.r = this.clamp(comp.props.crop.r, 0.0, 1.0);
             } else if (this.cropAxisMode === 'b') {
-                comp.props.crop.b += (vector2d.x * cropScale * this.globalScale);
+                comp.props.crop.b += (vector2d.x * this.cropScale * this.globalScale);
                 comp.props.crop.b = this.clamp(comp.props.crop.b, 0.0, 1.0);
             } else if (this.cropAxisMode === 'l') {
-                comp.props.crop.l += (vector2d.x * cropScale * this.globalScale);
+                comp.props.crop.l += (vector2d.x * this.cropScale * this.globalScale);
                 comp.props.crop.l = this.clamp(comp.props.crop.l, 0.0, 1.0);
+            }
+        } else if (this.propMode === 'curve') {
+            if (!comp.props.curve) {
+                comp.props.curve = 0;
+            }
+
+            if (!comp.props.numberOfSegments) {
+                comp.props.numberOfSegments = 64;
+            }
+
+            if (this.curveAxisMode === 'c') {
+                comp.props.curve += (vector2d.x * this.curveScale * this.globalScale);
+                comp.props.curve = this.clamp(comp.props.curve, 0.1, 2.0);
+            } else if (this.curveAxisMode === 'num') {
+                comp.props.numberOfSegments += (vector2d.x * this.curveScale * this.globalScale);
             }
         }
     }
@@ -225,7 +270,8 @@ export default class ObjectTransformer {
             case 'translate': return 'rotate';
             case   'rotate' : return 'scale';
             case    'scale' : return 'crop';
-            case     'crop' : return 'translate';
+            case     'crop' : return 'curve';
+            case    'curve' : return 'translate';
         }
     }
 
@@ -251,6 +297,13 @@ export default class ObjectTransformer {
             case 'r': return 'b';
             case 'b': return 'l';
             case 'l': return 't';
+        }
+    }
+
+    nextCurveAxis(axis) {
+        switch (axis) {
+            case 'c': return 'num';
+            case 'num': return 'c';
         }
     }
 
@@ -280,6 +333,8 @@ export default class ObjectTransformer {
             axisMode = this.scaleAxisMode;
         } else if (this.propMode === 'crop') {
             axisMode = this.cropAxisMode;
+        } else if (this.propMode === 'curve') {
+            axisMode = this.curveAxisMode;
         }
         details += `Axis Mode: ${axisMode}\n`;
 
@@ -304,6 +359,10 @@ export default class ObjectTransformer {
             if (props.crop) {
                 var cro = this.formatRect(props.crop, 2);
                 details += `Crop: {${cro.t}, ${cro.r}, ${cro.b}, ${cro.l}}\n`;
+            }
+
+            if (props.curve) {
+                details += `Curve: ${props.curve}, numberOfSegments: ${props.numberOfSegments}\n`;
             }
         }
 
