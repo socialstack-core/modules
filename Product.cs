@@ -30,6 +30,11 @@ namespace Api.Products
 		/// The cost of purchising this product in a one-off transaction in pence
 		/// </summary>
 		public long SingleCostPence;
+
+		/// <summary>
+		/// The cost of purchising this product as a reccuring transaction in pence
+		/// </summary>
+		public long ReccuringCostPence;
 	}
 
 }

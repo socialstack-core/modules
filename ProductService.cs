@@ -18,7 +18,7 @@ namespace Api.Products
 		/// </summary>
 		public ProductService() : base(Events.Product)
         {
-			InstallAdminPages("Products", "fa:fa-cubes", new string[] { "id", "name", "singleCost" });
+			InstallAdminPages("Products", "fa:fa-cubes", new string[] { "id", "name", "singleCostPence" });
 		}
 	}
     
