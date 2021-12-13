@@ -67,6 +67,7 @@ export default function StripePaymentForm(props) {
 	var [loading, setLoading] = React.useState();
 	var [failure, setFailure] = React.useState();
 	var [stripe, setStripe] = React.useState();
+	var [previousProducts, setPreviousProducts] = React.useState();
 	var [reactStripe, setReactStripe] = React.useState();
 	var [clientSecret, setClientSecret] = React.useState();
 	var config = useConfig('paymentGateway') || {};
@@ -74,19 +75,6 @@ export default function StripePaymentForm(props) {
 
 	React.useEffect(() => {
 		var stripeScript = null;
-
-		webRequest("paymentGateway/stripe/create-payment-intent", { Products: products }).then(response => {
-			setClientSecret(response.json.clientSecret);
-			setLoading(false);
-		}).catch(e => {
-			console.log(e);
-			if (!e.message) {
-				e.message = "Something has gone wrong, please refresh to the page to try again.";
-			}
-			setLoading(false);
-			setFailure(e);
-		});
-
 		var existingStripeScript = document.getElementById('Stripe');
 		
 		if (!existingStripeScript) {
@@ -132,6 +120,31 @@ export default function StripePaymentForm(props) {
 		}
 	}, []);
 
+	React.useEffect(() => {
+		if (products && products.length > 0 && products != previousProducts) {
+			setLoading(true);
+
+			webRequest("paymentGateway/stripe/create-payment-intent", { 
+				products: products.map(product => {
+					return {id: product.id, singleCostPence: product.singleCostPence, reccuringCostPence: product.reccuringCostPence};
+				}) 
+			}).then(response => {
+				setClientSecret(response.json.clientSecret);
+				setLoading(false);
+			}).catch(e => {
+				console.log(e);
+				if (!e.message) {
+					e.message = "Something has gone wrong, please refresh to the page to try again.";
+				}
+				setLoading(false);
+				setFailure(e);
+			});
+		}
+
+		setPreviousProducts(products);
+
+	}, [products]);
+
 	if (!reactStripe || !stripe || !clientSecret) {
 		return (
 			<div className="stripe-payment-form">
@@ -147,7 +160,7 @@ export default function StripePaymentForm(props) {
 
 	return (
 		<div className="stripe-payment-form">
-			{reactStripe && stripe && clientSecret &&
+			{reactStripe && stripe && clientSecret && !loading &&
 				<reactStripe.Elements stripe={stripe} options={{ clientSecret: clientSecret }}>
 					<StripeCheckout stripe={stripe} reactStripe={reactStripe} returnUrl={returnUrl}/>
 				</reactStripe.Elements>
