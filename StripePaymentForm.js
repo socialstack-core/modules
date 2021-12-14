@@ -4,7 +4,7 @@ import Alert from 'UI/Alert';
 import { useConfig } from 'UI/Session';
 
 function StripeCheckout(props) {
-	const { stripe, reactStripe, onSubmit, onSuccess, returnUrl } = props;
+	const { stripe, reactStripe, onSubmit, returnUrl } = props;
 	var [loading, setLoading] = React.useState();
 	var [failure, setFailure] = React.useState();
 
@@ -14,6 +14,8 @@ function StripeCheckout(props) {
 		// We don't want to let default form submission happen here,
 		// which would refresh the page.
 		event.preventDefault();
+
+		onSubmit && onSubmit();
 
 		setLoading(true);
 	
@@ -48,7 +50,7 @@ function StripeCheckout(props) {
 		<form onSubmit={handleSubmit}>
 			<reactStripe.PaymentElement />
 				<div className="submit-btn">
-					<button className="btn btn-primary" disabled={!stripe || loading}>Submit</button>
+					<button className="btn btn-primary" disabled={!stripe || loading}>Purchase</button>
 				</div>
 				{loading && 
 					<Loading message="Please wait..." />
@@ -63,7 +65,7 @@ function StripeCheckout(props) {
 }
 
 export default function StripePaymentForm(props) {
-	const { products, onSubmit, onSuccess, returnUrl } = props;
+	const { products, onSubmit, returnUrl, updatePurchaseId } = props;
 	var [loading, setLoading] = React.useState();
 	var [failure, setFailure] = React.useState();
 	var [stripe, setStripe] = React.useState();
@@ -130,6 +132,7 @@ export default function StripePaymentForm(props) {
 				}) 
 			}).then(response => {
 				setClientSecret(response.json.clientSecret);
+				updatePurchaseId && updatePurchaseId(response.json.purchaseId);
 				setLoading(false);
 			}).catch(e => {
 				console.log(e);
@@ -162,7 +165,7 @@ export default function StripePaymentForm(props) {
 		<div className="stripe-payment-form">
 			{reactStripe && stripe && clientSecret && !loading &&
 				<reactStripe.Elements stripe={stripe} options={{ clientSecret: clientSecret }}>
-					<StripeCheckout stripe={stripe} reactStripe={reactStripe} returnUrl={returnUrl}/>
+					<StripeCheckout stripe={stripe} reactStripe={reactStripe} returnUrl={returnUrl} onSubmit={onSubmit}/>
 				</reactStripe.Elements>
 			}
 			{loading && 
