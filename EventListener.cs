@@ -9,6 +9,8 @@ using System.Text;
 using Api.Eventing;
 using Api.Contexts;
 using Microsoft.Extensions.Configuration;
+using Api.SocketServerLibrary;
+using System.Threading.Tasks;
 
 namespace Api.VersionChecker
 {
@@ -43,14 +45,19 @@ namespace Api.VersionChecker
 			
 			HelloMessage = Encoding.UTF8.GetBytes(JsonConvert.SerializeObject(hello));
 			
-            Events.WebSocketClientConnected.AddEventListener(async (Context ctx, WebSocketClient client) => 
+            Events.WebSocket.Connected.AddEventListener((Context ctx, WebSocketClient client) => 
             {
 				
 				if(HelloMessage != null){
-					await client.Send(HelloMessage);
+					var w = Writer.GetPooled();
+					w.Start(2);
+					w.WriteCompressed((ulong)(HelloMessage.Length + 1));
+					w.Write(HelloMessage);
+					client.Send(w);
+					w.Release();
 				}
 
-				return client;
+				return new ValueTask<WebSocketClient>(client);
             });
 		}
 	}
