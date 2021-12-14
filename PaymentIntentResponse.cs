@@ -14,5 +14,10 @@ namespace Api.PaymentGateways
         /// Stripe client secret
         /// </summary>
         public string ClientSecret;
+
+        /// <summary>
+        /// The purchase
+        /// </summary>
+        public uint PurchaseId;
     }
 }

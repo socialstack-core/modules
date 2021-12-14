@@ -73,10 +73,10 @@ namespace Api.PaymentGateways
                 },
                 ReceiptEmail = user.Email,
                 Metadata = new Dictionary<string, string> {
-                    { "PurchaseId", purchase.Id.ToString() },
-                    { "UserId", user.Id.ToString() },
-                    { "UserFirstName", user.FirstName },
-                    { "UserLastName", user.LastName }
+                    { "Purchase Id", purchase.Id.ToString() },
+                    { "User Id", user.Id.ToString() },
+                    { "User First Name", user.FirstName },
+                    { "User Last Name", user.LastName }
                 }
             });
 
@@ -88,7 +88,7 @@ namespace Api.PaymentGateways
                 purchase = await _pruchases.FinishUpdate(context, purchase);
             }
 
-            return new PaymentIntentResponse { ClientSecret = paymentIntent.ClientSecret };
+            return new PaymentIntentResponse { ClientSecret = paymentIntent.ClientSecret, PurchaseId = purchase.Id };
         }
 
         private long CalculateOrderAmount(List<Api.Products.Product> products)
