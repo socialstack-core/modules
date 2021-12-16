@@ -1,5 +1,6 @@
 using Api.Contexts;
 using Api.PaymentGateways;
+using Api.Permissions;
 using Microsoft.AspNetCore.Mvc;
 using Stripe;
 using System;
@@ -32,8 +33,8 @@ namespace Api.Purchases
         {
             var json = await new StreamReader(HttpContext.Request.Body).ReadToEndAsync();
 
-            // use a default context
-            var context = new Context();
+            // use a developer context
+            var context = new Context(1, 1, 1);
 
             try
             {
