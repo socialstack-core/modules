@@ -21,8 +21,8 @@ export default class RenderStrategy
 		RenderStrategy.objTransform.setEnabled(enabled);
 	}
 
-    static transform3DObject(vector2d, threeDObj) {
-        RenderStrategy.objTransform.transform3DObject(vector2d, threeDObj);
+    static transform3DObject(vector2d, threeDObj, scaleOverrides = null) {
+        RenderStrategy.objTransform.transform3DObject(vector2d, threeDObj, scaleOverrides);
     }
 
     constructor(threeDObject) {

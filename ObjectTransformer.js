@@ -88,13 +88,13 @@ export default class ObjectTransformer {
         }
     }
 
-    transform3DObject(vector2d, threeDObj) {
+    transform3DObject(vector2d, threeDObj, scaleOverrides = null) {
         var flipX = threeDObj.props.position && threeDObj.props.position.z > 0;
         var flipZ = threeDObj.props.position && threeDObj.props.position.x < 0;
         this.setTranslateFlipX(flipX);
         this.setTranslateFlipZ(flipZ);
 
-        this.applyTransform(threeDObj, vector2d);
+        this.applyTransform(threeDObj, vector2d, scaleOverrides);
         threeDObj.transform(threeDObj.props);
         this.onDetailsUpdate();
 	}
@@ -194,7 +194,13 @@ export default class ObjectTransformer {
         this.globalScale = 1.0;
     }
 
-    applyTransform(comp, vector2d) {
+    applyTransform(comp, vector2d, scaleOverrides = null) {
+        var tScale = scaleOverrides?.translateScale ?? this.translateScale;
+        var rScale = scaleOverrides?.rotateScale ?? this.rotateScale;
+        var sScale = scaleOverrides?.scaleScale ?? this.scaleScale;
+        var crScale = scaleOverrides?.cropScale ?? this.cropScale;
+        var cuScale = scaleOverrides?.curveScale ?? this.curveScale;
+
         if (this.propMode === 'translate') {
             if (!comp.props.position) {
                 comp.props.position = {x: 0, y: 0, z: 0};
@@ -204,22 +210,22 @@ export default class ObjectTransformer {
             var flipModY = this.flipTranslateAxes.y ? -1 : 1;
             var flipModZ = this.flipTranslateAxes.z ? -1 : 1;
             if (!this.planeModActive) {
-                comp.props.position.x += (vector2d.x * this.translateScale * this.globalScale * flipModX);
+                comp.props.position.x += (vector2d.x * tScale * this.globalScale * flipModX);
             } else {
-                comp.props.position.z += (vector2d.x * this.translateScale * this.globalScale * flipModZ);
+                comp.props.position.z += (vector2d.x * tScale * this.globalScale * flipModZ);
             }
-            comp.props.position.y += (vector2d.y * this.translateScale * this.globalScale * flipModY);
+            comp.props.position.y += (vector2d.y * tScale * this.globalScale * flipModY);
         } else if (this.propMode === 'rotate') {
             if (!comp.props.rotation) {
                 comp.props.rotation = {x: 0.0, y: 0.0, z: 0.0};
             }
 
             if (this.rotateAxisMode === 'x') {
-                comp.props.rotation.x += (vector2d.x * this.rotateScale * this.globalScale);
+                comp.props.rotation.x += (vector2d.x * rScale * this.globalScale);
             } else if (this.rotateAxisMode === 'y') {
-                comp.props.rotation.y += (vector2d.x * this.rotateScale * this.globalScale);
+                comp.props.rotation.y += (vector2d.x * rScale * this.globalScale);
             } else if (this.rotateAxisMode === 'z') {
-                comp.props.rotation.z += (vector2d.x * this.rotateScale * this.globalScale);
+                comp.props.rotation.z += (vector2d.x * rScale * this.globalScale);
             }
         } else if (this.propMode === 'scale') {
             if (!comp.props.scale) {
@@ -227,12 +233,12 @@ export default class ObjectTransformer {
             }
 
             if (this.scaleAxisMode === 'xy') {
-                comp.props.scale.x += (vector2d.x * this.scaleScale * this.globalScale);
-                comp.props.scale.y += (vector2d.x * this.scaleScale * this.globalScale);
+                comp.props.scale.x += (vector2d.x * sScale * this.globalScale);
+                comp.props.scale.y += (vector2d.x * sScale * this.globalScale);
             } else if (this.scaleAxisMode === 'x') {
-                comp.props.scale.x += (vector2d.x * this.scaleScale * this.globalScale);
+                comp.props.scale.x += (vector2d.x * sScale * this.globalScale);
             } else if (this.scaleAxisMode === 'y') {
-                comp.props.scale.y += (vector2d.x * this.scaleScale * this.globalScale);
+                comp.props.scale.y += (vector2d.x * sScale * this.globalScale);
             }
         } else if (this.propMode === 'crop') {
             if (!comp.props.crop) {
@@ -240,16 +246,16 @@ export default class ObjectTransformer {
             }
 
             if (this.cropAxisMode === 't') {
-                comp.props.crop.t += (vector2d.x * this.cropScale * this.globalScale);
+                comp.props.crop.t += (vector2d.x * crScale * this.globalScale);
                 comp.props.crop.t = this.clamp(comp.props.crop.t, minCrop, maxCrop);
             } else if (this.cropAxisMode === 'r') {
-                comp.props.crop.r += (vector2d.x * this.cropScale * this.globalScale);
+                comp.props.crop.r += (vector2d.x * crScale * this.globalScale);
                 comp.props.crop.r = this.clamp(comp.props.crop.r, minCrop, maxCrop);
             } else if (this.cropAxisMode === 'b') {
-                comp.props.crop.b += (vector2d.x * this.cropScale * this.globalScale);
+                comp.props.crop.b += (vector2d.x * crScale * this.globalScale);
                 comp.props.crop.b = this.clamp(comp.props.crop.b, minCrop, maxCrop);
             } else if (this.cropAxisMode === 'l') {
-                comp.props.crop.l += (vector2d.x * this.cropScale * this.globalScale);
+                comp.props.crop.l += (vector2d.x * crScale * this.globalScale);
                 comp.props.crop.l = this.clamp(comp.props.crop.l, minCrop, maxCrop);
             }
         } else if (this.propMode === 'curve') {
@@ -262,10 +268,10 @@ export default class ObjectTransformer {
             }
 
             if (this.curveAxisMode === 'c') {
-                comp.props.curve += (vector2d.x * this.curveScale * this.globalScale);
+                comp.props.curve += (vector2d.x * cuScale * this.globalScale);
                 comp.props.curve = this.clamp(comp.props.curve, minCurve, maxCurve);
             } else if (this.curveAxisMode === 'num') {
-                comp.props.numberOfSegments += (vector2d.x * this.curveScale * this.globalScale);
+                comp.props.numberOfSegments += (vector2d.x * cuScale * this.globalScale);
             }
         }
     }

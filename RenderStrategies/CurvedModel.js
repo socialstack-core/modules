@@ -7,6 +7,7 @@ export default class CurvedModel extends RenderStrategy
     constructor(threeDObject) {
         super(threeDObject);
         this.mousePosNormal = {x: 0, y: 0};
+		this.transformScaleOverrides = {translateScale: 0.02, scaleScale: 0.01};
     }
 
     setup(props, ref){
@@ -118,7 +119,7 @@ export default class CurvedModel extends RenderStrategy
 		this.mousePosNormal.y = -((mousePosition.y + window.pageYOffset) / window.innerHeight) * 2 + 2;
 
         if (this.mouseDrag && RenderStrategy.isTransformControlsEnabled()) {
-			RenderStrategy.transform3DObject({x: e.movementX, y: -e.movementY}, this.threeDObject);
+			RenderStrategy.transform3DObject({x: e.movementX, y: -e.movementY}, this.threeDObject, this.transformScaleOverrides);
         }
     }
 
