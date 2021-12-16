@@ -1,130 +1,96 @@
-import * as THREE from 'UI/Functions/ThreeJs';
-import ObjectTransformer from './ObjectTransformer';
 import deviceInput from './DeviceInput';
+import RenderStrategy from './RenderStrategies/Css3D';
+import Css3D from './RenderStrategies/Css3D';
+import CurvedModel from './RenderStrategies/CurvedModel';
 
 
 export default class ThreeDObject extends React.Component {
-	static objTransform = new ObjectTransformer();
-	static lastTransformedObj = null;
-	
 	static getObjTransformDetails() {
-		return this.objTransform.outputDetails(this.lastTransformedObj);
+		return RenderStrategy.getObjTransformDetails();
+	}
+
+	static isTransformControlsEnabled() {
+		return RenderStrategy.isTransformControlsEnabled();
 	}
 
 	static setTransformControlsEnabled(enabled) {
-		this.objTransform.setEnabled(enabled);
+		RenderStrategy.setTransformControlsEnabled(enabled);
 	}
 
 	constructor(props){
 		super(props);
 		this.state = {
 			editMode: false,
+			renderStratChanged: false,
 		};
 
-		this.objTransform = this.constructor.objTransform;
+		this.renderMode = props.renderMode ?? 'auto';
 
-		this.objTransform.addDetailsUpdateListener(() => {
-			if (this.props.onTransformDetailsUpdate) {
-				this.props.onTransformDetailsUpdate(this.constructor.getObjTransformDetails());
-			}
-		})
+		if ((this.renderMode === 'auto' && props.curve) || this.renderMode === 'CurvedModel') {
+        	this.renderStrat = new CurvedModel(this);
+		} else if ((this.renderMode === 'auto' && !props.curve) || this.renderMode === 'Css3D') {
+			this.renderStrat = new Css3D(this);
+		}
 
 		this.refChange = this.refChange.bind(this);
-		this.processMouseMove = this.processMouseMove.bind(this);
+        this.processMouseDown = this.processMouseDown.bind(this);
 		this.processMouseUp = this.processMouseUp.bind(this);
+		this.processMouseMove = this.processMouseMove.bind(this);
 
-		deviceInput.addMouseMoveListener(null, this.processMouseMove);
+		deviceInput.addMouseDownListener(null, this.processMouseDown);
 		deviceInput.addMouseUpListener(null, this.processMouseUp);
+		deviceInput.addMouseMoveListener(null, this.processMouseMove);
 	}
 
 	componentWillUnmount(){
-		var scene = global.scene;
-		scene && this.obj && scene.remove(this.obj);
-		this.obj = null;
+		this.renderStrat.removeFromScene();
 	}
 
 	componentDidMount(){
+		this.renderStrat.onSceneAdd();
 		this.setup(this.props);
+	}
+
+	componentDidUpdate() {
+		if (this.state.renderStratChanged) {
+			this.setState({renderStratChanged: false});
+			this.renderStrat.onSceneAdd();
+			this.setup(this.props);
+		}
 	}
 
 	refChange(ref){
 		if(!ref){
 			return;
 		}
+
 		this.ref = ref;
 		this.setup(this.props);
 		this.props.onDivRef && this.props.onDivRef(ref);
 	}
 
-	processMouseMove(e) {
-        if (this.mouseDrag && this.props.enableMouseDrag) {
-			console.log('transform!');
-			this.objTransform.transform3DObject({x: e.movementX, y: -e.movementY}, this);
-        }
-    }
-
-	processMouseUp(e) {
-        this.mouseDrag = false;
-		this.lastTransformedObj = null;
-    }
-
-	decorateElement(ele) {
-		if (ele && !ele.decorated) {
-			ele.decorated = true;
-
-			// Prevent element selection, which can occur when
-			// panning a camera with the mouse
-			ele.classList.add('unselectable');
-
-			ele.onmousedown = (e) => {
-				// Disable element dragging
-				e.preventDefault();
-
-				if (this.props.enableMouseDrag) {
-					this.mouseDrag = true;
-					ThreeDObject.lastTransformedObj = this;
-
-					if (this.props.onTransform) {
-						this.props.onTransform();
-					}
-				}
-			}
-		}
-	}
-
-	
 	setup(props){
-		var ref = this.ref;
-		var scene = global.scene;
-		if(!ref || !scene){
-			return;
-		}
-		
-		if(!scene._css){
-			scene._css = {nodes: []};
-		}
-		
-		if(this.obj){
-			if(this.obj.element == ref){
-				this.transform(props);
-				return;
-			}
-			
-			scene._css.nodes = scene._css.nodes.filter(a => a!=this.obj);
-		}
-		
-		this.obj = new THREE.CSS3DObject(ref);
-		scene._css.nodes.push(this.obj);
+        this.renderStrat.setup(this.props, this.ref);
 		this.transform(props);
-		this.decorateElement(ref);
 	}
-	
+
+    processMouseUp(e) {
+        this.renderStrat.processMouseUp(e);
+    }
+
+    processMouseDown(e) {
+        this.renderStrat.processMouseDown(e);
+    }
+
+    processMouseMove(e) {
+        this.renderStrat.processMouseMove(e);
+    }
+
 	transform(props){
-		var obj = this.obj;
+		var obj = this.renderStrat.getRenderObject();
 		var {position,
 			rotation,
 			scale,
-			crop,
 			circularCoords,
 			positionX,
 			positionY,
@@ -135,14 +101,14 @@ export default class ThreeDObject extends React.Component {
 			scaleX,
 			scaleY,
 			scaleZ,
-			cropT,
-			cropR,
-			cropB,
-			cropL,
 			radius,
 			angle,
 			height,
 		} = props;
+
+		if (!obj) {
+			return;
+		}
 
 
 		if(!position && (positionX || positionY || positionZ)) {
@@ -164,14 +130,6 @@ export default class ThreeDObject extends React.Component {
 			scale.x = scaleX;
 			scale.y = scaleY;
 			scale.z = scaleZ;
-		}
-
-		if(!crop && (cropT || cropR || cropB || cropL)) {
-			crop = {};
-			crop.t = cropT;
-			crop.r = cropR;
-			crop.b = cropB;
-			crop.l = cropL;
 		}
 
 		if(!circularCoords && (radius || angle || height)) {
@@ -203,40 +161,17 @@ export default class ThreeDObject extends React.Component {
             }
         }
 
-		if(scale){
-			obj.scale.x = scale.x || 1;
-			obj.scale.y = scale.y || 1;
-			obj.scale.z = scale.z || 1;
-		}
+        this.renderStrat.afterTransform(props);
 
-		if (crop) {
-			var {t, r, b, l} = crop;
-			t = t || 0;
-			r = r || 0;
-			b = b || 0;
-			l = l || 0;
-			obj.element.style.clipPath = `inset(${t*100}% ${r*100}% ${b*100}% ${l*100}%)`;
+		if (this.state.curve !== this.props.curve) {
+			this.setState({curve: this.props.curve});
 		}
-
-		obj.update();
 	}
-	
+
 	render(){
-		var { children, className } = this.props;
-		
-		if(this.obj){
-			this.transform(this.props);
-		}
-		
-		var El = this.props.element || "div";
-		
-		if(!children){
-			return <El className = {className} ref={this.refChange} />;
-		}
-		
-		return <El className = {className} ref={this.refChange}>{children}</El>;
+		return this.renderStrat.render(this.props);
 	}
-	
+
 }
 
 ThreeDObject.propTypes = {
@@ -257,5 +192,7 @@ ThreeDObject.propTypes = {
 	radius: 'int',
 	angle: 'float',
 	height: 'int',
+	curve: 'float',
+	numberOfSegments: 'int',
 	children: true
 }

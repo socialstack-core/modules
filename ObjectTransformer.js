@@ -4,11 +4,16 @@ const planeModKey    = 'ShiftLeft';
 const propModeKey    = 'ControlLeft';
 const reduceScaleKey = 'IntlBackslash';
 
+const minCrop = 0.0;
+const maxCrop = 1.0;
+const minCurve = 0.1;
+const maxCurve = 30.0;
+
 const dTranslateScale = 1.0;
 const dRotateScale = 0.004;
 const dScaleScale = 0.001;
 const dCropScale = 0.005;
-const dCurveScale = 0.001;
+const dCurveScale = 0.01;
 
 /**
  * Provides transform controls as a helper for
@@ -231,21 +236,21 @@ export default class ObjectTransformer {
             }
         } else if (this.propMode === 'crop') {
             if (!comp.props.crop) {
-                comp.props.crop = {t: 0.0, r: 0.0, b: 0.0, l: 0.0};
+                comp.props.crop = {t: minCrop, r: minCrop, b: minCrop, l: minCrop};
             }
 
             if (this.cropAxisMode === 't') {
                 comp.props.crop.t += (vector2d.x * this.cropScale * this.globalScale);
-                comp.props.crop.t = this.clamp(comp.props.crop.t, 0.0, 1.0);
+                comp.props.crop.t = this.clamp(comp.props.crop.t, minCrop, maxCrop);
             } else if (this.cropAxisMode === 'r') {
                 comp.props.crop.r += (vector2d.x * this.cropScale * this.globalScale);
-                comp.props.crop.r = this.clamp(comp.props.crop.r, 0.0, 1.0);
+                comp.props.crop.r = this.clamp(comp.props.crop.r, minCrop, maxCrop);
             } else if (this.cropAxisMode === 'b') {
                 comp.props.crop.b += (vector2d.x * this.cropScale * this.globalScale);
-                comp.props.crop.b = this.clamp(comp.props.crop.b, 0.0, 1.0);
+                comp.props.crop.b = this.clamp(comp.props.crop.b, minCrop, maxCrop);
             } else if (this.cropAxisMode === 'l') {
                 comp.props.crop.l += (vector2d.x * this.cropScale * this.globalScale);
-                comp.props.crop.l = this.clamp(comp.props.crop.l, 0.0, 1.0);
+                comp.props.crop.l = this.clamp(comp.props.crop.l, minCrop, maxCrop);
             }
         } else if (this.propMode === 'curve') {
             if (!comp.props.curve) {
@@ -258,7 +263,7 @@ export default class ObjectTransformer {
 
             if (this.curveAxisMode === 'c') {
                 comp.props.curve += (vector2d.x * this.curveScale * this.globalScale);
-                comp.props.curve = this.clamp(comp.props.curve, 0.1, 2.0);
+                comp.props.curve = this.clamp(comp.props.curve, minCurve, maxCurve);
             } else if (this.curveAxisMode === 'num') {
                 comp.props.numberOfSegments += (vector2d.x * this.curveScale * this.globalScale);
             }
