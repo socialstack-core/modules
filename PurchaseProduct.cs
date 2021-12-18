@@ -15,6 +15,7 @@ namespace Api.PurchaseProducts
 	/// </summary>
 	[HasVirtualField("Purchase", typeof(Purchase), "PurchaseId")]
 	[HasVirtualField("Product", typeof(Product), "ProductId")]
+	[ListAs("PurchaseProducts")] // Includable
 	public partial class PurchaseProduct : Content<uint>
 	{
 		/// <summary>
@@ -26,6 +27,11 @@ namespace Api.PurchaseProducts
 		/// The Product being purchased
 		/// </summary>
 		public uint ProductId;
+
+		/// <summary>
+		/// The quantity.
+		/// </summary>
+		public uint Quantity = 1;
 	}
 
 }
