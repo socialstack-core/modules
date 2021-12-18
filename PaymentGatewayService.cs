@@ -7,6 +7,7 @@ using Api.Eventing;
 using Stripe;
 using Api.Startup;
 using Api.Purchases;
+using System.Linq;
 
 namespace Api.PaymentGateways
 {
@@ -17,14 +18,16 @@ namespace Api.PaymentGateways
 	public partial class PaymentGatewayService : AutoService<PaymentGateway>
     {
 		private PaymentGatewayConfig _config;
-        private PurchaseService _pruchases;
+        private PurchaseService _purchases;
+        private Api.Products.ProductService _products;
 
 		/// <summary>
 		/// Instanced automatically. Use injection to use this service, or Startup.Services.Get.
 		/// </summary>
-		public PaymentGatewayService(PurchaseService purchases) : base(Eventing.Events.PaymentGateway)
+		public PaymentGatewayService(PurchaseService purchases, Api.Products.ProductService products) : base(Eventing.Events.PaymentGateway)
         {
-            _pruchases = purchases;
+            _purchases = purchases;
+            _products = products;
 			_config = GetConfig<PaymentGatewayConfig>();
 		}
 
@@ -39,7 +42,9 @@ namespace Api.PaymentGateways
                 throw new PublicException("Stripe is not configured correctly", "no_secret_key");
             }
 
-            var cost = CalculateOrderAmount(request.Products);
+            var products = await _products.Where("Id=[?]", DataOptions.IgnorePermissions).Bind(request.Products.Select(products => products.Id)).ListAll(context);
+
+            var cost = CalculateOrderAmount(products, request.Products);
 
             if (cost <= 0)
             {
@@ -53,7 +58,7 @@ namespace Api.PaymentGateways
                 throw new PublicException("You need to be logged in to preform this action", "no_user");
             }
 
-            var purchase = await _pruchases.CreatePurchase(context, request, cost, _config.PaymentCurrency);
+            var purchase = await _purchases.CreatePurchase(context, request, cost, _config.PaymentCurrency, request.CustomReference);
 
             if (purchase == null)
             {
@@ -65,7 +70,7 @@ namespace Api.PaymentGateways
 
             var paymentIntent = await paymentIntentService.CreateAsync(new PaymentIntentCreateOptions
             {
-                Amount = CalculateOrderAmount(request.Products),
+                Amount = cost,
                 Currency = _config.PaymentCurrency,
                 AutomaticPaymentMethods = new PaymentIntentAutomaticPaymentMethodsOptions
                 {
@@ -81,23 +86,31 @@ namespace Api.PaymentGateways
             });
 
             // update purchase with Id from payment intent
-            if(await _pruchases.StartUpdate(context, purchase))
+            if(await _purchases.StartUpdate(context, purchase, DataOptions.IgnorePermissions))
             {
                 purchase.ThirdPartyId = paymentIntent.Id;
                 
-                purchase = await _pruchases.FinishUpdate(context, purchase);
+                purchase = await _purchases.FinishUpdate(context, purchase);
             }
 
             return new PaymentIntentResponse { ClientSecret = paymentIntent.ClientSecret, PurchaseId = purchase.Id };
         }
 
-        private long CalculateOrderAmount(List<Api.Products.Product> products)
+        private long CalculateOrderAmount(List<Api.Products.Product> rawProducts, List<IdQuantity> productQuantities)
         {
             long cost = 0;
 
-            foreach(var product in products)
+            foreach(var productQuantity in productQuantities)
             {
-                cost += product.SingleCostPence;
+                // Find the product by ID:
+                var product = rawProducts.FirstOrDefault(p => p.Id == productQuantity.Id);
+
+                if (product == null)
+                {
+                    throw new PublicException("Product does not exist with ID " + productQuantity.Id, "product_not_found");
+                }
+
+                cost += product.SingleCostPence * productQuantity.Quantity;
             }
 
             return cost;

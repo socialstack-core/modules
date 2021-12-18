@@ -14,6 +14,26 @@ namespace Api.PaymentGateways
         /// <summary>
         /// The products the customer plans to buy
         /// </summary>
-        public List<Product> Products;
+        public List<IdQuantity> Products;
+
+        /// <summary>
+        /// An internal reference for what the purchase relates to if needed.
+        /// </summary>
+        public string CustomReference;
+    }
+
+    /// <summary>
+    /// Id and a quantity
+    /// </summary>
+    public struct IdQuantity
+    {
+        /// <summary>
+        /// Product ID
+        /// </summary>
+        public uint Id;
+        /// <summary>
+        /// Amount to purchase
+        /// </summary>
+        public uint Quantity;
     }
 }
