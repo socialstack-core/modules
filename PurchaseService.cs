@@ -36,11 +36,11 @@ namespace Api.Purchases
 				TotalCostPence = cost,
 				CustomReference = customReference,
 				Currency = currency
-			});
+			}, DataOptions.IgnorePermissions);
 
 			foreach(var product in request.Products)
             {
-				await _purchaseProducts.Create(context, new PurchaseProduct { PurchaseId = purchase.Id, ProductId = product.Id, Quantity = product.Quantity });
+				await _purchaseProducts.Create(context, new PurchaseProduct { PurchaseId = purchase.Id, ProductId = product.Id, Quantity = product.Quantity }, DataOptions.IgnorePermissions);
             }
 
 			return purchase;
