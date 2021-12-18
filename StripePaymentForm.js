@@ -65,7 +65,7 @@ function StripeCheckout(props) {
 }
 
 export default function StripePaymentForm(props) {
-	const { products, onSubmit, returnUrl, updatePurchaseId } = props;
+	const { products, onSubmit, returnUrl, updatePurchaseId, customReference } = props;
 	var [loading, setLoading] = React.useState();
 	var [failure, setFailure] = React.useState();
 	var [stripe, setStripe] = React.useState();
@@ -127,9 +127,8 @@ export default function StripePaymentForm(props) {
 			setLoading(true);
 
 			webRequest("paymentGateway/stripe/create-payment-intent", { 
-				products: products.map(product => {
-					return {id: product.id, singleCostPence: product.singleCostPence, reccuringCostPence: product.reccuringCostPence};
-				}) 
+				products: products.map(product => {return {id: product.id, quantity: product.quantity || 1}}),
+				customReference: customReference
 			}).then(response => {
 				setClientSecret(response.json.clientSecret);
 				updatePurchaseId && updatePurchaseId(response.json.purchaseId);
