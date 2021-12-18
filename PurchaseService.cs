@@ -29,17 +29,18 @@ namespace Api.Purchases
 		/// Creates a purchase from a paymentIntent create request
 		/// </summary>
 		/// <returns></returns>
-		public async ValueTask<Purchase> CreatePurchase(Context context, PaymentIntentCreateRequest request, long cost, string currency)
+		public async ValueTask<Purchase> CreatePurchase(Context context, PaymentIntentCreateRequest request, long cost, string currency, string customReference)
         {
             var purchase = await Create(context, new Purchase { 
 				UserId = context.UserId,
 				TotalCostPence = cost,
+				CustomReference = customReference,
 				Currency = currency
 			});
 
 			foreach(var product in request.Products)
             {
-				await _purchaseProducts.Create(context, new PurchaseProduct { PurchaseId = purchase.Id, ProductId = product.Id });
+				await _purchaseProducts.Create(context, new PurchaseProduct { PurchaseId = purchase.Id, ProductId = product.Id, Quantity = product.Quantity });
             }
 
 			return purchase;

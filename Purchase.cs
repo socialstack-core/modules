@@ -22,10 +22,15 @@ namespace Api.Purchases
 		/// </summary>
 		public string Currency;
 
-        /// <summary>
-        /// The description of the purchase
-        /// </summary>
-        [DatabaseField(Length = 2000)]
+		/// <summary>
+		/// An internal reference for what the purchase relates to if needed.
+		/// </summary>
+		public string CustomReference;
+
+		/// <summary>
+		/// The description of the purchase
+		/// </summary>
+		[DatabaseField(Length = 2000)]
 		public string Description;
 
 		/// <summary>
