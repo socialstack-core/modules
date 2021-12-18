@@ -25,7 +25,7 @@ namespace Api.Configuration
 		{
 			var builder = new ConfigurationBuilder()
                 .AddJsonFile("appsettings.json", optional: false, reloadOnChange: true)
-                .AddJsonFile("appsettings." + Environment.Name + ".json", optional: true)
+                .AddJsonFile("appsettings.extension.json", optional: true)
                 .AddEnvironmentVariables();
             Configuration = builder.Build();
 			
