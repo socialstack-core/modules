@@ -34,7 +34,7 @@ namespace Api.Purchases
             var json = await new StreamReader(HttpContext.Request.Body).ReadToEndAsync();
 
             // use a developer context
-            var context = new Context(1, 1, 1);
+            var context = new Context(Roles.Developer);
 
             try
             {
