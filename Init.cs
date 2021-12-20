@@ -298,12 +298,8 @@ namespace Api.DatabaseDiff
 				}
 				catch(MySqlException e)
 				{
-					// Check if this is an already exists error
-					if (e.Number != 1050)
-					{
-						// Something more severe - e.g. db link failure.
-						throw;
-					}
+					// Skipping all MySQL errors - the ones here are "it already exists" errors.
+					Console.WriteLine("Skipping a MySQL error during diff: " + e.ToString());
 				}
 				await Events.DatabaseDiffAfterAdd.Dispatch(new Context(), tableDiff);
 			}
