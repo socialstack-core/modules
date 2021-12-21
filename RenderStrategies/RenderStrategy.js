@@ -2,6 +2,7 @@ import ObjectTransformer from "../ObjectTransformer";
 
 export default class RenderStrategy
 {
+    static isTransforming = false;
     static lastTransformedObj = null;
     static objTransform = new ObjectTransformer();
 
@@ -53,6 +54,7 @@ export default class RenderStrategy
 
     processMouseUp(e) {
         this.mouseDrag = false;
+        RenderStrategy.isTransforming = false;
     }
 
     setup(props, ref) {

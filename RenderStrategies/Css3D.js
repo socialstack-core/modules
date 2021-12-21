@@ -100,8 +100,9 @@ export default class Css3D extends RenderStrategy
 				// Disable element dragging
 				e.preventDefault();
 
-				if (RenderStrategy.isTransformControlsEnabled()) {
+				if (RenderStrategy.isTransformControlsEnabled() && !RenderStrategy.isTransforming) {
 					this.mouseDrag = true;
+					RenderStrategy.isTransforming = true;
 					RenderStrategy.lastTransformedObj = this.threeDObject;
 
 					if (this.threeDObject.props.onTransform) {

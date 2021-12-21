@@ -20,7 +20,6 @@ export default class ThreeDObject extends React.Component {
 	constructor(props){
 		super(props);
 		this.state = {
-			editMode: false,
 			renderStratChanged: false,
 		};
 

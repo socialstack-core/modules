@@ -7,7 +7,7 @@ const reduceScaleKey = 'IntlBackslash';
 const minCrop = 0.0;
 const maxCrop = 1.0;
 const minCurve = 0.1;
-const maxCurve = 30.0;
+const maxCurve = 5.0;
 
 const dTranslateScale = 1.0;
 const dRotateScale = 0.004;
@@ -239,6 +239,8 @@ export default class ObjectTransformer {
                 comp.props.scale.x += (vector2d.x * sScale * this.globalScale);
             } else if (this.scaleAxisMode === 'y') {
                 comp.props.scale.y += (vector2d.x * sScale * this.globalScale);
+            } else if (this.scaleAxisMode === 'z') {
+                comp.props.scale.z += (vector2d.x * sScale * this.globalScale);
             }
         } else if (this.propMode === 'crop') {
             if (!comp.props.crop) {
@@ -298,7 +300,8 @@ export default class ObjectTransformer {
         switch (axis) {
             case 'xy': return 'x';
             case 'x': return 'y';
-            case 'y': return 'xy';
+            case 'y': return 'z';
+            case 'z': return 'xy';
         }
     }
 

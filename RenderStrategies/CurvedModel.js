@@ -2,12 +2,19 @@ import * as THREE from 'UI/Functions/ThreeJs';
 import getRef from 'UI/Functions/GetRef';
 import RenderStrategy from "./RenderStrategy";
 
+const baseSize = 5;
+const defaultCurve = 0.1;
+const defaultScale = {x: 1.0, y: 1.0, z: 1.0};
+const defaultNumberOfSegments = 64;
+
 export default class CurvedModel extends RenderStrategy
 {
     constructor(threeDObject) {
         super(threeDObject);
         this.mousePosNormal = {x: 0, y: 0};
 		this.transformScaleOverrides = {translateScale: 0.02, scaleScale: 0.01};
+		this.widthRatio = 1.0;
+		this.heightRatio = 1.0;
     }
 
     setup(props, ref){
@@ -32,17 +39,15 @@ export default class CurvedModel extends RenderStrategy
 		var imageRef = props.imageRef;
 		var videoRef = props.videoRef;
 
-		// create curved plane
-		var curve = props.curve ? props.curve : 0.1;
-		var scale = props.scale
-		var numberOfSegments = props.numberOfSegments ? props.numberOfSegments : 64;
+		var curve = props.curve ?? defaultCurve;
+		var scale = props.scale ?? defaultScale;
+		var numberOfSegments = props.numberOfSegments ?? defaultNumberOfSegments;
 
-		var scaleX = scale?.x ? scale?.x : 1;
-		var scaleY = scale?.y ? scale?.y : 1;
+		var scaleX = scale?.x ?? 1.0;
 		curve = curve * scaleX;
 
-		var width = scaleX * 16/10;
-		var height = scaleY * 9/10;
+		var width  = baseSize * 16/10;
+		var height = baseSize * 9/10;
 
 		const geometry = new THREE.PlaneBufferGeometry(width, height, numberOfSegments, 1);
 		this.geometry = geometry;
@@ -62,7 +67,21 @@ export default class CurvedModel extends RenderStrategy
 		else if (imageRef) {
 			var texture = loader.load(
 				getRef(imageRef, {url:true}),
-				undefined,
+				(loaded) => {
+					var image = loaded.image;
+
+					if (image) {
+						this.widthRatio  = image.naturalWidth  / image.naturalHeight;
+						this.heightRatio = image.naturalHeight / image.naturalWidth;
+
+						if (this.widthRatio > this.heightRatio) {
+							mesh.scale.set(scale.x * this.widthRatio, scale.y, scale.z);
+						} else {
+							mesh.scale.set(scale.x * this.widthRatio, scale.y * this.heightRatio, scale.z);
+						}
+						this.planeCurve(geometry, curve);
+					}
+				},
 				undefined,
 				function (err) {
 					console.error("error loading texture for curved image");
@@ -77,14 +96,9 @@ export default class CurvedModel extends RenderStrategy
 
 		// create the mesh by combining the geometry and material
 		const mesh = new THREE.Mesh( geometry, material );
-/* 		mesh.scale.x = (scaleX * 16/10) * 0.1;
-		mesh.scale.y = (scaleY * 9/10) * 0.1; */
 
 		this.obj = mesh;
 		scene.add(mesh);
-
-		//this.transform(props);
-		//this.obj.updateMatrixWorld();
 	}
 
 	onSceneAdd() {
@@ -95,21 +109,19 @@ export default class CurvedModel extends RenderStrategy
     }
 
     processMouseDown(e) {
-		this.mouseDrag = this.raycastModel(this.mousePosNormal, this.obj);
+		if (RenderStrategy.isTransformControlsEnabled() && !RenderStrategy.isTransforming) {
+			this.mouseDrag = this.raycastModel(this.mousePosNormal, this.obj);
 
-		if (this.mouseDrag) {
-			RenderStrategy.lastTransformedObj = this.threeDObject;
+			if (this.mouseDrag) {
+				RenderStrategy.isTransforming = true;
+				RenderStrategy.lastTransformedObj = this.threeDObject;
 
-			if (this.threeDObject.props.onTransform) {
-				this.threeDObject.props.onTransform();
+				if (this.threeDObject.props.onTransform) {
+					this.threeDObject.props.onTransform();
+				}
 			}
 		}
 	}
-
-	processMouseUp(e) {
-        this.mouseDrag = false;
-		this.lastTransformedObj = null;
-    }
 
     processMouseMove(e) {
 		var mouseMovement = {x: -e.movementX, y: -e.movementY}; // Invert for model rotation
@@ -118,7 +130,7 @@ export default class CurvedModel extends RenderStrategy
 		this.mousePosNormal.x =  (mousePosition.x   / window.innerWidth)  * 2 - 1;
 		this.mousePosNormal.y = -((mousePosition.y + window.pageYOffset) / window.innerHeight) * 2 + 2;
 
-        if (this.mouseDrag && RenderStrategy.isTransformControlsEnabled()) {
+        if (this.mouseDrag) {
 			RenderStrategy.transform3DObject({x: e.movementX, y: -e.movementY}, this.threeDObject, this.transformScaleOverrides);
         }
     }
@@ -138,14 +150,17 @@ export default class CurvedModel extends RenderStrategy
 			scale.z = scaleZ;
 		}
 
-		var width  = scale.x * 16/10;
-		var height = scale.y * 9/10;
-		var curve = props.curve ? props.curve : 0.1;
-		//curve *= scale.x;
+		var curve = (props.curve ? props.curve : 0.1) * scale.x;
 
-		this.geometry.parameters.width = width;
-		this.geometry.parameters.height = height;
-		this.geometry.parameters.widthSegments = Math.floor(props.numberOfSegments);
+		if (this.obj) {
+			if (this.widthRatio > this.heightRatio) {
+				this.obj.scale.set(scale.x * this.widthRatio, scale.y, scale.z);
+			} else {
+				this.obj.scale.set(scale.x * this.widthRatio, scale.y * this.heightRatio, scale.z);
+			}
+		}
+
+		//this.geometry.parameters.widthSegments = Math.floor(props.numberOfSegments);
 		this.planeCurve(this.geometry, curve);
 	}
 
