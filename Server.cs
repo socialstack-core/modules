@@ -5,11 +5,9 @@ using System.Net.Sockets;
 using System.Collections.Generic;
 using System.Reflection.Emit;
 using System.Timers;
-using Api.Startup;
-using Api.Signatures;
 using System.Threading.Tasks;
-using Api.Contexts;
 using System.Runtime.InteropServices;
+
 
 namespace Api.SocketServerLibrary {
 
@@ -267,7 +265,7 @@ namespace Api.SocketServerLibrary {
 			if (reader == null)
 			{
 				// Get the reader:
-				var boltMsg = TypeIOEngine.GetBolt<U>();
+				var boltMsg = BoltReaderWriter.Get<U>();
 
 				instance.MessageReader = new GenericMessageReader<U>(boltMsg, instance);
 			}
@@ -303,7 +301,7 @@ namespace Api.SocketServerLibrary {
 			if (reader == null)
 			{
 				// Get the reader:
-				var boltMsg = TypeIOEngine.GetBolt<U>();
+				var boltMsg = BoltReaderWriter.Get<U>();
 
 				instance.MessageReader = new GenericMessageReader<U>(boltMsg, instance);
 			}
