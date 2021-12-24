@@ -95,7 +95,7 @@ namespace Api.SocketServerLibrary
 			// Get the type description:
 			if (_boltIO == null)
 			{
-				_boltIO = TypeIOEngine.GetBolt<T>();
+				_boltIO = BoltReaderWriter.Get<T>();
 			}
 
 			_boltIO.Write((T)this, w);

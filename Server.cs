@@ -148,7 +148,7 @@ namespace Api.SocketServerLibrary {
 	/// <summary>
 	/// Base server class. Use the generic form instead.
 	/// </summary>
-	public class Server
+	public partial class Server
 	{
 
 		/// <summary>
@@ -200,18 +200,6 @@ namespace Api.SocketServerLibrary {
 		/// Called when this server stops.
 		/// </summary>
 		public event Action OnStopped;
-
-		/// <summary>
-		/// Call this for this server to accept connections and messaging via websockets.
-		/// </summary>
-		/// <param name="requireApplicationHello"></param>
-		public void AcceptWebsockets(bool requireApplicationHello = true)
-		{
-			var ocm = new WebsocketHandshake(requireApplicationHello);
-			ocm.Code = 71;
-			ocm.IsHello = true;
-			AddToOpcodeMap(ocm.Code, ocm);
-		}
 
 		/// <summary>
 		/// Adds a handler for an opcode - it just recognises the opcode, and then effectively does nothing.
