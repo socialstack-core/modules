@@ -1658,7 +1658,7 @@ namespace Api.ContentSync
 		public ContentSyncStandardMeta(AutoService<T, ID> svc)
 		{
 			Service = svc;
-			ReaderWriter = TypeIOEngine.GetBolt<INST_T>();
+			ReaderWriter = BoltReaderWriter.Get<INST_T>();
 
 			_primaryCache = Service.GetCacheForLocale(1);
 			_receivedEventHandler = Service.EventGroup.Received;
@@ -1836,7 +1836,7 @@ namespace Api.ContentSync
 		public ContentSyncMappingdMeta(MappingService<SRC_ID, TARG_ID> svc)
 		{
 			Service = svc;
-			ReaderWriter = TypeIOEngine.GetBolt<INST_T>();
+			ReaderWriter = BoltReaderWriter.Get<INST_T>();
 
 			cache = Service.GetCacheForLocale(1);
 			_receivedEventHandler = Service.EventGroup.Received;
