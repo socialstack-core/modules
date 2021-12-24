@@ -4,14 +4,13 @@ using System.IO;
 using System.Reflection;
 using System.Text;
 using System.Threading.Tasks;
-using Api.CanvasRenderer;
 using Api.Configuration;
 using Api.Database;
-using Api.Eventing;
 using Api.Signatures;
 using Api.SocketServerLibrary;
 using Api.Startup;
 using Api.Users;
+
 
 namespace Api.Contexts
 {

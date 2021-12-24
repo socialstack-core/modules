@@ -1,6 +1,4 @@
-﻿using Api.Permissions;
-using System;
-using System.Reflection;
+﻿using System.Reflection;
 
 
 namespace Api.Contexts
@@ -8,7 +6,7 @@ namespace Api.Contexts
 	/// <summary>
 	/// Stores info about publicly settable context fields.
 	/// </summary>
-	public class ContextFieldInfo
+	public partial class ContextFieldInfo
 	{
 		/// <summary>
 		/// The source prop.
@@ -19,12 +17,7 @@ namespace Api.Contexts
 		/// True if this field should be skipped. RoleId is always obtained through the user row so it is skipped for example.
 		/// </summary>
 		public bool SkipOutput;
-
-		/// <summary>
-		/// The capability which indicates if the field can be loaded.
-		/// </summary>
-		public Capability ViewCapability;
-
+		
 		/// <summary>
 		/// Private backing field. Name must be of the form _propertyName.
 		/// </summary>
