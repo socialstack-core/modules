@@ -24,8 +24,90 @@ namespace Api.SocketServerLibrary
 		/// Thread safety for the pool.
 		/// </summary>
 		private static readonly object PoolLock = new object();
-		
-		
+
+
+		/// <summary>
+		/// Escape the given control char. The given control char value must be true for Unicode.IsControl.
+		/// </summary>
+		/// <param name="control"></param>
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static byte[] EscapedControl(byte control)
+		{
+			if (_controlMap == null)
+			{
+				GetControlMap();
+			}
+
+			return _controlMap[control];
+		}
+
+		/// <summary>
+		/// Array of 128 pre-serialised control characters.
+		/// </summary>
+		private static byte[][] _controlMap;
+
+		private static byte[][] GetControlMap()
+		{
+			if (_controlMap != null)
+			{
+				return _controlMap;
+			}
+
+			_controlMap = new byte[160][];
+
+			for (uint i = 0; i < 160; i++)
+			{
+				if (Startup.Utf8Helpers.Unicode.IsControl(i))
+				{
+					byte[] escapedChar;
+
+					if (i == (int)'\r')
+					{
+						escapedChar = new byte[] { (byte)'\\', (byte)'r' };
+					}
+					else if (i == (int)'\n')
+					{
+						escapedChar = new byte[] { (byte)'\\', (byte)'n' };
+					}
+					else if (i == (int)'\t')
+					{
+						escapedChar = new byte[] { (byte)'\\', (byte)'t' };
+					}
+					else if (i == (int)'\b')
+					{
+						escapedChar = new byte[] { (byte)'\\', (byte)'b' };
+					}
+					else if (i == (int)'\f')
+					{
+						escapedChar = new byte[] { (byte)'\\', (byte)'f' };
+					}
+					else
+					{
+						// hex representation. "\u followed by 4 hex characters".
+						escapedChar = new byte[6];
+						escapedChar[0] = (byte)'\\';
+						escapedChar[1] = (byte)'u';
+						escapedChar[2] = (byte)'0';
+						escapedChar[3] = (byte)'0';
+
+						// Upper nibble:
+						var n = (i >> 4);
+						n += (n > 9u) ? 87u : 48u; // ('a'- 10) : '0';
+						escapedChar[4] = (byte)n;
+
+						// Lower nibble:
+						n = (i & 15);
+						n += (n > 9u) ? 87u : 48u; // ('a' - 10) : '0';
+						escapedChar[5] = (byte)n;
+					}
+
+					_controlMap[i] = escapedChar;
+				}
+			}
+
+			return _controlMap;
+		}
+
 		/// <summary>
 		/// Gets a pooled writer.
 		/// Generally use this rather than new Writer.
@@ -806,7 +888,7 @@ namespace Api.SocketServerLibrary
 				// If it's a control character or any of the escapee's..
 				if (Unicode.IsControl(rune))
 				{
-					WriteNoLength(TypeIOEngine.EscapedControl((byte)rune));
+					WriteNoLength(EscapedControl((byte)rune));
 					continue;
 				}
 				else if (rune == (uint)'"' || rune == (uint)'\\')
