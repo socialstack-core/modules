@@ -15,6 +15,7 @@ export default class CurvedModel extends RenderStrategy
 		this.transformScaleOverrides = {translateScale: 0.02, scaleScale: 0.01};
 		this.widthRatio = 1.0;
 		this.heightRatio = 1.0;
+		this.videoElementRef = React.createRef();
     }
 
     setup(props, ref){
@@ -37,7 +38,6 @@ export default class CurvedModel extends RenderStrategy
 		}
 
 		var imageRef = props.imageRef;
-		var videoRef = props.videoRef;
 
 		var curve = props.curve ?? defaultCurve;
 		var scale = props.scale ?? defaultScale;
@@ -59,9 +59,8 @@ export default class CurvedModel extends RenderStrategy
 
 		var loader = new THREE.TextureLoader();
 
-		if (videoRef) {
-			const video = document.getElementById( 'video' );
-			const texture = new THREE.VideoTexture( video );
+		if (this.videoElementRef.current) {
+			const texture = new THREE.VideoTexture( this.videoElementRef.current );
 			material = new THREE.MeshBasicMaterial( { map: texture } );
 		}
 		else if (imageRef) {
@@ -100,13 +99,6 @@ export default class CurvedModel extends RenderStrategy
 		this.obj = mesh;
 		scene.add(mesh);
 	}
-
-	onSceneAdd() {
-        var video = document.getElementById("video");
-		if (video) {
-			video.play();
-		}
-    }
 
     processMouseDown(e) {
 		if (RenderStrategy.isTransformControlsEnabled() && !RenderStrategy.isTransforming) {
@@ -232,10 +224,9 @@ export default class CurvedModel extends RenderStrategy
 
 		var El = props.element || "div";
 
-		return <El className = "curvedImage" ref={this.threeDObject.refChange}>
-			{children && children}
+		return <El className = "curvedModel" ref={this.threeDObject.refChange}>
 			{videoRef &&
-				<video id="video" src={getRef(videoRef, {url:true})} ref="vidRef" muted autoplay loop></video>
+				<video ref={this.videoElementRef} src={getRef(videoRef, {url:true})} muted autoplay loop></video>
 			}
 		</El>;
     }
