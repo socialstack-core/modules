@@ -335,7 +335,7 @@ function _fetch(url, data, opts) {
 	var credentials = undefined;
 	var mode = 'cors';
 
-	var headers = {};
+	var headers = opts ? opts.headers || {} : {};
 	
 	var toOrigin = true;
 	
