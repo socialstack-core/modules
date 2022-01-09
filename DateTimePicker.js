@@ -27,9 +27,12 @@ function setup(){
 	}
 }
 
-function pad(min,max){
+function pad(min,max,step){
+	if(!step){
+		step = 1;
+	}
 	var a = [];
-	for(var i=min;i<=max;i++){
+	for(var i=min;i<=max;i+=step){
 		a.push(i);
 	}
 	return a;
@@ -44,6 +47,17 @@ export default class DateTimePicker extends React.Component {
 		};
 		
 		this.state.date=this.currentDate(props) || new Date();
+		
+		if(props.roundMinutes){
+			var local = props.local;
+			var mins = local ? this.state.date.getMinutes() : this.state.date.getUTCMinutes();
+			
+			// round up always:
+			var roundMins = Math.ceil(mins/props.roundMinutes) * props.roundMinutes;
+			if(roundMins != mins){
+				local ? this.state.date.setMinutes(roundMins) : this.state.date.setUTCMinutes(roundMins);
+			}
+		}
 		
 		if(!zero59){
 			setup();
@@ -146,7 +160,7 @@ export default class DateTimePicker extends React.Component {
 						local ? d.setHours(parseInt(v)) : d.setUTCHours(parseInt(v));
 						return d;
 					})}
-					{this.renderSelect(local ? date.getMinutes() : date.getUTCMinutes(), zero59, 'minutes', 'small', (v, d) => {
+					{this.renderSelect(local ? date.getMinutes() : date.getUTCMinutes(), this.props.roundMinutes ? pad(0,59,this.props.roundMinutes) : zero59, 'minutes', 'small', (v, d) => {
 						local ? d.setMinutes(parseInt(v)) : d.setUTCMinutes(parseInt(v));
 						return d;
 					})}
