@@ -131,7 +131,9 @@ namespace Api.Uploader
 					{
 						try
 						{
-							current = Image.FromFile(upload.TemporaryPath);
+							var ms = new MemoryStream(File.ReadAllBytes(upload.TemporaryPath));
+
+							current = Image.FromStream(ms);
 
 							if (NormalizeOrientation(current))
 							{
