@@ -145,50 +145,55 @@ export default class FileSelector extends React.Component {
 					}/>
 				</div>
 				*/}
-				<div class="btn-group btn-group-toggle canvas-editor-view file-selector-btn-group" data-toggle="buttons">
-					<label class="btn btn-sm btn-primary">
-						<input className = "radio" type="radio" name="fileSelectorOptions" id="selectUploads" autocomplete="off"
-							checked={false} onChange={() => {
-								this.showModal()
-							}} />
-						<i class="far fa-images"></i>
-						<p>Select from uploads</p>
-					</label>
-					<label class="btn btn-sm btn-primary">
-						<input className = "radio" type="radio" name="fileSelectorOptions" id="uploadNew" autocomplete="off"
-							checked={false} onChange={() => {
-								this.setState({
+				{this.props.browseOnly ? <>
+					<Uploader onUploaded={
+						file => this.updateValue(file)
+					}/>
+				</> :
+					<div class="btn-group btn-group-toggle canvas-editor-view file-selector-btn-group" data-toggle="buttons">
+						<label class="btn btn-sm btn-primary">
+							<input className = "radio" type="radio" name="fileSelectorOptions" id="selectUploads" autocomplete="off"
+								checked={false} onChange={() => {
+									this.showModal()
+								}} />
+							<i class="far fa-images"></i>
+							<p>Select from uploads</p>
+						</label>
+						<label class="btn btn-sm btn-primary">
+							<input className = "radio" type="radio" name="fileSelectorOptions" id="uploadNew" autocomplete="off"
+								checked={false} onChange={() => {
+									this.setState({
 
-								});
-							}} />
-						<i class="far fa-upload"></i>
-						<p>
-							<Uploader onUploaded={
-								file => this.updateValue(file)
-							}/>
-						</p>
-					</label>
-					<label class="btn btn-sm btn-primary">
-						<input className = "radio" type="radio" name="fileSelectorOptions" id="selectIcons" autocomplete="off"
-							checked={false} onChange={() => {
-								this.setState({
-									iconModalOpen: true
-								});
-							}} />
-						<i class="far fa-icons"></i>
-						<p>Select from icons</p>
-					</label>
-					<button
-						className = "btn btn-sm btn-dark"
-						onClick = {() => {
-							this.setState({editing: false})
-						}}
-					>
-						<i class="far fa-times"></i>
-						<p>Cancel</p>
-					</button>
-				</div>
-				
+									});
+								}} />
+							<i class="far fa-upload"></i>
+							<p>
+								<Uploader onUploaded={
+									file => this.updateValue(file)
+								}/>
+							</p>
+						</label>
+						<label class="btn btn-sm btn-primary">
+							<input className = "radio" type="radio" name="fileSelectorOptions" id="selectIcons" autocomplete="off"
+								checked={false} onChange={() => {
+									this.setState({
+										iconModalOpen: true
+									});
+								}} />
+							<i class="far fa-icons"></i>
+							<p>Select from icons</p>
+						</label>
+						<button
+							className = "btn btn-sm btn-dark"
+							onClick = {() => {
+								this.setState({editing: false})
+							}}
+						>
+							<i class="far fa-times"></i>
+							<p>Cancel</p>
+						</button>
+					</div>
+				}
 				</>
 			) : (
 				<div>
