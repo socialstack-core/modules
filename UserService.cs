@@ -366,7 +366,7 @@ namespace Api.Users
 		/// <param name="newPassword"></param>
 		/// <returns>The user</returns>
 		public async ValueTask<User> VerifyEmail(Context context, User user, string newPassword)
-        {
+		{
 			var userChangeFields = GetChangeField("Role");
 
 			if (await StartUpdate(context, user, DataOptions.IgnorePermissions))
@@ -374,17 +374,28 @@ namespace Api.Users
 				if (!string.IsNullOrWhiteSpace(newPassword))
 				{
 					userChangeFields = userChangeFields.And("PasswordHash");
-				
+
 					var authService = Services.Get<PasswordAuthService>();
-				
+
 					await authService.EnforcePolicy(newPassword);
 
 					user.PasswordHash = PasswordStorage.CreateHash(newPassword);
 				}
-				
-				user.Role = Roles.Member.Id;
+
+				if (user.Role == Roles.Guest.Id)
+				{
+					user.Role = Roles.Member.Id;
+				}
 
 				user.MarkChanged(userChangeFields);
+
+				var loginResult = new LoginResult();
+				loginResult.CookieName = Context.CookieName;
+				loginResult.User = user;
+				context.User = user;
+
+				// Act like a login:
+				await Events.UserOnLogin.Dispatch(context, loginResult);
 
 				user = await FinishUpdate(context, user);
 			}
@@ -394,7 +405,7 @@ namespace Api.Users
 			}
 
 			return user;
-        }
+		}
 	}
 
 }
