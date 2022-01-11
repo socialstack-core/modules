@@ -6,7 +6,7 @@ import Alert from "UI/Alert";
 import { useRouter } from 'UI/Session';
 
 export default function VerifyEmail(props) {
-	const { onSuccess } = props;
+	const { onSuccess, noRelocation } = props;
 	var [failed, setFailed] = React.useState();
 	var [success, setSuccess] = React.useState();
 
@@ -20,6 +20,9 @@ export default function VerifyEmail(props) {
 			onSuccess={response => {
 				setSuccess(true);
 				onSuccess && onSuccess();
+				if(!noRelocation) { 
+					window.location.href = "/";
+				}
 			}}
 			className="verify-email-form"
 			onFailed={e=>{
