@@ -1,0 +1,16 @@
+.discount-list {
+	.discount-list--loop {
+		margin-top: 1rem;
+		margin-bottom: 1rem;
+	}
+}
+
+/*
+Size overrides. See bootstrap breakpoints for more information:
+https://getbootstrap.com/docs/5.0/layout/breakpoints/#min-width
+
+@include media-breakpoint-up(md) {
+	.coupons-manage-coupons {
+	}
+}
+*/
