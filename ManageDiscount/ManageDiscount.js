@@ -15,7 +15,7 @@ export default function ManageDiscount(props) {
 	React.useEffect(() => {
 		setLoading(true);
 
-		webRequest('discount/list', {where: {id: discountId}}).then(response => {
+		webRequest('discount/list', {where: {id: discountId}}, {includes: ["Product"]}).then(response => {
 			setDiscount(response?.json?.results?.at(0));
 			setLoading(false);
 		}).catch(e => {
@@ -36,20 +36,37 @@ export default function ManageDiscount(props) {
 			setFailure(e);
 		});
 	}
+
+	var amountOffText = "";
+
+	if (discount && discount.discountPercentage > 0) {
+		amountOffText = discount.discountPercentage + "%";
+	} else if (discount && discount.discountPence > 0) {
+		amountOffText = "£" + (discount.discountPence / 100);
+	}
+
+	if (discount && discount.product) {
+		amountOffText = amountOffText + " off " + discount.product.name;
+	} else {
+		amountOffText = amountOffText + " off any product";
+	}
 	
 	return (
 		<div className="coupons-manage-discount">
 			{discount &&
 				<center>
-					<h4>{discount.name}</h4>
+					<h4>{discount.name} ({amountOffText})</h4>
 				</center>
 			}
 			<div className="coupons-manage-discount--coupons-loop">
 				<Loop 
 					over="coupon/list"
-					filter={{where: {discountId: discountId}}}
+					filter={{where: {discountId: discountId, isDisabled: false}}}
 					raw
 					live
+					orNone={() => <div className="No Coupons">
+						No coupons generated.
+					</div>}
 				>
 				{
 					coupon => 

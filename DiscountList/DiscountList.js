@@ -6,24 +6,94 @@ import Row from 'UI/Row';
 import Col from 'UI/Column';
 
 export default function DiscountList(props) {
-	const { manageCouponUrl } = props;
+	const { manageCouponUrl, hideDiscountPence, hideDiscountPercentage } = props;
+
+	var [success, setSuccess] = React.useState();
+	var [failed, setFailed] = React.useState();
+	var [loading, setLoading] = React.useState();
+
+	const removeDiscount = discount => {
+		if (!discount) {
+			return;
+		}
+
+		discount.isDisabled = true;
+
+		setLoading(true);
+
+		webRequest('discount/' + discount.id, discount).then(response => {
+			setLoading(false);
+		}).catch(e => {
+			console.log(e);
+			setFailure(e);
+			setLoading(false);
+		});
+	}
 
 	return (
 		<div className="discount-list">
 			<div className="discount-list--loop">
 				<Loop 
-					over="discount/list" 
+					over="discount/list"
+					filter={{where: {isDisabled: false}}}
+					includes={["Product"]}
 					raw
+					asTable
+					live
+					orNone={() => <div className="No Coupons">
+						No discounts created.
+					</div>}
 				>
 				{
-					discount => 
-						{
-							return <div className="discount-list--discount">
-								<span className="discount--info name">
+					[
+						// Render Header
+						results => {
+							return <> 
+								<th>Name</th>
+								<th>Product</th>
+								{!hideDiscountPercentage &&
+									<th>% Discount</th>
+								}
+								{!hideDiscountPence &&
+									<th>£ Discount</th>
+								}
+								<th></th>
+							</>;
+						},
+						// Render Row
+						(discount, index, resultsCount) => {
+							return <>
+								<td className="discount--info name">
 									<a href={manageCouponUrl + "/" + discount.id}>{discount.name}</a>
-								</span>
-							</div>;
+								</td>
+								<td className="discount--info product-name">
+									{discount.product
+										? discount.product.name
+										: "Any"
+									}
+								</td>
+								{!hideDiscountPercentage &&
+									<td className="discount--info percentage">
+										{discount.discountPercentage > 0
+											? discount.discountPercentage
+											: "NA"
+										}
+									</td>
+								}
+								{!hideDiscountPence &&
+									<td className="discount--info pounds">
+										{discount.discountPence > 0
+											? (discount.discountPence / 100)
+											: "NA"
+										}
+									</td>
+								}
+								<td>
+									<button className="btn btn-primary" onClick={e => removeDiscount(discount)}>Remove</button>
+								</td>
+							</>;
 						}
+					]
 					}
 				</Loop>
 			</div>
@@ -37,7 +107,9 @@ export default function DiscountList(props) {
 
 
 DiscountList.propTypes = {
-	manageCouponUrl: 'string'
+	manageCouponUrl: 'string',
+	hideDiscountPence: 'bool',
+	hideDiscountPercentage: 'bool',
 };
 
 // use defaultProps to define default values, if required
