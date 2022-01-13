@@ -36,9 +36,28 @@ namespace Api.Coupons
 					coupon.Code = RandomCouponCode(12);
 				}
 
+				var duplicateCoupon = await Where("Code=?").Bind(coupon.Code).First(context);
+
+				if (duplicateCoupon != null)
+                {
+					throw new PublicException("Another coupon already has the same code.", "duplicate_code");
+                }
+
 				return coupon;
 			});
 		}
+
+		public async Task<Coupon> RedeemCoupon(Context context, Coupon coupon)
+        {
+			if (await StartUpdate(context, coupon, DataOptions.IgnorePermissions))
+			{
+				coupon.IsRedeemed = true;
+
+				coupon = await FinishUpdate(context, coupon);
+			}
+
+			return coupon;
+        }
 
 		private static string RandomCouponCode(int length)
 		{
