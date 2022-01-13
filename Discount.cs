@@ -36,6 +36,11 @@ namespace Api.Discounts
 		/// The specific product this discount applies to (if any).
 		/// </summary>
 		public uint ProductId;
+
+		/// <summary>
+		/// Is this discount disabled?
+		/// </summary>
+		public bool IsDisabled;
 	}
 
 }
