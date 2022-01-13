@@ -2,7 +2,7 @@
  * Breaks a querystring into its key/value pairs.
  * @param str
  */
-export default function queryString(str) {
+export default function parseQueryString(str) {
 	if (!str || !str.length) {
 		return {};
 	}
