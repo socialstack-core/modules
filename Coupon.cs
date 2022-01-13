@@ -30,6 +30,11 @@ namespace Api.Coupons
 		/// Has the coupon been redeemed?
 		/// </summary>
 		public bool IsRedeemed;
+
+		/// <summary>
+		/// Is this coupon disabled?
+		/// </summary>
+		public bool IsDisabled;
 	}
 
 }
