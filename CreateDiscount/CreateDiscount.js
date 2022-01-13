@@ -29,10 +29,10 @@ export default function CreateDiscount(props) {
 			>
 				<Input id="name" name="name" type="text" label="Discount Name"/>
 				<Input id="productId" name="productId" type="select" contentType="product" name="productId" label="Discount Product" />
-				{!hideDiscountPence && 
+				{!hideDiscountPercentage  && 
 					<Input id="discountPercentage" name="discountPercentage" type="number" label="Discount Percentage"/>
 				}
-				{!hideDiscountPercentage &&
+				{!hideDiscountPence &&
 					<Input id="discountPence" name="discountPence" type="number" label="Discount Amount In Pence"/>
 				}
 				{failed && (
