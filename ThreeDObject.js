@@ -154,9 +154,16 @@ export default class ThreeDObject extends React.Component {
             }
 
             if(rotation){
-                obj.rotation.x = rotation.x || 0;
-                obj.rotation.y = rotation.y || 0;
-                obj.rotation.z = rotation.z || 0;
+				if(rotation.w !== undefined){
+					obj.quaternion.x = rotation.x || 0;
+					obj.quaternion.y = rotation.y || 0;
+					obj.quaternion.z = rotation.z || 0;
+					obj.quaternion.w = rotation.w || 0;
+				}else{
+					obj.rotation.x = rotation.x || 0;
+					obj.rotation.y = rotation.y || 0;
+					obj.rotation.z = rotation.z || 0;
+				}
             }
         }
 
