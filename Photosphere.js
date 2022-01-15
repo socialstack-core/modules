@@ -110,21 +110,22 @@ export default class Photosphere extends React.Component {
 
 
 	getPosition() {
-		var otherPersonsCameraRotation = new THREE.Quaternion().setFromEuler(this.camera.rotation);
-
+		var cameraRotation = this.camera.quaternion;
 		var camForward = new THREE.Vector3(0, 0, -1);
+		var positionIn3DOfCenter = camForward.applyQuaternion(cameraRotation);
 
-		var positionIn3DOfCenterOfRemotePersonsCamera = camForward.applyQuaternion(otherPersonsCameraRotation);
-
-		var rotationY = this.camera.rotation.y;
 		var rotationX = this.camera.rotation.x;
+		var rotationY = this.camera.rotation.y;
+		var rotationZ = this.camera.rotation.z;
+		
 		return {
-			posX: positionIn3DOfCenterOfRemotePersonsCamera.x,
-			posY: positionIn3DOfCenterOfRemotePersonsCamera.y,
-			posZ: positionIn3DOfCenterOfRemotePersonsCamera.z,
-			rotationY: rotationY,
+			posX: positionIn3DOfCenter.x,
+			posY: positionIn3DOfCenter.y,
+			posZ: positionIn3DOfCenter.z,
 			rotationX: rotationX,
-			rotationZ: rotationX,
+			rotationY: rotationY,
+			rotationZ: rotationZ,
+			cameraRotation
 		}
 	}
 
@@ -378,6 +379,8 @@ export default class Photosphere extends React.Component {
 			this.animated = true;
 			this.animate();
 		}
+		
+		this.props.onSetup && this.props.onSetup(this);
 	}
 	
 	animate() {
@@ -462,5 +465,5 @@ Photosphere.propTypes={
 
 Photosphere.defaultProps={
 	imageRef: null,
-	sphereScale: 0.1,
+	sphereScale: 10,
 }
