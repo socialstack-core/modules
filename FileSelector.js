@@ -140,13 +140,13 @@ export default class FileSelector extends React.Component {
 				<>
 				{/*
 				<div>
-					<span className="btn btn-secondary" onClick={() => this.showModal()}>Select from uploads</span> or <Uploader onUploaded={
+					<span className="btn btn-secondary" onClick={() => this.showModal()}>Select from uploads</span> or <Uploader isPrivate={this.props.isPrivate} onUploaded={
 						file => this.updateValue(file)
 					}/>
 				</div>
 				*/}
 				{this.props.browseOnly ? <>
-					<Uploader onUploaded={
+					<Uploader isPrivate={this.props.isPrivate} onUploaded={
 						file => this.updateValue(file)
 					}/>
 				</> :
@@ -168,7 +168,7 @@ export default class FileSelector extends React.Component {
 								}} />
 							<i class="far fa-upload"></i>
 							<p>
-								<Uploader onUploaded={
+								<Uploader isPrivate={this.props.isPrivate} onUploaded={
 									file => this.updateValue(file)
 								}/>
 							</p>
