@@ -57,15 +57,21 @@ namespace Api.Purchases
                 if (stripeEvent.Type == Events.PaymentIntentPaymentFailed)
                 {
                     purchase.DidPaymentFail = true;
+                    purchase.IsPaymentProcessed = false;
+                    purchase.IsPaymentProcessed = false;
                 }
                 else if (stripeEvent.Type == Events.PaymentIntentRequiresAction)
                 {
                     purchase.DoesPaymentRequireAction = true;
+                    purchase.DidPaymentFail = false;
+                    purchase.IsPaymentProcessed = false;
                     // todo: inform user that action is required
                 }
                 else if (stripeEvent.Type == Events.PaymentIntentSucceeded)
                 {
                     purchase.IsPaymentProcessed = true;
+                    purchase.DoesPaymentRequireAction = false;
+                    purchase.DidPaymentFail = false;
                 }
                 // ... handle other event types
                 else
