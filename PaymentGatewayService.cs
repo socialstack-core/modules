@@ -81,7 +81,8 @@ namespace Api.PaymentGateways
                     { "Purchase Id", purchase.Id.ToString() },
                     { "User Id", user.Id.ToString() },
                     { "User First Name", user.FirstName },
-                    { "User Last Name", user.LastName }
+                    { "User Last Name", user.LastName },
+                    { "Custom Reference" , request.CustomReference}
                 }
             });
 
