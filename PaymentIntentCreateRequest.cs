@@ -20,6 +20,11 @@ namespace Api.PaymentGateways
         /// An internal reference for what the purchase relates to if needed.
         /// </summary>
         public string CustomReference;
+
+        ///<summary>
+        /// Email address to send reciepts to 
+        ///</summary>
+        public string RecieptEmail;
     }
 
     /// <summary>

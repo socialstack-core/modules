@@ -76,7 +76,7 @@ namespace Api.PaymentGateways
                 {
                     Enabled = true,
                 },
-                ReceiptEmail = user.Email,
+                ReceiptEmail = string.IsNullOrWhiteSpace(request.RecieptEmail) ? user.Email : request.RecieptEmail,
                 Metadata = new Dictionary<string, string> {
                     { "Purchase Id", purchase.Id.ToString() },
                     { "User Id", user.Id.ToString() },
