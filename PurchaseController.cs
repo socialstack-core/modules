@@ -41,51 +41,54 @@ namespace Api.Purchases
                 var stripeEvent = EventUtility.ParseEvent(json);
                 var signatureHeader = Request.Headers["Stripe-Signature"];
 
-                stripeEvent = EventUtility.ConstructEvent(json,
-                        signatureHeader, _stripePaymentEndpointSecret);
+                stripeEvent = EventUtility.ConstructEvent(json,signatureHeader, _stripePaymentEndpointSecret);
 
-                var intent = (PaymentIntent)stripeEvent.Data.Object;
+                //Only interested in payment intent responses, all others can be ignored if they have been configured on stripe
+                if (stripeEvent.Data.Object.Object == "payment_intent") 
+                { 
+                    var intent = (PaymentIntent)stripeEvent.Data.Object;
 
-                var purchase = await (_service as PurchaseService).Where("ThirdPartyId=?", DataOptions.IgnorePermissions).Bind(intent.Id).First(context);
+                    var purchase = await (_service as PurchaseService).Where("ThirdPartyId=?", DataOptions.IgnorePermissions).Bind(intent.Id).First(context);
 
-                if (purchase == null)
-                {
-                    Console.WriteLine("Failed to process stripe webhook event: " + stripeEvent.Type + ". No purchase found for stripe payment intent: " + intent.Id);
-                    return StatusCode(500);
-                }
+                    if (purchase == null)
+                    {
+                        Console.WriteLine("Failed to process stripe webhook event: " + stripeEvent.Type + ". No purchase found for stripe payment intent: " + intent.Id);
+                        return StatusCode(500);
+                    }
 
-                if (stripeEvent.Type == Events.PaymentIntentPaymentFailed)
-                {
-                    purchase.DidPaymentFail = true;
-                    purchase.IsPaymentProcessed = false;
-                    purchase.IsPaymentProcessed = false;
-                }
-                else if (stripeEvent.Type == Events.PaymentIntentRequiresAction)
-                {
-                    purchase.DoesPaymentRequireAction = true;
-                    purchase.DidPaymentFail = false;
-                    purchase.IsPaymentProcessed = false;
-                    // todo: inform user that action is required
-                }
-                else if (stripeEvent.Type == Events.PaymentIntentSucceeded)
-                {
-                    purchase.IsPaymentProcessed = true;
-                    purchase.DoesPaymentRequireAction = false;
-                    purchase.DidPaymentFail = false;
-                }
-                // ... handle other event types
-                else
-                {
-                    Console.WriteLine("Unhandled event type: {0}", stripeEvent.Type);
-                    return Ok();
-                }
+                    if (stripeEvent.Type == Events.PaymentIntentPaymentFailed)
+                    {
+                        purchase.DidPaymentFail = true;
+                        purchase.IsPaymentProcessed = false;
+                        purchase.IsPaymentProcessed = false;
+                    }
+                    else if (stripeEvent.Type == Events.PaymentIntentRequiresAction)
+                    {
+                        purchase.DoesPaymentRequireAction = true;
+                        purchase.DidPaymentFail = false;
+                        purchase.IsPaymentProcessed = false;
+                        // todo: inform user that action is required
+                    }
+                    else if (stripeEvent.Type == Events.PaymentIntentSucceeded)
+                    {
+                        purchase.IsPaymentProcessed = true;
+                        purchase.DoesPaymentRequireAction = false;
+                        purchase.DidPaymentFail = false;
+                    }
+                    // ... handle other event types
+                    else
+                    {
+                        Console.WriteLine("Unhandled event type: {0}", stripeEvent.Type);
+                        return Ok();
+                    }
 
-                // update purchase with Id from payment intent
-                if(await (_service as PurchaseService).StartUpdate(context, purchase))
-                {
-                    purchase = await (_service as PurchaseService).FinishUpdate(context, purchase);
-                }
+                    // update purchase with Id from payment intent
+                    if(await (_service as PurchaseService).StartUpdate(context, purchase))
+                    {
+                        purchase = await (_service as PurchaseService).FinishUpdate(context, purchase);
+                    }
 
+                }
                 return Ok();
             }
             catch (StripeException e)
