@@ -18,6 +18,8 @@ using Api.Signatures;
 using Api.SocketServerLibrary;
 using System.Text;
 using Api.CanvasRenderer;
+using System.Security.Cryptography;
+using System.Linq;
 //using ImageMagick;
 
 namespace Api.Uploader
@@ -29,6 +31,8 @@ namespace Api.Uploader
 	public partial class UploadService : AutoService<Upload>
     {
 		private UploaderConfig _configuration;
+		
+		
 
 		/// <summary>
 		/// Instanced automatically. Use injection to use this service, or Startup.Services.Get.
@@ -36,7 +40,7 @@ namespace Api.Uploader
 		public UploadService() : base(Events.Upload)
         {
 			_configuration = GetConfig<UploaderConfig>();
-
+			
 			Events.Page.BeforeAdminPageInstall.AddEventListener((Context context, Pages.Page page, CanvasRenderer.CanvasNode canvas, Type contentType, AdminPageType pageType) =>
 			{
 				if (contentType == typeof(Upload))
@@ -689,6 +693,28 @@ namespace Api.Uploader
 			return false;
 		}
 
+		private string _autoName;
+
+		/// <summary>
+		/// Automatically generated content subdirectory name.
+		/// </summary>
+		public string AutoSubdirectoryName
+		{
+			get{
+				if(_autoName == null)
+				{
+					// Generate an anonymised subdir name based on the hostname of this machine (such that it is consistent, but anonymised)
+					using (var md5 = MD5.Create())
+					{
+						var result = md5.ComputeHash(Encoding.ASCII.GetBytes(System.Environment.MachineName.ToString()));
+						_autoName = string.Join("", result.Select(x => x.ToString("X2")));
+					}
+				}
+				
+				return _autoName;
+			}
+		}
+	
 		/// <summary>
 		/// Writes an uploaded file into the content folder.
 		/// </summary>
@@ -715,7 +741,17 @@ namespace Api.Uploader
 
             var fileType = nameParts[nameParts.Length - 1];
             fileType = fileType.ToLower();
-
+			
+			var subdirectory = _configuration.Subdirectory;
+			
+			if(string.IsNullOrEmpty(subdirectory))
+			{
+				// Always generate a subdirectory name that is unique to this host
+				// that avoids file collisions when multiple instances (typically dev ones) are sharing a db
+				// The hostname is used to avoid millions of random folders appearing
+				subdirectory = AutoSubdirectoryName;
+			}
+			
 			// Start building up the result:
 			var result = new Upload()
 			{
@@ -725,7 +761,7 @@ namespace Api.Uploader
 				UserId = context.UserId,
 				CreatedUtc = DateTime.UtcNow,
 				TemporaryPath = tempFilePath,
-				Subdirectory = _configuration.Subdirectory
+				Subdirectory = subdirectory
 			};
 
 			result = await Events.Upload.BeforeCreate.Dispatch(context, result);
