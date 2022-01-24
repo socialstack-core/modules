@@ -31,6 +31,10 @@ export default class ThreeDObject extends React.Component {
 			this.renderStrat = new Css3D(this);
 		}
 
+		if (props.onLoad) {
+			this.renderStrat.onLoad = props.onLoad;
+		}
+
 		this.refChange = this.refChange.bind(this);
         this.processMouseDown = this.processMouseDown.bind(this);
 		this.processMouseUp = this.processMouseUp.bind(this);

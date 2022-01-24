@@ -6,6 +6,7 @@ export default class Css3D extends RenderStrategy
     constructor(threeDObject) {
         super(threeDObject);
         this.ref = null;
+		this.loaded = false;
     }
 
     setup(props, ref) {
@@ -31,6 +32,11 @@ export default class Css3D extends RenderStrategy
 		this.obj = new THREE.CSS3DObject(ref);
 		scene._css.nodes.push(this.obj);
 		this.decorateElement(ref);
+
+		if (!this.loaded) {
+			this.loaded = true;
+			props.onLoad && props.onLoad();
+		}
     }
 
 	processMouseDown(e) {

@@ -11,10 +11,11 @@ export default class CurvedModel extends RenderStrategy
 {
     constructor(threeDObject) {
         super(threeDObject);
-        this.mousePosNormal = {x: 0, y: 0};
-		this.transformScaleOverrides = {translateScale: 0.02, scaleScale: 0.01};
+
 		this.widthRatio = 1.0;
 		this.heightRatio = 1.0;
+        this.mousePosNormal = {x: 0, y: 0};
+		this.transformScaleOverrides = {translateScale: 0.02, scaleScale: 0.01};
 		this.videoElementRef = React.createRef();
     }
 
@@ -80,6 +81,8 @@ export default class CurvedModel extends RenderStrategy
 						}
 						this.planeCurve(geometry, curve);
 					}
+
+					props.onLoad && props.onLoad();
 				},
 				undefined,
 				function (err) {
@@ -226,7 +229,7 @@ export default class CurvedModel extends RenderStrategy
 
 		return <El className = "curvedModel" ref={this.threeDObject.refChange}>
 			{videoRef &&
-				<video ref={this.videoElementRef} src={getRef(videoRef, {url:true})} muted autoplay loop></video>
+				<video ref={this.videoElementRef} onloadeddata={() => { props.onLoad && props.onLoad(); }} src={getRef(videoRef, {url:true})} muted autoplay loop></video>
 			}
 		</El>;
     }
