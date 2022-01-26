@@ -2205,7 +2205,7 @@ export default class RichEditor extends React.Component {
 				
 				var options = {};
 				
-				if(this.props.withIds){
+				if(!this.props.withoutIds){
 					// Add IDs in the output if they don't already have them.
 					options.id = this.getMaxId(snapshot.node, 0) || 1;
 				}
