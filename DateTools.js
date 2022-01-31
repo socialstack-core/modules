@@ -47,17 +47,12 @@ const isoConvert = (isoish) => {
 	 // date. Note: Using the UTC versions of these functions is necessary
 	 // because we're manually adjusting for time zones stored in the
 	 // string.
-	 returnDate.setUTCFullYear( parseInt( dateParts[ 0 ] ) );
-	 // The month numbers are one "off" from what normal humans would expect
+	// The month numbers are one "off" from what normal humans would expect
 	 // because January == 0.
-	 returnDate.setUTCMonth( parseInt( dateParts[ 1 ] - 1 ) );
-	 returnDate.setUTCDate( parseInt( dateParts[ 2 ] ) );
+	 returnDate.setUTCFullYear( parseInt( dateParts[ 0 ] ), parseInt( dateParts[ 1 ] - 1 ), parseInt( dateParts[ 2 ] ));
  
 	 // Set the time parts of the date object.
-	 returnDate.setUTCHours( parseInt( dateParts[ 3 ] ) );
-	 returnDate.setUTCMinutes( parseInt( dateParts[ 4 ] ) );
-	 returnDate.setUTCSeconds( parseInt( dateParts[ 5 ] ) );
-	 //returnDate.setUTCMilliseconds( parseInt( dateParts[ 6 ] ) );
+	 returnDate.setUTCHours( parseInt( dateParts[ 3 ] ), parseInt( dateParts[ 4 ] ), parseInt( dateParts[ 5 ] )  );
  
 	 // Track the number of hours we need to adjust the date by based
 	 // on the timezone.
