@@ -45,7 +45,20 @@ export default class Photosphere extends React.Component {
 	}
 	
 	componentWillReceiveProps(props){
-		this.setup(props);
+		
+		if(props.imageRef != this.props.imageRef || props.videoRef != this.props.videoRef || props.maxFov != this.props.maxFov){
+			this.setup(props);
+		}
+		
+		if(!this.camera){
+			return;
+		}
+		
+		if (props.position && this.camera.quaternion != props.position) {
+			
+			this.camera.quaternion.copy(props.position.quaternion);
+		}
+		
 	}
 	
 	setRef(ref){
@@ -107,28 +120,13 @@ export default class Photosphere extends React.Component {
 		
 	}
 	
-
-
 	getPosition() {
-		var cameraRotation = this.camera.quaternion;
-		var camForward = new THREE.Vector3(0, 0, -1);
-		var positionIn3DOfCenter = camForward.applyQuaternion(cameraRotation);
-
-		var rotationX = this.camera.rotation.x;
-		var rotationY = this.camera.rotation.y;
-		var rotationZ = this.camera.rotation.z;
-		
+		// Only ever work in quat space - euler is just a derivative.
 		return {
-			posX: positionIn3DOfCenter.x,
-			posY: positionIn3DOfCenter.y,
-			posZ: positionIn3DOfCenter.z,
-			rotationX: rotationX,
-			rotationY: rotationY,
-			rotationZ: rotationZ,
-			cameraRotation
+			quaternion: this.camera.quaternion
 		}
 	}
-
+	
 	/*
 	 * If there is a change event property wired up then send the message
 	 */
@@ -417,12 +415,6 @@ export default class Photosphere extends React.Component {
 		
 		var width = size.w + 'px';
 		var height= size.h + 'px';
-
-		if (this.props.position && (this.camera.rotation.x !== this.props.position.x || this.camera.rotation.y !== this.props.position.y)) {
-			this.camera.rotation.x = this.props.position.x;
-			this.camera.rotation.y = this.props.position.y;
-			this.sendPositionUpdate();
-		}
 		
 		return (
 		<SphereContext.Provider value={{scene: this.state.scene }}>
