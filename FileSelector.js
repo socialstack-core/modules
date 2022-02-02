@@ -19,6 +19,18 @@ inputTypes.ontypefile = inputTypes.ontypeimage = function(props, _this){
 	);
 };
 
+inputTypes.ontypeicon = function(props, _this){
+	return (
+		<FileSelector 
+			id={props.id || _this.fieldId}
+			iconOnly
+			className={props.className || "form-control"}
+			{...omit(props, ['id', 'className', 'type', 'inline'])}
+		/>
+	);
+};
+
+
 /**
  * Select a file from a users available uploads, outputting a ref.
  * You can use <Input type="file" .. /> to obtain one of these.
@@ -203,7 +215,7 @@ export default class FileSelector extends React.Component {
 					}
 					{hasRef ? this.showRef(currentRef) : 'None selected'}
 					&nbsp;
-					<div className="btn btn-secondary change-file-btn" onClick={() => this.setState({editing: true})}>Change</div>
+					<div className="btn btn-secondary change-file-btn" onClick={() => this.props.iconOnly ? this.setState({iconModalOpen: true}) : this.setState({editing: true})}>Change</div>
 					<div className="btn btn-danger delete-file-btn" onClick={() => this.updateValue(null)}>Remove</div>
 				</div>
 			)}
