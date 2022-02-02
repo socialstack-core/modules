@@ -40,7 +40,7 @@ export default function Radio(props) {
 				checked={checked ? "checked" : undefined} 
 				disabled={disabled ? "disabled" : undefined} 
 				value={props.value}
-				defaultValue={props.defaultValue}
+				defaultChecked={props.defaultValue}
 				/>
 			<label class="form-check-label" htmlFor={id}>
 				{label}
