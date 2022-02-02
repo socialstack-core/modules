@@ -30,6 +30,17 @@ inputTypes.ontypeicon = function(props, _this){
 	);
 };
 
+inputTypes.ontypeupload = function(props, _this){
+	return (
+		<FileSelector 
+			id={props.id || _this.fieldId}
+			browseOnly
+			className={props.className || "form-control"}
+			{...omit(props, ['id', 'className', 'type', 'inline'])}
+		/>
+	);
+};
+
 
 /**
  * Select a file from a users available uploads, outputting a ref.
