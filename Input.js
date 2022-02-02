@@ -443,7 +443,7 @@ export default class Input extends React.Component {
                 </button>
             );
 
-        } else if (type === "checkbox") {
+        } else if (type === "checkbox" || type == "bool" || type == "boolean") {
             return (
                 <Checkbox
 					ref={this.setRef}
@@ -456,7 +456,8 @@ export default class Input extends React.Component {
                     data-field={fieldName}
                     invalid={this.state.validationFailure ? true : undefined}
                     {...omit(this.props, ['id', 'className', 'onChange', 'onBlur', 'type', 'inline', 'value', 'defaultValue', 'help', 'helpIcon', 'fieldName'])}
-                    checked={this.props.value || this.props.defaultValue}
+                    checked={this.props.value}
+					defaultValue={this.props.defaultValue}
                     disabled={false}
                     isSwitch={false}
                 />
