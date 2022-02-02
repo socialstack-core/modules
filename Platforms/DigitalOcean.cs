@@ -30,6 +30,11 @@ namespace Api.CloudHosts
         /// </summary>
         public string SpaceSecret { get; set; }
 
+        /// <summary>
+        /// If true, add content-disposition header as inline to pdf files
+        /// </summary>
+        public bool DisplayPdfInline { get; set;}
+
     }
     
     /// <summary>
@@ -152,7 +157,14 @@ namespace Api.CloudHosts
                         var escapedName = Uri.EscapeDataString(name);
 
                         // The filename* helps with non-English filenames.
-                        fileTransferUtilityRequest.Headers.ContentDisposition = "attachment; filename=\"" + escapedName + "\"; filename*=utf-8''" + escapedName;
+                        if (_config.DisplayPdfInline && fileTransferUtilityRequest.ContentType == "application/pdf")
+                        {
+                            fileTransferUtilityRequest.Headers.ContentDisposition = "inline; filename=\"" + escapedName + "\"; filename*=utf-8''" + escapedName;
+                        }
+                        else
+                        {
+                            fileTransferUtilityRequest.Headers.ContentDisposition = "attachment; filename=\"" + escapedName + "\"; filename*=utf-8''" + escapedName;
+                        }
                     }
                 }
 
