@@ -113,7 +113,6 @@ export default class Photosphere extends React.Component {
 		if(scene == global.scene){
 			global.scene = null;
 		}
-		scene.dispose();
 		global.removeEventListener("mouseup", this.onMouseUp);
         global.removeEventListener("wheel", this.onWheel);
 		global.cancelAnimationFrame(this.animate);
