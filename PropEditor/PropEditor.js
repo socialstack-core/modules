@@ -110,7 +110,7 @@ export default class PropEditor extends React.Component {
 		return fieldName == 'children' || fieldName == 'editButton'
 	}
 	
-	getContentDropdown(typeName){
+	getContentDropdown(typeName, field, filterFunc){
 		if(!__contentCacheByType[typeName]){
 			__contentCacheByType[typeName] = [];
 			
@@ -120,11 +120,17 @@ export default class PropEditor extends React.Component {
 			});
 		}
 		
-		return __contentCacheByType[typeName].map(item => {
+		var set = __contentCacheByType[typeName];
+		
+		if(filterFunc){
+			set = set.filter(filterFunc);
+		}
+		
+		return set.map(item => {
 			var name = (item.name || item.title || item.firstName || 'Untitled') + ' (#' + item.id + ')';
 			
 			return (
-				<option value={item.id}>{name}</option>
+				<option value={item[field || 'id']}>{name}</option>
 			);
 		});
 	}
@@ -259,11 +265,9 @@ export default class PropEditor extends React.Component {
 					);
 				})
 				inputContent.unshift(<option>Pick a value</option>);
-			} else if (propType.type == 'checkbox' || propType.type == 'bool' || propType.type == 'boolean') {
-				inputType = 'checkbox';
-			}else if(propType.type == 'id'){
+			}else if(propType.type == 'id' || propType.type == 'contentField'){
 				inputType = 'select';
-				inputContent = this.getContentDropdown(propType.content || propType.contentType);
+				inputContent = this.getContentDropdown(propType.content || propType.contentType, propType.field || 'id', propType.filterFunction);
 				inputContent.unshift(<option>Pick some content</option>);
 			}else if(propType.type == 'contentType'){
 				inputType = 'select';
@@ -294,6 +298,8 @@ export default class PropEditor extends React.Component {
 			switch (inputType) {
 				case 'color':
 				case 'checkbox':
+				case 'bool':
+				case 'boolean':
 				case 'radio':
 
 					if (val == undefined && fieldInfo.defaultValue !== undefined && fieldInfo.defaultValue !== null) {
@@ -310,7 +316,7 @@ export default class PropEditor extends React.Component {
 					fieldName={fieldName} disabledBy={propType.disabledBy} enabledBy={propType.enabledBy} onChange={e => {
 					var value = e.target.value;
 
-					if (inputType == 'checkbox') {
+					if (inputType == 'checkbox' || inputType == "bool" || inputType == "boolean") {
 						value = !!e.target.checked;
 					} else if (inputType?.name == 'ArrayBuilder') {
 						value = e.target.groupData;
@@ -320,7 +326,7 @@ export default class PropEditor extends React.Component {
 				}} onKeyUp={e => {
 					var value = e.target.value;
 
-					if (inputType == 'checkbox') {
+					if (inputType == 'checkbox' || inputType == "bool" || inputType == "boolean") {
 						value = !!e.target.checked;
 					} else if (inputType?.name == 'ArrayBuilder') {
 						value = e.target.groupData;
