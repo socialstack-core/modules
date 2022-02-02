@@ -129,13 +129,14 @@ export default class Modal extends React.Component {
 
         return [
 			this.props.noBackdrop ? null : <div className={this.backdropClassName()} onClick={() => this.closeModal()}></div>,
-			<div className={this.modalClassName()} tabIndex="-1" role="dialog" aria-labelledby={this.modalTitleId} data-theme={this.props['data-theme'] || 'modal-theme'}>
+			<div className={this.modalClassName()} tabIndex="-1" role="dialog" aria-labelledby={this.modalTitleId} data-theme={this.props['data-theme'] || 'modal-theme'}
+			onTouchStart={e => e.stopPropagation()}>
 				<div className={this.modalDialogClassName()} role="document">
 					<div className="modal-content" style = {style}>
 						{this.props.noHeader ? <></> : <div className="modal-header">
 							<div className="modal-title" id={this.modalTitleId}>{typeof this.props.title === 'string' ? <h5>{this.props.title}</h5> : this.props.title}</div>
 							{this.props.noClose ? <></> : <button type="button" className={closeClass} data-dismiss="modal" aria-label="Close"
-									onClick={() => this.closeModal()}>
+								onClick={() => this.closeModal()}>
 								<span aria-hidden="true" className={closeIconClass}>
 										{!this.props.closeIcon && (
 											<>
