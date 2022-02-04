@@ -67,81 +67,7 @@ namespace Api.PasswordAuth
 					return result;
 				}
 
-				// Email/ Password combination here.
-
-				if (string.IsNullOrEmpty(loginDetails.Password))
-				{
-					// This request probably isn't meant for us.
-					return null;
-				}
-
-				// First, get the user to authenticate:
-				User user = null;
-				
-				if(OnSelectUser != null)
-				{
-					user = await OnSelectUser(context, loginDetails);
-				}
-				else
-				{
-					var emailOrUser = loginDetails.EmailOrUsername;
-					if (emailOrUser != null)
-					{
-						emailOrUser = emailOrUser.Trim();
-					}
-
-					user = await _users.Get(context, emailOrUser);
-				}
-				
-				if (user == null)
-				{
-					return null;
-				}
-
-				var hashToCheck = user.PasswordHash;
-
-				if (string.IsNullOrEmpty(hashToCheck))
-				{
-					// Disabled for this account
-					return null;
-				}
-
-				// Lockout check.
-				var now = DateTime.UtcNow;
-
-				if (user.FailedLoginTimeUtc.HasValue && user.LoginAttempts>=5 && (now - user.FailedLoginTimeUtc.Value).TotalMinutes < 20)
-				{
-					// Locked
-					throw new PublicException("Locked account - try again in 20 minutes", "locked_account");
-				}
-				
-				if (!PasswordStorage.VerifyPassword(loginDetails.Password, hashToCheck))
-				{
-					// Update login attempts:
-					if (!user.FailedLoginTimeUtc.HasValue || (now - user.FailedLoginTimeUtc.Value).TotalMinutes >= 20)
-					{
-						await _users.Update(context, user, (Context ctx, User usr) => {
-							user.FailedLoginTimeUtc = DateTime.UtcNow;
-							user.LoginAttempts = 1;
-							user.MarkChanged(failedLoginTimeAndAttemptsField);
-						}, DataOptions.IgnorePermissions);
-					}
-					else
-					{
-						await _users.Update(context, user, (Context ctx, User usr) => {
-							user.LoginAttempts++;
-							user.MarkChanged(loginAttemptsField);
-						}, DataOptions.IgnorePermissions);
-					}
-					
-					// Nope!
-					return null;
-				}
-
-				// Successful login - return the user:
-				return new LoginResult() {
-					User = user
-				};
+				return await AuthenticatePassword(context, loginDetails);
 			});
 
 			// Handle user creation too.
@@ -177,6 +103,97 @@ namespace Api.PasswordAuth
 				return new ValueTask<JsonField<User, uint>>(field);
 			});
 			
+		}
+
+		/// <summary>
+		/// Attempt to authenticate the user by password
+		/// </summary>
+		/// <param name="context"></param>
+		/// <param name="result"></param>
+		/// <param name="loginDetails"></param>
+		/// <returns></returns>
+		/// <exception cref="PublicException"></exception>
+		public async Task<LoginResult> AuthenticatePassword(Context context, UserLogin loginDetails)
+        {
+			var failedLoginTimeAndAttemptsField = _users.GetChangeField("FailedLoginTimeUtc").And("LoginAttempts");
+			var loginAttemptsField = _users.GetChangeField("LoginAttempts");
+
+			// Email/ Password combination here.
+
+			if (string.IsNullOrEmpty(loginDetails.Password))
+			{
+				// This request probably isn't meant for us.
+				return null;
+			}
+
+			// First, get the user to authenticate:
+			User user = null;
+
+			if (OnSelectUser != null)
+			{
+				user = await OnSelectUser(context, loginDetails);
+			}
+			else
+			{
+				var emailOrUser = loginDetails.EmailOrUsername;
+				if (emailOrUser != null)
+				{
+					emailOrUser = emailOrUser.Trim();
+				}
+
+				user = await _users.Get(context, emailOrUser);
+			}
+
+			if (user == null)
+			{
+				return null;
+			}
+
+			var hashToCheck = user.PasswordHash;
+
+			if (string.IsNullOrEmpty(hashToCheck))
+			{
+				// Disabled for this account
+				return null;
+			}
+
+			// Lockout check.
+			var now = DateTime.UtcNow;
+
+			if (user.FailedLoginTimeUtc.HasValue && user.LoginAttempts >= 5 && (now - user.FailedLoginTimeUtc.Value).TotalMinutes < 20)
+			{
+				// Locked
+				throw new PublicException("Locked account - try again in 20 minutes", "locked_account");
+			}
+
+			if (!PasswordStorage.VerifyPassword(loginDetails.Password, hashToCheck))
+			{
+				// Update login attempts:
+				if (!user.FailedLoginTimeUtc.HasValue || (now - user.FailedLoginTimeUtc.Value).TotalMinutes >= 20)
+				{
+					await _users.Update(context, user, (Context ctx, User usr) => {
+						user.FailedLoginTimeUtc = DateTime.UtcNow;
+						user.LoginAttempts = 1;
+						user.MarkChanged(failedLoginTimeAndAttemptsField);
+					}, DataOptions.IgnorePermissions);
+				}
+				else
+				{
+					await _users.Update(context, user, (Context ctx, User usr) => {
+						user.LoginAttempts++;
+						user.MarkChanged(loginAttemptsField);
+					}, DataOptions.IgnorePermissions);
+				}
+
+				// Nope!
+				return null;
+			}
+
+			// Successful login - return the user:
+			return new LoginResult()
+			{
+				User = user
+			};
 		}
 		
 		/// <summary>
