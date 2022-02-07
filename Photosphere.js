@@ -356,6 +356,8 @@ export default class Photosphere extends React.Component {
 			}
 			var geometry = new THREE.SphereGeometry( 5, 32, 32 );
 			this.material = material = new THREE.MeshBasicMaterial( {map, side: THREE.DoubleSide} );
+			material.depthTest = false;
+			material.depthWrite = false;
 			var sphere = new THREE.Mesh( geometry, material );
 			material._url = imgUrlLoad;
 			this.sphere = sphere;
