@@ -23,122 +23,128 @@ namespace Api.Pages
 		/// </summary>
 		public PageService() : base(Events.Page)
         {
-			// If you don't have a homepage or admin area, this'll create them:
-			Install(
-				new Page()
-				{
-					Url = "/",
-					Title = "Homepage",
-					BodyJson = @"{
-						""content"": ""Welcome to your new SocialStack instance. This text comes from the pages table in your database in a format called canvas JSON - you can read more about this format in the documentation.""
-					}"
-				},
-				new Page()
-				{
-					Url = "/en-admin",
-					Title = "Welcome to the admin area",
-					BodyJson = @"{
-						""module"": ""Admin/Layouts/Dashboard""
-					}"
-				},
-				new Page()
-				{
-					Url = "/en-admin/login",
-					Title = "Login to the admin area",
-					BodyJson = @"{
-						""module"": ""Admin/Layouts/Landing"",
-						""content"": [
-							{
-								""module"": ""Admin/Tile"",
-								""content"": [
-									{
-										""module"":""Admin/LoginForm""
-									}
-								]
-							}
-						]
-					}"
-				},
-				new Page()
-				{
-					Url = "/en-admin/stdout",
-					Title = "Server log monitoring",
-					BodyJson = @"{
-						""module"": ""Admin/Layouts/Default"",
-						""content"": [
-							{
-								""module"": ""Admin/Dashboards/Stdout""
-							}
-						]
-					}"
-				},
-				new Page()
-				{
-					Url = "/en-admin/stress-test",
-					Title = "Stress testing the API",
-					BodyJson = @"{
-						""module"": ""Admin/Layouts/Default"",
-						""content"": [
-							{
-								""module"": ""Admin/Dashboards/StressTest""
-							}
-						]
-					}"
-				},
-				new Page()
-				{
-					Url = "/en-admin/database",
-					Title = "Developer Database Access",
-					BodyJson = @"{
-						""module"": ""Admin/Layouts/Default"",
-						""content"": [
-							{
-								""module"": ""Admin/Dashboards/Database""
-							}
-						]
-					}"
-				},
-				new Page()
-				{
-					Url = "/en-admin/register",
-					Title = "Create a new account",
-					BodyJson = @"{
-						""module"": ""Admin/Layouts/Landing"",
-						""content"": [
-							{
-								""module"": ""Admin/Tile"",
-								""content"": [
-									{
-										""module"":""Admin/RegisterForm""
-									}
-								]
-							}
-						]
-					}"
-				},
-				new Page()
-				{
-					Url = "/en-admin/permissions",
-					Title = "Permissions",
-					BodyJson = @"{
-						""module"": ""Admin/Layouts/Default"",
-						""content"": [
-							{
-								""module"": ""Admin/PermissionGrid""
-							}
-						]
-					}"
-				},
-				new Page()
-				{
-					Url = "/404",
-					Title = "Page not found",
-					BodyJson = @"{
-						""content"": ""The page you were looking for wasn't found here.""
-					}"
-				}
-			);
-
+			
+			var config = GetConfig<PageServiceConfig>();
+			
+			if(config.InstallDefaultPages)
+			{
+				// If you don't have a homepage or admin area, this'll create them:
+				Install(
+					new Page()
+					{
+						Url = "/",
+						Title = "Homepage",
+						BodyJson = @"{
+							""content"": ""Welcome to your new SocialStack instance. This text comes from the pages table in your database in a format called canvas JSON - you can read more about this format in the documentation.""
+						}"
+					},
+					new Page()
+					{
+						Url = "/en-admin",
+						Title = "Welcome to the admin area",
+						BodyJson = @"{
+							""module"": ""Admin/Layouts/Dashboard""
+						}"
+					},
+					new Page()
+					{
+						Url = "/en-admin/login",
+						Title = "Login to the admin area",
+						BodyJson = @"{
+							""module"": ""Admin/Layouts/Landing"",
+							""content"": [
+								{
+									""module"": ""Admin/Tile"",
+									""content"": [
+										{
+											""module"":""Admin/LoginForm""
+										}
+									]
+								}
+							]
+						}"
+					},
+					new Page()
+					{
+						Url = "/en-admin/stdout",
+						Title = "Server log monitoring",
+						BodyJson = @"{
+							""module"": ""Admin/Layouts/Default"",
+							""content"": [
+								{
+									""module"": ""Admin/Dashboards/Stdout""
+								}
+							]
+						}"
+					},
+					new Page()
+					{
+						Url = "/en-admin/stress-test",
+						Title = "Stress testing the API",
+						BodyJson = @"{
+							""module"": ""Admin/Layouts/Default"",
+							""content"": [
+								{
+									""module"": ""Admin/Dashboards/StressTest""
+								}
+							]
+						}"
+					},
+					new Page()
+					{
+						Url = "/en-admin/database",
+						Title = "Developer Database Access",
+						BodyJson = @"{
+							""module"": ""Admin/Layouts/Default"",
+							""content"": [
+								{
+									""module"": ""Admin/Dashboards/Database""
+								}
+							]
+						}"
+					},
+					new Page()
+					{
+						Url = "/en-admin/register",
+						Title = "Create a new account",
+						BodyJson = @"{
+							""module"": ""Admin/Layouts/Landing"",
+							""content"": [
+								{
+									""module"": ""Admin/Tile"",
+									""content"": [
+										{
+											""module"":""Admin/RegisterForm""
+										}
+									]
+								}
+							]
+						}"
+					},
+					new Page()
+					{
+						Url = "/en-admin/permissions",
+						Title = "Permissions",
+						BodyJson = @"{
+							""module"": ""Admin/Layouts/Default"",
+							""content"": [
+								{
+									""module"": ""Admin/PermissionGrid""
+								}
+							]
+						}"
+					},
+					new Page()
+					{
+						Url = "/404",
+						Title = "Page not found",
+						BodyJson = @"{
+							""content"": ""The page you were looking for wasn't found here.""
+						}"
+					}
+				);
+			}
+			
 			// Install the admin pages.
 			InstallAdminPages("Pages", "fa:fa-paragraph", new string[] { "id", "url", "title" });
 
