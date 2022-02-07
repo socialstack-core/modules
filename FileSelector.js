@@ -163,7 +163,7 @@ export default class FileSelector extends React.Component {
 				<>
 				{/*
 				<div>
-					<span className="btn btn-secondary" onClick={() => this.showModal()}>Select from uploads</span> or <Uploader isPrivate={this.props.isPrivate} onUploaded={
+					<span className="btn btn-primary" onClick={() => this.showModal()}>Select from uploads</span> or <Uploader isPrivate={this.props.isPrivate} onUploaded={
 						file => this.updateValue(file)
 					}/>
 				</div>
@@ -226,7 +226,7 @@ export default class FileSelector extends React.Component {
 					}
 					{hasRef ? this.showRef(currentRef) : 'None selected'}
 					&nbsp;
-					<div className="btn btn-secondary change-file-btn" onClick={() => this.props.iconOnly ? this.setState({iconModalOpen: true}) : this.setState({editing: true})}>Change</div>
+					<div className="btn btn-primary change-file-btn" onClick={() => this.props.iconOnly ? this.setState({iconModalOpen: true}) : this.setState({editing: true})}>Change</div>
 					<div className="btn btn-danger delete-file-btn" onClick={() => this.updateValue(null)}>Remove</div>
 				</div>
 			)}
