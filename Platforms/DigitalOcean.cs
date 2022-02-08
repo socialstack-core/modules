@@ -34,7 +34,11 @@ namespace Api.CloudHosts
         /// If true, add content-disposition header as inline to pdf files
         /// </summary>
         public bool DisplayPdfInline { get; set;}
-
+		
+		/// <summary>
+		/// True if should use origin URLs
+		/// </summary>
+		public bool DisableCDN {get; set;}
     }
     
     /// <summary>
@@ -74,8 +78,13 @@ namespace Api.CloudHosts
 
                         // Restore https:
                         _spaceRegionUrl = "https://" + nameAndZone[1];
-                        _cdnUrl = "https://" + partUrl.Replace(".digitaloceanspaces.com", ".cdn.digitaloceanspaces.com");
-
+						
+						if(_config.DisableCDN){
+							_cdnUrl = "https://" + partUrl;
+						}else{
+							_cdnUrl = "https://" + partUrl.Replace(".digitaloceanspaces.com", ".cdn.digitaloceanspaces.com");
+						}
+						
                         if (_cdnUrl.EndsWith('/'))
                         {
                             // Remove the last slash:
