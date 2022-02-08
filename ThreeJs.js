@@ -251,10 +251,13 @@ const MultiRenderer = function ( parameters ) {
   // elements are stacked back-to-front
   for ( var i = 0; i < rendererClasses.length; i++ ) {
     var renderer = new rendererClasses[i]( rendererParameters[i] )
-    renderer.domElement.style.position = 'absolute'
-    renderer.domElement.style.top = '0px'
-    renderer.domElement.style.left = '0px'
-    this.domElement.appendChild( renderer.domElement )
+	
+	if(this.domElement){
+		renderer.domElement.style.position = 'absolute'
+		renderer.domElement.style.top = '0px'
+		renderer.domElement.style.left = '0px'
+		this.domElement.appendChild( renderer.domElement )
+	}
     this.renderers.push( renderer )
   }
 
@@ -263,19 +266,22 @@ const MultiRenderer = function ( parameters ) {
 MultiRenderer.prototype.setSize = function( w, h ) {
 this.w = w;
 this.h = h;
+if(this.domElement){
   this.domElement.style.width = w + 'px'
   this.domElement.style.height = h + 'px'
-
+}
   for ( var i = 0; i < this.renderers.length; i++ ) {
     var renderer = this.renderers[i]
     var el = renderer.domElement
-
+	
     if ( !this._renderSizeSet || ( el && el.tagName !== 'CANVAS' ) ) {
       renderer.setSize( w, h )
     }
-
-    el.style.width = w + 'px'
-    el.style.height = h + 'px'
+	
+	if(el && this.domElement){
+		el.style.width = w + 'px'
+		el.style.height = h + 'px'
+	}
   }
 
 }
