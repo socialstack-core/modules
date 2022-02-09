@@ -458,7 +458,6 @@ export default class Input extends React.Component {
                     {...omit(this.props, ['id', 'className', 'onChange', 'onBlur', 'type', 'inline', 'value', 'defaultValue', 'help', 'helpIcon', 'fieldName'])}
                     checked={this.props.value}
 					defaultValue={this.props.defaultValue}
-                    disabled={false}
                     isSwitch={false}
                 />
             );
