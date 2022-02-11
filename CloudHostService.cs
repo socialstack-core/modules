@@ -133,6 +133,11 @@ namespace Api.CloudHosts
                 newPlatformSet.Add(new AwsHost(this, _config.AWS));
             }
 
+            if (_config.Azure != null)
+            {
+                newPlatformSet.Add(new AzureHost(this, _config.Azure));
+            }
+
             _platforms = newPlatformSet;
 
             CloudHostPlatform uploadHost = null;
