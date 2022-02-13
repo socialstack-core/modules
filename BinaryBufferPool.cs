@@ -20,6 +20,23 @@ namespace Api.SocketServerLibrary
 		public static BufferedBytes First;
 		
 		/// <summary>
+		/// Finds the current pool size.
+		/// </summary>
+		/// <returns></returns>
+		public static int PoolSize()
+		{
+			var count = 0;
+			var buff = First;
+			while (buff != null)
+			{
+				count++;
+				buff = buff.After;
+			}
+
+			return count;
+		}
+
+		/// <summary>
 		/// Get a buffer from the pool, or instances once.
 		/// </summary>
 		public static BufferedBytes Get(){

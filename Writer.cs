@@ -270,6 +270,11 @@ namespace Api.SocketServerLibrary
 			Fill=0;
 		}
 
+		/// <summary>
+		/// The current Fill value.
+		/// </summary>
+		public int CurrentFill => Fill;
+
 		/// <summary>Reset by clearing the internal buffers and calls Start(template) such that the writer is ready to be used again.</summary>
 		public void Reset(byte[] template)
 		{
@@ -310,14 +315,17 @@ namespace Api.SocketServerLibrary
 					return;
 				}
 			}
-			
+
 			// Release all buffers back to the pool and pool the writer itself too.
-			
+
 			// Release all the buffers:
-			lock (BinaryBufferPool.PoolLock)
+			if (FirstBuffer != null)
 			{
-				LastBuffer.After = BinaryBufferPool.First;
-				BinaryBufferPool.First = FirstBuffer;
+				lock (BinaryBufferPool.PoolLock)
+				{
+					LastBuffer.After = BinaryBufferPool.First;
+					BinaryBufferPool.First = FirstBuffer;
+				}
 			}
 
 			LastBuffer = null;
@@ -407,6 +415,23 @@ namespace Api.SocketServerLibrary
 
 				buffer = buffer.After;
 			}
+		}
+
+		/// <summary>
+		/// Sets up the internal buffers with the given info
+		/// </summary>
+		/// <param name="blockCount"></param>
+		/// <param name="totalLength"></param>
+		/// <param name="first"></param>
+		/// <param name="last"></param>
+		public void Start(int blockCount, int totalLength, BufferedBytes first, BufferedBytes last)
+		{
+			BlockCount = blockCount;
+			FirstBuffer = first;
+			LastBuffer = last;
+			Fill = last.Length;
+			BaseLength = totalLength - Fill;
+			_LastBufferBytes = last.Bytes;
 		}
 
 		/// <summary>
@@ -1127,6 +1152,63 @@ namespace Api.SocketServerLibrary
 			}
 		}
 
+		/// <summary>Write an invertible compressed value to the message.</summary>
+		public void WriteInvertibleCompressed(ulong value)
+		{
+
+			if (Fill > (BinaryBufferPool.BufferSize - 10))
+			{
+				NextBuffer();
+			}
+
+			if (value < 251)
+			{
+				// Single byte:
+				_LastBufferBytes[Fill++] = (byte)value;
+			}
+			else if (value <= ushort.MaxValue)
+			{
+				// Status 251 for a 2 byte num:
+				_LastBufferBytes[Fill++] = (byte)251;
+				_LastBufferBytes[Fill++] = (byte)value;
+				_LastBufferBytes[Fill++] = (byte)(value >> 8);
+				_LastBufferBytes[Fill++] = (byte)251;
+			}
+			else if (value < 16777216L)
+			{
+				// Status 252 for a 3 byte num:
+				_LastBufferBytes[Fill++] = (byte)252;
+				_LastBufferBytes[Fill++] = (byte)value;
+				_LastBufferBytes[Fill++] = (byte)(value >> 8);
+				_LastBufferBytes[Fill++] = (byte)(value >> 16);
+				_LastBufferBytes[Fill++] = (byte)252;
+			}
+			else if (value <= uint.MaxValue)
+			{
+				// Status 253 for a 4 byte num:
+				_LastBufferBytes[Fill++] = (byte)253;
+				_LastBufferBytes[Fill++] = (byte)value;
+				_LastBufferBytes[Fill++] = (byte)(value >> 8);
+				_LastBufferBytes[Fill++] = (byte)(value >> 16);
+				_LastBufferBytes[Fill++] = (byte)(value >> 24);
+				_LastBufferBytes[Fill++] = (byte)253;
+			}
+			else
+			{
+				// Status 254 for an 8 byte num:
+				_LastBufferBytes[Fill++] = (byte)254;
+				_LastBufferBytes[Fill++] = (byte)value;
+				_LastBufferBytes[Fill++] = (byte)(value >> 8);
+				_LastBufferBytes[Fill++] = (byte)(value >> 16);
+				_LastBufferBytes[Fill++] = (byte)(value >> 24);
+				_LastBufferBytes[Fill++] = (byte)(value >> 32);
+				_LastBufferBytes[Fill++] = (byte)(value >> 40);
+				_LastBufferBytes[Fill++] = (byte)(value >> 48);
+				_LastBufferBytes[Fill++] = (byte)(value >> 56);
+				_LastBufferBytes[Fill++] = (byte)254;
+			}
+		}
+
 		/// <summary>
 		/// Use this to read a compressed number in the first block of a writer.
 		/// </summary>
@@ -1303,6 +1385,63 @@ namespace Api.SocketServerLibrary
 
 			// Next, write the chars:
 			WriteCharStream(charStream);
+		}
+
+		/// <summary>
+		/// Non-allocating string write, encoded in utf8, which has the length at both ends when necessary.
+		/// </summary>
+		/// <param name="str"></param>
+		public void WriteInvertibleUTF8(string str)
+		{
+			if (str == null)
+			{
+				WriteInvertibleCompressed(0);
+				return;
+			}
+
+			// Grab a reference to the char span:
+			var charStream = str.AsSpan();
+			var max = charStream.Length;
+
+			// First, how long will it be? This greatly helps the receive end.
+			ulong length = 0;
+
+			for (var i = 0; i < max; i++)
+			{
+				var current = charStream[i];
+
+				if (char.IsHighSurrogate(current))
+				{
+					i++;
+
+					if (i != max)
+					{
+						var low = charStream[i];
+
+						if (char.IsLowSurrogate(low))
+						{
+							// Remap the codepoint.
+							length += (ulong)Utf8.RuneLen((uint)char.ConvertToUtf32(current, low));
+						}
+					}
+				}
+				else
+				{
+					length += (ulong)Utf8.RuneLen((uint)current);
+				}
+			}
+
+			// Write the length (offset by 1 for null):
+			WriteInvertibleCompressed(length + 1);
+
+			// Next, write the chars:
+			WriteCharStream(charStream);
+
+			// Write the length again (offset by 1 for null), unless it was 0:
+			if (length != 0)
+			{
+				WriteInvertibleCompressed(length + 1);
+			}
 		}
 
 		/// <summary>
