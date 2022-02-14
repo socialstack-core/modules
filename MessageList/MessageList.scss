@@ -53,7 +53,7 @@
 	}
 }
 
-html.device-mobile {
+@include mq_mobile {
 
 	.livesupport{
 		.message-list {
