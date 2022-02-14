@@ -110,7 +110,7 @@
 
 }
 
-html.device-mobile {
+@include mq_mobile {
 
 	.hidden-mobile {
         display: none !important;
@@ -154,7 +154,7 @@ html.device-mobile {
 
 }
 
-html.device-ipad {
+@include mq_ipad {
 
     .hidden-ipad {
         display: none !important;
@@ -190,7 +190,7 @@ html.device-ipad {
 
 }
 
-html.device-desktop {
+@include mq_desktop {
 
     .hidden-desktop {
         display: none !important;
