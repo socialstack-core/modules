@@ -173,7 +173,7 @@
 	}
 }
 
-html.device-mobile {
+@include mq_mobile {
 
 	.videoChat {
 

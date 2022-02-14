@@ -135,7 +135,7 @@
 	}
 }
 
-html.device-mobile {
+@include mq_mobile {
 
 	@media only screen and (orientation: portrait) {
 
