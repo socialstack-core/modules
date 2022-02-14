@@ -9,8 +9,16 @@ export default class ThreeDObject extends React.Component {
 		return RenderStrategy.getObjTransformDetails();
 	}
 
+	static isClickEnabled() {
+		return RenderStrategy.isClickEnabled();
+	}
+
 	static isTransformControlsEnabled() {
 		return RenderStrategy.isTransformControlsEnabled();
+	}
+
+	static setClickEnabled(enabled) {
+		RenderStrategy.setClickEnabled(enabled);
 	}
 
 	static setTransformControlsEnabled(enabled) {
@@ -19,9 +27,7 @@ export default class ThreeDObject extends React.Component {
 
 	constructor(props){
 		super(props);
-		this.state = {
-			renderStratChanged: false,
-		};
+		this.state = {};
 
 		this.renderMode = props.renderMode ?? 'auto';
 
@@ -55,11 +61,6 @@ export default class ThreeDObject extends React.Component {
 	}
 
 	componentDidUpdate() {
-		if (this.state.renderStratChanged) {
-			this.setState({renderStratChanged: false});
-			this.renderStrat.onSceneAdd();
-			this.setup(this.props);
-		}
 	}
 
 	refChange(ref){
