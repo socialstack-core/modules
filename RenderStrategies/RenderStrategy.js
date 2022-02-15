@@ -2,6 +2,7 @@ import ObjectTransformer from "../ObjectTransformer";
 
 export default class RenderStrategy
 {
+    static clickEnabled = false;
     static isTransforming = false;
     static lastTransformedObj = null;
     static objTransform = new ObjectTransformer();
@@ -14,8 +15,16 @@ export default class RenderStrategy
         return RenderStrategy.lastTransformedObj;
     }
 
+    static isClickEnabled() {
+        return RenderStrategy.clickEnabled;
+    }
+
     static isTransformControlsEnabled() {
         return RenderStrategy.objTransform.enabled;
+    }
+
+    static setClickEnabled(enabled) {
+        RenderStrategy.clickEnabled = enabled;
     }
 
     static setTransformControlsEnabled(enabled) {
@@ -53,6 +62,12 @@ export default class RenderStrategy
     }
 
     processMouseUp(e) {
+        if (RenderStrategy.isClickEnabled() && this.mouseDrag) {
+			if (this.threeDObject.props.onClick) {
+				this.threeDObject.props.onClick();
+			}
+		}
+
         this.mouseDrag = false;
         RenderStrategy.isTransforming = false;
     }
@@ -79,29 +94,6 @@ export default class RenderStrategy
 
     render(props){
 		this.threeDObject.transform(props);
-
-		/* if (this.renderMode === 'auto') {
-			var hasCurve = (this.props.curve && this.props.curve != 0);
-			var isCurvedModel = (this.renderStrat instanceof CurvedModel);
-			var isCss3D = (this.renderStrat instanceof Css3D);
-
-			if ((hasCurve && !isCurvedModel) || (!hasCurve && !isCss3D)) {
-				var targetRenderStrat = (isCurvedModel) ? Css3D : CurvedModel;
-
-				var prevRenderStrat = this.renderStrat.constructor.name;
-				console.log('changing to', targetRenderStrat.name, '( from', prevRenderStrat, ')')
-				this.renderStrat.removeFromScene();
-				this.renderStrat = null;
-				this.renderStrat = new targetRenderStrat(this);
-
-				// Doesn't work
-				if (!this.state.renderStratChanged) {
-					this.setState({renderStratChanged: true});
-					var newRef = React.createRef();
-					this.refChange(newRef);
-				}
-			}
-		} */
 
 		var { children, className } = props;
 		var El = props.element || "div";

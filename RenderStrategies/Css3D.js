@@ -5,14 +5,12 @@ export default class Css3D extends RenderStrategy
 {
     constructor(threeDObject) {
         super(threeDObject);
-        this.ref = null;
 		this.loaded = false;
     }
 
     setup(props, ref) {
-        //var ref = this.ref;
 		var scene = global.scene;
-		if(/* !ref || */ !scene){
+		if(!scene){
 			return;
 		}
 		

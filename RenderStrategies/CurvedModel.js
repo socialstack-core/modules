@@ -104,16 +104,19 @@ export default class CurvedModel extends RenderStrategy
 	}
 
     processMouseDown(e) {
-		if (RenderStrategy.isTransformControlsEnabled() && !RenderStrategy.isTransforming) {
+		// Only raycast if object clicking or transforming is enabled
+		if (RenderStrategy.isClickEnabled() || RenderStrategy.isTransformControlsEnabled()) {
 			this.mouseDrag = this.raycastModel(this.mousePosNormal, this.obj);
+		} else {
+			this.mouseDrag = false;
+		}
 
-			if (this.mouseDrag) {
-				RenderStrategy.isTransforming = true;
-				RenderStrategy.lastTransformedObj = this.threeDObject;
+		if (this.mouseDrag && RenderStrategy.isTransformControlsEnabled() && !RenderStrategy.isTransforming) {
+			RenderStrategy.isTransforming = true;
+			RenderStrategy.lastTransformedObj = this.threeDObject;
 
-				if (this.threeDObject.props.onTransform) {
-					this.threeDObject.props.onTransform();
-				}
+			if (this.threeDObject.props.onTransform) {
+				this.threeDObject.props.onTransform();
 			}
 		}
 	}
@@ -122,10 +125,16 @@ export default class CurvedModel extends RenderStrategy
 		var mouseMovement = {x: -e.movementX, y: -e.movementY}; // Invert for model rotation
 		var mousePosition = {x: e.clientX, y: e.clientY};
 
-		this.mousePosNormal.x =  (mousePosition.x   / window.innerWidth)  * 2 - 1;
-		this.mousePosNormal.y = -((mousePosition.y + window.pageYOffset) / window.innerHeight) * 2 + 2;
+		var parentRect = this.parent?.getBoundingClientRect();
+		var parentTop    = parentRect?.top    ?? 0;
+		var parentLeft   = parentRect?.left   ?? 0;
+		var parentWidth  = parentRect?.width  ?? 0;
+		var parentHeight = parentRect?.height ?? 0;
 
-        if (this.mouseDrag) {
+		this.mousePosNormal.x =  (((mousePosition.x - parentLeft) / parentWidth) * 2) - 1;
+		this.mousePosNormal.y = -(((mousePosition.y - parentTop) / parentHeight) * 2) + 1;
+
+        if (this.mouseDrag && RenderStrategy.isTransformControlsEnabled()) {
 			RenderStrategy.transform3DObject({x: e.movementX, y: -e.movementY}, this.threeDObject, this.transformScaleOverrides);
         }
     }
@@ -223,6 +232,10 @@ export default class CurvedModel extends RenderStrategy
 
 		if(this.obj){
 			this.threeDObject.transform(props);
+		}
+
+		if (this.threeDObject.ref && !this.parent) {
+			this.parent = this.threeDObject.ref.parentNode;
 		}
 
 		var El = props.element || "div";
