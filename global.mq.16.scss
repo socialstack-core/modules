@@ -349,6 +349,36 @@ $ss_iPad11: map-get($ss_tablet, iPad11);
 $ss_iPad12_9: map-get($ss_tablet, iPad12_9);
 
 // iPad MQ (covers all variants)
+@mixin mq_ipad {
+  $widthMini: map-get($ss_iPadMini, width);
+  $heightMini: map-get($ss_iPadMini, height);
+  $width10_2: map-get($ss_iPad10_2, width);
+  $height10_2: map-get($ss_iPad10_2, height);
+  $width10_5: map-get($ss_iPad10_5, width);
+  $height10_5: map-get($ss_iPad10_5, height);
+  $width11: map-get($ss_iPad11, width);
+  $height11: map-get($ss_iPad11, height);
+  $width12_9: map-get($ss_iPad12_9, width);
+  $height12_9: map-get($ss_iPad12_9, height);
+
+  @media (device-width: #{$heightMini}) and (device-height: #{$widthMini}) and (orientation: portrait),
+         (device-width: #{$widthMini}) and (device-height: #{$heightMini}) and (orientation: landscape),
+
+         (device-width: #{$height10_2}) and (device-height: #{$width10_2}) and (orientation: portrait),
+         (device-width: #{$width10_2}) and (device-height: #{$height10_2}) and (orientation: landscape),
+    
+         (device-width: #{$height10_5}) and (device-height: #{$width10_5}) and (orientation: portrait),
+         (device-width: #{$width10_5}) and (device-height: #{$height10_5}) and (orientation: landscape),
+    
+         (device-width: #{$height11}) and (device-height: #{$width11}) and (orientation: portrait),
+         (device-width: #{$width11}) and (device-height: #{$height11}) and (orientation: landscape),
+
+         (device-width: #{$height12_9}) and (device-height: #{$width12_9}) and (orientation: portrait),
+         (device-width: #{$width12_9}) and (device-height: #{$height12_9}) and (orientation: landscape) {
+    @content;
+  }
+}
+
 @mixin mq_iPad {
   $widthMini: map-get($ss_iPadMini, width);
   $heightMini: map-get($ss_iPadMini, height);
@@ -592,6 +622,11 @@ $ss_iPad12_9: map-get($ss_tablet, iPad12_9);
 }
 
 // iOS only
+@mixin mq_ios {
+  @supports (-webkit-touch-callout: none) {
+    @content;
+  }
+}
 @mixin mq_iOS {
   @supports (-webkit-touch-callout: none) {
     @content;
