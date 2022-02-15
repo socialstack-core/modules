@@ -20,14 +20,15 @@ export default class Css3D extends RenderStrategy
 			scene._css = {nodes: []};
 		}
 		
-		/* if(this.obj){
+		if(this.obj){
 			if(this.obj.element == ref){
-				this.transform(props);
+				// this.transform(props);
 				return;
 			}
 			
+			var scene = global.scene;
 			scene._css.nodes = scene._css.nodes.filter(a => a!=this.obj);
-		} */
+		}
 		
 		this.obj = new THREE.CSS3DObject(ref);
 		scene._css.nodes.push(this.obj);
@@ -38,7 +39,14 @@ export default class Css3D extends RenderStrategy
 			props.onLoad && props.onLoad();
 		}
     }
-
+	
+	removeFromScene(){
+		if(this.obj){
+			var scene = global.scene;
+			scene._css.nodes = scene._css.nodes.filter(a => a!=this.obj);
+		}
+	}
+	
 	processMouseDown(e) {
         // Not needed - Mouse down event is added to element in decorateElement
     }
