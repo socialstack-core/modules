@@ -616,9 +616,13 @@ $ss_iPad12_9: map-get($ss_tablet, iPad12_9);
 
 // safari only
 @mixin mq_safari {
-  @media not all and (min-resolution: 0.001dpcm) {
-    @content;
-  }
+    
+    @media not all and (min-resolution:.001dpcm) {
+        
+        @supports (-webkit-appearance:none) {
+            @content;
+        }
+    }
 }
 
 // iOS only
