@@ -73,8 +73,6 @@ const CSS3DRenderer = function (domElement) {
 	
 	this.domElement = domElement;
 	
-	var isIE = /Trident/i.test( navigator.userAgent );
-
 	this.getSize = function () {
 
 		return {
@@ -159,27 +157,7 @@ const CSS3DRenderer = function (domElement) {
 		element.style.transform = style;
 		element.style.WebkitTransformStyle = 'preserve-3d';
 		element.style.transformStyle = 'preserve-3d';
-		
-		if ( isIE ) {
-			object._distanceToCameraSquared = getDistanceToSquared( camera, object );
-		}
 	}
-
-	var getDistanceToSquared = function () {
-
-		var a = new Vector3();
-		var b = new Vector3();
-
-		return function ( object1, object2 ) {
-
-			a.setFromMatrixPosition( object1.matrixWorld );
-			b.setFromMatrixPosition( object2.matrixWorld );
-
-			return a.distanceToSquared( b );
-
-		};
-
-	}();
 	
 	this.render = function ( scene, camera ) {
 		
@@ -215,11 +193,6 @@ const CSS3DRenderer = function (domElement) {
 		for(var i=0;i<css.nodes.length;i++){
 			var node = css.nodes[i];
 			renderObject( node, scene, camera, cameraCSSMatrix );
-			
-			if(isIE){
-				var distance = node._distanceToCameraSquared;
-				node.element.style.zIndex = 1000 - distance;
-			}
 		}
 
 	};
