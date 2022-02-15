@@ -37,7 +37,7 @@
 
 }
 
-html.device-mobile {
+@include mq_mobile {
 
     [data-clamp],
     [data-clamp-xs],
@@ -52,7 +52,7 @@ html.device-mobile {
     }
 }
 
-html.device-ipad {
+@include mq_ipad {
 
     [data-clamp],
     [data-clamp-xs],
@@ -67,7 +67,7 @@ html.device-ipad {
     }
 }
 
-html.device-desktop {
+@include mq_desktop {
 
     [data-clamp],
     [data-clamp-xs],
