@@ -60,7 +60,7 @@
 	}
 }
 
-html.device-mobile {
+@include mq_mobile {
 
 	.live-support-admin {
 

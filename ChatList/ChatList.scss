@@ -130,7 +130,7 @@
 	
 }
 
-html.device-mobile {
+@include mq_mobile {
 
 	.live-support-chats {
 		margin-left: -15px;
