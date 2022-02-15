@@ -597,3 +597,10 @@ $ss_iPad12_9: map-get($ss_tablet, iPad12_9);
     @content;
   }
 }
+
+// touch only
+@mixin mq_touch {
+  @media (pointer: coarse) {
+    @content;
+  }
+}
