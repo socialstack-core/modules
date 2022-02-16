@@ -107,6 +107,7 @@ export default class CurvedModel extends RenderStrategy
 		// Only raycast if object clicking or transforming is enabled
 		if (RenderStrategy.isClickEnabled() || RenderStrategy.isTransformControlsEnabled()) {
 			this.mouseDrag = this.raycastModel(this.mousePosNormal, this.obj);
+			this.mouseTarget = e.target;
 		} else {
 			this.mouseDrag = false;
 		}

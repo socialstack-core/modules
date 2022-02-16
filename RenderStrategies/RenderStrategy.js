@@ -37,6 +37,7 @@ export default class RenderStrategy
 
     constructor(threeDObject) {
         this.mouseDrag = false;
+        this.mouseTarget = null;
         this.threeDObject = threeDObject;
         this.obj = null;
 
@@ -64,11 +65,14 @@ export default class RenderStrategy
     processMouseUp(e) {
         if (RenderStrategy.isClickEnabled() && this.mouseDrag) {
 			if (this.threeDObject.props.onClick) {
-				this.threeDObject.props.onClick();
+                if (this.mouseTarget && this.mouseTarget.nodeName !== "BUTTON" && this.mouseTarget.nodeName !== "I") {
+                    this.threeDObject.props.onClick(e);
+                }
 			}
 		}
 
         this.mouseDrag = false;
+        this.mouseTarget = null;
         RenderStrategy.isTransforming = false;
     }
 
