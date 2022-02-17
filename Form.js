@@ -113,7 +113,8 @@ export default class Form extends React.Component {
 		}
 		
 		apiUrl += 'v1/';
-		
+		action = (action.indexOf('http') === 0 || action[0] == '/') ? action : apiUrl + action;
+	
 		return (
 			<form
 				onSubmit={this.onSubmit}
@@ -124,7 +125,7 @@ export default class Form extends React.Component {
 					}
 					this.props.formRef && this.props.formRef(f);
 				}}
-				action={apiUrl + action}
+				action={action}
 				method={this.props.method || "post"}
 				{...(omit(this.props, ['action', 'method', 'onSuccess', 'onFailed', 'onValues', 'children', 'locale', 'requestOpts']))}
 			>
