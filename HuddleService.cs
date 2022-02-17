@@ -98,7 +98,16 @@ namespace Api.Huddles
 					return null;
                 }
 
-				// Let's generate a unique slug for this huddle.
+				// Let's generate a unique slug for this huddle, if it didn't have one already (admin only)
+				if (ctx.Role != null && ctx.Role.CanViewAdmin)
+				{
+					if (!string.IsNullOrEmpty(huddle.Slug))
+					{
+						// Halt
+						return huddle;					
+					}
+				}
+
 				huddle.Slug = await GenerateUniqueHuddleSlug(ctx);
 
 				return huddle;
