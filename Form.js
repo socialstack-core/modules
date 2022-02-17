@@ -126,7 +126,7 @@ export default class Form extends React.Component {
 				}}
 				action={apiUrl + action}
 				method={this.props.method || "post"}
-				{...(omit(this.props, ['action', 'method', 'onSuccess', 'onFailed', 'onValues', 'children', 'locale']))}
+				{...(omit(this.props, ['action', 'method', 'onSuccess', 'onFailed', 'onValues', 'children', 'locale', 'requestOpts']))}
 			>
 				{this.props.children}
 				{showFormResponse && (
