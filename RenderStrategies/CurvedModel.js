@@ -94,7 +94,9 @@ export default class CurvedModel extends RenderStrategy
 			material = new THREE.MeshBasicMaterial( { map: texture } );
 		}
 
-		material.side = THREE.DoubleSide;
+		if (!props.hideBackface) {
+			material.side = THREE.DoubleSide;
+		}
 
 		// create the mesh by combining the geometry and material
 		const mesh = new THREE.Mesh( geometry, material );
