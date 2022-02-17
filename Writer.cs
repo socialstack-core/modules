@@ -53,7 +53,7 @@ namespace Api.SocketServerLibrary
 				return _controlMap;
 			}
 
-			_controlMap = new byte[160][];
+			var map = new byte[160][];
 
 			for (uint i = 0; i < 160; i++)
 			{
@@ -101,11 +101,12 @@ namespace Api.SocketServerLibrary
 						escapedChar[5] = (byte)n;
 					}
 
-					_controlMap[i] = escapedChar;
+					map[i] = escapedChar;
 				}
 			}
 
-			return _controlMap;
+			_controlMap = map;
+			return map;
 		}
 
 		/// <summary>
@@ -913,7 +914,11 @@ namespace Api.SocketServerLibrary
 				// If it's a control character or any of the escapee's..
 				if (Unicode.IsControl(rune))
 				{
-					WriteNoLength(EscapedControl((byte)rune));
+					var ctrl = EscapedControl((byte)rune);
+					if (ctrl != null)
+					{
+						WriteNoLength(ctrl);
+					}
 					continue;
 				}
 				else if (rune == (uint)'"' || rune == (uint)'\\')
