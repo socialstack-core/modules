@@ -39,7 +39,9 @@ namespace Api.Invites
 		public InviteService(UserService users, EmailTemplateService emails) : base(Events.Invite)
 		{
 			_users = users;
-
+			
+			var config = GetConfig<InviteServiceConfig>();
+			
 			Events.Invite.BeforeCreate.AddEventListener(async (Context context, Invite invite) => {
 				
 				if(invite == null)
@@ -63,8 +65,8 @@ namespace Api.Invites
 					{
 						user = await users.Get(context, invite.EmailAddress);
 					}
-
-					if (user != null && user.PasswordHash != null)
+					
+					if (!config.CanSendIfAlreadyExists && user != null && user.PasswordHash != null)
 					{
 						throw new PublicException("A user with that email address has an account already.", "user_exists");
 					}
