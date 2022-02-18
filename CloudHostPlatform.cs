@@ -44,6 +44,18 @@ namespace Api.CloudHosts
         }
 
         /// <summary>
+        /// Reads a files bytes from the remote host.
+        /// </summary>
+        /// <param name="relativeUrl">e.g. 123-original.png</param>
+        /// <param name="isPrivate">True if /content-private/, false for regular /content/.</param>
+        /// <returns></returns>
+        /// <exception cref="NotImplementedException"></exception>
+        public virtual Task<System.IO.Stream> ReadFile(string relativeUrl, bool isPrivate)
+        {
+            throw new NotImplementedException();
+        }
+
+        /// <summary>
         /// Runs when uploading a file.
         /// </summary>
         /// <param name="context"></param>

@@ -77,8 +77,10 @@ namespace Api.CloudHosts
                 {
                     if (isPrivate)
                     {
-                        // To implement: Will need to use the respective API to directly read the file bytes, or obtain a signed URL to read it.
-                        throw new NotImplementedException("Whoops! ReadFile is unavailable for private files via a cloud host at the moment.");
+                        var stream = await _uploadHost.ReadFile(relativePath, isPrivate);
+                        var ms = new MemoryStream();
+                        await stream.CopyToAsync(ms);
+                        return ms.ToArray();
                     }
                     else
                     {

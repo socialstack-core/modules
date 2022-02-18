@@ -106,6 +106,20 @@ namespace Api.CloudHosts
         private IAmazonS3 _uploadClient;
 
         /// <summary>
+        /// Reads a files bytes from the remote host.
+        /// </summary>
+        /// <param name="relativeUrl">e.g. 123-original.png</param>
+        /// <param name="isPrivate">True if /content-private/, false for regular /content/.</param>
+        /// <returns></returns>
+        /// <exception cref="NotImplementedException"></exception>
+        public override async Task<System.IO.Stream> ReadFile(string relativeUrl, bool isPrivate)
+        {
+            var key = (isPrivate ? "/content-private/" : "/content/") + relativeUrl;
+            var str = await _uploadClient.GetObjectStreamAsync(_spaceName, key, null);
+            return str;
+        }
+        
+        /// <summary>
         /// The URL for the upload host (excluding any paths) if this host platform is providing file services. e.g. https://thing.ams.cdn.digitaloceanspaces.com
         /// </summary>
         /// <returns></returns>
@@ -142,11 +156,11 @@ namespace Api.CloudHosts
                 TransferUtility utility = new TransferUtility(_uploadClient);
                 var fileTransferUtilityRequest = new TransferUtilityUploadRequest
                 {
-                    BucketName = _spaceName + (upload.IsPrivate ? "/content-private" : "/content") + (string.IsNullOrEmpty(upload.Subdirectory) ? "" : "/" + upload.Subdirectory),
+                    BucketName = _spaceName,
                     FilePath = tempFile,
                     StorageClass = S3StorageClass.Standard,
                     PartSize = 6291456, // 6 MB
-                    Key = upload.GetStoredFilename(variantName),
+                    Key = (upload.IsPrivate ? "/content-private" : "/content") + (string.IsNullOrEmpty(upload.Subdirectory) ? "/" : "/" + upload.Subdirectory + "/") + upload.GetStoredFilename(variantName),
                     ContentType = upload.GetMimeType(variantName),
                     CannedACL = upload.IsPrivate ? S3CannedACL.AuthenticatedRead : S3CannedACL.PublicRead
                 };
