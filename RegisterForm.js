@@ -54,11 +54,10 @@ export default class RegisterForm extends React.Component {
 						Account created! You can now <a href="/login">login here</a>.
 					</Alert>
 				) : (
-					!noLogin &&
 						<div>
 							<Spacer height="20"/>
 							<Input type="submit" label="Create my account" />
-							Already got an account? <a href="/login">Login here</a>
+							{ !noLogin && <p>Already got an account? <a href="/login">Login here</a></p> }
 						</div>
 				)}
 			</Form>
