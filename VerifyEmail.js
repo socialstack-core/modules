@@ -6,7 +6,7 @@ import Alert from "UI/Alert";
 import { useRouter } from 'UI/Session';
 
 export default function VerifyEmail(props) {
-	const { onSuccess, noRelocation } = props;
+	const { onSuccess, noRelocation, noPassword } = props;
 	var [failed, setFailed] = React.useState();
 	var [success, setSuccess] = React.useState();
 
@@ -33,26 +33,36 @@ export default function VerifyEmail(props) {
 					setFailed(e);
 				}}
 				onValues={v=>{
-					if (v.password !== v.passwordRepeat) {
+					if (!noPassword && v.password !== v.passwordRepeat) {
 						return Promise.reject(new Error('The passwords do not match.'));
 					}
 
 					return v;
 				}}
 			>
-				<h2 className="verify-header">Create a password</h2>
+				<h2 className="verify-header">
+					{noPassword
+							? "Verify your emial"
+							: "Create a password"
+						}
+				</h2>
 
 				<div className="verify-description">
 					<p>
-						In order to complete registration, you will need to create a password.
+						{noPassword
+							? "Please click the button below to finish the registration process."
+							: "In order to complete registration, you will need to create a password."
+						}
 					</p>
 				</div>
 
-				<div className="verify-input-group">
-					<Input className="verify-input input-grey" name="password" type="password" placeholder="Create a password" validate={['Required']} onInput/>
-					<Input className="verify-input input-grey" name="passwordRepeat" type="password" placeholder="Confirm password" validate={['Required']} onInput/>
-					<Input className="remember-me" name="rememberMe" type="checkbox" label={"Remember me"} />
-				</div>
+				{!noPassword &&
+					<div className="verify-input-group">
+						<Input className="verify-input input-grey" name="password" type="password" placeholder="Create a password" validate={['Required']} onInput/>
+						<Input className="verify-input input-grey" name="passwordRepeat" type="password" placeholder="Confirm password" validate={['Required']} onInput/>
+						<Input className="remember-me" name="rememberMe" type="checkbox" label={"Remember me"} />
+					</div>
+				}
 				{failed && (
 					<Alert type="fail">
 						{failed.message ? failed.message : failed == "VALIDATION" && "Please verify all values are correct."}
@@ -75,6 +85,8 @@ export default function VerifyEmail(props) {
 
 
 VerifyEmail.propTypes = {
+	noPassword: 'bool',
+	noRelocation: 'bool'
 };
 
 // use defaultProps to define default values, if required
