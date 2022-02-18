@@ -56,9 +56,32 @@ export default class RenderStrategy
         return this.obj;
     }
 
+    unloadObject(obj) {
+		if (obj.geometry?.dispose) {
+			obj.geometry.dispose();
+			obj.geometry = null;
+		}
+
+		if (obj.material?.dispose) {
+			obj.material.dispose();
+			obj.material = null;
+		}
+
+		if (obj.children && Array.isArray(obj.children)) {
+			this.unloadChildren(obj.children);
+		}
+	}
+
+	unloadChildren(children) {
+		for (var i = 0; i < children.length; i++) {
+			this.unloadObject(children[i]);
+		}
+	}
+
     removeFromScene() {
         var scene = global.scene;
 		scene && this.obj && scene.remove(this.obj);
+        this.unloadObject(this.obj);
 		this.obj = null;
     }
 
