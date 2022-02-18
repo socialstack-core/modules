@@ -6,6 +6,7 @@ import Column from 'UI/Column';
 import { useState, useEffect } from 'react';
 
 export default function LoginRegister(props) {
+	const { noUsername } = props;
 	const { setPage } = useRouter();
 	const [view, setView] = useState();
 
@@ -13,7 +14,7 @@ export default function LoginRegister(props) {
 	const user = session.user;
 
 	useEffect(() => {
-		if (user && user.Role != 3 && user.Role != 4) {
+		if (user && user.Role != 3 && user.Role != 4 && document.location.pathname.indexOf('/en-admin') != 0) {
 			setPage("/");
 		}
 	});
@@ -43,12 +44,12 @@ export default function LoginRegister(props) {
 			}
 			{view === "login" &&
 				<div className="login">
-					<LoginForm noRegister />
+					<LoginForm noRegister emailOnly={noUsername} />
 				</div>
 			}
 			{view === "register" &&
 				<div className="register">
-					<RegisterForm noLogin />
+					<RegisterForm noLogin noUsername={noUsername} />
 				</div>
 			}
 		</div>
@@ -57,7 +58,7 @@ export default function LoginRegister(props) {
 
 
 LoginRegister.propTypes = {
-
+	noUsername: 'bool'
 };
 
 // use defaultProps to define default values, if required
