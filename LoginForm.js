@@ -6,18 +6,23 @@ import Canvas from 'UI/Canvas';
 import Spacer from 'UI/Spacer';
 import Alert from 'UI/Alert';
 import { useSession, useRouter } from 'UI/Session';
+import { useState, useEffect } from 'react';
+import webRequest from 'UI/Functions/WebRequest';
 
 /**
  * Frontend login form.
  */
 
 export default props => {
-	const { setSession } = useSession();
+	const { session, setSession } = useSession();
 	const { setPage } = useRouter();
-	const [ failed, setFailed ] = React.useState(false);
-	const [ moreRequired, setMoreRequired ] = React.useState(null);
+	const [ failed, setFailed ] = useState(false);
+	const [ moreRequired, setMoreRequired ] = useState(null);
+	const [ emailVerificationRequired, setEmailVerificationRequired ] = useState(null);
+	const [ emailVerificationSent, setEmailVerificationSent ] = useState(null);
 	const {emailOnly, passwordRequired} = props;
-	
+	const user = session.user;
+
 	var validate = ['Required'];
 
 	if (emailOnly) {
@@ -27,6 +32,32 @@ export default props => {
 	var validatePassword = [];
 	if (passwordRequired) {
 		validatePassword.push('Required');
+	}
+
+	onClickResendVerificationEmail = () => {
+		webRequest('user/sendverifyemail', { email: user.email }).then(resp => {
+			setEmailVerificationSent(true);
+		});
+	}
+
+	useEffect(() => {
+		if (user && user.Role == 3) {
+			setEmailVerificationRequired(true);
+		}
+	});
+
+	if (emailVerificationRequired) {
+		return <div className="login-form">
+			<p>You need to verify your email to continue. Please follow the instructions in the email, or you can resend the email by pressing the button below.</p>
+			{!emailVerificationSent
+				? 
+					<button className="btn btn-primary" onClick={e => onClickResendVerificationEmail()}>
+						Resend email
+					</button>
+				: 
+					<p>Email sent!</p>
+			}
+		</div>;
 	}
 
 	return (
@@ -41,8 +72,12 @@ export default props => {
 				}
 				
 				setSession(response);
-				
-				if(!props.noRedirect){
+
+				if (response && response.role && response.role.id == 3 || response.role.key == "guest")
+				{
+					setEmailVerificationRequired(true);
+				}
+				else if(!props.noRedirect){
 					// If there is a then arg in the url, redirect to that.
 					if(location.search){
 						var args = {};
