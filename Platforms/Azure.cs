@@ -79,7 +79,64 @@ namespace Api.CloudHosts
         {
             return _originUrl;
         }
-        
+
+        /// <summary>
+        /// Reads a files bytes from the remote host.
+        /// </summary>
+        /// <param name="relativeUrl">e.g. 123-original.png</param>
+        /// <param name="isPrivate">True if /content-private/, false for regular /content/.</param>
+        /// <returns></returns>
+        /// <exception cref="NotImplementedException"></exception>
+        public override async Task<System.IO.Stream> ReadFile(string relativeUrl, bool isPrivate)
+        {
+            if (_publicContainer == null)
+            {
+                await SetupContainers();
+            }
+
+            var blobClient = (isPrivate ? _privateContainer : _publicContainer).GetBlobClient(relativeUrl);
+
+            var strResult = await blobClient.DownloadStreamingAsync();
+
+            return strResult.Value.Content;
+        }
+
+        private async Task SetupContainers()
+        {
+            // Verify existence of the two:
+            var hasPrivate = false;
+            var hasPublic = false;
+
+            await foreach (var container in _blobServiceClient.GetBlobContainersAsync())
+            {
+
+                if (container.Name == "content-private")
+                {
+                    hasPrivate = true;
+                }
+                else if (container.Name == "content")
+                {
+                    hasPublic = true;
+                }
+
+            }
+
+            if (!hasPrivate)
+            {
+                // Private is api only:
+                await _blobServiceClient.CreateBlobContainerAsync("content-private", PublicAccessType.None);
+            }
+
+            if (!hasPublic)
+            {
+                // Public is blob - only the api can list files, but anyone can view a file if they have the URL:
+                await _blobServiceClient.CreateBlobContainerAsync("content", PublicAccessType.Blob);
+            }
+
+            _privateContainer = _blobServiceClient.GetBlobContainerClient("content-private");
+            _publicContainer = _blobServiceClient.GetBlobContainerClient("content");
+        }
+
         /// <summary>
         /// Runs when uploading a file.
         /// </summary>
@@ -94,38 +151,7 @@ namespace Api.CloudHosts
             {
                 if (_publicContainer == null)
                 {
-                    // Verify existence of the two:
-                    var hasPrivate = false;
-                    var hasPublic = false;
-
-                    await foreach (var container in _blobServiceClient.GetBlobContainersAsync())
-                    {
-
-                        if (container.Name == "content-private")
-                        {
-                            hasPrivate = true;
-                        }
-                        else if (container.Name == "content")
-                        {
-                            hasPublic = true;
-                        }
-
-                    }
-
-                    if (!hasPrivate)
-                    {
-                        // Private is api only:
-                        await _blobServiceClient.CreateBlobContainerAsync("content-private", PublicAccessType.None);
-                    }
-
-                    if(!hasPublic)
-                    {
-                        // Public is blob - only the api can list files, but anyone can view a file if they have the URL:
-                        await _blobServiceClient.CreateBlobContainerAsync("content", PublicAccessType.Blob);
-                    }
-
-                    _privateContainer = _blobServiceClient.GetBlobContainerClient("content-private");
-                    _publicContainer = _blobServiceClient.GetBlobContainerClient("content");
+                    await SetupContainers();
                 }
 
                 var fileDirectory = string.IsNullOrEmpty(upload.Subdirectory) ? "" : upload.Subdirectory;
