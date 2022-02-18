@@ -94,7 +94,7 @@ export default class MultiSelect extends React.Component {
 							}
 						}
 						name={this.props.name} />
-						<Search for={contentTypeLower} field={fieldName} limit={5} placeholder={"Find " + this.props.label + " to add.."} onFind={entry => {
+						<Search host={this.props.host} requestOpts={this.props.requestOpts} for={contentTypeLower} field={fieldName} limit={5} placeholder={"Find " + this.props.label + " to add.."} onFind={entry => {
 							if(!entry){
 								return;
 							}
