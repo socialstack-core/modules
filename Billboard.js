@@ -1,4 +1,5 @@
 import * as THREE from 'UI/Functions/ThreeJs';
+import omit from 'UI/Functions/Omit';
 
 export default class Billboard extends React.Component {
 	
@@ -98,12 +99,15 @@ export default class Billboard extends React.Component {
 		var { style } = this.state;
 		
 		var El = this.props.element || "div";
+		var ns = El == "svg" ? "http://www.w3.org/2000/svg" : undefined;
 		
-		if(!children){
-			return <El className = {className} ref={this.refChange} style={style} />;
+		if (!children){
+			return <El ref={this.refChange} style={style} xmlns={ns} {...omit(this.props, ['element'])} />;
 		}
 		
-		return <El className = {className} ref={this.refChange} style={style}>{children}</El>;
+		return <El ref={this.refChange} style={style} xmlns={ns} {...omit(this.props, ['element'])}>
+			{children}
+		</El>;
 	}
 	
 }
