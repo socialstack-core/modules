@@ -74,6 +74,7 @@ namespace Api.Uploader
 		/// <summary>
 		/// Working memory only temporary filesystem path. Can be null if something has already relocated the upload and it is "done".
 		/// </summary>
+		[JsonIgnore]
 		public string TemporaryPath { get; set; }
 		
 		private static byte[] TimestampStart = new byte[]{(byte)'?', (byte)'t', (byte)'='};
