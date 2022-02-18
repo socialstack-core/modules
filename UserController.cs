@@ -143,7 +143,12 @@ namespace Api.Users
 		{
 			var context = await Request.GetContext();
 
-			var user = await (_service as UserService).Where("Email=?", DataOptions.IgnorePermissions).Bind(body.Email == null ? null : body.Email.Trim()).Last(context);
+			var user = context.User;
+
+			if (!string.IsNullOrEmpty(body.Email))
+            {
+				user = await (_service as UserService).Where("Email=?", DataOptions.IgnorePermissions).Bind(body.Email == null ? null : body.Email.Trim()).Last(context);
+			}
 
 			if (user == null)
 			{
