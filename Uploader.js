@@ -67,13 +67,25 @@ export default class Uploader extends React.Component {
 		};
 		
 		var ep = this.props.endpoint || "upload/create";
+		
 		var apiUrl = global.ingestUrl || global.apiHost || '';
 		if(!apiUrl.endsWith('/')){
 			apiUrl += '/';
 		}
 		apiUrl += 'v1/';
 		
-		xhr.open('PUT', apiUrl + ep, true);
+		ep = (ep.indexOf('http') === 0 || ep[0] == '/') ? ep : apiUrl + ep;
+		
+		xhr.open('PUT', ep, true);
+		
+		var {requestOpts} = this.props;
+		
+		if(requestOpts && requestOpts.headers){
+			for(var header in requestOpts.headers){
+				xhr.setRequestHeader(header, requestOpts.headers[header]);
+			}
+		}
+		
 		xhr.setRequestHeader("Content-Name", file.name);
 		xhr.setRequestHeader("Private-Upload", this.props.isPrivate ? '1' : '0');
 		xhr.send(file);
