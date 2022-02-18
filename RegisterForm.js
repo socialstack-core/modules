@@ -15,7 +15,7 @@ export default class RegisterForm extends React.Component {
 	}
 	
 	render() {
-		var {noUsername, noName} = this.props;
+		var {noUsername, noName, noLogin} = this.props;
 		var {failed} = this.state;
 		return (
 			<Form
@@ -54,11 +54,12 @@ export default class RegisterForm extends React.Component {
 						Account created! You can now <a href="/login">login here</a>.
 					</Alert>
 				) : (
-					<div>
-						<Spacer height="20"/>
-						<Input type="submit" label="Create my account" />
-						Already got an account? <a href="/login">Login here</a>
-					</div>
+					!noLogin &&
+						<div>
+							<Spacer height="20"/>
+							<Input type="submit" label="Create my account" />
+							Already got an account? <a href="/login">Login here</a>
+						</div>
 				)}
 			</Form>
 		);
