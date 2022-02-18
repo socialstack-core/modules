@@ -28,11 +28,17 @@ export default class Search extends React.Component {
         }else{
 			var id = this.props.value || this.props.defaultValue;
 			
-			if(!id){
+			var url = this.props.for;
+			
+			if(!id || !url){
 				return;
 			}
 			
-			webRequest(this.props.for + '/' + id).then(response => {
+			if(this.props.host){
+				url = (url.indexOf('http') === 0 || url[0] == '/') ? url : this.props.host + '/v1/' + url;
+			}
+			
+			webRequest(url + '/' + id).then(response => {
 				
 				if(response && response.json){
 					
@@ -89,15 +95,21 @@ export default class Search extends React.Component {
 			where['Id']={not:this.props.exclude};
 		}
 		
+		var url = this.props.for ? this.props.for + '/list' : this.props.endpoint + '?q=' + encodeURIComponent(query);
+		
+		if(this.props.host){
+			url = (url.indexOf('http') === 0 || url[0] == '/') ? url : this.props.host + '/v1/' + url;
+		}
+		
 		if(this.props.for){
 			// Otherwise it just exports the query
 			this.setState({loading: true});
-			webRequest(this.props.for + '/list', {where, pageSize: (this.props.limit || 50)}).then(response => {
+			webRequest(url, {where, pageSize: (this.props.limit || 50)}, this.props.requestOpts).then(response => {
 				var results = response.json ? response.json.results : [];
 				this.setState({loading: false, results});
 			});
 		}else if(this.props.endpoint){
-			webRequest(this.props.endpoint + '?q=' + encodeURIComponent(query)).then(response => {
+			webRequest(url, null, this.props.requestOpts).then(response => {
 				var results = response.json ? response.json.results : [];
 				this.props.onResults && this.props.onResults(results);
 				this.setState({loading: false, results});
