@@ -114,7 +114,7 @@ namespace Api.CloudHosts
         /// <exception cref="NotImplementedException"></exception>
         public override async Task<System.IO.Stream> ReadFile(string relativeUrl, bool isPrivate)
         {
-            var key = (isPrivate ? "/content-private/" : "/content/") + relativeUrl;
+            var key = (isPrivate ? "content-private/" : "content/") + relativeUrl;
             var str = await _uploadClient.GetObjectStreamAsync(_spaceName, key, null);
             return str;
         }
@@ -160,7 +160,7 @@ namespace Api.CloudHosts
                     FilePath = tempFile,
                     StorageClass = S3StorageClass.Standard,
                     PartSize = 6291456, // 6 MB
-                    Key = (upload.IsPrivate ? "/content-private" : "/content") + (string.IsNullOrEmpty(upload.Subdirectory) ? "/" : "/" + upload.Subdirectory + "/") + upload.GetStoredFilename(variantName),
+                    Key = (upload.IsPrivate ? "content-private" : "content") + (string.IsNullOrEmpty(upload.Subdirectory) ? "/" : "/" + upload.Subdirectory + "/") + upload.GetStoredFilename(variantName),
                     ContentType = upload.GetMimeType(variantName),
                     CannedACL = upload.IsPrivate ? S3CannedACL.AuthenticatedRead : S3CannedACL.PublicRead
                 };
