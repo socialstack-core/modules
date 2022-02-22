@@ -31,5 +31,10 @@ namespace Api.PaymentGateways
 		/// Your payment currency;
 		/// </summary>
         public string PaymentCurrency { get; set; } = "gbp";
+
+        /// <summary>
+        /// Should a stripe customer be automatically created for the user after the user has been created
+        /// </summary>
+        public bool CreateStripeCustomerAfterUserCreate { get; set;} = false;
     }
 }

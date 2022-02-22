@@ -8,6 +8,9 @@ using Stripe;
 using Api.Startup;
 using Api.Purchases;
 using System.Linq;
+using Api.Users;
+using System;
+using Api.CanvasRenderer;
 
 namespace Api.PaymentGateways
 {
@@ -20,16 +23,35 @@ namespace Api.PaymentGateways
 		private PaymentGatewayConfig _config;
         private PurchaseService _purchases;
         private Api.Products.ProductService _products;
+        private UserService _users;
+        private FrontendCodeService _frontEndCode;
 
-		/// <summary>
-		/// Instanced automatically. Use injection to use this service, or Startup.Services.Get.
-		/// </summary>
-		public PaymentGatewayService(PurchaseService purchases, Api.Products.ProductService products) : base(Eventing.Events.PaymentGateway)
+        /// <summary>
+        /// Instanced automatically. Use injection to use this service, or Startup.Services.Get.
+        /// </summary>
+        public PaymentGatewayService(PurchaseService purchases, Api.Products.ProductService products, UserService users, FrontendCodeService frontEndCode) : base(Eventing.Events.PaymentGateway)
         {
             _purchases = purchases;
             _products = products;
-			_config = GetConfig<PaymentGatewayConfig>();
-		}
+            _users = users;
+            _frontEndCode = frontEndCode;
+            _config = GetConfig<PaymentGatewayConfig>();
+
+            Eventing.Events.User.AfterCreate.AddEventListener(async (Context ctx, User user) => {
+
+                if (user == null)
+                {
+                    return user;
+                }
+
+                if (_config.CreateStripeCustomerAfterUserCreate)
+                {
+                    user = await CreateStripeCustomer(ctx, user);
+                }
+
+                return user;
+            });
+        }
 
         /// <summary>
 		/// Creates a stripe payment intent.
@@ -93,6 +115,51 @@ namespace Api.PaymentGateways
             }
 
             return new PaymentIntentResponse { ClientSecret = paymentIntent.ClientSecret, PurchaseId = purchase.Id };
+        }
+
+        /// <summary>
+        /// Creates a stripe customer for this user.
+        /// </summary>
+        /// <param name="context"></param>
+        /// <param name="user"></param>
+        /// <returns>If successful returns the user updated with their new stripe customer Id.</returns>
+        public async Task<User> CreateStripeCustomer(Context context, User user)
+        {
+            if (user == null)
+            {
+                return user;
+            }
+
+            if (!string.IsNullOrEmpty(user.StripeCustomerId))
+            {
+                Console.WriteLine($"User {user.Id} already has a stripe customer Id");
+                return user;
+            }
+
+            var hostname = _frontEndCode.GetPublicUrl().Replace("https://", "").Replace("http://", "");
+
+            StripeConfiguration.ApiKey = _config.StripeSecretKey;
+            var options = new CustomerCreateOptions
+            {
+                Email = user.Email,
+                Metadata = new Dictionary<string, string> {
+                    { "User Id", user.Id.ToString() },
+                    { "Parent App Hostname" , hostname }
+                }
+            };
+            var service = new CustomerService();
+
+            var customer = await service.CreateAsync(options);
+
+            // update user with Id from the customer
+            if (await _users.StartUpdate(context, user, DataOptions.IgnorePermissions))
+            {
+                user.StripeCustomerId = customer.Id;
+
+                user = await _users.FinishUpdate(context, user);
+            }
+
+            return user;
         }
 
         private long CalculateOrderAmount(List<Api.Products.Product> rawProducts, List<IdQuantity> productQuantities)
