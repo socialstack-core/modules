@@ -67,6 +67,12 @@ export default class MultiSelect extends React.Component {
 
 		var contentTypeLower = this.props.contentType ? this.props.contentType.toLowerCase() : "";
 
+		var atMax = false;
+		
+		if(this.props.max > 0){
+			atMax = (this.state.value.length >= this.props.max);
+		}
+		
 		return (
 			<div className="mb-3">
 				{this.props.label && !this.props.hideLabel && (
@@ -94,6 +100,9 @@ export default class MultiSelect extends React.Component {
 							}
 						}
 						name={this.props.name} />
+						{atMax ? <p>
+							<i>Max of {this.props.max} added</i>
+						</p> : 
 						<Search host={this.props.host} requestOpts={this.props.requestOpts} for={contentTypeLower} field={fieldName} limit={5} placeholder={"Find " + this.props.label + " to add.."} onFind={entry => {
 							if(!entry){
 								return;
@@ -104,7 +113,7 @@ export default class MultiSelect extends React.Component {
 								value
 							});
 							this.props.onChange && this.props.onChange({target: {value: value.map(e => e.id)}, fullValue: value});
-						}}/>
+						}}/>}
 					</div>
 				</div>
 			</div>
