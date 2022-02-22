@@ -9,6 +9,17 @@ const DefaultPasswordStrength = 5;
 
 var inputTypes = global.inputTypes = global.inputTypes || {};
 
+function padded(time){
+	if(time < 10){
+		return '0' + time;
+	}
+	return time;
+}
+
+function dateFormatStr(d){
+	return d.getFullYear() + '-' + padded(d.getMonth()+1) + '-' + padded(d.getDate()) + 'T' + padded(d.getHours()) + ':' + padded(d.getMinutes());
+}
+
 /**
  * Helps eliminate a significant amount of boilerplate around <input>, <textarea> and <select> elements.
  * Note that you can still use them directly if you want.
@@ -529,7 +540,49 @@ export default class Input extends React.Component {
             if (handler) {
                 return handler({ ...this.props, onChange: this.onChange, onBlur: this.onBlur }, type, this);
             }
-
+			
+			var props = omit(this.props, ['id', 'className', 'onChange', 'onBlur', 'type', 'inline', 'help', 'helpIcon', 'fieldName']);
+			
+			if(type == 'datetime-local'){
+				if(props.defaultValue && props.defaultValue.getTime){
+					// It's a date
+					var d = props.defaultValue;
+					props.defaultValue = dateFormatStr(props.defaultValue);
+				}
+				
+				if(props.value && props.value.getTime){
+					// It's a date
+					var d = props.value;
+					props.value = dateFormatStr(props.value);
+				}
+				
+				if(props.min && props.min.getTime){
+					// It's a date
+					var d = props.min;
+					props.min = dateFormatStr(props.min);
+				}
+				
+				if(props.max && props.max.getTime){
+					// It's a date
+					var d = props.max;
+					props.max = dateFormatStr(props.max);
+				}
+				
+				// Add onGetValue for converting the local time into utc
+				props.ref=(r) => {
+					this.setRef(r);
+					
+					if(r){
+						r.onGetValue = (v,r) => {
+							if(this.inputRef == r && v){
+								return new Date(Date.parse(v));
+							}
+							return v;
+						};
+					}
+				};
+			}
+			
             const fieldMarkup = (
                 <input
                     ref={this.setRef}
@@ -543,7 +596,7 @@ export default class Input extends React.Component {
                     autocomplete={this.props.autocomplete}
                     data-disabled-by={disabledBy}
                     data-enabled-by={enabledBy}
-                    {...omit(this.props, ['id', 'className', 'onChange', 'onBlur', 'type', 'inline', 'help', 'helpIcon', 'fieldName'])}
+                    {...props}
                 />
             );
 
