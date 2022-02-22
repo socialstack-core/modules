@@ -27,7 +27,15 @@ export function populateBetween(start, end, dayMeta, dataHandlers, handleCollisi
 			filter = {where: handlerFilter};
 		}
 		
-		return webRequest(handler.type + "/list", filter, { includes: handler.includes }).then((response) => {
+		var opts = handler.requestOpts || {};
+		
+		var url = handler.type + "/list";
+		
+		if(handler.host){
+			url = handler.host + '/v1/' + url;
+		}
+		
+		return webRequest(url, filter, { includes: handler.includes, ...opts }).then((response) => {
 			var e = handler.onFixEntries && handler.onFixEntries(response.json.results);
 			
 			if(e){
@@ -42,8 +50,11 @@ export function populateBetween(start, end, dayMeta, dataHandlers, handleCollisi
 
 	return Promise.all(dataRequests).then(responses => {
 		var rsps = [];
-		responses.forEach(response => {
-			rsps = rsps.concat(response.json.results);
+		responses.forEach((response, index) => {
+			var set = response.json.results;
+			var handler = dataHandlers[index];
+			set.forEach(entry => entry._handler = handler);
+			rsps = rsps.concat(set);
 		});
 		build(rsps, dayMeta, handleCollisions);
 	});
@@ -205,6 +216,7 @@ export default class CalendarCompact extends React.Component {
 		
 		this.calendarRef = React.createRef();
 		this.onContentChange = this.onContentChange.bind(this);
+		this.renderEntry = this.renderEntry.bind(this);
 	}
 
 	getMinutesSinceMidnight(d){
@@ -478,10 +490,32 @@ export default class CalendarCompact extends React.Component {
 				})}
 			</div>
 			<div className="bookings">
-				{sortedEntries.map(entry => this.props.onRenderEntry(entry, entry._computedStyle))}
+				{sortedEntries.map(this.renderEntry)}
 			</div>
 		</div>;
 		
+	}
+	
+	renderEntry(entry){
+		if(this.props.onRenderEntry){
+			return this.props.onRenderEntry(entry, entry._computedStyle);
+		}
+		
+		var handler = entry._handler;
+		
+		if(!handler){
+			// (This doesn't happen)
+			return 'Unknown entry';
+		}
+		
+		if(handler && handler.onRender){
+			return entry._handler.onRender(entry, entry._computedStyle);
+		}else if(handler && handler.onRenderEntry){
+			return entry._handler.onRenderEntry(entry, entry._computedStyle);
+		}
+		
+		console.warn("Missing onRender on calendar dataHandler:", handler);
+		return null;
 	}
 	
 	render(){
