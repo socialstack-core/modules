@@ -35,7 +35,10 @@ const isoConvert = (isoish) => {
 	
 	if(type != 'string'){
 		// already a date
-		return new Date(isoish.valueOf());
+		if(isoish && isoish.valueOf){
+			return new Date(isoish.valueOf());
+		}
+		return isoish;
 	}
 	
 	 // Split the string into an array based on the digit groups.
