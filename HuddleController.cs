@@ -279,6 +279,17 @@ namespace Api.Huddles
 
 			var service = (_service as HuddleService);
 
+			if (slug == "selftest")
+			{
+				// Special self testing space.
+				// Not a real huddle and we just sign a random unique room code:
+				
+				return new
+				{
+					connectionUrl = service.SelfTestUrl(context)
+				};
+			}
+			
 			// Get the huddle (this will only go through if the permission system allows it):
 			var huddle = await _service.Where("Slug=?").Bind(slug).First(context);
 

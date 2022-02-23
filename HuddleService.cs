@@ -279,6 +279,28 @@ namespace Api.Huddles
         }
 		
 		/// <summary>
+		/// Creates a signed join URL for a self-test (only 1 user in the huddle, for the purposes of testing connectivity).
+		/// </summary>
+		public string SelfTestUrl(Context context)
+		{
+			var huddleServer = _huddleServerService.RandomServer();
+			
+			if (huddleServer == null)
+			{
+				return null;
+			}
+			
+			var huddleId = context.UserId + "-" + DateTime.UtcNow.Ticks;
+			
+			var queryStr = "h=" + huddleId + "&u=" + context.UserId + "&d=&a=&type=0&urole=4&role=4";
+			
+			// This signature is what allows the user to fully authenticate on a db-less target server:
+			var sig = _signatures.Sign(queryStr);
+			
+			return huddleServer.Address + "/?" + queryStr + "&sig=" + HttpUtility.UrlEncode(sig);
+		}
+		
+		/// <summary>
 		/// Creates a signed join URL.
 		/// </summary>
 		/// <param name="context"></param>
