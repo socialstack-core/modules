@@ -291,7 +291,7 @@ export default class CalendarCompact extends React.Component {
 			return localToUtc(props.date);
 		}
 		
-		var start = new Date();
+		var start = props.startDate || new Date();
 		if(offset){
 			start = addDays(start, offset);
 		}
@@ -309,6 +309,7 @@ export default class CalendarCompact extends React.Component {
 		}
 		
 		offset = offset + adj;
+		
 		this.load(offset, this.props);
 	}
 
@@ -548,7 +549,7 @@ export default class CalendarCompact extends React.Component {
 									e.preventDefault();
 									this.updateOffset(-1);
 								}}>
-									<i className="far fr-chevron-left"></i>
+									<i className="far fa-chevron-left"></i>
 									<span className="sr-only">Previous</span>
 							</button>
 							}
@@ -568,7 +569,7 @@ export default class CalendarCompact extends React.Component {
 									e.preventDefault();
 									this.updateOffset(1);
 								}}>
-									<i className="far fr-chevron-right"></i>
+									<i className="far fa-chevron-right"></i>
 									<span className="sr-only">Next</span>
 								</button>
 							}
