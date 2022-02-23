@@ -1,4 +1,4 @@
-import {VectorPath, PathFitter} from 'UI/Functions/VectorPath';
+import {VectorPath, PathFitter, MoveToPoint, StraightLinePoint, QuadLinePoint, CurveLinePoint} from 'UI/Functions/VectorPath';
 
 const SELECTION = 1;
 const DRAW = 2;
@@ -8,10 +8,106 @@ export default class ShapeDraw extends React.Component {
 	constructor(props){
 		super(props);
 		this.state={
-			paths: [],
+			paths: this.loadPaths(props.initialPaths || props.paths),
 			zoom: 1,
 			mode: DRAW
 		};
+	}
+	
+	componentWillReceiveProps(newProps){
+		
+		if(this.props && newProps.paths != this.props.paths){
+			this.setState({paths: this.loadPaths(newProps.paths)}, () => this.redraw());
+		}
+		
+	}
+	
+	loadPaths(paths){
+		var pathState = [];
+		
+		if(paths && paths.length){
+			
+			for(var i=0;i<paths.length;i++){
+				
+				// Path is just an array of nodes
+				var data = paths[i];
+				
+				if(!data || !data.length){
+					continue;
+				}
+				
+				var path = new VectorPath();
+				
+				for(var n=0;n<data.length;n++){
+					var dNode = data[n];
+					var node;
+					
+					if(dNode.c2x !== undefined){
+						path.curveTo(dNode.c1x,dNode.c1y,dNode.c2x,dNode.c2y,dNode.x,dNode.y);
+					}else if(dNode.c1x !== undefined){
+						path.quadraticCurveTo(dNode.c1x,dNode.c1y,dNode.x,dNode.y);
+					}else if(dNode.m){
+						// move to (not a line)
+						path.moveTo(dNode.x,dNode.y);
+					}else{
+						path.lineTo(dNode.x,dNode.y);
+					}
+					
+					if(dNode.c){
+						// This node is a close
+						path.closePath();
+					}
+				}
+				
+				pathState.push(path);
+				
+			}
+		}
+		
+		return pathState;
+	}
+	
+	getPathData(remapFunc){
+		var data = [];
+		var paths = this.state.paths;
+		
+		for(var i=0;i<paths.length;i++){
+			var path = paths[i];
+			var pathData = [];
+			data.push(pathData);
+			
+			var node = path.firstPathNode;
+			
+			while(node != null){
+				var newNode;
+				if(node instanceof MoveToPoint){
+					newNode = {x: node.x, y: node.y, m: 1};
+				}else if(node instanceof StraightLinePoint){
+					newNode = {x: node.x, y: node.y};
+				}else if(node instanceof QuadLinePoint){
+					newNode = {x: node.x, y: node.y, c1x: node.control1X, c1y: node.control1Y};
+				}else if(node instanceof CurveLinePoint){
+					newNode = {x: node.x, y: node.y, c1x: node.control1X, c1y: node.control1Y, c2x: node.control2X, c2y: node.control2Y};
+				}else{
+					console.log(node);
+					throw new Error("Unknown path node " + node.toString());
+				}
+				
+				if(node.isClose){
+					newNode.c=1;
+				}
+				
+				if(remapFunc){
+					newNode = remapFunc(newNode);
+				}
+				
+				pathData.push(newNode);
+				node = node.next;
+			}
+			
+		}
+		
+		return data;
 	}
 	
 	redraw(){
@@ -19,7 +115,9 @@ export default class ShapeDraw extends React.Component {
 		var canvas = this.canvas;
 		
 		var drawInfo=this.getDrawInfo();
+		
 		ctx.clearRect(0,0,canvas.width,canvas.height);
+		
 		ctx.setLineDash([]);
 		
 		var zoom=this.state.zoom;
@@ -39,23 +137,20 @@ export default class ShapeDraw extends React.Component {
 			context: this.canvas_ctx,
 			x: 0,
 			y: 0,
-			nodeRadius: 6,
+			nodeRadius: 4,
 			nodeLineWidth: 1,
-			lineWidth: 16,
-			stroke: '#013e78',
-			nodeStroke: '#6e8cb2',
-			nodeFill: '#6e8cb2',
-			fill: '#eaebe3',
+			lineWidth: 1,
+			noNodes: this.props.readonly,
+			stroke: this.props.lineColor || '#013e78',
+			nodeStroke: this.props.nodeBorderColor || '#6e8cb2',
+			nodeFill: this.props.nodeColor || '#6e8cb2',
+			fill: this.props.fillColor || '#eaebe3',
 			controlPointDrawn: false,
 			isReference: false,
 			width:canvas.width,
 			height:canvas.height
 		};
 	}
-	
-	componentDidMount() {
-		this.canvas_ctx = this.canvas.getContext("2d");
-    }
 	
 	testClosed(path,node, radius){
 		
@@ -299,6 +394,11 @@ export default class ShapeDraw extends React.Component {
 			this.redraw();
 		}
 		
+		this.props.onChange && this.props.onChange({
+			rawVectorPaths: () => this.state.paths,
+			getPathData: remapFunc => this.getPathData(remapFunc)
+		});
+		
 		this.setState({
 			click: null,
 			freeDraw: null
@@ -377,13 +477,48 @@ export default class ShapeDraw extends React.Component {
 		}
 	}
 	
+	componentWillUnmount(){
+		this.disconnectResizer();
+	}
+	
+	disconnectResizer(){
+		if(this.resizer && this.resizer.disconnect){
+			this.resizer.disconnect();
+			this.resizer = null;
+			this.resizerE = null;
+		}
+	}
+	
 	render(){
-		var width = this.props.width || 300;
-		var height = this.props.height || 150;
 		
-		return [
+		var {width, height} = this.state;
+		
+		return <div className="shape-draw" style={{width: '100%', height: '100%'}} ref={e => {
+			
+			if(e){
+				if(e != this.resizerE){
+					this.disconnectResizer();
+					this.resizerE = e;
+					this.resizer = new ResizeObserver(eles => {
+						if(eles[0] && eles[0].contentRect){
+							var rect = eles[0].contentRect;
+							
+							if(rect.width != this.state.width || rect.height != this.state.height){
+								this.setState({width: rect.width, height: rect.height}, () => {
+									this.redraw();
+								});
+							}
+							
+						}
+					});
+					this.resizer.observe(e);
+				}
+			}else{
+				this.disconnectResizer();
+			}
+			
+		}}>
 			<canvas
-				key={1}
 				style={
 					{
 						display: 'none'
@@ -394,27 +529,39 @@ export default class ShapeDraw extends React.Component {
 				}}
 				width={width}
 				height={height}
-			/>,
+			/>
 			<canvas
-				key={2}
 				ref={r=>{
-					this.canvas = r;
+					if(r && r != this.canvas){
+						this.canvas = r;
+						this.canvas_ctx = this.canvas.getContext("2d");
+						this.redraw();
+					}
 				}}
 				onMouseDown={e=>{
+					if(this.props.readonly){
+						return;
+					}
 					this.onMouseDown(e);
 				}}
 				onMouseUp={e=>{
+					if(this.props.readonly){
+						return;
+					}
 					this.onMouseUp(e);
 				}}
 				onMouseMove={
 					e=>{
+						if(this.props.readonly){
+							return;
+						}
 						this.onMouseMove(e);
 					}
 				}
 				width={width}
 				height={height}
 			/>
-		];
+		</div>;
 		
 	}
 	
