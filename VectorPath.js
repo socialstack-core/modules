@@ -1934,7 +1934,12 @@ function PathFitter(path, error){
 	
 }
 
-module.exports = {
+export {
+	VectorPoint,
+	MoveToPoint,
+	StraightLinePoint,
+	QuadLinePoint,
+	CurveLinePoint,
 	VectorPath,
 	PathFitter,
 	Vector2
