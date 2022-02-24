@@ -70,8 +70,9 @@ namespace Api.Configuration
 				{
 					await LoadConfig(config);
 				}
-				catch (Exception)
+				catch (Exception e)
 				{
+					Console.WriteLine(e);
 					throw new PublicException("Unable to save configuration - the JSON is invalid.", "invalid_json");
 				}
 
