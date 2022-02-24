@@ -184,127 +184,120 @@ $meeting_padding_top: 3rem;
 }
 
 // iPad overrides
-@include mq_ipad {
+@include mq_iPadPortrait {
 
-    @media only screen and (orientation: portrait) {
+	.videoChat .peers {
+		@include peer_width(1, 95vw);
+		@include peer_width(2, 72vw);
+		@include peer_width(3, 49vw);
+		@include peer_width(4, 47vw);
+		@include peer_width(5, 47vw);
+		@include peer_width(6, 47vw);
+		@include peer_width(7, 47vw);
+		@include peer_width(8, 47vw);
+	}
 
-		.videoChat .peers {
-			@include peer_width(1, 95vw);
-			@include peer_width(2, 72vw);
-			@include peer_width(3, 49vw);
-			@include peer_width(4, 47vw);
-			@include peer_width(5, 47vw);
-			@include peer_width(6, 47vw);
-			@include peer_width(7, 47vw);
-			@include peer_width(8, 47vw);
-		}
+}
 
-    }
+@include mq_iPadLandscape {
 
-    @media only screen and (orientation: landscape) {
-
-		.videoChat .peers {
-			@include peer_width(1, 80vw);
-			@include peer_width(2, 48vw);
-			@include peer_width(3, 44vw);
-			@include peer_width(4, 35vw);
-			@include peer_width(5, 31vw);
-			@include peer_width(6, 31vw);
-			@include peer_width(7, 31vw);
-			@include peer_width(8, 31vw);
-		}
-    }
+	.videoChat .peers {
+		@include peer_width(1, 80vw);
+		@include peer_width(2, 48vw);
+		@include peer_width(3, 44vw);
+		@include peer_width(4, 35vw);
+		@include peer_width(5, 31vw);
+		@include peer_width(6, 31vw);
+		@include peer_width(7, 31vw);
+		@include peer_width(8, 31vw);
+	}
 
 }
 
 // mobile overrides
-@include mq_mobile {
+@include mq_mobilePortrait {
 
-	@media only screen and (orientation: portrait) {
+	.videoChat .peers {
+		@include peer_width(1, calc(100vw - 30px));
+		@include peer_width(2, calc(100vw - 30px));
 
-		.videoChat .peers {
-			@include peer_width(1, calc(100vw - 30px));
-			@include peer_width(2, calc(100vw - 30px));
+		&.peers-3 {
 
-			&.peers-3 {
-
-				> .peer-container {
-					width: 60vw;
-					min-width: 0;
-				}
+			> .peer-container {
+				width: 60vw;
+				min-width: 0;
 			}
+		}
 
-			&.peers-4,
-			&.peers-5,
-			&.peers-6,
-			&.peers-7 {
+		&.peers-4,
+		&.peers-5,
+		&.peers-6,
+		&.peers-7 {
 
-				> .peer-container {
-					border: 0;
-					box-shadow: none;
-					margin: 1px;
-					width: calc(50vw - 2px) !important;
-					min-width: 0 !important;
-				}
+			> .peer-container {
+				border: 0;
+				box-shadow: none;
+				margin: 1px;
+				width: calc(50vw - 2px) !important;
+				min-width: 0 !important;
 			}
 		}
 	}
+}
 
-	@media only screen and (orientation: landscape) {
+@include mq_mobileLandscape {
 
-		.videoChat .peers {
-			padding-left: 280px;
-			min-height: 0;
+	.videoChat .peers {
+		padding-left: 280px;
+		min-height: 0;
+	}
+
+	.videoChat .peers {
+		//@include peer_width(1, 50vw);
+
+		&.peers-2,
+		&.peers-3,
+		&.peers-4,
+		&.peers-5,
+		&.peers-6,
+		&.peers-7 {
+
+			> .peer-container {
+				border: 0;
+				box-shadow: none;
+				margin: 1px;
+				min-width: 0 !important;
+			}
+		}
+			
+		&.peers-2 {
+
+			> .peer-container {
+				width: calc(((100vw - 280px) / 2) - 2px) !important;
+			}
 		}
 
-		.videoChat .peers {
-			//@include peer_width(1, 50vw);
+		&.peers-3,
+		&.peers-4 {
 
-			&.peers-2,
-			&.peers-3,
-			&.peers-4,
-			&.peers-5,
-			&.peers-6,
-			&.peers-7 {
-
-				> .peer-container {
-					border: 0;
-					box-shadow: none;
-					margin: 1px;
-					min-width: 0 !important;
-				}
+			> .peer-container {
+				width: calc(((100vw - 400px) / 2) - 2px) !important;
 			}
-			
-			&.peers-2 {
+		}
 
-				> .peer-container {
-					width: calc(((100vw - 280px) / 2) - 2px) !important;
-				}
+		&.peers-5,
+		&.peers-6 {
+
+			> .peer-container {
+				width: calc(((100vw - 480px) / 2) - 2px) !important;
 			}
+		}
 
-			&.peers-3,
-			&.peers-4 {
+		&.peers-7 {
 
-				> .peer-container {
-					width: calc(((100vw - 400px) / 2) - 2px) !important;
-				}
+			> .peer-container {
+				width: calc(((100vw - 560px) / 2) - 2px) !important;
 			}
-
-			&.peers-5,
-			&.peers-6 {
-
-				> .peer-container {
-					width: calc(((100vw - 480px) / 2) - 2px) !important;
-				}
-			}
-
-			&.peers-7 {
-
-				> .peer-container {
-					width: calc(((100vw - 560px) / 2) - 2px) !important;
-				}
-			}
-
 		}
 
 	}

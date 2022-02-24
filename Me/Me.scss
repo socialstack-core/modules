@@ -135,21 +135,15 @@
 	}
 }
 
-@include mq_mobile {
-
-	@media only screen and (orientation: portrait) {
-
-		.me {
-			width: calc(100vw - 30px);
-			min-width: 0;
-		}
-
+@include mq_mobilePortrait {
+	.me {
+		width: calc(100vw - 30px);
+		min-width: 0;
 	}
+}
 
-	@media only screen and (orientation: landscape) {
-
-		.me {
-			min-width: 250px;
-		}
+@include mq_mobileLandscape {
+	.me {
+		min-width: 250px;
 	}
 }
