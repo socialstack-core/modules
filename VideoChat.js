@@ -4,7 +4,7 @@ import Me from 'UI/VideoChat/Me';
 import Alert from 'UI/Alert';
 import Container from 'UI/Container';
 import Row from 'UI/Row';
-import {SessionConsumer} from 'UI/Session';
+import { SessionConsumer } from 'UI/Session';
 import CallUI from 'UI/VideoChat/CallUI';
 
 export default class VideoChat extends React.Component {
@@ -50,14 +50,15 @@ export default class VideoChat extends React.Component {
 			},
 			ringing: this.props.ringing
 		};
-		
+
 		this.onRoomUpdate = this.onRoomUpdate.bind(this);
 		this.onEndMeContainerDrag = this.onEndMeContainerDrag.bind(this);
 		this.onError = this.onError.bind(this);
 		this.onPeerAdd = this.onPeerAdd.bind(this);
 	}
-	
-	mount(props){
+
+	mount(props) {
+		console.log("VideoChat props: ", props);
 
 		return new HuddleClient({
 			roomSlug: props.roomSlug,
@@ -73,19 +74,19 @@ export default class VideoChat extends React.Component {
 			cameraQuality: props.cameraQuality
 		});
 	}
-	
-	componentWillReceiveProps(newProps){
-		if(newProps.roomId != this.props.roomId){
+
+	componentWillReceiveProps(newProps) {
+		if (newProps.roomId != this.props.roomId) {
 			// Room change!
 			this.state.huddleClient.close();
 			var huddleClient = this.mount(newProps);
-			this.setState({huddleClient});
+			this.setState({ huddleClient });
 			this.connect(huddleClient);
 		}
 
 		// did we receive a new list of user that need to be rung?
-		if(newProps.ringing != this.props.ringing){
-			this.setState({ringing: newProps.ringing});
+		if (newProps.ringing != this.props.ringing) {
+			this.setState({ ringing: newProps.ringing });
 		}
 	}
 
@@ -95,11 +96,11 @@ export default class VideoChat extends React.Component {
 
 	// Used to update the ringing mechanism and UI's
 	updateRingingList() {
-		var {ringing} = this.state;
+		var { ringing } = this.state;
 		var updated = false; // This will toggle to true if there is a need to update the ringing list.
 
 		// There is a chance that a user we are ringing may have connected, let's verify.
-		if(this.state.huddleClient.peers && this.state.huddleClient.peers.length && ringing && ringing.length) {
+		if (this.state.huddleClient.peers && this.state.huddleClient.peers.length && ringing && ringing.length) {
 			this.state.huddleClient.peers.forEach((peer) => {
 				// Let's iterate our currently ringing users - is this user any of them?
 				ringing.forEach((ringer, index) => {
@@ -112,14 +113,14 @@ export default class VideoChat extends React.Component {
 				});
 			});
 		}
-		
-		if(updated) {
-			this.setState({ringing});
+
+		if (updated) {
+			this.setState({ ringing });
 		}
 	}
-	
-	onError(e){
-		if(!e.minor){
+
+	onError(e) {
+		if (!e.minor) {
 			console.log(e);
 			this.setState({
 				error: e
@@ -131,40 +132,40 @@ export default class VideoChat extends React.Component {
 		evt = evt || window.event;
 		evt.preventDefault();
 		evt.stopPropagation();
-		
+
 		// get the mouse cursor position at startup:
 		this.setState({
-			drag:{
+			drag: {
 				startX: evt.clientX,
 				startY: evt.clientY
 			}
 		});
-		
+
 		document.onmouseup = this.onEndMeContainerDrag;
 	}
 
 	onMoveMeContainerDrag(evt) {
-		var {drag, meStyle, currentX, currentY} = this.state;
-		
-		if(!drag){
+		var { drag, meStyle, currentX, currentY } = this.state;
+
+		if (!drag) {
 			return;
 		}
-		
+
 		evt = evt || window.event;
 		evt.preventDefault();
 		evt.stopPropagation();
-		
+
 		var newX, newY;
-		
+
 		// calc new position
 		var deltaX = evt.clientX - drag.startX;
 		var deltaY = drag.startY - evt.clientY;
-		
+
 		drag.startX = evt.clientX;
 		drag.startY = evt.clientY;
 		currentX += deltaX;
 		currentY += deltaY;
-		
+
 		this.setState({
 			drag,
 			meStyle: {
@@ -178,9 +179,9 @@ export default class VideoChat extends React.Component {
 
 	onEndMeContainerDrag() {
 		document.onmouseup = null;
-		this.setState({drag: null});
+		this.setState({ drag: null });
 	}
-	
+
 	onRoomUpdate(evt) {
 		this.props.onRoomUpdate && this.props.onRoomUpdate(evt, this.state.huddleClient);
 		this.setState({ huddleClient: this.state.huddleClient, error: null });
@@ -190,8 +191,8 @@ export default class VideoChat extends React.Component {
 		// Peer changed
 		this.setState({});
 	}
-	
-	connect(huddleClient){
+
+	connect(huddleClient) {
 		huddleClient.addEventListener('roomupdate', this.onRoomUpdate);
 		huddleClient.addEventListener('error', this.onError);
 		huddleClient.addEventListener('peeradd', this.onPeerAdd);
@@ -199,7 +200,7 @@ export default class VideoChat extends React.Component {
 			huddleClient.join();
 		}
 	}
-	
+
 	componentDidMount() {
 		const { huddleClient } = this.state;
 		this.connect(huddleClient);
@@ -218,17 +219,17 @@ export default class VideoChat extends React.Component {
 		this.props.clearRinging && this.props.clearRinging();
 	}
 
-	render(){
+	render() {
 		return <SessionConsumer>
 			{session => this.renderIntl(session)}
 		</SessionConsumer>;
 	}
-	
-	renderIntl(session){
+
+	renderIntl(session) {
 		const {
 			huddleClient
 		} = this.state;
-		
+
 		const {
 			room,
 			me
@@ -255,65 +256,67 @@ export default class VideoChat extends React.Component {
 					break;
 			}
 		}
-		
-		if(this.state.error){
+
+		if (this.state.error) {
 			return <Container className="video-chat-error">
 				<Alert type="error">
-				{
-					this.state.error.text || 
-					'Unfortunately we ran into an issue connecting you to this meeting. Please check your internet connection and that you\'re invited to join this meeting.'
-				}
+					{
+						this.state.error.text ||
+						'Unfortunately we ran into an issue connecting you to this meeting. Please check your internet connection and that you\'re invited to join this meeting.'
+					}
 				</Alert>
 			</Container>;
 		}
-		
-		var {children, allowFullscreen, onRenderPeer, onPreRender, onClose} = this.props;
-		
+
+		var { children, allowFullscreen, onRenderPeer, onPreRender, onClose } = this.props;
+
 		// If we have at least 1 actual child node, then there is a visible activity.
 		// It acts like a fullscreen peer.
 		var activity = children;
-		
+
 		var cfg = {
 			className: 'videoChat',
 			peersClassName: 'peers'
 		};
-		
+
 		// Filter irrelevant peers:
+		debugger;
+		console.log("** huddleClient: ", huddleClient);
 		var peers = huddleClient.peers || [];
 		var videoPeers = [];
 		var raisedHands = [];
-		
+
 		peers.forEach(peer => {
-			if(!peer.device || peer.device.huddleSpy){
+			if (!peer.device || peer.device.huddleSpy) {
 				return;
 			}
-			
-			if(peer.profile.isPermittedSpeaker){
+
+			if (peer.profile.isPermittedSpeaker) {
 				videoPeers.push(peer);
 			}
-			
-			if(peer.profile && peer.profile.requestedToSpeak){
+
+			if (peer.profile && peer.profile.requestedToSpeak) {
 				raisedHands.push(peer);
 			}
-			
+
 		});
-		
+
 		peers = videoPeers;
-		
-		if(activity){
+
+		if (activity) {
 			// Push the activity so it has a proper index and the length etc works too:
-			peers.push({_activity:activity, fullscreen: true});
+			peers.push({ _activity: activity, fullscreen: true });
 		}
-		
+
 		// NB: using an array as we may potentially support multiple maximized videos in future
 		var sharedPeers = [];
-		
-		if(activity){
+
+		if (activity) {
 			// it's always the last one, because we just pushed it in:
-			sharedPeers.push(peers.length-1);
+			sharedPeers.push(peers.length - 1);
 			allowFullscreen = false;
 		}
-		
+
 		peers.map((peer, index) => {
 
 			if (peer.fullscreen && allowFullscreen) {
@@ -321,7 +324,7 @@ export default class VideoChat extends React.Component {
 			}
 
 		});
-		
+
 		onPreRender && onPreRender(cfg, peers, sharedPeers);
 
 		var closeButtonHref = "/";
@@ -329,7 +332,7 @@ export default class VideoChat extends React.Component {
 		if (onClose) {
 			closeButtonHref = "#";
 		}
-		
+
 		return <div className={cfg.className} onMouseMove={e => this.onMoveMeContainerDrag(e)}>
 			{/*<Notifications />*/}
 			<div className='state'>
@@ -341,7 +344,7 @@ export default class VideoChat extends React.Component {
 				<i className="fr fr-times"></i>
 				<span className="sr-only">Leave chat</span>
 			</a>
-			<Peers 
+			<Peers
 				className={cfg.peersClassName}
 				huddleClient={huddleClient}
 				allowFullscreen={allowFullscreen}
@@ -355,8 +358,8 @@ export default class VideoChat extends React.Component {
 				}}
 			/>
 
-			{!this.props.hideMeView && (this.props.initialProduce === undefined || this.props.initialProduce || (!this.props.initialProduce && me.profile && me.profile.forceStartProducing)) &&
-				<div 
+			{!this.props.hideMeView && this.props.floatMeView && (this.props.initialProduce === undefined || this.props.initialProduce || (!this.props.initialProduce && me.profile && me.profile.forceStartProducing)) &&
+				<div
 					className={'me-container ' + (amActiveSpeaker ? 'active-speaker' : '')}
 					style={this.state.meStyle}
 					onMouseDown={e => this.onStartMeContainerDrag(e)}
@@ -365,8 +368,8 @@ export default class VideoChat extends React.Component {
 				</div>
 			}
 			{this.props.showRaisedHands &&
-			<div className="raised-hands">
-				{/*<Row>
+				<div className="raised-hands">
+					{/*<Row>
 					<i class="fas fa-hand-paper icon"></i> Luke Briggs
 				</Row>
 				<Row>
@@ -375,44 +378,44 @@ export default class VideoChat extends React.Component {
 				<Row>
 					<i class="fas fa-circle icon live"></i> John Safeway
 				</Row>*/}
-				{raisedHands.map(personWithRaisedHand => {
-					
-					var isLive = personWithRaisedHand.profile.isPermittedSpeaker;
-					var name = personWithRaisedHand.profile.displayName;
-					
-					return <Row>
-						{personWithRaisedHand.profile.directChatIds ? <i class="fal fa-volume icon"></i> : <i class="fas fa-hand-paper icon"></i>} 
-						{this.props.isDirector ? <a href = "#" onClick = {() => {
-							huddleClient.updatePeer(personWithRaisedHand, {
-								directChatIds: [session.user.id]
-							});
-						}}>
-							{name}
-						</a> : name
-						} 
-						
-						{this.props.isDirector &&
-							<a href = "#" onClick = {() => {
-								huddleClient.updatePeer(personWithRaisedHand, {
-									requestedToSpeak: false
-								});
-							}}> 
-								<i class="fas fa-times-circle icon" style = {{color: "red"}}></i>
-							</a>
-						}
-					</Row>
+					{raisedHands.map(personWithRaisedHand => {
 
-				})}
-			</div>
+						var isLive = personWithRaisedHand.profile.isPermittedSpeaker;
+						var name = personWithRaisedHand.profile.displayName;
+
+						return <Row>
+							{personWithRaisedHand.profile.directChatIds ? <i class="fal fa-volume icon"></i> : <i class="fas fa-hand-paper icon"></i>}
+							{this.props.isDirector ? <a href="#" onClick={() => {
+								huddleClient.updatePeer(personWithRaisedHand, {
+									directChatIds: [session.user.id]
+								});
+							}}>
+								{name}
+							</a> : name
+							}
+
+							{this.props.isDirector &&
+								<a href="#" onClick={() => {
+									huddleClient.updatePeer(personWithRaisedHand, {
+										requestedToSpeak: false
+									});
+								}}>
+									<i class="fas fa-times-circle icon" style={{ color: "red" }}></i>
+								</a>
+							}
+						</Row>
+
+					})}
+				</div>
 			}
-			
-			{this.state.ringing && this.state.ringing.length && <CallUI users = {this.state.ringing} onClose = {() => {
-				this.setState({ringing: []});
-			}}/>}
+
+			{this.state.ringing && this.state.ringing.length && <CallUI users={this.state.ringing} onClose={() => {
+				this.setState({ ringing: [] });
+			}} />}
 
 			{//These buttons turn off everyone else's video or audio (from your point of view)
-			//Useful for personal bandwidth control, but unlikely that people will actually use them.
-			}	
+				//Useful for personal bandwidth control, but unlikely that people will actually use them.
+			}
 			<div className='sidebar'>
 				{/*
 				<div
@@ -434,17 +437,17 @@ export default class VideoChat extends React.Component {
 					}}
 				/>
 				*/}
-				
-				{me.profile.huddleRole != 1 &&  room.huddle && (room.huddle.huddleType == 3 || room.huddle.huddleType == 4) && <button 
-					className = {'button raise-hand ' + (me.profile.requestedToSpeak ? 'on' : 'off')} 
-					title = "Raise hand to request sharing." 
-					onClick = {() => {
+
+				{me.profile.huddleRole != 1 && room.huddle && (room.huddle.huddleType == 3 || room.huddle.huddleType == 4) && <button
+					className={'button raise-hand ' + (me.profile.requestedToSpeak ? 'on' : 'off')}
+					title="Raise hand to request sharing."
+					onClick={() => {
 						me.profile.requestedToSpeak
 							? huddleClient.requestToSpeak(false)
 							: huddleClient.requestToSpeak(true);
 					}}
-				>	
-					<i className="icon fas fa-hand-paper"/> 
+				>
+					<i className="icon fas fa-hand-paper" />
 				</button>}
 			</div>
 			{me.profile.directChatIds && me.profile.directChatIds.length && (<span className="producer"><i class="fal fa-volume"></i> Speaking with Producer</span>)}
@@ -455,10 +458,14 @@ export default class VideoChat extends React.Component {
 VideoChat.defaultProps = {
 	intialProduce: true,
 	intialConsume: true,
-	showRaisedHands: true
+	showRaisedHands: true,
+	hideMeView: false,
+	floatMeView: true
 };
 
 VideoChat.propTypes = {
 	roomId: 'int',
-	roomSlug: 'string'
+	roomSlug: 'string',
+	hideMeView: 'bool',
+	floatMeView: 'bool'
 };

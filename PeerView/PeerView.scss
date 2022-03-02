@@ -23,6 +23,38 @@
 		background-color: rgba(#000, 0.75);
 		border-radius: 5px;
 	}
+
+	.display-name-centre {
+		position: absolute;
+		width: 100%;
+		height: 100%;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		color: #fff;
+
+		&::before {
+			position: absolute;
+			left: calc(50% - 64px);
+			top: calc(50% - 64px);
+			width: 128px;
+			height: 128px;
+			background: #000;
+			content: "";
+			border-radius: 50%;
+		}
+
+		&::after {
+			content: attr(data-name);
+			z-index: 1;
+			max-width: 90px;
+			max-height: 90px;
+			overflow: hidden;
+			display: -webkit-box;
+			-webkit-line-clamp: 2;
+			-webkit-box-orient: vertical;
+		}
+	}
 	
 	> video {
 		flex: 100 100 auto;
