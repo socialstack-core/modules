@@ -89,7 +89,7 @@ function replaceTokens(str, res) {
 			}
 
 			// Does the field exist on the primary object?
-			if(!po[field] == null) {
+			if(!po[field]) {
 				return;
 			}
 
