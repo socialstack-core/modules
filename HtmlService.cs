@@ -19,6 +19,7 @@ using Api.Permissions;
 using Microsoft.AspNetCore.Http;
 using Api.Themes;
 using Api.Startup;
+using System.Reflection;
 
 namespace Api.Pages
 {
@@ -281,12 +282,29 @@ namespace Api.Pages
 			writer.WriteS(pageAndTokens.TokenNamesJson);
 			writer.WriteASCII(",\"tokens\":");
 			writer.WriteS(pageAndTokens.TokenValues != null ? Newtonsoft.Json.JsonConvert.SerializeObject(pageAndTokens.TokenValues, jsonSettings) : "null");
-			
+
 			if (primaryObject != null)
 			{
+
 				writer.WriteASCII(",\"po\":");
 				await primaryService.ObjectToTypeAndIdJson(context, primaryObject, writer);
 			}
+
+			if (pageAndTokens.Page != null && !string.IsNullOrEmpty(pageAndTokens.Page.Title))
+			{
+				writer.WriteASCII(",\"title\":");
+				var titleStr = pageAndTokens.Page.Title;
+
+				if (primaryObject != null)
+				{
+					writer.WriteEscaped(ReplaceTokens(titleStr, primaryObject));
+				}
+				else
+				{
+					writer.WriteEscaped(titleStr);
+				}
+			}
+
 			writer.Write((byte)'}');
 			await writer.CopyToAsync(responseStream);
 			writer.Release();
@@ -821,8 +839,8 @@ namespace Api.Pages
 			head.AppendChild(new DocumentNode("meta", true).With("name", "msapplication-TileColor").With("content", "#ffffff"))
 				.AppendChild(new DocumentNode("meta", true).With("name", "theme-color").With("content", "#ffffff"))
 				.AppendChild(new DocumentNode("meta", true).With("name", "viewport").With("content", "width=device-width, initial-scale=1"))
-				.AppendChild(new DocumentNode("meta", true).With("name", "description").With("content", doc.ReplaceTokens(page.Description)))
-				.AppendChild(new DocumentNode("title").AppendChild(new TextNode(doc.ReplaceTokens(page.Title))));
+				.AppendChild(new DocumentNode("meta", true).With("name", "description").With("content", ReplaceTokens(page.Description, doc.PrimaryObject)))
+				.AppendChild(new DocumentNode("title").AppendChild(new TextNode(ReplaceTokens(page.Title, doc.PrimaryObject))));
 
 			/*
 			 * PWA headers that should only be added if PWA mode is turned on and these files exist
@@ -1074,6 +1092,103 @@ namespace Api.Pages
 			
 			return flatNodes;
 		}
+
+		/// <summary>
+		/// Used to replace tokens within a string with Primary object content
+		/// </summary>
+		/// <param name="pageTitle"></param>
+		/// <param name="primaryObject"></param>
+		/// <returns></returns>
+		public string ReplaceTokens(string pageTitle, object primaryObject)
+		{
+			if (pageTitle == null)
+			{
+				return pageTitle;
+			}
+
+			// We need to find out if there is a token to be handled.
+			if (primaryObject != null)
+			{
+
+				var mode = 0; // 0= text, 1 = inside a {token.field}
+				List<string> tokens = new List<string>();
+				var storedIndex = 0;
+
+				// we have one. Now, do we have a meta file value stored within the title?
+				for (var i = 0; i < pageTitle.Length; i++)
+				{
+					var currentChar = pageTitle[i];
+					if (mode == 0)
+					{
+						if (currentChar == '{')
+						{
+							// now in a token.
+							mode = 1;
+							storedIndex = i;
+						}
+					}
+					else if (mode == 1)
+					{
+						if (currentChar == '}')
+						{
+							// we have the end of the token, let's get it.
+							var token = pageTitle.Substring(storedIndex, i - storedIndex + 1);
+							tokens.Add(token);
+							mode = 0;
+						}
+					}
+				}
+
+				// Let's handle our tokens.
+				foreach (var token in tokens)
+				{
+					// remove brackets
+					var noBrackets = token.Substring(1, token.Length - 2);
+
+					// Let's split it - to get content and its field.
+					var contentAndField = noBrackets.Split(".");
+
+					// Is this valid?
+					if (contentAndField.Length != 2)
+					{
+						// nope, no replacement or further action for this token.
+						break;
+					}
+
+					// This should have a content and field since its 2 pieces
+					var content = contentAndField[0];
+					var field = contentAndField[1];
+
+					// Is the content type valid?
+					var systemType = Database.ContentTypes.GetType(content);
+
+					if (systemType == null)
+					{
+						// invalid content, break
+						break;
+					}
+
+					var fieldInfo = systemType.GetField(field, BindingFlags.Public | BindingFlags.IgnoreCase | BindingFlags.FlattenHierarchy | BindingFlags.Instance); // This is built in .net stuff - you're into reflection here
+
+					if (fieldInfo == null)
+					{
+						break;
+					}
+
+					var value = fieldInfo.GetValue(primaryObject);
+
+					if (value == null)
+					{
+						break;
+					}
+
+					// We need to swap out the string with the value. 
+					pageTitle = pageTitle.Replace(token, value.ToString());
+				}
+			}
+			return pageTitle;
+		}
+
 
 		/// <summary>
 		/// Adds the primary object event handlers to the given event group.
