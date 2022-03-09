@@ -280,8 +280,6 @@ export default class VideoChat extends React.Component {
 		};
 
 		// Filter irrelevant peers:
-		debugger;
-		console.log("** huddleClient: ", huddleClient);
 		var peers = huddleClient.peers || [];
 		var videoPeers = [];
 		var raisedHands = [];
