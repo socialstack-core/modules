@@ -87,7 +87,7 @@ namespace Api.Signatures
 		/// Gets a hmac helper, which may come from a pool.
 		/// </summary>
 		/// <returns></returns>
-		private PooledHMac GetHmac()
+		public PooledHMac GetHmac()
 		{
 			PooledHMac result = null;
 
