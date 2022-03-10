@@ -48,6 +48,21 @@ namespace Api.SocketServerLibrary
 		}
 		
 		/// <summary>
+		/// Converts given byte array to hex string.
+		/// </summary>
+		public static string Convert(byte[] Bytes, int len){
+			if(len == 0){
+				return "";
+			}
+			int LengthReq= len * 2;
+			StringBuilder Result=new StringBuilder(LengthReq,LengthReq);
+			for(int i=0;i< len; i++){
+				Result.Append(Lookup[Bytes[i]]);
+			}
+			return Result.ToString();
+		}
+		
+		/// <summary>
 		/// Converts the given 2 character hex string to a byte.
 		/// </summary>
 		public static byte ToByte(string hex){
