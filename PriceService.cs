@@ -155,6 +155,23 @@ namespace Api.Prices
 
 				return price;
 			});
+
+			Eventing.Events.Product.AfterDelete.AddEventListener(async (Context ctx, Products.Product product) => {
+
+				if (product == null)
+				{
+					return product;
+				}
+
+				var prices = await Where("ProductId=?", DataOptions.IgnorePermissions).Bind(product.Id).ListAll(ctx);
+
+				foreach(var price in prices)
+                {
+					await Delete(ctx, price, DataOptions.IgnorePermissions);
+                }
+
+				return product;
+			});
 		}
 
 		/// <summary>
