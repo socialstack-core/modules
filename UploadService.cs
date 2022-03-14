@@ -153,7 +153,7 @@ namespace Api.Uploader
 							var willTranscode = (transcodeTo.Value != current.Format);
 							current.Format = transcodeTo.Value;
 
-							var formatName = "." + transcodeTo.Value.ToString();
+							var formatName = "." + transcodeTo.Value.ToString().ToLower();
 
 							if(willTranscode)
 							{
