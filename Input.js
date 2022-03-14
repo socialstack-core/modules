@@ -45,6 +45,14 @@ export default class Input extends React.Component {
         this.newId();
     }
 
+    componentDidMount() {
+
+        if (this.props.autoFocus && this.inputRef) {
+            this.inputRef.focus();
+        }
+
+    }
+
     newId() {
         this.fieldId = 'form-field-' + (id++);
         this.helpBeforeFieldId = this.fieldId + "-help-before";
@@ -360,7 +368,7 @@ export default class Input extends React.Component {
 				return handler({ ...this.props, onChange: this.onChange, onBlur: this.onBlur }, type, this);
 			}
 		}
-		
+
         // TODO: wire up related controls (e.g. field A is disabled based on checkbox B)
         var disabledBy = this.props.disabledBy;
         var enabledBy = this.props.enabledBy;
