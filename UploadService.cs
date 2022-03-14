@@ -20,7 +20,8 @@ using System.Text;
 using Api.CanvasRenderer;
 using System.Security.Cryptography;
 using System.Linq;
-//using ImageMagick;
+using ImageMagick;
+
 
 namespace Api.Uploader
 {
@@ -31,8 +32,6 @@ namespace Api.Uploader
 	public partial class UploadService : AutoService<Upload>
     {
 		private UploaderConfig _configuration;
-		
-		
 
 		/// <summary>
 		/// Instanced automatically. Use injection to use this service, or Startup.Services.Get.
@@ -40,7 +39,12 @@ namespace Api.Uploader
 		public UploadService() : base(Events.Upload)
         {
 			_configuration = GetConfig<UploaderConfig>();
-			
+			UpdateConfig();
+			_configuration.OnChange += () => {
+				UpdateConfig();
+				return new ValueTask();
+			};
+
 			Events.Page.BeforeAdminPageInstall.AddEventListener((Context context, Pages.Page page, CanvasRenderer.CanvasNode canvas, Type contentType, AdminPageType pageType) =>
 			{
 				if (contentType == typeof(Upload))
@@ -125,9 +129,11 @@ namespace Api.Uploader
 
 			Events.Upload.Process.AddEventListener(async (Context context, Upload upload) => {
 
-				Image current = null;
+				MagickImage current = null;
 
-				if (IsSupportedImage(upload.FileType))
+				var transcodeTo = IsSupportedImage(upload.FileType);
+
+				if (transcodeTo != null)
 				{
 					upload.IsImage = true;
 
@@ -135,31 +141,58 @@ namespace Api.Uploader
 					{
 						try
 						{
-							var ms = new MemoryStream(File.ReadAllBytes(upload.TemporaryPath));
-
-							current = Image.FromStream(ms);
+							current = new MagickImage(upload.TemporaryPath);
 
 							if (NormalizeOrientation(current))
 							{
 								// The image was rotated - we need to overwrite the original:
-								current.Save(upload.TemporaryPath);
+								current.Write(upload.TemporaryPath);
 							}
 
-							// Resize
+							// If transcoded format is not the same as the actual original:
+							var willTranscode = (transcodeTo.Value != current.Format);
+							current.Format = transcodeTo.Value;
 
-							var sizes = _configuration.ImageSizes;
+							var formatName = "." + transcodeTo.Value.ToString();
+
+							if(willTranscode)
+							{
+								// Save original as well, but in the new format:
+								var fullSizeTranscoded = System.IO.Path.GetTempFileName();
+
+								current.Write(fullSizeTranscoded);
+
+								// Ask to store it:
+								await Events.Upload.StoreFile.Dispatch(context, upload, fullSizeTranscoded, "original" + formatName);
+							}
+							
+							// Resize:
+							var sizes = _resizeGroups;
 
 							if (sizes != null)
 							{
-								foreach (var imageSize in sizes)
+								for (var gId = 0; gId < sizes.Length; gId++)
 								{
-									// Resize it now:
-									var resizedTempFile = Resize(current, imageSize);
+									var sizeGroup = _resizeGroups[gId];
 
-									// Ask to store it:
-									await Events.Upload.StoreFile.Dispatch(context, upload, resizedTempFile, imageSize.ToString());
+									if (gId != 0)
+									{
+										// Must reload the original image as the previous size group destructively lost data
+										current.Dispose();
+										current = new MagickImage(upload.TemporaryPath);
+										current.Format = transcodeTo.Value;
+									}
 
-									//MagickResize(tempFile, imageSize);
+									for (var sizeId = 0; sizeId < sizeGroup.Sizes.Count; sizeId++)
+									{
+										var imageSize = sizeGroup.Sizes[sizeId];
+
+										// Resize it now:
+										var resizedTempFile = Resize(current, imageSize);
+
+										// Ask to store it:
+										await Events.Upload.StoreFile.Dispatch(context, upload, resizedTempFile, imageSize.ToString() + formatName);
+									}
 								}
 							}
 
@@ -169,27 +202,16 @@ namespace Api.Uploader
 							// Done with it:
 							current.Dispose();
 						}
-						catch (OutOfMemoryException e)
-						{
-							// https://msdn.microsoft.com/en-us/library/4sahykhd(v=vs.110).aspx
-							// Not actually an image (or not an image we support).
-							// Dump the file and reject the request.
-							File.Delete(upload.TemporaryPath);
-							upload.TemporaryPath = null;
-
-							Console.WriteLine("Uploaded file is a corrupt image or is too big. Underlying exception: " + e.ToString());
-						}
 						catch (Exception e)
 						{
 							// Either the image format is unknown or you don't have the required libraries to decode this format [GDI+ status: UnknownImageFormat]
 							// Just ignore this one.
+							File.Delete(upload.TemporaryPath);
+							upload.TemporaryPath = null;
+
 							Console.WriteLine("Unsupported image format was not resized. Underlying exception: " + e.ToString());
 						}
 					}
-				}
-				else if (IsOtherImage(upload.FileType))
-				{
-					upload.IsImage = true;
 				}
 
 				return upload;
@@ -280,6 +302,56 @@ namespace Api.Uploader
 			return GetFileBytesForStoragePath(uploadPath, upload.IsPrivate);
 		}
 
+		/// <summary>
+		/// To make image resizing as efficient as possible without repeatedly reloading the source into memory
+		/// a set of "resize groups" are made. These are based on the sizes in the configuration
+		/// and are sorted into multiples. For example, powers of 2 are grouped together.
+		/// Using default config, 2 groups exist: 2048, 1024, 512, .. 32 is one, and 200, 100 is the other.
+		/// </summary>
+		private ImageResizeGroup[] _resizeGroups;
+
+		private void UpdateConfig()
+		{
+			var sizes = _configuration.ImageSizes;
+
+			if (sizes == null || sizes.Length == 0)
+			{
+				_resizeGroups = null;
+				return;
+			}
+
+			// Sort them:
+			var sizeList = new List<int>(sizes);
+			sizeList.Sort();
+
+			var sizeGroups = new List<ImageResizeGroup>();
+
+			sizeGroups.Add(new ImageResizeGroup(sizeList[sizeList.Count - 1]));
+
+			for (var i = sizeList.Count - 2;i>=0;i--)
+			{
+				var currentSize = sizeList[i];
+				var added = false;
+
+				for (var x = 0; x < sizeGroups.Count; x++)
+				{
+					if(sizeGroups[x].TryAdd(currentSize))
+					{
+						added = true;
+						break;
+					}
+				}
+
+				if (!added)
+				{
+					// New set required:
+					sizeGroups.Add(new ImageResizeGroup(currentSize));
+				}
+			}
+
+			_resizeGroups = sizeGroups.ToArray();
+		}
+		
 		/// <summary>
 		/// Gets the file bytes of the given ref, if it is a file ref. Supports remote filesystems as well.
 		/// </summary>
@@ -566,28 +638,12 @@ namespace Api.Uploader
 		/// <param name="current"></param>
 		/// <param name="width"></param>
 		/// <returns>The temp file path the image is at.</returns>
-        public string Resize(Image current, int width)
+        public string Resize(MagickImage current, int width)
         {
-            int height = Convert.ToInt32(width * (double)current.Height / (double)current.Width);
-            var canvas = new Bitmap(width, height);
-
-            using (var graphics = Graphics.FromImage(canvas))
-            {
-                graphics.CompositingQuality = CompositingQuality.HighSpeed;
-                graphics.InterpolationMode = InterpolationMode.HighQualityBicubic;
-                graphics.CompositingMode = CompositingMode.SourceCopy;
-                graphics.DrawImage(current, 0, 0, width, height);
-            }
-
+			int height = Convert.ToInt32(width * (double)current.Height / (double)current.Width);
+			current.Resize(width, height);
 			var targetPath = System.IO.Path.GetTempFileName();
-
-            using (var stream = new FileStream(targetPath, FileMode.OpenOrCreate))
-            {
-                canvas.Save(stream, current.RawFormat);
-            }
-
-			canvas.Dispose();
-
+			current.Write(targetPath);
             return targetPath;
          }
 
@@ -615,33 +671,63 @@ namespace Api.Uploader
 		}
 		*/
 
+		private Dictionary<string, MagickFormat> _imageTypeMap; 
+
         /// <summary>
         /// True if the filetype is a supported image file.
         /// </summary>
         /// <param name="fileType">The filetype.</param>
-        /// <returns></returns>
-        public bool IsSupportedImage(string fileType)
-        {
-            // https://msdn.microsoft.com/en-us/library/4sahykhd(v=vs.110).aspx
-            return (
-                fileType == "jpg" || fileType == "jpeg" || fileType == "tiff" || 
-                fileType == "png" || fileType == "bmp"
-            );
-        }
-		
-        /// <summary>
-        /// True if the filetype is a non-resizeable image file.
-        /// </summary>
-        /// <param name="fileType">The filetype.</param>
-        /// <returns></returns>
-        public bool IsOtherImage(string fileType)
-        {
-            return (
-                fileType == "svg" || fileType == "apng" || fileType == "avif" || 
-                fileType == "webp" || fileType == "gif"
-            );
-        }
+        /// <returns>The target file type to transcode it to. Null if it is not supported.</returns>
+        public MagickFormat? IsSupportedImage(string fileType)
+		{
+			MagickFormat targetFormat;
+			if (_imageTypeMap == null)
+			{
+				var map = new Dictionary<string, MagickFormat>();
+				foreach (var format in MagickNET.SupportedFormats)
+				{
+					if (!format.IsReadable)
+					{
+						continue;
+					}
 
+					if (format.IsMultiFrame && format.Format != MagickFormat.Gif
+						&& format.Format != MagickFormat.Svg
+						&& format.Format != MagickFormat.Tif
+						&& format.Format != MagickFormat.Tiff
+						&& format.Format != MagickFormat.Tiff64
+						&& format.Format != MagickFormat.Heic
+						&& format.Format != MagickFormat.Heif
+						&& format.Format != MagickFormat.Avif
+						&& format.Format != MagickFormat.Ico
+						)
+					{
+						continue;
+					}
+
+					var magicFileType = format.Format.ToString().ToLower();
+					targetFormat = format.Format;
+
+					if (magicFileType != "svg" && magicFileType != "jpg" && magicFileType != "jpeg" && magicFileType != "png" && magicFileType != "avif" && magicFileType != "gif")
+					{
+						// Otherwise it's a web friendly image already (or was webp itself)
+						targetFormat = MagickFormat.WebP;
+					}
+
+					map[magicFileType] = targetFormat;
+				}
+
+				_imageTypeMap = map;
+			}
+
+			if (!_imageTypeMap.TryGetValue(fileType, out targetFormat))
+			{
+				return null;
+			}
+			return targetFormat;
+
+		}
+		
 		/// <summary>
 		/// Orientation tag
 		/// </summary>
@@ -650,46 +736,17 @@ namespace Api.Uploader
 		/// <summary>
 		/// Strips orientation exif data.
 		/// </summary>
-		public bool NormalizeOrientation(Image image)
+		public bool NormalizeOrientation(MagickImage image)
 		{
-			if (Array.IndexOf(image.PropertyIdList, ExifOrientationTagId) > -1)
+			var orientation = image.Orientation;
+
+			if (orientation != OrientationType.TopLeft && orientation != OrientationType.Undefined)
 			{
-				int orientation;
-
-				orientation = image.GetPropertyItem(ExifOrientationTagId).Value[0];
-
-				if (orientation >= 1 && orientation <= 8)
-				{
-					switch (orientation)
-					{
-					case 2:
-						image.RotateFlip(RotateFlipType.RotateNoneFlipX);
-						break;
-					case 3:
-						image.RotateFlip(RotateFlipType.Rotate180FlipNone);
-						break;
-					case 4:
-						image.RotateFlip(RotateFlipType.Rotate180FlipX);
-						break;
-					case 5:
-						image.RotateFlip(RotateFlipType.Rotate90FlipX);
-						break;
-					case 6:
-						image.RotateFlip(RotateFlipType.Rotate90FlipNone);
-						break;
-					case 7:
-						image.RotateFlip(RotateFlipType.Rotate270FlipX);
-						break;
-					case 8:
-						image.RotateFlip(RotateFlipType.Rotate270FlipNone);
-						break;
-					}
-
-					image.RemovePropertyItem(ExifOrientationTagId);
-					return true;
-				}
+				image.AutoOrient();
+				return true;
 			}
 
+			// Did nothing
 			return false;
 		}
 
@@ -790,5 +847,45 @@ namespace Api.Uploader
 			return result;
         }
 	
+	}
+
+	/// <summary>
+	/// A group of image sizes which can be quickly interpolated with no quality loss.
+	/// </summary>
+	public class ImageResizeGroup
+	{
+		/// <summary>
+		/// Sizes in this group in descending order.
+		/// </summary>
+		public List<int> Sizes;
+
+		/// <summary>
+		/// Creates a group with the given size in it as the largest one in the group (first).
+		/// </summary>
+		/// <param name="size"></param>
+		public ImageResizeGroup(int size)
+		{
+			Sizes = new List<int>();
+			Sizes.Add(size);
+		}
+
+		/// <summary>
+		/// Try adding the given size. True if it was successful.
+		/// A successful add happens when the given size is a multiple of the latest.
+		/// </summary>
+		/// <param name="size"></param>
+		/// <returns></returns>
+		public bool TryAdd(int size)
+		{
+			var latest = Sizes[Sizes.Count - 1];
+
+			if ((latest % size) == 0)
+			{
+				Sizes.Add(size);
+				return true;
+			}
+
+			return false;
+		}
 	}
 }
