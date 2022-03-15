@@ -151,11 +151,12 @@ namespace Api.Uploader
 
 							// If transcoded format is not the same as the actual original:
 							var willTranscode = (transcodeTo.Value != current.Format);
+
 							current.Format = transcodeTo.Value;
 
 							var formatName = "." + transcodeTo.Value.ToString().ToLower();
 
-							if(willTranscode)
+							if(willTranscode && formatName != "." + upload.FileType)
 							{
 								// Save original as well, but in the new format:
 								var fullSizeTranscoded = System.IO.Path.GetTempFileName();
