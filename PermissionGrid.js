@@ -142,11 +142,12 @@ export default class PermissionGrid extends React.Component {
 	}
 	
 	getGrantInfo(capability) {
+		var content = this.content();
 		var capGrant = null; // Not granted is the default
 		if(capability.grants){
 			var grantSet = capability.grants;
 			for(var i=0;i<grantSet.length;i++){
-				if(grantSet[i].role.key == this.props.currentContent.key){
+				if(grantSet[i].role.key == content.key){
 					capGrant = grantSet[i];
 					break;
 				}
@@ -176,6 +177,10 @@ export default class PermissionGrid extends React.Component {
 		return current;
 	}
 	
+	content(){
+		return this.props.currentContent || {};
+	}
+	
 	renderEditMode(){
 
 		if(!this.state.grants || !this.state.capabilities){
@@ -196,7 +201,7 @@ export default class PermissionGrid extends React.Component {
 					<tr>
 						<th>Capability</th>
 						{this.state.roles.map(role => {
-							if(this.props.currentContent.id == role.id) {
+							if(this.content().id == role.id) {
 								return (
 									<th>
 										{role.name}
@@ -254,8 +259,8 @@ export default class PermissionGrid extends React.Component {
 	renderEditModal(){
 		var cell = this.state.editingCell;
 		var { grantInfo } = cell;
-		
-		return <Modal title = {cell.key + " for " + this.props.currentContent.name} visible = {true} isExtraLarge onClose = {() => {
+		var content = this.content();
+		return <Modal title = {cell.key + " for " + content.name} visible = {true} isExtraLarge onClose = {() => {
 			this.setState({editingCell: null});
 		}}>
 			<Input 
