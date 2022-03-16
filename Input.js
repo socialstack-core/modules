@@ -615,6 +615,22 @@ export default class Input extends React.Component {
                 </div>;
             }
 
+            if (this.props.type == 'datetime-local' && this.props.roundMinutes && this.props.roundMinutes > 0) {
+                fieldMarkup.props.onChange = e => {
+                    var [hours, minutes] = e.target.value.slice(-4).split(':');
+                    hours = parseInt(hours);
+                    minutes = parseInt(minutes);
+
+                    var time = (hours * 60) + minutes; 
+
+                    var rounded = Math.round(time / this.props.roundMinutes) * this.props.roundMinutes;
+                   
+                    e.target.value =  e.target.value.slice(0, -4) + Math.floor(rounded / 60) + ':' + String(rounded % 60).padStart(2, '0');
+
+                    this.onChange(e);
+                };
+            }
+
             return fieldMarkup;
         }
 
