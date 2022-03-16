@@ -701,6 +701,7 @@ namespace Api.Uploader
 						&& format.Format != MagickFormat.Heif
 						&& format.Format != MagickFormat.Avif
 						&& format.Format != MagickFormat.Ico
+						&& format.Format != MagickFormat.WebP
 						)
 					{
 						continue;
