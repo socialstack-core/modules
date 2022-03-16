@@ -1,7 +1,7 @@
 import PeerView from 'UI/VideoChat/PeerView';
 
 export default class Peer extends React.Component {
-	
+
 	setSpeaker(state, e){
 		const {
 			peer,
@@ -38,16 +38,31 @@ export default class Peer extends React.Component {
 			!videoConsumer.locallyPaused &&
 			!videoConsumer.remotelyPaused
 		);
-		
+
+		var audioAvailable = Boolean(audioConsumer);
+		var videoAvailable = Boolean(videoConsumer);
+
 		return (
 			<div className="peer">
 				<div className='indicators'>
-					{!audioEnabled && (
-						<div className='icon mic-off' />
-					)}
-					{!videoConsumer && (
-						<div className='icon webcam-off' />
-					)}
+					<button type="button" className="peer__indicator peer__indicator--audio" disabled={!audioAvailable ? true : undefined}
+						onClick={() => {
+							(audioEnabled
+								? huddleClient.muteMic()
+								: huddleClient.unmuteMic()).then(() => this.setState({}));
+						}}>
+						<span className={"icon mic-" + audioEnabled ? "on" : "off" }></span>
+					</button>
+
+					<button type="button" className="peer__indicator peer__indicator--video" disabled={!videoAvailable ? true : undefined}
+						onClick={() => {
+							(videoVisible
+								? huddleClient.disableWebcam()
+								: huddleClient.enableWebcam()).then(() => this.setState({}));
+						}}>
+						<span className={"icon webcam-" + videoVisible ? "on" : "off" }></span>
+					</button>
+
 					{// If we are an admin, we should see a button to make this user a permitted speaker if they are not.
 					huddleClient.me.huddleRole == 1 && room.huddle && room.huddle.huddleType == 3 &&(peer.profile.isPermittedSpeaker ? <button className = "btn btn-danger" onClick = {e => {
 						this.setSpeaker(false, e);

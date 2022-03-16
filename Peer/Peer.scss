@@ -21,26 +21,46 @@
 		justify-content: flex-end;
 		align-items: center;
 
-		> .icon {
-			flex: 0 0 auto;
-			margin: 4px;
-			margin-left: 0;
-			width: 32px;
-			height: 32px;
-			background-position: center;
-			background-size: 75%;
-			background-repeat: no-repeat;
-			transition-property: opacity;
-			transition-duration: 0.15s;
+		.peer__indicator {
+			padding: 4px;
+		    border: 0;
+			border-radius: 2px;
+		    background: transparent;
+			transition: all .2s ease;
 
-			&.mic-off {
-				background-image: url('./images/icon_remote_mic_white_off.svg');
+			&::hover {
+				background: rgba(0,0,0, .35);
 			}
 
-			&.webcam-off {
-				background-image: url('./images/icon_remote_webcam_white_off.svg');
+			> .icon {
+				width: 24px;
+				height: 24px;
+				display: block;
+			    background-position: center;
+				background-size: contain;
+				background-repeat: no-repeat;
+				transition-property: opacity;
+				transition-duration: 0.15s;
+
+				&.mic-on {
+					background-image: url('./images/icon_remote_mic_white_on.svg');
+				}
+
+				&.mic-off {
+					background-image: url('./images/icon_remote_mic_white_off.svg');
+				}
+
+				&.webcam-on {
+					background-image: url('./images/icon_remote_webcam_white_on.svg');
+				}
+
+				&.webcam-off {
+					background-image: url('./images/icon_remote_webcam_white_off.svg');
+				}
 			}
+
 		}
+
 	}
 
 	.incompatible-video {
