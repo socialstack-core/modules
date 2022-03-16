@@ -49,16 +49,16 @@ namespace Api.Users
 							}
 							else
 							{
-								user.FullName = user.LastName;
+								user.FullName = user.LastName.Trim();
 							}
 						}
 						else if (string.IsNullOrEmpty(user.LastName))
 						{
-							user.FullName = fName;
+							user.FullName = fName.Trim();
 						}
 						else
 						{
-							user.FullName = fName + " " + user.LastName;
+							user.FullName = fName.Trim() + " " + user.LastName.Trim();
 						}
 
 						user.MarkChanged(fullName);
@@ -86,16 +86,16 @@ namespace Api.Users
 							}
 							else
 							{
-								user.FullName = lName;
+								user.FullName = lName.Trim();
 							}
 						}
 						else if (string.IsNullOrEmpty(lName))
 						{
-							user.FullName = user.FirstName;
+							user.FullName = user.FirstName.Trim();
 						}
 						else
 						{
-							user.FullName = user.FirstName + " " + lName;
+							user.FullName = user.FirstName.Trim() + " " + lName.Trim();
 						}
 
 						user.MarkChanged(fullName);
