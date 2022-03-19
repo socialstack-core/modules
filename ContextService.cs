@@ -352,7 +352,7 @@ namespace Api.Contexts
 			// (X digits) - the ID
 			// (64 alphanum) - The hex encoded HMAC-SHA256 of everything before it.
 
-			if (tokenStr[0] != '1' || tokenStr.Length < 65)
+			if (tokenStr.Length < 65 || tokenStr[0] != '1')
 			{
 				// Must start with version 1
 				return null;
