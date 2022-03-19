@@ -356,7 +356,7 @@ function _fetch(url, data, opts) {
 		}
 		
 		if(global.storedToken){
-			headers['Token'] = store.get('context');
+			headers['Token'] = global.storedTokenValue || store.get('context');
 		}
 		
 		if(opts && opts.locale){
