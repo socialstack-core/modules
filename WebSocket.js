@@ -412,7 +412,12 @@ function connect(){
 	}
 
 	sk.addEventListener("close", onClose);
-	sk.addEventListener("error", onClose);
+	sk.addEventListener("error", (e) => {
+		console.log(e);
+		try{
+			sk.close();
+		}catch(r){}
+	});
 	
 	sk.addEventListener("message", e => {
 		// standard bolt message(s)
