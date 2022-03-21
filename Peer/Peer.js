@@ -51,7 +51,7 @@ export default class Peer extends React.Component {
 								? huddleClient.muteMic()
 								: huddleClient.unmuteMic()).then(() => this.setState({}));
 						}}>
-						<span className={"icon mic-" + audioEnabled ? "on" : "off" }></span>
+						<span className={"icon mic-" + (audioEnabled ? "on" : "off") }></span>
 					</button>
 
 					<button type="button" className="peer__indicator peer__indicator--video" disabled={!videoAvailable ? true : undefined}
@@ -60,7 +60,7 @@ export default class Peer extends React.Component {
 								? huddleClient.disableWebcam()
 								: huddleClient.enableWebcam()).then(() => this.setState({}));
 						}}>
-						<span className={"icon webcam-" + videoVisible ? "on" : "off" }></span>
+						<span className={"icon webcam-" + (videoVisible ? "on" : "off") }></span>
 					</button>
 
 					{// If we are an admin, we should see a button to make this user a permitted speaker if they are not.
