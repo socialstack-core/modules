@@ -1,5 +1,7 @@
 import Peer from 'UI/VideoChat/Peer';
 
+const PEER_CAP = 10;
+
 export default class Peers extends React.Component {
 	
 	render(){
@@ -15,7 +17,7 @@ export default class Peers extends React.Component {
 		}
 		
 		var dataSharing = sharedPeers.join();
-		var cappedPeerCount = peers.length > 8 ? 8 : peers.length;
+		var cappedPeerCount = peers.length > PEER_CAP ? PEER_CAP : peers.length;
 		
 		return <div className={className + " peers-" + cappedPeerCount} data-sharing={dataSharing} data-attendees={cappedPeerCount}>
 			{
