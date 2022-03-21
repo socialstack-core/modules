@@ -125,7 +125,11 @@ namespace Api.Contexts
 						Domain = _contextService.GetDomain(),
 						IsEssential = true,
 						HttpOnly = true,
+#if DEBUG
+						Secure = false,
+#else
 						Secure = true,
+#endif
 						SameSite = SameSiteMode.Lax
 					}
 				);
