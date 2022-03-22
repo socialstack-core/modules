@@ -46,6 +46,24 @@ namespace Api.Users
 		}
 
 		/// <summary>
+		/// Self-delete and logout. Returns a context which you should setSession.
+		/// </summary>
+		/// <returns></returns>
+		[HttpGet("delete-self")]
+		public async ValueTask DeleteSelf()
+		{
+			var context = await Request.GetContext();
+
+			if (context.UserId != 0)
+			{
+				await _service.Delete(context, context.UserId, DataOptions.IgnorePermissions);
+			}
+
+			context.User = null;
+			await OutputContext(context);
+		}
+
+		/// <summary>
 		/// A date in the past used to set expiry on cookies.
 		/// </summary>
 		private static DateTimeOffset ThePast = new DateTimeOffset(1993, 1, 1, 0, 0, 0, TimeSpan.Zero);
