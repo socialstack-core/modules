@@ -69,6 +69,13 @@ function contentFile(ref, options, r){
 	var id = fileParts.shift();
 	var type = fileParts.join('.');
 	
+	if(options.forceImage){
+		if(imgTypes.indexOf(type) == -1){
+			// Use the transcoded webp ver:
+			type = 'webp';
+		}
+	}
+	
 	// Web video only:
 	var video = (type == 'mp4' || type == 'webm' || type == 'avif');
 	
