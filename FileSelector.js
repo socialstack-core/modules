@@ -1,17 +1,18 @@
 import Loop from 'UI/Loop';
 import Modal from 'UI/Modal';
-import Alert from 'UI/Alert';
 import Image from 'UI/Image';
 import Uploader from 'UI/Uploader';
 import omit from 'UI/Functions/Omit';
 import getRef from 'UI/Functions/GetRef';
 import IconSelector from 'UI/FileSelector/IconSelector';
+import Dropdown from 'UI/Dropdown';
 
 var inputTypes = global.inputTypes = global.inputTypes || {};
+let lastId = 0;
 
-inputTypes.ontypefile = inputTypes.ontypeimage = function(props, _this){
+inputTypes.ontypefile = inputTypes.ontypeimage = function (props, _this) {
 	return (
-		<FileSelector 
+		<FileSelector
 			id={props.id || _this.fieldId}
 			className={props.className || "form-control"}
 			{...omit(props, ['id', 'className', 'type', 'inline'])}
@@ -19,9 +20,9 @@ inputTypes.ontypefile = inputTypes.ontypeimage = function(props, _this){
 	);
 };
 
-inputTypes.ontypeicon = function(props, _this){
+inputTypes.ontypeicon = function (props, _this) {
 	return (
-		<FileSelector 
+		<FileSelector
 			id={props.id || _this.fieldId}
 			iconOnly
 			className={props.className || "form-control"}
@@ -30,9 +31,9 @@ inputTypes.ontypeicon = function(props, _this){
 	);
 };
 
-inputTypes.ontypeupload = function(props, _this){
+inputTypes.ontypeupload = function (props, _this) {
 	return (
-		<FileSelector 
+		<FileSelector
 			id={props.id || _this.fieldId}
 			browseOnly
 			className={props.className || "form-control"}
@@ -47,73 +48,74 @@ inputTypes.ontypeupload = function(props, _this){
  * You can use <Input type="file" .. /> to obtain one of these.
  */
 export default class FileSelector extends React.Component {
-	
-	constructor(props){
+
+	constructor(props) {
 		super(props);
-		
+
 		this.state = {
-			editing: false
-			
+			ref: props.value || props.defaultValue
 		};
+
 		this.closeModal = this.closeModal.bind(this);
 	}
-	
+
+	newId() {
+		lastId++;
+		return `fileselector${lastId}`;
+	}
+
 	updateValue(newRef) {
-		if(!newRef){
+		var originalName = newRef ? newRef.originalName : '';
+
+		if (!newRef) {
 			newRef = '';
 		}
-		
-		if(newRef.result && newRef.result.ref){
+
+		if (newRef.result && newRef.result.ref) {
 			// Accept upload objects also.
 			newRef = newRef.result.ref;
-		}else if(newRef.ref){
+		} else if (newRef.ref) {
 			newRef = newRef.ref;
 		}
-		
-		this.props.onChange && this.props.onChange({target: {value: newRef}});
-		
+
+		this.props.onChange && this.props.onChange({ target: { value: newRef } });
+
 		this.setState({
 			value: newRef,
-			modalOpen: false,
-			editing: false
+			originalName: originalName,
+			modalOpen: false
 		});
 	}
-	
-	showRef(ref){
-		// Check if it's an image/ video/ audio file. If yes, a preview is shown. Otherwise it'll be a preview link.
-		var canShowImage = getRef.isImage(ref);
-		
-		return <a href={getRef(ref, {url: true})} alt={ref} target={'_blank'}>
-			{
-				canShowImage ? (
-					<Image fileRef={ref} size={256} alt={ref}/>
-				) : 'View selected file'
-			}
-		</a>;
-		
+
+	showModal() {
+		this.setState({ modalOpen: true });
 	}
-	
-	showModal(){
-		this.setState({modalOpen: true});
+
+	closeModal() {
+		this.setState({ modalOpen: false });
 	}
-	
-	closeModal(){
-		this.setState({modalOpen: false});
-	}
-	
+
 	render() {
 		var currentRef = this.props.value || this.props.defaultValue;
-		
-		if(this.state.value !== undefined){
+
+		if (this.state.value !== undefined && this.state.value !== '') {
 			currentRef = this.state.value;
 		}
-		
+
 		var hasRef = currentRef && currentRef.length;
-		
+		var filename = hasRef ? getRef.parse(currentRef).ref : "";
+		var originalName = this.state.originalName && this.state.originalName.length ? this.state.originalName : '';
+
+		if (originalName) {
+			filename = originalName;
+        }
+
 		return <div className="file-selector">
+
+			{/* upload browser */}
 			<Modal
 				isExtraLarge
-				title = {"Select an Upload"}
+				title={"Select an Upload"}
 				className={"image-select-modal"}
 				buttons={[
 					{
@@ -124,117 +126,97 @@ export default class FileSelector extends React.Component {
 				onClose={this.closeModal}
 				visible={this.state.modalOpen}
 			>
-				<table>
-					<tr>
-						<th>Name</th>
-						<th></th>
-					</tr>
-					<Loop over="upload/list" filter={{sort: {field: 'CreatedUtc', direction: 'desc'}}} asRaw paged>
+
+				<Loop className="file-selector__grid" over="upload/list" filter={{ sort: { field: 'CreatedUtc', direction: 'desc' } }} paged>
 					{
-						entry => <tr onClick={() => this.updateValue(entry)}>
-							<td width='85%'>
-								{entry.originalName}
-							</td>
-							<td width='15%' align='right' className="break-word">
-								{entry.isImage && (
-									<Image fileRef={entry.ref} size={128} />
-								)}
-							</td>
-						</tr>
+						entry => {
+							return <>
+								<button title={entry.originalName} type="button" className="btn file-selector__item" onClick={() => this.updateValue(entry)}>
+									<div className="file-selector__preview">
+										{entry.isImage && (
+											<Image fileRef={entry.ref} size={256} />
+										)}
+									</div>
+									<span className="file-selector__name">
+										{entry.originalName}
+									</span>
+								</button>
+							</>;
+						}
 					}
-					</Loop>
-					</table>
+				</Loop>
+
 			</Modal>
-			<IconSelector 
-				visible = {this.state.iconModalOpen} 
-				onClose = {() => {
-					this.setState({iconModalOpen: false})
+
+			{/* icon browser */}
+			<IconSelector
+				visible={this.state.iconModalOpen}
+				onClose={() => {
+					this.setState({ iconModalOpen: false })
 				}}
-				onSelected = {
+				onSelected={
 					icon => {
 						console.log("onSelected");
 						console.log(icon);
-						this.updateValue(icon)
+						this.updateValue(icon);
 					}
 				}
 			/>
 
-			{this.state.editing ? (
-				<>
-				{/*
-				<div>
-					<span className="btn btn-primary" onClick={() => this.showModal()}>Select from uploads</span> or <Uploader isPrivate={this.props.isPrivate} onUploaded={
-						file => this.updateValue(file)
-					}/>
-				</div>
-				*/}
-				{this.props.browseOnly ? <>
-					<Uploader isPrivate={this.props.isPrivate} onUploaded={
-						file => this.updateValue(file)
-					}/>
-				</> :
-					<div class="btn-group btn-group-toggle canvas-editor-view file-selector-btn-group" data-toggle="buttons">
-						<label class="btn btn-sm btn-primary">
-							<input className = "radio" type="radio" name="fileSelectorOptions" id="selectUploads" autocomplete="off"
-								checked={false} onChange={() => {
-									this.showModal()
-								}} />
-							<i class="far fa-images"></i>
-							<p>Select from uploads</p>
-						</label>
-						<label class="btn btn-sm btn-primary">
-							<input className = "radio" type="radio" name="fileSelectorOptions" id="uploadNew" autocomplete="off"
-								checked={false} onChange={() => {
-									this.setState({
+			{/* upload */}
+			<Uploader
+				currentRef={currentRef}
+				originalName={originalName}
+				id={this.props.id || this.newId()}
+				isPrivate={this.props.isPrivate}
+				maxSize={this.props.maxSize}
+				onUploaded={
+					file => this.updateValue(file)
+				} />
 
-									});
-								}} />
-							<i class="far fa-upload"></i>
-							<p>
-								<Uploader isPrivate={this.props.isPrivate} onUploaded={
-									file => this.updateValue(file)
-								}/>
-							</p>
-						</label>
-						<label class="btn btn-sm btn-primary">
-							<input className = "radio" type="radio" name="fileSelectorOptions" id="selectIcons" autocomplete="off"
-								checked={false} onChange={() => {
-									this.setState({
-										iconModalOpen: true
-									});
-								}} />
-							<i class="far fa-icons"></i>
-							<p>Select from icons</p>
-						</label>
-						<button
-							className = "btn btn-sm btn-dark"
-							onClick = {() => {
-								this.setState({editing: false})
-							}}
-						>
-							<i class="far fa-times"></i>
-							<p>Cancel</p>
+			{/* options (browse, preview, remove) */}
+			<div className="file-selector__options">
+				{!this.props.browseOnly && <>
+
+					{this.props.iconOnly ? <>
+						<button type="button" className="btn btn-primary file-selector__select" onClick={() => this.setState({ iconModalOpen: true })}>
+							Select icon
 						</button>
-					</div>
-				}
-				</>
-			) : (
-				<div>
-					{hasRef && (currentRef.endsWith('.webp') || currentRef.endsWith('.avif')) && <p>
-						<Alert type='info'>Format requires manual resizing</Alert>
-						</p>
-					}
-					{hasRef ? this.showRef(currentRef) : 'None selected'}
-					&nbsp;
-					<div className="btn btn-primary change-file-btn" onClick={() => this.props.iconOnly ? this.setState({iconModalOpen: true}) : this.setState({editing: true})}>Change</div>
-					<div className="btn btn-danger delete-file-btn" onClick={() => this.updateValue(null)}>Remove</div>
-				</div>
-			)}
+					</> : <>
+						<Dropdown label="Select" variant="primary" className="file-selector__select">
+							<li>
+								<button type="button" className="btn dropdown-item" onClick={() => this.showModal()}>
+									From uploads
+								</button>
+							</li>
+							<li>
+								<button type="button" className="btn dropdown-item" onClick={() => this.setState({ iconModalOpen: true })}>
+									From icons
+								</button>
+							</li>
+						</Dropdown>
+					</>}
+
+				</>}
+				{hasRef && <>
+
+					{!getRef.isIcon(currentRef) && <>
+						<a href={getRef(currentRef, { url: true })} alt={filename} className="btn btn-primary file-selector__link" target="_blank" rel="noopener noreferrer">
+							Preview
+						</a>
+					</>}
+
+					<button type="button" className="btn btn-danger file-selector__remove" onClick={() => this.updateValue(null)}>
+						Remove
+					</button>
+				</>}
+			</div>
+
 			{this.props.name && (
-				/* Also contains a hidden input field containing the value */
+				// Also contains a hidden input field containing the value
 				<input type="hidden" value={currentRef} name={this.props.name} id={this.props.id} />
 			)}
 		</div>;
 	}
-	
+
 }

@@ -74,37 +74,38 @@ export default class IconSelector extends React.Component {
     }
 
     renderHeader(){
-        return <div className = "row header-container">
-            <h5>Select an icon</h5>
-            <Col size = {6}>
-                <label>
+        return <div className="row header-container">
+            <Col size={4}>
+                <label htmlFor="icon-style">
                     Style
                 </label>
-                <Input type ="select"
-                    name = "style"
-                    onChange = {(e) => {
+                <Input type="select"
+                    name="icon-style"
+                    onChange={(e) => {
                         this.setState({styleFilter: e.target.value})
                     }}
                 >
-					{iconStyles.map(s => <option value = {s.key}>{s.name}</option>)}
+					{iconStyles.map(s => <option value={s.key}>{s.name}</option>)}
                 </Input>
-                <label>
+			</Col>
+			<Col size={4}>
+                <label htmlFor="icon-set">
                     Set
                 </label>
-                <Input type ="select"
-                    name = "set"
-                    onChange = {(e) => {
+                <Input type="select"
+                    name="icon-set"
+                    onChange={(e) => {
                         this.setState({setFilter: e.target.value})
                     }}
                 >
-					{iconSets.map(s => <option value = {s.key}>{s.name}</option>)}
+					{iconSets.map(s => <option value={s.key}>{s.name}</option>)}
                 </Input>
             </Col>
-            <Col size = {6}>
-                <label>
+            <Col size={4}>
+                <label htmlFor="icon-search">
                     Search
                 </label>
-                <Input type = "text" name = "search" onKeyUp = {(e) => {
+                <Input type="text" name="icon-search" onKeyUp={(e) => {
                     this.state.debounce.handle(e.target.value);
                 }}/>
             </Col>
@@ -120,58 +121,64 @@ export default class IconSelector extends React.Component {
 			prefixForStyle[s.key] = s.prefix;
 		});
 		
-        return <div className = "icon-selector">
-            <Modal
-                visible = {this.props.visible}
-                onClose = {() => this.closeModal()}
-                isLarge 
-                className={"icon-select-modal"}
-                title = {this.renderHeader()}
-            >
-                <div className = "row icon-container">
+		return this.props.visible ? <div className="icon-selector">
+			<Modal
+				visible={true}
+				onClose={() => this.closeModal()}
+				isLarge
+				className={"icon-select-modal"}
+				title={"Select an icon"}
+			>
+				{this.renderHeader()}
+				<div className="icon-container">
 					<Loop
-                        raw
-                        over = {icons}
-						orNone = {() => <Loading />}
-                    >
-                        {icon => {
-                            if(icon.name.includes(searchFilter) ||icon.name.replace(/-/g, " ").includes(searchFilter) || !searchFilter) {
-                                return icon.styles.map(style => {
-									
-									if(styleFilter && styleFilter != "all"){
-										if(styleFilter != style){
+						raw
+						over={icons}
+						orNone={() => <Loading />}
+					>
+						{icon => {
+							if (icon.name.includes(searchFilter) || icon.name.replace(/-/g, " ").includes(searchFilter) || !searchFilter) {
+								return icon.styles.map(style => {
+
+									if (styleFilter && styleFilter != "all") {
+										if (styleFilter != style) {
 											return null;
 										}
 									}
-									
-									if(setFilter && setFilter != "all"){
-										if(setFilter == 'default'){
-											if(icon.set){
+
+									if (setFilter && setFilter != "all") {
+										if (setFilter == 'default') {
+											if (icon.set) {
 												return null;
 											}
-										}else if(setFilter != icon.set){
+										} else if (setFilter != icon.set) {
 											return null;
 										}
 									}
-									
+
 									var prefix = prefixForStyle[style];
-									
-									return <Col className="icon-tile" size = {3} onClick= {() => {
-										var newIcon = prefix+":"+(icon.prefix||"fa")+"-" + icon.name;
-										
-										this.setState({value: newIcon});
+									var readableName = icon.name.replace(/-/g, " ");
+									var styleClass = "icon-tile__style icon-tile__style--" + style.toLowerCase();
+
+									return <button title={readableName} type="button" className="btn icon-tile" onClick={() => {
+										var newIcon = prefix + ":" + (icon.prefix || "fa") + "-" + icon.name;
+
+										this.setState({ value: newIcon });
 										this.props.onSelected && this.props.onSelected(newIcon)
 										this.closeModal && this.closeModal();
 									}}>
-										<i className={prefix+" "+(icon.prefix||"fa")+"-" + icon.name} />
-										<p>{icon.name.replace(/-/g, " ")} ({style})</p>
-									</Col>
-                                }) 
-                            }
-                        }}
-                    </Loop>
-                </div>
-            </Modal>
-        </div>
+										<div className="icon-tile__preview">
+											<i className={prefix + " " + (icon.prefix || "fa") + "-" + icon.name} />
+											<span className={styleClass}>{style}</span>
+										</div>
+										<p className="icon-tile__name">{readableName}</p>
+									</button>
+								})
+							}
+						}}
+					</Loop>
+				</div>
+			</Modal>
+		</div> : <></>;
     }
 }
