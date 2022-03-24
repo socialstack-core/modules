@@ -98,7 +98,7 @@ export default class FileSelector extends React.Component {
 	render() {
 		var currentRef = this.props.value || this.props.defaultValue;
 
-		if (this.state.value !== undefined && this.state.value !== '') {
+		if (this.state.value !== undefined) {
 			currentRef = this.state.value;
 		}
 
