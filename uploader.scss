@@ -1,16 +1,212 @@
-.uploader{
-	display: inline-block;
+$uploader_width: 256px;
 
-	// NB: file upload styling is defined wihin UI/Source/ThirdParty/global-buttons.35.scss 
-	
-	.loading{
-		.loading-message{
-			display: initial;
-			color: black;
+.uploader {
+	$uploader: &;
+
+	&__internal {
+		width: $uploader_width;
+		aspect-ratio: 1 / 1;
+		position: relative;
+	}
+
+    &__input {
+        width: 100% !important;
+        height: 100% !important;
+        opacity: 1 !important;
+        position: static !important;
+        z-index: auto !important;
+        cursor: pointer;
+    }
+        
+    &__label {
+        position: absolute;
+        left: 0;
+        top: 0;
+        right: 0;
+        bottom: 0;
+        background: #f0f0f0;
+        border: 1px solid #ccc;
+        border-radius: 3px;
+        margin: 0;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        text-align: center;
+        font-size: 18px;
+        font-weight: bold;
+        padding: 2.75rem;
+        cursor: pointer;
+        background-position: center;
+        background-size: contain;
+        background-repeat: no-repeat;
+        pointer-events: none;
+
+        i {
+            font-size: 2.5rem;
+            margin-bottom: .5rem;
+        }
+
+        #{$uploader}__file {
+            font-size: 4rem;
+        }
+
+        &-internal {
+            display: -webkit-box;
+            -webkit-line-clamp: 5;
+            -webkit-box-orient: vertical;  
+            overflow: hidden;      
+        }
+
+    }
+
+    &__icon {
+        position: absolute;
+        left: 0;
+        top: 0;
+        right: 0;
+        bottom: 0;
+        background: #f0f0f0;
+        border: 1px solid #ccc;
+        border-radius: 3px;
+        margin: 0;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        text-align: center;
+        font-size: 18px;
+        font-weight: bold;
+        padding: 2.75rem;
+        cursor: pointer;
+        background-position: center;
+        background-size: contain;
+        background-repeat: no-repeat;
+        pointer-events: none;
+
+        i {
+            font-size: 2.5rem;
+            margin-bottom: .5rem;
+        }
+
+        #{$uploader}__file {
+            font-size: 4rem;
+        }
+
+        &-internal {
+            display: -webkit-box;
+            -webkit-line-clamp: 5;
+            -webkit-box-orient: vertical;  
+            overflow: hidden;      
+        }
+
+    }
+
+    &__progress {
+        display: none;
+        background: transparent;
+        position: absolute;
+        border: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;    
+        -webkit-appearance: none;
+        appearance: none;
+        width: 100%;  
+        height: 8px;
+        pointer-events: none;
+            
+        &::-webkit-progress-bar {
+            background-color: rgba(0,0,0, .125);
+            border-radius: 0 0 3px 3px;
+        }
+            
+        &::-webkit-progress-value {
+            background-color: rgba(0,0,0, .25);
+            border-radius: 0 0 3px 3px;
+        }
+
+        &::-moz-progress-bar {
+            background-color: rgba(0,0,0, .25);
+            border-radius: 0 0 3px 3px;
+        }
+            
+    }
+  
+    &__caption {
+        font-size: .75rem;
+        text-align: center;
+        width: 256px;
+        display: block;
+        margin-top: 0.25rem;
+        width: $uploader_width;
+        text-align: center;
+    }
+
+	&--16-9 {
+
+		#{$uploader}__internal {
+			aspect-ratio: 16 / 9;
 		}
 	}
-	
-	.upload-limit{
-		margin-top: 0.5rem;
+
+	&--4-3 {
+
+		#{$uploader}__internal {
+			aspect-ratio: 4 / 3;
+		}
 	}
+
+    &--error {
+        
+        #{$uploader}__label {
+            background: var(--danger);
+            color: var(--danger-fg);
+            border-color: var(--danger-active-border);
+        }
+        
+        /*
+        #{$uploader}__progress {
+            display: block;
+        }
+        */
+    }
+    
+    &--progress {
+        
+        #{$uploader}__progress {
+            display: block;
+        }
+
+    }
+
+    &--content {
+        
+        #{$uploader}__label {
+            background-color: #fff;
+        }
+
+    }
+    
+    &--drag-target {
+        
+        #{$uploader}__label {
+            border-width: 4px;
+            border-style: dashed;
+        }
+
+    }
+
+}
+
+@include mq_firefox {
+    
+    .uploader {
+        
+        &__progress {
+            background: rgba(0,0,0, .125);
+        }
+
+    }
+  
 }

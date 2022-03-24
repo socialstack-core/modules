@@ -1,7 +1,13 @@
-import Loading from 'UI/Loading';
-import Alert from 'UI/Alert';
+import getRef from 'UI/Functions/GetRef';
 
-var DEFAULT_ERROR = `Unable to upload that file - this often means it was too big.`;
+var DEFAULT_ERROR = `Unable to upload`;
+var DEFAULT_MESSAGE = `Drag and drop your file or click to upload here`;
+
+const XHR_UNSENT = 0; // Client has been created.open() not called yet.
+const XHR_OPENED = 1; // open() has been called.
+const XHR_HEADERS_RECEIVED = 2;	// send() has been called, and headers and status are available.
+const XHR_LOADING = 3; // Downloading; responseText holds partial data.
+const XHR_DONE = 4; // The operation is complete.
 
 /*
 * General purpose file uploader. Doesn't delcare a form so can be used inline anywhere.
@@ -10,30 +16,75 @@ export default class Uploader extends React.Component {
 
 	constructor(props) {
 		super(props);
+
+		var message = this.props.label || DEFAULT_MESSAGE;
+		this.inputRef = React.createRef();
+
 		this.state = {
 			loading: false,
-			progress: ""
+			progressPercent: 0,
+			progress: "",
+			message: message,
+			tooltip: message,
+			maxSize: this.props.maxSize || 0,
+			ref: this.props.currentRef,
+			aspect169: this.props.aspect169,
+			aspect43: this.props.aspect43,
+			filename: this.props.currentRef ? getRef.parse(this.props.currentRef).ref : undefined,
+			draggedOver: false
 		};
+
+		this.handleDragEnter = this.handleDragEnter.bind(this);
+		this.handleDragLeave = this.handleDragLeave.bind(this);
 	}
-	
+
 	onSelectedFile(e) {
-		this.setState({ loading: true, failed: false, success: false,progress: "" });
 		var file = e.target.files[0];
+
+		this.setState({
+			loading: true,
+			failed: false,
+			success: false,
+			progressPercent: 0,
+			progress: "",
+			filename: file.name,
+			ref: undefined
+		});
+
+		var maxSize = this.state.maxSize;
+
+		if (maxSize > 0 && file.size > maxSize) {
+			this.setState({
+				loading: false,
+				success: false,
+				failed: 'File too large'
+			});
+
+			return;
+        }
+
 		this.props.onStarted && this.props.onStarted(file, file);
 		
 		var xhr = new global.XMLHttpRequest();
 		
 		xhr.onreadystatechange = () => {
-			if (xhr.readyState == 4) {
+
+			if (xhr.readyState == XHR_DONE) {
 				var uploadInfo;
-				try{
+
+				try {
 					uploadInfo = JSON.parse(xhr.responseText);
-				}catch(e){
+				} catch(e) {
 					
 				}
 				
-				if(!uploadInfo || xhr.status > 300){
-					this.setState({loading: false, success: false, failed: uploadInfo && uploadInfo.message ? uploadInfo.message : DEFAULT_ERROR});
+				if (!uploadInfo || xhr.status > 300) {
+					this.setState({
+						loading: false,
+						success: false,
+						failed: uploadInfo && uploadInfo.message ? uploadInfo.message : DEFAULT_ERROR
+					});
+
 					return;
 				}
 				
@@ -41,27 +92,42 @@ export default class Uploader extends React.Component {
 				
 				// Run the main callback:
 				this.props.onUploaded && this.props.onUploaded(uploadInfo);
+
+				this.setState({
+					loading: false,
+					success: true,
+					failed: false,
+					ref: uploadInfo.result.ref
+				});
 				
-				this.setState({loading: false, success: true, failed: false});
 				
-				
-			}else if(xhr.readyState == 2) {
+			} else if (xhr.readyState == XHR_HEADERS_RECEIVED) {
 				// Headers received
-				
-				if(xhr.status > 300){
-					this.setState({loading: false, success: false, failed: DEFAULT_ERROR});
+				if (xhr.status > 300){
+					this.setState({
+						loading: false,
+						success: false,
+						failed: DEFAULT_ERROR
+					});
 				}
 			}
 		};
 		
 		xhr.onerror = (e) => {
 			console.log("XHR onerror", e);
-			this.setState({loading: false, success: false, failed: DEFAULT_ERROR});
+			this.setState({
+				loading: false,
+				success: false,
+				failed: DEFAULT_ERROR
+			});
 		};
 		
 		xhr.upload.onprogress = (evt) => {
+			var pc = Math.floor(evt.loaded * 100 / evt.total);
+
 			this.setState({
-				progress: ' ' + Math.floor(evt.loaded * 100 / evt.total) + '%'
+				progressPercent: pc,
+				progress: ' ' + pc + '%'
 			});
 			this.props.onUploadProgress && this.props.onUploadProgress();
 		};
@@ -105,38 +171,170 @@ export default class Uploader extends React.Component {
 
 		return parseFloat((bytes / Math.pow(k, i)).toFixed(dm)) + ' ' + sizes[i];
 	}
-	
-    render() {
+
+	handleDragEnter() {
+		this.setState({
+			draggedOver: true
+		});
+    }
+
+	handleDragLeave() {
+		this.setState({
+			draggedOver: false
+		});
+	}
+
+	componentDidMount() {
+
+		if (this.inputRef && this.inputRef.current) {
+			var input = this.inputRef.current;
+			input.addEventListener('dragenter', this.handleDragEnter);
+			input.addEventListener('dragleave', this.handleDragLeave);
+			input.addEventListener('drop', this.handleDragLeave);
+        }
+
+	}
+
+	componentWillUnmount() {
+
+		if (this.inputRef && this.inputRef.current) {
+			var input = this.inputRef.current;
+			input.removeEventListener('dragenter', this.handleDragEnter);
+			input.removeEventListener('dragleave', this.handleDragLeave);
+			input.removeEventListener('drop', this.handleDragLeave);
+		}
+
+	}
+
+	componentWillReceiveProps(nextProps) {
+		this.setState({
+			ref: nextProps.currentRef,
+			originalName: nextProps.originalName
+		});
+	}
+
+	render() {
 		const {
 			loading,
 			failed,
-			progress
+			progressPercent,
+			progress,
+			message,
+			maxSize,
+			ref,
+			aspect169,
+			aspect43,
+			filename,
+			draggedOver,
+			tooltip,
+			originalName
 		} = this.state;
 
-        return (
-			<div className="uploader">
-				{loading && (
-					<Loading message={"Uploading" + progress + ".."}/>
-				)}
-				{failed && (
-					<Alert type="error">
-					{failed}
-					</Alert>
-				)}
-				{!loading && (
-					<input type="file" id={this.props.id} onChange={e => this.onSelectedFile(e)} className="form-control-file" />
-				)}
-				{this.props.id && !loading &&
-					<label htmlFor={this.props.id} className="btn btn-outline-primary">
-						{this.props.label || "Upload file"}
-					</label>
-				}
-				{this.props.maxSize && 
-					<span className="upload-limit">
-						Max file size: {this.formatBytes(this.props.maxSize)}
+		var hasRef = ref && ref.length;
+		var hasMaxSize = maxSize > 0;
+		var hasFilename = (filename && filename.length);
+		var hasOriginalName = (originalName && originalName.length);
+		var label = loading ? ("Uploading " + progress + " ...") : message;
+		var canShowImage = getRef.isImage(ref);
+		var canShowIcon = getRef.isIcon(ref);
+		var labelStyle = {};
+		var uploaderClasses = ['uploader'];
+
+		if (loading) {
+			uploaderClasses.push("uploader--progress");
+        }
+
+		if (failed) {
+			uploaderClasses.push("uploader--error");
+			label = failed;
+		}
+
+		if (aspect169) {
+			uploaderClasses.push("uploader--16-9");
+		}
+
+		if (aspect43) {
+			uploaderClasses.push("uploader--4-3");
+		}
+
+		if (draggedOver) {
+			uploaderClasses.push("uploader--drag-target");
+		}
+
+		var iconClass = "";
+		var iconName = "";
+
+		if (hasRef) {
+			var refInfo = getRef.parse(ref);
+
+			uploaderClasses.push("uploader--content");
+			label = "";
+
+			if (canShowImage && !canShowIcon) {
+				labelStyle = { "background-image": "url(" + getRef(ref, { url: true, size: 256 }) + ")" };
+			}
+
+			if (canShowIcon) {
+				iconClass = refInfo.scheme + " " + refInfo.ref + " uploader__file";
+				iconName = refInfo.ref;
+            }
+
+        }
+
+		var uploaderClass = uploaderClasses.join(' ');
+
+		var caption = hasFilename ? filename : "None selected";
+
+		if (hasOriginalName) {
+			caption = originalName;
+        }
+
+		if (canShowIcon) {
+			caption = iconName;
+        }
+
+		return <div className={uploaderClass}>
+			<div className="uploader__internal">
+				<input id={this.props.id} className="uploader__input" type="file" ref={this.inputRef}
+					onChange={e => this.onSelectedFile(e)} title={loading ? "Loading ..." : tooltip} />
+				<label htmlFor={this.props.id} className="uploader__label" style={labelStyle}>
+
+					{/* loading */}
+					{loading && <>
+						<div class="spinner-border" role="status"></div>
+					</>}
+
+					{/* has a reference, but isn't an image */}
+					{hasRef && !canShowImage && !canShowIcon && <>
+						<i className="fal fa-file uploader__file" />
+					</>}
+
+					{/* has an icon reference */}
+					{hasRef && canShowIcon && <>
+						<i className={iconClass} />
+					</>}
+
+					{/* failed to upload */}
+					{failed && <>
+						<i class="fas fa-times-circle"></i>
+					</>}
+
+					<span className="uploader__label-internal">
+						{label}
 					</span>
-				}
+				</label>
+				{loading && (
+					<progress className="uploader__progress" max="100" value={progressPercent}></progress>
+				)}
 			</div>
-        );
+			<small className="uploader__caption text-muted">
+				{caption}
+				<br />
+
+				{hasMaxSize && <>
+					Max file size: {this.formatBytes(maxSize)}
+				</>}
+			</small>
+        </div>;
     }
 }
