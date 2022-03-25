@@ -1,4 +1,5 @@
 ﻿using Api.Startup;
+using Api.Translate;
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
@@ -40,6 +41,11 @@ namespace Api.Database
 	/// </summary>
 	public static class ContentTypes
 	{
+		/// <summary>
+		/// The supported locale set, indexed by locale ID-1. Can be null.
+		/// </summary>
+		public static Locale[] Locales;
+
 		/// <summary>
 		/// A set of all available content types from lowercase name to ID. Use GetId rather than this directly.
 		/// </summary>
