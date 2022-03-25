@@ -7,8 +7,9 @@ using Api.Database;
 using System.Collections.Generic;
 using System.Text;
 using MySql.Data.MySqlClient;
+using Api.Permissions;
 
-namespace Api.DatabaseDiff
+namespace Api.Database
 {
 
 	/// <summary>
@@ -40,6 +41,7 @@ namespace Api.DatabaseDiff
 		/// </summary>
 		public Init()
 		{
+			var setupHandlersMethod = GetType().GetMethod(nameof(SetupServiceHandlers));
 
 			Events.Service.AfterCreate.AddEventListener(async (Context context, AutoService service) => {
 
@@ -48,14 +50,29 @@ namespace Api.DatabaseDiff
 					return service;
 				}
 
+				if (_database == null)
+				{
+					_database = Services.Get<DatabaseService>();
+				}
+				
+				var servicedType = service.ServicedType;
+
+				if (servicedType != null)
+				{
+					// Add data load events:
+					var setupType = setupHandlersMethod.MakeGenericMethod(new Type[] {
+						servicedType,
+						service.IdType
+					});
+
+					setupType.Invoke(this, new object[] {
+						service
+					});
+				}
+
 				// If type derives from DatabaseRow, we have a thing we'll potentially need to reconfigure.
 				if (ContentTypes.IsAssignableToGenericType(service.ServicedType, typeof(Content<>)))
 				{
-					if (_database == null)
-					{
-						_database = Services.Get<DatabaseService>();
-					}
-
 					if (_database == null)
 					{
 						Console.WriteLine("[WARN] The type '" + service.ServicedType.Name  + "' did not have its database schema updated because the database service was not up in time.");
@@ -73,6 +90,191 @@ namespace Api.DatabaseDiff
 			
 		}
 
+		/// <summary>
+		/// Sets up for the given type with its event group.
+		/// </summary>
+		/// <typeparam name="T"></typeparam>
+		/// <typeparam name="ID"></typeparam>
+		/// <param name="service"></param>
+		public void SetupServiceHandlers<T, ID>(AutoService<T, ID> service)
+			where T : Content<ID>, new()
+			where ID : struct, IConvertible, IEquatable<ID>, IComparable<ID>
+		{
+			// Start preparing the queries. Doing this ahead of time leads to excellent performance savings, 
+			// whilst also using a high-level abstraction as another plugin entry point.
+			var deleteQuery = Query.Delete(service.InstanceType);
+			var createQuery = Query.Insert(service.InstanceType);
+			var createWithIdQuery = Query.Insert(service.InstanceType, true);
+			var updateQuery = Query.Update(service.InstanceType);
+			var selectQuery = Query.Select(service.InstanceType);
+			var listQuery = Query.List(service.InstanceType);
+			var listRawQuery = Query.List(service.InstanceType);
+			listRawQuery.Raw = true;
+
+			var isDbStored = service.DataIsPersistent;
+
+			service.EventGroup.Delete.AddEventListener(async (Context context, T result) => {
+
+				// Delete the entry:
+				if (isDbStored)
+				{
+					await _database.RunWithId(context, deleteQuery, result.Id);
+				}
+
+				var cache = service.GetCacheForLocale(context == null ? 1 : context.LocaleId);
+
+				if (cache != null)
+				{
+					cache.Remove(context, result.GetId());
+				}
+
+				return result;
+			});
+
+			service.EventGroup.Update.AddEventListener(async (Context context, T entity) => {
+				var id = entity.Id;
+
+				T raw = null;
+
+				var locale = context == null ? 1 : context.LocaleId;
+				var cache = service.GetCacheForLocale(locale);
+
+				if (locale == 1)
+				{
+					raw = entity;
+				}
+				else
+				{
+					if (cache != null)
+					{
+						raw = cache.GetRaw(id);
+					}
+
+					if (raw == null)
+					{
+						raw = new T();
+					}
+
+					// Must also update the raw object in the cache (as the given entity is _not_ the raw one).
+					T primaryEntity;
+
+					if (cache == null)
+					{
+						primaryEntity = await service.Get(new Context(1, context.User, context.RoleId), id);
+					}
+					else
+					{
+						primaryEntity = service.GetCacheForLocale(1).Get(id);
+					}
+
+					service.PopulateRawEntityFromTarget(raw, entity, primaryEntity);
+				}
+				
+				if (isDbStored && !await _database.Run<T, ID>(context, updateQuery, raw, id))
+				{
+					return null;
+				}
+
+				if (cache != null)
+				{
+					cache.Add(context, entity, raw);
+
+					if (locale == 1)
+					{
+						service.OnPrimaryEntityChanged(entity);
+					}
+
+				}
+
+				return entity;
+			});
+
+			service.EventGroup.Create.AddEventListener(async (Context context, T entity) => {
+
+				if (isDbStored)
+				{
+					if (!entity.GetId().Equals(default(ID)))
+					{
+						// Explicit ID has been provided.
+						await _database.Run<T, ID>(context, createWithIdQuery, entity);
+					}
+					else if (!await _database.Run<T, ID>(context, createQuery, entity))
+					{
+						return default;
+					}
+				}
+
+				return entity;
+			});
+
+			service.EventGroup.CreatePartial.AddEventListener((Context context, T raw) => {
+				var cache = service.GetCacheForLocale(context == null ? 1 : context.LocaleId);
+
+				if (cache != null)
+				{
+					T entity;
+
+					if (context.LocaleId == 1)
+					{
+						// Primary locale. Entity == raw entity, and no transferring needs to happen. This is expected to always be the case for creations.
+						entity = raw;
+					}
+					else
+					{
+						// Get the 'real' (not raw) entity from the cache. We'll copy the fields from the raw object to it.
+						entity = new T();
+
+						// Transfer fields from raw to entity, using the primary object as a source of blank fields:
+						service.PopulateTargetEntityFromRaw(entity, raw, null);
+					}
+
+					cache.Add(context, entity, raw);
+				}
+				
+				return new ValueTask<T>(raw);
+			});
+
+			service.EventGroup.Load.AddEventListener(async (Context context, T item, ID id) => {
+
+				var cache = service.GetCacheForLocale(context == null ? 1 : context.LocaleId);
+
+				if (cache != null)
+				{
+					item = cache.Get(id);
+				}
+
+				if (item == null && isDbStored)
+				{
+					item = await _database.Select<T, ID>(context, selectQuery, service.InstanceType, id);
+				}
+				
+				return item;
+			});
+
+			service.EventGroup.List.AddEventListener(async (Context context, QueryPair<T, ID> queryPair) => {
+
+				// Do we have a cache?
+				var cache = (queryPair.QueryA.DataOptions & DataOptions.CacheFlag) == DataOptions.CacheFlag ? service.GetCacheForLocale(context.LocaleId) : null;
+
+				if (cache != null)
+				{
+					// Great - we're using the cache:
+					queryPair.Total = await cache.GetResults(context, queryPair, queryPair.OnResult, queryPair.SrcA, queryPair.SrcB);
+				}
+				else if (isDbStored)
+				{
+					// "Raw" results are as-is from the database.
+					// That means the fields are not automatically filled in with the default locale when they're empty.
+					var raw = (queryPair.QueryA.DataOptions & DataOptions.RawFlag) == DataOptions.RawFlag;
+
+					// Get the results from the database:
+					queryPair.Total = await _database.GetResults(context, queryPair, queryPair.OnResult, queryPair.SrcA, queryPair.SrcB, service.InstanceType, raw ? listRawQuery : listQuery);
+				}
+
+				return queryPair;
+			});
+		}
+			
 		/// <summary>
 		/// Checks the DB version to see if we can auto handle schemas.
 		/// </summary>
@@ -151,7 +353,7 @@ namespace Api.DatabaseDiff
 				return CurrentDbSchema;
 			}
 
-			var existingSchema = new Schema();
+			var existingSchema = new MySQLSchema();
 			CurrentDbSchema = existingSchema;
 			_database.Schema = CurrentDbSchema;
 
@@ -160,17 +362,18 @@ namespace Api.DatabaseDiff
 			try
 			{
 				// Collect all the existing table meta:
-				var listQuery = Query.List(typeof(DatabaseColumnDefinition));
+				var listQuery = Query.List(typeof(MySQLDatabaseColumnDefinition));
 				listQuery.SetRawQuery(
-					"SELECT table_name as TableName, `column_name` as ColumnName, `data_type` as DataType, " +
-					"`is_nullable` = 'YES' as IsNullable, IF(INSTR(extra, 'auto_increment')>0, TRUE, FALSE) as IsAutoIncrement, " +
-					"IF(INSTR(column_type, 'unsigned')>0, TRUE, FALSE) as IsUnsigned, " +
+					"SELECT `data_type` as DataType, " +
+					"IF(INSTR(extra, 'auto_increment')>0, TRUE, FALSE) as IsAutoIncrement, " +
 					"CAST(IF(`character_maximum_length` IS NULL, `numeric_scale`, `character_maximum_length`) as SIGNED) as MaxCharacters, " +
-					"CAST(`numeric_precision` as SIGNED) as MaxCharacters2 " +
+					"CAST(`numeric_precision` as SIGNED) as MaxCharacters2, " +
+					"IF(INSTR(column_type, 'unsigned')>0, TRUE, FALSE) as IsUnsigned, " +
+					"table_name as TableName, `column_name` as ColumnName, `is_nullable` = 'YES' as IsNullable " +
 					"FROM information_schema.columns WHERE table_schema = DATABASE()"
 				);
 
-				columns = await _database.List<DatabaseColumnDefinition>(null, listQuery, typeof(DatabaseColumnDefinition));
+				columns = await _database.List<DatabaseColumnDefinition>(null, listQuery, typeof(MySQLDatabaseColumnDefinition));
 			}
 			catch(Exception e)
 			{
@@ -193,7 +396,6 @@ namespace Api.DatabaseDiff
 		/// <returns></returns>
 		private async Task HandleDatabaseType(AutoService service)
 		{
-
 			if (!await TryCheckVersion())
 			{
 				return;
@@ -209,10 +411,10 @@ namespace Api.DatabaseDiff
 			var type = service.InstanceType;
 
 			// New schema for this type:
-			var newSchema = new Schema();
+			var newSchema = new MySQLSchema();
 
 			// Get all its fields (including any sub fields).
-			var fieldMap = new FieldMap(type);
+			var fieldMap = service.FieldMap;
 
 			// Invoke an event which can e.g. add additional columns or whole tables.
 			fieldMap = await Events.DatabaseDiffBeforeAdd.Dispatch(new Context(), fieldMap, type, newSchema);
@@ -227,17 +429,9 @@ namespace Api.DatabaseDiff
 
 			foreach (var field in fieldMap.Fields)
 			{
-				// Create a column definition:
-				var columnDefinition = new DatabaseColumnDefinition(field, targetTableName);
-
-				if (!columnDefinition.Ignore)
-				{
-					// Add to target schema:
-					newSchema.Add(columnDefinition);
-				}
+				// Add to schema:
+				newSchema.AddColumn(field, targetTableName);
 			}
-
-			service.DatabaseSchema = newSchema;
 
 			var tableDiff = existingSchema.Diff(newSchema);
 			var altersToRun = new StringBuilder();
@@ -256,7 +450,7 @@ namespace Api.DatabaseDiff
 				foreach (var newColumn in tableDiffs.Added)
 				{
 					System.Console.WriteLine("Adding column " + newColumn.TableName + "." + newColumn.ColumnName);
-					altersToRun.Append(newColumn.AlterTableSql());
+					altersToRun.Append(((MySQLDatabaseColumnDefinition)newColumn).AlterTableSql());
 					altersToRun.Append(';');
 				}
 
@@ -264,18 +458,21 @@ namespace Api.DatabaseDiff
 				foreach (var changedColumn in tableDiffs.Changed)
 				{
 					// We'll attempt an auto upgrade of anything changing meta values (i.e. anything that is not actually changing type).
-					if (changedColumn.FromColumn.DataType == changedColumn.ToColumn.DataType)
+					var from = (MySQLDatabaseColumnDefinition)changedColumn.FromColumn;
+					var to = (MySQLDatabaseColumnDefinition)changedColumn.ToColumn;
+
+					if (from.DataType == to.DataType)
 					{
 						// This will fail (expectedly) if the change would result in data loss.
-						System.Console.WriteLine("Attempting to alter column  " + changedColumn.ToColumn.TableName + "." + changedColumn.ToColumn.ColumnName + ".");
+						System.Console.WriteLine("Attempting to alter column  " + to.TableName + "." + to.ColumnName + ".");
 
-						altersToRun.Append(changedColumn.ToColumn.AlterTableSql(true));
+						altersToRun.Append(to.AlterTableSql(true));
 						altersToRun.Append(';');
 					}
 					else
 					{
 						// (No support for those upgrade objects yet)
-						System.Console.WriteLine("Manual column change required: '" + changedColumn.ToColumn.AlterTableSql(true) + "'");
+						System.Console.WriteLine("Manual column change required: '" + to.AlterTableSql(true) + "'");
 					}
 				}
 

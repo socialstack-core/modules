@@ -1,7 +1,7 @@
 using System;
 using System.Collections.Generic;
 
-namespace Api.DatabaseDiff
+namespace Api.Database
 {
 	/// <summary>
 	/// Declares a field type within a database. varchar, int, bigint etc.

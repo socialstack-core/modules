@@ -2,16 +2,42 @@ using System;
 using System.Collections.Generic;
 using Api.Database;
 
-namespace Api.DatabaseDiff
+namespace Api.Database
 {
 	/// <summary>
 	/// A column definition within a database.
 	/// </summary>
-	public class DatabaseColumnDefinition
+	public partial class MySQLDatabaseColumnDefinition : DatabaseColumnDefinition
 	{
+		/// <summary>
+		/// The format data type, e.g. "varchar".
+		/// </summary>
+		public string DataType;
+
+		/// <summary>
+		/// True if this is an auto-inc column. Usually only applies to Id.
+		/// </summary>
+		public bool IsAutoIncrement;
+
+		/// <summary>
+		/// Varchar and varbinary mainly - the max number of characters. varchar(x).
+		/// </summary>
+		public long? MaxCharacters;
+
+		/// <summary>
+		/// Typically used by e.g. decimal(MaxCharacters2, MaxCharacters). If you only specify one length, that'll be the amount of digits after the decimal point.
+		/// </summary>
+		public long? MaxCharacters2;
+		
+		/// <summary>
+		/// True if this is a numeric field which is unsigned.
+		/// </summary>
+		public bool IsUnsigned;
+		
+		
 		private static Dictionary<Type, DatabaseType> TypeMap;
 		
-		static DatabaseColumnDefinition()
+		static MySQLDatabaseColumnDefinition()
 		{
 			TypeMap = new Dictionary<Type, DatabaseType>();
 			
@@ -33,65 +59,17 @@ namespace Api.DatabaseDiff
 		}
 
 		/// <summary>
-		/// The name of the table this column is in.
+		/// Creates a new MySQL column def
 		/// </summary>
-		public string TableName;
+		public MySQLDatabaseColumnDefinition() :base() {}
 
 		/// <summary>
-		/// The columns name.
+		/// Creates a new MySQL column def for the field
 		/// </summary>
-		public string ColumnName;
-		/// <summary>
-		/// The SQL format data type, e.g. "varchar".
-		/// </summary>
-		public string DataType;
-
-		/// <summary>
-		/// True if it's nullable.
-		/// </summary>
-		public bool IsNullable;
-
-		/// <summary>
-		/// True if this is an auto-inc column. Usually only applies to Id.
-		/// </summary>
-		public bool IsAutoIncrement;
-
-		/// <summary>
-		/// True if this is a numeric field which is unsigned.
-		/// </summary>
-		public bool IsUnsigned;
-
-		/// <summary>
-		/// Varchar and varbinary mainly - the max number of characters. varchar(x).
-		/// </summary>
-		public long? MaxCharacters;
-
-		/// <summary>
-		/// Typically used by e.g. decimal(MaxCharacters2, MaxCharacters). If you only specify one length, that'll be the amount of digits after the decimal point.
-		/// </summary>
-		public long? MaxCharacters2;
-
-		/// <summary>
-		/// True if this field should just be ignored.
-		/// </summary>
-		public bool Ignore;
-
-		/// <summary>
-		/// Create a new database column definition.
-		/// </summary>
-		public DatabaseColumnDefinition() { }
-
-		/// <summary>
-		/// Create a new database column definition from a given field for a particular table.
-		/// </summary>
-		public DatabaseColumnDefinition(Field fromField, string lowerCaseTableName)
+		public MySQLDatabaseColumnDefinition(Field fromField, string lowerCaseTableName):base(fromField, lowerCaseTableName)
 		{
-			TableName = lowerCaseTableName;
-			ColumnName = fromField.Name;
-			var fieldType = fromField.Type;
+			var fieldType = FieldType;
 
-			// fromField.TargetField.DeclaringType
-			
 			// Get metadata attributes:
 			var metaAttribs = fromField.TargetField.GetCustomAttributes(typeof(DatabaseFieldAttribute), true);
 			DatabaseFieldAttribute fieldMeta = null;
@@ -117,26 +95,12 @@ namespace Api.DatabaseDiff
 				// Special case for the ID column - check the main type if we're overriding the above auto-inc.
 				metaAttribs = fromField.OwningType.GetCustomAttributes(typeof(DatabaseFieldAttribute), true);
 
-				if (metaAttribs.Length > 0) {
+				if (metaAttribs.Length > 0)
+				{
 					var classMeta = (DatabaseFieldAttribute)metaAttribs[0];
 
 					// Got meta on the class itself - override now:
 					IsAutoIncrement = classMeta.AutoIncrement;
-				}
-			}
-			
-			if (!fieldType.IsValueType)
-			{
-				IsNullable = true;
-			}
-			else
-			{
-				var underlyingNullableType = Nullable.GetUnderlyingType(fieldType);
-
-				if (underlyingNullableType != null)
-				{
-					fieldType = underlyingNullableType;
-					IsNullable = true;
 				}
 			}
 			
@@ -167,10 +131,8 @@ namespace Api.DatabaseDiff
 				}
 				
 			}
-			
-			DatabaseType dbType;
-			
-			if(TypeMap.TryGetValue(fieldType, out dbType))
+
+			if (TypeMap.TryGetValue(fieldType, out DatabaseType dbType))
 			{
 				DataType = MaxCharacters.HasValue ? dbType.TypeNameWithLength : dbType.TypeName;
 				IsUnsigned = dbType.IsUnsigned;
@@ -178,41 +140,12 @@ namespace Api.DatabaseDiff
 			else
 			{
 				throw new Exception(
-					"Field '"+ fromField.Name + "' on '" + fromField.TargetField.DeclaringType + 
+					"Field '" + fromField.Name + "' on '" + fromField.TargetField.DeclaringType +
 					"' is a " + fromField.Type.Name + " which isn't currently supported as a databse field type."
 				);
 			}
 		}
-
-		/// <summary>
-		/// True if this columns definition has changed from the given newer one.
-		/// </summary>
-		/// <param name="newColumn"></param>
-		/// <returns></returns>
-		public bool HasChanged(DatabaseColumnDefinition newColumn)
-		{
-			if (
-				DataType != newColumn.DataType ||
-				IsNullable != newColumn.IsNullable ||
-				IsAutoIncrement != newColumn.IsAutoIncrement ||
-				IsUnsigned != newColumn.IsUnsigned
-			)
-			{
-				return true;
-			}
-
-			// Varchar or varbinary - check MaxChars too:
-			if (DataType == "varchar" || DataType == "varbinary")
-			{
-				return (MaxCharacters != newColumn.MaxCharacters);
-			}else if(DataType == "decimal"){
-				// 2 is the full length of the decimal, which is represented by MaxChars:
-				return (MaxCharacters2 != newColumn.MaxCharacters2 || MaxCharacters != newColumn.MaxCharacters);
-			}
-			
-			return false;
-		}
-
+		
 		/// <summary>
 		/// Gets e.g. "varchar(200) not null" - the data type as universal SQL.
 		/// </summary>
@@ -246,6 +179,42 @@ namespace Api.DatabaseDiff
 		public string CreateTableSql()
 		{
 			return "`" + ColumnName + "` " + TypeAsSql();
+		}
+
+		/// <summary>
+		/// True if this columns definition has changed from the given newer one.
+		/// </summary>
+		/// <param name="dcd"></param>
+		/// <returns></returns>
+		public override bool HasChanged(DatabaseColumnDefinition dcd)
+		{
+			var newColumn = dcd as MySQLDatabaseColumnDefinition;
+
+			if (newColumn == null)
+			{
+				return false;
+			}
+
+			if (
+				DataType != newColumn.DataType ||
+				IsNullable != newColumn.IsNullable ||
+				IsAutoIncrement != newColumn.IsAutoIncrement ||
+				IsUnsigned != newColumn.IsUnsigned
+			)
+			{
+				return true;
+			}
+
+			// Varchar or varbinary - check MaxChars too:
+			if (DataType == "varchar" || DataType == "varbinary")
+			{
+				return (MaxCharacters != newColumn.MaxCharacters);
+			}else if(DataType == "decimal"){
+				// 2 is the full length of the decimal, which is represented by MaxChars:
+				return (MaxCharacters2 != newColumn.MaxCharacters2 || MaxCharacters != newColumn.MaxCharacters);
+			}
+			
+			return false;
 		}
 	}
 	

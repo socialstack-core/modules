@@ -1,7 +1,7 @@
 ﻿using System.Collections.Generic;
 
 
-namespace Api.DatabaseDiff
+namespace Api.Database
 {
     /// <summary>
     /// Used to get the version of MySQL.
