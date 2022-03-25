@@ -1,4 +1,5 @@
 using Api.Database;
+using System;
 using System.Collections.Generic;
 
 namespace Api.Database
@@ -40,9 +41,9 @@ namespace Api.Database
 		/// Add a column to the schema. Returns null if the column was ignored due to the dbfield attribute.
 		/// </summary>
 		/// <returns></returns>
-		public virtual DatabaseColumnDefinition AddColumn(Field fromField, string lowerCaseTableName)
+		public virtual DatabaseColumnDefinition AddColumn(Field fromField, Type parentType)
 		{
-			var dcd = new DatabaseColumnDefinition(fromField, lowerCaseTableName);
+			var dcd = new DatabaseColumnDefinition(fromField, parentType.Name);
 
 			if (dcd.Ignore)
 			{
