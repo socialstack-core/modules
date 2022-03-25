@@ -3,7 +3,7 @@ using Api.Startup;
 using Api.Eventing;
 using Api.Contexts;
 using System.Threading.Tasks;
-using Api.Database;
+using Api.Translate;
 using System.Collections.Generic;
 using System.Text;
 using MySql.Data.MySqlClient;
@@ -34,7 +34,7 @@ namespace Api.Database
 		/// </summary>
 		private string VersionText;
 
-		private DatabaseService _database;
+		private MySQLDatabaseService _database;
 
 		/// <summary>
 		/// Instanced automatically.
@@ -42,6 +42,37 @@ namespace Api.Database
 		public Init()
 		{
 			var setupHandlersMethod = GetType().GetMethod(nameof(SetupServiceHandlers));
+
+			// Add handler for the initial locale list:
+			Events.Locale.InitialList.AddEventListener(async (Context context, List<Locale> locales) => {
+
+				if (_database == null)
+				{
+					_database = Services.Get<MySQLDatabaseService>();
+				}
+				
+				try
+				{
+					locales = await _database.List<Locale>(new Context(), Query.List(typeof(Locale)), typeof(Locale));
+				}
+				catch
+				{
+					// The table doesn't exist. Locale set is just the default one:
+					locales = new List<Locale>();
+				}
+
+				if (locales.Count == 0)
+				{
+					locales.Add(new Locale()
+					{
+						Code = "en",
+						Name = "English",
+						Id = 1
+					});
+				}
+
+				return locales;
+			});
 
 			Events.Service.AfterCreate.AddEventListener(async (Context context, AutoService service) => {
 
@@ -52,7 +83,7 @@ namespace Api.Database
 
 				if (_database == null)
 				{
-					_database = Services.Get<DatabaseService>();
+					_database = Services.Get<MySQLDatabaseService>();
 				}
 				
 				var servicedType = service.ServicedType;
