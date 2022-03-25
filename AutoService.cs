@@ -1,17 +1,14 @@
 using Api.Contexts;
 using Api.Database;
-using Api.DatabaseDiff;
 using Api.Eventing;
 using Api.Permissions;
 using Api.SocketServerLibrary;
 using Api.Startup;
 using Newtonsoft.Json.Linq;
 using System;
-using System.Collections;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.IO;
-using System.Linq;
 using System.Threading.Tasks;
 
 /// <summary>
@@ -85,42 +82,6 @@ public partial class AutoService<T, ID> : AutoService
 	where T: Content<ID>, new()
 	where ID: struct, IConvertible, IEquatable<ID>, IComparable<ID>
 {
-	
-	/// <summary>
-	/// A query which deletes 1 entity.
-	/// </summary>
-	protected readonly Query deleteQuery;
-
-	/// <summary>
-	/// A query which creates 1 entity.
-	/// </summary>
-	protected readonly Query createQuery;
-	
-	/// <summary>
-	/// A query which creates 1 entity with a known ID.
-	/// </summary>
-	protected readonly Query createWithIdQuery;
-
-	/// <summary>
-	/// A query which selects 1 entity.
-	/// </summary>
-	protected readonly Query selectQuery;
-
-	/// <summary>
-	/// A query which lists multiple entities.
-	/// </summary>
-	protected readonly Query listQuery;
-	
-	/// <summary>
-	/// A query which lists multiple raw entities.
-	/// </summary>
-	protected readonly Query listRawQuery;
-
-	/// <summary>
-	/// A query which updates 1 entity.
-	/// </summary>
-	protected readonly Query updateQuery;
-
 	/// <summary>
 	/// The set of update/ delete/ create etc events for this type.
 	/// </summary>
@@ -131,17 +92,6 @@ public partial class AutoService<T, ID> : AutoService
 	/// </summary>
 	public AutoService(EventGroup eventGroup, Type instanceType = null) : base(typeof(T), typeof(ID), instanceType)
 	{
-		// Start preparing the queries. Doing this ahead of time leads to excellent performance savings, 
-		// whilst also using a high-level abstraction as another plugin entry point.
-		deleteQuery = Query.Delete(InstanceType);
-		createQuery = Query.Insert(InstanceType);
-		createWithIdQuery = Query.Insert(InstanceType, true);
-		updateQuery = Query.Update(InstanceType);
-		selectQuery = Query.Select(InstanceType);
-		listQuery = Query.List(InstanceType);
-		listRawQuery = Query.List(InstanceType);
-		listRawQuery.Raw = true;
-
 		EventGroup = eventGroup as EventGroup<T, ID>;
 
 		if (typeof(ID) == typeof(uint))
@@ -279,18 +229,7 @@ public partial class AutoService<T, ID> : AutoService
 			return false;
 		}
 
-		// Delete the entry:
-		if (_database != null)
-		{
-			await _database.RunWithId(context, deleteQuery, result.Id);
-		}
-
-		var cache = GetCacheForLocale(context == null ? 1 : context.LocaleId);
-
-		if (cache != null)
-		{
-			cache.Remove(context, result.GetId());
-		}
+		await EventGroup.Delete.Dispatch(context, result);
 
 		result = await EventGroup.AfterDelete.Dispatch(context, result);
 
@@ -778,12 +717,13 @@ public partial class AutoService<T, ID> : AutoService
 			);
 		}
 		
-		var total = 0;
-
 		// struct:
 		var queryPair = new QueryPair<T, ID>()
 		{
-			QueryA = filter
+			QueryA = filter,
+			SrcA = srcA,
+			SrcB = srcB,
+			OnResult = onResult
 			// QueryB is set by perm system.
 		};
 
@@ -808,26 +748,11 @@ public partial class AutoService<T, ID> : AutoService
 			await queryPair.QueryB.Setup();
 		}
 
-		// Do we have a cache?
-		var cache = (filter.DataOptions & DataOptions.CacheFlag) == DataOptions.CacheFlag ? GetCacheForLocale(context.LocaleId) : null;
-
-		if (cache != null)
-		{
-			// Great - we're using the cache:
-			total = await cache.GetResults(context, queryPair, onResult, srcA, srcB);
-		}
-		else if (_database != null)
-		{
-			// "Raw" results are as-is from the database.
-			// That means the fields are not automatically filled in with the default locale when they're empty.
-			var raw = (filter.DataOptions & DataOptions.RawFlag) == DataOptions.RawFlag;
-
-			// Get the results from the database:
-			total = await _database.GetResults(context, queryPair, onResult, srcA, srcB, InstanceType, raw ? listRawQuery : listQuery);
-		}
+		queryPair = await EventGroup.List.Dispatch(context, queryPair);
+		var total = queryPair.Total;
 
 		// If collectors were made, let's now release them.
-		if(queryPair.QueryA.FirstCollector != null)
+		if (queryPair.QueryA.FirstCollector != null)
         {
 			var col = queryPair.QueryA.FirstCollector;
 			while (col != null)
@@ -876,19 +801,8 @@ public partial class AutoService<T, ID> : AutoService
 		id = await EventGroup.BeforeLoad.Dispatch(context, id);
 		
 		T item = null;
+		item = await EventGroup.Load.Dispatch(context, item, id);
 
-		var cache = GetCacheForLocale(context == null ? 1 : context.LocaleId);
-
-		if (cache != null)
-		{
-			item = cache.Get(id);
-		}
-
-		if (item == null && _database != null)
-		{
-			item = await _database.Select<T, ID>(context, selectQuery, InstanceType, id);
-		}
-		
 		// Ignoring the permissions only needs to occur on *After* for Gets.
 		var previousPermState = context.IgnorePermissions;
 		context.IgnorePermissions = (options & DataOptions.PermissionsFlag) != DataOptions.PermissionsFlag;
@@ -1013,18 +927,7 @@ public partial class AutoService<T, ID> : AutoService
 			return entity;
 		}
 
-		if (_database != null)
-		{
-			if (!entity.GetId().Equals(default(ID)))
-			{
-				// Explicit ID has been provided.
-				await _database.Run<T,ID>(context, createWithIdQuery, entity);
-			}
-			else if (!await _database.Run<T, ID>(context, createQuery, entity))
-			{
-				return default;
-			}
-		}
+		entity = await EventGroup.Create.Dispatch(context, entity);
 
 		return entity;
 	}
@@ -1038,7 +941,7 @@ public partial class AutoService<T, ID> : AutoService
 	public void PopulateRawEntityFromTarget(T raw, T entity, T primaryEntity)
 	{
 		// First, all the fields we'll be working with:
-		var allFields = listQuery.Fields.Fields;
+		var allFields = FieldMap.Fields;
 
 		for (var i = 0; i < allFields.Count; i++)
 		{
@@ -1079,7 +982,7 @@ public partial class AutoService<T, ID> : AutoService
 	public void PopulateTargetEntityFromRaw(T entity, T raw, T primaryEntity)
 	{
 		// First, all the fields we'll be working with:
-		var allFields = listQuery.Fields.Fields;
+		var allFields = FieldMap.Fields;
 
 		for (var i = 0; i < allFields.Count; i++)
 		{
@@ -1103,84 +1006,6 @@ public partial class AutoService<T, ID> : AutoService
 	}
 
 	/// <summary>
-	/// Updates the database and the cache without triggering any events, based on the provided mode.
-	/// </summary>
-	/// <param name="context"></param>
-	/// <param name="raw">The raw version of the entity.</param>
-	/// <param name="mode">U = update, C = Create, D = Delete</param>
-	/// <param name="deletedId"></param>
-	public async Task RawUpdateEntity(Context context, T raw, char mode, ID deletedId)
-	{
-		if (_database != null)
-		{
-			if (mode == 'D')
-			{
-				// Delete
-				await _database.RunWithId(context, deleteQuery, deletedId);
-			}
-			else if (mode == 'U' || mode == 'C')
-			{
-				// Updated or created
-				// In both cases, check if it exists first:
-				var id = raw.GetId();
-				if (await _database.Select<T, ID>(context, selectQuery, InstanceType, id) != null)
-				{
-					// Update
-					await _database.Run<T, ID>(context, updateQuery, raw, id);
-				}
-				else
-				{
-					// Create
-					await _database.Run<T, ID>(context, createWithIdQuery, raw);
-				}
-			}
-		}
-
-		// Update the cache next:
-		var cache = GetCacheForLocale(context.LocaleId);
-
-		if (cache != null)
-		{
-			lock (cache)
-			{
-				if (mode == 'C' || mode == 'U')
-				{
-					// Created or updated
-
-					T entity;
-
-					if (context.LocaleId == 1)
-					{
-						// Primary locale. Entity == raw entity, and no transferring needs to happen.
-						entity = raw;
-					}
-					else
-					{
-						// Get the 'real' (not raw) entity from the cache. We'll copy the fields from the raw object to it.
-						var id = raw.GetId();
-						entity = cache.Get(id);
-
-						if (entity == null)
-						{
-							entity = new T();
-						}
-
-						// Transfer fields from raw to entity, using the primary object as a source of blank fields:
-						PopulateTargetEntityFromRaw(entity, raw, GetCacheForLocale(1).Get(id));
-					}
-
-					cache.Add(context, entity, raw);
-				}
-				else if (mode == 'D')
-				{
-					// Deleted
-					cache.Remove(context, raw.GetId());
-				}
-			}
-		}
-	}
-
-	/// <summary>
 	/// Returns the EventGroup[T] for this AutoService, or null if it is an autoService without an EventGroup.
 	/// </summary>
 	/// <returns></returns>
@@ -1197,29 +1022,7 @@ public partial class AutoService<T, ID> : AutoService
 	/// <returns></returns>
 	public virtual async ValueTask<T> CreatePartialComplete(Context context, T raw)
 	{
-		var cache = GetCacheForLocale(context == null ? 1 : context.LocaleId);
-
-		if (cache != null)
-		{
-			T entity;
-
-			if (context.LocaleId == 1)
-			{
-				// Primary locale. Entity == raw entity, and no transferring needs to happen. This is expected to always be the case for creations.
-				entity = raw;
-			}
-			else
-			{
-				// Get the 'real' (not raw) entity from the cache. We'll copy the fields from the raw object to it.
-				entity = new T();
-
-				// Transfer fields from raw to entity, using the primary object as a source of blank fields:
-				PopulateTargetEntityFromRaw(entity, raw, null);
-			}
-
-			cache.Add(context, entity, raw);
-		}
-
+		raw = await EventGroup.CreatePartial.Dispatch(context, raw);
 		raw = await EventGroup.AfterCreate.Dispatch(context, raw);
 
 		// Reset marked changes:
@@ -1410,58 +1213,11 @@ public partial class AutoService<T, ID> : AutoService
 			return null;
 		}
 
-		var id = entity.Id;
+		entity = await EventGroup.Update.Dispatch(context, entity);
 
-		T raw = null;
-
-		var locale = context == null ? 1 : context.LocaleId;
-		var cache = GetCacheForLocale(locale);
-
-		if (locale == 1)
-		{
-			raw = entity;
-		}
-		else
-		{
-			if (cache != null)
-			{
-				raw = cache.GetRaw(id);
-			}
-
-			if (raw == null)
-			{
-				raw = new T();
-			}
-
-			// Must also update the raw object in the cache (as the given entity is _not_ the raw one).
-			T primaryEntity;
-
-			if (cache == null)
-			{
-				primaryEntity = await Get(new Context(1, context.User, context.RoleId), id);
-			}
-			else
-			{
-				primaryEntity = GetCacheForLocale(1).Get(id);
-			}
-
-			PopulateRawEntityFromTarget(raw, entity, primaryEntity);
-		}
-
-		if (_database != null && !await _database.Run<T, ID>(context, updateQuery, raw, id))
+		if (entity == null)
 		{
 			return null;
-		}
-
-		if (cache != null)
-		{
-			cache.Add(context, entity, raw);
-
-			if (locale == 1)
-			{
-				OnPrimaryEntityChanged(entity);
-			}
-
 		}
 
 		entity = await EventGroup.AfterUpdate.Dispatch(context, entity);
@@ -1488,6 +1244,10 @@ public partial class AutoService
 	/// </summary>
 	public Type ServicedType;
 	/// <summary>
+	/// True if this service stores persistent data.
+	/// </summary>
+	public bool DataIsPersistent;
+	/// <summary>
 	/// The actual instance type of this service. This always equals ServicedType or inherits it.
 	/// </summary>
 	public Type InstanceType;
@@ -1495,16 +1255,10 @@ public partial class AutoService
 	/// The type that this AutoService uses for IDs, if any. Almost always int, but some use ulong.
 	/// </summary>
 	public Type IdType;
-
 	/// <summary>
-	/// The database service.
+	/// Map of the available fields in the services InstanceType.
 	/// </summary>
-	protected DatabaseService _database;
-
-	/// <summary>
-	/// The schema for all tables related to this service. This field is updated automatically via modding the schema during the DatabaseDiffBeforeAdd event.
-	/// </summary>
-	public Schema DatabaseSchema;
+	public FieldMap FieldMap;
 
 	/// <summary>
 	/// True if this is a mapping service.
@@ -1698,33 +1452,14 @@ public partial class AutoService
 	/// <param name="instanceType"></param>
 	public AutoService(Type type = null, Type idType = null, Type instanceType = null)
 	{
-		// _database is left blank if:
-		// * Type is given.
-		// * Type is marked CacheOnly.
-		// This is such that basic services without a type have a convenience database field, 
-		// but types that are in-memory only don't attempt to use the database.
-		if (type != null && !IsPersistentType(type))
-		{
-			_database = null;
-		}
-		else
-		{
-			_database = Services.Get<DatabaseService>();
-		}
-
 		ServicedType = type;
 		InstanceType = instanceType == null ? type : instanceType;
 		IdType = idType;
-	}
+		DataIsPersistent = type != null && ContentTypes.IsPersistentType(type);
 
-	/// <summary>
-	/// True if this service stores persistent data.
-	/// </summary>
-	public bool DataIsPersistent
-	{
-		get
+		if (instanceType != null)
 		{
-			return ServicedType != null && _database != null;
+			FieldMap = new FieldMap(instanceType);
 		}
 	}
 
@@ -1787,17 +1522,6 @@ public partial class AutoService
 	/// The fields of this type.
 	/// </summary>
 	private ContentFields _contentFields;
-
-	/// <summary>
-	/// True if the given is a persistent type (i.e. if it should be stored in the database or not).
-	/// </summary>
-	/// <param name="t"></param>
-	/// <returns></returns>
-	private bool IsPersistentType(Type t)
-	{
-		var cacheOnlyAttribs = t.GetCustomAttributes(typeof(CacheOnlyAttribute), true);
-		return (cacheOnlyAttribs == null || cacheOnlyAttribs.Length == 0);
-	}
 
 	/// <summary>
 	/// Sets up the cache on this service. If you're not sure, use Cache instead of this.

@@ -136,7 +136,7 @@ public partial class AutoService<T, ID> {
 
 		// _database is null on in-memory only types, 
 		// however they still need to use it here for grabbing the locale set.
-		var db = _database ?? Services.Get<DatabaseService>();
+		var db = Services.Get<DatabaseService>();
 
 		var localeSet = db.Locales;
 
