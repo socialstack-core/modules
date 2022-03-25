@@ -1,6 +1,5 @@
 import Loop from 'UI/Loop';
 import Modal from 'UI/Modal';
-import Image from 'UI/Image';
 import Uploader from 'UI/Uploader';
 import omit from 'UI/Functions/Omit';
 import getRef from 'UI/Functions/GetRef';
@@ -126,15 +125,32 @@ export default class FileSelector extends React.Component {
 				onClose={this.closeModal}
 				visible={this.state.modalOpen}
 			>
-
 				<Loop className="file-selector__grid" over="upload/list" filter={{ sort: { field: 'CreatedUtc', direction: 'desc' } }} paged>
 					{
 						entry => {
+							// NB: API has been seen to report valid images with isImage=false
+							//var isImage = entry.isImage;
+							var isImage = getRef.isImage(entry.ref);
+
+							// default to 256px preview
+							var renderedSize = 256;
+							var imageWidth = parseInt(entry.width, 10);
+							var imageHeight = parseInt(entry.height, 10);
+							var previewClass = "file-selector__preview ";
+
+							// render image < 256px if original image size was smaller
+							if (!isNaN(imageWidth) && !isNaN(imageHeight) &&
+								imageWidth < renderedSize && imageHeight < renderedSize) {
+								renderedSize = undefined;
+								previewClass += "file-selector__preview--auto";
+							}
+
 							return <>
 								<button title={entry.originalName} type="button" className="btn file-selector__item" onClick={() => this.updateValue(entry)}>
-									<div className="file-selector__preview">
-										{entry.isImage && (
-											<Image fileRef={entry.ref} size={256} />
+									<div className={previewClass}>
+										{isImage && getRef(entry.ref, { size: renderedSize })}
+										{!isImage && (
+											<i className="fal fa-4x fa-file"></i>
 										)}
 									</div>
 									<span className="file-selector__name">
@@ -145,7 +161,6 @@ export default class FileSelector extends React.Component {
 						}
 					}
 				</Loop>
-
 			</Modal>
 
 			{/* icon browser */}
