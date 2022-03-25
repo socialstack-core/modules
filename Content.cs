@@ -163,45 +163,4 @@ namespace Api.Database
 			return !(left == right);
 		}
 	}
-
-	/// <summary>
-	/// Loads a list of content of unknown type.
-	/// </summary>
-	public class ContentLoader
-	{
-		/// <summary>
-		/// The mapping of loaded contents.
-		/// </summary>
-		public Dictionary<uint, object> Contents = new Dictionary<uint, object>();
-
-		/// <summary>
-		/// Enumerator of content IDs.
-		/// </summary>
-		/// <returns></returns>
-		public IEnumerable<uint> ContentIds()
-		{
-			return Contents.Keys;
-		}
-
-		/// <summary>
-		/// Applies the given list of content from the database to the internal content lookup.
-		/// </summary>
-		/// <param name="contents"></param>
-		public void Apply(IEnumerable contents)
-		{
-			if (contents == null)
-			{
-				return;
-			}
-
-			foreach (var content in contents)
-			{
-				if (content is not Content<uint> entry)
-				{
-					continue;
-				}
-				Contents[entry.GetId()] = entry;
-			}
-		}
-	}
 }

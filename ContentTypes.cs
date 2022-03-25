@@ -1,4 +1,5 @@
-﻿using System;
+﻿using Api.Startup;
+using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Data.Common;
@@ -63,6 +64,17 @@ namespace Api.Database
 			ReverseMap = new ConcurrentDictionary<int, ContentTypeMeta>();
 		}
 
+		/// <summary>
+		/// True if the given type is a persistent type (i.e. if it should be stored in the database or not).
+		/// </summary>
+		/// <param name="t"></param>
+		/// <returns></returns>
+		public static bool IsPersistentType(Type t)
+		{
+			var cacheOnlyAttribs = t.GetCustomAttributes(typeof(CacheOnlyAttribute), true);
+			return (cacheOnlyAttribs == null || cacheOnlyAttribs.Length == 0);
+		}
+		
 		/// <summary>
 		/// Adds or removes the given type from the lookups.
 		/// </summary>
