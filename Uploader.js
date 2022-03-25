@@ -270,6 +270,8 @@ export default class Uploader extends React.Component {
 			uploaderClasses.push("uploader--content");
 			label = "";
 
+			// TODO: check original image width/height values here; if both are less than 256px,
+			// use the original image and set background-size to auto
 			if (canShowImage && !canShowIcon) {
 				labelStyle = { "background-image": "url(" + getRef(ref, { url: true, size: 256 }) + ")" };
 			}
