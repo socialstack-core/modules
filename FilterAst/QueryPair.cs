@@ -21,10 +21,31 @@ namespace Api.Permissions
 		/// Primary user provided query. Will be effectively AND-ed with QueryB.
 		/// </summary>
 		public Filter<T,ID> QueryA;
+
 		/// <summary>
 		/// Secondary query, pre-parsed. Originates from the permission system, and is not null.
 		/// </summary>
 		public Filter<T,ID> QueryB;
+
+		/// <summary>
+		/// Total result count, when available.
+		/// </summary>
+		public int Total;
+
+		/// <summary>
+		/// Callback when the queries get a result
+		/// </summary>
+		public Func<Context, T, int, object, object, ValueTask> OnResult;
+
+		/// <summary>
+		/// Source a object.
+		/// </summary>
+		public object SrcA;
+
+		/// <summary>
+		/// Source b object.
+		/// </summary>
+		public object SrcB;
 	}
 	
 	/// <summary>
