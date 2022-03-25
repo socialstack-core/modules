@@ -208,11 +208,8 @@ export default class CalendarCompact extends React.Component {
 		};
 		
 		// mobile is rendered as a single day (central column)
-		var html = document.getElementsByTagName("html");
-		
-		if (html.length && html[0].classList.contains("device-mobile")) {
-			this.state.mobile = true;
-		}
+		this.state.mobile = window.matchMedia('(max-width: 752px) and (pointer: coarse) and (orientation: portrait)').matches ||
+							window.matchMedia('(max-height: 752px) and (pointer: coarse) and (orientation: landscape)').matches;
 		
 		this.calendarRef = React.createRef();
 		this.onContentChange = this.onContentChange.bind(this);
