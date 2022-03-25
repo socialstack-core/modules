@@ -1,18 +1,12 @@
 ﻿using System;
 using Api.Startup;
-using Microsoft.AspNetCore.Builder;
-using Microsoft.Extensions.DependencyInjection;
 using Api.Contexts;
-using System.Threading;
 using Api.Eventing;
 using System.Threading.Tasks;
-using Api.Configuration;
-using Api.SocketServerLibrary;
-using Newtonsoft.Json;
-using Newtonsoft.Json.Linq;
 using Api.Database;
 using Api.ContentSync;
 using System.Collections.Generic;
+
 
 namespace Api.ContentSync
 {
@@ -86,7 +80,6 @@ namespace Api.ContentSync
 			await task;
 		}
 
-		private DatabaseService databaseService;
 		private ContentSyncService contentSyncService;
 		private ClusteredServerService clusteredServerService;
 
@@ -161,7 +154,6 @@ namespace Api.ContentSync
 
 			if (clusteredServerService == null)
 			{
-				databaseService = Services.Get<DatabaseService>();
 				clusteredServerService = Services.Get<ClusteredServerService>();
 
 				// Not setup yet - hook up now.
