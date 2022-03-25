@@ -834,17 +834,21 @@ namespace Api.Uploader
 				return null;
 			}
 
-			if (result.Id != 0)
+			result = await Events.Upload.Create.Dispatch(context, result);
+
+			if (result == null)
 			{
-				// Explicit ID has been provided.
-				await _database.Run<Upload, uint>(context, createWithIdQuery, result);
+				// Reject it.
+				return null;
 			}
-			else
+
+			result = await Events.Upload.CreatePartial.Dispatch(context, result);
+
+			if (result == null)
 			{
-				// Obtain an ID now:
-				await _database.Run<Upload, uint>(context, createQuery, result);
+				return null;
 			}
-			
+
 			// Process the upload:
 			await Events.Upload.Process.Dispatch(context, result);
 
