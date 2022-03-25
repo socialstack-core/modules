@@ -413,7 +413,7 @@ namespace Api.ContentSync
 
 			if (anyDeleted)
 			{
-				Console.WriteLine("[WARN] A server has been deleted from " + typeof(ClusteredServer).TableName() + " because it was from a different environment. " +
+				Console.WriteLine("[WARN] A server has been deleted from the " + nameof(ClusteredServer) + " table because it was from a different environment. " +
 					"When copying data between environments, don't include this table. " +
 					"Doing so wastes server IDs and will in turn make your site assign large ID values unnecessarily.");
 			}
