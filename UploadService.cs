@@ -149,6 +149,9 @@ namespace Api.Uploader
 								current.Write(upload.TemporaryPath);
 							}
 
+							upload.Width = current.Width;
+							upload.Height = current.Height;
+
 							// If transcoded format is not the same as the actual original:
 							var willTranscode = (transcodeTo.Value != current.Format);
 
@@ -197,9 +200,6 @@ namespace Api.Uploader
 								}
 							}
 
-							upload.Width = current.Width;
-							upload.Height = current.Height;
-
 							// Done with it:
 							current.Dispose();
 						}
@@ -213,6 +213,9 @@ namespace Api.Uploader
 							Console.WriteLine("Unsupported image format was not resized. Underlying exception: " + e.ToString());
 						}
 					}
+
+					// trigger update to set width/height isImage fields:
+					await Update(context, upload, (Context ctx, Upload up) => { }, DataOptions.IgnorePermissions);
 				}
 
 				return upload;
