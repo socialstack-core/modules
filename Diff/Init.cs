@@ -456,12 +456,10 @@ namespace Api.Database
 				return;
 			}
 
-			var targetTableName = type.TableName();
-
 			foreach (var field in fieldMap.Fields)
 			{
 				// Add to schema:
-				newSchema.AddColumn(field, targetTableName);
+				newSchema.AddColumn(field, type);
 			}
 
 			var tableDiff = existingSchema.Diff(newSchema);

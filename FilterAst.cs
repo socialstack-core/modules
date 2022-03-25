@@ -36,7 +36,62 @@ namespace Api.Permissions{
 			}
 		}
 	}
+	
+	/// <summary>
+	/// Fast precompiled non-allocating filter engine.
+	/// </summary>
+	public partial class Filter<T,ID> : FilterBase
+		where T : Content<ID>, new()
+		where ID : struct, IConvertible, IEquatable<ID>, IComparable<ID>
+	{
+		
+		/// <summary>Builds an SQL Where query.</summary>
+		/// <param name="cmd"></param>
+		/// <param name="builder"></param>
+		/// <param name="currentCollector"></param>
+		/// <param name="context"></param>
+		/// <param name="filterA"></param>
+		/// <param name="localeCode">Optional localeCode used when a request is for e.g. French fields instead. 
+		/// It would be e.g. "fr" and just matches whatever your Locale.Code is.</param>
+		public override void BuildWhereQuery(MySqlCommand cmd, Writer builder, IDCollector currentCollector, string localeCode, Context context, FilterBase filterA)
+		{
+			if (Pool == null || Pool.Ast == null)
+			{
+				// There isn't one
+				return;
+			}
+			
+			// Don't cache this.
+			// Both queryA and queryB might output the same text, however they will use different arg numbers, meaning only filterA can be cached (because it's first).
+			// For simplicity, therefore, cache neither.
 
+			// Only filterA is permitted to have args. This is also important for checking the state of any On(..) calls.
+			var cc = currentCollector;
+			Pool.Ast.ToSql(cmd, builder, ref cc, localeCode, (Filter<T, ID>)filterA, context);
+		}
+		
+	}
+	
+	/// <summary>
+	/// A filter. Use the concrete-type variant as much as possible.
+	/// </summary>
+	public partial class FilterBase
+	{
+		
+		/// <summary>Builds an SQL Where query.</summary>
+		/// <param name="cmd"></param>
+		/// <param name="builder"></param>
+		/// <param name="currentCollector"></param>
+		/// <param name="context"></param>
+		/// <param name="filterA"></param>
+		/// <param name="localeCode">Optional localeCode used when a request is for e.g. French fields instead. 
+		/// It would be e.g. "fr" and just matches whatever your Locale.Code is.</param>
+		public virtual void BuildWhereQuery(MySqlCommand cmd, Writer builder, IDCollector currentCollector, string localeCode, Context context, FilterBase filterA)
+		{
+		}
+		
+	}
+	
 	/// <summary>
 	/// Base tree node
 	/// </summary>
