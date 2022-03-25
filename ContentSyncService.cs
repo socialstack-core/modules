@@ -102,14 +102,12 @@ namespace Api.ContentSync
 		/// <summary>
 		/// Instanced automatically. Use injection to use this service, or Startup.Services.Get.
 		/// </summary>
-		public ContentSyncService(DatabaseService database, ClusteredServerService clusteredServerService, NetworkRoomTypeService nrts)
+		public ContentSyncService(ClusteredServerService clusteredServerService, NetworkRoomTypeService nrts)
 		{
 			// The content sync service is used to keep content created by multiple instances in sync.
 			// (which can be a cluster of servers, or a group of developers)
 			// It does this by setting up 'stripes' of IDs which are assigned to particular users.
 			// A user is identified by the computer hostname.
-
-			_database = database;
 			_nrts = nrts;
 			_clusteredServerService = clusteredServerService;
 
@@ -352,11 +350,6 @@ namespace Api.ContentSync
 				}
 			}
 		}
-
-		/// <summary>
-		/// When in local dev, this is "this" user's sync table set.
-		/// </summary>
-		public SyncTableFileSet LocalTableSet;
 
 		/// <summary>
 		/// Sets up the config required to connect to other servers.
@@ -613,64 +606,10 @@ namespace Api.ContentSync
 		}
 		
 		/// <summary>
-		/// Pulls in data added by other devs, and starts the cSync server. Must occur after other services have started.
+		/// Starts the cSync server. Must occur after other services have started.
 		/// </summary>
 		public void ApplyRemoteDataAndStart()
 		{
-			/*
-			if(SyncFileMode){
-				// Create syncfile object for each known table and for each user.
-
-				Console.WriteLine("Content sync now checking for changes");
-
-				// Make sure a sync dir exists for this user.
-				// Syncfiles go in as Database/FILENAME_SAFE_USERNAME/tableName.txt
-				var dirName = FileSafeName(HostName);
-				Directory.CreateDirectory("Database/" + dirName);
-
-				try
-				{
-					// Load them:
-					Dictionary<string, SyncTableFileSet> loadedSyncSets = new Dictionary<string, SyncTableFileSet>();
-
-					foreach (var kvp in _configuration.Users)
-					{
-						if (kvp.Value == null || kvp.Value.Count == 0)
-						{
-							continue;
-						}
-
-						// Create the table set:
-						var syncSet = new SyncTableFileSet("Database/" + FileSafeName(kvp.Key));
-
-						// Set it up:
-						// (for "my" files, I'm going to instance them all - regardless of if the actual file exists or not).
-						var mine = kvp.Key == HostName;
-
-						if (mine)
-						{
-							LocalTableSet = syncSet;
-						}
-
-						syncSet.Setup(!mine);
-						loadedSyncSets[kvp.Key] = syncSet;
-
-						if (!mine)
-						{
-							// Apply the sync set:
-							await syncSet.Sync(_database);
-						}
-					}
-
-				}
-				catch (Exception e)
-				{
-					Console.WriteLine("ContentSync failed to handle other user's updates with error: " + e.ToString());
-				}
-				
-			}
-			*/
-
 			if (Services.IsDevelopment())
 			{
 				// Don't set up the sync server in the dev environment.
