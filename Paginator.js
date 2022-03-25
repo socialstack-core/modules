@@ -74,9 +74,8 @@ export default class Paginator extends React.Component {
 		paginator.scrollIntoView({ block: "end" });
 
 		// check - offset slightly if on mobile (accounts for menus docked at bottom of page)
-		var html = document.getElementsByTagName("html");
-
-		if (html.length && html[0].classList.contains("device-mobile")) {
+		if (window.matchMedia('(max-width: 752px) and (pointer: coarse) and (orientation: portrait)').matches ||
+			window.matchMedia('(max-height: 752px) and (pointer: coarse) and (orientation: landscape)').matches) {
 			global.scrollBy && global.scrollBy(0, 80);
 		}
 
@@ -187,9 +186,8 @@ export default class Paginator extends React.Component {
 		/*
 		Todo: this is unavailable serverside - use something else to identify mobile.
 		
-		var html = document.getElementsByTagName("html");
-
-		if (html.length && html[0].classList.contains("device-mobile")) {
+		if (window.matchMedia('(max-width: 752px) and (pointer: coarse) and (orientation: portrait)').matches ||
+			window.matchMedia('(max-height: 752px) and (pointer: coarse) and (orientation: landscape)').matches) {
 			isMobile = true;
 		}
 		*/
