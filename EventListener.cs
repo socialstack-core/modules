@@ -7,9 +7,6 @@ using Api.Contexts;
 using Api.Database;
 using Api.Eventing;
 using Api.Startup;
-using Api.Users;
-using Microsoft.AspNetCore.Builder;
-using Microsoft.Extensions.DependencyInjection;
 
 
 namespace Api.Translate
@@ -38,28 +35,7 @@ namespace Api.Translate
 				
 				// Does this field map have any [Localized] fields?
 				List<Locale> locales = null;
-
-				var _database = Services.Get<DatabaseService>();
-
-				try
-				{
-					locales = await _database.List<Locale>(new Context(), Query.List(typeof(Locale)), typeof(Locale));
-				}
-				catch
-				{
-					// The table doesn't exist. Locale set is just the default one:
-					locales = new List<Locale>();
-				}
-
-				if (locales.Count == 0)
-				{
-					locales.Add(new Locale()
-					{
-						Code = "en",
-						Name = "English",
-						Id = 1
-					});
-				}
+				locales = await Events.Locale.InitialList.Dispatch(ctx, locales);
 
 				// Find the max ID:
 				var maxId = locales.Max(locale => locale.Id);
@@ -72,7 +48,7 @@ namespace Api.Translate
 				}
 
 				// Set the available locales:
-				_database.Locales = localeLookup;
+				ContentTypes.Locales = localeLookup;
 
 				// Iterate backwards for simplicity because we add to fields and order doesn't matter:
 				for (var fm=fieldMap.Fields.Count-1; fm >= 0; fm--)
