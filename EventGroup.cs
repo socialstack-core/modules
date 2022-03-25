@@ -40,6 +40,11 @@ namespace Api.Eventing
 		public EventHandler<QueryPair<T, ID>> BeforeList;
 
 		/// <summary>
+		/// Called to actually obtain the list of results from the data engine.
+		/// </summary>
+		public EventHandler<QueryPair<T, ID>> List;
+
+		/// <summary>
 		/// Just after an entity list was loaded.
 		/// </summary>
 		public EventHandler<Filter<T, ID>> AfterList;
@@ -79,6 +84,16 @@ namespace Api.Eventing
 		public EventHandler<T> BeforeCreate;
 
 		/// <summary>
+		/// Called to actually create the result in the data engine.
+		/// </summary>
+		public EventHandler<T> Create;
+		
+		/// <summary>
+		/// Called to actually create the result in the data engine during partial complete.
+		/// </summary>
+		public EventHandler<T> CreatePartial;
+
+		/// <summary>
 		/// Just after an entity has been created. The given object will now have an ID.
 		/// </summary>
 		public EventHandler<T> AfterCreate;
@@ -87,6 +102,11 @@ namespace Api.Eventing
 		/// Just before an entity is being deleted. Return null to cancel the deletion.
 		/// </summary>
 		public EventHandler<T> BeforeDelete;
+
+		/// <summary>
+		/// Called to actually delete the result from the data engine.
+		/// </summary>
+		public EventHandler<T> Delete;
 
 		/// <summary>
 		/// Just after an entity has been deleted.
@@ -100,6 +120,11 @@ namespace Api.Eventing
 		public EventHandler<T> BeforeUpdate;
 
 		/// <summary>
+		/// Called to actually update the result in the data engine.
+		/// </summary>
+		public EventHandler<T> Update;
+
+		/// <summary>
 		/// Just after updating an entity.
 		/// </summary>
 		public EventHandler<T> AfterUpdate;
@@ -108,6 +133,11 @@ namespace Api.Eventing
 		/// Just before an entity is loaded.
 		/// </summary>
 		public EventHandler<ID> BeforeLoad;
+
+		/// <summary>
+		/// Called to actually obtain the result from the data engine.
+		/// </summary>
+		public EventHandler<T, ID> Load;
 
 		/// <summary>
 		/// Just after an entity was loaded.
