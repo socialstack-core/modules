@@ -5,7 +5,6 @@ using System.Reflection;
 using System.Threading.Tasks;
 using Api.Contexts;
 using Api.Database;
-using Api.DatabaseDiff;
 using Api.Eventing;
 using Api.Startup;
 using Api.Users;
@@ -113,12 +112,7 @@ namespace Api.Translate
 
 						fieldMap.Add(clonedField);
 
-						var dbColDef = new DatabaseColumnDefinition(clonedField, field.OwningType.TableName());
-
-						if (!dbColDef.Ignore)
-						{
-							newSchema.Add(dbColDef);
-						}
+						newSchema.AddColumn(clonedField, field.OwningType.TableName());
 					}
 					
 				}

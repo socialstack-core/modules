@@ -4,7 +4,6 @@ using System.Collections.Generic;
 using Api.Permissions;
 using Api.Eventing;
 using Api.Contexts;
-using Api.DatabaseDiff;
 using System;
 using Api.Startup;
 using Microsoft.AspNetCore.Http;
