@@ -934,11 +934,12 @@ export default class Loop extends React.Component {
 
 		// override with mobile pagesize if available
 		if (typeof pageCfg == "object" && pageCfg.mobilePageSize) {
-			var html = document.getElementsByTagName("html");
 
-			if (html.length && html[0].classList.contains("device-mobile")) {
+			if (window.matchMedia('(max-width: 752px) and (pointer: coarse) and (orientation: portrait)').matches ||
+				window.matchMedia('(max-height: 752px) and (pointer: coarse) and (orientation: landscape)').matches) {
 				pageSize = pageCfg.mobilePageSize;
 			}
+
 		}
 
 		// Paginate
