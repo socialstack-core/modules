@@ -88,7 +88,7 @@ namespace Api.Translate
 
 						fieldMap.Add(clonedField);
 
-						newSchema.AddColumn(clonedField, field.OwningType.TableName());
+						newSchema.AddColumn(clonedField, field.OwningType);
 					}
 					
 				}
