@@ -190,7 +190,8 @@ getRef.parse = (ref) => {
 */
 var imgTypes = ['png', 'jpeg', 'jpg', 'gif', 'mp4', 'svg', 'bmp', 'apng', 'avif', 'webp'];
 var vidTypes = ['mp4', 'webm', 'avif'];
-var allVidTypes = ['avi','wmv','ts','m3u8','ogv','flv','h264','h265','webm','ogg','mp4','mkv','mpeg','3g2','3gp','mov','media','avif'];
+var allVidTypes = ['avi', 'wmv', 'ts', 'm3u8', 'ogv', 'flv', 'h264', 'h265', 'webm', 'ogg', 'mp4', 'mkv', 'mpeg', '3g2', '3gp', 'mov', 'media', 'avif'];
+var allIconTypes = ['fa', 'fas', 'far', 'fad', 'fal', 'fab', 'fr'];
 
 getRef.isImage = (ref) => {
 	var info = getRef.parse(ref);
@@ -221,4 +222,18 @@ getRef.isVideo = (ref, webOnly) => {
 	}
 	
 	return false;
+}
+
+getRef.isIcon = (ref) => {
+	var info = getRef.parse(ref);
+
+	if (!info) {
+		return false;
+	}
+
+	if (info.scheme == 'private') {
+		return false;
+	}
+
+	return (allIconTypes.indexOf(info.scheme) != -1);
 }
