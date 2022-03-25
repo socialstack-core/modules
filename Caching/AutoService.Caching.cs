@@ -134,11 +134,7 @@ public partial class AutoService<T, ID> {
 
 		var indices = GetContentFields().IndexList;
 
-		// _database is null on in-memory only types, 
-		// however they still need to use it here for grabbing the locale set.
-		var db = Services.Get<DatabaseService>();
-
-		var localeSet = db.Locales;
+		var localeSet = ContentTypes.Locales;
 
 		if (localeSet == null)
 		{
