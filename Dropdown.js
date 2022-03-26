@@ -68,6 +68,11 @@ export default function Dropdown(props) {
     }
     position = position.toLowerCase();
 
+    if (!align) {
+        align = "";
+    }
+    align = align.toLowerCase();
+
     // check for invalid alignment
     // (top/bottom position only supports L/R; left/right position only supports T/B)
     switch (position) {
@@ -106,7 +111,6 @@ export default function Dropdown(props) {
         }
 
     }
-    align = align.toLowerCase();
 
     dropdownClass += " dropdown--align-" + align;
     dropdownClass += " dropdown--position-" + position;
