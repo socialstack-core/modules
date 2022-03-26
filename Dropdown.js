@@ -9,6 +9,10 @@
   isLarge:			renders large size version
   isSmall:			renders small size version
   splitCallback:    optional function to be called when pressing button (dropdown controlled by a separate button)
+  stayOpenOnSelection: keeps the dropdown open after selecting an option (disabled by default)
+  align:            alignment of menu with respect to the button (left / right if vertical, top / bottom if horizontal)
+  position:         which side of the button the menu will appear on (top, bottom, left or right)
+
 
   example usage:
 
@@ -55,8 +59,58 @@ function newId() {
 }
 
 export default function Dropdown(props) {
-	var { className, variant, label, arrow, isLarge, isSmall, splitCallback, children, stayOpenOnSelection } = props;
-	var dropdownClass = "dropdown " + className + (splitCallback ? " dropdown--split" : "");
+	var { className, variant, label, arrow, isLarge, isSmall, splitCallback, children, stayOpenOnSelection, align, position } = props;
+    var dropdownClass = "dropdown " + className + (splitCallback ? " dropdown--split" : "");
+
+    // default to dropping down
+    if (!position || position.length == 0) {
+        position = "Bottom";
+    }
+    position = position.toLowerCase();
+
+    // check for invalid alignment
+    // (top/bottom position only supports L/R; left/right position only supports T/B)
+    switch (position) {
+        case 'top':
+        case 'bottom':
+
+            if (align == "top" || align == "bottom") {
+                align = "";
+            }
+
+            break;
+
+        case 'left':
+        case 'right':
+
+            if (align == "left" || align == "right") {
+                align = "";
+            }
+
+            break;
+    }
+
+    // set default alignment
+    if (!align || align.length == 0) {
+
+        switch (position) {
+            case 'top':
+            case 'bottom':
+                align = "Left";
+                break;
+
+            case 'left':
+            case 'right':
+                align = "Top";
+                break;
+        }
+
+    }
+    align = align.toLowerCase();
+
+    dropdownClass += " dropdown--align-" + align;
+    dropdownClass += " dropdown--position-" + position;
+
 	const [open, setOpen] = useState(false);
 	const dropdownWrapperRef = useRef(null);
 	const toggleRef = useRef(null);
@@ -247,12 +301,24 @@ export default function Dropdown(props) {
                             id={dropdownId}
                             aria-expanded={open}
                             ref={toggleRef}>
-                            <span className="dropdown__left">
-                                {label}
-                            </span>
-                            <span className="dropdown__right">
+
+                        {position == "left" && <>
+                            <span className="dropdown__arrow">
                                 {arrow}
                             </span>
+                            <span className="dropdown__label">
+                                {label}
+                            </span>
+                        </>}
+
+                        {position != "left" && <>
+                            <span className="dropdown__label">
+                                {label}
+                            </span>
+                            <span className="dropdown__arrow">
+                                {arrow}
+                            </span>
+                        </>}
                         </button>
                     )}
 
@@ -263,7 +329,7 @@ export default function Dropdown(props) {
                             type="button"
                             id={dropdownId}
                             onClick={splitCallback}>
-                            <span className="dropdown__left">
+                            <span className="dropdown__label">
                                 {label}
                             </span>
                         </button>
@@ -272,7 +338,7 @@ export default function Dropdown(props) {
                             type="button"
                             aria-expanded={open}
                             ref={toggleRef}>
-                            <span className="dropdown__right">
+                            <span className="dropdown__arrow">
                                 {arrow}
                             </span>
                         </button>
@@ -306,11 +372,15 @@ export default function Dropdown(props) {
 }
 
 Dropdown.propTypes = {
-    stayOpenOnSelection: 'bool'
+    stayOpenOnSelection: 'bool',
+    align: ['Top', 'Bottom', 'Left', 'Right'],
+    position: ['Top', 'Bottom', 'Left', 'Right']
 };
 
 Dropdown.defaultProps = {
-    stayOpenOnSelection: false
+    stayOpenOnSelection: false,
+    align: 'Left',
+    position: 'Bottom'
 }
 
 Dropdown.icon='caret-square-down';
