@@ -62,7 +62,7 @@ export default props => {
 					<a href='/en-admin/'>{getRef(adminLogoRef || logo, {attribs: {height: '38'}})}</a>
 				</div>
 				<div className="user col-4">
-					<Dropdown className="logged-user" label={dropdownLabelJsx} variant="link">
+					<Dropdown className="logged-user" label={dropdownLabelJsx} variant="link" align="Right">
 						<li>
 							<a href="/" className="btn dropdown-item">
 								Return to site
