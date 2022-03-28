@@ -244,20 +244,26 @@ export default function Dropdown(props) {
     }
 
 	useEffect(() => {
-   		document.addEventListener("click", handleClick);
+
+        if (dropdownWrapperRef && dropdownWrapperRef.current) {
+            dropdownWrapperRef.current.ownerDocument.addEventListener("click", handleClick);
+        }
 
         if (toggleRef && toggleRef.current) {
             toggleRef.current.addEventListener("keydown", checkShiftTab);
         }
 
 		return () => {
-       		document.removeEventListener("click", handleClick);
+            if (dropdownWrapperRef && dropdownWrapperRef.current) {
+                dropdownWrapperRef.current.ownerDocument.removeEventListener("click", handleClick);
+            }
 
             if (toggleRef && toggleRef.current) {
                 toggleRef.current.removeEventListener("keydown", checkShiftTab);
             }
 
-		};
+        };
+        
 	}, []);
 
     useEffect(() => {
