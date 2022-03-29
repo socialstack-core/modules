@@ -9,6 +9,11 @@ namespace Api.Users
     public class UserServiceConfig : Config
     {
         /// <summary>
+        /// True if default user (admin account) should be installed when it doesn't exist. This is only checked at startup.
+        /// </summary>
+        public bool InstallDefaultUser { get; set; } = true;
+
+        /// <summary>
         /// Determines if user emails need to be unique.
         /// </summary>
         public bool UniqueEmails { get; set; } = false;
