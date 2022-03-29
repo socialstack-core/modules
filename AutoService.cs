@@ -1457,9 +1457,9 @@ public partial class AutoService
 		IdType = idType;
 		DataIsPersistent = type != null && ContentTypes.IsPersistentType(type);
 
-		if (instanceType != null)
+		if (InstanceType != null)
 		{
-			FieldMap = new FieldMap(instanceType);
+			FieldMap = new FieldMap(InstanceType);
 		}
 	}
 
