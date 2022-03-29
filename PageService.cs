@@ -199,10 +199,10 @@ namespace Api.Pages
 
 			// Pages must always have the cache on for any release site.
 			// That's because the HtmlService has a release only cache which depends on the sync messages for pages, as well as e.g. the url gen cache.
-			#if !DEBUG
+#if !DEBUG
 			Cache();
-			#endif
-			
+#endif
+
 		}
 
 		/// <summary>
@@ -220,6 +220,68 @@ namespace Api.Pages
 		/// </summary>
 		public async ValueTask<PageWithTokens> GetPage(Context context, string url, Microsoft.AspNetCore.Http.QueryString searchQuery, bool return404IfNotFound = true)
 		{
+			var urlInfo = new UrlInfo() // Struct
+			{
+				Url = url,
+				Length = url.Length,
+				Start = 0
+			};
+
+			var max = urlInfo.Length + urlInfo.Start;
+
+			// Trim end:
+			for (var i = max - 1; i >= urlInfo.Start; i--)
+			{
+				if (urlInfo.Url[i] == ' ')
+				{
+					urlInfo.Length--;
+					max--;
+				}
+				else
+				{
+					break;
+				}
+			}
+
+			// Trim start:
+			for (var i = urlInfo.Start; i < max; i++)
+			{
+				if (urlInfo.Url[i] == ' ')
+				{
+					urlInfo.Start++;
+					urlInfo.Length--;
+				}
+				else
+				{
+					break;
+				}
+			}
+
+			if (urlInfo.Length > 0 && urlInfo.Url[urlInfo.Start] == '/')
+			{
+				urlInfo.Start++;
+				urlInfo.Length--;
+			}
+
+			if (urlInfo.Length > 0 && urlInfo.Url[urlInfo.Start + urlInfo.Length - 1] == '/')
+			{
+				urlInfo.Length--;
+			}
+
+			// It won't contain a ? but just in case:
+			max = urlInfo.Length + urlInfo.Start;
+			for (var i = urlInfo.Start; i < max; i++)
+			{
+				if (urlInfo.Url[i] == '?')
+				{
+					urlInfo.Length = i - urlInfo.Start;
+					break;
+				}
+			}
+			
+			// BeforeParseUrl is able to change the context, including the locale:
+			urlInfo = await Events.Page.BeforeParseUrl.Dispatch(context, urlInfo, searchQuery);
+			
 			if (_urlLookupCache == null || _urlLookupCache.Length < context.LocaleId || _urlLookupCache[context.LocaleId - 1] == null)
 			{
 				await LoadCaches(context);
@@ -227,7 +289,7 @@ namespace Api.Pages
 
 			var cache = _urlLookupCache[context.LocaleId - 1];
 
-			var pageInfo = await cache.GetPage(context, url, searchQuery);
+			var pageInfo = await cache.GetPage(context, urlInfo, searchQuery);
 
 			pageInfo = await Events.Page.BeforeResolveUrl.Dispatch(context, pageInfo, url, searchQuery);
 			

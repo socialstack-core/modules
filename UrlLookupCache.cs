@@ -50,7 +50,7 @@ namespace Api.Pages
 		/// <param name="url"></param>
 		/// <param name="redirectTo"></param>
 		/// <returns></returns>
-		public UrlLookupNode Add(string url, Func<string, UrlLookupNode, List<string>, ValueTask<string>> redirectTo)
+		public UrlLookupNode Add(string url, Func<UrlInfo, UrlLookupNode, List<string>, ValueTask<string>> redirectTo)
 		{
 			var node = Add(url);
 
@@ -262,25 +262,11 @@ namespace Api.Pages
 		/// Gets the page to use for the given URL.
 		/// </summary>
 		/// <param name="context"></param>
-		/// <param name="url"></param>
+		/// <param name="urlInfo"></param>
 		/// <param name="searchQuery">Optional, Including the ? at the start</param>
 		/// <returns></returns>
-		public async ValueTask<PageWithTokens> GetPage(Context context, string url, Microsoft.AspNetCore.Http.QueryString searchQuery)
-		{	
-			url = url.Trim();
-			if (url.Length != 0 && url[0] == '/')
-			{
-				url = url.Substring(1);
-			}
-
-			if (url.Length != 0 && url[url.Length - 1] == '/')
-			{
-				url = url.Substring(0, url.Length - 1);
-			}
-			
-			var origUrl = url;
-			url = url.Split('?')[0]; // Just in case
-			
+		public async ValueTask<PageWithTokens> GetPage(Context context, UrlInfo urlInfo, Microsoft.AspNetCore.Http.QueryString searchQuery)
+		{
 			var curNode = rootPage;
 
 			if (curNode == null)
@@ -295,9 +281,9 @@ namespace Api.Pages
 
 			List<string> wildcardTokens = null;
 
-			if (url.Length != 0)
+			if (urlInfo.Length > 0)
 			{
-				var parts = url.ToLower().Split('/');
+				var parts = urlInfo.ToLower().Split('/');
 
 				for (var i = 0; i < parts.Length; i++)
 				{
@@ -335,7 +321,7 @@ namespace Api.Pages
 
 			if (curNode.Redirection != null)
 			{
-				var targetUrl = await curNode.Redirection(url, curNode, wildcardTokens);
+				var targetUrl = await curNode.Redirection(urlInfo, curNode, wildcardTokens);
 
 				if (targetUrl == null)
 				{
@@ -368,7 +354,7 @@ namespace Api.Pages
 					role = Roles.Public;
 				}
 
-				if (url == "login")
+				if (urlInfo.Matches("login"))
 				{
 					// Always permitted (assuming it exists!)
 					// This helps avoid any redirect cycles in the event the user is unable to see either the login or homepage.
@@ -403,7 +389,7 @@ namespace Api.Pages
 							TokenValues = null,
 							TokenNamesJson = "null",
 							RedirectTo = "/login?then=" +
-								System.Web.HttpUtility.UrlEncode(searchQuery.HasValue ? "/" + origUrl + searchQuery.Value : "/" + origUrl)
+								System.Web.HttpUtility.UrlEncode(searchQuery.HasValue ? urlInfo.Url + searchQuery.Value : urlInfo.Url)
 						};
 					}
 				}
@@ -428,6 +414,108 @@ namespace Api.Pages
 				TokenValues = wildcardTokens,
 				Multiple = curNode.Pages.Count > 1
 			};
+		}
+	}
+
+	/// <summary>
+	/// URL lookup information.
+	/// </summary>
+	public struct UrlInfo
+	{
+		/// <summary>
+		/// The URL. Start and length can be used to indicate the URL lookup engine should ignore some part of this string.
+		/// </summary>
+		public string Url;
+		/// <summary>
+		/// Defaults to 0. Set this to avoid allocating substrings.
+		/// </summary>
+		public int Start;
+		/// <summary>
+		/// Defaults to Url.Length. Set this to avoid allocating substrings.
+		/// </summary>
+		public int Length;
+
+
+		/// <summary>
+		/// True if the substring identified by this UrlInfo matches the given text (exactly, case sensitive).
+		/// </summary>
+		/// <param name="text"></param>
+		/// <returns></returns>
+		public bool Matches(string text)
+		{
+			if (text == null || text.Length != Length)
+			{
+				return false;
+			}
+
+			for (var i = 0; i < Length; i++)
+			{
+				if (text[i] != Url[Start + i])
+				{
+					return false;
+				}
+			}
+
+			return true;
+		}
+
+		/// <summary>
+		/// Allocates a lowercased substring
+		/// </summary>
+		/// <returns></returns>
+		public string ToLower()
+		{
+			if (Url == null)
+			{
+				return null;
+			}
+
+			if (Length == Url.Length)
+			{
+				return Url.ToLower();
+			}
+
+			return string.Create(Length, this, (Span<char> span, UrlInfo info) => {
+
+				for (var i = 0; i < info.Length; i++)
+				{
+					span[i] = char.ToLower(info.Url[info.Start + i]);
+				}
+
+			});
+		}
+
+		/// <summary>
+		/// A substring which also lowercases to avoid a double allocation.
+		/// </summary>
+		/// <returns></returns>
+		public string LowercaseSubstring(int start, int length)
+		{
+			if (Url == null)
+			{
+				return null;
+			}
+
+			start += Start;
+
+			if (length > Length)
+			{
+				length = Length;
+			}
+
+			if (length == Url.Length && start == 0)
+			{
+				return Url.ToLower();
+			}
+
+			return string.Create(length, this, (Span<char> span, UrlInfo info) => {
+
+				for (var i = 0; i < length; i++)
+				{
+					span[i] = char.ToLower(info.Url[start + i]);
+				}
+
+			});
 		}
 	}
 
@@ -474,7 +562,7 @@ namespace Api.Pages
 		/// <summary>
 		/// Set if this node performs a redirect.
 		/// </summary>
-		public Func<string, UrlLookupNode, List<string>, ValueTask<string>> Redirection;
+		public Func<UrlInfo, UrlLookupNode, List<string>, ValueTask<string>> Redirection;
 		/// <summary>
 		/// If this node has a page associated with it, this is the set of url tokens. The primary object is always derived from the last one.
 		/// </summary>

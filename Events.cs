@@ -28,6 +28,11 @@ namespace Api.Eventing
 		public EventHandler<PageWithTokens, string, Microsoft.AspNetCore.Http.QueryString> BeforeResolveUrl;
 
 		/// <summary>
+		/// A URL is parsed, and then it is resolved. This happens just before the parse phase and is essentially the very first thing that happens.
+		/// </summary>
+		public EventHandler<UrlInfo, Microsoft.AspNetCore.Http.QueryString> BeforeParseUrl;
+
+		/// <summary>
 		/// During page generation.
 		/// </summary>
 		public EventHandler<Document> Generated;
