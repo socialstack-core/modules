@@ -3,7 +3,6 @@ using System.Reflection;
 using System.Threading.Tasks;
 using Api.Contexts;
 using Api.Database;
-using Api.DatabaseDiff;
 using Api.Eventing;
 using Api.Startup;
 using Api.Users;
@@ -70,7 +69,7 @@ namespace Api.Revisions
 						specialIdField.TargetField = revisionIdField;
 
 						// Create a column definition:
-						columnDefinition = new DatabaseColumnDefinition(specialIdField, targetTableName)
+						columnDefinition = new MySQLDatabaseColumnDefinition(specialIdField, targetTableName)
 						{
 							IsAutoIncrement = true
 						};
@@ -78,7 +77,7 @@ namespace Api.Revisions
 					else
 					{
 						// Create a column definition:
-						columnDefinition = new DatabaseColumnDefinition(field, targetTableName);
+						columnDefinition = new MySQLDatabaseColumnDefinition(field, targetTableName);
 					}
 
 					if (!columnDefinition.Ignore)
@@ -97,7 +96,7 @@ namespace Api.Revisions
 					contentIdField.Name = "RevisionOriginalContentId";
 					contentIdField.SetFullName();
 
-					var contentIdColumn = new DatabaseColumnDefinition(
+					var contentIdColumn = new MySQLDatabaseColumnDefinition(
 						contentIdField,
 						targetTableName
 					)
@@ -172,7 +171,7 @@ namespace Api.Revisions
 		/// <summary>
 		/// The database service.
 		/// </summary>
-		private DatabaseService database = null;
+		private MySQLDatabaseService database = null;
 
 		/// <summary>
 		/// Sets a particular type with revision handlers. Used via reflection.
@@ -234,7 +233,7 @@ namespace Api.Revisions
 
 				if (database == null)
 				{
-					database = Services.Get<DatabaseService>();
+					database = Services.Get<MySQLDatabaseService>();
 				}
 
 				/*
@@ -281,7 +280,7 @@ namespace Api.Revisions
 
 				if (database == null)
 				{
-					database = Services.Get<DatabaseService>();
+					database = Services.Get<MySQLDatabaseService>();
 				}
 				
 				/*
