@@ -243,8 +243,8 @@ namespace Api.Huddles
 			// Ask the DB for huddle load entries, grouped by server, across this range of time slices:
 			var listQuery = Query.List(typeof(AllocatedHuddleServer));
 			listQuery.SetRawQuery(query.ToString());
-			
-			var allocations = await _database.List<AllocatedHuddleServer>(null, listQuery, typeof(AllocatedHuddleServer));
+
+			var allocations = await Services.Get<MySQLDatabaseService>().List<AllocatedHuddleServer>(null, listQuery, typeof(AllocatedHuddleServer));
 
 			// Next, we need to find if there's any servers missing.
 			foreach (var entry in allocations)
