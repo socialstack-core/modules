@@ -54,9 +54,19 @@ public class InitUrlLocales
 			if (localeId.HasValue)
 			{
 				// This URL starts with a locale code!
-				// Chop it off the front and update the context too:
-				urlInfo.Start += 5;
-				urlInfo.Length -= 5;
+				// Chop it off the front and update the context too.
+				if(urlInfo.Length == 5)
+				{
+					// Homepage - the URL is literally only the code
+					urlInfo.Start += 5;
+					urlInfo.Length -= 5;
+				}
+				else
+				{
+					// Code and a fwdslash - chop off the slash too
+					urlInfo.Start += 6;
+					urlInfo.Length -= 6;
+				}
 
 				context.LocaleId = localeId.Value;
 			}
