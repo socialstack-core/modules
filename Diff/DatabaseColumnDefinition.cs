@@ -42,9 +42,9 @@ namespace Api.Database
 		/// <summary>
 		/// Create a new database column definition from a given field for a particular table.
 		/// </summary>
-		public DatabaseColumnDefinition(Field fromField, string lowerCaseTableName)
+		public DatabaseColumnDefinition(Field fromField, string tableName)
 		{
-			TableName = lowerCaseTableName;
+			TableName = tableName;
 			ColumnName = fromField.Name;
 			var fieldType = fromField.Type;
 

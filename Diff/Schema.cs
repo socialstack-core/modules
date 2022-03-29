@@ -23,15 +23,15 @@ namespace Api.Database
 		/// <returns></returns>
 		public DatabaseTableDefinition GetTable(string name, bool createIfNotExists = false)
 		{
-			name = name.ToLower();
+			var lowerName = name.ToLower();
 			DatabaseTableDefinition result;
-			if (!Tables.TryGetValue(name, out result) && createIfNotExists)
+			if (!Tables.TryGetValue(lowerName, out result) && createIfNotExists)
 			{
 				result = new DatabaseTableDefinition()
 				{
 					TableName = name
 				};
-				Tables[name] = result;
+				Tables[lowerName] = result;
 			}
 
 			return result;
