@@ -1157,6 +1157,58 @@ namespace Api.SocketServerLibrary
 			}
 		}
 
+		/// <summary>Write an invertible compressed nullable value to the message.</summary>
+		public void WriteInvertibleCompressedSigned(long? value)
+		{
+			if (!value.HasValue)
+			{
+				WriteInvertibleCompressed(0);
+				return;
+			}
+
+			ulong v2;
+			
+			if (value < 0)
+			{
+				v2 = ((ulong)-value) << 1 | 1;
+			}
+			else
+			{
+				v2 = (ulong)value << 1;
+			}
+
+			WriteInvertibleCompressed(v2+1);
+		}
+
+		/// <summary>Write an invertible compressed nullable value to the message.</summary>
+		public void WriteInvertibleCompressed(ulong? value)
+		{
+			if (!value.HasValue)
+			{
+				WriteInvertibleCompressed(0);
+				return;
+			}
+
+			WriteInvertibleCompressed(value.Value + 1);
+		}
+
+		/// <summary>Write an invertible compressed value to the message.</summary>
+		public void WriteInvertibleCompressedSigned(long value)
+		{
+			ulong v2;
+
+			if (value < 0)
+			{
+				v2 = ((ulong)-value) << 1 | 1;
+			}
+			else
+			{
+				v2 = (ulong)value << 1;
+			}
+
+			WriteInvertibleCompressed(v2);
+		}
+
 		/// <summary>Write an invertible compressed value to the message.</summary>
 		public void WriteInvertibleCompressed(ulong value)
 		{
@@ -1390,6 +1442,25 @@ namespace Api.SocketServerLibrary
 
 			// Next, write the chars:
 			WriteCharStream(charStream);
+		}
+
+		/// <summary>
+		/// Writes an invertible byte array
+		/// </summary>
+		/// <param name="bytes"></param>
+		public void WriteInvertible(byte[] bytes)
+		{
+			if (bytes == null)
+			{
+				WriteInvertibleCompressed(0);
+				return;
+			}
+
+			// Write the length (offset by 1 for null):
+			var length = (uint)(bytes.Length + 1);
+			WriteInvertibleCompressed(length);
+			WriteNoLength(bytes);
+			WriteInvertibleCompressed(length);
 		}
 
 		/// <summary>
