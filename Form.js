@@ -113,8 +113,10 @@ export default class Form extends React.Component {
 		}
 		
 		apiUrl += 'v1/';
-		action = (action.indexOf('http') === 0 || action[0] == '/') ? action : apiUrl + action;
-	
+		if(action){
+			action = (action.indexOf('http') === 0 || action[0] == '/') ? action : apiUrl + action;
+		}
+		
 		return (
 			<form
 				onSubmit={this.onSubmit}
