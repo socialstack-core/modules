@@ -57,6 +57,17 @@ export default (props) => {
 	}
 	
 	function go(url) {
+		if(window.beforePageLoad){
+			window.beforePageLoad(url).then(() => {
+				window.beforePageLoad = null;
+				goNow(url);
+			}).catch(e => console.log(e));
+		}else{
+			goNow(url);
+		}
+	}
+	
+	function goNow(url) {
 		if(useDefaultNav(document.location.pathname, url)){
 			document.location = url;
 			return;
