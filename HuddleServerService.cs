@@ -194,7 +194,7 @@ namespace Api.Huddles
 		{
 			return RandomServerByRegion(regionId);
 
-
+			/*
 			if (huddleServerLookup == null || huddleServerLookup.Count == 0)
 			{
 				// Can't allocate yet (e.g. because there aren't any!)
@@ -304,6 +304,7 @@ namespace Api.Huddles
 			}
 
 			return targetServer;
+			*/
 		}
 
 		/// <summary>
@@ -330,16 +331,29 @@ namespace Api.Huddles
 		}
 	}
 
+	/// <summary>
+	/// 
+	/// </summary>
 	public class ServerByRegionSet
 	{
 
+		/// <summary>
+		/// 
+		/// </summary>
 		public int RandomIndex;
+		/// <summary>
+		/// 
+		/// </summary>
 		public List<HuddleServer> huddleServerSet = new List<HuddleServer>();
 
 		private int _currentRand;
 
 		private object _lock = new object();
 
+		/// <summary>
+		/// 
+		/// </summary>
+		/// <returns></returns>
 		public HuddleServer RandomServer()
 		{
 			if (huddleServerSet == null || huddleServerSet.Count == 0)
