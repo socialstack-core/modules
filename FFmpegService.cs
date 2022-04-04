@@ -202,7 +202,8 @@ namespace Api.FFmpeg
 					
 				}
 
-				Transcode(context, upload);
+				// Note that the transcode task does not wait for the complete transcoding - only writing of the manifest.
+				await Transcode(context, upload);
 				
 				// File is:
 				// upload.GetFilePath("original");
@@ -295,10 +296,15 @@ namespace Api.FFmpeg
 		/// <summary>
 		/// Transcodes the given upload now.
 		/// </summary>
-		public bool Transcode(Context context, Upload upload)
+		public async ValueTask<bool> Transcode(Context context, Upload upload)
 		{
 			string originalPathWithoutExt = upload.GetFilePath("original", true);
 			string originalPath = originalPathWithoutExt + "." + upload.FileType;
+
+			#warning This doesn't support generic storage (CloudHosts module) yet. Transcodes will be local files and need to be copied to the target storage.
+			// The new StoreFile event is used to ask whatever the storage engine is to store a file:
+			// await Events.Upload.StoreFile.Dispatch(context, upload, upload.TemporaryPath, "original");
+			// Will need to do ^ for each file in the temporary chunks directory, then delete the chunks directory.
 
 			string targetPath;
 			if (upload.IsVideo)
@@ -333,7 +339,7 @@ namespace Api.FFmpeg
 
 					var manifestContent = "#EXTM3U\n#EXT-X-VERSION:3\n#EXT-X-STREAM-INF:BANDWIDTH=800000,RESOLUTION=640x360\n360p.m3u8\n#EXT-X-STREAM-INF:BANDWIDTH=1400000,RESOLUTION=842x480\n480p.m3u8\n#EXT-X-STREAM-INF:BANDWIDTH=2800000,RESOLUTION=1280x720\n720p.m3u8\n#EXT-X-STREAM-INF:BANDWIDTH=5000000,RESOLUTION=1920x1080\n1080p.m3u8";
 
-					File.WriteAllText(chunkDirectory + "manifest.m3u8", manifestContent);
+					await File.WriteAllTextAsync(chunkDirectory + "manifest.m3u8", manifestContent);
 					
 					Run(cmd, async () => {
 						

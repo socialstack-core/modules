@@ -54,7 +54,7 @@ namespace Api.FFmpeg
 				return null;
 			}
 
-			if (_ffmpegService.Transcode(ctx, upload))
+			if (await _ffmpegService.Transcode(ctx, upload))
 			{
 				return new
 				{
