@@ -285,6 +285,13 @@ namespace Api.FFmpeg
 			return " \"" + fsPath + "\"";
 		}
 
+		private string AddRendition(string chunkDirectory, int w, int h, int bitVid, int maxRate, int bufSize, int bitAudio)
+		{
+			return "-vf scale=w=" + w + ":h=" + h + ":force_original_aspect_ratio=decrease -c:a aac -ar 48000 -c:v h264 -profile:v main -crf 20 -sc_threshold 0 " +
+			"-g 48 -keyint_min 48 -hls_time 4 -hls_playlist_type vod -b:v " + bitVid + "k -maxrate " + maxRate + "k -bufsize " + bufSize + "k -b:a " + bitAudio + "k " +
+			"-hls_segment_filename \"" + chunkDirectory + h + "p_%03d.ts.m3u8\" \"" + chunkDirectory + h + "p.m3u8\"";
+		}
+
 		/// <summary>
 		/// Transcodes the given upload now.
 		/// </summary>
@@ -297,21 +304,47 @@ namespace Api.FFmpeg
 			if (upload.IsVideo)
 			{
 				// Is a video
-				
-				if(hlsTranscode){
 
-					// Create the video dir:
-					var baseDir = AppSettings.Configuration[upload.IsPrivate ? "ContentPrivate" : "Content"] + "video/" + upload.Id + "/";
-					Directory.CreateDirectory(baseDir);
+				/*
+				 
+				  var args = [
+					'-hide_banner',
+					'-y',
+					'-i', transcodeTask.inputPath
+				  ];
+				  
+				 */
 
-					Run("-i \"" + originalPath + "\" -c:v h264 -c:a aac -f ssegment -segment_list \"" + baseDir + "manifest.m3u8\" -segment_time 1 -hls_time 1 -g 30 \"" + baseDir + "chunk%d.ts\"", async () => {
+				if (hlsTranscode){
+
+					// Create a temporary directory:
+					var chunkDirectory = upload.GetFilePath("chunks", true) + "/";
+					Directory.CreateDirectory(chunkDirectory);
+
+					var cmd = "-hide_banner -y -i \"" + originalPath + "\"";
+
+					// Currently fixed at 4 predefined sizes:
+					cmd += " " + AddRendition(chunkDirectory, 640, 360, 800, 856, 1200, 96);
+					cmd += " " + AddRendition(chunkDirectory, 842, 480, 1400, 1498, 2100, 128);
+					cmd += " " + AddRendition(chunkDirectory, 1280, 720, 2800, 2996, 4200, 128);
+					cmd += " " + AddRendition(chunkDirectory, 1920, 1080, 5000, 5350, 7500, 192);
+
+					// -i \"" + originalPath + "\" -c:v h264 -c:a aac -f ssegment -segment_list \"" + baseDir + "manifest.m3u8\" -segment_time 1 -hls_time 1 -g 30 \"" + baseDir + "chunk%d.ts\"
+
+					var manifestContent = "#EXTM3U\n#EXT-X-VERSION:3\n#EXT-X-STREAM-INF:BANDWIDTH=800000,RESOLUTION=640x360\n360p.m3u8\n#EXT-X-STREAM-INF:BANDWIDTH=1400000,RESOLUTION=842x480\n480p.m3u8\n#EXT-X-STREAM-INF:BANDWIDTH=2800000,RESOLUTION=1280x720\n720p.m3u8\n#EXT-X-STREAM-INF:BANDWIDTH=5000000,RESOLUTION=1920x1080\n1080p.m3u8";
+
+					File.WriteAllText(chunkDirectory + "manifest.m3u8", manifestContent);
+					
+					Run(cmd, async () => {
 						
 						// Done! (NB can trigger twice if multi-transcoding)
 						upload = await _uploads.Update(context, upload, (Context c, Upload upl) => {
 							upl.TranscodeState = 2;
 							upl.MarkChanged(_uploads.GetChangeField("TranscodeState"));
 						}, DataOptions.IgnorePermissions);
+
 						await Events.UploadAfterTranscode.Dispatch(context, upload);
+
 					});
 				}
 				
