@@ -90,8 +90,8 @@ export default function ManageDiscount(props) {
 				<button onClick={e => onClickGenerateCoupon()} className="btn btn-primary">Generate New Coupon</button>
 			</div>
 			<Spacer height="20"/>
-			<div className="back-button">
-				<a href={backButtonUrl} className="btn btn-primary">Back</a>
+			<div>
+				<a href={backButtonUrl} className="btn btn-primary back-button">Back</a>
 			</div>
 		</div>
 	);
