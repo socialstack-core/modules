@@ -17,6 +17,11 @@ namespace Api.Translate
 		/// Usually a 5 letter locale code e.g. "en_GB". May also be just 2 e.g. "fr".
 		/// </summary>
 		public string Code;
+		
+		/// <summary>
+		/// List of comma seperated aliases for mapping request headers or custom client codes
+		/// </summary>
+		public string Aliases;
     }
 
 }

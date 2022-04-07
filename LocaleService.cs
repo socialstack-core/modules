@@ -49,33 +49,45 @@ namespace Api.Translate
 						var langsUpTo = acceptLanguageHeader.IndexOf(';');
 						var index = 0;
 
-						while (index < langsUpTo)
+						if (langsUpTo == -1)
 						{
-							var next = acceptLanguageHeader.IndexOf(',', index + 1);
-
-							if (next > langsUpTo)
-							{
-								break;
-							}
-
-							if (next == -1 || next > langsUpTo)
-							{
-								next = langsUpTo;
-							}
-
-							string langCode = acceptLanguageHeader.Substring(index, next - index);
-
-							var localeId = await GetId(langCode);
+							var localeId = await GetId(acceptLanguageHeader);
 
 							if (localeId.HasValue)
 							{
 								context.LocaleId = localeId.Value;
-								break;
 							}
-
-							index = next + 1;
 						}
+						else
+						{
 
+							while (index < langsUpTo)
+							{
+								var next = acceptLanguageHeader.IndexOf(',', index + 1);
+
+								if (next > langsUpTo)
+								{
+									break;
+								}
+
+								if (next == -1 || next > langsUpTo)
+								{
+									next = langsUpTo;
+								}
+
+								string langCode = acceptLanguageHeader.Substring(index, next - index);
+
+								var localeId = await GetId(langCode);
+
+								if (localeId.HasValue)
+								{
+									context.LocaleId = localeId.Value;
+									break;
+								}
+
+								index = next + 1;
+							}
+						}
 					}
 				}
 
@@ -121,14 +133,20 @@ namespace Api.Translate
 
 				foreach (var locale in all)
 				{
-					if (string.IsNullOrEmpty(locale.Code))
-					{
-						continue;
+					if (!string.IsNullOrWhiteSpace(locale.Code)) {
+						// Primary locale code
+						map[locale.Code.Trim().ToLower()] = locale.Id;
 					}
 
-					// Primary locale code (may have an aliases field in the future):
-					var mainCode = locale.Code.Trim().ToLower();
-					map[mainCode] = locale.Id;
+					if (!string.IsNullOrWhiteSpace(locale.Aliases))
+					{
+						// Seconadary locale map codes
+						var secondaryCodes = locale.Aliases.Split(new string[] { "," }, StringSplitOptions.RemoveEmptyEntries);
+						foreach (var secondaryCode in secondaryCodes)
+						{
+							map[secondaryCode.Trim().ToLower()] = locale.Id;
+						}
+					}
 				}
 
 				_codeMap = map;
