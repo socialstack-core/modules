@@ -89,7 +89,7 @@ export default function DiscountList(props) {
 									</td>
 								}
 								<td>
-									<button className="btn btn-primary" onClick={e => removeDiscount(discount)}>Remove</button>
+									<button className="btn btn-danger" onClick={e => removeDiscount(discount)}>Remove</button>
 								</td>
 							</>;
 						}
