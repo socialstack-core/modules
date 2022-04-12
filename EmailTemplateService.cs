@@ -49,7 +49,7 @@ namespace Api.Emails
 			_configuration = GetConfig<EmailConfig>();
 			
 			InstallAdminPages("Emails", "fa:fa-paper-plane", new string[] { "id", "name", "key" });
-			
+
 			Events.User.BeforeSettable.AddEventListener((Context context, JsonField<User, uint> field) =>
 			{
 				if (field == null)
@@ -64,6 +64,87 @@ namespace Api.Emails
 				}
 
 				return new ValueTask<JsonField<User, uint>>(field);
+			});
+			
+			InstallEmails(
+				new EmailTemplate(){
+					Name = "Verify email address",
+					Subject = "Verify your email address",
+					Key = "verify_email",
+					BodyJson = "{\"module\":\"Email/Default\",\"content\":[{\"module\":\"Email/Centered\",\"data\":{}," +
+					"\"content\":\"An account was recently created with us. If this was you, click the following link to proceed:\"},"+
+					"{\"module\":\"Email/PrimaryButton\",\"data\":{\"label\":\"Verify my email address\",\"target\":\"/email-verify/${customData.userId}/${customData.token}\"}}]}"
+				},
+				new EmailTemplate()
+                {
+					Name = "Password reset",
+					Subject = "Password reset",
+					Key = "forgot_password",
+					BodyJson = "{\"module\":\"Email/Default\",\"content\":[{\"module\":\"Email/Centered\",\"data\":{}," +
+					"\"content\":\"A password reset request was recently created with us for this email. If this was you, click the following link to proceed:\"}," +
+					"{\"module\":\"Email/PrimaryButton\",\"data\":{\"label\":\"Verify my email address\",\"target\":\"/password/reset/${customData.token}\"}}]}"
+				}
+			);
+			
+			var userConfig = _users.GetConfig<UserServiceConfig>();
+			
+			Events.User.AfterCreate.AddEventListener(async (Context ctx, User user) => {
+				
+				if(user == null){
+					return user;
+				}
+				
+				if(userConfig.VerifyEmails)
+				{
+					var token = await _users.SendVerificationEmail(ctx, user);
+					user.EmailVerifyToken = token;
+				}
+				
+				return user;
+			});
+			
+			Events.User.BeforeCreate.AddEventListener(async (Context ctx, User user) =>
+			{
+				if (user == null)
+				{
+					return user;
+				}
+				
+				if (userConfig.UniqueEmails && !string.IsNullOrEmpty(user.Email))
+				{
+					// Let's make sure the username is not in use.
+					var usersWithEmail = await _users.Where("Email=?", DataOptions.IgnorePermissions).Bind(user.Email).Any(ctx);
+
+					if (usersWithEmail)
+					{
+						throw new PublicException(userConfig.UniqueEmailMessage, "email_used");
+					}
+				}
+
+				return user;
+			});
+			
+			var emailField = _users.GetChangeField("Email");
+
+			Events.User.BeforeUpdate.AddEventListener(async (Context ctx, User user) =>
+			{
+				if (user == null)
+                {
+					return user;
+                }
+				
+				if (userConfig.UniqueEmails && !string.IsNullOrEmpty(user.Email) && user.HasChanged(emailField))
+				{		
+					// Let's make sure the username is not in use by anyone besides this user (in case they didn't change it!).
+					var usersWithEmail = await _users.Where("Email=? and Id!=?", DataOptions.IgnorePermissions).Bind(user.Email).Bind(user.Id).Any(ctx);
+
+					if (usersWithEmail)
+					{
+						throw new PublicException(userConfig.UniqueEmailMessage, "email_used");
+					}
+				}
+
+				return user;
 			});
 			
 			// Cache all in memory:
