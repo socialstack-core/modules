@@ -166,9 +166,9 @@ public class TransactionReader
 	/// <returns></returns>
 	public BufferedBytes ObtainBuffer()
 	{
-		var buff = BinaryBufferPool.Get();
+		var buff = BinaryBufferPool.OneKb.Get();
 		buff.Offset = 0;
-		buff.Length = BinaryBufferPool.BufferSize;
+		buff.Length = BinaryBufferPool.OneKb.BufferSize;
 
 		if (FirstBuffer == null)
 		{
@@ -201,8 +201,10 @@ public class TransactionReader
 			}
 			return;
 		}
-		
-		if (LastBuffer == null || BinaryBufferPool.BufferSize == BufferFill)
+
+		var bufferSize = BinaryBufferPool.OneKb.BufferSize;
+
+		if (LastBuffer == null || bufferSize == BufferFill)
 		{
 			ObtainBuffer();
 		}
@@ -213,7 +215,7 @@ public class TransactionReader
 			Fields[FieldCount].FirstBuffer = LastBuffer;
 		}
 
-		int space = BinaryBufferPool.BufferSize - BufferFill;
+		int space = BinaryBufferPool.OneKb.BufferSize - BufferFill;
 
 		if (length <= space)
 		{
@@ -225,18 +227,18 @@ public class TransactionReader
 
 		// Fill the first buffer:
 		Array.Copy(buffer, offset, LastBuffer.Bytes, BufferFill, space);
-		BufferFill = BinaryBufferPool.BufferSize;
+		BufferFill = bufferSize;
 		length -= space;
 		offset += space;
 
 		// Fill full size buffers:
-		while (length >= BinaryBufferPool.BufferSize)
+		while (length >= bufferSize)
 		{
 			ObtainBuffer();
-			Array.Copy(buffer, offset, LastBuffer.Bytes, 0, BinaryBufferPool.BufferSize);
-			offset += BinaryBufferPool.BufferSize;
-			length -= BinaryBufferPool.BufferSize;
-			BufferFill = BinaryBufferPool.BufferSize;
+			Array.Copy(buffer, offset, LastBuffer.Bytes, 0, bufferSize);
+			offset += bufferSize;
+			length -= bufferSize;
+			BufferFill = bufferSize;
 		}
 
 		if (length > 0)
