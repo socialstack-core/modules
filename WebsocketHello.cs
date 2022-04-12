@@ -418,7 +418,7 @@ namespace Api.SocketServerLibrary
 						{
 							// This byte is part of our cookie header line.
 							// If we're about to blow the limit, this cookie is too long to be a user cookie so just treat it as junk.
-							if (client.ScratchSpace.Offset == BinaryBufferPool.BufferSize)
+							if (client.ScratchSpace.Offset == BinaryBufferPool.OneKb.BufferSize)
 							{
 								// Little bit of space for the cookie name:
 								client.ScratchSpace.Offset = 40;
@@ -480,7 +480,7 @@ namespace Api.SocketServerLibrary
 							if (index == LowerCaseKeyHeader.Length - 1)
 							{
 								// Sec header is indeed incoming!
-								client.ScratchSpace = BinaryBufferPool.Get();
+								client.ScratchSpace = BinaryBufferPool.OneKb.Get();
 								client.ScratchSpace.Offset = 0;
 								frame.Phase = 2;
 							}
@@ -504,7 +504,7 @@ namespace Api.SocketServerLibrary
 							if (index == LowerCaseCookieHeader.Length - 1)
 							{
 								// Cookie header is indeed incoming!
-								client.ScratchSpace = BinaryBufferPool.Get();
+								client.ScratchSpace = BinaryBufferPool.OneKb.Get();
 								client.ScratchSpace.Offset = 0;
 								frame.Phase = 3;
 							}
