@@ -1,14 +1,8 @@
 ﻿using System;
 using System.Threading.Tasks;
-using Api.Database;
-using Api.Emails;
-using Microsoft.AspNetCore.Http;
 using Api.Contexts;
 using System.Collections.Generic;
-using Api.Permissions;
 using Api.Eventing;
-using System.Collections;
-using System.Reflection;
 using Api.Startup;
 using System.Linq;
 using Newtonsoft.Json.Linq;
