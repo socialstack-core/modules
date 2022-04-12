@@ -1,14 +1,12 @@
 ﻿using Newtonsoft.Json;
-using Api.Configuration;
 using Api.Database;
 using Api.Signatures;
 using Api.Startup;
 using System;
-using System.Web;
 using Api.Users;
 using Api.SocketServerLibrary;
-using Api.CanvasRenderer;
 using System.Threading.Tasks;
+
 
 namespace Api.Uploader
 {
@@ -175,24 +173,6 @@ namespace Api.Uploader
 			}
 			
 			return MimeTypeMap.GetMimeType(fileType);
-		}
-
-		/// <summary>
-		/// Gets the absolute URL of this upload (unsigned).
-		/// </summary>
-		/// <returns></returns>
-		public string GetUrl(string variant = "original")
-		{
-			return Services.Get<FrontendCodeService>().GetContentUrl() + (IsPrivate ? "/content-private/" : "/content/") + GetRelativePath(variant);
-		}
-		
-		/// <summary>
-		/// Gets a transcode callback URL. This allows trustless file manipulation.
-		/// </summary>
-		/// <returns></returns>
-		public string GetTranscodeCallbackUrl()
-		{
-			return Services.Get<FrontendCodeService>().GetPublicUrl() + "/v1/upload/transcoded/" + Id + "?token=" + Services.Get<UploadService>().GetTranscodeToken(Id);
 		}
 
 		/// <summary>
