@@ -15,36 +15,42 @@ namespace Api.SocketServerLibrary
 		public byte[] Bytes;
 		/// <summary>When this object is in the pool, this is the object after.</summary>
 		public BufferedBytes After;
-		
+		/// <summary>
+		/// The pool this block came from.
+		/// </summary>
+		public readonly BinaryBufferPool Pool;
 		
 		/// <summary>
 		/// Instances a new block of bytes.
 		/// </summary>
-		public BufferedBytes(byte[] bytes,int length){
-			Bytes=bytes;
-			Length=length;
+		public BufferedBytes(byte[] bytes, int length, BinaryBufferPool pool){
+			Bytes = bytes;
+			Length = length;
+			Pool = pool;
 		}
 		
 		/// <summary>
 		/// Instances a new block of bytes.
 		/// </summary>
-		public BufferedBytes(byte[] bytes,int length,int offset){
+		public BufferedBytes(byte[] bytes, int length, int offset, BinaryBufferPool pool)
+		{
 			Bytes=bytes;
 			Length=length;
 			Offset=offset;
+			Pool = pool;
 		}
 		
 		/// <summary>Returns this bytes object to the pool it came from.</summary>
 		public void Release(){
+			var pool = Pool;
+			lock(pool.PoolLock){
 			
-			lock(BinaryBufferPool.PoolLock){
-			
-				if(BinaryBufferPool.First==null){
-					BinaryBufferPool.First=this;
+				if(pool.First==null){
+					pool.First=this;
 					After=null;
 				}else{
-					After=BinaryBufferPool.First;
-					BinaryBufferPool.First=this;
+					After= pool.First;
+					pool.First=this;
 				}
 				
 			}
@@ -56,8 +62,9 @@ namespace Api.SocketServerLibrary
 		/// <returns>May internally add to the linked list of buffers. 
 		/// Returns the last buffer in the list (which might just be this if no extra ones were needed).</returns>
 		public BufferedBytes CopyFrom(byte[] buffer, int offset, int count){
+			var pool = Pool;
 			// Space in this buffer is..
-			var availableSpace = BinaryBufferPool.BufferSize - Offset;
+			var availableSpace = pool.BufferSize - Offset;
 			
 			if(availableSpace >= count){
 				// Space in this buffer - copy now:
@@ -71,27 +78,27 @@ namespace Api.SocketServerLibrary
 			
 			// First though, fill the remaining space:
 			Array.Copy(buffer, offset, Bytes, Offset, availableSpace);
-			Offset = BinaryBufferPool.BufferSize;
+			Offset = pool.BufferSize;
 			count -= availableSpace;
 			offset += availableSpace;
 			
 			var currentBuffer = this;
 			
 			// While we can fill entire buffers..
-			while(count > BinaryBufferPool.BufferSize){
-				currentBuffer.After = BinaryBufferPool.Get();
+			while(count > pool.BufferSize){
+				currentBuffer.After = pool.Get();
 				currentBuffer = currentBuffer.After;
-				currentBuffer.Offset = BinaryBufferPool.BufferSize;
+				currentBuffer.Offset = pool.BufferSize;
 				
 				// Fill the entire thing:
-				Array.Copy(buffer, offset, currentBuffer.Bytes, 0, BinaryBufferPool.BufferSize);
-				offset += BinaryBufferPool.BufferSize;
-				count -= BinaryBufferPool.BufferSize;
+				Array.Copy(buffer, offset, currentBuffer.Bytes, 0, pool.BufferSize);
+				offset += pool.BufferSize;
+				count -= pool.BufferSize;
 			}
 			
 			// If count is non-zero, we'll need another buffer:
 			if(count > 0){
-				currentBuffer.After = BinaryBufferPool.Get();
+				currentBuffer.After = pool.Get();
 				currentBuffer = currentBuffer.After;
 				currentBuffer.Offset = count;
 				

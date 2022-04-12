@@ -13,19 +13,8 @@ namespace Api.SocketServerLibrary
 	/// A streamable message which writes to buffer pool.
 	/// You must use GetPooled() and then a Start(..) overload to set it up.
 	/// </summary>
-	public class Writer{
-		
-		/// <summary>
-		/// First writer in the pool.
-		/// </summary>
-		private static Writer FirstCached;
-		
-		/// <summary>
-		/// Thread safety for the pool.
-		/// </summary>
-		private static readonly object PoolLock = new object();
-
-
+	public class Writer
+	{	
 		/// <summary>
 		/// Escape the given control char. The given control char value must be true for Unicode.IsControl.
 		/// </summary>
@@ -110,28 +99,24 @@ namespace Api.SocketServerLibrary
 		}
 
 		/// <summary>
+		/// Don't call this - it's for a pooled writer to reset itself.
+		/// </summary>
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		internal void PoolReset()
+		{
+			NextInLine = null;
+			SendQueueCount = 0;
+			ReleaseOnSent = false;
+		}
+
+		/// <summary>
 		/// Gets a pooled writer.
 		/// Generally use this rather than new Writer.
 		/// </summary>
-		public static Writer GetPooled(){
-			Writer result;
-
-			lock (PoolLock)
-			{
-				if (FirstCached == null)
-				{
-					return new Writer();
-				}
-
-				result = FirstCached;
-				FirstCached = result.NextInLine;
-
-			}
-
-			result.NextInLine = null;
-			result.SendQueueCount = 0;
-			result.ReleaseOnSent = false;
-			return result;
+		public static Writer GetPooled()
+		{
+			// Uses the 1kb buffer size:
+			return BinaryBufferPool.OneKb.GetWriter();
 		}
 
 		/// <summary>
@@ -196,7 +181,7 @@ namespace Api.SocketServerLibrary
 			BaseLength = 0;
 			BlockCount = 1;
 			Fill = 0;
-			var buffer = BinaryBufferPool.Get();
+			var buffer = Pool.Get();
 			LastBuffer = buffer;
 			FirstBuffer = buffer;
 			_LastBufferBytes = buffer.Bytes;
@@ -212,7 +197,7 @@ namespace Api.SocketServerLibrary
 			BaseLength = 0;
 			BlockCount = 1;
 			Fill = 0;
-			var buffer = BinaryBufferPool.Get();
+			var buffer = Pool.Get();
 			LastBuffer = buffer;
 			FirstBuffer = buffer;
 			_LastBufferBytes = buffer.Bytes;
@@ -231,7 +216,7 @@ namespace Api.SocketServerLibrary
 			BaseLength = 0;
 			BlockCount = 1;
 			Fill = 0;
-			var buffer = BinaryBufferPool.Get();
+			var buffer = Pool.Get();
 			LastBuffer = buffer;
 			FirstBuffer = buffer;
 			_LastBufferBytes = buffer.Bytes;
@@ -243,8 +228,16 @@ namespace Api.SocketServerLibrary
 			}
 		}
 
-		private Writer() {
-			// Use the GetPooled() method and Start() instead.
+		private readonly BinaryBufferPool Pool;
+
+		/// <summary>
+		/// Don't call directly - use aBinaryBufferPool.GetWriter(); instead. For the common 1kb buffer pool, use (static) Writer.GetPooled();
+		/// That's the same as calling BinaryBufferPool.OneKb.GetWriter();
+		/// </summary>
+		/// <param name="pool"></param>
+		public Writer(BinaryBufferPool pool)
+		{
+			Pool = pool;
 		}
 
 		/// <summary>
@@ -262,7 +255,7 @@ namespace Api.SocketServerLibrary
 		private void NextBuffer(){
 			BaseLength+=Fill;
 			LastBuffer.Length = Fill;
-			var buffer = BinaryBufferPool.Get();
+			var buffer = Pool.Get();
 			LastBuffer.After = buffer;
 			LastBuffer = buffer;
 			buffer.Offset = 0;
@@ -288,10 +281,10 @@ namespace Api.SocketServerLibrary
 			ReleaseOnSent = false;
 
 			// Release all the buffers:
-			lock (BinaryBufferPool.PoolLock)
+			lock (Pool.PoolLock)
 			{
-				LastBuffer.After = BinaryBufferPool.First;
-				BinaryBufferPool.First = FirstBuffer;
+				LastBuffer.After = Pool.First;
+				Pool.First = FirstBuffer;
 			}
 
 			// Clear:
@@ -322,10 +315,10 @@ namespace Api.SocketServerLibrary
 			// Release all the buffers:
 			if (FirstBuffer != null)
 			{
-				lock (BinaryBufferPool.PoolLock)
+				lock (Pool.PoolLock)
 				{
-					LastBuffer.After = BinaryBufferPool.First;
-					BinaryBufferPool.First = FirstBuffer;
+					LastBuffer.After = Pool.First;
+					Pool.First = FirstBuffer;
 				}
 			}
 
@@ -333,11 +326,11 @@ namespace Api.SocketServerLibrary
 			FirstBuffer = null;
 			_LastBufferBytes = null;
 
-			lock (PoolLock)
+			lock (Pool.WriterPoolLock)
 			{
 				// Shove into the pool:
-				NextInLine = FirstCached;
-				FirstCached = this;
+				NextInLine = Pool.FirstCached;
+				Pool.FirstCached = this;
 			}
 		}
 
@@ -362,9 +355,10 @@ namespace Api.SocketServerLibrary
 			buffer = null;
 			return -1;
 		}
-		
+
 		/// <summary>Gets a CRC32 for the given range of data.</summary>
 		public uint GetCrc32(int start, int length){
+			LastBuffer.Length = Fill;
 			var table = Crc32.GetTable();
 			uint crc = Crc32.DefaultSeed;
 			
@@ -382,6 +376,13 @@ namespace Api.SocketServerLibrary
 				if(bufferIndex == bufferLength){
 					
 					currentBuffer = currentBuffer.After;
+
+					if (currentBuffer == null)
+					{
+						// Happens if we're creating the CRC of the entire writer's content
+						return crc;
+					}
+
 					currentBytes = currentBuffer.Bytes;
 					bufferLength = currentBuffer.Length;
 					bufferIndex = 0;
@@ -468,7 +469,7 @@ namespace Api.SocketServerLibrary
 		/// <summary>Write a single byte to the message. Write a block of bytes instead of using this if you can.</summary>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public void Write(byte val){
-			if(Fill == BinaryBufferPool.BufferSize){
+			if(Fill == Pool.BufferSize){
 				NextBuffer();
 			}
 			
@@ -478,12 +479,25 @@ namespace Api.SocketServerLibrary
 		/// <summary>Write a 2 byte unsigned value to the message.</summary>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public void Write(ushort value){
-			if(Fill > (BinaryBufferPool.BufferSize-2)){
+			if(Fill > (Pool.BufferSize-2)){
 				NextBuffer();
 			}
 			
 			_LastBufferBytes[Fill++]=(byte)value;
 			_LastBufferBytes[Fill++]=(byte)(value>>8);
+		}
+
+		/// <summary>Write a 2 byte unsigned value to the message.</summary>
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public void WriteBE(ushort value)
+		{
+			if (Fill > (Pool.BufferSize - 2))
+			{
+				NextBuffer();
+			}
+
+			_LastBufferBytes[Fill++] = (byte)(value >> 8);
+			_LastBufferBytes[Fill++] = (byte)value;
 		}
 
 		/*
@@ -521,7 +535,7 @@ namespace Api.SocketServerLibrary
 		/// <summary>Write a 2 byte signed value to the message.</summary>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public void Write(short value){
-			if(Fill > (BinaryBufferPool.BufferSize-2)){
+			if(Fill > (Pool.BufferSize-2)){
 				NextBuffer();
 			}
 			
@@ -532,7 +546,7 @@ namespace Api.SocketServerLibrary
 		/// <summary>Write a 4 byte unsigned value to the message.</summary>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public void Write(uint value){
-			if(Fill > (BinaryBufferPool.BufferSize-4)){
+			if(Fill > (Pool.BufferSize-4)){
 				NextBuffer();
 			}
 			
@@ -540,6 +554,19 @@ namespace Api.SocketServerLibrary
 			_LastBufferBytes[Fill++]=(byte)(value>>8);
 			_LastBufferBytes[Fill++]=(byte)(value>>16);
 			_LastBufferBytes[Fill++]=(byte)(value>>24);
+		}
+		
+		/// <summary>Write a 4 byte unsigned value to the message.</summary>
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public void WriteBE(uint value){
+			if(Fill > (Pool.BufferSize-4)){
+				NextBuffer();
+			}
+
+			_LastBufferBytes[Fill++] = (byte)(value >> 24);
+			_LastBufferBytes[Fill++] = (byte)(value >> 16);
+			_LastBufferBytes[Fill++] = (byte)(value >> 8);
+			_LastBufferBytes[Fill++]=(byte)value;
 		}
 
 		/// <summary>
@@ -609,7 +636,7 @@ namespace Api.SocketServerLibrary
 		/// <summary>Write a 4 byte signed value to the message.</summary>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public void Write(int value){
-			if(Fill > (BinaryBufferPool.BufferSize-4)){
+			if(Fill > (Pool.BufferSize-4)){
 				NextBuffer();
 			}
 			
@@ -619,10 +646,24 @@ namespace Api.SocketServerLibrary
 			_LastBufferBytes[Fill++]=(byte)(value>>24);
 		}
 
+		/// <summary>Write a 4 byte unsigned value to the message. Big endian.</summary>
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public void WriteUInt24BE(uint value)
+		{
+			if (Fill > (Pool.BufferSize - 3))
+			{
+				NextBuffer();
+			}
+
+			_LastBufferBytes[Fill++] = (byte)(value >> 16);
+			_LastBufferBytes[Fill++] = (byte)(value >> 8);
+			_LastBufferBytes[Fill++] = (byte)value;
+		}
+
 		/// <summary>Write a 4 byte unsigned value to the message.</summary>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public void WriteUInt24(uint value){
-			if(Fill > (BinaryBufferPool.BufferSize-3)){
+			if(Fill > (Pool.BufferSize-3)){
 				NextBuffer();
 			}
 			
@@ -634,7 +675,7 @@ namespace Api.SocketServerLibrary
 		/// <summary>Write a 3 byte signed value to the message.</summary>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public void WriteInt24(int value){
-			if(Fill > (BinaryBufferPool.BufferSize-3)){
+			if(Fill > (Pool.BufferSize-3)){
 				NextBuffer();
 			}
 			
@@ -646,7 +687,7 @@ namespace Api.SocketServerLibrary
 		/// <summary>Write a float value.</summary>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public void Write(float val){
-			if(Fill > (BinaryBufferPool.BufferSize-4)){
+			if(Fill > (Pool.BufferSize-4)){
 				NextBuffer();
 			}
 			
@@ -661,7 +702,7 @@ namespace Api.SocketServerLibrary
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public void Write(double val)
 		{
-			if (Fill > (BinaryBufferPool.BufferSize - 8))
+			if (Fill > (Pool.BufferSize - 8))
 			{
 				NextBuffer();
 			}
@@ -681,7 +722,7 @@ namespace Api.SocketServerLibrary
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public void Write(DateTime val)
 		{
-			if (Fill > (BinaryBufferPool.BufferSize - 8))
+			if (Fill > (Pool.BufferSize - 8))
 			{
 				NextBuffer();
 			}
@@ -742,7 +783,7 @@ namespace Api.SocketServerLibrary
 		/// <param name="str"></param>
 		public void WriteASCII(string str)
 		{
-			if (Fill > (BinaryBufferPool.BufferSize - str.Length))
+			if (Fill > (Pool.BufferSize - str.Length))
 			{
 				NextBuffer();
 			}
@@ -762,7 +803,7 @@ namespace Api.SocketServerLibrary
 		/// <param name="length"></param>
 		public void WriteAlphaChar(byte[] srcBuffer, int offset, int length)
 		{
-			if (Fill > (BinaryBufferPool.BufferSize - (length * 2)))
+			if (Fill > (Pool.BufferSize - (length * 2)))
 			{
 				NextBuffer();
 			}
@@ -895,7 +936,7 @@ namespace Api.SocketServerLibrary
 							// Note: don't ever get escape-worthy chars here. Always outputted as-is.
 							runeBytesInUtf8 = Utf8.RuneLen(rune);
 
-							if (Fill > (BinaryBufferPool.BufferSize - runeBytesInUtf8))
+							if (Fill > (Pool.BufferSize - runeBytesInUtf8))
 							{
 								NextBuffer();
 							}
@@ -929,7 +970,7 @@ namespace Api.SocketServerLibrary
 				// output the character:
 				runeBytesInUtf8 = Utf8.RuneLen(rune);
 
-				if (Fill > (BinaryBufferPool.BufferSize - runeBytesInUtf8))
+				if (Fill > (Pool.BufferSize - runeBytesInUtf8))
 				{
 					NextBuffer();
 				}
@@ -1041,7 +1082,7 @@ namespace Api.SocketServerLibrary
 		/// <summary>Write an 8 byte unsigned value to the message.</summary>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public void Write(ulong value){
-			if(Fill > (BinaryBufferPool.BufferSize-8)){
+			if(Fill > (Pool.BufferSize-8)){
 				NextBuffer();
 			}
 			
@@ -1058,7 +1099,7 @@ namespace Api.SocketServerLibrary
 		/// <summary>Write an 8 byte signed value to the message.</summary>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public void Write(long value){
-			if(Fill > (BinaryBufferPool.BufferSize-8)){
+			if(Fill > (Pool.BufferSize-8)){
 				NextBuffer();
 			}
 			
@@ -1076,7 +1117,7 @@ namespace Api.SocketServerLibrary
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public void WriteUInt40(ulong value)
 		{
-			if (Fill > (BinaryBufferPool.BufferSize - 5))
+			if (Fill > (Pool.BufferSize - 5))
 			{
 				NextBuffer();
 			}
@@ -1088,11 +1129,27 @@ namespace Api.SocketServerLibrary
 			_LastBufferBytes[Fill++] = (byte)(value >> 32);
 		}
 
+		/// <summary>Write a 5 byte signed value to the message (Big endian).</summary>
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public void WriteUInt40BE(ulong value)
+		{
+			if (Fill > (Pool.BufferSize - 5))
+			{
+				NextBuffer();
+			}
+
+			_LastBufferBytes[Fill++] = (byte)(value >> 32);
+			_LastBufferBytes[Fill++] = (byte)(value >> 24);
+			_LastBufferBytes[Fill++] = (byte)(value >> 16);
+			_LastBufferBytes[Fill++] = (byte)(value >> 8);
+			_LastBufferBytes[Fill++] = (byte)value;
+		}
+
 		/// <summary>Write a 6 byte signed value to the message.</summary>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public void WriteUInt48(ulong value)
 		{
-			if (Fill > (BinaryBufferPool.BufferSize - 6))
+			if (Fill > (Pool.BufferSize - 6))
 			{
 				NextBuffer();
 			}
@@ -1104,11 +1161,28 @@ namespace Api.SocketServerLibrary
 			_LastBufferBytes[Fill++] = (byte)(value >> 32);
 			_LastBufferBytes[Fill++] = (byte)(value >> 40);
 		}
+		
+		/// <summary>Write a 6 byte signed value to the message. Big endian.</summary>
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public void WriteUInt48BE(ulong value)
+		{
+			if (Fill > (Pool.BufferSize - 6))
+			{
+				NextBuffer();
+			}
+
+			_LastBufferBytes[Fill++] = (byte)(value >> 40);
+			_LastBufferBytes[Fill++] = (byte)(value >> 32);
+			_LastBufferBytes[Fill++] = (byte)(value >> 24);
+			_LastBufferBytes[Fill++] = (byte)(value >> 16);
+			_LastBufferBytes[Fill++] = (byte)(value >> 8);
+			_LastBufferBytes[Fill++] = (byte)value;
+		}
 
 		/// <summary>Write a compressed value to the message.</summary>
 		public void WriteCompressed(ulong value){
 			
-			if(Fill > (BinaryBufferPool.BufferSize - 9)){
+			if(Fill > (Pool.BufferSize - 9)){
 				NextBuffer();
 			}
 			
@@ -1161,7 +1235,7 @@ namespace Api.SocketServerLibrary
 		public void WriteInvertibleCompressed(ulong value)
 		{
 
-			if (Fill > (BinaryBufferPool.BufferSize - 10))
+			if (Fill > (Pool.BufferSize - 10))
 			{
 				NextBuffer();
 			}
@@ -1249,7 +1323,7 @@ namespace Api.SocketServerLibrary
 		public void WritePackedInt(ulong value)
 		{
 
-			if (Fill > (BinaryBufferPool.BufferSize - 9))
+			if (Fill > (Pool.BufferSize - 9))
 			{
 				NextBuffer();
 			}
@@ -1551,7 +1625,8 @@ namespace Api.SocketServerLibrary
 		private void WriteCharStream(ReadOnlySpan<char> charStream)
 		{
 			var max = charStream.Length;
-			
+			var bufferSize = Pool.BufferSize;
+
 			for (var i = 0; i < max; i++)
 			{
 				var current = charStream[i];
@@ -1574,7 +1649,7 @@ namespace Api.SocketServerLibrary
 							// Note: don't ever get escape-worthy chars here. Always outputted as-is.
 							runeBytesInUtf8 = Utf8.RuneLen(rune);
 
-							if (Fill > (BinaryBufferPool.BufferSize - runeBytesInUtf8))
+							if (Fill > (bufferSize - runeBytesInUtf8))
 							{
 								NextBuffer();
 							}
@@ -1593,7 +1668,7 @@ namespace Api.SocketServerLibrary
 				// output the character:
 				runeBytesInUtf8 = Utf8.RuneLen(rune);
 
-				if (Fill > (BinaryBufferPool.BufferSize - runeBytesInUtf8))
+				if (Fill > (bufferSize - runeBytesInUtf8))
 				{
 					NextBuffer();
 				}
@@ -1718,11 +1793,12 @@ namespace Api.SocketServerLibrary
 		
 		/// <summary>Write a specific range of bytes to this message.</summary>
 		public void Write(byte[] buffer, int offset, int length){
-			if(BinaryBufferPool.BufferSize == Fill){
+			var bufferSize = Pool.BufferSize;
+			if(bufferSize == Fill){
 				NextBuffer();
 			}
 			
-			int space = BinaryBufferPool.BufferSize - Fill;
+			int space = bufferSize - Fill;
 			
 			if(length <= space){
 				// Copy the bytes in:
@@ -1733,17 +1809,17 @@ namespace Api.SocketServerLibrary
 			
 			// Fill the first buffer:
 			Array.Copy(buffer, offset, _LastBufferBytes, Fill, space);
-			Fill = BinaryBufferPool.BufferSize;
+			Fill = bufferSize;
 			length -= space;
 			offset += space;
 			
 			// Fill full size buffers:
-			while(length >= BinaryBufferPool.BufferSize){
+			while(length >= bufferSize){
 				NextBuffer();
-				Array.Copy(buffer, offset, _LastBufferBytes, 0, BinaryBufferPool.BufferSize);
-				offset += BinaryBufferPool.BufferSize;
-				length -= BinaryBufferPool.BufferSize;
-				Fill = BinaryBufferPool.BufferSize;
+				Array.Copy(buffer, offset, _LastBufferBytes, 0, bufferSize);
+				offset += bufferSize;
+				length -= bufferSize;
+				Fill = bufferSize;
 			}
 			
 			if(length > 0){
@@ -1757,12 +1833,13 @@ namespace Api.SocketServerLibrary
 		/// <summary>Write a specific range of bytes to this message.</summary>
 		public void Write(ReadOnlySpan<byte> buffer, int offset, int length)
 		{
-			if (BinaryBufferPool.BufferSize == Fill)
+			var bufferSize = Pool.BufferSize;
+			if (bufferSize == Fill)
 			{
 				NextBuffer();
 			}
 
-			int space = BinaryBufferPool.BufferSize - Fill;
+			int space = bufferSize - Fill;
 
 			Span<byte> target;
 			ReadOnlySpan<byte> src;
@@ -1781,20 +1858,20 @@ namespace Api.SocketServerLibrary
 			target = new Span<byte>(_LastBufferBytes, Fill, space);
 			src = buffer.Slice(offset, space);
 			src.CopyTo(target);
-			Fill = BinaryBufferPool.BufferSize;
+			Fill = bufferSize;
 			length -= space;
 			offset += space;
 
 			// Fill full size buffers:
-			while (length >= BinaryBufferPool.BufferSize)
+			while (length >= bufferSize)
 			{
 				NextBuffer();
-				target = new Span<byte>(_LastBufferBytes, 0, BinaryBufferPool.BufferSize);
-				src = buffer.Slice(offset, BinaryBufferPool.BufferSize);
+				target = new Span<byte>(_LastBufferBytes, 0, bufferSize);
+				src = buffer.Slice(offset, bufferSize);
 				src.CopyTo(target);
-				offset += BinaryBufferPool.BufferSize;
-				length -= BinaryBufferPool.BufferSize;
-				Fill = BinaryBufferPool.BufferSize;
+				offset += bufferSize;
+				length -= bufferSize;
+				Fill = bufferSize;
 			}
 
 			if (length > 0)

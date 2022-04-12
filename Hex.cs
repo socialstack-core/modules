@@ -34,19 +34,52 @@ namespace Api.SocketServerLibrary
 		/// <summary>
 		/// Converts given byte array to hex string.
 		/// </summary>
-		public static string Convert(byte[] Bytes){
-			int Length=Bytes.Length;
-			if(Length==0){
+		public static string Convert(byte[] bytes){
+			int length = bytes.Length;
+			if (length == 0)
+			{
 				return "";
 			}
-			int LengthReq=Length*2;
-			StringBuilder Result=new StringBuilder(LengthReq,LengthReq);
-			for(int i=0;i<Length;i++){
-				Result.Append(Lookup[Bytes[i]]);
+			int lengthReq = length * 2;
+			StringBuilder result = new StringBuilder(lengthReq, lengthReq);
+			for (int i = 0; i < length; i++)
+			{
+				result.Append(Lookup[bytes[i]]);
 			}
-			return Result.ToString();
+			return result.ToString();
+		}
+
+		/// <summary>
+		/// Converts given byte array to hex string, with a separator between the chars.
+		/// </summary>
+		public static string ConvertWithSeparator(byte[] bytes, char separator)
+		{
+			return ConvertWithSeparator(bytes, 0, bytes.Length, separator);
 		}
 		
+		/// <summary>
+		/// Converts given byte array to hex string, with a separator between the chars.
+		/// </summary>
+		public static string ConvertWithSeparator(byte[] bytes, int offset, int length, char separator)
+		{
+			if (length == 0)
+			{
+				return "";
+			}
+			int lengthReq = (length * 2) + (length - 1);
+			StringBuilder result = new StringBuilder(lengthReq, lengthReq);
+			var max = offset + length;
+			for (int i = offset; i < max; i++)
+			{
+				if (i != 0)
+				{
+					result.Append(separator);
+				}
+				result.Append(Lookup[bytes[i]]);
+			}
+			return result.ToString();
+		}
+
 		/// <summary>
 		/// Converts given byte array to hex string.
 		/// </summary>
