@@ -36,6 +36,74 @@ namespace Api.Startup
 		/// </summary>
 		public static void Main()
         {
+			/*
+			var packetBuffer = new byte[512];
+
+			for (var i = 0; i < 500; i++)
+			{
+				packetBuffer[i] = (byte)i;
+			}
+
+			var mac = new WebRTC.Crypto.HMac(new WebRTC.Crypto.Sha1Digest());
+			mac.Init(new byte[32], 0, 32);
+
+			for (var i = 0; i < 12; i++)
+			{
+				var t = new System.Threading.Thread(() =>
+				{
+
+					System.Diagnostics.Stopwatch sw = new System.Diagnostics.Stopwatch();
+					sw.Start();
+
+					Span<byte> tempBuffer = stackalloc byte[20];
+
+					for (var i = 0; i < 1500000; i++)
+					{
+						mac.StatelessOutput(packetBuffer, 0, 512, 1, tempBuffer);
+					}
+
+					var time = sw.ElapsedMilliseconds;
+					Console.WriteLine("Watch took " + time + "ms");
+					sw.Stop();
+				});
+
+				t.Start();
+			}
+
+			return;
+			*/
+
+			/*
+			WebRTC.CertTest.Fingerprints();
+			Console.WriteLine("DTLS server up");
+			new WebRTC.WebRTCServer(41500);
+			System.Threading.Thread.Sleep(System.Threading.Timeout.Infinite);
+			return;
+			*/
+			/*
+			var dtlsMsg = "16FEFF000000000000000B0097010000A4000000000000008BFEFD60520DAADB4D37BDC6D3A073B52587C4538170F9AFBE893FB0AB42BB0A4C31C600000010C02BC02FCCA9CCA8C00AC009C013C0140100006A00170000FF01000100000A00080006001D00170018000B000201000010001200100677656272746308632D776562727463000D0020001E0403050306030203080408050806040105010601020104020502";
+			
+			var buffer = Api.SocketServerLibrary.Hex.Convert(dtlsMsg);
+			
+			var client = new WebRTC.RtpClient();
+			
+			WebRTC.Dtls.HandleMessage(buffer, buffer.Length, client);
+			return;
+			*/
+
+			/*
+			var stunMsg = "000100582112A442D631E608FFF2F8A731B980D3000600197769636568756E6F72376679777A36343A356562366633326400000000250000002400046E7E00FF802A00081822EEF08863526600080014C002F292F4713737C9E9AC87779E5670E59D968C8028000405786604";
+
+			// message to be HMAC validated "000100582112A442D631E608FFF2F8A731B980D3000600197769636568756E6F72376679777A36343A356562366633326400000000250000002400046E7E00FF802A00081822EEF088635266"
+			// (has not yet had its length adjustment)
+			Console.WriteLine(stunMsg.Substring(0, 76 * 2));
+			
+			var buffer = Api.SocketServerLibrary.Hex.Convert(stunMsg);
+			WebRTC.StunServer.HandleMessage(buffer, buffer.Length);
+
+			return;
+			*/
+
 			// Hello! The very first thing we'll do is instance all event handlers.
 			Api.Eventing.Events.Init();
 			

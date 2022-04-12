@@ -1052,62 +1052,6 @@ public partial class AutoService<T, ID> : AutoService
 	}
 
 	/// <summary>
-	/// Gets objects from this service using a generic serialized filter. Use List instead whenever possible.
-	/// </summary>
-	/// <param name="context"></param>
-	/// <param name="filterJson"></param>
-	/// <param name="includes"></param>
-	/// <param name="so"></param>
-	/// <returns></returns>
-	public override async Task ListForSSR(Context context, string filterJson, string includes, Microsoft.ClearScript.ScriptObject so)
-	{
-		var filterNs = Newtonsoft.Json.JsonConvert.DeserializeObject(filterJson) as JObject;
-
-		var filter = LoadFilter(filterNs) as Filter<T, ID>;
-
-		// Write:
-		var writer = Writer.GetPooled();
-		writer.Start(null);
-
-		await ToJson(context, filter, async (Context ctx, Filter<T, ID> filt, Func<T, int, ValueTask> onResult) => {
-
-			return await GetResults(ctx, filt, async (Context ctx2, T result, int index, object src, object src2) => {
-
-				var _onResult = src as Func<T, int, ValueTask>;
-				await _onResult(result, index);
-
-			}, onResult, null);
-
-		}, writer, null, includes, filter.IncludeTotal);
-
-		filter.Release();
-		var jsonResult = writer.ToUTF8String();
-		writer.Release();
-		so.Invoke(false, jsonResult);
-	}
-
-	/// <summary>
-	/// Gets an object from this service for use by the serverside renderer. Returns it by executing the given callback.
-	/// </summary>
-	/// <param name="context"></param>
-	/// <param name="id"></param>
-	/// <param name="includes"></param>
-	/// <param name="so"></param>
-	public override async ValueTask GetForSSR(Context context, ulong id, string includes, Microsoft.ClearScript.ScriptObject so)
-	{
-		// Get the object (includes the perm checks):
-		var content = await Get(context, _idConverter.Convert(id));
-
-		// Write:
-		var writer = Writer.GetPooled();
-		writer.Start(null);
-		await ToJson(context, content, writer, null, includes);
-		var jsonResult = writer.ToUTF8String();
-		writer.Release();
-		so.Invoke(false, jsonResult);
-	}
-
-	/// <summary>
 	/// Call this when the primary object changes. It makes sure any localised versions are updated.
 	/// </summary>
 	/// <param name="entity"></param>
@@ -1271,32 +1215,6 @@ public partial class AutoService
 		}
 	}
 
-	/// <summary>
-	/// Gets objects from this service using a generic serialized filter. Use List instead whenever possible.
-	/// </summary>
-	/// <param name="context"></param>
-	/// <param name="filterJson"></param>
-	/// <param name="includes"></param>
-	/// <param name="so"></param>
-	/// <returns></returns>
-	public virtual Task GetForSSR(Context context, string filterJson, string includes, Microsoft.ClearScript.ScriptObject so)
-	{
-		return null;
-	}
-
-	/// <summary>
-	/// Gets objects from this service using a generic serialized filter. Use List instead whenever possible.
-	/// </summary>
-	/// <param name="context"></param>
-	/// <param name="filterJson"></param>
-	/// <param name="includes"></param>
-	/// <param name="so"></param>
-	/// <returns></returns>
-	public virtual Task ListForSSR(Context context, string filterJson, string includes, Microsoft.ClearScript.ScriptObject so)
-	{
-		return null;
-	}
-	
 	/// <summary>
 	/// Outputs a list of things from this service as JSON into the given writer.
 	/// Executes the given collector(s) whilst it happens, which can also be null.
@@ -1553,19 +1471,6 @@ public partial class AutoService
 		return new ValueTask<object>(null);
 	}
 
-
-	/// <summary>
-	/// Gets an object from this service for use by the serverside renderer. Returns it by executing the given callback.
-	/// </summary>
-	/// <param name="context"></param>
-	/// <param name="id"></param>
-	/// <param name="includes"></param>
-	/// <param name="so"></param>
-	public virtual ValueTask GetForSSR(Context context, ulong id, string includes, Microsoft.ClearScript.ScriptObject so)
-	{
-		return new ValueTask();
-	}
-
 	/// <summary>
 	/// Gets an object from this service.
 	/// </summary>
@@ -1703,44 +1608,4 @@ public partial class AutoService
 
 	}
 
-	/// <summary>
-	/// Installs one or more email templates.
-	/// Schedules the install to happen either immediately if services have not yet started (async) or after services have started.
-	/// </summary>
-	/// <param name="templates"></param>
-	public void InstallEmails(params Api.Emails.EmailTemplate[] templates)
-	{
-		if (Services.Started)
-		{
-			InstallEmailsInternal(templates);
-		}
-		else
-		{
-			// Must happen after services start otherwise the email template service isn't necessarily ready yet.
-			Events.Service.AfterStart.AddEventListener((Context ctx, object src) =>
-			{
-				InstallEmailsInternal(templates);
-				return new ValueTask<object>(src);
-			});
-		}
-	}
-
-	private static void InstallEmailsInternal(Api.Emails.EmailTemplate[] templates)
-	{
-		var emailService = Services.Get<Api.Emails.EmailTemplateService>();
-
-		if (emailService == null)
-		{
-			return;
-		}
-
-		Task.Run(async () =>
-		{
-			foreach (var template in templates)
-			{
-				await emailService.InstallNow(template);
-			}
-		});
-
-	}
 }
