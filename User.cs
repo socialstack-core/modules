@@ -13,12 +13,6 @@ namespace Api.Users
 	public partial class User : VersionedContent<uint>
 	{
 		/// <summary>
-		/// The user's email address.
-		/// </summary>
-		[DatabaseField(Length = 80)]
-		public string Email;
-		
-		/// <summary>
 		/// The user's login revoke count. An incrementing number used to revoke login tokens.
 		/// </summary>
 		[Newtonsoft.Json.JsonIgnore]
