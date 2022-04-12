@@ -1,16 +1,9 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.IO;
-using System.Net.Http;
-using System.Text;
 using System.Threading.Tasks;
-using Api.Configuration;
 using Api.Contexts;
-using Api.Permissions;
 using Api.Startup;
-using Api.Uploader;
 using Microsoft.AspNetCore.Mvc;
-using Newtonsoft.Json;
 
 namespace Api.ContentSync
 {
