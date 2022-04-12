@@ -102,9 +102,61 @@ namespace Api.PasswordAuth
 
 				return new ValueTask<JsonField<User, uint>>(field);
 			});
-			
+
+			var userConfig = _users.GetConfig<UserServiceConfig>();
+
+			if (userConfig.InstallDefaultUser)
+			{
+				// Create admin account if it is needed:
+				CreateDefaultUser();
+			}
 		}
 
+
+		/// <summary>
+		/// Creates default user if it is needed.
+		/// </summary>
+		public void CreateDefaultUser()
+		{
+			if (Services.Started)
+			{
+				Task.Run(async () =>
+				{
+					await CreateDefaultUserInternal();
+				});
+			}
+			else
+			{
+				Events.Service.AfterStart.AddEventListener(async (Context ctx, object src) =>
+				{
+					await CreateDefaultUserInternal();
+					return src;
+				});
+			}
+		}
+
+		private async ValueTask<User> CreateDefaultUserInternal()
+		{
+			var context = new Context(1, 0, 1);
+
+			var user = await _users.Get(context, 1, DataOptions.IgnorePermissions);
+
+			if (user == null)
+			{
+				Console.WriteLine("Creating default admin account with password 'admin' (you'll only see this once, unless you delete the user)");
+
+				user = await _users.Create(context, new User()
+				{
+					Id = 1,
+					Username = "admin",
+					Role = 1,
+					PasswordHash = PasswordStorage.CreateHash("admin")
+				}, DataOptions.IgnorePermissions);
+			}
+
+			return user;
+		}
+		
 		/// <summary>
 		/// Attempt to authenticate the user by password
 		/// </summary>
