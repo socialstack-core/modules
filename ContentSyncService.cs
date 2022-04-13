@@ -857,7 +857,8 @@ namespace Api.ContentSync
 			var mapping = await MappingTypeEngine.GetOrGenerate(
 					svc,
 					Services.Get<ClusteredServerService>(),
-					"NetworkRoomServers"
+					"NetworkRoomServers",
+					"host"
 				) as MappingService<ID, uint>;
 
 			// Scan the mapping to purge any entries for this server:

@@ -6,6 +6,7 @@ namespace Api.ContentSync
 	/// <summary>
 	/// A server in the cluster. Each one owns one stripe, and they adjust (globally) when a new server joins the cluster.
 	/// </summary>
+	[DatabaseField(Group = "host")]
 	public class ClusteredServer : Content<uint>
 	{
 		/// <summary>

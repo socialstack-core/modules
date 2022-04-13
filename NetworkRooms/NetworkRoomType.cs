@@ -5,6 +5,7 @@ namespace Api.ContentSync
 	/// <summary>
 	/// Network room type.
 	/// </summary>
+	[DatabaseField(Group = "host")]
 	public class NetworkRoomType : Content<uint>
 	{
 		
