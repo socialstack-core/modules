@@ -161,7 +161,6 @@ namespace Api.PasswordAuth
 		/// Attempt to authenticate the user by password
 		/// </summary>
 		/// <param name="context"></param>
-		/// <param name="result"></param>
 		/// <param name="loginDetails"></param>
 		/// <returns></returns>
 		/// <exception cref="PublicException"></exception>
