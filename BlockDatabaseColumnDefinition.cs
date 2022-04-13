@@ -1,6 +1,8 @@
 using System;
 using System.Collections.Generic;
 using Api.Database;
+using System.Reflection;
+
 
 namespace Api.BlockDatabase
 {
@@ -53,6 +55,11 @@ namespace Api.BlockDatabase
 		public Field Field;
 
 		/// <summary>
+		/// True if this is a private chain field.
+		/// </summary>
+		public bool IsPrivate;
+
+		/// <summary>
 		/// Creates a new column def
 		/// </summary>
 		public BlockDatabaseColumnDefinition(Field fromField, Type parentType) :this(fromField, parentType.Name.ToLower()) {
@@ -86,6 +93,33 @@ namespace Api.BlockDatabase
 				}
 			}
 
+			// Next, which chain is this field intended for?
+			// This depends on if the field has JsonIgnore or is "hidden" by default by the permission system fields.
+			var jsonIgnoreAttrib = fromField.TargetField.GetCustomAttribute<Newtonsoft.Json.JsonIgnoreAttribute>();
+
+			if (jsonIgnoreAttrib != null)
+			{
+				// Private chain field. Values for this field will be stored on the private chain only.
+				IsPrivate = true;
+			}
+			else
+			{
+				var permsAttrib = fromField.TargetField.DeclaringType.GetCustomAttribute<Permissions.PermissionsAttribute>();
+
+				if (permsAttrib != null && permsAttrib.HideFieldByDefault)
+				{
+					IsPrivate = true;
+				}
+
+				permsAttrib = fromField.TargetField.GetCustomAttribute<Permissions.PermissionsAttribute>();
+
+				if (permsAttrib != null)
+				{
+					// This may override the declaration on the type:
+					IsPrivate = permsAttrib.HideFieldByDefault;
+				}
+			}
+
 			if (TypeMap.TryGetValue(fieldType, out BlockDatabaseType dbType))
 			{
 				DataType = dbType.TypeName;
@@ -95,7 +129,7 @@ namespace Api.BlockDatabase
 			{
 				throw new Exception(
 					"Field '" + fromField.Name + "' on '" + fromField.TargetField.DeclaringType +
-					"' is a " + fromField.Type.Name + " which isn't currently supported as a database field type."
+					"' is a " + fromField.Type.Name + " which isn't currently supported as a field type."
 				);
 			}
 		}

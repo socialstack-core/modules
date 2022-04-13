@@ -17,24 +17,29 @@ namespace Api.BlockDatabase;
 [LoadPriority(1)]
 public partial class BlockDatabaseService : AutoService
 {
-	private BlockChain _chain;
+	/// <summary>
+	/// The 4 chains, indexed by ChainType-1.
+	/// </summary>
+	private BlockChain[] _chains = new BlockChain[4];
 
 	/// <summary>
 	/// Gets the blockchain schema.
 	/// </summary>
+	/// <param name="type"></param>
 	/// <returns></returns>
-	public Lumity.BlockChains.Schema GetSchema()
+	public Lumity.BlockChains.Schema GetSchema(ChainType type)
 	{
-		return _chain.Schema;
+		return _chains[(int)type - 1].Schema;
 	}
-	
+
 	/// <summary>
-	/// Gets the blockchain.
+	/// Gets the blockchain of a given type.
 	/// </summary>
+	/// <param name="type"></param>
 	/// <returns></returns>
-	public BlockChain GetChain()
+	public BlockChain GetChain(ChainType type)
 	{
-		return _chain;
+		return _chains[(int)type - 1];
 	}
 
 	private Dictionary<ulong, BlockTableMeta> metaLookup = new Dictionary<ulong, BlockTableMeta>();
@@ -58,7 +63,7 @@ public partial class BlockDatabaseService : AutoService
 	}
 
 	/// <summary>
-	/// Creates the blockchain table metadata, used for converting between C# types and Lumity blockchain tx.
+	/// Creates the blockchain table metadata, used for converting between C# types and Lumity blockchain txn's.
 	/// </summary>
 	/// <param name="forDefinition"></param>
 	/// <param name="systemType"></param>
@@ -81,6 +86,7 @@ public partial class BlockDatabaseService : AutoService
 	/// <typeparam name="T"></typeparam>
 	/// <param name="obj"></param>
 	/// <param name="meta"></param>
+	/// <param name="chainType"></param>
 	public void Write<T>(T obj, BlockTableMeta meta)
 	{
 		var writer = Writer.GetPooled();
@@ -119,7 +125,7 @@ public partial class BlockDatabaseService : AutoService
 		// Release the writer:
 		writer.Release();
 
-		_chain.AddBuffers(first, last);
+		meta.Chain.AddBuffers(first, last);
 	}
 
 	public T GetResult<T, ID>(
@@ -130,7 +136,7 @@ public partial class BlockDatabaseService : AutoService
 	{
 		T result = null;
 
-		_chain.LoadForwards((TransactionReader reader) => {
+		meta.Chain.LoadForwards((TransactionReader reader) => {
 
 			var defn = reader.Definition;
 
@@ -164,7 +170,7 @@ public partial class BlockDatabaseService : AutoService
 	{
 		var index = 0;
 
-		_chain.LoadForwards((TransactionReader reader) => {
+		meta.Chain.LoadForwards((TransactionReader reader) => {
 
 			var defn = reader.Definition;
 
@@ -194,22 +200,29 @@ public partial class BlockDatabaseService : AutoService
 		// Get path to data directory:
 		string dbPath = SetupDirectory();
 
-		var chainFile = dbPath + "database.lbc";
+		_chains[0] = new BlockChain(dbPath + "public.lbc", ChainType.Public);
+		_chains[0].LoadOrCreate();
 
-		_chain = new BlockChain(chainFile);
-		_chain.LoadOrCreate();
+		_chains[1] = new BlockChain(dbPath + "private.lbc", ChainType.Private, _chains[0]);
+		_chains[1].LoadOrCreate();
 
+		_chains[2] = new BlockChain(dbPath + "public-host.lbc", ChainType.PublicHost);
+		_chains[2].LoadOrCreate();
+
+		_chains[3] = new BlockChain(dbPath + "private-host.lbc", ChainType.PrivateHost, _chains[2]);
+		_chains[3].LoadOrCreate();
 	}
 
 	/// <summary>
 	/// Gets a definition from system type. Cache the result when possible. Null if not found.
 	/// </summary>
 	/// <param name="systemType"></param>
+	/// <param name="chainType"></param>
 	/// <returns></returns>
-	public Definition GetDefinition(Type systemType)
+	public Definition GetDefinition(Type systemType, ChainType chainType)
 	{
 		var name = systemType.Name;
-		return _chain.Schema.FindDefinition(name);
+		return _chains[(int)chainType - 1].Schema.FindDefinition(name);
 	}
 
 	/// <summary>

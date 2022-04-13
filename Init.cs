@@ -35,7 +35,7 @@ namespace Api.BlockDatabase
 				}
 
 				// Get the def:
-				var definition = _database.GetDefinition(typeof(Locale));
+				var definition = _database.GetDefinition(typeof(Locale), Lumity.BlockChains.ChainType.Public);
 
 				if (definition == null)
 				{
@@ -320,10 +320,21 @@ namespace Api.BlockDatabase
 			}
 
 			// Next, match each column in the schema with fields in the chain.
-			var chain = _database.GetChain();
 
 			foreach (var kvp in newSchema.Tables)
 			{
+				// First, which chain?
+				var tableGroup = kvp.Value.GetGroupName();
+
+				if (!string.IsNullOrEmpty(tableGroup))
+				{
+					tableGroup = tableGroup.ToLower();
+				}
+
+				var chain = tableGroup == "host" ? 
+					_database.GetChain(Lumity.BlockChains.ChainType.PublicHost) : 
+					_database.GetChain(Lumity.BlockChains.ChainType.Public);
+
 				// Get or define:
 				var tableName = kvp.Value.TableName;
 
@@ -359,6 +370,8 @@ namespace Api.BlockDatabase
 
 				if (tableMeta != null)
 				{
+					tableMeta.Chain = chain;
+
 					// Generate the writer for create calls now.
 					tableMeta.Completed();
 				}

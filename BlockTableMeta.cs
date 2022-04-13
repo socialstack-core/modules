@@ -7,12 +7,31 @@ using System.Reflection;
 namespace Api.BlockDatabase;
 
 
+/// <summary>
+/// Stores general information about a given table stored on a blockchain.
+/// </summary>
 public class BlockTableMeta
 {
+	/// <summary>
+	/// Definition ID
+	/// </summary>
 	public ulong Id;
+	/// <summary>
+	/// Current field count plus one
+	/// </summary>
 	public uint FieldCountPlusOne;
+	/// <summary>
+	/// The definition
+	/// </summary>
 	public Definition Definition;
+	/// <summary>
+	/// The source type that the definition is derived from
+	/// </summary>
 	public Type Type;
+	/// <summary>
+	/// The chain it's on
+	/// </summary>
+	public BlockChain Chain;
 
 	public Dictionary<ulong, BlockTableField> FieldLookup = new Dictionary<ulong, BlockTableField>();
 	
