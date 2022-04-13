@@ -309,7 +309,7 @@ namespace Api.Contexts
 						// Localhost - Can't use localhost:AppSettings.GetInt32("Port", 5000) because the websocket request would omit the cookie.
 						return null;
 					#else
-					var domain = Services.Get<CanvasRenderer.FrontendCodeService>().GetPublicUrl().Replace("https://", "").Replace("http://", "");
+					var domain = AppSettings.GetPublicUrl().Replace("https://", "").Replace("http://", "");
 					if (domain.StartsWith("www."))
 					{
 						domain = domain.Substring(4);
