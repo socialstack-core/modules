@@ -36,6 +36,15 @@ namespace Api.Configuration
 				DatabaseTablePrefix = "site_";
 			}
 		}
+
+		/// <summary>
+		/// The site public URL. Never ends with a path - always just the origin and scheme, e.g. https://www.example.com
+		/// </summary>
+		/// <returns></returns>
+		public static string GetPublicUrl()
+		{
+			return Configuration["PublicUrl"];
+		}
 		
 		/// <summary>
 		/// Convenience shortcut for Configuration.GetSection.
