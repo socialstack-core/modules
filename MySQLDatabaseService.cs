@@ -34,7 +34,6 @@ namespace Api.Database
 		/// <summary>
 		/// Create a new database connector with the given connection string.
 		/// </summary>
-		/// <param name="connectionString"></param>
 		public MySQLDatabaseService() {
 			ConnectionString = System.Environment.GetEnvironmentVariable("DatabaseConnectionString") ?? 
 				AppSettings.Configuration.GetConnectionString(
