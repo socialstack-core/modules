@@ -8,6 +8,32 @@ namespace Lumity.BlockChains;
 
 
 /// <summary>
+/// A Lumity project has 4 chains with different purposes and accessibility.
+/// </summary>
+public enum ChainType
+{
+	/// <summary>
+	/// The public chain is the main one of the project. Ideally as much information is in this as possible.
+	/// </summary>
+	Public = 1,
+	/// <summary>
+	/// Personal information, configuration such as email services, as well as project relevant secrets.
+	/// The schema of a private chain is always an extension of the public chain schema.
+	/// </summary>
+	Private = 2,
+	/// <summary>
+	/// The host public chain is available publicly and contains any running information that the host wants to share about the project. This is generally server health/ metrics and uptime information.
+	/// Host chains must not contain any project mandatory data - i.e. a host chain can be completely lost and the project will still operate.
+	/// </summary>
+	PublicHost = 3,
+	/// <summary>
+	/// Internal host information used to keep the servers in sync. This can include things like session resumption keys or server private data.
+	/// Host chains must not contain any project mandatory data - i.e. a host chain can be completely lost and the project will still operate.
+	/// </summary>
+	PrivateHost = 4
+}
+
+/// <summary>
 /// Represents a block chain.
 /// </summary>
 public partial class BlockChain
@@ -33,12 +59,33 @@ public partial class BlockChain
 	public string SchemaFile;
 
 	/// <summary>
+	/// The type of chain this is (public, private etc).
+	/// </summary>
+	public ChainType ChainType;
+	
+	/// <summary>
+	/// True if this chains type is either Private or PrivateHost.
+	/// </summary>
+	public bool IsPrivate;
+
+	/// <summary>
+	/// A chain that this one is relative to. This chain uses the schema of the remote chain in combination with its own.
+	/// </summary>
+	public BlockChain RelativeTo;
+
+	/// <summary>
 	/// Creates a blockchain info handler for the given file path.
 	/// </summary>
 	/// <param name="file"></param>
-	public BlockChain(string file)
+	/// <param name="type"></param>
+	/// <param name="relativeTo">A chain that this one is relative to. This is used when a chain gets its schema exclusively from some other chain.
+	/// Private chains generally derive their schema from their public counterpart, i.e. if you are using a private chain type, this field is likely required.</param>
+	public BlockChain(string file, ChainType type, BlockChain relativeTo = null)
 	{
 		File = file;
+		ChainType = type;
+		IsPrivate = ((int)ChainType & 2) == 2;
+		RelativeTo = relativeTo;
 	}
 
 	/// <summary>
@@ -46,7 +93,18 @@ public partial class BlockChain
 	/// </summary>
 	public void LoadOrCreate()
 	{
-		if (FileExists())
+		if (RelativeTo != null)
+		{
+			// This chain derives its schema from the given (usually public type) chain.
+			Schema = RelativeTo.Schema;
+
+			if (!FileExists())
+			{
+				Directory.CreateDirectory(Path.GetDirectoryName(File));
+				System.IO.File.Create(File);
+			}
+		}
+		else if (FileExists())
 		{
 			// Load the schema:
 			#warning todo - use shortform schema file if one exists
@@ -203,6 +261,11 @@ public partial class BlockChain
 	/// <returns></returns>
 	public Definition FindOrDefine(string name, out bool wasDefined)
 	{
+		if (RelativeTo != null)
+		{
+			return RelativeTo.FindOrDefine(name, out wasDefined);
+		}
+
 		var def = Schema.FindDefinition(name);
 
 		if (def != null)
@@ -248,6 +311,11 @@ public partial class BlockChain
 	/// <returns></returns>
 	public FieldDefinition FindOrDefineField(string name, string type, out bool wasDefined)
 	{
+		if (RelativeTo != null)
+		{
+			return RelativeTo.FindOrDefineField(name, type, out wasDefined);
+		}
+		
 		var field = Schema.FindField(name, type);
 
 		if (field != null)
