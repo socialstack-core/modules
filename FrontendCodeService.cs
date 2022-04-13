@@ -45,12 +45,7 @@ namespace Api.CanvasRenderer
 		/// <returns></returns>
 		public string GetPublicUrl()
 		{
-			if (!string.IsNullOrEmpty(_config.PublicUrl))
-			{
-				return _config.PublicUrl;
-			}
-
-			return AppSettings.Configuration["PublicUrl"];
+			return AppSettings.GetPublicUrl();
 		}
 
 		/// <summary>

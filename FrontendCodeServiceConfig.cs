@@ -11,11 +11,6 @@ namespace Api.CanvasRenderer
 	public class FrontendCodeServiceConfig : Config
 	{
 		/// <summary>
-		/// Public root URL of this site, excluding any path. E.g. https://www.example.com
-		/// </summary>
-		public string PublicUrl { get; set; }
-
-		/// <summary>
 		/// True if it should load the prebuilt UI. This is implied as true if no Source directory is found (i.e. you can force a true by just not deploying your UI/Source directory).
 		/// </summary>
 		public bool Prebuilt {get; set; } = false;
