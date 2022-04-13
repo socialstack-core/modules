@@ -57,8 +57,9 @@ namespace Api.Startup
 		/// <param name="srcType"></param>
 		/// <param name="targetType"></param>
 		/// <param name="listAs"></param>
+		/// <param name="group">The database group into which the mapping should be added.</param>
 		/// <returns></returns>
-		public static async ValueTask<AutoService> GetOrGenerate(AutoService srcType, AutoService targetType, string listAs)
+		public static async ValueTask<AutoService> GetOrGenerate(AutoService srcType, AutoService targetType, string listAs, string group = null)
 		{
 			var srcTypeName = srcType.ServicedType.Name;
 			var targetTypeName = targetType.ServicedType.Name;
@@ -84,7 +85,7 @@ namespace Api.Startup
 					// like ContentSync to reference a different copy of the same service.
 					meta = new MappingServiceGenerationMeta();
 					meta.GenTask = Task.Run(async () => {
-						var svc = await Generate(srcType, targetType, typeName);
+						var svc = await Generate(srcType, targetType, typeName, group);
 						meta.Service = svc;
 						return svc;
 					});
@@ -100,7 +101,7 @@ namespace Api.Startup
 		/// <summary>
 		/// Generates a system type from the given custom type descriptions.
 		/// </summary>
-		private static async ValueTask<AutoService> Generate(AutoService srcType, AutoService targetType, string typeName)
+		private static async ValueTask<AutoService> Generate(AutoService srcType, AutoService targetType, string typeName, string group)
 		{
 			Type srcServicedType = srcType.ServicedType;
 			Type srcIdType = srcType.IdType;
@@ -243,6 +244,16 @@ namespace Api.Startup
 			var dbiAttributeCtor = dbiAttribute.GetConstructor(new Type[] { typeof(bool), typeof(string) });
 
 			typeBuilder.SetCustomAttribute(new CustomAttributeBuilder(dbiAttributeCtor, new object[] { false, srcIdName }));
+
+			if (group != null)
+			{
+				// Add a [DatabaseField(Group = value)] attribute declaring the group:
+				var dbfAttribute = typeof(DatabaseFieldAttribute);
+
+				var dbfAttributeCtor = dbfAttribute.GetConstructor(new Type[] { typeof(string) });
+
+				typeBuilder.SetCustomAttribute(new CustomAttributeBuilder(dbfAttributeCtor, new object[] { group }));
+			}
 
 			// Finish the type.
 			Type compiledType = typeBuilder.CreateType();
