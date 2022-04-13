@@ -7,7 +7,7 @@ namespace Api.Database
 	/// If you want your field to be ignored, make it private and use a public property to optionally expose it.
 	/// </summary>
 	[AttributeUsage(AttributeTargets.Field | AttributeTargets.Class, Inherited = false, AllowMultiple = true)]
-	internal sealed class DatabaseFieldAttribute : Attribute
+	public sealed class DatabaseFieldAttribute : Attribute
 	{
 		public int Length;
 
@@ -22,8 +22,17 @@ namespace Api.Database
 		/// </summary>
 		public bool Ignore = false;
 
+		/// <summary>
+		/// Class only: Table group name if the underlying storage supports or uses them.
+		/// </summary>
+		public string Group;
 
 		internal DatabaseFieldAttribute() { }
+
+		public DatabaseFieldAttribute(string group)
+		{
+			Group = group;
+		}
 
 		internal DatabaseFieldAttribute(int length)
 		{

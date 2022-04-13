@@ -1,4 +1,7 @@
+using System;
+using System.Reflection;
 using System.Collections.Generic;
+
 
 namespace Api.Database
 {
@@ -12,6 +15,42 @@ namespace Api.Database
 		/// The name of this table.
 		/// </summary>
 		public string TableName;
+
+		/// <summary>
+		/// The system type that this table relates to. I.e. if it's the user table, this is typeof(User)
+		/// </summary>
+		public Type OwningType;
+
+		/// <summary>
+		/// Group name from the defining type, if there is one.
+		/// </summary>
+		public string GetGroupName()
+		{
+			if (OwningType != null)
+			{
+				var dbf = OwningType.GetCustomAttribute<DatabaseFieldAttribute>();
+
+				if (dbf != null)
+				{
+					return dbf.Group;
+				}
+			}
+			return null;
+		}
+
+		/// <summary>
+		/// Adds the given column to this table definition.
+		/// </summary>
+		/// <param name="column"></param>
+		public void AddColumn(DatabaseColumnDefinition column)
+		{
+			if (OwningType == null)
+			{
+				OwningType = column.OwningType;
+			}
+
+			Columns[column.ColumnName.ToLower()] = column;
+		}
 
 		/// <summary>
 		/// The columns in this table.

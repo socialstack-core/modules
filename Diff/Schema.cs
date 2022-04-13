@@ -106,7 +106,7 @@ namespace Api.Database
 		public void Add(DatabaseColumnDefinition column)
 		{
 			var table = GetTable(column.TableName, true);
-			table.Columns[column.ColumnName.ToLower()] = column;
+			table.AddColumn(column);
 		}
 	}
 	

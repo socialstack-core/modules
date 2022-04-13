@@ -23,7 +23,12 @@ namespace Api.Database
 		/// True if it's nullable.
 		/// </summary>
 		public bool IsNullable;
-		
+
+		/// <summary>
+		/// The type that 'owns' this column.
+		/// </summary>
+		public Type OwningType;
+
 		/// <summary>
 		/// True if this field should just be ignored.
 		/// </summary>
@@ -44,6 +49,7 @@ namespace Api.Database
 		/// </summary>
 		public DatabaseColumnDefinition(Field fromField, string tableName)
 		{
+			OwningType = fromField.OwningType;
 			TableName = tableName;
 			ColumnName = fromField.Name;
 			var fieldType = fromField.Type;
