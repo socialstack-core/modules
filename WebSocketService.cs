@@ -105,7 +105,8 @@ namespace Api.WebSockets
 			var personalRoomMap = await MappingTypeEngine.GetOrGenerate(
 					userService,
 					Services.Get<ClusteredServerService>(),
-					"PersonalRoomServers"
+					"PersonalRoomServers",
+					"host"
 				) as MappingService<uint, uint>;
 
 			// Scan the mapping to purge any entries for this server:
