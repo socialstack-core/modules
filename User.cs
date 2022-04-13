@@ -16,7 +16,14 @@ namespace Api.Users{
 		/// Currently 1=Essential, 2=Marketing.
 		/// </summary>
 		public uint EmailOptOutFlags;
-		
+
+		/// <summary>
+		/// Token used to verify the email of the user.
+		/// </summary>
+		[DatabaseField(Length = 40)]
+		[Newtonsoft.Json.JsonIgnore]
+		public string EmailVerifyToken;
+
 	}
-	
+
 }
