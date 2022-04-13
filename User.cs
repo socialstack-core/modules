@@ -45,20 +45,13 @@ namespace Api.Users
 		[Permissions(HideFieldByDefault = false)]
 		public string AvatarRef;
 
-        /// <summary>
-        /// The username of the user. 
-        /// </summary>
-        [DatabaseField(Length = 40)]
+		/// <summary>
+		/// The username of the user. 
+		/// </summary>
+		[DatabaseField(Length = 40)]
 		[Permissions(HideFieldByDefault = false)]
 		public string Username;
 
-		/// <summary>
-		/// Token used to verify the email of the user.
-		/// </summary>
-		[DatabaseField(Length =40)]
-		[Newtonsoft.Json.JsonIgnore]
-		public string EmailVerifyToken;
-		
 		/// <summary>
 		/// The latest locale this user used. Primarily, this is used for emails being sent to them. If it's null or 0, the site default, 1, is assumed.
 		/// </summary>
