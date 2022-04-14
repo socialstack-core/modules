@@ -66,7 +66,7 @@ export default class IconSelector extends React.Component {
 	
     search(query) {
         console.log(query);
-        this.setState({searchFilter: query})
+		this.setState({ searchFilter: query.toLowerCase()})
     }
 
     closeModal() {
@@ -105,7 +105,7 @@ export default class IconSelector extends React.Component {
                 <label htmlFor="icon-search">
                     Search
                 </label>
-                <Input type="text" name="icon-search" onKeyUp={(e) => {
+				<Input type="text" value={this.state.searchFilter} name="icon-search" onKeyUp={(e) => {
                     this.state.debounce.handle(e.target.value);
                 }}/>
             </Col>
@@ -137,7 +137,7 @@ export default class IconSelector extends React.Component {
 						orNone={() => <Loading />}
 					>
 						{icon => {
-							if (icon.name.includes(searchFilter) || icon.name.replace(/-/g, " ").includes(searchFilter) || !searchFilter) {
+							if (icon.name.toLowerCase().includes(searchFilter) || icon.name.toLowerCase().replace(/-/g, " ").includes(searchFilter) || !searchFilter) {
 								return icon.styles.map(style => {
 
 									if (styleFilter && styleFilter != "all") {

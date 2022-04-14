@@ -5,6 +5,9 @@ import omit from 'UI/Functions/Omit';
 import getRef from 'UI/Functions/GetRef';
 import IconSelector from 'UI/FileSelector/IconSelector';
 import Dropdown from 'UI/Dropdown';
+import Col from 'UI/Column';
+import Input from 'UI/Input';
+import Debounce from 'UI/Functions/Debounce';
 
 var inputTypes = global.inputTypes = global.inputTypes || {};
 let lastId = 0;
@@ -51,12 +54,16 @@ export default class FileSelector extends React.Component {
 	constructor(props) {
 		super(props);
 
+		this.search = this.search.bind(this);
+
 		this.state = {
-			ref: props.value || props.defaultValue
+			ref: props.value || props.defaultValue,
+			debounce: new Debounce(this.search)
 		};
 
 		this.closeModal = this.closeModal.bind(this);
 	}
+
 
 	newId() {
 		lastId++;
@@ -94,7 +101,28 @@ export default class FileSelector extends React.Component {
 		this.setState({ modalOpen: false });
 	}
 
+	search(query) {
+		console.log(query);
+		this.setState({ searchFilter: query.toLowerCase() })
+	}
+
+	renderHeader() {
+		return <div className="row header-container">
+			<Col size={4}>
+				<label htmlFor="file-search">
+					Search
+				</label>
+				<Input type="text" value={this.state.searchFilter} name="file-search" onKeyUp={(e) => {
+					this.state.debounce.handle(e.target.value);
+				}} />
+			</Col>
+		</div>;
+	}
+
 	render() {
+
+		var { searchFilter } = this.state;
+
 		var currentRef = this.props.value || this.props.defaultValue;
 
 		if (this.state.value !== undefined) {
@@ -125,42 +153,51 @@ export default class FileSelector extends React.Component {
 				onClose={this.closeModal}
 				visible={this.state.modalOpen}
 			>
-				<Loop className="file-selector__grid" over="upload/list" filter={{ sort: { field: 'CreatedUtc', direction: 'desc' } }} paged>
-					{
-						entry => {
-							// NB: API has been seen to report valid images with isImage=false
-							//var isImage = entry.isImage;
-							var isImage = getRef.isImage(entry.ref);
+				{this.renderHeader()}
+				<div className="file-selector__grid">
+					<Loop raw  over="upload/list" filter={{ sort: { field: 'CreatedUtc', direction: 'desc' } }} paged>
+						{
+							entry => {
 
-							// default to 256px preview
-							var renderedSize = 256;
-							var imageWidth = parseInt(entry.width, 10);
-							var imageHeight = parseInt(entry.height, 10);
-							var previewClass = "file-selector__preview ";
+								if (entry.originalName.toLowerCase().includes(searchFilter) || entry.originalName.toLowerCase().replace(/-/g, " ").includes(searchFilter) || !searchFilter) {
 
-							// render image < 256px if original image size was smaller
-							if (!isNaN(imageWidth) && !isNaN(imageHeight) &&
-								imageWidth < renderedSize && imageHeight < renderedSize) {
-								renderedSize = undefined;
-								previewClass += "file-selector__preview--auto";
+									// NB: API has been seen to report valid images with isImage=false
+									//var isImage = entry.isImage;
+									var isImage = getRef.isImage(entry.ref);
+
+									// default to 256px preview
+									var renderedSize = 256;
+									var imageWidth = parseInt(entry.width, 10);
+									var imageHeight = parseInt(entry.height, 10);
+									var previewClass = "file-selector__preview ";
+
+									// render image < 256px if original image size was smaller
+									if (!isNaN(imageWidth) && !isNaN(imageHeight) &&
+										imageWidth < renderedSize && imageHeight < renderedSize) {
+										renderedSize = undefined;
+										previewClass += "file-selector__preview--auto";
+									}
+
+									return <>
+										<div class="loop-item">
+											<button title={entry.originalName} type="button" className="btn file-selector__item" onClick={() => this.updateValue(entry)}>
+												<div className={previewClass}>
+													{isImage && getRef(entry.ref, { size: renderedSize })}
+													{!isImage && (
+														<i className="fal fa-4x fa-file"></i>
+													)}
+												</div>
+												<span className="file-selector__name">
+													{entry.originalName}
+												</span>
+											</button>
+										</div>
+									</>;
+								}
 							}
-
-							return <>
-								<button title={entry.originalName} type="button" className="btn file-selector__item" onClick={() => this.updateValue(entry)}>
-									<div className={previewClass}>
-										{isImage && getRef(entry.ref, { size: renderedSize })}
-										{!isImage && (
-											<i className="fal fa-4x fa-file"></i>
-										)}
-									</div>
-									<span className="file-selector__name">
-										{entry.originalName}
-									</span>
-								</button>
-							</>;
 						}
-					}
-				</Loop>
+					</Loop>
+				</div>
 			</Modal>
 
 			{/* icon browser */}
