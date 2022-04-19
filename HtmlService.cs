@@ -1395,8 +1395,9 @@ namespace Api.Pages
 		/// <param name="request"></param>
 		/// <param name="response"></param>
 		/// <param name="compress"></param>
+		/// <param name="updateContext"></param>
 		/// <returns></returns>
-		public async ValueTask BuildPage(Context context, HttpRequest request, HttpResponse response, bool compress = true)
+		public async ValueTask BuildPage(Context context, HttpRequest request, HttpResponse response, bool compress = true, bool updateContext = false)
 		{
 			string path = request.Path;
 			Microsoft.AspNetCore.Http.QueryString searchQuery = request.QueryString;
@@ -1420,6 +1421,12 @@ namespace Api.Pages
 			}
 
 			await Events.Page.BeforeNavigate.Dispatch(context, pageAndTokens.Page, path);
+
+			if (updateContext)
+			{
+				// Update the token:
+				context.SendToken(response);
+			}
 
 			var responseStream = response.Body;
 

@@ -80,10 +80,7 @@ namespace Api.Pages
 
 			await context.RoleCheck(Request, Response);
 
-			// Update the token:
-			context.SendToken(Response);
-
-			await _htmlService.BuildPage(context, Request, Response);
+			await _htmlService.BuildPage(context, Request, Response, true, true);
 		}
 
 		/// <summary>
