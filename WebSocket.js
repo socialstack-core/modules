@@ -398,6 +398,9 @@ function connect(){
 			var s = messageTypes[name];
 			for(var type in s){
 				var entry = s[type];
+				if(entry.register === false){
+					continue;
+				}
 				set.push({n: name, id: entry.id, ci: entry.customId, f: entry.onFilter});
 			}
 			
@@ -455,7 +458,7 @@ function send(msg){
 
 var refId = 1;
 
-function addEventListener (type, method, id, onFilter){
+function addEventListener (type, method, id, onFilter, register){
 	
 	if(id !== undefined && typeof id != 'number'){
 		// Change the 3rd arg to a room ID.
@@ -485,16 +488,20 @@ function addEventListener (type, method, id, onFilter){
 			entry.id = id;
 			entry.onFilter = onFilter;
 		}else{
-			entry = {method, id, customId: refId++, onFilter};
+			entry = {method, id, customId: refId++, onFilter, register};
 			messageTypes[type].push(entry);
 		}
 	}else{
 		typeCount++;
-		entry = {method,id, customId: refId++, onFilter};
+		entry = {method,id, customId: refId++, onFilter, register};
 		messageTypes[type] = [entry];
 	}
 	
 	if(type == '_all_'){
+		return;
+	}
+	
+	if(register === false){
 		return;
 	}
 	
@@ -528,7 +535,7 @@ function removeEventListener(type, method) {
 	
 	messageTypes[type] = messageTypes[type].filter(a => a != entry);
 	
-	if(ws && ws.readyState == WebSocket.OPEN){
+	if(ws && ws.readyState == WebSocket.OPEN && !(entry.register === false)){
 		ws.send(getAsBuffer({type: '-', ci: entry.customId}));
 	}
 	
