@@ -1,43 +1,48 @@
 import store from 'UI/Functions/Store';
 import {expandIncludes} from 'UI/Functions/WebRequest';
 
-var __user = null;
-var waitMode = 0;
+function websocketHandler(opts){
+opts = opts || {};
 
-document.addEventListener('xsession', (e) => {
-	var {user, loadingUser} = e.state;
-	
-	if(!waitMode){
-		if(loadingUser){
-			waitMode=1;
-			loadingUser.then(state => {
+if(opts.reconnectOnUserChange){
+	var __user = null;
+	var waitMode = 0;
+
+	document.addEventListener('xsession', (e) => {
+		var {user, loadingUser} = e.state;
+		
+		if(!waitMode){
+			if(loadingUser){
+				waitMode=1;
+				loadingUser.then(state => {
+					waitMode=2;
+					__user = state.user;
+				});
+
+				return;
+			}else{
 				waitMode=2;
-				__user = state.user;
-			});
-
-			return;
-		}else{
-			waitMode=2;
-		}
-	}
-	
-	if(waitMode==2 && user != __user){
-		__user = user;
-		if(ws){
-			try{
-				// setting ws to null prevents the close handler from running here.
-				var _ws = ws;
-				ws=null;
-				_ws.close();
-				setTimeout(() => {
-					start();
-				}, 100);
-			}catch(e){
-				console.log(e);
 			}
 		}
-	}
-});
+		
+		if(waitMode==2 && user != __user){
+			__user = user;
+			if(ws){
+				try{
+					// setting ws to null prevents the close handler from running here.
+					var _ws = ws;
+					ws=null;
+					_ws.close();
+					setTimeout(() => {
+						start();
+					}, 100);
+				}catch(e){
+					console.log(e);
+				}
+			}
+		}
+	});
+}
 
 /*
 * Handles setting up the websocket.
@@ -46,10 +51,7 @@ var started = false;
 var typeCount = 0;
 var ws;
 var onConnectedMessages = [];
-
-var messageTypes = {
-	
-};
+var messageTypes = {};
 
 function informStatus(state){
 	tellAllHandlers({type: 'status', connected: state});
@@ -211,6 +213,10 @@ class Reader{
 
 	readUtf8(){
 		var size = this.readCompressed();
+		return this.readUtf8SizedPlus1(size);
+	}
+	
+	readUtf8SizedPlus1(size){
 		if(size == 0){
 		 	return null;
 		}
@@ -357,7 +363,7 @@ function connect(){
 	}
 	
 	// Fire up the websocket:
-	var sk = new WebSocket(global.wsUrl);
+	var sk = new WebSocket(opts.url);
 	sk.binaryType = "arraybuffer";
 	ws = sk;
 	setPing();
@@ -594,12 +600,14 @@ function receiveJson(json, method){
 		}
 	}
 	
-	var e = document.createEvent('Event');
-	e.initEvent('websocketmessage', true, true);
-	e.message = message;
-	
-	// Dispatch the event:
-	document.dispatchEvent(e);
+	if(opts.globalMessage){
+		var e = document.createEvent('Event');
+		e.initEvent('websocketmessage', true, true);
+		e.message = message;
+		
+		// Dispatch the event:
+		document.dispatchEvent(e);
+	}
 }
 
 function syncUpdate(method, reader){
@@ -612,37 +620,48 @@ function syncUpdate(method, reader){
 	receiveJson(json, method);
 }
 
-registerOpcode(21, reader => syncUpdate('create', reader), false);
-registerOpcode(22, reader => syncUpdate('update', reader), false);
-registerOpcode(23, reader => syncUpdate('delete', reader), false);
+if(opts.addDefaults){
+	registerOpcode(21, reader => syncUpdate('create', reader), false);
+	registerOpcode(22, reader => syncUpdate('update', reader), false);
+	registerOpcode(23, reader => syncUpdate('delete', reader), false);
 
-registerOpcode(8, r => {
-	var payloadSize = r.readUInt32();
-	// Skip 2 compressed numbers (the network room type + id)
-	// The rest is the actual payload to do something with.
-	
-	r.viaNetRoom = true;
-	r.roomType = r.readCompressed();
-	r.roomId = r.readCompressed();
-	
-	// read OC:
-	var opcode = r.readCompressed();
-	
-	var handler = _opcodes[opcode];
-	if(handler){
-		handler.onReceive(r);
-	}
-	
-}, false);
+	registerOpcode(8, r => {
+		var payloadSize = r.readUInt32();
+		// Skip 2 compressed numbers (the network room type + id)
+		// The rest is the actual payload to do something with.
+		
+		r.viaNetRoom = true;
+		r.roomType = r.readCompressed();
+		r.roomId = r.readCompressed();
+		
+		// read OC:
+		var opcode = r.readCompressed();
+		
+		var handler = _opcodes[opcode];
+		if(handler){
+			handler.onReceive(r);
+		}
+		
+	}, false);
+}
 
-export default {
+return {
 	registerOpcode,
 	getSocket,
     addEventListener,
 	removeEventListener,
 	send,
 	Writer,
-	Reader
+	Reader,
+	start,
+	syncUpdate,
+	receiveJson
 };
 
-window.addEventListener('load', () => start());
+};
+
+var dflt = websocketHandler({reconnectOnUserChange: 1, addDefaults: 1, url: global.wsUrl, globalMessage: 1});
+dflt.create = websocketHandler;
+export default dflt;
+
+window.addEventListener('load', () => dflt.start());
