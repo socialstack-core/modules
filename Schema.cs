@@ -28,6 +28,48 @@ public class Schema
 	public const ulong DataTypeDefId = 3;
 
 	/// <summary>
+	/// Field Id for the "Immutable" common field, usable on fields.
+	/// </summary>
+	public const ulong ImmutableDefId = 4;
+
+	/// <summary>
+	/// Field Id for the "IfAlsoValid" common field.
+	/// </summary>
+	public const ulong IfAlsoValidDefId = 5;
+
+	/// <summary>
+	/// Field Id for the "IfNotModifiedSince" common field.
+	/// </summary>
+	public const ulong IfNotModifiedSinceDefId = 6;
+
+	/// <summary>
+	/// Field Id for the "IfGroupValid" common field.
+	/// </summary>
+	public const ulong IfGroupValidDefId = 7;
+
+	/// <summary>
+	/// Field Id for the "OwnerId" common field.
+	/// </summary>
+	public const ulong OwnerIdDefId = 8;
+
+	/// <summary>
+	/// Field Id for the "Id" common field.
+	/// </summary>
+	public const ulong IdDefId = 9;
+
+	/// <summary>
+	/// Field Id for the "EntityId" common field.
+	/// </summary>
+	public const ulong EntityDefId = 16;
+	
+	/// <summary>
+	/// Field Id for the "DefinitionId" common field.
+	/// </summary>
+	public const ulong DefId = 17;
+
+	// - Standard definition IDs follow -
+
+	/// <summary>
 	/// Id to use when creating a new transaction type.
 	/// </summary>
 	public const ulong TransactionDefId = 1;
@@ -43,34 +85,10 @@ public class Schema
 	public const ulong EntityTypeId = 3;
 
 	/// <summary>
-	/// Field Id for the "Immutable" common field, usable on fields.
+	/// Id to use when archiving something.
 	/// </summary>
-	public const ulong ImmutableDefId = 4;
+	public const ulong ArchiveDefId = 8;
 
-	/// <summary>
-	/// Field Id for the "If Also Valid" common field.
-	/// </summary>
-	public const ulong IfAlsoValidDefId = 5;
-
-	/// <summary>
-	/// Field Id for the "If Not Modified Since" common field.
-	/// </summary>
-	public const ulong IfNotModifiedSinceDefId = 6;
-
-	/// <summary>
-	/// Field Id for the "If Group Valid" common field.
-	/// </summary>
-	public const ulong IfGroupValidDefId = 7;
-
-	/// <summary>
-	/// Field Id for the "Owner Id" common field.
-	/// </summary>
-	public const ulong OwnerIdDefId = 8;
-
-	/// <summary>
-	/// Field Id for the "Id" common field.
-	/// </summary>
-	public const ulong IdDefId = 9;
 
 	/// <summary>
 	/// Current field count.
@@ -106,41 +124,46 @@ public class Schema
 
 		// Common features:
 		DefineField("Immutable", "uint"); // Usually just 0 or 1. Set on fields to prevent any setting of that field value. The default is 0, not immutable.
-		DefineField("If Also Valid", "uint"); // If set, a transaction is valid if the given transaction is also valid. It is a relative offset (i.e. the value 3 means 3 transactions previous) and the referenced transaction is always in the same block.
-		DefineField("If Not Modified Since", "uint"); // There must be no transactions using the source object since the given transaction. The value can only be a transaction ID. If it is a transaction ID, the referenced transaction must always be a valid one.
-		DefineField("If Group Valid", "uint"); // Relative transaction offset to the first transaction in a group (the actual first one declares If Group Valid of 0). The collective transactions are only valid if all of the other validations on transactions in the group pass. There are no 'gaps' in a group, and the entirety of a group is always in the same block. This is used where transactions are dependent on two or more transactions being successful, and if only one was, you want the other to also be invalid.
-		DefineField("Owner Id", "uint"); // The owning entity of a given entity. Very commonly used to check if a particular user has the right to perform a transaction on a source entity.
+		DefineField("IfAlsoValid", "uint"); // If set, a transaction is valid if the given transaction is also valid. It is a relative offset (i.e. the value 3 means 3 transactions previous) and the referenced transaction is always in the same block.
+		DefineField("IfNotModifiedSince", "uint"); // There must be no transactions using the source object since the given transaction. The value can only be a transaction ID. If it is a transaction ID, the referenced transaction must always be a valid one.
+		DefineField("IfGroupValid", "uint"); // Relative transaction offset to the first transaction in a group (the actual first one declares If Group Valid of 0). The collective transactions are only valid if all of the other validations on transactions in the group pass. There are no 'gaps' in a group, and the entirety of a group is always in the same block. This is used where transactions are dependent on two or more transactions being successful, and if only one was, you want the other to also be invalid.
+		DefineField("OwnerId", "uint"); // The owning entity of a given entity. Very commonly used to check if a particular user has the right to perform a transaction on a source entity.
 		DefineField("Id", "uint"); // Used when importing a reference from another lumity blockchain. The ID is the transaction ID otherwise.
-
+		
 		// Definition for an entity:
 		// NameDefId is used on these types
 
 		// Definition for the blockchain meta:
-		Define("Blockchain.Meta", 1);
-		DefineField("Start Date", "string"); // If set, timestamps are relative to this date
-		DefineField("Blockchain Name", "string"); // Typicaly the name of the project
-		DefineField("Version", "uint"); // Blockchain version (optional: the default is 1)
-		DefineField("Public Key", "bytes"); // The project public key
-		DefineField("Service Url", "string"); // The web location of the API which is currently running this chain
-		DefineField("Executable Archive", "bytes"); // The validator executable (an archive containing both source and a build)
+		Define("Blockchain.Meta", 1); // 4
+		DefineField("StartDate", "string"); // If set, timestamps are relative to this date (10)
+		DefineField("BlockchainName", "string"); // Typicaly the name of the project (11)
+		DefineField("PublicKey", "bytes"); // The project public key (12)
+		DefineField("Version", "uint"); // Blockchain version (optional: the default is 1) (13)
+		DefineField("ServiceUrl", "string"); // The web location of the API which is currently running this chain (14)
+		DefineField("ExecutableArchive", "bytes"); // The validator executable (an archive containing both source and a build) (15)
 
 		// Defining some central transaction types:
-		Define("Blockchain.Transfer", 1);
-		DefineField("Source Entity Id", "uint"); // Transaction ID of the source entity
-		DefineField("Target Entity Id", "uint"); // Transaction ID of the target entity
-		DefineField("Quantity", "uint"); // Quantity being transferred
+		Define("Blockchain.Transfer", 1); // 5
+		// EntityId and DefinitionId are present twice in a transfer; it is always source Id/Def followed by target Id/Def.
+		DefineField("EntityId", "uint"); // A transaction ID (16)
+		DefineField("DefinitionId", "uint"); // A definition ID. Optional but usually present as it makes indexing entities simpler. (17)
+
+		DefineField("Quantity", "uint"); // Quantity being transferred (18)
 		// Note: A transfer should also declare If Not Modified Since and use the latest known txID for the source entity.
 
 		// Block boundary:
-		Define("Blockchain.BlockBoundary", 1);
+		Define("Blockchain.BlockBoundary", 1); // 6
 		DefineField("Signature", "bytes"); // A signature created using the current private key of the project
-		DefineField("Byte Offset", "uint"); // Total byte offset
+		DefineField("ByteOffset", "uint"); // Total byte offset
 
-		// Set fields (uses Source Entity Id).
+		// Set fields (uses SourceEntityId).
 		// This does mean you cannot change the Source Entity Id on other transactions, but that is fine - it would be meaningless to do so.
-		Define("Blockchain.SetFields", 1);
-		// Declare Source Entity ID
+		Define("Blockchain.SetFields", 1); // 7
+		// Declare Source Entity ID and DefinitionId
 		// Also should declare If Not Modified Since (use the latest known txID for the source entity), or If Also Valid, or both.
+
+		// Archive an entity (uses EntityId and DefinitionId). Used by CMS's to effectively mark something as gone but recoverable later if needed.
+		Define("Blockchain.Archive", 1); // 8
 
 	}
 
