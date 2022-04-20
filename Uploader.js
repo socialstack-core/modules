@@ -234,7 +234,7 @@ export default class Uploader extends React.Component {
 		var hasMaxSize = maxSize > 0;
 		var hasFilename = (filename && filename.length);
 		var hasOriginalName = (originalName && originalName.length);
-		var label = loading ? ("Uploading " + progress + " ...") : message;
+		var label = loading ? (`Uploading` + " " + progress + " ...") : message;
 		var canShowImage = getRef.isImage(ref);
 		var canShowIcon = getRef.isIcon(ref);
 		var labelStyle = {};
@@ -285,7 +285,7 @@ export default class Uploader extends React.Component {
 
 		var uploaderClass = uploaderClasses.join(' ');
 
-		var caption = hasFilename ? filename : "None selected";
+		var caption = hasFilename ? filename : `None selected`;
 
 		if (hasOriginalName) {
 			caption = originalName;
