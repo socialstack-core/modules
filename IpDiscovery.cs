@@ -52,7 +52,43 @@ namespace Api.ContentSync
 
 			return res;
 		}
-		
+
+		/// <summary>
+		/// Discovers preferred private LAN IPs and puts them into the given set.
+		/// </summary>
+		/// <param name="ips"></param>
+		/// <param name="v6"></param>
+		public static void DiscoverPrivateIps(IpSet ips, bool v6 = true)
+		{
+			// A computer might have multiple network interfaces.
+			// and we can't know what its preferred IP is without just trying to use it. 
+			// Note that this doesn't actually send any network packets, but will expose the preferred local IP for us.
+			using (Socket socket = new Socket(AddressFamily.InterNetwork, SocketType.Dgram, 0))
+			{
+				socket.Connect("8.8.8.8", 65530);
+				IPEndPoint endPoint = socket.LocalEndPoint as IPEndPoint;
+				ips.PrivateIPv4 = endPoint.Address;
+			}
+
+			if (v6)
+			{
+				try
+				{
+					using (Socket socket = new Socket(AddressFamily.InterNetworkV6, SocketType.Dgram, 0))
+					{
+						socket.Connect("2001:4860:4860::8888", 65530);
+						IPEndPoint endPoint = socket.LocalEndPoint as IPEndPoint;
+						ips.PrivateIPv6 = endPoint.Address;
+					}
+				}
+				catch
+				{
+					// Ipv6 unsupported
+					Console.WriteLine("[WARN] Ipv6 appears to be unsupported or not configured.");
+				}
+			}
+		}
+
 		/// <summary>Gets the IP set.</summary>
 		public static async Task<IpSet> Discover()
 		{
@@ -61,33 +97,21 @@ namespace Api.ContentSync
 			// Find public addresses:
 			ips.PublicIPv4 = await FindPublicAddress(IPv4Site);
 
-			// Find private addresses. A computer might have multiple network interfaces, 
-			// and we can't know what its preferred IP is without just trying to use it. 
-			// Note that this doesn't actually send any network packets, but will expose the preferred local IP for us.
-			
-			using (Socket socket = new Socket(AddressFamily.InterNetwork, SocketType.Dgram, 0))
-			{
-				socket.Connect("8.8.8.8", 65530);
-				IPEndPoint endPoint = socket.LocalEndPoint as IPEndPoint;
-				ips.PrivateIPv4 = endPoint.Address;
-			}
+			var ipv6 = true;
 
 			try
 			{
 				ips.PublicIPv6 = await FindPublicAddress(IPv6Site);
-
-				using (Socket socket = new Socket(AddressFamily.InterNetworkV6, SocketType.Dgram, 0))
-				{
-					socket.Connect("2001:4860:4860::8888", 65530);
-					IPEndPoint endPoint = socket.LocalEndPoint as IPEndPoint;
-					ips.PrivateIPv6 = endPoint.Address;
-				}
 			}
 			catch
 			{
 				// Ipv6 unsupported
 				Console.WriteLine("[WARN] Ipv6 appears to be unsupported or not configured.");
+				ipv6 = false;
 			}
+
+			// Find private addresses.
+			DiscoverPrivateIps(ips, ipv6);
 
 			ips = await Events.Service.AfterDiscoverIPs.Dispatch(new Context(), ips);
 

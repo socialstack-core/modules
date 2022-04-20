@@ -308,7 +308,7 @@ namespace Api.ContentSync
 		/// <param name="roomId"></param>
 		/// <param name="client"></param>
 		/// <param name="filter"></param>
-		public async ValueTask RegisterRoomClient(string typeName, uint customId, ulong roomId, WebSocketClient client, JObject filter = null)
+		public async ValueTask<UserInRoom> RegisterRoomClient(string typeName, uint customId, ulong roomId, WebSocketClient client, JObject filter = null)
 		{
 			// First, get the type meta:
 			if (RemoteTypes.TryGetValue(typeName, out ContentSyncTypeMeta meta))
@@ -329,7 +329,7 @@ namespace Api.ContentSync
 						if (perm == null)
 						{
 							// They have no visibility of this type - do nothing.
-							return;
+							return null;
 						}
 
 						// Otherwise, ensure the cap is ready:
@@ -339,9 +339,11 @@ namespace Api.ContentSync
 						}
 					}
 
-					await room.Add(client, customId, perm, filter);
+					return await room.Add(client, customId, perm, filter);
 				}
 			}
+
+			return null;
 		}
 
 		/// <summary>
