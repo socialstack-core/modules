@@ -86,7 +86,6 @@ public partial class BlockDatabaseService : AutoService
 	/// <typeparam name="T"></typeparam>
 	/// <param name="obj"></param>
 	/// <param name="meta"></param>
-	/// <param name="chainType"></param>
 	public void Write<T>(T obj, BlockTableMeta meta)
 	{
 		var writer = Writer.GetPooled();
@@ -114,6 +113,61 @@ public partial class BlockDatabaseService : AutoService
 
 		// Definition again (for readers going backwards):
 		writer.WriteInvertibleCompressed(meta.Id);
+
+		var first = writer.FirstBuffer;
+		var last = writer.LastBuffer;
+
+		writer.FirstBuffer = null;
+		writer.LastBuffer = null;
+		last.Length = writer.CurrentFill;
+
+		// Release the writer:
+		writer.Release();
+
+		meta.Chain.AddBuffers(first, last);
+	}
+
+	/// <summary>
+	/// Writes the given object as a transaction using the given meta for the type T.
+	/// </summary>
+	/// <typeparam name="T"></typeparam>
+	/// <param name="sourceEntityId"></param>
+	/// <param name="meta"></param>
+	public void WriteArchived(ulong sourceEntityId, BlockTableMeta meta)
+	{
+		var writer = Writer.GetPooled();
+		writer.Start(null);
+
+		var now = (ulong)DateTime.UtcNow.Ticks;
+
+		// Create a buffer which will be written out repeatedly:
+
+		// Creating an archive entry:
+		writer.WriteInvertibleCompressed(Lumity.BlockChains.Schema.ArchiveDefId);
+
+		// 3 fields:
+		writer.WriteInvertibleCompressed(3);
+
+		// Timestamp:
+		writer.WriteInvertibleCompressed(Lumity.BlockChains.Schema.TimestampDefId);
+		writer.WriteInvertibleCompressed(now);
+		writer.WriteInvertibleCompressed(Lumity.BlockChains.Schema.TimestampDefId);
+
+		// EntityId:
+		writer.WriteInvertibleCompressed(Lumity.BlockChains.Schema.EntityDefId);
+		writer.WriteInvertibleCompressed(sourceEntityId);
+		writer.WriteInvertibleCompressed(Lumity.BlockChains.Schema.EntityDefId);
+
+		// DefinitionId:
+		writer.WriteInvertibleCompressed(Lumity.BlockChains.Schema.DefId);
+		writer.WriteInvertibleCompressed(meta.Id);
+		writer.WriteInvertibleCompressed(Lumity.BlockChains.Schema.DefId);
+
+		// Field count again (for readers going backwards):
+		writer.WriteInvertibleCompressed(3);
+
+		// Definition again (for readers going backwards):
+		writer.WriteInvertibleCompressed(Lumity.BlockChains.Schema.ArchiveDefId);
 
 		var first = writer.FirstBuffer;
 		var last = writer.LastBuffer;

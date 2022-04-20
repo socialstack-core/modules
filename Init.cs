@@ -122,25 +122,21 @@ namespace Api.BlockDatabase
 				service.Cache();
 			}
 			
-			service.EventGroup.Delete.AddEventListener(async (Context context, T result) => {
+			service.EventGroup.Delete.AddEventListener(async (Context context, T entity) => {
 
-#warning todo deletion
-				/*
-				// Delete the entry:
 				if (isDbStored)
 				{
-					await _database.RunWithId(context, deleteQuery, result.Id);
+					_database.WriteArchived(service.ReverseId(entity.Id), blockTableMeta);
 				}
-
+				
 				var cache = service.GetCacheForLocale(context == null ? 1 : context.LocaleId);
 
 				if (cache != null)
 				{
-					cache.Remove(context, result.GetId());
+					cache.Remove(context, entity.GetId());
 				}
-				*/
 
-				return result;
+				return entity;
 			});
 
 			service.EventGroup.Update.AddEventListener(async (Context context, T entity) => {
