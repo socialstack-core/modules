@@ -29,8 +29,8 @@ export default class IconSelector extends React.Component {
 	componentDidMount(){
 		if(!icons.length){
 			
-			var styles = [{name: 'All', key: 'all'},{name:'Regular', key: 'regular', prefix: 'far'}, {name:'Solid', key: 'solid', prefix: 'fas'}, {name: 'Brands', key: 'brands', prefix: 'fab'}];
-			var sets = [{name: 'All', key: 'all'}, {name: 'Default (FontAwesome)', key: 'default'}];
+			var styles = [{name: `All`, key: 'all'},{name:`Regular`, key: 'regular', prefix: 'far'}, {name:`Solid`, key: 'solid', prefix: 'fas'}, {name: `Brands`, key: 'brands', prefix: 'fab'}];
+			var sets = [{name: `All`, key: 'all'}, {name: `Default (FontAwesome)`, key: 'default'}];
 			
 			var proms = [webRequest(getRef(faIconsRef, {url: true}))];
 			
@@ -77,7 +77,7 @@ export default class IconSelector extends React.Component {
         return <div className="row header-container">
             <Col size={4}>
                 <label htmlFor="icon-style">
-                    Style
+					{`Style`}
                 </label>
                 <Input type="select"
                     name="icon-style"
@@ -90,7 +90,7 @@ export default class IconSelector extends React.Component {
 			</Col>
 			<Col size={4}>
                 <label htmlFor="icon-set">
-                    Set
+					{`Set`}
                 </label>
                 <Input type="select"
                     name="icon-set"
@@ -103,7 +103,7 @@ export default class IconSelector extends React.Component {
             </Col>
             <Col size={4}>
                 <label htmlFor="icon-search">
-                    Search
+					{`Search`}
                 </label>
 				<Input type="text" value={this.state.searchFilter} name="icon-search" onKeyUp={(e) => {
                     this.state.debounce.handle(e.target.value);
@@ -127,7 +127,7 @@ export default class IconSelector extends React.Component {
 				onClose={() => this.closeModal()}
 				isLarge
 				className={"icon-select-modal"}
-				title={"Select an icon"}
+				title={`Select an icon`}
 			>
 				{this.renderHeader()}
 				<div className="icon-container">

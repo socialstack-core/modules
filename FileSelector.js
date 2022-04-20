@@ -110,7 +110,7 @@ export default class FileSelector extends React.Component {
 		return <div className="row header-container">
 			<Col size={4}>
 				<label htmlFor="file-search">
-					Search
+					{`Search`}
 				</label>
 				<Input type="text" value={this.state.searchFilter} name="file-search" onKeyUp={(e) => {
 					this.state.debounce.handle(e.target.value);
@@ -142,11 +142,11 @@ export default class FileSelector extends React.Component {
 			{/* upload browser */}
 			<Modal
 				isExtraLarge
-				title={"Select an Upload"}
+				title={`Select an Upload`}
 				className={"image-select-modal"}
 				buttons={[
 					{
-						label: "Close",
+						label: `Close`,
 						onClick: this.closeModal
 					}
 				]}
@@ -232,18 +232,18 @@ export default class FileSelector extends React.Component {
 
 					{this.props.iconOnly ? <>
 						<button type="button" className="btn btn-primary file-selector__select" onClick={() => this.setState({ iconModalOpen: true })}>
-							Select icon
+							{`Select icon`}
 						</button>
 					</> : <>
-						<Dropdown label="Select" variant="primary" className="file-selector__select">
+							<Dropdown label={`Select`} variant="primary" className="file-selector__select">
 							<li>
 								<button type="button" className="btn dropdown-item" onClick={() => this.showModal()}>
-									From uploads
+									{`From uploads`}
 								</button>
 							</li>
 							<li>
 								<button type="button" className="btn dropdown-item" onClick={() => this.setState({ iconModalOpen: true })}>
-									From icons
+									{`From icons`}
 								</button>
 							</li>
 						</Dropdown>
@@ -254,12 +254,12 @@ export default class FileSelector extends React.Component {
 
 					{!getRef.isIcon(currentRef) && <>
 						<a href={getRef(currentRef, { url: true })} alt={filename} className="btn btn-primary file-selector__link" target="_blank" rel="noopener noreferrer">
-							Preview
+							{`Preview`}
 						</a>
 					</>}
 
 					<button type="button" className="btn btn-danger file-selector__remove" onClick={() => this.updateValue(null)}>
-						Remove
+						{`Remove`}
 					</button>
 				</>}
 			</div>
