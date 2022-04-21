@@ -12,11 +12,31 @@ namespace Api.Database
 		public int Length;
 
 		public int Length2;
+
+		private bool _autoIncSet;
+		private bool _autoInc;
+
+		public bool AutoIncWasSet
+		{
+			get {
+				return _autoIncSet;
+			}
+		}
+
 		/// <summary>
 		/// Use this to declare a column as auto increment.
 		/// If you set it to false on your class, it will block the Id field from being auto increment too.
 		/// </summary>
-		public bool AutoIncrement = false;
+		public bool AutoIncrement
+		{
+			get {
+				return _autoInc;
+			}
+			set {
+				_autoIncSet = true;
+				_autoInc = value;
+			}
+		}
 		/// <summary>
 		/// Indicates that this field should just be ignored entirely.
 		/// </summary>
