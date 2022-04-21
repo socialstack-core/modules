@@ -59,7 +59,7 @@ function newId() {
 }
 
 export default function Dropdown(props) {
-	var { className, variant, label, arrow, isLarge, isSmall, splitCallback, children, stayOpenOnSelection, align, position } = props;
+	var { className, variant, title, label, arrow, isLarge, isSmall, splitCallback, children, stayOpenOnSelection, align, position } = props;
     var dropdownClass = "dropdown " + className + (splitCallback ? " dropdown--split" : "");
 
     // default to dropping down
@@ -296,7 +296,7 @@ export default function Dropdown(props) {
     }, [open]);
 
 	return (
-		<div className={dropdownClass} ref={dropdownWrapperRef}>
+        <div title={title} className={dropdownClass} ref={dropdownWrapperRef}>
             {/* TODO: popper support
             <Manager>
                 <Reference>
