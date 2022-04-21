@@ -20,10 +20,8 @@ namespace Api.NavMenus
 		/// </summary>
 		public AdminNavMenuItemService() : base(Events.AdminNavMenuItem)
         {
-			// In-memory only type:
-			Cache(new CacheConfig() {
-				ClusterSync = false
-			});
+			// Example admin page install:
+			InstallAdminPages("Admin Nav Menu Item", "fa:fa-child", new string[] { "id", "title" , "target" });
 		}
 
 		/// <param name="targetUrl">The target page url, e.g. /en-admin/page</param>
