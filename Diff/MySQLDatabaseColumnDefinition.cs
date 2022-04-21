@@ -100,7 +100,10 @@ namespace Api.Database
 					var classMeta = (DatabaseFieldAttribute)metaAttribs[0];
 
 					// Got meta on the class itself - override now:
-					IsAutoIncrement = classMeta.AutoIncrement;
+					if (classMeta.AutoIncWasSet)
+					{
+						IsAutoIncrement = classMeta.AutoIncrement;
+					}
 				}
 			}
 			
