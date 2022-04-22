@@ -8,7 +8,7 @@ import Modal from 'UI/Modal';
 import Input from 'UI/Input';
 import webRequest from 'UI/Functions/WebRequest';
 import {useTokens} from 'UI/Token';
-
+import {isoConvert} from "UI/Functions/DateTools";
 
 export default class AutoList extends React.Component {
 	
@@ -143,13 +143,15 @@ export default class AutoList extends React.Component {
 		return [checkbox].concat(this.props.fields.map(field => {
 			
 			var fieldValue = entry[field];
-			
-			if(field.endsWith("Json")) {
+	
+			if(field.endsWith("Json") || (typeof fieldValue == "string" && fieldValue.toLowerCase().indexOf('"c":') >= 0)) {
 				fieldValue = <Canvas>{fieldValue}</Canvas>;
 			}else if(field == "id") {
 				if(entry.isDraft){
 					fieldValue = <span>{fieldValue} <span className="is-draft">(Draft)</span></span>;
 				}
+			}else if(typeof fieldValue == "number" && field.toLowerCase().endsWith("utc")) {
+				fieldValue = isoConvert(fieldValue).toUTCString();
 			}
 			
 			return <td>
