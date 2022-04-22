@@ -5,6 +5,7 @@
   
   label:            override label text / JSX ("dropdown" by default)
   arrow:            override arrow icon (caret SVG by default)
+  title:            optional title attribute (useful if no text label visible)
   variant:          Bootstrap variant to use (e.g. primary / secondary / danger / success, etc.
   isLarge:			renders large size version
   isSmall:			renders small size version
@@ -137,7 +138,7 @@ export default function Dropdown(props) {
 		
 	var btnClassSplit = btnClass + " dropdown-toggle";
 
-	var dropdownId = newId();
+    const [dropdownId] = useState(newId());
 
     if (!label) {
         label = <>
