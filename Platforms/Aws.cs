@@ -15,7 +15,7 @@ namespace Api.CloudHosts
     public partial class AwsConfig
     {
         /// <summary>
-        /// The S3 service URL.
+        /// The S3 service URL used to declare the region, e.g. s3.eu-west-2.amazonaws.com
         /// </summary>
         public string S3ServiceUrl { get; set; }
 
@@ -34,8 +34,13 @@ namespace Api.CloudHosts
         /// </summary>
         public string S3BucketName { get; set; }
 
+        /// <summary>
+        /// If true, add content-disposition header as inline to pdf files
+        /// </summary>
+        public bool DisplayPdfInline { get; set; }
+
     }
-    
+
     /// <summary>
     /// A representation of AWS.
     /// </summary>
@@ -57,12 +62,39 @@ namespace Api.CloudHosts
 
             if (!string.IsNullOrEmpty(_config.S3AccessKey) && !string.IsNullOrEmpty(_config.S3AccessSecret) && !string.IsNullOrEmpty(_config.S3ServiceUrl) && !string.IsNullOrEmpty(_config.S3BucketName))
             {
-				// Got a space which can be uploaded to:
-				SetConfigured("upload");
+                _cdnUrl = "https://" + _config.S3BucketName + "." + _config.S3ServiceUrl;
+
+                // Got a space which can be uploaded to:
+                SetConfigured("upload");
             }
+
         }
-		
+
+        private string _cdnUrl;
         private IAmazonS3 _uploadClient;
+
+        /// <summary>
+        /// The URL for the upload host (excluding any paths) if this host platform is providing file services.
+        /// </summary>
+        /// <returns></returns>
+        public override string GetContentUrl()
+        {
+            return _cdnUrl;
+        }
+
+        /// <summary>
+        /// Reads a files bytes from the remote host.
+        /// </summary>
+        /// <param name="relativeUrl">e.g. 123-original.png</param>
+        /// <param name="isPrivate">True if /content-private/, false for regular /content/.</param>
+        /// <returns></returns>
+        /// <exception cref="NotImplementedException"></exception>
+        public override async Task<System.IO.Stream> ReadFile(string relativeUrl, bool isPrivate)
+        {
+            var key = (isPrivate ? "content-private/" : "content/") + relativeUrl;
+            var str = await _uploadClient.GetObjectStreamAsync(_config.S3BucketName, key, null);
+            return str;
+        }
 
         /// <summary>
         /// Runs when uploading a file.
@@ -79,7 +111,7 @@ namespace Api.CloudHosts
 
                 var s3ClientConfig = new AmazonS3Config
                 {
-                    ServiceURL = _config.S3ServiceUrl
+                    ServiceURL = "https://"+ _config.S3ServiceUrl
                 };
 
                 var creds = new Amazon.Runtime.BasicAWSCredentials(_config.S3AccessKey, _config.S3AccessSecret);
@@ -93,11 +125,11 @@ namespace Api.CloudHosts
                 
                 var fileTransferUtilityRequest = new TransferUtilityUploadRequest
                 {
-                    BucketName = _config.S3BucketName + (upload.IsPrivate ? "/content-private" : "/content") + (string.IsNullOrEmpty(upload.Subdirectory) ? "" : "/" + upload.Subdirectory),
+                    BucketName = _config.S3BucketName,
                     FilePath = tempFile,
                     StorageClass = S3StorageClass.Standard,
                     PartSize = 6291456, // 6 MB
-                    Key = upload.GetStoredFilename(variantName),
+                    Key = (upload.IsPrivate ? "content-private" : "content") + (string.IsNullOrEmpty(upload.Subdirectory) ? "/" : "/" + upload.Subdirectory + "/") + upload.GetStoredFilename(variantName),
                     ContentType = upload.GetMimeType(variantName),
                     CannedACL = upload.IsPrivate ? S3CannedACL.AuthenticatedRead : S3CannedACL.PublicRead
                 };
@@ -117,7 +149,14 @@ namespace Api.CloudHosts
                         var escapedName = Uri.EscapeDataString(name);
 
                         // The filename* helps with non-English filenames.
-                        fileTransferUtilityRequest.Headers.ContentDisposition = "attachment; filename=\"" + escapedName + "\"; filename*=utf-8''" + escapedName;
+                        if (_config.DisplayPdfInline && fileTransferUtilityRequest.ContentType == "application/pdf")
+                        {
+                            fileTransferUtilityRequest.Headers.ContentDisposition = "inline; filename=\"" + escapedName + "\"; filename*=utf-8''" + escapedName;
+                        }
+                        else
+                        {
+                            fileTransferUtilityRequest.Headers.ContentDisposition = "attachment; filename=\"" + escapedName + "\"; filename*=utf-8''" + escapedName;
+                        }
                     }
                 }
 
