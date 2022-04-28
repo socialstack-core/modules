@@ -244,7 +244,7 @@ namespace Api.Database
 						return;
 					}
 				}
-				else if (_localisedQuery != null && _localisedQuery[localeId - 2] != null)
+				else if (_localisedQuery != null && (localeId - 2) < _localisedQuery.Length && _localisedQuery[localeId - 2] != null)
 				{
 					// The query is similar 
 					// except the fields typically have _localeCode on the end (e.g. _fr or _it).
@@ -595,7 +595,7 @@ namespace Api.Database
 						return _query;
 					}
 				}
-				else if(_localisedQuery != null && _localisedQuery[localeId - 2] != null)
+				else if(_localisedQuery != null && (localeId-2) < _localisedQuery.Length && _localisedQuery[localeId - 2] != null)
 				{
 					// The query is similar 
 					// except the fields typically have _localeCode on the end (e.g. _fr or _it).
