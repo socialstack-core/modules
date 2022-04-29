@@ -58,7 +58,8 @@ export default class PermissionGrid extends React.Component {
 				
         return (
             <div className={'permission-grid'}>
-				<table className="table">
+				<table className="table table-striped">
+					<thead>
 					<tr>
 						<th>Capability</th>
 						{this.state.roles.map(role => {
@@ -69,6 +70,8 @@ export default class PermissionGrid extends React.Component {
 							);
 						})}
 					</tr>
+					</thead>
+					<tbody>
 					{this.state.capabilities.map(cap => {
 						
 						var map = {};
@@ -114,6 +117,7 @@ export default class PermissionGrid extends React.Component {
 							</tr>
 						);
 					})}
+					</tbody>
 				</table>
             </div>
         );
@@ -197,7 +201,8 @@ export default class PermissionGrid extends React.Component {
 				}
 			}} label={`Grants`} name={this.props.name} />,
             <div className={'permission-grid'}>
-				<table className="table">
+				<table className="table table-striped">
+					<thead>
 					<tr>
 						<th>Capability</th>
 						{this.state.roles.map(role => {
@@ -210,6 +215,8 @@ export default class PermissionGrid extends React.Component {
 							}
 						})}
 					</tr>
+					</thead>
+					<tbody>
 					{this.state.capabilities.map(cap => {
 						
 						// Is it overriden? If yes, we have a custom value (otherwise it's inherited).
@@ -233,6 +240,7 @@ export default class PermissionGrid extends React.Component {
 								</td>
 							</tr>);
 					})}
+					</tbody>
 				</table>
 
 				{this.state.editingCell && this.renderEditModal()}
