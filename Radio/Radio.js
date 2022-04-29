@@ -31,9 +31,12 @@ export default function Radio(props) {
 
 	var radioClass = className.join(" ");
 	var inputClass = "form-check-input" + (solid ? " form-check-input--solid" : "");
-
+	
 	return (
-		<div className={radioClass}>
+		<div className={props.readonly ? '' : radioClass}>
+			{props.readonly ? (
+				(props.value === undefined ? props.defaultValue : props.value) ? <b>Yes (readonly) </b> : <b>No (readonly) </b>
+			) : 
 			<input class={inputClass} type="radio" name={name} id={id} 
 				onChange={onChange}
 				onBlur={onBlur}
@@ -41,7 +44,7 @@ export default function Radio(props) {
 				disabled={disabled ? "disabled" : undefined} 
 				value={props.value}
 				defaultChecked={props.defaultValue}
-				/>
+			/>}
 			<label class="form-check-label" htmlFor={id}>
 				{label}
 			</label>
