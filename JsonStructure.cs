@@ -262,7 +262,11 @@ namespace Api.Startup
 						PropertyGet = property.GetGetMethod(),
 						PropertySet = property.GetSetMethod(),
 						ContentField = contentField,
-						ChangeFlag = contentField.ChangeFlag
+						ChangeFlag = contentField.ChangeFlag,
+						Writeable = property.CanWrite,
+						// Default behaviour is to hide (from autoforms) non-writeable properties.
+						// Using BeforeSettable and setting Hide to false will display a readonly field if you want it to be visible.
+						Hide = !property.CanWrite
 					};
 				}
 
@@ -553,7 +557,7 @@ namespace Api.Startup
 		/// </summary>
 		public Dictionary<string, object> Data = new Dictionary<string, object>();
 		/// <summary>
-		/// True if this field should not appear in forms.
+		/// True if this field should not appear in forms. Non-writeable properties are hidden by default.
 		/// </summary>
 		public bool Hide;
 
