@@ -56,6 +56,12 @@ export default class PermissionGrid extends React.Component {
 			return null;
 		}
 				
+		this.state.capabilities.sort(function(a, b) {
+			if (a.key < b.key) return -1;
+			if (a.key > b.key) return 1;
+			return 0;
+		});
+
         return (
             <div className={'permission-grid'}>
 				<table className="table table-striped">
@@ -191,6 +197,12 @@ export default class PermissionGrid extends React.Component {
 			return null;
 		}
 		
+		this.state.capabilities.sort(function(a, b) {
+			if (a.key < b.key) return -1;
+			if (a.key > b.key) return 1;
+			return 0;
+		});
+
 		return [
 			<Input type='hidden' inputRef={ref => {
 				this.ref = ref;
