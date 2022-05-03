@@ -41,9 +41,9 @@ namespace Api.Database
 		/// Add a column to the schema. Returns null if the column was ignored due to the dbfield attribute.
 		/// </summary>
 		/// <returns></returns>
-		public virtual DatabaseColumnDefinition AddColumn(Field fromField, Type parentType)
+		public virtual DatabaseColumnDefinition AddColumn(Field fromField, Type parentType, string tableName = null)
 		{
-			var dcd = new DatabaseColumnDefinition(fromField, parentType.Name);
+			var dcd = new DatabaseColumnDefinition(fromField, tableName == null ? parentType.Name : tableName);
 
 			if (dcd.Ignore)
 			{
