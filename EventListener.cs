@@ -125,13 +125,8 @@ namespace Api.Revisions
 
 				isDraft.SetFullName();
 
-				var draftColDef = new DatabaseColumnDefinition(isDraft, targetTableName);
+				newSchema.AddColumn(isDraft, null, targetTableName);
 
-				if (!draftColDef.Ignore)
-				{
-					newSchema.Add(draftColDef);
-				}
-				
 				return new ValueTask<FieldMap>(fieldMap);
 			});
 
