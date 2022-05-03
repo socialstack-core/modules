@@ -16,7 +16,6 @@ using Newtonsoft.Json.Serialization;
 using System.Reflection;
 using Api.SocketServerLibrary;
 using Api.Configuration;
-using Api.ContentSync;
 using System.Collections.Concurrent;
 
 namespace Api.WebSockets
@@ -25,26 +24,18 @@ namespace Api.WebSockets
 	/// Handles creations of galleries - containers for image uploads.
 	/// Instanced automatically. Use injection to use this service, or Startup.Services.Get.
 	/// </summary>
-	[LoadPriority(11)]
+	[LoadPriority(2)]
 	public partial class WebSocketService : AutoService
     {
 
 		private readonly ContextService _contextService;
-		private readonly ContentSyncService _contentSync;
-		private readonly int _userContentTypeId;
-		/// <summary>
-		/// The set of personal rooms.
-		/// </summary>
-		public NetworkRoomSet<User, uint, uint> PersonalRooms;
-
+		
 		/// <summary>
 		/// Instanced automatically.
 		/// </summary>
-		public WebSocketService(ContextService contextService, UserService userService, ContentSyncService contentSync)
+		public WebSocketService(ContextService contextService, UserService userService)
 		{
 			_contextService = contextService;
-			_contentSync = contentSync;
-			_userContentTypeId = ContentTypes.GetId(typeof(User));
 
 			var _config = GetConfig<WebSocketServiceConfig>();
 
@@ -69,7 +60,7 @@ namespace Api.WebSockets
 				}
 
 				// Start:
-				await Start(userService, contentSync);
+				await Start(userService);
 				return s;
 
 				// After contentSync has obtained an ID.
@@ -99,21 +90,8 @@ namespace Api.WebSockets
 		/// <summary>
 		/// Starts the ws service.
 		/// </summary>
-		public async ValueTask Start(UserService userService, ContentSyncService contentSync)
+		public async ValueTask Start(UserService userService)
 		{
-			// Create personal room set:
-			var personalRoomMap = await MappingTypeEngine.GetOrGenerate(
-					userService,
-					Services.Get<ClusteredServerService>(),
-					"PersonalRoomServers",
-					"host"
-				) as MappingService<uint, uint>;
-
-			// Scan the mapping to purge any entries for this server:
-			await personalRoomMap.DeleteByTarget(new Context(), contentSync.ServerId, DataOptions.IgnorePermissions);
-
-			PersonalRooms = await NetworkRoomSet<User, uint, uint>.CreateSet(userService, personalRoomMap, contentSync);
-
 			// Start public bolt server:
 			var portNumber = AppSettings.GetInt32("WebsocketPort", AppSettings.GetInt32("Port", 5000) + 1);
 
@@ -233,7 +211,7 @@ namespace Api.WebSockets
 
 						if (customId != 0)
 						{
-							await _contentSync.RegisterRoomClient(typeName, customId, roomId, client, filt);
+							await RegisterRoomClient(typeName, customId, roomId, client, filt);
 						}
 
 						break;
@@ -263,7 +241,7 @@ namespace Api.WebSockets
 							if (customId != 0)
 							{
 								// Add the client now:
-								await _contentSync.RegisterRoomClient(typeName, customId, roomId, client, filt);
+								await RegisterRoomClient(typeName, customId, roomId, client, filt);
 							}
 						}
 
@@ -307,6 +285,68 @@ namespace Api.WebSockets
 
 			// Start it:
 			wsServer.Start();
+		}
+
+		/// <summary>
+		/// Gets meta by the given lowercase name.
+		/// </summary>
+		/// <param name="name"></param>
+		/// <returns></returns>
+		public NetworkRoomTypeMeta GetMeta(string name)
+		{
+			RemoteTypes.TryGetValue(name, out NetworkRoomTypeMeta meta);
+			return meta;
+		}
+
+		/// <summary>
+		/// The registered remote types in this websocket service. These types are things that end users can tune into updates from.
+		/// </summary>
+		public ConcurrentDictionary<string, NetworkRoomTypeMeta> RemoteTypes = new ConcurrentDictionary<string, NetworkRoomTypeMeta>();
+		
+		/// <summary>
+		/// Adds a network room client.
+		/// </summary>
+		/// <param name="typeName"></param>
+		/// <param name="customId"></param>
+		/// <param name="roomId"></param>
+		/// <param name="client"></param>
+		/// <param name="filter"></param>
+		public async ValueTask<UserInRoom> RegisterRoomClient(string typeName, uint customId, ulong roomId, WebSocketClient client, JObject filter = null)
+		{
+			// First, get the type meta:
+			if (RemoteTypes.TryGetValue(typeName, out NetworkRoomTypeMeta meta))
+			{
+				// Ok - the type exists.
+				// Which room are we going for?
+				var room = meta.GetOrCreateRoom(roomId);
+
+				if (room != null)
+				{
+					FilterBase perm = null;
+
+					if (!meta.IsMapping)
+					{
+						// Get perm:
+						perm = client.Context.Role.GetGrantRule(meta.LoadCapability);
+
+						if (perm == null)
+						{
+							// They have no visibility of this type - do nothing.
+							return null;
+						}
+
+						// Otherwise, ensure the cap is ready:
+						if (perm.RequiresSetup)
+						{
+							await perm.Setup();
+						}
+					}
+
+					return await room.Add(client, customId, perm, filter);
+				}
+			}
+			
+			return null;
 		}
 
 	}
