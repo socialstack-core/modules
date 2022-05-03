@@ -90,18 +90,21 @@ namespace Api.ContentSync
 		/// <summary>
 		/// Network room type service.
 		/// </summary>
-		public NetworkRoomTypeService _nrts;
+		private readonly NetworkRoomTypeService _nrts;
+
+		private readonly WebSocketService _websocketService;
 
 		/// <summary>
 		/// Instanced automatically. Use injection to use this service, or Startup.Services.Get.
 		/// </summary>
-		public ContentSyncService(ClusteredServerService clusteredServerService, NetworkRoomTypeService nrts)
+		public ContentSyncService(ClusteredServerService clusteredServerService, NetworkRoomTypeService nrts, WebSocketService websocketService)
 		{
 			// The content sync service is used to keep content created by multiple instances in sync.
 			// (which can be a cluster of servers, or a group of developers)
 			// It does this by setting up 'stripes' of IDs which are assigned to particular users.
 			// A user is identified by the computer hostname.
 			_nrts = nrts;
+			_websocketService = websocketService;
 			_clusteredServerService = clusteredServerService;
 
 			// Load config:
@@ -298,52 +301,6 @@ namespace Api.ContentSync
 		private string FileSafeName(string name)
 		{
 			return new string(name.Where(ch => !InvalidFileNameChars.Contains(ch)).ToArray());
-		}
-
-		/// <summary>
-		/// Adds a network room client.
-		/// </summary>
-		/// <param name="typeName"></param>
-		/// <param name="customId"></param>
-		/// <param name="roomId"></param>
-		/// <param name="client"></param>
-		/// <param name="filter"></param>
-		public async ValueTask<UserInRoom> RegisterRoomClient(string typeName, uint customId, ulong roomId, WebSocketClient client, JObject filter = null)
-		{
-			// First, get the type meta:
-			if (RemoteTypes.TryGetValue(typeName, out ContentSyncTypeMeta meta))
-			{
-				// Ok - the type exists.
-				// Which room are we going for?
-				var room = meta.GetOrCreateRoom(roomId);
-
-				if (room != null)
-				{
-					FilterBase perm = null;
-
-					if (!meta.IsMapping)
-					{
-						// Get perm:
-						perm = client.Context.Role.GetGrantRule(meta.LoadCapability);
-
-						if (perm == null)
-						{
-							// They have no visibility of this type - do nothing.
-							return null;
-						}
-
-						// Otherwise, ensure the cap is ready:
-						if (perm.RequiresSetup)
-						{
-							await perm.Setup();
-						}
-					}
-
-					return await room.Add(client, customId, perm, filter);
-				}
-			}
-
-			return null;
 		}
 
 		/// <summary>
@@ -715,17 +672,17 @@ namespace Api.ContentSync
 				Console.WriteLine("[CSync] Connected to " + message.ServerId);
 			});
 
-			var reader = new SyncServerRemoteReader(1, this);
+			var reader = new SyncServerRemoteReader(1, _websocketService);
 			reader.OpCode = SyncServer.RegisterOpCode(21, (Client client, SyncServerRemoteType message) => {
 				// Note: this callback is never run. The remoteReader does all the work, as it can identify the concrete types of things.
 			}, reader);
 
-			reader = new SyncServerRemoteReader(2, this);
+			reader = new SyncServerRemoteReader(2, _websocketService);
 			reader.OpCode = SyncServer.RegisterOpCode(22, (Client client, SyncServerRemoteType message) => {
 				// Note: this callback is never run. The remoteReader does all the work, as it can identify the concrete types of things.
 			}, reader);
 
-			reader = new SyncServerRemoteReader(3, this);
+			reader = new SyncServerRemoteReader(3, _websocketService);
 			reader.OpCode = SyncServer.RegisterOpCode(23, (Client client, SyncServerRemoteType message) => {
 				// Note: this callback is never run. The remoteReader does all the work, as it can identify the concrete types of things.
 			}, reader);
@@ -867,7 +824,7 @@ namespace Api.ContentSync
 			await mapping.DeleteByTarget(new Context(), ServerId, DataOptions.IgnorePermissions);
 
 			// Create the room set:
-			var rooms = await NetworkRoomSet<T, ID, ID>.CreateSet(svc, mapping, this);
+			var rooms = await NetworkRoomSet<T, ID, ID>.CreateSet(svc, mapping);
 			svc.StandardNetworkRooms = rooms;
 
 			// Create the meta:
@@ -875,7 +832,7 @@ namespace Api.ContentSync
 
 			var name = svc.InstanceType.Name.ToLower();
 
-			RemoteTypes[name] = meta;
+			_websocketService.RemoteTypes[name] = meta;
 
 			// Get the event group:
 			var eventGroup = svc.EventGroup;
@@ -1160,7 +1117,7 @@ namespace Api.ContentSync
 			// - Hook up the events which then builds the messages too
 
 			// Create the room set:
-			var rooms = await NetworkRoomSet<Mapping<SRC_ID, TARG_ID>, uint, SRC_ID>.CreateSet(svc, null, this);
+			var rooms = await NetworkRoomSet<Mapping<SRC_ID, TARG_ID>, uint, SRC_ID>.CreateSet(svc, null);
 			svc.MappingNetworkRooms = rooms;
 
 			// Create the meta:
@@ -1168,7 +1125,7 @@ namespace Api.ContentSync
 
 			var name = svc.InstanceType.Name.ToLower();
 
-			RemoteTypes[name] = meta;
+			_websocketService.RemoteTypes[name] = meta;
 
 			// Get the event group:
 			var eventGroup = svc.EventGroup;
@@ -1445,19 +1402,6 @@ namespace Api.ContentSync
 		}
 
 		/// <summary>
-		/// Gets meta by the given lowercase name.
-		/// </summary>
-		/// <param name="name"></param>
-		/// <returns></returns>
-		public ContentSyncTypeMeta GetMeta(string name)
-		{
-			RemoteTypes.TryGetValue(name, out ContentSyncTypeMeta meta);
-			return meta;
-		}
-
-		private ConcurrentDictionary<string, ContentSyncTypeMeta> RemoteTypes = new ConcurrentDictionary<string, ContentSyncTypeMeta>();
-
-		/// <summary>
 		/// Informs CSync to start syncing the given type as the given opcode.
 		/// </summary>
 		/// <param name="service"></param>
@@ -1503,53 +1447,7 @@ namespace Api.ContentSync
 	/// <summary>
 	/// Stores sync meta for a given type.
 	/// </summary>
-	public class ContentSyncTypeMeta
-	{
-		/// <summary>
-		/// The opcode
-		/// </summary>
-		public OpCode OpCode;
-
-		/// <summary>
-		/// Gets the load capability from the host service.
-		/// </summary>
-		public virtual Capability LoadCapability { get; }
-
-		/// <summary>
-		/// True if this is a mapping type.
-		/// </summary>
-		public virtual bool IsMapping {
-			get {
-				return false;
-			}
-		}
-
-		/// <summary>
-		/// Reads an object of this type from the given client.
-		/// </summary>
-		/// <param name="opcode"></param>
-		/// <param name="client"></param>
-		/// <param name="remoteType"></param>
-		/// <param name="action"></param>
-		/// <returns></returns>
-		public virtual void Handle(OpCode<SyncServerRemoteType>  opcode, Client client, SyncServerRemoteType remoteType, int action)
-		{
-		}
-
-		/// <summary>
-		/// Gets or creates the network room of the given ID.
-		/// </summary>
-		/// <param name="roomId"></param>
-		public virtual NetworkRoom GetOrCreateRoom(ulong roomId)
-		{
-			return null;
-		}
-	}
-
-	/// <summary>
-	/// Stores sync meta for a given type.
-	/// </summary>
-	public class ContentSyncStandardMeta<T, ID, INST_T> : ContentSyncTypeMeta
+	public class ContentSyncStandardMeta<T, ID, INST_T> : NetworkRoomTypeMeta
 		where T : Content<ID>, new()
 		where INST_T : T, new()
 		where ID : struct, IConvertible, IEquatable<ID>, IComparable<ID>
@@ -1714,7 +1612,7 @@ namespace Api.ContentSync
 	/// <summary>
 	/// Stores sync meta for a given type.
 	/// </summary>
-	public class ContentSyncMappingdMeta<SRC_ID, TARG_ID, INST_T> : ContentSyncTypeMeta
+	public class ContentSyncMappingdMeta<SRC_ID, TARG_ID, INST_T> : NetworkRoomTypeMeta
 		where SRC_ID : struct, IEquatable<SRC_ID>, IConvertible, IComparable<SRC_ID>
 		where TARG_ID : struct, IEquatable<TARG_ID>, IConvertible, IComparable<TARG_ID>
 		where INST_T : Mapping<SRC_ID, TARG_ID>, new()

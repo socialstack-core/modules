@@ -1,4 +1,5 @@
 using Api.SocketServerLibrary;
+using Api.WebSockets;
 using System.Net;
 
 
@@ -38,6 +39,6 @@ namespace Api.ContentSync
 		/// <summary>
 		/// The metadata for the current object.
 		/// </summary>
-		public ContentSyncTypeMeta Meta;
+		public NetworkRoomTypeMeta Meta;
 	}
 }

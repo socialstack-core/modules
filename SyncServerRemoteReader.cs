@@ -1,4 +1,5 @@
 using Api.SocketServerLibrary;
+using Api.WebSockets;
 using System;
 using System.Runtime.InteropServices;
 
@@ -22,18 +23,18 @@ namespace Api.ContentSync{
 		/// <summary>
 		/// Content sync service.
 		/// </summary>
-		public ContentSyncService ContentSync;
+		public WebSocketService WebsocketService;
 
 		/// <summary>
 		/// Used when reading remote type updates.
 		/// </summary>
 		/// <param name="action"></param>
-		/// <param name="contentSync"></param>
-		public SyncServerRemoteReader(int action, ContentSyncService contentSync)
+		/// <param name="wsService"></param>
+		public SyncServerRemoteReader(int action, WebSocketService wsService)
 		{
 			Action = action;
 			FirstDataRequired = 4;
-			ContentSync = contentSync;
+			WebsocketService = wsService;
 		}
 
 		/// <summary>
@@ -136,7 +137,7 @@ namespace Api.ContentSync{
 					var typeName = System.Text.Encoding.UTF8.GetString(buff);
 
 					// Get the meta:
-					var meta = ContentSync.GetMeta(typeName);
+					var meta = WebsocketService.GetMeta(typeName);
 
 					target.Meta = meta;
 
