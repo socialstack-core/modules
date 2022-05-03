@@ -29,7 +29,12 @@ namespace Api.WebSockets
     {
 
 		private readonly ContextService _contextService;
-		
+
+		/// <summary>
+		/// The set of personal rooms.
+		/// </summary>
+		public NetworkRoomSet<User, uint, uint> PersonalRooms;
+
 		/// <summary>
 		/// Instanced automatically.
 		/// </summary>
