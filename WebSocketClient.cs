@@ -114,7 +114,7 @@ namespace Api.WebSockets
 				if (Context.UserId != 0)
 				{
 					// Try getting personal network room:
-					NetworkRoom<User, uint, uint> personalRoomForCurrentId = WebSocketService.PersonalRooms.GetRoom(Context.UserId);
+					NetworkRoom<User, uint, uint> personalRoomForCurrentId = WebSocketService.PersonalRooms == null ? null : WebSocketService.PersonalRooms.GetRoom(Context.UserId);
 
 					// Trigger WS logout:
 					await Events.WebSocket.AfterLogout.Dispatch(Context, this, personalRoomForCurrentId);
@@ -144,7 +144,7 @@ namespace Api.WebSockets
 			Context = context;
 			var newId = context != null ? context.UserId : 0;
 
-			if (newId != prevUserId)
+			if (newId != prevUserId && WebSocketService.PersonalRooms != null)
 			{
 				if (prevUserId != 0)
 				{
