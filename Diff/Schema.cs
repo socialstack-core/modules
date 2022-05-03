@@ -34,10 +34,10 @@ namespace Api.Database
 		/// Add a column to the schema. Returns null if the column was ignored due to the dbfield attribute.
 		/// </summary>
 		/// <returns></returns>
-		public override DatabaseColumnDefinition AddColumn(Field fromField, Type parentType)
+		public override DatabaseColumnDefinition AddColumn(Field fromField, Type parentType, string tableName = null)
 		{
 			// Create a column definition:
-			var columnDefinition = new MySQLDatabaseColumnDefinition(fromField, parentType.TableName());
+			var columnDefinition = new MySQLDatabaseColumnDefinition(fromField, tableName == null ? parentType.TableName() : tableName);
 
 			if (columnDefinition.Ignore)
 			{
