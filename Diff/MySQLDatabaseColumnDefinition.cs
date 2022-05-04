@@ -166,11 +166,11 @@ namespace Api.Database
 		/// Generates alter table SQL for this column.
 		/// </summary>
 		/// <returns></returns>
-		public string AlterTableSql(bool isChange = false)
+		public string AlterTableSql(bool isChange = false, string prevName = null)
 		{
 			if (isChange)
 			{
-				return "ALTER TABLE `" + TableName + "` CHANGE COLUMN `" + ColumnName + "` `" + ColumnName + "` " + TypeAsSql();
+				return "ALTER TABLE `" + TableName + "` CHANGE COLUMN `" + (prevName == null ? ColumnName : prevName) + "` `" + ColumnName + "` " + TypeAsSql();
 			}
 			return "ALTER TABLE `" + TableName + "` ADD COLUMN `" + ColumnName + "` " + TypeAsSql();
 		}

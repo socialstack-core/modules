@@ -347,7 +347,8 @@ namespace Api.Database
 			// Run update:
 			using var connection = GetConnection();
 			await connection.OpenAsync();
-			var cmd = new MySqlCommand(q.GetQuery(false, localeId, localeCode), connection);
+			var qry = q.GetQuery(false, localeId, localeCode);
+			var cmd = new MySqlCommand(qry, connection);
 
 			var parameter = cmd.CreateParameter();
 			parameter.ParameterName = "id";

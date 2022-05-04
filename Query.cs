@@ -71,14 +71,14 @@ namespace Api.Database
 		public string _where;
 
 		/// <summary>
-		/// Primary table type.
-		/// </summary>
-		protected Type MainTableType;
-
-		/// <summary>
 		/// Primary table name.
 		/// </summary>
 		protected string MainTable;
+		
+		/// <summary>
+		/// Primary table name.
+		/// </summary>
+		protected string MainEntity;
 
 		/// <summary>
 		/// Primary table name.
@@ -101,22 +101,14 @@ namespace Api.Database
 		/// <summary>
 		/// Sets the MainTable and MainTableAs fields.
 		/// </summary>
-		/// <param name="type"></param>
-		public Query SetMainTable(Type type)
+		/// <param name="entityName">The entity name.</param>
+		public Query SetMainTable(string entityName)
 		{
-			return SetMainTable(type, type.TableName());
-		}
+			var name = MySQLSchema.TableName(entityName);
 
-		/// <summary>
-		/// Sets the MainTable and MainTableAs fields.
-		/// </summary>
-		/// <param name="type"></param>
-		/// <param name="name">The underlying table name.</param>
-		public Query SetMainTable(Type type, string name)
-		{
-			MainTableType = type;
+			MainEntity = entityName;
 			MainTable = name;
-			MainTableAs = name + " AS `" + type.Name + "`";
+			MainTableAs = name + " AS `" + entityName + "`";
 			return this;
 		}
 		
@@ -183,9 +175,9 @@ namespace Api.Database
 		/// <summary>
 		/// Use Query.Select etc instead.
 		/// </summary>
-		/// <param name="mainTableType"></param>
-		internal Query(Type mainTableType) {
-			SetMainTable(mainTableType);
+		/// <param name="entityName"></param>
+		internal Query(string entityName) {
+			SetMainTable(entityName);
 		}
 
 		/// <summary>
@@ -301,7 +293,7 @@ namespace Api.Database
 					break;
 				case DELETE:
 					str.WriteS("DELETE `");
-					str.WriteS(MainTableType.Name);
+					str.WriteS(MainEntity);
 					str.WriteS("` FROM ");
 					str.WriteS(MainTableAs);
 
@@ -346,7 +338,7 @@ namespace Api.Database
 
 					// Insert..Select query.
 					str.WriteS("INSERT INTO ");
-					str.WriteS(TransferMap.TargetType.TableName());
+					str.WriteS(TransferMap.TargetTableName);
 					if (TransferMap.TargetTypeNameExtension != null)
 					{
 						str.WriteS(TransferMap.TargetTypeNameExtension);
@@ -409,9 +401,9 @@ namespace Api.Database
 					}
 
 					str.WriteS(" FROM ");
-					str.WriteS(TransferMap.SourceType.TableName());
+					str.WriteS(TransferMap.SourceTableName);
 					str.WriteS(" AS `");
-					str.WriteS(TransferMap.SourceType.Name);
+					str.WriteS(TransferMap.SourceEntityName);
 					str.Write((byte)'`');
 					if (TransferMap.SourceTypeNameExtension != null)
 					{
@@ -651,7 +643,7 @@ namespace Api.Database
 					break;
 				case DELETE:
 					str.Append("DELETE `");
-					str.Append(MainTableType.Name);
+					str.Append(MainEntity);
 					str.Append("` FROM ");
 					str.Append(MainTableAs);
 
@@ -695,7 +687,7 @@ namespace Api.Database
 
 					// Insert..Select query.
 					str.Append("INSERT INTO ");
-					str.Append(TransferMap.TargetType.TableName());
+					str.Append(TransferMap.TargetTableName);
 					if (TransferMap.TargetTypeNameExtension != null)
 					{
 						str.Append(TransferMap.TargetTypeNameExtension);
@@ -753,9 +745,9 @@ namespace Api.Database
 					}
 
 					str.Append(" FROM ");
-					str.Append(TransferMap.SourceType.TableName());
+					str.Append(TransferMap.SourceTableName);
 					str.Append(" AS `");
-					str.Append(TransferMap.SourceType.Name);
+					str.Append(TransferMap.SourceEntityName);
 					str.Append('`');
 					if (TransferMap.SourceTypeNameExtension != null)
 					{
@@ -861,9 +853,9 @@ namespace Api.Database
 		/// Generates a select * from rowType.TableName() query.
 		/// Defaults to using where Id=? unless you use a custom where override.
 		/// </summary>
-		public static Query Select(Type rowType)
+		public static Query Select(Type rowType, string tableName)
 		{
-			var result = List(rowType);
+			var result = List(rowType, tableName);
 			result.Where("Id=@id");
 			return result;
 		}
@@ -871,15 +863,15 @@ namespace Api.Database
 		/// <summary>
 		/// The same as select, only it doesn't use a where constraint.
 		/// </summary>
-		public static Query List(Type rowType)
+		public static Query List(Type rowType, string entityName)
 		{
-			var result = new Query(rowType)
+			var result = new Query(entityName)
 			{
 				Operation = SELECT,
 
 				// Fields that we'll select are mapped ahead-of-time for rapid lookup speeds.
 				// Note that these maps aren't shared between queries so the fields can be removed etc from them.
-				Fields = new FieldMap(rowType)
+				Fields = new FieldMap(rowType, entityName)
 			};
 
 			return result;
@@ -898,21 +890,21 @@ namespace Api.Database
 		/// Generates a insert into rowType.TableName() (field,field..) values(?,?,?..) query.
 		/// rowType should be a DatabaseRow derived type. The type of data that will be getting inserted.
 		/// </summary>
-		public static Query Insert(Type rowType, bool explicitId = false)
+		public static Query Insert(Type rowType, string entityName, bool explicitId = false)
 		{
-			var result = new Query(rowType);
-			SetupInsert(result, rowType, explicitId);
+			var result = new Query(entityName);
+			SetupInsert(result, rowType, entityName, explicitId);
 			return result;
 		}
 
-		private static void SetupInsert(Query result, Type mainType, bool explicitId = false)
+		private static void SetupInsert(Query result, Type mainType, string entityName, bool explicitId = false)
 		{
 			result.Operation = INSERT;
-			result.SetMainTable(mainType);
+			result.SetMainTable(entityName);
 
 			// Fields that we'll select are mapped ahead-of-time for rapid lookup speeds.
 			// Note that these maps aren't shared between queries so the fields can be removed etc from them.
-			result.Fields = new FieldMap(mainType);
+			result.Fields = new FieldMap(mainType, entityName);
 
 			// Discover if the type has an explicit ID or not.
 			// It will do if it has turned off auto-inc on the Id, which is done via setting the attrib on the class itself.
@@ -949,17 +941,17 @@ namespace Api.Database
 		/// Generates an update rowType.TableName() set field=?, field=?.. where.. query.
 		/// Type should be a DatabaseRow derived type. The type of data that will be getting updated.
 		/// </summary>
-		public static Query Update(Type type)
+		public static Query Update(Type type, string entityName)
 		{
 			var result = new Query
 			{
 				Operation = UPDATE
 			};
-			result.SetMainTable(type);
+			result.SetMainTable(entityName);
 
 			// Fields that we'll select are mapped ahead-of-time for rapid lookup speeds.
 			// Note that these maps aren't shared between queries so the fields can be removed etc from them.
-			result.Fields = new FieldMap(type);
+			result.Fields = new FieldMap(type, entityName);
 
 			// Remove "Id" field:
 			result.RemoveField("Id");
@@ -974,28 +966,17 @@ namespace Api.Database
 		/// Defaults to using where Id=? unless you use a custom where override.
 		/// Type should be a DatabaseRow derived type. The type of data that will be getting deleted.
 		/// </summary>
-		public static Query Delete(Type type)
+		public static Query Delete(Type type, string entityName)
 		{
 			var result = new Query
 			{
 				Operation = DELETE
 			};
-			result.SetMainTable(type);
+			result.SetMainTable(entityName);
 
 			// Default where:
 			result.Where("Id=@id");
 			return result;
-		}
-
-		/// <summary>
-		/// Sets the MainTable and MainTableAs fields.
-		/// </summary>
-		/// <param name="name">The underlying table name.</param>
-		public Query SetMainTableName(string name)
-		{
-			MainTable = name;
-			MainTableAs = name + " AS `" + MainTableType.Name + "`";
-			return this;
 		}
 
 		/// <summary>

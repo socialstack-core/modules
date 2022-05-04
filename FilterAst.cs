@@ -1,3 +1,4 @@
+using Api.Configuration;
 using Api.Contexts;
 using Api.Database;
 using Api.SocketServerLibrary;
@@ -124,6 +125,28 @@ namespace Api.Permissions{
 		private string MappingTableName;
 
 		/// <summary>
+		/// Gets just the table name.
+		/// </summary>
+		/// <param name="src"></param>
+		/// <param name="target"></param>
+		/// <param name="listAs"></param>
+		/// <returns></returns>
+		private static string GetMappingTableName(Type src, Type target, string listAs)
+		{
+			var srcTypeName = src.Name;
+			var targetTypeName = target.Name;
+			var typeName = srcTypeName + "_" + targetTypeName + "_map_" + listAs;
+			var name = AppSettings.DatabaseTablePrefix + typeName.ToLower();
+
+			if (name.Length > 64)
+			{
+				name = name.Substring(0, 64);
+			}
+
+			return name;
+		}
+
+		/// <summary>
 		/// Steps through this tree, building an SQL-format where query. Very similar to how it actually starts out.
 		/// Note that if it encounters an array node, it will immediately resolve the value using values stored in the given filter instance.
 		/// </summary>
@@ -138,9 +161,9 @@ namespace Api.Permissions{
 			if (MappingTableName == null)
 			{
 				// Only thing that actually matters with regards to source/ target direction is just the table name:
-				MappingTableName = SourceMapping ? 
-					MappingTypeEngine.GetTableName(OtherService.ServicedType, typeof(T), MapName) : 
-					MappingTypeEngine.GetTableName(typeof(T), OtherService.ServicedType, MapName);
+				MappingTableName = SourceMapping ?
+					GetMappingTableName(OtherService.ServicedType, typeof(T), MapName) :
+					GetMappingTableName(typeof(T), OtherService.ServicedType, MapName);
 			}
 
 			if (TargetField != null)

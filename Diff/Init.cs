@@ -53,7 +53,7 @@ namespace Api.Database
 				
 				try
 				{
-					locales = await _database.List<Locale>(new Context(), Query.List(typeof(Locale)), typeof(Locale));
+					locales = await _database.List<Locale>(new Context(), Query.List(typeof(Locale), nameof(Locale)), typeof(Locale));
 				}
 				catch
 				{
@@ -133,13 +133,17 @@ namespace Api.Database
 		{
 			// Start preparing the queries. Doing this ahead of time leads to excellent performance savings, 
 			// whilst also using a high-level abstraction as another plugin entry point.
-			var deleteQuery = Query.Delete(service.InstanceType);
-			var createQuery = Query.Insert(service.InstanceType);
-			var createWithIdQuery = Query.Insert(service.InstanceType, true);
-			var updateQuery = Query.Update(service.InstanceType);
-			var selectQuery = Query.Select(service.InstanceType);
-			var listQuery = Query.List(service.InstanceType);
-			var listRawQuery = Query.List(service.InstanceType);
+
+			// Special case if it is a mapping type.
+			var entityName = service.EntityName;
+
+			var deleteQuery = Query.Delete(service.InstanceType, entityName);
+			var createQuery = Query.Insert(service.InstanceType, entityName);
+			var createWithIdQuery = Query.Insert(service.InstanceType, entityName, true);
+			var updateQuery = Query.Update(service.InstanceType, entityName);
+			var selectQuery = Query.Select(service.InstanceType, entityName);
+			var listQuery = Query.List(service.InstanceType, entityName);
+			var listRawQuery = Query.List(service.InstanceType, entityName);
 			listRawQuery.Raw = true;
 
 			var isDbStored = service.DataIsPersistent;
@@ -318,7 +322,7 @@ namespace Api.Database
 			}
 
 			// Get MySQL version:
-			var versionQuery = Query.List(typeof(DatabaseVersion));
+			var versionQuery = Query.List(typeof(DatabaseVersion), nameof(DatabaseVersion));
 			versionQuery.SetRawQuery("SELECT VERSION() as Version");
 
 			var dbVersion = await _database.Select<DatabaseVersion, uint>(null, versionQuery, typeof(DatabaseVersion), 0);
@@ -393,7 +397,7 @@ namespace Api.Database
 			try
 			{
 				// Collect all the existing table meta:
-				var listQuery = Query.List(typeof(MySQLDatabaseColumnDefinition));
+				var listQuery = Query.List(typeof(MySQLDatabaseColumnDefinition), nameof(MySQLDatabaseColumnDefinition));
 				listQuery.SetRawQuery(
 					"SELECT `data_type` as DataType, " +
 					"IF(INSTR(extra, 'auto_increment')>0, TRUE, FALSE) as IsAutoIncrement, " +
@@ -459,12 +463,11 @@ namespace Api.Database
 			foreach (var field in fieldMap.Fields)
 			{
 				// Add to schema:
-				newSchema.AddColumn(field, type);
+				newSchema.AddColumn(field);
 			}
 
 			var tableDiff = existingSchema.Diff(newSchema);
 			var altersToRun = new StringBuilder();
-
 
 			foreach (var table in tableDiff.Added)
 			{
@@ -475,9 +478,64 @@ namespace Api.Database
 
 			foreach (var tableDiffs in tableDiff.Changed)
 			{
+				if (service.IsMapping)
+				{
+					// Special case for older mapping tables.
+					// They need to be converted from {SourceType}Id,{TargetType}Id   to   SourceId,TargetId.
+					// This change allows them to handle self referencing and also simplifies the caching/ objects themselves.
+
+					// Check if we're adding SourceId/TargetId:
+					DatabaseColumnDefinition claimed = null;
+
+					for (var i = tableDiffs.Added.Count - 1; i >= 0; i--)
+					{
+						var newColumn = tableDiffs.Added[i];
+
+						if (newColumn.ColumnName == "SourceId")
+						{
+							// If old source existed, mark this as a rename instead.
+							var srcCol = existingSchema.GetColumn(newColumn.TableName, service.MappingSourceType.Name + "Id");
+
+							if (srcCol != null && srcCol != claimed)
+							{
+								claimed = srcCol;// this claim prevents one column mapping tables (where src==targ type) from trying to rename the col twice.
+
+								tableDiffs.Changed.Add(new ChangedColumn()
+								{
+									FromColumn = srcCol,
+									ToColumn = newColumn
+								});
+								tableDiffs.Added[i] = null;
+							}
+						}
+						else if (newColumn.ColumnName == "TargetId")
+						{
+							// If old target existed, mark this as a rename instead.
+							var targCol = existingSchema.GetColumn(newColumn.TableName, service.MappingTargetType.Name + "Id");
+
+							if (targCol != null && targCol != claimed)
+							{
+								claimed = targCol; // this claim prevents one column mapping tables (where src==targ type) from trying to rename the col twice.
+
+								tableDiffs.Changed.Add(new ChangedColumn()
+								{
+									FromColumn = targCol,
+									ToColumn = newColumn
+								});
+								tableDiffs.Added[i] = null;
+							}
+						}
+					}
+				}
+
+
 				// Handle added columns:
 				foreach (var newColumn in tableDiffs.Added)
 				{
+					if (newColumn == null)
+					{
+						continue;
+					}
 					System.Console.WriteLine("Adding column " + newColumn.TableName + "." + newColumn.ColumnName);
 					altersToRun.Append(((MySQLDatabaseColumnDefinition)newColumn).AlterTableSql());
 					altersToRun.Append(';');
@@ -495,7 +553,7 @@ namespace Api.Database
 						// This will fail (expectedly) if the change would result in data loss.
 						System.Console.WriteLine("Attempting to alter column  " + to.TableName + "." + to.ColumnName + ".");
 
-						altersToRun.Append(to.AlterTableSql(true));
+						altersToRun.Append(to.AlterTableSql(true, from.ColumnName));
 						altersToRun.Append(';');
 					}
 					else
