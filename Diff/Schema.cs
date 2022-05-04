@@ -16,6 +16,24 @@ namespace Api.Database
 		public Dictionary<string, DatabaseTableDefinition> Tables = new Dictionary<string, DatabaseTableDefinition>();
 
 		/// <summary>
+		/// Gets a column or null if it didn't exist.
+		/// </summary>
+		/// <param name="table"></param>
+		/// <param name="column"></param>
+		/// <returns></returns>
+		public DatabaseColumnDefinition GetColumn(string table, string column)
+		{
+			var tableDef = GetTable(table);
+
+			if (tableDef == null)
+			{
+				return null;
+			}
+
+			return tableDef.GetColumn(column);
+		}
+
+		/// <summary>
 		/// Gets a table by its case insensitive name. Creates it if it doesn't exist.
 		/// </summary>
 		/// <param name="name"></param>
@@ -41,9 +59,9 @@ namespace Api.Database
 		/// Add a column to the schema. Returns null if the column was ignored due to the dbfield attribute.
 		/// </summary>
 		/// <returns></returns>
-		public virtual DatabaseColumnDefinition AddColumn(Field fromField, Type parentType)
+		public virtual DatabaseColumnDefinition AddColumn(Field fromField)
 		{
-			var dcd = new DatabaseColumnDefinition(fromField, parentType.Name);
+			var dcd = new DatabaseColumnDefinition(fromField, fromField.OwningTypeName);
 
 			if (dcd.Ignore)
 			{

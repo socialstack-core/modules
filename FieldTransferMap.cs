@@ -22,21 +22,21 @@ namespace Api.Database
 		/// Adds a transfer to this map.
 		/// </summary>
 		/// <param name="fromType"></param>
+		/// <param name="fromTypeName">Not necessarily the same as fromType.Name (it's different in the case of a mapping).</param>
 		/// <param name="fromFieldName"></param>
 		/// <param name="toType"></param>
+		/// <param name="toTypeName">Not necessarily the same as toType.Name (it's different in the case of a mapping).</param>
 		/// <param name="toFieldName"></param>
-		public void Add(Type fromType, string fromFieldName, Type toType, string toFieldName)
+		public void Add(Type fromType, string fromTypeName, string fromFieldName, Type toType, string toTypeName, string toFieldName)
 		{
 
-			var fromField = new Field()
+			var fromField = new Field(fromType, fromTypeName)
 			{
-				OwningType = fromType,
 				Name = fromFieldName
 			};
 
-			var toField = new Field()
+			var toField = new Field(toType, toTypeName)
 			{
-				OwningType = toType,
 				Name = toFieldName
 			};
 
@@ -54,11 +54,10 @@ namespace Api.Database
 		/// <summary>
 		/// Puts a constant value into the target field.
 		/// </summary>
-		public void AddConstant(Type toType, string toFieldname, object constValue)
+		public void AddConstant(Type toType, string toTypeName, string toFieldname, object constValue)
 		{
-			var toField = new Field()
+			var toField = new Field(toType, toTypeName)
 			{
-				OwningType = toType,
 				Name = toFieldname
 			};
 
@@ -99,6 +98,48 @@ namespace Api.Database
 			get
 			{
 				return Transfers[0].To.OwningType;
+			}
+		}
+
+		/// <summary>
+		/// The target entity name.
+		/// </summary>
+		public string TargetEntityName
+		{
+			get {
+				return Transfers[0].To.OwningTypeName;
+			}
+		}
+
+		/// <summary>
+		/// The target table name.
+		/// </summary>
+		public string TargetTableName
+		{
+			get {
+				return MySQLSchema.TableName(TargetEntityName);
+			}
+		}
+
+		/// <summary>
+		/// The source entity name.
+		/// </summary>
+		public string SourceEntityName
+		{
+			get
+			{
+				return Transfers[0].From.OwningTypeName;
+			}
+		}
+
+		/// <summary>
+		/// The source table name.
+		/// </summary>
+		public string SourceTableName
+		{
+			get
+			{
+				return MySQLSchema.TableName(SourceEntityName);
 			}
 		}
 	}

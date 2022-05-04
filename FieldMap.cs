@@ -22,9 +22,14 @@ namespace Api.Database
 		/// <summary>
 		/// The field map for the given type. It should inherit DatabaseRow.
 		/// </summary>
-		public FieldMap(Type type)
+		public FieldMap(Type type, string typeName)
 		{
 			Type = type;
+
+			if (typeName == null)
+			{
+				typeName = type.Name;
+			}
 
 			// For now we just use *all* fields:
 			var fields = type.GetFields();
@@ -43,7 +48,7 @@ namespace Api.Database
 					continue;
 				}
 
-				var fld = new Field(type, field);
+				var fld = new Field(type, field, typeName);
 				fieldSet.Add(fld);
 				Lookup[fld.Name] = fld;
 			}

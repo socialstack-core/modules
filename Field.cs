@@ -32,9 +32,13 @@ namespace Api.Database
 		/// </summary>
 		public string Name;
 		/// <summary>
-		/// The full name of this field. OwningType.Name.`Name`
+		/// The full name of this field. OwningTypeName.`Name`
 		/// </summary>
 		public string FullName;
+		/// <summary>
+		/// The owning type name to use.
+		/// </summary>
+		public string OwningTypeName;
 		/// <summary>
 		/// The full name of this field, except it ends with an underscore. OwningType.Name.`Name_
 		/// </summary>
@@ -44,17 +48,21 @@ namespace Api.Database
 		/// <summary>
 		/// Creates a new empty field
 		/// </summary>
-		public Field() { }
+		public Field(Type owningType, string typeName) {
+			OwningType = owningType;
+			OwningTypeName = typeName;
+		}
 
 		/// <summary>
 		/// Creates a new field for the given owning type and field info, with optional field name.
 		/// </summary>
-		public Field(Type type, FieldInfo field, string name = null) {
+		public Field(Type type, FieldInfo field, string typeName) {
 
 			OwningType = type;
 			Type = field.FieldType;
 			TargetField = field;
-			Name = name == null ? field.Name : name;
+			Name = field.Name;
+			OwningTypeName = typeName;
 			SetFullName(null);
 		}
 
@@ -89,7 +97,7 @@ namespace Api.Database
 		/// </summary>
 		public void SetFullName(string extension = null)
 		{
-			FullName = "`" + OwningType.Name + ((extension == null) ? "" : "_" + extension) + "`.`" + Name;
+			FullName = "`" + OwningTypeName + ((extension == null) ? "" : "_" + extension) + "`.`" + Name;
 
 			if (TargetField != null && TargetField.GetCustomAttribute<LocalizedAttribute>() != null)
 			{
@@ -109,9 +117,8 @@ namespace Api.Database
 		/// <returns></returns>
 		public Field Clone()
 		{
-			return new Field()
+			return new Field(OwningType, OwningTypeName)
 			{
-				OwningType = OwningType,
 				Type = Type,
 				TargetField = TargetField,
 				Name = Name,
