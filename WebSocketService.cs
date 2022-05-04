@@ -21,10 +21,9 @@ using System.Collections.Concurrent;
 namespace Api.WebSockets
 {
 	/// <summary>
-	/// Handles creations of galleries - containers for image uploads.
 	/// Instanced automatically. Use injection to use this service, or Startup.Services.Get.
 	/// </summary>
-	[LoadPriority(2)]
+	[LoadPriority(10)]
 	public partial class WebSocketService : AutoService
     {
 
