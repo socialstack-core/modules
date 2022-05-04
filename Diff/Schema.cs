@@ -59,10 +59,8 @@ namespace Api.Database
 		/// Add a column to the schema. Returns null if the column was ignored due to the dbfield attribute.
 		/// </summary>
 		/// <returns></returns>
-		public virtual DatabaseColumnDefinition AddColumn(Field fromField)
-		{
+		public virtual DatabaseColumnDefinition AddColumn(Field fromField)		{
 			var dcd = new DatabaseColumnDefinition(fromField, fromField.OwningTypeName);
-
 			if (dcd.Ignore)
 			{
 				return null;

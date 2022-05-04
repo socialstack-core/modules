@@ -9,13 +9,21 @@ namespace Api.Database
 	[AttributeUsage(AttributeTargets.Field | AttributeTargets.Class, Inherited = false, AllowMultiple = true)]
 	public sealed class DatabaseFieldAttribute : Attribute
 	{
+		/// <summary>
+		/// Length of the field value
+		/// </summary>
 		public int Length;
-
+		/// <summary>
+		/// Secondary length of the field value, used for decimal fields and similar.
+		/// </summary>
 		public int Length2;
 
 		private bool _autoIncSet;
 		private bool _autoInc;
 
+		/// <summary>
+		/// True if the attribute explicitly set the AutoIncrement field.
+		/// </summary>
 		public bool AutoIncWasSet
 		{
 			get {
@@ -49,6 +57,10 @@ namespace Api.Database
 
 		internal DatabaseFieldAttribute() { }
 
+		/// <summary>
+		/// Indicate that this content type should be stored in the given storage group.
+		/// </summary>
+		/// <param name="group"></param>
 		public DatabaseFieldAttribute(string group)
 		{
 			Group = group;
