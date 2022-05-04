@@ -9,6 +9,7 @@ namespace Api.Database
 	/// If it's e.g. a list of tags on a user, it has a UserId field and a TagId field, which are linked up to SourceId and TargetId.
 	/// These are fully automated and used via the include system.
 	/// </summary>
+	[DatabaseIndex(false, "SourceId")]
 	public class Mapping<S,T> : Content<uint> 
 		where S : struct
 		where T : struct
