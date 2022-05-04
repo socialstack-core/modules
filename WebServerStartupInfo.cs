@@ -263,6 +263,8 @@ namespace Api.Startup
 				return loadPriority.Priority;
 			}).ToList();
 
+			Services.AllServiceTypes = _serviceTypes;
+
 			Task.Run(async () =>
 			{
 				try
@@ -277,6 +279,8 @@ namespace Api.Startup
 
 					// Services are now all instanced - fire off service OnStart event:
 					Services.TriggerStart();
+
+					Services.AllServiceTypes = null;
 				}
 				catch (Exception e)
 				{

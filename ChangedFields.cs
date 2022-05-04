@@ -131,13 +131,23 @@ namespace Api.Startup {
 		public Type InstanceType;
 		
 		/// <summary>
-		/// Creates a map for the given type.
+		/// Creates a map for the given autoservice's instance type.
 		/// Use aService.GetChangeField(..); rather than this directly.
 		/// </summary>
 		public ContentFields(AutoService service)
 		{
 			Service = service;
 			InstanceType = service.InstanceType;
+			BuildMap();
+		}
+		
+		/// <summary>
+		/// Creates a map for the given type.
+		/// Use aService.GetChangeField(..); rather than this directly.
+		/// </summary>
+		public ContentFields(Type instanceType)
+		{
+			InstanceType = instanceType;
 			BuildMap();
 		}
 

@@ -17,10 +17,17 @@ namespace Api.Startup
 		/// Environment that we're running in. Use IsDevelopment, IsStaging and IsProduction for common ones.
 		/// </summary>
 		public static string Environment;
+		
 		/// <summary>
 		/// True when AfterStart has been called.
 		/// </summary>
 		public static bool Started;
+		
+		/// <summary>
+		/// The list of all service types sorted by their load order. Cleared after startup.
+		/// </summary>
+		public static List<Type> AllServiceTypes;
+
 		/// <summary>
 		/// A textual lookup of all services. Use Get instead. Textual key is e.g. "PageService".
 		/// </summary>
@@ -270,7 +277,7 @@ namespace Api.Startup
 		/// </summary>
 		/// <param name="type"></param>
 		/// <returns></returns>
-		private static Type GetAutoServiceType(Type type)
+		public static Type GetAutoServiceType(Type type)
 		{
 
 			if (type.IsGenericType)

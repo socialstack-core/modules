@@ -8,7 +8,93 @@ using System.Reflection;
 using System.Threading.Tasks;
 
 namespace Api.Startup{
-	
+
+	/// <summary>
+	/// A set of caches per locale.
+	/// </summary>
+	public class CacheSet
+	{
+		/// <summary>
+		/// The content fields for the type of this service cache.
+		/// </summary>
+		public ContentFields ContentFields;
+
+
+		/// <summary>
+		/// Creates a new cache set for the given content fields.
+		/// </summary>
+		/// <param name="cf"></param>
+		public CacheSet(ContentFields cf)
+		{
+			ContentFields = cf;
+		}
+	}
+
+	/// <summary>
+	/// A set of caches per locale, specific to the given type.
+	/// </summary>
+	public class CacheSet<T, ID> : CacheSet
+		where T : Content<ID>, new()
+		where ID : struct, IConvertible, IEquatable<ID>, IComparable<ID>
+	{
+		/// <summary>
+		/// The caches, if enabled. Call Cache() to set this service as one with caching active.
+		/// It's an array as there's one per locale.
+		/// </summary>
+		protected ServiceCache<T, ID>[] _cache;
+
+		/// <summary>
+		/// Gets a cache for a given locale ID. Null if none.
+		/// </summary>
+		/// <param name="localeId"></param>
+		/// <returns></returns>
+		public ServiceCache<T, ID> GetCacheForLocale(uint localeId)
+		{
+			if (_cache == null || localeId > _cache.Length)
+			{
+				return null;
+			}
+			return _cache[localeId - 1];
+		}
+
+		/// <summary>
+		/// Creates a new cache set for the given content fields.
+		/// </summary>
+		/// <param name="cf"></param>
+		public CacheSet(ContentFields cf) : base(cf)
+		{
+		}
+
+		/// <summary>
+		/// Requires that the cache for the given locale exists.
+		/// </summary>
+		/// <param name="localeId"></param>
+		/// <returns></returns>
+		public ServiceCache<T, ID> RequireCacheForLocale(uint localeId)
+		{
+			if (_cache == null)
+			{
+				// Create the base cache set:
+				_cache = new ServiceCache<T, ID>[localeId + 5];
+			}
+			else if (localeId > _cache.Length)
+			{
+				Array.Resize(ref _cache, (int)localeId + 5);
+			}
+
+			var cache = _cache[localeId - 1];
+
+			if (cache == null)
+			{
+				cache = new ServiceCache<T, ID>(ContentFields.IndexList);
+				_cache[localeId - 1] = cache;
+			}
+			
+			return cache;
+		}
+
+	}
+
 	/// <summary>
 	/// A cache for content which is frequently read but infrequently written.
 	/// There is one of these per locale, stored by AutoService.
