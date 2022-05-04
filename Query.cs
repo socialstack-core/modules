@@ -338,7 +338,7 @@ namespace Api.Database
 
 					// Insert..Select query.
 					str.WriteS("INSERT INTO ");
-					str.WriteS(TransferMap.TargetTableName);
+					str.WriteS(MySQLSchema.TableName(TransferMap.TargetEntityName));
 					if (TransferMap.TargetTypeNameExtension != null)
 					{
 						str.WriteS(TransferMap.TargetTypeNameExtension);
@@ -401,7 +401,7 @@ namespace Api.Database
 					}
 
 					str.WriteS(" FROM ");
-					str.WriteS(TransferMap.SourceTableName);
+					str.WriteS(MySQLSchema.TableName(TransferMap.SourceEntityName));
 					str.WriteS(" AS `");
 					str.WriteS(TransferMap.SourceEntityName);
 					str.Write((byte)'`');
@@ -687,7 +687,7 @@ namespace Api.Database
 
 					// Insert..Select query.
 					str.Append("INSERT INTO ");
-					str.Append(TransferMap.TargetTableName);
+					str.Append(MySQLSchema.TableName(TransferMap.TargetEntityName));
 					if (TransferMap.TargetTypeNameExtension != null)
 					{
 						str.Append(TransferMap.TargetTypeNameExtension);
@@ -745,7 +745,7 @@ namespace Api.Database
 					}
 
 					str.Append(" FROM ");
-					str.Append(TransferMap.SourceTableName);
+					str.Append(MySQLSchema.TableName(TransferMap.SourceEntityName));
 					str.Append(" AS `");
 					str.Append(TransferMap.SourceEntityName);
 					str.Append('`');
