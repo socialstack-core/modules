@@ -165,7 +165,7 @@ public partial class AutoService<T, ID> {
 				continue;
 			}
 
-			_cache[i] = new ServiceCache<T, ID>(indices)
+			_cache[i] = new ServiceCache<T, ID>(indices, EntityName)
 			{
 				OnChange = genericCfg?.OnChange
 			};

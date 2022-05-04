@@ -90,7 +90,12 @@ public partial class AutoService<T, ID> : AutoService
 	/// <summary>
 	/// Sets up the common service type fields.
 	/// </summary>
-	public AutoService(EventGroup eventGroup, Type instanceType = null) : base(typeof(T), typeof(ID), instanceType)
+	public AutoService(EventGroup eventGroup, Type instanceType = null, string entityName = null) : base(
+		typeof(T),
+		typeof(ID),
+		instanceType,
+		entityName
+	)
 	{
 		EventGroup = eventGroup as EventGroup<T, ID>;
 
@@ -1203,6 +1208,11 @@ public partial class AutoService
 	/// Map of the available fields in the services InstanceType.
 	/// </summary>
 	public FieldMap FieldMap;
+	/// <summary>
+	/// The name of the instance types of this service.
+	/// Usually the same as InstanceType.Name but can be different, such as on mappings.
+	/// </summary>
+	public string EntityName;
 
 	/// <summary>
 	/// True if this is a mapping service.
@@ -1214,6 +1224,16 @@ public partial class AutoService
 			return false;
 		}
 	}
+
+	/// <summary>
+	/// The source type if this is a mapping service.
+	/// </summary>
+	public virtual Type MappingSourceType => null;
+	
+	/// <summary>
+	/// The target type if this is a mapping service.
+	/// </summary>
+	public virtual Type MappingTargetType => null;
 
 	/// <summary>
 	/// Outputs a list of things from this service as JSON into the given writer.
@@ -1368,16 +1388,18 @@ public partial class AutoService
 	/// <param name="type"></param>
 	/// <param name="idType"></param>
 	/// <param name="instanceType"></param>
-	public AutoService(Type type = null, Type idType = null, Type instanceType = null)
+	/// <param name="entityName"></param>
+	public AutoService(Type type = null, Type idType = null, Type instanceType = null, string entityName = null)
 	{
 		ServicedType = type;
 		InstanceType = instanceType == null ? type : instanceType;
 		IdType = idType;
 		DataIsPersistent = type != null && ContentTypes.IsPersistentType(type);
+		EntityName = entityName == null ? (InstanceType == null ? null : InstanceType.Name) : entityName;
 
 		if (InstanceType != null)
 		{
-			FieldMap = new FieldMap(InstanceType);
+			FieldMap = new FieldMap(InstanceType, EntityName);
 		}
 	}
 

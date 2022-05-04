@@ -30,17 +30,20 @@ namespace Api.Startup
 		/// <summary>
 		/// Instanced automatically.
 		/// </summary>
-		public MappingService(AutoService<SRC, SRC_ID> src, AutoService<TARG, TARG_ID> targ, string srcIdName, string targetIdName, Type t) : base(t) {
-			srcIdFieldName = srcIdName;
-			targetIdFieldName = targetIdName;
-			targetIdFieldEquals = targetIdName + "=?";
-			srcIdFieldEquals = srcIdName + "=?";
-			srcIdFieldNameEqSet = srcIdFieldName + "=[?]";
-			targetIdFieldNameEqSet = targetIdFieldName + "=[?]";
-			srcAndTargEq = srcIdName + "=? and " + targetIdName + "=?";
+		public MappingService(AutoService<SRC, SRC_ID> src, AutoService<TARG, TARG_ID> targ, Type t, string entityName) : base(t, entityName) {
+			srcIdFieldName = "SourceId";
+			targetIdFieldName = "TargetId";
+			targetIdFieldEquals = "TargetId=?";
+			srcIdFieldEquals = "SourceId=?";
+			srcIdFieldNameEqSet = "SourceId=[?]";
+			targetIdFieldNameEqSet = "TargetId=[?]";
+			srcAndTargEq = "SourceId=? and TargetId=?";
 			Source = src;
 			Target = targ;
+			_jsonWriter = MappingToJson.GetMapper(typeof(SRC_ID), typeof(TARG_ID));
 		}
+
+		private readonly MappingToJson _jsonWriter;
 
 		/// <summary>
 		/// Source service.
@@ -52,6 +55,16 @@ namespace Api.Startup
 		/// </summary>
 		public AutoService<TARG, TARG_ID> Target;
 
+		/// <summary>
+		/// The source type if this is a mapping service.
+		/// </summary>
+		public override Type MappingSourceType => typeof(SRC);
+
+		/// <summary>
+		/// The target type if this is a mapping service.
+		/// </summary>
+		public override Type MappingTargetType => typeof(TARG);
+		
 		/// <summary>
 		/// Gets a list of source IDs by target ID.
 		/// </summary>
@@ -398,7 +411,7 @@ namespace Api.Startup
 						}
 
 						// Output src, target
-						mappingEntry.ToJson(writer);
+						_jsonWriter.ToJson(mappingEntry, writer);
 
 						// Collect target:
 						mappingCollector.Collect(mappingEntry);
@@ -435,7 +448,7 @@ namespace Api.Startup
 						writer.Write((byte)',');
 					}
 
-					mappingEntry.ToJson(writer);
+					_jsonWriter.ToJson(mappingEntry, writer);
 					
 					// Collect:
 					mappingCollector.Collect(mappingEntry);
@@ -502,12 +515,13 @@ namespace Api.Startup
 		/// Quick ref to reverse cache index, if it is cached.
 		/// </summary>
 		protected NonUniqueIndex<Mapping<SRC_ID, TARG_ID>, TARG_ID> _reverseCacheIndex;
-		
+
 		/// <summary>
 		/// Creates a mapping service using the given type as the mapping object.
 		/// </summary>
 		/// <param name="t"></param>
-		public MappingService(Type t) : base(new EventGroup<Mapping<SRC_ID, TARG_ID>>(), t)
+		/// <param name="entityName"></param>
+		public MappingService(Type t, string entityName) : base(new EventGroup<Mapping<SRC_ID, TARG_ID>>(), t, entityName)
 		{
 			// Mapping services are cached by default:
 			Cache();
@@ -1004,4 +1018,114 @@ namespace Api.Startup
 			throw new NotImplementedException("Don't instance a MappingService<,> directly. Use the more concrete MappingService<,,,> instead.");
 		}
 	}
+
+	/// <summary>
+	/// Used to output JSON for a mapping entity. The default is (uint,uint)
+	/// </summary>
+	public class MappingToJson
+	{
+		/// <summary>
+		/// Gets a shared JSON mapper for the given ID type pair.
+		/// </summary>
+		/// <param name="a"></param>
+		/// <param name="b"></param>
+		/// <returns></returns>
+		public static MappingToJson GetMapper(Type a, Type b)
+		{
+			if (a == typeof(uint))
+			{
+				return b == typeof(uint) ? uintuint : uintulong;
+			}
+
+			return b == typeof(uint) ? ulonguint : ulongulong;
+		}
+
+		private static MappingToJson uintuint = new MappingToJson();
+		private static MappingToJson uintulong = new MappingToJsonUintUlong();
+		private static MappingToJson ulongulong = new MappingToJsonUlongUlong();
+		private static MappingToJson ulonguint = new MappingToJsonUlongUint();
+
+		/// <summary>
+		/// Writes the given mapping into the given writer.
+		/// </summary>
+		/// <param name="mapping"></param>
+		/// <param name="writer"></param>
+		public virtual void ToJson(Content<uint> mapping, Writer writer)
+		{
+			var mappingRow = (Mapping<uint, uint>)mapping;
+			writer.WriteS(mappingRow.Id);
+			writer.Write((byte)',');
+			writer.WriteS(mappingRow.SourceId);
+			writer.Write((byte)',');
+			writer.WriteS(mappingRow.TargetId);
+		}
+
+	}
+
+	/// <summary>
+	/// Converts (uint,ulong) mappings.
+	/// </summary>
+	public class MappingToJsonUintUlong : MappingToJson
+	{
+		/// <summary>
+		/// Writes the given mapping into the given writer.
+		/// </summary>
+		/// <param name="mapping"></param>
+		/// <param name="writer"></param>
+		public override void ToJson(Content<uint> mapping, Writer writer)
+		{
+			var mappingRow = (Mapping<uint, ulong>)mapping;
+			writer.WriteS(mappingRow.Id);
+			writer.Write((byte)',');
+			writer.WriteS(mappingRow.SourceId);
+			writer.Write((byte)',');
+			writer.WriteS(mappingRow.TargetId);
+		}
+
+	}
+
+	/// <summary>
+	/// Converts (ulong,ulong) mappings.
+	/// </summary>
+	public class MappingToJsonUlongUlong : MappingToJson
+	{
+		/// <summary>
+		/// Writes the given mapping into the given writer.
+		/// </summary>
+		/// <param name="mapping"></param>
+		/// <param name="writer"></param>
+		public override void ToJson(Content<uint> mapping, Writer writer)
+		{
+			var mappingRow = (Mapping<ulong, ulong>)mapping;
+			writer.WriteS(mappingRow.Id);
+			writer.Write((byte)',');
+			writer.WriteS(mappingRow.SourceId);
+			writer.Write((byte)',');
+			writer.WriteS(mappingRow.TargetId);
+		}
+
+	}
+	
+	/// <summary>
+	/// Converts (ulong,uint) mappings.
+	/// </summary>
+	public class MappingToJsonUlongUint : MappingToJson
+	{
+		/// <summary>
+		/// Writes the given mapping into the given writer.
+		/// </summary>
+		/// <param name="mapping"></param>
+		/// <param name="writer"></param>
+		public override void ToJson(Content<uint> mapping, Writer writer)
+		{
+			var mappingRow = (Mapping<ulong, uint>)mapping;
+			writer.WriteS(mappingRow.Id);
+			writer.Write((byte)',');
+			writer.WriteS(mappingRow.SourceId);
+			writer.Write((byte)',');
+			writer.WriteS(mappingRow.TargetId);
+		}
+
+	}
+
 }

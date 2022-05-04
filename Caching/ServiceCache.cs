@@ -58,11 +58,17 @@ namespace Api.Startup{
 		}
 
 		/// <summary>
+		/// The entity name that this is a set for.
+		/// </summary>
+		private string EntityName;
+
+		/// <summary>
 		/// Creates a new cache set for the given content fields.
 		/// </summary>
 		/// <param name="cf"></param>
-		public CacheSet(ContentFields cf) : base(cf)
+		public CacheSet(ContentFields cf, string entityName) : base(cf)
 		{
+			EntityName = entityName;
 		}
 
 		/// <summary>
@@ -86,7 +92,7 @@ namespace Api.Startup{
 
 			if (cache == null)
 			{
-				cache = new ServiceCache<T, ID>(ContentFields.IndexList);
+				cache = new ServiceCache<T, ID>(ContentFields.IndexList, EntityName);
 				_cache[localeId - 1] = cache;
 			}
 			
@@ -152,11 +158,12 @@ namespace Api.Startup{
 		/// Creates a new service cache using the given indices.
 		/// </summary>
 		/// <param name="indices"></param>
-		public ServiceCache(List<DatabaseIndexInfo> indices)
+		/// <param name="entityName"></param>
+		public ServiceCache(List<DatabaseIndexInfo> indices, string entityName)
 		{
 			Indices = new Dictionary<string, ServiceCacheIndex<T>>();
 			SecondaryIndices = new List<ServiceCacheIndex<T>>();
-			Fields = new FieldMap(typeof(T));
+			Fields = new FieldMap(typeof(T), entityName);
 			IndexLookup = new ServiceCacheIndex<T>[indices.Count];
 
 			var indexId = -1;

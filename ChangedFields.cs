@@ -783,7 +783,7 @@ namespace Api.Startup {
 			var mappingContentFields = mappingService.GetContentFields();
 
 			// Try to get target field (e.g. TagId):
-			if (!mappingContentFields.TryGetValue((VirtualInfo.Service.ServicedType.Name + "Id").ToLower(), out ContentField targetField))
+			if (!mappingContentFields.TryGetValue("targetid", out ContentField targetField))
 			{
 				throw new Exception("Couldn't find target field on a mapping type. This indicates an issue with the mapping engine rather than your usage.");
 			}
