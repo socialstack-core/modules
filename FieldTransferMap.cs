@@ -112,16 +112,6 @@ namespace Api.Database
 		}
 
 		/// <summary>
-		/// The target table name.
-		/// </summary>
-		public string TargetTableName
-		{
-			get {
-				return MySQLSchema.TableName(TargetEntityName);
-			}
-		}
-
-		/// <summary>
 		/// The source entity name.
 		/// </summary>
 		public string SourceEntityName
@@ -129,17 +119,6 @@ namespace Api.Database
 			get
 			{
 				return Transfers[0].From.OwningTypeName;
-			}
-		}
-
-		/// <summary>
-		/// The source table name.
-		/// </summary>
-		public string SourceTableName
-		{
-			get
-			{
-				return MySQLSchema.TableName(SourceEntityName);
 			}
 		}
 	}
