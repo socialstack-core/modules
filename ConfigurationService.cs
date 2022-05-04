@@ -19,7 +19,7 @@ namespace Api.Configuration
 	/// Handles configurations.
 	/// Instanced automatically. Use injection to use this service, or Startup.Services.Get.
 	/// </summary>
-	[LoadPriority(4)]
+	[LoadPriority(2)]
 	public partial class ConfigurationService : AutoService<Api.Configuration.Configuration>
     {
 		/// <summary>
