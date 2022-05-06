@@ -274,6 +274,7 @@ export default class Uploader extends React.Component {
 			// use the original image and set background-size to auto
 			if (canShowImage && !canShowIcon) {
 				labelStyle = { "background-image": "url(" + getRef(ref, { url: true, size: 256 }) + ")" };
+				uploaderClasses.push("uploader--image");
 			}
 
 			if (canShowIcon) {
@@ -297,6 +298,12 @@ export default class Uploader extends React.Component {
 
 		return <div className={uploaderClass}>
 			<div className="uploader__internal">
+
+				{canShowImage && !canShowIcon && 
+					<div className="uploader__imagebackground">
+					</div>
+				}
+
 				<input id={this.props.id} className="uploader__input" type="file" ref={this.inputRef}
 					onChange={e => this.onSelectedFile(e)} title={loading ? "Loading ..." : tooltip} />
 				<label htmlFor={this.props.id} className="uploader__label" style={labelStyle}>
