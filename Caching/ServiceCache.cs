@@ -12,13 +12,17 @@ namespace Api.Startup{
 	/// <summary>
 	/// A set of caches per locale.
 	/// </summary>
-	public class CacheSet
+	public partial class CacheSet
 	{
 		/// <summary>
 		/// The content fields for the type of this service cache.
 		/// </summary>
 		public ContentFields ContentFields;
 
+		/// <summary>
+		/// The instance type.
+		/// </summary>
+		public Type InstanceType;
 
 		/// <summary>
 		/// Creates a new cache set for the given content fields.
@@ -27,6 +31,17 @@ namespace Api.Startup{
 		public CacheSet(ContentFields cf)
 		{
 			ContentFields = cf;
+			InstanceType = cf.InstanceType;
+		}
+
+		/// <summary>
+		/// Adds the given primary entity to this cache.
+		/// </summary>
+		/// <param name="context"></param>
+		/// <param name="entity"></param>
+		public virtual void AddPrimary(Context context, object entity)
+		{
+			
 		}
 	}
 
@@ -44,17 +59,56 @@ namespace Api.Startup{
 		protected ServiceCache<T, ID>[] _cache;
 
 		/// <summary>
+		/// Get the underlying caches.
+		/// </summary>
+		public ServiceCache<T, ID>[] Caches => _cache;
+
+		/// <summary>
+		/// The onChange callback to use.
+		/// </summary>
+		private Action<Context, T, T> _onChange;
+
+		/// <summary>
+		/// Sets the onChange callback for each cache in the set.
+		/// </summary>
+		public void SetOnChange(Action<Context, T, T> onChange)
+		{
+			_onChange = onChange;
+
+			for (var i = 0; i < _cache.Length; i++)
+			{
+				var sc = _cache[i];
+				if (sc == null)
+				{
+					continue;
+				}
+				sc.OnChange = onChange;
+			}
+		}
+
+		/// <summary>
 		/// Gets a cache for a given locale ID. Null if none.
 		/// </summary>
 		/// <param name="localeId"></param>
 		/// <returns></returns>
 		public ServiceCache<T, ID> GetCacheForLocale(uint localeId)
 		{
-			if (_cache == null || localeId > _cache.Length)
+			if (localeId > _cache.Length)
 			{
 				return null;
 			}
 			return _cache[localeId - 1];
+		}
+
+		/// <summary>
+		/// Adds the given primary entity to this cache.
+		/// </summary>
+		/// <param name="context"></param>
+		/// <param name="entity"></param>
+		public override void AddPrimary(Context context, object entity)
+		{
+			var typedEntity = entity as T;
+			GetCacheForLocale(1).Add(context, typedEntity, typedEntity);
 		}
 
 		/// <summary>
@@ -63,12 +117,20 @@ namespace Api.Startup{
 		private string EntityName;
 
 		/// <summary>
+		/// The number of caches currently present.
+		/// </summary>
+		public int Length => _cache.Length;
+
+		/// <summary>
 		/// Creates a new cache set for the given content fields.
 		/// </summary>
 		/// <param name="cf"></param>
+		/// <param name="entityName"></param>
 		public CacheSet(ContentFields cf, string entityName) : base(cf)
 		{
 			EntityName = entityName;
+			_cache = new ServiceCache<T, ID>[1];
+			RequireCacheForLocale(1); // Primary cache always exists.
 		}
 
 		/// <summary>
@@ -78,12 +140,7 @@ namespace Api.Startup{
 		/// <returns></returns>
 		public ServiceCache<T, ID> RequireCacheForLocale(uint localeId)
 		{
-			if (_cache == null)
-			{
-				// Create the base cache set:
-				_cache = new ServiceCache<T, ID>[localeId + 5];
-			}
-			else if (localeId > _cache.Length)
+			if (localeId > _cache.Length)
 			{
 				Array.Resize(ref _cache, (int)localeId + 5);
 			}
@@ -93,6 +150,7 @@ namespace Api.Startup{
 			if (cache == null)
 			{
 				cache = new ServiceCache<T, ID>(ContentFields.IndexList, EntityName);
+				cache.OnChange = _onChange;
 				_cache[localeId - 1] = cache;
 			}
 			

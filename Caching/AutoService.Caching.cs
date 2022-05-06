@@ -25,7 +25,12 @@ public partial class AutoService<T, ID> {
 	/// The caches, if enabled. Call Cache() to set this service as one with caching active.
 	/// It's an array as there's one per locale.
 	/// </summary>
-	protected ServiceCache<T, ID>[] _cache;
+	protected CacheSet<T, ID> _cacheSet;
+
+	/// <summary>
+	/// True if a cache is available.
+	/// </summary>
+	public bool CacheAvailable => _cacheSet != null;
 
 	/// <summary>
 	/// The cache config for this service (if any).
@@ -43,12 +48,12 @@ public partial class AutoService<T, ID> {
 	/// <returns></returns>
 	public int GetCacheIndexId(string keyName)
 	{
-		if (_cache == null || _cache.Length == 0 || _cache[0] == null)
+		if (_cacheSet == null || _cacheSet.Caches[0] == null)
 		{
 			throw new Exception("Can only get a cache index ID on a service with a cache.");
 		}
 
-		return _cache[0].GetIndexId(keyName);
+		return _cacheSet.Caches[0].GetIndexId(keyName);
 	}
 
 	/// <summary>
@@ -76,11 +81,11 @@ public partial class AutoService<T, ID> {
 	/// <returns></returns>
 	public ServiceCache<T, ID> GetCacheForLocale(uint localeId)
 	{
-		if (_cache == null || localeId <= 0 || localeId > _cache.Length)
+		if (_cacheSet == null || localeId <= 0 || localeId > _cacheSet.Length)
 		{
 			return null;
 		}
-		return _cache[localeId - 1];
+		return _cacheSet.Caches[localeId - 1];
 	}
 
 	/// <summary>
@@ -128,8 +133,50 @@ public partial class AutoService<T, ID> {
 		await SetupCache();
 	}
 
+	/// <summary>
+	/// Apply an existing cache set to this service. If you apply a null set, it will initialise an empty cache.
+	/// </summary>
+	/// <param name="set"></param>
+	public async override ValueTask ApplyCache(CacheSet set)
+	{
+		if (_contentFields == null)
+		{
+			_contentFields = set.ContentFields;
+			_contentFields.Service = this;
+		}
+
+		// It must be of the correct type:
+		var typedSet = set as CacheSet<T, ID>;
+
+		if (typedSet == null)
+		{
+			throw new Exception("Incorrect cache set type. It must be a '" + typeof(CacheSet<T, ID>).Name + "' but was given a " + (set == null ? "(null cache set)" : set.GetType().Name));
+		}
+
+		if (typedSet != null)
+		{
+			_cacheSet = typedSet;
+		}
+
+		// Set OnChange handlers:
+		var genericCfg = _cacheConfig as CacheConfig<T>;
+
+		_cacheSet.SetOnChange(genericCfg?.OnChange);
+
+		if (_cacheConfig != null && _cacheConfig.OnCacheLoaded != null)
+		{
+			await _cacheConfig.OnCacheLoaded();
+		}
+	}
+
 	private async ValueTask SetupCache()
 	{
+		if (_cacheSet != null)
+		{
+			// Cache setup elsewhere.
+			return;
+		}
+
 		var genericCfg = _cacheConfig as CacheConfig<T>;
 
 		var indices = GetContentFields().IndexList;
@@ -148,7 +195,7 @@ public partial class AutoService<T, ID> {
 			};
 		}
 
-		_cache = new ServiceCache<T, ID>[localeSet.Length];
+		_cacheSet = new CacheSet<T, ID>(GetContentFields(), EntityName);
 
 		if (localeSet.Length == 0)
 		{
@@ -165,13 +212,10 @@ public partial class AutoService<T, ID> {
 				continue;
 			}
 
-			_cache[i] = new ServiceCache<T, ID>(indices, EntityName)
-			{
-				OnChange = genericCfg?.OnChange
-			};
+			_cacheSet.RequireCacheForLocale(locale.Id);
 		}
 
-		var primaryLocaleCache = _cache[0];
+		var primaryLocaleCache = _cacheSet.Caches[0];
 
 		// Get everything, for each supported locale:
 		for (var i = 0; i < localeSet.Length; i++)
@@ -183,7 +227,7 @@ public partial class AutoService<T, ID> {
 				continue;
 			}
 
-			var cache = _cache[i];
+			var cache = _cacheSet.Caches[i];
 
 			var ctx = new Context()
 			{
@@ -219,5 +263,18 @@ public partial class AutoService<T, ID> {
 		{
 			await _cacheConfig.OnCacheLoaded();
 		}
+	}
+}
+
+public partial class AutoService
+{
+	/// <summary>
+	/// Apply an existing cache set to this service.
+	/// </summary>
+	/// <param name="set"></param>
+	public virtual ValueTask ApplyCache(CacheSet set)
+	{
+		// Overriden by AutoService<T, ID>
+		return new ValueTask();
 	}
 }

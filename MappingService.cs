@@ -367,7 +367,7 @@ namespace Api.Startup
 			var collectedIds = idSet as IDCollector<SRC_ID>;
 
 			// Get its locale 0 cache (it's a mapping type, so it's never localised):
-			if (_cache != null && _cacheIndex == null){
+			if (CacheAvailable && _cacheIndex == null){
 				
 				var cache = GetCacheForLocale(1);
 				
@@ -585,7 +585,7 @@ namespace Api.Startup
 		/// <returns></returns>
 		public NonUniqueIndex<Mapping<SRC_ID, TARG_ID>, SRC_ID> GetSourceIndex()
 		{
-			if (_cache != null && _cacheIndex == null)
+			if (CacheAvailable && _cacheIndex == null)
 			{
 
 				var cache = GetCacheForLocale(1);
@@ -610,7 +610,7 @@ namespace Api.Startup
 		/// <returns></returns>
 		public void SourceContainsAny(IDCollector<SRC_ID> collector, IDCollector<TARG_ID> idSet)
 		{
-			if (_cache != null && _cacheIndex == null)
+			if (CacheAvailable && _cacheIndex == null)
 			{
 				var cache = GetCacheForLocale(1);
 
@@ -698,7 +698,7 @@ namespace Api.Startup
 		/// <returns></returns>
 		public void SourceContainsAll(IDCollector<SRC_ID> collector, IDCollector<TARG_ID> idSet, bool exactMatch)
 		{
-			if (_cache != null && _cacheIndex == null)
+			if (CacheAvailable && _cacheIndex == null)
 			{
 
 				var cache = GetCacheForLocale(1);
@@ -827,7 +827,7 @@ namespace Api.Startup
 		/// <returns></returns>
 		public async ValueTask<Mapping<SRC_ID, TARG_ID>> GetByIds(Context context, SRC_ID src, TARG_ID targ)
 		{
-			if (_cache != null && _cacheIndex == null)
+			if (CacheAvailable && _cacheIndex == null)
 			{
 
 				var cache = GetCacheForLocale(1);
@@ -872,7 +872,7 @@ namespace Api.Startup
 		/// <returns></returns>
 		public IndexLinkedList<Mapping<SRC_ID, TARG_ID>> GetRawCacheList(SRC_ID src)
 		{
-			if (_cache == null)
+			if (!CacheAvailable)
 			{
 				return null;
 			}
@@ -928,7 +928,7 @@ namespace Api.Startup
 		/// <returns></returns>
 		public bool ExistsInCache(SRC_ID src, TARG_ID targ)
 		{
-			if (_cache == null)
+			if (!CacheAvailable)
 			{
 				return false;
 			}

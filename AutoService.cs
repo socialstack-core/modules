@@ -1065,9 +1065,16 @@ public partial class AutoService<T, ID> : AutoService
 		// Primary locale update - must update all other caches in case they contain content from the primary locale.
 		var id = entity.GetId();
 
-		for (var i = 1; i < _cache.Length; i++)
+		var caches = _cacheSet?.Caches;
+
+		if (caches == null)
 		{
-			var altLocaleCache = _cache[i];
+			return;
+		}
+
+		for (var i = 1; i < caches.Length; i++)
+		{
+			var altLocaleCache = caches[i];
 
 			if (altLocaleCache == null)
 			{
@@ -1461,7 +1468,7 @@ public partial class AutoService
 	/// <summary>
 	/// The fields of this type.
 	/// </summary>
-	private ContentFields _contentFields;
+	protected ContentFields _contentFields;
 
 	/// <summary>
 	/// Sets up the cache on this service. If you're not sure, use Cache instead of this.

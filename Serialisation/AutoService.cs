@@ -446,7 +446,7 @@ public partial class AutoService<T, ID>{
 		var collectedIds = idSet as IDCollector<S_ID>;
 
 		// If cached, directly enumerate over the IDs via the cache.
-		if (_cache != null)
+		if (CacheAvailable)
 		{
 			var cache = GetCacheForLocale(1);
 			var indexRef = cache.GetIndex<S_ID>(setField) as NonUniqueIndex<T, S_ID>;
@@ -548,7 +548,7 @@ public partial class AutoService<T, ID>{
 		var collectedIds = idSet as IDCollector<ID>;
 
 		// Get its locale 0 cache (it's a mapping type, so it's never localised):
-		if (_cache != null && _primaryIndexRef == null)
+		if (CacheAvailable && _primaryIndexRef == null)
 		{
 
 			var cache = GetCacheForLocale(1);
