@@ -1,15 +1,18 @@
+using System;
+
 namespace Api.SocketServerLibrary
 {
 	/// <summary>
 	/// This pools the allocation of blocks of n bytes.
 	/// Used primarily by messages being sent and received.
 	/// </summary>
-	public class BinaryBufferPool{
+	public class BinaryBufferPool
+	{
 
 		/// <summary>
 		/// 1024 buffers
 		/// </summary>
-		public static BinaryBufferPool OneKb = new BinaryBufferPool(1024);
+		public static BinaryBufferPool<BufferedBytes> OneKb = new BinaryBufferPool<BufferedBytes>(1024);
 
 		/// <summary>
 		/// A lock for thread safety.
@@ -18,9 +21,6 @@ namespace Api.SocketServerLibrary
 
 		/// <summary>The size of buffers in this pool.</summary>
 		public readonly int BufferSize;
-
-		/// <summary>The current front of the pool.</summary>
-		public BufferedBytes First;
 
 		/// <summary>
 		/// First writer in the pool.
@@ -33,12 +33,22 @@ namespace Api.SocketServerLibrary
 		public readonly object WriterPoolLock = new object();
 
 		/// <summary>
+		/// True if the buffers are pinned.
+		/// </summary>
+		protected readonly bool Pinned;
+
+		/// <summary>The current front of the pool.</summary>
+		public BufferedBytes First;
+
+		/// <summary>
 		/// Creates a pool of units of the given size
 		/// </summary>
 		/// <param name="bufferSize"></param>
-		public BinaryBufferPool(int bufferSize)
+		/// <param name="pinned"></param>
+		protected BinaryBufferPool(int bufferSize, bool pinned = false)
 		{
 			BufferSize = bufferSize;
+			Pinned = pinned;
 		}
 
 		/// <summary>
@@ -66,6 +76,32 @@ namespace Api.SocketServerLibrary
 		}
 
 		/// <summary>
+		/// Get or create a buffer from this pool.
+		/// </summary>
+		/// <returns></returns>
+		public virtual BufferedBytes Get()
+		{
+			return null;
+		}
+
+	}
+
+	/// <summary>
+	/// This pools the allocation of blocks of n bytes.
+	/// Used primarily by messages being sent and received.
+	/// </summary>
+	public class BinaryBufferPool<T> : BinaryBufferPool where T:BufferedBytes, new()
+	{
+		/// <summary>
+		/// Create a new pool.
+		/// </summary>
+		/// <param name="bufferSize"></param>
+		/// <param name="pinned"></param>
+		public BinaryBufferPool(int bufferSize, bool pinned = false) : base(bufferSize, pinned)
+		{
+		}
+
+		/// <summary>
 		/// Finds the current pool size.
 		/// </summary>
 		/// <returns></returns>
@@ -76,34 +112,49 @@ namespace Api.SocketServerLibrary
 			while (buff != null)
 			{
 				count++;
-				buff = buff.After;
+				buff = buff.After as T;
 			}
 
 			return count;
 		}
 
 		/// <summary>
-		/// Get a buffer from the pool, or instances once.
+		/// Gets a buffer from this pool.
 		/// </summary>
-		public BufferedBytes Get()
+		/// <returns></returns>
+		public override BufferedBytes Get()
 		{
 			BufferedBytes result;
-			
-			lock(PoolLock){
-			
-				if(First==null){
-					return new BufferedBytes(new byte[BufferSize], BufferSize, this);
+
+			lock (PoolLock)
+			{
+
+				if (First == null)
+				{
+					result = new T();
+
+					if (Pinned)
+					{
+						byte[] buffer = GC.AllocateUninitializedArray<byte>(length: BufferSize, pinned: true);
+						result.Init(buffer, BufferSize, this);
+					}
+					else
+					{
+						result.Init(new byte[BufferSize], BufferSize, this);
+					}
+
+					return result;
 				}
-				
-				result=First;
-				First=result.After;
-			
+
+				result = First;
+				First = result.After;
+
 			}
-			
-			result.After=null;
-			
+
+			result.After = null;
+
 			return result;
 		}
-		
+
 	}
 }

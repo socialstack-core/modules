@@ -5,8 +5,8 @@ namespace Api.SocketServerLibrary
 	/// <summary>
 	/// A block of bytes which can be stored in a pool.
 	/// </summary>
-	public class BufferedBytes{
-		
+	public class BufferedBytes {
+
 		/// <summary>The length of Bytes.</summary>
 		public int Length;
 		/// <summary>The starting point in bytes to send from.</summary>
@@ -18,12 +18,27 @@ namespace Api.SocketServerLibrary
 		/// <summary>
 		/// The pool this block came from.
 		/// </summary>
-		public readonly BinaryBufferPool Pool;
-		
+		public BinaryBufferPool Pool;
+
+		/// <summary>
+		/// Instances a new block of bytes.
+		/// </summary>
+		public BufferedBytes()
+		{ }
+
 		/// <summary>
 		/// Instances a new block of bytes.
 		/// </summary>
 		public BufferedBytes(byte[] bytes, int length, BinaryBufferPool pool){
+			Bytes = bytes;
+			Length = length;
+			Pool = pool;
+		}
+		
+		/// <summary>
+		/// Instances a new block of bytes.
+		/// </summary>
+		public void Init(byte[] bytes, int length, BinaryBufferPool pool){
 			Bytes = bytes;
 			Length = length;
 			Pool = pool;
