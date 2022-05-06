@@ -7,22 +7,31 @@ import getAutoForm from 'Admin/Functions/GetAutoForm';
 import webRequest from 'UI/Functions/WebRequest';
 import formatTime from "UI/Functions/FormatTime";
 import Tile from 'Admin/Tile';
-import { RouterConsumer } from 'UI/Session';
+import { useSession, RouterConsumer } from 'UI/Session';
 
 var locales = null;
+var defaultLocale = 1;
 
 /**
  * Used to automatically generate forms used by the admin area based on fields from your entity declarations in the API.
  * To use this, use AutoService/ AutoController.
  * Most modules do this, so check any existing one for some examples.
  */
-export default class AutoForm extends React.Component {
+
+
+export default function AutoForm(props){
+    var {session, setSession} = useSession();
+    return <AutoFormInternal {...props} session={session} setSession={setSession} />;
+}
+
+class AutoFormInternal extends React.Component {
 
 	constructor(props) {
 		super(props);
 		
-		var locale = '1'; // Always force EN locale if it's not specified.
+		var locale = defaultLocale.toString(); // Always force EN locale if it's not specified.
 		
+		var localeFromUrl = false;
 		if (location && location.search) {
 			var query = {};
 			location.search.substring(1).split('&').forEach(piece => {
@@ -32,9 +41,17 @@ export default class AutoForm extends React.Component {
 			
 			if (query.lid) {
 				locale = query.lid;
+				localeFromUrl = true;
 			}
 		}
-		
+
+		// if context has region with locales default the locale
+		if (!localeFromUrl && props.session.role && props.session.role.name == 'Member') {
+			if (props.session.region && props.session.region.regionLocales && props.session.region.regionLocales.length == 1) {
+				locale = props.session.region.regionLocales[0].id.toString();
+			}
+		}
+
 		this.state = {
 			submitting: false,
 			locale,
@@ -98,7 +115,7 @@ export default class AutoForm extends React.Component {
 				delete query.lid;
 			}
 		}
-		
+
 		if (props.endpoint == this.state.endpoint && props.id == this.state.id && revisionId == this.state.revisionId && locale == this.state.locale) {
 			return;
 		}
@@ -108,10 +125,37 @@ export default class AutoForm extends React.Component {
 			var supportsRevisions = formData && formData.form && formData.form.supportsRevisions;
 			var isLocalized = formData && formData.form && formData.form.fields && formData.form.fields.find(fld => fld.data.localized);
 
+
+			// build up master list of locales
 			if (isLocalized && !locales) {
+
+				// if we have a region in context restrict to it's locales
+				// todo expand on locales/users in admin to simplify the UX
+				var userLocaleIds = [];
+				if (props.session.role && props.session.role.name == 'Member') {
+					if (props.session.region && props.session.region.regionLocales && props.session.region.regionLocales.length > 0) {
+						props.session.region.regionLocales.map(function (locale, i) {
+							if (! userLocaleIds.includes(locale.id)) {
+								userLocaleIds.push(locale.id);
+							}
+						});
+						if (userLocaleIds.length > 0 && ! userLocaleIds.includes(defaultLocale)) {
+							userLocaleIds.push(defaultLocale);
+						}
+					}
+				}				
+
 				locales = [];
-				webRequest('locale/list').then(resp => {
-					locales = resp.json.results;
+ 				webRequest('locale/list').then(resp => {
+					if (userLocaleIds.length == 0) {
+						locales = resp.json.results;
+					} else {
+						resp.json.results.map(function (locale, i) {
+							if (userLocaleIds.includes(locale.id)) {
+								locales.push(locale);
+							}
+						});
+					}
 					this.setState({});
 				})
 			}
@@ -407,7 +451,7 @@ export default class AutoForm extends React.Component {
 									setPage(url);
 								}
 							}>
-								{locales.map(loc => <option value={loc.id} selected={loc.id == locale}>{loc.name + (loc.id == '1' ? ' (Primary)': '')}</option>)}
+								{locales.map(loc => <option value={loc.id} selected={loc.id == locale}>{loc.name + (loc.id == '1' ? ' (Default)': '')}</option>)}
 							</Input>
 						</div>
 					}
