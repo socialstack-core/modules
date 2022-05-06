@@ -48,7 +48,7 @@ namespace Api.Startup{
 	/// <summary>
 	/// A set of caches per locale, specific to the given type.
 	/// </summary>
-	public class CacheSet<T, ID> : CacheSet
+	public partial class CacheSet<T, ID> : CacheSet
 		where T : Content<ID>, new()
 		where ID : struct, IConvertible, IEquatable<ID>, IComparable<ID>
 	{
