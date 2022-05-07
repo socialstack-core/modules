@@ -132,6 +132,27 @@ namespace Api.Permissions
 
 					SetupForStandardEvent<T>(eventHandler, eventHandler.Capability, field);
 				}
+				else if (field.FieldType == typeof(Eventing.EventHandler<T, T>) && field.Name.StartsWith("Before"))
+				{
+					// Update event handle.
+					var eventHandler = field.GetValue(group) as Eventing.EventHandler<T, T>;
+
+					// Create a capability for this event type - e.g. User.BeforeUpdate becomes a capability called "User_Update".
+					if (eventHandler.Capability == null)
+					{
+						var capability = new Capability(service, field.Name[6..]);
+						eventHandler.Capability = capability;
+					}
+
+					if (group.AllWithCapabilities == null)
+					{
+						group.AllWithCapabilities = new List<Api.Eventing.EventHandler>();
+					}
+
+					group.AllWithCapabilities.Add(eventHandler);
+
+					SetupForStandardDoubleEvent(eventHandler, eventHandler.Capability, field);
+				}
 				else if (field.FieldType == typeof(Eventing.EventHandler<T>) && field.Name.StartsWith("After") && field.Name.EndsWith("Load"))
 				{
 					// Special case for Load events because BeforeLoad is an EventHandler with just an ID and we can't use that to figure out if the load is ok or not.
@@ -152,7 +173,7 @@ namespace Api.Permissions
 
 					group.AllWithCapabilities.Add(eventHandler);
 
-					SetupForStandardEvent<T>(eventHandler, eventHandler.Capability, field);
+					SetupForStandardEvent(eventHandler, eventHandler.Capability, field);
 				}
 				else if (field.FieldType == typeof(Eventing.EventHandler<QueryPair<T, ID>>) && field.Name.StartsWith("Before"))
 				{
@@ -174,7 +195,7 @@ namespace Api.Permissions
 
 					group.AllWithCapabilities.Add(eventHandler);
 
-					SetupForListEvent<T, ID>(eventHandler, eventHandler.Capability);
+					SetupForListEvent(eventHandler, eventHandler.Capability);
 				}
 
 			}
@@ -249,6 +270,55 @@ namespace Api.Permissions
 
 			// Add an event handler at priority 1 (runs before others).
 			handler.AddEventListener(async (Context context, T content) =>
+			{
+				// Note: The following code is very similar to handler.TestCapability(context, content) which is used for manual mode.
+
+				if (context.IgnorePermissions || content == null)
+				{
+					return content;
+				}
+
+				// Check if the capability is granted.
+				// If it is, return the first arg.
+				// Otherwise, return null.
+				var role = context == null ? Roles.Public : context.Role;
+
+				if (role == null)
+				{
+					// No user role - can't grant this capability.
+					// This is likely to indicate a deeper issue, so we'll warn about it:
+					throw PermissionException.Create(capability.Name, context, "No role");
+				}
+
+				if (await role.IsGranted(capability, context, content, false))
+				{
+					// It's granted - return the first arg:
+					return content;
+				}
+
+				throw PermissionException.Create(capability.Name, context);
+			}, 1);
+		}
+		
+		/// <summary>
+		/// Sets up a particular non-list event handler with permissions, for handlers of the 2 type variety. This (currently) means only Update handlers.
+		/// </summary>
+		/// <typeparam name="T"></typeparam>
+		/// <param name="handler"></param>
+		/// <param name="capability"></param>
+		/// <param name="field"></param>
+		public void SetupForStandardDoubleEvent<T>(Api.Eventing.EventHandler<T, T> handler, Capability capability, FieldInfo field)
+		{
+			var permsAttrib = field.GetCustomAttribute<PermissionsAttribute>();
+
+			if (permsAttrib != null && permsAttrib.IsManual) {
+				// Be careful out there! You *MUST* test your capability when you dispatch your event. 
+				// Use handler.TestCapability instead e.g. Events.Thing.BeforeUpdate.TestCapability(..)
+				return;
+			}
+
+			// Add an event handler at priority 1 (runs before others).
+			handler.AddEventListener(async (Context context, T content, T orig) =>
 			{
 				// Note: The following code is very similar to handler.TestCapability(context, content) which is used for manual mode.
 
