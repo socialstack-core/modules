@@ -114,15 +114,17 @@ namespace Api.Eventing
 		public EventHandler<T> AfterDelete;
 
 		/// <summary>
-		/// Just before updating an entity. Optionally make additional changes, or return null to cancel the update.
+		/// Just before updating an entity. Optionally make additional changes, or return null to cancel the update. You MAY apply changes to the first argument.
+		/// The second argument is the original object which MUST be unchanged but may be used for comparisons.
 		/// </summary>
 		[Permissions(IsManual = true)]
-		public EventHandler<T> BeforeUpdate;
+		public EventHandler<T, T> BeforeUpdate;
 
 		/// <summary>
 		/// Called to actually update the result in the data engine.
+		/// The second argument is the original object which MUST be unchanged but may be used for comparisons.
 		/// </summary>
-		public EventHandler<T> Update;
+		public EventHandler<T, T> Update;
 
 		/// <summary>
 		/// Just after updating an entity.
