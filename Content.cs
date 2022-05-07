@@ -51,47 +51,6 @@ namespace Api.Database
 		{
 			Id = id;
 		}
-
-		/// <summary>
-		/// Marks field changes for this object.
-		/// Only valid during an Update.
-		/// </summary>
-		private ChangedFields _changes;
-		
-		
-		/// <summary>
-		/// The current changes on this content. Only valid during an Update.
-		/// </summary>
-		[JsonIgnore]
-		public ChangedFields Changes{
-			get{
-				return _changes;
-			}
-		}
-		
-		/// <summary>
-		/// Resets the changed fields to "none". This is called for you by StartUpdate or Update.
-		/// </summary>
-		public void ResetChanges()
-		{
-			_changes = new ChangedFields(0); // struct
-		}
-		
-		/// <summary>
-		/// Marks the given field(s) as changed.
-		/// </summary>
-		public void MarkChanged(ChangedFields fields){
-			_changes += fields; // struct = struct + struct
-		}
-
-		/// <summary>
-		/// True if the given field(s) are all marked as changed.
-		/// </summary>
-		/// <param name="fields"></param>
-		/// <returns></returns>
-		public bool HasChanged(ChangedFields fields) {
-			return _changes.Contains(fields);
-		}
 	}
 	
 	/// <summary>
