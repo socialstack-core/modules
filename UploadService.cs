@@ -1,23 +1,15 @@
-﻿using Api.Configuration;
-using Api.Contexts;
-using Api.Database;
+﻿using Api.Contexts;
 using Api.Eventing;
-using Api.Permissions;
 using Microsoft.AspNetCore.Http;
 using System;
 using System.Collections.Generic;
-using System.DrawingCore;
-using System.DrawingCore.Drawing2D;
 using System.IO;
 using System.Threading.Tasks;
-using Microsoft.Extensions.Configuration;
 using System.Runtime.InteropServices;
 using Api.Startup;
-using Api.Pages;
 using Api.Signatures;
 using Api.SocketServerLibrary;
 using System.Text;
-using Api.CanvasRenderer;
 using System.Security.Cryptography;
 using System.Linq;
 using ImageMagick;
@@ -215,7 +207,7 @@ namespace Api.Uploader
 					}
 
 					// trigger update to set width/height isImage fields:
-					await Update(context, upload, (Context ctx, Upload up) => { }, DataOptions.IgnorePermissions);
+					await Update(context, upload, (Context ctx, Upload up, Upload orig) => { }, DataOptions.IgnorePermissions);
 				}
 
 				return upload;
@@ -438,7 +430,7 @@ namespace Api.Uploader
 			});
 
 			// Update the upload:
-			await Update(context, upload, (Context c, Upload u) => {
+			await Update(context, upload, (Context c, Upload u, Upload orig) => {
 				u.TranscodeState = 2;
 			}, DataOptions.IgnorePermissions);
 
