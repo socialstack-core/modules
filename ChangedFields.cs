@@ -17,80 +17,11 @@ namespace Api.Startup {
 	public struct ChangedFields {
 		
 		/// <summary>
-		/// Represents all fields will be updated.
-		/// </summary>
-		public static readonly ChangedFields All = new ChangedFields(ulong.MaxValue);
-		
-		/// <summary>
-		/// Internal bitmap of the fields.
-		/// </summary>
-		private ulong FieldMap1;
-		
-		
-		/// <summary>
 		/// Specific map of fields.
 		/// </summary>
 		public ChangedFields(ulong map){
-			FieldMap1 = map;
 		}
 
-		/// <summary>
-		/// True if this set contains the given one.
-		/// </summary>
-		/// <param name="fields"></param>
-		/// <returns></returns>
-		public bool Contains(ChangedFields fields)
-		{
-			return (FieldMap1 & fields.FieldMap1) == fields.FieldMap1;
-		}
-
-		/// <summary>
-		/// Adds a field to the change set.
-		/// </summary>
-		public static ChangedFields operator + (ChangedFields a, ChangedFields b) {
-			
-			// Simply bitwise compose the two ulongs together:
-			return new ChangedFields(a.FieldMap1 | b.FieldMap1);
-			
-		}
-		
-	}
-	
-	/// <summary>
-	/// Composable change fields. These do allocate so are best used once for maximum throughput.
-	/// </summary>
-	public class ComposableChangeField
-	{
-		/// <summary>
-		/// The raw map of fields from the source type.
-		/// </summary>
-		public ContentFields Map;
-		
-		/// <summary>
-		/// The underlying non-allocated fields.
-		/// </summary>
-		public ChangedFields ChangeFields = new ChangedFields(0);
-		
-		/// <summary>
-		/// Can treat a ComposableChangeField as if it were a ChangedFields.
-		/// </summary>
-		public static implicit operator ChangedFields(ComposableChangeField ccf) => ccf.ChangeFields;
-		
-		/// <summary>
-		/// Adds the given named field into this change field set.
-		/// </summary>
-		public ComposableChangeField And(string name)
-		{
-			if(!Map.TryGetValue(name.ToLower(),out ContentField field))
-			{
-				throw new Exception("A field called '" + name + "' doesn't exist on the type " + Map.InstanceType.Name);
-			}
-			
-			// Add it:
-			ChangeFields += field.ChangeFlag;
-			
-			return this;
-		}
 	}
 	
 	/// <summary>
@@ -600,7 +531,6 @@ namespace Api.Startup {
 			}
 			set{
 				_id = value;
-				_changeFlag = new ChangedFields((ulong)1<<(_id-1));
 			}
 		}
 
@@ -683,15 +613,6 @@ namespace Api.Startup {
 		}
 
 		/// <summary>
-		/// The flag used to indicate this field has changed.
-		/// </summary>
-		public ChangedFields ChangeFlag{
-			get{
-				return _changeFlag;
-			}
-		}
-
-		/// <summary>
 		/// True if this is a virtual field.
 		/// </summary>
 		public bool IsVirtual
@@ -705,11 +626,6 @@ namespace Api.Startup {
 		/// This fields ID. It also directly represents the change flag.
 		/// </summary>
 		private int _id;
-		
-		/// <summary>
-		/// The flag used to indicate this field has changed.
-		/// </summary>
-		private ChangedFields _changeFlag;
 		
 		/// <summary>
 		/// Underlying field (can be null if it's a property).

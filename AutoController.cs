@@ -475,10 +475,7 @@ public partial class AutoController<T,ID> : ControllerBase
 			}
 
 			// Try setting the value now:
-			if (await field.SetValueIfChanged(context, target, property.Value))
-			{
-				target.MarkChanged(field.ChangeFlag);
-			}
+			await field.SetFieldValue(context, target, property.Value);
 		}
 
 		return notes;
@@ -493,9 +490,9 @@ public partial class AutoController<T,ID> : ControllerBase
 	{
 		var context = await Request.GetContext();
 		
-		var entity = await _service.Get(context, id);
+		var originalEntity = await _service.Get(context, id);
 		
-		if (entity == null)
+		if (originalEntity == null)
 		{
 			if (Response.StatusCode == 200)
 			{
@@ -504,11 +501,11 @@ public partial class AutoController<T,ID> : ControllerBase
 
 			return;
 		}
-		
+
 		// Run the request update event (using the original object to be updated):
-		entity = await _service.EventGroup.EndpointStartUpdate.Dispatch(context, entity, Response) as T;
+		originalEntity = await _service.EventGroup.EndpointStartUpdate.Dispatch(context, originalEntity, Response) as T;
 
-		if (entity == null)
+		if (originalEntity == null)
 		{
 			if (Response.StatusCode == 200)
 			{
@@ -518,32 +515,28 @@ public partial class AutoController<T,ID> : ControllerBase
 			return;
 		}
 
-		if (!await _service.StartUpdate(context, entity))
+		var entityToUpdate = await _service.StartUpdate(context, originalEntity);
+
+		if (entityToUpdate == null)
 		{
-			// Can't start update (no permission, typically).
+			// Can't start update (no permission, typically - it throws in that scenario).
 			return;
 		}
 
 		// In this case the entity ID is definitely known, so we can run all fields at the same time:
-		var notes = await SetFieldsOnObject(entity, context, body, JsonFieldGroup.Any);
+		var notes = await SetFieldsOnObject(entityToUpdate, context, body, JsonFieldGroup.Any);
 
 		if (notes != null)
 		{
 			Request.Headers["Api-Notes"] = notes;
 		}
 
-		// Make sure it's the original ID:
-		entity.SetId(id);
+		// Make sure it's still the original ID:
+		entityToUpdate.SetId(id);
 
-		if (entity == null)
-		{
-			// A handler rejected this request.
-			return;
-		}
+		entityToUpdate = await _service.FinishUpdate(context, entityToUpdate, originalEntity);
 
-		entity = await _service.FinishUpdate(context, entity);
-
-		if (entity == null)
+		if (entityToUpdate == null)
 		{
 			if (Response.StatusCode == 200)
 			{
@@ -552,10 +545,10 @@ public partial class AutoController<T,ID> : ControllerBase
 
 			return;
 		}
-		
+
 		// Run the request updated event:
-		entity = await _service.EventGroup.EndpointEndUpdate.Dispatch(context, entity, Response) as T;
-		await OutputJson(context, entity, "*");
+		entityToUpdate = await _service.EventGroup.EndpointEndUpdate.Dispatch(context, entityToUpdate, Response) as T;
+		await OutputJson(context, entityToUpdate, "*");
 	}
 
 }

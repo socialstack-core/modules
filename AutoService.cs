@@ -9,6 +9,8 @@ using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.IO;
+using System.Reflection;
+using System.Reflection.Emit;
 using System.Threading.Tasks;
 
 /// <summary>
@@ -1029,10 +1031,6 @@ public partial class AutoService<T, ID> : AutoService
 	{
 		raw = await EventGroup.CreatePartial.Dispatch(context, raw);
 		raw = await EventGroup.AfterCreate.Dispatch(context, raw);
-
-		// Reset marked changes:
-		raw.ResetChanges();
-
 		return raw;
 	}
 
@@ -1099,7 +1097,7 @@ public partial class AutoService<T, ID> : AutoService
 	/// Performs an update on the given entity. If updating the object is permitted, the callback is executed. 
 	/// You must only set fields on the object in that callback, or in a BeforeUpdate handle.
 	/// </summary>
-	public virtual async ValueTask<T> Update(Context context, ID id, Action<Context, T> cb, DataOptions options = DataOptions.Default)
+	public virtual async ValueTask<T> Update(Context context, ID id, Action<Context, T, T> cb, DataOptions options = DataOptions.Default)
 	{
 		var entity = await Get(context, id);
 		
@@ -1110,16 +1108,56 @@ public partial class AutoService<T, ID> : AutoService
 		
 		return await Update(context, entity, cb, options);
 	}
-	
+
+	/// <summary>
+	/// Used by CloneEntityInto.
+	/// </summary>
+	private Action<T, T> _cloneDelegate;
+
+	/// <summary>
+	/// Clones the fields of the given source object into the given target object.
+	/// </summary>
+	/// <param name="source"></param>
+	/// <param name="target"></param>
+	public void CloneEntityInto(T source, T target)
+	{
+		if (_cloneDelegate == null)
+		{
+			var dymMethod = new DynamicMethod("CloneEntityInto", typeof(T), new Type[] { typeof(T) }, true);
+			var cInfo = typeof(T).GetConstructor(Array.Empty<Type>());
+			var generator = dymMethod.GetILGenerator();
+
+			generator.Emit(OpCodes.Newobj, cInfo);
+			generator.Emit(OpCodes.Stloc_0);
+
+			foreach (var field in typeof(T).GetFields(BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic))
+			{
+				generator.Emit(OpCodes.Ldarg_1);
+				generator.Emit(OpCodes.Ldarg_0);
+				generator.Emit(OpCodes.Ldfld, field);
+				generator.Emit(OpCodes.Stfld, field);
+			}
+
+			// Return
+			generator.Emit(OpCodes.Ret);
+
+			_cloneDelegate = dymMethod.CreateDelegate<Action<T, T>>();
+		}
+
+		_cloneDelegate(source, target);
+	}
+
 	/// <summary>
 	/// Performs an update on the given entity. If updating the object is permitted, the callback is executed. 
 	/// You must only set fields on the object in that callback, or in a BeforeUpdate handle.
 	/// </summary>
-	public virtual async ValueTask<T> Update(Context context, T entity, Action<Context, T> cb, DataOptions options = DataOptions.Default)
+	public virtual async ValueTask<T> Update(Context context, T cachedEntity, Action<Context, T, T> cb, DataOptions options = DataOptions.Default)
 	{
-		if (options != DataOptions.IgnorePermissions && !await StartUpdate(context, entity))
+		var entityToUpdate = await StartUpdate(context, cachedEntity);
+
+		if (entityToUpdate == null)
 		{
-			// Note it would've thrown.
+			// Note it would've thrown if there was a permission issue.
 			return null;
 		}
 
@@ -1129,20 +1167,20 @@ public partial class AutoService<T, ID> : AutoService
 		}
 
 		// Set fields now:
-		cb(context, entity);
+		cb(context, entityToUpdate, cachedEntity);
 
 		// And perform the save:
-		return await FinishUpdate(context, entity);
+		return await FinishUpdate(context, entityToUpdate, cachedEntity);
 	}
 
 	/// <summary>
-	/// For simpler usage, see Update. This is for advanced non-allocating updates.
+	/// For simpler usage, see Update. This is for advanced non-allocating updates. Returns the object that you MUST apply your changes to.
 	/// </summary>
 	/// <param name="context"></param>
 	/// <param name="entity"></param>
 	/// <param name="options"></param>
 	/// <returns></returns>
-	public async ValueTask<bool> StartUpdate(Context context, T entity, DataOptions options = DataOptions.Default)
+	public async ValueTask<T> StartUpdate(Context context, T entity, DataOptions options = DataOptions.Default)
 	{
 		if (options != DataOptions.IgnorePermissions)
 		{
@@ -1150,38 +1188,41 @@ public partial class AutoService<T, ID> : AutoService
 			await EventGroup.BeforeUpdate.TestCapability(context, entity);
 		}
 
-		return true;
+		// Minor todo: get this object from a pool for high velocity updates.
+		var t = new T();
+		CloneEntityInto(entity, t);
+		return t;
 	}
 
 	/// <summary>
-	/// Used together with CanUpdate in the form if(await CanUpdate){ set fields, await DoUpdate }.
+	/// Used together with StartUpdate in the form if(await CanUpdate){ set fields, await DoUpdate }.
 	/// This route is used to set fields on the object without an allocation.
 	/// </summary>
 	/// <param name="context"></param>
-	/// <param name="entity"></param>
+	/// <param name="entityToUpdate">The entity returned by StartUpdate.</param>
+	/// <param name="originalEntity">The original, unmodified entity.</param>
 	/// <returns></returns>
-	public async ValueTask<T> FinishUpdate(Context context, T entity)
+	public async ValueTask<T> FinishUpdate(Context context, T entityToUpdate, T originalEntity)
 	{
-		entity = await EventGroup.BeforeUpdate.Dispatch(context, entity);
+		entityToUpdate = await EventGroup.BeforeUpdate.Dispatch(context, entityToUpdate, originalEntity);
 		
-		if (entity == null)
+		if (entityToUpdate == null)
 		{
 			return null;
 		}
 
-		entity = await EventGroup.Update.Dispatch(context, entity);
+		entityToUpdate = await EventGroup.Update.Dispatch(context, entityToUpdate, originalEntity);
 
-		if (entity == null)
+		if (entityToUpdate == null)
 		{
 			return null;
 		}
 
-		entity = await EventGroup.AfterUpdate.Dispatch(context, entity);
+		// OriginalEntity at this point is likely to have fields matching the original entity.
+		// That's because Update internally updates the cache, resulting in the original (often from a cache) object therefore being updated.
 
-		// Reset marked changes:
-		entity.ResetChanges();
-
-		return entity;
+		entityToUpdate = await EventGroup.AfterUpdate.Dispatch(context, entityToUpdate);
+		return entityToUpdate;
 	}
 	
 }
@@ -1434,21 +1475,6 @@ public partial class AutoService
 		}
 
 		return field.FieldInfo.GetValue(content);
-	}
-
-
-
-	/// <summary>
-	/// Gets the named change field. Use this in MarkChanged calls. If you're updating multiple fields, use .And("AnotherField") for convenience.
-	/// </summary>
-	/// <param name="name"></param>
-	/// <returns></returns>
-	public ComposableChangeField GetChangeField(string name)
-	{
-		var ccf = new ComposableChangeField();
-		ccf.Map = GetContentFields();
-		ccf.And(name);
-		return ccf;
 	}
 
 	/// <summary>

@@ -242,8 +242,7 @@ namespace Api.Startup
 						Structure = this,
 						TargetType = field.FieldType,
 						FieldInfo = field,
-						ContentField = contentField,
-						ChangeFlag = contentField.ChangeFlag
+						ContentField = contentField
 					};
 
 				}
@@ -262,7 +261,6 @@ namespace Api.Startup
 						PropertyGet = property.GetGetMethod(),
 						PropertySet = property.GetSetMethod(),
 						ContentField = contentField,
-						ChangeFlag = contentField.ChangeFlag,
 						Writeable = property.CanWrite,
 						// Default behaviour is to hide (from autoforms) non-writeable properties.
 						// Using BeforeSettable and setting Hide to false will display a readonly field if you want it to be visible.
@@ -303,7 +301,6 @@ namespace Api.Startup
 					TargetType = typeof(IEnumerable<>).MakeGenericType(idType),
 					ContentField = field,
 					IsExplicit = isExplicit,
-					ChangeFlag = field.ChangeFlag,
 					Attributes = Array.Empty<Attribute>(),
 					AfterId = true
 				};
@@ -714,11 +711,6 @@ namespace Api.Startup
 		public EventHandler<object, T, JToken> OnSetValue = new EventHandler<object, T, JToken>();
 
 		/// <summary>
-		/// The ChangeField representation of this single field.
-		/// </summary>
-		public ChangedFields ChangeFlag;
-
-		/// <summary>
 		/// The role that this is for.
 		/// </summary>
 		public Role ForRole
@@ -834,12 +826,12 @@ namespace Api.Startup
 		/// <param name="onObject"></param>
 		/// <param name="value"></param>
 		/// <returns></returns>
-		public async ValueTask<bool> SetValueIfChanged(Context context, T onObject, JToken value)
+		public async ValueTask SetFieldValue(Context context, T onObject, JToken value)
 		{
 			if (OnSetValue == null && Hide)
 			{
 				// Ignore these fields - they can only be set if they have an OnSetValue handler.
-				return false;
+				return;
 			}
 
 			var targetValue = await GetTargetValue(context, onObject, value);
@@ -847,42 +839,10 @@ namespace Api.Startup
 			// Note that both the setter and the FieldInfo can be null (readonly properties).
 			if (PropertySet != null)
 			{
-				var currentValue = PropertyGet.Invoke(onObject, Array.Empty<object>());
-
-				if (currentValue == null)
-				{
-					if (targetValue == null)
-					{
-						// No change
-						return false;
-					}
-				}
-				else if (currentValue.Equals(targetValue))
-				{
-					// No change
-					return false;
-				}
-
 				PropertySet.Invoke(onObject, new object[] { targetValue });
 			}
 			else if (FieldInfo != null)
 			{
-				var currentValue = FieldInfo.GetValue(onObject);
-
-				if (currentValue == null)
-				{
-					if (targetValue == null)
-					{
-						// No change
-						return false;
-					}
-				}
-				else if (currentValue.Equals(targetValue))
-				{
-					// No change
-					return false;
-				}
-
 				FieldInfo.SetValue(onObject, targetValue);
 			}
 			else if (ContentField.VirtualInfo != null)
@@ -900,8 +860,6 @@ namespace Api.Startup
 					await Structure.Service.EnsureMapping(context, onObject, targetService, idSet, ContentField.VirtualInfo.FieldName);
 				}
 			}
-
-			return true;
 		}
 
 	}

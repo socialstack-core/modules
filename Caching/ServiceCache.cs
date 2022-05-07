@@ -122,6 +122,11 @@ namespace Api.Startup{
 		public int Length => _cache.Length;
 
 		/// <summary>
+		/// Used to convert to/ from a ulong and ID.
+		/// </summary>
+		private IDConverter<ID> _idConverter;
+
+		/// <summary>
 		/// Creates a new cache set for the given content fields.
 		/// </summary>
 		/// <param name="cf"></param>
@@ -131,6 +136,16 @@ namespace Api.Startup{
 			EntityName = entityName;
 			_cache = new ServiceCache<T, ID>[1];
 			RequireCacheForLocale(1); // Primary cache always exists.
+
+			// Setup ID converter:
+			if (typeof(ID) == typeof(uint))
+			{
+				_idConverter = new UInt32IDConverter() as IDConverter<ID>;
+			}
+			else if (typeof(ID) == typeof(ulong))
+			{
+				_idConverter = new UInt64IDConverter() as IDConverter<ID>;
+			}
 		}
 
 		/// <summary>
