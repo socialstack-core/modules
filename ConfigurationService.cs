@@ -63,7 +63,7 @@ namespace Api.Configuration
 				return config;
 			});
 
-			Events.Configuration.BeforeUpdate.AddEventListener(async (Context context, Configuration config) => {
+			Events.Configuration.BeforeUpdate.AddEventListener(async (Context context, Configuration config, Configuration originalConfig) => {
 
 				// Attempt to parse the JSON:
 				try
