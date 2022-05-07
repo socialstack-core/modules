@@ -100,16 +100,14 @@ namespace Api.Users
 				return user;
 			});
 
-			var usernameField = GetChangeField("Username");
-
-			Events.User.BeforeUpdate.AddEventListener(async (Context ctx, User user) =>
+			Events.User.BeforeUpdate.AddEventListener(async (Context ctx, User user, User originalUser) =>
 			{
 				if (user == null)
                 {
 					return user;
                 }
 
-				if (config.UniqueUsernames && !string.IsNullOrEmpty(user.Username) && user.HasChanged(usernameField))
+				if (config.UniqueUsernames && !string.IsNullOrEmpty(user.Username) && user.Username != originalUser.Username)
 				{
 					// Let's make sure the username is not in use by anyone besides this user (in case they didn't change it!).
 					var usersWithUsername = await Where("Username=? and Id!=?", DataOptions.IgnorePermissions).Bind(user.Username).Bind(user.Id).Any(ctx);
