@@ -73,11 +73,7 @@ namespace Api.PasswordResetRequests
 		public async ValueTask LoginWithToken(string token, [FromBody] NewPassword newPassword)
 		{
 			var svc = (_service as PasswordResetRequestService);
-				
-			var passwordHashField = _users.GetChangeField("PasswordHash");
-			var roleField = _users.GetChangeField("Role");
-			var isUsedField = svc.GetChangeField("IsUsed");
-
+			
 			var context = await Request.GetContext();
 				
 			if (context == null || newPassword == null || string.IsNullOrWhiteSpace(newPassword.Password))
@@ -119,19 +115,19 @@ namespace Api.PasswordResetRequests
 				
 			await authService.EnforcePolicy(newPassword.Password);
 
-			if (await _users.StartUpdate(context, targetUser, DataOptions.IgnorePermissions))
+			var userToUpdate = await _users.StartUpdate(context, targetUser, DataOptions.IgnorePermissions);
+
+			if (userToUpdate != null)
 			{
-				targetUser.PasswordHash = PasswordStorage.CreateHash(newPassword.Password);
-				targetUser.MarkChanged(passwordHashField);
+				userToUpdate.PasswordHash = PasswordStorage.CreateHash(newPassword.Password);
 
 				// This also effectively validates the user's email address, so if they were still a guest, elevate them to member.
-				if (targetUser.Role == Roles.Guest.Id)
+				if (userToUpdate.Role == Roles.Guest.Id)
 				{
-					targetUser.Role = Roles.Member.Id;
-					targetUser.MarkChanged(roleField);
+					userToUpdate.Role = Roles.Member.Id;
 				}
 
-				targetUser = await _users.FinishUpdate(context, targetUser);
+				targetUser = await _users.FinishUpdate(context, userToUpdate, targetUser);
 			}
 			else
 			{
@@ -146,13 +142,12 @@ namespace Api.PasswordResetRequests
 			}
 
 			// Burn the token:
-			if (await _service.StartUpdate(context, request, DataOptions.IgnorePermissions))
-			{
-				request.IsUsed = true;
-				request.MarkChanged(isUsedField);
-				await _service.FinishUpdate(context, request);
-			}
+			var reqToUpdate = await _service.StartUpdate(context, request, DataOptions.IgnorePermissions);
 
+			if(reqToUpdate != null){
+				reqToUpdate.IsUsed = true;
+				await _service.FinishUpdate(context, reqToUpdate, request);
+			}
 
 			// Set user:
 			context.User = targetUser;
