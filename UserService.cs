@@ -111,7 +111,7 @@ namespace Api.Users
 
 			await Update(context, user, (Context ctx, User u, User orig) => {
 
-				user.EmailVerifyToken = token;
+				u.EmailVerifyToken = token;
 
 			}, DataOptions.IgnorePermissions);
 
