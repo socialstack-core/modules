@@ -166,7 +166,7 @@ namespace Api.Database
 				return result;
 			});
 
-			service.EventGroup.Update.AddEventListener(async (Context context, T entity) => {
+			service.EventGroup.Update.AddEventListener(async (Context context, T entity, T orig) => {
 				var id = entity.Id;
 
 				T raw = null;
