@@ -14,7 +14,6 @@ using System.Security.Cryptography;
 using System.Linq;
 using ImageMagick;
 
-
 namespace Api.Uploader
 {
 	/// <summary>
@@ -36,29 +35,6 @@ namespace Api.Uploader
 				UpdateConfig();
 				return new ValueTask();
 			};
-
-			Events.Page.BeforeAdminPageInstall.AddEventListener((Context context, Pages.Page page, CanvasRenderer.CanvasNode canvas, Type contentType, AdminPageType pageType) =>
-			{
-				if (contentType == typeof(Upload))
-				{
-					if(pageType == AdminPageType.Single)
-					{
-						// Installing admin page for a particular upload.
-						/*
-						 Add media display.
-						*/
-					}
-					else if(pageType == AdminPageType.List)
-					{
-						// Installing admin page for the list of uploads.
-						// The create button is actually an uploader.
-						canvas.Module = "Admin/Layouts/MediaCenter";
-						canvas.Data.Clear();
-					}
-				}
-
-				return new ValueTask<Pages.Page>(page);
-			});
 
 			Events.Upload.BeforeCreate.AddEventListener((Context context, Upload upload) => {
 
