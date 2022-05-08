@@ -1123,12 +1123,8 @@ public partial class AutoService<T, ID> : AutoService
 	{
 		if (_cloneDelegate == null)
 		{
-			var dymMethod = new DynamicMethod("CloneEntityInto", typeof(T), new Type[] { typeof(T) }, true);
-			var cInfo = typeof(T).GetConstructor(Array.Empty<Type>());
+			var dymMethod = new DynamicMethod("CloneEntityInto", typeof(void), new Type[] { typeof(T), typeof(T) }, true);
 			var generator = dymMethod.GetILGenerator();
-
-			generator.Emit(OpCodes.Newobj, cInfo);
-			generator.Emit(OpCodes.Stloc_0);
 
 			foreach (var field in typeof(T).GetFields(BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic))
 			{
