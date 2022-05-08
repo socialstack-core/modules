@@ -32,11 +32,11 @@ namespace Api.Prices
 			_products = products;
 			_paymentGatewayConfig = GetConfig<PaymentGatewayConfig>();
 
-			Eventing.Events.Price.BeforeCreate.AddEventListener(async (Context ctx, Price price) => {
+			Eventing.Events.Price.BeforeCreate.AddEventListener((Context ctx, Price price) => {
 
 				if (price == null)
 				{
-					return price;
+					return new ValueTask<Price>(price);
 				}
 
 				if (price.CostPence < 0)
@@ -44,7 +44,7 @@ namespace Api.Prices
 					throw new PublicException("Cost Pence must be greater than or equal to 0", "bad_cost");
 				}
 
-				return price;
+				return new ValueTask<Price>(price);
 			});
 
 			Eventing.Events.Price.AfterCreate.AddEventListener(async (Context ctx, Price price) => {
@@ -61,18 +61,20 @@ namespace Api.Prices
 				{
 					var stripePrice = await CreateStripePrice(ctx, price, stripeSecret);
 
-					if (await StartUpdate(ctx, price, DataOptions.IgnorePermissions))
-					{
-						price.StripePriceId = stripePrice.Id;
+					var priceToUpdate = await StartUpdate(ctx, price, DataOptions.IgnorePermissions);
 
-						price = await FinishUpdate(ctx, price);
+					if (priceToUpdate != null)
+					{
+						priceToUpdate.StripePriceId = stripePrice.Id;
+
+						price = await FinishUpdate(ctx, priceToUpdate, price);
 					}
 				}
 
 				return price;
 			});
 
-			Eventing.Events.Price.BeforeUpdate.AddEventListener(async (Context ctx, Price price) => {
+			Eventing.Events.Price.BeforeUpdate.AddEventListener(async (Context ctx, Price price, Price original) => {
 
 				if (price == null)
 				{
