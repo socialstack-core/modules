@@ -109,16 +109,11 @@ namespace Api.Users
 				"verify_email"
 			);
 
-			var userChangeFields = GetChangeField("EmailVerifyToken");
+			await Update(context, user, (Context ctx, User u, User orig) => {
 
-			if (await StartUpdate(context, user, DataOptions.IgnorePermissions))
-            {
 				user.EmailVerifyToken = token;
 
-				user.MarkChanged(userChangeFields);
-
-				user = await FinishUpdate(context, user);
-            }
+			}, DataOptions.IgnorePermissions);
 
 			return token;
         }
@@ -132,44 +127,36 @@ namespace Api.Users
 		/// <returns>The user</returns>
 		public async ValueTask<User> VerifyEmail(Context context, User user, string newPassword)
 		{
-			var userChangeFields = GetChangeField("Role");
+			var userToUpdate = await StartUpdate(context, user, DataOptions.IgnorePermissions);
 
-			if (await StartUpdate(context, user, DataOptions.IgnorePermissions))
+			if(userToUpdate != null)
 			{
 				if (!string.IsNullOrWhiteSpace(newPassword))
 				{
-					userChangeFields = userChangeFields.And("PasswordHash");
-
 					var authService = Services.Get<PasswordAuthService>();
 
 					await authService.EnforcePolicy(newPassword);
 
-					user.PasswordHash = PasswordStorage.CreateHash(newPassword);
+					userToUpdate.PasswordHash = PasswordStorage.CreateHash(newPassword);
 				}
 
-				if (user.Role == Roles.Guest.Id)
+				if (userToUpdate.Role == Roles.Guest.Id)
 				{
-					user.Role = Roles.Member.Id;
+					userToUpdate.Role = Roles.Member.Id;
 				}
-
-				user.MarkChanged(userChangeFields);
 
 				var loginResult = new LoginResult();
 				loginResult.CookieName = Context.CookieName;
-				loginResult.User = user;
-				context.User = user;
+				loginResult.User = userToUpdate;
+				context.User = userToUpdate;
 
 				// Act like a login:
 				await Events.UserOnLogin.Dispatch(context, loginResult);
 
-				user = await FinishUpdate(context, user);
+				userToUpdate = await FinishUpdate(context, userToUpdate, user);
 			}
-			else
-			{
-				user = null;
-			}
-
-			return user;
+			
+			return userToUpdate;
 		}
 	}
 

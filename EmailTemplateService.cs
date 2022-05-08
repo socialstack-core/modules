@@ -124,16 +124,14 @@ namespace Api.Emails
 				return user;
 			});
 			
-			var emailField = _users.GetChangeField("Email");
-
-			Events.User.BeforeUpdate.AddEventListener(async (Context ctx, User user) =>
+			Events.User.BeforeUpdate.AddEventListener(async (Context ctx, User user, User orig) =>
 			{
 				if (user == null)
                 {
 					return user;
                 }
 				
-				if (userConfig.UniqueEmails && !string.IsNullOrEmpty(user.Email) && user.HasChanged(emailField))
+				if (userConfig.UniqueEmails && !string.IsNullOrEmpty(user.Email) && user.Email != orig.Email)
 				{		
 					// Let's make sure the username is not in use by anyone besides this user (in case they didn't change it!).
 					var usersWithEmail = await _users.Where("Email=? and Id!=?", DataOptions.IgnorePermissions).Bind(user.Email).Bind(user.Id).Any(ctx);
