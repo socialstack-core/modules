@@ -55,9 +55,6 @@ namespace Api.PasswordAuth
 				CheckIfExposed = _configuration.CheckIfExposed;
 			}
 
-			var failedLoginTimeAndAttemptsField = _users.GetChangeField("FailedLoginTimeUtc").And("LoginAttempts");
-			var loginAttemptsField = _users.GetChangeField("LoginAttempts");
-
 			// Hook up to the UserOnAuthenticate event:
 			Events.UserOnAuthenticate.AddEventListener(async (Context context, LoginResult result, UserLogin loginDetails) => {
 
@@ -166,9 +163,6 @@ namespace Api.PasswordAuth
 		/// <exception cref="PublicException"></exception>
 		public async Task<LoginResult> AuthenticatePassword(Context context, UserLogin loginDetails)
         {
-			var failedLoginTimeAndAttemptsField = _users.GetChangeField("FailedLoginTimeUtc").And("LoginAttempts");
-			var loginAttemptsField = _users.GetChangeField("LoginAttempts");
-
 			// Email/ Password combination here.
 
 			if (string.IsNullOrEmpty(loginDetails.Password))
@@ -222,17 +216,15 @@ namespace Api.PasswordAuth
 				// Update login attempts:
 				if (!user.FailedLoginTimeUtc.HasValue || (now - user.FailedLoginTimeUtc.Value).TotalMinutes >= 20)
 				{
-					await _users.Update(context, user, (Context ctx, User usr) => {
-						user.FailedLoginTimeUtc = DateTime.UtcNow;
-						user.LoginAttempts = 1;
-						user.MarkChanged(failedLoginTimeAndAttemptsField);
+					await _users.Update(context, user, (Context ctx, User usr, User orig) => {
+						usr.FailedLoginTimeUtc = DateTime.UtcNow;
+						usr.LoginAttempts = 1;
 					}, DataOptions.IgnorePermissions);
 				}
 				else
 				{
-					await _users.Update(context, user, (Context ctx, User usr) => {
-						user.LoginAttempts++;
-						user.MarkChanged(loginAttemptsField);
+					await _users.Update(context, user, (Context ctx, User usr, User orig) => {
+						usr.LoginAttempts++;
 					}, DataOptions.IgnorePermissions);
 				}
 
