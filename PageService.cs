@@ -148,6 +148,23 @@ namespace Api.Pages
 			// Install the admin pages.
 			InstallAdminPages("Pages", "fa:fa-paragraph", new string[] { "id", "url", "title" });
 
+			Events.Page.BeforeAdminPageInstall.AddEventListener((Context context, Page page, CanvasNode canvas, Type contentType, AdminPageType pageType) =>
+			{
+				// Note: Some sites are completely headless and don't have the pages module, so this can't go in upload module.
+				// We use .Name here rather than typeof(Upload) to avoid coupling with uploads. Essentially, both modules are optional this way.
+				if (contentType != null && contentType.Name == "Upload")
+				{
+					if (pageType == AdminPageType.List)
+					{
+						// Installing admin page for the list of uploads.
+						// The create button is actually an uploader.
+						canvas.Module = "Admin/Layouts/MediaCenter";
+						canvas.Data.Clear();
+					}
+				}
+
+				return new ValueTask<Page>(page);
+			});
 
 			Events.Page.AfterUpdate.AddEventListener((Context context, Page page) =>
 			{
