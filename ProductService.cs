@@ -44,18 +44,20 @@ namespace Api.Products
 					var stripeProduct = await CreateStripeProduct(ctx, product, stripeSecret);
 
 					// update product and price with Ids from stripe
-					if (await StartUpdate(ctx, product, DataOptions.IgnorePermissions))
-					{
-						product.StripeProductId = stripeProduct.Id;
+					var productToUpdate = await StartUpdate(ctx, product, DataOptions.IgnorePermissions);
 
-						product = await FinishUpdate(ctx, product);
+					if (productToUpdate != null)
+					{
+						productToUpdate.StripeProductId = stripeProduct.Id;
+
+						product = await FinishUpdate(ctx, productToUpdate, product);
 					}
 				}
 
 				return product;
 			});
 
-			Eventing.Events.Product.BeforeUpdate.AddEventListener(async (Context ctx, Product product) => {
+			Eventing.Events.Product.BeforeUpdate.AddEventListener(async (Context ctx, Product product, Product original) => {
 
 				if (product == null)
 				{
