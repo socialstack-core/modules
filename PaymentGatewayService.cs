@@ -107,11 +107,12 @@ namespace Api.PaymentGateways
             });
 
             // update purchase with Id from payment intent
-            if(await _purchases.StartUpdate(context, purchase, DataOptions.IgnorePermissions))
+            var purchaseToUpdate = await _purchases.StartUpdate(context, purchase, DataOptions.IgnorePermissions);
+            if (purchaseToUpdate != null)
             {
-                purchase.ThirdPartyId = paymentIntent.Id;
+                purchaseToUpdate.ThirdPartyId = paymentIntent.Id;
                 
-                purchase = await _purchases.FinishUpdate(context, purchase);
+                purchase = await _purchases.FinishUpdate(context, purchaseToUpdate, purchase);
             }
 
             return new PaymentIntentResponse { ClientSecret = paymentIntent.ClientSecret, PurchaseId = purchase.Id };
@@ -152,11 +153,13 @@ namespace Api.PaymentGateways
             var customer = await service.CreateAsync(options);
 
             // update user with Id from the customer
-            if (await _users.StartUpdate(context, user, DataOptions.IgnorePermissions))
-            {
-                user.StripeCustomerId = customer.Id;
+            var userToUpdate = await _users.StartUpdate(context, user, DataOptions.IgnorePermissions);
 
-                user = await _users.FinishUpdate(context, user);
+            if (userToUpdate != null)
+            {
+                userToUpdate.StripeCustomerId = customer.Id;
+
+                user = await _users.FinishUpdate(context, userToUpdate, user);
             }
 
             return user;
