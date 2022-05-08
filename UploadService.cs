@@ -103,7 +103,8 @@ namespace Api.Uploader
 
 				if (transcodeTo != null)
 				{
-					upload.IsImage = true;
+					int? width = null;
+					int? height = null;
 
 					if (_configuration.ProcessImages)
 					{
@@ -117,8 +118,8 @@ namespace Api.Uploader
 								current.Write(upload.TemporaryPath);
 							}
 
-							upload.Width = current.Width;
-							upload.Height = current.Height;
+							width = current.Width;
+							height = current.Height;
 
 							// If transcoded format is not the same as the actual original:
 							var willTranscode = (transcodeTo.Value != current.Format);
@@ -183,7 +184,13 @@ namespace Api.Uploader
 					}
 
 					// trigger update to set width/height isImage fields:
-					await Update(context, upload, (Context ctx, Upload up, Upload orig) => { }, DataOptions.IgnorePermissions);
+					await Update(context, upload, (Context ctx, Upload up, Upload orig) => {
+
+						up.IsImage = true;
+						up.Width = width;
+						up.Height = height;
+
+					}, DataOptions.IgnorePermissions);
 				}
 
 				return upload;
