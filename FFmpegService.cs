@@ -344,9 +344,8 @@ namespace Api.FFmpeg
 					Run(cmd, async () => {
 						
 						// Done! (NB can trigger twice if multi-transcoding)
-						upload = await _uploads.Update(context, upload, (Context c, Upload upl) => {
+						upload = await _uploads.Update(context, upload, (Context c, Upload upl, Upload orig) => {
 							upl.TranscodeState = 2;
-							upl.MarkChanged(_uploads.GetChangeField("TranscodeState"));
 						}, DataOptions.IgnorePermissions);
 
 						await Events.UploadAfterTranscode.Dispatch(context, upload);
@@ -360,9 +359,8 @@ namespace Api.FFmpeg
 					Run("-i \"" + originalPath + "\" \"" + targetPath + "\"", async () => {
 						
 						// Done! (NB can trigger twice if multi-transcoding)
-						upload = await _uploads.Update(context, upload, (Context c, Upload upl) => {
+						upload = await _uploads.Update(context, upload, (Context c, Upload upl, Upload orig) => {
 							upl.TranscodeState = 2;
-							upl.MarkChanged(_uploads.GetChangeField("TranscodeState"));
 						}, DataOptions.IgnorePermissions);
 						await Events.UploadAfterTranscode.Dispatch(context, upload);
 					});
@@ -375,9 +373,8 @@ namespace Api.FFmpeg
 				Run("-i \"" + originalPath + "\" \"" + targetPath + "\"", async () => {
 
 					// Done!
-					upload = await _uploads.Update(context, upload, (Context c, Upload upl) => {
+					upload = await _uploads.Update(context, upload, (Context c, Upload upl, Upload orig) => {
 						upl.TranscodeState = 2;
-						upl.MarkChanged(_uploads.GetChangeField("TranscodeState"));
 					}, DataOptions.IgnorePermissions);
 					await Events.UploadAfterTranscode.Dispatch(context, upload);
 				});
