@@ -18,10 +18,6 @@ namespace Api.Users
 	   /// </summary>
 	   public NameEventHandler()
 	   {
-
-			ComposableChangeField fullName = null;
-			ComposableChangeField firstLast = null;
-			
 			Events.User.BeforeSettable.AddEventListener((Context ctx, JsonField<User, uint> field) => {
 
 				if (field == null)
@@ -34,11 +30,6 @@ namespace Api.Users
 					// When FirstName is set, update FullName automatically.
 					field.OnSetValue.AddEventListener((Context ctx, object v, User user, Newtonsoft.Json.Linq.JToken token) =>
 					{
-						if (fullName == null)
-						{
-							fullName = Services.Get<UserService>().GetChangeField("FullName");
-						}
-
 						var fName = token.Type == JTokenType.String ? (token as JToken).Value<string>() : null;
 
 						if (string.IsNullOrEmpty(fName))
@@ -61,8 +52,6 @@ namespace Api.Users
 							user.FullName = fName.Trim() + " " + user.LastName.Trim();
 						}
 
-						user.MarkChanged(fullName);
-
 						return new ValueTask<object>(v);
 					});
 				}
@@ -71,11 +60,6 @@ namespace Api.Users
 					// When LastName is set, update FullName automatically.
 					field.OnSetValue.AddEventListener((Context ctx, object v, User user, Newtonsoft.Json.Linq.JToken token) =>
 					{
-						if (fullName == null)
-						{
-							fullName = Services.Get<UserService>().GetChangeField("FullName");
-						}
-
 						var lName = token.Type == JTokenType.String ? (token as JToken).Value<string>() : null;
 
 						if (string.IsNullOrEmpty(user.FirstName))
@@ -98,8 +82,6 @@ namespace Api.Users
 							user.FullName = user.FirstName.Trim() + " " + lName.Trim();
 						}
 
-						user.MarkChanged(fullName);
-
 						return new ValueTask<object>(v);
 					});
 				}
@@ -108,11 +90,6 @@ namespace Api.Users
 					// When FullName is set, update First + LastName automatically.
 					field.OnSetValue.AddEventListener((Context ctx, object v, User user, Newtonsoft.Json.Linq.JToken token) =>
 					{
-						if (firstLast == null)
-						{
-							firstLast = Services.Get<UserService>().GetChangeField("FirstName").And("LastName");
-						}
-
 						var fullName = token.Type == JTokenType.String ? (token as JToken).Value<string>() : null;
 
 						if (fullName == null)
@@ -135,8 +112,6 @@ namespace Api.Users
 								user.LastName = fullName.Substring(firstSpace + 1);
 							}
 						}
-
-						user.MarkChanged(firstLast);
 
 						return new ValueTask<object>(v);
 					});
@@ -176,7 +151,7 @@ namespace Api.Users
 			   return new ValueTask<User>(user);
 		   });
 
-		   Events.User.BeforeUpdate.AddEventListener((Context ctx, User user) => {
+		   Events.User.BeforeUpdate.AddEventListener((Context ctx, User user, User orig) => {
 			   
 			   if(user == null)
 			   {
@@ -207,13 +182,7 @@ namespace Api.Users
 			   
 			   if(newFullName != user.FullName)
 			   {
-				   if (fullName == null)
-				   {
-					   fullName = Services.Get<UserService>().GetChangeField("FullName");
-				   }
-
 				   user.FullName = newFullName;
-				   user.MarkChanged(fullName);
 			   }
 			   
 			   return new ValueTask<User>(user);
