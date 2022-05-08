@@ -56,36 +56,39 @@ namespace Api.Purchases
                         return StatusCode(500);
                     }
 
-                    if (stripeEvent.Type == Events.PaymentIntentPaymentFailed)
-                    {
-                        purchase.DidPaymentFail = true;
-                        purchase.IsPaymentProcessed = false;
-                        purchase.IsPaymentProcessed = false;
-                    }
-                    else if (stripeEvent.Type == Events.PaymentIntentRequiresAction)
-                    {
-                        purchase.DoesPaymentRequireAction = true;
-                        purchase.DidPaymentFail = false;
-                        purchase.IsPaymentProcessed = false;
-                        // todo: inform user that action is required
-                    }
-                    else if (stripeEvent.Type == Events.PaymentIntentSucceeded)
-                    {
-                        purchase.IsPaymentProcessed = true;
-                        purchase.DoesPaymentRequireAction = false;
-                        purchase.DidPaymentFail = false;
-                    }
-                    // ... handle other event types
-                    else
-                    {
-                        Console.WriteLine("Unhandled event type: {0}", stripeEvent.Type);
-                        return Ok();
-                    }
+                    var purchaseToUpdate = await (_service as PurchaseService).StartUpdate(context, purchase);
 
-                    // update purchase with Id from payment intent
-                    if(await (_service as PurchaseService).StartUpdate(context, purchase))
+                    if (purchaseToUpdate != null)
                     {
-                        purchase = await (_service as PurchaseService).FinishUpdate(context, purchase);
+                        if (stripeEvent.Type == Events.PaymentIntentPaymentFailed)
+                        {
+                            purchaseToUpdate.DidPaymentFail = true;
+                            purchaseToUpdate.IsPaymentProcessed = false;
+                            purchaseToUpdate.IsPaymentProcessed = false;
+                        }
+                        else if (stripeEvent.Type == Events.PaymentIntentRequiresAction)
+                        {
+                            purchaseToUpdate.DoesPaymentRequireAction = true;
+                            purchaseToUpdate.DidPaymentFail = false;
+                            purchaseToUpdate.IsPaymentProcessed = false;
+                            // todo: inform user that action is required
+                        }
+                        else if (stripeEvent.Type == Events.PaymentIntentSucceeded)
+                        {
+                            purchaseToUpdate.IsPaymentProcessed = true;
+                            purchaseToUpdate.DoesPaymentRequireAction = false;
+                            purchaseToUpdate.DidPaymentFail = false;
+                        }
+                        // ... handle other event types
+                        else
+                        {
+                            Console.WriteLine("Unhandled event type: {0}", stripeEvent.Type);
+                            return Ok();
+                        }
+
+                        // update purchase with Id from payment intent
+                    
+                        purchase = await (_service as PurchaseService).FinishUpdate(context, purchaseToUpdate, purchase);
                     }
 
                 }
