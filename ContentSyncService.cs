@@ -418,17 +418,13 @@ namespace Api.ContentSync
 			else if (ips.ChangedSince(self) || self.Environment != env || self.RegionId != regionId || self.ServerTypeId != serverTypeId || self.HostPlatformId != hostPlatformId)
 			{
 				// It changed - update it:
-				var ipsAndEnvironmentFields = _clusteredServerService.GetChangeField("Environment")
-					.And("PublicIPv4").And("PublicIPv6").And("PrivateIPv4").And("PrivateIPv6");
-
-				await _clusteredServerService.Update(ctx, self, (Context c, ClusteredServer cs) => {
+				await _clusteredServerService.Update(ctx, self, (Context c, ClusteredServer cs, ClusteredServer orig) => {
 
 					ips.CopyTo(cs);
 					cs.Environment = env;
 					cs.RegionId = regionId;
 					cs.ServerTypeId = serverTypeId;
 					cs.HostPlatformId = hostPlatformId;
-					cs.MarkChanged(ipsAndEnvironmentFields);
 
 				},DataOptions.IgnorePermissions);
 			}
