@@ -195,18 +195,15 @@ namespace Api.Permissions{
 				writer.WriteASCII(MappingTableName);
 				writer.WriteASCII(" WHERE ");
 
-				var otherTypeName = OtherService.ServicedType.Name;
 				var thisTypeName = typeof(T).Name;
 
 				// The given thing is the source. I.e. the value stored in Id == source Id.
-				writer.WriteASCII(thisTypeName); // target ID
-				writer.WriteASCII("Id");
+				writer.WriteASCII("TargetId");
 				writer.WriteASCII("=`");
 				writer.WriteASCII(thisTypeName);
 				writer.WriteASCII("`.`Id`");
 				writer.WriteASCII(" and ");
-				writer.WriteASCII(otherTypeName);
-				writer.WriteASCII("Id"); // source
+				writer.WriteASCII("SourceId"); // source
 
 				writer.Write((byte)'=');
 				Id.ToSql(cmd, writer, ref collectors, localeCode, filter, context);
