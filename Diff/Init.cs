@@ -167,7 +167,16 @@ namespace Api.Database
 			});
 
 			service.EventGroup.Update.AddEventListener(async (Context context, T entity, T orig) => {
-				var id = entity.Id;
+
+				// Future improvement: rather than copying all fields and
+				// writing all fields, instead focus only on the ones which changed.
+
+				// Copy fields from entity -> orig
+				// Entity can then be returned to the pool, and anything that makes an
+				// assumption that the object doesn't change can continue with that assumption.
+				service.CloneEntityInto(entity, orig);
+				
+				var id = orig.Id;
 
 				T raw = null;
 
@@ -176,7 +185,7 @@ namespace Api.Database
 
 				if (locale == 1)
 				{
-					raw = entity;
+					raw = orig;
 				}
 				else
 				{
@@ -202,7 +211,7 @@ namespace Api.Database
 						primaryEntity = service.GetCacheForLocale(1).Get(id);
 					}
 
-					service.PopulateRawEntityFromTarget(raw, entity, primaryEntity);
+					service.PopulateRawEntityFromTarget(raw, orig, primaryEntity);
 				}
 				
 				if (isDbStored && !await _database.Run<T, ID>(context, updateQuery, raw, id))
@@ -212,16 +221,16 @@ namespace Api.Database
 
 				if (cache != null)
 				{
-					cache.Add(context, entity, raw);
+					cache.Add(context, orig, raw);
 
 					if (locale == 1)
 					{
-						service.OnPrimaryEntityChanged(entity);
+						service.OnPrimaryEntityChanged(orig);
 					}
 
 				}
 
-				return entity;
+				return orig;
 			});
 
 			service.EventGroup.Create.AddEventListener(async (Context context, T entity) => {
