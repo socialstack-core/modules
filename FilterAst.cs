@@ -197,13 +197,20 @@ namespace Api.Permissions{
 
 				var thisTypeName = typeof(T).Name;
 
-				// The given thing is the source. I.e. the value stored in Id == source Id.
-				writer.WriteASCII("TargetId");
-				writer.WriteASCII("=`");
-				writer.WriteASCII(thisTypeName);
-				writer.WriteASCII("`.`Id`");
-				writer.WriteASCII(" and ");
-				writer.WriteASCII("SourceId"); // source
+				if (SourceMapping)
+				{
+					// The given thing is the *target*. I.e. the value stored in Id == source Id.
+					writer.WriteASCII("TargetId=`");
+					writer.WriteASCII(thisTypeName);
+					writer.WriteASCII("`.`Id` and SourceId"); // source
+				}
+				else
+				{
+					// The given thing is the source. I.e. the value stored in Id == source Id.
+					writer.WriteASCII("SourceId=`");
+					writer.WriteASCII(thisTypeName);
+					writer.WriteASCII("`.`Id` and TargetId"); // target
+				}
 
 				writer.Write((byte)'=');
 				Id.ToSql(cmd, writer, ref collectors, localeCode, filter, context);
