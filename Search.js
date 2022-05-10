@@ -79,8 +79,10 @@ export default class Search extends React.Component {
 			return;
 		}
 
+		var excludeIds = this.props.exclude ? this.props.exclude : [];
+
 		var where = {};
-		
+
 		var field = this.props.field || 'name';
 		var fieldNameUcFirst = field.charAt(0).toUpperCase() + field.slice(1);
 		
@@ -90,11 +92,6 @@ export default class Search extends React.Component {
 			where = this.props.onQuery(where, query);
 		}
 
-		// exclude entries by list of ids
-		if (this.props.exclude && this.props.exclude.length > 0) {
-			where['Id']={not:this.props.exclude};
-		}
-		
 		var url = this.props.for ? this.props.for + '/list' : this.props.endpoint + '?q=' + encodeURIComponent(query);
 		
 		if(this.props.host){
@@ -106,6 +103,9 @@ export default class Search extends React.Component {
 			this.setState({loading: true});
 			webRequest(url, {where, pageSize: (this.props.limit || 50)}, this.props.requestOpts).then(response => {
 				var results = response.json ? response.json.results : [];
+				if (excludeIds && excludeIds.length > 0) {
+					results = results.filter(t => !excludeIds.includes(t.id));
+				}
 				this.setState({loading: false, results});
 			});
 		}else if(this.props.endpoint){
