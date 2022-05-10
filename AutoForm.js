@@ -45,13 +45,6 @@ class AutoFormInternal extends React.Component {
 			}
 		}
 
-		// if context has region with locales default the locale
-		if (!localeFromUrl && props.session.role && props.session.role.name == 'Member') {
-			if (props.session.region && props.session.region.regionLocales && props.session.region.regionLocales.length == 1) {
-				locale = props.session.region.regionLocales[0].id.toString();
-			}
-		}
-
 		this.state = {
 			submitting: false,
 			locale,
