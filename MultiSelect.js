@@ -22,7 +22,6 @@ export default class MultiSelect extends React.Component {
 			value: initVal,
 			mustLoad
 		};
-		
     }
 	
 	componentDidMount(){
@@ -72,14 +71,17 @@ export default class MultiSelect extends React.Component {
 		if(this.props.max > 0){
 			atMax = (this.state.value.length >= this.props.max);
 		}
-		
+
+		let excludeIds = this.state.value.map(a => a.id);
+	
 		return (
 			<div className="mb-3">
 				{this.props.label && !this.props.hideLabel && (
 					<label className="form-label">{this.props.label}</label>
 				)}
 				<div className="admin-multiselect">
-					{this.state.value.map((entry, i) => (
+					{
+						this.state.value.map((entry, i) => (
 						<div key={entry.id} className="entry" onClick={() => this.remove(entry)}>
 							{entry[displayFieldName]} <i className="remove-icon fa fa-times-circle" />
 						</div>
@@ -103,10 +105,11 @@ export default class MultiSelect extends React.Component {
 						{atMax ? <p>
 							<i>Max of {this.props.max} added</i>
 						</p> : 
-						<Search host={this.props.host} requestOpts={this.props.requestOpts} for={contentTypeLower} field={fieldName} limit={5} placeholder={"Find " + this.props.label + " to add.."} onFind={entry => {
-							if(!entry){
+						<Search host={this.props.host} exclude={excludeIds} requestOpts={this.props.requestOpts} for={contentTypeLower} field={fieldName} limit={5} placeholder={"Find " + this.props.label + " to add.."} onFind={entry => {
+							if(!entry || this.state.value.some(entity => entity.id === entry.id)){
 								return;
 							}
+
 							var value = this.state.value;
 							value.push(entry);
 							this.setState({
