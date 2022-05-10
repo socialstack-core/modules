@@ -347,7 +347,11 @@ namespace Api.Startup
 					entry.TargetId = id;
 					entry.CreatedUtc = DateTime.UtcNow;
 
-					await Create(context, entry, DataOptions.IgnorePermissions);
+					entry = await Create(context, entry, DataOptions.IgnorePermissions);
+
+					// Prevent adding any additional duplicates whilst we loop over this array.
+					// It is marked as readded to avoid the following delete loop from removing it.
+					uniques[id] = new EnsuredMapping<SRC_ID, TARG_ID>() { Readded = true, Mapping = entry };
 				}
 			}
 
