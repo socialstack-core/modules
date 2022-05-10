@@ -309,20 +309,20 @@ namespace Api.Startup
 		/// <returns></returns>
 		public override async ValueTask EnsureMapping(Context context, SRC_ID src, IEnumerable<TARG_ID> targetIds)
 		{
-			// First, get all entries by src.
-			var uniques = new Dictionary<TARG_ID, EnsuredMapping<SRC_ID, TARG_ID>>();
-
-			await Where(srcIdFieldEquals).Bind(src).ListAll(context, (Context c, Mapping<SRC_ID, TARG_ID> map, int index, object a, object b) =>
+			if (targetIds != null && targetIds.Any())
 			{
-				uniques[map.TargetId] = new EnsuredMapping<SRC_ID, TARG_ID>() { Mapping = map };
-				return new ValueTask();
-			});
+				// First, get all entries by src.
+				var uniques = new Dictionary<TARG_ID, EnsuredMapping<SRC_ID, TARG_ID>>();
 
-			if (targetIds != null)
-			{
+				await Where(srcIdFieldEquals).Bind(src).ListAll(context, (Context c, Mapping<SRC_ID, TARG_ID> map, int index, object a, object b) =>
+				{
+					uniques[map.TargetId] = new EnsuredMapping<SRC_ID, TARG_ID>() { Mapping = map };
+					return new ValueTask();
+				});
+
 				foreach (var id in targetIds)
 				{
-					if (uniques.TryGetValue(id, out	EnsuredMapping<SRC_ID, TARG_ID> ensured))
+					if (uniques.TryGetValue(id, out EnsuredMapping<SRC_ID, TARG_ID> ensured))
 					{
 						// Already exists
 						if (!ensured.Readded)
@@ -353,18 +353,28 @@ namespace Api.Startup
 					// It is marked as readded to avoid the following delete loop from removing it.
 					uniques[id] = new EnsuredMapping<SRC_ID, TARG_ID>() { Readded = true, Mapping = entry };
 				}
-			}
 
-			// Delete anything that remains in uniques:
-			foreach (var entry in uniques)
-			{
-				if (entry.Value.Readded)
+				// Delete anything that remains in uniques:
+				foreach (var entry in uniques)
 				{
-					continue;
+					if (entry.Value.Readded)
+					{
+						continue;
+					}
+					await Delete(context, entry.Value.Mapping, DataOptions.IgnorePermissions);
 				}
-				await Delete(context, entry.Value.Mapping, DataOptions.IgnorePermissions);
-			}
 
+			}
+			else
+			{
+				// Delete everything with this source ID.
+				var all = await Where(srcIdFieldEquals).Bind(src).ListAll(context);
+
+				foreach (var mapping in all)
+				{
+					await Delete(context, mapping, DataOptions.IgnorePermissions);
+				}
+			}
 		}
 
 		/// <summary>
