@@ -310,11 +310,11 @@ namespace Api.Startup
 		public override async ValueTask EnsureMapping(Context context, SRC_ID src, IEnumerable<TARG_ID> targetIds)
 		{
 			// First, get all entries by src.
-			var uniques = new Dictionary<TARG_ID, Mapping<SRC_ID, TARG_ID>>();
+			var uniques = new Dictionary<TARG_ID, EnsuredMapping<SRC_ID, TARG_ID>>();
 
 			await Where(srcIdFieldEquals).Bind(src).ListAll(context, (Context c, Mapping<SRC_ID, TARG_ID> map, int index, object a, object b) =>
 			{
-				uniques[map.TargetId] = map;
+				uniques[map.TargetId] = new EnsuredMapping<SRC_ID, TARG_ID>() { Mapping = map };
 				return new ValueTask();
 			});
 
@@ -322,9 +322,14 @@ namespace Api.Startup
 			{
 				foreach (var id in targetIds)
 				{
-					if (uniques.Remove(id))
+					if (uniques.TryGetValue(id, out	EnsuredMapping<SRC_ID, TARG_ID> ensured))
 					{
 						// Already exists
+						if (!ensured.Readded)
+						{
+							// Recreate the struct:
+							uniques[id] = new EnsuredMapping<SRC_ID, TARG_ID>() { Readded = true, Mapping = ensured.Mapping };
+						}
 						continue;
 					}
 
@@ -349,7 +354,11 @@ namespace Api.Startup
 			// Delete anything that remains in uniques:
 			foreach (var entry in uniques)
 			{
-				await Delete(context, entry.Value, DataOptions.IgnorePermissions);
+				if (entry.Value.Readded)
+				{
+					continue;
+				}
+				await Delete(context, entry.Value.Mapping, DataOptions.IgnorePermissions);
 			}
 
 		}
@@ -1126,6 +1135,23 @@ namespace Api.Startup
 			writer.WriteS(mappingRow.TargetId);
 		}
 
+	}
+
+	/// <summary>
+	/// Used to track mappings whilst they are being added/ removed.
+	/// </summary>
+	public struct EnsuredMapping<SRC_ID, TARG_ID>
+		where SRC_ID:struct
+		where TARG_ID: struct
+	{
+		/// <summary>
+		/// True if this mapping was 'readded'.
+		/// </summary>
+		public bool Readded;
+		/// <summary>
+		/// The mapping itself.
+		/// </summary>
+		public Mapping<SRC_ID, TARG_ID> Mapping;
 	}
 
 }
