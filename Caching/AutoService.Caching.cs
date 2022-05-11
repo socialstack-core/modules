@@ -141,8 +141,7 @@ public partial class AutoService<T, ID> {
 	{
 		if (_contentFields == null)
 		{
-			_contentFields = set.ContentFields;
-			_contentFields.Service = this;
+			SetContentFields(set.ContentFields);
 		}
 
 		// It must be of the correct type:

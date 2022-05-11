@@ -1488,6 +1488,20 @@ public partial class AutoService
 	}
 
 	/// <summary>
+	/// Sets a custom ContentFields set.
+	/// </summary>
+	/// <param name="fields"></param>
+	/// <returns></returns>
+	public void SetContentFields(ContentFields fields)
+	{
+		_contentFields = fields;
+		if (fields != null)
+		{
+			fields.Service = this;
+		}
+	}
+
+	/// <summary>
 	/// The fields of this type.
 	/// </summary>
 	protected ContentFields _contentFields;
