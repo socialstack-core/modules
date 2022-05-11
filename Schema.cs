@@ -67,6 +67,11 @@ public class Schema
 	/// </summary>
 	public const ulong DefId = 17;
 
+	/// <summary>
+	/// Field Id for the "VariantTypeId" common field.
+	/// </summary>
+	public const ulong VariantTypeId = 21;
+
 	// - Standard definition IDs follow -
 
 	/// <summary>
@@ -85,10 +90,29 @@ public class Schema
 	public const ulong EntityTypeId = 3;
 
 	/// <summary>
+	/// Id for project metadata.
+	/// </summary>
+	public const ulong ProjectMetaDefId = 4;
+	
+	/// <summary>
+	/// Id of a fungible transfer.
+	/// </summary>
+	public const ulong TransferDefId = 5;
+	
+	/// <summary>
+	/// Id of a block boundary.
+	/// </summary>
+	public const ulong BlockBoundaryDefId = 6;
+	
+	/// <summary>
+	/// Id to use when setting fields on something.
+	/// </summary>
+	public const ulong SetFieldsDefId = 7;
+
+	/// <summary>
 	/// Id to use when archiving something.
 	/// </summary>
 	public const ulong ArchiveDefId = 8;
-
 
 	/// <summary>
 	/// Current field count.
@@ -165,6 +189,11 @@ public class Schema
 		// Archive an entity (uses EntityId and DefinitionId). Used by CMS's to effectively mark something as gone but recoverable later if needed.
 		Define("Blockchain.Archive", 1); // 8
 
+		// Variants are used to declare that this transaction is setting fields on a 'variant' of the object.
+		// Primarily for localised versions of something. I.e. you make your core thing in a default language, and then create variants of it for each language, overriding the fields which are variant.
+		// This is used with the SetFields transaction, thus the target object is already known.
+		// If the field is present, it MUST be present before EntityId and DefinitionId.
+		DefineField("VariantTypeId", "uint"); // 21. Usually some form of locale reference but its meaning is up to the project.
 	}
 
 	/// <summary>

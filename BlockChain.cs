@@ -39,6 +39,11 @@ public enum ChainType
 public partial class BlockChain
 {
 	/// <summary>
+	/// The project this chain belongs to.
+	/// </summary>
+	public BlockChainProject Project;
+
+	/// <summary>
 	/// Size of the header on a transaction message.
 	/// </summary>
 	public const int TransactionMessageHeaderSize = 12;
@@ -76,12 +81,14 @@ public partial class BlockChain
 	/// <summary>
 	/// Creates a blockchain info handler for the given file path.
 	/// </summary>
+	/// <param name="project"></param>
 	/// <param name="file"></param>
 	/// <param name="type"></param>
 	/// <param name="relativeTo">A chain that this one is relative to. This is used when a chain gets its schema exclusively from some other chain.
 	/// Private chains generally derive their schema from their public counterpart, i.e. if you are using a private chain type, this field is likely required.</param>
-	public BlockChain(string file, ChainType type, BlockChain relativeTo = null)
+	public BlockChain(BlockChainProject project, string file, ChainType type, BlockChain relativeTo = null)
 	{
+		Project = project;
 		File = file;
 		ChainType = type;
 		IsPrivate = ((int)ChainType & 2) == 2;
@@ -91,7 +98,7 @@ public partial class BlockChain
 	/// <summary>
 	/// Loads or sets up the schema.
 	/// </summary>
-	public void LoadOrCreate()
+	public void LoadOrCreate(Action<TransactionReader> onTransaction)
 	{
 		if (RelativeTo != null)
 		{
@@ -107,13 +114,35 @@ public partial class BlockChain
 		else if (FileExists())
 		{
 			// Load the schema:
-			#warning todo - use shortform schema file if one exists
-			LoadForwards((TransactionReader reader) => { }, true);
+			LoadForwards(onTransaction, true);
 		}
 		else
 		{
 			// Write the schema:
 			WriteSchema();
+		}
+	}
+
+	/// <summary>
+	/// Transactions added to this chain will trigger the given reader event. Call this after you have loaded at least once (or you know the file was empty).
+	/// </summary>
+	/// <param name="onTransaction"></param>
+	public void Watch(Action<TransactionReader> onTransaction)
+	{
+		_isWatching = true;
+
+		// The txReader is potentially reused from a LoadForwards call
+		// as that provides an important but small piece of state, the blockchainOffset.
+		if (_txReader == null)
+		{
+			// Must get the file length:
+			var blockchainOffset = new System.IO.FileInfo(File).Length;
+			_txReader = new TransactionReader(Schema, onTransaction, (ulong)blockchainOffset) { UpdateSchema = true };
+			_txReader.ResetState();
+		}
+		else
+		{
+			_txReader.SetCallback(onTransaction);
 		}
 	}
 
@@ -135,6 +164,27 @@ public partial class BlockChain
 		{
 			WriteSchema();
 		}
+	}
+
+	/// <summary>
+	/// Writes to this chain. May send the packets remotely if there is a remote BAS currently operating it.
+	/// </summary>
+	/// <param name="first"></param>
+	/// <param name="last"></param>
+	/// <returns></returns>
+	public async ValueTask Write(BufferedBytes first, BufferedBytes last)
+	{
+		// If this node is the block assembly service (BAS), add the buffers to the chain.
+		// Otherwise, send them as UDP packets to the BAS.
+
+#warning temporary - consider BAS
+		if (AddBuffers(first, last))
+		{
+			// The buffers were written out immediately.
+			return;
+		}
+
+		// Must wait for the BAS (which might be remote or local) to write the transaction to the block chain.
 	}
 
 	/// <summary>
@@ -176,6 +226,9 @@ public partial class BlockChain
 		}
 	}
 
+	private TransactionReader _txReader;
+	private bool _isWatching;
+
 	/// <summary>
 	/// Loads from the file now in the forwards direction.
 	/// </summary>
@@ -183,9 +236,14 @@ public partial class BlockChain
 	{
 		var fs = new FileStream(File, FileMode.OpenOrCreate, FileAccess.Read, FileShare.ReadWrite, 0, true);
 
-		var txReader = new TransactionReader(fs, Schema, onTransaction){ UpdateSchema = updateSchema };
+		var txReader = new TransactionReader(Schema, onTransaction){ UpdateSchema = updateSchema };
 
-		txReader.Read();
+		if (_txReader == null)
+		{
+			_txReader = txReader;
+		}
+
+		txReader.StartReadForwards(fs);
 
 		fs.Close();
 	}
@@ -197,9 +255,9 @@ public partial class BlockChain
 	{
 		var fs = new FileStream(File, FileMode.OpenOrCreate, FileAccess.Read, FileShare.ReadWrite, 0, true);
 
-		var txReader = new TransactionReader(fs, Schema, onTransaction);
+		var txReader = new TransactionReader(Schema, onTransaction);
 
-		txReader.ReadBackwards();
+		txReader.StartReadBackwards(fs);
 
 		fs.Close();
 	}
@@ -254,29 +312,28 @@ public partial class BlockChain
 	}
 
 	/// <summary>
+	/// Find a definition by name. Null if it doesn't exist.
+	/// </summary>
+	/// <param name="name"></param>
+	/// <returns></returns>
+	public Definition FindDefinition(string name)
+	{
+		if (RelativeTo != null)
+		{
+			return RelativeTo.FindDefinition(name);
+		}
+
+		return Schema.FindDefinition(name);
+	}
+
+	/// <summary>
 	/// Gets a definition or defines it if it didn't exist.
 	/// </summary>
 	/// <param name="name"></param>
-	/// <param name="wasDefined"></param>
+	/// <param name="inheritId"></param>
 	/// <returns></returns>
-	public Definition FindOrDefine(string name, out bool wasDefined)
+	public async ValueTask<Definition> Define(string name, ulong inheritId = 3)
 	{
-		if (RelativeTo != null)
-		{
-			return RelativeTo.FindOrDefine(name, out wasDefined);
-		}
-
-		var def = Schema.FindDefinition(name);
-
-		if (def != null)
-		{
-			wasDefined = false;
-			return def;
-		}
-
-		// Define it:
-		def = Schema.Define(name);
-
 		// Write the transaction:
 		var writer = Writer.GetPooled();
 		writer.Start(null);
@@ -284,7 +341,25 @@ public partial class BlockChain
 		// Current time stamp:
 		var timestamp = (ulong)(System.DateTime.UtcNow.Ticks);
 
-		def.WriteCreate(writer, timestamp);
+		// Creating a thing of the inherited ID:
+		writer.WriteInvertibleCompressed(inheritId);
+
+		// 2 fields:
+		writer.WriteInvertibleCompressed(2);
+
+		// Timestamp:
+		writer.WriteInvertibleCompressed(Schema.TimestampDefId);
+		writer.WriteInvertibleCompressed(timestamp);
+		writer.WriteInvertibleCompressed(Schema.TimestampDefId);
+
+		// Name:
+		writer.WriteInvertibleCompressed(Schema.NameDefId);
+		writer.WriteInvertibleUTF8(name);
+		writer.WriteInvertibleCompressed(Schema.NameDefId);
+
+		// 2 fields (again, for readers going backwards):
+		writer.WriteInvertibleCompressed(2);
+		writer.WriteInvertibleCompressed(inheritId);
 
 		var first = writer.FirstBuffer;
 		var last = writer.LastBuffer;
@@ -296,37 +371,41 @@ public partial class BlockChain
 		// Release the writer:
 		writer.Release();
 
-		AddBuffers(first, last);
+		await Write(first, last);
 
-		wasDefined = true;
-		return def;
+		// The above write might have updated the schema on its own.
+		#warning unhealthy assumption:
+		return Schema.FindDefinition(name);
 	}
-	
+
 	/// <summary>
-	/// Gets a field definition or defines it if it didn't exist.
+	/// Gets a field definition or null it if it didn't exist.
 	/// </summary>
 	/// <param name="name"></param>
 	/// <param name="type"></param>
-	/// <param name="wasDefined"></param>
-	/// <returns></returns>
-	public FieldDefinition FindOrDefineField(string name, string type, out bool wasDefined)
+	public FieldDefinition FindField(string name, string type)
 	{
 		if (RelativeTo != null)
 		{
-			return RelativeTo.FindOrDefineField(name, type, out wasDefined);
+			return RelativeTo.FindField(name, type);
+		}
+
+		return Schema.FindField(name, type);
+	}
+
+	/// <summary>
+	/// Defines a field.
+	/// </summary>
+	/// <param name="name"></param>
+	/// <param name="type"></param>
+	/// <returns></returns>
+	public async ValueTask<FieldDefinition> DefineField(string name, string type)
+	{
+		if (RelativeTo != null)
+		{
+			return await RelativeTo.DefineField(name, type);
 		}
 		
-		var field = Schema.FindField(name, type);
-
-		if (field != null)
-		{
-			wasDefined = false;
-			return field;
-		}
-
-		// Define it:
-		field = Schema.DefineField(name, type);
-
 		// Write the transaction:
 		var writer = Writer.GetPooled();
 		writer.Start(null);
@@ -334,7 +413,31 @@ public partial class BlockChain
 		// Current time stamp:
 		var timestamp = (ulong)(System.DateTime.UtcNow.Ticks);
 
-		field.WriteCreate(writer, timestamp);
+		// Entity create tx:
+		writer.WriteInvertibleCompressed(2);
+
+		writer.WriteInvertibleCompressed(3);
+
+		// Timestamp:
+		writer.WriteInvertibleCompressed(Schema.TimestampDefId);
+		writer.WriteInvertibleCompressed(timestamp);
+		writer.WriteInvertibleCompressed(Schema.TimestampDefId);
+
+		// Name:
+		writer.WriteInvertibleCompressed(Schema.NameDefId);
+		writer.WriteInvertibleUTF8(name);
+		writer.WriteInvertibleCompressed(Schema.NameDefId);
+
+		// Data type:
+		writer.WriteInvertibleCompressed(Schema.DataTypeDefId);
+		writer.WriteInvertibleUTF8(type);
+		writer.WriteInvertibleCompressed(Schema.DataTypeDefId);
+
+		// Field count again (for readers travelling backwards):
+		writer.WriteInvertibleCompressed(3);
+
+		// Entity create again (for readers travelling backwards):
+		writer.WriteInvertibleCompressed(2);
 
 		var first = writer.FirstBuffer;
 		var last = writer.LastBuffer;
@@ -346,10 +449,10 @@ public partial class BlockChain
 		// Release the writer:
 		writer.Release();
 
-		AddBuffers(first, last);
+		await Write(first, last);
 
-		wasDefined = true;
-		return field;
+		#warning also unhealthy assumption!
+		return Schema.FindField(name, type);
 	}
 
 	/// <summary>
@@ -446,7 +549,8 @@ public partial class BlockChain
 	/// </summary>
 	/// <param name="first"></param>
 	/// <param name="last"></param>
-	public void AddBuffers(BufferedBytes first, BufferedBytes last)
+	/// <returns>True if the buffers were written syncronously.</returns>
+	public bool AddBuffers(BufferedBytes first, BufferedBytes last)
 	{
 		// Append the buffers to the write queue.
 
@@ -476,6 +580,8 @@ public partial class BlockChain
 			}
 		}
 
+		var writingSync = (writeFirst != null);
+
 		while (writeFirst != null)
 		{
 			WriteOutQueue(writeFirst);
@@ -496,6 +602,8 @@ public partial class BlockChain
 				}
 			}
 		}
+
+		return writingSync;
 	}
 
 	/// <summary>
@@ -586,13 +694,20 @@ public partial class BlockChain
 	/// <param name="totalLength"></param>
 	/// <param name="first"></param>
 	/// <param name="last"></param>
-	protected virtual void OnWroteTransactions(int blockCount, int totalLength, BufferedBytes first, BufferedBytes last)
+	protected void OnWroteTransactions(int blockCount, int totalLength, BufferedBytes first, BufferedBytes last)
 	{
-		// Release the buffers:
+		// Release the buffers whilst processing them.
 		var buff = first;
 		while (buff != null)
 		{
 			var next = buff.After;
+
+			if (_isWatching)
+			{
+				// Pass each buffer to the watcher.
+				_txReader.ProcessBlock(buff);
+			}
+
 			buff.Release();
 			buff = next;
 		}
