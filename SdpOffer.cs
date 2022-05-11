@@ -9,8 +9,14 @@ public struct SdpOffer
 	/// type=offer
 	/// </summary>
 	public string Type = "offer";
+
 	/// <summary>
-	/// The SDP
+	/// The SDP's header - indicates ICE info etc
 	/// </summary>
-	public string Sdp;
+	public string Header;
+
+	/// <summary>
+	/// Candidate info
+	/// </summary>
+	public string Candidate;
 }

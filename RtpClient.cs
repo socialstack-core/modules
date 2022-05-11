@@ -1,9 +1,7 @@
 using Api.SocketServerLibrary;
-using Org.BouncyCastle.Crypto;
-using Org.BouncyCastle.Crypto.Digests;
+using Api.SocketServerLibrary.Crypto;
 using Org.BouncyCastle.Crypto.Tls;
 using System;
-using System.Collections.Concurrent;
 using System.Net;
 using System.Net.Sockets;
 using System.Security.Cryptography;
@@ -104,9 +102,20 @@ public partial class RtpClient
 	/// <param name="startIndex"></param>
 	/// <param name="index"></param>
 	/// <param name="messageSize"></param>
+	/// <param name="payloadType"></param>
+	/// <param name="extStart"></param>
 	/// <param name="ssrc"></param>
-	public virtual void HandleRtpPacket(byte[] buffer, int startIndex, int index, int messageSize, uint ssrc)
+	public virtual void HandleRtpPacket(byte[] buffer, int startIndex, int index, int messageSize, int payloadType, int extStart, uint ssrc)
 	{
+	}
+
+	/// <summary>
+	/// Called when this client is ticked by the maintenance loop
+	/// </summary>
+	/// <param name="ticks"></param>
+	public virtual void OnUpdate(long ticks)
+	{
+		
 	}
 
 	/// <summary>
@@ -141,11 +150,11 @@ public partial class RtpClient
 	/// <summary>
 	/// 
 	/// </summary>
-	public Crypto.HMac ReceiveMac;
+	public Api.SocketServerLibrary.Crypto.HMac ReceiveMac;
 	/// <summary>
 	/// 
 	/// </summary>
-	public WebRTC.Ciphers.SrtpCipherCTR ReceiveCipherCtr;
+	public Api.SocketServerLibrary.Ciphers.SrtpCipherCTR ReceiveCipherCtr;
 
 	/// <summary>
 	/// 
@@ -162,11 +171,11 @@ public partial class RtpClient
 	/// <summary>
 	/// 
 	/// </summary>
-	public Crypto.HMac SendMac;
+	public Api.SocketServerLibrary.Crypto.HMac SendMac;
 	/// <summary>
 	/// 
 	/// </summary>
-	public WebRTC.Ciphers.SrtpCipherCTR SendCipherCtr;
+	public Api.SocketServerLibrary.Ciphers.SrtpCipherCTR SendCipherCtr;
 	
 	/// <summary>
 	/// Note that RTCP uses its own, different keys.
@@ -179,11 +188,11 @@ public partial class RtpClient
 	/// <summary>
 	/// 
 	/// </summary>
-	public Crypto.HMac RtcpReceiveMac;
+	public Api.SocketServerLibrary.Crypto.HMac RtcpReceiveMac;
 	/// <summary>
 	/// 
 	/// </summary>
-	public WebRTC.Ciphers.SrtpCipherCTR RtcpReceiveCipherCtr;
+	public Api.SocketServerLibrary.Ciphers.SrtpCipherCTR RtcpReceiveCipherCtr;
 
 	/// <summary>
 	/// 
@@ -196,11 +205,11 @@ public partial class RtpClient
 	/// <summary>
 	/// 
 	/// </summary>
-	public Crypto.HMac RtcpSendMac;
+	public Api.SocketServerLibrary.Crypto.HMac RtcpSendMac;
 	/// <summary>
 	/// 
 	/// </summary>
-	public WebRTC.Ciphers.SrtpCipherCTR RtcpSendCipherCtr;
+	public Api.SocketServerLibrary.Ciphers.SrtpCipherCTR RtcpSendCipherCtr;
 	
 	/// <summary>
 	/// 
@@ -395,19 +404,19 @@ public partial class RtpClient
 	/// <summary>
 	/// The SHA1 digest, thread safe as this object is internally stateless.
 	/// </summary>
-	public static Crypto.Sha1Digest SHA1 = new Crypto.Sha1Digest();
+	public static Api.SocketServerLibrary.Crypto.Sha1Digest SHA1 = new Api.SocketServerLibrary.Crypto.Sha1Digest();
 
 	private void ConfigureRtpKeys(byte[] masterKey, byte[] masterSalt, bool isReceive, bool isControl)
 	{
 		var keyLen = 16;
 		var saltLen = 14;
 		
-		var cipherCtr = new WebRTC.Ciphers.SrtpCipherCTR();
+		var cipherCtr = new Api.SocketServerLibrary.Ciphers.SrtpCipherCTR();
 		var cipher = cipherCtr.Cipher;
 
 		var encKey = new byte[keyLen]; // AES-128 CM
 		var saltKey = new byte[saltLen];
-		var mac = new Crypto.HMac(SHA1);
+		var mac = new Api.SocketServerLibrary.Crypto.HMac(SHA1);
 		
 		if(isControl)
 		{
@@ -537,7 +546,7 @@ public partial class RtpClient
 	/// <summary>
 	/// HMAC used for the Stun process, based on the SDP secret.
 	/// </summary>
-	public Crypto.HMac StunHmac;
+	public Api.SocketServerLibrary.Crypto.HMac StunHmac;
 
 	/// <summary>
 	/// Cipher to use for encryption on DTLS.
@@ -586,19 +595,6 @@ public partial class RtpClient
 	public bool CanProcessSend = true;
 
 	/// <summary>
-	/// Front of the send queue.
-	/// </summary>
-	private SendStackFrame FirstSendFrame;
-
-	/// <summary>
-	/// Back of the send queue.
-	/// </summary>
-	private SendStackFrame LastSendFrame;
-
-	/// <summary>Args used when sending messages.</summary>
-	private readonly RtpSocketSendAsyncEventArgs AsyncArgs;
-
-	/// <summary>
 	/// The secret as an allocated string.
 	/// </summary>
 	/// <returns></returns>
@@ -645,8 +641,6 @@ public partial class RtpClient
 	/// </summary>
 	public RtpClient()
 	{
-		AsyncArgs = new RtpSocketSendAsyncEventArgs() { Client = this };
-
 		Rng.GetBytes(SdpSecret, 0, 16);
 
 		// Encode the bytes such that they are in ascii range. It's always alphabetical.
@@ -684,8 +678,7 @@ public partial class RtpClient
 		{
 			RemoteAddress = new IPEndPoint(new IPAddress(addressBytes), port);
 		}
-		AsyncArgs.RemoteEndPoint = RemoteAddress;
-
+		
 		if (!ipv4)
 		{
 			PortAndIp = new byte[18];
@@ -719,10 +712,10 @@ public partial class RtpClient
 	}
 
 	/// <summary>
-	/// Sends the given writer contents.
+	/// Sends the given writer contents and releases the writer.
 	/// </summary>
 	/// <param name="writer"></param>
-	public bool Send(Writer writer)
+	public bool SendAndRelease(Writer writer)
 	{
 		if (Server.IsRunningInRawMode)
 		{
@@ -730,13 +723,83 @@ public partial class RtpClient
 			UdpHeader.Complete(writer);
 		}
 
-		// Add the writer to the send queue:
+		// We only use one buffer from these writers.
+		var buffer = writer.FirstBuffer as WebRTCBuffer;
+		buffer.Length = writer.CurrentFill;
+		buffer.Target = RemoteAddress;
 
-		// If not actively sending, send now.
+		// We will manually release the buffers. Writer itself can go though:
+		writer.FirstBuffer = null;
+		writer.Release();
 
-		// Add the writer to the queue:
-		writer.StartSending();
-		
+		// Add the writer to the servers send queue:
+		var goNow = false;
+
+		lock (Server.sendQueueLock)
+		{
+			if (Server.LastSendFrame == null)
+			{
+				Server.FirstSendFrame = buffer;
+				Server.LastSendFrame = buffer;
+				goNow = Server.CanStartSend;
+				Server.CanStartSend = false;
+			}
+			else
+			{
+				Server.LastSendFrame.After = buffer;
+				Server.LastSendFrame = buffer;
+			}
+		}
+
+		if (goNow)
+		{
+			// We have the exclusive right to start a sender.
+
+			// Send on a pool thread
+			Task.Run(async () => {
+
+				// Offload the current queue
+				WebRTCBuffer frame = Server.FirstSendFrame;
+
+				lock (Server.sendQueueLock)
+				{
+					Server.FirstSendFrame = null;
+					Server.LastSendFrame = null;
+				}
+
+				WebRTCBuffer lastProcessed = null;
+
+				while (frame != null)
+				{
+					await Server.ServerSocketUdp.SendToAsync(frame.Bytes.AsMemory(0, frame.Length), SocketFlags.None, frame.Target);
+
+					var next = frame.After as WebRTCBuffer;
+					frame.Release();
+					lastProcessed = frame;
+					frame = next;
+
+					if (frame == null)
+					{
+						// Check if there is now more in the send queue.
+						lock (Server.sendQueueLock)
+						{
+							frame = Server.FirstSendFrame;
+							Server.FirstSendFrame = null;
+							Server.LastSendFrame = null;
+
+							if (frame == null)
+							{
+								Server.CanStartSend = true;
+							}
+						}
+					}
+				}
+			});
+		}
+
+		return true;
+
+		/*
 		var frame = SendStackFrame.Get();
 		frame.Writer = writer;
 		frame.Current = null;
@@ -779,8 +842,10 @@ public partial class RtpClient
 		}
 
 		return true;
+		*/
 	}
 
+	/*
 	/// <summary>
 	/// Called when the current send operation has completed.
 	/// Proceeds to send the next thing in the queue.
@@ -861,4 +926,5 @@ public partial class RtpClient
 			}
 		}
 	}
+	*/
 }

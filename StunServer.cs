@@ -17,6 +17,15 @@ public static class StunServer
 	private static byte[] StunResponseHeader = new byte[4] { 1, 1, 0, 0 };
 
 	/// <summary>
+	/// 
+	/// </summary>
+	public static int stunIn;
+	/// <summary>
+	/// 
+	/// </summary>
+	public static int stunOut;
+
+	/// <summary>
 	/// Handles a STUN message in the given buffer, but only for offered connections.
 	/// Builds the reply and sends it to them too. Returns 0 if there was a failure, 1=ok, 2=ok (first time for this client).
 	/// </summary>
@@ -31,6 +40,7 @@ public static class StunServer
 	public static int HandleMessage<T>(byte[] buffer, int index, int payloadSize, ushort port, ref Span<byte> addressBytes, bool ipv4, WebRTCServer<T> server,ref T client)
 		where T : RtpClient, new()
 	{
+		stunIn++;
 		var response = server.StartMessage(port, ref addressBytes, true);
 		var responseStartIndex = response.Length;
 		var startIndex = index;
@@ -122,6 +132,7 @@ public static class StunServer
 					// Required to validate this, and also required to generate one in our response
 					if (!StunHmac.CheckIntegrity(buffer, startIndex, index - 4, index, client))
 					{
+						Console.WriteLine("Bad STUN integrity");
 						return 0;
 					}
 
@@ -217,6 +228,7 @@ public static class StunServer
 
 					if (calculatedPrint != fingerprint)
 					{
+						Console.WriteLine("Bad STUN print");
 						return 0;
 					}
 
@@ -320,9 +332,9 @@ public static class StunServer
 		response.WriteBE(fingerprint); // Fingerprint (value)
 
 		// Send response to client:
-		client.Send(response);
-		response.Release();
+		client.SendAndRelease(response);
 
+		stunOut++;
 		return firstTime ? 2 : 1;
 	}
 }
@@ -367,7 +379,7 @@ public static class StunHmac
 
 		if (hmacSha1 == null)
 		{
-			hmacSha1 = new Crypto.HMac(RtpClient.SHA1);
+			hmacSha1 = new Api.SocketServerLibrary.Crypto.HMac(RtpClient.SHA1);
 			hmacSha1.Init(client.SdpSecret, 0, client.SdpSecret.Length);
 			client.StunHmac = hmacSha1;
 		}

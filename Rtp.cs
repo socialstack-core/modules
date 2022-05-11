@@ -121,8 +121,11 @@ public static class Rtp
 			}
 			*/
 
+			var extStart = -1;
+
 			if (isExtended)
 			{
+				extStart = index;
 				index += 2; // profile
 				int length = (buffer[index++] << 8 | buffer[index++]) * 4; // The length is a count of 32 bits.
 				index += length;
@@ -273,7 +276,7 @@ public static class Rtp
 			}
 			*/
 
-			client.HandleRtpPacket(buffer, startIndex, index, messageSize, ssrc + 1);
+			client.HandleRtpPacket(buffer, startIndex, index, messageSize, payloadType, extStart, ssrc);
 		}
 		else
 		{
@@ -474,10 +477,12 @@ public static class Rtp
 		outboundBuffer[outboundHeaderSize + 2] = (byte)(seq >> 8);
 		outboundBuffer[outboundHeaderSize + 3] = (byte)seq;
 
+		/*
 		outboundBuffer[outboundHeaderSize + 8] = (byte)(ssrc >> 24);
 		outboundBuffer[outboundHeaderSize + 9] = (byte)(ssrc >> 16);
 		outboundBuffer[outboundHeaderSize + 10] = (byte)(ssrc >> 8);
 		outboundBuffer[outboundHeaderSize + 11] = (byte)ssrc;
+		*/
 
 		// Encrypt the packet:
 		var rtpHeaderSize = (index - startIndex);
@@ -487,8 +492,7 @@ public static class Rtp
 		// And authenticate the packet:
 		client.AuthenticatePacket(outboundBuffer, outboundHeaderSize, messageSize, rolloverCode);
 
-		client.Send(writer);
-		writer.Release();
+		client.SendAndRelease(writer);
 
 		uint timestamp = (uint)(buffer[startIndex + 4] << 24 | buffer[startIndex + 5] << 16 | buffer[startIndex + 6] << 8 | buffer[startIndex + 7]);
 		client.SsrcState[ssrcIndex].LatestRtpTimestamp = timestamp;
@@ -556,8 +560,6 @@ public static class Rtp
 	/// <param name="ntpLow"></param>
 	public static void SendReport(RtpClient client, long nowTicks, ulong ntpFull, uint ntpLow)
 	{
-		return;
-
 		if (client.SsrcState == null || client.SsrcState.Length == 0)
 		{
 			return;
@@ -644,8 +646,7 @@ public static class Rtp
 			client.AuthenticateRtcpPacket(buffer, startIndex, messageSize, packetIndexE);
 
 			// Send it:
-			client.Send(writer);
-			writer.Release();
+			client.SendAndRelease(writer);
 		}
 
 		// Sender reports - this is optional and can be omitted if no packets were received since the last one sent.
@@ -662,12 +663,12 @@ public static class Rtp
 
 			var packetIndex = client.CurrentRtcpId++;
 			var packetIndexE = packetIndex | 0x80000000;
-
+				
 			// Fixed header:
 			writer.Write((byte)(128)); // version 2 only; there is no report count.
 			writer.Write((byte)200); // Sender report payload type
 			writer.WriteBE((ushort)6); // Length including the header. Always a constant for these SR's.
-			
+
 			// Source SSRC
 			writer.WriteBE(set[i].Ssrc);
 
@@ -687,22 +688,29 @@ public static class Rtp
 			writer.Write((byte)(128 | 1)); // version 2 only; 1 count always.
 			writer.Write((byte)202); // Sender report payload type
 			writer.WriteBE((ushort)3); // Length including the header. Also a constant.
-				
+
 			// Source SSRC
 			writer.WriteBE(set[i].Ssrc);
 
 			// SDES
 			writer.Write((byte)1); // CNAME
 			writer.Write((byte)5); // Length
-			writer.Write((byte)'w');
-			writer.Write((byte)'e');
-			writer.Write((byte)'b');
-			writer.Write((byte)'r');
-			writer.Write((byte)'c');
+			var cpos = writer.CurrentFill;
+
+			writer.Write((byte)'h');
+			writer.WriteS(set[i].Ssrc);
+			var len = writer.CurrentFill - cpos;
+
+			for (var p = len; p < 5; p++)
+			{
+				writer.Write((byte)'_');
+			}
+			
 			writer.Write((byte)0); // End
 
 			// REMB feedback:
 
+			/*
 			// Fixed header:
 			writer.Write((byte)(128 | 15)); // version 2 only; fixed '15' in here.
 			writer.Write((byte)206); // Feedback
@@ -721,18 +729,18 @@ public static class Rtp
 			writer.Write(ssrcAndBitrate); // 1 SSRC, the bitrate estimation
 			writer.WriteBE(set[i].Ssrc); // The SSRC again
 
-			writer.WriteBE(packetIndexE);
-			writer.WriteNoLength(EmptyTag);
-
-			var messageSize = writer.Length - startIndex;
-			var payloadSize = messageSize - 22;
-
-			/*
+			/
 			UdpHeader.Complete(writer);
 			var bytes = System.Text.Encoding.ASCII.GetBytes("0000 " + SocketServerLibrary.Hex.ConvertWithSeparator(buffer, 0, writer.Length, ' ') + " ....\r\n");
 			fs.Write(bytes);
 			fs.Flush();
 			*/
+
+			writer.WriteBE(packetIndexE);
+			writer.WriteNoLength(EmptyTag);
+
+			var messageSize = writer.Length - startIndex;
+			var payloadSize = messageSize - 22;
 
 			// Encrypt the message:
 			client.EncryptRtcpPacket(buffer, startIndex + 8, payloadSize, packetIndex, set[i].Ssrc);
@@ -741,8 +749,7 @@ public static class Rtp
 			client.AuthenticateRtcpPacket(buffer, startIndex, messageSize, packetIndexE);
 
 			// Send it:
-			client.Send(writer);
-			writer.Release();
+			client.SendAndRelease(writer);
 		}
 	}
 

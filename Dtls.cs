@@ -336,9 +336,7 @@ namespace Api.WebRTC {
 			writer.Write(description);
 
 			// Send it:
-			client.Send(writer);
-
-			writer.Release();
+			client.SendAndRelease(writer);
 			client.CloseRequested();
 		}
 
@@ -500,8 +498,7 @@ namespace Api.WebRTC {
 			writer.WriteBE((ushort)ciphertext.Length); // Length
 			writer.Write(ciphertext,0, ciphertext.Length);
 
-			client.Send(writer);
-			writer.Release();
+			client.SendAndRelease(writer);
 
 			// Handshake is done:
 			client.HandshakeMeta = null;
@@ -653,8 +650,8 @@ namespace Api.WebRTC {
 
 			// - End of ServerHelloDone record -
 
-			// Note: Has a side effect of updating the last buffers length which is used by the verify digest in a moment.
-			client.Send(writer);
+			// Must update the length as it's used by the digest in a moment.
+			writer.LastBuffer.Length = writer.CurrentFill;
 
 			// Handshake verify digest update:
 			if (client.HandshakeMeta.HandshakeVerifyDigest != null)
@@ -686,7 +683,7 @@ namespace Api.WebRTC {
 				}
 			}
 
-			writer.Release();
+			client.SendAndRelease(writer);
 		}
 
 		private static void HandleHandshake(byte[] buffer, int length, RtpClient client, int index)
