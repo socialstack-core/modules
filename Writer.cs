@@ -1253,6 +1253,25 @@ namespace Api.SocketServerLibrary
 
 			WriteInvertibleCompressed(v2+1);
 		}
+		
+		/// <summary>Write an invertible compressed nullable value to the message. The value was originally nullable.</summary>
+		public void WriteInvertibleCompressedSignedNullable(long value)
+		{
+			ulong v2;
+			
+			if (value < 0)
+			{
+				v2 = ((ulong)-value) << 1 | 1;
+			}
+			else
+			{
+				v2 = (ulong)value << 1;
+			}
+
+			Console.WriteLine("Writing signed number: " + value);
+
+			WriteInvertibleCompressed(v2+1);
+		}
 
 		/// <summary>Write an invertible compressed nullable value to the message.</summary>
 		public void WriteInvertibleCompressed(ulong? value)
