@@ -22,7 +22,6 @@ namespace Api.BlockDatabase
 		/// Creates a new database type definition.
 		/// </summary>
 		/// <param name="typeName"></param>
-		/// <param name="typeNameWithLength"></param>
 		public BlockDatabaseType(string typeName)
 		{
 			TypeName = typeName;

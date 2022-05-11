@@ -8,6 +8,10 @@ using System.Collections.Generic;
 using System.Text;
 using Api.Permissions;
 using Api.Database;
+using Api.Users;
+using Api.SocketServerLibrary;
+using System.Reflection.Emit;
+using System.Reflection;
 
 namespace Api.BlockDatabase
 {
@@ -17,91 +21,131 @@ namespace Api.BlockDatabase
 	[EventListener]
 	public class Init
 	{
-		private BlockDatabaseService _database;
+		/// <summary>
+		/// Creates object differ method. Checks for field changes and writes them as transaction fields.
+		/// The resulting func is (updateObject, originalObject, Writer) and it returns the # of fields that changed.
+		/// </summary>
+		public static Func<T, T, Writer, int> CreateObjectDiff<T, ID>(AutoService<T, ID> service)
+			where T : Content<ID>, new()
+			where ID : struct, IConvertible, IEquatable<ID>, IComparable<ID>
+		{
+			// ()
+			var dymMethod = new DynamicMethod("ObjectDiffer", typeof(int), new Type[] { typeof(T), typeof(T), typeof(Writer) }, true);
+			var generator = dymMethod.GetILGenerator();
+
+			var numberOfFields = generator.DeclareLocal(typeof(int)); // loc_0 = number of changed fields.
+
+			var fieldInfo = service.GetContentFields();
+
+			var writeCompressed = typeof(Writer).GetMethod(nameof(Writer.WriteInvertibleCompressed));
+
+			foreach (var field in fieldInfo.List)
+			{
+				if (field == null || field.Definition == null || 
+					field.FieldInfo == null || field.Name == "Id" || 
+					field.Name == "EditedUtc" || field.Name == "CreatedUtc")
+				{
+					// Id is never considered for diffs and EditedUtc/ CreatedUtc is derived exclusively from txn timestamps.
+					continue;
+				}
+
+				var fieldId = field.Definition.Id;
+
+				var noChange = generator.DefineLabel();
+				generator.Emit(OpCodes.Ldarg_1);
+				generator.Emit(OpCodes.Ldfld, field.FieldInfo);
+				generator.Emit(OpCodes.Ldarg_0);
+				generator.Emit(OpCodes.Ldfld, field.FieldInfo);
+				generator.Emit(OpCodes.Ceq); // 1 if the fields are the same
+				generator.Emit(OpCodes.Brtrue_S, noChange); // Skip doing things if the values were the same.
+				{
+					// This happens when the field values are different - a change is detected and needs to be written out to the txn.
+
+					// Write field ID before:
+					generator.Emit(OpCodes.Ldarg_2);
+					generator.Emit(OpCodes.Ldc_I8, fieldId);
+					generator.Emit(OpCodes.Call, writeCompressed);
+
+					// Write the field value to the writer, Ldarg_2:
+					generator.Emit(OpCodes.Ldarg_0);
+					generator.Emit(OpCodes.Ldarg_2);
+					generator.Emit(OpCodes.Call, field.FieldWriterMethodInfo);
+
+					// Write field ID after:
+					generator.Emit(OpCodes.Ldarg_2);
+					generator.Emit(OpCodes.Ldc_I8, fieldId);
+					generator.Emit(OpCodes.Call, writeCompressed);
+
+					// numberOfFields = numberOfFields+1;
+					generator.Emit(OpCodes.Ldloc, numberOfFields);
+					generator.Emit(OpCodes.Ldc_I4_1);
+					generator.Emit(OpCodes.Add);
+					generator.Emit(OpCodes.Stloc, numberOfFields);
+				}
+				generator.MarkLabel(noChange);
+			}
+
+			// Return number of fields written.
+			generator.Emit(OpCodes.Ldloc, numberOfFields);
+			generator.Emit(OpCodes.Ret);
+
+			return dymMethod.CreateDelegate<Func<T, T, Writer, int>>();
+		}
 
 		/// <summary>
-		/// Instanced automatically.
+		/// Creates field writer method. Writes the fields of an object as transaction format fields.
+		/// The resulting func is (objectToWrite, Writer) and it returns the # of fields that it wrote out (note that it's actually always a constant here).
 		/// </summary>
-		public Init()
+		public static Func<T, Writer, int> CreateFieldWriter<T, ID>(AutoService<T, ID> service)
+			where T : Content<ID>, new()
+			where ID : struct, IConvertible, IEquatable<ID>, IComparable<ID>
 		{
-			var setupHandlersMethod = GetType().GetMethod(nameof(SetupServiceHandlers));
+			var dymMethod = new DynamicMethod("FieldWriter", typeof(int), new Type[] { typeof(T), typeof(Writer) }, true);
+			var generator = dymMethod.GetILGenerator();
 
-			// Add handler for the initial locale list:
-			Events.Locale.InitialList.AddEventListener(async (Context context, List<Locale> locales) => {
+			var fieldInfo = service.GetContentFields();
 
-				if (_database == null)
+			var writeCompressed = typeof(Writer).GetMethod(nameof(Writer.WriteInvertibleCompressed), new Type[] { typeof(ulong) });
+
+			var fieldCount = 0;
+
+			foreach (var field in fieldInfo.List)
+			{
+				if (field == null || field.Definition == null || 
+					field.FieldInfo == null || field.Name == "Id" || 
+					field.Name == "EditedUtc" || field.Name == "CreatedUtc")
 				{
-					_database = Services.Get<BlockDatabaseService>();
+					// Id is never considered for diffs and EditedUtc/ CreatedUtc is derived exclusively from txn timestamps.
+					continue;
 				}
 
-				// Get the def:
-				var definition = _database.GetDefinition(typeof(Locale), Lumity.BlockChains.ChainType.Public);
+				fieldCount++;
 
-				if (definition == null)
-				{
-					locales = new List<Locale>();
-				}
-				else
-				{
-#warning todo!
-					locales = new List<Locale>();  // await _database.List<Locale>(new Context(), definition, typeof(Locale));
-				}
+				var fieldId = (int)field.Definition.Id;
 
-				if (locales.Count == 0)
-				{
-					locales.Add(new Locale()
-					{
-						Code = "en",
-						Name = "English",
-						Id = 1
-					});
-				}
+				// Write field ID before:
+				generator.Emit(OpCodes.Ldarg_1);
+				generator.Emit(OpCodes.Ldc_I4, fieldId);
+				generator.Emit(OpCodes.Conv_U8);
+				generator.Emit(OpCodes.Call, writeCompressed);
 
-				return locales;
-			});
+				// Write the field value to the writer, Ldarg_1:
+				generator.Emit(OpCodes.Ldarg_0);
+				generator.Emit(OpCodes.Ldarg_1);
+				generator.Emit(OpCodes.Call, field.FieldWriterMethodInfo);
 
-			Events.Service.AfterCreate.AddEventListener(async (Context context, AutoService service) => {
+				// Write field ID after:
+				generator.Emit(OpCodes.Ldarg_1);
+				generator.Emit(OpCodes.Ldc_I4, fieldId);
+				generator.Emit(OpCodes.Conv_U8);
+				generator.Emit(OpCodes.Call, writeCompressed);
+			}
 
-				if (service == null || service.ServicedType == null)
-				{
-					return service;
-				}
+			// Return number of fields written.
+			generator.Emit(OpCodes.Ldc_I4, fieldCount);
+			generator.Emit(OpCodes.Ret);
 
-				if (_database == null)
-				{
-					_database = Services.Get<BlockDatabaseService>();
-				}
-
-				// If type derives from DatabaseRow, we have a thing we'll potentially need to reconfigure.
-				if (ContentTypes.IsAssignableToGenericType(service.ServicedType, typeof(Content<>)))
-				{
-					if (_database == null)
-					{
-						Console.WriteLine("[WARN] The type '" + service.ServicedType.Name + "' did not have its database schema updated because the database service was not up in time.");
-						return service;
-					}
-
-					await HandleDatabaseType(service);
-
-					var servicedType = service.ServicedType;
-
-					// Add data load events:
-					var setupType = setupHandlersMethod.MakeGenericMethod(new Type[] {
-						servicedType,
-						service.IdType
-					});
-
-					setupType.Invoke(this, new object[] {
-						service
-					});
-				}
-
-				// Service can now attempt to load its cache:
-				await service.SetupCacheIfNeeded();
-
-				return service;
-			}, 2);
-			
+			return dymMethod.CreateDelegate<Func<T, Writer, int>>();
 		}
 
 		/// <summary>
@@ -109,13 +153,19 @@ namespace Api.BlockDatabase
 		/// </summary>
 		/// <typeparam name="T"></typeparam>
 		/// <typeparam name="ID"></typeparam>
+		/// <param name="database"></param>
 		/// <param name="service"></param>
-		public void SetupServiceHandlers<T, ID>(AutoService<T, ID> service)
+		public static async ValueTask SetupServiceHandlers<T, ID>(BlockDatabaseService database, AutoService<T, ID> service)
 			where T : Content<ID>, new()
 			where ID : struct, IConvertible, IEquatable<ID>, IComparable<ID>
 		{
-			var isDbStored = service.DataIsPersistent;
-			var blockTableMeta = _database.GetTableMeta(service.InstanceType);
+			await HandleDatabaseType(database, service);
+
+			// Chain and definition is now set on service.
+
+
+			var chain = service.Chain;
+			var definition = service.Definition;
 
 			if (service.GetCacheConfig() == null)
 			{
@@ -124,99 +174,50 @@ namespace Api.BlockDatabase
 			
 			service.EventGroup.Delete.AddEventListener(async (Context context, T entity) => {
 
-				if (isDbStored)
-				{
-					_database.WriteArchived(service.ReverseId(entity.Id), blockTableMeta);
-				}
-				
-				var cache = service.GetCacheForLocale(context == null ? 1 : context.LocaleId);
-
-				if (cache != null)
-				{
-					cache.Remove(context, entity.GetId());
-				}
+				await database.WriteArchived(service.ReverseId(entity.Id), definition, chain);
 
 				return entity;
 			});
 
-			service.EventGroup.Update.AddEventListener(async (Context context, T entity) => {
+			Func<T, T, Writer, int> _diff = null;
+			Func<T, Writer, int> _createWriter = null;
+
+			service.EventGroup.Update.AddEventListener(async (Context context, T entity, T originalEntity) => {
 				
 				var id = entity.Id;
 
-				T raw = null;
-
-				var locale = context == null ? 1 : context.LocaleId;
-				var cache = service.GetCacheForLocale(locale);
-
-				if (locale == 1)
+				if (_diff == null)
 				{
-					raw = entity;
+					// This objectDiff function omits Id and EditedUtc.
+					_diff = CreateObjectDiff(service);
 				}
-				else
-				{
-					if (cache != null)
-					{
-						raw = cache.GetRaw(id);
-					}
 
-					if (raw == null)
-					{
-						raw = new T();
-					}
+				// Get the entity ID (reversed from ID to a ulong):
+				var entityId = service.ReverseId(entity.Id);
 
-					// Must also update the raw object in the cache (as the given entity is _not_ the raw one).
-					T primaryEntity;
-
-					if (cache == null)
-					{
-						primaryEntity = await service.Get(new Context(1, context.User, context.RoleId), id);
-					}
-					else
-					{
-						primaryEntity = service.GetCacheForLocale(1).Get(id);
-					}
-
-					service.PopulateRawEntityFromTarget(raw, entity, primaryEntity);
-				}
+				await database.WriteDiff(entity, originalEntity, _diff, definition, chain, entityId);
 				
-				if (isDbStored)
-				{
-					_database.Write(entity, blockTableMeta);
-				}
+				// Cache updates happen in response to the transaction occuring.
 
-				if (cache != null)
-				{
-					cache.Add(context, entity, raw);
-
-					if (locale == 1)
-					{
-						service.OnPrimaryEntityChanged(entity);
-					}
-
-				}
-				
 				return entity;
 			});
 
 			service.EventGroup.Create.AddEventListener(async (Context context, T entity) => {
-
-				if (isDbStored)
+				if (_createWriter == null)
 				{
-					if (!entity.GetId().Equals(default(ID)))
-					{
-						// Explicit ID has been provided.
-						_database.Write(entity, blockTableMeta);
-					}
-					else
-					{
-						#warning todo omit ID field
-						_database.Write(entity, blockTableMeta);
-					}
+					_createWriter = CreateFieldWriter(service);
 				}
+
+				// Get ID as a ulong:
+				var entityId = service.ReverseId(entity.Id);
+
+				// If an explicit ID is provided, entityId is non-zero and it is written as well.
+				await database.Write(entity, _createWriter, definition, chain, entityId);
 
 				return entity;
 			});
 
+			/*
 			service.EventGroup.CreatePartial.AddEventListener((Context context, T raw) => {
 				var cache = service.GetCacheForLocale(context == null ? 1 : context.LocaleId);
 
@@ -243,8 +244,9 @@ namespace Api.BlockDatabase
 				
 				return new ValueTask<T>(raw);
 			});
+			*/
 
-			service.EventGroup.Load.AddEventListener(async (Context context, T item, ID id) => {
+			service.EventGroup.Load.AddEventListener((Context context, T item, ID id) => {
 
 				var cache = service.GetCacheForLocale(context == null ? 1 : context.LocaleId);
 
@@ -253,12 +255,7 @@ namespace Api.BlockDatabase
 					item = cache.Get(id);
 				}
 
-				if (item == null && isDbStored)
-				{
-					item = _database.GetResult<T, ID>(context, id, service.InstanceType, blockTableMeta);
-				}
-
-				return item;
+				return new ValueTask<T>(item);
 			});
 
 			service.EventGroup.List.AddEventListener(async (Context context, QueryPair<T, ID> queryPair) => {
@@ -271,15 +268,6 @@ namespace Api.BlockDatabase
 					// Great - we're using the cache:
 					queryPair.Total = await cache.GetResults(context, queryPair, queryPair.OnResult, queryPair.SrcA, queryPair.SrcB);
 				}
-				else if (isDbStored)
-				{
-					// "Raw" results are as-is from the database.
-					// That means the fields are not automatically filled in with the default locale when they're empty.
-					var raw = (queryPair.QueryA.DataOptions & DataOptions.RawFlag) == DataOptions.RawFlag;
-
-					// Get the results from the database:
-					queryPair.Total = _database.GetResults(context, queryPair, service.InstanceType, blockTableMeta);
-				}
 
 				return queryPair;
 			});
@@ -288,89 +276,83 @@ namespace Api.BlockDatabase
 		/// <summary>
 		/// Sets up the table(s) for the given type.
 		/// </summary>
+		/// <param name="database"></param>
 		/// <param name="service"></param>
 		/// <returns></returns>
-		private async Task HandleDatabaseType(AutoService service)
+		private static async Task HandleDatabaseType<T,ID>(BlockDatabaseService database, AutoService<T,ID> service)
+			where T : Content<ID>, new()
+			where ID : struct, IConvertible, IEquatable<ID>, IComparable<ID>
 		{
 			var type = service.InstanceType;
 
-			// New schema for this type:
-			var newSchema = new BlockSchema();
-
 			// Get all its fields (including any sub fields).
-			var fieldMap = service.FieldMap;
-
-			// Invoke an event which can e.g. add additional columns or whole tables.
-			fieldMap = await Events.DatabaseDiffBeforeAdd.Dispatch(new Context(), fieldMap, type, newSchema);
-
-			if (fieldMap == null)
-			{
-				// Event handlers don't want this type to update.
-				return;
-			}
-
-			foreach (var field in fieldMap.Fields)
-			{
-				// Add to schema:
-				newSchema.AddColumn(field, type);
-			}
+			var contentFields = service.GetContentFields();
+			
+			// Note: Blockchain engine does not currently trigger the DatabaseDiffBeforeAdd event to modify the schema.
+			// That's because of the static way it generates field readers/ writers etc - it requires FieldInfo in order to load fields as efficiently as possible.
 
 			// Next, match each column in the schema with fields in the chain.
 
-			foreach (var kvp in newSchema.Tables)
+			// First, which chain? Derive this from the attributes on the type.
+			var dbFieldInfos = type.GetCustomAttributes<DatabaseFieldAttribute>();
+			string tableGroup = null;
+
+			if (dbFieldInfos != null)
 			{
-				// First, which chain?
-				var tableGroup = kvp.Value.GetGroupName();
-
-				if (!string.IsNullOrEmpty(tableGroup))
+				foreach (var dbFieldInfo in dbFieldInfos)
 				{
-					tableGroup = tableGroup.ToLower();
-				}
-
-				var chain = tableGroup == "host" ? 
-					_database.GetChain(Lumity.BlockChains.ChainType.PublicHost) : 
-					_database.GetChain(Lumity.BlockChains.ChainType.Public);
-
-				// Get or define:
-				var tableName = kvp.Value.TableName;
-
-				var tableDef = chain.FindOrDefine(tableName, out bool wasTableDefined);
-
-				if (wasTableDefined)
-				{
-					Console.WriteLine("Defined table '" + tableName + "'");
-				}
-
-				// Create db meta for the system type:
-				BlockTableMeta tableMeta = null;
-
-				foreach (var col in kvp.Value.Columns)
-				{
-					var column = col.Value as BlockDatabaseColumnDefinition;
-
-					if (tableMeta == null)
+					if (dbFieldInfo.Group != null)
 					{
-						tableMeta = _database.CreateTableMeta(tableDef, column.TableType);
+						tableGroup = dbFieldInfo.Group;
+						break;
 					}
-
-					// Get the field definition or create it:
-					var fieldDef = chain.FindOrDefineField(column.ColumnName, column.DataType, out bool wasDefined);
-
-					if (wasDefined)
-					{
-						Console.WriteLine("Defined field '" + column.ColumnName + "' used by type '" + column.TableName + "'");
-					}
-
-					tableMeta.AddField(column, fieldDef);
 				}
+			}
 
-				if (tableMeta != null)
+			if (!string.IsNullOrEmpty(tableGroup))
+			{
+				tableGroup = tableGroup.ToLower();
+			}
+
+			var chain = tableGroup == "host" ? 
+				database.GetChain(Lumity.BlockChains.ChainType.PublicHost) : 
+				database.GetChain(Lumity.BlockChains.ChainType.Public);
+
+			service.Chain = chain;
+
+			// Table name is simply that of the entity:
+			var tableName = service.EntityName;
+
+			var tableDef = chain.FindDefinition(tableName);
+
+			if (tableDef == null)
+			{
+				tableDef = await chain.Define(tableName);
+
+				Console.WriteLine("Defined table '" + tableName + "'");
+			}
+
+			service.Definition = tableDef;
+
+			// Ensure each field is defined:
+			foreach (var col in contentFields.List)
+			{
+				if (col.FieldInfo == null || col.DataType == null || col.Definition != null)
 				{
-					tableMeta.Chain = chain;
-
-					// Generate the writer for create calls now.
-					tableMeta.Completed();
+					// Either a non-chain stored field or it was defined during the cache load process.
+					continue;
 				}
+
+				// Get the field definition or create it:
+				var fieldDef = chain.FindField(col.Name, col.DataType);
+
+				if (fieldDef == null)
+				{
+					fieldDef = await chain.DefineField(col.Name, col.DataType);
+					Console.WriteLine("Defined field '" + col.Name + "' used by type '" + tableName + "'");
+				}
+
+				col.Definition = fieldDef;
 			}
 
 		}
