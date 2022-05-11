@@ -11,7 +11,6 @@ using Api.Uploader;
 using System.IO;
 using System;
 using Api.Startup;
-using Api.CanvasRenderer;
 using System.Net.Http;
 
 namespace Api.CloudHosts
@@ -22,15 +21,12 @@ namespace Api.CloudHosts
 	public partial class CloudHostService : AutoService
     {
         private CloudHostConfig _config;
-        private FrontendCodeService _frontend;
 
         /// <summary>
         /// Instanced automatically. Use injection to use this service, or Startup.Services.Get.
         /// </summary>
-        public CloudHostService(FrontendCodeService frontend)
+        public CloudHostService()
         {
-            _frontend = frontend;
-
             // Get config:
             _config = GetConfig<CloudHostConfig>();
 
@@ -156,13 +152,20 @@ namespace Api.CloudHosts
 
             _uploadHost = uploadHost;
 
-            if (_uploadHost != null)
+            var frontend = Services.Get("FrontendService");
+
+            if (frontend != null)
             {
-                _frontend.SetContentUrl(_uploadHost.GetContentUrl());
-            }
-            else
-            {
-                _frontend.SetContentUrl(null);
+                var setContentUrl = frontend.GetType().GetMethod("SetContentUrl");
+
+                if (_uploadHost != null)
+                {
+                    setContentUrl.Invoke(frontend, new object[] { _uploadHost.GetContentUrl() });
+                }
+                else
+                {
+                    setContentUrl.Invoke(frontend, new object[] { null });
+                }
             }
         }
     }
