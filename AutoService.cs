@@ -1149,7 +1149,7 @@ public partial class AutoService<T, ID> : AutoService
 	/// </summary>
 	public virtual async ValueTask<T> Update(Context context, T cachedEntity, Action<Context, T, T> cb, DataOptions options = DataOptions.Default)
 	{
-		var entityToUpdate = await StartUpdate(context, cachedEntity);
+		var entityToUpdate = await StartUpdate(context, cachedEntity, options);
 
 		if (entityToUpdate == null)
 		{
