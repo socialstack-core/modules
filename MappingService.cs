@@ -64,6 +64,16 @@ namespace Api.Startup
 		/// The target type if this is a mapping service.
 		/// </summary>
 		public override Type MappingTargetType => typeof(TARG);
+
+		/// <summary>
+		/// The source Id type if this is a mapping service.
+		/// </summary>
+		public override Type MappingSourceIdType => typeof(SRC_ID);
+
+		/// <summary>
+		/// The target Id type if this is a mapping service.
+		/// </summary>
+		public override Type MappingTargetIdType => typeof(TARG_ID);
 		
 		/// <summary>
 		/// Gets a list of source IDs by target ID.

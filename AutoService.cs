@@ -1280,6 +1280,16 @@ public partial class AutoService
 	public virtual Type MappingTargetType => null;
 
 	/// <summary>
+	/// The source Id type if this is a mapping service.
+	/// </summary>
+	public virtual Type MappingSourceIdType => null;
+
+	/// <summary>
+	/// The target Id type if this is a mapping service.
+	/// </summary>
+	public virtual Type MappingTargetIdType => null;
+
+	/// <summary>
 	/// Outputs a list of things from this service as JSON into the given writer.
 	/// Executes the given collector(s) whilst it happens, which can also be null.
 	/// Does not perform permission checks internally.
