@@ -13,27 +13,40 @@ namespace Lumity.BlockChains;
 public class TransactionReader
 {
 	private Schema _schema;
-	private Action<TransactionReader> _onTransaction;
+	private Func<TransactionReader, bool> _onTransaction;
+
+	/// <summary>
+	/// The chain this is reading.
+	/// </summary>
+	public BlockChain Chain;
+
+	/// <summary>
+	/// The project this reader is on.
+	/// </summary>
+	public BlockChainProject Project;
 
 	/// <summary>
 	/// Transaction reader
 	/// </summary>
 	/// <param name="schema"></param>
+	/// <param name="chain"></param>
 	/// <param name="onTransaction"></param>
 	/// <param name="blockchainOffset"></param>
-	public TransactionReader(Schema schema, Action<TransactionReader> onTransaction, ulong blockchainOffset = 0)
+	public TransactionReader(Schema schema, BlockChain chain, Func<TransactionReader, bool> onTransaction, ulong blockchainOffset = 0)
 	{
 		_schema = schema;
+		Chain = chain;
 		_onTransaction = onTransaction;
 		_blockchainOffset = blockchainOffset;
 		TransactionId = _blockchainOffset;
+		Project = chain.Project;
 	}
 
 	/// <summary>
 	/// Update the callback method.
 	/// </summary>
 	/// <param name="onTransaction"></param>
-	public void SetCallback(Action<TransactionReader> onTransaction)
+	public void SetCallback(Func<TransactionReader, bool> onTransaction)
 	{
 		_onTransaction = onTransaction;
 	}
@@ -85,10 +98,93 @@ public class TransactionReader
 	public ulong TransactionId;
 
 	/// <summary>
+	/// The original, unaltered transaction ID. The transaction byte offset.
+	/// </summary>
+	public ulong TransactionByteOffset;
+	
+	/// <summary>
+	/// NodeId of the transaction, or 0 if none.
+	/// </summary>
+	public ulong NodeId;
+
+	/// <summary>
 	/// True if this reader should update the schema.
 	/// </summary>
 	public bool UpdateSchema;
-	
+
+	/// <summary>
+	/// Used to track invalid transactions within the current block.
+	/// Most transactions will be valid as they're submitted by validators with knowledge of the state, so it will generally be that this set is very small.
+	/// </summary>
+	private ulong[] InvalidTransactions;
+
+	/// <summary>
+	/// Pointer to the number of used slots in InvalidTransactions set.
+	/// </summary>
+	private int InvalidTransactionCounter;
+
+	/// <summary>
+	/// Current location of the block header. When a boundary is encountered this is updated.
+	/// </summary>
+	public ulong BlockHeader = 0;
+
+	/// <summary>
+	/// The latest transaction timestamp.
+	/// </summary>
+	public ulong Timestamp;
+
+	/// <summary>
+	/// True if the given transaction (which must be in the current block) is valid.
+	/// </summary>
+	/// <param name="txId"></param>
+	/// <returns></returns>
+	public bool IsTransactionInBlockValid(ulong txId)
+	{
+		if (txId < BlockHeader)
+		{
+			// The requested txn is not in this block.
+			return false;
+		}
+
+		if (InvalidTransactions == null || InvalidTransactionCounter == 0)
+		{
+			// It's valid - there aren't any invalids in the block.
+			return true;
+		}
+
+		// Could improve this with a binary search - it'll always be in ascending order.
+		for (var i = 0; i < InvalidTransactionCounter; i++)
+		{
+			if (InvalidTransactions[i] == txId)
+			{
+				// It's invalid
+				return false;
+			}
+		}
+
+		return true;
+	}
+
+	/// <summary>
+	/// Adds an invalid txn ID to the set.
+	/// </summary>
+	/// <param name="id"></param>
+	private void AddInvalidTransactionId(ulong id)
+	{
+		if (InvalidTransactions == null)
+		{
+			InvalidTransactions = new ulong[10];
+		}
+		else if (InvalidTransactionCounter == InvalidTransactions.Length)
+		{
+			// Add 10 slots:
+			Array.Resize(ref InvalidTransactions, InvalidTransactionCounter + 10);
+		}
+
+		// Add the ID to the set:
+		InvalidTransactions[InvalidTransactionCounter++] = id;
+	}
+
 	/// <summary>
 	/// Gets the field ordinal (its index in Fields) for the field by the given field Id.
 	/// </summary>
@@ -122,21 +218,52 @@ public class TransactionReader
 			// Name field:
 			var name = Fields[GetFieldOrdinal(Schema.NameDefId)].GetNativeString();
 
+			// May have immutability set:
+			var immutability = GetFieldOrdinal(Schema.ImmutableDefId);
+
 			if (definitionId == Schema.FieldDefId)
 			{
 				// A field
 				var dataType = Fields[GetFieldOrdinal(Schema.DataTypeDefId)].GetNativeString();
 
-				_schema.DefineField(name, dataType);
+				var fieldDef = _schema.DefineField(name, dataType);
+
+				if (immutability != -1)
+				{
+					fieldDef.Immutable = (uint)Fields[immutability].NumericValue;
+				}
 			}
 			else
 			{
 				// A type - either the root one, or a derived type
-				_schema.Define(name, definitionId);
+				var typeDef = _schema.Define(name, definitionId);
+
+				if (immutability != -1)
+				{
+					typeDef.Immutable = (uint)Fields[immutability].NumericValue;
+				}
 			}
 		}
+		else if (definitionId == Schema.BlockBoundaryDefId)
+		{
+			// Block boundary! Reset the invalid buffer.
+			InvalidTransactionCounter = 0;
+			BlockHeader = TransactionId;
+		}
 
-		_onTransaction?.Invoke(this);
+		NodeId = 0;
+		var txnId = TransactionId;
+		TransactionByteOffset = txnId;
+
+		var isValid = _onTransaction.Invoke(this);
+
+		if (!isValid)
+		{
+			// Use the potentially modified TransactionId rather than the original one (txnId) here.
+			Chain.UpdatePending(Timestamp, TransactionId, NodeId, null, false);
+
+			AddInvalidTransactionId(txnId);
+		}
 
 		// Release all the buffered bytes if there is any:
 		var bytes = FirstBuffer;
@@ -158,7 +285,10 @@ public class TransactionReader
 	{
 		// Reverse direction does not need to update the schema (because it would be removing things from it, which is likely unnecessary in all scenarios).
 
-		_onTransaction?.Invoke(this);
+		NodeId = 0;
+		TransactionByteOffset = TransactionId;
+
+		_onTransaction.Invoke(this);
 
 		// Release all the buffered bytes if there is any:
 		var bytes = FirstBuffer;
@@ -647,13 +777,6 @@ public class TransactionReader
 							FieldCount++;
 							_state = ReadState.CompressedNumberStart;
 							_txState = ReadState.SecondaryFieldIdDone;
-
-							if (_field.Id == Schema.IdDefId)
-							{
-								// The field value overwrites the TransactionId:
-								TransactionId = _compressedNumber;
-								_customTxId = true;
-							}
 						}
 						else
 						{
@@ -799,10 +922,7 @@ public class TransactionReader
 						}
 
 						// Current ID:
-						if (!_customTxId)
-						{
-							TransactionId = blockchainOffset + (ulong)(virtualStreamPosition + i + 1);
-						}
+						TransactionId = _blockchainOffset + (ulong)(virtualStreamPosition + i + 1);
 
 						TransactionInBackwardBuffer();
 
@@ -810,8 +930,6 @@ public class TransactionReader
 						{
 							return;
 						}
-
-						_customTxId = false;
 
 						// Reset:
 						_state = ReadState.CompressedNumberStart;
@@ -836,10 +954,7 @@ public class TransactionReader
 		}
 
 		// Current ID:
-		if (!_customTxId)
-		{
-			TransactionId = blockchainOffset + (ulong)virtualStreamPosition;
-		}
+		TransactionId = _blockchainOffset + (ulong)virtualStreamPosition;
 
 		TransactionInBackwardBuffer();
 	}
@@ -857,7 +972,6 @@ public class TransactionReader
 	private FieldDefinition _field;
 	private int _fieldDataSoFar;
 	private int _byteIndex;
-	private bool _customTxId;
 	private ulong _blockchainOffset;
 	private byte[] _readBuffer;
 
@@ -876,7 +990,6 @@ public class TransactionReader
 		_fieldDataSize = 0;
 		_field = null;
 		_fieldDataSoFar = 0;
-		_customTxId = false;
 	}
 
 	private void ProcessBlock(int read)
@@ -1196,12 +1309,6 @@ public class TransactionReader
 						FieldCount++;
 						_state = ReadState.CompressedNumberStart;
 						_txState = ReadState.SecondaryFieldIdDone;
-
-						if (_field.Id == Schema.IdDefId)
-						{
-							// The field value overwrites the TransactionId:
-							TransactionId = _compressedNumber;
-						}
 					}
 					else
 					{
@@ -1414,6 +1521,10 @@ public class TransactionReader
 		}
 
 		TransactionInForwardBuffer();
+
+		// Next tx ID:
+		TransactionId = _blockchainOffset;
+		
 		ResetState();
 	}
 
@@ -1438,6 +1549,10 @@ public class TransactionReader
 			}
 
 			TransactionInForwardBuffer();
+
+			// Next tx ID:
+			TransactionId = _blockchainOffset;
+			
 			ResetState();
 		}
 	}

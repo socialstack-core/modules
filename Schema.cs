@@ -72,6 +72,16 @@ public class Schema
 	/// </summary>
 	public const ulong VariantTypeId = 21;
 
+	/// <summary>
+	/// Field Id for the "NodeId" field on any transaction, indicating which node it came from.
+	/// </summary>
+	public const ulong NodeId = 22;
+
+	/// <summary>
+	/// Field Id for the "AssemblerId" field on Blockchain.Meta
+	/// </summary>
+	public const ulong AssemblerDefId = 23;
+	
 	// - Standard definition IDs follow -
 
 	/// <summary>
@@ -138,7 +148,7 @@ public class Schema
 		Define("Blockchain.Field", 1);
 		Define("Blockchain.Type", 1);
 
-		DefineField("Timestamp", "uint");
+		DefineField("Timestamp", "uint"); // Relative. Check Blockchain.Meta/StartYear. They default to being 10^9 (nanoseconds).
 		DefineField("Name", "string");
 		DefineField("DataType", "string");
 		// DataTypes: uint, int, string, bytes, float4, float8. The string DataType is utf8; both uint and int are stored in a compressed format.
@@ -147,11 +157,11 @@ public class Schema
 		// If the schema does not have them in it, they are treated as if they do exist. This is useful whilst the schema is loaded.
 
 		// Common features:
-		DefineField("Immutable", "uint"); // Usually just 0 or 1. Set on fields to prevent any setting of that field value. The default is 0, not immutable.
+		DefineField("Immutable", "uint"); // Has multiple modes which lock things to create a guarantee that something won't be created anymore. 1=This is locked,2=Instances of this are locked,3=Both. For example, if it's 1 and on a field, the fields name cannot be changed but field values can be. If it is 2, the name can be changed but field values cannot be (SetFields transaction would fail if using this field). Settable on at least Definition, FieldDefinition and instances. The default is 0, not immutable.
 		DefineField("IfAlsoValid", "uint"); // If set, a transaction is valid if the given transaction is also valid. It is a relative offset (i.e. the value 3 means 3 transactions previous) and the referenced transaction is always in the same block.
-		DefineField("IfNotModifiedSince", "uint"); // There must be no transactions using the source object since the given transaction. The value can only be a transaction ID. If it is a transaction ID, the referenced transaction must always be a valid one.
-		DefineField("IfGroupValid", "uint"); // Relative transaction offset to the first transaction in a group (the actual first one declares If Group Valid of 0). The collective transactions are only valid if all of the other validations on transactions in the group pass. There are no 'gaps' in a group, and the entirety of a group is always in the same block. This is used where transactions are dependent on two or more transactions being successful, and if only one was, you want the other to also be invalid.
-		DefineField("OwnerId", "uint"); // The owning entity of a given entity. Very commonly used to check if a particular user has the right to perform a transaction on a source entity.
+		DefineField("IfNotModifiedSince", "uint"); // There must be no transactions using the source object since the given timestamp. The value can only be a timestamp.
+		DefineField("IfGroupValid", "uint"); // The number of remaining transactions in the group, i.e. the first transaction in the group of 5 has a value of 4. The collective transactions are only valid if all of the other validations on transactions in the group pass. There are no 'gaps' in a group, and the entirety of a group is always in the same block. This is used where transactions are dependent on two or more transactions being successful, and if only one was, you want the other to also be invalid.
+		DefineField("UserId", "uint"); // The owning entity of a given entity. Very commonly used to check if a particular user has the right to perform a transaction on a source entity.
 		DefineField("Id", "uint"); // Used when importing a reference from another lumity blockchain. The ID is the transaction ID otherwise.
 		
 		// Definition for an entity:
@@ -159,7 +169,7 @@ public class Schema
 
 		// Definition for the blockchain meta:
 		Define("Blockchain.Meta", 1); // 4
-		DefineField("StartDate", "string"); // If set, timestamps are relative to this date (10)
+		DefineField("StartYear", "uint"); // Timestamps are the number of nanoseconds since the start of this year (10). If it is not specified, it is 2000.
 		DefineField("BlockchainName", "string"); // Typicaly the name of the project (11)
 		DefineField("PublicKey", "bytes"); // The project public key (12)
 		DefineField("Version", "uint"); // Blockchain version (optional: the default is 1) (13)
@@ -194,6 +204,9 @@ public class Schema
 		// This is used with the SetFields transaction, thus the target object is already known.
 		// If the field is present, it MUST be present before EntityId and DefinitionId.
 		DefineField("VariantTypeId", "uint"); // 21. Usually some form of locale reference but its meaning is up to the project.
+		DefineField("NodeId", "uint"); // 22. When this is used as a special field, it indicates which node submitted the transaction.
+		DefineField("AssemblerId", "uint"); // 23. Occurs in Blockchain.Meta transactions. Indicates a hand off has happened. Its default value is the first declared node.
+		DefineField("TimestampPrecision", "uint"); // 24. Defaults to 10^9 (nanoseconds). The amount the timestamps on this chain go up by per second.
 	}
 
 	/// <summary>

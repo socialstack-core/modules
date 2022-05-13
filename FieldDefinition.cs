@@ -20,6 +20,40 @@ public partial class FieldDefinition
 	public Schema Schema;
 
 	/// <summary>
+	/// Immutable flags of this definition. 1=Definition itself can't be changed except for Immutable fields, 2=Can't instance, 4=Can't set.
+	/// Note that the immutable set exception can only ever get stricter, i.e. it is not possible to make something non-immutable using this exclusion.
+	/// </summary>
+	public uint Immutable
+	{
+		get
+		{
+			return _immutable;
+		}
+		set
+		{
+			_immutable = value;
+			CanSet = (_immutable & 4) == 0;
+			CanInstance = (_immutable & 2) == 0;
+			CanUpdateDefinition = (_immutable & 1) == 0;
+		}
+	}
+
+	private uint _immutable;
+
+	/// <summary>
+	/// Derived from the immutable flags.
+	/// </summary>
+	public bool CanSet = true;
+	/// <summary>
+	/// Derived from the immutable flags.
+	/// </summary>
+	public bool CanInstance = true;
+	/// <summary>
+	/// Derived from the immutable flags.
+	/// </summary>
+	public bool CanUpdateDefinition = true;
+
+	/// <summary>
 	/// Standard name for the name of a field
 	/// </summary>
 	public string Name;

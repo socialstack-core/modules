@@ -47,12 +47,41 @@ public partial class NetworkNodeService : AutoService<NetworkNode>
 
 				// Cache loaded - try to find "this" node:
 				var self = await Where("HostName=?").Bind(HostName).First(context);
-				Self = self; // X for this TODO: Call ServiceReady when cache is loaded. Must then also register this node.
+				Self = self;
 
 				if (self == null)
 				{
-					// Register new node.
+					// Register new node. If it's the first one, its capabilities are *.
+					self = await Create(context, new NetworkNode()
+					{
+						HostName = HostName,
+						PublicAddress = DiscoveredIps.PublicIPv4 == null ? null : DiscoveredIps.PublicIPv4.ToString(),
+						Environment = Configuration.Environment.Name,
+						Capabilities = "*",
+						LocalAddress = DiscoveredIps.PrivateIPv4 == null ? null : DiscoveredIps.PrivateIPv4.ToString()
+					});
 
+					Self = self;
+
+					// Note that at this point, the entire chain has been loaded - all caches are ready.
+					// Thus, the projects current AssemblerId should be accurate at this point.
+					// If it isn't, we'll set it now.
+
+					// Get the project and set self ID:
+					var project = Services.Get<BlockDatabase.BlockDatabaseService>().Project;
+					project.SetSelfNodeId(self.Id);
+
+					if (project.AssemblerId == 0)
+					{
+						// Submit a txn to set the projects assemblerId to "mine" now.
+						await project.SetAssembler(self.Id);
+					}
+				}
+				else
+				{
+					// Get the project and set self ID:
+					var project = Services.Get<BlockDatabase.BlockDatabaseService>().Project;
+					project.SetSelfNodeId(self.Id);
 				}
 			}
 		});

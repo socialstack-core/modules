@@ -24,6 +24,38 @@ public partial class Definition
 	public ulong InheritedId;
 
 	/// <summary>
+	/// Immutable flags of this definition. 1=Definition itself can't be changed except for Immutable itself, 2=Can't instance objects, 3=Can't do either.
+	/// Note that the immutable set exception can only ever get stricter, i.e. it is not possible to make something non-immutable using this exclusion.
+	/// </summary>
+	public uint Immutable {
+		get {
+			return _immutable;
+		}
+		set {
+			_immutable = value;
+			CanInstance = (_immutable & 2) == 0;
+			CanUpdateDefinition = (_immutable & 1) == 0;
+		}
+	}
+
+	private uint _immutable;
+
+	/// <summary>
+	/// Latest instance timestamp. When NotModifiedSince is present on a create row, it is 
+	/// referring to the last time something was created and can be used to regulate the creation of entities.
+	/// </summary>
+	public ulong LastInstanceTimestamp;
+
+	/// <summary>
+	/// Derived from the immutable flags.
+	/// </summary>
+	public bool CanInstance = true;
+	/// <summary>
+	/// Derived from the immutable flags.
+	/// </summary>
+	public bool CanUpdateDefinition = true;
+
+	/// <summary>
 	/// Standard name for the name of a content type (field 1 on the ContentType type)
 	/// </summary>
 	public string Name;

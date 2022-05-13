@@ -44,6 +44,98 @@ public partial class BlockChain
 	public BlockChainProject Project;
 
 	/// <summary>
+	/// Last written timestamp in this session on this chain.
+	/// </summary>
+	private ulong latestTimestamp;
+
+	/// <summary>
+	/// Timestamp lock
+	/// </summary>
+	private object _tsLock = new object();
+	
+	/// <summary>
+	/// Pending transaction queue lock.
+	/// </summary>
+	private object _pendingQueue = new object();
+
+	/// <summary>
+	/// The current waiting transaction.
+	/// </summary>
+	public PendingTransaction FirstPendingTransaction;
+	/// <summary>
+	/// The last waiting transaction.
+	/// </summary>
+	public PendingTransaction LastPendingTransaction;
+
+	/// <summary>
+	/// Converts the given timestamp to a DateTime (UTC).
+	/// </summary>
+	/// <param name="stamp"></param>
+	/// <returns></returns>
+	public DateTime TimestampToDateTime(ulong stamp)
+	{
+		// Div by 100:
+		stamp = stamp / 100;
+
+		// Offset by start ticks:
+		var ticks = Project.TimestampTickOffset + (long)stamp;
+
+		return new DateTime((long)ticks, DateTimeKind.Utc);
+	}
+
+	/// <summary>
+	/// Called when the parent project is updated.
+	/// </summary>
+	public void ProjectUpdated()
+	{
+		// If the StartYear was just changed, the TimestampTickOffset "baked" into latestTimestamp is likely to cause a time offset problem.
+		// So, must reset the latestTimestamp:
+
+		// Local stamp first:
+		var stamp = DateTime.UtcNow.Ticks;
+
+		// Adjust to being relative to the project year:
+		stamp -= Project.TimestampTickOffset;
+
+		// Finally convert ticks into the default project precision (which will be assumed to be nanoseconds always here):
+		var result = ((ulong)stamp) * 100;
+
+		lock (_tsLock)
+		{
+			latestTimestamp = result;
+		}
+	}
+
+	/// <summary>
+	/// Creates a unique timestamp using the project information and UtcNow.
+	/// </summary>
+	public ulong Timestamp {
+		get {
+
+			// Local stamp first:
+			var stamp = DateTime.UtcNow.Ticks;
+			
+			// Adjust to being relative to the project year:
+			stamp -= Project.TimestampTickOffset;
+
+			// Finally convert ticks into the default project precision (which will be assumed to be nanoseconds always here):
+			var result = ((ulong)stamp) * 100;
+
+			lock (_tsLock)
+			{
+				if (result <= latestTimestamp)
+				{
+					// Stamp is not unique yet.
+					// Increase the latest timestamp and set it into result.
+					result = ++latestTimestamp;
+				}
+			}
+
+			return result;
+		}
+	}
+
+	/// <summary>
 	/// Size of the header on a transaction message.
 	/// </summary>
 	public const int TransactionMessageHeaderSize = 12;
@@ -93,12 +185,15 @@ public partial class BlockChain
 		ChainType = type;
 		IsPrivate = ((int)ChainType & 2) == 2;
 		RelativeTo = relativeTo;
+
+
+
 	}
 
 	/// <summary>
 	/// Loads or sets up the schema.
 	/// </summary>
-	public void LoadOrCreate(Action<TransactionReader> onTransaction)
+	public void LoadOrCreate(Func<TransactionReader, bool> onTransaction)
 	{
 		if (RelativeTo != null)
 		{
@@ -127,7 +222,7 @@ public partial class BlockChain
 	/// Transactions added to this chain will trigger the given reader event. Call this after you have loaded at least once (or you know the file was empty).
 	/// </summary>
 	/// <param name="onTransaction"></param>
-	public void Watch(Action<TransactionReader> onTransaction)
+	public void Watch(Func<TransactionReader, bool> onTransaction)
 	{
 		_isWatching = true;
 
@@ -137,7 +232,7 @@ public partial class BlockChain
 		{
 			// Must get the file length:
 			var blockchainOffset = new System.IO.FileInfo(File).Length;
-			_txReader = new TransactionReader(Schema, onTransaction, (ulong)blockchainOffset) { UpdateSchema = true };
+			_txReader = new TransactionReader(Schema, this, onTransaction, (ulong)blockchainOffset) { UpdateSchema = true };
 			_txReader.ResetState();
 		}
 		else
@@ -169,22 +264,45 @@ public partial class BlockChain
 	/// <summary>
 	/// Writes to this chain. May send the packets remotely if there is a remote BAS currently operating it.
 	/// </summary>
+	/// <param name="timestamp"></param>
 	/// <param name="first"></param>
 	/// <param name="last"></param>
 	/// <returns></returns>
-	public async ValueTask Write(BufferedBytes first, BufferedBytes last)
+	public async ValueTask<TransactionResult> Write(ulong timestamp, BufferedBytes first, BufferedBytes last)
 	{
 		// If this node is the block assembly service (BAS), add the buffers to the chain.
 		// Otherwise, send them as UDP packets to the BAS.
 
-#warning temporary - consider BAS
-		if (AddBuffers(first, last))
+		// Create a pending transaction:
+		var pending = CreatePendingTransaction(timestamp);
+
+		if (Project.IsAssembler)
 		{
-			// The buffers were written out immediately.
-			return;
+			// Add buffers straight to the chain file.
+			// This may happen instantly, or it might be delayed.
+			// Either way when it completes, the pending transaction object will be marked Done.
+			AddBuffers(first, last);
 		}
 
-		// Must wait for the BAS (which might be remote or local) to write the transaction to the block chain.
+		// TODO: If node == self, check for pending txn and .Done(); it.
+
+		// Wait for the pending transaction.
+		// If the buffers were added immediately, which is very common on single instance sites, this completes synch (as a ValueTask).
+		await pending;
+
+		var relevant = pending.RelevantObject;
+		var txnId = pending.TransactionId;
+		var valid = pending.Valid;
+
+		Console.WriteLine("Pending transaction completed and had the following ID: " + txnId);
+
+		pending.Release();
+
+		return new TransactionResult() {
+			TransactionId = txnId,
+			Valid = valid,
+			RelevantObject = relevant
+		};
 	}
 
 	/// <summary>
@@ -201,7 +319,7 @@ public partial class BlockChain
 		writer.Start(null);
 
 		// Current time stamp:
-		var timestamp = (ulong)(System.DateTime.UtcNow.Ticks);
+		var timestamp = Timestamp;
 
 		// Write schema to writer:
 		Schema.Write(writer, timestamp);
@@ -211,6 +329,55 @@ public partial class BlockChain
 		System.IO.File.WriteAllBytes(File, writer.AllocatedResult());
 
 		writer.Release();
+	}
+
+	/// <summary>
+	/// Set the current assembler.
+	/// </summary>
+	public async ValueTask<TransactionResult> SetAssembler(uint id)
+	{
+		var writer = Writer.GetPooled();
+		writer.Start(null);
+
+		// Current time stamp:
+		var timestamp = Timestamp;
+
+		// Chain meta:
+		writer.WriteInvertibleCompressed(4);
+
+		writer.WriteInvertibleCompressed(2);
+
+		// Timestamp:
+		writer.WriteInvertibleCompressed(Schema.TimestampDefId);
+		writer.WriteInvertibleCompressed(timestamp);
+		writer.WriteInvertibleCompressed(Schema.TimestampDefId);
+
+		// AssemblerId:
+		writer.WriteInvertibleCompressed(Schema.AssemblerDefId);
+		writer.WriteInvertibleCompressed(id);
+		writer.WriteInvertibleCompressed(Schema.AssemblerDefId);
+
+		// Field count again (for readers travelling backwards):
+		writer.WriteInvertibleCompressed(2);
+
+		// Chain meta again (for readers travelling backwards):
+		writer.WriteInvertibleCompressed(4);
+		
+		var first = writer.FirstBuffer;
+		var last = writer.LastBuffer;
+
+		writer.FirstBuffer = null;
+		writer.LastBuffer = null;
+		last.Length = writer.CurrentFill;
+
+		// Release the writer:
+		writer.Release();
+
+		var result = await Write(timestamp, first, last);
+		
+		writer.Release();
+
+		return result;
 	}
 
 	/// <summary>
@@ -232,11 +399,11 @@ public partial class BlockChain
 	/// <summary>
 	/// Loads from the file now in the forwards direction.
 	/// </summary>
-	public void LoadForwards(Action<TransactionReader> onTransaction, bool updateSchema = false)
+	public void LoadForwards(Func<TransactionReader, bool> onTransaction, bool updateSchema = false)
 	{
 		var fs = new FileStream(File, FileMode.OpenOrCreate, FileAccess.Read, FileShare.ReadWrite, 0, true);
 
-		var txReader = new TransactionReader(Schema, onTransaction){ UpdateSchema = updateSchema };
+		var txReader = new TransactionReader(Schema, this, onTransaction){ UpdateSchema = updateSchema };
 
 		if (_txReader == null)
 		{
@@ -251,11 +418,11 @@ public partial class BlockChain
 	/// <summary>
 	/// Loads from the file now in the backwards direction.
 	/// </summary>
-	public void LoadBackwards(Action<TransactionReader> onTransaction)
+	public void LoadBackwards(Func<TransactionReader, bool> onTransaction)
 	{
 		var fs = new FileStream(File, FileMode.OpenOrCreate, FileAccess.Read, FileShare.ReadWrite, 0, true);
 
-		var txReader = new TransactionReader(Schema, onTransaction);
+		var txReader = new TransactionReader(Schema, this, onTransaction);
 
 		txReader.StartReadBackwards(fs);
 
@@ -278,7 +445,7 @@ public partial class BlockChain
 		writer.WriteInvertibleCompressed(2);
 
 		// Timestamp:
-		var now = (ulong)DateTime.UtcNow.Ticks;
+		var now = Timestamp;
 		writer.WriteInvertibleCompressed(Schema.TimestampDefId);
 		writer.WriteInvertibleCompressed(now);
 		writer.WriteInvertibleCompressed(Schema.TimestampDefId);
@@ -338,8 +505,8 @@ public partial class BlockChain
 		var writer = Writer.GetPooled();
 		writer.Start(null);
 
-		// Current time stamp:
-		var timestamp = (ulong)(System.DateTime.UtcNow.Ticks);
+		// Current unique time stamp:
+		var timestamp = Timestamp;
 
 		// Creating a thing of the inherited ID:
 		writer.WriteInvertibleCompressed(inheritId);
@@ -371,11 +538,74 @@ public partial class BlockChain
 		// Release the writer:
 		writer.Release();
 
-		await Write(first, last);
+		var result = await Write(timestamp, first, last);
 
 		// The above write might have updated the schema on its own.
 		#warning unhealthy assumption:
 		return Schema.FindDefinition(name);
+	}
+
+	/// <summary>
+	/// Finds a pending txn by the given timestamp.
+	/// </summary>
+	/// <param name="timestamp"></param>
+	/// <param name="transactionId"></param>
+	/// <param name="relevantObject"></param>
+	/// <param name="nodeId"></param>
+	/// <param name="valid"></param>
+	/// <returns></returns>
+	public void UpdatePending(ulong timestamp, ulong transactionId, ulong nodeId, object relevantObject, bool valid)
+	{
+		#warning todo: This only happens if NodeId == Self.
+
+		/* if (nodeId != Project.SelfNodeId)
+		{
+			return;
+		}*/
+
+		var current = FirstPendingTransaction;
+
+		while (current != null)
+		{
+			if (current.Timestamp == timestamp)
+			{
+				// Found it!
+				current.TransactionId = transactionId;
+				current.Valid = valid;
+				current.RelevantObject = relevantObject;
+				current.Done();
+				return;
+			}
+			current = current.Next;
+		}
+	}
+
+	/// <summary>
+	/// Creates a pending transaction for the given timestamp. Essentially this will wait until the given timestamp (from this node) is seen.
+	/// Note that it is async in that it won't leave a thread paused whilst it 'waits'.
+	/// </summary>
+	/// <param name="timestamp"></param>
+	private PendingTransaction CreatePendingTransaction(ulong timestamp)
+	{
+		// Create the pending object:
+		var pending = PendingTransaction.GetPooled();
+		pending.Timestamp = timestamp;
+		pending.Reset();
+
+		lock (_pendingQueue) {
+			if (LastPendingTransaction == null)
+			{
+				FirstPendingTransaction = pending;
+				LastPendingTransaction = pending;
+			}
+			else
+			{
+				LastPendingTransaction.Next = pending;
+				LastPendingTransaction = pending;
+			}
+		}
+
+		return pending;
 	}
 
 	/// <summary>
@@ -411,7 +641,7 @@ public partial class BlockChain
 		writer.Start(null);
 
 		// Current time stamp:
-		var timestamp = (ulong)(System.DateTime.UtcNow.Ticks);
+		var timestamp = Timestamp;
 
 		// Entity create tx:
 		writer.WriteInvertibleCompressed(2);
@@ -449,7 +679,7 @@ public partial class BlockChain
 		// Release the writer:
 		writer.Release();
 
-		await Write(first, last);
+		var result = await Write(timestamp, first, last);
 
 		#warning also unhealthy assumption!
 		return Schema.FindField(name, type);
@@ -466,7 +696,7 @@ public partial class BlockChain
 		var writer = Writer.GetPooled();
 		writer.Start(null);
 
-		var now = (ulong)DateTime.UtcNow.Ticks;
+		var now = Timestamp;
 
 		// Create a buffer which will be written out repeatedly:
 
