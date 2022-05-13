@@ -1229,6 +1229,8 @@ namespace Api.SocketServerLibrary
 				_LastBufferBytes[Fill++]=(byte)(value>>56);
 				
 			}
+
+			// 255 for n byte numbers, where n is the following byte +8.
 		}
 
 		/// <summary>Write an invertible compressed nullable value to the message.</summary>
@@ -1357,6 +1359,8 @@ namespace Api.SocketServerLibrary
 				_LastBufferBytes[Fill++] = (byte)(value >> 56);
 				_LastBufferBytes[Fill++] = (byte)254;
 			}
+
+			// 255 for n byte numbers, where n is the following byte +8.
 		}
 
 		/// <summary>
@@ -1384,6 +1388,7 @@ namespace Api.SocketServerLibrary
 					// 8 bytes:
 					return (ulong)buff[index++] | ((ulong)buff[index++] << 8) | ((ulong)buff[index++] << 16) | ((ulong)buff[index++] << 24) |
 						((ulong)buff[index++] << 32) | ((ulong)buff[index++] << 40) | ((ulong)buff[index++] << 48) | ((ulong)buff[index++] << 56);
+				// 255 is n bytes
 				default:
 					return first;
 			}
@@ -1440,6 +1445,8 @@ namespace Api.SocketServerLibrary
 				_LastBufferBytes[Fill++] = (byte)(value >> 56);
 
 			}
+
+			// 255 for n bytes
 		}
 
 		/// <summary>
