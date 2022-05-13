@@ -14,6 +14,7 @@
 
 		> .loop-item {
 			flex: 0 0 200px;
+			max-width: 200px;
 		}
 
 		+ .paginator {
@@ -51,6 +52,7 @@
 		align-items: center;
 		justify-content: center;
 		padding: 10px;
+		background-image: url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABQAAAAUCAAAAACo4kLRAAAAH0lEQVQY02OcxQADZ+AsJgYsYKgIsiD8YTJInEShIAA1NwKQeKc4/QAAAABJRU5ErkJggg==);
 
 		&--auto img {
 			width: auto;
