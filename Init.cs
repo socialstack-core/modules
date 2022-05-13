@@ -21,6 +21,7 @@ namespace Api.BlockDatabase
 	[EventListener]
 	public class Init
 	{
+		
 		/// <summary>
 		/// Creates object differ method. Checks for field changes and writes them as transaction fields.
 		/// The resulting func is (updateObject, originalObject, Writer) and it returns the # of fields that changed.
@@ -37,7 +38,9 @@ namespace Api.BlockDatabase
 
 			var fieldInfo = service.GetContentFields();
 
-			var writeCompressed = typeof(Writer).GetMethod(nameof(Writer.WriteInvertibleCompressed));
+			var writeCompressed = typeof(Writer).GetMethod(nameof(Writer.WriteInvertibleCompressed), new Type[] { typeof(ulong) });
+
+			Console.WriteLine("ObjectDiff for " + typeof(T).Name);
 
 			foreach (var field in fieldInfo.List)
 			{
@@ -50,20 +53,35 @@ namespace Api.BlockDatabase
 				}
 
 				var fieldId = field.Definition.Id;
-
 				var noChange = generator.DefineLabel();
-				generator.Emit(OpCodes.Ldarg_1);
-				generator.Emit(OpCodes.Ldfld, field.FieldInfo);
-				generator.Emit(OpCodes.Ldarg_0);
-				generator.Emit(OpCodes.Ldfld, field.FieldInfo);
-				generator.Emit(OpCodes.Ceq); // 1 if the fields are the same
+
+				// Need to consider nullables carefully:
+				var nullableBase = Nullable.GetUnderlyingType(field.FieldType);
+
+				if (nullableBase != null)
+				{
+					// Nullable field. Special case for comparisons.
+					CompareNullables(generator, field.FieldInfo);
+
+				}
+				else
+				{
+					// Ceq comparison is fine:
+					generator.Emit(OpCodes.Ldarg_1);
+					generator.Emit(OpCodes.Ldfld, field.FieldInfo);
+					generator.Emit(OpCodes.Ldarg_0);
+					generator.Emit(OpCodes.Ldfld, field.FieldInfo);
+					generator.Emit(OpCodes.Ceq); // 1 if the fields are the same
+				}
+
 				generator.Emit(OpCodes.Brtrue_S, noChange); // Skip doing things if the values were the same.
 				{
 					// This happens when the field values are different - a change is detected and needs to be written out to the txn.
 
 					// Write field ID before:
 					generator.Emit(OpCodes.Ldarg_2);
-					generator.Emit(OpCodes.Ldc_I8, fieldId);
+					generator.Emit(OpCodes.Ldc_I4, (int)fieldId);
+					generator.Emit(OpCodes.Conv_U8);
 					generator.Emit(OpCodes.Call, writeCompressed);
 
 					// Write the field value to the writer, Ldarg_2:
@@ -73,7 +91,8 @@ namespace Api.BlockDatabase
 
 					// Write field ID after:
 					generator.Emit(OpCodes.Ldarg_2);
-					generator.Emit(OpCodes.Ldc_I8, fieldId);
+					generator.Emit(OpCodes.Ldc_I4, (int)fieldId);
+					generator.Emit(OpCodes.Conv_U8);
 					generator.Emit(OpCodes.Call, writeCompressed);
 
 					// numberOfFields = numberOfFields+1;
@@ -90,6 +109,38 @@ namespace Api.BlockDatabase
 			generator.Emit(OpCodes.Ret);
 
 			return dymMethod.CreateDelegate<Func<T, T, Writer, int>>();
+		}
+
+		private static void CompareNullables(ILGenerator generator, FieldInfo fieldInfo)
+		{
+			var fieldType = fieldInfo.FieldType;
+			var hasValueProperty = fieldType.GetProperty("HasValue").GetGetMethod();
+			var valueOrDefaultProperty = fieldType.GetMethod("GetValueOrDefault", Array.Empty<Type>());
+			
+			// Load both addresses:
+			generator.Emit(OpCodes.Ldarg_1);
+			generator.Emit(OpCodes.Ldflda, fieldInfo);
+			generator.Emit(OpCodes.Call, hasValueProperty);
+
+			generator.Emit(OpCodes.Ldarg_0);
+			generator.Emit(OpCodes.Ldflda, fieldInfo);
+			generator.Emit(OpCodes.Call, hasValueProperty);
+
+			// Comparing their HasValue states first:
+			generator.Emit(OpCodes.Ceq);
+
+			// Values next:
+			generator.Emit(OpCodes.Ldarg_1);
+			generator.Emit(OpCodes.Ldflda, fieldInfo);
+			generator.Emit(OpCodes.Call, valueOrDefaultProperty);
+
+			generator.Emit(OpCodes.Ldarg_0);
+			generator.Emit(OpCodes.Ldflda, fieldInfo);
+			generator.Emit(OpCodes.Call, valueOrDefaultProperty);
+			generator.Emit(OpCodes.Ceq);
+
+			// If both HasValue == HasValue, and the Value matches, do nothing.
+			generator.Emit(OpCodes.And);
 		}
 
 		/// <summary>
@@ -174,8 +225,13 @@ namespace Api.BlockDatabase
 			
 			service.EventGroup.Delete.AddEventListener(async (Context context, T entity) => {
 
-				await database.WriteArchived(service.ReverseId(entity.Id), definition, chain);
+				var result = await database.WriteArchived(service.ReverseId(entity.Id), definition, chain);
 
+				if (!result.Valid)
+				{
+					return null;
+				}
+				
 				return entity;
 			});
 
@@ -195,9 +251,14 @@ namespace Api.BlockDatabase
 				// Get the entity ID (reversed from ID to a ulong):
 				var entityId = service.ReverseId(entity.Id);
 
-				await database.WriteDiff(entity, originalEntity, _diff, definition, chain, entityId);
-				
+				var result = await database.WriteDiff(entity, originalEntity, _diff, definition, chain, entityId);
+
 				// Cache updates happen in response to the transaction occuring.
+
+				if (!result.Valid)
+				{
+					return null;
+				}
 
 				return entity;
 			});
@@ -212,9 +273,14 @@ namespace Api.BlockDatabase
 				var entityId = service.ReverseId(entity.Id);
 
 				// If an explicit ID is provided, entityId is non-zero and it is written as well.
-				await database.Write(entity, _createWriter, definition, chain, entityId);
+				var result = await database.Write(entity, _createWriter, definition, chain, entityId);
 
-				return entity;
+				if (!result.Valid)
+				{
+					return null;
+				}
+
+				return result.RelevantObject as T;
 			});
 
 			/*

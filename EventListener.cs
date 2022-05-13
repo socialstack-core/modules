@@ -176,6 +176,109 @@ public class EventListener
 		var name = svc.InstanceType.Name.ToLower();
 
 		wsService.RemoteTypes[name] = meta;
+
+		// Add the websocket message forwarding handlers:
+
+		// Get the event group:
+		var eventGroup = svc.EventGroup;
+
+		eventGroup.AfterCreate.AddEventListener(async (Context ctx, T src) =>
+		{
+			if (src == null)
+			{
+				return src;
+			}
+
+			// Start creating the sync message. This is much the same as what Message does internally when sending generic messages.
+			// We just require some custom handling here to handle the type-within-a-message scenario.
+			NetworkRoom<T, ID, ID> globalMsgRoom = rooms.AnyUpdateRoom;
+
+			try
+			{
+				if (globalMsgRoom != null)
+				{
+					await globalMsgRoom.SendLocallyIfPermitted(src, 21);
+				}
+			}
+			catch (Exception ex)
+			{
+				Console.WriteLine("Error updating network rooms: " + ex.ToString());
+			}
+
+			return src;
+		}, 1000); // Always absolutely last
+
+		eventGroup.AfterUpdate.AddEventListener(async (Context ctx, T src) =>
+		{
+			if (src == null)
+			{
+				return src;
+			}
+
+			// Get the network room:
+			// It's created just in case there is no local clients but there is remote ones.
+			NetworkRoom<T, ID, ID> netRoom;
+			NetworkRoom<T, ID, ID> globalMsgRoom = rooms.AnyUpdateRoom;
+
+			// Local room delivery only - get the room only if it exists; no need to instance it.
+			netRoom = rooms.GetRoom(src.Id);
+
+			try
+			{
+				// Send to network room:
+				if (netRoom != null)
+				{
+					await netRoom.SendLocallyIfPermitted(src, 22);
+				}
+
+				if (globalMsgRoom != null)
+				{
+					await globalMsgRoom.SendLocallyIfPermitted(src, 22);
+				}
+
+			}
+			catch (Exception ex)
+			{
+				Console.WriteLine("Error updating network rooms: " + ex.ToString());
+			}
+
+			return src;
+		}, 1000); // Always absolutely last
+
+		eventGroup.AfterDelete.AddEventListener(async (Context ctx, T src) =>
+		{
+			if (src == null)
+			{
+				return src;
+			}
+
+			// Get the network room:
+			// It's created just in case there is no local clients but there is remote ones.
+			NetworkRoom<T, ID, ID> netRoom;
+			NetworkRoom<T, ID, ID> globalMsgRoom = rooms.AnyUpdateRoom;
+
+			// Local room delivery only - get the room only if it exists; no need to instance it.
+			netRoom = rooms.GetRoom(src.Id);
+
+			try {
+				// Send to network room:
+				if (netRoom != null)
+				{
+					await netRoom.SendLocallyIfPermitted(src, 23);
+				}
+
+				if (globalMsgRoom != null)
+				{
+					await globalMsgRoom.SendLocallyIfPermitted(src, 23);
+				}
+			}
+			catch (Exception ex)
+			{
+				Console.WriteLine("Error updating network rooms: " + ex.ToString());
+			}
+		return src;
+		}, 1000); // Always absolutely last
+
 	}
 
 	/// <summary>
@@ -202,5 +305,90 @@ public class EventListener
 		var name = svc.InstanceType.Name.ToLower();
 
 		wsService.RemoteTypes[name] = meta;
+
+
+		// Get the event group:
+		var eventGroup = svc.EventGroup;
+
+		eventGroup.AfterCreate.AddEventListener(async (Context ctx, Mapping<SRC_ID, TARG_ID> src) =>
+		{
+			if (src == null)
+			{
+				return src;
+			}
+
+			// Start creating the sync message. This is much the same as what Message does internally when sending generic messages.
+			// We just require some custom handling here to handle the type-within-a-message scenario.
+			var globalMsgRoom = rooms.AnyUpdateRoom;
+
+			try
+			{
+				if (globalMsgRoom != null)
+				{
+					await globalMsgRoom.SendLocallyIfPermitted(src, 21);
+				}
+			}
+			catch (Exception ex)
+			{
+				Console.WriteLine("Error updating network rooms: " + ex.ToString());
+			}
+
+			return src;
+		}, 1000); // Always absolutely last
+
+		eventGroup.AfterUpdate.AddEventListener(async (Context ctx, Mapping<SRC_ID, TARG_ID> src) =>
+		{
+			if (src == null)
+			{
+				return src;
+			}
+
+			// Get the network room:
+			// It's created just in case there is no local clients but there is remote ones.
+			var netRoom = rooms.GetRoom(src.SourceId);
+			
+			try
+			{
+				// Send to network room:
+				if (netRoom != null)
+				{
+					await netRoom.SendLocallyIfPermitted(src, 22);
+				}
+
+			}
+			catch (Exception ex)
+			{
+				Console.WriteLine("Error updating network rooms: " + ex.ToString());
+			}
+
+			return src;
+		}, 1000); // Always absolutely last
+
+		eventGroup.AfterDelete.AddEventListener(async (Context ctx, Mapping<SRC_ID, TARG_ID> src) =>
+		{
+			if (src == null)
+			{
+				return src;
+			}
+
+			// Get the network room:
+			// It's created just in case there is no local clients but there is remote ones.
+			var netRoom = rooms.GetRoom(src.SourceId);
+			
+			try
+			{
+				// Send to network room:
+				if (netRoom != null)
+				{
+					await netRoom.SendLocallyIfPermitted(src, 23);
+				}
+			}
+			catch (Exception ex)
+			{
+				Console.WriteLine("Error updating network rooms: " + ex.ToString());
+			}
+			return src;
+		}, 1000); // Always absolutely last
+
 	}
 }
