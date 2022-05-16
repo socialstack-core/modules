@@ -40,7 +40,7 @@ namespace Api.UserAgendaEntries
 				return agendaEntry;
 			}, 5);
 
-			Events.UserAgendaEntry.BeforeUpdate.AddEventListener(async (Context context, UserAgendaEntry agendaEntry) =>
+			Events.UserAgendaEntry.BeforeUpdate.AddEventListener(async (Context context, UserAgendaEntry agendaEntry, UserAgendaEntry originalAgendaEntry) =>
 			{
 				if (agendaEntry == null)
 				{
