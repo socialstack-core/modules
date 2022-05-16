@@ -43,7 +43,7 @@ namespace Api.Users
 				// Ok! Successful setup.
 				// Apply pending -> active right now.
 				
-				await _service.Update(context, user, (Context c, User u) => {
+				await _service.Update(context, user, (Context c, User u, User originalUser) => {
 					u.TwoFactorSecret = u.TwoFactorSecretPending;
 					u.TwoFactorSecretPending = null;
 				});
@@ -81,7 +81,7 @@ namespace Api.Users
 			// Generate a key and apply to pending:
 			var key = twoFA.GenerateKey();
 			
-			user = await _service.Update(context, user, (Context c, User u) => {
+			user = await _service.Update(context, user, (Context c, User u, User originalUser) => {
 				user.TwoFactorSecretPending = key;
 			});
 			

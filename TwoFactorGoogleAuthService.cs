@@ -64,7 +64,7 @@ namespace Api.TwoFactorGoogleAuth
 							{
 								var key = GenerateKey();
 								
-								user = await _users.Update(context, user, (Context c, User u) => {
+								user = await _users.Update(context, user, (Context c, User u, User originalUser) => {
 									u.TwoFactorSecretPending = key;
 								}, DataOptions.IgnorePermissions);
 
@@ -85,7 +85,7 @@ namespace Api.TwoFactorGoogleAuth
 							if(Validate(result.User.TwoFactorSecretPending, loginDetails.Google2FAPin))
 							{
 								// Apply pending -> active right now.
-								user = await _users.Update(context, user, (Context c, User u) => {
+								user = await _users.Update(context, user, (Context c, User u, User originalUser) => {
 									u.TwoFactorSecret = u.TwoFactorSecretPending;
 									u.TwoFactorSecretPending = null;
 								}, DataOptions.IgnorePermissions);
