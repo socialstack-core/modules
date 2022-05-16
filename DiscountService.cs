@@ -37,7 +37,7 @@ namespace Api.Discounts
 				return discount;
 			});
 
-			Events.Discount.BeforeUpdate.AddEventListener(async (Context context, Discount discount) =>
+			Events.Discount.BeforeUpdate.AddEventListener(async (Context context, Discount discount, Discount originalDiscount) =>
 			{
 				if (discount == null)
 				{
