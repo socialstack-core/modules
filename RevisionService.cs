@@ -165,7 +165,6 @@ namespace Api.Revisions
 		if (existingObject != null)
 		{
 			// This effectively replaces the complete live row with the revision's data.
-			entity.MarkChanged(ChangedFields.All);
 			entity = await FinishUpdate(context, entity);
 		}
 		else
