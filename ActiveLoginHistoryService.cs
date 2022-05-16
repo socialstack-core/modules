@@ -51,8 +51,6 @@ namespace Api.ActiveLogins
 			// Add event listeners for websocket users:
 			Events.WebSocket.AfterLogin.AddEventListener(async (Context ctx, WebSocketClient client, NetworkRoom<User, uint, uint> personalNetworkRoom) =>
 			{
-				var onlineStateField = _users.GetChangeField("OnlineState");
-
 				// Triggers when the user login state changes *locally*.
 				if (client == null || ctx.UserId == 0)
 				{
@@ -70,9 +68,8 @@ namespace Api.ActiveLogins
 
 					if (user != null && (!user.OnlineState.HasValue || user.OnlineState != 1))
 					{
-						await _users.Update(ctx, user, (Context c, User u) => {
-							user.OnlineState = 1;
-							user.MarkChanged(onlineStateField);
+						await _users.Update(ctx, user, (Context c, User u, User originalUser) => {
+							u.OnlineState = 1;
 						}, DataOptions.IgnorePermissions);
 
 						// Insert to historical record. This user came online across the cluster.
@@ -91,8 +88,6 @@ namespace Api.ActiveLogins
 			// Add event listeners for websocket users:
 			Events.WebSocket.AfterLogout.AddEventListener(async (Context ctx, WebSocketClient client, NetworkRoom<User, uint, uint> personalNetworkRoom) =>
 			{
-				var onlineStateField = _users.GetChangeField("OnlineState");
-
 				// Triggers when the user login state changes *locally*.
 				if (client == null || ctx.UserId == 0)
 				{
@@ -108,9 +103,8 @@ namespace Api.ActiveLogins
 
 					if (user != null && user.OnlineState.HasValue && user.OnlineState != 0)
 					{
-						await _users.Update(ctx, user, (Context c, User u) => {
-							user.OnlineState = 0;
-							user.MarkChanged(onlineStateField);
+						await _users.Update(ctx, user, (Context c, User u, User originalUser) => {
+							u.OnlineState = 0;
 						}, DataOptions.IgnorePermissions);
 
 						// Insert to historical record. This user came online across the cluster.
@@ -150,8 +144,6 @@ namespace Api.ActiveLogins
 		/// </summary>
 		public async Task<bool> Start()
 		{
-			var onlineStateField = _users.GetChangeField("OnlineState");
-
 			var ctx = new Context();
 
 			// Get the list of global logins to validate:
@@ -171,9 +163,8 @@ namespace Api.ActiveLogins
 						if (personalRoom.IsEmpty)
 						{
 							// The room is empty - mark as offline.
-							await _users.Update(ctx, user, (Context c, User u) => {
-								user.OnlineState = 0;
-								user.MarkChanged(onlineStateField);
+							await _users.Update(ctx, user, (Context c, User u, User originalUser) => {
+								u.OnlineState = 0;
 							}, DataOptions.IgnorePermissions);
 
 							// Insert to historical record. This user came online across the cluster.
