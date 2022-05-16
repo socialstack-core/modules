@@ -48,10 +48,9 @@ namespace Api.PrivateChats
 				}
 				*/
 					
-				await _chats.Update(context, msg.PrivateChatId, (Context c, PrivateChat channel) => {
+				await _chats.Update(context, msg.PrivateChatId, (Context c, PrivateChat channel, PrivateChat originalChannel) => {
 					// Update the channel with the number of messages in it:
 					channel.MessageCount++;
-					channel.MarkChanged(_chats.GetChangeField("MessageCount"));
 				});
 
 				// Ok:
