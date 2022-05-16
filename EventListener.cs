@@ -41,13 +41,15 @@ namespace Api.Revisions
 					return new ValueTask<FieldMap>(fieldMap);
 				}
 				
+				// Above test also eliminated any mappings.
+
 				var revisionIdField = revisionRowType.GetField("_RevisionId", BindingFlags.Instance | BindingFlags.NonPublic);
 				var isDraftField = revisionRowType.GetField("_IsDraft", BindingFlags.Instance | BindingFlags.NonPublic);
 			
 				
 				// We've got a revisionable content type. Add a revisions table to the schema:
 
-				var targetTableName = typeInfo.TableName() + "_revisions";
+				var targetTableName = MySQLSchema.TableName(typeInfo.Name) + "_revisions";
 				Field idField = null;
 
 				// All of the fields in the type can be revisioned, so we add them all.
@@ -115,9 +117,8 @@ namespace Api.Revisions
 				}
 
 				// Add IsDraft column:
-				var isDraft = new Field()
+				var isDraft = new Field(typeInfo, targetTableName)
 				{
-					OwningType = typeInfo,
 					Type = isDraftField.FieldType,
 					TargetField = isDraftField,
 					Name = "RevisionIsDraft"
@@ -125,7 +126,7 @@ namespace Api.Revisions
 
 				isDraft.SetFullName();
 
-				newSchema.AddColumn(isDraft, null, targetTableName);
+				newSchema.AddColumn(isDraft);
 
 				return new ValueTask<FieldMap>(fieldMap);
 			});
@@ -184,13 +185,15 @@ namespace Api.Revisions
 			// Invoked by reflection
 
 			// Create the original field map:
-			var fieldMap = new FieldMap(contentType);
+			var fieldMap = new FieldMap(contentType, autoService.EntityName);
 
 			// First, generate a 'copy' query. It'll transfer values from table A to table B.
 			var transferMap = new FieldTransferMap
 			{
 				TargetTypeNameExtension = "_revisions"
 			};
+
+			var contentTypeName = autoService.EntityName;
 
 			// For each field in the map, create a transfer:
 			foreach (var field in fieldMap.Fields)
@@ -199,16 +202,16 @@ namespace Api.Revisions
 				if (field.Name == "Id")
 				{
 					// Id transfers to the RevisionContentId field.
-					transferMap.Add(contentType, field.Name, contentType, "RevisionOriginalContentId");
+					transferMap.Add(contentType, contentTypeName, field.Name, contentType, contentTypeName, "RevisionOriginalContentId");
 				}
 				else
 				{
 					// The only difference is the target type name extension above.
-					transferMap.Add(contentType, field.Name, contentType, field.Name);
+					transferMap.Add(contentType, contentTypeName, field.Name, contentType, contentTypeName, field.Name);
 				}
 			}
 
-			transferMap.AddConstant(contentType, "RevisionIsDraft", false);
+			transferMap.AddConstant(contentType, contentTypeName, "RevisionIsDraft", false);
 
 			// The query itself:
 			var copyQuery = Query.Copy(transferMap);
@@ -216,10 +219,8 @@ namespace Api.Revisions
 
 			var str = copyQuery.GetQuery();
 
-			ComposableChangeField revisionField = null;
-
 			// And add an event handler now:
-			evtGroup.BeforeUpdate.AddEventListener(async (Context context, T content) =>
+			evtGroup.BeforeUpdate.AddEventListener(async (Context context, T content, T original) =>
 			{
 				if (content == null)
 				{
@@ -253,14 +254,8 @@ namespace Api.Revisions
 				}
 				*/
 
-				if (revisionField == null)
-				{
-					revisionField = autoService.GetChangeField("Revision");
-				}
-
 				// Bump its revision number.
 				content.Revision++;
-				content.MarkChanged(revisionField);
 
 				return content;
 			}, 11);

@@ -180,14 +180,16 @@ public partial class AutoController<T, ID>
 			return;
 		}
 
-		if (!await revisions.StartUpdate(context, entity))
+		var entityToUpdate = await revisions.StartUpdate(context, entity);
+
+		if (entityToUpdate == null)
 		{
 			// Can't start update (no permission, typically).
 			return;
 		}
 
 		// In this case the entity ID is definitely known, so we can run all fields at the same time:
-		var notes = await SetFieldsOnObject(entity, context, body, JsonFieldGroup.Any);
+		var notes = await SetFieldsOnObject(entityToUpdate, context, body, JsonFieldGroup.Any);
 
 		if (notes != null)
 		{
@@ -195,15 +197,9 @@ public partial class AutoController<T, ID>
 		}
 
 		// Make sure it's the original ID:
-		entity.SetId(id);
+		entityToUpdate.SetId(id);
 
-		if (entity == null)
-		{
-			// A handler rejected this request.
-			return;
-		}
-
-		entity = await revisions.FinishUpdate(context, entity);
+		entity = await revisions.FinishUpdate(context, entityToUpdate, entity);
 
 		if (entity == null)
 		{
