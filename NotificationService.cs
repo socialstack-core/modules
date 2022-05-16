@@ -15,14 +15,11 @@ namespace Api.Notifications
 	/// </summary>
 	public partial class NotificationService : AutoService<Notification>
     {
-		private ComposableChangeField viewedDateChanged;
-
 		/// <summary>
 		/// Instanced automatically. Use injection to use this service, or Startup.Services.Get.
 		/// </summary>
 		public NotificationService() : base(Events.Notification)
         {
-			viewedDateChanged = GetChangeField("ViewedDateUtc");
 		}
 		
 		/// <summary>
@@ -62,10 +59,8 @@ namespace Api.Notifications
         {
 			foreach (var notif in notifs)
 			{
-				await Update(context, notif, (Context c, Notification n) => {
-
+				await Update(context, notif, (Context c, Notification n, Notification originalNotification) => {
 					n.ViewedDateUtc = DateTime.UtcNow;
-					n.MarkChanged(viewedDateChanged);
 				});
 			}
 
