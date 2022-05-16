@@ -50,17 +50,14 @@ namespace Api.Connections
                 return null;
             }
 
-            connection = await _service.Update(context, connection, (Context ctx, Connection con) => {
+            connection = await _service.Update(context, connection, (Context ctx, Connection con, Connection originalConn) => {
                 // Now we need to update the DB. First off, if the ConnectedToUserId is not set, let's set it. 
-                if (con.ConnectedToId == null)
+                if (con.ConnectedToId == 0)
                 {
                     con.ConnectedToId = user.Id;
-                    con.MarkChanged(_service.GetChangeField("ConnectedToId"));
                 }
 
                 con.AcceptedUtc = DateTime.UtcNow;
-                con.MarkChanged(_service.GetChangeField("AcceptedUtc"));
-                
             }, DataOptions.IgnorePermissions);
 
             return connection;
