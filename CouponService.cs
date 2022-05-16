@@ -47,16 +47,23 @@ namespace Api.Coupons
 			});
 		}
 
+		/// <summary>
+		/// 
+		/// </summary>
+		/// <param name="context"></param>
+		/// <param name="coupon"></param>
+		/// <returns></returns>
 		public async Task<Coupon> RedeemCoupon(Context context, Coupon coupon)
         {
-			if (await StartUpdate(context, coupon, DataOptions.IgnorePermissions))
-			{
-				coupon.IsRedeemed = true;
+			var couponToUpdate = await StartUpdate(context, coupon, DataOptions.IgnorePermissions);
 
-				coupon = await FinishUpdate(context, coupon);
+			if (couponToUpdate != null)
+            {
+				couponToUpdate.IsRedeemed = true;
+				couponToUpdate = await FinishUpdate(context, couponToUpdate, coupon);
 			}
 
-			return coupon;
+			return couponToUpdate;
         }
 
 		private static string RandomCouponCode(int length)
