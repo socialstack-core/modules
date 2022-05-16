@@ -54,19 +54,15 @@ namespace Api.Huddles
        
 
 	
-                await _service.Update(context, result, async (Context ctx, Huddle hud) => {
+                await _service.Update(context, result, async (Context ctx, Huddle hud, Huddle originalHud) => {
                     // Ok - activity starts in 10s:
                     hud.ActivityStartUtc = DateTime.UtcNow.AddSeconds(10);
-                    hud.MarkChanged(_service.GetChangeField("ActivityStartUtc"));
                     hud.ActivityContentTypeId = contentTypeId;
-                    hud.MarkChanged(_service.GetChangeField("ActivityContentTypeId"));
                     hud.ActivityContentId = activityContentId;
-                    hud.MarkChanged(_service.GetChangeField("ActivityContentId"));
 
                     if (durationTicks != null)
                     {
                         hud.ActivityDurationTicks = durationTicks;
-                        hud.MarkChanged(_service.GetChangeField("ActivityDurationTicks"));
                     }
 
                     // Create an instance:
@@ -78,7 +74,6 @@ namespace Api.Huddles
                     var activityInstance = new ActivityInstance();
                     activityInstance = await activityInstanceService.Create(context, activityInstance, DataOptions.IgnorePermissions);
                     hud.ActivityInstanceId = activityInstance.Id;               
-                    hud.MarkChanged(_service.GetChangeField("ActivityInstanceId"));
                 });
             
 
@@ -100,14 +95,10 @@ namespace Api.Huddles
             
 			if(result.ActivityContentId != 0)
 			{
-				result = await _service.Update(context, result, (Context c, Huddle h) => {
+				result = await _service.Update(context, result, (Context c, Huddle h, Huddle originalHuddle) => {
                     h.ActivityContentId = 0;
                     h.ActivityContentTypeId = 0;
                     h.ActivityStartUtc = null;
-
-                    h.MarkChanged(_service.GetChangeField("ActivityContentId"));
-                    h.MarkChanged(_service.GetChangeField("ActivityContentTypeId"));
-                    h.MarkChanged(_service.GetChangeField("ActivityStartUtc"));
                 });
 			}
 			
