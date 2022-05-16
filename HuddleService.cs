@@ -47,8 +47,6 @@ namespace Api.Huddles
 			userTypeId = ContentTypes.GetId(typeof(User));
 			_config = GetConfig<HuddleConfig>();
 
-			var slugField = GetChangeField("Slug");
-			
 			Events.Huddle.BeforeCreate.AddEventListener(async (Context ctx, Huddle huddle) =>
 			{
 				if (huddle.EstimatedParticipants <= 0) {
@@ -114,14 +112,14 @@ namespace Api.Huddles
 			});
 
 			// We need to handle some work on before update as well to prevent a case where we get duplicate slugs.
-			Events.Huddle.BeforeUpdate.AddEventListener(async (Context ctx, Huddle huddle) =>
+			Events.Huddle.BeforeUpdate.AddEventListener(async (Context ctx, Huddle huddle, Huddle originalHuddle) =>
 			{
 				if (ctx == null || huddle == null)
                 {
 					return null;
                 }
 
-				if (huddle.HasChanged(slugField))
+				if (huddle.Slug != originalHuddle.Slug)
 				{
 					// Let's check that the slug they are using right now is unique, excluding itself in the check obviously.
 					var isUnique = await IsUniqueHuddleSlug(ctx, huddle.Slug, huddle.Id);
@@ -131,7 +129,6 @@ namespace Api.Huddles
 					{
 						//Nope! We need to replace it with a unique one. They can remodify it again if they aren't happy with their newly generated slug.
 						huddle.Slug = await GenerateUniqueHuddleSlug(ctx);
-						huddle.MarkChanged(slugField);
 					}
 				}
 

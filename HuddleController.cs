@@ -137,9 +137,6 @@ namespace Api.Huddles
 				var userService = Services.Get<UserService>();
 				var huddleService = Services.Get<HuddleService>();
 
-				var inMeetingAndLastHuddleId = userService.GetChangeField("InMeeting").And("LastJoinedHuddleId");
-				var usersInMeeting = huddleService.GetChangeField("UsersInMeeting");
-
 				// Very commonly just one update in this.
 				foreach (var userState in userStates.Users)
 				{
@@ -190,12 +187,16 @@ namespace Api.Huddles
 
 						if (user != null)
 						{
-							if(await userService.StartUpdate(context, user, DataOptions.IgnorePermissions)){
-								user.InMeeting = true;
-								user.LastJoinedHuddleId = userState.HuddleId;
-								user.MarkChanged(inMeetingAndLastHuddleId);
-								await userService.FinishUpdate(context, user);
+							var userToUpdate = await userService.StartUpdate(context, user, DataOptions.IgnorePermissions);
+
+							if (userToUpdate != null)
+							{
+								userToUpdate.InMeeting = true;
+								userToUpdate.LastJoinedHuddleId = userState.HuddleId;
+
+								userToUpdate = await userService.FinishUpdate(context, userToUpdate, user);
 							}
+
 						}
 					}
 					else
@@ -214,12 +215,14 @@ namespace Api.Huddles
 
 							if (user != null)
 							{
-								if (await userService.StartUpdate(context, user, DataOptions.IgnorePermissions))
+								var userToUpdate = await userService.StartUpdate(context, user, DataOptions.IgnorePermissions);
+
+								if (userToUpdate != null)
 								{
-									user.InMeeting = false;
-									user.LastJoinedHuddleId = 0;
-									user.MarkChanged(inMeetingAndLastHuddleId);
-									await userService.FinishUpdate(context, user);
+									userToUpdate.InMeeting = false;
+									userToUpdate.LastJoinedHuddleId = 0;
+
+									userToUpdate = await userService.FinishUpdate(context, userToUpdate, user);
 								}
 							}
 						}
@@ -230,11 +233,13 @@ namespace Api.Huddles
 						// Update the huddle - get # of users currently in it:
 						var huddle = await huddleService.Get(context, userState.HuddleId, DataOptions.IgnorePermissions);
 
-						if (await huddleService.StartUpdate(context, huddle, DataOptions.IgnorePermissions))
+						var huddleToUpdate = await huddleService.StartUpdate(context, huddle, DataOptions.IgnorePermissions);
+
+						if (huddleToUpdate != null)
 						{
-							huddle.UsersInMeeting += change;
-							huddle.MarkChanged(usersInMeeting);
-							await huddleService.FinishUpdate(context, huddle);
+							huddleToUpdate.UsersInMeeting += change;
+
+							huddleToUpdate = await huddleService.FinishUpdate(context, huddleToUpdate, huddle);
 						}
 					}
 				}

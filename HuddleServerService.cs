@@ -36,7 +36,6 @@ namespace Api.Huddles
 		private Random rand = new Random();
 
 		private HuddleLoadMetricService _loadMetrics;
-		private ComposableChangeField _loadFactorField;
 
 		private ConcurrentDictionary<uint, ServerByRegionSet> _serversByRegion = new ConcurrentDictionary<uint, ServerByRegionSet>();
 
@@ -46,8 +45,6 @@ namespace Api.Huddles
 		public HuddleServerService(HuddleLoadMetricService loadMetrics) : base(Events.HuddleServer)
         {
 			_loadMetrics = loadMetrics;
-
-			_loadFactorField = _loadMetrics.GetChangeField("LoadFactor");
 
 			InstallAdminPages("Huddle Servers", "fa:fa-users", new string[] { "id", "address" });
 			
@@ -65,8 +62,8 @@ namespace Api.Huddles
 					return new ValueTask();
 				}
 			});
-			
-			queryStart = "select HuddleServerId from " + typeof(HuddleLoadMetric).TableName() + 
+
+			queryStart = "select HuddleServerId from " + MySQLSchema.TableName(nameof(HuddleLoadMetric)) + 
 				" where TimeSliceId in (";
 
 			// Local and remote updates should mod the internally cached versions:
@@ -297,7 +294,6 @@ namespace Api.Huddles
 				{
 					await _loadMetrics.Update(context, measurement, (Context ctx, HuddleLoadMetric hlm) => {
 						hlm.LoadFactor += loadFactor;
-						hlm.MarkChanged(_loadFactorField);
 					}, DataOptions.IgnorePermissions);
 				}
 
