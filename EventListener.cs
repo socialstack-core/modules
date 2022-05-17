@@ -48,7 +48,7 @@ namespace Api.Revisions
 			
 				
 				// We've got a revisionable content type. Add a revisions table to the schema:
-
+				var targetEntityName = typeInfo.Name + "_revisions";
 				var targetTableName = MySQLSchema.TableName(typeInfo.Name) + "_revisions";
 				Field idField = null;
 
@@ -117,7 +117,7 @@ namespace Api.Revisions
 				}
 
 				// Add IsDraft column:
-				var isDraft = new Field(typeInfo, targetTableName)
+				var isDraft = new Field(typeInfo, targetEntityName)
 				{
 					Type = isDraftField.FieldType,
 					TargetField = isDraftField,
