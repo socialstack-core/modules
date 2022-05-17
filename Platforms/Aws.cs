@@ -91,9 +91,29 @@ namespace Api.CloudHosts
         /// <exception cref="NotImplementedException"></exception>
         public override async Task<System.IO.Stream> ReadFile(string relativeUrl, bool isPrivate)
         {
+            if (_uploadClient == null)
+            {
+                SetupClient();
+            }
+            
             var key = (isPrivate ? "content-private/" : "content/") + relativeUrl;
             var str = await _uploadClient.GetObjectStreamAsync(_config.S3BucketName, key, null);
             return str;
+        }
+
+        private void SetupClient()
+        {
+            if (_uploadClient == null)
+            {
+                var s3ClientConfig = new AmazonS3Config
+                {
+                    ServiceURL = "https://" + _config.S3ServiceUrl
+                };
+
+                var creds = new Amazon.Runtime.BasicAWSCredentials(_config.S3AccessKey, _config.S3AccessSecret);
+
+                _uploadClient = new AmazonS3Client(creds, s3ClientConfig);
+            }
         }
 
         /// <summary>
@@ -106,19 +126,11 @@ namespace Api.CloudHosts
         /// <returns></returns>
         public override async Task<bool> Upload(Context context, Upload upload, string tempFile, string variantName)
         {
-            if(_uploadClient == null)
-			{
-
-                var s3ClientConfig = new AmazonS3Config
-                {
-                    ServiceURL = "https://"+ _config.S3ServiceUrl
-                };
-
-                var creds = new Amazon.Runtime.BasicAWSCredentials(_config.S3AccessKey, _config.S3AccessSecret);
-
-                _uploadClient = new AmazonS3Client(creds, s3ClientConfig);
+            if (_uploadClient == null)
+            {
+                SetupClient();
             }
-
+            
             try
             {
                 TransferUtility utility = new TransferUtility(_uploadClient);

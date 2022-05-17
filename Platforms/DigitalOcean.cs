@@ -114,6 +114,11 @@ namespace Api.CloudHosts
         /// <exception cref="NotImplementedException"></exception>
         public override async Task<System.IO.Stream> ReadFile(string relativeUrl, bool isPrivate)
         {
+            if (_uploadClient == null)
+            {
+                SetupClient();
+            }
+            
             var key = (isPrivate ? "content-private/" : "content/") + relativeUrl;
             var str = await _uploadClient.GetObjectStreamAsync(_spaceName, key, null);
             return str;
@@ -126,6 +131,20 @@ namespace Api.CloudHosts
         public override string GetContentUrl()
         {
             return _cdnUrl;
+        }
+
+        private void SetupClient()
+        {
+            if (_uploadClient == null)
+            {
+                var s3ClientConfig = new AmazonS3Config
+                {
+                    ServiceURL = _spaceRegionUrl
+                };
+
+                var creds = new Amazon.Runtime.BasicAWSCredentials(_config.SpaceKey, _config.SpaceSecret);
+                _uploadClient = new AmazonS3Client(creds, s3ClientConfig);
+            }
         }
         
         /// <summary>
@@ -140,15 +159,7 @@ namespace Api.CloudHosts
         {
             if(_uploadClient == null)
 			{
-
-                var s3ClientConfig = new AmazonS3Config
-                {
-                    ServiceURL = _spaceRegionUrl
-                };
-
-                var creds = new Amazon.Runtime.BasicAWSCredentials(_config.SpaceKey, _config.SpaceSecret);
-
-                _uploadClient = new AmazonS3Client(creds, s3ClientConfig);
+                SetupClient();
             }
 
             try
