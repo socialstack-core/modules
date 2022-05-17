@@ -22,10 +22,22 @@ namespace Api.Translate
 		public string Code;
 
 		/// <summary>
+		/// Associated flag image representing the locale.
+		/// </summary>
+		[Data("hint", "Associated flag image representing the locale")]
+		public string FlagIconRef;
+
+		/// <summary>
 		/// List of comma seperated aliases for mapping request headers or custom client codes
 		/// </summary>
 		[Data("hint", "List of comma seperated aliases for mapping request headers or custom client codes")]
 		public string Aliases;
-    }
+
+		/// <summary>
+		/// Indicates if the locale is not currently available
+		/// </summary>
+		[Data("hint", "Indicates if the locale is not currently available")]
+		public bool isDisabled;
+	}
 
 }
