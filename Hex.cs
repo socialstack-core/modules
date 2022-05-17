@@ -48,6 +48,24 @@ namespace Api.SocketServerLibrary
 			}
 			return result.ToString();
 		}
+		
+		/// <summary>
+		/// Converts given byte array to hex string.
+		/// </summary>
+		public static string Convert(Span<byte> bytes){
+			int length = bytes.Length;
+			if (length == 0)
+			{
+				return "";
+			}
+			int lengthReq = length * 2;
+			StringBuilder result = new StringBuilder(lengthReq, lengthReq);
+			for (int i = 0; i < length; i++)
+			{
+				result.Append(Lookup[bytes[i]]);
+			}
+			return result.ToString();
+		}
 
 		/// <summary>
 		/// Converts given byte array to hex string, with a separator between the chars.
