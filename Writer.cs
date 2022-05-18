@@ -1850,6 +1850,25 @@ namespace Api.SocketServerLibrary
 
 			return result;
 		}
+		
+		/// <summary>
+		/// Allocates the complete chain of buffers as a byte array.
+		/// Avoid unless necessary.
+		/// </summary>
+		public System.IO.MemoryStream AllocateMemoryStream()
+		{
+			var ms = new System.IO.MemoryStream(Length);
+			var currentBuffer = FirstBuffer;
+
+			while (currentBuffer != null)
+			{
+				var blockSize = (currentBuffer == LastBuffer) ? Fill : currentBuffer.Length;
+				ms.Write(currentBuffer.Bytes, currentBuffer.Offset, blockSize);
+				currentBuffer = currentBuffer.After;
+			}
+
+			return ms;
+		}
 
 		/// <summary>
 		/// Copies this writer result to the given stream.
