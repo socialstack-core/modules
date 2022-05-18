@@ -22,13 +22,23 @@ public partial class BlockChain
 	/// </summary>
 	private CacheSet[] _caches;
 
+	private Dictionary<string, AutoServiceMeta> _serviceMeta;
+
+	/// <summary>
+	/// Sets up the service metadata for this chain such that caches can be pre-generated.
+	/// </summary>
+	/// <param name="serviceMeta"></param>
+	public void SetServiceMeta(Dictionary<string, AutoServiceMeta> serviceMeta)
+	{
+		_serviceMeta = serviceMeta;
+	}
+
 	/// <summary>
 	/// Gets the cache set for the given definition.
 	/// </summary>
 	/// <param name="definition"></param>
-	/// <param name="serviceMeta"></param>
 	/// <returns></returns>
-	public CacheSet GetCacheForDefinition(Definition definition, Dictionary<string, AutoServiceMeta> serviceMeta)
+	public CacheSet GetCacheForDefinition(Definition definition)
 	{
 		var defId = (int)definition.Id;
 		defId -= (int)(Lumity.BlockChains.Schema.ArchiveDefId + 1); // First defId through here should be 0.
@@ -68,20 +78,20 @@ public partial class BlockChain
 				// Lookup the type names.
 				if (typeNames.Length == 2)
 				{
-					var srcType = GetMeta(typeNames[0], serviceMeta);
-					var dstType = GetMeta(typeNames[1], serviceMeta);
+					var srcType = GetMeta(typeNames[0], _serviceMeta);
+					var dstType = GetMeta(typeNames[1], _serviceMeta);
 
 					if (srcType != null && dstType != null)
 					{
 						// Create the mapping type:
-						GenerateMappingMeta(srcType.IdType, dstType.IdType, definition.Name, serviceMeta, defId);
+						GenerateMappingMeta(srcType.IdType, dstType.IdType, definition.Name, _serviceMeta, defId);
 					}
 				}
 			}
 			else
 			{
 				// Lookup the type with name definition.Name
-				var meta = GetMeta(definition.Name, serviceMeta);
+				var meta = GetMeta(definition.Name, _serviceMeta);
 
 				if (meta != null)
 				{
