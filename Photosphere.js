@@ -307,14 +307,17 @@ export default class Photosphere extends React.Component {
 		// +ve x is west
 		
 		// Is it a video?
-		var imgUrlLoad = getRef(props.imageRef, {url: true, size: '512'});
-		var imgUrl = props.videoRef ? null : getRef(props.imageRef, {url: true, size: 'original'});
+		this.videoRef = props.videoRef || (getRef.isVideo(props.imageRef) ? props.imageRef : null);
+		this.imageRef = this.videoRef ? null : props.imageRef;
+		
+		var imgUrlLoad = getRef(this.imageRef , {url: true, size: '512'});
+		var imgUrl = this.videoRef ? null : getRef(this.imageRef, {url: true, size: 'original'});
 		var material = this.material;
 		
 		try{
 			var vt = this.videoTex;
 			this.videoTex = null;
-			if(vt && !props.videoRef){
+			if(vt && !this.videoRef){
 				vt.dispose();
 			}
 		}catch(e){
@@ -425,7 +428,7 @@ export default class Photosphere extends React.Component {
 					<div ref={this.set3DRef} style={{overflow: 'hidden', position: 'absolute', top: '0px', left: '0px', width, height}} onMouseDown={this.onMouseDown} onMouseMove={this.onMouseMove} onTouchStart={this.onTouchStart} onTouchMove={this.onTouchMove}>
 						{this.props.children}
 					</div>
-					{this.props.videoRef && <HlsVideo style={{display: 'none'}} videoRef={this.props.videoRef} autoplay loop={this.props.loop} onEnded={this.props.onVideoEnded} onProgress={this.props.onVideoProgress} onVideo={videoEl => {
+					{this.videoRef && <HlsVideo style={{display: 'none'}} videoRef={this.videoRef} autoplay loop={this.props.loop} onEnded={this.props.onVideoEnded} onProgress={this.props.onVideoProgress} onVideo={videoEl => {
 						
 						if(!videoEl){
 							return;
