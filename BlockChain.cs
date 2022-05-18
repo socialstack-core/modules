@@ -3,6 +3,9 @@ using System.Collections.Generic;
 using System.Threading.Tasks;
 using System;
 using System.IO;
+using Api.SocketServerLibrary.Crypto;
+using Org.BouncyCastle.Crypto.Signers;
+using Org.BouncyCastle.Math;
 
 namespace Lumity.BlockChains;
 
@@ -59,13 +62,18 @@ public partial class BlockChain
 	private object _pendingQueue = new object();
 
 	/// <summary>
-	/// The current waiting transaction.
+	/// The current waiting transaction. Transactions are generally removed here (never added to the front).
 	/// </summary>
 	public PendingTransaction FirstPendingTransaction;
 	/// <summary>
-	/// The last waiting transaction.
+	/// The last waiting transaction. Transactions are added here.
 	/// </summary>
 	public PendingTransaction LastPendingTransaction;
+
+	/// <summary>
+	/// The TransactionReader type to use. If not specified, a default TransactionReader is used.
+	/// </summary>
+	public Type _readerType;
 
 	/// <summary>
 	/// Converts the given timestamp to a DateTime (UTC).
@@ -81,6 +89,84 @@ public partial class BlockChain
 		var ticks = Project.TimestampTickOffset + (long)stamp;
 
 		return new DateTime((long)ticks, DateTimeKind.Utc);
+	}
+
+	/// <summary>
+	/// Called once a second to perform any housekeeping tasks.
+	/// </summary>
+	/// <param name="timestamp">Timestamp in the chains precision (ns).</param>
+	public void Update(ulong timestamp)
+	{
+		// Clear any pendings that have been waiting too long:
+		var pending = FirstPendingTransaction;
+		ulong noEarlierThan;
+
+		if (pending != null)
+		{
+			var waitTimeInNs = Project.MaxTransactionWaitTimeMs * 1000000;
+			noEarlierThan = timestamp - waitTimeInNs;
+
+			// The ones at the front of the q have been waiting longest
+			// So if its time is ok, we can just break out of the loop and not check others.
+			PendingTransaction previous = null;
+
+			while (pending != null)
+			{
+				if (pending.Timestamp > noEarlierThan)
+				{
+					// It's not been waiting that long, thus also nothing after it has. Stop there.
+					break;
+				}
+
+				// Remove this pending txn.
+				PendingTransaction next;
+
+				lock (_pendingQueue)
+				{
+					// Get next again, it may have had another txn added to it:
+					next = pending.Next;
+
+					if (next == null)
+					{
+						// It was the last one.
+						LastPendingTransaction = previous;
+					}
+
+					if (previous == null)
+					{
+						// It was the first one.
+						FirstPendingTransaction = next;
+					}
+					else
+					{
+						previous.Next = next;
+					}
+				}
+				
+				pending.TransactionId = 0;
+				pending.Valid = false;
+				pending.RelevantObject = null;
+				pending.Done();
+
+				previous = pending;
+				pending = next;
+			}
+		}
+
+		// If the last block boundary was >30s ago and we have >0 txns written since it, output a boundary.
+		if (Project.IsAssembler && HasTransactionsInBlock && LastBlockBoundaryTimestamp != 0)
+		{
+			noEarlierThan = timestamp - MaxTicksPerBlock;
+
+			if (LastBlockBoundaryTimestamp < noEarlierThan)
+			{
+				// To make sure that the offset is correct, we need to lock the queue whilst the boundary is added.
+				// The best way to achieve that is for addBuffers to add the boundary internally, minimising the lock time required.
+				// The queue could be null though so to ensure that some queue processing occurs, we pass through an empty buffer.
+				var emptyBuffer = new BufferedBytes(Array.Empty<byte>(), 0, null);
+				AddBuffers(Timestamp, emptyBuffer, emptyBuffer);
+			}
+		}
 	}
 
 	/// <summary>
@@ -103,6 +189,28 @@ public partial class BlockChain
 		lock (_tsLock)
 		{
 			latestTimestamp = result;
+		}
+	}
+
+	/// <summary>
+	/// The textual chain type name.
+	/// </summary>
+	public string ChainTypeName
+	{
+		get {
+			switch (ChainType)
+			{
+				case ChainType.Public:
+					return "public";
+				case ChainType.Private:
+					return "private";
+				case ChainType.PublicHost:
+					return "public-host";
+				case ChainType.PrivateHost:
+					return "private-host";
+			}
+
+			return null;
 		}
 	}
 
@@ -151,6 +259,22 @@ public partial class BlockChain
 	public string File;
 
 	/// <summary>
+	/// True if there is at least 1 transaction in the current block.
+	/// </summary>
+	public bool HasTransactionsInBlock;
+
+	/// <summary>
+	/// The current length of the blockchain. This is essentially the transaction ID of the next txn on the chain.
+	/// </summary>
+	private long WriteFileOffset;
+
+	/// <summary>
+	/// The timestamp when the last block header occurred, or the first timestamp in the chain.
+	/// If a transaction being added results in this being >30s ago, a header is added effectively completing a block.
+	/// </summary>
+	public ulong LastBlockBoundaryTimestamp;
+
+	/// <summary>
 	/// File containing shortform schema. (.lbs)
 	/// </summary>
 	public string SchemaFile;
@@ -171,30 +295,91 @@ public partial class BlockChain
 	public BlockChain RelativeTo;
 
 	/// <summary>
+	/// The CDN path for the blocks of this chain. e.g. "aaaaaaaa/public-host/block"
+	/// </summary>
+	private string _blockCdnPath;
+	
+	/// <summary>
+	/// The CDN path for the blocks of this chain. e.g. "aaaaaaaa/public-host/block"
+	/// </summary>
+	private string _fileCdnPath;
+
+	/// <summary>
+	/// A callback which occurs when a reader has been created.
+	/// </summary>
+	private Action<TransactionReader> _onReaderCreated;
+
+	/// <summary>
+	/// The CDN path for the blocks of this chain. e.g. "aaaaaaaa/public-host/block"
+	/// </summary>
+	public string BlockCdnPath
+	{
+		get {
+			if (_blockCdnPath == null)
+			{
+				_blockCdnPath = Project.PublicHash.ToLower() + "/" + ChainTypeName + "/block";
+			}
+
+			return _blockCdnPath;
+		}
+	}
+	
+	/// <summary>
+	/// The CDN path for the side files of this chain. e.g. "aaaaaaaa/public-host/file"
+	/// </summary>
+	public string FileCdnPath
+	{
+		get {
+			if (_fileCdnPath == null)
+			{
+				_fileCdnPath = Project.PublicHash.ToLower() + "/" + ChainTypeName + "/file";
+			}
+
+			return _fileCdnPath;
+		}
+	}
+
+	/// <summary>
 	/// Creates a blockchain info handler for the given file path.
 	/// </summary>
 	/// <param name="project"></param>
 	/// <param name="file"></param>
 	/// <param name="type"></param>
+	/// <param name="onReaderCreated">A callback which runs when a reader is created. Use this to initialise any custom state within the reader itself.</param>
+	/// <param name="readerType">A type which inherits TransactionReader. Is used when reading and validating the txns on this chain.</param>
 	/// <param name="relativeTo">A chain that this one is relative to. This is used when a chain gets its schema exclusively from some other chain.
 	/// Private chains generally derive their schema from their public counterpart, i.e. if you are using a private chain type, this field is likely required.</param>
-	public BlockChain(BlockChainProject project, string file, ChainType type, BlockChain relativeTo = null)
+	public BlockChain(BlockChainProject project, string file, ChainType type, Type readerType, Action<TransactionReader> onReaderCreated = null, BlockChain relativeTo = null)
 	{
 		Project = project;
 		File = file;
 		ChainType = type;
 		IsPrivate = ((int)ChainType & 2) == 2;
 		RelativeTo = relativeTo;
+		_onReaderCreated = onReaderCreated;
+		_readerType = readerType == null ? typeof(TransactionReader) : readerType;
+	}
 
+	private TransactionReader CreateReader()
+	{
+		var txObj = Activator.CreateInstance(_readerType);
+		var txReader = (TransactionReader)txObj;
 
+		if (_onReaderCreated != null)
+		{
+			_onReaderCreated(txReader);
+		}
 
+		return txReader;
 	}
 
 	/// <summary>
 	/// Loads or sets up the schema.
 	/// </summary>
-	public void LoadOrCreate(Func<TransactionReader, bool> onTransaction)
+	public void LoadOrCreate(Action<TransactionReader> onTransaction = null)
 	{
+		// Next, whenever the callback is executed, we can update the digest with additional bytes.
+
 		if (RelativeTo != null)
 		{
 			// This chain derives its schema from the given (usually public type) chain.
@@ -203,26 +388,45 @@ public partial class BlockChain
 			if (!FileExists())
 			{
 				Directory.CreateDirectory(Path.GetDirectoryName(File));
-				System.IO.File.Create(File);
+				WriteFileOffset = 0;
 			}
+			else
+			{
+				// Set up the length:
+				WriteFileOffset = new System.IO.FileInfo(File).Length;
+			}
+
+			// Load the transactions:
+			LoadForwards(onTransaction, false);
+
+			// Setup initial write digest:
+			_writeDigest = _txReader.CopyDigest();
 		}
 		else if (FileExists())
 		{
-			// Load the schema:
+			// Set up the length:
+			WriteFileOffset = new System.IO.FileInfo(File).Length;
+
+			// Load the transactions:
 			LoadForwards(onTransaction, true);
+
+			// Setup initial write digest:
+			_writeDigest = _txReader.CopyDigest();
 		}
 		else
 		{
+			// Initial length:
+			WriteFileOffset = 0;
+
 			// Write the schema:
-			WriteSchema();
+			WriteInitialChain(onTransaction);
 		}
 	}
 
 	/// <summary>
 	/// Transactions added to this chain will trigger the given reader event. Call this after you have loaded at least once (or you know the file was empty).
 	/// </summary>
-	/// <param name="onTransaction"></param>
-	public void Watch(Func<TransactionReader, bool> onTransaction)
+	public void Watch()
 	{
 		_isWatching = true;
 
@@ -230,15 +434,24 @@ public partial class BlockChain
 		// as that provides an important but small piece of state, the blockchainOffset.
 		if (_txReader == null)
 		{
-			// Must get the file length:
+			throw new Exception("Current limitation of watch: must call readForward first. This ensures the state of the signatures etc is valid.");
+			// Future: Pass in the previous block hash.
+
+			/*
+			 // Must get the file length:
 			var blockchainOffset = new System.IO.FileInfo(File).Length;
-			_txReader = new TransactionReader(Schema, this, onTransaction, (ulong)blockchainOffset) { UpdateSchema = true };
+			_txReader = CreateReader();
+			_txReader.Init(Schema, this, onTransaction, (ulong)blockchainOffset);
+			_txReader.UpdateSchema = true;
+
+			_txReader.SetupPreviousBlock
+
 			_txReader.ResetState();
+			 */
 		}
-		else
-		{
-			_txReader.SetCallback(onTransaction);
-		}
+
+		// Set the initial # of txns sitting in the block:
+		HasTransactionsInBlock = _txReader.TransactionsInBlockSoFar != 0;
 	}
 
 	/// <summary>
@@ -248,17 +461,6 @@ public partial class BlockChain
 	public bool FileExists()
 	{
 		return System.IO.File.Exists(File);
-	}
-
-	/// <summary>
-	/// Creates the chain file if it doesn't exist yet. Usually do this after you have created an initial schema.
-	/// </summary>
-	public void CreateIfNotExists()
-	{
-		if (!FileExists())
-		{
-			WriteSchema();
-		}
 	}
 
 	/// <summary>
@@ -281,20 +483,21 @@ public partial class BlockChain
 			// Add buffers straight to the chain file.
 			// This may happen instantly, or it might be delayed.
 			// Either way when it completes, the pending transaction object will be marked Done.
-			AddBuffers(first, last);
+			AddBuffers(timestamp, first, last);
+		}
+		else
+		{
+			// Submit the buffers to the remote BAS now.
+			#warning todo - send buffers to remote BAS.
 		}
 
-		// TODO: If node == self, check for pending txn and .Done(); it.
-
 		// Wait for the pending transaction.
-		// If the buffers were added immediately, which is very common on single instance sites, this completes synch (as a ValueTask).
+		// If the buffers were added immediately, which is very common on single instance sites, this completes sync (as a ValueTask).
 		await pending;
 
 		var relevant = pending.RelevantObject;
 		var txnId = pending.TransactionId;
 		var valid = pending.Valid;
-
-		Console.WriteLine("Pending transaction completed and had the following ID: " + txnId);
 
 		pending.Release();
 
@@ -306,13 +509,27 @@ public partial class BlockChain
 	}
 
 	/// <summary>
-	/// Writes the schema to the chain file
+	/// Writes the initial schema to the chain file
 	/// </summary>
-	public void WriteSchema()
+	public void WriteInitialChain(Action<TransactionReader> onTransaction = null)
 	{
-		if (Schema.Definitions.Count == 0)
+		var _schemaToWrite = onTransaction == null ? Schema : new Schema();
+
+		_schemaToWrite.CreateDefaults();
+
+		// Create Sha3 hash of the public key and chain type:
+		_writeDigest = new Sha3Digest();
+
+		Span<byte> blockHash = stackalloc byte[32];
+		GetInitialHash(blockHash);
+
+		// Console.WriteLine("Write started with hash: " + Hex.Convert(blockHash.ToArray()));
+
+		// Initialise the digest with the hash:
+
+		for (var i = 0; i < 32; i++)
 		{
-			Schema.CreateDefaults();
+			_writeDigest.Update(blockHash[i]);
 		}
 
 		var writer = Writer.GetPooled();
@@ -322,13 +539,92 @@ public partial class BlockChain
 		var timestamp = Timestamp;
 
 		// Write schema to writer:
-		Schema.Write(writer, timestamp);
+		_schemaToWrite.Write(writer, timestamp);
 
-		// Write to file:
+		// If it's the public project chain, create a project public key now:
+		if (ChainType == ChainType.Public && Project != null)
+		{
+			// Write the public key to the chain:
+
+			// Chain meta:
+			writer.WriteInvertibleCompressed(4);
+
+			writer.WriteInvertibleCompressed(2);
+
+			// Timestamp:
+			writer.WriteInvertibleCompressed(Schema.TimestampDefId);
+			writer.WriteInvertibleCompressed(timestamp);
+			writer.WriteInvertibleCompressed(Schema.TimestampDefId);
+
+			// PublicKey:
+			writer.WriteInvertibleCompressed(Schema.PublicKeyDefId);
+			writer.WriteInvertible(Project.PublicKey);
+			writer.WriteInvertibleCompressed(Schema.PublicKeyDefId);
+
+			// Field count again (for readers travelling backwards):
+			writer.WriteInvertibleCompressed(2);
+
+			// Chain meta again (for readers travelling backwards):
+			writer.WriteInvertibleCompressed(4);
+		}
+
+		// Make sure directory exists:
 		Directory.CreateDirectory(Path.GetDirectoryName(File));
-		System.IO.File.WriteAllBytes(File, writer.AllocatedResult());
 
+		var result = writer.AllocatedResult();
+
+		// Release the writer:
 		writer.Release();
+
+		// Write the bytes:
+		System.IO.File.WriteAllBytes(File, result);
+
+		WriteFileOffset = result.Length;
+
+		_writeDigest.BlockUpdate(result, 0, result.Length);
+
+		// Ensure we call the callback (if there is one) for this block:
+		if (onTransaction != null)
+		{
+			var txReader = CreateReader();
+			txReader.Init(Schema, this, onTransaction);
+			txReader.UpdateSchema = true;
+
+			Span<byte> initialHash = stackalloc byte[32];
+			GetInitialHash(initialHash);
+
+			// Set the initial hash:
+			txReader.SetupPreviousBlock(initialHash);
+
+			txReader.ProcessBlock(new BufferedBytes() {
+				Bytes = result,
+				Length = result.Length,
+				Offset = 0
+			});
+
+			if (_txReader == null)
+			{
+				_txReader = txReader;
+			}
+		}
+	}
+
+	/// <summary>
+	/// Generates the initial project hash and puts it into the given 32 byte span.
+	/// </summary>
+	/// <param name="outputHash"></param>
+	public void GetInitialHash(Span<byte> outputHash)
+	{
+		var firstHash = new Sha3Digest();
+
+		// Initialise it with a hash of the project public key. Use readDigest to calc the hash itself:
+		firstHash.BlockUpdate(Project.PublicKey, 0, Project.PublicKey.Length);
+
+		// Textual chain type as well:
+		var asciiBytes = System.Text.Encoding.ASCII.GetBytes(ChainTypeName);
+		firstHash.BlockUpdate(asciiBytes, 0, asciiBytes.Length);
+
+		firstHash.DoFinal(outputHash, 0);
 	}
 
 	/// <summary>
@@ -345,8 +641,13 @@ public partial class BlockChain
 		// Chain meta:
 		writer.WriteInvertibleCompressed(4);
 
-		writer.WriteInvertibleCompressed(2);
+		writer.WriteInvertibleCompressed(3);
 
+		// The node ID (can be 0 at the start of the chain). As it is a special field it must occur before timestamp:
+		writer.WriteInvertibleCompressed(Schema.NodeId);
+		writer.WriteInvertibleCompressed(Project.SelfNodeId);
+		writer.WriteInvertibleCompressed(Schema.NodeId);
+		
 		// Timestamp:
 		writer.WriteInvertibleCompressed(Schema.TimestampDefId);
 		writer.WriteInvertibleCompressed(timestamp);
@@ -358,7 +659,7 @@ public partial class BlockChain
 		writer.WriteInvertibleCompressed(Schema.AssemblerDefId);
 
 		// Field count again (for readers travelling backwards):
-		writer.WriteInvertibleCompressed(2);
+		writer.WriteInvertibleCompressed(3);
 
 		// Chain meta again (for readers travelling backwards):
 		writer.WriteInvertibleCompressed(4);
@@ -375,8 +676,6 @@ public partial class BlockChain
 
 		var result = await Write(timestamp, first, last);
 		
-		writer.Release();
-
 		return result;
 	}
 
@@ -397,15 +696,51 @@ public partial class BlockChain
 	private bool _isWatching;
 
 	/// <summary>
-	/// Loads from the file now in the forwards direction.
+	/// Finds blocks in the chain, invoking the given async callback when they are discovered.
 	/// </summary>
-	public void LoadForwards(Func<TransactionReader, bool> onTransaction, bool updateSchema = false)
+	public async ValueTask FindBlocks(Func<Writer, ulong, ValueTask> onFoundBlock, ulong blockchainOffset = 0, ulong currentBlockId = 1)
 	{
 		var fs = new FileStream(File, FileMode.OpenOrCreate, FileAccess.Read, FileShare.ReadWrite, 0, true);
 
-		var txReader = new TransactionReader(Schema, this, onTransaction){ UpdateSchema = updateSchema };
+		// Assuming str is the complete chain:
+		fs.Seek((long)blockchainOffset, SeekOrigin.Begin);
 
-		if (_txReader == null)
+		var txReader = CreateReader();
+		txReader.Init(Schema, this, null);
+		txReader.UpdateSchema = false;
+
+		await txReader.FindBlocks(fs, onFoundBlock, blockchainOffset, currentBlockId);
+
+		fs.Close();
+	}
+
+	/// <summary>
+	/// Loads from the file now in the forwards direction.
+	/// </summary>
+	public void LoadForwards(Action<TransactionReader> onTransaction = null, bool updateSchema = false, bool checkHashes = true, bool reuseReaderForWatch = true, ulong byteOffset = 0)
+	{
+		var fs = new FileStream(File, FileMode.OpenOrCreate, FileAccess.Read, FileShare.ReadWrite, 0, true);
+
+		var txReader = CreateReader();
+		txReader.Init(Schema, this, onTransaction);
+		txReader.UpdateSchema = updateSchema;
+
+		if (checkHashes)
+		{
+			// Starts from 0:
+			Span<byte> initialHash = stackalloc byte[32];
+			GetInitialHash(initialHash);
+
+			// Set the initial hash:
+			txReader.SetupPreviousBlock(initialHash);
+		}
+		else
+		{
+			// Setup the read state:
+			txReader.StartReadForwards(byteOffset);
+		}
+
+		if (reuseReaderForWatch && _txReader == null)
 		{
 			_txReader = txReader;
 		}
@@ -414,15 +749,16 @@ public partial class BlockChain
 
 		fs.Close();
 	}
-
+	
 	/// <summary>
 	/// Loads from the file now in the backwards direction.
 	/// </summary>
-	public void LoadBackwards(Func<TransactionReader, bool> onTransaction)
+	public void LoadBackwards(Action<TransactionReader> onTransaction)
 	{
 		var fs = new FileStream(File, FileMode.OpenOrCreate, FileAccess.Read, FileShare.ReadWrite, 0, true);
 
-		var txReader = new TransactionReader(Schema, this, onTransaction);
+		var txReader = CreateReader();
+		txReader.Init(Schema, this, onTransaction);
 
 		txReader.StartReadBackwards(fs);
 
@@ -445,9 +781,9 @@ public partial class BlockChain
 		writer.WriteInvertibleCompressed(2);
 
 		// Timestamp:
-		var now = Timestamp;
+		var timestamp = Timestamp;
 		writer.WriteInvertibleCompressed(Schema.TimestampDefId);
-		writer.WriteInvertibleCompressed(now);
+		writer.WriteInvertibleCompressed(timestamp);
 		writer.WriteInvertibleCompressed(Schema.TimestampDefId);
 
 		writer.WriteInvertibleCompressed(Schema.NameDefId);
@@ -470,7 +806,7 @@ public partial class BlockChain
 		// Release the writer:
 		writer.Release();
 
-		AddBuffers(first, last);
+		AddBuffers(timestamp, first, last);
 
 		// AddBuffers doesn't update the schema so define there as well:
 		var addedToSchema = Schema.Define(name);
@@ -497,9 +833,8 @@ public partial class BlockChain
 	/// Gets a definition or defines it if it didn't exist.
 	/// </summary>
 	/// <param name="name"></param>
-	/// <param name="inheritId"></param>
 	/// <returns></returns>
-	public async ValueTask<Definition> Define(string name, ulong inheritId = 3)
+	public async ValueTask<Definition> Define(string name)
 	{
 		// Write the transaction:
 		var writer = Writer.GetPooled();
@@ -508,11 +843,16 @@ public partial class BlockChain
 		// Current unique time stamp:
 		var timestamp = Timestamp;
 
-		// Creating a thing of the inherited ID:
-		writer.WriteInvertibleCompressed(inheritId);
+		// Creating a definition:
+		writer.WriteInvertibleCompressed(3);
 
-		// 2 fields:
-		writer.WriteInvertibleCompressed(2);
+		// 3 fields:
+		writer.WriteInvertibleCompressed(3);
+
+		// The node ID (can be 0 at the start of the chain). As it is a special field it must occur before timestamp:
+		writer.WriteInvertibleCompressed(Schema.NodeId);
+		writer.WriteInvertibleCompressed(Project.SelfNodeId);
+		writer.WriteInvertibleCompressed(Schema.NodeId);
 
 		// Timestamp:
 		writer.WriteInvertibleCompressed(Schema.TimestampDefId);
@@ -524,9 +864,9 @@ public partial class BlockChain
 		writer.WriteInvertibleUTF8(name);
 		writer.WriteInvertibleCompressed(Schema.NameDefId);
 
-		// 2 fields (again, for readers going backwards):
-		writer.WriteInvertibleCompressed(2);
-		writer.WriteInvertibleCompressed(inheritId);
+		// 3 fields (again, for readers going backwards):
+		writer.WriteInvertibleCompressed(3);
+		writer.WriteInvertibleCompressed(3);
 
 		var first = writer.FirstBuffer;
 		var last = writer.LastBuffer;
@@ -540,9 +880,13 @@ public partial class BlockChain
 
 		var result = await Write(timestamp, first, last);
 
-		// The above write might have updated the schema on its own.
-		#warning unhealthy assumption:
-		return Schema.FindDefinition(name);
+		if (!result.Valid)
+		{
+			return null;
+		}
+
+		// The relevant object is the new definition in the schema:
+		return result.RelevantObject as Definition;
 	}
 
 	/// <summary>
@@ -556,27 +900,57 @@ public partial class BlockChain
 	/// <returns></returns>
 	public void UpdatePending(ulong timestamp, ulong transactionId, ulong nodeId, object relevantObject, bool valid)
 	{
-		#warning todo: This only happens if NodeId == Self.
-
-		/* if (nodeId != Project.SelfNodeId)
+		// Note that if this is the node which is setting up the chain, they can both be zero. This is fine.
+		// During the initial loading of the chain, the self node ID can be zero when it technically could be known - this is also fine.
+		if (nodeId != Project.SelfNodeId)
 		{
+			// Console.WriteLine("Ignoring an update from some other node " + nodeId + ", " + Project.SelfNodeId);
 			return;
-		}*/
+		}
 
 		var current = FirstPendingTransaction;
+		PendingTransaction previous = null;
 
 		while (current != null)
 		{
+			var next = current.Next;
+
 			if (current.Timestamp == timestamp)
 			{
-				// Found it!
+				// Found it! remove from this q:
+				lock (_pendingQueue)
+				{
+					// Get next again, it may have had another txn added to it:
+					next = current.Next;
+
+					if (next == null)
+					{
+						// It was the last one.
+						LastPendingTransaction = previous;
+					}
+
+					if (previous == null)
+					{
+						// It was the first one.
+						FirstPendingTransaction = next;
+					}
+					else
+					{
+						previous.Next = next;
+					}
+				}
+
+				current.Next = null;
 				current.TransactionId = transactionId;
 				current.Valid = valid;
 				current.RelevantObject = relevantObject;
 				current.Done();
+
 				return;
 			}
-			current = current.Next;
+
+			previous = current;
+			current = next;
 		}
 	}
 
@@ -646,8 +1020,14 @@ public partial class BlockChain
 		// Entity create tx:
 		writer.WriteInvertibleCompressed(2);
 
-		writer.WriteInvertibleCompressed(3);
+		// Field count:
+		writer.WriteInvertibleCompressed(4);
 
+		// The node ID (can be 0 at the start of the chain). As it is a special field it must occur before timestamp:
+		writer.WriteInvertibleCompressed(Schema.NodeId);
+		writer.WriteInvertibleCompressed(Project.SelfNodeId);
+		writer.WriteInvertibleCompressed(Schema.NodeId);
+		
 		// Timestamp:
 		writer.WriteInvertibleCompressed(Schema.TimestampDefId);
 		writer.WriteInvertibleCompressed(timestamp);
@@ -664,7 +1044,7 @@ public partial class BlockChain
 		writer.WriteInvertibleCompressed(Schema.DataTypeDefId);
 
 		// Field count again (for readers travelling backwards):
-		writer.WriteInvertibleCompressed(3);
+		writer.WriteInvertibleCompressed(4);
 
 		// Entity create again (for readers travelling backwards):
 		writer.WriteInvertibleCompressed(2);
@@ -681,8 +1061,12 @@ public partial class BlockChain
 
 		var result = await Write(timestamp, first, last);
 
-		#warning also unhealthy assumption!
-		return Schema.FindField(name, type);
+		if (!result.Valid)
+		{
+			return null;
+		}
+
+		return result.RelevantObject as FieldDefinition;
 	}
 
 	/// <summary>
@@ -696,7 +1080,7 @@ public partial class BlockChain
 		var writer = Writer.GetPooled();
 		writer.Start(null);
 
-		var now = Timestamp;
+		var timestamp = Timestamp;
 
 		// Create a buffer which will be written out repeatedly:
 
@@ -708,7 +1092,7 @@ public partial class BlockChain
 
 		// Timestamp:
 		writer.WriteInvertibleCompressed(Schema.TimestampDefId);
-		writer.WriteInvertibleCompressed(now);
+		writer.WriteInvertibleCompressed(timestamp);
 		writer.WriteInvertibleCompressed(Schema.TimestampDefId);
 
 		// 1 field (for readers going backwards):
@@ -735,7 +1119,7 @@ public partial class BlockChain
 		// Release the writer:
 		writer.Release();
 
-		AddBuffers(first, last);
+		AddBuffers(timestamp, first, last);
 	}
 
 	/// <summary>
@@ -774,15 +1158,162 @@ public partial class BlockChain
 	private byte[] _writeBuffer;
 
 	/// <summary>
+	/// Max number of ticks per block. Timestamps are in nanoseconds, and the default is 30s.
+	/// </summary>
+	public const ulong MaxTicksPerBlock = (ulong)1000000000 * 5; // 30;
+
+	private object _blockHeaderLock = new object();
+
+	private Sha3Digest _writeDigest = null;
+
+	private Writer BuildBlockBoundary(ulong timestamp, long byteOffset, bool isFirstBlock, bool updateDigest = false)
+	{
+		// Generate and append a block header.
+		var writer = Writer.GetPooled();
+		writer.Start(null);
+
+		// Block boundary txn:
+		writer.WriteInvertibleCompressed(Schema.BlockBoundaryDefId);
+
+		// 4 fields:
+		writer.WriteInvertibleCompressed(4);
+
+		// The node ID (can be 0 at the start of the chain). As it is a special field it must occur before timestamp:
+		writer.WriteInvertibleCompressed(Schema.NodeId);
+		writer.WriteInvertibleCompressed(Project.SelfNodeId);
+		writer.WriteInvertibleCompressed(Schema.NodeId);
+		
+		// Timestamp:
+		writer.WriteInvertibleCompressed(Schema.TimestampDefId);
+		writer.WriteInvertibleCompressed(timestamp);
+		writer.WriteInvertibleCompressed(Schema.TimestampDefId);
+
+		// ByteOffset:
+		writer.WriteInvertibleCompressed(Schema.ByteOffsetDefId);
+		writer.WriteInvertibleCompressed((ulong)byteOffset);
+		writer.WriteInvertibleCompressed(Schema.ByteOffsetDefId);
+
+		// The field ID for the signature is included in the hash:
+		writer.WriteInvertibleCompressed(Schema.SignatureDefId);
+
+		// ---------- End of hash for signature region -----------
+
+		// Thus, apply it to the digest:
+		var writerBuffer = writer.FirstBuffer;
+		var offset = writerBuffer.Offset;
+		var handledUpTo = writer.CurrentFill;
+		_writeDigest.BlockUpdate(writerBuffer.Bytes, offset, handledUpTo - offset);
+
+		// Get the pre-signed block hash:
+		Span<byte> blockHash = stackalloc byte[32];
+		_writeDigest.DoFinal(blockHash, 0);
+
+		// Console.WriteLine("[SIGN] Block #x pre-sig hash: " + Hex.Convert(blockHash.ToArray()));
+
+		// Note: The rolling digest was Reset internally DoFinal.
+
+		// Sign the hash using the suitable key.
+		// If this is the first block then it is using the project key, otherwise it is using "this" node key.
+
+		ECDsaSigner blockSigner;
+
+		if (isFirstBlock)
+		{
+			blockSigner = Project.GetProjectSigner();
+		}
+		else
+		{
+			blockSigner = Project.GetNodeSigner();
+		}
+
+		var signatureBytes = GenerateSignature(blockHash, blockSigner);
+
+		writer.WriteInvertible(signatureBytes);
+		writer.WriteInvertibleCompressed(Schema.SignatureDefId);
+
+		// 4 fields (again, for readers going backwards):
+		writer.WriteInvertibleCompressed(4);
+		writer.WriteInvertibleCompressed(Schema.BlockBoundaryDefId);
+
+		var bytesToAdd = writer.CurrentFill - handledUpTo;
+
+		// Include the signature in the hash. Initialise with the current block hash,
+		// then write the rest of the transaction (i.e. incl the signature).
+		for (var i = 0; i < blockHash.Length; i++)
+		{
+			_writeDigest.Update(blockHash[i]);
+		}
+
+		// Add the rest of the txn (the signature):
+		_writeDigest.BlockUpdate(writerBuffer.Bytes, handledUpTo, bytesToAdd);
+
+		// The result is now the block hash. Must stop/start the digest at this point such that this secondary hash
+		// is all that is needed to init a block validation.
+		_writeDigest.DoFinal(blockHash, 0);
+
+		// Console.WriteLine("[SIGN] Block #x hash: " + Hex.Convert(blockHash.ToArray()));
+
+		for (var i = 0; i < blockHash.Length; i++)
+		{
+			_writeDigest.Update(blockHash[i]);
+		}
+
+		return writer;
+	}
+
+	/// <summary>
+	/// Generates a signature for the given hash.
+	/// </summary>
+	/// <param name="hash"></param>
+	/// <param name="signer"></param>
+	public byte[] GenerateSignature(Span<byte> hash, ECDsaSigner signer)
+	{
+		// Todo: BouncyCastle API uses substantial amounts of allocation - tidy up.
+		var hashByteArray = new byte[hash.Length];
+		hash.CopyTo(hashByteArray);
+		BigInteger[] rs = signer.GenerateSignature(hashByteArray);
+
+		var r = rs[0].ToByteArrayUnsigned();
+		var s = rs[1].ToByteArrayUnsigned();
+		byte[] result = new byte[1 + r.Length + s.Length];
+
+		result[0] = (byte)r.Length;
+		Array.Copy(r, 0, result, 1, r.Length);
+		Array.Copy(s, 0, result, r.Length + 1, s.Length);
+		return result;
+	}
+
+	/// <summary>
+	/// Gets the total length of bytes in the given buffer set.
+	/// </summary>
+	/// <param name="buffer"></param>
+	/// <returns></returns>
+	public long GetLengthForBuffers(BufferedBytes buffer)
+	{
+		long result = 0;
+
+		while (buffer != null)
+		{
+			result += (buffer.Length - buffer.Offset);
+			buffer = buffer.After;
+		}
+
+		return result;
+	}
+
+	/// <summary>
 	/// Adds the given buffers to the outbound write queue. These buffers must contain a valid network message, 
 	/// offset to eliminate the network message header (that's an offset of 9 bytes). All others must have an offset of 0.
 	/// </summary>
+	/// <param name="timestamp"></param>
 	/// <param name="first"></param>
 	/// <param name="last"></param>
 	/// <returns>True if the buffers were written syncronously.</returns>
-	public bool AddBuffers(BufferedBytes first, BufferedBytes last)
+	private bool AddBuffers(ulong timestamp, BufferedBytes first, BufferedBytes last)
 	{
 		// Append the buffers to the write queue.
+
+		// Note that the buffer(s) can be empty and not from a pool.
 
 		// Valid data block - add to the chain now via a bulk transfer in a locked context.
 		last.After = null;
@@ -814,7 +1345,7 @@ public partial class BlockChain
 
 		while (writeFirst != null)
 		{
-			WriteOutQueue(writeFirst);
+			WriteOutQueue(timestamp, writeFirst);
 			writeFirst = null;
 
 			lock (ChainWriteQueueLock) {
@@ -841,7 +1372,7 @@ public partial class BlockChain
 	/// </summary>
 	private const int FileBufferSize = 16384;
 
-	private void WriteOutQueue(BufferedBytes writeFirst)
+	private void WriteOutQueue(ulong timestamp, BufferedBytes writeFirst)
 	{
 		// We have exclusivity to write to the outbound filestream.
 		var writeBuffer = _writeBuffer;
@@ -854,6 +1385,7 @@ public partial class BlockChain
 
 			// Open the stream (no buffer, and in sync mode - a critical goal here is to make sure the data is actually stored on disk)
 			writeStream = new FileStream(File, FileMode.Append, FileAccess.Write, FileShare.ReadWrite, 0, false);
+			WriteFileOffset = writeStream.Length;
 			_writeStream = writeStream;
 		}
 
@@ -866,21 +1398,80 @@ public partial class BlockChain
 		var bufferToWrite = writeFirst;
 		BufferedBytes lastBuffer = null;
 		var writeFill = 0;
-		var totalBufferSize = 0;
-		var bufferCount = 0;
+
+		// Update the digest and establish how many bytes are being written:
+		var buffer = bufferToWrite;
+		BufferedBytes lastToWrite = buffer;
+		long bytesToWrite = 0;
+		while (buffer != null)
+		{
+			if (buffer.Length != 0)
+			{
+				_writeDigest.BlockUpdate(buffer.Bytes, buffer.Offset, buffer.Length);
+				bytesToWrite += buffer.Length;
+			}
+			lastToWrite = buffer;
+			buffer = buffer.After;
+		}
+
+		// Check if it has been more than 30s.
+		// These timestamps are in nanoseconds, so that's a fixed gap of..
+		if (LastBlockBoundaryTimestamp == 0 || timestamp > (LastBlockBoundaryTimestamp + MaxTicksPerBlock))
+		{
+			var isFirstBlock = LastBlockBoundaryTimestamp == 0;
+
+			var boundaryTs = Timestamp;
+
+			// Update boundary timestamp and clear has tx flag:
+			LastBlockBoundaryTimestamp = boundaryTs;
+			HasTransactionsInBlock = false;
+
+			// We'll be writing a block boundary too.
+			// First though we need to establish what the byte offset is.
+			var offset = WriteFileOffset + bytesToWrite;
+
+			var blockBoundaryWriter = BuildBlockBoundary(boundaryTs, offset, isFirstBlock, true);
+
+			// Get the writers buffers:
+			var firstBoundary = blockBoundaryWriter.FirstBuffer;
+			var lastBoundary = blockBoundaryWriter.LastBuffer;
+
+			blockBoundaryWriter.FirstBuffer = null;
+			blockBoundaryWriter.LastBuffer = null;
+			lastBoundary.Length = blockBoundaryWriter.CurrentFill;
+
+			// Add the buffers to the end of the buffer set:
+			lastToWrite.After = firstBoundary;
+			lastBoundary.After = null;
+
+			// Release the writer:
+			blockBoundaryWriter.Release();
+		}
+		else
+		{
+			// There are some txns in the block:
+			HasTransactionsInBlock = true;
+		}
 
 		while (bufferToWrite != null)
 		{
 			lastBuffer = bufferToWrite;
-			bufferCount++;
 
 			// Does it fit in the current write buffer?
 			var bytesToCopy = bufferToWrite.Length;
+
+			if (bytesToCopy == 0)
+			{
+				// Skip:
+				bufferToWrite = bufferToWrite.After;
+				continue;
+			}
 
 			if ((writeFill + bytesToCopy) > FileBufferSize)
 			{
 				// Write out the write buffer:
 				writeStream.Write(writeBuffer, 0, writeFill);
+				WriteFileOffset += writeFill;
 				writeFill = 0;
 			}
 
@@ -895,11 +1486,6 @@ public partial class BlockChain
 				// with no other copying necessary:
 				bufferToWrite.Offset = 0;
 				bufferToWrite.Length += TransactionMessageHeaderSize;
-				totalBufferSize += bufferToWrite.Length;
-			}
-			else
-			{
-				totalBufferSize += bytesToCopy;
 			}
 
 			bufferToWrite = bufferToWrite.After;
@@ -909,22 +1495,21 @@ public partial class BlockChain
 		if (writeFill != 0)
 		{
 			writeStream.Write(writeBuffer, 0, writeFill);
+			WriteFileOffset += writeFill;
 		}
 
 		// Flush and force an actual OS write:
 		writeStream.Flush(true);
 
-		OnWroteTransactions(bufferCount, totalBufferSize, writeFirst, lastBuffer);
+		OnWroteTransactions(writeFirst, lastBuffer);
 	}
 
 	/// <summary>
 	/// Called when transactions were written to the blockchain file.
 	/// </summary>
-	/// <param name="blockCount"></param>
-	/// <param name="totalLength"></param>
 	/// <param name="first"></param>
 	/// <param name="last"></param>
-	protected void OnWroteTransactions(int blockCount, int totalLength, BufferedBytes first, BufferedBytes last)
+	protected void OnWroteTransactions(BufferedBytes first, BufferedBytes last)
 	{
 		// Release the buffers whilst processing them.
 		var buff = first;
@@ -938,7 +1523,10 @@ public partial class BlockChain
 				_txReader.ProcessBlock(buff);
 			}
 
-			buff.Release();
+			if (buff.Pool != null)
+			{
+				buff.Release();
+			}
 			buff = next;
 		}
 	}

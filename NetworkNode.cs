@@ -20,7 +20,17 @@ public partial class NetworkNode : Content<uint>
 	/// The port number used for Lumity services on this node.
 	/// </summary>
 	public int Port;
-	
+
+	/// <summary>
+	/// Version information for this node. 0 indicates that it is a secp256k1 keypair using SHA3 digest signatures.
+	/// </summary>
+	public uint Version;
+
+	/// <summary>
+	/// The public key for this node.
+	/// </summary>
+	public byte[] PublicKey;
+
 	/// <summary>
 	/// The subnetwork this node is in. This is used to ignore nodes in other environments when copying a chain.
 	/// Common values are dev, stage, prod.

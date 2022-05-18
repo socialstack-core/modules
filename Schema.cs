@@ -31,6 +31,16 @@ public class Schema
 	/// Field Id for the "Immutable" common field, usable on fields.
 	/// </summary>
 	public const ulong ImmutableDefId = 4;
+	
+	/// <summary>
+	/// Field Id for the "ByteOffset" common field, usable on fields.
+	/// </summary>
+	public const ulong ByteOffsetDefId = 19;
+	
+	/// <summary>
+	/// Field Id for the "Signature" common field, usable on fields.
+	/// </summary>
+	public const ulong SignatureDefId = 20;
 
 	/// <summary>
 	/// Field Id for the "IfAlsoValid" common field.
@@ -120,6 +130,11 @@ public class Schema
 	public const ulong SetFieldsDefId = 7;
 
 	/// <summary>
+	/// PublicKey field def id.
+	/// </summary>
+	public const ulong PublicKeyDefId = 12; 
+
+	/// <summary>
 	/// Id to use when archiving something.
 	/// </summary>
 	public const ulong ArchiveDefId = 8;
@@ -187,9 +202,9 @@ public class Schema
 
 		// Block boundary:
 		Define("Blockchain.BlockBoundary", 1); // 6
-		DefineField("Signature", "bytes"); // A signature created using the current private key of the project
-		DefineField("ByteOffset", "uint"); // Total byte offset
-
+		DefineField("ByteOffset", "uint"); // 19. Total byte offset
+		DefineField("Signature", "bytes"); // 20. A signature created using the current assembler nodes private key and the hash of the block up to and including the byteOffset. The hash is seeded with the previous block hash, including the signature, or a hash of the project public key. The first block uses the project key.
+		
 		// Set fields (uses SourceEntityId).
 		// This does mean you cannot change the Source Entity Id on other transactions, but that is fine - it would be meaningless to do so.
 		Define("Blockchain.SetFields", 1); // 7

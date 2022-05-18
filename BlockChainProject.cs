@@ -1,6 +1,13 @@
 using Newtonsoft.Json;
 using System;
 using System.Threading.Tasks;
+using Org.BouncyCastle.Security;
+using Org.BouncyCastle.Crypto.Parameters;
+using Org.BouncyCastle.Crypto.Generators;
+using Org.BouncyCastle.Asn1.X9;
+using Org.BouncyCastle.Math;
+using Org.BouncyCastle.Crypto.Signers;
+using System.Timers;
 
 namespace Lumity.BlockChains;
 
@@ -27,9 +34,19 @@ public class BlockChainProject
 	public string BlockchainName;
 
 	/// <summary>
+	/// Hex(sha3(project-public))
+	/// </summary>
+	public string PublicHash;
+
+	/// <summary>
 	/// The projects public key.
 	/// </summary>
 	public byte[] PublicKey;
+
+	/// <summary>
+	/// The projects private key.
+	/// </summary>
+	public byte[] PrivateKey;
 
 	/// <summary>
 	/// The chain version, often never changes.
@@ -40,6 +57,11 @@ public class BlockChainProject
 	/// The public URL where this chain is running.
 	/// </summary>
 	public string ServiceUrl;
+
+	/// <summary>
+	/// Distribution configuration.
+	/// </summary>
+	public DistributionConfig Distribution;
 
 	/// <summary>
 	/// The executable for this project, if there is one.
@@ -70,19 +92,211 @@ public class BlockChainProject
 	public uint SelfNodeId;
 
 	/// <summary>
+	/// The private key of this node.
+	/// </summary>
+	[JsonIgnore]
+	public byte[] SelfPrivateKey;
+
+	/// <summary>
+	/// The public key of this node.
+	/// </summary>
+	[JsonIgnore]
+	public byte[] SelfPublicKey;
+
+	/// <summary>
 	/// The 4 chains, indexed by ChainType-1.
 	/// </summary>
 	[JsonIgnore]
 	private BlockChain[] _chains = new BlockChain[4];
 
 	/// <summary>
+	/// The chains of this project.
+	/// </summary>
+	public BlockChain[] Chains => _chains;
+
+	/// <summary>
+	/// True if the built in maintenance timer should tick (once per second). See also: Update and StartMaintenanceTimer.
+	/// </summary>
+	public bool RunBuiltInMaintenance { get; set; } = true;
+
+	/// <summary>
+	/// Approx max wait time in milliseconds for a transaction to be confirmed by the BAS.
+	/// The actual wait time is reliant on the RTT to the block assembly service.
+	/// </summary>
+	public uint MaxTransactionWaitTimeMs { get; set; } = 2000;
+
+	private Timer _maintenanceTimer;
+
+	/// <summary>
+	/// Starts the maintenance timer. Happens automatically if RunBuiltInMaintenance is true.
+	/// </summary>
+	public void StartMaintenanceTimer()
+	{
+		if (_maintenanceTimer != null)
+		{
+			return;
+		}
+
+		_maintenanceTimer = new Timer();
+		_maintenanceTimer.Elapsed += (object source, ElapsedEventArgs e) => {
+
+			// Run maintenance on the chains:
+			DoMaintenance();
+
+		};
+
+		_maintenanceTimer.Interval = 1000;
+		_maintenanceTimer.Enabled = true;
+	}
+
+	/// <summary>
+	/// Perform any housekeeping on the chains of this project. Call approximately once a second if running a custom timer, otherwise an automatic timer will keep check by default.
+	/// </summary>
+	public void DoMaintenance()
+	{
+		// Local stamp first:
+		var stamp = DateTime.UtcNow.Ticks;
+
+		// Adjust to being relative to the project year:
+		stamp -= TimestampTickOffset;
+
+		// Finally convert ticks into the default project precision (which will be assumed to be nanoseconds always here):
+		var timestamp = ((ulong)stamp) * 100;
+
+		// Update each chain.
+		for (var i = 0; i < _chains.Length; i++)
+		{
+			_chains[i].Update(timestamp);
+		}
+	}
+
+	/// <summary>
+	/// Gets a signer to use when creating e.g. block signatures for the first block.
+	/// </summary>
+	/// <returns></returns>
+	/// <exception cref="Exception"></exception>
+	public ECDsaSigner GetProjectSigner()
+	{
+		if (_signer == null)
+		{
+			if (PrivateKey == null)
+			{
+				throw new Exception("Unable to create a signer as you haven't provided the project private key. Set PrivateKey before calling this.");
+			}
+
+			var curve = ECNamedCurveTable.GetByName("secp256k1");
+			var domainParams = new ECDomainParameters(curve.Curve, curve.G, curve.N, curve.H, curve.GetSeed());
+
+			var privD = new BigInteger(PrivateKey);
+			var pk = new ECPrivateKeyParameters(privD, domainParams);
+
+			_signer = new ECDsaSigner();
+			_signer.Init(true, pk);
+		}
+
+		return _signer;
+	}
+	
+	/// <summary>
+	/// Gets a verifier to use when creating e.g. block signatures for the first block.
+	/// </summary>
+	/// <returns></returns>
+	/// <exception cref="Exception"></exception>
+	public ECDsaSigner GetProjectVerifier()
+	{
+		if (_verifier == null)
+		{
+			if (PublicKey == null)
+			{
+				throw new Exception("Unable to create a verifier as you haven't provided the project public key. Set PublicKey before calling this.");
+			}
+
+			var curve = ECNamedCurveTable.GetByName("secp256k1");
+			var domainParams = new ECDomainParameters(curve.Curve, curve.G, curve.N, curve.H, curve.GetSeed());
+
+			var ecPoint = curve.Curve.DecodePoint(PublicKey).Normalize();
+			var pk = new ECPublicKeyParameters(ecPoint, domainParams);
+
+			_verifier = new ECDsaSigner();
+			_verifier.Init(false, pk);
+		}
+
+		return _verifier;
+	}
+
+	private ECDsaSigner _signer;
+	private ECDsaSigner _nodeSigner;
+	
+	private ECDsaSigner _verifier;
+	private ECDsaSigner _nodeVerifier;
+
+	/// <summary>
+	/// Gets a signer to use when creating e.g. block signatures from this node.
+	/// </summary>
+	/// <returns></returns>
+	/// <exception cref="Exception"></exception>
+	public ECDsaSigner GetNodeVerifier()
+	{
+		if (_nodeVerifier == null)
+		{
+			if (SelfPublicKey == null)
+			{
+				throw new Exception("Unable to create a verifier as you haven't provided the node public key. Use SetSelfNodeId before calling this.");
+			}
+
+			var curve = ECNamedCurveTable.GetByName("secp256k1");
+			var domainParams = new ECDomainParameters(curve.Curve, curve.G, curve.N, curve.H, curve.GetSeed());
+
+			var ecPoint = curve.Curve.DecodePoint(SelfPublicKey).Normalize();
+			var pk = new ECPublicKeyParameters(ecPoint, domainParams);
+
+			_nodeVerifier = new ECDsaSigner();
+			_nodeVerifier.Init(false, pk);
+		}
+
+		return _nodeVerifier;
+	}
+	
+	/// <summary>
+	/// Gets a signer to use when creating e.g. block signatures from this node.
+	/// </summary>
+	/// <returns></returns>
+	/// <exception cref="Exception"></exception>
+	public ECDsaSigner GetNodeSigner()
+	{
+		if (_nodeSigner == null)
+		{
+			if (SelfPrivateKey == null)
+			{
+				throw new Exception("Unable to create a signer as you haven't provided the node Id or private key. Use SetSelfNodeId before calling this.");
+			}
+
+			var curve = ECNamedCurveTable.GetByName("secp256k1");
+			var domainParams = new ECDomainParameters(curve.Curve, curve.G, curve.N, curve.H, curve.GetSeed());
+
+			var privD = new BigInteger(SelfPrivateKey);
+			var pk = new ECPrivateKeyParameters(privD, domainParams);
+
+			_nodeSigner = new ECDsaSigner();
+			_nodeSigner.Init(true, pk);
+		}
+
+		return _nodeSigner;
+	}
+
+	/// <summary>
 	/// Sets the selfNodeId on this project so the BAS state can be easily identified.
 	/// </summary>
 	/// <param name="selfNodeId"></param>
-	public void SetSelfNodeId(uint selfNodeId)
+	/// <param name="selfPublicKey"></param>
+	/// <param name="selfPrivateKey">Optional. Provide this if the node can act as a BAS.</param>
+	public void SetSelfNodeId(uint selfNodeId, byte[] selfPublicKey, byte[] selfPrivateKey)
 	{
 		SelfNodeId = selfNodeId;
 		IsAssembler = AssemblerId == 0 || AssemblerId == SelfNodeId;
+
+		SelfPublicKey = selfPublicKey;
+		SelfPrivateKey = selfPrivateKey;
 
 		Console.WriteLine("- Project updated (Self ready) - " + AssemblerId + ", " + SelfNodeId);
 
@@ -136,7 +350,7 @@ public class BlockChainProject
 	/// </summary>
 	/// <param name="type"></param>
 	/// <returns></returns>
-	public Lumity.BlockChains.Schema GetSchema(ChainType type)
+	public Schema GetSchema(ChainType type)
 	{
 		return _chains[(int)type - 1].Schema;
 	}
@@ -161,45 +375,100 @@ public class BlockChainProject
 	}
 
 	/// <summary>
+	/// Generates a secp256k1 key pair.
+	/// </summary>
+	/// <returns></returns>
+	public void GenerateKeyPair()
+	{
+		var curve = ECNamedCurveTable.GetByName("secp256k1");
+		var domainParams = new ECDomainParameters(curve.Curve, curve.G, curve.N, curve.H, curve.GetSeed());
+
+		var secureRandom = new SecureRandom();
+		var keyParams = new ECKeyGenerationParameters(domainParams, secureRandom);
+
+		var generator = new ECKeyPairGenerator("ECDSA");
+		generator.Init(keyParams);
+		var keyPair = generator.GenerateKeyPair();
+
+		var privateKey = keyPair.Private as ECPrivateKeyParameters;
+		var publicKey = keyPair.Public as ECPublicKeyParameters;
+
+		PublicKey = publicKey.Q.GetEncoded(false);
+		PrivateKey = privateKey.D.ToByteArrayUnsigned();
+	}
+
+	/// <summary>
 	/// May be a slow operation. Loads the project from the given path.
 	/// </summary>
 	/// <param name="dbPath"></param>
-	/// <param name="onTransaction">Called when a transaction is read from any of the projects chains. Return true if txn was valid.</param>
+	/// <param name="onReaderCreated"></param>
+	/// <param name="onChainEvent"></param>
+	/// <param name="readerType">Optionally provide a custom transaction reader type to override the built in validation rule set.
+	/// Note that all nodes operating on the same chain must be using the same validation function.</param>
 	/// <param name="runForFutureTransactions">True if onTransaction should be called if anything is written to the chain(s) in the future.</param>
-	public void Load(string dbPath, Func<TransactionReader, bool> onTransaction, bool runForFutureTransactions = true)
+	public void Load(string dbPath, Type readerType = null, Action<TransactionReader> onReaderCreated = null, Action<BlockChain> onChainEvent = null, bool runForFutureTransactions = true)
 	{
-		// Load the 4 chains:
-		_chains[0] = new BlockChain(this, dbPath + "public.lbc", ChainType.Public);
-		_chains[0].LoadOrCreate(onTransaction);
-
-		if (runForFutureTransactions)
+		if (readerType == null)
 		{
-			_chains[0].Watch(onTransaction);
+			readerType = typeof(TransactionReader);
 		}
 
-		_chains[1] = new BlockChain(this, dbPath + "private.lbc", ChainType.Private, _chains[0]);
-		_chains[1].LoadOrCreate(onTransaction);
+		// Load the 4 chains:
+		_chains[0] = new BlockChain(this, dbPath + "public.lbc", ChainType.Public, readerType, onReaderCreated);
+		if (onChainEvent != null)
+		{
+			onChainEvent(_chains[0]);
+		}
+		_chains[0].LoadOrCreate();
 
 		if (runForFutureTransactions)
 		{
-			_chains[1].Watch(onTransaction);
+			_chains[0].Watch();
+		}
+
+		_chains[1] = new BlockChain(this, dbPath + "private.lbc", ChainType.Private, readerType, onReaderCreated, _chains[0]);
+		if (onChainEvent != null)
+		{
+			onChainEvent(_chains[1]);
+		}
+		_chains[1].LoadOrCreate();
+
+		if (runForFutureTransactions)
+		{
+			_chains[1].Watch();
 		}
 
 		Console.WriteLine("Loading pubhost");
-		_chains[2] = new BlockChain(this, dbPath + "public-host.lbc", ChainType.PublicHost);
-		_chains[2].LoadOrCreate(onTransaction);
+		_chains[2] = new BlockChain(this, dbPath + "public-host.lbc", ChainType.PublicHost, readerType, onReaderCreated);
+		if (onChainEvent != null)
+		{
+			onChainEvent(_chains[2]);
+		}
+		_chains[2].LoadOrCreate();
 
 		if (runForFutureTransactions)
 		{
-			_chains[2].Watch(onTransaction);
+			_chains[2].Watch();
 		}
 
-		_chains[3] = new BlockChain(this, dbPath + "private-host.lbc", ChainType.PrivateHost, _chains[2]);
-		_chains[3].LoadOrCreate(onTransaction);
+		_chains[3] = new BlockChain(this, dbPath + "private-host.lbc", ChainType.PrivateHost, readerType, onReaderCreated, _chains[2]);
+		if (onChainEvent != null)
+		{
+			onChainEvent(_chains[3]);
+		}
+		_chains[3].LoadOrCreate();
 
 		if (runForFutureTransactions)
 		{
-			_chains[3].Watch(onTransaction);
+			_chains[3].Watch();
+		}
+
+		// Start the timer:
+		if (RunBuiltInMaintenance)
+		{
+			// Must be started after load as we need to make sure the block boundary meta is accurate (i.e. the state is correct)
+			// and we don't want maintenance ticks happening whilst we have partially loaded state.
+			StartMaintenanceTimer();
 		}
 	}
 }

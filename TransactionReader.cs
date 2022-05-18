@@ -1,5 +1,7 @@
 
 using Api.SocketServerLibrary;
+using Api.SocketServerLibrary.Crypto;
+using Org.BouncyCastle.Math;
 using System;
 using System.IO;
 using System.Threading.Tasks;
@@ -10,10 +12,10 @@ namespace Lumity.BlockChains;
 /// <summary>
 /// Transaction reader
 /// </summary>
-public class TransactionReader
+public partial class TransactionReader
 {
 	private Schema _schema;
-	private Func<TransactionReader, bool> _onTransaction;
+	private Action<TransactionReader> _onTransaction;
 
 	/// <summary>
 	/// The chain this is reading.
@@ -26,13 +28,21 @@ public class TransactionReader
 	public BlockChainProject Project;
 
 	/// <summary>
-	/// Transaction reader
+	/// Creates a txn reader.
+	/// </summary>
+	public TransactionReader()
+	{
+		
+	}
+
+	/// <summary>
+	/// Sets up this transaction reader
 	/// </summary>
 	/// <param name="schema"></param>
 	/// <param name="chain"></param>
 	/// <param name="onTransaction"></param>
 	/// <param name="blockchainOffset"></param>
-	public TransactionReader(Schema schema, BlockChain chain, Func<TransactionReader, bool> onTransaction, ulong blockchainOffset = 0)
+	public void Init(Schema schema, BlockChain chain, Action<TransactionReader> onTransaction, ulong blockchainOffset = 0)
 	{
 		_schema = schema;
 		Chain = chain;
@@ -46,7 +56,7 @@ public class TransactionReader
 	/// Update the callback method.
 	/// </summary>
 	/// <param name="onTransaction"></param>
-	public void SetCallback(Func<TransactionReader, bool> onTransaction)
+	public void SetCallback(Action<TransactionReader> onTransaction)
 	{
 		_onTransaction = onTransaction;
 	}
@@ -98,6 +108,11 @@ public class TransactionReader
 	public ulong TransactionId;
 
 	/// <summary>
+	/// The block ID of the current block. Starts at 1.
+	/// </summary>
+	public ulong CurrentBlockId = 1;
+
+	/// <summary>
 	/// The original, unaltered transaction ID. The transaction byte offset.
 	/// </summary>
 	public ulong TransactionByteOffset;
@@ -126,12 +141,293 @@ public class TransactionReader
 	/// <summary>
 	/// Current location of the block header. When a boundary is encountered this is updated.
 	/// </summary>
-	public ulong BlockHeader = 0;
+	public ulong BlockBoundaryTransactionId = 0;
 
 	/// <summary>
 	/// The latest transaction timestamp.
 	/// </summary>
 	public ulong Timestamp;
+
+	/// <summary>
+	/// The offset to the first user field in the transaction.
+	/// </summary>
+	public int StartFieldsOffset;
+
+	/// <summary>
+	/// Set if there is an if not modified since field present on the transaction.
+	/// </summary>
+	public ulong? IfNotModifiedSince;
+
+	/// <summary>
+	/// The number of txns read from the current block so far.
+	/// </summary>
+	public int TransactionsInBlockSoFar;
+
+	/// <summary>
+	/// Applies the transaction currently in the reader buffer which has been initialised.
+	/// </summary>
+	/// <returns></returns>
+	public virtual object ApplyTransaction()
+	{
+		// The root definition (when Definition is null) will be treated here as a type definition.
+		var defId = Definition == null ? Schema.EntityTypeId : Definition.Id;
+		string name;
+		int immutability;
+
+		switch (defId)
+		{
+			case Schema.FieldDefId: // 2
+
+				if (UpdateSchema)
+				{
+					// Name field:
+					name = Fields[GetFieldOrdinal(Schema.NameDefId)].GetNativeString();
+
+					// May have immutability set:
+					immutability = GetFieldOrdinal(Schema.ImmutableDefId);
+
+					var dataType = Fields[GetFieldOrdinal(Schema.DataTypeDefId)].GetNativeString();
+
+					var fieldDef = _schema.DefineField(name, dataType);
+
+					if (immutability != -1)
+					{
+						fieldDef.Immutable = (uint)Fields[immutability].NumericValue;
+					}
+
+					return fieldDef;
+				}
+				else
+				{
+					return null;
+				}
+
+			case Schema.TransactionDefId:
+			case Schema.EntityTypeId:
+
+				if (UpdateSchema)
+				{
+					// New type. Either the root one or derived.
+
+					// Name field:
+					name = Fields[GetFieldOrdinal(Schema.NameDefId)].GetNativeString();
+
+					// May have immutability set:
+					immutability = GetFieldOrdinal(Schema.ImmutableDefId);
+
+					var typeDef = _schema.Define(name, Definition == null ? 0 : Definition.Id);
+
+					if (immutability != -1)
+					{
+						typeDef.Immutable = (uint)Fields[immutability].NumericValue;
+					}
+
+					return typeDef;
+				}
+				else
+				{
+					return null;
+				}
+
+			case Schema.BlockBoundaryDefId:
+
+				// Block boundary! Reset the invalid buffer.
+				InvalidTransactionCounter = 0;
+				BlockBoundaryTransactionId = TransactionId;
+
+				// Update boundary timestamp:
+				if (Chain.LastBlockBoundaryTimestamp < Timestamp)
+				{
+					Chain.LastBlockBoundaryTimestamp = Timestamp;
+				}
+
+				TransactionsInBlockSoFar = 0;
+
+				// Note that the _blockHashBuffer currently contains the final block hash.
+
+				if (_readDigest != null)
+				{
+					// Update the digest:
+					_readDigest.DoFinal(_blockHashBuffer, 0);
+					_readDigest.BlockUpdate(_blockHashBuffer, 0, 32);
+				}
+
+				// Console.WriteLine("[VERIFY] End of block " + CurrentBlockId + ". Hash: " + Hex.Convert(_blockHashBuffer));
+
+				CurrentBlockId++;
+
+			break;
+		}
+
+		return null;
+	}
+
+	/// <summary>
+	/// Initialises the current transaction and sets up any useful state fields in the reader.
+	/// </summary>
+	public virtual ValidationState InitialiseTransaction()
+	{
+		// Read a transaction (forward direction).
+		// Depending on what kind of transaction it was, will likely need to update the caches that we're building.
+		var defnId = Definition == null ? 0 : Definition.Id;
+		FieldData[] fields = Fields;
+		StartFieldsOffset = 0;
+		IfNotModifiedSince = null;
+
+		for (var i = 0; i < FieldCount; i++)
+		{
+			var fieldMeta = fields[i].Field;
+
+			if (fieldMeta.Id == Lumity.BlockChains.Schema.TimestampDefId)
+			{
+				// Timestamp. This will be used to set EditedUtc.
+				Timestamp = Fields[i].NumericValue;
+
+				// Timestamp marks the end of the special fields.
+				StartFieldsOffset = i + 1;
+				break;
+			}
+			else if (fieldMeta.Id == Lumity.BlockChains.Schema.IdDefId)
+			{
+				// Use the declared ID as if it was the txnID:
+				TransactionId = fields[i].NumericValue;
+			}
+			else if (fieldMeta.Id == Lumity.BlockChains.Schema.NodeId)
+			{
+				// Get the node ID:
+				NodeId = fields[i].NumericValue;
+			}
+			else if (fieldMeta.Id == Lumity.BlockChains.Schema.IfAlsoValidDefId)
+			{
+				// NumericValue is the number of bytes to remove from the txId to get to the target txId.
+				if (!IsTransactionInBlockValid(TransactionByteOffset - fields[i].NumericValue))
+				{
+					// This txn isn't valid.
+					return ValidationState.Invalid;
+				}
+			}
+			else if (fieldMeta.Id == Lumity.BlockChains.Schema.IfNotModifiedSinceDefId)
+			{
+				IfNotModifiedSince = fields[i].NumericValue;
+			}
+		}
+
+		if (defnId > Lumity.BlockChains.Schema.ArchiveDefId)
+		{
+			// An instance of something. This is the base instance (not a variant).
+
+			// Validation: Check if this can be instanced.
+			if (!Definition.CanInstance)
+			{
+				// Invalid txn.
+				return ValidationState.Invalid;
+			}
+
+			if (IfNotModifiedSince.HasValue)
+			{
+				// LastInstanceTimestamp must not be greater than the given value:
+				if (Definition.LastInstanceTimestamp > IfNotModifiedSince.Value)
+				{
+					// Invalid transaction.
+					return ValidationState.Invalid;
+				}
+			}
+
+			// For each field, get a suitable reader:
+			for (var i = StartFieldsOffset; i < FieldCount; i++)
+			{
+				// Get the definition:
+				var fieldDef = fields[i].Field;
+
+				// Validation: Can instance this field
+				if (!fieldDef.CanInstance)
+				{
+					// Invalid txn.
+					return ValidationState.Invalid;
+				}
+			}
+
+			return ValidationState.Valid;
+		}
+
+		// Standard definitions. The correct way to identify these is that the definition.Name starts with "Blockchain." indicating a core definition.
+		// However, all current core definitions have IDs that are <10 meaning we can use a fast switch statement to identify the process path.
+
+		switch (defnId)
+		{
+			// 0 to 3 are handled by the schema system.
+			case 0:
+				return ValidationState.Valid;
+			case Lumity.BlockChains.Schema.TransactionDefId: // 1
+															 // Transaction type.
+				return ValidationState.Valid;
+			case Lumity.BlockChains.Schema.FieldDefId: // 2
+													   // Field definition.
+				return ValidationState.Valid;
+			case Lumity.BlockChains.Schema.EntityTypeId: // 3
+														 // Definition.
+				return ValidationState.Valid;
+			case Lumity.BlockChains.Schema.ProjectMetaDefId: // 4
+
+				// General project metadata.
+				// Works the same as SetFields but specifically targets the project metadata.
+				for (var i = StartFieldsOffset; i < FieldCount; i++)
+				{
+					// Get the definition:
+					var fieldDef = fields[i].Field;
+
+					if (!fieldDef.CanSet)
+					{
+						// Invalid txn.
+						return ValidationState.Invalid;
+					}
+				}
+
+				return ValidationState.Valid;
+			case Lumity.BlockChains.Schema.TransferDefId: // 5
+
+				// Fungible transfer. Socialstack doesn't directly create these, but they are supported anyway.
+
+				return ValidationState.Valid;
+			case Lumity.BlockChains.Schema.BlockBoundaryDefId: // 6
+
+				// Block boundary. When one of these is encountered you MUST validate its signature.
+
+				if (ValidateBlockSignature())
+				{
+					return ValidationState.Valid;
+				}
+
+				break;
+			case Lumity.BlockChains.Schema.SetFieldsDefId: // 7
+
+				// Setting fields on an existing object. Used for updates usually. Note that SetField txns can occur on a variant too.
+
+				// Special fields MAY be declared before Timestamp. After Timestamp is the user defined fields to set, which can include any field at all.
+				// The first time the Timestamp field is encountered, it is the end of these special fields.
+				// Note that DefinitionId is technically optional, but is always provided as it makes providing custom IDs possible.
+
+				for (var i = StartFieldsOffset; i < FieldCount; i++)
+				{
+					// Get the definition:
+					var fieldDef = fields[i].Field;
+
+					if (!fieldDef.CanSet)
+					{
+						// Invalid txn.
+						return ValidationState.Invalid;
+					}
+				}
+
+				return ValidationState.Valid;
+			case Lumity.BlockChains.Schema.ArchiveDefId: // 8
+				return ValidationState.Valid;
+		}
+
+		// Otherwise, I don't recognise this transaction or we fell through somewhere and it is therefore invalid.
+		return ValidationState.Invalid;
+	}
+	
 
 	/// <summary>
 	/// True if the given transaction (which must be in the current block) is valid.
@@ -140,7 +436,7 @@ public class TransactionReader
 	/// <returns></returns>
 	public bool IsTransactionInBlockValid(ulong txId)
 	{
-		if (txId < BlockHeader)
+		if (txId < BlockBoundaryTransactionId)
 		{
 			// The requested txn is not in this block.
 			return false;
@@ -211,60 +507,34 @@ public class TransactionReader
 		// Update the schema if needed
 		var definitionId = Definition == null ? 0 : Definition.Id;
 
-		if (definitionId <= 3 && UpdateSchema)
-		{
-			// This definition is going to update the schema.
-
-			// Name field:
-			var name = Fields[GetFieldOrdinal(Schema.NameDefId)].GetNativeString();
-
-			// May have immutability set:
-			var immutability = GetFieldOrdinal(Schema.ImmutableDefId);
-
-			if (definitionId == Schema.FieldDefId)
-			{
-				// A field
-				var dataType = Fields[GetFieldOrdinal(Schema.DataTypeDefId)].GetNativeString();
-
-				var fieldDef = _schema.DefineField(name, dataType);
-
-				if (immutability != -1)
-				{
-					fieldDef.Immutable = (uint)Fields[immutability].NumericValue;
-				}
-			}
-			else
-			{
-				// A type - either the root one, or a derived type
-				var typeDef = _schema.Define(name, definitionId);
-
-				if (immutability != -1)
-				{
-					typeDef.Immutable = (uint)Fields[immutability].NumericValue;
-				}
-			}
-		}
-		else if (definitionId == Schema.BlockBoundaryDefId)
-		{
-			// Block boundary! Reset the invalid buffer.
-			InvalidTransactionCounter = 0;
-			BlockHeader = TransactionId;
-		}
-
 		NodeId = 0;
 		var txnId = TransactionId;
 		TransactionByteOffset = txnId;
+		TransactionsInBlockSoFar++;
 
-		var isValid = _onTransaction.Invoke(this);
+		// Initialise the transaction state, performing the validation and setting up any useful fields on the reader:
+		var txnState = InitialiseTransaction();
+		var isValid = txnState == ValidationState.Valid;
 
 		if (!isValid)
 		{
 			// Use the potentially modified TransactionId rather than the original one (txnId) here.
 			Chain.UpdatePending(Timestamp, TransactionId, NodeId, null, false);
-
 			AddInvalidTransactionId(txnId);
 		}
+		else
+		{
+			// Apply the transaction now:
+			var relevantObject = ApplyTransaction();
+			Chain.UpdatePending(Timestamp, TransactionId, NodeId, relevantObject, true);
 
+			if (_onTransaction != null)
+			{
+				// Run the callback:
+				_onTransaction(this);
+			}
+		}
+		
 		// Release all the buffered bytes if there is any:
 		var bytes = FirstBuffer;
 		while (bytes != null)
@@ -277,32 +547,6 @@ public class TransactionReader
 		FirstBuffer = null;
 		LastBuffer = null;
 	}
-
-	/// <summary>
-	/// Called when a transaction is in the buffer
-	/// </summary>
-	private void TransactionInBackwardBuffer()
-	{
-		// Reverse direction does not need to update the schema (because it would be removing things from it, which is likely unnecessary in all scenarios).
-
-		NodeId = 0;
-		TransactionByteOffset = TransactionId;
-
-		_onTransaction.Invoke(this);
-
-		// Release all the buffered bytes if there is any:
-		var bytes = FirstBuffer;
-		while (bytes != null)
-		{
-			var after = bytes.After;
-			bytes.Release();
-			bytes = after;
-		}
-
-		FirstBuffer = null;
-		LastBuffer = null;
-	}
-
 
 	/// <summary>
 	/// Obtains a buffer to store binary field data very briefly.
@@ -411,555 +655,6 @@ public class TransactionReader
 	}
 
 	/// <summary>
-	/// Loads the transactions from the open read stream in the backwards direction.
-	/// This is useful for state loading, as you can e.g. skip setting values which are overriden by future transactions.
-	/// </summary>
-	/// <param name="str"></param>
-	/// <param name="blockchainOffset"></param>
-	/// <param name="bufferSize"></param>
-	public void StartReadBackwards(Stream str, ulong blockchainOffset = 0, int bufferSize = 16384)
-	{
-		bufferSize = 1024;
-		
-		var virtualStreamPosition = str.Length;
-
-		var readBuffer = new byte[bufferSize];
-
-		// A transaction is:
-		// [definitionId][fieldCount][[fieldType][fieldValue][fieldType]][fieldCount][definitionId]
-		// Components of the transaction are duplicated for both integrity checking and also such that the transaction can be read backwards as well as forwards.
-		// Virtually all of these components are the same thing - a compressed number (field values are often the same too), so reading compressed numbers quickly is important.
-		ResetState();
-
-		while (virtualStreamPosition > 0)
-		{
-			int read;
-
-			virtualStreamPosition -= bufferSize;
-
-			if (virtualStreamPosition < 0)
-			{
-				str.Position = 0;
-				var toRead = bufferSize + (int)virtualStreamPosition;
-				read = str.Read(readBuffer, 0, toRead);
-				virtualStreamPosition = 0;
-
-				if (toRead != read)
-				{
-					virtualStreamPosition += (toRead - read);
-				}
-			}
-			else
-			{
-				str.Position = virtualStreamPosition;
-				read = str.Read(readBuffer, 0, bufferSize);
-
-				if (read != bufferSize)
-				{
-					// Offset by the amount that wasn't actually read:
-					virtualStreamPosition += (bufferSize - read);
-				}
-			}
-			
-			var i = read - 1;
-
-			while (i >= 0)
-			{
-				// The current byte is used based on what the current read state is.
-				
-				switch (_state)
-				{
-					case ReadState.CompressedNumberStart:
-						_compressedNumber = readBuffer[i--];
-
-						if (_compressedNumber < 251)
-						{
-							// its value is just the first byte
-							_state = _txState;
-						}
-						else if (_compressedNumber == 251)
-						{
-							// 3 bytes needed
-							if (i >= 2)
-							{
-								_compressedNumber = ((ulong)readBuffer[i--] << 8) | (ulong)readBuffer[i--];
-
-								// Redundancy check (also exists for inversion):
-								if (readBuffer[i--] != 251)
-								{
-									throw new Exception("Integrity failure - invalid 2 byte compressed number.");
-								}
-
-								_state = _txState;
-							}
-							else
-							{
-								_compressedNumber = 0;
-								_state = ReadState.CompressedNumber2Bytes;
-								_part = 8;
-							}
-						}
-						else if (_compressedNumber == 252)
-						{
-							// 4 bytes needed
-							if (i >= 3)
-							{
-								_compressedNumber = ((ulong)readBuffer[i--] << 16) | ((ulong)readBuffer[i--] << 8) | (ulong)readBuffer[i--];
-
-								// Redundancy check (also exists for inversion):
-								if (readBuffer[i--] != 252)
-								{
-									throw new Exception("Integrity failure - invalid 3 byte compressed number.");
-								}
-
-								_state = _txState;
-							}
-							else
-							{
-								_compressedNumber = 0;
-								_state = ReadState.CompressedNumber3Bytes;
-								_part = 16;
-							}
-						}
-						else if (_compressedNumber == 253)
-						{
-							// 5 bytes needed
-							if (i >= 4)
-							{
-								_compressedNumber = ((ulong)readBuffer[i--] << 24) | ((ulong)readBuffer[i--] << 16) | ((ulong)readBuffer[i--] << 8) | (ulong)readBuffer[i--];
-
-								// Redundancy check (also exists for inversion):
-								if (readBuffer[i--] != 253)
-								{
-									throw new Exception("Integrity failure - invalid 4 byte compressed number.");
-								}
-
-								_state = _txState;
-							}
-							else
-							{
-								_compressedNumber = 0;
-								_state = ReadState.CompressedNumber4Bytes;
-								_part = 24;
-							}
-						}
-						else if (_compressedNumber == 254)
-						{
-							// 9 bytes needed
-							if (i >= 8)
-							{
-								_compressedNumber = ((ulong)readBuffer[i--] << 56) | ((ulong)readBuffer[i--] << 48) | ((ulong)readBuffer[i--] << 40) | ((ulong)readBuffer[i--] << 32) | 
-									((ulong)readBuffer[i--] << 24) | ((ulong)readBuffer[i--] << 16) | ((ulong)readBuffer[i--] << 8) | (ulong)readBuffer[i--];
-
-								// Redundancy check (also exists for inversion):
-								if (readBuffer[i--] != 254)
-								{
-									throw new Exception("Integrity failure - invalid 8 byte compressed number.");
-								}
-
-								_state = _txState;
-							}
-							else
-							{
-								_compressedNumber = 0;
-								_state = ReadState.CompressedNumber8Bytes;
-								_part = 56;
-							}
-						}
-						break;
-					case ReadState.CompressedNumber2Bytes:
-						// 2 byte number (partial)
-
-						if (_part == -8)
-						{
-							// Redundancy check (also exists for inversion):
-							if (readBuffer[i--] != 251)
-							{
-								throw new Exception("Integrity failure - invalid 2 byte compressed number.");
-							}
-
-							_part = -9;
-						}
-						else if (_part == -9)
-						{
-							_state = _txState;
-						}
-						else
-						{
-							_compressedNumber |= ((ulong)readBuffer[i--] << _part);
-							_part -= 8;
-						}
-
-						break;
-					case ReadState.CompressedNumber3Bytes:
-						// 3 byte number (partial)
-
-						if (_part == -8)
-						{
-							// Redundancy check (also exists for inversion):
-							if (readBuffer[i--] != 252)
-							{
-								throw new Exception("Integrity failure - invalid 3 byte compressed number.");
-							}
-
-							_part = -9;
-						}
-						else if (_part == -9)
-						{
-							_state = _txState;
-						}
-						else
-						{
-							_compressedNumber |= ((ulong)readBuffer[i--] << _part);
-							_part -= 8;
-						}
-
-						break;
-					case ReadState.CompressedNumber4Bytes:
-						// 4 byte number (partial)
-
-						if (_part == -8)
-						{
-							// Redundancy check (also exists for inversion):
-							if (readBuffer[i--] != 253)
-							{
-								throw new Exception("Integrity failure - invalid 4 byte compressed number.");
-							}
-
-							_part = -9;
-						}
-						else if (_part == -9)
-						{
-							_state = _txState;
-						}
-						else
-						{
-							_compressedNumber |= ((ulong)readBuffer[i--] << _part);
-							_part -= 8;
-						}
-
-						break;
-					case ReadState.CompressedNumber8Bytes:
-						// 8 byte number (partial)
-						if (_part == -8)
-						{
-							// Redundancy check (also exists for inversion):
-							if (readBuffer[i--] != 254)
-							{
-								throw new Exception("Integrity failure - invalid 8 byte compressed number.");
-							}
-
-							_part = -9;
-						}
-						else if (_part == -9)
-						{
-							_state = _txState;
-						}
-						else
-						{
-							_compressedNumber |= ((ulong)readBuffer[i--] << _part);
-							_part -= 8;
-						}
-
-						break;
-					case ReadState.DefinitionIdDone:
-						// done reading definition ID
-						_definitionId = _compressedNumber;
-
-						Definition = _schema.Get((int)_definitionId);
-
-						if (Definition == null)
-						{
-							if (_definitionId <= 3)
-							{
-								Definition = _schema.GetTemporaryCriticalDefinition((int)_definitionId);
-							}
-							else
-							{
-								throw new Exception("Definition does not exist with ID " + _definitionId);
-							}
-						}
-
-						_txState = ReadState.FieldCountDone;
-						_state = ReadState.CompressedNumberStart;
-						break;
-					case ReadState.FieldCountDone:
-						// done reading field count
-						_fieldCount = (int)_compressedNumber;
-						FieldCount = 0;
-
-						if (_fieldCount == 0)
-						{
-							// A 0 field count is not duplicated. The definition ID is though, so we read that next:
-							_state = ReadState.CompressedNumberStart;
-							_txState = ReadState.SecondaryDefinitionIdDone;
-						}
-						else
-						{
-							if (_fieldCount > 4096)
-							{
-								// Too many fields in one transaction
-								throw new Exception("Max of 4096 fields can be set in one transaction");
-							}
-
-							if ((int)_fieldCount > Fields.Length)
-							{
-								Array.Resize(ref Fields, 4096);
-							}
-
-							// Read field ID:
-							_state = ReadState.CompressedNumberStart;
-							_txState = ReadState.FieldIdDone;
-						}
-						break;
-					case ReadState.FieldIdDone:
-						// Get field definition (can be null):
-						_field = _schema.GetField((int)_compressedNumber);
-
-						if (_field == null)
-						{
-							if (_compressedNumber <= 3)
-							{
-								// This happens whilst the schema is loading.
-								// Use a temporary field ref.
-								_field = _schema.GetTemporaryCriticalField((int)_compressedNumber);
-							}
-							else
-							{
-								throw new Exception("Unknown field ID: " + _compressedNumber);
-							}
-						}
-
-						Fields[FieldCount].Field = _field;
-
-						// Get the field data size:
-						_fieldDataSize = _field.FieldDataSize;
-
-						if (_fieldDataSize == -1)
-						{
-							// It's variable - start reading the number:
-							_state = ReadState.CompressedNumberStart;
-							_txState = ReadState.FieldValueLengthDone;
-						}
-						else
-						{
-							// Reading a fixed number of bytes:
-							Fields[FieldCount].DataLength = _fieldDataSize;
-
-							if (i+1 >= _fieldDataSize)
-							{
-								// Already available in the buffer. Transfer it straight over
-								i -= _fieldDataSize;
-								WriteToFieldBuffers(readBuffer, i+1, _fieldDataSize);
-
-								FieldCount++;
-								_state = ReadState.CompressedNumberStart;
-								_txState = ReadState.SecondaryFieldIdDone;
-							}
-							else
-							{
-								// Go to partial field read state:
-								_fieldDataSoFar = i+1;
-								i = -1;
-								WriteToFieldBuffers(readBuffer, 0, _fieldDataSoFar);
-								_state = ReadState.FieldBytes;
-							}
-						}
-						break;
-					case ReadState.FieldValueLengthDone:
-						if (_field.SizeIsValue)
-						{
-							// The size we have is the base of the value that we'll be using
-							Fields[FieldCount].NumericValue = _compressedNumber;
-							Fields[FieldCount].IsNull = false;
-
-							// We've therefore completed reading this field value and should proceed to the next one.
-							FieldCount++;
-							_state = ReadState.CompressedNumberStart;
-							_txState = ReadState.SecondaryFieldIdDone;
-						}
-						else
-						{
-							// Read size bytes next, unless it is nullable.
-							if (_field.IsNullable)
-							{
-								if (_compressedNumber == 0)
-								{
-									// It's null
-									Fields[FieldCount].IsNull = true;
-
-									// We've therefore completed reading this field value and should proceed to the next one.
-									FieldCount++;
-									_state = ReadState.CompressedNumberStart;
-									_txState = ReadState.SecondaryFieldIdDone;
-								}
-								else
-								{
-									// It's not null - there are some bytes (might be 0) to read
-									Fields[FieldCount].IsNull = false;
-									_fieldDataSize = ((int)_compressedNumber) - 1;
-									Fields[FieldCount].DataLength = _fieldDataSize;
-
-									if (i+1 >= _fieldDataSize)
-									{
-										// All bytes of the field are available already.
-										i -= _fieldDataSize;
-										WriteToFieldBuffers(readBuffer, i+1, _fieldDataSize);
-
-										FieldCount++;
-										_state = ReadState.CompressedNumberStart;
-										_txState = _fieldDataSize == 0 ? ReadState.SecondaryFieldIdDone : ReadState.SecondaryFieldValueLengthDone;
-									}
-									else
-									{
-										// Go to partial field read state:
-										_fieldDataSoFar = i + 1;
-										i = -1;
-										WriteToFieldBuffers(readBuffer, 0, _fieldDataSoFar);
-										_state = ReadState.FieldBytes;
-									}
-								}
-							}
-							else
-							{
-								Fields[FieldCount].IsNull = false;
-								_fieldDataSize = (int)_compressedNumber;
-								Fields[FieldCount].DataLength = _fieldDataSize;
-
-								if (i + 1 >= _fieldDataSize)
-								{
-									// All bytes of the field are available already.
-									i -= _fieldDataSize;
-									WriteToFieldBuffers(readBuffer, i + 1, _fieldDataSize);
-
-									FieldCount++;
-									_state = ReadState.CompressedNumberStart;
-									_txState = _fieldDataSize == 0 ? ReadState.SecondaryFieldIdDone : ReadState.SecondaryFieldValueLengthDone;
-								}
-								else
-								{
-									// Go to partial field read state:
-									_fieldDataSoFar = i + 1;
-									i = -1;
-									WriteToFieldBuffers(readBuffer, 0, _fieldDataSoFar);
-									_state = ReadState.FieldBytes;
-								}
-
-							}
-						}
-						break;
-					case ReadState.FieldBytes:
-						// Read part of a field value
-
-						#warning wrong order!
-						// We're going backwards - this appends a block of bytes at the end of the current field value
-
-						var bytesToCopy = _fieldDataSize - _fieldDataSoFar;
-						var bytesAvailable = i + 1;
-						if (bytesToCopy > bytesAvailable)
-						{
-							bytesToCopy = bytesAvailable;
-						}
-
-						WriteToFieldBuffers(readBuffer, i - bytesToCopy + 1, bytesToCopy, false);
-						_fieldDataSoFar += bytesToCopy;
-						i -= bytesToCopy;
-
-						if (_fieldDataSoFar == _fieldDataSize)
-						{
-							// Done reading this field value. Go to duplicated field length next.
-							FieldCount++;
-							_state = ReadState.CompressedNumberStart;
-							_txState = ReadState.SecondaryFieldValueLengthDone;
-						}
-					break;
-					case ReadState.SecondaryFieldValueLengthDone:
-						// Occurs on string and byte fields - the value length is present twice.
-
-						var compareSize = (_field.IsNullable) ? (int)(_compressedNumber - 1) : (int)_compressedNumber;
-
-						if (compareSize != _fieldDataSize)
-						{
-							throw new Exception("Integrity failure - field data sizes do not match (Expected " + _fieldDataSize + ", got " + compareSize + ")");
-						}
-
-						// Go to secondary field ID next:
-						_state = ReadState.CompressedNumberStart;
-						_txState = ReadState.SecondaryFieldIdDone;
-						break;
-					case ReadState.SecondaryFieldIdDone:
-						// All fields have 2 field IDs.
-
-						if (_compressedNumber != _field.Id)
-						{
-							throw new Exception("Integrity failure - secondary field ID does not match the first (Expected " + _field.Id + ", got " + _compressedNumber + ")");
-						}
-
-						_state = ReadState.CompressedNumberStart;
-
-						// Next state - either reading the secondary field count, or the next field ID:
-						_txState = (_fieldCount == FieldCount) ? ReadState.SecondaryFieldCountDone : ReadState.FieldIdDone;
-						break;
-					case ReadState.SecondaryFieldCountDone:
-						// Secondary field count (if there is one - field count 0 does not get doubled up)
-
-						if (FieldCount != (int)_compressedNumber)
-						{
-							throw new Exception("Integrity failure - the secondary field count does not match the first (Expected " + FieldCount + ", got " + _compressedNumber + ")");
-						}
-
-						// Read secondary def ID:
-						_state = ReadState.CompressedNumberStart;
-						_txState = ReadState.SecondaryDefinitionIdDone;
-						break;
-					case ReadState.SecondaryDefinitionIdDone:
-						// Secondary definition ID
-						_definitionId = Definition == null ? 0 : Definition.Id;
-
-						if (_definitionId != _compressedNumber)
-						{
-							throw new Exception("Integrity failure - Secondary definition ID does not match the first (Expected " + _definitionId + ", got " + _compressedNumber + ")");
-						}
-
-						// Current ID:
-						TransactionId = _blockchainOffset + (ulong)(virtualStreamPosition + i + 1);
-
-						TransactionInBackwardBuffer();
-
-						if (Halt)
-						{
-							return;
-						}
-
-						// Reset:
-						_state = ReadState.CompressedNumberStart;
-						_txState = ReadState.DefinitionIdDone;
-
-						break;
-				}
-			}
-		}
-
-		if (_state != ReadState.SecondaryDefinitionIdDone)
-		{
-			throw new Exception("Integrity failure - partial bytes of a transaction at the beginning of the provided file");
-		}
-
-		// Because i was -1, the very last transaction has not been handled yet.
-		_definitionId = Definition == null ? 0 : Definition.Id;
-
-		if (_definitionId != _compressedNumber)
-		{
-			throw new Exception("Integrity failure - Secondary definition ID does not match the first (Expected " + _definitionId + ", got " + _compressedNumber + ")");
-		}
-
-		// Current ID:
-		TransactionId = _blockchainOffset + (ulong)virtualStreamPosition;
-
-		TransactionInBackwardBuffer();
-	}
-
-	/// <summary>
 	/// The stateful nature of this reader is because it can ingest packets from a network over time as well.
 	/// </summary>
 	private ulong _compressedNumber;
@@ -972,8 +667,10 @@ public class TransactionReader
 	private FieldDefinition _field;
 	private int _fieldDataSoFar;
 	private int _byteIndex;
+	private int _digestedUpTo;
 	private ulong _blockchainOffset;
 	private byte[] _readBuffer;
+	private byte[] _blockHashBuffer = new byte[32];
 
 	/// <summary>
 	/// Resets the state of this reader.
@@ -990,6 +687,7 @@ public class TransactionReader
 		_fieldDataSize = 0;
 		_field = null;
 		_fieldDataSoFar = 0;
+		_digestedUpTo = 0;
 	}
 
 	private void ProcessBlock(int read)
@@ -1248,6 +946,30 @@ public class TransactionReader
 					// Get field definition (can be null):
 					_field = _schema.GetField((int)_compressedNumber);
 
+					if (_definitionId == Schema.BlockBoundaryDefId)
+					{
+						if (_compressedNumber == Schema.SignatureDefId)
+						{
+							if (_digestedUpTo < _byteIndex && _readDigest != null)
+							{
+								// Add everything to the read digest:
+								var digestLen = _byteIndex - _digestedUpTo;
+								_readDigest.BlockUpdate(_readBuffer, _digestedUpTo, digestLen);
+								_digestedUpTo = _byteIndex;
+
+								// Pre-signature digest:
+								_readDigest.DoFinal(_blockHashBuffer, 0);
+
+								// Console.WriteLine("[VERIFY] Pre-signature digest: " + Hex.Convert(_blockHashBuffer));
+
+								// (It reset internally)
+
+								// Put the pre-sig hash into the digest:
+								_readDigest.BlockUpdate(_blockHashBuffer, 0, 32);
+							}
+						}
+					}
+
 					if (_field == null)
 					{
 						if (_compressedNumber <= 3)
@@ -1450,6 +1172,15 @@ public class TransactionReader
 						throw new Exception("Integrity failure - Secondary definition ID does not match the first (Expected " + _definitionId + ", got " + _compressedNumber + ")");
 					}
 
+					// If its a block boundary, add the bytes to the digest:
+					if (_definitionId == Schema.BlockBoundaryDefId && _digestedUpTo < _byteIndex && _readDigest != null)
+					{
+						// Add to the digest:
+						var digestLen = _byteIndex - _digestedUpTo;
+						_readDigest.BlockUpdate(_readBuffer, _digestedUpTo, digestLen);
+						_digestedUpTo = _byteIndex;
+					}
+
 					TransactionInForwardBuffer();
 
 					if (Halt)
@@ -1469,31 +1200,126 @@ public class TransactionReader
 
 		}
 
+		if (_digestedUpTo < _byteIndex && _readDigest != null)
+		{
+			// Add to the digest:
+			var digestLen = _byteIndex - _digestedUpTo;
+			_readDigest.BlockUpdate(_readBuffer, _digestedUpTo, digestLen);
+			_digestedUpTo = _byteIndex;
+		}
+
 		_blockchainOffset += (ulong)read;
+	}
+
+	private Sha3Digest _readDigest;
+
+	/// <summary>
+	/// Copy the current SHA3 digest.
+	/// </summary>
+	/// <returns></returns>
+	public Sha3Digest CopyDigest()
+	{
+		return new Sha3Digest(_readDigest);
+	}
+
+	/// <summary>
+	/// Sets up the info for the previous block.
+	/// </summary>
+	/// <param name="blockHash"></param>
+	/// <param name="blockchainOffset"></param>
+	/// <param name="currentBlockId"></param>
+	/// <param name="bufferSize">The size of the read buffer. Usually you don't need to change this.</param>
+	public void SetupPreviousBlock(Span<byte> blockHash, ulong blockchainOffset = 0, ulong currentBlockId = 1, int bufferSize = 16384)
+	{
+		if (_readDigest == null)
+		{
+			_readDigest = new Sha3Digest();
+		}
+		else
+		{
+			_readDigest.Reset();
+		}
+
+		for (var i = 0; i < 32; i++)
+		{
+			_readDigest.Update(blockHash[i]);
+		}
+
+		// Console.WriteLine("Read digest started with hash: " + Hex.Convert(blockHash.ToArray()));
+
+		_blockchainOffset = blockchainOffset;
+		TransactionId = _blockchainOffset;
+		CurrentBlockId = currentBlockId;
+
+		ResetState();
+
+		if (_readBuffer == null || _readBuffer.Length != bufferSize)
+		{
+			_readBuffer = new byte[bufferSize];
+		}
+	}
+
+	/// <summary>
+	/// True if this transaction has a valid block signature in it.
+	/// </summary>
+	/// <returns></returns>
+	public bool ValidateBlockSignature()
+	{
+		var sigFieldOrdinal = GetFieldOrdinal(Schema.SignatureDefId);
+		var signature = Fields[sigFieldOrdinal].GetBytes();
+
+		#warning todo: This gets self node verifier vs. the current one.
+		var verifier = CurrentBlockId == 1 ? Project.GetProjectVerifier() : Project.GetNodeVerifier();
+
+		// Console.WriteLine("Using project verifier: " + (CurrentBlockId == 1));
+
+		var rLength = (int)signature[0]; // first byte contains length of r array
+		var r = new BigInteger(1, signature, 1, rLength);
+		var s = new BigInteger(1, signature, rLength + 1, signature.Length - (rLength + 1));
+
+		return verifier.VerifySignature(_blockHashBuffer, r, s);
+	}
+
+	/// <summary>Sets up this reader for forward reading.</summary>
+	/// <param name="bufferSize">The size of the read buffer. Usually you don't need to change this.</param>
+	/// <param name="blockchainOffset">
+	/// The total size, in bytes, of other parts of the blockchain before the one that is being read from here.
+	/// If the blockchain is in one file, this value is 0. If you have partial files, you can obtain it via the "Byte Offset" field in the nearest block boundary transaction.
+	/// </param>
+	public void StartReadForwards(ulong blockchainOffset = 0, int bufferSize = 16384)
+	{
+		if (_readBuffer == null || _readBuffer.Length != bufferSize)
+		{
+			_readBuffer = new byte[bufferSize];
+		}
+
+		_blockchainOffset = blockchainOffset;
+		TransactionId = _blockchainOffset;
+
+		ResetState();
 	}
 
 	/// <summary>
 	/// Loads the transactions from the open read stream in the forwards direction. This must be called on a transaction boundary.
 	/// </summary>
 	/// <param name="str"></param>
-	/// <param name="bufferSize">The size of the read buffer. Usually you don't need to change this.</param>
-	/// <param name="blockchainOffset">
-	/// The total size, in bytes, of other parts of the blockchain before the one that is being read from here.
-	/// If the blockchain is in one file, this value is 0. If you have partial files, you can obtain it via the "Byte Offset" field in the nearest block boundary transaction.
-	/// </param>
 	/// <exception cref="Exception"></exception>
-	public void StartReadForwards(Stream str, ulong blockchainOffset = 0, int bufferSize = 16384)
+	public void StartReadForwards(Stream str)
 	{
-		str.Seek(0, SeekOrigin.Begin);
-
-		if (_readBuffer == null || _readBuffer.Length != bufferSize)
+		if (_readBuffer == null)
 		{
-			_readBuffer = new byte[bufferSize];
+			throw new Exception("Can't read until you have setup the previous block state. See SetupPreviousBlock.");
 		}
 
-		ResetState();
-		_blockchainOffset = blockchainOffset;
-		TransactionId = _blockchainOffset;
+		str.Seek(0, SeekOrigin.Begin);
+
+		if (str.Length == 0)
+		{
+			// Nothing to do.
+			return;
+		}
+
+		var bufferSize = _readBuffer.Length;
 
 		// A transaction is:
 		// [definitionId][fieldCount][[fieldType][fieldValue][fieldType]][fieldCount][definitionId]
@@ -1504,6 +1330,7 @@ public class TransactionReader
 		{
 			var read = str.Read(_readBuffer, 0, bufferSize);
 			_byteIndex = 0;
+			_digestedUpTo = 0;
 			ProcessBlock(read);
 		}
 
@@ -1536,6 +1363,7 @@ public class TransactionReader
 	{
 		_readBuffer = buffer.Bytes;
 		_byteIndex = buffer.Offset;
+		_digestedUpTo = _byteIndex;
 		ProcessBlock(buffer.Length);
 
 		// If we just finished reading a transaction, run it:
