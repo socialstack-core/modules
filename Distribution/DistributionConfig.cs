@@ -8,9 +8,9 @@ namespace Lumity.BlockChains;
 public class DistributionConfig
 {
 	/// <summary>
-	/// The DNS address which is registered (or registerable) in the Lumity Project Index. This is always present in the block file paths.
+	/// The projects public hash which is registered (or registerable) in the Lumity Project Index. This is always present in the block file paths.
 	/// </summary>
-	public string DnsAddress {get; set;}
+	public string PublicHash {get; set;}
 	
 	/// <summary>
 	/// Optional config for distribution via uploading to DO spaces.
