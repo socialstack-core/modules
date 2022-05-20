@@ -78,7 +78,7 @@ public class BlockChainProject
 	/// Set to true if this node is the current BAS.
 	/// </summary>
 	[JsonIgnore]
-	public bool IsAssembler = true;
+	public bool IsAssembler = false;
 
 	/// <summary>
 	/// The node ID of "this" node.
@@ -309,7 +309,7 @@ public class BlockChainProject
 	public void SetSelfNodeId(uint selfNodeId, byte[] selfPublicKey, byte[] selfPrivateKey)
 	{
 		SelfNodeId = selfNodeId;
-		IsAssembler = AssemblerId == 0 || AssemblerId == SelfNodeId;
+		IsAssembler = AssemblerId == SelfNodeId;
 
 		SelfPublicKey = selfPublicKey;
 		SelfPrivateKey = selfPrivateKey;
@@ -355,7 +355,7 @@ public class BlockChainProject
 			}
 		}
 
-		IsAssembler = AssemblerId == 0 || AssemblerId == SelfNodeId;
+		IsAssembler = AssemblerId == SelfNodeId;
 
 		Console.WriteLine("- Project updated - " + AssemblerId + ", " + SelfNodeId);
 
@@ -445,6 +445,11 @@ public class BlockChainProject
 	/// </summary>
 	public async ValueTask Load()
 	{
+		if (_loaded)
+		{
+			return;
+		}
+
 		// Load the 4 chains:
 		_chains[0] = new BlockChain(this, ChainType.Public, _readerType);
 		await _chains[0].LoadOrCreate();
@@ -465,13 +470,25 @@ public class BlockChainProject
 			// and we don't want maintenance ticks happening whilst we have partially loaded state.
 			StartMaintenanceTimer();
 		}
+
+		_loaded = true;
 	}
+
+	/// <summary>
+	/// True if this project has been loaded.
+	/// </summary>
+	private bool _loaded;
 
 	/// <summary>
 	/// Listens for future transactions using the configured channels.
 	/// </summary>
-	public void Watch()
+	public void Watch(bool cdnMode = true)
 	{
+		if (!_loaded)
+		{
+			throw new Exception("Must load the project (and wait for the load to complete) before watching.");
+		}
+
 		for (var i = 0; i < _chains.Length; i++)
 		{
 			var chain = _chains[i];
@@ -480,7 +497,7 @@ public class BlockChainProject
 				continue;
 			}
 
-			chain.Watch();
+			chain.Watch(cdnMode);
 		}
 	}
 }

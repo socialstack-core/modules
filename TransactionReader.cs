@@ -733,7 +733,7 @@ public partial class TransactionReader
 		_digestedUpTo = 0;
 	}
 
-	private void ProcessBlock(int read)
+	private void ProcessBuffer(int read)
 	{
 
 		while (_byteIndex < read)
@@ -1374,7 +1374,7 @@ public partial class TransactionReader
 			var read = str.Read(_readBuffer, 0, bufferSize);
 			_byteIndex = 0;
 			_digestedUpTo = 0;
-			ProcessBlock(read);
+			ProcessBuffer(read);
 		}
 
 		if (_state != ReadState.SecondaryDefinitionIdDone)
@@ -1402,12 +1402,12 @@ public partial class TransactionReader
 	/// Adds the given buffer to this processor.
 	/// </summary>
 	/// <param name="buffer"></param>
-	public void ProcessBlock(BufferedBytes buffer)
+	public void ProcessBuffer(BufferedBytes buffer)
 	{
 		_readBuffer = buffer.Bytes;
 		_byteIndex = buffer.Offset;
 		_digestedUpTo = _byteIndex;
-		ProcessBlock(buffer.Length);
+		ProcessBuffer(buffer.Length);
 
 		// If we just finished reading a transaction, run it:
 		if (_state == ReadState.SecondaryDefinitionIdDone)

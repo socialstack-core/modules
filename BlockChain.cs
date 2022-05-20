@@ -74,6 +74,16 @@ public partial class BlockChain
 	/// The TransactionReader type to use. If not specified, a default TransactionReader is used.
 	/// </summary>
 	public Type _readerType;
+	
+	/// <summary>
+	/// When listening to a CDN for updates, this checks for blocks every 5s by default.
+	/// </summary>
+	public int MaintenanceTicksPerCdnBlockCheck = 5;
+
+	/// <summary>
+	/// Ticks up until it reaches MaintenanceTicksPerCdnBlockCheck.
+	/// </summary>
+	private int CdnBlockCheckTicks = 0;
 
 	/// <summary>
 	/// Converts the given timestamp to a DateTime (UTC).
@@ -151,6 +161,22 @@ public partial class BlockChain
 				previous = pending;
 				pending = next;
 			}
+		}
+
+		// If we're watching a CDN, check it for updates at some reduced rate.
+		if (_isWatching == WatchMode.Cdn)
+		{
+			CdnBlockCheckTicks++;
+
+			if (CdnBlockCheckTicks >= MaintenanceTicksPerCdnBlockCheck)
+			{
+				// Reset it:
+				CdnBlockCheckTicks = 0;
+
+				// Run the check now:
+				_ = Task.Run(CheckForCdnUpdates);
+			}
+
 		}
 
 		// If the last block boundary was >30s ago and we have >0 txns written since it, output a boundary.
@@ -402,12 +428,12 @@ public partial class BlockChain
 
 	/// <summary>
 	/// Checks if the CDN has any more blocks on it and if so, downloads them.
-	/// This is used by the CDN only watch mode.
+	/// This is used by the CDN only watch mode and when specifically not the assembler.
 	/// </summary>
 	/// <returns></returns>
 	public async Task CheckForCdnUpdates()
 	{
-		if (Project.Distributor == null)
+		if (Project.Distributor == null || Project.IsAssembler)
 		{
 			return;
 		}
@@ -562,7 +588,7 @@ public partial class BlockChain
 						bufferedBytes.Offset = offset;
 
 						// Load:
-						_txReader.ProcessBlock(bufferedBytes);
+						_txReader.ProcessBuffer(bufferedBytes);
 
 						// Append to the file:
 						fs.Write(readBuffer, offset, bufferedBytes.Length);
@@ -585,43 +611,17 @@ public partial class BlockChain
 	}
 
 	/// <summary>
-	/// Watches remote CDNs for block files. This is the easiest way to tune in to a chain for updates, provided you trust the source.
-	/// It is suggested to check your block hashes with multiple other service providers to ensure you have the correct state.
-	/// Note that for private chains you must provide full keys etc for the distribution platform(s) you want to connect to.
-	/// Public chains only need the URL.
-	/// </summary>
-	/// <param name="distributionConfig"></param>
-	public void Watch(DistributionConfig distributionConfig)
-	{
-		_isWatching = true;
-
-	}
-
-	/// <summary>
 	/// Transactions added to this chain will trigger the given reader event. Call this after you have loaded at least once (or you know the file was empty).
 	/// </summary>
-	public void Watch()
+	public void Watch(bool cdnMode = true)
 	{
-		_isWatching = true;
+		_isWatching = cdnMode ? WatchMode.Cdn : WatchMode.Realtime;
 
-		// The txReader is potentially reused from a LoadForwards call
+		// The txReader is reused from a LoadForwards call
 		// as that provides an important but small piece of state, the blockchainOffset.
 		if (_txReader == null)
 		{
-			throw new Exception("Current limitation of watch: must call readForward first. This ensures the state of the signatures etc is valid.");
-			// Future: Pass in the previous block hash.
-
-			/*
-			 // Must get the file length:
-			var blockchainOffset = new System.IO.FileInfo(File).Length;
-			_txReader = CreateReader();
-			_txReader.Init(Schema, this, onTransaction, (ulong)blockchainOffset);
-			_txReader.UpdateSchema = true;
-
-			_txReader.SetupPreviousBlock
-
-			_txReader.ResetState();
-			 */
+			throw new Exception("Must load the chain forwards before you can watch it.");
 		}
 
 		// Set the initial # of txns sitting in the block:
@@ -770,7 +770,7 @@ public partial class BlockChain
 			// Set the initial hash:
 			txReader.SetupPreviousBlock(initialHash);
 
-			txReader.ProcessBlock(new BufferedBytes() {
+			txReader.ProcessBuffer(new BufferedBytes() {
 				Bytes = result,
 				Length = result.Length,
 				Offset = 0
@@ -867,7 +867,7 @@ public partial class BlockChain
 	}
 
 	private TransactionReader _txReader;
-	private bool _isWatching;
+	private WatchMode _isWatching = WatchMode.None;
 
 	/// <summary>
 	/// Opens a filestream for this chain.
@@ -1689,7 +1689,7 @@ public partial class BlockChain
 	}
 
 	/// <summary>
-	/// Called when transactions were written to the blockchain file.
+	/// Called when transactions were written to the blockchain file. This only happens if we are the assembly service.
 	/// </summary>
 	/// <param name="first"></param>
 	/// <param name="last"></param>
@@ -1701,11 +1701,15 @@ public partial class BlockChain
 		{
 			var next = buff.After;
 
-			if (_isWatching)
+			if (_isWatching != WatchMode.None)
 			{
+				// Note that a dedicated assembly service has its watcher turned off.
+
 				// Pass each buffer to the watcher.
-				_txReader.ProcessBlock(buff);
+				_txReader.ProcessBuffer(buff);
 			}
+
+			#warning todo Send buffer to listening clients.
 
 			if (buff.Pool != null)
 			{
