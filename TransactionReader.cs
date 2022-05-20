@@ -1,8 +1,10 @@
 
 using Api.SocketServerLibrary;
 using Api.SocketServerLibrary.Crypto;
+using Api.Startup;
 using Org.BouncyCastle.Math;
 using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Threading.Tasks;
 
@@ -17,6 +19,11 @@ public partial class TransactionReader
 	private Schema _schema;
 	private Action<TransactionReader> _onTransaction;
 
+	/// <summary>
+	/// Field information for the BlockChainProject type which allow setting fields on the project itself.
+	/// </summary>
+	private List<ContentField> _projectFieldSetters;
+	
 	/// <summary>
 	/// The chain this is reading.
 	/// </summary>
@@ -257,6 +264,43 @@ public partial class TransactionReader
 				CurrentBlockId++;
 
 			break;
+			case Schema.ProjectMetaDefId: // 4
+
+				// General project metadata.
+				// Works the same as SetFields but specifically targets the project metadata.
+				var metadata = Project;
+
+				var fields = Fields;
+				
+				// Setting fields on metadata
+				if (_projectFieldSetters == null)
+				{
+					// Generate the field writers:
+					var chainIO = new ChainFieldIO();
+					chainIO.GenerateForType(typeof(BlockChainProject));
+					_projectFieldSetters = chainIO.Fields;
+				}
+
+				for (var i = StartFieldsOffset; i < FieldCount; i++)
+				{
+					// Get the definition:
+					var fieldDef = fields[i].Field;
+
+					// Find by that definition name (doesn't happen very often at all so this simple search is fine):
+					for (var t = 0; t < _projectFieldSetters.Count; t++)
+					{
+
+						if (_projectFieldSetters[t].Name == fieldDef.Name)
+						{
+							_projectFieldSetters[t].FieldReader(metadata, fields, i, fieldDef.IsNullable);
+							break;
+						}
+
+					}
+				}
+
+				metadata.Updated();
+				return metadata;
 		}
 
 		return null;
