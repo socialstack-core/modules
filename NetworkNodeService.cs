@@ -96,7 +96,7 @@ public partial class NetworkNodeService : AutoService<NetworkNode>
 				if (bds.Project.IsAssembler)
 				{
 					// We also act as the distributor:
-					bds.Distributor.Start();
+					bds.Project.Distributor.StartDistributing();
 				}
 
 			}

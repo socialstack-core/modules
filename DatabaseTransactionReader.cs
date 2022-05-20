@@ -15,11 +15,6 @@ public class DatabaseTransactionReader : TransactionReader
 	private Context _loadContext = new Context(1, 1, 1);
 
 	/// <summary>
-	/// Field information for the BlockChainProject type which allow setting fields on the project itself.
-	/// </summary>
-	private List<ContentField> _projectFieldSetters;
-	
-	/// <summary>
 	/// Applies the content of the valid transaction in the reader buffer.
 	/// Returns a "relevant object" which was updated by the transaction (such as a schema field or a particular entity).
 	/// </summary>
@@ -92,84 +87,14 @@ public class DatabaseTransactionReader : TransactionReader
 			case Schema.TransactionDefId:
 			case Schema.FieldDefId:
 			case Schema.EntityTypeId:
-
-				// Schema level. Default behaviour:
-				return base.ApplyTransaction();
-
 			case Schema.ProjectMetaDefId: // 4
 
-				// General project metadata.
-				// Works the same as SetFields but specifically targets the project metadata.
-				var metadata = Project;
-
-				fields = Fields;
-				startFieldsOffset = 0;
-
-				if (FieldCount > 0)
-				{
-					// Special fields may occur before the Timestamp.
-					for (var i = 0; i < FieldCount; i++)
-					{
-						var fieldMeta = fields[i].Field;
-
-						if (fieldMeta.Id == Schema.TimestampDefId)
-						{
-							// Timestamp.
-
-							// Timestamp marks the end of the special fields.
-							startFieldsOffset = i + 1;
-							break;
-						}
-					}
-
-					for (var i = startFieldsOffset; i < FieldCount; i++)
-					{
-						// Get the definition:
-						var fieldDef = fields[i].Field;
-
-						if (!fieldDef.CanSet)
-						{
-							// Invalid txn.
-							return false;
-						}
-					}
-
-					// Setting fields on metadata
-					if (_projectFieldSetters == null)
-					{
-						// Generate the field writers:
-						var chainIO = new ChainFieldIO();
-						chainIO.GenerateForType(typeof(BlockChainProject));
-						_projectFieldSetters = chainIO.Fields;
-					}
-
-					for (var i = startFieldsOffset; i < FieldCount; i++)
-					{
-						// Get the definition:
-						var fieldDef = fields[i].Field;
-
-						// Find by that definition name (doesn't happen very often at all so this simple search is fine):
-						for (var t = 0; t < _projectFieldSetters.Count; t++)
-						{
-
-							if (_projectFieldSetters[t].Name == fieldDef.Name)
-							{
-								_projectFieldSetters[t].FieldReader(metadata, fields, i, fieldDef.IsNullable);
-								break;
-							}
-
-						}
-					}
-
-				}
-
-				metadata.Updated();
-				relevantObject = metadata;
-
-				break;
+				// Schema and project level. Default behaviour:
+				return base.ApplyTransaction();
+			
 			case Schema.TransferDefId: // 5
 
-				// Fungible transfer. Socialstack doesn't directly create these, but they are supported anyway.
+				// Fungible transfer. Socialstack doesn't directly create these, but they are supported (validated) anyway.
 
 				break;
 			case Schema.BlockBoundaryDefId: // 6

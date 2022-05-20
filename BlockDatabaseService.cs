@@ -23,19 +23,9 @@ namespace Api.BlockDatabase;
 public partial class BlockDatabaseService : AutoService
 {
 	/// <summary>
-	/// Distribution which occurs if this node is the BAS.
-	/// </summary>
-	private BlockDistributor _distributor;
-
-	/// <summary>
 	/// The keypair to use when signing transactions and blocks from this node.
 	/// </summary>
 	public KeyPair SelfKeyPair;
-
-	/// <summary>
-	/// Distribution which occurs if this node is the BAS.
-	/// </summary>
-	public BlockDistributor Distributor => _distributor;
 
 	/// <summary>
 	/// Gets the blockchain of a given type.
@@ -563,34 +553,35 @@ public partial class BlockDatabaseService : AutoService
 		sha3.DoFinal(pubHash, 0);
 
 		_project.PublicHash = Hex.Convert(pubHash);
-
-		// Load now:
-		_project.Load(dbPath, typeof(DatabaseTransactionReader), (TransactionReader reader) => {
-			
-			// Called when a reader has been instanced and is about to be used.
-
-			// Hook up the txn reader with custom state:
-			// reader.
-
-		}, (BlockChain chain) => {
+		_project.SetupStorage(dbPath, baseConfig.Distribution);
+		_project.OnChainEvent = (BlockChain chain, BlockChainEvent evt) => {
 
 			// Called when a chain has been instanced and is about to load.
 
 			// Hook up the chain with custom state:
 			chain.SetServiceMeta(serviceMeta);
 
-		});
+		};
 
-		_project.Distribution = baseConfig.Distribution;
-		
-		// Create a distributor:
-		_distributor = new BlockDistributor(_project);
+		_project.SetReaderType(typeof(DatabaseTransactionReader));
 
 		var setupHandlersMethod = typeof(Init).GetMethod(nameof(Init.SetupServiceHandlers), BindingFlags.Static  | BindingFlags.Public);
 		
 		// Now that the caches are loaded, can apply each cache to each service instance.
 		// This happens in the BeforeLoad event handler.
 		Events.Service.BeforeCreate.AddEventListener(async (Context ctx, AutoService service) => {
+
+			if (service.GetType() == typeof(BlockDatabaseService))
+			{
+				// The databaseservice is just about to be setup, but has been instanced.
+				// Load the project now.
+
+				await _project.Load();
+
+				// Watch for changes:
+				_project.Watch();
+
+			}
 
 			// Service only services pass through here too. Make sure we have a service with an entity:
 			if (service.EntityName == null)
