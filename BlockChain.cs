@@ -401,6 +401,29 @@ public partial class BlockChain
 	}
 
 	/// <summary>
+	/// Checks if the CDN has any more blocks on it and if so, downloads them.
+	/// This is used by the CDN only watch mode.
+	/// </summary>
+	/// <returns></returns>
+	public async Task CheckForCdnUpdates()
+	{
+		if (Project.Distributor == null)
+		{
+			return;
+		}
+
+		// Get the index:
+		var index = await Project.Distributor.GetIndex(this);
+
+		if (index.LatestEndByteOffset == 0)
+		{
+			return;
+		}
+
+		await PullCdnData(index);
+	}
+
+	/// <summary>
 	/// Loads or sets up the schema.
 	/// </summary>
 	public async ValueTask LoadOrCreate(Action<TransactionReader> onTransaction = null)
@@ -490,70 +513,75 @@ public partial class BlockChain
 				throw new Exception("Unexpected missing reader");
 			}
 
-			// Latest block we have received (or partially received) is..
-			var latestBlock = _txReader.CurrentBlockId;
-			var latestBlockOffset = _txReader.BlockBoundaryTransactionId;
+			await PullCdnData(index);
+		}
+	}
 
-			// Max byte so far:
-			var currentMaxByte = _txReader.TransactionId;
+	private async Task PullCdnData(DistributorJsonIndex index)
+	{
+		// Latest block we have received (or partially received) is..
+		var latestBlock = _txReader.CurrentBlockId;
+		var latestBlockOffset = _txReader.BlockBoundaryTransactionId;
 
-			// Set the write file offset to the correct value:
-			WriteFileOffset = (long)index.LatestEndByteOffset;
+		// Max byte so far:
+		var currentMaxByte = _txReader.TransactionId;
 
-			if (index.LatestEndByteOffset > currentMaxByte)
-			{
-				// Remote has more data than we do.
-				// Download block range now.
-				var fs = Open(FileAccess.ReadWrite);
-				var readBuffer = new byte[2048];
-				var bufferedBytes = new BufferedBytes(readBuffer, 2048, null);
-				var size = fs.Length;
-				fs.Seek(size, SeekOrigin.Begin);
+		// Set the write file offset to the correct value:
+		WriteFileOffset = (long)index.LatestEndByteOffset;
 
-				// The number of partial bytes we currently have on the end of the file:
-				int partialBlockBytesRemaining = (int)(size - (long)latestBlockOffset);
+		if (index.LatestEndByteOffset > currentMaxByte)
+		{
+			// Remote has more data than we do.
+			// Download block range now.
+			var fs = Open(FileAccess.ReadWrite);
+			var readBuffer = new byte[2048];
+			var bufferedBytes = new BufferedBytes(readBuffer, 2048, null);
+			var size = fs.Length;
+			fs.Seek(size, SeekOrigin.Begin);
 
-				await Project.Distributor.GetBlockRange(this, latestBlock, index.LatestBlockId, async (Stream block, ulong firstBlockId, ulong lastBlockId) => {
+			// The number of partial bytes we currently have on the end of the file:
+			int partialBlockBytesRemaining = (int)(size - (long)latestBlockOffset);
 
-					// Append to the file and stream load the segments.
-					var bytesRead = await block.ReadAsync(readBuffer, 0, 2048);
+			await Project.Distributor.GetBlockRange(this, latestBlock, index.LatestBlockId, async (Stream block, ulong firstBlockId, ulong lastBlockId) => {
 
-					while (bytesRead > 0)
+				// Append to the file and stream load the segments.
+				var bytesRead = await block.ReadAsync(readBuffer, 0, 2048);
+
+				while (bytesRead > 0)
+				{
+					var offset = partialBlockBytesRemaining;
+
+					if (offset > bytesRead)
 					{
-						var offset = partialBlockBytesRemaining;
+						// Skip this whole segment.
+						partialBlockBytesRemaining -= bytesRead;
+					}
+					else
+					{
+						bufferedBytes.Length = bytesRead - offset;
+						bufferedBytes.Offset = offset;
 
-						if (offset > bytesRead)
+						// Load:
+						_txReader.ProcessBlock(bufferedBytes);
+
+						// Append to the file:
+						fs.Write(readBuffer, offset, bufferedBytes.Length);
+
+						if (offset > 0)
 						{
-							// Skip this whole segment.
-							partialBlockBytesRemaining -= bytesRead;
+							// Clear partial:
+							partialBlockBytesRemaining = 0;
 						}
-						else
-						{
-							bufferedBytes.Length = bytesRead - offset;
-							bufferedBytes.Offset = offset;
-
-							// Load:
-							_txReader.ProcessBlock(bufferedBytes);
-
-							// Append to the file:
-							fs.Write(readBuffer, offset, bufferedBytes.Length);
-							
-							if (offset > 0)
-							{
-								// Clear partial:
-								partialBlockBytesRemaining = 0;
-							}
-						}
-
-						bytesRead = await block.ReadAsync(readBuffer, 0, 2048);
 					}
 
-					await fs.FlushAsync();
+					bytesRead = await block.ReadAsync(readBuffer, 0, 2048);
+				}
 
-				});
-			}
+				await fs.FlushAsync();
 
+			});
 		}
+
 	}
 
 	/// <summary>
