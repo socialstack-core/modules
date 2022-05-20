@@ -578,8 +578,8 @@ public partial class BlockDatabaseService : AutoService
 
 				await _project.Load();
 
-				// Watch for changes:
-				_project.Watch();
+				// Watch for changes, realtime mode:
+				_project.Watch(false);
 
 			}
 
