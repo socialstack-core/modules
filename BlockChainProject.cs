@@ -59,11 +59,6 @@ public class BlockChainProject
 	public string ServiceUrl;
 
 	/// <summary>
-	/// Distribution configuration.
-	/// </summary>
-	public DistributionConfig Distribution;
-
-	/// <summary>
 	/// The executable for this project, if there is one.
 	/// </summary>
 	public byte[] ExecutableArchive;
@@ -126,6 +121,27 @@ public class BlockChainProject
 	public uint MaxTransactionWaitTimeMs { get; set; } = 2000;
 
 	private Timer _maintenanceTimer;
+
+	/// <summary>
+	/// A local storage directory for holding chain files. If this is null, the chain will be exclusively runtime only.
+	/// </summary>
+	public string LocalStorageDirectory;
+
+	/// <summary>
+	/// Used to either download remote blocks or upload them, depending on if we are the assembly service.
+	/// </summary>
+	public BlockDistributor Distributor;
+
+	/// <summary>
+	/// Sets up the block storage (local and remote).
+	/// </summary>
+	public void SetupStorage(string localStoragePath, DistributionConfig config)
+	{
+		LocalStorageDirectory = localStoragePath;
+
+		// Create a distributor:
+		Distributor = new BlockDistributor(config, this);
+	}
 
 	/// <summary>
 	/// Starts the maintenance timer. Happens automatically if RunBuiltInMaintenance is true.
@@ -398,70 +414,49 @@ public class BlockChainProject
 	}
 
 	/// <summary>
-	/// May be a slow operation. Loads the project from the given path.
+	/// Sets the given type as the reader type for this project.
 	/// </summary>
-	/// <param name="dbPath"></param>
-	/// <param name="onReaderCreated"></param>
-	/// <param name="onChainEvent"></param>
-	/// <param name="readerType">Optionally provide a custom transaction reader type to override the built in validation rule set.
+	/// <param name="type">A custom transaction reader type to override the built in validation rule set.
 	/// Note that all nodes operating on the same chain must be using the same validation function.</param>
-	/// <param name="runForFutureTransactions">True if onTransaction should be called if anything is written to the chain(s) in the future.</param>
-	public void Load(string dbPath, Type readerType = null, Action<TransactionReader> onReaderCreated = null, Action<BlockChain> onChainEvent = null, bool runForFutureTransactions = true)
+	public void SetReaderType(Type type)
 	{
-		if (readerType == null)
+		if (type == null)
 		{
-			readerType = typeof(TransactionReader);
+			type = typeof(TransactionReader);
 		}
 
+		_readerType = type;
+	}
+
+	private Type _readerType;
+
+	/// <summary>
+	/// Called when a notable reader event occurs. Currently only one event (reader created).
+	/// </summary>
+	public Action<TransactionReader, TransactionReaderEvent> OnReaderEvent;
+
+	/// <summary>
+	/// Called when a notable chain event occurs. Currently only one event (chain created).
+	/// </summary>
+	public Action<BlockChain, BlockChainEvent> OnChainEvent;
+
+	/// <summary>
+	/// May be a slow operation. Loads the project from the given path, optionally specific chain types. If you don't specify them, all are loaded.
+	/// </summary>
+	public async ValueTask Load()
+	{
 		// Load the 4 chains:
-		_chains[0] = new BlockChain(this, dbPath + "public.lbc", ChainType.Public, readerType, onReaderCreated);
-		if (onChainEvent != null)
-		{
-			onChainEvent(_chains[0]);
-		}
-		_chains[0].LoadOrCreate();
+		_chains[0] = new BlockChain(this, ChainType.Public, _readerType);
+		await _chains[0].LoadOrCreate();
 
-		if (runForFutureTransactions)
-		{
-			_chains[0].Watch();
-		}
+		_chains[1] = new BlockChain(this, ChainType.Private, _readerType);
+		await _chains[1].LoadOrCreate();
 
-		_chains[1] = new BlockChain(this, dbPath + "private.lbc", ChainType.Private, readerType, onReaderCreated, _chains[0]);
-		if (onChainEvent != null)
-		{
-			onChainEvent(_chains[1]);
-		}
-		_chains[1].LoadOrCreate();
+		_chains[2] = new BlockChain(this, ChainType.PublicHost, _readerType);
+		await _chains[2].LoadOrCreate();
 
-		if (runForFutureTransactions)
-		{
-			_chains[1].Watch();
-		}
-
-		Console.WriteLine("Loading pubhost");
-		_chains[2] = new BlockChain(this, dbPath + "public-host.lbc", ChainType.PublicHost, readerType, onReaderCreated);
-		if (onChainEvent != null)
-		{
-			onChainEvent(_chains[2]);
-		}
-		_chains[2].LoadOrCreate();
-
-		if (runForFutureTransactions)
-		{
-			_chains[2].Watch();
-		}
-
-		_chains[3] = new BlockChain(this, dbPath + "private-host.lbc", ChainType.PrivateHost, readerType, onReaderCreated, _chains[2]);
-		if (onChainEvent != null)
-		{
-			onChainEvent(_chains[3]);
-		}
-		_chains[3].LoadOrCreate();
-
-		if (runForFutureTransactions)
-		{
-			_chains[3].Watch();
-		}
+		_chains[3] = new BlockChain(this, ChainType.PrivateHost, _readerType);
+		await _chains[3].LoadOrCreate();
 
 		// Start the timer:
 		if (RunBuiltInMaintenance)
@@ -469,6 +464,23 @@ public class BlockChainProject
 			// Must be started after load as we need to make sure the block boundary meta is accurate (i.e. the state is correct)
 			// and we don't want maintenance ticks happening whilst we have partially loaded state.
 			StartMaintenanceTimer();
+		}
+	}
+
+	/// <summary>
+	/// Listens for future transactions using the configured channels.
+	/// </summary>
+	public void Watch()
+	{
+		for (var i = 0; i < _chains.Length; i++)
+		{
+			var chain = _chains[i];
+			if (chain == null)
+			{
+				continue;
+			}
+
+			chain.Watch();
 		}
 	}
 }

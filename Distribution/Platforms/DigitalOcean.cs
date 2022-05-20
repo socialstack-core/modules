@@ -110,11 +110,9 @@ public partial class DigitalOceanHost : DistributionPlatform
 			SetupClient();
 		}
 
-		var key = (isPrivate ? "content-private/" : "content/") + relativeUrl;
-
 		try
 		{
-			var str = await _uploadClient.GetObjectStreamAsync(_spaceName, key, null);
+			var str = await _uploadClient.GetObjectStreamAsync(_spaceName, relativeUrl, null);
 			return str;
 		}
 		catch (AmazonS3Exception ex)

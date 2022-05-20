@@ -66,6 +66,7 @@ public partial class TransactionReader
 					// Got a chain fragment. Copy it into the memory stream:
 					writer.Write(buff, start, length);
 				});
+				Console.WriteLine("FB " + _byteIndex + ", " + read +", " + foundBoundary);
 
 				if (!foundBoundary)
 				{
@@ -86,6 +87,11 @@ public partial class TransactionReader
 
 		}
 
+		// Release the writer:
+		writer.Release();
+
+		// Latest txn ID:
+		TransactionId = (ulong)str.Length;
 	}
 	
 	/// <summary>
@@ -543,6 +549,27 @@ public partial class TransactionReader
 					break;
 			}
 
+		}
+
+		if (_state == ReadState.SecondaryDefinitionIdDone)
+		{
+			// The last transaction hasn't been processed yet.
+
+			// If its a block boundary, we've got what we're after:
+			if (_definitionId == Schema.BlockBoundaryDefId)
+			{
+				// Add to the digest:
+				var digestLen = _byteIndex - _digestedUpTo;
+				onBlockFragment(_readBuffer, _digestedUpTo, digestLen);
+				_digestedUpTo = _byteIndex;
+
+				// Don't process any more - we've found a boundary so stop there.
+				_state = ReadState.CompressedNumberStart;
+				_txState = ReadState.DefinitionIdDone;
+				CurrentBlockId++;
+				return true;
+			}
+			
 		}
 
 		if (_digestedUpTo < _byteIndex)

@@ -1,5 +1,7 @@
+using Api.Startup;
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Threading.Tasks;
 
 namespace Lumity.BlockChains;
@@ -22,7 +24,82 @@ public partial class DistributionPlatform
 	{
 		configuredState[key] = true;
 	}
-	
+
+	/// <summary>
+	/// Sets the json index for a given platform. The blocks must have been uploaded before you do this.
+	/// </summary>
+	/// <param name="chain">The chain to set the index for.</param>
+	/// <param name="index">The index to set.</param>
+	/// <returns></returns>
+	public async Task SetIndex(BlockChain chain, DistributorJsonIndex index)
+	{
+		var cdnPath = chain.BlockCdnPath; // Does not start or end with /
+		var indexPath = cdnPath + "/index.json";
+
+		// Jsonify:
+		var json = Newtonsoft.Json.JsonConvert.SerializeObject(index);
+
+		// Get the bytes and put into a memorystream:
+		var bytes = System.Text.Encoding.UTF8.GetBytes(json);
+
+		// Not an ideal setup with all the allocations, but can be optimised later.
+		var ms = new MemoryStream();
+		ms.Write(bytes);
+
+		await Upload(indexPath, chain.IsPrivate, ms);
+	}
+
+	/// <summary>
+	/// Gets the json index.
+	/// </summary>
+	/// <param name="chain">The chain to get the index for.</param>
+	/// <returns></returns>
+	public async Task<DistributorJsonIndex> GetIndex(BlockChain chain)
+	{
+		var cdnPath = chain.BlockCdnPath; // Does not start or end with /
+		var indexPath = cdnPath + "/index.json";
+		string jsonInfo;
+
+		try
+		{
+			// Attempt to read the index file.
+			var index = await ReadFile(indexPath, chain.IsPrivate);
+
+			var ms = new MemoryStream();
+			await index.CopyToAsync(ms);
+			jsonInfo = System.Text.Encoding.UTF8.GetString(ms.ToArray());
+
+		}
+		catch (PublicException ex)
+		{
+			if (ex.Response.Code == "not_found")
+			{
+				// Not found - use a default empty one.
+				return new DistributorJsonIndex();
+			}
+
+			throw;
+		}
+
+		try
+		{
+			if (string.IsNullOrEmpty(jsonInfo))
+			{
+				return new DistributorJsonIndex();
+			}
+			else
+			{
+				return Newtonsoft.Json.JsonConvert.DeserializeObject<DistributorJsonIndex>(jsonInfo);
+			}
+		}
+		catch (Exception e)
+		{
+			Console.WriteLine("Unable to start distribution of target platform due to errors with json file: " + e.ToString());
+			throw;
+		}
+
+	}
+
 	/// <summary>
 	/// The URL for the upload host (excluding /content/) if this host platform is providing file services.
 	/// </summary>

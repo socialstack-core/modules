@@ -392,7 +392,6 @@ public partial class TransactionReader
 			case Lumity.BlockChains.Schema.BlockBoundaryDefId: // 6
 
 				// Block boundary. When one of these is encountered you MUST validate its signature.
-
 				if (ValidateBlockSignature())
 				{
 					return ValidationState.Valid;

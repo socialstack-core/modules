@@ -193,26 +193,41 @@ public partial class BlockChain
 	}
 
 	/// <summary>
+	/// Gets the filename for the given chain type.
+	/// </summary>
+	/// <param name="type"></param>
+	/// <returns></returns>
+	public static string GetChainTypeFileName(ChainType type)
+	{
+		return GetChainTypeName(type) + ".lbc";
+	}
+
+	/// <summary>
+	/// Gets the chain type name for the given type.
+	/// </summary>
+	/// <param name="type"></param>
+	/// <returns></returns>
+	public static string GetChainTypeName(ChainType type)
+	{
+		switch (type)
+		{
+			case ChainType.Public:
+				return "public";
+			case ChainType.Private:
+				return "private";
+			case ChainType.PublicHost:
+				return "public-host";
+			case ChainType.PrivateHost:
+				return "private-host";
+		}
+
+		return null;
+	}
+
+	/// <summary>
 	/// The textual chain type name.
 	/// </summary>
-	public string ChainTypeName
-	{
-		get {
-			switch (ChainType)
-			{
-				case ChainType.Public:
-					return "public";
-				case ChainType.Private:
-					return "private";
-				case ChainType.PublicHost:
-					return "public-host";
-				case ChainType.PrivateHost:
-					return "private-host";
-			}
-
-			return null;
-		}
-	}
+	public string ChainTypeName => GetChainTypeName(ChainType);
 
 	/// <summary>
 	/// Creates a unique timestamp using the project information and UtcNow.
@@ -340,24 +355,36 @@ public partial class BlockChain
 	}
 
 	/// <summary>
-	/// Creates a blockchain info handler for the given file path.
+	/// Creates a blockchain info handler for the given chain type in the given project.
 	/// </summary>
 	/// <param name="project"></param>
-	/// <param name="file"></param>
 	/// <param name="type"></param>
-	/// <param name="onReaderCreated">A callback which runs when a reader is created. Use this to initialise any custom state within the reader itself.</param>
 	/// <param name="readerType">A type which inherits TransactionReader. Is used when reading and validating the txns on this chain.</param>
-	/// <param name="relativeTo">A chain that this one is relative to. This is used when a chain gets its schema exclusively from some other chain.
-	/// Private chains generally derive their schema from their public counterpart, i.e. if you are using a private chain type, this field is likely required.</param>
-	public BlockChain(BlockChainProject project, string file, ChainType type, Type readerType, Action<TransactionReader> onReaderCreated = null, BlockChain relativeTo = null)
+	public BlockChain(BlockChainProject project, ChainType type, Type readerType)
 	{
 		Project = project;
-		File = file;
+		File = project != null && project.LocalStorageDirectory != null ? project.LocalStorageDirectory + GetChainTypeFileName(type) : null;
 		ChainType = type;
-		IsPrivate = ((int)ChainType & 2) == 2;
-		RelativeTo = relativeTo;
-		_onReaderCreated = onReaderCreated;
+		IsPrivate = ChainType == ChainType.Private || ChainType == ChainType.PrivateHost;
+
+		if (project != null)
+		{
+			if (type == ChainType.Private)
+			{
+				RelativeTo = project.GetChain(ChainType.Public);
+			}
+			else if (type == ChainType.PrivateHost)
+			{
+				RelativeTo = project.GetChain(ChainType.PublicHost);
+			}
+		}
+
 		_readerType = readerType == null ? typeof(TransactionReader) : readerType;
+
+		if (project != null && project.OnChainEvent != null)
+		{
+			project.OnChainEvent(this, BlockChainEvent.Instanced);
+		}
 	}
 
 	private TransactionReader CreateReader()
@@ -365,9 +392,9 @@ public partial class BlockChain
 		var txObj = Activator.CreateInstance(_readerType);
 		var txReader = (TransactionReader)txObj;
 
-		if (_onReaderCreated != null)
+		if (Project != null && Project.OnReaderEvent != null)
 		{
-			_onReaderCreated(txReader);
+			Project.OnReaderEvent(txReader, TransactionReaderEvent.Instanced);
 		}
 
 		return txReader;
@@ -376,8 +403,25 @@ public partial class BlockChain
 	/// <summary>
 	/// Loads or sets up the schema.
 	/// </summary>
-	public void LoadOrCreate(Action<TransactionReader> onTransaction = null)
+	public async ValueTask LoadOrCreate(Action<TransactionReader> onTransaction = null)
 	{
+		// If we have distribution config, first make sure the file is up to date.
+		var remoteDataExists = false;
+		DistributorJsonIndex index = null;
+
+		if (Project.Distributor != null)
+		{
+			// Get the index for this chain:
+			index = await Project.Distributor.GetIndex(this);
+
+			// It is never null.
+			if (index.LatestEndByteOffset != 0)
+			{
+				// May need to download and append blocks.
+				remoteDataExists = true;
+			}
+		}
+
 		// Next, whenever the callback is executed, we can update the digest with additional bytes.
 
 		if (RelativeTo != null)
@@ -419,8 +463,110 @@ public partial class BlockChain
 			WriteFileOffset = 0;
 
 			// Write the schema:
-			WriteInitialChain(onTransaction);
+			if (remoteDataExists)
+			{
+				// Load from an empty file. This makes sure the _txReader is setup with a filestream.
+
+				// Load the transactions (really just sets up the reader):
+				LoadForwards(onTransaction, true);
+
+				// Setup initial write digest:
+				_writeDigest = _txReader.CopyDigest();
+			}
+			else
+			{
+				// We are the first.
+				WriteInitialChain(onTransaction);
+			}
 		}
+
+		// At this point we now know what blocks we have locally.
+		// If there is any remote data, obtain it now.
+		if (remoteDataExists)
+		{
+			if (_txReader == null)
+			{
+				// That wasn't supposed to happen!
+				throw new Exception("Unexpected missing reader");
+			}
+
+			// Latest block we have received (or partially received) is..
+			var latestBlock = _txReader.CurrentBlockId;
+			var latestBlockOffset = _txReader.BlockBoundaryTransactionId;
+
+			// Max byte so far:
+			var currentMaxByte = _txReader.TransactionId;
+
+			// Set the write file offset to the correct value:
+			WriteFileOffset = (long)index.LatestEndByteOffset;
+
+			if (index.LatestEndByteOffset > currentMaxByte)
+			{
+				// Remote has more data than we do.
+				// Download block range now.
+				var fs = Open(FileAccess.ReadWrite);
+				var readBuffer = new byte[2048];
+				var bufferedBytes = new BufferedBytes(readBuffer, 2048, null);
+				var size = fs.Length;
+				fs.Seek(size, SeekOrigin.Begin);
+
+				// The number of partial bytes we currently have on the end of the file:
+				int partialBlockBytesRemaining = (int)(size - (long)latestBlockOffset);
+
+				await Project.Distributor.GetBlockRange(this, latestBlock, index.LatestBlockId, async (Stream block, ulong firstBlockId, ulong lastBlockId) => {
+
+					// Append to the file and stream load the segments.
+					var bytesRead = await block.ReadAsync(readBuffer, 0, 2048);
+
+					while (bytesRead > 0)
+					{
+						var offset = partialBlockBytesRemaining;
+
+						if (offset > bytesRead)
+						{
+							// Skip this whole segment.
+							partialBlockBytesRemaining -= bytesRead;
+						}
+						else
+						{
+							bufferedBytes.Length = bytesRead - offset;
+							bufferedBytes.Offset = offset;
+
+							// Load:
+							_txReader.ProcessBlock(bufferedBytes);
+
+							// Append to the file:
+							fs.Write(readBuffer, offset, bufferedBytes.Length);
+							
+							if (offset > 0)
+							{
+								// Clear partial:
+								partialBlockBytesRemaining = 0;
+							}
+						}
+
+						bytesRead = await block.ReadAsync(readBuffer, 0, 2048);
+					}
+
+					await fs.FlushAsync();
+
+				});
+			}
+
+		}
+	}
+
+	/// <summary>
+	/// Watches remote CDNs for block files. This is the easiest way to tune in to a chain for updates, provided you trust the source.
+	/// It is suggested to check your block hashes with multiple other service providers to ensure you have the correct state.
+	/// Note that for private chains you must provide full keys etc for the distribution platform(s) you want to connect to.
+	/// Public chains only need the URL.
+	/// </summary>
+	/// <param name="distributionConfig"></param>
+	public void Watch(DistributionConfig distributionConfig)
+	{
+		_isWatching = true;
+
 	}
 
 	/// <summary>
@@ -696,11 +842,20 @@ public partial class BlockChain
 	private bool _isWatching;
 
 	/// <summary>
+	/// Opens a filestream for this chain.
+	/// </summary>
+	/// <returns></returns>
+	public FileStream Open(FileAccess access = FileAccess.Read)
+	{
+		return new FileStream(File, FileMode.OpenOrCreate, access, FileShare.ReadWrite, 0, true);
+	}
+
+	/// <summary>
 	/// Finds blocks in the chain, invoking the given async callback when they are discovered.
 	/// </summary>
-	public async ValueTask FindBlocks(Func<Writer, ulong, ValueTask> onFoundBlock, ulong blockchainOffset = 0, ulong currentBlockId = 1)
+	public async ValueTask<TransactionReader> FindBlocks(Func<Writer, ulong, ValueTask> onFoundBlock, ulong blockchainOffset = 0, ulong currentBlockId = 1)
 	{
-		var fs = new FileStream(File, FileMode.OpenOrCreate, FileAccess.Read, FileShare.ReadWrite, 0, true);
+		var fs = Open();
 
 		// Assuming str is the complete chain:
 		fs.Seek((long)blockchainOffset, SeekOrigin.Begin);
@@ -712,6 +867,7 @@ public partial class BlockChain
 		await txReader.FindBlocks(fs, onFoundBlock, blockchainOffset, currentBlockId);
 
 		fs.Close();
+		return txReader;
 	}
 
 	/// <summary>
@@ -719,7 +875,7 @@ public partial class BlockChain
 	/// </summary>
 	public void LoadForwards(Action<TransactionReader> onTransaction = null, bool updateSchema = false, bool checkHashes = true, bool reuseReaderForWatch = true, ulong byteOffset = 0)
 	{
-		var fs = new FileStream(File, FileMode.OpenOrCreate, FileAccess.Read, FileShare.ReadWrite, 0, true);
+		var fs = Open();
 
 		var txReader = CreateReader();
 		txReader.Init(Schema, this, onTransaction);
@@ -755,7 +911,7 @@ public partial class BlockChain
 	/// </summary>
 	public void LoadBackwards(Action<TransactionReader> onTransaction)
 	{
-		var fs = new FileStream(File, FileMode.OpenOrCreate, FileAccess.Read, FileShare.ReadWrite, 0, true);
+		var fs = Open();
 
 		var txReader = CreateReader();
 		txReader.Init(Schema, this, onTransaction);

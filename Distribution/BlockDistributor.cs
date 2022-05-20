@@ -64,28 +64,105 @@ public class BlockDistributor
 	/// </summary>
 	public BlockChainProject Project;
 
+	/// <summary>
+	/// Configuration for this distributor.
+	/// </summary>
+	public DistributionConfig Config;
 
 	/// <summary>
 	/// Creates a new block distributor.
 	/// </summary>
-	/// <param name="_project"></param>
-	public BlockDistributor(BlockChainProject _project)
+	/// <param name="config"></param>
+	/// <param name="project"></param>
+	public BlockDistributor(DistributionConfig config, BlockChainProject project)
 	{
-		Project = _project;
+		Config = config;
+		Project = project;
 		
-		// The distributor retains knowledge about what it has successfully uploaded so far.
+		// The distributor retains knowledge about what it has successfully uploaded so far (if it is actively publishing blocks).
 	}
 
 	/// <summary>
-	/// Starts the distributor.
+	/// Gets the given range of blocks inclusive. FirstId can equal LastId if you only want one.
 	/// </summary>
-	public void Start()
+	/// <param name="chain"></param>
+	/// <param name="firstId"></param>
+	/// <param name="lastId"></param>
+	/// <param name="onBlocks">Called when a segment of the chain is available.</param>
+	/// <param name="platform">Optionally specify a platform.</param>
+	/// <returns></returns>
+	public async Task GetBlockRange(BlockChain chain, ulong firstId, ulong lastId, Func<Stream, ulong, ulong, ValueTask> onBlocks, DistributionPlatform platform = null)
 	{
-		var dist = Project.Distribution;
+		if (platform == null)
+		{
+			var platforms = GetPlatforms();
+
+			if (platforms == null || platforms.Count == 0)
+			{
+				// Not configured!
+				throw new Exception("Block distributor partially configured - it doesn't have any CDN platforms to check.");
+			}
+
+			// Just uses the first one for now.
+			platform = platforms[0];
+		}
+
+		// This is currently a very simplistic mechanism in that it is
+		// 1 block at a time vs using pre-concatted block files when possible.
+		var sb = new System.Text.StringBuilder();
+
+		for (ulong blockId = firstId; blockId <= lastId; blockId++)
+		{
+			sb.Clear();
+			sb.Append(chain.BlockCdnPath);
+			sb.Append('/');
+			GetBlockPath(blockId, sb);
+
+			// Append type:
+			sb.Append(".block");
+
+			var filePath = sb.ToString();
+			
+			// Get the stream:
+			var stream = await platform.ReadFile(filePath, chain.IsPrivate);
+
+			// Process it:
+			await onBlocks(stream, blockId, blockId);
+		}
+
+	}
+
+	/// <summary>
+	/// Updates the configuration for this distributor.
+	/// </summary>
+	/// <param name="config"></param>
+	public void UpdateConfig(DistributionConfig config)
+	{
+		Config = config;
+		_platforms = null;
+	}
+
+	/// <summary>
+	/// Parsed distribution platforms.
+	/// </summary>
+	private List<DistributionPlatform> _platforms;
+
+	/// <summary>
+	/// Collects the configured distribution platforms.
+	/// </summary>
+	/// <returns></returns>
+	private List<DistributionPlatform> GetPlatforms()
+	{
+		if (_platforms != null)
+		{
+			return _platforms;
+		}
+
+		var dist = Config;
 
 		if (dist == null)
 		{
-			return;
+			return null;
 		}
 
 		List<DistributionPlatform> platforms = null;
@@ -99,7 +176,7 @@ public class BlockDistributor
 
 			platforms.Add(new AwsHost(dist.Aws));
 		}
-		
+
 		if (dist.DigitalOcean != null)
 		{
 			if (platforms == null)
@@ -120,14 +197,57 @@ public class BlockDistributor
 			platforms.Add(new AzureHost(dist.Azure));
 		}
 
-		if (platforms == null)
+		_platforms = platforms;
+		return platforms;
+	}
+
+	/// <summary>
+	/// Gets the json index by asking a random platform (or a specific one) for it.
+	/// </summary>
+	/// <param name="chain">The chain to get the index for.</param>
+	/// <param name="platform">Optionally get the index for a specific platform.</param>
+	/// <returns></returns>
+	public async Task<DistributorJsonIndex> GetIndex(BlockChain chain, DistributionPlatform platform = null)
+	{
+		if (platform == null)
 		{
-			return;
+			var platforms = GetPlatforms();
+
+			if (platforms == null || platforms.Count == 0)
+			{
+				// Not configured!
+				throw new Exception("Block distributor partially configured - it doesn't have any CDN platforms to check.");
+			}
+
+			// Just uses the first one for now.
+			platform = platforms[0];
 		}
 
+		return await platform.GetIndex(chain);
+	}
+
+	/// <summary>
+	/// Sets the json index for a given platform. The blocks must have been uploaded before you do this.
+	/// </summary>
+	/// <param name="chain">The chain to set the index for.</param>
+	/// <param name="index">The index to set.</param>
+	/// <param name="platform">Platform to set it on.</param>
+	/// <returns></returns>
+	public async Task SetIndex(BlockChain chain, DistributorJsonIndex index, DistributionPlatform platform)
+	{
+		await platform.SetIndex(chain, index);
+	}
+
+	/// <summary>
+	/// Starts the distributor. This is only used if acting explicitly as a distributor.
+	/// </summary>
+	public void StartDistributing()
+	{
 		// For each chain in the project, collect information from the target CDN(s) about where we're up to.
 		// This is the index.json file which must have a very short cache lifespan.
 		Task.Run(async () => {
+
+			var platforms = GetPlatforms();
 
 			var chains = Project.Chains;
 
@@ -135,46 +255,16 @@ public class BlockDistributor
 			{
 				var chain = chains[i];
 
-				var cdnPath = chain.BlockCdnPath; // Does not start or end with /
-				var indexPath = cdnPath + "/index.json";
-
 				for (var p = 0; p < platforms.Count; p++)
 				{
 					var platform = platforms[p];
 
-					Console.WriteLine("Attempting to read index file.." + indexPath);
+					// Get the index:
+					var index = await GetIndex(chain, platform);
 
-					try
-					{
-						// Attempt to read the index file.
-						var index = await platform.ReadFile(indexPath, chain.IsPrivate);
-
-						var ms = new MemoryStream();
-						await index.CopyToAsync(ms);
-
-						var jsonInfo = System.Text.Encoding.UTF8.GetString(ms.ToArray());
-
-						_ = Task.Run(async () => {
-							await DistributeChain(chain, platform, jsonInfo);
-						});
-						
-					}
-					catch(PublicException ex)
-					{
-						if (ex.Response.Code == "not_found")
-						{
-							// Not found - this is fine.
-							_ = Task.Run(async () => {
-								await DistributeChain(chain, platform, null);
-							});
-							
-						}
-						else
-						{
-							throw;
-						}
-					}
-
+					_ = Task.Run(async () => {
+						await DistributeChain(chain, platform, index);
+					});
 				}
 
 			}
@@ -183,33 +273,15 @@ public class BlockDistributor
 		
 	}
 
-	private async Task DistributeChain(BlockChain chain, DistributionPlatform platform, string indexJson)
+	private async Task DistributeChain(BlockChain chain, DistributionPlatform platform, DistributorJsonIndex index)
 	{
-		// The given json indicates the status of the block files on the given platform. If it is null, the platform is empty.
-		DistributorJsonIndex index = null;
+		// The given index indicates the status of the block files on the given platform. It can be empty if the platform has nothing on it.
 		
-		try
-		{
-			if (string.IsNullOrEmpty(indexJson))
-			{
-				index = new DistributorJsonIndex();
-			}
-			else
-			{
-				index = Newtonsoft.Json.JsonConvert.DeserializeObject<DistributorJsonIndex>(indexJson);
-			}
-		}
-		catch(Exception e)
-		{
-			Console.WriteLine("Unable to start distribution of target platform due to errors with json file: " + e.ToString());
-			return;
-		}
-
 		// Next, seek to the start offset and then scan along the chain until the next transaction boundary is found.
 		ulong blockchainOffset = index.LatestEndByteOffset;
 		ulong currentBlockId = index.LatestBlockId + 1;
 
-		await chain.FindBlocks(async (Writer block, ulong blockId) => {
+		var txReader = await chain.FindBlocks(async (Writer block, ulong blockId) => {
 
 			Console.WriteLine("Distributor found block #" + blockId + ", size: " + block.Length);
 
@@ -240,6 +312,15 @@ public class BlockDistributor
 
 		}, blockchainOffset, currentBlockId);
 
+		// Write the index:
+		blockchainOffset = txReader.TransactionId;
+		currentBlockId = txReader.CurrentBlockId;
+
+		index.LatestBlockId = currentBlockId - 1;
+		index.LatestEndByteOffset = blockchainOffset;
+
+		// Update the index:
+		await SetIndex(chain, index, platform);
 	}
 
 }
