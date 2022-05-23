@@ -39,8 +39,14 @@ namespace Api.CloudHosts
 		/// True if should use origin URLs
 		/// </summary>
 		public bool DisableCDN {get; set;}
+
+        /// <summary>
+        /// Custom URL for the CDN. Of the form https://www.example.com (starts with https, does not end with a fwd slash).
+        /// </summary>
+        public string CustomCdnUrl { get; set; }
+
     }
-    
+
     /// <summary>
     /// A representation of DigitalOcean.
     /// </summary>
@@ -89,6 +95,11 @@ namespace Api.CloudHosts
                         {
                             // Remove the last slash:
                             _cdnUrl = _cdnUrl.Substring(0, _cdnUrl.Length - 1);
+                        }
+
+                        if (!string.IsNullOrEmpty(_config.CustomCdnUrl))
+                        {
+                            _cdnUrl = _config.CustomCdnUrl;
                         }
 
                         // Got a space which can be uploaded to:

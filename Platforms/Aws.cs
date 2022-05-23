@@ -39,6 +39,11 @@ namespace Api.CloudHosts
         /// </summary>
         public bool DisplayPdfInline { get; set; }
 
+        /// <summary>
+        /// Custom URL for the CDN. Of the form https://www.example.com (starts with https, does not end with a fwd slash).
+        /// </summary>
+        public string CustomCdnUrl { get; set; }
+
     }
 
     /// <summary>
@@ -62,7 +67,14 @@ namespace Api.CloudHosts
 
             if (!string.IsNullOrEmpty(_config.S3AccessKey) && !string.IsNullOrEmpty(_config.S3AccessSecret) && !string.IsNullOrEmpty(_config.S3ServiceUrl) && !string.IsNullOrEmpty(_config.S3BucketName))
             {
-                _cdnUrl = "https://" + _config.S3BucketName + "." + _config.S3ServiceUrl;
+                if (string.IsNullOrEmpty(_config.CustomCdnUrl))
+                {
+                    _cdnUrl = "https://" + _config.S3BucketName + "." + _config.S3ServiceUrl;
+                }
+                else
+                {
+                    _cdnUrl = _config.CustomCdnUrl;
+                }
 
                 // Got a space which can be uploaded to:
                 SetConfigured("upload");
