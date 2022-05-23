@@ -66,14 +66,6 @@ namespace Api.Pages
 				return new ValueTask();
 			};
 
-			var pathToAdminDir = AppSettings.Configuration["Admin"];
-
-			if (string.IsNullOrEmpty(pathToAdminDir))
-			{
-				// The en-admin subdir is to make configuring NGINX easy:
-				pathToAdminDir = "Admin/public/en-admin";
-			}
-			
 			Events.Page.AfterUpdate.AddEventListener((Context context, Page page) =>
 			{
 				// Doesn't matter what the change was for now - we'll wipe the whole cache.
@@ -780,8 +772,6 @@ namespace Api.Pages
 				.With("lang", locale.Code)
 				.With("data-theme", isAdmin ? themeConfig.DefaultAdminThemeId : themeConfig.DefaultThemeId);
 			
-			// var packDir = isAdmin ? "/en-admin/pack/" : "/pack/";
-
 			var head = doc.Head;
 
 			// If there are tokens, get the primary object:
