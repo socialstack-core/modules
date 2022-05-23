@@ -102,6 +102,23 @@ public partial class BlockChain
 	}
 
 	/// <summary>
+	/// Gets the current max transaction byte (essentially the same chain length).
+	/// This value is always transaction aligned unlike the filestream length.
+	/// </summary>
+	/// <returns></returns>
+	/// <exception cref="Exception"></exception>
+	public ulong GetCurrentMaxByte()
+	{
+		if (_txReader == null)
+		{
+			// Must have loaded it.
+			throw new Exception("Chain not loaded yet. Load the chain before calling this.");
+		}
+
+		return _txReader.TransactionId;
+	}
+
+	/// <summary>
 	/// Called once a second to perform any housekeeping tasks.
 	/// </summary>
 	/// <param name="timestamp">Timestamp in the chains precision (ns).</param>
@@ -344,11 +361,6 @@ public partial class BlockChain
 	/// The CDN path for the blocks of this chain. e.g. "aaaaaaaa/public-host/block"
 	/// </summary>
 	private string _fileCdnPath;
-
-	/// <summary>
-	/// A callback which occurs when a reader has been created.
-	/// </summary>
-	private Action<TransactionReader> _onReaderCreated;
 
 	/// <summary>
 	/// The CDN path for the blocks of this chain. e.g. "aaaaaaaa/public-host/block"
@@ -881,7 +893,7 @@ public partial class BlockChain
 	/// <summary>
 	/// Finds blocks in the chain, invoking the given async callback when they are discovered.
 	/// </summary>
-	public async ValueTask<TransactionReader> FindBlocks(Func<Writer, ulong, ValueTask> onFoundBlock, ulong blockchainOffset = 0, ulong currentBlockId = 1)
+	public async ValueTask<BlockDiscoveryMeta> FindBlocks(Func<Writer, ulong, ValueTask> onFoundBlock, ulong blockchainOffset = 0, ulong currentBlockId = 1)
 	{
 		var fs = Open();
 
@@ -892,10 +904,9 @@ public partial class BlockChain
 		txReader.Init(Schema, this, null);
 		txReader.UpdateSchema = false;
 
-		await txReader.FindBlocks(fs, onFoundBlock, blockchainOffset, currentBlockId);
-
+		var meta = await txReader.FindBlocks(fs, onFoundBlock, blockchainOffset, currentBlockId);
 		fs.Close();
-		return txReader;
+		return meta;
 	}
 
 	/// <summary>

@@ -23,8 +23,9 @@ public partial class TransactionReader
 	/// <param name="currentBlockId"></param>
 	/// <param name="onFoundBlock"></param>
 	/// <param name="bufferSize"></param>
+	/// <returns>If a partial block is at the end of the stream then the writer with this partial block data in it is returned.</returns>
 	/// <exception cref="Exception"></exception>
-	public async ValueTask FindBlocks(Stream str, Func<Writer, ulong, ValueTask> onFoundBlock, ulong blockchainOffset = 0, ulong currentBlockId = 1, int bufferSize = 16384)
+	public async ValueTask<BlockDiscoveryMeta> FindBlocks(Stream str, Func<Writer, ulong, ValueTask> onFoundBlock, ulong blockchainOffset = 0, ulong currentBlockId = 1, int bufferSize = 16384)
 	{
 		_blockchainOffset = blockchainOffset;
 		TransactionId = _blockchainOffset;
@@ -37,61 +38,88 @@ public partial class TransactionReader
 			_readBuffer = new byte[bufferSize];
 		}
 
-		if (str.Length == str.Position)
+		var writer = Writer.GetPooled();
+		writer.Start(null);
+
+		// In case the file is being written to, we'll ask the chain for its current max txnId:
+		var maxTransactionByte = (long)Chain.GetCurrentMaxByte();
+
+		if (maxTransactionByte == str.Position)
 		{
 			// Nothing to do.
-			return;
+
+			// Latest txn ID:
+			TransactionId = (ulong)maxTransactionByte;
+			
+			return new BlockDiscoveryMeta() { Writer = writer, Reader = this, MaxBytes = TransactionId };
 		}
 
 		// A transaction is:
 		// [definitionId][fieldCount][[fieldType][fieldValue][fieldType]][fieldCount][definitionId]
 		// Components of the transaction are duplicated for both integrity checking and also such that the transaction can be read backwards as well as forwards.
 		// Virtually all of these components are the same thing - a compressed number (field values are often the same too), so reading compressed numbers quickly is important.
-
-		var writer = Writer.GetPooled();
-		writer.Start(null);
-
-		while (str.Position < str.Length)
+		
+		// As this block discovery process can run quite slowly (as it is mainly used to upload blocks, meaning it waits for the upload to complete before proceeding)
+		// It's very possible that more txns have been added by the time it reaches the end.
+		// This outer while loop does a check to see if the max txn byte has changed and breaks if it hasn't.
+		while (true)
 		{
-			var read = str.Read(_readBuffer, 0, bufferSize);
-			_byteIndex = 0;
-			_digestedUpTo = 0;
-
-			// This while loop is because FindNextBoundary stops processing the buffer when it finds a boundary.
-			// Thus we may have more bytes in the current buffer when it returns true.
-			while (_byteIndex < read)
+			while (str.Position < maxTransactionByte)
 			{
-				var foundBoundary = FindNextBoundary(read, (byte[] buff, int start, int length) =>
-				{
-					// Got a chain fragment. Copy it into the memory stream:
-					writer.Write(buff, start, length);
-				});
-				Console.WriteLine("FB " + _byteIndex + ", " + read +", " + foundBoundary);
+				var read = str.Read(_readBuffer, 0, bufferSize);
+				_byteIndex = 0;
+				_digestedUpTo = 0;
 
-				if (!foundBoundary)
+				// This while loop is because FindNextBoundary stops processing the buffer when it finds a boundary.
+				// Thus we may have more bytes in the current buffer when it returns true.
+				while (_byteIndex < read)
 				{
-					// We're done reading this buffer.
-					if (Halt)
+					var foundBoundary = FindNextBoundary(read, (byte[] buff, int start, int length) =>
 					{
-						return;
+						// Got a chain fragment. Copy it into the memory stream:
+						writer.Write(buff, start, length);
+					});
+
+					if (!foundBoundary)
+					{
+						// We're done reading this buffer.
+						if (Halt)
+						{
+							// Latest txn ID:
+							TransactionId = (ulong)maxTransactionByte;
+
+							return new BlockDiscoveryMeta() { Writer = writer, Reader = this, MaxBytes = TransactionId };
+						}
+
+						break;
 					}
 
-					break;
+					// writer contains a complete block!
+					await onFoundBlock(writer, CurrentBlockId - 1);
+
+					writer.Reset(null);
 				}
 
-				// writer contains a complete block!
-				await onFoundBlock(writer, CurrentBlockId - 1);
-
-				writer.Reset(null);
 			}
 
+			// Check if we now have more bytes.
+			var newMax = (long)Chain.GetCurrentMaxByte();
+
+			if (newMax <= maxTransactionByte)
+			{
+				// No additional txns. stop there.
+				break;
+			}
+
+			// The above inner while loop can go again:
+			maxTransactionByte = newMax;
 		}
 
-		// Release the writer:
-		writer.Release();
-
 		// Latest txn ID:
-		TransactionId = (ulong)str.Length;
+		TransactionId = (ulong)maxTransactionByte;
+
+		// Return the writer, potentially containing a partial block:
+		return new BlockDiscoveryMeta() { Writer = writer, Reader = this, MaxBytes = TransactionId };
 	}
 	
 	/// <summary>

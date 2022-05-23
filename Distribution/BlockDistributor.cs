@@ -281,7 +281,7 @@ public class BlockDistributor
 		ulong blockchainOffset = index.LatestEndByteOffset;
 		ulong currentBlockId = index.LatestBlockId + 1;
 
-		var txReader = await chain.FindBlocks(async (Writer block, ulong blockId) => {
+		var blockMeta = await chain.FindBlocks(async (Writer block, ulong blockId) => {
 
 			Console.WriteLine("Distributor found block #" + blockId + ", size: " + block.Length);
 
@@ -312,9 +312,16 @@ public class BlockDistributor
 
 		}, blockchainOffset, currentBlockId);
 
+		// Add distributor mechanism to the chain reader.
+
+		// blockMeta.MaxBytes should == Chain.GetCurrentMaxByte()
+		// If it doesn't, a transaction happened in the tiny gap here!
+
+		var reader = blockMeta.Reader;
+
 		// Write the index:
-		blockchainOffset = txReader.TransactionId;
-		currentBlockId = txReader.CurrentBlockId;
+		blockchainOffset = reader.TransactionId;
+		currentBlockId = reader.CurrentBlockId;
 
 		index.LatestBlockId = currentBlockId - 1;
 		index.LatestEndByteOffset = blockchainOffset;
