@@ -236,9 +236,11 @@ export default class Uploader extends React.Component {
 		var hasOriginalName = (originalName && originalName.length);
 		var label = loading ? (`Uploading` + " " + progress + " ...") : message;
 		var canShowImage = getRef.isImage(ref);
+		var canShowVideo = getRef.isVideo(ref,false);
 		var canShowIcon = getRef.isIcon(ref);
 		var labelStyle = {};
 		var uploaderClasses = ['uploader'];
+		var uploaderLabelClasses = ['uploader__label'];
 
 		if (loading) {
 			uploaderClasses.push("uploader--progress");
@@ -272,9 +274,16 @@ export default class Uploader extends React.Component {
 
 			// TODO: check original image width/height values here; if both are less than 256px,
 			// use the original image and set background-size to auto
-			if (canShowImage && !canShowIcon) {
+			if (canShowImage && !canShowVideo && !canShowIcon) {
 				labelStyle = { "background-image": "url(" + getRef(ref, { url: true, size: 256 }) + ")" };
+			}
+
+			if ((canShowImage || canShowVideo)&& !canShowIcon) {
 				uploaderClasses.push("uploader--image");
+			}
+
+			if(canShowVideo) {
+				uploaderLabelClasses.push("video");
 			}
 
 			if (canShowIcon) {
@@ -285,6 +294,9 @@ export default class Uploader extends React.Component {
         }
 
 		var uploaderClass = uploaderClasses.join(' ');
+		var uploaderLabelClass = uploaderLabelClasses.join(' ');
+
+		var renderedSize = 256;
 
 		var caption = hasFilename ? filename : `None selected`;
 
@@ -299,14 +311,14 @@ export default class Uploader extends React.Component {
 		return <div className={uploaderClass}>
 			<div className="uploader__internal">
 
-				{canShowImage && !canShowIcon && 
+				{(canShowImage || canShowVideo) && !canShowIcon && 
 					<div className="uploader__imagebackground">
 					</div>
 				}
 
 				<input id={this.props.id} className="uploader__input" type="file" ref={this.inputRef}
 					onChange={e => this.onSelectedFile(e)} title={loading ? "Loading ..." : tooltip} />
-				<label htmlFor={this.props.id} className="uploader__label" style={labelStyle}>
+				<label htmlFor={this.props.id} className={uploaderLabelClass} style={labelStyle}>
 
 					{/* loading */}
 					{loading && <>
@@ -314,9 +326,12 @@ export default class Uploader extends React.Component {
 					</>}
 
 					{/* has a reference, but isn't an image */}
-					{hasRef && !canShowImage && !canShowIcon && <>
+					{hasRef && !canShowImage && !canShowVideo && !canShowIcon && <>
 						<i className="fal fa-file uploader__file" />
 					</>}
+
+					{/* has an video  reference */}
+					{hasRef && canShowVideo && getRef(ref, { size: renderedSize })}
 
 					{/* has an icon reference */}
 					{hasRef && canShowIcon && <>
