@@ -28,6 +28,17 @@ namespace Api.PaymentGateways
     }
 
     /// <summary>
+    /// The required info for retrieving a specific payment method
+    /// </summary>
+    public class PaymentMethodRequest
+    {
+        ///<summary>
+        /// Email address to send reciepts to 
+        ///</summary>
+        public string StripePaymentMethodId;
+    }
+
+    /// <summary>
     /// Id and a quantity
     /// </summary>
     public struct IdQuantity

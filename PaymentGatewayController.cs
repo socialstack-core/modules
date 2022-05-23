@@ -29,5 +29,47 @@ namespace Api.PaymentGateways
 
             return result;
         }
+
+        /// <summary>
+		/// Creates a stripe payment intent.
+		/// </summary>
+		/// <returns></returns>
+        [HttpGet("stripe/create-setup-intent")]
+        public async ValueTask<SetupIntentResponse> CreateStripeSetupIntent()
+        {
+            var context = await Request.GetContext();
+
+            var result = await (_service as PaymentGatewayService).CreateStripeSetupIntent(context);
+
+            return result;
+        }
+
+        /// <summary>
+		/// Gets stripe payment methods.
+		/// </summary>
+		/// <returns></returns>
+        [HttpGet("stripe/get-payment-methods")]
+        public async ValueTask<PaymentMethodsResponse> GetStripePaymentMethods()
+        {
+            var context = await Request.GetContext();
+
+            var result = await (_service as PaymentGatewayService).GetStripePaymentMethods(context);
+
+            return result;
+        }
+
+        /// <summary>
+		/// Gets a specific stripe payment method.
+		/// </summary>
+		/// <returns></returns>
+        [HttpPost("stripe/get-payment-method")]
+        public async ValueTask<PaymentMethodResponse> GetStripePaymentMethod(PaymentMethodRequest request)
+        {
+            var context = await Request.GetContext();
+
+            var result = await (_service as PaymentGatewayService).GetStripePaymentMethod(context, request);
+
+            return result;
+        }
     }
 }

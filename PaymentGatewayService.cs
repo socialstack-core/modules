@@ -11,6 +11,7 @@ using System.Linq;
 using Api.Users;
 using System;
 using Api.CanvasRenderer;
+using Newtonsoft.Json;
 
 namespace Api.PaymentGateways
 {
@@ -77,7 +78,7 @@ namespace Api.PaymentGateways
 
             if (user == null)
             {
-                throw new PublicException("You need to be logged in to preform this action", "no_user");
+                throw new PublicException("You need to be logged in to perform this action", "no_user");
             }
 
             var purchase = await _purchases.CreatePurchase(context, request, cost, _config.PaymentCurrency, request.CustomReference);
@@ -115,6 +116,132 @@ namespace Api.PaymentGateways
             }
 
             return new PaymentIntentResponse { ClientSecret = paymentIntent.ClientSecret, PurchaseId = purchase.Id };
+        }
+
+        /// <summary>
+		/// Creates a stripe payment intent.
+		/// </summary>
+		/// <returns></returns>
+		public async ValueTask<SetupIntentResponse> CreateStripeSetupIntent(Context context)
+        {
+            if (string.IsNullOrWhiteSpace(_config.StripeSecretKey))
+            {
+                throw new PublicException("Stripe is not configured correctly", "no_secret_key");
+            }
+
+            StripeConfiguration.ApiKey = _config.StripeSecretKey;
+
+            var user = context.User;
+
+            if (user == null)
+            {
+                throw new PublicException("You need to be logged in to perform this action", "no_user");
+            }
+
+            var stripeCustomerId = user.StripeCustomerId;
+
+            if (string.IsNullOrEmpty(stripeCustomerId))
+            {
+                throw new PublicException("You need to have a stripe account attached to your user to perform this action", "no_stripe_user");
+            }
+
+            var setupIntentService = new SetupIntentService();
+
+            var setupIntent = await setupIntentService.CreateAsync(new SetupIntentCreateOptions
+            {
+                Customer = stripeCustomerId,
+                PaymentMethodTypes = new List<string>
+                {
+                    "card",
+                },
+                Metadata = new Dictionary<string, string> {
+                    { "User Id", user.Id.ToString() }
+                }
+            });
+
+            return new SetupIntentResponse { ClientSecret = setupIntent.ClientSecret };
+        }
+
+        /// <summary>
+		/// Gets stripe payment methods
+		/// </summary>
+		/// <returns></returns>
+		public async ValueTask<PaymentMethodsResponse> GetStripePaymentMethods(Context context)
+        {
+            if (string.IsNullOrWhiteSpace(_config.StripeSecretKey))
+            {
+                throw new PublicException("Stripe is not configured correctly", "no_secret_key");
+            }
+
+            StripeConfiguration.ApiKey = _config.StripeSecretKey;
+
+            var user = context.User;
+
+            if (user == null)
+            {
+                throw new PublicException("You need to be logged in to perform this action", "no_user");
+            }
+
+            var stripeCustomerId = user.StripeCustomerId;
+
+            if (string.IsNullOrEmpty(stripeCustomerId))
+            {
+                throw new PublicException("You need to have a stripe account attached to your user to perform this action", "no_stripe_user");
+            }
+
+            var options = new PaymentMethodListOptions
+            {
+                Customer = stripeCustomerId,
+                Type = "card",
+            };
+
+            var service = new PaymentMethodService();
+            StripeList<PaymentMethod> paymentMethods = await service.ListAsync(options);
+
+            string json = JsonConvert.SerializeObject(paymentMethods);
+
+            return new PaymentMethodsResponse { PaymentMethods = paymentMethods };
+        }
+
+        /// <summary>
+		/// Gets stripe payment methods
+		/// </summary>
+		/// <returns></returns>
+		public async ValueTask<PaymentMethodResponse> GetStripePaymentMethod(Context context, PaymentMethodRequest request)
+        {
+            if (string.IsNullOrWhiteSpace(_config.StripeSecretKey))
+            {
+                throw new PublicException("Stripe is not configured correctly", "no_secret_key");
+            }
+
+            StripeConfiguration.ApiKey = _config.StripeSecretKey;
+
+            var user = context.User;
+
+            if (user == null)
+            {
+                throw new PublicException("You need to be logged in to perform this action", "no_user");
+            }
+
+            var stripeCustomerId = user.StripeCustomerId;
+
+            if (string.IsNullOrEmpty(stripeCustomerId))
+            {
+                throw new PublicException("You need to have a stripe account attached to your user to perform this action", "no_stripe_user");
+            }
+
+            var options = new PaymentMethodListOptions
+            {
+                Customer = stripeCustomerId,
+                Type = "card",
+            };
+
+            var service = new PaymentMethodService();
+            PaymentMethod paymentMethod = await service.GetAsync(request.StripePaymentMethodId);
+
+            string json = JsonConvert.SerializeObject(paymentMethod);
+
+            return new PaymentMethodResponse { PaymentMethod = paymentMethod };
         }
 
         /// <summary>
@@ -182,5 +309,5 @@ namespace Api.PaymentGateways
             return cost;
         }
 	}
-    
+
 }
