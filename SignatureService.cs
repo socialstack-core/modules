@@ -175,7 +175,7 @@ namespace Api.Signatures
 		/// <param name="writer"></param>
 		public void SignHmac256AlphaChar(Writer writer)
 		{
-			if (writer.Length > 64)
+			if (writer.Length > 256)
 			{
 				// Writer content is longer than the length of the hash. 
 				// Whilst this is usually handled by just compounding the blocks together, this is an error condition here.
