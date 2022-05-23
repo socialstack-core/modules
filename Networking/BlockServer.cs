@@ -118,8 +118,6 @@ public class BlockServer : UdpDestination
 	/// </summary>
 	private BlockClient LastClient;
 
-	private NetworkNodeService _networkNodes;
-	
 	/// <summary>
 	/// Adds a client to client set.
 	/// </summary>

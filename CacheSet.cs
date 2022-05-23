@@ -1,4 +1,3 @@
-using Api.BlockDatabase;
 using Api.Contexts;
 using Api.Users;
 using Lumity.BlockChains;
