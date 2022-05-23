@@ -18,6 +18,7 @@ namespace Api.CloudHosts
 	/// <summary>
 	/// Instanced automatically. Use injection to use this service, or Startup.Services.Get.
 	/// </summary>
+    [LoadPriority(11)]
 	public partial class CloudHostService : AutoService
     {
         private CloudHostConfig _config;
@@ -152,7 +153,7 @@ namespace Api.CloudHosts
 
             _uploadHost = uploadHost;
 
-            var frontend = Services.Get("FrontendService");
+            var frontend = Services.Get("FrontendCodeService");
 
             if (frontend != null)
             {
