@@ -70,7 +70,11 @@ export default class FileSelector extends React.Component {
 		return `fileselector${lastId}`;
 	}
 
-	updateValue(newRef) {
+	updateValue(e, newRef) {
+		if(e) {
+			e.preventDefault ();
+		}
+
 		var originalName = newRef ? newRef.originalName : '';
 
 		if (!newRef) {
@@ -180,7 +184,7 @@ export default class FileSelector extends React.Component {
 
 									return <>
 										<div class="loop-item">
-											<button title={entry.originalName} type="button" className="btn file-selector__item" onClick={() => this.updateValue(entry)}>
+											<button title={entry.originalName} type="button" className="btn file-selector__item" onClick={(e) => this.updateValue(e, entry)}>
 												<div className={previewClass}>
 													{isImage && getRef(entry.ref, { size: renderedSize })}
 													{!isImage && (
@@ -210,7 +214,7 @@ export default class FileSelector extends React.Component {
 					icon => {
 						console.log("onSelected");
 						console.log(icon);
-						this.updateValue(icon);
+						this.updateValue(null,icon);
 					}
 				}
 			/>
@@ -223,7 +227,7 @@ export default class FileSelector extends React.Component {
 				isPrivate={this.props.isPrivate}
 				maxSize={this.props.maxSize}
 				onUploaded={
-					file => this.updateValue(file)
+					file => this.updateValue(null,file)
 				} />
 
 			{/* options (browse, preview, remove) */}
@@ -258,7 +262,7 @@ export default class FileSelector extends React.Component {
 						</a>
 					</>}
 
-					<button type="button" className="btn btn-danger file-selector__remove" onClick={() => this.updateValue(null)}>
+					<button type="button" className="btn btn-danger file-selector__remove" onClick={() => this.updateValue(null,null)}>
 						{`Remove`}
 					</button>
 				</>}
