@@ -434,7 +434,10 @@ namespace Api.Pages
 		/// Defaults to Url.Length. Set this to avoid allocating substrings.
 		/// </summary>
 		public int Length;
-
+		/// <summary>
+		/// Optionally request a redirect to the given URL. It will be a 302/ non-permanent.
+		/// </summary>
+		public string RedirectTo;
 
 		/// <summary>
 		/// True if the substring identified by this UrlInfo matches the given text (exactly, case sensitive).

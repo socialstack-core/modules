@@ -298,7 +298,14 @@ namespace Api.Pages
 			
 			// BeforeParseUrl is able to change the context, including the locale:
 			urlInfo = await Events.Page.BeforeParseUrl.Dispatch(context, urlInfo, searchQuery);
-			
+
+			if (urlInfo.RedirectTo != null)
+			{
+				return new PageWithTokens() {
+					RedirectTo = urlInfo.RedirectTo
+				};
+			}
+
 			if (_urlLookupCache == null || _urlLookupCache.Length < context.LocaleId || _urlLookupCache[context.LocaleId - 1] == null)
 			{
 				await LoadCaches(context);
