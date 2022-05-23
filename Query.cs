@@ -915,7 +915,7 @@ namespace Api.Database
 			{
 				var classMeta = (DatabaseFieldAttribute)metaAttribs[0];
 
-				if (classMeta != null && !classMeta.AutoIncrement)
+				if (classMeta != null && classMeta.AutoIncWasSet && !classMeta.AutoIncrement)
 				{
 					// It's explicitly turning off auto-inc.
 					// This class will require an explicit ID during inserts.

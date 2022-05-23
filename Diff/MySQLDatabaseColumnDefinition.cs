@@ -81,7 +81,10 @@ namespace Api.Database
 
 			if (fieldMeta != null)
 			{
-				IsAutoIncrement = fieldMeta.AutoIncrement;
+				if (fieldMeta.AutoIncWasSet)
+				{
+					IsAutoIncrement = fieldMeta.AutoIncrement;
+				}
 
 				if (fieldMeta.Ignore)
 				{
