@@ -25,11 +25,10 @@ public class DatabaseTransactionReader : TransactionReader
 		var defnId = Definition == null ? 0 : Definition.Id;
 		CacheSet cache = null;
 		FieldData[] fields = Fields;
-		int startFieldsOffset;
 		ulong txTimestamp = 0;
 		object relevantObject = null;
 
-		if (defnId > Lumity.BlockChains.Schema.ArchiveDefId)
+		if (defnId > Schema.ArchiveDefId)
 		{
 			// An instance of something. This is the base instance (not a variant).
 
