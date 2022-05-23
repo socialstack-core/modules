@@ -15,7 +15,37 @@ public class CachingTransactionReader : TransactionReader
 {
 	private Context _loadContext = new Context(1, 1, 1);
 	private CacheSet[] _caches;
-	private Dictionary<string, Type> _meta = new Dictionary<string, Type>();
+	/// <summary>
+	/// A mapping of definition name to the typed cache set.
+	/// </summary>
+	private Dictionary<string, CacheSet> _definitionToCache = new Dictionary<string, CacheSet>();
+	/// <summary>
+	/// A mapping of system type to the typed cache set.
+	/// </summary>
+	private Dictionary<Type, CacheSet> _typeToCache = new Dictionary<Type, CacheSet>();
+
+	/// <summary>
+	/// Finds the cache set for the given type and then returns the primary service cache (the main one, not localised variants).
+	/// This is null if the targeted type does not exist yet i.e. no transactions related to it have been discovered.
+	/// </summary>
+	/// <typeparam name="T"></typeparam>
+	/// <typeparam name="PT"></typeparam>
+	/// <returns></returns>
+	protected ServiceCache<T, PT> GetCache<T, PT>()
+		where T : Content<PT>, new()
+		where PT : struct, IConvertible, IEquatable<PT>, IComparable<PT>
+	{
+		if (!_typeToCache.TryGetValue(typeof(T), out CacheSet cache))
+		{
+			return null;
+		}
+
+		// The set is typed:
+		var set = (CacheSet<T, PT>)cache;
+
+		// Get the primary cache:
+		return set.GetCacheForLocale(1);
+	}
 
 	/// <summary>
 	/// Adds a mapping of definition name -> the system type to use in the cache.
@@ -24,20 +54,64 @@ public class CachingTransactionReader : TransactionReader
 	/// <param name="typeToUse"></param>
 	public void Map(string definitionName, Type typeToUse)
 	{
-		_meta[definitionName] = typeToUse;
+		// Create the cache set as well as the content fields info object for it:
+		if (_cacheSetCreateMethod == null)
+		{
+			_cacheSetCreateMethod = typeof(CachingTransactionReader)
+				.GetMethod(
+					nameof(CreateCacheSet),
+					BindingFlags.Static | BindingFlags.Public
+				);
+		}
+
+		var setupType = _cacheSetCreateMethod.MakeGenericMethod(new Type[] {
+			typeToUse,
+			typeof(ulong) // Must always have a ulong ID
+		});
+
+		var contentFields = new ContentFields(typeToUse);
+
+		// Create the typed cacheSet now:
+		var set = (CacheSet)setupType.Invoke(this, new object[] {
+			contentFields,
+			definitionName
+		});
+
+		if (_batchBaked)
+		{
+			// Bake just this one late added map:
+			var chainIO = new ChainFieldIO();
+
+			foreach (var field in contentFields.List)
+			{
+				if (field.FieldInfo == null)
+				{
+					continue;
+				}
+				chainIO.AddField(field);
+			}
+
+			chainIO.Bake();
+		}
+
+		_definitionToCache[definitionName] = set;
+		_typeToCache[typeToUse] = set;
 	}
+
+	/// <summary>
+	/// This is true when all the mappings have been batch baked.
+	/// Any map calls that happen late will still be baked but will run individually.
+	/// </summary>
+	private bool _batchBaked = false;
 
 	/// <summary>
 	/// Creates a cache set of the given type.
 	/// </summary>
-	public static CacheSet CreateCacheSet<T, ID>(string definitionName)
+	public static CacheSet CreateCacheSet<T, ID>(ContentFields fields, string definitionName)
 		where T : Content<ID>, new()
 		where ID : struct, IConvertible, IEquatable<ID>, IComparable<ID>
 	{
-		// The contentFields provide the metadata about the fields in the target type.
-		// It can be used to exclude fields if needed.
-		var contentFields = new ContentFields(typeof(T));
-		return new CacheSet<T, ID>(contentFields, definitionName);
+		return new CacheSet<T, ID>(fields, definitionName);
 	}
 
 	/// <summary>
@@ -52,6 +126,32 @@ public class CachingTransactionReader : TransactionReader
 	/// <returns></returns>
 	public CacheSet GetCacheForDefinition(Definition definition)
 	{
+		if (!_batchBaked)
+		{
+			_batchBaked = true;
+
+			// First, bake them:
+			var chainIO = new ChainFieldIO();
+
+			foreach (var kvp in _typeToCache)
+			{
+				var fields = kvp.Value.ContentFields;
+
+				foreach (var field in fields.List)
+				{
+					if (field.FieldInfo == null)
+					{
+						continue;
+					}
+					chainIO.AddField(field);
+				}
+			}
+
+			// This sets up field readers etc in each contentField.
+			// Batching them together means only 1 dll is generated and loaded.
+			chainIO.Bake();
+		}
+
 		var defId = (int)definition.Id;
 		defId -= (int)(Schema.ArchiveDefId + 1); // First defId through here should be 0.
 
@@ -68,33 +168,12 @@ public class CachingTransactionReader : TransactionReader
 
 		if (set == null)
 		{
-			if (_meta.TryGetValue(definition.Name, out Type entityType))
+			if (_definitionToCache.TryGetValue(definition.Name, out set))
 			{
-				// Got the entity type. Now create the cache set as well as the content fields info object for it:
-				if (_cacheSetCreateMethod == null)
-				{
-					_cacheSetCreateMethod = typeof(CachingTransactionReader)
-						.GetMethod(
-							nameof(CreateCacheSet),
-							BindingFlags.Static | BindingFlags.Public
-						);
-				}
-
-				var setupType = _cacheSetCreateMethod.MakeGenericMethod(new Type[] {
-					entityType,
-					typeof(ulong) // Must always have a ulong ID
-				});
-
-				// Create the typed cacheSet now:
-				set = (CacheSet)setupType.Invoke(this, new object[] {
-					definition.Name
-				});
-
 				if (defId != 0)
 				{
 					_caches[defId] = set;
 				}
-
 			}
 			else
 			{
@@ -161,10 +240,10 @@ public class CachingTransactionReader : TransactionReader
 
 			// Set last instance timestamp:
 			Definition.LastInstanceTimestamp = txTimestamp;
-
+			
 			cache = GetCacheForDefinition(Definition);
 
-			if (cache == null)
+			if (cache.InstanceType == null)
 			{
 				// We don't care about this type. Skip it.
 				return null;
@@ -259,7 +338,7 @@ public class CachingTransactionReader : TransactionReader
 							{
 								cache = GetCacheForDefinition(definition);
 
-								if (cache == null)
+								if (cache.InstanceType == null)
 								{
 									// We don't care about this type. Skip it.
 									return null;
@@ -351,7 +430,7 @@ public class CachingTransactionReader : TransactionReader
 								{
 									cache = GetCacheForDefinition(definition);
 
-									if (cache == null)
+									if (cache.InstanceType == null)
 									{
 										// We don't care about this type. Skip it.
 										return null;

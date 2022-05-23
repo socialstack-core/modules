@@ -1258,6 +1258,12 @@ public class ChainFieldIO
 	/// </summary>
 	public void Bake()
 	{
+		if (_type == null)
+		{
+			// No actual fields were added
+			return;
+		}
+
 		// Finish the type.
 		Type compiledType = _type.CreateType();
 
