@@ -31,7 +31,7 @@ namespace Api.PaymentGateways
         }
 
         /// <summary>
-		/// Creates a stripe payment intent.
+		/// Creates a stripe setup intent.
 		/// </summary>
 		/// <returns></returns>
         [HttpGet("stripe/create-setup-intent")]

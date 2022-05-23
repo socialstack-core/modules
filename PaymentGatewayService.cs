@@ -119,7 +119,7 @@ namespace Api.PaymentGateways
         }
 
         /// <summary>
-		/// Creates a stripe payment intent.
+		/// Creates a stripe setup intent.
 		/// </summary>
 		/// <returns></returns>
 		public async ValueTask<SetupIntentResponse> CreateStripeSetupIntent(Context context)
