@@ -118,23 +118,27 @@ class AutoFormInternal extends React.Component {
 			var supportsRevisions = formData && formData.form && formData.form.supportsRevisions;
 			var isLocalized = formData && formData.form && formData.form.fields && formData.form.fields.find(fld => fld.data.localized);
 
-
 			// build up master list of locales
-			if (isLocalized && !locales) {
+			if (isLocalized) {
 
-				// if we have a region in context restrict to it's locales
-				// todo expand on locales/users in admin to simplify the UX
-				var userLocaleIds = [];
+				// regional admins can be restricted to a sub set of locales
+				// todo expand on locales/users in admin to simplify the UX 
+				var hasRestrictedLocales = false;
 				if (props.session.role && props.session.role.name == 'Member') {
 					if (props.session.region && props.session.region.regionLocales && props.session.region.regionLocales.length > 0) {
-						props.session.region.regionLocales.map(function (locale, i) {
-							if (! userLocaleIds.includes(locale.id)) {
-								userLocaleIds.push(locale.id);
-							}
-						});
-						if (userLocaleIds.length > 0 && ! userLocaleIds.includes(defaultLocale)) {
-							userLocaleIds.push(defaultLocale);
+						hasRestrictedLocales = true;
+					}
+				}
+
+				var userLocaleIds = [];
+				if (hasRestrictedLocales) {
+					props.session.region.regionLocales.map(function (locale, i) {
+						if (! userLocaleIds.includes(locale.id)) {
+							userLocaleIds.push(locale.id);
 						}
+					});
+					if (userLocaleIds.length > 0 && ! userLocaleIds.includes(defaultLocale)) {
+						userLocaleIds.push(defaultLocale);
 					}
 				}				
 
