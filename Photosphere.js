@@ -6,7 +6,7 @@ import DeviceOrientationControls from 'UI/Functions/DeviceOrientationControls';
 import imageCache from 'UI/Photosphere/Cache';
 var HlsVideo;
 try{
-	HlsVideo = require('UI/HlsVideo/HlsVideo.js').default;
+	HlsVideo = require('UI/HlsVideo').default;
 }catch(e){
 	// No video sphere support
 }
@@ -430,20 +430,20 @@ export default class Photosphere extends React.Component {
 					</div>
 					{this.videoRef && <HlsVideo style={{display: 'none'}} videoRef={this.videoRef} autoplay loop={this.props.loop} onEnded={this.props.onVideoEnded} onProgress={this.props.onVideoProgress} onVideo={videoEl => {
 						
-						if(!videoEl){
-							return;
-						}
-						
-						// Create video texture:
-						var texture = new THREE.VideoTexture(videoEl);
-						texture.minFilter = THREE.LinearFilter;
-						texture.magFilter = THREE.LinearFilter;
-						texture.format = THREE.RGBFormat;
-						this.videoTex = texture;
-						
-						if(this.material){
-							this.material.map = texture;
-						}
+							if(!videoEl){
+								return;
+							}
+							
+							// Create video texture:
+							var texture = new THREE.VideoTexture(videoEl);
+							texture.minFilter = THREE.LinearFilter;
+							texture.magFilter = THREE.LinearFilter;
+							texture.format = THREE.RGBFormat;
+							this.videoTex = texture;
+							
+							if(this.material){
+								this.material.map = texture;
+							}
 						
 					}}/>}
 				</div>
