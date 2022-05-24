@@ -194,7 +194,8 @@ public class CachingTransactionReader : TransactionReader
 	/// </summary>
 	/// <param name="caches"></param>
 	/// <param name="obj"></param>
-	protected virtual void OnCacheAdd(CacheSet caches, object obj)
+	/// <param name="creationUtc"></param>
+	protected virtual void OnCacheAdd(CacheSet caches, DateTime creationUtc, object obj)
 	{
 		
 	}
@@ -231,7 +232,6 @@ public class CachingTransactionReader : TransactionReader
 		var defnId = Definition == null ? 0 : Definition.Id;
 		CacheSet cache = null;
 		FieldData[] fields = Fields;
-		ulong txTimestamp = 0;
 		object relevantObject = null;
 
 		if (defnId > Schema.ArchiveDefId)
@@ -239,7 +239,7 @@ public class CachingTransactionReader : TransactionReader
 			// An instance of something. This is the base instance (not a variant).
 
 			// Set last instance timestamp:
-			Definition.LastInstanceTimestamp = txTimestamp;
+			Definition.LastInstanceTimestamp = Timestamp;
 			
 			cache = GetCacheForDefinition(Definition);
 
@@ -274,12 +274,12 @@ public class CachingTransactionReader : TransactionReader
 			}
 
 			// Map timestamp to ticks:
-			var createTimeUtc = Chain.TimestampToDateTime(txTimestamp);
+			var createTimeUtc = Chain.TimestampToDateTime(Timestamp);
 
 			// Add to the primary cache - this also sets the Id and Created/EditedUtc fields:
 			cache.Add(_loadContext, t, createTimeUtc, TransactionId);
 
-			OnCacheAdd(cache, t);
+			OnCacheAdd(cache, createTimeUtc, t);
 
 			// The relevant object is the new instance:
 			return t;
@@ -323,30 +323,7 @@ public class CachingTransactionReader : TransactionReader
 				{
 					var fieldMeta = fields[i].Field;
 
-					if (fieldMeta.Id == Schema.TimestampDefId)
-					{
-						// Timestamp. This will be used to set EditedUtc.
-						txTimestamp = fields[i].NumericValue;
-
-						if (currentEntityId != 0 && currentDefId != 0)
-						{
-							// Got both EntityId + DefinitionId.
-							// Get the definition now:
-							definition = Schema.Get((int)currentDefId);
-
-							if (definition != null && currentDefId > Schema.ArchiveDefId)
-							{
-								cache = GetCacheForDefinition(definition);
-
-								if (cache.InstanceType == null)
-								{
-									// We don't care about this type. Skip it.
-									return null;
-								}
-							}
-						}
-					}
-					else if (fieldMeta.Id == Schema.EntityDefId)
+					if (fieldMeta.Id == Schema.EntityDefId)
 					{
 						// EntityId
 						currentEntityId = fields[i].NumericValue;
@@ -360,6 +337,25 @@ public class CachingTransactionReader : TransactionReader
 					{
 						// VariantTypeId
 						variantTypeId = (int)fields[i].NumericValue;
+					}
+				}
+
+				// Timestamp. This will be used to set EditedUtc.
+				if (currentEntityId != 0 && currentDefId != 0)
+				{
+					// Got both EntityId + DefinitionId.
+					// Get the definition now:
+					definition = Schema.Get((int)currentDefId);
+
+					if (definition != null && currentDefId > Schema.ArchiveDefId)
+					{
+						cache = GetCacheForDefinition(definition);
+
+						if (cache.InstanceType == null)
+						{
+							// We don't care about this type. Skip it.
+							return null;
+						}
 					}
 				}
 

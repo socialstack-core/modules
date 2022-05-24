@@ -1311,7 +1311,9 @@ public partial class TransactionReader
 		var sigFieldOrdinal = GetFieldOrdinal(Schema.SignatureDefId);
 		var signature = Fields[sigFieldOrdinal].GetBytes();
 
-		#warning todo: This gets self node verifier vs. the current one.
+#warning todo: This gets self node verifier vs. the current one.
+		return true;
+
 		var verifier = CurrentBlockId == 1 ? Project.GetProjectVerifier() : Project.GetNodeVerifier();
 
 		// Console.WriteLine("Using project verifier: " + (CurrentBlockId == 1));

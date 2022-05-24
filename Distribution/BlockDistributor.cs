@@ -122,7 +122,7 @@ public class BlockDistributor
 			sb.Append(".block");
 
 			var filePath = sb.ToString();
-			
+
 			// Get the stream:
 			var stream = await platform.ReadFile(filePath, chain.IsPrivate);
 
@@ -243,30 +243,24 @@ public class BlockDistributor
 	/// </summary>
 	public void StartDistributing()
 	{
-		// For each chain in the project, collect information from the target CDN(s) about where we're up to.
+		// For each chain in the project (currently one), collect information from the target CDN(s) about where we're up to.
 		// This is the index.json file which must have a very short cache lifespan.
 		Task.Run(async () => {
 
 			var platforms = GetPlatforms();
 
-			var chains = Project.Chains;
+			var chain = Project.Chain;
 
-			for (var i = 0; i < chains.Length; i++)
+			for (var p = 0; p < platforms.Count; p++)
 			{
-				var chain = chains[i];
+				var platform = platforms[p];
 
-				for (var p = 0; p < platforms.Count; p++)
-				{
-					var platform = platforms[p];
+				// Get the index:
+				var index = await GetIndex(chain, platform);
 
-					// Get the index:
-					var index = await GetIndex(chain, platform);
-
-					_ = Task.Run(async () => {
-						await DistributeChain(chain, platform, index);
-					});
-				}
-
+				_ = Task.Run(async () => {
+					await DistributeChain(chain, platform, index);
+				});
 			}
 
 		});

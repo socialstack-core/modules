@@ -13,5 +13,10 @@ public enum BlockChainEvent
 	/// <summary>
 	/// Chain was instanced.
 	/// </summary>
-	Instanced = 1
+	Instanced = 1,
+
+	/// <summary>
+	/// Chain has finished doing its initial load.
+	/// </summary>
+	Loaded = 2
 }

@@ -99,15 +99,15 @@ public class BlockChainProject
 	public byte[] SelfPublicKey;
 
 	/// <summary>
-	/// The 4 chains, indexed by ChainType-1.
+	/// The primary chain of the project.
 	/// </summary>
 	[JsonIgnore]
-	private BlockChain[] _chains = new BlockChain[4];
+	private BlockChain _chain;
 
 	/// <summary>
-	/// The chains of this project.
+	/// The primary chain of this project.
 	/// </summary>
-	public BlockChain[] Chains => _chains;
+	public BlockChain Chain => _chain;
 
 	/// <summary>
 	/// True if the built in maintenance timer should tick (once per second). See also: Update and StartMaintenanceTimer.
@@ -179,11 +179,8 @@ public class BlockChainProject
 		// Finally convert ticks into the default project precision (which will be assumed to be nanoseconds always here):
 		var timestamp = ((ulong)stamp) * 100;
 
-		// Update each chain.
-		for (var i = 0; i < _chains.Length; i++)
-		{
-			_chains[i].Update(timestamp);
-		}
+		// Update the chain.
+		_chain.Update(timestamp);
 	}
 
 	/// <summary>
@@ -268,6 +265,7 @@ public class BlockChainProject
 
 			_nodeVerifier = new ECDsaSigner();
 			_nodeVerifier.Init(false, pk);
+			Console.WriteLine("Created verifier");
 		}
 
 		return _nodeVerifier;
@@ -342,17 +340,9 @@ public class BlockChainProject
 		// Set the tick offset:
 		TimestampTickOffset = new DateTime((int)StartYear, 1, 1, 0, 0, 0, DateTimeKind.Utc).Ticks;
 
-		if (_chains != null)
+		if (_chain != null)
 		{
-			for (var i = 0; i < _chains.Length; i++)
-			{
-				var chain = _chains[i];
-
-				if (chain != null)
-				{
-					chain.ProjectUpdated();
-				}
-			}
+			_chain.ProjectUpdated();
 		}
 
 		IsAssembler = AssemblerId == SelfNodeId;
@@ -364,11 +354,10 @@ public class BlockChainProject
 	/// <summary>
 	/// Gets the blockchain schema.
 	/// </summary>
-	/// <param name="type"></param>
 	/// <returns></returns>
-	public Schema GetSchema(ChainType type)
+	public Schema GetSchema()
 	{
-		return _chains[(int)type - 1].Schema;
+		return _chain.Schema;
 	}
 
 	/// <summary>
@@ -378,7 +367,12 @@ public class BlockChainProject
 	/// <returns></returns>
 	public BlockChain GetChain(ChainType type)
 	{
-		return _chains[(int)type - 1];
+		if (type == ChainType.Public)
+		{
+			return _chain;
+		}
+
+		return null;
 	}
 
 	/// <summary>
@@ -441,7 +435,7 @@ public class BlockChainProject
 	public Action<BlockChain, BlockChainEvent> OnChainEvent;
 
 	/// <summary>
-	/// May be a slow operation. Loads the project from the given path, optionally specific chain types. If you don't specify them, all are loaded.
+	/// May be a slow operation. Loads the project from the given path.
 	/// </summary>
 	public async ValueTask Load()
 	{
@@ -451,17 +445,8 @@ public class BlockChainProject
 		}
 
 		// Load the 4 chains:
-		_chains[0] = new BlockChain(this, ChainType.Public, _readerType);
-		await _chains[0].LoadOrCreate();
-
-		_chains[1] = new BlockChain(this, ChainType.Private, _readerType);
-		await _chains[1].LoadOrCreate();
-
-		_chains[2] = new BlockChain(this, ChainType.PublicHost, _readerType);
-		await _chains[2].LoadOrCreate();
-
-		_chains[3] = new BlockChain(this, ChainType.PrivateHost, _readerType);
-		await _chains[3].LoadOrCreate();
+		_chain = new BlockChain(this, ChainType.Public, _readerType);
+		await _chain.LoadOrCreate();
 
 		// Start the timer:
 		if (RunBuiltInMaintenance)
@@ -489,15 +474,6 @@ public class BlockChainProject
 			throw new Exception("Must load the project (and wait for the load to complete) before watching.");
 		}
 
-		for (var i = 0; i < _chains.Length; i++)
-		{
-			var chain = _chains[i];
-			if (chain == null)
-			{
-				continue;
-			}
-
-			chain.Watch(cdnMode);
-		}
+		_chain.Watch(cdnMode);
 	}
 }

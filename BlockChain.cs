@@ -102,6 +102,17 @@ public partial class BlockChain
 	}
 
 	/// <summary>
+	/// Gets the internal transaction reader as the given reader type.
+	/// </summary>
+	/// <typeparam name="T"></typeparam>
+	/// <returns></returns>
+	public T GetReader<T>()
+		where T : TransactionReader
+	{
+		return _txReader as T;
+	}
+
+	/// <summary>
 	/// Gets the current max transaction byte (essentially the same chain length).
 	/// This value is always transaction aligned unlike the filestream length.
 	/// </summary>
@@ -450,15 +461,22 @@ public partial class BlockChain
 			return;
 		}
 
-		// Get the index:
-		var index = await Project.Distributor.GetIndex(this);
-
-		if (index.LatestEndByteOffset == 0)
+		try
 		{
-			return;
-		}
+			// Get the index:
+			var index = await Project.Distributor.GetIndex(this);
 
-		await PullCdnData(index);
+			if (index.LatestEndByteOffset == 0)
+			{
+				return;
+			}
+
+			await PullCdnData(index);
+		}
+		catch (Exception e)
+		{
+			Console.WriteLine(e.ToString());
+		}
 	}
 
 	/// <summary>
@@ -553,6 +571,12 @@ public partial class BlockChain
 
 			await PullCdnData(index);
 		}
+
+		// Trigger loaded event:
+		if (Project != null && Project.OnChainEvent != null)
+		{
+			Project.OnChainEvent(this, BlockChainEvent.Loaded);
+		}
 	}
 
 	private async Task PullCdnData(DistributorJsonIndex index)
@@ -566,6 +590,8 @@ public partial class BlockChain
 
 		// Set the write file offset to the correct value:
 		WriteFileOffset = (long)index.LatestEndByteOffset;
+
+		Console.WriteLine("CDN check " + index.LatestEndByteOffset + ", " + currentMaxByte);
 
 		if (index.LatestEndByteOffset > currentMaxByte)
 		{
@@ -599,8 +625,15 @@ public partial class BlockChain
 						bufferedBytes.Length = bytesRead - offset;
 						bufferedBytes.Offset = offset;
 
-						// Load:
-						_txReader.ProcessBuffer(bufferedBytes);
+						try {
+							// Load:
+							_txReader.ProcessBuffer(bufferedBytes);
+						}
+						catch (Exception e)
+						{
+							Console.WriteLine("Buffer exception " + e.ToString());
+							throw e;
+						}
 
 						// Append to the file:
 						fs.Write(readBuffer, offset, bufferedBytes.Length);
@@ -613,11 +646,13 @@ public partial class BlockChain
 					}
 
 					bytesRead = await block.ReadAsync(readBuffer, 0, 2048);
+
 				}
 
 				await fs.FlushAsync();
 
 			});
+
 		}
 
 	}
