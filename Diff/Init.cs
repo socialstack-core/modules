@@ -204,7 +204,7 @@ namespace Api.Database
 
 					if (cache == null)
 					{
-						primaryEntity = await service.Get(new Context(1, context.User, context.RoleId), id);
+						primaryEntity = await service.Get(new Context(1, context.User, context.RoleId), id, DataOptions.IgnorePermissions);
 					}
 					else
 					{
