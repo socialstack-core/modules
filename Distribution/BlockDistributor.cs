@@ -259,7 +259,15 @@ public class BlockDistributor
 				var index = await GetIndex(chain, platform);
 
 				_ = Task.Run(async () => {
-					await DistributeChain(chain, platform, index);
+					try
+					{
+
+						await DistributeChain(chain, platform, index);
+					}
+					catch (Exception e)
+					{
+						Console.WriteLine(e.ToString());
+					}
 				});
 			}
 
@@ -274,6 +282,8 @@ public class BlockDistributor
 		// Next, seek to the start offset and then scan along the chain until the next transaction boundary is found.
 		ulong blockchainOffset = index.LatestEndByteOffset;
 		ulong currentBlockId = index.LatestBlockId + 1;
+		
+		var latestIndexOffset = blockchainOffset;
 
 		var blockMeta = await chain.FindBlocks(async (Writer block, ulong blockId) => {
 
@@ -296,8 +306,12 @@ public class BlockDistributor
 				// File API requires a stream, so write the blocks to a memstream:
 				var ms = block.AllocateMemoryStream();
 				ms.Seek(0, SeekOrigin.Begin);
+				var len = (ulong)ms.Length;
 
 				await platform.Upload(filePath, chain.IsPrivate, ms);
+
+				latestIndexOffset += len;
+
 			}
 			catch (Exception e)
 			{
@@ -307,20 +321,71 @@ public class BlockDistributor
 		}, blockchainOffset, currentBlockId);
 
 		// Add distributor mechanism to the chain reader.
+		var txReader = chain.GetReader<TransactionReader>();
+		
+		if (blockMeta.MaxBytes != txReader.TransactionId)
+		{
+			throw new Exception("Distributor verification fault: The transaction reader on the main chain is ahead of the distributor");
+		}
+
+		// Called when a buffer segment is added to the hash. This is important as it allows us to rapidly align them to blocks.
+		txReader.OnAddBufferSegment = (byte[] buffer, int start, int length, bool lastInBlock) => {
+
+			// Write to the block writer:
+			blockMeta.Writer.Write(buffer, start, length);
+			
+			if (lastInBlock)
+			{
+				var block = blockMeta.Writer;
+				var blockId = txReader.CurrentBlockId;
+
+				// Setup next writer:
+				blockMeta.Writer = Writer.GetPooled();
+				blockMeta.Writer.Start(null);
+
+				// Start a task to upload the block:
+				Task.Run(async () => {
+
+					var sb = new System.Text.StringBuilder();
+					sb.Append(chain.BlockCdnPath);
+					sb.Append('/');
+					GetBlockPath(blockId, sb);
+
+					// Append type:
+					sb.Append(".block");
+
+					var filePath = sb.ToString();
+
+					Console.WriteLine("Uploading block " + filePath);
+
+					// File API requires a stream, so write the blocks to a memstream:
+					var ms = block.AllocateMemoryStream();
+					ms.Seek(0, SeekOrigin.Begin);
+					block.Release();
+					var len = (ulong)ms.Length;
+
+					await platform.Upload(filePath, chain.IsPrivate, ms);
+
+					// Update the index:
+					index.LatestBlockId = blockId;
+					index.LatestEndByteOffset += len;
+					
+					// Set the index:
+					await SetIndex(chain, index, platform);
+				});
+			}
+		};
 
 		// blockMeta.MaxBytes should == Chain.GetCurrentMaxByte()
 		// If it doesn't, a transaction happened in the tiny gap here!
 
 		var reader = blockMeta.Reader;
 
+		// Update the index fields:
+		index.LatestBlockId = reader.CurrentBlockId - 1;
+		index.LatestEndByteOffset = latestIndexOffset;
+
 		// Write the index:
-		blockchainOffset = reader.TransactionId;
-		currentBlockId = reader.CurrentBlockId;
-
-		index.LatestBlockId = currentBlockId - 1;
-		index.LatestEndByteOffset = blockchainOffset;
-
-		// Update the index:
 		await SetIndex(chain, index, platform);
 	}
 

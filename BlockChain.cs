@@ -359,11 +359,6 @@ public partial class BlockChain
 	public bool IsPrivate;
 
 	/// <summary>
-	/// A chain that this one is relative to. This chain uses the schema of the remote chain in combination with its own.
-	/// </summary>
-	public BlockChain RelativeTo;
-
-	/// <summary>
 	/// The CDN path for the blocks of this chain. e.g. "aaaaaaaa/public-host/block"
 	/// </summary>
 	private string _blockCdnPath;
@@ -415,18 +410,6 @@ public partial class BlockChain
 		File = project != null && project.LocalStorageDirectory != null ? project.LocalStorageDirectory + GetChainTypeFileName(type) : null;
 		ChainType = type;
 		IsPrivate = ChainType == ChainType.Private || ChainType == ChainType.PrivateHost;
-
-		if (project != null)
-		{
-			if (type == ChainType.Private)
-			{
-				RelativeTo = project.GetChain(ChainType.Public);
-			}
-			else if (type == ChainType.PrivateHost)
-			{
-				RelativeTo = project.GetChain(ChainType.PublicHost);
-			}
-		}
 
 		_readerType = readerType == null ? typeof(TransactionReader) : readerType;
 
@@ -503,6 +486,7 @@ public partial class BlockChain
 
 		// Next, whenever the callback is executed, we can update the digest with additional bytes.
 
+		/*
 		if (RelativeTo != null)
 		{
 			// This chain derives its schema from the given (usually public type) chain.
@@ -525,7 +509,9 @@ public partial class BlockChain
 			// Setup initial write digest:
 			_writeDigest = _txReader.CopyDigest();
 		}
-		else if (FileExists())
+		*/
+		
+		if (FileExists())
 		{
 			// Set up the length:
 			WriteFileOffset = new System.IO.FileInfo(File).Length;
@@ -734,7 +720,7 @@ public partial class BlockChain
 	/// </summary>
 	public void WriteInitialChain(Action<TransactionReader> onTransaction = null)
 	{
-		var _schemaToWrite = onTransaction == null ? Schema : new Schema();
+		var _schemaToWrite = new Schema();
 
 		_schemaToWrite.CreateDefaults();
 
@@ -805,28 +791,25 @@ public partial class BlockChain
 		_writeDigest.BlockUpdate(result, 0, result.Length);
 
 		// Ensure we call the callback (if there is one) for this block:
-		if (onTransaction != null)
+		var txReader = CreateReader();
+		txReader.Init(Schema, this, onTransaction);
+		txReader.UpdateSchema = true;
+
+		Span<byte> initialHash = stackalloc byte[32];
+		GetInitialHash(initialHash);
+
+		// Set the initial hash:
+		txReader.SetupPreviousBlock(initialHash);
+
+		txReader.ProcessBuffer(new BufferedBytes() {
+			Bytes = result,
+			Length = result.Length,
+			Offset = 0
+		});
+
+		if (_txReader == null)
 		{
-			var txReader = CreateReader();
-			txReader.Init(Schema, this, onTransaction);
-			txReader.UpdateSchema = true;
-
-			Span<byte> initialHash = stackalloc byte[32];
-			GetInitialHash(initialHash);
-
-			// Set the initial hash:
-			txReader.SetupPreviousBlock(initialHash);
-
-			txReader.ProcessBuffer(new BufferedBytes() {
-				Bytes = result,
-				Length = result.Length,
-				Offset = 0
-			});
-
-			if (_txReader == null)
-			{
-				_txReader = txReader;
-			}
+			_txReader = txReader;
 		}
 	}
 
@@ -1051,11 +1034,12 @@ public partial class BlockChain
 	/// <returns></returns>
 	public Definition FindDefinition(string name)
 	{
+		/*
 		if (RelativeTo != null)
 		{
 			return RelativeTo.FindDefinition(name);
 		}
-
+		*/
 		return Schema.FindDefinition(name);
 	}
 
@@ -1219,10 +1203,12 @@ public partial class BlockChain
 	/// <param name="type"></param>
 	public FieldDefinition FindField(string name, string type)
 	{
+		/*
 		if (RelativeTo != null)
 		{
 			return RelativeTo.FindField(name, type);
 		}
+		*/
 
 		return Schema.FindField(name, type);
 	}
@@ -1235,11 +1221,13 @@ public partial class BlockChain
 	/// <returns></returns>
 	public async ValueTask<FieldDefinition> DefineField(string name, string type)
 	{
+		/*
 		if (RelativeTo != null)
 		{
 			return await RelativeTo.DefineField(name, type);
 		}
-		
+		*/
+
 		// Write the transaction:
 		var writer = Writer.GetPooled();
 		writer.Start(null);

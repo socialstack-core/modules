@@ -23,7 +23,12 @@ public partial class TransactionReader
 	/// Field information for the BlockChainProject type which allow setting fields on the project itself.
 	/// </summary>
 	private List<ContentField> _projectFieldSetters;
-	
+
+	/// <summary>
+	/// Called when a buffer segment is added to this readers read hash. Can be used to identify block boundaries.
+	/// </summary>
+	public Action<byte[], int, int, bool> OnAddBufferSegment;
+
 	/// <summary>
 	/// The chain this is reading.
 	/// </summary>
@@ -550,6 +555,25 @@ public partial class TransactionReader
 		// Update the schema if needed
 		var definitionId = Definition == null ? 0 : Definition.Id;
 
+		// If its a block boundary, add the bytes to the digest:
+		if (definitionId == Schema.BlockBoundaryDefId && _readDigest != null)
+		{
+			// Add to the digest:
+			var digestLen = _byteIndex - _digestedUpTo;
+			if (digestLen > 0)
+			{
+				_readDigest.BlockUpdate(_readBuffer, _digestedUpTo, digestLen);
+			}
+
+			if (OnAddBufferSegment != null)
+			{
+				// This is the end of a block.
+				OnAddBufferSegment(_readBuffer, _digestedUpTo, digestLen, true);
+			}
+
+			_digestedUpTo = _byteIndex;
+		}
+		
 		NodeId = 0;
 		var txnId = TransactionId;
 		TransactionByteOffset = txnId;
@@ -998,6 +1022,12 @@ public partial class TransactionReader
 								// Add everything to the read digest:
 								var digestLen = _byteIndex - _digestedUpTo;
 								_readDigest.BlockUpdate(_readBuffer, _digestedUpTo, digestLen);
+
+								if (OnAddBufferSegment != null)
+								{
+									OnAddBufferSegment(_readBuffer, _digestedUpTo, digestLen, false);
+								}
+								
 								_digestedUpTo = _byteIndex;
 
 								// Pre-signature digest:
@@ -1215,15 +1245,6 @@ public partial class TransactionReader
 						throw new Exception("Integrity failure - Secondary definition ID does not match the first (Expected " + _definitionId + ", got " + _compressedNumber + ")");
 					}
 
-					// If its a block boundary, add the bytes to the digest:
-					if (_definitionId == Schema.BlockBoundaryDefId && _digestedUpTo < _byteIndex && _readDigest != null)
-					{
-						// Add to the digest:
-						var digestLen = _byteIndex - _digestedUpTo;
-						_readDigest.BlockUpdate(_readBuffer, _digestedUpTo, digestLen);
-						_digestedUpTo = _byteIndex;
-					}
-
 					TransactionInForwardBuffer();
 
 					if (Halt)
@@ -1248,6 +1269,12 @@ public partial class TransactionReader
 			// Add to the digest:
 			var digestLen = _byteIndex - _digestedUpTo;
 			_readDigest.BlockUpdate(_readBuffer, _digestedUpTo, digestLen);
+			
+			if (OnAddBufferSegment != null)
+			{
+				OnAddBufferSegment(_readBuffer, _digestedUpTo, digestLen, false);
+			}
+
 			_digestedUpTo = _byteIndex;
 		}
 
@@ -1255,6 +1282,15 @@ public partial class TransactionReader
 	}
 
 	private Sha3Digest _readDigest;
+
+	/// <summary>
+	/// Current location of the read head.
+	/// </summary>
+	/// <returns></returns>
+	public ulong ReadHeadLocation()
+	{
+		return _blockchainOffset + (ulong)_byteIndex;
+	}
 
 	/// <summary>
 	/// Copy the current SHA3 digest.
@@ -1312,7 +1348,7 @@ public partial class TransactionReader
 		var signature = Fields[sigFieldOrdinal].GetBytes();
 
 #warning todo: This gets self node verifier vs. the current one.
-		return true;
+		// return true;
 
 		var verifier = CurrentBlockId == 1 ? Project.GetProjectVerifier() : Project.GetNodeVerifier();
 

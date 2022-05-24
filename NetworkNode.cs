@@ -6,7 +6,6 @@ namespace Api.NetworkNodes;
 /// <summary>
 /// A node on the network.
 /// </summary>
-[DatabaseField(Group = "host")]
 public partial class NetworkNode : Content<uint>
 {
 	/// <summary>
