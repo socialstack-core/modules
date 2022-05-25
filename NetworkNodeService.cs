@@ -83,6 +83,7 @@ public partial class NetworkNodeService : AutoService<NetworkNode>
 					if (project.AssemblerId == 0)
 					{
 						// Submit a txn to set the projects assemblerId to "mine" now.
+						project.IsAssembler = true;
 						await project.SetAssembler(self.Id);
 					}
 				}

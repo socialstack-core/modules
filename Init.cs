@@ -380,9 +380,7 @@ namespace Api.BlockDatabase
 				tableGroup = tableGroup.ToLower();
 			}
 
-			var chain = tableGroup == "host" ? 
-				database.GetChain(Lumity.BlockChains.ChainType.PublicHost) : 
-				database.GetChain(Lumity.BlockChains.ChainType.Public);
+			var chain = database.GetChain(Lumity.BlockChains.ChainType.Public);
 
 			service.Chain = chain;
 

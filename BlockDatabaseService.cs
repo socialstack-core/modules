@@ -576,6 +576,9 @@ public partial class BlockDatabaseService : AutoService
 				// The databaseservice is just about to be setup, but has been instanced.
 				// Load the project now.
 
+				// Socialstack projects run the block server in LAN mode:
+				BlockServer.SharedBlockServerSafeLanMode = true;
+
 				await _project.Load();
 
 				// Watch for changes, realtime mode:

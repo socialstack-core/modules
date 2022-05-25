@@ -25,7 +25,6 @@ public class DatabaseTransactionReader : TransactionReader
 		var defnId = Definition == null ? 0 : Definition.Id;
 		CacheSet cache = null;
 		FieldData[] fields = Fields;
-		ulong txTimestamp = 0;
 		object relevantObject = null;
 
 		if (defnId > Schema.ArchiveDefId)
@@ -33,7 +32,7 @@ public class DatabaseTransactionReader : TransactionReader
 			// An instance of something. This is the base instance (not a variant).
 
 			// Set last instance timestamp:
-			Definition.LastInstanceTimestamp = txTimestamp;
+			Definition.LastInstanceTimestamp = Timestamp;
 
 			cache = Chain.GetCacheForDefinition(Definition);
 
@@ -62,7 +61,7 @@ public class DatabaseTransactionReader : TransactionReader
 			}
 
 			// Map timestamp to ticks:
-			var createTimeUtc = Chain.TimestampToDateTime(txTimestamp);
+			var createTimeUtc = Chain.TimestampToDateTime(Timestamp);
 
 			// Add to the primary cache - this also sets the Id and Created/EditedUtc fields:
 			cache.Add(_loadContext, t, createTimeUtc, TransactionId);
@@ -114,24 +113,7 @@ public class DatabaseTransactionReader : TransactionReader
 				{
 					var fieldMeta = fields[i].Field;
 
-					if (fieldMeta.Id == Schema.TimestampDefId)
-					{
-						// Timestamp. This will be used to set EditedUtc.
-						txTimestamp = fields[i].NumericValue;
-
-						if (currentEntityId != 0 && currentDefId != 0)
-						{
-							// Got both EntityId + DefinitionId.
-							// Get the definition now:
-							definition = Schema.Get((int)currentDefId);
-
-							if (definition != null && currentDefId > Schema.ArchiveDefId)
-							{
-								cache = Chain.GetCacheForDefinition(definition);
-							}
-						}
-					}
-					else if (fieldMeta.Id == Schema.EntityDefId)
+					if (fieldMeta.Id == Schema.EntityDefId)
 					{
 						// EntityId
 						currentEntityId = fields[i].NumericValue;
@@ -145,6 +127,18 @@ public class DatabaseTransactionReader : TransactionReader
 					{
 						// VariantTypeId
 						variantTypeId = (int)fields[i].NumericValue;
+					}
+				}
+
+				if (currentEntityId != 0 && currentDefId != 0)
+				{
+					// Got both EntityId + DefinitionId.
+					// Get the definition now:
+					definition = Schema.Get((int)currentDefId);
+
+					if (definition != null && currentDefId > Schema.ArchiveDefId)
+					{
+						cache = Chain.GetCacheForDefinition(definition);
 					}
 				}
 
