@@ -37,12 +37,14 @@ export default class ContentSelect extends React.Component {
 		}else{
 			webRequest(props.contentType.toLowerCase() + '/list').then(response => {
 				var all = response.json.results;
-				all.unshift(null);
+				if (!props.hideDefaultValue) {
+					all.unshift(null);
+				}
 				this.setState({all});
 			});
 		}
 	}
-	
+		
 	render(){
 		if(this.props.search){
 			
@@ -54,7 +56,7 @@ export default class ContentSelect extends React.Component {
 			}
 			
 			var value = this.props.defaultValue || this.props.value;
-			
+
 			return <div className="mb-3 content-select">
 				{this.props.label && (
 					<label className="form-label">{this.props.label}</label>
@@ -92,10 +94,18 @@ export default class ContentSelect extends React.Component {
 		
 		var all = this.state.all;
 		
+		var noSelection = this.props.noSelection || "None";
+		var mobileNoSelection = this.props.mobileNoSelection || "None";
+		
+		if (window.matchMedia('(max-width: 752px) and (pointer: coarse) and (orientation: portrait)').matches ||
+			window.matchMedia('(max-height: 752px) and (pointer: coarse) and (orientation: landscape)').matches) {
+			noSelection = mobileNoSelection;
+		}
+		
 		return (<Input {...omit(this.props, ['contentType'])} type="select">{
 			all ? all.map(content => {
 				if(!content){
-					return <option value={'0'}>None</option>;
+					return <option value={'0'}>{noSelection}</option>;
 				}
 				
 				var title = content.title || content.firstName || content.username || content.name || content.url;
