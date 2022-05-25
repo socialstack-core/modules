@@ -139,8 +139,8 @@ export default class FileSelector extends React.Component {
 
 		if (originalName) {
 			filename = originalName;
-        }
-
+		}
+		
 		return <div className="file-selector">
 
 			{/* upload browser */}
@@ -225,6 +225,8 @@ export default class FileSelector extends React.Component {
 				originalName={originalName}
 				id={this.props.id || this.newId()}
 				isPrivate={this.props.isPrivate}
+				url={this.props.url}
+				requestOpts={this.props.requestOpts}
 				maxSize={this.props.maxSize}
 				onUploaded={
 					file => this.updateValue(null,file)
