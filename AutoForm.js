@@ -286,32 +286,44 @@ class AutoFormInternal extends React.Component {
 		
 		return <Canvas key = {this.state.updateCount} onContentNode={contentNode => {
 			var content = this.state.value || this.state.fieldData;
+
+			// setup the hint prompts even if no data 
+			if (contentNode.data && contentNode.data.name) {
+				var data = contentNode.data;
+		
+				if(data.hint){
+					var hint = <i style="color:lightgreen" className='fa fa-lg fa-question-circle hint-field-label' title={data.hint}/>;
+					
+					if(Array.isArray(data.label)){
+						data.label.push(hint);
+					}else{
+						data.label = [(data.label || ''), hint];
+					}
+				}
+			}
+
 			if (!contentNode.data || !contentNode.data.name || !content || contentNode.data.autoComplete == 'off') {
 				return;
 			}
 
 			var data = contentNode.data;
 
-			if (data.localized && !Array.isArray(data.label)) {
-				// Show globe icon alongside the label:
-				data.label = [(data.label || ''), <i className='fa fa-globe-europe localized-field-label' />];
-			}
-			
 			if(!data.localized && locale != '1'){
 				// Only default locale can show non-localised fields. Returning a null will ignore the contentNode.
 				return null;
 			}
-			
-			if(data.hint){
-				var hint = <i className='fa fa-question-circle hint-field-label' title={data.hint}/>;
-				
+
+			// Show translation globe icon alongside the label when we have data 
+			if (data.localized) {
+				var localised = <i style="color:blue" className='fa fa-lg fa-globe-europe localized-field-label' />
+
 				if(Array.isArray(data.label)){
-					data.label.push(hint);
+					data.label.splice(1,0,localised);
 				}else{
-					data.label = [(data.label || ''), hint];
+					data.label = [(data.label || ''), localised];
 				}
 			}
-			
+		
 			data.currentContent = content;
 			data.autoComplete = 'off';
 			data.onChange = (e) => {
