@@ -134,7 +134,7 @@ export default class Uploader extends React.Component {
 		
 		var ep = this.props.endpoint || "upload/create";
 		
-		var apiUrl = global.ingestUrl || global.apiHost || '';
+		var apiUrl = this.props.url || global.ingestUrl || global.apiHost || '';
 		if(!apiUrl.endsWith('/')){
 			apiUrl += '/';
 		}
