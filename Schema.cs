@@ -222,6 +222,14 @@ public class Schema
 		DefineField("NodeId", "uint"); // 22. When this is used as a special field, it indicates which node submitted the transaction.
 		DefineField("AssemblerId", "uint"); // 23. Occurs in Blockchain.Meta transactions. Indicates a hand off has happened. Its default value is the first declared node.
 		DefineField("TimestampPrecision", "uint"); // 24. Defaults to 10^9 (nanoseconds). The amount the timestamps on this chain go up by per second.
+
+		// A transaction used to authenticate the node submitting it. Signature is required.
+		// The source chain does not know what is being authenticated by design. 
+		Define("Blockchain.Authenticate", 1); // 9
+		DefineField("AuthenticationHash", "bytes"); // A hash which indicates to the remote that the transaction is for them and is valid.
+		DefineField("TransactionHash", "bytes"); // First field in a transaction. The hash of everything else.
+		DefineField("TransactionToken", "bytes"); // The transaction token used to form the hash. The hash is the first field in the txn and is of everything else, including this token.
+		DefineField("NextTokenHash", "bytes"); // The hash of the next token to be used by this node.
 	}
 
 	/// <summary>

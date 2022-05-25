@@ -1,5 +1,7 @@
+using Api.Signatures;
 using Api.SocketServerLibrary;
 using Api.SocketServerLibrary.Crypto;
+using Org.BouncyCastle.Crypto.Parameters;
 using Org.BouncyCastle.Crypto.Tls;
 using System;
 using System.Net;
@@ -92,6 +94,127 @@ public partial class BlockClient
 	/// 
 	/// </summary>
 	public Api.SocketServerLibrary.Ciphers.SrtpCipherCTR SendCipherCtr;
+
+
+
+	/// <summary>
+	/// Tracks replay with a 64 packet history.
+	/// </summary>
+	public ulong ReplayWindow;
+
+	/// <summary>
+	/// First or latest observed sequence number.
+	/// </summary>
+	public uint LatestSequence;
+
+	/// <summary>
+	/// Rollover code - essentially the number of times the sequence number has rolled over.
+	/// </summary>
+	public uint RolloverCode; // "roc", RFC 3711 3.3.1
+
+	/// <summary>
+	/// 
+	/// </summary>
+	/// <param name="delta"></param>
+	/// <returns></returns>
+	public bool WasReplayed(long delta)
+	{
+		if (delta > 0)
+		{
+			/* Packet not yet received */
+			return false;
+		}
+
+		if (-delta > 64)
+		{
+			/* Packet too old */
+			return true;
+		}
+
+		if (((ReplayWindow >> ((int)-delta)) & 0x1) != 0)
+		{
+			/* Packet already received ! */
+			return true;
+		}
+		else
+		{
+			/* Packet not yet received */
+			return false;
+		}
+	}
+
+	/// <summary>
+	/// Updates the packet index information. Occurs after GuessIndex.
+	/// </summary>
+	/// <param name="seqNo"></param>
+	/// <param name="delta"></param>
+	/// <param name="guessedROC"></param>
+	public void UpdatePacketIndex(uint seqNo, long delta, uint guessedROC)
+	{
+		/* update the replay bit mask */
+		if (delta > 0)
+		{
+			ReplayWindow = ReplayWindow << (int)delta;
+			ReplayWindow |= 1;
+		}
+		else
+		{
+			ReplayWindow |= ((ulong)1 << (int)delta);
+		}
+
+		if (seqNo > LatestSequence)
+		{
+			LatestSequence = seqNo;
+		}
+
+		if (guessedROC > RolloverCode)
+		{
+			RolloverCode = guessedROC;
+			LatestSequence = seqNo;
+		}
+	}
+	
+	/// <summary>
+	/// 'guesses' the extended index for a given sequence number.
+	/// The guess is extremely accurate - it is only wrong if a packet is delayed by multiple minutes or has an incorrect sequence number.
+	/// </summary>
+	/// <param name="seqNo"></param>
+	/// <param name="guessedROC"></param>
+	/// <returns></returns>
+	public ulong GuessPacketIndex(uint seqNo, out uint guessedROC)
+	{
+		if (LatestSequence < 2147483648)
+		{
+			if (seqNo - LatestSequence > 2147483648)
+			{
+				// This packet is from the prev roc (this can happen just after a recent rollover).
+				guessedROC = (uint)(RolloverCode - 1);
+			}
+			else
+			{
+				guessedROC = RolloverCode;
+			}
+		}
+		else
+		{
+			if (LatestSequence - 2147483648 > seqNo)
+			{
+				// This packet is for the next roc (this happens just around a rollover, when the remote client has rolled but we haven't yet).
+				guessedROC = RolloverCode + 1;
+			}
+			else
+			{
+				guessedROC = RolloverCode;
+			}
+		}
+
+		return ((ulong)guessedROC << 32) | seqNo;
+	}
+
+	/// <summary>
+	/// 
+	/// </summary>
+	public ulong LatestExtendedSequence => (uint)((RolloverCode << 32) | LatestSequence);
 	
 	/// <summary>
 	/// 
@@ -116,7 +239,7 @@ public partial class BlockClient
 	}
 
 	/// <summary>
-	/// Checks an RTP packet authentication tag (HMAC, SHA1)
+	/// Checks a packet authentication tag (HMAC, SHA1, 80 bit)
 	/// </summary>
 	/// <param name="packetBuffer"></param>
 	/// <param name="startIndex"></param>
@@ -419,6 +542,370 @@ public partial class BlockClient
 		}
 	}
 
+	/// <summary>
+	/// Sends a server hello message to this client.
+	/// </summary>
+	/// <param name="encMessageRaw">The Sike encoded payload.</param>
+	/// <param name="ecdsaPublicKey">The ECDSA public key.</param>
+	/// <param name="remoteTempId">The ID the remote wants us to use to identify ourselves on the next message.</param>
+	public void SendServerHello(byte[] encMessageRaw, byte[] ecdsaPublicKey, ushort remoteTempId)
+	{
+		// - start of ServerHello record -
+		var writer = Server.StartMessage(this);
+		
+		// Flags - unencrypted:
+		writer.Write((byte)0);
+
+		// Compressed node ID; this is 0 throughout the handshake:
+		writer.Write((byte)0);
+
+		// The temporary ID:
+		writer.WriteBE((ushort)remoteTempId);
+
+		// Message type - ServerHello (1):
+		writer.Write((byte)1);
+
+		// Fragment count. This message is never fragmented. The payload is ~600 bytes which easily fits inside a packet.
+		writer.Write((byte)1);
+
+		// 16 server random bytes:
+		writer.Write(HandshakeMeta.RandomData, 16, 16);
+		
+		// Sike response:
+		var sikeSize = encMessageRaw.Length;
+		writer.WriteBE((ushort)sikeSize);
+		writer.Write(encMessageRaw, 0, sikeSize);
+
+		// ECDSA public key as well:
+		var ecdsaSize = ecdsaPublicKey.Length;
+		writer.WriteBE((ushort)ecdsaSize);
+		writer.Write(ecdsaPublicKey, 0, ecdsaSize);
+
+		SendAndRelease(writer);
+	}
+
+	private static Org.BouncyCastle.Crypto.Generators.ECKeyPairGenerator _generator;
+	private static ECDomainParameters _domainParameters;
+
+	/// <summary>
+	/// Generates a key pair.
+	/// </summary>
+	/// <returns></returns>
+	private static KeyPair GenerateClassicKeyPair()
+	{
+		if (_generator == null)
+		{
+			var curve = Org.BouncyCastle.Crypto.EC.CustomNamedCurves.GetByName("Curve25519");
+			var domainParameters = new ECDomainParameters(curve.Curve, curve.G, curve.N, curve.H, curve.GetSeed());
+			_domainParameters = domainParameters;
+
+			var keyParams = new ECKeyGenerationParameters(domainParameters, BlockHandshakeMeta.Rng);
+
+			_generator = new Org.BouncyCastle.Crypto.Generators.ECKeyPairGenerator("ECDSA");
+			_generator.Init(keyParams);
+		}
+
+		var keyPair = _generator.GenerateKeyPair();
+
+		var privateKey = keyPair.Private as ECPrivateKeyParameters;
+		var publicKey = keyPair.Public as ECPublicKeyParameters;
+
+		return new KeyPair()
+		{
+			PrivateKeyBytes = privateKey.D.ToByteArrayUnsigned(),
+			PublicKey = publicKey,
+			PrivateKey = privateKey
+		};
+	}
+
+	/// <summary>
+	/// Reads the next byte in a sequence of BufferedByte fragments.
+	/// </summary>
+	/// <param name="index"></param>
+	/// <param name="buffer"></param>
+	/// <param name="max"></param>
+	/// <returns></returns>
+	private byte NextByte(ref int index, ref BufferedBytes buffer, ref int max)
+	{
+		if (index == max)
+		{
+			buffer = buffer.After;
+			index = buffer.Offset;
+			max = buffer.Length - index;
+		}
+
+		return buffer.Bytes[index++];
+	}
+
+	/// <summary>
+	/// Reads a compressed number from a sequence of BufferedByte fragments.
+	/// </summary>
+	/// <param name="index"></param>
+	/// <param name="buffer"></param>
+	/// <param name="max"></param>
+	/// <returns></returns>
+	private ulong ReadCompressed(ref int index, ref BufferedBytes buffer, ref int max)
+	{
+		var first = NextByte(ref index, ref buffer, ref max);
+
+		switch (first)
+		{
+			case 251:
+				// 2 bytes:
+				return (ulong)(NextByte(ref index, ref buffer, ref max) | (NextByte(ref index, ref buffer, ref max) << 8));
+			case 252:
+				// 3 bytes:
+				return (ulong)(NextByte(ref index, ref buffer, ref max) | (NextByte(ref index, ref buffer, ref max)  << 8) | (NextByte(ref index, ref buffer, ref max) << 16));
+			case 253:
+				// 4 bytes:
+				return (ulong)(NextByte(ref index, ref buffer, ref max) | (NextByte(ref index, ref buffer, ref max) << 8) | (NextByte(ref index, ref buffer, ref max) << 16) | (NextByte(ref index, ref buffer, ref max) << 24));
+			case 254:
+				// 8 bytes:
+				return (ulong)NextByte(ref index, ref buffer, ref max) | ((ulong)NextByte(ref index, ref buffer, ref max) << 8) | ((ulong)NextByte(ref index, ref buffer, ref max) << 16) | ((ulong)NextByte(ref index, ref buffer, ref max) << 24) |
+					((ulong)NextByte(ref index, ref buffer, ref max) << 32) | ((ulong)NextByte(ref index, ref buffer, ref max) << 40) | ((ulong)NextByte(ref index, ref buffer, ref max) << 48) | ((ulong)NextByte(ref index, ref buffer, ref max) << 56);
+			default:
+				return first;
+		}
+	}
+
+	/// <summary>
+	/// Sends a clientHello message to essentially start a key exchange.
+	/// You only ever need to do the key exchange once with a remote node.
+	/// </summary>
+	public void SendClientHello()
+	{
+		HandshakeMeta = new BlockHandshakeMeta(0);
+		
+		// Generate a classic keypair. This is such that to get through this handshake
+		// you have to break both quantum safe and classic exchanges.
+		// This is recommended until quantum safe exchanges are something we can fully depend on.
+		var classicKey = GenerateClassicKeyPair();
+		HandshakeMeta.ClassicKey = classicKey;
+
+		// - start of ServerHello record -
+		var writer = Server.StartMessage(this);
+
+		// Flags - unencrypted:
+		writer.Write((byte)0);
+
+		// Compressed node ID; this is 0 throughout the handshake:
+		writer.Write((byte)0);
+
+		// The temporary ID:
+		writer.WriteBE((ushort)TemporaryConnectId);
+
+		// Message type - ClientHello (0):
+		writer.Write((byte)0);
+
+		// Fragment count. This message is never fragmented. The payload is ~600 bytes which easily fits inside a packet.
+		writer.Write((byte)1);
+
+		// 16 client random bytes:
+		writer.Write(HandshakeMeta.RandomData, 0, 16);
+
+		// Sike handshake start. "Bob" (client) end:
+		var sikeKey = Server.SikeKeyGenerator.GenerateKeyPairOpti(Lumity.SikeIsogeny.Party.BOB);
+		HandshakeMeta.SikeKey = sikeKey;
+		var sikePublicKey = sikeKey.PublicKey.GetEncoded();
+
+		// Write Sike public key:
+		var len = sikePublicKey.Length;
+		writer.WriteBE((ushort)len);
+		writer.Write(sikePublicKey, 0, len);
+
+		// Write ECDH public key:
+		var ecdsaPublicKey = classicKey.PublicKey.Q.GetEncoded(false);
+		var ecdsaSize = ecdsaPublicKey.Length;
+		writer.WriteBE((ushort)ecdsaSize);
+		writer.Write(ecdsaPublicKey, 0, ecdsaSize);
+
+		// Send the ClientHello:
+		SendAndRelease(writer);
+	}
+
+	private void ConstructSharedSecretAndDeriveKeys(byte[] sikeSecret, byte[] ecdhSecret)
+	{
+		// Create the main master secret with SHA3:
+		var sharedSecret = new Sha3Digest();
+		sharedSecret.BlockUpdate(sikeSecret, 0, sikeSecret.Length);
+		sharedSecret.BlockUpdate(ecdhSecret, 0, ecdhSecret.Length);
+
+		MasterSecret = new byte[32];
+		sharedSecret.DoFinal(MasterSecret, 0);
+
+		// Derive enc/ auth bidi keys:
+		DeriveKeys();
+	}
+
+	/// <summary>
+	/// Called when this client has received a complete message, which may have been fragmented.
+	/// The provided buffers MUST be offset to the start of the messages; i.e. 
+	/// it begins with a messageType byte followed by fragment fields, followed by the messageType specific info.
+	/// </summary>
+	/// <param name="first"></param>
+	public void ReceiveMessage(BufferedBytes first)
+	{
+		var index = first.Offset;
+		var buffer = first;
+		var max = first.Length - first.Offset;
+		var messageType = NextByte(ref index, ref buffer, ref max);
+
+		var fragCount = ReadCompressed(ref index, ref buffer, ref max);
+
+		if (fragCount > 1)
+		{
+			// Skip frag index.
+			ReadCompressed(ref index, ref buffer, ref max);
+		}
+
+		int pubKeySize;
+		byte[] remotePublic;
+		byte[] ecdhSecret;
+		byte[] sikeSecret;
+		ECPublicKeyParameters peerPublicKey;
+
+		switch (messageType)
+		{
+			case 0:
+				// ClientHello (handshake)
+				HandshakeMeta = new BlockHandshakeMeta(16);
+
+				// Generate a classic keypair. This is such that to get through this handshake
+				// you have to break both quantum safe and classic exchanges.
+				// This is recommended until quantum safe exchanges are something we can fully depend on.
+				var classicKey = GenerateClassicKeyPair();
+				HandshakeMeta.ClassicKey = classicKey;
+
+				// Their temporary ID:
+				var remoteTempId = (ushort)(NextByte(ref index, ref buffer, ref max) << 8 | NextByte(ref index, ref buffer, ref max));
+
+				// Read the 16 random bytes:
+				for (var i = 0; i < 16; i++)
+				{
+					HandshakeMeta.RandomData[i] = NextByte(ref index, ref buffer, ref max);
+				}
+				
+				// Load Bobs Sike pubkey:
+				pubKeySize = NextByte(ref index, ref buffer, ref max) << 8 | NextByte(ref index, ref buffer, ref max);
+
+				remotePublic = new byte[pubKeySize];
+
+				for (var i = 0; i < pubKeySize; i++)
+				{
+					remotePublic[i] = NextByte(ref index, ref buffer, ref max);
+				}
+
+				// Load the public Sike key:
+				var loadedRemotePublic = new SikeIsogeny.SidhPublicKeyOpti(Server.SikeParam, remotePublic);
+				
+				// Remote's ECDSA pubkey too:
+				pubKeySize = NextByte(ref index, ref buffer, ref max) << 8 | NextByte(ref index, ref buffer, ref max);
+				remotePublic = new byte[pubKeySize];
+
+				for (var i = 0; i < pubKeySize; i++)
+				{
+					remotePublic[i] = NextByte(ref index, ref buffer, ref max);
+				}
+
+				peerPublicKey = TlsEccUtilities.DeserializeECPublicKey(null, _domainParameters, remotePublic);
+				ecdhSecret = TlsEccUtilities.CalculateECDHBasicAgreement(peerPublicKey, classicKey.PrivateKey);
+
+				var encapsulated = Server.Sike.Encapsulate(loadedRemotePublic);
+
+				// The Sike shared secret is:
+				sikeSecret = encapsulated.GetSecret();
+				var encMessage = encapsulated.GetEncryptedMessage();
+
+				// Encode the public key:
+				var ecdsaPublicKey = classicKey.PublicKey.Q.GetEncoded(false);
+				
+				// Get the reply:
+				var encMessageRaw = encMessage.GetEncoded();
+
+				// We now have enough info to reply to the client and calculate all our keys.
+				ConstructSharedSecretAndDeriveKeys(sikeSecret, ecdhSecret);
+
+				// Respond with a ServerHello (unencrypted as other end doesn't know the key yet).
+				SendServerHello(encMessageRaw, ecdsaPublicKey, remoteTempId);
+
+				break;
+			case 1:
+				// ServerHello (handshake)
+
+				// This end (client) can now establish the MasterSecret too.
+
+				if (HandshakeMeta == null)
+				{
+					// Wrong order - most likely abuse attempt.
+					return;
+				}
+
+				// Read the 16 random bytes:
+				for (var i = 0; i < 16; i++)
+				{
+					HandshakeMeta.RandomData[i + 16] = NextByte(ref index, ref buffer, ref max);
+				}
+
+				// Read the Sike message:
+				pubKeySize = NextByte(ref index, ref buffer, ref max) << 8 | NextByte(ref index, ref buffer, ref max);
+				remotePublic = new byte[pubKeySize];
+				for (var i = 0; i < pubKeySize; i++)
+				{
+					remotePublic[i] = NextByte(ref index, ref buffer, ref max);
+				}
+
+				// Establish the Sike shared secret:
+				var encMessageRef = new Lumity.SikeIsogeny.EncryptedMessageOpti(Server.SikeParam, remotePublic);
+				sikeSecret = Server.Sike.Decapsulate(HandshakeMeta.SikeKey.PrivateKey, HandshakeMeta.SikeKey.PublicKey, encMessageRef);
+
+				// Remote's ECDSA pubkey too:
+				pubKeySize = NextByte(ref index, ref buffer, ref max) << 8 | NextByte(ref index, ref buffer, ref max);
+				remotePublic = new byte[pubKeySize];
+
+				for (var i = 0; i < pubKeySize; i++)
+				{
+					remotePublic[i] = NextByte(ref index, ref buffer, ref max);
+				}
+
+				peerPublicKey = TlsEccUtilities.DeserializeECPublicKey(null, _domainParameters, remotePublic);
+				ecdhSecret = TlsEccUtilities.CalculateECDHBasicAgreement(peerPublicKey, HandshakeMeta.ClassicKey.PrivateKey);
+
+				ConstructSharedSecretAndDeriveKeys(sikeSecret, ecdhSecret);
+
+				// Submit a txn to prove authenticity for the remote end. We then reply with an encrypted txnID.
+				// Because we assigned the node ID, we are certain it is them.
+
+				// Unless we're in a trusted LAN setup, where we can assume the packets are not being manipulated
+				// (but may be getting recorded, so we still do the full exchange but do not need to auth the other end).
+
+				#warning ..todo!
+
+				break;
+			case 2:
+				// Transaction
+				break;
+			case 3:
+				// Guard
+				break;
+			case 4:
+				// GuardState
+				break;
+			case 5:
+				// Ping
+				break;
+		}
+
+		// Release the buffers:
+		buffer = first;
+
+		while (buffer != null)
+		{
+			var next = buffer.After;
+			buffer.Release();
+			buffer = next;
+		}
+	}
+	
 	/// <summary>
 	/// Sends the given writer contents and releases the writer.
 	/// </summary>

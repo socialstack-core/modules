@@ -46,7 +46,7 @@ public partial class DistributionPlatform
 		var ms = new MemoryStream();
 		ms.Write(bytes);
 
-		await Upload(indexPath, chain.IsPrivate, ms);
+		await Upload(indexPath, chain.IsPrivate, ms, 30, "application/json");
 	}
 
 	/// <summary>
@@ -136,8 +136,10 @@ public partial class DistributionPlatform
 	/// <param name="targetPath">The complete path of the file, including the first forward slash.</param>
 	/// <param name="isPrivate"></param>
 	/// <param name="toUpload"></param>
+	/// <param name="cacheMaxAge">-1 (default) indicates cache for as long as you want.</param>
+	/// <param name="contentType">The file mime content type</param>
 	/// <returns></returns>
-	public virtual Task<bool> Upload(string targetPath, bool isPrivate, System.IO.Stream toUpload)
+	public virtual Task<bool> Upload(string targetPath, bool isPrivate, System.IO.Stream toUpload, int cacheMaxAge = -1, string contentType = "application/x-lumity")
 	{
 		throw new NotImplementedException();
 	}

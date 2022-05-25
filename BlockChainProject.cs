@@ -457,6 +457,15 @@ public class BlockChainProject
 		}
 
 		_loaded = true;
+
+		if (IsAssembler)
+		{
+			// Require the block server.
+			if (BlockServer.SharedBlockServer == null)
+			{
+				BlockServer.SharedBlockServer = new BlockServer(BlockServer.SharedBlockServerSafeLanMode);
+			}
+		}
 	}
 
 	/// <summary>

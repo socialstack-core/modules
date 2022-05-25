@@ -156,8 +156,10 @@ public partial class DigitalOceanHost : DistributionPlatform
 	/// <param name="targetPath">The complete path of the file, including the first forward slash.</param>
 	/// <param name="isPrivate"></param>
 	/// <param name="toUpload"></param>
+	/// <param name="cacheMaxAge"></param>
+	/// <param name="contentType"></param>
 	/// <returns></returns>
-	public async override Task<bool> Upload(string targetPath, bool isPrivate, System.IO.Stream toUpload)
+	public async override Task<bool> Upload(string targetPath, bool isPrivate, System.IO.Stream toUpload, int cacheMaxAge = -1, string contentType = "application/x-lumity")
 	{
 		if(_uploadClient == null)
 		{
@@ -174,9 +176,11 @@ public partial class DigitalOceanHost : DistributionPlatform
 				StorageClass = S3StorageClass.Standard,
 				PartSize = 6291456, // 6 MB
 				Key = targetPath,
-				ContentType = "application/x-lumity",
+				ContentType = contentType,
 				CannedACL = isPrivate ? S3CannedACL.AuthenticatedRead : S3CannedACL.PublicRead
 			};
+
+			fileTransferUtilityRequest.Headers.CacheControl = cacheMaxAge == -1 ? "public, max-age=31536000, immutable" : "public, max-age=" + cacheMaxAge;
 
 			// Get the file name:
 			var lastSlash = targetPath.LastIndexOf('/');
