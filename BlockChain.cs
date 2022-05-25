@@ -577,7 +577,7 @@ public partial class BlockChain
 		// Set the write file offset to the correct value:
 		WriteFileOffset = (long)index.LatestEndByteOffset;
 
-		Console.WriteLine("CDN check " + index.LatestEndByteOffset + ", " + currentMaxByte);
+		// Console.WriteLine("CDN check " + index.LatestEndByteOffset + ", " + currentMaxByte);
 
 		if (index.LatestEndByteOffset > currentMaxByte)
 		{
