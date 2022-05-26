@@ -122,7 +122,10 @@ namespace Api.Contexts
 
 				var svc = Services.GetByContentTypeId(contentTypeId);
 
-				fld.ViewCapability = svc.GetEventGroup().GetLoadCapability();
+				if (svc != null)
+				{
+					fld.ViewCapability = svc.GetEventGroup().GetLoadCapability();
+				}
 
 				var jsonHeader = "\"" + contentName.ToLower() + "\":";
 
@@ -194,7 +197,7 @@ namespace Api.Contexts
 			{
 				var fld = ContextFields.FieldList[i];
 
-				if (context.Role.GetGrantRule(fld.ViewCapability) == null)
+				if (fld.ViewCapability != null && context.Role.GetGrantRule(fld.ViewCapability) == null)
 				{
 					continue;
 				}
