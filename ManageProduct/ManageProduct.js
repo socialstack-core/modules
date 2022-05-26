@@ -70,14 +70,16 @@ export default function ManageProduct(props) {
 	}
 
 	return (
-		<div className="products-manage-product">
+		<div className="manage-product">
 
-			<div className="back-button">
-				<a className="btn-back" href={manageProductsUrl}>Back</a>
-			</div>
+			<a className="btn btn-outline-primary" href={manageProductsUrl}>
+				{`Back`}
+			</a>
 
 			<div className="product-details">
-				<h4>Product Details</h4>
+				<h4 className="manage-product__title">
+					{`Product Details`}
+				</h4>
 				<Form 
 					action = { product ? "product" + "/" + product.id : "product" }
 					onSuccess={response => {
@@ -95,45 +97,47 @@ export default function ManageProduct(props) {
 						setLoading(false);
 					}}
 				>
-					<Input id="name" name="name" type="text" label="Product Name" placeholder="Product name" validate={['Required']} value={product?.name}/>
-					<Input id="description" name="description" type="textarea" label="Description" placeholder="Product description" value={product?.description}/>
+					<Input id="name" name="name" type="text" label={`Product Name`} placeholder={`Product name`} validate={['Required']} value={product?.name}/>
+					<Input id="description" name="description" type="textarea" label={`Description`} placeholder={`Product description`} value={product?.description}/>
 
-					<div className="submit-button">
-						<Input type="submit" label={product ? "Update Product" : "Create Product"} disabled={loading} />
+					<div className="manage-product__footer">
+						<Input noWrapper type="submit" label={product ? `Update Product` : `Create Product`} disabled={loading} />
 					</div>
 				</Form>
 			</div>
 
 			{product &&
-				<div className="price-details">
-					<h4>Prices</h4>
+			<div className="price-details">
+				<h4 className="manage-product__title">
+					{`Prices`}
+				</h4>
 					<Loop
 						over="price/list"
-						asTable
+						asTable className="table-striped"
 						live
 						filter={{where: {productId: product.id}}}
-						orNone={() => <div className="no-prices">
-							No prices for this product.
-						</div>}
+						orNone={() => <Alert className="info">
+							{`No prices for this product.`}
+						</Alert>}
 					>
 						{
 							[
 								// Render Header
 								results => {
 									return <> 
-										<th>Name</th>
-										<th>Cost (pence)</th>
-										<th>Recurring</th>
-										<th>Metered</th>
-										<th>Payment Interval (months)</th>
-										<th></th>
-										<th></th>
+										<th>{`Name`}</th>
+										<th>{`Cost (pence)`}</th>
+										<th>{`Recurring`}</th>
+										<th>{`Metred`}</th>
+										<th>{`Payment Interval (months)`}</th>
+										<th className="col--btn"></th>
+										<th className="col--btn"></th>
 									</>;
 								},
 								// Render Row
 								(price, index, resultsCount) => {
 									return <>
-										<td className="discount--info name">
+										<td>
 											<a href="#" onClick={e => editPrice(price)} disabled={loading}>{price.name}</a>
 										</td>
 										<td>
@@ -149,18 +153,22 @@ export default function ManageProduct(props) {
 											{price.recurringPaymentIntervalMonths}
 										</td>
 										<td>
-											<button className="btn btn-primary" onClick={e => editPrice(price)} disabled={loading}>Edit</button>
+											<button className="btn btn-sm btn-secondary" onClick={e => editPrice(price)} disabled={loading}>
+												<i className="fas fa-fw fa-pencil"></i> {`Edit`}
+											</button>
 										</td>
 										<td>
-											<button className="btn btn-primary" onClick={e => removePrice(price)} disabled={loading}>Remove</button>
+											<button className="btn btn-sm btn-danger" onClick={e => removePrice(price)} disabled={loading}>
+												<i className="fas fa-fw fa-trash"></i> {`Remove`}
+											</button>
 										</td>
 									</>;
 								}
 							]
 						}
 					</Loop>
-					<div className="create-new-price">
-						<button className="btn btn-primary" onClick={e => editPrice()} disabled={loading}>Add new price</button>
+				<div className="manage-product__footer">
+						<button type="button" className="btn btn-primary" onClick={e => editPrice()} disabled={loading}>Add new price</button>
 					</div>
 
 					{isPriceModalOpen &&

@@ -42,12 +42,12 @@ export default function ManagePrice(props) {
 
 	if (!product) {
 		return <div className="products-manage-price">
-			This component is missing a product.
+			{`This component is missing a product.`}
 		</div>;
 	}
 	
 	return (
-		<div className="products-manage-price">
+		<div className="manage-price">
 			<Form 
 				action = { price ? "price" + "/" + price.id : "price" }
 				className="create-product-form"
@@ -70,35 +70,38 @@ export default function ManagePrice(props) {
 					setLoading(false);
 				}}
 			>
-				<Input id="name" name="name" type="text" label="Price Name" placeholder="Price name" validate={['Required']} value={price?.name}/>
-				<Input id="costPence" name="costPence" type="number" label="Cost (pence)" validate={['Required']} value={price?.costPence}/>
-				<Input id="isRecurring" name="isRecurring" type="checkbox" label="Is Recurring?" value={isRecurring} onChange={e => {setIsRecurring(!isRecurring);}}/>
-				{isRecurring &&
+				<div>
+					<Input id="name" name="name" type="text" label={`Price Name`} placeholder={`Price name`} validate={['Required']} value={price?.name} />
+					<Input id="costPence" name="costPence" type="number" label={`Cost (pence)`} validate={['Required']} value={price?.costPence} />
+					<Input id="isRecurring" name="isRecurring" type="checkbox" label={`Is Recurring?`} value={isRecurring} onChange={e => { setIsRecurring(!isRecurring); }} />
+					{isRecurring &&
 					<div className="price-recurring-options">
-						<h5>Recurring Options</h5>
-						<Input id="isMetered" name="isMetered" type="checkbox" label="Is Metered?" defaultValue={price?.isMetered}/>
-						<Input id="recurringPaymentIntervalMonths" name="recurringPaymentIntervalMonths" type="number" label="Recurring Payment Interval (months)" value={price ? price.recurringPaymentIntervalMonths : 1}/>
+						<h5>
+							{`Recurring Options`}
+						</h5>
+						<Input id="isMetered" name="isMetered" type="checkbox" label={`Is metered?`} defaultValue={price?.isMetered} />
+						<Input id="recurringPaymentIntervalMonths" name="recurringPaymentIntervalMonths" type="number"
+							label={`Recurring Payment Interval (months)`} value={price ? price.recurringPaymentIntervalMonths : 1} />
 					</div>
-				}
+					}
 
-				<div className="submit-button">
-					<Input type="submit" label={price ? "Update Price" : "Create Price"} disabled={loading} />
+					{loading &&
+						<Loading message={`Loading`} />
+					}
+					{failed &&
+						<Alert type="fail">
+							{failed.message ? failed.message : failed == "VALIDATION" && `Please fill in all required fields.`}
+						</Alert>
+					}
 				</div>
-
-				<div className="remove-button">
-					<button className="btn btn-primary" onClick={e => removePrice(price)} disabled={loading}>Remove</button>
-				</div>
-
-				{loading &&
-					<div>
-						<Loading message="Loading..." />
-					</div>
-				}
-				{failed &&
-					<Alert type="fail">
-						{failed.message ? failed.message : failed == "VALIDATION" && "Please fill in all required fields."}
-					</Alert>
-				}
+				<footer className="modal__internal-footer">
+					{price && <>
+						<button type="button" className="btn btn-outline-danger" onClick={() => removePrice(price)} disabled={loading}>
+							{`Remove`}
+						</button>
+					</>}
+					<Input noWrapper type="submit" label={price ? `Update Price` : `Create Price`} disabled={loading} />
+				</footer>
 			</Form>
 		</div>
 	);

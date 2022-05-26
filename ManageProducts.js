@@ -24,7 +24,7 @@ export default function ManageProducts(props) {
 			console.log(e);
 
 			if (!e.message) {
-				e.message = "Something went wrong, please try again later.";
+				e.message = `Something went wrong, please try again later.`;
 			}
 
 			setFailed(e);
@@ -33,48 +33,57 @@ export default function ManageProducts(props) {
 	}
 
 	return (
-		<div className="products-manage-products">
+		<div className="manage-products">
+			<h4>
+				{`Products`}
+			</h4>
 			<Loop
-				over="product/list"
+				over="product/list" className="table-striped"
 				asTable
 				live
-				orNone={() => <div className="no-products">
-					No products created.
-				</div>}
+				orNone={() => <Alert className="info">
+					{`No products created.`}
+				</Alert>}
 			>
 				{
 					[
 						// Render Header
 						results => {
 							return <> 
-								<th>Name</th>
-								<th>Description</th>
-								<th></th>
-								<th></th>
+								<th className="col--name">{`Name`}</th>
+								<th className="col--description">{`Description`}</th>
+								<th className="col--btn"></th>
+								<th className="col--btn"></th>
 							</>;
 						},
 						// Render Row
 						(product, index, resultsCount) => {
 							return <>
-								<td className="discount--info name">
+								<td>
 									<a href={manageProductUrl + "/" + product.id}>{product.name}</a>
 								</td>
-								<td className="discount--info description">
+								<td>
 									{product.description}
 								</td>
 								<td>
-									<a href={manageProductUrl + "/" + product.id} className="btn btn-primary">Edit</a>
+									<a href={manageProductUrl + "/" + product.id} className="btn btn-sm btn-secondary">
+										<i className="fas fa-fw fa-pencil"></i> {`Edit`}
+									</a>
 								</td>
 								<td>
-									<button className="btn btn-primary" onClick={e => removeProduct(product)} disabled={loading}>Remove</button>
+									<button className="btn btn-sm btn-danger" onClick={e => removeProduct(product)} disabled={loading}>
+										<i className="fas fa-fw fa-trash"></i> {`Remove`}
+									</button>
 								</td>
 							</>;
 						}
 					]
 				}
 			</Loop>
-			<div className="create-new-product">
-				<a href={createProductUrl} className="btn btn-primary">Create</a>
+			<div className="manage-products__footer">
+				<a href={createProductUrl} className="btn btn-primary">
+					{`Create`}
+				</a>
 			</div>
 			{loading &&
 				<div>
@@ -83,7 +92,7 @@ export default function ManageProducts(props) {
 			}
 			{failed &&
 				<Alert type="fail">
-					{failed.message ? failed.message : failed == "VALIDATION" && "Please fill in all required fields."}
+					{failed.message ? failed.message : failed == "VALIDATION" && `Please fill in all required fields.`}
 				</Alert>
 			}
 		</div>
