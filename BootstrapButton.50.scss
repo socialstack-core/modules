@@ -1,0 +1,217 @@
+$btn-variants: (
+    primary,
+    secondary,
+    success,
+    danger,
+    warning,
+    info,
+    light,
+    dark//,
+    //link // treated separately
+);
+
+// generates overriding styles for the given button variant (e.g. btn-primary)
+// updated styles will use pre-existing CSS theme vars injected into the page
+@mixin themed-button-variant($variant) {
+    $var: --#{$variant};
+    $var-border: #{$var}-border;
+    $var-color: #{$var}-color;
+    $var-focus: #{$var}-focus;
+    $var-hover: #{$var}-hover;
+    $var-active: #{$var}-active;
+
+    // default state
+    background-color: var($var);
+    border-color: var($var-border);
+    color: var($var-color);
+
+    // hover state
+    $var-background: #{$var}-hover-background;
+    $var-border: #{$var}-hover-border;
+    $var-color: #{$var}-hover-color;
+
+    &:hover {
+        background-color: var($var-background);
+        border-color: var($var-border);
+        color: var($var-color);
+    }
+
+    // focus state
+    $var-background: #{$var}-focus-background;
+    //$var-border: #{$var}-focus-border;
+    //$var-color: #{$var}-focus-color;
+    $var-shadow: #{$var}-focus-shadow;
+            
+    .btn-check:focus + &,
+    &:focus {
+        background-color: var($var-background);
+        border-color: var($var-border);
+        color: var($var-color);
+        box-shadow: 0 0 0 .25rem var($var-shadow);
+    }
+            
+    // active state
+    $var-background: #{$var}-active-background;
+    $var-border: #{$var}-active-border;
+    $var-color: #{$var}-active-color;
+    $var-shadow: #{$var}-active-shadow;
+    
+    .btn-check:checked + &,
+    .btn-check:active + &,
+    &:active,
+    &.active,
+    .show > &.dropdown-toggle {
+        background-color: var($var-background);
+        border-color: var($var-border);
+        color: var($var-color);
+                
+        &:focus {
+            box-shadow: 0 0 0 .25rem var($var-shadow);
+        }
+
+    }
+           
+    // disabled state
+    $var-background: #{$var}-disabled-background;
+    $var-border: #{$var}-disabled-border;
+    $var-color: #{$var}-disabled-color;
+
+    &:disabled,
+    &.disabled {
+        background-color: var($var-background);
+        border-color: var($var-border);
+        color: var($var-color);
+    }
+
+}
+
+// generates overriding styles for the given outline button variant (e.g. btn-outline-primary)
+// updated styles will use pre-existing CSS theme vars injected into the page
+@mixin themed-button-outline-variant($variant) {
+    $var: --#{$variant};
+    $var-border: #{$var}-border;
+    $var-color: #{$var}-color;
+
+    // default state
+    border-color: var($var-border);
+    color: var($var); // NB: uses background colour for text as the background is transparent
+
+    // hover state
+    // defaults to looking like non-outlined version on hover
+    &:hover {
+        background-color: var($var);
+        color: var($var-color);
+    }
+
+    // focus state
+    $var-background: #{$var}-focus-background;
+    $var-border: #{$var}-focus-border;
+    $var-color: #{$var}-focus-color;
+    $var-shadow: #{$var}-focus-shadow;
+
+    .btn-check:focus + &,
+    &:focus {
+        box-shadow: 0 0 0 .25rem var($var-shadow);
+    }
+    
+    // active state
+    // NB: by default, Bootstrap doesn't appear to render anything different on the active state for outlined buttons
+    .btn-check:checked + &,
+    .btn-check:active + &,
+    &:active,
+    &.active,
+    &.dropdown-toggle.show {
+        //background-color: var($activeBackgroundColor);
+        //border-color: var($activeBorderColor);
+        //color: var($activeColor);
+
+        &:focus {
+            //box-shadow: 0 0 0 .25rem $focusBoxShadowColor;
+        }
+
+    }
+
+    // disabled state
+    // handled by Bootstrap applying reduced opacity
+    &:disabled,
+    &.disabled {
+        //background-color: transparent;
+        //color: var($disabledColor);
+    }
+
+}
+
+// overrides btn / btn-sm / btn-lg styling
+// updated styles will use pre-existing CSS theme vars injected into the page
+@mixin themed-button-size($size) {
+    // TODO: requires defaults
+    $prefix: --button-size-#{$size};
+    $paddingX: #{$prefix}-padding-x;
+    $paddingY: #{$prefix}-padding-y;
+    $fontSize: #{$prefix}-font-size;
+    $fontWeight: #{$prefix}-font-weight;
+    $borderRadius: #{$prefix}-border-radius;
+
+    $themeBaseFontSize: 16;
+
+    /*
+    padding: var($paddingY) var($paddingX);
+    font-size: calc(1rem * (var(#{$fontSize}) / #{$themeBaseFontSize}));
+    border-radius: var($borderRadius);
+    */
+}
+
+.btn {
+    cursor: pointer;
+
+    // button sizes
+    @include themed-button-size(normal);
+
+    &.btn-lg {
+        @include themed-button-size(lg);
+    }
+
+    &.btn-sm {
+        @include themed-button-size(sm);
+    }
+
+    // alternate buttons
+    // (primary, secondary, etc.)
+    @each $variant in $btn-variants {
+
+        // solid button variants
+        &.btn-#{$variant} {
+            @include themed-button-variant($variant);
+        }
+
+        // outlined button variants
+        &.btn-outline-#{$variant} {
+            @include themed-button-outline-variant($variant);
+        }
+    }
+
+    // link buttons
+    &.btn-link {
+        // TODO
+        /*
+        font-weight: $font-weight-normal;
+        color: $btn-link-color;
+        text-decoration: $link-decoration;
+        
+        &:hover {
+            color: $btn-link-hover-color;
+            text-decoration: $link-hover-decoration;
+        }
+        
+        &:focus {
+            text-decoration: $link-hover-decoration;
+        }
+        
+        &:disabled,
+        &.disabled {
+            color: $btn-link-disabled-color;
+        }
+        */
+    }
+
+}
