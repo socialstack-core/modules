@@ -28,6 +28,8 @@ export default class Photosphere extends React.Component {
 		
 		// Expose the three.js scenegraph to inspection tools
 		global.scene = scene;
+
+		this.videoRef = props.videoRef || (getRef.isVideo(props.imageRef) ? props.imageRef : null);
 		
 		this.setRef = this.setRef.bind(this);
 		this.setContainerRef = this.setContainerRef.bind(this);
@@ -307,7 +309,7 @@ export default class Photosphere extends React.Component {
 		// +ve x is west
 		
 		// Is it a video?
-		this.videoRef = props.videoRef || (getRef.isVideo(props.imageRef) ? props.imageRef : null);
+		this.videoRef = this.videoRef || props.videoRef || (getRef.isVideo(props.imageRef) ? props.imageRef : null);
 		this.imageRef = this.videoRef ? null : props.imageRef;
 		
 		var imgUrlLoad = getRef(this.imageRef , {url: true, size: '512'});
