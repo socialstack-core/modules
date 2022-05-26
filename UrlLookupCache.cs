@@ -283,7 +283,7 @@ namespace Api.Pages
 
 			if (urlInfo.Length > 0)
 			{
-				var parts = urlInfo.ToLower().Split('/');
+				var parts = urlInfo.AllocateString().Split('/');
 
 				for (var i = 0; i < parts.Length; i++)
 				{
@@ -486,6 +486,25 @@ namespace Api.Pages
 				}
 
 			});
+		}
+		
+		/// <summary>
+		/// Allocates a substring
+		/// </summary>
+		/// <returns></returns>
+		public string AllocateString()
+		{
+			if (Url == null)
+			{
+				return null;
+			}
+
+			if (Length == Url.Length)
+			{
+				return Url;
+			}
+
+			return Url.Substring(Start, Length);
 		}
 
 		/// <summary>
