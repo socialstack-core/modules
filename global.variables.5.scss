@@ -25,7 +25,8 @@ $base_font_size: 16 !default; // in px
 }
 
 @function px_to_rem($px) {
-    @return math.div(0rem + $px, $base_font_size);
+    $value: strip_unit($px);
+    @return 0rem + math.div($value, $base_font_size);
 }
 
 @function pt_to_rem($pt) {
