@@ -49,6 +49,7 @@ export default class Photosphere extends React.Component {
 	componentWillReceiveProps(props){
 		
 		if(props.imageRef != this.props.imageRef || props.videoRef != this.props.videoRef || props.maxFov != this.props.maxFov){
+			this.videoRef = props.videoRef || (getRef.isVideo(props.imageRef) ? props.imageRef : null);
 			this.setup(props);
 		}
 		
