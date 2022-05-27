@@ -14,8 +14,8 @@ $btn-variants: (
 // updated styles will use pre-existing CSS theme vars injected into the page
 @mixin themed-button-variant($variant) {
     $var: --#{$variant};
-    $var-border: #{$var}-border;
-    $var-color: #{$var}-color;
+    $var-border: #{$var};
+    $var-color: #{$var}-fg;
     $var-focus: #{$var}-focus;
     $var-hover: #{$var}-hover;
     $var-active: #{$var}-active;
@@ -26,9 +26,9 @@ $btn-variants: (
     color: var($var-color);
 
     // hover state
-    $var-background: #{$var}-hover-background;
+    $var-background: #{$var}-hover;
     $var-border: #{$var}-hover-border;
-    $var-color: #{$var}-hover-color;
+    //$var-color: #{$var}-hover-fg;
 
     &:hover {
         background-color: var($var-background);
@@ -37,10 +37,10 @@ $btn-variants: (
     }
 
     // focus state
-    $var-background: #{$var}-focus-background;
+    //$var-background: #{$var}-focus-background;
     //$var-border: #{$var}-focus-border;
-    //$var-color: #{$var}-focus-color;
-    $var-shadow: #{$var}-focus-shadow;
+    //$var-color: #{$var}-focus-fg;
+    $var-shadow: #{$var}-shadow;
             
     .btn-check:focus + &,
     &:focus {
@@ -51,10 +51,10 @@ $btn-variants: (
     }
             
     // active state
-    $var-background: #{$var}-active-background;
+    $var-background: #{$var}-active;
     $var-border: #{$var}-active-border;
-    $var-color: #{$var}-active-color;
-    $var-shadow: #{$var}-active-shadow;
+    //$var-color: #{$var}-active-fg;
+    //$var-shadow: #{$var}-active-shadow;
     
     .btn-check:checked + &,
     .btn-check:active + &,
@@ -72,15 +72,16 @@ $btn-variants: (
     }
            
     // disabled state
-    $var-background: #{$var}-disabled-background;
-    $var-border: #{$var}-disabled-border;
-    $var-color: #{$var}-disabled-color;
+    //$var-background: #{$var}-disabled-background;
+    //$var-border: #{$var}-disabled-border;
+    //$var-color: #{$var}-disabled-color;
 
     &:disabled,
     &.disabled {
-        background-color: var($var-background);
-        border-color: var($var-border);
-        color: var($var-color);
+        //background-color: var($var-background);
+        //border-color: var($var-border);
+        //color: var($var-color);
+        opacity: .5;
     }
 
 }
@@ -89,8 +90,8 @@ $btn-variants: (
 // updated styles will use pre-existing CSS theme vars injected into the page
 @mixin themed-button-outline-variant($variant) {
     $var: --#{$variant};
-    $var-border: #{$var}-border;
-    $var-color: #{$var}-color;
+    $var-border: #{$var};
+    $var-color: #{$var}-fg;
 
     // default state
     border-color: var($var-border);
@@ -104,10 +105,10 @@ $btn-variants: (
     }
 
     // focus state
-    $var-background: #{$var}-focus-background;
-    $var-border: #{$var}-focus-border;
-    $var-color: #{$var}-focus-color;
-    $var-shadow: #{$var}-focus-shadow;
+    //$var-background: #{$var}-focus-background;
+    //$var-border: #{$var}-focus-border;
+    //$var-color: #{$var}-focus-color;
+    $var-shadow: #{$var}-shadow;
 
     .btn-check:focus + &,
     &:focus {
@@ -121,11 +122,14 @@ $btn-variants: (
     &:active,
     &.active,
     &.dropdown-toggle.show {
+        background-color: var($var);
+        color: var($var-color);
         //background-color: var($activeBackgroundColor);
         //border-color: var($activeBorderColor);
         //color: var($activeColor);
 
         &:focus {
+            box-shadow: 0 0 0 .25rem var($var-shadow);
             //box-shadow: 0 0 0 .25rem $focusBoxShadowColor;
         }
 
