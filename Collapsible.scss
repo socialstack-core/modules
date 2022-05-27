@@ -16,7 +16,7 @@
 		}
 
 		.collapsible-title {
-			@include font_size(20);
+			@include __font_size(20);
 			font-weight: bold;
 			margin: 0;
 			display: flex;
@@ -77,7 +77,7 @@
 	}
 
 	.collapsible-content {
-		@include font_size(16);
+		@include __font_size(16);
 		border: 1px solid rgb(240,240,240);
 		border-top: 0;
 		margin-bottom: 1rem;
