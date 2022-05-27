@@ -27,7 +27,7 @@ input {
         }
 
         ~ .upload-limit {
-            @include font_size(12);
+            @include __font_size(12);
             display: block;
         }
     }

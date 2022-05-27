@@ -3,7 +3,7 @@
     NB: named global-mixins.15.scss to allow for project-specific overrides to these mixins (see UI/Source/GeneralStyle/mixins.20.scss)
 */
 
-@mixin font_size($px) {
+@mixin __font_size($px) {
     font-size: px_to_rem($px);
 }
 
