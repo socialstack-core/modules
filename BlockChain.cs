@@ -284,6 +284,25 @@ public partial class BlockChain
 	public string ChainTypeName => GetChainTypeName(ChainType);
 
 	/// <summary>
+	/// Creates a timestamp based on the given date. It must be within range of the project epoch.
+	/// </summary>
+	/// <param name="dateUtc"></param>
+	/// <returns></returns>
+	public ulong DateTimeToTimestamp(DateTime dateUtc)
+	{
+		// Local stamp first:
+		var stamp = dateUtc.Ticks;
+
+		// Adjust to being relative to the project year:
+		stamp -= Project.TimestampTickOffset;
+
+		// Finally convert ticks into the default project precision (which will be assumed to be nanoseconds always here):
+		var result = ((ulong)stamp) * 100;
+
+		return result;
+	}
+
+	/// <summary>
 	/// Creates a unique timestamp using the project information and UtcNow.
 	/// </summary>
 	public ulong Timestamp {
@@ -618,7 +637,7 @@ public partial class BlockChain
 						catch (Exception e)
 						{
 							Console.WriteLine("Buffer exception " + e.ToString());
-							throw e;
+							throw;
 						}
 
 						// Append to the file:
@@ -682,6 +701,11 @@ public partial class BlockChain
 		// If this node is the block assembly service (BAS), add the buffers to the chain.
 		// Otherwise, send them as UDP packets to the BAS.
 
+		if (_isWatching == WatchMode.None)
+		{
+			throw new Exception("You must be watching the chain in order to write transactions to it. Use Watch() first. This is because you're watching for its validity and what the ultimate transaction ID will be via messages from other nodes.");
+		}
+
 		// Create a pending transaction:
 		var pending = CreatePendingTransaction(timestamp);
 
@@ -700,7 +724,10 @@ public partial class BlockChain
 
 		// Wait for the pending transaction.
 		// If the buffers were added immediately, which is very common on single instance sites, this completes sync (as a ValueTask).
-		await pending;
+		if (!pending.IsCompleted)
+		{
+			await pending;
+		}
 
 		var relevant = pending.RelevantObject;
 		var txnId = pending.TransactionId;
@@ -718,8 +745,13 @@ public partial class BlockChain
 	/// <summary>
 	/// Writes the initial schema to the chain file
 	/// </summary>
-	public void WriteInitialChain(Action<TransactionReader> onTransaction = null)
+	public void WriteInitialChain(Action<TransactionReader> onTransaction = null, ulong timestamp = 0)
 	{
+		if (Timestamp == 0)
+		{
+			timestamp = Timestamp;
+		}
+
 		var _schemaToWrite = new Schema();
 
 		_schemaToWrite.CreateDefaults();
@@ -741,9 +773,6 @@ public partial class BlockChain
 
 		var writer = Writer.GetPooled();
 		writer.Start(null);
-
-		// Current time stamp:
-		var timestamp = Timestamp;
 
 		// Write schema to writer:
 		_schemaToWrite.Write(writer, timestamp);
@@ -1044,18 +1073,232 @@ public partial class BlockChain
 	}
 
 	/// <summary>
+	/// Adds an instance transaction to the given writer. Does not submit it.
+	/// </summary>
+	/// <param name="writer"></param>
+	/// <param name="definition"></param>
+	/// <param name="timestamp"></param>
+	/// <param name="fields"></param>
+	/// <returns>Can be invalid. Make sure you check the Valid field.</returns>
+	public void Instance(Writer writer, Definition definition, ulong timestamp = 0, params FieldValue[] fields)
+	{
+		if (timestamp == 0)
+		{
+			timestamp = Timestamp;
+		}
+
+		// Creating an instance of the definition:
+		writer.WriteInvertibleCompressed(definition.Id);
+
+		var fieldCount = fields == null ? 0 : fields.Length;
+
+		// Timestamp + nodeId + field count:
+		writer.WriteInvertibleCompressed((ulong)(2 + fieldCount));
+
+		// The node ID (can be 0 at the start of the chain). As it is a special field it must occur before timestamp:
+		writer.WriteInvertibleCompressed(Schema.NodeId);
+		writer.WriteInvertibleCompressed(Project.SelfNodeId);
+		writer.WriteInvertibleCompressed(Schema.NodeId);
+
+		// Timestamp:
+		writer.WriteInvertibleCompressed(Schema.TimestampDefId);
+		writer.WriteInvertibleCompressed(timestamp);
+		writer.WriteInvertibleCompressed(Schema.TimestampDefId);
+
+		// Object fields:
+		if (fields != null)
+		{
+			for (var i = 0; i < fields.Length; i++)
+			{
+				var field = fields[i].Field;
+
+				if (field == null)
+				{
+					throw new Exception("Can't use instance with null fields. You provided a FieldValue array but the field at index #" + i + " was null.");
+				}
+
+				writer.WriteInvertibleCompressed(field.Id);
+
+				var value = fields[i].Value;
+
+				switch (field.DataType)
+				{
+					case "uint":
+
+						writer.WriteInvertibleCompressed((ulong)value);
+
+						break;
+					default:
+						throw new Exception("can't write datatype " + field.DataType);
+				}
+
+				writer.WriteInvertibleCompressed(field.Id);
+			}
+		}
+
+		// field count (for readers going backwards):
+		writer.WriteInvertibleCompressed((ulong)(2 + fieldCount));
+
+		// Definition again (for readers going backwards):
+		writer.WriteInvertibleCompressed(definition.Id);
+	}
+
+	/// <summary>
+	/// Adds an instance transaction for the given definition.
+	/// Note that this is slower than the raw Write method, but is intended to be readable instead.
+	/// </summary>
+	/// <param name="definition"></param>
+	/// <param name="timestamp"></param>
+	/// <param name="fields"></param>
+	/// <returns>Can be invalid. Make sure you check the Valid field.</returns>
+	public async ValueTask<TransactionResult> Instance(Definition definition, ulong timestamp = 0, params FieldValue[] fields)
+	{
+		var writer = Writer.GetPooled();
+		writer.Start(null);
+
+		Instance(writer, definition, timestamp, fields);
+
+		var first = writer.FirstBuffer;
+		var last = writer.LastBuffer;
+
+		writer.FirstBuffer = null;
+		writer.LastBuffer = null;
+		last.Length = writer.CurrentFill;
+
+		// Release the writer:
+		writer.Release();
+
+		return await Write(timestamp, first, last);
+	}
+
+	/// <summary>
+	/// Generates a setFields txn into the given writer. Does not submit it.
+	/// </summary>
+	/// <param name="writer"></param>
+	/// <param name="definition"></param>
+	/// <param name="entityId"></param>
+	/// <param name="timestamp"></param>
+	/// <param name="fields"></param>
+	public void SetFields(Writer writer, Definition definition, ulong entityId, ulong timestamp = 0, params FieldValue[] fields)
+	{
+		if (timestamp == 0)
+		{
+			timestamp = Timestamp;
+		}
+
+		// Creating an instance of the definition:
+		writer.WriteInvertibleCompressed(Schema.SetFieldsDefId);
+
+		var fieldCount = fields == null ? 0 : fields.Length;
+
+		// Timestamp + nodeId + entityId + def + field count:
+		writer.WriteInvertibleCompressed((ulong)(4 + fieldCount));
+
+		// The node ID (can be 0 at the start of the chain). As it is a special field it must occur before timestamp:
+		writer.WriteInvertibleCompressed(Schema.NodeId);
+		writer.WriteInvertibleCompressed(Project.SelfNodeId);
+		writer.WriteInvertibleCompressed(Schema.NodeId);
+
+		// Def ID of the thing being changed:
+		writer.WriteInvertibleCompressed(Schema.DefId);
+		writer.WriteInvertibleCompressed(definition.Id);
+		writer.WriteInvertibleCompressed(Schema.DefId);
+
+		// ID of the thing being changed:
+		writer.WriteInvertibleCompressed(Schema.EntityDefId);
+		writer.WriteInvertibleCompressed(entityId);
+		writer.WriteInvertibleCompressed(Schema.EntityDefId);
+
+		// Timestamp:
+		writer.WriteInvertibleCompressed(Schema.TimestampDefId);
+		writer.WriteInvertibleCompressed(timestamp);
+		writer.WriteInvertibleCompressed(Schema.TimestampDefId);
+
+		// Object fields:
+		if (fields != null)
+		{
+			for (var i = 0; i < fields.Length; i++)
+			{
+				var field = fields[i].Field;
+
+				if (field == null)
+				{
+					throw new Exception("Can't use instance with null fields. You provided a FieldValue array but the field at index #" + i + " was null.");
+				}
+
+				writer.WriteInvertibleCompressed(field.Id);
+
+				var value = fields[i].Value;
+
+				switch (field.DataType)
+				{
+					case "uint":
+
+						writer.WriteInvertibleCompressed((ulong)value);
+
+						break;
+					default:
+						throw new Exception("can't write datatype " + field.DataType);
+				}
+
+				writer.WriteInvertibleCompressed(field.Id);
+			}
+		}
+
+		// field count (for readers going backwards):
+		writer.WriteInvertibleCompressed((ulong)(4 + fieldCount));
+
+		// Definition again (for readers going backwards):
+		writer.WriteInvertibleCompressed(Schema.SetFieldsDefId);
+
+	}
+
+	/// <summary>
+	/// Adds an instance transaction for the given definition.
+	/// Note that this is slower than the raw Write method, but is intended to be readable instead.
+	/// </summary>
+	/// <param name="definition"></param>
+	/// <param name="entityId"></param>
+	/// <param name="timestamp"></param>
+	/// <param name="fields"></param>
+	/// <returns>Can be invalid. Make sure you check the Valid field.</returns>
+	public async ValueTask<TransactionResult> SetFields(Definition definition, ulong entityId, ulong timestamp = 0, params FieldValue[] fields)
+	{
+		var writer = Writer.GetPooled();
+		writer.Start(null);
+		
+		SetFields(writer, definition, entityId, timestamp, fields);
+
+		var first = writer.FirstBuffer;
+		var last = writer.LastBuffer;
+
+		writer.FirstBuffer = null;
+		writer.LastBuffer = null;
+		last.Length = writer.CurrentFill;
+
+		// Release the writer:
+		writer.Release();
+
+		return await Write(timestamp, first, last);
+	}
+
+	/// <summary>
 	/// Gets a definition or defines it if it didn't exist.
 	/// </summary>
 	/// <param name="name"></param>
+	/// <param name="timestamp"></param>
 	/// <returns></returns>
-	public async ValueTask<Definition> Define(string name)
+	public async ValueTask<Definition> Define(string name, ulong timestamp = 0)
 	{
 		// Write the transaction:
 		var writer = Writer.GetPooled();
 		writer.Start(null);
 
 		// Current unique time stamp:
-		var timestamp = Timestamp;
+		if (timestamp == 0)
+		{
+			timestamp = Timestamp;
+		}
 
 		// Creating a definition:
 		writer.WriteInvertibleCompressed(3);
@@ -1218,8 +1461,9 @@ public partial class BlockChain
 	/// </summary>
 	/// <param name="name"></param>
 	/// <param name="type"></param>
+	/// <param name="timestamp"></param>
 	/// <returns></returns>
-	public async ValueTask<FieldDefinition> DefineField(string name, string type)
+	public async ValueTask<FieldDefinition> DefineField(string name, string type, ulong timestamp = 0)
 	{
 		/*
 		if (RelativeTo != null)
@@ -1232,8 +1476,11 @@ public partial class BlockChain
 		var writer = Writer.GetPooled();
 		writer.Start(null);
 
-		// Current time stamp:
-		var timestamp = Timestamp;
+		// Current timestamp:
+		if (timestamp == 0)
+		{
+			timestamp = Timestamp;
+		}
 
 		// Entity create tx:
 		writer.WriteInvertibleCompressed(2);
@@ -1716,7 +1963,7 @@ public partial class BlockChain
 			WriteFileOffset += writeFill;
 		}
 
-		// Flush and force an actual OS write:
+		// Flush and force an actual OS write (this is *very slow* on a mechanical drive):
 		writeStream.Flush(true);
 
 		OnWroteTransactions(writeFirst, lastBuffer);

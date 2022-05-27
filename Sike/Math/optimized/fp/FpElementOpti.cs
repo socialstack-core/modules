@@ -453,7 +453,7 @@ public struct FpElementOpti {
     /// <summary>
     /// 
     /// </summary>
-    /// <param name="o"></param>
+    /// <param name="that"></param>
     /// <returns></returns>
     public bool Equals(FpElementOpti that) {
         // Use constant time comparison to avoid timing attacks

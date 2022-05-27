@@ -135,7 +135,7 @@ public class FpElementRef {
     /// <summary>
     /// 
     /// </summary>
-    /// <param name="o"></param>
+    /// <param name="that"></param>
     /// <returns></returns>
     public bool Equals(FpElementRef that) {
         if (this == that) return true;
