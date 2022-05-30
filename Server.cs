@@ -411,6 +411,12 @@ namespace Api.SocketServerLibrary {
 				ServerSocket.Bind(
 					new UnixDomainSocketEndPoint(apiSocketFile)
 				);
+
+				if (apiSocketFile != null)
+				{
+					Startup.Chmod.Set(apiSocketFile); // 777
+				}
+
 			}
 			else
 			{
