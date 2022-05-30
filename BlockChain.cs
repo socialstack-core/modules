@@ -1378,7 +1378,7 @@ public partial class BlockChain
 	/// <summary>
 	/// Max number of ticks per block. Timestamps are in nanoseconds, and the default is 30s.
 	/// </summary>
-	public const ulong MaxTicksPerBlock = (ulong)1000000000 * 5; // 30;
+	public const ulong MaxTicksPerBlock = (ulong)1000000000 * 30;
 
 	private object _blockHeaderLock = new object();
 

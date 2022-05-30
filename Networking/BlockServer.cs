@@ -323,6 +323,10 @@ public class BlockServer : UdpDestination
 			// Cleartext is permitted and the auth check is skipped:
 			CleartextPermitted = true;
 			SkipAuthCheck = true;
+
+			ServerSocketUdp.Bind(
+				new IPEndPoint(set.PrivateIPv4, Port)
+			);
 		}
 		else
 		{
