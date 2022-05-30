@@ -412,11 +412,6 @@ namespace Api.SocketServerLibrary {
 					new UnixDomainSocketEndPoint(apiSocketFile)
 				);
 
-				if (apiSocketFile != null)
-				{
-					Startup.Chmod.Set(apiSocketFile); // 777
-				}
-
 			}
 			else
 			{
@@ -431,6 +426,11 @@ namespace Api.SocketServerLibrary {
 			ServerSocket.Listen(100);
 			ServerSocket.BeginAccept(OnSocketConnect, null);
 			Started();
+
+			if (apiSocketFile != null)
+			{
+				Startup.Chmod.Set(apiSocketFile); // 777
+			}
 
 			OnStart?.Invoke();
 		}
