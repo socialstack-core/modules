@@ -40,6 +40,7 @@ public class PendingTransaction : INotifyCompletion
 			FirstCached = result.Next;
 		}
 
+		result.Next = null;
 		return result;
 	}
 
@@ -95,6 +96,10 @@ public class PendingTransaction : INotifyCompletion
 	/// </summary>
 	public void Done()
 	{
+		if (_completed)
+		{
+			return;
+		}
 		_completed = true;
 		_callback?.Invoke();
 	}

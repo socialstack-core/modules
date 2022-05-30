@@ -52,6 +52,12 @@ public partial class BlockChain
 	private ulong latestTimestamp;
 
 	/// <summary>
+	/// True if every write should be flushed and confirmed before anything else happens.
+	/// Sending to a network peer is also a suitable substitute.
+	/// </summary>
+	public bool ConfirmWrites;
+	
+	/// <summary>
 	/// Timestamp lock
 	/// </summary>
 	private object _tsLock = new object();
@@ -156,6 +162,8 @@ public partial class BlockChain
 					break;
 				}
 
+				Console.WriteLine("Timing out a txn that has been waiting " + ((timestamp - pending.Timestamp) / 1000000) + "ms");
+
 				// Remove this pending txn.
 				PendingTransaction next;
 
@@ -167,18 +175,11 @@ public partial class BlockChain
 					if (next == null)
 					{
 						// It was the last one.
-						LastPendingTransaction = previous;
+						LastPendingTransaction = null;
 					}
 
-					if (previous == null)
-					{
-						// It was the first one.
-						FirstPendingTransaction = next;
-					}
-					else
-					{
-						previous.Next = next;
-					}
+					// There is never any txns "before" that need to be retained.
+					FirstPendingTransaction = next;
 				}
 				
 				pending.TransactionId = 0;
@@ -428,7 +429,7 @@ public partial class BlockChain
 		Project = project;
 		File = project != null && project.LocalStorageDirectory != null ? project.LocalStorageDirectory + GetChainTypeFileName(type) : null;
 		ChainType = type;
-		IsPrivate = ChainType == ChainType.Private || ChainType == ChainType.PrivateHost;
+		IsPrivate = (Project != null && Project.IsPrivate) || ChainType == ChainType.Private || ChainType == ChainType.PrivateHost;
 
 		_readerType = readerType == null ? typeof(TransactionReader) : readerType;
 
@@ -561,6 +562,9 @@ public partial class BlockChain
 			{
 				// We are the first.
 				WriteInitialChain(onTransaction);
+
+				// Ensure assembler flag is up:
+				Project.IsAssembler = true;
 			}
 		}
 
@@ -1409,6 +1413,9 @@ public partial class BlockChain
 			previous = current;
 			current = next;
 		}
+
+		// Non-matches commonly occur for block boundaries as they are submitted transactions
+		// but have no callback.
 	}
 
 	/// <summary>
@@ -1963,8 +1970,11 @@ public partial class BlockChain
 			WriteFileOffset += writeFill;
 		}
 
-		// Flush and force an actual OS write (this is *very slow* on a mechanical drive):
-		writeStream.Flush(true);
+		if (ConfirmWrites)
+		{
+			// Flush and force an actual OS write (this is *very slow* on a mechanical drive):
+			writeStream.Flush(true);
+		}
 
 		OnWroteTransactions(writeFirst, lastBuffer);
 	}

@@ -29,6 +29,11 @@ public class BlockChainProject
 	public uint StartYear = 2000;
 
 	/// <summary>
+	/// True if this is a private project whose blocks should not be publicly downloadable.
+	/// </summary>
+	public bool IsPrivate;
+
+	/// <summary>
 	/// The name of this chain.
 	/// </summary>
 	public string BlockchainName;
