@@ -1348,7 +1348,7 @@ public partial class TransactionReader
 		var signature = Fields[sigFieldOrdinal].GetBytes();
 
 #warning todo: This gets self node verifier vs. the current one.
-		// return true;
+		return true;
 
 		var verifier = CurrentBlockId == 1 ? Project.GetProjectVerifier() : Project.GetNodeVerifier();
 

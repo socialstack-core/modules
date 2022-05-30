@@ -84,7 +84,7 @@ public class BlockChainProject
 	/// The node ID of "this" node.
 	/// </summary>
 	[JsonIgnore]
-	public uint SelfNodeId;
+	public ulong SelfNodeId = ulong.MaxValue;
 
 	/// <summary>
 	/// The private key of this node.
@@ -137,7 +137,20 @@ public class BlockChainProject
 	/// </summary>
 	public void SetupStorage(string localStoragePath, DistributionConfig config)
 	{
+		if (localStoragePath != null)
+		{
+			localStoragePath = System.IO.Path.GetFullPath(localStoragePath);
+
+			if (!localStoragePath.EndsWith('/') && !localStoragePath.EndsWith('\\'))
+			{
+				// Must end with fwdslash:
+				localStoragePath += '/';
+			}
+		}
+
 		LocalStorageDirectory = localStoragePath;
+
+		
 
 		// Create a distributor:
 		Distributor = new BlockDistributor(config, this);
@@ -304,7 +317,7 @@ public class BlockChainProject
 	/// <param name="selfNodeId"></param>
 	/// <param name="selfPublicKey"></param>
 	/// <param name="selfPrivateKey">Optional. Provide this if the node can act as a BAS.</param>
-	public void SetSelfNodeId(uint selfNodeId, byte[] selfPublicKey, byte[] selfPrivateKey)
+	public void SetSelfNodeId(ulong selfNodeId, byte[] selfPublicKey, byte[] selfPrivateKey)
 	{
 		SelfNodeId = selfNodeId;
 		IsAssembler = AssemblerId == SelfNodeId;
@@ -405,6 +418,31 @@ public class BlockChainProject
 
 		PublicKey = publicKey.Q.GetEncoded(false);
 		PrivateKey = privateKey.D.ToByteArrayUnsigned();
+	}
+	
+	/// <summary>
+	/// Generates a secp256k1 key pair for "this" node.
+	/// </summary>
+	/// <returns></returns>
+	public void GenerateSelfKeyPair(ulong selfNodeId)
+	{
+		var curve = ECNamedCurveTable.GetByName("secp256k1");
+		var domainParams = new ECDomainParameters(curve.Curve, curve.G, curve.N, curve.H, curve.GetSeed());
+
+		var secureRandom = new SecureRandom();
+		var keyParams = new ECKeyGenerationParameters(domainParams, secureRandom);
+
+		var generator = new ECKeyPairGenerator("ECDSA");
+		generator.Init(keyParams);
+		var keyPair = generator.GenerateKeyPair();
+
+		var privateKey = keyPair.Private as ECPrivateKeyParameters;
+		var publicKey = keyPair.Public as ECPublicKeyParameters;
+
+		var pubKey = publicKey.Q.GetEncoded(false);
+		var privKey = privateKey.D.ToByteArrayUnsigned();
+
+		SetSelfNodeId(selfNodeId, pubKey, privKey);
 	}
 
 	/// <summary>

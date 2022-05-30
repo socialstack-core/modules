@@ -133,7 +133,7 @@ public class Fp2PointAffine {
     /// <summary>
     /// 
     /// </summary>
-    /// <param name="o"></param>
+    /// <param name="that"></param>
     /// <returns></returns>
     public bool Equals(Fp2PointAffine that) {
         if (this == that) return true;

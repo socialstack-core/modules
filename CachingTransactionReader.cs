@@ -257,13 +257,6 @@ public class CachingTransactionReader : TransactionReader
 				// Get the definition:
 				var fieldDef = fields[i].Field;
 
-				// Validation: Can instance this field
-				if (!fieldDef.CanInstance)
-				{
-					// Invalid txn.
-					return false;
-				}
-
 				// Ask the cache to map this field to type specific meta:
 				var fieldMeta = cache.GetField(fieldDef);
 

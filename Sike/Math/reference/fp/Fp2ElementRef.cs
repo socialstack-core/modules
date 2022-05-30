@@ -264,11 +264,11 @@ public class Fp2ElementRef {
     public override string ToString() {
         return x1 + "i" + " + " + x0;
     }
-	
+
     /// <summary>
     /// 
     /// </summary>
-    /// <param name="o"></param>
+    /// <param name="that"></param>
     /// <returns></returns>
     public bool Equals(Fp2ElementRef that) {
         if (this == that) return true;
