@@ -28,13 +28,13 @@ export default function VerifyEmail(props) {
 				className="verify-email-form"
 				onFailed={e=>{
 					if (!e.message) {
-						e.message = "Something went wrong. Please make sure the passwords match and try again.";
+						e.message = `Something went wrong. Please make sure the passwords match and try again.`;
 					}
 					setFailed(e);
 				}}
 				onValues={v=>{
 					if (!noPassword && v.password !== v.passwordRepeat) {
-						return Promise.reject(new Error('The passwords do not match.'));
+						return Promise.reject(new Error(`The passwords do not match.`));
 					}
 
 					return v;
@@ -42,40 +42,40 @@ export default function VerifyEmail(props) {
 			>
 				<h2 className="verify-header">
 					{noPassword
-							? "Verify your emial"
-							: "Create a password"
+							? `Verify your email`
+							: `Create a password`
 						}
 				</h2>
 
 				<div className="verify-description">
 					<p>
 						{noPassword
-							? "Please click the button below to finish the registration process."
-							: "In order to complete registration, you will need to create a password."
+							? `Please click the button below to finish the registration process.`
+							: `In order to complete registration, you will need to create a password.`
 						}
 					</p>
 				</div>
 
 				{!noPassword &&
 					<div className="verify-input-group">
-						<Input className="verify-input input-grey" name="password" type="password" placeholder="Create a password" validate={['Required']} onInput/>
-						<Input className="verify-input input-grey" name="passwordRepeat" type="password" placeholder="Confirm password" validate={['Required']} onInput/>
-						<Input className="remember-me" name="rememberMe" type="checkbox" label={"Remember me"} />
+					<Input className="verify-input input-grey" name="password" type="password" placeholder={`Create a password`} validate={['Required']} onInput/>
+					<Input className="verify-input input-grey" name="passwordRepeat" type="password" placeholder={`Confirm password`} validate={['Required']} onInput/>
+						<Input className="remember-me" name="rememberMe" type="checkbox" label={`Remember me`} />
 					</div>
 				}
 				{failed && (
 					<Alert type="fail">
-						{failed.message ? failed.message : failed == "VALIDATION" && "Please verify all values are correct."}
+						{failed.message ? failed.message : failed == "VALIDATION" && `Please verify all values are correct.`}
 					</Alert>
 				)}
 				{success ? (
 					<Alert type="success">
-						Account created!
+						{`Account created!`}
 					</Alert>
 				) : (
 					<div>
 						<Spacer height="20"/>
-						<Input className="btn btn-primary verify-input" type="submit" label="Next" />
+							<Input className="btn btn-primary verify-input" type="submit" label={`Next`} />
 					</div>
 				)}
 			</Form>
