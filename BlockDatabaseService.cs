@@ -506,6 +506,9 @@ public partial class BlockDatabaseService : AutoService
 		// One Lumity project per socialstack instance:
 		_project = new BlockChainProject();
 
+		// Default to private always:
+		_project.IsPrivate = true;
+
 		// Try loading local node key file if it exists:
 		var keyFile = "nodeKey.json";
 
@@ -541,8 +544,8 @@ public partial class BlockDatabaseService : AutoService
 			// Generate the project key:
 			_project.GenerateKeyPair();
 
-			// Console.WriteLine("Project private key: " + Convert.ToBase64String(_project.PrivateKey));
-			// Console.WriteLine("Project public key: " + Convert.ToBase64String(_project.PublicKey));
+			Console.WriteLine("Project private key: " + Convert.ToBase64String(_project.PrivateKey));
+			Console.WriteLine("Project public key: " + Convert.ToBase64String(_project.PublicKey));
 		}
 		
 		// Setup project hash:

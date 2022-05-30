@@ -260,7 +260,7 @@ namespace Api.BlockDatabase
 					return null;
 				}
 
-				return entity;
+				return result.RelevantObject as T;
 			});
 
 			service.EventGroup.Create.AddEventListener(async (Context context, T entity) => {
