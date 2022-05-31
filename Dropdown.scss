@@ -1,11 +1,11 @@
 .dropdown {
 	position: relative;
 
-	> .btn {
+	> .btn.btn-link {
 		color: currentColor;
 	}
 
-	&.dropdown--split {
+	&--split {
 
 		.btn:not(.dropdown-toggle) {
 			flex: 1 0 auto;
@@ -17,7 +17,7 @@
 
 	}
 
-	.dropdown-toggle {
+	&-toggle {
 		width: 100%;
 		height: 100%;
 		display: flex;
@@ -34,23 +34,31 @@
 
 	}
 
-	.dropdown__label,
-	.dropdown__arrow {
+	&__label {
+
+		i:first-child {
+			margin-inline-end: .5rem;
+		}
+
+	}
+
+	&__label,
+	&__arrow {
 		display: flex;
 		align-items: center;
 	}
 
-	.dropdown__arrow {
+	&__arrow {
 		flex: 1 0 auto;
 		justify-content: flex-end;
 		margin-inline-start: px_to_rem(24);
 	}
 
-    .dropdown__chevron {
+    &__chevron {
         width: px_to_rem(13);
     }
 
-	.dropdown-menu {
+	&-menu {
 		display: block;
 		position: absolute;
 		margin: 0;
@@ -58,6 +66,10 @@
 		bottom: auto;
 		left: auto;
 		right: auto;
+
+		> li > .btn {
+			text-align: left;
+		}
 	}
 
 	&--align {

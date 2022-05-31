@@ -22,9 +22,16 @@
             groups.map(group => {
                 return (
                     <li key={group.id}>
-                        <button type="button" className="btn dropdown-item" onClick={() => switchCategory(group.id)}>
-                            {group.industryName}
-                        </button>
+                        {href && <>
+                            <a href={href} className="dropdown-item">
+                                {group.industryName}
+                            </a>
+                        </>}
+                        {!href && <>
+                            <button type="button" className="btn dropdown-item" onClick={() => switchCategory(group.id)}>
+                                {group.industryName}
+                            </button>
+                        </>}
 				    </li>
                 );
             })
