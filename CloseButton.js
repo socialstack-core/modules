@@ -8,7 +8,7 @@ const CLOSE_PREFIX = 'btn-close';
  * @param {function} callback	- onClick handler
  */
 export default function CloseButton(props) {
-	var { isDisabled, isLight, label } = props;
+	var { isDisabled, isLight, label, callback } = props;
 
 	var btnCloseClass = [CLOSE_PREFIX];
 
@@ -19,7 +19,7 @@ export default function CloseButton(props) {
 	label = label || `Close`;
 
 	return (<>
-		<button type="button" className={btnCloseClass.join(' ')} disabled={isDisabled ? true : undefined} aria-label={label} onClick={() => callback}></button>
+		<button type="button" className={btnCloseClass.join(' ')} disabled={isDisabled ? true : undefined} aria-label={label} onClick={callback}></button>
 	</>);
 }
 
