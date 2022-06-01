@@ -15,6 +15,59 @@ const supportedVariants = [
 	'dark'
 ];
 
+const variantAliases = [
+	{
+		variant: 'primary',
+		aliases: [
+		]
+	},
+	{
+		variant: 'secondary',
+		aliases: [
+		]
+	},
+	{
+		variant: 'success',
+		aliases: [
+			'successful',
+			'ok',
+			'good'
+		]
+	},
+	{
+		variant: 'danger',
+		aliases: [
+			'fail',
+			'failed',
+			'failure',
+			'error'
+		]
+	},
+	{
+		variant: 'warning',
+		aliases: [
+			'warn'
+		]
+	},
+	{
+		variant: 'info',
+		aliases: [
+			'information',
+			'note'
+		]
+	},
+	{
+		variant: 'light',
+		aliases: [
+		]
+	},
+	{
+		variant: 'dark',
+		aliases: [
+		]
+	}
+];
+
 /**
  * Bootstrap Alert component
  * @param {any} children			- content
@@ -34,13 +87,23 @@ export default function Alert(props) {
 		alertVariant = type.toLowerCase();
 	} else {
 		alertVariant = variant.toLowerCase();
-    }
+	}
 
-	if (!alertVariant || !supportedVariants.includes(alertVariant)) {
+	if (!alertVariant) {
 		alertVariant = DEFAULT_VARIANT;
 	}
 
-	// resolve aliases / default icon class
+	var aliases = variantAliases.filter(i => i.aliases.includes(alertVariant));
+
+	if (aliases.length) {
+		alertVariant = aliases[0].variant;
+    }
+
+	if (!supportedVariants.includes(alertVariant)) {
+		alertVariant = DEFAULT_VARIANT;
+	}
+
+	// resolve default icon class
 	switch (alertVariant) {
 		//case 'primary':
 		//break;
@@ -49,32 +112,18 @@ export default function Alert(props) {
 		//break;
 
 		case 'success':
-		case 'successful':
-		case 'ok':
-		case 'good':
-			alertVariant = 'success';
 			iconClass = 'fal fa-check-circle';
 			break;
 
 		case 'danger':
-		case 'fail':
-		case 'failure':
-		case 'failed':
-		case 'error':
-			alertVariant = 'danger';
 			iconClass = 'fal fa-times-circle';
 			break;
 
 		case 'warning':
-		case 'warn':
-			alertVariant = 'warning';
 			iconClass = 'fal fa-exclamation-triangle';
 			break;
 
 		case 'info':
-		case 'information':
-		case 'note':
-			alertVariant = 'info';
 			iconClass = 'fal fa-info-circle';
 			break;
 

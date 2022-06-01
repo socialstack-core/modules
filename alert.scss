@@ -74,6 +74,10 @@
 .alert {
 	$alert: &;
 
+    // ensures icon and text appears aligned (also prevents text wrapping underneath icon)
+    display: flex;
+    align-items: center;
+
     // icon
     &__icon {
         font-size: 2rem;
