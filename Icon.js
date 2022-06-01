@@ -8,7 +8,7 @@ The compiler will use "type" to identify in-use icons and strip accordingly.
 <Icon type="bullhorn" light />
 */
 export default function Icon(props){
-	const {type, count, light, solid, duotone, regular, brand } = props;
+	const {type, count, light, solid, duotone, regular, brand, fixedWidth } = props;
 	
 	var variant = 'fa';
 	
@@ -24,7 +24,11 @@ export default function Icon(props){
 		variant = 'fas';
 	}
 	
-	var className=variant + " fa-" + type;
+	var className = variant + " fa-" + type;
+
+	if (fixedWidth) {
+		className += " fa-fw";
+    }
 	
 	if(props.count){
 		return  <span className="fa-layers fa-fw">
