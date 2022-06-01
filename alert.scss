@@ -75,13 +75,35 @@
 	$alert: &;
 
     // ensures icon and text appears aligned (also prevents text wrapping underneath icon)
-    display: flex;
-    align-items: center;
+    &__internal {
+        display: flex;
+        align-items: center;
+    }
 
     // icon
     &__icon {
         font-size: 2rem;
         margin-inline-end: 0.75rem;
+    }
+
+    &__content {
+
+        p:last-of-type {
+            margin-bottom: 0;
+        }
+
+    }
+
+    &-dismissable {
+
+        .btn-close {
+            float: right;
+        }
+
+        #{$alert}__content {
+            margin-inline-end: 2rem;
+        }
+
     }
 	
     @each $state, $value in $theme-colors {

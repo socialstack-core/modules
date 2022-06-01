@@ -152,12 +152,15 @@ export default function Alert(props) {
 	return (<>
 		{showAlert && <>
 			<div className={alertClass.join(' ')} role="alert">
-				{showIcon && iconClass && <i className={iconClass}></i>}
-				{children}
 				{isDismissable && <>
-					{/*<button type="button" className="btn-close" onClick={() => setShowAlert(false)} aria-label="Close"></button>*/}
-					<CloseButton callback={setShowAlert(false)} />
+					<CloseButton callback={() => setShowAlert(false)} />
 				</>}
+				<div className="alert__internal">
+					{showIcon && iconClass && <i className={iconClass}></i>}
+					<span className="alert__content">
+						{children}
+					</span>
+				</div>
 			</div>
 		</>}
 	</>);
