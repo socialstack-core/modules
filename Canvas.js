@@ -1,5 +1,6 @@
 import {expand} from 'UI/Functions/CanvasExpand';
 import { RouterConsumer } from 'UI/Session';
+import Alert from 'UI/Alert';
 
 var uniqueKey = 1;
 
