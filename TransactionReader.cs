@@ -622,7 +622,6 @@ public partial class TransactionReader
 	public BufferedBytes ObtainBuffer()
 	{
 		var buff = BinaryBufferPool.OneKb.Get();
-		buff.Offset = 0;
 		buff.Length = BinaryBufferPool.OneKb.BufferSize;
 
 		if (FirstBuffer == null)

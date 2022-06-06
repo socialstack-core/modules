@@ -68,7 +68,7 @@ public partial class BlockClient
 	/// <summary>
 	/// 
 	/// </summary>
-	public Api.SocketServerLibrary.Ciphers.SrtpCipherCTR ReceiveCipherCtr;
+	public Api.SocketServerLibrary.Crypto.Aes128Cm ReceiveCipherCtr;
 
 	/// <summary>
 	/// 
@@ -93,9 +93,7 @@ public partial class BlockClient
 	/// <summary>
 	/// 
 	/// </summary>
-	public Api.SocketServerLibrary.Ciphers.SrtpCipherCTR SendCipherCtr;
-
-
+	public Api.SocketServerLibrary.Crypto.Aes128Cm SendCipherCtr;
 
 	/// <summary>
 	/// Tracks replay with a 64 packet history.
@@ -350,17 +348,17 @@ public partial class BlockClient
 	{
 		var keyLen = 16;
 		var saltLen = 14;
-		
-		var cipherCtr = new Api.SocketServerLibrary.Ciphers.SrtpCipherCTR();
-		var mac = new Api.SocketServerLibrary.Crypto.HMac(SHA1);
-		var cipher = cipherCtr.Cipher;
 
+		var mac = new Api.SocketServerLibrary.Crypto.HMac(SHA1);
+		
 		var masterKey = new byte[keyLen];
 
 		for (var i = 0; i < keyLen; i++)
 		{
 			masterKey[i] = keyMaterial[offset + i];
 		}
+
+		var aes128 = new Api.SocketServerLibrary.Crypto.Aes128Cm(masterKey);
 
 		var encKey = new byte[keyLen]; // AES-128 CM
 		var saltKey = new byte[saltLen];
@@ -370,13 +368,13 @@ public partial class BlockClient
 		if (isReceive)
 		{
 			ReceiveSaltKey = saltKey;
-			ReceiveCipherCtr = cipherCtr;
+			ReceiveCipherCtr = aes128;
 			ReceiveMac = mac;
 		}
 		else
 		{
 			SendSaltKey = saltKey;
-			SendCipherCtr = cipherCtr;
+			SendCipherCtr = aes128;
 			SendMac = mac;
 		}
 
@@ -384,31 +382,30 @@ public partial class BlockClient
 
 		// compute the session encryption key
 
-		Span<byte> ivStore = stackalloc byte[14]; // Temporary IV store.
+		Span<byte> ivStore = stackalloc byte[16]; // Temporary IV store.
 
 		// Construct initial IV:
 		offset += 16;
 		ComputeIv(0, keyMaterial, offset, ref ivStore);
 
 		// Initialise the cipher and using the above IV, generate the session encryption key.
-		cipher.Init(true, masterKey);
-		cipherCtr.GetCipherStream(encKey, 16, ivStore);
+		aes128.GetCipherStream(encKey, 16, ivStore);
 
 		// encKey now set.
 
 		// Construct next IV. This one will be used for the authentication key. Generate the key too.
 		ComputeIv(1, keyMaterial, offset, ref ivStore);
-		cipherCtr.GetCipherStream(authKey, 20, ivStore);
+		aes128.GetCipherStream(authKey, 20, ivStore);
 
 		// authKey now set. Init the HMAC:
 		mac.Init(authKey, 0, authKey.Length);
 
 		// Finally, construct IV for the salt and generate the salt.
 		ComputeIv(2, keyMaterial, offset, ref ivStore);
-		cipherCtr.GetCipherStream(saltKey, 14, ivStore);
-		
+		aes128.GetCipherStream(saltKey, 14, ivStore);
+
 		// Initialize cipher with derived encryption key.
-		cipher.Init(true, encKey);
+		aes128.Init(encKey);
 	}
 
 	/// <summary>
@@ -493,6 +490,11 @@ public partial class BlockClient
 	public byte[] PortAndIp;
 
 	/// <summary>
+	/// True if this is an IPv6 client.
+	/// </summary>
+	public bool IPv6;
+
+	/// <summary>
 	/// Sets up RemoteAddress as a copy of the given IPEndpoint.
 	/// </summary>
 	/// <param name="port"></param>
@@ -513,6 +515,7 @@ public partial class BlockClient
 		if (!ipv4)
 		{
 			PortAndIp = new byte[18];
+			IPv6 = true;
 			for (var i = 0; i < 16; i++)
 			{
 				PortAndIp[i + 2] = addressBytes[i];
@@ -551,23 +554,8 @@ public partial class BlockClient
 	public void SendServerHello(byte[] encMessageRaw, byte[] ecdsaPublicKey, ushort remoteTempId)
 	{
 		// - start of ServerHello record -
-		var writer = Server.StartMessage(this);
+		var writer = Server.StartMessage();
 		
-		// Flags - unencrypted:
-		writer.Write((byte)0);
-
-		// Compressed node ID; this is 0 throughout the handshake:
-		writer.Write((byte)0);
-
-		// The temporary ID:
-		writer.WriteBE((ushort)remoteTempId);
-
-		// Message type - ServerHello (1):
-		writer.Write((byte)1);
-
-		// Fragment count. This message is never fragmented. The payload is ~600 bytes which easily fits inside a packet.
-		writer.Write((byte)1);
-
 		// 16 server random bytes:
 		writer.Write(HandshakeMeta.RandomData, 16, 16);
 		
@@ -683,7 +671,7 @@ public partial class BlockClient
 		HandshakeMeta.ClassicKey = classicKey;
 
 		// - start of ServerHello record -
-		var writer = Server.StartMessage(this);
+		var writer = Server.StartMessage();
 
 		// Flags - unencrypted:
 		writer.Write((byte)0);
@@ -905,18 +893,44 @@ public partial class BlockClient
 			buffer = next;
 		}
 	}
-	
+
+	/// <summary>
+	/// ProjectId to use when messaging the client.
+	/// </summary>
+	public ulong ProjectId;
+
 	/// <summary>
 	/// Sends the given writer contents and releases the writer.
 	/// </summary>
 	/// <param name="writer"></param>
 	public bool SendAndRelease(Writer writer)
 	{
-		if (Server.IsRunningInRawMode)
-		{
-			// Finish the UDP header:
-			UdpHeader.Complete(writer);
-		}
+		// The # of fragments is..
+		var fragments = writer.BufferCount;
+
+		// First, figure out the complete size of the Lumity header. It's the same for all fragments in the message.
+		
+
+		/*
+		 
+		// Flags - unencrypted:
+		writer.Write((byte)0);
+
+		// Compressed node ID; this is 0 throughout the handshake:
+		writer.Write((byte)0);
+
+		// The temporary ID:
+		writer.WriteBE((ushort)remoteTempId);
+
+		// Message type - ServerHello (1):
+		writer.Write((byte)1);
+
+		// Fragment count. This message is never fragmented. The payload is ~600 bytes which easily fits inside a packet.
+		writer.Write((byte)1);
+		
+		*/
+
+
 
 		// We only use one buffer from these writers.
 		var buffer = writer.FirstBuffer as BlockBuffer;
@@ -966,7 +980,7 @@ public partial class BlockClient
 
 				while (frame != null)
 				{
-					await Server.ServerSocketUdp.SendToAsync(frame.Bytes.AsMemory(0, frame.Length), SocketFlags.None, frame.Target);
+					await Server.ServerSocketUdp.SendToAsync(frame.Bytes.AsMemory(frame.Offset, frame.Length), SocketFlags.None, frame.Target);
 
 					var next = frame.After as BlockBuffer;
 					frame.Release();

@@ -87,25 +87,19 @@ public class BlockServer : UdpDestination
 	/// <summary>
 	/// Starts a writer, considering if this server is in raw packet mode.
 	/// </summary>
-	/// <param name="senderPort"></param>
-	/// <param name="addressBytes">Often is ipv6 mapped ipv4 addresses but is always 16 bytes long</param>
-	/// <param name="ipv4">Declares if it actually is ipv4 or not</param>
 	/// <returns></returns>
-	public Writer StartMessage(ushort senderPort, ref Span<byte> addressBytes, bool ipv4)
+	public Writer StartMessage()
 	{
-		var writer = MtuSizedPool.GetWriter();
+		Writer writer;
 
 		if (IsRunningInRawMode)
 		{
-			UdpHeader.StartHeader(
-				writer,
-				ipv4 ? PortAndIpV4 : PortAndIpV6,
-				senderPort,
-				ref addressBytes
-			);
+			writer = MtuSizedPoolRawMode.GetWriter();
+			writer.Start(null);
 		}
 		else
 		{
+			writer = MtuSizedPoolBasicMode.GetWriter();
 			writer.Start(null);
 		}
 
@@ -113,31 +107,29 @@ public class BlockServer : UdpDestination
 	}
 
 	/// <summary>
-	/// Starts a writer, considering if this server is in raw packet mode.
+	/// The max number of bytes in the Lumity packet header. Compressed numbers are represented as 9 bytes here.
 	/// </summary>
-	/// <param name="forClient"></param>
-	/// <returns></returns>
-	public Writer StartMessage(BlockClient forClient)
-	{
-		var writer = MtuSizedPool.GetWriter();
+	public const int MaxLumityPacketHeaderSize = 52;
 
-		if (IsRunningInRawMode)
-		{
-			UdpHeader.StartHeader(writer, forClient.PortAndIp.Length == 6 ? PortAndIpV4 : PortAndIpV6, forClient.PortAndIp);
-		}
-		else
-		{
-			writer.Start(null);
-		}
+	/// <summary>
+	/// MTU of 1400 minus the 100 bytes which occur in a IPv6 packet header plus the 52 byte Lumity header.
+	/// </summary>
+	public const int MaxLumityPacketPayloadSize = 1300;
 
-		return writer;
-	}
-	
 	/// <summary>
 	/// Pool of 1400 byte buffers.
+	/// When a buffer is requested from the pool, including by writers, it starts with an offset giving enough space for a packet header.
 	/// </summary>
-	public static BinaryBufferPool<BlockBuffer> MtuSizedPool = new BinaryBufferPool<BlockBuffer>(1400, true);
-	
+	public static BinaryBufferPool<BlockBuffer> MtuSizedPoolBasicMode = new BinaryBufferPool<BlockBuffer>(1400, true, MaxLumityPacketHeaderSize);
+
+	/// <summary>
+	/// Pool of 1400 byte buffers.
+	/// When a buffer is requested from the pool, including by writers, it starts with an offset giving enough space for a packet header including the IPV4 or IPV6/UDP headers.
+	/// IPv6 headers are largest, so it uses that.
+	/// </summary>
+	public static BinaryBufferPool<BlockBuffer> MtuSizedPoolRawMode = new BinaryBufferPool<BlockBuffer>(1400, true, UdpHeader.V6HeaderSize + MaxLumityPacketHeaderSize); // Conveniently exactly 100 and is also the max overall.
+
+
 	private BlockClient[] ConnectingClients = new BlockClient[500]; // This number represents the amount of users that can attempt to handshake simultaneously. Handshakes are generally rare, so this can be quite low.
 	private int connectingOffset = 0;
 	private object connectingClientLock = new object();
