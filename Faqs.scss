@@ -1,0 +1,30 @@
+.faq-list {
+	margin-bottom: 2rem;
+
+	.faq-list-title {
+	}
+
+	.loop-item {
+
+		.collapsible-summary {
+			background-color: #f8f8f8;
+
+			.collapsible-title {
+				font-size: 14px;
+				font-weight: normal;
+			}
+
+		}
+
+		.collapsible-content {
+			font-size: 14px;
+			font-weight: normal;
+		}
+
+		&:nth-child(odd) .collapsible-summary {
+			background-color: #eee;
+		}
+
+	}
+
+}
