@@ -31,7 +31,7 @@ namespace Api.Startup{
 		public CacheSet(ContentFields cf)
 		{
 			ContentFields = cf;
-			InstanceType = cf.InstanceType;
+			InstanceType = cf == null ? null : cf.InstanceType;
 		}
 
 		/// <summary>
