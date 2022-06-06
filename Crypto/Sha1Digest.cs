@@ -229,6 +229,8 @@ public class Sha1Digest
 		uint D = X[84];
 		uint E = X[85];
 
+		// Future TODO: dotnet is gaining support for SIMD intrinsics for SHA1.
+
 		//
 		// round 1
 		//

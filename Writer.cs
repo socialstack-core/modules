@@ -165,7 +165,7 @@ namespace Api.SocketServerLibrary
 		/// Base length.
 		/// </summary>
 		public int BaseLength;
-		private int BlockCount=1;
+		private int _bufferCount=1;
 		private int Fill;
 		/// <summary>The linked list of buffers that form this message.</summary>
 		public BufferedBytes FirstBuffer;
@@ -174,18 +174,21 @@ namespace Api.SocketServerLibrary
 		/// <summary>Next writer in a queue after this one.</summary>
 		public Writer NextInLine;
 		private byte[] _LastBufferBytes;
-		
+
+		/// <summary>
+		/// The number of buffers in this writer.
+		/// </summary>
+		public int BufferCount => _bufferCount;
 		
 		/// <summary>When using writers you must use a start method.</summary>
 		public void Start(uint opcode){
 			BaseLength = 0;
-			BlockCount = 1;
+			_bufferCount = 1;
 			Fill = 0;
 			var buffer = Pool.Get();
 			LastBuffer = buffer;
 			FirstBuffer = buffer;
 			_LastBufferBytes = buffer.Bytes;
-			buffer.Offset = 0;
 			
 			// Write the opcode:
 			WriteCompressed(opcode);
@@ -195,13 +198,12 @@ namespace Api.SocketServerLibrary
 		public void StartWithLength()
 		{
 			BaseLength = 0;
-			BlockCount = 1;
+			_bufferCount = 1;
 			Fill = 0;
 			var buffer = Pool.Get();
 			LastBuffer = buffer;
 			FirstBuffer = buffer;
 			_LastBufferBytes = buffer.Bytes;
-			buffer.Offset = 0;
 
 			// Length and sequence:
 			Fill += 4;
@@ -214,13 +216,12 @@ namespace Api.SocketServerLibrary
 		public void Start(byte[] template)
 		{
 			BaseLength = 0;
-			BlockCount = 1;
+			_bufferCount = 1;
 			Fill = 0;
 			var buffer = Pool.Get();
 			LastBuffer = buffer;
 			FirstBuffer = buffer;
 			_LastBufferBytes = buffer.Bytes;
-			buffer.Offset = 0;
 
 			if (template != null)
 			{
@@ -241,11 +242,24 @@ namespace Api.SocketServerLibrary
 		}
 
 		/// <summary>
-		/// Total fill.
+		/// Total fill including any headers.
 		/// </summary>
-		public int Length{
-			get{
+		public int Length
+		{
+			get
+			{
 				return BaseLength + Fill;
+			}
+		}
+
+		/// <summary>
+		/// Length excluding pool headers.
+		/// </summary>
+		public int LengthWithoutHeaders
+		{
+			get
+			{
+				return BaseLength + Fill - (Pool.StartOffset * _bufferCount);
 			}
 		}
 
@@ -253,15 +267,14 @@ namespace Api.SocketServerLibrary
 		/// Used when the current buffer is totally full and a new one is required.
 		/// </summary>
 		private void NextBuffer(){
-			BaseLength+=Fill;
+			BaseLength += Fill;
 			LastBuffer.Length = Fill;
 			var buffer = Pool.Get();
 			LastBuffer.After = buffer;
 			LastBuffer = buffer;
-			buffer.Offset = 0;
 			_LastBufferBytes = buffer.Bytes;
-			BlockCount++;
-			Fill=0;
+			_bufferCount++;
+			Fill = buffer.Offset; // Buffers may reserve some space at the start for headers.
 		}
 
 		/// <summary>
@@ -402,7 +415,7 @@ namespace Api.SocketServerLibrary
 		{
 			var buffer = FirstBuffer;
 
-			for (var i = BlockCount-1; i >=0; i--)
+			for (var i = _bufferCount-1; i >=0; i--)
 			{
 				if (i == 0)
 				{
@@ -428,7 +441,7 @@ namespace Api.SocketServerLibrary
 		/// <param name="last"></param>
 		public void Start(int blockCount, int totalLength, BufferedBytes first, BufferedBytes last)
 		{
-			BlockCount = blockCount;
+			_bufferCount = blockCount;
 			FirstBuffer = first;
 			LastBuffer = last;
 			Fill = last.Length;
@@ -1800,7 +1813,7 @@ namespace Api.SocketServerLibrary
 			});
 			*/
 
-			var buffer = AllocatedResult();
+			var buffer = AllocatedResultNoHeaders();
 			return System.Text.Encoding.UTF8.GetString(buffer);
 		}
 
@@ -1852,19 +1865,59 @@ namespace Api.SocketServerLibrary
 		}
 		
 		/// <summary>
-		/// Allocates the complete chain of buffers as a byte array.
+		/// Allocates the complete chain of buffers as a byte array, excluding buffer offsets.
 		/// Avoid unless necessary.
 		/// </summary>
-		public System.IO.MemoryStream AllocateMemoryStream()
+		public byte[] AllocatedResultNoHeaders()
 		{
-			var ms = new System.IO.MemoryStream(Length);
+			byte[] result = new byte[LengthWithoutHeaders];
+			int index = 0;
 			var currentBuffer = FirstBuffer;
 
 			while (currentBuffer != null)
 			{
 				var blockSize = (currentBuffer == LastBuffer) ? Fill : currentBuffer.Length;
-				ms.Write(currentBuffer.Bytes, currentBuffer.Offset, blockSize);
+				blockSize -= Pool.StartOffset;
+				Array.Copy(currentBuffer.Bytes, Pool.StartOffset, result, index, blockSize);
+				index += blockSize;
 				currentBuffer = currentBuffer.After;
+			}
+
+			return result;
+		}
+		
+		/// <summary>
+		/// Allocates the complete chain of buffers as a byte array.
+		/// Avoid unless necessary.
+		/// </summary>
+		/// <param name="includeHeaders">Some writers/ pools add headers at the start of each buffer. Setting this to true includes those headers.</param>
+		public System.IO.MemoryStream AllocateMemoryStream(bool includeHeaders = false)
+		{
+			System.IO.MemoryStream ms;
+			var currentBuffer = FirstBuffer;
+
+			if (includeHeaders)
+			{
+				ms = new System.IO.MemoryStream(Length);
+
+				while (currentBuffer != null)
+				{
+					var blockSize = (currentBuffer == LastBuffer) ? Fill : currentBuffer.Length;
+					ms.Write(currentBuffer.Bytes, 0, blockSize);
+					currentBuffer = currentBuffer.After;
+				}
+			}
+			else
+			{
+				ms = new System.IO.MemoryStream(LengthWithoutHeaders);
+
+				while (currentBuffer != null)
+				{
+					var blockSize = (currentBuffer == LastBuffer) ? Fill : currentBuffer.Length;
+					blockSize -= Pool.StartOffset;
+					ms.Write(currentBuffer.Bytes, Pool.StartOffset, blockSize);
+					currentBuffer = currentBuffer.After;
+				}
 			}
 
 			return ms;
@@ -1903,12 +1956,14 @@ namespace Api.SocketServerLibrary
 		}
 
 		/// <summary>Write a whole block of bytes to this message.</summary>
-		public void WriteNoLength(byte[] buffer){
-			Write(buffer,0,buffer.Length);
+		public void WriteNoLength(byte[] buffer)
+		{
+			Write(buffer, 0, buffer.Length);
 		}
 		
 		/// <summary>Write a specific range of bytes to this message.</summary>
-		public void Write(byte[] buffer, int offset, int length){
+		public void Write(byte[] buffer, int offset, int length)
+		{
 			var bufferSize = Pool.BufferSize;
 			if(bufferSize == Fill){
 				NextBuffer();
@@ -1928,20 +1983,23 @@ namespace Api.SocketServerLibrary
 			Fill = bufferSize;
 			length -= space;
 			offset += space;
-			
+
 			// Fill full size buffers:
-			while(length >= bufferSize){
+			var bufferSpace = Pool.BufferSpaceSize;
+
+			while(length >= bufferSpace)
+			{
 				NextBuffer();
-				Array.Copy(buffer, offset, _LastBufferBytes, 0, bufferSize);
-				offset += bufferSize;
-				length -= bufferSize;
+				Array.Copy(buffer, offset, _LastBufferBytes, Pool.StartOffset, bufferSpace);
+				offset += bufferSpace;
+				length -= bufferSpace;
 				Fill = bufferSize;
 			}
 			
 			if(length > 0){
 				NextBuffer();
-				Array.Copy(buffer, offset, _LastBufferBytes, 0, length);
-				Fill = length;
+				Array.Copy(buffer, offset, _LastBufferBytes, Pool.StartOffset, length);
+				Fill = Pool.StartOffset + length;
 			}
 			
 		}
@@ -1979,24 +2037,26 @@ namespace Api.SocketServerLibrary
 			offset += space;
 
 			// Fill full size buffers:
-			while (length >= bufferSize)
+			var bufferSpace = Pool.BufferSpaceSize;
+			
+			while (length >= bufferSpace)
 			{
 				NextBuffer();
-				target = new Span<byte>(_LastBufferBytes, 0, bufferSize);
+				target = new Span<byte>(_LastBufferBytes, Pool.StartOffset, bufferSize);
 				src = buffer.Slice(offset, bufferSize);
 				src.CopyTo(target);
-				offset += bufferSize;
-				length -= bufferSize;
+				offset += bufferSpace;
+				length -= bufferSpace;
 				Fill = bufferSize;
 			}
 
 			if (length > 0)
 			{
 				NextBuffer();
-				target = new Span<byte>(_LastBufferBytes, 0, length);
+				target = new Span<byte>(_LastBufferBytes, Pool.StartOffset, length);
 				src = buffer.Slice(offset, length);
 				src.CopyTo(target);
-				Fill = length;
+				Fill = Pool.StartOffset + length;
 			}
 
 		}

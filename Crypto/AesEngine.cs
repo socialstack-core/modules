@@ -263,6 +263,26 @@ namespace Api.SocketServerLibrary.Crypto
 				| (((uint)S[(x >> 24) & 255]) << 24);
 		}
 
+		/// <summary>
+		/// 
+		/// </summary>
+		public void DumpKeys()
+		{
+			byte[] keyOut = new byte[16];
+
+			for (var i = 0; i < WorkingKey.Length; i++)
+			{
+				var key = WorkingKey[i];
+				UInt32_To_LE(key[0], keyOut, 0);
+				UInt32_To_LE(key[1], keyOut, 4);
+				UInt32_To_LE(key[2], keyOut, 8);
+				UInt32_To_LE(key[3], keyOut, 12);
+				var hexStr = Hex.Convert(keyOut);
+				Console.WriteLine(i + ": " + hexStr);
+			}
+
+		}
+		
 		/**
 		* Calculate the necessary round keys
 		* The number of calculations depends on key size and block size

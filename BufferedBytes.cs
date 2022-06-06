@@ -98,27 +98,31 @@ namespace Api.SocketServerLibrary
 			offset += availableSpace;
 			
 			var currentBuffer = this;
-			
+
 			// While we can fill entire buffers..
-			while(count > pool.BufferSize){
+			var bufferSpaceSize = pool.BufferSpaceSize; // BufferSize minus any reserved space at the start.
+
+			while(count > bufferSpaceSize)
+			{
 				currentBuffer.After = pool.Get();
 				currentBuffer = currentBuffer.After;
+				var startOffset = currentBuffer.Offset; // Buffer pools can specify a reserved piece of space at the start - this is the startOffset.
 				currentBuffer.Offset = pool.BufferSize;
-				
+
 				// Fill the entire thing:
-				Array.Copy(buffer, offset, currentBuffer.Bytes, 0, pool.BufferSize);
-				offset += pool.BufferSize;
-				count -= pool.BufferSize;
+				Array.Copy(buffer, offset, currentBuffer.Bytes, startOffset, bufferSpaceSize);
+				offset += bufferSpaceSize;
+				count -= bufferSpaceSize;
 			}
 			
 			// If count is non-zero, we'll need another buffer:
 			if(count > 0){
 				currentBuffer.After = pool.Get();
 				currentBuffer = currentBuffer.After;
-				currentBuffer.Offset = count;
+				currentBuffer.Offset += count;
 				
 				// Fill the last few bytes:
-				Array.Copy(buffer, offset, currentBuffer.Bytes, 0, count);
+				Array.Copy(buffer, offset, currentBuffer.Bytes, pool.StartOffset, count);
 			}
 			
 			return currentBuffer;

@@ -89,7 +89,7 @@ namespace Api.SocketServerLibrary
 			var max = offset + length;
 			for (int i = offset; i < max; i++)
 			{
-				if (i != 0)
+				if (i != offset)
 				{
 					result.Append(separator);
 				}

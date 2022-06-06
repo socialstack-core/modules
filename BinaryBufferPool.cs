@@ -21,6 +21,14 @@ namespace Api.SocketServerLibrary
 
 		/// <summary>The size of buffers in this pool.</summary>
 		public readonly int BufferSize;
+		
+		/// <summary>The size of buffers in this pool minus the start offset.</summary>
+		public readonly int BufferSpaceSize;
+
+		/// <summary>
+		/// When a buffer is taken from this pool, this is the offset to use.
+		/// </summary>
+		public readonly int StartOffset = 0;
 
 		/// <summary>
 		/// First writer in the pool.
@@ -45,10 +53,13 @@ namespace Api.SocketServerLibrary
 		/// </summary>
 		/// <param name="bufferSize"></param>
 		/// <param name="pinned"></param>
-		protected BinaryBufferPool(int bufferSize, bool pinned = false)
+		/// <param name="startOffset"></param>
+		protected BinaryBufferPool(int bufferSize, bool pinned = false, int startOffset = 0)
 		{
 			BufferSize = bufferSize;
 			Pinned = pinned;
+			StartOffset = startOffset;
+			BufferSpaceSize = bufferSize - startOffset;
 		}
 
 		/// <summary>
@@ -97,7 +108,8 @@ namespace Api.SocketServerLibrary
 		/// </summary>
 		/// <param name="bufferSize"></param>
 		/// <param name="pinned"></param>
-		public BinaryBufferPool(int bufferSize, bool pinned = false) : base(bufferSize, pinned)
+		/// <param name="startOffset"></param>
+		public BinaryBufferPool(int bufferSize, bool pinned = false, int startOffset = 0) : base(bufferSize, pinned, startOffset)
 		{
 		}
 
@@ -143,6 +155,7 @@ namespace Api.SocketServerLibrary
 						result.Init(new byte[BufferSize], BufferSize, this);
 					}
 
+					result.Offset = StartOffset;
 					return result;
 				}
 
@@ -152,7 +165,7 @@ namespace Api.SocketServerLibrary
 			}
 
 			result.After = null;
-
+			result.Offset = StartOffset;
 			return result;
 		}
 

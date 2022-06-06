@@ -564,7 +564,6 @@ namespace Api.SocketServerLibrary
 				// Buffer is full, or there isn't one.
 				// Get another buffer.
 				var next = BinaryBufferPool.OneKb.Get();
-				next.Offset = 0;
 				next.After = null;
 
 				if (Last == null)

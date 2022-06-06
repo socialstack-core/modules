@@ -15,6 +15,16 @@ public static class UdpHeader
 	private static byte[] BasicUdpV4;
 	private static byte[] BasicUdpV6;
 
+	/// <summary>
+	/// The size of an ipv4 header that this writes out.
+	/// </summary>
+	public static readonly int V4HeaderSize = 28;
+
+	/// <summary>
+	/// The size of an ipv6 header that this writes out.
+	/// </summary>
+	public static readonly int V6HeaderSize = 48;
+
 	static UdpHeader()
 	{
 		BasicUdpV4 = new byte[28];
