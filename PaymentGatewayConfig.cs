@@ -28,6 +28,16 @@ namespace Api.PaymentGateways
         public string StripePaymentEndpointSecret { get; set; } = "";
 
         /// <summary>
+		/// Your stripe invoice webhook endpoint secret
+		/// </summary>
+        public string StripeInvoiceEndpointSecret { get; set; } = "";
+
+        /// <summary>
+		/// Your stripe customer webhook endpoint secret
+		/// </summary>
+        public string StripeCustomerEndpointSecret { get; set; } = "";
+
+        /// <summary>
 		/// Your payment currency;
 		/// </summary>
         public string PaymentCurrency { get; set; } = "gbp";
