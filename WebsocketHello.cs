@@ -481,7 +481,6 @@ namespace Api.SocketServerLibrary
 							{
 								// Sec header is indeed incoming!
 								client.ScratchSpace = BinaryBufferPool.OneKb.Get();
-								client.ScratchSpace.Offset = 0;
 								frame.Phase = 2;
 							}
 							else
@@ -505,7 +504,6 @@ namespace Api.SocketServerLibrary
 							{
 								// Cookie header is indeed incoming!
 								client.ScratchSpace = BinaryBufferPool.OneKb.Get();
-								client.ScratchSpace.Offset = 0;
 								frame.Phase = 3;
 							}
 							else
