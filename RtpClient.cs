@@ -91,6 +91,14 @@ public partial class RtpClient
 	}
 
 	/// <summary>
+	/// This client has sent a PLI for the given SSRC.
+	/// </summary>
+	/// <param name="ssrc"></param>
+	public virtual void DidRequestPli(uint ssrc)
+	{
+	}
+
+	/// <summary>
 	/// True if this client will do something with an RTP packet.
 	/// </summary>
 	public virtual bool WillHandle { get; }
@@ -154,7 +162,7 @@ public partial class RtpClient
 	/// <summary>
 	/// 
 	/// </summary>
-	public Api.SocketServerLibrary.Ciphers.SrtpCipherCTR ReceiveCipherCtr;
+	public SocketServerLibrary.Crypto.Aes128Cm ReceiveCipherCtr;
 
 	/// <summary>
 	/// 
@@ -175,7 +183,7 @@ public partial class RtpClient
 	/// <summary>
 	/// 
 	/// </summary>
-	public Api.SocketServerLibrary.Ciphers.SrtpCipherCTR SendCipherCtr;
+	public SocketServerLibrary.Crypto.Aes128Cm SendCipherCtr;
 	
 	/// <summary>
 	/// Note that RTCP uses its own, different keys.
@@ -192,7 +200,7 @@ public partial class RtpClient
 	/// <summary>
 	/// 
 	/// </summary>
-	public Api.SocketServerLibrary.Ciphers.SrtpCipherCTR RtcpReceiveCipherCtr;
+	public SocketServerLibrary.Crypto.Aes128Cm RtcpReceiveCipherCtr;
 
 	/// <summary>
 	/// 
@@ -209,8 +217,8 @@ public partial class RtpClient
 	/// <summary>
 	/// 
 	/// </summary>
-	public Api.SocketServerLibrary.Ciphers.SrtpCipherCTR RtcpSendCipherCtr;
-	
+	public SocketServerLibrary.Crypto.Aes128Cm RtcpSendCipherCtr;
+
 	/// <summary>
 	/// 
 	/// </summary>
@@ -344,9 +352,9 @@ public partial class RtpClient
 	/// <param name="buffer"></param>
 	/// <param name="payloadIndex"></param>
 	/// <param name="payloadSize"></param>
-	/// <param name="packetIndexE"></param>
+	/// <param name="packetIndex"></param>
 	/// <param name="ssrc"></param>
-	public void EncryptRtcpPacket(byte[] buffer, int payloadIndex, int payloadSize, uint packetIndexE, uint ssrc)
+	public void EncryptRtcpPacket(byte[] buffer, int payloadIndex, int payloadSize, uint packetIndex, uint ssrc)
 	{
 		Span<byte> ivStore = stackalloc byte[16];
 
@@ -355,19 +363,22 @@ public partial class RtpClient
 		ivStore[2] = RtcpSendSaltKey[2];
 		ivStore[3] = RtcpSendSaltKey[3];
 
-		for (var i = 4; i < 8; i++)
-		{
-			ivStore[i] = (byte)((0xFF & (ssrc >> ((7 - i) * 8))) ^ RtcpSendSaltKey[i]);
-		}
+		// The shifts transform the ssrc and index into network order
+		ivStore[4] = (byte)(((ssrc >> 24) & 0xff) ^ RtcpSendSaltKey[4]);
+		ivStore[5] = (byte)(((ssrc >> 16) & 0xff) ^ RtcpSendSaltKey[5]);
+		ivStore[6] = (byte)(((ssrc >> 8) & 0xff) ^ RtcpSendSaltKey[6]);
+		ivStore[7] = (byte)((ssrc & 0xff) ^ RtcpSendSaltKey[7]);
 
-		for (var i = 8; i < 14; i++)
-		{
-			ivStore[i] = (byte)((0xFF & (byte)(packetIndexE >> ((13 - i) * 8))) ^ RtcpSendSaltKey[i]);
-		}
+		ivStore[8] = RtcpSendSaltKey[8];
+		ivStore[9] = RtcpSendSaltKey[9];
+
+		ivStore[10] = (byte)(((packetIndex >> 24) & 0xff) ^ RtcpSendSaltKey[10]);
+		ivStore[11] = (byte)(((packetIndex >> 16) & 0xff) ^ RtcpSendSaltKey[11]);
+		ivStore[12] = (byte)(((packetIndex >> 8) & 0xff) ^ RtcpSendSaltKey[12]);
+		ivStore[13] = (byte)((packetIndex & 0xff) ^ RtcpSendSaltKey[13]);
 
 		// The last 10 bytes are the auth tag (checked above).
 		RtcpSendCipherCtr.Process(buffer, payloadIndex, payloadSize, ivStore);
-
 	}
 
 	/// <summary>
@@ -408,49 +419,18 @@ public partial class RtpClient
 
 	private void ConfigureRtpKeys(byte[] masterKey, byte[] masterSalt, bool isReceive, bool isControl)
 	{
-		var keyLen = 16;
-		var saltLen = 14;
+		const int keyLen = 16;
+		const int saltLen = 14;
 		
-		var cipherCtr = new Api.SocketServerLibrary.Ciphers.SrtpCipherCTR();
-		var cipher = cipherCtr.Cipher;
-
 		var encKey = new byte[keyLen]; // AES-128 CM
 		var saltKey = new byte[saltLen];
 		var mac = new Api.SocketServerLibrary.Crypto.HMac(SHA1);
 		
-		if(isControl)
-		{
-			if (isReceive)
-			{
-				RtcpReceiveSaltKey = saltKey;
-				RtcpReceiveCipherCtr = cipherCtr;
-				RtcpReceiveMac = mac;
-			}
-			else
-			{
-				RtcpSendSaltKey = saltKey;
-				RtcpSendCipherCtr = cipherCtr;
-				RtcpSendMac = mac;
-			}
-		}
-		else if (isReceive)
-		{
-			ReceiveSaltKey = saltKey;
-			ReceiveCipherCtr = cipherCtr;
-			ReceiveMac = mac;
-		}
-		else
-		{
-			SendSaltKey = saltKey;
-			SendCipherCtr = cipherCtr;
-			SendMac = mac;
-		}
-
 		var authKey = new byte[20]; // SHA-1 based HMAC, 20 byte length key
 
 		// compute the session encryption key
 
-		Span<byte> ivStore = stackalloc byte[14]; // Temporary IV store.
+		Span<byte> ivStore = stackalloc byte[16]; // Temporary IV store.
 
 		if (isControl)
 		{
@@ -461,9 +441,9 @@ public partial class RtpClient
 			ComputeIv(0, masterSalt, ref ivStore);
 		}
 
-		cipher.Init(true, masterKey);
+		var aes128 = new SocketServerLibrary.Crypto.Aes128Cm(masterKey.AsSpan());
 
-		cipherCtr.GetCipherStream(encKey, 16, ivStore);
+		aes128.GetCipherStream(encKey, keyLen, ivStore);
 
 		// compute the session authentication key
 
@@ -476,7 +456,7 @@ public partial class RtpClient
 			ComputeIv(1, masterSalt, ref ivStore);
 		}
 
-		cipherCtr.GetCipherStream(authKey, 20, ivStore);
+		aes128.GetCipherStream(authKey, 20, ivStore);
 
 		mac.Init(authKey, 0, authKey.Length);
 
@@ -491,10 +471,39 @@ public partial class RtpClient
 			ComputeIv(2, masterSalt, ref ivStore);
 		}
 
-		cipherCtr.GetCipherStream(saltKey, 14, ivStore);
-		
+		aes128.GetCipherStream(saltKey, 14, ivStore);
+
 		// As last step: initialize cipher with derived encryption key.
-		cipher.Init(true, encKey);
+		aes128.Init(encKey.AsSpan());
+
+		if (isControl)
+		{
+			if (isReceive)
+			{
+				RtcpReceiveSaltKey = saltKey;
+				RtcpReceiveCipherCtr = aes128;
+				RtcpReceiveMac = mac;
+			}
+			else
+			{
+				RtcpSendSaltKey = saltKey;
+				RtcpSendCipherCtr = aes128;
+				RtcpSendMac = mac;
+			}
+		}
+		else if (isReceive)
+		{
+			ReceiveSaltKey = saltKey;
+			ReceiveCipherCtr = aes128;
+			ReceiveMac = mac;
+		}
+		else
+		{
+			SendSaltKey = saltKey;
+			SendCipherCtr = aes128;
+			SendMac = mac;
+		}
+
 	}
 
 	/// <summary>
@@ -798,51 +807,6 @@ public partial class RtpClient
 		}
 
 		return true;
-
-		/*
-		var frame = SendStackFrame.Get();
-		frame.Writer = writer;
-		frame.Current = null;
-
-		var goImmediately = false;
-
-		lock (this)
-		{
-			if (LastSendFrame == null)
-			{
-				FirstSendFrame = frame;
-				LastSendFrame = frame;
-				goImmediately = CanProcessSend;
-			}
-			else
-			{
-				LastSendFrame.After = frame;
-				LastSendFrame = frame;
-			}
-
-			if (goImmediately)
-			{
-				// The queue is empty - Send immediately:
-				CanProcessSend = false;
-			}
-		}
-
-		if (goImmediately)
-		{
-			frame.Current = writer.FirstBuffer;
-
-			var buffer = frame.Current;
-			AsyncArgs.SetBuffer(buffer.Bytes, buffer.Offset, buffer.Length);
-
-			if (!Server.ServerSocketUdp.SendToAsync(AsyncArgs))
-			{
-				// It completed immediately
-				CompletedCurrentSend();
-			}
-		}
-
-		return true;
-		*/
 	}
 
 	/*

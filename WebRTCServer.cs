@@ -128,7 +128,7 @@ public class WebRTCServer : UdpDestination
 	/// <summary>
 	/// Pool of 2k byte buffers.
 	/// </summary>
-	public static BinaryBufferPool<WebRTCBuffer> MtuSizedPool = new BinaryBufferPool<WebRTCBuffer>(2048, true);
+	public static BinaryBufferPool<WebRTCBuffer> MtuSizedPool = new BinaryBufferPool<WebRTCBuffer>(2048, true, 0);
 
 	/// <summary>
 	/// 

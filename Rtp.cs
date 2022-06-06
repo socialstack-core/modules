@@ -8,6 +8,21 @@ namespace Api.WebRTC;
 public static class Rtp
 {
 	/// <summary>
+	/// Dumps the given buffer to the named file in a format that wireshark can easily import.
+	/// </summary>
+	/// <param name="path"></param>
+	/// <param name="buffer"></param>
+	/// <param name="index"></param>
+	/// <param name="messageSize"></param>
+	public static void WiresharkDump(string path, byte[] buffer, int index, int messageSize)
+	{
+		var bytes = System.Text.Encoding.ASCII.GetBytes("0000 " + SocketServerLibrary.Hex.ConvertWithSeparator(buffer, 0, messageSize + index, ' ') + " ....\r\n");
+		var fsIn = System.IO.File.Create(path);
+		fsIn.Write(bytes);
+		fsIn.Close();
+	}
+
+	/// <summary>
 	/// SRTP/SRTCP packet main receive point.
 	/// </summary>
 	public static void HandleMessage(byte[] buffer, int index, int messageSize, RtpClient client)
@@ -175,9 +190,8 @@ public static class Rtp
 				return;
 			}
 
-			// Uses the very last 10 bytes.
 			Span<byte> ivStore = stackalloc byte[16];
-
+			
 			ivStore[0] = client.ReceiveSaltKey[0];
 			ivStore[1] = client.ReceiveSaltKey[1];
 			ivStore[2] = client.ReceiveSaltKey[2];
@@ -195,6 +209,7 @@ public static class Rtp
 
 			// The last 10 bytes are the auth tag (checked above).
 			var payloadSize = messageSize - 10 - (index - startIndex);
+
 			client.ReceiveCipherCtr.Process(buffer, index, payloadSize, ivStore);
 
 			// Update inbound packet index:
@@ -280,7 +295,6 @@ public static class Rtp
 		}
 		else
 		{
-			return;
 			// RTCP
 
 			// Packet index:
@@ -353,7 +367,7 @@ public static class Rtp
 
 			var payloadSize = messageSize - 22; // 10 for the tag, 4 for the packet index, 8 for the fixed header.
 			client.RtcpReceiveCipherCtr.Process(buffer, index, payloadSize, ivStore);
-
+			uint localSsrc;
 			index = startIndex;
 			maxIndex -= 14; // avoid tag and packet index
 
@@ -372,7 +386,7 @@ public static class Rtp
 					case 200:
 						// Sender report. Must track the time that this was received.
 						// Console.WriteLine("SSRC for sender report " + ssrc + " and the count was " + (flags & 63));
-						var localSsrc = (uint)(buffer[chunkIndex++] << 24 | buffer[chunkIndex++] << 16 | buffer[chunkIndex++] << 8 | buffer[chunkIndex++]);
+						localSsrc = (uint)(buffer[chunkIndex++] << 24 | buffer[chunkIndex++] << 16 | buffer[chunkIndex++] << 8 | buffer[chunkIndex++]);
 						
 						var localIndex = localSsrc == ssrc ? ssrcIndex : client.GetSsrcStateIndex(localSsrc);
 
@@ -391,14 +405,36 @@ public static class Rtp
 						client.CloseRequested();
 					break;
 					case 206:
-						// REMB sender side bitrate estimate
-						chunkIndex += 12; // Skipping unused mediaSSRC, packet sender and "REMB" identifier
+						// Payload specific feedback. May be REMB bitrate estimate for example.
 
-						var numSSRCs = buffer[chunkIndex++];
+						var fmt = flags & 31; // Feedback message type
 
-						var expMantissa = (uint)(buffer[chunkIndex++] << 16 | buffer[chunkIndex++] << 8 | buffer[chunkIndex++]);
+						switch (fmt)
+						{
+							
+							case 1:
+								// PLI
+								chunkIndex += 4;
+								localSsrc = (uint)(buffer[chunkIndex++] << 24 | buffer[chunkIndex++] << 16 | buffer[chunkIndex++] << 8 | buffer[chunkIndex++]);
+								
+								// if it is local to us, flag it.
+								client.DidRequestPli(localSsrc);
+								break;
+							case 4:
+								// FIR (full intra-frame request)
+								// Console.WriteLine("FIR, " + packetLen + ", " + ssrc);
+							break;
+							case 15:
+								//"Application layer feedback message". Used by REMB sender side bitrate estimate
+								chunkIndex += 12; // Skipping unused mediaSSRC, packet sender and "REMB" identifier
 
-						// Console.WriteLine("REMB media SSRC count " + numSSRCs + " and exp/mant " + expMantissa);
+								var numSSRCs = buffer[chunkIndex++];
+
+								var expMantissa = (uint)(buffer[chunkIndex++] << 16 | buffer[chunkIndex++] << 8 | buffer[chunkIndex++]);
+
+								// Console.WriteLine("REMB media SSRC count " + numSSRCs + " and exp/mant " + expMantissa);
+							break;
+						}
 					break;
 				}
 
@@ -552,6 +588,181 @@ public static class Rtp
 	}
 
 	/// <summary>
+	/// Sends a PLI to the given client relating to the specified SSRC.
+	/// </summary>
+	/// <param name="client"></param>
+	/// <param name="ssrc"></param>
+	public static void SendPli(RtpClient client, uint ssrc)
+	{
+		var writer = client.Server.StartMessage(client);
+		var startIndex = writer.Length;
+		var buffer = writer.FirstBuffer.Bytes;
+
+		var packetIndex = client.CurrentRtcpId++;
+		var packetIndexE = packetIndex | 0x80000000;
+
+		writer.Write((byte)(128 | 1)); // PLI FMT
+		writer.Write((byte)206); // PSFB (payload specific feedback)
+		writer.WriteBE((ushort)2); // Length including the header. minus 1, divided by 4. PLI has an SSRC making the size 12 and this a constant 2.
+		writer.WriteBE((uint)1); // Sender SSRC
+		writer.WriteBE((uint)ssrc); // SSRC
+
+		writer.WriteBE(packetIndexE);
+		writer.WriteNoLength(EmptyTag);
+
+		var messageSize = writer.Length - startIndex;
+		var payloadSize = messageSize - 22; // PacketIndexE (4), Tag (10), First header (8)
+
+		// Encrypt the message:
+		client.EncryptRtcpPacket(buffer, startIndex + 8, payloadSize, packetIndex, 1);
+		
+		// And authenticate the packet:
+		client.AuthenticateRtcpPacket(buffer, startIndex, messageSize, packetIndexE);
+
+		// Send it:
+		client.SendAndRelease(writer);
+	}
+
+	public static void ThroughputTest()
+	{
+		var encryptions = 1; //  100001;
+
+		var sw = new System.Diagnostics.Stopwatch();
+		sw.Start();
+		EncryptTest(140, 1, encryptions);
+		sw.Stop();
+		var elapsed = sw.ElapsedMilliseconds;
+		var elapsedSec = (elapsed / 1000d);
+
+		Console.WriteLine("Total time: " + elapsed + "ms (" + ((double)(encryptions * 1200d) / elapsedSec) + " bytes/sec)");
+
+		sw.Reset();
+		sw.Start();
+		EncryptTest2(140, 1, encryptions);
+		sw.Stop();
+		elapsed = sw.ElapsedMilliseconds;
+		elapsedSec = (elapsed / 1000d);
+
+		Console.WriteLine("Total time: " + elapsed + "ms (" + ((double)(encryptions * 1200d) / elapsedSec) + " bytes/sec)");
+	}
+
+	public static void EncryptTest(uint ssrc, uint packetIndex, int testCount)
+	{
+		var masterKey = new byte[16];
+		var rtcpSendSaltKey = new byte[16];
+
+		for (var i = 0; i < 16; i++)
+		{
+			masterKey[i] = (byte)i;
+		}
+
+		for (var i = 0; i < 16; i++)
+		{
+			rtcpSendSaltKey[i] = (byte)i;
+		}
+
+		var cipherCtr = new Api.SocketServerLibrary.Ciphers.SrtpCipherCTR();
+		var cipher = cipherCtr.Cipher;
+
+		cipher.Init(true, masterKey);
+
+		byte[] buffer = new byte[1300];
+
+		for (var i = 0; i < 1300; i++)
+		{
+			buffer[i] = (byte)i;
+		}
+
+		Span<byte> ivStore = stackalloc byte[16];
+		
+		for (var i = 0; i < testCount; i++)
+		{
+			ivStore[0] = rtcpSendSaltKey[0];
+			ivStore[1] = rtcpSendSaltKey[1];
+			ivStore[2] = rtcpSendSaltKey[2];
+			ivStore[3] = rtcpSendSaltKey[3];
+
+			// The shifts transform the ssrc and index into network order
+			ivStore[4] = (byte)(((ssrc >> 24) & 0xff) ^ rtcpSendSaltKey[4]);
+			ivStore[5] = (byte)(((ssrc >> 16) & 0xff) ^ rtcpSendSaltKey[5]);
+			ivStore[6] = (byte)(((ssrc >> 8) & 0xff) ^ rtcpSendSaltKey[6]);
+			ivStore[7] = (byte)((ssrc & 0xff) ^ rtcpSendSaltKey[7]);
+
+			ivStore[8] = rtcpSendSaltKey[8];
+			ivStore[9] = rtcpSendSaltKey[9];
+
+			ivStore[10] = (byte)(((packetIndex >> 24) & 0xff) ^ rtcpSendSaltKey[10]);
+			ivStore[11] = (byte)(((packetIndex >> 16) & 0xff) ^ rtcpSendSaltKey[11]);
+			ivStore[12] = (byte)(((packetIndex >> 8) & 0xff) ^ rtcpSendSaltKey[12]);
+			ivStore[13] = (byte)((packetIndex & 0xff) ^ rtcpSendSaltKey[13]);
+
+			cipherCtr.GetCipherStream(buffer, 20, ivStore);
+
+			// cipherCtr.Process(buffer, 0, 1300, ivStore);
+		}
+
+		var str = SocketServerLibrary.Hex.ConvertWithSeparator(buffer, 0, 20, ' ');
+		Console.WriteLine("CT: " + str);
+	}
+
+	public static void EncryptTest2(uint ssrc, uint packetIndex, int testCount)
+	{
+		var masterKey = new byte[16];
+		var rtcpSendSaltKey = new byte[16];
+
+		for (var i = 0; i < 16; i++)
+		{
+			masterKey[i] = (byte)i;
+		}
+
+		for (var i = 0; i < 16; i++)
+		{
+			rtcpSendSaltKey[i] = (byte)i;
+		}
+
+		var aes = new SocketServerLibrary.Crypto.Aes128Cm(masterKey.AsSpan());
+		
+		byte[] buffer = new byte[1300];
+
+		for (var i = 0; i < 1300; i++)
+		{
+			buffer[i] = (byte)i;
+		}
+
+		Span<byte> ivStore = stackalloc byte[16];
+		Span<byte> tagSpan = stackalloc byte[16];
+		
+		for (var i = 0; i < testCount; i++)
+		{
+			ivStore[0] = rtcpSendSaltKey[0];
+			ivStore[1] = rtcpSendSaltKey[1];
+			ivStore[2] = rtcpSendSaltKey[2];
+			ivStore[3] = rtcpSendSaltKey[3];
+
+			// The shifts transform the ssrc and index into network order
+			ivStore[4] = (byte)(((ssrc >> 24) & 0xff) ^ rtcpSendSaltKey[4]);
+			ivStore[5] = (byte)(((ssrc >> 16) & 0xff) ^ rtcpSendSaltKey[5]);
+			ivStore[6] = (byte)(((ssrc >> 8) & 0xff) ^ rtcpSendSaltKey[6]);
+			ivStore[7] = (byte)((ssrc & 0xff) ^ rtcpSendSaltKey[7]);
+
+			ivStore[8] = rtcpSendSaltKey[8];
+			ivStore[9] = rtcpSendSaltKey[9];
+
+			ivStore[10] = (byte)(((packetIndex >> 24) & 0xff) ^ rtcpSendSaltKey[10]);
+			ivStore[11] = (byte)(((packetIndex >> 16) & 0xff) ^ rtcpSendSaltKey[11]);
+			ivStore[12] = (byte)(((packetIndex >> 8) & 0xff) ^ rtcpSendSaltKey[12]);
+			ivStore[13] = (byte)((packetIndex & 0xff) ^ rtcpSendSaltKey[13]);
+
+			aes.GetCipherStream(buffer, 20, ivStore);
+
+			// aes.Process(buffer, 0, 1300, ivStore);
+		}
+
+		var str = SocketServerLibrary.Hex.ConvertWithSeparator(buffer, 0, 20, ' ');
+		Console.WriteLine("CT: " + str);
+	}
+
+	/// <summary>
 	/// Sends a sender report for the given client.
 	/// </summary>
 	/// <param name="client"></param>
@@ -560,6 +771,8 @@ public static class Rtp
 	/// <param name="ntpLow"></param>
 	public static void SendReport(RtpClient client, long nowTicks, ulong ntpFull, uint ntpLow)
 	{
+		return;
+
 		if (client.SsrcState == null || client.SsrcState.Length == 0)
 		{
 			return;
