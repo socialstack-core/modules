@@ -1,9 +1,6 @@
-using System;
 using Api.Database;
 using Api.Translate;
 using Api.Users;
-using Api.Tags;
-using System.Collections.Generic;
 
 namespace Api.FrequentlyAskedQuestions
 {
