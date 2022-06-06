@@ -1,0 +1,371 @@
+.huddle-chat {
+	$huddle-chat: &;
+
+	&__user {
+		$huddle-chat-user: &;
+
+		background: rgba(255,255,255, .25);
+		position: relative;
+		min-width: 0;
+		min-height: 0;
+		transition: .3s ease;
+		transition-property: box-shadow;
+
+		&:not(&--video) {
+			display: flex;
+			align-items: center;
+			justify-content: center;
+		}
+
+		&-header {
+			position: absolute;
+			top: 0;
+			left: 0;
+			right: 0;
+			padding: 8px;
+			display: flex;
+			align-items: center;
+			justify-content: flex-end;
+			background: linear-gradient(0, transparent, rgba(0,0,0,.1));
+			z-index: 20;
+		}
+
+		&-audio,
+		&-video {
+			//margin-left: 4px;
+		}
+
+		&--audio-on,
+		&--video-on {
+			color: var(--success);
+		}
+
+		&--audio-off,
+		&--video-off {
+			color: var(--danger);
+		}
+
+		&-video {
+			width: 100%;
+			height: 100%;
+			object-fit: cover;
+			//aspect-ratio: 16 / 9;
+
+			+ #{$huddle-chat-user}-footer {
+				background: linear-gradient(0, rgba(0, 0, 0, 0.75) 25%, transparent)
+			}
+		}
+
+		&-avatar {
+			display: flex;
+			flex-direction: column;
+			align-items: center;
+			width: var(--user-sharing-video-width);
+			min-width: 3rem;
+			overflow: hidden;
+
+			> img {
+				border-radius: 50%;
+				width: 100%;
+				aspect-ratio: 1 / 1;
+				object-fit: cover;
+			}
+
+			&--hidden {
+				visibility: hidden;
+			}
+
+		}
+
+		&-footer {
+			position: absolute;
+			bottom: 0;
+			left: 0;
+			right: 0;
+			padding: 8px;
+			display: flex;
+			align-items: flex-end;
+			justify-content: space-between;
+			background: linear-gradient(0, rgba(0,0,0,.1), transparent);
+			color: #fff;
+			font-weight: normal;
+			font-size: 12px;
+			z-index: 30;
+
+			#{$huddle-chat-user}-name {
+				display: flex;
+				align-items: center;
+				min-width: 0;
+				text-shadow: 2px 2px rgb(0,0,0,.85);
+			}
+
+			#{$huddle-chat-user}-audio {
+				margin-left: .25rem;
+			}
+
+		}
+
+		&-options {
+			transition: all .3s ease;
+
+			.btn-link {
+				border: 1px solid rgba(255,255,255,.5);
+				padding: 0.375rem;
+				opacity: 0;
+				text-decoration: none;
+
+				&:focus,
+				&[aria-expanded="true"] {
+					opacity: 1;
+				}
+			}
+
+			&.dropdown .dropdown__arrow {
+				display: none;
+			}
+
+		}
+
+		&:hover {
+
+			#{$huddle-chat-user}-options {
+
+				.btn-link {
+					opacity: 1;
+				}
+			}
+
+		}
+
+		&--contain-video {
+
+			#{$huddle-chat-user}-video {
+				object-fit: contain;
+			}
+
+		}
+
+		&--sharing {
+
+			#{$huddle-chat-user}-video {
+				position: absolute;
+				left: 0;
+				top: 0;
+				min-width: 160px;
+				min-height: 90px;
+				width: var(--user-sharing-video-width);
+			    height: calc(var(--user-sharing-video-width) * 9 / 16);
+				object-fit: contain !important;
+				z-index: 10;
+			}
+
+			#{$huddle-chat-user}-share {
+				position: absolute;
+				left: 0;
+				top: 0;
+				width: 100%;
+				height: 100%;
+				object-fit: contain;
+			}
+
+			&#{$huddle-chat-user}--video {
+
+				#{$huddle-chat-user}-share {
+					object-position: right;
+				}
+
+			}
+
+		}
+
+		&--thumbnail {
+
+			#{$huddle-chat-user}-avatar {
+				width: 2.5vmax;
+				min-width: 2.5vmin;
+				max-width: 2.5vmax;
+			}
+
+			#{$huddle-chat-user}-footer {
+				font-size: 10px;
+			}
+
+		}
+
+		&--gone {
+			background: rgba(255, 255, 255, 0.35);
+
+			#{$huddle-chat-user}-avatar {
+				opacity: .5;
+			}
+
+			#{$huddle-chat-user}-footer {
+				justify-content: center;
+				text-align: center;
+			}
+
+		}
+
+		&--active {
+			box-shadow: 0 0 10px 6px var(--info);
+			z-index: 100;
+		}
+
+	}
+
+	// check for multiple sharers
+	&__stage[data-users="2"] {
+
+		#{$huddle-chat}__user {
+			$huddle-chat-user: &;
+
+			&--sharing {
+
+				&:nth-child(2) {
+
+					#{$huddle-chat}__user-video {
+						left: auto;
+						right: 0;
+					}
+
+				}
+
+				&#{$huddle-chat-user}--video {
+
+					&:nth-child(2) {
+
+						#{$huddle-chat}__user-share {
+							object-position: left;
+						}
+
+					}
+
+				}
+
+			}
+
+		}
+
+		&[data-ratio2="1-2"] {
+
+			#{$huddle-chat}__user {
+				$huddle-chat-user: &;
+
+				&--sharing {
+
+					&:nth-child(1) {
+
+						#{$huddle-chat}__user-video {
+							left: 0;
+						}
+
+					}
+
+					&:nth-child(2) {
+
+						#{$huddle-chat}__user-video {
+							left: 0;
+							right: auto;
+							top: auto;
+							bottom: 0;
+						}
+					}
+
+					&#{$huddle-chat-user}--video {
+
+						&:nth-child(1) {
+
+							#{$huddle-chat}__user-share {
+								object-position: bottom right;
+							}
+
+						}
+
+						&:nth-child(2) {
+
+							#{$huddle-chat}__user-share {
+								object-position: top right;
+							}
+
+						}
+
+					}
+				}
+			}
+		}
+	}
+
+}
+
+@media (orientation: portrait) {
+
+	.huddle-chat {
+		$huddle-chat: &;
+
+		&__user {
+			$huddle-chat-user: &;
+
+			&--sharing {
+
+				&#{$huddle-chat-user}--video {
+
+					#{$huddle-chat-user}-share {
+						object-position: bottom;
+					}
+				}
+			}
+		}
+	}
+}
+
+@media (orientation: portrait) and (max-width: 767px) {
+
+	.huddle-chat {
+		$huddle-chat: &;
+
+		&__user {
+			$huddle-chat-user: &;
+
+			&--sharing {
+
+				&#{$huddle-chat-user}--video {
+
+					#{$huddle-chat-user}-share {
+						object-position: bottom;
+					}
+				}
+			}
+
+			&--thumbnail {
+
+				#{$huddle-chat-user}-footer {
+					font-size: 8px;
+				}
+
+				#{$huddle-chat-user}-options {
+					display: none;
+				}
+
+			}
+
+		}
+	}
+}
+
+@media (hover: none) {
+
+	.huddle-chat {
+
+		&__user {
+
+			&-options {
+
+				.btn-link {
+					border: 1px solid rgba(255,255,255,.5);
+					padding: 0.375rem;
+					opacity: 1;
+				}
+			}
+		}
+	}
+}

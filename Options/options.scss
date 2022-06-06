@@ -1,0 +1,34 @@
+.huddle-chat {
+	$huddle-chat: &;
+
+	&__options {
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
+		padding: 16px 24px;
+
+		&-left {
+		}
+
+		&-media {
+			display: flex;
+			align-items: center;
+			flex-wrap: nowrap;
+
+			#{$huddle-chat}__button {
+				margin-right: .5rem;
+
+				&:last-child {
+					margin-right: 0;
+				}
+			}
+
+		}
+
+	}
+
+	#{$huddle-chat}__button--hangup {
+		margin: 0 .5rem;
+	}
+
+}

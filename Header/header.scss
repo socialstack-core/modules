@@ -1,0 +1,107 @@
+.huddle-chat__header {
+	overflow: hidden;
+	padding: 16px 24px;
+	color: #fff;
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	overflow: visible;
+
+	&-info {
+	}
+
+	&-controls {
+		display: flex;
+		align-items: center;
+	}
+
+	&-audience,
+	&-conversation {
+		color: #fff;
+
+		&:not(.btn--active):hover {
+			background: #444;
+			color: #fff;
+		}
+
+		&.btn--active {
+			background: var(--primary);
+			color: var(--primary-fg);
+		}
+
+	}
+
+	&-reactions,
+	&-options {
+
+		.dropdown-toggle {
+			text-decoration: none;
+
+			&:hover {
+				background: #444;
+			}
+		}
+
+		.dropdown__left {
+			font-size: 14px;
+
+			i {
+				margin-right: .5rem;
+			}
+		}
+
+		&.dropdown .dropdown__right {
+			margin-inline-start: .5rem;
+		}
+
+		&.dropdown .dropdown__chevron {
+			width: .5rem;
+		}
+
+		.dropdown-item {
+			font-size: 14px;
+
+			i {
+				margin-right: .25rem;
+			}
+		}
+
+		.dropdown-label-internal {
+			margin-left: .5rem;
+		}
+	}
+
+	&-title {
+		font-size: 24px;
+		font-weight: bold;
+		margin: 0;
+	}
+
+	&-description {
+		font-size: 14px;
+		font-weight: normal;
+		margin: 0;
+	}
+
+}
+
+@media (max-width: 700px) {
+
+	.huddle-chat__header {
+		padding: 8px 16px;
+
+		&-reactions,
+		&-options {
+
+			.dropdown-label-internal {
+				display: none;
+			}
+
+			&.dropdown .dropdown__arrow {
+				margin-inline-start: .5rem;
+			}
+		}
+
+	}
+
+}

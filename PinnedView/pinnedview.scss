@@ -1,0 +1,42 @@
+.huddle-chat {
+	$huddle-chat: &;
+
+	&__pinned {
+		grid-area: pinned;
+		list-style: none;
+		padding: 1px 0;
+		margin: 0;
+		display: flex;
+		flex-wrap: wrap;
+		gap: 1px;
+		justify-content: center;
+		background: #ccc;
+
+		#{$huddle-chat}__user {
+			aspect-ratio: 16/9;
+		    background: #444;
+			display: flex;
+			align-items: center;
+			justify-content: center;
+			color: #fff;
+			width: 159px;
+		}
+	}
+
+}
+
+@media (orientation: portrait) {
+
+	.huddle-chat {
+		$huddle-chat: &;
+
+		&__pinned {
+
+			#{$huddle-chat}__user {
+				width: calc((100vw / 5) - 1px);
+			}
+
+		}
+
+	}
+}

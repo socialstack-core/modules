@@ -1,0 +1,166 @@
+.huddle-chat {
+	$huddle-chat: &;
+
+	&__stage {
+        grid-area: stage;
+        list-style: none;
+        padding: 0;
+        margin: 0;
+        display: grid;
+        gap: 1px;
+        //overflow: hidden;
+        overflow: visible; // in order for entire 'active speaker' border to be visible
+
+		&-message {
+            color: #fff;
+            margin: 0;
+            font-size: 24px;
+            font-weight: bold;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+		}
+
+        &[data-users="2"] {
+
+            &[data-ratio2="2-1"] {
+                grid-template-columns: repeat(2, minmax(0, 1fr));
+            }
+
+            &[data-ratio2="1-2"] {
+                grid-template-rows: repeat(2, minmax(0, 1fr));
+            }
+        }
+
+        &[data-users="3"] {
+
+            &[data-ratio3="3-1"] {
+                grid-template-columns: repeat(3, minmax(0, 1fr));
+            }
+
+            &[data-ratio3="2-2"] {
+                grid-template-columns: repeat(2, minmax(0, 1fr));
+                grid-template-rows: repeat(2, minmax(0, 1fr));
+                grid-template-areas:
+                    "first second" 
+                    "third third";
+
+                #{$huddle-chat}__user {
+
+                    &:nth-child(3) {
+                        grid-area: third;
+                    }
+                }
+            }
+
+            &[data-ratio3="1-3"] {
+                grid-template-rows: repeat(3, minmax(0, 1fr));
+            }
+        }
+
+        &[data-users="4"] {
+
+            &[data-ratio4="4-1"] {
+                grid-template-columns: repeat(4, minmax(0, 1fr));
+            }
+
+            &[data-ratio4="2-2"] {
+                grid-template-columns: repeat(2, minmax(0, 1fr));
+                grid-template-rows: repeat(2, minmax(0, 1fr));
+            }
+
+            &[data-ratio4="1-4"] {
+                grid-template-rows: repeat(4, minmax(0, 1fr));
+            }
+        }
+
+        &[data-users="5"] {
+
+            &[data-ratio5="5-1"] {
+                grid-template-columns: repeat(5, minmax(0, 1fr));
+            }
+
+            &[data-ratio5="3-2"] {
+                grid-template-columns: minmax(0, 2fr) minmax(0, 1fr) minmax(0, 1fr) minmax(0, 2fr);
+                grid-template-rows: repeat(2, minmax(0, 1fr));
+                grid-template-areas:
+                    "first second second third"
+                    "fourth fourth fifth fifth";
+
+                #{$huddle-chat}__user {
+
+                    &:nth-child(2) {
+                        grid-area: second;
+                    }
+
+                    &:nth-child(3) {
+                        grid-area: third;
+                    }
+
+                    &:nth-child(4) {
+                        grid-area: fourth;
+                    }
+
+                    &:nth-child(5) {
+                        grid-area: fifth;
+                    }
+                }
+            }
+
+            &[data-ratio5="2-3"] {
+                grid-template-columns: repeat(2, minmax(0, 1fr));
+                grid-template-rows: minmax(0, 2fr) minmax(0, 1fr) minmax(0, 1fr) minmax(0, 2fr);
+                grid-template-areas:
+                    "first fourth" 
+                    "second fourth" 
+                    "second fifth" 
+                    "third fifth";
+
+                #{$huddle-chat}-user {
+
+                    &:nth-child(2) {
+                        grid-area: second;
+                    }
+
+                    &:nth-child(3) {
+                        grid-area: third;
+                    }
+
+                    &:nth-child(4) {
+                        grid-area: fourth;
+                    }
+
+                    &:nth-child(5) {
+                        grid-area: fifth;
+                    }
+                }
+            }
+
+            &[data-ratio5="1-5"] {
+                grid-template-rows: repeat(5, minmax(0, 1fr));
+            }
+        }
+
+        &[data-users="6"] {
+
+            &[data-ratio6="6-1"] {
+                grid-template-columns: repeat(6, minmax(0, 1fr));
+            }
+
+            &[data-ratio6="3-2"] {
+                grid-template-columns: repeat(3, minmax(0, 1fr));
+                grid-template-rows: repeat(2, minmax(0, 1fr));
+            }
+
+            &[data-ratio6="2-3"] {
+                grid-template-columns: repeat(2, minmax(0, 1fr));
+                grid-template-rows: repeat(3, minmax(0, 1fr));
+            }
+
+            &[data-ratio6="1-6"] {
+                grid-template-rows: repeat(6, minmax(0, 1fr));
+            }
+        }
+	}
+
+}

@@ -1,0 +1,28 @@
+.huddle-chat {
+	$huddle-chat: &;
+
+	&__audience {
+
+		#{$huddle-chat}__sidebar-footer {
+			display: flex;
+			align-items: center;
+			justify-content: space-between;
+			padding: .5rem;
+		}
+
+		&-prev,
+		&-next {
+
+			svg {
+				width: 16px;
+				height: 16px;
+			}
+
+		}
+
+		&-page {
+			font-size: 14px;
+			user-select: none;
+		}
+	}
+}
