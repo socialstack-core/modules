@@ -220,7 +220,7 @@ export default function User(props){
 	}
 	*/
 
-	var userName = user.creatorUser ? user.creatorUser.displayName : 'Unknown user';
+	var userName = user.creatorUser && user.creatorUser.username ? user.creatorUser.username : 'Unknown user';
 
 	var videoStyle = videoOn ? {} : { 'display': 'none' };
 	var audioStyle = audioOn ? undefined : { 'display': 'none' };
