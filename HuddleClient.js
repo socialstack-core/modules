@@ -722,7 +722,17 @@ export default class HuddleClient{
 		else
 		{
 			// Ask for a random server:
-			webRequest('huddle/join').then(response => {
+			var host = '';
+			
+			if(this.props.serviceHost){
+				if(this.props.serviceHost.indexOf('localhost') === 0){
+					host = 'http://' + this.props.serviceHost + '/v1/';
+				}else{
+					host = 'https://' + this.props.serviceHost + '/v1/';
+				}
+			}
+			
+			webRequest(host + 'huddle/join').then(response => {
 				console.log('Joining via server ' + response.json.address);
 				this.initSocket(response.json.address, response.json.http);
 				this.socket.start();
