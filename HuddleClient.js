@@ -1,5 +1,6 @@
 import webRequest, {expandIncludes} from 'UI/Functions/WebRequest';
 import WebSocket from 'UI/Functions/WebSocket';
+import store from 'UI/Functions/Store';
 import getRef from 'UI/Functions/GetRef';
 import testMp3FileRef from './static/test.mp3';
 import vidRef from './static/b.mp4';
@@ -8,6 +9,29 @@ import vidRef from './static/b.mp4';
 // - If a channel is muted, mark the media section as disabled. Don't outright remove it.
 // - Must ensure the very first media section is never removed, otherwise it invalidates the bundle.
 
+var _huddleUserState = null;
+
+function saveUserState(){
+	store.set('huddle', JSON.stringify(_huddleUserState));
+}
+
+function loadUserState(){
+	_huddleUserState = {};
+	var json = store.get('huddle');
+	if(!json){
+		return;
+	}
+	
+	try{
+		var state = JSON.parse(json);
+		
+		if(state.displayName || state.avatarRef || state.token){
+			_huddleUserState = state;
+		}
+	}catch(e){
+		console.log(e);
+	}
+}
 
 export default class HuddleClient{
 	
@@ -18,6 +42,32 @@ export default class HuddleClient{
 	}
 
 	initSocket(host, isHttp) {
+		
+		if(!_huddleUserState){
+			loadUserState();
+		}
+		
+		var changedUserState = false;
+		
+		if(this.props.displayName){
+			if(this.props.displayName != _huddleUserState.displayName){
+				_huddleUserState.displayName = this.props.displayName;
+				changedUserState = true;
+			}
+		}
+		
+		if(this.props.avatarRef){
+			if(this.props.avatarRef != _huddleUserState.avatarRef){
+				_huddleUserState.avatarRef = this.props.avatarRef;
+				changedUserState = true;
+			}
+		}
+		
+		if(changedUserState){
+			saveUserState();
+		}
+		
+		console.log(_huddleUserState);
 		
 		var wsPath = this.props.socketPath;
 		
@@ -130,7 +180,15 @@ export default class HuddleClient{
 			// Various strings - the offer then the JSON of current producers.
 			var offerHead = r.readUtf8();
 			var candidate = r.readUtf8();
+			var userToken = r.readUtf8(); // Huddle network user token
+			r.readUtf8(); // Extension json (unused)
 			
+			if(userToken){
+				// Store the updated user state
+				_huddleUserState.token = userToken;
+				saveUserState();
+			}
+				
 			var presSize = r.readUInt32();
 			
 			var presence = r.readUtf8SizedPlus1(presSize);
@@ -732,9 +790,16 @@ export default class HuddleClient{
 	
 	sendSocketJoin(){
 		// Connect the websocket and make a join request:
+		console.log(_huddleUserState);
+		
 		var writer = new this.socket.Writer(44);
-		writer.writeUtf8(this.props.slug);
+		writer.writeUtf8(_huddleUserState.avatarRef); // avatarRef
+		writer.writeUtf8(null); // configJson (unused, extension port)
+		writer.writeUtf8(_huddleUserState.displayName); // displayName
+		writer.writeUtf8(this.props.slug); // huddleSlug
 		writer.writeUInt32(12); // Initial number of audience members to tune in to.
+		writer.writeUtf8(this.props.roleKey); // Role key
+		writer.writeUtf8(_huddleUserState.token); // User token
 		this.socket.send(writer);
 		
 		// Note that a successful join request will subscribe to changes and reply with both an offer and the list of people in the meeting.
