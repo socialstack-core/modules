@@ -1640,15 +1640,17 @@ public partial class BlockChain
 
 	private Writer BuildBlockBoundary(ulong timestamp, long byteOffset, bool isFirstBlock, bool updateDigest = false)
 	{
-		// Generate and append a block header.
+		// Generate and append a block boundary.
+		// These are just purely informational - the information they contain can be
+		// derived from following the chain and should be checked for validity.
 		var writer = Writer.GetPooled();
 		writer.Start(null);
 
 		// Block boundary txn:
 		writer.WriteInvertibleCompressed(Schema.BlockBoundaryDefId);
 
-		// 4 fields:
-		writer.WriteInvertibleCompressed(4);
+		// 3 fields:
+		writer.WriteInvertibleCompressed(3);
 
 		// The node ID (can be 0 at the start of the chain). As it is a special field it must occur before timestamp:
 		writer.WriteInvertibleCompressed(Schema.NodeId);
@@ -1665,10 +1667,11 @@ public partial class BlockChain
 		writer.WriteInvertibleCompressed((ulong)byteOffset);
 		writer.WriteInvertibleCompressed(Schema.ByteOffsetDefId);
 
-		// The field ID for the signature is included in the hash:
-		writer.WriteInvertibleCompressed(Schema.SignatureDefId);
-
-		// ---------- End of hash for signature region -----------
+		// 3 fields (again, for readers going backwards):
+		writer.WriteInvertibleCompressed(3);
+		writer.WriteInvertibleCompressed(Schema.BlockBoundaryDefId);
+		
+		// ---------- End of block -----------
 
 		// Thus, apply it to the digest:
 		var writerBuffer = writer.FirstBuffer;
@@ -1676,83 +1679,19 @@ public partial class BlockChain
 		var handledUpTo = writer.CurrentFill;
 		_writeDigest.BlockUpdate(writerBuffer.Bytes, offset, handledUpTo - offset);
 
-		// Get the pre-signed block hash:
+		// Get the block hash:
 		Span<byte> blockHash = stackalloc byte[32];
 		_writeDigest.DoFinal(blockHash, 0);
 
-		// Console.WriteLine("[SIGN] Block #x pre-sig hash: " + Hex.Convert(blockHash.ToArray()));
+		// Console.WriteLine("Block #x hash: " + Hex.Convert(blockHash.ToArray()));
 
-		// Note: The rolling digest was Reset internally DoFinal.
-
-		// Sign the hash using the suitable key.
-		// If this is the first block then it is using the project key, otherwise it is using "this" node key.
-
-		ECDsaSigner blockSigner;
-
-		if (isFirstBlock)
-		{
-			blockSigner = Project.GetProjectSigner();
-		}
-		else
-		{
-			blockSigner = Project.GetNodeSigner();
-		}
-
-		var signatureBytes = GenerateSignature(blockHash, blockSigner);
-
-		writer.WriteInvertible(signatureBytes);
-		writer.WriteInvertibleCompressed(Schema.SignatureDefId);
-
-		// 4 fields (again, for readers going backwards):
-		writer.WriteInvertibleCompressed(4);
-		writer.WriteInvertibleCompressed(Schema.BlockBoundaryDefId);
-
-		var bytesToAdd = writer.CurrentFill - handledUpTo;
-
-		// Include the signature in the hash. Initialise with the current block hash,
-		// then write the rest of the transaction (i.e. incl the signature).
-		for (var i = 0; i < blockHash.Length; i++)
-		{
-			_writeDigest.Update(blockHash[i]);
-		}
-
-		// Add the rest of the txn (the signature):
-		_writeDigest.BlockUpdate(writerBuffer.Bytes, handledUpTo, bytesToAdd);
-
-		// The result is now the block hash. Must stop/start the digest at this point such that this secondary hash
-		// is all that is needed to init a block validation.
-		_writeDigest.DoFinal(blockHash, 0);
-
-		// Console.WriteLine("[SIGN] Block #x hash: " + Hex.Convert(blockHash.ToArray()));
-
+		// Digest has now reset - write the prev block hash into it:
 		for (var i = 0; i < blockHash.Length; i++)
 		{
 			_writeDigest.Update(blockHash[i]);
 		}
 
 		return writer;
-	}
-
-	/// <summary>
-	/// Generates a signature for the given hash.
-	/// </summary>
-	/// <param name="hash"></param>
-	/// <param name="signer"></param>
-	public byte[] GenerateSignature(Span<byte> hash, ECDsaSigner signer)
-	{
-		// Todo: BouncyCastle API uses substantial amounts of allocation - tidy up.
-		var hashByteArray = new byte[hash.Length];
-		hash.CopyTo(hashByteArray);
-		BigInteger[] rs = signer.GenerateSignature(hashByteArray);
-
-		var r = rs[0].ToByteArrayUnsigned();
-		var s = rs[1].ToByteArrayUnsigned();
-		byte[] result = new byte[1 + r.Length + s.Length];
-
-		result[0] = (byte)r.Length;
-		Array.Copy(r, 0, result, 1, r.Length);
-		Array.Copy(s, 0, result, r.Length + 1, s.Length);
-		return result;
 	}
 
 	/// <summary>

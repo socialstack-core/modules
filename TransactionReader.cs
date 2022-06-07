@@ -441,12 +441,8 @@ public partial class TransactionReader
 			case Lumity.BlockChains.Schema.BlockBoundaryDefId: // 6
 
 				// Block boundary. When one of these is encountered you MUST validate its signature.
-				if (ValidateBlockSignature())
-				{
-					return ValidationState.Valid;
-				}
+				return ValidationState.Valid;
 
-				break;
 			case Lumity.BlockChains.Schema.SetFieldsDefId: // 7
 
 				// Setting fields on an existing object. Used for updates usually. Note that SetField txns can occur on a variant too.
@@ -1335,29 +1331,6 @@ public partial class TransactionReader
 		{
 			_readBuffer = new byte[bufferSize];
 		}
-	}
-
-	/// <summary>
-	/// True if this transaction has a valid block signature in it.
-	/// </summary>
-	/// <returns></returns>
-	public bool ValidateBlockSignature()
-	{
-		var sigFieldOrdinal = GetFieldOrdinal(Schema.SignatureDefId);
-		var signature = Fields[sigFieldOrdinal].GetBytes();
-
-#warning todo: This gets self node verifier vs. the current one.
-		return true;
-
-		var verifier = CurrentBlockId == 1 ? Project.GetProjectVerifier() : Project.GetNodeVerifier();
-
-		// Console.WriteLine("Using project verifier: " + (CurrentBlockId == 1));
-
-		var rLength = (int)signature[0]; // first byte contains length of r array
-		var r = new BigInteger(1, signature, 1, rLength);
-		var s = new BigInteger(1, signature, rLength + 1, signature.Length - (rLength + 1));
-
-		return verifier.VerifySignature(_blockHashBuffer, r, s);
 	}
 
 	/// <summary>Sets up this reader for forward reading.</summary>
