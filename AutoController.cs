@@ -1,11 +1,13 @@
+using System;
 using Api.Contexts;
 using Api.Startup;
 using Microsoft.AspNetCore.Mvc;
 using Newtonsoft.Json.Linq;
 using System.Collections.Generic;
 using System.Threading.Tasks;
+using Amazon.S3.Model;
 using Api.SocketServerLibrary;
-
+using Api.Permissions;
 
 /// <summary>
 /// A convenience controller for defining common endpoints like create, list, delete etc. Requires an AutoService of the same type to function.
@@ -18,30 +20,46 @@ public partial class AutoController<T,ID>
 	/// GET /v1/entityTypeName/list.pot
 	/// Lists all entities of this type available to this user, and outputs as a POT file.
 	/// </summary>
+    /// <param name="includes"></param>
+    /// <param name="ignoreFields"></param>
 	/// <returns></returns>
 	[HttpGet("list.pot")]
-	public virtual async ValueTask ListPOT([FromQuery] string includes = null)
+	public virtual async ValueTask ListPOT([FromQuery] string includes = null, [FromQuery] string ignoreFields = null)
 	{
-		await ListPOT(null, includes);
+		await ListPOT(null, includes, ignoreFields);
 	}
 
 	/// <summary>
 	/// POST /v1/entityTypeName/list.pot
-	/// Lists filtered entities available to this user.
-	/// See the filter documentation for more details on what you can request here.
+    /// Lists filtered entities available to this user.
+    /// See the filter documentation for more details on what you can request here.
 	/// </summary>
+	/// <param name="filters"></param>
+	/// <param name="includes"></param>
+	/// <param name="ignoreFields"></param>
 	/// <returns></returns>
 	[HttpPost("list.pot")]
-	public virtual async ValueTask ListPOT([FromBody] JObject filters, [FromQuery] string includes = null)
+	public virtual async ValueTask ListPOT([FromBody] JObject filters, [FromQuery] string includes = null, [FromQuery] string ignoreFields = null)
 	{
+        var typeName = typeof(T).Name;
+
 		var context = await Request.GetContext();
-		var results = await _service.Where().ListAll(context);
+
+        var filter = _service.LoadFilter(filters) as Filter<T, ID>;
+        filter = await _service.EventGroup.EndpointStartPotList.Dispatch(context, filter, Response);
+
+        if (filter == null)
+        {
+			// A handler rejected this request
+            Response.StatusCode = 404;
+            return;
+        }
+
+        var results = await filter.ListAll(context);
 
 		// For each one, output their localisable fields.
 		var writer = Writer.GetPooled();
 		writer.Start(null);
-
-		var typeName = typeof(T).Name;
 
 		// Get all fields:
 		var fields = _service.GetContentFields();
@@ -49,8 +67,20 @@ public partial class AutoController<T,ID>
 		// Filter specifically to localised ones:
 		var localisedFields = new List<ContentField>();
 
+		// Exclude specified fields 
+        HashSet<string> ignoreFieldList = null;
+		if (!string.IsNullOrWhiteSpace(ignoreFields))
+        {
+            ignoreFieldList = new HashSet<string>(ignoreFields.Split(',', StringSplitOptions.RemoveEmptyEntries), StringComparer.InvariantCultureIgnoreCase);
+        }
+
 		foreach (var field in fields.List)
 		{
+            if (ignoreFieldList != null && ignoreFieldList.Contains(field.Name))
+            {
+                continue;
+            }
+
 			if (field.Localised)
 			{
 				localisedFields.Add(field);

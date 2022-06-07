@@ -36,4 +36,9 @@ namespace Api.Eventing
 
 	}
 
+    public partial class EventGroup<T, ID>
+    {
+        public EndpointEventHandler<Filter<T, ID>> EndpointStartPotList;
+    }
+
 }
