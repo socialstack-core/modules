@@ -78,9 +78,14 @@ function HuddleChatDemo(props) {
 	const [demoSharing2Track, setDemoSharing2Track] = useState(null);
 	
 	var [huddleClient, setHuddleClient] = useState(() => {
+		
 		var client = new HuddleClient({
-			slug: props.slug // originate from URL
+			slug: props.slug, // originate from URL
+			serviceHost: props.serviceHost,
+			host: props.host,
+			isHttp: props.isHttp
 		});
+		
 		// Client not started for demo mode, ignoring the user events as well
 		return client;
 	});
@@ -286,7 +291,10 @@ export default function HuddleChat(props) {
 	
 	var [huddleClient, setHuddleClient] = useState(() => {
 		var client = new HuddleClient({
-			slug: props.slug // originate from URL
+			slug: props.slug, // originate from URL
+			serviceHost: props.serviceHost,
+			host: props.host,
+			isHttp: props.isHttp
 		});
 		
 		// Add event listeners here
