@@ -333,9 +333,12 @@ export default function HuddleChat(props) {
 function HuddleChatUI(props) {
 	const huddleRef = useRef(null);
 	
-	var { users, huddleClient, disableChat } = props;
+	var { users, huddleClient, disableChat, disableAudience, title, description } = props;
+
+	title = title || `Huddle Demo`;
+	description = description || '** WORK IN PROGRESS **';
 	
-	const [sidebar, setSidebar] = useState(SidebarEnum.AUDIENCE);	// sidebar mode
+	const [sidebar, setSidebar] = useState(disableAudience ? SidebarEnum.CLOSED : SidebarEnum.AUDIENCE);	// sidebar mode
 	const [removedUserIds, setRemovedUserIds] = useState(() => {
 		var map = new Map();
 		
@@ -452,7 +455,7 @@ function HuddleChatUI(props) {
 	}
 	
 	return <section className={huddleClasses} ref={huddleRef}>
-		<Header title={"HaaS v2 Demo"} description={"Work in progress"} disableChat={disableChat}
+		<Header title={title} description={description} disableChat={disableChat} disableAudience={disableAudience}
 			showingAudience={sidebar == SidebarEnum.AUDIENCE}
 			showingConversation={sidebar == SidebarEnum.CONVERSATION}
 			toggleAudience={() => {
@@ -472,7 +475,7 @@ function HuddleChatUI(props) {
 		</div>
 
 		{/* audience */}
-		{sidebar == SidebarEnum.AUDIENCE && <>
+		{!disableAudience && sidebar == SidebarEnum.AUDIENCE && <>
 			<AudienceView users={users} pageSize={MAX_AUDIENCE_PER_PAGE} isDemo={DEMO_MODE} />
 		</>}
 

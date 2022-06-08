@@ -2,7 +2,7 @@ import Dropdown from 'UI/Dropdown';
 
 export default function Header(props) {
 	
-	var { title, description, start, end, showingAudience, showingConversation, disableChat } = props;
+	var { title, description, start, end, showingAudience, showingConversation, disableChat, disableAudience } = props;
 
 	var dropdownReactionsJsx = <>
 		<i className="fal fa-smile"></i> <span className="dropdown-label-internal">Reactions</span>
@@ -27,9 +27,11 @@ export default function Header(props) {
 
 		<span className="huddle-chat__header-controls">
 			{/* audience */}
-			<button type="button" className={audienceClass} onClick={() => props.toggleAudience()}>
-				<i className="fal fa-users"></i>
-			</button>
+			{!disableAudience && <>
+				<button type="button" className={audienceClass} onClick={() => props.toggleAudience()}>
+					<i className="fal fa-users"></i>
+				</button>
+			</>}
 
 			{/* conversation */}
 			{!disableChat && <>
@@ -40,30 +42,31 @@ export default function Header(props) {
 
 			{/* reactions */}
 			{/* TODO */}
+			{true && <>
 			<Dropdown className="huddle-chat__header-reactions" label={dropdownReactionsJsx} variant="link" align="right">
 				<li>
 					<button type="button" className="btn dropdown-item">
-						<i className="fal fa-fw fa-thumbs-up"></i> Like
+							<i className="fal fa-fw fa-thumbs-up"></i> {`Like`}
 					</button>
 				</li>
 				<li>
 					<button type="button" className="btn dropdown-item">
-						<i className="fal fa-fw fa-heart"></i> Heart
+							<i className="fal fa-fw fa-heart"></i> {`Heart`}
 					</button>
 				</li>
 				<li>
 					<button type="button" className="btn dropdown-item">
-						<i className="fal fa-fw fa-sign-language"></i> Applause
+							<i className="fal fa-fw fa-sign-language"></i> {`Applause`}
 					</button>
 				</li>
 				<li>
 					<button type="button" className="btn dropdown-item">
-						<i className="fal fa-fw fa-laugh-beam"></i> Laugh
+							<i className="fal fa-fw fa-laugh-beam"></i> {`Laugh`}
 					</button>
 				</li>
 				<li>
 					<button type="button" className="btn dropdown-item">
-						<i className="fal fa-fw fa-surprise"></i> Surprised
+							<i className="fal fa-fw fa-surprise"></i> {`Surprised`}
 					</button>
 				</li>
 				<li>
@@ -71,17 +74,19 @@ export default function Header(props) {
 				</li>
 				<li>
 					<button type="button" className="btn dropdown-item">
-						<i className="fal fa-fw fa-hand-paper"></i> Raise hand
+							<i className="fal fa-fw fa-hand-paper"></i> {`Raise hand`}
 					</button>
 				</li>
 			</Dropdown>
+			</>}
 
 			{/* options */}
 			{/* TODO */}
+			{true && <>
 			<Dropdown className="huddle-chat__header-options" label={dropdownOptionsJsx} variant="link" align="right">
 				<li>
 					<button type="button" className="btn dropdown-item">
-						<i className="fal fa-fw"></i> Other jaw-dropping feature
+							<i className="fal fa-fw"></i> {`Other jaw-dropping feature`}
 					</button>
 				</li>
 				<li>
@@ -89,12 +94,12 @@ export default function Header(props) {
 				</li>
 				<li>
 					<button type="button" className="btn dropdown-item">
-						<i className="fal fa-fw fa-microphone-slash"></i> Disable all incoming audio
+							<i className="fal fa-fw fa-microphone-slash"></i> {`Disable all incoming audio`}
 					</button>
 				</li>
 				<li>
 					<button type="button" className="btn dropdown-item">
-						<i className="fal fa-fw fa-video-slash"></i> Disable all incoming video
+							<i className="fal fa-fw fa-video-slash"></i> {`Disable all incoming video`}
 					</button>
 				</li>
 				{/*
@@ -103,11 +108,12 @@ export default function Header(props) {
 			</li>
 			<li>
 				<button type="button" className="btn dropdown-item" onClick={() => logout('/en-admin/', setSession, setPage)}>
-					Logout
+					{`Logout`}
 				</button>
 			</li>
 			*/}
 			</Dropdown>
+			</>}
 		</span>
 
 		{/*

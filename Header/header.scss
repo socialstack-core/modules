@@ -1,7 +1,8 @@
 .huddle-chat__header {
 	overflow: hidden;
 	padding: 16px 24px;
-	color: #fff;
+	background: var(--huddle-header-bg, transparent);
+	color: var(--huddle-header-fg, #fff);
 	display: flex;
 	align-items: center;
 	justify-content: space-between;
@@ -17,16 +18,17 @@
 
 	&-audience,
 	&-conversation {
-		color: #fff;
+		background: var(--huddle-header-btn-bg, transparent);
+		color: var(--huddle-header-btn-fg, #fff);
 
 		&:not(.btn--active):hover {
-			background: #444;
-			color: #fff;
+			background: var(--huddle-header-btn-bg-hover, #444);
+			color: var(--huddle-header-btn-fg-hover, #fff);
 		}
 
 		&.btn--active {
-			background: var(--primary);
-			color: var(--primary-fg);
+			background: var(--huddle-header-btn-bg-active, var(--primary));
+			color: var(--huddle-header-btn-fg-active, var(--primary-fg));
 		}
 
 	}
@@ -72,14 +74,15 @@
 	}
 
 	&-title {
-		font-size: 24px;
-		font-weight: bold;
+		font-family: var(--huddle-header-title-font-family, var(--font));
+		font-weight: var(--huddle-header-title-font-weight, bold);
+		font-size: var(--huddle-header-title-font-size, 24px);
 		margin: 0;
 	}
 
 	&-description {
-		font-size: 14px;
-		font-weight: normal;
+		font-size: var(--huddle-header-description-font-size, 14px);
+		//font-weight: normal;
 		margin: 0;
 	}
 

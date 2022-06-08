@@ -10,15 +10,15 @@
 		flex-wrap: wrap;
 		gap: 1px;
 		justify-content: center;
-		background: #ccc;
+		background: var(--huddle-pinned-bg, #ccc);
 
 		#{$huddle-chat}__user {
 			aspect-ratio: 16/9;
-		    background: #444;
+		    background: var(--huddle-pinned-user-bg, #444);
 			display: flex;
 			align-items: center;
 			justify-content: center;
-			color: #fff;
+			color: var(--huddle-pinned-user-fg, #fff);
 			width: 159px;
 		}
 	}

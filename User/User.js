@@ -293,9 +293,15 @@ export default function User(props){
 				</>}
 			</span>
 
-			{!user.gone && <>
+			{/* NB: disabled until options are included */}
+			{!user.gone && true && <>
 				{/* options dropup button */}
 				<Dropdown title={"Options"} className="huddle-chat__user-options" label={labelJsx} variant="link" position="top" align="right">
+					<li>
+						<button type="button" className="btn dropdown-item">
+							<i className="fal fa-fw fa-star"></i> {`Example option`}
+						</button>
+					</li>
 					{/* now handled automatically */}
 					{/*videoOn && <>
 					<li>

@@ -24,7 +24,9 @@ html {
     $huddle-chat: &;
     height: 100vh;
     width: 100vw;
-    background: rgb(10,10,10);
+    background: var(--huddle-bg, rgb(10,10,10));
+    font-family: var(--huddle-font-family, var(--font));
+    font-weight: var(--huddle-font-weight, var(--bs-body-font-weight));
     overflow: hidden;
     display: grid;
     grid-template-columns: minmax(0, 1fr);
@@ -65,7 +67,7 @@ html {
     &__sidebar {
         $huddle-chat__sidebar: &;
         grid-area: sidebar;
-        background: #eee;
+        background: var(--huddle-sidebar-bg, #eee);
         //display: flex;
         //flex-direction: column;
         //min-height: 0;
@@ -107,7 +109,7 @@ html {
 
         &-audience-member {
             //aspect-ratio: 16 / 9;
-            background: #444;
+            background: var(--huddle-audience-member-bg, #444);
             width: calc((100% - 1px) / 2);
 
             #{$huddle-chat}__user {
