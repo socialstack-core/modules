@@ -83,7 +83,9 @@ function HuddleChatDemo(props) {
 			slug: props.slug, // originate from URL
 			serviceHost: props.serviceHost,
 			host: props.host,
-			isHttp: props.isHttp
+			isHttp: props.isHttp,
+			avatarRef: props.avatarRef,
+			displayName: props.displayName
 		});
 		
 		// Client not started for demo mode, ignoring the user events as well
@@ -97,7 +99,7 @@ function HuddleChatDemo(props) {
 			createdUtc: Date.now(),
 			creatorUser: {
 				id: 1,
-				displayName: 'Gloria',
+				username: 'Gloria',
 				avatarRef: 'public:6DBAE2A6F533051CE199D7FAD982E2D1/2.jpg'
 			},
 			editedUtc: Date.now(),
@@ -120,7 +122,7 @@ function HuddleChatDemo(props) {
 			createdUtc: Date.now(),
 			creatorUser: {
 				id: 2,
-				displayName: 'Dave',
+				username: 'Dave',
 				avatarRef: 'public:6DBAE2A6F533051CE199D7FAD982E2D1/2.jpg'
 			},
 			editedUtc: Date.now(),
@@ -143,7 +145,7 @@ function HuddleChatDemo(props) {
 			createdUtc: Date.now(),
 			creatorUser: {
 				id: 3,
-				displayName: 'Markus',
+				username: 'Markus',
 				avatarRef: 'public:6DBAE2A6F533051CE199D7FAD982E2D1/3.jpg'
 			},
 			editedUtc: Date.now(),
@@ -163,7 +165,7 @@ function HuddleChatDemo(props) {
 		{
 			id: 6,
 			userId: 6,
-			displayName: 'Lurker',
+			username: 'Lurker',
 			avatarRef: 'public:6DBAE2A6F533051CE199D7FAD982E2D1/3.jpg',
 			audioOn: false,
 			videoOn: false
@@ -171,7 +173,7 @@ function HuddleChatDemo(props) {
 		{
 			id: 7,
 			userId: 7,
-			displayName: 'Steve',
+			username: 'Steve',
 			avatarRef: 'public:6DBAE2A6F533051CE199D7FAD982E2D1/2.jpg',
 			audioOn: true,
 			videoOn: true,
@@ -180,7 +182,7 @@ function HuddleChatDemo(props) {
 		{
 			id: 8,
 			userId: 8,
-			displayName: 'Geoff',
+			username: 'Geoff',
 			avatarRef: 'public:6DBAE2A6F533051CE199D7FAD982E2D1/2.jpg',
 			audioOn: true,
 			videoOn: true,
@@ -198,7 +200,7 @@ function HuddleChatDemo(props) {
 			createdUtc: Date.now(),
 			creatorUser: {
 				id: j,
-				displayName: 'Dummy User ' + j,
+				username: 'Dummy User ' + j,
 				avatarRef: 'public:6DBAE2A6F533051CE199D7FAD982E2D1/2.jpg'
 			},
 			editedUtc: Date.now(),
@@ -229,7 +231,7 @@ function HuddleChatDemo(props) {
 			createdUtc: Date.now(),
 			creatorUser: {
 				id: j,
-				displayName: 'Dummy User ' + j,
+				username: 'Dummy User ' + j,
 				avatarRef: 'public:6DBAE2A6F533051CE199D7FAD982E2D1/2.jpg'
 			},
 			editedUtc: Date.now(),
@@ -294,7 +296,9 @@ export default function HuddleChat(props) {
 			slug: props.slug, // originate from URL
 			serviceHost: props.serviceHost,
 			host: props.host,
-			isHttp: props.isHttp
+			isHttp: props.isHttp,
+			avatarRef: props.avatarRef,
+			displayName: props.displayName
 		});
 		
 		// Add event listeners here
