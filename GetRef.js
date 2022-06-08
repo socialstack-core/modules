@@ -11,13 +11,13 @@ export default function getRef(ref, options) {
 	return r ? r.handler(r.ref, options || {}, r) : null;
 }
 
-function basicUrl(url, options){
+function basicUrl(url, options, r){
 	if(options.url){
-		return url;
+		return r.scheme + '://' + url;
 	}
 	
 	// React component by default:
-	return (<img loading="lazy" src={url} {...options.attribs} />);
+	return (<img loading="lazy" src={r.scheme + '://' + url} {...options.attribs} />);
 }
 
 function staticFile(ref, options, r){
