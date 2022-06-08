@@ -671,4 +671,4 @@ var dflt = global.wsUrl ? websocketHandler({reconnectOnUserChange: 1, addDefault
 dflt.create = websocketHandler;
 export default dflt;
 
-window.addEventListener('load', () => dflt.start());
+window.addEventListener('load', () => dflt.start && dflt.start());
