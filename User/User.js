@@ -5,7 +5,7 @@ import Dropdown from 'UI/Dropdown';
 const DEFAULT_RATIO = 16 / 9;
 
 export default function User(props){
-	var { user, isThumbnail, isDemo, node } = props;
+	var { user, isThumbnail, node } = props;
 	const userRef = useRef();
 	
 	var [videoPaused, setVideoPaused] = useState();
@@ -257,7 +257,6 @@ export default function User(props){
 			autoplay
 			playsinline
 			muted
-			loop={isDemo ? true : undefined}
 			controls={false}
 		/>
 
@@ -274,7 +273,6 @@ export default function User(props){
 			autoplay
 			playsinline
 			muted
-			loop={isDemo ? true : undefined}
 			controls={false}
 		/>
 

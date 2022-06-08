@@ -90,7 +90,7 @@ function updateAspectRatio(stage, stageLayouts) {
 }
 
 export default function StageView(props){
-	var { users, isDemo } = props;
+	var { users } = props;
     const stageRef = useRef(null);
 
     var stageLayouts = [];
@@ -129,7 +129,7 @@ export default function StageView(props){
 	
     return <ul className="huddle-chat__stage" data-users={users ? users.length : undefined} ref={stageRef}>
         {users.map(user => {
-            return <User className="huddle-chat__stage-user" key={user.id} user={user} isDemo />;
+            return <User className="huddle-chat__stage-user" key={user.id} user={user} />;
         })}
     </ul>;
 }

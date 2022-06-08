@@ -2,7 +2,7 @@ import User from '../User';
 import { useState, useEffect } from 'react';
 
 export default function AudienceView(props) {
-	const { users, pageSize, isDemo } = props;
+	const { users, pageSize } = props;
 	var [pageCount, setPageCount] = useState(users.length ? Math.ceil(users.length / pageSize) : 0);
 	var [pageIndex, setPageIndex] = useState(1);
 
@@ -37,7 +37,7 @@ export default function AudienceView(props) {
 			<div className="huddle-chat__sidebar-body">
 				<ul className="huddle-chat__sidebar-body-internal huddle-chat__sidebar-audience-members">
 					{pageUsers.map(user => <li className="huddle-chat__sidebar-audience-member">
-						<User user={user} isThumbnail node={"div"} isDemo />
+						<User user={user} isThumbnail node={"div"} />
 					</li>)}
 				</ul>
 			</div>
