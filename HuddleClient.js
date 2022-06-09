@@ -221,7 +221,7 @@ export default class HuddleClient{
 			"a=rtcp-fb:97 nack\r\n"+
 			"a=rtcp-fb:97 nack pli\r\n"+
 			"a=rtpmap:97 H264/90000\r\n"+
-			"a=fmtp:97 profile-level-id=42e01f;level-asymmetry-allowed=1;x-google-max-bitrate=" + targetBitrateK + ";x-google-min-bitrate=" + targetBitrateK + ";x-google-start-bitrate=" + targetBitrateK + "\r\n"+
+			"a=fmtp:97 profile-level-id=42e01f;level-asymmetry-allowed=1;packetization-mode=1;x-google-max-bitrate=" + targetBitrateK + ";x-google-min-bitrate=" + targetBitrateK + ";x-google-start-bitrate=" + targetBitrateK + "\r\n"+
 			// "a=extmap:3 urn:ietf:params:rtp-hdrext:sdes:mid\r\n"+
 			"a=extmap:4 http://www.webrtc.org/experiments/rtp-hdrext/abs-send-time\r\n"+
 			// "a=extmap:5 http://www.ietf.org/id/draft-holmer-rmcat-transport-wide-cc-extensions-01\r\n"+
