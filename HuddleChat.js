@@ -23,7 +23,23 @@ const SidebarEnum = Object.freeze({
 	CONVERSATION: 2
 });
 
-export default function HuddleChat(props) {
+export default function HuddleChat(props){
+	const [joined, setJoined] = useState(false);
+	
+	if(!joined){
+		// Click farming UI. This is for 2 things: so the user can check their mic/ cam, 
+		// and also so we can farm the click in order to avoid autoplay blocks.
+		return <button className="btn btn-primary" onClick={() => {
+			setJoined(1);
+		}}>
+			{`Join meeting`}
+		</button>;
+	}
+	
+	return <HuddleChatClient {...props} />;
+}
+
+function HuddleChatClient(props) {
 	const [users, setUsers] = useState(null);
 	
 	var [huddleClient, setHuddleClient] = useState(() => {
