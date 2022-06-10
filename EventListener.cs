@@ -110,7 +110,7 @@ namespace Api.Uploader
 									var path = context.Context.Request.Path.Value + context.Context.Request.QueryString.Value;
 									var endingStart = path.IndexOf('.');
 									var idEnd = path.LastIndexOf('-');
-									var idStart = path.LastIndexOf('/', idEnd);
+									var idStart = 16; // This is the index of the / just after content-private
 
 									var signedRef = "private:" + path.Substring(idStart + 1, idEnd - idStart - 1) + path.Substring(endingStart);
 
