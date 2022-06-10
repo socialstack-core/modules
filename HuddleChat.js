@@ -1,6 +1,7 @@
 import StageView from './StageView';
 import PinnedView from './PinnedView';
 import AudienceView from './AudienceView';
+import AvTest from './AvTest';
 import Header from './Header';
 import Options from './Options';
 import { useState, useEffect, useRef } from 'react';
@@ -25,18 +26,29 @@ const SidebarEnum = Object.freeze({
 
 export default function HuddleChat(props){
 	const [joined, setJoined] = useState(false);
+	const [deviceHints, setDeviceHints] = useState({});
 	
 	if(!joined){
 		// Click farming UI. This is for 2 things: so the user can check their mic/ cam, 
 		// and also so we can farm the click in order to avoid autoplay blocks.
-		return <button className="btn btn-primary" onClick={() => {
-			setJoined(1);
-		}}>
-			{`Join meeting`}
-		</button>;
+		return <div>
+			<div>
+				<AvTest onDeviceSelect={(newHints) => {
+					var hints = {...deviceHints, ...newHints};
+					setDeviceHints(hints);
+				}}/>
+			</div>
+			<div>
+				<button className="btn btn-primary" onClick={() => {
+					setJoined(1);
+				}}>
+					{`Join meeting`}
+				</button>
+			</div>
+		</div>;
 	}
 	
-	return <HuddleChatClient {...props} />;
+	return <HuddleChatClient {...props} {...deviceHints}/>;
 }
 
 function HuddleChatClient(props) {
@@ -49,7 +61,9 @@ function HuddleChatClient(props) {
 			host: props.host,
 			isHttp: props.isHttp,
 			avatarRef: props.avatarRef,
-			displayName: props.displayName
+			displayName: props.displayName,
+			deviceIdAudio: props.deviceIdAudio,
+			deviceIdVideo: props.deviceIdVideo
 		});
 		
 		// Add event listeners here
