@@ -40,7 +40,7 @@ export default class HuddleClient{
 		this.eventHandlers = {};
 		this.sendStream = new MediaStream();
 	}
-
+	
 	initSocket(host, isHttp) {
 		
 		if(!_huddleUserState){
@@ -66,8 +66,6 @@ export default class HuddleClient{
 		if(changedUserState){
 			saveUserState();
 		}
-		
-		console.log(_huddleUserState);
 		
 		var wsPath = this.props.socketPath;
 		
@@ -800,8 +798,6 @@ export default class HuddleClient{
 	
 	sendSocketJoin(){
 		// Connect the websocket and make a join request:
-		console.log(_huddleUserState);
-		
 		var writer = new this.socket.Writer(44);
 		writer.writeUtf8(_huddleUserState.avatarRef); // avatarRef
 		writer.writeUtf8(null); // configJson (unused, extension port)
@@ -858,20 +854,24 @@ export default class HuddleClient{
 	}
 
 	getWebcam(){
-		return global.navigator.mediaDevices.getUserMedia(
-		{
+		var constraints = {
 			video : {
 				width          : { max: 1920/2, ideal: 1920/2 },
 				height         : { max: 1080/2, ideal: 1080/2 },
 				frameRate      : { max: 30 }
 			},
 			audio: false
-		});
+		};
+		
+		if(this.props.deviceIdVideo){
+			constraints.video.deviceId = this.props.deviceIdVideo;
+		}
+		
+		return global.navigator.mediaDevices.getUserMedia(constraints);
 	}
 	
 	getMicrophone(){
-		return global.navigator.mediaDevices.getUserMedia(
-		{
+		var constraints = {
 			audio : {
 				autoGainControl: false,
 				noiseSuppression: false,
@@ -881,7 +881,13 @@ export default class HuddleClient{
 				highpassFilter: false
 			},
 			video: false
-		}).then(stream => {
+		};
+		
+		if(this.props.deviceIdAudio){
+			constraints.audio.deviceId = this.props.deviceIdAudio;
+		}
+		
+		return global.navigator.mediaDevices.getUserMedia(constraints).then(stream => {
 			var AudioContext = window.AudioContext || window.webkitAudioContext;
 			var audioCtx = new AudioContext();
 			var micIn = audioCtx.createMediaStreamSource(stream);
@@ -896,7 +902,7 @@ export default class HuddleClient{
 	}
 	
 	webcam(on){
-		return this.changeState(on, 'webcam', this.getWebcam);
+		return this.changeState(on, 'webcam', () => this.getWebcam());
 	}
 	
 	screenshare(on) {
@@ -904,7 +910,7 @@ export default class HuddleClient{
 	}
 	
 	microphone(on) {
-		return this.changeState(on, 'microphone', this.getMicrophone);
+		return this.changeState(on, 'microphone', () => this.getMicrophone());
 	}
 	
 	isActive(channel) {
