@@ -4,7 +4,8 @@ using Api.Contexts;
 using System.IO;
 using Microsoft.Extensions.Primitives;
 using Api.Startup;
-using System;
+using System.Collections.Generic;
+using System.Linq;
 
 namespace Api.Uploader
 {
@@ -150,6 +151,98 @@ namespace Api.Uploader
 			// Expect a tar:
 			await (_service as UploadService).ExtractTarToStorage(context, id, "chunks", contentStream);
 		}
-	}
 
+        /// <summary>
+        /// List any active media refs
+        /// </summary>
+        [HttpGet("active")]
+        public async ValueTask Active([FromQuery] string includes)
+        {
+            var context = await Request.GetContext();
+
+            List<Upload> uploads = new List<Upload>();
+
+            // loop through all content and look for any media refs in use 
+            foreach (var kvp in Services.All)
+            {
+                var activeRefs = await kvp.Value.ActiveRefs(context);
+                if (activeRefs != null && activeRefs.Any())
+                {
+                    uploads.AddRange(activeRefs);
+                }
+            }
+            await OutputJson(context, uploads.OrderBy(u => u.OriginalName).ToList(), includes , true);
+        }
+
+        /// <summary>
+        /// List any active media refs
+        /// </summary>
+        [HttpPost("active")]
+        public async ValueTask ActivePost([FromQuery] string includes)
+        {
+            await Active(includes);
+        }
+
+        /// <summary>
+        /// Replace any existing refs with new ones
+        /// </summary>
+        [HttpGet("replace")]
+        public async ValueTask<List<MediaRef>> Replace([FromQuery] string sourceRef, [FromQuery] string targetRef)
+        {
+            if (string.IsNullOrWhiteSpace(sourceRef))
+            {
+                throw new PublicException("No source media reference was provided - aborted", "no_sourceRef");
+            }
+
+            if (string.IsNullOrWhiteSpace(targetRef))
+            {
+                throw new PublicException("No target media reference was provided - aborted", "no_targetRef");
+            }
+
+            var context = await Request.GetContext();
+
+            List<MediaRef> mediaRefs = new List<MediaRef>();
+
+            // loop through all content and attempt to replace ref values
+            foreach (var kvp in Services.All)
+            {
+                var updated = await kvp.Value.ReplaceRefs(context, sourceRef, targetRef);
+                if (updated != null && updated.Any())
+                {
+                    mediaRefs.AddRange(updated);
+                }
+            }
+
+            return mediaRefs;
+        }
+
+		/// <summary>
+		/// Preview any media refs changes 
+		/// </summary>
+		[HttpGet("replace/preview")]
+        public async ValueTask<List<MediaRef>> Preview([FromQuery] string uploadRef)
+        {
+            if (string.IsNullOrWhiteSpace(uploadRef))
+            {
+                throw new PublicException("No media reference was provided - aborted", "no_ref");
+            }
+
+            List<MediaRef> mediaRefs = new List<MediaRef>();
+            var context = await Request.GetContext();
+
+            // loop through all content and preview the proposed replacement of ref values
+            foreach (var kvp in Services.All)
+            {
+                var updated = await kvp.Value.ReplaceRefs(context, uploadRef, string.Empty);
+                if (updated != null && updated.Any())
+                {
+                    mediaRefs.AddRange(updated);
+                }
+            }
+
+            return mediaRefs;
+        }
+
+
+	}
 }
