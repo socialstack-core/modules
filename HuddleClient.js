@@ -172,14 +172,30 @@ export default class HuddleClient{
 		this.socket.registerOpcode(45, r => {
 			var payloadSize = r.readUInt32();
 			var selfPresenceId = r.readUInt32();
+			
 			this.selfId = selfPresenceId;
-			console.log("Join response. SelfId " + this.selfId); 
 			
 			// Various strings - the offer then the JSON of current producers.
 			var offerHead = r.readUtf8();
 			var candidate = r.readUtf8();
 			var userToken = r.readUtf8(); // Huddle network user token
-			r.readUtf8(); // Extension json (unused)
+			var extension = r.readUtf8(); // Extension json (used by errors)
+			
+			if(selfPresenceId == 0){
+				
+				var extensionJson = {
+					error: 'huddle_not_found'
+				};
+				
+				try{
+					extensionJson = JSON.parse(extension);
+				}catch(e){
+					console.log(e);
+				}
+				
+				this.props.onError && this.props.onError(extensionJson);
+				return;
+			}
 			
 			if(userToken){
 				// Store the updated user state
