@@ -3,13 +3,13 @@ export default function Options(props){
 	var {audioOn, videoOn, shareOn} = props;
 
 	var videoClass = "btn huddle-chat__button huddle-chat__button--camera ";
-	videoClass += videoOn ? "btn-danger" : "btn-success";
+	videoClass += videoOn ? "btn-secondary btn-pulse" : "btn-danger";
 
 	var audioClass = "btn huddle-chat__button huddle-chat__button--mute ";
-	audioClass += audioOn ? "btn-danger btn-pulse" : "btn-success";
+	audioClass += audioOn ? "btn-secondary btn-pulse" : "btn-danger";
 
 	var shareClass = "btn btn-primary huddle-chat__button huddle-chat__button--share ";
-	shareClass += shareOn ? "btn-danger btn-pulse" : "btn-primary";
+	shareClass += shareOn ? "btn-secondary btn-pulse" : "btn-danger";
 
 	return <div className="huddle-chat__options">
 		<div className="huddle-chat__options-left">
@@ -23,11 +23,11 @@ export default function Options(props){
 		<div className="huddle-chat__options-media">
 			<button className={videoClass} title={videoOn ? `Turn off camera` : 'Turn on camera'}
 				onClick={() => props.setVideo(videoOn ? 0 : 1)}>
-				<i className={videoOn ? "fas fa-video-slash" : "fas fa-video"} />
+				<i className={videoOn ? "fas fa-video" : "fas fa-video-slash"} />
 			</button>
 			<button className={audioClass} title={audioOn ? `Mute` : 'Turn on microphone'}
 				onClick={() => props.setAudio(audioOn ? 0 : 1)}>
-				<i className={audioOn ? "fas fa-microphone-slash" : "fas fa-microphone"} />
+				<i className={audioOn ? "fas fa-microphone" : "fas fa-microphone-slash"} />
 			</button>
 		</div>
 	</div>;
