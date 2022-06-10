@@ -141,6 +141,11 @@ export default class FileSelector extends React.Component {
 			filename = originalName;
 		}
 		
+		var source = "upload/list";
+		if (this.props.showActive ) {
+		 	source = "upload/active";
+		}
+
 		return <div className="file-selector">
 
 			{/* upload browser */}
@@ -159,7 +164,7 @@ export default class FileSelector extends React.Component {
 			>
 				{this.renderHeader()}
 				<div className="file-selector__grid">
-					<Loop raw  over="upload/list" filter={{ sort: { field: 'CreatedUtc', direction: 'desc' } }} paged>
+					<Loop raw over={source} filter={{ sort: { field: 'CreatedUtc', direction: 'desc' } }} paged>
 						{
 							entry => {
 
@@ -236,11 +241,19 @@ export default class FileSelector extends React.Component {
 			<div className="file-selector__options">
 				{!this.props.browseOnly && <>
 
-					{this.props.iconOnly ? <>
+					{this.props.uploadOnly && 
+						<button type="button" className="btn btn-primary file-selector__select" onClick={() => this.showModal()}>
+							{`Select upload`}
+						</button>
+					}
+
+					{this.props.iconOnly &&
 						<button type="button" className="btn btn-primary file-selector__select" onClick={() => this.setState({ iconModalOpen: true })}>
 							{`Select icon`}
 						</button>
-					</> : <>
+					}
+					
+					{!this.props.uploadOnly && !this.props.iconOnly && 
 							<Dropdown label={`Select`} variant="primary" className="file-selector__select">
 							<li>
 								<button type="button" className="btn dropdown-item" onClick={() => this.showModal()}>
@@ -253,7 +266,7 @@ export default class FileSelector extends React.Component {
 								</button>
 							</li>
 						</Dropdown>
-					</>}
+					}
 
 				</>}
 				{hasRef && <>
