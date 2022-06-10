@@ -119,8 +119,8 @@ function HuddleChatUI(props) {
 	
 	var { users, huddleClient, disableChat, disableAudience, title, description } = props;
 
-	title = title || `Huddle Demo`;
-	description = description || '** WORK IN PROGRESS **';
+	title = title || 'Meet Now';
+	description = description || 'Beta';
 	
 	const [sidebar, setSidebar] = useState(disableAudience ? SidebarEnum.CLOSED : SidebarEnum.AUDIENCE);	// sidebar mode
 	const [removedUserIds, setRemovedUserIds] = useState(() => {
