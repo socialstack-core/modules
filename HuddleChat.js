@@ -53,6 +53,7 @@ export default function HuddleChat(props){
 
 function HuddleChatClient(props) {
 	const [users, setUsers] = useState(null);
+	const [failure, setFailure] = useState(null);
 	
 	var [huddleClient, setHuddleClient] = useState(() => {
 		var client = new HuddleClient({
@@ -63,7 +64,11 @@ function HuddleChatClient(props) {
 			avatarRef: props.avatarRef,
 			displayName: props.displayName,
 			deviceIdAudio: props.deviceIdAudio,
-			deviceIdVideo: props.deviceIdVideo
+			deviceIdVideo: props.deviceIdVideo,
+			onError: e => {
+				// permanent failures here (such as huddle not found)
+				setFailure(e);
+			}
 		});
 		
 		// Add event listeners here
@@ -81,6 +86,16 @@ function HuddleChatClient(props) {
 		client.start();
 		return client;
 	});
+	
+	if(failure){
+		return <Container>
+			<Row>
+				<Col size={12}>
+					{`This meeting wasn't found.`}
+				</Col>
+			</Row>
+		</Container>;
+	}
 	
 	if(!users){
 		// Note: initial removed IDs is set based on the first array of users given.
