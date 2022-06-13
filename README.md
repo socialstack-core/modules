@@ -7,7 +7,7 @@ The following CSS variables can be defined in order to override the appearance o
 
 ```
 :root {
-	--huddle-bg: red;
+	--huddle-bg: rgb(10,10,10);
 	--huddle-font-family: var(--font);
 	--huddle-font-weight: var(--bs-body-font-weight);
     --huddle-sidebar-bg: #eee;

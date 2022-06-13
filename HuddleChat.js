@@ -25,26 +25,27 @@ const SidebarEnum = Object.freeze({
 });
 
 export default function HuddleChat(props){
+	const [huddleReady, setHuddleReady] = useState(false);
 	const [joined, setJoined] = useState(false);
 	const [deviceHints, setDeviceHints] = useState({});
-	
+
 	if(!joined){
 		// Click farming UI. This is for 2 things: so the user can check their mic/ cam, 
 		// and also so we can farm the click in order to avoid autoplay blocks.
-		return <div>
-			<div>
-				<AvTest onDeviceSelect={(newHints) => {
-					var hints = {...deviceHints, ...newHints};
-					setDeviceHints(hints);
-				}}/>
-			</div>
-			<div>
-				<button className="btn btn-primary" onClick={() => {
-					setJoined(1);
-				}}>
-					{`Join meeting`}
-				</button>
-			</div>
+		return <div className="huddle-lobby">
+			<AvTest onDeviceSelect={(newHints) => {
+				var hints = { ...deviceHints, ...newHints };
+				setDeviceHints(hints);
+			}} huddleReadyCallback={setHuddleReady} />
+			{huddleReady && <>
+				<footer>
+					<button className="btn btn-primary" onClick={() => {
+						setJoined(1);
+					}}>
+						{`Join meeting`}
+					</button>
+				</footer>
+			</>}
 		</div>;
 	}
 	

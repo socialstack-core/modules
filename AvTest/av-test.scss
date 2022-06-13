@@ -1,10 +1,51 @@
 .av-test {
+	padding: 1rem 0;
+
+	&__title {
+		text-align: center;
+        font-size: clamp(pow($heading-font-ratio * 1.1, 2) * $base-font-size * 1px, 3vmax, pow($heading-font-ratio, 4) * $base-font-size * 1px);
+	}
+
+	.form-check {
+		margin-bottom: .5rem;
+	}
+
+	.form-check-input[role="switch"] {
+		border-radius: 1rem;
+	}
+
+	.form-label {
+		display: flex;
+		align-items: center;
+
+		i {
+			flex: 0 0 2.125rem;
+			text-align: left;
+		}
+
+		&--disabled {
+
+			i {
+				opacity: .25;
+			}
+
+		}
+	}
+
+	&__mic-test {
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
+	}
 	
 	&__microphone-volume {
-		
-		border: 1px solid grey;
+		border: 1px solid #ccc;
 		border-radius: 5px;
-		
+		margin-bottom: .5rem;
+
+		&--disabled {
+			opacity: .5;
+		}
 	}
 	
 }
