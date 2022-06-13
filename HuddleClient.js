@@ -382,11 +382,11 @@ export default class HuddleClient{
 		
 		var proms = [];
 		
-		if(this.props.deviceIdVideo){
+		if(this.props.deviceIdVideo && !this.props.videoInitiallyDisabled){
 			proms.push(this.webcam(1));
 		}
 		
-		if(this.props.deviceIdAudio){
+		if(this.props.deviceIdAudio && !this.props.audioInitiallyDisabled){
 			proms.push(this.microphone(1));
 		}
 		
