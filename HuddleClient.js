@@ -438,36 +438,51 @@ export default class HuddleClient{
 	}
 	
 	makeOffer(){
-		// Create the offer now:
-		return this.peer.createOffer({}) // offerToReceiveVideo: true, offerToReceiveAudio: true})
-		.then(offer => {
+		if(this.isUpdatingOfferAnswer){
+			return this.isUpdatingOfferAnswer.then(() => this.makeOffer());
+		}
+		
+		this.isUpdatingOfferAnswer = new Promise((s, r) => {
 			
-			// Extract the locally generated mid's:
-			var sdp = this.mungeLocalDescription(offer.sdp, true);
-			
-			console.log("(local) offer: ", sdp);
-			
-			return this.peer.setLocalDescription({
-				type: 'offer',
-				sdp
-			});
-		})
-		.then(() => {
-			
-			// Construct the remote SDP:
-			var sdp = this.createRemoteSdp();
-			
-			console.log("(remote) answer: ", sdp);
-			
-			// Apply it as an answer:
-			return this.peer.setRemoteDescription({
-				type: 'answer',
-				sdp
+			// Create the offer now:
+			this.peer.createOffer({}) // offerToReceiveVideo: true, offerToReceiveAudio: true})
+			.then(offer => {
+				
+				// Extract the locally generated mid's:
+				var sdp = this.mungeLocalDescription(offer.sdp, true);
+				
+				console.log("(local) offer: ", sdp);
+				
+				return this.peer.setLocalDescription({
+					type: 'offer',
+					sdp
+				});
 			})
-		})
-		.then(() => {
-			this.syncTransceivers();
+			.then(() => {
+				
+				// Construct the remote SDP:
+				var sdp = this.createRemoteSdp();
+				
+				console.log("(remote) answer: ", sdp);
+				
+				// Apply it as an answer:
+				return this.peer.setRemoteDescription({
+					type: 'answer',
+					sdp
+				})
+			})
+			.then(() => {
+				this.syncTransceivers();
+			})
+			.then(() => {
+				this.isUpdatingOfferAnswer = null;
+				return s();
+			})
+			.catch(r);
+			
 		});
+		
+		return this.isUpdatingOfferAnswer;
 	}
 	
 	userSsrc(id, channelId, isVideo, offerSet){
@@ -663,38 +678,56 @@ export default class HuddleClient{
 	}
 	
 	updateAnswer(){
-		if(!this.offerSet.offers.length){
-			
-			var e = this.createEvent('userchange');
-			e.users = this.users;
-			this.dispatchEvent(e);
-			
-			// Nothing producing or consuming.
-			return Promise.resolve(this.peer);
+		if(this.isUpdatingOfferAnswer){
+			return this.isUpdatingOfferAnswer.then(() => this.updateAnswer());
 		}
 		
-		var offer = this.createRemoteSdp();
-		
-		console.log("(remote) offer", offer);
-		
-		return this.peer.setRemoteDescription({sdp: offer, type: 'offer'})
-		.then(() => this.peer.createAnswer())
-		.then(answer => {
-			var sdp = this.mungeLocalDescription(answer.sdp, false); // won't be any new local channels in this
+		this.isUpdatingOfferAnswer = new Promise((s, r) => {
 			
-			console.log("(local) answer", sdp);
+			if(!this.offerSet.offers.length){
+				
+				var e = this.createEvent('userchange');
+				e.users = this.users;
+				this.dispatchEvent(e);
+				
+				// Nothing producing or consuming.
+				return Promise.resolve(this.peer);
+			}
 			
-			answer = new RTCSessionDescription({
-				type: 'answer',
-				sdp: sdp
-			});
+			var offer = this.createRemoteSdp();
 			
-			return this.peer.setLocalDescription(answer);
-		})
-		.then(() => {
-			this.syncTransceivers();
-			return this.peer;
+			console.log("(remote) offer", offer);
+			
+			return this.peer.setRemoteDescription({sdp: offer, type: 'offer'})
+			.then(() => this.peer.createAnswer())
+			.then(answer => {
+				var sdp = this.mungeLocalDescription(answer.sdp, false); // won't be any new local channels in this
+				
+				console.log("(local) answer", sdp);
+				
+				answer = new RTCSessionDescription({
+					type: 'answer',
+					sdp: sdp
+				});
+				
+				return this.peer.setLocalDescription(answer);
+			})
+			.then(() => {
+				this.syncTransceivers();
+				return this.peer;
+			})
+			.catch((e) => {
+				console.error("Caught: ", e);
+			})
+			.then(() => {
+				this.isUpdatingOfferAnswer = null;
+				return s();
+			})
+			.catch(r);
+			
 		});
+		
+		return this.isUpdatingOfferAnswer;
 	}
 	
 	syncTransceivers(){
