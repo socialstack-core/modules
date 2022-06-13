@@ -316,7 +316,9 @@ export default class AvTest extends React.Component{
 						{`Enable camera`}
 					</label>
 				</div>
-				<video className="av-test__video-sample" ref={v => this.videoSpaceRef = v} />
+				{this.state.enableCamera && <>
+					<video className="av-test__video-sample" ref={v => this.videoSpaceRef = v} />
+				</>}
 			</div>
 		</>;
     }
