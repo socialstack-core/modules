@@ -10,7 +10,14 @@ namespace Api.Users{
 		/// </summary>
 		[DatabaseField(Length = 80)]
 		public string Email;
-		
+
+		/// <summary>
+		/// The user's email address, in lowercase
+		/// </summary>
+		[DatabaseField(Length = 80)]
+		[Newtonsoft.Json.JsonIgnore]
+		public string LowerCaseEmail;
+
 		/// <summary>
 		/// Opt-out flags for different types of email.
 		/// Currently 1=Essential, 2=Marketing.

@@ -121,6 +121,11 @@ namespace Api.Emails
 					}
 				}
 
+				if (!string.IsNullOrEmpty(user.Email))
+                {
+					user.LowerCaseEmail = user.Email.ToLower();
+				}
+
 				return user;
 			});
 			

@@ -24,7 +24,7 @@ namespace Api.Users
 	public partial class UserService : AutoService<User>
     {
         private EmailTemplateService _emails;
-		
+
 		/// <summary>
 		/// Gets a user by the given email address or username.
 		/// </summary>
@@ -33,7 +33,11 @@ namespace Api.Users
 		/// <returns></returns>
 		public async ValueTask<User> Get(Context context, string emailOrUsername)
         {
-			return await Where("Email=? or Username=?", DataOptions.IgnorePermissions).Bind(emailOrUsername).Bind(emailOrUsername).Last(context);
+			return await Where("Email=? or Username=? or LowerCaseEmail=?", DataOptions.IgnorePermissions)
+				.Bind(emailOrUsername)
+				.Bind(emailOrUsername)
+				.Bind(emailOrUsername != null ? emailOrUsername.ToLower() : emailOrUsername)
+				.Last(context);
         }
 
 		/// <summary>
