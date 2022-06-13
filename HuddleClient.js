@@ -1026,6 +1026,13 @@ export default class HuddleClient{
 			sender.track = track;
 			sender.stream = stream;
 			
+			track.addEventListener('ended', () => {
+				
+				// Identifies external user track ending triggers, such as pressing the "stop sharing" screenshare button
+				this.changeState(false, channel);
+				
+			});
+			
 			// Updating the answer will result in the sendrecv info being added to it.
 			this.sendStream.addTrack(track);
 			
