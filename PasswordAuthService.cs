@@ -134,6 +134,11 @@ namespace Api.PasswordAuth
 
 		private async ValueTask<User> CreateDefaultUserInternal()
 		{
+			if (_configuration != null && _configuration.DisableDefaultUser)
+            {
+				return null;
+            }
+
 			var context = new Context(1, 0, 1);
 
 			var user = await _users.Get(context, 1, DataOptions.IgnorePermissions);

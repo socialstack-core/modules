@@ -19,6 +19,11 @@ namespace Api.PasswordAuth
 		/// Min length.
 		/// </summary>
 		public int MinLength { get; set; } = 10;
+
+		/// <summary>
+		/// If true, the API will not create a default user if no users are present.
+		/// </summary>
+		public bool DisableDefaultUser { get; set; } = true;
 	}
 	
 }
