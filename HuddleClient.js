@@ -107,6 +107,7 @@ export default class HuddleClient{
 					// Did we just DC?
 					if(!message.connected){
 						// We've disconnected. The WS will be trying to reconnect itself.
+						this.joined = false;
 						this.closed();
 					}else{
 						// We've reconnected or connected for the first time. Make sure peer is going and we send our join request.
@@ -284,7 +285,11 @@ export default class HuddleClient{
 				this.updatePresence(u);
 			});
 			
-			this.updateAnswer();
+			this.joined = true;
+			
+			this.checkInitialInputState().then(() => {
+				this.updateAnswer();
+			});
 			
 		}, false);
 	}
@@ -359,11 +364,33 @@ export default class HuddleClient{
 			
 			if(this.peer.iceGatheringState == 'complete'){
 				// Trickle ice completed.
-				this.syncTransceivers();
+				this.checkInitialInputState().then(() => {
+					this.syncTransceivers();
+				});
 			}
 			
 		});
 		
+	}
+	
+	checkInitialInputState(){
+		
+		// Must be both joined (websocket) and have a connected peer.
+		if(!this.peer || this.peer.iceGatheringState != 'complete' || !this.joined){
+			return Promise.resolve(true);
+		}
+		
+		var proms = [];
+		
+		if(this.props.deviceIdVideo){
+			proms.push(this.webcam(1));
+		}
+		
+		if(this.props.deviceIdAudio){
+			proms.push(this.microphone(1));
+		}
+		
+		return Promise.all(proms);
 	}
 	
 	updateChannelState(selfUser){
@@ -732,7 +759,6 @@ export default class HuddleClient{
 	
 	syncTransceivers(){
 		if(this.peer.iceGatheringState != 'complete'){
-			console.log("iGS not complete yet - halting syncTranscvs");
 			return;
 		}
 		
@@ -747,8 +773,6 @@ export default class HuddleClient{
 		
 		// Get the receivers:
 		var allTransceivers = this.peer.getTransceivers();
-		
-		console.log("Trancvs: ", allTransceivers);
 		
 		// For each one, identify which user it's associated with:
 		allTransceivers.forEach(tcv => {
