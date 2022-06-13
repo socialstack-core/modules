@@ -982,7 +982,7 @@ export default class HuddleClient{
 			
 			if(channel == 'screenshare'){
 				selfUser.sharingTrack = null;
-			}else{
+			}else if(channel == 'webcam'){
 				selfUser.videoTrack = null;
 			}
 			
