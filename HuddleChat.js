@@ -30,7 +30,7 @@ export default function HuddleChat(props) {
 	const [joined, setJoined] = useState(false);
 	const [deviceHints, setDeviceHints] = useState({});
 
-	if(!joined){
+	if(!joined && !props.skipAvTest){
 		// Click farming UI. This is for 2 things: so the user can check their mic/ cam, 
 		// and also so we can farm the click in order to avoid autoplay blocks.
 		return <div className="huddle-lobby">
