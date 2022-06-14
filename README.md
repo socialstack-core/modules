@@ -11,6 +11,11 @@ The following CSS variables can be defined in order to override the appearance o
 	--huddle-font-family: var(--font);
 	--huddle-font-weight: var(--bs-body-font-weight);
     --huddle-sidebar-bg: #eee;
+    --huddle-sidebar-header-bg: transparent;
+    --huddle-sidebar-header-fg: currentColor;
+    --huddle-sidebar-header-font-size: 14px;
+    --huddle-sidebar-footer-bg: transparent;
+    --huddle-sidebar-footer-fg: currentColor;
     --huddle-audience-member-bg: #444;
     --huddle-user-bg: rgba(255,255,255, .25);
     --huddle-user-header-bg: linear-gradient(0, transparent, rgba(0,0,0,.1));

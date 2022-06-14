@@ -1,6 +1,9 @@
-export default function Options(props){
-	
+import Dropdown from 'UI/Dropdown';
+
+export default function Options(props) {
 	var {audioOn, videoOn, shareOn} = props;
+
+	var isOrganiser = true;
 
 	var videoClass = "btn huddle-chat__button huddle-chat__button--camera ";
 	videoClass += videoOn ? "btn-secondary btn-pulse" : "btn-danger";
@@ -11,15 +14,35 @@ export default function Options(props){
 	var shareClass = "btn btn-primary huddle-chat__button huddle-chat__button--share ";
 	shareClass += shareOn ? "btn-secondary btn-pulse" : "btn-danger";
 
+	var leaveJsx = <>
+		<i className="fas fa-phone-slash" />
+	</>;
+
 	return <div className="huddle-chat__options">
 		<div className="huddle-chat__options-left">
 			<button type="button" className={shareClass} title={shareOn ? `Stop sharing` : `Share your screen`} onClick={() => props.setShare(shareOn ? 0 : 1)}>
 				<i className="fas fa-share-square" />
 			</button>
 		</div>
-		<button type="button" className="btn btn-danger huddle-chat__button huddle-chat__button--hangup" title={`Leave meeting`}>
-			<i className="fas fa-phone-slash" />
-		</button>
+		{!isOrganiser && <>
+			<button type="button" className="btn btn-danger huddle-chat__button huddle-chat__button--hangup" title={`Leave meeting`}>
+				<i className="fas fa-phone-slash" />
+			</button>
+		</>}
+		{isOrganiser && <>
+			<Dropdown label={leaveJsx} variant="danger" position="top" align="middle" className="huddle-chat__options-leave">
+				<li>
+					<button type="button" className="btn dropdown-item" onClick={() => alert('LEAVE')}>
+						{`Leave meeting`}
+					</button>
+				</li>
+				<li>
+					<button type="button" className="btn dropdown-item" onClick={() => alert('END')}>
+						{`End meeting`}
+					</button>
+				</li>
+			</Dropdown>
+		</>}
 		<div className="huddle-chat__options-media">
 			<button className={videoClass} title={videoOn ? `Turn off camera` : 'Turn on camera'}
 				onClick={() => props.setVideo(videoOn ? 0 : 1)}>

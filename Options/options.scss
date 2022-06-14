@@ -7,6 +7,7 @@
 		justify-content: space-between;
 		padding: 16px 24px;
 		background: var(--huddle-footer-bg, transparent);
+		min-height: $huddle-chat-footer;
 
 		&-left {
 		}
@@ -21,6 +22,32 @@
 
 				&:last-child {
 					margin-right: 0;
+				}
+			}
+
+		}
+
+		&-leave {
+
+			.dropdown-toggle {
+				border-radius: 50%;
+				width: 3rem;
+				height: 3rem;
+			}
+
+			.dropdown__label i {
+				margin: 0;
+			}
+
+			.dropdown__arrow {
+				display: none;
+			}
+
+			.dropdown-menu {
+				transform: translate(calc(1.5rem - 50%), -.25rem);
+
+				> li > .btn {
+					text-align: center;
 				}
 			}
 
