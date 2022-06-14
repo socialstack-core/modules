@@ -53,6 +53,9 @@ export default function Options(props) {
 					</button>
 				</li>
 				<li>
+					<hr class="dropdown-divider" />
+				</li>
+				<li>
 					<button type="button" className="btn dropdown-item" onClick={() => alert('END')}>
 						<Alert variant="danger">
 							<strong>
