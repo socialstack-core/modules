@@ -12,6 +12,7 @@ import Row from 'UI/Row';
 import Col from 'UI/Column';
 import Loading from 'UI/Loading';
 import SpeakerTest from 'UI/HuddleChat/SpeakerTest';
+import Alert from 'UI/Alert';
 
 const MAX_STAGE_USERS = 6;
 const MAX_PINNED_USERS = 10;
@@ -110,59 +111,63 @@ function HuddleChatClient(props) {
 	React.useEffect(() => {
 		
 		return () => {
-			
 			// Called when this component unmounts.
 			huddleClient && huddleClient.destroy();
-			
 		};
 		
 	}, []);
 	
-	if(leaveMode){
-		return <Container>
-			<Row>
-				{leaveMode == 1 && <Col size={12}>
-						{`You've left the meeting.`}
-						<p>
-							<a href={props.backUrl || '/'}>{props.backText || `Back to homepage`}</a>
-						</p>
-				</Col>}
-				{leaveMode == 2 && <Col size={12}>
-						{`This meeting has now ended.`}
-						<p>
-							<a href={props.backUrl || '/'}>{props.backText || `Back to homepage`}</a>
-						</p>
-				</Col>}
-				{leaveMode == 3 && <Col size={12}>
-					{`You have ended this meeting.`}
-					<p>
-						<a href={props.backUrl || '/'}>{props.backText || `Back to homepage`}</a>
-					</p>
-				</Col>}
-			</Row>
-		</Container>;
+	if (leaveMode){
+		return <div className="huddle-chat--not-connected">
+			<Container>
+				<Row>
+					<Col size={12}>
+						<Alert variant="info">
+							{leaveMode == 1 && <>
+								{`You've left the meeting.`}
+							</>}
+							{leaveMode == 2 && <>
+								{`This meeting has now ended.`}
+							</>}
+							{leaveMode == 3 && <>
+								{`You have ended this meeting.`}
+							</>}
+						</Alert>
+						<footer>
+							<a className="btn btn-primary" href={props.backUrl || '/'}>{props.backText || `Back to homepage`}</a>
+						</footer>
+					</Col>
+				</Row>
+			</Container>
+		</div>;
 	}
 	
-	if(failure){
-		return <Container>
-			<Row>
-				<Col size={12}>
-					{`This meeting wasn't found.`}
-				</Col>
-			</Row>
-		</Container>;
+	if (failure){
+		return <div className="huddle-chat--not-connected">
+			<Container>
+				<Row>
+					<Col size={12}>
+						<Alert variant="danger">
+							{`This meeting wasn't found.`}
+						</Alert>
+					</Col>
+				</Row>
+			</Container>
+		</div>;
 	}
 	
-	if(!users){
+	if (!users){
 		// Note: initial removed IDs is set based on the first array of users given.
 		// So, it's important that we don't give it an empty array until we are loaded.
-		return <Container>
-			<Row>
-				<Col size={12}>
-					<Loading message={`Connecting`} />
-				</Col>
-			</Row>
-		</Container>;
+		return <div className="huddle-chat--not-connected">
+			<Container>
+				<Row>
+					<Col size={12}>
+						<Loading message={`Connecting`} />
+					</Col>
+				</Row>
+			</Container>
+		</div>;
 	}
 	
 	return <>
