@@ -59,6 +59,14 @@ export default function HuddleChat(props){
 function HuddleChatClient(props) {
 	const [users, setUsers] = useState(null);
 	const [failure, setFailure] = useState(null);
+	const [userRole, setUserRole] = useState(3);
+	const [leaveMode, setLeaveMode] = useState(0); // 0 = ongoing, 1 = left, 2 = ended (remote requested), 3 = ended (requested by this participant)
+	
+	var onLeave = mode => {
+		huddleClient.destroy(mode);
+		setLeaveMode(mode);
+		setHuddleClient(null);
+	};
 	
 	var [huddleClient, setHuddleClient] = useState(() => {
 		var client = new HuddleClient({
@@ -75,6 +83,10 @@ function HuddleChatClient(props) {
 			onError: e => {
 				// permanent failures here (such as huddle not found)
 				setFailure(e);
+			},
+			onLeave: onLeave,
+			onJoined: client => {
+				setUserRole(client.selfRole());
 			}
 		});
 		
@@ -93,6 +105,42 @@ function HuddleChatClient(props) {
 		client.start();
 		return client;
 	});
+	
+	React.useEffect(() => {
+		
+		return () => {
+			
+			// Called when this component unmounts.
+			huddleClient && huddleClient.destroy();
+			
+		};
+		
+	}, []);
+	
+	if(leaveMode){
+		return <Container>
+			<Row>
+				{leaveMode == 1 && <Col size={12}>
+						{`You've left the meeting.`}
+						<p>
+							<a href='/'>Back to homepage</a>
+						</p>
+				</Col>}
+				{leaveMode == 2 && <Col size={12}>
+						{`This meeting has now ended.`}
+						<p>
+							<a href='/'>Back to homepage</a>
+						</p>
+				</Col>}
+				{leaveMode == 3 && <Col size={12}>
+					{`You have ended this meeting.`}
+					<p>
+						<a href='/'>Back to homepage</a>
+					</p>
+				</Col>}
+			</Row>
+		</Container>;
+	}
 	
 	if(failure){
 		return <Container>
@@ -117,7 +165,7 @@ function HuddleChatClient(props) {
 	}
 	
 	return <>
-		<HuddleChatUI {...props} huddleClient={huddleClient} users={users} />
+		<HuddleChatUI {...props} userRole={userRole} huddleClient={huddleClient} users={users} onLeave={onLeave} />
 	</>;
 }
 
@@ -293,6 +341,10 @@ function HuddleChatUI(props) {
 			setAudio={state => huddleClient.microphone(state)}
 			setVideo={state => huddleClient.webcam(state)}
 			setShare={state => huddleClient.screenshare(state)}
+			isHost={props.userRole == 1}
+			onLeave={mode => {
+				props.onLeave(mode);
+			}}
 		/>
 
 	</section>;

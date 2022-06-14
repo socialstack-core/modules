@@ -3,7 +3,7 @@ import Dropdown from 'UI/Dropdown';
 export default function Options(props) {
 	var {audioOn, videoOn, shareOn} = props;
 
-	var isHost = true;
+	var isHost = props.isHost;
 
 	var videoClass = "btn huddle-chat__button huddle-chat__button--camera ";
 	videoClass += videoOn ? "btn-success" : "btn-outline-danger";
@@ -31,7 +31,7 @@ export default function Options(props) {
 		</div>
 		{!isHost && <>
 			<div className="huddle-chat__button-wrapper">
-				<button type="button" className="btn btn-danger huddle-chat__button huddle-chat__button--hangup" title={`Leave meeting`}>
+				<button type="button" className="btn btn-danger huddle-chat__button huddle-chat__button--hangup" title={`Leave meeting`} onClick={() => props.onLeave(1)}> 
 					<i className="fas fa-phone-slash" />
 				</button>
 				<span className="huddle-chat__button-label">
@@ -42,12 +42,12 @@ export default function Options(props) {
 		{isHost && <>
 			<Dropdown label={leaveJsx} variant="danger" position="top" align="middle" className="huddle-chat__options-leave">
 				<li>
-					<button type="button" className="btn dropdown-item" onClick={() => alert('LEAVE')}>
+					<button type="button" className="btn dropdown-item" onClick={() => props.onLeave(1)}>
 						{`Leave meeting`}
 					</button>
 				</li>
 				<li>
-					<button type="button" className="btn dropdown-item" onClick={() => alert('END')}>
+					<button type="button" className="btn dropdown-item" onClick={() => props.onLeave(3)}>
 						{`End meeting`}
 					</button>
 				</li>

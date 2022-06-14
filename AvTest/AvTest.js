@@ -80,6 +80,17 @@ export default class AvTest extends React.Component{
 
 		// restore padding for fixed header
 		html.classList.remove("disable-header-padding");
+		
+		this.closeStream(this.state.selectedMic);
+		this.closeStream(this.state.selectedCam);
+		
+	}
+	
+	closeStream(device){
+		if(!device || !device.stream){
+			return;
+		}
+		device.stream.getTracks().forEach(t => t.stop());
 	}
 	
 	feedAmplitude(avg, proc) {
