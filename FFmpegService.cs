@@ -290,7 +290,7 @@ namespace Api.FFmpeg
 		{
 			return "-vf scale=w=" + w + ":h=" + h + ":force_original_aspect_ratio=decrease -c:a aac -ar 48000 -c:v h264 -profile:v main -crf 20 -sc_threshold 0 " +
 			"-g 48 -keyint_min 48 -hls_time 4 -hls_playlist_type vod -b:v " + bitVid + "k -maxrate " + maxRate + "k -bufsize " + bufSize + "k -b:a " + bitAudio + "k " +
-			"-hls_segment_filename \"" + chunkDirectory + h + "p_%03d.ts.m3u8\" \"" + chunkDirectory + h + "p.m3u8\"";
+			"-hls_segment_filename \"" + chunkDirectory + h + "p_%03d.ts\" \"" + chunkDirectory + h + "p.m3u8\"";
 		}
 
 		/// <summary>
@@ -298,15 +298,24 @@ namespace Api.FFmpeg
 		/// </summary>
 		public async ValueTask<bool> Transcode(Context context, Upload upload)
 		{
-			string originalPathWithoutExt = upload.GetFilePath("original", true);
-			string originalPath = originalPathWithoutExt + "." + upload.FileType;
+			// get the file
+            var tempPathName = Path.GetTempPath();
+            var tempUniqueId = Guid.NewGuid().ToString();
+			var tempSourceFileName = tempPathName + tempUniqueId + "." + upload.FileType;
 
-			#warning This doesn't support generic storage (CloudHosts module) yet. Transcodes will be local files and need to be copied to the target storage.
-			// The new StoreFile event is used to ask whatever the storage engine is to store a file:
-			// await Events.Upload.StoreFile.Dispatch(context, upload, upload.TemporaryPath, "original");
-			// Will need to do ^ for each file in the temporary chunks directory, then delete the chunks directory.
+            if (!string.IsNullOrWhiteSpace(upload.TemporaryPath) && File.Exists(upload.TemporaryPath))
+            {
+				// try and use the local copy 
+                File.Copy(upload.TemporaryPath, tempSourceFileName);
+            }
+            else
+            {
+				// get the file (may be in the cloud)
+				var content = await upload.ReadFile();
+                File.WriteAllBytes(tempSourceFileName, content);
+            }
 
-			string targetPath;
+            string targetPath;
 			if (upload.IsVideo)
 			{
 				// Is a video
@@ -321,13 +330,13 @@ namespace Api.FFmpeg
 				  
 				 */
 
-				if (hlsTranscode){
-
+				if (hlsTranscode)
+                {
 					// Create a temporary directory:
-					var chunkDirectory = upload.GetFilePath("chunks", true) + "/";
+                    var chunkDirectory = Path.Combine(tempPathName, tempUniqueId) + Path.DirectorySeparatorChar;
 					Directory.CreateDirectory(chunkDirectory);
 
-					var cmd = "-hide_banner -y -i \"" + originalPath + "\"";
+					var cmd = "-hide_banner -y -i \"" + tempSourceFileName + "\"";
 
 					// Currently fixed at 4 predefined sizes:
 					cmd += " " + AddRendition(chunkDirectory, 640, 360, 800, 856, 1200, 96);
@@ -348,20 +357,34 @@ namespace Api.FFmpeg
 							upl.TranscodeState = 2;
 						}, DataOptions.IgnorePermissions);
 
-						await Events.UploadAfterTranscode.Dispatch(context, upload);
+						// now copy to local or cloud storage
+                        DirectoryInfo d = new DirectoryInfo(chunkDirectory);
+                        
+                        foreach (var file in d.GetFiles())
+                        {
+							await Events.Upload.StoreFile.Dispatch(context, upload, file.FullName, $"chunks/{file.Name}");
+						}
 
+						// now tidy up 
+						Directory.Delete(chunkDirectory, true);
+
+						await Events.UploadAfterTranscode.Dispatch(context, upload);
 					});
 				}
 				
 				if(h264Transcode){
-					targetPath = originalPathWithoutExt + ".mp4";
+					targetPath = tempPathName + tempUniqueId + ".mp4";
 					
-					Run("-i \"" + originalPath + "\" \"" + targetPath + "\"", async () => {
+					Run("-i \"" + tempSourceFileName + "\" \"" + targetPath + "\"", async () => {
 						
 						// Done! (NB can trigger twice if multi-transcoding)
 						upload = await _uploads.Update(context, upload, (Context c, Upload upl, Upload orig) => {
 							upl.TranscodeState = 2;
 						}, DataOptions.IgnorePermissions);
+
+						// now copy to local or cloud storage
+						await Events.Upload.StoreFile.Dispatch(context, upload, targetPath, "original.mp4");
+
 						await Events.UploadAfterTranscode.Dispatch(context, upload);
 					});
 				}
@@ -369,20 +392,24 @@ namespace Api.FFmpeg
 			}else if(upload.IsAudio){
 				
 				// Is audio
-				targetPath = originalPathWithoutExt + ".mp3";
-				Run("-i \"" + originalPath + "\" \"" + targetPath + "\"", async () => {
+				targetPath = tempPathName + tempUniqueId + ".mp3";
+				Run("-i \"" + tempSourceFileName + "\" \"" + targetPath + "\"", async () => {
 
 					// Done!
 					upload = await _uploads.Update(context, upload, (Context c, Upload upl, Upload orig) => {
 						upl.TranscodeState = 2;
 					}, DataOptions.IgnorePermissions);
+
+					// now copy to local or cloud storage
+					await Events.Upload.StoreFile.Dispatch(context, upload, targetPath, "original.mp3");
+
 					await Events.UploadAfterTranscode.Dispatch(context, upload);
 				});
 				
 			}else{
 				return false;
 			}
-			
+
 			return true;
 		}
 		
@@ -431,7 +458,7 @@ namespace Api.FFmpeg
 				else
 				{
 					// Forward to our output stream:
-					// Console.WriteLine(e.Data);
+					 Console.WriteLine(e.Data);
 				}
 			});
 
