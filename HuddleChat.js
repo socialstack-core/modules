@@ -11,6 +11,7 @@ import Container from 'UI/Container';
 import Row from 'UI/Row';
 import Col from 'UI/Column';
 import Loading from 'UI/Loading';
+import SpeakerTest from 'UI/HuddleChat/SpeakerTest';
 
 const MAX_STAGE_USERS = 6;
 const MAX_PINNED_USERS = 10;
@@ -37,12 +38,15 @@ export default function HuddleChat(props){
 				var hints = { ...deviceHints, ...newHints };
 				setDeviceHints(hints);
 			}} huddleReadyCallback={setHuddleReady} />
+
 			{huddleReady && <>
-				<footer>
+				<footer className="huddle-lobby__footer">
+					<SpeakerTest />
+
 					<button className="btn btn-primary" onClick={() => {
 						setJoined(1);
 					}}>
-						{`Join meeting`}
+						<i className="fas fa-fw fa-sign-in"></i> {`Join meeting`}
 					</button>
 				</footer>
 			</>}
@@ -66,6 +70,8 @@ function HuddleChatClient(props) {
 			displayName: props.displayName,
 			deviceIdAudio: props.deviceIdAudio,
 			deviceIdVideo: props.deviceIdVideo,
+			audioInitiallyDisabled: props.audioInitiallyDisabled,
+			videoInitiallyDisabled: props.videoInitiallyDisabled,
 			onError: e => {
 				// permanent failures here (such as huddle not found)
 				setFailure(e);

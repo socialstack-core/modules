@@ -38,6 +38,18 @@ html {
             text-align: left;
         }
     }
+
+    &__footer {
+
+        .btn {
+            margin-inline-end: .75rem;
+
+            &:last-child {
+                margin-inline-end: 0;
+            }
+        }
+
+    }
 }
 
 .huddle-chat {

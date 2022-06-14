@@ -26,22 +26,22 @@ export default class SpeakerTest extends React.Component {
 		var audio = new Audio();
 		this.setState({audio});
 		audio.src = getRef(sampleFileRef, {url: 1});
+		audio.loop = true;
 		audio.play();
 	}
 	
 	render(){
 		var {audio} = this.state;
 		
-		return <div>
-			<p>
-				Test your speakers
-			</p>
-			{audio ? (
-				<button className="btn btn-secondary" onClick={() => this.stop()}>Stop</button>
-			) : (
-				<button className="btn btn-secondary" onClick={() => this.play()}>Play</button>
-			)}
-		</div>;
+		return <>
+			<button className="btn btn-outline-primary" onClick={() => audio ? this.stop() : this.play()}>
+				{audio ? <>
+					<i className="fas fa-fw fa-volume-slash"></i> {`Stop speaker test`}
+				</> : <>
+					<i className="fas fa-fw fa-volume"></i> {`Test speakers`}
+				</>}
+			</button>
+		</>;
 	}
 	
 } 
