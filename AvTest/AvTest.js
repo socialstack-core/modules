@@ -317,6 +317,12 @@ export default class AvTest extends React.Component{
 						onChange={() => {
 							this.setState({ enableCamera: !this.state.enableCamera });
 							this.updateSelections({ videoInitiallyDisabled: !this.state.enableCamera });
+
+							if (!this.state.enableCamera) {
+								debugger;
+								//this.setSelectedCamWithOpen(dev);
+                            }
+
 						}} />
 					<label className="form-check-label" htmlFor="enableCamera">
 						{`Enable camera`}

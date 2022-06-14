@@ -28,7 +28,7 @@ html {
     margin: 10vh auto;
     width: 600px;
     max-width: calc(100vw - 2rem);
-    padding: 5vh 0;
+    padding: 0;
     box-shadow: var(--shadow-elevation-high);
 
     &--devices-failed {
@@ -40,6 +40,7 @@ html {
     }
 
     &__footer {
+        margin-block-end: 1rem;
 
         .btn {
             margin-inline-end: .75rem;
