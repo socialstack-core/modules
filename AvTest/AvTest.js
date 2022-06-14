@@ -70,6 +70,9 @@ export default class AvTest extends React.Component{
 		// remove padding for fixed header
 		html.classList.add("disable-header-padding");
 
+		// used to hide Telligent footer
+		html.classList.add("hide-telligent-footer");
+
 		// Initial run:
 		this.onDevicesChanged();
 	}
@@ -77,6 +80,9 @@ export default class AvTest extends React.Component{
 	componentWillUnmount(){
 		navigator.mediaDevices.removeEventListener('devicechange', this.onDevicesChanged);
 		var html = document.querySelector("html");
+
+		// restore Telligent footer
+		html.classList.remove("hide-telligent-footer");
 
 		// restore padding for fixed header
 		html.classList.remove("disable-header-padding");
@@ -285,7 +291,7 @@ export default class AvTest extends React.Component{
 					</label>
 				</div>
 				<canvas className={this.state.enableMic ? "av-test__microphone-volume" : "av-test__microphone-volume av-test__microphone-volume--disabled"}
-					ref={r => this.micMeterRef = r} width={180} height={20} />
+					ref={r => this.micMeterRef = r} width={160} height={20} />
 			</div>
 		</>;
     }

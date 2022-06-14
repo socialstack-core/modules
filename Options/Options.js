@@ -54,7 +54,8 @@ export default function Options(props) {
 					</button>
 				</li>
 				<li>
-					<button type="button" className="btn dropdown-item" onClick={() => props.onLeave(3)}>						<Alert variant="danger">
+					<button type="button" className="btn dropdown-item" onClick={() => props.onLeave(3)}>
+						<Alert variant="danger">
 							<strong>
 						{`End meeting`}
 							</strong>

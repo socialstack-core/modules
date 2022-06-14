@@ -19,6 +19,7 @@
 	&-controls {
 		display: flex;
 		align-items: center;
+		gap: .5rem;
 	}
 
 	&-audience,
@@ -44,9 +45,13 @@
 
 		.dropdown-toggle {
 			text-decoration: none;
+			background: var(--huddle-header-btn-bg, transparent);
+			color: var(--huddle-header-btn-fg, #fff);
+			border: var(--huddle-header-btn-border, 1px solid #fff);
 
 			&:hover {
-				background: #444;
+				background: var(--huddle-header-btn-bg-hover, #444);
+				color: var(--huddle-header-btn-fg-hover, #fff);
 			}
 		}
 
@@ -76,6 +81,38 @@
 
 		.dropdown-label-internal {
 			margin-left: .5rem;
+		}
+	}
+
+	&-options {
+
+		.dropdown-menu {
+			width: 20rem;
+		}
+
+		.form-check.form-switch {
+			display: flex;
+			align-items: center;
+			padding-left: 4rem;
+			gap: 0.75em;
+			margin: 0;
+
+			.form-check-input {
+				height: 1rem;
+				width: 2em;
+				margin-left: -3.375em;
+				margin-top: 0;
+			}
+		}
+
+		.form-check:not(.form-switch) {
+
+			.form-check-input {
+				margin-left: -1.5em;
+				width: 1em;
+				height: 1em;
+			}
+
 		}
 	}
 
