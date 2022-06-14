@@ -124,19 +124,19 @@ function HuddleChatClient(props) {
 				{leaveMode == 1 && <Col size={12}>
 						{`You've left the meeting.`}
 						<p>
-							<a href='/'>Back to homepage</a>
+							<a href={props.backUrl || '/'}>{props.backText || `Back to homepage`}</a>
 						</p>
 				</Col>}
 				{leaveMode == 2 && <Col size={12}>
 						{`This meeting has now ended.`}
 						<p>
-							<a href='/'>Back to homepage</a>
+							<a href={props.backUrl || '/'}>{props.backText || `Back to homepage`}</a>
 						</p>
 				</Col>}
 				{leaveMode == 3 && <Col size={12}>
 					{`You have ended this meeting.`}
 					<p>
-						<a href='/'>Back to homepage</a>
+						<a href={props.backUrl || '/'}>{props.backText || `Back to homepage`}</a>
 					</p>
 				</Col>}
 			</Row>
