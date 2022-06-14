@@ -170,6 +170,12 @@ export default class HuddleClient{
 			}
 		}, 0, null, false);
 		
+		this.socket.registerOpcode(49, r => {
+			var payloadSize = r.readUInt32();
+			console.log('Huddle ending - goodbye!');
+			this.props.onLeave ? this.props.onLeave(2) : this.destroy();
+		});
+		
 		this.socket.registerOpcode(45, r => {
 			var payloadSize = r.readUInt32();
 			var selfPresenceId = r.readUInt32();
@@ -203,7 +209,22 @@ export default class HuddleClient{
 				_huddleUserState.token = userToken;
 				saveUserState();
 			}
+			
+			var huddleInfoSize = r.readUInt32();
+			
+			var huddleInfo = r.readUtf8SizedPlus1(huddleInfoSize);
+			
+			try{
+				var huddle = JSON.parse(huddleInfo);
+				huddle = expandIncludes(huddle);
+				this.huddle = huddle;
 				
+				console.log(huddle, huddle.huddleType);
+			}catch(e){
+				console.log(e);
+				return;
+			}
+			
 			var presSize = r.readUInt32();
 			
 			var presence = r.readUtf8SizedPlus1(presSize);
@@ -289,9 +310,26 @@ export default class HuddleClient{
 			
 			this.checkInitialInputState().then(() => {
 				this.updateAnswer();
+				this.props.onJoined && this.props.onJoined(this);
 			});
 			
 		}, false);
+	}
+	
+	selfPresence(){
+		if(!this.users){
+			return null;
+		}
+		return this.users.find(u => u.id == this.selfId);
+	}
+	
+	selfRole(){
+		var pres = this.selfPresence();
+		if(!pres){
+			return 3; // guest
+		}
+		
+		return pres.role;
 	}
 	
 	updatePresence(presence){
@@ -302,6 +340,35 @@ export default class HuddleClient{
 		
 		if(presence.channels && !presence.gone && presence.id != this.selfId){
 			this.buildOffer(presence);
+		}
+	}
+	
+	destroy(mode){
+		if(this.peer){
+			this.peer.close();
+			this.peer = null;
+		}
+		if(this.socket){
+			if(mode && mode == 3){
+				// This participant wants to end the meeting - Attempt to end call for others too:
+				var writer = new this.socket.Writer(49);
+				this.socket.send(writer);
+			}
+			this.socket.close();
+			this.socket = null;
+		}
+		
+		for(var k in this.shareState){
+			var currentSender = this.shareState[k].sender;
+			if(currentSender){
+				if(currentSender.stream._stop){
+					currentSender.stream._stop();
+				}
+				
+				currentSender.track.stop();
+				this.shareState[k].sender = null;
+				this.shareState[k].active = false;
+			}
 		}
 	}
 	
