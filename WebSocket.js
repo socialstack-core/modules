@@ -627,6 +627,16 @@ function syncUpdate(method, reader){
 	receiveJson(json, method);
 }
 
+function close(){
+	// Permanently close the ws
+	if(!ws){
+		return;
+	}
+	var socket = ws;
+	ws = null; // blocks auto reconnect
+	socket.close();
+}
+
 if(opts.addDefaults){
 	registerOpcode(21, reader => syncUpdate('create', reader), false);
 	registerOpcode(22, reader => syncUpdate('update', reader), false);
@@ -655,6 +665,7 @@ if(opts.addDefaults){
 return {
 	registerOpcode,
 	getSocket,
+	close,
     addEventListener,
 	removeEventListener,
 	send,
