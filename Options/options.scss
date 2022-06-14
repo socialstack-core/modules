@@ -58,10 +58,36 @@
 			}
 
 			.dropdown-menu {
-				transform: translate(calc(2rem - 50%), -.25rem);
+				transform: translate(calc(2rem - 50%), -.75rem);
 
 				> li > .btn {
 					text-align: center;
+					padding: 0;
+				}
+
+				.alert {
+					margin: 0;
+					text-align: left;
+					font-size: 14px;
+					color: inherit;
+				    background: transparent;
+					border: transparent;
+					transition: all .3s ease;
+
+					&:hover {
+						$danger: map-get($theme-colors, "danger");
+						$alert-background: shift-color($danger, $alert-bg-scale);
+						$alert-border: shift-color($danger, $alert-border-scale);
+						$alert-color: shift-color($danger, $alert-color-scale);
+						
+						@if (contrast-ratio($alert-background, $alert-color) < $min-contrast-ratio) {
+							$alert-color: mix($danger, color-contrast($alert-background), abs($alert-color-scale));
+						}
+						
+						color: $alert-color;
+						background-color: $alert-background;
+						border-color: $alert-border;
+					}
 				}
 			}
 

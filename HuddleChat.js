@@ -25,7 +25,7 @@ const SidebarEnum = Object.freeze({
 	CONVERSATION: 2
 });
 
-export default function HuddleChat(props){
+export default function HuddleChat(props) {
 	const [huddleReady, setHuddleReady] = useState(false);
 	const [joined, setJoined] = useState(false);
 	const [deviceHints, setDeviceHints] = useState({});
@@ -172,7 +172,7 @@ function HuddleChatClient(props) {
 function HuddleChatUI(props) {
 	const huddleRef = useRef(null);
 	
-	var { users, huddleClient, disableChat, disableAudience, title, description } = props;
+	var { users, huddleClient, disableChat, disableAudience, disableReactions, disableOptions, title, description } = props;
 
 	title = title || 'Meet Now';
 	description = description || 'Beta';
@@ -294,11 +294,13 @@ function HuddleChatUI(props) {
 		// limit number of users in pinned area
 		pinnedStageActors = pinnedStageActors.slice(0, MAX_STAGE_USERS + MAX_PINNED_USERS);
 
-		setSidebar(SidebarEnum.CLOSED);
+		//setSidebar(SidebarEnum.CLOSED);
 	}
 	
 	return <section className={huddleClasses} ref={huddleRef}>
-		<Header title={title} description={description} disableChat={disableChat} disableAudience={disableAudience}
+		<Header title={title} description={description}
+			disableChat={disableChat} disableAudience={disableAudience}
+			disableReactions={disableReactions} disableOptions={disableOptions}
 			showingAudience={sidebar == SidebarEnum.AUDIENCE}
 			showingConversation={sidebar == SidebarEnum.CONVERSATION}
 			toggleAudience={() => {
@@ -335,7 +337,9 @@ function HuddleChatUI(props) {
 		</aside>}
 
 		{/* main huddle footer (share / leave huddle / audio/video options) */}
-		<Options audioOn={huddleClient.isActive('microphone')}
+		{/* TODO: set isHost */}
+		<Options isHost={false}
+		        audioOn={huddleClient.isActive('microphone')}
 				shareOn={huddleClient.isActive('screenshare')}
 				videoOn={huddleClient.isActive('webcam')}
 			setAudio={state => huddleClient.microphone(state)}

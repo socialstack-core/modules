@@ -292,7 +292,7 @@ export default function User(props){
 			</span>
 
 			{/* NB: disabled until options are included */}
-			{!user.gone && true && <>
+			{!user.gone && false && <>
 				{/* options dropup button */}
 				<Dropdown title={"Options"} className="huddle-chat__user-options" label={labelJsx} variant="link" position="top" align="right">
 					<li>
