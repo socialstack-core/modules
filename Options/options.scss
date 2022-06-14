@@ -1,6 +1,5 @@
 .huddle-chat {
 	$huddle-chat: &;
-	z-index: 1000;
 
 	&__options {
 		display: flex;
@@ -10,6 +9,7 @@
 		background: var(--huddle-footer-bg, transparent);
 		color: var(--huddle-footer-fg, rgba(0,0,0, .75));
 		min-height: $huddle-chat-footer;
+		z-index: 1000;
 
 		&-left {
 		}
@@ -58,7 +58,7 @@
 			}
 
 			.dropdown-menu {
-				transform: translate(calc(2.5rem - 50%), -.25rem);
+				transform: translate(calc(2rem - 50%), -.25rem);
 
 				> li > .btn {
 					text-align: center;
