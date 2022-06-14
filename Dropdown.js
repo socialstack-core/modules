@@ -185,8 +185,14 @@ export default function Dropdown(props) {
             return;
         }
 
+        // clicked a form control within a dropdown?
+        // assume we want to keep the menu open
+        var target = event.target;
+        var isFormControl = target.type == 'radio' || target.type == 'checkbox' ||
+            target.nodeName.toUpperCase() == 'LABEL' && target.classList.contains("form-check-label");
+
         // if we want to close even if we selected an item in the dropdown (default)
-        if (!stayOpenOnSelection) {
+        if (!stayOpenOnSelection && !isFormControl) {
             closeDropdown();
         } else {
 
