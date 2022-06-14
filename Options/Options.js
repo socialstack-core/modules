@@ -11,8 +11,8 @@ export default function Options(props) {
 	var audioClass = "btn huddle-chat__button huddle-chat__button--mute ";
 	audioClass += audioOn ? "btn-secondary btn-pulse" : "btn-danger";
 
-	var shareClass = "btn btn-primary huddle-chat__button huddle-chat__button--share ";
-	shareClass += shareOn ? "btn-secondary btn-pulse" : "btn-danger";
+	var shareClass = "btn huddle-chat__button huddle-chat__button--share ";
+	shareClass += shareOn ? "btn-primary btn-pulse" : "btn-primary";
 
 	var leaveJsx = <>
 		<i className="fas fa-phone-slash" />

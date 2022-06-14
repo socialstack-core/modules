@@ -186,10 +186,14 @@ function HuddleChatUI(props) {
 		// remove padding for fixed header
 		html.classList.add("disable-header-padding");
 
+		// add a marker class so other page elements can be aware UI is active
+		html.classList.add("huddle-ui--active");
+
 		// initialise timer to remove users marked as 'gone' in batches
 		var removeTimer = setInterval(clearGoneUsers, REMOVE_USER_INTERVAL);
 
 		return () => {
+			html.classList.remove("huddle-ui--active");
 			html.classList.remove("disable-header-padding");
 			html.classList.remove("disable-scroll");
 			clearInterval(removeTimer);
