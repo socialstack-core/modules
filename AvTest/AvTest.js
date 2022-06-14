@@ -265,8 +265,9 @@ export default class AvTest extends React.Component{
 				<div className="form-check form-switch">
 					<input className="form-check-input" type="checkbox" role="switch" id="enableMicrophone" checked={this.state.enableMic ? true : undefined}
 						onChange={() => {
-							this.setState({ enableMic: !this.state.enableMic });
-							this.updateSelections({ audioInitiallyDisabled: !this.state.enableMic });
+							var enableMic = !this.state.enableMic;
+							this.setState({ enableMic  });
+							this.updateSelections({ audioInitiallyDisabled: !enableMic });
 						}} />
 					<label className="form-check-label" htmlFor="enableMicrophone">
 						{`Enable microphone`}
@@ -315,8 +316,9 @@ export default class AvTest extends React.Component{
 				<div className="form-check form-switch">
 					<input className="form-check-input" type="checkbox" role="switch" id="enableCamera" checked={this.state.enableCamera ? true : undefined}
 						onChange={() => {
-							this.setState({ enableCamera: !this.state.enableCamera });
-							this.updateSelections({ videoInitiallyDisabled: !this.state.enableCamera });
+							var enableCamera = !this.state.enableCamera;
+							this.setState({ enableCamera });
+							this.updateSelections({ videoInitiallyDisabled: !enableCamera });
 
 							if (!this.state.enableCamera && this.state.selectedCam) {
 								this.setSelectedCamWithOpen(this.state.selectedCam.deviceId);
