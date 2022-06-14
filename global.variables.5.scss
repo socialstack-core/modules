@@ -7,6 +7,17 @@
 
 $base_font_size: 16 !default; // in px
 
+$ratio_golden: 1.618;
+$ratio_perfect_fifth: 1.5;
+$ratio_augmented_fourth: 1.414;
+$ratio_perfect_fourth: 1.333;
+$ratio_major_third: 1.25;
+$ratio_minor_third: 1.2;
+$ratio_major_second: 1.125;
+$ratio_minor_second: 1.067;
+
+$heading_font_ratio: $ratio_perfect_fourth;
+
 // common functions defined as early as possible
 @function strip_unit($number) {
   @if type-of($number) == 'number' and not unitless($number) {
