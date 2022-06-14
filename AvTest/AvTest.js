@@ -318,9 +318,8 @@ export default class AvTest extends React.Component{
 							this.setState({ enableCamera: !this.state.enableCamera });
 							this.updateSelections({ videoInitiallyDisabled: !this.state.enableCamera });
 
-							if (!this.state.enableCamera) {
-								debugger;
-								//this.setSelectedCamWithOpen(dev);
+							if (!this.state.enableCamera && this.state.selectedCam) {
+								this.setSelectedCamWithOpen(this.state.selectedCam.deviceId);
                             }
 
 						}} />
