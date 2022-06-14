@@ -39,6 +39,7 @@ The following CSS variables can be defined in order to override the appearance o
     --huddle-header-description-font-size: 14px;
     --huddle-header-btn-bg: transparent;
     --huddle-header-btn-fg: #fff;
+    --huddle-header-btn-border: 1px solid #fff;
     --huddle-header-btn-bg-hover: #444;
     --huddle-header-btn-fg-hover: #fff;
     --huddle-header-btn-bg-active: var(--primary);

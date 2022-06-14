@@ -47,7 +47,7 @@ Mic/ camera test UI. Appears on startup and is available via the cog in the corn
 */
 export default class AvTest extends React.Component{
 	
-	constructor(props){
+	constructor(props) {
 		super(props);
 		this.state = {};
 		
@@ -368,13 +368,18 @@ export default class AvTest extends React.Component{
 
 		var {selectedMic, selectedCam} = this.state;
 
-		console.log("MIC: ", selectedMic);
-
 		// Got a device list. Display the UI now:
 		return <div className="av-test">
 			<h1 className="av-test__title">
 				{`Huddle meeting`}
 			</h1>
+			<div className="mb-3">
+				<label className="form-label" htmlFor="displayName">
+					{`By what name do you wish to be known by?`}
+				</label>
+				<input type="text" className="form-control" name="displayname" id="displayName" placeholder={`Display name`} />
+			</div>
+
 			<div className="av-test__devices">
 				{/* microphone */}
 				<div className="av-test__devices--microphone">

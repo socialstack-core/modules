@@ -9,6 +9,10 @@
 	overflow: visible;
 	min-height: $huddle-chat-header;
 
+	h1 {
+		color: var(--huddle-header-fg, #fff);
+	}
+
 	&-info {
 	}
 
@@ -21,6 +25,7 @@
 	&-conversation {
 		background: var(--huddle-header-btn-bg, transparent);
 		color: var(--huddle-header-btn-fg, #fff);
+		border: var(--huddle-header-btn-border, 1px solid #fff);
 
 		&:not(.btn--active):hover {
 			background: var(--huddle-header-btn-bg-hover, #444);

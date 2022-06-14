@@ -1,9 +1,8 @@
 import Dropdown from 'UI/Dropdown';
+import Alert from 'UI/Alert';
 
 export default function Options(props) {
-	var {audioOn, videoOn, shareOn} = props;
-
-	var isHost = true;
+	var { audioOn, videoOn, shareOn, isHost } = props;
 
 	var videoClass = "btn huddle-chat__button huddle-chat__button--camera ";
 	videoClass += videoOn ? "btn-success" : "btn-outline-danger";
@@ -43,12 +42,26 @@ export default function Options(props) {
 			<Dropdown label={leaveJsx} variant="danger" position="top" align="middle" className="huddle-chat__options-leave">
 				<li>
 					<button type="button" className="btn dropdown-item" onClick={() => alert('LEAVE')}>
-						{`Leave meeting`}
+						<Alert variant="warning">
+							<strong>
+								{`Leave meeting`}
+							</strong>
+							<p>
+								{`Exit this meeting, leaving it available for other attendees to continue.`}
+							</p>
+						</Alert>
 					</button>
 				</li>
 				<li>
 					<button type="button" className="btn dropdown-item" onClick={() => alert('END')}>
-						{`End meeting`}
+						<Alert variant="danger">
+							<strong>
+								{`End meeting`}
+							</strong>
+							<p>
+								{`Close this meeting, disconnecting all other attendees.`}
+							</p>
+						</Alert>
 					</button>
 				</li>
 			</Dropdown>
