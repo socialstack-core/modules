@@ -67,8 +67,16 @@ function newId() {
 }
 
 export default function Dropdown(props) {
-	var { className, variant, title, label, arrow, isLarge, isSmall, splitCallback, children, stayOpenOnSelection, align, position } = props;
-    var dropdownClass = "dropdown " + className + (splitCallback ? " dropdown--split" : "");
+    var { className, variant, title, label, arrow, isLarge, isSmall, splitCallback, children, stayOpenOnSelection, align, position } = props;
+    var dropdownClasses = ['dropdown'];
+
+    if (className) {
+        dropdownClasses.push(className);
+    }
+
+    if (splitCallback) {
+        dropdownClasses.push('dropdown--split');
+    }
 
     // default to dropping down
     if (!position || position.length == 0) {
@@ -120,8 +128,8 @@ export default function Dropdown(props) {
 
     }
 
-    dropdownClass += " dropdown--align-" + align;
-    dropdownClass += " dropdown--position-" + position;
+    dropdownClasses.push('dropdown--align-' + align);
+    dropdownClasses.push('dropdown--position-' + position);
 
 	const [open, setOpen] = useState(false);
 	const dropdownWrapperRef = useRef(null);
@@ -304,7 +312,7 @@ export default function Dropdown(props) {
     }, [open]);
 
 	return (
-        <div title={title} className={dropdownClass} ref={dropdownWrapperRef}>
+        <div title={title} className={dropdownClasses.join(' ')} ref={dropdownWrapperRef}>
             {/* TODO: popper support
             <Manager>
                 <Reference>
