@@ -72,6 +72,7 @@ namespace Api.CloudHosts
                 // If configured, the default file move is disabled and we're instead reading uploads from the configured host platform.
                 if (_uploadHost != null)
                 {
+
                     if (isPrivate)
                     {
                         var stream = await _uploadHost.ReadFile(relativePath, isPrivate);
@@ -94,9 +95,19 @@ namespace Api.CloudHosts
                         }
                         catch(Exception e)
                         {
-                            Console.WriteLine("Likely temporary error whilst trying to read a file from a remote host: " + e.ToString());
-                            // Unavailable or unreachable.
-                            return null;
+                            try
+                            {
+                                var stream = await _uploadHost.ReadFile(relativePath, isPrivate);
+                                var ms = new MemoryStream();
+                                await stream.CopyToAsync(ms);
+                                return ms.ToArray();
+                            }
+                            catch (Exception e2)
+                            {
+                                Console.WriteLine("Likely temporary error whilst trying to read a file from a remote host: " + e.ToString());
+                                // Unavailable or unreachable.
+                                return null;
+                            }
                         }
                     }
                 }

@@ -44,6 +44,11 @@ namespace Api.CloudHosts
         /// </summary>
         public string CustomCdnUrl { get; set; }
 
+        /// <summary>
+        /// Is the s3 bucket locked down for public access and needs to use S3CannedACL.BucketOwnerFullControl
+        /// </summary>
+        public bool LockedDownAccess { get; set; }
+
     }
 
     /// <summary>
@@ -153,10 +158,20 @@ namespace Api.CloudHosts
                     FilePath = tempFile,
                     StorageClass = S3StorageClass.Standard,
                     PartSize = 6291456, // 6 MB
-                    Key = (upload.IsPrivate ? "content-private" : "content") + (string.IsNullOrEmpty(upload.Subdirectory) ? "/" : "/" + upload.Subdirectory + "/") + upload.GetStoredFilename(variantName),
+                    Key = (upload.IsPrivate ? "content-private/" : "content/") + upload.GetRelativePath(variantName),
                     ContentType = upload.GetMimeType(variantName),
-                    CannedACL = upload.IsPrivate ? S3CannedACL.AuthenticatedRead : S3CannedACL.PublicRead
                 };
+
+                // if the s3 bucket has been locked down for no public access 
+                // where the files are serviced via a cdn for example 
+                if (_config.LockedDownAccess)
+                {
+                    fileTransferUtilityRequest.CannedACL = S3CannedACL.BucketOwnerFullControl;
+                }
+                else
+                {
+                    fileTransferUtilityRequest.CannedACL = upload.IsPrivate ? S3CannedACL.AuthenticatedRead : S3CannedACL.PublicRead;
+                }
 
                 if (variantName == "original")
                 {
