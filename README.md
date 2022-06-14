@@ -30,6 +30,7 @@ The following CSS variables can be defined in order to override the appearance o
     --huddle-pinned-user-bg: #444;
     --huddle-pinned-user-fg: #fff;
     --huddle-footer-bg: transparent;
+    --huddle-footer-fg: rgba(0,0,0, .75);
     --huddle-header-bg: transparent;
     --huddle-header-fg: #fff;
     --huddle-header-title-font-family: var(--font);

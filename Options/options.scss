@@ -1,12 +1,14 @@
 .huddle-chat {
 	$huddle-chat: &;
+	z-index: 1000;
 
 	&__options {
 		display: flex;
 		align-items: center;
 		justify-content: space-between;
-		padding: 16px 24px;
+		padding: 8px 24px;
 		background: var(--huddle-footer-bg, transparent);
+		color: var(--huddle-footer-fg, rgba(0,0,0, .75));
 		min-height: $huddle-chat-footer;
 
 		&-left {
@@ -17,7 +19,7 @@
 			align-items: center;
 			flex-wrap: nowrap;
 
-			#{$huddle-chat}__button {
+			#{$huddle-chat}__button-wrapper {
 				margin-right: .5rem;
 
 				&:last-child {
@@ -28,11 +30,23 @@
 		}
 
 		&-leave {
+			transform: translateY(-10px);
 
 			.dropdown-toggle {
 				border-radius: 50%;
 				width: 3rem;
 				height: 3rem;
+
+				&::before {
+					content: "Leave";
+					position: absolute;
+					bottom: -21px;
+					font-size: 11px;
+					color: var(--huddle-footer-fg, rgba(0,0,0, .75));
+					width: 5rem;
+					left: 50%;
+					margin-left: -2.5rem;
+				}
 			}
 
 			.dropdown__label i {
@@ -44,7 +58,7 @@
 			}
 
 			.dropdown-menu {
-				transform: translate(calc(1.5rem - 50%), -.25rem);
+				transform: translate(calc(2.5rem - 50%), -.25rem);
 
 				> li > .btn {
 					text-align: center;
@@ -55,8 +69,100 @@
 
 	}
 
-	#{$huddle-chat}__button--hangup {
+	&__button-wrapper {
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+		font-size: 11px;
+		gap: 4px;
+		width: 4.75rem;
+	}
+
+	&__button-label {
+		text-align: center;
+	}
+
+	&__button--hangup {
 		margin: 0 .5rem;
 	}
 
+}
+
+@keyframes pulse-primary {
+    0% {
+        box-shadow: 0 0 0 0 var(--primary);
+    }
+
+    70% {
+        box-shadow: 0 0 0 10px var(--primary-shadow);
+    }
+
+    100% {
+        box-shadow: 0 0 0 0 var(--primary);
+    }
+}
+
+@keyframes pulse-secondary {
+    0% {
+        box-shadow: 0 0 0 0 var(--secondary);
+    }
+
+    70% {
+        box-shadow: 0 0 0 10px var(--secondary-shadow);
+    }
+
+    100% {
+        box-shadow: 0 0 0 0 var(--secondary);
+    }
+}
+
+@keyframes pulse-success {
+    0% {
+        box-shadow: 0 0 0 0 var(--success);
+    }
+
+    70% {
+        box-shadow: 0 0 0 10px var(--success-shadow);
+    }
+
+    100% {
+        box-shadow: 0 0 0 0 var(--success);
+    }
+}
+
+@keyframes pulse-danger {
+    0% {
+        box-shadow: 0 0 0 0 var(--danger);
+    }
+
+    70% {
+        box-shadow: 0 0 0 10px var(--danger-shadow);
+    }
+
+    100% {
+        box-shadow: 0 0 0 0 var(--danger);
+    }
+}
+
+.btn.btn-pulse {
+
+    &.btn-primary,
+	&.btn-outline-primary {
+        animation: pulse-primary 2s infinite;
+    }
+
+    &.btn-secondary,
+	&.btn-outline-secondary {
+        animation: pulse-secondary 2s infinite;
+    }
+
+    &.btn-success,
+	&.btn-outline-success {
+        animation: pulse-secondary 2s infinite;
+    }
+
+    &.btn-danger,
+	&.btn-outline-danger {
+        animation: pulse-danger 2s infinite;
+    }
 }
