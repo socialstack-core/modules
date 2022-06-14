@@ -944,14 +944,16 @@ export default class HuddleClient{
 	}
 	
 	getMicrophone(){
+		var automaticTidyUp = true;
+		
 		var constraints = {
 			audio : {
-				autoGainControl: false,
-				noiseSuppression: false,
-				echoCancellation: false,
-				typingNoiseDetection: false,
+				autoGainControl: automaticTidyUp,
+				noiseSuppression: automaticTidyUp,
+				echoCancellation: automaticTidyUp,
+				typingNoiseDetection: automaticTidyUp,
 				audioMirroring: false,
-				highpassFilter: false
+				highpassFilter: automaticTidyUp
 			},
 			video: false
 		};
