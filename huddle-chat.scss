@@ -12,6 +12,15 @@ html {
 
 	}
 
+    &.huddle-ui--active,
+	&.hide-telligent-footer {
+
+        .footer-fragments {
+            display: none;
+        }
+
+	}
+
 }
 
 .huddle-lobby {
