@@ -12,6 +12,7 @@ import Row from 'UI/Row';
 import Col from 'UI/Column';
 import Loading from 'UI/Loading';
 import SpeakerTest from 'UI/HuddleChat/SpeakerTest';
+import CustomChat from 'UI/HuddleChat/CustomChat';
 import Alert from 'UI/Alert';
 
 const MAX_STAGE_USERS = 6;
@@ -30,7 +31,16 @@ export default function HuddleChat(props) {
 	const [huddleReady, setHuddleReady] = useState(false);
 	const [joined, setJoined] = useState(false);
 	const [deviceHints, setDeviceHints] = useState({});
-
+	
+	React.useEffect(() => {
+		
+		// Hide custom node in its current parent:
+		if(props.customChatRoot){
+			props.customChatRoot.style.display='none';
+		}
+		
+	}, []);
+	
 	if(!joined && !props.skipAvTest){
 		// Click farming UI. This is for 2 things: so the user can check their mic/ cam, 
 		// and also so we can farm the click in order to avoid autoplay blocks.
@@ -338,7 +348,8 @@ function HuddleChatUI(props) {
 				</h2>
 			</header>
 			<div className="huddle-chat__sidebar-body">
-				<ChatLive className="huddle-chat__sidebar-body-internal" />
+				{props.customChatRoot ? <CustomChat root={props.customChatRoot} /> :
+				<ChatLive className="huddle-chat__sidebar-body-internal" />}
 			</div>
 		</aside>}
 
