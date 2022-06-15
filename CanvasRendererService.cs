@@ -14,6 +14,8 @@ using Api.Eventing;
 using Api.Contexts;
 using Api.SocketServerLibrary;
 using Api.Configuration;
+using System.Text;
+using System.Web;
 
 namespace Api.CanvasRenderer
 {
@@ -62,6 +64,120 @@ namespace Api.CanvasRenderer
 
 				return new ValueTask<long>(buildtimestampMs);
 			});
+		}
+
+		/// <summary>
+		/// Converts canvas JSON into a html-like string which will still contain component usage in there.
+		/// This may be useful for sending canvas JSON to translators as it will be much more familiar for them.
+		/// </summary>
+		/// <param name="canvas"></param>
+		/// <returns></returns>
+		public static string CanvasToComponentXml(string canvas)
+		{
+			if (string.IsNullOrEmpty(canvas))
+			{
+				return null;
+			}
+
+			var rootNode = JsonConvert.DeserializeObject(canvas) as JToken;
+
+			if (rootNode == null)
+			{
+				return "";
+			}
+
+			var sb = new StringBuilder();
+
+			CanvasNodeToXml(rootNode, sb);
+
+			return sb.ToString();
+		}
+
+		private static void CanvasNodeToXml(JToken node, StringBuilder sb)
+		{
+			// Note that roots aren't supported as they don't serialise. They are relatively rarely used however.
+			if (node is JObject)
+			{
+				var str = node["s"];
+				
+				if (str != null)
+				{
+					// As-is:
+					sb.Append(str.ToString());
+					return;
+				}
+
+				var kids = node["c"];
+				var data = node["d"] as JObject;
+				var typeName = node["t"];
+				var stringName = typeName.ToString();
+				stringName = stringName.Replace('/', ':');
+
+				sb.Append('<');
+				sb.Append(stringName);
+
+				if (data != null)
+				{
+					foreach (var kvp in data)
+					{
+						sb.Append(' ');
+
+						if (kvp.Value is JObject obj)
+						{
+							sb.Append("-x-json-");
+							sb.Append(kvp.Key);
+							sb.Append("=\"");
+							sb.Append(HttpUtility.HtmlAttributeEncode(obj.ToString()));
+							sb.Append('\"');
+						}
+						else if (kvp.Value is JArray arr)
+						{
+							sb.Append("-x-json-");
+							sb.Append(kvp.Key);
+							sb.Append("=\"");
+							sb.Append(HttpUtility.HtmlAttributeEncode(arr.ToString()));
+							sb.Append('\"');
+						}
+						else
+						{
+							sb.Append(kvp.Key);
+							sb.Append("=\"");
+							sb.Append(HttpUtility.HtmlAttributeEncode(kvp.Value.ToString()));
+							sb.Append('\"');
+						}
+					}
+				}
+
+				if (kids == null)
+				{
+					sb.Append('/');
+				}
+				sb.Append('>');
+
+				if (kids != null)
+				{
+					CanvasNodeToXml(kids, sb);
+
+					sb.Append("</");
+					sb.Append(stringName);
+					sb.Append('>');
+
+				}
+
+			}
+			else if (node is JArray array)
+			{
+				foreach (var child in array)
+				{
+					CanvasNodeToXml(child, sb);
+				}
+			}
+			else if (node is JValue)
+			{
+				// As-is:
+				sb.Append(node.ToString());
+			}
+
 		}
 
 		/// <summary>
