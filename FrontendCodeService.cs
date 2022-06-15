@@ -142,7 +142,7 @@ namespace Api.CanvasRenderer
 		/// </summary>
 		public void ClearCaches()
 		{
-			if (SourceBuilders != null && Prebuilt)
+			if (SourceBuilders != null)
 			{
 				foreach (var bundle in SourceBuilders)
 				{
