@@ -30,6 +30,7 @@ const SidebarEnum = Object.freeze({
 export default function HuddleChat(props) {
 	const [huddleReady, setHuddleReady] = useState(false);
 	const [joined, setJoined] = useState(false);
+	const [displayName, setDisplayName] = useState(props.displayName);
 	const [deviceHints, setDeviceHints] = useState({});
 	
 	React.useEffect(() => {
@@ -48,7 +49,9 @@ export default function HuddleChat(props) {
 			<AvTest onDeviceSelect={(newHints) => {
 				var hints = { ...deviceHints, ...newHints };
 				setDeviceHints(hints);
-			}} huddleReadyCallback={setHuddleReady} />
+			}} huddleReadyCallback={setHuddleReady} 
+			displayName={displayName}
+			onChangeName={newName => setDisplayName(newName)}/>
 
 			{huddleReady && <>
 				<footer className="huddle-lobby__footer">
@@ -64,7 +67,7 @@ export default function HuddleChat(props) {
 		</div>;
 	}
 	
-	return <HuddleChatClient {...props} {...deviceHints}/>;
+	return <HuddleChatClient {...props} {...deviceHints} displayName={displayName}/>;
 }
 
 function HuddleChatClient(props) {

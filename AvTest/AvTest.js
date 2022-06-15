@@ -394,7 +394,9 @@ export default class AvTest extends React.Component{
 				<label className="form-label" htmlFor="displayName">
 					{`By what name do you wish to be known by?`}
 				</label>
-				<input type="text" className="form-control" name="displayname" id="displayName" placeholder={`Display name`} />
+				<input type="text" className="form-control" name="displayname" id="displayName" value={this.props.displayName} onChange={e => {
+					this.props.onChangeName && this.props.onChangeName(e.target.value);
+				}} placeholder={`Display name`} />
 			</div>
 
 			<div className="av-test__devices">
