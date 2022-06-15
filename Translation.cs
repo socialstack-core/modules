@@ -26,7 +26,7 @@ namespace Api.Translate
 		
 		/// <summary>The translation.</summary>
 		[Localized]
-        [Data("hint", "The translated text to replace the original value (site restart required if changed !)")]
+        [Data("hint", "The translated text to replace the original value")]
 		public string Translated;
 		
 	}
