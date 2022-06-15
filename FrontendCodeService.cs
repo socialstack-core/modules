@@ -1,6 +1,7 @@
 using Api.Configuration;
 using Api.ContentSync;
 using Api.Contexts;
+using Api.Eventing;
 using Api.Permissions;
 using Api.Startup;
 using Api.Translate;
@@ -133,6 +134,21 @@ namespace Api.CanvasRenderer
 			}
 
 			InlineJavascriptHeader = servicePaths + rawInlineHeader;
+		}
+
+		/// <summary>
+		/// Clears the JS caches such that the output js is reconstructed.
+		/// Similar to ReloadFromFilesystem except runs on the assumption that the filesystem itself has not changed.
+		/// </summary>
+		public void ClearCaches()
+		{
+			if (SourceBuilders != null && Prebuilt)
+			{
+				foreach (var bundle in SourceBuilders)
+				{
+					bundle.ClearCaches();
+				}
+			}
 		}
 
 		/// <summary>
@@ -284,6 +300,27 @@ namespace Api.CanvasRenderer
 				return new ValueTask();
 			};
 
+			// Handling translation updates:
+			Events.Translation.AfterUpdate.AddEventListener((Context context, Translation updated) => {
+				ClearCaches();
+				return new ValueTask<Translation>(updated);
+			});
+
+			Events.Translation.AfterCreate.AddEventListener((Context context, Translation updated) => {
+				ClearCaches();
+				return new ValueTask<Translation>(updated);
+			});
+			
+			Events.Translation.AfterDelete.AddEventListener((Context context, Translation updated) => {
+				ClearCaches();
+				return new ValueTask<Translation>(updated);
+			});
+
+			// Translation update from another node in the cluster:
+			Events.Translation.Received.AddEventListener((Context context, Translation translation, int mode) => {
+				ClearCaches();
+				return new ValueTask<Translation>(translation);
+			});
 		}
 
 		/// <summary>

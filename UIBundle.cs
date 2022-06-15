@@ -165,6 +165,14 @@ namespace Api.CanvasRenderer
 		}
 
 		/// <summary>
+		/// Clears the JS locale caches.
+		/// </summary>
+		public void ClearCaches()
+		{
+			_localeToMainJs = null;
+		}
+
+		/// <summary>
 		/// Reloads a prebuilt UI bundle from the filesystem.
 		/// </summary>
 		public void ReloadPrebuilt()
