@@ -235,7 +235,7 @@ export default class HuddleClient{
 			// Expand includes:
 			this.users = expandIncludes(baseUserSet).results;
 			
-			var targetBitrateK = '2600';
+			var targetBitrateK = this.props.maxBitrateK || '2600';
 			
 			var audioConfig = "m=audio 7 UDP/TLS/RTP/SAVPF 96\r\n" +
 			"c=IN IP4 0.0.0.0\r\n"+
