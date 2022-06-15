@@ -92,6 +92,7 @@ function HuddleChatClient(props) {
 			roleKey: props.roleKey,
 			displayName: props.displayName,
 			deviceIdAudio: props.deviceIdAudio,
+			maxBitrateK: props.maxBitrateK,
 			deviceIdVideo: props.deviceIdVideo,
 			autoStartAudio: props.autoStartAudio, // Used if avTest is skipped
 			autoStartVideo: props.autoStartVideo,
