@@ -5,7 +5,7 @@ using Microsoft.AspNetCore.Mvc;
 using Newtonsoft.Json.Linq;
 using System.Collections.Generic;
 using System.Threading.Tasks;
-using Amazon.S3.Model;
+//using Amazon.S3.Model;
 using Api.SocketServerLibrary;
 using Api.Permissions;
 
