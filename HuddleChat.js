@@ -90,6 +90,8 @@ function HuddleChatClient(props) {
 			displayName: props.displayName,
 			deviceIdAudio: props.deviceIdAudio,
 			deviceIdVideo: props.deviceIdVideo,
+			autoStartAudio: props.autoStartAudio, // Used if avTest is skipped
+			autoStartVideo: props.autoStartVideo,
 			audioInitiallyDisabled: props.audioInitiallyDisabled,
 			videoInitiallyDisabled: props.videoInitiallyDisabled,
 			onError: e => {
