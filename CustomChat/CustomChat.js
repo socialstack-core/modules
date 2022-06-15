@@ -5,6 +5,10 @@ export default class CustomChat extends React.Component {
 	}
 	
 	render(){
+		if(this.props.url){
+			return <iframe src={this.props.url} width='100%' height='100%'/>
+		}
+		
 		// Non-react owned DOM element. Do not add any other props to this div - it must only have ref on it.
 		return <div ref={targetZone => {
 			if(!this.props.root){

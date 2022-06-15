@@ -348,7 +348,7 @@ function HuddleChatUI(props) {
 				</h2>
 			</header>
 			<div className="huddle-chat__sidebar-body">
-				{props.customChatRoot ? <CustomChat root={props.customChatRoot} /> :
+				{props.customChatRoot || props.customChatUrl ? <CustomChat root={props.customChatRoot} url={props.customChatUrl} /> :
 				<ChatLive className="huddle-chat__sidebar-body-internal" />}
 			</div>
 		</aside>}
