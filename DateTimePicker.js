@@ -70,7 +70,7 @@ function clampDay(day, month, year) {
 }
 
 function getMinDate(props) {
-	var { min, minDate, futureOnly, step, local } = props;
+	var { min, minDate, futureOnly, showSeconds, step, local } = props;
 
 	if (minDate) {
 		min = new DateWrapper(minDate, local);
@@ -81,7 +81,12 @@ function getMinDate(props) {
 		min = roundTime(new DateWrapper(min, local), step);
 	}
 
-	var nowDate = roundTime(dateNow(local), step);
+	var nowDate = dateNow(local);
+	if (!showSeconds || nowDate.getSeconds() === 1) {
+		nowDate.setSeconds(0,0);
+	}
+	nowDate = roundTime(nowDate, step);
+
 	if (futureOnly && futureOnly !== 'strict') {
 		var leewayMins = (step && step % 60 === 0) ? step / 60 : 5;
 
@@ -204,6 +209,22 @@ export default class DateTimePicker extends React.Component {
 			// Seconds must be shown if step isn't an integer when converted to minutes
 			props.showSeconds = true;
 		}
+
+		// Set the state every minute so that the minimum value is updated without interaction
+		if (props.futureOnly && props.futureOnly !== 'date') {
+			var now = dateNow(props.local);
+			var secondsUntilNextMinute = 60 - now.getSeconds();
+
+			var updateNowMins = () => {
+				var currNow = dateNow(this.props.local);
+				this.setState({nowMins: currNow.getMinutes()});
+			}
+
+			setTimeout(() => {
+				updateNowMins();
+				setInterval(updateNowMins, 60000);
+			}, secondsUntilNextMinute * 1000);
+		}
 	}
 	
 	currentDate(props){
@@ -263,9 +284,10 @@ export default class DateTimePicker extends React.Component {
 		}
 
 		var onBlur = (e) => {
-			if (dateValue(currDate, props) !== e.target.value) {
-				var date = processDate(new DateWrapper(e.target.value, local), props);
-				this.setState({date});
+			var newDate = processDate(new DateWrapper(e.target.value, local), props);
+
+			if (currDate !== newDate) {
+				this.setState({date: newDate});
 			}
 		}
 
