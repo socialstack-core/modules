@@ -1,0 +1,88 @@
+
+.ui .date-time-picker{
+    position: relative;
+
+	i{
+		color: #ddd;
+		margin: 10px;
+	}
+	
+	.small{
+		max-width: 30px;
+	}
+
+    .text-muted {
+        margin-bottom: .5rem;
+        color: rgba(255,255,255,.75) !important;
+    }
+
+	color: white;
+}
+
+.date-time-picker__internal {
+    border: var(--primary) 1px solid;
+    border-radius: 5px;
+
+    :invalid {
+        border: blue 2px solid;
+    }
+}
+
+.calendar-picker {
+    position: absolute;
+    z-index: 1;
+    border: var(--primary) 1px solid;
+    border-collapse: separate;
+    border-radius: 5px;
+    background-color: white;
+
+    thead {
+        td {
+            font-size: 12px;
+            text-align: center;
+        }
+    }
+
+    tbody {
+        td {
+            width: 25px;
+            height: 25px;
+            font-size: 14px;
+            vertical-align: top;
+            line-height: 14px;
+
+            &.cal-active {
+                background-color: white;
+                border: var(--primary) 2px solid;
+                border-radius: 5px;
+                color: black;
+
+               /*  &:active {
+                    padding: 1px !important;
+                } */
+            }
+
+            &.cal-dark {
+                filter: brightness(60%);
+            }
+
+            &.bg-secondary {
+                &.disabled {
+                    color: grey;
+                    border: rgb(177, 177, 177) 1px solid;
+                }
+            }
+
+            &.btn-primary {
+                &:active {
+                    background-color: var(--primary);
+                    filter: brightness(110%);
+                    padding: 2px;
+                   // color: black;
+                    //border: var(--primary) 1px solid;
+                    border-radius: 5px;
+                }
+            }
+        }
+    }
+}
