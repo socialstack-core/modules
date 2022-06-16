@@ -5,9 +5,11 @@ using Microsoft.AspNetCore.Mvc;
 using Newtonsoft.Json.Linq;
 using System.Collections.Generic;
 using System.Threading.Tasks;
+using Api.CanvasRenderer;
 //using Amazon.S3.Model;
 using Api.SocketServerLibrary;
 using Api.Permissions;
+using Api.Translate;
 
 /// <summary>
 /// A convenience controller for defining common endpoints like create, list, delete etc. Requires an AutoService of the same type to function.
@@ -90,12 +92,15 @@ public partial class AutoController<T,ID>
 		Response.ContentType = "text/plain";
 		Response.Headers.Add("Content-Disposition", "attachment; filename=\"" + typeName + ".pot\"");
 
+        var canvasRendererService = Services.Get<CanvasRendererService>();
+        var translationServiceConfig = Services.Get<TranslationService>().GetConfig<TranslationServiceConfig>();
+
 		foreach (var result in results)
 		{
 			var id = result.Id.ToString();
 
 			foreach (var localisedField in localisedFields)
-			{
+            {
 				// ID line - e.g. #: 14 - products>1>title
 				writer.WriteASCII("#: ");
 				writer.WriteASCII(id);
@@ -117,7 +122,18 @@ public partial class AutoController<T,ID>
 				// Any double quotes are also escaped.
 				var rawFieldValue = localisedField.FieldInfo.GetValue(result);
 
-				if (rawFieldValue is string)
+				// Do we want to simplify the canvas rendering for translation
+                var isCanvas = false;
+                if (translationServiceConfig.ReformatCanvasElements)
+                {
+                    isCanvas = canvasRendererService.IsCanvasField(localisedField);
+				}
+
+                if (isCanvas)
+                {
+					writer.WriteS(canvasRendererService.CanvasToComponentXml((string)rawFieldValue));
+                }
+                else if (rawFieldValue is string)
 				{
 					writer.WriteS(EscapeForPo((string)rawFieldValue));
 				}
