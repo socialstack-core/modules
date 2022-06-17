@@ -31,6 +31,12 @@ namespace Api.FFmpeg
 		/// Only applies to non-admin users.
 		/// </summary>
 		public uint MaxVideoLengthSeconds { get; set; }
-	}
-	
+
+        /// <summary>
+        /// Run ffmpeg in verbose mode to get maximum feedback
+        /// </summary>
+        public bool VerboseLogging { get; set; } = false;
+
+    }
+
 }

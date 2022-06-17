@@ -1,18 +1,13 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Diagnostics;
-using System.Net;
-using System.Net.Sockets;
 using System.Runtime.InteropServices;
 using System.Text;
 using System.Threading.Tasks;
 using Api.Contexts;
 using Api.Eventing;
 using Api.Uploader;
-using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
-using Microsoft.Extensions.Configuration;
-using Api.Configuration;
 using Microsoft.Extensions.Hosting;
 using System.IO;
 using Api.Startup;
@@ -24,7 +19,7 @@ namespace Api.FFmpeg
 	/// </summary>
 	public partial class FFmpegService : AutoService
 	{
-		private bool Verbose = false;
+		private bool _verbose = false;
 
 		/// <summary>
 		/// All active processes.
@@ -45,7 +40,9 @@ namespace Api.FFmpeg
 			_configuration = GetConfig<FFmpegConfig>();
 			
 			if(_configuration != null && _configuration.TranscodeUploads)
-			{
+            {
+                _verbose = _configuration.VerboseLogging;
+
 				var formats = _configuration.TranscodeTargets;
 				
 				if(string.IsNullOrEmpty(formats)){
@@ -369,7 +366,7 @@ namespace Api.FFmpeg
 						Directory.Delete(chunkDirectory, true);
 
 						await Events.UploadAfterTranscode.Dispatch(context, upload);
-					});
+                    });
 				}
 				
 				if(h264Transcode){
@@ -424,7 +421,7 @@ namespace Api.FFmpeg
 			
 			Process process = new Process();
 
-			if (!Verbose)
+			if (!_verbose)
 			{
 				cmdArgs = "-hide_banner -loglevel fatal " + cmdArgs;
 			}
@@ -458,7 +455,7 @@ namespace Api.FFmpeg
 				else
 				{
 					// Forward to our output stream:
-					 Console.WriteLine(e.Data);
+					 Console.WriteLine("FFMpeg " + e.Data);
 				}
 			});
 
@@ -475,7 +472,7 @@ namespace Api.FFmpeg
 				}
 				else
 				{
-					Console.WriteLine(e.Data);
+					Console.WriteLine("FFMpeg " + e.Data);
 				}
 			});
 			
