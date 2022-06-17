@@ -87,15 +87,8 @@ function getMinDate(props) {
 	}
 	nowDate = roundTime(nowDate, step);
 
-	if (futureOnly && futureOnly !== 'strict') {
-		var leewayMins = (step && step % 60 === 0) ? step / 60 : 5;
-
-		if (futureOnly === true && (nowDate.getHours() > 0 || nowDate.getMinutes() >= leewayMins)) {
-			// Allow a leeway before the current time if futureOnly isn't strict
-			nowDate.setMinutes(nowDate.getMinutes() - leewayMins);
-		} else if (futureOnly === 'date') {
-			nowDate.setHours(0,0,0,0);
-		}
+	if (futureOnly === 'date') {
+		nowDate.setHours(0,0,0,0);
 	}
 
 	if (min && futureOnly) {
@@ -204,25 +197,27 @@ export default class DateTimePicker extends React.Component {
 		};
 
 		this.state.date = processDate(this.currentDate(props), props);
+		this.inputRef = React.createRef();
 
 		if (props.step && props.step % 60 !== 0) {
 			// Seconds must be shown if step isn't an integer when converted to minutes
 			props.showSeconds = true;
 		}
 
-		// Set the state every minute so that the minimum value is updated without interaction
+		// Update the minimum value every minute if the time should be in the future
 		if (props.futureOnly && props.futureOnly !== 'date') {
 			var now = dateNow(props.local);
 			var secondsUntilNextMinute = 60 - now.getSeconds();
 
-			var updateNowMins = () => {
-				var currNow = dateNow(this.props.local);
-				this.setState({nowMins: currNow.getMinutes()});
+			var updateMinValue = () => {
+				if (this.inputRef.current) {
+					this.inputRef.current.min = dateValue(getMinDate(props), props);
+				}
 			}
 
 			setTimeout(() => {
-				updateNowMins();
-				setInterval(updateNowMins, 60000);
+				updateMinValue();
+				setInterval(updateMinValue, 60000);
 			}, secondsUntilNextMinute * 1000);
 		}
 	}
@@ -292,6 +287,7 @@ export default class DateTimePicker extends React.Component {
 		}
 
 		return <input
+			ref={this.inputRef}
 			name="datetime"
 			className='date-time-picker__internal'
 			type={type}
