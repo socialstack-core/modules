@@ -190,7 +190,11 @@ namespace Api.Signatures
 			}
 
 			writer.Release();
-			ReturnToPool(pooledHmac);
+			if (pooledHmac != null)
+			{
+				ReturnToPool(pooledHmac);
+			}
+
 			return success;
 		}
 
@@ -199,7 +203,8 @@ namespace Api.Signatures
 		/// The outputted HMAC goes into the writer's buffer as hex.
 		/// </summary>
 		/// <param name="writer"></param>
-		public void SignHmac256AlphaChar(Writer writer)
+		/// <param name="customKeyPair">Optional keypair to use for the HMAC.</param>
+		public void SignHmac256AlphaChar(Writer writer, KeyPair customKeyPair = null)
 		{
 			if (writer.Length > 256)
 			{
@@ -213,21 +218,35 @@ namespace Api.Signatures
 			// Note that also due to the above length check, we know for certain that we have 
 			// enough space in the writer's buffer for the complete hex encoding of the hmac, meaning we can short out buffer overrun checks as well.
 			// We'll use the writer's buffer as a scratch space too.
+			PooledHMac pooledHmac;
+			Org.BouncyCastle.Crypto.Macs.HMac mac;
 
-			var hmac = GetHmac();
+			if (customKeyPair == null)
+			{
+				pooledHmac = GetHmac();
+				mac = pooledHmac.Mac;
+			}
+			else
+			{
+				pooledHmac = null;
+				mac = CreateHmac(customKeyPair);
+			}
 
 			var input = writer.FirstBuffer.Bytes;
 
 			// Write block to hmac:
-			hmac.Mac.BlockUpdate(input, 0, writer.Length);
+			mac.BlockUpdate(input, 0, writer.Length);
 
 			// Write resulting hmac to a scratch area of the writer buffer:
-			hmac.Mac.DoFinal(input, 256);
+			mac.DoFinal(input, 256);
 
 			// Write alphachar bytes:
 			writer.WriteAlphaChar(input, 256, 32);
 
-			ReturnToPool(hmac);
+			if (pooledHmac != null)
+			{
+				ReturnToPool(pooledHmac);
+			}
 		}
 
 		/// <summary>
