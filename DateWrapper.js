@@ -6,14 +6,12 @@
  *
  * If the date parameter is Date or DateWrapper, a copy of the date will
  * be constructed. For DateWrappers, value of local will also be copied
- * if local is not specified.
+ * if local is not specified. An array can be used to pass multiple
+ * parameters to the Date constructor.
  *
- * If the date parameter is any other value, a new date will be
- * constructed using the value as a parameter to the constructor
- * (An array should be used to pass multiple parameters to the Date
- * constructor).
- *
- * If the date parameter is falsy, a new Date is constructed without parameters.
+ * Using any other date parameter that doesn't evaluate to false will
+ * construct a Date using the same parameter. However if it is
+ * falsy, a new Date is constructed without parameters.
  *
  * @param {(Date|DateWrapper|object|number)} date
  * @param {boolean} local

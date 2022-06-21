@@ -1,7 +1,5 @@
 // Module import examples - none are required:
 import omit from 'UI/Functions/Omit';
-import Input from 'UI/Input';
-import {monthNames, ordinal, isoConvert} from 'UI/Functions/DateTools';
 import DateWrapper from './DateWrapper';
 import CustomPicker from './CustomPicker';
 
@@ -148,7 +146,7 @@ function dateValue(date, props) {
 		return '0000-00-00T00:00:00';
 	}
 
-	var year    = `${date.getFullYear()}`.padStart(2, '0');
+	var year    = `${date.getFullYear()}`.padStart(4, '0');
 	var month   = `${date.getMonth()+1}`.padStart(2, '0');
 	var day     = `${date.getDate()}`.padStart(2, '0');
 	var hours   = `${date.getHours()}`.padStart(2, '0');
@@ -165,11 +163,19 @@ function dateValue(date, props) {
 }
 
 function processDate(date, props) {
-	var { local, step } = props;
+	var { defaultValue, local, step } = props;
+
+	if (defaultValue) {
+		defaultValue = !isValidDate(defaultValue) ? new DateWrapper(defaultValue, local) : defaultValue;
+
+		if (isValidDate(defaultValue) && dateValue(date, props) === dateValue(defaultValue, props)) {
+			return date;
+		}
+	}
 
 	var minD = getMinDate(props);
 	var maxD = getMaxDate(props);
-	var processed = new DateWrapper(date);
+	var processed = new DateWrapper(date, local);
 	processed = clampDate(date, minD, maxD);
 
 	if (date) {
@@ -224,22 +230,19 @@ export default class DateTimePicker extends React.Component {
 	
 	currentDate(props){
 		var {value, defaultValue, local} = props;
-		
+
 		if(value !== undefined){
-			return value ? new DateWrapper(isoConvert(value), local) : null;
+			return value ? new DateWrapper(value, local) : null;
 		}
 		
 		var {date} = this.state;
-		
-		if(date && isValidDate(date)){
-			return date;
+
+		if (date) {
+			var invalidDateReplacement = this.lastValidDate ?? new DateWrapper(null, local);
+			return isValidDate(date) ? date : invalidDateReplacement;
 		}
 
-		if (date && !isValidDate(date)) {
-			return this.lastValidDate ?? new DateWrapper(null, local)
-		}
-
-		return defaultValue ? new DateWrapper(isoConvert(defaultValue), local) : new DateWrapper(null, local);
+		return defaultValue ? new DateWrapper(defaultValue, local) : new DateWrapper(null, local);
 	}
 
 	componentDidUpdate(prevProps, prevState) {
@@ -249,11 +252,12 @@ export default class DateTimePicker extends React.Component {
 	}
 
 	renderDateInput(date, props) {
-		var { type, local, customPicker, readOnly, step } = props;
+		var { type, defaultValue, local, customPicker, readOnly, step } = props;
+
+		type = type ?? 'datetime-local';
 
 		var minValue = dateValue(getMinDate(props), props);
 		var maxValue = dateValue(getMaxDate(props), props);
-		var currDate = this.currentDate(this.props);
 
 		var inputValue = dateValue(date, props);
 
@@ -273,15 +277,19 @@ export default class DateTimePicker extends React.Component {
 
 		var onChange = (e) => {
 			if (e.target.value === '') {
-				var date = processDate(new DateWrapper(null, local), props);
-				this.setState({date});
+				if (defaultValue) {
+					this.setState({date: new DateWrapper(defaultValue, local)})
+				} else {
+					var date = processDate(new DateWrapper(null, local), props);
+					this.setState({date});
+				}
 			}
 		}
 
 		var onBlur = (e) => {
 			var newDate = processDate(new DateWrapper(e.target.value, local), props);
 
-			if (currDate !== newDate) {
+			if (newDate.valueOf() !== date.valueOf()) {
 				this.setState({date: newDate});
 			}
 		}
