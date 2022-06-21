@@ -10,6 +10,7 @@ using Microsoft.AspNetCore.Authentication;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Primitives;
 using Api.Translate;
+using Api.Signatures;
 
 namespace Api.Contexts
 {
@@ -20,13 +21,14 @@ namespace Api.Contexts
 	{
 		private static ContextService _loginTokens;
 		private static LocaleService _locales;
-		
+
 		/// <summary>
 		/// Gets the user ID for the currently authenticated user. It's 0 if they're not logged in.
 		/// </summary>
 		/// <param name="request"></param>
+		/// <param name="keyPair">Optionaly keypair to use to check the HMAC.</param>
 		/// <returns></returns>
-		public static async ValueTask<Context> GetContext(this Microsoft.AspNetCore.Http.HttpRequest request)
+		public static async ValueTask<Context> GetContext(this Microsoft.AspNetCore.Http.HttpRequest request, KeyPair keyPair = null)
 		{
 			if (_loginTokens == null)
 			{
@@ -59,7 +61,7 @@ namespace Api.Contexts
 				}
 			}
 
-			var context = cookie == null ? null : await _loginTokens.Get(cookie);
+			var context = cookie == null ? null : await _loginTokens.Get(cookie, keyPair);
 
 			if (context == null)
 			{

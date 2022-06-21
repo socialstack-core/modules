@@ -338,8 +338,9 @@ namespace Api.Contexts
 		/// Gets a login token from the given cookie text.
 		/// </summary>
 		/// <param name="tokenStr"></param>
+		/// <param name="customKeyPair">Key pair to use when checking the signature. If null, this uses the internal one used by signature service.</param>
 		/// <returns></returns>
-		public async ValueTask<Context> Get(string tokenStr)
+		public async ValueTask<Context> Get(string tokenStr, KeyPair customKeyPair = null)
         {
             if (tokenStr == null)
             {
@@ -360,7 +361,7 @@ namespace Api.Contexts
 				return null;
 			}
 
-			if (!_signatures.ValidateHmac256AlphaChar(tokenStr))
+			if (!_signatures.ValidateHmac256AlphaChar(tokenStr, customKeyPair))
 			{
 				return null;
 			}
