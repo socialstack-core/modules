@@ -84,6 +84,19 @@ namespace Api.Signatures
 		}
 
 		/// <summary>
+		/// Creates a HMAC generator for the given key pair. It's internally stateful.
+		/// </summary>
+		/// <param name="keyPair"></param>
+		/// <returns></returns>
+		public Org.BouncyCastle.Crypto.Macs.HMac CreateHmac(KeyPair keyPair)
+		{
+			var hmacSha256 = new Org.BouncyCastle.Crypto.Macs.HMac(new Org.BouncyCastle.Crypto.Digests.Sha256Digest());
+			hmacSha256.Init(new Org.BouncyCastle.Crypto.Parameters.KeyParameter(keyPair.PrivateKeyBytes));
+
+			return hmacSha256;
+		}
+
+		/// <summary>
 		/// Gets a hmac helper, which may come from a pool.
 		/// </summary>
 		/// <returns></returns>
@@ -125,10 +138,23 @@ namespace Api.Signatures
 		/// Validates that the given string ends with an alphachar signature.
 		/// </summary>
 		/// <param name="str"></param>
+		/// <param name="customKeyPair"></param>
 		/// <returns></returns>
-		public bool ValidateHmac256AlphaChar(string str)
+		public bool ValidateHmac256AlphaChar(string str, KeyPair customKeyPair = null)
 		{
-			var hmac = GetHmac();
+			PooledHMac pooledHmac;
+			Org.BouncyCastle.Crypto.Macs.HMac mac;
+
+			if (customKeyPair == null)
+			{
+				pooledHmac = GetHmac();
+				mac = pooledHmac.Mac;
+			}
+			else
+			{
+				pooledHmac = null;
+				mac = CreateHmac(customKeyPair);
+			}
 
 			var writer = Writer.GetPooled();
 			writer.Start(null);
@@ -137,10 +163,10 @@ namespace Api.Signatures
 			var input = writer.FirstBuffer.Bytes;
 
 			// Write block to hmac:
-			hmac.Mac.BlockUpdate(input, 0, writer.Length - 64);
+			mac.BlockUpdate(input, 0, writer.Length - 64);
 
 			// Write resulting hmac to a scratch area of the writer buffer:
-			hmac.Mac.DoFinal(input, 256);
+			mac.DoFinal(input, 256);
 
 			// Compare bytes of the generated hmac to the alphachar bytes located at writer.Length-64
 			var offset = writer.Length - 64;
@@ -164,7 +190,7 @@ namespace Api.Signatures
 			}
 
 			writer.Release();
-			ReturnToPool(hmac);
+			ReturnToPool(pooledHmac);
 			return success;
 		}
 
