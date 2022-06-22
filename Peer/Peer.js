@@ -16,6 +16,8 @@ export default class Peer extends React.Component {
 	
 	render(){
 		const {
+			allowFullscreen,
+			disablePeerControls,
 			peer,
 			huddleClient
 		} = this.props;
@@ -45,23 +47,32 @@ export default class Peer extends React.Component {
 		return (
 			<div className="peer">
 				<div className='indicators'>
-					<button type="button" className="peer__indicator peer__indicator--audio" disabled={!audioAvailable ? true : undefined}
-						onClick={() => {
-							(audioEnabled
-								? huddleClient.muteMic()
-								: huddleClient.unmuteMic()).then(() => this.setState({}));
-						}}>
-						<span className={"icon mic-" + (audioEnabled ? "on" : "off") }></span>
-					</button>
+					{disablePeerControls ?
+						allowFullscreen &&
+							<div className="peer__indicator">
+								<i className="fa fa-expand-arrows-alt"></i>
+							</div>
+					:
+						<>
+							<button type="button" className="peer__indicator peer__indicator--audio" disabled={!audioAvailable ? true : undefined}
+								onClick={(e) => {
+									(audioEnabled
+										? huddleClient.muteMic()
+										: huddleClient.unmuteMic()).then(() => this.setState({}));
+								}}>
+								<span className={"icon mic-" + (audioEnabled ? "on" : "off") }></span>
+							</button>
 
-					<button type="button" className="peer__indicator peer__indicator--video" disabled={!videoAvailable ? true : undefined}
-						onClick={() => {
-							(videoVisible
-								? huddleClient.disableWebcam()
-								: huddleClient.enableWebcam()).then(() => this.setState({}));
-						}}>
-						<span className={"icon webcam-" + (videoVisible ? "on" : "off") }></span>
-					</button>
+							<button type="button" className="peer__indicator peer__indicator--video" disabled={!videoAvailable ? true : undefined}
+								onClick={() => {
+									(videoVisible
+										? huddleClient.disableWebcam()
+										: huddleClient.enableWebcam()).then(() => this.setState({}));
+								}}>
+								<span className={"icon webcam-" + (videoVisible ? "on" : "off") }></span>
+							</button>
+						</>
+					}
 
 					{// If we are an admin, we should see a button to make this user a permitted speaker if they are not.
 					huddleClient.me.huddleRole == 1 && room.huddle && room.huddle.huddleType == 3 &&(peer.profile.isPermittedSpeaker ? <button className = "btn btn-danger" onClick = {e => {

@@ -268,7 +268,7 @@ export default class VideoChat extends React.Component {
 			</Container>;
 		}
 
-		var { children, allowFullscreen, onRenderPeer, onPreRender, onClose } = this.props;
+		var { children, allowFullscreen, disablePeerControls, onRenderPeer, onPreRender, onClose } = this.props;
 
 		// If we have at least 1 actual child node, then there is a visible activity.
 		// It acts like a fullscreen peer.
@@ -346,6 +346,7 @@ export default class VideoChat extends React.Component {
 				className={cfg.peersClassName}
 				huddleClient={huddleClient}
 				allowFullscreen={allowFullscreen}
+				disablePeerControls={disablePeerControls}
 				onRenderPeer={onRenderPeer}
 				peers={peers}
 				holdingText={this.props.holdingText}

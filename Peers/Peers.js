@@ -5,7 +5,7 @@ const PEER_CAP = 10;
 export default class Peers extends React.Component {
 	
 	render(){
-		var { huddleClient, allowFullscreen, peers, sharedPeers, className } = this.props;
+		var { huddleClient, allowFullscreen, disablePeerControls, peers, sharedPeers, className } = this.props;
 		var activeSpeakerId = huddleClient.room.activeSpeakerId;
 		
 		if(!peers.length){
@@ -59,7 +59,7 @@ export default class Peers extends React.Component {
 									peer.fullscreen = !peer.fullscreen;
 									this.props.peerChange();
 							}}>
-								<Peer peer={peer} huddleClient={huddleClient} />
+								<Peer allowFullscreen={allowFullscreen} disablePeerControls={disablePeerControls} peer={peer} huddleClient={huddleClient} />
 							</button>
 						);
 					}
