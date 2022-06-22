@@ -1,0 +1,86 @@
+:root {
+	process-steps-complete: var(--primary);
+	process-steps-complete-icon: '\f00c'; // fa-check
+	process-steps-incomplete: #989898;
+	process-steps-current: #fff;
+	process-steps-line-width: 4px;
+	process-steps-step-size: 2.5rem;
+	process-steps-icon: #fff;
+	process-steps-label-weight: bold;
+	process-steps-label-size: 14px;
+}
+
+.process-steps {
+  display: grid;
+  grid-auto-flow: column;
+  gap: 1rem;
+  padding: 0;
+  
+  li {
+    position: relative;
+    list-style: none;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: space-between;
+    color: var(--process-steps-complete);
+    font-weight: var(--process-steps-label-weight);
+    font-size: var(--process-steps-label-size);
+    
+    &::before {
+      content: "";
+      border-bottom: var(--process-steps-line-width) solid var(--process-steps-incomplete);
+      width: 100%;
+      position: absolute;
+      bottom: calc((var(--process-steps-step-size) / 2) - (var(--process-steps-line-width) / 2));
+      right: calc(50% + (var(--process-steps-step-size) / 2));
+      z-index: -1;
+    }
+    
+    &::after {
+      content: "";
+      font-family: 'Font Awesome 5 Pro';
+      font-weight: 400;
+      background-color: var(--process-steps-incomplete);
+      color: var(--process-steps-icon);
+      width: var(--process-steps-step-size);
+      height: var(--process-steps-step-size);
+      border-radius: 50%;
+      display: grid;
+      place-items: center;
+      margin-block-start: .5rem;
+    }
+
+    &:first-child::before {
+      content: none;
+    }
+
+    &.completed {
+      
+      &::before {
+        border-color: var(--process-steps-complete);
+      }
+
+      &::after {
+        background-color: var(--process-steps-complete);
+        content: var(--process-steps-complete-icon);
+      }
+      
+    }
+    
+    &.current {
+      
+      &::before {
+        border-color: var(--process-steps-complete);
+      }
+      
+      &::after {
+        border: var(--process-steps-line-width) solid var(--process-steps-complete);
+        background: var(--process-steps-current);      
+      }
+      
+    }
+    
+  }
+  
+}
