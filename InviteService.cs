@@ -66,7 +66,7 @@ namespace Api.Invites
 						user = await users.Get(context, invite.EmailAddress);
 					}
 					
-					if (!config.CanSendIfAlreadyExists && user != null && user.PasswordHash != null)
+					if (!config.CanSendIfAlreadyExists && user != null)
 					{
 						throw new PublicException("A user with that email address has an account already.", "user_exists");
 					}
