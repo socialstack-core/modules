@@ -73,12 +73,7 @@ namespace Api.Invites
 
 					var fullName = (invite.FirstName != null && invite.LastName != null) ? invite.FirstName + " " + invite.LastName : null;
 
-					if(user != null)
-					{
-						Console.WriteLine($"Could not create invite for user {user.Email} as they already exist");
-						return null;
-					}
-					else
+					if(user == null)
 					{
 						// Create the user now, as a member:
 						user = await users.Create(context,
