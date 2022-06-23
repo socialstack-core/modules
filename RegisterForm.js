@@ -28,36 +28,46 @@ export default class RegisterForm extends React.Component {
 					console.log(e);
 					this.setState({failed:e})
 				}}
-				onValues = {values => {
-					this.setState({failed: false, success: false});
-					return values;
+				onValues={values => {
+					this.setState({ failed: false, success: false });
+
+					return new Promise((success, reject) => {
+						if (values.password && values.passwordRepeat && values.password == values.passwordRepeat) {
+							success(values);
+						} else {
+							reject({
+								message: `Passwords are required and must match`
+							});
+						}
+					})
+
 				}}
 				>
                 <p>
-                    All fields are required
+					{`All fields are required`}
                 </p>
 				<div>
-					{!noName && <Input label = "First name" name="firstName" placeholder="Your first name" validate={['Required']} />}
-					{!noName && <Input label = "Last name" name="lastName" placeholder="Your last name" validate={['Required']} />}
-					<Input label = "Email" name="email" placeholder="Email address" validate={['Required', 'EmailAddress']} />
-					{!noUsername && <Input label = "Username" name="username" placeholder="Username" validate={['Required']} /> }
-					<Input label = "Password" name="password" type="password" placeholder="New Password" validate={['Required']} />
-					<Input label = "Password Repeat" name="passwordRepeat" type="password" placeholder="New Password Again" validate={['Required']} />
+					{!noName && <Input label={`First name`} name="firstName" placeholder={`Your first name`} validate={['Required']} />}
+					{!noName && <Input label={`Last name`} name="lastName" placeholder={`Your last name`} validate={['Required']} />}
+					<Input label={`Email`} name="email" placeholder={`Email address`} validate={['Required', 'EmailAddress']} />
+					{!noUsername && <Input label={`Username`} name="username" placeholder={`Username`} validate={['Required']} /> }
+					<Input label={`Password`} name="password" type="password" placeholder={`New Password`} validate={['Required']} />
+					<Input label={`Password Repeat`} name="passwordRepeat" type="password" placeholder={`New Password Again`} validate={['Required']} />
 				</div>
 				{failed && (
 					<Alert type="fail">
-						{failed.message ? failed.message : failed == "VALIDATION" && "Please verify all values are correct."}
+						{failed.message ? failed.message : failed == "VALIDATION" && `Please verify all values are correct.`}
 					</Alert>
 				)}
 				{this.state.success ? (
 					<Alert type="success">
-						Account created! You can now <a href="/login">login here</a>.
+						{`Account created! You can now`} <a href="/login">{`login here`}</a>.
 					</Alert>
 				) : (
 						<div>
 							<Spacer height="20"/>
-							<Input type="submit" label="Create my account" />
-							{ !noLogin && <p>Already got an account? <a href="/login">Login here</a></p> }
+							<Input type="submit" label={`Create my account`} />
+							{!noLogin && <p>{`Already got an account?`} <a href="/login">{`Login here`}</a></p> }
 						</div>
 				)}
 			</Form>
