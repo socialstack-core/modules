@@ -335,7 +335,7 @@ public partial class AutoService<T, ID>{
 			else if (toExecute.MappingService == null)
 			{
 				// Write the values:
-				await toExecute.Service.OutputJsonList<uint>(context, childCollectors, collector, toExecute.MappingTargetFieldName, writer, true); // Calls OutputJsonList on the service
+				await toExecute.Service.OutputJsonList<ID>(context, childCollectors, collector, toExecute.MappingTargetFieldName, writer, true); // Calls OutputJsonList on the service
 			}
 			else
 			{
