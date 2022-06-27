@@ -306,7 +306,28 @@ namespace Api.WebSockets
 		/// The registered remote types in this websocket service. These types are things that end users can tune into updates from.
 		/// </summary>
 		public ConcurrentDictionary<string, NetworkRoomTypeMeta> RemoteTypes = new ConcurrentDictionary<string, NetworkRoomTypeMeta>();
-		
+
+		/// <summary>
+		/// Forcefully empties the room of the given type.
+		/// </summary>
+		/// <param name="typeName"></param>
+		/// <param name="roomId"></param>
+		public void EmptyRoomLocally(string typeName, ulong roomId)
+		{
+			// First, get the type meta:
+			if (RemoteTypes.TryGetValue(typeName, out NetworkRoomTypeMeta meta))
+			{
+				// Ok - the type exists.
+				// Which room are we going for?
+				var room = meta.GetOrCreateRoom(roomId);
+
+				if (room != null)
+				{
+					room.EmptyLocally();
+				}
+			}
+		}
+
 		/// <summary>
 		/// Adds a network room client.
 		/// </summary>

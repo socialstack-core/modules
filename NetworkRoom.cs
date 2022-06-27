@@ -58,6 +58,11 @@ namespace Api.WebSockets
 			}
 		}
 
+		/// <summary>
+		/// Empties the network room.
+		/// </summary>
+		public virtual void EmptyLocally()
+		{ }
 	}
 
 	/// <summary>
@@ -88,7 +93,24 @@ namespace Api.WebSockets
 				return ParentSet.RemoteServers;
 			}
 		}
-		
+
+		/// <summary>
+		/// Empties the network room forcefully.
+		/// </summary>
+		public override void EmptyLocally()
+		{
+			var current = First;
+			while (current != null)
+			{
+				var next = current.Next;
+				current.Remove();
+				current = next;
+			}
+
+			First = null;
+			Last = null;
+		}
+
 		/// <summary>
 		/// Local user count.
 		/// </summary>
