@@ -43,12 +43,21 @@ namespace Api.SocketServerLibrary
 			}
 			else if(frame.Phase == 1)
 			{
-				// Read:
-				var target = (T)frame.TargetObject;
-				BoltIO.Read(target, client);
+				try
+				{
+					// Read:
+					var target = (T)frame.TargetObject;
+					BoltIO.Read(target, client);
 
-				// Receive:
-				OpCode.OnReceive(client, target);
+					// Receive:
+					OpCode.OnReceive(client, target);
+				}
+				catch (Exception)
+				{
+					Console.WriteLine("[WARN] invalid client message received. Ignoring it.");
+					client.Close();
+					return;
+				}
 
 				// Done:
 				client.Pop();

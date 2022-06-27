@@ -293,11 +293,14 @@ namespace Api.SocketServerLibrary
 			SendQueueCount = 0;
 			ReleaseOnSent = false;
 
-			// Release all the buffers:
-			lock (Pool.PoolLock)
+			// Release all the buffers, if there are any:
+			if (FirstBuffer != null)
 			{
-				LastBuffer.After = Pool.First;
-				Pool.First = FirstBuffer;
+				lock (Pool.PoolLock)
+				{
+					LastBuffer.After = Pool.First;
+					Pool.First = FirstBuffer;
+				}
 			}
 
 			// Clear:
