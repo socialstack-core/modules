@@ -1,16 +1,9 @@
 using System;
 using System.Text;
 using Api.Contexts;
-using System.Collections;
 using System.Collections.Generic;
-using System.Threading.Tasks;
-using System.Web;
-using System.IO;
 using System.Net.Http;
-using Api.Configuration;
 using System.Timers;
-using Microsoft.Extensions.Configuration;
-using System.Security.Cryptography;
 using System.Net.Sockets;
 using System.Net.Security;
 
@@ -35,7 +28,7 @@ namespace Api.PushNotifications
 		/// </summary>
 		public PushNotificationService()
 		{
-			_configuration = AppSettings.GetSection("PushNotifications").Get<PushNotificationConfig>();
+			_configuration = GetConfig<PushNotificationConfig>();
 
 			_firebaseClient = new HttpClient();
 			_firebaseClient.DefaultRequestHeaders.TryAddWithoutValidation("Authorization", "key=" + _configuration.ServerKey);

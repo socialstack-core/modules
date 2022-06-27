@@ -1,14 +1,11 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
+﻿using Api.Configuration;
 
 namespace Api.PushNotifications
 {
 	/// <summary>
-	/// The appsettings.json config block for push notification config.
+	/// The config block for push notifications (see admin -> settings)
 	/// </summary>
-    public class PushNotificationConfig
+    public class PushNotificationConfig : Config
     {
         /// <summary>
         /// The server key to use in the HTTPS request headers.
