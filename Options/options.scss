@@ -114,6 +114,20 @@
 
 }
 
+html.no-flexgap {
+
+	.huddle-chat {
+		$huddle-chat: &;
+
+		&__button-wrapper {
+
+			#{$huddle-chat}__button-label {
+				margin-block-start: .25rem;
+			}
+		}
+	}
+}
+
 @keyframes pulse-primary {
     0% {
         box-shadow: 0 0 0 0 var(--primary);
