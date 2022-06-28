@@ -7,6 +7,7 @@
   arrow:            override arrow icon (caret SVG by default)
   title:            optional title attribute (useful if no text label visible)
   variant:          Bootstrap variant to use (e.g. primary / secondary / danger / success, etc.
+  isOutline:        outlined version (defaults to solid colour)
   isLarge:			renders large size version
   isSmall:			renders small size version
   splitCallback:    optional function to be called when pressing button (dropdown controlled by a separate button)
@@ -67,7 +68,7 @@ function newId() {
 }
 
 export default function Dropdown(props) {
-    var { className, variant, title, label, arrow, isLarge, isSmall, splitCallback, children, stayOpenOnSelection, align, position } = props;
+    var { className, variant, title, label, arrow, isOutline, isLarge, isSmall, splitCallback, children, stayOpenOnSelection, align, position } = props;
     var dropdownClasses = ['dropdown'];
 
     if (className) {
@@ -141,7 +142,7 @@ export default function Dropdown(props) {
 		variant = "primary";
 	}
 
-	var btnClass = "btn btn-" + variant;
+    var btnClass = isOutline ? "btn btn-outline-" + variant : "btn btn-" + variant;
 	
 	if (isSmall) {
 		btnClass += " btn-sm";
