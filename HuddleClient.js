@@ -951,6 +951,13 @@ export default class HuddleClient{
 		// Note that a successful join request will subscribe to changes and reply with both an offer and the list of people in the meeting.
 	}
 	
+	recordingState(active){
+		// Connect the websocket and make a join request:
+		var writer = new this.socket.Writer(46);
+		writer.writeUInt32(active ? 1 : 0); // Recording mode
+		this.socket.send(writer);
+	}
+	
 	castVideoFile(fileRef) {
 		var video = document.createElement('video');
 		video.loop = true;
