@@ -59,13 +59,26 @@
 
 }
 
+html.no-flexgap {
 
-/*
-Size overrides. See bootstrap breakpoints for more information:
-https://getbootstrap.com/docs/5.0/layout/breakpoints/#min-width
-
-@include media-breakpoint-up(md) {
 	.manage-product {
+
+		.modal {
+
+			.modal__internal-footer {
+
+				> * {
+					margin: .25rem;
+
+					&:first-child {
+						margin-inline-start: 0;
+					}
+
+					&:last-child {
+						margin-inline-end: 0;
+					}
+				}
+			}
+		}
 	}
 }
-*/
