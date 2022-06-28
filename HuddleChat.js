@@ -328,6 +328,9 @@ function HuddleChatUI(props) {
 			toggleAudience={() => {
 				setSidebar(sidebar == SidebarEnum.AUDIENCE ? SidebarEnum.CLOSED : SidebarEnum.AUDIENCE);
 			}}
+			onRecordMode={targetMode => {
+				huddleClient.recordingState(targetMode);
+			}}
 			toggleConversation={() => {
 				setSidebar(sidebar == SidebarEnum.CONVERSATION ? SidebarEnum.CLOSED : SidebarEnum.CONVERSATION);
 			}}

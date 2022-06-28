@@ -7,7 +7,7 @@ export default function Header(props) {
 		start, end,
 		showingAudience, showingConversation,
 		disableChat, disableAudience, disableReactions, disableOptions,
-		bandwidth, noiseCancellation } = props;
+		bandwidth, noiseCancellation, recordMode } = props;
 
 	if (!bandwidth) {
 		bandwidth = 3;
@@ -103,6 +103,20 @@ export default function Header(props) {
 						<button type="button" className="btn dropdown-item">
 							<i className="fal fa-fw fa-cog"></i> {`Device settings ...`}
 						</button>
+					</li>
+					<li>
+						<hr className="dropdown-divider" />
+					</li>
+					<li>
+						<div className="form-check form-switch dropdown-item">
+							<input className="form-check-input" type="checkbox" role="switch" id="recordState" checked={recordMode == 1 ? true : undefined}
+								onChange={(e) => {
+									props.onRecordMode(recordMode == 1 ? 0 : 1);
+								}} />
+							<label className="form-check-label" htmlFor="recordState">
+								{recordMode == 1 ? `Stop recording` : `Record`}
+							</label>
+						</div>
 					</li>
 					<li>
 						<hr className="dropdown-divider" />
