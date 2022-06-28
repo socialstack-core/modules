@@ -170,11 +170,86 @@ export default class HuddleClient{
 			}
 		}, 0, null, false);
 		
+		this.socket.registerOpcode(52, r => {
+			var payloadSize = r.readUInt32();
+			
+			// Stage state:
+			var json = r.readUtf8SizedPlus1(payloadSize + 1);
+			
+			try{
+				var stageState = JSON.parse(json);
+				
+				// Compare and see if anyone left/ joined.
+				var existing = {};
+				
+				if(this.users){
+					this.users.forEach(u => {
+						existing[u.id] = u;
+					});
+				}
+				
+				if(stageState && stageState.length){
+					
+					var change = false;
+					
+					stageState.forEach((state, i) => {
+						
+						var existingUser = existing[state.presenceId];
+						
+						if(existingUser){
+							
+							// Possibly update gone etc.
+							if(state.gone != existingUser.gone){
+								existingUser.gone = state.gone;
+							}
+							
+							if(state.channels != existingUser.channels){
+								existingUser.channels = state.channels;
+							}
+							
+							change = true;
+							
+						}else{
+							
+							// Add:
+							var u = {
+								gone: state.gone == 1,
+								id: state.presenceId,
+								channels: state.channels,
+								stageSlotId: i+1,
+								userId: state.userId,
+								creatorUser: {
+									id: state.userId,
+									username: "name todo"
+								}
+							};
+							
+							this.updatePresence(u);
+							this.users.push(u);
+							change = true;
+						}
+						
+					});
+					
+					if(!this.joined){
+						// First one - trigger the ready state:
+						this.props.onLoaded && this.props.onLoaded(this);
+					}else if(change){
+						this.updateAnswer();
+					}
+				}
+				
+			}catch(e){
+				console.log(e);
+			}
+			
+		}, false);
+		
 		this.socket.registerOpcode(49, r => {
 			var payloadSize = r.readUInt32();
 			console.log('Huddle ending - goodbye!');
 			this.props.onLeave ? this.props.onLeave(2) : this.destroy();
-		});
+		}, false);
 		
 		this.socket.registerOpcode(45, r => {
 			var payloadSize = r.readUInt32();
@@ -230,10 +305,14 @@ export default class HuddleClient{
 			var presence = r.readUtf8SizedPlus1(presSize);
 			
 			// The base user set, including "myself":
-			var baseUserSet = JSON.parse(presence);
-			
-			// Expand includes:
-			this.users = expandIncludes(baseUserSet).results;
+			if(presence){
+				var baseUserSet = JSON.parse(presence);
+				
+				// Expand includes:
+				this.users = expandIncludes(baseUserSet).results;
+			}else{
+				this.users = [];
+			}
 			
 			var targetBitrateK = this.props.maxBitrateK || '2600';
 			
@@ -306,14 +385,29 @@ export default class HuddleClient{
 				this.updatePresence(u);
 			});
 			
-			this.joined = true;
-			
-			this.checkInitialInputState().then(() => {
-				this.updateAnswer();
-				this.props.onJoined && this.props.onJoined(this);
-			});
-			
+			if(!huddle.playback){
+				this.props.onLoaded && this.props.onLoaded(this);
+			}
 		}, false);
+	}
+	
+	// Call this when you're ready to create a media connection
+	// deviceHints is effectively any additional start config you want to pass.
+	// it typically includes audioInitiallyDisabled, deviceIdAudio, videoInitiallyDisabled, deviceIdVideo
+	startMedia(deviceHints){
+		
+		if(deviceHints){
+			for(var k in deviceHints){
+				this.props[k] = deviceHints[k];
+			}
+		}
+		
+		this.joined = true;
+		
+		this.checkInitialInputState().then(() => {
+			this.updateAnswer();
+			this.props.onJoined && this.props.onJoined(this);
+		});
 	}
 	
 	selfPresence(){
@@ -440,10 +534,27 @@ export default class HuddleClient{
 		
 	}
 	
+	getPlaybackInfo(){
+		if(!this.huddle || !this.huddle.playback){
+			return null;
+		}
+		
+		var pb = this.huddle.playback;
+		
+		return {
+			isLive: false,
+			duration: pb.max * 2 
+		};
+	}
+	
+	isPlaybackMode(){
+		return (this.huddle && this.huddle.playback);
+	}
+	
 	checkInitialInputState(){
 		
-		// Must be both joined (websocket) and have a connected peer.
-		if(!this.peer || this.peer.iceGatheringState != 'complete' || !this.joined){
+		// Must be both joined (websocket) and have a connected peer and not be playback mode.
+		if(!this.peer || this.peer.iceGatheringState != 'complete' || !this.joined || this.isPlaybackMode()){
 			return Promise.resolve(true);
 		}
 		
@@ -1075,6 +1186,10 @@ export default class HuddleClient{
 		}
 		
 		var selfUser = this.users.find(u => u.id == this.selfId);
+		
+		if(!selfUser){
+			return Promise.resolve(currentSender);
+		}
 		
 		if(!on){
 			this.shareState[channel].sender = null;
