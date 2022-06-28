@@ -43,6 +43,22 @@
     margin: $top_em $right_em $bottom_em $left_em;
 }
 
+// clamp support wasn't introduced into Safari until v13.1 (v13.4 for iOS);
+// this provides fallback using nested min/max
+//
+// example usage:
+//.foo {
+//    @include clamp_ex(font-size, 10px, 2.5vw, 48px);
+//}
+@mixin clamp_ex($property, $min, $val, $max) {
+    #{$property}: clamp(#{$min}, #{$val}, #{$max});
+    
+    @supports not (clamp(#{$min}, #{$val}, #{$max})) {
+        #{$property}: max(min(#{$val}, #{$max}), #{$min});
+    }
+    
+}
+
 // typically used in the following context:
 // <div className="wrapper">
 //    <i className="fr fr-star"></i>
