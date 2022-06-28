@@ -2,8 +2,31 @@ import Dropdown from 'UI/Dropdown';
 import Alert from 'UI/Alert';
 
 export default function Options(props) {
-	var { audioOn, videoOn, shareOn, isHost } = props;
-
+	var { audioOn, videoOn, shareOn, isHost, playbackInfo } = props;
+	
+	if(playbackInfo){
+		
+		// The play button can/ should be basically full screen - its job is to click farm to avoid autoplay blocking of audio.
+		
+		// Todo: video scrubber (playback timeline).
+		// video length is playbackInfo.duration but note that it might actually be "live" (playbackInfo.isLive is true) 
+		// in which case this duration is a snapshot and will continuously grow.
+		
+		return <div className="huddle-chat__options">
+			<div className="huddle-chat__options-left">
+				<div className="huddle-chat__button-wrapper">
+					<button type="button" className={'btn huddle-chat__button btn-primary'} title={`Play`} onClick={() => props.startPlayback()}>
+						<i className="fas fa-play" />
+					</button>
+					<span className="huddle-chat__button-label">
+					{`Play`}
+					</span>
+				</div>
+			</div>
+		</div>;
+		
+	}
+	
 	var isHost = props.isHost;
 	var videoClass = "btn huddle-chat__button huddle-chat__button--camera ";
 	videoClass += videoOn ? "btn-success" : "btn-outline-danger";

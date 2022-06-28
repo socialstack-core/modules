@@ -32,49 +32,11 @@ export default function HuddleChat(props) {
 	const [joined, setJoined] = useState(false);
 	const [displayName, setDisplayName] = useState(props.displayName);
 	const [deviceHints, setDeviceHints] = useState({});
-	
-	React.useEffect(() => {
-		
-		// Hide custom node in its current parent:
-		if(props.customChatRoot){
-			props.customChatRoot.style.display='none';
-		}
-		
-	}, []);
-	
-	if(!joined && !props.skipAvTest){
-		// Click farming UI. This is for 2 things: so the user can check their mic/ cam, 
-		// and also so we can farm the click in order to avoid autoplay blocks.
-		return <div className="huddle-lobby">
-			<AvTest onDeviceSelect={(newHints) => {
-				var hints = { ...deviceHints, ...newHints };
-				setDeviceHints(hints);
-			}} huddleReadyCallback={setHuddleReady} 
-			displayName={displayName}
-			onChangeName={newName => setDisplayName(newName)}/>
-
-			{huddleReady && <>
-				<footer className="huddle-lobby__footer">
-					<SpeakerTest />
-
-					<button className="btn btn-primary" onClick={() => {
-						setJoined(1);
-					}}>
-						<i className="fas fa-fw fa-sign-in"></i> {`Join meeting`}
-					</button>
-				</footer>
-			</>}
-		</div>;
-	}
-	
-	return <HuddleChatClient {...props} {...deviceHints} displayName={displayName}/>;
-}
-
-function HuddleChatClient(props) {
 	const [users, setUsers] = useState(null);
 	const [failure, setFailure] = useState(null);
 	const [userRole, setUserRole] = useState(3);
 	const [leaveMode, setLeaveMode] = useState(0); // 0 = ongoing, 1 = left, 2 = ended (remote requested), 3 = ended (requested by this participant)
+	const [playbackInfo, setPlaybackInfo] = useState(null);
 	
 	var onLeave = mode => {
 		huddleClient.destroy(mode);
@@ -91,7 +53,7 @@ function HuddleChatClient(props) {
 			avatarRef: props.avatarRef || props.avatarUrl,
 			roleKey: props.roleKey,
 			displayName: props.displayName,
-			deviceIdAudio: props.deviceIdAudio,
+			deviceIdAudio: props.deviceIdAudio, // Can be used if avTest is skipped too
 			maxBitrateK: props.maxBitrateK,
 			deviceIdVideo: props.deviceIdVideo,
 			autoStartAudio: props.autoStartAudio, // Used if avTest is skipped
@@ -105,6 +67,13 @@ function HuddleChatClient(props) {
 			onLeave: onLeave,
 			onJoined: client => {
 				setUserRole(client.selfRole());
+			},
+			onLoaded: () => {
+				// Called when the huddle info is loaded, but we have not connected media delivery yet.
+				setUsers([...client.users]);
+				
+				// Might immediately jump into playback. Check for that now:
+				setPlaybackInfo(client.getPlaybackInfo());
 			}
 		});
 		
@@ -132,6 +101,29 @@ function HuddleChatClient(props) {
 		};
 		
 	}, []);
+	
+	React.useEffect(() => {
+		
+		// Hide custom node in its current parent:
+		if(props.customChatRoot){
+			props.customChatRoot.style.display='none';
+		}
+		
+	}, []);
+	
+	if (!users){
+		// Note: initial removed IDs is set based on the first array of users given.
+		// So, it's important that we don't give it an empty array until we are loaded.
+		return <div className="huddle-chat--not-connected">
+			<Container>
+				<Row>
+					<Col size={12}>
+						<Loading message={`Connecting`} />
+					</Col>
+				</Row>
+			</Container>
+		</div>;
+	}
 	
 	if (leaveMode){
 		return <div className="huddle-chat--not-connected">
@@ -172,22 +164,34 @@ function HuddleChatClient(props) {
 		</div>;
 	}
 	
-	if (!users){
-		// Note: initial removed IDs is set based on the first array of users given.
-		// So, it's important that we don't give it an empty array until we are loaded.
-		return <div className="huddle-chat--not-connected">
-			<Container>
-				<Row>
-					<Col size={12}>
-						<Loading message={`Connecting`} />
-					</Col>
-				</Row>
-			</Container>
+	if(!joined && !props.skipAvTest && !(huddleClient.huddle && huddleClient.huddle.playback)){
+		// Click farming UI. This is for 2 things: so the user can check their mic/ cam, 
+		// and also so we can farm the click in order to avoid autoplay blocks.
+		return <div className="huddle-lobby">
+			<AvTest onDeviceSelect={(newHints) => {
+				var hints = { ...deviceHints, ...newHints };
+				setDeviceHints(hints);
+			}} huddleReadyCallback={setHuddleReady} 
+			displayName={displayName}
+			onChangeName={newName => setDisplayName(newName)}/>
+
+			{huddleReady && <>
+				<footer className="huddle-lobby__footer">
+					<SpeakerTest />
+
+					<button className="btn btn-primary" onClick={() => {
+						huddleClient.startMedia(deviceHints);
+						setJoined(1);
+					}}>
+						<i className="fas fa-fw fa-sign-in"></i> {`Join meeting`}
+					</button>
+				</footer>
+			</>}
 		</div>;
 	}
 	
 	return <>
-		<HuddleChatUI {...props} userRole={userRole} huddleClient={huddleClient} users={users} onLeave={onLeave} />
+		<HuddleChatUI {...props} userRole={userRole} huddleClient={huddleClient} users={users} onLeave={onLeave} playbackInfo={playbackInfo} />
 	</>;
 }
 
@@ -365,6 +369,8 @@ function HuddleChatUI(props) {
 		{/* main huddle footer (share / leave huddle / audio/video options) */}
 		{/* TODO: set isHost */}
 		<Options isHost={false}
+				playbackInfo={props.playbackInfo}
+				startPlayback={() => huddleClient.startMedia()}
 		        audioOn={huddleClient.isActive('microphone')}
 				shareOn={huddleClient.isActive('screenshare')}
 				videoOn={huddleClient.isActive('webcam')}
