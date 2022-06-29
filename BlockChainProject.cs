@@ -39,19 +39,9 @@ public class BlockChainProject
 	public string BlockchainName;
 
 	/// <summary>
-	/// Hex(sha3(project-public))
+	/// This is the hex hash of the very first block and is essentially the project identifier. HEX(SHA-3(FirstBlock)) lowercase.
 	/// </summary>
 	public string PublicHash;
-
-	/// <summary>
-	/// The projects public key.
-	/// </summary>
-	public byte[] PublicKey;
-
-	/// <summary>
-	/// The projects private key.
-	/// </summary>
-	public byte[] PrivateKey;
 
 	/// <summary>
 	/// The chain version, often never changes.
@@ -140,7 +130,7 @@ public class BlockChainProject
 	/// <summary>
 	/// Sets up the block storage (local and remote).
 	/// </summary>
-	public void SetupStorage(string localStoragePath, DistributionConfig config)
+	public void SetupStorage(string localStoragePath, DistributionConfig remoteConfig)
 	{
 		if (localStoragePath != null)
 		{
@@ -153,12 +143,65 @@ public class BlockChainProject
 			}
 		}
 
+		if (remoteConfig != null && !string.IsNullOrEmpty(remoteConfig.PublicHash) && string.IsNullOrEmpty(PublicHash))
+		{
+			PublicHash = remoteConfig.PublicHash;
+		}
+
 		LocalStorageDirectory = localStoragePath;
 
-		
+		if (localStoragePath != null && string.IsNullOrEmpty(PublicHash))
+		{
+			// Collect the hash, if there is one:
+			var infoPath = localStoragePath + "info.json";
 
-		// Create a distributor:
-		Distributor = new BlockDistributor(config, this);
+			if (System.IO.File.Exists(infoPath))
+			{
+				var infoJson = System.IO.File.ReadAllText(infoPath);
+
+				// Try to deserialise the json:
+				var deserialisedInfo = Newtonsoft.Json.JsonConvert.DeserializeObject(infoJson) as Newtonsoft.Json.Linq.JObject;
+
+				if (deserialisedInfo != null && deserialisedInfo["Hash"] != null)
+				{
+					var hash = deserialisedInfo["Hash"].ToString();
+
+					if (hash.Length != 64)
+					{
+						throw new Exception(
+							"Incorrect project hash length. It is HEX(SHA-3(FirstBlock)) and should be 64 characters long. It was " + 
+							hash.Length + " characters, and is located in " + infoPath
+						);
+					}
+
+					// Set hash field:
+					PublicHash = hash;
+				}
+			}
+		}
+
+		// Create a distributor if one is needed:
+		if (remoteConfig != null)
+		{
+			Distributor = new BlockDistributor(remoteConfig, this);
+		}
+	}
+
+	/// <summary>
+	/// Writes the project hash to the info.json file. Requires that local storage has been setup.
+	/// </summary>
+	/// <exception cref="Exception"></exception>
+	public void WriteHashToInfoFile()
+	{
+		if (LocalStorageDirectory == null)
+		{
+			throw new Exception("Local storage directory not set. Use SetupStorage before this.");
+		}
+
+		// Simple JSON file:
+		var json = "{\r\n\t\"Hash\": \"" + PublicHash + "\"\r\n}";
+
+		System.IO.File.WriteAllText(LocalStorageDirectory + "info.json", json);
 	}
 
 	/// <summary>
@@ -287,29 +330,6 @@ public class BlockChainProject
 		Updated();
 	}
 
-	/// <summary>
-	/// Generates a secp256k1 key pair.
-	/// </summary>
-	/// <returns></returns>
-	public void GenerateKeyPair()
-	{
-		var curve = ECNamedCurveTable.GetByName("secp256k1");
-		var domainParams = new ECDomainParameters(curve.Curve, curve.G, curve.N, curve.H, curve.GetSeed());
-
-		var secureRandom = new SecureRandom();
-		var keyParams = new ECKeyGenerationParameters(domainParams, secureRandom);
-
-		var generator = new ECKeyPairGenerator("ECDSA");
-		generator.Init(keyParams);
-		var keyPair = generator.GenerateKeyPair();
-
-		var privateKey = keyPair.Private as ECPrivateKeyParameters;
-		var publicKey = keyPair.Public as ECPublicKeyParameters;
-
-		PublicKey = publicKey.Q.GetEncoded(false);
-		PrivateKey = privateKey.D.ToByteArrayUnsigned();
-	}
-	
 	/// <summary>
 	/// Generates a secp256k1 key pair for "this" node.
 	/// </summary>

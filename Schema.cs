@@ -68,6 +68,11 @@ public class Schema
 	public const ulong IdDefId = 9;
 
 	/// <summary>
+	/// Field Id for the "BlockchainName" common field.
+	/// </summary>
+	public const ulong BlockchainNameDefId = 11;
+
+	/// <summary>
 	/// Field Id for the "EntityId" common field.
 	/// </summary>
 	public const ulong EntityDefId = 16;
@@ -186,7 +191,7 @@ public class Schema
 		Define("Blockchain.Meta", 1); // 4
 		DefineField("StartYear", "uint"); // Timestamps are the number of nanoseconds since the start of this year (10). If it is not specified, it is 2000.
 		DefineField("BlockchainName", "string"); // Typicaly the name of the project (11)
-		DefineField("PublicKey", "bytes"); // The project public key (12)
+		DefineField("PublicKey", "bytes"); // A public key (12)
 		DefineField("Version", "uint"); // Blockchain version (optional: the default is 1) (13)
 		DefineField("ServiceUrl", "string"); // The web location of the API which is currently running this chain (14)
 		DefineField("ExecutableArchive", "bytes"); // The validator executable (an archive containing both source and a build) (15)

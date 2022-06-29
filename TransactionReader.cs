@@ -18,6 +18,8 @@ public partial class TransactionReader
 {
 	private Schema _schema;
 	private Action<TransactionReader> _onTransaction;
+	private Action<FieldDefinition> _onFieldDefinitionState;
+	private Action<Definition> _onDefinitionState;
 
 	/// <summary>
 	/// Field information for the BlockChainProject type which allow setting fields on the project itself.
@@ -61,7 +63,7 @@ public partial class TransactionReader
 		_onTransaction = onTransaction;
 		_blockchainOffset = blockchainOffset;
 		TransactionId = _blockchainOffset;
-		Project = chain.Project;
+		Project = chain == null ? null : chain.Project;
 	}
 
 	/// <summary>
@@ -71,6 +73,17 @@ public partial class TransactionReader
 	public void SetCallback(Action<TransactionReader> onTransaction)
 	{
 		_onTransaction = onTransaction;
+	}
+
+	/// <summary>
+	/// Update the callback method.
+	/// </summary>
+	/// <param name="onDefinitionState"></param>
+	/// <param name="onFieldDefinitionState"></param>
+	public void SetSchemaCallback(Action<Definition> onDefinitionState, Action<FieldDefinition> onFieldDefinitionState)
+	{
+		_onDefinitionState = onDefinitionState;
+		_onFieldDefinitionState = onFieldDefinitionState;
 	}
 
 	/// <summary>
@@ -207,6 +220,12 @@ public partial class TransactionReader
 						fieldDef.Immutable = (uint)Fields[immutability].NumericValue;
 					}
 
+					if (_onFieldDefinitionState != null)
+					{
+						// Run the callback:
+						_onFieldDefinitionState(fieldDef);
+					}
+
 					return fieldDef;
 				}
 				else
@@ -232,6 +251,12 @@ public partial class TransactionReader
 					if (immutability != -1)
 					{
 						typeDef.Immutable = (uint)Fields[immutability].NumericValue;
+					}
+
+					if (_onDefinitionState != null)
+					{
+						// Run the callback:
+						_onDefinitionState(typeDef);
 					}
 
 					return typeDef;
@@ -309,6 +334,56 @@ public partial class TransactionReader
 		}
 
 		return null;
+	}
+
+	/// <summary>
+	/// May be called during InitialiseTransaction to setup the core start fields.
+	/// </summary>
+	public ValidationState InitialiseStartFields()
+	{
+		FieldData[] fields = Fields;
+		StartFieldsOffset = 0;
+		IfNotModifiedSince = null;
+
+		for (var i = 0; i < FieldCount; i++)
+		{
+			var fieldMeta = fields[i].Field;
+
+			if (fieldMeta.Id == Lumity.BlockChains.Schema.TimestampDefId)
+			{
+				// Timestamp. This will be used to set EditedUtc.
+				Timestamp = Fields[i].NumericValue;
+
+				// Timestamp marks the end of the special fields.
+				StartFieldsOffset = i + 1;
+				break;
+			}
+			else if (fieldMeta.Id == Lumity.BlockChains.Schema.IdDefId)
+			{
+				// Use the declared ID as if it was the txnID:
+				TransactionId = fields[i].NumericValue;
+			}
+			else if (fieldMeta.Id == Lumity.BlockChains.Schema.NodeId)
+			{
+				// Get the node ID:
+				NodeId = fields[i].NumericValue;
+			}
+			else if (fieldMeta.Id == Lumity.BlockChains.Schema.IfAlsoValidDefId)
+			{
+				// NumericValue is the number of bytes to remove from the txId to get to the target txId.
+				if (!IsTransactionInBlockValid(TransactionByteOffset - fields[i].NumericValue))
+				{
+					// This txn isn't valid.
+					return ValidationState.Invalid;
+				}
+			}
+			else if (fieldMeta.Id == Lumity.BlockChains.Schema.IfNotModifiedSinceDefId)
+			{
+				IfNotModifiedSince = fields[i].NumericValue;
+			}
+		}
+
+		return ValidationState.Valid;
 	}
 
 	/// <summary>
@@ -582,14 +657,20 @@ public partial class TransactionReader
 		if (!isValid)
 		{
 			// Use the potentially modified TransactionId rather than the original one (txnId) here.
-			Chain.UpdatePending(Timestamp, TransactionId, NodeId, null, false);
+			if (Chain != null)
+			{
+				Chain.UpdatePending(Timestamp, TransactionId, NodeId, null, false);
+			}
 			AddInvalidTransactionId(txnId);
 		}
 		else
 		{
 			// Apply the transaction now:
 			var relevantObject = ApplyTransaction();
-			Chain.UpdatePending(Timestamp, TransactionId, NodeId, relevantObject, true);
+			if (Chain != null)
+			{
+				Chain.UpdatePending(Timestamp, TransactionId, NodeId, relevantObject, true);
+			}
 
 			if (_onTransaction != null)
 			{
@@ -1297,6 +1378,32 @@ public partial class TransactionReader
 	}
 
 	/// <summary>
+	/// Sets up the state for the first block.
+	/// </summary>
+	public void SetupFirstBlock(ulong blockchainOffset = 0, ulong currentBlockId = 1, int bufferSize = 16384)
+	{
+		if (_readDigest == null)
+		{
+			_readDigest = new Sha3Digest();
+		}
+		else
+		{
+			_readDigest.Reset();
+		}
+
+		_blockchainOffset = blockchainOffset;
+		TransactionId = _blockchainOffset;
+		CurrentBlockId = currentBlockId;
+
+		ResetState();
+
+		if (_readBuffer == null || _readBuffer.Length != bufferSize)
+		{
+			_readBuffer = new byte[bufferSize];
+		}
+	}
+
+	/// <summary>
 	/// Sets up the info for the previous block.
 	/// </summary>
 	/// <param name="blockHash"></param>
@@ -1364,12 +1471,18 @@ public partial class TransactionReader
 			throw new Exception("Can't read until you have setup the previous block state. See SetupPreviousBlock.");
 		}
 
-		str.Seek(0, SeekOrigin.Begin);
-
-		if (str.Length == 0)
+		if (str.CanSeek)
 		{
-			// Nothing to do.
-			return;
+			if (str.Position != 0)
+			{
+				str.Seek(0, SeekOrigin.Begin);
+			}
+
+			if (str.Length == 0)
+			{
+				// Nothing to do.
+				return;
+			}
 		}
 
 		var bufferSize = _readBuffer.Length;
@@ -1379,9 +1492,15 @@ public partial class TransactionReader
 		// Components of the transaction are duplicated for both integrity checking and also such that the transaction can be read backwards as well as forwards.
 		// Virtually all of these components are the same thing - a compressed number (field values are often the same too), so reading compressed numbers quickly is important.
 
-		while (str.Position < str.Length)
+		while (true)
 		{
 			var read = str.Read(_readBuffer, 0, bufferSize);
+
+			if (read == 0)
+			{
+				break;
+			}
+
 			_byteIndex = 0;
 			_digestedUpTo = 0;
 			ProcessBuffer(read);

@@ -751,7 +751,7 @@ public partial class BlockChain
 	/// </summary>
 	public void WriteInitialChain(Action<TransactionReader> onTransaction = null, ulong timestamp = 0)
 	{
-		if (Timestamp == 0)
+		if (timestamp == 0)
 		{
 			timestamp = Timestamp;
 		}
@@ -760,20 +760,7 @@ public partial class BlockChain
 
 		_schemaToWrite.CreateDefaults();
 
-		// Create Sha3 hash of the public key and chain type:
-		_writeDigest = new Sha3Digest();
-
-		Span<byte> blockHash = stackalloc byte[32];
-		GetInitialHash(blockHash);
-
 		// Console.WriteLine("Write started with hash: " + Hex.Convert(blockHash.ToArray()));
-
-		// Initialise the digest with the hash:
-
-		for (var i = 0; i < 32; i++)
-		{
-			_writeDigest.Update(blockHash[i]);
-		}
 
 		var writer = Writer.GetPooled();
 		writer.Start(null);
@@ -781,7 +768,7 @@ public partial class BlockChain
 		// Write schema to writer:
 		_schemaToWrite.Write(writer, timestamp);
 
-		// If it's the public project chain, create a project public key now:
+		// If it's the public project chain, output some metadata if it exists:
 		if (ChainType == ChainType.Public && Project != null)
 		{
 			// Write the public key to the chain:
@@ -796,10 +783,10 @@ public partial class BlockChain
 			writer.WriteInvertibleCompressed(timestamp);
 			writer.WriteInvertibleCompressed(Schema.TimestampDefId);
 
-			// PublicKey:
-			writer.WriteInvertibleCompressed(Schema.PublicKeyDefId);
-			writer.WriteInvertible(Project.PublicKey);
-			writer.WriteInvertibleCompressed(Schema.PublicKeyDefId);
+			// Name:
+			writer.WriteInvertibleCompressed(Schema.BlockchainNameDefId);
+			writer.WriteInvertibleUTF8(Project.BlockchainName);
+			writer.WriteInvertibleCompressed(Schema.BlockchainNameDefId);
 
 			// Field count again (for readers travelling backwards):
 			writer.WriteInvertibleCompressed(2);
@@ -808,31 +795,77 @@ public partial class BlockChain
 			writer.WriteInvertibleCompressed(4);
 		}
 
-		// Make sure directory exists:
-		Directory.CreateDirectory(Path.GetDirectoryName(File));
+		// Build the first block boundary. The project hash is then based on this.
+		var byteOffset = writer.Length;
+
+		// Block boundary txn:
+		writer.WriteInvertibleCompressed(Schema.BlockBoundaryDefId);
+
+		// 2 fields:
+		writer.WriteInvertibleCompressed(2);
+
+		// Timestamp:
+		writer.WriteInvertibleCompressed(Schema.TimestampDefId);
+		writer.WriteInvertibleCompressed(timestamp);
+		writer.WriteInvertibleCompressed(Schema.TimestampDefId);
+
+		// ByteOffset:
+		writer.WriteInvertibleCompressed(Schema.ByteOffsetDefId);
+		writer.WriteInvertibleCompressed((ulong)byteOffset);
+		writer.WriteInvertibleCompressed(Schema.ByteOffsetDefId);
+
+		// 2 fields (again, for readers going backwards):
+		writer.WriteInvertibleCompressed(2);
+		writer.WriteInvertibleCompressed(Schema.BlockBoundaryDefId);
+
+		// === End of first block ====
 
 		var result = writer.AllocatedResult();
 
 		// Release the writer:
 		writer.Release();
-
-		// Write the bytes:
-		System.IO.File.WriteAllBytes(File, result);
-
+		
 		WriteFileOffset = result.Length;
 
+		// Setup write digest:
+		_writeDigest = new Sha3Digest();
+		
+		// Apply first block to it:
 		_writeDigest.BlockUpdate(result, 0, result.Length);
+
+		Console.WriteLine("First block size: " + result.Length);
+
+		// Get the block hash:
+		Span<byte> blockHash = stackalloc byte[32];
+		_writeDigest.DoFinal(blockHash, 0);
+
+		// Write digest has now reset - write the prev block hash into it:
+		for (var i = 0; i < blockHash.Length; i++)
+		{
+			_writeDigest.Update(blockHash[i]);
+		}
+
+		// Build project hash:
+		var projectHash = Hex.Convert(blockHash).ToLower();
+
+		Project.PublicHash = projectHash;
+
+		// Make sure directory exists:
+		Directory.CreateDirectory(Path.GetDirectoryName(File));
+
+		// Write the project hash:
+		Project.WriteHashToInfoFile();
+		
+		// Write the bytes:
+		System.IO.File.WriteAllBytes(File, result);
 
 		// Ensure we call the callback (if there is one) for this block:
 		var txReader = CreateReader();
 		txReader.Init(Schema, this, onTransaction);
 		txReader.UpdateSchema = true;
 
-		Span<byte> initialHash = stackalloc byte[32];
-		GetInitialHash(initialHash);
-
 		// Set the initial hash:
-		txReader.SetupPreviousBlock(initialHash);
+		txReader.SetupFirstBlock();
 
 		txReader.ProcessBuffer(new BufferedBytes() {
 			Bytes = result,
@@ -844,24 +877,6 @@ public partial class BlockChain
 		{
 			_txReader = txReader;
 		}
-	}
-
-	/// <summary>
-	/// Generates the initial project hash and puts it into the given 32 byte span.
-	/// </summary>
-	/// <param name="outputHash"></param>
-	public void GetInitialHash(Span<byte> outputHash)
-	{
-		var firstHash = new Sha3Digest();
-
-		// Initialise it with a hash of the project public key. Use readDigest to calc the hash itself:
-		firstHash.BlockUpdate(Project.PublicKey, 0, Project.PublicKey.Length);
-
-		// Textual chain type as well:
-		var asciiBytes = System.Text.Encoding.ASCII.GetBytes(ChainTypeName);
-		firstHash.BlockUpdate(asciiBytes, 0, asciiBytes.Length);
-
-		firstHash.DoFinal(outputHash, 0);
 	}
 
 	/// <summary>
@@ -973,12 +988,8 @@ public partial class BlockChain
 
 		if (checkHashes)
 		{
-			// Starts from 0:
-			Span<byte> initialHash = stackalloc byte[32];
-			GetInitialHash(initialHash);
-
 			// Set the initial hash:
-			txReader.SetupPreviousBlock(initialHash);
+			txReader.SetupFirstBlock();
 		}
 		else
 		{

@@ -8,7 +8,7 @@ namespace Lumity.BlockChains;
 public class DistributionConfig
 {
 	/// <summary>
-	/// The projects public hash which is registered (or registerable) in the Lumity Project Index. This is always present in the block file paths.
+	/// The projects public hash which is registered (or registerable) in the Lumity Project Index. This is always present in the block file paths. It is hex and lowercase.
 	/// </summary>
 	public string PublicHash {get; set;}
 	

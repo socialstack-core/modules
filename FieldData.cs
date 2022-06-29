@@ -58,6 +58,45 @@ public struct FieldData
 	}
 
 	/// <summary>
+	/// For "bytes" dataType fields. Writes the data into the given writer. No-op if the data is null.
+	/// </summary>
+	/// <param name="writer"></param>
+	public void GetToWriter(Writer writer)
+	{
+		if (IsNull || DataLength == 0)
+		{
+			return;
+		}
+
+		var dataBuffer = FirstBuffer;
+		var offset = dataBuffer.Offset + DataStart;
+
+		var bytesToRead = DataLength;
+
+		while (true)
+		{
+			int bytesFromThisBuffer = bytesToRead;
+			var bufferFill = dataBuffer.Length - offset;
+
+			if (bytesFromThisBuffer >= bufferFill)
+			{
+				bytesFromThisBuffer = bufferFill;
+			}
+
+			writer.Write(dataBuffer.Bytes, offset, bytesFromThisBuffer);
+			bytesToRead -= bytesFromThisBuffer;
+
+			if (bytesToRead == 0)
+			{
+				break;
+			}
+
+			dataBuffer = dataBuffer.After;
+			offset = 0;
+		}
+	}
+
+	/// <summary>
 	/// For "bytes" dataType fields. Allocates a byte array. Avoid unless necessary.
 	/// </summary>
 	/// <returns></returns>
