@@ -58,6 +58,24 @@ namespace Api.CanvasRenderer
                 return new ValueTask<Translation>(translation);
             });
 
+            Events.Locale.PotFieldValue.AddEventListener((Context context, object result, ContentField localisedField, TranslationServiceConfig translationServiceConfig) => {
+
+                if (result == null)
+                {
+                    return new ValueTask<object>(result);
+                }
+
+                if (translationServiceConfig.ReformatCanvasElements)
+                {
+                    if (IsCanvasField(localisedField))
+                    {
+                        result = CanvasToComponentXml((string)result);
+                    }
+                }
+
+                return new ValueTask<object>(result);
+            });
+
             Events.FrontendjsAfterUpdate.AddEventListener((Context context, long buildtimestampMs) =>
             {
 
