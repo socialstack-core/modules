@@ -1,7 +1,38 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useState, useRef } from 'react';
+
+// TODO: show "LIVE" marker when appropriate
 
 export default function Playback(props){
-    var { videoRef } = props;
+    var { duration, isLive, onPlay, onPause, bookmarks } = props;
+    const [playbackActive, setPlaybackActive] = useState(false);
+
+    // example bookmarks
+    /*
+    bookmarks = [
+        {
+            duration: (60 * 8), // 8:00
+            title: `Section 1`
+        },
+        {
+            duration: (60 * 3) + 30, // 3:30
+            title: `Section 2`
+        },
+        {
+            duration: (60 * 2) + 7, // 2:07
+            title: `Section 3`
+        }
+    ];
+    */
+
+    // if no bookmarks or this is live, show this as a single section
+    if (!bookmarks || !bookmarks.length || isLive) {
+        bookmarks = [
+            {
+                duration: duration,
+                title: null
+            }
+        ];
+    }
 
     const playbackRef = useRef(null);
     const playButtonRef = useRef(null);
@@ -15,154 +46,87 @@ export default function Playback(props){
     const muteIconRef = useRef(null);
     const volumeLowIconRef = useRef(null);
     const volumeHighIconRef = useRef(null);
-    const fullscreenButtonRef = useRef(null);
-    const fullscreenIconRef = useRef(null);
-    const fullscreenExitIconRef = useRef(null);
-    const pipButtonRef = useRef(null);
+    //const fullscreenButtonRef = useRef(null);
+    //const fullscreenIconRef = useRef(null);
+    //const fullscreenExitIconRef = useRef(null);
+    //const pipButtonRef = useRef(null);
     const elapsedRef = useRef(null);
     const durationRef = useRef(null);
 
-    // TODO: retrieve playback duration (in sec)
-    const videoDuration = (60 * 13) + 37; // demo: 13:37
-
     // toggle playback state of video
     function togglePlay() {
-
-        if (!videoRef || !videoRef.current) {
-            return;
-        }
-
-        var video = videoRef.current;
-
-        if (video.paused || video.ended) {
-            video.play();
-        } else {
-            video.pause();
-        }
-    }
-
-    // update playback icon and tooltip depending on playback state
-    function updatePlayButton() {
         playIconRef.current.classList.toggle('hidden');
         pauseIconRef.current.classList.toggle('hidden');
 
-        if (!videoRef || !videoRef.current) {
-            return;
+        if (playbackActive) {
+            setPlaybackActive(false);
+            playButtonRef.current.setAttribute('data-title', `Play`);
+            onPause();
+        } else {
+            setPlaybackActive(true);
+            playButtonRef.current.setAttribute('data-title', `Pause`);
+            onPlay();
         }
 
-        if (videoRef.current.paused) {
-            playButtonRef.current.setAttribute('data-title', `Play`);
-        } else {
-            playButtonRef.current.setAttribute('data-title', `Pause`);
-        }
     }
 
     // format given time into hh:mm:ss
     function formatTime(timeInSeconds) {
         var timeString = new Date(timeInSeconds * 1000).toISOString();
-        return (videoDuration < 60 * 60) ? timeString.substr(14, 5) : timeString.substr(11, 8);
+        return (duration < 60 * 60) ? timeString.substr(14, 5) : timeString.substr(11, 8);
     }
 
-    // sets video duration / maximum value of progressBar
-    function initVideo(video) {
-
-        if (!videoRef || !videoRef.current) {
-            return;
-        }
-
-        var video = videoRef.current;
-
-        /* TODO
-        var i = setInterval(function () {
-    
-            if (videoRef.current.readyState > 0) {
-                const videoDuration = Math.round(video.duration);
-                seekRef.current.removeAttribute("disabled");
-                seekRef.current.setAttribute('max', videoDuration);
-                progressBarRef.current.setAttribute('max', videoDuration);
-    
-                const time = formatTime(videoDuration);
-                durationRef.current.innerText = time;
-                durationRef.current.setAttribute('datetime', time);
-    
-                clearInterval(i);
-            }
-        }, 200);
-        */
-
-        // initialise using test duration
-        seekRef.current.removeAttribute("disabled");
-        seekRef.current.setAttribute('max', videoDuration);
-        progressBarRef.current.setAttribute('max', videoDuration);
-
-        const time = formatTime(videoDuration);
-        durationRef.current.innerText = time;
-        durationRef.current.setAttribute('datetime', time);
-    }
-
+    // TODO
     // indicates how far through the video the current playback is
     function updateTimeElapsed() {
-
-        if (!videoRef || !videoRef.current) {
-            return;
-        }
-
+        /*
         const time = formatTime(Math.round(videoRef.current.currentTime));
         elapsedRef.current.innerText = time;
         elapsedRef.current.setAttribute('datetime', time);
+         */
     }
 
+    // TODO
     // indicates how far through the video the current playback is by updating the progress bar
     function updateProgress() {
-
-        if (!videoRef || !videoRef.current) {
-            return;
-        }
-
+        /*
         var currentTime = Math.floor(videoRef.current.currentTime);
         seekRef.current.value = currentTime;
         progressBarRef.current.value = currentTime;
+         */
     }
 
     // uses the position of the mouse on the progress bar to roughly work out what point in 
     // the video the user will skip to if the progress bar is clicked at that point
     function updateSeekTooltip(event) {
-
-        if (!videoRef || !videoRef.current) {
-            return;
-        }
-
         const skipTo = Math.round(
             (event.offsetX / event.target.clientWidth) *
             parseInt(event.target.getAttribute('max'), 10)
         );
         seekRef.current.setAttribute('data-seek', skipTo);
+        seekTooltipRef.current.textContent = formatTime(skipTo);
 
-        const t = formatTime(skipTo);
-        seekTooltipRef.current.textContent = t;
-
-        const rect = videoRef.current.getBoundingClientRect();
+        const rect = playbackRef.current.getBoundingClientRect();
         seekTooltipRef.current.style.left = `${event.pageX - rect.left}px`;
     }
 
     // jump to a different point in the video when progress bar clicked
     function skipAhead(event) {
-
-        if (!videoRef || !videoRef.current) {
-            return;
-        }
-
         const skipTo = event.target.dataset.seek
             ? event.target.dataset.seek
             : event.target.value;
-        videoRef.current.currentTime = skipTo;
+
+        // TODO: update huddle playback position
+        //videoRef.current.currentTime = skipTo;
+
         progressBarRef.current.value = skipTo;
         seekRef.current.value = skipTo;
     }
 
+    // TODO
     // updates video volume and disable muted state if active
     function updateVolume() {
-
+        /*
         if (!videoRef || !videoRef.current) {
             return;
         }
@@ -174,11 +138,14 @@ export default function Playback(props){
         }
 
         video.volume = volumeRangeRef.current.value;
+         */
     }
 
+    // TODO
     // updates the volume icon so that it correctly reflects the volume of the video
     function updateVolumeIcon() {
 
+        /*
         if (!videoRef || !videoRef.current) {
             return;
         }
@@ -199,12 +166,14 @@ export default function Playback(props){
         } else {
             volumeHighIconRef.current.classList.remove('hidden');
         }
+         */
     }
 
+    // TODO
     // mutes / unmutes video when executed; 
     // when video is unmuted, volume is returned to the value it was set to before
     function toggleMute() {
-
+        /*
         if (!videoRef || !videoRef.current) {
             return;
         }
@@ -220,9 +189,12 @@ export default function Playback(props){
         } else {
             volume.value = volume.dataset.volume;
         }
+         */
     }
 
+    // TODO: better implemented outside of this component
     // toggle fullscreen state
+    /**
     function toggleFullScreen(videoContainer) {
         if (document.fullscreenElement) {
             document.exitFullscreen();
@@ -271,16 +243,13 @@ export default function Playback(props){
             pipButtonRef.current.disabled = false;
         }
     }
+     */
 
     // hide the video controls when not in use;
     // if video is paused, controls must remain visible
     function hideControls() {
 
-        if (!videoRef || !videoRef.current) {
-            return;
-        }
-
-        if (videoRef.current.paused) {
+        if (!playbackActive) {
             return;
         }
 
@@ -292,6 +261,17 @@ export default function Playback(props){
         playbackRef.current.classList.remove('huddle-chat__playback--hide');
     }
 
+    useEffect(() => {
+        // init playback bar
+        const videoDuration = Math.round(duration);
+        seekRef.current.removeAttribute('disabled');
+        seekRef.current.setAttribute('max', videoDuration);
+        progressBarRef.current.setAttribute('max', videoDuration);
+
+        const time = formatTime(videoDuration);
+        durationRef.current.innerText = time;
+        durationRef.current.setAttribute('datetime', time);
+    }, []);
 
     useEffect(() => {
         playButtonRef.current.addEventListener('click', togglePlay);
@@ -313,13 +293,15 @@ video.addEventListener('mouseleave', hideControls);
         seekRef.current.addEventListener('input', skipAhead);
         volumeRangeRef.current.addEventListener('input', updateVolume);
         volumeButtonRef.current.addEventListener('click', toggleMute);
-        fullscreenButtonRef.current.addEventListener('click', toggleFullScreen);
+        //fullscreenButtonRef.current.addEventListener('click', toggleFullScreen);
         //videoContainer.addEventListener('fullscreenchange', updateFullscreenButton);
-        pipButtonRef.current.addEventListener('click', togglePip);
+        //pipButtonRef.current.addEventListener('click', togglePip);
 
+        /*
         if (!('pictureInPictureEnabled' in document)) {
             pipButtonRef.current.classList.add('hidden');
         }
+        */
 
         return () => {
             playButtonRef.current.removeEventListener('click', togglePlay);
@@ -341,35 +323,19 @@ video.addEventListener('mouseleave', hideControls);
             seekRef.current.removeEventListener('input', skipAhead);
             volumeRangeRef.current.removeEventListener('input', updateVolume);
             volumeButtonRef.current.removeEventListener('click', toggleMute);
-            fullscreenButtonRef.current.removeEventListener('click', toggleFullScreen);
+            //fullscreenButtonRef.current.removeEventListener('click', toggleFullScreen);
             //videoContainer.removeEventListener('fullscreenchange', updateFullscreenButton);
-            pipButtonRef.current.removeEventListener('click', togglePip);
+            //pipButtonRef.current.removeEventListener('click', togglePip);
         };
 
     });
 
-    // allow support for bookmarked playback
-    // NB: sections total test duration of 13:37
-    var playbackSections = [
-        {
-            duration: (60 * 8), // 8:00
-            title: `Section 1`
-        },
-        {
-            duration: (60 * 3) + 30, // 3:30
-            title: `Section 2`
-        },
-        {
-            duration: (60 * 2) + 7, // 2:07
-            title: `Section 3`
-        }
-    ];
 	
     return <div className="huddle-chat__playback" ref={playbackRef}>
         {/* progress indicator */}
         <div className="huddle-chat__playback-progress-wrapper">
             <div className="progress">
-                {playbackSections.map(section => {
+                {bookmarks.map(section => {
                     var sectionPercentage = Math.round((section.duration / videoDuration) * 100);
                     var sectionStyle = { 'width': sectionPercentage + '%' };
 
@@ -410,6 +376,7 @@ video.addEventListener('mouseleave', hideControls);
                 </div>
             </div>
 
+            {/*
             <div className="huddle-chat__playback-sizing">
                 <button className="huddle-chat__playback-pip" type="button" data-title={`Picture-in-picture`} ref={pipButtonRef}>
                     <svg>
@@ -424,6 +391,7 @@ video.addEventListener('mouseleave', hideControls);
                     </svg>
                 </button>
             </div>
+             */}
         </div>
 
         {/* icon resources */}
