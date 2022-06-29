@@ -53,7 +53,7 @@
 @mixin clamp_ex($property, $min, $val, $max) {
     #{$property}: clamp(#{$min}, #{$val}, #{$max});
     
-    @supports not (clamp(#{$min}, #{$val}, #{$max})) {
+    @supports not (#{$property}: clamp(#{$min}, #{$val}, #{$max})) {
         #{$property}: max(min(#{$val}, #{$max}), #{$min});
     }
     
