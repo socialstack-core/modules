@@ -247,7 +247,7 @@ export default class AvTest extends React.Component{
 			return <div className="mb-3">
 				<label className="form-label form-label--disabled">
 					<i className="fas fa-fw fa-2x fa-microphone"></i>
-					{`No micophone detected`}
+					{`No microphone detected`}
 				</label>
 			</div>;
 		}
