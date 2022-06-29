@@ -409,6 +409,10 @@ export default class HuddleClient{
 			this.props.onJoined && this.props.onJoined(this);
 		});
 	}
+
+	stopMedia() {
+		// TODO
+    }
 	
 	selfPresence(){
 		if(!this.users){
