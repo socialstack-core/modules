@@ -7,6 +7,7 @@ using System;
 using System.Net;
 using System.Net.Sockets;
 using System.Threading.Tasks;
+using System.Runtime.CompilerServices;
 
 namespace Api.WebRTC;
 
@@ -33,11 +34,6 @@ public class WebRTCServer : UdpDestination
 	/// 
 	/// </summary>
 	public bool CanStartSend = true;
-
-	/// <summary>
-	/// 
-	/// </summary>
-	public readonly IPEndPoint _blankEndpoint = new IPEndPoint(IPAddress.Any, 0);
 
 	/// <summary>
 	/// True if the DTLS exchange requires the EMS extension.
@@ -74,6 +70,50 @@ public class WebRTCServer : UdpDestination
 	public virtual void RemoveFromLookup(RtpClient client)
 	{
 		throw new NotImplementedException();
+	}
+
+	private ReceiveBytes _inboundPool;
+	private object inboundPoolLock = new object();
+
+	/// <summary>
+	/// Releases the given buffer back to the receive pool.
+	/// </summary>
+	/// <param name="rb"></param>
+	[MethodImpl(MethodImplOptions.AggressiveInlining)]
+	public void ReleaseBuffer(ReceiveBytes rb)
+	{
+		lock (inboundPoolLock)
+		{
+			rb.After = _inboundPool;
+			_inboundPool = rb;
+		}
+	}
+
+	/// <summary>
+	/// Gets a receiveBytes object which may originate from the pool.
+	/// </summary>
+	/// <returns></returns>
+	public ReceiveBytes GetPooledReceiver()
+	{
+		ReceiveBytes result = null;
+
+		lock (inboundPoolLock)
+		{
+			result = _inboundPool;
+			if (result != null)
+			{
+				_inboundPool = _inboundPool.After;
+			}
+		}
+
+		if (result == null)
+		{
+			// WebRTC packets are limited in size to ~1400 bytes, so 1600 is easily enough
+			byte[] buffer = GC.AllocateUninitializedArray<byte>(length: 1600, pinned: true);
+			result = new ReceiveBytes(buffer);
+		}
+
+		return result;
 	}
 
 	/// <summary>
@@ -264,6 +304,7 @@ public class WebRTCServer<T> : WebRTCServer
 			{
 				client.PreviousClient = LastClient;
 				LastClient.NextClient = client;
+				LastClient = client;
 			}
 		}
 
@@ -281,6 +322,8 @@ public class WebRTCServer<T> : WebRTCServer
 		}
 
 		client.AddedToIpLookup = false;
+
+		Console.WriteLine("Removing client from the lookup (by address)");
 
 		lock (addingClientLock)
 		{
@@ -583,30 +626,43 @@ a=ice-pwd:" + icePwd + @"
 	}
 
 	/// <summary>
+	/// 
+	/// </summary>
+	private readonly IPEndPoint _srcEndpoint = new IPEndPoint(IPAddress.Any, 0);
+	
+	/// <summary>
 	/// Creates a new RTP server. All traffic goes to the same port.
 	/// </summary>
 	/// <param name="port"></param>
-	public WebRTCServer(int port)
+	public WebRTCServer(int port, bool tryRawMode = false)
 	{
 		Port = port;
 		LatestTickTime = DateTime.UtcNow.Ticks;
 
-		try
+		if (tryRawMode)
 		{
-			ServerSocketUdp = new Socket(AddressFamily.InterNetwork, SocketType.Raw, ProtocolType.Udp);
-			ServerSocketUdp.SetSocketOption(SocketOptionLevel.IP, SocketOptionName.HeaderIncluded, true);
-			IsRunningInRawMode = true;
-		}
-		catch(Exception)
-		{
-			System.Console.WriteLine("[Notice] A WebRTC service was started as non-admin and is running in headerless mode. This is fine for a single server/ development instance. For more information, find this comment in the source.");
-			// For a production cluster deployment of Huddle, header mode is required (run as an administrator/ super user).
-			// Most production deployments run with the necessary permissions anyway.
-			// A fallback is provided and it will work fine if you are running a single instance - i.e. either for testing locally, or because you're only running 1 server.
-			// This exists at all because our cluster effectively forwards raw UDP messages.
-			// It ultimately could allow the outbound packets to come from any server in the cluster as well which greatly simplifies routing and scaling mechanisms,
-			// however, this requires permission from the underlying host due to MANRS.
+			try
+			{
+				ServerSocketUdp = new Socket(AddressFamily.InterNetwork, SocketType.Raw, ProtocolType.Udp);
+				ServerSocketUdp.SetSocketOption(SocketOptionLevel.IP, SocketOptionName.HeaderIncluded, true);
+				IsRunningInRawMode = true;
+			}
+			catch (Exception)
+			{
+				System.Console.WriteLine("[Notice] A WebRTC service was started as non-admin and is running in headerless mode. This is fine for a single server/ development instance. For more information, find this comment in the source.");
+				// For a production cluster deployment of Huddle, header mode is required (run as an administrator/ super user).
+				// Most production deployments run with the necessary permissions anyway.
+				// A fallback is provided and it will work fine if you are running a single instance - i.e. either for testing locally, or because you're only running 1 server.
+				// This exists at all because our cluster effectively forwards raw UDP messages.
+				// It ultimately could allow the outbound packets to come from any server in the cluster as well which greatly simplifies routing and scaling mechanisms,
+				// however, this requires permission from the underlying host due to MANRS.
 
+				ServerSocketUdp = new Socket(AddressFamily.InterNetwork, SocketType.Dgram, ProtocolType.Udp);
+				IsRunningInRawMode = false;
+			}
+		}
+		else
+		{
 			ServerSocketUdp = new Socket(AddressFamily.InterNetwork, SocketType.Dgram, ProtocolType.Udp);
 			IsRunningInRawMode = false;
 		}
@@ -623,115 +679,134 @@ a=ice-pwd:" + icePwd + @"
 			new IPEndPoint(IPAddress.Any, Port)
 		);
 
-		// Start recv:
-		Task.Run(async () => {
-			
-			while (true)
-			{
-				var receiveBytes = GetPooledReceiver();
-				var recvd = await ServerSocketUdp.ReceiveFromAsync(receiveBytes.Memory, SocketFlags.None, _blankEndpoint);
-				receiveBytes.Length = recvd.ReceivedBytes;
-
-				/*
-				// Add to inbound q:
-				lock (inboundQueueLock)
-				{
-					if (_inboundEnd == null)
-					{
-						_inboundEnd = receiveBytes;
-						_inboundStart = receiveBytes;
-					}
-					else
-					{
-						_inboundEnd.After = receiveBytes;
-						_inboundEnd = receiveBytes;
-					}
-				}*/
-
-				var rb = receiveBytes;
-				OnReceiveRaw(rb);
-
-				// Add the bytes to the pool:
-				lock (inboundPoolLock)
-				{
-					rb.After = _inboundPool;
-					_inboundPool = rb;
-				}
-
-			}
-		});
-
-		/*
-		// Start processors:
-		for (var i = 0; i < 1; i++)
+		if (IsRunningInRawMode)
 		{
-			var thread = new System.Threading.Thread(() => {
+			// Start recv:
+			Task.Run(async () => {
 
 				while (true)
 				{
-					ReceiveBytes receiveBytes = null;
+					bool returnToPool;
+					var receiveBytes = GetPooledReceiver();
+					var recvd = await ServerSocketUdp.ReceiveFromAsync(receiveBytes.Memory, SocketFlags.None, _srcEndpoint);
+					receiveBytes.Length = recvd.ReceivedBytes;
 
+					// Rtp.AddToLog("Packet " + receiveBytes.Length);
+
+					/*
+					// Add to inbound q:
 					lock (inboundQueueLock)
 					{
-						receiveBytes = _inboundStart;
-						if (receiveBytes != null)
+						if (_inboundEnd == null)
 						{
-							_inboundStart = _inboundStart.After;
+							_inboundEnd = receiveBytes;
+							_inboundStart = receiveBytes;
 						}
-					}
+						else
+						{
+							_inboundEnd.After = receiveBytes;
+							_inboundEnd = receiveBytes;
+						}
+					}*/
 
-					if (receiveBytes == null)
-					{
-						continue;
-					}
+					var rb = receiveBytes;
 
 					try
 					{
-
-						OnReceiveRaw(receiveBytes);
+						returnToPool = OnReceiveRaw(rb);
 					}
 					catch (Exception e)
 					{
-						Console.WriteLine("[Error] Packet receiver failed: " + e.ToString());
+						Console.WriteLine("[Packet receive error] " + e.ToString());
+						returnToPool = true;
+					}
+
+					if (returnToPool)
+					{
+						// Add the bytes to the pool:
+						ReleaseBuffer(rb);
 					}
 				}
-
 			});
-			thread.Start();
-		}
-		*/
-	}
 
-	/// <summary>
-	/// Gets a receiveBytes object which may originate from the pool.
-	/// </summary>
-	/// <returns></returns>
-	public ReceiveBytes GetPooledReceiver()
-	{
-		ReceiveBytes result = null;
-
-		lock (inboundPoolLock)
-		{
-			result = _inboundPool;
-			if (result != null)
+			/*
+			// Start processors:
+			for (var i = 0; i < 1; i++)
 			{
-				_inboundPool = _inboundPool.After;
+				var thread = new System.Threading.Thread(() => {
+
+					while (true)
+					{
+						ReceiveBytes receiveBytes = null;
+
+						lock (inboundQueueLock)
+						{
+							receiveBytes = _inboundStart;
+							if (receiveBytes != null)
+							{
+								_inboundStart = _inboundStart.After;
+							}
+						}
+
+						if (receiveBytes == null)
+						{
+							continue;
+						}
+
+						try
+						{
+
+							OnReceiveRaw(receiveBytes);
+						}
+						catch (Exception e)
+						{
+							Console.WriteLine("[Error] Packet receiver failed: " + e.ToString());
+						}
+					}
+
+				});
+				thread.Start();
 			}
+			*/
 		}
-
-		if (result == null)
+		else
 		{
-			// WebRTC packets are limited in size to ~1400 bytes, so 2048 is easily enough
-			byte[] buffer = GC.AllocateUninitializedArray<byte>(length: 2048, pinned: true);
-			result = new ReceiveBytes(buffer);
-		}
+			Task.Run(async () => {
 
-		return result;
+				while (true)
+				{
+					bool returnToPool;
+					var receiveBytes = GetPooledReceiver();
+					var recvd = await ServerSocketUdp.ReceiveFromAsync(receiveBytes.Memory, SocketFlags.None, _srcEndpoint);
+					var ep = recvd.RemoteEndPoint as IPEndPoint;
+					receiveBytes.Length = recvd.ReceivedBytes;
+
+					// Rtp.AddToLog("Packet " + receiveBytes.Length);
+
+					var rb = receiveBytes;
+
+					try
+					{
+						returnToPool = OnReceive(rb, ep);
+					}
+					catch (Exception e)
+					{
+						Console.WriteLine("[Packet receive error] " + e.ToString());
+						returnToPool = true;
+					}
+
+					// Add the bytes to the pool:
+					if (returnToPool)
+					{
+						// Add the bytes to the pool:
+						ReleaseBuffer(rb);
+					}
+				}
+			});
+		}
 	}
 
-	private object inboundPoolLock = new object();
 	private object inboundQueueLock = new object();
-	private ReceiveBytes _inboundPool;
 
 	private ReceiveBytes _inboundStart;
 	private ReceiveBytes _inboundEnd;
@@ -740,13 +815,15 @@ a=ice-pwd:" + icePwd + @"
 
 	private void OnMaintenanceTick(object source, System.Timers.ElapsedEventArgs e)
 	{
+		// Rtp.FlushRunLogs();
+
 		// Called once per second.
 		// This has the job of looking for "gone" clients, as well as sending out the receiver/ sender reports.
 		// Those reports are mandatory as they are a critical piece of congestion control. When they're not sent, remote clients assume the worst
 		// and video quality drops significantly.
 		if (PacketsReceived != 0)
 		{
-			Console.WriteLine("Stats: " + PacketsReceived + ". " + StunServer.stunOut + "/"+StunServer.stunIn);
+			Console.WriteLine("Stats: " + PacketsReceived + ". " + StunServer.stunOut + "/" + StunServer.stunIn + ". Raw client count " + GetRawClientCount());
 			PacketsReceived = 0;
 		}
 
@@ -773,11 +850,25 @@ a=ice-pwd:" + icePwd + @"
 
 			client.OnUpdate(nowTicks);
 
-			Rtp.SendReport(client, nowTicks, ntpTime64, ntpTime32);
+			// Rtp.SendReport(client, nowTicks, ntpTime64, ntpTime32);
 
 			client = client.NextClient;
 		}
 
+	}
+
+	private int GetRawClientCount()
+	{
+		RtpClient client = FirstClient;
+		int c = 0;
+
+		while (client != null)
+		{
+			c++;
+			client = client.NextClient;
+		}
+
+		return c;
 	}
 
 	/// <summary>
@@ -791,13 +882,13 @@ a=ice-pwd:" + icePwd + @"
 	/// <summary>
 	/// Called when receiving a UDP packet
 	/// </summary>
-	internal void OnReceiveRaw(ReceiveBytes poolBuffer)
+	internal bool OnReceiveRaw(ReceiveBytes poolBuffer)
 	{
 		var buffer = poolBuffer.Bytes;
 		var size = poolBuffer.Length;
 
 		if (size <= 0) {
-			return;
+			return true;
 		}
 
 		// This packet has the IP/UDP header on it. All outbound messages MUST be given the header as well.
@@ -807,7 +898,7 @@ a=ice-pwd:" + icePwd + @"
 		if (index == -1)
 		{
 			// Invalid packet - dropping it. Happens mainly when it wasn't for us.
-			return;
+			return true;
 		}
 
 		PacketsReceived++;
@@ -821,6 +912,8 @@ a=ice-pwd:" + icePwd + @"
 			T client = null;
 			StunServer.HandleMessage(buffer, index, size - index, port, ref ipBytes, isV4, this, ref client);
 
+			// Rtp.AddToLog(" STUN");
+			
 			if (client != null)
 			{
 				client.LastMessageAt = LatestTickTime;
@@ -830,6 +923,8 @@ a=ice-pwd:" + icePwd + @"
 		{
 			// DTLS packet. Client should always be identifiable at this point.
 			var client = GetClient(port, ref ipBytes);
+
+			// Rtp.AddToLog(" DTLS");
 
 			if (client != null)
 			{
@@ -845,24 +940,35 @@ a=ice-pwd:" + icePwd + @"
 			{
 				// RTP packet in.
 				client.LastMessageAt = LatestTickTime;
-				Rtp.HandleMessage(buffer, index, size - index, client);
+				return Rtp.HandleMessage(poolBuffer, index, size - index, client);
 			}
+
 		}
+
+		// Return the buffer to the pool.
+		return true;
 	}
 
 	/// <summary>
 	/// Called when receiving a UDP packet
 	/// </summary>
-	internal void OnReceive(BufferedBytes poolBuffer, ushort port, ref Span<byte> addressBytes, bool isV4)
+	internal bool OnReceive(ReceiveBytes poolBuffer, IPEndPoint ep)
 	{
+		var port = (ushort)ep.Port;
+		var isV4 = ep.AddressFamily != AddressFamily.InterNetworkV6;
+		Span<byte> addressBytes = stackalloc byte[16];
+		ep.Address.TryWriteBytes(addressBytes, out _);
+		
 		var buffer = poolBuffer.Bytes;
 		var size = poolBuffer.Length;
 
 		if (size <= 0)
 		{
-			return;
+			return true;
 		}
 
+		PacketsReceived++;
+		
 		var b = buffer[0];
 		
 		// https://www.rfc-editor.org/rfc/rfc5764.html#section-5.1.2
@@ -896,9 +1002,11 @@ a=ice-pwd:" + icePwd + @"
 			{
 				// RTP packet in.
 				client.LastMessageAt = LatestTickTime;
-				Rtp.HandleMessage(buffer, 0, size, client);
+				return Rtp.HandleMessage(poolBuffer, 0, size, client);
 			}
 		}
+
+		return true;
 	}
 
 }
@@ -910,6 +1018,8 @@ public class ReceiveBytes
 {	
 	/// <summary>The length of Bytes.</summary>
 	public int Length;
+	/// <summary>A buffer starting offset. Used exclusively by pooled buffers to indicate RTP header placement.</summary>
+	public int Offset;
 	/// <summary>When this object is in the pool, this is the object after.</summary>
 	public ReceiveBytes After;
 	/// <summary>The bytes themselves.</summary>
@@ -1078,6 +1188,11 @@ public struct SsrcState
 	public uint LatestRtpTimestamp;
 
 	/// <summary>
+	/// A buffer of packets for handling NACK requests from end users.
+	/// </summary>
+	public ReceiveBytes[] NackBuffer;
+
+	/// <summary>
 	/// 'guesses' the extended index for a given sequence number.
 	/// The guess is extremely accurate - it is only wrong if a packet is delayed by multiple minutes or has an incorrect sequence number.
 	/// </summary>
@@ -1141,6 +1256,72 @@ public struct SsrcState
 	}
 
 	/// <summary>
+	/// Adds the given pool buffer to the NACK list.
+	/// </summary>
+	/// <param name="poolBuffer"></param>
+	/// <param name="sequenceNumber"></param>
+	/// <param name="client"></param>
+	public void AddPacketToNackList(ReceiveBytes poolBuffer, ushort sequenceNumber, RtpClient client)
+	{
+		if (NackBuffer == null)
+		{
+			NackBuffer = new ReceiveBytes[512]; // MUST be a power of 2. This is because when the seq number itself wraps, this needs to as well.
+		}
+
+		// Establish slot where this seq will be stored. It is the bottom 9 bits of the seq number.
+		var nackBufferOffset = sequenceNumber & 511;
+
+		var buff = NackBuffer[nackBufferOffset];
+
+		if (buff != null)
+		{
+			// Release this buffer about to be swapped
+			client.Server.ReleaseBuffer(buff);
+		}
+
+		NackBuffer[nackBufferOffset] = poolBuffer;
+	}
+
+	/// <summary>
+	/// Resends the given sequence number to the given target client, or does nothing if the packet is not in the buffer.
+	/// </summary>
+	/// <param name="sequenceNumber"></param>
+	/// <param name="toClient"></param>
+	public void Retransmit(ushort sequenceNumber, RtpClient toClient)
+	{
+		if (NackBuffer == null)
+		{
+			return;
+		}
+
+		// Console.WriteLine("Try retransmit " + sequenceNumber);
+
+		var packet = NackBuffer[sequenceNumber & 511];
+
+		if (packet == null)
+		{
+			return;
+		}
+
+		var buffer = packet.Bytes;
+		
+		// Is this the correct packet?
+		var packetSequence = (ushort)((buffer[2] << 8) | buffer[3]);
+
+		if (packetSequence != sequenceNumber)
+		{
+			return;
+		}
+
+		// The NACK can occur too late in that we have already rolled the buffer before it arrived.
+
+		// Console.WriteLine("Retransmit " + sequenceNumber);
+
+		var endOfRtpHeader = packet.Offset;
+		Rtp.SendRtpPacket(toClient, buffer, 0, endOfRtpHeader, packet.Length, Ssrc);
+	}
+
+	/// <summary>
 	/// Updates the packet index information. Occurs after GuessIndex.
 	/// </summary>
 	/// <param name="seqNo"></param>
@@ -1159,6 +1340,25 @@ public struct SsrcState
 			ReplayWindow |= ((ulong)1 << (int)delta);
 		}
 
+		if (seqNo > Sequence_1)
+		{
+			Sequence_1 = seqNo;
+		}
+
+		if (guessedROC > RolloverCode)
+		{
+			RolloverCode = guessedROC;
+			Sequence_1 = seqNo;
+		}
+	}
+	
+	/// <summary>
+	/// Updates the packet index information. Occurs after GuessIndex.
+	/// </summary>
+	/// <param name="seqNo"></param>
+	/// <param name="guessedROC"></param>
+	public void UpdateRoc(ushort seqNo, uint guessedROC)
+	{
 		if (seqNo > Sequence_1)
 		{
 			Sequence_1 = seqNo;

@@ -1,3 +1,4 @@
+using Api.SocketServerLibrary;
 using System;
 
 namespace Api.WebRTC;
@@ -7,6 +8,54 @@ namespace Api.WebRTC;
 /// </summary>
 public static class Rtp
 {
+	/*
+	public static System.Text.StringBuilder RunLog = new System.Text.StringBuilder();
+	public static System.Text.StringBuilder OutLog = new System.Text.StringBuilder();
+	private static System.IO.FileStream _logStream;
+	private static System.IO.FileStream _outLogStream;
+
+	public static void AddToLog(string message, bool outLog = false)
+	{
+		if (outLog)
+		{
+			OutLog.AppendLine(message);
+		}
+		else
+		{
+			RunLog.AppendLine(message);
+		}
+	}
+
+	public static void FlushRunLogs()
+	{
+		if (RunLog.Length > 0)
+		{
+			if (_logStream == null)
+			{
+				_logStream = new System.IO.FileStream("runlog-" + DateTime.UtcNow.Ticks + ".log", System.IO.FileMode.OpenOrCreate, System.IO.FileAccess.ReadWrite);
+			}
+
+			var str = RunLog.ToString();
+			RunLog.Clear();
+			var sBytes = System.Text.Encoding.UTF8.GetBytes(str);
+			_logStream.Write(sBytes);
+		}
+		
+		if (OutLog.Length > 0)
+		{
+			if (_outLogStream == null)
+			{
+				_outLogStream = new System.IO.FileStream("outlog-" + DateTime.UtcNow.Ticks + ".log", System.IO.FileMode.OpenOrCreate, System.IO.FileAccess.ReadWrite);
+			}
+
+			var str = OutLog.ToString();
+			OutLog.Clear();
+			var sBytes = System.Text.Encoding.UTF8.GetBytes(str);
+			_outLogStream.Write(sBytes);
+		}
+	}
+	*/
+
 	/// <summary>
 	/// Dumps the given buffer to the named file in a format that wireshark can easily import.
 	/// </summary>
@@ -25,12 +74,15 @@ public static class Rtp
 	/// <summary>
 	/// SRTP/SRTCP packet main receive point.
 	/// </summary>
-	public static void HandleMessage(byte[] buffer, int index, int messageSize, RtpClient client)
+	public static bool HandleMessage(ReceiveBytes poolBuffer, int index, int messageSize, RtpClient client)
 	{
+		byte[] buffer = poolBuffer.Bytes;
+
 		if (messageSize < 12)
 		{
 			// there are at least 12 bytes in an RTP/ RTCP packet header.
-			return;
+			Console.WriteLine("Msg too small");
+			return true;
 		}
 
 		var startIndex = index;
@@ -52,6 +104,8 @@ public static class Rtp
 			ushort seq = (ushort)(buffer[index+2] << 8 | buffer[index + 3]);
 			uint ssrc = (uint)(buffer[index + 8] << 24 | buffer[index + 9] << 16 | buffer[index + 10] << 8 | buffer[index + 11]);
 
+			// Rtp.AddToLog(" SRTP " + seq);
+			
 			index += 12;
 
 			// CC values next:
@@ -174,20 +228,20 @@ public static class Rtp
 			{
 				// Drop this packet
 				System.Console.WriteLine("Dropping replayed packet");
-				return;
+				return true;
 			}
 
 			if (!client.WillHandle)
 			{
 				// If no listeners, update index and drop packet:
 				ssrcStateArray[ssrcIndex].UpdatePacketIndex(seq, indexDelta, guessedROC);
-				return;
+				return true;
 			}
 
 			if (!client.CheckPacketTag(buffer, startIndex, messageSize, guessedROC))
 			{
 				System.Console.WriteLine("Packet dropped due to invalid auth tag (" + isPadded + ")");
-				return;
+				return true;
 			}
 
 			Span<byte> ivStore = stackalloc byte[16];
@@ -292,6 +346,10 @@ public static class Rtp
 			*/
 
 			client.HandleRtpPacket(buffer, startIndex, index, messageSize, payloadType, extStart, ssrc);
+
+			poolBuffer.Offset = index;
+			ssrcStateArray[ssrcIndex].AddPacketToNackList(poolBuffer, seq, client);
+			return false;
 		}
 		else
 		{
@@ -303,7 +361,9 @@ public static class Rtp
 			bool decrypt = ((packetIndexE & 0x80000000) == 0x80000000);
 			var packetIndex = (packetIndexE & ~0x80000000);
 			uint ssrc = (uint)(buffer[startIndex+4] << 24 | buffer[startIndex + 5] << 16 | buffer[startIndex + 6] << 8 | buffer[startIndex + 7]);
-			
+
+			// Rtp.AddToLog(" RTCP " + ssrc);
+
 			// Offset over the fixed header:
 			index += 8;
 
@@ -325,7 +385,7 @@ public static class Rtp
 			{
 				// Drop this packet
 				System.Console.WriteLine("Dropping replayed RTCP packet");
-				return;
+				return true;
 			}
 
 			// System.Console.WriteLine("- RTCP packet received (PT " + typeAndMarker + ", len: " + size + "). " + packetIndex + " -");
@@ -334,7 +394,7 @@ public static class Rtp
 			if (!client.CheckRtcpPacketTag(buffer, startIndex, messageSize, packetIndexE))
 			{
 				System.Console.WriteLine("Packet dropped due to invalid auth tag (RTCP " + packetIndex + ")");
-				return;
+				return true;
 			}
 
 			/*
@@ -402,12 +462,69 @@ public static class Rtp
 					break;
 					case 203:
 						// RTCP BYE - Client is going away (bye!)
-						client.CloseRequested();
+						Console.WriteLine("Client sent BYE message");
+						// Health warning: Chrome sends this when screensharing starts for some reason!
+						// client.CloseRequested();
+					break;
+					case 205:
+						// Generic RTP feedback. Often contains a NACK.
+						var fmt = flags & 31; // Feedback message type
+
+						switch (fmt)
+						{
+							case 1:
+								// Rtp.AddToLog(" NACK");
+								chunkIndex += 4; // sender ssrc (1)
+								localSsrc = (uint)(buffer[chunkIndex++] << 24 | buffer[chunkIndex++] << 16 | buffer[chunkIndex++] << 8 | buffer[chunkIndex++]);
+
+								// May be repeated n times:
+								var numberOfNacks = 1; //  (packetLen - 12) / 4;
+
+								// Lookup the client source:
+								var sourceClient = client.FindClient(localSsrc);
+
+								if (sourceClient != null)
+								{
+									var srcSsrcIndex = sourceClient.GetSsrcStateIndex(localSsrc);
+
+									if (srcSsrcIndex != -1)
+									{
+										for (var i = 0; i < numberOfNacks; i++)
+										{
+											var lostSequenceNumber = (ushort)(buffer[chunkIndex++] << 8 | buffer[chunkIndex++]);
+											var additionalSeq = (ushort)(buffer[chunkIndex++] << 8 | buffer[chunkIndex++]);
+
+											// Identify the packet(s) in the buffer for a retransmit.
+											sourceClient.SsrcState[srcSsrcIndex].Retransmit(lostSequenceNumber, client);
+
+											while(additionalSeq != 0)
+											{
+												lostSequenceNumber++;
+												var shouldTransmit = (additionalSeq & 1) == 1;
+
+												if (shouldTransmit)
+												{
+													sourceClient.SsrcState[srcSsrcIndex].Retransmit(lostSequenceNumber, client);
+												}
+
+												// Shift over:
+												additionalSeq = (ushort)(additionalSeq >> 1);
+											}
+
+											// NACK received.
+										}
+
+									}
+								}
+
+							break;
+						}
+
 					break;
 					case 206:
 						// Payload specific feedback. May be REMB bitrate estimate for example.
 
-						var fmt = flags & 31; // Feedback message type
+						fmt = flags & 31; // Feedback message type
 
 						switch (fmt)
 						{
@@ -416,13 +533,15 @@ public static class Rtp
 								// PLI
 								chunkIndex += 4;
 								localSsrc = (uint)(buffer[chunkIndex++] << 24 | buffer[chunkIndex++] << 16 | buffer[chunkIndex++] << 8 | buffer[chunkIndex++]);
-								
+
+								// Console.WriteLine("PLI received " + localSsrc);
+								// Rtp.AddToLog(" PLI");
+
 								// if it is local to us, flag it.
 								client.DidRequestPli(localSsrc);
 								break;
 							case 4:
 								// FIR (full intra-frame request)
-								// Console.WriteLine("FIR, " + packetLen + ", " + ssrc);
 							break;
 							case 15:
 								//"Application layer feedback message". Used by REMB sender side bitrate estimate
@@ -469,6 +588,7 @@ public static class Rtp
 
 		}
 
+		return true;
 	}
 
 	/// <summary>
@@ -485,40 +605,28 @@ public static class Rtp
 
 		var ssrcIndex = client.GetSsrcStateIndex(ssrc);
 		
-		if (ssrcIndex == -1)
-		{
-			// Claim one and set the first seq:
-			ssrcIndex = client.AssignSsrcStateIndex(ssrc);
-			client.SsrcState[ssrcIndex].Sequence_1 = 1;
-			Console.WriteLine("Assigned SSRC state for " + ssrc);
-		}
-		
-		ushort seq = client.SsrcState[ssrcIndex].Sequence_1++;
-
-		if (seq == 0)
-		{
-			// It rolled over
-			client.SsrcState[ssrcIndex].RolloverCode++;
-		}
-
-		uint rolloverCode = client.SsrcState[ssrcIndex].RolloverCode;
-		ulong packetIndex = (rolloverCode << 16) | seq;
-
 		// Build an outbound message:
 		var writer = client.Server.StartMessage(client);
 		var outboundHeaderSize = writer.Length;
 		writer.Write(buffer, startIndex, messageSize);
 		var outboundBuffer = writer.FirstBuffer.Bytes;
 
-		outboundBuffer[outboundHeaderSize + 2] = (byte)(seq >> 8);
-		outboundBuffer[outboundHeaderSize + 3] = (byte)seq;
+		// Get the sequence number:
+		ushort seq = (ushort)((outboundBuffer[outboundHeaderSize + 2] << 8) | outboundBuffer[outboundHeaderSize + 3]);
 
-		/*
-		outboundBuffer[outboundHeaderSize + 8] = (byte)(ssrc >> 24);
-		outboundBuffer[outboundHeaderSize + 9] = (byte)(ssrc >> 16);
-		outboundBuffer[outboundHeaderSize + 10] = (byte)(ssrc >> 8);
-		outboundBuffer[outboundHeaderSize + 11] = (byte)ssrc;
-		*/
+		if (ssrcIndex == -1)
+		{
+			// Claim one and set the first seq:
+			ssrcIndex = client.AssignSsrcStateIndex(ssrc);
+			client.SsrcState[ssrcIndex].Sequence_1 = seq;
+			Console.WriteLine("Assigned outbound SSRC state for " + ssrc);
+		}
+		
+		// Calculate the packet index based on this client ROC:
+		var packetIndex = client.SsrcState[ssrcIndex].GuessIndex(seq, out uint rolloverCode);
+
+		// Update the rollover code:
+		client.SsrcState[ssrcIndex].UpdateRoc(seq, rolloverCode);
 
 		// Encrypt the packet:
 		var rtpHeaderSize = (index - startIndex);
@@ -534,6 +642,79 @@ public static class Rtp
 		client.SsrcState[ssrcIndex].LatestRtpTimestamp = timestamp;
 		client.SsrcState[ssrcIndex].PacketsSent++;
 		client.SsrcState[ssrcIndex].OctetsSent += (ulong)messageSize;
+
+	}
+
+	/// <summary>
+	/// Sends an RTP packet to the given client. It must be unencrypted and still have the tag at the end for this to work.
+	/// </summary>
+	/// <param name="client"></param>
+	/// <param name="writer"></param>
+	/// <param name="outboundHeaderSize"></param>
+	public static void SendRtpPacket(RtpClient client, Writer writer, int outboundHeaderSize)
+	{
+		var outboundBuffer = writer.FirstBuffer.Bytes;
+		var messageSize = writer.CurrentFill - outboundHeaderSize;
+
+		var flags = outboundBuffer[outboundHeaderSize];
+
+		uint ssrc = (uint)(
+			outboundBuffer[outboundHeaderSize + 8] << 24 | outboundBuffer[outboundHeaderSize + 9] << 16 | 
+			outboundBuffer[outboundHeaderSize + 10] << 8 | outboundBuffer[outboundHeaderSize + 11]
+		);
+
+		var rtpHeaderSize = 12;
+
+		// CC values next:
+		var ccCount = flags & 15;
+		rtpHeaderSize += 4 * ccCount;
+
+		var isExtended = (flags & 16) == 16;
+		
+		if (isExtended)
+		{
+			rtpHeaderSize += 2; // profile
+			int length = (
+				outboundBuffer[outboundHeaderSize + rtpHeaderSize] << 8 | 
+				outboundBuffer[outboundHeaderSize + rtpHeaderSize + 1]
+			) * 4; // The length is a count of 32 bits.
+			
+			rtpHeaderSize += 2 + length;
+		}
+
+		var ssrcIndex = client.GetSsrcStateIndex(ssrc);
+		
+		// Get the sequence number:
+		ushort seq = (ushort)((outboundBuffer[outboundHeaderSize + 2] << 8) | outboundBuffer[outboundHeaderSize + 3]);
+
+		if (ssrcIndex == -1)
+		{
+			// Claim one and set the first seq:
+			ssrcIndex = client.AssignSsrcStateIndex(ssrc);
+			client.SsrcState[ssrcIndex].Sequence_1 = seq;
+			Console.WriteLine("Assigned outbound SSRC state for " + ssrc);
+		}
+		
+		// Calculate the packet index based on this client ROC:
+		var packetIndex = client.SsrcState[ssrcIndex].GuessIndex(seq, out uint rolloverCode);
+
+		// Update the rollover code:
+		client.SsrcState[ssrcIndex].UpdateRoc(seq, rolloverCode);
+
+		// Encrypt the packet:
+		var payloadSize = messageSize - 10 - rtpHeaderSize;
+		client.EncryptRtpPacket(outboundBuffer, outboundHeaderSize + rtpHeaderSize, payloadSize, packetIndex, ssrc);
+
+		// And authenticate the packet:
+		client.AuthenticatePacket(outboundBuffer, outboundHeaderSize, messageSize, rolloverCode);
+
+		client.SendAndRelease(writer);
+
+		uint timestamp = (uint)(outboundBuffer[outboundHeaderSize + 4] << 24 | outboundBuffer[outboundHeaderSize + 5] << 16 | outboundBuffer[outboundHeaderSize + 6] << 8 | outboundBuffer[outboundHeaderSize + 7]);
+		client.SsrcState[ssrcIndex].LatestRtpTimestamp = timestamp;
+		client.SsrcState[ssrcIndex].PacketsSent++;
+		client.SsrcState[ssrcIndex].OctetsSent += (ulong)messageSize;
+
 	}
 
 	private static void WriteWavHeader(System.IO.FileStream stream, bool isFloatingPoint, ushort channelCount, ushort bitDepth, int sampleRate, int totalSampleCount)
@@ -625,7 +806,7 @@ public static class Rtp
 
 	public static void ThroughputTest()
 	{
-		var encryptions = 1; //  100001;
+		var encryptions = 1000001;
 
 		var sw = new System.Diagnostics.Stopwatch();
 		sw.Start();
@@ -696,9 +877,8 @@ public static class Rtp
 			ivStore[12] = (byte)(((packetIndex >> 8) & 0xff) ^ rtcpSendSaltKey[12]);
 			ivStore[13] = (byte)((packetIndex & 0xff) ^ rtcpSendSaltKey[13]);
 
-			cipherCtr.GetCipherStream(buffer, 20, ivStore);
-
-			// cipherCtr.Process(buffer, 0, 1300, ivStore);
+			// cipherCtr.GetCipherStream(buffer, 20, ivStore);
+			cipherCtr.Process(buffer, 0, 1300, ivStore);
 		}
 
 		var str = SocketServerLibrary.Hex.ConvertWithSeparator(buffer, 0, 20, ' ');
@@ -753,9 +933,9 @@ public static class Rtp
 			ivStore[12] = (byte)(((packetIndex >> 8) & 0xff) ^ rtcpSendSaltKey[12]);
 			ivStore[13] = (byte)((packetIndex & 0xff) ^ rtcpSendSaltKey[13]);
 
-			aes.GetCipherStream(buffer, 20, ivStore);
+			// aes.GetCipherStream(buffer, 20, ivStore);
 
-			// aes.Process(buffer, 0, 1300, ivStore);
+			aes.Process(buffer, 0, 1300, ivStore);
 		}
 
 		var str = SocketServerLibrary.Hex.ConvertWithSeparator(buffer, 0, 20, ' ');

@@ -65,6 +65,16 @@ public partial class RtpClient
 	public SsrcState[] SsrcState;
 
 	/// <summary>
+	/// Finds a client (in the same huddle) with the given ssrc.
+	/// </summary>
+	/// <param name="ssrc"></param>
+	/// <returns></returns>
+	public virtual RtpClient FindClient(uint ssrc)
+	{
+		return null;
+	}
+
+	/// <summary>
 	/// Gets the SSRC state index in the SsrcState array for the given ssrc.
 	/// </summary>
 	/// <param name="ssrc"></param>
