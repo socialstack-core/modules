@@ -1,3 +1,9 @@
+:root {
+    --fallback__huddle-pinned-bg: #ccc;
+    --fallback__huddle-pinned-user-bg: #444;
+    --fallback__huddle-pinned-user-fg: #fff;
+}
+
 .huddle-chat {
 	$huddle-chat: &;
 
@@ -10,15 +16,15 @@
 		flex-wrap: wrap;
 		gap: 1px;
 		justify-content: center;
-		background: var(--huddle-pinned-bg, #ccc);
+		background: var(--huddle-pinned-bg, var(--fallback__huddle-pinned-bg));
 
 		#{$huddle-chat}__user {
 			aspect-ratio: 16/9;
-		    background: var(--huddle-pinned-user-bg, #444);
+		    background: var(--huddle-pinned-user-bg, var(--fallback__huddle-pinned-user-bg));
 			display: flex;
 			align-items: center;
 			justify-content: center;
-			color: var(--huddle-pinned-user-fg, #fff);
+			color: var(--huddle-pinned-user-fg, var(--fallback__huddle-pinned-user-fg));
 			width: 159px;
 		}
 	}

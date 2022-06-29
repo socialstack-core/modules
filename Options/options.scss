@@ -1,3 +1,8 @@
+:root {
+	--fallback__huddle-footer-bg: transparent;
+    --fallback__huddle-footer-fg: rgba(0,0,0, .75);
+}
+
 .huddle-chat {
 	$huddle-chat: &;
 
@@ -6,8 +11,8 @@
 		align-items: center;
 		justify-content: space-between;
 		padding: 8px 24px;
-		background: var(--huddle-footer-bg, transparent);
-		color: var(--huddle-footer-fg, rgba(0,0,0, .75));
+		background: var(--huddle-footer-bg, var(--fallback__huddle-footer-bg));
+		color: var(--huddle-footer-fg, var(--fallback__huddle-footer-fg));
 		min-height: $huddle-chat-footer;
 		z-index: 1000;
 
@@ -42,7 +47,7 @@
 					position: absolute;
 					bottom: -21px;
 					font-size: 11px;
-					color: var(--huddle-footer-fg, rgba(0,0,0, .75));
+					color: var(--huddle-footer-fg, var(--fallback__huddle-footer-fg));
 					width: 5rem;
 					left: 50%;
 					margin-left: -2.5rem;

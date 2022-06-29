@@ -1,3 +1,7 @@
+:root {
+    --fallback__huddle-stage-fg: #fff;
+}
+
 .huddle-chat {
 	$huddle-chat: &;
 
@@ -13,7 +17,7 @@
         overflow: visible; // in order for entire 'active speaker' border to be visible
 
 		&-message {
-            color: var(--huddle-stage-fg, #fff);
+            color: var(--huddle-stage-fg, var(--fallback__huddle-stage-fg));
             margin: 0;
             font-size: 24px;
             font-weight: bold;

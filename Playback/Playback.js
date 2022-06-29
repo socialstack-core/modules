@@ -3,7 +3,8 @@ import { useEffect, useState, useRef } from 'react';
 // TODO: show "LIVE" marker when appropriate
 
 export default function Playback(props){
-    var { duration, isLive, onPlay, onPause, bookmarks } = props;
+    var { info, duration, isLive, onPlay, onPause, bookmarks } = props;
+
     const [playbackActive, setPlaybackActive] = useState(false);
 
     // example bookmarks
@@ -336,7 +337,7 @@ video.addEventListener('mouseleave', hideControls);
         <div className="huddle-chat__playback-progress-wrapper">
             <div className="progress">
                 {bookmarks.map(section => {
-                    var sectionPercentage = Math.round((section.duration / videoDuration) * 100);
+                    var sectionPercentage = Math.round((section.duration / duration) * 100);
                     var sectionStyle = { 'width': sectionPercentage + '%' };
 
                     return <div className="progress-bar" role="progressbar" style={sectionStyle} aria-valuenow={sectionPercentage} aria-valuemin={0} aria-valuemax={100}></div>;
@@ -350,16 +351,16 @@ video.addEventListener('mouseleave', hideControls);
         {/* playback controls */}
         <div className="huddle-chat__playback-controls-wrapper">
             <div className="huddle-chat__playback-controls">
-                <button className="huddle-chat__playback-play" type="button" data-title={`Play`} ref={playButtonRef}>
-                    <svg className="playback-icons">
+                <button className="btn huddle-chat__playback-play" type="button" data-title={`Play`} ref={playButtonRef}>
+                    <svg className="huddle-chat__playback-button-icon">
                         <use href="#play-icon" ref={playIconRef}></use>
                         <use className="hidden" href="#pause" ref={pauseIconRef}></use>
                     </svg>
                 </button>
 
                 <div className="huddle-chat__playback-volume">
-                    <button className="huddle-chat__playback-volume-button" type="button" data-title={`Mute`} ref={volumeButtonRef}>
-                        <svg>
+                    <button className="btn huddle-chat__playback-volume-button" type="button" data-title={`Mute`} ref={volumeButtonRef}>
+                        <svg className="huddle-chat__playback-button-icon">
                             <use className="hidden" href="#volume-mute" ref={muteIconRef}></use>
                             <use className="hidden" href="#volume-low" ref={volumeLowIconRef}></use>
                             <use href="#volume-high" ref={volumeHighIconRef}></use>
@@ -378,14 +379,14 @@ video.addEventListener('mouseleave', hideControls);
 
             {/*
             <div className="huddle-chat__playback-sizing">
-                <button className="huddle-chat__playback-pip" type="button" data-title={`Picture-in-picture`} ref={pipButtonRef}>
-                    <svg>
+                <button className="btn huddle-chat__playback-pip" type="button" data-title={`Picture-in-picture`} ref={pipButtonRef}>
+                    <svg className="huddle-chat__playback-button-icon">
                         <use href="#pip"></use>
                     </svg>
                 </button>
 
-                <button className="huddle-chat__playback-fullscreen" type="button" data-title={`Full screen`} ref={fullscreenButtonRef}>
-                    <svg>
+                <button className="btn huddle-chat__playback-fullscreen" type="button" data-title={`Full screen`} ref={fullscreenButtonRef}>
+                    <svg className="huddle-chat__playback-button-icon">
                         <use href="#fullscreen" ref={fullscreenIconRef}></use>
                         <use href="#fullscreen-exit" className="hidden" ref={fullscreenExitIconRef}></use>
                     </svg>
