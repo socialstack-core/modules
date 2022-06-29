@@ -233,6 +233,7 @@ export default class HuddleClient{
 					
 					if(!this.joined){
 						// First one - trigger the ready state:
+
 						this.props.onLoaded && this.props.onLoaded(this);
 					}else if(change){
 						this.updateAnswer();
@@ -298,6 +299,11 @@ export default class HuddleClient{
 			}catch(e){
 				console.log(e);
 				return;
+			}
+			
+			if(huddle && huddle.playback){
+				this._selfId = this.selfId;
+				this.selfId = 1;
 			}
 			
 			var presSize = r.readUInt32();
