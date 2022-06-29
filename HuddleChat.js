@@ -370,7 +370,8 @@ function HuddleChatUI(props) {
 		{/* TODO: set isHost */}
 		<Options isHost={false}
 				playbackInfo={props.playbackInfo}
-				startPlayback={() => huddleClient.startMedia()}
+			startPlayback={() => huddleClient.startMedia()}
+			stopPlayback={() => huddleClient.stopMedia()}
 		        audioOn={huddleClient.isActive('microphone')}
 				shareOn={huddleClient.isActive('screenshare')}
 				videoOn={huddleClient.isActive('webcam')}
