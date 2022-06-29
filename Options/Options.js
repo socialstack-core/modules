@@ -1,6 +1,6 @@
 import Dropdown from 'UI/Dropdown';
 import Alert from 'UI/Alert';
-import Playback from 'UI/Playback';
+import Playback from 'UI/HuddleChat/Playback';
 
 export default function Options(props) {
 	var { audioOn, videoOn, shareOn, isHost, playbackInfo } = props;
