@@ -534,28 +534,12 @@ public partial class BlockDatabaseService : AutoService
 		// To make handling the digest easier, it's simplest if the public key is known before load starts.
 		var baseConfig = bc.Get<BlockChainProjectConfig>();
 
-		if (baseConfig.PublicKey != null)
+		if (baseConfig == null)
 		{
-			_project.PublicKey = Convert.FromBase64String(baseConfig.PublicKey);
-			_project.PrivateKey = Convert.FromBase64String(baseConfig.PrivateKey);
+			baseConfig = new BlockChainProjectConfig();
 		}
-		else
-		{
-			// Generate the project key:
-			_project.GenerateKeyPair();
 
-			Console.WriteLine("Project private key: " + Convert.ToBase64String(_project.PrivateKey));
-			Console.WriteLine("Project public key: " + Convert.ToBase64String(_project.PublicKey));
-		}
-		
-		// Setup project hash:
-		var sha3 = new Sha3Digest();
-		sha3.BlockUpdate(_project.PublicKey, 0, _project.PublicKey.Length);
-
-		Span<byte> pubHash = stackalloc byte[32];
-		sha3.DoFinal(pubHash, 0);
-
-		_project.PublicHash = Hex.Convert(pubHash);
+		// Setup project storage:
 		_project.SetupStorage(dbPath, baseConfig.Distribution);
 		_project.OnChainEvent = (BlockChain chain, BlockChainEvent evt) => {
 

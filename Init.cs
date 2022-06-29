@@ -54,15 +54,28 @@ namespace Api.BlockDatabase
 
 				var fieldId = field.Definition.Id;
 				var noChange = generator.DefineLabel();
-
+				
 				// Need to consider nullables carefully:
 				var nullableBase = Nullable.GetUnderlyingType(field.FieldType);
 
 				if (nullableBase != null)
 				{
 					// Nullable field. Special case for comparisons.
-					CompareNullables(generator, field.FieldInfo);
+					CompareNullables(generator, field.FieldInfo, nullableBase);
 
+				}
+				else if (field.FieldType == typeof(DateTime))
+				{
+					var ticksMethod = typeof(DateTime).GetProperty("Ticks").GetGetMethod();
+					
+					generator.Emit(OpCodes.Ldarg_1);
+					generator.Emit(OpCodes.Ldflda, field.FieldInfo);
+					generator.Emit(OpCodes.Call, ticksMethod);
+
+					generator.Emit(OpCodes.Ldarg_0);
+					generator.Emit(OpCodes.Ldflda, field.FieldInfo);
+					generator.Emit(OpCodes.Call, ticksMethod);
+					generator.Emit(OpCodes.Ceq); // 1 if the fields are the same
 				}
 				else
 				{
@@ -111,12 +124,20 @@ namespace Api.BlockDatabase
 			return dymMethod.CreateDelegate<Func<T, T, Writer, int>>();
 		}
 
-		private static void CompareNullables(ILGenerator generator, FieldInfo fieldInfo)
+		private static void CompareNullables(ILGenerator generator, FieldInfo fieldInfo, Type baseType)
 		{
 			var fieldType = fieldInfo.FieldType;
 			var hasValueProperty = fieldType.GetProperty("HasValue").GetGetMethod();
 			var valueOrDefaultProperty = fieldType.GetMethod("GetValueOrDefault", Array.Empty<Type>());
-			
+			MethodInfo dateTimeTicks = null;
+			LocalBuilder dateLocal = null;
+
+			if (baseType == typeof(DateTime))
+			{
+				dateTimeTicks = typeof(DateTime).GetProperty("Ticks").GetGetMethod();
+				dateLocal = generator.DeclareLocal(typeof(DateTime));
+			}
+
 			// Load both addresses:
 			generator.Emit(OpCodes.Ldarg_1);
 			generator.Emit(OpCodes.Ldflda, fieldInfo);
@@ -134,9 +155,26 @@ namespace Api.BlockDatabase
 			generator.Emit(OpCodes.Ldflda, fieldInfo);
 			generator.Emit(OpCodes.Call, valueOrDefaultProperty);
 
+			// Must store it into a local if it's a datetime then read the ticks from it:
+			if (baseType == typeof(DateTime))
+			{
+				generator.Emit(OpCodes.Stloc, dateLocal);
+				generator.Emit(OpCodes.Ldloca, dateLocal);
+				generator.Emit(OpCodes.Call, dateTimeTicks);
+			}
+			
 			generator.Emit(OpCodes.Ldarg_0);
 			generator.Emit(OpCodes.Ldflda, fieldInfo);
 			generator.Emit(OpCodes.Call, valueOrDefaultProperty);
+
+			// Must store it into a local if it's a datetime then read the ticks from it:
+			if (baseType == typeof(DateTime))
+			{
+				generator.Emit(OpCodes.Stloc, dateLocal);
+				generator.Emit(OpCodes.Ldloca, dateLocal);
+				generator.Emit(OpCodes.Call, dateTimeTicks);
+			}
+
 			generator.Emit(OpCodes.Ceq);
 
 			// If both HasValue == HasValue, and the Value matches, do nothing.
