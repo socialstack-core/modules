@@ -1,6 +1,7 @@
 using Api.Translate;
 using Api.Permissions;
 using System.Collections.Generic;
+using Api.Startup;
 
 namespace Api.Eventing
 {
@@ -34,11 +35,20 @@ namespace Api.Eventing
 		/// </summary>
 		public EventHandler<List<Locale>> InitialList;
 
+		/// <summary>
+		/// Called when a particular field is being mapped to a .pot text format
+		/// </summary>
+		public EventHandler<object, ContentField, TranslationServiceConfig> PotFieldValue;
+
 	}
 
     public partial class EventGroup<T, ID>
     {
+		/// <summary>
+		/// Called when a list.pot is being generated
+		/// </summary>
         public EndpointEventHandler<Filter<T, ID>> EndpointStartPotList;
+
     }
 
 }
