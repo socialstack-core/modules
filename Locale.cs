@@ -18,8 +18,14 @@ namespace Api.Translate
 		/// <summary>
 		/// Usually a 5 letter locale code e.g. "en_GB". May also be just 2 e.g. "fr".
 		/// </summary>
-		[Data("hint", "The primary locale code, Usually a 5 letter locale code e.g. 'en_GB'. May also be just 2 e.g. 'fr' or client specific such as 'en-en'")]
+		[Data("hint", "The primary locale code, usually a 5 letter locale code e.g. 'en_GB'. May also be just 2 e.g. 'fr' or client specific such as 'en-en'")]
 		public string Code;
+
+		/// <summary>
+		/// Usually a 3 letter locale code e.g. "GBP".
+		/// </summary>
+		[Data("hint", "The currency code, usually a 3 letter locale code e.g. 'GBP'.")]
+		public string CurrencyCode;
 
 		/// <summary>
 		/// Associated flag image representing the locale.
