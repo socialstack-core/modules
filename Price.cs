@@ -30,8 +30,9 @@ namespace Api.Prices
 		public string StripePriceId;
 
 		/// <summary>
-		/// The cost of purchising this product
+		/// The cost of purchasing this product
 		/// </summary>
+		[Localized]
 		public long CostPence;
 
 		/// <summary>
