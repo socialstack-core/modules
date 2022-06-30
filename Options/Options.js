@@ -13,8 +13,7 @@ export default function Options(props) {
 		// video length is playbackInfo.duration but note that it might actually be "live" (playbackInfo.isLive is true) 
 		// in which case this duration is a snapshot and will continuously grow.
 
-		return <Playback info={playbackInfo} duration={playbackInfo.duration} isLive={playbackInfo.isLive}
-			onPlay={() => props.startPlayback()} onPause={() => props.stopPlayback()} />;
+		return <Playback info={playbackInfo} onPlay={() => props.startPlayback()} onPause={() => props.stopPlayback()} />;
 	}
 	
 	var isHost = props.isHost;

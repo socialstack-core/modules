@@ -1,11 +1,20 @@
 import { useEffect, useState, useRef } from 'react';
 
-// TODO: show "LIVE" marker when appropriate
-
 export default function Playback(props){
-    var { info, duration, isLive, onPlay, onPause, bookmarks } = props;
+    var { info, onPlay, onPause, bookmarks } = props;
 
-    const [playbackActive, setPlaybackActive] = useState(false);
+    var duration = !isNaN(info.duration) && isFinite(info.duration) ? Math.round(info.duration) : 0;
+    var isLive = info.isLive;
+    var elapsed = !isNaN(info.elapsed) && isFinite(info.elapsed) ? Math.round(info.elapsed) : (isLive ? duration : 0);
+
+    const [playbackActive, setPlaybackActive] = useState(isLive);
+    const [controlsVisible, setControlsVisible] = useState(true);
+    const [progressTimer, setProgressTimer] = useState(null);
+    const [playbackElapsed, setPlaybackElapsed] = useState(elapsed);
+    const [playbackDuration, setPlaybackDuration] = useState(duration);
+    const [masterVolume, setMasterVolume] = useState(1);
+    const [lastVolume, setLastVolume] = useState(1);
+    const [volumeMuted, setVolumeMuted] = useState(false);
 
     // example bookmarks
     /*
@@ -29,7 +38,7 @@ export default function Playback(props){
     if (!bookmarks || !bookmarks.length || isLive) {
         bookmarks = [
             {
-                duration: duration,
+                duration: playbackDuration,
                 title: null
             }
         ];
@@ -43,10 +52,6 @@ export default function Playback(props){
     const seekRef = useRef(null);
     const seekTooltipRef = useRef(null);
     const volumeRangeRef = useRef(null);
-    const volumeButtonRef = useRef(null);
-    const muteIconRef = useRef(null);
-    const volumeLowIconRef = useRef(null);
-    const volumeHighIconRef = useRef(null);
     //const fullscreenButtonRef = useRef(null);
     //const fullscreenIconRef = useRef(null);
     //const fullscreenExitIconRef = useRef(null);
@@ -56,45 +61,34 @@ export default function Playback(props){
 
     // toggle playback state of video
     function togglePlay() {
-        playIconRef.current.classList.toggle('hidden');
-        pauseIconRef.current.classList.toggle('hidden');
 
         if (playbackActive) {
             setPlaybackActive(false);
-            playButtonRef.current.setAttribute('data-title', `Play`);
             onPause();
+            clearInterval(progressTimer);
         } else {
             setPlaybackActive(true);
-            playButtonRef.current.setAttribute('data-title', `Pause`);
             onPlay();
+            setProgressTimer(setInterval(updateProgress, 1000));
+        }
+
+    }
+
+    // update progress bar
+    function updateProgress() {
+        setPlaybackElapsed(playbackElapsed => playbackElapsed + 1);
+
+        if (isLive) {
+            // TODO: check - already being updated via props.playbackinfo.duration?
+            setPlaybackDuration(playbackDuration => playbackDuration + 1);
         }
 
     }
 
     // format given time into hh:mm:ss
     function formatTime(timeInSeconds) {
-        var timeString = new Date(timeInSeconds * 1000).toISOString();
-        return (duration < 60 * 60) ? timeString.substr(14, 5) : timeString.substr(11, 8);
-    }
-
-    // TODO
-    // indicates how far through the video the current playback is
-    function updateTimeElapsed() {
-        /*
-        const time = formatTime(Math.round(videoRef.current.currentTime));
-        elapsedRef.current.innerText = time;
-        elapsedRef.current.setAttribute('datetime', time);
-         */
-    }
-
-    // TODO
-    // indicates how far through the video the current playback is by updating the progress bar
-    function updateProgress() {
-        /*
-        var currentTime = Math.floor(videoRef.current.currentTime);
-        seekRef.current.value = currentTime;
-        progressBarRef.current.value = currentTime;
-         */
+        var timeString = new Date((!isNaN(timeInSeconds) && isFinite(timeInSeconds) ? timeInSeconds : 0) * 1000).toISOString();
+        return (playbackDuration < 60 * 60) ? timeString.substr(14, 5) : timeString.substr(11, 8);
     }
 
     // uses the position of the mouse on the progress bar to roughly work out what point in 
@@ -124,73 +118,24 @@ export default function Playback(props){
         seekRef.current.value = skipTo;
     }
 
-    // TODO
     // updates video volume and disable muted state if active
-    function updateVolume() {
-        /*
-        if (!videoRef || !videoRef.current) {
-            return;
-        }
-
-        var video = videoRef.current;
-
-        if (video.muted) {
-            video.muted = false;
-        }
-
-        video.volume = volumeRangeRef.current.value;
-         */
+    function updateVolume(e) {
+        setMasterVolume(volumeRangeRef.current.value)
     }
 
-    // TODO
-    // updates the volume icon so that it correctly reflects the volume of the video
-    function updateVolumeIcon() {
-
-        /*
-        if (!videoRef || !videoRef.current) {
-            return;
-        }
-
-        var video = videoRef.current;
-
-        muteIconRef.current.classList.add('hidden');
-        volumeLowIconRef.current.classList.add('hidden');
-        volumeHighIconRef.current.classList.add('hidden');
-
-        volumeButtonRef.current.setAttribute('data-title', `Mute`);
-
-        if (video.muted || video.volume === 0) {
-            muteIconRef.current.classList.remove('hidden');
-            volumeButtonRef.current.setAttribute('data-title', `Unmute`);
-        } else if (video.volume > 0 && video.volume <= 0.5) {
-            volumeLowIconRef.current.classList.remove('hidden');
-        } else {
-            volumeHighIconRef.current.classList.remove('hidden');
-        }
-         */
-    }
-
-    // TODO
     // mutes / unmutes video when executed; 
     // when video is unmuted, volume is returned to the value it was set to before
     function toggleMute() {
-        /*
-        if (!videoRef || !videoRef.current) {
-            return;
-        }
 
-        var video = videoRef.current;
-        var volume = volumeRangeRef.current;
-
-        video.muted = !video.muted;
-
-        if (video.muted) {
-            volume.setAttribute('data-volume', volume.value);
-            volume.value = 0;
+        if (!volumeMuted) {
+            setVolumeMuted(true);
+            setLastVolume(masterVolume);
+            setMasterVolume(0);
         } else {
-            volume.value = volume.dataset.volume;
+            setVolumeMuted(false);
+            setMasterVolume(lastVolume);
         }
-         */
+
     }
 
     // TODO: better implemented outside of this component
@@ -254,46 +199,29 @@ export default function Playback(props){
             return;
         }
 
-        playbackRef.current.classList.add('huddle-chat__playback--hide');
+        setControlsVisible(false);
     }
 
     // display the video controls
     function showControls() {
-        playbackRef.current.classList.remove('huddle-chat__playback--hide');
+        setControlsVisible(true);
     }
 
     useEffect(() => {
-        // init playback bar
-        const videoDuration = Math.round(duration);
-        seekRef.current.removeAttribute('disabled');
-        seekRef.current.setAttribute('max', videoDuration);
-        progressBarRef.current.setAttribute('max', videoDuration);
 
-        const time = formatTime(videoDuration);
-        durationRef.current.innerText = time;
-        durationRef.current.setAttribute('datetime', time);
-    }, []);
+        if (progressTimer && playbackElapsed >= playbackDuration) {
+            togglePlay();
+        }
+
+    }, [playbackElapsed]);
 
     useEffect(() => {
         playButtonRef.current.addEventListener('click', togglePlay);
-        /*
-video.addEventListener('play', updatePlayButton);
-video.addEventListener('pause', updatePlayButton);
-video.addEventListener('loadedmetadata', initVideo);
-video.addEventListener('timeupdate', updateTimeElapsed);
-video.addEventListener('timeupdate', updateProgress);
-video.addEventListener('volumechange', updateVolumeIcon);
-video.addEventListener('click', togglePlay);
-video.addEventListener('click', animatePlayback);
-video.addEventListener('mouseenter', showControls);
-video.addEventListener('mouseleave', hideControls);
-         */
         playbackRef.current.addEventListener('mouseenter', showControls);
         playbackRef.current.addEventListener('mouseleave', hideControls);
         seekRef.current.addEventListener('mousemove', updateSeekTooltip);
         seekRef.current.addEventListener('input', skipAhead);
         volumeRangeRef.current.addEventListener('input', updateVolume);
-        volumeButtonRef.current.addEventListener('click', toggleMute);
         //fullscreenButtonRef.current.addEventListener('click', toggleFullScreen);
         //videoContainer.addEventListener('fullscreenchange', updateFullscreenButton);
         //pipButtonRef.current.addEventListener('click', togglePip);
@@ -306,24 +234,11 @@ video.addEventListener('mouseleave', hideControls);
 
         return () => {
             playButtonRef.current.removeEventListener('click', togglePlay);
-            /*
-    video.removeEventListener('play', updatePlayButton);
-    video.removeEventListener('pause', updatePlayButton);
-    video.removeEventListener('loadedmetadata', initVideo);
-    video.removeEventListener('timeupdate', updateTimeElapsed);
-    video.removeEventListener('timeupdate', updateProgress);
-    video.removeEventListener('volumechange', updateVolumeIcon);
-    video.removeEventListener('click', togglePlay);
-    video.removeEventListener('click', animatePlayback);
-    video.removeEventListener('mouseenter', showControls);
-    video.removeEventListener('mouseleave', hideControls);
-             */
             playbackRef.current.removeEventListener('mouseenter', showControls);
             playbackRef.current.removeEventListener('mouseleave', hideControls);
             seekRef.current.removeEventListener('mousemove', updateSeekTooltip);
             seekRef.current.removeEventListener('input', skipAhead);
             volumeRangeRef.current.removeEventListener('input', updateVolume);
-            volumeButtonRef.current.removeEventListener('click', toggleMute);
             //fullscreenButtonRef.current.removeEventListener('click', toggleFullScreen);
             //videoContainer.removeEventListener('fullscreenchange', updateFullscreenButton);
             //pipButtonRef.current.removeEventListener('click', togglePip);
@@ -331,50 +246,90 @@ video.addEventListener('mouseleave', hideControls);
 
     });
 
-	
-    return <div className="huddle-chat__playback" ref={playbackRef}>
+    var playbackClass = ['huddle-chat__playback'];
+
+    if (!controlsVisible) {
+        playbackClass.push('huddle-chat__playback--hide');
+    }
+
+    var progressClass = ['huddle-chat__playback-progress'];
+
+    if (isLive) {
+        progressClass.push('huddle-chat__playback-progress--live');
+    }
+
+    var liveClass = ['huddle-chat__playback-live'];
+
+    // TODO - determine if we're watching a live stream but are running behind
+    /*
+    if (isBehind) {
+        liveClass.push('huddle-chat__playback-live--behind');
+    }
+    */
+
+    return <div className={playbackClass.join(' ')} ref={playbackRef}>
         {/* progress indicator */}
         <div className="huddle-chat__playback-progress-wrapper">
             <div className="progress">
                 {bookmarks.map(section => {
-                    var sectionPercentage = Math.round((section.duration / duration) * 100);
+                    var sectionPercentage = Math.round((section.duration / playbackDuration) * 100);
                     var sectionStyle = { 'width': sectionPercentage + '%' };
 
                     return <div className="progress-bar" role="progressbar" style={sectionStyle} aria-valuenow={sectionPercentage} aria-valuemin={0} aria-valuemax={100}></div>;
                 })}
             </div>
-            <progress className="huddle-chat__playback-progress" value="0" min="0" ref={progressBarRef}></progress>
-            <input className="huddle-chat__playback-seek" value="0" min="0" type="range" step="1" disabled ref={seekRef} />
+            <progress className={progressClass.join(' ')} value={playbackElapsed} min="0" max={playbackDuration} ref={progressBarRef}></progress>
+            <input className="huddle-chat__playback-seek" value={playbackElapsed} min="0" max={playbackDuration}
+                type="range" step="1" disabled={!isNaN(playbackDuration) && isFinite(playbackDuration) ? undefined : 'disabled'} ref={seekRef} />
             <div className="huddle-chat__playback-seek-tooltip" ref={seekTooltipRef}>00:00</div>
         </div>
 
         {/* playback controls */}
         <div className="huddle-chat__playback-controls-wrapper">
             <div className="huddle-chat__playback-controls">
-                <button className="btn huddle-chat__playback-play" type="button" data-title={`Play`} ref={playButtonRef}>
+                <button className="btn huddle-chat__playback-play" type="button" data-title={playbackActive ? `Pause` : `Play`} ref={playButtonRef}>
                     <svg className="huddle-chat__playback-button-icon">
-                        <use href="#play-icon" ref={playIconRef}></use>
-                        <use className="hidden" href="#pause" ref={pauseIconRef}></use>
+                        <use className={playbackActive ? 'hidden' : ''} href="#play-icon" ref={playIconRef}></use>
+                        <use className={!playbackActive ? 'hidden' : ''} href="#pause" ref={pauseIconRef}></use>
                     </svg>
                 </button>
 
                 <div className="huddle-chat__playback-volume">
-                    <button className="btn huddle-chat__playback-volume-button" type="button" data-title={`Mute`} ref={volumeButtonRef}>
+                    <button className="btn huddle-chat__playback-volume-button" type="button"
+                        data-title={volumeMuted || masterVolume == 0 ? `Unmute` : `Mute`} onClick={() => toggleMute()}>
                         <svg className="huddle-chat__playback-button-icon">
-                            <use className="hidden" href="#volume-mute" ref={muteIconRef}></use>
-                            <use className="hidden" href="#volume-low" ref={volumeLowIconRef}></use>
-                            <use href="#volume-high" ref={volumeHighIconRef}></use>
+                            {(volumeMuted || masterVolume == 0) && <>
+                                <use href="#volume-mute"></use>
+                            </>}
+                            {!volumeMuted && masterVolume > 0 && masterVolume <= 0.5 && <>
+                                <use href="#volume-low"></use>
+                            </>}
+                            {!volumeMuted && masterVolume > 0.5 && <>
+                                <use href="#volume-high"></use>
+                            </>}
                         </svg>
                     </button>
 
-                    <input className="huddle-chat__playback-volume-range" value="1" data-mute="0.5" type="range" max="1" min="0" step="0.01" ref={volumeRangeRef} />
+                    <input className="huddle-chat__playback-volume-range" value={masterVolume} data-mute="0.5" type="range" max="1" min="0" step="0.01" ref={volumeRangeRef} />
                 </div>
 
-                <div className="huddle-chat__playback-time">
-                    <time className="huddle-chat__playback-time-elapsed" ref={elapsedRef}>00:00</time>
-                    <span> / </span>
-                    <time className="huddle-chat__playback-time-duration" ref={durationRef}>00:00</time>
-                </div>
+                {!isLive && <>
+                    <div className="huddle-chat__playback-time">
+                        <time className="huddle-chat__playback-time-elapsed" ref={elapsedRef} datetime={formatTime(playbackElapsed)}>
+                            {formatTime(playbackElapsed)}
+                        </time>
+                        <span> / </span>
+                        <time className="huddle-chat__playback-time-duration" ref={durationRef} datetime={formatTime(playbackDuration)}>
+                            {formatTime(playbackDuration)}
+                        </time>
+                    </div>
+                </>}
+
+                {isLive && <>
+                    <p className={liveClass.join(' ')}>
+                        {`LIVE`}
+                    </p>
+                </>}
             </div>
 
             {/*

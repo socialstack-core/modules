@@ -165,7 +165,7 @@ html {
 
         &-audience-member {
             //aspect-ratio: 16 / 9;
-            background: var(--huddle-audience-member-bg, var(--fallback__huddle-audience-member-bg);
+            background: var(--huddle-audience-member-bg, var(--fallback__huddle-audience-member-bg));
             width: calc((100% - 1px) / 2);
 
             #{$huddle-chat}__user {
@@ -237,6 +237,11 @@ html {
             border-width: 2px;
         }
 
+    }
+
+    // playback
+    &__playback {
+        grid-area: footer;
     }
 
     &--participants,

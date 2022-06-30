@@ -17,6 +17,7 @@
     --fallback__huddle-playback-volume-range-width: 100px;
     --fallback__huddle-playback-volume-range-height: 3px;
     --fallback__huddle-playback-icon-size: 28px;
+    --fallback__huddle-playback-live-fg: var(--primary);
 }
 
 /*
@@ -48,8 +49,8 @@
 		padding: var(--huddle-playback-padding, var(--fallback__huddle-playback-padding));
 
 		&--hide {
-			opacity: 0;
-			pointer-events: none;
+			//opacity: 0;
+			//pointer-events: none;
 		}
 
         .hidden {
@@ -118,6 +119,7 @@
         }
 
         &-progress {
+        	$huddle-chat__playback-progress: &;
             -webkit-appearance: none;
             -moz-appearance: none;
             appearance: none;
@@ -131,7 +133,11 @@
             transition: all .2s ease;
             background: transparent;
             border: 0;
-            mix-blend-mode: overlay;
+
+            // NB: potential workaround for bookmark gaps not being visible once the seek bar is overlaid
+            &:not(#{$huddle-chat__playback-progress}--live) {
+                //mix-blend-mode: overlay;
+            }
             
             &::-webkit-progress-bar {
                 background-color: transparent;
@@ -151,7 +157,7 @@
             $playback_seek: &;
             position: absolute;
             top: 0;
-            width: 100%;
+            width: calc(100% + 2px); // prevents progress bar sticking out slightly behind seek range control
             cursor: pointer;
             margin: 0;
             margin-block-start: 2px;
@@ -175,7 +181,7 @@
             &-tooltip {
                 display: none;
                 position: absolute;
-                top: -28px;
+                top: -36px;
                 margin-inline-start: -20px;
                 font-size: var(--huddle-playback-seek-tooltip-font-size, var(--fallback__huddle-playback-seek-tooltip-font-size));
                 padding: var(--huddle-playback-seek-tooltip-padding, var(--fallback__huddle-playback-seek-tooltip-padding));
@@ -183,6 +189,7 @@
                 font-weight: var(--huddle-playback-seek-tooltip-font-weight, var(--fallback__huddle-playback-seek-tooltip-font-weight));
                 color: var(--huddle-playback-seek-tooltip-fg, var(--fallback__huddle-playback-seek-tooltip-fg));
                 background-color: var(--huddle-playback-seek-tooltip-bg, var(--fallback__huddle-playback-seek-tooltip-bg));
+                font-variant-numeric: tabular-nums;
                 z-index: 100;
 
                 &::after {
@@ -392,6 +399,34 @@
 
         &-time {
 
+            &-elapsed,
+            &-duration {
+                font-variant-numeric: tabular-nums;
+            }
+
+        }
+
+        &-live {
+            margin-block-end: 0;
+            margin-inline-start: 2rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            line-height: normal;
+
+            &::before {
+                content: "";
+                width: 8px;
+                height: 8px;
+                border-radius: 50%;
+                background: var(--huddle-playback-live-fg, var(--fallback__huddle-playback-live-fg));
+                transition: all .2s ease;
+            }
+
+            &--behind::before {
+                background: currentColor;
+                opacity: .5;
+            }
         }
 
         &-sizing {
@@ -423,4 +458,20 @@
             display: none;
         }
 	}
+}
+
+html.no-flexgap {
+
+    .huddle-chat {
+
+        &__playback {
+
+            &-live::before {
+                margin-inline-end: .5rem;
+            }
+
+        }
+
+    }
+
 }
