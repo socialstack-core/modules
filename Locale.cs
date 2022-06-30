@@ -22,12 +22,6 @@ namespace Api.Translate
 		public string Code;
 
 		/// <summary>
-		/// Usually a 3 letter locale code e.g. "GBP".
-		/// </summary>
-		[Data("hint", "The currency code, usually a 3 letter locale code e.g. 'GBP'.")]
-		public string CurrencyCode;
-
-		/// <summary>
 		/// Associated flag image representing the locale.
 		/// </summary>
 		[Data("hint", "Associated flag image representing the locale")]
