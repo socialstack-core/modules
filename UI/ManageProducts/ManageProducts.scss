@@ -1,0 +1,35 @@
+.manage-products {
+
+	table {
+		table-layout: fixed;
+
+		th.col--btn {
+			width: 110px;
+		}
+
+		td {
+			vertical-align: middle;
+		}
+
+	}
+
+	&__footer {
+		display: flex;
+		align-items: center;
+		justify-content: flex-end;
+
+		.btn {
+			margin-left: .5rem;
+		}
+	}
+}
+
+/*
+Size overrides. See bootstrap breakpoints for more information:
+https://getbootstrap.com/docs/5.0/layout/breakpoints/#min-width
+
+@include media-breakpoint-up(md) {
+	.manage-products {
+	}
+}
+*/
