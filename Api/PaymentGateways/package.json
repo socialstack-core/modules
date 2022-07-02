@@ -1,0 +1,5 @@
+{
+  "dependencies": [
+    "nuget:Stripe.net@39.80.0"
+  ]
+}
