@@ -1,0 +1,21 @@
+﻿.register-form{
+	
+	.terms{
+		max-height: 400px;
+		overflow-y: auto;
+	}
+
+}
+
+@supports (-webkit-overflow-scrolling: touch) {
+
+	.register-form{
+
+		.terms{
+			overflow-y: scroll;
+			-webkit-overflow-scrolling: touch;
+		}
+
+	}
+
+}
