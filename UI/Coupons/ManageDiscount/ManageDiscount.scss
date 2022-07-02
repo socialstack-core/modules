@@ -1,0 +1,40 @@
+.coupons-manage-discount {
+
+	.new-coupon-button {
+		text-align: center;
+	}
+
+	.coupons-manage-discount--coupons-loop {
+		margin-top: 1rem;
+		margin-bottom: 1rem;
+
+		.coupons-manage-discount--coupon {
+			max-width: 820px;
+			margin-left: auto;
+    		margin-right: auto;
+			
+			.coupon--info {
+
+				&.is-redeemed {
+					float: right
+				}
+				&.redeemed {
+					color: red;
+				}
+				&.not-redeemed {
+					color: green;
+				}
+			}
+		}
+	}
+}
+
+/*
+Size overrides. See bootstrap breakpoints for more information:
+https://getbootstrap.com/docs/5.0/layout/breakpoints/#min-width
+
+@include media-breakpoint-up(md) {
+	.coupons-manage-discount {
+	}
+}
+*/
