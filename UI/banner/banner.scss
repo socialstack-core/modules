@@ -1,0 +1,37 @@
+.hero-banner {
+	/* height: 80vh; */
+	width: 100%;
+	background-size: cover;
+	background-position: center;
+	background-repeat: no-repeat;
+	display: flex;
+  flex-direction: column;
+  justify-content: center;
+
+	h1 {
+		margin-bottom: 0;
+	}
+
+	.introduction {
+		margin: 0;
+		text-align: center;
+		font-size: 50px;
+	}
+
+	.banner-text {
+		text-align: center;
+	}
+
+	.row {
+		margin-right: 0;
+		margin-left: 0;
+	}
+}
+
+html.device-mobile {
+  .hero-banner {
+		h1 {
+			font-size: 2rem;
+		}
+	}
+}
