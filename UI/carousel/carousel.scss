@@ -1,0 +1,157 @@
+.carousel {
+
+    .slider {
+        width: 100%;
+        overflow: hidden;
+        position: relative;
+
+        &.slider-align-first {
+
+            .content-item {
+                // TODO: account for different spacing
+                flex: 0 0 calc(100% + 16px);
+            }
+
+        }
+
+        .slider-back-wrapper,
+        .slider-next-wrapper {
+            position: absolute;
+            display: flex;
+            align-items: center;
+            top: 0;
+            bottom: 0;
+            z-index: 10;
+        }
+
+        .slider-back-wrapper {
+            left: 0;
+        }
+
+        .slider-next-wrapper {
+            right: 0;
+        }
+
+        .slider-back,
+        .slider-next {
+            width: 4rem;
+            height: 4rem;
+			font-size: 1.5rem;
+            // TODO: base on theme-specific settings
+			color: var(--color);
+            background: #fff;
+            box-shadow: 0px 2px 5px 0px rgba(0, 0, 0, 0.25);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+    }
+	
+	.container-offset {
+        transition: margin-left 600ms ease-in-out;
+	}
+	
+    .content-list {
+        //display: block !important;
+        display: flex;
+        white-space: nowrap;
+        font-size: 0;
+        width: 100%;
+        overflow: visible;
+        padding: 0;
+        margin-bottom: 0;
+
+        &.toggle-opacity {
+			
+			.offscreen-item{
+				opacity: 0.5;
+			}
+        }
+    }
+
+    .content-item {
+        display: inline-block !important;
+        font-size: 16px;
+        white-space: normal;
+        padding: 0;
+        height: auto;
+        width: 100%;
+        flex: 0 0 100%;
+        overflow: hidden;
+        transition: opacity ease .2s;
+
+        .content-item-internal {
+            height: 100%;
+        }
+
+        // TODO: shouldn't be shared, this might well vary for each instance
+        /*
+        > div {
+            height: 440px !important;
+            
+            h1 {
+                font-size: 2.125rem;
+            }
+        }
+        */
+    }
+}
+
+@media only screen and (min-width: 576px) {
+
+    .carousel {
+
+        .slider {
+
+            &.slider-align-first {
+                .content-list.content.first {
+					
+                    .content-item {
+                        // TODO: account for different spacing
+                        flex: 0 0 calc(510px + 16px);
+                    }
+                }
+            }
+        }
+    }
+}
+
+@media only screen and (min-width: 768px) {
+
+    .carousel {
+
+        .slider {
+
+            &.slider-align-first {
+                .content-list.content.first {
+					
+                    .content-item {
+                        // TODO: account for different spacing
+                        //flex: 0 0 calc( (690px / 2) + (16px / 2));
+                        flex: 0 0 calc(690px + 16px);
+                    }
+                }
+            }
+        }
+    }
+}
+
+@media only screen and (min-width: 992px) {
+
+    .carousel {
+
+        .slider {
+
+            &.slider-align-first {
+                .content-list.content.first {
+					
+                    .content-item {
+                        // TODO: account for different spacing
+                        //flex: 0 0 calc( (946px / 2) + (16px / 2));
+                        flex: 0 0 calc(930px + 16px);
+                    }
+                }
+            }
+        }
+    }
+}
