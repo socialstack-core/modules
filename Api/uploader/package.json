@@ -1,0 +1,5 @@
+{
+	"dependencies":[
+		"nuget:Magick.NET-Q8-AnyCPU"
+	]
+}
