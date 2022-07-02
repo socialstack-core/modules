@@ -1,0 +1,112 @@
+.calendar-compact {
+	background-color: #fff;
+
+	.calendar-header {
+		border: 1px solid rgb(199,199,199);
+
+		.calendar-header-col {
+			position: relative;
+			display: flex;
+			align-items: center;
+			justify-content: center;
+
+			.previous {
+				position: absolute;
+				left: 1rem;
+				color: #767676;
+				font-size: 1.5rem;
+			}
+
+			.next {
+				position: absolute;
+				right: 1rem;
+				color: #767676;
+				font-size: 1.5rem;
+			}
+
+			.calendar-column-title {
+				@include font_size(20);
+				font-weight: normal;
+				color: #767676;
+				margin: 1rem 0;
+			}
+
+		}
+
+	}
+
+	.calendar-body {
+		border: 1px solid rgb(199,199,199);
+		border-top: 0;
+		overflow-y: auto;
+		max-height: 75vh;
+
+		.calendar-body-col {
+
+			&.bordered {
+				border-left: 1px solid rgb(199,199,199);
+			}
+
+			.day {
+				position: relative;
+
+				.times {
+
+					.time-info {
+
+						.time {
+							@include font_size(20);
+							font-weight: normal;
+							color: #767676;
+							margin: 0;
+							display: flex;
+
+							&::after {
+								content: "";
+								flex: 1 1;
+								border-bottom: 1px solid rgb(199,199,199);
+								margin: auto 0 auto 15px;
+							}
+						}
+
+					}
+
+				}
+
+				.bookings {
+
+					.entry {
+						padding: .5rem;
+						box-shadow: 1px 1px 4px rgba(0,0,0,.5);
+					}
+
+				}
+
+				.timeblock {
+					position: absolute;
+					left: 3.5rem;
+					margin-top: -0.39rem;
+				}
+		
+				.entry {
+					width: calc(100% - 3.5rem);
+					overflow-y: auto;
+				}
+
+			}
+
+		}
+	}
+
+}
+
+@include mq_mobile {
+
+	.calendar-compact {
+
+		.calendar-body {
+			// TODO: improve height calc for mobile
+			max-height: 50vh;
+		}
+	}
+}
