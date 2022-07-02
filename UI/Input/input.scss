@@ -1,0 +1,122 @@
+// NB: refer to UI/Source/ThirdParty/GlobalStyle/global-forms.45.scss for shared form styling
+// (UI/Source/GeneralStyle/Forms.50.scss for project-specific styling)
+
+.validation-error{
+	color: var(--danger);
+	font-size: smaller;
+	margin: 0.5rem 0 1rem 0;
+}
+
+.password-meter {
+	margin-top: 10px;
+	border-radius: 4px !important;
+}
+
+.clickable:hover{
+	cursor:pointer;
+}
+
+input[type="checkbox"].form-control {
+	width: initial;
+}
+
+.form-control-icon-wrapper {
+	display: flex;
+	flex-wrap: nowrap;
+	align-items: center;
+
+	input {
+		margin-right: .5rem;
+	}
+
+	.fa-info-circle {
+		margin-left: auto;
+		font-size: 1.25rem;
+	}
+}
+
+.form-text-above {
+	margin-top: 0;
+	margin-bottom: .25rem;
+}
+
+.is-required-field::after{
+	content: '*';
+	color: var(--danger);
+	margin-inline-start: .25em;
+}
+
+// select controls without a selection that are also using floating labels render the "no selection" option by default, along with the label
+// this looks odd when viewed in context with a group of text input fields also using floating labels, so we add a "no-selection" class to the select;
+// this causes the select to show only the label until focussed or a selection is made
+.form-floating > .form-select:not(:focus) {
+    
+	&.no-selection {
+		color: transparent;
+
+		~ label {
+			opacity: 1;
+			transform: none;
+		}
+
+	}
+    
+}
+
+// bold form labels by default, except for floating labels used within fields
+.form-label {
+	font-weight: bold;
+}
+
+// reduce standard form font size
+.form-label,
+.form-control,
+.form-select {
+	font-size: 14px;
+}
+
+// reduce standard dropdown arrow size
+.form-select {
+    background-size: calc(.75em + .375rem);
+    background-position: right 1em top 50%;
+}
+
+.form-floating {
+
+	.form-label {
+		font-weight: normal;
+		// match height of input (default is 100%, which breaks when validation messages are displayed)
+		display: flex;
+		align-items: center;
+		height: calc(3.5rem + 2px);
+		line-height: 1.25;
+	}
+
+}
+
+// used to get non-floating label fields to render at the same height as floating label fields
+// (use case is when everything uses floating labels, with the exception of a field that has a standalone label and explanatory text)
+// this keeps all input fields at a consistent height
+.form-floating-height {
+
+	.form-control {
+		height: calc(3.5rem + 2px);
+		line-height: 1.25;
+	}
+
+}
+
+// ensure textareas have a sensible minimum height
+$textarea_minrows: 4;
+
+textarea.form-control {
+  min-height: calc((1.5em * #{$textarea_minrows}) + (.75rem + 2px));
+}
+
+textarea.form-control-sm {
+  min-height: calc((1.5em * #{$textarea_minrows}) + (.5rem + 2px));
+}
+
+textarea.form-control-lg {
+  min-height: calc((1.5em * #{$textarea_minrows}) + (1rem + 2px));
+}
