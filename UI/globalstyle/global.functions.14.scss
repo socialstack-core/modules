@@ -1,0 +1,220 @@
+/*
+	global functions
+    helper functions to be used by SASS styles
+*/
+
+//  replace characters in a string
+@function str-replace($string, $search, $replace: '') {
+    $index: str-index($string, $search);
+
+    @if $index {
+        @return str-slice($string, 1, $index - 1) + $replace + str-replace(str-slice($string, $index + str-length($search)), $search, $replace);
+    }
+
+    @return $string;
+}
+
+/// Compares two string to determine which comes first
+/// @access private
+/// @param {String} $a - first string
+/// @parem {String} $b - second string
+/// @param {List} $order - order to deal with
+/// @return {Bool}
+@function _str-compare($a, $b, $order) {
+  @if type-of($a) == "number" and type-of($b) == "number" {
+    @return $a < $b;
+  }
+
+  $a: to-lower-case($a + unquote(""));
+  $b: to-lower-case($b + unquote(""));
+
+  @for $i from 1 through min(str-length($a), str-length($b)) {
+    $char-a: str-slice($a, $i, $i);
+    $char-b: str-slice($b, $i, $i);
+
+    @if $char-a and $char-b and index($order, $char-a) != index($order, $char-b) {
+      @return index($order, $char-a) < index($order, $char-b);
+    }
+  }
+
+  @return str-length($a) < str-length($b);
+}
+
+// replace a given RGB fill colour with another
+@function replace-svg-fill($svg, $fill-to-replace, $new-fill) {
+    $new-fill-string: str-replace(inspect($new-fill), '#', '%23');
+    @return str-replace($svg, $fill-to-replace, $new-fill-string);
+}
+
+// convert given HEX value to RGBA (with optional opacity)
+@function hex_to_rgba($hex, $opacity: 1) {
+    $red: red($hex);
+    $green: green($hex);
+    $blue: blue($hex);
+
+    @if ($opacity == 1) {
+        @return rgb($red, $green, $blue);
+    } @else {
+        @return rgba($red, $green, $blue, $opacity);
+    }
+
+}
+
+// square root function
+@function sqrt($r) {
+  $x0: 1;
+  $x1: $x0;
+ 
+  @for $i from 1 through 10 {
+    $x1: $x0 - ($x0 * $x0 - abs($r)) / (2 * $x0);
+    $x0: $x1;
+  }
+ 
+  @return $x1;
+}
+
+// check list contains given item
+@function list_contains($list,$var) {
+    $contains: false;
+
+    @each $item in $list { 
+        @if $item == $var { 
+            $contains: true; 
+
+        } 
+    }
+
+    @return $contains;
+}
+
+// cast string to number
+@function cast_to_number($value) {
+  @if type-of($value) == 'number' {
+    @return $value;
+  } @else if type-of($value) != 'string' {
+    $_: log('Value for `cast_to_number` should be a number or a string.');
+  }
+  
+  $result: 0;
+  $digits: 0;
+  $minus: str-slice($value, 1, 1) == '-';
+  $numbers: ('0': 0, '1': 1, '2': 2, '3': 3, '4': 4, '5': 5, '6': 6, '7': 7, '8': 8, '9': 9);
+  
+  @for $i from if($minus, 2, 1) through str-length($value) {
+    $character: str-slice($value, $i, $i);
+    
+    @if not (index(map-keys($numbers), $character) or $character == '.') {
+      @return to-length(if($minus, -$result, $result), str-slice($value, $i))
+    }
+    
+    @if $character == '.' {
+      $digits: 1; 
+    } @else if $digits == 0 {
+      $result: $result * 10 + map-get($numbers, $character);  
+    } @else {
+      $digits: $digits * 10;
+      $result: $result + map-get($numbers, $character) / $digits;
+    }
+  }
+  
+  @return if($minus, -$result, $result);;
+}
+
+/// Default order used to determine which string comes first
+/// @type List
+$default-sort-order:
+  "!" "#" "$" "%" "&" "'" "(" ")" "*" "+" "," "-" "." "/" "[" "\\" "]" "^" "_" "{" "|" "}" "~"
+  "0" "1" "2" "3" "4" "5" "6" "7" "8" "9"
+  "a" "b" "c" "d" "e" "f" "g" "h" "i" "j" "k" "l" "m" "n" "o" "p" "q" "r" "s" "t" "u" "v" "w" "x" "y" "z" !default;
+  
+/// alpha sort
+/// @param {List} $list - list to sort
+/// @param {List} $order ($default-sort-order) - order to use for sorting
+/// @return {List}
+@function alpha-sort($list, $order: $default-sort-order) {
+  $less:  ();
+  $equal: ();
+  $large: ();
+
+  @if length($list) > 1 {
+    $seed: nth($list, ceil(length($list) / 2));
+
+    @each $item in $list {
+      @if $item == $seed {
+        $equal: append($equal, $item, list-separator($list));
+      } @else if _str-compare($item, $seed, $order) {
+        $less: append($less, $item, list-separator($list));
+      } @else if not _str-compare($item, $seed, $order) {
+        $large: append($large, $item, list-separator($list));
+      }
+    }
+
+    @return join(join(quick-sort($less, $order), $equal), quick-sort($large, $order));
+  }
+
+  @return $list;
+}
+
+/// numeric sort
+/// @param {List} $list - list to sort
+/// @return {List}
+@function numeric-sort($list) {
+  $less:  ();
+  $equal: ();
+  $large: ();
+
+  @if length($list) > 1 {
+    $seed: cast_to_number(nth($list, ceil(length($list) / 2)));
+
+    @each $item in $list {
+        $item: cast_to_number($item);
+      @if $item == $seed {
+        $equal: append($equal, $item, list-separator($list));
+      } @else if ($item < $seed) {
+        $less: append($less, $item, list-separator($list));
+      } @else if ($item > $seed) {
+        $large: append($large, $item, list-separator($list));
+      }
+    }
+
+    @return join(join(numeric-sort($less), $equal), numeric-sort($large));
+  }
+
+  @return $list;
+}
+
+// sort given map by keys
+@function map-sort-keys($map) {
+  $keys: numeric-sort(map-keys($map));
+  $sortedMap: ();
+  @each $key in $keys {
+    $sortedMap: map-merge($sortedMap, ($key: map-get($map, $key)));
+  }
+  @return $sortedMap;
+}
+
+
+// taken from Bootstrap v4.x
+// The yiq lightness value that determines when the lightness of color changes from "dark" to "light". Acceptable values are between 0 and 255.
+$yiq-contrasted-threshold:  150 !default;
+
+// Customize the light and dark text colors for use in our YIQ color contrast function.
+$gray-900: #212529 !default;
+$white: #fff !default;
+$yiq-text-dark:             $gray-900 !default;
+$yiq-text-light:            $white !default;
+
+// Color contrast
+@function color-yiq($color, $dark: $yiq-text-dark, $light: $yiq-text-light) {
+  $r: red($color);
+  $g: green($color);
+  $b: blue($color);
+
+  $yiq: (($r * 299) + ($g * 587) + ($b * 114)) / 1000;
+
+  @if ($yiq >= $yiq-contrasted-threshold) {
+    @return $dark;
+  } @else {
+    @return $light;
+  }
+}

@@ -1,0 +1,34 @@
+/*
+	global button styles
+    NB: named global-buttons.35.scss to allow for project-specific overrides to these styles (see UI/Source/GeneralStyle/buttons.40.scss)
+*/
+
+input {
+	
+    // file upload
+    // NB: for this to work, the file input must have a following label, e.g.
+    // <input type="file" name="file" id="file" />
+    // <label for="file" class="btn btn-primary">Choose a file</label>
+    // ref http://tympanus.net/codrops/2015/09/15/styling-customizing-file-inputs-smart-way/
+    &[type='file'][id] {
+        // NB: not 0 as this can affect tab order on some browsers
+        width: 0.1px;
+        height: 0.1px;
+        opacity: 0;
+        overflow: hidden;
+        position: absolute;
+        z-index: -1;
+		
+        &:focus + label {
+            //@include focus_styling;
+            cursor: pointer;
+            //pointer-events: none;
+            box-shadow: 0 0 0 0.2rem var(--secondary-shadow);
+        }
+
+        ~ .upload-limit {
+            @include __font_size(12);
+            display: block;
+        }
+    }
+}

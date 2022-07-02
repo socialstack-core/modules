@@ -1,0 +1,47 @@
+/*
+	global form styles
+*/
+
+// standard chevron icon (used on restyled select dropdown controls)
+$dropdown_svg: 'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="101" height="34"><path d="M28.989 34c-1.1 0-2.1-.4-2.9-1.2l-25-26C.389 6-.011 5-.011 4c0-1.1.4-2.1 1.2-2.9 1.6-1.5 4.1-1.5 5.7.1l22.1 23 22.1-23c1.5-1.6 4.1-1.6 5.7-.1 1.6 1.5 1.6 4.1.1 5.7l-25 26c-.8.8-1.8 1.2-2.9 1.2z" fill="%23000000"/></svg>';
+
+.form-group {
+    // see ThirdParty/Input - used when optionally providing an icon class
+    .input-wrapper {
+        display: flex;
+        align-items: center;
+		
+        input + i {
+            @include margin(0, 0, 0, 16);
+        }
+    }
+}
+
+.white-fields {
+
+    input.form-control {
+        // text entry
+        &:not([type]),
+        &[type=""],
+        &[type='date'],
+        &[type='datetime'], // obsolete
+        &[type='datetime-local'],
+        &[type='email'],
+        &[type='month'],
+        &[type='number'],
+        &[type='password'],
+        &[type='search'],
+        &[type='tel'],
+        &[type='text'],
+        &[type='time'],
+        &[type='url'],
+        &[type='week'] {
+            background-color: #fff;
+        }
+    }
+
+    textarea.form-control,
+    select.form-control {
+        background-color: #fff;
+    }
+}

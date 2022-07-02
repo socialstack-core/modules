@@ -1,0 +1,98 @@
+/*
+ * cross-browser line clamping support
+ *
+ * example usage:
+ *
+ * <p data-clamp="3">Content will be limited to 3 lines</p>
+ *
+ * <p data-clamp="2" data-clamp-md="3" data-clamp-xl="0">
+ *   This content will be limited to 2 lines, up until the screen width reaches $data_clamp_breakpoints['md'],
+ *   whereupon content will be limited to 3 lines.  Once $data_clamp_breakpoints['xl'] is reached, line clamping
+ *   will be disabled (display reset to block by default)
+ * </p>
+ *
+ * <p data-clamp-sm="4" data-clamp-lg="0" data-clamp-display="flex">
+ *   This content will be not be limited below $data_clamp_breakpoints['sm']; after this, it will be limited to 4 lines.
+ *   Once $data_clamp_breakpoints['xl'] is reached, line clamping will be disabled and display will be reset to "flex"
+ * </p>
+ */
+
+// add [data-clamp] attribute with the required number of lines to limit content to
+//[data-clamp]:not([data-clamp="1"]),
+[data-clamp],
+[data-clamp-xs],
+[data-clamp-sm],
+[data-clamp-md],
+[data-clamp-lg],
+[data-clamp-xl] {
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    text-overflow: ellipsis;
+    overflow: hidden;
+
+    // account for hidden classes
+    &.hidden {
+        display: none !important;
+    }
+
+}
+
+@include mq_mobile {
+
+    [data-clamp],
+    [data-clamp-xs],
+    [data-clamp-sm],
+    [data-clamp-md],
+    [data-clamp-lg],
+    [data-clamp-xl] {
+
+        &.hidden-mobile {
+            display: none !important;
+        }
+    }
+}
+
+@include mq_ipad {
+
+    [data-clamp],
+    [data-clamp-xs],
+    [data-clamp-sm],
+    [data-clamp-md],
+    [data-clamp-lg],
+    [data-clamp-xl] {
+
+        &.hidden-ipad {
+            display: none !important;
+        }
+    }
+}
+
+@include mq_desktop {
+
+    [data-clamp],
+    [data-clamp-xs],
+    [data-clamp-sm],
+    [data-clamp-md],
+    [data-clamp-lg],
+    [data-clamp-xl] {
+
+        &.hidden-desktop {
+            display: none !important;
+        }
+    }
+}
+
+// limit text to a single line
+[data-clamp="1"] {
+  @include singleLineClamping();
+}
+
+// produce line-clamping variants
+@for $i from 2 through $data_clamp_max {
+  @include multipleLineClamping("data-clamp", $i);
+}
+
+// breakpoint-specific variants
+@each $breakpoint, $width in $data_clamp_breakpoints {
+  @include lineClampingBreakpoint($breakpoint, $width);
+}
