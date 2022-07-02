@@ -1,0 +1,23 @@
+.videoChat-3d {
+	
+	.peer-3d{
+		width: 100px;
+		height: 100px;
+		
+		.peerView{
+			overflow: initial;
+			
+			>.info{
+				top: initial !important;
+				bottom: -80px;
+			}
+		}
+	}
+	
+}
+
+.videoChat{
+	&.videoChat-3d{
+		position: initial !important;
+	}
+}
