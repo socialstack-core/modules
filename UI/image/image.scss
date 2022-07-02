@@ -1,0 +1,30 @@
+.image{
+	position: relative;
+	display: inline-block;
+	
+	&.image-wide{
+		display: block;
+		width: 100%;
+		
+		img{
+			width: 100%;
+		}
+	}
+
+	&.image-left {
+		float: left;
+		margin: .5rem .5rem .5rem 0;
+	}
+
+	&.image-right {
+		float: right;
+		margin: .5rem 0 .5rem .5rem ;
+	}
+
+	&.image-center {
+		display: block;
+		margin-left: auto;
+		margin-right: auto;
+	}
+
+}
