@@ -1,0 +1,15 @@
+/*
+Just an invisible space of a specified height. The default is 20px.
+*/
+
+export default function Spacer (props) {
+	return <div className="spacer-container" data-theme={props['data-theme']}>
+		<div className="spacer" style={{height: props.height ? (props.height + 'px') : '20px'}}/>
+	</div>;
+}
+
+Spacer.propTypes = {
+	height: 'int'
+};
+
+Spacer.icon = 'sort';
