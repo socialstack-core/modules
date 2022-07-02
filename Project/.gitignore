@@ -1,0 +1,12 @@
+/signatureService.key
+/Api.xml
+/.vs
+/bin
+/obj
+/Api.csproj.user
+/Admin/public/en-admin/pack
+/UI/public/pack
+/Api/build
+/Email/public/pack
+/Database/*/index.json
+/TypeScript
