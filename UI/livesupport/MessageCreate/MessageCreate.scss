@@ -1,0 +1,57 @@
+.livesupport {
+	.message-create {
+
+		.validation-error {
+			margin-top: 5px;
+			margin-bottom: 5px;
+		}
+
+		textarea {
+			/*
+			border: 0;
+			border-top: 1px solid rgb(187,187,187);
+			border-radius: 0;
+			*/
+			height: 0rem + 96/$base_font_size;
+			padding-right: 4.5rem;
+			background: #fff;
+			margin-bottom: 16px;
+
+			border-radius: 8px;
+			border: 1px solid grey;
+
+			line-height: 1.25rem !important;
+			font-size: 0.875rem !important;
+
+			+ .alert {
+				margin-left: 1rem;
+				margin-right: 5rem;
+			}
+		}
+
+		.success {
+			background-color: #28a745
+		}
+
+		.danger {
+			background-color: #dc3545;
+		}
+		
+		.send-message {
+			
+			/*
+			position: absolute;
+			bottom: 1rem;
+			right: 2rem;
+			border: 0;
+			padding: .75rem;
+			border-radius: .5rem;
+			display: flex;
+			align-items: center;
+			justify-content: center;
+			font-size: 2rem;
+			color: $theme_blue4;
+			*/
+		}
+	}
+}
