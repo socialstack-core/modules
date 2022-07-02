@@ -1,0 +1,32 @@
+.search {
+	position: relative;
+
+	.suggestions {
+		position: absolute;
+		width: 100%;
+		background: #fff;
+		border: 1px solid #ccc;
+		z-index: 3000;
+
+		.suggestion {
+			@include __font_size(12);
+			@include padding(5, 8);
+			color: #767676;
+			display: block;
+			width: 100%;
+			text-align: left;
+
+			&:hover,
+			&:focus {
+				background-color: #fcf2bd;
+			}
+		}
+
+		.no-results {
+			@include __font_size(12);
+			@include padding(5, 8);
+			color: #767676;
+			font-style: italic;
+		}
+	}
+}
