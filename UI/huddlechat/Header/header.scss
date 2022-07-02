@@ -1,0 +1,201 @@
+:root {
+    --fallback__huddle-header-bg: transparent;
+    --fallback__huddle-header-fg: #fff;
+    --fallback__huddle-header-title-font-family: var(--font);
+    --fallback__huddle-header-title-font-weight: bold;
+    --fallback__huddle-header-title-font-size: 24px;
+    --fallback__huddle-header-description-font-size: 14px;
+    --fallback__huddle-header-btn-bg: transparent;
+    --fallback__huddle-header-btn-fg: #fff;
+    --fallback__huddle-header-btn-border: 1px solid #fff;
+    --fallback__huddle-header-btn-bg-hover: #444;
+    --fallback__huddle-header-btn-fg-hover: #fff;
+    --fallback__huddle-header-btn-bg-active: var(--primary);
+    --fallback__huddle-header-btn-fg-active: var(--primary-fg);
+}
+
+.huddle-chat__header {
+	overflow: hidden;
+	padding: 16px 24px;
+	background: var(--huddle-header-bg, var(--fallback__huddle-header-bg));
+	color: var(--huddle-header-fg, var(--fallback__huddle-header-fg));
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	overflow: visible;
+	min-height: $huddle-chat-header;
+
+	h1 {
+		color: var(--huddle-header-fg, var(--fallback__huddle-header-fg));
+	}
+
+	&-info {
+	}
+
+	&-controls {
+		display: flex;
+		align-items: center;
+		gap: .5rem;
+	}
+
+	&-audience,
+	&-conversation {
+		background: var(--huddle-header-btn-bg, var(--fallback__huddle-header-btn-bg));
+		color: var(--huddle-header-btn-fg, var(--fallback__huddle-header-btn-fg));
+		border: var(--huddle-header-btn-border, var(--fallback__huddle-header-btn-border));
+
+		&:not(.btn--active):hover {
+			background: var(--huddle-header-btn-bg-hover, var(--fallback__huddle-header-btn-bg-hover));
+			color: var(--huddle-header-btn-fg-hover, var(--fallback__huddle-header-btn-fg-hover));
+		}
+
+		&.btn--active {
+			background: var(--huddle-header-btn-bg-active, var(--fallback__huddle-header-btn-bg-active));
+			color: var(--huddle-header-btn-fg-active, var(--fallback__huddle-header-btn-fg-active));
+		}
+
+	}
+
+	&-reactions,
+	&-options {
+
+		.dropdown-toggle {
+			text-decoration: none;
+			background: var(--huddle-header-btn-bg, var(--fallback__huddle-header-btn-bg));
+			color: var(--huddle-header-btn-fg, var(--fallback__huddle-header-btn-fg));
+			border: var(--huddle-header-btn-border, var(--fallback__huddle-header-btn-border));
+
+			&:hover {
+				background: var(--huddle-header-btn-bg-hover, var(--fallback__huddle-header-btn-bg-hover));
+				color: var(--huddle-header-btn-fg-hover, var(--fallback__huddle-header-btn-fg-hover));
+			}
+		}
+
+		.dropdown__left {
+			font-size: 14px;
+
+			i {
+				margin-right: .5rem;
+			}
+		}
+
+		&.dropdown .dropdown__right {
+			margin-inline-start: .5rem;
+		}
+
+		&.dropdown .dropdown__chevron {
+			width: .5rem;
+		}
+
+		.dropdown-item {
+			font-size: 14px;
+
+			i {
+				margin-right: .25rem;
+			}
+		}
+
+		.dropdown-label-internal {
+			margin-left: .5rem;
+		}
+	}
+
+	&-options {
+
+		.dropdown-menu {
+			width: 20rem;
+		}
+
+		.form-check.form-switch {
+			display: flex;
+			align-items: center;
+			padding-left: 4rem;
+			gap: .75em;
+			margin: 0;
+
+			.form-check-input {
+				height: 1rem;
+				width: 2em;
+				margin-left: -3.375em;
+				margin-top: 0;
+			}
+
+		}
+
+		.form-check:not(.form-switch) {
+
+			.form-check-input {
+				margin-left: -1.5em;
+				width: 1em;
+				height: 1em;
+			}
+
+		}
+	}
+
+	&-title {
+		font-family: var(--huddle-header-title-font-family, var(--fallback__huddle-header-title-font-family));
+		font-weight: var(--huddle-header-title-font-weight, var(--fallback__huddle-header-title-font-weight));
+		font-size: var(--huddle-header-title-font-size, var(--fallback__huddle-header-title-font-size));
+		margin: 0;
+	}
+
+	&-description {
+		font-size: var(--huddle-header-description-font-size, var(--fallback__huddle-header-description-font-size));
+		//font-weight: normal;
+		margin: 0;
+	}
+
+}
+
+html.no-flexgap {
+
+	.huddle-chat__header {
+
+		&-controls {
+
+			> * {
+				margin: .25rem;
+
+				&:first-child {
+					margin-inline-start: 0;
+				}
+
+				&:last-child {
+					margin-inline-end: 0;
+				}
+			}
+		}
+
+		&-options {
+
+			.form-check.form-switch {
+
+				.form-check-label {
+					margin-inline-start: .75rem;
+				}
+			}
+		}
+	}
+}
+
+@media (max-width: 700px) {
+
+	.huddle-chat__header {
+		padding: 8px 16px;
+
+		&-reactions,
+		&-options {
+
+			.dropdown-label-internal {
+				display: none;
+			}
+
+			&.dropdown .dropdown__arrow {
+				margin-inline-start: .5rem;
+			}
+		}
+
+	}
+
+}

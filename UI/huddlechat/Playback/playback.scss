@@ -1,0 +1,477 @@
+:root {
+    --fallback__huddle-playback-bg: linear-gradient(to bottom, rgba(0, 0, 0, 0.3), rgba(0, 0, 0, 0.5));
+    --fallback__huddle-playback-fg: #fff;
+    --fallback__huddle-playback-padding: 8px;
+    --fallback__huddle-playback-progress-height: 4px;
+    --fallback__huddle-playback-progress-height-hover: 8px;
+    --fallback__huddle-playback-progress-bookmark-border: 3px solid #000;
+    --fallback__huddle-playback-progress-bg: var(--secondary);
+    --fallback__huddle-playback-progress-fg: var(--primary);
+    --fallback__huddle-playback-progress-thumb-border-radius: 50%;
+    --fallback__huddle-playback-progress-thumb-size: 16px;
+    --fallback__huddle-playback-seek-tooltip-font-size: 12px;
+    --fallback__huddle-playback-seek-tooltip-font-weight: bold;
+    --fallback__huddle-playback-seek-tooltip-padding: 3px;
+    --fallback__huddle-playback-seek-tooltip-fg: #fff;
+    --fallback__huddle-playback-seek-tooltip-bg: rgba(0, 0, 0, 0.6);
+    --fallback__huddle-playback-volume-range-width: 100px;
+    --fallback__huddle-playback-volume-range-height: 3px;
+    --fallback__huddle-playback-icon-size: 28px;
+    --fallback__huddle-playback-live-fg: var(--primary);
+}
+
+/*
+.playback-animation {
+  pointer-events: none;
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  margin-inline-start: -40px;
+  margin-block-start: -40px;
+  width: 80px;
+  height: 80px;
+  border-radius: 80px;
+  background-color: rgba(0, 0, 0, 0.6);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  opacity: 0;
+}
+*/
+
+.huddle-chat {
+	$huddle-chat: &;
+
+	&__playback {
+    	$huddle-chat__playback: &;
+		transition: all 0.2s ease;
+		background-image: var(--huddle-playback-bg, var(--fallback__huddle-playback-bg));
+		padding: var(--huddle-playback-padding, var(--fallback__huddle-playback-padding));
+
+		&--hide {
+			//opacity: 0;
+			//pointer-events: none;
+		}
+
+        .hidden {
+            display: none;
+        }
+
+		&-progress-wrapper {
+            position: relative;
+            height: var(--huddle-playback-progress-height-hover, var(--fallback__huddle-playback-progress-height-hover));
+            margin-block-end: 10px;
+            
+            &:hover {
+
+                .progress {
+                    border-radius: calc(var(--huddle-playback-progress-height-hover, var(--fallback__huddle-playback-progress-height-hover)) / 2);
+                }
+
+                .progress,
+                #{$huddle-chat__playback}-progress {
+                    margin-block-start: 0;
+                    height: var(--huddle-playback-progress-height-hover, var(--fallback__huddle-playback-progress-height-hover));
+                }
+                
+                #{$huddle-chat__playback}-seek {
+                    margin-block-start: 0;
+                    height: var(--huddle-playback-progress-height-hover, var(--fallback__huddle-playback-progress-height-hover));
+                    
+                    &::-moz-range-track {
+                        height: var(--huddle-playback-progress-height-hover, var(--fallback__huddle-playback-progress-height-hover));
+                    }
+                    
+                    &::-webkit-slider-thumb {
+                        opacity: 1;
+                    }
+                    
+                    &::-moz-range-thumb {
+                        opacity: 1;
+                    }
+
+                }
+
+            }
+
+		}
+        
+        .progress {
+            border-radius: calc(var(--huddle-playback-progress-height, var(--fallback__huddle-playback-progress-height)) / 2);
+            width: 100%;
+            height: var(--huddle-playback-progress-height, var(--fallback__huddle-playback-progress-height));
+            pointer-events: none;
+            position: absolute;
+            top: 0;
+            margin-block-start: 2px;
+            transition: all .2s ease;
+            
+            .progress-bar {
+                border-inline-end: var(--huddle-playback-progress-bookmark-border, var(--fallback__huddle-playback-progress-bookmark-border));
+                background-color: var(--huddle-playback-progress-bg, var(--fallback__huddle-playback-progress-bg));
+                
+                &:last-child {
+                    border-inline-end: 0;
+                }
+
+            }
+
+        }
+
+        &-progress {
+        	$huddle-chat__playback-progress: &;
+            -webkit-appearance: none;
+            -moz-appearance: none;
+            appearance: none;
+            border-radius: 0;
+            width: 100%;
+            height: var(--huddle-playback-progress-height, var(--fallback__huddle-playback-progress-height));
+            pointer-events: none;
+            position: absolute;
+            top: 0;
+            margin-block-start: 2px;
+            transition: all .2s ease;
+            background: transparent;
+            border: 0;
+
+            // NB: potential workaround for bookmark gaps not being visible once the seek bar is overlaid
+            &:not(#{$huddle-chat__playback-progress}--live) {
+                //mix-blend-mode: overlay;
+            }
+            
+            &::-webkit-progress-bar {
+                background-color: transparent;
+            }
+            
+            &::-webkit-progress-value {
+                background: var(--huddle-playback-progress-fg, var(--fallback__huddle-playback-progress-fg));
+            }
+            
+            &::-moz-progress-bar {
+                border: 1px solid var(--huddle-playback-progress-fg, var(--fallback__huddle-playback-progress-fg));
+                background: var(--huddle-playback-progress-fg, var(--fallback__huddle-playback-progress-fg));
+            }
+        }
+
+        &-seek {
+            $playback_seek: &;
+            position: absolute;
+            top: 0;
+            width: calc(100% + 2px); // prevents progress bar sticking out slightly behind seek range control
+            cursor: pointer;
+            margin: 0;
+            margin-block-start: 2px;
+            transition: all .2s ease;
+            -webkit-appearance: none;
+            -moz-appearance: none;
+            height: var(--huddle-playback-progress-height, var(--fallback__huddle-playback-progress-height));
+            background: transparent;
+            cursor: pointer;
+            
+            &::-webkit-slider-thumb {
+                opacity: 0;
+                transition: all .2s ease;
+            }
+            
+            &::-moz-range-thumb {
+                opacity: 0;
+                transition: all .2s ease;
+            }
+
+            &-tooltip {
+                display: none;
+                position: absolute;
+                top: -36px;
+                margin-inline-start: -20px;
+                font-size: var(--huddle-playback-seek-tooltip-font-size, var(--fallback__huddle-playback-seek-tooltip-font-size));
+                padding: var(--huddle-playback-seek-tooltip-padding, var(--fallback__huddle-playback-seek-tooltip-padding));
+                content: attr(data-title);
+                font-weight: var(--huddle-playback-seek-tooltip-font-weight, var(--fallback__huddle-playback-seek-tooltip-font-weight));
+                color: var(--huddle-playback-seek-tooltip-fg, var(--fallback__huddle-playback-seek-tooltip-fg));
+                background-color: var(--huddle-playback-seek-tooltip-bg, var(--fallback__huddle-playback-seek-tooltip-bg));
+                font-variant-numeric: tabular-nums;
+                z-index: 100;
+
+                &::after {
+                    content: "";
+                    width: 0;
+                    height: 0;
+                    border-style: solid;
+                    border-width: 4px 4px 0 4px;
+                    border-color: var(--huddle-playback-seek-tooltip-bg, var(--fallback__huddle-playback-seek-tooltip-bg)) transparent transparent transparent;
+                    position: absolute;
+                    left: calc(50% - 4px);
+                    bottom: -4px;
+                }
+            }
+            
+            &:hover + #{$playback_seek}-tooltip {
+                display: block;
+            }
+
+            &:focus {
+                outline: none;
+
+                &::-webkit-slider-runnable-track {
+                    background: transparent;
+                }
+
+                &::-moz-range-track {
+                  outline: none;
+                }
+
+            }
+            
+            &::-webkit-slider-runnable-track {
+                width: 100%;
+                cursor: pointer;
+                border-radius: 1.3px;
+                -webkit-appearance: none;
+                transition: all 0.4s ease;
+            }
+            
+            &::-webkit-slider-thumb {
+                height: var(--huddle-playback-progress-thumb-size, var(--fallback__huddle-playback-progress-thumb-size));
+                width: var(--huddle-playback-progress-thumb-size, var(--fallback__huddle-playback-progress-thumb-size));
+                border-radius: var(--huddle-playback-progress-thumb-border-radius, var(--fallback__huddle-playback-progress-thumb-border-radius));
+                background: var(--huddle-playback-progress-fg, var(--fallback__huddle-playback-progress-fg));
+                cursor: pointer;
+                -webkit-appearance: none;
+                margin-inline-start: -1px;
+            }
+            
+            &::-moz-range-track {
+                width: 100%;
+                height: var(--huddle-playback-progress-height, var(--fallback__huddle-playback-progress-height));
+                cursor: pointer;
+                border: 1px solid transparent;
+                background: transparent;
+                border-radius: 1.3px;
+            }
+            
+            &::-moz-range-thumb {
+                height: calc(var(--huddle-playback-progress-thumb-size, var(--fallback__huddle-playback-progress-thumb-size)) - 2px);
+                width: calc(var(--huddle-playback-progress-thumb-size, var(--fallback__huddle-playback-progress-thumb-size)) - 2px);
+                border-radius: var(--huddle-playback-progress-thumb-border-radius, var(--fallback__huddle-playback-progress-thumb-border-radius));
+                border: 1px solid var(--huddle-playback-progress-fg, var(--fallback__huddle-playback-progress-fg));
+                background: var(--huddle-playback-progress-fg, var(--fallback__huddle-playback-progress-fg));
+                cursor: pointer;
+                margin-block-start: 5px;
+            }
+
+        }
+
+        &-controls-wrapper {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        &-controls {
+            display: flex;
+            align-items: center;
+            color: var(--huddle-playback-fg, var(--fallback__huddle-playback-fg));
+        }
+
+        &-play {
+
+        }
+
+        &-volume {
+        	$huddle-chat__playback-volume: &;
+            display: flex;
+            align-items: center;
+            margin-inline-end: 10px;
+
+            &-button {
+
+            }
+
+            &-range {
+                width: var(--huddle-playback-volume-range-width, var(--fallback__huddle-playback-volume-range-width));
+                opacity: 1;
+                transition: all 0.4s ease;
+                -webkit-appearance: none;
+                -moz-appearance: none;
+                height: var(--huddle-playback-progress-height, var(--fallback__huddle-playback-progress-height));
+                background: transparent;
+                cursor: pointer;
+                height: var(--huddle-playback-volume-range-height, var(--fallback__huddle-playback-volume-range-height));
+                background-color: var(--huddle-playback-fg, var(--fallback__huddle-playback-fg));
+
+                &:focus {
+                    outline: none;
+                    width: var(--huddle-playback-volume-range-width, var(--fallback__huddle-playback-volume-range-width));
+                    opacity: 1;
+
+                    &::-webkit-slider-runnable-track {
+                        background: transparent;
+                    }
+
+                    &::-moz-range-track {
+                      outline: none;
+                    }
+
+                }
+
+                &::-webkit-slider-runnable-track {
+                    width: 100%;
+                    cursor: pointer;
+                    border-radius: 1.3px;
+                    -webkit-appearance: none;
+                    transition: all 0.4s ease;
+                    background: transparent;
+                }
+            
+                &::-webkit-slider-thumb {
+                    border-radius: var(--huddle-playback-progress-thumb-size, var(--fallback__huddle-playback-progress-thumb-size));
+                    cursor: pointer;
+                    -webkit-appearance: none;
+                    margin-inline-start: 0;
+                    height: calc(var(--huddle-playback-progress-thumb-size, var(--fallback__huddle-playback-progress-thumb-size)) - 2px);
+                    width: calc(var(--huddle-playback-progress-thumb-size, var(--fallback__huddle-playback-progress-thumb-size)) - 2px);
+                    background: var(--huddle-playback-fg, var(--fallback__huddle-playback-fg));
+                }
+
+                &::-moz-range-track {
+                    width: 100%;
+                    height: var(--huddle-playback-progress-height, var(--fallback__huddle-playback-progress-height));
+                    cursor: pointer;
+                    border: 1px solid transparent;
+                    background: transparent;
+                    border-radius: 1.3px;
+                }
+            
+                &::-moz-range-thumb {
+                    height: calc(var(--huddle-playback-progress-thumb-size, var(--fallback__huddle-playback-progress-thumb-size)) - 2px);
+                    width: calc(var(--huddle-playback-progress-thumb-size, var(--fallback__huddle-playback-progress-thumb-size)) - 2px);
+                    border-radius: var(--huddle-playback-progress-thumb-size, var(--fallback__huddle-playback-progress-thumb-size));
+                    border: 1px solid var(--huddle-playback-fg, var(--fallback__huddle-playback-fg));
+                    background: var(--huddle-playback-fg, var(--fallback__huddle-playback-fg));
+                    cursor: pointer;
+                    margin-block-start: 5px;
+                }
+
+            }
+
+            &:hover #{$huddle-chat__playback-volume}-range {
+                width: var(--huddle-playback-volume-range-width, var(--fallback__huddle-playback-volume-range-width));
+                opacity: 1;
+            }
+
+        }
+        
+        /*
+        button {
+            cursor: pointer;
+            position: relative;
+            margin-inline-end: 7px;
+            font-size: 12px;
+            padding: 3px;
+            border: none;
+            outline: none;
+            background-color: transparent;
+
+            * {
+                pointer-events: none;
+            }
+
+            &::before {
+                content: attr(data-title);
+                position: absolute;
+                display: none;
+                right: 0;
+                top: -50px;
+                background-color: rgba(0, 0, 0, 0.6);
+                color: #fff;
+                font-weight: bold;
+                padding: 4px 6px;
+                word-break: keep-all;
+                white-space: pre;
+            }
+
+            &:hover::before {
+                display: inline-block;
+            }
+
+        }
+        */
+
+        &-time {
+
+            &-elapsed,
+            &-duration {
+                font-variant-numeric: tabular-nums;
+            }
+
+        }
+
+        &-live {
+            margin-block-end: 0;
+            margin-inline-start: 2rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            line-height: normal;
+
+            &::before {
+                content: "";
+                width: 8px;
+                height: 8px;
+                border-radius: 50%;
+                background: var(--huddle-playback-live-fg, var(--fallback__huddle-playback-live-fg));
+                transition: all .2s ease;
+            }
+
+            &--behind::before {
+                background: currentColor;
+                opacity: .5;
+            }
+        }
+
+        &-sizing {
+
+        }
+
+        &-pip {
+
+            svg {
+                width: calc(var(--huddle-playback-icon-size, var(--fallback__huddle-playback-icon-size)) - 2px);
+                height: calc(var(--huddle-playback-icon-size, var(--fallback__huddle-playback-icon-size)) - 2px);
+            }
+
+        }
+
+        &-fullscreen {
+            margin-inline-end: 0;
+        }
+
+        &-button-icon {
+            width: var(--huddle-playback-icon-size, var(--fallback__huddle-playback-icon-size));
+            height: var(--huddle-playback-icon-size, var(--fallback__huddle-playback-icon-size));
+            fill: var(--huddle-playback-fg, var(--fallback__huddle-playback-fg));
+            stroke: var(--huddle-playback-fg, var(--fallback__huddle-playback-fg));
+            cursor: pointer;
+        }
+
+        &-icons {
+            display: none;
+        }
+	}
+}
+
+html.no-flexgap {
+
+    .huddle-chat {
+
+        &__playback {
+
+            &-live::before {
+                margin-inline-end: .5rem;
+            }
+
+        }
+
+    }
+
+}
