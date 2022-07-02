@@ -1,0 +1,93 @@
+.live-support-admin {
+
+	.paginator {
+		.active {
+			color: #007bff;
+		}
+	}
+
+	.messages-navigation {
+
+		.meeting-requests {
+
+			.meeting-requests-title {
+				@include font_size(20);
+				font-weight: bold;
+				color: $theme_dark_grey;
+				margin-bottom: 1rem;
+			}
+
+			.messages-chat-list {
+
+				.chat-request {
+				}
+			}
+			
+		}
+		
+		.cta-links{
+			margin: .5rem 0;
+			
+			a {
+				@include font_size(12);
+				@include link_styling();
+				font-weight: bold;
+				color: $theme_blue4;
+				margin: 0.5rem 0;
+			}
+		}
+		
+		.meeting-chats {
+
+			.meeting-chats-title {
+				@include font_size(20);
+				font-weight: bold;
+				color: $theme_dark_grey;
+				margin-bottom: 1rem;
+			}
+		}
+	}
+
+	.messages-preview {
+
+	}
+
+	.avatar-span {
+		.avatar {
+			height: 60px;
+			width: 60px;
+		}
+	}
+}
+
+@include mq_mobile {
+
+	.live-support-admin {
+
+		.messages-preview {
+			display: none;
+		}
+
+		&.chat-visible,
+		&.meeting-request-visible {
+
+			.messages-navigation {
+				display: none;
+			}
+
+			.messages-preview {
+				display: block;
+			}
+
+		}
+
+		.avatar-span {
+			.avatar {
+				height: 60px;
+				width: 60px;
+			}
+		}
+
+	}
+
+}
