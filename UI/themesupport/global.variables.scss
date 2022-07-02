@@ -1,0 +1,26 @@
+/*
+	theme support variables
+*/
+
+// base font size in px (unitless)
+$themeBaseFontSize: var(--theme-base-font-size);
+
+// [TO TEST]
+// focus styles follow Bootstrap defaults (semi-opaque box-shadow);
+// set:
+// --theme-focus-outline != 0 to use a solid outline instead
+// --theme-focus-boxshadow to "none !important"
+//$themeFocusOutline: var(--theme-focus-outline);
+//$themeFocusBoxShadow: var(--theme-focus-boxshadow);
+
+$theme_bootstrap_variants: (
+    primary,
+    secondary,
+    success,
+    danger,
+    warning,
+    info,
+    light,
+    dark
+    //link
+);
