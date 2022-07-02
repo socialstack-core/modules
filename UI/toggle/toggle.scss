@@ -1,0 +1,45 @@
+html:not(.admin) .custom-control {
+
+    &.custom-checkbox.custom-checkbox-slider {
+        padding-left: 6.75rem;
+
+        .custom-control-label {
+            // toggle background
+            &::before {
+                width: 6rem;
+                left: -6.75rem;
+                height: 3rem;
+                top: 0;
+                border-radius: 1.5rem;
+                border: 0;
+                transition: background-color .2s ease-in-out;
+            }
+            // toggle button
+            &::after {
+                background-image: none;
+                top: .25rem;
+                left: -6.5rem;
+                width: 2.5rem;
+                height: 2.5rem;
+                background-color: #fff;
+                border-radius: 50%;
+                transition: left .2s ease-in-out;
+                box-shadow: 1px 1px 2px 0 rgba(0,0,0,.15);
+                border: 1px solid rgba(0,0,0,.1);
+            }
+        }
+
+        .custom-control-input:checked ~ .custom-control-label {
+
+            &::before {
+                background-color: $accent_color;
+            }
+
+            &::after {
+                left: -3.5rem;
+                background-image: none;
+            }
+        }
+
+    }
+}
