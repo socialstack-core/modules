@@ -1,0 +1,69 @@
+$installed_font: 'OpenSans';
+
+// light
+@font-face {
+    font-family: 'Minimo';
+    src: url('./Minimo-Light.woff2') format('woff2'), url('./Minimo-Light.woff') format('woff'), url('./Minimo-Light.ttf') format('truetype'), url('./Minimo-Light.svg#Minimo-Light') format('svg');
+    font-weight: 300;
+    font-style: normal;
+    font-display: swap;
+}
+
+@font-face {
+    font-family: 'Minimo';
+    src: url('./Minimo-LightOblique.woff2') format('woff2'), url('./Minimo-LightOblique.woff') format('woff'), url('./Minimo-LightOblique.ttf') format('truetype'), url('./Minimo-LightOblique.svg#Minimo-LightOblique') format('svg');
+    font-weight: 300;
+    font-style: italic;
+    font-display: swap;
+}
+
+// regular
+@font-face {
+    font-family: 'Minimo';
+    src: url('./Minimo-Regular.woff2') format('woff2'), url('./Minimo-Regular.woff') format('woff'), url('./Minimo-Regular.ttf') format('truetype'), url('./Minimo-Regular.svg#Minimo-Regular') format('svg');
+    font-weight: normal;
+    font-style: normal;
+    font-display: swap;
+}
+
+@font-face {
+    font-family: 'Minimo';
+    src: url('./Minimo-RegularOblique.woff2') format('woff2'), url('./Minimo-RegularOblique.woff') format('woff'), url('./Minimo-RegularOblique.ttf') format('truetype'), url('./Minimo-RegularOblique.svg#Minimo-RegularOblique') format('svg');
+    font-weight: normal;
+    font-style: italic;
+    font-display: swap;
+}
+
+// medium
+@font-face {
+    font-family: 'Minimo';
+    src: url('./Minimo-Medium.woff2') format('woff2'), url('./Minimo-Medium.woff') format('woff'), url('./Minimo-Medium.ttf') format('truetype'), url('./Minimo-Medium.svg#Minimo-Medium') format('svg');
+    font-weight: 500;
+    font-style: normal;
+    font-display: swap;
+}
+
+@font-face {
+    font-family: 'Minimo';
+    src: url('./Minimo-MediumOblique.woff2') format('woff2'), url('./Minimo-MediumOblique.woff') format('woff'), url('./Minimo-MediumOblique.ttf') format('truetype'), url('./Minimo-MediumOblique.svg#Minimo-MediumOblique') format('svg');
+    font-weight: 500;
+    font-style: italic;
+    font-display: swap;
+}
+
+// bold
+@font-face {
+    font-family: 'Minimo';
+    src: url('./Minimo-Bold.woff2') format('woff2'), url('./Minimo-Bold.woff') format('woff'), url('./Minimo-Bold.ttf') format('truetype'), url('./Minimo-Bold.svg#Minimo-Bold') format('svg');
+    font-weight: bold;
+    font-style: normal;
+    font-display: swap;
+}
+
+@font-face {
+    font-family: 'Minimo';
+    src: url('./Minimo-BoldOblique.woff2') format('woff2'), url('./Minimo-BoldOblique.woff') format('woff'), url('./Minimo-BoldOblique.ttf') format('truetype'), url('./Minimo-BoldOblique.svg#Minimo-BoldOblique') format('svg');
+    font-weight: bold;
+    font-style: italic;
+    font-display: swap;
+}
