@@ -1,0 +1,44 @@
+.main-menu {
+
+	.logo {
+		display: none;
+		margin: 1rem 15px;
+		background-repeat: no-repeat;
+	}
+
+	.loop {
+		padding: 0 0 1rem 0;
+		margin: 0;
+		list-style: none;
+	}
+
+	.loop-item {
+		padding: 0;
+		font-size: 16px;
+		
+		a {
+			padding:16px 0;
+			display: block;
+			margin: 0;
+			text-decoration: none;
+			white-space: nowrap;
+			cursor: pointer;
+			border: 0;
+			color: white;
+			outline: none;
+		}
+		
+		&:hover{
+			background: rgb(55, 74, 94);
+		}
+		
+		.fa, .fas, .far {
+			margin: 0 auto;
+			margin-right: 10px;
+			font-size: 24px;
+			text-align: center;
+		}
+
+	}
+
+}
