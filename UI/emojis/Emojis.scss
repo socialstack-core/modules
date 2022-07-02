@@ -1,0 +1,12 @@
+.emojis {
+    .emoji-select-modal {
+        .emoji-tile {
+            text-align: center;
+            padding: 5px;
+    
+            &:hover {
+                cursor: pointer;
+            }
+        }
+    }
+}
