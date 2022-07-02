@@ -1,0 +1,20 @@
+// optional stylesheet
+.call-ui {
+	width: 100%;
+	text-align: center;
+	position:absolute;
+	bottom: 25%;
+
+	.call-ui-center {
+		width: 400px;
+		position: relative;
+		left: 0;
+		right: 0;
+		margin-left: auto;
+		margin-right: auto;
+		border-radius: 10px;
+		background-color: rgba(250, 250, 250, .7);
+		font-size: 24px;
+		padding: 5px;
+	}
+}

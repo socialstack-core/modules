@@ -1,0 +1,93 @@
+.peer{
+	padding-top: 56.25%;
+
+	> .raised-hand {
+		position: absolute;
+		z-index: 10;
+		top: 0;
+		left: 2px;
+		color: white;
+		font-size: 48px;
+	}
+
+	> .indicators {
+		position: absolute;
+		z-index: 10;
+		top: 0;
+		right: 0;
+		width: 150px;
+		display: flex;
+		flex-direction: row;
+		justify-content: flex-end;
+		align-items: center;
+
+		.peer__indicator {
+			padding: 4px;
+		    border: 0;
+			border-radius: 2px;
+		    background: transparent;
+			transition: all .2s ease;
+
+			&:hover {
+				background: rgba(0,0,0, .35);
+			}
+
+			> i {
+				padding: 5px;
+				color: white;
+				font-size: 18px;
+			}
+
+			> .icon {
+				width: 24px;
+				height: 24px;
+				display: block;
+			    background-position: center;
+				background-size: contain;
+				background-repeat: no-repeat;
+				transition-property: opacity;
+				transition-duration: 0.15s;
+
+				&.mic-on {
+					background-image: url('./images/icon_remote_mic_white_on.svg');
+				}
+
+				&.mic-off {
+					background-image: url('./images/icon_remote_mic_white_off.svg');
+				}
+
+				&.webcam-on {
+					background-image: url('./images/icon_remote_webcam_white_on.svg');
+				}
+
+				&.webcam-off {
+					background-image: url('./images/icon_remote_webcam_white_off.svg');
+				}
+			}
+
+		}
+
+	}
+
+	.incompatible-video {
+		position: absolute;
+		z-index: 2;
+		top: 0;
+		bottom: 0;
+		left: 0;
+		right: 0;
+		display: flex;
+		flex-direction: column;
+		justify-content: center;
+		align-items: center;
+
+		> p {
+			padding: 6px 12px;
+			border-radius: 6px;
+			user-select: none;
+			pointer-events: none;
+			font-size: 15px;
+			color: rgba(#fff, 0.55);
+		}
+	}
+}

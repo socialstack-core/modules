@@ -1,0 +1,187 @@
+.videoChat{
+	position: relative;
+	height: 100%;
+	width: 100%;
+	overflow-y: auto;
+
+	.raised-hands {
+		position: fixed;
+		left: 20px;
+		top: 60px;
+
+		.row {
+			margin-left: 10px;
+			margin-right: 0px;
+		}
+
+		.icon {
+			padding: 0px 5px;
+		}
+
+		.live {
+			color: red;
+		}
+	}
+	
+	> .state {
+		position: fixed;
+		z-index: 600;
+		display: flex;
+		flex-direction: row;
+		justify-content: center;
+		align-items: center;
+		
+		top: 20px;
+		left: 20px;
+		width: 30px;
+		
+		> .icon {
+			flex: 0 0 auto;
+			border-radius: 100%;
+
+			margin: 6px;
+			margin-right: 0;
+			height: 16px;
+			width: 16px;
+
+			&.new, &.closed {
+				background-color: rgba(#aaa, 0.5);
+			}
+			
+			&.connected {
+				background-color: rgba(#30bd18, 0.75);
+			}
+		}
+	}
+	
+	// currently only referenced within AVT-EBY project
+	> .btn-close {
+		display: none;
+	}
+
+	> .me-container {
+		position: fixed;
+		z-index: 12000;
+		overflow: hidden;
+		box-shadow: 0 0 12px 2px rgba(17, 17, 17, 0.5);
+		transition-property: border-color, opacity, box-shadow;
+		transition-duration: 0.2s;
+		opacity: .6;
+		cursor: move;
+
+		&.active-speaker {
+			border-color: green;
+		}
+
+		// dimensions set in .me child element
+		// (necessary as we need to set position: relative on the same element, but parent also needs to remain fixed)
+		bottom: 70px;
+		left: 20px;
+		border: 1px solid rgba(#fff, 0.15);
+
+		&:hover,
+		&:focus {
+			opacity: 1;
+			box-shadow: 0 0 12px 6px rgba(17, 17, 17, 0.85);
+			border-color: #fff;
+		}
+	}
+	
+	> .sidebar {
+		position: fixed;
+		z-index: 101;
+		top: calc(50% - 60px);
+		height: 120px;
+		display: flex;
+		flex-direction: column;
+		justify-content: center;
+		align-items: center;
+
+		left: 20px;
+		width: 36px;
+		margin-top: -60px;
+		
+		> .button {
+			flex: 0 0 auto;
+			margin: 4px 0;
+			background-position: center;
+			background-size: 75%;
+			background-repeat: no-repeat;
+			background-color: rgba(#243B55, 0.75);
+			cursor: pointer;
+			transition-property: opacity, background-color;
+			transition-duration: 0.2s;
+			border-radius: 100%;
+
+			height: 36px;
+			width: 36px;
+			
+			&.on {
+				background-color: rgba(48, 189, 24, 0.75);
+			}
+
+			&.disabled {
+				pointer-events: none;
+				opacity: 0.5;
+				transition-duration: 0s;
+			}
+
+			&.hide-videos {
+				background-image: url('./images/icon_video_white_on.svg');
+
+				&.on {
+					background-image: url('./images/icon_video_black_off.svg');
+				}
+			}
+
+			&.mute-audio {
+				background-image: url('./images/icon_volume_white_on.svg');
+
+				&.on {
+					background-image: url('./images/icon_volume_black_off.svg');
+				}
+			}
+
+			&.raise-hand {
+				padding: 0px;
+				color: #b9bdc4;
+				font-size: 22px;
+				.icon {
+					margin: 21%;
+				}
+			}
+
+			&.stop-sharing {
+				color: #b9bdc4;
+				font-size: 22px;
+				.icon {
+					margin: 21%;
+				}
+			}
+
+			&.restart-ice {
+				background-image: url('./images/icon_restart_ice_white.svg');
+			}
+		}
+	}
+
+	.producer {
+		color: red;
+		position: fixed;
+		right: 20px;
+		top: 60px;
+	}
+}
+
+@include mq_mobile {
+
+	.videoChat {
+
+		> .state,
+		> .me-container {
+			left: 15px;
+		}
+
+	}
+
+}
