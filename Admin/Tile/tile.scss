@@ -1,0 +1,26 @@
+.component-tile {
+	
+	width: 100%;
+    padding: 10px 17px;
+    display: inline-block;
+    background: #fff;
+    border: 1px solid #E6E9ED;
+    opacity: 1;
+	margin-bottom: 10px;
+	position: relative;
+	box-shadow: 0 0 5px rgba(0,0,0,.1);
+	
+	>h3{
+		color: #666;
+	}
+	
+	>article{
+		width: 100%;
+		padding: 0 5px 6px;
+		float: left;
+		clear: both;
+		margin-top: 5px;
+		position: relative;
+	}
+	
+}
