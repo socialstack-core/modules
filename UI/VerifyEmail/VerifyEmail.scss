@@ -1,0 +1,10 @@
+.verify-email {
+	.verify-description {
+		margin-bottom: 2rem;
+	}
+
+	// Don't display show/hide password button
+	.input-group-text.clickable {
+		display: none;
+	}
+}
