@@ -1,0 +1,134 @@
+.canvas-editor-popups{
+
+	.context-menu {
+		max-height: 300px;
+		overflow-y: auto;
+	}
+	
+
+	.module-select-modal, .module-link-selection-modal{
+		.module-group{
+			margin-bottom: 10px;
+		}
+	
+		.module-tile{
+			border: 1px solid lightgrey;
+			border-radius: 4px;
+			text-align: center;
+			padding: 20px;
+			
+			&:hover{
+				cursor:pointer;
+			}
+		}
+	}
+	
+}
+
+.rich-editor{
+	border: 1px solid #e5e5e5;
+	background: white;
+	border-radius: 2px;
+	
+	.rte-fake-root{
+		&:hover{
+			cursor: text;
+		}
+		
+		&::before{
+			content: 'Click here to type';
+			font-style: italic;
+			opacity: 0.4;
+		}
+		
+		&:focus{
+			background: HighlightText;
+		}
+	}
+	
+	&.no-toolbar {
+		border-radius: 0.4375rem 0.4375rem 0.4375rem 0.4375rem;
+		padding: 0.5625rem 1rem 0.5625rem 1rem;
+	}
+	
+	> .rte-toolbar{
+		background: #f2f2f2;
+		position: sticky;
+		z-index: 998;
+		top: 0px;
+		padding: 5px;
+		
+		button {
+			border: none;
+			background: none;
+			margin: 2px;
+			
+			&.active {
+				background: lightgrey;
+			}
+		}
+		
+		.rte-submenu-container{
+			position: relative;
+		}
+		
+		.rte-submenu {
+			left: 0;
+			min-width: 200px;
+			max-width: 300px;
+			position: absolute;
+			border: 1px solid lightgrey;
+			background: white;
+			padding: 5px;
+		}
+		
+		.highlighted-node-bar{
+			&.highlight-locked{
+				color: black;
+			}
+			
+			&.highlight-open{
+				color: lightgrey;
+			}
+			
+			.fa-angle-left{
+				margin: 0px 10px;
+			}
+		}
+	}
+	
+	.context-menu{
+		background: white;
+		color: black;
+		border: 1px solid lightgrey;
+		padding: 10px;
+		position: fixed;
+		z-index: 1;
+		
+		.context-btn{
+			display: block;
+			background: none;
+			border: none;
+			margin-bottom: 10px;
+			
+			i{
+				color: lightgrey;
+				margin-right: 5px;
+			}
+			
+			&:hover{
+				cursor: pointer;
+			}
+
+			&:last-child {
+				margin-bottom: 0;
+			}
+		}
+	}
+	
+	> .rte-content{
+		min-height: 200px;
+		overflow: hidden;
+		transform: scaleX(1); /* position: fixed is relative to transforms too, so we can use this to contain them */
+	}
+}

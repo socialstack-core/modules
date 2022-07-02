@@ -1,0 +1,61 @@
+.prop-editor-window{
+	background: white;
+	min-height: 100%;
+}
+
+.prop-editor{
+	.toolbar{
+		button{
+			width: 50%;
+			border-bottom-width: 1px;
+			border-top: 0px;
+			border-radius: 0;
+		}
+	}
+}
+
+.array-builder{
+	.array-row{
+		position: relative;
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: start;
+        column-gap: 15px;
+        border-bottom: #cccccc 3px dotted;
+        margin-bottom: 15px;
+	}
+
+	.array-row:last-of-type{
+		border-bottom: none;
+	}
+
+	.add-row-btn, .remove-row-btn {
+		position: absolute;
+		z-index: 1;
+		right: -12px;
+		border-radius: 20%;
+
+		&.red {
+			background-color: #aa3333;
+		}
+	}
+
+	.add-row-btn {
+		top: -25px;
+	}
+
+	.remove-row-btn {
+		top: 35px;
+	}
+
+	.btn-msg {
+		position: absolute;
+		top: -22px;
+		right: 20px;
+		text-align: right;
+
+		&.red {
+			color: #aa3333;
+		}
+	}
+}
