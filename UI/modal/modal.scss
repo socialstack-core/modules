@@ -1,0 +1,33 @@
+// NB: shared Bootstrap modal override styling set in UI/ThirdParty/GlobalStyle/global-bootstrap.55.scss;
+// project-specific modal styling is in UI/GeneralStyle/Bootstrap.60.scss
+
+.modal.show{
+	display: block;
+}
+
+.modal-body{
+	max-height: 80vh;
+	overflow-y: auto;
+	overflow-x: hidden;
+}
+
+.hidden-by-modal {
+	display: none !important;
+}
+
+.modal .modal-header .close {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	padding: px_to_rem(16);
+
+	.custom-icon-content {
+		width: 100%;
+	}
+
+	.custom-icon {
+		width: 100%;
+		height: auto;
+	}
+
+}
