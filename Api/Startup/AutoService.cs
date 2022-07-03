@@ -490,24 +490,52 @@ public partial class AutoService<T, ID> : AutoService
 
 				if (array != null)
 				{
-					// Act like an array of uint's.
-					var idSet = new List<uint>();
+					// Can't mix types here - can either be a string or a uint array.
+					// If it's an empty array, use original behaviour for now.
+					JToken v = array.Count != 0 ? array[0] as JToken : null;
 
-					foreach (var jValue in array)
+					if (v != null && v.Type == JTokenType.String)
 					{
-						if (!(jValue is JValue))
+						// Act like an array of strings.
+						var strSet = new List<string>();
+
+						foreach (var jValue in array)
 						{
-							throw new PublicException(
-								"Arg #" + (i + 1) + " in the args set is invalid - an array of objects was given, but it can only be an array of IDs.",
-								"filter_invalid"
-							);
+							if (!(jValue is JValue))
+							{
+								throw new PublicException(
+									"Arg #" + (i + 1) + " in the args set is invalid - an array of objects was given, but it can only be an array of strings.",
+									"filter_invalid"
+								);
+							}
+
+							var strVal = jValue.Value<string>();
+							strSet.Add(strVal);
 						}
 
-						var id = jValue.Value<uint>();
-						idSet.Add(id);
+						filter.BindUnknown(strSet as IEnumerable<string>);
 					}
+					else
+					{
+						// Act like an array of uint's.
+						var idSet = new List<uint>();
 
-					filter.BindUnknown(idSet as IEnumerable<uint>);
+						foreach (var jValue in array)
+						{
+							if (!(jValue is JValue))
+							{
+								throw new PublicException(
+									"Arg #" + (i + 1) + " in the args set is invalid - an array of objects was given, but it can only be an array of IDs or strings.",
+									"filter_invalid"
+								);
+							}
+
+							var id = jValue.Value<uint>();
+							idSet.Add(id);
+						}
+
+						filter.BindUnknown(idSet as IEnumerable<uint>);
+					}
 				}
 				else
 				{
