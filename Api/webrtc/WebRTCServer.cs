@@ -36,6 +36,11 @@ public class WebRTCServer : UdpDestination
 	public bool CanStartSend = true;
 
 	/// <summary>
+	/// Total bytes sent in the last time slice.
+	/// </summary>
+	public long BytesSent;
+
+	/// <summary>
 	/// True if the DTLS exchange requires the EMS extension.
 	/// This is pretty much standard in TLS these days as it adds much more cryptographic strength during the handshake.
 	/// Note that turning this off will cause failures for clients that do require it.
@@ -823,8 +828,9 @@ a=ice-pwd:" + icePwd + @"
 		// and video quality drops significantly.
 		if (PacketsReceived != 0)
 		{
-			Console.WriteLine("Stats: " + PacketsReceived + ". " + StunServer.stunOut + "/" + StunServer.stunIn + ". Raw client count " + GetRawClientCount());
+			Console.WriteLine("In: " + PacketsReceived + ", Out: " + (BytesSent * 8 / 1000) + " Kbits. " + StunServer.stunOut + "/" + StunServer.stunIn + ". Raw client count " + GetRawClientCount());
 			PacketsReceived = 0;
+			BytesSent = 0;
 		}
 
 		var now = DateTime.UtcNow;

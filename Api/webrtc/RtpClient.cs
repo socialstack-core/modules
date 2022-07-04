@@ -168,7 +168,7 @@ public partial class RtpClient
 	/// <summary>
 	/// 
 	/// </summary>
-	public Api.SocketServerLibrary.Crypto.HMac ReceiveMac;
+	public System.Security.Cryptography.HMACSHA1 ReceiveMac;
 	/// <summary>
 	/// 
 	/// </summary>
@@ -189,7 +189,8 @@ public partial class RtpClient
 	/// <summary>
 	/// 
 	/// </summary>
-	public Api.SocketServerLibrary.Crypto.HMac SendMac;
+	public System.Security.Cryptography.HMACSHA1 SendMac;
+
 	/// <summary>
 	/// 
 	/// </summary>
@@ -206,7 +207,7 @@ public partial class RtpClient
 	/// <summary>
 	/// 
 	/// </summary>
-	public Api.SocketServerLibrary.Crypto.HMac RtcpReceiveMac;
+	public System.Security.Cryptography.HMACSHA1 RtcpReceiveMac;
 	/// <summary>
 	/// 
 	/// </summary>
@@ -223,7 +224,7 @@ public partial class RtpClient
 	/// <summary>
 	/// 
 	/// </summary>
-	public Api.SocketServerLibrary.Crypto.HMac RtcpSendMac;
+	public System.Security.Cryptography.HMACSHA1 RtcpSendMac;
 	/// <summary>
 	/// 
 	/// </summary>
@@ -239,10 +240,18 @@ public partial class RtpClient
 	public void AuthenticatePacket(byte[] packetBuffer, int startIndex, int size, uint rocIn)
 	{
 		Span<byte> tempBuffer = stackalloc byte[20];
-		
-		SendMac.StatelessOutput(packetBuffer, startIndex, size - 10, rocIn, tempBuffer);
 
+		// Temp put roc in the packet buffer:
 		var tagStartIndex = startIndex + size - 10;
+
+		packetBuffer[tagStartIndex] = (byte)(rocIn >> 24);
+		packetBuffer[tagStartIndex + 1] = (byte)(rocIn >> 16);
+		packetBuffer[tagStartIndex + 2] = (byte)(rocIn >> 8);
+		packetBuffer[tagStartIndex + 3] = (byte)rocIn;
+
+		var packetSpan = packetBuffer.AsSpan(startIndex, size - 6);
+		
+		SendMac.TryComputeHash(packetSpan, tempBuffer, out int _);
 
 		for (var i = 0; i < 10; i++)
 		{
@@ -261,7 +270,10 @@ public partial class RtpClient
 	public void AuthenticateRtcpPacket(byte[] packetBuffer, int startIndex, int size, uint index)
 	{
 		Span<byte> tempBuffer = stackalloc byte[20];
-		RtcpSendMac.StatelessOutput(packetBuffer, startIndex, size - 14, index, tempBuffer);
+
+		var packetSpan = packetBuffer.AsSpan(startIndex, size - 10); // includes the packetIndex anyway
+
+		RtcpSendMac.TryComputeHash(packetSpan, tempBuffer, out int _); // packetBuffer, startIndex, size - 14, index, tempBuffer);
 
 		var tagStartIndex = startIndex + size - 10;
 
@@ -283,7 +295,10 @@ public partial class RtpClient
 	public bool CheckRtcpPacketTag(byte[] packetBuffer, int startIndex, int size, uint packetIndex)
 	{
 		Span<byte> tempBuffer = stackalloc byte[20];
-		RtcpReceiveMac.StatelessOutput(packetBuffer, startIndex, size - 14, packetIndex, tempBuffer);
+
+		var packetSpan = packetBuffer.AsSpan(startIndex, size - 10); // includes the packetIndex anyway
+
+		RtcpReceiveMac.TryComputeHash(packetSpan, tempBuffer, out int _);
 		
 		var tagStartIndex = startIndex + size - 10;
 
@@ -308,17 +323,50 @@ public partial class RtpClient
 	/// <returns></returns>
 	public bool CheckPacketTag(byte[] packetBuffer, int startIndex, int size, uint rocIn)
 	{
-		Span<byte> tempBuffer = stackalloc byte[20];
-		ReceiveMac.StatelessOutput(packetBuffer, startIndex, size - 10, rocIn, tempBuffer);
-
 		var tagStartIndex = startIndex + size - 10;
+			
+		var tagA = packetBuffer[tagStartIndex];
+		var tagB = packetBuffer[tagStartIndex+1];
+		var tagC = packetBuffer[tagStartIndex+2];
+		var tagD = packetBuffer[tagStartIndex+3];
 
-		for (var i = 0; i < 10; i++)
+		packetBuffer[tagStartIndex] = (byte)(rocIn >> 24);
+		packetBuffer[tagStartIndex + 1] = (byte)(rocIn >> 16);
+		packetBuffer[tagStartIndex + 2] = (byte)(rocIn >> 8);
+		packetBuffer[tagStartIndex + 3] = (byte)rocIn;
+
+		var packetSpan = packetBuffer.AsSpan(startIndex, size - 6); // Going to reuse 4 bytes of the tag itself
+		
+		Span<byte> tempBuffer = stackalloc byte[20];
+		ReceiveMac.TryComputeHash(packetSpan, tempBuffer, out int _);
+
+		for (var i = 4; i < 10; i++)
 		{
 			if (packetBuffer[tagStartIndex + i] != tempBuffer[i])
 			{
 				return false;
 			}
+		}
+
+		// Check first 4 as well:
+		if (tempBuffer[0] != tagA)
+		{
+			return false;
+		}
+
+		if (tempBuffer[1] != tagB)
+		{
+			return false;
+		}
+
+		if (tempBuffer[2] != tagC)
+		{
+			return false;
+		}
+
+		if (tempBuffer[3] != tagD)
+		{
+			return false;
 		}
 
 		return true;
@@ -434,7 +482,6 @@ public partial class RtpClient
 		
 		var encKey = new byte[keyLen]; // AES-128 CM
 		var saltKey = new byte[saltLen];
-		var mac = new Api.SocketServerLibrary.Crypto.HMac(SHA1);
 		
 		var authKey = new byte[20]; // SHA-1 based HMAC, 20 byte length key
 
@@ -468,8 +515,8 @@ public partial class RtpClient
 
 		aes128.GetCipherStream(authKey, 20, ivStore);
 
-		mac.Init(authKey, 0, authKey.Length);
-
+		var mac = new System.Security.Cryptography.HMACSHA1(authKey);
+		
 		// compute the session salt
 
 		if (isControl)
@@ -746,6 +793,8 @@ public partial class RtpClient
 		var buffer = writer.FirstBuffer as WebRTCBuffer;
 		buffer.Length = writer.CurrentFill;
 		buffer.Target = RemoteAddress;
+
+		Server.BytesSent += buffer.Length;
 
 		// We will manually release the buffers. Writer itself can go though:
 		writer.FirstBuffer = null;

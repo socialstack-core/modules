@@ -804,7 +804,124 @@ public static class Rtp
 		client.SendAndRelease(writer);
 	}
 
+	/// <summary>
+	/// Test throughput of hashing mechanism (used by packet authentication).
+	/// </summary>
+	public static void HashThroughputTest()
+	{
+		var hashes = 10000;
+
+		BouncyHashThroughputTest(hashes);
+
+		// MS ver:
+		DotnetHashThroughputTest(hashes);
+
+	}
+
+	private static void BouncyHashThroughputTest(int hashes)
+	{
+		var mac = new Api.SocketServerLibrary.Crypto.HMac(new Api.SocketServerLibrary.Crypto.Sha1Digest());
+
+		var authKey = new byte[20];
+
+		for (var i = 0; i < 20; i++)
+		{
+			authKey[i] = (byte)(i + 1);
+		}
+
+		mac.Init(authKey, 0, authKey.Length);
+
+		byte[] packetBuffer = new byte[1600];
+
+		for (var i = 0; i < packetBuffer.Length; i++)
+		{
+			packetBuffer[i] = (byte)i;
+		}
+
+		var startIndex = 0;
+		var size = 1000;
+		uint rocIn = 1800;
+
+		Span<byte> outputBuffer = stackalloc byte[20];
+
+		var sw = new System.Diagnostics.Stopwatch();
+		sw.Start();
+		for (var i = 0; i < hashes; i++)
+		{
+			mac.StatelessOutput(packetBuffer, startIndex, size, rocIn, outputBuffer);
+		}
+
+		sw.Stop();
+		var elapsed = sw.ElapsedMilliseconds;
+		var elapsedSec = (elapsed / 1000d);
+
+		Console.WriteLine("Total time: " + elapsed + "ms (" + ((double)(hashes * 1000d) / elapsedSec) + " bytes/sec)");
+
+		var str = SocketServerLibrary.Hex.Convert(outputBuffer);
+		Console.WriteLine("CT: " + str);
+	}
+	
+	private static void DotnetHashThroughputTest(int hashes)
+	{
+		var authKey = new byte[20];
+
+		for (var i = 0; i < 20; i++)
+		{
+			authKey[i] = (byte)(i + 1);
+		}
+
+		var hmac = new System.Security.Cryptography.HMACSHA1(authKey);
+		
+		byte[] packetBuffer = new byte[1600];
+
+		for (var i = 0; i < packetBuffer.Length; i++)
+		{
+			packetBuffer[i] = (byte)i;
+		}
+
+		var startIndex = 0;
+		var size = 1000;
+		uint rocIn = 1800;
+
+		Span<byte> outputBuffer = stackalloc byte[20];
+
+		var sw = new System.Diagnostics.Stopwatch();
+		sw.Start();
+		for (var i = 0; i < hashes; i++)
+		{
+			// Write the RoC to where the tag will be:
+			packetBuffer[size] = (byte)(rocIn >> 24);
+			packetBuffer[size+1] = (byte)(rocIn >> 16);
+			packetBuffer[size+2] = (byte)(rocIn >> 8);
+			packetBuffer[size+3] = (byte)rocIn;
+
+			var span = packetBuffer.AsSpan(startIndex, size + 4);
+
+			hmac.TryComputeHash(span, outputBuffer, out int _);
+		}
+
+		sw.Stop();
+		var elapsed = sw.ElapsedMilliseconds;
+		var elapsedSec = (elapsed / 1000d);
+
+		Console.WriteLine("Total time: " + elapsed + "ms (" + ((double)(hashes * 1000d) / elapsedSec) + " bytes/sec)");
+
+		var str = SocketServerLibrary.Hex.Convert(outputBuffer);
+		Console.WriteLine("CT: " + str);
+	}
+
+	/// <summary>
+	/// Test raw packet crunching throughput.
+	/// </summary>
 	public static void ThroughputTest()
+	{
+		HashThroughputTest();
+	}
+
+	/// <summary>
+	/// Test raw encrypt/ decrypt throughput.
+	/// </summary>
+	public static void EncryptionThroughputTest()
 	{
 		var encryptions = 1000001;
 
