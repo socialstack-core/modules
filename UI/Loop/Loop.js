@@ -9,7 +9,7 @@ import Paginator from 'UI/Paginator';
 import { isoConvert } from 'UI/Functions/DateTools';
 const DEFAULT_PAGE_SIZE = 50;
 
-// Operators as used by Filter in where clauses.
+// Operators as used by filter in where clauses.
 const filterOperators = {
 	"startsWith": (a, b) => a && a.indexOf(b) == 0,
 	"contains": (a, b) => a && a.indexOf(b) != -1,
@@ -28,9 +28,7 @@ const filterOperators = {
  * This component repeatedly renders its child using either an explicit array of data or an endpoint.
  */
 export default class Loop extends React.Component {
-
-
-
+	
 	constructor(props) {
 		super(props);
 		
