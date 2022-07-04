@@ -1,0 +1,20 @@
+// usage:
+// .foo {
+//		height: 100vh;		// fallback
+//		height: vh(100);	// accounts for iOS oddities
+// }
+@function vh($vh) {
+  @return calc(var(--vh, 1vh) * #{$vh});
+}
+
+@function vw($vw) {
+  @return calc(var(--vw, 1vw) * #{$vw});
+}
+
+@function vmin($vmin) {
+  @return calc(var(--vmin, 1vmin) * #{$vmin});
+}
+
+@function vmax($vmax) {
+  @return calc(var(--vmax, 1vmax) * #{$vmax});
+}
