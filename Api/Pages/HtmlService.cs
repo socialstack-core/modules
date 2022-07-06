@@ -404,17 +404,17 @@ namespace Api.Pages
 		{
 			// Your UI has bad syntax, but somebody might as well at least get a smile out of it :p
 			var messages = new string[] {
-				"I burnt the pastries",
-				"I burnt the pizzas",
+				"I burnt the pastries.",
+				"I burnt the pizzas.",
 				"I burnt the cake again :(",
-				"I burnt the chips",
-				"I burnt the microwaveable dinner somehow",
-				"I burnt the carpet",
-				"Instructions unclear, fork wedged in ceiling",
-				"Your pet ate all the food whilst you were away, but it wasn't my fault I swear",
+				"I burnt the chips.",
+				"I burnt the microwaveable dinner somehow.",
+				"I burnt the carpet.",
+				"Instructions unclear, fork wedged in ceiling.",
+				"Your pet ate all the food whilst you were away, but it wasn't my fault I swear.",
 				"Have you tried turning it off, then off, then back on and off again?",
 				"Maybe the internet got deleted?",
-				"Blame Mike",
+				"Blame Mike.",
 				"Contact your system admin. If you are the system admin, I'm so sorry.",
 				"You shall not pass!",
 				"Ruh-roh Rorge!"
@@ -422,7 +422,7 @@ namespace Api.Pages
 
 			var rng = new Random();
 			var doc = new Document();
-			doc.Title = "Oops! Something has gone very wrong. " + messages[rng.Next(0, messages.Length)] + ".";
+			doc.Title = "Oops! Something has gone very wrong. " + messages[rng.Next(0, messages.Length)];
 
 			// Charset must be within first 1kb of the header:
 			doc.Head.AppendChild(new DocumentNode("meta", true).With("charset", "utf-8"));
@@ -466,7 +466,7 @@ namespace Api.Pages
 				errorFile.AppendChild(new TextNode(error.File));
 				errorMessage.AppendChild(errorFile);
 
-				var descript = new DocumentNode("pre").AppendChild(new TextNode(error.Description));
+				var descript = new DocumentNode("pre").AppendChild(new TextNode(HttpUtility.HtmlEncode(error.Description)));
 				errorMessage.AppendChild(descript);
 				container.AppendChild(errorMessage);
 			}
