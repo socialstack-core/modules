@@ -9,8 +9,20 @@ namespace Api.PaymentGateways
 {
     /// <summary>Handles paymentGateway endpoints.</summary>
     [Route("v1/paymentGateway")]
-	public partial class PaymentGatewayController : AutoController<PaymentGateway>
+    [ApiController]
+    public partial class PaymentGatewayController : ControllerBase
     {
+        private PaymentGatewayService _service;
+
+        /// <summary>
+        /// Instanced automatically.
+        /// </summary>
+        /// <param name="service"></param>
+        public PaymentGatewayController(PaymentGatewayService service)
+        {
+            _service = service;
+        }
+
         /// <summary>
 		/// Creates a stripe payment intent.
 		/// </summary>
@@ -25,7 +37,7 @@ namespace Api.PaymentGateways
 
             var context = await Request.GetContext();
 
-            var result = await (_service as PaymentGatewayService).CreateStripePaymentIntent(context, request);
+            var result = await _service.CreateStripePaymentIntent(context, request);
 
             return result;
         }
@@ -39,7 +51,7 @@ namespace Api.PaymentGateways
         {
             var context = await Request.GetContext();
 
-            var result = await (_service as PaymentGatewayService).CreateStripeSetupIntent(context);
+            var result = await _service.CreateStripeSetupIntent(context);
 
             return result;
         }
@@ -53,7 +65,7 @@ namespace Api.PaymentGateways
         {
             var context = await Request.GetContext();
 
-            var result = await (_service as PaymentGatewayService).GetStripePaymentMethods(context);
+            var result = await _service.GetStripePaymentMethods(context);
 
             return result;
         }
@@ -67,7 +79,7 @@ namespace Api.PaymentGateways
         {
             var context = await Request.GetContext();
 
-            var result = await (_service as PaymentGatewayService).GetStripePaymentMethod(context, request);
+            var result = await _service.GetStripePaymentMethod(context, request);
 
             return result;
         }

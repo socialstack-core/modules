@@ -19,7 +19,7 @@ namespace Api.PaymentGateways
 	/// Handles paymentGateways.
 	/// Instanced automatically. Use injection to use this service, or Startup.Services.Get.
 	/// </summary>
-	public partial class PaymentGatewayService : AutoService<PaymentGateway>
+	public partial class PaymentGatewayService : AutoService
     {
 		private PaymentGatewayConfig _config;
         private PurchaseService _purchases;
@@ -30,29 +30,19 @@ namespace Api.PaymentGateways
         /// <summary>
         /// Instanced automatically. Use injection to use this service, or Startup.Services.Get.
         /// </summary>
-        public PaymentGatewayService(PurchaseService purchases, Api.Products.ProductService products, UserService users, FrontendCodeService frontEndCode) : base(Eventing.Events.PaymentGateway)
+        public PaymentGatewayService(PurchaseService purchases, Api.Products.ProductService products, UserService users, FrontendCodeService frontEndCode)
         {
             _purchases = purchases;
             _products = products;
             _users = users;
             _frontEndCode = frontEndCode;
             _config = GetConfig<PaymentGatewayConfig>();
-
-            Eventing.Events.User.AfterCreate.AddEventListener(async (Context ctx, User user) => {
-
-                if (user == null)
-                {
-                    return user;
-                }
-
-                if (_config.CreateStripeCustomerAfterUserCreate)
-                {
-                    user = await CreateStripeCustomer(ctx, user);
-                }
-
-                return user;
-            });
         }
+
+        /// <summary>
+        /// Get hold of the config for this service.
+        /// </summary>
+        public PaymentGatewayConfig Config => _config;
 
         /// <summary>
 		/// Creates a stripe payment intent.
@@ -139,11 +129,11 @@ namespace Api.PaymentGateways
                 throw new PublicException("You need to be logged in to perform this action", "no_user");
             }
 
-            var stripeCustomerId = user.StripeCustomerId;
+            var stripeCustomerId = await RequireStripeCustomerId(context, user);
 
             if (string.IsNullOrEmpty(stripeCustomerId))
             {
-                throw new PublicException("You need to have a stripe account attached to your user to perform this action", "no_stripe_user");
+                throw new PublicException("Unable to create a payment gateway user - please try again later", "no_stripe_user");
             }
 
             var setupIntentService = new SetupIntentService();
@@ -183,11 +173,11 @@ namespace Api.PaymentGateways
                 throw new PublicException("You need to be logged in to perform this action", "no_user");
             }
 
-            var stripeCustomerId = user.StripeCustomerId;
+            var stripeCustomerId = await RequireStripeCustomerId(context, user);
 
             if (string.IsNullOrEmpty(stripeCustomerId))
             {
-                throw new PublicException("You need to have a stripe account attached to your user to perform this action", "no_stripe_user");
+                throw new PublicException("Unable to create a payment gateway user - please try again later", "no_stripe_user");
             }
 
             var options = new PaymentMethodListOptions
@@ -224,11 +214,11 @@ namespace Api.PaymentGateways
                 throw new PublicException("You need to be logged in to perform this action", "no_user");
             }
 
-            var stripeCustomerId = user.StripeCustomerId;
+            var stripeCustomerId = await RequireStripeCustomerId(context, user);
 
             if (string.IsNullOrEmpty(stripeCustomerId))
             {
-                throw new PublicException("You need to have a stripe account attached to your user to perform this action", "no_stripe_user");
+                throw new PublicException("Unable to create a payment gateway user - please try again later", "no_stripe_user");
             }
 
             var options = new PaymentMethodListOptions
@@ -251,17 +241,16 @@ namespace Api.PaymentGateways
         /// <param name="context"></param>
         /// <param name="user"></param>
         /// <returns>If successful returns the user updated with their new stripe customer Id.</returns>
-        public async Task<User> CreateStripeCustomer(Context context, User user)
+        public async Task<string> RequireStripeCustomerId(Context context, User user)
         {
             if (user == null)
             {
-                return user;
+                return null;
             }
 
             if (!string.IsNullOrEmpty(user.StripeCustomerId))
             {
-                Console.WriteLine($"User {user.Id} already has a stripe customer Id");
-                return user;
+                return user.StripeCustomerId;
             }
 
             var hostname = _frontEndCode.GetPublicUrl().Replace("https://", "").Replace("http://", "");
@@ -286,10 +275,10 @@ namespace Api.PaymentGateways
             {
                 userToUpdate.StripeCustomerId = customer.Id;
 
-                user = await _users.FinishUpdate(context, userToUpdate, user);
+                await _users.FinishUpdate(context, userToUpdate, user);
             }
 
-            return user;
+            return customer.Id;
         }
 
         private long CalculateOrderAmount(List<Api.Products.Product> rawProducts, List<IdQuantity> productQuantities)
