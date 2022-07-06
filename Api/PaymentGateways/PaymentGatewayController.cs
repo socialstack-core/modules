@@ -17,7 +17,7 @@ namespace Api.PaymentGateways
         /// <summary>
         /// Instanced automatically.
         /// </summary>
-        /// <param name="service"></param>
+        /// <param name="service">Auto injected service.</param>
         public PaymentGatewayController(PaymentGatewayService service)
         {
             _service = service;
