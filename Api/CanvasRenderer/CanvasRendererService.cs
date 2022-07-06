@@ -86,6 +86,11 @@ namespace Api.CanvasRenderer
             });
         }
 
+        /// <summary>
+        /// True if the given field is a canvas field.
+        /// </summary>
+        /// <param name="contentField"></param>
+        /// <returns></returns>
         public bool IsCanvasField(ContentField contentField)
         {
             var hasJsonSuffix = contentField.Name.EndsWith("Json");
