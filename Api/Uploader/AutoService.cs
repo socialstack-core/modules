@@ -11,20 +11,20 @@ public partial class AutoService
     /// Replace media refs 
     /// </summary>
     /// <returns></returns>
-    public virtual async Task<List<MediaRef>> ReplaceRefs(Context context, string sourceRef, string targetRef)
+    public virtual ValueTask<List<MediaRef>> ReplaceRefs(Context context, string sourceRef, string targetRef)
     {
         // This service doesn't have a content type thus can just safely do nothing at all.
-        return null;
+        return new ValueTask<List<MediaRef>>((List<MediaRef>)null);
     }
 
     /// <summary>
     /// Find active media refs 
     /// </summary>
     /// <returns></returns>
-    public virtual async Task<List<Upload>> ActiveRefs(Context context)
+    public virtual ValueTask<List<Upload>> ActiveRefs(Context context)
     {
         // This service doesn't have a content type thus can just safely do nothing at all.
-        return null;
+        return new ValueTask<List<Upload>>((List<Upload>)null);
     }
 }
 public partial class AutoService<T, ID>
@@ -33,7 +33,7 @@ public partial class AutoService<T, ID>
     /// Replace media refs 
     /// </summary>
     /// <returns></returns>
-    public override async Task<List<MediaRef>> ReplaceRefs(Context context, string sourceRef, string targetRef)
+    public override async ValueTask<List<MediaRef>> ReplaceRefs(Context context, string sourceRef, string targetRef)
     {
         List<MediaRef> mediaRefs = new List<MediaRef>();
 
@@ -131,7 +131,7 @@ public partial class AutoService<T, ID>
     /// Find active media refs 
     /// </summary>
     /// <returns></returns>
-    public override async Task<List<Upload>> ActiveRefs(Context context)
+    public override async ValueTask<List<Upload>> ActiveRefs(Context context)
     {
         List<Upload> uploads = new List<Upload>();
 
