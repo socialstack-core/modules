@@ -77,11 +77,14 @@ namespace Api.Users
 
 			if (result.SendContext)
 			{
-				// Send context:
+				// Send context only - don't change the cookie:
 				await OutputContext(context);
 			}
 			else
 			{
+				// Clear user:
+				context.User = null;
+				
 				// Regular empty cookie:
 				Response.Cookies.Append(
 					_contexts.CookieName,
@@ -104,6 +107,13 @@ namespace Api.Users
 						Expires = ThePast
 					}
 				);
+				
+				// Send a new context:
+				var newContext = new Context();
+				
+				newContext.LocaleId = context.LocaleId;
+				
+				await OutputContext(newContext);
 			}
         }
 

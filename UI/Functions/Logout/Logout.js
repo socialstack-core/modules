@@ -1,10 +1,16 @@
 import webRequest from 'UI/Functions/WebRequest';
 
-function clearAndNav(url, setSession, setPage){
-	setSession({
-		role: {id: 0},
-		loadingUser: false
-	});
+function clearAndNav(url, setSession, setPage, ctx){
+	if(ctx){
+		setSession(ctx);
+	}else{
+		setSession({
+			user: null,
+			realUser: null,
+			role: {id: 0},
+			loadingUser: false
+		}, true);
+	}
 	setPage(url);
 }
 
@@ -14,6 +20,6 @@ export default (url, setSession, setPage) => {
 	}
 	
 	return webRequest('user/logout')
-		.then(() => clearAndNav(url || '/', setSession, setPage))
+		.then(response => clearAndNav(url || '/', setSession, setPage, response.json))
 		.catch(e => clearAndNav(url || '/', setSession, setPage));
 };
