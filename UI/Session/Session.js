@@ -59,7 +59,10 @@ function generateId (len) {
 export const Provider = (props) => {
 	const [session, setSession] = React.useState(initState);
   
-	let dispatchWithEvent = updatedVal => {
+	let dispatchWithEvent = (updatedVal, diff) => {
+		if(diff){
+			updatedVal = {...session, ...updatedVal};
+		}
 		for(var k in updatedVal){
 			updatedVal[k] = expandIncludes(updatedVal[k]);
 		}
