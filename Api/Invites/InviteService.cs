@@ -29,9 +29,19 @@ namespace Api.Invites
 		public Func<Context, string, ValueTask<User>> OnSelectUser;
 
 		/// <summary>
+		/// Custom function to determine if a user is registered
+		/// </summary>
+		public Func<User, bool> IsRegistered;
+
+		/// <summary>
 		/// The user service.
 		/// </summary>
 		public UserService _users;
+
+		/// <summary>
+		/// The email service.
+		/// </summary>
+		public EmailTemplateService _emails;
 
 		/// <summary>
 		/// Instanced automatically. Use injection to use this service, or Startup.Services.Get.
@@ -39,7 +49,8 @@ namespace Api.Invites
 		public InviteService(UserService users, EmailTemplateService emails) : base(Events.Invite)
 		{
 			_users = users;
-			
+			_emails = emails;
+
 			var config = GetConfig<InviteServiceConfig>();
 			
 			Events.Invite.BeforeCreate.AddEventListener(async (Context context, Invite invite) => {
@@ -68,7 +79,11 @@ namespace Api.Invites
 					
 					if (!config.CanSendIfAlreadyExists && user != null)
 					{
-						throw new PublicException("A user with that email address has an account already.", "user_exists");
+						// Throw an exception if the user has completed registration
+						if ((IsRegistered != null && IsRegistered(user)) || (IsRegistered == null && user.PasswordHash != null))
+                        {
+							throw new PublicException("A user with that email address has an account already.", "user_exists");
+						}
 					}
 
 					var fullName = (invite.FirstName != null && invite.LastName != null) ? invite.FirstName + " " + invite.LastName : null;
@@ -99,23 +114,10 @@ namespace Api.Invites
 					return invite;
 				}
 
-				var recipientUser = await users.Get(context, invite.InvitedUserId.Value, DataOptions.IgnorePermissions);
+				var recipientUser = await _users.Get(context, invite.InvitedUserId.Value, DataOptions.IgnorePermissions);
 
-				var recipient = new Recipient(recipientUser);
-				
-				recipient.CustomData = new InviteCustomEmailData()
-				{
-					Token = invite.Token
-				};
+				await SendInviteEmail(context, recipientUser, invite.Token);
 
-				var recipients = new List<Recipient>();
-				recipients.Add(recipient);
-				
-				await emails.SendAsync(
-					recipients,
-					"invited_join"
-				);
-				
 				return invite;
 				
 			}, 100);
@@ -165,7 +167,25 @@ namespace Api.Invites
 
 			return result;
 		}
-		
+
+		private async ValueTask SendInviteEmail(Context context, User recipientUser, string token)
+		{
+			var recipient = new Recipient(recipientUser);
+
+			recipient.CustomData = new InviteCustomEmailData()
+			{
+				Token = token
+			};
+
+			var recipients = new List<Recipient>();
+			recipients.Add(recipient);
+
+			await _emails.SendAsync(
+				recipients,
+				"invited_join"
+			);
+		}
+
 	}
 
 	/// <summary>
