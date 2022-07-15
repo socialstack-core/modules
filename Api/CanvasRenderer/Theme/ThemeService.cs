@@ -290,11 +290,7 @@ namespace Api.Themes
 					// Output each one:
 					foreach (var kvp in config.Variables)
 					{
-						builder.Append("--");
 						var lcName = kvp.Key.ToLower();
-
-						builder.Append(lcName);
-						builder.Append(':');
 						var value = kvp.Value;
 
 						if (string.IsNullOrWhiteSpace(value))
@@ -349,10 +345,16 @@ namespace Api.Themes
 
 							}
 
+							builder.Append("--");
+							builder.Append(lcName);
+							builder.Append(':');
 							targetColor.ToCss(builder);
 						}
 						else
 						{
+							builder.Append("--");
+							builder.Append(lcName);
+							builder.Append(':');
 							builder.Append(value);
 						}
 						builder.Append(';');
