@@ -2,12 +2,22 @@ import Form from "UI/Form";
 import Input from "UI/Input";
 import Spacer from "UI/Spacer";
 import Alert from "UI/Alert";
+import {useSession, useRouter} from "UI/Session";
 
 /**
  * Frontend register form.
  */
 
-export default class RegisterForm extends React.Component {
+export default function RegisterForm(props){
+	
+	var {session, setSession} = useSession();
+	var {setPage} = useRouter();
+	
+	return <RegisterFormIntl setSession={setSession} setPage={setPage} {...props}/>;
+}
+
+
+class RegisterFormIntl extends React.Component {
 	
 	constructor(props){
 		super(props);
@@ -21,7 +31,12 @@ export default class RegisterForm extends React.Component {
 			<Form
 				action = "user"
 				onSuccess={response => {
-					this.setState({success: true})
+					if(this.props.autoLogin){
+						// Requires a refresh as some internal state isn't returned by the endpoint.
+						window.location = this.props.redirectTo || '/';
+					}else{
+						this.setState({success: true});
+					}
 				}}
 				className="register-form"
 				onFailed={e=>{
