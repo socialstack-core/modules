@@ -19,8 +19,6 @@ namespace Api.FFmpeg
 	/// </summary>
 	public partial class FFmpegService : AutoService
 	{
-		private bool _verbose = false;
-
 		/// <summary>
 		/// All active processes.
 		/// </summary>
@@ -30,7 +28,8 @@ namespace Api.FFmpeg
 		private UploadService _uploads;
 		private bool hlsTranscode;
 		private bool h264Transcode;
-		
+		private bool doTranscode;
+
 		/// <summary>
 		/// Instanced automatically.
 		/// </summary>
@@ -38,53 +37,14 @@ namespace Api.FFmpeg
 		{
 			_uploads = uploads;
 			_configuration = GetConfig<FFmpegConfig>();
-			
-			if(_configuration != null && _configuration.TranscodeUploads)
-            {
-                _verbose = _configuration.VerboseLogging;
 
-				var formats = _configuration.TranscodeTargets;
-				
-				if(string.IsNullOrEmpty(formats)){
-					formats = "hls";
-				}
-				
-				var targetFormats = formats.Trim().Split(',');
-				
-				for(var i=0;i<targetFormats.Length;i++){
-					var fmt = targetFormats[i].Trim().ToLower();
-					
-					if(fmt == "hls"){
-						hlsTranscode = true;
-					}else if(fmt == "h264" || fmt == "h264/aac"){
-						h264Transcode = true;
-					}
-				}
-				
-				StartUploadTranscode();
-			}
+			_configuration.OnChange += () => {
+				ApplyConfig();
+				return new ValueTask();
+			};
 
-
-			Events.Upload.BeforeCreate.AddEventListener(async (Context context, Upload upload) => {
-
-				if (upload == null)
-				{
-					return null;
-				}
-
-				if (_configuration.MaxVideoLengthSeconds > 0 && upload.IsVideo && (context.Role == null || !context.Role.CanViewAdmin))
-				{
-					// We have a video length restriction.
-					var duration = await GetDurationInSeconds(upload.TemporaryPath);
-
-					if (duration.HasValue && duration > _configuration.MaxVideoLengthSeconds)
-					{
-						throw new PublicException("That video is too long - the max length is " + _configuration.MaxVideoLengthSeconds + " seconds.", "too_long");
-					}
-				}
-
-				return upload;
-			});
+			ApplyConfig();
+			AddTranscodeHandlers();
 
 			lifetime.ApplicationStopping.Register(() => {
 				StopAll();
@@ -93,6 +53,47 @@ namespace Api.FFmpeg
 			AppDomain.CurrentDomain.ProcessExit += (object sender, EventArgs e) => {
 				StopAll();
 			};
+
+		}
+
+		/// <summary>
+		/// Called when the config is loaded or updated.
+		/// </summary>
+		private void ApplyConfig()
+		{
+			if (_configuration != null && _configuration.TranscodeUploads)
+			{
+				var formats = _configuration.TranscodeTargets;
+
+				if (string.IsNullOrEmpty(formats))
+				{
+					formats = "hls";
+				}
+
+				var targetFormats = formats.Trim().Split(',');
+
+				for (var i = 0; i < targetFormats.Length; i++)
+				{
+					var fmt = targetFormats[i].Trim().ToLower();
+
+					if (fmt == "hls")
+					{
+						hlsTranscode = true;
+					}
+					else if (fmt == "h264" || fmt == "h264/aac")
+					{
+						h264Transcode = true;
+					}
+				}
+
+				doTranscode = hlsTranscode || h264Transcode;
+			}
+			else
+			{
+				doTranscode = false;
+				hlsTranscode = false;
+				h264Transcode = false;
+			}
 
 		}
 
@@ -122,17 +123,28 @@ namespace Api.FFmpeg
 		/// <summary>
 		/// Enabled upload transcoding
 		/// </summary>
-		public void StartUploadTranscode()
+		public void AddTranscodeHandlers()
 		{
-			Events.Upload.BeforeCreate.AddEventListener((Context context, Upload upload) =>
+			Events.Upload.BeforeCreate.AddEventListener(async (Context context, Upload upload) =>
             {
 				// Something else might've blocked it:
 				if(upload == null){
-					return new ValueTask<Upload>(upload);
+					return null;
 				}
-				
+
+				if (_configuration.MaxVideoLengthSeconds > 0 && upload.IsVideo && (context.Role == null || !context.Role.CanViewAdmin))
+				{
+					// We have a video length restriction.
+					var duration = await GetDurationInSeconds(upload.TemporaryPath);
+
+					if (duration.HasValue && duration > _configuration.MaxVideoLengthSeconds)
+					{
+						throw new PublicException("That video is too long - the max length is " + _configuration.MaxVideoLengthSeconds + " seconds.", "too_long");
+					}
+				}
+
 				// If A/V, we'll be transcoding shortly.
-				if(upload.IsVideo || upload.IsAudio){
+				if (doTranscode && (upload.IsVideo || upload.IsAudio)){
 					
 					if((upload.FileType == "mp4" && !hlsTranscode && h264Transcode) || upload.FileType == "mp3")
 					{
@@ -145,9 +157,9 @@ namespace Api.FFmpeg
 					}
 				}
 
-				return new ValueTask<Upload>(upload);
+				return upload;
 			});
-			
+
 			// On upload, auto transcode a/v files.
 			Events.Upload.AfterCreate.AddEventListener(async (Context context, Upload upload) =>
             {
@@ -298,18 +310,22 @@ namespace Api.FFmpeg
 			// get the file
             var tempPathName = Path.GetTempPath();
             var tempUniqueId = Guid.NewGuid().ToString();
-			var tempSourceFileName = tempPathName + tempUniqueId + "." + upload.FileType;
+			string sourceFileName;
 
-            if (!string.IsNullOrWhiteSpace(upload.TemporaryPath) && File.Exists(upload.TemporaryPath))
+
+			if (!string.IsNullOrWhiteSpace(upload.TemporaryPath) && File.Exists(upload.TemporaryPath))
             {
 				// try and use the local copy 
-                File.Copy(upload.TemporaryPath, tempSourceFileName);
-            }
+				sourceFileName = upload.TemporaryPath;
+				upload.TemporaryPath = null;
+
+			}
             else
             {
 				// get the file (may be in the cloud)
+				sourceFileName = tempPathName + tempUniqueId + "." + upload.FileType;
 				var content = await upload.ReadFile();
-                File.WriteAllBytes(tempSourceFileName, content);
+                File.WriteAllBytes(sourceFileName, content);
             }
 
             string targetPath;
@@ -333,7 +349,7 @@ namespace Api.FFmpeg
                     var chunkDirectory = Path.Combine(tempPathName, tempUniqueId) + Path.DirectorySeparatorChar;
 					Directory.CreateDirectory(chunkDirectory);
 
-					var cmd = "-hide_banner -y -i \"" + tempSourceFileName + "\"";
+					var cmd = "-hide_banner -y -i \"" + sourceFileName + "\"";
 
 					// Currently fixed at 4 predefined sizes:
 					cmd += " " + AddRendition(chunkDirectory, 640, 360, 800, 856, 1200, 96);
@@ -348,22 +364,44 @@ namespace Api.FFmpeg
 					await File.WriteAllTextAsync(chunkDirectory + "manifest.m3u8", manifestContent);
 					
 					Run(cmd, async () => {
-						
-						// Done! (NB can trigger twice if multi-transcoding)
-						upload = await _uploads.Update(context, upload, (Context c, Upload upl, Upload orig) => {
-							upl.TranscodeState = 2;
-						}, DataOptions.IgnorePermissions);
+
+						// Wait 1s - ffmpeg can exit before releasing the file handle on every chunk.
+						await Task.Delay(1000);
 
 						// now copy to local or cloud storage
                         DirectoryInfo d = new DirectoryInfo(chunkDirectory);
                         
                         foreach (var file in d.GetFiles())
                         {
+							Console.WriteLine("Uploading chunk: " + file);
 							await Events.Upload.StoreFile.Dispatch(context, upload, file.FullName, $"chunks/{file.Name}");
 						}
 
 						// now tidy up 
-						Directory.Delete(chunkDirectory, true);
+
+						// Delete original file (this may delete the original upload - that's fine; it gets deleted by the OS otherwise anyway and this is after the original has been stored as well):
+						try
+						{
+							File.Delete(sourceFileName);
+						}
+						catch
+						{
+							// File likely locked by ffmpeg. Will be deleted by OS later.
+						}
+
+						try
+						{
+							Directory.Delete(chunkDirectory, true);
+						}
+						catch
+						{
+							// File(s) likely locked by ffmpeg. Will be deleted by OS later.
+						}
+
+						// Done! (NB can trigger twice if multi-transcoding)
+						upload = await _uploads.Update(context, upload, (Context c, Upload upl, Upload orig) => {
+							upl.TranscodeState = 2;
+						}, DataOptions.IgnorePermissions);
 
 						await Events.UploadAfterTranscode.Dispatch(context, upload);
                     });
@@ -372,15 +410,18 @@ namespace Api.FFmpeg
 				if(h264Transcode){
 					targetPath = tempPathName + tempUniqueId + ".mp4";
 					
-					Run("-i \"" + tempSourceFileName + "\" \"" + targetPath + "\"", async () => {
-						
+					Run("-i \"" + sourceFileName + "\" \"" + targetPath + "\"", async () => {
+
+						// Delete original file (this may delete the original upload - that's fine; it gets deleted by the OS otherwise anyway and this is after the original has been stored as well):
+						File.Delete(sourceFileName);
+
+						// now copy to local or cloud storage
+						await Events.Upload.StoreFile.Dispatch(context, upload, targetPath, "original.mp4");
+
 						// Done! (NB can trigger twice if multi-transcoding)
 						upload = await _uploads.Update(context, upload, (Context c, Upload upl, Upload orig) => {
 							upl.TranscodeState = 2;
 						}, DataOptions.IgnorePermissions);
-
-						// now copy to local or cloud storage
-						await Events.Upload.StoreFile.Dispatch(context, upload, targetPath, "original.mp4");
 
 						await Events.UploadAfterTranscode.Dispatch(context, upload);
 					});
@@ -390,15 +431,15 @@ namespace Api.FFmpeg
 				
 				// Is audio
 				targetPath = tempPathName + tempUniqueId + ".mp3";
-				Run("-i \"" + tempSourceFileName + "\" \"" + targetPath + "\"", async () => {
+				Run("-i \"" + sourceFileName + "\" \"" + targetPath + "\"", async () => {
+
+					// now copy to local or cloud storage
+					await Events.Upload.StoreFile.Dispatch(context, upload, targetPath, "original.mp3");
 
 					// Done!
 					upload = await _uploads.Update(context, upload, (Context c, Upload upl, Upload orig) => {
 						upl.TranscodeState = 2;
 					}, DataOptions.IgnorePermissions);
-
-					// now copy to local or cloud storage
-					await Events.Upload.StoreFile.Dispatch(context, upload, targetPath, "original.mp3");
 
 					await Events.UploadAfterTranscode.Dispatch(context, upload);
 				});
@@ -421,7 +462,7 @@ namespace Api.FFmpeg
 			
 			Process process = new Process();
 
-			if (!_verbose)
+			if (!_configuration.VerboseLogging)
 			{
 				cmdArgs = "-hide_banner -loglevel fatal " + cmdArgs;
 			}
