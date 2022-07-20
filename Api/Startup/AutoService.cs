@@ -1196,6 +1196,32 @@ public partial class AutoService<T, ID> : AutoService
 		// And perform the save:
 		return await FinishUpdate(context, entityToUpdate, cachedEntity);
 	}
+	
+	/// <summary>
+	/// Performs an update on the given entity. If updating the object is permitted, the callback is executed and awaited. 
+	/// You must only set fields on the object in that callback, or in a BeforeUpdate handle.
+	/// </summary>
+	public virtual async ValueTask<T> Update(Context context, T cachedEntity, Func<Context, T, T, ValueTask> cb, DataOptions options = DataOptions.Default)
+	{
+		var entityToUpdate = await StartUpdate(context, cachedEntity, options);
+
+		if (entityToUpdate == null)
+		{
+			// Note it would've thrown if there was a permission issue.
+			return null;
+		}
+
+		if (cb == null)
+		{
+			throw new ArgumentNullException("An update callback is required. Inside this callback is the only place where you can safely set field values, aside from BeforeUpdate event handlers.");
+		}
+
+		// Set fields now:
+		await cb(context, entityToUpdate, cachedEntity);
+
+		// And perform the save:
+		return await FinishUpdate(context, entityToUpdate, cachedEntity);
+	}
 
 	/// <summary>
 	/// For simpler usage, see Update. This is for advanced non-allocating updates. Returns the object that you MUST apply your changes to.
