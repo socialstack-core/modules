@@ -297,7 +297,8 @@ namespace Api.FFmpeg
 
 		private string AddRendition(string chunkDirectory, int w, int h, int bitVid, int maxRate, int bufSize, int bitAudio)
 		{
-			return "-vf scale=w=" + w + ":h=" + h + ":force_original_aspect_ratio=decrease -c:a aac -ar 48000 -c:v h264 -profile:v main -crf 20 -sc_threshold 0 " +
+			// The scale allows us to bound to the given width/ height including for portrait format video. The -2 defines the axis to be aspect aware but divisible by 2.
+			return "-vf \"scale='if(gt(iw,ih)," + w + ",-2)':'if(gt(iw,ih),-2," + h + ")'\" -c:a aac -ar 48000 -c:v h264 -profile:v main -crf 20 -sc_threshold 0 " +
 			"-g 48 -keyint_min 48 -hls_time 4 -hls_playlist_type vod -b:v " + bitVid + "k -maxrate " + maxRate + "k -bufsize " + bufSize + "k -b:a " + bitAudio + "k " +
 			"-hls_segment_filename \"" + chunkDirectory + h + "p_%03d.ts\" \"" + chunkDirectory + h + "p.m3u8\"";
 		}
