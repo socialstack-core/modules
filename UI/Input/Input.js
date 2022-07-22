@@ -39,6 +39,7 @@ export default class Input extends React.Component {
         this.onBlur = this.onBlur.bind(this);
         this.setRef = this.setRef.bind(this);
         this.onSelectChange = this.onSelectChange.bind(this);
+        this.onTransparentChange = this.onTransparentChange.bind(this);
     }
 
     componentWillReceiveProps(props) {
@@ -210,6 +211,25 @@ export default class Input extends React.Component {
 
         // Validation check
         this.revalidate(e);
+    }
+
+    // Hack to allow alpha values in color input
+    onTransparentChange(e) {
+        if (this.props.type == "color" && this.inputRef && e && e.target) {
+            if (e.target.checked) {
+                if (this.inputRef.value && this.inputRef.value.length == 7) {
+                    this.inputRef.type = "text";
+                    this.inputRef.value += "00";
+                    this.inputRef.style.display = "none";
+                }
+            } else {
+                if (this.inputRef.value && this.inputRef.value.length == 9) {
+                    this.inputRef.value = this.inputRef.value.slice(0, -2);
+                    this.inputRef.type = "color";
+                    this.inputRef.style.display = "block";
+                }
+            }
+        }
     }
 	
 	validationError(){
@@ -590,7 +610,7 @@ export default class Input extends React.Component {
 				};
 			}
 			
-            const fieldMarkup = (
+            var fieldMarkup = (
                 <input
                     ref={this.setRef}
                     id={this.props.id || this.fieldId}
@@ -606,6 +626,49 @@ export default class Input extends React.Component {
                     {...props}
                 />
             );
+
+            if (this.props.type == 'color') {
+                const colorValue = this.inputRef && this.inputRef.value
+                    ? this.inputRef.value
+                    : this.props.defaultValue
+                const isTransparent = colorValue && colorValue.length == 9;
+
+                if (isTransparent) {
+                    fieldMarkup = (
+                        <input
+                            ref={this.setRef}
+                            id={this.props.id || this.fieldId}
+                            className={(this.props.className || "form-control") + (this.state.validationFailure ? ' is-invalid' : '')}
+                            aria-describedby={this.describedById}
+                            type="text"
+                            onChange={this.onChange}
+                            onBlur={this.onBlur}
+                            onInput={this.onInput}
+                            autocomplete={this.props.autocomplete}
+                            data-disabled-by={disabledBy}
+                            data-enabled-by={enabledBy}
+                            style={{display: "none"}}
+                            {...props}
+                        />
+                    );
+                }
+
+                return <div className="input-wrapper color-input">
+                    {fieldMarkup}
+                    {(this.props.allowTransparency || isTransparent) &&
+                        <>
+                            <label className="transparent-label">Transparent</label>
+                            <input 
+                                type="checkbox" 
+                                name="isTransparent" 
+                                checked={isTransparent} 
+                                onChange={this.onTransparentChange}
+                            />
+                        </>
+                    }
+                    {this.props.icon && <i className={this.props.icon}></i>}
+                </div>;
+            }
 
             if (this.props.icon) {
                 return <div className="input-wrapper">

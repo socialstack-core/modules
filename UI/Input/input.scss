@@ -120,3 +120,11 @@ textarea.form-control-sm {
 textarea.form-control-lg {
   min-height: calc((1.5em * #{$textarea_minrows}) + (1rem + 2px));
 }
+
+.input-wrapper {
+	&.color-input {
+		.transparent-label {
+			margin-right: 8px;
+		}
+	}
+}
