@@ -173,6 +173,24 @@ function minsBetween(startdate , enddate) {
 	return mins;
 }
 
+function toLocaleUTCDateString(date, locales, options) {
+	const timeDiff = date.getTimezoneOffset() * 60000;
+	const adjustedDate = new Date(date.valueOf() + timeDiff);
+	return adjustedDate.toLocaleDateString(locales, options);
+}
+
+function toLocaleUTCTimeString(date, locales, options) {
+	const timeDiff = date.getTimezoneOffset() * 60000;
+	const adjustedDate = new Date(date.valueOf() + timeDiff);
+	return adjustedDate.toLocaleTimeString(locales, options);
+}
+
+function isSameDay(d1, d2) {
+	return d1.getUTCFullYear() === d2.getUTCFullYear() &&
+		d1.getUTCMonth() === d2.getUTCMonth() &&
+		d1.getUTCDate() === d2.getUTCDate();
+}
+
 export {
 	ordinal,
 	dayNames,
@@ -191,5 +209,8 @@ export {
 	daysUntilDate,
 	daysBetween,
 	minsBetween,
-	ticks
+	ticks,
+	toLocaleUTCDateString,
+	toLocaleUTCTimeString,
+	isSameDay
 };
