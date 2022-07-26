@@ -166,8 +166,8 @@
 				position: absolute;
 				left: 0;
 				top: 0;
-				min-width: 160px;
-				min-height: 90px;
+				min-width: var(--huddle-thumbnail-width, var(--fallback__huddle-thumbnail-width));
+				min-height: var(--huddle-thumbnail-height, var(--fallback__huddle-thumbnail-height));
 				width: var(--user-sharing-video-width);
 			    height: calc(var(--user-sharing-video-width) * 9 / 16);
 				object-fit: contain !important;

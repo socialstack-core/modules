@@ -248,7 +248,7 @@ export default function User(props){
 
 		{!videoOn && <>
 			<div className={avatarClass}>
-				{user.creatorUser && user.creatorUser.avatarRef && getRef(user.creatorUser.avatarRef, { size: 256, attribs: { alt: userName } })}
+				{user.creatorUser && user.creatorUser.avatarRef && getRef(user.creatorUser.avatarRef, { size: 256, attribs: { alt: userName }, hideOnError: true })}
 			</div>
 		</>}
 

@@ -290,7 +290,7 @@ export default class HuddleClient{
 			
 			var huddleInfo = r.readUtf8SizedPlus1(huddleInfoSize);
 			
-			try{
+			try {
 				var huddle = JSON.parse(huddleInfo);
 				huddle = expandIncludes(huddle);
 				this.huddle = huddle;
@@ -1175,8 +1175,8 @@ export default class HuddleClient{
 		return this.changeState(on, 'webcam', () => this.getWebcam());
 	}
 	
-	screenshare(on) {
-		return this.changeState(on, 'screenshare', () => this.getScreenshare(false))
+	screenshare(on, cancelled) {
+		return this.changeState(on, 'screenshare', () => this.getScreenshare(false), cancelled);
 	}
 	
 	microphone(on) {
@@ -1187,7 +1187,7 @@ export default class HuddleClient{
 		return this.shareState[channel].active;
 	}
 	
-	changeState(on, channel, getStream) {
+	changeState(on, channel, getStream, cancelled) {
 		var currentSender = this.shareState[channel].sender;
 		
 		if((!!currentSender) == on){
@@ -1225,6 +1225,7 @@ export default class HuddleClient{
 		}
 		
 		return getStream().then(stream => {
+
 			if(!stream){
 				return null;
 			}
@@ -1282,7 +1283,14 @@ export default class HuddleClient{
 			
 			// As we made a local side change, must offer it:
 			return this.makeOffer(channel).then(() => sender);
-		});
+		})
+			.catch((err) => {
+
+				if (on && channel == 'screenshare') {
+					return cancelled;
+				}
+			});
+
 	}
 	
 }

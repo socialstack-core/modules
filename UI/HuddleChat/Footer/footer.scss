@@ -1,24 +1,23 @@
 :root {
+	--fallback__huddle-footer-height: 5rem;
 	--fallback__huddle-footer-bg: transparent;
-    --fallback__huddle-footer-fg: rgba(0,0,0, .75);
+    --fallback__huddle-footer-fg: rgba(255,255,255, .75);
 }
 
 .huddle-chat {
 	$huddle-chat: &;
 
-	&__options {
+	&__footer {
 		display: flex;
-		align-items: center;
+		align-items: flex-start;
 		justify-content: space-between;
 		padding: 8px 24px;
 		background: var(--huddle-footer-bg, var(--fallback__huddle-footer-bg));
 		color: var(--huddle-footer-fg, var(--fallback__huddle-footer-fg));
-		min-height: $huddle-chat-footer;
-		z-index: 1000;
+		min-height: var(--huddle-footer-height, var(--fallback__huddle-footer-height));
+		z-index: 999; // so this appears behind dropdowns
 
-		&-left {
-		}
-
+		&-left,
 		&-media {
 			display: flex;
 			align-items: center;
@@ -98,6 +97,10 @@
 
 		}
 
+		&--firefox,
+		&--safari {
+			display: none;
+		}
 	}
 
 	&__button-wrapper {
@@ -109,12 +112,64 @@
 		width: 4.75rem;
 	}
 
+    &__button {
+        border-radius: 50%;
+        width: 3rem;
+        height: 3rem;
+        border-width: 2px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
 	&__button-label {
 		text-align: center;
 	}
 
 	&__button--hangup {
 		margin: 0 .5rem;
+	}
+
+}
+
+.record-confirm-modal,
+.screenshare-cancelled-modal {
+
+	.modal-body {
+
+		ul > li {
+			margin-block-end: 1rem;
+		}
+
+		footer {
+			display: flex;
+			align-items: center;
+			justify-content: flex-end;
+			gap: .5rem;
+
+			.btn {
+				min-width: 100px;
+			}
+		}
+
+	}
+
+	.modal-footer {
+		display: none;
+	}
+
+}
+
+.screenshare-cancelled-modal {
+
+	.safari-preferences {
+		display: block;
+		width: calc(295px / 1.5);
+	}
+
+	.safari-websites {
+		display: block;
+		width: calc(791px / 1.5);
 	}
 
 }
@@ -131,6 +186,41 @@ html.no-flexgap {
 			}
 		}
 	}
+
+	.record-confirm-modal,
+	.screenshare-cancelled-modal {
+
+		.modal-body .footer .btn {
+			margin-inline-end: .5rem;
+
+			&:last-child {
+				margin-inline-end: 0;
+			}
+		}
+
+	}
+
+}
+
+@media (max-width: 700px) {
+
+	.huddle-chat {
+
+		&__footer {
+			padding: 8px 16px;
+		}
+
+		&__button-wrapper {
+			width: 3.75rem;
+		}
+
+		&__button {
+			width: 2.5rem;
+			height: 2.5rem;
+		}
+
+	}
+
 }
 
 @keyframes pulse-primary {
@@ -210,4 +300,26 @@ html.no-flexgap {
 	&.btn-outline-danger {
         animation: pulse-danger 2s infinite;
     }
+}
+
+@include mq_firefox {
+
+	.huddle-chat__footer {
+
+		&--firefox {
+			display: block;
+		}
+
+	}
+}
+
+@include mq_safari {
+
+	.huddle-chat__footer {
+
+		&--safari {
+			display: block;
+		}
+
+	}
 }

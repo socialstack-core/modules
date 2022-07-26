@@ -3,7 +3,9 @@ import PinnedView from './PinnedView';
 import AudienceView from './AudienceView';
 import AvTest from './AvTest';
 import Header from './Header';
-import Options from './Options';
+import Notifications from './Notifications';
+import Status from './Status';
+import Footer from './Footer';
 import { useState, useEffect, useRef } from 'react';
 import ChatLive from 'UI/ChatLive';
 import HuddleClient from 'UI/HuddleClient';
@@ -14,6 +16,7 @@ import Loading from 'UI/Loading';
 import SpeakerTest from 'UI/HuddleChat/SpeakerTest';
 import CustomChat from 'UI/HuddleChat/CustomChat';
 import Alert from 'UI/Alert';
+import CloseButton from 'UI/CloseButton';
 
 const MAX_STAGE_USERS = 6;
 const MAX_PINNED_USERS = 10;
@@ -92,8 +95,8 @@ export default function HuddleChat(props) {
 		client.start();
 		return client;
 	});
-	
-	React.useEffect(() => {
+
+	useEffect(() => {
 		
 		return () => {
 			// Called when this component unmounts.
@@ -102,7 +105,7 @@ export default function HuddleChat(props) {
 		
 	}, []);
 	
-	React.useEffect(() => {
+	useEffect(() => {
 		
 		// Hide custom node in its current parent:
 		if(props.customChatRoot){
@@ -110,7 +113,7 @@ export default function HuddleChat(props) {
 		}
 		
 	}, []);
-	
+
 	if (!users){
 		// Note: initial removed IDs is set based on the first array of users given.
 		// So, it's important that we don't give it an empty array until we are loaded.
@@ -142,7 +145,7 @@ export default function HuddleChat(props) {
 							</>}
 						</Alert>
 						<footer>
-							<a className="btn btn-primary" href={props.backUrl || '/'}>{props.backText || `Back to homepage`}</a>
+							<a className="btn btn-primary" href={props.backUrl || '/'}>{props.backText || `Go back`}</a>
 						</footer>
 					</Col>
 				</Row>
@@ -189,7 +192,7 @@ export default function HuddleChat(props) {
 			</>}
 		</div>;
 	}
-	
+
 	return <>
 		<HuddleChatUI {...props} userRole={userRole} huddleClient={huddleClient} users={users} onLeave={onLeave} playbackInfo={playbackInfo} />
 	</>;
@@ -200,10 +203,41 @@ function HuddleChatUI(props) {
 	
 	var { users, huddleClient, disableChat, disableAudience, disableReactions, disableOptions, title, description } = props;
 
-	title = title || 'Meet Now';
-	description = description || 'Beta';
-	
-	const [sidebar, setSidebar] = useState(disableAudience ? SidebarEnum.CLOSED : SidebarEnum.AUDIENCE);	// sidebar mode
+	title = title || `Meet Now`;
+	description = description || `Beta`;
+
+	const [notifications, setNotifications] = useState([]);
+	// uncomment for example notifications
+	/*
+	const [notifications, setNotifications] = useState([
+			`Failed to screenshare - please ensure browser permissions have been set.`,
+			<>
+				<p>Lorem ipsum dolor sit amet, consectetur adipiscing elit. Mauris non neque neque.
+					Praesent at facilisis nisl. Phasellus vestibulum ultricies nibh, non tempus mi commodo vitae.
+					Fusce tincidunt orci vitae risus eleifend, a pretium nibh consequat. Fusce auctor pretium massa,
+					vel tincidunt risus placerat vulputate. Proin congue odio non velit fermentum tempus.
+					Suspendisse ac dolor a elit molestie volutpat. Nulla pharetra iaculis gravida.
+					Sed quis ex et erat pulvinar dignissim. Aenean et eros eu odio <a href="#">congue commodo</a> et non nisl.
+					Vestibulum ac justo et velit feugiat condimentum rutrum vel arcu. Maecenas elit tortor,
+					suscipit sit amet fringilla ut, vestibulum vel magna. Morbi nisi nulla,
+					ullamcorper ac aliquet vitae, scelerisque sit amet elit.</p>
+
+				<p>Proin scelerisque lectus vel turpis vestibulum sollicitudin. Nulla aliquet, arcu eu volutpat facilisis,
+					nunc sapien porttitor purus, ac luctus nunc justo quis ipsum. Ut at est mattis, pulvinar enim in, vehicula mi.
+					Donec blandit dictum velit, non ullamcorper ex vulputate sed. Nullam vulputate mi nec massa molestie maximus.
+					Pellentesque laoreet quis sem sit amet molestie. Curabitur sodales ex vulputate, mollis nibh nec, commodo eros.
+					Mauris tellus nibh, euismod at luctus feugiat, lobortis nec neque.</p>
+			</>,
+			<>
+				<h2>{`Camera not found`}</h2>
+				<p>
+					{`Unable to find an available camera - please check your hardware is connected and not currently in use by another application.`}
+				</p>
+			</>
+		]);
+	*/
+
+	const [showingNotifications, setShowingNotifications] = useState(false);
 	const [removedUserIds, setRemovedUserIds] = useState(() => {
 		var map = new Map();
 		
@@ -216,7 +250,7 @@ function HuddleChatUI(props) {
 		
 		return map;
 	}); // add IDs of test users marked as "gone" to test filtering out a previously removed user
-	
+
 	var clearGoneUsers = () => {
 		var usersToRemove = new Map();
 		
@@ -274,6 +308,14 @@ function HuddleChatUI(props) {
 		};
 	}, [removedUserIds, props.users]);
 
+	// filter any users marked as "gone" which already got nuked
+	users = users.filter(user => !(user.gone && removedUserIds.has(user.id)));
+
+	var emptyHuddle = !users || users.length <= 1;
+	const [statusMessage, setStatusMessage] = useState(emptyHuddle ? `Waiting for others to join ...` : null);
+	const [showingStatus, setShowingStatus] = useState(emptyHuddle);
+	const [sidebar, setSidebar] = useState(disableAudience || emptyHuddle ? SidebarEnum.CLOSED : SidebarEnum.AUDIENCE);	// sidebar mode
+
 	var huddleClasses = ["huddle-chat"];
 
 	switch (sidebar) {
@@ -287,10 +329,7 @@ function HuddleChatUI(props) {
 	}
 
 	huddleClasses = huddleClasses.join(" ");
-	
-	// filter any users marked as "gone" which already got nuked
-	users = users.filter(user => !(user.gone && removedUserIds.has(user.id)));
-	
+
 	// get everyone on the stage (main players and pinned overflow)
 	var allActors = users.filter(user => user.isOnStage);
 	
@@ -322,22 +361,63 @@ function HuddleChatUI(props) {
 
 		//setSidebar(SidebarEnum.CLOSED);
 	}
+
+	function toggleNotifications() {
+		setShowingNotifications(showingNotifications ? false : true)
+	}
+
+	function removeNotification(targetIndex) {
+
+		if (!notifications || notifications.length - 1 < targetIndex) {
+			return;
+		}
+
+		setNotifications(
+			notifications.filter((notification, index) => {
+				return index != targetIndex;
+			})
+		);
+
+		if (notifications.length == 1) {
+			setShowingNotifications(false);
+        }
+
+	}
 	
+	function toggleStatus() {
+		setShowingStatus(showingStatus ? false : true)
+	}
+
+	function updateStatus(newStatus) {
+
+		if (newStatus == statusMessage) {
+			return;
+		}
+
+		setStatusMessage(newStatus);
+		setShowingStatus(true);
+    }
+
 	return <section className={huddleClasses} ref={huddleRef}>
-		<Header title={title} description={description}
+		<Header huddleClient={huddleClient} title={title} description={description} users={users}
 			disableChat={disableChat} disableAudience={disableAudience}
 			disableReactions={disableReactions} disableOptions={disableOptions}
+			notifications={notifications} showingNotifications={showingNotifications}
+			toggleNotifications={toggleNotifications}
 			showingAudience={sidebar == SidebarEnum.AUDIENCE}
 			showingConversation={sidebar == SidebarEnum.CONVERSATION}
 			toggleAudience={() => {
 				setSidebar(sidebar == SidebarEnum.AUDIENCE ? SidebarEnum.CLOSED : SidebarEnum.AUDIENCE);
 			}}
-			onRecordMode={targetMode => {
-				huddleClient.recordingState(targetMode);
-			}}
 			toggleConversation={() => {
 				setSidebar(sidebar == SidebarEnum.CONVERSATION ? SidebarEnum.CLOSED : SidebarEnum.CONVERSATION);
 			}}
+			recordMode={huddleClient.huddle.isRecording}
+		/>
+
+		{/* notifications */}
+		<Notifications notifications={notifications} showingNotifications={showingNotifications}
+			toggleNotifications={toggleNotifications} removeNotification={(i) => removeNotification(i)}
 		/>
 
 		{/* stage / pinned */}
@@ -350,15 +430,20 @@ function HuddleChatUI(props) {
 
 		{/* audience */}
 		{!disableAudience && sidebar == SidebarEnum.AUDIENCE && <>
-			<AudienceView users={users} pageSize={MAX_AUDIENCE_PER_PAGE} />
+			<AudienceView users={users} pageSize={MAX_AUDIENCE_PER_PAGE} toggleAudience={() => {
+				setSidebar(sidebar == SidebarEnum.AUDIENCE ? SidebarEnum.CLOSED : SidebarEnum.AUDIENCE);
+			}} />
 		</>}
 
 		{/* conversation */}
 		{!disableChat && sidebar == SidebarEnum.CONVERSATION && <aside className="huddle-chat__sidebar huddle-chat__sidebar--conversation">
 			<header class="huddle-chat__sidebar-header">
 				<h2 class="huddle-chat__sidebar-heading">
-					Conversation
+					{`Conversation`}
 				</h2>
+				<CloseButton isSmall callback={() => {
+					setSidebar(sidebar == SidebarEnum.CONVERSATION ? SidebarEnum.CLOSED : SidebarEnum.CONVERSATION);
+				}} />
 			</header>
 			<div className="huddle-chat__sidebar-body">
 				{props.customChatRoot || props.customChatUrl ? <CustomChat root={props.customChatRoot} url={props.customChatUrl} /> :
@@ -366,9 +451,11 @@ function HuddleChatUI(props) {
 			</div>
 		</aside>}
 
-		{/* main huddle footer (share / leave huddle / audio/video options) */}
-		{/* TODO: set isHost */}
-		<Options isHost={false}
+		{/* status */}
+		<Status message={statusMessage} showingStatus={showingStatus} toggleStatus={toggleStatus} />
+
+		{/* main huddle footer (share / record / leave huddle / audio/video options) */}
+		<Footer huddleClient={huddleClient}
 				playbackInfo={props.playbackInfo}
 			startPlayback={() => huddleClient.startMedia()}
 			stopPlayback={() => huddleClient.stopMedia()}
@@ -377,10 +464,16 @@ function HuddleChatUI(props) {
 				videoOn={huddleClient.isActive('webcam')}
 			setAudio={state => huddleClient.microphone(state)}
 			setVideo={state => huddleClient.webcam(state)}
-			setShare={state => huddleClient.screenshare(state)}
+			setShare={(state, cancelled) => huddleClient.screenshare(state, cancelled)}
 			isHost={props.userRole == 1}
 			onLeave={mode => {
 				props.onLeave(mode);
+			}}
+			recordMode={huddleClient.huddle.isRecording}
+			onRecordMode={targetMode => {
+				huddleClient.recordingState(targetMode);
+				var msg = targetMode ? `This meeting is now being recorded` : `Meeting recording has ended`;
+				updateStatus(msg);
 			}}
 		/>
 

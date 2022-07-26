@@ -115,7 +115,7 @@ export default class AvTest extends React.Component{
 		}
 		
 	}
-	
+
 	setSelectedCamWithOpen(deviceId) {
 		var constraints = {
 			video : {
@@ -128,8 +128,8 @@ export default class AvTest extends React.Component{
 		};
 		
 		global.navigator.mediaDevices.getUserMedia(constraints).then(stream => {
-			
-			if(this.videoSpaceRef){
+
+			if (this.videoSpaceRef){
 				this.videoSpaceRef.srcObject = stream;
 				
 				this.videoSpaceRef.play().catch(e => {
@@ -140,7 +140,7 @@ export default class AvTest extends React.Component{
 			stream._stop = () => {
 				stream.getTracks().forEach(t => t.stop());
 			};
-			
+
 			this.setState({selectedCam:{deviceId, stream}});
 			
 		}).catch(e => {
@@ -392,7 +392,7 @@ export default class AvTest extends React.Component{
 			</h1>
 			<div className="mb-3">
 				<label className="form-label" htmlFor="displayName">
-					{`By what name do you wish to be known by?`}
+					{`What name do you wish to be known by?`}
 				</label>
 				<input type="text" className="form-control" name="displayname" id="displayName" value={this.props.displayName} onChange={e => {
 					this.props.onChangeName && this.props.onChangeName(e.target.value);

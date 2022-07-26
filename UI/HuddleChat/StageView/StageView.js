@@ -6,7 +6,7 @@ const MAX_STAGE_USERS = 6;
 function emptyStage() {
 	return <div className="huddle-chat__stage">
 		<h2 className="huddle-chat__stage-message">
-			Waiting for others to join ...
+            {`Getting everything ready ...`}
 		</h2>
 	</div>;
 }

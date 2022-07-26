@@ -1,8 +1,37 @@
 import User from '../User';
-import { useState, useEffect } from 'react';
+import CloseButton from 'UI/CloseButton';
+import { useState, useEffect, useRef } from 'react';
+
+function getCssValue(variable) {
+	var style = getComputedStyle(document.body);
+	var fallback = style.getPropertyValue('--fallback__' + variable);
+	var actual = style.getPropertyValue('--' + variable);
+
+	fallback = parseInt(fallback.replace(/[^0-9.]/g, ''), 10);
+	actual = parseInt(actual.replace(/[^0-9.]/g, ''), 10);
+
+	return isNaN(actual) ? fallback : actual;
+}
+
+function updateSize(audience, pageSize, total) {
+
+	if (!audience) {
+		return;
+	}
+
+	var rect = audience.getBoundingClientRect();
+	var thumbnailHeight = getCssValue('huddle-thumbnail-height');
+	var maxThumbnailsPerColumn = Math.floor(rect.height / thumbnailHeight);
+
+	var html = document.querySelector("html");
+
+	// resolves to data-audience-columns
+	html.dataset['audienceColumns'] = total <= maxThumbnailsPerColumn ? 1 : 2;
+}
 
 export default function AudienceView(props) {
 	const { users, pageSize } = props;
+	const audienceRef = useRef(null);
 	var [pageCount, setPageCount] = useState(users.length ? Math.ceil(users.length / pageSize) : 0);
 	var [pageIndex, setPageIndex] = useState(1);
 
@@ -12,6 +41,29 @@ export default function AudienceView(props) {
 		setPageCount(newPageCount);
 		setPageIndex(Math.min(lastPageIndex, newPageCount));
 	}, [users]);
+
+	useEffect(() => {
+		var audience = audienceRef.current;
+
+		if (!audience) {
+			return;
+		}
+
+		var audienceObserver;
+
+		audienceObserver = new ResizeObserver(entries => {
+			updateSize(audience, pageSize, users.length);
+		});
+
+		audienceObserver.observe(audience);
+		updateSize(audience, pageSize, users.length);
+
+		return () => {
+			audienceObserver.unobserve(audience);
+			audienceObserver.disconnect();
+		};
+
+	});
 
 	function prevAttendees() {
 		setPageIndex(pageIndex - 1);
@@ -29,13 +81,14 @@ export default function AudienceView(props) {
 
 	return (
 		<aside className="huddle-chat__sidebar huddle-chat__sidebar--scrollable huddle-chat__audience">
-			<header class="huddle-chat__sidebar-header">
-				<h2 class="huddle-chat__sidebar-heading">
-					Audience ({users.length})
+			<header className="huddle-chat__sidebar-header">
+				<h2 className="huddle-chat__sidebar-heading">
+					{`Audience (${users.length})`}
 				</h2>
+				<CloseButton isSmall callback={props.toggleAudience} />
 			</header>
 			<div className="huddle-chat__sidebar-body">
-				<ul className="huddle-chat__sidebar-body-internal huddle-chat__sidebar-audience-members">
+				<ul className="huddle-chat__sidebar-body-internal huddle-chat__sidebar-audience-members" ref={audienceRef}>
 					{pageUsers.map(user => <li className="huddle-chat__sidebar-audience-member">
 						<User user={user} isThumbnail node={"div"} />
 					</li>)}
@@ -43,7 +96,7 @@ export default function AudienceView(props) {
 			</div>
 
 			{pageCount > 1 && <>
-				<footer class="huddle-chat__sidebar-footer">
+				<footer className="huddle-chat__sidebar-footer">
 					<button type="button" className="btn btn-outline-primary huddle-chat__audience-prev" title="Previous" aria-label="Previous page of attendees"
 						disabled={pageIndex == 1 ? "disabled" : undefined} onClick={() => prevAttendees()}>
 						<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 474.133 474.133">

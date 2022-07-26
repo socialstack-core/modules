@@ -8,10 +8,39 @@
     --fallback__huddle-sidebar-header-font-size: 14px;
     --fallback__huddle-sidebar-footer-bg: transparent;
     --fallback__huddle-sidebar-footer-fg: currentColor;
+	--fallback__huddle-sidebar-width: 320px;
     --fallback__huddle-audience-member-bg: #444;
+	--fallback__huddle-thumbnail-width: 160px;
+	--fallback__huddle-thumbnail-height: 90px;
 }
 
+$huddle-stage-column-width: minmax(0, 1fr);
+$huddle-sidebar-column-width: var(--huddle-sidebar-width, var(--fallback__huddle-sidebar-width));
+$huddle-thumbnail-width: var(--huddle-thumbnail-width, var(--fallback__huddle-thumbnail-width));
+
 html {
+
+    // override audience sidebar width based on the number of audience members
+    // (see AudienceView.js for how this info ends up on <html>)
+    &[data-audience-columns="1"] {
+
+        .huddle-chat {
+
+            &--audience {
+                grid-template-columns: $huddle-stage-column-width $huddle-thumbnail-width;
+            }
+
+            &__sidebar {
+
+                &-audience-member {
+                    width: 100%;
+                }
+
+            }
+
+        }
+
+    }
 
     &.disable-scroll {
         overflow-y: hidden;
@@ -78,26 +107,35 @@ html {
     font-weight: var(--huddle-font-weight, var(--fallback__huddle-font-weight));
     overflow: hidden;
     display: grid;
-    grid-template-columns: minmax(0, 1fr);
-    grid-template-rows: auto minmax(0, 1fr) auto;
+    grid-template-columns: $huddle-stage-column-width;
+    grid-template-rows: auto auto minmax(0, 1fr) auto auto;
     grid-template-areas:
         "header" 
+        "notifications"
         "main" 
+        "status"
         "footer";
 
     &--sidebar,
     &--audience,
     &--conversation {
-        grid-template-columns: minmax(0, 1fr) $huddle-chat-sidebar;
+        grid-template-columns: $huddle-stage-column-width $huddle-sidebar-column-width;
         grid-template-areas:
             "header header" 
+            "notifications sidebar"
             "main sidebar" 
+            "status sidebar" 
             "footer footer";
     }
 
     // header
     &__header {
         grid-area: header;
+    }
+
+    // notifications
+    &__notifications {
+        grid-area: notifications;
     }
 
     // main stage area
@@ -132,6 +170,9 @@ html {
             padding: .5rem;
             background: var(--huddle-sidebar-header-bg, var(--fallback__huddle-sidebar-header-bg));
             color: var(--huddle-sidebar-header-fg, var(--fallback__huddle-sidebar-header-fg));
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
         }
 
         &-heading {
@@ -148,6 +189,10 @@ html {
             padding-left: 1px;
             min-height: 0;
             overflow: visible;
+
+            &-internal {
+                height: 100%;
+            }
         }
 
         &-audience-members {
@@ -184,6 +229,11 @@ html {
             }
         }
 
+    }
+
+    // status
+    &__status {
+        grid-area: status;
     }
 
     // footer   
@@ -227,16 +277,8 @@ html {
 	*/
 
     // footer
-    &__options {
+    &__footer {
         grid-area: footer;
-
-        #{$huddle-chat}__button {
-            border-radius: 50%;
-            width: 3rem;
-            height: 3rem;
-            border-width: 2px;
-        }
-
     }
 
     // playback
@@ -270,26 +312,30 @@ html {
 @media only screen and (orientation: portrait) {
 
     .huddle-chat {
-        grid-template-rows: auto minmax(0, 1fr) auto;
+        grid-template-rows: auto auto minmax(0, 1fr) auto auto;
         grid-template-columns: minmax(0, 1fr);
         grid-template-areas:
           "header"
-          "main"
+          "notifications"
+          "main" 
+          "status"
           "footer";
 
         &--sidebar,
         &--audience,
         &--conversation {
-            grid-template-rows: auto minmax(0, 1fr) 208px auto;
+            grid-template-rows: auto auto minmax(0, 1fr) 208px auto auto;
             grid-template-areas:
               "header"
-              "main"
+              "notifications"
+              "main" 
               "sidebar"
+              "status"
               "footer";
         }
 
         &--conversation {
-            grid-template-rows: auto minmax(40vh, 1fr) minmax(0, 1fr) auto;
+            grid-template-rows: auto auto minmax(40vh, 1fr) minmax(0, 1fr) auto auto;
         }
 
         &__main {
@@ -340,7 +386,7 @@ html {
         &--sidebar,
         &--audience,
         &--conversation {
-            grid-template-rows: auto minmax(0, 1fr) minmax(200px, calc((((25vw - 1px) / (16/9)) * 3) + 56px)) auto;
+            grid-template-rows: auto auto minmax(0, 1fr) minmax(200px, calc((((25vw - 1px) / (16/9)) * 3) + 56px)) auto auto;
         }
 
         &__sidebar {

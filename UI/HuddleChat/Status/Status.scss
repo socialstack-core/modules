@@ -1,0 +1,37 @@
+:root {
+	--fallback__huddle-status-height: 4rem;
+	--fallback__huddle-status-bg: #f8f2d8;
+    --fallback__huddle-status-fg: #584c19;
+}
+
+$huddle-status-padding-x: 24px;
+$huddle-status-padding-y: 8px;
+
+.huddle-chat {
+	$huddle-chat: &;
+
+	&__status {
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		padding: $huddle-status-padding-y $huddle-status-padding-x;
+		background: var(--huddle-status-bg, var(--fallback__huddle-status-bg));
+		color: var(--huddle-status-fg, var(--fallback__huddle-status-fg));
+		height: var(--huddle-status-height, var(--fallback__huddle-status-height));
+		z-index: 999;
+
+		&-message {
+			flex: 1 1 auto;
+			text-align: center;
+			font-size: 16px;
+			font-weight: 700;
+			margin: 0;
+		}
+
+		&-close {
+			margin-inline-self: $huddle-status-padding-x;
+			align-self: flex-start;
+		}
+
+    }
+}

@@ -54,3 +54,15 @@
 	}
 	
 }
+
+.modal-body {
+
+	.av-test {
+		padding: 0;
+
+		&__title {
+			display: none;
+		}
+	}
+
+}
