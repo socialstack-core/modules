@@ -68,7 +68,7 @@ function newId() {
 }
 
 export default function Dropdown(props) {
-    var { className, variant, title, label, arrow, isOutline, isLarge, isSmall, splitCallback, children, stayOpenOnSelection, align, position } = props;
+    var { className, variant, title, label, arrow, isOutline, isLarge, isSmall, splitCallback, children, stayOpenOnSelection, align, position, disabled } = props;
     var dropdownClasses = ['dropdown'];
 
     if (className) {
@@ -77,6 +77,8 @@ export default function Dropdown(props) {
 
     if (splitCallback) {
         dropdownClasses.push('dropdown--split');
+        dropdownClasses.push('btn-group');
+        align = "Right";
     }
 
     // default to dropping down
@@ -118,7 +120,7 @@ export default function Dropdown(props) {
         switch (position) {
             case 'top':
             case 'bottom':
-                align = "Left";
+                align = splitCallback ? "Right" : "Left";
                 break;
 
             case 'left':
@@ -142,17 +144,22 @@ export default function Dropdown(props) {
 		variant = "primary";
 	}
 
-    var btnClass = isOutline ? "btn btn-outline-" + variant : "btn btn-" + variant;
+    var btnClass = [isOutline ? "btn btn-outline-" + variant : "btn btn-" + variant];
 	
 	if (isSmall) {
-		btnClass += " btn-sm";
+		btnClass.push("btn-sm");
 	}
 	
 	if (isLarge) {
-		btnClass += " btn-lg";
+		btnClass.push("btn-lg");
 	}
 		
-	var btnClassSplit = btnClass + " dropdown-toggle";
+    var btnClassSplit = btnClass;
+    btnClassSplit.push("dropdown-toggle");
+
+    if (splitCallback) {
+        btnClassSplit.push("dropdown-toggle-split");
+    }
 
     const [dropdownId] = useState(newId());
 
@@ -329,11 +336,12 @@ export default function Dropdown(props) {
                     {/* standard dropdown button */}
                     {!splitCallback && (
                         <button
-                            className={btnClassSplit}
+                            className={btnClassSplit.join(' ')}
                             type="button"
                             id={dropdownId}
                             aria-expanded={open}
-                            ref={toggleRef}>
+                            ref={toggleRef}
+                            disabled={disabled}>
 
                         {position == "left" && <>
                             <span className="dropdown__arrow">
@@ -358,19 +366,21 @@ export default function Dropdown(props) {
                     {/* split dropdown button */}
                     {splitCallback && <>
                         <button
-                            className={btnClass}
+                            className={btnClass.join(' ')}
                             type="button"
                             id={dropdownId}
-                            onClick={splitCallback}>
+                            onClick={splitCallback}
+                            disabled={disabled}>
                             <span className="dropdown__label">
                                 {label}
                             </span>
                         </button>
                         <button
-                            className={btnClassSplit}
+                            className={btnClassSplit.join(' ')}
                             type="button"
                             aria-expanded={open}
-                            ref={toggleRef}>
+                            ref={toggleRef}
+                            disabled={disabled}>
                             <span className="dropdown__arrow">
                                 {arrow}
                             </span>
@@ -379,7 +389,7 @@ export default function Dropdown(props) {
 
                         {/* dropdown contents */}
                         {open && (
-                            <ul className="dropdown-menu" aria-labelledby={dropdownId} ref={dropdownRef}>
+                            <ul className="dropdown-menu" data-source={className} aria-labelledby={dropdownId} ref={dropdownRef}>
                                 {children}
                             </ul>
                         )}

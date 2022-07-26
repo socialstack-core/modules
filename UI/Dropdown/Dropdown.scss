@@ -259,6 +259,14 @@
 			flex: 0 0 0%;
 		}
 
+		.dropdown-toggle {
+			height: auto;
+		}
+
+		.dropdown-menu {
+			top: 100%;
+		}
+
 	}
 
 	&-toggle {
@@ -275,6 +283,15 @@
 		> * {
 			pointer-events: none;
 		}
+
+		&-split {
+
+			.dropdown__arrow {
+				margin-inline-start: 0;
+			}
+
+		}
+
 
 	}
 
@@ -385,6 +402,30 @@
 		}
 
 		&-bottom {
+		}
+
+	}
+
+	&-item {
+
+		&.active,
+		&:active {
+			color: var(--primary-fg);
+			background-color: var(--primary);
+		}
+
+	}
+
+	&-menu-dark {
+
+		.dropdown-item {
+
+			&.active,
+			&:active {
+				color: var(--primary);
+				background-color: var(--primary-fg);
+			}
+
 		}
 
 	}
