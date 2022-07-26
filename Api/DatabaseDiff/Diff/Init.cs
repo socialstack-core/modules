@@ -251,31 +251,56 @@ namespace Api.Database
 				return entity;
 			});
 
-			service.EventGroup.CreatePartial.AddEventListener((Context context, T raw) => {
-				var cache = service.GetCacheForLocale(context == null ? 1 : context.LocaleId);
+			service.EventGroup.CreatePartial.AddEventListener((Context context, T newEntity) => {
 
-				if (cache != null)
+				// If this is a cached type, must add it to all locale caches.
+				if (service.CacheAvailable)
 				{
-					T entity;
+					// If the newEntity is not in the primary locale, we will need to derive the raw object.
+					// Any localised fields should be set to their default value (null/ 0).
+					var raw = context.LocaleId == 1 ? newEntity : service.CreateRawEntityFromTarget(newEntity);
 
-					if (context.LocaleId == 1)
+					var localeSet = ContentTypes.Locales;
+
+					for (var i = 0; i < localeSet.Length; i++)
 					{
-						// Primary locale. Entity == raw entity, and no transferring needs to happen. This is expected to always be the case for creations.
-						entity = raw;
-					}
-					else
-					{
-						// Get the 'real' (not raw) entity from the cache. We'll copy the fields from the raw object to it.
-						entity = new T();
+						var locale = localeSet[i];
 
-						// Transfer fields from raw to entity, using the primary object as a source of blank fields:
-						service.PopulateTargetEntityFromRaw(entity, raw, null);
-					}
+						if (locale == null)
+						{
+							continue;
+						}
 
-					cache.Add(context, entity, raw);
+						var cache = service.GetCacheForLocale(locale.Id);
+
+						if (cache == null)
+						{
+							continue;
+						}
+
+						if (i == 0)
+						{
+							// Primary locale cache - raw and target are the same object.
+							cache.Add(context, raw, raw);
+						}
+						else if (locale.Id == context.LocaleId)
+						{
+							// Add the given object as-is.
+							cache.Add(context, newEntity, raw);
+						}
+						else
+						{
+							// Secondary locale. The target object is just a clone of the raw object.
+							var entity = (T)Activator.CreateInstance(service.InstanceType);
+
+							service.PopulateTargetEntityFromRaw(entity, raw, raw);
+
+							cache.Add(context, entity, raw);
+						}
+					}
 				}
-				
-				return new ValueTask<T>(raw);
+
+				return new ValueTask<T>(newEntity);
 			});
 
 			service.EventGroup.Load.AddEventListener(async (Context context, T item, ID id) => {

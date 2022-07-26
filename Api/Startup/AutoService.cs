@@ -1009,6 +1009,35 @@ public partial class AutoService<T, ID> : AutoService
 	}
 
 	/// <summary>
+	/// Creates a raw entity from a given localised target.
+	/// This clones the given object and sets any localised fields to their default.
+	/// </summary>
+	/// <param name="entity"></param>
+	/// <returns></returns>
+	public T CreateRawEntityFromTarget(T entity)
+	{
+		var raw = (T)Activator.CreateInstance(InstanceType);
+
+		var allFields = FieldMap.Fields;
+
+		for (var i = 0; i < allFields.Count; i++)
+		{
+			// Get the field:
+			var field = allFields[i];
+
+			// If the field is localised, it remains on its default.
+			if (field.LocalisedName == null)
+			{
+				// Not a localised field - set its value from the given entity.
+				var value = field.TargetField.GetValue(entity);
+				field.TargetField.SetValue(raw, value);
+			}
+		}
+
+		return raw;
+	}
+
+	/// <summary>
 	/// Populates the given entity from the given raw entity. Any blank localised fields are copied from the primary entity.
 	/// </summary>
 	/// <param name="entity"></param>
