@@ -6,6 +6,10 @@
 * Specific ref protocols (like public: private: fa: youtube: etc) use the options as they wish.
 */
 
+const HIDE_ON_ERROR = (e) => {
+	e.currentTarget.style.display = 'none';
+};
+
 export default function getRef(ref, options) {
 	var r = getRef.parse(ref);
 	return r ? r.handler(r.ref, options || {}, r) : null;
@@ -15,9 +19,9 @@ function basicUrl(url, options, r){
 	if(options.url){
 		return r.scheme + '://' + url;
 	}
-	
+
 	// React component by default:
-	return (<img loading="lazy" src={r.scheme + '://' + url} {...options.attribs} />);
+	return (<img loading="lazy" src={r.scheme + '://' + url} {...options.attribs} onError={options.hideOnError ? HIDE_ON_ERROR : undefined} />);
 }
 
 function staticFile(ref, options, r){
@@ -36,7 +40,7 @@ function staticFile(ref, options, r){
 	}
 	
 	// React component by default:
-	return (<img src={url} width={options.size || undefined} loading="lazy" {...options.attribs} />);
+	return (<img src={url} width={options.size || undefined} loading="lazy" {...options.attribs} onerror={options.hideOnError ? HIDE_ON_ERROR : undefined} />);
 }
 
 function contentFile(ref, options, r){
@@ -94,9 +98,9 @@ function contentFile(ref, options, r){
 	if(video){
 		return (<video src={url} width={options.size || 256} loading="lazy" controls {...options.attribs} />);
 	}
-	
+
 	// React component by default:
-	return (<img src={url} width={options.size || undefined} loading="lazy" {...options.attribs} />);
+	return (<img src={url} width={options.size || undefined} loading="lazy" {...options.attribs} onerror={options.hideOnError ? HIDE_ON_ERROR : undefined} />);
 }
 
 function fontAwesomeIcon(ref, options, r){
