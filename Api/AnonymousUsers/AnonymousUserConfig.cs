@@ -1,15 +1,13 @@
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
+
+using Api.Configuration;
 
 namespace Api.AnonymousUsers
 {
 	/// <summary>
-	/// The appsettings.json config block for anon users.
+	/// The database config block for anonymous user config.
 	/// </summary>
-    public class AnonymousUserConfig
-    {
+	public class AnonymousUserConfig : Config
+	{
 		/// <summary>
 		/// Set this to true to disable the module without needing to uninstall it.
 		/// </summary>
@@ -29,6 +27,11 @@ namespace Api.AnonymousUsers
 		/// Random name will be selected from this. If not provided, default set is used.
 		/// </summary>
 		public string[] LastNames { get; set; }
+
+		/// <summary>
+		/// List of user agents to ignore. So for example from monitoring services so that they dont create users.
+		/// </summary>
+		public string[] IgnoreUserAgents { get; set; }
 	}
 	
 }

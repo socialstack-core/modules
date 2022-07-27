@@ -10,6 +10,7 @@ using Microsoft.Extensions.Configuration;
 using Api.Configuration;
 using Microsoft.Extensions.Hosting;
 using Microsoft.AspNetCore.Http;
+using System.Linq;
 
 namespace Api.AnonymousUsers
 {
@@ -17,8 +18,8 @@ namespace Api.AnonymousUsers
 	/// Handles anonymous users. Generates accounts for them.
 	/// Instanced automatically. Use injection to use this service, or Startup.Services.Get.
 	/// </summary>
-	public partial class AnonymousUserService
-    {
+	public partial class AnonymousUserService : AutoService
+	{
 		private AnonymousUserConfig _configuration;
 		private UserService _users;
 		
@@ -28,7 +29,7 @@ namespace Api.AnonymousUsers
 		public AnonymousUserService(UserService users)
         {
 			_users = users;
-			_configuration = AppSettings.GetSection("AnonymousUsers").Get<AnonymousUserConfig>();
+			_configuration = GetConfig<AnonymousUserConfig>();
 			
 			if(_configuration != null)
 			{
@@ -46,6 +47,12 @@ namespace Api.AnonymousUsers
 				{
 					LastNames = _configuration.LastNames;
 				}
+
+				if (_configuration.IgnoreUserAgents != null)
+                {
+					IgnoreUserAgents = _configuration.IgnoreUserAgents.Select(s => s.ToLower()).ToArray();
+                }
+
 			}
 			
 			if(FirstNames == null)
@@ -60,6 +67,17 @@ namespace Api.AnonymousUsers
 
 			Events.ContextAfterAnonymous.AddEventListener(async (Context ctx, Context result, HttpRequest request) =>
 			{
+				// ignore specified user agents
+				if (IgnoreUserAgents != null && IgnoreUserAgents.Any() && request.Headers.ContainsKey("user-agent"))
+                {
+					var userAgent = ((string)request.Headers["user-agent"]).ToLower();
+
+					if (!string.IsNullOrWhiteSpace(userAgent) && IgnoreUserAgents.Any(s => userAgent.Contains(s)))
+					{
+						return result;
+					}
+                }
+
 				if (result != null && result.UserId == 0)
 				{
 					// Create an account and use a context for it:
@@ -109,7 +127,12 @@ namespace Api.AnonymousUsers
 		/// Last names in use.
 		/// </summary>
 		private string[] LastNames;
-		
+	
+		/// <summary>
+		/// User agents to ignore.
+		/// </summary>
+		private string[] IgnoreUserAgents;
+
 		private Random _randomiser = new Random();
 		
 		/// <summary>
