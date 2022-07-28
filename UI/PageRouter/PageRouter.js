@@ -68,7 +68,7 @@ export default (props) => {
 	}
 	
 	function goNow(url) {
-		if(useDefaultNav(document.location.pathname, url)){
+		if(useDefaultNav(hash ? '' : document.location.pathname, url)){
 			document.location = url;
 			return;
 		}
@@ -180,12 +180,12 @@ export default (props) => {
 				}
 				
 				if(href && href.length){
-					var pn = document.location.pathname;
+					var pn = hash ? '' : document.location.pathname;
 					if(useDefaultNav(pn, href)){
 						return;
 					}
 					e.preventDefault();
-					go(cur.pathname + cur.search);
+					go(hash ? href : cur.pathname + cur.search);
 					return;
 				}
 			}
