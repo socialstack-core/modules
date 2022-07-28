@@ -46,7 +46,7 @@ function renderCallNow(props) {
 	};
 
 	if (props.showCallInModal && activeCallSlug) {
-		return <CallModal callSlug={activeCallSlug} hangup={() => hangup()}/>;
+		return <CallModal callSlug={activeCallSlug} hangup={() => hangup()} closeWhenNoPeers={props.closeWhenNoPeers} />;
 	}
 	
 	return <>

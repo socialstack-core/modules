@@ -20,7 +20,7 @@ function renderCallModal(props) {
 	}
 	
 	return <Modal visible={callActive} isExtraLarge noClose customClass="call-modal">
-			<VideoChat roomSlug={props.callSlug} onClose={onClose}/>
+			<VideoChat roomSlug={props.callSlug} onClose={onClose} closeWhenNoPeers={props.closeWhenNoPeers}/>
 		</Modal>;
 	
 }
