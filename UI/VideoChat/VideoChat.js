@@ -55,11 +55,10 @@ export default class VideoChat extends React.Component {
 		this.onEndMeContainerDrag = this.onEndMeContainerDrag.bind(this);
 		this.onError = this.onError.bind(this);
 		this.onPeerAdd = this.onPeerAdd.bind(this);
+		this.onPeerRemove = this.onPeerRemove.bind(this);
 	}
 
 	mount(props) {
-		console.log("VideoChat props: ", props);
-
 		return new HuddleClient({
 			roomSlug: props.roomSlug,
 			meetingUrl: props.meetingUrl, // Can use this + huddle prop instead of roomSlug or roomId
@@ -192,10 +191,20 @@ export default class VideoChat extends React.Component {
 		this.setState({});
 	}
 
+	onPeerRemove(evt) {
+		// Peer changed
+		this.setState({});
+
+		if (this.props.closeWhenNoPeers && this.state.huddleClient && this.state.huddleClient.peers && this.state.huddleClient.peers.length == 0) {
+			this.props.onClose && this.props.onClose();
+		}
+	}
+
 	connect(huddleClient) {
 		huddleClient.addEventListener('roomupdate', this.onRoomUpdate);
 		huddleClient.addEventListener('error', this.onError);
 		huddleClient.addEventListener('peeradd', this.onPeerAdd);
+		huddleClient.addEventListener('peerremove', this.onPeerRemove);
 		if (!this.state.test) {
 			huddleClient.join();
 		}
@@ -211,6 +220,7 @@ export default class VideoChat extends React.Component {
 		huddleClient.removeEventListener('roomupdate', this.onRoomUpdate);
 		huddleClient.removeEventListener('error', this.onError);
 		huddleClient.removeEventListener('peeradd', this.onPeerAdd);
+		huddleClient.removeEventListener('peerremove', this.onPeerRemove);
 
 		if (!this.state.test) {
 			huddleClient.close();
@@ -459,12 +469,14 @@ VideoChat.defaultProps = {
 	intialConsume: true,
 	showRaisedHands: true,
 	hideMeView: false,
-	floatMeView: true
+	floatMeView: true,
+	closeWhenNoPeers: false
 };
 
 VideoChat.propTypes = {
 	roomId: 'int',
 	roomSlug: 'string',
 	hideMeView: 'bool',
-	floatMeView: 'bool'
+	floatMeView: 'bool',
+	closeWhenNoPeers: 'bool'
 };
