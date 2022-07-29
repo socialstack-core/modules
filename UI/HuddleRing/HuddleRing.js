@@ -46,7 +46,7 @@ function renderCallNow(props) {
 	};
 
 	if (props.showCallInModal && activeCallSlug) {
-		return <CallModal callSlug={activeCallSlug} hangup={() => hangup()} closeWhenNoPeers={props.closeWhenNoPeers} />;
+		return <CallModal callSlug={activeCallSlug} hangup={() => hangup()} closeWhenNoPeers={props.closeWhenNoPeers} closeButtonText={props.closeButtonText}/>;
 	}
 	
 	return <>
@@ -289,7 +289,7 @@ export function RingListener(props){
 	}
 
 	if (props.showCallInModal && activeCall?.slug) {
-		return <CallModal callSlug={activeCall.slug} hangup={() => hangup(activeCall)}/>;
+		return <CallModal callSlug={activeCall.slug} hangup={() => hangup(activeCall)} closeWhenNoPeers={props.closeWhenNoPeers} closeButtonText={props.closeButtonText}/>;
 	}
 	
 	if(incomingRing){
