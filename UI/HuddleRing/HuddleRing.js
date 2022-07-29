@@ -168,7 +168,9 @@ function CallUI(props){
 			<div className="modal-content">
 			<section className="huddle-call-ui" data-theme={props.theme || 'huddle-ring-theme'}>
 				<div className={wrapperClassName} style={style}>
-					<span className="profile-initials">{isGroup ? "Group" : user ? getInitials(user.fullName) : ""}</span>
+					{!user.avatarRef &&
+						<span className="profile-initials">{isGroup ? "Group" : user ? getInitials(user.fullName) : ""}</span>
+					}
 				</div>
 				{everyoneHungup ? <p>Your call has been declined.</p> : props.intro && <p>{props.intro}</p>}
 				<p className="profile-name">
@@ -205,7 +207,9 @@ function CallFromUI(props) {
 			<div className="modal-content">
 			<section className="huddle-call-ui" data-theme={props.theme || 'huddle-ring-theme'}>
 				<div className={wrapperClassName} style={style}>
+				{!user.avatarRef &&
 					<span className="profile-initials">{getInitials(user.fullName)}</span>
+				}
 				</div>
 				{props.intro && <p>{props.intro}</p>}
 				<p className="profile-name">
