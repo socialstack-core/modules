@@ -278,7 +278,7 @@ export default class VideoChat extends React.Component {
 			</Container>;
 		}
 
-		var { children, allowFullscreen, disablePeerControls, onRenderPeer, onPreRender, onClose } = this.props;
+		var { children, allowFullscreen, disablePeerControls, onRenderPeer, onPreRender, onClose, closeButtonText } = this.props;
 
 		// If we have at least 1 actual child node, then there is a visible activity.
 		// It acts like a fullscreen peer.
@@ -348,9 +348,9 @@ export default class VideoChat extends React.Component {
 			</div>
 
 			{/* close button */}
-			<a href={closeButtonHref} className="btn btn-close" title="Leave chat" onClick={onClose ? () => onClose() : undefined}>
+			<a href={closeButtonHref} className="btn btn-close" title={closeButtonText} onClick={onClose ? () => onClose() : undefined}>
 				<i className="fr fr-times"></i>
-				<span className="sr-only">Leave chat</span>
+				<span className="sr-only">{closeButtonText}</span>
 			</a>
 			<Peers
 				className={cfg.peersClassName}
@@ -470,7 +470,8 @@ VideoChat.defaultProps = {
 	showRaisedHands: true,
 	hideMeView: false,
 	floatMeView: true,
-	closeWhenNoPeers: false
+	closeWhenNoPeers: false,
+	closeButtonText: 'Leave chat'
 };
 
 VideoChat.propTypes = {
@@ -478,5 +479,6 @@ VideoChat.propTypes = {
 	roomSlug: 'string',
 	hideMeView: 'bool',
 	floatMeView: 'bool',
-	closeWhenNoPeers: 'bool'
+	closeWhenNoPeers: 'bool',
+	closeButtonText: 'string'
 };
