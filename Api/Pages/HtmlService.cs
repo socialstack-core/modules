@@ -505,6 +505,11 @@ namespace Api.Pages
 			doc.Html.With("class", "ui head-only").With("lang", locale.Code)
 				.With("data-theme", themeConfig.DefaultAdminThemeId);
 
+			if (locale.RightToLeft)
+			{
+				doc.Html.With("dir", "rtl");
+			}
+
 			var head = doc.Head;
 
 			// If there are tokens, get the primary object:
@@ -571,6 +576,11 @@ namespace Api.Pages
 			doc.Html
 				.With("class", "ui mobile").With("lang", locale.Code)
 				.With("data-theme", themeConfig.DefaultThemeId);
+
+			if (locale.RightToLeft)
+			{
+				doc.Html.With("dir", "rtl");
+			}
 
 			var head = doc.Head;
 
@@ -771,7 +781,12 @@ namespace Api.Pages
 				.With("class", isAdmin ? "admin web" : "ui web")
 				.With("lang", locale.Code)
 				.With("data-theme", isAdmin ? themeConfig.DefaultAdminThemeId : themeConfig.DefaultThemeId);
-			
+
+			if (locale.RightToLeft)
+			{
+				doc.Html.With("dir", "rtl");
+			}
+
 			var head = doc.Head;
 
 			// If there are tokens, get the primary object:

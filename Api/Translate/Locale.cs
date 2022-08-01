@@ -38,6 +38,12 @@ namespace Api.Translate
 		/// </summary>
 		[Data("hint", "Indicates if the locale is not currently available")]
 		public bool isDisabled;
+
+		/// <summary>
+		/// Indicates this locale goes primarily right to left, such as Hebrew or Arabic.
+		/// </summary>
+		[Data("hint", "Set this if the locale goes right to left, such as Hebrew or Arabic")]
+		public bool RightToLeft;
 	}
 
 }
