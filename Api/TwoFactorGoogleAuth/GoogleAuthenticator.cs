@@ -2,9 +2,10 @@
 using System;
 using System.Globalization;
 using System.Net;
+using System.Net.Http;
 using System.Security.Cryptography;
 using System.Text;
-
+using System.Threading.Tasks;
 
 namespace Api.TwoFactorGoogleAuth
 {
@@ -62,11 +63,12 @@ namespace Api.TwoFactorGoogleAuth
 		/// <summary>
 		///   Generates a QR code bitmap for provisioning.
 		/// </summary>
-		public byte[] GenerateProvisioningImage(string identifier, byte[] key, int width = 256, int height = 256)
+		public async Task<byte[]> GenerateProvisioningImage(string identifier, byte[] key, int width = 256, int height = 256)
 		{
-			using (var Client = new WebClient())
+			using (var client = new HttpClient())
 			{
-				return Client.DownloadData(GetProvisionUrl(identifier, key, width,height));
+				var bytes = await client.GetByteArrayAsync(GetProvisionUrl(identifier, key, width, height));
+				return bytes;
 			}
 		}
 

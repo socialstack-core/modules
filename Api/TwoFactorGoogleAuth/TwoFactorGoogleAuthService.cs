@@ -133,7 +133,7 @@ namespace Api.TwoFactorGoogleAuth
 		/// <summary>
 		/// Checks if the given pin is acceptable for the given hex encoded secret.
 		/// </summary>
-		public byte[] GenerateProvisioningImage(string secret)
+		public async Task<byte[]> GenerateProvisioningImage(string secret)
 		{
 			var bytes = new byte[secret.Length / 2];
 			for (var i = 0; i < bytes.Length; i++)
@@ -141,7 +141,7 @@ namespace Api.TwoFactorGoogleAuth
 				bytes[i] = Convert.ToByte(secret.Substring(i * 2, 2), 16);
 			}
 			
-			return _ga.GenerateProvisioningImage(siteUrl, bytes);
+			return await _ga.GenerateProvisioningImage(siteUrl, bytes);
 		}
 		
 		/// <summary>
@@ -180,9 +180,9 @@ namespace Api.TwoFactorGoogleAuth
 		/// </summary>
 		/// <param name="key"></param>
 		/// <returns></returns>
-		public byte[] GenerateProvisioningImage(byte[] key)
+		public async Task<byte[]> GenerateProvisioningImage(byte[] key)
 		{
-			return _ga.GenerateProvisioningImage(siteUrl, key);
+			return await _ga.GenerateProvisioningImage(siteUrl, key);
 		}
 
 

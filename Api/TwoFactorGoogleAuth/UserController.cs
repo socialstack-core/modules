@@ -85,7 +85,7 @@ namespace Api.Users
 				user.TwoFactorSecretPending = key;
 			});
 			
-			var imageBytes = twoFA.GenerateProvisioningImage(key);
+			var imageBytes = await twoFA.GenerateProvisioningImage(key);
 			
 			return File(new MemoryStream(imageBytes), "image/jpeg");
 		}
