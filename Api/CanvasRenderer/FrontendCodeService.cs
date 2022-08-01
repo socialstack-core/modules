@@ -164,9 +164,11 @@ namespace Api.CanvasRenderer
 				}
 			}
 		}
-
+		
+		#if DEBUG
 		private readonly string reloadMessage = "{\"host\":1,\"reload\":1}";
-
+		#endif
+		
 		/// <summary>
 		/// Instanced automatically.
 		/// </summary>
