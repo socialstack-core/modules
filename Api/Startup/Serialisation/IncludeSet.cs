@@ -338,12 +338,6 @@ namespace Api.Startup
 
 			var svc = field.VirtualInfo.Service;
 
-			if (field.VirtualInfo.IsList && RelativeTo.InstanceType == svc.InstanceType)
-			{
-				// Can't include a list field which is of the same type as the parent.
-				return null;
-			}
-
 			var name = field.VirtualInfo.FieldName;
 
 			if (UniqueChildNodes.TryGetValue(name, out InclusionNode result))
