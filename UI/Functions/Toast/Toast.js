@@ -9,22 +9,35 @@ export const Provider = (props) => {
 	const [toastList, setToastList] = React.useState([]);
 
 	let close =  toastInfo => {
-		toastList = toastList.filter(toast => toast != toastInfo);
-		setToastList(toastList);
+		setToastList(toastList.filter(toast => toast != toastInfo));
 	}
 
+	React.useEffect(() => {
+        toastList.forEach(toast => {
+            var now = Date.now();
+            toast.timeout = setTimeout(() => {
+                close(toast);
+            }, toast.closeTime - now);
+        })
+
+        return () => {
+            toastList.forEach(toast => {
+                if(toast.timeout){
+                    clearTimeout(toast.timeout);
+                }
+            });
+        };
+
+    }, [toastList]);
+
+
 	let pop = toastInfo => {
-		
-		toastList.push(toastInfo);
-		
-		setToastList(toastList);
-		
-		if(toastInfo.duration){
-			setTimeout(() => {
-				close(toastInfo);
-			}, toastInfo.duration * 1000);
-		}
-	}
+        if(toastInfo.duration){
+            toastInfo.closeTime = Date.now() + (toastInfo.duration * 1000);
+        }
+
+        setToastList([...toastList, toastInfo]);
+    }
 
 	return (
 		<SessionToasts.Provider
