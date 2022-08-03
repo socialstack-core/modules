@@ -1038,7 +1038,9 @@ public partial class AutoService<T, ID> : AutoService
 	}
 
 	/// <summary>
-	/// Populates the given entity from the given raw entity. Any blank localised fields are copied from the primary entity.
+	/// Populates the given entity from the given raw and primary entities.
+	/// The raw entity is used to check if a locale specific override exists.
+	/// If it does, the value comes from the raw entity. Otherwise, it comes from the primary entity.
 	/// </summary>
 	/// <param name="entity"></param>
 	/// <param name="raw"></param>
@@ -1053,17 +1055,28 @@ public partial class AutoService<T, ID> : AutoService
 			// Get the field:
 			var field = allFields[i];
 
-			// Read the value from the raw object:
-			var value = field.TargetField.GetValue(raw);
+			object value;
 
-			// If the field is localised, and the raw value is null, use value from primaryEntity instead.
-			// Note! [Localised] fields must be a nullable type for this to ever happen.
-			if (field.LocalisedName != null && value == null && primaryEntity != null)
+			// If the field is not localised, then the new value comes from the primary entity.
+			if (field.LocalisedName == null)
 			{
-				// Read from primary entity instead:
 				value = field.TargetField.GetValue(primaryEntity);
 			}
-			
+			else
+			{
+				// Does the locale specify a value for this field?
+				// Read the value from the raw object:
+				value = field.TargetField.GetValue(raw);
+
+				// If the field is localised, and the raw value is null, use value from primaryEntity instead.
+				// Note! [Localised] fields must be a nullable type for this to ever happen.
+				if (value == null)
+				{
+					// Read from primary entity instead:
+					value = field.TargetField.GetValue(primaryEntity);
+				}
+			}
+
 			field.TargetField.SetValue(entity, value);
 		}
 
