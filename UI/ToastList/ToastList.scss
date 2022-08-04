@@ -1,10 +1,52 @@
-/*
-	Optional stylesheet
-*/
-
-.toast-list{
+.toast-list {
+	$toast-list: &;
 	position: fixed;
-	bottom: 70px;
-	left: 50%;
-	transform: translateX(-50%);
+	max-height: calc(100vh - 170px);
+    overflow-y: auto;
+	padding: .5rem 1rem 1rem 1rem;
+
+	&--left {
+		left: 1rem;
+	}
+
+	&--centre-x {
+		left: 50%;
+		transform: translateX(-50%);
+
+		&#{$toast-list}--centre-y {
+			transform: translateX(-50%) translateY(-50%);
+		}
+	}
+
+	&--right {
+		right: 1rem;
+	}
+
+	&--top {
+		top: 100px;
+
+		.toast {
+			margin-block-end: 1rem;
+		}
+	}
+
+	&--centre-y {
+		top: 50%;
+		transform: translateY(-50%);
+
+		&#{$toast-list}--centre-x {
+			transform: translateX(-50%) translateY(-50%);
+		}
+
+	}
+
+	&--bottom {
+		bottom: 70px;
+
+		.toast {
+			margin-block-start: 1rem;
+		}
+
+	}
+
 }
