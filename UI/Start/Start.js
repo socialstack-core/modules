@@ -7,11 +7,16 @@ export default function start(custom){
 		// Init all modules.
 		for(var m in __mm){
 			var moduleValue = __mm[m] && global.require(m);
-
-			if(moduleValue.Provider) {
-				providers.push(moduleValue.Provider);
+			var prov = moduleValue.Provider;
+			if(prov) {
+				if(!prov.priority){
+					prov.priority = 10;
+				}
+				providers.push(prov);
 			}
 		}
+		
+		providers.sort((a,b) => {return a.priority - b.priority;});
 	}
 	
 	var root = document.getElementById('react-root');
