@@ -16,7 +16,8 @@ export default function start(custom){
 			}
 		}
 		
-		providers.sort((a,b) => {return a.priority - b.priority;});
+		// Sorted backwards because the App component stacks them up in reverse
+		providers.sort((a,b) => {return b.priority - a.priority;});
 	}
 	
 	var root = document.getElementById('react-root');
