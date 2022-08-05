@@ -94,6 +94,7 @@
 		"Admin/AutoForm",
 		"Admin/AceEditor",
 		"Admin/AutoList",
+	    	"Admin/DateTimePicker",
 		"Admin/LoginForm",
 		"Admin/MultiSelect",
 		"Admin/PasswordResetButton",
