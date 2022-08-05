@@ -220,7 +220,7 @@ public partial class AutoService<T, ID>
     /// and also may use a per-object cache which contains string segments.
     /// addResultWrap will wrap the object with {"result":...}. It is assumed true if includes is not null.
     /// </summary>
-    public async ValueTask ToJson(Context context, T entity, Writer writer, Stream targetStream = null, string includes = null)
+    public async ValueTask ToJson(Context context, T entity, Writer writer, Stream targetStream = null, string includes = null, bool addResultWrap = true)
     {
         // Get the json structure:
         var jsonStructure = await GetTypedJsonStructure(context);
@@ -233,7 +233,10 @@ public partial class AutoService<T, ID>
         // Get the include set (can be null):
         var includeSet = await GetContentFields().GetIncludeSet(includes);
 
-        writer.Write(ResultHeader, 0, 10);
+        if (addResultWrap)
+        {
+            writer.Write(ResultHeader, 0, 10);
+        }
 
         if (entity == null)
         {
@@ -246,7 +249,10 @@ public partial class AutoService<T, ID>
 
         if (includeSet == null)
         {
-            writer.Write((byte)'}');
+            if (addResultWrap)
+            {
+                writer.Write((byte)'}');
+            }
 
             if (targetStream != null)
             {
@@ -283,7 +289,14 @@ public partial class AutoService<T, ID>
                 await ExecuteIncludes(context, targetStream, writer, firstCollector, includeSet.RootInclude);
             }
 
-            writer.Write(IncludesFooter, 0, 2);
+            if (addResultWrap)
+            {
+                writer.Write(IncludesFooter, 0, 2);
+            }
+            else
+            {
+                writer.Write((byte)']');
+            }
 
             if (targetStream != null)
             {
