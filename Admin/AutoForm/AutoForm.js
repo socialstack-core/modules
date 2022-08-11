@@ -549,7 +549,7 @@ class AutoFormInternal extends React.Component {
 							}
 						}
 					>
-						{this.renderFormFields()}
+						{this.props.renderFormFields ? this.props.renderFormFields(this.state) : this.renderFormFields()}
 					</Form>
 				</Tile>
 				{this.state.confirmDelete && this.renderConfirmDelete(pageState, setPage)}
