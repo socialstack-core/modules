@@ -49,7 +49,7 @@ namespace Api.Payments
 		{
 			if (purchase.PaymentMethodId == 0)
 			{
-				throw new PublicException("No payment method specified.", "payment_method_required");
+				throw new PublicException("No payment gateway specified.", "payment_method_required");
 			}
 			
 			// Get the payment method (must be reachable by the context):
@@ -92,12 +92,25 @@ namespace Api.Payments
 
 			foreach (var pq in productQuantities)
 			{
-				await _prodQuantities.Create(context, new ProductQuantity()
+				var purchaseQuantity = new ProductQuantity()
 				{
 					ProductId = pq.ProductId,
 					Quantity = pq.Quantity,
 					PurchaseId = toPurchase.Id
-				}, DataOptions.IgnorePermissions);
+				};
+
+				// Inform that the given product quantity is being added to a purchase and is ready to be charged.
+				// This is the place to inject usage based on reading some other dataset(s).
+				purchaseQuantity = await Events.ProductQuantity.BeforeAddToPurchase.Dispatch(context, purchaseQuantity, toPurchase);
+
+				if (purchaseQuantity == null)
+				{
+					continue;
+				}
+
+				// Add it:
+				await _prodQuantities.Create(context, purchaseQuantity, DataOptions.IgnorePermissions);
+
 			}
 		}
 		
@@ -174,9 +187,13 @@ namespace Api.Payments
 		/// </summary>
 		/// <param name="context"></param>
 		/// <param name="purchase"></param>
+		/// <param name="paymentMethod"></param>
 		/// <returns></returns>
-		public async ValueTask<Purchase> Execute(Context context, Purchase purchase)
+		public async ValueTask<Purchase> Execute(Context context, Purchase purchase, PaymentMethod paymentMethod = null)
 		{
+			// Event to indicate the product is about to execute:
+			await Events.Purchase.BeforeExecute.Dispatch(context, purchase);
+
 			// First ensure the correct total:
 			var totalAmount = await CalcuateTotal(context, purchase);
 
@@ -205,8 +222,14 @@ namespace Api.Payments
 				);
 			}
 
+			if (paymentMethod == null)
+			{
+				// Get the payment method:
+				paymentMethod = await _paymentMethods.Get(context, purchase.PaymentMethodId);
+			}
+
 			// Ask the gateway to do the thing:
-			await gateway.ExecutePurchase(purchase, totalAmount);
+			await gateway.ExecutePurchase(purchase, totalAmount, paymentMethod);
 
 			return purchase;
 		}

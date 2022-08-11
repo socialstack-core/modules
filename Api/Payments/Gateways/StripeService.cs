@@ -43,7 +43,45 @@ namespace Api.Payments
 			_config = stripeConfig;
 			_gateway = new StripeGateway(stripeConfig);
 
+			StripeConfiguration.ApiKey = _config.SecretKey;
+
+			_config.OnChange += () => {
+
+				StripeConfiguration.ApiKey = _config.SecretKey;
+
+				return new ValueTask();
+			};
+
 			gateways.Register(_gateway);
+		}
+
+		/// <summary>
+		/// Create a setup intent.
+		/// </summary>
+		/// <returns></returns>
+		public async ValueTask<string> SetupIntent(Context context)
+		{
+			var user = context.User;
+
+			if (user == null)
+			{
+				throw new PublicException("You need to be logged in to perform this action", "no_user");
+			}
+
+			var setupIntentService = new SetupIntentService();
+
+			var setupIntent = await setupIntentService.CreateAsync(new SetupIntentCreateOptions
+			{
+				PaymentMethodTypes = new List<string>
+				{
+					"card",
+				},
+				Metadata = new Dictionary<string, string> {
+					{ "User Id", user.Id.ToString() }
+				}
+			});
+
+			return setupIntent.ClientSecret;
 		}
 
 		/// <summary>
@@ -189,8 +227,9 @@ namespace Api.Payments
 		/// </summary>
 		/// <param name="purchase"></param>
 		/// <param name="totalCost"></param>
+		/// <param name="paymentMethod"></param>
 		/// <returns></returns>
-		public override async ValueTask<Purchase> ExecutePurchase(Purchase purchase, ProductCost totalCost)
+		public override async ValueTask<Purchase> ExecutePurchase(Purchase purchase, ProductCost totalCost, PaymentMethod paymentMethod)
 		{
 			if (_users == null)
 			{
@@ -203,13 +242,11 @@ namespace Api.Payments
 			var user = await _users.Get(_context, purchase.UserId, DataOptions.IgnorePermissions);
 
 			// Get the payment method:
-			var paymentMethod = await _paymentMethods.Get(_context, purchase.PaymentMethodId, DataOptions.IgnorePermissions);
-
 			if (paymentMethod == null || string.IsNullOrEmpty(paymentMethod.GatewayToken))
 			{
 				throw new PublicException("The provided payment method is invalid.", "invalid_payment_method");
 			}
-
+			
 			// Start creating the payment intent:
 			var paymentIntentService = new PaymentIntentService();
 			StripeConfiguration.ApiKey = _config.SecretKey;

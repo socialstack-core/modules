@@ -15,8 +15,11 @@ public class PaymentGateway
 	/// <summary>
 	/// Request a payment to occur.
 	/// </summary>
+	/// <param name="purchase"></param>
+	/// <param name="totalCost"></param>
+	/// <param name="paymentMethod"></param>
 	/// <returns></returns>
-	public virtual ValueTask<Purchase> ExecutePurchase(Purchase purchase, ProductCost totalCost)
+	public virtual ValueTask<Purchase> ExecutePurchase(Purchase purchase, ProductCost totalCost, PaymentMethod paymentMethod)
 	{
 		return new ValueTask<Purchase>((Purchase)null);
 	}

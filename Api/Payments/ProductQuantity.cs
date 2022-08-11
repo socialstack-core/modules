@@ -15,6 +15,10 @@ namespace Api.Payments
 	[ImplicitFor("ProductQuantities", typeof(ShoppingCart))]
 	[ImplicitFor("ProductQuantities", typeof(Subscription))]
 	[ImplicitFor("ProductQuantities", typeof(Purchase))]
+	[HasVirtualField("Subscription", typeof(Subscription), "SubscriptionId")]
+	[HasVirtualField("Purchase", typeof(Purchase), "PurchaseId")]
+	[HasVirtualField("ShoppingCart", typeof(ShoppingCart), "ShoppingCartId")]
+	[HasVirtualField("Product", typeof(Product), "ProductId")]
 	public partial class ProductQuantity : VersionedContent<uint>
 	{
 		/// <summary>

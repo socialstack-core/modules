@@ -29,6 +29,22 @@ public class StripeController : ControllerBase
     }
 
     /// <summary>
+    /// Create a setup intent.
+    /// </summary>
+    /// <returns></returns>
+    [HttpGet("setup")]
+    public async ValueTask<StripeIntentResponse> SetupIntent()
+    {
+        var context = await Request.GetContext();
+
+        var secret = await _stripe.SetupIntent(context);
+
+        return new StripeIntentResponse() {
+            ClientSecret = secret
+        };
+    }
+
+    /// <summary>
     /// Updates a purchase based on a webhook event from a stripe payment.
     /// </summary>
     /// <returns></returns>
@@ -55,5 +71,18 @@ public class StripeController : ControllerBase
         await _stripe.HandleWebhook(stripeEvent);
 
         return Ok();
+    }
+
+    /// <summary>
+    /// SetupIntent response
+    /// </summary>
+    public struct StripeIntentResponse
+    {
+
+        /// <summary>
+        /// The client secret.
+        /// </summary>
+        public string ClientSecret;
+
     }
 }

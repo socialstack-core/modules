@@ -25,6 +25,12 @@ namespace Api.Payments
 		public string Name;
 
 		/// <summary>
+		/// True if this product is billed by usage.
+		/// </summary>
+		[Data("help", "Tick this if this product is billed after it has been used based on the amount of usage it has had.")]
+		public bool IsBilledByUsage;
+
+		/// <summary>
 		/// Usually used by tiered products. This is the minimum purchase quantity of this product.
 		/// </summary>
 		public ulong MinQuantity;

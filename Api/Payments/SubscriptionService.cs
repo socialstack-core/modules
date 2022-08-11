@@ -15,16 +15,52 @@ namespace Api.Payments
 	/// </summary>
 	public partial class SubscriptionService : AutoService<Subscription>
     {
-		private ProductQuantityService _productQuantities;
-		private PurchaseService _purchases;
+		private readonly ProductQuantityService _productQuantities;
+		private readonly PurchaseService _purchases;
+		private readonly PaymentMethodService _paymentMethods;
 
 		/// <summary>
 		/// Instanced automatically. Use injection to use this service, or Startup.Services.Get.
 		/// </summary>
-		public SubscriptionService(ProductQuantityService productQuantities, PurchaseService purchases) : base(Events.Subscription)
+		public SubscriptionService(ProductQuantityService productQuantities, PurchaseService purchases, PaymentMethodService paymentMethods) : base(Events.Subscription)
 		{
 			_productQuantities = productQuantities;
 			_purchases = purchases;
+			_paymentMethods = paymentMethods;
+
+			Events.Subscription.BeforeSettable.AddEventListener((Context ctx, JsonField<Subscription, uint> field) =>
+			{
+				if (field == null)
+				{
+					return new ValueTask<JsonField<Subscription, uint>>(field);
+				}
+
+				if (field.Name == "Status")
+				{
+					// Not settable
+					field = null;
+				}
+
+				return new ValueTask<JsonField<Subscription, uint>>(field);
+			});
+
+			Events.Subscription.BeforeUpdate.AddEventListener(async (Context ctx, Subscription toUpdate, Subscription original) => {
+
+				if (toUpdate.PaymentMethodId != original.PaymentMethodId)
+				{
+					// Can this context access the target one?
+					var paymentMethod = await _paymentMethods.Get(ctx, toUpdate.PaymentMethodId);
+
+					if (paymentMethod == null)
+					{
+						// nope!
+						throw new PublicException("Payment method not found", "payment_method_not_found");
+					}
+
+				}
+
+				return toUpdate;
+			});
 
 			// If a subscription payment changes to state 202, fulfil it immediately.
 			Events.Purchase.BeforeUpdate.AddEventListener(async (Context context, Purchase purchase, Purchase original) => {
@@ -92,7 +128,20 @@ namespace Api.Payments
 				// Current time index is..
 				var yearIndex = (uint)(date.Year - 2020);
 				var monthIndex = (uint)( (yearIndex * 12) + (date.Month - 1) );
-				// var quarterIndex = monthIndex / 4;
+				var quarterIndex = monthIndex / 4;
+
+				var meta = await Events.Subscription.BeforeBeginDailyProcess.Dispatch(context, new DailySubscriptionMeta() {
+					MonthIndex = monthIndex,
+					QuarterIndex = quarterIndex,
+					YearIndex = yearIndex
+				});
+
+				if (meta.DoNotProcess)
+				{
+					// Halt! The subscription system has declared that it is not ready to be processed yet.
+					Console.WriteLine("[NOTICE] Subscription system has been told to not process anything today. This is usually because usage stats for the current month are not ready yet.");
+					return runInfo;
+				}
 
 				// Get all subscriptions which are in need of updating:
 				var monthlySubs = await Where("Status=? and TimeslotFrequency=? and ChargedTimeslotId!=?", DataOptions.IgnorePermissions)
@@ -229,9 +278,6 @@ namespace Api.Payments
 			// This prevents any risk of someone manipulating their cart during the fulfilment.
 			var inSub = await GetProducts(context, subscription);
 			await _purchases.AddProducts(context, purchase, inSub);
-			
-			// Tell the subscription engine that products have been created.
-			// This provides an opportunity to inject usage in based on reading some other dataset(s).
 
 			// Attempt to fulfil the purchase now:
 			return await _purchases.Execute(context, purchase);
@@ -246,6 +292,17 @@ namespace Api.Payments
 		public async ValueTask<List<ProductQuantity>> GetProducts(Context context, Subscription subscription)
 		{
 			return await _productQuantities.Where("SubscriptionId=?", DataOptions.IgnorePermissions).Bind(subscription.Id).ListAll(context);
+		}
+
+		/// <summary>
+		/// Gets the products in the given subscription.
+		/// </summary>
+		/// <param name="context"></param>
+		/// <param name="subscriptionId"></param>
+		/// <returns></returns>
+		public async ValueTask<List<ProductQuantity>> GetProducts(Context context, uint subscriptionId)
+		{
+			return await _productQuantities.Where("SubscriptionId=?", DataOptions.IgnorePermissions).Bind(subscriptionId).ListAll(context);
 		}
 
 		/// <summary>

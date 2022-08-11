@@ -52,7 +52,7 @@ namespace Api.Payments
 			await _purchases.AddProducts(context, purchase, inCart);
 
 			// Attempt to fulfil the purchase now:
-			return await _purchases.Execute(context, purchase);
+			return await _purchases.Execute(context, purchase, payment);
 		}
 
 		/// <summary>
