@@ -55,15 +55,16 @@ export default class Form extends React.Component {
 			requestOpts.locale=locale;
 		}
 		
+		this.setState({
+			loading: true
+		});
+		
 		return submitForm(e, {
 			onValues: (values, evt) => {
 				if(!action){
 					values.setAction(null);
 				}
 				
-				this.setState({
-					loading: true
-				});
 				return onValues ? onValues(values, evt) : values;
 			},
 			onFailed: (r,v,evt) => {

@@ -37,7 +37,7 @@ namespace Api.Payments
 		/// <param name="payment">
 		/// The payment method to use. If the user does not want to save their method this can just be a "new PaymentMethod()" in memory only instance.
 		/// </param>
-		public async ValueTask<Purchase> Checkout(Context context, ShoppingCart cart, PaymentMethod payment)
+		public async ValueTask<PurchaseAndAction> Checkout(Context context, ShoppingCart cart, PaymentMethod payment)
 		{
 			// Create a purchase (uses the user's locale from context):
 			var purchase = await _purchases.Create(context, new Purchase() {

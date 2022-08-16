@@ -56,7 +56,7 @@ namespace Api.Payments
 		/// <summary>
 		/// A field for identifying duplicate purchase requests. Used by the content type.
 		/// </summary>
-		public uint ContentAntiDuplication;
+		public ulong ContentAntiDuplication;
 
 		/// <summary>
 		/// The content type that requested the payment. E.g. "Subscription" or "ShoppingCart".

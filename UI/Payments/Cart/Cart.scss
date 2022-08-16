@@ -1,0 +1,104 @@
+.shopping-cart {
+
+	&__title {
+        font-size: pow($heading-font-ratio, 3) * $base-font-size * 1px;
+	}
+
+	&__footer {
+		margin-top: 2rem;
+		display: flex;
+		justify-content: flex-end;
+		gap: 1rem;
+
+		.btn {
+			display: flex;
+			align-items: center;
+			gap: .5rem;
+		}
+	}
+
+	&__table {
+
+		tbody {
+
+			td {
+				vertical-align: middle;
+			}
+		}
+
+		tfoot {
+			font-weight: bold;
+		}
+
+		caption {
+			color: inherit;
+			font-style: italic;
+		}
+
+	}
+
+	.qty-column,
+	.currency-column,
+	.actions-column {
+		text-align: right;
+	}
+
+}
+
+.empty-cart-modal {
+
+	footer {
+		display: flex;
+		justify-content: flex-end;
+		margin-top: 2rem;
+		gap: .5rem;
+	}
+
+	.modal-footer {
+		display: none;
+	}
+
+}
+
+html.no-flexgap {
+
+	.shopping-cart {
+
+		&__footer {
+
+			.btn {
+				margin: 0 .5rem;
+
+				&:first-child {
+					margin-inline-start: 0;
+
+					i {
+						margin-inline-end: .5rem;
+					}
+				}
+
+				&:last-child {
+					margin-inline-end: 0;
+
+					i {
+						margin-inline-start: .5rem;
+					}
+				}
+			}
+		}
+
+	}
+
+	.empty-cart-modal {
+
+		footer > * {
+			margin-inline-end: .5rem;
+
+			&:last-child {
+				margin-inline-end: 0;
+			}
+
+		}
+	}
+
+}

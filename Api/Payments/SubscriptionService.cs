@@ -75,23 +75,19 @@ namespace Api.Payments
 						var subscription = await Get(context, purchase.ContentId, DataOptions.IgnorePermissions);
 
 						// Note that we'll only change the status if the payment is for the current timeslot index.
-						if (subscription.ChargedTimeslotId < purchase.ContentAntiDuplication)
+						ulong timePeriodKey = (ulong)subscription.LastChargeUtc.Ticks;
+
+						if (timePeriodKey == purchase.ContentAntiDuplication)
 						{
-							// The subscriptions last charged timeslot ID is less than the one just paid for.
-							// Increase the value in the subscription.
+							// This payment is for the latest period of the subscription.
+							// Update the subscription and set to active if not already.
 							await Update(context, subscription, (Context ctx, Subscription subToUpdate, Subscription orig) => {
 
-								// Apply timeslot change:
-								subToUpdate.ChargedTimeslotId = purchase.ContentAntiDuplication;
+								// Update the charge dates:
+								SetUpdatedChargeDates(subToUpdate);
 
-								// If it's equal to the current one for the sub, may also restore active flag too:
-								var currentTimeslot = GetCurrentTimeslotIndex(subToUpdate.TimeslotFrequency);
-
-								if (currentTimeslot == purchase.ContentAntiDuplication)
-								{
-									// it's active:
-									subToUpdate.Status = 1;
-								}
+								// it's active:
+								subToUpdate.Status = 1;
 
 							}, DataOptions.IgnorePermissions);
 						}
@@ -125,45 +121,75 @@ namespace Api.Payments
 				// Get current date:
 				var date = DateTime.UtcNow;
 
-				// Current time index is..
-				var yearIndex = (uint)(date.Year - 2020);
-				var monthIndex = (uint)( (yearIndex * 12) + (date.Month - 1) );
-				var quarterIndex = monthIndex / 4;
-
 				var meta = await Events.Subscription.BeforeBeginDailyProcess.Dispatch(context, new DailySubscriptionMeta() {
-					MonthIndex = monthIndex,
-					QuarterIndex = quarterIndex,
-					YearIndex = yearIndex
+					ProcessDateUtc = date
 				});
 
 				if (meta.DoNotProcess)
 				{
 					// Halt! The subscription system has declared that it is not ready to be processed yet.
-					Console.WriteLine("[NOTICE] Subscription system has been told to not process anything today. This is usually because usage stats for the current month are not ready yet.");
+					Console.WriteLine("[NOTICE] Subscription system has been told to not process anything today. This is usually because usage stats for the current time period are not ready yet.");
 					return runInfo;
 				}
 
 				// Get all subscriptions which are in need of updating:
-				var monthlySubs = await Where("Status=? and TimeslotFrequency=? and ChargedTimeslotId!=?", DataOptions.IgnorePermissions)
-					.Bind((uint)1)
-					.Bind((uint)0)
-					.Bind(monthIndex)
+				var subsToUpdate = await Where("Status<? and NextChargeUtc<?", DataOptions.IgnorePermissions)
+					.Bind((uint)2)
+					.Bind(date)
 					.ListAll(context);
 
 				// Future feature, if large number of subs: could make the automation more frequent (hourly rather than daily) and let it run batches.
 
 				// For each one, charge it.
-				if (monthlySubs != null)
+				foreach (var subscription in subsToUpdate)
 				{
-					foreach (var subscription in monthlySubs)
-					{
-						await ChargeSubscription(context, subscription, monthIndex);
-					}
+					await ChargeSubscription(context, subscription);
 				}
 
 				return runInfo;
 			});
 
+		}
+
+		/// <summary>
+		/// Sets the next charge date for a given subscription. Must be called within an update statement.
+		/// </summary>
+		/// <returns></returns>
+		public void SetUpdatedChargeDates(Subscription sub)
+		{
+			DateTime chargeDateUtc = DateTime.UtcNow;
+
+			// Preserve billing date - if the charge date is <24h apart from the requested date, use the prev requested date instead.
+			var timeDistance = chargeDateUtc - sub.NextChargeUtc;
+
+			if (timeDistance.TotalMilliseconds < (1000 * 60 * 60 * 24))
+			{
+				chargeDateUtc = sub.NextChargeUtc;
+			}
+
+			switch (sub.TimeslotFrequency)
+			{
+				case 0:
+					// Add a month to the charge date.
+					sub.NextChargeUtc = chargeDateUtc.AddMonths(1);
+				break;
+				case 1:
+					// Add a quarter to the charge date.
+					sub.NextChargeUtc = chargeDateUtc.AddMonths(3);
+				break;
+				case 2:
+					// Add a year to the charge date.
+					sub.NextChargeUtc = chargeDateUtc.AddMonths(3);
+				break;
+				case 3:
+					// Add a week to the charge date.
+					sub.NextChargeUtc = chargeDateUtc.AddDays(7);
+				break;
+				default:
+					throw new Exception("Unknown billing frequency " + sub.TimeslotFrequency);
+			}
+
+			sub.LastChargeUtc = chargeDateUtc;
 		}
 
 		/// <summary>
@@ -205,17 +231,15 @@ namespace Api.Payments
 		/// </summary>
 		/// <param name="context"></param>
 		/// <param name="subscription"></param>
-		/// <param name="timeslotId">
-		/// Typically the current month code that is being charged.
-		/// It is provided in order to prevent duplicate payment requests.
-		/// </param>
-		public async ValueTask<Purchase> ChargeSubscription(Context context, Subscription subscription, uint timeslotId)
+		public async ValueTask<PurchaseAndAction> ChargeSubscription(Context context, Subscription subscription)
 		{
 			// First, has a purchase been raised for the subscription already?
+			ulong timePeriodKey = (ulong)subscription.LastChargeUtc.Ticks;
+			
 			var purchase = await _purchases.Where(
 					"ContentType=? and ContentId=? and ContentAntiDuplication=?",
 					DataOptions.IgnorePermissions
-			).Bind("Subscription").Bind(subscription.Id).Bind(timeslotId).First(context);
+			).Bind("Subscription").Bind(subscription.Id).Bind(timePeriodKey).First(context);
 
 			if (purchase != null)
 			{
@@ -224,21 +248,27 @@ namespace Api.Payments
 
 				if (purchase.Status >= 200 && purchase.Status < 300)
 				{
-					// It's in the success state. Only thing that should be done is update the subscription's timeslot ID as it seems like that part skipped.
+					// It's in the success state. Only thing that should be done is update the subscription's date as it seems like that part skipped.
 					await Update(context, subscription, (Context context, Subscription toUpdate, Subscription orig) => {
 
-						toUpdate.ChargedTimeslotId = timeslotId;
+						SetUpdatedChargeDates(toUpdate);
 
 					}, DataOptions.IgnorePermissions);
 
-					return purchase;
+					return new PurchaseAndAction() {
+						Purchase = purchase
+					};
 				}
 
 				if (purchase.Status >= 100 && purchase.Status < 200)
 				{
 					// It's in the waiting for gateway state.
 					System.Console.WriteLine("[WARN] Manual intervention required. Subscription has waited unusually long for payment response. Gateway webhook likely misfired.");
-					return purchase;
+
+					return new PurchaseAndAction()
+					{
+						Purchase = purchase
+					};
 				}
 
 				// All other status codes indicate permanent failure or not yet submitted to gateway.
@@ -269,8 +299,9 @@ namespace Api.Payments
 					ContentType = "Subscription",
 					ContentId = subscription.Id,
 					PaymentMethodId = subscription.PaymentMethodId,
-					ContentAntiDuplication = timeslotId,
-					LocaleId = subscription.LocaleId
+					ContentAntiDuplication = timePeriodKey,
+					LocaleId = subscription.LocaleId,
+					UserId = subscription.UserId,
 				}, DataOptions.IgnorePermissions);
 			}
 

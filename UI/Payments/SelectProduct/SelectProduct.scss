@@ -1,0 +1,213 @@
+$radio_option_width: 300px;
+$radio_option_height: 160px;
+$radio_option_gap: .75rem;
+$radio_input_height: 20px;
+$one_third: math.div(100%, 3);
+
+.subscription-process {
+	max-width: $radio_option_width * 3;
+}
+
+.subscribe-select-product {
+	max-width: $radio_option_width * 3;
+
+	&__title {
+        font-size: pow($heading-font-ratio, 3) * $base-font-size * 1px;
+	}
+
+	&--loading {
+		max-width: none;
+	}
+
+	.submit-btn, 
+	.stripe-payment-form-error, 
+	.alert {
+		margin-top: 1rem;
+	}
+
+	.btn-group {
+		width: 100%;
+		flex-wrap: wrap;
+		gap: $radio_option_gap;
+
+		.btn-check + label {
+			flex: 0 0 calc(#{$one_third} - ((2 * #{$radio_option_gap}) / 3));
+			min-height: $radio_option_height;
+			border-radius: .25rem !important;
+		}
+
+		.btn-check:checked + label:after {
+			font-family: "Font Awesome 5 Pro";
+			font-weight: 900;
+			-moz-osx-font-smoothing: grayscale;
+			-webkit-font-smoothing: antialiased;
+			display: inline-block;
+			font-style: normal;
+			font-variant: normal;
+			text-rendering: auto;
+			line-height: 1;
+			content: "\f058"; // fa-check-circle
+			position: absolute;
+			right: 1rem;
+			bottom: .75rem;
+			font-size: 1.5rem;
+		}
+
+		.btn-check:checked + label.product--selected:after {
+			font-family: "Font Awesome 5 Pro";
+			font-weight: 900;
+			-moz-osx-font-smoothing: grayscale;
+			-webkit-font-smoothing: antialiased;
+			display: inline-block;
+			font-style: normal;
+			font-variant: normal;
+			text-rendering: auto;
+			line-height: 1;
+			content: "\f07a"; // fa-shopping-cart
+			position: absolute;
+			right: 1rem;
+			bottom: .75rem;
+			font-size: 1.5rem;
+		}
+
+		&.form-invalid {
+
+			.product-option {
+				border-color: var(--danger);
+			}
+
+			.btn-check:focus + .product-option {
+				border-color: var(--danger);
+				box-shadow: 0 0 0 0.25rem rgb(220 53 69 / 25%);
+			}
+
+		}
+
+	}
+
+	.product-option {
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+		justify-content: center;
+		border-color: #ced4da;
+
+		&__name {
+			font-size: 20px;
+			font-weight: bold;
+		}
+
+		&__price {
+
+		}
+
+		&__table {
+			color: currentColor;
+			font-size: 14px;
+			margin-block-end: 0;
+
+			tbody > tr:last-child > td {
+				border-block-end: 0;
+			}
+
+		}
+	}
+
+	.btn-check:focus + .product-option {
+		//color: var(--dark);
+		//background-color: #fff;
+		border-color: #86b7fe;
+		outline: 0;
+		box-shadow: 0 0 0 0.25rem rgb(13 110 253 / 25%);
+	}
+
+	&__footer {
+		margin-top: 2rem;
+		display: flex;
+		justify-content: flex-end;
+		gap: 1rem;
+
+		.btn {
+			display: flex;
+			align-items: center;
+			gap: .5rem;
+		}
+	}
+}
+
+html.no-flexgap {
+
+	.subscribe-select-product {
+
+		.btn-group {
+
+			.btn-check + label {
+				margin-block-end: $radio_option_gap;
+				margin-inline-end: $radio_option_gap;
+
+				&:nth-of-type(3n + 3) {
+					margin-inline-end: 0;
+				}
+			}
+		}
+
+		&__footer {
+
+			.btn {
+				margin: 0 .5rem;
+
+				&:first-child {
+					margin-inline-start: 0;
+
+					i {
+						margin-inline-end: .5rem;
+					}
+				}
+
+				&:last-child {
+					margin-inline-end: 0;
+
+					i {
+						margin-inline-start: .5rem;
+					}
+				}
+			}
+		}
+	}
+}
+
+@include media-breakpoint-down(lg) {
+	.subscribe-select-product {
+
+		.btn-group {
+
+			.btn-check + label {
+				flex: 0 0 calc(50% - (#{$radio_option_gap} / 2));
+			}
+		}
+	}
+}
+
+@include media-breakpoint-down(md) {
+	.subscribe-select-product {
+
+		.btn-group {
+
+			// NB: default Bootstrap radio button group styling suffers from an issue where all (hidden) radio inputs
+			//     are absolutely positioned, meaning they're all stacked behind the first item
+			//
+			//     this becomes an issue on mobile as it's possible to scroll down a list of items rendered vertically,
+			//     only for the associated radio button to become focused and cause the page to scroll back up
+			.btn-check {
+				position: static;
+				height: $radio_input_height;
+				z-index: -1;
+			}
+
+			.btn-check + label {
+				flex: 0 0 100%;
+				margin-top: calc(-#{$radio_input_height} - #{$radio_option_gap});
+			}
+		}
+	}
+}

@@ -2,6 +2,7 @@ using Api.Contexts;
 using Api.Startup;
 using Microsoft.AspNetCore.Mvc;
 using Newtonsoft.Json.Linq;
+using System;
 using System.Threading.Tasks;
 
 namespace Api.Payments
@@ -28,7 +29,7 @@ namespace Api.Payments
 		/// </summary>
 		/// <returns></returns>
 		[HttpPost("submit")]
-		public virtual async ValueTask Submit([FromBody] JObject purchaseOrder)
+		public virtual async ValueTask<PurchaseStatus> Submit([FromBody] JObject purchaseOrder)
 		{
 			if (purchaseOrder == null || purchaseOrder.Type != JTokenType.Object)
 			{
@@ -73,7 +74,9 @@ namespace Api.Payments
 			// Parse the payment method. It might not be required if the price is actually free.
 			var paymentMethodJson = purchaseOrder["paymentMethod"];
 
-			PaymentMethod paymentMethod = null;
+			PaymentMethod paymentMethod;
+			Purchase purchase = null;
+			PurchaseAndAction purchaseAction;
 
 			if (paymentMethodJson != null)
 			{
@@ -102,39 +105,60 @@ namespace Api.Payments
 				}
 				else if (paymentMethodJson.Type == JTokenType.Object)
 				{
-					// gatewayToken, gatewayId, name
-					// Omit name to not save the card. Saving is required if any of the products are subscriptions.
+					// gatewayToken, gatewayId, save: true|false
+					// Saving is required and inferred to be true if any of the products are subscriptions.
 
 					var nameJson = paymentMethodJson["name"];
+					var expiryJson = paymentMethodJson["expiry"];
+					var issuerJson = paymentMethodJson["issuer"];
 					var gatewayTokenJson = paymentMethodJson["gatewayToken"];
 					var gatewayIdJson = paymentMethodJson["gatewayId"];
 					var gatewayToken = gatewayTokenJson.ToObject<string>();
 
 					var gatewayId = gatewayIdJson.ToObject<long>();
-					
+
 					if (gatewayId <= 0 || gatewayId > uint.MaxValue)
 					{
 						throw new PublicException("Gateway ID provided but it did not exist", "gateway_invalid");
 					}
 
+					var saveable = nameJson != null && expiryJson != null && issuerJson != null;
+
 					if (anySubscription)
 					{
-						// Name required (must save the payment method)
-						if (nameJson == null)
+						// Saving is required if a product is a subscription.
+						if (!saveable)
 						{
-							throw new PublicException("Payment method requires a name when subscribing.", "payment_method_name");
+							throw new PublicException("name, expiry and issuer required when adding a new subscription payment method", "payment_method_missing_data");
 						}
 					}
 
-					if (nameJson != null)
+					// Get the payment gateway:
+					var gateway = Services.Get<PaymentGatewayService>().Get((uint)gatewayId);
+
+					if (gateway == null)
 					{
-						var methodName = nameJson.ToObject<string>();
+						throw new PublicException("Gateway ID provided but it did not exist", "gateway_invalid");
+					}
+
+					// Ask the gateway to convert the gateway token if it needs to do so.
+					gatewayToken = await gateway.PrepareToken(context, gatewayToken);
+
+					if (saveable)
+					{
+						var name = nameJson.ToString();
+						var expiryUtc = expiryJson.ToObject<DateTime>();
+						var issuer = issuerJson.ToString();
 
 						paymentMethod = await Services.Get<PaymentMethodService>().Create(context, new PaymentMethod()
 						{
-							Name = methodName,
+							Issuer = issuer,
+							UserId = context.UserId,
+							Name = name,
+							ExpiryUtc = expiryUtc,
+							LastUsedUtc = DateTime.UtcNow,
 							GatewayToken = gatewayToken,
-							PaymentGatewayId = (uint)gatewayId
+							PaymentGatewayId = gateway.Id
 						}, DataOptions.IgnorePermissions);
 					}
 					else
@@ -142,11 +166,21 @@ namespace Api.Payments
 						// Create a method but don't save it.
 						paymentMethod = new PaymentMethod()
 						{
+							UserId = context.UserId,
+							LastUsedUtc = DateTime.UtcNow,
 							GatewayToken = gatewayToken,
-							PaymentGatewayId = (uint)gatewayId
+							PaymentGatewayId = gateway.Id
 						};
 					}
 				}
+				else
+				{
+					throw new PublicException("Payment method ID provided but it was an invalid type", "payment_method_invalid");
+				}
+			}
+			else
+			{
+				throw new PublicException("Payment method missing", "payment_method_required");
 			}
 
 			var productQuantities = Services.Get<ProductQuantityService>();
@@ -154,9 +188,10 @@ namespace Api.Payments
 			// If any subscriptions, create the subscription now.
 			if (anySubscription)
 			{
-				var sub = await Services.Get<SubscriptionService>().Create(context, new Subscription()
-				{
+				var subscriptions = Services.Get<SubscriptionService>();
 
+				var sub = await subscriptions.Create(context, new Subscription()
+				{
 					PaymentMethodId = paymentMethod.Id,
 					TimeslotFrequency = 0, // Months
 					LocaleId = context.LocaleId,
@@ -186,12 +221,15 @@ namespace Api.Payments
 						}, DataOptions.IgnorePermissions);
 					}
 				}
-				
+
+				// Charge the subscription now:
+				purchaseAction = await subscriptions.ChargeSubscription(context, sub);
+
 			}
 			else
 			{
 				// One off purchase.
-				var purchase = await _service.Create(context, new Purchase()
+				purchase = await _service.Create(context, new Purchase()
 				{
 					LocaleId = context.LocaleId,
 					PaymentGatewayId = paymentMethod.PaymentGatewayId,
@@ -224,9 +262,14 @@ namespace Api.Payments
 				}
 
 				// Execute it:
-				await (_service as PurchaseService).Execute(context, purchase);
+				purchaseAction = await (_service as PurchaseService).Execute(context, purchase);
 
 			}
+
+			return new PurchaseStatus() {
+				Status = purchaseAction.Purchase.Status,
+				NextAction = purchaseAction.Action
+			};
 
 		}
 	}

@@ -1,3 +1,5 @@
+using System;
+
 namespace Api.Payments;
 
 
@@ -13,18 +15,7 @@ public struct DailySubscriptionMeta
 	public bool DoNotProcess;
 
 	/// <summary>
-	/// The current month index.
+	/// The exact date line where subs are being handled from/ to.
 	/// </summary>
-	public uint MonthIndex;
-	
-	/// <summary>
-	/// The current quarter index.
-	/// </summary>
-	public uint QuarterIndex;
-	
-	/// <summary>
-	/// The current year index.
-	/// </summary>
-	public uint YearIndex;
-
+	public DateTime ProcessDateUtc;
 }

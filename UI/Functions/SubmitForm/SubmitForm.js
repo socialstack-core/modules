@@ -9,26 +9,40 @@ export default function (e, options) {
 	
 	var values = {};
 	var validationErrors = 0;
+	var valuePromises = [];
 	
 	for(var i=0;i<fields.length;i++){
-		var field = fields[i];
-		
-		if(!field.name || (field.type == 'radio' && !field.checked)){
-			continue;
-		}
-		
-		if(field.onValidationCheck && field.onValidationCheck(field)){
-			validationErrors++;
-		}
-		
-		var value = field.type=='checkbox' ? field.checked : field.value;
-		
-		if(field.onGetValue){
-			value = field.onGetValue(value, field, e);
-			field.value = value;
-		}
-		
-		values[field.name] = value;
+		(function(field){
+			
+			if(!field.name || (field.type == 'radio' && !field.checked)){
+				return;
+			}
+			
+			if(field.onValidationCheck && field.onValidationCheck(field)){
+				validationErrors++;
+			}
+			
+			var value = field.type=='checkbox' ? field.checked : field.value;
+			
+			if(field.onGetValue){
+				value = field.onGetValue(value, field, e);
+				
+				if(value && value.then && typeof value.then === 'function'){
+					// It's a promise.
+					// Must wait for all of these before proceeding.
+					valuePromises.push(value.then((val) => {
+						field.value = val;
+						values[field.name] = val;
+					}));
+				}else{
+					field.value = value;
+					values[field.name] = value;
+				}
+				
+			}else{
+				values[field.name] = value;
+			}
+		})(fields[i]);
 	}
 	
 	if(e.submitter && e.submitter.name){
@@ -48,13 +62,17 @@ export default function (e, options) {
 		action = newAction;
 	};
 	
-	if(options.onValues){
-		// Map the values:
-		values = options.onValues(values, e);
-	}
-	
-	// Resolve the values. This permits onValues to do async logic:
-	Promise.resolve(values).then(values => {
+	Promise.all(valuePromises)
+	.then(() => {
+		
+		if(options.onValues){
+			// Map the values:
+			values = options.onValues(values, e);
+		}
+		
+		return values;
+	})
+	.then(values => {
 		
 		if(values){
 			// Tidiness - delete the set action function:

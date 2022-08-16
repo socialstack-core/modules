@@ -189,7 +189,7 @@ namespace Api.Payments
 		/// <param name="purchase"></param>
 		/// <param name="paymentMethod"></param>
 		/// <returns></returns>
-		public async ValueTask<Purchase> Execute(Context context, Purchase purchase, PaymentMethod paymentMethod = null)
+		public async ValueTask<PurchaseAndAction> Execute(Context context, Purchase purchase, PaymentMethod paymentMethod = null)
 		{
 			// Event to indicate the product is about to execute:
 			await Events.Purchase.BeforeExecute.Dispatch(context, purchase);
@@ -200,7 +200,7 @@ namespace Api.Payments
 			// If the total is free, we complete immediately.
 			if (totalAmount.Amount == 0)
 			{
-				return await Update(context, purchase, (Context ctx, Purchase toUpdate, Purchase orig) => {
+				purchase = await Update(context, purchase, (Context ctx, Purchase toUpdate, Purchase orig) => {
 
 					// 202 for payment success:
 					toUpdate.Status = 202;
@@ -209,6 +209,11 @@ namespace Api.Payments
 					toUpdate.PaymentGatewayInternalId = "";
 
 				}, DataOptions.IgnorePermissions);
+
+				return new PurchaseAndAction()
+				{
+					Purchase = purchase
+				};
 			}
 
 			// Get the gateway:
@@ -229,9 +234,7 @@ namespace Api.Payments
 			}
 
 			// Ask the gateway to do the thing:
-			await gateway.ExecutePurchase(purchase, totalAmount, paymentMethod);
-
-			return purchase;
+			return await gateway.ExecutePurchase(purchase, totalAmount, paymentMethod);
 		}
 
 	}
