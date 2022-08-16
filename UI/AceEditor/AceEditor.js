@@ -52,7 +52,6 @@ export default class AceEditor extends React.Component{
 				}
 			}
 			
-			// this.d
 			var editor = ace.edit(this.d);
 			this.setState({editor});
 			global.editor = editor;
