@@ -42,16 +42,6 @@ export default class AceEditor extends React.Component{
 		loadAce().then(ace => {
 			var p = this.props;
 			
-			var type = 'json';
-			
-			if(p.contentType){
-				var cType = p.contentType.split('/');
-				type = cType[cType.length - 1];
-				if(type == 'canvas'){
-					type = 'json';
-				}
-			}
-			
 			var editor = ace.edit(this.d);
 			this.setState({editor});
 			global.editor = editor;
@@ -61,7 +51,7 @@ export default class AceEditor extends React.Component{
 				editor.setTheme("ace/theme/monokai");
 			}
 			
-			editor.session.setMode("ace/mode/" + type);
+			this.goToType(p, editor);
 			editor.session.setValue(p.defaultValue || p.value || '');
 			
 			if(p.readonly){
@@ -69,8 +59,33 @@ export default class AceEditor extends React.Component{
 				editor.setShowPrintMargin(false);
 				editor.setReadOnly(true);
 			}
-			
 		})
+	}
+	
+	goToType(p, editor){
+		var type = 'json';
+		
+		if(p.contentType){
+			var cType = p.contentType.split('/');
+			type = cType[cType.length - 1];
+			if(type == 'canvas'){
+				type = 'json';
+			}
+		}
+		
+		editor.session.setMode("ace/mode/" + type);
+	}
+	
+	componentWillReceiveProps(props){
+		var editor = this.state.editor;
+		
+		if(props.contentType != this.props.contentType){
+			this.goToType(props, editor);
+		}
+		
+		if(props.readonly && props.value != this.props.value){
+			editor.session.setValue(props.defaultValue || props.value || '');
+		}
 	}
 	
 	render(){
