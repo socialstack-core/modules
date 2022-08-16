@@ -24,44 +24,6 @@ export default function Checkout(props) {
 	var { shoppingCart, cartIsEmpty, hasSubscriptions, emptyCart } = useCart();
 	var [termsAccepted, setTermsAccepted] = useState(false);
 	
-	function purchase() {
-		var paymentMethod;
-
-		// chosen an existing card
-		if (paymentSelection != null && !isNaN(paymentSelection)) {
-			paymentMethod = paymentSelection;
-		}
-
-		// added a card
-		if (paymentSelection != null && isNaN(paymentSelection)) {
-			paymentMethod = {
-				gatewayToken: paymentSelection.payment_method,
-				gatewayId: STRIPE_GATEWAY_ID
-			};
-		}
-
-		checkout({
-			paymentMethod: paymentMethod
-		}).then((info) => {
-			var statusOK = true;
-			
-			if(info.nextAction){
-				// Go to it now:
-				window.location = info.nextAction;
-			}else{
-				if (info && !isNaN(parseInt(info.status, 10))) {
-					statusOK = info.status >= 200 && info.status < 300;
-				}
-				
-				setPage(statusOK ? '/complete?status=success' : '/complete?status=pending');
-			}
-		}).catch((e) => {
-			console.log(e);
-			setPage('/complete?status=failed');
-		});
-
-	}
-
 	function canPurchase() {
 		return !cartIsEmpty() && termsAccepted;
 	}
@@ -93,19 +55,19 @@ export default function Checkout(props) {
 				failedMessage={`Unable to purchase`}
 				loadingMessage={`Purchasing..`}
 				onSuccess={info => {
-					console.log(info);
 					
-					// TODO: *must* handle info.NextAction if it is not null.
-					
-					
-					if(info.status >= 200 && info.status < 300){
-						setPage('/complete?status=success');
-					}else if(info.status < 300){
-						setPage('/complete?status=pending');
+					if(info.nextAction){
+						// Go to it now:
+						window.location = info.nextAction;
 					}else{
-						setPage('/complete?status=failed');
+						if(info.status >= 200 && info.status < 300){
+							setPage('/complete?status=success');
+						}else if(info.status < 300){
+							setPage('/complete?status=pending');
+						}else{
+							setPage('/complete?status=failed');
+						}
 					}
-					
 				}}
 			>
 				<div className="mb-3">
