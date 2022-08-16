@@ -67,6 +67,16 @@ namespace Api.Payments
 		/// Available stock. Null indicates it is unlimited.
 		/// </summary>
 		public uint? Stock;
+
+		/// <summary>
+		/// Indicates if this is a variant product related to a parent base product
+		/// </summary>
+		public uint VariantOfId;
+
+		/// <summary>
+		/// Indicates if this is a tiered product related to a parent base product
+		/// </summary>
+		public uint TierOfId;
 	}
 
 }

@@ -22,12 +22,22 @@ namespace Api.Payments
 		/// </summary>
 		[JsonIgnore]
 		public string GatewayToken;
-		
+
+		/// <summary>
+		/// Brand name of the method issuer.
+		/// </summary>
+		public string Issuer;
+
 		/// <summary>
 		/// The time when this method expires.
 		/// </summary>
 		public DateTime ExpiryUtc;
-		
+
+		/// <summary>
+		/// Last time this payment method was used by the user.
+		/// </summary>
+		public DateTime LastUsedUtc;
+
 		/// <summary>
 		/// 1=Tokenised card.
 		/// </summary>

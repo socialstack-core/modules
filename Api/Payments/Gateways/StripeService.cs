@@ -8,6 +8,7 @@ using Stripe;
 using Api.Startup;
 using Api.Users;
 using System;
+using Api.Configuration;
 
 namespace Api.Payments
 {
@@ -200,7 +201,7 @@ namespace Api.Payments
 		/// <returns></returns>
 		public uint ConvertStatus(string status)
 		{
-			if (status == "requires_payment_method" || status == "requires_confirmation" || status == "requires_action" || status == "requires_capture" || status == "canceled")
+			if (status == "requires_payment_method" || status == "requires_confirmation" || status == "requires_capture" || status == "canceled")
 			{
 				// Failed (frontend failure)
 				return 400;
@@ -209,6 +210,11 @@ namespace Api.Payments
 			{
 				// Pending at gateway.
 				return 102;
+			}
+			else if (status == "requires_action")
+			{
+				// Pending but requires user to go to an action URL.
+				return 103;
 			}
 			else if (status == "succeeded")
 			{
@@ -222,6 +228,88 @@ namespace Api.Payments
 			}
 		}
 
+		private Stripe.PaymentIntentService _paymentIntentService;
+		private Stripe.PaymentMethodService _paymentMethodService;
+		private Stripe.CustomerService _customerService;
+
+		/// <summary>
+		/// Checks if a token is valid and if so, returns its info. *Do not* send this full information to the frontend. It is API only.
+		/// You *may* send the Name and ExpiryUtc fields only. Using this method triggers a full PCI DSS requirement as it pulls card information to the server.
+		/// </summary>
+		/// <param name="gatewayToken"></param>
+		/// <returns></returns>
+		public override async ValueTask<TokenInformation> GetTokenDetails(string gatewayToken)
+		{
+			if (_paymentMethodService == null)
+			{
+				_paymentMethodService = new Stripe.PaymentMethodService();
+			}
+
+			// Get the method:
+			var paymentMethod = await _paymentMethodService.GetAsync(gatewayToken);
+
+			// We'll only use Stripe for cards at the moment
+			var isValid = paymentMethod != null && paymentMethod.Card != null;
+
+			if (!isValid)
+			{
+				return new TokenInformation() { Valid = false };
+			}
+
+			// last 4 card digits:
+			var last4 = paymentMethod.Card.Last4;
+			var expiryDate = new DateTime((int)paymentMethod.Card.ExpYear, (int)paymentMethod.Card.ExpMonth, 1, 0, 0, 0, DateTimeKind.Utc);
+
+			return new TokenInformation()
+			{
+				Valid = (expiryDate > DateTime.UtcNow), // It's valid if it hasn't expired yet
+				Name = last4,
+				ExpiryUtc = expiryDate,
+				GatewayData = paymentMethod,
+			};
+		}
+
+		/// <summary>
+		/// Prepares the given token. This can be used to, for example, convert a single use token into a multi-use one depending on the gateway.
+		/// </summary>
+		/// <param name="context"></param>
+		/// <param name="gatewayToken"></param>
+		/// <returns></returns>
+		public override async ValueTask<string> PrepareToken(Context context, string gatewayToken)
+		{
+			if (_paymentMethodService == null)
+			{
+				_paymentMethodService = new Stripe.PaymentMethodService();
+			}
+
+			if (_customerService == null)
+			{
+				_customerService = new Stripe.CustomerService();
+			}
+
+			// Method must be attached to a customer to be reusable.
+			var customer = await _customerService.CreateAsync(new CustomerCreateOptions() {
+				Email = context.User == null ? null : context.User.Email
+			});
+
+			// Create a reusable payment method from a single use token:
+			var stripeMethod = await _paymentMethodService.CreateAsync(new PaymentMethodCreateOptions() {
+				Type = "card",
+				Card = new PaymentMethodCardOptions()
+				{
+					Token = gatewayToken
+				}
+			});
+
+			// Attach to customer:
+			await _paymentMethodService.AttachAsync(stripeMethod.Id, new PaymentMethodAttachOptions() {
+				Customer = customer.Id
+			});
+
+			// Return the customer and payment method ID which will be the new gateway token.
+			return customer.Id + "/" + stripeMethod.Id;
+		}
+
 		/// <summary>
 		/// Asks the payment gateway to complete a purchase.
 		/// </summary>
@@ -229,7 +317,7 @@ namespace Api.Payments
 		/// <param name="totalCost"></param>
 		/// <param name="paymentMethod"></param>
 		/// <returns></returns>
-		public override async ValueTask<Purchase> ExecutePurchase(Purchase purchase, ProductCost totalCost, PaymentMethod paymentMethod)
+		public override async ValueTask<PurchaseAndAction> ExecutePurchase(Purchase purchase, ProductCost totalCost, PaymentMethod paymentMethod)
 		{
 			if (_users == null)
 			{
@@ -246,9 +334,13 @@ namespace Api.Payments
 			{
 				throw new PublicException("The provided payment method is invalid.", "invalid_payment_method");
 			}
-			
+
 			// Start creating the payment intent:
-			var paymentIntentService = new PaymentIntentService();
+			if (_paymentIntentService == null)
+			{
+				_paymentIntentService = new PaymentIntentService();
+			}
+
 			StripeConfiguration.ApiKey = _config.SecretKey;
 
 			if (totalCost.Amount >= long.MaxValue)
@@ -269,11 +361,18 @@ namespace Api.Payments
 
 			});
 
-			var paymentIntent = await paymentIntentService.CreateAsync(new PaymentIntentCreateOptions
+			var gatewayTokenCustomerEnd = paymentMethod.GatewayToken.IndexOf('/');
+			var customerId = paymentMethod.GatewayToken.Substring(0, gatewayTokenCustomerEnd);
+			var methodId = paymentMethod.GatewayToken.Substring(gatewayTokenCustomerEnd + 1);
+
+			var paymentIntent = await _paymentIntentService.CreateAsync(new PaymentIntentCreateOptions
 			{
 				Amount = longAmount,
+				Customer = customerId,
 				Currency = totalCost.CurrencyCode,
-				PaymentMethod = paymentMethod.GatewayToken,
+				PaymentMethod = methodId,
+				Confirm = true,
+				ReturnUrl = AppSettings.GetPublicUrl() + "/complete?status=success",
 				AutomaticPaymentMethods = new PaymentIntentAutomaticPaymentMethodsOptions
 				{
 					Enabled = true,
@@ -281,18 +380,35 @@ namespace Api.Payments
 				ReceiptEmail = user != null && user.Email != null ? user.Email : null,
 				Metadata = new Dictionary<string, string> {
 					{ "PurchaseId", purchase.Id.ToString() },
-					{ "UserId", user.Id.ToString() }
+					{ "UserId", user == null ? "0" : user.Id.ToString() }
 				}
 			});
 
 			// Update purchase with Id from payment intent and the total cost:
-			return await _purchases.Update(_context, purchase, (Context ctx, Purchase toUpdate, Purchase orig) => {
+			purchase = await _purchases.Update(_context, purchase, (Context ctx, Purchase toUpdate, Purchase orig) => {
 
 				// It might have instantly completed or instantly failed. We can find out from the status:
 				toUpdate.Status = ConvertStatus(paymentIntent.Status);
 				toUpdate.PaymentGatewayInternalId = paymentIntent.Id;
 
 			});
+
+			string action = null;
+
+			if (purchase.Status == 103 && paymentIntent.NextAction != null && paymentIntent.NextAction.Type == "redirect_to_url")
+			{
+				var redir = paymentIntent.NextAction.RedirectToUrl;
+
+				if (redir != null)
+				{
+					action = redir.ReturnUrl;
+				}
+			}
+
+			return new PurchaseAndAction() {
+				Purchase = purchase,
+				Action = action
+			};
 		}
 
 	}

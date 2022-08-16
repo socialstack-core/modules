@@ -13,11 +13,14 @@ namespace Api.Payments
 	public partial class Subscription : VersionedContent<uint>
 	{
 		/// <summary>
-		/// The timeslot index that this subscription was last charged. Usually in months. 
-		/// Null indicates it has not been charged yet.
-		/// This is defined as "The number of months that have occurred since 2020".
+		/// The datetime this subscription was last charged.
 		/// </summary>
-		public uint ChargedTimeslotId;
+		public DateTime LastChargeUtc;
+
+		/// <summary>
+		/// The datetime this subscription will next be charged, if it is not paused or cancelled.
+		/// </summary>
+		public DateTime NextChargeUtc;
 
 		/// <summary>
 		/// 0 = The default, it's in months.   (currently the only supported option)

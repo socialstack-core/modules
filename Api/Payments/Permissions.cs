@@ -59,7 +59,14 @@ namespace Api.Payments
 					"subscription_load", "subscription_list",
 					"paymentmethod_load", "paymentmethod_list"
 				);
-				
+
+				// We'll also be restricting the developer role on payment methods.
+				Roles.Admin.Revoke("paymentmethod_load", "paymentmethod_list");
+				Roles.Developer.Revoke("paymentmethod_load", "paymentmethod_list");
+
+				Roles.Admin.If("IsSelf()").ThenGrant("paymentmethod_load", "paymentmethod_list");
+				Roles.Developer.If("IsSelf()").ThenGrant("paymentmethod_load", "paymentmethod_list");
+
 				return new ValueTask<object>(source);
 			}, 20);
 		}
