@@ -9,7 +9,7 @@ export default class Default extends React.Component {
 	}
 
 	renderIntl(session){
-		var user = session.user ? session.user.result : {};
+		var user = session.user ? session.user : {};
 		
 		if(!user){
 			user={};
