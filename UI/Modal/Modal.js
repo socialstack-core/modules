@@ -24,6 +24,10 @@ export default class Modal extends React.Component {
 		this.newTitleId();
 	}
 
+	componentDidMount() {
+		this.props.onOpen && this.props.onOpen();
+    }
+
 	/*
 	componentWillReceiveProps(props) {
 		this.newTitleId();

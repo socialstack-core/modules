@@ -855,7 +855,7 @@ export default class HuddleClient
 					{
 						type : 'error',
 						minor: true,
-						text : 'Microphone disconnected!'
+						text : `Microphone disconnected!`
 					});
 
 				this.disableMic()
@@ -870,7 +870,7 @@ export default class HuddleClient
 				{
 					type : 'error',
 					minor: true,
-					text : 'Error enabling microphone: ' + error
+					text : `Error enabling microphone: ` + error
 				});
 
 			if (track)
@@ -1861,10 +1861,10 @@ export default class HuddleClient
 							type : 'error',
 							text : <div>
 								<p>
-									Unable to use your microphone - make sure you allow the microphone prompt. To try again, please refresh the page.
+									{`Unable to use your microphone - make sure you allow the microphone prompt. To try again, please refresh the page.`}
 								</p>
 								<p>
-									If the prompt still doesn't appear, you may need to restart your browser and double check that you have a microphone plugged in.
+									{`If the prompt still doesn't appear, you may need to restart your browser and double check that you have a microphone plugged in.`}
 								</p>
 							</div>
 						});
@@ -2107,7 +2107,7 @@ export default class HuddleClient
 			this.dispatchEvent(
 			{
 				type : 'error',
-				text : 'An error occurred whilst trying to connect to the meeting. To connect, please make sure you have at least a microphone and are using an up to date web browser.'
+				text : `An error occurred whilst trying to connect to the meeting. To connect, please make sure you have at least a microphone and are using an up-to-date web browser.`
 			});
 
 			this.close();

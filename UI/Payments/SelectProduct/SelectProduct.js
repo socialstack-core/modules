@@ -1,132 +1,76 @@
 import Wrapper from '../Wrapper';
+import ProductQuantity from '../ProductQuantity';
 import { getSteps, getStepIndex } from '../Steps.js';
-import { useState, useRef } from 'react';
+import { useRef } from 'react';
 import { useSession, useRouter } from 'UI/Session';
 import { formatCurrency } from "UI/Functions/CurrencyTools";
-import { useToast } from 'UI/Functions/Toast';
 import { useCart } from '../CartSession';
-import { renderTieredProducts } from 'UI/Functions/Payments';
+import { renderProducts, renderTieredProducts } from 'UI/Functions/Payments';
+import getRef from 'UI/Functions/GetRef';
+import FlipCard from 'UI/FlipCard';
 
 const STRATEGY_PAYG = 0;
 const STRATEGY_BULK = 1;
 
 export default function SelectProduct(props) {
-	const { allowMultiple } = props;
+	const { standaloneOnly, tieredOnly } = props;
 	const { session } = useSession();
 	const { setPage } = useRouter();
-	const { pop } = useToast();
 	const productOptionsRef = useRef(null);
-	var { addToCart, getCartQuantity, cartIsEmpty } = useCart();
+	var { cartIsEmpty } = useCart();
 
-	var [productSelection, setProductSelection] = useState(null);
-
-	function clearSelections() {
-
-		if (!productOptionsRef || !productOptionsRef.current) {
-			return;
-		}
-
-		[...productOptionsRef.current.getElementsByTagName("input")].forEach(input => {
-			input.checked = false;
-        });
-
-    }
-
-	function updateCart() {
-
-		if (!productSelection || !productSelection.length) {
-			return;
-		}
-
-		productSelection.forEach(product => {
-			addToCart({
-				product: product.id,
-				isSubscribing: true
-			});
-
-			pop({
-				title: `Product added`,
-				description: `${product.name} added to cart`,
-				duration: 4,
-				variant: 'success'
-			});
-
-		});
-
-		clearSelections();
-    }
-
-	function validateProductSelection(productOptionsWrapper) {
-		var productOptions = productOptionsWrapper.getElementsByClassName("btn-check");
-		var selected = [];
-
-		[...productOptions].forEach(option => {
-
-			if (option.checked) {
-				var id = parseInt(option.dataset.id, 10);
-				var name = option.dataset.name;
-
-				if (id) {
-					selected.push({
-						id: id,
-						name: name
-					});
-                }
-			}
-
-		});
-
-		setProductSelection(selected);
-	}
-
-	function updateProductSelection(e) {
-		var selectedElement = e.currentTarget;
-		validateProductSelection(selectedElement.parentElement);
-	}
-
-	function addTiers(product, allowMultiple) {
+	function addTiers(product) {
 
 		switch (product.priceStrategy) {
 			case STRATEGY_PAYG:
-				var productId = "product_" + product.id;
 				var productName = product.name;
-				var labelClass = "btn btn-outline-secondary product-option";
-
-				if (getCartQuantity(product.id)) {
-					labelClass += " product--selected";
-                }
+				var cheapestCost = formatCurrency(product.tiers[product.tiers.length - 1].price.amount, session.locale, { hideDecimals: false });
+				// TODO: support differing frequencies
+				var recurrence = ` pm`;
 
 				return <>
-					<input className="btn-check" id={productId} autocomplete="off"
-						type={allowMultiple ? "checkbox" : "radio"} 
-						name={allowMultiple ? undefined : "productOption"}
-						data-id={product.id}
-						data-name={productName}
-						onChange={(e) => updateProductSelection(e)} />
-					<label className={labelClass} htmlFor={productId}>
-						<span className="product-option__name">
-							{productName}
-						</span>
-						<table className="table table-sm product-option__table">
-							<thead>
-								<tr>
-									<th>
-										{`Daily seats`}
-									</th>
-									<th className="currency-column">
-										{`Unit cost`}
-									</th>
-								</tr>
-							</thead>
-							<tbody>
-								{addPaygTiers(product)}
-							</tbody>
-						</table>
-					</label>
+					<div className="select-product__option" key={product.id}>
+						<FlipCard className="select-product__option-internal">
+							<>
+								<span className="select-product__option-image-wrapper">
+									{getRef(product.featureRef, { size: 128, attribs: { className: 'select-product__option-image' } })}
+									{!product.featureRef && <div className="select-product__option-image"></div>}
+								</span>
+								<span className="select-product__option-name">
+									{productName}
+								</span>
+								<span className="select-product__option-price">
+									{`As low as`} {cheapestCost} {recurrence}
+								</span>
+							</>
+							<>
+								<span className="select-product__option-name">
+									{productName}
+								</span>
+								<table className="table table-sm select-product__option-table">
+									<thead>
+										<tr>
+											<th>
+												{`Daily seats`}
+											</th>
+											<th className="currency-column">
+												{`Unit cost`}
+											</th>
+										</tr>
+									</thead>
+									<tbody>
+										{addPaygTiers(product)}
+									</tbody>
+								</table>
+							</>
+						</FlipCard>
+						<ProductQuantity product={product} />
+					</div>
 				</>;
 
+
 			case STRATEGY_BULK:
-				return addBulkTiers(product, allowMultiple);
+				return addBulkTiers(product);
 		}
 
 	}
@@ -158,17 +102,16 @@ export default function SelectProduct(props) {
 		</tr>;
 	}
 
-	function addBulkTiers(product, allowMultiple) {
+	function addBulkTiers(product) {
 		return [
-			addProduct(product, allowMultiple),
+			addProduct(product),
 			product.tiers.map((tier) => {
-				return addProduct(tier, allowMultiple);
+				return addProduct(tier);
 			})
 		];
 	}
 
-	function addProduct(product, allowMultiple) {
-		var productId = "product_" + product.id;
+	function addProduct(product) {
 		var productName = product.name;
 		// TODO: check price strategy
 		var cost = formatCurrency(product.price.amount * product.minQuantity, session.locale, { hideDecimals: true });
@@ -176,21 +119,22 @@ export default function SelectProduct(props) {
 		var recurrence = ` pm`;
 
 		return <>
-			<input className="btn-check" id={productId} autocomplete="off"
-				type={allowMultiple ? "checkbox" : "radio"}
-				name={allowMultiple ? undefined : "productOption"}
-				data-id={product.id}
-				data-name={productName}
-				onChange={(e) => updateProductSelection(e)} />
-			<label className="btn btn-outline-secondary product-option" htmlFor={productId}>
-				<span className="product-option__name">
-					{productName}
-				</span>
-				<span className="product-option__price">
-					{cost}
-					{recurrence}
-				</span>
-			</label>
+			<div className="select-product__option" key={product.id}>
+				<FlipCard className="select-product__option-internal">
+					<span className="select-product__option-image-wrapper">
+						{getRef(product.featureRef, { size: 128, attribs: { className: 'select-product__option-image' } })}
+						{!product.featureRef && <div className="select-product__option-image"></div>}
+					</span>
+					<span className="select-product__option-name">
+						{productName}
+					</span>
+					<span className="select-product__option-price">
+						{cost}
+						{recurrence}
+					</span>
+				</FlipCard>
+				<ProductQuantity product={product} />
+			</div>
 		</>;
 
     }
@@ -203,31 +147,24 @@ export default function SelectProduct(props) {
 
 			<div class="mb-3">
 				<label className="form-label" id="select_product_label">
-					{allowMultiple ? `Please select required products` : `Please select a product`}
-					<span class="is-required-field"></span>
+					{`Please select a product`}
 				</label>
 				<div className="product-options">
-					<div className={productSelection && !productSelection.length ? 'btn-group form-invalid' : 'btn-group'}
+					<div className={'btn-group'}
 						role="group" aria-labelledby={"select_product_label"} ref={productOptionsRef}>
-						{renderTieredProducts(addTiers)}
+						{standaloneOnly && renderProducts(addProduct)}
+						{tieredOnly && renderTieredProducts(addTiers)}
+						{!standaloneOnly && !tieredOnly && <>
+							{renderProducts(addProduct)}
+							{renderTieredProducts(addTiers)}
+						</>}
 					</div>
 				</div>
-				{productSelection && !productSelection.length && <>
-					<div className="validation-error">
-						{allowMultiple ? `Please select required products` : `Please select a product`}
-					</div>
-				</>}
 			</div>
 
 			<div className="subscribe-select-product__footer">
-				<button type="button" className="btn btn-outline-primary" onClick={() => updateCart()}
-					disabled={!productSelection || !productSelection.length ? "disabled" : undefined}>
-					<i className="fal fa-fw fa-plus" />
-					{`Add to Cart`}
-				</button>
-
 				{/* rendered as a button rather than a direct link so that we can disable the link as needed */}
-				<button type="button" className="btn btn-primary" onClick={() => setPage('/cart')}
+				<button type="button" className="btn btn-secondary" onClick={() => setPage('/cart')}
 					disabled={cartIsEmpty() ? "disabled" : undefined}>
 					<i className="fal fa-fw fa-shopping-cart" />
 					{`View Cart`}
@@ -238,11 +175,13 @@ export default function SelectProduct(props) {
 }
 
 SelectProduct.propTypes = {
-	allowMultiple: 'boolean'
+	standaloneOnly: 'boolean',
+	tieredOnly: 'boolean'
 };
 
 SelectProduct.defaultProps = {
-	allowMultiple: false
+	standaloneOnly: false,
+	tieredOnly: false
 }
 
 SelectProduct.icon = 'align-center';

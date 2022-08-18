@@ -6,8 +6,6 @@
 // addToCart({product: ProductIdOrObject, isSubscribing: true}); (adds a quantity of 1)
 // To remove either, just addToCart with a negative quantity.
 import store from 'UI/Functions/Store';
-import webRequest from 'UI/Functions/WebRequest';
-
 
 const CartSession = React.createContext();
 
@@ -25,7 +23,7 @@ export const Provider = (props) => {
         var qty = 0;
 
         shoppingCart.items.forEach(product => {
-            qty += (productId == product.id || !productId) ? product.quantity : 0;
+            qty += (productId == product.product || !productId) ? product.quantity : 0;
         });
 
         return qty;
@@ -55,49 +53,55 @@ export const Provider = (props) => {
     };
 	
     let addToCart = productInfo => {
-        var product = productInfo.product;
-        var qty = productInfo.quantity || 0;
-        var sub = productInfo.isSubscribing || false;
-        if (!product) {
+            var product = productInfo.product;
+            var qty = productInfo.quantity || 0;
+            var sub = productInfo.isSubscribing || false;
+
+            if (!product) {
             return;
-        }
-        if (product.id) {
-            product = product.id;
-        }
-        // Copy item set:
-        var curItems = shoppingCart.items;
-        var items = [];
-        var found = false;
-        for (var i = 0; i < curItems.length; i++) {
-            var clonedItem = { ...curItems[i] };
-            if (clonedItem.product == product) {
-                found = true;
-                var newQty = clonedItem.quantity + (sub ? qty : qty || 1);
-                if (newQty <= 0) {
-                    // remove by not re-adding.
-                    continue;
+            }
+
+            if (product.id) {
+                product = product.id;
+            }
+
+            // Copy item set:
+            var curItems = shoppingCart.items;
+            var items = [];
+            var found = false;
+
+            for (var i = 0; i < curItems.length; i++) {
+                var clonedItem = { ...curItems[i] };
+                if (clonedItem.product == product) {
+                    found = true;
+                    var newQty = clonedItem.quantity + (sub ? qty : qty || 1);
+                    if (newQty <= 0) {
+                        // remove by not re-adding.
+                        continue;
+                    }
+                    clonedItem.quantity = newQty;
                 }
-                clonedItem.quantity = newQty;
+                items.push(clonedItem);
             }
-            items.push(clonedItem);
-        }
-        if (!found) {
-            if (qty <= 0 && !sub) {
-                // No-op
+
+            if (!found) {
+                if (qty <= 0 && !sub) {
+                    // No-op
                 return;
+                }
+                var newItem = {
+                    product
+                };
+                if (sub) {
+                    newItem.quantity = 1;
+                    newItem.isSubscribing = true;
+                } else {
+                    newItem.quantity = qty;
+                }
+                items.push(newItem);
             }
-            var newItem = {
-                product
-            };
-            if (sub) {
-                newItem.quantity = 1;
-                newItem.isSubscribing = true;
-            } else {
-                newItem.quantity = qty;
-            }
-            items.push(newItem);
-        }
-        updateCart({ items });
+
+            updateCart({ items });
     }
 
     let emptyCart = () => {

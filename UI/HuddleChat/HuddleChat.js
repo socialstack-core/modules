@@ -36,15 +36,27 @@ export default function HuddleChat(props) {
 	const [displayName, setDisplayName] = useState(props.displayName);
 	const [deviceHints, setDeviceHints] = useState({});
 	const [users, setUsers] = useState(null);
-	const [failure, setFailure] = useState(null);
+	const [permanentFailure, setPermanentFailure] = useState(null);
 	const [userRole, setUserRole] = useState(3);
 	const [leaveMode, setLeaveMode] = useState(0); // 0 = ongoing, 1 = left, 2 = ended (remote requested), 3 = ended (requested by this participant)
 	const [playbackInfo, setPlaybackInfo] = useState(null);
+	const [endTimer, setEndTimer] = useState(null);
 	
 	var onLeave = mode => {
 		huddleClient.destroy(mode);
 		setLeaveMode(mode);
 		setHuddleClient(null);
+		
+		// Handling an automatic redirect:
+		if(props.endAutoRedirectSeconds && !endTimer){
+			
+			var timer = setTimeout(() => {
+				window.location = props.backUrl || '/';
+			}, props.endAutoRedirectSeconds * 1000);
+			
+			setEndTimer(timer);
+		}
+		
 	};
 	
 	var [huddleClient, setHuddleClient] = useState(() => {
@@ -64,8 +76,20 @@ export default function HuddleChat(props) {
 			audioInitiallyDisabled: props.audioInitiallyDisabled,
 			videoInitiallyDisabled: props.videoInitiallyDisabled,
 			onError: e => {
-				// permanent failures here (such as huddle not found)
-				setFailure(e);
+				console.log(e);
+				
+				// failures here (such as huddle not found)
+				if(e.severity == 'fatal'){
+					setPermanentFailure(e);
+					huddleClient && huddleClient.destroy(0);
+					setHuddleClient(null);
+				}else if(e.severity == 'minor'){
+					console.log("Minor", e);
+				}else{
+					// Warning (severity == 'warn')
+					console.warn(e);
+				}
+				
 			},
 			onLeave: onLeave,
 			onJoined: client => {
@@ -114,6 +138,21 @@ export default function HuddleChat(props) {
 		
 	}, []);
 
+	if (permanentFailure){
+		
+		return <div className="huddle-chat--not-connected">
+			<Container>
+				<Row>
+					<Col size={12}>
+						<Alert variant="danger">
+							{permanentFailure.message}
+						</Alert>
+					</Col>
+				</Row>
+			</Container>
+		</div>;
+	}
+	
 	if (!users){
 		// Note: initial removed IDs is set based on the first array of users given.
 		// So, it's important that we don't give it an empty array until we are loaded.
@@ -147,20 +186,6 @@ export default function HuddleChat(props) {
 						<footer>
 							<a className="btn btn-primary" href={props.backUrl || '/'}>{props.backText || `Go back`}</a>
 						</footer>
-					</Col>
-				</Row>
-			</Container>
-		</div>;
-	}
-	
-	if (failure){
-		return <div className="huddle-chat--not-connected">
-			<Container>
-				<Row>
-					<Col size={12}>
-						<Alert variant="danger">
-							{`This meeting wasn't found.`}
-						</Alert>
 					</Col>
 				</Row>
 			</Container>
@@ -412,7 +437,7 @@ function HuddleChatUI(props) {
 			toggleConversation={() => {
 				setSidebar(sidebar == SidebarEnum.CONVERSATION ? SidebarEnum.CLOSED : SidebarEnum.CONVERSATION);
 			}}
-			recordMode={huddleClient.huddle.isRecording}
+			recordMode={huddleClient.huddle.recording}
 		/>
 
 		{/* notifications */}
@@ -469,7 +494,7 @@ function HuddleChatUI(props) {
 			onLeave={mode => {
 				props.onLeave(mode);
 			}}
-			recordMode={huddleClient.huddle.isRecording}
+			recordMode={huddleClient.huddle.recording}
 			onRecordMode={targetMode => {
 				huddleClient.recordingState(targetMode);
 				var msg = targetMode ? `This meeting is now being recorded` : `Meeting recording has ended`;
