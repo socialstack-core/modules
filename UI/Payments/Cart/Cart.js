@@ -138,7 +138,7 @@ export default function Cart(props) {
 															onClick={() => {
 																addToCart({
 																	product: product.id,
-																	quantity: -1,
+																	quantity: -getCartQuantity(product.id),
 																	isSubscribing: true})
                                                             }}>
 															<i className="fal fa-fw fa-trash"></i>
@@ -163,7 +163,7 @@ export default function Cart(props) {
 														onClick={() => {
 															addToCart({
 																product: product.id,
-																quantity: -1,
+																quantity: -getCartQuantity(product.id),
 																isSubscribing: true
 															})
 														}}>
@@ -201,19 +201,19 @@ export default function Cart(props) {
 				</Loop>
 			</table>
 
-			<div className="shopping-cart__footer">
-				<button type="button" className="btn btn-outline-danger" onClick={() => setShowEmptyCartPrompt(true)}
-					disabled={cartIsEmpty() ? "disabled" : undefined}>
-					<i className="fal fa-fw fa-trash" />
-					{`Empty Cart`}
-				</button>
+			{!cartIsEmpty() && <>
+				<div className="shopping-cart__footer">
+					<button type="button" className="btn btn-outline-danger" onClick={() => setShowEmptyCartPrompt(true)}>
+						<i className="fal fa-fw fa-trash" />
+						{`Empty Cart`}
+					</button>
 
-				<button type="button" className="btn btn-primary" onClick={() => setPage('/checkout')}
-					disabled={cartIsEmpty() ? "disabled" : undefined}>
-					<i className="fal fa-fw fa-credit-card" />
-					{`Checkout`}
-				</button>
-			</div>
+					<button type="button" className="btn btn-primary" onClick={() => setPage('/checkout')}>
+						<i className="fal fa-fw fa-credit-card" />
+						{`Checkout`}
+					</button>
+				</div>
+			</>}
 		</Wrapper>
 		{
 			showEmptyCartPrompt && <>

@@ -1,8 +1,147 @@
 $radio_option_width: 300px;
 $radio_option_height: 160px;
-$radio_option_gap: .75rem;
+$radio_option_gap_x: .75rem;
+$radio_option_gap_y: 1.75rem;
 $radio_input_height: 20px;
 $one_third: math.div(100%, 3);
+
+.select-product__options {
+
+}
+
+.select-product__option {
+	flex: 0 0 calc(#{$one_third} - ((2 * #{$radio_option_gap_x}) / 3));
+	min-height: $radio_option_height;
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+
+	&-internal {
+		flex: 1;
+		width: 100%;
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+		justify-content: center;
+		min-height: 250px;
+
+		.flip-card__internal {
+			border: 1px solid #ced4da;
+			border-radius: .25rem !important;
+		}
+
+		.flip-card__face {
+			display: flex;
+			flex-direction: column;
+			align-items: center;
+			justify-content: center;
+
+			&--front {
+				background: #fff;
+			}
+
+			&--rear {
+				background: var(--secondary);
+				color: var(--secondary-fg);
+			}
+		}
+	}
+
+	&-image-wrapper {
+		background-color: rgba(0,0,0,.05);
+		//border: 1px solid rgba(0,0,0,.1);
+		border-radius: .25rem;
+		padding: .75rem;
+	}
+
+	&-image {
+		position: relative;
+		width: 128px;
+		height: 128px;
+
+		&::after {
+			-moz-osx-font-smoothing: grayscale;
+			-webkit-font-smoothing: antialiased;
+			display: flex;
+			font-style: normal;
+			font-variant: normal;
+			text-rendering: auto;
+			line-height: 1;
+			font-family: "Font Awesome 5 Pro";
+			font-weight: 300;
+			content: "\f49c"; // fa-box-full
+		    position: absolute;
+			width: 100%;
+			height: 100%;
+		    justify-content: center;
+			align-items: center;
+			font-size: 4rem;
+			opacity: .25;
+		}
+	}
+
+	&-name {
+		font-size: 20px;
+		font-weight: bold;
+	}
+
+	&-price {
+
+	}
+
+	&-table {
+		color: currentColor;
+		font-size: 14px;
+		margin-block-end: 0;
+
+		tbody > tr:last-child > td {
+			border-block-end: 0;
+		}
+
+		.currency-column {
+			text-align: right;
+		}
+
+	}
+
+}
+
+.product-option {
+
+	&__image-wrapper {
+		background-color: rgba(0,0,0,.05);
+		//border: 1px solid rgba(0,0,0,.1);
+		border-radius: .25rem;
+		padding: .75rem;
+	}
+
+	&__image {
+		position: relative;
+		width: 128px;
+		height: 128px;
+
+		&::after {
+			-moz-osx-font-smoothing: grayscale;
+			-webkit-font-smoothing: antialiased;
+			display: flex;
+			font-style: normal;
+			font-variant: normal;
+			text-rendering: auto;
+			line-height: 1;
+			font-family: "Font Awesome 5 Pro";
+			font-weight: 300;
+			content: "\f49c"; // fa-box-full
+		    position: absolute;
+			width: 100%;
+			height: 100%;
+		    justify-content: center;
+			align-items: center;
+			font-size: 4rem;
+			opacity: .25;
+		}
+	}
+
+}
 
 .subscription-process {
 	max-width: $radio_option_width * 3;
@@ -28,15 +167,17 @@ $one_third: math.div(100%, 3);
 	.btn-group {
 		width: 100%;
 		flex-wrap: wrap;
-		gap: $radio_option_gap;
+		gap: $radio_option_gap_y $radio_option_gap_x;
 
-		.btn-check + label {
-			flex: 0 0 calc(#{$one_third} - ((2 * #{$radio_option_gap}) / 3));
+		.product-option,
+		.btn-check + .product-option {
+			flex: 0 0 calc(#{$one_third} - ((2 * #{$radio_option_gap_x}) / 3));
 			min-height: $radio_option_height;
 			border-radius: .25rem !important;
+			padding: 1rem;
 		}
 
-		.btn-check:checked + label:after {
+		.btn-check:checked + .product-option:after {
 			font-family: "Font Awesome 5 Pro";
 			font-weight: 900;
 			-moz-osx-font-smoothing: grayscale;
@@ -53,7 +194,7 @@ $one_third: math.div(100%, 3);
 			font-size: 1.5rem;
 		}
 
-		.btn-check:checked + label.product--selected:after {
+		.btn-check:checked + .product-option.product--selected:after {
 			font-family: "Font Awesome 5 Pro";
 			font-weight: 900;
 			-moz-osx-font-smoothing: grayscale;
@@ -90,7 +231,7 @@ $one_third: math.div(100%, 3);
 		flex-direction: column;
 		align-items: center;
 		justify-content: center;
-		border-color: #ced4da;
+		border: 1px solid #ced4da;
 
 		&__name {
 			font-size: 20px;
@@ -141,9 +282,10 @@ html.no-flexgap {
 
 		.btn-group {
 
-			.btn-check + label {
-				margin-block-end: $radio_option_gap;
-				margin-inline-end: $radio_option_gap;
+			.product-option,
+			.btn-check + .product-option {
+				margin-block-end: $radio_option_gap_y;
+				margin-inline-end: $radio_option_gap_x;
 
 				&:nth-of-type(3n + 3) {
 					margin-inline-end: 0;
@@ -180,9 +322,10 @@ html.no-flexgap {
 	.subscribe-select-product {
 
 		.btn-group {
-
-			.btn-check + label {
-				flex: 0 0 calc(50% - (#{$radio_option_gap} / 2));
+			
+			.product-option,
+			.btn-check + .product-option {
+				flex: 0 0 calc(50% - (#{$radio_option_gap_x} / 2));
 			}
 		}
 	}
@@ -204,9 +347,10 @@ html.no-flexgap {
 				z-index: -1;
 			}
 
-			.btn-check + label {
+			.product-option,
+			.btn-check + .product-option {
 				flex: 0 0 100%;
-				margin-top: calc(-#{$radio_input_height} - #{$radio_option_gap});
+				margin-top: calc(-#{$radio_input_height} - #{$radio_option_gap_x});
 			}
 		}
 	}

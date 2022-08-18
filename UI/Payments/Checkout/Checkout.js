@@ -56,6 +56,9 @@ export default function Checkout(props) {
 				loadingMessage={`Purchasing..`}
 				onSuccess={info => {
 					
+					// Clear cart:
+					emptyCart();
+					
 					if(info.nextAction){
 						// Go to it now:
 						window.location = info.nextAction;
@@ -206,9 +209,8 @@ export default function Checkout(props) {
 						}
 					}} />
 					
-					<Input type='payment' name='paymentMethod' label='Payment method' validate={['Required']} />
-					
 					{!cartIsEmpty() && <>
+						<Input type='payment' name='paymentMethod' label='Payment method' validate={['Required']} />
 						<div class="form-check">
 							<input class="form-check-input" type="checkbox" id="termsCheckbox" checked={termsAccepted ? 'checked' : undefined}
 								onChange={e => setTermsAccepted(e.target.checked)} />
@@ -226,13 +228,15 @@ export default function Checkout(props) {
 					</>}
 
 				</div>
-				<div className="subscribe-checkout__footer">
-					<button type="submit" className="btn btn-primary"
-						disabled={!canPurchase() ? "disabled" : undefined}>
-						<i className="fal fa-fw fa-credit-card" />
-						{`Confirm Purchase`}
-					</button>
-				</div>
+				{!cartIsEmpty() && <>
+					<div className="subscribe-checkout__footer">
+						<button type="submit" className="btn btn-primary"
+							disabled={!canPurchase() ? "disabled" : undefined}>
+							<i className="fal fa-fw fa-credit-card" />
+							{`Confirm Purchase`}
+						</button>
+					</div>
+				</>}
 			</Form>
 		</Wrapper>
 	</>;
