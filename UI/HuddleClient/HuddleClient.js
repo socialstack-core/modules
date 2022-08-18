@@ -2,12 +2,8 @@ import webRequest, {expandIncludes} from 'UI/Functions/WebRequest';
 import WebSocket from 'UI/Functions/WebSocket';
 import store from 'UI/Functions/Store';
 import getRef from 'UI/Functions/GetRef';
-import testMp3FileRef from './static/test.mp3';
-import vidRef from './static/b.mp4';
+import errorMessages from './errors.js';
 
-// TODOs:
-// - If a channel is muted, mark the media section as disabled. Don't outright remove it.
-// - Must ensure the very first media section is never removed, otherwise it invalidates the bundle.
 
 var _huddleUserState = null;
 
@@ -170,6 +166,36 @@ export default class HuddleClient{
 			}
 		}, 0, null, false);
 		
+		this.socket.registerOpcode(60, r => {
+			var payloadSize = r.readUInt32();
+			
+			// Huddle updated:
+			var json = r.readUtf8SizedPlus1(payloadSize + 1);
+			
+			try{
+				var huddleState = JSON.parse(json);
+				
+				if(!this.huddle){
+					this.huddle = huddleState;
+				}else{
+					this.huddle = {
+						...this.huddle,
+						huddleState
+					};
+				}
+				
+				console.log("Huddle change: ", this.huddle);
+				
+				var e = this.createEvent('userchange');
+				e.users = this.users;
+				this.dispatchEvent(e);
+				
+			}catch(e){
+				console.log(e);
+			}
+			
+		}, false);
+		
 		this.socket.registerOpcode(52, r => {
 			var payloadSize = r.readUInt32();
 			
@@ -252,6 +278,48 @@ export default class HuddleClient{
 			this.props.onLeave ? this.props.onLeave(2) : this.destroy();
 		}, false);
 		
+		this.socket.registerOpcode(2, r => {
+			var payloadSize = r.readUInt32();
+			var severity = r.readByte();
+			var inResponseTo = r.readUInt32();
+			var eJson = r.readUtf8(); // Error json
+			
+			var errorObj = {
+				error: 'unspecified'
+			};
+			
+			try{
+				errorObj = JSON.parse(eJson);
+			}catch(e){
+				console.log(e);
+			}
+			
+			if(errorObj.error){
+				var fullText = errorMessages[errorObj.error];
+				
+				if(!fullText){
+					fullText = errorMessages.unspecified;
+				}
+				
+				errorObj.message = fullText;
+			}
+			
+			switch(severity){
+				case 1:
+					errorObj.severity = 'fatal';
+				break;
+				case 2:
+					errorObj.severity = 'minor';
+				break;
+				case 3:
+					errorObj.severity = 'warn';
+				break;
+			}
+			
+			this.props.onError && this.props.onError(errorObj);
+			
+		}, false);
+		
 		this.socket.registerOpcode(45, r => {
 			var payloadSize = r.readUInt32();
 			var selfPresenceId = r.readUInt32();
@@ -262,23 +330,7 @@ export default class HuddleClient{
 			var offerHead = r.readUtf8();
 			var candidate = r.readUtf8();
 			var userToken = r.readUtf8(); // Huddle network user token
-			var extension = r.readUtf8(); // Extension json (used by errors)
-			
-			if(selfPresenceId == 0){
-				
-				var extensionJson = {
-					error: 'huddle_not_found'
-				};
-				
-				try{
-					extensionJson = JSON.parse(extension);
-				}catch(e){
-					console.log(e);
-				}
-				
-				this.props.onError && this.props.onError(extensionJson);
-				return;
-			}
+			var extension = r.readUtf8(); // Extension json
 			
 			if(userToken){
 				// Store the updated user state

@@ -27,10 +27,10 @@ export default function Header(props) {
 	if (!title || !title.length) {
 		title = `Huddle Meeting`;
     }
-
+	
 	var huddleType = huddleClient.huddle.huddleType;
 	var recordingOn = recordMode == 1;
-
+	
 	var start = isoConvert(huddleClient.huddle.startTimeUtc);
 	var end = isoConvert(huddleClient.huddle.estimatedEndTimeUtc);
 

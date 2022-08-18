@@ -1,6 +1,6 @@
 {
-   "dependencies": [
-        "UI/CloseButton",
-        "UI/Emoji"
-   ]
+  "dependencies": [
+    "UI/Emoji",
+    "UI/CloseButton"
+  ]
 }
