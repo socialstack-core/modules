@@ -401,7 +401,7 @@ namespace Api.Payments
 
 				if (redir != null)
 				{
-					action = redir.ReturnUrl;
+					action = redir.Url;
 				}
 			}
 

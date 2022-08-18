@@ -267,7 +267,10 @@ namespace Api.Emails
 						if (recipient.UserId != 0)
 						{
 							// Try setting the user object now:
-							userLookup.TryGetValue(recipient.UserId, out recipient.User);
+							if (userLookup.TryGetValue(recipient.UserId, out recipient.User))
+							{
+								recipient.Context.User = recipient.User;
+							}
 						}
 					}
 				}

@@ -668,6 +668,11 @@ function renderCanvas(bodyJson, apiContext, publicApiContextJson, url, pageState
 		...JSON.parse(publicApiContextJson)
 	};
 	
+	// Expand includes on the session.
+	for(var k in session){
+		session[k] = _webRequestModule.expandIncludes(session[k]);
+	}
+	
 	// Page state with tokens etc:
 	
 	var tokenNames = pageState.TokenNames;

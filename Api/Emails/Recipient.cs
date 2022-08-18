@@ -59,7 +59,7 @@ namespace Api.Emails{
 		{
 			User = user;
 			UserId = user.Id;
-			Context = new Context(localeId, user.Id, user.Role)
+			Context = new Context(localeId, user, user.Role)
 			{
 				LocaleId = localeId
 			};
@@ -73,10 +73,7 @@ namespace Api.Emails{
 		public Recipient(uint userId, uint localeId = 0)
 		{
 			UserId = userId;
-			Context = new Context()
-			{
-				LocaleId = localeId
-			};
+			Context = new Context(localeId, userId, 4);
 		}
 
 		/// <summary>
