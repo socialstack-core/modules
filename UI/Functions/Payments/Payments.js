@@ -81,34 +81,6 @@ const renderTieredProducts = (renderCallback, options) => {
 	</Loop>;
 };
 
-/*
-const renderSelectableProduct = (renderCallback, session, product, allowMultiple) => {
-	var productId = "product_" + product.id;
-	var productName = product.name;
-	// TODO: check price strategy
-	var cost = formatCurrency(product.price.amount * product.minQuantity, session.locale, { hideDecimals: true });
-	// TODO: support differing frequencies
-	var recurrence = ` pm`;
-
-	return <input className="btn-check" id={productId} autocomplete="off"
-				type={allowMultiple ? "checkbox" : "radio"}
-				name={allowMultiple ? undefined : "productOption"}
-				data-id={product.id}
-				data-name={productName}
-				onChange={(e) => updateProductSelection(e)} />
-			<label className="btn btn-outline-secondary product-option" htmlFor={productId}>
-				<span className="product-option__name">
-					{productName}
-				</span>
-				<span className="product-option__price">
-					{cost}
-					{recurrence}
-				</span>
-			</label>
-
-};
-*/
-
 export {
 	renderProducts,
 	renderAllProducts,
