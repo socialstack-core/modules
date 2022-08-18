@@ -77,3 +77,4 @@ FlipCard.defaultProps = {
 }
 
 FlipCard.icon='align-center';
+
