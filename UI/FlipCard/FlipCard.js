@@ -54,10 +54,14 @@ export default function FlipCard(props) {
 			<div class="flip-card__internal">
 				<div class="flip-card__face flip-card__face--front">
 					{frontChildren}
+					{hasFrontAndBack && <>
+						<i className="fal fa-sync flip-card__icon"></i>
+					</>}
 				</div>
 				{hasFrontAndBack && <>
 					<div class="flip-card__face flip-card__face--rear">
 						{rearChildren}
+						<i className="fal fa-sync flip-card__icon"></i>
 					</div>
 				</>}
 			</div>
