@@ -2673,11 +2673,11 @@ export default class RichEditor extends React.Component {
 		
 		return <div className={"rich-editor " + (toolbar ? "with-toolbar" : "no-toolbar")} data-theme={"main"} onContextMenu={this.onContextMenu} onMouseDown={this.onMouseDown}>
 			{toolbar && (<div className="rte-toolbar">
-				{this.surroundButton('Bold', 'b', null, true)}
-				{this.surroundButton('Underline', 'u', null, true)}
-				{this.surroundButton('Italic', 'i', null, true)}
-				{this.surroundButton('Strike', 's', null, true)}
-				{/*this.surroundButton('Link', 'UI/Link', null, true, null, {href:{content:[{type: TEXT, text:'https://www.example.com/'}]}})*/}
+				{this.surroundButton('Bold', 'b', 'far fa-bold', null, true)}
+				{this.surroundButton('Underline', 'u', 'far fa-underline', null, true)}
+				{this.surroundButton('Italic', 'i', 'far fa-italic', null, true)}
+				{this.surroundButton('Strike', 's', 'far fa-strikethrough', null, true)}
+				{/*this.surroundButton('Link', 'UI/Link', 'far fa-link', null, true, null, {href:{content:[{type: TEXT, text:'https://www.example.com/'}]}})*/}
 				<button 
 					disabled={!this.canUndo()}
 					title={`Undo`}
@@ -2712,22 +2712,22 @@ export default class RichEditor extends React.Component {
 				>
 				Redo
 				</button>
-				{/*this.surroundButton('Token', 'UI/Token', null, true)*/}
-				{/*this.surroundButton('Quote', 'blockquote', 'Quote')*/}
+				{/*this.surroundButton('Token', 'UI/Token', 'far fa-brackets-curly', null, true)*/}
+				{/*this.surroundButton('Quote', 'blockquote', 'far fa-quote-right', 'Quote')*/}
 				{this.menuButton('Heading..', () => {
 					return <>
-						<div>{this.surroundButton('Set as header', 'h1', 'Heading')}</div>
-						<div>{this.surroundButton('Set as header', 'h2', 'Heading 2')}</div>
-						<div>{this.surroundButton('Set as header', 'h3', 'Heading 3')}</div>
-						<div>{this.surroundButton('Set as header', 'h4', 'Heading 4')}</div>
-						<div>{this.surroundButton('Set as header', 'h5', 'Heading 5')}</div>
-						<div>{this.surroundButton('Set as header', 'h6', 'Heading 6')}</div>
+						<div>{this.surroundButton('Set as header', 'h1', null, 'Heading')}</div>
+						<div>{this.surroundButton('Set as header', 'h2', null, 'Heading 2')}</div>
+						<div>{this.surroundButton('Set as header', 'h3', null, 'Heading 3')}</div>
+						<div>{this.surroundButton('Set as header', 'h4', null, 'Heading 4')}</div>
+						<div>{this.surroundButton('Set as header', 'h5', null, 'Heading 5')}</div>
+						<div>{this.surroundButton('Set as header', 'h6', null, 'Heading 6')}</div>
 					</>;
 				})}
 				{/*this.menuButton('List..', () => {
 					return <>
-						<div>{this.surroundButton('List', ['ul', 'li'], 'Bullet point list')}</div>
-						<div>{this.surroundButton('List', ['ol', 'li'], 'Numbered list')}</div>
+						<div>{this.surroundButton('List', ['ul', 'li'], 'far fa-list-ul', 'Bullet point list')}</div>
+						<div>{this.surroundButton('List', ['ol', 'li'], 'far fa-list-ol', 'Numbered list')}</div>
 					</>;
 				})*/}
 				{/*this.props.modules && this.renderButton('Add something else', <i className={'fa fa-plus'} />, () => {
@@ -2837,7 +2837,7 @@ export default class RichEditor extends React.Component {
 		</span>;
 	}
 	
-	surroundButton(title, types, content, requireSelection, props, roots){
+	surroundButton(title, types, icon, content, requireSelection, props, roots){
 		if(!content){
 			content = title;
 		}
@@ -2872,7 +2872,8 @@ export default class RichEditor extends React.Component {
 				e.preventDefault();
 			}}
 		>
-		{content}
+			{icon && <i className={icon}></i>}
+			{!icon && content}
 		</button>;
 	}
 	
