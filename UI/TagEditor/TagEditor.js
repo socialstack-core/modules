@@ -33,6 +33,18 @@ export default function TagEditor(props) {
         setValue(event.currentTarget.value);
     };
 
+    const onblur = (event) => {
+        const currentValue = value.trim();
+        if (currentValue !== '') {
+            var cleanTag = currentValue.replace(',', '').toLowerCase();
+            if(! terms.includes(cleanTag)) {
+                setTerms([...terms, cleanTag]);
+            }
+            setValue('');
+            setFocusIndex(-1);
+        }
+    };
+
     const onkeydown = (event) => {
         const { key } = event;
         const currentValue = value.trim();
@@ -121,6 +133,7 @@ export default function TagEditor(props) {
             aria-label={placeholder}
             value={value}
             onInput={onchange}
+            onBlur={onblur}
             onKeyUp={onkeyup}
             onKeyDown={onkeydown}
             name={name}/>
