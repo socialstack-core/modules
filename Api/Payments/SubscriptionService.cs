@@ -6,6 +6,7 @@ using Api.Contexts;
 using Api.Eventing;
 using Api.Startup;
 using System;
+using Api.Emails;
 
 namespace Api.Payments
 {
@@ -18,15 +19,17 @@ namespace Api.Payments
 		private readonly ProductQuantityService _productQuantities;
 		private readonly PurchaseService _purchases;
 		private readonly PaymentMethodService _paymentMethods;
+		private readonly EmailTemplateService _emails;
 
 		/// <summary>
 		/// Instanced automatically. Use injection to use this service, or Startup.Services.Get.
 		/// </summary>
-		public SubscriptionService(ProductQuantityService productQuantities, PurchaseService purchases, PaymentMethodService paymentMethods) : base(Events.Subscription)
+		public SubscriptionService(ProductQuantityService productQuantities, PurchaseService purchases, PaymentMethodService paymentMethods, EmailTemplateService emails) : base(Events.Subscription)
 		{
 			_productQuantities = productQuantities;
 			_purchases = purchases;
 			_paymentMethods = paymentMethods;
+			_emails = emails;
 
 			Events.Subscription.BeforeSettable.AddEventListener((Context ctx, JsonField<Subscription, uint> field) =>
 			{
@@ -61,6 +64,17 @@ namespace Api.Payments
 
 				return toUpdate;
 			});
+
+			InstallEmails(
+				new EmailTemplate()
+				{
+					Name = "Cancelled subscription",
+					Subject = "We're sorry to see you go",
+					Key = "subscription_cancelled",
+					BodyJson = "{\"module\":\"Email/Default\",\"content\":[{\"module\":\"Email/Centered\",\"data\":{}," +
+					"\"content\":[\"Your subscription with us has now been fully cancelled. Thank you for subscribing and we hope to see you again in the future.\"]}]}"
+				}
+			);
 
 			// If a subscription payment changes to state 202, fulfil it immediately.
 			Events.Purchase.BeforeUpdate.AddEventListener(async (Context context, Purchase purchase, Purchase original) => {
@@ -143,7 +157,30 @@ namespace Api.Payments
 				// For each one, charge it.
 				foreach (var subscription in subsToUpdate)
 				{
-					await ChargeSubscription(context, subscription);
+					if (subscription.WillCancel)
+					{
+						// Cancelling this subscription.
+						// This occurs here such that any duration the user has paid for can be fully utilised.
+						await Update(context, subscription, (Context context, Subscription toUpdate, Subscription orig) => {
+
+							// Cancelled (by user)
+							toUpdate.Status = 2;
+							toUpdate.WillCancel = false;
+
+						}, DataOptions.IgnorePermissions);
+
+						// Send email:
+						var recipients = new List<Recipient>();
+						var userRecipient = new Recipient(subscription.UserId, subscription.LocaleId);
+						recipients.Add(userRecipient);
+						_emails.Send(recipients, "subscription_cancelled");
+
+						#warning TODO: charge overages if there are any. Must discount any pre-paid amounts.
+					}
+					else
+					{
+						await ChargeSubscription(context, subscription);
+					}
 				}
 
 				return runInfo;

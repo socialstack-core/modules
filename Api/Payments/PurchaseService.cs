@@ -1,10 +1,11 @@
-using Api.Database;
+﻿using Api.Database;
 using System.Threading.Tasks;
 using System.Collections.Generic;
 using Api.Permissions;
 using Api.Contexts;
 using Api.Eventing;
 using Api.Startup;
+using Api.Emails;
 
 namespace Api.Payments
 {
@@ -22,13 +23,34 @@ namespace Api.Payments
 		/// <summary>
 		/// Instanced automatically. Use injection to use this service, or Startup.Services.Get.
 		/// </summary>
-		public PurchaseService(PaymentMethodService paymentMethods, PaymentGatewayService gateways, ProductQuantityService prodQuantities, ProductService products) : base(Events.Purchase)
+		public PurchaseService(PaymentMethodService paymentMethods, PaymentGatewayService gateways, ProductQuantityService prodQuantities, ProductService products, EmailTemplateService emails) : base(Events.Purchase)
         {
 			_paymentMethods = paymentMethods;
 			_gateways = gateways;
 			_prodQuantities = prodQuantities;
 			_products = products;
 
+			InstallEmails(
+				new EmailTemplate()
+				{
+					Name = "Your payment receipt",
+					Subject = "Your payment receipt",
+					Key = "payment_receipt",
+					BodyJson = "{\"t\":\"Email/Default\",\"c\":[{\"t\":\"Email/Centered\",\"d\":{}," +
+					"\"c\":[\"Thank you! A payment was successfully made for \", {\"t\":\"UI/Token\",\"c\":\"${customData.printablePrice}\", \"d\":{\"mode\":\"customdata\",\"fields\":[\"printablePrice\"]}}]}," +
+					"{\"t\":\"Email/PrimaryButton\",\"d\":{\"label\":\"View payment details\",\"target\":\"/checkout/payment/${customData.paymentId}\"}}]}"
+				},
+				new EmailTemplate()
+				{
+					Name = "A payment issue occurred",
+					Subject = "A payment issue occurred",
+					Key = "payment_fault",
+					BodyJson = "{\"module\":\"Email/Default\",\"content\":[{\"module\":\"Email/Centered\",\"data\":{}," +
+					"\"content\":[\"We tried to request a payment of \", {\"t\":\"UI/Token\",\"c\":\"${customData.printablePrice}\", \"d\":{\"mode\":\"customdata\",\"fields\":[\"printablePrice\"]}}, \" but it was unable to go through. This can be because the card used was cancelled, has expired, or there are insufficient funds. If you're not sure, please check with your bank.\"]}," +
+					"{\"module\":\"Email/PrimaryButton\",\"data\":{\"label\":\"View payment details\",\"target\":\"/checkout/payment/${customData.paymentId}\"}}]}"
+				}
+			);
+			
 			Events.Purchase.BeforeCreate.AddEventListener(async (Context context, Purchase purchase) => {
 
 				// Ensure paymentGatewayId is set:
@@ -41,6 +63,45 @@ namespace Api.Payments
 				}
 
 				return purchase;
+			});
+
+			Events.Purchase.BeforeUpdate.AddEventListener((Context context, Purchase purchase, Purchase original) => {
+
+				// State change - is it now a successful payment?
+				if (purchase.Status != original.Status)
+				{
+					if (purchase.Status == 202)
+					{
+						// Send success email:
+						var userRecipient = new Recipient(purchase.UserId, purchase.LocaleId);
+						userRecipient.CustomData = new
+						{
+							Purchase = purchase,
+							PrintablePrice = PrintPrice(purchase.TotalCost, purchase.CurrencyCode),
+							PaymentId = purchase.Id
+						};
+						var recipients = new List<Recipient>();
+						recipients.Add(userRecipient);
+						emails.Send(recipients, "payment_receipt");
+					}
+					else if (purchase.Status > 299)
+					{
+						// Send failure email:
+						var userRecipient = new Recipient(purchase.UserId, purchase.LocaleId);
+						userRecipient.CustomData = new
+						{
+							Purchase = purchase,
+							PrintablePrice = PrintPrice(purchase.TotalCost, purchase.CurrencyCode),
+							PaymentId = purchase.Id
+						};
+						var recipients = new List<Recipient>();
+						recipients.Add(userRecipient);
+						emails.Send(recipients, "payment_fault");
+					}
+				}
+
+				return new ValueTask<Purchase>(purchase);
+
 			});
 
 		}

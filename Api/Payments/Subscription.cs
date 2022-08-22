@@ -23,6 +23,11 @@ namespace Api.Payments
 		public DateTime NextChargeUtc;
 
 		/// <summary>
+		/// True if this subscription will cancel on the next billing cycle.
+		/// </summary>
+		public bool WillCancel;
+
+		/// <summary>
 		/// 0 = The default, it's in months.   (currently the only supported option)
 		/// 1 = Quarters
 		/// 2 = Years
