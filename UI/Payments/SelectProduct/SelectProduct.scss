@@ -149,6 +149,7 @@ $one_third: math.div(100%, 3);
 
 .subscribe-select-product {
 	max-width: $radio_option_width * 3;
+	margin: 0 auto;
 
 	&__title {
         font-size: pow($heading-font-ratio, 3) * $base-font-size * 1px;

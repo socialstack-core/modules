@@ -46,8 +46,8 @@ export default function Checkout(props) {
 	}
 
 	return <>
-		<Wrapper className="subscribe-checkout" activeStep={getStepIndex(getSteps().SUBSCRIPTION_TYPE)}>
-			<h2 className="subscribe-checkout__title">
+		<Wrapper className="payment-checkout" activeStep={getStepIndex(getSteps().SUBSCRIPTION_TYPE)}>
+			<h2 className="payment-checkout__title">
 				{`Checkout`}
 			</h2>
 			<Form 
@@ -75,7 +75,7 @@ export default function Checkout(props) {
 			>
 				<div className="mb-3">
 
-					<table className="table table-striped subscribe-checkout__table">
+					<table className="table table-striped payment-checkout__table">
 						<thead>
 							<tr>
 								<th>
@@ -109,6 +109,7 @@ export default function Checkout(props) {
 							{
 								allProducts => {
 									var cartTotal = 0;
+									var hasPAYG = false;
 
 									return <>
 										<tbody>
@@ -122,18 +123,20 @@ export default function Checkout(props) {
 													}
 
 													var cost, formattedCost, formattedSeats;
+													var showPaygNote = product.priceStrategy == STRATEGY_PAYG;
 
 													switch (product.priceStrategy) {
 														case STRATEGY_BULK:
 															cost = product.price.amount * product.minQuantity;
-															formattedCost = formatCurrency(cost, session.locale, { hideDecimals: true }) + ` pm`;
+															formattedCost = formatCurrency(cost, session.locale) + ` pm`;
 															formattedSeats = new Intl.NumberFormat(session.locale.code).format(product.minQuantity);
 															break;
 
 														case STRATEGY_PAYG:
 															cost = getTierPrice(product, cartInfo.quantity);
 															formattedCost = formatCurrency(cost, session.locale) + `/seat pm`;
-															formattedSeats = new Intl.NumberFormat(session.locale.code).format(cartInfo.quantity);
+															formattedSeats = <>&mdash;</>;
+															hasPAYG = true;
 															break;
 
 														default:
@@ -149,7 +152,7 @@ export default function Checkout(props) {
 													if (cartInfo.isSubscribing) {
 														return <tr>
 															<td>
-																{product.name} <span className="footnote-asterisk" title={`Subscription`}></span>
+																{product.name} <span className="footnote-asterisk" title={`Subscription`}></span> {showPaygNote && <span className="footnote-dagger" title={`PAYG`}></span>}
 															</td>
 															<td className="qty-column">
 																{formattedSeats}
@@ -188,11 +191,14 @@ export default function Checkout(props) {
 												</td>
 											</tr>
 										</tfoot>
-										{hasSubscriptions() && <caption>
-											<small>
+										<caption>
+											{hasSubscriptions() && <small>
 												<span className="footnote-asterisk"></span> {`Your payment information will be securely stored in order to process future subscription payments`}
-											</small>
-										</caption>}
+											</small>}
+											{hasPAYG && <small>
+												<span className="footnote-dagger"></span> {`An initial authorising payment covering the cost of a single seat will be taken for Pay-As-You-Go subscriptions`}
+											</small>}
+										</caption>
 									</>;
 								}
 							}
@@ -229,7 +235,7 @@ export default function Checkout(props) {
 
 				</div>
 				{!cartIsEmpty() && <>
-					<div className="subscribe-checkout__footer">
+					<div className="payment-checkout__footer">
 						<button type="submit" className="btn btn-primary"
 							disabled={!canPurchase() ? "disabled" : undefined}>
 							<i className="fal fa-fw fa-credit-card" />

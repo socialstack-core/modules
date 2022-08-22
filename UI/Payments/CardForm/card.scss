@@ -79,6 +79,7 @@ $rccs-visaelectron-logo: 'data:image/svg+xml;base64,PD94bWwgdmVyc2lvbj0iMS4wIiBl
 
     &--front,
     &--back {
+        -webkit-backface-visibility: hidden;
       backface-visibility: hidden;
       background: $rccs-default-background;
       border-radius: math.div($rccs-size, 20);

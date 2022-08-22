@@ -1,4 +1,5 @@
-.subscribe-checkout {
+.payment-checkout {
+	max-width: 900px;
 
 	select {
 		max-width: 500px;
@@ -36,8 +37,12 @@
 		}
 
 		caption {
-			color: inherit;
+			color: rgba(0,0,0,.6);
 			font-style: italic;
+
+			small {
+				display: block;
+			}
 		}
 
 	}
@@ -66,7 +71,7 @@
 
 html.no-flexgap {
 
-	.subscribe-checkout {
+	.payment-checkout {
 
 		&__footer {
 

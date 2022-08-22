@@ -83,6 +83,7 @@ export default function Cart(props) {
 						allProducts => {
 							var cartTotal = 0;
 							var hasSubscriptions = false;
+							var hasPAYG = false;
 
 							return <>
 								<tbody>
@@ -96,18 +97,20 @@ export default function Cart(props) {
 											}
 
 											var cost, formattedCost, formattedSeats;
+											var showPaygNote = product.priceStrategy == STRATEGY_PAYG;
 
 											switch (product.priceStrategy) {
 												case STRATEGY_BULK:
 													cost = product.price.amount * product.minQuantity;
-													formattedCost = formatCurrency(cost, session.locale, { hideDecimals: true }) + ` pm`;
+													formattedCost = formatCurrency(cost, session.locale) + ` pm`;
 													formattedSeats = new Intl.NumberFormat(session.locale.code).format(product.minQuantity);
 													break;
 
 												case STRATEGY_PAYG:
 													cost = getTierPrice(product, cartInfo.quantity);
 													formattedCost = formatCurrency(cost, session.locale) + `/seat pm`;
-													formattedSeats = new Intl.NumberFormat(session.locale.code).format(cartInfo.quantity);
+													formattedSeats = <>&mdash;</>;
+													hasPAYG = true;
 													break;
 
 												default:
@@ -125,7 +128,7 @@ export default function Cart(props) {
 
 												return <tr>
 													<td>
-														{product.name} <span className="footnote-asterisk" title={`Subscription`}></span>
+														{product.name} <span className="footnote-asterisk" title={`Subscription`}></span> {showPaygNote && <span className="footnote-dagger" title={`PAYG`}></span>}
 													</td>
 													<td className="qty-column">
 														{formattedSeats}
@@ -190,11 +193,14 @@ export default function Cart(props) {
 										</td>
 									</tr>
 								</tfoot>
-								{hasSubscriptions && <caption>
-									<small>
+								<caption>
+									{hasSubscriptions && <small>
 										<span className="footnote-asterisk"></span> {`Your payment information will be securely stored in order to process future subscription payments`}
-									</small>
-								</caption>}
+									</small>}
+									{hasPAYG && <small>
+										<span className="footnote-dagger"></span> {`An initial authorising payment covering the cost of a single seat will be taken for Pay-As-You-Go subscriptions`}
+									</small>}
+								</caption>
 							</>;
 						}
 					}
