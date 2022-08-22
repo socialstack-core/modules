@@ -100,7 +100,6 @@ export default class AvTest extends React.Component{
 	}
 	
 	feedAmplitude(avg, proc) {
-		
 		var canvas = this.micMeterRef;
 		
 		if(canvas){
@@ -164,7 +163,7 @@ export default class AvTest extends React.Component{
 			var audioCtx = new AudioContext();
 			var analyser = audioCtx.createAnalyser();
 			var scriptProcessor = audioCtx.createScriptProcessor(2048, 1, 1);
-			var amplitudeArray = new Float32Array(analyser.fftSize);
+			var amplitudeArray = null;
 			var sourceNode = audioCtx.createMediaStreamSource(stream);
 			var mixedOutput = audioCtx.createMediaStreamDestination();
 			
@@ -173,18 +172,45 @@ export default class AvTest extends React.Component{
 			scriptProcessor.connect(mixedOutput);
 			
 			scriptProcessor.onaudioprocess = () => {
-				analyser.getFloatTimeDomainData(amplitudeArray);
-
 				var maxVal = 0;
+				
+				if(analyser.getFloatTimeDomainData){
+					
+					if(!amplitudeArray){
+						amplitudeArray = new Float32Array(analyser.fftSize);
+					}
+					
+					analyser.getFloatTimeDomainData(amplitudeArray);
+					
+					for(var i=0;i<amplitudeArray.length;i++){
+						var currentVal = amplitudeArray[i];
 
-				for(var i=0;i<amplitudeArray.length;i++){
-				var currentVal = amplitudeArray[i];
+						if(currentVal > maxVal){
+							maxVal = currentVal;
+						}
+					}
+					
+				}else{
+					
+					if(!amplitudeArray){
+						amplitudeArray = new Uint8Array(analyser.fftSize);
+					}
+					
+					analyser.getByteTimeDomainData(amplitudeArray);
 
-				if(currentVal > maxVal){
-					maxVal = currentVal;
+					for(var i=0;i<amplitudeArray.length;i++){
+						var currentVal = amplitudeArray[i];
+
+						if(currentVal > maxVal){
+							maxVal = currentVal;
+						}
+					}
+					
+					// maxVal is a byte from 0-256. Normalise into +1/-1.
+					maxVal = (maxVal / 128.0) - 1.0;
 				}
-				}
-
+				
+				// Fold:
 				if(maxVal < 0){
 					maxVal = -maxVal;
 				}
@@ -347,7 +373,7 @@ export default class AvTest extends React.Component{
 					</label>
 				</div>
 				{this.state.enableCamera && <>
-					<video className="av-test__video-sample" ref={v => this.videoSpaceRef = v} />
+					<video playsinline muted autoplay className="av-test__video-sample" ref={v => this.videoSpaceRef = v} />
 				</>}
 			</div>
 		</>;
