@@ -359,7 +359,30 @@ namespace Api.Database
 			var versionQuery = Query.List(typeof(DatabaseVersion), nameof(DatabaseVersion));
 			versionQuery.SetRawQuery("SELECT VERSION() as Version");
 
-			var dbVersion = await _database.Select<DatabaseVersion, uint>(null, versionQuery, typeof(DatabaseVersion), 0);
+			DatabaseVersion dbVersion = null;
+			var tryAgain = true;
+
+			// This is the first db query that happens - if the database is not yet available we'll keep retrying until it is.
+			while (tryAgain)
+			{
+				tryAgain = false;
+
+				try
+				{
+
+					dbVersion = await _database.Select<DatabaseVersion, uint>(null, versionQuery, typeof(DatabaseVersion), 0);
+
+				}
+				catch (MySqlException e)
+				{
+					if (e.Code == 0)
+					{
+						Console.WriteLine("[WARN] Authentication or unable to contact mysql. Trying again in 5 seconds. " + e.Message);
+						await Task.Delay(5000);
+						tryAgain = true;
+					}
+				}
+			}
 
 			// Get DB version:
 			VersionText = dbVersion.Version;
@@ -614,11 +637,16 @@ namespace Api.Database
 				{
 					await _database.Run(queryToRun);
 				}
-				catch(MySqlException e)
+				catch (MySqlException e)
 				{
 					// Skipping all MySQL errors - the ones here are "it already exists" errors.
-					Console.WriteLine("Skipping a MySQL error during diff: " + e.ToString());
+					Console.WriteLine("Skipping a MySQL error during database diff: " + e.ToString());
 				}
+				catch (Exception e)
+				{
+					Console.WriteLine("Skipping a general error during database diff: " + e.ToString());
+				}
+
 				await Events.DatabaseDiffAfterAdd.Dispatch(new Context(), tableDiff);
 			}
 

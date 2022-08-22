@@ -30,15 +30,37 @@ namespace Api.Database
 		/// The latest DB schema.
 		/// </summary>
 		public Schema Schema { get; set; }
-		
+
 		/// <summary>
 		/// Create a new database connector with the given connection string.
 		/// </summary>
 		public MySQLDatabaseService() {
-			ConnectionString = System.Environment.GetEnvironmentVariable("DatabaseConnectionString") ?? 
-				AppSettings.Configuration.GetConnectionString(
-					System.Environment.GetEnvironmentVariable("ConnectionStringName") ?? "DefaultConnection"
-				);
+			var envString = System.Environment.GetEnvironmentVariable("DatabaseConnectionString");
+
+			if (string.IsNullOrEmpty(envString))
+			{
+				// Load from appsettings and add a change handler.
+				LoadFromAppSettings();
+
+				AppSettings.OnChange += () => {
+					LoadFromAppSettings();
+				};
+			}
+			else
+			{
+				ConnectionString = envString;
+			}
+
+		}
+
+		/// <summary>
+		/// Indicates the connection string should be loaded or reloaded.
+		/// </summary>
+		private void LoadFromAppSettings()
+		{
+			ConnectionString = AppSettings.GetSection("ConnectionStrings")[
+				System.Environment.GetEnvironmentVariable("ConnectionStringName") ?? "DefaultConnection"
+			];
 		}
 
 		/// <summary>
