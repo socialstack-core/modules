@@ -15,7 +15,7 @@ namespace Api.Configuration
 		/// <summary>
 		/// The config from the appsettings.json file.
 		/// </summary>
-		private static readonly AppSettingsFile Configuration;
+		public static readonly AppSettingsFile Configuration;
 		
 		/// <summary>
 		/// A heavily used database table prefix.
