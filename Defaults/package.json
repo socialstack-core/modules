@@ -1,6 +1,7 @@
 {
     "dependencies":[
     	"Api/AutoForms",
+    	"Api/Automations",
 		"Api/AvailableEndpoints", 
 		"Api/Configuration",
 		"Api/Contexts",
