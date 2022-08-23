@@ -57,7 +57,7 @@ function generateId (len) {
 }
 
 export const Provider = (props) => {
-	const [session, setSession] = React.useState(initState);
+	const [session, setSession] = React.useState(props.initialState || initState);
   
 	let dispatchWithEvent = (updatedVal, diff) => {
 		if(diff){
