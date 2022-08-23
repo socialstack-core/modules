@@ -51,7 +51,9 @@ namespace Api.Configuration
 
 		private static AppSettingsFile LoadFromJsonFile(string path)
 		{
-			return new AppSettingsFile(path);
+			var fullPath = Path.Combine(System.IO.Path.GetDirectoryName(System.Reflection.Assembly.GetEntryAssembly().Location), path);
+
+			return new AppSettingsFile(fullPath);
 		}
 
 		/// <summary>
