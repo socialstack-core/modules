@@ -64,8 +64,6 @@ namespace Api.Startup
 			}
 		}
 
-		private List<Type> _serviceTypes;
-
 		/// <summary>
 		/// IMVCBuilder, available during the OnConfigureServices event.
 		/// </summary>
@@ -93,38 +91,9 @@ namespace Api.Startup
 				x.ValueLengthLimit = int.MaxValue;
 				x.MultipartBodyLengthLimit = long.MaxValue; // In case of multipart
 			});
-			
-			// Start checking types:
-			var allTypes = typeof(WebServerStartupInfo).Assembly.DefinedTypes;
 
-			_serviceTypes = new List<Type>();
+			Services.RegisterInto(services);
 
-			foreach (var typeInfo in allTypes){
-				// If it:
-				// - Is a class
-				// - Ends with *Service, with a specific exclusion for AutoService.
-				// Then we register it as a singleton.
-
-				var typeName = typeInfo.Name;
-
-				if (!typeInfo.IsClass || !typeName.EndsWith("Service") || typeName == "AutoService")
-				{
-					continue;
-				}
-
-				// Must also be in the Api.* namespace:
-				if (typeInfo.Namespace == null || !typeInfo.Namespace.StartsWith("Api."))
-				{
-					continue;
-				}
-				
-				// Ok! Got a valid service. We can now register it:
-				services.AddSingleton(typeInfo.AsType());
-				_serviceTypes.Add(typeInfo.AsType());
-				
-				Console.WriteLine("Registered service: " + typeName);
-			}
-		
 			services.AddCors(c =>  
 			{  
 				c.AddDefaultPolicy(options => SetupCors(options));
@@ -249,44 +218,9 @@ namespace Api.Startup
 			});
 #endif
 
+			// Instance all services:
+			Services.InstanceAll(serviceProvider);
 
-			// Next, we get *all* services so they are all instanced.
-			// First they'll be sorted though so services that require loading early can do so.
-			_serviceTypes = _serviceTypes.OrderBy(type => {
-
-				var loadPriority = type.GetCustomAttribute<LoadPriorityAttribute>();
-				if (loadPriority == null)
-				{
-					return 10;
-				}
-
-				return loadPriority.Priority;
-			}).ToList();
-
-			Services.AllServiceTypes = _serviceTypes;
-
-			Task.Run(async () =>
-			{
-				try
-				{
-					foreach (var serviceType in _serviceTypes)
-					{
-						var svc = serviceProvider.GetService(serviceType);
-
-						// Trigger startup state change:
-						await Services.StateChange(true, svc);
-					}
-
-					// Services are now all instanced - fire off service OnStart event:
-					Services.TriggerStart();
-
-					Services.AllServiceTypes = null;
-				}
-				catch (Exception e)
-				{
-					Console.WriteLine(e.ToString());
-				}
-			}).Wait();
 		}
 		
 	}

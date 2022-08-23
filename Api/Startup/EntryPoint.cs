@@ -117,47 +117,59 @@ namespace Api.Startup
 			// Set environment:
 			Services.Environment = env.ToLower().Trim();
 
+			// Get webserver mode:
+			var webserverMode = AppSettings.GetString("WebServerMode");
 
-			// Create a Kestrel host:
-			var host = new WebHostBuilder()
-                .UseKestrel(options => {
-					
-					var portNumber = AppSettings.GetInt32("Port", 5000);
-					var ip = AppSettings.GetInt32("Container", 0) == 1 ? IPAddress.Any : IPAddress.Loopback;
-					Console.WriteLine("Ready on " + ip + ":" + portNumber);
-					
-					// If running inside a container, we'll need to listen to the 0.0.0.0 (any) interface:
-					options.Listen(ip, portNumber, listenOpts => {
-						listenOpts.Protocols = HttpProtocols.Http1AndHttp2;
+			if (webserverMode != null && webserverMode.ToLower() == "none")
+			{
+				// Running without the webserver
+				Services.RegisterAndStart();
+			}
+			else
+			{
+
+				// Create a Kestrel host:
+				var host = new WebHostBuilder()
+					.UseKestrel(options =>
+					{
+						var portNumber = AppSettings.GetInt32("Port", 5000);
+						var ip = AppSettings.GetInt32("Container", 0) == 1 ? IPAddress.Any : IPAddress.Loopback;
+						Console.WriteLine("Ready on " + ip + ":" + portNumber);
+
+						// If running inside a container, we'll need to listen to the 0.0.0.0 (any) interface:
+						options.Listen(ip, portNumber, listenOpts =>
+						{
+							listenOpts.Protocols = HttpProtocols.Http1AndHttp2;
+						});
+
+						if (apiSocketFile != null)
+						{
+							options.ListenUnixSocket(apiSocketFile);
+						}
+
+						options.Limits.MaxRequestBodySize = AppSettings.GetInt64("MaxBodySize", 5120000000); // 5G by default
+
+						// Fire event so modules can also configure Kestrel:
+						OnConfigureKestrel?.Invoke(options);
+
 					});
 
-					if (apiSocketFile != null)
-					{
-						options.ListenUnixSocket(apiSocketFile);
-					}
+				// Fire event so modules can also configure the host builder:
+				OnConfigureHost?.Invoke(host);
 
-					options.Limits.MaxRequestBodySize = AppSettings.GetInt64("MaxBodySize", 5120000000); // 5G by default
+				var builtHost = host.UseContentRoot(Directory.GetCurrentDirectory())
+					.UseStartup<WebServerStartupInfo>()
+					.Build();
 
-					// Fire event so modules can also configure Kestrel:
-					OnConfigureKestrel?.Invoke(options);
+				builtHost.Start();
 
-                });
-			
-			// Fire event so modules can also configure the host builder:
-			OnConfigureHost?.Invoke(host);
-			
-			var builtHost = host.UseContentRoot(Directory.GetCurrentDirectory())
-                .UseStartup<WebServerStartupInfo>()
-                .Build();
+				if (apiSocketFile != null)
+				{
+					Chmod.Set(apiSocketFile); // 777
+				}
 
-			builtHost.Start();
-
-			if (apiSocketFile != null)
-			{
-				Chmod.Set(apiSocketFile); // 777
+				builtHost.WaitForShutdown();
 			}
-
-			builtHost.WaitForShutdown();
         }
     }
 	

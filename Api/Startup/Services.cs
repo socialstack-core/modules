@@ -1,7 +1,10 @@
 ﻿using Api.Eventing;
+using Microsoft.Extensions.DependencyInjection;
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.Linq;
+using System.Reflection;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using System.Transactions;
@@ -68,6 +71,108 @@ namespace Api.Startup
 		/// Underlying host mappings.
 		/// </summary>
 		public static List<HostMapping> HostNameMappings;
+
+		/// <summary>
+		/// Called in an environment where the webserver is not needed or started. Registers and starts all services.
+		/// Note that at least one service is expected to do some long lasting work; if no services ultimately do anything, the executable halts.
+		/// </summary>
+		public static void RegisterAndStart()
+		{
+			var collection = new ServiceCollection();
+			RegisterInto(collection);
+			Provider = collection.BuildServiceProvider();
+			InstanceAll(Provider);
+		}
+
+		/// <summary>
+		/// Sorts and then instances all services as singletons.
+		/// </summary>
+		public static void InstanceAll(IServiceProvider serviceProvider)
+		{
+			if (AllServiceTypes == null)
+			{
+				// Manual registration required to ensure service container is
+				throw new Exception("Must register services before calling InstanceAll.");
+			}
+
+			// Next, we get *all* services so they are all instanced.
+			// First they'll be sorted though so services that require loading early can do so.
+			AllServiceTypes = AllServiceTypes.OrderBy(type => {
+
+				var loadPriority = type.GetCustomAttribute<LoadPriorityAttribute>();
+				if (loadPriority == null)
+				{
+					return 10;
+				}
+
+				return loadPriority.Priority;
+			}).ToList();
+
+			Task.Run(async () =>
+			{
+				try
+				{
+					foreach (var serviceType in AllServiceTypes)
+					{
+						var svc = serviceProvider.GetService(serviceType);
+
+						// Trigger startup state change:
+						await StateChange(true, svc);
+					}
+
+					// Services are now all instanced - fire off service OnStart event:
+					TriggerStart();
+
+					AllServiceTypes = null;
+				}
+				catch (Exception e)
+				{
+					Console.WriteLine(e.ToString());
+				}
+			}).Wait();
+		}
+
+		/// <summary>
+		/// Registers services into the given collection and applies the types to AllServiceTypes.
+		/// At this point they are not sorted or instanced.
+		/// </summary>
+		/// <param name="services"></param>
+		public static void RegisterInto(IServiceCollection services)
+		{
+			// Start checking types:
+			var allTypes = typeof(Services).Assembly.DefinedTypes;
+
+			var _serviceTypes = new List<Type>();
+
+			foreach (var typeInfo in allTypes)
+			{
+				// If it:
+				// - Is a class
+				// - Ends with *Service, with a specific exclusion for AutoService.
+				// Then we register it as a singleton.
+
+				var typeName = typeInfo.Name;
+
+				if (!typeInfo.IsClass || !typeName.EndsWith("Service") || typeName == "AutoService")
+				{
+					continue;
+				}
+
+				// Must also be in the Api.* namespace:
+				if (typeInfo.Namespace == null || !typeInfo.Namespace.StartsWith("Api."))
+				{
+					continue;
+				}
+
+				// Ok! Got a valid service. We can now register it:
+				services.AddSingleton(typeInfo.AsType());
+				_serviceTypes.Add(typeInfo.AsType());
+
+				Console.WriteLine("Registered service: " + typeName);
+			}
+
+			AllServiceTypes = _serviceTypes;
+		}
 
 		/// <summary>
 		/// Gets a mapping for the given host name or returns a default if none.
