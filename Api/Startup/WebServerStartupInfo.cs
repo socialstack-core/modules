@@ -8,7 +8,6 @@ using Api.Configuration;
 using System.Collections.Generic;
 using System.Reflection;
 using System.Linq;
-using Api.Database;
 using Microsoft.AspNetCore.Http.Features;
 using Microsoft.AspNetCore.Diagnostics;
 using Microsoft.AspNetCore.Http;
