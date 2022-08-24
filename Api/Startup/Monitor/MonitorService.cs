@@ -205,7 +205,7 @@ public class MonitorService : AutoService
 		// Set initial URL:
 		_url = _config.Url;
 		_startedAutomation = true;
-		_monitorContext = new Context(Permissions.Roles.Public);
+		_monitorContext = new Context();
 
 		Events.Automation("monitor", "*/" + _config.Frequency + " * * ? * * *").AddEventListener(async (Context context, Api.Automations.AutomationRunInfo runInfo) => {
 
