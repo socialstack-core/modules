@@ -1,8 +1,5 @@
-using Api.ContentSync;
-using Api.Permissions;
 using Api.Startup;
 using Newtonsoft.Json.Linq;
-using System.Collections.Generic;
 
 namespace Api.Eventing
 {
