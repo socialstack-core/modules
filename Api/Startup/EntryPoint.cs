@@ -124,6 +124,9 @@ namespace Api.Startup
 			{
 				// Running without the webserver
 				Services.RegisterAndStart();
+				
+				Console.WriteLine("Input any key to exit");
+				Console.ReadKey();
 			}
 			else
 			{
