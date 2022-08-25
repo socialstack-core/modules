@@ -81,10 +81,40 @@ public class MonitorService : AutoService
 		if (into.HostGroupId == 0)
 		{
 			// Derive a simple default group ID.
-			into.HostGroupId = (uint)into.Environment.GetHashCode();
+			into.HostGroupId = (uint)GetId(into.Environment);
 		}
 	}
+	
+	/// <summary>
+	/// Gets a group ID from the given value. Just a simple hash function.
+	/// </summary>
+	/// <param name="typeName"></param>
+	/// <returns></returns>
+	private int GetId(string typeName)
+	{
+		// Note: Caching this would be nice but isn't worthwhile
+		// because it _is_ the deterministic .NET hash function. If it was cached in a dictionary 
+		// you'd end up running this code anyway during the lookup!
 
+		typeName = typeName.ToLower();
+
+		unchecked
+		{
+			int hash1 = (5381 << 16) + 5381;
+			int hash2 = hash1;
+
+			for (int i = 0; i < typeName.Length; i += 2)
+			{
+				hash1 = ((hash1 << 5) + hash1) ^ typeName[i];
+				if (i == typeName.Length - 1)
+					break;
+				hash2 = ((hash2 << 5) + hash2) ^ typeName[i + 1];
+			}
+
+			return hash1 + (hash2 * 1566083941);
+		}
+	}
+	
 	/// <summary>
 	/// Collects the host details ready for sending to a remote tracking service or similar
 	/// </summary>
