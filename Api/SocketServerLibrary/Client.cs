@@ -308,9 +308,12 @@ namespace Api.SocketServerLibrary
 				{
 					lock (this)
 					{
-						Socket.Shutdown(SocketShutdown.Both);
-						Socket.Close();
-						Socket = null;
+						if (Socket != null)
+						{
+							Socket.Shutdown(SocketShutdown.Both);
+							Socket.Close();
+							Socket = null;
+						}
 					}
 				}
 				catch {
@@ -595,6 +598,12 @@ namespace Api.SocketServerLibrary
 		private void OnReceiveData(IAsyncResult ar)
 		{
 			int bytesRead;
+
+			if (Socket == null)
+			{
+				Close();
+				return;
+			}
 
 			try
 			{
