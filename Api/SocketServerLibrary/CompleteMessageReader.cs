@@ -40,7 +40,19 @@ namespace Api.SocketServerLibrary{
 					var messageSize = (uint)(client.Next()) | (uint)(client.Next() << 8) | (uint)(client.Next() << 16) | (uint)(client.Next() << 24);
 					frame.BytesRequired = (int)messageSize;
 					writer.Write(messageSize);
-					
+
+					if (messageSize == 0)
+					{
+						// Got all the bytes in the client buffer. Read them all now.
+						client.BlockTransfer(frame.BytesRequired, writer);
+
+						// Run the callback:
+						OpCode.OnRequest(client, writer);
+
+						// Done:
+						client.Pop();
+					}
+
 					break;
 				case 1:
 					// Got all the bytes in the client buffer. Read them all now.
