@@ -337,10 +337,22 @@ function HuddleChatUI(props) {
 	users = users.filter(user => !(user.gone && removedUserIds.has(user.id)));
 
 	var emptyHuddle = !users || users.length <= 1;
-	const [statusMessage, setStatusMessage] = useState(emptyHuddle ? `Waiting for others to join ...` : null);
+	const [statusMessage, setStatusMessage] = useState(null);
 	const [showingStatus, setShowingStatus] = useState(emptyHuddle);
-	const [sidebar, setSidebar] = useState(disableAudience || emptyHuddle ? SidebarEnum.CLOSED : SidebarEnum.AUDIENCE);	// sidebar mode
-
+	const [sidebar, setSidebar] = useState(disableAudience ? SidebarEnum.CLOSED : SidebarEnum.AUDIENCE);	// sidebar mode
+	
+	React.useEffect(() => {
+		
+		if(emptyHuddle){
+			setStatusMessage(`Waiting for others to join ...`);
+			setShowingStatus(true);
+		}else{
+			setStatusMessage(null);
+			setShowingStatus(false);
+		}
+		
+	}, [emptyHuddle]);
+	
 	var huddleClasses = ["huddle-chat"];
 
 	switch (sidebar) {

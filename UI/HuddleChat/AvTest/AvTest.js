@@ -236,7 +236,15 @@ export default class AvTest extends React.Component{
 	}
 	
 	onDevicesChanged () {
+		
+		var timeout = setTimeout(() => {
+			this.setState({
+				showDeviceListProblemPrompt: true
+			});
+		}, 4000);
+		
 		collectDevices().then(devices => {
+			clearTimeout(timeout);
 			
 			var selectedDevices = {};
 			
@@ -385,7 +393,14 @@ export default class AvTest extends React.Component{
 		
 		if(!devices){
 			// Collecting device set.
-			return <Loading message={`Searching for a camera and microphone`} />;
+			return <>
+				<Loading message={`Searching for a camera and microphone`} />
+				{this.state.showDeviceListProblemPrompt && <p>
+					<Alert type='info'>
+						Hmm, this is taking longer than usual. If you don't see a permission prompt, it is likely your browser has encountered an internal problem. If you're using Firefox, it's very likely you've just ran into <a href='https://bugzilla.mozilla.org/show_bug.cgi?id=1396885'>this Firefox bug</a>. Fully closing and reopening the browser can resolve it.
+					</Alert>
+				</p>}
+			</>;
 		}
 
 		if (devices.failed) {

@@ -465,7 +465,12 @@ export default class HuddleClient{
 		this.checkInitialInputState().then(() => {
 			this.updateAnswer();
 			this.props.onJoined && this.props.onJoined(this);
-		});
+		}).catch(e => {
+			this.updateAnswer();
+			
+			console.error(e);
+			this.props.onJoined && this.props.onJoined(this);			
+		})
 	}
 
 	stopMedia() {
@@ -509,9 +514,10 @@ export default class HuddleClient{
 				// This participant wants to end the meeting - Attempt to end call for others too:
 				var writer = new this.socket.Writer(49);
 				this.socket.send(writer);
+			}else{
+				this.socket.close();
+				this.socket = null;
 			}
-			this.socket.close();
-			this.socket = null;
 		}
 		
 		for(var k in this.shareState){
@@ -1102,7 +1108,6 @@ export default class HuddleClient{
 			}
 			
 			webRequest(host + 'huddle/join').then(response => {
-				console.log('Joining via server ' + response.json.address);
 				this.initSocket(response.json.address, response.json.http);
 				this.socket.start();
 			});
@@ -1209,6 +1214,10 @@ export default class HuddleClient{
 			constraints.audio.deviceId = this.props.deviceIdAudio;
 		}
 		
+		// FF bug: getUserMedia can fail to resolve the promise entirely.
+		// Unfortunately though just adding a timer wouldn't work as we don't know if it 
+		// is in this failure state or if we are waiting for the user.
+		
 		return global.navigator.mediaDevices.getUserMedia(constraints).then(stream => {
 			var AudioContext = window.AudioContext || window.webkitAudioContext;
 			var audioCtx = new AudioContext();
@@ -1220,6 +1229,8 @@ export default class HuddleClient{
 				stream.getTracks().forEach(t => t.stop());
 			};
 			return s;
+		}).catch(e => {
+			console.error(e);
 		});
 	}
 	
@@ -1273,7 +1284,7 @@ export default class HuddleClient{
 			
 			currentSender.track.stop();
 			
-			return this.makeOffer().then(()=> null);
+			return this.makeOffer().then(() => null);
 		}
 		
 		return getStream().then(stream => {
