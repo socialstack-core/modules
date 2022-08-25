@@ -37,6 +37,8 @@ namespace Api.ContentSync
 	/// </summary>
 	public class IdAssignerUInt32 : IdAssigner<uint>
 	{
+		private object _locker = new object();
+		
 		/// <summary>
 		/// The max ID.
 		/// </summary>
@@ -57,7 +59,13 @@ namespace Api.ContentSync
 		/// <returns></returns>
 		public override uint Assign()
 		{
-			return ++Current;
+			uint result;
+			
+			lock(_locker){
+				result = ++Current;
+			}
+			
+			return result;
 		}
 	}
 
@@ -66,6 +74,8 @@ namespace Api.ContentSync
 	/// </summary>
 	public class IdAssignerUInt64 : IdAssigner<ulong>
 	{
+		private object _locker = new object();
+		
 		/// <summary>
 		/// The max ID.
 		/// </summary>
@@ -86,7 +96,13 @@ namespace Api.ContentSync
 		/// <returns></returns>
 		public override ulong Assign()
 		{
-			return ++Current;
+			ulong result;
+			
+			lock(_locker){
+				result = ++Current;
+			}
+			
+			return result;
 		}
 
 	}
