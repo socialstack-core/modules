@@ -57,7 +57,7 @@ export default class Uploader extends React.Component {
 			this.setState({
 				loading: false,
 				success: false,
-				failed: 'File too large'
+				failed: `File too large`
 			});
 
 			return;

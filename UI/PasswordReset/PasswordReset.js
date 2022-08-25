@@ -36,7 +36,7 @@ export default function PasswordReset(props) {
 		{
 			this.state.failed ? (
 				<Alert type="error">
-					Invalid or expired token. You'll need to request another one if this token is too old or was already used.
+					{`Invalid or expired token. You'll need to request another one if this token is too old or was already used.`}
 				</Alert>
 			) : (
 				this.state.loading ? (
@@ -45,9 +45,9 @@ export default function PasswordReset(props) {
 					</div>
 				) : (
 					<Form
-						successMessage="Password has been set."
-						failureMessage="Unable to set your password. Your token may have expired."
-						submitLabel="Set my password"
+						successMessage={`Password has been set.`}
+						failureMessage={`Unable to set your password. Your token may have expired.`}
+						submitLabel={`Set my password`}
 						action={"passwordresetrequest/login/" + token + "/"}
 						onSuccess={response => {
 							// Response is the new context.
@@ -69,11 +69,11 @@ export default function PasswordReset(props) {
 							setPolicy(e);
 						}}
 					>
-						<Input name="password" type="password" placeholder="Your password" />
+						<Input name="password" type="password" placeholder={`New password`} />
 						{policy && (
-							<Alert type="error">{
-								policy.message || 'Unable to set your password - the request may have expired'
-							}</Alert>
+							<Alert type="error">
+								{policy.message || `Unable to set your password - the request may have expired`}
+							</Alert>
 						)}
 					</Form>
 				)

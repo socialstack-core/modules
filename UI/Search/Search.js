@@ -194,7 +194,7 @@ export default class Search extends React.Component {
 						))
 					) : (
 							<div className="no-results">
-								No results found
+								`No results found`
 							</div>
 						)}
 				</div>
