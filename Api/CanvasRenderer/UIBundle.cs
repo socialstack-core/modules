@@ -73,7 +73,8 @@ namespace Api.CanvasRenderer
 
 		private readonly TranslationService _translationService;
 		private readonly LocaleService _localeService;
-
+		private readonly TranslationServiceConfig _translationServiceConfig;
+		
 		/// <summary>
 		/// UTC timestamp in milliseconds of last build. This regularly changes on a dev instance, but is constant on prod as it comes from a file.
 		/// </summary>
@@ -147,6 +148,9 @@ namespace Api.CanvasRenderer
 			TransformOptions = new TransformOptions() {
 				minified = minify
 			};
+
+			_translationServiceConfig = translations.GetConfig<TranslationServiceConfig>();
+
 		}
 
 		/// <summary>
@@ -162,6 +166,8 @@ namespace Api.CanvasRenderer
 			_frontend = frontend;
 			Prebuilt = true;
 			PackDir = packDir;
+
+			_translationServiceConfig = translations.GetConfig<TranslationServiceConfig>();
 		}
 
 		/// <summary>
@@ -403,6 +409,24 @@ namespace Api.CanvasRenderer
 					{
 						// The text has no localised substitution - keep as-is.
 						sb.Append(segment.TemplateLiteralSource);
+
+						if (_translationServiceConfig.AutoAddTranslationElements && 
+							(_translationServiceConfig.AutoAddExcludeModules == null || !_translationServiceConfig.AutoAddExcludeModules.Contains(segment.Module,StringComparer.InvariantCultureIgnoreCase)))
+						{
+							// Auto add a new entry to the translations table ? 
+							var newTranslation = new Translation()
+							{
+								Module = segment.Module,
+								Original = segment.TemplateLiteralToSearch,
+								Translated = segment.TemplateLiteralToSearch,
+								CreatedUtc = DateTime.UtcNow
+							};
+							await _translationService.Create(new Context(), newTranslation, DataOptions.IgnorePermissions);
+
+							// add back into the lookup list
+							translationLookup[segment.Module + "/" + segment.TemplateLiteralToSearch] = newTranslation;
+						}
+
 					}
 				}
 			}
