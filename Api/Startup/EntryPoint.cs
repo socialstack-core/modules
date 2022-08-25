@@ -125,8 +125,8 @@ namespace Api.Startup
 				// Running without the webserver
 				Services.RegisterAndStart();
 				
-				Console.WriteLine("Input any key to exit");
-				Console.ReadKey();
+				// Use a wait handle which never quits in this scenario.
+				new AutoResetEvent(false).WaitOne();
 			}
 			else
 			{
