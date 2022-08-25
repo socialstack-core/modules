@@ -48,14 +48,14 @@ export default props => {
 
 	if (emailVerificationRequired) {
 		return <div className="login-form">
-			<p>You need to verify your email to continue. Please follow the instructions in the email, or you can resend the email by pressing the button below.</p>
+			<p>`You need to verify your email to continue. Please follow the instructions in the email, or you can resend the email by pressing the button below.`</p>
 			{!emailVerificationSent
 				? 
 					<button className="btn btn-primary" onClick={e => onClickResendVerificationEmail()}>
-						Resend email
+						`Resend email`
 					</button>
 				: 
-					<p>Email sent!</p>
+					<p>`Email sent!`</p>
 			}
 		</div>;
 	}

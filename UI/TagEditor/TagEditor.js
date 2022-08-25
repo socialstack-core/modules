@@ -113,7 +113,7 @@ export default function TagEditor(props) {
 
                 const focus = focusIndex === index;
 
-                return <Element key={`{item}{index}`}  
+                return <Element key={'{item}{index}'}  
                   value={item}
                   index={index}  
                   onRemove={handleRemove}

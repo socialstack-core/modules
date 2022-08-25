@@ -2,22 +2,23 @@ function ordinal(i) {
     var j = i % 10,
         k = i % 100;
     if (j == 1 && k != 11) {
-        return i + "st";
+        return i + `st`;
     }
     if (j == 2 && k != 12) {
-        return i + "nd";
+        return i + `nd`;
     }
     if (j == 3 && k != 13) {
-        return i + "rd";
+        return i + `rd`;
     }
-    return i + "th";
+    return i + `th`;
 }
 
-const dayNames = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
-const shortDayNames = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+const dayNames = [`Sunday`, `Monday`, `Tuesday`, `Wednesday`, `Thursday`, `Friday`, `Saturday`];
+const shortDayNames = [`Sun`, `Mon`, `Tue`, `Wed`, `Thu`, `Fri`, `Sat`];
 
-const monthNames = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
-const shortMonthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+const monthNames = [`January`, `February`, `March`, `April`, `May`, `June`, `July`, `August`, `September`, `October`, `November`, `December`];
+const shortMonthNames = [`Jan`, `Feb`, `Mar`, `Apr`, `May`, `Jun`, `Jul`, `Aug`, `Sep`, `Oct`, `Nov`, `Dec`];
+
 const epochTicks = 62135596800000;
 const ticksPerMillisecond = 10000;
 

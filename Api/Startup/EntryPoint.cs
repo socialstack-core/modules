@@ -10,6 +10,7 @@ using System.Runtime.InteropServices;
 using System.Diagnostics.CodeAnalysis;
 using Microsoft.Extensions.Configuration;
 using System.Text.RegularExpressions;
+using System.Threading;
 
 namespace Api.Startup
 {

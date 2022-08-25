@@ -139,7 +139,7 @@ export default class Modal extends React.Component {
 					<div className="modal-content" style = {style}>
 						{this.props.noHeader ? <></> : <div className="modal-header">
 							<div className="modal-title" id={this.modalTitleId}>{typeof this.props.title === 'string' ? <h5>{this.props.title}</h5> : this.props.title}</div>
-							{this.props.noClose ? <></> : <button type="button" className={closeClass} data-dismiss="modal" aria-label="Close"
+							{this.props.noClose ? <></> : <button type="button" className={closeClass} data-dismiss="modal" aria-label={`Close`}
 								onClick={() => this.closeModal()}>
 								<span aria-hidden="true" className={closeIconClass}>
 										{!this.props.closeIcon && (
