@@ -1,5 +1,10 @@
 $product_quantity_btn_size: 40px;
 
+.product-quantity-button {
+	background: none;
+	border: none;
+}
+
 .product-quantity {
     width: 150px;
     height: $product_quantity_btn_size;

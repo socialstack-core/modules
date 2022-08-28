@@ -52,21 +52,45 @@ export const Provider = (props) => {
         setShoppingCart(newCart);
     };
 	
-    let addToCart = productInfo => {
+	let removeSubscriptions = () => {
+		
+		var newItemSet = shoppingCart.items.filter(product => {
+            if(product.isSubscribing) {
+                return;
+            }
+			
+			return product;
+        });
+		
+		updateCart(newItemSet);
+	};
+	
+    let addToCart = (productInfo, removeOtherSubscriptions) => {
             var product = productInfo.product;
             var qty = productInfo.quantity || 0;
             var sub = productInfo.isSubscribing || false;
-
+			
             if (!product) {
-            return;
+				return;
             }
 
             if (product.id) {
                 product = product.id;
             }
-
+			
             // Copy item set:
             var curItems = shoppingCart.items;
+			
+			if(sub && removeOtherSubscriptions){
+				curItems = curItems.filter(p => {
+					if(p.isSubscribing && p.product != product) {
+						return;
+					}
+					
+					return p;
+				});
+			}
+			
             var items = [];
             var found = false;
 
@@ -83,12 +107,12 @@ export const Provider = (props) => {
                 }
                 items.push(clonedItem);
             }
-
+			
             if (!found) {
-                if (qty <= 0 && !sub) {
-                    // No-op
-                return;
-                }
+				if(qty < 0 || (!qty && !sub)){
+					return;
+				}
+				
                 var newItem = {
                     product
                 };
@@ -113,6 +137,7 @@ export const Provider = (props) => {
             value={{
                 shoppingCart,
                 addToCart,
+				removeSubscriptions,
                 emptyCart,
                 cartIsEmpty,
                 getCartQuantity,

@@ -1,21 +1,32 @@
 $radio_option_width: 300px;
-$radio_option_height: 160px;
+$radio_option_height: 300px;
 $radio_option_gap_x: .75rem;
 $radio_option_gap_y: 1.75rem;
 $radio_input_height: 20px;
 $one_third: math.div(100%, 3);
 
-.select-product__options {
+.select-subscription__options {
 
 }
 
-.select-product__option {
+.select-subscription__option {
 	flex: 0 0 calc(#{$one_third} - ((2 * #{$radio_option_gap_x}) / 3));
 	min-height: $radio_option_height;
 	display: flex;
 	flex-direction: column;
 	align-items: center;
-
+	
+	&.selected-in-cart {
+		.select-subscription__option-internal {
+			.flip-card__face {
+				&--front {
+					background: var(--primary);
+					color: var(--primary-fg);
+				}
+			}
+		}
+	}
+	
 	&-internal {
 		flex: 1;
 		width: 100%;
@@ -147,9 +158,9 @@ $one_third: math.div(100%, 3);
 	max-width: $radio_option_width * 3;
 }
 
-.subscribe-select-product {
+.subscribe-select-subscription {
 	max-width: $radio_option_width * 3;
-	margin: 0 auto;
+	margin: 1rem auto;
 
 	&__title {
         font-size: pow($heading-font-ratio, 3) * $base-font-size * 1px;
@@ -279,7 +290,7 @@ $one_third: math.div(100%, 3);
 
 html.no-flexgap {
 
-	.subscribe-select-product {
+	.subscribe-select-subscription {
 
 		.btn-group {
 
@@ -320,7 +331,7 @@ html.no-flexgap {
 }
 
 @include media-breakpoint-down(lg) {
-	.subscribe-select-product {
+	.subscribe-select-subscription {
 
 		.btn-group {
 			
@@ -333,7 +344,7 @@ html.no-flexgap {
 }
 
 @include media-breakpoint-down(md) {
-	.subscribe-select-product {
+	.subscribe-select-subscription {
 
 		.btn-group {
 

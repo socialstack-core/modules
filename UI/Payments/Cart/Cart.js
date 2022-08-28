@@ -1,4 +1,4 @@
-import Wrapper from '../Wrapper';
+import Wrapper from 'UI/BillingWrapper';
 import Modal from 'UI/Modal';
 import Alert from 'UI/Alert';
 import Loop from 'UI/Loop';
@@ -7,7 +7,7 @@ import { useCart } from '../CartSession';
 import { useToast } from 'UI/Functions/Toast';
 import { useState } from 'react';
 import { formatCurrency } from "UI/Functions/CurrencyTools";
-import { getSteps, getStepIndex } from '../Steps.js';
+import { getSteps, getStepIndex } from 'UI/Checkout/Steps.js';
 
 const STRATEGY_PAYG = 0;
 const STRATEGY_BULK = 1;
