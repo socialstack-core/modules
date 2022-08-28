@@ -45,7 +45,7 @@ export default function Cart(props) {
 				{`Shopping Cart`}
 			</h2>
 
-			<table className="table table-striped shopping-cart__table">
+			<table className="table shopping-cart__table">
 				<thead>
 					<tr>
 						<th>
@@ -85,81 +85,55 @@ export default function Cart(props) {
 							var hasSubscriptions = false;
 							var hasPAYG = false;
 
-							return <>
-								<tbody>
-									{
-										shoppingCart.items.map(cartInfo => {
-											var product = allProducts.find(prod => prod.id == cartInfo.product);
+							return <tbody>
+								{
+									shoppingCart.items.map(cartInfo => {
+										var product = allProducts.find(prod => prod.id == cartInfo.product);
 
-											if (!product) {
-												// product withdrawn in some way
-												return null;
-											}
+										if (!product) {
+											// product withdrawn in some way
+											return null;
+										}
 
-											var cost, formattedCost, formattedSeats;
-											var showPaygNote = product.priceStrategy == STRATEGY_PAYG;
+										var cost, formattedCost, formattedSeats;
+										var showPaygNote = product.priceStrategy == STRATEGY_PAYG;
 
-											switch (product.priceStrategy) {
-												case STRATEGY_BULK:
-													cost = product.price.amount * product.minQuantity;
-													formattedCost = formatCurrency(cost, session.locale) + ` pm`;
-													formattedSeats = new Intl.NumberFormat(session.locale.code).format(product.minQuantity);
-													break;
+										switch (product.priceStrategy) {
+											case STRATEGY_BULK:
+												cost = product.price.amount * product.minQuantity;
+												formattedCost = formatCurrency(cost, session.locale) + ` pm`;
+												formattedSeats = new Intl.NumberFormat(session.locale.code).format(product.minQuantity);
+												break;
 
-												case STRATEGY_PAYG:
-													cost = getTierPrice(product, cartInfo.quantity);
-													formattedCost = formatCurrency(cost, session.locale) + `/seat pm`;
-													formattedSeats = <>&mdash;</>;
-													hasPAYG = true;
-													break;
+											case STRATEGY_PAYG:
+												cost = getTierPrice(product, cartInfo.quantity);
+												formattedCost = formatCurrency(cost, session.locale) + `/seat pm`;
+												formattedSeats = <>&mdash;</>;
+												hasPAYG = true;
+												break;
 
-												default:
-													cost = 0;
-													formattedCost = '';
-													formattedSeats = <>&mdash;</>;
-													break;
-											}
+											default:
+												cost = 0;
+												formattedCost = '';
+												formattedSeats = <>&mdash;</>;
+												break;
+										}
 
-											cartTotal += cost;
+										cartTotal += cost;
 
-											// subscription
-											if (cartInfo.isSubscribing) {
-												hasSubscriptions = true;
+										// subscription
+										if (cartInfo.isSubscribing) {
+											hasSubscriptions = true;
 
-												return <tr>
-													<td>
-														{product.name} <span className="footnote-asterisk" title={`Subscription`}></span> {showPaygNote && <span className="footnote-dagger" title={`PAYG`}></span>}
-													</td>
-													<td className="qty-column">
-														{formattedSeats}
-													</td>
-													<td className="currency-column">
-														{formattedCost}
-													</td>
-													<td className="actions-column">
-														<button type="button" className="btn btn-small btn-outline-danger" title={`Remove`}
-															onClick={() => {
-																addToCart({
-																	product: product.id,
-																	quantity: -getCartQuantity(product.id),
-																	isSubscribing: true})
-                                                            }}>
-															<i className="fal fa-fw fa-trash"></i>
-														</button>
-													</td>
-												</tr>;
-											}
-
-											// standard quantity of product
 											return <tr>
 												<td>
-													{product.name}
+													{product.name} <span className="footnote-asterisk" title={`Subscription`}></span> {showPaygNote && <span className="footnote-dagger" title={`PAYG`}></span>}
 												</td>
 												<td className="qty-column">
-													{cartInfo.quantity}
+													{formattedSeats}
 												</td>
 												<td className="currency-column">
-													{formatCurrency(product.price.amount, session.locale)} + ` pm`
+													{formattedCost}
 												</td>
 												<td className="actions-column">
 													<button type="button" className="btn btn-small btn-outline-danger" title={`Remove`}
@@ -167,41 +141,60 @@ export default function Cart(props) {
 															addToCart({
 																product: product.id,
 																quantity: -getCartQuantity(product.id),
-																isSubscribing: true
-															})
+																isSubscribing: true})
 														}}>
 														<i className="fal fa-fw fa-trash"></i>
 													</button>
 												</td>
 											</tr>;
-										})
-									}
-								</tbody>
-								<tfoot>
-									<tr>
-										<td>
-											&nbsp;
-										</td>
-										<td className="qty-column">
-											{`TOTAL`}:
-										</td>
-										<td className="currency-column">
-											{formatCurrency(cartTotal, session.locale) + ` pm`}
-										</td>
-										<td>
-											&nbsp;
-										</td>
-									</tr>
-								</tfoot>
-								<caption>
-									{hasSubscriptions && <small>
-										<span className="footnote-asterisk"></span> {`Your payment information will be securely stored in order to process future subscription payments`}
-									</small>}
-									{hasPAYG && <small>
-										<span className="footnote-dagger"></span> {`An initial authorising payment covering the cost of a single seat will be taken for Pay-As-You-Go subscriptions`}
-									</small>}
-								</caption>
-							</>;
+										}
+
+										// standard quantity of product
+										return <tr>
+											<td>
+												{product.name}
+											</td>
+											<td className="qty-column">
+												{cartInfo.quantity}
+											</td>
+											<td className="currency-column">
+												{formatCurrency(product.price.amount, session.locale)} + ` pm`
+											</td>
+											<td className="actions-column">
+												<button type="button" className="btn btn-small btn-outline-danger" title={`Remove`}
+													onClick={() => {
+														addToCart({
+															product: product.id,
+															quantity: -getCartQuantity(product.id),
+															isSubscribing: true
+														})
+													}}>
+													<i className="fal fa-fw fa-trash"></i>
+												</button>
+											</td>
+										</tr>;
+									})
+								}
+								<tr>
+									<td>
+										{hasSubscriptions && <small>
+											<span className="footnote-asterisk"></span> {`Your payment information will be securely stored in order to process future subscription payments`}
+										</small>}
+										{hasPAYG && <small>
+											<span className="footnote-dagger"></span> {`An initial authorising payment covering the cost of a single seat will be taken for Pay-As-You-Go subscriptions`}
+										</small>}
+									</td>
+									<td className="qty-column">
+										{`TOTAL`}:
+									</td>
+									<td className="currency-column">
+										<b>{formatCurrency(cartTotal, session.locale) + ` pm`}</b>
+									</td>
+									<td>
+										&nbsp;
+									</td>
+								</tr>
+							</tbody>;
 						}
 					}
 				</Loop>
