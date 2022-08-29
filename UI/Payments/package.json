@@ -1,0 +1,7 @@
+{
+	"dependencies":[
+		"UI/Functions/CurrencyTools",
+		"UI/Functions/Toast",
+		"UI/Functions/ParseQueryString"
+	]
+}
