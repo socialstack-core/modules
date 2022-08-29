@@ -51,15 +51,15 @@ namespace Api.Payments
                     }
 					
 					// Is it a usage based product?
-					if(!product.IsBilledByUsage)
+					if(!product.IsBilledByUsage || purchase.ContentAntiDuplication == 0)
 					{
-						// Nope
+						// Either not usage based or is first purchase
 						return pq;
 					}
 					
                     // Get the time period index that the purchase is targeting. The "current" index is the ContentAntiDuplication value.
                     // However, we want all the usages recorded by the previous period so we remove 1 from it:
-                    var timePeriod = purchase.ContentAntiDuplication - 1;
+                    var timePeriod = (uint)(purchase.ContentAntiDuplication - 1);
 
                     // Clear the quantity:
                     pq.Quantity = 0;
