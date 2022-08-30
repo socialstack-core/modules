@@ -8,7 +8,7 @@ const STRATEGY_STEP1 = 1;
 
 export default function ProductTable(props){
 	
-	var {shoppingCart, addToCart} = props;
+	var {shoppingCart, addToCart, readonly} = props;
 	var {session} = useSession();
 	
 	function getTierPrice(product, quantity) {
@@ -42,24 +42,29 @@ export default function ProductTable(props){
 				<th className="currency-column">
 					{`Cost`}
 				</th>
-				<th className="actions-column">
+				{!readonly && <th className="actions-column">
 					&nbsp;
-				</th>
+				</th>}
 			</tr>
 		</thead>
 		<Loop over='product' includes={['price', 'tiers', 'tiers.price']} groupAll raw
 			filter={{
 				where: {
-					id: shoppingCart.items.map(cartInfo => cartInfo.product)
+					id: shoppingCart.items.map(cartInfo => cartInfo.productId || cartInfo.product)
 				}
 			}}
 			orNone={() => <tbody>
 				<td colspan="4">
-					<Alert type="info">
-						{`Your shopping cart is empty.`}&nbsp;&nbsp;
-						<a href="/subscribe" className="alert-link">
-							{`Click here`}
-						</a> {`to add a product`}
+				<Alert type="info">
+						{readonly ? <>
+							{`This purchase is empty`}
+						</> : <>
+							{`Your shopping cart is empty.`}&nbsp;&nbsp;
+							<a href="/subscribe" className="alert-link">
+								{`Click here`}
+							</a> {`to add a product`}
+						</>}
+						
 					</Alert>
 				</td>
 			</tbody>
@@ -72,7 +77,7 @@ export default function ProductTable(props){
 					return <tbody>
 						{
 							shoppingCart.items.map(cartInfo => {
-								var product = allProducts.find(prod => prod.id == cartInfo.product);
+								var product = allProducts.find(prod => prod.id == cartInfo.productId || cartInfo.product);
 
 								if (!product) {
 									// product withdrawn in some way
@@ -115,7 +120,7 @@ export default function ProductTable(props){
 										<td className="currency-column">
 											{formattedCost}
 										</td>
-										<td className="actions-column">
+										{!readonly && <td className="actions-column">
 											<button type="button" className="btn btn-small btn-outline-danger" title={`Remove`}
 												onClick={() => {
 													addToCart({
@@ -125,7 +130,7 @@ export default function ProductTable(props){
 												}}>
 												<i className="fal fa-fw fa-trash"></i>
 											</button>
-										</td>
+										</td>}
 									</tr>;
 								}
 
@@ -140,18 +145,18 @@ export default function ProductTable(props){
 									<td className="currency-column">
 										{formatCurrency(product.price.amount, session.locale)}
 									</td>
-									<td className="actions-column">
+									{!readonly && <td className="actions-column">
 										<button type="button" className="btn btn-small btn-outline-danger" title={`Remove`}
-											onClick={() => {
-												addToCart({
-													product: product.id,
-													quantity: -cartInfo.quantity,
-													isSubscribing: true
-												})
-											}}>
-											<i className="fal fa-fw fa-trash"></i>
+												onClick={() => {
+													addToCart({
+														product: product.id,
+														quantity: -cartInfo.quantity,
+														isSubscribing: true
+													})
+												}}>
+												<i className="fal fa-fw fa-trash"></i>
 										</button>
-									</td>
+									</td>}
 								</tr>;
 							})
 						}
