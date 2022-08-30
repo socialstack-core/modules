@@ -73,23 +73,26 @@ export const Provider = (props) => {
 		return setSession(updatedVal);
 	}
 	
+	let sessionReload = () => webRequest("user/self")
+		.then((response) => {
+			var state = (response?.json) ? { ...response.json, loadingUser: null } : {loadingUser: null};
+			dispatchWithEvent(state);
+			return state;
+		}).catch(() => dispatchWithEvent({
+			user: null,
+			realUser: null,
+			loadingUser: null
+		}));
+	
 	if(session.loadingUser === true){
-		session.loadingUser = webRequest("user/self")
-			.then((response) => {
-				var state = (response?.json) ? { ...response.json, loadingUser: null } : {loadingUser: null};
-				dispatchWithEvent(state);
-				return state;
-			}).catch(() => dispatchWithEvent({
-				user: null,
-				realUser: null,
-				loadingUser: null
-			}))
+		session.loadingUser = sessionReload();
 	}
 	
 	return (
 		<Session.Provider
 			value={{
 				session,
+				sessionReload,
 				setSession: dispatchWithEvent
 			}}
 		>

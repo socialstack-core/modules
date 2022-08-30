@@ -1,11 +1,21 @@
 import Alert from 'UI/Alert';
 import parseQueryString from 'UI/Functions/ParseQueryString';
-import { useRouter } from 'UI/Session';
+import { useRouter, useSession } from 'UI/Session';
 
 export default function Complete(props) {
 	const { setPage } = useRouter();
+	var { sessionReload } = useSession();
 	var queryObj = parseQueryString();
-
+	
+	React.useEffect(() => {
+		
+		if(!props.noSessionUpdate){
+			// Force a session refresh. This is because a payment may have been for a subscription which affects the session state.
+			sessionReload();
+		}
+		
+	}, []);
+	
 	switch (queryObj.status) {
 		case 'success':
 			return <div className="payment-complete">
@@ -48,8 +58,8 @@ export default function Complete(props) {
 
 		default:
 			// invalid
-			setPage('/');
-			break;
+			return `Unknown payment status`;
+		break;
     }
 }
 
