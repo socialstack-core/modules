@@ -30,6 +30,7 @@ export default function SelectSubscription(props) {
 
 				return <ProductQuantity 
 						key={product.id}
+						isSubscription={true}
 						product={product}
 						quantity={quantity}
 						allowMultiple={props.allowMultiple}
@@ -132,6 +133,7 @@ export default function SelectSubscription(props) {
 		return <ProductQuantity 
 			className={quantity > 0 ? "select-subscription__option selected-in-cart" : "select-subscription__option"}
 			key={product.id}
+			isSubscription={true}
 			product={product}
 			quantity={quantity}
 			allowMultiple={props.allowMultiple}

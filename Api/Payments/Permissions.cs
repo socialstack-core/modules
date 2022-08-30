@@ -47,6 +47,7 @@ namespace Api.Payments
 				Roles.Guest.If("IsSelf()").ThenGrant(
 					"productquantity_load", "productquantity_list",
 					"purchase_load", "purchase_list",
+					"purchase_execute",
 					"shoppingcart_load", "shoppingcart_list",
 					"subscription_load", "subscription_list",
 					"paymentmethod_load", "paymentmethod_list"
@@ -55,6 +56,7 @@ namespace Api.Payments
 				Roles.Member.If("IsSelf()").ThenGrant(
 					"productquantity_load", "productquantity_list",
 					"purchase_load", "purchase_list",
+					"purchase_execute",
 					"shoppingcart_load", "shoppingcart_list",
 					"subscription_load", "subscription_list",
 					"paymentmethod_load", "paymentmethod_list"

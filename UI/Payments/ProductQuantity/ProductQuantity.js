@@ -8,7 +8,7 @@ export default function ProductQuantity(props) {
 	const { pop } = useToast();
 	const { setPage } = useRouter();
 	var { addToCart, removeSubscriptions } = useCart();
-	var isSubscription = product.isBilledByUsage;
+	var isSubscription = props.isSubscription || product.isBilledByUsage;
 	var outOfStock = product.stock === 0;
 	var variantClass = variant && variant.length ? 'btn-' + variant : '';
 
