@@ -184,7 +184,7 @@ export default function webRequest(origUrl, data, opts) {
 	
 	apiUrl += 'v1/';
 	
-	var url = (origUrl.indexOf('http') === 0 || origUrl[0] == '/') ? origUrl : apiUrl + origUrl;
+	var url = (origUrl.indexOf('http') === 0 || origUrl.indexOf('file:') === 0 || origUrl[0] == '/' || origUrl[0] == '.') ? origUrl : apiUrl + origUrl;
 	
 	return new Promise((success, reject) => {
 		_fetch(url, data, opts).then(response => {
