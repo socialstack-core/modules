@@ -79,13 +79,19 @@ namespace Api.Payments
 			// If a subscription payment changes to state 202, fulfil it immediately.
 			Events.Purchase.BeforeUpdate.AddEventListener(async (Context context, Purchase purchase, Purchase original) => {
 
-				// Is it for a subscription and is this a status change?
-				if (purchase.ContentType == "Subscription" && purchase.Status != original.Status)
+				// Is it for a subscription, or a multi-execution (>1 subscription) and is this a status change?
+				if (purchase.Status == original.Status || (purchase.ContentType != "Subscription" && !purchase.MultiExecute))
 				{
-					// State change - is it now a successful payment
-					if (purchase.Status == 202)
+					return purchase;
+				}
+
+				// State change - is it now a successful payment?
+				if (purchase.Status == 202)
+				{
+					// Success! Mark subscription(s) as renewed for the current month.
+
+					if (purchase.ContentType == "Subscription")
 					{
-						// Success! Mark subscription as renewed for the current month.
 						var subscription = await Get(context, purchase.ContentId, DataOptions.IgnorePermissions);
 
 						// Note that we'll only change the status if the payment is for the current timeslot index.
@@ -93,34 +99,43 @@ namespace Api.Payments
 
 						if (timePeriodKey == purchase.ContentAntiDuplication)
 						{
-							// This payment is for the latest period of the subscription.
-							// Update the subscription and set to active if not already.
-							await Update(context, subscription, (Context ctx, Subscription subToUpdate, Subscription orig) => {
-
-								// Update the charge dates:
-								SetUpdatedChargeDates(subToUpdate);
-
-								// it's active:
-								subToUpdate.Status = 1;
-
-							}, DataOptions.IgnorePermissions);
+							await MarkActive(context, subscription);
 						}
 					}
-					else if (purchase.Status >= 300)
+
+					if (purchase.MultiExecute)
 					{
-						// A permanent failure. The subscription is now going to be deactivated.
+						// Get the list of subscriptions on the purchase and mark each as active. A multi-execute only occurs on initial purchase.
+						var mappedSubscriptions = await ListBySource(context, _purchases, purchase.Id, "subscriptions", DataOptions.IgnorePermissions);
+
+						foreach (var subscription in mappedSubscriptions)
+						{
+							await MarkActive(context, subscription);
+						}
+					}
+				}
+				else if (purchase.Status >= 300)
+				{
+					// A permanent failure. The subscription(s) are now going to be deactivated.
+					if (purchase.ContentType == "Subscription")
+					{
 						var subscription = await Get(context, purchase.ContentId, DataOptions.IgnorePermissions);
 
 						if (subscription.Status == 1)
 						{
-							await Update(context, subscription, (Context ctx, Subscription subToUpdate, Subscription orig) => {
-
-								// Paused by payment failure:
-								subToUpdate.Status = 3;
-
-							}, DataOptions.IgnorePermissions);
+							await MarkInactive(context, subscription);
 						}
+					}
 
+					if (purchase.MultiExecute)
+					{
+						// Get the list of subscriptions on the purchase and mark each as active. A multi-execute only occurs on initial purchase.
+						var mappedSubscriptions = await ListBySource(context, _purchases, purchase.Id, "subscriptions", DataOptions.IgnorePermissions);
+
+						foreach (var subscription in mappedSubscriptions)
+						{
+							await MarkInactive(context, subscription);
+						}
 					}
 				}
 
@@ -189,6 +204,46 @@ namespace Api.Payments
 		}
 
 		/// <summary>
+		/// Marks the given subscription as active. Usually triggered by payments only.
+		/// </summary>
+		/// <param name="context"></param>
+		/// <param name="subscription"></param>
+		/// <returns></returns>
+		public async ValueTask<Subscription> MarkActive(Context context, Subscription subscription)
+		{
+			// This payment is for the latest period of the subscription.
+			// Update the subscription and set to active if not already.
+			return await Update(context, subscription, (Context ctx, Subscription subToUpdate, Subscription orig) =>
+			{
+
+				// Update the charge dates:
+				SetUpdatedChargeDates(subToUpdate);
+
+				// it's active:
+				subToUpdate.Status = 1;
+
+			}, DataOptions.IgnorePermissions);
+		}
+		
+		/// <summary>
+		/// Marks the given subscription as inactive (state 3, paused). Usually triggered by payments only.
+		/// </summary>
+		/// <param name="context"></param>
+		/// <param name="subscription"></param>
+		/// <returns></returns>
+		public async ValueTask<Subscription> MarkInactive(Context context, Subscription subscription)
+		{
+			// This payment is for the latest period of the subscription.
+			// Update the subscription and set to active if not already.
+			return await Update(context, subscription, (Context ctx, Subscription subToUpdate, Subscription orig) => {
+
+				// Paused by payment failure:
+				subToUpdate.Status = 3;
+
+			}, DataOptions.IgnorePermissions);
+		}
+
+		/// <summary>
 		/// Sets the next charge date for a given subscription. Must be called within an update statement.
 		/// </summary>
 		/// <returns></returns>
@@ -216,7 +271,7 @@ namespace Api.Payments
 				break;
 				case 2:
 					// Add a year to the charge date.
-					sub.NextChargeUtc = chargeDateUtc.AddMonths(3);
+					sub.NextChargeUtc = chargeDateUtc.AddYears(1);
 				break;
 				case 3:
 					// Add a week to the charge date.

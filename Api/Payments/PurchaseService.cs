@@ -19,6 +19,7 @@ namespace Api.Payments
 		private PaymentGatewayService _gateways;
 		private ProductQuantityService _prodQuantities;
 		private ProductService _products;
+		private SubscriptionService _subscriptions;
 
 		/// <summary>
 		/// Instanced automatically. Use injection to use this service, or Startup.Services.Get.
@@ -243,6 +244,70 @@ namespace Api.Payments
 		}
 
 		/// <summary>
+		/// Exceutes potentially multiple subscriptions in one transaction. For example if someone wants to buy an annual and monthly subscription at the same time.
+		/// This could also be whilst paying a one off amount too (in the provided purchase, which can be null).
+		/// If a purchase is provided, the items from the subscription(s) will be copied to it and executed together.
+		/// Otherwise, a purchase will be created and everything will be added to it.
+		/// </summary>
+		/// <param name="context"></param>
+		/// <param name="purchase"></param>
+		/// <param name="subscriptions"></param>
+		/// <param name="paymentMethod"></param>
+		/// <returns></returns>
+		public async ValueTask<PurchaseAndAction> MultiExecute(Context context, Purchase purchase, List<Subscription> subscriptions, PaymentMethod paymentMethod)
+		{
+			if (purchase == null)
+			{
+				// Create a purchase:
+				purchase = await Create(context, new Purchase()
+				{
+					LocaleId = context.LocaleId,
+					MultiExecute = true,
+					PaymentGatewayId = paymentMethod.PaymentGatewayId,
+					PaymentMethodId = paymentMethod.Id,
+					UserId = context.UserId
+				}, DataOptions.IgnorePermissions);
+			}
+			else
+			{
+				// Mark this as a multiExecute purchase
+				if (!purchase.MultiExecute)
+				{
+					purchase = await Update(context, purchase, (Context c, Purchase p, Purchase orig) => {
+						p.MultiExecute = true;
+					}, DataOptions.IgnorePermissions);
+				}
+			}
+
+			// Copy the items from the subs to the purchase:
+			if (subscriptions != null)
+			{
+				if (_subscriptions == null)
+				{
+					_subscriptions = Services.Get<SubscriptionService>();
+				}
+
+				foreach (var subscription in subscriptions)
+				{
+					if (subscription == null)
+					{
+						continue;
+					}
+
+					// Add the sub to the multi-execute purchase:
+					await CreateMappingIfNotExists(context, purchase.Id, _subscriptions, subscription.Id, "subscriptions");
+
+					// Get its items, clone to purchase:
+					var inSub = await _subscriptions.GetProducts(context, subscription);
+					await AddProducts(context, purchase, inSub);
+				}
+			}
+
+			// Attempt to fulfil the purchase now:
+			return await Execute(context, purchase, paymentMethod);
+		}
+			
+		/// <summary>
 		/// Requests execution of the given payment. Internally calculates the total.
 		/// This is triggered by the frontend after the given purchase has had a payment method attached to it.
 		/// </summary>
@@ -252,7 +317,7 @@ namespace Api.Payments
 		/// <returns></returns>
 		public async ValueTask<PurchaseAndAction> Execute(Context context, Purchase purchase, PaymentMethod paymentMethod = null)
 		{
-			// Event to indicate the product is about to execute:
+			// Event to indicate the purchase is about to execute:
 			await Events.Purchase.BeforeExecute.Dispatch(context, purchase);
 
 			// First ensure the correct total:

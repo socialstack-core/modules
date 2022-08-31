@@ -1,5 +1,6 @@
 using System;
 using Api.Database;
+using Api.Startup;
 using Api.Translate;
 using Api.Users;
 
@@ -10,6 +11,7 @@ namespace Api.Payments
 	/// <summary>
 	/// A Subscription.
 	/// </summary>
+	[ListAs("Subscriptions", Explicit = true)]
 	public partial class Subscription : VersionedContent<uint>
 	{
 		/// <summary>
@@ -31,6 +33,7 @@ namespace Api.Payments
 		/// 0 = The default, it's in months.   (currently the only supported option)
 		/// 1 = Quarters
 		/// 2 = Years
+		/// 3 = Weeks
 		/// </summary>
 		public uint TimeslotFrequency;
 

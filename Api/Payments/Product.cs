@@ -29,7 +29,18 @@ namespace Api.Payments
 		/// </summary>
 		[Data("help", "Tick this if this product is billed after it has been used based on the amount of usage it has had.")]
 		public bool IsBilledByUsage;
-
+		
+		/// <summary>
+		/// Used to indicate if this product recurs and if so, the frequency.
+		/// 0 = One off
+		/// 1 = Weekly
+		/// 2 = Monthly
+		/// 3 = Quarterly
+		/// 4 = Yearly
+		/// </summary>
+		[Module("Admin/Payments/BillingFrequencies")]
+		public uint BillingFrequency;
+		
 		/// <summary>
 		/// Usually used by tiered products. This is the minimum purchase quantity of this product.
 		/// </summary>

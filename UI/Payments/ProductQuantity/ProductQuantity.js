@@ -7,23 +7,18 @@ export default function ProductQuantity(props) {
 	const { product, variant, addDescription, removeDescription, goStraightToCart, cartUrl, allowMultiple, quantity } = props;
 	const { pop } = useToast();
 	const { setPage } = useRouter();
-	var { addToCart, removeSubscriptions } = useCart();
-	var isSubscription = props.isSubscription || product.isBilledByUsage;
+	var { addToCart } = useCart();
 	var outOfStock = product.stock === 0;
 	var variantClass = variant && variant.length ? 'btn-' + variant : '';
-
-	if ((isSubscription || !allowMultiple) && quantity > 1) {
-		quantity = 1;
-    }
-
-	function updateQuantity(qty, isSubscription) {
+	
+	function updateQuantity(qty) {
 		
 		addToCart({
 			product: product.id,
 			quantity: qty,
-			isSubscribing: isSubscription
-		}, (!props.allowMultiple && isSubscription));
-
+			allowMultiple
+		});
+		
 		var absQty = Math.abs(qty);
 		var qtyDesc = absQty == 1 ? '' : absQty + 'x ';
 		var activity = (qty < 0) ? `${qtyDesc}${product.name} removed from cart` : `${qtyDesc}${product.name} added to cart`;
@@ -48,6 +43,8 @@ export default function ProductQuantity(props) {
 	}
 
 	if (outOfStock) {
+		var isSubscription = product.billingFrequency!=0 || product.isBilledByUsage;
+		
 		return <div className="product-quantity">
 			{props.children}
 			<button type="button" className={'btn ' + variantClass + ' product-quantity__toggle'} disabled>
@@ -57,21 +54,19 @@ export default function ProductQuantity(props) {
 		</div>;
     }
 	
-	var multiQuantity = !isSubscription && allowMultiple;
-	
 	var addButton = <div className="product-quantity">
-		{(!quantity || (quantity && !multiQuantity)) && <button type="button" className={'btn ' + variantClass + ' product-quantity__toggle'}
+		{(!quantity || (quantity && !allowMultiple)) && <button type="button" className={'btn ' + variantClass + ' product-quantity__toggle'}
 			onClick={e => {
 				e.stopPropagation();
-				updateQuantity(quantity == 0 ? 1 : -1, isSubscription);
+				updateQuantity(quantity == 0 ? 1 : -1);
 			}}>
 			{quantity == 0 && addDescription}
-			{quantity > 0 && !multiQuantity && removeDescription}
+			{quantity > 0 && !allowMultiple && removeDescription}
 		</button>}
-		{quantity > 0 && multiQuantity && <>
+		{quantity > 0 && allowMultiple && <>
 			<button type="button" className={'btn ' + variantClass + ' product-quantity__remove'} onClick={e => {
 				e.stopPropagation();
-				updateQuantity(-1, isSubscription);
+				updateQuantity(-1);
 			}}>
 				<span>-</span>
 			</button>
@@ -80,7 +75,7 @@ export default function ProductQuantity(props) {
 			</span>
 			<button type="button" className={'btn ' + variantClass + ' product-quantity__add'} onClick={e => {
 				e.stopPropagation();
-				updateQuantity(1, isSubscription);
+				updateQuantity(1);
 			}}>
 				<span>+</span>
 			</button>
@@ -97,7 +92,7 @@ export default function ProductQuantity(props) {
 		className={buttonClass}
 		onClick={e => {
 			e.stopPropagation();
-			updateQuantity(quantity == 0 ? 1 : -1, isSubscription);
+			updateQuantity(quantity == 0 ? 1 : -1);
 		}}
 	>
 		{props.children(addButton)}

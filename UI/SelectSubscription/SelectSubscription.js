@@ -3,7 +3,7 @@ import { useRef } from 'react';
 import { useSession, useRouter } from 'UI/Session';
 import { formatCurrency } from "UI/Functions/CurrencyTools";
 import { useCart } from 'UI/Payments/CartSession';
-import { renderProducts, renderTieredProducts } from 'UI/Functions/Payments';
+import { renderProducts, renderTieredProducts, recurrenceText } from 'UI/Functions/Payments';
 import getRef from 'UI/Functions/GetRef';
 import FlipCard from 'UI/FlipCard';
 
@@ -16,21 +16,20 @@ export default function SelectSubscription(props) {
 	const { setPage } = useRouter();
 	const productOptionsRef = useRef(null);
 	var { cartIsEmpty, getCartQuantity } = useCart();
-
+	
 	function addTiers(product) {
 
 		switch (product.priceStrategy) {
 			case STRATEGY_PAYG:
 				var productName = product.name;
 				var cheapestCost = formatCurrency(product.tiers[product.tiers.length - 1].price.amount, session.locale, { hideDecimals: false });
-				// TODO: support differing frequencies
-				var recurrence = ` pm`;
-
+				
+				var recurrence = recurrenceText(product.billingFrequency);
+				
 				var quantity = getCartQuantity(product.id);
 
 				return <ProductQuantity 
 						key={product.id}
-						isSubscription={true}
 						product={product}
 						quantity={quantity}
 						allowMultiple={props.allowMultiple}
@@ -124,16 +123,15 @@ export default function SelectSubscription(props) {
 	function addProduct(product) {
 		var productName = product.name;
 		// TODO: check price strategy
-		var cost = formatCurrency(product.price.amount * product.minQuantity, session.locale, { hideDecimals: true });
-		// TODO: support differing frequencies
-		var recurrence = ` pm`;
-
+		var cost = formatCurrency(product.price.amount * product.minQuantity, session.locale, { hideDecimals: false });
+		
+		var recurrence = recurrenceText(product.billingFrequency);
+		
 		var quantity = getCartQuantity(product.id);
 
 		return <ProductQuantity 
 			className={quantity > 0 ? "select-subscription__option selected-in-cart" : "select-subscription__option"}
 			key={product.id}
-			isSubscription={true}
 			product={product}
 			quantity={quantity}
 			allowMultiple={props.allowMultiple}
@@ -172,11 +170,11 @@ export default function SelectSubscription(props) {
 				<div className="product-options">
 					<div className={'btn-group'}
 						role="group" aria-labelledby={"select_product_label"} ref={productOptionsRef}>
-						{standaloneOnly && renderProducts(addProduct)}
-						{tieredOnly && renderTieredProducts(addTiers)}
+						{standaloneOnly && renderProducts(addProduct, {filter: {where: {billingFrequency: {not: 0}}}})}
+						{tieredOnly && renderTieredProducts(addTiers, {filter: {where: {billingFrequency: {not: 0}}}})}
 						{!standaloneOnly && !tieredOnly && <>
-							{renderProducts(addProduct)}
-							{renderTieredProducts(addTiers)}
+							{renderProducts(addProduct, {filter: {where: {billingFrequency: {not: 0}}}})}
+							{renderTieredProducts(addTiers, {filter: {where: {billingFrequency: {not: 0}}}})}
 						</>}
 					</div>
 				</div>

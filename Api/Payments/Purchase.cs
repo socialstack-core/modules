@@ -24,6 +24,12 @@ namespace Api.Payments
 		public uint Status;
 
 		/// <summary>
+		/// True if this purchase has multiple subscriptions attached to it which fulfil when the purchase does.
+		/// The subscriptions are attached via a mapping called "Subscriptions".
+		/// </summary>
+		public bool MultiExecute;
+
+		/// <summary>
 		/// The locale the purchase will occur in. This is used to specify the actual price paid.
 		/// </summary>
 		public uint LocaleId;

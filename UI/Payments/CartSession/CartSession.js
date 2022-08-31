@@ -65,15 +65,14 @@ export const Provider = (props) => {
 		updateCart(newItemSet);
 	};
 	
-    let addToCart = (productInfo, removeOtherSubscriptions) => {
+    let addToCart = (productInfo, options) => {
             var product = productInfo.product;
-            var qty = productInfo.quantity || 0;
-            var sub = productInfo.isSubscribing || false;
+            var qty = productInfo.quantity || 1;
 			
             if (!product) {
 				return;
             }
-
+			
             if (product.id) {
                 product = product.id;
             }
@@ -81,14 +80,8 @@ export const Provider = (props) => {
             // Copy item set:
             var curItems = shoppingCart.items;
 			
-			if(sub && removeOtherSubscriptions){
-				curItems = curItems.filter(p => {
-					if(p.isSubscribing && p.product != product) {
-						return;
-					}
-					
-					return p;
-				});
+			if(options && options.itemFilter){
+				curItems = options.itemFilter(curItems);
 			}
 			
             var items = [];
@@ -98,7 +91,7 @@ export const Provider = (props) => {
                 var clonedItem = { ...curItems[i] };
                 if (clonedItem.product == product) {
                     found = true;
-                    var newQty = clonedItem.quantity + (sub ? qty : qty || 1);
+                    var newQty = clonedItem.quantity + qty;
                     if (newQty <= 0) {
                         // remove by not re-adding.
                         continue;
@@ -109,25 +102,20 @@ export const Provider = (props) => {
             }
 			
             if (!found) {
-				if(qty < 0 || (!qty && !sub)){
+				if(qty <= 0){
 					return;
 				}
 				
                 var newItem = {
                     product
                 };
-                if (sub) {
-                    newItem.quantity = 1;
-                    newItem.isSubscribing = true;
-                } else {
-                    newItem.quantity = qty;
-                }
+                newItem.quantity = qty;
                 items.push(newItem);
             }
 
             updateCart({ items });
     }
-
+	
     let emptyCart = () => {
         updateCart({ items: [] });
     };

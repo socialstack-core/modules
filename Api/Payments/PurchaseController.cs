@@ -3,6 +3,7 @@ using Api.Startup;
 using Microsoft.AspNetCore.Mvc;
 using Newtonsoft.Json.Linq;
 using System;
+using System.Collections.Generic;
 using System.Threading.Tasks;
 
 namespace Api.Payments
@@ -47,6 +48,7 @@ namespace Api.Payments
 				throw new PublicException("At least one item is required", "items_required");
 			}
 
+			// Check the items first to avoid creating a payment method if we have invalid items.
 			foreach (var item in itemsJson)
 			{
 				var productIdJson = item["product"];
@@ -56,18 +58,11 @@ namespace Api.Payments
 					throw new PublicException("Items require product field (numeric ID)", "item_product_required");
 				}
 
-				if (item["isSubscribing"] != null)
-				{
-					anySubscription = true;
-				}
-				else
-				{
-					var qtyJson = item["quantity"];
+				var qtyJson = item["quantity"];
 
-					if (qtyJson == null || qtyJson.Type != JTokenType.Integer)
-					{
-						throw new PublicException("Non subscription items require quantity field (numeric ID)", "item_quantity_required");
-					}
+				if (qtyJson == null || qtyJson.Type != JTokenType.Integer)
+				{
+					throw new PublicException("Non subscription items require quantity field (numeric ID)", "item_quantity_required");
 				}
 			}
 
@@ -75,7 +70,6 @@ namespace Api.Payments
 			var paymentMethodJson = purchaseOrder["paymentMethod"];
 
 			PaymentMethod paymentMethod;
-			Purchase purchase = null;
 			PurchaseAndAction purchaseAction;
 
 			if (paymentMethodJson != null)
@@ -185,85 +179,254 @@ namespace Api.Payments
 
 			var productQuantities = Services.Get<ProductQuantityService>();
 
+			// Next, for each requested product, establish if it needs to create a subscription as well.
+			// There are potentially 4 different subscription objects that can be created at once (week, month, quarter, year).
+
+			Subscription week = null;
+			Subscription month = null;
+			Subscription quarter = null;
+			Subscription year = null;
+			Purchase oneOff = null;
+
 			// If any subscriptions, create the subscription now.
-			if (anySubscription)
+			var subscriptions = Services.Get<SubscriptionService>();
+			var products = Services.Get<ProductService>();
+
+			foreach (var item in itemsJson)
 			{
-				var subscriptions = Services.Get<SubscriptionService>();
+				var productIdJson = item["product"];
+				var quantityJson = item["quantity"];
 
-				var sub = await subscriptions.Create(context, new Subscription()
+				var productId = productIdJson.ToObject<long>();
+
+				if (productId < 0 || productId > uint.MaxValue)
 				{
-					PaymentMethodId = paymentMethod.Id,
-					TimeslotFrequency = 0, // Months
-					LocaleId = context.LocaleId,
+					throw new PublicException("Product ID provided but it did not exist", "product_invalid");
+				}
+
+				// Get the product:
+				var product = await products.Get(context, (uint)productId, DataOptions.IgnorePermissions);
+
+				if (product == null)
+				{
+					throw new PublicException("Product ID provided but it did not exist", "product_invalid");
+				}
+
+				var quantity = quantityJson.ToObject<ulong>();
+
+				var prodQuant = new ProductQuantity()
+				{
+					ProductId = (uint)productId,
+					Quantity = quantity,
 					UserId = context.UserId
+				};
 
-				}, DataOptions.IgnorePermissions);
-
-				// Create each object on it:
-				foreach (var item in itemsJson)
+				// Which bucket does this go into?
+				if (product.BillingFrequency == 0)
 				{
-					var productIdJson = item["product"];
-					
-					if (item["isSubscribing"] != null)
+					// It's a one off.
+					if (oneOff == null)
 					{
-						var productId = productIdJson.ToObject<long>();
-
-						if (productId < 0 || productId > uint.MaxValue)
+						// Create it:
+						oneOff = await _service.Create(context, new Purchase()
 						{
-							throw new PublicException("Product ID provided but it did not exist", "product_invalid");
-						}
-
-						await productQuantities.Create(context, new ProductQuantity() {
-							ProductId = (uint)productId,
-							Quantity = 1,
-							SubscriptionId = sub.Id,
+							LocaleId = context.LocaleId,
+							PaymentGatewayId = paymentMethod.PaymentGatewayId,
+							PaymentMethodId = paymentMethod.Id,
 							UserId = context.UserId
 						}, DataOptions.IgnorePermissions);
 					}
+
+					prodQuant.PurchaseId = oneOff.Id;
+				}
+				else
+				{
+					Subscription subToUse = null;
+
+					switch (product.BillingFrequency)
+					{
+						case 1:
+							// Weekly
+							if (week == null)
+							{
+								week = await subscriptions.Create(context, new Subscription()
+								{
+									PaymentMethodId = paymentMethod.Id,
+									TimeslotFrequency = 3, // Weeks
+									LocaleId = context.LocaleId,
+									UserId = context.UserId
+								}, DataOptions.IgnorePermissions);
+							}
+
+							subToUse = week;
+
+							break;
+						case 2:
+							// Monthly
+							
+							if (month == null)
+							{
+								month = await subscriptions.Create(context, new Subscription()
+								{
+									PaymentMethodId = paymentMethod.Id,
+									TimeslotFrequency = 0, // Months
+									LocaleId = context.LocaleId,
+									UserId = context.UserId
+								}, DataOptions.IgnorePermissions);
+							}
+
+							subToUse = month;
+
+							break;
+						case 3:
+							// Quarterly
+
+							if (quarter == null)
+							{
+								quarter = await subscriptions.Create(context, new Subscription()
+								{
+									PaymentMethodId = paymentMethod.Id,
+									TimeslotFrequency = 1, // Quarters
+									LocaleId = context.LocaleId,
+									UserId = context.UserId
+								}, DataOptions.IgnorePermissions);
+							}
+
+							subToUse = quarter;
+							break;
+						case 4:
+							// Annually
+
+							if (year == null)
+							{
+								year = await subscriptions.Create(context, new Subscription()
+								{
+									PaymentMethodId = paymentMethod.Id,
+									TimeslotFrequency = 2, // Years
+									LocaleId = context.LocaleId,
+									UserId = context.UserId
+								}, DataOptions.IgnorePermissions);
+							}
+
+							subToUse = year;
+							break;
+					}
+
+					prodQuant.SubscriptionId = subToUse.Id;
 				}
 
-				// Charge the subscription now:
-				purchaseAction = await subscriptions.ChargeSubscription(context, sub);
+				await productQuantities.Create(context, prodQuant, DataOptions.IgnorePermissions);
+			}
+
+			// Next check if we need to do a singular execution or a multi execution.
+			var executeCount = 0;
+
+			if (oneOff != null)
+			{
+				executeCount++;
+			}
+
+			if (week != null)
+			{
+				executeCount++;
+			}
+
+			if (month != null)
+			{
+				executeCount++;
+			}
+			
+			if (quarter != null)
+			{
+				executeCount++;
+			}
+			
+			if (year != null)
+			{
+				executeCount++;
+			}
+
+			if (executeCount == 1)
+			{
+				// Most common situation. We're executing a single one off purchase or a singular subscription.
+
+				if (oneOff != null)
+				{
+					// Execute it:
+					purchaseAction = await (_service as PurchaseService).Execute(context, oneOff);
+				}
+				else
+				{
+					// Execute a subscription:
+					Subscription sub = null;
+
+					if (year != null)
+					{
+						sub = year;
+					}
+					else if (quarter != null)
+					{
+						sub = quarter;
+					}
+					else if (month != null)
+					{
+						sub = month;
+					}
+					else if (week != null)
+					{
+						sub = week;
+					}
+
+					purchaseAction = await subscriptions.ChargeSubscription(context, sub);
+				}
 
 			}
 			else
 			{
-				// One off purchase.
-				purchase = await _service.Create(context, new Purchase()
-				{
-					LocaleId = context.LocaleId,
-					PaymentGatewayId = paymentMethod.PaymentGatewayId,
-					PaymentMethodId = paymentMethod.Id,
-					UserId = context.UserId
-				}, DataOptions.IgnorePermissions);
-				
-				// Create each object on it:
-				foreach (var item in itemsJson)
-				{
-					var productIdJson = item["product"];
-					var quantityJson = item["quantity"];
+				// Multi execution. This is where somebody added multiple types of product to their cart at the same time.
+				// For example, a one off purchase, a monthly subscription and a yearly subscription.
+				// A special MultiExecute endpoint exists for this situation where a singular one off payment is made and in its success
+				// 1 or more subscriptions will be ticked.
 
-					var productId = productIdJson.ToObject<long>();
+				List<Subscription> subscriptionSet = null;
 
-					if (productId < 0 || productId > uint.MaxValue)
+				if (week != null)
+				{
+					if (subscriptionSet == null)
 					{
-						throw new PublicException("Product ID provided but it did not exist", "product_invalid");
+						subscriptionSet = new List<Subscription>();
 					}
-					
-					var quantity = quantityJson.ToObject<ulong>();
-
-					await productQuantities.Create(context, new ProductQuantity()
+					subscriptionSet.Add(week);
+				}
+				
+				if (month != null)
+				{
+					if (subscriptionSet == null)
 					{
-						ProductId = (uint)productId,
-						Quantity = quantity,
-						PurchaseId = purchase.Id,
-						UserId = context.UserId
-					}, DataOptions.IgnorePermissions);
+						subscriptionSet = new List<Subscription>();
+					}
+					subscriptionSet.Add(month);
+				}
+				
+				if (quarter != null)
+				{
+					if (subscriptionSet == null)
+					{
+						subscriptionSet = new List<Subscription>();
+					}
+					subscriptionSet.Add(quarter);
+				}
+				
+				if (year != null)
+				{
+					if (subscriptionSet == null)
+					{
+						subscriptionSet = new List<Subscription>();
+					}
+					subscriptionSet.Add(year);
 				}
 
-				// Execute it:
-				purchaseAction = await (_service as PurchaseService).Execute(context, purchase);
-
+				purchaseAction = await (_service as PurchaseService).MultiExecute(context, oneOff, subscriptionSet, paymentMethod);
 			}
 
 			return new PurchaseStatus() {
