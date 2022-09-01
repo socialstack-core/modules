@@ -16,6 +16,11 @@ namespace Api.Eventing
         public static EventGroup<SubscriptionUsage> SubscriptionUsage;
 		
 		/// <summary>
+		/// Set of events for a coupon.
+		/// </summary>
+		public static EventGroup<Coupon> Coupon;
+		
+		/// <summary>
 		/// Set of events for a purchase.
 		/// </summary>
 		public static PurchaseEventGroup Purchase;

@@ -311,13 +311,111 @@ namespace Api.Payments
 		}
 
 		/// <summary>
+		/// Asks the payment gateway to authorise a (free) purchase. You must still provide a price in order to verify the currency.
+		/// </summary>
+		/// <param name="purchase"></param>
+		/// <param name="totalCost"></param>
+		/// <param name="paymentMethod"></param>
+		/// <param name="coupon"></param>
+		/// <returns></returns>
+		public override async ValueTask<PurchaseAndAction> AuthorisePurchase(Purchase purchase, ProductCost totalCost, PaymentMethod paymentMethod, Coupon coupon = null)
+		{
+			if (_users == null)
+			{
+				_users = Services.Get<UserService>();
+				_purchases = Services.Get<PurchaseService>();
+				_paymentMethods = Services.Get<PaymentMethodService>();
+			}
+
+			// Get the user:
+			var user = await _users.Get(_context, purchase.UserId, DataOptions.IgnorePermissions);
+
+			// Get the payment method:
+			if (paymentMethod == null || string.IsNullOrEmpty(paymentMethod.GatewayToken))
+			{
+				throw new PublicException("The provided payment method is invalid.", "invalid_payment_method");
+			}
+
+			// Start creating the payment intent:
+			if (_paymentIntentService == null)
+			{
+				_paymentIntentService = new PaymentIntentService();
+			}
+
+			StripeConfiguration.ApiKey = _config.SecretKey;
+
+			// Mark as starting to submit to gateway and add the total cost to it:
+			await _purchases.Update(_context, purchase, (Context ctx, Purchase toUpdate, Purchase orig) => {
+
+				// It might have instantly completed or instantly failed. We can find out from the status:
+				toUpdate.Status = 101;
+				toUpdate.CouponId = coupon == null ? 0 : coupon.Id;
+				toUpdate.TotalCost = 0;
+				toUpdate.Authorise = true;
+				toUpdate.CurrencyCode = totalCost.CurrencyCode;
+
+			});
+
+			var gatewayTokenCustomerEnd = paymentMethod.GatewayToken.IndexOf('/');
+			var customerId = paymentMethod.GatewayToken.Substring(0, gatewayTokenCustomerEnd);
+			var methodId = paymentMethod.GatewayToken.Substring(gatewayTokenCustomerEnd + 1);
+
+			var paymentIntent = await _paymentIntentService.CreateAsync(new PaymentIntentCreateOptions
+			{
+				Amount = 50, // Min in USD. TODO: use authorisation/ capture flow and refund the authorisation immediately.
+				Customer = customerId,
+				Currency = totalCost.CurrencyCode,
+				PaymentMethod = methodId,
+				Confirm = true,
+				ReturnUrl = AppSettings.GetPublicUrl() + "/complete?status=success",
+				AutomaticPaymentMethods = new PaymentIntentAutomaticPaymentMethodsOptions
+				{
+					Enabled = true,
+				},
+				ReceiptEmail = user != null && user.Email != null ? user.Email : null,
+				Metadata = new Dictionary<string, string> {
+					{ "PurchaseId", purchase.Id.ToString() },
+					{ "UserId", user == null ? "0" : user.Id.ToString() }
+				}
+			});
+
+			// Update purchase with Id from payment intent and the total cost:
+			purchase = await _purchases.Update(_context, purchase, (Context ctx, Purchase toUpdate, Purchase orig) => {
+
+				// It might have instantly completed or instantly failed. We can find out from the status:
+				toUpdate.Status = ConvertStatus(paymentIntent.Status);
+				toUpdate.PaymentGatewayInternalId = paymentIntent.Id;
+
+			});
+
+			string action = null;
+
+			if (purchase.Status == 103 && paymentIntent.NextAction != null && paymentIntent.NextAction.Type == "redirect_to_url")
+			{
+				var redir = paymentIntent.NextAction.RedirectToUrl;
+
+				if (redir != null)
+				{
+					action = redir.Url;
+				}
+			}
+
+			return new PurchaseAndAction()
+			{
+				Purchase = purchase,
+				Action = action
+			};
+		}
+
+		/// <summary>
 		/// Asks the payment gateway to complete a purchase.
 		/// </summary>
 		/// <param name="purchase"></param>
 		/// <param name="totalCost"></param>
 		/// <param name="paymentMethod"></param>
+		/// <param name="coupon"></param>
 		/// <returns></returns>
-		public override async ValueTask<PurchaseAndAction> ExecutePurchase(Purchase purchase, ProductCost totalCost, PaymentMethod paymentMethod)
+		public override async ValueTask<PurchaseAndAction> ExecutePurchase(Purchase purchase, ProductCost totalCost, PaymentMethod paymentMethod, Coupon coupon = null)
 		{
 			if (_users == null)
 			{
@@ -356,6 +454,7 @@ namespace Api.Payments
 
 				// It might have instantly completed or instantly failed. We can find out from the status:
 				toUpdate.Status = 101;
+				toUpdate.CouponId = coupon == null ? 0 : coupon.Id;
 				toUpdate.TotalCost = totalCost.Amount;
 				toUpdate.CurrencyCode = totalCost.CurrencyCode;
 

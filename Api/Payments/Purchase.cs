@@ -24,6 +24,16 @@ namespace Api.Payments
 		public uint Status;
 
 		/// <summary>
+		/// Set if a coupon was used.
+		/// </summary>
+		public uint CouponId;
+
+		/// <summary>
+		/// True if this purchase was only authorised, not actually executed.
+		/// </summary>
+		public bool Authorise;
+
+		/// <summary>
 		/// True if this purchase has multiple subscriptions attached to it which fulfil when the purchase does.
 		/// The subscriptions are attached via a mapping called "Subscriptions".
 		/// </summary>

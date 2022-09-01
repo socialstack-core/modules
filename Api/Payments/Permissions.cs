@@ -43,6 +43,11 @@ namespace Api.Payments
 				Roles.Public.Revoke("paymentmethod_load", "paymentmethod_list", "paymentmethod_update", "paymentmethod_create");
 				Roles.Member.Revoke("paymentmethod_load", "paymentmethod_list", "paymentmethod_update", "paymentmethod_create");
 				
+				// Remove public viewing (as it's enabled by default):
+				Roles.Guest.Revoke("coupon_load", "coupon_list");
+				Roles.Public.Revoke("coupon_load", "coupon_list");
+				Roles.Member.Revoke("coupon_load", "coupon_list");
+				
 				// Allow viewing of owned things:
 				Roles.Guest.If("IsSelf()").ThenGrant(
 					"productquantity_load", "productquantity_list",

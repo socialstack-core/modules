@@ -274,6 +274,8 @@ namespace Api.Payments
 				return ProductCost.None;
 			}
 
+			var isSubscriptionProduct = product.BillingFrequency != 0;
+
 			// First if the quantity is below the products base min, check with site config.
 			if (quantity < product.MinQuantity)
 			{
@@ -550,7 +552,8 @@ namespace Api.Payments
 			return new ProductCost()
 			{
 				CurrencyCode = price.CurrencyCode,
-				Amount = totalCost
+				Amount = totalCost,
+				SubscriptionProducts = isSubscriptionProduct
 			};
 		}
 

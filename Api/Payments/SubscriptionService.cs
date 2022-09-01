@@ -90,6 +90,21 @@ namespace Api.Payments
 				{
 					// Success! Mark subscription(s) as renewed for the current month.
 
+					// Is there a coupon on the purchase and does it add extra days?
+					uint extraDays = 0;
+
+					if (purchase.CouponId != 0)
+					{
+						var coupon = await Services.Get<CouponService>().Get(context, purchase.CouponId, DataOptions.IgnorePermissions);
+
+						if (coupon != null && coupon.SubscriptionDelayDays > 0)
+						{
+							// Yes the coupon has some additional days. This typically happens to indicate a free trial after a card was authorised.
+							// Basically we're just delaying the first actual payment.
+							extraDays = coupon.SubscriptionDelayDays;
+						}
+					}
+
 					if (purchase.ContentType == "Subscription")
 					{
 						var subscription = await Get(context, purchase.ContentId, DataOptions.IgnorePermissions);
@@ -99,7 +114,7 @@ namespace Api.Payments
 
 						if (timePeriodKey == purchase.ContentAntiDuplication)
 						{
-							await MarkActive(context, subscription);
+							await MarkActive(context, subscription, extraDays);
 						}
 					}
 
@@ -110,7 +125,7 @@ namespace Api.Payments
 
 						foreach (var subscription in mappedSubscriptions)
 						{
-							await MarkActive(context, subscription);
+							await MarkActive(context, subscription, extraDays);
 						}
 					}
 				}
@@ -209,7 +224,7 @@ namespace Api.Payments
 		/// <param name="context"></param>
 		/// <param name="subscription"></param>
 		/// <returns></returns>
-		public async ValueTask<Subscription> MarkActive(Context context, Subscription subscription)
+		public async ValueTask<Subscription> MarkActive(Context context, Subscription subscription, uint extraDays)
 		{
 			// This payment is for the latest period of the subscription.
 			// Update the subscription and set to active if not already.
@@ -217,7 +232,7 @@ namespace Api.Payments
 			{
 
 				// Update the charge dates:
-				SetUpdatedChargeDates(subToUpdate);
+				SetUpdatedChargeDates(subToUpdate, extraDays);
 
 				// it's active:
 				subToUpdate.Status = 1;
@@ -247,7 +262,7 @@ namespace Api.Payments
 		/// Sets the next charge date for a given subscription. Must be called within an update statement.
 		/// </summary>
 		/// <returns></returns>
-		public void SetUpdatedChargeDates(Subscription sub)
+		public void SetUpdatedChargeDates(Subscription sub, uint extraDays = 0)
 		{
 			DateTime chargeDateUtc = DateTime.UtcNow;
 
@@ -279,6 +294,11 @@ namespace Api.Payments
 				break;
 				default:
 					throw new Exception("Unknown billing frequency " + sub.TimeslotFrequency);
+			}
+
+			if (extraDays != 0)
+			{
+				sub.NextChargeUtc = sub.NextChargeUtc.AddDays(extraDays);
 			}
 
 			sub.LastChargeUtc = chargeDateUtc;
@@ -323,7 +343,8 @@ namespace Api.Payments
 		/// </summary>
 		/// <param name="context"></param>
 		/// <param name="subscription"></param>
-		public async ValueTask<PurchaseAndAction> ChargeSubscription(Context context, Subscription subscription)
+		/// <param name="coupon"></param>
+		public async ValueTask<PurchaseAndAction> ChargeSubscription(Context context, Subscription subscription, Coupon coupon = null)
 		{
 			// First, has a purchase been raised for the subscription already?
 			ulong timePeriodKey = (ulong)subscription.LastChargeUtc.Ticks;
@@ -403,7 +424,7 @@ namespace Api.Payments
 			await _purchases.AddProducts(context, purchase, inSub);
 
 			// Attempt to fulfil the purchase now:
-			return await _purchases.Execute(context, purchase);
+			return await _purchases.Execute(context, purchase, null, coupon);
 		}
 
 		/// <summary>

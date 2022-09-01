@@ -19,8 +19,23 @@ public class PaymentGateway
 	/// <param name="purchase"></param>
 	/// <param name="totalCost"></param>
 	/// <param name="paymentMethod"></param>
+	/// <param name="coupon"></param>
 	/// <returns></returns>
-	public virtual ValueTask<PurchaseAndAction> ExecutePurchase(Purchase purchase, ProductCost totalCost, PaymentMethod paymentMethod)
+	public virtual ValueTask<PurchaseAndAction> ExecutePurchase(Purchase purchase, ProductCost totalCost, PaymentMethod paymentMethod, Coupon coupon = null)
+	{
+		return new ValueTask<PurchaseAndAction>(new PurchaseAndAction() { });
+	}
+
+	/// <summary>
+	/// Request a card authorisation for the given purchase. The purchase itself will enter the success state if the authorisation occurs.
+	/// As a result this should only be used on purchases which are either free or discounted to free with a coupon.
+	/// </summary>
+	/// <param name="purchase"></param>
+	/// <param name="totalCost"></param>
+	/// <param name="paymentMethod"></param>
+	/// <param name="coupon"></param>
+	/// <returns></returns>
+	public virtual ValueTask<PurchaseAndAction> AuthorisePurchase(Purchase purchase, ProductCost totalCost, PaymentMethod paymentMethod, Coupon coupon = null)
 	{
 		return new ValueTask<PurchaseAndAction>(new PurchaseAndAction() { });
 	}

@@ -20,5 +20,9 @@ public struct ProductCost
 	/// The amount.
 	/// </summary>
 	public ulong Amount;
-	
+
+	/// <summary>
+	/// True if there are subscription products in this cost.
+	/// </summary>
+	public bool SubscriptionProducts;
 }

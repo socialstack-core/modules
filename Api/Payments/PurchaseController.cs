@@ -177,6 +177,22 @@ namespace Api.Payments
 				throw new PublicException("Payment method missing", "payment_method_required");
 			}
 
+			var couponCodeJson = purchaseOrder["couponCode"];
+			Coupon coupon = null;
+
+			if (couponCodeJson != null)
+			{
+				if (couponCodeJson.Type != JTokenType.String)
+				{
+					throw new PublicException("Coupon code provided but it was an invalid type", "coupon_invalid");
+				}
+
+				var couponCode = couponCodeJson.ToString();
+
+				// Attempt to get the coupon:
+				coupon = await Services.Get<CouponService>().Where("Token=?", DataOptions.IgnorePermissions).Bind(couponCode).First(context);
+			}
+
 			var productQuantities = Services.Get<ProductQuantityService>();
 
 			// Next, for each requested product, establish if it needs to create a subscription as well.
@@ -353,7 +369,7 @@ namespace Api.Payments
 				if (oneOff != null)
 				{
 					// Execute it:
-					purchaseAction = await (_service as PurchaseService).Execute(context, oneOff);
+					purchaseAction = await (_service as PurchaseService).Execute(context, oneOff, paymentMethod, coupon);
 				}
 				else
 				{
@@ -377,7 +393,7 @@ namespace Api.Payments
 						sub = week;
 					}
 
-					purchaseAction = await subscriptions.ChargeSubscription(context, sub);
+					purchaseAction = await subscriptions.ChargeSubscription(context, sub, coupon);
 				}
 
 			}
@@ -426,7 +442,7 @@ namespace Api.Payments
 					subscriptionSet.Add(year);
 				}
 
-				purchaseAction = await (_service as PurchaseService).MultiExecute(context, oneOff, subscriptionSet, paymentMethod);
+				purchaseAction = await (_service as PurchaseService).MultiExecute(context, oneOff, subscriptionSet, paymentMethod, coupon);
 			}
 
 			return new PurchaseStatus() {
