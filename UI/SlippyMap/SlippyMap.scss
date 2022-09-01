@@ -1,7 +1,8 @@
 .slippy-map {
 	position: relative;
 	width: 100%;
-	height: calc(100vh - #{$header_size});
+	height: 100%;
+	min-height: 200px;
 	
 	.overhead-ui {
 		position: absolute;
@@ -114,8 +115,8 @@
 
 	+ .modal-backdrop {
 		background: rgba(#000, .5);
-		top: $header_size;
-		height: calc(100vh - #{$header_size});
+		top: 0;
+		height: 100%;
 		z-index: 899; // display below header dropdown menus (@ z-index: 900)
 	}
 
@@ -130,8 +131,8 @@
 }
 
 .modal--blue {
-	top: $header_size;
-	height: calc(100vh - #{$header_size});
+	top: 0;
+	height: 100%;
 
 	.modal-dialog {
 
@@ -177,18 +178,18 @@
 @media only screen and (max-width: 767px) {
 
 	.slippy-map {
-		height: calc(100vh - #{$header_size_mobile});
+		height: 100%;
 
 		+ .modal-backdrop {
-			top: $header_size_mobile;
-			height: calc(100vh - #{$header_size_mobile});
+			top: 0;
+			height: 100%;
 		}
 
 	}
 
 	.modal--blue {
-		top: $header_size_mobile;
-		height: calc(100vh - #{$header_size_mobile});
+		top: 0;
+		height: 100%;
 	}
 
 }

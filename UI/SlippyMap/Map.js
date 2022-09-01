@@ -64,8 +64,8 @@ export class MapInteractionControlled extends Component {
   
   static get defaultProps() {
     return {
-      minScale: 0.05,
-      maxScale: 3,
+      minScale: 0.1,
+      maxScale: 8,
       showControls: false,
       translationBounds: {},
       disableZoom: false,
@@ -75,6 +75,8 @@ export class MapInteractionControlled extends Component {
 
   constructor(props) {
     super(props);
+
+	global._map = this;
 
     this.state = {
       shouldPreventTouchEndDefault: false
@@ -115,10 +117,23 @@ export class MapInteractionControlled extends Component {
     const touchAndMouseEndOptions = { capture: true, ...passiveOption };
     window.addEventListener('touchend', this.onTouchEnd, touchAndMouseEndOptions);
     window.addEventListener('mouseup', this.onMouseUp, touchAndMouseEndOptions);
-
+	
+	if(this.props.target){
+		this.goToTarget(this.props);
+	}
   }
-
+  
+  resetToInitialState(){
+	  this.props.resetToInitialState();
+  }
+  
   componentWillUnmount() {
+	  
+	if(this.isAnimating){
+		window.cancelAnimationFrame(this.isAnimating);
+		this.isAnimating = null;
+	}
+	
     this.getContainerNode().removeEventListener('wheel', this.onWheel);
 
     // Remove touch events
@@ -165,7 +180,7 @@ export class MapInteractionControlled extends Component {
   }
 
   onMouseMove(e) {
-    if (!this.startPointerInfo || this.props.disablePan) {
+    if (!this.startPointerInfo || this.props.disablePan || this.isAnimating) {
       return;
     }
     e.preventDefault();
@@ -173,7 +188,7 @@ export class MapInteractionControlled extends Component {
   }
 
   onTouchMove(e) {
-    if (!this.startPointerInfo) {
+    if (!this.startPointerInfo || this.isAnimating) {
       return;
     }
 
@@ -206,12 +221,28 @@ export class MapInteractionControlled extends Component {
       shouldPreventTouchEndDefault
     }, () => {
       this.props.onChange({
-        scale: this.props.value.scale,
+        ...this.props.value,
         translation: this.clampTranslation(newTranslation)
       });
     });
   }
-
+  
+  onRotate(dir){ // + or - 90
+	  var rotation = this.props.value.rotation + dir;
+	  
+	  // clamp:
+	  if(rotation < 0){
+		  rotation += 360;
+	  }else if(rotation >= 360){
+		  rotation -= 360;
+	  }
+	  
+	  this.props.onChange({
+        ...this.props.value,
+        rotation
+      });
+  }
+  
   onWheel(e) {
     if (this.props.disableZoom) {
       return;
@@ -221,16 +252,21 @@ export class MapInteractionControlled extends Component {
     e.stopPropagation();
 
     const scaleChange = 2 ** (e.deltaY * 0.002);
-
+	
+	var userScale = this.props.value.userScale || 1;
+	userScale += (1 - scaleChange);
+	
+	// Scale power adjusted such that it gives the user a continuous scaling velocity
+	
     const newScale = clamp(
       this.props.minScale,
-      this.props.value.scale + (1 - scaleChange),
+      Math.pow(2, userScale - 1),
       this.props.maxScale
     );
-
+	
     const mousePos = this.clientPosToTranslatedPos({ x: e.clientX, y: e.clientY });
 
-    this.scaleFromPoint(newScale, mousePos);
+    this.scaleFromPoint(newScale, mousePos, userScale);
   }
 
   setPointerState(pointers) {
@@ -241,8 +277,7 @@ export class MapInteractionControlled extends Component {
 
     this.startPointerInfo = {
       pointers,
-      scale: this.props.value.scale,
-      translation: this.props.value.translation,
+	  ...this.props.value
     }
   }
 
@@ -278,7 +313,7 @@ export class MapInteractionControlled extends Component {
     };
   }
 
-  scaleFromPoint(newScale, focalPt) {
+  scaleFromPoint(newScale, focalPt, userScale) {
     const { translation, scale } = this.props.value;
     const scaleRatio = newScale / (scale != 0 ? scale : 1);
 
@@ -292,7 +327,9 @@ export class MapInteractionControlled extends Component {
       y: translation.y - focalPtDelta.y
     };
     this.props.onChange({
+		...this.props.value,
       scale: newScale,
+      userScale,
       translation: this.clampTranslation(newTranslation)
     })
   }
@@ -302,52 +339,24 @@ export class MapInteractionControlled extends Component {
   // to achieve the effect of keeping the content that was directly
   // in the middle of the two fingers as the focal point throughout the zoom.
   scaleFromMultiTouch(e) {
-    const startTouches = this.startPointerInfo.pointers;
-    const newTouches   = e.touches;
+    var startTouches = this.startPointerInfo.pointers;
+    var newTouches   = e.touches;
 
     // calculate new scale
-    const dist0       = touchDistance(startTouches[0], startTouches[1]);
-    const dist1       = touchDistance(newTouches[0], newTouches[1]);
-    const scaleChange = dist1 / dist0;
-
-    const startScale  = this.startPointerInfo.scale;
-    const targetScale = startScale + ((scaleChange - 1) * startScale);
-    const newScale    = clamp(this.props.minScale, targetScale, this.props.maxScale);
-
-    // calculate mid points
-    const startMidpoint = midpoint(touchPt(startTouches[0]), touchPt(startTouches[1]))
-    const newMidPoint   = midpoint(touchPt(newTouches[0]), touchPt(newTouches[1]));
-
-    // The amount we need to translate by in order for
-    // the mid point to stay in the middle (before thinking about scaling factor)
-    const dragDelta = {
-      x: newMidPoint.x - startMidpoint.x,
-      y: newMidPoint.y - startMidpoint.y
-    };
-
-    const scaleRatio = newScale / startScale;
-
-    // The point originally in the middle of the fingers on the initial zoom start
-    const focalPt = this.clientPosToTranslatedPos(startMidpoint, this.startPointerInfo.translation);
-
-    // The amount that the middle point has changed from this scaling
-    const focalPtDelta = {
-      x: coordChange(focalPt.x, scaleRatio),
-      y: coordChange(focalPt.y, scaleRatio)
-    };
-
-    // Translation is the original translation, plus the amount we dragged,
-    // minus what the scaling will do to the focal point. Subtracting the
-    // scaling factor keeps the midpoint in the middle of the touch points.
-    const newTranslation = {
-      x: this.startPointerInfo.translation.x - focalPtDelta.x + dragDelta.x,
-      y: this.startPointerInfo.translation.y - focalPtDelta.y + dragDelta.y
-    };
-
-    this.props.onChange({
-      scale: newScale,
-      translation: this.clampTranslation(newTranslation)
-    });
+    var dist0       = touchDistance(startTouches[0], startTouches[1]);
+    var dist1       = touchDistance(newTouches[0], newTouches[1]);
+    var delta = dist1 / dist0;
+	
+	var userScale = (this.startPointerInfo.userScale || 1) * delta;
+    var { minScale, maxScale } = this.props;
+    var scale = clamp(minScale, Math.pow(2, userScale - 1), maxScale);
+	
+	var startMidpoint = midpoint(touchPt(startTouches[0]), touchPt(startTouches[1]));
+    var x = startMidpoint.x;
+    var y = startMidpoint.y;
+	
+    var focalPoint = this.clientPosToTranslatedPos({ x, y });
+    this.scaleFromPoint(scale, focalPoint, userScale);
   }
 
   discreteScaleStepSize() {
@@ -358,16 +367,16 @@ export class MapInteractionControlled extends Component {
 
   // Scale using the center of the content as a focal point
   changeScale(delta) {
-    const targetScale = this.props.value.scale + delta;
+    const userScale = (this.props.value.userScale || 1) + delta;
     const { minScale, maxScale } = this.props;
-    const scale = clamp(minScale, targetScale, maxScale);
+    const scale = clamp(minScale, Math.pow(2, userScale - 1), maxScale);
 
     const rect = this.getContainerBoundingClientRect();
     const x = rect.left + (rect.width / 2);
     const y = rect.top + (rect.height / 2);
 
     const focalPoint = this.clientPosToTranslatedPos({ x, y });
-    this.scaleFromPoint(scale, focalPoint);
+    this.scaleFromPoint(scale, focalPoint, userScale);
   }
 
   // Done like this so it is mockable
@@ -379,20 +388,125 @@ export class MapInteractionControlled extends Component {
   renderControls() {
     const step = this.discreteScaleStepSize();
 	  return <div className="overhead-ui">
-			<button type="button" className="btn btn-secondary zoom zoom-out" onClick={() => this.changeScale(step)} onTouchEnd={() => this.changeScale(step)}>
-				<Icon type='plus' />
-			</button>
-			<button type="button" className="btn btn-secondary zoom zoom-in" onClick={() => this.changeScale(-step)} onTouchEnd={() => this.changeScale(-step)}>
-				<Icon type='minus' />
-			</button>
+			{this.props.controls(step, this.props.value, this)}
 		</div>;
   }
+  
+  goToTarget(props){
+	  // New target
+		var targetRotation = props.value.rotation;
+		
+		if(props.targetRotation){
+			// Immediately rotate
+			targetRotation = Math.round(props.targetRotation);
+			
+			if(targetRotation == 360){
+				targetRotation = 0; // 360 used to indicate 0
+			}
+			
+			this.props.onChange({
+				...props.value,
+				rotation: targetRotation
+			});
+		}
+		
+		if(this.isAnimating){
+			window.cancelAnimationFrame(this.isAnimating);
+			this.isAnimating = null;
+		}
+		
+		// Step 1: Get the target hotspot in terms of its current screen position
+		var w = document.body.clientWidth;
+		var h = document.body.clientHeight;
+		
+		var widthHalf = 0.5 * w;
+		var heightHalf = 0.5 * h;
+		
+		// This represents the translation at the current zoom and camera orientation
+		var spV = this.props.getScreenPosition(props.target);
+		
+		var screenX = ( spV.x * widthHalf ) + widthHalf;
+		var screenY = ( spV.y * heightHalf ) + heightHalf;
+		
+		var startX = props.value.translation.x;
+		var startY = props.value.translation.y;
+		var startUserZoom = props.value.userScale || 1;
+		var startScale = props.value.scale || 1;
+		var targetScale = props.target.targetZoomLevel || 1;
+		
+		if(w < 1920){
+			targetScale /= (1920 / w);
+		}
+		
+		var scaleRatio = targetScale / startScale;
+		
+		var targetX = startX - ( spV.x * widthHalf );
+		var targetY = startY + ( spV.y * heightHalf );
+		
+		// Offset for the sidebar:
+		targetX += (w > 1200) ? 150 : 70;
+		
+		targetX = targetX - coordChange(widthHalf - targetX, scaleRatio);
+		targetY = targetY - coordChange(heightHalf - targetY, scaleRatio);
+		
+		var targetUserScale = Math.sqrt(targetScale) + 1;
+		
+		var start = null;
+		var time = 3000;
+		
+		var step = (currentTime) => {
+			start = !start ? currentTime : start;
+			var progress = (currentTime - start) / time;
+			
+			if(progress > 1){
+				progress = 1;
+			}
+			
+			// progress is currently linear - apply a timing function (easeInOut):
+			var easedProgress = progress<.5 ? 2*progress*progress : 1-((progress-1)*(progress-1)*2);
+			
+			var newScale = startScale + ((targetScale - startScale) * easedProgress);
+			
+			var curX = startX + ((targetX - startX) * easedProgress);
+			var curY = startY + ((targetY - startY) * easedProgress);
+			
+			this.props.onChange({
+				...props.value,
+			  scale: newScale,
+			  userScale: targetUserScale,
+			  translation: {
+				  x: curX,
+				  y: curY
+			  }
+			});
+			
+			if (progress < 1) {
+				window.requestAnimationFrame(step);
+			}else{
+				this.isAnimating = null;
+			}
+		};
+		
+		this.isAnimating = step;
+		
+		window.requestAnimationFrame(step);
+		
+  }
+  
+componentWillReceiveProps(props){
+	if(this.props.target != props.target){
+		this.goToTarget(props);
+	}
+}
 
   render() {
-    const { showControls, children } = this.props;
+    const { controls, children } = this.props;
     const scale = this.props.value.scale;
     // Defensively clamp the translation. This should not be necessary if we properly set state elsewhere.
     const translation = this.clampTranslation(this.props.value.translation);
+	
+	const rotation = this.props.value.rotation;
+	
 
     /*
       This is a little trick to allow the following ux: We want the parent of this
@@ -424,8 +538,8 @@ export class MapInteractionControlled extends Component {
         onClickCapture={handleEventCapture}
         onTouchEndCapture={handleEventCapture}
       >
-        {(children || undefined) && children({ translation, scale })}
-        {(showControls || undefined) && this.renderControls()}
+        {(children || undefined) && children({ translation, scale, rotation })}
+		{controls && this.renderControls()}
       </div>
     );
   }
@@ -447,21 +561,42 @@ class MapInteractionController extends Component {
         lastKnownValueFromProps: props.value
       };
     } else {
-        var isSmallDisplay = screen.width < 768;
 
       // Set the necessary state for controlling map interaction ourselves
+	  var initialScale = props.screenScale;
+	  
       this.state = {
         value: props.defaultValue || {
-          scale: isSmallDisplay ? .4 : .75,
+          scale: initialScale,
+		  userScale: initialScale,
+		  rotation : 0,
           translation: { 
-              x: isSmallDisplay ? -(screen.width * .75) : 0, 
-              y: isSmallDisplay ? (screen.height * .1) : 0 }
+              x: 0, 
+              y: 0
+		  }
         },
         lastKnownValueFromProps: undefined
       };
     }
   }
-
+	
+	resetToInitialState(){
+		var initialScale = this.props.screenScale;
+	  
+		this.setState({
+			value: this.props.defaultValue || {
+			  scale: initialScale,
+			  userScale: initialScale,
+			  rotation : 0,
+			  translation: { 
+				  x: 0, 
+				  y: 0
+			  }
+			},
+			lastKnownValueFromProps: undefined
+      });
+	}
+	
   /*
     Handle the parent switchg form controlled to uncontrolled or vice versa.
     This is at most a best-effort attempt. It is not gauranteed by our API
@@ -528,6 +663,7 @@ class MapInteractionController extends Component {
           controlled ? onChange(value) : this.setState({ value });
         }}
         value={value}
+		resetToInitialState={() => this.resetToInitialState()}
         {...this.innerProps()}
       >
        {children}
