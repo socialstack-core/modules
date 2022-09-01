@@ -820,6 +820,245 @@ namespace Api.Startup
 		}
 
 		/// <summary>
+		/// Allocating number parse to the target value.
+		/// </summary>
+		/// <param name="srcValue"></param>
+		/// <returns></returns>
+		private object ConvertToObjectNumber(string srcValue)
+		{
+			var isNullable = UnderlyingNullable != null;
+			var type = isNullable ? UnderlyingNullable : TargetType;
+
+			switch (Type.GetTypeCode(type))
+			{
+				case TypeCode.Byte:
+
+					if (!byte.TryParse(srcValue, out byte b))
+					{
+						return isNullable ? null : (byte)0;
+					}
+
+					return isNullable ? (byte?)b : b;
+
+				case TypeCode.SByte:
+
+					if (!sbyte.TryParse(srcValue, out sbyte sb))
+					{
+						return isNullable ? null : (sbyte)0;
+					}
+
+					return isNullable ? (sbyte?)sb : sb;
+
+				case TypeCode.UInt16:
+
+					if (!ushort.TryParse(srcValue, out ushort us))
+					{
+						return isNullable ? null : (ushort)0;
+					}
+
+					return isNullable ? (ushort?)us : us;
+
+				case TypeCode.UInt32:
+
+					if (!uint.TryParse(srcValue, out uint ui))
+					{
+						return isNullable ? null : (uint)0;
+					}
+
+					return isNullable ? (uint?)ui : ui;
+
+				case TypeCode.UInt64:
+
+					if (!ulong.TryParse(srcValue, out ulong ul))
+					{
+						return isNullable ? null : (ulong)0;
+					}
+
+					return isNullable ? (ulong?)ul : ul;
+
+				case TypeCode.Int16:
+
+					if (!short.TryParse(srcValue, out short s))
+					{
+						return isNullable ? null : (short)0;
+					}
+
+					return isNullable ? (short?)s : s;
+
+				case TypeCode.Int32:
+
+					if (!int.TryParse(srcValue, out int i))
+					{
+						return isNullable ? null : (int)0;
+					}
+
+					return isNullable ? (int?)i : i;
+
+				case TypeCode.Int64:
+
+					if (!long.TryParse(srcValue, out long l))
+					{
+						return isNullable ? null : (long)0;
+					}
+
+					return isNullable ? (long?)l : l;
+
+				case TypeCode.Decimal:
+
+					if (!decimal.TryParse(srcValue, out decimal de))
+					{
+						return isNullable ? null : (decimal)0;
+					}
+
+					return isNullable ? (decimal?)de : de;
+
+				case TypeCode.Double:
+
+					if (!double.TryParse(srcValue, out double d))
+					{
+						return isNullable ? null : 0d;
+					}
+
+					return isNullable ? (double?)d : d;
+
+				case TypeCode.Single:
+
+					if (!float.TryParse(srcValue, out float f))
+					{
+						return isNullable ? null : 0f;
+					}
+
+					return isNullable ? (float?)f : f;
+					
+				default:
+					return null;
+			}
+		}
+
+		/// <summary>
+		/// Sets the field value from a textual string. If the field type is numeric, the number will be parsed from the string or 0.
+		/// Currently uses reflection so will result in allocations when setting value types.
+		/// </summary>
+		/// <param name="onObject"></param>
+		/// <param name="srcValue"></param>
+		public void SetFieldValue(T onObject, string srcValue)
+		{
+			object valueToSet = null;
+
+			if (IsNumericField)
+			{
+				// byte, int etc. Can be nullable.
+				if (UnderlyingNullable != null)
+				{
+					if (srcValue != null)
+					{
+						valueToSet = ConvertToObjectNumber(srcValue);
+					}
+				}
+				else if (srcValue == null)
+				{
+					// Not valid
+					return;
+				}
+				else
+				{
+					valueToSet = ConvertToObjectNumber(srcValue);
+				}
+			}
+			else if (TargetType == typeof(bool?))
+			{
+				if (srcValue == null)
+				{
+					valueToSet = (bool?)null;
+				}
+				else if (srcValue == "1" || srcValue == "TRUE" || srcValue == "true" || srcValue == "True" || srcValue == "on" || srcValue == "On" || srcValue == "ON")
+				{
+					valueToSet = (bool?)true;
+				}
+				else
+				{
+					valueToSet = (bool?)false;
+				}
+			}
+			else if (TargetType == typeof(bool))
+			{
+				if (srcValue == "1" || srcValue == "TRUE" || srcValue == "true" || srcValue == "True" || srcValue == "on" || srcValue == "On" || srcValue == "ON")
+				{
+					valueToSet = true;
+				}
+				else
+				{
+					valueToSet = false;
+				}
+			}
+			else if (TargetType == typeof(string))
+			{
+				valueToSet = srcValue;
+			}
+			else if (TargetType == typeof(DateTime?))
+			{
+				// Source string could be either numeric or ISO formatted.
+				if (srcValue == null)
+				{
+					valueToSet = (DateTime?)null;
+				}
+				else if (double.TryParse(srcValue, out double ticks))
+				{
+					// It was a number of ticks
+					valueToSet = (DateTime?)ConvertFromJsUnixTimestamp(ticks);
+				}
+				else
+				{
+					// ISO formatted date string
+					if (DateTime.TryParse(srcValue, CultureInfo.InvariantCulture, System.Globalization.DateTimeStyles.RoundtripKind, out DateTime dateResult))
+					{
+						valueToSet = dateResult;
+					}
+					else
+					{
+						// Do nothing
+						return;
+					}
+				}
+			}
+			else if (TargetType == typeof(DateTime))
+			{
+				if (srcValue == null)
+				{
+					return;
+				}
+					
+				if (double.TryParse(srcValue, out double ticks))
+				{
+					// It was a number of ticks
+					valueToSet = (DateTime?)ConvertFromJsUnixTimestamp(ticks);
+				}
+				else
+				{
+					// ISO formatted date string
+					if (DateTime.TryParse(srcValue, CultureInfo.InvariantCulture, System.Globalization.DateTimeStyles.RoundtripKind, out DateTime dateResult))
+					{
+						valueToSet = dateResult;
+					}
+					else
+					{
+						// Do nothing
+						return;
+					}
+				}
+			}
+
+			if (PropertySet != null)
+			{
+				PropertySet.Invoke(onObject, new object[] { valueToSet });
+			}
+			else if (FieldInfo != null)
+			{
+				FieldInfo.SetValue(onObject, valueToSet);
+			}
+		}
+		
+		/// <summary>
 		/// Sets the given value on the field but only if it changed.
 		/// </summary>
 		/// <param name="context"></param>
