@@ -137,26 +137,29 @@ namespace Api.Translate
                     {
                         // Lookup the entry by its ID:
                         var itemId = ConvertId(po.Id);
-                        var translations = translationList.Where(f => f.Id == itemId && f.Translated != po.Translated);
+                        var translations = translationList.Where(f => f.Id == itemId);
 
                         if (translations == null || !translations.Any())
                         {
                             Console.WriteLine($"Missing translation [{itemId}] !! [{po.Original}->{po.Translated}] looking for entries based on Original text");
 
                             // Not found by its Id so do we have any where the source text matches ? 
-                            translations = translationList.Where(f => f.Original == po.Original && f.Translated != po.Translated);
+                            translations = translationList.Where(f => f.Original == po.Original);
                         }
 
                         if (translations != null)
                         {
                             foreach(var translation in translations)
                             {
-                                Console.WriteLine($"Updating translation [{translation.Id}] {translation.Module} {translation.Original}->{po.Translated}");
+                                if (translation.Translated != po.Translated) {
 
-                                await Update(context, translation, (Context ctx, Translation trans, Translation orig) =>
-                                {
-                                    trans.Translated = po.Translated;
-                                }, DataOptions.IgnorePermissions);
+                                    Console.WriteLine($"Updating translation [{translation.Id}] {translation.Module} {translation.Original}->{po.Translated}");
+
+                                    await Update(context, translation, (Context ctx, Translation trans, Translation orig) =>
+                                    {
+                                        trans.Translated = po.Translated;
+                                    }, DataOptions.IgnorePermissions);
+                                }
 
                             }
                         }
