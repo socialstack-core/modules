@@ -24,6 +24,11 @@ namespace Api.Translate
 		/// </summary>		
 		public List<string> AutoAddExcludeModules { get; set; }
 
-	}
+        /// <summary>
+        /// Automatically add any baseline translations (locale.xx.json) files into the backend 
+        /// </summary>
+        public bool AutoAddBaseLineTranslations { get; set; } = false;
+
+    }
 	
 }
