@@ -108,7 +108,7 @@ export default function TranslationUpload(props) {
 
                 {failed && 
                     <div>
-                        {`Translations failed`} - {failed}
+                        {`Translations failed`} - {failed} 
                     </div>
                 }
             </form>
