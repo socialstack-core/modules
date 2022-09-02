@@ -290,13 +290,15 @@ namespace Api.Database
 						}
 						else
 						{
-							// Secondary locale. The target object is just a clone of the raw object.
-							var entity = (T)Activator.CreateInstance(service.InstanceType);
+                            // Secondary locale. The target object is just a clone of the raw object.
+                            var entity = (T)Activator.CreateInstance(service.InstanceType);
+                            service.PopulateTargetEntityFromRaw(entity, raw, raw);
 
-							service.PopulateTargetEntityFromRaw(entity, raw, raw);
+                            var localeRaw = (T)Activator.CreateInstance(service.InstanceType);
+                            service.PopulateTargetEntityFromRaw(localeRaw, raw, raw);
 
-							cache.Add(context, entity, raw);
-						}
+                            cache.Add(context, entity, localeRaw);
+                        }
 					}
 				}
 
