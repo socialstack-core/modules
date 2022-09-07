@@ -34,6 +34,7 @@ export default function SelectSubscription(props) {
 			goStraightToCart={props.goStraightToCart}
 			cartUrl={props.cartUrl}
 			addDescription={props.addDescription}
+			removeDescription={props.removeDescription}
 			className={quantity > 0 ? "select-subscription__option selected-in-cart" : "select-subscription__option"}
 		>
 			{addButton => <FlipCard className="select-subscription__option-internal">
@@ -111,7 +112,7 @@ export default function SelectSubscription(props) {
 		
 		var quantity = getCartQuantity(product.id);
 
-		return <center>
+		return <div className="select-subscription__wrapper">
 				<ProductQuantity 
 				className={quantity > 0 ? "select-subscription__option selected-in-cart" : "select-subscription__option"}
 				key={product.id}
@@ -121,6 +122,7 @@ export default function SelectSubscription(props) {
 				goStraightToCart={props.goStraightToCart}
 				cartUrl={props.cartUrl}
 				addDescription={props.addDescription}
+				removeDescription={props.removeDescription}
 			>
 			{addButton => <FlipCard className="select-subscription__option">
 					<div className="select-subscription__option-image-wrapper">
@@ -140,7 +142,7 @@ export default function SelectSubscription(props) {
 				</FlipCard>
 			}
 			</ProductQuantity>
-		</center>;
+		</div>;
     }
 
 	return (
@@ -193,7 +195,8 @@ SelectSubscription.propTypes = {
 	allowMultiple: 'boolean',
 	cartUrl: 'string',
 	goStraightToCart: 'boolean',
-	addDescription: 'string'
+	addDescription: 'string',
+	removeDescription: 'string'
 };
 
 SelectSubscription.defaultProps = {
@@ -202,7 +205,8 @@ SelectSubscription.defaultProps = {
 	allowMultiple: false,
 	cartUrl: '/cart',
 	goStraightToCart: true,
-	addDescription: `Select this`
+	addDescription: `Select this`,
+	removeDescription: `Remove this`
 }
 
 SelectSubscription.icon = 'align-center';

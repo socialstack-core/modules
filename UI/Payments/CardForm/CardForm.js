@@ -1,8 +1,7 @@
 import React from 'react';
 import Input from 'UI/Input';
-import Form from 'UI/Form';
-import Loading from 'UI/Loading';
-import Alert from 'UI/Alert';
+import Row from 'UI/Row';
+import Col from 'UI/Column';
 import Payment from './helpers.js';
 import {isoConvert} from 'UI/Functions/DateTools';
 
@@ -53,43 +52,119 @@ export default CardForm = (props) => {
 	var [name, setName] = React.useState('');
 	var [focus, setFocus] = React.useState('');
 	var [expiry, setExpiry] = React.useState('');
-	
+    var [isAmexOrDinersClub, setIsAmexOrDinersClub] = React.useState(false);
+
 	return <>
 		<div className="my-3">
 			<ReactCreditCardIntl expiry={expiry} number={number} cvc={cvc} name={name} focused={focus}/>
 		</div>
 		{/* Do not specify a name on any of the following inputs. This prevents them from being submitted with surrounding forms. */}
-		<Input placeholder='Card number' type='text' onFocus={e => {
-			setFocus('number');
-		}}  onKeyUp={e => {
-			setNumber(e.target.value);
-		}} onChange={e=> {
-			setNumber(e.target.value);
-		}}/>
+        <Input label={`Card number`} placeholder='Long number on front of card' type='text' validate={['Required']}
+            onFocus={e => setFocus('number')}
+            onKeyUp={e => setNumber(e.target.value)}
+            onChange={e => setNumber(e.target.value)}
+            onInput={e => {
+                var target = e.target;
+                var value = target.value;
+                var cursor = target.selectionStart;
+
+                const filterSpace = value.replace(/\s+/g, '');
+                const filtered = filterSpace.replace(/[^0-9]/g, '');
+                const cardNum = filtered.substr(0, 16);
+
+                // most cards map to 4-4-4-4 (NB: American Express / Diners Club use 4-6-5)
+                var isAmexOrDinersClub =
+                    // amex
+                    cardNum.startsWith('34') || cardNum.startsWith('37') ||
+                    // diners club
+                    cardNum.startsWith('36') || cardNum.startsWith('38');
+                setIsAmexOrDinersClub(isAmexOrDinersClub);
+                const partitions = isAmexOrDinersClub ? [4, 6, 5] : [4, 4, 4, 4];
+                const cardNumUpdated = [];
+                let position = 0;
+
+                partitions.forEach(expandCard => {
+                    const segment = cardNum.substr(position, expandCard);
+                    if (segment) cardNumUpdated.push(segment);
+                    position += expandCard;
+                });
+
+                const cardNumFormatted = cardNumUpdated.join(' ');
+
+                // handle cursor position if user edits the number later
+                if (cursor < cardNumFormatted.length - 1) {
+                    // determine if the new value entered was valid, and set cursor progression
+                    cursor = filterSpace !== filtered ? cursor - 1 : cursor;
+
+                    setTimeout(() => {
+                        target.setSelectionRange(cursor, cursor, 'none');
+                    });
+
+                }
+
+                target.value = cardNumFormatted;
+            }} />
 		
-		<Input placeholder='Name on card' type='text' onFocus={e => {
-			setFocus('name');
-		}}  onKeyUp={e => {
-			setName(e.target.value);
-		}} onChange={e=> {
-			setName(e.target.value);
-		}} />
-		
-		<Input placeholder='Expiry MM/YY' type='text' onFocus={e => {
-			setFocus('expiry');
-		}} onKeyUp={e => {
-			setExpiry(e.target.value);
-		}} onChange={e=> {
-			setExpiry(e.target.value);
-		}} />
-		
-		<Input placeholder='CVC on the back' type='text' onFocus={e => {
-			setFocus('cvc');
-		}}  onKeyUp={e => {
-			setCvc(e.target.value);
-		}} onChange={e=> {
-			setCvc(e.target.value);
-		}}/>
+        <Input label={`Name shown on card`} placeholder={`Name on card`} type='text'
+            onFocus={e => setFocus('name')}
+            onKeyUp={e => setName(e.target.value)}
+            onChange={e => setName(e.target.value)} />
+
+        <Row>
+            <Col sizeXs={12} sizeSm={7}>
+                <Input label={`Expiry date`} placeholder='MM/YY' type='text' validate={['Required']}
+                    onFocus={e => setFocus('expiry')}
+                    onKeyUp={e => setExpiry(e.target.value)}
+                    onChange={e => setExpiry(e.target.value)}
+                    onInput={e => {
+                        var target = e.target;
+                        var value = target.value;
+                        var cursor = target.selectionStart;
+
+                        const filterSlash = value.replace(/\//g, '');
+                        const filtered = filterSlash.replace(/[^0-9]/g, '');
+                        const cardExpiry = filtered.substr(0, 4);
+                        const partitions = [2, 2];
+                        const cardExpiryUpdated = [];
+                        let position = 0;
+
+                        partitions.forEach(expandCard => {
+                            const segment = cardExpiry.substr(position, expandCard);
+                            if (segment) cardExpiryUpdated.push(segment);
+                            position += expandCard;
+                        });
+
+                        const cardExpiryFormatted = cardExpiryUpdated.join('/');
+
+                        // handle cursor position if user edits the number later
+                        if (cursor < cardExpiryFormatted.length - 1) {
+                            // determine if the new value entered was valid, and set cursor progression
+                            cursor = filterSlash !== filtered ? cursor - 1 : cursor;
+
+                            setTimeout(() => {
+                                target.setSelectionRange(cursor, cursor, 'none');
+                            });
+
+                        }
+
+                        target.value = cardExpiryFormatted;
+                }} />
+            </Col>
+            <Col sizeXs={12} sizeSm={5}>
+                {/* typically 3 digits, but American Express uses 4 */}
+                {/* text with a pattern instead of type=number otherwise maxlength ignored */}
+                <Input label={`Card verification code`} placeholder={isAmexOrDinersClub ? `4 digits on front of card` : `Last 3 digits on reverse`}
+                    type='text' inputmode='numeric' pattern='\d*' maxlength={isAmexOrDinersClub ? 4 : 3} validate={['Required']} required
+                    onFocus={e => setFocus('cvc')}
+                    onKeyUp={e => setCvc(e.target.value)}
+                    onChange={e => setCvc(e.target.value)}
+                    onInput={e => {
+                        var target = e.target;
+                        var value = target.value;
+                        target.value = value.replace(/[^0-9]/g, '');
+                    }} />
+            </Col>
+        </Row>
 		
 		<input type='hidden' name={props.fieldName} ref={ir=>{
 			if(ir){

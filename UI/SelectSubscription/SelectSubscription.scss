@@ -3,6 +3,11 @@ $radio_option_gap_x: .75rem;
 $radio_option_gap_y: 1.75rem;
 $radio_input_height: 20px;
 
+.select-subscription__wrapper {
+	display: flex;
+	flex-direction: column;
+}
+
 .select-subscription__options {
 
 }
@@ -40,6 +45,9 @@ $radio_input_height: 20px;
 		//border: 1px solid rgba(0,0,0,.1);
 		border-radius: .25rem;
 		padding: .75rem;
+		display: flex;
+		align-items: center;
+		justify-content: center;
 	}
 
 	&-image {

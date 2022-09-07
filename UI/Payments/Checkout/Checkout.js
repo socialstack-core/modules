@@ -56,9 +56,9 @@ export default function Checkout(props) {
 					}
 				}} />
 				
-				<Input type='text' name='couponCode' label='Coupon code' />
 				
 				{!cartIsEmpty() && <>
+					<Input type='text' name='couponCode' label='Coupon code' />
 					<Input type='payment' name='paymentMethod' label='Payment method' validate={['Required']} />
 					<div class="form-check">
 						<input class="form-check-input" type="checkbox" id="termsCheckbox" checked={termsAccepted ? 'checked' : undefined}
