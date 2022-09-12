@@ -570,7 +570,7 @@ class MapInteractionController extends Component {
           scale: initialScale,
 		  userScale: initialScale,
 		  rotation : 0,
-          translation: { 
+          translation: props.initialTranslation || { 
               x: 0, 
               y: 0
 		  }
@@ -588,7 +588,7 @@ class MapInteractionController extends Component {
 			  scale: initialScale,
 			  userScale: initialScale,
 			  rotation : 0,
-			  translation: { 
+			  translation: this.props.initialTranslation || { 
 				  x: 0, 
 				  y: 0
 			  }

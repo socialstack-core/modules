@@ -11,6 +11,7 @@ export default function SlippyMap(props) {
 			  minScale={props.screenScale || 1}
 			  screenScale={props.screenScale || 1}
 			  target={props.target}
+			  initialTranslation={props.initialTranslation}
 			>
 			  {
 				({ translation, scale, rotation }) => {
