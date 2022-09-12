@@ -209,7 +209,7 @@ namespace Api.Payments
 					}
 					else
 					{
-						await ChargeSubscription(context, subscription);
+						await ChargeSubscription(context, subscription, null, true);
 					}
 				}
 
@@ -344,7 +344,8 @@ namespace Api.Payments
 		/// <param name="context"></param>
 		/// <param name="subscription"></param>
 		/// <param name="coupon"></param>
-		public async ValueTask<PurchaseAndAction> ChargeSubscription(Context context, Subscription subscription, Coupon coupon = null)
+		/// <param name="offline">True if the payment is being made offline (without the user present. Most subscription purchases are offline).</param>
+		public async ValueTask<PurchaseAndAction> ChargeSubscription(Context context, Subscription subscription, Coupon coupon = null, bool offline = false)
 		{
 			// First, has a purchase been raised for the subscription already?
 			ulong timePeriodKey = (ulong)subscription.LastChargeUtc.Ticks;
@@ -423,8 +424,16 @@ namespace Api.Payments
 			var inSub = await GetProducts(context, subscription);
 			await _purchases.AddProducts(context, purchase, inSub);
 
+			// Get the payment method from the subscription. Offline subscription charges can safely use IgnorePermissions.
+			PaymentMethod method = null;
+
+			if (offline)
+			{
+				method = await _paymentMethods.Get(context, purchase.PaymentMethodId, DataOptions.IgnorePermissions);
+			}
+
 			// Attempt to fulfil the purchase now:
-			return await _purchases.Execute(context, purchase, null, coupon);
+			return await _purchases.Execute(context, purchase, method, coupon);
 		}
 
 		/// <summary>
