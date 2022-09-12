@@ -21,13 +21,13 @@ export default function Complete(props) {
 			return <div className="payment-complete">
 				<Alert variant='success'>
 					<h2 className="stripe-complete-intent__title">
-						{`Subscription Complete`}
+						{`Purchase Complete`}
 					</h2>
 					<p>
 						{`Thank you for your purchase!`}&nbsp;&nbsp;
 						<a href='/my-subscriptions' className="alert-link">
 							{`View your subscriptions`}
-						</a>;
+						</a>
 					</p>
 				</Alert>
 			</div>;
@@ -36,7 +36,7 @@ export default function Complete(props) {
 			return <div className="payment-complete">
 				<Alert variant='info'>
 					<h2 className="stripe-complete-intent__title">
-						{`Subscription Pending`}
+						{`Purchase Pending`}
 					</h2>
 					<p>
 						{`It looks like your details are still processing. We'll update you when processing is complete.`}
@@ -48,7 +48,7 @@ export default function Complete(props) {
 			return <div className="payment-complete">
 				<Alert variant='danger'>
 					<h2 className="stripe-complete-intent__title">
-						{`Subscription Failed`}
+						{`Purchase Failed`}
 					</h2>
 					<p>
 						{`Failed to process payment details. Please`} <a href='/checkout' className="alert-link">{`click here`}</a> {`to try another payment method.`}
