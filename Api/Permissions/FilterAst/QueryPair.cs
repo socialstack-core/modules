@@ -161,10 +161,9 @@ namespace Api.Permissions
 				// Get the *source* field (as we're running backwards)
 				var mappingContentFields = mappingService.GetContentFields();
 
-				// Try to get target field (e.g. TagId):
-				if (!mappingContentFields.TryGetValue((serviceForFiltersType.ServicedType.Name + "Id").ToLower(), out ContentField sourceField))
+				if (!mappingContentFields.TryGetValue("sourceid", out ContentField sourceField))
 				{
-					throw new Exception("Couldn't find target field on a mapping type. This indicates an issue with the mapping engine rather than your usage.");
+					throw new Exception("Couldn't find source field on a mapping type. This indicates an issue with the mapping engine rather than your usage.");
 				}
 
 				collectorFields[i] = sourceField;
