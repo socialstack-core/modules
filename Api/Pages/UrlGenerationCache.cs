@@ -46,7 +46,7 @@ namespace Api.Pages
 			{
 				var pageInfo = allPages[p];
 
-				if (pageInfo == null)
+				if (pageInfo == null || pageInfo.Url == null)
 				{
 					continue;
 				}
