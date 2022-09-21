@@ -102,8 +102,15 @@ namespace Api.Startup
 			var ips = new IpSet();
 
 			// Find public addresses:
-			ips.PublicIPv4 = await FindPublicAddress(IPv4Site);
-
+			try
+			{
+				ips.PublicIPv4 = await FindPublicAddress(IPv4Site);
+			}
+			catch
+			{
+				Console.WriteLine("[WARN] Unable to collect public IPv4 address. This server will not be part of a cluster.");
+			}
+			
 			var ipv6 = true;
 
 			try
