@@ -7,7 +7,6 @@ import { renderProducts, renderTieredProducts, recurrenceText } from 'UI/Functio
 import getRef from 'UI/Functions/GetRef';
 import FlipCard from 'UI/FlipCard';
 import Loop from 'UI/Loop';
-import Container from 'UI/Container';
 
 const STRATEGY_STD = 0;
 const STRATEGY_STEPONCE = 1;
@@ -21,78 +20,88 @@ export default function SelectSubscription(props) {
 	function renderWithTiers(product) {
 		var productName = product.name;
 		var cheapestCost = formatCurrency(product.tiers[product.tiers.length - 1].price.amount, session.locale, { hideDecimals: false });
-		
 		var recurrence = recurrenceText(product.billingFrequency);
-		
 		var quantity = getCartQuantity(product.id);
+		const productQtyRef = useRef(null);
 
-		return <ProductQuantity 
-			key={product.id}
-			product={product}
-			quantity={quantity}
-			allowMultiple={props.allowMultiple}
-			goStraightToCart={props.goStraightToCart}
-			cartUrl={props.cartUrl}
-			addDescription={props.addDescription}
-			removeDescription={props.removeDescription}
-			className={quantity > 0 ? "select-subscription__option selected-in-cart" : "select-subscription__option"}
-		>
-			{addButton => <FlipCard className="select-subscription__option-internal">
-					<>
-						<span className="select-subscription__option-image-wrapper">
-							{getRef(product.featureRef, { size: 128, attribs: { className: 'select-subscription__option-image' } })}
-							{!product.featureRef && <div className="select-subscription__option-image"></div>}
-						</span>
-						<span className="select-subscription__option-name">
-							{productName}
-						</span>
-						<span className="select-subscription__option-price">
-							{`As low as`} {cheapestCost} {recurrence}
-						</span>
-						{addButton}
-					</>
-					<>
-						<span className="select-subscription__option-name">
-							{productName}
-						</span>
-						<table className="table table-sm select-subscription__option-table">
-							<thead>
-								<tr>
-									<th>
-										{`Daily seats`}
-									</th>
-									<th className="currency-column">
-										{`Unit cost`}
-									</th>
-								</tr>
-							</thead>
-							<tbody>
-								{renderTierInfo(product)}
-							</tbody>
-						</table>
-						{addButton}
-					</>
-				</FlipCard>
-		}
-		</ProductQuantity>;
+		return <>
+			<div className={quantity > 0 ? "select-subscription__option select-subscription__option--selected" : "select-subscription__option"} key={product.id}>
+				{/* TODO: allow for linked products to give access to further product details */}
+				{/*<a href={"/product/" + product.id} className="select-subscription__option-link">*/}
+				<button type="button" className="select-subscription__option-link" onClick={e => {
+					e.stopPropagation();
+
+					if (productQtyRef && productQtyRef.current) {
+						productQtyRef.current.base.click();
+                    }
+				}}>
+					<FlipCard className="select-subscription__option-internal">
+						<>
+							<span className="select-subscription__option-image-wrapper">
+								{getRef(product.featureRef, { size: 128, attribs: { className: 'select-subscription__option-image' } })}
+								{!product.featureRef && <div className="select-subscription__option-image"></div>}
+							</span>
+							<span className="select-subscription__option-name">
+								{productName}
+							</span>
+							<span className="select-subscription__option-price">
+								{`As low as`} {cheapestCost} {recurrence}
+							</span>
+						</>
+						<>
+							<span className="select-subscription__option-name">
+								{productName}
+							</span>
+							<table className="table table-sm select-subscription__option-table">
+								<thead>
+									<tr>
+										<th>
+											{`Daily seats`}
+										</th>
+										<th className="currency-column">
+											{`Unit cost`}
+										</th>
+									</tr>
+								</thead>
+								<tbody>
+									{renderTierInfo(product)}
+								</tbody>
+							</table>
+						</>
+					</FlipCard>
+				</button>
+				{/*</a>*/}
+				<ProductQuantity
+					ref={productQtyRef}
+					key={product.id}
+					product={product}
+					quantity={quantity}
+					allowMultiple={props.allowMultiple}
+					goStraightToCart={props.goStraightToCart}
+					cartUrl={props.cartUrl}
+					addDescription={props.addDescription}
+					removeDescription={props.removeDescription}
+				/>
+			</div>
+		</>;
 	}
 
 	function renderTierInfo(product) {
 		var tiersTotal = product.tiers.length;
 
 		return [
-			renderTierInfo("<=", " ", new Intl.NumberFormat(session.locale.code).format(product.tiers[0].minQuantity - 1), product.price.amount),
+			renderTierInfoInternal("<=", " ", new Intl.NumberFormat(session.locale.code).format(product.tiers[0].minQuantity - 1), product.price.amount),
 			product.tiers.map((tier, tierIndex) => {
 				var fromSeats = new Intl.NumberFormat(session.locale.code).format(tier.minQuantity);
 				var sep = tierIndex == tiersTotal - 1 ? " " : " \u2013 ";
 				var toSeats = tierIndex == tiersTotal - 1 ? "+" : new Intl.NumberFormat(session.locale.code).format(product.tiers[tierIndex + 1].minQuantity - 1);
 
-				return renderTierInfo(fromSeats, sep, toSeats, tier.price.amount);
+				return renderTierInfoInternal(fromSeats, sep, toSeats, tier.price.amount);
 			})
 		];
 	}
 
-	function renderTierInfo(fromSeats, sep, toSeats, unitCost) {
+	function renderTierInfoInternal(fromSeats, sep, toSeats, unitCost) {
 		return <tr>
 			<td>
 				{fromSeats}{sep}{toSeats}
@@ -107,47 +116,54 @@ export default function SelectSubscription(props) {
 	function renderNoTiers(product) {
 		var productName = product.name;
 		var cost = formatCurrency(product.price.amount * product.minQuantity, session.locale, { hideDecimals: false });
-		
 		var recurrence = recurrenceText(product.billingFrequency);
-		
 		var quantity = getCartQuantity(product.id);
+		const productQtyRef = useRef(null);
 
-		return <div className="select-subscription__wrapper">
-				<ProductQuantity 
-				className={quantity > 0 ? "select-subscription__option selected-in-cart" : "select-subscription__option"}
-				key={product.id}
-				product={product}
-				quantity={quantity}
-				allowMultiple={props.allowMultiple}
-				goStraightToCart={props.goStraightToCart}
-				cartUrl={props.cartUrl}
-				addDescription={props.addDescription}
-				removeDescription={props.removeDescription}
-			>
-			{addButton => <FlipCard className="select-subscription__option">
-					<div className="select-subscription__option-image-wrapper">
-						{getRef(product.featureRef, { size: 128, attribs: { className: 'select-subscription__option-image' } })}
-						{!product.featureRef && <div className="select-subscription__option-image"></div>}
-					</div>
-					<p className="select-subscription__option-name">
-						{productName}
-					</p>
-					<p className="select-subscription__option-price">
-						{cost}
-						{recurrence}
-					</p>
-					<center>
-						{addButton}
-					</center>
-				</FlipCard>
-			}
-			</ProductQuantity>
-		</div>;
+		return <>
+			<div className={quantity > 0 ? "select-subscription__option select-subscription__option--selected" : "select-subscription__option"} key={product.id}>
+				{/* TODO: allow for linked products to give access to further product details */}
+				{/*<a href={"/product/" + product.id} className="select-subscription__option-link">*/}
+				<button type="button" className="select-subscription__option-link" onClick={e => {
+					e.stopPropagation();
+
+					if (productQtyRef && productQtyRef.current) {
+						productQtyRef.current.base.click();
+					}
+				}}>
+					<FlipCard className="select-subscription__option-internal">
+						<span className="select-subscription__option-image-wrapper">
+							{getRef(product.featureRef, { size: 128, attribs: { className: 'select-subscription__option-image' } })}
+							{!product.featureRef && <div className="select-subscription__option-image"></div>}
+						</span>
+						<span className="select-subscription__option-name">
+							{productName}
+						</span>
+						<span className="select-subscription__option-price">
+							{cost}
+							{recurrence}
+						</span>
+						</FlipCard>
+				</button>
+				{/*</a>*/}
+				<ProductQuantity
+					ref={productQtyRef}
+					key={product.id}
+					product={product}
+					quantity={quantity}
+					allowMultiple={props.allowMultiple}
+					goStraightToCart={props.goStraightToCart}
+					cartUrl={props.cartUrl}
+					addDescription={props.addDescription}
+					removeDescription={props.removeDescription}
+				/>
+			</div>
+		</>;
     }
 
 	return (
-		<div className="subscribe-select-subscription">
-			<h2 className="subscribe-select-subscription__title">
+		<div className="select-subscription">
+			<h2 className="select-subscription__title">
 				{`New Subscription`}
 			</h2>
 
@@ -156,29 +172,26 @@ export default function SelectSubscription(props) {
 					{`Please select a product`}
 				</label>
 				<div className="product-options">
-					<div className={'btn-group'}
-						role="group" aria-labelledby={"select_product_label"} ref={productOptionsRef}>
-						<Container>
-							<Loop over="product" asCols size={props.colSize || 6} filter={{where: {billingFrequency: {not: 0}}}} includes={['tiers', 'tiers.price', 'price']}>
-								{product => {
+					<div className={'btn-group'} role="group" aria-labelledby={"select_product_label"} ref={productOptionsRef}>
+						<Loop over="product" raw filter={{where: {billingFrequency: {not: 0}}}} includes={['tiers', 'tiers.price', 'price']}>
+							{product => {
 									
-									// Is this a tiered product?
-									var isTiered = product.tiers && product.tiers.length;
+								// Is this a tiered product?
+								var isTiered = product.tiers && product.tiers.length;
 									
-									if(isTiered){
-										return renderWithTiers(product);
-									}else{
-										return renderNoTiers(product);
-									}
+								if (isTiered) {
+									return renderWithTiers(product);
+								}else{
+									return renderNoTiers(product);
+								}
 									
-								}}
-							</Loop>
-						</Container>
+							}}
+						</Loop>
 					</div>
 				</div>
 			</div>
 
-			<div className="subscribe-select-subscription__footer">
+			<div className="select-subscription__footer">
 				{/* rendered as a button rather than a direct link so that we can disable the link if needed */}
 				{(!props.goStraightToCart || !cartIsEmpty()) && <button type="button" className="btn btn-secondary" onClick={() => setPage(props.cartUrl || '/cart')}>
 					<i className="fal fa-fw fa-shopping-cart" />

@@ -95,7 +95,7 @@ export default function ProductQuantity(props) {
 			updateQuantity(quantity == 0 ? 1 : -1);
 		}}
 	>
-		{props.children(addButton)}
+		{addButton}
 	</button>;
 }
 
