@@ -18,6 +18,7 @@ $option_minheight: 250px;
 	.product-options {
 
 		.btn-group {
+			width: 100%;
 			flex-wrap: wrap;
 			gap: $radio_option_gap_y $radio_option_gap_x;
 		}
