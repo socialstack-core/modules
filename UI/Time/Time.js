@@ -59,6 +59,14 @@ export default class Time extends React.Component {
 		var dayStr;
 		var { compact, shortDay, compactDayOnly } = this.props;
 		
+		var fullYear = date.getFullYear();
+		var nowYear = new Date().getFullYear();
+		var yearText = "";
+		
+		if(nowYear != fullYear){
+			yearText = " " + fullYear;
+		}
+		
         if (compact) {
 			
             if (this.isToday(date)) {
@@ -79,7 +87,7 @@ export default class Time extends React.Component {
 
         }
 		
-		dayStr = dateTools.ordinal(dayIndex) + " " + dateTools.monthNames[monthIndex];
+		dayStr = dateTools.ordinal(dayIndex) + " " + dateTools.monthNames[monthIndex] + yearText;
 		
 		if(compact && compactDayOnly){
 			return dayStr;
