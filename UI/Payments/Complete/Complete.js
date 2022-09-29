@@ -56,6 +56,31 @@ export default function Complete(props) {
 				</Alert>
 			</div>;
 
+		case 'card-update.success':
+			return <div className="payment-complete">
+				<Alert variant='success'>
+					<h2 className="stripe-complete-intent__title">
+						{`Card Update Complete`}
+					</h2>
+					<p>
+						<a href='/my-subscriptions' className="alert-link">
+							{`View your subscriptions`}
+						</a>
+					</p>
+				</Alert>
+			</div>;
+		case 'card-update.failed':
+			return <div className="payment-complete">
+				<Alert variant='danger'>
+					<h2 className="stripe-complete-intent__title">
+						{`Card Update Failed`}
+					</h2>
+					<p>
+						{`Failed to process payment details. Please try another payment method.`}
+					</p>
+				</Alert>
+			</div>;
+
 		default:
 			// invalid
 			return `Unknown payment status`;

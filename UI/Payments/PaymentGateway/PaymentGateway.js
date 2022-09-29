@@ -29,35 +29,36 @@ export default function PaymentGateway(props) {
 	// If user has saved payment methods, display a dropdown of those or a form to add another one.
 	var [methods, setMethods] = React.useState();
 	var [selectedMethod, setSelectedMethod] = React.useState();
-	
+
 	React.useEffect(() => {
-		// Get user's existing cards (Returns "non-sensitive" info only).
-		webRequest('paymentmethod/list').then(response => {
-			
-			var methods = response.json.results;
-			methods.sort(( a, b ) => {
-				if ( a.lastUsedUtc < b.lastUsedUtc ){
-					return 1;
-				}
-				if ( a.lastUsedUtc > b.lastUsedUtc ){
-					return -1;
-				}
-				
-				return 0;
+		if(!props.updateMode) {
+			// Get user's existing cards (Returns "non-sensitive" info only).
+			webRequest('paymentmethod/list').then(response => {
+
+				var methods = response.json.results;
+				methods.sort((a, b) => {
+					if (a.lastUsedUtc < b.lastUsedUtc) {
+						return 1;
+					}
+					if (a.lastUsedUtc > b.lastUsedUtc) {
+						return -1;
+					}
+					return 0;
+				});
+
+				setMethods(methods);
+				setSelectedMethod(methods.length ? methods[0] : null);
 			});
-			
-			setMethods(methods);
-			setSelectedMethod(methods.length ? methods[0] : null);
-		});
+		}
 	}, []);
 	
-	if(!methods){
+	if(!methods && !props.updateMode){
 		return <Loading />;
 	}
 	
 	if(!selectedMethod){
 		// Nothing selected.
-		if(methods.length){
+		if(methods && methods.length){
 			return <>
 				<select className="form-select"
 					onChange={(e) => {
@@ -100,7 +101,6 @@ export default function PaymentGateway(props) {
 	// Otherwise display the selected card.
 	return <>
 		<CardForm fieldName={props.name} readonly last4={selectedMethod.name} issuer={selectedMethod.issuer} expiry={selectedMethod.expiryUtc} paymentMethodId={selectedMethod.id} />
-		
 		<center style={{padding: '1rem'}}>
 			<button onClick={() => {
 				setSelectedMethod(null);
