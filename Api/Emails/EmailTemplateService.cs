@@ -83,6 +83,14 @@ namespace Api.Emails
 					BodyJson = "{\"module\":\"Email/Default\",\"content\":[{\"module\":\"Email/Centered\",\"data\":{}," +
 					"\"content\":\"A password reset request was recently created with us for this email. If this was you, click the following link to proceed:\"}," +
 					"{\"module\":\"Email/PrimaryButton\",\"data\":{\"label\":\"Verify my email address\",\"target\":\"/password/reset/${customData.token}\"}}]}"
+				},
+				new EmailTemplate()
+				{
+					Name = "Welcome",
+					Subject = "Welcome aboard!",
+					Key = "welcome_member_email",
+					BodyJson = "{\"module\":\"Email/Default\",\"content\":[{\"module\":\"Email/Centered\",\"data\":{}," +
+					"\"content\":\"Thanks for joining! If you have any questions please reach out.\"}]}"
 				}
 			);
 			
@@ -98,6 +106,14 @@ namespace Api.Emails
 				{
 					var token = await _users.SendVerificationEmail(ctx, user);
 					user.EmailVerifyToken = token;
+				} 
+				//sending to regular members only
+				else if(user.Role == Roles.Member.Id && userConfig.SendWelcomeEmail)
+				{
+					Send(new List<Recipient>()
+					{
+						new(user)
+					}, "welcome_member_email");
 				}
 				
 				return user;

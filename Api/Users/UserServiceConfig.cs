@@ -19,6 +19,11 @@ namespace Api.Users
         public bool UniqueEmails { get; set; } = false;
 
         /// <summary>
+        /// True if a welcome email should be sent. Note that if verify emails is turned on, this is ignored.
+        /// </summary>
+        public bool SendWelcomeEmail { get; set; } = false;
+
+        /// <summary>
         /// Determines if user usernames need to be unique.
         /// </summary>
         public bool UniqueUsernames { get; set; } = false;
