@@ -121,7 +121,7 @@ namespace Api.Users
 				return user;
 			});
 			
-			InstallAdminPages("Users", "fa:fa-user", new string[] { "id", "email", "username" });
+			InstallAdminPages("Users", "fa:fa-user", new string[] { "id", "email", "username", "role" });
 		}
 
 		private readonly SecureRandom secureRandom = new SecureRandom();
