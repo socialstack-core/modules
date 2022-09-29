@@ -1,16 +1,55 @@
 import ProductTable from 'UI/Payments/ProductTable';
 import Input from 'UI/Input';
 import Form from 'UI/Form';
-import { useState } from 'react';
+import Alert from 'UI/Alert';
+import webRequest from 'UI/Functions/WebRequest';
+import { useState, useEffect } from 'react';
 import { useRouter, useSession } from 'UI/Session';
 import { useCart } from 'UI/Payments/CartSession';
+import store from 'UI/Functions/Store';
 
 
 export default function Checkout(props) {
+	const { hideCoupon } = props;
 	const { session } = useSession();
 	const { setPage } = useRouter();
 	var { shoppingCart, cartIsEmpty, emptyCart, addToCart } = useCart();
 	var [termsAccepted, setTermsAccepted] = useState(false);
+	var [couponCode, setCouponCode] = useState(null);
+	var [coupon, setCoupon] = useState(null);
+	var [codeLoading, setCodeLoading] = useState(false);
+	var [couponValid, setCouponValid] = useState(false);
+	var [couponApplyDisabled, setCouponApplyDisabled] = useState(true);
+
+	useEffect(() => {
+		loadCouponCode(store.get('coupon_code'));
+	}, []);
+	
+	function loadCouponCode(code) {
+		if(!code){
+			return Promise.resolve(null);
+		}
+		
+		setCouponCode(code);
+		setCodeLoading(true);
+		setCouponApplyDisabled(false);
+		return webRequest('coupon/check/' + code)
+		.then(response => {
+			setCodeLoading(false);
+			var coupon = response.json;
+			setCoupon(coupon);
+		})
+		.catch(e => {
+			console.error(e);
+			setCodeLoading(false);
+			setCoupon(null);
+		});
+	}
+
+	function updateCouponCode(code) {
+		store.set('coupon_code', code);
+		loadCouponCode(code);
+    }
 	
 	function canPurchase() {
 		return !cartIsEmpty() && termsAccepted;
@@ -44,7 +83,7 @@ export default function Checkout(props) {
 			}}
 		>
 			<div className="mb-3">
-				<ProductTable shoppingCart={shoppingCart} addToCart={addToCart}/>
+				<ProductTable shoppingCart={shoppingCart} addToCart={addToCart} coupon={coupon}/>
 				
 				<input type='hidden' name='items' ref={ir=>{
 					if(ir){
@@ -56,9 +95,31 @@ export default function Checkout(props) {
 					}
 				}} />
 				
-				
 				{!cartIsEmpty() && <>
-					<Input type='text' name='couponCode' label='Coupon code' />
+					{!hideCoupon && <>
+						<div className="mb-3">
+							<label htmlFor="coupon_code" className="form-label">
+								{`Coupon code`}
+							</label>
+							<div className="input-group">
+								<input id="coupon_code" type="text" className="form-control" placeholder={`Enter discount code here`}
+									name="couponCode" onInput={e => {
+									var val = e.target.value;
+									setCouponApplyDisabled(!val || !val.length);
+								}}
+								defaultValue={couponCode}
+								/>
+								<button className="btn btn-primary" type="button" disabled={(couponApplyDisabled || codeLoading) ? 'disabled' : undefined} onClick={() => {
+									var codeField = document.getElementById("coupon_code");
+									var code = codeField.value;
+									updateCouponCode(code);
+                                }}>
+									{`Apply coupon`}
+								</button>
+							</div>
+						</div>
+						{coupon && <Alert type='success'>This coupon has been applied to your total.</Alert>}
+					</>}
 					<Input type='payment' name='paymentMethod' label='Payment method' validate={['Required']} />
 					<div class="form-check">
 						<input class="form-check-input" type="checkbox" id="termsCheckbox" checked={termsAccepted ? 'checked' : undefined}
@@ -91,9 +152,11 @@ export default function Checkout(props) {
 }
 
 Checkout.propTypes = {
+	hideCoupon: 'boolean'
 };
 
 Checkout.defaultProps = {
+	hideCoupon: false
 }
 
 Checkout.icon='register';

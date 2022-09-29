@@ -13,12 +13,64 @@ export default function ProductTable(props){
 	
 	function renderTotals(cartTotals, options){
 		var totals = [];
+		var coupon = options && options.coupon;
 		
 		for(var i=0;i<5;i++){
 			if(cartTotals[i]){
-				totals.push(<div>{
-					formatCurrency(cartTotals[i], options)
-				} {recurrenceText(i)}</div>);
+				var total = cartTotals[i];
+				var totalCost = total;
+				
+				if (coupon != null) {
+					if (coupon.minSpendPrice) {		
+						// Are we above it?
+						if (totalCost < coupon.minSpendPrice.amount) {
+							// No!
+							coupon = null;
+						}
+					}
+					
+					if (coupon && coupon.discountPercent != 0) {
+						var discountedTotal = totalCost * (1 - (coupon.discountPercent / 100));
+
+						if (discountedTotal <= 0) {
+							// Becoming free!
+							totalCost = 0;
+						} else {
+							// Round to nearest pence/ cent
+							totalCost = Math.ceil(discountedTotal);
+						}
+					}
+					
+					if (coupon && coupon.discountAmount) {		
+						if (totalCost < discountAmount.amount) {
+							// Becoming free!
+							totalCost = 0;
+						} else {
+							// Discount a fixed number of units:
+							totalCost -= discountAmount.amount;
+						}
+					}
+				}
+				
+				var recurTitle = recurrenceText(i);
+				
+				if(totalCost != total){
+					if(i){
+						// i is 0 for one off payments.
+						// This is any recurring things with a discount, where the discount is applied on the first payment only.
+						totals.push(<div>{formatCurrency(totalCost, options)} today, then {
+							formatCurrency(total, options)
+						} {recurTitle}</div>);
+					}else{
+						totals.push(<div><small><s>{
+							formatCurrency(total, options)
+						}</s></small> {formatCurrency(totalCost, options)}</div>);
+					}
+				}else{
+					totals.push(<div>{
+						formatCurrency(totalCost, options)
+					} {recurTitle}</div>);
+				}
 			}
 		}
 		
@@ -159,7 +211,7 @@ export default function ProductTable(props){
 								{`TOTAL`}:
 							</td>
 							<td className="currency-column" style={{fontWeight: 'bold'}}>
-								{currencyCode ? renderTotals(cartTotalByFrequency, {currencyCode}) : '-'}
+								{currencyCode ? renderTotals(cartTotalByFrequency, {currencyCode, coupon: props.coupon}) : '-'}
 							</td>
 							<td>
 								&nbsp;
