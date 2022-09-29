@@ -72,20 +72,6 @@ namespace Api.Payments
 
 			config = GetConfig<SubscriptionConfig>();
 
-            Events.Subscription.AfterCreate.AddEventListener(async (context, subscription) =>
-            {
-                if (config.SendThankYouEmail)
-                {
-                    _emails.Send(new List<Recipient>()
-                    {
-                        new(subscription.UserId, subscription.LocaleId)
-                    },
-                        "thank_you_for_subscribing");
-                }
-
-                return subscription;
-            });
-
             InstallEmails(
                 new EmailTemplate
                 {
@@ -137,12 +123,12 @@ namespace Api.Payments
 					Name = "Thank you for subscribing",
 					Subject = "Thank you for subscribing",
 					Key = "thank_you_for_subscribing",
-					BodyJson =
-						"{\"c\":{\"t\":\"Email/Default\",\"d\":{},\"r\":{\"children\":[{\"t\":\"Email/Centered\"," +
-						"\"d\":{},\"c\":[{\"t\":\"p\",\"c\":{\"s\":\"Your subscription is now " +
-						"confirmed and you are ready to go!\",\"i\":6},\"i\":6}],\"i\":3},{\"t\":\"Email/PrimaryButton\",\"d\":{\"label\":\"My subscriptions\"," +
-						"\"target\":\"/my-subscriptions\"},\"r\":{\"label\":{\"s\":\"My Subscriptions\",\"i\":6}}," +
-						"\"i\":7}],\"customLogo\":null},\"i\":4},\"i\":5}"
+					BodyJson = "{\"c\":{\"t\":\"Email/Default\",\"d\":{},\"r\":{\"children\":[{\"t\":\""+
+                            "Email/Centered\",\"d\":{},\"c\":{\"t\":\"p\",\"c\":[{\"s\":\"Your subscription is now confirmed and will next renew on \",\"i\":6}," +
+					        "{\"t\":\"UI/Token\",\"d\":{\"fields\":[\"customData\",\"nextChargeUtc\"]},\"c\":{\"s\":\"customData.nextChargeUtc\",\"i\":6},\"i\":7}," +
+					        "{\"s\":\". If you have any questions please get in touch. Thank you!\",\"i\":8}],\"i\":6},\"i\":3}," +
+					        "{\"t\":\"Email/PrimaryButton\",\"d\":{\"label\":\"My subscriptions\",\"target\":\"/my-subscriptions\"}," +
+					        "\"r\":{\"label\":{\"s\":\"My Subscriptions\",\"i\":6}},\"i\":7}],\"customLogo\":null},\"i\":4},\"i\":5}"
 				}
 			);
             
@@ -402,7 +388,9 @@ namespace Api.Payments
         {
             // This payment is for the latest period of the subscription.
             // Update the subscription and set to active if not already.
-            return await Update(context, subscription, (Context ctx, Subscription subToUpdate, Subscription orig) =>
+            var wasInActive = subscription.Status != 1;
+
+            var updatedSub = await Update(context, subscription, (Context ctx, Subscription subToUpdate, Subscription orig) =>
             {
                 // Update the charge dates:
                 SetUpdatedChargeDates(subToUpdate, extraDays);
@@ -410,6 +398,25 @@ namespace Api.Payments
                 // it's active:
                 subToUpdate.Status = 1;
             }, DataOptions.IgnorePermissions);
+
+            if (wasInActive && updatedSub != null && updatedSub.Status == 1)
+            {
+				// Wasn't active before but is now.
+				// Send them an email to say thank you if config says we should.
+
+				if (config.SendThankYouEmail)
+				{
+					_emails.Send(new List<Recipient>()
+					{
+						new(subscription.UserId, subscription.LocaleId) {
+                            CustomData = updatedSub
+                        }
+					},
+						"thank_you_for_subscribing");
+				}
+			}
+
+			return updatedSub;
         }
 
         /// <summary>
