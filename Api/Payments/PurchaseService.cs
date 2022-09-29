@@ -49,9 +49,7 @@ namespace Api.Payments
 					Name = "A payment issue occurred",
 					Subject = "A payment issue occurred",
 					Key = "payment_fault",
-					BodyJson = "{\"module\":\"Email/Default\",\"content\":[{\"module\":\"Email/Centered\",\"data\":{}," +
-					"\"content\":[\"We tried to request a payment of \", {\"t\":\"UI/Token\",\"c\":\"${customData.printablePrice}\", \"d\":{\"mode\":\"customdata\",\"fields\":[\"printablePrice\"]}}, \" but it was unable to go through. This can be because the card used was cancelled, has expired, or there are insufficient funds. If you're not sure, please check with your bank.\"]}," +
-					"{\"module\":\"Email/PrimaryButton\",\"data\":{\"label\":\"View payment details\",\"target\":\"/checkout/payment/${customData.paymentId}\"}}]}"
+					BodyJson = "{\"c\":{\"t\":\"Email/Default\",\"d\":{},\"r\":{\"children\":[{\"t\":\"Email/Centered\",\"d\":{},\"c\":[{\"s\":\"We tried to request a payment of \",\"i\":2},{\"t\":\"UI/Token\",\"d\":{\"fields\":[\"customData\",\"printablePrice\"]},\"c\":{\"s\":\"customData.printablePrice\",\"i\":6},\"i\":4},{\"s\":\" but it was unable to go through. This can be because the card used was cancelled, has expired, or there are insufficient funds. If you're not sure, please check with your bank.\",\"i\":5}],\"i\":6},{\"t\":\"Email/PrimaryButton\",\"d\":{\"label\":\"View payment details\",\"target\":\"/checkout/payment/${customData.paymentId}\"},\"r\":{\"label\":null},\"i\":7}],\"customLogo\":null},\"i\":8},\"i\":9}"
 				}
 			);
 			

@@ -47,6 +47,11 @@ namespace Api.Payments
 		/// A name of this payment method. This defaults to the last 4 digits of the card number but can be renamed.
 		/// </summary>
 		public string Name;
+
+		/// <summary>
+		/// A flag that shows that the one month expiry notice has been sent to the customer
+		/// </summary>
+		public bool OneMonthExpiryNotice;
 	}
 
 }
