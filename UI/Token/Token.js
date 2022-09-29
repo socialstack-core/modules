@@ -1,6 +1,8 @@
 import Content from 'UI/Content';
+import Time from 'UI/Time';
 import { useSession, useRouter } from 'UI/Session';
 import { useContent } from 'UI/Content';
+import { isoConvert } from 'UI/Functions/DateTools';
 
 var modes = { 'content': 1, 'session': 1, 'url': 1, 'customdata': 1, 'primary': 1, 'theme': 1 };
 
@@ -8,15 +10,15 @@ export function TokenResolver(props) {
 	return props.children(useTokens(props.value));
 }
 
-export function useTokens(str) {
+export function useTokens(str, opts) {
 	var { session } = useSession();
 	var localContent = useContent();
 	var { pageState } = useRouter();
 
-	return handleString(str, session, localContent, pageState);
+	return handleString(str, session, localContent, pageState, opts);
 }
 
-function handleString(str, session, localContent, pageState) {
+function handleString(str, session, localContent, pageState, opts) {
 	return (str || '').toString().replace(/\$\{(\w|\.)+\}/g, function (textToken) {
 		var fields = textToken.substring(2, textToken.length - 1).split('.');
 
@@ -27,11 +29,28 @@ function handleString(str, session, localContent, pageState) {
 			mode = first;
 		}
 
-		return resolveValue(mode, fields, session, localContent, pageState);
+		return resolveValue(mode, fields, session, localContent, pageState, opts);
 	});
 }
 
-export function resolveValue(mode, fields, session, localContent, pageState) {
+export function resolveValue(mode, fields, session, localContent, pageState, opts) {
+	var value = resolveRawValue(mode, fields, session, localContent, pageState);
+	
+	// Post-processing:
+	if(opts && opts.date){
+		// treat it as a date.
+		value = isoConvert(value);
+		
+		if(typeof opts.date == 'object'){
+			// it would like a react element.
+			return <Time date={value} absolute {...opts.date} />;
+		}
+	}
+	
+	return value;
+}
+
+function resolveRawValue(mode, fields, session, localContent, pageState) {
 	var token;
 
 	if (mode) {
@@ -109,14 +128,14 @@ export default function Token(props) {
 		}
 		
 		if (typeof str == 'string') {
-			return handleString(str.indexOf('$') == -1 ? '${' + str + '}' : str, session, localContent, pageState);
+			return handleString(str.indexOf('$') == -1 ? '${' + str + '}' : str, session, localContent, pageState, props);
 		}
 
 		return '{Incorrect token, see wiki}';
 	}
 
 	// Resolved value. No wrapper - just plain value.
-	return resolveValue(props.mode, props.fields, session, localContent, pageState);
+	return resolveValue(props.mode, props.fields, session, localContent, pageState, props);
 }
 
 Token.editable = {
