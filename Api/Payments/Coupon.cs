@@ -1,16 +1,18 @@
 using System;
 using Api.AutoForms;
 using Api.Database;
+using Api.Startup;
 using Api.Translate;
 using Api.Users;
 
 
 namespace Api.Payments
 {
-	
 	/// <summary>
 	/// A Coupon
 	/// </summary>
+	[HasVirtualField("discountAmount", typeof(Price), "DiscountFixedAmount")]
+	[HasVirtualField("minSpendPrice", typeof(Price), "MinimumSpendAmount")]
 	public partial class Coupon : VersionedContent<uint>
 	{
 		/// <summary>
