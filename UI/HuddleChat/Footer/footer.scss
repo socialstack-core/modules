@@ -1,7 +1,7 @@
 :root {
 	--fallback__huddle-footer-height: 5rem;
 	--fallback__huddle-footer-bg: transparent;
-    --fallback__huddle-footer-fg: rgba(255,255,255, .75);
+  --fallback__huddle-footer-fg: rgba(255,255,255, .75);
 }
 
 .huddle-chat {
@@ -34,7 +34,6 @@
 		}
 
 		&-leave {
-			transform: translateY(-10px);
 
 			.dropdown-toggle {
 				border-radius: 50%;
