@@ -20,6 +20,21 @@ function dateFormatStr(d){
 	return d.getFullYear() + '-' + padded(d.getMonth()+1) + '-' + padded(d.getDate()) + 'T' + padded(d.getHours()) + ':' + padded(d.getMinutes());
 }
 
+// introduced as to get a textarea to show a remaining character count, 
+// 'maxlength' / 'showLength' props need to be set; 
+// this ensures lowercase / camelCase differences don't prevent this from working
+function caseInsensitivePropCheck(props, checkFor) {
+
+    if (!props || !checkFor) {
+        return false;
+    }
+
+    var re = new RegExp(checkFor, "i");
+    var actualCase = Object.keys(props).find(key => re.test(key)) !== undefined;
+
+    return actualCase ? props[actualCase] : false;
+}
+
 /**
  * Helps eliminate a significant amount of boilerplate around <input>, <textarea> and <select> elements.
  * Note that you can still use them directly if you want.
@@ -443,25 +458,31 @@ export default class Input extends React.Component {
             );
 
         } else if (type === "textarea") {
+            var maxLength = caseInsensitivePropCheck(this.props, 'maxlength');
 
             return (<>
-                    <textarea
-                        ref={this.setRef}
-                        onChange={this.onChange}
-                        onBlur={this.onBlur}
-                        autocomplete={this.props.autocomplete}
-                        id={this.props.id || this.fieldId}
-                        className={(this.props.className || "form-control") + (this.state.validationFailure ? ' is-invalid' : '')}
-                        {...omit(this.props, ['id', 'className', 'onChange', 'onBlur', 'type', 'inline', 'help', 'helpIcon', 'fieldName'])}
-                        oninput ={e => {
-                            this.setState({textAreaLength: e.target.textLength});
-                        }}
-                    />
-                    {this.props.maxlength && this.props.showLength && <div className = "textarea-char-count">
-                        {(this.state.textAreaLength ? this.state.textAreaLength : this.props.defaultValue ? this.props.defaultValue.length : 0) + "/" + this.props.maxlength}
-                    </div>}
-                </>
-            );
+                <textarea
+                    ref={this.setRef}
+                    onChange={this.onChange}
+                    onBlur={this.onBlur}
+                    autocomplete={this.props.autocomplete}
+                    id={this.props.id || this.fieldId}
+                    className={(this.props.className || "form-control") + (this.state.validationFailure ? ' is-invalid' : '')}
+                    {...omit(this.props, ['id', 'className', 'onChange', 'onBlur', 'type', 'inline', 'help', 'helpIcon', 'fieldName'])}
+                    oninput={e => {
+                        this.setState({ textAreaLength: e.target.textLength });
+
+                        if (typeof this.props.onInput == 'function') {
+                            this.props.onInput(e);
+                        }
+                    }}
+                />
+                {maxLength && caseInsensitivePropCheck(this.props, 'showLength') && <>
+                    <div className="textarea-char-count">
+                        {(this.state.textAreaLength ? this.state.textAreaLength : this.props.defaultValue ? this.props.defaultValue.length : 0) + "/" + maxLength}
+                    </div>
+                </>}
+            </>);
 
         } else if (type === "submit" || type === "button") {
             var showIcon = this.props.icon;
