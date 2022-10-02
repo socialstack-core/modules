@@ -102,7 +102,7 @@ namespace Api.CloudHosts
                                 await stream.CopyToAsync(ms);
                                 return ms.ToArray();
                             }
-                            catch (Exception e2)
+                            catch
                             {
                                 Console.WriteLine("Likely temporary error whilst trying to read a file from a remote host: " + e.ToString());
                                 // Unavailable or unreachable.

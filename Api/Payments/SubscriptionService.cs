@@ -383,6 +383,7 @@ namespace Api.Payments
         /// </summary>
         /// <param name="context"></param>
         /// <param name="subscription"></param>
+        /// <param name="extraDays"></param>
         /// <returns></returns>
         public async ValueTask<Subscription> MarkActive(Context context, Subscription subscription, uint extraDays)
         {

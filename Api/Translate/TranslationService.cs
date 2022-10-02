@@ -98,6 +98,11 @@ namespace Api.Translate
             return true;
         }
 
+        /// <summary>
+        /// Loads .po files from a directory called "Translations"
+        /// </summary>
+        /// <param name="context"></param>
+        /// <returns></returns>
         public async ValueTask<bool> LoadPotFiles(Context context)
         {
             var sourcePath = Path.GetFullPath("Translations");

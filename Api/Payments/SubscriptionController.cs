@@ -11,6 +11,9 @@ namespace Api.Payments
     [Route("v1/subscription")]
 	public partial class SubscriptionController : AutoController<Subscription>
     {
+		/// <summary>
+		/// Updates the card in use on a given subscription.
+		/// </summary>
         [HttpPost("{subscriptionId}/update-card")]
         public virtual async ValueTask<CardUpdateStatus> UpdateCard([FromRoute] uint subscriptionId, [FromBody] JObject cardUpdate)
         {
@@ -19,7 +22,6 @@ namespace Api.Payments
             // Parse the payment method.
             var paymentMethodJson = cardUpdate["paymentMethod"];
             PaymentMethod paymentMethod;
-            PurchaseAndAction purchaseAction;
             if (paymentMethodJson == null || paymentMethodJson.Type != JTokenType.Object)
             {
                 throw new PublicException("Payment method information missing", "payment_method_required");
