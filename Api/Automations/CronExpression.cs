@@ -330,6 +330,9 @@ public class CronExpression
 	/// </summary>
 	[NonSerialized] protected bool nearestWeekday;
 
+	/// <summary>
+	/// Last day offset
+	/// </summary>
 	[NonSerialized] protected int lastdayOffset;
 
 	/// <summary>
@@ -347,6 +350,9 @@ public class CronExpression
 	/// </summary>
 	[NonSerialized] protected bool expressionParsed;
 
+	/// <summary>
+	/// Maximum year
+	/// </summary>
 	public static readonly int MaxYear = DateTime.Now.Year + 100;
 
 	private static readonly char[] splitSeparators = {' ', '\t', '\r', '\n'};
@@ -501,6 +507,10 @@ public class CronExpression
 		return true;
 	}
 
+	/// <summary>
+	/// Throws if the validation fails. Generally don't use this - just construct with a try/catch.
+	/// </summary>
+	/// <param name="cronExpression"></param>
 	public static void ValidateExpression(string cronExpression)
 	{
 		new CronExpression(cronExpression);
@@ -721,7 +731,6 @@ public class CronExpression
 			else
 			{
 				throw new FormatException($"Illegal characters for this position: '{sub}'");
-				return default;
 			}
 			if (eval != -1)
 			{
@@ -1371,10 +1380,8 @@ public class CronExpression
 					break;
 				case Year:
 					throw new ArgumentException("Start year must be less than stop year");
-					break;
 				default:
 					throw new ArgumentException("Unexpected type encountered");
-					break;
 			}
 			stopAt += max;
 		}
