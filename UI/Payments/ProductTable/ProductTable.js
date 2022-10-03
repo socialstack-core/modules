@@ -42,12 +42,12 @@ export default function ProductTable(props){
 					}
 					
 					if (coupon && coupon.discountAmount) {		
-						if (totalCost < discountAmount.amount) {
+						if (totalCost < coupon.discountAmount.amount) {
 							// Becoming free!
 							totalCost = 0;
 						} else {
 							// Discount a fixed number of units:
-							totalCost -= discountAmount.amount;
+							totalCost -= coupon.discountAmount.amount;
 						}
 					}
 				}
