@@ -24,8 +24,12 @@ export default class TinyMce extends React.Component {
 	
 	componentDidMount(){
 		var tinyMceUrl = getRef(tinyMceRef, {url:1});
-		lazyLoad(tinyMceUrl).then(imported => {
-			var tinymce = global.tinymce;
+		
+		var doc = this._textarea.ownerDocument;
+		var win = doc.defaultView || doc.parentWindow;
+		
+		lazyLoad(tinyMceUrl, win).then(imported => {
+			var tinymce = win.tinymce;
 			tinymce.baseURL = tinyMceUrl.replace(/\/tinymce\.js/gi, '');
 			tinymce.init({target: this._textarea});
 			var editor = tinymce.activeEditor;
@@ -43,7 +47,9 @@ export default class TinyMce extends React.Component {
 			
 			if(this.state.editor && e && e != this.state.target){
 				// Init again:
-				var tinymce = global.tinymce;
+				var doc = e.ownerDocument;
+				var win = doc.defaultView || doc.parentWindow;
+				var tinymce = win.tinymce;
 				tinymce.init({target: e});
 				var editor = tinymce.activeEditor;
 				
@@ -57,7 +63,6 @@ export default class TinyMce extends React.Component {
 				e.onGetValue = (val, ele)=>{
 					if(ele == e && this.state.editor){
 						var htmlContent = this.state.editor.getContent();
-						console.log(htmlContent);
 						return htmlContent;
 					}
 				};
