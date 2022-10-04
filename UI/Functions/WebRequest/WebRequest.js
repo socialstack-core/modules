@@ -155,20 +155,37 @@ const _lazyCache = {};
 /*
 * Lazy loads a .js file represented by a url.
 */
-function lazyLoad(url){
-	var entry = _lazyCache[url];
+function lazyLoad(url, globalScope) {
+	var cache;
+	
+	if(globalScope){
+		if(!globalScope._lazyCache){
+			globalScope._lazyCache = {};
+		}
+		
+		cache = globalScope._lazyCache;
+	}else{
+		cache = _lazyCache;
+		globalScope = global;
+	}
+	
+	var entry = cache[url];
 	if(!entry){
 		entry = webRequest(url, null, {rawText:1})
 		.then(resp => {
 			var js = resp.text;
 			try{
-				_lazyCache[url]=eval('var ex={};(function(global,exports){'+js+'})(global,ex);Promise.resolve(ex);');
+				var ex={};
+				var f = new Function('exports','global','window', js);
+				f(ex, globalScope, globalScope);
+				ex.window = globalScope;
+				cache[url]=Promise.resolve(ex);
 			}catch(e){
 				console.log(e);
 			}
-			return _lazyCache[url];
+			return cache[url];
 		});
-		_lazyCache[url] = entry;
+		cache[url] = entry;
 	}
 	return entry;
 }
