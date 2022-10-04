@@ -2,18 +2,12 @@ using Api.Contexts;
 using Api.Database;
 using Api.Eventing;
 using Api.Permissions;
-using Api.Startup;
 using Microsoft.AspNetCore.Mvc;
 using Newtonsoft.Json.Linq;
 using System;
-using System.Collections.Generic;
 using System.Threading.Tasks;
-using CsvHelper;
 using System.IO;
-using System.Globalization;
-using CsvHelper.Configuration;
-using System.Reflection;
-using Newtonsoft.Json;
+using Api.CsvExport;
 
 
 /// <summary>
@@ -23,9 +17,6 @@ using Newtonsoft.Json;
 /// </summary>
 public partial class AutoController<T,ID>
 {
-
-	private CsvMapping<T> _csvMapping;
-
 	/// <summary>
 	/// GET /v1/entityTypeName/list.csv
 	/// Lists all entities of this type available to this user, and outputs as a CSV.
@@ -47,261 +38,120 @@ public partial class AutoController<T,ID>
 	public virtual async Task<FileResult> ListCSV([FromBody] JObject filters, [FromQuery] string includes = null)
 	{
 		var context = await Request.GetContext();
-		var results = await _service.Where().ListAll(context);
 
-		var listWithTotal = new ListWithTotal<T>()
+		var filter = _service.LoadFilter(filters) as Filter<T, ID>;
+		filter = await _service.EventGroup.EndpointStartList.Dispatch(context, filter, Response);
+
+		if (filter == null)
 		{
-			Results = results
-		};
-
-		if (listWithTotal == null){
-			Response.StatusCode = 400;
+			// A handler rejected this request.
+			Response.StatusCode = 404;
 			return null;
 		}
 
-		if (_csvMapping == null)
-		{
-			_csvMapping = new CsvMapping<T>();
-		}
+		var results = await filter.ListAll(context);
+
+		var csvMapping = await _service.GetCsvMapping(context);
 
 		// Not expecting huge CSV's here.
-		var ms = await _csvMapping.OutputStream(results);
+		var ms = await csvMapping.OutputStream(results);
 		ms.Seek(0, SeekOrigin.Begin);
 		return File(ms, "text/csv", typeof(T).Name + ".csv");
 	}
 
 }
 
-/// <summary>
-/// Custom CSV file mapper
-/// </summary>
-public class CsvMapping<T>
-{
-	/// <summary>
-	/// Creates a mapping with specific fields
-	/// </summary>
-	/// <param name="customFields"></param>
-	public CsvMapping(string[] customFields)
-	{
-		var t = typeof(T);
-
-		foreach(var fieldName in customFields)
-		{
-			var field = t.GetField(fieldName);
-
-			if (field != null)
-			{
-				Add(new CsvFieldMap<T>()
-				{
-					Name = field.Name,
-					SrcField = field
-				}, field.FieldType);
-				continue;
-			}
-
-			var property = t.GetProperty(fieldName);
-
-			if (property == null)
-			{
-				continue;
-			}
-
-			Add(new CsvFieldMap<T>()
-			{
-				Name = property.Name,
-				SrcProperty = property.GetGetMethod()
-			}, property.PropertyType);
-		}
-	}
+public partial class AutoService<T, ID> {
 
 	/// <summary>
-	/// The GB culture, primarily for date formatting in DD/MM/YYYY
+	/// CSV file mappings
 	/// </summary>
-	private static CsvConfiguration _defaultConfig;
+	private CsvMapping<T, ID>[] _csvMappings = null;
 
 	/// <summary>
-	/// Gets the default culture.
+	/// Gets a CSV file mapping
 	/// </summary>
-	public CultureInfo Culture
-	{
-		get
-		{
-			return CultureInfo.GetCultureInfo("en-GB");
-		}
-	}
-
-	/// <summary>
-	/// Use when not expecting a large CSV.
-	/// </summary>
-	/// <param name="results"></param>
-	/// <param name="config"></param>
 	/// <returns></returns>
-	public async ValueTask<MemoryStream> OutputStream(IEnumerable<T> results, CsvConfiguration config = null)
+	public async ValueTask<CsvMapping<T, ID>> GetCsvMapping(Context ctx)
 	{
-		var ms = new MemoryStream();
-		var writer = new StreamWriter(ms, System.Text.Encoding.UTF8, -1, true);
+		var roleId = ctx.RoleId;
 
-		if (_defaultConfig == null)
-		{
-			_defaultConfig = new CsvConfiguration(Culture);
-		}
+		var size = _csvMappings == null ? 0 : _csvMappings.Length;
 
-		if (config == null)
+		if (size < roleId)
 		{
-			config = _defaultConfig;
-		}
-
-		using (var csv = new CsvWriter(writer, config))
-		{
-			foreach (var field in Entries)
+			lock (structureLock)
 			{
-				csv.WriteField(field.Name);
-			}
-
-			foreach (var row in results)
-			{
-				csv.NextRecord();
-
-				foreach (var field in Entries)
+				// Check again, just in case a thread we were waiting for has already done what we need.
+				if (size < roleId)
 				{
-					await field.WriteValue(row, csv);
+					if (_csvMappings == null)
+					{
+						_csvMappings = new CsvMapping<T, ID>[roleId];
+					}
+					else if (roleId > _csvMappings.Length)
+					{
+						Array.Resize(ref _csvMappings, (int)roleId);
+					}
 				}
 			}
 		}
 
-		return ms;
-	}
+		var index = roleId - 1;
+		var structure = _csvMappings[index];
 
-	/// <summary>
-	/// Adds a dynamic field to the CSV set
-	/// </summary>
-	/// <param name="name"></param>
-	/// <param name="onWrite"></param>
-	public void Add(string name, Func<T, CsvWriter, ValueTask> onWrite)
-	{
-		Entries.Add(new CsvFieldMap<T>()
+		if (structure == null)
 		{
-			Name = name,
-			AdvancedHandler = onWrite
-		});
-	}
+			// Note that multiple threads can build the structure simultaneously because we apply the created structure set afterwards.
+			// It has no other side effects though so its a non-issue if it happens.
 
-	/// <summary>
-	/// 
-	/// </summary>
-	public CsvMapping()
-	{
-		var t = typeof(T);
+			// Get the json structure:
+			var jsonStructure = await GetTypedJsonStructure(ctx);
 
-		// Get all fields (DB fields) - we'll omit them if they're JsonIgnore'd:
-		var fields = t.GetFields();
+			structure = new CsvMapping<T, ID>();
 
-		// And all public properties too:
-		var props = t.GetProperties();
+			await structure.BuildFrom(ctx, jsonStructure, EventGroup.BeforeCsvGettable);
 
-		foreach (var field in fields)
-		{
-			var ignored = field.GetCustomAttribute(typeof(JsonIgnoreAttribute));
-			if (ignored != null)
+			lock (structureLock)
 			{
-				continue;
+				// In the event that multiple threads have been making it at the same time, this check 
+				// just ensures we're not using multiple different structures and are just using one of them.
+				var existing = _csvMappings[index];
+				if (existing == null)
+				{
+					_csvMappings[index] = structure;
+				}
+				else
+				{
+					structure = existing;
+				}
 			}
-
-			Add(new CsvFieldMap<T>() {
-				Name = field.Name,
-				SrcField = field
-			}, field.FieldType);
 		}
 
-		foreach (var property in props)
-		{
-			var ignored = property.GetCustomAttribute(typeof(JsonIgnoreAttribute));
-			if (ignored != null)
-			{
-				continue;
-			}
-
-			Add(new CsvFieldMap<T>()
-			{
-				Name = property.Name,
-				SrcProperty = property.GetGetMethod()
-			}, property.PropertyType);
-		}
+		return structure;
 	}
-
-	private void Add(CsvFieldMap<T> map, Type type)
-	{
-		// If type is an advanced field, apply an AdvancedMapper to the fieldMap.
-		var baseType = Nullable.GetUnderlyingType(type);
-
-		if (baseType == null)
-		{
-			baseType = type;
-		}
-
-		if (!baseType.IsPrimitive && baseType != typeof(string) && baseType != typeof(DateTime))
-		{
-			return;
-		}
-
-		Entries.Add(map);
-	}
-
-	/// <summary>
-	/// The list of fields in the mapping.
-	/// </summary>
-	public List<CsvFieldMap<T>> Entries = new List<CsvFieldMap<T>>();
-
 }
 
-/// <summary>
-/// A particular field in a CSV map.
-/// </summary>
-public class CsvFieldMap<T>
+
+namespace Api.Eventing
 {
-	/// <summary>
-	/// Field name, as it will appear in the CSV.
-	/// </summary>
-	public string Name;
-	/// <summary>
-	/// If a fieldInfo, the raw one it came from.
-	/// </summary>
-	public FieldInfo SrcField;
-	/// <summary>
-	/// If a property, the get method.
-	/// </summary>
-	public MethodInfo SrcProperty;
 
 	/// <summary>
-	/// Maps an 'advanced' object. E.g. a list of interests -> comma separated ID's.
+	/// A grouping of common events, such as before/ after create, update, delete etc.
+	/// These are typically added to the Events class, named directly after the type that is being used.
+	/// Like this:
+	/// public static EventGroup{Page} Page;
 	/// </summary>
-	public Func<T, CsvWriter, ValueTask> AdvancedHandler;
-
-	/// <summary>
-	/// Gets this field value for the given object.
-	/// </summary>
-	/// <param name="src"></param>
-	/// <param name="writer"></param>
-	/// <returns></returns>
-	public async ValueTask WriteValue(T src, CsvWriter writer)
+	public partial class EventGroup<T, ID> : EventGroupCore<T, ID>
+			where T : Content<ID>, new()
+			where ID : struct, IConvertible, IEquatable<ID>, IComparable<ID>
 	{
-		if (AdvancedHandler != null)
-		{
-			await AdvancedHandler(src, writer);
-			return;
-		}
 
-		object value;
 
-		if (SrcField != null)
-		{
-			value = SrcField.GetValue(src);
-		}
-		else
-		{
-			value = SrcProperty.Invoke(src, null);
-		}
+		/// <summary>
+		/// Just before a CSV field is added (and made gettable).
+		/// </summary>
+		public EventHandler<CsvFieldMap<T>> BeforeCsvGettable;
 
-		writer.WriteField(value);
 	}
 }
