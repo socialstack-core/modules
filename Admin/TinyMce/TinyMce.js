@@ -31,13 +31,35 @@ export default class TinyMce extends React.Component {
 		lazyLoad(tinyMceUrl, win).then(imported => {
 			var tinymce = win.tinymce;
 			tinymce.baseURL = tinyMceUrl.replace(/\/tinymce\.js/gi, '');
-			tinymce.init({target: this._textarea});
-			var editor = tinymce.activeEditor;
-			
+			return this.initEditor(this._textarea, tinymce);
+		}).then(editors => {
 			this.setState({
-				editor,
+				editor: editors[0],
 				target: this._textarea
 			})
+		});
+	}
+	
+	initEditor(target, tinymce){
+		var _this = this;
+		
+		return tinymce.init({
+			target,
+			setup:(ed) => {
+				var _timeout;
+				
+			   ed.on('Paste Change input Undo Redo', (e) => {
+					if(this.props.onChange){
+						clearTimeout(_timeout);
+						_timeout = setTimeout(function() {
+							var evt = {target: {
+								value: _this.state.editor.getContent()
+							}};
+							_this.props.onChange(evt);
+						}, 100);
+					}
+			   });
+		   }
 		});
 	}
 	
@@ -49,13 +71,11 @@ export default class TinyMce extends React.Component {
 				// Init again:
 				var doc = e.ownerDocument;
 				var win = doc.defaultView || doc.parentWindow;
-				var tinymce = win.tinymce;
-				tinymce.init({target: e});
-				var editor = tinymce.activeEditor;
-				
-				this.setState({
-					editor,
-					target: e
+				this.initEditor(e, win.tinymce).then(editors => {
+					this.setState({
+						editor: editors[0],
+						target: e
+					});
 				});
 			}
 			
