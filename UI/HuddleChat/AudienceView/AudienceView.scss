@@ -24,5 +24,14 @@
 			font-size: 14px;
 			user-select: none;
 		}
+
+		#{$huddle-chat}__user {
+
+			&-host {
+				font-size: .75em;
+			}
+
+		}
 	}
+
 }

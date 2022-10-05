@@ -5,18 +5,20 @@ import AvTest from '../AvTest';
 import { isoConvert, toLocaleUTCTimeString, isSameDay } from "UI/Functions/DateTools";
 import { useSession } from 'UI/Session';
 import { useState } from 'react';
+import { useToast } from 'UI/Functions/Toast';
 
 export default function Header(props) {
 	const { session } = useSession();
 	const [ deviceSettingsShown, setDeviceSettingsShown ] = useState(false);
+	const { pop } = useToast();
 
 	var {
 		huddleClient,
-		title, description, users,
+		title, description, users, isHost,
 		notifications, showingNotifications,
 		showingAudience, showingConversation,
 		disableChat, disableAudience, disableReactions, disableOptions,
-		bandwidth, noiseCancellation,
+		bandwidth, noiseCancellation, showDebugInfo,
 		recordMode
 	} = props;
 
@@ -135,7 +137,7 @@ export default function Header(props) {
 			<button type="button" className={isBurger ? 'dropdown-item' : audienceClass}
 				onClick={() => props.toggleAudience()} 
 				title={isBurger ? undefined : (showingAudience ? `Hide audience` : `Show audience`)}
-				disabled={emptyHuddle ? "disabled" : undefined}>
+			>
 				<i className="fal fa-fw fa-users"></i>
 				{isBurger && (showingAudience ? `Hide audience` : `Show audience`)}
 			</button>
@@ -298,6 +300,19 @@ export default function Header(props) {
 						</label>
 					</div>
 				</li>
+				{isHost && <>
+					<li>
+						<div className="form-check form-switch dropdown-item">
+							<input className="form-check-input" type="checkbox" role="switch" id="showDebugInfo" checked={showDebugInfo ? true : undefined}
+								onChange={(e) => {
+									props.toggleShowDebugInfo(e.target.checked);
+								}} />
+							<label className="form-check-label" htmlFor="showDebugInfo">
+								{`Show debug information`}
+							</label>
+						</div>
+					</li>
+				</>}
 			</>}
 
 			{!isBurger && <>
@@ -366,6 +381,19 @@ export default function Header(props) {
 							</label>
 						</div>
 					</li>
+					{isHost && <>
+						<li>
+							<div className="form-check form-switch dropdown-item">
+								<input className="form-check-input" type="checkbox" role="switch" id="showDebugInfo" checked={showDebugInfo ? true : undefined}
+									onChange={(e) => {
+										props.toggleShowDebugInfo(e.target.checked);
+									}} />
+								<label className="form-check-label" htmlFor="showDebugInfo">
+									{`Show debug information`}
+								</label>
+							</div>
+						</li>
+					</>}
 					{/*
 						<li>
 							<button type="button" className="btn dropdown-item">
@@ -391,6 +419,20 @@ export default function Header(props) {
 
 		</>;
 	}
+
+/*
+	function showReaction(emoji, message) {
+		var user = huddleClient.selfPresence();
+
+		pop({
+			title: user.creatorUser.username,
+			description: message,
+			duration: 4,
+			variant: 'success'
+		});
+
+    }
+*/
 
 	return <>
 		<header className="huddle-chat__header">

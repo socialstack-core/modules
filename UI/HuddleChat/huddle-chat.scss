@@ -20,28 +20,6 @@ $huddle-thumbnail-width: var(--huddle-thumbnail-width, var(--fallback__huddle-th
 
 html {
 
-    // override audience sidebar width based on the number of audience members
-    // (see AudienceView.js for how this info ends up on <html>)
-    &[data-audience-columns="1"] {
-
-        .huddle-chat {
-
-            &--audience {
-                grid-template-columns: $huddle-stage-column-width $huddle-thumbnail-width;
-            }
-
-            &__sidebar {
-
-                &-audience-member {
-                    width: 100%;
-                }
-
-            }
-
-        }
-
-    }
-
     &.disable-scroll {
         overflow-y: hidden;
     }
@@ -309,6 +287,7 @@ html {
     place-items: center;
 }
 
+
 @media only screen and (orientation: portrait) {
 
     .huddle-chat {
@@ -402,3 +381,37 @@ html {
 
 }
 
+
+
+
+/*
+@media only screen and (orientation: landscape) and (min-width: 601px) {
+
+    // override audience sidebar width based on the number of audience members
+    // (see AudienceView.js for how this info ends up on <html>)
+    html {
+
+        &[data-audience-columns="1"] {
+
+            .huddle-chat {
+
+                &--audience {
+                    grid-template-columns: $huddle-stage-column-width $huddle-thumbnail-width;
+                }
+
+                &__sidebar {
+
+                    &-audience-member {
+                        width: 100%;
+                    }
+
+                }
+
+            }
+
+        }
+
+    }
+
+}
+*/
