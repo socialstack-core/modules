@@ -44,6 +44,16 @@ inputTypes.ontypeupload = function (props, _this) {
 	);
 };
 
+inputTypes.ontypenopaging = function (props, _this) {
+	return (
+		<FileSelector
+			id={props.id || _this.fieldId}
+			disablePaging
+			className={props.className || "form-control"}
+			{...omit(props, ['id', 'className', 'type', 'inline'])}
+		/>
+	);
+};
 
 /**
  * Select a file from a users available uploads, outputting a ref.
@@ -164,7 +174,7 @@ export default class FileSelector extends React.Component {
 			>
 				{this.renderHeader()}
 				<div className="file-selector__grid">
-					<Loop raw over={source} filter={{ sort: { field: 'CreatedUtc', direction: 'desc' } }} paged>
+					<Loop raw over={source} filter={{ sort: { field: 'CreatedUtc', direction: 'desc' } }} paged={this.props.disablePaging ? undefined : true}>
 						{
 							entry => {
 
