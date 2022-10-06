@@ -89,8 +89,8 @@ function updateAspectRatio(stage, stageLayouts) {
 
 }
 
-export default function StageView(props){
-	var { users } = props;
+export default function StageView(props) {
+    var { users, huddleClient, isHosted, hostArrived, emptyHuddle, showDebugInfo } = props;
     const stageRef = useRef(null);
 
     var stageLayouts = [];
@@ -122,14 +122,13 @@ export default function StageView(props){
 
     });
 
-	{/* TODO: filter self? */ }
-	if (!users || !users.length) {
-		return emptyStage();
+    if (!users || !users.length) {
+        return emptyStage();
     }
-	
+
     return <ul className="huddle-chat__stage" data-users={users ? users.length : undefined} ref={stageRef}>
         {users.map(user => {
-            return <User className="huddle-chat__stage-user" key={user.id} user={user} />;
+            return <User className="huddle-chat__stage-user" key={user.id} user={user} huddleClient={huddleClient} showDebugInfo={showDebugInfo} isStage />;
         })}
     </ul>;
 }

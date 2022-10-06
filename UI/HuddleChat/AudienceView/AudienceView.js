@@ -30,18 +30,8 @@ function updateSize(audience, pageSize, total) {
 }
 
 export default function AudienceView(props) {
-	const { users, pageSize } = props;
+	const { users, pageSize, huddleClient, showDebugInfo } = props;
 	const audienceRef = useRef(null);
-	var [pageCount, setPageCount] = useState(users.length ? Math.ceil(users.length / pageSize) : 0);
-	var [pageIndex, setPageIndex] = useState(1);
-
-	useEffect(() => {
-		var lastPageIndex = pageIndex;
-		var newPageCount = users.length ? Math.ceil(users.length / pageSize) : 0;
-		setPageCount(newPageCount);
-		setPageIndex(Math.min(lastPageIndex, newPageCount));
-	}, [users]);
-
 	useEffect(() => {
 		var audience = audienceRef.current;
 
@@ -65,49 +55,50 @@ export default function AudienceView(props) {
 
 	});
 
-	function prevAttendees() {
-		setPageIndex(pageIndex - 1);
-    }
-
-	function nextAttendees() {
-		setPageIndex(pageIndex + 1);
-	}
-
-	if (!pageCount) {
+	if (!users) {
 		return;
 	}
 
-	var pageUsers = users.slice((pageIndex - 1) * pageSize, pageIndex * pageSize);
+	var pageUsers = users.filter(u => u.inAudience);
+	var firstUser = pageUsers.length ? pageUsers[0] : null;
+	var lastUser = pageUsers.length ? pageUsers[pageUsers.length - 1] : null;
+
+	var fullPage = pageUsers.length == pageSize;
+	var hasPreviousPage = firstUser && firstUser.isAfterId;
+	var hasNextPage = fullPage && lastUser && lastUser.isBeforeId;
 
 	return (
 		<aside className="huddle-chat__sidebar huddle-chat__sidebar--scrollable huddle-chat__audience">
 			<header className="huddle-chat__sidebar-header">
 				<h2 className="huddle-chat__sidebar-heading">
-					{`Audience (${users.length})`}
+					{/*`Audience (${users.length})`*/}
+					{`Audience`}
 				</h2>
 				<CloseButton isSmall callback={props.toggleAudience} />
 			</header>
 			<div className="huddle-chat__sidebar-body">
 				<ul className="huddle-chat__sidebar-body-internal huddle-chat__sidebar-audience-members" ref={audienceRef}>
 					{pageUsers.map(user => <li className="huddle-chat__sidebar-audience-member">
-						<User user={user} isThumbnail node={"div"} />
+						<User user={user} huddleClient={huddleClient} showDebugInfo={showDebugInfo} isThumbnail node={"div"} isAudience />
 					</li>)}
 				</ul>
 			</div>
 
-			{pageCount > 1 && <>
+			{(hasPreviousPage || hasNextPage) && <>
 				<footer className="huddle-chat__sidebar-footer">
-					<button type="button" className="btn btn-outline-primary huddle-chat__audience-prev" title="Previous" aria-label="Previous page of attendees"
-						disabled={pageIndex == 1 ? "disabled" : undefined} onClick={() => prevAttendees()}>
+					<button type="button" className={hasPreviousPage ? "btn btn-primary huddle-chat__audience-prev" : "btn btn-outline-primary huddle-chat__audience-prev"}
+						title={`Previous`} aria-label={`Previous page of attendees`}
+						disabled={!hasPreviousPage ? "disabled" : undefined} onClick={() => huddleClient.changeAudiencePage(firstUser.id, -1)}>
 						<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 474.133 474.133">
 							<path d="M166.038 237.067l185.234 185.947-21.589 21.486-206.822-207.433L329.683 29.633l21.589 21.589z" fill="currentColor" />
 						</svg>
 					</button>
 					<span className="huddle-chat__audience-page">
-						{pageIndex} of {pageCount}
+						{/*{pageIndex} of {pageCount}*/}
 					</span>
-					<button type="button" className="btn btn-outline-primary huddle-chat__audience-next" title="Next" aria-label="Next page of attendees"
-						disabled={pageIndex == pageCount ? "disabled" : undefined} onClick={() => nextAttendees()}>
+					<button type="button" className={hasNextPage ? "btn btn-primary huddle-chat__audience-next" : "btn btn-outline-primary huddle-chat__audience-next"}
+						title={`Next`} aria-label={`Next page of attendees`}
+						disabled={!hasNextPage ? "disabled" : undefined} onClick={() => huddleClient.changeAudiencePage(firstUser.id, 1)}>
 						<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 474.133 474.133">
 							<path d="M122.861 51.222l185.234 185.845L122.86 423.014 144.45 444.5l206.822-207.433L144.45 29.633z" fill="currentColor" />
 						</svg>

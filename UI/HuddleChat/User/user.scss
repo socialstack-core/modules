@@ -42,6 +42,12 @@
 			z-index: 20;
 		}
 
+		&-host {
+			font-size: 1em;
+			font-weight: 600;
+			text-transform: uppercase;
+		}
+
 		&-audio,
 		&-video {
 			//margin-left: 4px;
@@ -226,6 +232,9 @@
 			z-index: 100;
 		}
 
+		&--host {
+		}
+
 	}
 
 	// check for multiple sharers
@@ -308,6 +317,11 @@
 				}
 			}
 		}
+	}
+
+	.dropdown-item.dropdown-item--danger:hover {
+		background-color: var(--danger);
+		color: var(--danger-fg);
 	}
 
 }

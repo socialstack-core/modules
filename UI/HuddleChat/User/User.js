@@ -1,11 +1,15 @@
 import getRef from 'UI/Functions/GetRef';
 import { useState, useEffect, useRef } from 'react';
 import Dropdown from 'UI/Dropdown';
+import HuddleEnums from 'UI/HuddleClient/HuddleEnums';
 
 const DEFAULT_RATIO = 16 / 9;
 
 export default function User(props){
-	var { user, isThumbnail, node } = props;
+	var {
+		user, isThumbnail, node, huddleClient, showDebugInfo,
+		isStage, isAudience, isPinned
+	} = props;
 	const userRef = useRef();
 	
 	var [videoPaused, setVideoPaused] = useState();
@@ -176,8 +180,8 @@ export default function User(props){
 
 	});
 
-	var userClass = "huddle-chat__user";
-	var avatarClass = "huddle-chat__user-avatar";
+	var userClass = ["huddle-chat__user"];
+	var avatarClass = ["huddle-chat__user-avatar"];
 	var audioOn = user.isMicrophoneOn;
 	var videoOn = user.isWebcamOn;
 	var sharingOn = user.isSharing;
@@ -186,37 +190,44 @@ export default function User(props){
 		audioOn = false;
 		videoOn = false;
 		sharingOn = false;
-		userClass += " huddle-chat__user--gone";
+		userClass.push("huddle-chat__user--gone");
     }
 
 	if (audioOn) {
-		userClass += " huddle-chat__user--audio";
+		userClass.push("huddle-chat__user--audio");
     }
 
 	if (videoOn) {
-		userClass += " huddle-chat__user--video";
-		avatarClass += " huddle-chat__user-avatar--hidden";
+		userClass.push("huddle-chat__user--video");
+		avatarClass.push("huddle-chat__user-avatar--hidden");
 	}
 
 	if (user.creatorUser && user.creatorUser.avatarRef) {
-		userClass += " huddle-chat__user--avatar";
+		userClass.push("huddle-chat__user--avatar");
 	}
 
 	if (!expandVideo) {
-		userClass += " huddle-chat__user--contain-video";
+		userClass.push("huddle-chat__user--contain-video");
     }
 
 	if (isThumbnail) {
-		userClass += " huddle-chat__user--thumbnail";
+		userClass.push("huddle-chat__user--thumbnail");
 	}
 
 	if (sharingOn && !isThumbnail) {
-		userClass += " huddle-chat__user--sharing";
+		userClass.push("huddle-chat__user--sharing");
+	}
+
+	// if not a guest role
+	var isHost = HuddleEnums.isHost(user.role);
+
+	if (isHost) {
+		userClass.push('huddle-chat__user--host');
 	}
 
 	/* TODO: determine active speaker status
 	if (isActive) {
-		userClass += " huddle-chat__user--active";
+		userClass.push("huddle-chat__user--active");
 	}
 	*/
 
@@ -230,9 +241,21 @@ export default function User(props){
 
 	var labelJsx = <i className="fal fa-fw fa-ellipsis-h"></i>;
 
-	return <Node className={userClass} ref={userRef} style={userStyle}>
-		{/*
+	var usernameClass = ['huddle-chat__user-name'];
+
+	return <Node className={userClass.join(' ')} ref={userRef} style={userStyle}>
 		<header className="huddle-chat__user-header">
+			{isHost && <>
+				<span className="huddle-chat__user-host badge bg-primary">
+					{`Host`}
+				</span>
+			</>}
+			{showDebugInfo && <>
+				<span className="huddle-chat__user-host badge bg-secondary">
+					{user.id}
+				</span>
+			</>}
+			{/*
 			<button title={audioOn ? "Mute" : "Unmute"} type="button" disabled={user.audioDisabled ? "disabled" : undefined}
 				className={audioOn ? "btn huddle-chat__user-audio huddle-chat__user--audio-on" : "btn huddle-chat__user--audio-off"}
 				onClick={() => props.setAudio(audioOn ? 0 : 1)}>
@@ -243,11 +266,11 @@ export default function User(props){
 				onClick={() => props.setVideo(videoOn ? 0 : 1)}>
 				<i className={videoOn ? "fas fa-fw fa-video" : "fas fa-fw fa-video-slash"} />
 			</button>
+				*/}
 		</header>
-		 */}
 
 		{!videoOn && <>
-			<div className={avatarClass}>
+			<div className={avatarClass.join(' ')}>
 				{user.creatorUser && user.creatorUser.avatarRef && getRef(user.creatorUser.avatarRef, { size: 256, attribs: { alt: userName }, hideOnError: true })}
 			</div>
 		</>}
@@ -277,7 +300,7 @@ export default function User(props){
 		/>
 
 		<footer className="huddle-chat__user-footer">
-			<span className="huddle-chat__user-name">
+			<span className={usernameClass.join(' ')}>
 				{/* user.avatarRef && getRef(user.avatarRef, { size: 24 }) */}
 				{/*ratio*/}
 				{!user.gone && <>
@@ -291,15 +314,69 @@ export default function User(props){
 				</>}
 			</span>
 
-			{/* NB: disabled until options are included */}
-			{!user.gone && false && <>
+			{!user.gone && huddleClient.isHost() && <>
 				{/* options dropup button */}
 				<Dropdown title={"Options"} className="huddle-chat__user-options" label={labelJsx} variant="link" position="top" align="right">
+					{isStage && <li>
+						<button type="button" className="btn dropdown-item" onClick={() => {
+							huddleClient.moveToAudience(user.id);
+						}}>
+							<i className="fal fa-fw fa-users"></i> {`Join audience`}
+						</button>
+					</li>}
+
+					{isAudience && <li>
+						<button type="button" className="btn dropdown-item" onClick={() => {
+							huddleClient.moveToStage(user.id);
+						}}>
+							<i className="fal fa-fw fa-walking"></i> {`Move to stage`}
+						</button>
+					</li>}
+
+					{isPinned && <li>
+						<button type="button" className="btn dropdown-item" onClick={() => {
+							huddleClient.moveToAudience(user.id);
+						}}>
+							<i className="fal fa-fw fa-users"></i> {`Join audience`}
+						</button>
+					</li>}
+
 					<li>
-						<button type="button" className="btn dropdown-item">
-							<i className="fal fa-fw fa-star"></i> {`Example option`}
+						<hr class="dropdown-divider" />
+					</li>
+
+					{/* TODO: disable if user hasn't selected an audio device */}
+					{/*
+					<li>
+						<button type="button" className="btn dropdown-item" onClick={() => { }}>
+							<i className={audioOn ? "fas fa-fw fa-microphone-slash" : "fas fa-fw fa-microphone"}></i> {audioOn ? `Mute user` : `Unmute user`}
 						</button>
 					</li>
+					*/}
+
+					{/* TODO: disable if user hasn't selected a video device */}
+					{/*
+					<li>
+						<button type="button" className="btn dropdown-item" onClick={() => { }}>
+							<i className={videoOn ? "fas fa-fw fa-video-slash" : "fas fa-fw fa-video"}></i> {videoOn ? `Disable user video` : `Enable user video`}
+						</button>
+					</li>
+
+					{sharingOn && <>
+						<li>
+							<button type="button" className="btn dropdown-item" onClick={() => { }}>
+								<i className="fas fa-fw fa-video-slash"></i> {`Stop user sharing`}
+							</button>
+						</li>
+					</>}
+					*/}
+
+					<li>
+						<button type="button" className="btn dropdown-item dropdown-item--danger" onClick={() => { huddleClient.kick(user.id) }}>
+							<i className="fas fa-fw fa-ban"></i> {`Kick user`}
+						</button>
+					</li>
+
 					{/* now handled automatically */}
 					{/*videoOn && <>
 					<li>

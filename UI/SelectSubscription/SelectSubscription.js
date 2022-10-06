@@ -8,9 +8,6 @@ import getRef from 'UI/Functions/GetRef';
 import FlipCard from 'UI/FlipCard';
 import Loop from 'UI/Loop';
 
-const STRATEGY_STD = 0;
-const STRATEGY_STEPONCE = 1;
-
 export default function SelectSubscription(props) {
 	const { session } = useSession();
 	const { setPage } = useRouter();
@@ -19,7 +16,18 @@ export default function SelectSubscription(props) {
 	
 	function renderWithTiers(product) {
 		var productName = product.name;
-		var cheapestCost = formatCurrency(product.tiers[product.tiers.length - 1].price.amount, session.locale, { hideDecimals: false });
+		var cheapestCost = product.price.amount;
+
+		for (var i = 0; i < product.tiers.length; i++) {
+			var tierPrice = product.tiers[i].price.amount;
+
+			if (tierPrice < cheapestCost) {
+				cheapestCost = tierPrice;
+            }
+
+        }
+
+		cheapestCost = formatCurrency(cheapestCost, session.locale, { hideDecimals: false });
 		var recurrence = recurrenceText(product.billingFrequency);
 		var quantity = getCartQuantity(product.id);
 		const productQtyRef = useRef(null);
@@ -45,7 +53,7 @@ export default function SelectSubscription(props) {
 								{productName}
 							</span>
 							<span className="select-subscription__option-price">
-								{`As low as`} {cheapestCost} {recurrence}
+								{`From`} {cheapestCost} {recurrence}
 							</span>
 						</>
 						<>
@@ -88,11 +96,22 @@ export default function SelectSubscription(props) {
 
 	function renderTierInfo(product) {
 		var tiersTotal = product.tiers.length;
+		var minQuantity = product.tiers[0].minQuantity - 1;
+
+		if (product.minQuantity > minQuantity) {
+			minQuantity = product.minQuantity;
+        }
 
 		return [
-			renderTierInfoInternal("<=", " ", new Intl.NumberFormat(session.locale.code).format(product.tiers[0].minQuantity - 1), product.price.amount),
+			renderTierInfoInternal("<=", " ", new Intl.NumberFormat(session.locale.code).format(minQuantity), product.price.amount),
 			product.tiers.map((tier, tierIndex) => {
-				var fromSeats = new Intl.NumberFormat(session.locale.code).format(tier.minQuantity);
+				var tierMinQuantity = tier.minQuantity;
+
+				if (minQuantity > tierMinQuantity) {
+					tierMinQuantity = minQuantity + 1;
+                }
+
+				var fromSeats = new Intl.NumberFormat(session.locale.code).format(tierMinQuantity);
 				var sep = tierIndex == tiersTotal - 1 ? " " : " \u2013 ";
 				var toSeats = tierIndex == tiersTotal - 1 ? "+" : new Intl.NumberFormat(session.locale.code).format(product.tiers[tierIndex + 1].minQuantity - 1);
 
