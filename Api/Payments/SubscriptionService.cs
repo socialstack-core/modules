@@ -70,7 +70,7 @@ namespace Api.Payments
                     return toUpdate;
                 });
 
-			config = GetConfig<SubscriptionConfig>();
+            config = GetConfig<SubscriptionConfig>();
 
             InstallEmails(
                 new EmailTemplate
@@ -82,56 +82,58 @@ namespace Api.Payments
                         "{\"module\":\"Email/Default\",\"content\":[{\"module\":\"Email/Centered\",\"data\":{}," +
                         "\"content\":[\"Your subscription with us has now been fully cancelled. Thank you for subscribing and we hope to see you again in the future.\"]}]}"
                 },
-				new EmailTemplate
-				{
-					Name = "Payment method expires in a month",
-					Subject = "Your payment card expires in a month",
-					Key = "card_expires_in_a_month",
-					BodyJson = "{\"c\":{\"t\":\"Email/Default\",\"d\":{},\"r\":{\"children\":{\"t\":\"Email/Centered\",\"d\":{},\"c\":[{\"s\":\"Your payment card ending \",\"i\":2},{\"t\":\"b\",\"c\":{\"t\":\"UI/Token\",\"d\":{\"mode\":\"customdata\",\"fields\":[\"cardLastFour\"]},\"i\":4},\"i\":6},{\"s\":\" expires in a month.\",\"i\":2},{\"t\":\"p\",\"c\":{\"s\":\"In order to avoid disruptions, please log into your customer dashboard to update your payment details.\",\"i\":7},\"i\":8},{\"t\":\"Email/PrimaryButton\",\"d\":{\"label\":\"Update Billing Information\",\"target\":\"/subscription/${customData.subscriptionId}/update-card\"},\"r\":{\"label\":{\"s\":\"Update Billing Information\",\"i\":6}},\"i\":4},{\"t\":\"p\",\"c\":{\"s\":\"If you have received this in error, please get in touch as soon as possible. \",\"i\":7},\"i\":8}],\"i\":3},\"customLogo\":null},\"i\":4},\"i\":5}"
-				},
-				new EmailTemplate // Not sent by default. Activated by Subscription config/ SendRenewalEmails
-				{
-					Name = "Your subscription is renewing soon",
-					Subject = "Your subscription is renewing soon",
-					Key = "subscription_renews_soon",
-					BodyJson = "{\"c\":{\"t\":\"Email/Default\",\"d\":{},\"r\":{\"children\":" +
-							   "{\"t\":\"Email/Centered\",\"d\":{},\"c\":[{\"t\":\"p\"," +
-							   "\"c\":{\"s\":\"Thank you for being a customer.\",\"i\":6},\"i\":6}," +
-							   "{\"t\":\"p\",\"c\":{\"s\":\"We hope you're enjoying the service.\",\"i\":7},\"i\":6},{\"t\":\"p\",\"c\":{\"s\":\"We’re letting you " +
-							   "know your subscription will automatically renew soon.\",\"i\":8},\"i\":6}," +
-							   "{\"t\":\"p\",\"c\":{\"s\":\"You do not need to do anything, but if you wish to " +
-							   "cancel or update your payment details, you can do so from your customer dashboard.\"," +
-							   "\"i\":11},\"i\":12},{\"t\":\"p\",\"c\":{\"s\":\"Thank you again!\",\"i\":6},\"i\":7}],\"i\":3},\"customLogo\":null},\"i\":4},\"i\":5}"
-				},
-				new EmailTemplate // Not sent by default. Activated by Subscription config/ SendSubscriptionReminderAfterDays
-				{
-					Name = "Not subscribed - Reminder to subscribe",
-					Subject = "Looks like you haven't subscribed yet",
-					Key = "not_subscribed_reminder",
-					BodyJson = "{\"c\":{\"t\":\"Email/Default\",\"d\":{},\"r\":{\"children\":[{\"t\":" +
-							   "\"Email/Centered\",\"d\":{},\"c\":[{\"t\":\"p\",\"c\":{\"s\":\"It\u2019s been " +
-							   "some time since you created an account with us, but haven\u2019t yet started a " +
-							   "subscription.\",\"i\":6},\"i\":6},{\"t\":\"p\"" +
-							   ",\"c\":{\"s\":\"We\u2019re here to help you " +
-							   "so don\u2019t hesitate to reach out with questions.\",\"i\":6},\"i\":7}],\"i\":3}," +
-							   "{\"t\":\"Email/PrimaryButton\",\"d\":{\"label\":\"Get Started\"," +
-							   "\"target\":\"/subscribe\"},\"r\":{\"label\":{\"s\":\"Get Started\",\"i\":6}}," +
-							   "\"i\":7}],\"customLogo\":null},\"i\":4},\"i\":5}"
-				},
-				new EmailTemplate // Not sent by default. Activated by Subscription config/ SendThankYouEmail
-				{
-					Name = "Thank you for subscribing",
-					Subject = "Thank you for subscribing",
-					Key = "thank_you_for_subscribing",
-					BodyJson = "{\"c\":{\"t\":\"Email/Default\",\"d\":{},\"r\":{\"children\":[{\"t\":\""+
-                            "Email/Centered\",\"d\":{},\"c\":{\"t\":\"p\",\"c\":[{\"s\":\"Your subscription is now confirmed and will next renew on \",\"i\":6}," +
-					        "{\"t\":\"UI/Token\",\"d\":{\"fields\":[\"customData\",\"nextChargeUtc\"]},\"c\":{\"s\":\"customData.nextChargeUtc\",\"i\":6},\"i\":7}," +
-					        "{\"s\":\". If you have any questions please get in touch. Thank you!\",\"i\":8}],\"i\":6},\"i\":3}," +
-					        "{\"t\":\"Email/PrimaryButton\",\"d\":{\"label\":\"My subscriptions\",\"target\":\"/my-subscriptions\"}," +
-					        "\"r\":{\"label\":{\"s\":\"My Subscriptions\",\"i\":6}},\"i\":7}],\"customLogo\":null},\"i\":4},\"i\":5}"
-				}
-			);
-            
+                new EmailTemplate
+                {
+                    Name = "Payment method expires soon",
+                    Subject = "Your payment card expires soon",
+                    Key = "card_expires_soon",
+                    BodyJson =
+                        "{\"c\":{\"t\":\"Email/Default\",\"d\":{},\"r\":{\"children\":{\"t\":\"Email/Centered\",\"d\":{},\"c\":[{\"s\":\"Your payment card ending \",\"i\":2},{\"t\":\"b\",\"c\":{\"t\":\"UI/Token\",\"d\":{\"mode\":\"customdata\",\"fields\":[\"cardLastFour\"]},\"i\":4},\"i\":6},{\"s\":\" expires soon.\",\"i\":2},{\"t\":\"p\",\"c\":{\"s\":\"In order to avoid disruptions, please log into your customer dashboard to update your payment details.\",\"i\":7},\"i\":8},{\"t\":\"Email/PrimaryButton\",\"d\":{\"label\":\"Update Billing Information\",\"target\":\"/subscription/${customData.subscriptionId}/update-card\"},\"r\":{\"label\":{\"s\":\"Update Billing Information\",\"i\":6}},\"i\":4},{\"t\":\"p\",\"c\":{\"s\":\"If you have received this in error, please get in touch as soon as possible. \",\"i\":7},\"i\":8}],\"i\":3},\"customLogo\":null},\"i\":4},\"i\":5}"
+                },
+                new EmailTemplate // Not sent by default. Activated by Subscription config/ SendRenewalEmails
+                {
+                    Name = "Your subscription is renewing soon",
+                    Subject = "Your subscription is renewing soon",
+                    Key = "subscription_renews_soon",
+                    BodyJson = "{\"c\":{\"t\":\"Email/Default\",\"d\":{},\"r\":{\"children\":" +
+                               "{\"t\":\"Email/Centered\",\"d\":{},\"c\":[{\"t\":\"p\"," +
+                               "\"c\":{\"s\":\"Thank you for being a customer.\",\"i\":6},\"i\":6}," +
+                               "{\"t\":\"p\",\"c\":{\"s\":\"We hope you're enjoying the service.\",\"i\":7},\"i\":6},{\"t\":\"p\",\"c\":{\"s\":\"We’re letting you " +
+                               "know your subscription will automatically renew soon.\",\"i\":8},\"i\":6}," +
+                               "{\"t\":\"p\",\"c\":{\"s\":\"You do not need to do anything, but if you wish to " +
+                               "cancel or update your payment details, you can do so from your customer dashboard.\"," +
+                               "\"i\":11},\"i\":12},{\"t\":\"p\",\"c\":{\"s\":\"Thank you again!\",\"i\":6},\"i\":7}],\"i\":3},\"customLogo\":null},\"i\":4},\"i\":5}"
+                },
+                new
+                    EmailTemplate // Not sent by default. Activated by Subscription config/ SendSubscriptionReminderAfterDays
+                    {
+                        Name = "Not subscribed - Reminder to subscribe",
+                        Subject = "Looks like you haven't subscribed yet",
+                        Key = "not_subscribed_reminder",
+                        BodyJson = "{\"c\":{\"t\":\"Email/Default\",\"d\":{},\"r\":{\"children\":[{\"t\":" +
+                                   "\"Email/Centered\",\"d\":{},\"c\":[{\"t\":\"p\",\"c\":{\"s\":\"It\u2019s been " +
+                                   "some time since you created an account with us, but haven\u2019t yet started a " +
+                                   "subscription.\",\"i\":6},\"i\":6},{\"t\":\"p\"" +
+                                   ",\"c\":{\"s\":\"We\u2019re here to help you " +
+                                   "so don\u2019t hesitate to reach out with questions.\",\"i\":6},\"i\":7}],\"i\":3}," +
+                                   "{\"t\":\"Email/PrimaryButton\",\"d\":{\"label\":\"Get Started\"," +
+                                   "\"target\":\"/subscribe\"},\"r\":{\"label\":{\"s\":\"Get Started\",\"i\":6}}," +
+                                   "\"i\":7}],\"customLogo\":null},\"i\":4},\"i\":5}"
+                    },
+                new EmailTemplate // Not sent by default. Activated by Subscription config/ SendThankYouEmail
+                {
+                    Name = "Thank you for subscribing",
+                    Subject = "Thank you for subscribing",
+                    Key = "thank_you_for_subscribing",
+                    BodyJson = "{\"c\":{\"t\":\"Email/Default\",\"d\":{},\"r\":{\"children\":[{\"t\":\"" +
+                               "Email/Centered\",\"d\":{},\"c\":{\"t\":\"p\",\"c\":[{\"s\":\"Your subscription is now confirmed and will next renew on \",\"i\":6}," +
+                               "{\"t\":\"UI/Token\",\"d\":{\"fields\":[\"customData\",\"nextChargeUtc\"]},\"c\":{\"s\":\"customData.nextChargeUtc\",\"i\":6},\"i\":7}," +
+                               "{\"s\":\". If you have any questions please get in touch. Thank you!\",\"i\":8}],\"i\":6},\"i\":3}," +
+                               "{\"t\":\"Email/PrimaryButton\",\"d\":{\"label\":\"My subscriptions\",\"target\":\"/my-subscriptions\"}," +
+                               "\"r\":{\"label\":{\"s\":\"My Subscriptions\",\"i\":6}},\"i\":7}],\"customLogo\":null},\"i\":4},\"i\":5}"
+                }
+            );
+
             // If a subscription payment changes to state 202, fulfil it immediately.
             Events.Purchase.BeforeUpdate.AddEventListener(
                 async (Context context, Purchase purchase, Purchase original) =>
@@ -227,7 +229,8 @@ namespace Api.Payments
 
                 var daysAgo = -config.SendSubscriptionReminderAfterDays;
 
-				var users = await _users.Where("Role=? and CreatedUtc<? and CreatedUtc>?", DataOptions.IgnorePermissions)
+                var users = await _users
+                    .Where("Role=? and CreatedUtc<? and CreatedUtc>?", DataOptions.IgnorePermissions)
                     .Bind(Roles.Member.Id)
                     .Bind(DateTime.UtcNow.AddDays(daysAgo))
                     .Bind(DateTime.UtcNow.AddDays(daysAgo - 1))
@@ -288,6 +291,7 @@ namespace Api.Payments
             {
                 return;
             }
+
             var subsToNotify = await Where("Status<? and NextChargeUtc>? and NextChargeUtc<?",
                     DataOptions.IgnorePermissions)
                 .Bind((uint)2)
@@ -305,12 +309,15 @@ namespace Api.Payments
 
         private async Task NotifyCardExpires(DateTime currentDateUtc, Context context)
         {
-            var expiringPaymentMethods = await _paymentMethods.Where(
-                    "ExpiryUtc>? and ExpiryUtc<? and OneMonthExpiryNotice=?",
-                    DataOptions.IgnorePermissions)
-                .Bind(currentDateUtc)
-                .Bind(currentDateUtc.AddMonths(1))
-                .Bind(false)
+            var expiryDate = new DateTime(currentDateUtc.Year, currentDateUtc.Month, 1);
+            var emailTriggerDate = expiryDate.AddDays(14);
+            if (currentDateUtc.Date != emailTriggerDate.Date)
+            {
+                //nothing to do today
+                return;
+            }
+            var expiringPaymentMethods = await _paymentMethods.Where("ExpiryUtc=?", DataOptions.IgnorePermissions)
+                .Bind(expiryDate)
                 .ListAll(context);
 
             foreach (var paymentMethod in expiringPaymentMethods)
@@ -331,7 +338,7 @@ namespace Api.Payments
                 _emails.Send(new List<Recipient>
                 {
                     recipient
-                }, "card_expires_in_a_month");
+                }, "card_expires_soon");
 
                 await _paymentMethods.Update(context, paymentMethod,
                     (ctx, paymentMethodToUpdate, original) => { paymentMethodToUpdate.OneMonthExpiryNotice = true; },
@@ -352,28 +359,35 @@ namespace Api.Payments
             // For each one, charge it.
             foreach (var subscription in subsToUpdate)
             {
-                if (subscription.WillCancel)
+                try
                 {
-                    // Cancelling this subscription.
-                    // This occurs here such that any duration the user has paid for can be fully utilised.
-                    await Update(context, subscription, (Context context, Subscription toUpdate, Subscription orig) =>
+                    if (subscription.WillCancel)
                     {
-                        // Cancelled (by user)
-                        toUpdate.Status = 2;
-                        toUpdate.WillCancel = false;
-                    }, DataOptions.IgnorePermissions);
+                        // Cancelling this subscription.
+                        // This occurs here such that any duration the user has paid for can be fully utilised.
+                        await Update(context, subscription, (Context context, Subscription toUpdate, Subscription orig) =>
+                        {
+                            // Cancelled (by user)
+                            toUpdate.Status = 2;
+                            toUpdate.WillCancel = false;
+                        }, DataOptions.IgnorePermissions);
 
-                    // Send email:
-                    var recipients = new List<Recipient>();
-                    var userRecipient = new Recipient(subscription.UserId, subscription.LocaleId);
-                    recipients.Add(userRecipient);
-                    _emails.Send(recipients, "subscription_cancelled");
+                        // Send email:
+                        var recipients = new List<Recipient>();
+                        var userRecipient = new Recipient(subscription.UserId, subscription.LocaleId);
+                        recipients.Add(userRecipient);
+                        _emails.Send(recipients, "subscription_cancelled");
 
 #warning TODO: charge overages if there are any. Must discount any pre-paid amounts.
+                    }
+                    else
+                    {
+                        await ChargeSubscription(context, subscription, null, true);
+                    }
                 }
-                else
+                catch (Exception e)
                 {
-                    await ChargeSubscription(context, subscription, null, true);
+                    Console.WriteLine("Error whilst processing a subscription: " + e.ToString());
                 }
             }
         }
@@ -391,33 +405,35 @@ namespace Api.Payments
             // Update the subscription and set to active if not already.
             var wasInActive = subscription.Status != 1;
 
-            var updatedSub = await Update(context, subscription, (Context ctx, Subscription subToUpdate, Subscription orig) =>
-            {
-                // Update the charge dates:
-                SetUpdatedChargeDates(subToUpdate, extraDays);
+            var updatedSub = await Update(context, subscription,
+                (Context ctx, Subscription subToUpdate, Subscription orig) =>
+                {
+                    // Update the charge dates:
+                    SetUpdatedChargeDates(subToUpdate, extraDays);
 
-                // it's active:
-                subToUpdate.Status = 1;
-            }, DataOptions.IgnorePermissions);
+                    // it's active:
+                    subToUpdate.Status = 1;
+                }, DataOptions.IgnorePermissions);
 
             if (wasInActive && updatedSub != null && updatedSub.Status == 1)
             {
-				// Wasn't active before but is now.
-				// Send them an email to say thank you if config says we should.
+                // Wasn't active before but is now.
+                // Send them an email to say thank you if config says we should.
 
-				if (config.SendThankYouEmail)
-				{
-					_emails.Send(new List<Recipient>()
-					{
-						new(subscription.UserId, subscription.LocaleId) {
-                            CustomData = updatedSub
-                        }
-					},
-						"thank_you_for_subscribing");
-				}
-			}
+                if (config.SendThankYouEmail)
+                {
+                    _emails.Send(new List<Recipient>()
+                        {
+                            new(subscription.UserId, subscription.LocaleId)
+                            {
+                                CustomData = updatedSub
+                            }
+                        },
+                        "thank_you_for_subscribing");
+                }
+            }
 
-			return updatedSub;
+            return updatedSub;
         }
 
         /// <summary>

@@ -114,9 +114,17 @@ namespace Api.Payments
 			{
 				throw new PublicException("No payment gateway specified.", "payment_method_required");
 			}
-			
+
+			var dOpts = DataOptions.Default;
+
+			if (context.RoleId == 1)
+			{
+				// Offline purchases
+				dOpts = DataOptions.IgnorePermissions;
+			}
+
 			// Get the payment method (must be reachable by the context):
-			var paymentMethod = await _paymentMethods.Get(context, purchase.PaymentMethodId);
+			var paymentMethod = await _paymentMethods.Get(context, purchase.PaymentMethodId, dOpts);
 
 			if (paymentMethod == null)
 			{
