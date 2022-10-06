@@ -8,6 +8,9 @@ import getRef from 'UI/Functions/GetRef';
 import FlipCard from 'UI/FlipCard';
 import Loop from 'UI/Loop';
 
+const STRATEGY_PAYG = 0;
+const STRATEGY_BULK = 1;
+
 export default function SelectSubscription(props) {
 	const { session } = useSession();
 	const { setPage } = useRouter();
@@ -53,7 +56,12 @@ export default function SelectSubscription(props) {
 								{productName}
 							</span>
 							<span className="select-subscription__option-price">
-								{`From`} {cheapestCost} {recurrence}
+								{product.priceStrategy == STRATEGY_PAYG && <>
+									{`From`} {cheapestCost} {recurrence}
+								</>}
+								{product.priceStrategy == STRATEGY_BULK && <>
+									{formatCurrency(product.price.amount, session.locale, { hideDecimals: false })} {`per seat`}
+								</>}
 							</span>
 						</>
 						<>
