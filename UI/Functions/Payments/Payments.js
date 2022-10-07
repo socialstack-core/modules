@@ -104,8 +104,13 @@ const calculatePrice = (product, quantity) => {
 	if (price == null) {
 		return;
 	}
-	
-	if (tiers && tiers.length > 0)  {
+
+	if (tiers && tiers.length > 0) {
+
+		if (product.minQuantity > tiers[0].minQuantity) {
+			tiers[0].minQuantity = product.minQuantity + 1;
+        }
+
 		// Which tier is the quantity going to target?
 		var targetTier = -1;
 

@@ -101,7 +101,7 @@ export default function Checkout(props) {
 							<label htmlFor="coupon_code" className="form-label">
 								{`Coupon code`}
 							</label>
-							<div className="input-group">
+							<div className="input-group coupon-code-group">
 								<input id="coupon_code" type="text" className="form-control" placeholder={`Enter discount code here`}
 									name="couponCode" onInput={e => {
 									var val = e.target.value;

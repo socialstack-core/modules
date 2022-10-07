@@ -25,7 +25,7 @@ const fractionDigits = (locale) => {
 /**
  * format currency value
  * @param {any} value
- * @param {any} locale
+ * @param {any} locale local locale
  * @param {any} options
  * 
  * options available are:
@@ -38,6 +38,10 @@ const fractionDigits = (locale) => {
  *   
  * - hideDecimals (default: false)
  * - hideSymbol (alias for currencyDisplay: "none" / false)
+ * - currencyCode: defaults to locale.currencyCode
+ * 
+ * for example, to render an amount purchased in a foreign currency:
+ * formatCurrency(12345, session.locale, { currencyCode: "DE" })
  */
 const formatCurrency = (value, locale, options) => {
 	options = options || {};
@@ -54,7 +58,7 @@ const formatCurrency = (value, locale, options) => {
 
 	return new Intl.NumberFormat(locale.code, {
 		style: 'currency',
-		currency: locale.currencyCode,
+		currency: options.currencyCode ? options.currencyCode : locale.currencyCode,
 		currencyDisplay: !hideSymbol && options.currencyDisplay ? options.currencyDisplay : undefined,
 		minimumFractionDigits: options.hideDecimals ? 0 : undefined,
 		maximumFractionDigits: options.hideDecimals ? 0 : undefined

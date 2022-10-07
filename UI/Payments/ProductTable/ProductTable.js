@@ -2,15 +2,16 @@ import { formatCurrency } from "UI/Functions/CurrencyTools";
 import Loop from 'UI/Loop';
 import Alert from 'UI/Alert';
 import { calculatePrice, recurrenceText } from 'UI/Functions/Payments';
+import { useSession } from 'UI/Session';
 
 const STRATEGY_STD = 0;
 const STRATEGY_STEP1 = 1;
 const STRATEGY_STEPALWAYS = 2;
 
 export default function ProductTable(props){
-	
 	var {shoppingCart, addToCart, readonly} = props;
-	
+	const { session } = useSession();
+
 	function renderTotals(cartTotals, options){
 		var totals = [];
 		var coupon = options && options.coupon;
@@ -51,24 +52,24 @@ export default function ProductTable(props){
 						}
 					}
 				}
-				
+
 				var recurTitle = recurrenceText(i);
 				
 				if(totalCost != total){
 					if(i){
 						// i is 0 for one off payments.
 						// This is any recurring things with a discount, where the discount is applied on the first payment only.
-						totals.push(<div>{formatCurrency(totalCost, options)} today, then {
-							formatCurrency(total, options)
+						totals.push(<div>{formatCurrency(totalCost, session.locale, options)} today, then {
+							formatCurrency(total, session.locale, options)
 						} {recurTitle}</div>);
 					}else{
 						totals.push(<div><small><s>{
-							formatCurrency(total, options)
-						}</s></small> {formatCurrency(totalCost, options)}</div>);
+							formatCurrency(total, session.locale, options)
+						}</s></small> {formatCurrency(totalCost, session.locale, options)}</div>);
 					}
 				}else{
 					totals.push(<div>{
-						formatCurrency(totalCost, options)
+						formatCurrency(totalCost, session.locale, options)
 					} {recurTitle}</div>);
 				}
 			}
@@ -137,18 +138,18 @@ export default function ProductTable(props){
 								if(qty < product.minQuantity){
 									qty = product.minQuantity;
 								}
-								
+
 								var cost = calculatePrice(product, qty);
 								
 								cartTotalByFrequency[product.billingFrequency] += cost.amount;
 								if(!currencyCode){
 									currencyCode = cost.currencyCode;
 								}
-								
-								var formattedCost = formatCurrency(cost.amount, cost);
+
+								var formattedCost = formatCurrency(cost.amount, session.locale);
 								
 								if(product.billingFrequency){
-									formattedCost += recurrenceText(product.billingFrequency);
+									formattedCost += ' ' + recurrenceText(product.billingFrequency);
 								}
 								
 								// subscription
@@ -157,10 +158,10 @@ export default function ProductTable(props){
 
 									return <tr>
 										<td>
-											{product.name} <span className="footnote-asterisk" title={`Subscription`}>*</span>
+											{product.name} <span className="footnote-asterisk" title={`Subscription`}></span>
 										</td>
 										<td className="qty-column">
-											{qty}
+											{new Intl.NumberFormat(session.locale.code).format(qty)}
 										</td>
 										<td className="currency-column">
 											{formattedCost}
@@ -188,7 +189,7 @@ export default function ProductTable(props){
 										{cartInfo.quantity}
 									</td>
 									<td className="currency-column">
-										{formatCurrency(product.price.amount, product.price)}
+										{formatCurrency(product.price.amount, session.locale)}
 									</td>
 									{!readonly && <td className="actions-column">
 										<button type="button" className="btn btn-small btn-outline-danger" title={`Remove`}
@@ -206,9 +207,9 @@ export default function ProductTable(props){
 						}
 						<tr>
 							<td>
+								<strong>{`TOTAL`}</strong>
 							</td>
 							<td className="qty-column">
-								{`TOTAL`}:
 							</td>
 							<td className="currency-column" style={{fontWeight: 'bold'}}>
 								{currencyCode ? renderTotals(cartTotalByFrequency, {currencyCode, coupon: props.coupon}) : '-'}
@@ -220,7 +221,7 @@ export default function ProductTable(props){
 						<tr>
 							<td colspan='3'>
 								{hasAtLeastOneSubscription && <small>
-									<span className="footnote-asterisk">*</span> {`Your payment information will be securely stored in order to process future subscription payments. The total stated will also be charged today.`}
+									<span className="footnote-asterisk"></span> {`Your payment information will be securely stored in order to process future subscription payments. The total stated will also be charged today.`}
 								</small>}
 							</td>
 						</tr>
