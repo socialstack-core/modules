@@ -32,7 +32,7 @@ namespace Api.QrCodes
 					return new ValueTask<UrlLookupCache>(cache);
 				}
 
-				cache.Add("/qr/{qrcode.id}", async (string url, UrlLookupNode node, List<string> tokenValues) => {
+				cache.Add("/qr/{qrcode.id}", async (UrlInfo urlInfo, UrlLookupNode node, List<string> tokenValues) => {
 
 					if (tokenValues == null || tokenValues.Count == 0)
 					{
