@@ -37,15 +37,11 @@ export default function SelectSubscription(props) {
 
 		return <>
 			<div className={quantity > 0 ? "select-subscription__option select-subscription__option--selected" : "select-subscription__option"} key={product.id}>
+
 				{/* TODO: allow for linked products to give access to further product details */}
 				{/*<a href={"/product/" + product.id} className="select-subscription__option-link">*/}
-				<button type="button" className="select-subscription__option-link" onClick={e => {
-					e.stopPropagation();
 
-					if (productQtyRef && productQtyRef.current) {
-						productQtyRef.current.base.click();
-                    }
-				}}>
+				<div className="select-subscription__option-card">
 					<FlipCard className="select-subscription__option-internal">
 						<>
 							<span className="select-subscription__option-image-wrapper">
@@ -85,7 +81,8 @@ export default function SelectSubscription(props) {
 							</table>
 						</>
 					</FlipCard>
-				</button>
+				</div>
+
 				{/*</a>*/}
 				<ProductQuantity
 					ref={productQtyRef}
@@ -151,13 +148,8 @@ export default function SelectSubscription(props) {
 			<div className={quantity > 0 ? "select-subscription__option select-subscription__option--selected" : "select-subscription__option"} key={product.id}>
 				{/* TODO: allow for linked products to give access to further product details */}
 				{/*<a href={"/product/" + product.id} className="select-subscription__option-link">*/}
-				<button type="button" className="select-subscription__option-link" onClick={e => {
-					e.stopPropagation();
 
-					if (productQtyRef && productQtyRef.current) {
-						productQtyRef.current.base.click();
-					}
-				}}>
+				<div className="select-subscription__option-card">
 					<FlipCard className="select-subscription__option-internal">
 						<span className="select-subscription__option-image-wrapper">
 							{getRef(product.featureRef, { size: 128, attribs: { className: 'select-subscription__option-image' } })}
@@ -171,7 +163,7 @@ export default function SelectSubscription(props) {
 							{recurrence}
 						</span>
 						</FlipCard>
-				</button>
+				</div>
 				{/*</a>*/}
 				<ProductQuantity
 					ref={productQtyRef}

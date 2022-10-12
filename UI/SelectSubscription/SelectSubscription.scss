@@ -11,10 +11,6 @@ $option_minheight: 250px;
 	max-width: $radio_option_width * 3;
 	margin: 0 auto;
 
-	&__title {
-
-	}
-
 	.product-options {
 
 		.btn-group {
@@ -33,10 +29,10 @@ $option_minheight: 250px;
 		flex-direction: column;
 		align-items: center;
 
-		&-link {
-		    width: 100%;
+		&-card {
+			width: 100%;
 			min-height: $option_minheight;
-		    color: inherit;
+			color: inherit;
 			padding: 0;
 			background: transparent;
 			display: flex;
