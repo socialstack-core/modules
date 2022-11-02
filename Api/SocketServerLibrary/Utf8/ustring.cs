@@ -96,7 +96,11 @@ using System.Runtime.CompilerServices;
 /// </para>
 /// 
 /// </remarks>
+#pragma warning disable CA1050 // Declare types in namespaces
+#pragma warning disable CS8981 // Lowercase names
 public abstract class ustring : IComparable<ustring>, IComparable, IConvertible, IEnumerable<uint>, IEquatable<ustring>
+#pragma warning restore CA1050 // Declare types in namespaces
+#pragma warning restore CS8981 // Lowercase names
 {
 	/// <summary>
 	/// 
