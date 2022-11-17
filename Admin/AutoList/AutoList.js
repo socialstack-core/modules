@@ -21,6 +21,7 @@ export default class AutoList extends React.Component {
 		};
 		
 		this.renderHeader = this.renderHeader.bind(this);
+		this.renderColgroups = this.renderColgroups.bind(this);
 		this.renderEntry = this.renderEntry.bind(this);
 	}
 	
@@ -106,7 +107,29 @@ export default class AutoList extends React.Component {
 			</th>
 		].concat(fields);
 	}
-	
+
+	renderColgroups(allContent) {
+		var fields = this.props.fields.map(field => {
+			var className = '';
+
+			switch (field) {
+				case 'id':
+					className = 'col__id';
+					break;
+            }
+
+			return (
+				<col className={className}>
+				</col>
+			);
+		});
+
+		return [
+			<col className='col__select'>
+			</col>
+		].concat(fields);
+	}
+
 	selectedCount(){
 		var {bulkSelections} = this.state;
 		if(!bulkSelections){
@@ -295,9 +318,9 @@ export default class AutoList extends React.Component {
 				<Row style={{marginBottom: '10px'}}>
 					<Col>
 						{this.props.create && (
-								<a href={ addUrl } className="btn btn-primary">
-									Create
-								</a>
+							<a href={ addUrl } className="btn btn-primary">
+								{`Create`}
+							</a>
 						)}
 					</Col>
 					<Col>
@@ -318,6 +341,7 @@ export default class AutoList extends React.Component {
 				}}>
 					{[
 						this.renderHeader,
+						this.renderColgroups,
 						this.renderEntry
 					]}
 				</Loop>
@@ -333,6 +357,7 @@ export default class AutoList extends React.Component {
 			}} {...this.props} filter={combinedFilter} paged>
 			{[
 				this.renderHeader,
+				this.renderColgroups,
 				this.renderEntry
 			]}
 			</Loop>

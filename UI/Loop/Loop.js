@@ -803,30 +803,50 @@ export default class Loop extends React.Component {
 			case "table":
 				// May have multiple render functions, including for the header and footer.
 				var headerFunc = null;
+				var colgroupsFunc = null;
 				var bodyFunc = renderFunc;
 				var footerFunc = null;
 
 				if (renderFunc.length && !this.props.items) {
-					if (renderFunc.length == 1) {
-						bodyFunc = renderFunc[0];
-					} else {
-						headerFunc = renderFunc[0];
-						bodyFunc = renderFunc[1];
 
-						if (renderFunc.length > 2) {
-							footerFunc = renderFunc[2];
-						}
-					}
+					renderFunc.forEach(func => {
+
+						switch (func.name) {
+							case 'bound renderHeader':
+								headerFunc = func;
+								break;
+							case 'bound renderColgroups':
+								colgroupsFunc = func;
+								break;
+							case 'bound renderEntry':
+								bodyFunc = func;
+								break;
+							case 'bound renderFooter':
+								footerFunc = func;
+								break;
+                        }
+
+                    });
+
 				}
 
 				loopContent = (
-					<table className={"table " + className}>
+					<table className={"table " + className + (this.props.captionTop ? ' caption-top' : '')}>
 						{headerFunc && (
 							<thead>
+								<tr>
 								{
 									headerFunc(results)
 								}
+								</tr>
 							</thead>
+						)}
+						{colgroupsFunc && (
+							<colgroup>
+								{
+									colgroupsFunc(results)
+								}
+							</colgroup>
 						)}
 						<tbody>
 							{
@@ -845,6 +865,11 @@ export default class Loop extends React.Component {
 									footerFunc(results)
 								}
 							</tfoot>
+						)}
+						{this.props.caption && (
+							<caption>
+								{this.props.caption}
+							</caption>
 						)}
 					</table>
 				);
