@@ -232,7 +232,7 @@ namespace Api.AutoForms
 				field.Module = "Admin/ContentSelect";
 
 			}
-			else if (fieldType == typeof(int) && labelName.EndsWith("UserId"))
+			else if (fieldType == typeof(uint) && labelName.EndsWith("UserId"))
 			{
 				// User selection:
 				field.Module = "Admin/User/Select";
