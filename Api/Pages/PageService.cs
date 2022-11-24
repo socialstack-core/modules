@@ -35,7 +35,12 @@ namespace Api.Pages
 						Url = "/",
 						Title = "Homepage",
 						BodyJson = @"{
-							""content"": ""Welcome to your new SocialStack instance. This text comes from the pages table in your database in a format called canvas JSON - you can read more about this format in the documentation.""
+							""c"": {
+								""t"": ""p"",
+								""c"": {
+									""s"": ""Welcome to your new SocialStack instance. This text comes from the pages table in your database in a format called canvas JSON - you can read more about this format in the documentation.""
+								}
+							}
 						}"
 					},
 					new Page()
@@ -43,7 +48,9 @@ namespace Api.Pages
 						Url = "/en-admin",
 						Title = "Welcome to the admin area",
 						BodyJson = @"{
-							""module"": ""Admin/Layouts/Dashboard""
+							""c"": {
+								""t"": ""Admin/Layouts/Dashboard""
+							}
 						}"
 					},
 					new Page()
@@ -51,17 +58,19 @@ namespace Api.Pages
 						Url = "/en-admin/login",
 						Title = "Login to the admin area",
 						BodyJson = @"{
-							""module"": ""Admin/Layouts/Landing"",
-							""content"": [
-								{
-									""module"": ""Admin/Tile"",
-									""content"": [
-										{
-											""module"":""Admin/LoginForm""
-										}
-									]
-								}
-							]
+							""c"": {
+								""t"": ""Admin/Layouts/Landing"",
+								""c"": {
+									""t"": ""Admin/Tile"",
+									""c"": {
+										""t"": ""Admin/LoginForm"",
+						                ""i"": 2
+									},
+									""i"": 3
+								},
+								""i"": 4
+							},
+							""i"": 5
 						}"
 					},
 					new Page()
@@ -69,12 +78,12 @@ namespace Api.Pages
 						Url = "/en-admin/stdout",
 						Title = "Server log monitoring",
 						BodyJson = @"{
-							""module"": ""Admin/Layouts/Default"",
-							""content"": [
-								{
-									""module"": ""Admin/Dashboards/Stdout""
-								}
-							]
+							""c"": {
+								""t"": ""Admin/Layouts/Default"",
+								""c"": {
+									""t"": ""Admin/Dashboards/Stdout""
+								},
+							},
 						}"
 					},
 					new Page()
@@ -82,12 +91,12 @@ namespace Api.Pages
 						Url = "/en-admin/stress-test",
 						Title = "Stress testing the API",
 						BodyJson = @"{
-							""module"": ""Admin/Layouts/Default"",
-							""content"": [
-								{
-									""module"": ""Admin/Dashboards/StressTest""
-								}
-							]
+							""c"": {
+								""t"": ""Admin/Layouts/Default"",
+								""c"": {
+									""t"": ""Admin/Dashboards/StressTest""
+								},
+							},
 						}"
 					},
 					new Page()
@@ -95,12 +104,12 @@ namespace Api.Pages
 						Url = "/en-admin/database",
 						Title = "Developer Database Access",
 						BodyJson = @"{
-							""module"": ""Admin/Layouts/Default"",
-							""content"": [
-								{
-									""module"": ""Admin/Dashboards/Database""
-								}
-							]
+							""c"": {
+								""t"": ""Admin/Layouts/Default"",
+								""c"": {
+									""t"": ""Admin/Dashboards/Database""
+								},
+							},
 						}"
 					},
 					new Page()
@@ -108,17 +117,19 @@ namespace Api.Pages
 						Url = "/en-admin/register",
 						Title = "Create a new account",
 						BodyJson = @"{
-							""module"": ""Admin/Layouts/Landing"",
-							""content"": [
-								{
-									""module"": ""Admin/Tile"",
-									""content"": [
-										{
-											""module"":""Admin/RegisterForm""
-										}
-									]
-								}
-							]
+							""c"": {
+								""t"": ""Admin/Layouts/Landing"",
+								""c"": {
+									""t"": ""Admin/Tile"",
+									""c"": {
+										""t"": ""Admin/RegisterForm"",
+						                ""i"": 2
+									},
+									""i"": 3
+								},
+								""i"": 4
+							},
+							""i"": 5
 						}"
 					},
 					new Page()
@@ -126,12 +137,12 @@ namespace Api.Pages
 						Url = "/en-admin/permissions",
 						Title = "Permissions",
 						BodyJson = @"{
-							""module"": ""Admin/Layouts/Default"",
-							""content"": [
-								{
-									""module"": ""Admin/PermissionGrid""
-								}
-							]
+							""c"": {
+								""t"": ""Admin/Layouts/Default"",
+								""c"": {
+									""t"": ""Admin/PermissionGrid""
+								},
+							},
 						}"
 					},
 					new Page()
@@ -139,7 +150,13 @@ namespace Api.Pages
 						Url = "/404",
 						Title = "Page not found",
 						BodyJson = @"{
-							""content"": ""The page you were looking for wasn't found here.""
+							""c"": {
+								""t"": ""p"",
+								""c"": {
+									""s"": ""The page you were looking for wasn't found here."",
+									""i"": 2
+								}
+							}
 						}"
 					}
 				);
