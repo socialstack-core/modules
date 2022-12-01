@@ -112,11 +112,14 @@ var te8 = null;
 var de8 = null;
 
 class Reader{
-	
 	constructor(bytes){
-		this.bytes = new Uint8Array(bytes);
+		this.reset(bytes);
+	}
+	
+	reset(bytes){
+		this.bytes = bytes.buffer ? bytes : new Uint8Array(bytes);
 		this.i = 0;
-		this.view =  new DataView(this.bytes.buffer);
+		this.view = new DataView(this.bytes.buffer);
 	}
 	
 	next(){
@@ -146,10 +149,8 @@ class Reader{
 	}
 	
 	readBytes(size){
-		var set = new Uint8Array(size);
-		for(var i=0;i<size;i++){
-			set[i]=this.next();
-		}
+		var set = this.bytes.subarray(this.i, this.i + size);
+		this.i+=size;
 		return set;
 	}
 	
@@ -221,10 +222,14 @@ class Reader{
 		 	return null;
 		}
 		var bytesArr = this.readBytes(size - 1);
+		return this.bytesToUtf8(bytesArr);
+	}
+	
+	bytesToUtf8(bytes){
 		if(!de8){
 			de8 = new TextDecoder("utf-8");
 		}
-		return de8.decode(bytesArr);
+		return de8.decode(bytes);
 	}
 	
 }
@@ -308,18 +313,31 @@ class Writer{
 	}
 	
 	writeUtf8(str){
-		if(str === null){
+		var buf = this.getUtf8Bytes(str);
+		if(buf === null){
 			this.writeByte(0);
 			return;
 		}
-		if(!te8){
-			te8 = new TextEncoder("utf-8");
-		}
-		var buf = te8.encode(str);
 		this.writeCompressed(buf.length + 1);
 		for(var i=0;i<buf.length;i++){
 			this.bytes.push(buf[i]);
 		}
+	}
+	
+	writeBytes(arr){
+		for(var i=0;i<arr.length;i++){
+			this.bytes.push(arr[i]);
+		}
+	}
+	
+	getUtf8Bytes(str){
+		if(str === null){
+			return null;
+		}
+		if(!te8){
+			te8 = new TextEncoder("utf-8");
+		}
+		return te8.encode(str);
 	}
 	
 	toBuffer(){
