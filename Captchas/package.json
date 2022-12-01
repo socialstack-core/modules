@@ -1,6 +1,6 @@
 {
     "dependencies":[
     	"UI/CaptchaModal",
-	"Api/Captcha"
+	"Api/Captchas"
     ]
 }
