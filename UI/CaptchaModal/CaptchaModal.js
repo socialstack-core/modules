@@ -6,7 +6,6 @@ import Canvas from 'UI/Canvas';
 import Html from 'UI/Html';
 
 export default function CaptchaModal(props) {
-
 	//access session info, such as the currently logged-in user:
 	const { session , setSession} = useSession();
 	const { visible, onClose , maxAttempts} = props;
