@@ -1,11 +1,11 @@
 using System;
 using System.Linq;
-using System.Threading.Tasks;
 using Api.Contexts;
 using Api.Eventing;
 using Api.Permissions;
 using Api.Startup;
 using Api.Users;
+using System.Threading.Tasks;
 using Google.Protobuf.Reflection;
 
 namespace Api.Captchas
