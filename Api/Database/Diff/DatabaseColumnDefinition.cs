@@ -40,6 +40,11 @@ namespace Api.Database
 		public Type FieldType { get; set; }
 
 		/// <summary>
+		/// Previous column names, if there are any.
+		/// </summary>
+		public string[] PreviousNames;
+
+		/// <summary>
 		/// Create a new database column definition.
 		/// </summary>
 		public DatabaseColumnDefinition() { }

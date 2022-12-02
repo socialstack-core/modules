@@ -82,7 +82,30 @@ namespace Api.Database
 			foreach (var kvp in newTable.Columns)
 			{
 				var existingColumn = GetColumn(kvp.Key);
+				var previousName = false;
 
+				if (existingColumn == null)
+				{
+					// Does it have any previous column names?
+					// If so, check if any of those exist.
+					var prevNames = kvp.Value.PreviousNames;
+
+					if (prevNames != null)
+					{
+						for (var i = 0; i < prevNames.Length; i++)
+						{
+							existingColumn = GetColumn(prevNames[i]);
+
+							if (existingColumn != null)
+							{
+								previousName = true;
+								break;
+							}
+
+						}
+					}
+				}
+				
 				if (existingColumn == null)
 				{
 					// Added.
@@ -91,7 +114,7 @@ namespace Api.Database
 				else
 				{
 					// Has it changed?
-					if (existingColumn.HasChanged(kvp.Value))
+					if (previousName || existingColumn.HasChanged(kvp.Value))
 					{
 						result.Changed.Add(new ChangedColumn() {
 							ToColumn = kvp.Value,

@@ -22,6 +22,11 @@ namespace Api.Database
 		private bool _autoInc;
 
 		/// <summary>
+		/// Previous field names, if any.
+		/// </summary>
+		public string[] PreviousNames;
+
+		/// <summary>
 		/// True if the attribute explicitly set the AutoIncrement field.
 		/// </summary>
 		public bool AutoIncWasSet

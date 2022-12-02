@@ -86,6 +86,11 @@ namespace Api.Database
 					IsAutoIncrement = fieldMeta.AutoIncrement;
 				}
 
+				if (fieldMeta.PreviousNames != null)
+				{
+					PreviousNames = fieldMeta.PreviousNames;
+				}
+
 				if (fieldMeta.Ignore)
 				{
 					Ignore = true;
