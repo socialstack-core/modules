@@ -8,7 +8,7 @@ const DEFAULT_RATIO = 16 / 9;
 export default function User(props){
 	var {
 		user, isThumbnail, node, huddleClient, showDebugInfo,
-		isStage, isAudience, isPinned
+		isStage, isAudience, isPinned, isListView
 	} = props;
 	const userRef = useRef();
 	
@@ -33,7 +33,7 @@ export default function User(props){
 			return;
 		}
 
-		setUserStyle({ '--user-sharing-video-width': Math.ceil(Math.min(rect.width, rect.height) * .35) + 'px' });
+		setUserStyle({ '--user-sharing-video-width': Math.ceil(Math.min(rect.width, rect.height) * .35) + 'px' });		
 		setRatio(newRatio);
 
 		var newExpandVideo = newRatio < (1.6 * DEFAULT_RATIO);
@@ -50,33 +50,7 @@ export default function User(props){
 			timer = setTimeout(() => f.apply(this, args), delay);
 		}
 	}
-
-	// audio
-	var audRef = React.useCallback(ele => {
-		if(!ele){
-			return;
-		}
-		
-		var { user } = props;
-		var audioTrack = user.audioTrack;
-		
-		if(audioTrack == ele.srcObject){
-			return;
-		}
-		
-		if (audioTrack) {
-			console.log("Adding an audio track..", audioTrack);
-			var stream = new MediaStream();
-			stream.addTrack(audioTrack);
-			ele.srcObject = stream;
-
-			ele.play().catch((error) => console.warn('Failed to play audio: ', error));
-		} else {
-			ele.srcObject = null;
-		}
-
-	}, [props.user.audioTrack]);
-
+	
 	// video
 	var vidRef = React.useCallback(ele => {
 		if(!ele){
@@ -86,14 +60,33 @@ export default function User(props){
 		var { user } = props;
 		var videoTrack = user.videoTrack;
 		
-		if(videoTrack == ele.srcObject){
-			return;
-		}
-		
 		if (videoTrack) {
-			var stream = new MediaStream();
-			stream.addTrack(videoTrack);
-
+			if(videoTrack.isMediaSource){
+				var src = window.URL.createObjectURL(videoTrack);
+				ele.src = src;
+				
+				// Handling falling behind (including background pauses for power preseveration) - make sure the time is no more than 200ms
+				ele.ontimeupdate = (event) => {
+					
+					var dur = videoTrack.currentMaxStreamTime;
+					var time = ele.currentTime;
+					
+					if(time + 0.5 < dur){
+						ele.currentTime = dur - 0.1;
+						
+						// ele.play().catch((error) => console.warn('Failed to play video: ', error));
+					}
+				};
+			}else{
+				var stream = new MediaStream();
+				stream.addTrack(videoTrack);
+				ele.srcObject = stream;
+				
+				console.log("Playing video!");
+				ele.play().catch((error) => console.warn('Failed to play video: ', error));
+			}
+			
+			/*
 			ele.oncanplay = () => {
 				// setVideoCanPlay(true)
 			};
@@ -104,19 +97,20 @@ export default function User(props){
 				// Play audio too:
 				// audRef.current.play().catch((error) => console.warn('Failed to play audio: ', error));
 			};
-
-			// ele.onpause = () => setVideoPaused(true);
-
-			ele.srcObject = stream;
+			*/
 			
-			console.log("Playing video!");
-			ele.play().catch((error) => console.warn('Failed to play video: ', error));
-
+			// ele.onpause = () => setVideoPaused(true);
+			
 			// this._startVideoResolution();
 		} else {
-			ele.srcObject = null;
+			if(ele.src){
+				ele.src = '';
+				ele.ontimeupdate = null;
+			}else{
+				ele.srcObject = null;
+			}
 		}
-	
+		
 	}, [props.user.videoTrack]);
 	
 	// sharing
@@ -128,14 +122,8 @@ export default function User(props){
 		var { user } = props;
 		var sharingTrack = user.sharingTrack;
 		
-		if(sharingTrack == ele.srcObject){
-			return;
-		}
-		
 		if (sharingTrack) {
-			var stream = new MediaStream();
-			stream.addTrack(sharingTrack);
-
+			
 			ele.oncanplay = () => {
 				setSharingCanPlay(true)
 			};
@@ -145,14 +133,40 @@ export default function User(props){
 			};
 
 			ele.onpause = () => setSharingPaused(true);
-
-			ele.srcObject = stream;
-
-			ele.play().catch((error) => console.warn('Failed to play sharing video: ', error));
-
+			
+			if(sharingTrack.isMediaSource){
+				var src = window.URL.createObjectURL(sharingTrack);
+				ele.src = src;
+				
+				// Handling falling behind (including background pauses for power preseveration) - make sure the time is no more than 200ms
+				ele.ontimeupdate = (event) => {
+					
+					var dur = sharingTrack.currentMaxStreamTime;
+					var time = ele.currentTime;
+					
+					if(time + 0.5 < dur){
+						ele.currentTime = dur - 0.1;
+						
+						ele.play().catch((error) => console.warn('Failed to play video: ', error));
+					}
+				};
+				
+			}else{
+				var stream = new MediaStream();
+				stream.addTrack(sharingTrack);
+				ele.srcObject = stream;
+				
+				ele.play().catch((error) => console.warn('Failed to play sharing video: ', error));
+			}
+			
 			// this._startVideoResolution();
 		} else {
-			ele.srcObject = null;
+			if(ele.src){
+				ele.src = '';
+				ele.ontimeupdate = null;
+			}else{
+				ele.srcObject = null;
+			}
 		}
 
 	}, [props.user.sharingTrack]);
@@ -182,6 +196,7 @@ export default function User(props){
 
 	var userClass = ["huddle-chat__user"];
 	var avatarClass = ["huddle-chat__user-avatar"];
+	var micBlocked = (user.blockedChannels & 1) == 1;
 	var audioOn = user.isMicrophoneOn;
 	var videoOn = user.isWebcamOn;
 	var sharingOn = user.isSharing;
@@ -197,7 +212,7 @@ export default function User(props){
 		userClass.push("huddle-chat__user--audio");
     }
 
-	if (videoOn) {
+	if (videoOn && !isListView) {
 		userClass.push("huddle-chat__user--video");
 		avatarClass.push("huddle-chat__user-avatar--hidden");
 	}
@@ -225,6 +240,10 @@ export default function User(props){
 		userClass.push('huddle-chat__user--host');
 	}
 
+	if (isListView) {
+		userClass.push('huddle-chat__user--list-view');
+	}
+
 	/* TODO: determine active speaker status
 	if (isActive) {
 		userClass.push("huddle-chat__user--active");
@@ -234,7 +253,6 @@ export default function User(props){
 	var userName = user.creatorUser && user.creatorUser.username ? user.creatorUser.username : 'Unknown user';
 
 	var videoStyle = videoOn ? {} : { 'display': 'none' };
-	var audioStyle = audioOn ? undefined : { 'display': 'none' };
 	var sharingStyle = sharingOn && !isThumbnail ? undefined : { 'display': 'none' };
 
 	var Node = node ?? 'li';
@@ -242,166 +260,234 @@ export default function User(props){
 	var labelJsx = <i className="fal fa-fw fa-ellipsis-h"></i>;
 
 	var usernameClass = ['huddle-chat__user-name'];
+	
+	var isSelf = user.id == huddleClient.selfId;
+	
+	var userMenuJsx = (
+		!user.gone && huddleClient.isHost() && !isSelf && <>
+			{/* options dropup button */}
+			<Dropdown title={"Options"} className="huddle-chat__user-options" label={labelJsx} variant="link" position={isThumbnail ? "bottom" : "top"} align="right">
+				{isStage && <li>
+					<button type="button" className="btn dropdown-item" onClick={() => {
+						huddleClient.moveToAudience(user.id);
+					}}>
+						<i className="fal fa-fw fa-users"></i> {`Join audience`}
+					</button>
+				</li>}
 
-	return <Node className={userClass.join(' ')} ref={userRef} style={userStyle}>
-		<header className="huddle-chat__user-header">
-			{isHost && <>
-				<span className="huddle-chat__user-host badge bg-primary">
-					{`Host`}
-				</span>
-			</>}
-			{showDebugInfo && <>
-				<span className="huddle-chat__user-host badge bg-secondary">
-					{user.id}
-				</span>
-			</>}
-			{/*
-			<button title={audioOn ? "Mute" : "Unmute"} type="button" disabled={user.audioDisabled ? "disabled" : undefined}
-				className={audioOn ? "btn huddle-chat__user-audio huddle-chat__user--audio-on" : "btn huddle-chat__user--audio-off"}
-				onClick={() => props.setAudio(audioOn ? 0 : 1)}>
-				<i className={audioOn ? "fas fa-fw fa-microphone" : "fas fa-fw fa-microphone-slash"} />
-			</button>
-			<button title={videoOn ? "Hide video" : "Show video"} type="button" disabled={user.videoDisabled ? "disabled" : undefined}
-				className={videoOn ? "btn huddle-chat__user-video huddle-chat__user--video-on" : "btn huddle-chat__user--video-off"}
-				onClick={() => props.setVideo(videoOn ? 0 : 1)}>
-				<i className={videoOn ? "fas fa-fw fa-video" : "fas fa-fw fa-video-slash"} />
-			</button>
-				*/}
-		</header>
+				{isAudience && <li>
+					<button type="button" className="btn dropdown-item" onClick={() => {
+						huddleClient.moveToStage(user.id);
+					}}>
+						<i className="fal fa-fw fa-walking"></i> {`Move to stage`}
+					</button>
+				</li>}
 
-		{!videoOn && <>
-			<div className={avatarClass.join(' ')}>
-				{user.creatorUser && user.creatorUser.avatarRef && getRef(user.creatorUser.avatarRef, { size: 256, attribs: { alt: userName }, hideOnError: true })}
-			</div>
-		</>}
+				{isPinned && <li>
+					<button type="button" className="btn dropdown-item" onClick={() => {
+						huddleClient.moveToAudience(user.id);
+					}}>
+						<i className="fal fa-fw fa-users"></i> {`Join audience`}
+					</button>
+				</li>}
 
-		<video className="huddle-chat__user-video" style={videoStyle}
-			ref={vidRef}
-			autoplay
-			playsinline
-			muted
-			controls={false}
-		/>
-
-		<audio className="huddle-chat__user-audio" style={audioStyle}
-			ref={audRef}
-			autoplay
-			playsinline
-			muted={false}
-			controls={false}
-		/>
-
-		<video className="huddle-chat__user-share" style={sharingStyle}
-			ref={sharingRef}
-			autoplay
-			playsinline
-			muted
-			controls={false}
-		/>
-
-		<footer className="huddle-chat__user-footer">
-			<span className={usernameClass.join(' ')}>
-				{/* user.avatarRef && getRef(user.avatarRef, { size: 24 }) */}
-				{/*ratio*/}
-				{!user.gone && <>
-					<span data-clamp="1">
-						{userName}
-					</span>
-					{!audioOn && <i className="fas fa-microphone-slash huddle-chat__user-audio" />}
-				</>}
-				{user.gone && <>
-					{userName} has left the meeting
-				</>}
-			</span>
-
-			{!user.gone && huddleClient.isHost() && <>
-				{/* options dropup button */}
-				<Dropdown title={"Options"} className="huddle-chat__user-options" label={labelJsx} variant="link" position="top" align="right">
-					{isStage && <li>
-						<button type="button" className="btn dropdown-item" onClick={() => {
-							huddleClient.moveToAudience(user.id);
-						}}>
-							<i className="fal fa-fw fa-users"></i> {`Join audience`}
-						</button>
-					</li>}
-
-					{isAudience && <li>
-						<button type="button" className="btn dropdown-item" onClick={() => {
-							huddleClient.moveToStage(user.id);
-						}}>
-							<i className="fal fa-fw fa-walking"></i> {`Move to stage`}
-						</button>
-					</li>}
-
-					{isPinned && <li>
-						<button type="button" className="btn dropdown-item" onClick={() => {
-							huddleClient.moveToAudience(user.id);
-						}}>
-							<i className="fal fa-fw fa-users"></i> {`Join audience`}
-						</button>
-					</li>}
-
-					<li>
-						<hr class="dropdown-divider" />
-					</li>
-
-					{/* TODO: disable if user hasn't selected an audio device */}
-					{/*
-					<li>
-						<button type="button" className="btn dropdown-item" onClick={() => { }}>
-							<i className={audioOn ? "fas fa-fw fa-microphone-slash" : "fas fa-fw fa-microphone"}></i> {audioOn ? `Mute user` : `Unmute user`}
-						</button>
-					</li>
-					*/}
-
-					{/* TODO: disable if user hasn't selected a video device */}
-					{/*
-					<li>
-						<button type="button" className="btn dropdown-item" onClick={() => { }}>
-							<i className={videoOn ? "fas fa-fw fa-video-slash" : "fas fa-fw fa-video"}></i> {videoOn ? `Disable user video` : `Enable user video`}
-						</button>
-					</li>
-
-					{sharingOn && <>
-						<li>
-							<button type="button" className="btn dropdown-item" onClick={() => { }}>
-								<i className="fas fa-fw fa-video-slash"></i> {`Stop user sharing`}
-							</button>
-						</li>
-					</>}
-					*/}
-
-					<li>
-						<button type="button" className="btn dropdown-item dropdown-item--danger" onClick={() => { huddleClient.kick(user.id) }}>
-							<i className="fas fa-fw fa-ban"></i> {`Kick user`}
-						</button>
-					</li>
-
-					{/* now handled automatically */}
-					{/*videoOn && <>
-					<li>
-						<button type="button" className="btn dropdown-item" onClick={() => setExpandVideo(false)}>
-							<i className={!expandVideo ? "fal fa-fw fa-check" : "fal fa-fw"}></i> Scale video
-						</button>
-					</li>
-					<li>
-						<button type="button" className="btn dropdown-item" onClick={() => setExpandVideo(true)}>
-							<i className={expandVideo ? "fal fa-fw fa-check" : "fal fa-fw"}></i> Expand video
-						</button>
-					</li>
-				</>*/}
-					{/*
 				<li>
 					<hr class="dropdown-divider" />
 				</li>
+			
+				{!micBlocked && <li>
+					<button type="button" className="btn dropdown-item" onClick={() => {
+						var channels = user.channels;
+						
+						// 1 is the mic, 2 is webcam, 4 for screenshare.
+						if(audioOn){
+							channels &= ~1;
+						}else{
+							channels |= 1;
+						}
+						
+						huddleClient.setRemoteChannels(user.id, channels);
+					}}>
+						<i className={audioOn ? "fas fa-fw fa-microphone-slash" : "fas fa-fw fa-microphone"}></i> {audioOn ? `Mute user` : `Unmute user`}
+					</button>
+				</li>}
+				
 				<li>
-					<button type="button" className="btn dropdown-item">
-						<i className="fal fa-fw fa-hand-paper"></i> Raise hand
+					<button type="button" className="btn dropdown-item" onClick={() => {
+						var channels = user.channels;
+						
+						// Channel 1 for the mic, 2 for webcam, 4 for screenshare.
+						if(micBlocked){
+							channels &= ~1;
+						}else{
+							channels |= 1;
+						}
+						
+						huddleClient.setBlockedChannels(user.id, channels);
+					}}>
+						<i className={micBlocked ? "fas fa-fw fa-microphone-slash" : "fas fa-fw fa-microphone"}></i> {micBlocked ? `Allow microphone` : `Block microphone`}
 					</button>
 				</li>
+				
+				{/* TODO: disable if user hasn't selected a video device */}
+				{/*
+				<li>
+					<button type="button" className="btn dropdown-item" onClick={() => { }}>
+						<i className={videoOn ? "fas fa-fw fa-video-slash" : "fas fa-fw fa-video"}></i> {videoOn ? `Disable user video` : `Enable user video`}
+					</button>
+				</li>
+
+				{sharingOn && <>
+					<li>
+						<button type="button" className="btn dropdown-item" onClick={() => { }}>
+							<i className="fas fa-fw fa-video-slash"></i> {`Stop user sharing`}
+						</button>
+					</li>
+				</>}
 				*/}
-				</Dropdown>
+
+				<li>
+					<button type="button" className="btn dropdown-item dropdown-item--danger" onClick={() => { huddleClient.kick(user.id) }}>
+						<i className="fas fa-fw fa-ban"></i> {`Remove participant`}
+					</button>
+				</li>
+
+				{/* now handled automatically */}
+				{/*videoOn && <>
+				<li>
+					<button type="button" className="btn dropdown-item" onClick={() => setExpandVideo(false)}>
+						<i className={!expandVideo ? "fal fa-fw fa-check" : "fal fa-fw"}></i> Scale video
+					</button>
+				</li>
+				<li>
+					<button type="button" className="btn dropdown-item" onClick={() => setExpandVideo(true)}>
+						<i className={expandVideo ? "fal fa-fw fa-check" : "fal fa-fw"}></i> Expand video
+					</button>
+				</li>
+			</>*/}
+				{/*
+			<li>
+				<hr class="dropdown-divider" />
+			</li>
+			<li>
+				<button type="button" className="btn dropdown-item">
+					<i className="fal fa-fw fa-hand-paper"></i> Raise hand
+				</button>
+			</li>
+			*/}
+			</Dropdown>
+		</>
+		);
+
+
+
+	return <Node className={userClass.join(' ')} ref={userRef} style={userStyle}>
+
+		{ isListView ? 			
+			
+			<>				
+				
+				{ user.creatorUser.avatarRef ? (					
+					<div className="huddle-chat__user-avatar">					
+						{user.creatorUser && user.creatorUser.avatarRef && getRef(user.creatorUser.avatarRef, { size: 64, attribs: { alt: userName }, hideOnError: true })}
+						</div>					
+					) : (					
+						<div className="huddle-chat__user-avatar huddle-chat__user-avatar--fallback">		
+							<i className="fas fa-fw fa-user"></i>
+						</div>					
+				)}				
+				
+				<span className={usernameClass.join(' ')}>
+					{!user.gone && <strong data-clamp="1">{userName}</strong>}
+					{user.gone && <> {userName} has left the meeting </>}
+					{isHost && !user.gone && <span>{`Host`}</span>}
+				</span>
+
+				<span class="huddle-chat__user-actions">		
+
+					{userMenuJsx}	
+
+					{ audioOn ? <i className="fas fa-fw fa-microphone huddle-chat__user-audio" /> : <i className="fas fa-fw fa-microphone-slash huddle-chat__user-audio" /> }
+
+					{ isStage && <i className="fas fa-fw fa-star huddle-chat__user-stage-icon" /> }
+					
+				</span>
+
+			</>
+			
+			:
+
+			<>
+
+			<header className="huddle-chat__user-header">
+				{isHost && <>
+					<span className="huddle-chat__user-host badge bg-primary">
+						{`Host`}
+					</span>
+				</>}
+				{showDebugInfo && <>
+					<span className="huddle-chat__user-host badge bg-secondary">
+						{user.id}
+					</span>
+				</>}
+				{/*
+				<button title={audioOn ? "Mute" : "Unmute"} type="button" disabled={user.audioDisabled ? "disabled" : undefined}
+					className={audioOn ? "btn huddle-chat__user-audio huddle-chat__user--audio-on" : "btn huddle-chat__user--audio-off"}
+					onClick={() => props.setAudio(audioOn ? 0 : 1)}>
+					<i className={audioOn ? "fas fa-fw fa-microphone" : "fas fa-fw fa-microphone-slash"} />
+				</button>
+				<button title={videoOn ? "Hide video" : "Show video"} type="button" disabled={user.videoDisabled ? "disabled" : undefined}
+					className={videoOn ? "btn huddle-chat__user-video huddle-chat__user--video-on" : "btn huddle-chat__user--video-off"}
+					onClick={() => props.setVideo(videoOn ? 0 : 1)}>
+					<i className={videoOn ? "fas fa-fw fa-video" : "fas fa-fw fa-video-slash"} />
+				</button>
+					*/}
+			</header>
+
+			{!videoOn && <>
+				<div className={avatarClass.join(' ')}>
+					{user.creatorUser && user.creatorUser.avatarRef && getRef(user.creatorUser.avatarRef, { size: 256, attribs: { alt: userName }, hideOnError: true })}
+				</div>
 			</>}
-		</footer>
+
+			<video className="huddle-chat__user-video" style={videoStyle}
+				ref={vidRef}
+				autoplay
+				playsinline
+				muted
+				controls={false}
+			/>
+			
+			<video className="huddle-chat__user-share" style={sharingStyle}
+				ref={sharingRef}
+				autoplay
+				playsinline
+				muted
+				controls={false}
+			/>
+
+			<footer className="huddle-chat__user-footer">
+				<span className={usernameClass.join(' ')}>
+					{/* user.avatarRef && getRef(user.avatarRef, { size: 24 }) */}
+					{/*ratio*/}
+					{!user.gone && <>
+						<span data-clamp="1">
+							{userName}
+						</span>
+						{!audioOn && <i className="fas fa-microphone-slash huddle-chat__user-audio" />}
+					</>}
+					{user.gone && <>
+						{userName} has left the meeting
+					</>}
+				</span>
+
+				{userMenuJsx}
+
+			</footer>
+			
+			</>
+
+		}
+
 	</Node>;
 }

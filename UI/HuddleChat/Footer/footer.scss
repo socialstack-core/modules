@@ -1,11 +1,26 @@
 :root {
 	--fallback__huddle-footer-height: 5rem;
 	--fallback__huddle-footer-bg: transparent;
-  --fallback__huddle-footer-fg: rgba(255,255,255, .75);
+    --fallback__huddle-footer-fg: rgba(255,255,255, .75);
 }
 
 .huddle-chat {
 	$huddle-chat: &;
+
+	 .alert__internal {
+		display: flex;
+		align-items: flex-start; /* This property changes from 'center' to 'flex-start' */
+		flex-direction: row;
+		flex-wrap: nowrap;
+	}
+	
+	span.alert__content {
+		white-space: break-spaces; /* lets the alert text wrap */
+	}
+	.alert__internal > .alert__icon {
+		margin-top: 4px;
+	}
+
 
 	&__footer {
 		display: flex;
@@ -61,7 +76,8 @@
 			}
 
 			.dropdown-menu {
-				transform: translate(calc(2rem - 50%), -.75rem);
+				transform: translateY(-.75rem);
+				min-width: 364px;
 
 				> li > .btn {
 					text-align: center;
@@ -207,6 +223,13 @@ html.no-flexgap {
 
 		&__footer {
 			padding: 8px 16px;
+
+			&-leave .dropdown-toggle {
+				width: 2.5rem;
+				height: 2.5rem;
+				justify-content: center;
+			}
+
 		}
 
 		&__button-wrapper {

@@ -132,7 +132,7 @@ export default function Footer(props) {
 				</div>
 			</>}
 			{isHost && <>
-				<Dropdown label={leaveJsx} variant="danger" position="top" align="middle" className="huddle-chat__footer-leave">
+				<Dropdown label={leaveJsx} variant="danger" position="top" align="right" className="huddle-chat__footer-leave">
 					<li>
 						<button type="button" className="btn dropdown-item" onClick={() => props.onLeave(1)}>
 							<Alert variant="warning">
