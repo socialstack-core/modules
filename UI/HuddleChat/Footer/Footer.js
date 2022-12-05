@@ -11,7 +11,7 @@ import getRef from 'UI/Functions/GetRef';
 const SHARE_CANCELLED = 999;
 
 export default function Footer(props) {
-	var { huddleClient, audioOn, videoOn, shareOn, isHost, playbackInfo, recordMode } = props;
+	var { huddleClient, audioOn, videoOn, shareOn, isHost, playbackInfo, disableRecording, recordMode } = props;
 	const [recordConfirmShown, setRecordConfirmShown] = useState(false);
 	const [screenshareCancelledShown, setScreenshareCancelledShown] = useState(false);
 	const [firefox, setFirefox] = useState(false);
@@ -41,8 +41,10 @@ export default function Footer(props) {
 	shareClass += shareOn ? "btn-primary btn-pulse" : "btn-outline-primary";
 
 	var recordingOn = recordMode == 1;
-	var recordingAvailable = !huddleClient.huddle.huddleType || huddleClient.selfRole() != 3;
-
+	var recordingAvailable =  !huddleClient.huddle.huddleType || huddleClient.selfRole() != 3
+	if(disableRecording !== undefined && disableRecording === true) {
+		recordingAvailable = false;
+	}
 	var recordClass = "btn huddle-chat__button huddle-chat__button--record ";
 	recordClass += recordingOn ? "btn-danger btn-pulse" : "btn-outline-danger";
 
@@ -97,6 +99,28 @@ export default function Footer(props) {
 					</div>
 				</>}
 			</div>
+
+			<div className="huddle-chat__footer-media">
+				<div className="huddle-chat__button-wrapper">
+					<button className={videoClass} title={videoOn ? `Turn off camera` : 'Turn on camera'}
+						onClick={() => props.setVideo(videoOn ? 0 : 1)}>
+						<i className={videoOn ? "fas fa-video" : "fas fa-video-slash"} />
+					</button>
+					<span className="huddle-chat__button-label">
+						{videoOn ? `Camera on` : `Camera off`}
+					</span>
+				</div>
+				<div className="huddle-chat__button-wrapper">
+					<button className={audioClass} title={audioOn ? `Mute` : 'Turn on microphone'}
+						onClick={() => props.setAudio(audioOn ? 0 : 1)}>
+						<i className={audioOn ? "fas fa-microphone" : "fas fa-microphone-slash"} />
+					</button>
+					<span className="huddle-chat__button-label">
+						{audioOn ? `Active` : `Muted`}
+					</span>
+				</div>
+			</div>
+			
 			{!isHost && <>
 				<div className="huddle-chat__button-wrapper">
 					<button type="button" className="btn btn-danger huddle-chat__button huddle-chat__button--hangup" title={`Leave meeting`} onClick={() => props.onLeave(1)}> 
@@ -135,26 +159,7 @@ export default function Footer(props) {
 					</li>
 				</Dropdown>
 			</>}
-			<div className="huddle-chat__footer-media">
-				<div className="huddle-chat__button-wrapper">
-					<button className={videoClass} title={videoOn ? `Turn off camera` : 'Turn on camera'}
-						onClick={() => props.setVideo(videoOn ? 0 : 1)}>
-						<i className={videoOn ? "fas fa-video" : "fas fa-video-slash"} />
-					</button>
-					<span className="huddle-chat__button-label">
-						{videoOn ? `Camera on` : `Camera off`}
-					</span>
-				</div>
-				<div className="huddle-chat__button-wrapper">
-					<button className={audioClass} title={audioOn ? `Mute` : 'Turn on microphone'}
-						onClick={() => props.setAudio(audioOn ? 0 : 1)}>
-						<i className={audioOn ? "fas fa-microphone" : "fas fa-microphone-slash"} />
-					</button>
-					<span className="huddle-chat__button-label">
-						{audioOn ? `Active` : `Muted`}
-					</span>
-				</div>
-			</div>
+			
 		</div>
 		{recordConfirmShown && <>
 			<Modal visible className="record-confirm-modal" title={`Record Meeting`} onClose={() => setRecordConfirmShown(false)}>
@@ -177,7 +182,7 @@ export default function Footer(props) {
 			<Modal visible isLarge className="screenshare-cancelled-modal" title={`Screenshare Cancelled`} onClose={() => setScreenshareCancelledShown(false)}>
 				<p>{`The screenshare session was previously cancelled.`}</p>
 				<p>{`To restore screenshare permissions:`}</p>
-				{!firefox && <>
+				{firefox && <>
 					<ul>
 						<li>
 							{`Click the permissions icon in the browser address bar (see below)`}
@@ -188,7 +193,7 @@ export default function Footer(props) {
 					</ul>
 					{getRef(firefoxPermissions, { attribs: { className: 'firefox-permissions' } })}
 				</>}
-				{(firefox || safari) && <>
+				{safari && <>
 					<ul>
 						<li>
 							{`Click Safari > Preferences from the main menu:`}
