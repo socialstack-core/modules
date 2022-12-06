@@ -483,7 +483,7 @@ export default function User(props){
 			/>
 
 			<footer className="huddle-chat__user-footer">
-					<span className="huddle-chat__user-name-wrapper">
+				<span className="huddle-chat__user-name">
 					{/* user.avatarRef && getRef(user.avatarRef, { size: 24 }) */}
 					{/*ratio*/}
 					{!user.gone && <>
