@@ -23,7 +23,7 @@
 		transition: .3s ease;
 		transition-property: box-shadow;
 
-		&:not(&--video) {
+		&:not(&--video, &--list-view) {
 			display: flex;
 			align-items: center;
 			justify-content: center;
@@ -91,6 +91,22 @@
 
 			&--hidden {
 				visibility: hidden;
+			}
+
+			&--active {
+				box-shadow: var(--huddle-user-active-box-shadow, var(--fallback__huddle-user-active-box-shadow));
+			}
+
+			#{$huddle-chat-user}-ishost {
+				font-size: 10px;
+				font-weight: bold;
+				color: var(--primary-fg);
+				background: var(--primary);
+				border-radius: 4px;
+				padding: 2px 4px;
+				position: absolute;
+				left: 2px;
+				top: 0;
 			}
 
 		}
@@ -235,6 +251,66 @@
 		&--host {
 		}
 
+
+		// List View
+
+		&--list-view {
+			align-items: center;
+			display: flex;
+			justify-content: space-between;
+			padding: 5px 10px;
+
+			#{$huddle-chat-user}-avatar {
+				margin-right: px_to_rem(10);
+				max-width: none;
+				min-width: 0;			
+				width: 40px;
+				flex: 0 0 auto;
+
+				&--fallback {
+					align-items: center;
+					background: #ccc;
+					border-radius: 50%;
+					height: 40px;
+					justify-content: center;
+					display: flex;
+						
+					i {
+						color: #fff;
+						font-size: 18px;
+					}
+
+				}
+
+			}
+
+			#{$huddle-chat-user}-name-wrapper {
+				line-height: 1.1;
+				flex: 1 1 auto;
+			}
+
+			#{$huddle-chat-user}-name {
+				font-weight: bold;
+			}
+
+			#{$huddle-chat-user}-message {
+				font-size: px_to_rem(14);
+				font-weight: normal;
+			}
+
+			#{$huddle-chat-user}-actions {
+				align-items: center;
+				display: flex;
+				margin-left: auto;
+				padding-left: 8px;
+				flex: 0 0 auto;
+
+				#{$huddle-chat-user}-stage-icon { margin-left: px_to_rem(5); }
+
+			}			
+
+		}
+
 	}
 
 	// check for multiple sharers
@@ -343,8 +419,31 @@
 					}
 				}
 			}
+
+			// List View
+
+			&--list-view {
+
+				#{$huddle-chat-user}-actions {
+
+					#{$huddle-chat}__user-options {
+
+						.dropdown-menu {
+							bottom: auto;
+							right: 40px;
+							top: 0;
+						}
+
+					}
+
+				}
+
+			}
+
 		}
+
 	}
+
 }
 
 @media (orientation: portrait) and (max-width: 767px) {
@@ -377,8 +476,28 @@
 
 			}
 
+			// List View
+			&--list-view {
+
+				#{$huddle-chat-user}-avatar {
+					width: 30px;
+
+					&--fallback { height: 30px; }
+
+				}
+
+				#{$huddle-chat-user}-actions {
+
+					#{$huddle-chat}__user-options { display: block; }
+
+				}
+
+			}
+
 		}
+
 	}
+
 }
 
 @media (hover: none) {

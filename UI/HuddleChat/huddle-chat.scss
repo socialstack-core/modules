@@ -64,6 +64,7 @@ html {
 
     &__footer {
         margin-block-end: 1rem;
+		z-index: 1000;
 
         .btn {
             margin-inline-end: .75rem;
@@ -142,6 +143,7 @@ html {
         &-header,
         &-footer {
             flex: 0 0 auto;
+            width: var(--huddle-sidebar-width, var(--fallback__huddle-sidebar-width));
         }
         
         &-header {
@@ -167,6 +169,7 @@ html {
             padding-left: 1px;
             min-height: 0;
             overflow: visible;
+            width: var(--huddle-sidebar-width, var(--fallback__huddle-sidebar-width));
 
             &-internal {
                 height: 100%;
@@ -186,7 +189,8 @@ html {
             align-content: flex-start;
         }
 
-        &-audience-member {
+        &-audience-member--grid {
+            
             //aspect-ratio: 16 / 9;
             background: var(--huddle-audience-member-bg, var(--fallback__huddle-audience-member-bg));
             width: calc((100% - 1px) / 2);
@@ -194,6 +198,9 @@ html {
             #{$huddle-chat}__user {
                 aspect-ratio: 16 / 9;
             }
+        }
+
+        &-audience-member--list {
         }
 
         &--scrollable {
@@ -288,6 +295,8 @@ html {
 }
 
 
+// Portrait Devices
+
 @media only screen and (orientation: portrait) {
 
     .huddle-chat {
@@ -330,6 +339,7 @@ html {
 
             &-header {
                 grid-area: sidebar-title;
+                grid-column: 1 / 3;
                 display: flex;
                 align-items: center;
             }
@@ -342,8 +352,25 @@ html {
                 grid-area: sidebar-options;
             }
 
-            &-audience-member {
+            &-audience-member--grid {
                 width: calc((100vw / 6) - 1px);
+            }
+    
+            &-audience-member--list { }
+
+            .dropdown-menu[data-source="huddle-chat__user-options"] {
+                bottom: 0;
+                min-width: 0;
+                
+                li {
+                    
+                    .btn.dropdown-item {
+                        font-size: 12px;
+                        padding: 0 6px;
+                    }
+                    
+                }
+                
             }
 
         }
@@ -371,9 +398,11 @@ html {
         &__sidebar {
             grid-template-columns: auto 200px;
 
-            &-audience-member {
+            &-audience-member--grid {
                 width: calc((100vw / 4) - 1px);
             }
+    
+            &-audience-member--list { }
 
         }
 
@@ -382,6 +411,47 @@ html {
 }
 
 
+@media only screen and (orientation: landscape) and (min-width: 768px) {
+
+    .huddle-chat {
+
+        &__sidebar {
+            
+            .huddle-chat__sidebar-body-internal { overflow: visible; }
+
+        }
+
+    }
+
+}
+
+
+// Tablet
+
+@media only screen and (min-width: 768px) {
+    
+    .huddle-chat {
+
+        &__sidebar {
+        
+            .dropdown-menu[data-source="huddle-chat__user-options"] {
+                
+                li {
+                    
+                    .btn.dropdown-item {
+                        font-size: 13px;
+                        padding: 2px 5px;
+                    }
+                    
+                }
+                
+            }
+        
+        }
+
+    }
+    
+}
 
 
 /*

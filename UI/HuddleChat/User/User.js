@@ -259,8 +259,6 @@ export default function User(props){
 
 	var labelJsx = <i className="fal fa-fw fa-ellipsis-h"></i>;
 
-	var usernameClass = ['huddle-chat__user-name'];
-	
 	var isSelf = user.id == huddleClient.selfId;
 	
 	var userMenuJsx = (
@@ -271,23 +269,33 @@ export default function User(props){
 					<button type="button" className="btn dropdown-item" onClick={() => {
 						huddleClient.moveToAudience(user.id);
 					}}>
-						<i className="fal fa-fw fa-users"></i> {`Join audience`}
+						<i className="fal fa-fw fa-user-minus"></i> {`Remove from stage`}
 					</button>
 				</li>}
 
 				{isAudience && <li>
-					<button type="button" className="btn dropdown-item" onClick={() => {
-						huddleClient.moveToStage(user.id);
-					}}>
-						<i className="fal fa-fw fa-walking"></i> {`Move to stage`}
-					</button>
+					{user.isOnStage && <>
+						<button type="button" className="btn dropdown-item" onClick={() => {
+							huddleClient.moveToAudience(user.id);
+						}}>
+							<i className="fal fa-fw fa-user-minus"></i> {`Remove from stage`}
+						</button>
+					</>}
+
+					{!user.isOnStage && <>
+						<button type="button" className="btn dropdown-item" onClick={() => {
+							huddleClient.moveToStage(user.id);
+						}}>
+							<i className="fal fa-fw fa-user-plus"></i> {`Add to stage`}
+						</button>
+					</>}
 				</li>}
 
 				{isPinned && <li>
 					<button type="button" className="btn dropdown-item" onClick={() => {
 						huddleClient.moveToAudience(user.id);
 					}}>
-						<i className="fal fa-fw fa-users"></i> {`Join audience`}
+						<i className="fal fa-fw fa-user-minus"></i> {`Remove from stage`}
 					</button>
 				</li>}
 
@@ -295,7 +303,7 @@ export default function User(props){
 					<hr class="dropdown-divider" />
 				</li>
 			
-				{!micBlocked && <li>
+				{!micBlocked && audioOn && <li>
 					<button type="button" className="btn dropdown-item" onClick={() => {
 						var channels = user.channels;
 						
@@ -308,13 +316,13 @@ export default function User(props){
 						
 						huddleClient.setRemoteChannels(user.id, channels);
 					}}>
-						<i className={audioOn ? "fas fa-fw fa-microphone-slash" : "fas fa-fw fa-microphone"}></i> {audioOn ? `Mute user` : `Unmute user`}
+						<i className={audioOn ? "fas fa-fw fa-microphone-slash" : "fas fa-fw fa-microphone"}></i> {`Mute user`}
 					</button>
 				</li>}
 				
 				<li>
 					<button type="button" className="btn dropdown-item" onClick={() => {
-						var channels = user.channels;
+						var channels = user.blockedChannels;
 						
 						// Channel 1 for the mic, 2 for webcam, 4 for screenshare.
 						if(micBlocked){
@@ -379,7 +387,17 @@ export default function User(props){
 		</>
 		);
 
+	var userMessage = '';
 
+	if (user.gone) {
+		userMessage = `has left the meeting`;
+	} else {
+
+		if (user.isSharing) {
+			userMessage = `is sharing their screen`;
+        }
+
+    }
 
 	return <Node className={userClass.join(' ')} ref={userRef} style={userStyle}>
 
@@ -390,29 +408,27 @@ export default function User(props){
 				{ user.creatorUser.avatarRef ? (					
 					<div className="huddle-chat__user-avatar">					
 						{user.creatorUser && user.creatorUser.avatarRef && getRef(user.creatorUser.avatarRef, { size: 64, attribs: { alt: userName }, hideOnError: true })}
-						</div>					
-					) : (					
-						<div className="huddle-chat__user-avatar huddle-chat__user-avatar--fallback">		
-							<i className="fas fa-fw fa-user"></i>
-						</div>					
+						{isHost && <span className="huddle-chat__user-ishost">
+							{`Host`}
+						</span>}
+					</div>					
+				) : (					
+					<div className="huddle-chat__user-avatar huddle-chat__user-avatar--fallback">		
+						<i className="fas fa-fw fa-user"></i>
+					</div>					
 				)}				
 				
-				<span className={usernameClass.join(' ')}>
-					{!user.gone && <strong data-clamp="1">{userName}</strong>}
-					{user.gone && <> {userName} has left the meeting </>}
-					{isHost && !user.gone && <span>{`Host`}</span>}
+				<span className='huddle-chat__user-name-wrapper'>
+					<span className="huddle-chat__user-name" data-clamp="1">{userName}</span>
+					<span className="huddle-chat__user-message">{userMessage}</span>
 				</span>
 
-				<span class="huddle-chat__user-actions">		
-
-					{userMenuJsx}	
-
-					{ audioOn ? <i className="fas fa-fw fa-microphone huddle-chat__user-audio" /> : <i className="fas fa-fw fa-microphone-slash huddle-chat__user-audio" /> }
-
-					{ isStage && <i className="fas fa-fw fa-star huddle-chat__user-stage-icon" /> }
-					
-				</span>
-
+				{!user.gone && <span class="huddle-chat__user-actions">
+					{userMenuJsx}
+					{audioOn ? <i className="fas fa-fw fa-microphone huddle-chat__user-audio" /> : <i className="fas fa-fw fa-microphone-slash huddle-chat__user-audio" />}
+					{isStage && <i className="fas fa-fw fa-star huddle-chat__user-stage-icon" />}
+				</span>}
+				
 			</>
 			
 			:
@@ -467,7 +483,7 @@ export default function User(props){
 			/>
 
 			<footer className="huddle-chat__user-footer">
-				<span className={usernameClass.join(' ')}>
+					<span className="huddle-chat__user-name-wrapper">
 					{/* user.avatarRef && getRef(user.avatarRef, { size: 24 }) */}
 					{/*ratio*/}
 					{!user.gone && <>

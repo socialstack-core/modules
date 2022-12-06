@@ -18,6 +18,7 @@ import CustomChat from 'UI/HuddleChat/CustomChat';
 import Alert from 'UI/Alert';
 import CloseButton from 'UI/CloseButton';
 import HuddleEnums from 'UI/HuddleClient/HuddleEnums';
+import store from 'UI/Functions/Store';
 //import ToastList from 'UI/ToastList';
 
 const MAX_STAGE_USERS = 6;
@@ -37,13 +38,85 @@ export default function HuddleChat(props) {
 	const [joined, setJoined] = useState(false);
 	const [displayName, setDisplayName] = useState(props.displayName);
 	const [deviceHints, setDeviceHints] = useState({});
-	const [users, setUsers] = useState(null);
+	const [users, setUsers] = useState([]);
+	const [huddleInfo, setHuddleInfo] = useState(null);
 	const [permanentFailure, setPermanentFailure] = useState(null);
 	const [userRole, setUserRole] = useState(3);
-	const [leaveMode, setLeaveMode] = useState(0); // 0 = ongoing, 1 = left, 2 = ended (remote requested), 3 = ended (requested by this participant)
+	const [leaveMode, setLeaveMode] = useState(0); // 0 = ongoing, 1 = left, 2 = ended (remote requested), 3 = ended (requested by this participant), 4=forced disconnect
 	const [playbackInfo, setPlaybackInfo] = useState(null);
 	const [endTimer, setEndTimer] = useState(null);
+	const [statusMessage, setStatusMessage] = useState(null);
+	const [showingStatus, setShowingStatus] = useState(false);
 
+	const [notifications, setNotifications] = useState([]);
+	// uncomment for example notifications
+	/*
+	const [notifications, setNotifications] = useState([
+			`Failed to screenshare - please ensure browser permissions have been set.`,
+			<>
+				<p>Lorem ipsum dolor sit amet, consectetur adipiscing elit. Mauris non neque neque.
+					Praesent at facilisis nisl. Phasellus vestibulum ultricies nibh, non tempus mi commodo vitae.
+					Fusce tincidunt orci vitae risus eleifend, a pretium nibh consequat. Fusce auctor pretium massa,
+					vel tincidunt risus placerat vulputate. Proin congue odio non velit fermentum tempus.
+					Suspendisse ac dolor a elit molestie volutpat. Nulla pharetra iaculis gravida.
+					Sed quis ex et erat pulvinar dignissim. Aenean et eros eu odio <a href="#">congue commodo</a> et non nisl.
+					Vestibulum ac justo et velit feugiat condimentum rutrum vel arcu. Maecenas elit tortor,
+					suscipit sit amet fringilla ut, vestibulum vel magna. Morbi nisi nulla,
+					ullamcorper ac aliquet vitae, scelerisque sit amet elit.</p>
+
+				<p>Proin scelerisque lectus vel turpis vestibulum sollicitudin. Nulla aliquet, arcu eu volutpat facilisis,
+					nunc sapien porttitor purus, ac luctus nunc justo quis ipsum. Ut at est mattis, pulvinar enim in, vehicula mi.
+					Donec blandit dictum velit, non ullamcorper ex vulputate sed. Nullam vulputate mi nec massa molestie maximus.
+					Pellentesque laoreet quis sem sit amet molestie. Curabitur sodales ex vulputate, mollis nibh nec, commodo eros.
+					Mauris tellus nibh, euismod at luctus feugiat, lobortis nec neque.</p>
+			</>,
+			<>
+				<h2>{`Camera not found`}</h2>
+				<p>
+					{`Unable to find an available camera - please check your hardware is connected and not currently in use by another application.`}
+				</p>
+			</>
+		]);
+	*/
+
+	const [showingNotifications, setShowingNotifications] = useState(false);
+	
+	var toggleStatus = () => {
+		setShowingStatus(showingStatus ? false : true)
+	}
+
+	var updateStatus = (newStatus) => {
+
+		if (newStatus == statusMessage) {
+			return;
+		}
+
+		setStatusMessage(newStatus);
+		setShowingStatus(true);
+	}
+
+	var toggleNotifications = () => {
+		setShowingNotifications(showingNotifications ? false : true)
+	}
+	
+	var removeNotification = (targetIndex) => {
+
+		if (!notifications || notifications.length - 1 < targetIndex) {
+			return;
+		}
+
+		setNotifications(
+			notifications.filter((notification, index) => {
+				return index != targetIndex;
+			})
+		);
+
+		if (notifications.length == 1) {
+			setShowingNotifications(false);
+		}
+
+	}
+	
 	var onLeave = mode => {
 		huddleClient.destroy(mode);
 		setLeaveMode(mode);
@@ -65,21 +138,28 @@ export default function HuddleChat(props) {
 		var client = new HuddleClient({
 			slug: props.slug, // originate from URL
 			serviceHost: props.serviceHost,
+			regionToUrl: props.regionToUrl,
 			host: props.host,
 			isHttp: props.isHttp,
-			avatarRef: props.avatarRef || props.avatarUrl,
 			roleKey: props.roleKey,
-			displayName: props.displayName,
-			deviceIdAudio: props.deviceIdAudio, // Can be used if avTest is skipped too
+			deviceHints: {
+				audioInitiallyDisabled: props.audioInitiallyDisabled,
+				videoInitiallyDisabled: props.videoInitiallyDisabled,
+				autoStartAudio: props.autoStartAudio, // Used if avTest is skipped
+				autoStartVideo: props.autoStartVideo,
+				deviceIdVideo: props.deviceIdVideo,
+				deviceIdAudio: props.deviceIdAudio, // Can be used if avTest is skipped too
+			},
 			maxBitrateK: props.maxBitrateK,
-			deviceIdVideo: props.deviceIdVideo,
-			autoStartAudio: props.autoStartAudio, // Used if avTest is skipped
-			autoStartVideo: props.autoStartVideo,
-			audioInitiallyDisabled: props.audioInitiallyDisabled,
-			videoInitiallyDisabled: props.videoInitiallyDisabled,
 			onError: e => {
 				console.log(e);
-
+				
+				if(e.inResponseTo == 46 && e.severity != 'fatal'){
+					// This is a recording error. Display a popup.
+					setNotifications(notifications ? [...notifications, e.message] : [e.message]);
+					setShowingNotifications(true);
+				}
+				
 				// failures here (such as huddle not found)
 				if (e.severity == 'fatal') {
 					setPermanentFailure(e);
@@ -97,24 +177,80 @@ export default function HuddleChat(props) {
 			onJoined: client => {
 				setUserRole(client.selfRole());
 			},
-			onLoaded: () => {
-				// Called when the huddle info is loaded, but we have not connected media delivery yet.
-				setUsers([...client.users]);
+			onLoaded: (huddle, client) => {
+				// Huddle info has been loaded. It's never null here.
+				
+				setHuddleInfo(huddle);
 
-				// Might immediately jump into playback. Check for that now:
-				setPlaybackInfo(client.getPlaybackInfo());
+				var defaultOpts = store.get("huddleDefaultDevices");
+				if(props.skipAvTest || defaultOpts && defaultOpts.defaults) {
+					// Skip the AV test and go straight to the media connection.
+					client.startMedia(deviceHints);
+					setJoined(1);
+				}
+				
+				/*
+				if(client.huddle.playback){
+					setPlaybackInfo(client.getPlaybackInfo());
+				}else{
+					setPlaybackInfo(null);
+				}
+				*/
 			}
 		});
-
-		// Add event listeners here
+		
+		// Get existing saved name/ avatar:
+		var userState = client.getUserState();
+		
+		if(props.displayName){
+			
+			// Use display name override:
+			client.updateDisplayName(props.displayName);
+			
+		}else{
+			
+			// Use display name present in the user state:
+			setDisplayName(client.props.displayName);
+			
+		}
+		
+		var avatarOverride = props.avatarRef || props.avatarUrl;
+		
+		if(avatarOverride){
+			
+			// Use avatar present in the user state (the default) otherwise.
+			client.updateAvatarRef(avatarOverride);
+			
+		}
+		
 		client.addEventListener('userchange', (e) => {
 			// e.users is the list of all huddlePresence objects in this meeting
+			console.log("USERS: ", e.users);
 			setUsers([...e.users]);
+		});
+		
+		// Add event listeners here
+		client.addEventListener('huddlechange', (e) => {
+			// e.huddle is the huddle info such as recording state.
+			setHuddleInfo(e.huddle);
+			
+			// If the huddle is being recorded, make sure the status declares it:
+			if(e.huddle.playback){
+				setPlaybackInfo(client.getPlaybackInfo());
+			}else{
+				if(playbackInfo){
+					setPlaybackInfo(null);
+				}
+				
+				if(e.huddle.recording && !e.previous.recording){
+					updateStatus(`This meeting is being recorded`);
+				}
+			}
 		});
 
 		client.addEventListener('status', e => {
 			if (!e.connected) {
-				setUsers(null);
+				setHuddleInfo(null);
 			}
 		});
 
@@ -155,20 +291,6 @@ export default function HuddleChat(props) {
 		</div>;
 	}
 
-	if (!users) {
-		// Note: initial removed IDs is set based on the first array of users given.
-		// So, it's important that we don't give it an empty array until we are loaded.
-		return <div className="huddle-chat--not-connected">
-			<Container>
-				<Row>
-					<Col size={12}>
-						<Loading message={`Connecting`} />
-					</Col>
-				</Row>
-			</Container>
-		</div>;
-	}
-
 	if (leaveMode) {
 		return <div className="huddle-chat--not-connected">
 			<Container>
@@ -184,6 +306,9 @@ export default function HuddleChat(props) {
 							{leaveMode == 3 && <>
 								{`You have ended this meeting.`}
 							</>}
+							{leaveMode == 4 && <>
+								{`Uh oh! Well, that threw a spanner in the works. You have been disconnected from the meeting.`}
+							</>}
 						</Alert>
 						<footer>
 							<a className="btn btn-primary" href={props.backUrl || '/'}>{props.backText || `Go back`}</a>
@@ -194,22 +319,47 @@ export default function HuddleChat(props) {
 		</div>;
 	}
 
-	if (!joined && !props.skipAvTest && !(huddleClient.huddle && huddleClient.huddle.playback)) {
+	if (!huddleInfo) {
+		// Note: initial removed IDs is set based on the first array of users given.
+		// So, it's important that we don't give it an empty array until we are loaded.
+		return <div className="huddle-chat--not-connected">
+			<Container>
+				<Row>
+					<Col size={12}>
+						<Loading message={`Connecting`} />
+					</Col>
+				</Row>
+			</Container>
+		</div>;
+	}
+
+	if (!joined && !props.skipAvTest && !(huddleInfo && huddleInfo.playback)) {
 		// Click farming UI. This is for 2 things: so the user can check their mic/ cam, 
 		// and also so we can farm the click in order to avoid autoplay blocks.
 		return <div className="huddle-lobby">
+
 			<AvTest onDeviceSelect={(newHints) => {
 				var hints = { ...deviceHints, ...newHints };
 				setDeviceHints(hints);
 			}} huddleReadyCallback={setHuddleReady}
 				displayName={displayName}
-				onChangeName={newName => setDisplayName(newName)} />
+				isDisableDevicesMenu={props.disableDevicesMenu}
+				onChangeName={newName => {
+					setDisplayName(newName);
+					huddleClient.updateDisplayName(newName);
+				}} />
 
 			{huddleReady && <>
 				<footer className="huddle-lobby__footer">
-					<SpeakerTest />
+					
+					{ !props.disableDevicesMenu && <SpeakerTest /> }
 
 					<button className="btn btn-primary" onClick={() => {
+						console.log("click - join meeting");
+						huddleClient.startMedia(deviceHints);
+						setJoined(1);
+					}} onTouchStart={() => {
+						console.log("touch start - join meeting");
 						huddleClient.startMedia(deviceHints);
 						setJoined(1);
 					}}>
@@ -217,54 +367,37 @@ export default function HuddleChat(props) {
 					</button>
 				</footer>
 			</>}
+
 		</div>;
 	}
-
+	
 	return <>
-		<HuddleChatUI {...props} userRole={userRole} huddleClient={huddleClient} users={users} onLeave={onLeave} playbackInfo={playbackInfo} />
+		<HuddleChatUI {...props} userRole={userRole} huddleClient={huddleClient} 
+			huddleInfo={huddleInfo} users={users} onLeave={onLeave} playbackInfo={playbackInfo}
+			showingNotifications={showingNotifications}
+			removeNotification={removeNotification}
+			displayName={displayName}
+			notifications={notifications}
+			toggleNotifications={toggleNotifications}
+			toggleStatus={toggleStatus}
+			statusMessage={statusMessage}
+			setStatusMessage={setStatusMessage}
+			showingStatus={showingStatus}
+			setShowingStatus={setShowingStatus}
+			setDisplayName={setDisplayName}
+		/>
 	</>;
 }
 
 function HuddleChatUI(props) {
-	const huddleRef = useRef(null);
 
-	var { users, huddleClient, disableChat, disableAudience, disableReactions, disableOptions, title, description } = props;
+	const huddleRef = useRef(null);	
+
+	var { users, huddleClient, disableChat, disableAudience, disableReactions, disableOptions, title, description, huddleInfo, playbackInfo, displayName, setDisplayName } = props;
 
 	title = title || `Meet Now`;
-	description = description || `Beta`;
+	description = description || ``;
 
-	const [notifications, setNotifications] = useState([]);
-	// uncomment for example notifications
-	/*
-	const [notifications, setNotifications] = useState([
-			`Failed to screenshare - please ensure browser permissions have been set.`,
-			<>
-				<p>Lorem ipsum dolor sit amet, consectetur adipiscing elit. Mauris non neque neque.
-					Praesent at facilisis nisl. Phasellus vestibulum ultricies nibh, non tempus mi commodo vitae.
-					Fusce tincidunt orci vitae risus eleifend, a pretium nibh consequat. Fusce auctor pretium massa,
-					vel tincidunt risus placerat vulputate. Proin congue odio non velit fermentum tempus.
-					Suspendisse ac dolor a elit molestie volutpat. Nulla pharetra iaculis gravida.
-					Sed quis ex et erat pulvinar dignissim. Aenean et eros eu odio <a href="#">congue commodo</a> et non nisl.
-					Vestibulum ac justo et velit feugiat condimentum rutrum vel arcu. Maecenas elit tortor,
-					suscipit sit amet fringilla ut, vestibulum vel magna. Morbi nisi nulla,
-					ullamcorper ac aliquet vitae, scelerisque sit amet elit.</p>
-
-				<p>Proin scelerisque lectus vel turpis vestibulum sollicitudin. Nulla aliquet, arcu eu volutpat facilisis,
-					nunc sapien porttitor purus, ac luctus nunc justo quis ipsum. Ut at est mattis, pulvinar enim in, vehicula mi.
-					Donec blandit dictum velit, non ullamcorper ex vulputate sed. Nullam vulputate mi nec massa molestie maximus.
-					Pellentesque laoreet quis sem sit amet molestie. Curabitur sodales ex vulputate, mollis nibh nec, commodo eros.
-					Mauris tellus nibh, euismod at luctus feugiat, lobortis nec neque.</p>
-			</>,
-			<>
-				<h2>{`Camera not found`}</h2>
-				<p>
-					{`Unable to find an available camera - please check your hardware is connected and not currently in use by another application.`}
-				</p>
-			</>
-		]);
-	*/
-
-	const [showingNotifications, setShowingNotifications] = useState(false);
 	const [removedUserIds, setRemovedUserIds] = useState(() => {
 		var map = new Map();
 
@@ -343,7 +476,7 @@ function HuddleChatUI(props) {
 	users.forEach(u => {
 		if (u.isOnStage) {
 			// Someone is on the stage. The huddle is not empty if it's not "this" user OR it's a hosted meeting.
-			if (huddleClient.selfId != u.id || huddleClient.huddle.huddleType != 0) {
+			if (huddleClient.selfId != u.id || huddleInfo.huddleType != 0) {
 				// Otherwise yes it's myself. It's not empty if I'm a host though.
 				emptyHuddle = false;
 			}
@@ -351,22 +484,20 @@ function HuddleChatUI(props) {
 	});
 
 	var otherAttendees = users.filter(user => user.id !== huddleClient.selfId);
-	var isHosted = huddleClient.huddle.huddleType != 0;
+	var isHosted = huddleInfo.huddleType != 0;
 	var hostArrived = users.filter(user => !user.gone && HuddleEnums.isHost(user.role)).length > 0;
 	
-	const [statusMessage, setStatusMessage] = useState(null);
-	const [showingStatus, setShowingStatus] = useState(emptyHuddle);
 	const [sidebar, setSidebar] = useState(SidebarEnum.CLOSED);	// sidebar mode. Can only switch to audience when connected.
 	const [showDebugInfo, setShowDebugInfo] = useState(false);
 
 	React.useEffect(() => {
 		
 		if (emptyHuddle) {
-			setStatusMessage(props.waitingMessage || (!isHosted ? `Waiting for others to join ...` : `Waiting for host ...`));
-			setShowingStatus(true);
+			props.setStatusMessage(props.waitingMessage || (!isHosted ? `Waiting for others to join ...` : `Waiting for host ...`));
+			props.setShowingStatus(true);
 		} else {
-			setStatusMessage(null);
-			setShowingStatus(false);
+			props.setStatusMessage(null);
+			props.setShowingStatus(false);
 		}
 
 	}, [emptyHuddle]);
@@ -417,52 +548,21 @@ function HuddleChatUI(props) {
 		//setSidebar(SidebarEnum.CLOSED);
 	}
 
-	function toggleNotifications() {
-		setShowingNotifications(showingNotifications ? false : true)
-	}
-
-	function removeNotification(targetIndex) {
-
-		if (!notifications || notifications.length - 1 < targetIndex) {
-			return;
-		}
-
-		setNotifications(
-			notifications.filter((notification, index) => {
-				return index != targetIndex;
-			})
-		);
-
-		if (notifications.length == 1) {
-			setShowingNotifications(false);
-		}
-
-	}
-
-	function toggleStatus() {
-		setShowingStatus(showingStatus ? false : true)
-	}
-
-	function updateStatus(newStatus) {
-
-		if (newStatus == statusMessage) {
-			return;
-		}
-
-		setStatusMessage(newStatus);
-		setShowingStatus(true);
-	}
-
 	function isHost() {
 		return huddleClient.selfRole() != HuddleEnums.Role.GUEST;
 	}
-
+	
 	return <section className={huddleClasses} ref={huddleRef}>
 		<Header huddleClient={huddleClient} title={title} description={description} users={users} isHost={isHost()}
-			disableChat={disableChat} disableAudience={disableAudience}
-			disableReactions={disableReactions} disableOptions={disableOptions}
-			notifications={notifications} showingNotifications={showingNotifications}
-			toggleNotifications={toggleNotifications}
+			disableChat={playbackInfo ? true : disableChat} disableAudience={playbackInfo ? true : disableAudience}
+			disableReactions={playbackInfo ? true : disableReactions} disableOptions={playbackInfo ? true : disableOptions}
+			notifications={props.notifications} showingNotifications={props.showingNotifications}
+			displayName={displayName}
+			setDisplayName={(newName) => {
+				setDisplayName(newName);
+				huddleClient.updateDisplayName(newName);
+			}}
+			toggleNotifications={props.toggleNotifications}
 			showingAudience={sidebar == SidebarEnum.AUDIENCE}
 			showingConversation={sidebar == SidebarEnum.CONVERSATION}
 			toggleAudience={() => {
@@ -479,18 +579,18 @@ function HuddleChatUI(props) {
 			showDebugInfo={showDebugInfo} toggleShowDebugInfo={(shown) => {
 				setShowDebugInfo(shown);
             }}
-			recordMode={huddleClient.huddle.recording}
+			recordMode={huddleInfo.recording}
 		/>
 
 		{/* notifications */}
-		<Notifications notifications={notifications} showingNotifications={showingNotifications}
-			toggleNotifications={toggleNotifications} removeNotification={(i) => removeNotification(i)}
+		<Notifications notifications={props.notifications} showingNotifications={props.showingNotifications}
+			toggleNotifications={props.toggleNotifications} removeNotification={(i) => props.removeNotification(i)}
 		/>
 
 		{/* stage / pinned */}
 		<div className="huddle-chat__main">
 			<StageView users={mainStageActors} huddleClient={huddleClient} showDebugInfo={showDebugInfo}
-				isHosted={isHosted} hostArrived={hostArrived} emptyHuddle={emptyHuddle} />
+				isHosted={isHosted} hostArrived={hostArrived} emptyHuddle={emptyHuddle} playbackInfo={playbackInfo}/>
 
 			{pinnedStageActors && pinnedStageActors.length > 0 && <>
 				<PinnedView users={pinnedStageActors} huddleClient={huddleClient} showDebugInfo={showDebugInfo} />
@@ -520,19 +620,22 @@ function HuddleChatUI(props) {
 			</header>
 			<div className="huddle-chat__sidebar-body">
 				{props.customChatRoot || props.customChatUrl ? <CustomChat root={props.customChatRoot} url={props.customChatUrl} /> :
-					<ChatLive className="huddle-chat__sidebar-body-internal" />}
+					<ChatLive className="huddle-chat__sidebar-body-internal" pageId={huddleInfo.id}/>}
 			</div>
 		</aside>}
 
 		{/* status */}
-		<Status message={statusMessage} showingStatus={showingStatus} toggleStatus={toggleStatus} />
+		{!playbackInfo && <Status message={props.statusMessage} showingStatus={props.showingStatus} toggleStatus={props.toggleStatus} />}
 
 		{/* main huddle footer (share / record / leave huddle / audio/video options) */}
 		<Footer huddleClient={huddleClient}
-			playbackInfo={props.playbackInfo}
+			playbackInfo={playbackInfo} 
+			disableRecording={props.disableRecording}
+			allowRecording={props.allowRecording}
 			startPlayback={() => huddleClient.startMedia()}
 			stopPlayback={() => huddleClient.stopMedia()}
 			audioOn={huddleClient.isActive('microphone')}
+			blockedChannels={huddleClient.getBlockedChannels()}
 			shareOn={huddleClient.isActive('screenshare')}
 			videoOn={huddleClient.isActive('webcam')}
 			setAudio={state => huddleClient.microphone(state)}
@@ -542,11 +645,10 @@ function HuddleChatUI(props) {
 			onLeave={mode => {
 				props.onLeave(mode);
 			}}
-			recordMode={huddleClient.huddle.recording}
+			recordMode={huddleInfo.recording}
 			onRecordMode={targetMode => {
+				// Ask huddle client to set the recording state:
 				huddleClient.recordingState(targetMode);
-				var msg = targetMode ? `This meeting is now being recorded` : `Meeting recording has ended`;
-				updateStatus(msg);
 			}}
 		/>
 

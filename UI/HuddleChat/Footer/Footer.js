@@ -11,7 +11,7 @@ import getRef from 'UI/Functions/GetRef';
 const SHARE_CANCELLED = 999;
 
 export default function Footer(props) {
-	var { huddleClient, audioOn, videoOn, shareOn, isHost, playbackInfo, disableRecording, recordMode } = props;
+	var { huddleClient, audioOn, videoOn, shareOn, isHost, playbackInfo, disableRecording, recordMode, blockedChannels } = props;
 	const [recordConfirmShown, setRecordConfirmShown] = useState(false);
 	const [screenshareCancelledShown, setScreenshareCancelledShown] = useState(false);
 	const [firefox, setFirefox] = useState(false);
@@ -28,6 +28,28 @@ export default function Footer(props) {
 		// in which case this duration is a snapshot and will continuously grow.
 
 		return <Playback info={playbackInfo} onPlay={() => props.startPlayback()} onPause={() => props.stopPlayback()} />;
+	}
+	
+	// Channel 1 (microphone) is blocked for audience members in a hosted huddle, unless a host unblocks it.
+	// 2 = Mic
+	// 4 = Screenshare
+	var audioIsBlocked = ((blockedChannels & 1) == 1);
+	var camIsBlocked = ((blockedChannels & 2) == 2);
+	var shareIsBlocked = ((blockedChannels & 4) == 4);
+	
+	if(audioIsBlocked){
+		// The effective state of the audio is it's off:
+		audioOn = false;
+	}
+	
+	if(camIsBlocked){
+		// The effective state of the video is it's off:
+		videoOn = false;
+	}
+	
+	if(shareIsBlocked){
+		// The effective state of the video is it's off:
+		shareOn = false;
 	}
 	
 	var isHost = props.isHost;
@@ -70,7 +92,7 @@ export default function Footer(props) {
 				{/* screen sharing not currently available on mobile */}
 				{global.navigator.mediaDevices.getDisplayMedia && <>
 					<div className="huddle-chat__button-wrapper">
-						<button type="button" className={shareClass} title={shareOn ? `Stop sharing` : `Share your screen`} onClick={() => {
+						<button disabled={shareIsBlocked} type="button" className={shareClass} title={shareOn ? `Stop sharing` : `Share your screen`} onClick={() => {
 							props.setShare(shareOn ? 0 : 1, SHARE_CANCELLED)
 								.then(result => {
 									if (result === SHARE_CANCELLED && (firefox || safari)) {
@@ -81,7 +103,7 @@ export default function Footer(props) {
 							<i className="fas fa-share-square" />
 						</button>
 						<span className="huddle-chat__button-label">
-							{shareOn ? `Stop sharing` : `Share`}
+							{shareIsBlocked ? `Blocked` : (shareOn ? `Stop sharing` : `Share`)}
 						</span>
 					</div>
 				</>}
@@ -102,21 +124,21 @@ export default function Footer(props) {
 
 			<div className="huddle-chat__footer-media">
 				<div className="huddle-chat__button-wrapper">
-					<button className={videoClass} title={videoOn ? `Turn off camera` : 'Turn on camera'}
+					<button disabled={camIsBlocked} className={videoClass} title={videoOn ? `Turn off camera` : 'Turn on camera'}
 						onClick={() => props.setVideo(videoOn ? 0 : 1)}>
 						<i className={videoOn ? "fas fa-video" : "fas fa-video-slash"} />
 					</button>
 					<span className="huddle-chat__button-label">
-						{videoOn ? `Camera on` : `Camera off`}
+						{camIsBlocked ? `Blocked` : (videoOn ? `Camera on` : `Camera off`)}
 					</span>
 				</div>
 				<div className="huddle-chat__button-wrapper">
-					<button className={audioClass} title={audioOn ? `Mute` : 'Turn on microphone'}
+					<button disabled={audioIsBlocked} className={audioClass} title={audioOn ? `Mute` : 'Turn on microphone'}
 						onClick={() => props.setAudio(audioOn ? 0 : 1)}>
 						<i className={audioOn ? "fas fa-microphone" : "fas fa-microphone-slash"} />
 					</button>
 					<span className="huddle-chat__button-label">
-						{audioOn ? `Active` : `Muted`}
+						{audioIsBlocked ? `Blocked` : (audioOn ? `Active` : `Muted`)}
 					</span>
 				</div>
 			</div>
