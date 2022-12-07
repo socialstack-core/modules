@@ -19,7 +19,8 @@ import Alert from 'UI/Alert';
 import CloseButton from 'UI/CloseButton';
 import HuddleEnums from 'UI/HuddleClient/HuddleEnums';
 import store from 'UI/Functions/Store';
-//import ToastList from 'UI/ToastList';
+import ToastList from 'UI/ToastList';
+import { useToast } from 'UI/Functions/Toast';
 
 const MAX_STAGE_USERS = 6;
 const MAX_PINNED_USERS = 10;
@@ -34,6 +35,7 @@ const SidebarEnum = Object.freeze({
 });
 
 export default function HuddleChat(props) {
+	const { pop } = useToast();
 	const [huddleReady, setHuddleReady] = useState(false);
 	const [joined, setJoined] = useState(false);
 	const [displayName, setDisplayName] = useState(props.displayName);
@@ -225,8 +227,51 @@ export default function HuddleChat(props) {
 		
 		client.addEventListener('userchange', (e) => {
 			// e.users is the list of all huddlePresence objects in this meeting
-			console.log("USERS: ", e.users);
 			setUsers([...e.users]);
+		});
+
+		client.addEventListener("userpresence", (e) => {
+			// e.user, e.gone (true/false), e.others
+			var user = e.user;
+			var name = user.displayName;
+			var extraPeople = e.others;
+
+			// if the current user just got added, trigger a notification if muted by the host
+			if (client.selfId == user.id && user.isHostMuted) {
+				var mutedMessage = `Please note, video and audio have been disabled by default and can only be enabled by the host. Screen sharing will become available when you join the main stage.`;
+				setNotifications(notifications ? [...notifications, mutedMessage] : [mutedMessage]);
+				setShowingNotifications(true);
+				return;
+			}
+
+			// otherwise inform the user who just left / joined
+			var toastMessage = '';
+
+			if (extraPeople) {
+
+				if (e.gone) {
+					toastMessage = `${name} +${extraPeople} other(s) left the meeting`;
+				} else {
+					toastMessage = `${name} +${extraPeople} others joined the meeting`;
+				}
+
+			} else {
+
+				if (e.gone) {
+					toastMessage = `${name} left the meeting`;
+				} else {
+					toastMessage = `${name} joined the meeting`;
+				}
+
+			}
+
+			pop({
+				title: '',
+				description: toastMessage,
+				duration: 3,
+				variant: 'success'
+			});
+
 		});
 		
 		// Add event listeners here
@@ -596,7 +641,7 @@ function HuddleChatUI(props) {
 				<PinnedView users={pinnedStageActors} huddleClient={huddleClient} showDebugInfo={showDebugInfo} />
 			</>}
 
-			{/*<ToastList horizontal="Right" vertical="Bottom" />*/}
+			{<ToastList horizontal="Right" vertical="Bottom" />}
 		</div>
 
 		{/* audience */}
