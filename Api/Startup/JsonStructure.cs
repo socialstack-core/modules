@@ -234,67 +234,11 @@ namespace Api.Startup
 				{
 					var field = contentField.FieldInfo;
 
-					// Can't use field.GetCustomAttributes because it doesn't work for dynamically generated types.
-					// field.CustomAttributes works either way though, we just have to construct the attribute for ourselves.
-					var customAttributes = field.CustomAttributes;
-
-					List<Attribute> attribs = new List<Attribute>();
-
-					if (customAttributes != null)
-					{
-						foreach (var ca in customAttributes)
-						{
-							var paramCount = ca.ConstructorArguments.Count;
-							var ctorParSet = new object[paramCount];
-
-							for(var i=0;i<paramCount;i++)
-							{
-								var argInfo = ca.ConstructorArguments[i];
-								ctorParSet[i] = argInfo.Value;
-							}
-
-							var ctor = ca.Constructor;
-
-							var newAttrib = ctor.Invoke(ctorParSet) as Attribute;
-
-							// Need to set each named arg too.
-							paramCount = ca.NamedArguments.Count;
-
-							for (var i = 0; i < paramCount; i++)
-							{
-								var argInfo = ca.NamedArguments[i];
-
-								// Get the field or property:
-								var member = argInfo.MemberInfo;
-
-								// Set it on the attrib:
-								var fldInfo = member as FieldInfo;
-
-								if (fldInfo != null)
-								{
-									fldInfo.SetValue(newAttrib, argInfo.TypedValue.Value);
-								}
-								else
-								{
-									var prop = member as PropertyInfo;
-
-									if (prop != null)
-									{
-										prop.GetSetMethod().Invoke(newAttrib, new object[] { argInfo.TypedValue.Value });
-									}
-								}
-
-							}
-
-							attribs.Add(newAttrib);
-						}
-					}
-
 					jsonField = new JsonField<T, ID>()
 					{
 						Name = field.Name,
 						OriginalName = field.Name,
-						Attributes = attribs,
+						Attributes = contentField.Attributes,
 						Structure = this,
 						TargetType = field.FieldType,
 						FieldInfo = field,
@@ -310,7 +254,7 @@ namespace Api.Startup
 					{
 						Name = property.Name,
 						OriginalName = property.Name,
-						Attributes = property.GetCustomAttributes(),
+						Attributes = contentField.Attributes,
 						Structure = this,
 						PropertyInfo = property,
 						TargetType = property.PropertyType,

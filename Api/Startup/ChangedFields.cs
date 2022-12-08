@@ -4,6 +4,7 @@ using Api.Translate;
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.Linq;
 using System.Reflection;
 using System.Threading.Tasks;
 
@@ -228,6 +229,59 @@ namespace Api.Startup {
 		private List<DatabaseIndexInfo> _indexSet;
 
 		/// <summary>
+		/// Attributes on the type itself.
+		/// </summary>
+		public List<System.Attribute> TypeAttributes;
+
+		/// <summary>
+		/// Gets the first attribute on the instanceType of the given type. Returns null if there isn't one.
+		/// </summary>
+		/// <typeparam name="T"></typeparam>
+		/// <returns></returns>
+		public T GetAttribute<T>() where T : class
+		{
+			if (TypeAttributes == null)
+			{
+				return null;
+			}
+
+			foreach (var attribs in TypeAttributes)
+			{
+				if (attribs is T)
+				{
+					return attribs as T;
+				}
+			}
+
+			return null;
+		}
+
+		/// <summary>
+		/// Gets the set of attributes on the type. Returns null if there isn't any.
+		/// </summary>
+		/// <typeparam name="T"></typeparam>
+		/// <returns></returns>
+		public List<T> GetTypeAttributes<T>() where T : class
+		{
+			if (TypeAttributes == null)
+			{
+				return null;
+			}
+
+			var result = new List<T>();
+
+			foreach (var attribs in TypeAttributes)
+			{
+				if (attribs is T)
+				{
+					result.Add(attribs as T);
+				}
+			}
+
+			return result;
+		}
+
+		/// <summary>
 		/// Gets the first match of any of the given field names. They must be lowercase. Null if none exist.
 		/// </summary>
 		/// <param name="fieldNames"></param>
@@ -244,7 +298,7 @@ namespace Api.Startup {
 
 			return null;
 		}
-		
+
 		private void BuildMap()
 		{
 			if (InstanceType == null)
@@ -256,11 +310,14 @@ namespace Api.Startup {
 			// Start collecting db indices:
 			_indexSet = new List<DatabaseIndexInfo>();
 
+			// Build attribute set:
+			TypeAttributes = ContentField.BuildAttributes(InstanceType);
+
 			// Add global listAs attribs, if there is any:
-			var listAsSet = InstanceType.GetCustomAttributes<ListAsAttribute>();
+			var listAsSet = GetTypeAttributes<ListAsAttribute>();
 
 			// Get the implicit types, if there are any:
-			var implicitSet = InstanceType.GetCustomAttributes<ImplicitForAttribute>();
+			var implicitSet = GetTypeAttributes<ImplicitForAttribute>();
 
 			List<ContentField> listAsFields = null;
 
@@ -343,7 +400,7 @@ namespace Api.Startup {
 				_nameMap[field.Name.ToLower()] = cf;
 				
 				// Get field attributes:
-				var attribs = field.GetCustomAttributes(true);
+				var attribs = cf.Attributes;
 
 				foreach (var attrib in attribs)
 				{
@@ -389,7 +446,7 @@ namespace Api.Startup {
 			}
 
 			// Collect any databaseIndex attributes on the type itself:
-			var attributes = InstanceType.GetCustomAttributes(true);
+			var attributes = TypeAttributes;
 
 			foreach (var attrib in attributes)
 			{
@@ -442,7 +499,7 @@ namespace Api.Startup {
 			}
 
 			// Get all the virtuals:
-			var virtualFields = InstanceType.GetCustomAttributes<HasVirtualFieldAttribute>();
+			var virtualFields = GetTypeAttributes<HasVirtualFieldAttribute>();
 
 			foreach (var fieldMeta in virtualFields)
 			{
@@ -542,6 +599,91 @@ namespace Api.Startup {
 			get {
 				return _idCollectorType;
 			}
+		}
+		/// <summary>
+		/// Converts a set of attribute data from the given type (including any it inherits) into an attribute list.
+		/// </summary>
+		/// <param name="type"></param>
+		/// <returns></returns>
+		public static List<Attribute> BuildAttributes(Type type)
+		{
+			var result = new List<Attribute>();
+			BuildAttributes(type.CustomAttributes, result);
+
+			var baseType = type.BaseType;
+
+			while (baseType != null && baseType != typeof(object))
+			{
+				BuildAttributes(baseType.CustomAttributes, result);
+				baseType = baseType.BaseType;
+			}
+
+			return result;
+		}
+		
+		/// <summary>
+		/// Converts a set of attribute data into an attribute list.
+		/// </summary>
+		/// <param name="customAttributes"></param>
+		/// <returns></returns>
+		public static List<Attribute> BuildAttributes(IEnumerable<CustomAttributeData> customAttributes, List<Attribute> intoList = null)
+		{
+			// Can't use field.GetCustomAttributes because it doesn't work for dynamically generated types.
+			// field.CustomAttributes works either way though, we just have to construct the attribute for ourselves.
+
+			List<Attribute> attribs = intoList == null ? new List<Attribute>() : intoList;
+
+			if (customAttributes != null)
+			{
+				foreach (var ca in customAttributes)
+				{
+					var paramCount = ca.ConstructorArguments.Count;
+					var ctorParSet = new object[paramCount];
+
+					for (var i = 0; i < paramCount; i++)
+					{
+						var argInfo = ca.ConstructorArguments[i];
+						ctorParSet[i] = argInfo.Value;
+					}
+
+					var ctor = ca.Constructor;
+
+					var newAttrib = ctor.Invoke(ctorParSet) as Attribute;
+
+					// Need to set each named arg too.
+					paramCount = ca.NamedArguments.Count;
+
+					for (var i = 0; i < paramCount; i++)
+					{
+						var argInfo = ca.NamedArguments[i];
+
+						// Get the field or property:
+						var member = argInfo.MemberInfo;
+
+						// Set it on the attrib:
+						var fldInfo = member as FieldInfo;
+
+						if (fldInfo != null)
+						{
+							fldInfo.SetValue(newAttrib, argInfo.TypedValue.Value);
+						}
+						else
+						{
+							var prop = member as PropertyInfo;
+
+							if (prop != null)
+							{
+								prop.GetSetMethod().Invoke(newAttrib, new object[] { argInfo.TypedValue.Value });
+							}
+						}
+
+					}
+
+					attribs.Add(newAttrib);
+				}
+			}
+
+			return attribs;
 		}
 
 		/// <summary>
@@ -648,6 +790,11 @@ namespace Api.Startup {
 		public List<DatabaseIndexInfo> UsedByIndices;
 
 		/// <summary>
+		/// Attributes on the field/ property (if any). Can be null.
+		/// </summary>
+		public List<Attribute> Attributes;
+
+		/// <summary>
 		/// Adds an index to the usedByIndices set. Does not check if it was already in there.
 		/// </summary>
 		/// <param name="index"></param>
@@ -728,12 +875,14 @@ namespace Api.Startup {
 		/// </summary>
 		public ContentField(FieldInfo info){
 			FieldInfo = info;
+			Attributes = BuildAttributes(info.CustomAttributes);
 		}
 		
 		/// <summary>
 		/// </summary>
 		public ContentField(PropertyInfo info){
 			PropertyInfo = info;
+			Attributes = BuildAttributes(info.CustomAttributes);
 		}
 
 		/// <summary>
@@ -742,6 +891,54 @@ namespace Api.Startup {
 		public ContentField(VirtualInfo info)
 		{
 			VirtualInfo = info;
+		}
+
+		/// <summary>
+		/// Gets the first attribute on this field of the given type. Returns null if there isn't one.
+		/// </summary>
+		/// <typeparam name="T"></typeparam>
+		/// <returns></returns>
+		public T GetAttribute<T>() where T:class
+		{
+			if (Attributes == null)
+			{
+				return null;
+			}
+
+			foreach (var attribs in Attributes)
+			{
+				if (attribs is T)
+				{
+					return attribs as T;
+				}
+			}
+
+			return null;
+		}
+		
+		/// <summary>
+		/// Gets the set of attributes on this field of the given type. Returns null if there isn't one.
+		/// </summary>
+		/// <typeparam name="T"></typeparam>
+		/// <returns></returns>
+		public List<T> GetAttributes<T>() where T:class
+		{
+			if (Attributes == null)
+			{
+				return null;
+			}
+
+			var result = new List<T>();
+
+			foreach (var attribs in Attributes)
+			{
+				if (attribs is T)
+				{
+					result.Add(attribs as T);
+				}
+			}
+
+			return result;
 		}
 
 		/// <summary>
