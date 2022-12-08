@@ -307,11 +307,15 @@ namespace Api.Startup
 			
 			if (startup)
 			{
-				// If it's an AutoService, add it to the lookup:
+				// If it's an AutoService, add it to the lookups:
 				if (autoService != null)
 				{
 					All[serviceType] = autoService;
-					AllByName[serviceType.Name.ToLower()] = autoService;
+					AllByName[
+						autoService.InstanceType == null ? 
+						serviceType.Name.ToLower() : 
+						(autoService.InstanceType.Name.ToLower() + "service")
+					] = autoService;
 					
 					var ctx = new Contexts.Context() {
 						IgnorePermissions = true
@@ -348,10 +352,14 @@ namespace Api.Startup
 			{
 				// Shutdown - deregister this service.
 				All.Remove(serviceType, out _);
-				AllByName.Remove(serviceType.Name.ToLower(), out _);
-
+				
 				if (autoService != null)
 				{
+					var serviceName = autoService.InstanceType == null ? serviceType.Name.ToLower() : 
+						(autoService.InstanceType.Name.ToLower() + "service");
+
+					AllByName.Remove(serviceName, out _);
+
 					var ctx = new Contexts.Context()
 					{
 						IgnorePermissions = true
