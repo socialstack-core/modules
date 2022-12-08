@@ -6,6 +6,7 @@ using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
+using System.Reflection.Emit;
 using System.Threading.Tasks;
 
 namespace Api.Startup {
@@ -503,17 +504,37 @@ namespace Api.Startup {
 
 			foreach (var fieldMeta in virtualFields)
 			{
+				var virtualFieldType = fieldMeta.Type;
+				string virtualFieldTypeName = null;
+
+				if (virtualFieldType == null)
+				{
+					if (string.IsNullOrEmpty(fieldMeta.TypeName))
+					{
+						continue;
+					}
+
+					// Attempt to get the type by name instead:
+					var relatedService = Services.Get(fieldMeta.TypeName + "Service");
+
+					if (relatedService != null)
+					{
+						virtualFieldType = relatedService.InstanceType;
+					}
+					else
+					{
+						// Lazy load it later. The service might be a dynamic one which simply hasn't loaded yet.
+						virtualFieldTypeName = fieldMeta.TypeName;
+					}
+				}
+
 				var vInfo = new VirtualInfo()
 				{
 					FieldName = fieldMeta.FieldName,
-					Type = fieldMeta.Type,
+					Type = virtualFieldType,
+					TypeName = virtualFieldTypeName,
 					IdSourceField = fieldMeta.IdSourceField
 				};
-
-				if (vInfo.Type == null)
-				{
-					throw new PublicException("Virtual fields require a type. '" + vInfo.FieldName + "' on '" + InstanceType.Name + "' does not have one.", "field_type_required");
-				}
 
 				var cf = new ContentField(vInfo);
 
@@ -1040,6 +1061,11 @@ namespace Api.Startup {
 		/// The effective name of the field.
 		/// </summary>
 		public string FieldName;
+		
+		/// <summary>
+		/// Sometimes Type is not available until later. This is the name of the type to load on demand.
+		/// </summary>
+		public string TypeName;
 
 		/// <summary>
 		/// Exists if this is an explicit ListAs field. This is the set of source types for which the ListAs * is implicit.
@@ -1086,10 +1112,44 @@ namespace Api.Startup {
 		/// </summary>
 		public AutoService _service;
 
+		private Type _type;
+
 		/// <summary>
 		/// The type that the ID is for. Must be provided.
 		/// </summary>
-		public Type Type;
+		public Type Type {
+			get {
+
+				if (_type == null)
+				{
+					if (TypeName == null)
+					{
+						throw new Exception("Type name required if lazy loading the type of a virtual field (" + FieldName + ")");
+					}
+
+					if (_service == null)
+					{
+						_service = Services.Get(TypeName + "Service");
+					}
+
+					if (_service == null)
+					{
+						// Type does not exist when it is absolutely necessary.
+						throw new Exception(
+							"A virtual field (" + FieldName + ") referring to another type (" + TypeName + 
+							") was not able to resolve because it either does not exist or has not loaded yet."
+						);
+					}
+
+					_type = _service.InstanceType;
+				}
+
+				return _type;
+			}
+			set {
+				_type = value;
+			}
+		}
 
 		/// <summary>
 		/// The field on the class that the ID of the optional object comes from.

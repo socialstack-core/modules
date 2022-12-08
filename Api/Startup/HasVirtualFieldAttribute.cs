@@ -17,6 +17,10 @@ namespace Api.Startup
 		/// </summary>
 		public Type Type;
 		/// <summary>
+		/// An alternative to a type reference, you can instead use the name. Equiv to the Type field, and the Type field wins if they are both set.
+		/// </summary>
+		public string TypeName;
+		/// <summary>
 		/// The field on the class that the ID of the optional object comes from.
 		/// </summary>
 		public string IdSourceField;
@@ -24,6 +28,12 @@ namespace Api.Startup
 		public HasVirtualFieldAttribute(string fieldName, Type type, string idSourceField){
 			FieldName = fieldName;
 			Type = type;
+			IdSourceField = idSourceField;
+		}
+		
+		public HasVirtualFieldAttribute(string fieldName, string typeName, string idSourceField){
+			FieldName = fieldName;
+			TypeName = typeName;
 			IdSourceField = idSourceField;
 		}
 
