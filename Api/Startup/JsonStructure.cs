@@ -271,6 +271,49 @@ namespace Api.Startup
 				await TryAddField(context, jsonField, readable, beforeSettable, beforeGettable);
 			}
 
+			// Add local list virtual fields:
+			foreach (var field in fields.VirtualList)
+			{
+				if (field.VirtualInfo == null || field.VirtualInfo.IsList == false)
+				{
+					continue;
+				}
+
+				var isExplicit = field.VirtualInfo.IsExplicit;
+
+				if (isExplicit)
+				{
+					// This field exists, but should only appear if it is explicitly asked for.
+					// This is important for includes and also e.g. autoform.
+					// First though, we need to identify if we're one of the exlusions.
+					if (field.VirtualInfo.IsImplicitFor(typeof(T)))
+					{
+						isExplicit = false;
+					}
+				}
+
+				// Get the ID type of the field:
+				var idType = field.VirtualInfo.Type.GetField("Id").FieldType;
+
+				var jsonField = new JsonField<T, ID>()
+				{
+					Name = field.VirtualInfo.FieldName,
+					OriginalName = field.VirtualInfo.FieldName,
+					Structure = this,
+					Hide = isExplicit,
+					TargetType = typeof(IEnumerable<>).MakeGenericType(idType),
+					ContentField = field,
+					IsExplicit = isExplicit,
+					Attributes = Array.Empty<Attribute>(),
+					AfterId = true
+				};
+
+				jsonField.Data["contentType"] = field.VirtualInfo.Type.Name;
+				// Note: initial module is set by TryAdd.
+
+				await TryAddField(context, jsonField, readable, beforeSettable, beforeGettable);
+			}
+
 			// Add global virtual fields:
 			foreach (var kvp in ContentFields._globalVirtualFields)
 			{

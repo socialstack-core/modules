@@ -506,6 +506,7 @@ namespace Api.Startup {
 			{
 				var virtualFieldType = fieldMeta.Type;
 				string virtualFieldTypeName = null;
+				AutoService knownService = null;
 
 				if (virtualFieldType == null)
 				{
@@ -520,6 +521,7 @@ namespace Api.Startup {
 					if (relatedService != null)
 					{
 						virtualFieldType = relatedService.InstanceType;
+						knownService = relatedService;
 					}
 					else
 					{
@@ -533,8 +535,16 @@ namespace Api.Startup {
 					FieldName = fieldMeta.FieldName,
 					Type = virtualFieldType,
 					TypeName = virtualFieldTypeName,
-					IdSourceField = fieldMeta.IdSourceField
+					IdSourceField = fieldMeta.IdSourceField,
+					IsList = fieldMeta.List,
+					Service = knownService
 				};
+
+				if (virtualFieldType != null && vInfo.IsList)
+				{
+					// Establish the meta title field name straight away.
+					vInfo.SetupMetaTitle();
+				}
 
 				var cf = new ContentField(vInfo);
 
@@ -1115,6 +1125,29 @@ namespace Api.Startup {
 		private Type _type;
 
 		/// <summary>
+		/// Sets up the MetaTitleField on list fields.
+		/// </summary>
+		public void SetupMetaTitle()
+		{
+			if (!IsList)
+			{
+				return;
+			}
+
+			var svc = Service;
+
+			if (svc != null)
+			{
+				var contentFields = svc.GetContentFields();
+
+				if (contentFields.MetaFieldMap.TryGetValue("title", out ContentField cf))
+				{
+					MetaTitleField = cf;
+				}
+			}
+		}
+
+		/// <summary>
 		/// The type that the ID is for. Must be provided.
 		/// </summary>
 		public Type Type {
@@ -1142,6 +1175,9 @@ namespace Api.Startup {
 					}
 
 					_type = _service.InstanceType;
+
+					// Setup meta title if one is necessary:
+					SetupMetaTitle();
 				}
 
 				return _type;
@@ -1173,6 +1209,13 @@ namespace Api.Startup {
 
 				_service = Services.GetByContentType(Type);
 				return _service;
+			}
+			set
+			{
+				if (value != null)
+				{
+					_service = value;
+				}
 			}
 		}
 

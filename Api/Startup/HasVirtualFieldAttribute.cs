@@ -24,6 +24,10 @@ namespace Api.Startup
 		/// The field on the class that the ID of the optional object comes from.
 		/// </summary>
 		public string IdSourceField;
+		/// <summary>
+		/// The virtual field is a list of the given type/typename.
+		/// </summary>
+		public bool List;
 
 		public HasVirtualFieldAttribute(string fieldName, Type type, string idSourceField){
 			FieldName = fieldName;
@@ -35,6 +39,17 @@ namespace Api.Startup
 			FieldName = fieldName;
 			TypeName = typeName;
 			IdSourceField = idSourceField;
+		}
+		
+		public HasVirtualFieldAttribute(string fieldName, string typeName, bool isList){
+			FieldName = fieldName;
+			TypeName = typeName;
+			List = isList;
+
+			if (isList)
+			{
+				IdSourceField = "Id";
+			}
 		}
 
 	}
