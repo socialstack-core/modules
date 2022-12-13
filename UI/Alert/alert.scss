@@ -87,7 +87,8 @@
     }
 
     &__content {
-
+		min-width: calc(100% - 3rem);
+		
         p:last-of-type {
             margin-bottom: 0;
         }

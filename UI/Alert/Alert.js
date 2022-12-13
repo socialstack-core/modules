@@ -170,7 +170,8 @@ Alert.propTypes = {
 	variant: ['error', 'warning', 'success', 'info'],
 	isDismissable: 'bool',
 	showIcon: 'bool',
-	icon: 'string'
+	icon: 'string',
+	children:'jsx'
 };
 
 Alert.defaultProps = {
