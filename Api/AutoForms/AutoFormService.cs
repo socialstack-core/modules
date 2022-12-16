@@ -255,6 +255,29 @@ namespace Api.AutoForms
 				
 				field.Data["hint"] = "All dates should be entered as UTC";
 			}
+			else if (fieldType == typeof(int) || fieldType == typeof(int?)
+				|| fieldType == typeof(uint) || fieldType == typeof(uint?)
+				|| fieldType == typeof(long) || fieldType == typeof(long?)
+				|| fieldType == typeof(ulong) || fieldType == typeof(ulong?)
+				|| fieldType == typeof(float) || fieldType == typeof(float?)
+				|| fieldType == typeof(double) || fieldType == typeof(double?)
+			)
+            {
+				type = "number";
+
+				if (!field.Data.ContainsKey("step"))
+                {
+					if (fieldType == typeof(float) || fieldType == typeof(float?)
+						|| fieldType == typeof(double) || fieldType == typeof(double?)
+					)
+                    {
+						field.Data["step"] = "any";
+					} else
+                    {
+						field.Data["step"] = "1";
+					}
+				}
+			}
 
 			field.Data["label"] = SpaceCamelCase(labelName);
 			field.Data["name"] = FirstCharacterToLower(name);
