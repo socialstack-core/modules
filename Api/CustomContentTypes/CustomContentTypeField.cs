@@ -1,15 +1,20 @@
 using System;
+using Api.AutoForms;
 using Api.Database;
+using Api.Startup;
 using Api.Translate;
 using Api.Users;
 
 
 namespace Api.CustomContentTypes
 {
-	
+
 	/// <summary>
 	/// A custom content type field.
 	/// </summary>
+	[ListAs("CustomContentTypeFields")]
+	[ImplicitFor("CustomContentTypeFields", typeof(CustomContentType))]
+	[HasVirtualField("CustomContentType", typeof(CustomContentType), "CustomContentTypeId")]
 	public partial class CustomContentTypeField : VersionedContent<uint>
 	{
 		/// <summary>
@@ -26,11 +31,22 @@ namespace Api.CustomContentTypes
 		/// The type of this field.
 		/// </summary>
 		public string DataType;
-		
+
 		/// <summary>
-		/// The name of this field.
+		/// The entity that this field links to (if DataType is 'entity')
 		/// </summary>
+		public string LinkedEntity;
+
+		/// <summary>
+		/// The name of the field, used by socialstack.
+		/// </summary>
+		[Module(Hide = true)]
 		public string Name;
+
+		/// <summary>
+		/// The human readable nickname of this field.
+		/// </summary>
+		public string NickName;
 	}
 
 }

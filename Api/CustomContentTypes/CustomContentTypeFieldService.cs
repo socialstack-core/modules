@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using Api.Permissions;
 using Api.Contexts;
 using Api.Eventing;
+using System;
 
 namespace Api.CustomContentTypes
 {
@@ -19,7 +20,29 @@ namespace Api.CustomContentTypes
 		public CustomContentTypeFieldService() : base(Events.CustomContentTypeField)
         {
 			// Example admin page install:
-			// InstallAdminPages("CustomContentTypeFields", "fa:fa-rocket", new string[] { "id", "name" });
+			//InstallAdminPages("Content Type Fields", "fa:fa-rocket", new string[] { "customContentTypeId", "nickName" });
+
+			Events.CustomContentTypeField.BeforeCreate.AddEventListener(async (Context ctx, CustomContentTypeField field) => {
+
+				if (field == null)
+				{
+					return null;
+				}
+
+				if (string.IsNullOrWhiteSpace(field.Name) && !string.IsNullOrWhiteSpace(field.NickName))
+				{
+					field.Name = TypeEngine.TidyName(field.NickName);
+				}
+
+				var matchingField = await Where("CustomContentTypeId=? AND Name=?", DataOptions.IgnorePermissions).Bind(field.CustomContentTypeId).Bind(field.Name).First(ctx);
+
+				if (matchingField != null)
+				{
+					throw new Exception("A field already exists with that name");
+				}
+
+				return field;
+			});
 		}
 	}
     

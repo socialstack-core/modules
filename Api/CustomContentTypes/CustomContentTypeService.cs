@@ -25,7 +25,7 @@ namespace Api.CustomContentTypes
 			_fieldService = fieldService;
 
 			// Example admin page install:
-			InstallAdminPages("Content Types", "fa:fa-edit", new string[] { "id", "name" });
+			InstallAdminPages("Manage Data Types", "fa:fa-edit", new string[] { "id", "nickName" });
 
 			Events.Service.AfterStart.AddEventListener(async (Context ctx, object x) =>
 			{
@@ -37,6 +37,29 @@ namespace Api.CustomContentTypes
 				await LoadCustomTypes(allTypes, allTypeFields);
 
 				return x;
+			});
+
+			Events.CustomContentType.BeforeCreate.AddEventListener(async (Context ctx, CustomContentType type) => {
+
+				if (type == null)
+				{
+					return null;
+				}
+
+				if (string.IsNullOrWhiteSpace(type.Name) && !string.IsNullOrWhiteSpace(type.NickName))
+                {
+					type.Name = TypeEngine
+									.TidyName(type.NickName);
+				}
+				
+				var matchingType = await Where("Name=?", DataOptions.IgnorePermissions).Bind(type.Name).First(ctx);
+
+				if (matchingType != null)
+                {
+					throw new Exception("A type already exists with that name");
+                }
+
+				return type;
 			});
 
 			Events.CustomContentType.AfterCreate.AddEventListener(async (Context ctx, CustomContentType type) => {
@@ -96,8 +119,6 @@ namespace Api.CustomContentTypes
 				return type;
 			});
 
-			// NB: Don't add handlers for changes on fields, given they will update in bulk and then the content type itself will update.
-			/*
 			Events.CustomContentTypeField.AfterCreate.AddEventListener(async (Context ctx, CustomContentTypeField field) => {
 
 				if (field == null)
@@ -105,7 +126,9 @@ namespace Api.CustomContentTypes
 					return null;
 				}
 
-				await LoadCustomType(ctx, field);
+				var type = await Get(ctx, field.CustomContentTypeId, DataOptions.IgnorePermissions);
+
+				await LoadCustomType(ctx, type);
 
 				return field;
 			});
@@ -117,7 +140,9 @@ namespace Api.CustomContentTypes
 					return null;
 				}
 
-				await LoadCustomType(ctx, field);
+				var type = await Get(ctx, field.CustomContentTypeId, DataOptions.IgnorePermissions);
+
+				await LoadCustomType(ctx, type);
 
 				return field;
 			});
@@ -129,12 +154,12 @@ namespace Api.CustomContentTypes
 					return null;
 				}
 
-				await LoadCustomType(ctx, field);
+				var type = await Get(ctx, field.CustomContentTypeId, DataOptions.IgnorePermissions);
+
+				await LoadCustomType(ctx, type);
 
 				return field;
 			});
-			 */
-
 		}
 
 		/// <summary>
@@ -279,7 +304,7 @@ namespace Api.CustomContentTypes
 			var events = new EventGroup<T>();
 
 			// Create the service:
-			constructedType.Service = new AutoService<T, uint>(events);
+			constructedType.Service = new AutoService<T, uint>(events, constructedType.ContentType,constructedType.ContentType.Name);
 
 			if (loadedTypes == null)
 			{
