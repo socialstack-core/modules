@@ -446,7 +446,15 @@ export default class Input extends React.Component {
                         <option value={noSelectionValue}>{noSelection}</option>,
 						<Loop over={this.props.contentType + '/list'} raw filter={this.props.filter}>
 							{
-								entry => <option value={entry.id} selected={entry.id == defaultValue ? true : undefined}>
+                                entry => <option 
+                                            value={this.props.contentTypeValue 
+                                                ? entry[this.props.contentTypeValue] 
+                                                : entry.id} 
+                                            selected={this.props.contentTypeValue
+                                                ? entry[this.props.contentTypeValue] == defaultValue ? true : undefined
+                                                : entry.id == defaultValue ? true : undefined
+                                            }
+                                        >
 									{
 										entry[this.props.displayField || 'name']
 									}
