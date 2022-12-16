@@ -167,7 +167,7 @@ export default class ContentSelect extends React.Component {
 					className="btn btn-secondary btn-content-select-action btn-edit-content"
 					onClick={e => {
 						e.preventDefault();
-						this.setState({ showCreateOrEditModal: true, entityToEditId: value });
+						this.setState({ showCreateOrEditModal: true, entityToEditId: this.state.selected });
 					}}
 				>
 					{"Edit " + this.props.label}
@@ -196,9 +196,9 @@ export default class ContentSelect extends React.Component {
 						endpoint={this.props.contentType.toLowerCase()} 
 						singular={this.props.label} 
 						plural={this.props.label + "s"}
-						id={this.state.selected ? this.state.selected : null}
+						id={this.state.entityToEditId ? this.state.entityToEditId : null}
 						onActionComplete={entity => {
-							this.setState({ showCreateOrEditModal: false, entityToEditId: null, selected: entity });
+							this.setState({ showCreateOrEditModal: false, entityToEditId: null, selected: entity.id });
 							this.load(this.props);
 
 							/* 
