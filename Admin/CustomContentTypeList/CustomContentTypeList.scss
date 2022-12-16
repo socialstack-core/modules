@@ -1,0 +1,17 @@
+/*
+	Optional stylesheet
+*/
+
+.custom-content-type-list{
+	.custom-content-type--entry {
+		background-color: #f2f2f2;
+		margin-top: 1rem;
+		margin-bottom: 1rem;
+		padding: 1rem;
+
+		.custom-content-type--entry-link {
+			font-weight: bold;
+			text-decoration: none;
+		}
+	}
+}
