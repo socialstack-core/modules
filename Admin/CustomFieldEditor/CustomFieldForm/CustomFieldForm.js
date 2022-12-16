@@ -87,7 +87,7 @@ export default class CustomFieldForm extends React.Component {
 								)}
 				</Input>
 
-				{this.state.dataType === "entity" || this.state.dataType === "entitylist" &&
+				{(this.state.dataType === "entity" || this.state.dataType === "entitylist") &&
 					<Input 
 						label="Linked Data Type"
 						name="linkedEntity"
