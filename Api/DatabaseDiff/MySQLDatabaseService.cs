@@ -436,7 +436,7 @@ namespace Api.Database
 
 				var field = q.Fields[i];
 
-				if (field.Type == typeof(bool))
+				if (field.Type == typeof(bool) || field.Type == typeof(bool?))
 				{
 					// Set the value:
 					field.TargetField.SetValue(result, Convert.ToBoolean(value));
@@ -521,7 +521,7 @@ namespace Api.Database
 
 						var field = q.Fields[i];
 
-						if (field.Type == typeof(bool))
+						if (field.Type == typeof(bool) || field.Type == typeof(bool?))
 						{
 							// Set the value:
 							field.TargetField.SetValue(result, Convert.ToBoolean(value));
