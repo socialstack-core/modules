@@ -221,7 +221,12 @@ class AutoFormInternal extends React.Component {
 			null,
 			{ method: 'delete' }
 		).then(response => {
-			var parts = pageState.page.url.split('/'); // e.g. ['', 'en-admin', 'pages', '1']
+			if (this.props.onActionComplete) {
+				this.props.onActionComplete(null);
+				return;
+			}
+
+			var parts = window.location.pathname.split('/');
 
 			// Go to root parent page:
 			var target = this.props.deletePage;
@@ -383,7 +388,7 @@ class AutoFormInternal extends React.Component {
 		return (
 			<div className="auto-form">
 				<Tile className="auto-form-header">
-					{isEdit && <button className="btn btn-danger" style={{ float: 'right' }} onClick={() => this.startDelete()}>Delete</button>}
+					{isEdit && <button className="btn btn-danger" style={{ float: 'right' }} onClick={e => { e.preventDefault(); this.startDelete(); }}>Delete</button>}
 					<Input inline type="button" disabled={this.state.submitting} onClick={() => {
 						this.draftBtn = false;
 						this.form.submit();
@@ -510,6 +515,11 @@ class AutoFormInternal extends React.Component {
 									this.setState({ editFailure: false, editSuccess: true, createSuccess: false, submitting: false, fieldData: response, updateCount: this.state.updateCount + 1 });
 
 									if (state && state.page && state.page.url) {
+										if (this.props.onActionComplete) {
+											this.props.onActionComplete(response);
+											return;
+										}
+
 										var parts = state.page.url.split('/');
 										parts.pop();
 										parts.push(response.id);
@@ -533,8 +543,13 @@ class AutoFormInternal extends React.Component {
 									}
 								} else {
 									this.setState({ editFailure: false, submitting: false, fieldData: response, updateCount: this.state.updateCount+1 });
-									if (state && state.page && state.page.url) {
-										var parts = state.page.url.split('/');
+									if (window && window.location && window.location.pathname) {
+										if (this.props.onActionComplete) {
+											this.props.onActionComplete(response);
+											return;
+										}
+
+										var parts = window.location.pathname.split('/');
 										parts.pop();
 										parts.push(response.id);
 
