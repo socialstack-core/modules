@@ -107,7 +107,7 @@ export default class AutoList extends React.Component {
 			</th>
 		].concat(fields);
 	}
-
+	
 	renderColgroups(allContent) {
 		var fields = this.props.fields.map(field => {
 			var className = '';
@@ -313,14 +313,22 @@ export default class AutoList extends React.Component {
             filterField = "";
 
 		return  <Tile className="auto-list" title={this.props.title}>
-		
+			{this.props.previousPageUrl && this.props.previousPageName &&
+				<p>
+					<a href={this.props.previousPageUrl}>
+						{this.props.previousPageName}
+					</a> &gt; <span>
+						{this.props.title}
+					</span> 
+				</p>
+			}
 			{(this.props.create || searchFields) && (
 				<Row style={{marginBottom: '10px'}}>
 					<Col>
 						{this.props.create && (
-							<a href={ addUrl } className="btn btn-primary">
+								<a href={ addUrl } className="btn btn-primary">
 								{`Create`}
-							</a>
+								</a>
 						)}
 					</Col>
 					<Col>
