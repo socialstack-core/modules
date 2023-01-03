@@ -26,7 +26,7 @@
 		display: flex;
 		align-items: flex-start;
 		justify-content: space-between;
-		padding: 8px 24px;
+		padding: 8px;
 		background: var(--huddle-footer-bg, var(--fallback__huddle-footer-bg));
 		color: var(--huddle-footer-fg, var(--fallback__huddle-footer-fg));
 		min-height: var(--huddle-footer-height, var(--fallback__huddle-footer-height));
@@ -49,6 +49,10 @@
 		}
 
 		&-leave {
+			display: flex;
+			flex-direction: column;
+			align-items: center;
+			width: 4.75rem;
 
 			.dropdown-toggle {
 				border-radius: 50%;
