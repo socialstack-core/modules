@@ -32,7 +32,12 @@ namespace Api.AutoForms
 	/// Follows the same JSON structure as canvas. module maps directly to a component, data to props.
 	/// </summary>
 	public class AutoFormField {
-		
+
+		/// <summary>
+		/// True if this is a virtual list field and needs to be included if you want its value.
+		/// </summary>
+		public bool Includable;
+
 		/// <summary>
 		/// The fields value type.
 		/// </summary>

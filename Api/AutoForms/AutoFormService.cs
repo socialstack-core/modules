@@ -127,6 +127,12 @@ namespace Api.AutoForms
 			// For each AutoService..
 			foreach (var serviceKvp in Services.AutoServices)
 			{
+				if (serviceKvp.Value.IsMapping)
+				{
+					// Omit mapping services
+					continue;
+				}
+
 				var fieldStructure = await serviceKvp.Value.GetJsonStructure(context);
 
 				var formType = serviceKvp.Value.InstanceType;
@@ -189,10 +195,27 @@ namespace Api.AutoForms
 		{
 			var fieldType = jsonField.TargetType;
 			var customAttributes = jsonField.Attributes;
+			var isIncludable = false;
+			string valueType = null;
+
+			if (jsonField.ContentField != null && jsonField.ContentField.VirtualInfo != null && jsonField.ContentField.VirtualInfo.IsList)
+			{
+				// It's a virtual list field.
+				// The valueType should be e.g. "User[]".
+				var virtualInfo = jsonField.ContentField.VirtualInfo;
+				isIncludable = true;
+
+				valueType = virtualInfo.Type.Name + "[]";
+			}
+			else
+			{
+				valueType = fieldType.Name;
+			}
 
 			var field = new AutoFormField()
 			{
-				ValueType = fieldType.Name,
+				Includable = isIncludable,
+				ValueType = valueType,
 				Module = jsonField.Module,
 				Data = jsonField.Data
 			};
