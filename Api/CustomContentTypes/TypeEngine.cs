@@ -1,5 +1,6 @@
 using Api.AutoForms;
 using Api.Startup;
+using Api.Translate;
 using Api.Users;
 using System;
 using System.Collections.Generic;
@@ -225,6 +226,18 @@ namespace Api.CustomContentTypes
 						if (!string.IsNullOrWhiteSpace(field.NickName))
                         {
 							AddDataAttribute(fieldBuilder, "label", field.NickName);
+						}
+
+						if (field.Localised)
+                        {
+							ConstructorInfo localisedAttrClassCtorInfo = typeof(LocalizedAttribute).GetConstructor(Type.EmptyTypes);
+
+							CustomAttributeBuilder myLABuilder = new CustomAttributeBuilder(
+								localisedAttrClassCtorInfo,
+								new object[] {}
+							);
+
+							fieldBuilder.SetCustomAttribute(myLABuilder);
 						}
 
 						// Add other attributes if needed

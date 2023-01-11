@@ -47,6 +47,11 @@ namespace Api.CustomContentTypes
 		/// The human readable nickname of this field.
 		/// </summary>
 		public string NickName;
+
+		/// <summary>
+		/// True if this field localised
+		/// </summary>
+		public bool Localised;
 	}
 
 }
