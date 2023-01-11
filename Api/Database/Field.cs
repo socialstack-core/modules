@@ -1,4 +1,5 @@
-﻿using Api.Translate;
+﻿using Api.Startup;
+using Api.Translate;
 using System;
 using System.Collections.Generic;
 using System.Data.Common;
@@ -43,7 +44,10 @@ namespace Api.Database
 		/// The full name of this field, except it ends with an underscore. OwningType.Name.`Name_
 		/// </summary>
 		public string LocalisedName;
-
+		/// <summary>
+		/// Attributes on the field/ property (if any). Can be null.
+		/// </summary>
+		public List<Attribute> TargetFieldCustomAttributes;
 
 		/// <summary>
 		/// Creates a new empty field
@@ -63,6 +67,7 @@ namespace Api.Database
 			TargetField = field;
 			Name = field.Name;
 			OwningTypeName = typeName;
+			TargetFieldCustomAttributes = ContentField.BuildAttributes(field.CustomAttributes);
 			SetFullName(null);
 		}
 
@@ -99,7 +104,8 @@ namespace Api.Database
 		{
 			FullName = "`" + OwningTypeName + ((extension == null) ? "" : "_" + extension) + "`.`" + Name;
 
-			if (TargetField != null && TargetField.GetCustomAttribute<LocalizedAttribute>() != null)
+			if ((TargetField != null && TargetField.GetCustomAttribute<LocalizedAttribute>() != null) 
+				|| (TargetFieldCustomAttributes != null && TargetFieldCustomAttributes.FirstOrDefault(attr => attr is LocalizedAttribute) != null))
 			{
 				LocalisedName = FullName + "_";
 			}
