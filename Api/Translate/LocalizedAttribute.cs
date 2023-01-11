@@ -9,6 +9,6 @@ namespace Api.Translate
 	[AttributeUsage(AttributeTargets.Field | AttributeTargets.Class, Inherited = false, AllowMultiple = true)]
 	internal sealed class LocalizedAttribute : Attribute
 	{
-		internal LocalizedAttribute() { }
+		public LocalizedAttribute() { }
 	}
 }

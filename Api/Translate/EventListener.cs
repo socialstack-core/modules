@@ -60,9 +60,12 @@ namespace Api.Translate
 						continue;
 					}
 
-					var fieldIsLocalised = field.TargetField.GetCustomAttribute<LocalizedAttribute>();
+					var customFieldAttributes = ContentField.BuildAttributes(field.TargetField.CustomAttributes);
 
-					if (fieldIsLocalised == null)
+					var fieldIsLocalised = field.TargetField.GetCustomAttribute<LocalizedAttribute>() != null
+						|| (customFieldAttributes != null && customFieldAttributes.FirstOrDefault(attr => attr is LocalizedAttribute) != null);
+
+					if (!fieldIsLocalised)
 					{
 						continue;
 					}
