@@ -100,6 +100,14 @@ export default class CustomFieldForm extends React.Component {
 					/>
 				}
 
+				<Input 
+					label="Localised"
+					name="localised"
+					type="checkbox"
+					defaultValue={this.props.field ? this.props.field.localised : null}
+					disabled={!allowEdit} validate={allowEdit ? ['Required'] : null}
+				/>
+
 				{allowEdit &&
 					<div>
 						<Input type="submit" />
