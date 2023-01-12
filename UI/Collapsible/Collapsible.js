@@ -1,5 +1,6 @@
 export default function Collapsible (props) {
-	var isOpen = props && props.open;
+	var [isOpen, setOpen] = React.useState(!!props.open);
+	
 	var noContent = !props.children;
 	var expanderLeft = props.expanderLeft;
 	var hasButtons = props.buttons && props.buttons.length;
@@ -7,17 +8,21 @@ export default function Collapsible (props) {
 	if (noContent) {
 		isOpen = false;
 	}
-
+	
 	// NB: include "open" class in addition to [open] attribute as we may be using a polyfill to render this
 	var detailsClass = isOpen ? "collapsible open" : "collapsible";
-	var summaryClass = noContent ? "collapsible-summary no-content" : "collapsible-summary";
+	var summaryClass = noContent ? "btn collapsible-summary no-content" : "btn collapsible-summary";
 	var iconClass = expanderLeft || hasButtons ? "collapsible-icon collapsible-icon-left" : "collapsible-icon";
 
 	if (noContent) {
 		iconClass += " invisible";
 	}
-
-	return <details className={detailsClass} open={isOpen} onClick={noContent ? (e) => { e.preventDefault(); } : false}>
+	
+	return <details className={detailsClass} open={isOpen} onClick={(e) => {
+			props.onClick && props.onClick();
+			e.preventDefault();
+			!noContent && setOpen(!isOpen);
+		}}>
 		<summary className={summaryClass}>
 			{(expanderLeft || hasButtons) &&
 				<div className={iconClass}>
