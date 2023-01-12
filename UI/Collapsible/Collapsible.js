@@ -21,6 +21,7 @@ export default function Collapsible (props) {
 	return <details className={detailsClass} open={isOpen} onClick={(e) => {
 			props.onClick && props.onClick();
 			e.preventDefault();
+			e.stopPropagation();
 			!noContent && setOpen(!isOpen);
 		}}>
 		<summary className={summaryClass}>
