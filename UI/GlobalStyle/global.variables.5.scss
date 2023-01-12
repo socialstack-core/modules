@@ -5,6 +5,11 @@
 	** CHANGES / ADDITIONS TO THESE SETTINGS WILL APPLY TO ALL SOCIALSTACK PROJECTS - use project-level SASS to override for a specific project **
 */
 
+// fallback values for CSS vars
+$fallback__admin-header-height: 3.125rem;
+
+
+
 $base_font_size: 16 !default; // in px
 
 $ratio_golden: 1.618;
