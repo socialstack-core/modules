@@ -52,6 +52,12 @@ namespace Api.CustomContentTypes
 		/// True if this field localised
 		/// </summary>
 		public bool Localised;
+
+		/// <summary>
+		/// Has this field been deleted?
+		/// </summary>
+		[Module(Hide = true)]
+		public bool Deleted;
 	}
 
 }

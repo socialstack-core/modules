@@ -38,6 +38,12 @@ namespace Api.CustomContentTypes
 		/// </summary>
 		[Module("Admin/CustomFieldEditor")]
 		public List<CustomContentTypeField> Fields {get; set; }
+
+		/// <summary>
+		/// Has this type been deleted?
+		/// </summary>
+		[Module(Hide = true)]
+		public bool Deleted;
 	}
 
 }

@@ -34,11 +34,27 @@ namespace Api.CustomContentTypes
 					field.Name = TypeEngine.TidyName(field.NickName);
 				}
 
-				var matchingField = await Where("CustomContentTypeId=? AND Name=?", DataOptions.IgnorePermissions).Bind(field.CustomContentTypeId).Bind(field.Name).First(ctx);
+				var originalName = field.Name;
 
-				if (matchingField != null)
+				var matchingNameCounter = 2;
+				var matchingName = await Where("CustomContentTypeId=? AND Name=?", DataOptions.IgnorePermissions).Bind(field.CustomContentTypeId).Bind(field.Name).First(ctx);
+
+				if (matchingName != null)
 				{
-					throw new Exception("A field already exists with that name");
+					field.Name = originalName + matchingNameCounter.ToString();
+					matchingName = await Where("CustomContentTypeId=? AND Name=?", DataOptions.IgnorePermissions).Bind(field.CustomContentTypeId).Bind(field.Name).First(ctx);
+				}
+
+				while (matchingName != null)
+				{
+					if (matchingNameCounter >= 99)
+					{
+						throw new Exception("A field already exists with that name");
+					}
+
+					matchingNameCounter++;
+					field.Name = originalName + matchingNameCounter.ToString();
+					matchingName = await Where("CustomContentTypeId=? AND Name=?", DataOptions.IgnorePermissions).Bind(field.CustomContentTypeId).Bind(field.Name).First(ctx);
 				}
 
 				return field;

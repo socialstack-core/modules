@@ -207,7 +207,7 @@ namespace Api.CustomContentTypes
 					// Add each field
 					foreach(var field in customType.Fields)
 					{
-						if(field == null || string.IsNullOrWhiteSpace(field.DataType))
+						if(field == null || string.IsNullOrWhiteSpace(field.DataType) || field.Deleted)
 						{
 							continue;
 						}
@@ -244,6 +244,8 @@ namespace Api.CustomContentTypes
 						if (field.DataType == "jsonstring" || field.DataType.ToLower() == "jsonstring")
                         {
 							AddDataAttribute(fieldBuilder, "type", "canvas");
+
+							AddDataAttribute(fieldBuilder, "textonly", "true");
 						} 
 						else if (field.DataType == "file")
                         {
@@ -301,7 +303,7 @@ namespace Api.CustomContentTypes
 
 			foreach (var builder in builders)
             {
-				var linkedFields = builder.Fields.Where(field => (field.DataType == "entity" || field.DataType == "entitylist") && !string.IsNullOrEmpty(field.LinkedEntity));
+				var linkedFields = builder.Fields.Where(field => (field.DataType == "entity" || field.DataType == "entitylist") && !string.IsNullOrEmpty(field.LinkedEntity) && !field.Deleted);
 
 				foreach (var linkedField in linkedFields)
                 {

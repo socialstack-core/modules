@@ -30,8 +30,8 @@ namespace Api.CustomContentTypes
 			Events.Service.AfterStart.AddEventListener(async (Context ctx, object x) =>
 			{
 				// Get all types:
-				var allTypes = await Where(DataOptions.IgnorePermissions).ListAll(ctx);
-				var allTypeFields = await fieldService.Where(DataOptions.IgnorePermissions).ListAll(ctx);
+				var allTypes = await Where("Deleted=?", DataOptions.IgnorePermissions).Bind(false).ListAll(ctx);
+				var allTypeFields = await fieldService.Where("Deleted=?", DataOptions.IgnorePermissions).Bind(false).ListAll(ctx);
 
 				// Load them now:
 				await LoadCustomTypes(allTypes, allTypeFields);
@@ -51,13 +51,29 @@ namespace Api.CustomContentTypes
 					type.Name = TypeEngine
 									.TidyName(type.NickName);
 				}
-				
-				var matchingType = await Where("Name=?", DataOptions.IgnorePermissions).Bind(type.Name).First(ctx);
 
-				if (matchingType != null)
+				var originalName = type.Name;
+
+				var matchingNameCounter = 2;
+				var matchingName = await Where("Name=?", DataOptions.IgnorePermissions).Bind(type.Name).First(ctx);
+
+				if (matchingName != null)
+				{
+					type.Name = originalName + matchingNameCounter.ToString();
+					matchingName = await Where("Name=?", DataOptions.IgnorePermissions).Bind(type.Name).First(ctx);
+				}
+
+				while (matchingName != null)
                 {
-					throw new Exception("A type already exists with that name");
-                }
+					if (matchingNameCounter >= 99)
+                    {
+						throw new Exception("A type already exists with that name");
+					}
+
+					matchingNameCounter++;
+					type.Name = originalName + matchingNameCounter.ToString();
+					matchingName = await Where("Name=?", DataOptions.IgnorePermissions).Bind(type.Name).First(ctx);
+				}
 
 				return type;
 			});
@@ -81,9 +97,24 @@ namespace Api.CustomContentTypes
 					return null;
 				}
 
-				await LoadCustomType(ctx, type);
+				if (type.Deleted)
+                {
+					await UnloadCustomType(ctx, type.Id);
+				} else
+                {
+					await LoadCustomType(ctx, type);
+				}
 
 				return type;
+			});
+
+			Events.CustomContentType.BeforeDelete.AddEventListener(async (Context ctx, CustomContentType type) => {
+
+				var deletedType = await Update(ctx, type, (Context context, CustomContentType toUpdate, CustomContentType original) => {
+					toUpdate.Deleted = true;
+				});
+
+				return null;
 			});
 
 			Events.CustomContentType.AfterDelete.AddEventListener(async (Context ctx, CustomContentType type) => {
@@ -105,7 +136,7 @@ namespace Api.CustomContentTypes
 					return null;
 				}
 
-				if (action == 3)
+				if (action == 3 ||type.Deleted)
 				{
 					// Deleted
 					await UnloadCustomType(ctx, type.Id);
@@ -145,6 +176,15 @@ namespace Api.CustomContentTypes
 				await LoadCustomType(ctx, type);
 
 				return field;
+			});
+
+			Events.CustomContentTypeField.BeforeDelete.AddEventListener(async (Context ctx, CustomContentTypeField field) => {
+
+				var deletedField = await _fieldService.Update(ctx, field, (Context context, CustomContentTypeField toUpdate, CustomContentTypeField original) => {
+					toUpdate.Deleted = true;
+				});
+
+				return null;
 			});
 
 			Events.CustomContentTypeField.AfterDelete.AddEventListener(async (Context ctx, CustomContentTypeField field) => {
@@ -214,7 +254,7 @@ namespace Api.CustomContentTypes
 			}
 
 			// Apply the fields:
-			type.Fields = await _fieldService.Where("CustomContentTypeId=?").Bind(type.Id).ListAll(context);
+			type.Fields = await _fieldService.Where("CustomContentTypeId=? AND Deleted=?").Bind(type.Id).Bind(false).ListAll(context);
 			
 			// Generate it now:
 			var compiledType = TypeEngine.Generate(type);
@@ -251,7 +291,7 @@ namespace Api.CustomContentTypes
 
 			foreach (var field in fields)
 			{
-				if (field == null)
+				if (field == null || field.Deleted)
 				{
 					continue;
 				}
