@@ -83,8 +83,8 @@ namespace Api.Pages
 								""t"": ""Admin/Layouts/Default"",
 								""c"": {
 									""t"": ""Admin/Dashboards/Stdout""
-								},
-							},
+								}
+							}
 						}"
 					},
 					new Page()
@@ -96,8 +96,8 @@ namespace Api.Pages
 								""t"": ""Admin/Layouts/Default"",
 								""c"": {
 									""t"": ""Admin/Dashboards/StressTest""
-								},
-							},
+								}
+							}
 						}"
 					},
 					new Page()
@@ -109,8 +109,8 @@ namespace Api.Pages
 								""t"": ""Admin/Layouts/Default"",
 								""c"": {
 									""t"": ""Admin/Dashboards/Database""
-								},
-							},
+								}
+							}
 						}"
 					},
 					new Page()
@@ -142,8 +142,8 @@ namespace Api.Pages
 								""t"": ""Admin/Layouts/Default"",
 								""c"": {
 									""t"": ""Admin/PermissionGrid""
-								},
-							},
+								}
+							}
 						}"
 					},
 					new Page()
