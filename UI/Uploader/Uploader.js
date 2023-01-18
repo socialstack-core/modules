@@ -242,6 +242,10 @@ export default class Uploader extends React.Component {
 		var uploaderClasses = ['uploader'];
 		var uploaderLabelClasses = ['uploader__label'];
 
+		if (this.props.compact) {
+			uploaderClasses.push("uploader--compact");
+		}
+
 		if (loading) {
 			uploaderClasses.push("uploader--progress");
         }

@@ -1,4 +1,5 @@
 $uploader_width: 256px;
+$uploader_compact_width: 192px;
 
 .uploader {
     $uploader: &;
@@ -192,7 +193,6 @@ $uploader_width: 256px;
         }
     }
 
-
     &--content {
 
         #{$uploader}__label {
@@ -213,6 +213,39 @@ $uploader_width: 256px;
             border-width: 4px;
             border-style: dashed;
         }
+    }
+
+    &--compact {
+        
+        #{$uploader}__internal {
+            width: $uploader_compact_width;
+            aspect-ratio: auto;
+            height: 100px;
+        }
+
+        #{$uploader}__label {
+            width: $uploader_compact_width;
+            font-size: .875rem;
+            padding: 1.25rem;
+
+            i {
+                font-size: 1.25rem;
+                margin-bottom: .25rem;
+            }
+
+            #{$uploader}__file {
+                font-size: 2rem;
+            }
+
+            &-internal {
+                -webkit-line-clamp: 3;
+            }
+        }
+
+        #{$uploader}__caption {
+            width: $uploader_compact_width;
+        }
+
     }
 }
 
