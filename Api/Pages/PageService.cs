@@ -8,6 +8,7 @@ using System.Linq;
 using System;
 using Api.Startup;
 using Api.CanvasRenderer;
+using Api.Users;
 
 namespace Api.Pages
 {
@@ -178,6 +179,11 @@ namespace Api.Pages
 						canvas.Module = "Admin/Layouts/MediaCenter";
 						canvas.Data.Clear();
 					}
+				}else if (contentType == typeof(Page) && pageType == AdminPageType.List)
+				{
+					// Installing the list of pages.
+					// This will instead use the sitemap component.
+					canvas.Module = "Admin/Layouts/Sitemap";
 				}
 
 				return new ValueTask<Page>(page);
