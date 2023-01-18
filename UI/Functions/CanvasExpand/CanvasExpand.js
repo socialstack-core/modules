@@ -1,4 +1,5 @@
 import webRequest from 'UI/Functions/WebRequest';
+import Graph from 'UI/Functions/GraphRuntime/Graph';
 import Text from 'UI/Text';
 
 var inlineTypes = [
@@ -32,7 +33,7 @@ function isCanvas2(node){
 		return false;
 	}
 	
-	return (node.c || node.r || node.t);
+	return (node.c || node.r || node.t || node.g);
 }
 
 function convertToNodesFromCanvas(node, onContentNode){
@@ -104,6 +105,10 @@ function convertToNodesFromCanvas(node, onContentNode){
 	}else if(node.c){
 		// a root node
 		loadCanvasChildren(node, result, onContentNode);
+	}
+	
+	if(node.g){
+		result.graph = new Graph(node.g);
 	}
 	
 	if(node.i){

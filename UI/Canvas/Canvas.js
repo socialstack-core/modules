@@ -106,6 +106,10 @@ class Canvas extends React.Component {
 			});
 		}
 		
+		if(node.graph){
+			return <ErrorCatcher node={node}>{node.graph.render()}</ErrorCatcher>;
+		}
+		
 		var NodeType = node.type;
 		
 		if(NodeType == '#text'){
@@ -204,7 +208,7 @@ export class ErrorCatcher extends React.Component {
 		if (this.state.hasError) {
 			var { node } = this.props;
 			
-			var name = node ? node.typeName : 'Unknown';
+			var name = node ? (node.graph ? 'Graph runtime' : node.typeName) : 'Unknown';
 			
 			return <Alert type='error'>{`The component "${name}" has unfortunately crashed. The error it had has been logged to the console.`}</Alert>;
 		}
