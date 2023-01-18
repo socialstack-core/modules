@@ -19,5 +19,10 @@ namespace Api.Eventing
 		/// Set of events for a customContentTypeField.
 		/// </summary>
 		public static EventGroup<CustomContentTypeField> CustomContentTypeField;
+
+		/// <summary>
+		/// Set of events for a customContentTypeSelectOption.
+		/// </summary>
+		public static EventGroup<CustomContentTypeSelectOption> CustomContentTypeSelectOption;
 	}
 }

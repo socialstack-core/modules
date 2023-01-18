@@ -57,6 +57,11 @@ namespace Api.CustomContentTypes
 				code.Emit(OpCodes.Ldstr, val);
 			});
 
+			AddTo(
+				map, "select", typeof(string), (ILGenerator code, string val) => {
+				code.Emit(OpCodes.Ldstr, val);
+			});
+
 			AddTo(map, "long",typeof(long?), (ILGenerator code, string val) => {
 				var value = long.TryParse(val, out long result) ? result : 0;
 				code.Emit(OpCodes.Ldc_I8, value);
@@ -250,6 +255,21 @@ namespace Api.CustomContentTypes
 						else if (field.DataType == "file")
                         {
 							AddDataAttribute(fieldBuilder, "type", "file");
+						}
+						else if (field.DataType == "select")
+						{
+							Type[] moduleAttrParams = new Type[1] { typeof(String) };
+
+							ConstructorInfo moduleAttrClassCtorInfo = typeof(ModuleAttribute).GetConstructor(moduleAttrParams);
+
+							CustomAttributeBuilder myModuleAttributeBuilder = new CustomAttributeBuilder(
+								moduleAttrClassCtorInfo,
+								new object[1] { "Admin/CustomFieldSelect" }
+							);
+
+							fieldBuilder.SetCustomAttribute(myModuleAttributeBuilder);
+
+							AddDataAttribute(fieldBuilder, "field", field.Id.ToString());
 						}
 						else if (field.DataType == "entity" && !string.IsNullOrEmpty(field.LinkedEntity))
                         {
