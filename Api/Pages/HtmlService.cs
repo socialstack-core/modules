@@ -323,37 +323,143 @@ namespace Api.Pages
 
 			// Charset must be within first 1kb of the header:
 			doc.Head.AppendChild(new DocumentNode("meta", true).With("charset", "utf-8"));
+			doc.Head.AppendChild(new DocumentNode("meta", true).With("viewport", "width=device-width, initial-scale=1"));
 			doc.Head.AppendChild(new DocumentNode("title").AppendChild(new TextNode(doc.Title)));
 
 			// Fail in style:
 			doc.Head.AppendChild(new DocumentNode("link").With("rel", "stylesheet").With("href", "https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css"));
 			doc.Head.AppendChild(new DocumentNode("style").AppendChild(new TextNode(
 				@"
-				body{background:#263238 !important; color: white;}
+.block-page { 
+	background: linear-gradient(to right, #9E40B5,#350EE5, #100862);
+	color: #fff;
+	min-height: calc(100vh - env(safe-area-inset-top,0) - env(safe-area-inset-bottom,0));
+}
+
+.block-page h1 {
+	font-size: 3rem;
+	text-align: center;
+}
+
+.block-page h2 {
+	font-size: 2rem;
+	line-height: 1.5;
+	text-align: center;
+	opacity: .8;
+}
+
+.block-page form {
+	max-width: 500px;
+	margin: 0 auto;
+}
+
+.block-page .pwd-box {
+	padding: 0 10vw;
+}
+
+svg {
+	width: 1.25rem;
+	height: 1.25rem;
+}
+
+.block-page h3 {
+	display: flex;
+    margin-top: 2rem;
+    font-size: 1.25rem;
+    align-items: center;
+    gap: .5rem;
+    justify-content: center;
+    opacity: .6;
+}
+
+.block-page p {
+	text-align: center;
+	opacity: .75;
+}
+
+@media (max-aspect-ratio: 4/3) and (hover: none) and (orientation: portrait) {
+ 
+	.block-page h1 {
+		font-size: 4rem;
+	}
+
+	.block-page h2 {
+		font-size: 2.75rem;
+	}
+
+	.block-page form {
+		max-width: 80vw;
+	}
+
+	.block-page input {
+		font-size: 2.5rem;
+	}
+
+	svg {
+		width: 2.5rem;
+		height: 2.5rem;
+	}
+
+	.block-page h3 {
+		margin-top: 3rem;
+		font-size: 2.5rem;
+		gap: .75rem;
+	}
+
+	.block-page p {
+		font-size: 2.25rem;
+		max-width: 600px;
+		margin: 0 auto;
+	}
+
+}
 				"
 			)));
 
+			// NB: use this to target landscape touch devices if necessary
+			//@media (min-aspect-ratio: 5/3) and (hover: none) and (orientation: landscape)
+
 			var body = doc.Body;
 
-			var center = new DocumentNode("div").With("class", "d-flex justify-content-center align-items-center").With("style", "height:100vh");
+			var center = new DocumentNode("div").With("class", "d-flex justify-content-center align-items-center block-page");
 			body.AppendChild(center);
 
 			var container = new DocumentNode("div").With("class", "pwd-box");
 			center.AppendChild(container);
 
-			var header = new DocumentNode("h2");
+			var header = new DocumentNode("h1");
 			header.AppendChild(new TextNode("Welcome! This site hasn't been published yet"));
 			container.AppendChild(header);
 
-			header = new DocumentNode("h4");
+			header = new DocumentNode("h2");
 			header.AppendChild(new TextNode("If you're a content owner, you can preview this site by entering the password below."));
 			container.AppendChild(header);
 
 			var form = new DocumentNode("form").With("action", "/").With("method", "GET").With("id", "content_pwd_form").With("class", "d-flex justify-content-center mt-5");
-			form.AppendChild(new DocumentNode("input").With("type", "password").With("id", "password"));
-			form.AppendChild(new DocumentNode("input").With("type", "submit").With("class", "btn btn-secondary ml-2").With("value", "Go"));
+			form.AppendChild(new DocumentNode("input", true).With("type", "password").With("id", "password").With("class", "form-control form-control-lg"));
+			form.AppendChild(new DocumentNode("input", true).With("type", "submit").With("class", "btn btn-primary btn-lg ml-2").With("value", "Go"));
 
 			container.AppendChild(form);
+
+			var iconPath = new DocumentNode("path").With("fill", "currentColor").With("d", "M500 10C229.4 10 10 229.4 10 500s219.4 490 490 490 490-219.4 490-490S770.6 10 500 10zm-3.1 832.9c-39.9 0-72.3-31.7-72.3-70.9s32.4-70.9 72.3-70.9 72.3 31.7 72.3 70.9-32.4 70.9-72.3 70.9zM691.1 442c-14.1 22.3-44.3 52.7-90.4 91.1-23.9 19.9-38.7 35.9-44.5 48-5.8 12.1-8.4 33.7-7.9 64.9H445.4c-.3-14.8-.4-23.8-.4-27 0-33.3 5.5-60.7 16.5-82.2s33.1-45.7 66.1-72.5c33-26.9 52.9-44.5 59.3-52.8 9.9-13.2 14.9-27.7 14.9-43.5 0-22-8.9-40.8-26.5-56.5-17.6-15.7-41.4-23.5-71.3-23.5-28.8 0-52.9 8.2-72.3 24.5s-36 52.4-40 74.7c-3.7 21-105.2 29.9-104-12.7 1.2-42.6 23.5-89 61.5-122.6 38.1-33.6 88-50.4 149.9-50.4 65.1 0 116.9 17 155.3 51 38.5 34 57.7 73.6 57.7 118.7.1 24.9-6.9 48.5-21 70.8z");
+			var icon = new DocumentNode("svg").With("xmlns", "http://www.w3.org/2000/svg").With("viewBox", "0 0 1000 1000");
+			icon.AppendChild(iconPath);
+
+			header = new DocumentNode("h3");
+			header.AppendChild(icon);
+			header.AppendChild(new TextNode("What is this?"));
+			container.AppendChild(header);
+
+			var em = new DocumentNode("em");
+			em.AppendChild(new TextNode("block password"));
+
+			var paragraph = new DocumentNode("p");
+			paragraph.AppendChild(new TextNode("To access this site, you'll need to request a copy of the&nbsp;"));
+			paragraph.AppendChild(em);
+			paragraph.AppendChild(new TextNode("."));
+			paragraph.AppendChild(new DocumentNode("br", true));
+			paragraph.AppendChild(new TextNode("Please note, this is not the same as a user account password."));
+			container.AppendChild(paragraph);
 
 			body.AppendChild(new DocumentNode("script").With("type", "text/javascript").AppendChild(new TextNode(
 				@"
