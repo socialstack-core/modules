@@ -80,8 +80,10 @@ export default class Input extends React.Component {
 	renderLabel() {
 
 		if(!this.props.label || 
-            this.props.type == "submit" || 
-            this.props.type == "checkbox" || 
+            this.props.type == "bool" || 
+            this.props.type == "boolean" ||
+            this.props.type == "submit" ||
+            this.props.type == "checkbox" ||
             this.props.type == "radio" ||
             this.props.type == "toggle"){
 			return null;
