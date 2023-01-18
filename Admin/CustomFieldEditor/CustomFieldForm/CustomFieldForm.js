@@ -2,8 +2,7 @@ import Form from 'UI/Form';
 import Input from 'UI/Input';
 import Modal from 'UI/Modal';
 import webRequest from 'UI/Functions/WebRequest';
-import Alert from 'UI/Alert';
-import Spacer from 'UI/Spacer';
+import CustomFieldSelectForm from 'Admin/CustomFieldEditor/CustomFieldSelectForm';
 
 const dataTypes = [
 	{ value: "string", name: "Text" },
@@ -11,6 +10,7 @@ const dataTypes = [
 	{ value: "file", name: "Media" },
 	{ value: "entity", name: "Link To Another Data Type" },
 	{ value: "entitylist", name: "List Of Another Data Type" },
+	{ value: "select", name: "Select" },
 	{ value: "dateTime", name: "Date" },
 	{ value: "double", name: "Number" },
 	{ value: "bool", name: "Boolean" }
@@ -98,6 +98,12 @@ export default class CustomFieldForm extends React.Component {
 						filter={{ where: { deleted: "false" } }}
 						defaultValue={this.props.field ? this.props.field.linkedEntity : null}
 						disabled={!createMode} validate={createMode ? ['Required'] : null}
+					/>
+				}
+
+				{(allowEdit && this.state.field && this.state.dataType === "select") &&
+					<CustomFieldSelectForm
+						fieldId={this.state.field.id}
 					/>
 				}
 
