@@ -1,6 +1,8 @@
 ﻿.collapsible {
+	$collapsible: &;
 
-	.collapsible-summary {
+	&-summary,
+	&__summary {
 		list-style: none;
 		display: flex;
 		align-items: center;
@@ -14,60 +16,115 @@
 		&::-webkit-details-marker {
 			display: none;
 		}
-
-		.collapsible-title {
-			@include __font_size(20);
-			font-weight: bold;
-			margin: 0;
-			display: flex;
-			align-items: center;
-
-			small {
-				margin-left: .25rem;
-				font-size: .75em;
-				font-weight: normal;
-			}
-
-		}
-
-		.collapsible-icon {
-
-			&:not(.collapsible-icon-left) {
-				margin-left: auto;
-				transition: transform .3s ease-in-out;
-			}
-
-			&.collapsible-icon-left {
-				margin-right: .5rem;
-
-				i::before {
-					content: "\f067"; // fa-plus
-				}
-
-			}
-
-		}
-
+		
 		.buttons {
 			margin-left: auto;
+			display: flex;
+			align-items: center;
+			gap: .5rem;
+
+			.info {
+				margin-inline-end: 1rem;
+				font-size: .875rem;
+				opacity: .6;
+			}
+
+			.btn {
+				display: flex;
+				align-items: center;
+				gap: .25rem;
+			}
 		}
 	}
 
-	&:not([open]) > .collapsible-content {
+	&-title,
+	&__title {
+		font-size: 1.25rem;
+		font-weight: bold;
+		margin: 0;
+		display: flex;
+		align-items: center;
+
+		small {
+			margin-left: .25rem;
+			font-size: .75em;
+			font-weight: normal;
+		}
+
+	}
+
+	&-icon {
+		$collapsible-icon: &;
+
+		&:not(#{$collapsible-icon}-left) {
+			margin-left: auto;
+			transition: transform .3s ease-in-out;
+		}
+
+		&#{$collapsible_icon}-left {
+			margin-right: .5rem;
+
+			i::before {
+				content: "\f067"; // fa-plus
+			}
+
+		}
+
+	}
+
+	&__icon {
+		$collapsible__icon: &;
+
+		&:not(#{$collapsible__icon}--left) {
+			margin-left: auto;
+			transition: transform .3s ease-in-out;
+		}
+
+		&#{$collapsible__icon}--left {
+			margin-right: .5rem;
+
+			i::before {
+				content: "\f067"; // fa-plus
+			}
+
+		}
+
+	}
+
+	&__large-icon {
+		margin-inline-end: .75rem;
+	}
+
+	&:not([open]) > #{$collapsible}-content,
+	&:not([open]) > #{$collapsible}__content {
 		display: none;
 	}
 
-	&[open] > .collapsible-summary {
+	&[open] > #{$collapsible}-summary,
+	&[open] > #{$collapsible}__summary {
 		border-bottom: 0;
 
-		.collapsible-icon {
+		#{$collapsible}-icon {
 
-			&:not(.collapsible-icon-left) {
-				-ms-filter: "progid:DXImageTransform.Microsoft.BasicImage(rotation=2)";
+			&:not(#{$collapsible}-icon-left) {
 				transform: rotate(180deg);
 			}
 
-			&.collapsible-icon-left {
+			&#{$collapsible}-icon-left {
+
+				i::before {
+					content: "\f068"; // fa-minus
+				}
+			}
+		}
+
+		#{$collapsible}__icon {
+
+			&:not(#{$collapsible}__icon--left) {
+				transform: rotate(180deg);
+			}
+
+			&#{$collapsible}__icon--left {
 
 				i::before {
 					content: "\f068"; // fa-minus
@@ -76,17 +133,49 @@
 		}
 	}
 
-	.collapsible-content {
-		@include __font_size(16);
+	&-content,
+	&__content {
+		font-size: 1rem;
 		border: 1px solid rgb(240,240,240);
 		border-top: 0;
 		margin-bottom: 1rem;
 		padding: 1.5rem;
 
+		//?
 		&__wrapper {
 			display: flex;
 			align-items: center;
 			flex-wrap: nowrap;
 		}
 	}
+	
+	&--compact {
+	
+		#{$collapsible}-summary,
+		#{$collapsible}__summary {
+			padding: 1rem .75rem;
+		}
+		
+		#{$collapsible}-content,
+		#{$collapsible}__content {
+			padding: 0 0 1.5rem 1.5rem;
+		}
+
+		#{$collapsible}-title,
+		#{$collapsible}__title {
+			font-size: 1rem;
+			align-items: flex-start;
+			flex-direction: column;
+			
+			small {
+				margin-left: 0;
+				font-size: .875em;
+				font-weight: normal;
+				opacity: 7;
+			}
+			
+		}
+		
+	}
+	
 }

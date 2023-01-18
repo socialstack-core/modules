@@ -1,21 +1,27 @@
 export default function Collapsible (props) {
-	var [isOpen, setOpen] = React.useState(!!props.open);
-	
+	var { className, compact, defaultClick } = props;
 	var noContent = !props.children;
+	var [isOpen, setOpen] = React.useState(noContent ? false : !!props.open);
+	
 	var expanderLeft = props.expanderLeft;
+	var hasInfo = props.info;
 	var hasButtons = props.buttons && props.buttons.length;
-
-	if (noContent) {
-		isOpen = false;
-	}
 	
 	// NB: include "open" class in addition to [open] attribute as we may be using a polyfill to render this
 	var detailsClass = isOpen ? "collapsible open" : "collapsible";
 	var summaryClass = noContent ? "btn collapsible-summary no-content" : "btn collapsible-summary";
 	var iconClass = expanderLeft || hasButtons ? "collapsible-icon collapsible-icon-left" : "collapsible-icon";
 
+	if (compact) {
+		detailsClass += " collapsible--compact";
+    }
+
 	if (noContent) {
 		iconClass += " invisible";
+	}
+	
+	if (className) {
+		detailsClass += " " + className;
 	}
 	
 	return <details className={detailsClass} open={isOpen} onClick={(e) => {
@@ -24,13 +30,16 @@ export default function Collapsible (props) {
 			e.stopPropagation();
 			!noContent && setOpen(!isOpen);
 		}}>
-		<summary className={summaryClass}>
+		<summary className={summaryClass} onClick={defaultClick ? (e) => defaultClick(e) : undefined}>
 			{(expanderLeft || hasButtons) &&
 				<div className={iconClass}>
 					{/* NB: icon classes injected dynamically via CSS */}
 					<i className="far fa-fw"></i>
 				</div>
 			}
+			{props.icon && <>
+				<i className={"far fa-2x fa-fw collapsible__large-icon " + props.icon}></i>
+			</>}
 			<h4 className="collapsible-title">
 				{props.title}
 				{props.subtitle &&
@@ -44,14 +53,30 @@ export default function Collapsible (props) {
 					<i className="far fa-chevron-down"></i>
 				</div>
 			}
-			{hasButtons &&
+			{(hasInfo || hasButtons) &&
 				<div className="buttons">
-					{
+					{hasInfo && <span className="info">{props.info}</span>}
+					{hasButtons &&
 						props.buttons.map(button => {
-							return <button type="button" className="btn btn-sm btn-outline-primary" onClick={button.onClick} title={button.text}>
+							var variant = button.variant || 'primary';
+							var btnClass = 'btn btn-sm btn-outline-' + variant;
+
+							if (button.onClick instanceof Function) {
+								return <button type="button" className={btnClass} onClick={button.onClick} title={button.text} disabled={button.disabled}>
+									<i className={button.icon}></i>
+									<span className={button.showLabel ? '' : 'sr-only'}>
+										{button.text}
+									</span>
+								</button>;
+							}
+							
+							return <a href={button.onClick} className={btnClass} title={button.text} disabled={button.disabled} target={button.target}>
 								<i className={button.icon}></i>
-								<span className="sr-only">{button.text}</span>
-							</button>;
+								<span className={button.showLabel ? '' : 'sr-only'}>
+									{button.text}
+								</span>
+							</a>;
+
 						})
 					}
 				</div>
