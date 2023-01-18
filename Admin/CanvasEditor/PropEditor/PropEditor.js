@@ -1,6 +1,7 @@
 import Input from 'UI/Input';
 import Loop from 'UI/Loop';
 import Alert from 'UI/Alert';
+import Graph from 'UI/Functions/GraphRuntime/Graph';
 import getContentTypes from 'UI/Functions/GetContentTypes';
 import ArrayBuilder from 'Admin/CanvasEditor/PropEditor/ArrayBuilder';
 import ArrayEditor from 'Admin/CanvasEditor/PropEditor/ArrayEditor';
@@ -19,6 +20,7 @@ export default class PropEditor extends React.Component {
         this.state = {
 			mode: 'options'
         };
+		this.inputKey = 1;
     }
 
     niceName(label, override) {
@@ -58,6 +60,10 @@ export default class PropEditor extends React.Component {
     renderOptions(contentNode){
 		if(!contentNode){
 			return;
+		}
+		
+		if(contentNode.graph){
+			return `Graph nodes can currently only be edited in the graph editor. In the (near) future, static values will be identified and listed here too.`;
 		}
 		
 		var dataValues = {...contentNode.props};
@@ -102,8 +108,14 @@ export default class PropEditor extends React.Component {
 		}
 		
 		return <div>
-			No other options available
+			{`No other options available`}
 		</div>;
+	}
+	
+	componentWillReceiveProps(props){
+		if(!this.props || props.optionsVisibleFor != this.props.optionsVisibleFor){
+			this.inputKey++;
+		}
 	}
 	
 	specialField(fieldName){
@@ -150,39 +162,6 @@ export default class PropEditor extends React.Component {
 			
 			return (
 				<option value={item.name.toLowerCase()}>{name}</option>
-			);
-		});
-	}
-	
-	getThemeDropdown(){
-		if(!__themeCache){
-			__themeCache = [];
-			
-			webRequest("configuration/list", {where:{key: 'Theme'}}).then(set => {
-				var res = set.json.results;
-				var themes = [];
-				res.forEach(result => {
-					try{
-						result.configJson = JSON.parse(result.configJson);
-						result.key = result.configJson.key;
-						themes.push(result);
-					}catch(e){
-						console.log("Invalid theme JSON: ", result, e);
-					}
-				});
-				__themeCache = themes;
-				
-				
-				
-				this.setState({});
-			});
-		}
-		
-		return __themeCache.map(item => {
-			var name = item.name;
-			
-			return (
-				<option value={item.key.toLowerCase()}>{name}</option>
 			);
 		});
 	}
@@ -310,7 +289,7 @@ export default class PropEditor extends React.Component {
 			}
 
 			options.push(
-				<Input label={this.niceName(label, propType.label)} type={inputType} defaultValue={val} placeholder={placeholder}
+				<Input key={this.inputKey + '_' + fieldName} label={this.niceName(label, propType.label)} type={inputType} defaultValue={val} placeholder={placeholder}
 					help={propType.help} helpPosition={propType.helpPosition}
 					customMeta={propType}
 					fieldName={fieldName} disabledBy={propType.disabledBy} enabledBy={propType.enabledBy} onChange={e => {
@@ -345,24 +324,6 @@ export default class PropEditor extends React.Component {
 		return options;
 	}
 	
-	renderTheme(contentNode){
-		var val = contentNode.props ? contentNode.props['data-theme'] : null;
-		
-		return <div>
-			<Alert type='info'>
-				Visual theme editing - Coming soon
-			</Alert>
-			
-			<Input label={"Theme"} type={"select"} defaultValue={val}
-				fieldName={'data-theme'} onChange={e => {
-				var value = e.target.value;
-
-				this.updateField(contentNode, {name: 'data-theme', value}, value);
-			}}>{this.getThemeDropdown()}</Input>
-			
-		</div>;
-	}
-	
     render(){
 		var content = this.props.optionsVisibleFor;
 		
@@ -371,14 +332,54 @@ export default class PropEditor extends React.Component {
 		}
 		
 		var {mode} = this.state;
-		
+		var typeName = content.typeName || content.type;
+						
 		return <div className="prop-editor">
 			<div className="toolbar">
-				<button className={"btn " + (mode == 'options' ? 'btn-primary' : 'btn-outline-primary')} onClick={()=>this.setState({mode: 'options'})}>Options</button>
-				<button className={"btn " + (mode == 'theme' ? 'btn-primary' : 'btn-outline-primary')} onClick={()=>this.setState({mode: 'theme'})}>Theme</button>
+				<button className={"btn btn-outline-primary"} onClick={e=>{
+					
+					e.preventDefault();
+				
+					// If it is not already a graph node, convert it into one.
+					if(!content.graph){
+						// Conversion time!
+						
+						if(typeName == 'richtext'){
+							// Can't do this for static RTE content.
+							console.warn("Can't convert richtext nodes to a graph. They are fundamentally static HTML-style content nodes.");
+							return;
+						}
+						
+						var convertedGraph = {
+							c: [
+								{r:true, t: "Component", d: {
+									componentType: typeName,
+									...content.props
+								}}
+							]
+						};
+						
+						delete content.type;
+						delete content.props;
+						content.graph = new Graph(convertedGraph);
+						this.props.onChange && this.props.onChange();
+					}
+					
+					// Open graph view for the selected component.
+					this.props.setGraphState(true);
+					
+				}} disabled={typeName == 'richtext'}>Edit graph</button>
+				<button className={"btn btn-outline-primary"} onClick={e=>{
+					
+					e.preventDefault();
+					
+					// Open theme view for the selected component.
+					this.props.setThemeState(true);
+					
+				}}>Edit Theme</button>
 			</div>
-			<div className="p-3">
-				{mode == 'options' ? this.renderOptions(content) : this.renderTheme(content)}
+			<div className="py-3">
+				{this.renderOptions(content)}
 			</div>
 		</div>
 	}

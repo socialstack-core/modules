@@ -1,0 +1,72 @@
+
+.rte-component:focus {
+    border-radius: 1px;
+    box-shadow: 0 0 0 1px var(--primary);
+    outline: 1px solid #0000;
+}
+
+.rte-component-add {
+	opacity: 0;
+	/* todo: handle situ where surrounding component has a primary bg rendering this almost invisible */
+	color: var(--primary);
+	width: 100%; 
+	text-align: center;
+	
+	&__line {
+		width: 100%;
+		border-bottom: 1px solid var(--primary);
+		top: 0.8rem;
+		display: block;
+		position: relative;
+	}
+	
+	i { 
+		background:var(--primary);
+		color: white;
+		font-size: 1rem;
+		border-radius: 2px;
+		padding: 0.2rem 0.3rem;
+		position: relative;
+	}
+}
+
+.rte-component-add:hover {
+	opacity: 1;
+	cursor: pointer;
+}
+
+.rich-editor {
+	padding: 1px;
+	
+	.rte-toolbar-source {
+		background: #f2f2f2;
+		position: sticky;
+		z-index: 998;
+		top: 0px;
+		padding: 5px;
+		
+		button {
+			border: none;
+			background: none;
+			margin: 2px;
+			
+			&.active {
+				background: lightgrey;
+			}
+		}
+		
+	}
+	
+	.canvas-editor-popups {
+
+		.modal-backdrop.show,
+		.modal.show {
+			z-index: 100000;
+		}
+	}
+
+	.empty-node {
+		height: 48px;
+	}
+
+}

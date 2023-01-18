@@ -1,5 +1,8 @@
 import Search from 'UI/Search';
 import webRequest from 'UI/Functions/WebRequest';
+import Modal from 'UI/Modal';
+
+var AutoForm = null;
 
 /**
  * A general use "multi-selection"; primarily used for tags and categories.
@@ -20,8 +23,13 @@ export default class MultiSelect extends React.Component {
 		
 		this.state = {
 			value: initVal,
-			mustLoad
+			mustLoad,
+			showCreateOrEditModal: false
 		};
+
+		if (!AutoForm) {
+			AutoForm = require("Admin/AutoForm").default;
+		}
     }
 	
 	componentDidMount(){
@@ -48,15 +56,15 @@ export default class MultiSelect extends React.Component {
 			});
 		}
 	}
-	
+
 	remove(entry) {
 		var value = this.state.value.filter(t => t!=entry && t!=null);
         this.setState({
 			value
 		});
 		this.props.onChange && this.props.onChange({target: {value: value.map(e => e.id)}, fullValue: value});
-    }
-	
+	}
+
 	render() {
 		var fieldName = this.props.field || 'name';
 		var displayFieldName = this.props.displayField || fieldName;
@@ -82,9 +90,32 @@ export default class MultiSelect extends React.Component {
 				<div className="admin-multiselect">
 					{
 						this.state.value.map((entry, i) => (
-						<div key={entry.id} className="entry" onClick={() => this.remove(entry)}>
-							{entry[displayFieldName]} <i className="remove-icon fa fa-times-circle" />
-						</div>
+							<div className="entry-wrapper">
+								<div key={entry.id} className="entry">
+									<div>
+										{entry[displayFieldName]} <i className="remove-icon fa fa-times-circle" />
+									</div>
+										{<br />}
+									<div>
+										<button
+											className="btn btn-secondary btn-entry-select-action btn-view-entry"
+											onClick={e => {
+												e.preventDefault();
+												this.setState({ showCreateOrEditModal: true, entityToEditId: entry.id });
+											}}
+										>
+											{<i className="fa fa-edit"></i>}
+										</button>
+									</div>
+									<div>
+										<button className="btn btn-secondary btn-entry-select-action btn-remove-entry"
+											onClick={() => this.remove(entry)}
+										>
+											{<i className="fa fa-trash"></i>}
+										</button>
+									</div>
+								</div>
+							</div>
 					))}
 					<div>
 						<input type="hidden" ref={
@@ -116,10 +147,58 @@ export default class MultiSelect extends React.Component {
 								value
 							});
 							this.props.onChange && this.props.onChange({target: {value: value.map(e => e.id)}, fullValue: value});
-						}}/>}
+							}}/>}
 					</div>
-				</div>
 			</div>
-		);
+			<div>
+				<button className="btn btn-secondary btn-sm btn-entry-select-action btn-new-entry"
+					onClick={e => {
+						e.preventDefault();
+						this.setState({
+							showCreateOrEditModal: true,
+							entityToEditId: this.state.selected
+						});
+					}}
+				>
+						{`New ${this.props.label}...`}
+					</button>
+			</div>
+
+				{this.state.showCreateOrEditModal &&
+				<Modal
+					title={"Edit " + this.props.label}
+					onClose={() => {
+						this.setState({ showCreateOrEditModal: false, entityToEditId: null })
+					}}
+					visible
+					isExtraLarge
+				>
+					<AutoForm
+						endpoint={this.props.contentType.toLowerCase()}
+						singular={this.props.label}
+						// plural={this.props.label + "s"}
+						id={this.state.entityToEditId ? this.state.entityToEditId : null}
+						onActionComplete={entity => {						
+							var value = this.state.value; 
+							var valueIndex = value.findIndex(
+								(checkIndex) => checkIndex.id === entity.id
+							)
+							
+							if (valueIndex !== -1) {
+								value[valueIndex] = entity
+							} else {
+								value.push(entity)
+							}
+
+							this.setState({
+								showCreateOrEditModal: false,
+								entityToEditId: null,
+								value: value
+							});
+						}
+						} />
+				</Modal>
+				}
+			</div>);
 	}
 }

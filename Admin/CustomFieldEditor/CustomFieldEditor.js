@@ -36,7 +36,8 @@ export default class CustomFieldEditor extends React.Component {
 					filter={
 						{
 							where: {
-								customContentTypeId: this.props.currentContent.id
+								customContentTypeId: this.props.currentContent.id,
+								deleted: false
 							}
 						}
 					}

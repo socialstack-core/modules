@@ -6,6 +6,7 @@ import isNumeric from 'UI/Functions/IsNumeric';
 import getAutoForm from 'Admin/Functions/GetAutoForm';
 import webRequest from 'UI/Functions/WebRequest';
 import formatTime from "UI/Functions/FormatTime";
+import CanvasEditor from "Admin/CanvasEditor";
 import Tile from 'Admin/Tile';
 import { useSession, RouterConsumer } from 'UI/Session';
 
@@ -50,14 +51,32 @@ class AutoFormInternal extends React.Component {
 			locale,
 			updateCount: 0
 		};
+		
+		this.beforeUnload = this.beforeUnload.bind(this);
+		
 	}
-
+	
+	beforeUnload(e){
+		if(this.unsavedChanges){
+			e.preventDefault();
+			return e.returnValue = 'Unsaved changes - are you sure you want to exit?';
+		}
+	}
+	
 	componentWillReceiveProps(props) {
 		this.load(props);
 	}
 
 	componentDidMount() {
 		this.load(this.props);
+		
+		// Add unload handler such that e.g. when the websocket requests a refresh 
+		// we'll check if there are any unsaved changes.
+		global.window.addEventListener('beforeunload', this.beforeUnload);
+	}
+	 
+	componentWillUnmount(){
+		global.window.removeEventListener('beforeunload', this.beforeUnload);
 	}
 	
 	loadField(props) {
@@ -156,13 +175,58 @@ class AutoFormInternal extends React.Component {
 					this.setState({});
 				})
 			}
-
-			if (formData) {
-				// Slight remap to canvas friendly structure:
-				this.setState({ fields: formData.canvas, isLocalized, supportsRevisions });
-			} else {
+			
+			if (!formData) {
 				this.setState({ failed: true });
+				return;
 			}
+			
+			// The fields of this content type are..
+			var fields = JSON.parse(formData.canvas);
+			
+			// If there is exactly 1 canvas in the field set, or one is marked as the main canvas with [Data("main", "true")]
+			// then we'll use the full size panelled canvas editor layout.
+			var mainCanvas = null;
+			
+			if(Array.isArray(fields)){
+				fields = {content: fields};
+			}
+			
+			var c = fields.c || fields.content;
+			
+			if(Array.isArray(c)){
+				var currentCanvas = null;
+				var canvasFields = [];
+				
+				for(var i=0;i<c.length;i++){
+					var field = c[i];
+					var data = field.d || field.data;
+					
+					if(!data){
+						continue;
+					}
+					
+					if(data.type == 'canvas' && !data.contentType){
+						field.textonly = data.textonly;
+						canvasFields.push(field);
+						currentCanvas = field;
+						
+						if(data.main){
+							// Definitely the main canvas.
+							canvasCount = 1;
+							break;
+						}
+					}
+				}
+				
+				if(canvasFields.length == 1 && !canvasFields[0].textonly){
+					mainCanvas = currentCanvas;
+					this.tryPopulateMainCanvas(this.state.fieldData, mainCanvas);
+				}
+			}
+			
+			// Store in the state:
+			this.setState({ fields, isLocalized, supportsRevisions, mainCanvas });
 		});
 		
 		if (this.state.fieldData) {
@@ -178,8 +242,11 @@ class AutoFormInternal extends React.Component {
 			// Get the values we're editing:
 			var url = revisionId ? props.endpoint + '/revision/' + revisionId : props.endpoint + '/' + props.id;
 			webRequest(url, null, opts).then(response => {
-
-				this.setState({ fieldData: response.json, createSuccess });
+				var content = response.json;
+				
+				this.tryPopulateMainCanvas(content, this.state.mainCanvas);
+				
+				this.setState({ fieldData: content, createSuccess });
 
 			});
 		} else if (query) {
@@ -197,7 +264,47 @@ class AutoFormInternal extends React.Component {
 			fieldData
 		});
 	}
-
+	
+	applyDefaults(fields, values){
+		
+		var c = fields.c || fields.content;
+		
+		if(Array.isArray(c)){
+			
+			for(var i=0;i<c.length;i++){
+				var field = c[i];
+				if(!field){
+					continue;
+				}
+				var data = field.d || field.data;
+				
+				if(!data || !data.name){
+					continue;
+				}
+				
+				data.defaultValue = values[data.name];
+			}
+		}
+		
+	}
+	
+	tryPopulateMainCanvas(content, mainCanvas){
+		if(!content || !mainCanvas){
+			return;
+		}
+		// Ensure the main canvas node gets populated.
+		var data = mainCanvas.data;
+		data.currentContent = content;
+		
+		data.onChange = (e) => {
+			// Input field has changed. Update the content object so any redraws are reflected.
+			var val = e.target.value;
+			content[data.name] = e.json;
+		};
+		
+		data.defaultValue = content[data.name];
+	}
+	
 	startDelete() {
 		this.setState({
 			confirmDelete: true
@@ -287,7 +394,7 @@ class AutoFormInternal extends React.Component {
 	}
 	
 	renderFormFields() {
-		const { locale } = this.state;
+		const { locale, mainCanvas } = this.state;
 		
 		return <Canvas key = {this.state.updateCount} onContentNode={contentNode => {
 			var content = this.state.value || this.state.fieldData;
@@ -297,7 +404,7 @@ class AutoFormInternal extends React.Component {
 				var data = contentNode.data;
 		
 				if(data.hint){
-					var hint = <i style="color:lightgreen" className='fa fa-lg fa-question-circle hint-field-label' title={data.hint}/>;
+					var hint = <i className='fa fa-lg fa-question-circle hint-field-label' title={data.hint}/>;
 					
 					if(Array.isArray(data.label)){
 						data.label.push(hint);
@@ -306,11 +413,16 @@ class AutoFormInternal extends React.Component {
 					}
 				}
 			}
-
+			
+			if(mainCanvas && contentNode && contentNode.data && mainCanvas.data.name == contentNode.data.name){
+				// Omit the main canvas from the rest of the fields.
+				return null;
+			}
+			
 			if (!contentNode.data || !contentNode.data.name || !content || contentNode.data.autoComplete == 'off') {
 				return;
 			}
-
+			
 			var data = contentNode.data;
 
 			if(!data.localized && locale != '1'){
@@ -320,7 +432,7 @@ class AutoFormInternal extends React.Component {
 
 			// Show translation globe icon alongside the label when we have data 
 			if (data.localized) {
-				var localised = <i style="color:blue" className='fa fa-lg fa-globe-europe localized-field-label' />
+				var localised = <i className='fa fa-lg fa-globe-europe localized-field-label' />
 
 				if(Array.isArray(data.label)){
 					data.label.splice(1,0,localised);
@@ -344,6 +456,7 @@ class AutoFormInternal extends React.Component {
 						break;
 				}
 				content[data.name] = val;
+				this.unsavedChanges = true;
 			};
 
 			var value = content[data.name];
@@ -354,6 +467,7 @@ class AutoFormInternal extends React.Component {
 					data.defaultValue = value;
 				}
 			}
+			
 		}}>
 			{this.state.fields}
 		</Canvas>
@@ -362,7 +476,7 @@ class AutoFormInternal extends React.Component {
 	renderIntl(pageState, setPage) {
 		var isEdit = isNumeric(this.props.id);
 
-		const { revisionId, locale } = this.state;
+		const { revisionId, locale, mainCanvas } = this.state;
 
 		if (this.state.failed) {
 			var ep = this.props.endpoint || '';
@@ -384,53 +498,235 @@ class AutoFormInternal extends React.Component {
 		if (isEdit && parsedId) {
 			endpoint += this.props.id;
 		}
+
+		var feedback = <>
+			{
+				this.state.editFailure && (
+					<div className="alert alert-danger">
+						{`Something went wrong whilst trying to save your changes - your device might be offline, so check your internet connection and try again.`}
+					</div>
+				)
+			}
+			{
+				this.state.editSuccess && (
+					<div className="alert alert-success">
+						{`Your changes have been saved`}
+					</div>
+				)
+			}
+			{
+				this.state.createSuccess && (
+					<div className="alert alert-success">
+						{`Created successfully`}						
+					</div>
+				)
+			}
+			{
+				this.state.deleteFailure && (
+					<div className="alert alert-danger">
+						{`Something went wrong whilst trying to delete this - your device might be offline, so check your internet connection and try again.`}						
+					</div>
+				)
+			}
+		</>;
+		
+		var controls = <>
+			{isEdit && <button className="btn btn-danger" style={{ float: 'right' }} onClick={e => {
+				e.preventDefault();
+				this.startDelete();
+			}}>Delete</button>}
+			{this.state.supportsRevisions && (
+				<Input inline type="button" className="btn btn-outline-primary createDraft" onClick={() => {
+					this.draftBtn = true;
+					this.form.submit();
+				}} disabled={this.state.submitting}>
+					{isEdit ? "Save Draft" : "Create Draft"}
+				</Input>
+			)}
+			<Input inline type="button" disabled={this.state.submitting} onClick={() => {
+				this.draftBtn = false;
+				this.form.submit();
+			}}>
+				{isEdit ? "Save and Publish" : "Create"}
+			</Input>
+		</>;
+		
+		var onValues = values => {
+			if (this.draftBtn) {
+				// Set content ID if there is one already:
+				if (isEdit && parsedId) {
+					values.id = parsedId;
+				}
+
+				// Create a draft:
+				values.setAction(this.props.endpoint + "/draft");
+			} else {
+				// Potentially publishing a draft.
+				if (this.state.revisionId) {
+					// Use the publish EP.
+					values.setAction(this.props.endpoint + "/publish/" + this.state.revisionId);
+				}
+			}
+
+			this.setState({ editSuccess: false, editFailure: false, createSuccess: false, submitting: true });
+			return values;
+		};
+		
+		var onFailed = response => {
+			this.setState({ editFailure: true, createSuccess: false, submitting: false });
+		};
+		
+		var onSuccess = response => {
+			var state = pageState;
+			var {locale} = this.state;
+			
+			this.unsavedChanges = false;
+			
+			if(this._timeout){
+				clearTimeout(this._timeout);
+			}
+			
+			this._timeout = setTimeout(() => {
+				this.setState({editSuccess: false, createSuccess: false});
+			}, 3000);
+			
+			if (isEdit) {
+				// Recreate fields set such that the field canvas will re-render and apply any updated default values.
+				var fields = {...this.state.fields};
+				this.applyDefaults(fields, response);
+				
+				this.setState({ editFailure: false, editSuccess: true, createSuccess: false, submitting: false, fields, fieldData: response, updateCount: this.state.updateCount + 1 });
+
+				if (this.props.onActionComplete) {
+					this.props.onActionComplete(response);
+					return;
+				} else if (window && window.location && window.location.pathname) {
+					var parts = window.location.pathname.split('/')
+							parts.pop();
+							parts.push(response.id);
+
+					if (response.revisionId) {
+						// Saved a draft
+
+						var newUrl = parts.join('/') + '?revision=' + response.revisionId + '&lid=' + locale;
+
+						if (!this.state.revisionId) {
+							newUrl += '&created=1';
+						}
+
+						// Go to it now:
+						setPage(newUrl);
+
+					} else if (response.id != this.state.id || this.state.revisionId) {
+						// Published content from a draft. Go there now.
+						setPage(parts.join('/') + '?published=1&lid=' + locale);
+					}
+				}
+			} else {
+				
+				// Recreate fields set such that the field canvas will re-render and apply any updated default values.
+				var fields = {...this.state.fields};
+				this.applyDefaults(fields, response);
+				
+				this.setState({ editFailure: false, submitting: false, fields, fieldData: response, updateCount: this.state.updateCount+1 });
+
+				if (this.props.onActionComplete) {
+					this.props.onActionComplete(response);
+					return;
+				} else if (window && window.location && window.location.pathname) {
+					var parts = window.location.pathname.split('/');
+					parts.pop();
+					parts.push(response.id);
+
+					if (response.revisionId) {
+						// Created a draft
+						setPage(parts.join('/') + '?created=1&revision=' + response.revisionId + '&lid=' + locale);
+					} else {
+						setPage(parts.join('/') + '?created=1&lid=' + locale);
+					}
+				}
+			}
+		};
+		
+		if(mainCanvas){
+			// Check for a field called url on the object:
+			var pageUrl = this.state.fieldData && this.state.fieldData.url;
+			var hasParameter = pageUrl ? pageUrl.match(/{([^}]+)}/g) : false;
+
+			var hasFeedback = this.state.editFailure || this.state.editSuccess || this.state.createSuccess || this.state.deleteFailure;
+			var html = document.querySelector("html");
+
+			if (html) {
+				html.style.setProperty('--admin-feedback-height', hasFeedback ? 'var(--fallback__admin-feedback-height)' : '0px');
+			}
+
+			var breadcrumbs = <>
+				<li>
+					<a href={'/en-admin/'}>
+						{`Admin`}
+					</a>
+				</li>
+				<li>
+					<a href={'/en-admin/' + this.props.endpoint}>
+						{this.capitalise(this.props.plural)}
+					</a>
+				</li>
+				<li>
+					{isEdit ? <>
+						{`Editing ${this.props.singular}`}
+
+						&nbsp;
+
+						{pageUrl && hasParameter && <>
+							<code>
+								{pageUrl}
+							</code>
+						</>}
+
+						{pageUrl && !hasParameter && <>
+							<a href={pageUrl} target="_blank" rel="noopener noreferrer" className="page-form__external-link">
+								<code>
+									{pageUrl}
+								</code>
+								<i className="fa fa-fw fa-external-link"></i>
+							</a>
+						</>}
+
+						{!pageUrl && <>
+							{'#' + this.state.id}
+						</>}
+
+						&nbsp;
+
+						{(this.state.fieldData && this.state.fieldData.isDraft) && (
+							<span className="badge bg-danger is-draft">
+								{`Draft`}
+							</span>
+						)}
+					</> : `Add new ${this.props.singular}`}
+				</li>
+			</>;
+			
+			return <>
+				<Form formRef={r=>this.form=r} autoComplete="off" locale={locale} action={endpoint}
+				onValues={onValues} onFailed={onFailed} onSuccess={onSuccess}>
+					<CanvasEditor 
+						fullscreen 
+						{...mainCanvas.data}
+						controls={controls}
+						feedback={feedback}
+						breadcrumbs={breadcrumbs}
+						additionalFields={() => this.props.renderFormFields ? this.props.renderFormFields(this.state) : this.renderFormFields()}
+					/>
+				</Form>
+				{this.state.confirmDelete && this.renderConfirmDelete(pageState, setPage)}
+			</>;
+		}
 		
 		return (
 			<div className="auto-form">
 				<Tile className="auto-form-header">
-					{isEdit && <button className="btn btn-danger" style={{ float: 'right' }} onClick={e => { e.preventDefault(); this.startDelete(); }}>Delete</button>}
-					<Input inline type="button" disabled={this.state.submitting} onClick={() => {
-						this.draftBtn = false;
-						this.form.submit();
-					}}>
-						{isEdit ? "Save and Publish" : "Create"}
-					</Input>
-					{this.state.supportsRevisions && (
-						<Input inline type="button" className="btn btn-primary createDraft" onClick={() => {
-							this.draftBtn = true;
-							this.form.submit();
-						}} disabled={this.state.submitting}>
-							{isEdit ? "Save Draft" : "Create Draft"}
-						</Input>
-					)}
-					{
-						this.state.editFailure && (
-							<div className="alert alert-danger mt-3 mb-1">
-								Something went wrong whilst trying to save your changes - your device might be offline, so check your internet connection and try again.
-							</div>
-						)
-					}
-					{
-						this.state.editSuccess && (
-							<div className="alert alert-success mt-3 mb-1">
-								Your changes have been saved
-							</div>
-						)
-					}
-					{
-						this.state.createSuccess && (
-							<div className="alert alert-success mt-3 mb-1">
-								Created successfully
-							</div>
-						)
-					}
-					{
-						this.state.deleteFailure && (
-							<div className="alert alert-danger mt-3 mb-1">
-								Something went wrong whilst trying to delete this - your device might be offline, so check your internet connection and try again.
-							</div>
-						)
-					}
+					{controls}
 				</Tile>
 				<Tile>
 					<p>
@@ -470,100 +766,7 @@ class AutoFormInternal extends React.Component {
 						</div>
 					}
 					<Form formRef={r=>this.form=r} autoComplete="off" locale={locale} action={endpoint}
-						onValues={values => {
-							if (this.draftBtn) {
-								// Set content ID if there is one already:
-								if (isEdit && parsedId) {
-									values.id = parsedId;
-								}
-
-								// Create a draft:
-								values.setAction(this.props.endpoint + "/draft");
-							} else {
-								// Potentially publishing a draft.
-								if (this.state.revisionId) {
-									// Use the publish EP.
-									values.setAction(this.props.endpoint + "/publish/" + this.state.revisionId);
-								}
-							}
-
-							this.setState({ editSuccess: false, editFailure: false, createSuccess: false, submitting: true });
-							return values;
-						}}
-
-						onFailed={
-							response => {
-								this.setState({ editFailure: true, createSuccess: false, submitting: false });
-							}
-						}
-
-						onSuccess={
-							response => {
-								var state = pageState;
-								var {locale} = this.state;
-								
-								if(this._timeout){
-									clearTimeout(this._timeout);
-								}
-								
-								this._timeout = setTimeout(() => {
-									this.setState({editSuccess: false, createSuccess: false});
-								}, 3000);
-								
-								if (isEdit) {
-									
-									this.setState({ editFailure: false, editSuccess: true, createSuccess: false, submitting: false, fieldData: response, updateCount: this.state.updateCount + 1 });
-
-									if (state && state.page && state.page.url) {
-										if (this.props.onActionComplete) {
-											this.props.onActionComplete(response);
-											return;
-										}
-
-										var parts = state.page.url.split('/');
-										parts.pop();
-										parts.push(response.id);
-
-										if (response.revisionId) {
-											// Saved a draft
-
-											var newUrl = parts.join('/') + '?revision=' + response.revisionId + '&lid=' + locale;
-
-											if (!this.state.revisionId) {
-												newUrl += '&created=1';
-											}
-
-											// Go to it now:
-											setPage(newUrl);
-
-										} else if (response.id != this.state.id || this.state.revisionId) {
-											// Published content from a draft. Go there now.
-											setPage(parts.join('/') + '?published=1&lid=' + locale);
-										}
-									}
-								} else {
-									this.setState({ editFailure: false, submitting: false, fieldData: response, updateCount: this.state.updateCount+1 });
-									if (window && window.location && window.location.pathname) {
-										if (this.props.onActionComplete) {
-											this.props.onActionComplete(response);
-											return;
-										}
-
-										var parts = window.location.pathname.split('/');
-										parts.pop();
-										parts.push(response.id);
-
-										if (response.revisionId) {
-											// Created a draft
-											setPage(parts.join('/') + '?created=1&revision=' + response.revisionId + '&lid=' + locale);
-										} else {
-											setPage(parts.join('/') + '?created=1&lid=' + locale);
-										}
-									}
-								}
-							}
-						}
-					>
+						onValues={onValues} onFailed={onFailed} onSuccess={onSuccess}>
 						{this.props.renderFormFields ? this.props.renderFormFields(this.state) : this.renderFormFields()}
 					</Form>
 				</Tile>

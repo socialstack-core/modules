@@ -30,22 +30,6 @@
 	background: white;
 	border-radius: 2px;
 	
-	.rte-fake-root{
-		&:hover{
-			cursor: text;
-		}
-		
-		&::before{
-			content: 'Click here to type';
-			font-style: italic;
-			opacity: 0.4;
-		}
-		
-		&:focus{
-			background: HighlightText;
-		}
-	}
-	
 	&.no-toolbar {
 		border-radius: 0.4375rem 0.4375rem 0.4375rem 0.4375rem;
 		padding: 0.5625rem 1rem 0.5625rem 1rem;
@@ -127,8 +111,15 @@
 	}
 	
 	> .rte-content{
-		min-height: 200px;
-		overflow: hidden;
+		padding: 1px; /* Space for outlines to show */
 		transform: scaleX(1); /* position: fixed is relative to transforms too, so we can use this to contain them */
 	}
+}
+
+.RichEditor {
+
+	&__icons {
+		display: none;
+	}
+
 }

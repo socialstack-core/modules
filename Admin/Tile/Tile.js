@@ -1,28 +1,28 @@
-/**
- * A tile in the admin area.
- */
-export default class Tile extends React.Component {
-	
-	render() {
+// a tile in the admin area
+export default function Tile(props) {
+	const { title, row, className, empty, children, fixedFooter } = props;
+    var tileClass = ['tile'];
+    tileClass.push('col-md-' + (12 / (row || 1)));
+    tileClass.push(className);
 
-        const className = (12 / (this.props.row || 1));
-		
-        return (
-            <div className={'col-md-' + className + ' ' + (this.props.className || '')}>
-                <div className={this.props.empty ? "" : "component-tile"}>
-                    {!this.props.empty && (
-                        <h3 className="admin-heading">
-                            {this.props.title}
-                        </h3>
-                    )}
-                    <article>
-                        {this.props.children}
-                    </article>
-                </div>
-            </div>
-        );
+    if (fixedFooter) {
+        tileClass.push('tile--fixed-footer');
     }
-	
+
+	return (
+        <div className={tileClass.join(' ')}>
+            <div className={empty ? "" : "component-tile"}>
+                {!empty && title && (
+                    <h3 className="admin-heading">
+                        {title}
+                    </h3>
+                )}
+                <article>
+                    {children}
+                </article>
+            </div>
+		</div>
+	);
 }
 
 Tile.propTypes = {

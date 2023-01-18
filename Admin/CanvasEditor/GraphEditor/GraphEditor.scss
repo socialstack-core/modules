@@ -1,0 +1,282 @@
+$graph_anchor_size: 12px;
+$graph_anchor_offset: 9px;
+$graph_anchor_mid_offset: 6px;
+
+.graph-editor {
+	background: #fff;
+	height: 80vh;
+	position: relative;
+	padding: 1.25rem;
+	
+	&__ui {
+		position: absolute;
+		top: 0;
+		width: 100%;
+		display: flex;
+		flex-direction: row;
+		align-items: center;
+		height: var(--graph-editor-ui-height);
+
+		.graph-ui-btn {
+			margin: 0 5px;
+		}
+
+		.zoom-widget {
+			display: flex;
+			align-items: center;
+			padding-right: 16px;
+			border-right: 1px solid #A9ACA8;
+			margin-right: 16px;
+		}
+
+		.zoom-level {
+			margin: 0 16px;
+			font-size: 14px;
+			min-width: 32px;
+			text-align: center;
+		}
+
+		.btn {
+			padding: .375rem 0.5rem !important;
+			display: flex;
+			align-items: center;
+			color: black;
+
+			i {
+				font-size: 24px;
+			}
+		}
+	}
+
+	.map-controls {
+		position: absolute;
+		display: inline-block;
+		left: 10px;
+		bottom: 10px;
+		background: white;
+		border-radius: 0.5rem;
+		padding: 0.5rem;
+	}
+	
+	.map-intro {
+		position: absolute;
+		display: inline-block;
+		left: 10px;
+		top: 10px;
+		background: white;
+		border-radius: 0.5rem;
+		padding: 0.5rem;
+	}
+	
+	.entry.node {
+		min-width: 256px;
+
+		.entry-header {
+
+			&__name {
+				overflow: hidden;
+				white-space: nowrap;
+				text-overflow: ellipsis;
+			}
+
+			&__controls {
+				flex: 0 0 auto;
+				display: flex;
+				gap: .25rem;
+
+				.btn {
+					padding: .125rem .25rem;
+					border-radius: .2rem;
+					border-color: currentColor;
+				    color: currentColor;
+
+					&:hover {
+						color: #fff;
+						border-color: transparent;
+					}
+				}
+			}
+
+		}
+	
+		.entry-dragbar {
+			display: flex;
+			align-items: center;
+			justify-content: space-between;
+			cursor:move;
+			padding: 0.5rem;
+			border-top-left-radius: 8px;
+			border-top-right-radius: 8px;
+		}
+		
+		.node-delete {
+			cursor: pointer;
+			color: red;
+			margin-left: 0.5rem;
+		}
+		
+		.entry-content {
+			padding: 0.5rem;
+			position: relative;
+
+			.form-label, .form-control, .form-select {
+				font-size: .75rem;
+			}
+
+			&__name {
+				overflow: hidden;
+				white-space: nowrap;
+				text-overflow: ellipsis;
+			}
+			
+			&__field {
+			    display: flex;
+				align-items: center;
+				position: relative;
+				border-top: 1px solid rgba(0,0,0,.1);
+				font-size: .75rem;
+				padding: .125rem 0;
+
+				&:first-child {
+					border-top: 0;
+				}
+
+				&--vertical {
+					flex-direction: column;
+					align-items: flex-start;
+
+					+ .entry-content__field {
+						border-top: 0;
+					}
+
+					> .mb-3 {
+						width: 100%;
+					}
+				}
+
+				&__input {
+					padding-left: .5rem;
+					display: flex;
+					align-items: center;
+				    justify-content: space-between;
+
+					&--vertical {
+						flex-direction: column;
+						align-items: flex-start;
+
+						> .mb-3 {
+							width: 100%;
+						}
+
+					}
+	
+					.type-icon {
+						left: -28px;
+					}
+
+					.btn-sm {
+						padding: .125rem .25rem;
+						border-radius: .2rem;
+					}
+
+				}
+				
+				&__output {
+					.type-icon {
+						right: -28px;
+					}
+				}
+			}
+		}
+		
+		.type-icon {
+			position: absolute;
+			
+			&:hover {
+				cursor: pointer;
+			}
+
+			&--bottom {
+				bottom: -11px;
+			}
+		}
+	}
+	
+	.entry {
+		touch-action: none;
+		display: inline-block;
+		cursor: default;
+		position: absolute;
+		// NB: uncommenting this and the transform: translate(-50%,-50%) below fixes the "image creep when resizing" bug,
+		// but at the cost of all images appearing offset NW of their original positions
+		//transform-origin: top left;
+		user-select: none;
+		background: white;
+	}
+	
+	.module-select-modal, .module-link-selection-modal{
+		.module-group{
+			margin-bottom: 10px;
+		}
+	
+		.module-tile{
+			border: 1px solid lightgrey;
+			border-radius: 4px;
+			text-align: center;
+			padding: 20px;
+			margin-bottom: 10px;
+			
+			&:hover{
+				cursor:pointer;
+			}
+		}
+	}
+
+	.confirm-delete-modal, .cant-delete-modal {
+
+		&__footer {
+			display: flex;
+			justify-content: flex-end;
+			gap: 0.5rem;
+		}
+
+		.modal-footer {
+			display: none;
+		}
+
+	}
+
+	.uploader--compact {
+        
+        .uploader__internal,
+        .uploader__label,
+		.uploader__caption {
+            width: 100%;
+        }
+
+		+ .file-selector__options .file-selector__select.dropdown > .btn {
+			font-size: .75rem;
+			padding: 0.25rem 0.5rem;
+		}
+	}
+}
+
+@media(prefers-color-scheme: dark){
+	.graph-editor {
+		background: #222;
+		
+		&__ui {
+			color: white;
+			
+			.btn {
+				color: white;
+			}
+		}
+		
+		.entry {
+			background: #111;
+			color: white;
+		}
+		
+	}
+}

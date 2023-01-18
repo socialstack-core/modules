@@ -1,27 +1,39 @@
 .admin-multiselect{
-	
+
 	.entry:hover, .entry-suggestion{
 		cursor:pointer;
 	}
-	
+
 	.btn-primary{
 		margin-left: 20px;
 		display: inline-block;
 	}
-	
+
+	.btn-entry-select-action{
+		margin: 5px;
+	}
+
+	.entry-wrapper{
+		display: inline;
+	}
+
 	.entry{
-		display: inline-block;
+		display: inline-flex;
+		align-items: center;
 		background: rgb(230,230,230);
 		border-radius: 5px;
 		padding: 5px;
 		margin-right: 10px;
 		margin-bottom: 10px;
-		
-		
+
 		.remove-icon{
 			margin-left: 5px;
 			color: rgb(128,128,128);
 		}
 	}
-	
+}
+
+
+.btn.btn-secondary {
+	margin-block-start: .25rem;
 }

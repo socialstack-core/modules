@@ -1,0 +1,43 @@
+.sitemap {
+
+	&__wrapper {
+		height: calc(100vh 
+			- var(--admin-header-height, $fallback__admin-header-height)
+			- var(--admin-subheader-height, $fallback__admin-subheader-height)
+			- var(--admin-feedback-height, 0px));
+		display: flex;
+		flex-direction: column;
+	}
+
+	&__internal {
+		flex: 1 1 auto;
+		overflow-y: auto;
+	}
+
+	/*
+	&__footer {
+		flex: 0 0 var(--admin-footer-height, $fallback__admin-footer-height);
+		padding: 4px 16px;
+		background: var(--admin-footer-bg, var(--fallback__admin-footer-bg));
+		display: flex;
+		align-items: center;
+		justify-content: flex-end;
+		gap: .75rem;
+	}
+	*/
+
+}
+
+.sitemap-expander {
+
+	&:hover {
+
+		> .collapsible-ex__summary {
+			//background: var(--primary-shadow);
+			//color: var(--primary-fg);
+			background: rgba(0,0,0,.1);
+		}
+
+	}
+
+}

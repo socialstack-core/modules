@@ -95,6 +95,7 @@ export default class CustomFieldForm extends React.Component {
 						contentType="customcontenttype"
 						displayField="nickName"
 						contentTypeValue="name"
+						filter={{ where: { deleted: "false" } }}
 						defaultValue={this.props.field ? this.props.field.linkedEntity : null}
 						disabled={!createMode} validate={createMode ? ['Required'] : null}
 					/>

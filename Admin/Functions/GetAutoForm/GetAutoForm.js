@@ -13,6 +13,8 @@ export default (type, name) => {
 		cache[type]={};
 	}
 	
+	name = name.toLowerCase();
+	
 	if(cache[type][name]){
 		return Promise.resolve(cache[type][name]);
 	}
@@ -23,4 +25,41 @@ export default (type, name) => {
 		cache[type][name] = form;
 		return form;
 	});
+}
+
+var gotAll = false;
+
+export function getAllContentTypes() {
+	
+	if(gotAll){
+		return Promise.resolve(cache.content);
+	}
+	
+	return webRequest("autoform").then(response => {
+		gotAll = true;
+		
+		cache.content = {};
+		var byEndpoint = {};
+		var forms = response.json.forms;
+		
+		forms.forEach(form => {
+			byEndpoint[form.endpoint] = form;
+		});
+		
+		var types = response.json.contentTypes;
+		
+		types.forEach(type => {
+			var lcName = type.name.toLowerCase();
+			var form = byEndpoint['v1/' + lcName];
+			
+			if(!form){
+				return;
+			}
+			
+			cache.content[lcName] = {form, name: type.name, canvas: JSON.stringify({content: form.fields})};
+		});
+		
+		return cache.content;
+	});
+	
 }

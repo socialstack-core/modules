@@ -1,9 +1,32 @@
+.tile {
+
+	&--fixed-footer {
+
+		.component-tile {
+			display: inline-flex;
+			background-image: linear-gradient(to right, #9E40B530, #350EE530, #10086230);
+			margin: 0;
+
+			> article {
+				float: none;
+				margin-bottom: 0;
+				display: flex;
+				justify-content: flex-end;
+				gap: .75rem;
+			}
+		}
+
+	}
+
+}
+
 .component-tile {
 	
 	width: 100%;
     padding: 10px 17px;
     display: inline-block;
-    background: #fff;
+    //background: #fff;
+	background: #f0f3f7;
     border: 1px solid #E6E9ED;
     opacity: 1;
 	margin-bottom: 10px;

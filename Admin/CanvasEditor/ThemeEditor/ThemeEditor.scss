@@ -1,0 +1,15 @@
+.theme-editor{
+	&__theme-preview{
+		border: 2px solid black;
+		padding: 0.5rem;
+		width: 100%;
+		display: block;
+		text-align: left;
+		background: var(--background);
+		color: var(--color);
+		
+		&__selected{
+			border-color: green;
+		}
+	}
+}

@@ -61,7 +61,7 @@ export default function Database() {
 				}
 				
 				if(response.sets){
-					window.recordSets.concat(response.sets);
+					window.recordSets = window.recordSets.concat(response.sets);
 				}
 				
 				var newRuns = runs.slice();

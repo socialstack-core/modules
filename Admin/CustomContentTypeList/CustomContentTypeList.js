@@ -13,6 +13,13 @@ export default class CustomContentTypeList extends React.Component {
 					<Loop 
 							over='customContentType' 
 							live
+							filter={
+								{
+									where: {
+										deleted: false
+									}
+								}
+							}
 						>
 							{
 								contentType => {
