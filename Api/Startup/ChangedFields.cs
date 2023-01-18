@@ -674,7 +674,23 @@ namespace Api.Startup {
 					for (var i = 0; i < paramCount; i++)
 					{
 						var argInfo = ca.ConstructorArguments[i];
-						ctorParSet[i] = argInfo.Value;
+						var value = argInfo.Value;
+
+						if(value is ICollection<CustomAttributeTypedArgument> col)
+						{
+							// Convert to a string[].
+							var strSet = new string[col.Count];
+							var index = 0;
+
+							foreach (var entry in col)
+							{
+								strSet[index++] = (string)(entry.Value);
+							}
+
+							value = strSet;
+						}
+
+						ctorParSet[i] = value;
 					}
 
 					var ctor = ca.Constructor;
