@@ -1,15 +1,5 @@
-import Form from 'UI/Form';
 import Input from 'UI/Input';
-import Canvas from 'UI/Canvas';
-import Modal from 'UI/Modal';
-import isNumeric from 'UI/Functions/IsNumeric';
-import getAutoForm from 'Admin/Functions/GetAutoForm';
-import webRequest from 'UI/Functions/WebRequest';
-import formatTime from "UI/Functions/FormatTime";
-import Tile from 'Admin/Tile';
-import Collapsible from 'UI/Collapsible';
 import { useSession, RouterConsumer } from 'UI/Session';
-import { expand } from 'UI/Functions/CanvasExpand';
 
 // left-hand tabs
 var StructureEnum = {
@@ -109,8 +99,11 @@ class PanelledEditorInternal extends React.Component {
 							{this.props.onSetShowSource && <>
 								<input type="checkbox" className="btn-check" id="display_source" autocomplete="off"
 									onClick={(e) => this.props.onSetShowSource(!this.props.showSource)} defaultChecked={this.props.showSource} checked={this.props.showSource} />
-								<label className="btn btn-outline-secondary" htmlFor="display_source" title={`Toggle source view`}>
+								<label className={this.props.showSource ? "btn btn-outline-secondary admin-page__display-options--labelled" : "btn btn-outline-secondary"} htmlFor="display_source" title={`Toggle source view`}>
 									<i className="fa fa-fw fa-code"></i>
+									{this.props.showSource && <span className="admin-page__display-options-label">
+										{`Return to preview`}
+									</span>}
 								</label>
 							</>}
 							{!this.props.showSource && this.props.toggleRightPanel && <>

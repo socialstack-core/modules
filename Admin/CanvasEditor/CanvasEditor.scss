@@ -1,38 +1,88 @@
+.rte-component {
+	$rte-component: &;
+	position: relative;
 
-.rte-component:focus {
-    border-radius: 1px;
-    box-shadow: 0 0 0 1px var(--primary);
-    outline: 1px solid #0000;
-}
+	&__core-wrapper {
 
-.rte-component-add {
-	opacity: 0;
-	/* todo: handle situ where surrounding component has a primary bg rendering this almost invisible */
-	color: var(--primary);
-	width: 100%; 
-	text-align: center;
-	
-	&__line {
-		width: 100%;
-		border-bottom: 1px solid var(--primary);
-		top: 0.8rem;
-		display: block;
-		position: relative;
+		> .rich-editor {
+			height: 100%;
+
+			> .mb-3 {
+				height: 100%;
+				margin: 0 !important;
+			}
+
+			.aceeditor {
+				height: 100%;
+
+				> .ace_editor {
+					height: 100%;
+				}
+			}
+		}
+
+		&--100 {
+			height: 100%;
+		}
 	}
-	
-	i { 
-		background:var(--primary);
-		color: white;
-		font-size: 1rem;
-		border-radius: 2px;
-		padding: 0.2rem 0.3rem;
-		position: relative;
-	}
-}
 
-.rte-component-add:hover {
-	opacity: 1;
-	cursor: pointer;
+	&-add {
+		opacity: 0;
+		/* todo: handle situ where surrounding component has a primary bg rendering this almost invisible */
+		color: var(--primary);
+		width: 100%; 
+		text-align: center;
+	
+		&__line {
+			width: 100%;
+			border-bottom: 1px solid var(--primary);
+			top: 0.8rem;
+			display: block;
+			position: relative;
+		}
+	
+		i { 
+			background:var(--primary);
+			color: white;
+			font-size: 1rem;
+			border-radius: 2px;
+			padding: 0.2rem 0.3rem;
+			position: relative;
+		}
+
+		&:hover {
+			opacity: 1;
+			cursor: pointer;
+		}
+
+	}
+
+	&:focus {
+		border-radius: 1px;
+		box-shadow: 0 0 0 1px var(--primary);
+		outline: 1px solid #0000;
+	}
+
+	&--selected {
+		outline: 4px solid var(--admin-selected-border, var(--fallback__admin-selected-border));
+
+		&::after {
+			content: '';
+			position: absolute;
+			left: 0;
+			top: 0;
+			right: 0;
+			bottom: 0;
+			box-shadow: 0 0 0 500vmax var(--admin-selected-bg, var(--fallback__admin-selected-bg)) inset;
+			pointer-events: none;
+			z-index: 2147483647;
+		}
+	}
+
+	&:not(#{$rte-component}--selected):hover {
+		outline: 4px dashed var(--admin-selected-border, var(--fallback__admin-selected-border));
+	}
+
 }
 
 .rich-editor {

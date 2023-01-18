@@ -1,5 +1,4 @@
 import Alert from 'UI/Alert';
-import Token from 'UI/Token';
 import Input from 'UI/Input';
 import Graph from 'UI/Functions/GraphRuntime/Graph';
 import Collapsible from 'UI/Collapsible';
@@ -11,7 +10,6 @@ import omit from 'UI/Functions/Omit';
 import RichEditor from 'Admin/CanvasEditor/RichEditor';
 import Draft from 'Admin/CanvasEditor/DraftJs/Draft.min.js';
 const { EditorState } = Draft;
-import GraphEditor from 'Admin/CanvasEditor/GraphEditor';
 import ThemeEditor from 'Admin/CanvasEditor/ThemeEditor';
 import PanelledEditor from 'Admin/Layouts/PanelledEditor';
 import CanvasState from './CanvasState';
@@ -50,7 +48,7 @@ inputTypes['application/canvas'] = function(props, _this){
 
 var TEXT = '#text';
 
-function ComponentAdd (props) {
+function ComponentAdd(props) {
 	return <div className="rte-component-add" onClick={() => {
 		props.onAdd && props.onAdd();
 	}}>
@@ -87,7 +85,7 @@ function niceGraphName(graph){
 	return root.t;
 }
 
-function renderStructureNode(node, onClick) {
+function renderStructureNode(node, canvasState, onClick) {
 	var nodeName = node.typeName || node.type;
 	
 	if(node.graph){
@@ -105,9 +103,9 @@ function renderStructureNode(node, onClick) {
 			}}>
 				{nodeName}
 			</button>
-			<button type="button" class="btn btn-sm btn-outline-danger btn-remove" title={`Remove`}
+			<button type="button" className="btn btn-sm btn-outline-danger btn-remove" title={`Remove`}
 				onClick={() => console.log('remove node TODO')}>
-				<i class="fa fa-fw fa-trash"></i>
+				<i className="fa fa-fw fa-trash"></i>
 			</button>
 		</>;
 	}
@@ -117,7 +115,7 @@ function renderStructureNode(node, onClick) {
 		icon: 'fa fa-fw fa-trash',
 		text: `Remove`,
 		showLabel: false,
-		variant: 'outline-danger',
+		variant: 'danger',
 		onClick: function () {
 			console.log('remove node TODO')
 		}
@@ -125,11 +123,15 @@ function renderStructureNode(node, onClick) {
 
 	return <Collapsible title={nodeName} expanderLeft onClick={() => onClick(node)} buttons={[removeButton]}>
 		{node.roots.children.content.map((node, i) => {
-			{
-				return <span class="collapsible-content__wrapper">
-					{renderStructureNode(node, onClick)}
-				</span>
+			var itemClass = ['collapsible-content__wrapper'];
+
+			if (node == canvasState.selectedNode) {
+				itemClass.push('collapsible-content__wrapper--selected');
 			}
+
+			return <span className={itemClass.join(' ')}>
+				{renderStructureNode(node, canvasState, onClick)}
+			</span>
 		})}
 	</Collapsible>;
 }
@@ -143,8 +145,14 @@ function renderStructure(canvasState, onClick) {
 	
 	// Root nodes always have an array as their content.
 	return content.content.map((node, i) => {
-		return <li className="panelled-editor__structure-item">
-			{renderStructureNode(node, onClick)}
+		var itemClass = ['panelled-editor__structure-item'];
+
+		if (node == canvasState.selectedNode) {
+			itemClass.push('panelled-editor__structure-item--selected');
+        }
+
+		return <li className={itemClass.join(' ')}>
+			{renderStructureNode(node, canvasState, onClick)}
 		</li>;
 	});
 
@@ -169,8 +177,20 @@ export default function CanvasEditor (props) {
 		// Update:
 		setCanvasState(newState);
 		
-	}}/>;
+	}} />;
+
+	var ctx = {};
 	
+	if(props.primary){
+		ctx.primary = props.primary;
+	}
+	
+	var coreWrapper = ['rte-component__core-wrapper'];
+
+	if (canvasState.sourceMode) {
+		coreWrapper.push('rte-component__core-wrapper--100');
+    }
+
 	if(props.fullscreen){
 		return <PanelledEditor 
 			controls={props.controls}
@@ -239,12 +259,12 @@ export default function CanvasEditor (props) {
 				}}
 			>
 			{/* Uses display:none to ensure it always exists in the DOM such that the save button submits everything */}
-			<div style={(canvasState.graphState || canvasState.themeState) ? {display: 'none'} : undefined}>
+			<div className={coreWrapper.join(' ')} style={(canvasState.graphState || canvasState.themeState) ? { display: 'none' } : undefined}>
 				{ceCore}
 			</div>
 			{canvasState.graphState && <Input type='graph' objectOutput={true} inputRef={ir=>{
 				this.graphIr=ir;
-			}} value={canvasState.selectedNode.graph.structure} context={{primary: 'User'}}/>}
+			}} value={canvasState.selectedNode.graph.structure} context={ctx}/>}
 			{canvasState.themeState && <ThemeEditor 
 				inputRef={ir=>{
 					this.themeIr=ir;
@@ -594,7 +614,7 @@ class CanvasEditorCore extends React.Component {
 		}
 	}
 	
-	renderRootNode(node){
+	renderRootNode(node, canvasState){
 		if(!Array.isArray(node.content)){
 			throw new Error("Root nodes must have an array as their content.");
 		}
@@ -610,7 +630,7 @@ class CanvasEditorCore extends React.Component {
 		}
 
 		node.content.forEach((n,i) => {
-			var rendered = this.renderNode(n);
+			var rendered = this.renderNode(n, canvasState);
 
 			if (!this.props.textonly) {
 				nodeSet.push(rendered, <ComponentAdd key={n.key + "-add"} onAdd={() => {
@@ -624,7 +644,7 @@ class CanvasEditorCore extends React.Component {
 		return nodeSet;
 	}
 	
-	renderNode(node){
+	renderNode(node, canvasState){
 		var NodeType = node.type;
 		
 		if(!node.dom){
@@ -634,10 +654,12 @@ class CanvasEditorCore extends React.Component {
 		if(!node.key){
 			node.key = nodeKeys++;
 		}
+
+		var rteClass = node == canvasState.selectedNode ? "rte-component rte-component--selected" : "rte-component";
 		
 		if(NodeType === 'richtext'){
 			// Pass the whole node to the RTE.
-			return <div key={node.key} ref={node.dom} className="rte-component" {...node.props}>
+			return <div key={node.key} ref={node.dom} className={rteClass} {...node.props}>
 				<RichEditor editorState={node.editorState} textonly={this.props.textonly} onAddComponent={() => {
 					this.setState({selectOpenFor: {node, isReplace: true}});
 				}} onStateChange={(newState) => {
@@ -669,9 +691,9 @@ class CanvasEditorCore extends React.Component {
 					if(!root.key){
 						root.key = nodeKeys++;
 					}
-					
-					var rendered = <div key={root.key} className="rte-component" ref={root.dom}>{this.renderRootNode(root)}</div>;
-					
+
+					var rendered = <div key={root.key} className={rteClass} ref={root.dom}>{this.renderRootNode(root, canvasState)}</div>;
+
 					if(isChildren){
 						children = rendered;
 					}else{
@@ -679,13 +701,13 @@ class CanvasEditorCore extends React.Component {
 					}
 				}
 				
-				return <div key={node.key} className="rte-component" ref={node.dom}>
+				return <div key={node.key} className={rteClass} ref={node.dom}>
 						<ErrorCatcher node={node}><NodeType {...props}>{children}</NodeType></ErrorCatcher>
 					</div>;
 				
 			}else{
 				// It has no content inside it; it's purely config driven.
-				return <div key={node.key} className="rte-component" ref={node.dom}>
+				return <div key={node.key} className={rteClass} ref={node.dom}>
 					<ErrorCatcher node={node}><NodeType {...props} /></ErrorCatcher>
 				</div>;
 			}
@@ -770,7 +792,7 @@ class CanvasEditorCore extends React.Component {
 		return <div className={"rich-editor " + (toolbar ? "with-toolbar" : "no-toolbar")} data-theme={"main"} onContextMenu={this.onContextMenu}>
 			<div ref={node.dom} className="rte-content" 
 				onKeyDown={this.onKeyDown} onDragStart={this.onReject}>
-				{this.renderRootNode(node)}
+				{this.renderRootNode(node, canvasState)}
 			</div>
 			<input ref={ir=>{
 				this.mainIr=ir;
