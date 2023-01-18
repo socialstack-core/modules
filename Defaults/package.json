@@ -51,6 +51,7 @@
 		"UI/Functions/GetDateRange",
 		"UI/Functions/GetEndpointType",
 		"UI/Functions/GetRef",
+		"UI/Functions/GraphRuntime",
 		"UI/Functions/HasCapability",
 		"UI/Functions/IsNumeric",
 		"UI/Functions/Logout",
