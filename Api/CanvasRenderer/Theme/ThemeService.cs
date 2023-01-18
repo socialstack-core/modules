@@ -11,144 +11,146 @@ using Api.Startup;
 
 namespace Api.Themes
 {
-	
-	/// <summary>
-	/// This service manages and generates (for devs) the frontend code.
-	/// It does it by using either precompiled (as much as possible) bundles with metadata, or by compiling in-memory for devs using V8.
-	/// </summary>
-	public class ThemeService : AutoService
-	{
-		/// <summary>
-		/// 
-		/// </summary>
-		public Dictionary<string, string> bootstrapVariants = new Dictionary<string, string>()
-		{
-			{ "primary",	"#0d6efd" }, 
-			{ "secondary",	"#6c757d" },
-			{ "success",	"#198754" },
-			{ "danger",		"#dc3545" },
-			{ "warning",	"#ffc107" },
-			{ "info",		"#0dcaf0" },
-			{ "light",		"#f8f9fa" },
-			{ "dark",		"#212529" }
-		};
 
-		/// <summary>
-		/// Instanced automatically.
-		/// </summary>
-		public ThemeService(ConfigurationService configService)
-		{
-			_globalCfg = GetConfig<GlobalThemeConfig>();
-			_current = GetAllConfig<ThemeConfig>();
-			
-			// If the theme list doesn't contain anything, two are created - admin and main.
-			if(_current.Configurations == null || _current.Configurations.Count == 0)
-			{
-				var defaultVars = new Dictionary<string, string>(){
-					{ "primary", "#0d6efd" },
-					{ "primary-fg", "" },
-					{ "primary-shadow", "" },
-					{ "primary-hover", "" },
-					{ "primary-hover-border", "" },
-					{ "primary-active", "" },
-					{ "primary-active-border", "" },
-					{ "secondary", "#6c757d" },
-					{ "secondary-shadow", "" },
-					{ "secondary-fg", "" },
-					{ "secondary-hover", "" },
-					{ "secondary-hover-border", "" },
-					{ "secondary-active", "" },
-					{ "secondary-active-border", "" },
-					{ "success", "#198754" },
-					{ "success-fg", "" },
-					{ "success-shadow", "" },
-					{ "success-hover", "" },
-					{ "success-hover-border", "" },
-					{ "success-active", "" },
-					{ "success-active-border", "" },
-					{ "info", "#0dcaf0" },
-					{ "info-shadow", "" },
-					{ "info-fg", "" },
-					{ "info-hover", "" },
-					{ "info-hover-border", "" },
-					{ "info-active", "" },
-					{ "info-active-border", "" },
-					{ "warning", "#ffc107" },
-					{ "warning-shadow", "" },
-					{ "warning-fg", "" },
-					{ "warning-hover", "" },
-					{ "warning-hover-border", "" },
-					{ "warning-active", "" },
-					{ "warning-active-border", "" },
-					{ "danger", "#dc3545" },
-					{ "danger-shadow", "" },
-					{ "danger-fg", "" },
-					{ "danger-hover", "" },
-					{ "danger-hover-border", "" },
-					{ "danger-active", "" },
-					{ "danger-active-border", "" },
-					{ "light", "#f8f9fa" },
-					{ "light-shadow", "" },
-					{ "light-fg", "" },
-					{ "light-hover", "" },
-					{ "light-hover-border", "" },
-					{ "light-active", "" },
-					{ "light-active-border", "" },
-					{ "dark", "#212529" },
-					{ "dark-shadow", "" },
-					{ "dark-fg", "" },
-					{ "dark-hover", "" },
-					{ "dark-hover-border", "" },
-					{ "dark-active", "" },
-					{ "dark-active-border", "" },
-					{ "font-mono", "SFMono-Regular,Menlo,Monaco,Consolas,\"Liberation Mono\",\"Courier New\",monospace" },
-					{ "font", "\"OpenSans\",\"Helvetica Neue\",Arial,\"Noto Sans\",\"Liberation Sans\",sans-serif,\"Apple Color Emoji\",\"Segoe UI Emoji\",\"Segoe UI Symbol\",\"Noto Color Emoji\"" }
-				};
-				
-				var admin = new ThemeConfig(){
-					Key = "admin",
-					Variables = defaultVars
-				};
-				
-				var main = new ThemeConfig(){
-					Key = "main",
-					Variables = defaultVars
-				};
+    /// <summary>
+    /// This service manages and generates (for devs) the frontend code.
+    /// It does it by using either precompiled (as much as possible) bundles with metadata, or by compiling in-memory for devs using V8.
+    /// </summary>
+    public class ThemeService : AutoService
+    {
+        /// <summary>
+        /// 
+        /// </summary>
+        public Dictionary<string, string> bootstrapVariants = new Dictionary<string, string>()
+        {
+            { "primary",    "#0d6efd" },
+            { "secondary",  "#6c757d" },
+            { "success",    "#198754" },
+            { "danger",     "#dc3545" },
+            { "warning",    "#ffc107" },
+            { "info",       "#0dcaf0" },
+            { "light",      "#f8f9fa" },
+            { "dark",       "#212529" }
+        };
 
-				_ = configService.InstallConfig(admin, "Admin Theme", "Theme", _current);
-				_ = configService.InstallConfig(main, "Main Site Theme", "Theme", _current);
-			}
-		}
+        /// <summary>
+        /// Instanced automatically.
+        /// </summary>
+        public ThemeService(ConfigurationService configService)
+        {
+            _globalCfg = GetConfig<GlobalThemeConfig>();
+            _current = GetAllConfig<ThemeConfig>();
 
-		/// <summary>
-		/// Gets the current latest global config. Use this for e.g. the site logo.
-		/// </summary>
-		/// <returns></returns>
-		public GlobalThemeConfig GetConfig()
-		{
-			return _globalCfg;
-		}
+            // If the theme list doesn't contain anything, two are created - admin and main.
+            if (_current.Configurations == null || _current.Configurations.Count == 0)
+            {
+                var defaultVars = new Dictionary<string, string>(){
+                    { "primary", "#0d6efd" },
+                    { "primary-fg", "" },
+                    { "primary-shadow", "" },
+                    { "primary-hover", "" },
+                    { "primary-hover-border", "" },
+                    { "primary-active", "" },
+                    { "primary-active-border", "" },
+                    { "secondary", "#6c757d" },
+                    { "secondary-shadow", "" },
+                    { "secondary-fg", "" },
+                    { "secondary-hover", "" },
+                    { "secondary-hover-border", "" },
+                    { "secondary-active", "" },
+                    { "secondary-active-border", "" },
+                    { "success", "#198754" },
+                    { "success-fg", "" },
+                    { "success-shadow", "" },
+                    { "success-hover", "" },
+                    { "success-hover-border", "" },
+                    { "success-active", "" },
+                    { "success-active-border", "" },
+                    { "info", "#0dcaf0" },
+                    { "info-shadow", "" },
+                    { "info-fg", "" },
+                    { "info-hover", "" },
+                    { "info-hover-border", "" },
+                    { "info-active", "" },
+                    { "info-active-border", "" },
+                    { "warning", "#ffc107" },
+                    { "warning-shadow", "" },
+                    { "warning-fg", "" },
+                    { "warning-hover", "" },
+                    { "warning-hover-border", "" },
+                    { "warning-active", "" },
+                    { "warning-active-border", "" },
+                    { "danger", "#dc3545" },
+                    { "danger-shadow", "" },
+                    { "danger-fg", "" },
+                    { "danger-hover", "" },
+                    { "danger-hover-border", "" },
+                    { "danger-active", "" },
+                    { "danger-active-border", "" },
+                    { "light", "#f8f9fa" },
+                    { "light-shadow", "" },
+                    { "light-fg", "" },
+                    { "light-hover", "" },
+                    { "light-hover-border", "" },
+                    { "light-active", "" },
+                    { "light-active-border", "" },
+                    { "dark", "#212529" },
+                    { "dark-shadow", "" },
+                    { "dark-fg", "" },
+                    { "dark-hover", "" },
+                    { "dark-hover-border", "" },
+                    { "dark-active", "" },
+                    { "dark-active-border", "" },
+                    { "font-mono", "SFMono-Regular,Menlo,Monaco,Consolas,\"Liberation Mono\",\"Courier New\",monospace" },
+                    { "font", "\"OpenSans\",\"Helvetica Neue\",Arial,\"Noto Sans\",\"Liberation Sans\",sans-serif,\"Apple Color Emoji\",\"Segoe UI Emoji\",\"Segoe UI Symbol\",\"Noto Color Emoji\"" }
+                };
 
-		/// <summary>
-		/// Gets all the available theme config.
-		/// </summary>
-		/// <returns></returns>
-		public ConfigSet<ThemeConfig> GetAllConfig()
-		{
-			return _current;
-		}
+                var admin = new ThemeConfig()
+                {
+                    Key = "admin",
+                    Variables = defaultVars
+                };
 
-		/// <summary>
-		/// Current configured themes.
-		/// </summary>
-		private ConfigSet<ThemeConfig> _current;
-		
-		/// <summary>
-		/// Current global config.
-		/// </summary>
-		private GlobalThemeConfig _globalCfg;
+                var main = new ThemeConfig()
+                {
+                    Key = "main",
+                    Variables = defaultVars
+                };
 
-		/*
+                _ = configService.InstallConfig(admin, "Admin Theme", "Theme", _current);
+                _ = configService.InstallConfig(main, "Main Site Theme", "Theme", _current);
+            }
+        }
+
+        /// <summary>
+        /// Gets the current latest global config. Use this for e.g. the site logo.
+        /// </summary>
+        /// <returns></returns>
+        public GlobalThemeConfig GetConfig()
+        {
+            return _globalCfg;
+        }
+
+        /// <summary>
+        /// Gets all the available theme config.
+        /// </summary>
+        /// <returns></returns>
+        public ConfigSet<ThemeConfig> GetAllConfig()
+        {
+            return _current;
+        }
+
+        /// <summary>
+        /// Current configured themes.
+        /// </summary>
+        private ConfigSet<ThemeConfig> _current;
+
+        /// <summary>
+        /// Current global config.
+        /// </summary>
+        private GlobalThemeConfig _globalCfg;
+
+        /*
 		private void OutputObject(StringBuilder builder, string prefix, object varSet, bool isDefault = false)
 		{
 			var properties = varSet.GetType().GetProperties();
@@ -252,315 +254,350 @@ namespace Api.Themes
 		}
 		*/
 
-		/// <summary>
-		/// Builds the given set of configs out to the CSS rules.
-		/// </summary>
-		/// <param name="set"></param>
-		/// <returns></returns>
-		public string OutputCss(ConfigSet<ThemeConfig> set)
-		{
-			var builder = new StringBuilder();
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="config"></param>
+        /// <param name="selector"></param>
+        /// <param name="id"></param>
+        /// <param name="builder"></param>
+        /// <returns></returns>
+        public void OutputCssBlock(ThemeConfig config, string selector, string id, bool html, ref StringBuilder builder)
+        {
+            bool hasSelector = selector != null && selector.Length > 0;
+            bool isMediaQuery = hasSelector && selector.StartsWith("@media");
 
-			// OutputCssDefaults(builder);
+            if (hasSelector)
+            {
+                builder.Append(selector);
+            }
 
-			foreach (var config in set.Configurations)
-			{
-				if (!string.IsNullOrEmpty(config.DarkModeOfThemeId))
-				{
-					builder.Append("@media(prefers-color-scheme:dark){*[data-theme=\"");
-					builder.Append(config.DarkModeOfThemeId);
-					builder.Append("\"]{");
-				}
-				else
-				{
-					builder.Append("*[data-theme=\"");
-					if(string.IsNullOrEmpty(config.Key))
-					{
-						builder.Append(config.Id);
-					}
-					else
-					{
-						builder.Append(config.Key);
-					}
-					builder.Append("\"]{");
-				}
-				
-				if (config.Variables != null)
-				{
-					// Output each one:
-					foreach (var kvp in config.Variables)
-					{
-						var lcName = kvp.Key.ToLower();
-						var value = kvp.Value;
+            if (isMediaQuery)
+            {
+                builder.Append("{");
+            }
 
-						if (string.IsNullOrWhiteSpace(value))
-						{
-							// Generate a value now.
-							// We'll use the name to identify the "parent" variable.
-							// Note that this can only be generated if the parent is also defined/ re-defined on this current theme; it can't use an inherited theme value.
+            if (!html)
+            {
+                builder.Append("*");
+            }
 
-							var firstDash = kvp.Key.IndexOf('-');
+            builder.Append("[data-theme=\"");
+            builder.Append(id);
+            builder.Append("\"]{");
 
-							if (firstDash == -1)
-							{
-								continue;
-							}
+            if (config.Variables != null)
+            {
+                // Output each one:
+                foreach (var kvp in config.Variables)
+                {
+                    var lcName = kvp.Key.ToLower();
+                    var value = kvp.Value;
 
-							var colorName = kvp.Key.Substring(0, firstDash);
-							Color targetColor = Color.White;
+                    if (string.IsNullOrWhiteSpace(value))
+                    {
+                        // Generate a value now.
+                        // We'll use the name to identify the "parent" variable.
+                        // Note that this can only be generated if the parent is also defined/ re-defined on this current theme; it can't use an inherited theme value.
 
-							if (config.Variables.TryGetValue(colorName, out string parentValue))
-							{
-								// Got the parent one!
-								// Attempt to generate the value next.
-								var bgColor = ColorMap.FromCss(parentValue);
-								var fgColor = bgColor.GetContrastColor();
+                        var firstDash = kvp.Key.IndexOf('-');
 
-								// based on bootstrap button-variant() mixin
-								if (kvp.Key.EndsWith("hover"))
-								{
-									targetColor = (fgColor.IsWhite) ? bgColor.ShadeColor(0.15f) : bgColor.TintColor(0.15f);
-								}
-								else if (kvp.Key.EndsWith("fg"))
-								{
-									targetColor = fgColor;
-								}
-								else if (kvp.Key.EndsWith("hover-border"))
-								{
-									targetColor = (fgColor.IsWhite) ? bgColor.ShadeColor(0.20f) : bgColor.TintColor(0.1f);
-								}
-								else if (kvp.Key.EndsWith("active"))
-								{
-									targetColor = (fgColor.IsWhite) ? bgColor.ShadeColor(0.20f) : bgColor.TintColor(0.2f);
-								}
-								else if (kvp.Key.EndsWith("active-border"))
-								{
-									targetColor = (fgColor.IsWhite) ? bgColor.ShadeColor(0.25f) : bgColor.TintColor(0.1f);
-								}
-								else if (kvp.Key.EndsWith("shadow"))
-								{
-									targetColor = fgColor.Mix(bgColor, 0.15f);
-									targetColor.A = 0.5f;
-								}
+                        if (firstDash == -1)
+                        {
+                            continue;
+                        }
 
-							}
+                        var colorName = kvp.Key.Substring(0, firstDash);
+                        Color targetColor = Color.White;
 
-							builder.Append("--");
-							builder.Append(lcName);
-							builder.Append(':');
-							targetColor.ToCss(builder);
-						}
-						else
-						{
-							builder.Append("--");
-							builder.Append(lcName);
-							builder.Append(':');
-							builder.Append(value);
-						}
-						builder.Append(';');
-					}
-				}
+                        if (config.Variables.TryGetValue(colorName, out string parentValue))
+                        {
+                            // Got the parent one!
+                            // Attempt to generate the value next.
+                            var bgColor = ColorMap.FromCss(parentValue);
+                            var fgColor = bgColor.GetContrastColor();
 
-				// And the CSS block.
-				if (!string.IsNullOrWhiteSpace(config.Css))
-				{
-					// Internally closes the block (as it might add some properties to it):
+                            // based on bootstrap button-variant() mixin
+                            if (kvp.Key.EndsWith("hover"))
+                            {
+                                targetColor = (fgColor.IsWhite) ? bgColor.ShadeColor(0.15f) : bgColor.TintColor(0.15f);
+                            }
+                            else if (kvp.Key.EndsWith("fg"))
+                            {
+                                targetColor = fgColor;
+                            }
+                            else if (kvp.Key.EndsWith("hover-border"))
+                            {
+                                targetColor = (fgColor.IsWhite) ? bgColor.ShadeColor(0.20f) : bgColor.TintColor(0.1f);
+                            }
+                            else if (kvp.Key.EndsWith("active"))
+                            {
+                                targetColor = (fgColor.IsWhite) ? bgColor.ShadeColor(0.20f) : bgColor.TintColor(0.2f);
+                            }
+                            else if (kvp.Key.EndsWith("active-border"))
+                            {
+                                targetColor = (fgColor.IsWhite) ? bgColor.ShadeColor(0.25f) : bgColor.TintColor(0.1f);
+                            }
+                            else if (kvp.Key.EndsWith("shadow"))
+                            {
+                                targetColor = fgColor.Mix(bgColor, 0.15f);
+                                targetColor.A = 0.5f;
+                            }
 
-					var blockRoot = "*[data-theme=\"";
-					if (string.IsNullOrEmpty(config.Key))
-					{
-						blockRoot += config.Id.ToString();
-					}
-					else
-					{
-						blockRoot += config.Key;
-					}
-					blockRoot += "\"]";
+                        }
 
-					ReconstructCss(builder, config.Css, blockRoot);
-				}
-				else
-				{
-					// Close the block:
-					builder.Append('}');
-				}
-			}
-			var result = builder.ToString();
-			return result;
-		}
+                        builder.Append("--");
+                        builder.Append(lcName);
+                        builder.Append(':');
+                        targetColor.ToCss(builder);
+                    }
+                    else
+                    {
+                        builder.Append("--");
+                        builder.Append(lcName);
+                        builder.Append(':');
+                        builder.Append(value);
+                    }
+                    builder.Append(';');
+                }
+            }
 
-		private void ReconstructCss(StringBuilder builder, string css, string blockRoot)
-		{
-			// Parse the CSS. Any :root properties are emitted immediately into the builder. Any selectors have the theme prepended to it.
-			var lexer = new CssLexer(css);
-			var state = 0;
-			char strDelim = '\0';
-			lexer.SkipJunk(true);
+            // And the CSS block.
+            if (!string.IsNullOrWhiteSpace(config.Css))
+            {
+                // Internally closes the block (as it might add some properties to it):
 
-			string selector = null;
-			StringBuilder tokenBuilder = new StringBuilder();
-			StringBuilder additionalSelectors = null;
+                var blockRoot = "*[data-theme=\"";
+                if (string.IsNullOrEmpty(config.Key))
+                {
+                    blockRoot += config.Id.ToString();
+                }
+                else
+                {
+                    blockRoot += config.Key;
+                }
+                blockRoot += "\"]";
 
-			while (lexer.More())
-			{
-				var current = lexer.Current;
+                ReconstructCss(builder, config.Css, blockRoot);
+            }
+            else
+            {
+                // Close the block:
+                builder.Append('}');
+            }
 
-				if (state == 0)
-				{
-					if (current == '/' && lexer.Peek() == '*')
-					{
-						// comment state
-						state = 1;
-					}
-					else if (current == '{')
-					{
-						// Finished reading a selector.
-						selector = tokenBuilder.ToString();
-						tokenBuilder.Clear();
-						state = 2;
-					}
-					else
-					{
-						tokenBuilder.Append(current);
-						lexer.SkipJunk(false);
-					}
-				}
-				else if (state == 1)
-				{
-					// Skip until */
-					if (current == '*' && lexer.Peek() == '/')
-					{
-						// Skip the /
-						lexer.Skip();
-						state = 0;
-					}
-				}
-				else if (state == 2)
-				{
-					// Read property block until }
+            if (isMediaQuery)
+            {
+                builder.Append("}");
+            }
 
-					if (current == '"')
-					{
-						// Entering string mode.
-						state = 3;
-						strDelim = current;
-						tokenBuilder.Append(current);
-					}
-					else if (current == '\'')
-					{
-						// Entering string mode.
-						state = 3;
-						strDelim = current;
-						tokenBuilder.Append(current);
-					}
-					else if (current == '}')
-					{
-						// Done!
-						var propertyBlock = tokenBuilder.ToString();
-						tokenBuilder.Clear();
-						state = 0;
+        }
 
-						// Add the selector + propertyBlock now.
-						selector = selector.Trim();
+        /// <summary>
+        /// Builds the given set of configs out to the CSS rules.
+        /// </summary>
+        /// <param name="set"></param>
+        /// <returns></returns>
+        public string OutputCss(ConfigSet<ThemeConfig> set)
+        {
+            var builder = new StringBuilder();
 
-						if (selector == ":root")
-						{
-							// property block goes direct into the builder.
-							builder.Append(propertyBlock);
-						}
-						else
-						{
-							if (additionalSelectors == null)
-							{
-								additionalSelectors = new StringBuilder();
-							}
+            // OutputCssDefaults(builder);
 
-							if (selector.IndexOf(',') != -1)
-							{
-								// Multiple selectors - each needs the prefix. Might even have :root in here.
-								var subSelectors = selector.Split(',');
-								for (var i = 0; i < subSelectors.Length; i++)
-								{
-									var subSelector = subSelectors[i].Trim();
+            foreach (var config in set.Configurations)
+            {
 
-									if (i != 0)
-									{
-										additionalSelectors.Append(',');
-									}
-									
-									additionalSelectors.Append(blockRoot);
+                if (!string.IsNullOrEmpty(config.DarkModeOfThemeId))
+                {
+                    OutputCssBlock(config, "@media(prefers-color-scheme:dark)", config.DarkModeOfThemeId, false, ref builder);
+                    OutputCssBlock(config, "html[data-theme-variant=\"dark\"]", config.DarkModeOfThemeId, false, ref builder);
+                    OutputCssBlock(config, "html[data-theme-variant=\"dark\"]", config.DarkModeOfThemeId, true, ref builder);
+                }
+                else
+                {
+                    string id = string.IsNullOrEmpty(config.Key) ? config.Id.ToString() : config.Key;
+                    OutputCssBlock(config, "", id, false, ref builder);
+                }
 
-									if (subSelector != ":root")
-									{
-										additionalSelectors.Append(' ');
-										additionalSelectors.Append(subSelector);
-									}
+            }
 
-								}
-							}
-							else
-							{
-								// Prefix the selector:
-								additionalSelectors.Append(blockRoot);
-								
-								if(!(selector.Length > 2 && selector[0] == ':' && selector[1] == ':')){
-									// ::before otherwise, no space
-									additionalSelectors.Append(' ');
-								}
-								
-								additionalSelectors.Append(selector);
-							}
+            var result = builder.ToString();
+            return result;
+        }
 
-							additionalSelectors.Append('{');
-							additionalSelectors.Append(propertyBlock);
-							additionalSelectors.Append('}');
-						}
-					}
-					else
-					{
-						tokenBuilder.Append(current);
-						lexer.SkipJunk(false);
-					}
-				}
-				else if (state == 3)
-				{
-					// String reading.
-					if (current == '\\')
-					{
-						var literal = lexer.Peek();
-						lexer.Skip();
-						if (literal != '\0')
-						{
-							tokenBuilder.Append(literal);
-						}
-					}
-					else if (current == strDelim)
-					{
-						// Done!
-						tokenBuilder.Append(current);
-						state = 2;
-					}
-					else
-					{
-						tokenBuilder.Append(current);
-					}
-				}
+        private void ReconstructCss(StringBuilder builder, string css, string blockRoot)
+        {
+            // Parse the CSS. Any :root properties are emitted immediately into the builder. Any selectors have the theme prepended to it.
+            var lexer = new CssLexer(css);
+            var state = 0;
+            char strDelim = '\0';
+            lexer.SkipJunk(true);
 
-			}
+            string selector = null;
+            StringBuilder tokenBuilder = new StringBuilder();
+            StringBuilder additionalSelectors = null;
 
-			// Close data theme block:
-			builder.Append('}');
-			
-			if (additionalSelectors != null)
-			{
-				// Got extra selectors.
+            while (lexer.More())
+            {
+                var current = lexer.Current;
 
-				// Output them:
-				builder.Append(additionalSelectors.ToString());
-			}
-		}
+                if (state == 0)
+                {
+                    if (current == '/' && lexer.Peek() == '*')
+                    {
+                        // comment state
+                        state = 1;
+                    }
+                    else if (current == '{')
+                    {
+                        // Finished reading a selector.
+                        selector = tokenBuilder.ToString();
+                        tokenBuilder.Clear();
+                        state = 2;
+                    }
+                    else
+                    {
+                        tokenBuilder.Append(current);
+                        lexer.SkipJunk(false);
+                    }
+                }
+                else if (state == 1)
+                {
+                    // Skip until */
+                    if (current == '*' && lexer.Peek() == '/')
+                    {
+                        // Skip the /
+                        lexer.Skip();
+                        state = 0;
+                    }
+                }
+                else if (state == 2)
+                {
+                    // Read property block until }
 
-		/*
+                    if (current == '"')
+                    {
+                        // Entering string mode.
+                        state = 3;
+                        strDelim = current;
+                        tokenBuilder.Append(current);
+                    }
+                    else if (current == '\'')
+                    {
+                        // Entering string mode.
+                        state = 3;
+                        strDelim = current;
+                        tokenBuilder.Append(current);
+                    }
+                    else if (current == '}')
+                    {
+                        // Done!
+                        var propertyBlock = tokenBuilder.ToString();
+                        tokenBuilder.Clear();
+                        state = 0;
+
+                        // Add the selector + propertyBlock now.
+                        selector = selector.Trim();
+
+                        if (selector == ":root")
+                        {
+                            // property block goes direct into the builder.
+                            builder.Append(propertyBlock);
+                        }
+                        else
+                        {
+                            if (additionalSelectors == null)
+                            {
+                                additionalSelectors = new StringBuilder();
+                            }
+
+                            if (selector.IndexOf(',') != -1)
+                            {
+                                // Multiple selectors - each needs the prefix. Might even have :root in here.
+                                var subSelectors = selector.Split(',');
+                                for (var i = 0; i < subSelectors.Length; i++)
+                                {
+                                    var subSelector = subSelectors[i].Trim();
+
+                                    if (i != 0)
+                                    {
+                                        additionalSelectors.Append(',');
+                                    }
+
+                                    additionalSelectors.Append(blockRoot);
+
+                                    if (subSelector != ":root")
+                                    {
+                                        additionalSelectors.Append(' ');
+                                        additionalSelectors.Append(subSelector);
+                                    }
+
+                                }
+                            }
+                            else
+                            {
+                                // Prefix the selector:
+                                additionalSelectors.Append(blockRoot);
+
+                                if (!(selector.Length > 2 && selector[0] == ':' && selector[1] == ':'))
+                                {
+                                    // ::before otherwise, no space
+                                    additionalSelectors.Append(' ');
+                                }
+
+                                additionalSelectors.Append(selector);
+                            }
+
+                            additionalSelectors.Append('{');
+                            additionalSelectors.Append(propertyBlock);
+                            additionalSelectors.Append('}');
+                        }
+                    }
+                    else
+                    {
+                        tokenBuilder.Append(current);
+                        lexer.SkipJunk(false);
+                    }
+                }
+                else if (state == 3)
+                {
+                    // String reading.
+                    if (current == '\\')
+                    {
+                        var literal = lexer.Peek();
+                        lexer.Skip();
+                        if (literal != '\0')
+                        {
+                            tokenBuilder.Append(literal);
+                        }
+                    }
+                    else if (current == strDelim)
+                    {
+                        // Done!
+                        tokenBuilder.Append(current);
+                        state = 2;
+                    }
+                    else
+                    {
+                        tokenBuilder.Append(current);
+                    }
+                }
+
+            }
+
+            // Close data theme block:
+            builder.Append('}');
+
+            if (additionalSelectors != null)
+            {
+                // Got extra selectors.
+
+                // Output them:
+                builder.Append(additionalSelectors.ToString());
+            }
+        }
+
+        /*
 		/// <summary>
 		/// 
 		/// </summary>
@@ -668,6 +705,6 @@ namespace Api.Themes
         }
 
 		*/
-	}
+    }
 
 }
