@@ -813,15 +813,19 @@ export default class Loop extends React.Component {
 
 						switch (func.name) {
 							case 'bound renderHeader':
+							case 'renderHeader':
 								headerFunc = func;
 								break;
 							case 'bound renderColgroups':
+							case 'renderColgroups':
 								colgroupsFunc = func;
 								break;
 							case 'bound renderEntry':
+							case 'renderEntry':
 								bodyFunc = func;
 								break;
 							case 'bound renderFooter':
+							case 'renderFooter':
 								footerFunc = func;
 								break;
                         }

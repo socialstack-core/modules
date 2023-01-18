@@ -82,5 +82,11 @@
 		border-top: 0;
 		margin-bottom: 1rem;
 		padding: 1.5rem;
+
+		&__wrapper {
+			display: flex;
+			align-items: center;
+			flex-wrap: nowrap;
+		}
 	}
 }

@@ -236,6 +236,7 @@ export default class FileSelector extends React.Component {
 
 			{/* upload */}
 			<Uploader
+				compact={this.props.compact}
 				currentRef={currentRef}
 				originalName={originalName}
 				id={this.props.id || this.newId()}
