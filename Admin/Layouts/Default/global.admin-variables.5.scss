@@ -1,0 +1,92 @@
+// fallback values for CSS vars
+$fallback__admin-header-height: 3.125rem;
+
+//$fallback__admin-header-bg: linear-gradient(to right, #9E40B5,#350EE5, #100862);
+//$fallback__admin-header-fg: #fff;
+//$fallback__admin-header-fg-faded: #ffffff60;
+
+$fallback__admin-subheader-height: 2.75rem;
+//$fallback__admin-subheader-bg: linear-gradient(to right, #9E40B530, #350EE530, #10086230);
+	
+$fallback__admin-footer-height: 3.75rem;
+//$fallback__admin-footer-bg: $fallback__admin-subheader-bg;
+	
+//$fallback__admin-dropdown-bg: #fff;
+//$fallback__admin-dropdown-fg: #222;
+//$fallback__admin-dropdown-hover-bg: #eee;
+//$fallback__admin-dropdown-hover-fg: #111;
+
+$fallback__admin-trigger-left: auto;
+$fallback__admin-trigger-right: 1rem;
+$fallback__admin-trigger-top: auto;
+$fallback__admin-trigger-bottom: 1rem;
+
+$fallback__admin-menu-left: auto;
+$fallback__admin-menu-right: 1rem;
+$fallback__admin-menu-top: auto;
+$fallback__admin-menu-bottom: 3.5rem;
+
+// assumes light mode by default
+:root {
+	--fallback__admin-header-bg: linear-gradient(to right, #9E40B5,#350EE5, #100862);
+	--fallback__admin-header-fg: #fff;
+	--fallback__admin-header-fg-faded: #ffffff60;
+
+	//--fallback__admin-subheader-bg: linear-gradient(to right, #9E40B530, #350EE530, #10086230);
+	//--fallback__admin-subheader-fg: #222;
+	//--fallback__admin-bg: #e9d2ef;
+	//--fallback__admin-fg: #222;
+
+	--fallback__admin-subheader-bg: #e9d2ef;
+	--fallback__admin-subheader-fg: #222;
+	--fallback__admin-subheader-fg-faded: #22222230;
+
+	--fallback__admin-feedback-height: 3.5rem;
+	
+	--fallback__admin-footer-bg: var(--fallback__admin-subheader-bg);
+	--fallback__admin-footer-fg: var(--fallback__admin-subheader-fg);
+	
+	--fallback__admin-dropdown-bg: #fff;
+	--fallback__admin-dropdown-fg: #222;
+	--fallback__admin-dropdown-hover-bg: #eee;
+	--fallback__admin-dropdown-hover-fg: #111;
+
+	--fallback__admin-transparency-bg: repeating-linear-gradient(135deg, rgba(255,255,255,.25), rgba(255,255,255,.25) 2rem, rgba(255,255,255,.1) 2rem, rgba(255,255,255,.1) 4rem);
+}
+
+@mixin darkModeDefaults() {
+	--fallback__admin-header-bg: #222;
+	--fallback__admin-header-fg: #fff;
+	--fallback__admin-header-fg-faded: #eeeeee60;
+
+	//--fallback__admin-subheader-bg: #444;
+	//--fallback__admin-subheader-fg: #eee;
+	//--fallback__admin-bg: #444;
+	//--fallback__admin-fg: #eee;
+
+	--fallback__admin-subheader-bg: #444;
+	--fallback__admin-subheader-fg: #eee;
+	--fallback__admin-subheader-fg-faded: #eeeeee60;
+	
+	--fallback__admin-footer-bg: var(--fallback__admin-subheader-bg);
+	--fallback__admin-footer-fg: var(--fallback__admin-subheader-fg);
+	
+	--fallback__admin-dropdown-bg: #444;
+	--fallback__admin-dropdown-fg: #eee;
+	--fallback__admin-dropdown-hover-bg: #333;
+	--fallback__admin-dropdown-hover-fg: #ddd;
+
+	--fallback__admin-transparency-bg: repeating-linear-gradient(135deg, rgba(0,0,0,.085), rgba(0,0,0,.085) 2rem, rgba(0,0,0,.0625) 2rem, rgba(0,0,0,.0625) 4rem);
+}
+
+// triggered by system settings
+@media (prefers-color-scheme: dark) {
+	:root {
+		@include darkModeDefaults();
+	}
+}
+
+// triggered by selecting "dark" mode via UI
+html[data-theme-variant="dark"] {
+	@include darkModeDefaults();
+}
