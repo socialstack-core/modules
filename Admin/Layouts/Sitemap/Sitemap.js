@@ -1,4 +1,4 @@
-import CollapsibleEx from 'UI/CollapsibleEx';
+import CollapsibleEx from 'UI/Collapsible';
 import Default from 'Admin/Layouts/Default';
 import webRequest from 'UI/Functions/WebRequest';
 import { useState, useEffect } from 'react';
