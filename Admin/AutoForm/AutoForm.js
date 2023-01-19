@@ -651,6 +651,8 @@ class AutoFormInternal extends React.Component {
 		if(mainCanvas){
 			// Check for a field called url on the object:
 			var pageUrl = this.state.fieldData && this.state.fieldData.url;
+			pageUrl = '/' + pageUrl.replace(/^\/|\/$/g, '');
+
 			var hasParameter = pageUrl ? pageUrl.match(/{([^}]+)}/g) : false;
 
 			var hasFeedback = this.state.editFailure || this.state.editSuccess || this.state.createSuccess || this.state.deleteFailure;
@@ -707,6 +709,29 @@ class AutoFormInternal extends React.Component {
 				</li>
 			</>;
 			
+			var url = this.state.fieldData && this.state.fieldData.url;
+			var primary = null;
+			
+			if(url){
+				var lastBracket = url.lastIndexOf('{');
+				
+				if(lastBracket != -1){
+					url = url.substring(lastBracket + 1);
+					
+					var nextBracket = url.indexOf('}');
+					
+					if(nextBracket != -1){
+						primary = url.substring(0, nextBracket);
+						
+						var primaryField = primary.indexOf('.');
+						
+						if(primaryField != -1){
+							primary = primary.substring(0, primaryField);
+						}
+					}
+				}
+			}
+			
 			return <>
 				<Form formRef={r=>this.form=r} autoComplete="off" locale={locale} action={endpoint}
 				onValues={onValues} onFailed={onFailed} onSuccess={onSuccess}>
@@ -714,6 +739,7 @@ class AutoFormInternal extends React.Component {
 						fullscreen 
 						{...mainCanvas.data}
 						controls={controls}
+						primary={primary}
 						feedback={feedback}
 						breadcrumbs={breadcrumbs}
 						additionalFields={() => this.props.renderFormFields ? this.props.renderFormFields(this.state) : this.renderFormFields()}
