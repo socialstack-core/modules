@@ -30,11 +30,6 @@
 	background: white;
 	border-radius: 2px;
 	
-	&.no-toolbar {
-		border-radius: 0.4375rem 0.4375rem 0.4375rem 0.4375rem;
-		padding: 0.5625rem 1rem 0.5625rem 1rem;
-	}
-	
 	> .rte-toolbar{
 		background: #f2f2f2;
 		position: sticky;
