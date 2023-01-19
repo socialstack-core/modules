@@ -1,5 +1,4 @@
-// assumes light mode by default
-:root {
+@mixin lightModeDefaults() {
 	--fallback__admin-header-bg: linear-gradient(to right, #9E40B5,#350EE5, #100862);
 	--fallback__admin-header-fg: #fff;
 	--fallback__admin-header-fg-faded: #ffffff60;
@@ -55,14 +54,29 @@
 	--fallback__admin-transparency-bg: repeating-linear-gradient(135deg, rgba(0,0,0,.085), rgba(0,0,0,.085) 2rem, rgba(0,0,0,.0625) 2rem, rgba(0,0,0,.0625) 4rem);
 }
 
+// assumes light mode by default
+:root {
+	@include lightModeDefaults();
+}
+
 // triggered by system settings
+@media (prefers-color-scheme: light) {
+	:root {
+		@include lightModeDefaults();
+	}
+}
+
 @media (prefers-color-scheme: dark) {
 	:root {
 		@include darkModeDefaults();
 	}
 }
 
-// triggered by selecting "dark" mode via UI
+// triggered by selecting mode via UI
+html[data-theme-variant="light"] {
+	@include lightModeDefaults();
+}
+
 html[data-theme-variant="dark"] {
 	@include darkModeDefaults();
 }
