@@ -651,7 +651,9 @@ class AutoFormInternal extends React.Component {
 		if(mainCanvas){
 			// Check for a field called url on the object:
 			var pageUrl = this.state.fieldData && this.state.fieldData.url;
-			pageUrl = '/' + pageUrl.replace(/^\/|\/$/g, '');
+			if (pageUrl) {
+				pageUrl = '/' + pageUrl.replace(/^\/|\/$/g, '');
+			}
 
 			var hasParameter = pageUrl ? pageUrl.match(/{([^}]+)}/g) : false;
 
