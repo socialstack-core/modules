@@ -158,6 +158,34 @@ function renderStructure(canvasState, onClick) {
 
 }
 
+function applyCustomNodeUpdate(node){
+	// A component can define a static onEditorUpdate function which runs when a node is added or has its props updated in the editor.
+	// This allows the editor node to be manipulated however the component would like - 
+	// for example, UI/Grid uses it to create root spaces for the flexible number of cells.
+	
+	if(node && node.type && typeof node.type !== 'string'){
+		
+		var onEditorUpdate = node.type.onEditorUpdate;
+		
+		onEditorUpdate && onEditorUpdate(node, {
+			addEmptyRoot: (node, rootName) => {
+				
+				if(!node.roots){
+					node.roots = {};
+				}
+				
+				// Adding an empty root with an RTE.
+				var rootObj = {content: []};
+				var emptyPara = {type: 'richtext', editorState: EditorState.createEmpty()};
+				emptyPara.parent = rootObj;
+				rootObj.content.push(emptyPara);
+				node.roots[rootName] = rootObj;
+				
+			}
+		});
+	}
+	
+}
 
 export default function CanvasEditor (props) {
 	
@@ -204,6 +232,9 @@ export default function CanvasEditor (props) {
 					// Note: The propEditor must not have any named fields. If it did, they would be submitted when the content is saved.
 					return <>
 						<PropEditor optionsVisibleFor={canvasState.selectedNode} onChange={() => {
+							
+							applyCustomNodeUpdate(canvasState.selectedNode);
+							
 							setCanvasState(canvasState.addStateSnapshot());
 						}} setGraphState={
 							targetState=>{
@@ -900,6 +931,9 @@ class CanvasEditorCore extends React.Component {
 							}
 							
 							this.props.canvasState.addNode(module, insertInto, insertIndex, selectOpenFor.isReplace);
+							
+							applyCustomNodeUpdate(module);
+							
 							this.props.snapshotState();
 							this.closeModal();
 						}}
