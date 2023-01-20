@@ -85,12 +85,17 @@ function niceGraphName(graph){
 	return root.t;
 }
 
-function renderStructureNode(node, canvasState, onClick) {
+function renderStructureNode(node, canvasState, onClick, snapshotState) {
 	var nodeName = node.typeName || node.type;
 	
 	if(node.graph){
 		nodeName = niceGraphName(node.graph);
 	}
+	
+	var removeNode = () => {
+		canvasState.removeNode(node);
+		snapshotState();
+	};
 	
 	if (!node.roots ||
 		!node.roots.children ||
@@ -104,7 +109,7 @@ function renderStructureNode(node, canvasState, onClick) {
 				{nodeName}
 			</button>
 			<button type="button" className="btn btn-sm btn-outline-danger btn-remove" title={`Remove`}
-				onClick={() => console.log('remove node TODO')}>
+				onClick={() => removeNode()}>
 				<i className="fa fa-fw fa-trash"></i>
 			</button>
 		</>;
@@ -117,7 +122,7 @@ function renderStructureNode(node, canvasState, onClick) {
 		showLabel: false,
 		variant: 'danger',
 		onClick: function () {
-			console.log('remove node TODO')
+			removeNode()
 		}
 	};
 
@@ -130,13 +135,13 @@ function renderStructureNode(node, canvasState, onClick) {
 			}
 
 			return <span className={itemClass.join(' ')}>
-				{renderStructureNode(node, canvasState, onClick)}
+				{renderStructureNode(node, canvasState, onClick, snapshotState)}
 			</span>
 		})}
 	</Collapsible>;
 }
 
-function renderStructure(canvasState, onClick) {
+function renderStructure(canvasState, onClick, snapshotState) {
 	var content = canvasState && canvasState.node;
 
 	if(!content){
@@ -152,7 +157,7 @@ function renderStructure(canvasState, onClick) {
         }
 
 		return <li className={itemClass.join(' ')}>
-			{renderStructureNode(node, canvasState, onClick)}
+			{renderStructureNode(node, canvasState, onClick, snapshotState)}
 		</li>;
 	});
 
@@ -195,9 +200,7 @@ export default function CanvasEditor (props) {
 		return state;
 	});
 	
-	var ceCore = <CanvasEditorCore {...props} onSetShowSource={(state) => {
-		setCanvasState(canvasState.setShowSourceState(state));
-	}} fullscreen={props.fullscreen} canvasState={canvasState} snapshotState={(snap) => {
+	var snapshotState = (snap) => {
 		
 		// Create a snapshot if one is not being provided:
 		var newState = snap || canvasState.addStateSnapshot();
@@ -205,7 +208,11 @@ export default function CanvasEditor (props) {
 		// Update:
 		setCanvasState(newState);
 		
-	}} />;
+	};
+	
+	var ceCore = <CanvasEditorCore {...props} onSetShowSource={(state) => {
+		setCanvasState(canvasState.setShowSourceState(state));
+	}} fullscreen={props.fullscreen} canvasState={canvasState} snapshotState={snapshotState} />;
 
 	var ctx = {};
 	
@@ -286,7 +293,7 @@ export default function CanvasEditor (props) {
 						// Select the node:
 						setCanvasState(canvasState.selectNode(node));
 						
-					});
+					}, snapshotState);
 				}}
 			>
 			{/* Uses display:none to ensure it always exists in the DOM such that the save button submits everything */}
