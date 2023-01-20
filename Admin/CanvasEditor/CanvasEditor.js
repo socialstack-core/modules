@@ -85,12 +85,17 @@ function niceGraphName(graph){
 	return root.t;
 }
 
-function renderStructureNode(node, canvasState, onClick) {
+function renderStructureNode(node, canvasState, onClick, snapshotState) {
 	var nodeName = node.typeName || node.type;
 	
 	if(node.graph){
 		nodeName = niceGraphName(node.graph);
 	}
+	
+	var removeNode = () => {
+		canvasState.removeNode(node);
+		snapshotState();
+	};
 	
 	if (!node.roots ||
 		!node.roots.children ||
@@ -104,7 +109,7 @@ function renderStructureNode(node, canvasState, onClick) {
 				{nodeName}
 			</button>
 			<button type="button" className="btn btn-sm btn-outline-danger btn-remove" title={`Remove`}
-				onClick={() => console.log('remove node TODO')}>
+				onClick={() => removeNode()}>
 				<i className="fa fa-fw fa-trash"></i>
 			</button>
 		</>;
@@ -117,7 +122,7 @@ function renderStructureNode(node, canvasState, onClick) {
 		showLabel: false,
 		variant: 'danger',
 		onClick: function () {
-			console.log('remove node TODO')
+			removeNode()
 		}
 	};
 
@@ -130,13 +135,13 @@ function renderStructureNode(node, canvasState, onClick) {
 			}
 
 			return <span className={itemClass.join(' ')}>
-				{renderStructureNode(node, canvasState, onClick)}
+				{renderStructureNode(node, canvasState, onClick, snapshotState)}
 			</span>
 		})}
 	</Collapsible>;
 }
 
-function renderStructure(canvasState, onClick) {
+function renderStructure(canvasState, onClick, snapshotState) {
 	var content = canvasState && canvasState.node;
 
 	if(!content){
@@ -152,12 +157,40 @@ function renderStructure(canvasState, onClick) {
         }
 
 		return <li className={itemClass.join(' ')}>
-			{renderStructureNode(node, canvasState, onClick)}
+			{renderStructureNode(node, canvasState, onClick, snapshotState)}
 		</li>;
 	});
 
 }
 
+function applyCustomNodeUpdate(node){
+	// A component can define a static onEditorUpdate function which runs when a node is added or has its props updated in the editor.
+	// This allows the editor node to be manipulated however the component would like - 
+	// for example, UI/Grid uses it to create root spaces for the flexible number of cells.
+	
+	if(node && node.type && typeof node.type !== 'string'){
+		
+		var onEditorUpdate = node.type.onEditorUpdate;
+		
+		onEditorUpdate && onEditorUpdate(node, {
+			addEmptyRoot: (node, rootName) => {
+				
+				if(!node.roots){
+					node.roots = {};
+				}
+				
+				// Adding an empty root with an RTE.
+				var rootObj = {content: []};
+				var emptyPara = {type: 'richtext', editorState: EditorState.createEmpty()};
+				emptyPara.parent = rootObj;
+				rootObj.content.push(emptyPara);
+				node.roots[rootName] = rootObj;
+				
+			}
+		});
+	}
+	
+}
 
 export default function CanvasEditor (props) {
 	
@@ -167,9 +200,7 @@ export default function CanvasEditor (props) {
 		return state;
 	});
 	
-	var ceCore = <CanvasEditorCore {...props} onSetShowSource={(state) => {
-		setCanvasState(canvasState.setShowSourceState(state));
-	}} fullscreen={props.fullscreen} canvasState={canvasState} snapshotState={(snap) => {
+	var snapshotState = (snap) => {
 		
 		// Create a snapshot if one is not being provided:
 		var newState = snap || canvasState.addStateSnapshot();
@@ -177,7 +208,11 @@ export default function CanvasEditor (props) {
 		// Update:
 		setCanvasState(newState);
 		
-	}} />;
+	};
+	
+	var ceCore = <CanvasEditorCore {...props} onSetShowSource={(state) => {
+		setCanvasState(canvasState.setShowSourceState(state));
+	}} fullscreen={props.fullscreen} canvasState={canvasState} snapshotState={snapshotState} />;
 
 	var ctx = {};
 	
@@ -204,6 +239,9 @@ export default function CanvasEditor (props) {
 					// Note: The propEditor must not have any named fields. If it did, they would be submitted when the content is saved.
 					return <>
 						<PropEditor optionsVisibleFor={canvasState.selectedNode} onChange={() => {
+							
+							applyCustomNodeUpdate(canvasState.selectedNode);
+							
 							setCanvasState(canvasState.addStateSnapshot());
 						}} setGraphState={
 							targetState=>{
@@ -255,7 +293,7 @@ export default function CanvasEditor (props) {
 						// Select the node:
 						setCanvasState(canvasState.selectNode(node));
 						
-					});
+					}, snapshotState);
 				}}
 			>
 			{/* Uses display:none to ensure it always exists in the DOM such that the save button submits everything */}
@@ -900,6 +938,9 @@ class CanvasEditorCore extends React.Component {
 							}
 							
 							this.props.canvasState.addNode(module, insertInto, insertIndex, selectOpenFor.isReplace);
+							
+							applyCustomNodeUpdate(module);
+							
 							this.props.snapshotState();
 							this.closeModal();
 						}}
