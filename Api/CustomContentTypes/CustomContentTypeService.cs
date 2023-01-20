@@ -25,7 +25,7 @@ namespace Api.CustomContentTypes
 			_fieldService = fieldService;
 
 			// Example admin page install:
-			InstallAdminPages("Manage Data Types", "fa:fa-edit", new string[] { "id", "nickName" });
+			InstallAdminPages("Data", "fa:fa-database", new string[] { "id", "nickName" });
 
 			Events.Service.AfterStart.AddEventListener(async (Context ctx, object x) =>
 			{
