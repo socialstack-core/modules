@@ -66,7 +66,13 @@ export default function Datamap(props) {
 	}
 
 	useEffect(() => {
-		webRequest('customcontenttype/list').then(resp => {
+
+		webRequest('customcontenttype/list', {
+			where: {
+				deleted: false
+            }
+        })
+			.then(resp => {
 
 			// build a list of custom data type URLs
 			// ...new Set() ensures we strip out any duplicates
