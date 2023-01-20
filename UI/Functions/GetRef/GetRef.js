@@ -116,6 +116,10 @@ function fontAwesomeIcon(ref, options, r){
 		className += ' ' + options.className;
 	}
 
+	if (options.classNameOnly) {
+		return className;
+    }
+
 	return (<i className={className} {...options.attribs}/>);
 }
 
