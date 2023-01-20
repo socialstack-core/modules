@@ -1,4 +1,4 @@
-import CollapsibleEx from 'UI/Collapsible';
+import Collapsible from 'UI/Collapsible';
 import Default from 'Admin/Layouts/Default';
 import webRequest from 'UI/Functions/WebRequest';
 import { useState, useEffect } from 'react';
@@ -91,7 +91,7 @@ export default function Sitemap(props) {
 										isPage: true,
 										id: entity[pKey],
 										url: currPath.replace("{" + pEntity + '.' + pKey + "}", entity[pKey]),
-										title: entity.name || entity.title || '',
+										title: entity.name || entity.username || entity.email || entity.title || '',
 										description: entity.subTitle || entity.description || '',
 										children: []
 									};
@@ -205,7 +205,7 @@ export default function Sitemap(props) {
 		var hasParameter = page.url.match(/{([^}]+)}/g);
 		var editClick = function (e) {
 			e.stopPropagation();
-			setPage('/en-admin/page/' + page.id);
+			setPage('/' + window.location.pathname.replace(/^\/+|\/+$/g, '') + '/' + page.id);
 		};
 
 		var editButton = {
@@ -237,12 +237,12 @@ export default function Sitemap(props) {
         }
 
 		return <>
-			<CollapsibleEx title={page.url} subtitle={page.title} info={page.isPage ? undefined : `ID: #${page.id}`} buttons={buttons} expanderLeft className="sitemap-expander"
+			<Collapsible compact expanderLeft title={page.url} subtitle={page.title} info={page.isPage ? undefined : `ID: #${page.id}`} buttons={buttons} className="sitemap-expander"
 				defaultClick={page.children.length || page.isPage ? undefined : editClick} icon={largeIcon}>
 				{page.children.length && page.children.map(child => {
 					return renderNode(child);
 				})}
-			</CollapsibleEx>
+			</Collapsible>
 		</>;
     }
 
