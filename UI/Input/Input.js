@@ -285,11 +285,11 @@ export default class Input extends React.Component {
             switch (typeof valType) {
                 case "string":
                     var mtd = require("UI/Functions/Validation/" + valType).default;
-                    vFail = mtd(v);
+                    vFail = mtd(v,field);
                     break;
                 case "function":
                     // Run it:
-                    vFail = valType(v);
+                    vFail = valType(v,field);
                     break;
                 default:
                     console.log("Invalid validation type: ", validations, valType, i);
