@@ -910,7 +910,8 @@ class CanvasEditorCore extends React.Component {
 							}
 							
 							if(pubName == "UI/Text"){
-								module.type = "p";
+								module.type = "richtext";
+								module.editorState = EditorState.createEmpty();
 							}else{
 								module.typeName = pubName;
 							}
