@@ -55,6 +55,7 @@ namespace Api.Eventing
 					// The dev specified a value they'd like to use instead.
 					if (collectInto != null && currentValue is EventHandler evtHandle)
 					{
+						evtHandle.Name = field.Name;
 						collectInto.Add(evtHandle);
 					}
 					continue;
@@ -76,6 +77,7 @@ namespace Api.Eventing
 						var handler = (evt as EventHandler);
 						if (handler != null)
 						{
+							handler.Name = field.Name;
 							handler.AddAttributes(fieldAttribs);
 							handler.AddAttributes(attribs);
 

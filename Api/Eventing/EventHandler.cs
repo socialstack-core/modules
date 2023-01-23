@@ -16,6 +16,11 @@ namespace Api.Eventing
 	public abstract partial class EventHandler
 	{
 		/// <summary>
+		/// The field name that this handler is from, if it was known.
+		/// </summary>
+		public string Name;
+
+		/// <summary>
 		/// The capability that was created for this handler, if there is one. Only available on Before* handlers.
 		/// </summary>
 		public Capability Capability;
