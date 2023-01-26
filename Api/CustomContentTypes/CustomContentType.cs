@@ -31,6 +31,7 @@ namespace Api.CustomContentTypes
 		/// Optional image to show with this item.
 		/// </summary>
 		[DatabaseField(Length = 100)]
+		[Data("type", "icon")]
 		public string IconRef;
 
 		/// <summary>

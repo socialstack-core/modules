@@ -249,8 +249,7 @@ namespace Api.CustomContentTypes
 						if (field.DataType == "jsonstring" || field.DataType.ToLower() == "jsonstring")
                         {
 							AddDataAttribute(fieldBuilder, "type", "canvas");
-
-							AddDataAttribute(fieldBuilder, "textonly", "true");
+							AddDataAttribute(fieldBuilder, "textonly", true);
 						} 
 						else if (field.DataType == "file")
                         {
