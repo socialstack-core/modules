@@ -43,11 +43,11 @@ export default class RichEditor extends React.Component {
 				var top = 0 + editorOffset.y - this.buttonBarRect.height;
 
 				var sel = window.getSelection();
+				var range = sel.getRangeAt(0);
+				var clonedRange = range.cloneRange();
+				var rangeRect = clonedRange.getBoundingClientRect();
 
 				if (sel && sel.rangeCount && richEditor.contains(sel.anchorNode)) {
-					var range = sel.getRangeAt(0);
-					var clonedRange = range.cloneRange();
-					var rangeRect = clonedRange.getBoundingClientRect();
 
 					// NB: cursor positioned at the very start of a line
 					// is treated as though it begins at the end of the previous line
