@@ -244,6 +244,7 @@ export default class FileSelector extends React.Component {
 				url={this.props.url}
 				requestOpts={this.props.requestOpts}
 				maxSize={this.props.maxSize}
+				iconOnly={this.props.iconOnly}
 				onUploaded={
 					file => this.updateValue(null,file)
 				} />

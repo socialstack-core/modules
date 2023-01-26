@@ -78,6 +78,10 @@ class Canvas extends React.Component {
 		
 		// Resolve runtime field values now:
 		var dataFields = contentNode.data;
+
+		if (contentNode.data && contentNode.data.name && contentNode.data.name.toLowerCase().endsWith('iconref')) {
+			dataFields['iconOnly'] = true;
+        }
 		
 		return (
 			<Module key={index} {...dataFields}>
@@ -123,9 +127,9 @@ class Canvas extends React.Component {
 			
 			if(node.content && node.content.length){
 				childContent = this.renderNode(node.content);
-			}else if(!node.isInline && node.type != 'br'){
+			} else if (!node.isInline && node.type != 'br') {
 				// Fake a <br> such that block elements still have some sort of height.
-				childContent = this.renderNode({type:'br', props: {'rte-fake': 1}});
+				//childContent = this.renderNode({type:'br', props: {'rte-fake': 1}});
 			}
 			
 			return <NodeType key={node.__key} ref={node.dom} {...node.props}>{childContent}</NodeType>;
@@ -140,7 +144,7 @@ class Canvas extends React.Component {
 					var root = node.roots[k];
 					
 					var isChildren = k == 'children';
-					
+
 					var rendered = this.renderNode(root.content);
 					
 					if(isChildren){
@@ -171,7 +175,7 @@ class Canvas extends React.Component {
 		
 		return <RouterConsumer>{
 			pageRouter => {
-				if(content.c2){
+				if (content.c2) {
 					// Canvas 2
 					return this.renderNode(content, 0, pageRouter);
 					
@@ -185,6 +189,10 @@ class Canvas extends React.Component {
 		}</RouterConsumer>;
 	}
 }
+
+Canvas.propTypes = {
+	bodyJson: 'canvas'
+};
 
 export default Canvas;
 

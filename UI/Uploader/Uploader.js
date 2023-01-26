@@ -18,6 +18,11 @@ export default class Uploader extends React.Component {
 		super(props);
 
 		var message = this.props.label || DEFAULT_MESSAGE;
+
+		if (props.iconOnly) {
+			message = '';
+        }
+
 		this.inputRef = React.createRef();
 
 		this.state = {
@@ -313,14 +318,14 @@ export default class Uploader extends React.Component {
         }
 
 		return <div className={uploaderClass}>
-			<div className="uploader__internal">
+			<div className={this.props.iconOnly ? "uploader__internal uploader__internal--icon" : "uploader__internal"}>
 
 				{(canShowImage || canShowVideo) && !canShowIcon && 
 					<div className="uploader__imagebackground">
 					</div>
 				}
 
-				<input id={this.props.id} className="uploader__input" type="file" ref={this.inputRef}
+				<input id={this.props.id} className="uploader__input" type="file" disabled={this.props.iconOnly} ref={this.inputRef}
 					onChange={e => this.onSelectedFile(e)} title={loading ? "Loading ..." : tooltip} />
 				<label htmlFor={this.props.id} className={uploaderLabelClass} style={labelStyle}>
 

@@ -140,10 +140,15 @@ export default class Search extends React.Component {
 		return result[field];
 	}
 	
-	render(){
+	render() {
+		var searchClass = ['search'];
+
+		if (this.props.className) {
+			searchClass.push(this.props.className);
+        }
 		
-		if(this.state.hidden){
-			return <div className="search" onClick={() => {
+		if (this.state.hidden) {
+			return <div className={searchClass.join(' ')} onClick={() => {
 				this.setState({hidden: false});
 			}}>
 				{
@@ -152,7 +157,7 @@ export default class Search extends React.Component {
 			</div>;
 		}
 		
-		return <div className="search" data-theme={this.props['data-theme'] || 'search-theme'}>
+		return <div className={searchClass.join(' ')} data-theme={this.props['data-theme'] || 'search-theme'}>
 			<input ref={
 				ele =>{
 					this.input = ele
@@ -161,7 +166,8 @@ export default class Search extends React.Component {
 			onblur = {() => {
 				this.setState({results: null})
 			}}
-			autoComplete="false" className="form-control" defaultValue={this.props.defaultSearch} value={this.props.searchText} placeholder={this.props.placeholder || 'Search...'} type="text" 
+				autoComplete="false" className="form-control" defaultValue={this.props.defaultSearch} value={this.props.searchText}
+				placeholder={this.props.placeholder || `Search...`} type="text"
 			onKeyUp={(e) => {
 				if(e.keyCode != 27){
 					this.state.debounce.handle(e.target.value);

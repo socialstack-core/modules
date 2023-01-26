@@ -1,5 +1,6 @@
 $uploader_width: 256px;
 $uploader_compact_width: 192px;
+$uploader_icon_width: 96px;
 
 .uploader {
     $uploader: &;
@@ -8,6 +9,23 @@ $uploader_compact_width: 192px;
         width: $uploader_width;
         aspect-ratio: 1 / 1;
         position: relative;
+
+        &--icon {
+            width: $uploader_icon_width;
+
+            #{$uploader}__label {
+                padding: 0;
+            }
+
+            + #{$uploader}__caption {
+                width: $uploader_icon_width;
+            }
+
+            #{$uploader}__input {
+                cursor: default;
+            }
+
+        }
     }
 
     &__imagebackground {
@@ -151,7 +169,6 @@ $uploader_compact_width: 192px;
     &__caption {
         font-size: .75rem;
         text-align: center;
-        width: 256px;
         display: block;
         margin-top: 0.25rem;
         width: $uploader_width;

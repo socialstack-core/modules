@@ -8,6 +8,7 @@
 		align-items: center;
 		padding: 2rem 1.5rem;
 		border: 1px solid rgb(240,240,240);
+		border-top: 0;
 
 		&::before {
 			display: none;
@@ -178,4 +179,13 @@
 		
 	}
 	
+	&:last-child {
+
+		#{$collapsible}-summary,
+		#{$collapsible}__summary {
+			border-bottom: 0;
+		}
+
+	}
+
 }
