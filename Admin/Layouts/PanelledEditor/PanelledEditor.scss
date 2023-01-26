@@ -46,9 +46,8 @@
 	&__structure {
 		$panelled-editor__structure: &;
 		flex: 0 0 250px;
-		border-right: 1px solid rgba(255,255,255,.5);
-		box-shadow: 0 0 5px rgb(0 0 0 / 10%);
-		padding: 0 0 8px 0;
+		box-shadow: 6px 0 5px var(--admin-subheader-bg, var(--fallback__admin-subheader-bg));
+		padding: 0 0 .5rem 0;
 
 		&--hidden {
 			display: none;
@@ -191,6 +190,8 @@
 		flex: 1 1 auto;
 		overflow-y: auto;
 		background: var(--admin-transparency-bg, var(--fallback__admin-transparency-bg));
+		padding: 2rem;
+		z-index: 1; // prevents left-hand box-shadow from __properties sidebar encroaching on vertical scrollbar
 
 		> div > .mb-3 {
 			margin-bottom: 0 !important;
@@ -203,9 +204,8 @@
 
 	&__properties {
 		flex: 0 0 300px;
-		border-left: 1px solid rgba(255,255,255,.5);
-		box-shadow: 0 0 5px rgb(0 0 0 / 10%);
-		padding: 0 0 8px 0;
+		box-shadow: -6px 0 5px var(--admin-subheader-bg, var(--fallback__admin-subheader-bg));
+		padding: 0 0 .5rem 0;
 
 		&--hidden {
 			display: none;
