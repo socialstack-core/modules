@@ -142,8 +142,13 @@ export default function Sitemap(props) {
     }
 
 	async function handleFetch(url) {
-		const resp = await webRequest(url);
-		return resp && resp.json ? resp.json.results : undefined;
+		try{
+			const resp = await webRequest(url);
+			return resp && resp.json ? resp.json.results : undefined;
+		}catch(e){
+			console.warn(e);
+			return null;
+		}
 	}
 
 	async function reduceFetch(acc, curr) {
