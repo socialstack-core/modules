@@ -9,7 +9,8 @@ import PropEditor from 'Admin/CanvasEditor/PropEditor';
 import omit from 'UI/Functions/Omit';
 import RichEditor from 'Admin/CanvasEditor/RichEditor';
 import Draft from 'Admin/CanvasEditor/DraftJs/Draft.min.js';
-const { EditorState } = Draft;
+const { EditorState, convertToRaw } = Draft;
+import Immutable from 'Admin/CanvasEditor/DraftJs/immutable.min.js';
 import ThemeEditor from 'Admin/CanvasEditor/ThemeEditor';
 import PanelledEditor from 'Admin/Layouts/PanelledEditor';
 import CanvasState from './CanvasState';
@@ -45,6 +46,21 @@ inputTypes['application/canvas'] = function(props, _this){
 		{...omit(props, ['id', 'className', 'type', 'inline'])}
 	/>;
 };
+
+var blockRenderMap = Immutable.Map({
+	// Add support for paragraph
+	'paragraph': {
+		element: 'p'
+	},
+	'linebreak': {
+		element: 'br'
+	},
+	// Overwrite DefaultDraftBlockRenderMap as it defines aliased element 'p' for 'unstyled'
+	'unstyled': {
+		element: 'div'
+	}
+  });
+var extendedBlockRenderMap = Draft.DefaultDraftBlockRenderMap.merge(blockRenderMap);
 
 var TEXT = '#text';
 
@@ -96,7 +112,7 @@ function renderStructureNode(node, canvasState, onClick, snapshotState) {
 		canvasState.removeNode(node);
 		snapshotState();
 	};
-	
+
 	if (!node.roots ||
 		!node.roots.children ||
 		!node.roots.children.content) {
@@ -163,39 +179,38 @@ function renderStructure(canvasState, onClick, snapshotState) {
 
 }
 
-function applyCustomNodeUpdate(node){
+function applyCustomNodeUpdate(node) {
 	// A component can define a static onEditorUpdate function which runs when a node is added or has its props updated in the editor.
 	// This allows the editor node to be manipulated however the component would like - 
 	// for example, UI/Grid uses it to create root spaces for the flexible number of cells.
-	
-	if(node && node.type && typeof node.type !== 'string'){
-		
+
+	if (node && node.type && typeof node.type !== 'string') {
+
 		var onEditorUpdate = node.type.onEditorUpdate;
-		
+
 		onEditorUpdate && onEditorUpdate(node, {
 			addEmptyRoot: (node, rootName) => {
-				
-				if(!node.roots){
+
+				if (!node.roots) {
 					node.roots = {};
 				}
-				
+
 				// Adding an empty root with an RTE.
-				var rootObj = {content: []};
-				var emptyPara = {type: 'richtext', editorState: EditorState.createEmpty()};
+				var rootObj = { content: [] };
+				var emptyPara = { type: 'richtext', editorState: EditorState.createEmpty() };
 				emptyPara.parent = rootObj;
 				rootObj.content.push(emptyPara);
 				node.roots[rootName] = rootObj;
-				
+
 			}
 		});
 	}
-	
+
 }
 
 export default function CanvasEditor (props) {
-	
 	var [canvasState, setCanvasState] = React.useState(() => {
-		var state = new CanvasState();
+		var state = new CanvasState(extendedBlockRenderMap);
 		state = state.load(props.value || props.defaultValue);
 		return state;
 	});
@@ -209,7 +224,7 @@ export default function CanvasEditor (props) {
 		setCanvasState(newState);
 		
 	};
-	
+
 	var ceCore = <CanvasEditorCore {...props} onSetShowSource={(state) => {
 		setCanvasState(canvasState.setShowSourceState(state));
 	}} fullscreen={props.fullscreen} canvasState={canvasState} snapshotState={snapshotState} />;
@@ -226,8 +241,9 @@ export default function CanvasEditor (props) {
 		coreWrapper.push('rte-component__core-wrapper--100');
     }
 
-	if(props.fullscreen){
-		return <PanelledEditor 
+	if (props.fullscreen) {
+		return <PanelledEditor
+			title={props.currentContent ? `Edit Page` : `Create Page`}
 			controls={props.controls}
 			feedback={props.feedback}
 				rightPanel={() => {
@@ -239,9 +255,9 @@ export default function CanvasEditor (props) {
 					// Note: The propEditor must not have any named fields. If it did, they would be submitted when the content is saved.
 					return <>
 						<PropEditor optionsVisibleFor={canvasState.selectedNode} onChange={() => {
-							
-							applyCustomNodeUpdate(canvasState.selectedNode);
-							
+
+						applyCustomNodeUpdate(canvasState.selectedNode);
+
 							setCanvasState(canvasState.addStateSnapshot());
 						}} setGraphState={
 							targetState=>{
@@ -293,7 +309,7 @@ export default function CanvasEditor (props) {
 						// Select the node:
 						setCanvasState(canvasState.selectNode(node));
 						
-					}, snapshotState);
+				}, snapshotState);
 				}}
 			>
 			{/* Uses display:none to ensure it always exists in the DOM such that the save button submits everything */}
@@ -693,12 +709,20 @@ class CanvasEditorCore extends React.Component {
 			node.key = nodeKeys++;
 		}
 
-		var rteClass = node == canvasState.selectedNode ? "rte-component rte-component--selected" : "rte-component";
+		var rteClass = ['rte-component'];
+
+		if (node == canvasState.selectedNode && !this.props.textonly) {
+			rteClass.push('rte-component--selected');
+		}
+
+		if (this.props.textonly) {
+			rteClass.push('rte-component--text-only');
+        }
 		
 		if(NodeType === 'richtext'){
 			// Pass the whole node to the RTE.
-			return <div key={node.key} ref={node.dom} className={rteClass} {...node.props}>
-				<RichEditor editorState={node.editorState} textonly={this.props.textonly} onAddComponent={() => {
+			return <div key={node.key} ref={node.dom} data-component-type={node.typeName} className={rteClass.join(' ')} {...node.props}>
+				<RichEditor editorState={node.editorState} selectedNode={node} textonly={this.props.textonly} blockRenderMap={extendedBlockRenderMap} onAddComponent={() => {
 					this.setState({selectOpenFor: {node, isReplace: true}});
 				}} onStateChange={(newState) => {
 					node.editorState = newState;
@@ -730,7 +754,7 @@ class CanvasEditorCore extends React.Component {
 						root.key = nodeKeys++;
 					}
 
-					var rendered = <div key={root.key} className={rteClass} ref={root.dom}>{this.renderRootNode(root, canvasState)}</div>;
+					var rendered = <div key={root.key} data-component-type={node.typeName} className={rteClass.join(' ')} ref={root.dom}>{this.renderRootNode(root, canvasState)}</div>;
 
 					if(isChildren){
 						children = rendered;
@@ -739,13 +763,13 @@ class CanvasEditorCore extends React.Component {
 					}
 				}
 				
-				return <div key={node.key} className={rteClass} ref={node.dom}>
+				return <div key={node.key} data-component-type={node.typeName} className={rteClass.join(' ')} ref={node.dom}>
 						<ErrorCatcher node={node}><NodeType {...props}>{children}</NodeType></ErrorCatcher>
 					</div>;
 				
 			}else{
 				// It has no content inside it; it's purely config driven.
-				return <div key={node.key} className={rteClass} ref={node.dom}>
+				return <div key={node.key} data-component-type={node.typeName} className={rteClass.join(' ')} ref={node.dom}>
 					<ErrorCatcher node={node}><NodeType {...props} /></ErrorCatcher>
 				</div>;
 			}
@@ -826,8 +850,15 @@ class CanvasEditorCore extends React.Component {
 				/>
 			</div>;
 		}
+
+		var reClass = ['rich-editor'];
+		reClass.push(toolbar ? 'with-toolbar' : 'no-toolbar');
+
+		if (this.props.textonly) {
+			reClass.push('rich-editor--text-only');
+        }
 		
-		return <div className={"rich-editor " + (toolbar ? "with-toolbar" : "no-toolbar")} data-theme={"main"} onContextMenu={this.onContextMenu}>
+		return <div className={reClass.join(' ')} data-theme={"main"} onContextMenu={this.onContextMenu}>
 			<div ref={node.dom} className="rte-content" 
 				onKeyDown={this.onKeyDown} onDragStart={this.onReject}>
 				{this.renderRootNode(node, canvasState)}
@@ -939,9 +970,9 @@ class CanvasEditorCore extends React.Component {
 							}
 							
 							this.props.canvasState.addNode(module, insertInto, insertIndex, selectOpenFor.isReplace);
-							
-							applyCustomNodeUpdate(module);
-							
+
+						applyCustomNodeUpdate(module);
+
 							this.props.snapshotState();
 							this.closeModal();
 						}}

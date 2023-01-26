@@ -1,22 +1,100 @@
 import Draft from '../DraftJs/Draft.min.js';
 const { Editor, EditorState, RichUtils, convertFromHTML, getDefaultKeyBinding, ContentState } = Draft;
 
+const BUTTONBAR_MARGIN = 16;
+const SCROLLBAR_WIDTH = 17;
+
 export default class RichEditor extends React.Component {
+	buttonBarRO = null;
+	buttonBarElement = React.createRef();
+	buttonBarRect = null;
 
 	constructor(props) {
 		super(props);
 
-		this.focus = () => this.edRef.focus();
-		this.onChange = (editorState) => {
-			var element = props.content && props.content.dom ? props.content.dom.current : null;
+		this.focus = () => {
+			this.edRef.focus();
+		}
 
-			if (element) {
-				var bodyRect = document.body.getBoundingClientRect();
+		this.onChange = (editorState) => {
+			var element = props.selectedNode && props.selectedNode.dom ? props.selectedNode.dom.current : null;
+
+			if (!this.buttonBarRect) {
+				this.buttonBarRect = this.buttonBarElement.current.getBoundingClientRect();
+			}
+
+			if (element && this.buttonBarRect) {
 				var elemRect = element.getBoundingClientRect();
-				var preview = element.closest(".page-form__preview");
-				// admin-page__header + page-form__header + height of buttonbar + margin
-				var yOffset = 50 + 44 + 68 + 16;
-				document.documentElement.style.setProperty('--richeditor-buttonbar-top', ((elemRect.top - bodyRect.top) + preview.scrollTop - yOffset) + "px")
+
+				var richEditor = element.closest(".rich-editor");
+				var richEditorRect = richEditor ? richEditor.getBoundingClientRect() : { x: 0, y: 0 };
+
+				var scrollParent = this.getScrollParent(richEditor);
+				var parent = scrollParent || richEditor;
+				var parentRect = parent.getBoundingClientRect();
+
+				var editorOffset = this.props.textonly ? {
+					x: richEditorRect.x - elemRect.x,
+					y: richEditorRect.y - elemRect.y
+				} : { x: 0, y: 0 };
+
+				// default to just above field
+				var left = 0 + editorOffset.x;
+				var top = 0 + editorOffset.y - this.buttonBarRect.height;
+
+				var sel = window.getSelection();
+
+				if (sel && sel.rangeCount && richEditor.contains(sel.anchorNode)) {
+					var range = sel.getRangeAt(0);
+					var clonedRange = range.cloneRange();
+
+					// HACK: cursor positioned at the very start of a line
+					// is treated as though it begins at the end of the previous line
+					// (causing the floating buttonbar to jump to the other end of the paragraph)
+
+					// offset selection by one character
+					//if (clonedRange.startOffset < clonedRange.commonAncestorContainer.length) {
+					//	clonedRange.setStart(clonedRange.startContainer, clonedRange.startOffset + 1);
+					//}
+					var rangeRect = clonedRange.getBoundingClientRect();
+
+					clonedRange.setStart(clonedRange.startContainer, clonedRange.startOffset - 1);
+					var beforeRangeRect = clonedRange.getBoundingClientRect();
+					clonedRange.setStart(clonedRange.startContainer, clonedRange.startOffset + 2);
+					var afterRangeRect = clonedRange.getBoundingClientRect();
+
+					console.log("before: ", beforeRangeRect.x);
+					console.log("actual: ", rangeRect.x);
+					console.log("after: ", afterRangeRect.x);
+
+					left = rangeRect.x - elemRect.left - (this.buttonBarRect.width / 2);
+					top = rangeRect.y - (this.props.textonly ? elemRect.top : richEditorRect.top) - this.buttonBarRect.height - BUTTONBAR_MARGIN;
+
+					// limit to left edge
+					left = Math.max(left, editorOffset.x);
+
+					// limit to right edge
+					var right = (this.props.textonly ? parentRect.x : 0) + Math.max(0, left) + this.buttonBarRect.width + BUTTONBAR_MARGIN + SCROLLBAR_WIDTH;
+					var availableWidth = this.props.textonly ? window.innerWidth : richEditorRect.width;
+					var diff = right - (availableWidth - SCROLLBAR_WIDTH);
+
+					if (diff > 0) {
+						left -= diff;
+					}
+
+					this.updateButtonBarPosition(left, top);
+				}
+
+				// probably in a page editor context
+				if (!this.props.textonly) {
+					// page editor has overflow set, so we can't position the buttonbar above the top of the editor, as this will get clipped
+					// if there's not room, show it below the insertion point instead
+					if (top < 0) {
+						top = rangeRect.y + rangeRect.height - richEditorRect.top + BUTTONBAR_MARGIN;
+                    }
+
+					this.updateButtonBarPosition(left, top);
+                }
             }
 			
 			this.props.onStateChange(editorState);
@@ -29,6 +107,8 @@ export default class RichEditor extends React.Component {
 		this.mapKeyToEditorCommand = this._mapKeyToEditorCommand.bind(this);
 		this.toggleBlockType = this._toggleBlockType.bind(this);
 		this.toggleInlineStyle = this._toggleInlineStyle.bind(this);
+
+		this.extendedBlockRenderMap = props.blockRenderMap;
 	}
 
 	_handleKeyCommand(command, editorState) {
@@ -87,6 +167,44 @@ export default class RichEditor extends React.Component {
 		);
 	}
 
+	getScrollParent(node) {
+
+		if (node == null) {
+			return null;
+		}
+
+		return (node.scrollHeight > node.clientHeight) ? node : this.getScrollParent(node.parentNode);
+	}
+
+	updateButtonBarPosition(x, y) {
+		var rootStyle = document.documentElement.style;
+		rootStyle.setProperty('--richeditor-buttonbar-left', x + "px");
+		rootStyle.setProperty('--richeditor-buttonbar-top', y + "px");
+    }
+
+	componentDidMount() {
+		this.buttonBarRO = new ResizeObserver(entries => {
+			for (const entry of entries) {
+
+				if (entry.contentRect.width != 0) {
+					var rootStyle = document.documentElement.style;
+					rootStyle.setProperty('--richeditor-buttonbar-left', "-1000px");
+
+					// buttonbar shown
+					this.buttonBarRect = this.buttonBarElement.current.getBoundingClientRect();
+				}
+			}
+		});
+
+		this.buttonBarRO.observe(this.buttonBarElement.current);
+	}
+
+	componentWillUnmount() {
+		if (this.buttonBarRO) {
+			this.buttonBarRO.disconnect();
+		}
+	}
+
 	render() {
 		const { editorState, textonly } = this.props;
 
@@ -103,7 +221,15 @@ export default class RichEditor extends React.Component {
 		return <div className={className} onClick={this.focus}>
 			<svg xmlns="http://www.w3.org/2000/svg" className="RichEditor__icons">
 				<defs>
-					<path id="fa_cog" d="M1152 896q0-106-75-181t-181-75-181 75-75 181 75 181 181 75 181-75 75-181zm512-109v222q0 12-8 23t-20 13l-185 28q-19 54-39 91 35 50 107 138 10 12 10 25t-9 23q-27 37-99 108t-94 71q-12 0-26-9l-138-108q-44 23-91 38-16 136-29 186-7 28-36 28h-222q-14 0-24.5-8.5t-11.5-21.5l-28-184q-49-16-90-37l-141 107q-10 9-25 9-14 0-25-11-126-114-165-168-7-10-7-23 0-12 8-23 15-21 51-66.5t54-70.5q-27-50-41-99l-183-27q-13-2-21-12.5t-8-23.5v-222q0-12 8-23t19-13l186-28q14-46 39-92-40-57-107-138-10-12-10-24 0-10 9-23 26-36 98.5-107.5t94.5-71.5q13 0 26 10l138 107q44-23 91-38 16-136 29-186 7-28 36-28h222q14 0 24.5 8.5t11.5 21.5l28 184q49 16 90 37l142-107q9-9 24-9 13 0 25 10 129 119 165 170 7 8 7 22 0 12-8 23-15 21-51 66.5t-54 70.5q26 50 41 98l183 28q13 2 21 12.5t8 23.5z" fill="currentColor" />
+					<path id="RichEditor__icon-p" d="M10.5 15a.5.5 0 0 1-.5-.5V2H9v12.5a.5.5 0 0 1-1 0V9H7a4 4 0 1 1 0-8h5.5a.5.5 0 0 1 0 1H11v12.5a.5.5 0 0 1-.5.5z" />
+					<path id="RichEditor__icon-blockquote" d="M12 12a1 1 0 0 0 1-1V8.558a1 1 0 0 0-1-1h-1.388c0-.351.021-.703.062-1.054.062-.372.166-.703.31-.992.145-.29.331-.517.559-.683.227-.186.516-.279.868-.279V3c-.579 0-1.085.124-1.52.372a3.322 3.322 0 0 0-1.085.992 4.92 4.92 0 0 0-.62 1.458A7.712 7.712 0 0 0 9 7.558V11a1 1 0 0 0 1 1h2Zm-6 0a1 1 0 0 0 1-1V8.558a1 1 0 0 0-1-1H4.612c0-.351.021-.703.062-1.054.062-.372.166-.703.31-.992.145-.29.331-.517.559-.683.227-.186.516-.279.868-.279V3c-.579 0-1.085.124-1.52.372a3.322 3.322 0 0 0-1.085.992 4.92 4.92 0 0 0-.62 1.458A7.712 7.712 0 0 0 3 7.558V11a1 1 0 0 0 1 1h2Z" />
+					<path id="RichEditor__icon-code" d="M10.478 1.647a.5.5 0 1 0-.956-.294l-4 13a.5.5 0 0 0 .956.294l4-13zM4.854 4.146a.5.5 0 0 1 0 .708L1.707 8l3.147 3.146a.5.5 0 0 1-.708.708l-3.5-3.5a.5.5 0 0 1 0-.708l3.5-3.5a.5.5 0 0 1 .708 0zm6.292 0a.5.5 0 0 0 0 .708L14.293 8l-3.147 3.146a.5.5 0 0 0 .708.708l3.5-3.5a.5.5 0 0 0 0-.708l-3.5-3.5a.5.5 0 0 0-.708 0z" />
+					<path id="RichEditor__icon-ul" fill-rule="evenodd" d="M5 11.5a.5.5 0 0 1 .5-.5h9a.5.5 0 0 1 0 1h-9a.5.5 0 0 1-.5-.5zm0-4a.5.5 0 0 1 .5-.5h9a.5.5 0 0 1 0 1h-9a.5.5 0 0 1-.5-.5zm0-4a.5.5 0 0 1 .5-.5h9a.5.5 0 0 1 0 1h-9a.5.5 0 0 1-.5-.5zm-3 1a1 1 0 1 0 0-2 1 1 0 0 0 0 2zm0 4a1 1 0 1 0 0-2 1 1 0 0 0 0 2zm0 4a1 1 0 1 0 0-2 1 1 0 0 0 0 2z" />
+					<path id="RichEditor__icon-ol1" fill-rule="evenodd" d="M5 11.5a.5.5 0 0 1 .5-.5h9a.5.5 0 0 1 0 1h-9a.5.5 0 0 1-.5-.5zm0-4a.5.5 0 0 1 .5-.5h9a.5.5 0 0 1 0 1h-9a.5.5 0 0 1-.5-.5zm0-4a.5.5 0 0 1 .5-.5h9a.5.5 0 0 1 0 1h-9a.5.5 0 0 1-.5-.5z" />
+					<path id="RichEditor__icon-ol2" d="M1.713 11.865v-.474H2c.217 0 .363-.137.363-.317 0-.185-.158-.31-.361-.31-.223 0-.367.152-.373.31h-.59c.016-.467.373-.787.986-.787.588-.002.954.291.957.703a.595.595 0 0 1-.492.594v.033a.615.615 0 0 1 .569.631c.003.533-.502.8-1.051.8-.656 0-1-.37-1.008-.794h.582c.008.178.186.306.422.309.254 0 .424-.145.422-.35-.002-.195-.155-.348-.414-.348h-.3zm-.004-4.699h-.604v-.035c0-.408.295-.844.958-.844.583 0 .96.326.96.756 0 .389-.257.617-.476.848l-.537.572v.03h1.054V9H1.143v-.395l.957-.99c.138-.142.293-.304.293-.508 0-.18-.147-.32-.342-.32a.33.33 0 0 0-.342.338v.041zM2.564 5h-.635V2.924h-.031l-.598.42v-.567l.629-.443h.635V5z" />
+					<path id="RichEditor__icon-bold" d="M8.21 13c2.106 0 3.412-1.087 3.412-2.823 0-1.306-.984-2.283-2.324-2.386v-.055a2.176 2.176 0 0 0 1.852-2.14c0-1.51-1.162-2.46-3.014-2.46H3.843V13H8.21zM5.908 4.674h1.696c.963 0 1.517.451 1.517 1.244 0 .834-.629 1.32-1.73 1.32H5.908V4.673zm0 6.788V8.598h1.73c1.217 0 1.88.492 1.88 1.415 0 .943-.643 1.449-1.832 1.449H5.907z" />
+					<path id="RichEditor__icon-italic" d="M7.991 11.674 9.53 4.455c.123-.595.246-.71 1.347-.807l.11-.52H7.211l-.11.52c1.06.096 1.128.212 1.005.807L6.57 11.674c-.123.595-.246.71-1.346.806l-.11.52h3.774l.11-.52c-1.06-.095-1.129-.211-1.006-.806z" />
+					<path id="RichEditor__icon-underline" d="M5.313 3.136h-1.23V9.54c0 2.105 1.47 3.623 3.917 3.623s3.917-1.518 3.917-3.623V3.136h-1.23v6.323c0 1.49-.978 2.57-2.687 2.57-1.709 0-2.687-1.08-2.687-2.57V3.136zM12.5 15h-9v-1h9v1z" />
 				</defs>
 			</svg>
 
@@ -114,13 +240,14 @@ export default class RichEditor extends React.Component {
 				handleKeyCommand={this.handleKeyCommand}
 				keyBindingFn={this.mapKeyToEditorCommand}
 				onChange={this.onChange}
-				placeholder={textonly ? "Type here" : "Type here or press / to add a component"}
+				placeholder={textonly ? `Type here` : `Type here or press / to add a component`}
 				ref={(edRef) => {
 					this.edRef = edRef;
 				}}
 				spellCheck={true}
+				blockRenderMap={this.extendedBlockRenderMap}
 			/>
-			<div className="RichEditor-buttonbar">
+			<div className="RichEditor-buttonbar" ref={this.buttonBarElement}>
 				<BlockStyleControls
 					editorState={editorState}
 					onToggle={this.toggleBlockType}
@@ -160,6 +287,15 @@ class StyleButton extends React.Component {
 		};
 	}
 
+	renderIconPaths(icon, pathCount) {
+
+		if (!pathCount || pathCount == 1) {
+			return <use xlinkHref={'#RichEditor__icon-' + icon} />;
+		}
+
+		return Array.from({ length: pathCount }).map((_, i) => <use xlinkHref={'#RichEditor__icon-' + icon + (i+1)} />);
+    }
+
 	render() {
 		let className = 'RichEditor-styleButton';
 		if (this.props.active) {
@@ -167,25 +303,30 @@ class StyleButton extends React.Component {
 		}
 
 		return (
-			<span className={className} onMouseDown={this.onToggle}>
-				{this.props.label}
+			<span className={className} onMouseDown={this.onToggle} title={this.props.description || this.props.label}>
+				{this.props.icon && <>
+					<svg className="RichEditor-buttonbar-icon" fill="currentColor" viewBox="0 0 16 16">
+						{this.renderIconPaths(this.props.icon, this.props.iconPathCount)}
+					</svg>
+				</>}
+				{!this.props.icon && this.props.label}
 			</span>
 		);
 	}
 }
 
 const BLOCK_TYPES = [
-	{ label: 'H1', style: 'header-one', icon: 'h1' },
-	{ label: 'H2', style: 'header-two', icon: 'h2' },
-	{ label: 'H3', style: 'header-three', icon: 'h3' },
-	{ label: 'H4', style: 'header-four', icon: 'h4' },
-	{ label: 'H5', style: 'header-five', icon: 'h5' },
-	{ label: 'H6', style: 'header-six', icon: 'h6' },
-	{ label: 'P', style: 'paragraph', icon: 'p' },
+	{ label: 'H1', style: 'header-one', xicon: 'h1' },
+	{ label: 'H2', style: 'header-two', xicon: 'h2' },
+	{ label: 'H3', style: 'header-three', xicon: 'h3' },
+	{ label: 'H4', style: 'header-four', xicon: 'h4' },
+	{ label: 'H5', style: 'header-five', xicon: 'h5' },
+	{ label: 'H6', style: 'header-six', xicon: 'h6' },
+	{ label: 'P', style: 'paragraph', icon: 'p', description: 'Paragraph' },
 	{ label: 'Blockquote', style: 'blockquote', icon: 'blockquote' },
-	{ label: 'UL', style: 'unordered-list-item', icon: 'ul' },
-	{ label: 'OL', style: 'ordered-list-item', icon: 'ol' },
-	{ label: 'Code Block', style: 'code-block', icon: 'code' },
+	{ label: 'UL', style: 'unordered-list-item', icon: 'ul', description: 'Unordered list' },
+	{ label: 'OL', style: 'ordered-list-item', icon: 'ol', iconPathCount: 2, description: 'Ordered list' },
+	//{ label: 'Code Block', style: 'code-block', icon: 'code' },
 ];
 
 const BlockStyleControls = (props) => {
@@ -203,7 +344,9 @@ const BlockStyleControls = (props) => {
 					key={type.label}
 					active={type.style === blockType}
 					label={type.label}
+					description={type.description}
 					icon={type.icon}
+					iconPathCount={type.iconPathCount}
 					onToggle={props.onToggle}
 					style={type.style}
 				/>
@@ -213,10 +356,10 @@ const BlockStyleControls = (props) => {
 };
 
 var INLINE_STYLES = [
-	{ label: 'Bold', style: 'BOLD' },
-	{ label: 'Italic', style: 'ITALIC' },
-	{ label: 'Underline', style: 'UNDERLINE' },
-	{ label: 'Monospace', style: 'CODE' },
+	{ label: 'Bold', style: 'BOLD', icon: 'bold' },
+	{ label: 'Italic', style: 'ITALIC', icon: 'italic' },
+	{ label: 'Underline', style: 'UNDERLINE', icon: 'underline' },
+	{ label: 'Monospace', style: 'CODE', icon: 'code' },
 ];
 
 const InlineStyleControls = (props) => {
@@ -229,6 +372,9 @@ const InlineStyleControls = (props) => {
 					key={type.label}
 					active={currentStyle.has(type.style)}
 					label={type.label}
+					description={type.description}
+					icon={type.icon}
+					iconPathCount={type.iconPathCount}
 					onToggle={props.onToggle}
 					style={type.style}
 				/>

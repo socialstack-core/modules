@@ -27,9 +27,20 @@ export default class List extends React.Component {
 			}
 		}
 
+		var defSearchFields = this.props.fields.filter(field => {
+			var acceptedFields = ['title', 'name', 'email', 'username', 'description'];
+
+			return acceptedFields.includes(field);
+		});
+
+		if (!defSearchFields) {
+			defSearchFields = ['title'];
+        }
+
 		return (
 			<Default>
-				<AutoList endpoint={endpoint} {...this.props} singular={entityName} title={'Edit or create ' + entityNamePlural} create={!this.props.noCreate} searchFields={this.props.searchFields || ['title']} />
+				<AutoList endpoint={endpoint} {...this.props} singular={entityName} title={`Edit or create ${entityNamePlural}`} create={!this.props.noCreate}
+					searchFields={this.props.searchFields || defSearchFields} />
 				{this.props.children}
 			</Default>	
 		);

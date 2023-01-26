@@ -1,15 +1,16 @@
 import { getRootInfo } from './Utils';
 import Graph from 'UI/Functions/GraphRuntime/Graph';
 import Draft from 'Admin/CanvasEditor/DraftJs/Draft.min.js';
-const { EditorState, convertFromHTML, ContentState, convertToRaw } = Draft;
+const { EditorState, convertFromHTML, ContentState, convertToRaw, getSafeBodyFromHTML } = Draft;
 
 
 export default class CanvasState{
 	
-	constructor(){
+	constructor(blockRenderMap){
 		this.propertyTab = 1;
 		this.showRightPanel = true;
 		this.showLeftPanel = true;
+		this.extendedBlockRenderMap = blockRenderMap;
 	}
 	
 	load(value){
@@ -126,13 +127,24 @@ export default class CanvasState{
 			html = p.innerHTML;
 		}
 		
-		var blocksFromHTML = convertFromHTML(html);
+		var blocksFromHTML = convertFromHTML(html, getSafeBodyFromHTML, this.extendedBlockRenderMap);
+
+		// Convert linebreak (<br>) back to unstyled (<div>) because the Draft editor does not handle them very well
+		if (blocksFromHTML && blocksFromHTML.contentBlocks && blocksFromHTML.contentBlocks.length) {
+			for(var i=0;i<blocksFromHTML.contentBlocks.length;i++){
+				if (blocksFromHTML.contentBlocks[i].getType() == "linebreak") {
+					blocksFromHTML.contentBlocks[i] = blocksFromHTML.contentBlocks[i].merge({
+						type: 'unstyled'
+					});
+				}
+			}
+		}
 
 		var state = ContentState.createFromBlockArray(
 			blocksFromHTML.contentBlocks,
 			blocksFromHTML.entityMap,
 		);
-	
+		
 		return EditorState.createWithContent(
 			state,
 			// decorator,
@@ -365,6 +377,10 @@ export default class CanvasState{
 		if (type == '#text') {
 			return node.text;
 		}
+
+		if (type == "br") {
+			return "<br>";
+		}
 		
 		var str = '<' + type + '>';
 
@@ -407,6 +423,9 @@ export default class CanvasState{
 				
 			});
 			
+		} else if(type == "div") {
+			// Return <br> instead of empty div
+			return "<br>";
 		}
 
 		return str + '</' + type + '>';
@@ -423,7 +442,7 @@ export default class CanvasState{
 			
 			// Convert the block:
 			var blockNode = this.toTreeFromRTE(block);
-			
+
 			children.push(blockNode);
 		}
 		
@@ -470,13 +489,18 @@ export default class CanvasState{
 					blockType = 'ol';
 				break;
 				case 'paragraph':
+					blockType = 'p';
+				break;
+				case 'linebreak':
+					blockType = 'br';
+				break;
 				default:
 					blockType = 'p';
 				break;
 			}
 			
 		}
-		
+
 		var text = block.text;
 		var inlines = block.inlineStyleRanges;
 		
@@ -846,7 +870,7 @@ export default class CanvasState{
 			// Add IDs in the output if they don't already have them.
 			options.id = this.getMaxId(snapshot.node, 0) || 1;
 		}
-		
+
 		var cfNode = this.toCanvasFormat(snapshot.node, options);
 		
 		if(!cfNode){
@@ -902,7 +926,7 @@ export default class CanvasState{
 			snapshot.previous = latest.previous;
 		}
 		
-		var newState = new CanvasState();
+		var newState = new CanvasState(this.extendedBlockRenderMap);
 		newState.rootRef = this.rootRef;
 		newState.selectedNode = this.selectedNode;
 		newState.graphState = this.graphState;

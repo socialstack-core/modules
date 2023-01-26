@@ -1,6 +1,8 @@
 .datamap {
 
 	&__wrapper {
+		background: var(--admin-bg, var(--fallback__admin-bg));
+		color: var(--admin-fg, var(--fallback__admin-fg));
 		height: calc(100vh 
 			- var(--admin-header-height, $fallback__admin-header-height)
 			- var(--admin-subheader-height, $fallback__admin-subheader-height)
@@ -12,6 +14,7 @@
 	&__internal {
 		flex: 1 1 auto;
 		overflow-y: auto;
+		color: inherit;
 	}
 
 	/*
@@ -29,15 +32,36 @@
 }
 
 .datamap-expander {
+	color: inherit;
+
+	.collapsible {
+
+		&-summary {
+			color: inherit;
+			border-left: 0;
+			border-right: 0;
+			border-color: var(--admin-subheader-bg, var(--fallback__admin-subheader-bg));
+		}
+
+		&-content,
+		&__content {
+			//border-color: var(--admin-subheader-bg, var(--fallback__admin-subheader-bg));
+			border: 0;
+		}
+
+	}
 
 	&:hover {
 
-		> .collapsible-ex__summary {
-			//background: var(--primary-shadow);
-			//color: var(--primary-fg);
-			background: rgba(0,0,0,.1);
+		> .collapsible-summary {
+			background: var(--admin-hover-bg, var(--fallback__admin-hover-bg));
+			color: var(--admin-hover-fg, var(--fallback__admin-hover-fg));
 		}
 
+	}
+
+	&[open] + .sitemap-expander > .collapsible-summary {
+		border-top: 1px solid var(--admin-subheader-bg, var(--fallback__admin-subheader-bg));
 	}
 
 }

@@ -81,7 +81,7 @@ export default class MultiSelect extends React.Component {
 		}
 
 		let excludeIds = this.state.value.map(a => a.id);
-	
+
 		return (
 			<div className="mb-3">
 				{this.props.label && !this.props.hideLabel && (
@@ -176,7 +176,7 @@ export default class MultiSelect extends React.Component {
 					<AutoForm
 						endpoint={this.props.contentType.toLowerCase()}
 						singular={this.props.label}
-						// plural={this.props.label + "s"}
+						plural={this.props.label}
 						id={this.state.entityToEditId ? this.state.entityToEditId : null}
 						onActionComplete={entity => {						
 							var value = this.state.value; 

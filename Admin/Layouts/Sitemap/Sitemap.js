@@ -172,10 +172,7 @@ export default function Sitemap(props) {
 
 					var ignoreEntities = [
 						'page', // we're already listing pages
-						'upload', // no need to show every individual upload (that's a job for the Media page)
-						// broken URLs in current DB
-						'captcha',
-						'customcontenttype'
+						'upload' // no need to show every individual upload (that's a job for the Media page)
 					]
 
 					if (paramInfo.length == 2 && paramInfo[1] == 'id' && !ignoreEntities.includes(paramInfo[0])) {
@@ -252,16 +249,21 @@ export default function Sitemap(props) {
 		<Default>
 			<div className="admin-page">
 				<header className="admin-page__subheader">
-					<ul className="admin-page__breadcrumbs">
-						<li>
-							<a href={'/en-admin/'}>
-								{`Admin`}
-							</a>
-						</li>
-						<li>
-							{`Pages`}
-						</li>
-					</ul>
+					<div className="admin-page__subheader-info">
+						<h1 className="admin-page__title">
+							{`Edit Site Pages`}
+						</h1>
+						<ul className="admin-page__breadcrumbs">
+							<li>
+								<a href={'/en-admin/'}>
+									{`Admin`}
+								</a>
+							</li>
+							<li>
+								{`Pages`}
+							</li>
+						</ul>
+					</div>
 				</header>
 				<div className="sitemap__wrapper">
 					<div className="sitemap__internal">

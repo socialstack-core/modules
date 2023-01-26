@@ -7,7 +7,6 @@ import getAutoForm from 'Admin/Functions/GetAutoForm';
 import webRequest from 'UI/Functions/WebRequest';
 import formatTime from "UI/Functions/FormatTime";
 import CanvasEditor from "Admin/CanvasEditor";
-import Tile from 'Admin/Tile';
 import { useSession, RouterConsumer } from 'UI/Session';
 
 var locales = null;
@@ -358,7 +357,7 @@ class AutoFormInternal extends React.Component {
 	renderConfirmDelete(pageState, setPage){
 		return <Modal visible onClose={() => this.cancelDelete()}>
 				<p>
-					Are you sure you want to delete this?
+					{`Are you sure you want to delete this?`}
 				</p>
 				<div>
 					<Input inline type="button" className="btn btn-danger" onClick={() => this.confirmDelete(pageState, setPage)}>Yes, delete it</Input>
@@ -531,23 +530,27 @@ class AutoFormInternal extends React.Component {
 		</>;
 		
 		var controls = <>
-			{isEdit && <button className="btn btn-danger" style={{ float: 'right' }} onClick={e => {
-				e.preventDefault();
-				this.startDelete();
-			}}>Delete</button>}
+			{isEdit && <>
+				<button className="btn btn-danger" onClick={e => {
+					e.preventDefault();
+					this.startDelete();
+				}}>
+					{`Delete`}
+				</button>
+			</>}
 			{this.state.supportsRevisions && (
 				<Input inline type="button" className="btn btn-outline-primary createDraft" onClick={() => {
 					this.draftBtn = true;
 					this.form.submit();
 				}} disabled={this.state.submitting}>
-					{isEdit ? "Save Draft" : "Create Draft"}
+					{isEdit ? `Save Draft` : `Create Draft`}
 				</Input>
 			)}
 			<Input inline type="button" disabled={this.state.submitting} onClick={() => {
 				this.draftBtn = false;
 				this.form.submit();
 			}}>
-				{isEdit ? "Save and Publish" : "Create"}
+				{isEdit ? `Save and Publish` : `Create`}
 			</Input>
 		</>;
 		
@@ -733,10 +736,10 @@ class AutoFormInternal extends React.Component {
 					}
 				}
 			}
-			
+
 			return <>
 				<Form formRef={r=>this.form=r} autoComplete="off" locale={locale} action={endpoint}
-				onValues={onValues} onFailed={onFailed} onSuccess={onSuccess}>
+					onValues={onValues} onFailed={onFailed} onSuccess={onSuccess}>
 					<CanvasEditor 
 						fullscreen 
 						{...mainCanvas.data}
@@ -750,57 +753,96 @@ class AutoFormInternal extends React.Component {
 				{this.state.confirmDelete && this.renderConfirmDelete(pageState, setPage)}
 			</>;
 		}
-		
-		return (
-			<div className="auto-form">
-				<Tile className="auto-form-header">
-					{controls}
-				</Tile>
-				<Tile>
-					<p>
-						<a href={'/en-admin/' + this.props.endpoint}>{this.capitalise(this.props.plural)}</a> &gt; {isEdit ? <span>
-							{`Editing ${this.props.singular} #` + this.state.id + ' '}
-							{(this.state.fieldData && this.state.fieldData.isDraft) && (
-								<span className="is-draft">(Draft)</span>
-							)}
-							</span> : 'Add new'}
-					</p>
-					{
-						isEdit && this.state.isLocalized && locales.length > 1 && <div>
-							<Input label="Select Locale" type="select" name="locale" value={locale} onChange={
-								e => {
-									// Set the locale and clear the fields/ endpoint so we can load the localized info instead:
-									/*
-									this.setState({
-										locale: e.target.value,
-										endpoint: null,
-										fields: null
-									}, () => {
-										// Load now:
-										this.load(this.props);
-									});
-									*/
-									
-									var url = location.pathname + '?lid=' + e.target.value;
-									if(this.state.revisionId){
-										url+='&revision=' + this.state.revisionId;
+
+		var title = isEdit ? `Edit ${this.props.singular}` : `Create New ${this.props.singular}`;
+
+		if (isEdit && this.state.fieldData && this.state.fieldData.name && this.state.fieldData.name.trim().length) {
+			title = `Edit ${this.props.singular} "${this.state.fieldData.name}"`;
+        }
+
+		return <>
+			<div className="admin-page">
+				<header className="admin-page__subheader">
+					<div className="admin-page__subheader-info">
+						<h1 className="admin-page__title">
+							{title}
+						</h1>
+						<ul className="admin-page__breadcrumbs">
+							<li>
+								<a href={'/en-admin/'}>
+									{`Admin`}
+								</a>
+							</li>
+							{this.props.previousPageUrl && this.props.previousPageName && <>
+								<li>
+									<a href={this.props.previousPageUrl}>
+										{this.props.previousPageName}
+									</a>
+								</li>
+							</>}
+							<li>
+								<a href={'/en-admin/' + this.props.endpoint}>{this.capitalise(this.props.plural)}</a>
+							</li>
+							<li>
+								{isEdit ? <span>
+									{`Editing ${this.props.singular} #` + this.state.id + ' '}
+									{(this.state.fieldData && this.state.fieldData.isDraft) && (
+										<span className="is-draft">
+											{`(Draft)`}
+										</span>
+									)}
+								</span> : `Add new`}
+							</li>
+						</ul>
+					</div>
+				</header>
+				<div className="admin-page__content">
+					<div className="admin-page__internal">
+						{
+							isEdit && this.state.isLocalized && locales.length > 1 && <div>
+								<Input label={`Select Locale`} type="select" name="locale" value={locale} onChange={
+									e => {
+										// Set the locale and clear the fields/ endpoint so we can load the localized info instead:
+										/*
+										this.setState({
+											locale: e.target.value,
+											endpoint: null,
+											fields: null
+										}, () => {
+											// Load now:
+											this.load(this.props);
+										});
+										*/
+
+										var url = location.pathname + '?lid=' + e.target.value;
+										if (this.state.revisionId) {
+											url += '&revision=' + this.state.revisionId;
+										}
+
+										setPage(url);
 									}
-									
-									setPage(url);
-								}
-							}>
-								{locales.map(loc => <option value={loc.id} selected={loc.id == locale}>{loc.name + (loc.id == '1' ? ' (Default)': '')}</option>)}
-							</Input>
-						</div>
-					}
-					<Form formRef={r=>this.form=r} autoComplete="off" locale={locale} action={endpoint}
-						onValues={onValues} onFailed={onFailed} onSuccess={onSuccess}>
-						{this.props.renderFormFields ? this.props.renderFormFields(this.state) : this.renderFormFields()}
-					</Form>
-				</Tile>
-				{this.state.confirmDelete && this.renderConfirmDelete(pageState, setPage)}
+								}>
+									{locales.map(loc => <option value={loc.id} selected={loc.id == locale}>{loc.name + (loc.id == '1' ? ' (Default)' : '')}</option>)}
+								</Input>
+							</div>
+						}
+						<Form formRef={r => this.form = r} autoComplete="off" locale={locale} action={endpoint}
+							onValues={onValues} onFailed={onFailed} onSuccess={onSuccess}>
+							{this.props.renderFormFields ? this.props.renderFormFields(this.state) : this.renderFormFields()}
+						</Form>
+					</div>
+					{feedback && <>
+						<footer className="admin-page__feedback">
+							{feedback}
+						</footer>
+					</>}
+					<footer className="admin-page__footer">
+						{controls}
+					</footer>
+				</div>
 			</div>
-		);
+			{this.state.confirmDelete && this.renderConfirmDelete(pageState, setPage)}
+		</>;
 	}
 
 }

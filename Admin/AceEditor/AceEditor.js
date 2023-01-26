@@ -42,11 +42,19 @@ export default class AceEditor extends React.Component{
 		loadAce().then(ace => {
 			var p = this.props;
 			
-			var editor = ace.edit(this.d);
+			var editor = ace.edit(this.d, {
+				behavioursEnabled: true,
+				wrapBehavioursEnabled: true,
+				wrap: true,
+				cursorStyle: "smooth",
+            });
 			this.setState({editor});
 			global.editor = editor;
-			
-			if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
+
+			var html = document.querySelector("html");
+
+			if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches ||
+				(html && html.getAttribute("data-theme-variant") == "dark")) {
 				// dark mode
 				editor.setTheme("ace/theme/monokai");
 			}

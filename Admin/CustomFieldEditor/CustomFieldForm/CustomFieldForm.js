@@ -1,7 +1,5 @@
 import Form from 'UI/Form';
 import Input from 'UI/Input';
-import Modal from 'UI/Modal';
-import webRequest from 'UI/Functions/WebRequest';
 import CustomFieldSelectForm from 'Admin/CustomFieldEditor/CustomFieldSelectForm';
 
 const dataTypes = [
@@ -22,18 +20,8 @@ export default class CustomFieldForm extends React.Component {
 
 		this.state={
 			field: props.field,
-			dataType: props.field ? props.field.dataType : null,
-			editMode: false,
-			showConfirmDeleteModal: false
+			dataType: props.field ? props.field.dataType : null
 		};
-	}
-
-	deleteField() {
-		webRequest("customContentTypeField/" + this.props.field.id, undefined, { method: "delete" }).then(() => {
-			this.setState({showConfirmDeleteModal: false});
-		}).catch(e => {
-			console.error(e);
-		});
 	}
 
 	render() {
@@ -55,8 +43,6 @@ export default class CustomFieldForm extends React.Component {
 			}
 		}
 
-		var allowEdit = createMode || this.state.editMode;
-		
 		return <div className="custom-field-form">
 			<Form
 				action={action}
@@ -70,21 +56,25 @@ export default class CustomFieldForm extends React.Component {
 					} else if (this.props.onUpdate) {
 						this.props.onUpdate(response);
 					}
-					this.setState({ field: response, editMode: false, showConfirmDeleteModal: false });
+					this.setState({ field: response });
+
+					if (this.props.onCancel) {
+						this.props.onCancel();
+					}
+
 				}}
 			>
-				<Input name={"nickName"} label={"Name"} defaultValue={name} disabled={!allowEdit} validate={allowEdit ? ['Required'] : null} />
+				<Input name={"nickName"} label={"Name"} defaultValue={name} validate={['Required']} />
 
-				<Input label="Data Type" type="select" name="dataType" value={this.state.dataType} disabled={!createMode} validate={createMode ? ['Required'] : null} onChange={
-								e => {
-									this.setState({ dataType: e.target.value });
-								}
-							}>
-								{dataTypes.map(dataType => 
-									<option value={dataType.value} selected={dataType.value == this.state.dataType}>
-										{dataType.name}
-									</option>
-								)}
+				<Input name="dataType" label="Data Type" type="select" value={this.state.dataType} disabled={!createMode} validate={createMode ? ['Required'] : null}
+					onChange={(e) => {
+						this.setState({ dataType: e.target.value });
+					}}>
+					{dataTypes.map(dataType =>
+						<option value={dataType.value} selected={dataType.value == this.state.dataType}>
+							{dataType.name}
+						</option>
+					)}
 				</Input>
 
 				{(this.state.dataType === "entity" || this.state.dataType === "entitylist") &&
@@ -101,10 +91,8 @@ export default class CustomFieldForm extends React.Component {
 					/>
 				}
 
-				{(allowEdit && this.state.field && this.state.dataType === "select") &&
-					<CustomFieldSelectForm
-						fieldId={this.state.field.id}
-					/>
+				{(this.state.field && this.state.dataType === "select") &&
+					<CustomFieldSelectForm fieldId={this.state.field.id} />
 				}
 
 				<Input 
@@ -112,36 +100,19 @@ export default class CustomFieldForm extends React.Component {
 					name="localised"
 					type="checkbox"
 					defaultValue={this.props.field ? this.props.field.localised : null}
-					disabled={!allowEdit} validate={allowEdit ? ['Required'] : null}
+					validate={['Required']}
 				/>
 
-				{allowEdit &&
-					<div>
-						<Input type="submit" />
-						{this.state.editMode && 
-							<button className="cancelEditButton" onClick={e => { e.preventDefault(); this.setState({ editMode: false }); }}>Cancel Edit</button>
-						}	
-					</div>
-				}
-
-				{!this.state.editMode && !createMode &&
-					<div>
-						<button className="editButton" onClick={e => { e.preventDefault(); this.setState({ editMode: true }); }}>Edit Field</button>
-						<button className="deleteButton" onClick={e => { e.preventDefault(); this.setState({ showConfirmDeleteModal: true }); }}>Delete Field</button>
-					</div>
-				}
-
-				{this.state.showConfirmDeleteModal &&
-					<Modal
-						visible
-						className={"delete-confirmation-modal"}
-						title="Are you sure?"
-						onClose={e => { this.setState({ showConfirmDeleteModal: false }); }}
-					>
-						<button className="cancelButton" onClick={e => { e.preventDefault(); this.setState({ showConfirmDeleteModal: false }); }}>Cancel</button>
-						<button className="confirmButton" onClick={e => { e.preventDefault(); this.deleteField(); }}>Confirm</button>
-					</Modal>
-				}
+				<footer className="custom-field-editor__modal-footer">
+					<button type="button" className="btn btn-outline-primary cancelButton" onClick={() => {
+						if (this.props.onCancel) {
+							this.props.onCancel();
+                        }
+					}}>
+						{`Cancel`}
+					</button>
+					<Input type="submit" noWrapper />
+				</footer>
 
 			</Form>
 		</div>;

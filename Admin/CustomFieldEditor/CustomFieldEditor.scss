@@ -1,9 +1,41 @@
-/*
-	Optional stylesheet
-*/
+.custom-field-editor {
 
-.custom-field-editor{
-	.custom-field-editor-content {
-		
+	&__actions {
+		text-align: end;
+
+		> .btn {
+			margin-inline-end: .5rem;
+
+			&:last-child {
+				margin-inline-end: 0;
+			}
+		}
+
+	}
+
+	&__footer {
+		padding-block-start: .75rem;
+	}
+
+	&__modal {
+
+		&-footer {
+			display: flex;
+			align-items: center;
+			justify-content: flex-end;
+			gap: .75rem;
+		}
+
+		.modal-footer {
+			display: none;
+		}
+
+	}
+
+	&__empty-message {
+		font-style: italic;
+		opacity: .5;
+		padding: 2rem 0 !important;
+		text-align: center;
 	}
 }	

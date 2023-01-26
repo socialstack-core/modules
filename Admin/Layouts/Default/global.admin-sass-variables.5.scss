@@ -5,7 +5,8 @@ $fallback__admin-header-height: 3.125rem;
 //$fallback__admin-header-fg: #fff;
 //$fallback__admin-header-fg-faded: #ffffff60;
 
-$fallback__admin-subheader-height: 2.75rem;
+//$fallback__admin-subheader-height: 2.75rem;
+$fallback__admin-subheader-height: 4rem;
 //$fallback__admin-subheader-bg: linear-gradient(to right, #9E40B530, #350EE530, #10086230);
 	
 $fallback__admin-footer-height: 3.75rem;
@@ -25,3 +26,8 @@ $fallback__admin-menu-left: auto;
 $fallback__admin-menu-right: 1rem;
 $fallback__admin-menu-top: auto;
 $fallback__admin-menu-bottom: 3.5rem;
+
+//----------
+
+$admin-field-maxwidth: 50vw;
+$admin-field-minwidth: 400px;

@@ -51,8 +51,13 @@ export default function Datamap(props) {
     }
 
 	async function handleFetch(url) {
-		const resp = await webRequest(url);
-		return resp && resp.json ? resp.json.results : undefined;
+		try {
+			const resp = await webRequest(url);
+			return resp && resp.json ? resp.json.results : undefined;
+		} catch (e) {
+			console.warn(e);
+			return null;
+		}
 	}
 
 	async function reduceFetch(acc, curr) {
@@ -173,16 +178,21 @@ export default function Datamap(props) {
 		<Default>
 			<div className="admin-page">
 				<header className="admin-page__subheader">
-					<ul className="admin-page__breadcrumbs">
-						<li>
-							<a href={'/en-admin/'}>
-								{`Admin`}
-							</a>
-						</li>
-						<li>
-							{`Data`}
-						</li>
-					</ul>
+					<div className="admin-page__subheader-info">
+						<h1 className="admin-page__title">
+							{`Edit Site Data`}
+						</h1>
+						<ul className="admin-page__breadcrumbs">
+							<li>
+								<a href={'/en-admin/'}>
+									{`Admin`}
+								</a>
+							</li>
+							<li>
+								{`Custom content types`}
+							</li>
+						</ul>
+					</div>
 				</header>
 				<div className="sitemap__wrapper">
 					<div className="sitemap__internal">

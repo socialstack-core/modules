@@ -66,7 +66,7 @@
 	&--selected {
 		outline: 4px solid var(--admin-selected-border, var(--fallback__admin-selected-border));
 
-		&::after {
+		&::before {
 			content: '';
 			position: absolute;
 			left: 0;
@@ -75,12 +75,81 @@
 			bottom: 0;
 			box-shadow: 0 0 0 500vmax var(--admin-selected-bg, var(--fallback__admin-selected-bg)) inset;
 			pointer-events: none;
-			z-index: 2147483647;
+			z-index: 2147483627;
+		}
+
+		&::after {
+			content: attr(data-component-type);
+			position: absolute;
+			left: 0;
+			bottom: 0;
+			background: var(--admin-selected-bg, var(--fallback__admin-selected-bg));
+			border: 4px solid var(--admin-selected-border, var(--fallback__admin-selected-border));
+			color: var(--admin-selected-fg, var(--fallback__admin-selected-fg));
+			padding: .5rem .75rem;
+			font-size: .75rem;
+			pointer-events: none;
+		}
+
+		&:not([data-component-type]) {
+			&::after {
+				content: none;
+			}
+		}
+
+		.rte-component:hover {
+			outline: 0 !important;
 		}
 	}
 
-	&:not(#{$rte-component}--selected):hover {
-		outline: 4px dashed var(--admin-selected-border, var(--fallback__admin-selected-border));
+	&:not(#{$rte-component}--selected) {
+
+		&:hover {
+			outline: 4px dashed var(--admin-selected-border, var(--fallback__admin-selected-border));
+
+			&::after {
+				content: attr(data-component-type);
+				position: absolute;
+				left: 0;
+				bottom: 0;
+				background: var(--admin-selected-bg, var(--fallback__admin-selected-bg));
+				border: 4px solid var(--admin-selected-border, var(--fallback__admin-selected-border));
+				color: var(--admin-selected-fg, var(--fallback__admin-selected-fg));
+				padding: .5rem .75rem;
+				font-size: .75rem;
+				pointer-events: none;
+			}
+
+			&:not([data-component-type]) {
+				&::after {
+					content: none;
+				}
+			}
+
+		}
+
+		&:has(.rte-component:hover) {
+			outline: 0;
+
+			&::after {
+				content: none;
+			}
+		}
+
+	}
+
+	&--text-only {
+
+		&:hover {
+			outline: 0 !important;
+
+			&::after {
+				content: none !important;
+			}
+
+		}
+
+
 	}
 
 }
@@ -116,7 +185,26 @@
 	}
 
 	.empty-node {
-		height: 48px;
+		//height: 48px;
+		height: 0;
 	}
 
+	&--text-only {
+		max-width: $admin-field-maxwidth;
+		min-width: $admin-field-minwidth;
+		padding: 0.375rem 0.75rem;
+		min-height: 6rem;
+		// needs rethink - overflow clips floating buttonbar
+		//max-height: 30rem;
+		//overflow-y: auto;
+
+		.RichEditor-editor {
+			min-height: 6rem;
+		}
+
+		&.rich-editor {
+			border: $input-border-width solid $input-border-color;
+			border-radius: $input-border-radius;
+		}
+	}
 }

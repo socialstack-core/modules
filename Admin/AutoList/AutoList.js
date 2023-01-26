@@ -1,8 +1,5 @@
-import Tile from 'Admin/Tile';
 import Loop from 'UI/Loop';
 import Canvas from 'UI/Canvas';
-import Col from 'UI/Column';
-import Row from 'UI/Row';
 import Search from 'UI/Search';
 import Modal from 'UI/Modal';
 import Input from 'UI/Input';
@@ -38,7 +35,27 @@ export default class AutoList extends React.Component {
 		}
 		
 	}
-	
+
+	renderEmpty() {
+		return <table className="table">
+			<thead>
+				<tr>
+					{this.renderHeader()}
+				</tr>
+			</thead>
+			<colgroup>
+				{this.renderColgroups()}
+			</colgroup>
+			<tbody>
+				<tr>
+					<td colspan={this.props.fields.length + 1} className="table__empty-message">
+						{this.state.searchText ? `No matching records for "${this.state.searchText}"` : `No data available`}
+					</td>
+				</tr>
+			</tbody>
+		</table>;
+	}
+
 	renderHeader(allContent){
 		// Header (Optional)
 		var fields = this.props.fields.map(field => {
@@ -188,15 +205,14 @@ export default class AutoList extends React.Component {
 	}
 	
 	renderBulkOptions(selectedCount){
-		
 		var message = (selectedCount > 1) ? `${selectedCount} items selected` : `1 item selected`;
 		
-		return <div className="bulk-actions">
-			<p>
+		return <div className="admin-page__footer-actions">
+			<span className="admin-page__footer-actions-label">
 				{message}
-			</p>
-			<button className="btn btn-danger" onClick={() => this.startDelete()}>
-				Delete selected
+			</span>
+			<button type="button" className="btn btn-danger" onClick={() => this.startDelete()}>
+				{`Delete selected`}
 			</button>
 		</div>;
 	}
@@ -241,7 +257,7 @@ export default class AutoList extends React.Component {
 		});
 	}
 	
-	renderConfirmDelete(count){
+	renderConfirmDelete(count) {
 		return <Modal visible onClose={() => this.cancelDelete()}>
 				<p>
 				{`Are you sure you want to delete ${count} item(s)?`}
@@ -252,10 +268,16 @@ export default class AutoList extends React.Component {
 				</div>
 		</Modal>;
 	}
-	
+
+	capitalise(name) {
+		return name && name.length ? name.charAt(0).toUpperCase() + name.slice(1) : "";
+	}
+
 	render(){
 		var {filter, filterField, filterValue, searchFields} = this.props;
-		
+
+		var searchFieldsDesc = searchFields ? searchFields.join(', ') : undefined;
+
 		if(filterField){
             filterValue = useTokens(filterValue);
 
@@ -312,66 +334,93 @@ export default class AutoList extends React.Component {
         if (!filterField)
             filterField = "";
 
-		return  <Tile className="auto-list" title={this.props.title}>
-			{this.props.previousPageUrl && this.props.previousPageName &&
-				<p>
-					<a href={this.props.previousPageUrl}>
-						{this.props.previousPageName}
-					</a> &gt; <span>
-						{this.props.title}
-					</span> 
-				</p>
-			}
-			{(this.props.create || searchFields) && (
-				<Row style={{marginBottom: '10px'}}>
-					<Col>
-						{this.props.create && (
-								<a href={ addUrl } className="btn btn-primary">
-								{`Create`}
+		return <>
+			<div className="admin-page">
+				<header className="admin-page__subheader">
+					<div className="admin-page__subheader-info">
+						<h1 className="admin-page__title">
+							{this.props.title}
+						</h1>
+						<ul className="admin-page__breadcrumbs">
+							{/*this.props.previousPageUrl && this.props.previousPageName &&
+							<p>
+								<a href={this.props.previousPageUrl}>
+									{this.props.previousPageName}
+								</a> &gt; <span>
+									{this.props.title}
+								</span>
+							</p>
+						*/}
+
+							<li>
+								<a href={'/en-admin/'}>
+									{`Admin`}
 								</a>
-						)}
-					</Col>
-					<Col>
-						{searchFields && (
-							<Search onQuery={(where, query) => {
+							</li>
+							<li>
+								<a href={'/en-admin/' + this.props.endpoint}>{this.capitalise(this.props.plural)}</a>
+							</li>
+						</ul>
+					</div>
+					{searchFields && <>
+						<Search className="admin-page__search" placeholder={`Search ${searchFieldsDesc}`}
+							onQuery={(where, query) => {
 								this.setState({
 									searchText: query
 								});
-							}}/>
+							}} />
+					</>}
+				</header>
+				<div className="admin-page__content">
+					<div className="admin-page__internal">
+						{/* TODO: split revisions into a separate tab if available */}
+						{revisionsSupported && (
+							<Loop asTable over={this.props.endpoint + '/revision/list'} filter={{ where: { IsDraft: 1 } }}
+								xorNone={() => this.renderEmpty()}
+								onFailed={e => {
+									// Revisions aren't supported.
+									return true;
+								}}>
+								{[
+									this.renderHeader,
+									this.renderColgroups,
+									this.renderEntry
+								]}
+							</Loop>
 						)}
-					</Col>
-				</Row>
-			)}
-			{revisionsSupported && (
-				<Loop asTable over={this.props.endpoint + '/revision/list'} filter={{where: {IsDraft: 1}}} onFailed={e => {
-					// Revisions aren't supported.
-					return true;
-				}}>
-					{[
-						this.renderHeader,
-						this.renderColgroups,
-						this.renderEntry
-					]}
-				</Loop>
-			)}
-			<Loop asTable over={this.props.endpoint + "/list"} onResults={results => {
-				// Either changed page or loaded for first time - clear bulk selects if there is any.
-				if(this.state.bulkSelections){
-					this.setState({bulkSelections: null});
-				}
-				
-				return results;
-				
-			}} {...this.props} filter={combinedFilter} paged>
-			{[
-				this.renderHeader,
-				this.renderColgroups,
-				this.renderEntry
-			]}
-			</Loop>
-			{selectedCount > 0 ? this.renderBulkOptions(selectedCount) : null}
-			{this.state.confirmDelete && this.renderConfirmDelete(selectedCount)}
 
-		</Tile>;
+						<Loop asTable over={this.props.endpoint + "/list"} {...this.props} filter={combinedFilter} paged
+							orNone={() => this.renderEmpty()}
+							onResults={results => {
+								// Either changed page or loaded for first time - clear bulk selects if there is any.
+								if (this.state.bulkSelections) {
+									this.setState({ bulkSelections: null });
+								}
+
+								return results;
+							}}>
+							{[
+								this.renderHeader,
+								this.renderColgroups,
+								this.renderEntry
+							]}
+						</Loop>
+						{this.state.confirmDelete && this.renderConfirmDelete(selectedCount)}
+					</div>
+					{/*feedback && <>
+						<footer className="admin-page__feedback">
+						</footer>
+					</>*/}
+					<footer className="admin-page__footer">
+						{selectedCount > 0 ? this.renderBulkOptions(selectedCount) : null}
+						{this.props.create && <>
+							<a href={addUrl} className="btn btn-primary">
+								{`Create`}
+							</a>
+						</>}
+					</footer>
+				</div>
+			</div>
+		</>;
     }
 }

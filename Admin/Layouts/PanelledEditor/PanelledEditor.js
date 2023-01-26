@@ -79,14 +79,18 @@ class PanelledEditorInternal extends React.Component {
 	renderIntl(pageState, setPage) {
 		
 		var rightPanel = this.props.rightPanel && this.props.rightPanel();
-		
+
 		return (
 			<div className="admin-page panelled-editor">
 				{this.props.breadcrumbs && <header className="admin-page__subheader">
-					<ul className="admin-page__breadcrumbs">
-						{this.props.breadcrumbs}
-					</ul>
-
+					<div className="admin-page__subheader-info">
+						<h1 className="admin-page__title">
+							{this.props.title}
+						</h1>
+						<ul className="admin-page__breadcrumbs">
+							{this.props.breadcrumbs}
+						</ul>
+					</div>
 					<div className="admin-page__supplemental">
 						<div className="btn-group btn-group-sm admin-page__display-options" role="group" aria-label={`Display options`}>
 							{!this.props.showSource && this.props.toggleLeftPanel && <>
@@ -94,6 +98,9 @@ class PanelledEditorInternal extends React.Component {
 									onClick={(e) => this.props.toggleLeftPanel(!this.props.showLeftPanel)} defaultChecked={this.props.showLeftPanel} checked={this.props.showLeftPanel} />
 								<label className="btn btn-outline-secondary" htmlFor="display_structure" title={`Toggle structure`}>
 									<i className="fa fa-fw fa-list"></i>
+									<span className="admin-page__display-options-label">
+										{`Structure`}
+									</span>
 								</label>
 							</>}
 							{this.props.onSetShowSource && <>
@@ -101,9 +108,9 @@ class PanelledEditorInternal extends React.Component {
 									onClick={(e) => this.props.onSetShowSource(!this.props.showSource)} defaultChecked={this.props.showSource} checked={this.props.showSource} />
 								<label className={this.props.showSource ? "btn btn-outline-secondary admin-page__display-options--labelled" : "btn btn-outline-secondary"} htmlFor="display_source" title={`Toggle source view`}>
 									<i className="fa fa-fw fa-code"></i>
-									{this.props.showSource && <span className="admin-page__display-options-label">
-										{`Return to preview`}
-									</span>}
+									<span className="admin-page__display-options-label">
+										{this.props.showSource ? `Return to preview` : `Source`}
+									</span>
 								</label>
 							</>}
 							{!this.props.showSource && this.props.toggleRightPanel && <>
@@ -111,16 +118,14 @@ class PanelledEditorInternal extends React.Component {
 									onClick={(e) => this.props.toggleRightPanel(!this.props.showRightPanel)} defaultChecked={this.props.showRightPanel} checked={this.props.showRightPanel} />
 								<label className="btn btn-outline-secondary" htmlFor="display_props" title={`Toggle properties`}>
 									<i className="fa fa-fw fa-cog"></i>
+									<span className="admin-page__display-options-label">
+										{`Properties`}
+									</span>
 								</label>
 							</>}
 						</div>
 					</div>
 				</header>}
-				{this.props.feedback && <>
-					<footer className="admin-page__feedback">
-						{this.props.feedback}
-					</footer>
-				</>}
 				<div className="panelled-editor__content-wrapper">
 					<div className="panelled-editor__content">
 						{/* Left panel */}
@@ -189,6 +194,11 @@ class PanelledEditorInternal extends React.Component {
 						</div>
 					</div>
 				</div>
+				{this.props.feedback && <>
+					<footer className="admin-page__feedback">
+						{this.props.feedback}
+					</footer>
+				</>}
 				{this.props.controls && <>
 					<footer className="admin-page__footer">
 						{this.props.controls}

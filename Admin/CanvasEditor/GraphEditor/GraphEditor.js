@@ -71,20 +71,22 @@ export default function GraphEditor(props){
 
 	React.useEffect(() => {
 		
-		if(props.value){
+		var val = props.value || props.defaultValue;
+		
+		if(val){
 			// todo: indicate loading state.
 			
 			// Ensure all autoforms are loaded or loading:
 			getAllContentTypes().then(() => {
 				
 				// Load the nodes:
-				loadNodes(props.value).then(newNodes => setNodes(newNodes));
+				loadNodes(val).then(newNodes => setNodes(newNodes));
 				
 			});
 			
 		}
 		
-	}, [props.value]);
+	}, [props.value, props.defaultValue]);
 	
 	var loadNodes = async (graphJson) => {
 		

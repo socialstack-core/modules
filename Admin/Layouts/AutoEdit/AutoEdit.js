@@ -19,7 +19,9 @@ export default class AutoEdit extends React.Component {
 		var endpoint = this.props.endpoint;
 		var entityName = this.props.singular;
 		var entityNamePlural = this.props.plural;
-		
+		var previousPageUrl = this.props.previousPageUrl;
+		var previousPageName = this.props.previousPageName;
+
 		// legacy support - mapping old urlTokens:
 		if(typeof id != 'string' && id.type == 'urlToken'){
 			id = '${url.' + id.name + '}';
@@ -36,11 +38,13 @@ export default class AutoEdit extends React.Component {
 				}
 			}
 		}
-		
+
 		return <TokenResolver value={id}>
 			{id => 
 				<Default>
-					<AutoForm {...(omit(this.props, ['children']))} id={id} endpoint={endpoint} singular={entityName} plural={entityNamePlural} />
+					<AutoForm {...(omit(this.props, ['children']))} id={id} endpoint={endpoint}
+						singular={entityName} plural={entityNamePlural}
+						previousPageUrl={previousPageUrl} previousPageName={previousPageName} />
 					{this.props.children}
 				</Default>	
 			}
