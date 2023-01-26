@@ -47,28 +47,26 @@ export default class RichEditor extends React.Component {
 				if (sel && sel.rangeCount && richEditor.contains(sel.anchorNode)) {
 					var range = sel.getRangeAt(0);
 					var clonedRange = range.cloneRange();
-
-					// HACK: cursor positioned at the very start of a line
-					// is treated as though it begins at the end of the previous line
-					// (causing the floating buttonbar to jump to the other end of the paragraph)
-
-					// offset selection by one character
-					//if (clonedRange.startOffset < clonedRange.commonAncestorContainer.length) {
-					//	clonedRange.setStart(clonedRange.startContainer, clonedRange.startOffset + 1);
-					//}
 					var rangeRect = clonedRange.getBoundingClientRect();
 
-					clonedRange.setStart(clonedRange.startContainer, clonedRange.startOffset - 1);
-					var beforeRangeRect = clonedRange.getBoundingClientRect();
-					clonedRange.setStart(clonedRange.startContainer, clonedRange.startOffset + 2);
-					var afterRangeRect = clonedRange.getBoundingClientRect();
+					// NB: cursor positioned at the very start of a line
+					// is treated as though it begins at the end of the previous line
+					// (causing the floating buttonbar to jump to the other end of the paragraph)
+					var atSOL = false;
 
-					console.log("before: ", beforeRangeRect.x);
-					console.log("actual: ", rangeRect.x);
-					console.log("after: ", afterRangeRect.x);
+					// check: if the rangeRect for the following cursor position
+					// has a Y value more than the current rangeRect, we're at the start of the line
+					if (clonedRange.startOffset < clonedRange.commonAncestorContainer.length) {
+						clonedRange.setStart(clonedRange.startContainer, clonedRange.startOffset + 1);
+						var nextRangeRect = clonedRange.getBoundingClientRect();
 
-					left = rangeRect.x - elemRect.left - (this.buttonBarRect.width / 2);
-					top = rangeRect.y - (this.props.textonly ? elemRect.top : richEditorRect.top) - this.buttonBarRect.height - BUTTONBAR_MARGIN;
+						if (nextRangeRect.y > rangeRect.y) {
+							atSOL = true;
+                        }
+					}
+
+					left = (atSOL ? 0 : rangeRect.x) - elemRect.left - (this.buttonBarRect.width / 2);
+					top = (atSOL ? nextRangeRect.y : rangeRect.y) - (this.props.textonly ? elemRect.top : richEditorRect.top) - this.buttonBarRect.height - BUTTONBAR_MARGIN;
 
 					// limit to left edge
 					left = Math.max(left, editorOffset.x);
