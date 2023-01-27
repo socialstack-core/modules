@@ -43,11 +43,11 @@ export default class RichEditor extends React.Component {
 				var top = 0 + editorOffset.y - this.buttonBarRect.height;
 
 				var sel = window.getSelection();
-				var range = sel.getRangeAt(0);
-				var clonedRange = range.cloneRange();
-				var rangeRect = clonedRange.getBoundingClientRect();
 
 				if (sel && sel.rangeCount && richEditor.contains(sel.anchorNode)) {
+					var range = sel.getRangeAt(0);
+					var clonedRange = range.cloneRange();
+					var rangeRect = clonedRange.getBoundingClientRect();
 
 					// NB: cursor positioned at the very start of a line
 					// is treated as though it begins at the end of the previous line
@@ -80,19 +80,19 @@ export default class RichEditor extends React.Component {
 						left -= diff;
 					}
 
+					// probably in a page editor context
+					if (!this.props.textonly) {
+						// page editor has overflow set, so we can't position the buttonbar above the top of the editor, as this will get clipped
+						// if there's not room, show it below the insertion point instead
+						if (top < 0) {
+							top = rangeRect.y + rangeRect.height - richEditorRect.top + BUTTONBAR_MARGIN;
+						}
+
+					}
+
 					this.updateButtonBarPosition(left, top);
 				}
 
-				// probably in a page editor context
-				if (!this.props.textonly) {
-					// page editor has overflow set, so we can't position the buttonbar above the top of the editor, as this will get clipped
-					// if there's not room, show it below the insertion point instead
-					if (top < 0) {
-						top = rangeRect.y + rangeRect.height - richEditorRect.top + BUTTONBAR_MARGIN;
-                    }
-
-					this.updateButtonBarPosition(left, top);
-                }
             }
 			
 			this.props.onStateChange(editorState);
