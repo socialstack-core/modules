@@ -33,6 +33,17 @@
 
 	--fallback__admin-hover-bg: #fff;
 	--fallback__admin-hover-fg: #000;
+
+	--fallback__admin-field-border: #ced4da;
+	--fallback__admin-field-bg: #fff;
+	--fallback__admin-field-fg: #212529;
+
+	// garish colour scheme for testing
+	//--fallback__admin-field-border: blue;
+	//--fallback__admin-field-bg: yellow;
+	//--fallback__admin-field-fg: red;
+
+	--fallback__admin-link: var(--primary);
 }
 
 @mixin darkModeDefaults() {
@@ -64,6 +75,12 @@
 
 	--fallback__admin-hover-bg: #323130;
 	--fallback__admin-hover-fg: #fff;
+
+	--fallback__admin-field-border: rgb(20,20,20);
+	--fallback__admin-field-bg: rgb(40,40,40);
+	--fallback__admin-field-fg: #fff;
+
+	--fallback__admin-link: #589afb;
 }
 
 // assumes light mode by default

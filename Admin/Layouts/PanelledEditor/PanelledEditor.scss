@@ -58,8 +58,9 @@
 			margin: 0;
 			padding: 0 .25rem;
 			height: 100%;
-			background: #fff;
-			border: 1px solid #E6E9ED;
+			border-radius: $input-border-radius;
+			border: 1px solid var(--admin-field-border, var(--fallback__admin-field-border));
+			background-color: var(--admin-field-bg, var(--fallback__admin-field-bg));
 			overflow: auto;
 		}
 
@@ -131,6 +132,11 @@
 			font-weight: bold;
 			text-align: left;
 			flex: 1 0 auto;
+			color: var(--admin-field-fg, var(--fallback__admin-field-fg));
+		}
+
+		.collapsible-summary {
+			color: var(--admin-field-fg, var(--fallback__admin-field-fg));
 		}
 
 	}

@@ -277,3 +277,34 @@ $uploader_icon_width: 96px;
     }
   
 }
+
+html.admin {
+
+    .uploader {
+        $uploader: &;
+
+        &__imagebackground {
+            //background: #f0f0f0;
+        }
+
+        &__label {
+    		border-color: var(--admin-field-border, var(--fallback__admin-field-border));
+	    	background: var(--admin-field-bg, var(--fallback__admin-field-bg));
+		    color: var(--admin-field-fg, var(--fallback__admin-field-fg));
+        }
+
+        &__icon {
+    		border-color: var(--admin-field-border, var(--fallback__admin-field-border));
+	    	background: var(--admin-field-bg, var(--fallback__admin-field-bg));
+        }
+
+        &--content {
+
+            #{$uploader}__label {
+    	    	background: var(--admin-field-bg, var(--fallback__admin-field-bg));
+            }
+        }
+
+    }
+
+}

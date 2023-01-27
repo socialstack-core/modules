@@ -1,5 +1,43 @@
 html.admin {
 
+	:where(a) {
+		color: var(--admin-link, var(--fallback__admin-link));
+	}
+
+	.btn.btn-outline-primary {
+		border-color: var(--admin-link, var(--fallback__admin-link));
+		color: var(--admin-link, var(--fallback__admin-link));
+
+		&:hover {
+			border-color: var(--primary);
+			background-color: var(--primary);
+			color: var(--primary-fg);
+		}
+
+	}
+	
+	.btn-check:focus + .btn.btn-outline-primary, 
+	.btn.btn-outline-primary:focus {
+		box-shadow: 0 0 0 0.25rem var(--primary-shadow);
+	}
+	
+	.btn-check:checked + .btn.btn-outline-primary, 
+	.btn-check:active + .btn.btn-outline-primary, 
+	.btn.btn-outline-primary:active, 
+	.btn.btn-outline-primary.active, 
+	.btn.btn-outline-primary.dropdown-toggle.show {
+		background-color: var(--primary);
+		color: var(--primary-fg);
+	}
+	
+	.btn-check:checked + .btn.btn-outline-primary:focus, 
+	.btn-check:active + .btn.btn-outline-primary:focus, 
+	.btn.btn-outline-primary:active:focus, 
+	.btn.btn-outline-primary.active:focus, 
+	.btn.btn-outline-primary.dropdown-toggle.show:focus {
+		box-shadow: 0 0 0 0.25rem var(--primary-shadow);
+	}
+
 	.dropdown-menu {
 		background: var(--admin-dropdown-bg, var(--fallback__admin-dropdown-bg));
 	}
@@ -213,93 +251,45 @@ html.admin {
 		}
 	}
 	
+	:where(.form-control),
+	:where(.form-select),
+	:where(.date-time-picker select),
+	:where(.rich-editor--text-only.rich-editor) {
+		border-color: var(--admin-field-border, var(--fallback__admin-field-border));
+		background-color: var(--admin-field-bg, var(--fallback__admin-field-bg));
+		color: var(--admin-field-fg, var(--fallback__admin-field-fg));
+
+		&::placeholder {
+			color: inherit;
+		}
+
+		&:disabled,
+		&[readonly] {
+			opacity: .5;
+		}
+	}
+
+	:where(.form-check-input),
+	:where(.form-check-radio) {
+		border-color: var(--admin-field-border, var(--fallback__admin-field-border));
+		background-color: var(--admin-field-bg, var(--fallback__admin-field-bg));
+	}
+
+	:where(.table) {
+		border-color: var(--admin-field-border, var(--fallback__admin-field-border));
+	}
+
 }
 
 // hack to get around similar styling defined within standard Admin/Layouts/Default
 html.admin.admin {
 
 	body {
-		background: #fff !important;
+		background: var(--admin-bg, var(--fallback__admin-bg)) !important;
 	}
 
 	body, #react-root,h1,h2,h3,h4,h5,h6 {
 		font-family: 'Nunito', sans-serif !important;
 	}
 
-}
-
-// Dark mode
-
-@media(prefers-color-scheme: dark){
-	html.admin {
-		
-		.table {
-			color: #fff;
-		}
-		
-		.table td, .table th {
-			border-top-color: rgb(40,40,40);
-		}
-		
-		.table thead th {
-			border-bottom-color: rgb(40,40,40);
-		}
-		
-		select.form-control, .date-time-picker select, input.form-control, textarea.form-control {
-			background: rgb(40,40,40);
-			border-color: rgb(20,20,20);
-			color: white;
-		}
-		
-		.rich-editor {
-			border-color: rgb(20,20,20);
-		}
-		
-		.admin-header{
-			background: black;
-		}
-		body {
-			background: #222;
-		}
-		
-		.admin-heading {
-			background: none;
-			-webkit-background-clip: initial;
-			-webkit-text-fill-color: initial;
-			color: white !important;
-		}
-
-		.component-tile {
-			background: #111;
-			border-color: #222;
-			color: #8e9297;
-		}
-
-		.admin-main-area {
-			background-color: #222 !important;
-		}
-
-		.admin-aside {
-			background-color: #111 !important;
-		}
-
-		label {
-			color: #8e9297;
-		}
-		
-		/*
-		a {
-			color: white;
-		}
-		*/
-		
-		.permission-grid {
-			background: #222;
-		}
-
-		td {
-			color: #8e9297;
-		}
-
-	}
 }

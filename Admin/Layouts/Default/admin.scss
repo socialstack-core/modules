@@ -175,6 +175,17 @@
 			max-width: $admin-field-maxwidth;
 			min-width: $admin-field-minwidth;
 		}
+
+		.modal {
+
+			.form-select,
+			.form-control {
+				max-width: none;
+				min-width: 0;
+			}
+
+		}
+
 	}
 
 	&__display-options {
