@@ -49,7 +49,7 @@ html {
 	}
 	// define rules which shouldn't be applied for admin views
 	&:not(.admin),
-	&.admin.fullscreen-preview {
+	&.admin .panelled-editor__preview {
 	}
 }
 
