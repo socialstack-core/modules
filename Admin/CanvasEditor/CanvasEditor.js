@@ -103,6 +103,10 @@ function niceGraphName(graph){
 
 function renderStructureNode(node, canvasState, onClick, snapshotState) {
 	var nodeName = node.typeName || node.type;
+
+	if (nodeName == 'richtext') {
+		nodeName = `Formatted text`;
+    }
 	
 	if(node.graph){
 		nodeName = niceGraphName(node.graph);
@@ -243,6 +247,7 @@ export default function CanvasEditor (props) {
 
 	if (props.fullscreen) {
 		return <PanelledEditor
+			graphState={canvasState.graphState}
 			title={props.currentContent ? `Edit Page` : `Create Page`}
 			controls={props.controls}
 			feedback={props.feedback}
@@ -307,7 +312,7 @@ export default function CanvasEditor (props) {
 					return renderStructure(canvasState, (node) => {
 						
 						// Select the node:
-						setCanvasState(canvasState.selectNode(node));
+						setCanvasState(canvasState.selectNode(canvasState.selectedNode == node ? null : node));
 						
 				}, snapshotState);
 				}}
@@ -667,7 +672,7 @@ class CanvasEditorCore extends React.Component {
 			this.setState({rightClick: null});
 		}
 	}
-	
+
 	renderRootNode(node, canvasState){
 		if(!Array.isArray(node.content)){
 			throw new Error("Root nodes must have an array as their content.");
@@ -717,11 +722,13 @@ class CanvasEditorCore extends React.Component {
 
 		if (this.props.textonly) {
 			rteClass.push('rte-component--text-only');
-        }
+		}
+
+		var rteClasses = rteClass.join(' ');
 		
 		if(NodeType === 'richtext'){
 			// Pass the whole node to the RTE.
-			return <div key={node.key} ref={node.dom} data-component-type={node.typeName} className={rteClass.join(' ')} {...node.props}>
+			return <div key={node.key} ref={node.dom} data-component-type={node.typeName} className={rteClasses} {...node.props}>
 				<RichEditor editorState={node.editorState} selectedNode={node} textonly={this.props.textonly} blockRenderMap={extendedBlockRenderMap} onAddComponent={() => {
 					this.setState({selectOpenFor: {node, isReplace: true}});
 				}} onStateChange={(newState) => {
@@ -754,7 +761,11 @@ class CanvasEditorCore extends React.Component {
 						root.key = nodeKeys++;
 					}
 
-					var rendered = <div key={root.key} data-component-type={node.typeName} className={rteClass.join(' ')} ref={root.dom}>{this.renderRootNode(root, canvasState)}</div>;
+					var rendered = <>
+						<div key={root.key} data-component-type={node.typeName} className={rteClasses} ref={root.dom}>
+							{this.renderRootNode(root, canvasState)}
+						</div>
+					</>;
 
 					if(isChildren){
 						children = rendered;
@@ -762,14 +773,14 @@ class CanvasEditorCore extends React.Component {
 						props[k] = rendered;
 					}
 				}
-				
-				return <div key={node.key} data-component-type={node.typeName} className={rteClass.join(' ')} ref={node.dom}>
+
+				return <div key={node.key} data-component-type={node.typeName} className={rteClasses} ref={node.dom}>
 						<ErrorCatcher node={node}><NodeType {...props}>{children}</NodeType></ErrorCatcher>
 					</div>;
-				
+
 			}else{
 				// It has no content inside it; it's purely config driven.
-				return <div key={node.key} data-component-type={node.typeName} className={rteClass.join(' ')} ref={node.dom}>
+				return <div key={node.key} data-component-type={node.typeName} className={rteClasses} ref={node.dom}>
 					<ErrorCatcher node={node}><NodeType {...props} /></ErrorCatcher>
 				</div>;
 			}
