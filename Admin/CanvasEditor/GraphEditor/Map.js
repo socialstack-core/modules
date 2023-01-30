@@ -362,6 +362,15 @@ export class MapInteractionControlled extends Component {
 		return Math.round(n);
     }
 
+    resetScale() {
+        const rect = this.getContainerBoundingClientRect();
+        const x = rect.left + (rect.width / 2);
+        const y = rect.top + (rect.height / 2);
+
+        const focalPoint = this.clientPosToTranslatedPos({ x, y });
+        this.scaleFromPoint(1, focalPoint);
+    }
+
     // Scale using the center of the content as a focal point
     changeScale(delta) {
         const targetScale = this.props.value.scale + delta;

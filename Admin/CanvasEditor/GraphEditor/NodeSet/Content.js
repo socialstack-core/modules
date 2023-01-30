@@ -35,8 +35,8 @@ export default class Content extends GraphNode {
 				key: 'contentType',
 				name: `Content Type`,
 				type: 'contentType',
-				onRender: (value, onSetValue) => {
-					return <ContentTypeSelect value={value} onChange={e => {
+				onRender: (value, onSetValue, label) => {
+					return <ContentTypeSelect label={label} value={value} onChange={e => {
 						var typeName = e.target.value;
 						onSetValue(typeName);
 					}} primaryType={primaryType} />
@@ -52,8 +52,8 @@ export default class Content extends GraphNode {
 				key: 'contentId',
 				name: `Content ID`,
 				type: 'int',
-				onRender: (value, onSetValue) => {
-					return <Input type={'number'} value={value && !value.link ? value : undefined} onChange={e => {
+				onRender: (value, onSetValue, label) => {
+					return <Input type={'number'} label={label} value={value && !value.link ? value : undefined} onChange={e => {
 						onSetValue(e.target.value);
 					}} onKeyUp={e => {
 						onSetValue(e.target.value);

@@ -27,8 +27,8 @@ export default class ContentList extends GraphNode {
 				key: 'contentType',
 				name: `Content Type`,
 				type: 'contentType',
-				onRender: (value, onSetValue) => {
-					return <ContentTypeSelect value={value} onChange={e => {
+				onRender: (value, onSetValue, label) => {
+					return <ContentTypeSelect label={label} value={value} onChange={e => {
 						
 						var typeName = e.target.value;
 						onSetValue(typeName);

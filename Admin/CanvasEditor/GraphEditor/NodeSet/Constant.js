@@ -21,8 +21,8 @@ export default class Constant extends GraphNode {
 				name: `Type`,
 				type: 'type',
 				direction: 'none',
-				onRender: (value, onSetValue) => {
-					return <Input type='select' value={value} defaultValue={value} onChange={e => {
+				onRender: (value, onSetValue, label) => {
+					return <Input type='select' label={label} value={value} defaultValue={value} onChange={e => {
 						onSetValue(e.target.value);
 					}}>
 						<option value=''>Select one..</option>
@@ -46,8 +46,8 @@ export default class Constant extends GraphNode {
 				direction: 'out',
 				key: 'output',
 				name: `Output`,
-				onRender: (value, onSetValue) => {
-					return <Input type={constantType} value={value} defaultValue={value} onChange={e => {
+				onRender: (value, onSetValue, label) => {
+					return <Input type={constantType} label={label} value={value} defaultValue={value} onChange={e => {
 						if(constantType == 'bool'){
 							onSetValue(e.target.checked);
 						}else{

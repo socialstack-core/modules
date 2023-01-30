@@ -24,8 +24,8 @@ export default class Component extends GraphNode {
 				name: `Name`,
 				type: 'type',
 				direction: 'none',
-				onRender: (value, onSetValue) => {
-					return <ComponentSelect value={value} onChange={e => {
+				onRender: (value, onSetValue, label) => {
+					return <ComponentSelect value={value} label={label} onChange={e => {
 						var typeName = e.target.value;
 						onSetValue(typeName);
 					}} />

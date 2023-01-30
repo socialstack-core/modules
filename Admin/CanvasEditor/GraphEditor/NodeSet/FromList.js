@@ -25,8 +25,8 @@ export default class FromList extends GraphNode {
 				key: 'index',
 				name: 'List index (first = 0)',
 				type: 'int',
-				onRender: (value, onSetValue) => {
-					return <Input type={'number'} value={value && !value.link ? value : undefined} onChange={e => {
+				onRender: (value, onSetValue, label) => {
+					return <Input type={'number'} label={label} value={value && !value.link ? value : undefined} onChange={e => {
 						onSetValue(e.target.value);
 					}} onKeyUp={e => {
 						onSetValue(e.target.value);
