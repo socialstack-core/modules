@@ -1,4 +1,9 @@
 html.admin {
+	font-family: 'Nunito', sans-serif;
+
+	body, #react-root, h1,h2,h3,h4,h5,h6 {
+		font-family: inherit;
+	}
 
 	:where(a) {
 		color: var(--admin-link, var(--fallback__admin-link));
@@ -267,6 +272,14 @@ html.admin {
 		&[readonly] {
 			opacity: .5;
 		}
+
+		&:focus {
+			outline: 0;
+			box-shadow: 0 0 0 0.25rem var(--primary-shadow);
+			border-color: var(--admin-field-border, var(--fallback__admin-field-border));
+			background-color: var(--admin-field-bg, var(--fallback__admin-field-bg));
+			color: var(--admin-field-fg, var(--fallback__admin-field-fg));
+		}
 	}
 
 	:where(.form-check-input),
@@ -277,19 +290,6 @@ html.admin {
 
 	:where(.table) {
 		border-color: var(--admin-field-border, var(--fallback__admin-field-border));
-	}
-
-}
-
-// hack to get around similar styling defined within standard Admin/Layouts/Default
-html.admin.admin {
-
-	body {
-		background: var(--admin-bg, var(--fallback__admin-bg)) !important;
-	}
-
-	body, #react-root,h1,h2,h3,h4,h5,h6 {
-		font-family: 'Nunito', sans-serif !important;
 	}
 
 }
