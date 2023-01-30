@@ -481,6 +481,7 @@ function DraggableItem(props) {
 				var fieldMeta = field;
 				var fieldKey = field.key;
 				var currentValue = node.state[fieldKey];
+				var hasValue = currentValue && currentValue.link && currentValue.node && currentValue.field;
 				
 				var dir = fieldMeta.direction;
 				
@@ -497,10 +498,10 @@ function DraggableItem(props) {
 				
 				var fullType = getType(fieldMeta.type);
 				
-				var defaultFieldInput = (value, setValue) => {
+				var defaultFieldInput = (value, setValue, label) => {
 					
 					if(isDefaultType(fullType) && !fullType.isArray && !fullType.isAny){
-						return <Input compact type={fullType.name} value={value} defaultValue={value} onChange={e => {
+						return <Input compact label={label} type={fullType.name} value={value} defaultValue={value} onChange={e => {
 							setValue(e.target.value);
 						}}/>;
 					}else{
@@ -522,29 +523,33 @@ function DraggableItem(props) {
 					</div>;
 				}else if(dir == 'none'){
 					return <div className="entry-content__field entry-content__field--vertical">
-						<span className="entry-content__name">
-							{niceName(fieldMeta.name)}
-						</span>
-						{fieldMeta.onRender ? fieldMeta.onRender(currentValue, onUpdate) : defaultFieldInput(currentValue, onUpdate)}
+						{fieldMeta.onRender ?
+							fieldMeta.onRender(currentValue, onUpdate, niceName(fieldMeta.name)) :
+							defaultFieldInput(currentValue, onUpdate, niceName(fieldMeta.name))}
 					</div>;
 				}
 				
-				return <div className={(currentValue && currentValue.link && currentValue.node && currentValue.field) ? 
-					"entry-content__field entry-content__field__input entry-content__field__input" : "entry-content__field entry-content__field__input entry-content__field__input--vertical"}
+				return <div className={hasValue ?
+					"entry-content__field entry-content__field__input entry-content__field__input" :
+					"entry-content__field entry-content__field__input entry-content__field__input--vertical"}
 					data-field={fieldKey}>
 					<TypeIcon type={fullType} onClick={(canConnect) => {
 							selectConnector(node, fieldKey, 'in', fieldMeta, canConnect);
-						}}/> 
-					<span className="entry-content__name">
-						{niceName(fieldMeta.name)}
-					</span>
-					{(currentValue && currentValue.link && currentValue.node && currentValue.field) ? 
+					}} />
+					{hasValue && <>
+						<span className="entry-content__name">
+							{niceName(fieldMeta.name)}
+						</span>
+					</>}
+					{hasValue ?
 						<button type="button" className="btn btn-sm btn-outline-danger" onClick={() => {
 							onUpdate(null);
 						}}>
 							<i className="fa fa-fw fa-times"></i>
 						</button>
-					 : (fieldMeta.onRender ? fieldMeta.onRender(currentValue, onUpdate) : defaultFieldInput(currentValue, onUpdate))}
+						: (fieldMeta.onRender ?
+							fieldMeta.onRender(currentValue, onUpdate, niceName(fieldMeta.name)) :
+							defaultFieldInput(currentValue, onUpdate, niceName(fieldMeta.name)))}
 				</div>;
 				
 			})}
@@ -967,17 +972,19 @@ export function GraphEditorCore(props){
 					
 					return <header className="graph-editor__ui">
 						<div className="zoom-widget">
-							<button title="Zoom out" type="button" className="btn" onPointerUp={() => map.changeScale(-step)}>
+							<button title={`Zoom out`} type="button" className="btn" onPointerUp={() => map.changeScale(-step)}>
 								-
 							</button>
-							<span className="zoom-level">
+							<span className="zoom-level" onPointerUp={() => { map.resetScale() }}>
 								{map.getScale()}%
 							</span>
-							<button title="Zoom in" type="button" className="btn" onPointerUp={() => map.changeScale(step)}>
+							<button title={`Zoom in`} type="button" className="btn" onPointerUp={() => map.changeScale(step)}>
 								+
 							</button>
 						</div>
-						<button title="Add node" type="button" className="btn graph-ui-btn" onPointerUp={addNode}>Add</button>
+						<button title={`Add node`} type="button" className="btn btn-sm btn-primary graph-ui-btn" onPointerUp={addNode}>
+							<i className="far fa-fw fa-plus"></i> {`Add`}
+						</button>
 						{/*<button title="Save" type="button" className="btn graph-ui-btn" onPointerUp={props.onSave}>Save (temp)</button>
 						{selected && <>
 						<button title="Delete" type="button" className="btn graph-ui-btn" onPointerUp={deleteItem}><i className='fa fa-trash' /></button>
@@ -986,8 +993,8 @@ export function GraphEditorCore(props){
 				}
 			}
 			nodes={nodes}
-			heading={<>Graph Editor</>}
-			instructions={"Add nodes to connect a graph"}
+			heading={<>{`Graph Editor`}</>}
+			instructions={`Add nodes to connect a graph`}
 		>
 		  {
 			({ translation, scale }) => {
