@@ -61,7 +61,8 @@
 			border-radius: $input-border-radius;
 			border: 1px solid var(--admin-field-border, var(--fallback__admin-field-border));
 			background-color: var(--admin-field-bg, var(--fallback__admin-field-bg));
-			overflow: auto;
+			overflow-y: auto;
+			overflow-x: hidden;
 		}
 
 		&-item {
@@ -279,6 +280,30 @@
 	
 	.rich-editor .rte-toolbar {
 		top: 78px;
+	}
+
+	&--graph {
+
+		.panelled-editor__preview {
+			padding: 0;
+			overflow: hidden;
+
+			> .mb-3 {
+				margin-bottom: 0 !important;
+				height: 100%;
+			}
+
+			.graph-editor {
+				background: var(--admin-subheader-bg, var(--fallback__admin-subheader-bg));
+				padding: .1px;
+				height: 100%;
+
+				.map-interaction {
+					background: var(--admin-transparency-bg, var(--fallback__admin-transparency-bg));
+				}
+			}
+		}
+
 	}
 }
 

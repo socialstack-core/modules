@@ -77,11 +77,15 @@ class PanelledEditorInternal extends React.Component {
 	}
 
 	renderIntl(pageState, setPage) {
-		
 		var rightPanel = this.props.rightPanel && this.props.rightPanel();
+		var editorClass = ["admin-page", "panelled-editor"];
+
+		if (this.props.graphState) {
+			editorClass.push("panelled-editor--graph");
+        }
 
 		return (
-			<div className="admin-page panelled-editor">
+			<div className={editorClass.join(' ')}>
 				{this.props.breadcrumbs && <header className="admin-page__subheader">
 					<div className="admin-page__subheader-info">
 						<h1 className="admin-page__title">
