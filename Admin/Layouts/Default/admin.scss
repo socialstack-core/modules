@@ -179,7 +179,8 @@
 		.modal {
 
 			.form-select,
-			.form-control {
+			.form-control,
+			.rich-editor--text-only {
 				max-width: none;
 				min-width: 0;
 			}
@@ -280,6 +281,10 @@
 			text-align: right;
 		}
 
+	}
+
+	+ .empty-canvas-node {
+		display: none;
 	}
 
 }
