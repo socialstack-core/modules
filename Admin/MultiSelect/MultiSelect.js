@@ -169,6 +169,9 @@ export default class MultiSelect extends React.Component {
 						this.setState({ showCreateOrEditModal: false, entityToEditId: null })
 					}}>
 						<AutoForm
+						modalCancelCallback={() => {
+							this.setState({ showCreateOrEditModal: false, entityToEditId: null });
+						}}
 							endpoint={this.props.contentType.toLowerCase()}
 							singular={this.props.label}
 							plural={this.props.label}

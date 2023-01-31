@@ -193,8 +193,11 @@ export default class ContentSelect extends React.Component {
 					visible
 					isExtraLarge
 				>
-					<AutoForm 
-						endpoint={this.props.contentType.toLowerCase()} 
+				<AutoForm
+					modalCancelCallback={() => {
+						this.setState({ showCreateOrEditModal: false, entityToEditId: null });
+					}}
+						endpoint={this.props.contentType.toLowerCase()}
 						singular={this.props.label} 
 						plural={this.props.label + "s"}
 						id={this.state.entityToEditId ? this.state.entityToEditId : null}

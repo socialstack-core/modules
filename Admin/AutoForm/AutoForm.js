@@ -1,7 +1,7 @@
 import Form from 'UI/Form';
 import Input from 'UI/Input';
 import Canvas from 'UI/Canvas';
-import Modal from 'UI/Modal';
+import ConfirmModal from 'UI/Modal/ConfirmModal';
 import isNumeric from 'UI/Functions/IsNumeric';
 import getAutoForm from 'Admin/Functions/GetAutoForm';
 import webRequest from 'UI/Functions/WebRequest';
@@ -355,15 +355,15 @@ class AutoFormInternal extends React.Component {
 	}
 	
 	renderConfirmDelete(pageState, setPage){
-		return <Modal visible onClose={() => this.cancelDelete()}>
+		return <>
+			<ConfirmModal
+				confirmCallback={() => this.confirmDelete(pageState, setPage)} confirmVariant="danger" confirmText={`Yes, delete it`}
+				cancelCallback={() => this.cancelDelete()}>
 				<p>
-					{`Are you sure you want to delete this?`}
+					{`Are you sure you wish to delete this?`}
 				</p>
-				<div>
-					<Input inline type="button" className="btn btn-danger" onClick={() => this.confirmDelete(pageState, setPage)}>Yes, delete it</Input>
-					<Input inline type="button" className="btn btn-secondary" style={{ marginLeft: '10px' }} onClick={() => this.cancelDelete()}>Cancel</Input>
-				</div>
-		</Modal>;
+			</ConfirmModal>
+		</>;
 	}
 	
 	capitalise(name){
@@ -553,6 +553,20 @@ class AutoFormInternal extends React.Component {
 				{isEdit ? `Save and Publish` : `Create`}
 			</Input>
 		</>;
+
+		if (this.props.modalCancelCallback) {
+			controls = <>
+				<button className="btn btn-outline-primary" onClick={this.props.modalCancelCallback}>
+					{`Cancel`}
+				</button>
+				<Input inline type="button" disabled={this.state.submitting} onClick={() => {
+					this.draftBtn = false;
+					this.form.submit();
+				}}>
+					{`Save`}
+				</Input>
+			</>;
+        }
 		
 		var onValues = values => {
 			if (this.draftBtn) {
