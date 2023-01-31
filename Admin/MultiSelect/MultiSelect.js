@@ -82,123 +82,118 @@ export default class MultiSelect extends React.Component {
 
 		let excludeIds = this.state.value.map(a => a.id);
 
-		return (
-			<div className="mb-3">
+		return <>
+			<div className="admin-multiselect mb-3">
 				{this.props.label && !this.props.hideLabel && (
-					<label className="form-label">{this.props.label}</label>
+					<label className="form-label">
+						{this.props.label}
+					</label>
 				)}
-				<div className="admin-multiselect">
+				<ul className="admin-multiselect__entries">
 					{
 						this.state.value.map((entry, i) => (
-							<div className="entry-wrapper">
-								<div key={entry.id} className="entry">
-									<div>
-										{entry[displayFieldName]} <i className="remove-icon fa fa-times-circle" />
-									</div>
-										{<br />}
-									<div>
-										<button
-											className="btn btn-secondary btn-entry-select-action btn-view-entry"
-											onClick={e => {
-												e.preventDefault();
-												this.setState({ showCreateOrEditModal: true, entityToEditId: entry.id });
-											}}
-										>
-											{<i className="fa fa-edit"></i>}
-										</button>
-									</div>
-									<div>
-										<button className="btn btn-secondary btn-entry-select-action btn-remove-entry"
-											onClick={() => this.remove(entry)}
-										>
-											{<i className="fa fa-trash"></i>}
-										</button>
-									</div>
+							<li key={entry.id} className="admin-multiselect__entry">
+								<p>
+									{entry[displayFieldName]}
+								</p>
+								<div className="admin-multiselect__entry-options">
+									<button className="btn btn-sm btn-outline-primary btn-entry-select-action btn-view-entry" title={`Edit`}
+										onClick={e => {
+											e.preventDefault();
+											this.setState({ showCreateOrEditModal: true, entityToEditId: entry.id });
+										}}>
+										<i className="fal fa-fw fa-edit"></i> <span className="sr-only">{`Edit`}</span>
+									</button>
+									<button className="btn btn-sm btn-outline-danger btn-entry-select-action btn-remove-entry" title={`Remove`}
+										onClick={() => this.remove(entry)}>
+										<i className="fal fa-fw fa-times"></i> <span className="sr-only">{`Remove`}</span>
+									</button>
 								</div>
-							</div>
-					))}
-					<div>
-						<input type="hidden" ref={
-							ele => {
-								this.input = ele;
-								if(ele != null){
-									ele.onGetValue=(v, input, e) => {
-										if(input != this.input){
-											return v;
-										}
-										
-										return this.state.value.map(entry => entry.id);
-									}
-								}
-							}
-						}
-						name={this.props.name} />
-						{atMax ? <p>
-							<i>Max of {this.props.max} added</i>
-						</p> : 
-						<Search host={this.props.host} exclude={excludeIds} requestOpts={this.props.requestOpts} for={contentTypeLower} field={fieldName} limit={5} placeholder={"Find " + this.props.label + " to add.."} onFind={entry => {
-							if(!entry || this.state.value.some(entity => entity.id === entry.id)){
-								return;
+							</li>
+						))
+					}
+				</ul>
+				<input type="hidden" name={this.props.name} ref={ele => {
+					this.input = ele;
+
+					if (ele != null) {
+						ele.onGetValue = (v, input, e) => {
+
+							if (input != this.input) {
+								return v;
 							}
 
-							var value = this.state.value;
-							value.push(entry);
+							return this.state.value.map(entry => entry.id);
+						}
+					}
+				}} />
+				<footer className="admin-multiselect__footer">
+					<button className="btn btn-sm btn-outline-primary btn-entry-select-action btn-new-entry"
+						disabled={atMax ? true : undefined}
+						onClick={e => {
+							e.preventDefault();
 							this.setState({
-								value
+								showCreateOrEditModal: true,
+								entityToEditId: this.state.selected
 							});
-							this.props.onChange && this.props.onChange({target: {value: value.map(e => e.id)}, fullValue: value});
-							}}/>}
-					</div>
-			</div>
-			<div>
-				<button className="btn btn-secondary btn-sm btn-entry-select-action btn-new-entry"
-					onClick={e => {
-						e.preventDefault();
-						this.setState({
-							showCreateOrEditModal: true,
-							entityToEditId: this.state.selected
-						});
-					}}
-				>
-						{`New ${this.props.label}...`}
+						}}
+					>
+						{/*<i className="fal fa-fw fa-plus"></i> {`New ${this.props.label}...`}*/}
+						<i className="fal fa-fw fa-plus"></i> {`New`}
 					</button>
-			</div>
+					<div className="admin-multiselect__search">
+						{atMax ?
+							<span className="admin-multiselect__search-max">
+								<i>{`Max of ${this.props.max} added`}</i>
+							</span> :
+							<Search host={this.props.host} exclude={excludeIds} requestOpts={this.props.requestOpts} for={contentTypeLower} field={fieldName} limit={5}
+								placeholder={`Find ${this.props.label} to add..`} onFind={entry => {
+									if (!entry || this.state.value.some(entity => entity.id === entry.id)) {
+										return;
+									}
 
-				{this.state.showCreateOrEditModal &&
-				<Modal
-					title={"Edit " + this.props.label}
-					onClose={() => {
-						this.setState({ showCreateOrEditModal: false, entityToEditId: null })
-					}}
-					visible
-					isExtraLarge
-				>
-					<AutoForm
-						endpoint={this.props.contentType.toLowerCase()}
-						singular={this.props.label}
-						plural={this.props.label}
-						id={this.state.entityToEditId ? this.state.entityToEditId : null}
-						onActionComplete={entity => {						
-							var value = this.state.value; 
-							var valueIndex = value.findIndex(
-								(checkIndex) => checkIndex.id === entity.id
-							)
-							
-							if (valueIndex !== -1) {
-								value[valueIndex] = entity
-							} else {
-								value.push(entity)
-							}
+									var value = this.state.value;
+									value.push(entry);
 
-							this.setState({
-								showCreateOrEditModal: false,
-								entityToEditId: null,
-								value: value
-							});
+									this.setState({
+										value
+									});
+
+									this.props.onChange && this.props.onChange({ target: { value: value.map(e => e.id) }, fullValue: value });
+								}} />
 						}
-						} />
-				</Modal>
+					</div>
+				</footer>
+				{this.state.showCreateOrEditModal &&
+					<Modal title={`Edit ${this.props.label}`} visible isExtraLarge onClose={() => {
+						this.setState({ showCreateOrEditModal: false, entityToEditId: null })
+					}}>
+						<AutoForm
+							endpoint={this.props.contentType.toLowerCase()}
+							singular={this.props.label}
+							plural={this.props.label}
+							id={this.state.entityToEditId ? this.state.entityToEditId : null}
+							onActionComplete={entity => {
+								var value = this.state.value;
+								var valueIndex = value.findIndex(
+									(checkIndex) => checkIndex.id === entity.id
+								)
+
+								if (valueIndex !== -1) {
+									value[valueIndex] = entity
+								} else {
+									value.push(entity)
+								}
+
+								this.setState({
+									showCreateOrEditModal: false,
+									entityToEditId: null,
+									value: value
+								});
+							}} />
+					</Modal>
 				}
-			</div>);
+			</div>
+		</>;
 	}
 }
