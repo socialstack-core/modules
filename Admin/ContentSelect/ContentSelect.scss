@@ -1,16 +1,67 @@
-.content-select{
+.content-select {
 	
-	.selected-content{
+	.selected-content {
 		padding: 10px;
 		margin: 10px 0;
 		background: lightgrey;
 	}
 
-	.btn-edit-content {
-		margin-left: 1rem;
+	&__footer {
+		max-width: $admin-field-maxwidth;
+		min-width: $admin-field-minwidth;
+		display: flex;
+		align-items: center;
+		justify-content: flex-start;
+		gap: .5rem;
+		margin: .5rem 0 1rem 0;
+
+		.btn {
+			min-width: 4.5rem;
+		}
+
+		.btn-visit-content {
+			margin-inline-start: auto;
+		}
 	}
 
-	.btn-visit-content {
-		float: right;
+	.modal {
+
+		.modal-body {
+			padding: 0;
+			overflow: hidden;
+			height: 80vh;
+
+			.admin-page {
+				height: 100% !important;
+
+				&__subheader {
+					display: none;
+				}
+
+				&__content {
+					height: 100%;
+
+					.admin-multiselect {
+						// TODO: disable nested multiselects?
+						// (otherwise we run the risk of nested modals)
+					}
+				}
+
+				&__feedback {
+					display: none !important;
+				}
+
+				&__footer {
+					background: transparent;
+				}
+
+			}
+
+		}
+
+		.modal-footer {
+			display: none;
+		}
+
 	}
 }

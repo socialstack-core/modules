@@ -128,8 +128,8 @@ export default class ContentSelect extends React.Component {
 		
 		var all = this.state.all;
 		
-		var noSelection = this.props.noSelection || "None";
-		var mobileNoSelection = this.props.mobileNoSelection || "None";
+		var noSelection = this.props.noSelection || `None`;
+		var mobileNoSelection = this.props.mobileNoSelection || `None`;
 		
 		if (window.matchMedia('(max-width: 752px) and (pointer: coarse) and (orientation: portrait)').matches ||
 			window.matchMedia('(max-height: 752px) and (pointer: coarse) and (orientation: landscape)').matches) {
@@ -137,7 +137,8 @@ export default class ContentSelect extends React.Component {
 		}
 
 		return (<div className="content-select">
-			<Input {...omit(this.props, ['contentType'])} type="select" defaultValue={this.state.selected ? this.state.selected : null} onChange={e => { this.onChange(e); }}>{
+			<Input {...omit(this.props, ['contentType'])} noWrapper
+				type="select" defaultValue={this.state.selected ? this.state.selected : null} onChange={e => { this.onChange(e); }}>{
 				all ? all.map(content => {
 					if(!content){
 						return <option value={'0'}>{noSelection}</option>;
@@ -151,41 +152,41 @@ export default class ContentSelect extends React.Component {
 				}) : [
 				]
 			}</Input>
-			
-			<button 
-				className="btn btn-secondary btn-content-select-action btn-add-content"
-				onClick={e => {
-					e.preventDefault();
-					this.setState({ showCreateOrEditModal: true });
-				}}
-			>
-				{"New " + this.props.label}
-			</button>
 
-			{this.state.selected &&
-				<button 
-					className="btn btn-secondary btn-content-select-action btn-edit-content"
+			<footer className="content-select__footer">
+				<button className="btn btn-sm btn-outline-primary btn-content-select-action btn-add-content"
 					onClick={e => {
 						e.preventDefault();
-						this.setState({ showCreateOrEditModal: true, entityToEditId: this.state.selected });
-					}}
-				>
-					{"Edit " + this.props.label}
+						this.setState({ showCreateOrEditModal: true });
+					}}>
+					{/*<i className="fal fa-fw fa-plus"></i> {`New ${this.props.label}`}*/}
+					<i className="fal fa-fw fa-plus"></i> {`New`}
 				</button>
-			}
-			
-			{this.state.selected &&
-				<a
-					className="btn btn-secondary btn-content-select-action btn-visit-content"
-					href={"/en-admin/" + this.props.contentType.toLowerCase() + "/" + this.state.selected}
-				>
-					{"Visit " + this.props.label}
-				</a>
-			}
 
+				{this.state.selected &&
+					<button className="btn btn-sm btn-outline-primary btn-content-select-action btn-edit-content"
+						onClick={e => {
+							e.preventDefault();
+							this.setState({ showCreateOrEditModal: true, entityToEditId: this.state.selected });
+					}}>
+						{/*<i className="fal fa-fw fa-edit"></i> {`Edit ${this.props.label}`}*/}
+						<i className="fal fa-fw fa-edit"></i> {`Edit`}
+					</button>
+				}
+
+				{this.state.selected &&
+					<a className="btn btn-sm btn-outline-secondary btn-content-select-action btn-visit-content"
+						href={"/en-admin/" + this.props.contentType.toLowerCase() + "/" + this.state.selected}>
+						{/*<i className="fal fa-fw fa-external-link"></i> {`Visit ${this.props.label}`}*/}
+						<i className="fal fa-fw fa-external-link"></i> {`Visit`}
+					</a>
+				}
+
+			</footer>
+			
 			{this.state.showCreateOrEditModal &&
 				<Modal
-					title={"Create New " + this.props.label}
+					title={this.state.entityToEditId ? `Edit ${this.props.label}` : `Create New ${this.props.label}`}
 					onClose={() => {
 						this.setState({ showCreateOrEditModal: false, entityToEditId: null });
 					}}
