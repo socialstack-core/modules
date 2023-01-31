@@ -3,11 +3,12 @@ import Default from 'Admin/Layouts/Default';
 import webRequest from 'UI/Functions/WebRequest';
 import { useState, useEffect } from 'react';
 import { useRouter } from 'UI/Session';
+import ConfirmModal from 'UI/Modal/ConfirmModal';
 
 export default function Sitemap(props) {
-	//const { } = props;
 	const [ sitemap, setSitemap ] = useState(false);
-	const { pageState, setPage } = useRouter();
+	const [ showConfirmModal, setShowConfirmModal ] = useState(false);
+	const { setPage } = useRouter();
 	var entityData = [];
 
 	function includePage(target, source, path) {
@@ -210,6 +211,11 @@ export default function Sitemap(props) {
 			setPage('/' + window.location.pathname.replace(/^\/+|\/+$/g, '') + '/' + page.id);
 		};
 
+		var removeClick = function (e) {
+			e.stopPropagation();
+			setShowConfirmModal(page.id);
+		}
+
 		var editButton = {
 			icon: 'fa fa-edit',
 			text: `Edit`,
@@ -217,6 +223,7 @@ export default function Sitemap(props) {
 			variant: 'primary',
 			onClick: editClick
 		};
+
 		var launchButton = {
 			disabled: hasParameter,
 			icon: 'fa fa-external-link',
@@ -227,11 +234,17 @@ export default function Sitemap(props) {
 			//target: '_blank'
 			onClick: function () {
 				setPage(page.url);
-			}
+			},
+			children: [
+				{
+					icon: 'fa fa-fw fa-trash',
+					text: `Remove`,
+					onClick: removeClick
+				}
+			]
 		};
 
 		var buttons = !page.isPage ? [editButton, launchButton] : [launchButton];
-		const slashUrl = '/' + page.url.replace(/^\/|\/$/g, '');
 		var largeIcon = page.url == '/' ? 'fa-home' : 'fa-file';
 
 		if (page.url.startsWith('/en-admin')) {
@@ -247,6 +260,16 @@ export default function Sitemap(props) {
 			</Collapsible>
 		</>;
     }
+
+	function removePage(id) {
+		webRequest(
+			'page/' + id,
+			null,
+			{ method: 'delete' }
+		).then(response => {
+			window.location.reload();
+		});
+	}
 
 	var addUrl = window.location.href.replace(/\/+$/g, '') + '/add';
 
@@ -272,6 +295,16 @@ export default function Sitemap(props) {
 				</header>
 				<div className="sitemap__wrapper">
 					<div className="sitemap__internal">
+						{showConfirmModal && <>
+							<ConfirmModal confirmCallback={() => removePage(showConfirmModal)} confirmVariant="danger" cancelCallback={() => setShowConfirmModal(false)}>
+								<p>
+									{`This will remove page ID #${showConfirmModal}.`}
+								</p>
+								<p>
+									{`Are you sure you wish to do this?`}
+								</p>
+							</ConfirmModal>
+						</>}
 						{sitemap && sitemap.map(page => {
 							return renderNode(page);
 						})}

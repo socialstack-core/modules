@@ -4,11 +4,12 @@ import webRequest from 'UI/Functions/WebRequest';
 import { useState, useEffect } from 'react';
 import { useRouter } from 'UI/Session';
 import getRef from 'UI/Functions/GetRef';
+import ConfirmModal from 'UI/Modal/ConfirmModal';
 
 export default function Datamap(props) {
-	//const { } = props;
 	const [ datamap, setDatamap ] = useState(false);
-	const { pageState, setPage } = useRouter();
+	const [ showConfirmModal, setShowConfirmModal ] = useState(false);
+	const { setPage } = useRouter();
 	var customData = [];
 
 	function buildDatamap(results) {
@@ -125,6 +126,11 @@ export default function Datamap(props) {
 
 		};
 
+		var removeClick = function (e) {
+			e.stopPropagation();
+			setShowConfirmModal(data.id);
+		}
+
 		var newButton = {
 			icon: 'fa fa-plus-circle',
 			text: `New`,
@@ -138,7 +144,14 @@ export default function Datamap(props) {
 			text: `Edit`,
 			showLabel: true,
 			variant: 'primary',
-			onClick: editClick
+			onClick: editClick,
+			children: [
+				{
+					icon: 'fa fa-fw fa-trash',
+					text: `Remove`,
+					onClick: removeClick
+                }
+			]
 		};
 
 		/*
@@ -172,6 +185,24 @@ export default function Datamap(props) {
 		</>;
     }
 
+	function removeData(id) {
+		/*
+		webRequest(
+			'customContentType/' + id,
+			null,
+			{ method: 'delete' }
+		).then(response => {
+		});
+		*/
+		webRequest(
+			'customContentType/' + id,
+			{ deleted: 1 },
+			null
+		).then(response => {
+			window.location.reload();
+		});
+	}
+
 	var addUrl = window.location.href.replace(/\/+$/g, '') + '/add';
 
 	return (
@@ -196,6 +227,16 @@ export default function Datamap(props) {
 				</header>
 				<div className="sitemap__wrapper">
 					<div className="sitemap__internal">
+						{showConfirmModal && <>
+							<ConfirmModal confirmCallback={() => removeData(showConfirmModal)} confirmVariant="danger" cancelCallback={() => setShowConfirmModal(false)}>
+								<p>
+									{`This will remove row ID #${showConfirmModal}.`}
+								</p>
+								<p>
+									{`Are you sure you wish to do this?`}
+								</p>
+							</ConfirmModal>
+						</>}
 						{datamap && datamap.map(data => {
 							return renderNode(data);
 						})}
