@@ -1,4 +1,6 @@
-export default function Collapsible (props) {
+import Dropdown from 'UI/Dropdown';
+
+export default function Collapsible(props) {
 	var { className, compact, defaultClick } = props;
 	var noContent = !props.children;
 	var [isOpen, setOpen] = React.useState(noContent ? false : !!props.open);
@@ -23,7 +25,7 @@ export default function Collapsible (props) {
 	if (className) {
 		detailsClass += " " + className;
 	}
-	
+
 	return <details className={detailsClass} open={isOpen} onClick={(e) => {
 			props.onClick && props.onClick();
 			e.preventDefault();
@@ -61,6 +63,41 @@ export default function Collapsible (props) {
 							var variant = button.variant || 'primary';
 							var btnClass = 'btn btn-sm btn-outline-' + variant;
 
+							// split button
+							if (button.children && button.children.length) {
+								var dropdownJsx = <>
+									<i className={button.icon}></i>
+									<span className={button.showLabel ? '' : 'sr-only'}>
+										{button.text}
+									</span>
+								</>;
+
+								return <>
+									<Dropdown label={dropdownJsx} variant={'outline-' + variant} isSmall splitCallback={button.onClick}>
+										{
+											button.children.map(menuitem => {
+
+												if (menuitem.onClick instanceof Function) {
+													return <li>
+														<button type="button" className="btn btn-sm dropdown-item" onClick={menuitem.onClick} title={menuitem.text} disabled={menuitem.disabled}>
+															<i className={menuitem.icon}></i> {menuitem.text}
+														</button>
+													</li>;
+                                                }
+
+												return <li>
+													<a href={menuitem.onClick} className="btn btn-sm dropdown-item" title={menuitem.text} disabled={menuitem.disabled} target={menuitem.target}>
+														<i className={menuitem.icon}></i> {menuitem.text}
+													</a>
+												</li>;
+                                            })
+                                        }
+									</Dropdown>
+								</>;
+
+							}
+
+							// standard button
 							if (button.onClick instanceof Function) {
 								return <button type="button" className={btnClass} onClick={button.onClick} title={button.text} disabled={button.disabled}>
 									<i className={button.icon}></i>
@@ -69,7 +106,7 @@ export default function Collapsible (props) {
 									</span>
 								</button>;
 							}
-							
+
 							return <a href={button.onClick} className={btnClass} title={button.text} disabled={button.disabled} target={button.target}>
 								<i className={button.icon}></i>
 								<span className={button.showLabel ? '' : 'sr-only'}>
