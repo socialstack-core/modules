@@ -92,7 +92,7 @@ class Canvas extends React.Component {
 		);
 	}
 	
-	renderNode(node){
+	renderNode(node){		
 		if(!node){
 			return null;
 		}
@@ -124,12 +124,20 @@ class Canvas extends React.Component {
 			}
 			
 			var childContent = null;
-			
+
 			if(node.content && node.content.length){
 				childContent = this.renderNode(node.content);
 			} else if (!node.isInline && node.type != 'br') {
 				// Fake a <br> such that block elements still have some sort of height.
 				//childContent = this.renderNode({type:'br', props: {'rte-fake': 1}});
+				if (!node.props) {
+					node.props = {};
+				}
+				var className = node.props.className ? node.props.className : "";
+				if (!(className && className.length && className.includes("empty-canvas-node"))) {
+					className += " empty-canvas-node";
+				}
+				node.props.className = className;
 			}
 			
 			return <NodeType key={node.__key} ref={node.dom} {...node.props}>{childContent}</NodeType>;
@@ -200,12 +208,25 @@ export class ErrorCatcher extends React.Component {
 	
 	constructor(props) {
 		super(props);
-		this.state = { hasError: false };
+		this.state = { hasError: false, errorShown: false };
 	}
 
 	static getDerivedStateFromError(error) {
 		// Update state so the next render will show the fallback UI.
-		return { hasError: true };
+		var msg = `Unknown`;
+
+		if (error)
+		{
+			// Main message:
+			msg = error.toString();
+
+			if (error.fileName)
+			{
+				msg += ' (in ' + error.fileName + ' at ' + error.lineNumber + ':' + error.columnNumber + ')';
+			}
+		}
+
+		return { hasError: true, error: msg, errorShown: false };
 	}
 	
 	componentDidCatch(error, errorInfo) {
@@ -218,7 +239,15 @@ export class ErrorCatcher extends React.Component {
 			
 			var name = node ? (node.graph ? 'Graph runtime' : node.typeName) : 'Unknown';
 			
-			return <Alert type='error'>{`The component "${name}" has unfortunately crashed. The error it had has been logged to the console.`}</Alert>;
+			return <Alert type='error'>
+				{`The component "${name}" crashed.`}
+				<details>
+					<summary>{`Error details`}</summary>
+					{
+						this.state.error
+					}
+				</details>
+			</Alert>;
 		}
 		
 		return this.props.children; 
