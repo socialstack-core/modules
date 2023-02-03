@@ -1,0 +1,132 @@
+.custom-form {
+	// reference an image in the same component folder
+	//background-image: url("./filename.svg");
+	background-color: $nws_snowgrey;
+	display: flex;
+	flex-direction: column;
+	flex-wrap: wrap;
+	padding: 40px 20px;
+	gap: 30px 0px;
+  
+	h2,
+	p {
+	  width: 100%;
+	}
+  
+	h2 {
+	  font-family: $playfair_display;
+	  text-transform: none;
+	}
+  
+	input,
+	select,
+	textarea {
+	  width: 100%;
+	  border: 0px;
+	  border-bottom: 1px solid $nws_darkgrey;
+	  background-color: $nws_inputgrey;
+	  padding: 12px 20px 13px;
+  
+	  &::placeholder {
+		font-style: italic;
+		color: $nws_bodygrey;
+	  }
+  
+	  &:focus {
+		border: 1px solid $nws_darkgrey;
+	  }
+  
+	  &:focus-visible {
+		border: 1px solid $nws_darkgrey;
+		box-shadow: 0 0 0 0.25rem $nws_orange;
+	  }
+	}
+  
+	// label {
+	//   width: 100%;
+	// }
+  
+	select {
+	  font-style: italic;
+	  color: $nws_bodygrey;
+	  option {
+		font-style: italic;
+		&:option:not[value="na"] {
+		  font-style: normal;
+		}
+	  }
+	}
+	input {
+	  &[type="checkbox"] {
+		width: 20px;
+		aspect-ratio: 1/1;
+		cursor: pointer;
+		margin: 0px 10px 0px 0px;
+		border: 1px solid $nws_darkgrey;
+		border-radius: 0px;
+		&:focus-visible {
+		  box-shadow: 0 0 0 0.25rem $nws_orange;
+		}
+	  }
+  
+	  &[type="submit"] {
+		width: unset;
+		border: 1px solid $nws_orange;
+		color: $nws_orange;
+		cursor: pointer;
+		margin: 0px auto;
+		padding: 12px 14%;
+  
+		&:hover {
+		  background-color: $nws_orange;
+		  color: $nws_white;
+		}
+		&:focus-visible,
+		&:focus {
+		  box-shadow: 0 0 0 0.25rem $nws_orange;
+		}
+	  }
+	}
+  
+	textarea {
+	  min-height: 146px;
+	}
+  }
+  
+  // Size overrides. See bootstrap breakpoints for more information:
+  // https://getbootstrap.com/docs/5.0/layout/breakpoints/#min-width
+  
+  @include media-breakpoint-up(md) {
+	.custom-form {
+	  flex-direction: row;
+	  padding: 30px;
+	  gap: 30px 20px;
+  
+	  input,
+	  select,
+	  textarea,
+	  label {
+		width: 48%;
+	  }
+  
+	  label {
+		height: fit-content;
+		width: fit-content;
+	  }
+	}
+  }
+  
+  @include media-breakpoint-up(lg) {
+	.custom-form {
+	  input,
+	  select,
+	  textarea,
+	  label {
+		width: 49%;
+	  }
+	  label {
+		cursor: pointer;
+	  }
+	}
+  }
+  
