@@ -168,12 +168,12 @@ export default class CustomFieldEditor extends React.Component {
 					onClose={() => this.setState({ showFieldModal: false })}
 				>
 					{this.state.showFieldModal == true && <>
-						<CustomFieldForm customContentTypeId={this.props.currentContent.id}
+						<CustomFieldForm customContentTypeId={this.props.currentContent.id} isFormField={this.props.currentContent.isForm}
 							onCreate={() => this.onFieldCreate()} onCancel={() => { this.setState({ showFieldModal: false }) }} />
 					</>}
 
 					{this.state.showFieldModal != true && <>
-						<CustomFieldForm key={this.state.showFieldModal.id} field={this.state.showFieldModal} customContentTypeId={this.props.currentContent.id}
+						<CustomFieldForm key={this.state.showFieldModal.id} field={this.state.showFieldModal} customContentTypeId={this.props.currentContent.id} isFormField={this.props.currentContent.isForm}
 							onCancel={() => { this.setState({ showFieldModal: false }) }} />
 					</>}
 
