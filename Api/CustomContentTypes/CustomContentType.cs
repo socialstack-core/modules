@@ -41,6 +41,12 @@ namespace Api.CustomContentTypes
 		public List<CustomContentTypeField> Fields {get; set; }
 
 		/// <summary>
+		/// Is this type used for capturing data from the user via a form?
+		/// </summary>
+		[Module(Hide = true)]
+		public bool IsForm;
+
+		/// <summary>
 		/// Has this type been deleted?
 		/// </summary>
 		[Module(Hide = true)]

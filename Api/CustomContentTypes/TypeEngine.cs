@@ -53,6 +53,11 @@ namespace Api.CustomContentTypes
 			});
 
 			AddTo(
+				map, "textarea", typeof(string), (ILGenerator code, string val) => {
+					code.Emit(OpCodes.Ldstr, val);
+				});
+
+			AddTo(
 				map, "file", typeof(string), (ILGenerator code, string val) => {
 				code.Emit(OpCodes.Ldstr, val);
 			});
@@ -250,7 +255,11 @@ namespace Api.CustomContentTypes
                         {
 							AddDataAttribute(fieldBuilder, "type", "canvas");
 							AddDataAttribute(fieldBuilder, "textonly", true);
-						} 
+						}
+						else if (field.DataType == "textarea")
+                        {
+							AddDataAttribute(fieldBuilder, "type", "textarea");
+						}
 						else if (field.DataType == "file")
                         {
 							AddDataAttribute(fieldBuilder, "type", "file");
@@ -263,7 +272,7 @@ namespace Api.CustomContentTypes
 
 							CustomAttributeBuilder myModuleAttributeBuilder = new CustomAttributeBuilder(
 								moduleAttrClassCtorInfo,
-								new object[1] { "Admin/CustomFieldSelect" }
+								new object[1] { "UI/CustomFieldSelect" }
 							);
 
 							fieldBuilder.SetCustomAttribute(myModuleAttributeBuilder);
