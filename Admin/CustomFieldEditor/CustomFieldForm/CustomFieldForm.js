@@ -2,18 +2,6 @@ import Form from 'UI/Form';
 import Input from 'UI/Input';
 import CustomFieldSelectForm from 'Admin/CustomFieldEditor/CustomFieldSelectForm';
 
-const dataTypes = [
-	{ value: "string", name: "Text" },
-	{ value: "jsonstring", name: "Text Box" },
-	{ value: "file", name: "Media" },
-	{ value: "entity", name: "Link To Another Data Type" },
-	{ value: "entitylist", name: "List Of Another Data Type" },
-	{ value: "select", name: "Select" },
-	{ value: "dateTime", name: "Date" },
-	{ value: "double", name: "Number" },
-	{ value: "bool", name: "Boolean" }
-];
-
 export default class CustomFieldForm extends React.Component {
 	constructor(props) {
 		super(props);
@@ -22,6 +10,21 @@ export default class CustomFieldForm extends React.Component {
 			field: props.field,
 			dataType: props.field ? props.field.dataType : null
 		};
+
+		this.dataTypes = [
+			{ value: "string", name: "Text" },
+			{ value: "textarea", name: "Text Area" },
+			{ value: "jsonstring", name: "Styleable Text Block" },
+			{ value: "file", name: "Media" },
+			{ value: "select", name: "Select" },
+			{ value: "dateTime", name: "Date" },
+			{ value: "double", name: "Number" },
+			{ value: "bool", name: "Boolean" }
+		];
+
+		if (!props.isFormField) {
+			this.dataTypes = [...this.dataTypes, { value: "entity", name: "Link To Another Data Type" }, { value: "entitylist", name: "List Of Another Data Type" }, ];
+		}
 	}
 
 	render() {
@@ -70,7 +73,7 @@ export default class CustomFieldForm extends React.Component {
 					onChange={(e) => {
 						this.setState({ dataType: e.target.value });
 					}}>
-					{dataTypes.map(dataType =>
+					{this.dataTypes.map(dataType =>
 						<option value={dataType.value} selected={dataType.value == this.state.dataType}>
 							{dataType.name}
 						</option>
@@ -95,13 +98,15 @@ export default class CustomFieldForm extends React.Component {
 					<CustomFieldSelectForm fieldId={this.state.field.id} />
 				}
 
-				<Input 
-					label="Localised"
-					name="localised"
-					type="checkbox"
-					defaultValue={this.props.field ? this.props.field.localised : null}
-					validate={['Required']}
-				/>
+				{!this.props.isFormField &&
+					<Input 
+						label="Localised"
+						name="localised"
+						type="checkbox"
+						defaultValue={this.props.field ? this.props.field.localised : null}
+						validate={['Required']}
+					/>
+				}
 
 				<footer className="custom-field-editor__modal-footer">
 					<button type="button" className="btn btn-outline-primary cancelButton" onClick={() => {
