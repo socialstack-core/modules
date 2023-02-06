@@ -477,7 +477,6 @@ function DraggableItem(props) {
 	</div>
 		<div className="entry-content">
 			{fieldList.map(field => {
-				
 				var fieldMeta = field;
 				var fieldKey = field.key;
 				var currentValue = node.state[fieldKey];
@@ -504,8 +503,10 @@ function DraggableItem(props) {
 						return <Input compact label={label} type={fullType.name} value={value} defaultValue={value} onChange={e => {
 							setValue(e.target.value);
 						}}/>;
-					}else{
-						return null;
+					} else {
+						return <label className="form-label">
+							{label}
+						</label>;
 					}
 					
 				};

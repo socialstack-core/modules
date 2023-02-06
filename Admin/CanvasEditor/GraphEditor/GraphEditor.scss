@@ -220,7 +220,8 @@ $graph_anchor_mid_offset: 6px;
 
 					+ .form-control,
 					+ .form-select {
-
+// uncomment to auto-hide empty fields until focussed
+/*
 						&:not(:focus) {
 							height: 0;
 							padding: 0;
@@ -232,6 +233,7 @@ $graph_anchor_mid_offset: 6px;
 							padding: 0.375rem 0.75rem;
 							border-width: 1px;
 						}
+*/
 					}
 
 				}
