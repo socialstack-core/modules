@@ -104,6 +104,10 @@ function niceGraphName(graph){
 function renderStructureNode(node, canvasState, onClick, snapshotState) {
 	var nodeName = node.typeName || node.type;
 
+	if (!nodeName && node.parent.typeName == 'UI/Grid') {
+		nodeName = 'UI/Column';
+    }
+
 	if (nodeName == 'richtext') {
 		nodeName = `Formatted text`;
     }
@@ -117,9 +121,22 @@ function renderStructureNode(node, canvasState, onClick, snapshotState) {
 		snapshotState();
 	};
 
-	if (!node.roots ||
-		!node.roots.children ||
-		!node.roots.children.content) {
+	var hasChildren = node.roots && node.roots.children && node.roots.children.content;
+	var nodeParent = hasChildren ? node.roots.children.content : null;
+
+	// check for v2 canvas (e.g. UI/Grid)
+	if (!hasChildren && node.roots) {
+		nodeParent = Object.values(node.roots);
+
+		nodeParent.forEach(value => {
+			if (value.content) {
+				hasChildren = true;
+            }
+		});
+    }
+
+
+	if (!hasChildren) {
 		return <>
 			<button type="button" className="btn panelled-editor__structure-item-text" onClick={(e) => {
 				e.preventDefault();
@@ -147,7 +164,7 @@ function renderStructureNode(node, canvasState, onClick, snapshotState) {
 	};
 
 	return <Collapsible title={nodeName} expanderLeft onClick={() => onClick(node)} buttons={[removeButton]}>
-		{node.roots.children.content.map((node, i) => {
+		{nodeParent.map((node, i) => {
 			var itemClass = ['collapsible-content__wrapper'];
 
 			if (node == canvasState.selectedNode) {
@@ -814,12 +831,10 @@ class CanvasEditorCore extends React.Component {
 	
 	findParentElement(domNode, wantedClass){
 		while(domNode != null){
-			
-			var className = domNode.className;
-			
-			if(className == wantedClass){
+
+			if (domNode.classList.contains(wantedClass)) {
 				return domNode;
-			}
+            }
 			
 			domNode = domNode.parentElement;
 		}
