@@ -252,21 +252,16 @@ export class MapInteractionControlled extends Component {
     e.stopPropagation();
 
     const scaleChange = 2 ** (e.deltaY * 0.002);
-	
-	var userScale = this.props.value.userScale || 1;
-	userScale += (1 - scaleChange);
-	
-	// Scale power adjusted such that it gives the user a continuous scaling velocity
-	
+
     const newScale = clamp(
       this.props.minScale,
-      Math.pow(2, userScale - 1),
+      this.props.value.scale + (1 - scaleChange),
       this.props.maxScale
     );
-	
+
     const mousePos = this.clientPosToTranslatedPos({ x: e.clientX, y: e.clientY });
 
-    this.scaleFromPoint(newScale, mousePos, userScale);
+    this.scaleFromPoint(newScale, mousePos);
   }
 
   setPointerState(pointers) {
@@ -313,7 +308,7 @@ export class MapInteractionControlled extends Component {
     };
   }
 
-  scaleFromPoint(newScale, focalPt, userScale) {
+  scaleFromPoint(newScale, focalPt) {
     const { translation, scale } = this.props.value;
     const scaleRatio = newScale / (scale != 0 ? scale : 1);
 
@@ -329,7 +324,25 @@ export class MapInteractionControlled extends Component {
     this.props.onChange({
 		...this.props.value,
       scale: newScale,
-      userScale,
+      translation: this.clampTranslation(newTranslation)
+    })
+  }
+
+  scaleFromPoint(newScale, focalPt) {
+    const { translation, scale } = this.props.value;
+    const scaleRatio = newScale / (scale != 0 ? scale : 1);
+
+    const focalPtDelta = {
+      x: coordChange(focalPt.x, scaleRatio),
+      y: coordChange(focalPt.y, scaleRatio)
+    };
+
+    const newTranslation = {
+      x: translation.x - focalPtDelta.x,
+      y: translation.y - focalPtDelta.y
+    };
+    this.props.onChange({
+      scale: newScale,
       translation: this.clampTranslation(newTranslation)
     })
   }
@@ -339,24 +352,52 @@ export class MapInteractionControlled extends Component {
   // to achieve the effect of keeping the content that was directly
   // in the middle of the two fingers as the focal point throughout the zoom.
   scaleFromMultiTouch(e) {
-    var startTouches = this.startPointerInfo.pointers;
-    var newTouches   = e.touches;
+    const startTouches = this.startPointerInfo.pointers;
+    const newTouches   = e.touches;
 
     // calculate new scale
-    var dist0       = touchDistance(startTouches[0], startTouches[1]);
-    var dist1       = touchDistance(newTouches[0], newTouches[1]);
-    var delta = dist1 / dist0;
-	
-	var userScale = (this.startPointerInfo.userScale || 1) * delta;
-    var { minScale, maxScale } = this.props;
-    var scale = clamp(minScale, Math.pow(2, userScale - 1), maxScale);
-	
-	var startMidpoint = midpoint(touchPt(startTouches[0]), touchPt(startTouches[1]));
-    var x = startMidpoint.x;
-    var y = startMidpoint.y;
-	
-    var focalPoint = this.clientPosToTranslatedPos({ x, y });
-    this.scaleFromPoint(scale, focalPoint, userScale);
+    const dist0       = touchDistance(startTouches[0], startTouches[1]);
+    const dist1       = touchDistance(newTouches[0], newTouches[1]);
+    const scaleChange = dist1 / dist0;
+
+    const startScale  = this.startPointerInfo.scale;
+    const targetScale = startScale + ((scaleChange - 1) * startScale);
+    const newScale    = clamp(this.props.minScale, targetScale, this.props.maxScale);
+
+    // calculate mid points
+    const startMidpoint = midpoint(touchPt(startTouches[0]), touchPt(startTouches[1]))
+    const newMidPoint   = midpoint(touchPt(newTouches[0]), touchPt(newTouches[1]));
+
+    // The amount we need to translate by in order for
+    // the mid point to stay in the middle (before thinking about scaling factor)
+    const dragDelta = {
+      x: newMidPoint.x - startMidpoint.x,
+      y: newMidPoint.y - startMidpoint.y
+    };
+
+    const scaleRatio = newScale / startScale;
+
+    // The point originally in the middle of the fingers on the initial zoom start
+    const focalPt = this.clientPosToTranslatedPos(startMidpoint, this.startPointerInfo.translation);
+
+    // The amount that the middle point has changed from this scaling
+    const focalPtDelta = {
+      x: coordChange(focalPt.x, scaleRatio),
+      y: coordChange(focalPt.y, scaleRatio)
+    };
+
+    // Translation is the original translation, plus the amount we dragged,
+    // minus what the scaling will do to the focal point. Subtracting the
+    // scaling factor keeps the midpoint in the middle of the touch points.
+    const newTranslation = {
+      x: this.startPointerInfo.translation.x - focalPtDelta.x + dragDelta.x,
+      y: this.startPointerInfo.translation.y - focalPtDelta.y + dragDelta.y
+    };
+
+    this.props.onChange({
+      scale: newScale,
+      translation: this.clampTranslation(newTranslation)
+    });
   }
 
   discreteScaleStepSize() {
@@ -367,16 +408,16 @@ export class MapInteractionControlled extends Component {
 
   // Scale using the center of the content as a focal point
   changeScale(delta) {
-    const userScale = (this.props.value.userScale || 1) + delta;
+    const targetScale = this.props.value.scale + delta;
     const { minScale, maxScale } = this.props;
-    const scale = clamp(minScale, Math.pow(2, userScale - 1), maxScale);
+    const scale = clamp(minScale, targetScale, maxScale);
 
     const rect = this.getContainerBoundingClientRect();
     const x = rect.left + (rect.width / 2);
     const y = rect.top + (rect.height / 2);
 
     const focalPoint = this.clientPosToTranslatedPos({ x, y });
-    this.scaleFromPoint(scale, focalPoint, userScale);
+    this.scaleFromPoint(scale, focalPoint);
   }
 
   // Done like this so it is mockable
@@ -430,7 +471,6 @@ export class MapInteractionControlled extends Component {
 		
 		var startX = props.value.translation.x;
 		var startY = props.value.translation.y;
-		var startUserZoom = props.value.userScale || 1;
 		var startScale = props.value.scale || 1;
 		var targetScale = props.target.targetZoomLevel || 1;
 		
@@ -448,8 +488,6 @@ export class MapInteractionControlled extends Component {
 		
 		targetX = targetX - coordChange(widthHalf - targetX, scaleRatio);
 		targetY = targetY - coordChange(heightHalf - targetY, scaleRatio);
-		
-		var targetUserScale = Math.sqrt(targetScale) + 1;
 		
 		var start = null;
 		var time = 3000;
@@ -473,7 +511,6 @@ export class MapInteractionControlled extends Component {
 			this.props.onChange({
 				...props.value,
 			  scale: newScale,
-			  userScale: targetUserScale,
 			  translation: {
 				  x: curX,
 				  y: curY
@@ -568,7 +605,6 @@ class MapInteractionController extends Component {
       this.state = {
         value: props.defaultValue || {
           scale: initialScale,
-		  userScale: initialScale,
 		  rotation : 0,
           translation: props.initialTranslation || { 
               x: 0, 
@@ -586,7 +622,6 @@ class MapInteractionController extends Component {
 		this.setState({
 			value: this.props.defaultValue || {
 			  scale: initialScale,
-			  userScale: initialScale,
 			  rotation : 0,
 			  translation: this.props.initialTranslation || { 
 				  x: 0, 
