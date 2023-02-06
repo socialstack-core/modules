@@ -68,8 +68,8 @@ export default class PropEditor extends React.Component {
 		
 		var dataValues = {...contentNode.props};
 
-		var props = contentNode.type.propTypes;
-		var defaultProps = contentNode.type.defaultProps || {};
+		var props = contentNode.type && contentNode.type.propTypes ? contentNode.type.propTypes : undefined;
+		var defaultProps = contentNode.type && contentNode.type.defaultProps ? contentNode.type.defaultProps : {};
 		
 		var dataFields = {};
 		var atLeastOneDataField = false;
