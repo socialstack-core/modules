@@ -436,14 +436,23 @@ export default class CanvasState{
 		// meaning they are some text with possible inline styles on them, but then simply followed by a br.
 		var blocks = raw.blocks;
 		var children = [];
+		var listChildren = [];
 		
 		for(var i=0;i<blocks.length;i++){
 			var block = blocks[i];
-			
-			// Convert the block:
+
 			var blockNode = this.toTreeFromRTE(block);
 
-			children.push(blockNode);
+			if (block.type == 'unordered-list-item' || block.type == 'ordered-list-item') {
+				listChildren.push(blockNode);
+
+				if (i >= blocks.length - 1 || blocks[i + 1].type != block.type) {
+					children.push({ t: block.type == 'unordered-list-item' ? 'ul' : 'ol', c: [...listChildren] });
+					listChildren = [];	
+				}
+			} else {
+				children.push(blockNode);
+			}
 		}
 		
 		// If there is only 1 child, return that.
@@ -456,8 +465,8 @@ export default class CanvasState{
 	
 	toTreeFromRTE(block){
 		
-		var blockType = 'div';
-		
+		var blockType = 'p';
+
 		if(block.type != 'unstyled'){
 			
 			switch(block.type){
@@ -483,10 +492,10 @@ export default class CanvasState{
 					blockType = 'blockquote';
 				break;
 				case 'unordered-list-item':
-					blockType = 'ul';
+					blockType = 'li';
 				break;
 				case 'ordered-list-item':
-					blockType = 'ol';
+					blockType = 'li';
 				break;
 				case 'paragraph':
 					blockType = 'p';
@@ -570,6 +579,7 @@ export default class CanvasState{
 					if(prevStyle != curStyle){
 						// Closing a tag, opening a tag, or both.
 						diffAt = h;
+						break;
 					}
 				}
 				

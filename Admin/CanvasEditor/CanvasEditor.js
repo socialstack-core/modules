@@ -17,6 +17,8 @@ import CanvasState from './CanvasState';
 import { getRootInfo } from './Utils';
 var nodeKeys = 1;
 
+const DEFAULT_BLOCK_TYPE = 'p';
+
 // Connect the input "ontypecanvas" render event:
 var inputTypes = global.inputTypes = global.inputTypes || {};
 
@@ -57,7 +59,7 @@ var blockRenderMap = Immutable.Map({
 	},
 	// Overwrite DefaultDraftBlockRenderMap as it defines aliased element 'p' for 'unstyled'
 	'unstyled': {
-		element: 'div'
+		element: DEFAULT_BLOCK_TYPE
 	}
   });
 var extendedBlockRenderMap = Draft.DefaultDraftBlockRenderMap.merge(blockRenderMap);
@@ -244,6 +246,7 @@ export default function CanvasEditor (props) {
 		// Update:
 		setCanvasState(newState);
 		
+		return newState;
 	};
 
 	var ceCore = <CanvasEditorCore {...props} onSetShowSource={(state) => {
@@ -340,7 +343,9 @@ export default function CanvasEditor (props) {
 			</div>
 			{canvasState.graphState && <Input type='graph' objectOutput={true} inputRef={ir=>{
 				this.graphIr=ir;
-			}} value={canvasState.selectedNode.graph.structure} context={ctx}/>}
+			}} value={canvasState.selectedNode.graph.structure} context={ctx} onChange={() => {
+					setCanvasState(canvasState.addStateSnapshot());
+				}}/>}
 			{canvasState.themeState && <ThemeEditor 
 				inputRef={ir=>{
 					this.themeIr=ir;
@@ -908,6 +913,10 @@ class CanvasEditorCore extends React.Component {
 									
 									// Update the graph:
 									canvasState.selectedNode.graph = new Graph(val);
+									
+									// Snapshot it:
+									var cs = this.props.snapshotState();
+									return cs.toCanvasJson(true);
 								}
 							}
 							

@@ -3,6 +3,7 @@ const { Editor, EditorState, RichUtils, convertFromHTML, getDefaultKeyBinding, C
 
 const BUTTONBAR_MARGIN = 16;
 const SCROLLBAR_WIDTH = 17;
+const DEFAULT_BLOCK_STYLE = 'paragraph';
 
 export default class RichEditor extends React.Component {
 	buttonBarRO = null;
@@ -54,6 +55,7 @@ export default class RichEditor extends React.Component {
 					// (causing the floating buttonbar to jump to the other end of the paragraph)
 					var atSOL = false;
 
+					/*
 					// check: if the rangeRect for the following cursor position
 					// has a Y value more than the current rangeRect, we're at the start of the line
 					if (clonedRange.startOffset < clonedRange.commonAncestorContainer.length) {
@@ -64,6 +66,7 @@ export default class RichEditor extends React.Component {
 							atSOL = true;
                         }
 					}
+					 */
 
 					left = (atSOL ? 0 : rangeRect.x) - elemRect.left - (this.buttonBarRect.width / 2);
 					top = (atSOL ? nextRangeRect.y : rangeRect.y) - (this.props.textonly ? elemRect.top : richEditorRect.top) - this.buttonBarRect.height - BUTTONBAR_MARGIN;
@@ -345,10 +348,10 @@ const BlockStyleControls = (props) => {
 
 	return (
 		<div className="RichEditor-controls">
-			{BLOCK_TYPES.map((type) =>
+			{BLOCK_TYPES.map((type) => 
 				<StyleButton
 					key={type.label}
-					active={type.style === blockType}
+					active={type.style === blockType || blockType == "unstyled" && type.style == DEFAULT_BLOCK_STYLE}
 					label={type.label}
 					description={type.description}
 					icon={type.icon}
