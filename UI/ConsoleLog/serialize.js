@@ -29,6 +29,14 @@ export const serialize = function (data, replace) {
     return false
   }
 
+    function isJsonString(value) {
+        try {
+            return typeof JSON.parse(value) === 'object';
+        } catch (e) {
+            return false;
+        }
+    }
+
   const __serialize = {
     function: function (obj) {
       return '<div class="type function">[Function]</div>'
@@ -42,9 +50,16 @@ export const serialize = function (data, replace) {
       }
       if (obj.indexOf('\t') !== -1) {
         obj = obj.split('\t').join('\\t')
-      }
-      const _value = deep > 2 ? `"${obj}"` : obj
-      return `<div class="type string">${_value}</div>`
+        }
+        var _value = deep > 2 ? `"${obj}"` : obj;
+        var unquotedValue = _value.slice(1, -1);
+        var isJson = isJsonString(unquotedValue);
+
+        if (isJson) {
+            _value = JSON.stringify(JSON.parse(unquotedValue), null, ' ');
+        }
+
+        return isJson ? `<div class="type string json">${_value}</div>` : `<div class="type string">${_value}</div>`;
     },
     boolean: function (obj, deep) {
       return `<div class="type boolean">${obj ? 'true' : 'false'}</div>`
