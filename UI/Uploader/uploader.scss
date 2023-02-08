@@ -289,7 +289,7 @@ html.admin {
 
         &__label {
     		border-color: var(--admin-field-border, var(--fallback__admin-field-border));
-	    	background: var(--admin-field-bg, var(--fallback__admin-field-bg));
+	    	background: var(--admin-field-bg, var(--fallback__admin-field-bg)) no-repeat center;
 		    color: var(--admin-field-fg, var(--fallback__admin-field-fg));
         }
 
