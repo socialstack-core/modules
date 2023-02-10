@@ -226,6 +226,10 @@ namespace Api.Database
 					}
 					// Bind the field value:
 					var fieldValue = q.Fields[i].TargetField.GetValue(toInsert);
+					if (fieldValue is DateTime dt)
+					{
+						fieldValue = dt.ToString("yyyy-MM-dd HH:mm:ss");
+					}
 					builder.Append('\"');
 					builder.Append(Escape(fieldValue.ToString()));
 					builder.Append('\"');
