@@ -163,7 +163,25 @@ namespace Api.Eventing
 			}
 			
 		}
-		
+
+		/// <summary>
+		/// True if this event handler has any methods connected to it.
+		/// </summary>
+		/// <returns></returns>
+		public bool HasListeners()
+		{
+			return ListenerCount() > 0;
+		}
+
+		/// <summary>
+		/// The number of listeners on this handler.
+		/// </summary>
+		/// <returns></returns>
+		public virtual int ListenerCount()
+		{
+			return 0;
+		}
+
 	}
 
 	/// <summary>
@@ -185,7 +203,16 @@ namespace Api.Eventing
 		/// The raw ordered set of methods.
 		/// </summary>
 		protected EventMethodSet<T> MethodSet = new EventMethodSet<T>();
-		
+
+		/// <summary>
+		/// The number of listeners on this handler.
+		/// </summary>
+		/// <returns></returns>
+		public override int ListenerCount()
+		{
+			return MethodSet.HandlerCount;
+		}
+
 		/// <summary>
 		/// Adds a new event listener with the given priority.
 		/// Lower priorities mean it executes sooner. The default is 10.
