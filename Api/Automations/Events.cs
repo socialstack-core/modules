@@ -1,4 +1,5 @@
 using Api.Automations;
+using Api.AvailableEndpoints;
 using Api.Permissions;
 using System;
 using System.Collections.Generic;
@@ -16,6 +17,20 @@ namespace Api.Eventing
 		/// The cron scheduler for Automations.
 		/// </summary>
 		private static CronScheduler _cronScheduler;
+
+		/// <summary>
+		/// Gets the cron scheduler.
+		/// </summary>
+		/// <returns></returns>
+		public static CronScheduler GetCronScheduler()
+		{
+			return _cronScheduler;
+		}
+
+		/// <summary>
+		/// All available automation events.
+		/// </summary>
+		public static EventGroup<AutomationStructure> AvailableAutomations;
 
 		/// <summary>
 		/// Takes a cron string and returns an event handler which you can add a listener to. Generally used during startup.

@@ -75,12 +75,20 @@ namespace Api.Automations
 			return nrt;
 		}
 
+		private DateTime? lastTrigger;
+
+		/// <summary>
+		/// Last trigger time.
+		/// </summary>
+		public DateTime? LastTrigger => lastTrigger;
+
 		/// <summary>
 		/// Triggers the automation.
 		/// </summary>
 		/// <returns></returns>
 		public async ValueTask Trigger()
 		{
+			lastTrigger = DateTime.UtcNow;
 			await Events.Dispatch(Context, this);
 		}
 

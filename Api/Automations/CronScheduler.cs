@@ -24,6 +24,16 @@ public class CronScheduler
 	private AutomationRunInfo _firstToRun;
 	private Timer _timer;
 	private object _scheduleQ = new object();
+	private DateTime _lastUpdated;
+	/// <summary>
+	/// The last time something was added to the schedule.
+	/// </summary>
+	public DateTime LastUpdated => _lastUpdated;
+
+	/// <summary>
+	/// A readonly set of the automations by name.
+	/// </summary>
+	public Dictionary<string, AutomationRunInfo> AutomationsByName => _automationsByName;
 
 	/// <summary>
 	/// Triggers an automation by its name.
@@ -47,6 +57,7 @@ public class CronScheduler
 	public void AddToLookup(AutomationRunInfo info)
 	{
 		_automationsByName[info.Name] = info;
+		_lastUpdated = DateTime.UtcNow;
 	}
 
 	/// <summary>
@@ -78,6 +89,8 @@ public class CronScheduler
 			Console.WriteLine("[WARN] Asked to schedule an automation '" + runInfo.Name + "' but ignoring it because it will never run.");
 			return;
 		}
+
+		_lastUpdated = DateTime.UtcNow;
 
 		lock (_scheduleQ)
 		{

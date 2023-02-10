@@ -18,16 +18,16 @@ namespace Api.Pages
 	/// </summary>
 	[LoadPriority(9)]
 	public partial class PageService : AutoService<Page>
-    {
+	{
 		/// <summary>
 		/// Instanced automatically. Use injection to use this service, or Startup.Services.Get.
 		/// </summary>
 		public PageService() : base(Events.Page)
-        {
-			
+		{
+
 			var config = GetConfig<PageServiceConfig>();
-			
-			if(config.InstallDefaultPages)
+
+			if (config.InstallDefaultPages)
 			{
 				// If you don't have a homepage or admin area, this'll create them:
 				Install(
@@ -162,7 +162,7 @@ namespace Api.Pages
 					}
 				);
 			}
-			
+
 			// Install the admin pages.
 			InstallAdminPages("Pages", "fa:fa-paragraph", new string[] { "id", "url", "title" });
 
@@ -179,7 +179,7 @@ namespace Api.Pages
 						canvas.Module = "Admin/Layouts/MediaCenter";
 						canvas.Data.Clear();
 					}
-				}else if (contentType == typeof(Page) && pageType == AdminPageType.List)
+				} else if (contentType == typeof(Page) && pageType == AdminPageType.List)
 				{
 					// Installing the list of pages.
 					// This will instead use the sitemap component.
@@ -221,10 +221,10 @@ namespace Api.Pages
 					_urlGenerationCache = null;
 					_urlLookupCache = null;
 				}
-				
+
 				return new ValueTask<Page>(page);
 			});
-			
+
 			Events.Page.Received.AddEventListener((Context context, Page page, int mode) => {
 
 				// Doesn't matter what the change was - we'll wipe the caches.
@@ -318,7 +318,7 @@ namespace Api.Pages
 					break;
 				}
 			}
-			
+
 			// BeforeParseUrl is able to change the context, including the locale:
 			urlInfo = await Events.Page.BeforeParseUrl.Dispatch(context, urlInfo, searchQuery);
 
@@ -339,7 +339,7 @@ namespace Api.Pages
 			var pageInfo = await cache.GetPage(context, urlInfo, searchQuery);
 
 			pageInfo = await Events.Page.BeforeResolveUrl.Dispatch(context, pageInfo, url, searchQuery);
-			
+
 			if (pageInfo.Page == null && return404IfNotFound)
 			{
 				pageInfo.Page = cache.NotFoundPage;
@@ -385,6 +385,22 @@ namespace Api.Pages
 
 			// Next, indicate that the cache has loaded. This is the event you'd use to add in things like custom redirect functions.
 			await Events.Page.AfterLookupReady.Dispatch(context, cache);
+		}
+
+		/// <summary>
+		/// Gets the tree of raw pages for the given context. Don't modify the response.
+		/// </summary>
+		/// <param name="context"></param>
+		/// <returns></returns>
+		public async ValueTask<UrlLookupCache> GetPageTree(Context context){
+
+			// Load the tree:
+			if (_urlLookupCache == null || _urlLookupCache.Length < context.LocaleId || _urlLookupCache[context.LocaleId - 1] == null)
+			{
+				await LoadCaches(context);
+			}
+
+			return _urlLookupCache[context.LocaleId - 1];
 		}
 
 		/// <summary>

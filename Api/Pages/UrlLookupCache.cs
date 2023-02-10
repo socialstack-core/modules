@@ -26,6 +26,11 @@ namespace Api.Pages
 		private UrlLookupNode rootPage = new UrlLookupNode();
 
 		/// <summary>
+		/// Gets the root node.
+		/// </summary>
+		public UrlLookupNode Root => rootPage;
+
+		/// <summary>
 		/// The 404 page. Its url is always /404
 		/// </summary>
 		public Page NotFoundPage;
