@@ -1,4 +1,5 @@
 using Api.Database;
+using Api.Translate;
 using System;
 using System.Collections;
 using System.Collections.Concurrent;
@@ -117,6 +118,13 @@ namespace Api.Startup{
 		{
 			var keyValue = GetKeyValue(entry);
 
+			if (keyValue == null)
+			{
+				// Can't add if key is null.
+				Console.WriteLine("[WARN] Skipped adding object to a cache index because it had a null field (it was a " + entry.GetType() + ").");
+				return;
+			}
+
 			// Add is used here as an exception if the given key value is already in the index.
 			Index.TryAdd(keyValue, entry);
 		}
@@ -233,6 +241,13 @@ namespace Api.Startup{
 		internal override void Add(T entry)
 		{
 			var localKey = GetKeyValue(entry);
+
+			if (localKey == null)
+			{
+				// Can't add if key is null.
+				Console.WriteLine("[WARN] Skipped adding object to a cache index because it had a null field (it was a " + entry.GetType() + ").");
+				return;
+			}
 
 			if (!Index.TryGetValue(localKey, out ServiceCacheIndex<T, UB> svcCache))
 			{

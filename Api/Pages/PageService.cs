@@ -9,6 +9,7 @@ using System;
 using Api.Startup;
 using Api.CanvasRenderer;
 using Api.Users;
+using Api.Emails;
 
 namespace Api.Pages
 {
@@ -184,6 +185,26 @@ namespace Api.Pages
 					// Installing the list of pages.
 					// This will instead use the sitemap component.
 					canvas.Module = "Admin/Layouts/Sitemap";
+				}
+
+				return new ValueTask<Page>(page);
+			});
+
+			Events.Page.BeforeCreate.AddEventListener((Context context, Page page) =>
+			{
+				if (string.IsNullOrEmpty(page.Url))
+				{
+					throw new PublicException("A url is required. If you're making a homepage, use /", "page_url_required");
+				}
+
+				return new ValueTask<Page>(page);
+			});
+
+			Events.Page.BeforeUpdate.AddEventListener((Context context, Page page, Page original) =>
+			{
+				if (string.IsNullOrEmpty(page.Url))
+				{
+					throw new PublicException("A url is required. If you're making a homepage, use /", "page_url_required");
 				}
 
 				return new ValueTask<Page>(page);

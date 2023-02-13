@@ -39,6 +39,16 @@ namespace Api.CustomContentTypes
 				return x;
 			});
 
+			Events.CustomContentType.BeforeUpdate.AddEventListener((Context context, CustomContentType type, CustomContentType original) =>
+			{
+				if (string.IsNullOrWhiteSpace(type.Name))
+				{
+					throw new PublicException("A name is required", "type_name_required");
+				}
+
+				return new ValueTask<CustomContentType>(type);
+			});
+		
 			Events.CustomContentType.BeforeCreate.AddEventListener(async (Context ctx, CustomContentType type) => {
 
 				if (type == null)
@@ -52,6 +62,11 @@ namespace Api.CustomContentTypes
 									.TidyName(type.NickName);
 				}
 
+				if (string.IsNullOrWhiteSpace(type.Name))
+				{
+					throw new PublicException("A name is required", "type_name_required");
+				}
+				
 				var originalName = type.Name;
 
 				var matchingNameCounter = 2;

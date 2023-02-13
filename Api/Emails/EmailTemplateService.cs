@@ -18,6 +18,7 @@ using Api.Startup;
 using Api.Users;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Serialization;
+using Api.Translate;
 
 namespace Api.Emails
 {
@@ -65,7 +66,27 @@ namespace Api.Emails
 
 				return new ValueTask<JsonField<User, uint>>(field);
 			});
-			
+
+			Events.EmailTemplate.BeforeCreate.AddEventListener((Context context, EmailTemplate template) =>
+			{
+				if (string.IsNullOrEmpty(template.Key))
+				{
+					throw new PublicException("A key is required", "email_key_required");
+				}
+
+				return new ValueTask<EmailTemplate>(template);
+			});
+
+			Events.EmailTemplate.BeforeUpdate.AddEventListener((Context context, EmailTemplate template, EmailTemplate original) =>
+			{
+				if (string.IsNullOrEmpty(template.Key))
+				{
+					throw new PublicException("A key is required", "email_key_required");
+				}
+
+				return new ValueTask<EmailTemplate>(template);
+			});
+
 			InstallEmails(
 				new EmailTemplate(){
 					Name = "Verify email address",

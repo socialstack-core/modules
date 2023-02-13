@@ -177,6 +177,12 @@ namespace Api.CustomContentTypes
 					continue;
 				}
 
+				if (string.IsNullOrWhiteSpace(customType.Name))
+				{
+					Console.WriteLine("[WARN] Ignored custom content type #" + customType.Id + " because it has a blank name.");
+					continue;
+				}
+
 				// Base type to use:
 				var baseType = typeof(VersionedContent<uint>);
 
@@ -199,7 +205,7 @@ namespace Api.CustomContentTypes
 				}
 
 				// Every custom content type needs a name to identify it
-				if (customType.Fields.FirstOrDefault(field => field.Name == "Name") == null)
+				if (!customType.IsForm && customType.Fields.FirstOrDefault(field => field.Name == "Name") == null)
                 {
 					customType.Fields.Insert(0, 
 						new CustomContentTypeField
@@ -248,6 +254,11 @@ namespace Api.CustomContentTypes
 							);
 
 							fieldBuilder.SetCustomAttribute(myLABuilder);
+						}
+
+						if (!string.IsNullOrWhiteSpace(field.Validation))
+                        {
+							AddDataAttribute(fieldBuilder, "validation", field.Validation);
 						}
 
 						// Add other attributes if needed

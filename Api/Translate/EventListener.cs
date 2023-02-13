@@ -78,6 +78,12 @@ namespace Api.Translate
 							continue;
 						}
 
+						if (locales[i].Code == null)
+						{
+							Console.WriteLine("[WARN] Ignoring locale #" + locales[i].Id + " because it has a blank code. This message will spam so you'll want to delete locale or give it a code.");
+							continue;
+						}
+
 						// Clone the field:
 						var clonedField = field.Clone();
 						clonedField.Name += "_" + locales[i].Code;

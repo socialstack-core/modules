@@ -54,6 +54,11 @@ namespace Api.CustomContentTypes
 		public bool Localised;
 
 		/// <summary>
+		/// The validation to be applied to this field
+		/// </summary>
+		public string Validation;
+
+		/// <summary>
 		/// Has this field been deleted?
 		/// </summary>
 		[Module(Hide = true)]

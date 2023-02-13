@@ -33,6 +33,26 @@ namespace Api.Translate
 
 			var cfg = GetConfig<LocaleServiceConfig>();
 
+			Events.Locale.BeforeCreate.AddEventListener((Context context, Locale locale) =>
+			{
+				if (string.IsNullOrEmpty(locale.Code))
+				{
+					throw new PublicException("At least a locale code is required", "locale_code_required");
+				}
+
+				return new ValueTask<Locale>(locale);
+			});
+
+			Events.Locale.BeforeUpdate.AddEventListener((Context context, Locale locale, Locale original) =>
+			{
+				if (string.IsNullOrEmpty(locale.Code))
+				{
+					throw new PublicException("At least a locale code is required", "locale_code_required");
+				}
+
+				return new ValueTask<Locale>(locale);
+			});
+
 			Events.ContextAfterAnonymous.AddEventListener(async (Context context, Context result, HttpRequest request) =>
 			{
 				if (cfg.HandleAcceptLanguageHeader && result != null)

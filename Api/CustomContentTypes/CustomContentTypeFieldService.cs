@@ -5,6 +5,7 @@ using Api.Permissions;
 using Api.Contexts;
 using Api.Eventing;
 using System;
+using Api.Startup;
 
 namespace Api.CustomContentTypes
 {
@@ -34,6 +35,12 @@ namespace Api.CustomContentTypes
 					field.Name = TypeEngine.TidyName(field.NickName);
 				}
 
+				if (string.IsNullOrEmpty(field.Name))
+				{
+					// Name required
+					throw new PublicException("A field name is required.", "field_name_required");
+				}
+
 				var originalName = field.Name;
 
 				var matchingNameCounter = 2;
@@ -59,6 +66,17 @@ namespace Api.CustomContentTypes
 
 				return field;
 			});
+
+			Events.CustomContentTypeField.BeforeUpdate.AddEventListener((Context context, CustomContentTypeField field, CustomContentTypeField original) =>
+			{
+				if (string.IsNullOrEmpty(field.Name))
+				{
+					throw new PublicException("A field name is required.", "field_name_required");
+				}
+
+				return new ValueTask<CustomContentTypeField>(field);
+			});
+
 		}
 	}
     
