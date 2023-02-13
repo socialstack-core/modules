@@ -63,7 +63,22 @@ namespace Api.Configuration
 				return config;
 			});
 
+			Events.Configuration.BeforeCreate.AddEventListener((Context context, Configuration config) =>
+			{
+				if (string.IsNullOrEmpty(config.Key))
+				{
+					throw new PublicException("At least a key is required", "config_key_required");
+				}
+
+				return new ValueTask<Configuration>(config);
+			});
+
 			Events.Configuration.BeforeUpdate.AddEventListener(async (Context context, Configuration config, Configuration originalConfig) => {
+
+				if (string.IsNullOrEmpty(config.Key))
+				{
+					throw new PublicException("At least a key is required", "config_key_required");
+				}
 
 				// Attempt to parse the JSON:
 				try

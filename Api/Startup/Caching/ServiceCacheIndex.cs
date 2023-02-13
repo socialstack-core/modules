@@ -329,6 +329,13 @@ namespace Api.Startup{
 		{
 			var keyValue = GetKeyValue(entry);
 
+			if (keyValue == null)
+			{
+				// Can't add if key is null.
+				Console.WriteLine("[WARN] Skipped adding object to a cache index because it had a null field (it was a " + entry.GetType() + ").");
+				return;
+			}
+
 			var linkNode = new IndexLinkNode<T>() { Current = entry };
 
 			if (Index.TryGetValue(keyValue, out IndexLinkedList<T> value))
@@ -360,6 +367,12 @@ namespace Api.Startup{
 		internal override void Remove(T entry)
 		{
 			var keyValue = GetKeyValue(entry);
+
+			if (keyValue == null)
+			{
+				// Can't remove if key is null.
+				return;
+			}
 
 			// Cache removal is a relatively expensive operation.
 			if (Index.TryGetValue(keyValue, out IndexLinkedList<T> value))
