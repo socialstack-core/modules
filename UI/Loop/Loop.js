@@ -284,7 +284,15 @@ export default class Loop extends React.Component {
 			results.push(entity);
 		}
 
-		this.props.onLiveCreate && this.props.onLiveCreate(entity, msg);
+		if(this.props.onLiveCreate){
+			var newResults = this.props.onLiveCreate(entity, msg, results);
+			
+			if(newResults){
+				// returning a set indicates the user wants to filter things out themselves.
+				results = newResults;
+			}
+		}
+		
 		this.setState({ results });
 	}
 	
