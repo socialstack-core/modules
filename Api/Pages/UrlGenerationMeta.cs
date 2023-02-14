@@ -20,7 +20,7 @@ namespace Api.Pages
 		/// <summary>
 		/// Possible pages. This is almost always just 1 option.
 		/// </summary>
-		private readonly List<UrlGenerationPage> Pages = new List<UrlGenerationPage>();
+		private readonly List<UrlGenerator> Pages = new List<UrlGenerator>();
 
 		/// <summary>
 		/// Creates a new meta object for the given primary type.
@@ -54,11 +54,10 @@ namespace Api.Pages
 				Pages.Clear();
 			}
 
-			Pages.Add(new UrlGenerationPage()
+			Pages.Add(new UrlGenerator(urlPieces)
 			{
 				PageId = pageId,
-				PiecesAfter = piecesAfter,
-				UrlPieces = urlPieces
+				PiecesAfter = piecesAfter
 			});
 		}
 
@@ -75,22 +74,85 @@ namespace Api.Pages
 				return null;
 			}
 
-			var sb = new StringBuilder();
-
 			// Todo: if there is more than one, trigger an event to ask which page to use.
 			// This is expected to be rare though - it'd be where there is e.g. forums in 2 completely different parts of the site - a particular piece of content needs a site specific way of choosing which url is its canonical one.
 			// (Except realistically these different forums should in the same place for better taxonomy).
-			var pageInfo = Pages[0];
+			return Pages[0].Generate(content);
+		}
 
-			if (pageInfo.LoadedUrlPieces == null)
+	}
+
+	/// <summary>
+	/// Url generation info for a particular URL pattern.
+	/// </summary>
+	public partial class UrlGenerator
+	{
+		/// <summary>
+		/// The page ID
+		/// </summary>
+		public uint PageId;
+
+		/// <summary>
+		/// The # of url pieces after the primary content type is referenced. 
+		/// In the url /news/{blogpost.slug}/edit, {blogpost.slug} is the primary content type reference. It has one piece after it.
+		/// /news/{blogpost.slug}/edit/permissions has 2 pieces after it and is therefore more specific and not the main page for the content type.
+		/// </summary>
+		public int PiecesAfter;
+
+		/// <summary>
+		/// The raw set of url/pieces (the url split by /).
+		/// </summary>
+		public readonly string[] UrlPieces;
+
+		/// <summary>
+		/// Url pieces that have been fully parsed, such as converting {contentType.field} into an actual field that can be read from a given object.
+		/// </summary>
+		private UrlGenerationUrlFragment[] LoadedUrlPieces;
+
+
+		/// <summary>
+		/// Creates a URL generator from the given URL fragments.
+		/// </summary>
+		/// <param name="urlPieces"></param>
+		public UrlGenerator(string[] urlPieces)
+		{
+			UrlPieces = urlPieces;
+		}
+		
+		/// <summary>
+		/// Creates a URL generator from the given URL.
+		/// </summary>
+		/// <param name="url"></param>
+		public UrlGenerator(string url)
+		{
+			if (url == null)
+			{
+				UrlPieces = Array.Empty<string>();
+			}
+			else
+			{
+				UrlPieces = url.Split('/');
+			}
+		}
+
+		/// <summary>
+		/// Generates a URL for the given piece of content which MUST be of the primary type.
+		/// </summary>
+		/// <param name="content"></param>
+		/// <returns></returns>
+		public string Generate(object content)
+		{
+			var sb = new StringBuilder();
+
+			if (LoadedUrlPieces == null)
 			{
 				// Load the url pieces:
-				pageInfo.LoadPieces();
+				LoadPieces();
 			}
 
-			for (var i = 0; i < pageInfo.LoadedUrlPieces.Length; i++)
+			for (var i = 0; i < LoadedUrlPieces.Length; i++)
 			{
-				var piece = pageInfo.LoadedUrlPieces[i];
+				var piece = LoadedUrlPieces[i];
 
 				if (piece.LiteralText != null)
 				{
@@ -108,39 +170,10 @@ namespace Api.Pages
 			return sb.ToString();
 		}
 
-	}
-
-	/// <summary>
-	/// Url generation info for a particular page.
-	/// </summary>
-	public partial class UrlGenerationPage
-	{
-		/// <summary>
-		/// The page ID
-		/// </summary>
-		public uint PageId;
-
-		/// <summary>
-		/// The # of url pieces after the primary content type is referenced. 
-		/// In the url /news/{blogpost.slug}/edit, {blogpost.slug} is the primary content type reference. It has one piece after it.
-		/// /news/{blogpost.slug}/edit/permissions has 2 pieces after it and is therefore more specific and not the main page for the content type.
-		/// </summary>
-		public int PiecesAfter;
-
-		/// <summary>
-		/// The raw set of url/pieces (the url split by /).
-		/// </summary>
-		public string[] UrlPieces;
-
-		/// <summary>
-		/// Url pieces that have been fully parsed, such as converting {contentType.field} into an actual field that can be read from a given object.
-		/// </summary>
-		public UrlGenerationUrlFragment[] LoadedUrlPieces;
-
 		/// <summary>
 		/// Loads the url pieces, resolving via reflection fields etc.
 		/// </summary>
-		public void LoadPieces()
+		private void LoadPieces()
 		{
 			LoadedUrlPieces = new UrlGenerationUrlFragment[UrlPieces.Length];
 
