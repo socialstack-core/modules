@@ -57,6 +57,10 @@ namespace Api.Eventing
 		/// List entities.
 		/// </summary>
 		public EndpointEventHandler<Filter<T, ID>> EndpointEndList;
+		/// <summary>
+		/// Called after an entity has been listed, just before it is written to the output
+		/// </summary>
+		public EndpointEventHandler<T> EndpointListEntry;
 
 		/// <summary>
 		/// Just before a field is added (and made settable).
