@@ -250,8 +250,8 @@ public partial class AutoController<T,ID> : ControllerBase
 			return await _service.GetResults(ctx, filt, async (Context ctx2, T result, int index, object src, object srcB) => {
 
 				var _onResult = src as Func<T, int, ValueTask>;
+				result = await _service.EventGroup.EndpointListEntry.Dispatch(context, result, Response);
 				await _onResult(result, index);
-
 			}, onResult, null);
 
 		}, writer, Response.Body, includes, filter.IncludeTotal);
