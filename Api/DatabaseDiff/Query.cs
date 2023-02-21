@@ -265,7 +265,7 @@ namespace Api.Database
 						{
 							str.WriteS(field.FullName);
 						}
-						else if (Raw)
+						else if (Raw || field.IsPrice)
 						{
 							// Using this will result in a 'raw' object being returned.
 							str.WriteS(field.LocalisedName);
@@ -615,7 +615,7 @@ namespace Api.Database
 						{
 							str.Append(field.FullName);
 						}
-						else if (Raw)
+						else if (Raw || field.IsPrice)
 						{
 							// Using this will result in a 'raw' object being returned.
 							str.Append(field.LocalisedName);

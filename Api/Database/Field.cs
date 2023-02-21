@@ -45,6 +45,10 @@ namespace Api.Database
 		/// </summary>
 		public string LocalisedName;
 		/// <summary>
+		/// Does this field have a price attribute? If so, do not use default locale value if null
+		/// </summary>
+		public bool IsPrice;
+		/// <summary>
 		/// Attributes on the field/ property (if any). Can be null.
 		/// </summary>
 		public List<Attribute> TargetFieldCustomAttributes;
@@ -68,6 +72,13 @@ namespace Api.Database
 			Name = field.Name;
 			OwningTypeName = typeName;
 			TargetFieldCustomAttributes = ContentField.BuildAttributes(field.CustomAttributes);
+			if (
+				TargetFieldCustomAttributes != null 
+				&& TargetFieldCustomAttributes.Count > 0 
+				&& TargetFieldCustomAttributes.FirstOrDefault(tfca => tfca.GetType().Name == "PriceAttribute") != null)
+            {
+				IsPrice = true;
+			}
 			SetFullName(null);
 		}
 
