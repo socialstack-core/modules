@@ -243,15 +243,15 @@ export default class PropEditor extends React.Component {
 						<option value={value}>{name}</option>
 					);
 				})
-				inputContent.unshift(<option>Pick a value</option>);
+				inputContent.unshift(<option disabled value="">{`Pick a value`}</option>);
 			}else if(propType.type == 'id' || propType.type == 'contentField'){
 				inputType = 'select';
 				inputContent = this.getContentDropdown(propType.content || propType.contentType, propType.field || 'id', propType.filterFunction);
-				inputContent.unshift(<option>Pick some content</option>);
+				inputContent.unshift(<option disabled value="">{`Pick some content`}</option>);
 			}else if(propType.type == 'contentType'){
 				inputType = 'select';
 				inputContent = this.getContentTypeDropdown();
-				inputContent.unshift(<option>Pick a content type</option>);
+				inputContent.unshift(<option disabled value="">{`Pick a content type`}</option>);
 			}else if(propType.type == 'array'){
 				if (propType.fields) {
 					inputType = ArrayBuilder;
