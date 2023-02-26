@@ -6,6 +6,25 @@ import omit from 'UI/Functions/Omit';
 
 export default function Column (props) {
 	var colClass = '';
+
+	// PropEditor did at one point allow <option>s such as "Pick a value" to be selected;
+	// ensure value saved in canvas JSON is a valid number
+	var propList = ['', 'Xs', 'Sm', 'Md', 'Lg', 'Xl'];
+
+	propList.forEach(prop => {
+		var sizeProp = 'size' + prop;
+		var offsetProp = 'offset' + prop;
+
+		if (isNaN(props[sizeProp])) {
+			props[sizeProp] = undefined;
+		}
+
+		if (isNaN(props[offsetProp])) {
+			props[offsetProp] = undefined;
+		}
+
+	});
+
 	// only define a default col-md- width if we don't have a col-xs- / col-sm- value which overrides it
 	var sizeMd = props.sizeMd || props.size || (!props.sizeXs && !props.sizeMd ? 6 : undefined);
 
