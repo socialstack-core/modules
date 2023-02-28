@@ -1,0 +1,193 @@
+{
+	"info": {
+		"_postman_id": "5e5cd7a8-b4bf-428e-852b-d4e54b486459",
+		"name": "Elastic",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"item": [
+		{
+			"name": "Root",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "https://localhost:9200",
+					"protocol": "https",
+					"host": [
+						"localhost"
+					],
+					"port": "9200"
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "General Query",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "https://localhost:9200/{{locale}}-{{index}}/_search",
+					"protocol": "https",
+					"host": [
+						"localhost"
+					],
+					"port": "9200",
+					"path": [
+						"{{locale}}-{{index}}",
+						"_search"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "General Query Copy",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "https://localhost:9200/{{locale}}-{{index}}/_search",
+					"protocol": "https",
+					"host": [
+						"localhost"
+					],
+					"port": "9200",
+					"path": [
+						"{{locale}}-{{index}}",
+						"_search"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Highlighted Query",
+			"request": {
+				"method": "POST",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "{\r\n  \"query\": { \"query_string\": { \"query\": \"congo gorilla\" } },\r\n  \"highlight\" : {\r\n    \"pre_tags\" : [\"<tag1>\"],\r\n    \"post_tags\" : [\"</tag1>\"],\r\n    \"fields\" : {\r\n      \"content\" : {}, \r\n      \"headings\" : {}, \r\n      \"title\" : {}\r\n    }\r\n  }\r\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "https://localhost:9200/{{locale}}-{{index}}/_search?pretty",
+					"protocol": "https",
+					"host": [
+						"localhost"
+					],
+					"port": "9200",
+					"path": [
+						"{{locale}}-{{index}}",
+						"_search"
+					],
+					"query": [
+						{
+							"key": "pretty",
+							"value": null
+						}
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Delete primary index",
+			"request": {
+				"method": "DELETE",
+				"header": [],
+				"url": {
+					"raw": "https://localhost:9200/{{locale}}-{{index}}",
+					"protocol": "https",
+					"host": [
+						"localhost"
+					],
+					"port": "9200",
+					"path": [
+						"{{locale}}-{{index}}"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Mapping",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "https://localhost:9200/{{locale}}-{{index}}",
+					"protocol": "https",
+					"host": [
+						"localhost"
+					],
+					"port": "9200",
+					"path": [
+						"{{locale}}-{{index}}"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "SS Query",
+			"request": {
+				"method": "GET",
+				"header": []
+			},
+			"response": []
+		}
+	],
+	"auth": {
+		"type": "basic",
+		"basic": [
+			{
+				"key": "password",
+				"value": "kmfB2C9v5vP95BF-kKxX",
+				"type": "string"
+			},
+			{
+				"key": "username",
+				"value": "elastic",
+				"type": "string"
+			}
+		]
+	},
+	"event": [
+		{
+			"listen": "prerequest",
+			"script": {
+				"type": "text/javascript",
+				"exec": [
+					""
+				]
+			}
+		},
+		{
+			"listen": "test",
+			"script": {
+				"type": "text/javascript",
+				"exec": [
+					""
+				]
+			}
+		}
+	],
+	"variable": [
+		{
+			"key": "index",
+			"value": "nws",
+			"type": "default"
+		},
+		{
+			"key": "locale",
+			"value": "1",
+			"type": "default"
+		}
+	]
+}

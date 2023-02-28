@@ -18,6 +18,17 @@ namespace Api.Eventing
 		
 	}
 
+	public partial class EventGroupCore<T, ID>
+	{
+
+		/// <summary>
+		/// Called when a page of the given primary object is crawled.
+		/// </summary>
+		public EventHandler<CrawledPageMeta, T> PageCrawled;
+
+
+	}
+
 }
 
 namespace Api.SearchCrawler
@@ -27,12 +38,14 @@ namespace Api.SearchCrawler
 	/// </summary>
 	public partial class SearchCrawlEventGroup : Eventing.EventGroupCore<CrawledPageMeta, uint>
 	{
-
 		/// <summary>
-		/// Called when the crawled has just rendered a page and is telling you about it.
+		/// Called when the crawled has just rendered a non-primary content page and is telling you about it.
 		/// </summary>
-		public Api.Eventing.EventHandler<CrawledPageMeta> PageCrawled;
+		public Api.Eventing.EventHandler<CrawledPageMeta> PageCrawledNoPrimaryContent;
 
-	}
+		public Api.Eventing.EventHandler<SearchCrawlerStatus> CrawlerStatus;
+
+    }
+
 
 }
