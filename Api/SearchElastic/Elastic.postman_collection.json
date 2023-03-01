@@ -68,7 +68,7 @@
 				"header": [],
 				"body": {
 					"mode": "raw",
-					"raw": "{\r\n  \"query\": { \"query_string\": { \"query\": \"congo gorilla\" } },\r\n  \"highlight\" : {\r\n    \"pre_tags\" : [\"<tag1>\"],\r\n    \"post_tags\" : [\"</tag1>\"],\r\n    \"fields\" : {\r\n      \"content\" : {}, \r\n      \"headings\" : {}, \r\n      \"title\" : {}\r\n    }\r\n  }\r\n}",
+					"raw": "{\r\n  \"query\": { \"query_string\": { \"query\": \"Botswana\" } },\r\n  \"highlight\" : {\r\n    \"pre_tags\" : [\"<tag1>\"],\r\n    \"post_tags\" : [\"</tag1>\"],\r\n    \"fields\" : {\r\n      \"content\" : {}, \r\n      \"title\" : {}\r\n    }\r\n  }\r\n}",
 					"options": {
 						"raw": {
 							"language": "json"

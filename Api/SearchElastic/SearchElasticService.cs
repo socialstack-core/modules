@@ -229,6 +229,7 @@ namespace Api.SearchElastic
                             !string.IsNullOrWhiteSpace(doc.Hash) &&
                             !_processed.ContainsKey(doc.Hash))
                         {
+                            Console.WriteLine($"Elastic Search - Deleting - {ctx.LocaleId} {doc.Url} {doc.Hash} {doc.CheckSum}");
                             _client.Delete(new DeleteRequest(GetIndex(ctx), doc.Id));
                         }
                     }
@@ -289,6 +290,9 @@ namespace Api.SearchElastic
             if (_existingDocHashes.ContainsKey(document.Hash) && _existingDocHashes[document.Hash] == document.CheckSum)
             {
                 Console.WriteLine($"Elastic Search - Ignoring - {ctx.LocaleId} {document.Url} {document.Hash} {document.CheckSum}");
+                // keep track of the docs we have processed 
+                _processed.TryAdd(document.Hash, pageDocument);
+
                 return true;
             }
 
@@ -365,6 +369,7 @@ namespace Api.SearchElastic
                             .Source(sf => sf
                                 .Includes(i => i
                                     .Fields(
+                                        f => f.Id,
                                         f => f.Url,
                                         f => f.Hash,
                                         f => f.CheckSum
