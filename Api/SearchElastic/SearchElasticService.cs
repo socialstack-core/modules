@@ -42,6 +42,9 @@ namespace Api.SearchElastic
         private ConcurrentDictionary<string, CrawledPageMeta> _processed = new ConcurrentDictionary<string, CrawledPageMeta>();
         private ConcurrentDictionary<string, string> _existingDocHashes = new ConcurrentDictionary<string, string>();
 
+        private static object MappingsLock = new object();
+        private Dictionary<string, string> _indexMappings = new Dictionary<string, string>();
+
         /// <summary>
         /// Instanced automatically. Use injection to use this service, or Startup.Services.Get.
         /// </summary>
@@ -121,6 +124,13 @@ namespace Api.SearchElastic
                     SetupClient();
                     if (_client != null)
                     {
+                        // reset the mappings to account for new documents
+                        // and hence dynamic properties
+                        lock (MappingsLock)
+                        {
+                            _indexMappings = new Dictionary<string, string>();
+                        }
+
                         // all done so get the content and delete any old pages
                         Purge();
 
@@ -511,7 +521,7 @@ namespace Api.SearchElastic
         /// <param name="from"></param>
         /// <param name="size"></param>
         /// <returns></returns>
-        public async Task<DocumentsResult> Query(Context ctx, string query, string tags, string contentTypes, int from = 0, int size = 10)
+        public async Task<DocumentsResult> Query(Context ctx, string query, string tags, string contentTypes, string aggregations, int from = 0, int size = 10)
         {
             SetupClient();
             if (_client == null)
@@ -521,8 +531,9 @@ namespace Api.SearchElastic
 
             SearchDescriptor<Document> search;
             var filters = new List<Func<QueryContainerDescriptor<Document>, QueryContainer>>();
+            var aggregationDictionary = new AggregationDictionary();
 
-
+            // build up tag filter 
             if (!string.IsNullOrWhiteSpace(tags))
             {
                 foreach (var tag in tags.Split(",", StringSplitOptions.RemoveEmptyEntries))
@@ -531,11 +542,39 @@ namespace Api.SearchElastic
                 }
             }
 
+            // build up content type filter 
             if (!string.IsNullOrWhiteSpace(contentTypes))
             {
                 foreach (var tag in contentTypes.Split(",", StringSplitOptions.RemoveEmptyEntries))
                 {
                     filters.Add(fq => fq.Term(t => t.Field(f => f.ContentType).Value(tag)));
+                }
+            }
+
+            // misc filters can be added into the querystring 
+            // e.g. 
+            // (primaryObject.price:>=5000 AND primaryObject.price:<1000)
+
+            // build up any aggregations/facets
+            if (!string.IsNullOrWhiteSpace(aggregations))
+            {
+                Dictionary<string, string> indexMappings = GetIndexMappings(ctx);
+
+                foreach (var aggregation in aggregations.Split(",", StringSplitOptions.RemoveEmptyEntries))
+                {
+                    var keywordFieldName = aggregation;
+
+                    if (indexMappings.ContainsKey(aggregation) && indexMappings[aggregation] == "Nest.TextProperty")
+                    {
+                        keywordFieldName = $"{aggregation}.keyword";
+                    }
+
+                    aggregationDictionary.Add(aggregation,
+                        new TermsAggregation(aggregation)
+                        {
+                            Field = keywordFieldName
+                        }
+                    );
                 }
             }
 
@@ -560,11 +599,7 @@ namespace Api.SearchElastic
                 )
                 .From(from)
                 .Size(size)
-                .Aggregations(ag => ag
-                    .Terms("tags", term => term
-                        .Field(field => field.Tags)
-                    )
-                )
+                .Aggregations(aggregationDictionary)
                 .Highlight(h => h
                      .Fields(f => f.Field("*"))
                     .PreTags("<strong>")
@@ -575,26 +610,79 @@ namespace Api.SearchElastic
 
             if (response.IsValid && response.Hits.Any())
             {
-                return new DocumentsResult()
+                var documentResults = new DocumentsResult()
                 {
-                    Results = MapResults(response),
-                    Aggregations = new List<Aggregation>()
+                    Results = MapResults(response)
+                };
+
+                // extract out any aggregations and their values
+                if (response.Aggregations != null && response.Aggregations.Any())
+                {
+                    var aggregationList = new List<Aggregation>();
+
+                    foreach (var aggregation in response.Aggregations)
                     {
-                        new Aggregation() {
-                            Name = "tags",
+                        aggregationList.Add(new Aggregation()
+                        {
+                            Name = aggregation.Key,
                             Buckets = response.Aggregations
-                            .Terms("tags")
+                            .Terms(aggregation.Key)
                             .Buckets
                             .Select(bucket => new Bucket() { Key = bucket.Key, Count = bucket.DocCount })
                             .OrderBy(s => s.Key)
                             .ToList()
-                        }
+                        });
                     }
-                };
+
+                    documentResults.Aggregations = aggregationList;
+                }
+
+                return documentResults;
             }
 
             return new DocumentsResult();
         }
+
+        private Dictionary<string, string> GetIndexMappings(Context ctx)
+        {
+            if (_indexMappings != null && _indexMappings.Any())
+            {
+                return _indexMappings;
+            }
+
+            SetupClient();
+            if (_client == null)
+            {
+                return new Dictionary<string, string>();
+            }
+
+            lock (MappingsLock)
+            {
+                var indexMappings = new Dictionary<string, string>();
+
+                // need to get the mapping types for dynamic objects 
+                // text fields have child a .keyword element which must be used for aggregations
+                var result = _client.Indices.GetMapping(new GetMappingRequest(GetIndex(ctx)));
+                if (result.IsValid)
+                {
+                    var mappings = result.GetMappingFor(GetIndex(ctx));
+                    if (mappings != null && mappings.Properties.ContainsKey("primaryObject"))
+                    {
+                        var poField = (ObjectProperty)mappings.Properties.First(s => s.Key == "primaryObject").Value;
+
+                        if (poField.Properties != null)
+                        {
+                            indexMappings = poField.Properties.ToDictionary(s => "primaryObject." + s.Key.ToString(), s => s.Value.GetType().ToString());
+                        }
+                    }
+                }
+
+                _indexMappings = indexMappings;
+            }
+
+            return _indexMappings;
+        }
+
 
         private List<Document> MapResults(ISearchResponse<Document> searchResult)
         {

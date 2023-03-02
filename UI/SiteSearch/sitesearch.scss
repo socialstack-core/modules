@@ -9,7 +9,7 @@
         z-index: 3000;
 
         .aggregations {
-            display: flex;
+            display: inline-block;
 
             .aggregation {
                 border: 1px solid var(--nws-orange);
@@ -32,6 +32,7 @@
                     margin-left: 1rem;
                     text-align: center;
                     width: 1.6em;
+                    float: right;
                 }
             }
         }

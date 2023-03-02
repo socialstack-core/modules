@@ -46,7 +46,7 @@ export default class SiteSearch extends React.Component {
             return;
         }
 
-        webRequest("/v1/sitesearch/query", { queryString: query, pageSize: (this.props.limit || 10) }, this.props.requestOpts)
+        webRequest("/v1/sitesearch/query", { queryString: query, aggregations: 'tags', pageSize: (this.props.limit || 10) }, this.props.requestOpts)
             .then(response => {
                 console.log('results', response.json);
 
@@ -69,6 +69,18 @@ export default class SiteSearch extends React.Component {
                     <Html>{result.content}</Html>
                 )}
             </>
+        );
+    }
+
+    renderAggregation(aggregation) {
+        return (
+            <div className='aggregations {aggregation.key}'>
+
+                {aggregation.buckets.map((bucket, i) => (
+                    <div className='aggregation'>{bucket.key}<div className='count'>{bucket.count}</div></div>
+                ))}
+
+            </div>
         );
     }
 
@@ -119,13 +131,13 @@ export default class SiteSearch extends React.Component {
                 <div className="suggestions">
 
                     <div className="aggregations">
-                    {this.state.aggregations.length > 0 &&  
-                        this.state.aggregations.map((aggregation, i) => (
-                            aggregation.buckets.map((bucket, i) => (
-                                <div className='aggregation'>{bucket.key}<div className='count'>{bucket.count}</div></div>
+                        {this.state.aggregations.length > 0 &&
+                            this.state.aggregations.map((aggregation, i) => (
+                                <>
+                                    {this.renderAggregation(aggregation)}
+                                </>
                             ))
-                        ))
-                    }
+                        }
                     </div>
 
                     {this.state.results.length > 0 ? (
@@ -143,6 +155,10 @@ export default class SiteSearch extends React.Component {
             )}
         </div>;
     }
+}
+
+SiteSearch.propTypes = {
+    limit: "int"
 }
 
 SiteSearch.defaultProps = {

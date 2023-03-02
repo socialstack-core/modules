@@ -17,6 +17,7 @@ namespace Api.SearchElastic
         public virtual async ValueTask<DocumentsResult> Query([FromBody] JObject filters)
         {
             var queryString = filters["queryString"] != null ? filters["queryString"].ToString() : "";
+            var aggregations = filters["aggregations"] != null ? filters["aggregations"].ToString() : "";
             var tags = filters["tags"] != null ? filters["tags"].ToString() : "";
             var contentTypes = filters["contentTypes"] != null ? filters["contentTypes"].ToString() : "";
             int pageSize = filters["pageSize"] != null ? filters["pageSize"].ToObject<int>() : 10;
@@ -24,7 +25,7 @@ namespace Api.SearchElastic
 
             var context = await Request.GetContext();
 
-            var documentsResult = await Services.Get<SearchElasticService>().Query(context, queryString, tags, contentTypes, startFrom, pageSize);
+            var documentsResult = await Services.Get<SearchElasticService>().Query(context, queryString, tags, contentTypes, aggregations, startFrom, pageSize);
 
             return documentsResult;
         }
