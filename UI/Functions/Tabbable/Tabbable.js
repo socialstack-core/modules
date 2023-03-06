@@ -261,6 +261,55 @@ const isFocusable = function (node, options) {
   return isNodeMatchingSelectorFocusable(options, node);
 };
 
+// returns next element in the tab order after the given element
+// params:
+//   el: source element (defaults to current active element if not supplied)
+//   region: parent node to limit tab order to (defaults to entire page if not supplied)
+// returns:
+//   next focusable element if available (otherwise null)
+const getNextTab = function (el, region) {
+    el = el || document.activeElement;
+    region = region || document.body;
+    var tabbableNodes = tabbable(region);
+
+    if (!tabbableNodes.includes(el)) {
+        return null;
+    }
+
+    var tabIndex = tabbableNodes.indexOf(el);
+
+    if (tabIndex == tabbableNodes.length - 1) {
+        return tabbableNodes[0];
+    } else {
+        return tabbableNodes[tabIndex + 1];
+    }
+};
+
+// returns previous element in the tab order before the given element
+// params:
+//   el: source element (defaults to current active element if not supplied)
+//   region: parent node to limit tab order to (defaults to entire page if not supplied)
+// returns:
+//   previous focusable element if available (otherwise null)
+const getPrevTab = function (el, region) {
+    el = el || document.activeElement;
+    region = region || document.body;
+    var tabbableNodes = tabbable(region);
+
+    if (!tabbableNodes.includes(el)) {
+        return null;
+    }
+
+    var tabIndex = tabbableNodes.indexOf(el);
+
+    if (tabIndex == 0) {
+        return tabbableNodes[tabbableNodes.length - 1];
+    } else {
+        return tabbableNodes[tabIndex - 1];
+    }
+};
+
+// NB: deprecated - use stepForwardInTabOrder() instead
 const tabNext = function (el) {
     el = el || document.body;
     var tabbableNodes = tabbable(el);
@@ -278,6 +327,7 @@ const tabNext = function (el) {
     }
 };
 
+// NB: deprecated - use stepBackwardInTabOrder() instead
 const tabPrev = function (el) {
     el = el || document.body;
     var tabbableNodes = tabbable(el);
@@ -295,11 +345,59 @@ const tabPrev = function (el) {
     }
 };
 
+// sets focus to the next element in the tab order after the given element
+// params:
+//   el: source element (defaults to current active element if not supplied)
+//   region: parent node to limit tab order to (defaults to entire page if not supplied)
+const stepForwardInTabOrder = function (el, region) {
+    el = el || document.activeElement;
+    region = region || document.body;
+    var tabbableNodes = tabbable(region);
+
+    if (!tabbableNodes.includes(el)) {
+        return;
+    }
+
+    var tabIndex = tabbableNodes.indexOf(el);
+
+    if (tabIndex == tabbableNodes.length - 1) {
+        tabbableNodes[0].focus();
+    } else {
+        tabbableNodes[tabIndex + 1].focus();
+    }
+};
+
+// sets focus to the previous element in the tab order before the given element
+// params:
+//   el: source element (defaults to current active element if not supplied)
+//   region: parent node to limit tab order to (defaults to entire page if not supplied)
+const stepBackwardInTabOrder = function (el, region) {
+    el = el || document.activeElement;
+    region = region || document.body;
+    var tabbableNodes = tabbable(region);
+
+    if (!tabbableNodes.includes(el)) {
+        return;
+    }
+
+    var tabIndex = tabbableNodes.indexOf(el);
+
+    if (tabIndex == 0) {
+        tabbableNodes[tabbableNodes.length - 1].focus();
+    } else {
+        tabbableNodes[tabIndex - 1].focus();
+    }
+};
+
 export { 
     tabbable, 
     focusable, 
     isTabbable, 
     isFocusable,
-    tabNext,
-    tabPrev
+    getNextTab,
+    getPrevTab,
+    tabNext, // deprecated
+    tabPrev, // deprecated
+    stepForwardInTabOrder,
+    stepBackwardInTabOrder
 };
