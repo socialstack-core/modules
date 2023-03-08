@@ -48,7 +48,6 @@ export default class Input extends React.Component {
         super(props);
         this.state = {pwVisible:false};
         this.newId();
-        this.onInput = this.onInput.bind(this);
         this.onChange = this.onChange.bind(this);
         this.updateValidation = this.updateValidation.bind(this);
         this.onBlur = this.onBlur.bind(this);
@@ -188,17 +187,7 @@ export default class Input extends React.Component {
             </div>
         );
     }
-
-    onInput(e) {
-        this.props.onInput && this.props.onInput(e);
-        if (e.defaultPrevented) {
-            return; 
-        }
-
-        // Validation check
-        this.revalidate(e);
-    }
-
+	
     onChange(e) {
         this.props.onChange && this.props.onChange(e);
         if (e.defaultPrevented) {
@@ -435,7 +424,7 @@ export default class Input extends React.Component {
             return (
                 <select
 					ref={this.setRef}
-                    onChange={this.onSelectChange}
+                    onInput={this.onSelectChange}
                     onBlur={this.onBlur}
                     autocomplete={this.props.autocomplete}
                     value={defaultValue}
@@ -473,18 +462,16 @@ export default class Input extends React.Component {
             return (<>
                 <textarea
                     ref={this.setRef}
-                    onChange={this.onChange}
                     onBlur={this.onBlur}
                     autocomplete={this.props.autocomplete}
                     id={this.props.id || this.fieldId}
                     className={(this.props.className || "form-control") + (this.state.validationFailure ? ' is-invalid' : '')}
                     {...omit(this.props, ['id', 'className', 'onChange', 'onBlur', 'type', 'inline', 'help', 'helpIcon', 'fieldName'])}
-                    oninput={e => {
+                    onInput={e => {
                         this.setState({ textAreaLength: e.target.textLength });
 
-                        if (typeof this.props.onInput == 'function') {
-                            this.props.onInput(e);
-                        }
+                        this.props.onInput && this.props.onInput(e);
+						this.onChange(e);
                     }}
                 />
                 {maxLength && caseInsensitivePropCheck(this.props, 'showLength') && <>
@@ -575,9 +562,8 @@ export default class Input extends React.Component {
                             aria-describedby={this.describedById}
                             type={pwVisible ? 'text' : type}
                             autocomplete={this.props.autocomplete}
-                            onChange={this.onChange}
+                            onInput={this.onChange}
                             onBlur={this.onBlur}
-                            onInput={this.onInput}
                             {...omit(this.props, ['id', 'className', 'onChange', 'onBlur', 'type', 'inline', 'help', 'helpIcon', 'fieldName'])}
                         />
                         {!this.props.noVisiblityButton && !this.props.noVisibilityButton && (
@@ -648,9 +634,8 @@ export default class Input extends React.Component {
                     className={(this.props.className || "form-control") + (this.state.validationFailure ? ' is-invalid' : '')}
                     aria-describedby={this.describedById}
                     type={type}
-                    onChange={this.onChange}
+                    onInput={this.onChange}
                     onBlur={this.onBlur}
-                    onInput={this.onInput}
                     autocomplete={this.props.autocomplete}
                     data-disabled-by={disabledBy}
                     data-enabled-by={enabledBy}
@@ -672,9 +657,8 @@ export default class Input extends React.Component {
                             className={(this.props.className || "form-control") + (this.state.validationFailure ? ' is-invalid' : '')}
                             aria-describedby={this.describedById}
                             type="text"
-                            onChange={this.onChange}
+                            onInput={this.onChange}
                             onBlur={this.onBlur}
-                            onInput={this.onInput}
                             autocomplete={this.props.autocomplete}
                             data-disabled-by={disabledBy}
                             data-enabled-by={enabledBy}
@@ -693,7 +677,7 @@ export default class Input extends React.Component {
                                 type="checkbox" 
                                 name="isTransparent" 
                                 checked={isTransparent} 
-                                onChange={this.onTransparentChange}
+                                onInput={this.onTransparentChange}
                             />
                         </>
                     }
@@ -709,7 +693,7 @@ export default class Input extends React.Component {
             }
 
             if (this.props.type == 'datetime-local' && this.props.roundMinutes && this.props.roundMinutes > 0) {
-                fieldMarkup.props.onChange = e => {
+                fieldMarkup.props.onInput = e => {
                     var [hours, minutes] = e.target.value.slice(-4).split(':');
                     hours = parseInt(hours);
                     minutes = parseInt(minutes);
