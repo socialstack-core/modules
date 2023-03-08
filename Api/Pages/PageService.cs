@@ -279,13 +279,14 @@ namespace Api.Pages
 		/// <summary>
 		/// Get the page to use for the given URL.
 		/// </summary>
-		public async ValueTask<PageWithTokens> GetPage(Context context, string url, Microsoft.AspNetCore.Http.QueryString searchQuery, bool return404IfNotFound = true)
+		public async ValueTask<PageWithTokens> GetPage(Context context, string host, string url, Microsoft.AspNetCore.Http.QueryString searchQuery, bool return404IfNotFound = true)
 		{
 			var urlInfo = new UrlInfo() // Struct
 			{
 				Url = url,
 				Length = url.Length,
-				Start = 0
+				Start = 0,
+				Host = host
 			};
 
 			var max = urlInfo.Length + urlInfo.Start;

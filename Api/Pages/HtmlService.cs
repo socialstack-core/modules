@@ -1521,7 +1521,7 @@ svg {
 				response.Headers["Content-Encoding"] = "gzip";
 			}
 
-			var pageAndTokens = await _pages.GetPage(context, path, searchQuery, true);
+			var pageAndTokens = await _pages.GetPage(context, request.Host.Value, path, searchQuery, true);
 
 			if (pageAndTokens.RedirectTo != null)
 			{

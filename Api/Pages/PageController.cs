@@ -52,7 +52,7 @@ namespace Api.Pages
 			var context = await Request.GetContext();
 
 			// we first need to get the pageAndTokens
-			var pageAndTokens = await _pageService.GetPage(context, pageDetails.Url, Microsoft.AspNetCore.Http.QueryString.Empty);
+			var pageAndTokens = await _pageService.GetPage(context, Request.Host.Value, pageDetails.Url, Microsoft.AspNetCore.Http.QueryString.Empty);
 
             if (pageAndTokens.RedirectTo != null)
             {

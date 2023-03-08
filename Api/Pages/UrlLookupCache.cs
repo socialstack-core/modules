@@ -440,6 +440,10 @@ namespace Api.Pages
 		/// </summary>
 		public int Length;
 		/// <summary>
+		/// The host domain of the current request.
+		/// </summary>
+		public string Host;
+		/// <summary>
 		/// Optionally request a redirect to the given URL. It will be a 302/ non-permanent.
 		/// </summary>
 		public string RedirectTo;
