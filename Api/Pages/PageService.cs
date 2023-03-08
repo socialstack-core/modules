@@ -155,7 +155,7 @@ namespace Api.Pages
 							""c"": {
 								""t"": ""p"",
 								""c"": {
-									""s"": ""The page you were looking for wasn't found here."",
+									""c"": ""The page you were looking for wasn't found here."",
 									""i"": 2
 								}
 							}
