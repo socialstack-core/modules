@@ -33,7 +33,19 @@ namespace Api.Uploader
 		/// </summary>
 		[DatabaseField(Length = 15)]
 		public string FileType;
-		
+
+		/// <summary>
+		/// filetype variants separated by | if there are any.
+		/// </summary>
+		[DatabaseField(Length = 64)]
+		public string Variants;
+
+		/// <summary>
+		/// A blurhash if there is one.
+		/// </summary>
+		[DatabaseField(Length = 100)]
+		public string Blurhash;
+
 		/// <summary>
 		/// If this is an image, the original width.
 		/// </summary>
@@ -43,7 +55,17 @@ namespace Api.Uploader
 		/// If this is an image, the original height.
 		/// </summary>
 		public int? Height;
-		
+
+		/// <summary>
+		/// If this is an image, the horizontal focal point (as a percentage).
+		/// </summary>
+		public int? FocalX;
+
+		/// <summary>
+		/// If this is an image, the vertical focal point (as a percentage).
+		/// </summary>
+		public int? FocalY;
+
 		/// <summary>
 		/// True if this upload is an image.
 		/// </summary>
@@ -110,6 +132,7 @@ namespace Api.Uploader
 					{
 						writer.WriteASCII(FileType);
 					}
+					// Private uploads don't support variants (yet) because the signature would include them
 					writer.Write(TimestampStart, 0, 3);
 					writer.WriteS(DateTime.UtcNow.Ticks);
 					writer.Write(SignatureStart, 0, 3);
@@ -131,6 +154,34 @@ namespace Api.Uploader
 					{
 						writer.WriteASCII(FileType);
 					}
+					if (Variants != null)
+					{
+						writer.Write((byte)'|');
+						writer.WriteASCII(Variants);
+					}
+				}
+
+				if (IsImage && Width.HasValue && Height.HasValue)
+				{
+					writer.WriteASCII(IsPrivate ? "&w=" : "?w=");
+					writer.WriteS(Width.Value);
+					writer.WriteASCII("&h=");
+					writer.WriteS(Height.Value);
+
+					if (!string.IsNullOrEmpty(Blurhash))
+					{
+						writer.WriteASCII("&b=");
+						writer.WriteASCII(System.Uri.EscapeDataString(Blurhash));
+					}
+
+					if (FocalX.HasValue && FocalY.HasValue)
+                    {
+						writer.WriteASCII("&fx=");
+						writer.WriteS(FocalX.Value);
+						writer.WriteASCII("&fy=");
+						writer.WriteS(FocalY.Value);
+					}
+
 				}
 
 				var result = writer.ToASCIIString();

@@ -101,11 +101,18 @@ namespace Api.Uploader
 
 				var transcodeTo = IsSupportedImage(upload.FileType);
 
+				if (transcodeTo == MagickFormat.Svg)
+				{
+					return upload;
+				}
+
 				if (transcodeTo != null)
 				{
 					int? width = null;
 					int? height = null;
-
+					string variants = null;
+					string blurHash = null;
+					
 					if (_configuration.ProcessImages)
 					{
 						try
@@ -121,15 +128,31 @@ namespace Api.Uploader
 							width = current.Width;
 							height = current.Height;
 
-							// If transcoded format is not the same as the actual original:
+							// If transcoded format is not the same as the actual original, or we want webp always:
 							var willTranscode = (transcodeTo.Value != current.Format);
+							MagickFormat? doubleOutput = null;
+							string doubleFormatName = null;
+
+							if (_configuration.TranscodeToWebP && transcodeTo.Value != MagickFormat.WebP && transcodeTo.Value != MagickFormat.Svg)
+							{
+								// This means it's a web friendly format (jpg, png etc) but not svg.
+								// A webp is required in this scenario.
+								doubleOutput = transcodeTo;
+								transcodeTo = MagickFormat.WebP;
+								willTranscode = true;
+								doubleFormatName = "." + doubleOutput.Value.ToString().ToLower();
+								variants = "webp";
+							}
 
 							current.Format = transcodeTo.Value;
 
-							var formatName = "." + transcodeTo.Value.ToString().ToLower();
+							var baseFormatName = transcodeTo.Value.ToString().ToLower();
+							var formatName = "." + baseFormatName;
 
-							if(willTranscode && formatName != "." + upload.FileType)
+							if(willTranscode && baseFormatName != upload.FileType)
 							{
+								variants = baseFormatName;
+
 								// Save original as well, but in the new format:
 								var fullSizeTranscoded = System.IO.Path.GetTempFileName();
 
@@ -153,7 +176,6 @@ namespace Api.Uploader
 										// Must reload the original image as the previous size group destructively lost data
 										current.Dispose();
 										current = new MagickImage(upload.TemporaryPath);
-										current.Format = transcodeTo.Value;
 									}
 
 									for (var sizeId = 0; sizeId < sizeGroup.Sizes.Count; sizeId++)
@@ -161,14 +183,42 @@ namespace Api.Uploader
 										var imageSize = sizeGroup.Sizes[sizeId];
 
 										// Resize it now:
-										var resizedTempFile = Resize(current, imageSize);
+										Resize(current, imageSize);
+
+										// output the file:
+										current.Format = transcodeTo.Value;
+										var resizedTempFile = System.IO.Path.GetTempFileName();
+										current.Write(resizedTempFile);
 
 										// Ask to store it:
 										await Events.Upload.StoreFile.Dispatch(context, upload, resizedTempFile, imageSize.ToString() + formatName);
+
+										if (_smallestSize == imageSize)
+										{
+											if (_configuration.GenerateBlurhash)
+											{
+												// Generate the blurhash using this smallest version of the image (probably 32px)
+												blurHash = BlurHashEncoder.Encode(current, width > height);
+											}
+										}
+
+										if (doubleOutput.HasValue)
+										{
+											// output the file:
+											current.Format = doubleOutput.Value;
+											resizedTempFile = System.IO.Path.GetTempFileName();
+											current.Write(resizedTempFile);
+
+											// Ask to store it:
+											await Events.Upload.StoreFile.Dispatch(context, upload, resizedTempFile, imageSize.ToString() + doubleFormatName);
+										}
 									}
 								}
 							}
 
+							// Current is the smallest size at the moment.
+							// This is where a blurhash can best be generated from it.
+							
 							// Done with it:
 							current.Dispose();
 						}
@@ -189,6 +239,19 @@ namespace Api.Uploader
 						up.IsImage = true;
 						up.Width = width;
 						up.Height = height;
+						up.Blurhash = blurHash;
+
+						if (!string.IsNullOrEmpty(variants))
+						{
+							if (string.IsNullOrEmpty(up.Variants))
+							{
+								up.Variants = variants;
+							}
+							else
+							{
+								up.Variants += '|' + variants;
+							}
+						}
 
 					}, DataOptions.IgnorePermissions);
 				}
@@ -288,6 +351,7 @@ namespace Api.Uploader
 		/// Using default config, 2 groups exist: 2048, 1024, 512, .. 32 is one, and 200, 100 is the other.
 		/// </summary>
 		private ImageResizeGroup[] _resizeGroups;
+		private int _smallestSize;
 
 		private void UpdateConfig()
 		{
@@ -305,11 +369,19 @@ namespace Api.Uploader
 
 			var sizeGroups = new List<ImageResizeGroup>();
 
-			sizeGroups.Add(new ImageResizeGroup(sizeList[sizeList.Count - 1]));
+			var currentMin = sizeList[sizeList.Count - 1];
+
+			sizeGroups.Add(new ImageResizeGroup(currentMin));
 
 			for (var i = sizeList.Count - 2;i>=0;i--)
 			{
 				var currentSize = sizeList[i];
+
+				if (currentSize < currentMin)
+				{
+					currentMin = currentSize;
+				}
+
 				var added = false;
 
 				for (var x = 0; x < sizeGroups.Count; x++)
@@ -328,6 +400,7 @@ namespace Api.Uploader
 				}
 			}
 
+			_smallestSize = currentMin;
 			_resizeGroups = sizeGroups.ToArray();
 		}
 		
@@ -593,7 +666,7 @@ namespace Api.Uploader
 				return null;
 			}
 
-			// SCHEMA:optionalPath/ID.type.type2
+			// SCHEMA:optionalPath/ID.type.type2|variant?args=1
 
 			// Get the ID from the above. First, split off the schema:
 			var pieces = uploadRef.Split(':');
@@ -616,14 +689,11 @@ namespace Api.Uploader
 		/// </summary>
 		/// <param name="current"></param>
 		/// <param name="width"></param>
-		/// <returns>The temp file path the image is at.</returns>
-        public string Resize(MagickImage current, int width)
+		/// <returns></returns>
+		public void Resize(MagickImage current, int width)
         {
 			int height = Convert.ToInt32(width * (double)current.Height / (double)current.Width);
 			current.Resize(width, height);
-			var targetPath = System.IO.Path.GetTempFileName();
-			current.Write(targetPath);
-            return targetPath;
          }
 
 		/*
@@ -685,10 +755,10 @@ namespace Api.Uploader
 						continue;
 					}
 
-					var magicFileType = format.Format.ToString().ToLower();
 					targetFormat = format.Format;
-
-					if (magicFileType != "svg" && magicFileType != "jpg" && magicFileType != "jpeg" && magicFileType != "png" && magicFileType != "avif" && magicFileType != "gif")
+					var magicFileType = format.Format.ToString().ToLower();
+					
+					if (!WebFriendlyFormat(targetFormat))
 					{
 						// Otherwise it's a web friendly image already (or was webp itself)
 						targetFormat = MagickFormat.WebP;
@@ -707,7 +777,18 @@ namespace Api.Uploader
 			return targetFormat;
 
 		}
-		
+
+		/// <summary>
+		/// True if the given magick format is web friendly.
+		/// </summary>
+		/// <param name="format"></param>
+		/// <returns></returns>
+		public bool WebFriendlyFormat(MagickFormat format)
+		{
+			var magicFileType = format.ToString().ToLower();
+			return magicFileType == "jpg" || magicFileType == "jpeg" || magicFileType == "png" || magicFileType == "avif" || magicFileType == "webp" || magicFileType == "svg";
+		}
+
 		/// <summary>
 		/// Orientation tag
 		/// </summary>

@@ -22,6 +22,17 @@ namespace Api.Uploader
 		public bool ProcessImages { get; set; } = true;
 
 		/// <summary>
+		/// True if all image uploads should be transcoded to webp, unless they were webp already.
+		/// If it's already a web friendly format like png or jpg, the original will be resized as well.
+		/// </summary>
+		public bool TranscodeToWebP { get; set; } = true;
+
+		/// <summary>
+		/// When an image is uploaded, this will generate a blurhash for it which gets stored in the upload data and the ref.
+		/// </summary>
+		public bool GenerateBlurhash { get; set; } = false;
+
+		/// <summary>
 		/// Uploader subdirectory (optional)
 		/// </summary>
 		public string Subdirectory { get; set; }
