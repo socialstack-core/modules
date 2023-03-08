@@ -326,6 +326,25 @@ namespace Api.Uploader
 
 				return result;
 			}, 15);
+			
+			Events.Upload.OpenFile.AddEventListener((Context context, Stream result, string storagePath, bool isPrivate) => {
+
+				if (result != null)
+				{
+					// Something else has handled this.
+					return new ValueTask<Stream>(result);
+				}
+
+				// Default filesystem handler.
+				// Get the complete path:
+				var basePath = isPrivate ? "Content/content-private/" : "Content/content/";
+
+				var filePath = System.IO.Path.GetFullPath(basePath + storagePath);
+
+				result = File.OpenRead(filePath);
+
+				return new ValueTask<Stream>(result);
+			}, 15);
 
 			InstallAdminPages("Media", "fa:fa-film", new string[] { "id", "name" });
 		}
@@ -432,6 +451,34 @@ namespace Api.Uploader
 			return GetFileBytesForStoragePath(uploadPath, fileRef.Scheme == "private");
 		}
 
+		/// <summary>
+		/// Gets the file bytes of the given ref, if it is a file ref. Supports remote filesystems as well.
+		/// </summary>
+		/// <param name="fileRef"></param>
+		/// <param name="sizeName"></param>
+		/// <returns></returns>
+		public ValueTask<Stream> OpenFile(string fileRef, string sizeName = "original")
+		{
+			var refMeta = FileRef.Parse(fileRef);
+
+			var uploadPath = refMeta.GetRelativePath(sizeName);
+
+			return GetFileStreamForStoragePath(uploadPath, refMeta.Scheme == "private");
+		}
+
+		/// <summary>
+		/// Opens a stream for the given file ref. Supports large files in remote filesystems. Release the stream when you are done.
+		/// </summary>
+		/// <param name="fileRef"></param>
+		/// <param name="sizeName"></param>
+		/// <returns></returns>
+		public ValueTask<Stream> OpenFile(FileRef fileRef, string sizeName = "original")
+		{
+			var uploadPath = fileRef.GetRelativePath(sizeName);
+
+			return GetFileStreamForStoragePath(uploadPath, fileRef.Scheme == "private");
+		}
+
 		private Context readBytesContext = new Context();
 
 		/// <summary>
@@ -445,6 +492,19 @@ namespace Api.Uploader
 			// Trigger a read file event. The default handler will read from the file system, 
 			// and the CloudHosts module adds a handler if it is handling uploads.
 			return await Events.Upload.ReadFile.Dispatch(readBytesContext, null, storagePath, isPrivate);
+		}
+		
+		/// <summary>
+		/// Gets the file stream for a given storage path. Usually use OpenFile with a ref or an Upload instead.
+		/// </summary>
+		/// <param name="storagePath"></param>
+		/// <param name="isPrivate">True if this is in the private storage area.</param>
+		/// <returns></returns>
+		public async ValueTask<Stream> GetFileStreamForStoragePath(string storagePath, bool isPrivate)
+		{ 
+			// Trigger an open file event. The default handler will read from the file system, 
+			// and the CloudHosts module adds a handler if it is handling uploads.
+			return await Events.Upload.OpenFile.Dispatch(readBytesContext, null, storagePath, isPrivate);
 		}
 
 		private SignatureService _sigService;

@@ -115,9 +115,59 @@ namespace Api.CloudHosts
                 return result;
             }, 10);
 
-        }
+			Events.Upload.OpenFile.AddEventListener(async (Context context, Stream result, string relativePath, bool isPrivate) => {
 
-        private List<CloudHostPlatform> _platforms;
+				if (result != null)
+				{
+					// Something else handled it.
+					return result;
+				}
+
+				// If configured, the default file move is disabled and we're instead reading uploads from the configured host platform.
+				if (_uploadHost != null)
+				{
+
+					if (isPrivate)
+					{
+						var stream = await _uploadHost.ReadFile(relativePath, isPrivate);
+                        return stream;
+					}
+					else
+					{
+						// Public URL:
+						var url = _uploadHost.GetContentUrl() + "/content/" + relativePath;
+
+						// Request the file:
+						var client = new HttpClient();
+
+						try
+						{
+                            // Get the stream:
+                            result = await client.GetStreamAsync(url);
+						}
+						catch (Exception e)
+						{
+							try
+							{
+								var stream = await _uploadHost.ReadFile(relativePath, isPrivate);
+                                return stream;
+							}
+							catch
+							{
+								Console.WriteLine("Likely temporary error whilst trying to read a file from a remote host: " + e.ToString());
+								// Unavailable or unreachable.
+								return null;
+							}
+						}
+					}
+				}
+
+				return result;
+			}, 10);
+
+		}
+
+		private List<CloudHostPlatform> _platforms;
 
         /// <summary>
         /// The host to direct uploads to, if any.

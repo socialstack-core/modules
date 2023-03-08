@@ -1,6 +1,7 @@
 using Api.Uploader;
 using Api.Permissions;
 using System.Collections.Generic;
+using System.IO;
 
 namespace Api.Eventing
 {
@@ -42,6 +43,11 @@ namespace Api.Eventing
 		/// Reads the file at the given storage relative path, and returns its byte[]. You can block future event handlers by returning an empty array of bytes.
 		/// </summary>
 		public EventHandler<byte[], string, bool> ReadFile;
+		
+		/// <summary>
+		/// Reads the file at the given storage relative path, and returns it as a stream.
+		/// </summary>
+		public EventHandler<Stream, string, bool> OpenFile;
 
 	}
 
