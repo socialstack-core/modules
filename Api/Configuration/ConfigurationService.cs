@@ -12,6 +12,7 @@ using System.Text;
 using System.Collections.Concurrent;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Serialization;
+using System.Linq;
 
 namespace Api.Configuration
 {
@@ -156,6 +157,8 @@ namespace Api.Configuration
 						field.SetDefaultDisplayModule();
 
 						fields.Add(autoForms.BuildFieldInfo(field));
+
+						fields = fields.OrderBy(f => f.Order).ToList();
 					}
 
 				}
