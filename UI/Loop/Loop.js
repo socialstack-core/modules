@@ -284,15 +284,7 @@ export default class Loop extends React.Component {
 			results.push(entity);
 		}
 
-		if(this.props.onLiveCreate){
-			var newResults = this.props.onLiveCreate(entity, msg, results);
-			
-			if(newResults){
-				// returning a set indicates the user wants to filter things out themselves.
-				results = newResults;
-			}
-		}
-		
+		this.props.onLiveCreate && this.props.onLiveCreate(entity, msg);
 		this.setState({ results });
 	}
 	
@@ -812,33 +804,43 @@ export default class Loop extends React.Component {
 				// May have multiple render functions, including for the header and footer.
 				var headerFunc = null;
 				var colgroupsFunc = null;
-				var bodyFunc = renderFunc;
+				var bodyFunc = null;
 				var footerFunc = null;
 
-				if (renderFunc.length && !this.props.items) {
+				if (!this.props.items) {
 
-					renderFunc.forEach(func => {
+					if (renderFunc instanceof Array) {
 
-						switch (func.name) {
-							case 'bound renderHeader':
-							case 'renderHeader':
-								headerFunc = func;
-								break;
-							case 'bound renderColgroups':
-							case 'renderColgroups':
-								colgroupsFunc = func;
-								break;
-							case 'bound renderEntry':
-							case 'renderEntry':
-								bodyFunc = func;
-								break;
-							case 'bound renderFooter':
-							case 'renderFooter':
-								footerFunc = func;
-								break;
-                        }
+						renderFunc.forEach(func => {
+							let funcResults = func({}, 0, 0);
 
-                    });
+							if (funcResults && funcResults.length) {
+
+								if (funcResults[0].type == 'th') {
+									headerFunc = func;
+								}
+
+								if (funcResults[0].type == 'col') {
+									colgroupsFunc = func;
+								}
+
+								if (funcResults[0].type == 'td') {
+
+									if (!bodyFunc) {
+										bodyFunc = func;
+									} else {
+										footerFunc = func;
+                                    }
+
+								}
+
+							}
+
+						});
+
+					} else {
+						bodyFunc = renderFunc;
+					}
 
 				}
 
@@ -860,17 +862,19 @@ export default class Loop extends React.Component {
 								}
 							</colgroup>
 						)}
-						<tbody>
-							{
-								results.map((item, i) => {
-									return (
-										<tr className={'loop-item loop-item-' + i} key={i}>
-											{bodyFunc(item, i, results.length)}
-										</tr>
-									);
-								})
-							}
-						</tbody>
+						{bodyFunc && <>
+							<tbody>
+								{
+									results.map((item, i) => {
+										return (
+											<tr className={'loop-item loop-item-' + i} key={i}>
+												{bodyFunc(item, i, results.length)}
+											</tr>
+										);
+									})
+								}
+							</tbody>
+						</>}
 						{footerFunc && (
 							<tfoot>
 								{
