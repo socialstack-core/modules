@@ -813,27 +813,35 @@ export default class Loop extends React.Component {
 
 						renderFunc.forEach(func => {
 							let funcResults = func({}, 0, 0);
+							let funcType;
 
-							if (funcResults && funcResults.length) {
+							if (funcResults instanceof Array && funcResults.length) {
+								funcType = funcResults[0].type;
+							}
 
-								if (funcResults[0].type == 'th') {
+							if (typeof funcResults === 'object' && funcResults !== null &&
+								funcResults.props && funcResults.props.children && funcResults.props.children.length) {
+								funcType = funcResults.props.children[0].type;
+							}
+
+							switch (funcType) {
+								case 'th':
 									headerFunc = func;
-								}
+									break;
 
-								if (funcResults[0].type == 'col') {
+								case 'col':
 									colgroupsFunc = func;
-								}
+									break;
 
-								if (funcResults[0].type == 'td') {
+								case 'td':
 
 									if (!bodyFunc) {
 										bodyFunc = func;
 									} else {
 										footerFunc = func;
-                                    }
+									}
 
-								}
-
+									break;
 							}
 
 						});
