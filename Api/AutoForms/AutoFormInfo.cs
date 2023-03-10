@@ -49,6 +49,11 @@ namespace Api.AutoForms
 		public string Module;
 
 		/// <summary>
+		/// The fields order
+		/// </summary>
+		public uint Order = uint.MaxValue;
+
+		/// <summary>
 		/// Props for the module.
 		/// </summary>
 		public Dictionary<string, object> Data;

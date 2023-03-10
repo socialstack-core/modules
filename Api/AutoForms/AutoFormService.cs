@@ -1,4 +1,5 @@
 ﻿using Api.Contexts;
+using Api.CustomContentTypes;
 using Api.Database;
 using Api.Permissions;
 using Api.Startup;
@@ -8,6 +9,7 @@ using Microsoft.AspNetCore.Mvc.Infrastructure;
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.Linq;
 using System.Reflection;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
@@ -182,7 +184,9 @@ namespace Api.AutoForms
 					info.Fields.Add(formField);
 				}
 			}
-			
+
+			info.Fields = info.Fields.OrderBy(f => f.Order).ToList();
+
 			return info;
 		}
 
@@ -347,7 +351,17 @@ namespace Api.AutoForms
 						field.Data["maxlength"] = dbField.Length;
 					}
 				}
+				else if (attrib is OrderAttribute)
+                {
+					var order = attrib as OrderAttribute;
+					field.Order = order.Order;
+                }
 			}
+
+			if (labelName == "Name" && field.Order == uint.MaxValue)
+            {
+				field.Order = 0;
+            }
 
 			return field;
 		}
