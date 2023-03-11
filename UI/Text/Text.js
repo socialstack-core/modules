@@ -1,5 +1,5 @@
 import omit from 'UI/Functions/Omit';
-
+//import Canvas from 'UI/Canvas';
 /**
  * This component displays translated text. Usage:
  * <Text>Hello world</Text>
@@ -51,11 +51,17 @@ export default function Text (props) {
 			</p>;
 	}
 
-	return <Tag className={className} data-aos={anim} dangerouslySetInnerHTML={{__html: (props.text || props.children)}} {...omit(props, omitProps)}>
+	return <Tag className={className} data-aos={anim} dangerouslySetInnerHTML={{ __html: (props.text || props.children) }} {...omit(props, omitProps)}>
+			{
+				/*<Canvas>props.text</Canvas>*/
+				props.text ? props.text : props.children
+			}
+			
 		</Tag>;
 }
 
 Text.propTypes = {
+	text: 'canvas',
 	paragraph: 'boolean',
 	bold: 'boolean',
 	className: 'string',
@@ -86,7 +92,7 @@ Text.defaultProps = {
 	paragraph: false,
 	bold: false,
 	animation: 'none',
-	animationDirection: 'static'
+	animationDirection: 'static',
 };
 
 Text.icon = 'align-justify';
@@ -97,3 +103,5 @@ Text.rendererPropTypes = {
 	bold: 'boolean',
 	className: 'string'
 };
+
+Text.priority = true;

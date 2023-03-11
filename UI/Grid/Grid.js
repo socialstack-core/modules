@@ -96,3 +96,5 @@ Grid.onEditorUpdate = (node, rte) => {
 		}
 	}
 };
+
+Grid.priority = true;
