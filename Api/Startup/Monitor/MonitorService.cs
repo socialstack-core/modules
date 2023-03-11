@@ -33,7 +33,7 @@ public class MonitorService : AutoService
 	{
 
 		// Get the config:
-		_config = GetConfig<ReportToConfig>();
+		_config = GetConfig<ReportToConfig>(null, false);
 
 		Setup();
 

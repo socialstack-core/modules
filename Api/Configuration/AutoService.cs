@@ -90,8 +90,9 @@ public partial class AutoService
 	/// You can safely reuse references to the object returned - if the config changes, it'll still be the same object.
 	/// You can find when it changes (or loads the first time) via the Config.OnChange event.
 	/// Also note that the config section key is the name of the given type, minus "Config" or "Configuration" from the end.
+	/// Optionally stores a default config entry in the database if none were found.
 	/// </summary>
-	public T GetConfig<T>(Action<T> onNewConfig = null) where T:Config, new()
+	public T GetConfig<T>(Action<T> onNewConfig = null, bool storeDefault = true) where T:Config, new()
 	{
 		if(_loadedConfiguration == null)
 		{
@@ -152,7 +153,7 @@ public partial class AutoService
 				}
 
 				// Store in the DB:
-				if (configService != null)
+				if (configService != null && storeDefault)
 				{
 					_ = configService.InstallConfig(dflt, name, name);
 				}
