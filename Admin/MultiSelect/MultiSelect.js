@@ -128,7 +128,7 @@ export default class MultiSelect extends React.Component {
 					}
 				}} />
 				<footer className="admin-multiselect__footer">
-					<button className="btn btn-sm btn-outline-primary btn-entry-select-action btn-new-entry"
+					<button type="button" className="btn btn-sm btn-outline-primary btn-entry-select-action btn-new-entry"
 						disabled={atMax ? true : undefined}
 						onClick={e => {
 							e.preventDefault();
