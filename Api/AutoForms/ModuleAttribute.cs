@@ -25,6 +25,11 @@ namespace Api.AutoForms
 			Name = name;
 		}
 
+		public ModuleAttribute(bool hide)
+		{
+			Hide = hide;
+		}
+
 		public ModuleAttribute()
 		{
 		}
