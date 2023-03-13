@@ -1,4 +1,5 @@
 using Api.AutoForms;
+using Api.Currency;
 using Api.Startup;
 using Api.Translate;
 using Api.Users;
@@ -112,6 +113,16 @@ namespace Api.CustomContentTypes
 				code.Emit(OpCodes.Ldc_R8, value);
 			});
 
+			AddTo(map, "price", typeof(double?), (ILGenerator code, string val) => {
+				var value = double.TryParse(val, out double result) ? result : 0;
+				code.Emit(OpCodes.Ldc_R8, value);
+			});
+
+			AddTo(
+				map, "guid", typeof(string), (ILGenerator code, string val) => {
+					code.Emit(OpCodes.Ldstr, val);
+			});
+
 			/*
 			AddTo(map, "short", typeof(short), OpCodes.Ldc_I4, (string val) => short.TryParse(val, out short result) ? result : (short)0);
 			AddTo(map, "ushort", typeof(ushort), OpCodes.Ldc_I4, (string val) => ushort.TryParse(val, out ushort result) ? result : (ushort)0);
@@ -216,7 +227,20 @@ namespace Api.CustomContentTypes
 							DataType = "string"
 						}
 					);
-                }
+                } 
+				else if (customType.IsForm)
+                {
+					// This is just for peak15, would be ideal to use an event or something to add fields to custom entitites without needing to modify this module
+					customType.Fields.Insert(0,
+						new CustomContentTypeField
+						{
+							CustomContentTypeId = customType.Id,
+							Name = "Peak15Id",
+							NickName = "Peak15Id",
+							DataType = "guid"
+						}
+					);
+				}
 				
 				if(customType.Fields != null){
 					
@@ -246,19 +270,35 @@ namespace Api.CustomContentTypes
 
 						if (field.Localised)
                         {
-							ConstructorInfo localisedAttrClassCtorInfo = typeof(LocalizedAttribute).GetConstructor(Type.EmptyTypes);
-
-							CustomAttributeBuilder myLABuilder = new CustomAttributeBuilder(
-								localisedAttrClassCtorInfo,
-								new object[] {}
+							AddAttribute(fieldBuilder,
+								typeof(LocalizedAttribute),
+								Type.EmptyTypes,
+								new object[] { }
 							);
-
-							fieldBuilder.SetCustomAttribute(myLABuilder);
 						}
 
 						if (!string.IsNullOrWhiteSpace(field.Validation))
                         {
 							AddDataAttribute(fieldBuilder, "validation", field.Validation);
+						}
+
+						// This is just for peak15, would be ideal to use an event or something to add fields to custom entitites without needing to modify this module
+						if (field.Name == "Peak15Id")
+                        {
+							AddAttribute(fieldBuilder,
+								typeof(ModuleAttribute),
+								new Type[1] { typeof(bool) },
+								new object[1] { true }
+							);
+						}
+
+						if (field.Order > 0)
+                        {
+							AddAttribute(fieldBuilder,
+								typeof(OrderAttribute),
+								new Type[1] { typeof(uint) },
+								new object[1] { field.Order }
+							);
 						}
 
 						// Add other attributes if needed
@@ -275,18 +315,21 @@ namespace Api.CustomContentTypes
                         {
 							AddDataAttribute(fieldBuilder, "type", "file");
 						}
+						else if (field.DataType == "price")
+						{
+							AddAttribute(fieldBuilder,
+								typeof(PriceAttribute),
+								Type.EmptyTypes,
+								new object[0] { }
+							);
+						}
 						else if (field.DataType == "select")
 						{
-							Type[] moduleAttrParams = new Type[1] { typeof(String) };
-
-							ConstructorInfo moduleAttrClassCtorInfo = typeof(ModuleAttribute).GetConstructor(moduleAttrParams);
-
-							CustomAttributeBuilder myModuleAttributeBuilder = new CustomAttributeBuilder(
-								moduleAttrClassCtorInfo,
+							AddAttribute(fieldBuilder,
+								typeof(ModuleAttribute),
+								new Type[1] { typeof(String) },
 								new object[1] { "UI/CustomFieldSelect" }
 							);
-
-							fieldBuilder.SetCustomAttribute(myModuleAttributeBuilder);
 
 							AddDataAttribute(fieldBuilder, "field", field.Id.ToString());
 						}
@@ -294,16 +337,11 @@ namespace Api.CustomContentTypes
                         {
 							AddDataAttribute(fieldBuilder, "contentType", TidyName(field.LinkedEntity));
 
-							Type[] moduleAttrParams = new Type[1] { typeof(String) };
-
-							ConstructorInfo moduleAttrClassCtorInfo = typeof(ModuleAttribute).GetConstructor(moduleAttrParams);
-
-							CustomAttributeBuilder myModuleAttributeBuilder = new CustomAttributeBuilder(
-								moduleAttrClassCtorInfo,
+							AddAttribute(fieldBuilder,
+								typeof(ModuleAttribute),
+								new Type[1] { typeof(String) },
 								new object[1] { "Admin/ContentSelect" }
 							);
-
-							fieldBuilder.SetCustomAttribute(myModuleAttributeBuilder);
 						}
 
 						if (!string.IsNullOrEmpty(field.DefaultValue))
@@ -390,16 +428,23 @@ namespace Api.CustomContentTypes
 
 		private static void AddDataAttribute(FieldBuilder fieldBuilder, string arg1, object arg2)
         {
-			Type[] dataAttrParams = new Type[2] { typeof(String), typeof(Object) };
-
-			ConstructorInfo dataAttrClassCtorInfo = typeof(DataAttribute).GetConstructor(dataAttrParams);
-
-			CustomAttributeBuilder myCABuilder = new CustomAttributeBuilder(
-				dataAttrClassCtorInfo,
+			AddAttribute(fieldBuilder, 
+				typeof(DataAttribute), 
+				new Type[2] { typeof(String), typeof(Object) }, 
 				new object[2] { arg1, arg2 }
 			);
+		}
 
-			fieldBuilder.SetCustomAttribute(myCABuilder);
+		private static void AddAttribute(FieldBuilder fieldBuilder, Type attributeType, Type[] attributeParams, object[] attributeArgs)
+		{
+			ConstructorInfo attrClassCtorInfo = attributeType.GetConstructor(attributeParams);
+
+			CustomAttributeBuilder attributeBuilder = new CustomAttributeBuilder(
+				attrClassCtorInfo,
+				attributeArgs
+			);
+
+			fieldBuilder.SetCustomAttribute(attributeBuilder);
 		}
 	}
 

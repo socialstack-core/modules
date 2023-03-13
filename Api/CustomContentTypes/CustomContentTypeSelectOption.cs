@@ -23,6 +23,7 @@ namespace Api.CustomContentTypes
 		/// <summary>
 		/// The value of the option
 		/// </summary>
+		[Localized]
 		public string Value;
 	}
 

@@ -13,6 +13,7 @@ namespace Api.CustomContentTypes
 	/// Handles customContentTypes.
 	/// Instanced automatically. Use injection to use this service, or Startup.Services.Get.
 	/// </summary>
+	[LoadPriority(8)]
 	public partial class CustomContentTypeService : AutoService<CustomContentType>
     {
 		private readonly CustomContentTypeFieldService _fieldService;
@@ -37,7 +38,7 @@ namespace Api.CustomContentTypes
 				await LoadCustomTypes(allTypes, allTypeFields);
 
 				return x;
-			});
+			}, 9);
 
 			Events.CustomContentType.BeforeUpdate.AddEventListener((Context context, CustomContentType type, CustomContentType original) =>
 			{

@@ -59,6 +59,11 @@ namespace Api.CustomContentTypes
 		public string Validation;
 
 		/// <summary>
+		/// The order of this field on the form
+		/// </summary>
+		public uint Order;
+
+		/// <summary>
 		/// Has this field been deleted?
 		/// </summary>
 		[Module(Hide = true)]
