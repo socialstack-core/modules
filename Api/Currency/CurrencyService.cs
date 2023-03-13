@@ -95,8 +95,6 @@ namespace Api.Currency
 
             async ValueTask<T> ConvertPrices(Context ctx, T entity, List<FieldInfo> priceFields, List<ExchangeRate> exchangeRates)
             {
-                var contextLocaleId = ctx.LocaleId;
-
                 foreach (FieldInfo field in priceFields)
                 {
                     object value = field.GetValue(entity);
@@ -135,6 +133,23 @@ namespace Api.Currency
                 return entity;
             }
 
+            async ValueTask<T> GetCurrencyLocalePrices(T entity, List<FieldInfo> priceFields, uint currencyLocaleId)
+            {
+                var currencyLocaleEntity = await service.Get(new Context() { LocaleId = currencyLocaleId }, entity.Id, DataOptions.IgnorePermissions);
+
+                if (currencyLocaleEntity != null)
+                {
+                    foreach (FieldInfo field in priceFields)
+                    {
+                        object currencyLocaleValue = field.GetValue(currencyLocaleEntity);
+
+                        field.SetValue(entity, currencyLocaleValue);
+                    }
+                }
+
+                return entity;
+            }
+
             async ValueTask<T> ProcessEntity(Context ctx, T entity, HttpResponse response)
             {
                 if (entity == null)
@@ -153,6 +168,12 @@ namespace Api.Currency
                 }
 
                 var contextLocaleId = ctx.LocaleId;
+
+                if (ctx.CurrencyLocaleId != 0 && ctx.CurrencyLocaleId != contextLocaleId)
+                {
+                    contextLocaleId = ctx.CurrencyLocaleId;
+                    entity = await GetCurrencyLocalePrices(entity, priceFields, contextLocaleId);
+                }
 
                 var exchangeRates = await _exchangeRates.Where("ToLocaleId=?", DataOptions.IgnorePermissions).Bind(contextLocaleId).ListAll(ctx);
 
