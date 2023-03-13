@@ -3,6 +3,32 @@
 	--richeditor-buttonbar-top: 0;
 }
 
+.RichEditor-wrapper {
+	.url-input-modal {
+		position: absolute;
+		top: 30%;
+		left: 30%;
+		z-index: 1000;
+		background-color: rgba(50,50,50,0.3);
+		padding: 10px 20px;
+
+		.confirm-link {
+			margin-left: 2px;
+		}
+	}
+
+	.link-btns {
+		position: absolute;
+		right: 0;
+		top: 0;
+		transform: translate(0, -50px);
+
+		.add-link-btn, .remove-link-btn {
+			display: inline-block;
+		}
+	}
+}
+
 .RichEditor {
 
 	&__icons {
@@ -13,8 +39,10 @@
 		position: absolute;
 		left: var(--richeditor-buttonbar-left);
 		top: var(--richeditor-buttonbar-top);
-		z-index: 2147483647;
+		z-index: 2147483646; // NB: leaves room for link modal to display above
 		display: none;
+		grid-template-rows: auto auto;
+		grid-template-columns: auto auto;
 		border-radius: .25rem;
 		padding: .25rem .375rem;
 		position: fixed;
@@ -43,6 +71,21 @@
 		&:last-child {
 			margin-block-end: 0;
 		}
+
+		&:nth-child(1) {
+			grid-column: 1 / 3;
+			grid-row: 1;
+		}
+
+		&:nth-child(2) {
+			grid-column: 1;
+			grid-row: 2;
+		}
+
+		&:nth-child(3) {
+			grid-column: 2;
+			grid-row: 2;
+		}
 	}
 	
 	&-styleButton {
@@ -58,14 +101,15 @@
 		//border-color: red;
 		transition: border-color .2s ease;
 
-		&:hover {
+		&:not(.RichEditor-disabledButton):hover {
 			background: var(--admin-dropdown-hover-bg, var(--fallback__admin-dropdown-hover-bg));
 			color: var(--admin-dropdown-hover-fg, var(--fallback__admin-dropdown-hover-fg));
 		}
 
-		&:hover {
-			//border-color: rgba(0,0,0,.25);
+		&.RichEditor-disabledButton {
+			opacity: .5;
 		}
+
 	}
 
 	&-activeButton {
@@ -96,6 +140,16 @@
 			font-size: 16px;
 			padding: 20px;
 		}
+
+		.align-right div {
+			text-align: right;
+		  }
+		  .align-center div {
+			text-align: center;
+		  }
+		  .align-left div {
+			text-align: left;
+		  }
 
 	}
 	
@@ -216,4 +270,31 @@
 		padding: 1px; /* Space for outlines to show */
 		transform: scaleX(1); /* position: fixed is relative to transforms too, so we can use this to contain them */
 	}
+}
+
+.richeditor-modal {
+	top: var(--richeditor-buttonbar-top);
+	z-index: 2147483647;
+
+	> .modal-dialog {
+		min-height: 0 !important;
+		height: auto !important;
+	}
+
+	&-footer {
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
+
+		> div {
+			display: flex;
+			align-items: center;
+			gap: .5rem;
+		}
+	}
+
+	.modal-footer {
+		display: none;
+	}
+
 }

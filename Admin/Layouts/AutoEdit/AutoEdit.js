@@ -5,7 +5,7 @@ import AutoForm from 'Admin/AutoForm';
 import Default from 'Admin/Layouts/Default';
 import omit from 'UI/Functions/Omit';
 import {useRouter} from 'UI/Session';
-
+import ExportFormButton from 'Admin/ExportFormButton';
 
 export default class AutoEdit extends React.Component {
 	
@@ -42,6 +42,11 @@ export default class AutoEdit extends React.Component {
 		return <TokenResolver value={id}>
 			{id => 
 				<Default>
+					{(this.props.showExportButton && endpoint.toLowerCase() == "customcontenttype") &&
+						<Tile>
+							<ExportFormButton formId={id} />
+						</Tile>
+					}
 					<AutoForm {...(omit(this.props, ['children']))} id={id} endpoint={endpoint}
 						singular={entityName} plural={entityNamePlural}
 						previousPageUrl={previousPageUrl} previousPageName={previousPageName} />
@@ -57,5 +62,6 @@ AutoEdit.propTypes = {
 	children: true,
 	id: 'token',
 	endpoint: 'string',
-	deletePage: 'string'
+	deletePage: 'string',
+	showExportButton: 'bool'
 };

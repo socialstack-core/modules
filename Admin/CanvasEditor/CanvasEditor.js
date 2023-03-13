@@ -15,6 +15,7 @@ import ThemeEditor from 'Admin/CanvasEditor/ThemeEditor';
 import PanelledEditor from 'Admin/Layouts/PanelledEditor';
 import CanvasState from './CanvasState';
 import { getRootInfo } from './Utils';
+import { createLinkDecorator } from 'Admin/CanvasEditor/Link';
 var nodeKeys = 1;
 
 const DEFAULT_BLOCK_TYPE = 'p';
@@ -57,12 +58,21 @@ var blockRenderMap = Immutable.Map({
 	'linebreak': {
 		element: 'br'
 	},
+	'center': {
+		element: 'center'
+	},
+	'left': {
+		element: 'left'
+	},
+	'right': {
+		element: 'right'
+	},
 	// Overwrite DefaultDraftBlockRenderMap as it defines aliased element 'p' for 'unstyled'
 	'unstyled': {
 		element: DEFAULT_BLOCK_TYPE
 	}
   });
-var extendedBlockRenderMap = Draft.DefaultDraftBlockRenderMap.merge(blockRenderMap);
+var extendedBlockRenderMap = window.SERVER ? null : Draft.DefaultDraftBlockRenderMap.merge(blockRenderMap);
 
 var TEXT = '#text';
 
@@ -105,9 +115,18 @@ function niceGraphName(graph){
 
 function renderStructureNode(node, canvasState, onClick, snapshotState) {
 	var nodeName = node.typeName || node.type;
+	var isGridColumn = node.parent && node.parent.typeName == 'UI/Grid';
 
-	if (!nodeName && node.parent.typeName == 'UI/Grid') {
-		nodeName = 'UI/Column';
+	if (isGridColumn) {
+		// default for the grid is 1 row, 2 columns; check for overrides
+		var rows = node.parent.props.rows || 1;
+		var cols = node.parent.props.columns || 2;
+		cols = parseInt(cols, 10);
+
+		var actualCol = (node.index % cols) + 1;
+		var actualRow = Math.floor(node.index / cols) + 1;
+
+		nodeName = `Col ${actualCol} Row ${actualRow}`;
     }
 
 	if (nodeName == 'richtext') {
@@ -137,6 +156,17 @@ function renderStructureNode(node, canvasState, onClick, snapshotState) {
 		});
     }
 
+	if (!hasChildren && node.content && node.content.length) {
+		nodeParent = Object.values(node.content);
+		nodeParent.map(n => {
+			return {
+				content: n
+			}
+		});
+
+		hasChildren = true;
+	}
+
 
 	if (!hasChildren) {
 		return <>
@@ -165,16 +195,26 @@ function renderStructureNode(node, canvasState, onClick, snapshotState) {
 		}
 	};
 
-	return <Collapsible title={nodeName} expanderLeft onClick={() => onClick(node)} buttons={[removeButton]}>
-		{nodeParent.map((node, i) => {
+	return <Collapsible title={nodeName} expanderLeft onClick={() => onClick(node)} buttons={isGridColumn ? undefined : [removeButton]}>
+		{nodeParent.map((childNode, i) => {
 			var itemClass = ['collapsible-content__wrapper'];
 
-			if (node == canvasState.selectedNode) {
+			if (childNode == canvasState.selectedNode) {
 				itemClass.push('collapsible-content__wrapper--selected');
 			}
 
+			// new instances of UI/Grid won't label underlying UI/Columns without this
+			if (!childNode.parent) {
+				childNode.parent = node;
+			}
+
+			// give UI/Grid columns access to their index
+			if (childNode.parent.typeName == "UI/Grid") {
+				childNode.index = i;
+            }
+
 			return <span className={itemClass.join(' ')}>
-				{renderStructureNode(node, canvasState, onClick, snapshotState)}
+				{renderStructureNode(childNode, canvasState, onClick, snapshotState)}
 			</span>
 		})}
 	</Collapsible>;
@@ -210,6 +250,7 @@ function applyCustomNodeUpdate(node) {
 	if (node && node.type && typeof node.type !== 'string') {
 
 		var onEditorUpdate = node.type.onEditorUpdate;
+		var decorator = createLinkDecorator();
 
 		onEditorUpdate && onEditorUpdate(node, {
 			addEmptyRoot: (node, rootName) => {
@@ -220,7 +261,7 @@ function applyCustomNodeUpdate(node) {
 
 				// Adding an empty root with an RTE.
 				var rootObj = { content: [] };
-				var emptyPara = { type: 'richtext', editorState: EditorState.createEmpty() };
+				var emptyPara = { type: 'richtext', editorState: EditorState.createEmpty(decorator) };
 				emptyPara.parent = rootObj;
 				rootObj.content.push(emptyPara);
 				node.roots[rootName] = rootObj;
@@ -939,6 +980,7 @@ class CanvasEditorCore extends React.Component {
 							
 							var {selectOpenFor, highlight} = this.state;
 							var insertIndex;
+							var decorator = createLinkDecorator();
 							
 							if(selectOpenFor.insertIndex !== undefined){
 								// Insert directly into the given array at a specified index.
@@ -977,7 +1019,7 @@ class CanvasEditorCore extends React.Component {
 							
 							if(pubName == "UI/Text"){
 								module.type = "richtext";
-								module.editorState = EditorState.createEmpty();
+								module.editorState = EditorState.createEmpty(decorator);
 							}else{
 								module.typeName = pubName;
 							}
@@ -993,7 +1035,7 @@ class CanvasEditorCore extends React.Component {
 								if(!roots[rootInfo.name]){
 									// Adding an empty root with an RTE.
 									var rootObj = {content: []};
-									var emptyPara = {type: 'richtext', editorState: EditorState.createEmpty()};
+									var emptyPara = {type: 'richtext', editorState: EditorState.createEmpty(decorator)};
 									emptyPara.parent = rootObj;
 									rootObj.content.push(emptyPara);
 									roots[rootInfo.name] = rootObj;

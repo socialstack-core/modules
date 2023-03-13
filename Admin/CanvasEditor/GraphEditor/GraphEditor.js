@@ -18,7 +18,10 @@ var inputTypes = global.inputTypes = global.inputTypes || {};
 // type="graph"
 inputTypes.ontypegraph = function(props, _this){
 	return <>
-		<GraphEditor context={props.context} inputRef={props.inputRef} name={props.name} value={props.value} objectOutput={props.objectOutput} namespace={props.namespace || props.ns} />
+		<GraphEditor context={props.context} inputRef={props.inputRef} name={props.name} value={props.value} 
+		objectOutput={props.objectOutput} namespace={props.namespace || props.ns}
+		onChange={props.onChange}
+		/>
 	</>;
 };
 
@@ -65,10 +68,28 @@ function setRootNode(node, nodeSet){
 }
 
 export default function GraphEditor(props){
-	var [nodes, setNodes] = React.useState(() => []);
+	var [nodes, setNodesIntl] = React.useState(null);
+	var [graph, setGraph] = React.useState(null);
 	var [showConfirmModal, setShowConfirmModal] = React.useState(false);
 	var [cantDeleteModal, setCantDeleteModal] = React.useState(false);
-
+	
+	var setNodes = (nodes) => {
+		if(!graph){
+			graph = {nodes};
+			setGraph(graph);
+		}else{
+			graph.nodes = nodes;
+		}
+		
+		nodes.forEach(node => {
+			if(node){
+				node.graph = graph;
+			}
+		});
+		
+		setNodesIntl(nodes);
+	};
+	
 	React.useEffect(() => {
 		
 		var val = props.value || props.defaultValue;
@@ -79,16 +100,23 @@ export default function GraphEditor(props){
 			// Ensure all autoforms are loaded or loading:
 			getAllContentTypes().then(() => {
 				
+				var g = {};
+				
 				// Load the nodes:
-				loadNodes(val).then(newNodes => setNodes(newNodes));
+				loadNodes(val, g).then(newNodes => {
+					setGraph(g);
+					setNodesIntl(newNodes);
+				});
 				
 			});
 			
+		}else{
+			setNodes([]);
 		}
 		
 	}, [props.value, props.defaultValue]);
 	
-	var loadNodes = async (graphJson) => {
+	var loadNodes = async (graphJson, graph) => {
 		
 		if(typeof graphJson === 'string'){
 			graphJson = JSON.parse(graphJson);
@@ -133,6 +161,7 @@ export default function GraphEditor(props){
 			
 			// instance the node:
 			var node = new NodeType({offsetX: nodeJson.x || 0, offsetY: nodeJson.y || 0});
+			node.graph = graph;
 			
 			// Construct the data state; links will come later:
 			if(nodeJson.d){
@@ -147,6 +176,8 @@ export default function GraphEditor(props){
 			
 			nodes.push(node);
 		}
+		
+		graph.nodes = nodes;
 		
 		// Now the nodes are constructed, we can now load the links.
 		for(var i=0;i<graphJson.c.length;i++){
@@ -194,6 +225,10 @@ export default function GraphEditor(props){
 			}
 		});
 	};
+	
+	if(!nodes){
+		return null;
+	}
 	
 	return <>
 		<GraphEditorCore nodes={nodes} onSave={() => {
@@ -486,10 +521,25 @@ function DraggableItem(props) {
 				
 				var onUpdate = (newValue) => {
 					
+					var prevValue = node.state[fieldKey];
+					
+					var otherNodeToUpdate = null;
+					
+					if(prevValue && prevValue.link && prevValue.node){
+						// Clearing a link. Tell the other node too.
+						otherNodeToUpdate = prevValue.node;
+					}
+					
 					node.state[fieldKey] = newValue;
 					
 					// Ask the node to validate its state, then apply which will trigger a re-render:
-					node.validateState().then(() => {
+					var proms = [node.validateState()];
+					
+					if(otherNodeToUpdate){
+						proms.push(otherNodeToUpdate.validateState());
+					}
+					
+					Promise.all(proms).then(() => {
 						// Store and re-render:
 						saveNodeChanges({});
 					});
@@ -785,7 +835,7 @@ export function GraphEditorCore(props){
 		
 		if(!compatibilityState.ok){
 			console.warn("Can't connect incompatible types", compatibilityState);
-			return;
+			return Promise.resolve(); // reject in future
 		}
 		
 		// Specify a link between source and target fields.
@@ -793,6 +843,19 @@ export function GraphEditorCore(props){
 		// Input fields only have one incoming link so they are stored from its point of view.
 		// source.node.connect(source.fieldMeta, target.node, target.fieldMeta);
 		target.node.connect(target.fieldMeta, source.node, source.fieldMeta);
+		
+		// Run state validation of both nodes.
+		var proms = [];
+		
+		if(target.node){
+			proms.push(target.node.validateState());
+		}
+		
+		if(source.node){
+			proms.push(source.node.validateState());
+		}
+		
+		return Promise.all(proms);
 	};
 	
 	var selectConnector = (node, fieldKey, dir, fieldMeta, canConnect) => {
@@ -824,21 +887,25 @@ export function GraphEditorCore(props){
 			setSelectedConnector(null);
 			
 			// tryConnect always takes them with the input node first.
+			var prom = null;
+			
 			if(dir == 'in'){
-				tryConnect(targ, sc);
-				
-				// Indicate the node has updated.
-				props.updatedNode(sc.node);
+				prom = tryConnect(targ, sc).then(() => {
+					// Indicate the node has updated.
+					props.updatedNode(sc.node);
+				});
 				
 			}else{
-				tryConnect(sc, targ);
-				
-				// Indicate the node has updated.
-				props.updatedNode(targ.node);
+				prom = tryConnect(sc, targ).then(() => {
+					// Indicate the node has updated.
+					props.updatedNode(targ.node);
+				});
 			}
 			
-			redrawLines();
-			console.log("Selected is now", selectedConnector);
+			prom.then(() => {
+				redrawLines();
+				// console.log("Selected is now", selectedConnector);
+			});
 			
 		}else{
 			setSelectedConnector(sc);

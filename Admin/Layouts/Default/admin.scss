@@ -1,5 +1,19 @@
 .admin-page {
 
+	&__select-param-modal {
+
+		.internal-footer {
+			display: flex;
+			justify-content: flex-end;
+			gap: .5rem;
+		}
+
+		.modal-footer {
+			display: none;
+		}
+
+	}
+
 	.is-draft {
 		color: var(--danger);
 	}
@@ -90,6 +104,21 @@
 				color: currentColor;
 			}
 
+		}
+
+		&-url {
+			display: flex;
+			align-items: center;
+
+			.btn-link {
+				padding: 0;
+				font-size: inherit;
+				text-decoration: none;
+
+				&:hover {
+					text-decoration: underline;
+				}
+			}
 		}
 	}
 

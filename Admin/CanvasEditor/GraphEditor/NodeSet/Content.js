@@ -18,12 +18,45 @@ export default class Content extends GraphNode {
 		var { contentType } = this.state;
 		
 		if(!contentType || contentType == this.cTypeFieldsFor){
+			this.updateIncludes();
 			return;
 		}
 		
 		this.cTypeFieldsFor = contentType;
 		var fullContentTypeInfo = await getAutoForm('content', contentType == 'primary' ? this.context && this.context.primary : contentType);
 		this.contentTypeFields = fullContentTypeInfo.form.fields;
+		
+		this.updateIncludes();
+	}
+	
+	updateIncludes() {
+		delete this.state.includes;
+		
+		// If any output fields are connected which are includable, include them now.
+		// Note: will have to factor in include usage propagating 
+		// backwards through Loop, but that's a later issue!
+		var incl = null;
+		
+		this.contentTypeFields && this.contentTypeFields.forEach(fieldInfo => {
+				
+				if(fieldInfo.includable){
+					// Connected?
+					var fieldName = fieldInfo.data.name;
+					
+					if(this.isOutputConnected(fieldName)){
+						// Yes, the field is in use.
+						if(!incl){
+							incl = [];
+						}
+						
+						incl.push(fieldName);
+					}
+				}
+				
+				
+		});
+		
+		this.state.includes = incl;
 	}
 	
 	renderFields() {
@@ -53,7 +86,7 @@ export default class Content extends GraphNode {
 				name: `Content ID`,
 				type: 'int',
 				onRender: (value, onSetValue, label) => {
-					return <Input type={'number'} label={label} value={value && !value.link ? value : undefined} onChange={e => {
+					return <Input type={'number'} label={label} value={value !==null && value!==undefined && !(value.link && value.node && value.field) ? value : undefined} onChange={e => {
 						onSetValue(e.target.value);
 					}} onKeyUp={e => {
 						onSetValue(e.target.value);
@@ -78,7 +111,7 @@ export default class Content extends GraphNode {
 			});
 			
 			// For each field in it..
-			this.contentTypeFields.forEach(fieldInfo => {
+			this.contentTypeFields && this.contentTypeFields.forEach(fieldInfo => {
 				
 				var type = fieldInfo.includable ? fieldInfo.valueType : fieldInfo.data.type;
 				

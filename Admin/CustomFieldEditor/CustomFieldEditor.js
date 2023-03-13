@@ -27,6 +27,7 @@ export default class CustomFieldEditor extends React.Component {
 			<th className="custom-field-editor__nickname">{`Nickname`}</th>
 			<th className="custom-field-editor__type">{`Data Type`}</th>
 			<th className="custom-field-editor__localised">{`Localised`}</th>
+			<th className="custom-field-editor__order">{`Order`}</th>
 			<th className="custom-field-editor__actions"></th>
 		</>;
 	}
@@ -37,11 +38,18 @@ export default class CustomFieldEditor extends React.Component {
 			<col className='col__nickname'></col>
 			<col className='col__type'></col>
 			<col className='col__bool'></col>
+			<col className='col__order'></col>
 			<col className='col__actions'></col>
 		</>;
 	}
 
 	renderEntry(entry) {
+		var order = entry.order ? entry.order : null;
+
+		if (entry.dataType == "entitylist") {
+			order = "NA"
+		}
+
 		return <>
 			<td className="custom-field-editor__name">{entry.name}</td>
 			<td className="custom-field-editor__nickname">{entry.nickName}</td>
@@ -49,6 +57,7 @@ export default class CustomFieldEditor extends React.Component {
 			<td className="custom-field-editor__localised">
 				<i className={entry.localised ? 'fa fa-fw fa-check' : 'fa fa-fw fa-times'}></i>
 			</td>
+			<td className="custom-field-editor__order">{order}</td>
 			<td className="custom-field-editor__actions">
 				<button type="button" className="btn btn-sm btn-outline-primary" onClick={() => this.setState({ showFieldModal: entry })}>
 					<i className="far fa-fw fa-edit"></i>
@@ -63,13 +72,13 @@ export default class CustomFieldEditor extends React.Component {
 	}
 
 	renderFooter() {
-		return <>
+		return (
 			<td colspan="5" className="custom-field-editor__footer">
 				<button type="button" className="btn btn-primary" onClick={() => this.setState({ showFieldModal: true })}>
 					{`Add New Field`}
 				</button>
 			</td>
-		</>;
+		);
     }
 
 	renderEmpty() {
@@ -153,7 +162,7 @@ export default class CustomFieldEditor extends React.Component {
 						<button type="button" className="btn btn-outline-primary cancelButton" onClick={() => { this.setState({ showConfirmDeleteModal: false }) }}>
 							{`Cancel`}
 						</button>
-						<button type="button" className="btn btn-danger confirmButton" onClick={() => { this.deleteField(this.state.showConfirmDeleteModal.id) }}>
+						<button type="button" className="btn btn-danger confirmButton" onClick={() => { this.deleteField(this.state.showConfirmDeleteModal.id), this.setState({ showConfirmDeleteModal: false }) }}>
 							{`Confirm`}
 						</button>
 					</footer>

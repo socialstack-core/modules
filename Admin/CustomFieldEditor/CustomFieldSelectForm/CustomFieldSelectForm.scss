@@ -6,8 +6,12 @@
 	.custom-field-select-form--option {
 		height: 40px;
 
-		.option-delete {
+		.option-buttons {
 			float: right;
+
+			.option-delete {
+				margin-left: 8px;
+			}
 		}
 	}
 }

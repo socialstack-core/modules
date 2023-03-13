@@ -1,47 +1,282 @@
-.media-center{
-	.is-draft{
-		color: red;
-	}
-	
-	.fa-caret-down, .fa-caret-up{
-		color: lightgrey;
-		
-		&:hover{
-			cursor: pointer;
+$focal_reticle_size: 24px;
+$focal_reticle_half: $focal_reticle_size / 2;
+$focal_reticle_border: 2px;
+$focal_reticle_color: #fff;
+$preview_size: 512px;
+
+.media-center {
+
+	&__list {
+		display: flex;
+		flex-wrap: wrap;
+		justify-content: center;
+		gap: 1rem;
+
+		&-item {
+			width: 256px;
+			height: 300px;
+			position: relative;
+
+			// even though it's hidden, stretch the associated checkbox
+			// (reduces scroll events when toggling selection)
+			.btn-check {
+				height: 100%;
+			}
+
+			> label.btn {
+				width: 100%;
+				//height: 100%;
+				height: 256px;
+				position: relative;
+				padding: .5rem;
+				display: flex;
+				align-items: center;
+				justify-content: center;
+
+				> img,
+				> video {
+					width: 100%;
+					height: 100%;
+					object-fit: scale-down;
+
+					// broken ref styling
+					&::before {
+						content: "\f070";
+						-webkit-font-smoothing: antialiased;
+						font-style: normal;
+						font-variant: normal;
+						text-rendering: auto;
+						line-height: 1;
+						font-size: 4em;
+						font-weight: 300;
+						font-family: "Font Awesome 5 Pro";
+						display: flex;
+						align-items: center;
+						justify-content: center;
+						position: absolute;
+						left: 0;
+						top: 0;
+						width: 100%;
+						height: 100%;
+						background: var(--admin-bg, var(--fallback__admin-bg));
+						color: var(--secondary);
+					}
+
+					&::after {
+						content: "Missing image";
+						font-size: 12px;
+						position: absolute;
+						top: calc(50% + 2rem);
+						left: 0;
+						right: 0;
+						color: var(--secondary);
+					}
+				}
+
+				&:hover {
+
+					> img, 
+					> video {
+
+						&::before {
+							background-color: var(--secondary);
+							color: var(--secondary-fg);
+						}
+
+						&::after {
+							color: var(--secondary-fg);
+						}
+					}
+				}
+			}
+
+			.btn-check:focus + .btn-outline-secondary, 
+			.btn-outline-secondary:focus {
+				box-shadow: 0 0 0 0.25rem var(--primary-shadow);
+			}
+
+			.btn-check:checked + .btn.btn-outline-secondary, 
+			.btn-check:active + .btn.btn-outline-secondary, 
+			.btn.btn-outline-secondary:active, 
+			.btn.btn-outline-secondary.active, 
+			.btn.btn-outline-secondary.dropdown-toggle.show {
+				background-color: var(--primary);
+				color: var(--primary-fg);
+
+				> img,
+				> video {
+
+					// broken ref styling
+					&::before {
+						background-color: var(--primary);
+						color: var(--primary-fg);
+					}
+
+					&::after {
+						color: var(--primary-fg);
+					}
+				}
+
+			}
+
+			.btn-check:checked + .btn-outline-secondary:focus, 
+			.btn-check:active + .btn-outline-secondary:focus, 
+			.btn-outline-secondary:active:focus, 
+			.btn-outline-secondary.active:focus, 
+			.btn-outline-secondary.dropdown-toggle.show:focus {
+				box-shadow: 0 0 0 0.25rem var(--primary-shadow);
+			}
+
 		}
-	}
-	
-	div.image {
-		background-image: url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABQAAAAUCAAAAACo4kLRAAAAH0lEQVQY02OcxQADZ+AsJgYsYKgIsiD8YTJInEShIAA1NwKQeKc4/QAAAABJRU5ErkJggg==)
+
+		.pagination {
+			justify-content: center;
+		}
 	}
 
-	.table th {
-		border-top: none;
+	&__id {
+		position: absolute !important;
+		right: .25rem;
+		top: .25rem !important;
 	}
-	
-	th.sorted-desc .fa-caret-down, th.sorted-asc .fa-caret-up{
-		color: green;
-	}
-	
-	.bulk-actions {
-		position: fixed;
-		bottom: 20px;
-		left: 20px;
-		width: 300px;
-		background: white;
-		padding: 10px;
+
+	&__original-filename {
 		text-align: center;
-		box-shadow: 0 0 8px rgba(0,0,0,.3);
+		font-size: 12px;
+		word-break: break-all;
+		margin-top: .5rem;
+		width: 100%;
+		padding: 0;
+	}
+
+	&__upload-modal {
+
+		&-footer {
+			display: flex;
+			gap: .75rem;
+			justify-content: space-between;
+			margin-top: 1.5rem;
+
+			&-options {
+				display: flex;
+				gap: .75rem;
+			}
+		}
+
+		.modal-footer {
+			display: none;
+		}
+
+		.uploader__internal {
+			aspect-ratio: initial;
+			height: 256px;
+			width: 100%;
+		}
+
+		.uploader__caption {
+			width: 100%;
+		}
+
+	}
+
+	&__preview {
+	    $media-center__preview: &;
+		cursor: crosshair;
+		position: relative;
+
+		&-wrapper {
+			display: flex;
+			justify-content: center;
+		}
+
+		> img {
+			max-width: 512px;
+			max-height: 512px;
+		}
 		
-		> p {
-			padding: 10px 0;
+		&-crosshair {
+			position: absolute;
+			width: $focal_reticle_size;
+			height: $focal_reticle_size;
+			border-radius: 100%;
+			border: $focal_reticle_border solid $focal_reticle_color;
+			box-shadow: 2px 2px 1px 0 rgba(0,0,0,.5);
+			transform: translate(-$focal_reticle_half, -$focal_reticle_half);
+			pointer-events: none;
+			transition: all .2s ease-in-out;
+			animation-iteration-count: infinite;
+			animation-duration: .67s;
+        
+			&::before {
+				content: '';
+				position: absolute;
+				width: $focal_reticle_border;
+				height: $focal_reticle_border;
+				left: calc(50% - (#{$focal_reticle_border} / 2));
+				top: calc(50% - (#{$focal_reticle_border} / 2));
+				box-shadow: 
+				  0 calc(#{$focal_reticle_border} * -3) $focal_reticle_color,
+				  0 calc(#{$focal_reticle_border} * -4) $focal_reticle_color,
+				  0 calc(#{$focal_reticle_border} * -5) $focal_reticle_color,
+				  0 calc(#{$focal_reticle_border} * -6) $focal_reticle_color,
+				  0 calc(#{$focal_reticle_border} * -7) $focal_reticle_color,
+				  0 calc(#{$focal_reticle_border} * -8) $focal_reticle_color,
+
+				  calc(#{$focal_reticle_border} * 3) 0 $focal_reticle_color,
+				  calc(#{$focal_reticle_border} * 4) 0 $focal_reticle_color,
+				  calc(#{$focal_reticle_border} * 5) 0 $focal_reticle_color,
+				  calc(#{$focal_reticle_border} * 6) 0 $focal_reticle_color,
+				  calc(#{$focal_reticle_border} * 7) 0 $focal_reticle_color,
+				  calc(#{$focal_reticle_border} * 8) 0 $focal_reticle_color,
+
+				  0 calc(#{$focal_reticle_border} * 3) $focal_reticle_color,
+				  0 calc(#{$focal_reticle_border} * 4) $focal_reticle_color,
+				  0 calc(#{$focal_reticle_border} * 5) $focal_reticle_color,
+				  0 calc(#{$focal_reticle_border} * 6) $focal_reticle_color,
+				  0 calc(#{$focal_reticle_border} * 7) $focal_reticle_color,
+				  0 calc(#{$focal_reticle_border} * 8) $focal_reticle_color,
+
+				  calc(#{$focal_reticle_border} * -3) 0 $focal_reticle_color,
+				  calc(#{$focal_reticle_border} * -4) 0 $focal_reticle_color,
+				  calc(#{$focal_reticle_border} * -5) 0 $focal_reticle_color,
+				  calc(#{$focal_reticle_border} * -6) 0 $focal_reticle_color,
+				  calc(#{$focal_reticle_border} * -7) 0 $focal_reticle_color,
+				  calc(#{$focal_reticle_border} * -8) 0 $focal_reticle_color;
+			}
+        
+		}
+
+		&:hover {
+
+			#{$media-center__preview}-crosshair {
+				animation-name: reticle_pulse;
+			}
+
+		}
+
+		> img {
+			border: 1px solid var(--admin-field-border, var(--fallback__admin-field-border));
 		}
 	}
-	
-	.btn-danger {
-		border-radius: 2rem;
-		font-size: 1rem;
-		font-weight: bold;
-		padding: 0.75rem 2rem;
+
+	&__focal-point {
+		margin-top: 1rem;
 	}
+}
+
+@keyframes reticle_pulse {
+  0% {
+    opacity: 1;
+    filter: invert(0);
+  }
+
+  50% {
+    opacity: .5;
+    filter: invert(100%);
+  }
+
+  100% {
+    opacity: 1;
+    filter: invert(0);
+  }
 }

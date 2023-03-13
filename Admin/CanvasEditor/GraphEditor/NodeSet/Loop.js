@@ -13,14 +13,13 @@ export default class Loop extends GraphNode {
 	renderFields() {
 		
 		var listOfItems = this.state.listOfItems;
-		var eleType = listOfItems && listOfItems.type && listOfItems.type.elementType;
-		
+		var eleType = listOfItems ? this.getInputType(listOfItems) : null;
 		
 		var fields = [
 			{
 				key: 'listOfItems',
 				name: `List of items`,
-				type: eleType ? listOfItems.type : 'array'
+				type: eleType || 'array'
 				// direction:in is implied
 			}
 		];
@@ -30,11 +29,12 @@ export default class Loop extends GraphNode {
 		
 		if(eleType){
 			// We've got an input on the listOfItems field.
+			var loopResType = this.state.loopResult ? this.getInputType(this.state.loopResult) : null;
 			
 			fields.push({
 				key: 'loopItem',
 				name: `Loop item`,
-				type: eleType,
+				type: eleType.elementType,
 				direction: 'out'
 			},
 			{
@@ -46,18 +46,17 @@ export default class Loop extends GraphNode {
 			{
 				key: 'loopResult',
 				name: `Iteration result`,
-				type: 'object'
+				type: loopResType || 'object'
 				// direction:in is implied
 			});
 			
 			if(this.state.loopResult){
 				
-				var type = this.getInputType(this.state.loopResult);
-				
 				fields.push({
 					key: 'output',
 					name: `Output`,
-					type: {name: 'array', elementType: type}
+					direction: 'out',
+					type: {name: 'array', elementType: loopResType}
 				});
 				
 			}

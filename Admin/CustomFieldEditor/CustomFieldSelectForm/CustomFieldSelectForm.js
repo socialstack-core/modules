@@ -3,6 +3,7 @@ import Input from 'UI/Input';
 import Modal from 'UI/Modal';
 import webRequest from 'UI/Functions/WebRequest';
 import Loop from 'UI/Loop';
+import AutoForm from 'Admin/AutoForm';
 import Alert from 'UI/Alert';
 import Spacer from 'UI/Spacer';
 
@@ -37,9 +38,14 @@ export default class CustomFieldSelectForm extends React.Component {
 						option => {
 								return <div className="custom-field-select-form--option">
 									<span className="option-value">{option.value}</span>
-									<button className="option-delete" onClick={e => { e.preventDefault(); this.deleteOption(option.id); }}>
-										<icon className="fa fa-trash" />
-									</button>
+									<div className="option-buttons">
+										<button className="option-edit" onClick={e => { e.preventDefault(); this.setState({ entityToEditId: option.id, showCreateOrEditModal: true }); }}>
+											<icon className="far fa-fw fa-edit" />
+										</button>
+										<button className="option-delete" onClick={e => { e.preventDefault(); this.deleteOption(option.id); }}>
+											<icon className="fa fa-trash" />
+										</button>
+									</div>
 								</div>
 						}
 					}
@@ -55,10 +61,33 @@ export default class CustomFieldSelectForm extends React.Component {
 							this.newOptionInputRef.current.inputRef.value = "";
 						}
 					}}
+					live
 				>
 					<Input name={"value"} label={"New Option"} validate={['Required']} ref={this.newOptionInputRef}/>
 					<Input type="submit" label="Create Option" />
 				</Form>
+				{this.state.showCreateOrEditModal &&
+					<Modal
+						title={this.state.entityToEditId ? `Edit Option` : `Create New Option`}
+						onClose={() => {
+							this.setState({ showCreateOrEditModal: false, entityToEditId: null });
+						}}
+						visible
+						isExtraLarge
+					>
+						<AutoForm
+							modalCancelCallback={() => {
+								this.setState({ showCreateOrEditModal: false, entityToEditId: null });
+							}}
+							endpoint={"customContentTypeSelectOption".toLowerCase()}
+							singular="Options" 
+							plural={"Options"}
+							id={this.state.entityToEditId ? this.state.entityToEditId : null}
+							onActionComplete={entity => {
+								this.setState({ showCreateOrEditModal: false, entityToEditId: null });
+							}} />
+					</Modal>
+				}
 		</div>;
 		
 	}

@@ -116,6 +116,38 @@ export default class GraphNode {
 		
 	}
 	
+	hasConnectionTo(node, fieldKey){
+		for(var key in this.state){
+			var value = this.state[key];
+			
+			if(value && value.link && value.node == node && value.field == fieldKey){
+				// Yep!
+				return true;
+			}
+		}
+		
+		// Nope!
+		return false;
+	}
+	
+	isOutputConnected(fieldKey){
+		// Find a node in the graph with link:true, node: this, field: fieldKey in its state.
+		if(!this.graph){
+			throw new Error("Graph node requires knowing which graph it is in to be able to establish if an output is in use or not.");
+		}
+		
+		var nodes = this.graph.nodes;
+		for(var k in nodes){
+			var node = nodes[k];
+			
+			if(node && node.hasConnectionTo(this, fieldKey)){
+				return true;
+			}
+		}
+		
+		return false;
+	}
+	
 	/*
 	Gets the type of an input field 
 	*/

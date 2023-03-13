@@ -52,6 +52,7 @@ export default function Automations (props) {
 		];
 		
 	};
+
 	var renderColgroups = () => {
 		return [
 			<col></col>,
@@ -61,7 +62,6 @@ export default function Automations (props) {
 	};
 	
 	var renderEntry = (entry) => {
-		
 		return [
 			<td>{entry.name}</td>,
 			<td>{entry.cronDescription} ({entry.cron})</td>,
@@ -96,24 +96,51 @@ export default function Automations (props) {
 		</table>;
 	}
 
-	
-	return (
-		<Default>
-			<div className="admin-page__internal">
-				<Loop asTable over={"automation/list"}
-					orNone={() => renderEmpty()}
-				>
-					{[
-						renderHeader,
-						renderColgroups,
-						renderEntry
-					]}
-				</Loop>
-				{props.children}
+	return <Default>
+		<div className="admin-page">
+			<header className="admin-page__subheader">
+				<div className="admin-page__subheader-info">
+					<h1 className="admin-page__title">
+						{`Automations`}
+					</h1>
+					<ul className="admin-page__breadcrumbs">
+						<li>
+							<a href={'/en-admin/'}>
+								{`Admin`}
+							</a>
+						</li>
+						<li>
+							{`Automations`}
+						</li>
+					</ul>
+				</div>
+			</header>
+			<div className="admin-page__content">
+				<div className="admin-page__internal">
+					<Loop asTable over={"automation/list"}
+						orNone={() => renderEmpty()}>
+						{[
+							renderHeader,
+							renderColgroups,
+							renderEntry
+						]}
+					</Loop>
+					{props.children}
+				</div>
+				{/*
+				<footer className="admin-page__footer">
+					{selectedCount > 0 ? this.renderBulkOptions(selectedCount) : null}
+					{this.props.create && <>
+						<a href={addUrl} className="btn btn-primary">
+							{`Create`}
+						</a>
+					</>}
+				</footer>
+				 */}
 			</div>
-		</Default>	
-	);
-	
+		</div>
+	</Default>;
+
 }
 
 Automations.propTypes = {

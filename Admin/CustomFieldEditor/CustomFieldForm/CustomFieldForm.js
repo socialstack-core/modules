@@ -19,6 +19,7 @@ export default class CustomFieldForm extends React.Component {
 			{ value: "select", name: "Select" },
 			{ value: "dateTime", name: "Date" },
 			{ value: "double", name: "Number" },
+			{ value: "price", name: "Price" },
 			{ value: "bool", name: "Boolean" }
 		];
 
@@ -50,7 +51,21 @@ export default class CustomFieldForm extends React.Component {
 			<Form
 				action={action}
 				onValues={values => {
+					var validation = [];
 					values.customContentTypeId = this.props.customContentTypeId;
+					
+					if (values.isRequired) {
+						validation.push("Required");
+					}
+
+					if (values.isEmail) {
+						validation.push("EmailAddress");
+					}
+
+					if (validation && validation.length > 0) {
+						values.validation = validation.join(',');
+					}
+
 					return values;
 				}}
 				onSuccess={response => {
@@ -98,15 +113,43 @@ export default class CustomFieldForm extends React.Component {
 					<CustomFieldSelectForm fieldId={this.state.field.id} />
 				}
 
-				{!this.props.isFormField &&
-					<Input 
-						label="Localised"
-						name="localised"
-						type="checkbox"
-						defaultValue={this.props.field ? this.props.field.localised : null}
-						validate={['Required']}
-					/>
+				{!this.props.isFormField
+					?
+						<Input 
+							label="Localised"
+							name="localised"
+							type="checkbox"
+							defaultValue={this.props.field ? this.props.field.localised : null}
+							validate={['Required']}
+						/>
+					:
+						<div className="form-specific-vlaues">
+							<div className="validation">
+								<Input 
+									label="Is this field required?"
+									name="isRequired"
+									type="checkbox"
+									defaultValue={this.props.field && this.props.field.validation && this.props.field.validation.includes("Required") ? true : null}
+								/>
+								{(this.state.dataType === "string" || this.state.dataType === "textarea") &&
+									<Input 
+										label="Is this field an email address?"
+										name="isEmail"
+										type="checkbox"
+										defaultValue={this.props.field && this.props.field.validation && this.props.field.validation.includes("EmailAddress") ? true : null}
+									/>
+								}
+								<Input 
+									label="Peak 15 Identifier"
+									name="peak15FieldIdentifier"
+									defaultValue={this.props.field && this.props.field.peak15FieldIdentifier ? this.props.field.peak15FieldIdentifier : null}
+									placeholder="Leave blank if this form does not intergrate with peak 15"
+								/>
+							</div>
+						</div>
 				}
+
+				<Input name={"order"} label={"Order"} type="number" defaultValue={this.props.field ? this.props.field.order : 0} />
 
 				<footer className="custom-field-editor__modal-footer">
 					<button type="button" className="btn btn-outline-primary cancelButton" onClick={() => {

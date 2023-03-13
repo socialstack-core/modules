@@ -63,7 +63,9 @@ export default class Component extends GraphNode {
 					}
 					
 				}else if(typeof type !== 'string'){
-					continue;
+					if(type.type != 'array' && type.type != 'list'){
+						continue;
+					}
 				}
 				
 				fields.push({

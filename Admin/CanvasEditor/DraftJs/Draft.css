@@ -24,6 +24,5 @@
  */
 
 .DraftEditor-root:focus-within+.RichEditor-buttonbar {
-	/*opacity:1;*/
-	display: block;
+	display: grid;
 }

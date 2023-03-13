@@ -39,6 +39,11 @@ var anything = {
 	isAny: true
 };
 
+var exec = {
+	color: [0.33, 1, 0.39], 
+	name: 'execute'
+};
+
 var existing_types = {
 	'bool': bool_type,
 	'boolean': bool_type,
@@ -69,7 +74,8 @@ var existing_types = {
 	'anything': anything,
 	'object': anything,
 	'string': string_type,
-	'text': string_type
+	'text': string_type,
+	'execute': exec
 };
 
 export function isDefaultType(type){

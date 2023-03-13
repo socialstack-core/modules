@@ -1,8 +1,7 @@
 import Loop from 'UI/Loop';
 import Canvas from 'UI/Canvas';
 import Search from 'UI/Search';
-import Modal from 'UI/Modal';
-import Input from 'UI/Input';
+import ConfirmModal from 'UI/Modal/ConfirmModal';
 import webRequest from 'UI/Functions/WebRequest';
 import {useTokens} from 'UI/Token';
 import {isoConvert} from "UI/Functions/DateTools";
@@ -161,7 +160,9 @@ export default class AutoList extends React.Component {
 	
 	renderEntry(entry) {
 		var {bulkSelections} = this.state;
-		var path = '/en-admin/' + this.props.endpoint + '/';
+		var path = this.props.customUrl 
+			? '/en-admin/' + this.props.customUrl + '/'
+			: '/en-admin/' + this.props.endpoint + '/';
 		var checked = bulkSelections && !!bulkSelections[entry.id];
 		var checkbox = <td>
 			<input type='checkbox' checked={checked} onChange={() => {
@@ -258,15 +259,11 @@ export default class AutoList extends React.Component {
 	}
 	
 	renderConfirmDelete(count) {
-		return <Modal visible onClose={() => this.cancelDelete()}>
-				<p>
+		return <ConfirmModal confirmCallback={() => this.confirmDelete()} confirmVariant="danger" cancelCallback={() => this.cancelDelete()}>
+			<p>
 				{`Are you sure you want to delete ${count} item(s)?`}
-				</p>
-				<div>
-					<Input inline type="button" className="btn btn-danger" onClick={() => this.confirmDelete()}>Yes, delete</Input>
-					<Input inline type="button" className="btn btn-secondary" style={{ marginLeft: '10px' }} onClick={() => this.cancelDelete()}>Cancel</Input>
-				</div>
-		</Modal>;
+			</p>
+		</ConfirmModal>
 	}
 
 	capitalise(name) {
@@ -317,9 +314,9 @@ export default class AutoList extends React.Component {
 			combinedFilter.where = where;
 		}
 		
-		var path = '/en-admin/' + this.props.endpoint + '/';
-		
-		var addUrl = path + 'add';
+		var addUrl = this.props.customUrl 
+			? '/en-admin/' + this.props.customUrl + '/' + 'add'
+			: '/en-admin/' + this.props.endpoint + '/' + 'add';
 		
 		if(filterField){
 			var filterFieldLC = filterField.charAt(0).toLowerCase() + filterField.slice(1);
@@ -358,7 +355,7 @@ export default class AutoList extends React.Component {
 								</a>
 							</li>
 							<li>
-								<a href={'/en-admin/' + this.props.endpoint}>{this.capitalise(this.props.plural)}</a>
+								{this.capitalise(this.props.plural)}
 							</li>
 						</ul>
 					</div>

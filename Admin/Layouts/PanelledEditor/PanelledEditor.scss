@@ -5,6 +5,7 @@
 		align-items: center;
 		gap: .25rem;
 		color: currentColor;
+		margin-inline-start: .5rem;
 
 		> code {
 			font-size: .875rem;
@@ -72,6 +73,14 @@
 			flex-wrap: nowrap;
 			padding-right: .25rem;
 
+			.dropdown__label i:first-child {
+				margin-inline-end: 0;
+			}
+
+			.dropdown-toggle.dropdown-toggle-split:hover {
+				color: var(--danger);
+			}
+
 			.collapsible {
 				width: 100%;
 
@@ -98,7 +107,7 @@
 				}
 
 				.collapsible-content {
-					padding: 0 0 0 1.6rem;
+					padding: 0 0 0 .7rem;
 					border: 0;
 
 					&__wrapper--selected {
@@ -132,7 +141,7 @@
 			font-size: .875rem;
 			font-weight: bold;
 			text-align: left;
-			flex: 1 0 auto;
+			flex: 1 1 auto;
 			color: var(--admin-field-fg, var(--fallback__admin-field-fg));
 		}
 
@@ -207,6 +216,18 @@
 				display: none;
 			}
 		}
+
+		.rich-editor {
+
+			.modal-backdrop,
+			.modal {
+				width: auto;
+				height: auto;
+				right: 0;
+				bottom: 0;
+			}
+		}
+
 	}
 
 	&__properties {
@@ -299,9 +320,10 @@
 				height: 100%;
 
 				.map-interaction {
-					background: var(--admin-transparency-bg, var(--fallback__admin-transparency-bg));
+					background: var(--admin-grid-bg, var(--fallback__admin-grid-bg));
 				}
 			}
+
 		}
 
 	}

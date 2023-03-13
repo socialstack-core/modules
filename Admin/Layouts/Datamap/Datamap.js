@@ -75,7 +75,8 @@ export default function Datamap(props) {
 
 		webRequest('customcontenttype/list', {
 			where: {
-				deleted: false
+				deleted: false,
+				isForm: false
             }
         })
 			.then(resp => {

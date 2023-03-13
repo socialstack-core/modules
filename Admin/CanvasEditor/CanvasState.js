@@ -1,8 +1,12 @@
 import { getRootInfo } from './Utils';
 import Graph from 'UI/Functions/GraphRuntime/Graph';
 import Draft from 'Admin/CanvasEditor/DraftJs/Draft.min.js';
+import { createLinkDecorator } from 'Admin/CanvasEditor/Link';
 const { EditorState, convertFromHTML, ContentState, convertToRaw, getSafeBodyFromHTML } = Draft;
 
+const centerAlignmentClass = "center-align";
+const leftAlignmentClass = "left-align";
+const rightAlignmentClass = "right-align";
 
 export default class CanvasState{
 	
@@ -31,7 +35,8 @@ export default class CanvasState{
 		var rt = this.node;
 		
 		if(Array.isArray(rt.content) && !rt.content.length){
-			var rootPara = {type: 'richtext', editorState: EditorState.createEmpty()};
+			var decorator = createLinkDecorator();
+			var rootPara = {type: 'richtext', editorState: EditorState.createEmpty(decorator)};
 			rootPara.parent = rt;
 			rt.content.push(rootPara);
 		}
@@ -126,7 +131,7 @@ export default class CanvasState{
 			p.textContent = html;
 			html = p.innerHTML;
 		}
-		
+
 		var blocksFromHTML = convertFromHTML(html, getSafeBodyFromHTML, this.extendedBlockRenderMap);
 
 		// Convert linebreak (<br>) back to unstyled (<div>) because the Draft editor does not handle them very well
@@ -145,9 +150,11 @@ export default class CanvasState{
 			blocksFromHTML.entityMap,
 		);
 		
+		var decorator = createLinkDecorator();
+
 		return EditorState.createWithContent(
 			state,
-			// decorator,
+			decorator
 		);
 	}
 	
@@ -254,13 +261,30 @@ export default class CanvasState{
 					if(Array.isArray(node.r)){
 						node.r.forEach((n, i) => {
 							var resultRoot = {};
-							this.loadCanvasChildren(n, resultRoot);
+							if(Array.isArray(n)){
+								this.loadCanvasChildren(node.r[key], resultRoot);
+							}else{
+								resultRoot = {
+									content: [
+										this.convertToNodesFromCanvas(n)
+									]
+								};
+							}
 							roots[i + ''] = resultRoot;
 						})
 					}else{
 						for(var key in node.r){
 							var resultRoot = {};
-							this.loadCanvasChildren(node.r[key], resultRoot);
+							var rt = node.r[key];
+							if(Array.isArray(rt)){
+								this.loadCanvasChildren(node.r[key], resultRoot);
+							}else{
+								resultRoot = {
+									content: [
+										this.convertToNodesFromCanvas(rt)
+									]
+								};
+							}
 							roots[key] = resultRoot;
 						}
 					}
@@ -309,7 +333,8 @@ export default class CanvasState{
 					
 					// If root content is empty, insert an RTE.
 					if(!root.content.length){
-						var rootPara = {type: 'richtext', editorState: EditorState.createEmpty()};
+						var decorator = createLinkDecorator();
+						var rootPara = {type: 'richtext', editorState: EditorState.createEmpty(decorator)};
 						rootPara.parent = root;
 						root.content.push(rootPara);
 					}
@@ -368,7 +393,7 @@ export default class CanvasState{
 			}
 		}
 		
-		var type = node.type || node.t;
+		var type = node.type || node.t || node.module;
 		
 		if (!type) {
 			return '';
@@ -381,11 +406,34 @@ export default class CanvasState{
 		if (type == "br") {
 			return "<br>";
 		}
+
+		if (type == "UI/Link") {
+			type = "a";
+		}
+
+		// Handle alignment by converting to a custom tag/block
+		if (node.d && node.d.className) {
+			switch(node.d.className){
+				case centerAlignmentClass:
+					type = 'center';
+				break;
+				case leftAlignmentClass:
+					type = 'left';
+				break;
+				case rightAlignmentClass:
+					type = 'right';
+				break;
+			}
+		}
 		
 		var str = '<' + type + '>';
 
-		if (Array.isArray(node.c)) {
+		if (node.d && node.d.href) {
+			var pos = str.length - 1;
+			str = str.substring(0, pos) + ' href="' + node.d.href + '"' + str.substring(pos);
+		}
 
+		if (Array.isArray(node.c)) {
 			node.c.forEach(n => {
 				str += this.convertToHtmlFromCanvas(n);
 			});
@@ -410,10 +458,16 @@ export default class CanvasState{
 					str += child;
 				}else if(child.s){
 					str += this.convertToHtmlFromCanvas(child.s, true);
-				}else if(!child.type && !child.t){
+				}else if(!child.type && !child.t && !child.module){
 					// typeless nodes from C1 can have an array of content in them which should be effectively merged in.
-					if(child.content){
-						child.content.forEach(c1n => {
+					var childContent = child.content;
+					
+					if(childContent){
+						if(!Array.isArray(childContent)){
+							childContent = [childContent];
+						}
+						
+						childContent.forEach(c1n => {
 							str += this.convertToHtmlFromCanvas(c1n);
 						});
 					}
@@ -435,13 +489,26 @@ export default class CanvasState{
 		// Raw contains a list of blocks. These will generally be "unstyled" blocks, 
 		// meaning they are some text with possible inline styles on them, but then simply followed by a br.
 		var blocks = raw.blocks;
+		var entityMap = raw.entityMap;
 		var children = [];
 		var listChildren = [];
 		
 		for(var i=0;i<blocks.length;i++){
 			var block = blocks[i];
+			var entityRanges = block.entityRanges;
+			var entities = null;
 
-			var blockNode = this.toTreeFromRTE(block);
+			if (entityRanges && entityRanges.length > 0 && entityMap) {
+				entities = [];
+
+				for (let i=0;i<entityRanges.length;i++) {
+					var key = entityRanges[i].key;
+					var entity = entityMap[key];
+					entities.push(entity);
+				}
+			}
+
+			var blockNode = this.toTreeFromRTE(block, entities);
 
 			if (block.type == 'unordered-list-item' || block.type == 'ordered-list-item') {
 				listChildren.push(blockNode);
@@ -454,7 +521,7 @@ export default class CanvasState{
 				children.push(blockNode);
 			}
 		}
-		
+
 		// If there is only 1 child, return that.
 		if(children.length == 1){
 			return children[0];
@@ -463,12 +530,13 @@ export default class CanvasState{
 		return {t: 'div', c: children};
 	}
 	
-	toTreeFromRTE(block){
+	toTreeFromRTE(block, blockEntities){
 		
 		var blockType = 'p';
+		var entityRanges = block.entityRanges ? block.entityRanges : [];
+		var data = {};
 
 		if(block.type != 'unstyled'){
-			
 			switch(block.type){
 				case 'header-one':
 					blockType = 'h1';
@@ -503,6 +571,21 @@ export default class CanvasState{
 				case 'linebreak':
 					blockType = 'br';
 				break;
+				case 'LINK':
+					blockType = 'a';
+				break;
+				case 'center':
+					data.className = centerAlignmentClass;
+					blockType = 'p';
+				break;
+				case 'left':
+					data.className = leftAlignmentClass;
+					blockType = 'p';
+				break;
+				case 'right':
+					data.className = rightAlignmentClass;
+					blockType = 'p';
+				break;
 				default:
 					blockType = 'p';
 				break;
@@ -512,9 +595,27 @@ export default class CanvasState{
 
 		var text = block.text;
 		var inlines = block.inlineStyleRanges;
-		
+
+		// Add block entities, currently assumes all entites are LINK entities
+		for (let i=0; i<entityRanges.length; i++) {
+			var entityRange = entityRanges[i];
+			var entity = blockEntities[entityRange.key];
+			var url = entity.data ? entity.data.url : null;
+
+			if (url && ( url.length <= 5 || (url.slice(0, 4) != "http") ) ) {
+				url = "https://" + url;
+			}
+
+			inlines.push({  
+				offset: entityRange.offset,
+				length: entityRange.length,
+				data: { href: url },
+				style: 'LINK',
+				entityKey: entityRange.key
+			});
+		}
+
 		if(inlines && inlines.length){
-			
 			// Sort them by length:
 			inlines.forEach(isr => {
 				isr.rangeEnd = isr.offset + isr.length;
@@ -529,12 +630,15 @@ export default class CanvasState{
 				'BOLD': {tag:'b'},
 				'ITALIC': {tag:'i'},
 				'UNDERLINE':{tag:'u'},
-				'CODE':{tag:'code'}
+				'CODE':{tag:'code'},
+				'LINK':{tag:'UI/Link'}
 			};
 			
 			inlines.forEach(isr => {
 				var start = isr.offset;
 				var rangeType = styleMap[isr.style];
+				rangeType.data = isr.data;
+				rangeType.entityKey = isr.entityKey;
 				
 				if(!rangeType){
 					console.log("Range type not found: ", isr);
@@ -545,9 +649,9 @@ export default class CanvasState{
 					var charOffset = start + i;
 					
 					if(!chars[charOffset]){
-						chars[charOffset] = [rangeType];
+						chars[charOffset] = [{...rangeType}];
 					}else{
-						chars[charOffset].push(rangeType);
+						chars[charOffset].push({...rangeType});
 					}
 				}
 			});
@@ -576,7 +680,7 @@ export default class CanvasState{
 					var prevStyle = h >=previousStack.length ? null : previousStack[h];
 					var curStyle = h >=styleStack.length ? null : styleStack[h];
 					
-					if(prevStyle != curStyle){
+					if(!(prevStyle && curStyle) || prevStyle.tag != curStyle.tag || prevStyle.entityKey != curStyle.entityKey){
 						// Closing a tag, opening a tag, or both.
 						diffAt = h;
 						break;
@@ -591,7 +695,7 @@ export default class CanvasState{
 					
 					// Open the new ones:
 					for(var h=diffAt;h<styleStack.length;h++){
-						var newNode = {t: styleStack[h].tag};
+						var newNode = {t: styleStack[h].tag, d: styleStack[h].data};
 						
 						var parentNode = currentStack.length ? currentStack[currentStack.length - 1] : rootNode;
 						
@@ -632,11 +736,11 @@ export default class CanvasState{
 				previousStack = styleStack;
 			}
 			
-			return {t: blockType, c:rootNode.c};
+			return {t: blockType, c:rootNode.c, d: data};
 			
 		}else{
 			// Just a raw text only node.
-			return {t: blockType, c:text};
+			return {t: blockType, c:text, d: data};
 		}
 		
 	}
@@ -672,6 +776,7 @@ export default class CanvasState{
 		
 		if(node.type == 'richtext'){
 			
+			var decorator = createLinkDecorator();
 			var cc = node.editorState.getCurrentContent();
 			var raw = convertToRaw(cc);
 			resultNode = this.toCanvasFromRawRTE(raw);
@@ -957,7 +1062,8 @@ export default class CanvasState{
 	removeNode(node, retainChildren){
 		if(!node.parent || !node.type){
 			// It's a root. Just empty it instead via putting an RTE in there.
-			var rootPara = {type: 'richtext', editorState: EditorState.createEmpty()};
+			var decorator = createLinkDecorator();
+			var rootPara = {type: 'richtext', editorState: EditorState.createEmpty(decorator)};
 			node.content = [rootPara];
 			rootPara.parent = node;
 			return;

@@ -1,6 +1,10 @@
+import store from 'UI/Functions/Store';
+
+const PINNED_MODULES_KEY = 'pinned_modules';
+
 var __moduleGroups = null;
 
-export function collectModules(){
+function collectModules(){
 	
 	if(__moduleGroups){
 		return __moduleGroups;
@@ -60,7 +64,8 @@ export function collectModules(){
 				name,
 				publicName,
 				props: set == sets.renderer && module.rendererPropTypes ? module.rendererPropTypes : props || {},
-				moduleClass: module
+				moduleClass: module,
+				priority: module.priority
 			});
 		}
 	}
@@ -96,6 +101,24 @@ export function collectModules(){
 		
 		__moduleGroups[setName] = moduleGroups;
 	}
-	
+
 	return __moduleGroups;
 }
+
+function getPinnedModules(pinned) {
+	return store.get(PINNED_MODULES_KEY);
+}
+
+function setPinnedModules(pinned) {
+	store.set(PINNED_MODULES_KEY, pinned);
+}
+
+function removePinnedModule(pinned) {
+	// TODO
+}
+
+export {
+	collectModules,
+	setPinnedModules,
+	removePinnedModule
+};
