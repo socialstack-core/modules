@@ -35,7 +35,7 @@ class PanelledEditorInternal extends React.Component {
 	}
 	
 	componentDidMount() {
-		var html = document.querySelector("html");
+		var html = window.SERVER ? undefined : document.querySelector("html");
 
 		if (html) {
 			html.classList.add("admin--page-editor");
@@ -43,7 +43,7 @@ class PanelledEditorInternal extends React.Component {
 	}
 
 	componentWillUnmount() {
-		var html = document.querySelector("html");
+		var html = window.SERVER ? undefined : document.querySelector("html");
 
 		if (html) {
 			html.classList.remove("admin--page-editor");

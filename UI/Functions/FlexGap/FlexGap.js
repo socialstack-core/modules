@@ -60,7 +60,7 @@ function checkFlexGap() {
 
 document.addEventListener("DOMContentLoaded", function() {
 	var flexGapSupported = checkFlexGap();
-	var html = document.querySelector("html");
+	var html = window.SERVER ? undefined : document.querySelector("html");
 
 	if (html) {
 

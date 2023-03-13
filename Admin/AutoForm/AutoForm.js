@@ -84,11 +84,15 @@ class AutoFormInternal extends React.Component {
 	}
 
 	componentWillUnmount() {
-		var html = document.querySelector("html");
 
-		if (html) {
-			html.style.setProperty('--admin-feedback-height', '0px');
-		}
+		if (!window.SERVER) {
+			var html = document.querySelector("html");
+
+			if (html) {
+				html.style.setProperty('--admin-feedback-height', '0px');
+			}
+
+        }
 
 		global.window.removeEventListener('beforeunload', this.beforeUnload);
 	}
@@ -792,7 +796,7 @@ class AutoFormInternal extends React.Component {
 			}
 		};
 
-		var html = document.querySelector("html");
+		var html = window.SERVER ? undefined : document.querySelector("html");
 
 		if (mainCanvas) {
 			// Check for a field called url on the object:

@@ -28,7 +28,7 @@ export default props => {
     var { url } = pageState;
 
     function updateSchemeVars(scheme) {
-        var html = document.querySelector("html");
+        var html = window.SERVER ? undefined : document.querySelector("html");
 
         if (!html) {
             return;
