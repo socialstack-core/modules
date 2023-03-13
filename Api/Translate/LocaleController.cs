@@ -24,6 +24,7 @@ namespace Api.Translate
 			
 			// Set locale ID:
 			context.LocaleId = id;
+			context.CurrencyLocaleId = id;
 
 			await OutputContext(context);
 		}
