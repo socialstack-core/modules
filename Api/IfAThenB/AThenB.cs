@@ -1,9 +1,6 @@
-using System;
-using System.Collections.Generic;
-using Api.Database;
-using Api.Reactions;
 using Api.Users;
 using Api.AutoForms;
+
 
 namespace Api.IfAThenB
 {
@@ -14,20 +11,23 @@ namespace Api.IfAThenB
 	public partial class AThenB : VersionedContent<uint>
 	{
 		/// <summary>
-		/// The name of the event.
+		/// A name for the rule.
 		/// </summary>
-		[Module("Admin/Event/Select")]
-		public string EventName;
+		public string Name;
 		
 		/// <summary>
-		/// The name of the action to trigger.
+		/// Optional description so people know what this rule does.
 		/// </summary>
-		public string ActionName;
+		public string Description;
 		
 		/// <summary>
-		/// Config for the action.
+		/// The graph runtime.
 		/// </summary>
-		public string ActionConfigJson;
+		[Module("Admin/CanvasEditor/GraphEditor")]
+		[Data("type", "graph")]
+		[Data("namespace", "Admin/IfAThenB/NodeSet/")]
+		public string RuleGraphJson;
+		
 	}
 
 }
