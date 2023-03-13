@@ -116,11 +116,25 @@ namespace Api.Contexts
 				// E.g. UserId, LocaleId.
 				// Get content type ID:
 				var contentName = field.Name[0..^2];
-				var contentTypeId = ContentTypes.GetId(contentName);
-				fld.ContentTypeId = contentTypeId;
-				ContentTypeToFieldInfo[contentTypeId] = fld;
+				AutoService svc = null;
 
-				var svc = Services.GetByContentTypeId(contentTypeId);
+				//Hack for currencyLocale
+				if (contentName == "CurrencyLocale")
+                {
+					var contentTypeId = ContentTypes.GetId("Locale");
+					fld.ContentTypeId = contentTypeId;
+					ContentTypeToFieldInfo[contentTypeId] = fld;
+
+					svc = Services.GetByContentTypeId(contentTypeId);
+				} 
+				else
+                {
+					var contentTypeId = ContentTypes.GetId(contentName);
+					fld.ContentTypeId = contentTypeId;
+					ContentTypeToFieldInfo[contentTypeId] = fld;
+
+					svc = Services.GetByContentTypeId(contentTypeId);
+				}
 
 				if (svc != null)
 				{

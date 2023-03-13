@@ -86,6 +86,24 @@ namespace Api.Contexts
 				context.LocaleId = localeId;
 			}
 
+			// Handle currency locale next. The cookie comes lower precedence to the Locale header.
+			cookie = request.Cookies[_locales.CurrencyLocaleCookieName];
+
+			StringValues currencyLocaleIds;
+
+			// Could also handle Accept-Language here. For now we use a custom header called Locale (an ID).
+			if (request.Headers.TryGetValue("CurrencyLocale", out currencyLocaleIds) && !string.IsNullOrEmpty(currencyLocaleIds))
+			{
+				// Locale header is set - use it instead:
+				cookie = currencyLocaleIds.FirstOrDefault();
+			}
+
+			if (cookie != null && uint.TryParse(cookie, out uint currencyLocaleId))
+			{
+				// Set in the ctx:
+				context.CurrencyLocaleId = currencyLocaleId;
+			}
+
 			return context;
 		}
 
