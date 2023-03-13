@@ -2,6 +2,7 @@ import webRequest, { expandIncludes } from 'UI/Functions/WebRequest';
 import Canvas from 'UI/Canvas';
 import { Router } from 'UI/Session';
 import getBuildDate from 'UI/Functions/GetBuildDate';
+import AdminTrigger from 'UI/AdminTrigger';
 
 const { config, location } = global;
 const routerCfg = config && config.pageRouter || {};
@@ -245,5 +246,6 @@ export default (props) => {
 				{page.bodyJson}
 			</Canvas> : null
 		}
+		<AdminTrigger page={page}/>
 	</Router.Provider>;
 }

@@ -36,6 +36,10 @@
 //     }
 // }
 function checkFlexGap() {
+	if (window.SERVER) {
+		return false;
+    }
+
 	// create flex container with row-gap set
 	var flex = document.createElement("div");
 	flex.style.display = "flex";

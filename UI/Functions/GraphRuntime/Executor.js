@@ -27,10 +27,6 @@ export default class Executor {
 	}
 	
 	async run(){
-		if(this.outputs.output){
-			return this.outputs.output;
-		}
-		
 		var result = await this.go();
 		
 		// Set output and return it:

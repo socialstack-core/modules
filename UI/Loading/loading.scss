@@ -1,11 +1,13 @@
 .loading {
-    display: flex;
-    flex-direction: column;
-    flex-wrap: nowrap;
-    align-items: center;
+  display: flex;
+  flex-direction: column;
+  flex-wrap: nowrap;
+  justify-content: center;
+  align-items: center;
+  height: 100%;
 
-    .fa-spinner {
-        font-size: 4rem;
-        margin: 1rem;
-    }
+  .fa-spinner {
+    font-size: 4rem;
+    margin: 1rem;
+  }
 }

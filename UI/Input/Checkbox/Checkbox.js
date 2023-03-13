@@ -38,7 +38,7 @@ export default function Checkbox(props) {
 			{props.readonly ? (
 				(props.value === undefined ? props.defaultValue : props.value) ? <b>Yes (readonly) </b> : <b>No (readonly) </b>
 			) : <input class={inputClass} type="checkbox" name = {name} id={id} 
-				onInput={onChange}
+				onChange={onChange}
 				onBlur={onBlur}
 				checked={checked ? "checked" : undefined} 
 				disabled={disabled ? "disabled" : undefined}

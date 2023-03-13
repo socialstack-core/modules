@@ -60,7 +60,6 @@ function convertToNodesFromCanvas(node, onContentNode){
 			result.typeName = type;
 			result.type = require(type).default;
 			
-			// Only custom nodes can have data:
 			result.props = result.propTypes = node.d || node.data;
 			
 			// Build the roots set.
@@ -94,7 +93,15 @@ function convertToNodesFromCanvas(node, onContentNode){
 			result.roots = roots;
 			
 		}else{
+			var data = node.d || node.data;
+			result.props = {};
 			result.type = type;
+
+			// Apply classname to node
+			if (data) {
+				var className = data.className || data.class;
+				result.props.className = className;
+			}
 			
 			if(node.c){
 				// Canvas 2

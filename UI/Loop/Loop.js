@@ -819,9 +819,12 @@ export default class Loop extends React.Component {
 								funcType = funcResults[0].type;
 							}
 
-							if (typeof funcResults === 'object' && funcResults !== null &&
-								funcResults.props && funcResults.props.children && funcResults.props.children.length) {
-								funcType = funcResults.props.children[0].type;
+							if (typeof funcResults === 'object' && funcResults !== null) {
+								if(funcResults.props && funcResults.props.children && funcResults.props.children.length) {
+									funcType = funcResults.props.children[0].type;
+								} else {
+									funcType = funcResults.type;
+								}
 							}
 
 							switch (funcType) {

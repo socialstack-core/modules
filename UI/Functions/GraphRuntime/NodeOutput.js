@@ -8,7 +8,7 @@ export default class NodeOutput extends Executor {
 	
 	async go() {
 		var {node, field} = this.props;
-		await node.run();
+		await node.run(field);
 		return node.outputs[field];
 	}
 	

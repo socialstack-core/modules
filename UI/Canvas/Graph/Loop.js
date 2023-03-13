@@ -6,8 +6,16 @@ export default class Loop extends Executor {
 		super();
 	}
 	
-	reset(){
-		this._ran = false;
+	async run(field){
+		if(field == 'output'){
+			// Being asked for the array. This never caches.
+			var arr = await this.go();
+			this.outputs.output = arr;
+			return arr;
+		}else{
+			// Being asked for the iteration object.
+			return this.outputs[field];
+		}
 	}
 	
 	async go() {
@@ -17,17 +25,14 @@ export default class Loop extends Executor {
 			return null;
 		}
 		
-		if(this._ran){
-			// Occurs when a null is put into the output
-			return null;
-		}
-		 
-		this._ran = true;
-		
 		// Load the items:
 		var items = await listOfItems.run();
 		
 		var results = [];
+		
+		if(!items){
+			return results;
+		}
 		
 		// For each one:
 		for(var i=0;i<items.length;i++){
@@ -39,6 +44,7 @@ export default class Loop extends Executor {
 			
 			// Execute iteration:
 			var result = await loopResult.run();
+			
 			results.push(result);
 		}
 		

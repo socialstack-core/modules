@@ -264,6 +264,16 @@ $uploader_icon_width: 96px;
         }
 
     }
+
+    &__bulk-list {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 1rem;
+
+        > .upload {
+            flex: 0 0 256px;
+        }
+    }
 }
 
 @include mq_firefox {

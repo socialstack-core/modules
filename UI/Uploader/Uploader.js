@@ -2,6 +2,7 @@ import getRef from 'UI/Functions/GetRef';
 
 var DEFAULT_ERROR = `Unable to upload`;
 var DEFAULT_MESSAGE = `Drag and drop your file or click to upload here`;
+var DEFAULT_MESSAGE_MULTIPLE = `Drag and drop your file(s) or click to upload here`;
 
 const XHR_UNSENT = 0; // Client has been created.open() not called yet.
 const XHR_OPENED = 1; // open() has been called.
@@ -10,14 +11,15 @@ const XHR_LOADING = 3; // Downloading; responseText holds partial data.
 const XHR_DONE = 4; // The operation is complete.
 
 /*
-* General purpose file uploader. Doesn't delcare a form so can be used inline anywhere.
+* General purpose file uploader. Doesn't declare a form so can be used inline anywhere.
 */
 export default class Uploader extends React.Component {
 
 	constructor(props) {
 		super(props);
 
-		var message = this.props.label || DEFAULT_MESSAGE;
+		var defaultMessage = this.props.multiple ? DEFAULT_MESSAGE_MULTIPLE : DEFAULT_MESSAGE;
+		var message = this.props.label || defaultMessage;
 
 		if (props.iconOnly) {
 			message = '';
@@ -36,6 +38,7 @@ export default class Uploader extends React.Component {
 			aspect169: this.props.aspect169,
 			aspect43: this.props.aspect43,
 			filename: this.props.currentRef ? getRef.parse(this.props.currentRef).ref : undefined,
+			files: [],
 			draggedOver: false
 		};
 
@@ -44,122 +47,186 @@ export default class Uploader extends React.Component {
 	}
 
 	onSelectedFile(e) {
-		var file = e.target.files[0];
+		var maxSize = this.state.maxSize;
+		var newFiles = [];
 
-		this.setState({
-			loading: true,
-			failed: false,
-			success: false,
-			progressPercent: 0,
-			progress: "",
-			filename: file.name,
-			ref: undefined
+		[...e.target.files].forEach((file, i) => {
+			var fileInfo = {
+				loading: true,
+				failed: false,
+				success: false,
+				progressPercent: 0,
+				progress: "",
+				filename: file.name,
+				ref: undefined
+			};
+			newFiles.push(fileInfo);
 		});
 
-		var maxSize = this.state.maxSize;
+		this.setState({
+			files: newFiles
+		}, () => {
+			[...e.target.files].forEach((file, i) => {
 
-		if (maxSize > 0 && file.size > maxSize) {
-			this.setState({
-				loading: false,
-				success: false,
-				failed: `File too large`
-			});
+				this.setState({
+					loading: true,
+					failed: false,
+					success: false,
+					progressPercent: 0,
+					progress: "",
+					filename: file.name,
+					ref: undefined
+				});
 
-			return;
-        }
+				if (maxSize > 0 && file.size > maxSize) {
+					var files = [...this.state.files];
+					var info = files[i];
+					info.loading = false;
+					info.success = false;
+					info.failed = `File too large`;
 
-		this.props.onStarted && this.props.onStarted(file, file);
-		
-		var xhr = new global.XMLHttpRequest();
-		
-		xhr.onreadystatechange = () => {
-
-			if (xhr.readyState == XHR_DONE) {
-				var uploadInfo;
-
-				try {
-					uploadInfo = JSON.parse(xhr.responseText);
-				} catch(e) {
-					
-				}
-				
-				if (!uploadInfo || xhr.status > 300) {
 					this.setState({
 						loading: false,
 						success: false,
-						failed: uploadInfo && uploadInfo.message ? uploadInfo.message : DEFAULT_ERROR
+						failed: `File too large`,
+						files: files
 					});
 
 					return;
 				}
-				
-				// uploadInfo contains the upload file info, such as its original public url and ref.
-				
-				// Run the main callback:
-				this.props.onUploaded && this.props.onUploaded(uploadInfo);
 
-				this.setState({
-					loading: false,
-					success: true,
-					failed: false,
-					ref: uploadInfo.result.ref
-				});
-				
-				
-			} else if (xhr.readyState == XHR_HEADERS_RECEIVED) {
-				// Headers received
-				if (xhr.status > 300){
+				this.props.onStarted && this.props.onStarted(file, file);
+
+				var xhr = new global.XMLHttpRequest();
+				//xhr.upload.fileIndex = i;
+
+				xhr.onreadystatechange = () => {
+
+					if (xhr.readyState == XHR_DONE) {
+						var uploadInfo;
+
+						try {
+							uploadInfo = JSON.parse(xhr.responseText);
+						} catch (e) {
+
+						}
+
+						if (!uploadInfo || xhr.status > 300) {
+							var msg = uploadInfo && uploadInfo.message ? uploadInfo.message : DEFAULT_ERROR;
+							var files = [...this.state.files];
+							var info = files[i];
+							info.loading = false;
+							info.success = false;
+							info.failed = msg;
+
+							this.setState({
+								loading: false,
+								success: false,
+								failed: msg,
+								files: files
+							});
+
+							return;
+						}
+
+						// uploadInfo contains the upload file info, such as its original public url and ref.
+
+						// Run the main callback:
+						this.props.onUploaded && this.props.onUploaded(uploadInfo);
+
+						var files = [...this.state.files];
+						var info = files[i];
+						info.loading = false;
+						info.success = true;
+						info.failed = false;
+						info.ref = uploadInfo.result.ref;
+
+						this.setState({
+							loading: false,
+							success: true,
+							failed: false,
+							ref: uploadInfo.result.ref,
+							files: files
+						});
+
+
+					} else if (xhr.readyState == XHR_HEADERS_RECEIVED) {
+						// Headers received
+						if (xhr.status > 300) {
+							var files = [...this.state.files];
+							var info = files[i];
+							info.loading = false;
+							info.success = false;
+							info.failed = DEFAULT_ERROR;
+
+							this.setState({
+								loading: false,
+								success: false,
+								failed: DEFAULT_ERROR,
+								files: files
+							});
+						}
+					}
+				};
+
+				xhr.onerror = (e) => {
+					console.log("XHR onerror", e);
+					var files = [...this.state.files];
+					var info = files[i];
+					info.loading = false;
+					info.success = false;
+					info.failed = DEFAULT_ERROR;
+
 					this.setState({
 						loading: false,
 						success: false,
-						failed: DEFAULT_ERROR
+						failed: DEFAULT_ERROR,
+						files: files
 					});
-				}
-			}
-		};
-		
-		xhr.onerror = (e) => {
-			console.log("XHR onerror", e);
-			this.setState({
-				loading: false,
-				success: false,
-				failed: DEFAULT_ERROR
-			});
-		};
-		
-		xhr.upload.onprogress = (evt) => {
-			var pc = Math.floor(evt.loaded * 100 / evt.total);
+				};
 
-			this.setState({
-				progressPercent: pc,
-				progress: ' ' + pc + '%'
+				xhr.upload.onprogress = (evt) => {
+					var pc = Math.floor(evt.loaded * 100 / evt.total);
+					var files = [...this.state.files];
+					var info = files[i];
+					info.progressPercent = pc;
+					info.progress = ' ' + pc + '%'
+
+					this.setState({
+						progressPercent: pc,
+						progress: ' ' + pc + '%',
+						files: files
+					});
+
+					this.props.onUploadProgress && this.props.onUploadProgress();
+				};
+
+				var ep = this.props.endpoint || "upload/create";
+
+				var apiUrl = this.props.url || global.ingestUrl || global.apiHost || '';
+				if (!apiUrl.endsWith('/')) {
+					apiUrl += '/';
+				}
+				apiUrl += 'v1/';
+
+				ep = (ep.indexOf('http') === 0 || ep[0] == '/') ? ep : apiUrl + ep;
+
+				xhr.open('PUT', ep, true);
+
+				var { requestOpts } = this.props;
+
+				if (requestOpts && requestOpts.headers) {
+					for (var header in requestOpts.headers) {
+						xhr.setRequestHeader(header, requestOpts.headers[header]);
+					}
+				}
+
+				xhr.setRequestHeader("Content-Name", file.name);
+				xhr.setRequestHeader("Private-Upload", this.props.isPrivate ? '1' : '0');
+				xhr.send(file);
 			});
-			this.props.onUploadProgress && this.props.onUploadProgress();
-		};
-		
-		var ep = this.props.endpoint || "upload/create";
-		
-		var apiUrl = this.props.url || global.ingestUrl || global.apiHost || '';
-		if(!apiUrl.endsWith('/')){
-			apiUrl += '/';
-		}
-		apiUrl += 'v1/';
-		
-		ep = (ep.indexOf('http') === 0 || ep[0] == '/') ? ep : apiUrl + ep;
-		
-		xhr.open('PUT', ep, true);
-		
-		var {requestOpts} = this.props;
-		
-		if(requestOpts && requestOpts.headers){
-			for(var header in requestOpts.headers){
-				xhr.setRequestHeader(header, requestOpts.headers[header]);
-			}
-		}
-		
-		xhr.setRequestHeader("Content-Name", file.name);
-		xhr.setRequestHeader("Private-Upload", this.props.isPrivate ? '1' : '0');
-		xhr.send(file);
+		});
+
 	}
 
 	formatBytes(bytes, decimals = 2) {
@@ -218,6 +285,159 @@ export default class Uploader extends React.Component {
 		});
 	}
 
+	renderBulkUploadUI() {
+		var uploaderClasses = ['uploader', 'uploader--multiple'];
+
+		if (this.props.compact) {
+			uploaderClasses.push("uploader--compact");
+		}
+
+		if (this.state.aspect169) {
+			uploaderClasses.push("uploader--16-9");
+		}
+
+		if (this.state.aspect43) {
+			uploaderClasses.push("uploader--4-3");
+		}
+
+		if (this.state.draggedOver) {
+			uploaderClasses.push("uploader--drag-target");
+		}
+
+		return <div className={uploaderClasses.join(' ')}>
+			{/* prompt to upload */}
+			{!this.state.files || !this.state.files.length && <>
+				<div className="uploader__internal">
+					<input id={this.props.id} className="uploader__input" type="file" disabled={this.props.iconOnly} ref={this.inputRef}
+						onChange={e => this.onSelectedFile(e)} title={this.state.tooltip} multiple />
+					<label htmlFor={this.props.id} className="uploader__label">
+						<span className="uploader__label-internal">
+							{this.state.message}
+						</span>
+					</label>
+				</div>
+			</>}
+
+			{/* display selected files */}
+			{this.state.files && this.state.files.length > 0 && <>
+				<div className="uploader__bulk-list">
+					{this.state.files.map(file => {
+						var fileClasses = ['upload'];
+						var labelClasses = ['uploader__label'];
+						var fileLabel;
+
+						if (file.loading) {
+							fileClasses.push("uploader--progress");
+							fileLabel = `Uploading ${file.progress} ...`;
+                        }
+						
+						if (file.failed) {
+							fileClasses.push("uploader--error");
+							fileLabel = failed;
+						}
+
+						var hasRef = file.ref && file.ref.length;
+						var hasFilename = file.filename && file.filename.length;
+						var hasOriginalName = file.originalName && file.originalName.length;
+						var iconClass = "";
+						var iconName = "";
+						var labelStyle = {};
+
+						if (hasRef) {
+							var refInfo = getRef.parse(file.ref);
+							var canShowImage = getRef.isImage(file.ref);
+							var canShowVideo = getRef.isVideo(file.ref, false);
+							var canShowIcon = getRef.isIcon(file.ref);
+
+							fileClasses.push("uploader--content");
+							fileLabel = "";
+
+							// TODO: check original image width/height values here; if both are less than 256px,
+							// use the original image and set background-size to auto
+							if (canShowImage && !canShowVideo && !canShowIcon) {
+								labelStyle = { "background-image": "url(" + getRef(file.ref, { url: true, size: 256 }) + ")" };
+							}
+
+							if ((canShowImage || canShowVideo) && !canShowIcon) {
+								fileClasses.push("uploader--image");
+							}
+
+							if (canShowVideo) {
+								labelClasses.push("video");
+							}
+
+							if (canShowIcon) {
+								iconClass = refInfo.scheme + " " + refInfo.ref + " uploader__file";
+								iconName = refInfo.ref;
+							}
+
+						}
+
+						var renderedSize = 256;
+						var caption = hasFilename ? file.filename : false;
+
+						if (hasOriginalName) {
+							caption = originalName;
+						}
+
+						if (canShowIcon) {
+							caption = iconName;
+						}
+
+						return <div className={fileClasses.join(' ')}>
+							<div className="uploader__internal">
+
+								{(canShowImage || canShowVideo) && !canShowIcon &&
+									<div className="uploader__imagebackground">
+									</div>
+								}
+
+								<label className={labelClasses.join(' ')} style={labelStyle}>
+
+									{/* loading */}
+									{file.loading && <>
+										<div class="spinner-border" role="status"></div>
+									</>}
+
+									{/* has a reference, but isn't an image */}
+									{hasRef && !canShowImage && !canShowVideo && !canShowIcon && <>
+										<i className="fal fa-file uploader__file" />
+									</>}
+
+									{/* has an video reference */}
+									{hasRef && canShowVideo && getRef(file.ref, { size: renderedSize })}
+
+									{/* has an icon reference */}
+									{hasRef && canShowIcon && <>
+										<i className={iconClass} />
+									</>}
+
+									{/* failed to upload */}
+									{file.failed && <>
+										<i class="fas fa-times-circle"></i>
+									</>}
+
+									<span className="uploader__label-internal">
+										{fileLabel}
+									</span>
+								</label>
+								{file.loading && (
+									<progress className="uploader__progress" max="100" value={file.progressPercent}></progress>
+								)}
+							</div>
+							{caption && <>
+								<small className="uploader__caption text-muted">
+									{caption}
+								</small>
+							</>}
+						</div>;
+					})}
+				</div>
+			</>}
+
+		</div>;
+    }
+
 	render() {
 		const {
 			loading,
@@ -234,6 +454,12 @@ export default class Uploader extends React.Component {
 			tooltip,
 			originalName
 		} = this.state;
+
+		var isMultiple = this.props.multiple;
+
+		if (isMultiple) {
+			return this.renderBulkUploadUI();
+        }
 
 		var hasRef = ref && ref.length;
 		var hasMaxSize = maxSize > 0;
@@ -326,7 +552,7 @@ export default class Uploader extends React.Component {
 				}
 
 				<input id={this.props.id} className="uploader__input" type="file" disabled={this.props.iconOnly} ref={this.inputRef}
-					onChange={e => this.onSelectedFile(e)} title={loading ? "Loading ..." : tooltip} />
+					onChange={e => this.onSelectedFile(e)} title={loading ? `Loading ...` : tooltip} />
 				<label htmlFor={this.props.id} className={uploaderLabelClass} style={labelStyle}>
 
 					{/* loading */}
@@ -360,14 +586,16 @@ export default class Uploader extends React.Component {
 					<progress className="uploader__progress" max="100" value={progressPercent}></progress>
 				)}
 			</div>
-			<small className="uploader__caption text-muted">
-				{caption}
-				<br />
+			{!isMultiple && <>
+				<small className="uploader__caption text-muted">
+					{caption}
+					<br />
 
-				{hasMaxSize && <>
-					Max file size: {this.formatBytes(maxSize)}
-				</>}
-			</small>
+					{hasMaxSize && <>
+						{`Max file size: ${this.formatBytes(maxSize)}`}
+					</>}
+				</small>
+			</>}
         </div>;
     }
 }

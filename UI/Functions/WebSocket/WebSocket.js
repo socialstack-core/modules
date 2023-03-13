@@ -696,7 +696,7 @@ return {
 
 };
 
-var dflt = global.wsUrl ? websocketHandler({reconnectOnUserChange: 1, addDefaults: 1, url: global.wsUrl, globalMessage: 1}) : {};
+var dflt = global.wsUrl && !window.SERVER ? websocketHandler({reconnectOnUserChange: 1, addDefaults: 1, url: global.wsUrl, globalMessage: 1}) : {};
 dflt.create = websocketHandler;
 export default dflt;
 

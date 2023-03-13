@@ -72,7 +72,8 @@ Heading.propTypes={
 
 Heading.defaultProps = {
 	animation: 'none',
-	animationDirection: 'static'
+	animationDirection: 'static',
+	className: '',
 };
 
 Heading.icon='heading';

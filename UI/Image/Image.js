@@ -88,8 +88,8 @@ Image.defaultProps = {
 };
 
 Image.propTypes = {
-	fileRef: 'string',
-	linkUrl: 'string',
+	fileRef: 'image',
+	linkUrl: 'url',
 	title: 'string',
 	fullWidth: 'bool',
 	size: ['original', '2048', '1024', '512', '256', '200', '128', '100', '64', '32'], // todo: pull from api
