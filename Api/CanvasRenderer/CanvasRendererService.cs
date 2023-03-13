@@ -366,6 +366,9 @@ namespace Api.CanvasRenderer
             engine.AddHostObject("navigator", new V8.Navigator());
             engine.AddHostObject("location", jsDoc.location);
 
+            // ignore setTimeout when running serverside
+            engine.Execute("window.setTimeout=(a,b,c)=>{console.log('Ignoring SetTimeout',a,b,c)}");
+
             // Need to load config into its scope as well:
             engine.Execute(_configService.GetLatestFrontendConfigJs());
 
