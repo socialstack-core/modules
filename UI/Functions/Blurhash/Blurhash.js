@@ -225,3 +225,4 @@ export {
 	drawImageDataOnNewCanvas,
 	getImageDataAsImage
 };
+
