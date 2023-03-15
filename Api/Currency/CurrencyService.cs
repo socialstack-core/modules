@@ -103,7 +103,7 @@ namespace Api.Currency
                     {
                         foreach (var exchangeRate in exchangeRates)
                         {
-                            var localisedEntity = await service.Get(new Context() { LocaleId = exchangeRate.FromLocaleId }, entity.Id, DataOptions.IgnorePermissions);
+                            var localisedEntity = await service.Get(new Context() { LocaleId = exchangeRate.FromLocaleId, DoNotConvertPrice = true }, entity.Id, DataOptions.IgnorePermissions);
                             var localisedValue = field.GetValue(localisedEntity);
 
                             if (localisedValue != null)
@@ -135,7 +135,11 @@ namespace Api.Currency
 
             async ValueTask<T> GetCurrencyLocalePrices(T entity, List<FieldInfo> priceFields, uint currencyLocaleId)
             {
-                var currencyLocaleEntity = await service.Get(new Context() { LocaleId = currencyLocaleId }, entity.Id, DataOptions.IgnorePermissions);
+                var currencyLocaleEntity = await service.Get(
+                    new Context() { LocaleId = currencyLocaleId, DoNotConvertPrice = true }
+                    ,entity.Id
+                    ,DataOptions.IgnorePermissions 
+                );
 
                 if (currencyLocaleEntity != null)
                 {
@@ -150,21 +154,11 @@ namespace Api.Currency
                 return entity;
             }
 
-            async ValueTask<T> ProcessEntity(Context ctx, T entity, HttpResponse response)
+            async ValueTask<T> ProcessEntity(Context ctx, T entity)
             {
                 if (entity == null)
                 {
                     return null;
-                }
-
-                var request = response.HttpContext.Request;
-                var referer = request.Headers.Referer;
-                var isAdmin = referer.FirstOrDefault()?.Contains("en-admin");
-
-                // Do not convert for admin pages
-                if (isAdmin == true)
-                {
-                    return entity;
                 }
 
                 var contextLocaleId = ctx.LocaleId;
@@ -185,14 +179,54 @@ namespace Api.Currency
                 return entity;
             }
 
-            service.EventGroup.EndpointEndLoad.AddEventListener(async (Context ctx, T entity, HttpResponse response) =>
+            service.EventGroup.EndpointStartLoad.AddEventListener(async (Context ctx, ID id, HttpResponse response) =>
             {
-                return await ProcessEntity(ctx, entity, response);
+                var request = response.HttpContext.Request;
+                var referer = request.Headers.Referer;
+                var isAdmin = referer.FirstOrDefault()?.Contains("en-admin");
+
+                // Do not convert for admin pages
+                if (isAdmin == true)
+                {
+                    ctx.DoNotConvertPrice = true;
+                }
+
+                return id;
             });
 
-            service.EventGroup.EndpointListEntry.AddEventListener(async (Context ctx, T entity, HttpResponse response) =>
+            service.EventGroup.EndpointStartList.AddEventListener(async (Context ctx, Filter<T, ID> filter, HttpResponse response) =>
             {
-                return await ProcessEntity(ctx, entity, response);
+                var request = response.HttpContext.Request;
+                var referer = request.Headers.Referer;
+                var isAdmin = referer.FirstOrDefault()?.Contains("en-admin");
+
+                // Do not convert for admin pages
+                if (isAdmin == true)
+                {
+                    ctx.DoNotConvertPrice = true;
+                }
+
+                return filter;
+            });
+            
+            service.EventGroup.AfterLoad.AddEventListener(async (Context ctx, T entity) =>
+            {
+                if (ctx.DoNotConvertPrice)
+                {
+                    return entity;
+                }
+
+                return await ProcessEntity(ctx, entity);
+            });
+
+            service.EventGroup.ListEntry.AddEventListener(async (Context ctx, T entity) =>
+            {
+                if (ctx.DoNotConvertPrice)
+                {
+                    return entity;
+                }
+
+                return await ProcessEntity(ctx, entity);
             });
         }
     }

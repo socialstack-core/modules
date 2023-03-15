@@ -54,6 +54,11 @@ namespace Api.Contexts
 
 			return _currencylocale;
 		}
+
+		/// <summary>
+		/// Set this to true to prevent conversion of prices when loading or listing an entity
+		/// </summary>
+		public bool DoNotConvertPrice = false;
 		
 	}
 }
