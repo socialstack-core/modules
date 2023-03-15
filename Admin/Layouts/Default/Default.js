@@ -25,7 +25,7 @@ export default props => {
         return scheme;
     });
     const { adminLogoRef } = useTheme();
-    var { url } = pageState;
+    var url = pageState ? pageState.url : '';
 
     function updateSchemeVars(scheme) {
         var html = window.SERVER ? undefined : document.querySelector("html");

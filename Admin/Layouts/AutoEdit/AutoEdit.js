@@ -27,7 +27,7 @@ export default class AutoEdit extends React.Component {
 			id = '${url.' + id.name + '}';
 		}
 
-		if (!endpoint && pageState.tokenNames) {
+		if (!endpoint && pageState && pageState.tokenNames) {
 			for(var i = 0; i < pageState.tokenNames.length; i++) {
 				if (pageState.tokenNames[i] == 'entity') {
 					endpoint = pageState.tokens[i];
