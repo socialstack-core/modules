@@ -1,5 +1,6 @@
 ﻿using System.Threading.Tasks;
 using Api.Contexts;
+using Api.Eventing;
 using Microsoft.AspNetCore.Mvc;
 
 
@@ -24,7 +25,8 @@ namespace Api.Translate
 			
 			// Set locale ID:
 			context.LocaleId = id;
-			context.CurrencyLocaleId = id;
+
+			await Events.Locale.SetLocale.Dispatch(context, id);
 
 			await OutputContext(context);
 		}

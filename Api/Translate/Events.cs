@@ -30,6 +30,11 @@ namespace Api.Eventing
 	{
 
 		/// <summary>
+		/// Called when the set locale endpoint is used.
+		/// </summary>
+		public EventHandler<uint> SetLocale;
+		
+		/// <summary>
 		/// Locales are needed by the database system before the locale service has even loaded.
 		/// This initial set of locales has a special event for the data service to provide it.
 		/// </summary>
