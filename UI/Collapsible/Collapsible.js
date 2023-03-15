@@ -2,7 +2,7 @@ import Dropdown from 'UI/Dropdown';
 
 export default function Collapsible(props) {
 	var { className, compact, defaultClick } = props;
-	var noContent = !props.children;
+	var noContent = props.noContent || !props.children;
 	var [isOpen, setOpen] = React.useState(noContent ? false : !!props.open);
 	
 	var expanderLeft = props.expanderLeft;
