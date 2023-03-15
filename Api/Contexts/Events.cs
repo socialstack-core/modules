@@ -1,3 +1,4 @@
+using Api.Translate;
 using Microsoft.AspNetCore.Http;
 
 
@@ -18,7 +19,7 @@ namespace Api.Eventing
 	/// <summary>
 	/// Events relating to contexts.
 	/// </summary>
-	public partial class ContextEventGroup
+	public partial class ContextEventGroup : EventGroup
 	{
 		/// <summary>
 		/// Called during GetContext.
