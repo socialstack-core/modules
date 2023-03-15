@@ -1,0 +1,95 @@
+html.admin {
+
+    #admin-trigger {
+        display: none;
+    }
+
+}
+
+html:not(.admin) {
+
+    #admin-trigger {
+        position: fixed;
+        left: var(--admin-trigger-left, $fallback__admin-trigger-left);
+        right: var(--admin-trigger-right, $fallback__admin-trigger-right);
+        bottom: var(--admin-trigger-bottom, $fallback__admin-trigger-bottom);
+        top: var(--admin-trigger-top, $fallback__admin-trigger-top);
+        z-index: 2147483647;
+
+        .dropdown-toggle {
+            border-radius: 50%;
+            background: var(--dark);
+            color: var(--dark-fg);
+            border: 1px solid var(--dark-fg);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 2rem;
+            height: 2rem;
+            transform-origin: 50% 50%;
+            transition: all .3s ease;
+        }
+
+        .dropdown__label i:first-child {
+            margin: 0;
+        }
+
+        .dropdown__arrow {
+            display: none;
+        }
+
+        // NB: ensure menu styling isn't overridden by defaults set in UI/GeneralStyle/GeneralStyle30.scss
+        .dropdown-menu {
+            //font-size: 1rem !important;
+            line-height: 1.5 !important;
+            margin: 0 !important;
+            color: inherit !important;
+
+            > li > .btn {
+                font-size: .875rem;
+            }
+
+        }
+
+        &:hover {
+
+            .dropdown-toggle:not([aria-expanded="true"]) {
+                transform: scale(1.25);
+                box-shadow: 0 0 9px 2px black;
+            }
+
+        }
+
+        .impersonating {
+            position: absolute;
+            font-size: 2rem;
+            top: -25%;
+            right: -25%;
+            transform: rotate(20deg);
+            color: var(--dark-fg);
+            filter: drop-shadow(2px 4px 6px rgba(0,0,0,.75));
+            pointer-events: none;        }
+        }
+
+    #admin-menu {
+        position: absolute;
+        left: var(--admin-menu-left, $fallback__admin-menu-left);
+        right: var(--admin-menu-right, $fallback__admin-menu-right);
+        bottom: var(--admin-menu-bottom, $fallback__admin-menu-bottom);
+        top: var(--admin-menu-top, $fallback__admin-menu-top);
+        z-index: 2147483647;
+        list-style: none;
+        padding: 0;
+        margin: 0;
+        font-size: .875rem;
+        border-radius: 0.25rem;
+
+        > li {
+
+            > a {
+            }
+        }
+    }
+
+}
+

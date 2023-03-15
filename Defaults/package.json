@@ -27,6 +27,7 @@
 		"Api/Users",
 		"Api/ErrorLogging",
 
+		"UI/AdminTrigger",
 		"UI/Alert",
 		"UI/Bootstrap",
 		"UI/BootstrapButton",
@@ -40,6 +41,7 @@
 		"UI/Fonts/FontAwesome",
 		"UI/Form",
 		"UI/Session",
+		"UI/Functions/Blurhash",
 		"UI/Functions/CanvasExpand",
 		"UI/Functions/ContentChange",
 		"UI/Functions/Debounce",
