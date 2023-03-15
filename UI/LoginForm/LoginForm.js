@@ -40,6 +40,50 @@ export default props => {
 		});
 	}
 
+	renderFormFields = () => {
+		var loginBtnStyle = props.flipButtons ? "float: right" : "";
+		var loginBtn = <Input type="submit" style={loginBtnStyle} label={props.loginCta || `Login`}/>;
+
+		var rememberChkBoxStyle = props.flipButtons ? "float: right" : "";
+		var rememberChkBox = <Input type="checkbox" style={rememberChkBoxStyle} label={`Remember me`} name="remember" />;
+
+		var forgotLinkStyle = props.flipButtons ? "text-align: left" : "";
+		var forgotLink = <a href="/forgot" style={forgotLinkStyle} className="forgot-password-link">{props.forgotPasswordText || `I forgot my password`}</a>;
+
+		var col1Comp = (props.noRemember) ? loginBtn : rememberChkBox;
+		var col2Comp = (props.noForgot) ? <></> : forgotLink;
+		if (props.flipButtons) {
+			col1Comp = (props.noForgot) ? <></> : forgotLink;
+			col2Comp = (props.noRemember) ? loginBtn : rememberChkBox;
+		}
+
+		var row = (
+			<Row>
+				<Col sizeXs="6">
+					{col1Comp}
+				</Col>
+				<Col sizeXs="6">
+					{col2Comp}
+				</Col>
+			</Row>
+		);
+
+		var afterRow;
+		if (!props.noRemember) {
+			afterRow = loginBtn;
+		}
+
+		return (<>
+			<div style={{display: moreRequired ? 'none' : 'initial'}}>
+				<Input label = {props.noLabels ? null : (emailOnly ? `Email` : `Email or username`)}  name="emailOrUsername" placeholder={emailOnly ? `Email` : `Email or username`} validate={validate} />
+				<Input label = {props.noLabels ? null : `Password`} name="password" placeholder={`Password`} type="password" validate = {validatePassword} />
+				{row}
+			</div>
+			<Spacer height="20" />
+			{afterRow}
+		</>)
+	}
+
 	useEffect(() => {
 		if (user && user.Role == 3) {
 			setEmailVerificationRequired(true);
@@ -107,24 +151,7 @@ export default props => {
 			{moreRequired && (
 				<Canvas>{moreRequired}</Canvas>
 			)}
-			<div style={{display: moreRequired ? 'none' : 'initial'}}>
-				<Input label = {props.noLabels ? null : (emailOnly ? `Email` : `Email or username`)}  name="emailOrUsername" placeholder={emailOnly ? `Email` : `Email or username`} validate={validate} />
-				<Input label = {props.noLabels ? null : `Password`} name="password" placeholder={`Password`} type="password" validate = {validatePassword} />
-				<Row>
-					{!props.noRemember && <Col size="6">
-						<Input type="checkbox" label={`Remember me`} name="remember" />
-					</Col>}
-					<Col size="6">
-					{!props.noForgot && (
-						<a href="/forgot" className="forgot-password-link">
-							{props.forgotPasswordText || `I forgot my password`}
-						</a>
-					)}
-					</Col>
-				</Row>
-			</div>
-			<Spacer height="20" />
-			<Input type="submit" label={props.loginCta || `Login`}/>
+			{renderFormFields()}
 			{failed && (
 				<Alert type="fail">
 					{failed.message || `Those login details weren't right - please try again.`}
