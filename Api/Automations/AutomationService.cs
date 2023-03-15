@@ -12,9 +12,9 @@ using Api.Eventing;
 using Api.Pages;
 using Api.CanvasRenderer;
 using Api.NavMenus;
-
 namespace Api.Automations
 {
+
 	/// <summary>
 	/// Indicates the set of available automations.
 	/// </summary>
@@ -64,6 +64,14 @@ namespace Api.Automations
 		public AutomationStructure GetStructure(Context context)
 		{
 			var cronScheduler = Events.GetCronScheduler();
+
+			if (cronScheduler == null)
+			{
+				var blankStructure = new AutomationStructure();
+				blankStructure.Results = new List<Automation>();
+				return blankStructure;
+			}
+
 			var latestUpdate = cronScheduler.LastUpdated;
 
 			if (_structure != null)
