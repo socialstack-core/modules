@@ -1,6 +1,7 @@
 import Form from 'UI/Form';
 import Input from 'UI/Input';
 import CustomFieldSelectForm from 'Admin/CustomFieldEditor/CustomFieldSelectForm';
+import webRequest from 'UI/Functions/WebRequest';
 
 export default class CustomFieldForm extends React.Component {
 	constructor(props) {
@@ -8,7 +9,8 @@ export default class CustomFieldForm extends React.Component {
 
 		this.state={
 			field: props.field,
-			dataType: props.field ? props.field.dataType : null
+			dataType: props.field ? props.field.dataType : null,
+			types: null
 		};
 
 		this.dataTypes = [
@@ -26,6 +28,13 @@ export default class CustomFieldForm extends React.Component {
 		if (!props.isFormField) {
 			this.dataTypes = [...this.dataTypes, { value: "entity", name: "Link To Another Data Type" }, { value: "entitylist", name: "List Of Another Data Type" }, ];
 		}
+	}
+
+	componentDidMount() {
+		webRequest("customContentType/allcustomtypesplus").then(resp => {
+			var types = resp.json;
+			this.setState({ types: types });
+		});
 	}
 
 	render() {
@@ -100,13 +109,15 @@ export default class CustomFieldForm extends React.Component {
 						label="Linked Data Type"
 						name="linkedEntity"
 						type="select"
-						contentType="customcontenttype"
-						displayField="nickName"
-						contentTypeValue="name"
-						filter={{ where: { deleted: "false" } }}
 						defaultValue={this.props.field ? this.props.field.linkedEntity : null}
 						disabled={!createMode} validate={createMode ? ['Required'] : null}
-					/>
+					>
+						{this.state.types && this.state.types.map(type =>
+							<option value={type.value}>
+								{type.name}
+							</option>
+					)}
+					</Input>
 				}
 
 				{(this.state.field && this.state.dataType === "select") &&
