@@ -64,4 +64,8 @@
 		border-top: 1px solid var(--admin-subheader-bg, var(--fallback__admin-subheader-bg));
 	}
 
+	&--prefers-logged-in {
+		margin-inline-end: .5rem;
+		color: var(--primary);
+	}
 }
