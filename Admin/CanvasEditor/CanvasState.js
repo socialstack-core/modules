@@ -935,8 +935,10 @@ export default class CanvasState{
 			var content = [];
 			for(var i=0;i<node.content.length;i++){
 				var clone = this.deepClone(node.content[i], selection, clonedSelection);
-				content.push(clone);
-				clone.parent = result;
+				if(clone){
+					content.push(clone);
+					clone.parent = result;
+				}
 			}
 			result.content = content;
 		}
@@ -945,8 +947,10 @@ export default class CanvasState{
 			var roots = {};
 			for(var k in node.roots){
 				var clone = this.deepClone(node.roots[k], selection, clonedSelection);
-				roots[k] = clone;
-				clone.parent = result;
+				if(clone){
+					roots[k] = clone;
+					clone.parent = result;
+				}
 			}
 			result.roots = roots;
 		}
