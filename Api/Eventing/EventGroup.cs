@@ -48,6 +48,10 @@ namespace Api.Eventing
 		/// Just after an entity list was loaded.
 		/// </summary>
 		public EventHandler<Filter<T, ID>> AfterList;
+		/// <summary>
+		/// Called after an entity has been listed, just before it is written to the output
+		/// </summary>
+		public EventHandler<T> ListEntry;
 
 		/// <summary>
 		/// List entities.
