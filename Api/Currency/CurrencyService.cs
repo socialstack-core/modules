@@ -9,6 +9,8 @@ using System.Reflection;
 using Api.Startup;
 using System.Linq;
 using Microsoft.AspNetCore.Http;
+using Api.Translate;
+using Microsoft.Extensions.Primitives;
 
 namespace Api.Currency
 {
@@ -22,13 +24,44 @@ namespace Api.Currency
 		/// <summary>
 		/// Instanced automatically. Use injection to use this service, or Startup.Services.Get.
 		/// </summary>
-		public CurrencyService(ExchangeRateService exchangeRates)
+		public CurrencyService(ExchangeRateService exchangeRates, LocaleService locales)
         {
 			_exchangeRates = exchangeRates;
 
             var setupForTypeMethod = GetType().GetMethod(nameof(SetupForType));
 
-            Events.Service.AfterCreate.AddEventListener((Context ctx, AutoService service) =>
+			Events.Context.OnLoad.AddEventListener((Context context, HttpRequest request) => {
+
+                // Handle currency locale next. The cookie comes lower precedence to the Locale header.
+				var cookie = request.Cookies[locales.CurrencyLocaleCookieName];
+
+				StringValues currencyLocaleIds;
+
+				// Could also handle Accept-Language here. For now we use a custom header called Locale (an ID).
+				if (request.Headers.TryGetValue("CurrencyLocale", out currencyLocaleIds) && !string.IsNullOrEmpty(currencyLocaleIds))
+				{
+					// Locale header is set - use it instead:
+					cookie = currencyLocaleIds.FirstOrDefault();
+				}
+
+				if (cookie != null && uint.TryParse(cookie, out uint currencyLocaleId))
+				{
+					// Set in the ctx:
+					context.CurrencyLocaleId = currencyLocaleId;
+				}
+
+				return new ValueTask<HttpRequest>(request);
+
+			});
+
+            Events.Locale.SetLocale.AddEventListener((Context context, uint localeId) => {
+
+				context.CurrencyLocaleId = localeId;
+                
+                return new ValueTask<uint>(localeId);
+			});
+
+			Events.Service.AfterCreate.AddEventListener((Context ctx, AutoService service) =>
             {
                 if (service == null)
                 {
