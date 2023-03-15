@@ -1150,52 +1150,54 @@ svg {
 			// Build the flat HTML for the page:
 			flatNodes = doc.Flatten();
 
-			lock(cacheLock)
+			if (pageAndTokens.StatusCode != 404)
 			{
-				if (cache == null)
+				lock(cacheLock)
 				{
-					cache = new Dictionary<string, List<DocumentNode>>[context.LocaleId];
-				}
-				else if (cache.Length < context.LocaleId)
-				{
-					Array.Resize(ref cache, (int)context.LocaleId);
-				}
-
-				var localeCache = cache[context.LocaleId - 1];
-
-				if (localeCache == null)
-				{
-					cache[context.LocaleId - 1] = localeCache = new Dictionary<string, List<DocumentNode>>();
-				}
-
-				// As it's being cached, may need to cache content type as well:
-				if (doc.PrimaryObject != null)
-				{
-					if (!eventHandlersByContentTypeId.ContainsKey(doc.PrimaryContentTypeId))
+					if (cache == null)
 					{
-						// Mark as added:
-						eventHandlersByContentTypeId[doc.PrimaryContentTypeId] = true;
-
-						// Get the event group:
-						var evtGroup = doc.PrimaryObjectService.GetEventGroup();
-
-						var methodInfo = GetType().GetMethod(nameof(AttachPrimaryObjectEventHandler));
-
-						// Invoke attach:
-						var setupType = methodInfo.MakeGenericMethod(new Type[] {
-							doc.PrimaryObjectService.ServicedType,
-							doc.PrimaryObjectService.IdType
-						});
-
-						setupType.Invoke(this, new object[] {
-							evtGroup
-						});
+						cache = new Dictionary<string, List<DocumentNode>>[context.LocaleId];
 					}
+					else if (cache.Length < context.LocaleId)
+					{
+						Array.Resize(ref cache, (int)context.LocaleId);
+					}
+
+					var localeCache = cache[context.LocaleId - 1];
+
+					if (localeCache == null)
+					{
+						cache[context.LocaleId - 1] = localeCache = new Dictionary<string, List<DocumentNode>>();
+					}
+
+					// As it's being cached, may need to cache content type as well:
+					if (doc.PrimaryObject != null)
+					{
+						if (!eventHandlersByContentTypeId.ContainsKey(doc.PrimaryContentTypeId))
+						{
+							// Mark as added:
+							eventHandlersByContentTypeId[doc.PrimaryContentTypeId] = true;
+
+							// Get the event group:
+							var evtGroup = doc.PrimaryObjectService.GetEventGroup();
+
+							var methodInfo = GetType().GetMethod(nameof(AttachPrimaryObjectEventHandler));
+
+							// Invoke attach:
+							var setupType = methodInfo.MakeGenericMethod(new Type[] {
+								doc.PrimaryObjectService.ServicedType,
+								doc.PrimaryObjectService.IdType
+							});
+
+							setupType.Invoke(this, new object[] {
+								evtGroup
+							});
+						}
+					}
+
+					localeCache[path] = flatNodes;
 				}
-
-				localeCache[path] = flatNodes;
 			}
-
 			// Note: Although gzip does support multiple concatenated gzip blocks, browsers do not implement this part of the gzip spec correctly.
 			// Unfortunately that means no part of the stream can be pre-compressed; must compress the whole thing and output that.
 
