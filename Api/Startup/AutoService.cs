@@ -758,7 +758,10 @@ public partial class AutoService<T, ID> : AutoService
 			QueryA = filter,
 			SrcA = srcA,
 			SrcB = srcB,
-			OnResult = onResult
+			OnResult = async (Context resultCtx, T result, int index, object resultSrc, object resultSrcB) => {
+				result = await this.EventGroup.ListEntry.Dispatch(resultCtx, result);
+				await onResult(resultCtx, result, index, resultSrc, resultSrcB);
+			}
 			// QueryB is set by perm system.
 		};
 
