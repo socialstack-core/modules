@@ -371,6 +371,17 @@ namespace Api.Pages
 			return pageInfo;
 		}
 
+		/// <summary>
+		/// Cache must be available for this. It will be available if you previously made a call to GetPage.
+		/// </summary>
+		/// <param name="context"></param>
+		/// <returns></returns>
+		public Page GetCachedNotFoundPage(Context context)
+		{
+			var cache = _urlLookupCache[context.LocaleId - 1];
+			return cache.NotFoundPage;
+		}
+
 		private async Task LoadCaches(Context context)
 		{
 			// Get all pages for this locale:

@@ -829,8 +829,10 @@ svg {
 		/// <param name="context"></param>
 		/// <param name="pageAndTokens"></param>
 		/// <param name="path"></param>
+		/// <param name="requireNotFound"></param>
+		/// <param name="notFoundState"></param>
 		/// <returns></returns>
-		private async ValueTask<List<DocumentNode>> RenderPage(Context context, PageWithTokens pageAndTokens, string path)
+		private async ValueTask<List<DocumentNode>> RenderPage<T>(Context context, PageWithTokens pageAndTokens, string path, Func<Context, T, PageWithTokens> requireNotFound, T notFoundState)
 		{
 			var isAdmin = path.StartsWith("/en-admin");
 			List<DocumentNode> flatNodes;
@@ -875,25 +877,9 @@ svg {
 			
 			// Get the locale:
 			var locale = await context.GetLocale();
-			
-			var page = pageAndTokens.Page;
-			
-			// Generate the document:
+
+			// Start building the document:
 			var doc = new Document();
-			doc.Path = path;
-			doc.Title = page.Title; // Todo: permit {token} values in the title which refer to the primary object.
-			doc.SourcePage = page;
-			doc.Html
-				.With("class", isAdmin ? "admin web" : "ui web")
-				.With("lang", locale.Code)
-				.With("data-theme", isAdmin ? themeConfig.DefaultAdminThemeId : themeConfig.DefaultThemeId);
-
-			if (locale.RightToLeft)
-			{
-				doc.Html.With("dir", "rtl");
-			}
-
-			var head = doc.Head;
 
 			// If there are tokens, get the primary object:
 			if (pageAndTokens.Tokens != null && pageAndTokens.TokenValues != null)
@@ -908,7 +894,7 @@ svg {
 					doc.PrimaryObjectType = primaryToken.ContentType;
 
 					if (primaryToken.ContentType != null)
-                    {
+					{
 						if (primaryToken.IsId)
 						{
 							if (ulong.TryParse(pageAndTokens.TokenValues[countA - 1], out ulong primaryObjectId))
@@ -920,9 +906,35 @@ svg {
 						{
 							doc.PrimaryObject = await primaryToken.Service.GetObject(context, primaryToken.FieldName, pageAndTokens.TokenValues[countA - 1]);
 						}
+
+						if (!isAdmin && doc.PrimaryObject == null && requireNotFound != null)
+						{
+							// Exclude admin pages because of the /add URL which has no primary object but must still route.
+							// The contentType is not null meaning this is a content specific frontend URL but the content referenced does not exist.
+							// Therefore, we can safely generate the 404 page instead.
+							pageAndTokens = requireNotFound(context, notFoundState);
+						}
 					}
 				}
 			}
+
+			var page = pageAndTokens.Page;
+
+			// Generate the document:
+			doc.Path = path;
+			doc.Title = page.Title; // Todo: permit {token} values in the title which refer to the primary object.
+			doc.SourcePage = page;
+			doc.Html
+				.With("class", isAdmin ? "admin web" : "ui web")
+				.With("lang", locale.Code)
+				.With("data-theme", isAdmin ? themeConfig.DefaultAdminThemeId : themeConfig.DefaultThemeId);
+
+			if (locale.RightToLeft)
+			{
+				doc.Html.With("dir", "rtl");
+			}
+
+			var head = doc.Head;
 
 			// Charset must be within first 1kb of the header:
 			head.AppendChild(new DocumentNode("meta", true).With("charset", "utf-8"));
@@ -1563,7 +1575,21 @@ svg {
 
 			if (flatNodes == null)
 			{
-				flatNodes = await RenderPage(context, pageAndTokens, path);
+				flatNodes = await RenderPage(context, pageAndTokens, path, (Context context, HttpResponse response) => {
+
+					// Note: passing in response as state to RenderPage avoids this function being allocated
+					// as a delegate every time this runs. It instead ends up as a static method reference.
+					response.StatusCode = 404;
+
+					return new PageWithTokens()
+					{
+						StatusCode = 404,
+						Page = Services.Get<PageService>().GetCachedNotFoundPage(context),
+						TokenValues = null,
+						TokenNamesJson = "null"
+					};
+
+				}, response);
 			}
 
 			var outputStream = compress ? new GZipStream(responseStream, CompressionMode.Compress) : responseStream;
