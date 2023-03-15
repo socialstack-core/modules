@@ -347,6 +347,7 @@ namespace Api.Pages
 			if (urlInfo.RedirectTo != null)
 			{
 				return new PageWithTokens() {
+					StatusCode = 302,
 					RedirectTo = urlInfo.RedirectTo
 				};
 			}

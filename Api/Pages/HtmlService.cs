@@ -1522,7 +1522,7 @@ svg {
 			}
 
 			var pageAndTokens = await _pages.GetPage(context, request.Host.Value, path, searchQuery, true);
-
+			
 			if (pageAndTokens.RedirectTo != null)
 			{
 				// Redirecting to the given url, as a 302:
@@ -1531,6 +1531,8 @@ svg {
 				return;
 			}
 
+			response.StatusCode = pageAndTokens.StatusCode;
+			
 			await Events.Page.BeforeNavigate.Dispatch(context, pageAndTokens.Page, path);
 
 			if (updateContext)

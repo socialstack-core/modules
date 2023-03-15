@@ -278,6 +278,7 @@ namespace Api.Pages
 			{
 				return new PageWithTokens()
 				{
+					StatusCode = 404,
 					Page = null,
 					TokenValues = null,
 					TokenNamesJson = "null"
@@ -313,6 +314,7 @@ namespace Api.Pages
 						// 404
 						return new PageWithTokens()
 						{
+							StatusCode = 404,
 							Page = null,
 							TokenValues = null,
 							TokenNamesJson = "null"
@@ -333,6 +335,7 @@ namespace Api.Pages
 					// 404
 					return new PageWithTokens()
 					{
+						StatusCode = 404,
 						Page = null,
 						TokenValues = null,
 						TokenNamesJson = "null"
@@ -341,6 +344,7 @@ namespace Api.Pages
 
 				return new PageWithTokens()
 				{
+					StatusCode = 302,
 					RedirectTo = targetUrl,
 					TokenNamesJson = "null"
 				};
@@ -390,6 +394,7 @@ namespace Api.Pages
 						// this project specific such that it can e.g. redirect to a subscribe page or whatever it would like to do.
 						return new PageWithTokens()
 						{
+							StatusCode = 302,
 							Page = null,
 							TokenValues = null,
 							TokenNamesJson = "null",
@@ -405,6 +410,7 @@ namespace Api.Pages
 				// 404
 				return new PageWithTokens()
 				{
+					StatusCode = 404,
 					Page = null,
 					TokenValues = null,
 					TokenNamesJson = "null"
@@ -412,6 +418,7 @@ namespace Api.Pages
 			}
 			return new PageWithTokens()
 			{
+				StatusCode = 200,
 				Page = result,
 				Tokens = curNode.UrlTokens,
 				TokenNames = curNode.UrlTokenNames,
@@ -555,6 +562,10 @@ namespace Api.Pages
 	/// </summary>
 	public struct PageWithTokens
 	{
+		/// <summary>
+		/// Custom set the http status code.
+		/// </summary>
+		public int StatusCode;
 		/// <summary>
 		/// The tokens associated with the page itself.
 		/// </summary>
