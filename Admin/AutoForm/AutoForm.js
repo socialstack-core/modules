@@ -510,7 +510,7 @@ class AutoFormInternal extends React.Component {
 			return <Router.Provider
 				value={{
 					canGoBack: () => false,
-					pageState: this.state.pageState,
+					pageState: this.state.pageState || {url: ''},
 					setPage
 				}}
 			>
