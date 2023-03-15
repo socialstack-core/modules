@@ -795,12 +795,12 @@ namespace Api.Uploader
 				var map = new Dictionary<string, MagickFormat>();
 				foreach (var format in MagickNET.SupportedFormats)
 				{
-					if (!format.IsReadable)
+					if (!format.SupportsReading)
 					{
 						continue;
 					}
 
-					if (format.IsMultiFrame && format.Format != MagickFormat.Gif
+					if (format.SupportsMultipleFrames && format.Format != MagickFormat.Gif
 						&& format.Format != MagickFormat.Svg
 						&& format.Format != MagickFormat.Tif
 						&& format.Format != MagickFormat.Tiff
