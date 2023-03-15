@@ -1,12 +1,13 @@
 import Dropdown from 'UI/Dropdown';
 
 export default function Collapsible(props) {
-	var { className, compact, defaultClick } = props;
+	var { className, compact, defaultClick, alwaysOpen } = props;
 	var noContent = props.noContent || !props.children;
 	var [isOpen, setOpen] = React.useState(noContent ? false : !!props.open);
 	
 	var expanderLeft = props.expanderLeft;
 	var hasInfo = props.info;
+	var hasJsx = props.jsx;
 	var hasButtons = props.buttons && props.buttons.length;
 	
 	// NB: include "open" class in addition to [open] attribute as we may be using a polyfill to render this
@@ -27,13 +28,20 @@ export default function Collapsible(props) {
 	}
 
 	return <details className={detailsClass} open={isOpen} onClick={(e) => {
+
+		if (!alwaysOpen) {
 			props.onClick && props.onClick();
 			e.preventDefault();
 			e.stopPropagation();
 			!noContent && setOpen(!isOpen);
+		} else {
+			e.preventDefault();
+			e.stopPropagation();
+        }
+
 		}}>
-		<summary className={summaryClass} onClick={defaultClick ? (e) => defaultClick(e) : undefined}>
-			{(expanderLeft || hasButtons) &&
+		<summary className={summaryClass} onClick={defaultClick && !alwaysOpen ? (e) => defaultClick(e) : undefined}>
+			{(expanderLeft || hasButtons) && !alwaysOpen &&
 				<div className={iconClass}>
 					{/* NB: icon classes injected dynamically via CSS */}
 					<i className="far fa-fw"></i>
@@ -55,9 +63,12 @@ export default function Collapsible(props) {
 					<i className="far fa-chevron-down"></i>
 				</div>
 			}
-			{(hasInfo || hasButtons) &&
+			{(hasInfo || hasJsx || hasButtons) &&
 				<div className="buttons">
 					{hasInfo && <span className="info">{props.info}</span>}
+					{hasJsx && <span className="jsx">
+						{props.jsx}
+					</span>}
 					{hasButtons &&
 						props.buttons.map(button => {
 							var variant = button.variant || 'primary';
@@ -73,7 +84,7 @@ export default function Collapsible(props) {
 								</>;
 
 								return <>
-									<Dropdown label={dropdownJsx} variant={'outline-' + variant} isSmall splitCallback={button.onClick}>
+									<Dropdown label={dropdownJsx} variant={'outline-' + variant} isSmall disabled={button.disabled} splitCallback={button.onClick}>
 										{
 											button.children.map(menuitem => {
 
