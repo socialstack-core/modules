@@ -27,7 +27,13 @@ namespace Api.Invites{
 		[DatabaseField(Length =40)]
 		[JsonIgnore]
 		public string Token;
-		
+
+		/// <summary>
+		/// Invite type. If this is non-zero, this uses the template with the type on the end such as "invited_join_1". 
+		/// This allows people to be invited to fulfil different roles.
+		/// </summary>
+		public uint InviteType;
+
 		/// <summary>
 		/// The joining user ID.
 		/// </summary>

@@ -52,7 +52,19 @@ namespace Api.Invites
 			_sms = sms;
 
 			var config = GetConfig<InviteServiceConfig>();
-			
+
+			Events.Invite.BeforeUpdate.AddEventListener((Context context, Invite updated, Invite orig) => {
+
+				// Block changing the invite type. This prevents the invited user from potentially elevating themselves to a company team
+				// member if they were invited as a client and switch the type to the "team member" type instead.
+				if (updated.InviteType != orig.InviteType && context.UserId != orig.UserId)
+				{
+					throw new PublicException("Invite type can only be changed by the invite creator.", "invite_type_changed");
+				}
+
+				return new ValueTask<Invite>(updated);
+			});
+
 			Events.Invite.BeforeCreate.AddEventListener(async (Context context, Invite invite) => {
 				
 				if(invite == null)
@@ -128,7 +140,7 @@ namespace Api.Invites
 
 				var recipientUser = await _users.Get(context, invite.InvitedUserId.Value, DataOptions.IgnorePermissions);
 
-				await SendInvite(context, recipientUser, invite.Token);
+				await SendInvite(context, recipientUser, invite.Token, invite.InviteType);
 
 				return invite;
 				
@@ -180,8 +192,11 @@ namespace Api.Invites
 			return result;
 		}
 
-		private async ValueTask SendInvite(Context context, User recipientUser, string token)
+		private async ValueTask SendInvite(Context context, User recipientUser, string token, uint inviteType)
 		{
+			// Potential support for multiple invite types.
+			var templateName = inviteType == 0 ? "invited_join" : "invited_join_" + inviteType;
+
 			if (string.IsNullOrEmpty(recipientUser.Email))
 			{
 				if (string.IsNullOrEmpty(recipientUser.ContactNumber))
@@ -203,7 +218,7 @@ namespace Api.Invites
 
 				await _sms.SendAsync(
 					recipients,
-					"invited_join"
+					templateName
 				);
 			}
 			else
@@ -221,7 +236,7 @@ namespace Api.Invites
 
 				await _emails.SendAsync(
 					recipients,
-					"invited_join"
+					templateName
 				);
 			}
 		}
