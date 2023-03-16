@@ -28,7 +28,10 @@ export default function Collapsible(props) {
 	}
 
 	return <details className={detailsClass} open={isOpen} onClick={(e) => {
-
+		if(e.defaultPrevented || (e.target.nodeName != 'SUMMARY' && e.target.nodeName != 'DETAILS')){
+			return;
+		}
+		
 		if (!alwaysOpen) {
 			props.onClick && props.onClick();
 			e.preventDefault();
@@ -40,7 +43,13 @@ export default function Collapsible(props) {
         }
 
 		}}>
-		<summary className={summaryClass} onClick={defaultClick && !alwaysOpen ? (e) => defaultClick(e) : undefined}>
+		<summary className={summaryClass} onClick={defaultClick && !alwaysOpen ? (e) => {
+				if(e.defaultPrevented || (e.target.nodeName != 'SUMMARY' && e.target.nodeName != 'DETAILS')){
+					return;
+				}
+				
+				defaultClick(e);
+			} : undefined}>
 			{(expanderLeft || hasButtons) && !alwaysOpen &&
 				<div className={iconClass}>
 					{/* NB: icon classes injected dynamically via CSS */}
