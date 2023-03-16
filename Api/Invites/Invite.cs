@@ -41,10 +41,10 @@ namespace Api.Invites{
 		public int State;
 		
 		/// <summary>
-		/// A temporary email address, used only when creating an invite.
+		/// A temporary email address/ phone number, used only when creating an invite.
 		/// </summary>
 		[JsonIgnore]
-		public string EmailAddress {get; set;}
+		public string UserLocator {get; set;}
 
 		/// <summary>
 		/// A temporary first name, used only when creating an invite.

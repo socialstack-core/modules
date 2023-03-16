@@ -1,18 +1,12 @@
 ﻿using System;
 using System.Threading.Tasks;
-using Api.Database;
-using Api.Emails;
-using Microsoft.AspNetCore.Http;
 using Api.Contexts;
 using System.Collections.Generic;
-using Api.Permissions;
 using Api.Eventing;
-using System.Collections;
-using System.Reflection;
 using Api.Startup;
-using System.Linq;
 using Api.Users;
 using Api.PasswordResetRequests;
+
 
 namespace Api.Invites
 {
@@ -24,7 +18,7 @@ namespace Api.Invites
 	public partial class InviteService : AutoService<Invite>
     {
 		/// <summary>
-		/// Custom function to select the user to use from an email address.
+		/// Custom function to select the user to use from the user locator (email address, phone number etc).
 		/// </summary>
 		public Func<Context, string, ValueTask<User>> OnSelectUser;
 
@@ -41,15 +35,21 @@ namespace Api.Invites
 		/// <summary>
 		/// The email service.
 		/// </summary>
-		public EmailTemplateService _emails;
+		public Emails.EmailTemplateService _emails;
+		
+		/// <summary>
+		/// The SMS service.
+		/// </summary>
+		public SmsMessages.SmsTemplateService _sms;
 
 		/// <summary>
 		/// Instanced automatically. Use injection to use this service, or Startup.Services.Get.
 		/// </summary>
-		public InviteService(UserService users, EmailTemplateService emails) : base(Events.Invite)
+		public InviteService(UserService users, Emails.EmailTemplateService emails, SmsMessages.SmsTemplateService sms) : base(Events.Invite)
 		{
 			_users = users;
 			_emails = emails;
+			_sms = sms;
 
 			var config = GetConfig<InviteServiceConfig>();
 			
@@ -63,18 +63,29 @@ namespace Api.Invites
 				// Generate a token, which will be hidden from the user except in the email/ whatever sends the invite:
 				invite.Token = RandomToken.Generate(20);
 
-				if (!string.IsNullOrEmpty(invite.EmailAddress))
+				if (!string.IsNullOrEmpty(invite.UserLocator))
 				{
 					// First, get the user. They may already exist.
 					User user = null;
+					var locator = invite.UserLocator.Trim();
+
+					var isEmail = (locator.IndexOf('@') != -1);
 
 					if (OnSelectUser != null)
 					{
-						user = await OnSelectUser(context, invite.EmailAddress);
+						user = await OnSelectUser(context, locator);
+					}
+					else if (isEmail)
+					{
+						user = await users.Get(context, locator);
 					}
 					else
 					{
-						user = await users.Get(context, invite.EmailAddress);
+						// Phone number if this feature is enabled.
+						if (config.CanSendViaSms)
+						{
+							user = await users.Where("ContactNumber=?").Bind(locator).First(context);
+						}
 					}
 					
 					if (!config.CanSendIfAlreadyExists && user != null)
@@ -82,7 +93,7 @@ namespace Api.Invites
 						// Throw an exception if the user has completed registration
 						if ((IsRegistered != null && IsRegistered(user)) || (IsRegistered == null && user.PasswordHash != null))
                         {
-							throw new PublicException("A user with that email address has an account already.", "user_exists");
+							throw new PublicException("A user with that information has an account already.", "user_exists");
 						}
 					}
 
@@ -93,10 +104,11 @@ namespace Api.Invites
 						// Create the user now, as a member:
 						user = await users.Create(context,
 							new User() {
-								Email = invite.EmailAddress,
+								Email = isEmail ? locator : null,
 								FirstName = invite.FirstName,
 								LastName = invite.LastName,
-								FullName = fullName
+								FullName = fullName,
+								ContactNumber = !isEmail ? locator : null
 							}, DataOptions.IgnorePermissions);
 					}
 					
@@ -109,14 +121,14 @@ namespace Api.Invites
 			
 			Events.Invite.AfterCreate.AddEventListener(async (Context context, Invite invite) => {
 				
-				// Send the email (we'll specifically wait for this one):
-				if(invite == null || !invite.InvitedUserId.HasValue || invite.InvitedUserId == 0 || string.IsNullOrEmpty(invite.EmailAddress)){
+				// Send the email/ SMS (we'll specifically wait for this one):
+				if(invite == null || !invite.InvitedUserId.HasValue || invite.InvitedUserId == 0 || string.IsNullOrEmpty(invite.UserLocator)){
 					return invite;
 				}
 
 				var recipientUser = await _users.Get(context, invite.InvitedUserId.Value, DataOptions.IgnorePermissions);
 
-				await SendInviteEmail(context, recipientUser, invite.Token);
+				await SendInvite(context, recipientUser, invite.Token);
 
 				return invite;
 				
@@ -168,30 +180,58 @@ namespace Api.Invites
 			return result;
 		}
 
-		private async ValueTask SendInviteEmail(Context context, User recipientUser, string token)
+		private async ValueTask SendInvite(Context context, User recipientUser, string token)
 		{
-			var recipient = new Recipient(recipientUser);
-
-			recipient.CustomData = new InviteCustomEmailData()
+			if (string.IsNullOrEmpty(recipientUser.Email))
 			{
-				Token = token
-			};
+				if (string.IsNullOrEmpty(recipientUser.ContactNumber))
+				{
+					// nope!
+					return;
+				}
 
-			var recipients = new List<Recipient>();
-			recipients.Add(recipient);
+				// Send an SMS.
+				var recipient = new SmsMessages.Recipient(recipientUser);
 
-			await _emails.SendAsync(
-				recipients,
-				"invited_join"
-			);
+				recipient.CustomData = new InviteCustomPayloadData()
+				{
+					Token = token
+				};
+
+				var recipients = new List<SmsMessages.Recipient>();
+				recipients.Add(recipient);
+
+				await _sms.SendAsync(
+					recipients,
+					"invited_join"
+				);
+			}
+			else
+			{
+				// If an email address exists, use that as priority.
+				var recipient = new Emails.Recipient(recipientUser);
+
+				recipient.CustomData = new InviteCustomPayloadData()
+				{
+					Token = token
+				};
+
+				var recipients = new List<Emails.Recipient>();
+				recipients.Add(recipient);
+
+				await _emails.SendAsync(
+					recipients,
+					"invited_join"
+				);
+			}
 		}
 
 	}
 
 	/// <summary>
-	/// Custom data in invite emails
+	/// Custom data in invite emails/ SMS
 	/// </summary>
-	public class InviteCustomEmailData
+	public class InviteCustomPayloadData
 	{
 
 		/// <summary>
