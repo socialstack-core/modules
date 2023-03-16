@@ -263,6 +263,8 @@ export default class CanvasState{
 							var resultRoot = {};
 							if(Array.isArray(n)){
 								this.loadCanvasChildren(node.r[key], resultRoot);
+							}else if(!n){
+								resultRoot = {content: []};
 							}else{
 								resultRoot = {
 									content: [
@@ -278,6 +280,8 @@ export default class CanvasState{
 							var rt = node.r[key];
 							if(Array.isArray(rt)){
 								this.loadCanvasChildren(node.r[key], resultRoot);
+							}else if(!rt){
+								resultRoot = {content: []};
 							}else{
 								resultRoot = {
 									content: [
