@@ -80,14 +80,15 @@ function getSrcset(options, r) {
 
 	supportedSizes.forEach(size => {
 
-		if (size >= MIN_SRCSET_WIDTH && size <= width) {
+		if (size > MIN_SRCSET_WIDTH && size <= width) {
 			var url = r.handler(r.basepath, { size: size, url: true }, r);
 			srcset.push(`${url} ${size}w`);
 		}
 
 	});
 
-	return srcset.join(',');
+	var srcset = srcset.join(',');
+	return srcset == '' ? undefined : srcset;
 }
 
 function getSizes(options, r) {
@@ -102,7 +103,7 @@ function getSizes(options, r) {
 
 	supportedSizes.forEach((size, i) => {
 
-		if (size >= MIN_SRCSET_WIDTH && size <= width) {
+		if (size > MIN_SRCSET_WIDTH && size <= width) {
 			sizes.push(i == supportedSizes.length - 1 ?
 				`${size}px` :
 				`(max-width: ${size}px) ${size}px`);
@@ -110,7 +111,8 @@ function getSizes(options, r) {
 
 	});
 
-	return sizes.join(',');
+	var sizes = sizes.join(',');
+	return sizes == '' ? undefined : sizes;
 }
 
 function basicUrl(url, options, r) {
@@ -215,7 +217,7 @@ function contentFile(basepath, options, r) {
 		return <>
 			<video className="responsive-media__video" src={url}
 				width={options.isPortrait ? undefined : videoSize} height={options.isPortrait ? videoSize : undefined}
-				loading="lazy" controls {...options.attribs} />
+				loading={options.lazyLoad == false ? undefined : "lazy"} controls {...options.attribs} />
 		</>;
 	}
 
@@ -261,23 +263,25 @@ function displayImage(url, options) {
 		style={options.fx && options.fy && !(options.fx == 50 && options.fy == 50) ? { 'object-position': `${options.fx}% ${options.fy}%` } : undefined}
 		width={hasWrapper ? undefined : width} height={hasWrapper ? undefined : height}
 		alt={options.alt}
-		loading="lazy" {...options.attribs} onerror={options.hideOnError ? HIDE_ON_ERROR : undefined} />;
+		loading={options.lazyLoad == false ? undefined : "lazy"} {...options.attribs} onerror={options.hideOnError ? HIDE_ON_ERROR : undefined} />;
 
 	return hasWrapper ?
 		// support art direction / blurhash background
 		<ImgWrapperTag className="responsive-media__wrapper" style={wrapperStyle}>
-			{options.portraitRef && <>
+			{options.portraitRef && options.portraitSrcset && options.responsiveSizes && <>
 				<source
 					media="(orientation: portrait)"
 					srcset={options.portraitSrcset}
 					sizes={options.responsiveSizes}
 				/>
 			</>}
-			<source
-				media={options.portraitRef ? "(orientation: landscape)" : undefined}
-				srcset={options.landscapeSrcset}
-				sizes={options.responsiveSizes}
-			/>
+			{options.landscapeSrcset && options.responsiveSizes && <>
+				<source
+					media={options.portraitRef ? "(orientation: landscape)" : undefined}
+					srcset={options.landscapeSrcset}
+					sizes={options.responsiveSizes}
+				/>
+			</>}
 			{img}
 		</ImgWrapperTag> :
 		// basic image
