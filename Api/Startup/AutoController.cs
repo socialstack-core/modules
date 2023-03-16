@@ -266,7 +266,7 @@ public partial class AutoController<T,ID> : ControllerBase
     /// Creates a new entity. Returns the ID. Includes everything by default.
     /// </summary>
     [HttpPost]
-	public virtual async ValueTask Create([FromBody] JObject body)
+	public virtual async ValueTask Create([FromBody] JObject body, [FromQuery] string includes = null)
 	{
 		var context = await Request.GetContext();
 
@@ -430,7 +430,7 @@ public partial class AutoController<T,ID> : ControllerBase
 		// Fire off after create evt:
 		entity = await _service.EventGroup.EndpointEndCreate.Dispatch(context, entity, Response);
 
-		await OutputJson(context, entity, "*");
+		await OutputJson(context, entity, includes == null ? "*" : includes);
 	}
 
 	/// <summary>
@@ -486,7 +486,7 @@ public partial class AutoController<T,ID> : ControllerBase
 	/// Updates an entity with the given ID. Includes everything by default.
 	/// </summary>
 	[HttpPost("{id}")]
-	public virtual async ValueTask Update([FromRoute] ID id, [FromBody] JObject body)
+	public virtual async ValueTask Update([FromRoute] ID id, [FromBody] JObject body, [FromQuery] string includes = null)
 	{
 		var context = await Request.GetContext();
 		
@@ -548,7 +548,7 @@ public partial class AutoController<T,ID> : ControllerBase
 
 		// Run the request updated event:
 		entityToUpdate = await _service.EventGroup.EndpointEndUpdate.Dispatch(context, entityToUpdate, Response) as T;
-		await OutputJson(context, entityToUpdate, "*");
+		await OutputJson(context, entityToUpdate, includes == null ? "*" : includes);
 	}
 
 }
