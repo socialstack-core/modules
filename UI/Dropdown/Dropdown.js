@@ -344,6 +344,7 @@ export default function Dropdown(props) {
                             type="button"
                             id={dropdownId}
                             aria-expanded={open}
+                            aria-label={title}
                             ref={toggleRef}
                             disabled={disabled}>
 
