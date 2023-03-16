@@ -34,7 +34,7 @@ export default function Checkbox(props) {
 	var inputClass = "form-check-input" + (solid ? " form-check-input--solid" : "");
 
 	return (
-		<div className={props.readonly ? '' : checkClass}>
+		<div className={props.readonly ? '' : checkClass} style={props.style}>
 			{props.readonly ? (
 				(props.value === undefined ? props.defaultValue : props.value) ? <b>Yes (readonly) </b> : <b>No (readonly) </b>
 			) : <input class={inputClass} type="checkbox" name = {name} id={id} 
@@ -44,6 +44,8 @@ export default function Checkbox(props) {
 				disabled={disabled ? "disabled" : undefined}
 				value={props.value}
 				defaultChecked={props.defaultValue}
+				onClick={props.onClick}
+				onMouseUp={props.onMouseUp}
 			/>}
 			<label class="form-check-label" htmlFor={id}>
 				{label}
