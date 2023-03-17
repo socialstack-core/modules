@@ -200,7 +200,13 @@ namespace Api.Contexts
 			writer.Release();
 		}
 
-		private async ValueTask ToJson(Context context, Writer writer)
+		/// <summary>
+		/// Serialises the given context into the given writer.
+		/// </summary>
+		/// <param name="context"></param>
+		/// <param name="writer"></param>
+		/// <returns></returns>
+		public async ValueTask ToJson(Context context, Writer writer)
 		{
 			writer.Write((byte)'{');
 
