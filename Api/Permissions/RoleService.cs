@@ -174,7 +174,7 @@ namespace Api.Permissions
 					return new ValueTask<JsonField<Role, uint>>(field);
 				}
 
-				if (field.Name == "AdminDashboardJson")
+				if (field.Name == "AdminDashboardJson" || field.Name == "GrantRuleJson")
 				{
 					// Not readable if can't view admin.
 					field.Readable = (field.ForRole != null && field.ForRole.CanViewAdmin);
