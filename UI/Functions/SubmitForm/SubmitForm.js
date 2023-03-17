@@ -14,7 +14,7 @@ export default function (e, options) {
 	for(var i=0;i<fields.length;i++){
 		(function(field){
 			
-			if(!field.name || (field.type == 'radio' && !field.checked)){
+			if(!field.name || field.type=='submit' || (field.type == 'radio' && !field.checked)){
 				return;
 			}
 			
