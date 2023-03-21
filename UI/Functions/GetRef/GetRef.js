@@ -164,7 +164,8 @@ function idealType(ref, wanted) {
 }
 
 function contentFile(basepath, options, r) {
-	var url = r.scheme == 'public' ? '/content/' : '/content-private/';
+	var isPublic = r.scheme == 'public';
+	var url = isPublic ? '/content/' : '/content-private/';
 	var dirs = r.dirs;
 	if (options.dirs) {
 		dirs = dirs.concat(options.dirs);
@@ -188,9 +189,9 @@ function contentFile(basepath, options, r) {
 	}
 
 	var name = r.fileName;
-	var type = idealType(r, options.ideal);
-
-	if (options.forceImage) {
+	var type = isPublic ? idealType(r, options.ideal) : r.fileType;
+	
+	if (options.forceImage && isPublic) {
 		if (imgTypes.indexOf(type) == -1) {
 			// Use the transcoded webp ver:
 			type = 'webp';
@@ -207,7 +208,11 @@ function contentFile(basepath, options, r) {
 	} else {
 		url += ((video || type == 'svg' || type == 'apng' || type == 'gif') ? (options.videoSize || 'original') : (options.size || 'original')) + (options.sizeExt || '') + '.' + type;
 	}
-
+	
+	if(!isPublic){
+		url += '?t=' + r.args.t + '&s=' + r.args.s;
+	}
+	
 	if (options.url) {
 		return url;
 	}
@@ -344,8 +349,12 @@ function parseArgs(query) {
 			var p2 = pair.length > 1 ? decodeURIComponent(pair[1]) : true;
 
 			// check - numeric value?
-			var parsedFloat = parseFloat(p2);
-			args[p1] = isNaN(parsedFloat) ? p2 : parsedFloat;
+			if(p1 != 't'){
+				var parsedFloat = parseFloat(p2);
+				args[p1] = isNaN(parsedFloat) ? p2 : parsedFloat;
+			}else{
+				args[p1] = p2;
+			}
 		}
 	}
 	return args;
@@ -417,6 +426,7 @@ getRef.parse = (ref) => {
 		basepath,
 		fileType,
 		variants,
+		query: queryStr,
 		typeMap: () => {
 			var map = {};
 			if (fileType) {
