@@ -87,8 +87,7 @@ function getSrcset(options, r) {
 
 	});
 
-	var srcset = srcset.join(',');
-	return srcset == '' ? undefined : srcset;
+	return srcset.length < 2 ? undefined : srcset.join(',');
 }
 
 function getSizes(options, r) {
@@ -111,8 +110,7 @@ function getSizes(options, r) {
 
 	});
 
-	var sizes = sizes.join(',');
-	return sizes == '' ? undefined : sizes;
+	return sizes.length < 2 ? undefined : sizes.join(',');
 }
 
 function basicUrl(url, options, r) {
@@ -269,6 +267,10 @@ function displayImage(url, options) {
 		width={hasWrapper ? undefined : width} height={hasWrapper ? undefined : height}
 		alt={options.alt}
 		loading={options.lazyLoad == false ? undefined : "lazy"} {...options.attribs} onerror={options.hideOnError ? HIDE_ON_ERROR : undefined} />;
+
+	if ((options.portraitRef && options.portraitSrcset && options.responsiveSizes) || (options.landscapeSrcset && options.responsiveSizes)) {
+		ImgWrapperTag = "picture";
+	}
 
 	return hasWrapper ?
 		// support art direction / blurhash background
