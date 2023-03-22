@@ -34,6 +34,9 @@ namespace Api.Invites
 				return;
 			}
 
+			// Regenerate the contextual token:
+			context.SendToken(Response);
+
 			// Special situation - must return both the context and the invite.
 			// The following code is a combination of both OutputContext and OutputJson.
 			var targetStream = Response.Body;

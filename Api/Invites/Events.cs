@@ -14,7 +14,20 @@ namespace Api.Eventing
 		/// <summary>
 		/// Events on the Invite type.
 		/// </summary>
-		public static EventGroup<Invite> Invite;
+		public static InviteEvents Invite;
 	}
-	
+
+	/// <summary>
+	/// Events specifically for invites.
+	/// </summary>
+	public class InviteEvents : EventGroup<Invite>
+	{
+
+		/// <summary>
+		/// Just before the invite is sent. You can extend the custom payload in this event used to render emails/ SMS if you'd like.
+		/// </summary>
+		public EventHandler<InviteCustomPayloadData, Invite> BeforeSend;
+
+	}
+
 }

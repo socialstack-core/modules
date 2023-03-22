@@ -140,7 +140,7 @@ namespace Api.Invites
 
 				var recipientUser = await _users.Get(context, invite.InvitedUserId.Value, DataOptions.IgnorePermissions);
 
-				await SendInvite(context, recipientUser, invite.Token, invite.InviteType);
+				await SendInvite(context, recipientUser, invite);
 
 				return invite;
 				
@@ -192,8 +192,11 @@ namespace Api.Invites
 			return result;
 		}
 
-		private async ValueTask SendInvite(Context context, User recipientUser, string token, uint inviteType)
+		private async ValueTask SendInvite(Context context, User recipientUser, Invite invite)
 		{
+			string token = invite.Token;
+			uint inviteType = invite.InviteType;
+
 			// Potential support for multiple invite types.
 			var templateName = inviteType == 0 ? "invited_join" : "invited_join_" + inviteType;
 
@@ -208,10 +211,14 @@ namespace Api.Invites
 				// Send an SMS.
 				var recipient = new SmsMessages.Recipient(recipientUser);
 
-				recipient.CustomData = new InviteCustomPayloadData()
+				var inviteData = new InviteCustomPayloadData()
 				{
-					Token = token
+					Token = token,
+					Invite = invite
 				};
+
+				inviteData = await Events.Invite.BeforeSend.Dispatch(context, inviteData, invite);
+				recipient.CustomData = inviteData;
 
 				var recipients = new List<SmsMessages.Recipient>();
 				recipients.Add(recipient);
@@ -226,10 +233,14 @@ namespace Api.Invites
 				// If an email address exists, use that as priority.
 				var recipient = new Emails.Recipient(recipientUser);
 
-				recipient.CustomData = new InviteCustomPayloadData()
+				var inviteData = new InviteCustomPayloadData()
 				{
-					Token = token
+					Token = token,
+					Invite = invite
 				};
+
+				inviteData = await Events.Invite.BeforeSend.Dispatch(context, inviteData, invite);
+				recipient.CustomData = inviteData;
 
 				var recipients = new List<Emails.Recipient>();
 				recipients.Add(recipient);
@@ -246,7 +257,7 @@ namespace Api.Invites
 	/// <summary>
 	/// Custom data in invite emails/ SMS
 	/// </summary>
-	public class InviteCustomPayloadData
+	public partial class InviteCustomPayloadData
 	{
 
 		/// <summary>
