@@ -179,6 +179,7 @@ export default class Paginator extends React.Component {
 		*/
 
 		var showInput = this.props.showInput !== undefined ? this.props.showInput : true;
+		var showSummary = this.props.showSummary !== undefined ? this.props.showSummary : !showInput;
 		var maxLinks = this.props.maxLinks || 5;
 
 		// override maxLinks if we're on mobile
@@ -302,7 +303,7 @@ export default class Paginator extends React.Component {
 					}
 				</>}
 
-				{!showInput && <p className="field-label">
+				{showSummary && <p className="field-label">
 					Viewing page {currentPage}
 					{!!totalPages &&
 						<span> of {totalPages}</span>
