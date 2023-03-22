@@ -39,6 +39,23 @@ namespace Api.CloudHosts
                 return new ValueTask();
             };
 
+            Events.Upload.ListFiles.AddEventListener(async (Context context, FileMetaStream metaStream) =>
+            {
+
+                if (metaStream.Handled)
+                {
+                    return metaStream;
+                }
+
+                if (_uploadHost != null)
+                {
+                    metaStream.Handled = true;
+					await _uploadHost.ListFiles(metaStream);
+				}
+
+				return metaStream;
+            });
+				
             Events.Upload.StoreFile.AddEventListener(async (Context context, Upload upload, string tempFile, string variantName) => {
 
                 if (upload != null)

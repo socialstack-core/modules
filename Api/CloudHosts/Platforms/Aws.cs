@@ -99,14 +99,71 @@ namespace Api.CloudHosts
             return _cdnUrl;
         }
 
-        /// <summary>
-        /// Reads a files bytes from the remote host.
-        /// </summary>
-        /// <param name="relativeUrl">e.g. 123-original.png</param>
-        /// <param name="isPrivate">True if /content-private/, false for regular /content/.</param>
-        /// <returns></returns>
-        /// <exception cref="NotImplementedException"></exception>
-        public override async Task<System.IO.Stream> ReadFile(string relativeUrl, bool isPrivate)
+		/// <summary>
+		/// Lists files from the storage area into the given file meta stream.
+		/// The source can cancel the request via cancelling the meta stream.
+		/// </summary>
+		/// <param name="metaStream"></param>
+		/// <returns></returns>
+		public override async Task ListFiles(FileMetaStream metaStream)
+		{
+			if (_uploadClient == null)
+			{
+				SetupClient();
+			}
+
+			var key = (metaStream.SearchPrivate ? "content-private/" : "content/") + metaStream.SearchDirectory;
+
+			string currentContinuation = null;
+			var hasMore = true;
+
+			while (hasMore)
+			{
+				if (metaStream.Cancelled)
+				{
+					return;
+				}
+
+				var response = await _uploadClient.ListObjectsV2Async(new Amazon.S3.Model.ListObjectsV2Request()
+				{
+					BucketName = _config.S3BucketName,
+					Prefix = key,
+					ContinuationToken = currentContinuation
+				});
+
+				if (metaStream.Cancelled)
+				{
+					return;
+				}
+
+				foreach (var file in response.S3Objects)
+				{
+					metaStream.FileSize = (ulong)file.Size;
+					metaStream.Path = file.Key.Substring(key.Length);
+					await metaStream.OnFile(metaStream);
+					metaStream.FilesListed++;
+				}
+
+				if (response.IsTruncated)
+				{
+					currentContinuation = response.NextContinuationToken;
+					hasMore = true;
+				}
+				else
+				{
+					hasMore = false;
+				}
+			}
+		}
+
+		/// <summary>
+		/// Reads a files bytes from the remote host.
+		/// </summary>
+		/// <param name="relativeUrl">e.g. 123-original.png</param>
+		/// <param name="isPrivate">True if /content-private/, false for regular /content/.</param>
+		/// <returns></returns>
+		/// <exception cref="NotImplementedException"></exception>
+		public override async Task<System.IO.Stream> ReadFile(string relativeUrl, bool isPrivate)
         {
             if (_uploadClient == null)
             {

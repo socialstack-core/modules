@@ -134,7 +134,64 @@ namespace Api.CloudHosts
             var str = await _uploadClient.GetObjectStreamAsync(_spaceName, key, null);
             return str;
         }
-        
+
+        /// <summary>
+        /// Lists files from the storage area into the given file meta stream.
+        /// The source can cancel the request via cancelling the meta stream.
+        /// </summary>
+        /// <param name="metaStream"></param>
+        /// <returns></returns>
+        public override async Task ListFiles(FileMetaStream metaStream)
+        {
+			if (_uploadClient == null)
+			{
+				SetupClient();
+			}
+
+			var key = (metaStream.SearchPrivate ? "content-private/" : "content/") + metaStream.SearchDirectory;
+
+            string currentContinuation = null;
+            var hasMore = true;
+
+			while (hasMore)
+            {
+				if (metaStream.Cancelled)
+				{
+					return;
+				}
+
+				var response = await _uploadClient.ListObjectsV2Async(new Amazon.S3.Model.ListObjectsV2Request()
+                {
+                    BucketName = _spaceName,
+                    Prefix = key,
+                    ContinuationToken = currentContinuation
+				});
+
+				if (metaStream.Cancelled)
+				{
+					return;
+				}
+                
+				foreach (var file in response.S3Objects)
+                {
+                    metaStream.FileSize = (ulong)file.Size;
+                    metaStream.Path = file.Key.Substring(key.Length);
+					await metaStream.OnFile(metaStream);
+					metaStream.FilesListed++;
+				}
+
+                if (response.IsTruncated)
+                {
+                    currentContinuation = response.NextContinuationToken;
+                    hasMore = true;
+                }
+                else
+                {
+                    hasMore = false;
+                }
+            }
+		}
+
         /// <summary>
         /// The URL for the upload host (excluding any paths) if this host platform is providing file services. e.g. https://thing.ams.cdn.digitaloceanspaces.com
         /// </summary>

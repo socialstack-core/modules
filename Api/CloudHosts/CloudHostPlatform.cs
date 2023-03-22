@@ -35,9 +35,20 @@ namespace Api.CloudHosts
         }
 
         /// <summary>
-        /// True if this host platform has the given service type configured. Key is e.g. "upload".
+        /// Lists files from the storage area into the given file meta stream.
+        /// The source can cancel the request via cancelling the meta stream.
         /// </summary>
-        public virtual bool HasService(string serviceType)
+        /// <param name="metaStream"></param>
+        /// <returns></returns>
+        public virtual Task ListFiles(FileMetaStream metaStream)
+        {
+			throw new NotImplementedException();
+		}
+
+		/// <summary>
+		/// True if this host platform has the given service type configured. Key is e.g. "upload".
+		/// </summary>
+		public virtual bool HasService(string serviceType)
         {
             configuredState.TryGetValue(serviceType, out bool val);
             return val;
