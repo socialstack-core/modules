@@ -68,7 +68,7 @@ function newId() {
 }
 
 export default function Dropdown(props) {
-    var { className, variant, title, label, arrow, isOutline, isLarge, isSmall, splitCallback, children, stayOpenOnSelection, align, position, disabled } = props;
+    var { className, variant, title, label, arrow, isOutline, isLarge, isSmall, splitCallback, children, initialState, stayOpenOnSelection, align, position, disabled } = props;
     var dropdownClasses = ['dropdown'];
 
     if (className) {
@@ -86,6 +86,10 @@ export default function Dropdown(props) {
         position = "Bottom";
     }
     position = position.toLowerCase();
+
+    if (!initialState) {
+        initialState = false;
+    }
 
     if (!align) {
         align = "";
@@ -134,7 +138,7 @@ export default function Dropdown(props) {
     dropdownClasses.push('dropdown--align-' + align);
     dropdownClasses.push('dropdown--position-' + position);
 
-	const [open, setOpen] = useState(false);
+    const [open, setOpen] = useState(initialState);
 	const dropdownWrapperRef = useRef(null);
 	const toggleRef = useRef(null);
 	const dropdownRef = useRef(null);
@@ -209,9 +213,7 @@ export default function Dropdown(props) {
             if (dropdownWrapperRef && !dropdownWrapperRef.current.contains(event.target)) {
                 closeDropdown();
             }
-
         }
-
 	}
 
     function checkShiftTab(event) {
