@@ -229,6 +229,13 @@ export class ErrorCatcher extends React.Component {
 		return { hasError: true, error: msg, errorShown: false };
 	}
 	
+	componentWillReceiveProps(newProps){
+		if(newProps.node != this.props.node){
+			// Back to default error state:
+			this.setState({ hasError: false, errorShown: false });
+		}
+	}
+	
 	componentDidCatch(error, errorInfo) {
 		console.error(error, errorInfo);
 	}
