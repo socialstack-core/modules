@@ -13,6 +13,8 @@ using System.Text;
 using System.Security.Cryptography;
 using System.Linq;
 using ImageMagick;
+using System.Reflection;
+using static Org.BouncyCastle.Bcpg.Attr.ImageAttrib;
 
 namespace Api.Uploader
 {
@@ -96,166 +98,7 @@ namespace Api.Uploader
 			}, 9);
 
 			Events.Upload.Process.AddEventListener(async (Context context, Upload upload) => {
-
-				MagickImage current = null;
-
-				var transcodeTo = IsSupportedImage(upload.FileType);
-
-				if (transcodeTo == MagickFormat.Svg)
-				{
-					return upload;
-				}
-
-				if (transcodeTo != null)
-				{
-					int? width = null;
-					int? height = null;
-					string variants = null;
-					string blurHash = null;
-					
-					if (_configuration.ProcessImages)
-					{
-						try
-						{
-							current = new MagickImage(upload.TemporaryPath);
-
-							if (NormalizeOrientation(current))
-							{
-								// The image was rotated - we need to overwrite the original:
-								current.Write(upload.TemporaryPath);
-							}
-
-							width = current.Width;
-							height = current.Height;
-
-							// If transcoded format is not the same as the actual original, or we want webp always:
-							var willTranscode = (transcodeTo.Value != current.Format);
-							MagickFormat? doubleOutput = null;
-							string doubleFormatName = null;
-
-							if (_configuration.TranscodeToWebP && transcodeTo.Value != MagickFormat.WebP && transcodeTo.Value != MagickFormat.Svg)
-							{
-								// This means it's a web friendly format (jpg, png etc) but not svg.
-								// A webp is required in this scenario.
-								doubleOutput = transcodeTo;
-								transcodeTo = MagickFormat.WebP;
-								willTranscode = true;
-								doubleFormatName = "." + doubleOutput.Value.ToString().ToLower();
-								variants = "webp";
-							}
-
-							current.Format = transcodeTo.Value;
-
-							var baseFormatName = transcodeTo.Value.ToString().ToLower();
-							var formatName = "." + baseFormatName;
-
-							if(willTranscode && baseFormatName != upload.FileType)
-							{
-								variants = baseFormatName;
-
-								// Save original as well, but in the new format:
-								var fullSizeTranscoded = System.IO.Path.GetTempFileName();
-
-								current.Write(fullSizeTranscoded);
-
-								// Ask to store it:
-								await Events.Upload.StoreFile.Dispatch(context, upload, fullSizeTranscoded, "original" + formatName);
-							}
-							
-							// Resize:
-							var sizes = _resizeGroups;
-
-							if (sizes != null)
-							{
-								for (var gId = 0; gId < sizes.Length; gId++)
-								{
-									var sizeGroup = _resizeGroups[gId];
-
-									if (gId != 0)
-									{
-										// Must reload the original image as the previous size group destructively lost data
-										current.Dispose();
-										current = new MagickImage(upload.TemporaryPath);
-									}
-
-									for (var sizeId = 0; sizeId < sizeGroup.Sizes.Count; sizeId++)
-									{
-										var imageSize = sizeGroup.Sizes[sizeId];
-
-										// Resize it now:
-										Resize(current, imageSize);
-
-										// output the file:
-										current.Format = transcodeTo.Value;
-										var resizedTempFile = System.IO.Path.GetTempFileName();
-										current.Write(resizedTempFile);
-
-										// Ask to store it:
-										await Events.Upload.StoreFile.Dispatch(context, upload, resizedTempFile, imageSize.ToString() + formatName);
-
-										if (_smallestSize == imageSize)
-										{
-											if (_configuration.GenerateBlurhash)
-											{
-												// Generate the blurhash using this smallest version of the image (probably 32px)
-												blurHash = BlurHashEncoder.Encode(current, width > height);
-											}
-										}
-
-										if (doubleOutput.HasValue)
-										{
-											// output the file:
-											current.Format = doubleOutput.Value;
-											resizedTempFile = System.IO.Path.GetTempFileName();
-											current.Write(resizedTempFile);
-
-											// Ask to store it:
-											await Events.Upload.StoreFile.Dispatch(context, upload, resizedTempFile, imageSize.ToString() + doubleFormatName);
-										}
-									}
-								}
-							}
-
-							// Current is the smallest size at the moment.
-							// This is where a blurhash can best be generated from it.
-							
-							// Done with it:
-							current.Dispose();
-						}
-						catch (Exception e)
-						{
-							// Either the image format is unknown or you don't have the required libraries to decode this format [GDI+ status: UnknownImageFormat]
-							// Just ignore this one.
-							File.Delete(upload.TemporaryPath);
-							upload.TemporaryPath = null;
-
-							Console.WriteLine("Unsupported image format was not resized. Underlying exception: " + e.ToString());
-						}
-					}
-
-					// trigger update to set width/height isImage fields:
-					await Update(context, upload, (Context ctx, Upload up, Upload orig) => {
-
-						up.IsImage = true;
-						up.Width = width;
-						up.Height = height;
-						up.Blurhash = blurHash;
-
-						if (!string.IsNullOrEmpty(variants))
-						{
-							if (string.IsNullOrEmpty(up.Variants))
-							{
-								up.Variants = variants;
-							}
-							else
-							{
-								up.Variants += '|' + variants;
-							}
-						}
-
-					}, DataOptions.IgnorePermissions);
-				}
-
+				await ProcessImage(context, upload);
 				return upload;
 			}, 10);
 
@@ -308,6 +151,66 @@ namespace Api.Uploader
 				return new ValueTask<Upload>(upload);
 			}, 15);
 
+			Events.Upload.ListFiles.AddEventListener(async (Context context, FileMetaStream metaStream) => {
+
+				if (metaStream.Handled)
+				{
+					return metaStream;
+				}
+
+				metaStream.Handled = true;
+
+				// Default filesystem handler.
+				// Get the complete path:
+				var basePath = metaStream.SearchPrivate ? "Content/content-private/" : "Content/content/";
+
+				var filePath = System.IO.Path.GetFullPath(basePath + metaStream.SearchDirectory);
+
+				if (metaStream.Cancelled)
+				{
+					return metaStream;
+				}
+
+				// dir to search is:
+				var dirInfo = new System.IO.DirectoryInfo(filePath);
+
+				// Go!
+				foreach (var file in dirInfo.EnumerateFiles("*.*", new EnumerationOptions() { RecurseSubdirectories = true }))
+				{
+					if (metaStream.Cancelled)
+					{
+						return metaStream;
+					}
+
+					metaStream.FileSize = (ulong)file.Length;
+					metaStream.IsDirectory = false;
+					metaStream.Path = file.FullName.Substring(filePath.Length);
+
+					await metaStream.OnFile(metaStream);
+					metaStream.FilesListed++;
+				}
+				
+				/*
+				// Directories as well (ignore this!)
+				foreach (var dir in dirInfo.EnumerateDirectories())
+				{
+					if (metaStream.Cancelled)
+					{
+						return metaStream;
+					}
+
+					metaStream.FileSize = 0;
+					metaStream.IsDirectory = true;
+					metaStream.Path = dir.FullName;
+
+					await metaStream.OnFile(metaStream);
+					metaStream.FilesListed++;
+				}
+				*/
+
+				return metaStream;
+			}, 15);
+
 			Events.Upload.ReadFile.AddEventListener(async (Context context, byte[] result, string storagePath, bool isPrivate) => {
 
 				if (result != null)
@@ -347,6 +250,303 @@ namespace Api.Uploader
 			}, 15);
 
 			InstallAdminPages("Media", "fa:fa-film", new string[] { "id", "name" });
+		}
+
+		/// <summary>
+		/// Creates resized and transcoded versions of images for the given upload.
+		/// </summary>
+		/// <param name="context"></param>
+		/// <param name="upload"></param>
+		/// <param name="existingFiles">If a target file is listed in existingFiles, it will be skipped.</param>
+		/// <returns></returns>
+		public async Task<Upload> ProcessImage(Context context, Upload upload, List<FileConsistencyInfo> existingFiles = null)
+		{
+			MagickImage current = null;
+
+			var imageFormatInfo = IsSupportedImage(upload.FileType);
+
+			if (imageFormatInfo == null)
+			{
+				return upload;
+			}
+
+			if (imageFormatInfo.Value.Format == MagickFormat.Svg)
+			{
+				// No action needed here.
+				return upload;
+			}
+
+			var transcodeTo = imageFormatInfo.Value.TranscodeTo;
+
+			int? width = null;
+			int? height = null;
+			string variants = null;
+			string blurHash = null;
+			var hasUpdates = false;
+			byte[] origFileBytes = null;
+
+			if (_configuration.ProcessImages || existingFiles != null)
+			{
+				try
+				{
+					MagickFormat currentFormat = imageFormatInfo.Value.Format;
+
+					if (upload.TemporaryPath != null)
+					{
+						current = new MagickImage(upload.TemporaryPath);
+
+						if (NormalizeOrientation(current))
+						{
+							// The image was rotated - we need to overwrite the original:
+							current.Write(upload.TemporaryPath);
+						}
+
+						width = current.Width;
+						height = current.Height;
+						hasUpdates = true;
+					}
+					else
+					{
+						width = upload.Width;
+						height = upload.Height;
+
+						if (width == null || height == null)
+						{
+							// Read the original file and load it:
+							origFileBytes = await ReadFile(upload);
+							current = new MagickImage(origFileBytes);
+
+							width = current.Width;
+							height = current.Height;
+							hasUpdates = true;
+						}
+					}
+
+					// If transcoded format is not the same as the actual original, or we want webp always:
+					var willTranscode = (transcodeTo != currentFormat);
+					MagickFormat? doubleOutput = null;
+					string doubleFormatNameNoDot = null;
+					string doubleFormatName = null;
+
+					if (_configuration.TranscodeToWebP && transcodeTo != MagickFormat.WebP && transcodeTo != MagickFormat.Svg)
+					{
+						// This means it's a web friendly format (jpg, png etc) but not svg.
+						// A webp is required in this scenario.
+						doubleOutput = transcodeTo;
+						transcodeTo = MagickFormat.WebP;
+						willTranscode = true;
+						doubleFormatNameNoDot = doubleOutput.Value.ToString().ToLower();
+						doubleFormatName = "." + doubleFormatNameNoDot;
+						variants = "webp";
+					}
+
+					var transcodedFormatName = transcodeTo.ToString().ToLower();
+					var formatName = "." + transcodedFormatName;
+
+					if (willTranscode && transcodedFormatName != upload.FileType && !HasVariationInSet(existingFiles, "original", transcodedFormatName))
+					{
+						variants = transcodedFormatName;
+
+						// Save original as well, but in the new format:
+						var fullSizeTranscoded = System.IO.Path.GetTempFileName();
+
+						if (current == null)
+						{
+							// File will be required by one or all of the following operations.
+							if (upload.TemporaryPath == null)
+							{
+								if (origFileBytes == null)
+								{
+									origFileBytes = await ReadFile(upload);
+								}
+								current = new MagickImage(origFileBytes);
+							}
+							else
+							{
+								current = new MagickImage(upload.TemporaryPath);
+							}
+						}
+
+						current.Format = transcodeTo;
+						current.Write(fullSizeTranscoded);
+
+						// Ask to store it:
+						await Events.Upload.StoreFile.Dispatch(context, upload, fullSizeTranscoded, "original" + formatName);
+					}
+
+					// Resize:
+					var sizes = _resizeGroups;
+
+					if (sizes != null)
+					{
+						for (var gId = 0; gId < sizes.Length; gId++)
+						{
+							var sizeGroup = _resizeGroups[gId];
+
+							if (gId != 0)
+							{
+								// Must reload the original image as the previous size group destructively lost data
+								if (current != null)
+								{
+									current.Dispose();
+									current = null;
+								}
+							}
+
+							for (var sizeId = 0; sizeId < sizeGroup.Sizes.Count; sizeId++)
+							{
+								var imageSize = sizeGroup.Sizes[sizeId];
+								var imageSizeStr = imageSize.ToString();
+
+								var hasTargetFile = HasVariationInSet(existingFiles, imageSizeStr, transcodedFormatName);
+								var hasDoubleOutputFile = !doubleOutput.HasValue || HasVariationInSet(existingFiles, imageSizeStr, doubleFormatNameNoDot);
+								var doBlurhash = _smallestSize == imageSize && _configuration.GenerateBlurhash && upload.Blurhash == null;
+
+								if (hasTargetFile && hasDoubleOutputFile && !doBlurhash)
+								{
+									// Nothing to do with this size.
+									// Already got one (or both) files required, or blurhash is known.
+									continue;
+								}
+
+								if (current == null)
+								{
+									// File will be required by one or all of the following operations.
+									if (upload.TemporaryPath == null)
+									{
+										if (origFileBytes == null)
+										{
+											origFileBytes = await ReadFile(upload);
+										}
+										current = new MagickImage(origFileBytes);
+									}
+									else
+									{
+										current = new MagickImage(upload.TemporaryPath);
+									}
+								}
+
+								// Resize it now:
+								Resize(current, imageSize);
+
+								if (!hasTargetFile)
+								{
+									// output the file:
+									current.Format = transcodeTo;
+									var resizedTempFile = System.IO.Path.GetTempFileName();
+									current.Write(resizedTempFile);
+
+									// Ask to store it:
+									await Events.Upload.StoreFile.Dispatch(context, upload, resizedTempFile, imageSizeStr + formatName);
+								}
+
+								if (doBlurhash)
+								{
+									// Generate the blurhash using this smallest version of the image (probably 32px)
+									blurHash = BlurHashEncoder.Encode(current, width > height);
+									hasUpdates = true;
+								}
+
+								if (!hasDoubleOutputFile)
+								{
+									// output the file:
+									current.Format = doubleOutput.Value;
+									var resizedTempFile = System.IO.Path.GetTempFileName();
+									current.Write(resizedTempFile);
+
+									// Ask to store it:
+									await Events.Upload.StoreFile.Dispatch(context, upload, resizedTempFile, imageSizeStr + doubleFormatName);
+								}
+							}
+						}
+					}
+
+					if (current != null)
+					{
+						// Done with it:
+						current.Dispose();
+						current = null;
+					}
+				}
+				catch (Exception e)
+				{
+					// Either the image format is unknown or you don't have the required libraries to decode this format [GDI+ status: UnknownImageFormat]
+					// Just ignore this one.
+					if (upload.TemporaryPath != null)
+					{
+						File.Delete(upload.TemporaryPath);
+						upload.TemporaryPath = null;
+					}
+
+					Console.WriteLine("Unsupported image format was not resized. Underlying exception: " + e.ToString());
+				}
+			}
+
+			if (hasUpdates)
+			{
+				// trigger update to set width/height isImage fields:
+				upload = await Update(context, upload, (Context ctx, Upload up, Upload orig) =>
+				{
+					up.IsImage = true;
+					up.Width = width;
+					up.Height = height;
+
+					if (string.IsNullOrEmpty(up.Blurhash) && blurHash != null)
+					{
+						up.Blurhash = blurHash;
+					}
+
+					if (!string.IsNullOrEmpty(variants))
+					{
+						if (string.IsNullOrEmpty(up.Variants))
+						{
+							up.Variants = variants;
+						}
+						else
+						{
+							up.Variants += '|' + variants;
+						}
+					}
+
+				}, DataOptions.IgnorePermissions);
+			}
+			else if (!upload.IsImage)
+			{
+				// At least mark as an img:
+				upload = await Update(context, upload, (Context ctx, Upload up, Upload orig) =>
+				{
+					up.IsImage = true;
+				}, DataOptions.IgnorePermissions);
+			}
+
+			return upload;
+		}
+
+		/// <summary>
+		/// True if the given variant + filetype is in the given set of files.
+		/// </summary>
+		/// <param name="existingFiles"></param>
+		/// <param name="variant"></param>
+		/// <param name="fileType"></param>
+		/// <returns></returns>
+		private bool HasVariationInSet(List<FileConsistencyInfo>  existingFiles, string variant, string fileType)
+		{
+			if (existingFiles == null)
+			{
+				return false;
+			}
+
+			for (var i = 0; i < existingFiles.Count; i++)
+			{
+				var file = existingFiles[i];
+
+				if (file.Variant == variant && file.FileType == fileType)
+				{
+					return true;
+				}
+			}
+
+			return false;
 		}
 
 		/// <summary>
@@ -436,6 +636,25 @@ namespace Api.Uploader
 			var uploadPath = refMeta.GetRelativePath(sizeName);
 
 			return GetFileBytesForStoragePath(uploadPath, refMeta.Scheme == "private");
+		}
+
+		/// <summary>
+		/// Gets the file bytes of the given ref, if it is a file ref. Supports remote filesystems as well.
+		/// </summary>
+		/// <param name="isPrivate">True if listing in the private area.</param>
+		/// <param name="relativePath">Path relative to the public/private area.</param>
+		/// <param name="onFileListed"></param>
+		/// <returns></returns>
+		public async Task<FileMetaStream> ListFiles(bool isPrivate, string relativePath, Func<FileMetaStream, ValueTask> onFileListed)
+		{
+			var metaStream = new FileMetaStream();
+			metaStream.SearchPrivate = isPrivate;
+			metaStream.SearchDirectory = relativePath;
+			metaStream.OnFile = onFileListed;
+
+			// Trigger a read file event. The default handler will read from the file system, 
+			// and the CloudHosts module adds a handler if it is handling uploads.
+			return await Events.Upload.ListFiles.Dispatch(readBytesContext, metaStream);
 		}
 
 		/// <summary>
@@ -655,6 +874,162 @@ namespace Api.Uploader
 		}
 
 		/// <summary>
+		/// Checks each file in the file system if it matches the current upload policy.
+		/// Future: Also will update the DB with missing entries and replace refs if e.g. webp just became available for a particular file.
+		/// As you can therefore guess, this is very slow!
+		/// </summary>
+		/// <param name="context"></param>
+		/// <returns></returns>
+		public async ValueTask FileConsistency(Context context)
+		{
+			var localBuffer = new List<FileConsistencyInfo>();
+			ulong latestNumber = 0;
+			var upload = new Upload();
+
+			// Process the local buffer.
+			var processBuffer = async () => {
+
+				if (localBuffer.Count == 0)
+				{
+					return;
+				}
+
+				// Does the buffer have all the sizes we want in it?
+				int originalIndex = -1;
+
+				for (var i = 0;i<localBuffer.Count;i++)
+				{
+					var file = localBuffer[i];
+
+					if (file.Path.IndexOf("original", file.DashOffset) == file.DashOffset + 1)
+					{
+						originalIndex = i;
+						break;
+					}
+				}
+
+				if (originalIndex == -1)
+				{
+					return;
+				}
+
+				var original = localBuffer[originalIndex];
+				string originalPath = original.Path;
+				var uploadId = (uint)original.Number;
+
+				// Get the upload:
+				var upload = await Get(context, uploadId);
+
+				if (upload == null)
+				{
+					// Create it now.
+					
+					upload = await Create(context, new Upload()
+					{
+						Id = uploadId,
+						OriginalName = original.FileName,
+						IsPrivate = false,
+						FileType = original.FileType,
+						UserId = context.UserId,
+						CreatedUtc = DateTime.UtcNow,
+						TemporaryPath = null,
+						Subdirectory = original.Subdirectory
+					});
+				}
+				
+				if (upload.Subdirectory != original.Subdirectory)
+				{
+					// Multiple uploads with the same ID. Skip!
+					return;
+				}
+
+				await ProcessImage(context, upload, localBuffer);
+				Console.WriteLine("Process buffer for " + upload.Id);
+
+				// Clear it:
+				localBuffer.Clear();
+			};
+
+			var dirs = await ListFiles(false, "", async (FileMetaStream fileInfo) => {
+
+				// A consistency capable file is of the form:
+				// (DIR/)?NUMBER-original.(.*)
+				
+				// If current number is different from latest number, process localBuffer.
+				var path = fileInfo.Path;
+				var pathLength = path.Length;
+
+				path = path.Replace('\\', '/');
+
+				var startOffset = path.IndexOf('/');
+				var directoryOffset = startOffset;
+
+				// Offset to 1 after the /, or from -1 to 0.
+				startOffset++;
+				
+				// Is it a number followed by a dash?
+				ulong num = 0;
+				var numValid = false;
+				var dashOffset = -1;
+
+				for (var i = startOffset; i < path.Length; i++)
+				{
+					var currentChar = path[i];
+
+					if (currentChar == '-')
+					{
+						dashOffset = i;
+						if (num != 0)
+						{
+							numValid = true;
+						}
+						break;
+					}
+					else if (currentChar >= '0' && currentChar <= '9')
+					{
+						num *= 10;
+						num += (ulong)(currentChar - '0');
+					}
+					else
+					{
+						break;
+					}
+				}
+
+				if (numValid)
+				{
+					if (num != latestNumber)
+					{
+						latestNumber = num;
+						await processBuffer();
+					}
+
+					var typeIndex = path.IndexOf('.', dashOffset);
+					var fileName = path.Substring(directoryOffset + 1);
+					var fileType = path.Substring(typeIndex + 1);
+					var variant = path.Substring(dashOffset + 1, typeIndex - dashOffset - 1);
+
+					localBuffer.Add(new FileConsistencyInfo()
+					{
+						Number = num,
+						Path = path,
+						DashOffset = dashOffset,
+						Variant = variant,
+						FileName = fileName,
+						FileType = fileType,
+						DirectoryOffset = directoryOffset
+					});
+				}
+			});
+
+			// Process last file in buffer:
+			await processBuffer();
+
+			Console.WriteLine("Files discovered: " + dirs.FilesListed);
+
+		}
+
+		/// <summary>
 		/// True if the given transcode token is a valid one.
 		/// </summary>
 		/// <param name="id"></param>
@@ -780,19 +1155,19 @@ namespace Api.Uploader
 		}
 		*/
 
-		private Dictionary<string, MagickFormat> _imageTypeMap; 
+		private Dictionary<string, SupportedImageFormat> _imageTypeMap; 
 
         /// <summary>
         /// True if the filetype is a supported image file.
         /// </summary>
         /// <param name="fileType">The filetype.</param>
         /// <returns>The target file type to transcode it to. Null if it is not supported.</returns>
-        public MagickFormat? IsSupportedImage(string fileType)
+        public SupportedImageFormat? IsSupportedImage(string fileType)
 		{
 			MagickFormat targetFormat;
 			if (_imageTypeMap == null)
 			{
-				var map = new Dictionary<string, MagickFormat>();
+				var map = new Dictionary<string, SupportedImageFormat>();
 				foreach (var format in MagickNET.SupportedFormats)
 				{
 					if (!format.SupportsReading)
@@ -824,17 +1199,22 @@ namespace Api.Uploader
 						targetFormat = MagickFormat.WebP;
 					}
 
-					map[magicFileType] = targetFormat;
+					map[magicFileType] = new SupportedImageFormat()
+					{
+						TranscodeTo = targetFormat,
+						Format = format.Format
+					};
 				}
 
 				_imageTypeMap = map;
 			}
 
-			if (!_imageTypeMap.TryGetValue(fileType, out targetFormat))
+			if (!_imageTypeMap.TryGetValue(fileType, out SupportedImageFormat siFormat))
 			{
 				return null;
 			}
-			return targetFormat;
+
+			return siFormat;
 
 		}
 
@@ -1012,5 +1392,20 @@ namespace Api.Uploader
 
 			return false;
 		}
+	}
+
+	/// <summary>
+	/// A supported image format.
+	/// </summary>
+	public struct SupportedImageFormat
+	{
+		/// <summary>
+		/// Original format.
+		/// </summary>
+		public MagickFormat Format;
+		/// <summary>
+		/// Transcode this format to the given one.
+		/// </summary>
+		public MagickFormat TranscodeTo;
 	}
 }

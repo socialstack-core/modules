@@ -38,6 +38,11 @@ namespace Api.Eventing
 		/// Given the upload, the temp file path and the variant name.
 		/// </summary>
 		public EventHandler<Upload, string, string> StoreFile;
+		
+		/// <summary>
+		/// Called when the upload system must list files in a search directory.
+		/// </summary>
+		public EventHandler<FileMetaStream> ListFiles;
 
 		/// <summary>
 		/// Reads the file at the given storage relative path, and returns its byte[]. You can block future event handlers by returning an empty array of bytes.

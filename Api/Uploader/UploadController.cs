@@ -6,6 +6,7 @@ using Microsoft.Extensions.Primitives;
 using Api.Startup;
 using System.Collections.Generic;
 using System.Linq;
+using Api.Permissions;
 
 namespace Api.Uploader
 {
@@ -182,14 +183,33 @@ namespace Api.Uploader
         {
             await Active(includes);
         }
-
+		
         /// <summary>
-        /// Replace any existing refs with new ones
+        /// Performs a file consistency check, where it will make sure each identified ref file matches the current upload policy.
+		/// In the future this will also add any missing database entries.
         /// </summary>
-        [HttpGet("replace")]
+        [HttpGet("file-consistency")]
+        public async ValueTask FileConsistency()
+        {
+
+			var context = await Request.GetContext();
+
+			if (!context.Role.CanViewAdmin)
+			{
+				throw PermissionException.Create("file_consistency", context);
+			}
+
+			await (_service as UploadService).FileConsistency(context);
+		}
+
+		/// <summary>
+		/// Replace any existing refs with new ones
+		/// </summary>
+		[HttpGet("replace")]
         public async ValueTask<List<MediaRef>> Replace([FromQuery] string sourceRef, [FromQuery] string targetRef)
         {
-            if (string.IsNullOrWhiteSpace(sourceRef))
+			
+			if (string.IsNullOrWhiteSpace(sourceRef))
             {
                 throw new PublicException("No source media reference was provided - aborted", "no_sourceRef");
             }
@@ -201,7 +221,12 @@ namespace Api.Uploader
 
             var context = await Request.GetContext();
 
-            List<MediaRef> mediaRefs = new List<MediaRef>();
+			if (!context.Role.CanViewAdmin)
+			{
+				throw PermissionException.Create("ref_replace", context);
+			}
+
+			List<MediaRef> mediaRefs = new List<MediaRef>();
 
             // loop through all content and attempt to replace ref values
             foreach (var kvp in Services.All)
@@ -227,8 +252,14 @@ namespace Api.Uploader
                 throw new PublicException("No media reference was provided - aborted", "no_ref");
             }
 
-            List<MediaRef> mediaRefs = new List<MediaRef>();
-            var context = await Request.GetContext();
+			var context = await Request.GetContext();
+
+			if (!context.Role.CanViewAdmin)
+			{
+				throw PermissionException.Create("ref_replace", context);
+			}
+
+			List<MediaRef> mediaRefs = new List<MediaRef>();
 
             // loop through all content and preview the proposed replacement of ref values
             foreach (var kvp in Services.All)
