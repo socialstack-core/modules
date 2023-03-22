@@ -152,7 +152,7 @@ class ReactGraphHelperIntl extends React.Component {
 			});
 		}
 	}
-
+	
 	runGraph(props) {
 		// Run the graph once:
 		var graph = props.graph;
@@ -165,12 +165,22 @@ class ReactGraphHelperIntl extends React.Component {
 		graph.setContext(props.context);
 		return graph.run();
 	}
-
-	componentDidMount() {
-		this.runGraph(this.props).then(graphOutput => {
-			this.props.graph._output = graphOutput;
+	
+	loadGraph(props){
+		this.runGraph(props).then(graphOutput => {
+			props.graph._output = graphOutput;
 			this.setState({ output: graphOutput });
 		});
+	}
+	
+	componentWillReceiveProps(props){
+		if(props.graph != this.props.graph){
+			this.loadGraph(props);
+		}
+	}
+	
+	componentDidMount() {
+		this.loadGraph(this.props);
 	}
 
 	render() {
