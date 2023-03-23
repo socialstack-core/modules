@@ -1,6 +1,5 @@
 import getRef from 'UI/Functions/GetRef';
 
-var DEFAULT_ABORTED = `Upload aborted`;
 var DEFAULT_ERROR = `Unable to upload`;
 var DEFAULT_MESSAGE = `Drag and drop your file or click to upload here`;
 var DEFAULT_MESSAGE_MULTIPLE = `Drag and drop your file(s) or click to upload here`;
@@ -24,7 +23,7 @@ export default class Uploader extends React.Component {
 
 		if (props.iconOnly) {
 			message = '';
-		}
+        }
 
 		this.inputRef = React.createRef();
 
@@ -76,8 +75,7 @@ export default class Uploader extends React.Component {
 					progressPercent: 0,
 					progress: "",
 					filename: file.name,
-					ref: undefined,
-					fileIndex: i
+					ref: undefined
 				});
 
 				if (maxSize > 0 && file.size > maxSize) {
@@ -86,14 +84,12 @@ export default class Uploader extends React.Component {
 					info.loading = false;
 					info.success = false;
 					info.failed = `File too large`;
-					info.xhr = null;
 
 					this.setState({
 						loading: false,
 						success: false,
 						failed: `File too large`,
-						files: files,
-						xhr: null
+						files: files
 					});
 
 					return;
@@ -103,15 +99,6 @@ export default class Uploader extends React.Component {
 
 				var xhr = new global.XMLHttpRequest();
 				//xhr.upload.fileIndex = i;
-
-				var _files = [...this.state.files];
-				var _info = _files[i];
-				_info.xhr = xhr;
-
-				this.setState({
-					files: _files,
-					xhr: xhr
-				});
 
 				xhr.onreadystatechange = () => {
 					console.log("XHR ONREADYSTATECHANGE: ", `${xhr.responseText} (${xhr.status})`);
@@ -126,25 +113,18 @@ export default class Uploader extends React.Component {
 						}
 
 						if (!uploadInfo || xhr.status > 300) {
+							var msg = uploadInfo && uploadInfo.message ? uploadInfo.message : DEFAULT_ERROR;
 							var files = [...this.state.files];
 							var info = files[i];
-							var msg = info.progressPercent > 0 ? DEFAULT_ABORTED : DEFAULT_ERROR;
-
-							if (uploadInfo && uploadInfo.message) {
-								msg = uploadInfo.message;
-							}
-
 							info.loading = false;
 							info.success = false;
 							info.failed = msg;
-							info.xhr = null;
 
 							this.setState({
 								loading: false,
 								success: false,
 								failed: msg,
-								files: files,
-								xhr: null
+								files: files
 							});
 
 							return;
@@ -161,15 +141,13 @@ export default class Uploader extends React.Component {
 						info.success = true;
 						info.failed = false;
 						info.ref = uploadInfo.result.ref;
-						info.xhr = null;
 
 						this.setState({
 							loading: false,
 							success: true,
 							failed: false,
 							ref: uploadInfo.result.ref,
-							files: files,
-							xhr: null
+							files: files
 						});
 
 
@@ -181,14 +159,12 @@ export default class Uploader extends React.Component {
 							info.loading = false;
 							info.success = false;
 							info.failed = DEFAULT_ERROR;
-							info.xhr = null;
 
 							this.setState({
 								loading: false,
 								success: false,
 								failed: DEFAULT_ERROR,
-								files: files,
-								xhr: null
+								files: files
 							});
 						}
 					}
@@ -201,14 +177,12 @@ export default class Uploader extends React.Component {
 					info.loading = false;
 					info.success = false;
 					info.failed = DEFAULT_ERROR;
-					info.xhr = null;
 
 					this.setState({
 						loading: false,
 						success: false,
 						failed: DEFAULT_ERROR,
-						files: files,
-						xhr: null
+						files: files
 					});
 				};
 
@@ -238,6 +212,14 @@ export default class Uploader extends React.Component {
 					console.log("XHR LOADEND EVENT: ", evt);
 				}
 
+				xhr.upload.onabort = (evt) => {
+					console.log("XHR UPLOAD ABORT: ", evt);
+				}
+
+				xhr.upload.onerror = (evt) => {
+					console.log("XHR UPLOAD ERROR: ", evt);
+				}
+
 				var ep = this.props.endpoint || "upload/create";
 
 				var apiUrl = this.props.url || global.ingestUrl || global.apiHost || '';
@@ -258,7 +240,7 @@ export default class Uploader extends React.Component {
 					}
 				}
 
-				xhr.setRequestHeader("Content-Name", encodeURIComponent(file.name));
+				xhr.setRequestHeader("Content-Name", file.name);
 				xhr.setRequestHeader("Private-Upload", this.props.isPrivate ? '1' : '0');
 				xhr.send(file);
 			});
@@ -266,12 +248,8 @@ export default class Uploader extends React.Component {
 
 	}
 
-	abortFile(e, xhr) {
-		console.log("attempting to abort: ", e);
-
-		if (xhr) {
-			xhr.abort();
-		}
+	abortFile(e) {
+		xhr
 	}
 
 	formatBytes(bytes, decimals = 2) {
@@ -293,7 +271,7 @@ export default class Uploader extends React.Component {
 		this.setState({
 			draggedOver: true
 		});
-	}
+    }
 
 	handleDragLeave() {
 		this.setState({
@@ -308,7 +286,7 @@ export default class Uploader extends React.Component {
 			input.addEventListener('dragenter', this.handleDragEnter);
 			input.addEventListener('dragleave', this.handleDragLeave);
 			input.addEventListener('drop', this.handleDragLeave);
-		}
+        }
 
 	}
 
@@ -373,9 +351,10 @@ export default class Uploader extends React.Component {
 
 						if (file.loading) {
 							fileClasses.push("uploader--progress");
-							fileLabel = file.progressPercent == 100 ? `Processing ...` : `Uploading ${file.progress} ...`;
-						}
-
+							debugger;
+							fileLabel = file.progress == 100 ? `Processing ...` : `Uploading ${file.progress} ...`;
+                        }
+						
 						if (file.failed) {
 							fileClasses.push("uploader--error");
 							fileLabel = this.state.failed;
@@ -466,12 +445,9 @@ export default class Uploader extends React.Component {
 										{fileLabel}
 									</span>
 								</label>
-								{file.loading && file.progressPercent < 100 && file.xhr && <>
-									<button type="button" class="btn btn-outline-danger uploader__abort" onClick={(e) => this.abortFile(e, file.xhr)}>
-										{`Cancel upload`}
-									</button>
+								{file.loading && (
 									<progress className="uploader__progress" max="100" value={file.progressPercent}></progress>
-								</>}
+								)}
 							</div>
 							{caption && <>
 								<small className="uploader__caption text-muted">
@@ -484,7 +460,7 @@ export default class Uploader extends React.Component {
 			</>}
 
 		</div>;
-	}
+    }
 
 	render() {
 		const {
@@ -500,15 +476,14 @@ export default class Uploader extends React.Component {
 			filename,
 			draggedOver,
 			tooltip,
-			originalName,
-			xhr
+			originalName
 		} = this.state;
 
 		var isMultiple = this.props.multiple;
 
 		if (isMultiple) {
 			return this.renderBulkUploadUI();
-		}
+        }
 
 		var hasRef = ref && ref.length;
 		var hasMaxSize = maxSize > 0;
@@ -516,12 +491,13 @@ export default class Uploader extends React.Component {
 		var hasOriginalName = (originalName && originalName.length);
 		var label = loading ? (`Uploading` + " " + progress + " ...") : message;
 
+		debugger;
 		if (loading && progressPercent == 100) {
 			label = `Processing ...`;
 		}
 
 		var canShowImage = getRef.isImage(ref);
-		var canShowVideo = getRef.isVideo(ref, false);
+		var canShowVideo = getRef.isVideo(ref,false);
 		var canShowIcon = getRef.isIcon(ref);
 		var labelStyle = {};
 		var uploaderClasses = ['uploader'];
@@ -533,7 +509,7 @@ export default class Uploader extends React.Component {
 
 		if (loading) {
 			uploaderClasses.push("uploader--progress");
-		}
+        }
 
 		if (failed) {
 			uploaderClasses.push("uploader--error");
@@ -567,20 +543,20 @@ export default class Uploader extends React.Component {
 				labelStyle = { "background-image": "url(" + getRef(ref, { url: true, size: 256 }) + ")" };
 			}
 
-			if ((canShowImage || canShowVideo) && !canShowIcon) {
+			if ((canShowImage || canShowVideo)&& !canShowIcon) {
 				uploaderClasses.push("uploader--image");
 			}
 
-			if (canShowVideo) {
+			if(canShowVideo) {
 				uploaderLabelClasses.push("video");
 			}
 
 			if (canShowIcon) {
 				iconClass = refInfo.scheme + " " + refInfo.ref + " uploader__file";
 				iconName = refInfo.ref;
-			}
+            }
 
-		}
+        }
 
 		var uploaderClass = uploaderClasses.join(' ');
 		var uploaderLabelClass = uploaderLabelClasses.join(' ');
@@ -591,18 +567,16 @@ export default class Uploader extends React.Component {
 
 		if (hasOriginalName) {
 			caption = originalName;
-		}
+        }
 
 		if (canShowIcon) {
 			caption = iconName;
-		}
-
-		var currentXhr = this.state.fileIndex == undefined ? this.state.xhr : this.state.files[this.state.fileIndex].xhr;
+        }
 
 		return <div className={uploaderClass}>
 			<div className={this.props.iconOnly ? "uploader__internal uploader__internal--icon" : "uploader__internal"}>
 
-				{(canShowImage || canShowVideo) && !canShowIcon &&
+				{(canShowImage || canShowVideo) && !canShowIcon && 
 					<div className="uploader__imagebackground">
 					</div>
 				}
@@ -638,8 +612,8 @@ export default class Uploader extends React.Component {
 						{label}
 					</span>
 				</label>
-				{loading && progressPercent < 100 && currentXhr && <>
-					<button type="button" class="btn btn-outline-danger uploader__abort" onClick={(e) => this.abortFile(e, currentXhr)}>
+				{loading && <>
+					<button type="button" class="btn btn-outline-danger mt-2" onClick={(e) => this.abortFile(e)}>
 						{`Cancel upload`}
 					</button>
 					<progress className="uploader__progress" max="100" value={progressPercent}></progress>
@@ -655,6 +629,6 @@ export default class Uploader extends React.Component {
 					</>}
 				</small>
 			</>}
-		</div>;
-	}
+        </div>;
+    }
 }
