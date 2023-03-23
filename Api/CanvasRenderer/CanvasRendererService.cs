@@ -28,6 +28,7 @@ namespace Api.CanvasRenderer
         private readonly FrontendCodeService _frontendService;
         private readonly ContextService _contextService;
         private readonly ConfigurationService _configService;
+        private CanvasRendererServiceConfig _config;
 
         /// <summary>
         /// Instanced automatically.
@@ -37,6 +38,7 @@ namespace Api.CanvasRenderer
             _frontendService = frontend;
             _contextService = contexts;
             _configService = config;
+            _config = GetConfig<CanvasRendererServiceConfig>();
 
             publicOrigin = frontend.GetPublicUrl();
 
@@ -361,7 +363,7 @@ namespace Api.CanvasRenderer
             jsDoc.location.origin = publicOrigin;
 
             engine.AddHostObject("document", new V8.Document());
-            engine.AddHostObject("__console", new V8.Console());
+            engine.AddHostObject("__console", new V8.Console(_config.DebugToConsole));
             engine.Execute("window.addEventListener=document.addEventListener;console={};console.info=console.log=console.warn=console.error=(...args)=>__console.log(...args);");
             engine.AddHostObject("navigator", new V8.Navigator());
             engine.AddHostObject("location", jsDoc.location);
@@ -482,12 +484,38 @@ namespace Api.CanvasRenderer.V8
     /// </summary>
     public class Console
     {
+        /// <summary>
+        /// Do print debug information to the console
+        /// </summary>
+        public bool DoDebug;
+
+        /// <summary>
+        /// Creates a new Console
+        /// </summary>
+        public Console()
+        {
+            DoDebug = true;
+        }
+
+        /// <summary>
+        /// Creates a new Console
+        /// </summary>
+        /// <param name="doDebug"></param>
+        public Console(bool doDebug)
+        {
+            DoDebug = doDebug;
+        }
 
         /// <summary>
         /// console.log serverside
         /// </summary>
         public void log(params object[] msgs)
         {
+            if (!DoDebug)
+            {
+                return;
+            }
+
             for (var i = 0; i < msgs.Length; i++)
             {
                 System.Console.WriteLine(JsonConvert.SerializeObject(msgs[i]));
