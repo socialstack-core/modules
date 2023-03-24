@@ -14,6 +14,7 @@
   stayOpenOnSelection: keeps the dropdown open after selecting an option (disabled by default)
   align:            alignment of menu with respect to the button (left / right if vertical, top / bottom if horizontal)
   position:         which side of the button the menu will appear on (top, bottom, left or right)
+  menuTag:          tag to use to wrap the dropdown contents (defaults to <ul>)
 
 
   example usage:
@@ -68,7 +69,8 @@ function newId() {
 }
 
 export default function Dropdown(props) {
-    var { className, variant, title, label, arrow, isOutline, isLarge, isSmall, splitCallback, children, initialState, stayOpenOnSelection, align, position, disabled } = props;
+    var { className, variant, title, label, arrow, isOutline, isLarge, isSmall,
+        splitCallback, children, initialState, stayOpenOnSelection, align, position, disabled, menuTag } = props;
     var dropdownClasses = ['dropdown'];
 
     if (className) {
@@ -95,6 +97,8 @@ export default function Dropdown(props) {
         align = "";
     }
     align = align.toLowerCase();
+
+    const MenuTag = menuTag || 'ul';
 
     // check for invalid alignment
     // (top/bottom position only supports L/R; left/right position only supports T/B)
@@ -396,9 +400,9 @@ export default function Dropdown(props) {
 
                         {/* dropdown contents */}
                         {open && (
-                            <ul className="dropdown-menu" data-source={className} aria-labelledby={dropdownId} ref={dropdownRef}>
+                            <MenuTag className="dropdown-menu" data-source={className} aria-labelledby={dropdownId} ref={dropdownRef}>
                                 {children}
-                            </ul>
+                            </MenuTag>
                         )}
             {/* TODO: popper support
                     )}
