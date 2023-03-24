@@ -35,6 +35,8 @@ export default function Sitemap(props) {
 				pg.pages = [];
 			}
 
+			node.url = trimSlashes(node.url);
+
 			// if there are >1, ensure that the page at the start of the set is the one that is favoured (if any)
 			if (node.preferIfLoggedIn) {
 				pg.pages.unshift(node);
@@ -49,7 +51,7 @@ export default function Sitemap(props) {
 
 		}
 
-		return rootPage;
+		return sortNode(rootPage);
 	}
 
 	function addPage(url, rootPage) {
@@ -59,18 +61,11 @@ export default function Sitemap(props) {
 		}
 
 		var tokenSet = [];
-
-		// strip leading and trailing slashes
-		if (url[0] == '/') {
-			url = url.substring(1);
-		}
-
-		if (url.length && url[url.length - 1] == '/') {
-			url = url.substring(0, url.length - 1);
-		}
+		url = trimSlashes(url);
 
 		// url parts
 		var pg = rootPage;
+		var cumulativeParts = [];
 
 		if (url.length) {
 			var parts = url.split('/');
@@ -136,9 +131,10 @@ export default function Sitemap(props) {
 
 				if (token != null) {
 					// Anything. Treat these tokens as *:
-					part = "*";
+					part = "{" + token + "}";
 				}
 
+				cumulativeParts.push(part);
 				var next = Object.entries(pg.children).filter(page => page[0] == part);
 
 				if (!next.length) {
@@ -149,6 +145,7 @@ export default function Sitemap(props) {
 						urlTokenNames: null,
 						urlTokenNamesJson: null,
 						urlTokens: null,
+						parts: [...cumulativeParts],
 						wildcard: null
 					};
 
@@ -182,6 +179,38 @@ export default function Sitemap(props) {
 		return pg;
 	}
 
+	// sort object keys alphabetically
+	function sortNode(node) {
+		const sortedChildren = Object.fromEntries(
+			Object.keys(node.children).sort().map(key => [key, node.children[key]])
+		);
+		node.children = sortedChildren;
+
+		Object.entries(node.children).map(([key, value]) => {
+			return sortNode(node.children[key]);
+		});
+
+		return node;
+	}
+
+	// strip leading and trailing slashes
+	function trimSlashes(url) {
+
+		if (url) {
+
+			if (url[0] == '/') {
+				url = url.substring(1);
+			}
+
+			if (url.length && url[url.length - 1] == '/') {
+				url = url.substring(0, url.length - 1);
+			}
+
+		}
+
+		return url;
+	}
+
 	useEffect(() => {
 		webRequest('page/list').then(resp => {
 			setSitemap(buildSitemap(resp.json.results));
@@ -190,6 +219,30 @@ export default function Sitemap(props) {
 
 	function renderNode(node, isRoot) {
 		var hasParameter = node.urlTokens && node.urlTokens.length > 0;
+
+		if (!node.pages || node.pages.length == 0 && Object.keys(node.children).length) {
+			var title = "";
+
+			if (node.parts) {
+				node.parts.forEach(part => {
+					title += `/${part}`;
+				});
+			}
+
+			var largeIcon = 'fa-file';
+
+			if (title.startsWith('/en-admin')) {
+				largeIcon = 'fa-cog';
+			}
+
+			return <>
+				<Collapsible compact expanderLeft title={title}
+					open={isRoot} alwaysOpen={isRoot} className="sitemap-expander"
+					icon={largeIcon}>
+					{renderNodeChildren(node)}
+				</Collapsible>
+			</>;
+		}
 
 		return <>
 			{
@@ -211,8 +264,7 @@ export default function Sitemap(props) {
 						text: `Edit`,
 						showLabel: true,
 						variant: 'primary',
-						//onClick: editClick
-						onClick: pageUrl
+						onClick: editClick
 					};
 
 					var launchButton = {
@@ -275,7 +327,7 @@ export default function Sitemap(props) {
 				})
 			}
 		</>;
-    }
+	}
 
 	function removePage(id) {
 		webRequest(
