@@ -7,6 +7,7 @@ using Api.Startup;
 using System.Collections.Generic;
 using System.Linq;
 using Api.Permissions;
+using System.Web;
 
 namespace Api.Uploader
 {
@@ -83,7 +84,7 @@ namespace Api.Uploader
 				throw new PublicException("Content-Name header is required", "no_name");
 			}
 
-			var fileName = name.ToString();
+			var fileName = HttpUtility.UrlDecode(name.ToString());
 
 			if (string.IsNullOrEmpty(fileName) || fileName.IndexOf('.') == -1)
 			{
@@ -239,6 +240,37 @@ namespace Api.Uploader
             }
 
             return mediaRefs;
+        }
+		
+		/// <summary>
+		/// Upgrade refs such that any ref fields hold the latest version of a specified ref.
+		/// </summary>
+		[HttpGet("update-refs")]
+        public async ValueTask UpdateRefs()
+        {
+            var context = await Request.GetContext();
+
+			if (!context.Role.CanViewAdmin)
+			{
+				throw PermissionException.Create("ref_update", context);
+			}
+
+			var refMap = new Dictionary<uint, string>();
+
+			// Load every upload:
+			var allUploads = await _service.Where().ListAll(context);
+
+			foreach (var upload in allUploads)
+			{
+				refMap[upload.Id] = upload.Ref;
+			}
+
+            // loop through all content and attempt to update refs:
+            foreach (var kvp in Services.All)
+            {
+                await kvp.Value.UpdateRefs(context, refMap);
+            }
+
         }
 
 		/// <summary>

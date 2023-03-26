@@ -26,14 +26,108 @@ public partial class AutoService
         // This service doesn't have a content type thus can just safely do nothing at all.
         return new ValueTask<List<Upload>>((List<Upload>)null);
     }
+    /// <summary>
+    /// Update any ref fields (ignoring canvas for the moment) such that the ref contains the full ref value including width, focal point etc.
+    /// </summary>
+    /// <returns></returns>
+    public virtual ValueTask UpdateRefs(Context context, Dictionary<uint, string> refMap)
+    {
+        // This service doesn't have a content type thus can just safely do nothing at all.
+        return new ValueTask();
+
+	}
 }
 public partial class AutoService<T, ID>
 {
-    /// <summary>
-    /// Replace media refs 
-    /// </summary>
-    /// <returns></returns>
-    public override async ValueTask<List<MediaRef>> ReplaceRefs(Context context, string sourceRef, string targetRef)
+	/// <summary>
+	/// Update any ref fields (ignoring canvas for the moment) such that the ref contains the full ref value including width, focal point etc.
+	/// </summary>
+	/// <returns></returns>
+	public override async ValueTask UpdateRefs(Context context, Dictionary<uint, string> refMap)
+	{
+		var refFields = new List<JsonField>();
+
+		// Get the field info:
+		var fieldInfo = await GetJsonStructure(context);
+
+		// find any media refs based on name 
+		foreach (var fieldPair in fieldInfo.AllFields)
+		{
+			if (fieldPair.Value.FieldInfo != null && fieldPair.Value.TargetType == typeof(string))
+			{
+				refFields.Add(fieldPair.Value);
+			}
+		}
+
+        if (!refFields.Any())
+        {
+            return;
+        }
+            
+		// find any content which has populated media refs
+		var filter = Where();
+
+		var objectsWithRefs = await filter.ListAll(context);
+
+		if (objectsWithRefs == null || !objectsWithRefs.Any())
+		{
+			return;
+		}
+
+		// Check each object
+		foreach (var objectWithRefs in objectsWithRefs)
+		{
+			foreach (var field in refFields)
+			{
+                var uploadRef = field.FieldInfo.GetValue(objectWithRefs) as string;
+
+                if (string.IsNullOrWhiteSpace(uploadRef) || !uploadRef.StartsWith("public:"))
+                {
+                    continue;
+                }
+                
+                // Parse the upload ID from the ref.
+                var startOfId = uploadRef.LastIndexOf('/');
+
+                if (startOfId == -1)
+                {
+                    continue;
+                }
+
+                var endOfId = uploadRef.IndexOf('.', startOfId);
+
+				if (endOfId == -1)
+				{
+					continue;
+				}
+
+                var uploadIdStr = uploadRef.Substring(startOfId + 1, endOfId - startOfId - 1);
+
+                if (!uint.TryParse(uploadIdStr, out uint uploadId))
+                {
+                    continue;
+                }
+
+                if(!refMap.TryGetValue(uploadId, out string latestRef))
+				{
+					continue;
+				}
+
+                if (uploadRef != latestRef)
+                {
+                    // Found a ref to upgrade!
+                    System.Console.WriteLine(uploadRef + " -> " + latestRef);
+                }
+			}
+		}
+
+	}
+
+	/// <summary>
+	/// Replace media refs 
+	/// </summary>
+	/// <returns></returns>
+	public override async ValueTask<List<MediaRef>> ReplaceRefs(Context context, string sourceRef, string targetRef)
     {
         List<MediaRef> mediaRefs = new List<MediaRef>();
 
