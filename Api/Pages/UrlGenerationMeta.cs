@@ -161,10 +161,29 @@ namespace Api.Pages
 				else
 				{
 					// It's not literal - it's a field spec. Resolve its value from the object:
-					sb.Append(piece.Resolve(content));
+					var resolvedContent = piece.Resolve(content);
+
+					if (string.IsNullOrWhiteSpace(resolvedContent))
+                    {
+						// Invalid url
+						return null;
+                    }
+
+					resolvedContent = resolvedContent.Trim();
+
+					if (resolvedContent == "/")
+                    {
+						// Invalid url
+						return null;
+					}
+
+					sb.Append(resolvedContent);
 				}
 
-				sb.Append('/');
+				if (sb.Length > 0 && sb.ToString()[sb.Length - 1] != '/')
+                {
+					sb.Append('/');
+				}
 			}
 
 			return sb.ToString();
