@@ -1,10 +1,12 @@
 using Api.Contexts;
 using Api.Eventing;
 using Api.Permissions;
+using MySqlX.XDevAPI.Common;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Serialization;
 using System;
 using System.Collections.Generic;
+using System.Data;
 using System.Linq;
 using System.Reflection;
 using System.Threading.Tasks;
@@ -57,24 +59,27 @@ namespace Api.Pages
 		/// <returns></returns>
 		public UrlLookupNode Add(string url, Func<UrlInfo, UrlLookupNode, List<string>, ValueTask<string>> redirectTo)
 		{
-			var node = Add(url);
+			var node = AddInternal(url, null, out int index);
 
-			if (node != null)
+			if (node != null && index != -1)
 			{
-				node.Redirection = redirectTo;
+				node.Terminals[index].Redirection = redirectTo;
 			}
 
 			return node;
 		}
 
 		/// <summary>
-		/// Adds the given url to the cache, returning the node that it ended at.
+		/// Adds the given url to the cache, returning the node that it ended at and the index as well.
 		/// </summary>
 		/// <param name="url"></param>
-		public UrlLookupNode Add(string url)
+		/// <param name="page"></param>
+		/// <param name="index">The index in the UrlLookupNode's page array that it was added to.</param>
+		private UrlLookupNode AddInternal(string url, Page page, out int index)
 		{
 			if (string.IsNullOrEmpty(url))
 			{
+				index = -1;
 				return null;
 			}
 
@@ -168,6 +173,18 @@ namespace Api.Pages
 					{
 						pg.Children[part] = next = new UrlLookupNode();
 
+						if (pg == rootPage && part == "en-admin")
+						{
+							// This is admin root.
+							next.IsAdmin = true;
+						}
+
+						if (pg.IsAdmin)
+						{
+							// Carry admin state.
+							next.IsAdmin = true;
+						}
+
 						if (token != null)
 						{
 							// It's the wildcard one:
@@ -180,20 +197,60 @@ namespace Api.Pages
 
 				if (skip)
 				{
+					index = -1;
 					return null;
 				}
 			}
 
-			pg.UrlTokens = tokenSet;
-			pg.UrlTokenNames = tokenSet.Select(token => token.RawToken).ToList();
-
-			if (pg.UrlTokenNames == null || pg.UrlTokenNames.Count == 0)
+			if (pg == null)
 			{
-				pg.UrlTokenNamesJson = "null";
+				index = -1;
+				return null;
+			}
+
+			var prepend = page != null && page.PreferIfLoggedIn;
+
+			if (pg.Terminals == null)
+			{
+				pg.Terminals = new UrlLookupTerminal[1];
 			}
 			else
 			{
-				pg.UrlTokenNamesJson = Newtonsoft.Json.JsonConvert.SerializeObject(pg.UrlTokenNames, jsonSettings);
+				var newPgSet = new UrlLookupTerminal[pg.Terminals.Length + 1];
+				Array.Copy(pg.Terminals, 0, newPgSet, prepend ? 1 : 0, pg.Terminals.Length);
+				pg.Terminals = newPgSet;
+			}
+
+			var tokenNames = tokenSet.Select(token => token.RawToken).ToList();
+			string tokenNamesJson;
+
+			if (tokenNames == null || tokenNames.Count == 0)
+			{
+				tokenNamesJson = "null";
+			}
+			else
+			{
+				tokenNamesJson = Newtonsoft.Json.JsonConvert.SerializeObject(tokenNames, jsonSettings);
+			}
+
+			var terminal = new UrlLookupTerminal()
+			{
+				Page = page,
+				UrlTokens = tokenSet,
+				UrlTokenNames = tokenNames,
+				UrlTokenNamesJson = tokenNamesJson
+			};
+
+			// If there are >1, ensure that the page at the start of the set is the one that is favoured (if any are favoured).
+			if (prepend)
+			{
+				index = 0;
+				pg.Terminals[0] = terminal;
+			}
+			else
+			{
+				index = pg.Terminals.Length - 1;
+				pg.Terminals[index] = terminal;
 			}
 			
 			return pg;
@@ -216,27 +273,12 @@ namespace Api.Pages
 				NotFoundPage = page;
 			}
 
-			var pg = Add(page.Url);
+			var pg = AddInternal(page.Url, page, out int index);
 
 			if (pg == null)
 			{
 				// skipped
 				return null;
-			}
-
-			if (pg.Pages == null)
-			{
-				pg.Pages = new List<Page>();
-			}
-
-			// If there are >1, ensure that the page at the start of the set is the one that is favoured (if any are favoured).
-			if (page.PreferIfLoggedIn)
-			{
-				pg.Pages.Insert(0, page);
-			}
-			else
-			{
-				pg.Pages.Add(page);
 			}
 
 			PageUrlList.Add(new PageIdAndUrl()
@@ -325,10 +367,132 @@ namespace Api.Pages
 				}
 			}
 
+			var index = -1;
+			var terminals = curNode.Terminals;
 
-			if (curNode.Redirection != null)
+			if (terminals == null)
 			{
-				var targetUrl = await curNode.Redirection(urlInfo, curNode, wildcardTokens);
+				// 404
+				return new PageWithTokens()
+				{
+					StatusCode = 404,
+					Page = null,
+					TokenValues = null,
+					TokenNamesJson = "null"
+				};
+			}
+
+			// There will always be at least one terminal if the array is not null.
+			object primaryObject = null;
+			var notFoundCount = 0;
+			var termCount = terminals.Length;
+
+			// Next, we'll perform permission testing.
+			// The login URL is always permitted no matter what.
+			if (urlInfo.Matches("login"))
+			{
+				// Always permitted (assuming it exists!)
+				// This helps avoid any redirect cycles in the event the user is unable to see either the login or homepage.
+
+				// Use terminal 0 in this situ - the login page can't vary.
+				index = 0;
+			}
+			else
+			{
+				var role = context.Role;
+
+				if (role == null)
+				{
+					role = Roles.Public;
+				}
+
+				var pageLoadCapability = Events.Page.GetLoadCapability();
+
+				for (var i = 0; i < termCount; i++)
+				{
+					var terminal = curNode.Terminals[i];
+					var pageToTest = terminal.Page;
+
+					// terminals with no page (usually a redirect node)
+					// are always granted.
+					if (pageToTest == null || await role.IsGranted(pageLoadCapability, context, pageToTest, false))
+					{
+						// If there is a primary object, ensure it exists.
+						// If not, it's like this page doesn't exist at all.
+
+						if (terminal.UrlTokens != null && wildcardTokens != null && wildcardTokens.Count > 0)
+						{
+							var countA = terminal.UrlTokens.Count;
+
+							var primaryToken = terminal.UrlTokens[countA - 1];
+
+							// The actual value from the URL:
+							var primaryTokenValue = wildcardTokens[wildcardTokens.Count - 1];
+
+							if (primaryToken.ContentType != null)
+							{
+								if (primaryToken.IsId)
+								{
+									if (ulong.TryParse(primaryTokenValue, out ulong primaryObjectId))
+									{
+										primaryObject = await primaryToken.Service.GetObject(context, primaryObjectId);
+									}
+								}
+								else
+								{
+									primaryObject = await primaryToken.Service.GetObject(context, primaryToken.FieldName, primaryTokenValue);
+								}
+
+								if (!curNode.IsAdmin && primaryObject == null)
+								{
+									// Exclude admin pages because of the /add URL which has no primary object but must still route.
+									// The contentType is not null meaning this is a content specific frontend URL but the content referenced does not exist.
+									// Therefore, we can safely generate the 404 page instead.
+									notFoundCount++;
+									continue;
+								}
+							}
+						}
+
+						index = i;
+						break;
+					}
+				}
+			}
+
+			if (index == -1)
+			{
+				if (notFoundCount == termCount)
+				{
+					// All pages rejected it as a 404.
+					return new PageWithTokens()
+					{
+						StatusCode = 404,
+						Page = null,
+						TokenValues = null,
+						TokenNamesJson = "null"
+					};
+				}
+
+				// The user was rejected on a permission error.
+				// This can often lead to a redirect to the login page, but we'll make the handling of 
+				// this project specific such that it can e.g. redirect to a subscribe page or whatever it would like to do.
+				return new PageWithTokens()
+				{
+					StatusCode = 302,
+					Page = null,
+					TokenValues = null,
+					TokenNamesJson = "null",
+					RedirectTo = "/login?then=" +
+						System.Web.HttpUtility.UrlEncode(searchQuery.HasValue ? urlInfo.Url + searchQuery.Value : urlInfo.Url)
+				};
+			}
+
+			// A node and index has been selected.
+			var redir = terminals[index].Redirection;
+			if (redir != null)
+			{
+				var targetUrl = await redir(urlInfo, curNode, wildcardTokens);
 
 				if (targetUrl == null)
 				{
@@ -349,65 +513,12 @@ namespace Api.Pages
 					TokenNamesJson = "null"
 				};
 			}
-			
-			Page result = null;
 
-			if (curNode.Pages != null)
+			var page = terminals[index].Page;
+
+			if (page == null)
 			{
-
-				// Permission testing next. Establish which page is ok (if any).
-				var role = context.Role;
-
-				if (role == null)
-				{
-					role = Roles.Public;
-				}
-
-				if (urlInfo.Matches("login"))
-				{
-					// Always permitted (assuming it exists!)
-					// This helps avoid any redirect cycles in the event the user is unable to see either the login or homepage.
-					if (curNode.Pages.Count > 0)
-					{
-						result = curNode.Pages[0];
-					}
-				}
-				else
-				{
-					var pageLoadCapability = Events.Page.GetLoadCapability();
-
-					for (var i = 0; i < curNode.Pages.Count; i++)
-					{
-						var page = curNode.Pages[i];
-
-						if (await role.IsGranted(pageLoadCapability, context, page, false))
-						{
-							result = page;
-							break;
-						}
-					}
-
-					if (result == null && curNode.Pages.Count > 0)
-					{
-						// The user was rejected on a permission error.
-						// This can often lead to a redirect to the login page, but we'll make the handling of 
-						// this project specific such that it can e.g. redirect to a subscribe page or whatever it would like to do.
-						return new PageWithTokens()
-						{
-							StatusCode = 302,
-							Page = null,
-							TokenValues = null,
-							TokenNamesJson = "null",
-							RedirectTo = "/login?then=" +
-								System.Web.HttpUtility.UrlEncode(searchQuery.HasValue ? urlInfo.Url + searchQuery.Value : urlInfo.Url)
-						};
-					}
-				}
-			}
-
-			if (result == null)
-			{
-				// 404
+				// Seemingly empty terminal - 404
 				return new PageWithTokens()
 				{
 					StatusCode = 404,
@@ -416,15 +527,17 @@ namespace Api.Pages
 					TokenNamesJson = "null"
 				};
 			}
+
 			return new PageWithTokens()
 			{
 				StatusCode = 200,
-				Page = result,
-				Tokens = curNode.UrlTokens,
-				TokenNames = curNode.UrlTokenNames,
-				TokenNamesJson = curNode.UrlTokenNamesJson,
+				Page = page,
+				PrimaryObject = primaryObject,
+				Tokens = terminals[index].UrlTokens,
+				TokenNames = terminals[index].UrlTokenNames,
+				TokenNamesJson = terminals[index].UrlTokenNamesJson,
 				TokenValues = wildcardTokens,
-				Multiple = curNode.Pages.Count > 1
+				Multiple = terminals.Length > 1
 			};
 		}
 	}
@@ -563,6 +676,10 @@ namespace Api.Pages
 	public struct PageWithTokens
 	{
 		/// <summary>
+		/// The primary object for this page.
+		/// </summary>
+		public object PrimaryObject;
+		/// <summary>
 		/// Custom set the http status code.
 		/// </summary>
 		public int StatusCode;
@@ -597,14 +714,18 @@ namespace Api.Pages
 	}
 
 	/// <summary>
-	/// A node in the URL lookup tree.
+	/// A leaf node in the URL lookup tree.
 	/// </summary>
-	public partial class UrlLookupNode
+	public partial struct UrlLookupTerminal
 	{
 		/// <summary>
 		/// Set if this node performs a redirect.
 		/// </summary>
 		public Func<UrlInfo, UrlLookupNode, List<string>, ValueTask<string>> Redirection;
+		/// <summary>
+		/// Page, if there is one.
+		/// </summary>
+		public Page Page;
 		/// <summary>
 		/// If this node has a page associated with it, this is the set of url tokens. The primary object is always derived from the last one.
 		/// </summary>
@@ -617,10 +738,21 @@ namespace Api.Pages
 		/// Preformatted JSON array of the url token names. ["A", "B", ..]. will be the string "null" if it is null.
 		/// </summary>
 		public string UrlTokenNamesJson;
+	}
+
+	/// <summary>
+	/// A node in the URL lookup tree.
+	/// </summary>
+	public partial class UrlLookupNode
+	{
 		/// <summary>
 		/// Usually only has one page in it, but multiple pages on the same URL can happen with e.g. the homepage, if there are permission based matchings.
 		/// </summary>
-		public List<Page> Pages;
+		public UrlLookupTerminal[] Terminals;
+		/// <summary>
+		/// True if this node (or any of its parents) are /en-admin/.
+		/// </summary>
+		public bool IsAdmin;
 		/// <summary>
 		/// The wildcard resolver if there is one for this node. Same as Children["*"].
 		/// </summary>

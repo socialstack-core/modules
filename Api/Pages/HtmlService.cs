@@ -435,7 +435,7 @@ svg {
 			header.AppendChild(new TextNode("If you're a content owner, you can preview this site by entering the password below."));
 			container.AppendChild(header);
 
-			var form = new DocumentNode("form").With("action", "").With("method", "POST").With("id", "content_pwd_form").With("class", "d-flex justify-content-center mt-5");
+			var form = new DocumentNode("form").With("action", "/").With("method", "GET").With("id", "content_pwd_form").With("class", "d-flex justify-content-center mt-5");
 			form.AppendChild(new DocumentNode("input", true).With("type", "password").With("id", "password").With("class", "form-control form-control-lg"));
 			form.AppendChild(new DocumentNode("input", true).With("type", "submit").With("class", "btn btn-primary btn-lg ml-2").With("value", "Go"));
 
@@ -479,7 +479,6 @@ svg {
 				{
 					var password = document.getElementById('password').value;
 					setCookie(""protect"", password, 60);
-					window.location.reload(true);
 				};
 			"
 			)));
@@ -830,10 +829,8 @@ svg {
 		/// <param name="context"></param>
 		/// <param name="pageAndTokens"></param>
 		/// <param name="path"></param>
-		/// <param name="requireNotFound"></param>
-		/// <param name="notFoundState"></param>
 		/// <returns></returns>
-		private async ValueTask<List<DocumentNode>> RenderPage<T>(Context context, PageWithTokens pageAndTokens, string path, Func<Context, T, PageWithTokens> requireNotFound, T notFoundState)
+		private async ValueTask<List<DocumentNode>> RenderPage(Context context, PageWithTokens pageAndTokens, string path)
 		{
 			var isAdmin = path.StartsWith("/en-admin");
 			List<DocumentNode> flatNodes;
@@ -893,29 +890,7 @@ svg {
 					doc.PrimaryContentTypeId = primaryToken.ContentTypeId;
 					doc.PrimaryObjectService = primaryToken.Service;
 					doc.PrimaryObjectType = primaryToken.ContentType;
-
-					if (primaryToken.ContentType != null)
-					{
-						if (primaryToken.IsId)
-						{
-							if (ulong.TryParse(pageAndTokens.TokenValues[countA - 1], out ulong primaryObjectId))
-							{
-								doc.PrimaryObject = await primaryToken.Service.GetObject(context, primaryObjectId);
-							}
-						}
-						else
-						{
-							doc.PrimaryObject = await primaryToken.Service.GetObject(context, primaryToken.FieldName, pageAndTokens.TokenValues[countA - 1]);
-						}
-
-						if (!isAdmin && doc.PrimaryObject == null && requireNotFound != null)
-						{
-							// Exclude admin pages because of the /add URL which has no primary object but must still route.
-							// The contentType is not null meaning this is a content specific frontend URL but the content referenced does not exist.
-							// Therefore, we can safely generate the 404 page instead.
-							pageAndTokens = requireNotFound(context, notFoundState);
-						}
-					}
+					doc.PrimaryObject = pageAndTokens.PrimaryObject;
 				}
 			}
 
@@ -1578,21 +1553,7 @@ svg {
 
 			if (flatNodes == null)
 			{
-				flatNodes = await RenderPage(context, pageAndTokens, path, (Context context, HttpResponse response) => {
-
-					// Note: passing in response as state to RenderPage avoids this function being allocated
-					// as a delegate every time this runs. It instead ends up as a static method reference.
-					response.StatusCode = 404;
-
-					return new PageWithTokens()
-					{
-						StatusCode = 404,
-						Page = Services.Get<PageService>().GetCachedNotFoundPage(context),
-						TokenValues = null,
-						TokenNamesJson = "null"
-					};
-
-				}, response);
+				flatNodes = await RenderPage(context, pageAndTokens, path);
 			}
 
 			var outputStream = compress ? new GZipStream(responseStream, CompressionMode.Compress) : responseStream;
