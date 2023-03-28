@@ -17,15 +17,26 @@ class Canvas extends React.Component {
 		};
 	}
 	
+	componentDidMount(){
+		this._loc = global.location.href;
+	}
+	
 	componentWillReceiveProps(props){
-		// Only do something if canvas JSON provided has changed.
+		// Only do something if canvas JSON provided has changed, or .
 		var dataSource = props.bodyJson || props.children;
 		
 		if(this.props){
 			var prevDataSource = this.props.bodyJson || this.props.children;
 			
 			if(typeof dataSource == 'string' && prevDataSource == dataSource){
-				return;
+				// Surrounding global state may have changed though. If we're on a different page from before, force a load.
+				var cur = global.location.href
+				
+				if(cur == this._loc){
+					return;
+				}
+				
+				this._loc = cur;
 			}
 		}
 		
