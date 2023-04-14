@@ -28,12 +28,6 @@ export default class Modal extends React.Component {
 		this.props.onOpen && this.props.onOpen();
     }
 
-	/*
-	componentWillReceiveProps(props) {
-		this.newTitleId();
-	}
-	*/
-
 	newTitleId() {
 		this.modalTitleId = 'modal_title_' + (titleId++);
 	}
@@ -205,3 +199,4 @@ Modal.propTypes = {
 	children: true
 	
 }
+
