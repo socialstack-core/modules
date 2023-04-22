@@ -437,7 +437,7 @@ svg {
 			header.AppendChild(new TextNode("If you're a content owner, you can preview this site by entering the password below."));
 			container.AppendChild(header);
 
-			var form = new DocumentNode("form").With("action", "/").With("method", "GET").With("id", "content_pwd_form").With("class", "d-flex justify-content-center mt-5");
+			var form = new DocumentNode("form").With("action", "").With("method", "POST").With("id", "content_pwd_form").With("class", "d-flex justify-content-center mt-5");
 			form.AppendChild(new DocumentNode("input", true).With("type", "password").With("id", "password").With("class", "form-control form-control-lg"));
 			form.AppendChild(new DocumentNode("input", true).With("type", "submit").With("class", "btn btn-primary btn-lg ml-2").With("value", "Go"));
 
@@ -481,6 +481,7 @@ svg {
 				{
 					var password = document.getElementById('password').value;
 					setCookie(""protect"", password, 60);
+					window.location.reload(true);
 				};
 			"
 			)));
