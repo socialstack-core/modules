@@ -245,8 +245,9 @@ namespace Api.Pages
 
 			writer.WriteASCII("{\"page\":");
 			await _pages.ToJson(context, pageAndTokens.Page, writer);
-			writer.WriteASCII(",\"data\":");
+			writer.WriteASCII(",\"data\":null");
 
+			/*
 			if (_config.PreRender)
 			{
 				var preRender = await _canvasRendererService.Render(context, pageAndTokens.Page.BodyJson, new PageState() {
@@ -261,6 +262,7 @@ namespace Api.Pages
 			{
 				writer.WriteASCII("null");
 			}
+			*/
 
 			var cfgBytes = _configurationService.GetLatestFrontendConfigBytesJson();
 
@@ -603,12 +605,13 @@ svg {
 		private async ValueTask<List<DocumentNode>> RenderHeaderOnly(Context context, Locale locale)
 		{
 			var themeConfig = _themeService.GetConfig();
+			var localeCode = locale.Code.Contains('-') ? locale.Code.Split('-')[0] : locale.Code;
 
 			// Generate the document:
 			var doc = new Document();
 			doc.Path = "/";
 			doc.Title = ""; // Todo: permit {token} values in the title which refer to the primary object.
-			doc.Html.With("class", "ui head-only").With("lang", locale.Code)
+			doc.Html.With("class", "ui head-only").With("lang", localeCode)
 				.With("data-theme", themeConfig.DefaultAdminThemeId);
 
 			if (locale.RightToLeft)
@@ -674,13 +677,14 @@ svg {
 		private async ValueTask<List<DocumentNode>> RenderMobilePage(Context context, Locale locale, MobilePageMeta pageMeta)
 		{
 			var themeConfig = _themeService.GetConfig();
+            var localeCode = locale.Code.Contains('-') ? locale.Code.Split('-')[0] : locale.Code;
 
-			// Generate the document:
-			var doc = new Document();
+            // Generate the document:
+            var doc = new Document();
 			doc.Path = "/";
 			doc.Title = ""; // Todo: permit {token} values in the title which refer to the primary object.
 			doc.Html
-				.With("class", "ui mobile").With("lang", locale.Code)
+				.With("class", "ui mobile").With("lang", localeCode)
 				.With("data-theme", themeConfig.DefaultThemeId);
 
 			if (locale.RightToLeft)
@@ -895,14 +899,15 @@ svg {
 			}
 
 			var page = pageAndTokens.Page;
+            var localeCode = locale.Code.Contains('-') ? locale.Code.Split('-')[0] : locale.Code;
 
-			// Generate the document:
-			doc.Path = path;
+            // Generate the document:
+            doc.Path = path;
 			doc.Title = page.Title; // Todo: permit {token} values in the title which refer to the primary object.
 			doc.SourcePage = page;
 			doc.Html
 				.With("class", isAdmin ? "admin web" : "ui web")
-				.With("lang", locale.Code)
+				.With("lang", localeCode)
 				.With("data-theme", isAdmin ? themeConfig.DefaultAdminThemeId : themeConfig.DefaultThemeId);
 
 			if (locale.RightToLeft)
@@ -959,7 +964,7 @@ svg {
 			var body = doc.Body;
 			body.AppendChild(reactRoot);
 
-			if (_config.PreRender)
+			if (_config.PreRender && !isAdmin)
 			{
 				try
 				{
@@ -968,7 +973,7 @@ svg {
 						Tokens = pageAndTokens.TokenValues,
 						TokenNames = pageAndTokens.TokenNames,
 						PrimaryObject = doc.PrimaryObject
-					}, path, true);
+					}, path, true, RenderMode.Html, false);
 
 					if (preRender.Failed)
 					{
@@ -994,9 +999,9 @@ svg {
 						writer.WriteS("window.pgState={\"page\":");
 						await _pages.ToJson(context, pageAndTokens.Page, writer);
 						writer.WriteS(",\"tokens\":");
+						writer.WriteS((pageAndTokens.TokenValues != null ? Newtonsoft.Json.JsonConvert.SerializeObject(pageAndTokens.TokenValues, jsonSettings) : "null"));
 						writer.WriteS(",\"data\":");
 						writer.WriteS(preRender.Data);
-						writer.WriteS((pageAndTokens.TokenValues != null ? Newtonsoft.Json.JsonConvert.SerializeObject(pageAndTokens.TokenValues, jsonSettings) : "null"));
 						writer.WriteS(",\"tokenNames\":");
 						writer.WriteS(pageAndTokens.TokenNamesJson);
 						writer.WriteS(",\"po\":");

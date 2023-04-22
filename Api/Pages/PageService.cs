@@ -438,6 +438,24 @@ namespace Api.Pages
 		}
 
 		/// <summary>
+		/// Gets the URL generation engine for the given piece of generic content. Pages are very often cached so this usually returns instantly.
+		/// </summary>
+		/// <param name="contentType">The contentType you want the meta for.</param>
+		/// <param name="scope">State which type of URL you want - either a frontend URL or admin panel. Default is frontend if not specified.</param>
+		/// <returns>A url which is relative to the site root.</returns>
+		public async ValueTask<UrlGenerationMeta> GetUrlGenerationMeta(Type contentType, UrlGenerationScope scope = null)
+		{
+			if (_urlGenerationCache == null)
+			{
+				await LoadCaches(new Context());
+			}
+
+			var lookup = _urlGenerationCache.GetLookup(scope);
+			lookup.TryGetValue(contentType, out UrlGenerationMeta meta);
+			return meta;
+		}
+
+		/// <summary>
 		/// Gets the URL for the given piece of generic content. Pages are very often cached so this usually returns instantly.
 		/// </summary>
 		/// <param name="context"></param>

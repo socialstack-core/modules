@@ -1,3 +1,4 @@
+using Api.ColourConsole;
 using Api.Contexts;
 using Api.Eventing;
 using Api.Permissions;
@@ -134,7 +135,7 @@ namespace Api.Pages
 
 								if (type == null)
 								{
-									Console.WriteLine("[WARN] Bad page URL using a type that doesn't exist. It was " + url + " using type " + contentType);
+                                    WriteColourLine.Warning("[WARN] Bad page URL using a type that doesn't exist. It was " + url + " using type " + contentType);
 									skip = true;
 									break;
 								}
@@ -440,7 +441,20 @@ namespace Api.Pages
 								}
 								else
 								{
-									primaryObject = await primaryToken.Service.GetObject(context, primaryToken.FieldName, primaryTokenValue);
+									var filterString = "";
+
+									for (var j = 0; j < countA; j++)
+									{
+										if (j != 0)
+										{
+											filterString += " and ";
+										}
+
+										var fieldName = terminal.UrlTokens[j].FieldName;
+										filterString += fieldName + "=?";
+									}
+
+									primaryObject = await primaryToken.Service.GetObjectByFilter(context, filterString, wildcardTokens);
 								}
 
 								if (!curNode.IsAdmin && primaryObject == null)
