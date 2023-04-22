@@ -8,6 +8,7 @@ using System.Collections.Generic;
 using System.Text;
 using MySql.Data.MySqlClient;
 using Api.Permissions;
+using Api.ColourConsole;
 
 namespace Api.Database
 {
@@ -106,7 +107,7 @@ namespace Api.Database
 				{
 					if (_database == null)
 					{
-						Console.WriteLine("[WARN] The type '" + service.ServicedType.Name  + "' did not have its database schema updated because the database service was not up in time.");
+                        WriteColourLine.Warning("[WARN] The type '" + service.ServicedType.Name  + "' did not have its database schema updated because the database service was not up in time.");
 						return service;
 					}
 
@@ -379,7 +380,7 @@ namespace Api.Database
 				{
 					if (e.Code == 0)
 					{
-						Console.WriteLine("[WARN] Authentication or unable to contact mysql. Trying again in 5 seconds. " + e.Message);
+                        WriteColourLine.Warning("[WARN] Authentication or unable to contact mysql. Trying again in 5 seconds. " + e.Message);
 						await Task.Delay(5000);
 						tryAgain = true;
 					}
@@ -394,7 +395,7 @@ namespace Api.Database
 
 			if (!Version.TryParse(versionPieces[0], out Version parsedVersion))
 			{
-				System.Console.WriteLine("[WARNING] DatabaseDiff module disabled due to unrecognised MySQL version text. It was: " + version);
+                WriteColourLine.Warning("[WARNING] DatabaseDiff module disabled due to unrecognised MySQL version text. It was: " + version);
 				VersionCheckResult = false;
 				return false;
 			}
@@ -421,13 +422,13 @@ namespace Api.Database
 			// Which version we got?
 			if (minVersion == null)
 			{
-				System.Console.WriteLine("[WARNING] DatabaseDiff module disabled. Unrecognised MySQL variant: " + version);
+                WriteColourLine.Warning("[WARNING] DatabaseDiff module disabled. Unrecognised MySQL variant: " + version);
 				VersionCheckResult = false;
 				return false;
 			}
 			else if (parsedVersion < minVersion)
 			{
-				System.Console.WriteLine("[WARNING] DatabaseDiff module disabled. You're using a version of MySQL that is too old. It's version: " + version);
+				WriteColourLine.Warning("[WARNING] DatabaseDiff module disabled. You're using a version of MySQL that is too old. It's version: " + version);
 				VersionCheckResult = false;
 				return false;
 			}
@@ -471,8 +472,8 @@ namespace Api.Database
 			}
 			catch(Exception e)
 			{
-				System.Console.WriteLine("[WARNING] DatabaseDiff module disabled due to a failure during query execution. The version (which is supported) was: " + VersionText + ". The complete error that occurred follows.");
-				System.Console.WriteLine(e.ToString());
+                WriteColourLine.Warning("[WARNING] DatabaseDiff module disabled due to a failure during query execution. The version (which is supported) was: " + VersionText + ". The complete error that occurred follows.");
+				Console.WriteLine(e.ToString());
 				VersionCheckResult = false;
 				return null;
 			}
