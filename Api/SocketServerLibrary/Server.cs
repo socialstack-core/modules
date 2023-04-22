@@ -7,7 +7,7 @@ using System.Reflection.Emit;
 using System.Timers;
 using System.Threading.Tasks;
 using System.Runtime.InteropServices;
-
+using Api.ColourConsole;
 
 namespace Api.SocketServerLibrary {
 
@@ -128,8 +128,8 @@ namespace Api.SocketServerLibrary {
 
 				if (!socket.Connected)
 				{
-					// Timeout.
-					Console.WriteLine("[WARN] Unable to contact remote server #" + serverId);
+                    // Timeout.
+                    WriteColourLine.Warning("[WARN] Unable to contact remote server #" + serverId);
 					socket.Close();
 				}
 

@@ -1,3 +1,4 @@
+using Api.ColourConsole;
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
@@ -67,7 +68,7 @@ namespace Api.SocketServerLibrary
 
 				if (outputType == null)
 				{
-					Console.WriteLine("[WARN]: Unable to sync field '" + field.Name + "' on '" + typeof(T).Name + "'. " +
+                    WriteColourLine.Warning("[WARN]: Unable to sync field '" + field.Name + "' on '" + typeof(T).Name + "'. " +
 						field.FieldType + " was not recognised as a valid writeable field.");
 					continue;
 				}
