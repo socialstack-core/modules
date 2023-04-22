@@ -177,7 +177,14 @@ namespace Api.Invites
 					// The user account was deleted, which translates to an expired invite:
 					throw new PublicException("This invite has expired", "invite_expired");
 				}
-
+				
+				if(user.Role == 3){
+					user = await _users.Update(context, user, (Context c, User u, User orig) => {
+						// Elevate from guest to member:
+						u.Role = 4;
+					}, DataOptions.IgnorePermissions);
+				}
+				
 				var loginResult = new LoginResult();
 				loginResult.CookieName = Context.CookieName;
 				loginResult.User = user;
