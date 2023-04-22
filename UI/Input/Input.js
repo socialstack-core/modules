@@ -401,26 +401,67 @@ export default class Input extends React.Component {
         var fieldName = this.props.fieldName;
 
         if (type === "select") {
-			var {noSelectionValue} = this.props;
             var defaultValue = typeof this.state.selectValue === 'undefined' ? this.props.defaultValue : this.state.selectValue;
-            var noSelection = this.props.noSelection || "None Specified";
-            var mobileNoSelection = this.props.mobileNoSelection || "None Specified";
-			if(noSelectionValue === undefined)
-			{
-				noSelectionValue = '';
-			}
-
-            if (window.matchMedia('(max-width: 752px) and (pointer: coarse) and (orientation: portrait)').matches ||
-                window.matchMedia('(max-height: 752px) and (pointer: coarse) and (orientation: landscape)').matches) {
-                noSelection = mobileNoSelection;
-            }
-
+			
             var selectClass = this.props.className || "form-select" + (this.state.validationFailure ? ' is-invalid' : '');
 
             if (defaultValue == undefined) {
                 selectClass += " no-selection";
             }
-
+			
+			if(this.props.contentType){
+				var {noSelectionValue} = this.props;
+				var noSelection = this.props.noSelection || "None Specified";
+				
+				/*
+				var mobileNoSelection = this.props.mobileNoSelection || "None Specified";
+				
+				if (window.matchMedia('(max-width: 752px) and (pointer: coarse) and (orientation: portrait)').matches ||
+					window.matchMedia('(max-height: 752px) and (pointer: coarse) and (orientation: landscape)').matches) {
+					noSelection = mobileNoSelection;
+				}
+				*/
+				
+				if(noSelectionValue === undefined)
+				{
+					noSelectionValue = '';
+				}
+				
+				return <Loop over={this.props.contentType + '/list'} raw groupAll onResults={this.props.onResults} filter={this.props.filter}>
+					{vals => {
+						return <select
+							ref={this.setRef}
+							onInput={(e) => {
+								var content = vals && vals[e.target.selectedIndex-1];
+								e.content = content;
+								this.onSelectChange(e);
+							}}
+							onBlur={this.onBlur}
+							autocomplete={this.props.autocomplete}
+							value={defaultValue}
+							id={this.props.id || this.fieldId}
+							className={selectClass}
+							{...omit(this.props, ['id', 'className', 'onChange', 'onBlur', 'type', 'children', 'defaultValue', 'value', 'inline', 'help', 'helpIcon', 'fieldName'])}
+							data-field={fieldName}
+						>
+							<option value={noSelectionValue}>{noSelection}</option>
+							{vals.map(entry => <option 
+                                            value={this.props.contentTypeValue 
+                                                ? entry[this.props.contentTypeValue] 
+                                                : entry.id} 
+                                            selected={this.props.contentTypeValue
+                                                ? entry[this.props.contentTypeValue] == defaultValue ? true : undefined
+                                                : entry.id == defaultValue ? true : undefined
+                                            }
+                                        >
+									{
+										this.props.onDisplay ? this.props.onDisplay(entry) : entry[this.props.displayField || 'name']
+									}
+								</option>)}
+						</select>}}
+				</Loop>;
+			}
+			
             return (
                 <select
 					ref={this.setRef}
@@ -433,26 +474,7 @@ export default class Input extends React.Component {
                     {...omit(this.props, ['id', 'className', 'onChange', 'onBlur', 'type', 'children', 'defaultValue', 'value', 'inline', 'help', 'helpIcon', 'fieldName'])}
                     data-field={fieldName}
                 >
-                    {this.props.contentType ? [
-                        <option value={noSelectionValue}>{noSelection}</option>,
-						<Loop over={this.props.contentType + '/list'} raw filter={this.props.filter}>
-							{
-                                entry => <option 
-                                            value={this.props.contentTypeValue 
-                                                ? entry[this.props.contentTypeValue] 
-                                                : entry.id} 
-                                            selected={this.props.contentTypeValue
-                                                ? entry[this.props.contentTypeValue] == defaultValue ? true : undefined
-                                                : entry.id == defaultValue ? true : undefined
-                                            }
-                                        >
-									{
-										entry[this.props.displayField || 'name']
-									}
-								</option>
-							}
-						</Loop>
-					] : this.props.children}
+					{this.props.children}
                 </select>
             );
 
@@ -530,9 +552,8 @@ export default class Input extends React.Component {
                     onBlur={this.onBlur}
                     data-field={fieldName}
                     invalid={this.state.validationFailure ? true : undefined}
-                    {...omit(this.props, ['id', 'className', 'onChange', 'onBlur', 'type', 'inline', 'defaultValue', 'help', 'helpIcon', 'fieldName'])}
-                    checked={this.props.defaultValue == this.props.value}
-                    disabled={false}
+                    {...omit(this.props, ['id', 'className', 'onChange', 'onBlur', 'type', 'inline', 'help', 'helpIcon', 'fieldName'])}
+                    disabled={this.props.disabled || false}
                 />
             );
 		} else if(type === "password"){
