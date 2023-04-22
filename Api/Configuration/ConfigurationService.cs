@@ -13,6 +13,7 @@ using System.Collections.Concurrent;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Serialization;
 using System.Linq;
+using Api.ColourConsole;
 
 namespace Api.Configuration
 {
@@ -58,7 +59,7 @@ namespace Api.Configuration
 				}
 				catch (Exception e)
 				{
-					Console.WriteLine("[WARN] Remote config update failed to load: " + e.ToString());
+                    WriteColourLine.Warning("[WARN] Remote config update failed to load: " + e.ToString());
 				}
 
 				return config;

@@ -3,6 +3,7 @@ using System.IO;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Configuration;
 using Newtonsoft.Json.Linq;
+using Api.ColourConsole;
 
 namespace Api.Configuration
 {
@@ -119,7 +120,7 @@ namespace Api.Configuration
 			}
 			
 			// Failed to parse the value. Let them know but use the default in the meantime.
-			Console.WriteLine("Warning: Field '" + name + "' in appsettings.json isn't an int32 number. Using the default value " + defaultValue + " instead.");
+			WriteColourLine.Warning("[Warning]: Field '" + name + "' in appsettings.json isn't an int32 number. Using the default value " + defaultValue + " instead.");
 			
 			return defaultValue;
 		}
@@ -147,7 +148,7 @@ namespace Api.Configuration
 			}
 			
 			// Failed to parse the value. Let them know but use the default in the meantime.
-			Console.WriteLine("Warning: Field '" + name + "' in appsettings.json isn't an int64 number. Using the default value " + defaultValue + " instead.");
+			WriteColourLine.Warning("[Warning]: Field '" + name + "' in appsettings.json isn't an int64 number. Using the default value " + defaultValue + " instead.");
 			
 			return defaultValue;
 		}
@@ -197,7 +198,7 @@ namespace Api.Configuration
 			}
 			catch
 			{
-				Console.WriteLine("[Notice] Config from '" + Path + "' wasn't loaded (usually because file not found)");
+                WriteColourLine.Warning("[Notice] Config from '" + Path + "' wasn't loaded (usually because file not found)");
 
 				// File not found.
 				_rawConfig = null;
@@ -211,7 +212,7 @@ namespace Api.Configuration
 			}
 			catch(Exception e)
 			{
-				Console.WriteLine("[Warn] Failed to load configuration file '" + Path + "' due to JSON parse error: " + e.ToString());
+                WriteColourLine.Warning("[Warn] Failed to load configuration file '" + Path + "' due to JSON parse error: " + e.ToString());
 			}
 
 		}

@@ -5,6 +5,7 @@ using Api.Startup;
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using Api.ColourConsole;
 
 /// <summary>
 /// A general use service which manipulates an entity type. In the global namespace due to its common use.
@@ -75,7 +76,7 @@ public partial class AutoService
 				}
 				catch (Exception e)
 				{
-					Console.WriteLine("[WARN] Invalid JSON detected in config for '" + name +
+                    WriteColourLine.Warning("[WARN] Invalid JSON detected in config for '" + name +
 						"'. It's in the site_configuration database table as row #" + entry.Id + ". The full error is below.");
 					Console.WriteLine(e.ToString());
 				}
@@ -131,7 +132,7 @@ public partial class AutoService
 					}
 					catch (Exception e)
 					{
-						Console.WriteLine("[WARN] Invalid JSON detected in config for '" + name + 
+                        WriteColourLine.Warning("[WARN] Invalid JSON detected in config for '" + name + 
 							"'. It's in the site_configuration database table as row #" + result.Id + ". The full error is below.");
 						Console.WriteLine(e.ToString());
 					}
