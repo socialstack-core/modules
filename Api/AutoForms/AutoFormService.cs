@@ -234,6 +234,7 @@ namespace Api.AutoForms
 
 				// Remove "Json" from the end of the label:
 				labelName = labelName.Substring(0, labelName.Length - 4);
+				field.Tokeniseable = false;
 			}
 			else if (fieldType == typeof(string) && labelName.EndsWith("Ref"))
 			{
@@ -265,6 +266,7 @@ namespace Api.AutoForms
 
 				// Remove "Id" from the end of the label:
 				labelName = labelName.Substring(0, labelName.Length - 2);
+				field.Tokeniseable = false;
 			}
 			else if (fieldType == typeof(bool) || fieldType == typeof(bool?))
 			{
@@ -326,6 +328,11 @@ namespace Api.AutoForms
 						field.Module = module.Name;
 					}
 
+					if (module.Name == "Admin/ContentSelect" || module.Name == "Admin/MultiSelect")
+                    {
+						field.Tokeniseable = false;
+                    }
+
 					if (module.Hide)
 					{
 						return null;
@@ -354,6 +361,10 @@ namespace Api.AutoForms
                 {
 					var order = attrib as OrderAttribute;
 					field.Order = order.Order;
+                }
+				else if (attrib.GetType().ToString().Contains("PriceAttribute"))
+                {
+					field.Data["isPrice"] = true;
                 }
 			}
 

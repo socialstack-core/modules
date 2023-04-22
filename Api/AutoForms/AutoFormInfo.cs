@@ -57,7 +57,13 @@ namespace Api.AutoForms
 		/// Props for the module.
 		/// </summary>
 		public Dictionary<string, object> Data;
-		
+
+		/// <summary>
+		/// Can this field be represented by tokens?
+		/// </summary>
+		public bool Tokeniseable = true;
+
+
 	}
 
 }
