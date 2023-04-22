@@ -6,6 +6,7 @@ using Api.Eventing;
 using Api.Startup;
 using System.Linq;
 using Newtonsoft.Json.Linq;
+using Api.ColourConsole;
 
 namespace Api.Permissions
 {
@@ -286,7 +287,7 @@ namespace Api.Permissions
 			}
 			catch (Exception e)
 			{
-				Console.WriteLine("[WARN] Unable to parse role JSON for role #" + role.Id + ". Here was the error:" + e.ToString());
+                WriteColourLine.Warning("[WARN] Unable to parse role JSON for role #" + role.Id + ". Here was the error:" + e.ToString());
 			}
 		}
 

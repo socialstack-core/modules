@@ -2531,7 +2531,7 @@ namespace Api.Permissions{
 			var fields = ast.Service.GetContentFields();
 			if (!fields.TryGetValue(lcName, out ContentField field))
 			{
-				if (!ContentFields._globalVirtualFields.TryGetValue(lcName, out field))
+				if (!ContentFields.GlobalVirtualFields.TryGetValue(lcName, out field))
 				{
 					throw new PublicException("Couldn't find filter field '" + Name + "' on this type, or a global virtual field by the same name.", "filter_invalid");
 				}
@@ -2768,7 +2768,7 @@ namespace Api.Permissions{
 			if (mapName != null)
 			{
 				// Ensure this map name exists:
-				if (!ContentFields._globalVirtualFields.TryGetValue(mapName.ToLower(), out ListAsField))
+				if (!ContentFields.GlobalVirtualFields.TryGetValue(mapName.ToLower(), out ListAsField))
 				{
 					throw new PublicException(
 						"A map called '" + mapName + "' doesn't exist (likely used by an On declaration in your filter).",
