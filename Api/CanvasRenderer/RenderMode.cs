@@ -22,7 +22,11 @@ namespace Api.CanvasRenderer
 		/// <summary>
 		/// Both text and html output.
 		/// </summary>
-		Both = 3
+		Both = 3,
+        /// <summary>
+        /// Search indexing, renders as per Html but sets window.SEARCHINDEXING to allow UI components to be hidden
+        /// </summary>
+        Search = 4
 	}
 	
 }

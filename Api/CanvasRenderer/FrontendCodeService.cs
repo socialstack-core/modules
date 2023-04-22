@@ -1,3 +1,4 @@
+using Api.ColourConsole;
 using Api.Configuration;
 using Api.ContentSync;
 using Api.Contexts;
@@ -217,12 +218,12 @@ namespace Api.CanvasRenderer
 						}
 						else
 						{
-							Console.WriteLine("[NOTICE] AutoReload is on, but you've specifically disabled TrackAllClients on websocket service. Unable to send the reload message.");
+                            WriteColourLine.Warning("[NOTICE] AutoReload is on, but you've specifically disabled TrackAllClients on websocket service. Unable to send the reload message.");
 						}
 					}
 					catch (Exception ex)
 					{
-						Console.WriteLine("[WARN] Failed sending auto reload message to some or all clients: " + ex.ToString());
+                        WriteColourLine.Warning("[WARN] Failed sending auto reload message to some or all clients: " + ex.ToString());
 					}
 				}
 
@@ -259,7 +260,7 @@ namespace Api.CanvasRenderer
 						AddBuilder(EmailBuilder = new UIBundle("Email", "/pack/email-static/", translations, locales, this) { FilePathOverride = "/pack/" });
 						AddBuilder(AdminBuilder = new UIBundle("Admin", "/en-admin/pack/", translations, locales, this));
 					}catch(Exception e){
-						Console.WriteLine("[SEVERE] " + e.ToString());
+                        WriteColourLine.Error("[SEVERE] " + e.ToString());
 					}
 				}
 				else
@@ -291,8 +292,8 @@ namespace Api.CanvasRenderer
 					}
 				}
 
-				Console.WriteLine("Done handling UI load.");
-				initialBuildTask = null;
+                WriteColourLine.Success("Done handling UI load.");
+                initialBuildTask = null;
 			});
 
 			_config.OnChange += () => {

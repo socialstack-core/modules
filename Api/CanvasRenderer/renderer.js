@@ -148,20 +148,11 @@ function reactPreRender() {
 	 *	@param {RegEx|undefined} [options.voidElements]       RegeEx that matches elements that are considered void (self-closing)
 	 */
 	renderToString.render = renderToString;
-
-	/** Only render elements, leaving Components inline as `<ComponentName ... />`.
-	 *	This method is just a convenience alias for `render(vnode, context, { shallow:true })`
-	 *	@name shallow
-	 *	@function
-	 *	@param {VNode} vnode	JSX VNode to render.
-	 *	@param {Object} [context={}]	Optionally pass an initial context object through the render path.
-	 */
-	let shallowRender = (vnode, context) => renderToString(vnode, context, SHALLOW);
-
+	
 	const EMPTY_ARR = [];
 	async function renderToString(vnode, context, opts) {
 		opts = opts || {};
-		var res = { body: '', text: '' };
+		var res = { body: '', text: '', data: opts.trackContextualData ? '[' : '' };
 		opts.result = res;
 		await _renderToString(vnode, context, opts);
 		// options._commit, we don't schedule any effects in this library right now,
@@ -255,8 +246,8 @@ function reactPreRender() {
 							: context;
 
 					// stateless functional components
-					_currentContext = cctx;
-					rendered = nodeName.call(vnode.__c, props, cctx);
+					_currentContext = opts;
+					rendered = nodeName.call(vnode.__c, props, opts);
 					_currentContext = null;
 				} else {
 					// class-based components
@@ -270,8 +261,8 @@ function reactPreRender() {
 							: context;
 
 					// c = new nodeName(props, context);
-					_currentContext = cctx;
-					c = vnode.__c = new nodeName(props, cctx);
+					_currentContext = opts;
+					c = vnode.__c = new nodeName(props, opts);
 					_currentContext = null;
 					c.__v = vnode;
 					// turn off stateful re-rendering:
@@ -438,7 +429,7 @@ function reactPreRender() {
 						}
 					}
 					if (opts.mode & 1) {
-						if (name == 'src' || name == 'href') {
+						if (opts.absoluteUrls && (name == 'src' || name == 'href')) {
 							// Make absolute
 							var url = encodeEntities(v);
 
@@ -590,9 +581,9 @@ _contentModule.list = (type, filter) => {
 	});
 };
 
-_contentModule.getCached = (type, id, includes, cctx) => {
-	cctx = cctx || _currentContext;
-	if (!cctx) {
+_contentModule.getCached = (type, id, includes) => {
+	var opts = _currentContext;
+	if (!opts) {
 		// Invalid call site - constructors only.
 		return null;
 	}
@@ -601,18 +592,18 @@ _contentModule.getCached = (type, id, includes, cctx) => {
 		// Get the underlying service:
 		var svc = document.getService(type);
 
-		//console.log('get cached', cctx, id);
+		//console.log('get cached', opts, id);
 
-		svc.GetForSSR(cctx.apiContext, parseInt(id), includes == null ? '' : includes.join(','), jsonResponse => {
+		svc.GetForSSR(opts.ctx.apiContext, parseInt(id), includes == null ? '' : includes.join(','), jsonResponse => {
 			// Expand includes:
 			jsonResponse = _webRequestModule.expandIncludes(JSON.parse(jsonResponse));
 
-			if (cctx.trackContextualData) {
+			if (opts.trackContextualData) {
 				// We're tracking contextual data
-				if (cctx.__contextualData != "") {
-					cctx.__contextualData += ",";
+				if (opts.result.data.length != 1) {
+					opts.result.data += ",";
 				}
-				cctx.__contextualData += JSON.stringify(jsonResponse);
+				opts.result.data += JSON.stringify(jsonResponse);
 			}
 
 			s(jsonResponse);
@@ -620,9 +611,10 @@ _contentModule.getCached = (type, id, includes, cctx) => {
 	});
 };
 
-_contentModule.listCached = (type, filter, includes, cctx) => {
-	cctx = cctx || _currentContext;
-	if (!cctx) {
+_contentModule.listCached = (type, filter, includes) => {
+	var opts = _currentContext;
+	
+	if (!opts) {
 		// Invalid call site - constructors only.
 		return null;
 	}
@@ -643,17 +635,17 @@ _contentModule.listCached = (type, filter, includes, cctx) => {
 		// Get the underlying service:
 		var svc = document.getService(type);
 
-		svc.ListForSSR(cctx.apiContext, filterJson, includesText, jsonResponse => {
+		svc.ListForSSR(opts.ctx.apiContext, filterJson, includesText, jsonResponse => {
 
 			// Expand includes:
 			jsonResponse = _webRequestModule.expandIncludes(JSON.parse(jsonResponse));
 
-			if (cctx.trackContextualData) {
+			if (opts.trackContextualData) {
 				// We're tracking contextual data
-				if (cctx.__contextualData != "") {
-					cctx.__contextualData += ",";
+				if (opts.result.data.length != 1) {
+					opts.result.data += ",";
 				}
-				cctx.__contextualData += JSON.stringify(jsonResponse);
+				opts.result.data += JSON.stringify(jsonResponse);
 			}
 			s(jsonResponse);
 		});
@@ -662,7 +654,7 @@ _contentModule.listCached = (type, filter, includes, cctx) => {
 
 function _noOp() { }
 
-function renderCanvas(bodyJson, apiContext, publicApiContextJson, url, pageState, trackContextualData, mode) {
+function renderCanvas(bodyJson, apiContext, publicApiContextJson, url, pageState, trackContextualData, mode, absoluteUrls) {
 
 	// Session state:
 	var session = {
@@ -712,17 +704,17 @@ function renderCanvas(bodyJson, apiContext, publicApiContextJson, url, pageState
 	});
 
 	// Internal serverside only context:
-	var context = {
-		apiContext,
-		trackContextualData,
-		__contextualData: ''
+	var ctx = {
+		apiContext
 	};
-
-	var graphCacheProvider = preact.createElement(_Graph.Provider, { ctx: context, children: sessionProvider });
+	
+	var graphCacheProvider = preact.createElement(_Graph.Provider, { ctx, children: sessionProvider });
 
 	// Returns a promise.
-	return renderToString(graphCacheProvider, context, { mode }).then(result => {
-		result.data = trackContextualData ? '[' + context.__contextualData + ']' : '';
+	return renderToString(graphCacheProvider, {}, { mode, absoluteUrls, trackContextualData, ctx, result: null }).then(result => {
+		if(trackContextualData){
+			result.data += ']';
+		}
 		return result;
 	});
 }

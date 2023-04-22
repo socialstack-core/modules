@@ -16,6 +16,8 @@ using System.Web;
 using Api.Startup;
 using Api.AutoForms;
 using System.Reflection;
+using Api.ColourConsole;
+using System.Diagnostics;
 
 namespace Api.CanvasRenderer
 {
@@ -57,10 +59,19 @@ namespace Api.CanvasRenderer
                     _engines[context.LocaleId - 1] = null;
                 }
 
+                // A particular locale now needs reconstructing:
+                if (_enginesSearch != null && context.LocaleId > 0 && context.LocaleId <= _enginesSearch.Length)
+                {
+                    // Nullify it:
+                    _enginesSearch[context.LocaleId - 1] = null;
+                }
+
+
                 return new ValueTask<Translation>(translation);
             });
 
-            Events.Locale.PotFieldValue.AddEventListener((Context context, object result, ContentField localisedField, TranslationServiceConfig translationServiceConfig) => {
+            Events.Locale.PotFieldValue.AddEventListener((Context context, object result, ContentField localisedField, TranslationServiceConfig translationServiceConfig) =>
+            {
 
                 if (result == null)
                 {
@@ -83,6 +94,7 @@ namespace Api.CanvasRenderer
 
                 // JS file changed - drop all engines:
                 _engines = null;
+                _enginesSearch = null;
 
                 return new ValueTask<long>(buildtimestampMs);
             });
@@ -256,13 +268,14 @@ namespace Api.CanvasRenderer
         /// </summary>
         /// <param name="context">The context that the json will be rendered as. Any data requests are made as this user.</param>
         /// <param name="bodyJson">The JSON for the canvas.</param>
-        /// <param name="mode">Html only, text only, or both.</param>
+        /// <param name="pageState">Url tokens and the primary object's JSON.</param>
         /// <param name="url">An optional URL of the page being rendered.</param>
         /// <param name="trackDataRequests">Set this to true if you'd like a JS object representing the complete state that was ultimately loaded or used by the renderer.
         /// This is vital for accurate rehydration in web clients, but a waste of cycles when it won't be used like in an email.</param>
-        /// <param name="pageState">Url tokens and the primary object's JSON.</param>
+        /// <param name="mode">Html only, text only, both or search.</param>
+        /// <param name="absoluteUrls">Whether to prefix URLs into an absolute path.</param>
         /// <returns></returns>
-        public async ValueTask<RenderedCanvas> Render(Contexts.Context context, string bodyJson, PageState pageState, string url = null, bool trackDataRequests = false, RenderMode mode = RenderMode.Html)
+        public async ValueTask<RenderedCanvas> Render(Contexts.Context context, string bodyJson, PageState pageState, string url = null, bool trackDataRequests = false, RenderMode mode = RenderMode.Html, bool absoluteUrls = true)
         {
             if (context == null)
             {
@@ -274,7 +287,19 @@ namespace Api.CanvasRenderer
             var locale = await context.GetLocale();
 
             // Get a JS engine for the locale:
-            var engine = await GetEngine(locale);
+            V8ScriptEngine engine;
+
+            if (mode == RenderMode.Search)
+            {
+                // get an engine configured for rendering pages for search
+                engine = await GetEngineSearch(locale);
+                mode = RenderMode.Html;
+            }
+            else
+            {
+                // get the default rendering engine
+                engine = await GetEngine(locale);
+            }
 
             if (engine == null)
             {
@@ -298,7 +323,8 @@ namespace Api.CanvasRenderer
                     url,
                     pageState,
                     trackDataRequests,
-                    (int)mode
+                    (int)mode,
+                    absoluteUrls
                 ) as Task<object>)) as dynamic;
 
             // Get body and data:
@@ -335,12 +361,14 @@ namespace Api.CanvasRenderer
         /// Engines per locale.
         /// </summary>
         private V8.CanvasRendererEngine[] _engines;
+        private V8.CanvasRendererEngine[] _enginesSearch;
 
         private Uri _bundleUri = new Uri("file://bundle.js");
         private Uri _rendererUri = new Uri("file://renderer.js");
 
         /// <summary>
         /// Gets the script engine for the given locale by its locale.
+        /// Also see GetEngineSearch
         /// </summary>
         /// <param name="locale">The locale in use.</param>
         /// <returns></returns>
@@ -354,7 +382,9 @@ namespace Api.CanvasRenderer
             }
 
             var engine = new V8ScriptEngine("Socialstack API Renderer", V8ScriptEngineFlags.DisableGlobalMembers | V8ScriptEngineFlags.EnableTaskPromiseConversion);
+
             engine.Execute("SERVER=true;window=this;");
+
             var jsDoc = new V8.Document
             {
                 location = new V8.Location()
@@ -370,6 +400,12 @@ namespace Api.CanvasRenderer
 
             // ignore setTimeout when running serverside
             engine.Execute("window.setTimeout=(a,b,c)=>{console.log('Ignoring SetTimeout',a,b,c)}");
+
+            // Need to get the location of /content 
+            if (!string.IsNullOrWhiteSpace(_frontendService.GetContentUrl()))
+            {
+                engine.Execute($"global=this;global.contentSource='{_frontendService.GetContentUrl()}';");
+            }
 
             // Need to load config into its scope as well:
             engine.Execute(_configService.GetLatestFrontendConfigJs());
@@ -425,6 +461,101 @@ namespace Api.CanvasRenderer
             return engine;
         }
 
+        /// <summary>
+        /// Gets the search script engine for the given locale by its locale.
+        /// Also see GetEngine
+        /// </summary>
+        /// <param name="locale">The locale in use.</param>
+        /// <returns></returns>
+        private async ValueTask<V8ScriptEngine> GetEngineSearch(Locale locale)
+        {
+            if (_enginesSearch != null && _enginesSearch.Length >= locale.Id && _enginesSearch[locale.Id - 1] != null)
+            {
+                // Use search render engine for this locale:
+                var cachedEngine = _enginesSearch[locale.Id - 1];
+                return cachedEngine.V8Engine;
+            }
+
+            var engine = new V8ScriptEngine("Socialstack API Search Renderer", V8ScriptEngineFlags.DisableGlobalMembers | V8ScriptEngineFlags.EnableTaskPromiseConversion);
+
+            //set flag to identify we are being indexed for search
+            engine.Execute("SERVER=true;SEARCHINDEXING=true;window=this;");
+
+            var jsDoc = new V8.Document
+            {
+                location = new V8.Location()
+            };
+
+            jsDoc.location.origin = publicOrigin;
+
+            engine.AddHostObject("document", new V8.Document());
+            engine.AddHostObject("__console", new V8.Console(_config.DebugToConsole));
+            engine.Execute("window.addEventListener=document.addEventListener;console={};console.info=console.log=console.warn=console.error=(...args)=>__console.log(...args);");
+            engine.AddHostObject("navigator", new V8.Navigator());
+            engine.AddHostObject("location", jsDoc.location);
+
+            // ignore setTimeout when running serverside
+            engine.Execute("window.setTimeout=(a,b,c)=>{console.log('Ignoring SetTimeout',a,b,c)}");
+
+            // Need to get the location of /content 
+            if (!string.IsNullOrWhiteSpace(_frontendService.GetContentUrl()))
+            {
+                engine.Execute($"global=this;global.contentSource='{_frontendService.GetContentUrl()}';");
+            }
+
+            // Need to load config into its scope as well:
+            engine.Execute(_configService.GetLatestFrontendConfigJs());
+
+            /* engine.AddHostObject("host", new ExtendedHostFunctions());
+				engine.AddHostObject("lib", HostItemFlags.GlobalMembers, 
+				new HostTypeCollection("mscorlib", "System", "System.Core", "System.Numerics", "ClearScript.Core", "ClearScript.V8"));
+			*/
+            engine.SuppressExtensionMethodEnumeration = true;
+            engine.AllowReflection = true;
+
+            var dllPath = AppDomain.CurrentDomain.BaseDirectory;
+
+            string sourceContent;
+
+            sourceContent = File.ReadAllText(dllPath + "/Api/ThirdParty/CanvasRenderer/inline_header.js");
+            engine.Execute(new DocumentInfo(new Uri("file://inline_header.js")), sourceContent);
+
+            // If instancing a new engine, always read the file.
+            var jsFileData = await _frontendService.GetAdminMainJs(locale.Id);
+            sourceContent = System.Text.Encoding.UTF8.GetString(jsFileData.FileContent);
+            engine.Execute(new DocumentInfo(new Uri("file://admin/main.js")), sourceContent);
+
+            jsFileData = await _frontendService.GetMainJs(locale.Id);
+            sourceContent = System.Text.Encoding.UTF8.GetString(jsFileData.FileContent);
+            engine.Execute(new DocumentInfo(new Uri("file://ui/main.js")), sourceContent);
+
+            jsFileData = await _frontendService.GetEmailMainJs(locale.Id);
+            sourceContent = System.Text.Encoding.UTF8.GetString(jsFileData.FileContent);
+            engine.Execute(new DocumentInfo(new Uri("file://email/main.js")), sourceContent);
+
+            sourceContent = File.ReadAllText(dllPath + "/Api/ThirdParty/CanvasRenderer/renderer.js");
+            engine.Execute(new DocumentInfo(new Uri("file://renderer.js")), sourceContent);
+
+            // Add engine to locale lookup. This happens last to avoid 2 simultaneous 
+            // requests trying to use a potentially not initted engine.
+            if (_enginesSearch == null)
+            {
+                _enginesSearch = new V8.CanvasRendererEngine[locale.Id];
+            }
+            else if (_enginesSearch.Length < locale.Id)
+            {
+                Array.Resize(ref _enginesSearch, (int)locale.Id);
+            }
+
+            var cre = new V8.CanvasRendererEngine()
+            {
+                V8Engine = engine
+            };
+
+            _enginesSearch[locale.Id - 1] = cre;
+
+            return engine;
+        }
     }
 
     /// <summary>
@@ -529,7 +660,7 @@ namespace Api.CanvasRenderer.V8
         {
             for (var i = 0; i < msgs.Length; i++)
             {
-                System.Console.WriteLine("ERROR " + JsonConvert.SerializeObject(msgs[i]));
+                WriteColourLine.Error("ERROR " + JsonConvert.SerializeObject(msgs[i]));
             }
         }
     }

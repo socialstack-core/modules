@@ -1,4 +1,5 @@
-﻿using Api.Configuration;
+﻿using Api.ColourConsole;
+using Api.Configuration;
 using Api.Contexts;
 using Api.Eventing;
 using Api.Pages;
@@ -932,7 +933,7 @@ namespace Api.CanvasRenderer
                     // (however, it would be better to fix the problem of the missing meta file):
                     meta.Starter = RootName == "UI";
 
-                    Console.WriteLine(
+                    WriteColourLine.Error(
                         "[ERROR] Your UI is set to prebuilt mode (either in appsettings.json, or because you don't have a UI/Source folder), but the prebuilt metadata file at '" + metaPath +
                         "' does not exist. Your site will be unable to apply localised text and you'll encounter caching problems as the build number isn't being set properly."
                     );
@@ -2065,7 +2066,7 @@ namespace Api.CanvasRenderer
                     if (file != null && file.IsGlobal)
                     {
                         // A global file changed. Must now rebuild all SCSS (but there might be some other changes, so wait).
-                        Console.WriteLine("A slow global SCSS change happened which takes a little longer to process. We'll let you know when it's done.");
+                        WriteColourLine.Info("A slow global SCSS change happened which takes a little longer to process. We'll let you know when it's done.");
                         Console.WriteLine("Tip: Put a mixin, function etc you're working on in a non-global file just whilst you build it out.");
 
                         // Update content:
@@ -2104,7 +2105,7 @@ namespace Api.CanvasRenderer
                 }
 
                 // Now (local time, because this is for developers).
-                Console.WriteLine("[" + DateTime.Now.ToString("T") + "] Done handling UI changes.");
+                WriteColourLine.Success("[" + DateTime.Now.ToString("T") + "] Done handling UI changes.");
 
                 // Trigger event:
                 await Events.FrontendAfterUpdate.Dispatch(new Context(), BuildTimestampMs);
