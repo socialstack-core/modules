@@ -2,7 +2,6 @@
 using Api.Contexts;
 using Api.Database;
 using Api.SocketServerLibrary;
-using Nest;
 using System;
 using System.Collections.Generic;
 using System.Linq;
