@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 using System.Timers;
+using Api.ColourConsole;
 
 namespace Api.Automations;
 
@@ -86,7 +87,7 @@ public class CronScheduler
 
 		if (!nrt.HasValue)
 		{
-			Console.WriteLine("[WARN] Asked to schedule an automation '" + runInfo.Name + "' but ignoring it because it will never run.");
+			WriteColourLine.Warning("[WARN] Asked to schedule an automation '" + runInfo.Name + "' but ignoring it because it will never run.");
 			return;
 		}
 
@@ -212,7 +213,7 @@ public class CronScheduler
 			}
 			catch (Exception ex)
 			{
-				Console.WriteLine("[ERROR] An automation threw an error: " + ex.ToString());
+                WriteColourLine.Error("[ERROR] An automation threw an error: " + ex.ToString());
 			}
 
 			// Update its next run time.
@@ -226,7 +227,7 @@ public class CronScheduler
 			else
 			{
 				toRun.Scheduled = false;
-				Console.WriteLine("[INFO] Automation '" + toRun.Name + "' just ran for the last time.");
+                WriteColourLine.Info("[INFO] Automation '" + toRun.Name + "' just ran for the last time.");
 			}
 		});
 	}
