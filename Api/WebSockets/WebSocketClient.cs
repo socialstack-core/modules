@@ -5,6 +5,7 @@ using System;
 using System.Threading.Tasks;
 using Api.Eventing;
 using Api.Users;
+using Api.ColourConsole;
 
 namespace Api.WebSockets
 {
@@ -127,7 +128,7 @@ namespace Api.WebSockets
 				}
 				catch (Exception e)
 				{
-					Console.WriteLine(e.ToString());
+                    WriteColourLine.Error(e.ToString());
 				}
 			}
 		}
