@@ -1,3 +1,4 @@
+using Api.ColourConsole;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using Newtonsoft.Json.Serialization;
@@ -370,7 +371,7 @@ namespace Api.StackTools
 			}
 			catch (Exception e)
 			{
-				Console.WriteLine("[WARN] Caught this whilst trying to run socialstack tools:");
+                WriteColourLine.Warning("[WARN] Caught this whilst trying to run socialstack tools:");
 				Console.WriteLine(e.ToString());
 				
 				StateChange(NodeProcessState.FAILED);
