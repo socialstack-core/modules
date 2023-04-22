@@ -44,6 +44,20 @@ namespace Api.Translate
 		/// </summary>
 		[Data("hint", "Set this if the locale goes right to left, such as Hebrew or Arabic")]
 		public bool RightToLeft;
+
+		/// <summary>
+		/// If this locale is in use, the page URL to lookup will be prefixed with this value, except on the admin panel.
+		/// Should not contain any /. For example, can be "jersey". The frontend will never actually see this path; it is purely for creating different page sets per locale.
+		/// Different page sets is generally tidier than translating pages.
+		/// </summary>
+		[Data("hint", "Path in the page tree to use for this locale. Not seen by the frontend; it simply creates a collection of pages for this locale specifically.")]
+		public string PagePath;
+
+		/// <summary>
+		/// Used by sites with localised domains. A comma separated list of domain names with optional ports.
+		/// </summary>
+		[Data("hint", "List of comma seperated domain names with optional ports e.g. 'www.mysite.com,www.mysite.co.uk'. Overrides all other locale indicators when used")]
+		public string Domains;
 	}
 
 }

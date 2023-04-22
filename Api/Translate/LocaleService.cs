@@ -53,9 +53,67 @@ namespace Api.Translate
 				return new ValueTask<Locale>(locale);
 			});
 
-			Events.ContextAfterAnonymous.AddEventListener(async (Context context, Context result, HttpRequest request) =>
+			Events.Locale.AfterUpdate.AddEventListener(async (Context context, Locale locale) => {
+				await UpdateMaps();
+				return locale;
+			});
+
+			Events.Locale.AfterCreate.AddEventListener(async (Context context, Locale locale) => {
+				await UpdateMaps();
+				return locale;
+			});
+
+			Events.Page.BeforeParseUrl.AddEventListener(async (Context context, Pages.UrlInfo url, Microsoft.AspNetCore.Http.QueryString query) => {
+
+				// Does the locale have a page prefix?
+				// If so, apply it now.
+				var locale = await context.GetLocale();
+				if (!string.IsNullOrEmpty(locale.PagePath))
+				{
+					// Act like this pagePath is in the URL all the time.
+					var strippedUrl = url.AllocateString();
+
+					if (string.IsNullOrEmpty(strippedUrl))
+					{
+						url.Url = locale.PagePath;
+					}
+					else
+					{
+						if (strippedUrl.StartsWith("en-admin"))
+						{
+							// No changes
+							return url;
+						}
+
+						url.Url = locale.PagePath + "/" + strippedUrl;
+					}
+
+					url.Start = 0;
+					url.Length = url.Url.Length;
+				}
+
+				return url;
+
+			});
+
+			Events.ContextAfterAnonymous.AddEventListener((Context context, Context result, HttpRequest request) =>
 			{
-				if (cfg.HandleAcceptLanguageHeader && result != null)
+				if (_multiDomain)
+				{
+					// Future feature: a domain can potentially signal >1 language.
+					// I.e. handle domain and Accept-Language simultaneously.
+					// Helloworld.ch - Switzerland - can be Swiss French, German etc.
+					var host = request.Host.Value;
+
+					// Get by site locale ID:
+					var localeId = GetByDomain(host);
+
+					if (localeId.HasValue && localeId.Value != context.LocaleId)
+					{
+						context.LocaleId = localeId.Value;
+					}
+				}
+				else if (cfg.HandleAcceptLanguageHeader && result != null)
 				{
 					// Identify most suitable locale from the accept-lang header.
 					StringValues acceptLangs;
@@ -71,7 +129,7 @@ namespace Api.Translate
 
 						if (langsUpTo == -1)
 						{
-							var localeId = await GetId(acceptLanguageHeader);
+							var localeId = GetId(acceptLanguageHeader);
 
 							if (localeId.HasValue)
 							{
@@ -97,7 +155,7 @@ namespace Api.Translate
 
 								string langCode = acceptLanguageHeader.Substring(index, next - index);
 
-								var localeId = await GetId(langCode);
+								var localeId = GetId(langCode);
 
 								if (localeId.HasValue)
 								{
@@ -111,7 +169,7 @@ namespace Api.Translate
 					}
 				}
 
-				return result;
+				return new ValueTask<Context>(result);
 			});
 
 		}
@@ -136,6 +194,29 @@ namespace Api.Translate
 					Id = 1
 				}, DataOptions.IgnorePermissions);
 			}
+
+			// Initial map build:
+			await UpdateMaps();
+		}
+
+		/// <summary>
+		/// Gets locale ID by its case insensitive domain and optional port. "www.mysite.co.uk" or "localhost:5050"
+		/// </summary>
+		/// <param name="domain"></param>
+		/// <returns>null if not found.</returns>
+		public uint? GetByDomain(string domain)
+		{
+			if (_domainMap == null)
+			{
+				return null;
+			}
+
+			if (!_domainMap.TryGetValue(domain, out uint result))
+			{
+				return null;
+			}
+
+			return result;
 		}
 
 		/// <summary>
@@ -143,33 +224,11 @@ namespace Api.Translate
 		/// </summary>
 		/// <param name="localeCode"></param>
 		/// <returns>null if not found.</returns>
-		public async ValueTask<uint?> GetId(string localeCode)
+		public uint? GetId(string localeCode)
 		{
 			if (_codeMap == null)
 			{
-				var all = await Where(DataOptions.IgnorePermissions).ListAll(new Context());
-
-				var map = new Dictionary<string, uint>();
-
-				foreach (var locale in all)
-				{
-					if (!string.IsNullOrWhiteSpace(locale.Code)) {
-						// Primary locale code
-						map[locale.Code.Trim().ToLower()] = locale.Id;
-					}
-
-					if (!string.IsNullOrWhiteSpace(locale.Aliases))
-					{
-						// Seconadary locale map codes
-						var secondaryCodes = locale.Aliases.Split(new string[] { "," }, StringSplitOptions.RemoveEmptyEntries);
-						foreach (var secondaryCode in secondaryCodes)
-						{
-							map[secondaryCode.Trim().ToLower()] = locale.Id;
-						}
-					}
-				}
-
-				_codeMap = map;
+				return null;
 			}
 
 			if (!_codeMap.TryGetValue(localeCode, out uint result))
@@ -180,10 +239,76 @@ namespace Api.Translate
 			return result;
 		}
 
+		private async ValueTask UpdateMaps()
+		{
+			var all = await Where(DataOptions.IgnorePermissions).ListAll(new Context());
+
+			var cm = new Dictionary<string, uint>();
+
+			foreach (var locale in all)
+			{
+				if (!string.IsNullOrWhiteSpace(locale.Code))
+				{
+					// Primary locale code
+					cm[locale.Code.Trim().ToLower()] = locale.Id;
+				}
+
+				if (!string.IsNullOrWhiteSpace(locale.Aliases))
+				{
+					// Seconadary locale map codes
+					var secondaryCodes = locale.Aliases.Split(new string[] { "," }, StringSplitOptions.RemoveEmptyEntries);
+					foreach (var secondaryCode in secondaryCodes)
+					{
+						cm[secondaryCode.Trim().ToLower()] = locale.Id;
+					}
+				}
+			}
+
+			_codeMap = cm;
+
+			// Domain maps next. Domain map can be null if it is not a multi domain site.
+			var domainMap = new Dictionary<string, uint>();
+
+			foreach (var locale in all)
+			{
+				if (!string.IsNullOrWhiteSpace(locale.Domains))
+				{
+					var domains = locale.Domains.Trim().Split(',');
+
+					foreach (var domainToAdd in domains)
+					{
+						domainMap[domainToAdd] = locale.Id;
+					}
+				}
+			}
+
+			if (domainMap.Count == 0)
+			{
+				_domainMap = null;
+				_multiDomain = false;
+			}
+			else
+			{
+				_multiDomain = true;
+				_domainMap = domainMap;
+			}
+
+		}
+		
 		/// <summary>
 		/// A mapping of locale code -> ID. Uses IDs such that it does not need locale specific variations.
 		/// </summary>
 		private Dictionary<string, uint> _codeMap;
+
+		/// <summary>
+		/// A mapping of domain -> ID. Uses IDs such that it does not need locale specific variations.
+		/// </summary>
+		private Dictionary<string, uint> _domainMap;
+
+		/// <summary>
+		/// True if the domains field is used on locales.
+		/// </summary>
+		private bool _multiDomain;
 
 		/// <summary>
 		/// The name of the cookie when locale is stored.

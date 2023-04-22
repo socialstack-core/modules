@@ -209,7 +209,7 @@ namespace Api.Translate
 
             // Get the locale with that code:
             var localeService = Services.Get<LocaleService>();
-            var localeId = await localeService.GetId(localeCode);
+            var localeId = localeService.GetId(localeCode);
             if (!localeId.HasValue)
             {
                 throw new PublicException("Unknown locale code '" + localeCode + "' in your pot file", "invalid_locale");
