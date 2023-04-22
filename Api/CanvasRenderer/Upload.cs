@@ -11,18 +11,18 @@ public partial class Upload
 	/// Gets the absolute URL of this upload (unsigned).
 	/// </summary>
 	/// <returns></returns>
-	public string GetUrl(string variant = "original")
+	public string GetUrl(string variant = "original", uint localeId = 1)
 	{
-		return Services.Get<FrontendCodeService>().GetContentUrl() + (IsPrivate ? "/content-private/" : "/content/") + GetRelativePath(variant);
+		return Services.Get<FrontendCodeService>().GetContentUrl(localeId) + (IsPrivate ? "/content-private/" : "/content/") + GetRelativePath(variant);
 	}
 	
 	/// <summary>
 	/// Gets a transcode callback URL. This allows trustless file manipulation.
 	/// </summary>
 	/// <returns></returns>
-	public string GetTranscodeCallbackUrl()
+	public string GetTranscodeCallbackUrl(uint localeId = 1)
 	{
-		return Services.Get<FrontendCodeService>().GetPublicUrl() + "/v1/upload/transcoded/" + Id + "?token=" + Services.Get<UploadService>().GetTranscodeToken(Id);
+		return Services.Get<FrontendCodeService>().GetPublicUrl(localeId) + "/v1/upload/transcoded/" + Id + "?token=" + Services.Get<UploadService>().GetTranscodeToken(Id);
 	}
 
 }

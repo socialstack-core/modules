@@ -479,7 +479,7 @@ namespace Api.CanvasRenderer
                 Precompressed = Compress(bytes),
                 Hash = hash,
                 PublicUrl = pubUrl,
-                FqPublicUrl = FullyQualify(pubUrl)
+                FqPublicUrl = FullyQualify(pubUrl, localeId)
             };
 
             _localeToMainJs[localeId - 1] = file;
@@ -1364,16 +1364,17 @@ namespace Api.CanvasRenderer
 
         private FrontendCodeService _frontend;
 
-        /// <summary>
-        /// Fully qualifies the given url. It MUST always be absolute, i.e. starting with a /.
-        /// </summary>
-        /// <param name="url"></param>
-        /// <returns></returns>
-        private string FullyQualify(string url)
+		/// <summary>
+		/// Fully qualifies the given url. It MUST always be absolute, i.e. starting with a /.
+		/// </summary>
+		/// <param name="url"></param>
+		/// <param name="localeId"></param>
+		/// <returns></returns>
+		private string FullyQualify(string url, uint localeId)
         {
             if (_publicPath == null)
             {
-                var pubUrl = _frontend.GetPublicUrl();
+                var pubUrl = _frontend.GetPublicUrl(localeId);
 
                 if (string.IsNullOrEmpty(pubUrl))
                 {
@@ -1397,7 +1398,7 @@ namespace Api.CanvasRenderer
         private void SetCssPath(uint localeId)
         {
             CssFile.PublicUrl = PackDir + "main.css?v=" + BuildTimestampMs + "&h=" + CssFile.Hash + "&lid=" + localeId;
-            CssFile.FqPublicUrl = FullyQualify(CssFile.PublicUrl);
+            CssFile.FqPublicUrl = FullyQualify(CssFile.PublicUrl, localeId);
         }
 
         /// <summary>
@@ -1418,9 +1419,11 @@ namespace Api.CanvasRenderer
                 {
                     if (_localeToMainJs[i].FileContent != null)
                     {
+                        var localeId = (uint)(i+1);
+
                         // Update its path:
-                        _localeToMainJs[i].PublicUrl = PackDir + "main.js?v=" + BuildTimestampMs + "&h=" + _localeToMainJs[i].Hash + "&lid=" + (i + 1);
-                        _localeToMainJs[i].FqPublicUrl = FullyQualify(_localeToMainJs[i].PublicUrl);
+                        _localeToMainJs[i].PublicUrl = PackDir + "main.js?v=" + BuildTimestampMs + "&h=" + _localeToMainJs[i].Hash + "&lid=" + localeId;
+                        _localeToMainJs[i].FqPublicUrl = FullyQualify(_localeToMainJs[i].PublicUrl, localeId);
                     }
                 }
             }

@@ -42,8 +42,6 @@ namespace Api.CanvasRenderer
             _configService = config;
             _config = GetConfig<CanvasRendererServiceConfig>();
 
-            publicOrigin = frontend.GetPublicUrl();
-
             Events.Translation.AfterUpdate.AddEventListener((Context context, Translation translation) =>
             {
 
@@ -353,11 +351,6 @@ namespace Api.CanvasRenderer
         };
 
         /// <summary>
-        /// The origin to use in the JS context.
-        /// </summary>
-        private string publicOrigin;
-
-        /// <summary>
         /// Engines per locale.
         /// </summary>
         private V8.CanvasRendererEngine[] _engines;
@@ -390,7 +383,7 @@ namespace Api.CanvasRenderer
                 location = new V8.Location()
             };
 
-            jsDoc.location.origin = publicOrigin;
+            jsDoc.location.origin = _frontendService.GetPublicUrl(locale.Id);
 
             engine.AddHostObject("document", new V8.Document());
             engine.AddHostObject("__console", new V8.Console(_config.DebugToConsole));
@@ -401,10 +394,11 @@ namespace Api.CanvasRenderer
             // ignore setTimeout when running serverside
             engine.Execute("window.setTimeout=(a,b,c)=>{console.log('Ignoring SetTimeout',a,b,c)}");
 
-            // Need to get the location of /content 
-            if (!string.IsNullOrWhiteSpace(_frontendService.GetContentUrl()))
+            // Need to get the location of /content
+            var contentUrl = _frontendService.GetContentUrl(locale.Id);
+			if (!string.IsNullOrWhiteSpace(contentUrl))
             {
-                engine.Execute($"global=this;global.contentSource='{_frontendService.GetContentUrl()}';");
+                engine.Execute($"global=this;global.contentSource='{contentUrl}';");
             }
 
             // Need to load config into its scope as well:
@@ -486,9 +480,9 @@ namespace Api.CanvasRenderer
                 location = new V8.Location()
             };
 
-            jsDoc.location.origin = publicOrigin;
+            jsDoc.location.origin = _frontendService.GetPublicUrl(locale.Id);
 
-            engine.AddHostObject("document", new V8.Document());
+			engine.AddHostObject("document", new V8.Document());
             engine.AddHostObject("__console", new V8.Console(_config.DebugToConsole));
             engine.Execute("window.addEventListener=document.addEventListener;console={};console.info=console.log=console.warn=console.error=(...args)=>__console.log(...args);");
             engine.AddHostObject("navigator", new V8.Navigator());
@@ -498,9 +492,10 @@ namespace Api.CanvasRenderer
             engine.Execute("window.setTimeout=(a,b,c)=>{console.log('Ignoring SetTimeout',a,b,c)}");
 
             // Need to get the location of /content 
-            if (!string.IsNullOrWhiteSpace(_frontendService.GetContentUrl()))
+            var contentUrl = _frontendService.GetContentUrl(locale.Id);
+			if (!string.IsNullOrWhiteSpace(contentUrl))
             {
-                engine.Execute($"global=this;global.contentSource='{_frontendService.GetContentUrl()}';");
+                engine.Execute($"global=this;global.contentSource='{contentUrl}';");
             }
 
             // Need to load config into its scope as well:

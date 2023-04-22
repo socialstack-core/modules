@@ -2,6 +2,7 @@ using Api.ColourConsole;
 using Api.Configuration;
 using Api.ContentSync;
 using Api.Contexts;
+using Api.Database;
 using Api.Eventing;
 using Api.Permissions;
 using Api.Startup;
@@ -31,7 +32,6 @@ namespace Api.CanvasRenderer
 		/// The inline header. This should be served inline in the html. It includes preact, preact hooks and the ss module require function, totalling 13kb.
 		/// </summary>
 		public string InlineJavascriptHeader;
-		private string rawInlineHeader;
 
 		/// <summary>
 		/// True if we're in prebuilt mode.
@@ -44,24 +44,25 @@ namespace Api.CanvasRenderer
 		/// <summary>
 		/// The site public URL. Never ends with a path - always just the origin and scheme, e.g. https://www.example.com
 		/// </summary>
+		/// <param name="localeId">The locale you want the public URL for. If no contextual locale is available, use locale #1.</param>
 		/// <returns></returns>
-		public string GetPublicUrl()
+		public string GetPublicUrl(uint localeId)
 		{
-			return AppSettings.GetPublicUrl();
+			return AppSettings.GetPublicUrl(localeId);
 		}
 
 		/// <summary>
 		/// The host of the /content/ and /content-private/ paths.
 		/// </summary>
 		/// <returns></returns>
-		public string GetContentUrl()
+		public string GetContentUrl(uint localeId)
 		{
 			if (_contentUrl != null)
 			{
 				return _contentUrl;
 			}
 
-			return GetPublicUrl();
+			return GetPublicUrl(localeId);
 		}
 
 		private string _contentUrl;
@@ -85,15 +86,52 @@ namespace Api.CanvasRenderer
 			_contentUrl = contentUrl;
 
 			// Clear caches and make sure url is suitable:
-			SetServiceUrls();
+			serviceUrlByLocale = null;
 
+		}
+
+		private string[] serviceUrlByLocale;
+
+		/// <summary>
+		/// Gets service URLs, such as the content source and websocket one, as a javascript variable set.
+		/// </summary>
+		/// <returns></returns>
+		public string GetServiceUrls(uint localeId)
+		{
+			if (serviceUrlByLocale == null)
+			{
+				// Generate the initial array:
+				serviceUrlByLocale = new string[ContentTypes.Locales == null ? localeId : ContentTypes.Locales.Length];
+			}
+
+			if (localeId == 0)
+			{
+				// Invalid request
+				return null;
+			}
+
+			if (localeId >= serviceUrlByLocale.Length)
+			{
+				// Occurs when a new locale was added
+				Array.Resize(ref serviceUrlByLocale, (int)localeId);
+			}
+
+			var urls = serviceUrlByLocale[localeId - 1];
+
+			if (string.IsNullOrEmpty(urls))
+			{
+				urls = GenerateServiceUrlsForLocale(localeId);
+				serviceUrlByLocale[localeId - 1] = urls;
+ 			}
+
+			return urls;
 		}
 
 		/// <summary>
 		/// Generates service URLs, such as the content source and websocket one.
 		/// </summary>
 		/// <returns></returns>
-		private void SetServiceUrls()
+		private string GenerateServiceUrlsForLocale(uint localeId)
 		{
 			var wsUrl = _config.WebSocketUrl;
 
@@ -109,7 +147,7 @@ namespace Api.CanvasRenderer
 				}
 				else
 				{
-					var pUrl = GetPublicUrl().Replace("http", "ws");
+					var pUrl = GetPublicUrl(localeId).Replace("http", "ws");
 
 					if (pUrl.EndsWith('/'))
 					{
@@ -134,7 +172,7 @@ namespace Api.CanvasRenderer
 				servicePaths += "contentSource='" + _contentUrl + "';";
 			}
 
-			InlineJavascriptHeader = servicePaths + rawInlineHeader;
+			return servicePaths;
 		}
 
 		/// <summary>
@@ -239,9 +277,9 @@ namespace Api.CanvasRenderer
 				
 				var headerFile = _config.React ? "inline_header_react" : "inline_header";
 
-				rawInlineHeader = File.ReadAllText(dllPath + "/Api/ThirdParty/CanvasRenderer/"+ headerFile + ".js");
-				SetServiceUrls();
-				
+				InlineJavascriptHeader = File.ReadAllText(dllPath + "/Api/ThirdParty/CanvasRenderer/"+ headerFile + ".js");
+				serviceUrlByLocale = null;
+
 				var prebuilt = _config.Prebuilt;
 
 				// If UI/Source doesn't exist, prebuilt = true.
@@ -298,7 +336,7 @@ namespace Api.CanvasRenderer
 
 			_config.OnChange += () => {
 
-				SetServiceUrls();
+				serviceUrlByLocale = null;
 
 				return new ValueTask();
 			};
