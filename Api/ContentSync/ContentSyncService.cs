@@ -17,6 +17,7 @@ using Newtonsoft.Json.Linq;
 using Api.WebSockets;
 using System.Net.Http;
 using Newtonsoft.Json;
+using Api.ColourConsole;
 
 namespace Api.ContentSync
 {
@@ -365,7 +366,7 @@ namespace Api.ContentSync
 
 			if (anyDeleted)
 			{
-				Console.WriteLine("[WARN] A server has been deleted from the " + nameof(ClusteredServer) + " table because it was from a different environment. " +
+                WriteColourLine.Warning("[WARN] A server has been deleted from the " + nameof(ClusteredServer) + " table because it was from a different environment. " +
 					"When copying data between environments, don't include this table. " +
 					"Doing so wastes server IDs and will in turn make your site assign large ID values unnecessarily.");
 			}
