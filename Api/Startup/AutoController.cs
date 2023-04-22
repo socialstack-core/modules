@@ -384,7 +384,7 @@ public partial class AutoController<T,ID> : ControllerBase
 						{
 							mapName = map.Value<string>();
 
-							if (!ContentFields._globalVirtualFields.ContainsKey(mapName.ToLower()))
+							if (!ContentFields.GlobalVirtualFields.ContainsKey(mapName.ToLower()))
 							{
 								throw new PublicException(
 									"A map called '" + mapName + "' doesn't exist.",

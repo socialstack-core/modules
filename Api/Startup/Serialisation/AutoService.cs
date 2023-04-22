@@ -89,7 +89,19 @@ public partial class AutoService<T, ID>
         writer.Write(ResultsHeader, 0, 12);
 
         // Obtain ID collectors, and then collect the IDs.
-        var firstCollector = includeSet == null ? null : includeSet.RootInclude.GetCollectors();
+        IDCollector firstCollector;
+        FunctionalInclusionNode[] functionalIncludes;
+
+		if (includeSet == null)
+        {
+            firstCollector = null;
+            functionalIncludes = null;
+		}
+        else
+        {
+			firstCollector = includeSet.RootInclude.GetCollectors();
+            functionalIncludes = includeSet.RootInclude.FunctionalIncludes;
+		}
 
         var total = await onGetData(context, dataSource, async (T entity, int index) =>
         {
@@ -104,10 +116,31 @@ public partial class AutoService<T, ID>
             }
             else
             {
-                jsonStructure.TypeIO.WriteJson(entity, writer);
+                jsonStructure.TypeIO.WriteJsonUnclosed(entity, writer);
 
-                // Collect IDs from it:
-                var current = firstCollector;
+                // Execute any functional includes on the root node.
+                if (functionalIncludes != null)
+                {
+                    for (var i = 0; i < functionalIncludes.Length; i++)
+                    {
+                        var fi = functionalIncludes[i];
+                        var valueGen = fi.ValueGenerator as VirtualFieldValueGenerator<T, ID>;
+
+                        if (valueGen != null)
+						{
+                            // ,"propertyName":
+							writer.Write(fi._jsonPropertyHeader, 0, fi._jsonPropertyHeader.Length);
+
+                            // value:
+                            await valueGen.GetValue(context, entity, writer);
+                        }
+					}
+                }
+
+				writer.Write((byte)'}');
+
+				// Collect IDs from it:
+				var current = firstCollector;
 
                 while (current != null)
                 {
@@ -244,10 +277,33 @@ public partial class AutoService<T, ID>
         }
         else
         {
-            jsonStructure.TypeIO.WriteJson(entity, writer);
-        }
+            jsonStructure.TypeIO.WriteJsonUnclosed(entity, writer);
 
-        if (includeSet == null)
+            // Execute any functional includes on the root node.
+            FunctionalInclusionNode[] functionalIncludes = (includeSet == null) ? null : includeSet.RootInclude.FunctionalIncludes;
+
+			if (functionalIncludes != null)
+			{
+				for (var i = 0; i < functionalIncludes.Length; i++)
+				{
+					var fi = functionalIncludes[i];
+					var valueGen = fi.ValueGenerator as VirtualFieldValueGenerator<T, ID>;
+
+					if (valueGen != null)
+					{
+						// ,"propertyName":
+						writer.Write(fi._jsonPropertyHeader, 0, fi._jsonPropertyHeader.Length);
+
+						// value:
+						await valueGen.GetValue(context, entity, writer);
+					}
+				}
+			}
+
+			writer.Write((byte)'}');
+		}
+
+		if (includeSet == null)
         {
             if (addResultWrap)
             {
@@ -344,12 +400,12 @@ public partial class AutoService<T, ID>
             if (toExecute.MappingTargetField == null)
             {
                 // Directly use IDs in collector with the service.
-                await toExecute.Service.OutputJsonList(context, childCollectors, collector, writer, true); // Calls OutputJsonList on the service
+                await toExecute.Service.OutputJsonList(context, childCollectors, collector, writer, true, toExecute.FunctionalIncludes); // Calls OutputJsonList on the service
             }
             else if (toExecute.MappingService == null)
             {
                 // Write the values:
-                await toExecute.Service.OutputJsonList<ID>(context, childCollectors, collector, toExecute.MappingTargetFieldName, writer, true); // Calls OutputJsonList on the service
+                await toExecute.Service.OutputJsonList<ID>(context, childCollectors, collector, toExecute.MappingTargetFieldName, writer, true, toExecute.FunctionalIncludes); // Calls OutputJsonList on the service
             }
             else
             {
@@ -367,7 +423,7 @@ public partial class AutoService<T, ID>
                 }
 
                 // Write the values:
-                await toExecute.Service.OutputJsonList(context, childCollectors, mappingCollector, writer, true); // Calls OutputJsonList on the service
+                await toExecute.Service.OutputJsonList(context, childCollectors, mappingCollector, writer, true, toExecute.FunctionalIncludes); // Calls OutputJsonList on the service
 
                 // Release mapping collector:
                 mappingCollector.Release();
@@ -418,9 +474,31 @@ public partial class AutoService<T, ID>
         }
         else
         {
-            jsonStructure.TypeIO.WriteJson(entity, writer);
-        }
-    }
+            jsonStructure.TypeIO.WriteJsonUnclosed(entity, writer);
+
+			FunctionalInclusionNode[] functionalIncludes = (node == null) ? null : node.FunctionalIncludes;
+
+			if (functionalIncludes != null)
+			{
+				for (var i = 0; i < functionalIncludes.Length; i++)
+				{
+					var fi = functionalIncludes[i];
+					var valueGen = fi.ValueGenerator as VirtualFieldValueGenerator<T, ID>;
+
+					if (valueGen != null)
+					{
+						// ,"propertyName":
+						writer.Write(fi._jsonPropertyHeader, 0, fi._jsonPropertyHeader.Length);
+
+						// value:
+						await valueGen.GetValue(context, entity, writer);
+					}
+				}
+			}
+
+			writer.Write((byte)'}');
+		}
+	}
 
     /// <summary>
     /// Outputs a single object from this service as JSON into the given writer. Acts like include * was specified.
@@ -439,18 +517,23 @@ public partial class AutoService<T, ID>
         await ToJson(context, content, writer, null, "*");
     }
 
-    /// <summary>
-    /// Outputs a list of things from this service as JSON into the given writer.
-    /// Executes the given collector(s) whilst it happens, which can also be null.
-    /// </summary>
-    /// <param name="context"></param>
-    /// <param name="collectors"></param>
-    /// <param name="idSet"></param>
-    /// <param name="setField"></param>
-    /// <param name="writer"></param>
-    /// <param name="viaIncludes"></param>
-    /// <returns></returns>
-    public override async ValueTask OutputJsonList<S_ID>(Context context, IDCollector collectors, IDCollector idSet, string setField, Writer writer, bool viaIncludes)
+	/// <summary>
+	/// Outputs a list of things from this service as JSON into the given writer.
+	/// Executes the given collector(s) whilst it happens, which can also be null.
+	/// </summary>
+	/// <param name="context"></param>
+	/// <param name="collectors"></param>
+	/// <param name="idSet"></param>
+	/// <param name="setField"></param>
+	/// <param name="writer"></param>
+	/// <param name="viaIncludes"></param>
+	/// <param name="functionalIncludes"></param>
+	/// <returns></returns>
+	public override async ValueTask OutputJsonList<S_ID>(
+        Context context, IDCollector collectors, IDCollector idSet, 
+        string setField, Writer writer, bool viaIncludes,
+        FunctionalInclusionNode[] functionalIncludes = null
+	)
     {
         var collectedIds = idSet as IDCollector<S_ID>;
 
@@ -487,7 +570,7 @@ public partial class AutoService<T, ID>
                     }
 
                     // Output the object:
-                    await ToJson(context, entity, writer);
+                    await ToJsonWithIncludes(context, entity, writer, functionalIncludes);
 
                     // Collect:
                     var col = collectors;
@@ -525,7 +608,7 @@ public partial class AutoService<T, ID>
                     }
 
                     // Output the object:
-                    await ToJson(context, entity, _writer);
+                    await ToJsonWithIncludes(context, entity, _writer, functionalIncludes);
 
                     // Collect:
                     var col = _col;
@@ -543,17 +626,19 @@ public partial class AutoService<T, ID>
         }
     }
 
-    /// <summary>
-    /// Outputs a list of things from this service as JSON into the given writer.
-    /// Executes the given collector(s) whilst it happens, which can also be null.
-    /// </summary>
-    /// <param name="context"></param>
-    /// <param name="collectors"></param>
-    /// <param name="idSet"></param>
-    /// <param name="writer"></param>
-    /// <param name="viaIncludes"></param>
-    /// <returns></returns>
-    public override async ValueTask OutputJsonList(Context context, IDCollector collectors, IDCollector idSet, Writer writer, bool viaIncludes)
+	/// <summary>
+	/// Outputs a list of things from this service as JSON into the given writer.
+	/// Executes the given collector(s) whilst it happens, which can also be null.
+	/// </summary>
+	/// <param name="context"></param>
+	/// <param name="collectors"></param>
+	/// <param name="idSet"></param>
+	/// <param name="writer"></param>
+	/// <param name="viaIncludes"></param>
+	/// <param name="functionalIncludes"></param>
+	/// <returns></returns>
+	public override async ValueTask OutputJsonList(Context context, IDCollector collectors, IDCollector idSet, Writer writer, bool viaIncludes,
+		FunctionalInclusionNode[] functionalIncludes = null)
     {
         var collectedIds = idSet as IDCollector<ID>;
 
@@ -584,7 +669,7 @@ public partial class AutoService<T, ID>
                     }
 
                     // Output the object:
-                    await ToJson(context, entity, writer);
+                    await ToJsonWithIncludes(context, entity, writer, functionalIncludes);
 
                     // Collect:
                     var col = collectors;
@@ -621,7 +706,7 @@ public partial class AutoService<T, ID>
                     }
 
                     // Output the object:
-                    await ToJson(context, entity, _writer);
+                    await ToJsonWithIncludes(context, entity, _writer, functionalIncludes);
 
                     // Collect:
                     var col = _cols;
@@ -658,9 +743,54 @@ public partial class AutoService<T, ID>
         }
         else
         {
-            jsonStructure.TypeIO.WriteJson(entity, writer);
+            jsonStructure.TypeIO.WriteJsonUnclosed(entity, writer);
+			writer.Write((byte)'}');
+		}
+	}
+    
+    /// <summary>
+    /// Serialises the given object into the given writer. By using this method, it will consider the fields a user is permitted to see (based on the role in the context)
+    /// and also may use a per-object cache which contains string segments.
+    /// </summary>
+    public async ValueTask ToJsonWithIncludes(Context context, T entity, Writer writer, FunctionalInclusionNode[] functionalIncludes)
+    {
+        // Get the json structure:
+        var jsonStructure = await GetTypedJsonStructure(context);
+
+        if (jsonStructure.TypeIO == null)
+        {
+            jsonStructure.TypeIO = TypeIOEngine.Generate(jsonStructure);
         }
-    }
+
+        if (entity == null)
+        {
+            writer.Write(NullText, 0, 4);
+        }
+        else
+        {
+            jsonStructure.TypeIO.WriteJsonUnclosed(entity, writer);
+
+			if (functionalIncludes != null)
+			{
+				for (var i = 0; i < functionalIncludes.Length; i++)
+				{
+					var fi = functionalIncludes[i];
+					var valueGen = fi.ValueGenerator as VirtualFieldValueGenerator<T, ID>;
+
+					if (valueGen != null)
+					{
+						// ,"propertyName":
+						writer.Write(fi._jsonPropertyHeader, 0, fi._jsonPropertyHeader.Length);
+
+						// value:
+						await valueGen.GetValue(context, entity, writer);
+					}
+				}
+			}
+
+			writer.Write((byte)'}');
+		}
+	}
 
     /*
 	/// <summary>

@@ -1,3 +1,4 @@
+using Api.ColourConsole;
 using Api.Contexts;
 using Api.Database;
 using Api.Eventing;
@@ -671,7 +672,7 @@ public partial class AutoService<T, ID> : AutoService
 		{
 			if (_filterSets.Count >= 10000)
 			{
-				Console.WriteLine("[WARN] Clearing large filter cache. If this happens frequently it's a symptom of poorly designed filters.");
+                WriteColourLine.Warning("[WARN] Clearing large filter cache. If this happens frequently it's a symptom of poorly designed filters.");
 				_filterSets.Clear();
 			}
 
@@ -802,6 +803,26 @@ public partial class AutoService<T, ID> : AutoService
 		}
 
 		return total;
+	}
+
+	/// <summary>
+	/// Gets an object from this service which matches the given filter and values. If multiple match, it's only ever the first one.
+	/// </summary>
+	/// <param name="context"></param>
+	/// <param name="filter"></param>
+	/// <param name="filterValues"></param>
+	/// <param name="options"></param>
+	/// <returns></returns>
+	public override async ValueTask<object> GetObjectByFilter(Context context, string filter, List<string> filterValues, DataOptions options = DataOptions.Default)
+	{
+		var filterObject = Where(filter); // Region=? and Slug=? and Article=?
+
+		for (var i = 0; i < filterValues.Count; i++) // polar regions, svalbard, where-to-go
+		{
+			filterObject = filterObject.BindFromString(filterValues[i]);
+		}
+
+		return await filterObject.First(context);
 	}
 
 	/// <summary>
@@ -1398,8 +1419,9 @@ public partial class AutoService
 	/// <param name="idSet"></param>
 	/// <param name="writer"></param>
 	/// <param name="viaInclude">True if it's via an include, and therefore the "from" filter field is implied true.</param>
+	/// <param name="functionalIncludes">Optional set of functional includes to execute on each node as the json is rendered.</param>
 	/// <returns></returns>
-	public virtual ValueTask OutputJsonList(Context context, IDCollector collectors, IDCollector idSet, Writer writer, bool viaInclude)
+	public virtual ValueTask OutputJsonList(Context context, IDCollector collectors, IDCollector idSet, Writer writer, bool viaInclude, FunctionalInclusionNode[] functionalIncludes = null)
 	{
 		// Not supported on this service.
 		return new ValueTask();
@@ -1480,8 +1502,9 @@ public partial class AutoService
 	/// <param name="setField"></param>
 	/// <param name="writer"></param>
 	/// <param name="viaIncludes">True if the list is via includes</param>
+	/// <param name="functionalIncludes">Optional set of functional includes to execute on each node as the json is rendered.</param>
 	/// <returns></returns>
-	public virtual ValueTask OutputJsonList<S_ID>(Context context, IDCollector collectors, IDCollector idSet, string setField, Writer writer, bool viaIncludes)
+	public virtual ValueTask OutputJsonList<S_ID>(Context context, IDCollector collectors, IDCollector idSet, string setField, Writer writer, bool viaIncludes, FunctionalInclusionNode[] functionalIncludes = null)
 		 where S_ID : struct, IEquatable<S_ID>, IComparable<S_ID>
 	{
 		// Not supported on this service.
@@ -1641,6 +1664,19 @@ public partial class AutoService
 	/// <param name="options"></param>
 	/// <returns></returns>
 	public virtual ValueTask<object> GetObject(Context context, string fieldName, string fieldValue, DataOptions options = DataOptions.Default)
+	{
+		return new ValueTask<object>(null);
+	}
+
+	/// <summary>
+	/// Gets an object from this service which matches the given filter and values. If multiple match, it's only ever the first one.
+	/// </summary>
+	/// <param name="context"></param>
+	/// <param name="filter"></param>
+	/// <param name="filterValues"></param>
+	/// <param name="options"></param>
+	/// <returns></returns>
+	public virtual ValueTask<object> GetObjectByFilter(Context context, string filter, List<string> filterValues, DataOptions options = DataOptions.Default)
 	{
 		return new ValueTask<object>(null);
 	}

@@ -1,3 +1,4 @@
+using Api.ColourConsole;
 using Api.Contexts;
 using Api.Eventing;
 using Newtonsoft.Json.Linq;
@@ -137,7 +138,7 @@ public class MonitorService : AutoService
 			}
 			else
 			{
-				Console.WriteLine("[Info] Monitor is active but is unable to provide detailed resource stats from this platform.");
+                WriteColourLine.Info("[Info] Monitor is active but is unable to provide detailed resource stats from this platform.");
 			}
 		}
 
@@ -170,7 +171,7 @@ public class MonitorService : AutoService
 
 		if (!result.IsSuccessStatusCode)
 		{
-			Console.WriteLine("[Warn] monitor remote service indicated a failure. This is what '" + _url + "' replied with, and a " + result.StatusCode + " status code: " + responseJson);
+            WriteColourLine.Warning("[Warn] monitor remote service indicated a failure. This is what '" + _url + "' replied with, and a " + result.StatusCode + " status code: " + responseJson);
 			return;
 		}
 
@@ -217,7 +218,7 @@ public class MonitorService : AutoService
 		}
 		catch (Exception e)
 		{
-			Console.WriteLine("[WARN] stat monitor threw an error: " + e.ToString());
+			WriteColourLine.Warning("[WARN] stat monitor threw an error: " + e.ToString());
 		}
 
 	}

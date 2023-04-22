@@ -2,6 +2,7 @@
 using Api.Contexts;
 using Api.Database;
 using Api.SocketServerLibrary;
+using Nest;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -40,6 +41,7 @@ namespace Api.Startup
 		public async ValueTask Parse()
 		{
 			RootInclude = new InclusionNode(RelativeTo, null);
+			RootInclude.Service = RelativeTo.Service;
 
 			int start = 0;
 			var comma = IncludeString.IndexOf(',');
@@ -82,6 +84,12 @@ namespace Api.Startup
 			{
 				var currentName = pieces[i];
 
+				if (current == null)
+				{
+					// primaryUrl.thing (not possible).
+					throw new PublicException("Nested includes are not available on functional includes.", "functional_include_nested");
+				}
+
 				if (currentName == "*")
 				{
 					// Every field on the current relative to. This can't go on a mixed content type, and it can only ever be the last piece.
@@ -98,7 +106,7 @@ namespace Api.Startup
 					}
 
 					// Add every ListAs field except for the explicit ones where this is not an implicit type.
-					foreach (var kvp in ContentFields._globalVirtualFields)
+					foreach (var kvp in ContentFields.GlobalVirtualFields)
 					{
 						var virtInfo = kvp.Value.VirtualInfo;
 
@@ -120,7 +128,7 @@ namespace Api.Startup
 				}
 
 				// Is it a global field?
-				if (ContentFields._globalVirtualFields.TryGetValue(currentName, out ContentField globalField))
+				if (ContentFields.GlobalVirtualFields.TryGetValue(currentName, out ContentField globalField))
 				{
 					// Yes! it's a global - these ones are available on all types. They're usually lists, like tags or categories.
 					// Service and type are required for these.
@@ -161,16 +169,26 @@ namespace Api.Startup
 		/// Included as.
 		/// </summary>
 		public string IncludeName;
-
+		
 		/// <summary>
 		/// Set of unique children, by lowercase field name.
 		/// </summary>
 		public Dictionary<string, InclusionNode> UniqueChildNodes = new Dictionary<string, InclusionNode>();
 
 		/// <summary>
+		/// Set of unique functional children, by lowercase field name.
+		/// </summary>
+		private Dictionary<string, FunctionalInclusionNode> UniqueFunctionalIncludes = new Dictionary<string, FunctionalInclusionNode>();
+
+		/// <summary>
 		/// Created during the Bake() call.
 		/// </summary>
 		public InclusionNode[] ChildNodes;
+
+		/// <summary>
+		/// The set of functional includes for this node, if there are any (can be null, but won't be an empty array).
+		/// </summary>
+		public FunctionalInclusionNode[] FunctionalIncludes;
 
 		/// <summary>
 		/// ID collector to use.
@@ -336,9 +354,32 @@ namespace Api.Startup
 				throw new System.Exception("Can't add to an include set after it has been baked.");
 			}
 
-			var svc = field.VirtualInfo.Service;
-
 			var name = field.VirtualInfo.FieldName;
+
+			if (field.VirtualInfo.ValueGeneratorType != null)
+			{
+				// This is a functional include. It generates a value on the object itself, not after the set of objects has been outputted.
+
+				if (Service == null || UniqueFunctionalIncludes.ContainsKey(name))
+				{
+					// The same thing was included 2+ times.
+					return null;
+				}
+
+				var camelCaseName = Char.ToLowerInvariant(name[0]) + name.Substring(1);
+				var functionalInclude = new FunctionalInclusionNode();
+				UniqueFunctionalIncludes[name] = functionalInclude;
+				functionalInclude.SetHeader(camelCaseName);
+				var baseGenType = field.VirtualInfo.ValueGeneratorType;
+				var typeToInstance = field.VirtualInfo.ValueGeneratorType.MakeGenericType(Service.ServicedType, Service.IdType);
+				var valueGenerator = Activator.CreateInstance(typeToInstance); // as VirtualFieldValueGenerator<T, ID>;
+				functionalInclude.ValueGenerator = valueGenerator;
+
+				// Doesn't generate a node because nested functional includes don't make sense.
+				return null;
+			}
+
+			var svc = field.VirtualInfo.Service;
 
 			if (UniqueChildNodes.TryGetValue(name, out InclusionNode result))
 			{
@@ -371,9 +412,21 @@ namespace Api.Startup
 			// Build the direct child node array:
 			ChildNodes = new InclusionNode[UniqueChildNodes.Count];
 
+			var i = 0;
+
+			if (UniqueFunctionalIncludes.Count > 0)
+			{
+				FunctionalIncludes = new FunctionalInclusionNode[UniqueFunctionalIncludes.Count];
+
+				foreach (var kvp in UniqueFunctionalIncludes)
+				{
+					FunctionalIncludes[i++] = kvp.Value;
+				}
+			}
+
 			InclusionOutputIndex = outputIndex++; // output index is depth first.
 
-			var i = 0;
+			i = 0;
 			foreach (var kvp in UniqueChildNodes)
 			{
 				ChildNodes[i++] = kvp.Value;
@@ -381,6 +434,7 @@ namespace Api.Startup
 			}
 
 			UniqueChildNodes = null;
+			UniqueFunctionalIncludes = null;
 
 			if (HostField != null)
 			{
@@ -469,6 +523,35 @@ namespace Api.Startup
 				TypeIOEngine.GenerateIDCollectors(IdFields);
 			}
 		}
+	}
+
+	/// <summary>
+	/// A functional inclusion node. Including one of these triggers a custom function to run per object.
+	/// </summary>
+	public class FunctionalInclusionNode
+	{
+
+		/// <summary>
+		/// The string ,"includeName":
+		/// </summary>
+		public byte[] _jsonPropertyHeader;
+
+		/// <summary>
+		/// Is a strong typed VirtualFieldValueGenerator. The type relates to the service for the current include node.
+		/// For example, you ask for pages and include tags.primaryUrl. The root include node service is the pageservice, and the 1st child (tags) service is the tagService.
+		/// The value generator for tags.primaryUrl is therefore a VirtualFieldValueGenerator for the tag type.
+		/// </summary>
+		public object ValueGenerator;
+
+		/// <summary>
+		/// Sets the header for this node.
+		/// </summary>
+		/// <param name="includedAs"></param>
+		public void SetHeader(string includedAs)
+		{
+			_jsonPropertyHeader = System.Text.Encoding.UTF8.GetBytes(",\"" + includedAs + "\":");
+		}
+
 	}
 
 }

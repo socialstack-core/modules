@@ -42,11 +42,26 @@ namespace Api.Startup {
 		///  Common field names used by entities which are used as a description when no [Meta("description")] is declared.
 		/// </summary>
 		private readonly static string[] CommonDescriptionNames = new string[] { "description", "shortdescription", "bio", "biography", "about" };
-		
+
 		/// <summary>
 		/// Global virtual fields. ListAs appears in here.
 		/// </summary>
-		public static Dictionary<string, ContentField> _globalVirtualFields = new Dictionary<string, ContentField>();
+		private static Dictionary<string, ContentField> _globalVirtualFields;
+
+		/// <summary>
+		/// Global virtual fields. ListAs appears in here.
+		/// </summary>
+		public static Dictionary<string, ContentField> GlobalVirtualFields {
+			get
+			{
+				if (_globalVirtualFields == null)
+				{
+					SetupGlobalFields();
+				}
+
+				return _globalVirtualFields;
+			}
+		}
 
 		/// <summary>
 		/// Inclusion sets that have been pre-generated, rooted from this set.
@@ -62,7 +77,67 @@ namespace Api.Startup {
 		/// The type that this map is for.
 		/// </summary>
 		public Type InstanceType;
-		
+
+		/// <summary>
+		/// Collects all include value generators. They are classes which inherit VirtualFieldValueGenerator.
+		/// </summary>
+		private static void SetupGlobalFields()
+		{
+			// Instance array:
+			_globalVirtualFields = new Dictionary<string, ContentField>();
+
+			// Collect all value generators:
+			var allTypes = typeof(ChangedFields).Assembly.DefinedTypes;
+
+			foreach (var typeInfo in allTypes)
+			{
+				// If it:
+				// - Is a class
+				// - Inherits VirtualFieldValueGenerator
+				// Then we instance it.
+
+				if (!typeInfo.IsClass)
+				{
+					continue;
+				}
+
+				if (!typeInfo.IsGenericType || 
+					!typeInfo.BaseType.IsGenericType || 
+					typeInfo.BaseType.GetGenericTypeDefinition() != typeof(VirtualFieldValueGenerator<,>))
+				{
+					continue;
+				}
+
+				var name = typeInfo.Name;
+				var dashIndex = name.LastIndexOf('`');
+
+				if (dashIndex != -1)
+				{
+					name = name.Substring(0, dashIndex);
+				}
+
+				var nameLC = name.ToLower();
+				if (nameLC.EndsWith("valuegenerator"))
+				{
+					nameLC = nameLC.Substring(0, name.Length - 14);
+					name = name.Substring(0, name.Length - 14);
+				}
+
+				// Got one. Add its type to the global include set.
+				var valueGenerator = new ContentField(new VirtualInfo()
+				{
+					FieldName = name,
+					IsList = false,
+					ImplicitTypes = new List<Type>(), // Force these to be explicit.
+					ValueGeneratorType = typeInfo.AsType()
+				});
+
+				_globalVirtualFields[nameLC] = valueGenerator;
+
+			}
+
+		}
+
 		/// <summary>
 		/// Creates a map for the given autoservice's instance type.
 		/// Use aService.GetChangeField(..); rather than this directly.
@@ -373,7 +448,7 @@ namespace Api.Startup {
 						PrimaryMap = listAsField;
 					}
 
-					_globalVirtualFields[listAs.FieldName.ToLower()] = listAsField;
+					GlobalVirtualFields[listAs.FieldName.ToLower()] = listAsField;
 
 					if (listAsFields == null)
 					{
@@ -383,6 +458,8 @@ namespace Api.Startup {
 					listAsFields.Add(listAsField);
 				}
 			}
+
+
 
 			// Public fields:
 			var fields = InstanceType.GetFields();
@@ -510,13 +587,37 @@ namespace Api.Startup {
 
 				if (virtualFieldType == null)
 				{
-					if (string.IsNullOrEmpty(fieldMeta.TypeName))
+					if (string.IsNullOrEmpty(fieldMeta.TypeSourceField))
 					{
 						continue;
 					}
 
+					// Is it a field on the type?
+					if (_nameMap.TryGetValue(fieldMeta.TypeSourceField.ToLower(), out ContentField targetField))
+					{
+						// This field must be a string (holding type names) or an int (contentTypeId).
+						if (targetField.FieldType == typeof(string) || targetField.FieldType == typeof(int))
+						{
+							// So far so good!
+
+							// The ID field MUST be a ulong.
+							ContentField idSource;
+							if (!string.IsNullOrEmpty(fieldMeta.IdSourceField) && _nameMap.TryGetValue(fieldMeta.IdSourceField.ToLower(), out idSource))
+							{
+
+								if (idSource.FieldType == typeof(ulong))
+								{
+									// OK - all checks passed.
+									// We actually have a field which holds either a contentTypeId or content type names.
+								}
+
+							}
+							
+						}
+					}
+
 					// Attempt to get the type by name instead:
-					var relatedService = Services.Get(fieldMeta.TypeName + "Service");
+					var relatedService = Services.Get(fieldMeta.TypeSourceField + "Service");
 
 					if (relatedService != null)
 					{
@@ -526,7 +627,7 @@ namespace Api.Startup {
 					else
 					{
 						// Lazy load it later. The service might be a dynamic one which simply hasn't loaded yet.
-						virtualFieldTypeName = fieldMeta.TypeName;
+						virtualFieldTypeName = fieldMeta.TypeSourceField;
 					}
 				}
 
@@ -651,11 +752,12 @@ namespace Api.Startup {
 
 			return result;
 		}
-		
+
 		/// <summary>
 		/// Converts a set of attribute data into an attribute list.
 		/// </summary>
 		/// <param name="customAttributes"></param>
+		/// <param name="intoList"></param>
 		/// <returns></returns>
 		public static List<Attribute> BuildAttributes(IEnumerable<CustomAttributeData> customAttributes, List<Attribute> intoList = null)
 		{
@@ -1092,6 +1194,11 @@ namespace Api.Startup {
 		/// Sometimes Type is not available until later. This is the name of the type to load on demand.
 		/// </summary>
 		public string TypeName;
+
+		/// <summary>
+		/// If this virtual field is a value generator, this is the generic class which will be instanced.
+		/// </summary>
+		public Type ValueGeneratorType;
 
 		/// <summary>
 		/// Exists if this is an explicit ListAs field. This is the set of source types for which the ListAs * is implicit.

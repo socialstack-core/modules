@@ -8,6 +8,7 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 using Api.Translate;
+using Api.ColourConsole;
 
 /// <summary>
 /// A general use service which manipulates an entity type. In the global namespace due to its common use.
@@ -101,8 +102,8 @@ public partial class AutoService<T, ID> {
 
 		if (!IsMapping)
 		{
-			// Log that the cache is on:
-			Console.WriteLine(InstanceType.Name + " - cache on");
+            // Log that the cache is on:
+            WriteColourLine.Success(InstanceType.Name + " - cache [on]");
 		}
 
 		await SetupCache();

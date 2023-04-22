@@ -29,7 +29,7 @@ namespace Api.Startup
 		/// </summary>
 		/// <param name="obj"></param>
 		/// <param name="writer"></param>
-		public virtual void WriteJson(T obj, Writer writer)
+		public virtual void WriteJsonUnclosed(T obj, Writer writer)
 		{
 
 		}

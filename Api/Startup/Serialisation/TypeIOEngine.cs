@@ -384,7 +384,7 @@ namespace Api.Startup
 
 				writerPartialBody.Emit(OpCodes.Ret);
 
-				var writeJsonMethod = typeBuilder.DefineMethod("WriteJson", MethodAttributes.Public | MethodAttributes.HideBySig | MethodAttributes.Virtual, typeof(void), new Type[] {
+				var writeJsonMethod = typeBuilder.DefineMethod("WriteJsonUnclosed", MethodAttributes.Public | MethodAttributes.HideBySig | MethodAttributes.Virtual, typeof(void), new Type[] {
 					typeof(T),
 					typeof(Writer)
 				});
@@ -423,6 +423,12 @@ namespace Api.Startup
 							continue;
 						}
 
+						// Skip all virtual fields.
+						if (field.PropertyGet == null && field.FieldInfo == null)
+						{
+							continue;
+						}
+
 						// The type we may be outputting a value outputter for:
 						var fieldType = field.TargetType;
 
@@ -453,9 +459,6 @@ namespace Api.Startup
 						jft.EmitWrite(writerBody, field, nullableType);
 					}
 				}
-
-				// }
-				WriteChar(writerBody, '}');
 
 				writerBody.Emit(OpCodes.Ret);
 

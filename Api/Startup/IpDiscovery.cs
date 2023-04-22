@@ -1,3 +1,4 @@
+using Api.ColourConsole;
 using Api.Contexts;
 using Api.Eventing;
 using System;
@@ -83,8 +84,8 @@ namespace Api.Startup
 				}
 				catch
 				{
-					// Ipv6 unsupported
-					Console.WriteLine("[WARN] Ipv6 appears to be unsupported or not configured.");
+                    // Ipv6 unsupported
+                    WriteColourLine.Warning("[WARN] Ipv6 appears to be unsupported or not configured.");
 				}
 			}
 		}
@@ -108,7 +109,7 @@ namespace Api.Startup
 			}
 			catch
 			{
-				Console.WriteLine("[WARN] Unable to collect public IPv4 address. This server will not be part of a cluster.");
+				WriteColourLine.Warning("[WARN] Unable to collect public IPv4 address. This server will not be part of a cluster.");
 			}
 			
 			var ipv6 = true;
@@ -120,7 +121,7 @@ namespace Api.Startup
 			catch
 			{
 				// Ipv6 unsupported
-				Console.WriteLine("[WARN] Ipv6 appears to be unsupported or not configured.");
+				WriteColourLine.Warning("[WARN] Ipv6 appears to be unsupported or not configured.");
 				ipv6 = false;
 			}
 

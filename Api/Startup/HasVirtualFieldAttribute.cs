@@ -17,9 +17,10 @@ namespace Api.Startup
 		/// </summary>
 		public Type Type;
 		/// <summary>
-		/// An alternative to a type reference, you can instead use the name. Equiv to the Type field, and the Type field wins if they are both set.
+		/// An alternative to a type reference, you can instead use the name, or the name of a field holding the type name.
+		/// Similar to the Type field, and the Type field wins if they are both set.
 		/// </summary>
-		public string TypeName;
+		public string TypeSourceField;
 		/// <summary>
 		/// The field on the class that the ID of the optional object comes from.
 		/// </summary>
@@ -35,15 +36,23 @@ namespace Api.Startup
 			IdSourceField = idSourceField;
 		}
 		
-		public HasVirtualFieldAttribute(string fieldName, string typeName, string idSourceField){
+		/// <summary>
+		/// 
+		/// </summary>
+		/// <param name="fieldName"></param>
+		/// <param name="typeSourceField">Can be either a type name, or the name of a field where the type will be loaded.
+		/// In the latter case, ID source field MUST be a ulong field. 
+		/// Otherwise, it must match the type of ID that the referenced type uses.</param>
+		/// <param name="idSourceField"></param>
+		public HasVirtualFieldAttribute(string fieldName, string typeSourceField, string idSourceField){
 			FieldName = fieldName;
-			TypeName = typeName;
+			TypeSourceField = typeSourceField;
 			IdSourceField = idSourceField;
 		}
 		
-		public HasVirtualFieldAttribute(string fieldName, string typeName, bool isList){
+		public HasVirtualFieldAttribute(string fieldName, string typeSourceField, bool isList){
 			FieldName = fieldName;
-			TypeName = typeName;
+			TypeSourceField = typeSourceField;
 			List = isList;
 
 			if (isList)

@@ -292,30 +292,52 @@ namespace Api.Startup
 					}
 				}
 
-				// Get the ID type of the field:
-				var idType = field.VirtualInfo.Type.GetField("Id").FieldType;
-
 				var jsonField = new JsonField<T, ID>()
 				{
 					Name = field.VirtualInfo.FieldName,
 					OriginalName = field.VirtualInfo.FieldName,
 					Structure = this,
 					Hide = isExplicit,
-					TargetType = typeof(IEnumerable<>).MakeGenericType(idType),
 					ContentField = field,
 					IsExplicit = isExplicit,
 					Attributes = Array.Empty<Attribute>(),
 					AfterId = true
 				};
 
-				jsonField.Data["contentType"] = field.VirtualInfo.Type.Name;
-				// Note: initial module is set by TryAdd.
+				if (field.VirtualInfo.ValueGeneratorType != null)
+				{
+					// Instance the value generator now.
+					var typeToInstance = field.VirtualInfo.ValueGeneratorType.MakeGenericType(typeof(T), typeof(ID));
+					var valueGenerator = Activator.CreateInstance(typeToInstance) as VirtualFieldValueGenerator<T, ID>;
 
+					if (valueGenerator == null)
+					{
+						throw new Exception(
+							"A bad ValueGeneratorType has been specified. Must inherit from VirtualFieldValueGenerator<T, ID>. The type that failed was " + 
+							field.VirtualInfo.ValueGeneratorType.Name
+						);
+					}
+
+					jsonField.FieldValueGenerator = valueGenerator;
+
+					// These fields are exclusively readonly.
+					jsonField.Writeable = false;
+					jsonField.TargetType = valueGenerator.GetOutputType();
+				}
+				else
+				{
+					// Get the ID type of the field:
+					var idType = field.VirtualInfo.Type.GetField("Id").FieldType;
+					jsonField.TargetType = typeof(IEnumerable<>).MakeGenericType(idType);
+					jsonField.Data["contentType"] = field.VirtualInfo.Type.Name;
+				}
+				
+				// Note: initial module is set by TryAdd.
 				await TryAddField(context, jsonField, readable, beforeSettable, beforeGettable);
 			}
 
 			// Add global virtual fields:
-			foreach (var kvp in ContentFields._globalVirtualFields)
+			foreach (var kvp in ContentFields.GlobalVirtualFields)
 			{
 				var field = kvp.Value;
 
@@ -332,25 +354,47 @@ namespace Api.Startup
 					}
 				}
 
-				// Get the ID type of the field:
-				var idType = field.VirtualInfo.Type.GetField("Id").FieldType;
-
 				var jsonField = new JsonField<T, ID>()
 				{
 					Name = field.VirtualInfo.FieldName,
 					OriginalName = field.VirtualInfo.FieldName,
 					Structure = this,
 					Hide = isExplicit,
-					TargetType = typeof(IEnumerable<>).MakeGenericType(idType),
 					ContentField = field,
 					IsExplicit = isExplicit,
 					Attributes = Array.Empty<Attribute>(),
 					AfterId = true
 				};
 
-				jsonField.Data["contentType"] = field.VirtualInfo.Type.Name;
-				// Note: initial module is set by TryAdd.
+				if (field.VirtualInfo.ValueGeneratorType != null)
+				{
+					// Instance the value generator now.
+					var typeToInstance = field.VirtualInfo.ValueGeneratorType.MakeGenericType(typeof(T), typeof(ID));
+					var valueGenerator = Activator.CreateInstance(typeToInstance) as VirtualFieldValueGenerator<T, ID>;
 
+					if (valueGenerator == null)
+					{
+						throw new Exception(
+							"A bad ValueGeneratorType has been specified. Must inherit from VirtualFieldValueGenerator<T, ID>. The type that failed was " +
+							field.VirtualInfo.ValueGeneratorType.Name
+						);
+					}
+
+					jsonField.FieldValueGenerator = valueGenerator;
+
+					// These fields are exclusively readonly.
+					jsonField.Writeable = false;
+					jsonField.TargetType = valueGenerator.GetOutputType();
+				}
+				else
+				{
+					// Get the ID type of the field:
+					var idType = field.VirtualInfo.Type.GetField("Id").FieldType;
+					jsonField.TargetType = typeof(IEnumerable<>).MakeGenericType(idType);
+					jsonField.Data["contentType"] = field.VirtualInfo.Type.Name;
+				}
+
+				// Note: initial module is set by TryAdd.
 				await TryAddField(context, jsonField, readable, beforeSettable, beforeGettable);
 			}
 
@@ -748,6 +792,11 @@ namespace Api.Startup
 		/// The structure this field belongs to.
 		/// </summary>
 		public JsonStructure<T, ID> Structure;
+		/// <summary>
+		/// If this field is an includable virtual field, it can potentially generate a value at runtime.
+		/// This is the generator for the value if there is one.
+		/// </summary>
+		public VirtualFieldValueGenerator<T, ID> FieldValueGenerator;
 		/// <summary>
 		/// An event which is called when the value is set. It returns the value it wants to be set.
 		/// </summary>
