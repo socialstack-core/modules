@@ -1,12 +1,13 @@
 ﻿using Api.AutoForms;
+using Api.Database;
 using Api.Users;
-
+using Newtonsoft.Json;
 
 namespace Api.Translate
 {
-    /// <summary>
-    /// </summary>
-    public partial class Locale : VersionedContent<uint>
+	/// <summary>
+	/// </summary>
+	public partial class Locale : VersionedContent<uint>
 	{
 		/// <summary>
 		/// The name.
@@ -58,6 +59,48 @@ namespace Api.Translate
 		/// </summary>
 		[Data("hint", "List of comma seperated domain names with optional ports e.g. 'www.mysite.com,www.mysite.co.uk'. Overrides all other locale indicators when used")]
 		public string Domains;
+
+
+		[DatabaseField(Ignore = true)]
+		private string _shortCode;
+
+		/// <summary>
+		/// If the code is e.g. en-GB, this is just en. It is internally cached for speed as well.
+		/// </summary>
+		[JsonIgnore]
+		public string ShortCode {
+			get{
+				if (_shortCode == null)
+				{
+					if (string.IsNullOrEmpty(Code))
+					{
+						return Code;
+					}
+
+					// handle underscore or dash.
+					var index = Code.IndexOf('-');
+					if (index != -1)
+					{
+						_shortCode = Code.Substring(0, index);
+					}
+					else
+					{
+						index = Code.IndexOf('_');
+
+						if (index != -1)
+						{
+							_shortCode = Code.Substring(0, index);
+						}
+						else
+						{
+							_shortCode = Code;
+						}
+					}
+				}
+
+				return _shortCode;
+			}
+		}
 	}
 
 }
