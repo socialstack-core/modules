@@ -606,7 +606,7 @@ svg {
 		private async ValueTask<List<DocumentNode>> RenderHeaderOnly(Context context, Locale locale)
 		{
 			var themeConfig = _themeService.GetConfig();
-			var localeCode = locale.Code.Contains('-') ? locale.Code.Split('-')[0] : locale.Code;
+			var localeCode = locale.ShortCode;
 
 			// Generate the document:
 			var doc = new Document();
@@ -678,7 +678,7 @@ svg {
 		private async ValueTask<List<DocumentNode>> RenderMobilePage(Context context, Locale locale, MobilePageMeta pageMeta)
 		{
 			var themeConfig = _themeService.GetConfig();
-            var localeCode = locale.Code.Contains('-') ? locale.Code.Split('-')[0] : locale.Code;
+            var localeCode = locale.ShortCode;
 
             // Generate the document:
             var doc = new Document();
@@ -751,6 +751,7 @@ svg {
 
 			body.AppendChild(
 					new DocumentNode("script")
+					.AppendChild(new TextNode(_frontend.GetServiceUrls(locale.Id)))
 					.AppendChild(new TextNode(_frontend.InlineJavascriptHeader))
 			);
 
@@ -900,7 +901,7 @@ svg {
 			}
 
 			var page = pageAndTokens.Page;
-            var localeCode = locale.Code.Contains('-') ? locale.Code.Split('-')[0] : locale.Code;
+            var localeCode = locale.ShortCode;
 
             // Generate the document:
             doc.Path = path;
@@ -1094,6 +1095,7 @@ svg {
 
 			body.AppendChild(
 					new DocumentNode("script")
+					.AppendChild(new TextNode(_frontend.GetServiceUrls(locale.Id)))
 					.AppendChild(new TextNode(_frontend.InlineJavascriptHeader))
 			);
 
