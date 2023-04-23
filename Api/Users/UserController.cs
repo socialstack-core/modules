@@ -38,7 +38,6 @@ namespace Api.Users
 		public async ValueTask Self()
 		{
 			var context = await Request.GetContext();
-			await context.RoleCheck(Request, Response);
 			await OutputContext(context);
 		}
 
