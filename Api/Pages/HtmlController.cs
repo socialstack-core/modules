@@ -77,9 +77,6 @@ namespace Api.Pages
 		public async ValueTask CatchAll()
 		{
 			var context = await Request.GetContext();
-
-			await context.RoleCheck(Request, Response);
-
 			await _htmlService.BuildPage(context, Request, Response, true, true);
 		}
 
