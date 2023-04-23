@@ -67,6 +67,9 @@ namespace Api.Contexts
 			if (context == null)
 			{
 				context = new Context() { };
+
+				// Anon context - trigger setting it up:
+				await Events.ContextAfterAnonymous.Dispatch(context, context, request);
 			}
 
 			// Handle locale next. The cookie comes lower precedence to the Locale header.
