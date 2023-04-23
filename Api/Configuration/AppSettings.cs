@@ -150,7 +150,7 @@ namespace Api.Configuration
 
 			}
 
-			if (localeId == 0 || localeId >= _publicUrlByLocaleId.Length)
+			if (localeId == 0 || localeId > _publicUrlByLocaleId.Length)
 			{
 				// Default:
 				return _publicUrlByLocaleId[0];
