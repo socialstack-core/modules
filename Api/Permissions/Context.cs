@@ -67,21 +67,6 @@ namespace Api.Contexts
 		}
 
 		/// <summary>
-		/// Triggers an anon user event. Potentially may instance a new user if they're anonymous but need to be tracked.
-		/// </summary>
-		/// <param name="request"></param>
-		/// <param name="response"></param>
-		/// <returns></returns>
-		public async ValueTask RoleCheck(HttpRequest request, HttpResponse response)
-		{
-			if (UserId == 0)
-			{
-				// Anonymous - fire off the anon user event:
-				await Events.ContextAfterAnonymous.Dispatch(this, this, request);
-			}
-		}
-
-		/// <summary>
 		/// Creates a remote token for this context. 
 		/// Essentially, this allows this context to be used on a remote thirdparty system, provided 
 		/// that the remote system has permitted the public key of the given keypair by adding it to its SignatureService Hosts config.
