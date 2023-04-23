@@ -92,7 +92,7 @@ namespace Api.Users
 					new Microsoft.AspNetCore.Http.CookieOptions()
 					{
 						Path = "/",
-						Domain = _contexts.GetDomain(),
+						Domain = _contexts.GetDomain(context.LocaleId),
 						IsEssential = true,
 						Expires = ThePast
 					}
@@ -200,7 +200,7 @@ namespace Api.Users
 					{
 						Path = "/",
 						Expires = expiry,
-						Domain = _loginTokens.GetDomain(),
+						Domain = _loginTokens.GetDomain(context.LocaleId),
 						IsEssential = true,
 						HttpOnly = true,
 						Secure = true,
@@ -240,7 +240,7 @@ namespace Api.Users
 				{
 					Path = "/",
 					Expires = ThePast,
-					Domain = _loginTokens.GetDomain(),
+					Domain = _loginTokens.GetDomain(context.LocaleId),
 					IsEssential = true,
 					HttpOnly = true,
 					Secure = true,
