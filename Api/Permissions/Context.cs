@@ -122,7 +122,7 @@ namespace Api.Contexts
 					{
 						Path = "/",
 						Expires = expiry,
-						Domain = _contextService.GetDomain(),
+						Domain = _contextService.GetDomain(LocaleId),
 						IsEssential = true,
 						HttpOnly = true,
 #if DEBUG
