@@ -4,10 +4,10 @@ import { useSession, useRouter } from 'UI/Session';
 import { useContent } from 'UI/Content';
 import { isoConvert } from 'UI/Functions/DateTools';
 
-var modes = { 'content': 1, 'session': 1, 'url': 1, 'customdata': 1, 'primary': 1, 'theme': 1 };
+var modes = { 'content': 1, 'context': 1, 'session': 1, 'url': 1, 'customdata': 1, 'primary': 1, 'theme': 1 };
 
 export function TokenResolver(props) {
-	return props.children(useTokens(props.value));
+	return props.children(useTokens(props.value, props));
 }
 
 export function useTokens(str, opts) {
@@ -15,10 +15,10 @@ export function useTokens(str, opts) {
 	var localContent = useContent();
 	var { pageState } = useRouter();
 
-	return handleString(str, session, localContent, pageState, opts);
+	return handleString(str, session, opts && opts.content ? opts.content : localContent, pageState, opts);
 }
 
-function handleString(str, session, localContent, pageState, opts) {
+export function handleString(str, session, localContent, pageState, opts) {
 	return (str || '').toString().replace(/\$\{(\w|\.)+\}/g, function (textToken) {
 		var fields = textToken.substring(2, textToken.length - 1).split('.');
 
@@ -56,9 +56,9 @@ function resolveRawValue(mode, fields, session, localContent, pageState) {
 	if (mode) {
 		mode = mode.toLowerCase();
 	}
-
-	if (mode == "content") {
-		token = localContent ? localContent.content : null;
+	
+	if (mode == "content" || mode == "context") {
+		token = localContent;
 	} else if (mode == "url") {
 		if (!pageState || !pageState.tokenNames) {
 			return '';
