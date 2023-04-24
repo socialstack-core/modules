@@ -22,47 +22,56 @@ export default class ContentList extends Executor {
 		return count;
 	}
 
-	async go() {
+	go() {
 		// Make a webRequest and return the results.
 		if (!this.content) {
-
-			var filter = null;
-			var includes = null;
-
-			if (this.state.includes) {
-				includes = await this.state.includes.run();
+			var props = {};
+			
+			this.readValue('contentType', props);
+			this.readValue('includes', props);
+			this.readValue('filter', props);
+			
+			if(this.state.filter){
+				for(var k in this.state){
+					if(k.indexOf('arg') === 0){
+						this.readValue(k, props);
+					}
+				}
 			}
-
-			if (this.state.filter) {
-				var query = await this.state.filter.run();
-
-				if (query && typeof query === 'string') {
+			
+			return this.onValuesReady(props, () => {
+				var {includes, filter, contentType} = props;
+				
+				var filt = null;
+				
+				if(filter && typeof filter == 'string'){
 					// How many args does it have? this is simply the number of question marks.
 					var argCount = this.countArgs(query);
-
+					
 					var args = [];
 					args.length = argCount;
-
+					
 					for (var i = 0; i < argCount; i++) {
-						var arg = this.state['arg' + i];
-						args[i] = arg ? await arg.run() : null;
+						args[i] = props['arg' + i];
 					}
-
+					
 					// Set the filter:
-					filter = { query, args };
+					filt = { query, args };
 				}
-
-			}
-
-			var context = this.context;
-			var cache = context && context.cache;
-
-			var contentType = await this.state.contentType.run();
-			var p = cache ?
-				cache.get(contentType, 'list', filter, includes) :
-				webRequest(contentType + '/list', filter, { includes });
-			var response = await p;
-			this.content = response.json.results;
+				
+				var context = this.context;
+				var cache = context && context.cache;
+				
+				var p = cache ?
+					cache.get(contentType, 'list', filt, includes) :
+					webRequest(contentType + '/list', filt, { includes });
+				
+				return p.then(() => {
+					this.content = response.json.results;
+					return this.content;
+				});
+				
+			});
 		}
 
 		return this.content;

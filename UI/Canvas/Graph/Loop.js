@@ -6,19 +6,17 @@ export default class Loop extends Executor {
 		super();
 	}
 	
-	async run(field){
+	run(field){
 		if(field == 'output'){
 			// Being asked for the array. This never caches.
-			var arr = await this.go();
-			this.outputs.output = arr;
-			return arr;
+			return this.baseRun();
 		}else{
 			// Being asked for the iteration object.
 			return this.outputs[field];
 		}
 	}
 	
-	async go() {
+	go() {
 		var {listOfItems, loopResult} = this.state;
 		
 		if(!listOfItems || !loopResult){
@@ -26,29 +24,33 @@ export default class Loop extends Executor {
 		}
 		
 		// Load the items:
-		var items = await listOfItems.run();
+		var props = {};
+		this.readValue('listOfItems', props);
 		
-		var results = [];
+		return this.onValuesReady(props, () => {
 		
-		if(!items){
+			var results = [];
+			
+			if(!items){
+				return results;
+			}
+			
+			// For each one:
+			for(var i=0;i<items.length;i++){
+				
+				// Set outputs:
+				var item = items[i];
+				this.outputs.loopItem = item;
+				this.outputs.index = i;
+				
+				// Execute iteration (expected to never be a promise):
+				var result = loopResult.run();
+				
+				results.push(result);
+			}
+			
 			return results;
-		}
-		
-		// For each one:
-		for(var i=0;i<items.length;i++){
-			
-			// Set outputs:
-			var item = items[i];
-			this.outputs.loopItem = item;
-			this.outputs.index = i;
-			
-			// Execute iteration:
-			var result = await loopResult.run();
-			
-			results.push(result);
-		}
-		
-		return results;
+		});
 	}
 	
 }

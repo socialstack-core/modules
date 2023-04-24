@@ -6,11 +6,16 @@ export default class Fields extends Executor {
 		super(props);
 	}
 	
-	async run(field) {
-		var obj = await this.state.object.run();
-		var res = obj[field];
-		this.outputs[field] = res;
-		return res;
+	run(field) {
+		var obj = this.state.object.run();
+		
+		var ready = (val) => {
+			var res = val[field];
+			this.outputs[field] = res;
+			return res;
+		};
+		
+		return (obj && obj.then) ? obj.then(ready) : ready(obj);
 	}
 	
 }

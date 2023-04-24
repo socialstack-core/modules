@@ -1,5 +1,6 @@
 import {expand} from 'UI/Functions/CanvasExpand';
 import { RouterConsumer } from 'UI/Session';
+import {TokenResolver} from 'UI/Token';
 import Alert from 'UI/Alert';
 
 var uniqueKey = 1;
@@ -128,7 +129,12 @@ class Canvas extends React.Component {
 		var NodeType = node.type;
 		
 		if(NodeType == '#text'){
-			return node.text;
+			if(this.props.context !== undefined){
+				// Contextual token canvas.
+				return <TokenResolver content={this.props.context} value={node.text}>{resolvedText => resolvedText}</TokenResolver>;
+			}else{
+				return node.text;
+			}
 		}else if(typeof NodeType === 'string'){
 			if(!node.dom){
 				node.dom = React.createRef();
@@ -210,7 +216,8 @@ class Canvas extends React.Component {
 }
 
 Canvas.propTypes = {
-	bodyJson: 'canvas'
+	bodyJson: 'canvas',
+	context: 'object'
 };
 
 export default Canvas;

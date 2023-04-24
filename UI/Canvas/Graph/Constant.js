@@ -16,7 +16,7 @@ export default class Constant extends Executor {
 		}
 	}
 	
-	async go() {
+	go() {
 		return this.state.output;
 	}
 	

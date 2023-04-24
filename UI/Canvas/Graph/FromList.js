@@ -6,16 +6,22 @@ export default class FromList extends Executor {
 		super();
 	}
 	
-	async go() {
+	go() {
 		// Extract an item from a list and return it.
-		var list = await this.state.listOfItems.run();
-		var index = await this.state.index.run();
+		var props = {};
 		
-		if(list && index >=0 && index < list.length){
-			return list[index];
-		}
+		this.readValue('listOfItems', props);
+		this.readValue('index', props);
 		
-		return null;
+		return this.onValuesReady(props, () => {
+			var {list,index} = props;
+			
+			if(list && index >=0 && index < list.length){
+				return list[index];
+			}
+			
+			return null;
+		});
 	}
 	
 }

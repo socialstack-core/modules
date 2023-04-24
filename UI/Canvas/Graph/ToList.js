@@ -7,16 +7,35 @@ export default class ToList extends Executor {
 		this.state = [];
 	}
 	
-	async go() {
+	go() {
 		var output = [];
 		output.length = this.state.length;
+		var proms = null;
 		
 		for(var i=0;i<this.state.length;i++){
 			var prop = this.state[i];
-			output[i] = prop ? await prop.run() : null;
+			
+			if(prop){
+				var val = prop.run();
+				
+				if(val && val.then){
+					if(!proms){
+						proms = [];
+					}
+					
+					((arrInd) => {
+						proms.push(val.then((v) => {
+							output[arrInd] = v;
+						}));
+					})(i);
+					
+				}else{
+					output[i] = val;
+				}
+			}
 		}
 		
-		return output;
+		return proms ? Promise.all(proms).then(() => output) : output;
 	}
 	
 }

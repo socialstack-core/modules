@@ -1,4 +1,6 @@
 import Executor from 'UI/Functions/GraphRuntime/Executor';
+import {handleString} from 'UI/Token';
+
 
 export default class Tokens extends Executor {
 	
@@ -6,23 +8,32 @@ export default class Tokens extends Executor {
 		super(props);
 	}
 	
-	async run(field) {
-		
-		var inputs = {};
+	run(field) {
+		var props = {};
 		
 		for(var k in this.state){
-			inputs[k] = await this.state[k].run();
+			this.readValue(k, props);
 		}
 		
-		var str = inputs.text;
-		
-		var res = (str || '').toString().replace(/\$\{(\w|\.)+\}/g, function (textToken) {
-			var inputName = textToken.substring(2, textToken.length - 1);
-			return inputs[inputName];
+		return this.onValuesReady(props, () => {
+			var content = props.content;
+			var str = props.text;
+			var res;
+			
+			if(content){
+				// Classic useTokens technique here. Session ones - the empty object - are not available however (for now!)
+				// content is available via the content resolver, i.e. that's ${content.X}
+				res = handleString(str, {}, content);
+			}else{
+				res = (str || '').toString().replace(/\$\{(\w|\.)+\}/g, function (textToken) {
+					var inputName = textToken.substring(2, textToken.length - 1);
+					return props[inputName];
+				});
+			}
+			
+			this.outputs[field] = res;
+			return res;
 		});
-		
-		this.outputs[field] = res;
-		return res;
 	}
 	
 }

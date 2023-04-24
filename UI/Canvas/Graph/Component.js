@@ -10,34 +10,25 @@ export default class Component extends Executor {
 		this.comp = null;
 	}
 	
-	async run(){
-		var result = await this.go();
-		
-		// Set output and return it:
-		this.outputs.output = result;
-		return result;
-	}
-	
-	async go() {
+	go() {
 		// Wait for each prop to be ready, then output the react component.
 		var props = {};
 		
 		for(var key in this.state){
-			var prop = this.state[key];
-			var propValue = await prop.run();
-			
-			if(key == 'componentType'){
-				if(!this.comp){
-					this.comp = require(propValue).default;
-				}
-				continue;
-			}
-			
-			props[key] = propValue;
+			this.readValue(key, props);
 		}
 		
-		var Component = this.comp;
-		return <Component {...props} />;
+		return this.onValuesReady(props, () => {
+			var { componentType } = props;
+			delete props.componentType;
+			
+			if(!this.comp){
+				this.comp = require(componentType).default;
+			}
+			
+			var Component = this.comp;
+			return <Component {...props} />;
+		});
 	}
 	
 }
