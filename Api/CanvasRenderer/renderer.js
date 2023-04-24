@@ -581,8 +581,8 @@ _contentModule.list = (type, filter) => {
 	});
 };
 
-_contentModule.getCached = (type, id, includes) => {
-	var opts = _currentContext;
+_contentModule.getCached = (type, id, includes, ctx) => {
+	var opts = ctx || _currentContext;
 	if (!opts) {
 		// Invalid call site - constructors only.
 		return null;
@@ -611,8 +611,8 @@ _contentModule.getCached = (type, id, includes) => {
 	});
 };
 
-_contentModule.listCached = (type, filter, includes) => {
-	var opts = _currentContext;
+_contentModule.listCached = (type, filter, includes, ctx) => {
+	var opts = ctx || _currentContext;
 	
 	if (!opts) {
 		// Invalid call site - constructors only.
@@ -708,10 +708,12 @@ function renderCanvas(bodyJson, apiContext, publicApiContextJson, url, pageState
 		apiContext
 	};
 	
-	var graphCacheProvider = preact.createElement(_Graph.Provider, { ctx, children: sessionProvider });
+	var opts = { mode, absoluteUrls, trackContextualData, ctx, result: null };
+	
+	var graphCacheProvider = preact.createElement(_Graph.Provider, { ctx: opts, children: sessionProvider });
 
 	// Returns a promise.
-	return renderToString(graphCacheProvider, {}, { mode, absoluteUrls, trackContextualData, ctx, result: null }).then(result => {
+	return renderToString(graphCacheProvider, {}, opts).then(result => {
 		if(trackContextualData){
 			result.data += ']';
 		}
