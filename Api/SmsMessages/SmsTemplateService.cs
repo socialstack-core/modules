@@ -263,7 +263,7 @@ namespace Api.SmsMessages
 					var targetNumber = recipient.ContactNumber == null ? recipient.User.ContactNumber : recipient.ContactNumber;
 
 					// Send now:
-					await Send(targetNumber, renderedResult.Body, null);
+					await Send(targetNumber, renderedResult.Text, null);
 				}
 			}
 
