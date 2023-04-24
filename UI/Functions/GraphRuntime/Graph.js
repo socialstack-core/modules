@@ -54,7 +54,7 @@ function CC(ctx) {
 
 	this.get = (type, id, body, includes) => {
 		if (!id) {
-			return Promise.resolve({});
+			return {};
 		}
 
 		// type cache:
@@ -82,13 +82,16 @@ function CC(ctx) {
 		}
 
 		// No - create a request now:
-		if (window.SERVER) {
+		if (window.SERVER || (global.cIndex !== undefined && global.pgState && global.pgState.data)) {
 			if (body || id == "list") {
 				p = Content.listCached(type, body, includes, ctx);
 			} else {
 				p = Content.getCached(type, id, includes, ctx);
 			}
-			p = p.then(obj => { return { json: obj } });
+			
+			if(p && p.then){
+				p = p.then(obj => { return { json: obj } });
+			}
 		} else {
 			p = webRequest(type + '/' + id, body, { includes });
 		}
@@ -98,7 +101,7 @@ function CC(ctx) {
 			inc: makeIncludesSet(includes),
 			b: body
 		};
-
+		
 		requests.push(request);
 		return request.p;
 	};
@@ -138,51 +141,43 @@ function ReactGraphHelper(props) {
 class ReactGraphHelperIntl extends React.Component {
 	constructor(props) {
 		super(props);
-		this.state = {
-			output: props.graph._output
-		};
-
-		if (window.SERVER) {
-			// Promise into state for ssr.
-			// Any pending promises in component state 
-			// after constructors will be automatically awaited by the ssr.
-			this.state.load = this.runGraph(props).then(graphOutput => {
-				props.graph._output = graphOutput;
-				this.state.output = graphOutput;
+		
+		var output = this.init(props);
+		
+		if(output && output.then && !window.SERVER){
+			// It returned a promise. Wait for it. The server waits for promises in state anyway.
+			output.then((result) => {
+				this.setState({output: result});
 			});
+			output = null;
 		}
+		
+		this.state = {
+			output
+		};
 	}
 	
-	runGraph(props) {
-		// Run the graph once:
+	init(props) {
 		var graph = props.graph;
-
-		if (graph._output) {
-			// Already ran
-			return Promise.resolve(true);
-		}
-
 		graph.setContext(props.context);
-		return graph.run();
-	}
-	
-	loadGraph(props){
-		this.runGraph(props).then(graphOutput => {
-			props.graph._output = graphOutput;
-			this.setState({ output: graphOutput });
-		});
+		return graph.run(); // like ValueTask - can return a value or a promise.
 	}
 	
 	componentWillReceiveProps(props){
 		if(props.graph != this.props.graph){
-			this.loadGraph(props);
+			var output = this.init(props);
+			
+			if(output && output.then){
+				// It returned a promise. Wait for it.
+				output.then((result) => {
+					this.setState({output: result});
+				});
+			}else{
+				this.setState({output});
+			}
 		}
 	}
 	
-	componentDidMount() {
-		this.loadGraph(this.props);
-	}
-
 	render() {
 		return this.state.output;
 	}
@@ -303,12 +298,15 @@ export default class Graph {
 		this.context = context;
 	}
 
-	async run() {
+	run() {
+		// like ValueTask - can return a value or a promise.
+		// This is such that graphs using content cached by the serverside renderer (or just simple graphs that don't have content anyway) load instantly.
+		
 		if (!this.nodes) {
 			// Lazy expansion of the nodes. Instance and link up each one now.
 			this.nodes = this.loadNodes();
 		}
-
+		
 		if (!this.root) {
 			return null;
 		}

@@ -22,15 +22,55 @@ export default class Executor {
 		}
 	}
 	
+	onValuesReady(props, ready){
+		var proms = props.__proms;
+		if(proms){
+			delete props.__proms;
+		}
+		return proms ? Promise.all(proms).then(ready) : ready();
+	}
+	
+	readValue(stateField, into){
+		// Runs a state field. If it returns a promise  
+		// it will await the promise before putting the result into the given set.
+		var sf = this.state[stateField];
+		if(!sf){
+			return;
+		}
+		var result = sf.run();
+		
+		if(result && result.then){
+			if(!into.__proms){
+				into.__proms = [];
+			}
+			into.__proms.push(result.then(v => {
+				into[stateField] = v;
+			}));
+		}else{
+			into[stateField] = result;
+		}
+	}
+	
 	reset(){
 		// Clears any cached state if necessary.
 	}
 	
-	async run(){
-		var result = await this.go();
+	baseRun(){
+		var result = this.go();
 		
-		// Set output and return it:
+		if(result && result.then){
+			return result.then((r) => {
+				this.outputs.output = r;
+				return r;
+			});
+		}
+		
+		// Set output field and return the value:
 		this.outputs.output = result;
 		return result;
+	}
+	
+	run(){
+		return this.baseRun();
 	}
 }

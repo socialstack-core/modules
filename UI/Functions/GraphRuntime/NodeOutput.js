@@ -6,9 +6,14 @@ export default class NodeOutput extends Executor {
 		super(props);
 	}
 	
-	async go() {
+	go() {
 		var {node, field} = this.props;
-		await node.run(field);
+		var r = node.run(field);
+		
+		if(r && r.then){
+			return r.then(() => node.outputs[field]);
+		}
+		
 		return node.outputs[field];
 	}
 	
