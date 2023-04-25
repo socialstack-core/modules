@@ -312,7 +312,7 @@ namespace Api.Contexts
 		/// <summary>
 		/// Cookie domain
 		/// </summary>
-		private static string _domain = null;
+		private static string[] _domains = null;
 		
 		/// <summary>
 		/// Cookie domain to use
@@ -320,11 +320,29 @@ namespace Api.Contexts
 		/// <returns></returns>
 		public string GetDomain(uint localeId)
 		{
-			if (_domain == null)
+			if (_domains == null)
+			{
+				_domains = new string[ContentTypes.Locales == null ? localeId : ContentTypes.Locales.Length];
+			}
+
+			if (localeId == 0 || localeId > 10000)
+			{
+				return null;
+			}
+
+			if (localeId > _domains.Length)
+			{
+				Array.Resize(ref _domains, (int)localeId);
+			}
+
+			var domain = _domains[localeId - 1];
+
+			if (domain == null)
 			{
 				if(AppSettings.Configuration["CookieDomain"] != null)
 				{
-					_domain = AppSettings.Configuration["CookieDomain"];
+					domain = AppSettings.Configuration["CookieDomain"];
+					_domains[localeId - 1] = domain;
 				}
 				else
 				{
@@ -332,7 +350,7 @@ namespace Api.Contexts
 						// Localhost - Can't use localhost:AppSettings.GetInt32("Port", 5000) because the websocket request would omit the cookie.
 						return null;
 					#else
-					var domain = AppSettings.GetPublicUrl(localeId).Replace("https://", "").Replace("http://", "");
+					domain = AppSettings.GetPublicUrl(localeId).Replace("https://", "").Replace("http://", "");
 					if (domain.StartsWith("www."))
 					{
 						domain = domain.Substring(4);
@@ -345,13 +363,13 @@ namespace Api.Contexts
 						// Trim everything else off:
 						domain = domain.Substring(0, fwdSlash);
 					}
-					
-					_domain = domain;
+
+					_domains[localeId - 1] = domain;
 					#endif
 				}
 			}
 
-			return _domain;
+			return domain;
 		}
 
 		/// <summary>
