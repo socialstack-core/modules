@@ -110,7 +110,7 @@ export default class ContentSelect extends React.Component {
 					}
 				}
 				name={this.props.name} />
-				<Search for={this.props.contentType} field={this.props.search} limit={5} placeholder={"Search for a " + this.props.contentType + ".."} onFind={entry => {
+				<Search for={this.props.contentType} field={this.props.titleField || this.props.search} limit={5} placeholder={"Search for a " + this.props.contentType + ".."} onFind={entry => {
 					this.setState({
 						searchSelected: entry
 					});
@@ -125,9 +125,59 @@ export default class ContentSelect extends React.Component {
 			</div>;
 			
 		}
-		
+
 		var all = this.state.all;
-		
+		var titleField = this.props.titleField;
+
+		if (all) {
+
+			if (!titleField) {
+				var firstValidItem = all.find(arg => arg != null);
+
+				if (firstValidItem) {
+					var fieldNames = ['title', 'firstName', 'username', 'name', 'url'];
+
+					fieldNames.forEach(field => {
+						if (!titleField && firstValidItem[field]) {
+							titleField = field;
+						}
+					});
+
+				}
+
+			}
+
+			// sort by title field
+			if (titleField && titleField.length) {
+				all = all.sort((a, b) => {
+
+					if (a && b) {
+						let titleA = (a[titleField] != undefined && a[titleField].trim() != "") ? a[titleField] : ` No identified title`;
+						let titleB = (b[titleField] != undefined && b[titleField].trim() != "") ? b[titleField] : ` No identified title`;
+
+						return titleA.localeCompare(titleB);
+					}
+
+					return -1;
+				});
+
+				// ensure "none" item is first in the list
+				let noneIndex = -1;
+
+				all.forEach((content, i) => {
+					if (!content && noneIndex == -1) {
+						noneIndex = i;
+					}
+				});
+
+				if (noneIndex > -1) {
+					all.splice(noneIndex, 1);
+					all.unshift(null);
+				}
+
+			}
+		}
+
 		var noSelection = this.props.noSelection || `None`;
 		var mobileNoSelection = this.props.mobileNoSelection || `None`;
 		
@@ -143,12 +193,9 @@ export default class ContentSelect extends React.Component {
 					if(!content){
 						return <option value={'0'}>{noSelection}</option>;
 					}
-					
-					var title = content.title || content.firstName || content.username || content.name || content.url;
-					
-					return <option value={content.id}>{
-						'#' + content.id + (title ? ' - ' + title : '(no identified title)')
-					}</option>;
+
+					var title = titleField && titleField.length && content[titleField] ? content[titleField] : ` No identified title`;
+					return <option value={content.id}>{`${title} (#${content.id})`}</option>;
 				}) : [
 				]
 			}</Input>
@@ -194,6 +241,7 @@ export default class ContentSelect extends React.Component {
 					isExtraLarge
 				>
 				<AutoForm
+					canvasContext={this.props.canvasContext ? this.props.canvasContext : this.props.currentContent}
 					modalCancelCallback={() => {
 						this.setState({ showCreateOrEditModal: false, entityToEditId: null });
 					}}
