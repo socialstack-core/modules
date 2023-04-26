@@ -154,6 +154,11 @@ namespace Api.Pages
 			{
 				var piece = LoadedUrlPieces[i];
 
+				if (piece == null)
+				{
+					continue;
+				}
+
 				if (piece.LiteralText != null)
 				{
 					sb.Append(piece.LiteralText);
@@ -175,7 +180,7 @@ namespace Api.Pages
 		/// </summary>
 		private void LoadPieces()
 		{
-			LoadedUrlPieces = new UrlGenerationUrlFragment[UrlPieces.Length];
+			var loadingUrlPieces = new UrlGenerationUrlFragment[UrlPieces.Length];
 
 			Type currentType = null;
 
@@ -262,10 +267,11 @@ namespace Api.Pages
 					fragment.LiteralText = piece;
 				}
 
-				LoadedUrlPieces[i] = fragment;
+				loadingUrlPieces[i] = fragment;
 			}
-		}
 
+			LoadedUrlPieces = loadingUrlPieces;
+		}
 	}
 
 	/// <summary>

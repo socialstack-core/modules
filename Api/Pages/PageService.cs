@@ -258,6 +258,33 @@ namespace Api.Pages
 				return new ValueTask<Page>(page);
 			});
 
+			Events.Service.AfterStart.AddEventListener((Context context, object svc) => {
+
+				// Just in case anything during startup loaded the
+				// page tree before all services were ready.
+				if (_urlGenerationCache != null)
+				{
+					_urlGenerationCache = null;
+					_urlLookupCache = null;
+				}
+
+				return new ValueTask<object>(svc);
+			});
+
+			Events.Service.AfterCreate.AddEventListener((Context context, AutoService svc) => {
+
+				// A service has started up. This can mean we now have a new data type
+				// replacing one which was previously used and cached by the URL tree.
+
+				if (_urlGenerationCache != null)
+				{
+					_urlGenerationCache = null;
+					_urlLookupCache = null;
+				}
+
+				return new ValueTask<AutoService>(svc);
+			});
+
 			// Pages must always have the cache on for any release site.
 			// That's because the HtmlService has a release only cache which depends on the sync messages for pages, as well as e.g. the url gen cache.
 #if !DEBUG

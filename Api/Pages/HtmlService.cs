@@ -620,7 +620,12 @@ svg {
 				doc.Html.With("dir", "rtl");
 			}
 
-			var head = doc.Head;
+            if (context.RoleId == 1)
+			{
+				doc.Html.With("data-env", Services.Environment);
+            }
+
+            var head = doc.Head;
 
 			// If there are tokens, get the primary object:
 
@@ -693,7 +698,12 @@ svg {
 				doc.Html.With("dir", "rtl");
 			}
 
-			var head = doc.Head;
+            if (context.RoleId == 1)
+			{
+                doc.Html.With("data-env", Services.Environment);
+            }
+
+            var head = doc.Head;
 
 			// If there are tokens, get the primary object:
 			
@@ -917,7 +927,12 @@ svg {
 				doc.Html.With("dir", "rtl");
 			}
 
-			var head = doc.Head;
+            if (context.RoleId == 1)
+            {
+                doc.Html.With("data-env", Services.Environment);
+            }
+
+            var head = doc.Head;
 
 			// Charset must be within first 1kb of the header:
 			head.AppendChild(new DocumentNode("meta", true).With("charset", "utf-8"));
@@ -1517,6 +1532,14 @@ svg {
 			if (compress)
 			{
 				response.Headers["Content-Encoding"] = "gzip";
+			}
+
+			// If services have not finished starting up yet, wait.
+			var svcWaiter = Services.StartupWaiter;
+
+			if (svcWaiter != null)
+			{
+				await svcWaiter.Task;
 			}
 
 			var pageAndTokens = await _pages.GetPage(context, request.Host.Value, path, searchQuery, true);

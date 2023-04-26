@@ -51,6 +51,14 @@ namespace Api.Pages
 
 			var context = await Request.GetContext();
 
+			// If services have not finished starting up yet, wait.
+			var svcWaiter = Services.StartupWaiter;
+
+			if (svcWaiter != null)
+			{
+				await svcWaiter.Task;
+			}
+
 			// we first need to get the pageAndTokens
 			var pageAndTokens = await _pageService.GetPage(context, Request.Host.Value, pageDetails.Url, Microsoft.AspNetCore.Http.QueryString.Empty);
 
