@@ -32,6 +32,12 @@ export default class Constant extends GraphNode {
 						<option value='bool'>Yes/ no</option>
 					</Input>
 				},
+			},
+			{
+				// If a name is set, this constant will appear directly on the prop editor UI (when the component is selected, below the edit graph button).
+				key: 'fieldName',
+				name: `Name`,
+				type: 'string'
 			}
 		];
 		

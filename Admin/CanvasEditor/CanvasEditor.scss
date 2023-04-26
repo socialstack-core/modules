@@ -75,7 +75,7 @@
 			bottom: 0;
 			box-shadow: 0 0 0 500vmax var(--admin-selected-bg, var(--fallback__admin-selected-bg)) inset;
 			pointer-events: none;
-			z-index: 2147483627;
+			z-index: 2147483620;
 		}
 
 		&::after {
@@ -83,12 +83,14 @@
 			position: absolute;
 			left: 0;
 			bottom: 0;
-			background: var(--admin-selected-bg, var(--fallback__admin-selected-bg));
+			background: #fff;
+		    box-shadow: inset 50vw 50px var(--admin-selected-bg, var(--fallback__admin-selected-bg));
 			border: 4px solid var(--admin-selected-border, var(--fallback__admin-selected-border));
 			color: var(--admin-selected-fg, var(--fallback__admin-selected-fg));
 			padding: .5rem .75rem;
 			font-size: .75rem;
 			pointer-events: none;
+			z-index: 2147483621;
 		}
 
 		&:not([data-component-type]) {
@@ -112,12 +114,14 @@
 				position: absolute;
 				left: 0;
 				bottom: 0;
-				background: var(--admin-selected-bg, var(--fallback__admin-selected-bg));
+				background: #fff;
+			    box-shadow: inset 50vw 50px var(--admin-selected-bg, var(--fallback__admin-selected-bg));
 				border: 4px solid var(--admin-selected-border, var(--fallback__admin-selected-border));
 				color: var(--admin-selected-fg, var(--fallback__admin-selected-fg));
 				padding: .5rem .75rem;
 				font-size: .75rem;
 				pointer-events: none;
+				z-index: 2147483621;
 			}
 
 			&:not([data-component-type]) {

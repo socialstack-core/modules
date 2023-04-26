@@ -79,18 +79,27 @@ export default class Content extends GraphNode {
 		];
 		
 		var cType = this.state.contentType;
-		
+		let editUrl = this.state.contentId ? `${window.origin}/en-admin/${cType}/${this.state.contentId}` : undefined;
+		let editClass = 'btn btn-sm btn-outline-primary';
+
+		if (!editUrl) {
+			editClass += ' disabled';
+		}
+
 		if(cType != 'primary'){
 			fields.push({
 				key: 'contentId',
 				name: `Content ID`,
 				type: 'int',
 				onRender: (value, onSetValue, label) => {
-					return <Input type={'number'} label={label} value={value !==null && value!==undefined && !(value.link && value.node && value.field) ? value : undefined} onChange={e => {
-						onSetValue(e.target.value);
-					}} onKeyUp={e => {
-						onSetValue(e.target.value);
-					}}/>;
+					return <div className="entry-content__id-wrapper">
+						<Input type={'number'} label={label} value={value !== null && value !== undefined && !(value.link && value.node && value.field) ? value : undefined}
+							onChange={e => onSetValue(e.target.value)} onKeyUp={e => onSetValue(e.target.value)} />
+						<a href={editUrl} className={editClass} target="_blank" tabIndex={!editUrl ? '-1' : undefined}>
+							<i className="far fa-fw fa-edit"></i>
+							{`Edit`}
+						</a>
+					</div>;
 				}
 			});
 		}else{

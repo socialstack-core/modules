@@ -292,7 +292,11 @@ export default function CanvasEditor (props) {
 
 	var ceCore = <CanvasEditorCore {...props} onSetShowSource={(state) => {
 		setCanvasState(canvasState.setShowSourceState(state));
-	}} fullscreen={props.fullscreen} canvasState={canvasState} snapshotState={snapshotState} />;
+	}} fullscreen={props.fullscreen} canvasState={canvasState} snapshotState={snapshotState}
+		onSelectNode={(e, node) => {
+			e.stopPropagation();
+			setCanvasState(canvasState.selectNode(canvasState.selectedNode == node ? null : node));
+		}} />;
 
 	var ctx = {};
 	
@@ -766,7 +770,7 @@ class CanvasEditorCore extends React.Component {
 		return nodeSet;
 	}
 	
-	renderNode(node, canvasState){
+	renderNode(node, canvasState) {
 		var NodeType = node.type;
 		
 		if(!node.dom){
@@ -790,19 +794,35 @@ class CanvasEditorCore extends React.Component {
 		var rteClasses = rteClass.join(' ');
 		
 		if(NodeType === 'richtext'){
+			var editorContext = this.props.canvasContext ? [...this.props.canvasContext] : [];
+
+			if (editorContext) {
+				editorContext = editorContext.filter(c => c.name != this.props.name);
+			}
+
 			// Pass the whole node to the RTE.
-			return <div key={node.key} ref={node.dom} data-component-type={node.typeName} className={rteClasses} {...node.props}>
-				<RichEditor editorState={node.editorState} selectedNode={node} textonly={this.props.textonly} blockRenderMap={extendedBlockRenderMap} onAddComponent={() => {
+			return <div key={node.key} ref={node.dom} data-component-type={node.typeName} className={rteClasses} {...node.props} onClick={(e) => this.props.onSelectNode(e, node)}>
+				<RichEditor editorState={node.editorState} selectedNode={node} textonly={this.props.textonly} context={editorContext} blockRenderMap={extendedBlockRenderMap} onAddComponent={() => {
 					this.setState({selectOpenFor: {node, isReplace: true}});
 				}} onStateChange={(newState) => {
 					node.editorState = newState;
 					this.props.snapshotState();
 				}}/>
 			</div>;
-		}else if(node.graph){
-			
+		} else if (node.graph) {
+			let component = node.graph.structure?.c?.filter(c => c.t == 'Component');
+			let componentType = '';
+
+			if (component && component.length) {
+				componentType = component[0].d?.componentType;
+			}
+
 			// Graph node.
-			return <ErrorCatcher node={node}>{node.graph.render()}</ErrorCatcher>;
+			return <div key={node.key} ref={node.dom} data-component-type={componentType} className={rteClasses} {...node.props} onClick={(e) => this.props.onSelectNode(e, node)}>
+				<ErrorCatcher node={node}>
+					{node.graph.render()}
+				</ErrorCatcher>
+			</div>;
 		
 		}else{
 			// Custom component
@@ -825,7 +845,7 @@ class CanvasEditorCore extends React.Component {
 					}
 
 					var rendered = <>
-						<div key={root.key} data-component-type={node.typeName} className={rteClasses} ref={root.dom}>
+						<div key={root.key} data-component-type={node.typeName} className={rteClasses} ref={root.dom} onClick={(e) => this.props.onSelectNode(e, node)}>
 							{this.renderRootNode(root, canvasState)}
 						</div>
 					</>;
@@ -837,13 +857,13 @@ class CanvasEditorCore extends React.Component {
 					}
 				}
 
-				return <div key={node.key} data-component-type={node.typeName} className={rteClasses} ref={node.dom}>
+				return <div key={node.key} data-component-type={node.typeName} className={rteClasses} ref={node.dom} onClick={(e) => this.props.onSelectNode(e, node)}>
 						<ErrorCatcher node={node}><NodeType {...props}>{children}</NodeType></ErrorCatcher>
 					</div>;
 
 			}else{
 				// It has no content inside it; it's purely config driven.
-				return <div key={node.key} data-component-type={node.typeName} className={rteClasses} ref={node.dom}>
+				return <div key={node.key} data-component-type={node.typeName} className={rteClasses} ref={node.dom} onClick={(e) => this.props.onSelectNode(e, node)}>
 					<ErrorCatcher node={node}><NodeType {...props} /></ErrorCatcher>
 				</div>;
 			}

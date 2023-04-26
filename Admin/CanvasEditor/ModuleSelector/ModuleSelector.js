@@ -7,7 +7,7 @@ import { useState, useEffect } from 'react';
 var __moduleGroups = null;
 
 export default function ModuleSelector(props) {
-	const { selectOpenFor, moduleSet, closeModal, onSelected } = props;
+	const { selectOpenFor, moduleSet } = props;
 	var [allModules, setAllModules] = useState(null);
 	var [filteredModules, setFilteredModules] = useState(null);
 	var [sortOrder, setSortOrder] = useState('alpha');
@@ -83,18 +83,28 @@ export default function ModuleSelector(props) {
 		setSortOrder(event.target.value);
     }
 
+	function onCloseModal() {
+		// clear filter
+		setFilteredModules(updateSortOrder(allModules));
+
+		if (props.closeModal instanceof Function) {
+			props.closeModal();
+		}
+
+	}
+
 	return <>
 		<Modal
 			className={"module-select-modal"}
 			buttons={[
 				{
 					label: `Close`,
-					onClick: closeModal
+					onClick: onCloseModal
 				}
 			]}
 			isLarge
 			title={`Add something to your content`}
-			onClose={closeModal}
+			onClose={onCloseModal}
 			visible={selectOpenFor}
 		>
 			<div className="module-groups-filters">
@@ -131,7 +141,12 @@ export default function ModuleSelector(props) {
 
 									return <>
 										<button type="button" className="btn module-tile" onClick={() => {
-											onSelected && onSelected(module)
+
+											if (props.onSelected instanceof Function) {
+												props.onSelected(module);
+											}
+
+											onCloseModal();
 										}}>
 											{module.priority && <>
 												<i className="fa fa-star module-tile__popular" title={`Popular`}></i>

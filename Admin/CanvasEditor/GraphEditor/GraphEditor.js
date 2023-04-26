@@ -551,7 +551,7 @@ function DraggableItem(props) {
 					
 					if(isDefaultType(fullType) && !fullType.isArray && !fullType.isAny){
 						return <Input compact label={label} type={fullType.name} value={value} defaultValue={value} onChange={e => {
-							setValue(e.target.value);
+							setValue(e.target.type == 'checkbox' ? e.target.checked : e.target.value);
 						}}/>;
 					} else {
 						return <label className="form-label">

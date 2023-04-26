@@ -262,7 +262,7 @@ export default class CanvasState{
 						node.r.forEach((n, i) => {
 							var resultRoot = {};
 							if(Array.isArray(n)){
-								this.loadCanvasChildren(node.r[key], resultRoot);
+								this.loadCanvasChildren({c: n}, resultRoot);
 							}else if(!n){
 								resultRoot = {content: []};
 							}else{
@@ -279,7 +279,7 @@ export default class CanvasState{
 							var resultRoot = {};
 							var rt = node.r[key];
 							if(Array.isArray(rt)){
-								this.loadCanvasChildren(node.r[key], resultRoot);
+								this.loadCanvasChildren({c: rt}, resultRoot);
 							}else if(!rt){
 								resultRoot = {content: []};
 							}else{
@@ -433,8 +433,15 @@ export default class CanvasState{
 		var str = '<' + type + '>';
 
 		if (node.d && node.d.href) {
+			var href = node.d.href;
 			var pos = str.length - 1;
-			str = str.substring(0, pos) + ' href="' + node.d.href + '"' + str.substring(pos);
+
+			// Fix for Draft.ConvertFromHtml in firefox not recognising relative urls in links
+			if (href.length > 0 && href.charAt(0) == '/' && !href.includes('http') && !href.includes(window.location.host)) {
+				href = window.origin + href;
+			}
+
+			str = str.substring(0, pos) + ' href="' + href + '"' + str.substring(pos);
 		}
 
 		if (Array.isArray(node.c)) {
@@ -496,15 +503,13 @@ export default class CanvasState{
 		var entityMap = raw.entityMap;
 		var children = [];
 		var listChildren = [];
+		var entities = [];
 		
 		for(var i=0;i<blocks.length;i++){
 			var block = blocks[i];
 			var entityRanges = block.entityRanges;
-			var entities = null;
 
 			if (entityRanges && entityRanges.length > 0 && entityMap) {
-				entities = [];
-
 				for (let i=0;i<entityRanges.length;i++) {
 					var key = entityRanges[i].key;
 					var entity = entityMap[key];
@@ -535,7 +540,7 @@ export default class CanvasState{
 	}
 	
 	toTreeFromRTE(block, blockEntities){
-		
+
 		var blockType = 'p';
 		var entityRanges = block.entityRanges ? block.entityRanges : [];
 		var data = {};
@@ -604,11 +609,25 @@ export default class CanvasState{
 		for (let i=0; i<entityRanges.length; i++) {
 			var entityRange = entityRanges[i];
 			var entity = blockEntities[entityRange.key];
-			var url = entity.data ? entity.data.url : null;
+			var url = (entity && entity.data) ? entity.data.url : null;
 
-			if (url && ( url.length <= 5 || (url.slice(0, 4) != "http") ) ) {
-				url = "https://" + url;
-			}
+			if (url && url.length > 0) {
+				// Do not save site domain to database
+				url = url.replace(window.location.origin, "");
+				url = url.replace(window.location.host, "");
+
+				if (url.length > 0 && url.charAt(0) != "/" && ( url.length <= 5 || (url.slice(0, 4) != "http") ) ) {
+					if (url.includes('.')) {
+						// Save non relative urls with https otherwise draftjs will not recognise it as a link upon loading the data
+						url = "https://" + url;
+					} else {
+						// Assume the user forgot to add the /
+						url = "/" + url;
+					}
+				}
+
+				url = url.toLowerCase();
+			} 
 
 			inlines.push({  
 				offset: entityRange.offset,
@@ -635,7 +654,8 @@ export default class CanvasState{
 				'ITALIC': {tag:'i'},
 				'UNDERLINE':{tag:'u'},
 				'CODE':{tag:'code'},
-				'LINK':{tag:'UI/Link'}
+				'LINK':{tag:'UI/Link'},
+				//'TOKEN': { tag: '' },
 			};
 			
 			inlines.forEach(isr => {

@@ -148,6 +148,25 @@ export default class GraphNode {
 		return false;
 	}
 	
+	resolveValue(link){
+		if(!link){
+			return null;
+		}
+		
+		if(link.node && link.field !== undefined){
+			// It's a link - return the upstream value, assuming it will be a constant node.
+			
+			if(link.node.state){
+				return link.node.state[link.field];
+			}
+			
+			return null;
+		}
+		
+		// as-is.
+		return link;
+	}
+	
 	/*
 	Gets the type of an input field 
 	*/

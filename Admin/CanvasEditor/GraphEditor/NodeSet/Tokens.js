@@ -17,29 +17,39 @@ export default class Tokens extends GraphNode {
 	
 	renderFields() {
 		
+		var content = this.state.content;
+		var contentType = content ? this.getInputType(content) : null;
+		
 		var fields = [{
 			key: 'text',
 			type: 'text',
-			name: 'Text'
+			name: `Text`
+		},
+		{
+			key: 'content',
+			type: contentType || 'object',
+			name: `Content`
 		}];
 		
 		var outputType = 'string';
 		
 		this.setType(outputType);
 		
-		var text = this.state.text;
+		var text = this.resolveValue(this.state.text);
 		
-		if(text && typeof text == 'string'){
+		if(text && typeof text == 'string' && !content){
 			var argSet = this.getTokens(text);
 			
-			for(var i=0;i<argSet.length;i++){
-				var n = argSet[i];
-				var name = n.substring(2, n.length - 1);
-				fields.push({
-					key: name,
-					type: 'object',
-					name: name
-				});
+			if(argSet && argSet.length){
+				for(var i=0;i<argSet.length;i++){
+					var n = argSet[i];
+					var name = n.substring(2, n.length - 1);
+					fields.push({
+						key: name,
+						type: 'object',
+						name: name
+					});
+				}
 			}
 		}
 		

@@ -48,10 +48,14 @@ export default class PropEditor extends React.Component {
     updateField(targetNode, fieldInfo, value){
 		fieldInfo.value = value;
 		
-		if(!targetNode.props) {
-			targetNode.props = {};
+		if(targetNode._doFieldUpdate){
+			targetNode._doFieldUpdate(fieldInfo, value);
+		}else{
+			if(!targetNode.props) {
+				targetNode.props = {};
+			}
+			targetNode.props[fieldInfo.name] = value;
 		}
-		targetNode.props[fieldInfo.name] = value;
 		
 		// Tell the editor:
 		this.props.onChange(targetNode, fieldInfo, value);
@@ -62,42 +66,75 @@ export default class PropEditor extends React.Component {
 			return;
 		}
 		
-		if(contentNode.graph){
-			return `Graph nodes can currently only be edited in the graph editor. In the (near) future, static values will be identified and listed here too.`;
-		}
-		
-		var dataValues = {...contentNode.props};
-
-		var props = contentNode.type && contentNode.type.propTypes ? contentNode.type.propTypes : undefined;
-		var defaultProps = contentNode.type && contentNode.type.defaultProps ? contentNode.type.defaultProps : {};
-		
 		var dataFields = {};
 		var atLeastOneDataField = false;
-		if(props){
-			for(var fieldName in props){
-				if(this.specialField(fieldName)){
-					continue;
+		var isGraph = contentNode.graph;
+		
+		if(isGraph){
+			
+			// Graph nodes can specify which fields users would like to expose via having named constants.
+			// So, we just need to list the named constant nodes here.
+			var { structure } = contentNode.graph;
+			
+			if(structure && structure.c && structure.c.length){
+				var nodes = structure.c;
+				for(var i=0;i<nodes.length;i++){
+					var node = nodes[i];
+					
+					if(node && node.t == 'Constant' && node.d && node.d.fieldName){
+						// It's a named constant. It can be displayed here.
+						atLeastOneDataField = true;
+						dataFields[node.d.fieldName] = {
+							propType: 'string',
+							defaultValue: undefined,
+							value: node.d.output,
+							contentNode,
+							node
+						};
+					}
 				}
+			}
+			
+			contentNode = {
+				_doFieldUpdate: (fieldInfo, value) => {
+					var {contentGraph, node} = fieldInfo;
+					node.d.output = value;
+				}
+			};
+			
+		}else{
+			var dataValues = {...contentNode.props};
+			
+			var props = contentNode.type && contentNode.type.propTypes ? contentNode.type.propTypes : undefined;
+			var defaultProps = contentNode.type && contentNode.type.defaultProps ? contentNode.type.defaultProps : {};
+			
+			
+			if(props){
+				for(var fieldName in props){
+					if(this.specialField(fieldName)){
+						continue;
+					}
 
-				var propType = props[fieldName];
-				if(!propType.type){
-					propType = {type: propType};
+					var propType = props[fieldName];
+					if(!propType.type){
+						propType = {type: propType};
+					}
+					
+					if(propType.type == "jsx") {
+						continue;
+					}
+					
+					var value = null;
+					
+					// Got a value?
+					if(dataValues[fieldName]) {
+						value = dataValues[fieldName];
+					}
+					
+					var val = { propType, defaultValue: defaultProps[fieldName], value};
+					dataFields[fieldName] = val;
+					atLeastOneDataField = true;
 				}
-				
-				if(propType.type == "jsx") {
-					continue;
-				}
-				
-				var value = null;
-				
-				// Got a value?
-				if(dataValues[fieldName]) {
-					value = dataValues[fieldName];
-				}
-				
-				var val = { propType, defaultValue: defaultProps[fieldName], value};
-				dataFields[fieldName] = val;
-				atLeastOneDataField = true;
 			}
 		}
 		
@@ -108,7 +145,7 @@ export default class PropEditor extends React.Component {
 		}
 		
 		return <div>
-			{`No other options available`}
+			{isGraph ? `No options currently available. Add named constant nodes to the graph to get options here.` : `No other options available`}
 		</div>;
 	}
 	
@@ -336,7 +373,7 @@ export default class PropEditor extends React.Component {
 						
 		return <div className="prop-editor">
 			<div className="toolbar">
-				<button className={"btn btn-outline-primary"} onClick={e=>{
+				<button type="button" className={"btn btn-outline-primary"} onClick={e=>{
 					
 					e.preventDefault();
 				
@@ -369,7 +406,7 @@ export default class PropEditor extends React.Component {
 					this.props.setGraphState(true);
 					
 				}} disabled={typeName == 'richtext'}>Edit graph</button>
-				<button className={"btn btn-outline-primary"} onClick={e=>{
+				<button type="button" className={"btn btn-outline-primary"} onClick={e=>{
 					
 					e.preventDefault();
 					

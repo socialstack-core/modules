@@ -27,6 +27,15 @@ export default function ContentTypeSelect(props){
 			<option key={'primary'} value={'primary'}>{`Primary type (${primaryType})`}</option>
 		);
 	}
+
+	// sort content types alphabetically
+	contentTypes = Object.keys(contentTypes).sort().reduce(
+		(obj, key) => {
+			obj[key] = contentTypes[key];
+			return obj;
+		},
+		{}
+	);
 	
 	for(var contentTypeKey in contentTypes){
 		var ctInfo = contentTypes[contentTypeKey];

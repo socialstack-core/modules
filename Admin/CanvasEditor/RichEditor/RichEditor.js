@@ -1,6 +1,6 @@
 import Draft from '../DraftJs/Draft.min.js';
 import Modal from 'UI/Modal';
-const { Editor, EditorState, RichUtils, convertFromHTML, getDefaultKeyBinding, ContentState, convertToRaw } = Draft;
+const { Editor, EditorState, RichUtils, convertFromHTML, getDefaultKeyBinding, ContentState, convertToRaw, Modifier } = Draft;
 
 const BUTTONBAR_MARGIN = 16;
 const SCROLLBAR_WIDTH = 17;
@@ -25,6 +25,7 @@ export default class RichEditor extends React.Component {
 		};
 
 		this.urlRef = React.createRef();
+		this.tokenRef = React.createRef();
 
 		this.onChange = (editorState) => {
 			var element = props.selectedNode && props.selectedNode.dom ? props.selectedNode.dom.current : null;
@@ -125,7 +126,9 @@ export default class RichEditor extends React.Component {
         this.onURLChange = this._onURLChange.bind(this);
         this.confirmLink = this._confirmLink.bind(this);
         this.onLinkInputKeyDown = this._onLinkInputKeyDown.bind(this);
-        this.removeLink = this._removeLink.bind(this);
+		this.removeLink = this._removeLink.bind(this);
+		this.promptForToken = this._promptForToken.bind(this);
+		this.insertText = this._insertText.bind(this);
 	}
 
 	_handleKeyCommand(command, editorState) {
@@ -175,6 +178,11 @@ export default class RichEditor extends React.Component {
 	}
 
 	_toggleInlineStyle(inlineStyle) {
+
+		if (inlineStyle == "TOKEN") {
+			this.promptForToken();
+			return;
+		}
 
 		if (inlineStyle == "LINK") {
 			this.promptForLink();
@@ -270,10 +278,60 @@ export default class RichEditor extends React.Component {
               	setTimeout(() => this.urlRef.current.focus(), 0);
             });
         }
+	}
+	
+	_promptForToken(e) {
+		if (e) {
+			e.preventDefault();
+		}
+		
+        this.setState({
+			showTokenInput: true
+		}, () => {
+			setTimeout(() => this.tokenRef.current.focus(), 0);
+	  	});
     }
 
 	_onURLChange(e) {
 		this.setState({ urlValue: e.target.value });
+	}
+
+	_insertText(textToInsert) {
+		const {editorState} = this.props;
+	
+		const currentContent = editorState.getCurrentContent();
+		const currentSelection = editorState.getSelection();
+	
+		let newContent = Modifier.replaceText(
+			currentContent,
+			currentSelection,
+			textToInsert
+		);
+	
+		const textToInsertSelection = currentSelection.set('focusOffset', currentSelection.getFocusOffset() + textToInsert.length);
+	
+		let inlineStyles = editorState.getCurrentInlineStyle();
+	
+		inlineStyles.forEach(inLineStyle => newContent = Modifier.applyInlineStyle(newContent, textToInsertSelection, inLineStyle));
+	
+		let newState = EditorState.push(editorState, newContent, 'insert-characters');
+	
+		if (newState) {
+			newState = EditorState.forceSelection(newState, textToInsertSelection.set('anchorOffset', textToInsertSelection.getAnchorOffset() + textToInsert.length));
+		}
+
+		if (newState) {
+			this.onChange(newState);
+			this.setState({
+				showTokenInput: false,
+				tokenValue: null
+			  }, () => {
+				setTimeout(() => this.tokenRef.focus(), 0);
+			});
+			return true;
+		}
+
+		return false;
 	}
 
 	_confirmLink(e) {
@@ -329,7 +387,7 @@ export default class RichEditor extends React.Component {
     }
 
 	render() {
-		const { editorState, textonly } = this.props;
+		const { editorState, textonly, context } = this.props;
 
 		// If the user changes block type before entering any text, we can
 		// either style the placeholder or hide it. Let's just hide it now.
@@ -341,8 +399,28 @@ export default class RichEditor extends React.Component {
 			}
 		}
 
+		var tokenOptions = context 
+			? context.map(contextItem => { 
+					return {
+						value: contextItem.isPrice
+							? "${currencysymbol}${context." + contextItem.name + "}"
+							: "${context." + contextItem.name + "}",
+						label: contextItem.value 
+							? contextItem.label + " - " + contextItem.value 
+							: contextItem.label
+					} 
+				}) 
+			: [];
+
+		if (tokenOptions) {
+			tokenOptions.unshift({
+				value: "${currencysymbol}",
+				label: "Currency Symbol"
+			});
+		}
+
 		return <>
-			<Modal visible={this.state.showURLInput} title={`Insert Link`} className="richeditor-modal"
+			<Modal visible={this.state.showURLInput} title={`Insert Link`} className="richeditor-modal link-modal"
 				onClose={() => this.setState({ showURLInput: false })}>
 				<div className="mb-3">
 					<label htmlFor="link_url" className="form-label">
@@ -371,6 +449,37 @@ export default class RichEditor extends React.Component {
 					</div>
 				</footer>
 			</Modal>
+
+			<Modal visible={this.state.showTokenInput} title={`Insert Token`} className="richeditor-modal prompy-modal"
+				onClose={() => this.setState({ showTokenInput: false, tokenValue: null })}>
+				<div className="mb-3">
+					<label htmlFor="token" className="form-label">
+						{`Choose the token`}
+					</label>
+					<select className="form-select" id="token" ref={this.tokenRef} onChange={e => this.setState({ tokenValue: e.target.value })}>
+						{
+							tokenOptions.map(option => <option value={option.value}>
+								{option.label}
+							</option>)
+						}
+					</select >
+				</div>
+
+				<footer className="richeditor-modal-footer">
+					<div>
+						<button type="button" className="btn btn-primary"
+							onClick={() => {
+								this.insertText(this.tokenRef.current.value);
+							}}>
+							{`Save`}
+						</button>
+						<button type="button" className="btn btn-outline-primary" onClick={() => this.setState({ showTokenInput: false, tokenValue: null })}>
+							{`Cancel`}
+						</button>
+					</div>
+				</footer>
+			</Modal>
+
 			<div className="RichEditor-wrapper">
 				<div className={className} onClick={this.focus}>
 					<svg xmlns="http://www.w3.org/2000/svg" className="RichEditor__icons">
@@ -396,6 +505,7 @@ export default class RichEditor extends React.Component {
 							<path id="RichEditor__icon-right" fill-rule="evenodd" d="M6 12.5a.5.5 0 0 1 .5-.5h7a.5.5 0 0 1 0 1h-7a.5.5 0 0 1-.5-.5zm-4-3a.5.5 0 0 1 .5-.5h11a.5.5 0 0 1 0 1h-11a.5.5 0 0 1-.5-.5zm4-3a.5.5 0 0 1 .5-.5h7a.5.5 0 0 1 0 1h-7a.5.5 0 0 1-.5-.5zm-4-3a.5.5 0 0 1 .5-.5h11a.5.5 0 0 1 0 1h-11a.5.5 0 0 1-.5-.5z" />
 							<path id="RichEditor__icon-center" fill-rule="evenodd" d="M4 12.5a.5.5 0 0 1 .5-.5h7a.5.5 0 0 1 0 1h-7a.5.5 0 0 1-.5-.5zm-2-3a.5.5 0 0 1 .5-.5h11a.5.5 0 0 1 0 1h-11a.5.5 0 0 1-.5-.5zm2-3a.5.5 0 0 1 .5-.5h7a.5.5 0 0 1 0 1h-7a.5.5 0 0 1-.5-.5zm-2-3a.5.5 0 0 1 .5-.5h11a.5.5 0 0 1 0 1h-11a.5.5 0 0 1-.5-.5z" />
 							<path id="RichEditor__icon-justified" fill-rule="evenodd" d="M2 12.5a.5.5 0 0 1 .5-.5h11a.5.5 0 0 1 0 1h-11a.5.5 0 0 1-.5-.5zm0-3a.5.5 0 0 1 .5-.5h11a.5.5 0 0 1 0 1h-11a.5.5 0 0 1-.5-.5zm0-3a.5.5 0 0 1 .5-.5h11a.5.5 0 0 1 0 1h-11a.5.5 0 0 1-.5-.5zm0-3a.5.5 0 0 1 .5-.5h11a.5.5 0 0 1 0 1h-11a.5.5 0 0 1-.5-.5z" />
+							<path id="RichEditor__icon-token" d="M2.114 8.063V7.9c1.005-.102 1.497-.615 1.497-1.6V4.503c0-1.094.39-1.538 1.354-1.538h.273V2h-.376C3.25 2 2.49 2.759 2.49 4.352v1.524c0 1.094-.376 1.456-1.49 1.456v1.299c1.114 0 1.49.362 1.49 1.456v1.524c0 1.593.759 2.352 2.372 2.352h.376v-.964h-.273c-.964 0-1.354-.444-1.354-1.538V9.663c0-.984-.492-1.497-1.497-1.6zM13.886 7.9v.163c-1.005.103-1.497.616-1.497 1.6v1.798c0 1.094-.39 1.538-1.354 1.538h-.273v.964h.376c1.613 0 2.372-.759 2.372-2.352v-1.524c0-1.094.376-1.456 1.49-1.456V7.332c-1.114 0-1.49-.362-1.49-1.456V4.352C13.51 2.759 12.75 2 11.138 2h-.376v.964h.273c.964 0 1.354.444 1.354 1.538V6.3c0 .984.492 1.497 1.497 1.6z" />
 						</defs>
 					</svg>
 
@@ -546,6 +656,7 @@ var INLINE_STYLES = [
 	{ label: `Underline`, style: 'UNDERLINE', icon: 'underline' },
 	{ label: `Monospace`, style: 'CODE', icon: 'code', description: `Code` },
 	{ label: `Hyperlink`, style: 'LINK', icon: 'link', iconPathCount: 2, description: `Insert link` },
+	{ label: `Token`, style: 'TOKEN', icon: 'token', description: `Insert token` },
 ];
 
 const InlineStyleControls = (props) => {
