@@ -25,7 +25,12 @@ namespace Api.Startup
 		/// True when AfterStart has been called.
 		/// </summary>
 		public static bool Started;
-		
+
+		/// <summary>
+		/// If services have not started yet, you can wait for this.
+		/// </summary>
+		public static TaskCompletionSource StartupWaiter = new TaskCompletionSource();
+
 		/// <summary>
 		/// The list of all service types sorted by their load order. Cleared after startup.
 		/// </summary>
@@ -453,7 +458,15 @@ namespace Api.Startup
 		{
 			Started = true;
 			Provider = null;
+
 			await Events.Service.AfterStart.Dispatch(new Contexts.Context(), null);
+
+			if (StartupWaiter != null)
+			{
+				// Done! anything that was waiting for the startup waiter is now good to go.
+				StartupWaiter.TrySetResult();
+				StartupWaiter = null;
+			}
 		}
 
 	}
