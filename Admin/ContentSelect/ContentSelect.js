@@ -84,11 +84,12 @@ export default class ContentSelect extends React.Component {
 			
 			var {searchSelected} = this.state;
 			var title = '';
-			
-			if(searchSelected){
-				title = searchSelected.title || searchSelected.firstName || searchSelected.username || searchSelected.name || searchSelected.url;
+
+			if (searchSelected) {
+				var titleField = this.props.titleField;
+				title = titleField && titleField.length && searchSelected[titleField] ? searchSelected[titleField] : searchSelected.title || searchSelected.firstName || searchSelected.username || searchSelected.name || searchSelected.url;
 			}
-			
+
 			var value = this.props.defaultValue || this.props.value;
 
 			return <div className="mb-3 content-select">
