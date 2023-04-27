@@ -41,8 +41,8 @@ namespace Api.Database
 		{
 			TypeMap = new Dictionary<Type, DatabaseType>();
 			
-			TypeMap[typeof(string)] = new DatabaseType("text", "varchar");
-			TypeMap[typeof(byte[])] = new DatabaseType("blob", "varbinary");
+			TypeMap[typeof(string)] = new DatabaseType("text", "varchar", "longtext");
+			TypeMap[typeof(byte[])] = new DatabaseType("blob", "varbinary", "longblob");
 			TypeMap[typeof(bool)] = new DatabaseType("bit");
 			TypeMap[typeof(sbyte)] = new DatabaseType("tinyint");
 			TypeMap[typeof(byte)] = new DatabaseType("tinyint", true);
@@ -145,7 +145,21 @@ namespace Api.Database
 
 			if (TypeMap.TryGetValue(fieldType, out DatabaseType dbType))
 			{
-				DataType = MaxCharacters.HasValue ? dbType.TypeNameWithLength : dbType.TypeName;
+				if (MaxCharacters.HasValue)
+				{
+					if (MaxCharacters.Value >= dbType.LargeLengthThreshold)
+					{
+						DataType = dbType.TypeNameWithLargeLength;
+					}
+					else
+					{
+						DataType = dbType.TypeNameWithLength;
+					}
+				}
+				else
+				{
+					DataType = dbType.TypeName;
+				}
 				IsUnsigned = dbType.IsUnsigned;
 			}
 			else

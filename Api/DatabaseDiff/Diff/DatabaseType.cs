@@ -14,6 +14,19 @@ namespace Api.Database
 		/// if a field length is specified.
 		/// </summary>
 		public string TypeNameWithLength;
+
+		/// <summary>
+		/// Lengths above this threshold will trigger the column type to be TypeNameWithLargeLength instead.
+		/// </summary>
+		public int LargeLengthThreshold = 64000;
+
+		/// <summary>
+		/// Optional - used to declare an alternate database type to use if a length is present.
+		/// For example, TypeName is "text" and this field is "varchar" - indicating that we'll use varchar
+		/// if a field length is specified.
+		/// </summary>
+		public string TypeNameWithLargeLength;
+
 		/// <summary>
 		/// The name of the type - int, bigint, text etc.
 		/// </summary>
@@ -23,14 +36,16 @@ namespace Api.Database
 		/// True if this type is unsigned.
 		/// </summary>
 		public bool IsUnsigned;
-		
+
 		/// <summary>
 		/// Creates a new database type definition.
 		/// </summary>
 		/// <param name="typeName"></param>
 		/// <param name="typeNameWithLength"></param>
-		public DatabaseType(string typeName, string typeNameWithLength = null)
+		/// <param name="typeWithLargeLength"></param>
+		public DatabaseType(string typeName, string typeNameWithLength = null, string typeWithLargeLength = null)
 		{
+			TypeNameWithLargeLength = typeWithLargeLength;
 			TypeNameWithLength = typeNameWithLength;
 			TypeName = typeName;
 		}
