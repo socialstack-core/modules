@@ -468,6 +468,10 @@ namespace Api.Emails
 			{
 				foreach (var header in additionalHeaders)
 				{
+					if (header.Key == "Reply-To")
+					{
+						mailMessage.ReplyToList.Add(header.Value);
+					}
 					mailMessage.Headers.Add(header.Key, header.Value);
 				}
 			}
