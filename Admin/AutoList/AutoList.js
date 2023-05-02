@@ -370,6 +370,7 @@ export default class AutoList extends React.Component {
 				</header>
 				<div className="admin-page__content">
 					<div className="admin-page__internal">
+						{this.props.beforeList}
 						{/* TODO: split revisions into a separate tab if available */}
 						{revisionsSupported && (
 							<Loop asTable over={this.props.endpoint + '/revision/list'} filter={{ where: { IsDraft: 1 } }}
