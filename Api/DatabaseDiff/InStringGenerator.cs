@@ -32,7 +32,7 @@ namespace Api.Permissions{
 		private static void BuildMap()
 		{
 			var allTypes = typeof(InStringGenerator).Assembly.DefinedTypes;
-			_map = new Dictionary<Type, InStringGenerator>();
+			var map = new Dictionary<Type, InStringGenerator>();
 
 			foreach (var typeInfo in allTypes)
 			{
@@ -53,17 +53,18 @@ namespace Api.Permissions{
 
 				// Got one - instance it now:
 				var gen = Activator.CreateInstance(typeInfo) as InStringGenerator;
-				_map[enumType] = gen;
+				map[enumType] = gen;
 
 				if (forBaseType.IsValueType && Nullable.GetUnderlyingType(forBaseType) == null)
 				{
 					// IDCollector is only available for value types - not nullables or e.g. string.
 					var collectorType = typeof(IDCollector<>).MakeGenericType(new Type[] { forBaseType });
 
-					_map[collectorType] = gen;
+					map[collectorType] = gen;
 				}
 			}
 
+			_map = map;
 		}
 
 		/// <summary>
