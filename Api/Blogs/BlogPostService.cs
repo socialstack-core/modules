@@ -4,12 +4,8 @@ using System.Threading.Tasks;
 using System.Text;
 using System.Text.RegularExpressions;
 using Api.Startup;
-using Api.Permissions;
 using System.Collections.Generic;
-using Api.Configuration;
-using Newtonsoft.Json.Linq;
 using Api.CanvasRenderer;
-using System;
 using Api.Users;
 
 namespace Api.Blogs
@@ -35,10 +31,6 @@ namespace Api.Blogs
 			InstallAdminPages(null, null, new string[] { "id", "slug", "title" });
 			
 			var config = _blogs.GetConfig<BlogServiceConfig>();
-
-			var authorIdField = GetChangeField("AuthorId");
-			var slugField = GetChangeField("Slug");
-			var synopsisField = GetChangeField("Synopsis");
 
 			//Before create to set the author of the blog to the author if the value passed in is not valid, or not set.
 			Events.BlogPost.BeforeCreate.AddEventListener(async (Context context, BlogPost blogPost) =>
@@ -133,7 +125,7 @@ namespace Api.Blogs
 			});
 
 			// Before update to make sure the slug is unique.
-			Events.BlogPost.BeforeUpdate.AddEventListener(async (Context context, BlogPost blogPost) =>
+			Events.BlogPost.BeforeUpdate.AddEventListener(async (Context context, BlogPost blogPost, BlogPost original) =>
 			{
 				var slug = "";
 
@@ -165,7 +157,6 @@ namespace Api.Blogs
 						}
 
 						blogPost.Synopsis = synopsis;
-						blogPost.MarkChanged(synopsisField);
 					}
 				}
 
@@ -183,15 +174,13 @@ namespace Api.Blogs
 					if (author == null)
 					{
 						// The author is not valid, let's set the author to the creatorUser
-						blogPost.AuthorId = blogPost.GetCreatorUserId();
-						blogPost.MarkChanged(authorIdField);
+						blogPost.AuthorId = blogPost.UserId;
 					}
 				}
 				else
 				{
 					// no authorId, let's return it to being the creatorUser.
-					blogPost.AuthorId = blogPost.GetCreatorUserId();
-					blogPost.MarkChanged(authorIdField);
+					blogPost.AuthorId = blogPost.UserId;
 				}
 
 				// Was a slug passed in? if so, just pass the blogPost on.
@@ -199,14 +188,12 @@ namespace Api.Blogs
 				{
 					// Let's make sure the provided slug is unique.
 					blogPost.Slug = await GetSlug(context, blogPost.Title, blogPost.Slug, blogPost.Id);
-					blogPost.MarkChanged(slugField);
 				}
 				else if(config.GenerateSlugs)
                 {
 					// No slug was added, let's get one if we are generating slugs. 
 					slug = await GetSlug(context, blogPost.Title, null, blogPost.Id);
 					blogPost.Slug = slug;
-					blogPost.MarkChanged(slugField);
 				}
 
 				return blogPost;

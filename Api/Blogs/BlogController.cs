@@ -1,12 +1,4 @@
-﻿using System;
-using System.Threading.Tasks;
-using Api.Eventing;
-using Api.Contexts;
-using Api.Permissions;
-using Api.Results;
-using Microsoft.AspNetCore.Mvc;
-using Newtonsoft.Json.Linq;
-using Api.AutoForms;
+﻿using Microsoft.AspNetCore.Mvc;
 
 namespace Api.Blogs
 {
