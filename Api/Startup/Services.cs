@@ -18,8 +18,14 @@ namespace Api.Startup
 	{
 		/// <summary>
 		/// Environment that we're running in. Use IsDevelopment, IsStaging and IsProduction for common ones.
+		/// Has been sanitised so will typically be "dev", "stage" and "prod".
 		/// </summary>
 		public static string Environment;
+		
+		/// <summary>
+		/// Environment that we're running in, exactly as it appears in the appsettings file.
+		/// </summary>
+		public static string OriginalEnvironment;
 		
 		/// <summary>
 		/// True when AfterStart has been called.
@@ -257,12 +263,39 @@ namespace Api.Startup
 		}
 
 		/// <summary>
+		/// Sanitises the given environment name, handling common variants.
+		/// </summary>
+		/// <param name="name"></param>
+		/// <returns></returns>
+		public static string SanitiseEnvironment(string name)
+		{
+			name = name.ToLower().Trim();
+
+			if (string.IsNullOrEmpty(Environment) || name == "dev" || name == "development")
+			{
+				return "dev";
+			}
+
+			if (name == "stage" || name == "staging" || name == "preprod" || name == "preproduction")
+			{
+				return "stage";
+			}
+
+			if (name == "prod" || name == "production" || name == "live")
+			{
+				return "prod";
+			}
+
+			return name;
+		}
+
+		/// <summary>
 		/// True if this is the dev environment. Any of {null}, "dev" or "development" are accepted.
 		/// </summary>
 		/// <returns></returns>
 		public static bool IsDevelopment()
 		{
-			return string.IsNullOrEmpty(Environment) || Environment == "dev" || Environment == "development";
+			return Environment == "dev";
 		}
 
 		/// <summary>
@@ -271,7 +304,7 @@ namespace Api.Startup
 		/// <returns></returns>
 		public static bool IsProduction()
 		{
-			return Environment == "prod" || Environment == "production" || Environment == "live";
+			return Environment == "prod";
 		}
 
 		/// <summary>
@@ -280,7 +313,7 @@ namespace Api.Startup
 		/// <returns></returns>
 		public static bool IsStaging()
 		{
-			return Environment == "stage" || Environment == "staging";
+			return Environment == "stage";
 		}
 
 		/// <summary>

@@ -117,7 +117,8 @@ namespace Api.Startup
 			}
 
 			// Set environment:
-			Services.Environment = env.ToLower().Trim();
+			Services.Environment = Services.SanitiseEnvironment(env);
+			Services.OriginalEnvironment = env;
 
 			// Get webserver mode:
 			var webserverMode = AppSettings.GetString("WebServerMode");
