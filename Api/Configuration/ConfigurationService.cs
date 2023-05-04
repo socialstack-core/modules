@@ -25,11 +25,6 @@ namespace Api.Configuration
 	public partial class ConfigurationService : AutoService<Api.Configuration.Configuration>
     {
 		/// <summary>
-		/// Loaded config map
-		/// </summary>
-		public Dictionary<uint, Configuration> Map = new Dictionary<uint, Configuration>();
-
-		/// <summary>
 		/// Instanced automatically. Use injection to use this service, or Startup.Services.Get.
 		/// </summary>
 		public ConfigurationService(AutoFormService autoForms) : base(Events.Configuration)
@@ -42,55 +37,254 @@ namespace Api.Configuration
 			Events.Configuration.Received.AddEventListener(async (Context context, Configuration config, int type) => {
 
 				// Some other server in the cluster updated config.
+				// 1 = Create, 2 = Update, 3 = Delete.
 
-				Map.TryGetValue(config.Id, out Configuration existingLoadedConfig);
-
-				if (existingLoadedConfig != null)
+				switch(type)
 				{
-					config.ConfigObject = existingLoadedConfig.ConfigObject;
-					config.SetObject = existingLoadedConfig.SetObject;
-				}
+					case 1:
 
-				Map[config.Id] = config;
+						// Created
+						if (PermittedOnThisEnvironment(config.Environments))
+						{
+							// Ok - any matching sets?
+							if (config.Key != null && Config.SetMap.TryGetValue(config.Key, out ConfigSet cSet))
+							{
+								// Yep! Load the config object now and add it to the set.
+								Config pConfig = null;
 
-				try
-				{
-					await LoadConfig(config);
-				}
-				catch (Exception e)
-				{
-                    WriteColourLine.Warning("[WARN] Remote config update failed to load: " + e.ToString());
+								try
+								{
+									pConfig = Newtonsoft.Json.JsonConvert.DeserializeObject(config.ConfigJson, cSet.EntryType) as Config;
+								}
+								catch (Exception e)
+								{
+									Console.WriteLine(e);
+									return config;
+								}
+
+								if (pConfig != null)
+								{
+									pConfig.Id = config.Id;
+									await cSet.UpdateInSet(pConfig);
+								}
+							}
+						}
+
+						break;
+					case 2:
+
+						// Updated
+						// We don't know if the key just changed. It very likely didn't but it might have done so.
+						// Because it probably didn't, we'll check its current key first. It's only in 1 set.
+
+						Config parsedConfig = null;
+
+						var permitted = PermittedOnThisEnvironment(config.Environments);
+
+						if (Config.SetMap.TryGetValue(config.Key, out ConfigSet currentSet))
+						{
+							// It's probably currently in a set or needs to be added to one.
+
+							// Try to parse the JSON. If it fails, reject the update.
+							try
+							{
+								parsedConfig = Newtonsoft.Json.JsonConvert.DeserializeObject(config.ConfigJson, currentSet.EntryType) as Config;
+							}
+							catch (Exception e)
+							{
+								Console.WriteLine(e);
+								return config;
+							}
+
+							if (parsedConfig == null)
+							{
+								return config;
+							}
+
+							// We can't identify if the key changed via comparison, so must search for it in all existing sets.
+							// We'll take a guess that it's in the current one first though.
+
+							var existingIndex = currentSet.GetIndex(config.Id);
+
+							if (existingIndex == -1)
+							{
+								// Check every other set for a config object with this ID.
+								foreach (var kvp in Config.SetMap)
+								{
+									if (kvp.Key == config.Key)
+									{
+										continue;
+									}
+
+									existingIndex = kvp.Value.GetIndex(config.Id);
+
+									if (existingIndex != -1)
+									{
+										// Set changed.
+										await kvp.Value.RemoveById(config.Id);
+										break;
+									}
+								}
+							}
+							else if (!permitted)
+							{
+								// No longer permitted. Remove it.
+								await currentSet.RemoveById(config.Id);
+							}
+						}
+						else
+						{
+							// Target key set didn't exist. Check every other set for a config object with this ID.
+							foreach (var kvp in Config.SetMap)
+							{
+								if (kvp.Key == config.Key)
+								{
+									continue;
+								}
+
+								var existingIndex = kvp.Value.GetIndex(config.Id);
+
+								if (existingIndex != -1)
+								{
+									// Set changed.
+									await kvp.Value.RemoveById(config.Id);
+									break;
+								}
+							}
+						}
+
+						if (currentSet != null && permitted)
+						{
+							// Ensure ID is set:
+							parsedConfig.Id = config.Id;
+
+							// Add it or nudges the set if it is already in there:
+							await currentSet.UpdateInSet(parsedConfig);
+						}
+
+						break;
+					case 3:
+
+						// Deleted
+						if (config.Key != null && Config.SetMap.TryGetValue(config.Key, out ConfigSet delSet))
+						{
+							await delSet.RemoveById(config.Id);
+						}
+
+						break;
 				}
 
 				return config;
 			});
 
-			Events.Configuration.BeforeCreate.AddEventListener((Context context, Configuration config) =>
+			Events.Configuration.BeforeCreate.AddEventListener(async (Context context, Configuration config) =>
 			{
+				if (config == null)
+				{
+					return config;
+				}
+
 				if (string.IsNullOrEmpty(config.Key))
 				{
 					throw new PublicException("At least a key is required", "config_key_required");
 				}
 
-				return new ValueTask<Configuration>(config);
-			});
+				// New config created. Does it belong in any global sets and is it permitted on this server?
+
+				if (PermittedOnThisEnvironment(config.Environments))
+				{
+					// Ok - any matching sets?
+					if (config.Key != null && Config.SetMap.TryGetValue(config.Key, out ConfigSet set))
+					{
+						// Yep! Load the config object now and add it to the set.
+						Config parsedConfig = null;
+
+						try
+						{
+							parsedConfig = Newtonsoft.Json.JsonConvert.DeserializeObject(config.ConfigJson, set.EntryType) as Config;
+						}
+						catch (Exception e)
+						{
+							Console.WriteLine(e);
+							throw new PublicException("Unable to save configuration because the JSON is invalid.", "invalid_json");
+						}
+
+						if (parsedConfig == null)
+						{
+							throw new PublicException("Unable to save configuration because the JSON was null or did not match the target type at all.", "invalid_json");
+						}
+
+						parsedConfig.Id = config.Id;
+						await set.UpdateInSet(parsedConfig);
+					}
+				}
+
+				return config;
+			}, 200);
 
 			Events.Configuration.BeforeUpdate.AddEventListener(async (Context context, Configuration config, Configuration originalConfig) => {
 
+				if (config == null)
+				{
+					return config;
+				}
+
 				if (string.IsNullOrEmpty(config.Key))
 				{
 					throw new PublicException("At least a key is required", "config_key_required");
 				}
 
-				// Attempt to parse the JSON:
-				try
+				// Get the set for the config type:
+				Config parsedConfig = null;
+
+				if (Config.SetMap.TryGetValue(config.Key, out ConfigSet currentSet))
 				{
-					await LoadConfig(config);
+					// It's probably currently in a set or needs to be added to one.
+
+					// Try to parse the JSON. If it fails, reject the update.
+					try
+					{
+						parsedConfig = Newtonsoft.Json.JsonConvert.DeserializeObject(config.ConfigJson, currentSet.EntryType) as Config;
+					}
+					catch (Exception e)
+					{
+						Console.WriteLine(e);
+						throw new PublicException("Unable to save configuration because the JSON is invalid.", "invalid_json");
+					}
+
+					if (parsedConfig == null)
+					{
+						throw new PublicException("Unable to save configuration because the JSON was null or did not match the target type at all.", "invalid_json");
+					}
 				}
-				catch (Exception e)
+
+				var permitted = PermittedOnThisEnvironment(config.Environments);
+
+				if ((!permitted || (originalConfig.Key != null && originalConfig.Key != config.Key)) && 
+					Config.SetMap.TryGetValue(originalConfig.Key, out ConfigSet originalSet))
 				{
-					Console.WriteLine(e);
-					throw new PublicException("Unable to save configuration - the JSON is invalid.", "invalid_json");
+					// The key changed or it is not permitted. Remove from original set:
+					await originalSet.RemoveById(config.Id);
+				}
+
+				if (currentSet != null && permitted)
+				{
+					// Ensure ID is set:
+					parsedConfig.Id = config.Id;
+
+					// Add it or nudges the set if it is already in there:
+					await currentSet.UpdateInSet(parsedConfig);
+				}
+
+				return config;
+			}, 200);
+
+			Events.Configuration.AfterDelete.AddEventListener(async (Context context, Configuration config) =>
+			{
+				// Config deleted. Any matching sets?
+				if (config.Key != null && Config.SetMap.TryGetValue(config.Key, out ConfigSet set))
+				{
+					await set.RemoveById(config.Id);
 				}
 
 				return config;
@@ -170,55 +364,6 @@ namespace Api.Configuration
 		}
 
 		/// <summary>
-		/// Updates the loaded config object, if there is one. May throw a JSON related error.
-		/// </summary>
-		/// <param name="config"></param>
-		private async ValueTask LoadConfig(Configuration config)
-		{
-			if (config == null)
-			{
-				return;
-			}
-				
-			if (config.ConfigObject != null)
-			{
-				// Deserialise it:
-				var type = config.ConfigObject.GetType();
-				var res = Newtonsoft.Json.JsonConvert.DeserializeObject(config.ConfigJson, type);
-
-				// Copy values to existing object.
-				// By doing this, any refs to the existing object are still valid.
-				foreach (var property in type.GetProperties())
-				{
-					property.SetValue(config.ConfigObject, property.GetValue(res));
-				}
-
-				foreach (var field in type.GetFields())
-				{
-					if (field.Name == "OnChange")
-					{
-						// Retain original event set for this field.
-						continue;
-					}
-
-					field.SetValue(config.ConfigObject, field.GetValue(res));
-				}
-
-				if (config.ConfigObject != null)
-				{
-					await config.ConfigObject.Changed();
-				}
-
-				UpdateFrontendConfig(config.ConfigObject, config.SetObject);
-			}
-
-			if (config.SetObject != null)
-			{
-				await config.SetObject.Changed();
-			}
-		}
-
-		/// <summary>
 		/// Json serialization settings for canvases
 		/// </summary>
 		private static readonly JsonSerializerSettings jsonSettings = new JsonSerializerSettings
@@ -247,7 +392,7 @@ namespace Api.Configuration
 		/// Creates a config row. The given object is jsonified and put into the DB.
 		/// </summary>
 		/// <returns></returns>
-		public async ValueTask InstallConfig(Config cfg, string name, string key, Config set = null)
+		public async ValueTask InstallConfig(Config cfg, string name, string key, ConfigSet set)
 		{
 			var cfgRow = new Configuration()
 			{
@@ -255,16 +400,9 @@ namespace Api.Configuration
 				Key = key,
 				ConfigJson = JsonConvert.SerializeObject(cfg, Formatting.Indented)
 			};
-			cfgRow.ConfigObject = cfg;
-			cfgRow.SetObject = set;
 			await Create(new Context(), cfgRow, DataOptions.IgnorePermissions);
 			cfg.Id = cfgRow.Id;
-			UpdateFrontendConfig(cfg, null);
-
-			if (set != null)
-			{
-				set.AddToSet(cfg);
-			}
+			await set.UpdateInSet(cfg);
 		}
 
 		/// <summary>
@@ -273,7 +411,7 @@ namespace Api.Configuration
 		/// </summary>
 		/// <param name="configObject"></param>
 		/// <param name="configSet"></param>
-		public void UpdateFrontendConfig(Config configObject, Config configSet)
+		public void UpdateFrontendConfig(Config configObject, ConfigSet configSet)
 		{
 			var type = configObject.GetType();
 			var properties = type.GetProperties();
@@ -352,7 +490,7 @@ namespace Api.Configuration
 			{
 				return;
 			}
-				
+			
 			configObject.FrontendJson = newJson;
 
 			if (_allFrontendConfigs == null)
@@ -479,6 +617,37 @@ namespace Api.Configuration
 		}
 
 		/// <summary>
+		/// True if the given environment string matches this environment.
+		/// </summary>
+		/// <param name="envString"></param>
+		/// <returns></returns>
+		public bool PermittedOnThisEnvironment(string envString)
+		{
+			if (string.IsNullOrWhiteSpace(envString))
+			{
+				return true;
+			}
+
+			// MUST match one. This is a fuzzy match so "dev" matches "Development".
+
+			// Split:
+			var envs = envString.Split(',');
+
+			for (var i = 0; i < envs.Length; i++)
+			{
+				var sanitised = Services.SanitiseEnvironment(envs[i]);
+
+				if (sanitised == Services.Environment)
+				{
+					return true;
+				}
+			}
+
+			// Matched none.
+			return false;
+		}
+
+		/// <summary>
 		/// Gets config from the cache via the given key. Note that this actively omits entries from other environments.
 		/// </summary>
 		/// <param name="key"></param>
@@ -495,37 +664,15 @@ namespace Api.Configuration
 
 			var keyIndex = cache.GetIndex<string>("Key") as NonUniqueIndex<Configuration, string>;
 			var loop = keyIndex.GetEnumeratorFor(key);
-			var thisEnvironment = Services.Environment;
 
 			while (loop.HasMore())
 			{
 				var current = loop.Current();
 
-				if (!string.IsNullOrEmpty(current.Environments))
+				if (PermittedOnThisEnvironment(current.Environments))
 				{
-					// Must contain the current environment.
-					var environmentSet = current.Environments.ToLower().Split(',');
-					var matched = false;
-
-					for (var i = 0; i < environmentSet.Length; i++)
-					{
-						var checkWith = environmentSet[i].Trim();
-
-						if (thisEnvironment == checkWith)
-						{
-							matched = true;
-							break;
-						}
-					}
-
-					if (!matched)
-					{
-						// Skip this config.
-						continue;
-					}
+					set.Add(current);
 				}
-
-				set.Add(current);
 			}
 
 			return set;

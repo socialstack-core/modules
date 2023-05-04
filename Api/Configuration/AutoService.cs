@@ -16,50 +16,41 @@ using Api.ColourConsole;
 public partial class AutoService
 {
 	/// <summary>
-	/// This service's config.
-	/// </summary>
-	private object _loadedConfiguration;
-
-	/// <summary>
-	/// This service's config (as a set).
-	/// </summary>
-	private object _loadedSetConfiguration;
-
-	/// <summary>
 	/// Get all config of the given type.
-	/// This set is live - it will update whenever the underlying config does.
+	/// This set is live - it will update whenever the underlying config does. Do not call this more than once per config object.
 	/// </summary>
-	public ConfigSet<T> GetAllConfig<T>() where T : Config, new()
+	public ConfigSet<T> GetAllConfig<T>(Action<T> onNewConfig = null, bool storeDefault = true) where T : Config, new()
 	{
-		if (_loadedSetConfiguration != null)
+		var name = typeof(T).Name;
+
+		if (name.EndsWith("Config"))
 		{
-			return (ConfigSet<T>)_loadedSetConfiguration;
+			// Trim it:
+			name = name.Substring(0, name.Length - 6);
 		}
+		else if (name.EndsWith("Configuration"))
+		{
+			// Trim it:
+			name = name.Substring(0, name.Length - 13);
+		}
+
+		// Already loaded?
+		if (Config.SetMap.TryGetValue(name, out ConfigSet existingSet))
+		{
+			return (ConfigSet<T>)existingSet;
+		}
+
+		var set = new ConfigSet<T>();
+		set.Name = name;
+		set.Configurations = new List<T>();
+
+		Config.SetMap[name] = set;
 
 		// Ask the cache of the config service. The key is based on the name of the type.
 		var configService = Services.Get<ConfigurationService>();
 
-		// Live TBD!
-
-		var set = new ConfigSet<T>();
-		set.Configurations = new List<T>();
-		_loadedSetConfiguration = set;
-
 		if (configService != null)
 		{
-			var name = typeof(T).Name;
-
-			if (name.EndsWith("Config"))
-			{
-				// Trim it:
-				name = name.Substring(0, name.Length - 6);
-			}
-			else if (name.EndsWith("Configuration"))
-			{
-				// Trim it:
-				name = name.Substring(0, name.Length - 13);
-			}
-			
 			var allConfig = configService.AllFromCache(name);
 
 			foreach(var entry in allConfig)
@@ -68,10 +59,7 @@ public partial class AutoService
 				{
 					var res = Newtonsoft.Json.JsonConvert.DeserializeObject<T>(entry.ConfigJson);
 					res.Id = entry.Id;
-					entry.SetObject = set;
-					entry.ConfigObject = res;
 					set.Configurations.Add(res);
-					configService.Map[entry.Id] = entry;
 					configService.UpdateFrontendConfig(res, set);
 				}
 				catch (Exception e)
@@ -80,6 +68,36 @@ public partial class AutoService
 						"'. It's in the site_configuration database table as row #" + entry.Id + ". The full error is below.");
 					Console.WriteLine(e.ToString());
 				}
+			}
+		}
+
+		// Try get from appsettings:
+		var appsettingsConfig = AppSettings.GetSection(name).Get<T>();
+
+		if (appsettingsConfig != null)
+		{
+			set.Configurations.Add(appsettingsConfig);
+		}
+
+		if (set.Configurations.Count > 0)
+		{
+			set.Primary = set.Configurations[0];
+		}
+
+		if (set.Primary == null)
+		{
+			// Set default cfg now:
+			set.Primary = new T();
+
+			if (onNewConfig != null)
+			{
+				onNewConfig(set.Primary);
+			}
+
+			// Store in the DB:
+			if (configService != null && storeDefault)
+			{
+				_ = configService.InstallConfig(set.Primary, name, name, set);
 			}
 		}
 
@@ -95,74 +113,7 @@ public partial class AutoService
 	/// </summary>
 	public T GetConfig<T>(Action<T> onNewConfig = null, bool storeDefault = true) where T:Config, new()
 	{
-		if(_loadedConfiguration == null)
-		{
-			// Ask the cache of the config service. The key is based on the name of the type.
-			var configService = Services.Get<ConfigurationService>();
-
-			var name = typeof(T).Name;
-
-			if (name.EndsWith("Config"))
-			{
-				// Trim it:
-				name = name.Substring(0, name.Length - 6);
-			}
-			else if (name.EndsWith("Configuration"))
-			{
-				// Trim it:
-				name = name.Substring(0, name.Length - 13);
-			}
-
-			if (configService != null)
-			{
-				var result = configService.FromCache(name);
-
-				if (result != null)
-				{
-					// Parse as obj:
-					try
-					{
-						var res = Newtonsoft.Json.JsonConvert.DeserializeObject<T>(result.ConfigJson);
-						_loadedConfiguration = res;
-						result.ConfigObject = res;
-						res.Id = result.Id;
-						configService.Map[result.Id] = result;
-						configService.UpdateFrontendConfig(res, null);
-						return res;
-					}
-					catch (Exception e)
-					{
-                        WriteColourLine.Warning("[WARN] Invalid JSON detected in config for '" + name + 
-							"'. It's in the site_configuration database table as row #" + result.Id + ". The full error is below.");
-						Console.WriteLine(e.ToString());
-					}
-				}
-			}
-
-			//Try from appsettings:
-			_loadedConfiguration = AppSettings.GetSection(name).Get<T>();
-
-			if (_loadedConfiguration == null)
-			{
-				// default cfg:
-				var dflt = new T();
-				_loadedConfiguration = dflt;
-
-				if (onNewConfig != null)
-				{
-					onNewConfig(dflt);
-				}
-
-				// Store in the DB:
-				if (configService != null && storeDefault)
-				{
-					_ = configService.InstallConfig(dflt, name, name);
-				}
-			}
-
-		}
-		
-		return (T)_loadedConfiguration;
+		return GetAllConfig<T>(onNewConfig, storeDefault).Primary;
 	}
 	
 }

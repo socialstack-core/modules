@@ -40,17 +40,6 @@ namespace Api.Configuration
 		[Module("UI/Input")]
 		[Data("contentType", "application/json")]
 		public string ConfigJson;
-
-		/// <summary>
-		/// Retains a parsed version of ConfigJson. This is directly the same object as config that have been loaded via AutoService.GetConfig.
-		/// </summary>
-		[JsonIgnore]
-		public Config ConfigObject { get; set; }
-		/// <summary>
-		/// Retains the parent set of the parsed version of ConfigJson. This is directly the same object as config that have been loaded via AutoService.GetAllConfig.
-		/// </summary>
-		[JsonIgnore]
-		public Config SetObject { get; set; }
 	}
 
 }
