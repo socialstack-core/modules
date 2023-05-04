@@ -31,7 +31,7 @@ namespace Api.Pages
     {
 		private readonly PageService _pages;
 		private readonly CanvasRendererService _canvasRendererService;
-		private readonly HtmlServiceConfig _config;
+		private readonly ConfigSet<HtmlServiceConfig> _configSet;
 		private readonly FrontendCodeService _frontend;
 		private readonly ContextService _contextService;
 		private readonly ThemeService _themeService;
@@ -52,7 +52,7 @@ namespace Api.Pages
 			_configurationService = configurationService;
 			_themeService = themeService;
 
-			_config = GetConfig<HtmlServiceConfig>();
+			_configSet = GetAllConfig<HtmlServiceConfig>();
 
 			var pathToUIDir = AppSettings.Configuration["UI"];
 
@@ -61,10 +61,13 @@ namespace Api.Pages
 				pathToUIDir = "UI/public";
 			}
 
-			_config.OnChange += () => {
+			_configSet.OnChange += () => {
 				cache = null;
+				BuildConfigLocaleTable();
 				return new ValueTask();
 			};
+
+			BuildConfigLocaleTable();
 
 			Events.Page.AfterUpdate.AddEventListener((Context context, Page page) =>
 			{
@@ -141,6 +144,81 @@ namespace Api.Pages
 				return _frontend.Version;
 			}
 		}
+
+		private void BuildConfigLocaleTable()
+		{
+			if (_configSet == null || _configSet.Configurations == null || _configSet.Configurations.Count == 0)
+			{
+				// Not configured at all.
+				_configurationTable = new HtmlServiceConfig[0];
+				_defaultConfig = new HtmlServiceConfig();
+				return;
+			}
+
+			// First collect highest locale ID.
+			uint highest = 0;
+			uint lowest = uint.MaxValue;
+
+			foreach (var config in _configSet.Configurations)
+			{
+				if (config == null)
+				{
+					continue;
+				}
+
+				if (config.LocaleId > highest)
+				{
+					highest = config.LocaleId;
+				}
+				else if (config.LocaleId < lowest)
+				{
+					lowest = config.LocaleId;
+				}
+			}
+
+			if (lowest == uint.MaxValue)
+			{
+				// Not configured at all.
+				_configurationTable = new HtmlServiceConfig[0];
+				_defaultConfig = new HtmlServiceConfig();
+				return;
+			}
+
+			var ct = new HtmlServiceConfig[highest + 1];
+
+			// Slot them:
+			foreach (var config in _configSet.Configurations)
+			{
+				if (config == null)
+				{
+					continue;
+				}
+
+				ct[config.LocaleId] = config;
+			}
+
+			// Fill any gaps with the default entry. The default simply has the lowest ID (ideally 0 or 1).
+			var defaultEntry = ct[lowest];
+
+			for (var i = 0; i < ct.Length; i++)
+			{
+				if (ct[i] == null)
+				{
+					ct[i] = defaultEntry;
+				}
+			}
+
+			_defaultConfig = defaultEntry;
+			_configurationTable = ct;
+		}
+
+		/// <summary>
+		/// Configs indexed by locale.
+		/// This set is fully populated: It has no nulls. If a slot is null for a given locale ID, it used the entry in slot 1. 
+		/// If slot 1 was also null, it used the entry for slot 0. However if a locale is beyond the end of the set, use slot 0.
+		/// </summary>
+		private HtmlServiceConfig[] _configurationTable = new HtmlServiceConfig[0];
+		private HtmlServiceConfig _defaultConfig = new HtmlServiceConfig();
 
 		/// <summary>
 		/// Types that have had an update event handler added to them. These handlers listen for updates (including remote ones), 
@@ -627,6 +705,8 @@ svg {
 
             var head = doc.Head;
 
+			var _config = (locale.Id < _configurationTable.Length) ? _configurationTable[locale.Id] : _defaultConfig;
+
 			// If there are tokens, get the primary object:
 
 			// Charset must be within first 1kb of the header:
@@ -705,8 +785,10 @@ svg {
 
             var head = doc.Head;
 
+			var _config = (locale.Id < _configurationTable.Length) ? _configurationTable[locale.Id] : _defaultConfig;
+
 			// If there are tokens, get the primary object:
-			
+
 			// Charset must be within first 1kb of the header:
 			head.AppendChild(new DocumentNode("meta", true).With("charset", "utf-8"));
 
@@ -933,6 +1015,8 @@ svg {
             }
 
             var head = doc.Head;
+
+			var _config = (locale.Id < _configurationTable.Length) ? _configurationTable[locale.Id] : _defaultConfig;
 
 			// Charset must be within first 1kb of the header:
 			head.AppendChild(new DocumentNode("meta", true).With("charset", "utf-8"));
@@ -1565,6 +1649,8 @@ svg {
 			var responseStream = response.Body;
 
 			List<DocumentNode> flatNodes = null;
+
+			var _config = (context.LocaleId < _configurationTable.Length) ? _configurationTable[context.LocaleId] : _defaultConfig;
 
 			// If we have a block wall password set, and there either isn't a time limit or the limit is in the future, and the user is not an admin:
 			if (

@@ -12,6 +12,12 @@ namespace Api.Pages
 	public class HtmlServiceConfig : Config
 	{
 		/// <summary>
+		/// Can specify more than one html config for different locales.
+		/// LocaleId of 0 or 1 is the fallback. If both exist, 0 is used as the fallback.
+		/// </summary>
+		public uint LocaleId { get; set; } = 0;
+
+		/// <summary>
 		/// True if core URLs should be fully qualified with your site's PublicUrl.
 		/// </summary>
 		public bool FullyQualifyUrls { get; set; } = false;
