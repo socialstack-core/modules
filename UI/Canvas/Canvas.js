@@ -38,7 +38,11 @@ class Canvas extends React.Component {
 				}
 				
 				this._loc = cur;
+			}else{
+				this._loc = global.location.href;
 			}
+		}else{
+			this._loc = global.location.href;
 		}
 		
 		this.setState({content: this.loadJson(props)});
@@ -240,7 +244,7 @@ export class ErrorCatcher extends React.Component {
 
 			if (error.fileName)
 			{
-				msg += ' (in ' + error.fileName + ' at ' + error.lineNumber + ':' + error.columnNumber + ')';
+				msg += ` (in ${error.filename} at ${error.lineNumber}:${error.columnNumber})`;
 			}
 		}
 
@@ -262,7 +266,7 @@ export class ErrorCatcher extends React.Component {
 		if (this.state.hasError) {
 			var { node } = this.props;
 			
-			var name = node ? (node.graph ? 'Graph runtime' : node.typeName) : 'Unknown';
+			var name = node ? (node.graph ? `Graph runtime` : node.typeName) : `Unknown`;
 			
 			return <Alert type='error'>
 				{`The component "${name}" crashed.`}
