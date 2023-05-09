@@ -66,7 +66,7 @@ export default class ContentList extends Executor {
 					cache.get(contentType, 'list', filt, includes) :
 					webRequest(contentType + '/list', filt, { includes });
 				
-				return p.then(() => {
+				return p.then(response => {
 					this.content = response.json.results;
 					return this.content;
 				});
