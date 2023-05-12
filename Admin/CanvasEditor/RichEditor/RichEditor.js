@@ -239,6 +239,7 @@ export default class RichEditor extends React.Component {
 
 					// buttonbar shown
 					this.buttonBarRect = this.buttonBarElement.current.getBoundingClientRect();
+					break;
 				}
 			}
 		});

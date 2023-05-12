@@ -764,6 +764,10 @@ export default class CanvasState{
 			
 		}else{
 			// Just a raw text only node.
+			if(!text){
+				// Block out the content
+				text = {t: 'br'};
+			}
 			return {t: blockType, c:text, d: data};
 		}
 		

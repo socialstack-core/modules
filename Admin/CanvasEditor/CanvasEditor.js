@@ -190,7 +190,11 @@ function renderStructureNode(node, canvasState, onClick, snapshotState) {
 		text: `Remove`,
 		showLabel: false,
 		variant: 'danger',
-		onClick: function () {
+		onClick: function (e) {
+			if(e){
+				e.stopPropagation();
+				e.preventDefault();
+			}
 			removeNode()
 		}
 	};
@@ -783,7 +787,7 @@ class CanvasEditorCore extends React.Component {
 
 		var rteClass = ['rte-component'];
 
-		if (node == canvasState.selectedNode && !this.props.textonly) {
+		if (node == canvasState.selectedNode && NodeType != 'richtext' && !this.props.textonly) { // Not richtext because clicking on the node focuses & unfocuses it repeatedly
 			rteClass.push('rte-component--selected');
 		}
 
@@ -801,7 +805,11 @@ class CanvasEditorCore extends React.Component {
 			}
 
 			// Pass the whole node to the RTE.
-			return <div key={node.key} ref={node.dom} data-component-type={node.typeName} className={rteClasses} {...node.props} onClick={(e) => this.props.onSelectNode(e, node)}>
+			return <div key={node.key} ref={node.dom} data-component-type={node.typeName} className={rteClasses} {...node.props} onClick={(e) => {
+					if(node != canvasState.selectedNode){
+						this.props.onSelectNode(e, node);
+					}
+				}}>
 				<RichEditor editorState={node.editorState} selectedNode={node} textonly={this.props.textonly} context={editorContext} blockRenderMap={extendedBlockRenderMap} onAddComponent={() => {
 					this.setState({selectOpenFor: {node, isReplace: true}});
 				}} onStateChange={(newState) => {
