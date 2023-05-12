@@ -715,6 +715,15 @@ svg {
 			// Handle all Start Head Tags in the config.
 			HandleCustomHeadList(_config.StartHeadTags, head, false);
 
+            // favicon
+            // https://evilmartians.com/chronicles/how-to-favicon-in-2021-six-files-that-fit-most-needs
+            /*
+            <link rel="icon" href="/favicon.ico" sizes="any"><!-- 32×32 -->
+            <link rel="icon" href="/icon.svg" type="image/svg+xml">
+            <link rel="apple-touch-icon" href="/apple-touch-icon.png"><!-- 180×180 -->
+            <link rel="manifest" href="/manifest.webmanifest">
+            */
+
 			head.AppendChild(new DocumentNode("link", true).With("rel", "icon").With("type", "image/png").With("sizes", "32x32").With("href", "/favicon-32x32.png"))
 				.AppendChild(new DocumentNode("link", true).With("rel", "icon").With("type", "image/png").With("sizes", "16x16").With("href", "/favicon-16x16.png"));
 
@@ -808,6 +817,17 @@ svg {
 			head.AppendChild(new DocumentNode("meta", true).With("name", "msapplication-TileColor").With("content", "#ffffff"))
 				.AppendChild(new DocumentNode("meta", true).With("name", "theme-color").With("content", "#ffffff"))
 				.AppendChild(new DocumentNode("meta", true).With("name", "viewport").With("content", "width=device-width, initial-scale=1"));
+
+#if DEBUG
+			// inject dev-specific classes
+            head.AppendChild(new DocumentNode("style").With("type", "text/css").AppendChild(new TextNode(
+                @"
+				a:not([href]), a[href=""""] {
+					outline: 8px solid red;
+				}
+			"
+            )));
+#endif
 
 			if (pageMeta.Cordova)
 			{
@@ -1054,122 +1074,103 @@ svg {
 			  .AppendChild(new DocumentNode("link", true).With("rel", "mask-icon").With("href", "/safari-pinned-tab.svg").With("color", "#ffffff"))
 			 */
 
+
+#if DEBUG
+            // inject dev-specific classes
+            head.AppendChild(new DocumentNode("style").With("type", "text/css").AppendChild(new TextNode(
+                @"
+				a:not([href]), a[href=""""] {
+					outline: 8px solid red;
+				}
+			"
+            )));
+#endif
+
 			// Handle all End Head tags in the config.
 			HandleCustomHeadList(_config.EndHeadTags, head);
 
 			// Handle all End Head Scripts in the config.
 			HandleCustomScriptList(_config.EndHeadScripts, head);
 			
-			var reactRoot = new DocumentNode("div").With("id", "react-root");
-
 			var body = doc.Body;
-			body.AppendChild(reactRoot);
-
+			
 			if (_config.PreRender && !isAdmin)
 			{
-				try
-				{
-
-					var preRender = await _canvasRendererService.Render(context, page.BodyJson, new PageState() {
-						Tokens = pageAndTokens.TokenValues,
-						TokenNames = pageAndTokens.TokenNames,
-						PrimaryObject = doc.PrimaryObject
-					}, path, true, RenderMode.Html, false);
-
-					if (preRender.Failed)
+				body.AppendChild(new SubstituteNode(  // This is where user and page specific global state will be inserted. It gets substituted in.
+					async (Context ctx) =>
 					{
-						// JS not loaded yet or otherwise not reachable by the API process.
-						reactRoot.AppendChild(new TextNode(
-							"<h1>Hello! This site is not available just yet.</h1>"
-							+ "<p>If you're a developer, check the console for a 'Done handling UI changes' " +
-							"message - when that pops up, the UI has been compiled and is ready, then refresh this page.</p>" +
-							"<p>Otherwise, this happens when the UI and Admin .js files aren't available to the API.</p>"
-						));
-					}
-					else
-					{
-						reactRoot.AppendChild(new TextNode(preRender.Body));
-
-						// Add the data which populates the initial cache. This is important for a variety of reasons, but it primarily ensures that e.g. site template data doesn't have to be immediately requested.
-						// If it did have to be immediately requested, the first render run results in a totally blank output, which conflicts with what the server has already rendered.
-						// The end result of the conflict is it gets duplicated in the DOM and server effort is largely wasted.
-
-						var writer = Writer.GetPooled();
-						writer.Start(null);
-
-						writer.WriteS("window.pgState={\"page\":");
-						await _pages.ToJson(context, pageAndTokens.Page, writer);
-						writer.WriteS(",\"tokens\":");
-						writer.WriteS((pageAndTokens.TokenValues != null ? Newtonsoft.Json.JsonConvert.SerializeObject(pageAndTokens.TokenValues, jsonSettings) : "null"));
-						writer.WriteS(",\"data\":");
-						writer.WriteS(preRender.Data);
-						writer.WriteS(",\"tokenNames\":");
-						writer.WriteS(pageAndTokens.TokenNamesJson);
-						writer.WriteS(",\"po\":");
-
-						if (doc.PrimaryObject != null)
+						try
 						{
-							await doc.PrimaryObjectService.ObjectToTypeAndIdJson(context, doc.PrimaryObject, writer);
+							var preRender = await _canvasRendererService.Render(ctx, page.BodyJson, new PageState()
+							{
+								Tokens = pageAndTokens.TokenValues,
+								TokenNames = pageAndTokens.TokenNames,
+								PrimaryObject = doc.PrimaryObject
+							}, path, true, RenderMode.Html, false);
+
+							if (preRender.Failed)
+							{
+								// JS not loaded yet or otherwise not reachable by the API process.
+								return "<h1>Hello! This site is not available just yet.</h1>"
+									+ "<p>If you're a developer, check the console for a 'Done handling UI changes' " +
+									"message - when that pops up, the UI has been compiled and is ready, then refresh this page.</p>" +
+									"<p>Otherwise, this happens when the UI and Admin .js files aren't available to the API.</p>";
+							}
+							else
+							{
+								// Add the data which populates the initial cache. This is important for a variety of reasons, but it primarily ensures that e.g. site template data doesn't have to be immediately requested.
+								// If it did have to be immediately requested, the first render run results in a totally blank output, which conflicts with what the server has already rendered.
+								// The end result of the conflict is it gets duplicated in the DOM and server effort is largely wasted.
+								return "<div id='react-root'>" + preRender.Body + "</div><script>window.pgRD=" + preRender.Data + ";</script>";
+							}
 						}
-						else
+						catch (Exception e)
 						{
-							writer.WriteS("null");
+							// SSR failed. Return nothing and let the JS handle it for itself.
+							Console.WriteLine(e.ToString());
+							return "";
 						}
-
-						writer.WriteS("};");
-						var pgState = writer.AllocatedResult();
-						writer.Release();
-
-						body.AppendChild(
-							new DocumentNode("script")
-							.AppendChild(
-								new RawBytesNode(
-									pgState
-								)
-							)
-						);
 					}
-				}
-				catch (Exception e)
-				{
-					Console.WriteLine(e.ToString());
-				}
+				));
 			}
 			else
 			{
-				var writer = Writer.GetPooled();
-				writer.Start(null);
-
-				writer.WriteS("window.pgState={\"page\":");
-				await _pages.ToJson(context, pageAndTokens.Page, writer);
-				writer.WriteS(",\"tokens\":");
-				writer.WriteS((pageAndTokens.TokenValues != null ? Newtonsoft.Json.JsonConvert.SerializeObject(pageAndTokens.TokenValues, jsonSettings) : "null"));
-				writer.WriteS(",\"tokenNames\":");
-				writer.WriteS(pageAndTokens.TokenNamesJson);
-				writer.WriteS(",\"po\":");
-
-				if (doc.PrimaryObject != null)
-				{
-					await doc.PrimaryObjectService.ObjectToTypeAndIdJson(context, doc.PrimaryObject, writer);
-				}
-				else
-				{
-					writer.WriteS("null");
-				}
-
-				writer.WriteS("};");
-				var pgState = writer.AllocatedResult();
-				writer.Release();
-
-				body.AppendChild(
-					new DocumentNode("script")
-					.AppendChild(
-						new RawBytesNode(
-							 pgState
-						)
-					)
-				);
+				body.AppendChild(new DocumentNode("div").With("id", "react-root"));
 			}
+
+			var writer = Writer.GetPooled();
+			writer.Start(null);
+
+			writer.WriteS("window.pgState={page:");
+			await _pages.ToJson(context, pageAndTokens.Page, writer);
+			writer.WriteS(",tokens:");
+			writer.WriteS((pageAndTokens.TokenValues != null ? Newtonsoft.Json.JsonConvert.SerializeObject(pageAndTokens.TokenValues, jsonSettings) : "null"));
+			writer.WriteS(",tokenNames:");
+			writer.WriteS(pageAndTokens.TokenNamesJson);
+			writer.WriteS(",data:window.pgRD");
+			writer.WriteS(",po:");
+
+			if (doc.PrimaryObject != null)
+			{
+				await doc.PrimaryObjectService.ObjectToTypeAndIdJson(context, doc.PrimaryObject, writer);
+			}
+			else
+			{
+				writer.WriteS("null");
+			}
+
+			writer.WriteS("};");
+			var pgState = writer.AllocatedResult();
+			writer.Release();
+
+			body.AppendChild(
+				new DocumentNode("script")
+				.AppendChild(
+					new RawBytesNode(
+						 pgState
+					)
+				)
+			);
 			
 			// Handle all start body JS scripts
 			HandleCustomScriptList(_config.StartBodyJs, body);
