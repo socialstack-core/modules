@@ -35,6 +35,11 @@ public partial class FileMetaStream
 	public string SearchDirectory;
 
 	/// <summary>
+	/// Last modified date of the current file. Valid during the OnFile callback.
+	/// </summary>
+	public DateTime LastModifiedUtc;
+
+	/// <summary>
 	/// Current file path, including /content/ or /content-private/. Valid during the OnFile callback.
 	/// </summary>
 	public string Path;

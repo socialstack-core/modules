@@ -1,4 +1,7 @@
-﻿namespace Api.Uploader
+﻿using ImageMagick;
+using Org.BouncyCastle.Asn1.X500;
+
+namespace Api.Uploader
 {
     /// <summary>
     /// List of changes when replacing media refs 
@@ -34,5 +37,25 @@
         /// The target URL
         /// </summary>
         public string Url => $"/en-admin/{Type.ToLower()}/{Id.ToString()}";
+
+        /// <summary>
+        /// The existing ref which is being replaced/updated
+        /// </summary>
+        public string ExistingRef { get; set; }
+
+        /// <summary>
+        /// The new ref
+        /// </summary>
+        public string UpdatedRef { get; set; }
+
+        /// <summary>
+        /// The status of potential/actiual update
+        /// </summary>
+        public string Status { get; set; }
+
+        /// <summary>
+        /// The locale being used 
+        /// </summary>
+        public uint LocaleId { get; set; }
     }
 }

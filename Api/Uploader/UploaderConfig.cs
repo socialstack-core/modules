@@ -1,8 +1,4 @@
 ﻿using Api.Configuration;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
 
 namespace Api.Uploader
 {
@@ -15,6 +11,13 @@ namespace Api.Uploader
 		/// When an image is uploaded, it'll be automatically resized to each of these sizes.
 		/// </summary>
 		public int[] ImageSizes = new int[]{ 32, 64, 100, 128, 200, 256, 512, 1024, 2048 };
+
+        /// <summary>
+        /// When an image is uploaded, it'll be automatically resized to the exact height and width defined in this list.
+		/// This isn't necessarily the same aspect ratio as the original image, so cropping can occur.
+		/// Note that sizes are defined in [height]x[width] format (e.g. "177x118"), with an optional zoom level (e.g. "1024x768@3x")
+        /// </summary>
+        public string[] ImageCrops = new string[] {};
 
 		/// <summary>
 		/// True if image uploads should be processed.

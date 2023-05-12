@@ -6,257 +6,288 @@ using System;
 using Api.Users;
 using Api.SocketServerLibrary;
 using System.Threading.Tasks;
-
+using Api.Translate;
+using Api.AutoForms;
 
 namespace Api.Uploader
 {
-	/// <summary>
-	/// Meta for uploaded files.
-	/// </summary>
-	[ListAs("Uploads", Explicit=true)]
+    /// <summary>
+    /// Meta for uploaded files.
+    /// </summary>
+    [ListAs("Uploads", Explicit = true)]
     public partial class Upload : VersionedContent<uint>
-	{
-		/// <summary>
-		/// The signature service for priv uploads.
-		/// </summary>
-		private static SignatureService _sigService;
+    {
+        /// <summary>
+        /// The signature service for priv uploads.
+        /// </summary>
+        private static SignatureService _sigService;
 
-		/// <summary>
-		/// The original file name.
-		/// </summary>
-		[DatabaseField(Length = 300)]
-		[Meta("title")]
-		public string OriginalName;
+        /// <summary>
+        /// The original file name.
+        /// </summary>
+        [DatabaseField(Length = 300)]
+        [Meta("title")]
+        public string OriginalName;
 
-		/// <summary>
-		/// The lowercased file type, e.g. "png".
-		/// </summary>
-		[DatabaseField(Length = 15)]
-		public string FileType;
+        /// <summary>
+        /// The lowercased file type, e.g. "png".
+        /// </summary>
+        [DatabaseField(Length = 15)]
+        public string FileType;
 
-		/// <summary>
-		/// filetype variants separated by | if there are any.
-		/// </summary>
-		[DatabaseField(Length = 64)]
-		public string Variants;
+        /// <summary>
+        /// filetype variants separated by | if there are any.
+        /// </summary>
+        [DatabaseField(Length = 64)]
+        public string Variants;
 
-		/// <summary>
-		/// A blurhash if there is one.
-		/// </summary>
-		[DatabaseField(Length = 100)]
-		public string Blurhash;
+        /// <summary>
+        /// A blurhash if there is one.
+        /// </summary>
+        [DatabaseField(Length = 100)]
+        public string Blurhash;
 
-		/// <summary>
-		/// If this is an image, the original width.
-		/// </summary>
-		public int? Width;
+        /// <summary>
+        /// If this is an image, the original width.
+        /// </summary>
+        public int? Width;
 
-		/// <summary>
-		/// If this is an image, the original height.
-		/// </summary>
-		public int? Height;
+        /// <summary>
+        /// If this is an image, the original height.
+        /// </summary>
+        public int? Height;
 
-		/// <summary>
-		/// If this is an image, the horizontal focal point (as a percentage).
-		/// </summary>
-		public int? FocalX;
+        /// <summary>
+        /// If this is an image, the horizontal focal point (as a percentage).
+        /// </summary>
+        public int? FocalX;
 
-		/// <summary>
-		/// If this is an image, the vertical focal point (as a percentage).
-		/// </summary>
-		public int? FocalY;
+        /// <summary>
+        /// If this is an image, the vertical focal point (as a percentage).
+        /// </summary>
+        public int? FocalY;
 
-		/// <summary>
-		/// True if this upload is an image.
-		/// </summary>
-		public bool IsImage;
+        /// <summary>
+        /// The alternative name for the image
+        /// </summary>
+        [Data("hint", "The alternative name/title to display for the image")]
+        public string Alt;
 
-		/// <summary>
-		/// True if this is a private upload and requires a signature in order to access it publicly.
-		/// </summary>
-		public bool IsPrivate;
+        /// <summary>
+        /// The author/photographer for the image
+        /// </summary>
+        [Data("hint", "The author/photographer of the content")]
+        public string Author;
 
-		/// <summary>True if this is a video.</summary>
-		public bool IsVideo;
+        /// <summary>
+        /// The number of times the image is used
+        /// </summary>
+        [Data("hint", "The number of times the image is used")]
+        public int? UsageCount;
 
-		/// <summary>True if this is audio.</summary>
-		public bool IsAudio;
+        /// <summary>
+        /// True if this upload is an image.
+        /// </summary>
+        public bool IsImage;
 
-		/// <summary>The transcode state. 2 means it's been transcoded, 1 is transcode in progress.</summary>
-		public int TranscodeState;
+        /// <summary>
+        /// True if this is a private upload and requires a signature in order to access it publicly.
+        /// </summary>
+        public bool IsPrivate;
 
-		/// <summary>
-		/// The subdirectory that this upload was put into, if any. Ensure that users can't directly set this.
-		/// </summary>
-		[JsonIgnore]
-		public string Subdirectory;
+        /// <summary>True if this is a video.</summary>
+        public bool IsVideo;
 
-		/// <summary>
-		/// Working memory only temporary filesystem path. Can be null if something has already relocated the upload and it is "done".
-		/// </summary>
-		[JsonIgnore]
-		public string TemporaryPath { get; set; }
-		
-		private static byte[] TimestampStart = new byte[]{(byte)'?', (byte)'t', (byte)'='};
-		private static byte[] SignatureStart = new byte[]{(byte)'&', (byte)'s', (byte)'='};
-		
-		/// <summary>
-		/// Gets a ref which may be signed.
-		/// The HMAC is for the complete string "private:ID.FILETYPE?t=TIMESTAMP&amp;s="
-		/// </summary>
-		public string Ref
-		{
-			get{
+        /// <summary>True if this is audio.</summary>
+        public bool IsAudio;
 
-				var writer = Writer.GetPooled();
-				writer.Start(null);
+        /// <summary>The transcode state. 2 means it's been transcoded, 1 is transcode in progress.</summary>
+        public int TranscodeState;
 
-				if (IsPrivate)
-				{
-					if (_sigService == null)
-					{
-						_sigService = Services.Get<SignatureService>();
-					}
+        /// <summary>
+        /// The subdirectory that this upload was put into, if any. Ensure that users can't directly set this.
+        /// </summary>
+        [JsonIgnore]
+        public string Subdirectory;
 
-					writer.WriteASCII("private:");
+        /// <summary>
+        /// Working memory only temporary filesystem path. Can be null if something has already relocated the upload and it is "done".
+        /// </summary>
+        [JsonIgnore]
+        public string TemporaryPath { get; set; }
 
-					if (!string.IsNullOrEmpty(Subdirectory))
-					{
-						writer.WriteASCII(Subdirectory);
-						writer.Write((byte)'/');
-					}
+        private static byte[] TimestampStart = new byte[] { (byte)'?', (byte)'t', (byte)'=' };
+        private static byte[] SignatureStart = new byte[] { (byte)'&', (byte)'s', (byte)'=' };
 
-					writer.WriteS(Id);
-					writer.Write((byte)'.');
-					if (FileType != null)
-					{
-						writer.WriteASCII(FileType);
-					}
-					// Private uploads don't support variants (yet) because the signature would include them
-					writer.Write(TimestampStart, 0, 3);
-					writer.WriteS(DateTime.UtcNow.Ticks);
-					writer.Write(SignatureStart, 0, 3);
-					_sigService.SignHmac256AlphaChar(writer);
-				}
-				else
-				{
-					writer.WriteASCII("public:");
-
-					if (!string.IsNullOrEmpty(Subdirectory))
-					{
-						writer.WriteASCII(Subdirectory);
-						writer.Write((byte)'/');
-					}
-
-					writer.WriteS(Id);
-					writer.Write((byte)'.');
-					if (FileType != null)
-					{
-						writer.WriteASCII(FileType);
-					}
-					if (Variants != null)
-					{
-						writer.Write((byte)'|');
-						writer.WriteASCII(Variants);
-					}
-				}
-
-				if (IsImage && Width.HasValue && Height.HasValue)
-				{
-					writer.WriteASCII(IsPrivate ? "&w=" : "?w=");
-					writer.WriteS(Width.Value);
-					writer.WriteASCII("&h=");
-					writer.WriteS(Height.Value);
-
-					if (!string.IsNullOrEmpty(Blurhash))
-					{
-						writer.WriteASCII("&b=");
-						writer.WriteASCII(System.Uri.EscapeDataString(Blurhash));
-					}
-
-					if (FocalX.HasValue && FocalY.HasValue)
-                    {
-						writer.WriteASCII("&fx=");
-						writer.WriteS(FocalX.Value);
-						writer.WriteASCII("&fy=");
-						writer.WriteS(FocalY.Value);
-					}
-
-				}
-
-				var result = writer.ToASCIIString();
-				writer.Release();
-				return result;
-			}
-		}
-
-		/// <summary>
-		/// Read the bytes of the given variant of this upload. Convenience method for the method of the same name on UploadService.
-		/// </summary>
-		/// <param name="variant"></param>
-		/// <returns></returns>
-		public async ValueTask<byte[]> ReadFile(string variant = "original")
-		{
-			return await Services.Get<UploadService>().ReadFile(this, variant);
-		}
-
-		/// <summary>
-		/// Gets an appropriate mime type, when possible, based on the file type.
-		/// </summary>
-		public string GetMimeType(string variant = "original")
-		{
-			var fileType = FileType;
-
-			if (variant != null)
-			{
-				var lastDot = variant.LastIndexOf('.');
-
-				if (lastDot != -1)
-				{
-					// This is actually a transcoded file and is of a different type.
-					fileType = variant.Substring(lastDot + 1);
-				}
-			}
-
-			if(string.IsNullOrEmpty(fileType))
-			{
-				return "application/octet-stream";
-			}
-			
-			return MimeTypeMap.GetMimeType(fileType);
-		}
-
-		/// <summary>
-		/// File path to this content using the given size name.
-		/// It's either "original" or a specific width in pixels, e.g. "400".
-		/// </summary>
-		public string GetFilePath(string sizeName, bool omitExt = false)
+        /// <summary>
+        /// Gets a ref which may be signed.
+        /// The HMAC is for the complete string "private:ID.FILETYPE?t=TIMESTAMP&amp;s="
+        /// </summary>
+        public string Ref
         {
-			string basePath;
+            get
+            {
 
-			if (IsPrivate)
-			{
-				basePath = "Content/content-private/";
-			}
-			else
-			{
-				basePath = "Content/content/";
-			}
+                var writer = Writer.GetPooled();
+                writer.Start(null);
 
-			return basePath + GetRelativePath(sizeName, omitExt);
+                if (IsPrivate)
+                {
+                    if (_sigService == null)
+                    {
+                        _sigService = Services.Get<SignatureService>();
+                    }
+
+                    writer.WriteASCII("private:");
+
+                    if (!string.IsNullOrEmpty(Subdirectory))
+                    {
+                        writer.WriteASCII(Subdirectory);
+                        writer.Write((byte)'/');
+                    }
+
+                    writer.WriteS(Id);
+                    writer.Write((byte)'.');
+                    if (FileType != null)
+                    {
+                        writer.WriteASCII(FileType);
+                    }
+                    // Private uploads don't support variants (yet) because the signature would include them
+                    writer.Write(TimestampStart, 0, 3);
+                    writer.WriteS(DateTime.UtcNow.Ticks);
+                    writer.Write(SignatureStart, 0, 3);
+                    _sigService.SignHmac256AlphaChar(writer);
+                }
+                else
+                {
+                    writer.WriteASCII("public:");
+
+                    if (!string.IsNullOrEmpty(Subdirectory))
+                    {
+                        writer.WriteASCII(Subdirectory);
+                        writer.Write((byte)'/');
+                    }
+
+                    writer.WriteS(Id);
+                    writer.Write((byte)'.');
+                    if (FileType != null)
+                    {
+                        writer.WriteASCII(FileType);
+                    }
+                    if (Variants != null)
+                    {
+                        writer.Write((byte)'|');
+                        writer.WriteASCII(Variants);
+                    }
+                }
+
+                if (IsImage && Width.HasValue && Height.HasValue)
+                {
+                    writer.WriteASCII(IsPrivate ? "&w=" : "?w=");
+                    writer.WriteS(Width.Value);
+                    writer.WriteASCII("&h=");
+                    writer.WriteS(Height.Value);
+
+                    if (!string.IsNullOrEmpty(Blurhash))
+                    {
+                        writer.WriteASCII("&b=");
+                        writer.WriteASCII(System.Uri.EscapeDataString(Blurhash));
+                    }
+
+                    if (FocalX.HasValue && FocalY.HasValue)
+                    {
+                        writer.WriteASCII("&fx=");
+                        writer.WriteS(FocalX.Value);
+                        writer.WriteASCII("&fy=");
+                        writer.WriteS(FocalY.Value);
+                    }
+
+                    if (!string.IsNullOrWhiteSpace(Alt))
+                    {
+                        writer.WriteASCII("&al=");
+                        writer.WriteASCII(System.Uri.EscapeDataString(Alt));
+                    }
+
+                    if (!string.IsNullOrWhiteSpace(Author))
+                    {
+                        writer.WriteASCII("&au=");
+                        writer.WriteASCII(System.Uri.EscapeDataString(Author));
+                    }
+
+                }
+                var result = writer.ToASCIIString();
+                writer.Release();
+                return result;
+            }
         }
 
-		/// <summary>
-		/// Relative path used as both the actual filepath and the URL
-		/// </summary>
-		/// <param name="sizeName"></param>
+        /// <summary>
+        /// Read the bytes of the given variant of this upload. Convenience method for the method of the same name on UploadService.
+        /// </summary>
+        /// <param name="variant"></param>
+        /// <returns></returns>
+        public async ValueTask<byte[]> ReadFile(string variant = "original")
+        {
+            return await Services.Get<UploadService>().ReadFile(this, variant);
+        }
+
+        /// <summary>
+        /// Gets an appropriate mime type, when possible, based on the file type.
+        /// </summary>
+        public string GetMimeType(string variant = "original")
+        {
+            var fileType = FileType;
+
+            if (variant != null)
+            {
+                var lastDot = variant.LastIndexOf('.');
+
+                if (lastDot != -1)
+                {
+                    // This is actually a transcoded file and is of a different type.
+                    fileType = variant.Substring(lastDot + 1);
+                }
+            }
+
+            if (string.IsNullOrEmpty(fileType))
+            {
+                return "application/octet-stream";
+            }
+
+            return MimeTypeMap.GetMimeType(fileType);
+        }
+
+        /// <summary>
+        /// File path to this content using the given size name.
+        /// It's either "original" or a specific width in pixels, e.g. "400".
+        /// </summary>
+        public string GetFilePath(string sizeName, bool omitExt = false)
+        {
+            string basePath;
+
+            if (IsPrivate)
+            {
+                basePath = "Content/content-private/";
+            }
+            else
+            {
+                basePath = "Content/content/";
+            }
+
+            return basePath + GetRelativePath(sizeName, omitExt);
+        }
+
+        /// <summary>
+        /// Relative path used as both the actual filepath and the URL
+        /// </summary>
+        /// <param name="sizeName"></param>
         /// <param name="omitExt"></param>
-		/// <returns></returns>
-		public string GetRelativePath(string sizeName, bool omitExt = false)
+        /// <returns></returns>
+        public string GetRelativePath(string sizeName, bool omitExt = false)
         {
             if (omitExt || sizeName.IndexOf('.') != -1)
             {
-				return (string.IsNullOrEmpty(Subdirectory) ? "" : Subdirectory + '/') +  Id + "-" + sizeName;
+                return (string.IsNullOrEmpty(Subdirectory) ? "" : Subdirectory + '/') + Id + "-" + sizeName;
             }
             else
             {
@@ -264,135 +295,137 @@ namespace Api.Uploader
             }
         }
 
-		/// <summary>
-		/// The filename, excluding any subdirectory.
-		/// </summary>
-		/// <param name="sizeName"></param>
-		/// <param name="omitExt"></param>
-		/// <returns></returns>
-		public string GetStoredFilename(string sizeName, bool omitExt = false)
-		{
-			if (omitExt || sizeName.IndexOf('.') != -1)
-			{
-				return Id + "-" + sizeName;
-			}
-			else
-			{
-				return Id + "-" + sizeName + "." + FileType;
-			}
-		}
+        /// <summary>
+        /// The filename, excluding any subdirectory.
+        /// </summary>
+        /// <param name="sizeName"></param>
+        /// <param name="omitExt"></param>
+        /// <returns></returns>
+        public string GetStoredFilename(string sizeName, bool omitExt = false)
+        {
+            if (omitExt || sizeName.IndexOf('.') != -1)
+            {
+                return Id + "-" + sizeName;
+            }
+            else
+            {
+                return Id + "-" + sizeName + "." + FileType;
+            }
+        }
     }
 
-	/// <summary>
-	/// A parsed fileref.
-	/// </summary>
-	public struct FileRef
-	{
+    /// <summary>
+    /// A parsed fileref.
+    /// </summary>
+    public struct FileRef
+    {
 
-		/// <summary>
-		/// Parses general meta out of a textual ref.
-		/// </summary>
-		/// <param name="refText"></param>
-		/// <returns></returns>
-		public static FileRef Parse(string refText)
-		{
-			if (string.IsNullOrEmpty(refText))
-			{
-				return new FileRef() {
-				};
-			}
+        /// <summary>
+        /// Parses general meta out of a textual ref.
+        /// </summary>
+        /// <param name="refText"></param>
+        /// <returns></returns>
+        public static FileRef Parse(string refText)
+        {
+            if (string.IsNullOrEmpty(refText))
+            {
+                return new FileRef()
+                {
+                };
+            }
 
-			var protoIndex = refText.IndexOf(':');
-			var scheme = (protoIndex == -1) ? "https" : refText.Substring(0, protoIndex);
-			
-			refText = protoIndex == -1 ? refText : refText.Substring(protoIndex + 1);
-			string fileParts;
-			string fileType = null;
+            var protoIndex = refText.IndexOf(':');
+            var scheme = (protoIndex == -1) ? "https" : refText.Substring(0, protoIndex);
 
-			var lastIndexOf = refText.LastIndexOf('.');
+            refText = protoIndex == -1 ? refText : refText.Substring(protoIndex + 1);
+            string fileParts;
+            string fileType = null;
 
-			if (lastIndexOf != -1)
-			{
-				fileType = refText.Substring(lastIndexOf + 1);
-				fileParts = refText.Substring(0, lastIndexOf);
-			}
-			else
-			{
-				fileParts = refText;
-			}
+            var lastIndexOf = refText.LastIndexOf('.');
 
-			return new FileRef(){
-				Scheme = scheme,
-				FileType = fileType,
-				File = fileParts
-			};
-		}
+            if (lastIndexOf != -1)
+            {
+                fileType = refText.Substring(lastIndexOf + 1);
+                fileParts = refText.Substring(0, lastIndexOf);
+            }
+            else
+            {
+                fileParts = refText;
+            }
 
-		/// <summary>
-		/// The ref's scheme.
-		/// </summary>
-		public string Scheme;
+            return new FileRef()
+            {
+                Scheme = scheme,
+                FileType = fileType,
+                File = fileParts
+            };
+        }
 
-		/// <summary>
-		/// The filetype of the ref, if there is one.
-		/// </summary>
-		public string FileType;
+        /// <summary>
+        /// The ref's scheme.
+        /// </summary>
+        public string Scheme;
 
-		/// <summary>
-		/// The filename parts. Required. Excludes type.
-		/// </summary>
-		public string File;
+        /// <summary>
+        /// The filetype of the ref, if there is one.
+        /// </summary>
+        public string FileType;
 
-		/// <summary>
-		/// Outputs the textual ref.
-		/// </summary>
-		/// <returns></returns>
-		public override string ToString()
-		{
-			return Scheme + ':' + File + '.' + FileType;
-		}
+        /// <summary>
+        /// The filename parts. Required. Excludes type.
+        /// </summary>
+        public string File;
 
-		/// <summary>
-		/// Gets the file path of this ref. Null if it is not a file ref.
-		/// </summary>
-		/// <returns></returns>
-		public string GetFilePath(string sizeName)
-		{
-			string basePath;
+        /// <summary>
+        /// Outputs the textual ref.
+        /// </summary>
+        /// <returns></returns>
+        public override string ToString()
+        {
+            return Scheme + ':' + File + '.' + FileType;
+        }
 
-			if (Scheme == "private")
-			{
-				basePath = "Content/content-private/";
-			}
-			else if (Scheme == "public")
-			{
-				basePath = "Content/content/";
-			}
-			else
-			{
-				return null;
-			}
+        /// <summary>
+        /// Gets the file path of this ref. Null if it is not a file ref.
+        /// </summary>
+        /// <returns></returns>
+        public string GetFilePath(string sizeName)
+        {
+            string basePath;
 
-			return basePath + GetRelativePath(sizeName, false);
-		}
+            if (Scheme == "private")
+            {
+                basePath = "Content/content-private/";
+            }
+            else if (Scheme == "public")
+            {
+                basePath = "Content/content/";
+            }
+            else
+            {
+                return null;
+            }
 
-		/// <summary>
-		/// Relative path of this ref.
-		/// </summary>
-		/// <param name="sizeName"></param>
-		/// <param name="omitExt"></param>
-		/// <returns></returns>
-		public string GetRelativePath(string sizeName, bool omitExt = false)
-		{
-			if (omitExt || sizeName.IndexOf('.') != -1)
-			{
-				return File + "-" + sizeName;
-			}
-			else
-			{
-				return File + "-" + sizeName + "." + FileType;
-			}
-		}
-	}
+            return basePath + GetRelativePath(sizeName, false);
+        }
+
+        /// <summary>
+        /// Relative path of this ref.
+        /// </summary>
+        /// <param name="sizeName"></param>
+        /// <param name="omitExt"></param>
+        /// <returns></returns>
+        public string GetRelativePath(string sizeName, bool omitExt = false)
+        {
+            if (omitExt || sizeName.IndexOf('.') != -1)
+            {
+                return File + "-" + sizeName;
+            }
+            else
+            {
+                return File + "-" + sizeName + "." + FileType;
+            }
+        }
+    }
 
 }
