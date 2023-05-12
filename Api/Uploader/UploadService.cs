@@ -46,12 +46,13 @@ namespace Api.Uploader
             // The cron expression runs it every hour.
             Events.Automation("image usage", "0 0 * ? * * *").AddEventListener(async (Context context, AutomationRunInfo runInfo) =>
             {
-                await UpdateImageUsage(context);
-
+				if(_configuration.TrackRefUsage){
+					await UpdateImageUsage(context);
+				}
+				
                 return runInfo;
             });
-
-
+			
             Events.Upload.BeforeCreate.AddEventListener((Context context, Upload upload) =>
             {
 

@@ -39,6 +39,11 @@ namespace Api.Uploader
 		/// Uploader subdirectory (optional)
 		/// </summary>
 		public string Subdirectory { get; set; }
+		
+		/// <summary>
+		/// Track ref usage.
+		/// </summary>
+		public bool TrackRefUsage {get; set; } = false;
     }
 	
 }
