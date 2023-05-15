@@ -129,7 +129,7 @@ namespace Api.Invites
 				}
 
 				return invite;
-			});
+			}, 5);
 			
 			Events.Invite.AfterCreate.AddEventListener(async (Context context, Invite invite) => {
 				
