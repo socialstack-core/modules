@@ -247,7 +247,7 @@ function reactPreRender() {
 
 					// stateless functional components
 					_currentContext = opts;
-					rendered = nodeName.call(vnode.__c, props, opts);
+					rendered = nodeName.call(vnode.__c, props, cctx);
 					_currentContext = null;
 				} else {
 					// class-based components
@@ -262,7 +262,7 @@ function reactPreRender() {
 
 					// c = new nodeName(props, context);
 					_currentContext = opts;
-					c = vnode.__c = new nodeName(props, opts);
+					c = vnode.__c = new nodeName(props, cctx);
 					_currentContext = null;
 					c.__v = vnode;
 					// turn off stateful re-rendering:
