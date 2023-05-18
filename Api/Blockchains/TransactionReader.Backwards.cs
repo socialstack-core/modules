@@ -52,6 +52,11 @@ public partial class TransactionReader
 		
 		var virtualStreamPosition = str.Length;
 
+		if (virtualStreamPosition == 0)
+		{
+			return;
+		}
+
 		var readBuffer = new byte[bufferSize];
 
 		// A transaction is:
