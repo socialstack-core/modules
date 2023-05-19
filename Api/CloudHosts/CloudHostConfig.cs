@@ -5,7 +5,7 @@ namespace Api.CloudHosts
 {
 	
 	/// <summary>
-	/// The transcoder configuration.
+	/// The configuration for cloud services.
 	/// </summary>
 	public partial class CloudHostConfig: Config
 	{
