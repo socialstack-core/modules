@@ -2,13 +2,9 @@ using Api.ErrorLogging;
 using Api.Eventing;
 using Api.SocketServerLibrary;
 using Api.Startup;
-using Google.Protobuf.WellKnownTypes;
-using System.ComponentModel.DataAnnotations;
-using System.DrawingCore.Drawing2D;
 using System.IO;
 using System.Runtime.InteropServices;
 using System.Threading.Tasks;
-using Twilio.TwiML.Messaging;
 
 namespace System; // For easier access from code formerly using Console.*
 
