@@ -2108,7 +2108,7 @@ namespace Api.CanvasRenderer
                 }
 
                 // Now (local time, because this is for developers).
-                WriteColourLine.Success("[" + DateTime.Now.ToString("T") + "] Done handling UI changes.");
+                Log.Ok("frontendcodeservice", "Done handling UI changes.");
 
                 // Trigger event:
                 await Events.FrontendAfterUpdate.Dispatch(new Context(), BuildTimestampMs);

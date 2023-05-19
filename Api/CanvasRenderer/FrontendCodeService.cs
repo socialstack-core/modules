@@ -330,7 +330,7 @@ namespace Api.CanvasRenderer
 					}
 				}
 
-                WriteColourLine.Success("Done handling UI load.");
+                Log.Ok(LogTag, "Done handling UI load.");
                 initialBuildTask = null;
 			});
 
