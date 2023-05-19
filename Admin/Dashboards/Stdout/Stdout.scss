@@ -3,4 +3,34 @@
 	min-height: 100vh;
 	font-family: var(--font-mono);
 	color: white;
+	
+	p {
+		color: white;
+	}
+	
+	.tag-ok {
+		background: green;
+		color: white;
+	}
+	
+	.tag-info {
+		background: darkblue;
+		color: white;
+	}
+	
+	.tag-warn {
+		background: orange;
+		color: black;
+	}
+	
+	.tag-error {
+		background: red;
+		color: white;
+	}
+	
+	.tag-fatal {
+		background: red;
+		color: white;
+	}
+	
 }
