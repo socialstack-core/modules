@@ -22,13 +22,14 @@ namespace Api.TwoFactorGoogleAuth
 	{
 		private readonly GoogleAuthenticator _ga;
 		private readonly TwoFactorAuthConfig config;
-		private readonly string siteUrl;
+		private readonly FrontendCodeService _frontend;
 
 		/// <summary>
 		/// Instanced automatically. Use injection to use this service, or Startup.Services.Get.
 		/// </summary>
-		public TwoFactorGoogleAuthService(UserService _users, RoleService _roles, FrontendCodeService _frontend)
+		public TwoFactorGoogleAuthService(UserService _users, RoleService _roles, FrontendCodeService frontend)
         {
+			_frontend = frontend;
 			_ga = new GoogleAuthenticator();
 			config = GetConfig<TwoFactorAuthConfig>();
 			
@@ -37,8 +38,6 @@ namespace Api.TwoFactorGoogleAuth
 				config = new TwoFactorAuthConfig();
 			}
 			
-			siteUrl = _frontend.GetPublicUrl().Replace("https:", "").Replace("http:", "").Replace("/", "");
-
 			// Hook up to the UserOnAuthenticate event:
 			Events.UserOnAuthenticate.AddEventListener(async (Context context, LoginResult result, UserLogin loginDetails) => {
 
@@ -71,6 +70,8 @@ namespace Api.TwoFactorGoogleAuth
 								result.User = user;
 							}
 							
+							var siteUrl = _frontend.GetPublicUrl(context.LocaleId).Replace("https:", "").Replace("http:", "").Replace("/", ""); ;
+
 							result.MoreDetailRequired = new {
 								module = "UI/TwoFactorGoogleSetup",
 								data = new {
@@ -133,8 +134,10 @@ namespace Api.TwoFactorGoogleAuth
 		/// <summary>
 		/// Checks if the given pin is acceptable for the given hex encoded secret.
 		/// </summary>
-		public async Task<byte[]> GenerateProvisioningImage(string secret)
+		public async Task<byte[]> GenerateProvisioningImage(Context context, string secret)
 		{
+			var siteUrl = _frontend.GetPublicUrl(context.LocaleId).Replace("https:", "").Replace("http:", "").Replace("/", ""); ;
+
 			var bytes = new byte[secret.Length / 2];
 			for (var i = 0; i < bytes.Length; i++)
 			{
@@ -178,10 +181,12 @@ namespace Api.TwoFactorGoogleAuth
 		/// <summary>
 		/// Generates an image for the given key.
 		/// </summary>
+		/// <param name="context"></param>
 		/// <param name="key"></param>
 		/// <returns></returns>
-		public async Task<byte[]> GenerateProvisioningImage(byte[] key)
+		public async Task<byte[]> GenerateProvisioningImage(Context context, byte[] key)
 		{
+			var siteUrl = _frontend.GetPublicUrl(context.LocaleId).Replace("https:", "").Replace("http:", "").Replace("/", ""); ;
 			return await _ga.GenerateProvisioningImage(siteUrl, key);
 		}
 
