@@ -25,84 +25,43 @@ namespace Api.Startup
 		public ExceptionMiddleware(RequestDelegate next)
         {
             _next = next;
-
-			// Default console logging handler (removable):
-			Events.Logging.AddEventListener((Context ctx, Logging l) =>
-			{
-				switch (l.LogLevel) {
-					case LOG_LEVEL.Debug:
-						Console.ForegroundColor = ConsoleColor.Green;
-						Console.Write("[DEBUG] ");
-						Console.ForegroundColor = ConsoleColor.White;
-					break;
-					case LOG_LEVEL.Error:
-						Console.ForegroundColor = ConsoleColor.Red;
-						Console.Write("[!] ");
-						Console.ForegroundColor = ConsoleColor.White;
-					break;
-					case LOG_LEVEL.Information:
-						Console.ForegroundColor = ConsoleColor.Cyan;
-						Console.Write("[INFO] ");
-						Console.ForegroundColor = ConsoleColor.White;
-					break;
-					case LOG_LEVEL.Warning:
-						Console.ForegroundColor = ConsoleColor.Yellow;
-						Console.Write("[WARN] ");
-						Console.ForegroundColor = ConsoleColor.White;
-					break;
-				}
-
-				if (l.Message != null)
-				{
-					Console.WriteLine(l.Message);
-				}
-
-				if (l.Exception != null)
-				{
-					// Special case: Don't log an "Info" SecurityException.
-					if (l.LogLevel != LOG_LEVEL.Information || !(typeof(SecurityException).IsAssignableFrom(l.Exception.GetType())))
-					{
-						Console.WriteLine(l.Exception.ToString());
-					}
-				}
-
-				return new ValueTask<Logging>(l);
-			});
-
         }
 		
 		/// <summary>
 		/// Logs an exception and responds to the original requester.
 		/// </summary>
-		private async Task HandleError(Exception e, HttpContext context, int statusCode)
+		private async ValueTask HandleError(Exception e, HttpContext context, int statusCode)
 		{
 			byte[] responseBody;
-			var ctx = await context.Request.GetContext();
 
 			// Request URL:
-			var path = context.Request.Method + " " + context.Request.Path;
+			var basePath = context.Request.Path.ToString();
+			var path = context.Request.Method + " " + basePath;
 			if (context.Request.QueryString.HasValue)
 			{
 				path += "?" + context.Request.QueryString;
 			}
 
-			/*
-			// Future: If it's a POST request, we'll also log the post body, encrypted using the sign service.
-			var signatureService = Services.Get<Api.Signatures.ISignatureService>();
+			var tag = "";
 
-			if (signatureService != null)
+			if (basePath.StartsWith("/v1/"))
 			{
+				var nextFwd = basePath.IndexOf('/', 4);
+
+				if (nextFwd == -1)
+				{
+					tag = basePath.Substring(4);
+				}
+				else
+				{
+					tag = basePath.Substring(4, nextFwd - 4);
+				}
 			}
-			*/
 
 			if (statusCode >= 500){
 
-				await Events.Logging.Dispatch(ctx, new Logging()
-				{
-					Exception = e,
-					LogLevel = LOG_LEVEL.Error,
-					Message = "Application error on " + path
-				});
+				// If basepath starts with /v1/ then the tag will be the controller name.
+				Log.Error(tag, e, "Application error on " + path);
 				
 				// Internal server error
 				responseBody = Encoding.UTF8.GetBytes(
@@ -115,12 +74,7 @@ namespace Api.Startup
 				
 			}else{
 				// Access denied:
-				await Events.Logging.Dispatch(ctx, new Logging()
-				{
-					Exception = e,
-					LogLevel = LOG_LEVEL.Information,
-					Message = "Access denied on " + path + " " + e.Message
-				});
+				Log.Info(tag, e, "Access denied on " + path);
 				
 				responseBody = Encoding.UTF8.GetBytes(
 					JsonConvert.SerializeObject(
@@ -131,15 +85,9 @@ namespace Api.Startup
 				);
 			}
 			
-			using (var ms = new MemoryStream())
-			{
-				ms.Seek(0, SeekOrigin.Begin);
-				await ms.WriteAsync(responseBody, 0, responseBody.Length);
-				ms.Seek(0, SeekOrigin.Begin);
-				context.Response.StatusCode = statusCode;
-				context.Response.ContentType = "application/json";
-				await ms.CopyToAsync(context.Response.Body);
-			}
+			await context.Response.Body.WriteAsync(responseBody, 0, responseBody.Length);
+			context.Response.StatusCode = statusCode;
+			context.Response.ContentType = "application/json";
 		}
 		
 		/// <summary>
