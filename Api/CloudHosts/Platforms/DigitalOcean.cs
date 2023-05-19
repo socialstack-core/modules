@@ -174,11 +174,11 @@ namespace Api.CloudHosts
                 
 				foreach (var file in response.S3Objects)
                 {
-                    metaStream.FileSize = (ulong)file.Size;
-					metaStream.LastModifiedUtc = file.LastModified.ToUniversalTime();
-                    metaStream.Path = file.Key.Substring(key.Length);
-					await metaStream.OnFile(metaStream);
-					metaStream.FilesListed++;
+                    var meta = metaStream.StartFile();
+                    meta.FileSize = (ulong)file.Size;
+					meta.LastModifiedUtc = file.LastModified.ToUniversalTime();
+                    meta.Path = file.Key.Substring(key.Length);
+					await metaStream.FileListed(meta);
 				}
 
                 if (response.IsTruncated)
