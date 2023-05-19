@@ -103,7 +103,7 @@ public partial class AutoService<T, ID> {
 		if (!IsMapping)
 		{
             // Log that the cache is on:
-            WriteColourLine.Success(InstanceType.Name + " - cache [on]");
+            Log.Ok(LogTag, InstanceType.Name + " - cached");
 		}
 
 		await SetupCache();

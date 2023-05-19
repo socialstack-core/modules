@@ -140,7 +140,7 @@ namespace Api.Startup
 					{
 						var portNumber = AppSettings.GetInt32("Port", 5000);
 						var ip = AppSettings.GetInt32("Container", 0) == 1 ? IPAddress.Any : IPAddress.Loopback;
-                        WriteColourLine.Success("Ready on " + ip + ":" + portNumber);
+						Log.Info("webserverservice", null, "Ready on " + ip + ":" + portNumber);
 
 						// If running inside a container, we'll need to listen to the 0.0.0.0 (any) interface:
 						options.Listen(ip, portNumber, listenOpts =>

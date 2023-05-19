@@ -188,14 +188,14 @@ namespace Api.Startup
 					
 					if(publicError != null)
 					{
-						var response = publicError.Apply(context.Response);
+						Log.Info("", publicError.Message);
 						context.Response.StatusCode = publicError.StatusCode;
 						await context.Response.WriteAsync(publicError.ToJson());
 					}
 					else
 					{
 						if(e != null){
-							Console.WriteLine(e.ToString());
+							Log.Error("", e);
 						}
 						context.Response.StatusCode = 500;
 						await context.Response.WriteAsync("{\"message\": \"An internal error has occurred - please try again later.\", \"code\": \"server_error\"}");

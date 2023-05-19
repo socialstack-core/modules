@@ -238,7 +238,7 @@ public class MonitorService : AutoService
 		_startedAutomation = true;
 		_monitorContext = new Context();
 
-		Events.Automation("monitor", "*/" + _config.Frequency + " * * ? * * *").AddEventListener(async (Context context, Api.Automations.AutomationRunInfo runInfo) => {
+		Events.Automation("monitor", "*/" + _config.Frequency + " * * ? * * *", true).AddEventListener(async (Context context, Api.Automations.AutomationRunInfo runInfo) => {
 
 			if (_disabled)
 			{

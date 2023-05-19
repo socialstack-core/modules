@@ -1379,6 +1379,11 @@ public partial class AutoService
 	public string EntityName;
 
 	/// <summary>
+	/// A generated tag to use with Log.* methods.
+	/// </summary>
+	public string LogTag;
+
+	/// <summary>
 	/// True if this is a mapping service.
 	/// </summary>
 	public virtual bool IsMapping
@@ -1572,6 +1577,7 @@ public partial class AutoService
 		IdType = idType;
 		DataIsPersistent = type != null && ContentTypes.IsPersistentType(type);
 		EntityName = entityName == null ? (InstanceType == null ? null : InstanceType.Name) : entityName;
+		LogTag = EntityName == null ? GetType().Name.ToLower() : EntityName.ToLower();
 
 		if (InstanceType != null)
 		{

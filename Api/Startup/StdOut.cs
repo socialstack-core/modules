@@ -2,6 +2,7 @@ using Api.Contexts;
 using Api.Permissions;
 using Api.SocketServerLibrary;
 using Microsoft.AspNetCore.Mvc;
+using Newtonsoft.Json.Linq;
 using System;
 using System.Threading.Tasks;
 
@@ -52,7 +53,29 @@ namespace Api.Startup
 		}
 
 		/// <summary>
-		/// Forces an application halt. On a deployed server, the service runner (usually systemd) will then start it again.
+		/// Runs something on the command line. Super admin only (naturally).
+		/// </summary>
+		[HttpPost("exec")]
+		public async ValueTask Execute([FromBody] MonitoringExecModel body)
+		{
+			var context = await Request.GetContext();
+
+			if (context.Role == null || !context.Role.CanViewAdmin || context.Role.Id != 1)
+			{
+				throw PermissionException.Create("monitoring_exec", context);
+			}
+
+			if (string.IsNullOrEmpty(body.Command))
+			{
+				throw new PublicException("Command required", "command_required");
+			}
+
+			Console.WriteLine("Executing via command line (user #" + context.UserId + "), " + body.Command);
+			await CommandLine.Execute(body.Command, Response.Body);
+		}
+
+		/// <summary>
+		/// Forces an application halt.
 		/// </summary>
 		[HttpGet("halt")]
 		public async ValueTask Halt()
@@ -68,35 +91,19 @@ namespace Api.Startup
 			Environment.Exit(100);
 		}
 
+	}
+
+	/// <summary>
+	/// An exec model used by the /monitoring/exec endpoint.
+	/// </summary>
+	public class MonitoringExecModel
+	{
+
 		/// <summary>
-		/// Gets the latest block of text from the stdout.
+		/// The command to run including any args.
 		/// </summary>
-		[HttpGet("stdout")]
-		public async ValueTask GetStdOut()
-		{
-			var context = await Request.GetContext();
-			
-			Response.ContentType = _applicationJson;
-			
-			if(context.Role == null || !context.Role.CanViewAdmin)
-			{
-				throw PermissionException.Create("monitoring_stdout", context);
-			}
-			
-			var writer = Writer.GetPooled();
-			writer.Start(null);
+		public string Command;
 
-			writer.WriteASCII("{\"log\":");
-
-			writer.WriteEscaped(StdOut.Writer.GetLatest());
-
-			writer.Write((byte)'}');
-
-			// Flush after each one:
-			await writer.CopyToAsync(Response.Body);
-			writer.Release();
-		}
-		
 	}
 
 	/// <summary>

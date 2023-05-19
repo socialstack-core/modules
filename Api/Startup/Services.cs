@@ -121,25 +121,38 @@ namespace Api.Startup
 
 			Task.Run(async () =>
 			{
-				try
+				foreach (var serviceType in AllServiceTypes)
 				{
-					foreach (var serviceType in AllServiceTypes)
-					{
-						var svc = serviceProvider.GetService(serviceType);
+					var svc = serviceProvider.GetService(serviceType);
 
+					if (svc == null)
+					{
+						continue;
+					}
+
+					try
+					{
 						// Trigger startup state change:
 						await StateChange(true, svc);
 					}
+					catch (Exception e)
+					{
+						var autoService = svc as AutoService;
+						Log.Error((autoService != null) ? autoService.LogTag : "", e);
+					}
+				}
 
+				try
+				{
 					// Services are now all instanced - fire off service OnStart event:
 					TriggerStart();
-
-					AllServiceTypes = null;
 				}
 				catch (Exception e)
 				{
-					Console.WriteLine(e.ToString());
+					Log.Error("", e);
 				}
+
+				AllServiceTypes = null;
 			}).Wait();
 		}
 
@@ -179,7 +192,7 @@ namespace Api.Startup
 				services.AddSingleton(typeInfo.AsType());
 				_serviceTypes.Add(typeInfo.AsType());
 
-				Console.WriteLine("Registered service: " + typeName);
+				Log.Info("services", "Registered service: " + typeName);
 			}
 
 			AllServiceTypes = _serviceTypes;

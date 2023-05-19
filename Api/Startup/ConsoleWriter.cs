@@ -10,42 +10,20 @@ namespace Api.Startup
 	/// </summary>
 	public class ConsoleWriter: TextWriter
 	{
-		private const int maxLength = 4096;
-		
 		/// <summary>
 		/// Underlying stream.
 		/// </summary>
 		private TextWriter _main;
 		
 		/// <summary>
-		/// The backbuffer which tracks the last 4k characters that were passed through. It's a ring buffer.
+		/// Writes to the underlying text stream.
 		/// </summary>
-		private char[] _buffer = new char[maxLength];
-		
-		private int _head;
-		
-		private int _size;
-		
-		/// <summary>
-		/// Gets the latest block of text written to the writer.
-		/// </summary>
-		public string GetLatest()
+		/// <param name="message"></param>
+		public void WriteBase(string message)
 		{
-			return string.Create(_size, this, (Span<char> target, ConsoleWriter cw) => {
-				for (var i = 0; i < cw._size; i++)
-				{
-					var index = cw._head - cw._size + i;
-
-					if (index < 0)
-					{
-						index += maxLength;
-					}
-
-					target[i] = cw._buffer[index];
-				}
-			});
+			_main.Write(message);
 		}
-		
+
 		/// <summary>
 		/// Creates a writer for the given main output stream.
 		/// </summary>
@@ -60,16 +38,9 @@ namespace Api.Startup
 		public override void Write(char value)
 		{
 			_main.Write(value);
-			_buffer[_head] = value;
-			_head++;
-			if (_head == maxLength)
-			{
-				_head = 0;
-			}
-			if (_size < maxLength)
-			{
-				_size++;
-			}
+
+			// And also add to the logging system:
+			Log.FromStdOut(value+"");
 		}
 		
 		/// <summary>
@@ -79,25 +50,8 @@ namespace Api.Startup
 		{
 			_main.Write(value);
 
-			if (value == null)
-			{
-				return;
-			}
-			
-			for(var i =0;i<value.Length;i++)
-			{
-				var c = value[i];
-				_buffer[_head] = c;
-				_head++;
-				if (_head == maxLength)
-				{
-					_head = 0;
-				}
-				if (_size < maxLength)
-				{
-					_size++;
-				}
-			}
+			// And also add to the logging system:
+			Log.FromStdOut(value);
 		}
 		
 		/// <summary>
