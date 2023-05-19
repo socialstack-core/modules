@@ -4,6 +4,7 @@ using Api.Permissions;
 using Api.Eventing;
 using Api.Startup;
 using Org.BouncyCastle.Security;
+using Api.Translate;
 
 
 namespace Api.Users
@@ -71,7 +72,10 @@ namespace Api.Users
 					// Default role is Member:
 					user.Role = config.VerifyEmails ? Roles.Guest.Id : Roles.Member.Id;
 				}
-				
+
+				// Set locale ID:
+				user.LocaleId = ctx.LocaleId;
+
 				// Generate a private verify value:
 				user.PrivateVerify = RandomLong();
 				
