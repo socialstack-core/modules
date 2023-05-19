@@ -38,7 +38,12 @@ namespace Api.Eventing
 		/// Provide a name (typically lowercase with underscores instead of spaces) such that you can also explicitly request the automation to run from its name too.
 		/// Note that if you provide a name but not the cron expression, you can add additional event handlers to an existing job.
 		/// </summary>
-		public static EventHandler<AutomationRunInfo> Automation(string name, string cronExpression = null)
+		/// <param name="name">A lowercase key for this automation. Used to trigger it and also add additional handlers to a particular event.</param>
+		/// <param name="cronExpression">The 7 part cron expression from e.g. https://www.freeformatter.com/cron-expression-generator-quartz.html</param>
+		/// <param name="runOnAllServersInCluster">
+		/// Set this to true if you want all servers in a cluster to run this automation.
+		/// </param>
+		public static EventHandler<AutomationRunInfo> Automation(string name, string cronExpression = null, bool runOnAllServersInCluster = false)
 		{
 			if (string.IsNullOrEmpty(name))
 			{
