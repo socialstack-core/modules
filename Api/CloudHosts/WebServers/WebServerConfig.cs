@@ -44,6 +44,7 @@ namespace Api.CloudHosts
 		/// <summary>
 		/// Optional - if not set, the target is derived from the configured domains (in frontend service config).
 		/// For example if domain is "site.com" and a site URL is "www.site.com" then redirectTo will be "www.site.com".
+		/// </summary>
 		public string RedirectTo {get; set;}
 	}
 

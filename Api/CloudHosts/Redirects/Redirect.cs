@@ -17,6 +17,7 @@ namespace Api.Redirects
 		/// For example, "/hello-world/"
 		/// If it ends with a forward slash, then both with and without the fwdslash will be redirected.
 		/// I.e. "/hello-world/" and "/hello-world"
+		/// </summary>
 		public string From;
 		
 		/// <summary>

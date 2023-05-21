@@ -121,7 +121,7 @@ namespace Api.CloudHosts
                             }
                             catch
                             {
-                                Console.WriteLine("Likely temporary error whilst trying to read a file from a remote host: " + e.ToString());
+                                Log.Info(LogTag, e, "Likely temporary error whilst trying to read a file from a remote host.");
                                 // Unavailable or unreachable.
                                 return null;
                             }
@@ -171,7 +171,7 @@ namespace Api.CloudHosts
 							}
 							catch
 							{
-								Console.WriteLine("Likely temporary error whilst trying to read a file from a remote host: " + e.ToString());
+								Log.Info(LogTag, e, "Likely temporary error whilst trying to read a file from a remote host.");
 								// Unavailable or unreachable.
 								return null;
 							}

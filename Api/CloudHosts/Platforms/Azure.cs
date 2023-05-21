@@ -201,7 +201,7 @@ namespace Api.CloudHosts
             }
             catch (Exception e)
             {
-                Console.WriteLine(e.ToString());
+                Log.Error("azure", e, "Upload failed");
             }
 
             return false;
