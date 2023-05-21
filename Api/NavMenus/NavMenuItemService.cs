@@ -20,7 +20,7 @@ namespace Api.NavMenus
 		/// </summary>
 		public NavMenuItemService() : base(Events.NavMenuItem)
         {
-			InstallAdminPages(null, null, new string[] { "id", "target" });
+			//InstallAdminPages(null, null, new string[] { "id", "target" });
 		}
 	}
     
