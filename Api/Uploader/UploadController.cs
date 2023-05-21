@@ -204,8 +204,9 @@ namespace Api.Uploader
         /// In the future this will also add any missing database entries.
         /// </summary>
         /// <param name="regenBefore">An ISO date string in UTC. Regenerate files if they are before the specified date.</param>
+        /// <param name="idRange">Of the form "1-500" inclusive. Will skip any files with an upload ID out of this range if specified. Can be used for bulk task delegation amongst a group of machines. Use blank values for "anything after" ("100-") and "anything before" ("-100").</param>
         [HttpGet("file-consistency")]
-        public async ValueTask FileConsistency([FromQuery] string regenBefore = null)
+        public async ValueTask FileConsistency([FromQuery] string regenBefore = null, [FromQuery] string idRange = null)
         {
 
             var context = await Request.GetContext();
@@ -215,8 +216,30 @@ namespace Api.Uploader
                 throw PermissionException.Create("file_consistency", context);
             }
 
+            uint minId = 0;
+            uint maxId = uint.MaxValue;
+
+            if (!string.IsNullOrWhiteSpace(idRange))
+            {
+                var parts = idRange.Split('-');
+
+                if (parts.Length == 2)
+                {
+                    var min = parts[0].Trim();
+                    var max = parts[1].Trim();
+                    if (!string.IsNullOrEmpty(min))
+                    {
+                        uint.TryParse(parts[0], out minId);
+                    }
+					if (!string.IsNullOrEmpty(max))
+					{
+						uint.TryParse(parts[1], out maxId);
+					}
+				}
+			}
+
             DateTime? regenDate = string.IsNullOrWhiteSpace(regenBefore) ? null : DateTime.Parse(regenBefore);
-			await (_service as UploadService).FileConsistency(context, regenDate);
+			await (_service as UploadService).FileConsistency(context, regenDate, minId, maxId);
         }
 
         /// <summary>

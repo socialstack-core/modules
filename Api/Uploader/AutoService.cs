@@ -369,16 +369,16 @@ public partial class AutoService<T, ID>
         return uploads;
     }
 
-    /// <summary>
-    /// Extract the upload id from the image ref
-    /// e.g. 1840 or 77
-    /// public:5A33D1474A94741A998AA72B8C722C9B/1840.jpg|webp?w=2460&h=1770&b=LRN8%5DCM%5E5ZI%5B%3F%5DR5xuozS6r%3D%24~of
-    /// public:5A33D1474A94741A998AA72B8C722C9B/77.jpg? w = 5039 & h = 3364
-    /// </summary>
-    /// <param name="uploadRef"></param>
-    /// <returns></returns>
+	/// <summary>
+	/// Extract the upload id from the image ref
+	/// e.g. 1840 or 77
+	/// public:5A33D1474A94741A998AA72B8C722C9B/1840.jpg|webp?w=2460&amp;h=1770&amp;b=LRN8%5DCM%5E5ZI%5B%3F%5DR5xuozS6r%3D%24~of
+	/// public:5A33D1474A94741A998AA72B8C722C9B/77.jpg?w=5039&amp;h = 3364
+	/// </summary>
+	/// <param name="uploadRef"></param>
+	/// <returns></returns>
 
-    private uint GetImageRefId(string uploadRef)
+	private uint GetImageRefId(string uploadRef)
     {
         if (string.IsNullOrWhiteSpace(uploadRef) || !uploadRef.StartsWith("public:"))
         {

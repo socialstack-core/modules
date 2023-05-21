@@ -12,11 +12,11 @@ using System.Text;
 using System.Security.Cryptography;
 using System.Linq;
 using ImageMagick;
-using Api.ColourConsole;
 using System.Globalization;
 using System.Text.RegularExpressions;
 using Api.Automations;
 using Api.Translate;
+using ImageMagick.Formats;
 
 namespace Api.Uploader
 {
@@ -47,12 +47,13 @@ namespace Api.Uploader
             Events.Automation("image usage", "0 0 * ? * * *").AddEventListener(async (Context context, AutomationRunInfo runInfo) =>
             {
 				if(_configuration.TrackRefUsage){
-					await UpdateImageUsage(context);
-				}
-				
+                    await UpdateImageUsage(context);
+                }
+
                 return runInfo;
             });
-			
+
+
             Events.Upload.BeforeCreate.AddEventListener((Context context, Upload upload) =>
             {
 
@@ -161,7 +162,7 @@ namespace Api.Uploader
                         }
                         catch (Exception e)
                         {
-                            WriteColourLine.Error("Unable to set file permissions - skipping. File was " + writePath + " with error " + e.ToString());
+                            Log.Error(LogTag, e, "Unable to set file permissions - skipping. File was " + writePath);
                         }
                     }
 
@@ -203,13 +204,12 @@ namespace Api.Uploader
                         return metaStream;
                     }
 
-                    metaStream.FileSize = (ulong)file.Length;
-                    metaStream.IsDirectory = false;
-                    metaStream.LastModifiedUtc = file.LastWriteTimeUtc;
-					metaStream.Path = file.FullName.Substring(filePath.Length);
-
-                    await metaStream.OnFile(metaStream);
-                    metaStream.FilesListed++;
+                    var meta = metaStream.StartFile();
+                    meta.FileSize = (ulong)file.Length;
+                    meta.IsDirectory = false;
+                    meta.LastModifiedUtc = file.LastWriteTimeUtc;
+                    meta.Path = file.FullName.Substring(filePath.Length);
+                    await metaStream.FileListed(meta);
                 }
 
                 /*
@@ -292,7 +292,7 @@ namespace Api.Uploader
 
                     if (!string.IsNullOrEmpty(altName))
                     {
-                        Console.WriteLine($"{upload.Id} {upload.OriginalName} -> {altName}");
+						Log.Info(LogTag, $"{upload.Id} {upload.OriginalName} -> {altName}");
 
                         await Update(context, upload, (Context ctx, Upload up, Upload orig) =>
                         {
@@ -309,7 +309,7 @@ namespace Api.Uploader
         /// <param name="context"></param>
         public async ValueTask UpdateImageUsage(Context context)
         {
-            Console.WriteLine("Updating image usage counts");
+			Log.Info(LogTag, "Updating image usage counts");
 
             var usageMap = new Dictionary<uint, int>();
 
@@ -342,19 +342,244 @@ namespace Api.Uploader
                 }, DataOptions.IgnorePermissions);
             }
 
-            Console.WriteLine("Updated image usage counts - " + usageMap.Sum(x => x.Value));
+			Log.Info(LogTag, "Updated image usage counts - " + usageMap.Sum(x => x.Value));
 
         }
 
-
         /// <summary>
-        /// Creates resized and transcoded versions of images for the given upload.
+        /// Gets the writer for the given image.
         /// </summary>
-        /// <param name="context"></param>
-        /// <param name="upload"></param>
-        /// <param name="existingFiles">If a target file is listed in existingFiles, it will be skipped.</param>
+        /// <param name="current"></param>
         /// <returns></returns>
-        public async Task<Upload> ProcessImage(Context context, Upload upload, List<FileConsistencyInfo> existingFiles = null)
+        private IWriteDefines ConfigureWriter(MagickImage current)
+        {
+            if (current.Format != MagickFormat.WebP || _configuration.WebPConfig == null)
+            {
+                return null;
+            }
+
+			var webpConfig = _configuration.WebPConfig;
+			var defines = new WebPWriteDefines { };
+
+			if (webpConfig.Quality.HasValue)
+			{
+				current.Quality = webpConfig.Quality.Value;
+			}
+
+			if (!string.IsNullOrWhiteSpace(webpConfig.AlphaCompression))
+			{
+				var val = webpConfig.AlphaCompression.ToLower();
+
+				switch (val)
+				{
+					case "none":
+						defines.AlphaCompression = WebPAlphaCompression.None;
+						break;
+
+					case "compressed":
+						defines.AlphaCompression = WebPAlphaCompression.Compressed;
+						break;
+				}
+
+			}
+
+			if (!string.IsNullOrWhiteSpace(webpConfig.AlphaFiltering))
+			{
+				var val = webpConfig.AlphaFiltering.ToLower();
+
+				switch (val)
+				{
+					case "none":
+						defines.AlphaFiltering = WebPAlphaFiltering.None;
+						break;
+
+					case "fast":
+						defines.AlphaFiltering = WebPAlphaFiltering.Fast;
+						break;
+
+					case "best":
+						defines.AlphaFiltering = WebPAlphaFiltering.Best;
+						break;
+				}
+
+			}
+
+			if (webpConfig.AlphaQuality.HasValue)
+			{
+				defines.AlphaQuality = webpConfig.AlphaQuality.Value;
+			}
+
+			if (webpConfig.AutoFilter.HasValue)
+			{
+				defines.AutoFilter = webpConfig.AutoFilter.Value;
+			}
+
+			if (webpConfig.EmulateJpegSize.HasValue)
+			{
+				defines.EmulateJpegSize = webpConfig.EmulateJpegSize.Value;
+			}
+
+			if (webpConfig.Exact.HasValue)
+			{
+				defines.Exact = webpConfig.Exact.Value;
+			}
+
+			if (webpConfig.FilterSharpness.HasValue)
+			{
+				defines.FilterSharpness = webpConfig.FilterSharpness.Value;
+			}
+
+			if (webpConfig.FilterStrength.HasValue)
+			{
+				defines.FilterStrength = webpConfig.FilterStrength.Value;
+			}
+
+			if (!string.IsNullOrWhiteSpace(webpConfig.FilterType))
+			{
+				var val = webpConfig.FilterType.ToLower();
+
+				switch (val)
+				{
+					case "simple":
+						defines.FilterType = WebPFilterType.Simple;
+						break;
+
+					case "strong":
+						defines.FilterType = WebPFilterType.Strong;
+						break;
+				}
+
+			}
+
+			if (!string.IsNullOrWhiteSpace(webpConfig.ImageHint))
+			{
+				var val = webpConfig.ImageHint.ToLower();
+
+				switch (val)
+				{
+					case "picture":
+						defines.ImageHint = WebPImageHint.Picture;
+						break;
+
+					case "default":
+						defines.ImageHint = WebPImageHint.Default;
+						break;
+
+					case "photo":
+						defines.ImageHint = WebPImageHint.Photo;
+						break;
+
+					case "graph":
+						defines.ImageHint = WebPImageHint.Graph;
+						break;
+				}
+
+			}
+
+			if (webpConfig.Lossless.HasValue)
+			{
+				defines.Lossless = webpConfig.Lossless.Value;
+			}
+
+			if (webpConfig.LowMemory.HasValue)
+			{
+				defines.LowMemory = webpConfig.LowMemory.Value;
+			}
+
+			if (webpConfig.Method.HasValue)
+			{
+				defines.Method = webpConfig.Method.Value;
+			}
+
+			if (webpConfig.NearLossless.HasValue)
+			{
+				defines.NearLossless = webpConfig.NearLossless.Value;
+			}
+
+			if (webpConfig.PartitionLimit.HasValue)
+			{
+				defines.PartitionLimit = webpConfig.PartitionLimit.Value;
+			}
+
+			if (webpConfig.Partitions.HasValue)
+			{
+				defines.Partitions = webpConfig.Partitions.Value;
+			}
+
+			if (webpConfig.Pass.HasValue)
+			{
+				defines.Pass = webpConfig.Pass.Value;
+			}
+
+			if (!string.IsNullOrWhiteSpace(webpConfig.Preprocessing))
+			{
+				var val = webpConfig.Preprocessing.ToLower();
+
+				switch (val)
+				{
+					case "none":
+						defines.Preprocessing = WebPPreprocessing.None;
+						break;
+
+					case "pseudorandom":
+					case "random":
+						defines.Preprocessing = WebPPreprocessing.PseudoRandom;
+						break;
+
+					case "segmentsmooth":
+					case "smooth":
+						defines.Preprocessing = WebPPreprocessing.SegmentSmooth;
+						break;
+				}
+
+			}
+
+			if (webpConfig.Segment.HasValue)
+			{
+				defines.Segment = webpConfig.Segment.Value;
+			}
+
+			if (webpConfig.ShowCompressed.HasValue)
+			{
+				defines.ShowCompressed = webpConfig.ShowCompressed.Value;
+			}
+
+			if (webpConfig.SnsStrength.HasValue)
+			{
+				defines.SnsStrength = webpConfig.SnsStrength.Value;
+			}
+
+			if (webpConfig.TargetPsnr.HasValue)
+			{
+				defines.TargetPsnr = webpConfig.TargetPsnr.Value;
+			}
+
+			if (webpConfig.TargetSize.HasValue)
+			{
+				defines.TargetSize = webpConfig.TargetSize.Value;
+			}
+
+			if (webpConfig.ThreadLevel.HasValue)
+			{
+				defines.ThreadLevel = webpConfig.ThreadLevel.Value;
+			}
+
+			if (webpConfig.UseSharpYuv.HasValue)
+			{
+				defines.UseSharpYuv = webpConfig.UseSharpYuv.Value;
+			}
+
+            return defines;
+		}
+
+		/// <summary>
+		/// Creates resized and transcoded versions of images for the given upload.
+		/// </summary>
+		/// <param name="context"></param>
+		/// <param name="upload"></param>
+		/// <param name="existingFiles">If a target file is listed in existingFiles, it will be skipped.</param>
+		/// <returns></returns>
+		public async Task<Upload> ProcessImage(Context context, Upload upload, List<FileConsistencyInfo> existingFiles = null)
         {
             MagickImage current = null;
 
@@ -463,10 +688,21 @@ namespace Api.Uploader
                         }
 
                         current.Format = transcodeTo;
-                        current.Write(fullSizeTranscoded);
 
-                        // Ask to store it:
-                        await Events.Upload.StoreFile.Dispatch(context, upload, fullSizeTranscoded, "original" + formatName);
+                        // set config preferences if found
+                        IWriteDefines writeDefines = ConfigureWriter(current);
+						
+						if (writeDefines == null)
+						{
+							current.Write(fullSizeTranscoded);
+						}
+						else
+						{
+							current.Write(fullSizeTranscoded, writeDefines);
+						}
+
+						// Ask to store it:
+						await Events.Upload.StoreFile.Dispatch(context, upload, fullSizeTranscoded, "original" + formatName);
                     }
 
                     // Resize:
@@ -529,10 +765,20 @@ namespace Api.Uploader
                                     // output the file:
                                     current.Format = transcodeTo;
                                     var resizedTempFile = System.IO.Path.GetTempFileName();
-                                    current.Write(resizedTempFile);
 
-                                    // Ask to store it:
-                                    await Events.Upload.StoreFile.Dispatch(context, upload, resizedTempFile, imageSizeStr + formatName);
+									IWriteDefines writeDefines = ConfigureWriter(current);
+
+									if (writeDefines == null)
+									{
+										current.Write(resizedTempFile);
+									}
+									else
+									{
+										current.Write(resizedTempFile, writeDefines);
+									}
+
+									// Ask to store it:
+									await Events.Upload.StoreFile.Dispatch(context, upload, resizedTempFile, imageSizeStr + formatName);
                                 }
 
                                 if (doBlurhash)
@@ -547,10 +793,20 @@ namespace Api.Uploader
                                     // output the file:
                                     current.Format = doubleOutput.Value;
                                     var resizedTempFile = System.IO.Path.GetTempFileName();
-                                    current.Write(resizedTempFile);
+                                    
+									IWriteDefines writeDefines = ConfigureWriter(current);
 
-                                    // Ask to store it:
-                                    await Events.Upload.StoreFile.Dispatch(context, upload, resizedTempFile, imageSizeStr + doubleFormatName);
+									if (writeDefines == null)
+									{
+										current.Write(resizedTempFile);
+									}
+									else
+									{
+										current.Write(resizedTempFile, writeDefines);
+									}
+
+									// Ask to store it:
+									await Events.Upload.StoreFile.Dispatch(context, upload, resizedTempFile, imageSizeStr + doubleFormatName);
                                 }
                             }
                         }
@@ -612,17 +868,13 @@ namespace Api.Uploader
 
                                 var hasTargetFile = HasVariationInSet(existingFiles, _configuration.ImageCrops[cropId], transcodedFormatName);
                                 var hasDoubleOutputFile = !doubleOutput.HasValue || HasVariationInSet(existingFiles, _configuration.ImageCrops[cropId], doubleFormatNameNoDot);
-                                // ??
-                                /*
-                                var doBlurhash = _smallestSize == imageSize && _configuration.GenerateBlurhash && upload.Blurhash == null;
-
-                                if (hasTargetFile && hasDoubleOutputFile && !doBlurhash)
+                                
+                                if (hasTargetFile && hasDoubleOutputFile)
                                 {
                                     // Nothing to do with this size.
                                     // Already got one (or both) files required, or blurhash is known.
                                     continue;
                                 }
-                                */
 
                                 if (current == null)
                                 {
@@ -653,10 +905,20 @@ namespace Api.Uploader
                                     // output the file:
                                     current.Format = transcodeTo;
                                     var resizedTempFile = Path.GetTempFileName();
-                                    current.Write(resizedTempFile);
+                                    
+									IWriteDefines writeDefines = ConfigureWriter(current);
 
-                                    // Ask to store it:
-                                    await Events.Upload.StoreFile.Dispatch(context, upload, resizedTempFile, _configuration.ImageCrops[cropId] + formatName);
+									if (writeDefines == null)
+									{
+										current.Write(resizedTempFile);
+									}
+									else
+									{
+										current.Write(resizedTempFile, writeDefines);
+									}
+
+									// Ask to store it:
+									await Events.Upload.StoreFile.Dispatch(context, upload, resizedTempFile, _configuration.ImageCrops[cropId] + formatName);
                                 }
 
                                 // TODO
@@ -674,10 +936,20 @@ namespace Api.Uploader
                                     // output the file:
                                     current.Format = doubleOutput.Value;
                                     var resizedTempFile = Path.GetTempFileName();
-                                    current.Write(resizedTempFile);
+                                    
+									IWriteDefines writeDefines = ConfigureWriter(current);
 
-                                    // Ask to store it:
-                                    await Events.Upload.StoreFile.Dispatch(context, upload, resizedTempFile, _configuration.ImageCrops[cropId] + doubleFormatName);
+                                    if (writeDefines == null)
+                                    {
+										current.Write(resizedTempFile);
+									}
+                                    else
+                                    {
+										current.Write(resizedTempFile, writeDefines);
+									}
+									
+									// Ask to store it:
+									await Events.Upload.StoreFile.Dispatch(context, upload, resizedTempFile, _configuration.ImageCrops[cropId] + doubleFormatName);
                                 }
 
                             }
@@ -703,7 +975,7 @@ namespace Api.Uploader
                         upload.TemporaryPath = null;
                     }
 
-                    Console.WriteLine("Unsupported image format was not resized. Underlying exception: " + e.ToString());
+					Log.Error(LogTag, e, "Unsupported image format was not resized.");
                 }
             }
 
@@ -887,18 +1159,25 @@ namespace Api.Uploader
         }
 
         /// <summary>
-        /// Gets the file bytes of the given ref, if it is a file ref. Supports remote filesystems as well.
+        /// Lists files in the given path, which can be blank to list everything. Supports remote filesystems as well.
         /// </summary>
         /// <param name="isPrivate">True if listing in the private area.</param>
         /// <param name="relativePath">Path relative to the public/private area.</param>
         /// <param name="onFileListed"></param>
+        /// <param name="retainAll">True if files should be added to a List inside the returned object. onFileListed will still be raised. Use this to sort all the files.</param>
         /// <returns></returns>
-        public async Task<FileMetaStream> ListFiles(bool isPrivate, string relativePath, Func<FileMetaStream, ValueTask> onFileListed)
+        public async Task<FileMetaStream> ListFiles(bool isPrivate, string relativePath, Func<FileMetaStream, ValueTask> onFileListed, bool retainAll = false)
         {
             var metaStream = new FileMetaStream();
             metaStream.SearchPrivate = isPrivate;
             metaStream.SearchDirectory = relativePath;
             metaStream.OnFile = onFileListed;
+            metaStream.RetainAll = retainAll;
+
+            if (retainAll)
+            {
+                metaStream.AllFiles = new List<FileMeta>();
+            }
 
             // Trigger a read file event. The default handler will read from the file system, 
             // and the CloudHosts module adds a handler if it is handling uploads.
@@ -1124,15 +1403,17 @@ namespace Api.Uploader
             return tokenStr;
         }
 
-		/// <summary>
-		/// Checks each file in the file system if it matches the current upload policy.
-		/// Future: Also will update the DB with missing entries and replace refs if e.g. webp just became available for a particular file.
-		/// As you can therefore guess, this is very slow!
-		/// </summary>
-		/// <param name="context"></param>
-		/// <param name="regenerateIfBefore">If set, any non-original files created before the specified UTC date will be regenerated.</param>
-		/// <returns></returns>
-		public async ValueTask FileConsistency(Context context, DateTime? regenerateIfBefore = null)
+        /// <summary>
+        /// Checks each file in the file system if it matches the current upload policy.
+        /// Future: Also will update the DB with missing entries and replace refs if e.g. webp just became available for a particular file.
+        /// As you can therefore guess, this is very slow!
+        /// </summary>
+        /// <param name="context"></param>
+        /// <param name="regenerateIfBefore">If set, any non-original files created before the specified UTC date will be regenerated.</param>
+        /// <param name="minId">If set, IDs below this number will be ignored.</param>
+        /// <param name="maxId">If set, IDs above this number will be ignored.</param>
+        /// <returns></returns>
+        public async ValueTask FileConsistency(Context context, DateTime? regenerateIfBefore = null, uint? minId = null, uint? maxId = null)
         {
             var localBuffer = new List<FileConsistencyInfo>();
             ulong latestNumber = 0;
@@ -1170,6 +1451,8 @@ namespace Api.Uploader
                 string originalPath = original.Path;
                 var uploadId = (uint)original.Number;
 
+				Log.Info(LogTag, "Processing " + original.FileName + " ...");
+
                 // Get the upload:
                 var upload = await Get(context, uploadId);
 
@@ -1193,19 +1476,25 @@ namespace Api.Uploader
                 if (upload.Subdirectory != original.Subdirectory)
                 {
                     // Multiple uploads with the same ID. Skip!
+                    Log.Info(LogTag, "Skipping " + upload.Subdirectory + " / " + original.Subdirectory);
+
+                    localBuffer.Clear();
                     return;
                 }
 
                 await ProcessImage(context, upload, localBuffer);
-                Console.WriteLine("Process buffer for " + upload.Id);
+                Log.Ok(LogTag, "Processed buffer for " + upload.Id);
 
                 // Clear it:
                 localBuffer.Clear();
             };
 
-            var dirs = await ListFiles(false, "", async (FileMetaStream fileInfo) =>
-            {
+            // Must list all in to a single set such that they can be consistently sorted:
+            var dirs = await ListFiles(false, "", null, true);
+            dirs.SortAlphabetically();
 
+            foreach(var fileInfo in dirs.AllFiles)
+            {
                 // A consistency capable file is of the form:
                 // (DIR/)?NUMBER-original.(.*)
 
@@ -1250,14 +1539,18 @@ namespace Api.Uploader
                     }
                 }
 
-                if (numValid)
+                if (minId.HasValue && num < minId.Value)
                 {
-                    if (num != latestNumber)
-                    {
-                        latestNumber = num;
-                        await processBuffer();
-                    }
+                    continue;
+                }
 
+				if (maxId.HasValue && num > maxId.Value)
+				{
+                    continue;
+				}
+
+				if (numValid)
+                {
                     var typeIndex = path.IndexOf('.', dashOffset);
                     var fileName = path.Substring(directoryOffset + 1);
                     var fileType = path.Substring(typeIndex + 1);
@@ -1268,8 +1561,14 @@ namespace Api.Uploader
                         // Skip this file if it is older than the specified UTC timestamp.
                         if (fileInfo.LastModifiedUtc < regenerateIfBefore)
                         {
-                            return;
+                            continue;
                         }
+                    }
+
+                    if (num != latestNumber)
+                    {
+                        latestNumber = num;
+                        await processBuffer();
                     }
 
                     localBuffer.Add(new FileConsistencyInfo()
@@ -1283,13 +1582,12 @@ namespace Api.Uploader
                         DirectoryOffset = directoryOffset
                     });
                 }
-            });
+            }
 
             // Process last file in buffer:
             await processBuffer();
 
-            Console.WriteLine("Files discovered: " + dirs.FilesListed);
-
+            Log.Info(LogTag, "Files discovered: " + dirs.FilesListed);
         }
 
         /// <summary>
