@@ -8,7 +8,6 @@ using System.Collections.Generic;
 using System.Text;
 using MySql.Data.MySqlClient;
 using Api.Permissions;
-using Api.ColourConsole;
 
 namespace Api.Database
 {
@@ -107,7 +106,7 @@ namespace Api.Database
 				{
 					if (_database == null)
 					{
-                        WriteColourLine.Warning("[WARN] The type '" + service.ServicedType.Name  + "' did not have its database schema updated because the database service was not up in time.");
+                        Log.Warn("databasediff", "The type '" + service.ServicedType.Name  + "' did not have its database schema updated because the database service was not up in time.");
 						return service;
 					}
 
@@ -380,7 +379,7 @@ namespace Api.Database
 				{
 					if (e.Code == 0)
 					{
-                        WriteColourLine.Warning("[WARN] Authentication or unable to contact mysql. Trying again in 5 seconds. " + e.Message);
+						Log.Warn("databasediff", e, "Authentication or unable to contact mysql. Trying again in 5 seconds.");
 						await Task.Delay(5000);
 						tryAgain = true;
 					}
@@ -395,7 +394,7 @@ namespace Api.Database
 
 			if (!Version.TryParse(versionPieces[0], out Version parsedVersion))
 			{
-                WriteColourLine.Warning("[WARNING] DatabaseDiff module disabled due to unrecognised MySQL version text. It was: " + version);
+				Log.Warn("databasediff", "DatabaseDiff module disabled due to unrecognised MySQL version text. It was: " + version);
 				VersionCheckResult = false;
 				return false;
 			}
@@ -422,13 +421,13 @@ namespace Api.Database
 			// Which version we got?
 			if (minVersion == null)
 			{
-                WriteColourLine.Warning("[WARNING] DatabaseDiff module disabled. Unrecognised MySQL variant: " + version);
+				Log.Warn("databasediff", "DatabaseDiff module disabled. Unrecognised MySQL variant: " + version);
 				VersionCheckResult = false;
 				return false;
 			}
 			else if (parsedVersion < minVersion)
 			{
-				WriteColourLine.Warning("[WARNING] DatabaseDiff module disabled. You're using a version of MySQL that is too old. It's version: " + version);
+				Log.Warn("databasediff", "DatabaseDiff module disabled. You're using a version of MySQL that is too old. It's version: " + version);
 				VersionCheckResult = false;
 				return false;
 			}
@@ -472,8 +471,7 @@ namespace Api.Database
 			}
 			catch(Exception e)
 			{
-                WriteColourLine.Warning("[WARNING] DatabaseDiff module disabled due to a failure during query execution. The version (which is supported) was: " + VersionText + ". The complete error that occurred follows.");
-				Console.WriteLine(e.ToString());
+				Log.Warn("databasediff", e, "DatabaseDiff module disabled due to a failure during query execution. The version (which is supported) was: " + VersionText);
 				VersionCheckResult = false;
 				return null;
 			}
@@ -531,7 +529,7 @@ namespace Api.Database
 
 			foreach (var table in tableDiff.Added)
 			{
-				System.Console.WriteLine("Creating table " + table.TableName);
+				Log.Info("databasediff", "Creating table " + table.TableName);
 				altersToRun.Append(table.CreateTableSql());
 				altersToRun.Append(';');
 			}
@@ -596,7 +594,7 @@ namespace Api.Database
 					{
 						continue;
 					}
-					System.Console.WriteLine("Adding column " + newColumn.TableName + "." + newColumn.ColumnName);
+					Log.Info("databasediff", "Adding column " + newColumn.TableName + "." + newColumn.ColumnName);
 					altersToRun.Append(((MySQLDatabaseColumnDefinition)newColumn).AlterTableSql());
 					altersToRun.Append(';');
 				}
@@ -611,7 +609,7 @@ namespace Api.Database
 					if (from.DataType == to.DataType)
 					{
 						// This will fail (expectedly) if the change would result in data loss.
-						System.Console.WriteLine("Attempting to alter column  " + to.TableName + "." + to.ColumnName + ".");
+						Log.Info("databasediff", "Attempting to alter column  " + to.TableName + "." + to.ColumnName + ".");
 
 						altersToRun.Append(to.AlterTableSql(true, from.ColumnName));
 						altersToRun.Append(';');
@@ -619,7 +617,7 @@ namespace Api.Database
 					else
 					{
 						// (No support for those upgrade objects yet)
-						System.Console.WriteLine("Manual column change required: '" + to.AlterTableSql(true) + "'");
+						Log.Info("databasediff", "Manual column change required: '" + to.AlterTableSql(true) + "'");
 					}
 				}
 
@@ -643,11 +641,11 @@ namespace Api.Database
 				catch (MySqlException e)
 				{
 					// Skipping all MySQL errors - the ones here are "it already exists" errors.
-					Console.WriteLine("Skipping a MySQL error during database diff: " + e.ToString());
+					Log.Info("databasediff", e, "Skipping a MySQL error during database diff.");
 				}
 				catch (Exception e)
 				{
-					Console.WriteLine("Skipping a general error during database diff: " + e.ToString());
+					Log.Info("databasediff", e, "Skipping a general error during database diff.");
 				}
 
 				await Events.DatabaseDiffAfterAdd.Dispatch(new Context(), tableDiff);
