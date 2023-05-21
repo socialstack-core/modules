@@ -232,6 +232,11 @@ export default (props) => {
 			// The page state title includes resolved tokens
 			document.title = pageState.title;
 		}
+
+		if (pageState && pageState.description) {
+			// The page state description includes resolved tokens
+			document.querySelector('meta[name="description"]').setAttribute("content", pageState.description);
+		}
 	});
 	
 	return <Router.Provider
