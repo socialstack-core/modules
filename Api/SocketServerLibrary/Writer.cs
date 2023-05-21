@@ -1286,8 +1286,6 @@ namespace Api.SocketServerLibrary
 				v2 = (ulong)value << 1;
 			}
 
-			Console.WriteLine("Writing signed number: " + value);
-
 			WriteInvertibleCompressed(v2+1);
 		}
 

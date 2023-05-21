@@ -37,7 +37,7 @@ namespace Api.SocketServerLibrary
 			if (target == null || (client.Hello && !target.IsHello))
 			{
 				// Invalid opcode.
-				Console.WriteLine("Invalid opcode received: " + opcode + ". " + client.Hello + ", " + (target == null ? "[Not found]" : target.IsHello));
+				Log.Info("socketserverlibrary", "Invalid opcode received: " + opcode + ". " + client.Hello + ", " + (target == null ? "[Not found]" : target.IsHello));
 				client.Close();
 				return;
 			}

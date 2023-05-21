@@ -412,7 +412,7 @@ namespace Api.SocketServerLibrary
 
 						if (frame.Current == null)
 						{
-							Console.WriteLine("Writer appears to have been released prematurely. " + frame.Writer.SendQueueCount);
+							Log.Error("socketserverlibrary", null, "Writer appears to have been released prematurely. " + frame.Writer.SendQueueCount);
 							Close();
 							return;
 						}
@@ -587,7 +587,7 @@ namespace Api.SocketServerLibrary
 			}
 			catch(Exception e)
 			{
-				Console.WriteLine(e.ToString());
+				Log.Error("socketserverlibrary", e, "Socket receive failure");
 				Close();
 			}
 		}

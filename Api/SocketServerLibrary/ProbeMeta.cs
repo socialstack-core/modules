@@ -1,5 +1,5 @@
 using System;
-
+using System.Text;
 
 namespace Api.SocketServerLibrary
 {
@@ -50,23 +50,26 @@ namespace Api.SocketServerLibrary
 		/// <summary>Outputs to the log.</summary>
 		public void DebugThisNow(int failedAtIndex, string failLineText)
 		{
-			
-			Console.WriteLine("== OpCode " + OpCode + " ==");
+			var sb = new StringBuilder();
+			sb.Append("== OpCode " + OpCode + " ==\r\n");
 			
 			for(var i=1;i<FilledTo;i++){
 				
 				var msgType = Messages[i].ToString();
 				
 				if(failedAtIndex == i){
-					Console.WriteLine(msgType + " <----- this was sent, but we tried to read a " + failLineText);
+					sb.Append(msgType + " <----- this was sent, but we tried to read a " + failLineText);
 				}else if(i > failedAtIndex){
-					Console.WriteLine(msgType + " sent");
+					sb.Append(msgType + " sent");
 				}else{
-					Console.WriteLine(msgType);
+					sb.Append(msgType);
 				}
+
+				sb.Append("\r\n");
 				
 			}
-			
+
+			Log.Info("socketserverlibrary", sb.ToString());
 		}
 		
 		/// <summary>

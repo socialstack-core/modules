@@ -3,6 +3,7 @@ using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Runtime.Intrinsics;
 using System.Runtime.Intrinsics.X86;
+using System.Text;
 
 namespace Api.SocketServerLibrary.Crypto
 {
@@ -39,6 +40,7 @@ namespace Api.SocketServerLibrary.Crypto
         public void DumpKeys()
         {
             Span<byte> key = stackalloc byte[16];
+            var sb = new StringBuilder();
 
             for (var i = 0; i < roundKeys.Length; i++)
             {
@@ -46,10 +48,13 @@ namespace Api.SocketServerLibrary.Crypto
 
                 var hexStr = Hex.Convert(key);
 
-                Console.WriteLine(i + ": " + hexStr);
+                sb.Append(i);
+                sb.Append(": ");
+                sb.Append(hexStr);
             }
-            
-        }
+
+			Log.Info("serversocketlibrary", sb.ToString());
+		}
 
         static readonly Vector128<byte> ONE = Vector128.Create((byte)0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1);
 

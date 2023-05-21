@@ -1,6 +1,7 @@
 using System;
 using System.Diagnostics;
 using System.Runtime.CompilerServices;
+using System.Text;
 using Org.BouncyCastle.Utilities;
 
 namespace Api.SocketServerLibrary.Crypto
@@ -269,6 +270,7 @@ namespace Api.SocketServerLibrary.Crypto
 		public void DumpKeys()
 		{
 			byte[] keyOut = new byte[16];
+			var sb = new StringBuilder();
 
 			for (var i = 0; i < WorkingKey.Length; i++)
 			{
@@ -278,9 +280,12 @@ namespace Api.SocketServerLibrary.Crypto
 				UInt32_To_LE(key[2], keyOut, 8);
 				UInt32_To_LE(key[3], keyOut, 12);
 				var hexStr = Hex.Convert(keyOut);
-				Console.WriteLine(i + ": " + hexStr);
+				sb.Append(i);
+				sb.Append(": ");
+				sb.Append(hexStr);
 			}
 
+			Log.Info("serversocketlibrary", sb.ToString());
 		}
 		
 		/**

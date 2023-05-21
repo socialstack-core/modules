@@ -1,8 +1,4 @@
-using Api.ColourConsole;
-using Api.Startup;
 using System;
-using System.Collections;
-using System.Collections.Generic;
 
 
 namespace Api.SocketServerLibrary
@@ -55,7 +51,7 @@ namespace Api.SocketServerLibrary
 				}
 				catch (Exception)
 				{
-                    WriteColourLine.Warning("[WARN] invalid client message received. Ignoring it.");
+                    Log.Warn("socketserverlibrary", "invalid client message received. Ignoring it.");
 					client.Close();
 					return;
 				}

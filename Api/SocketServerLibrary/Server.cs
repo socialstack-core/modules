@@ -1,13 +1,10 @@
 using System;
-using System.IO;
 using System.Net;
 using System.Net.Sockets;
 using System.Collections.Generic;
-using System.Reflection.Emit;
 using System.Timers;
 using System.Threading.Tasks;
 using System.Runtime.InteropServices;
-using Api.ColourConsole;
 
 namespace Api.SocketServerLibrary {
 
@@ -129,7 +126,7 @@ namespace Api.SocketServerLibrary {
 				if (!socket.Connected)
 				{
                     // Timeout.
-                    WriteColourLine.Warning("[WARN] Unable to contact remote server #" + serverId);
+                    Log.Warn("socketserverlibrary", "Unable to contact remote server #" + serverId);
 					socket.Close();
 				}
 
