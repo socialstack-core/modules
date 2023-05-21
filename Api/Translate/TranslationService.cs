@@ -91,7 +91,7 @@ namespace Api.Translate
 
             foreach (var locale in localeList)
             {
-                Console.WriteLine($"Extract default translations for {locale.Id}-{locale.Name}");
+				Log.Info(LogTag, $"Extract default translations for {locale.Id}-{locale.Name}");
                 await builder.PopulateDefaultTranslations(locale.Id);
             }
 
@@ -129,7 +129,7 @@ namespace Api.Translate
                 {
                     var parsedPO = await ParsePOData(context, fsSource, ServicedType);
 
-                    Console.WriteLine($"Procesing po file {potfile} {context.LocaleId}");
+					Log.Info(LogTag, $"Procesing po file {potfile} {context.LocaleId}");
 
                     // Load all the local database translations
                     var translationList = await Where(DataOptions.IgnorePermissions).ListAll(new Context()
@@ -146,7 +146,7 @@ namespace Api.Translate
 
                         if (translations == null || !translations.Any())
                         {
-                            Console.WriteLine($"Missing translation [{itemId}] !! [{po.Original}->{po.Translated}] looking for entries based on Original text");
+							Log.Warn(LogTag, $"Missing translation [{itemId}] !! [{po.Original}->{po.Translated}] looking for entries based on Original text");
 
                             // Not found by its Id so do we have any where the source text matches ? 
                             translations = translationList.Where(f => f.Original == po.Original);
@@ -158,7 +158,7 @@ namespace Api.Translate
                             {
                                 if (translation.Translated != po.Translated) {
 
-                                    Console.WriteLine($"Updating translation [{translation.Id}] {translation.Module} {translation.Original}->{po.Translated}");
+									Log.Info(LogTag, $"Updating translation [{translation.Id}] {translation.Module} {translation.Original}->{po.Translated}");
 
                                     await Update(context, translation, (Context ctx, Translation trans, Translation orig) =>
                                     {

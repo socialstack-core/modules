@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
 using System.Threading.Tasks;
-using Api.ColourConsole;
 using Api.Contexts;
 using Api.Database;
 using Api.Eventing;
@@ -81,7 +80,7 @@ namespace Api.Translate
 
 						if (locales[i].Code == null)
 						{
-                            WriteColourLine.Warning("[WARN] Ignoring locale #" + locales[i].Id + " because it has a blank code. This message will spam so you'll want to delete locale or give it a code.");
+							Log.Warn("locale", "[WARN] Ignoring locale #" + locales[i].Id + " because it has a blank code. This message will spam so you'll want to delete locale or give it a code.");
 							continue;
 						}
 

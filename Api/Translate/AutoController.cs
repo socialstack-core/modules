@@ -111,7 +111,7 @@ public partial class AutoController<T, ID>
                     fieldMeta.SetFieldValue(toUpdate, po.Translated);
                 }, DataOptions.IgnorePermissions);
 
-                Console.WriteLine($"Updating {_service.ServicedType.Name} [{item.Id}] {fieldMeta.Name} {fieldMeta.FieldInfo.GetValue(item)?.ToString()}->{po.Translated}");
+				Log.Info("translation", $"Updating {_service.ServicedType.Name} [{item.Id}] {fieldMeta.Name} {fieldMeta.FieldInfo.GetValue(item)?.ToString()}->{po.Translated}");
 
                 updated++;
             }
