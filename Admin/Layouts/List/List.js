@@ -49,5 +49,6 @@ export default class List extends React.Component {
 }
 
 List.propTypes = {
+	beforeList: 'jsx',
 	children: true
 };
