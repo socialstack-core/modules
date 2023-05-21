@@ -1,3 +1,11 @@
 .spacer-container{
 	clear: both;
 }
+
+@include media-breakpoint-down(sm) {
+
+	.spacer-container .spacer {
+		height: var(--spacer-mobile-height) !important;
+	}
+
+}
