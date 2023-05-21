@@ -167,27 +167,27 @@ var decode = (blurhash, width, height, punch = 1.0) => {
 	const bytesPerRow = width * 4;
 	const pixels = new Uint8ClampedArray(bytesPerRow * height);
 
-	for (let y = 0; y < height; y++) {
-		for (let x = 0; x < width; x++) {
-			let r = 0;
-			let g = 0;
-			let b = 0;
+	for (var y = 0; y < height; y++) {
+		for (var x = 0; x < width; x++) {
+			var r = 0;
+			var g = 0;
+			var b = 0;
 
-			for (let j = 0; j < numY; j++) {
-				for (let i = 0; i < numX; i++) {
+			for (var j = 0; j < numY; j++) {
+				for (var i = 0; i < numX; i++) {
 					const basis =
 						Math.cos((Math.PI * x * i) / width) *
 						Math.cos((Math.PI * y * j) / height);
-					let color = colors[i + j * numX];
+					var color = colors[i + j * numX];
 					r += color[0] * basis;
 					g += color[1] * basis;
 					b += color[2] * basis;
 				}
 			}
 
-			let intR = linearTosRGB(r);
-			let intG = linearTosRGB(g);
-			let intB = linearTosRGB(b);
+			var intR = linearTosRGB(r);
+			var intG = linearTosRGB(g);
+			var intB = linearTosRGB(b);
 
 			pixels[4 * x + 0 + y * bytesPerRow] = intR;
 			pixels[4 * x + 1 + y * bytesPerRow] = intG;
