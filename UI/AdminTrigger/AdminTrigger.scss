@@ -16,6 +16,16 @@ html:not(.admin) {
         top: var(--admin-trigger-top, $fallback__admin-trigger-top);
         z-index: 2147483647;
 
+        .admin-trigger__env {
+            display: none;
+            margin-top: -.5rem;
+
+            .dropdown-header {
+                font-family: inherit;
+                font-weight: bold;
+            }
+        }
+
         .dropdown-toggle {
             border-radius: 50%;
             background: var(--dark);
@@ -68,8 +78,9 @@ html:not(.admin) {
             transform: rotate(20deg);
             color: var(--dark-fg);
             filter: drop-shadow(2px 4px 6px rgba(0,0,0,.75));
-            pointer-events: none;        }
+            pointer-events: none;        
         }
+    }
 
     #admin-menu {
         position: absolute;
@@ -91,5 +102,64 @@ html:not(.admin) {
         }
     }
 
-}
+    &[data-env="stage"] {
 
+        #admin-trigger {
+
+            .dropdown-toggle {
+                background: var(--warning);
+                color: var(--warning-fg);
+            }
+
+            .admin-trigger__env--stage {
+                display: block;
+
+                .dropdown-header {
+                    background: var(--warning);
+                    color: var(--warning-fg);
+                }
+            }
+        }
+    }
+
+    &[data-env="uat"] {
+
+        #admin-trigger {
+
+            .dropdown-toggle {
+                background: var(--warning);
+                color: var(--warning-fg);
+            }
+
+            .admin-trigger__env--uat {
+                display: block;
+
+                .dropdown-header {
+                    background: var(--warning);
+                    color: var(--warning-fg);
+                }
+            }
+        }
+    }
+
+    &[data-env="prod"] {
+
+        #admin-trigger {
+
+            .dropdown-toggle {
+                background: var(--danger);
+                color: var(--danger-fg);
+            }
+
+            .admin-trigger__env--prod {
+                display: block;
+
+                .dropdown-header {
+                    background: var(--danger);
+                    color: var(--danger-fg);
+                }
+            }
+        }
+    }
+
+}

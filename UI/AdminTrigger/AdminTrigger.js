@@ -50,13 +50,21 @@ export default function AdminTrigger(props) {
 		<div id="admin-trigger">
 			<Dropdown isSmall title={`Administration`}
 				label={triggerLabelJsx} variant="dark" align="Right" position="Top">
-				{/*
-				<li>
-					<h6 class="dropdown-header">
-						Dropdown header
+				<li className="admin-trigger__env admin-trigger__env--stage">
+					<h6 className="dropdown-header">
+						<i className="fal fa-fw fa-exclamation-triangle"></i> {`STAGE`}
 					</h6>
 				</li>
-				 */}
+				<li className="admin-trigger__env admin-trigger__env--uat">
+					<h6 className="dropdown-header">
+						<i className="fal fa-fw fa-exclamation-triangle"></i> {`UAT`}
+					</h6>
+				</li>
+				<li className="admin-trigger__env admin-trigger__env--prod">
+					<h6 className="dropdown-header">
+						<i className="fal fa-fw fa-exclamation-triangle"></i> {`PRODUCTION`}
+					</h6>
+				</li>
 
 				{isImpersonating && <>
 					<li>
@@ -65,7 +73,7 @@ export default function AdminTrigger(props) {
 						</button>
 					</li>
 					<li>
-						<hr class="dropdown-divider" />
+						<hr className="dropdown-divider" />
 					</li>
 				</>}
 				{editUrl && <>
@@ -75,7 +83,7 @@ export default function AdminTrigger(props) {
 						</a>
 					</li>
 					<li>
-						<hr class="dropdown-divider" />
+						<hr className="dropdown-divider" />
 					</li>
 				</>}
 				<li>
