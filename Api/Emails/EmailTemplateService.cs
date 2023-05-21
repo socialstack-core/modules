@@ -338,7 +338,7 @@ namespace Api.Emails
 				}
 				catch (Exception e)
 				{
-					Console.WriteLine(e.ToString());
+					Log.Error(LogTag, e, "Failed sending an email.");
 					throw;
 				}
 			});
@@ -506,15 +506,15 @@ namespace Api.Emails
 			{
 				if (e.Cancelled)
 				{
-					Console.WriteLine("Email send cancelled.");
+					Log.Info(LogTag, "Email send cancelled.");
 				}
 				if (e.Error != null)
 				{
-					Console.WriteLine("Email error: " + e.Error.ToString());
+					Log.Error(LogTag, e.Error, "Failed sending");
 				}
 				else
 				{
-					Console.WriteLine("Email sent");
+					Log.Info(LogTag, "Email sent successfully");
 				}
 			};
 
