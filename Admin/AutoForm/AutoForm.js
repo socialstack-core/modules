@@ -264,16 +264,21 @@ class AutoFormInternal extends React.Component {
 
 		if (isEdit) {
 			// We always force locale:
-			var opts = { locale, includes: '*' };
+			var opts = { locale, includes: '*,primaryUrl' };
 
 			// Get the values we're editing:
 			var url = revisionId ? props.endpoint + '/revision/' + revisionId : props.endpoint + '/' + props.id;
 			webRequest(url, null, opts).then(response => {
 				var content = response.json;
+				var hasPrimaryUrl = false;
 
 				this.tryPopulateMainCanvas(content, this.state.mainCanvas);
 
-				this.setState({ fieldData: content, createSuccess });
+				if (content && content.primaryUrl) {
+					hasPrimaryUrl = true;
+				}
+
+				this.setState({ fieldData: content, createSuccess, hasPrimaryUrl });
 
 			});
 		} else if (query) {
@@ -315,6 +320,45 @@ class AutoFormInternal extends React.Component {
 
 	}
 
+	getCanvasContext(content) {
+		var canvasContext = this.props.canvasContext ? this.props.canvasContext : [];
+		
+		if (canvasContext.length == 0) {
+			if (this.state.fields && this.state.fields.content && this.state.fields.content.length > 0) {
+				var fields = this.state.fields.content;
+
+				for(let i=0;i<fields.length;i++){
+					var field = fields[i];
+					var data = field ? field.data : null;
+
+					if (!field || !data) {
+						continue;
+					}
+
+					if (field.tokeniseable === false || data.contentType || data.type == "canvas") {
+						continue;
+					}
+
+					var value = (content && content[data.name]) ? content[data.name] : data.defaultValue;
+					var label = data.label
+
+					if (label && typeof label != 'string' && label.length && label.length > 0) {
+						label = label[0];
+					}
+
+					canvasContext.push({
+						name: data.name,
+						label: label,
+						value: value,
+						isPrice: data.isPrice
+					});
+				}
+			}
+		}
+
+		return canvasContext;
+	}
+
 	tryPopulateMainCanvas(content, mainCanvas) {
 		if (!content || !mainCanvas) {
 			return;
@@ -322,6 +366,7 @@ class AutoFormInternal extends React.Component {
 		// Ensure the main canvas node gets populated.
 		var data = mainCanvas.data;
 		data.currentContent = content;
+		data.canvasContext = this.getCanvasContext(content);
 
 		data.onChange = (e) => {
 			// Input field has changed. Update the content object so any redraws are reflected.
@@ -568,6 +613,7 @@ class AutoFormInternal extends React.Component {
 			}
 
 			data.currentContent = content;
+			data.canvasContext = this.getCanvasContext(content);
 			data.autoComplete = 'off';
 			data.onChange = (e) => {
 				// Input field has changed. Update the content object so any redraws are reflected.
@@ -581,8 +627,18 @@ class AutoFormInternal extends React.Component {
 						val = e.json;
 						break;
 				}
+
 				content[data.name] = val;
 				this.unsavedChanges = true;
+
+				var newFields = [...this.state.fields.content];
+
+				newFields.forEach(field => {
+					field.data.currentContent = {...content};
+					field.data.canvasContext = this.getCanvasContext(content)
+				});
+
+				this.setState({fields: { ...this.state.fields, content: newFields }});
 			};
 
 			var value = content[data.name];
@@ -950,6 +1006,18 @@ class AutoFormInternal extends React.Component {
 			title = `Edit ${this.props.singular} "${this.state.fieldData.name}"`;
 		}
 
+		var pageUrl = this.state.fieldData ? this.state.fieldData.primaryUrl : null;
+
+		if (pageUrl && pageUrl.length && pageUrl.length > 0 && pageUrl.charAt(0) != "/") {
+			pageUrl = "/" + pageUrl;
+		}
+
+		let qualifiedUrl = pageUrl ? (window.location.origin + pageUrl).toLowerCase() : '';
+
+		if (qualifiedUrl.endsWith("//")) {
+			qualifiedUrl = qualifiedUrl.slice(0, -1);
+		}
+
 		return <>
 			<div className="admin-page">
 				<header className="admin-page__subheader">
@@ -987,6 +1055,18 @@ class AutoFormInternal extends React.Component {
 							</li>
 						</ul>
 					</div>
+
+					{this.state.hasPrimaryUrl &&
+						<div className="admin-page__url">
+							<p>{`Page URL: `}</p>
+							{pageUrl && pageUrl.length && pageUrl.length > 0
+								? <a href={qualifiedUrl} target="_blank">
+									{qualifiedUrl}
+								</a>
+								: <em>{`refresh the page to see the new URL`}</em>
+							}
+						</div>
+					}
 				</header>
 				<div className="admin-page__content">
 					<div className="admin-page__internal">
