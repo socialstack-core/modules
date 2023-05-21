@@ -169,31 +169,33 @@ export default class MultiSelect extends React.Component {
 						this.setState({ showCreateOrEditModal: false, entityToEditId: null })
 					}}>
 						<AutoForm
-						modalCancelCallback={() => {
-							this.setState({ showCreateOrEditModal: false, entityToEditId: null });
-						}}
-							endpoint={this.props.contentType.toLowerCase()}
-							singular={this.props.label}
-							plural={this.props.label}
-							id={this.state.entityToEditId ? this.state.entityToEditId : null}
-							onActionComplete={entity => {
-								var value = this.state.value;
-								var valueIndex = value.findIndex(
-									(checkIndex) => checkIndex.id === entity.id
-								)
+							canvasContext={this.props.canvasContext ? this.props.canvasContext : this.props.currentContent}
+							modalCancelCallback={() => {
+								this.setState({ showCreateOrEditModal: false, entityToEditId: null });
+							}}
+								endpoint={this.props.contentType.toLowerCase()}
+								singular={this.props.label}
+								plural={this.props.label}
+								id={this.state.entityToEditId ? this.state.entityToEditId : null}
+								onActionComplete={entity => {
+									var value = this.state.value;
+									var valueIndex = value.findIndex(
+										(checkIndex) => checkIndex.id === entity.id
+									)
 
-								if (valueIndex !== -1) {
-									value[valueIndex] = entity
-								} else {
-									value.push(entity)
-								}
+									if (valueIndex !== -1) {
+										value[valueIndex] = entity
+									} else {
+										value.push(entity)
+									}
 
-								this.setState({
-									showCreateOrEditModal: false,
-									entityToEditId: null,
-									value: value
-								});
-							}} />
+									this.setState({
+										showCreateOrEditModal: false,
+										entityToEditId: null,
+										value: value
+									});
+								}} 
+						/>
 					</Modal>
 				}
 			</div>
