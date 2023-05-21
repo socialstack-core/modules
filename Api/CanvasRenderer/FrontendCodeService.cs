@@ -1,10 +1,8 @@
-using Api.ColourConsole;
 using Api.Configuration;
 using Api.ContentSync;
 using Api.Contexts;
 using Api.Database;
 using Api.Eventing;
-using Api.Permissions;
 using Api.Startup;
 using Api.Translate;
 using Microsoft.ClearScript;
@@ -256,12 +254,12 @@ namespace Api.CanvasRenderer
 						}
 						else
 						{
-                            WriteColourLine.Warning("[NOTICE] AutoReload is on, but you've specifically disabled TrackAllClients on websocket service. Unable to send the reload message.");
+							Log.Warn(LogTag, "AutoReload is on but you've specifically disabled TrackAllClients on websocket service. Unable to send the reload message.");
 						}
 					}
 					catch (Exception ex)
 					{
-                        WriteColourLine.Warning("[WARN] Failed sending auto reload message to some or all clients: " + ex.ToString());
+                        Log.Warn(LogTag, ex, "Failed sending auto reload message to some or all clients.");
 					}
 				}
 
@@ -292,13 +290,13 @@ namespace Api.CanvasRenderer
 
 				if (prebuilt)
 				{
-					Console.WriteLine("Running in prebuilt mode. *Not* watching your files for changes.");
+					Log.Info(LogTag, "Running in prebuilt mode. *Not* watching your files for changes.");
 					try{
 						AddBuilder(UIBuilder = new UIBundle("UI", "/pack/", translations, locales, this) { CssPrepend = cssVariables });
 						AddBuilder(EmailBuilder = new UIBundle("Email", "/pack/email-static/", translations, locales, this) { FilePathOverride = "/pack/" });
 						AddBuilder(AdminBuilder = new UIBundle("Admin", "/en-admin/pack/", translations, locales, this));
 					}catch(Exception e){
-                        WriteColourLine.Error("[SEVERE] " + e.ToString());
+						Log.Fatal(LogTag, e, "Unable to load the UI.");
 					}
 				}
 				else

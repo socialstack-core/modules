@@ -16,8 +16,6 @@ using System.Web;
 using Api.Startup;
 using Api.AutoForms;
 using System.Reflection;
-using Api.ColourConsole;
-using System.Diagnostics;
 
 namespace Api.CanvasRenderer
 {
@@ -644,7 +642,7 @@ namespace Api.CanvasRenderer.V8
 
             for (var i = 0; i < msgs.Length; i++)
             {
-                System.Console.WriteLine(JsonConvert.SerializeObject(msgs[i]));
+                Log.Info("canvasrendererservice", JsonConvert.SerializeObject(msgs[i]));
             }
         }
 
@@ -655,7 +653,7 @@ namespace Api.CanvasRenderer.V8
         {
             for (var i = 0; i < msgs.Length; i++)
             {
-                WriteColourLine.Error("ERROR " + JsonConvert.SerializeObject(msgs[i]));
+                Log.Error("canvasrendererservice", null, JsonConvert.SerializeObject(msgs[i]));
             }
         }
     }

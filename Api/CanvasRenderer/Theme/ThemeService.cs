@@ -150,7 +150,7 @@ namespace Api.Themes
         /// </summary>
         private GlobalThemeConfig _globalCfg;
 
-        /*
+		/*
 		private void OutputObject(StringBuilder builder, string prefix, object varSet, bool isDefault = false)
 		{
 			var properties = varSet.GetType().GetProperties();
@@ -254,15 +254,16 @@ namespace Api.Themes
 		}
 		*/
 
-        /// <summary>
-        /// 
-        /// </summary>
-        /// <param name="config"></param>
-        /// <param name="selector"></param>
-        /// <param name="id"></param>
-        /// <param name="builder"></param>
-        /// <returns></returns>
-        public void OutputCssBlock(ThemeConfig config, string selector, string id, bool html, ref StringBuilder builder)
+		/// <summary>
+		/// 
+		/// </summary>
+		/// <param name="config"></param>
+		/// <param name="selector"></param>
+		/// <param name="id"></param>
+		/// <param name="html"></param>
+		/// <param name="builder"></param>
+		/// <returns></returns>
+		public void OutputCssBlock(ThemeConfig config, string selector, string id, bool html, ref StringBuilder builder)
         {
             bool hasSelector = selector != null && selector.Length > 0;
             bool isMediaQuery = hasSelector && selector.StartsWith("@media");

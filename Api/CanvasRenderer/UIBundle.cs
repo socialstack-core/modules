@@ -1,12 +1,6 @@
-﻿using Api.ColourConsole;
-using Api.Configuration;
-using Api.Contexts;
+﻿using Api.Contexts;
 using Api.Eventing;
-using Api.Pages;
-using Api.Permissions;
-using Api.Startup;
 using Api.Translate;
-using Microsoft.AspNetCore.Mvc.Formatters;
 using Microsoft.ClearScript;
 using Microsoft.ClearScript.V8;
 using System;
@@ -575,12 +569,12 @@ namespace Api.CanvasRenderer
                         };
                         var addedTranslation = await _translationService.Create(new Context(), newTranslation, DataOptions.IgnorePermissions);
 
-                        Console.WriteLine($"Adding default translation {translation.Module}/{translation.Original}");
+						Log.Info("frontendcodeservice", $"Adding default translation {translation.Module}/{translation.Original}");
 
                         // add the translated value if necessary
                         if (translation.Original != translation.Translated && localeId != 1)
                         {
-                            Console.WriteLine($"Updating default translation {addedTranslation.Id} {translation.Module}/{translation.Original} {translation.Translated}");
+							Log.Info("frontendcodeservice", $"Updating default translation {addedTranslation.Id} {translation.Module}/{translation.Original} {translation.Translated}");
 
                             addedTranslation = await _translationService.Update(new Context() { LocaleId = localeId }, addedTranslation, (Context ctx, Translation trans, Translation orig) =>
                             {
@@ -590,7 +584,7 @@ namespace Api.CanvasRenderer
                     }
                     else if (localeId != 1 && translation.Original != translation.Translated && latestTranslation.Original == latestTranslation.Translated)
                     {
-                        Console.WriteLine($"Updating default translation {latestTranslation.Id} {translation.Module}/{translation.Original} {translation.Translated}");
+                        Log.Info("frontendcodeservice",$"Updating default translation {latestTranslation.Id} {translation.Module}/{translation.Original} {translation.Translated}");
 
                         await _translationService.Update(new Context() {  LocaleId = localeId }, latestTranslation, (Context ctx, Translation trans, Translation orig) =>
                         {
@@ -644,7 +638,7 @@ namespace Api.CanvasRenderer
                             };
                             await _translationService.Create(new Context(), newTranslation, DataOptions.IgnorePermissions);
 
-                            Console.WriteLine($"Adding missing translation {segment.Module}/{segment.TemplateLiteralToSearch}");
+                            Log.Info("frontendcodeservice", $"Adding missing translation {segment.Module}/{segment.TemplateLiteralToSearch}");
                         }
                     }
                 }
@@ -900,9 +894,11 @@ namespace Api.CanvasRenderer
             }
             else
             {
-                Console.WriteLine(
-                    "[SEVERE] Your UI is set to prebuilt mode (either in appsettings.json, or because you don't have a UI/Source folder), but the prebuilt CSS file at '" + cssFilePath +
-                    "' does not exist. Your site will be missing its CSS."
+                Log.Fatal(
+                    "frontendcodeservice",
+                    null,
+                    "Your UI is set to prebuilt mode (either in appsettings.json, or because you don't have a UI/Source folder), but the prebuilt CSS file at '" + cssFilePath +
+                    "' does not exist. Your site is missing its CSS."
                 );
 
                 BuiltCss = "";
@@ -933,8 +929,10 @@ namespace Api.CanvasRenderer
                     // (however, it would be better to fix the problem of the missing meta file):
                     meta.Starter = RootName == "UI";
 
-                    WriteColourLine.Error(
-                        "[ERROR] Your UI is set to prebuilt mode (either in appsettings.json, or because you don't have a UI/Source folder), but the prebuilt metadata file at '" + metaPath +
+                    Log.Error(
+                        "frontendcodeservice",
+                        null,
+                        "Your UI is set to prebuilt mode (either in appsettings.json, or because you don't have a UI/Source folder), but the prebuilt metadata file at '" + metaPath +
                         "' does not exist. Your site will be unable to apply localised text and you'll encounter caching problems as the build number isn't being set properly."
                     );
                 }
@@ -990,8 +988,10 @@ namespace Api.CanvasRenderer
             }
             else
             {
-                Console.WriteLine(
-                    "[SEVERE] Your UI is set to prebuilt mode (either in appsettings.json, or because you don't have a UI/Source folder), but the prebuilt JS file at '" + jsFilePath +
+                Log.Fatal(
+                    "frontendcodeservice",
+                    null,
+                    "Your UI is set to prebuilt mode (either in appsettings.json, or because you don't have a UI/Source folder), but the prebuilt JS file at '" + jsFilePath +
                     "' does not exist. Your site will be missing its JS."
                 );
 
@@ -1076,7 +1076,7 @@ namespace Api.CanvasRenderer
 
         private void OnWatcherError(object source, ErrorEventArgs e)
         {
-            Console.WriteLine(e.GetException().ToString());
+            Log.Error("canvasrendererservice", e.GetException(), "UI watcher errored");
         }
 
         /// <summary>
@@ -1833,7 +1833,7 @@ namespace Api.CanvasRenderer
                 }
                 catch (Exception ex)
                 {
-                    Console.WriteLine(ex.ToString());
+                    Log.Error("canvasrendererservice", ex, "Failed loading translations");
                 }
             }
 
@@ -1894,7 +1894,7 @@ namespace Api.CanvasRenderer
             }
             catch (Exception ex)
             {
-                Console.WriteLine(ex.ToString());
+                Log.Error("canvasrendererservice", ex, "File system update failed");
             }
         }
 
@@ -1919,8 +1919,8 @@ namespace Api.CanvasRenderer
             }
             catch (Exception ex)
             {
-                Console.WriteLine(ex.ToString());
-            }
+				Log.Error("canvasrendererservice", ex, "File system update failed during a rename");
+			}
         }
 
         /// <summary>
@@ -2069,8 +2069,11 @@ namespace Api.CanvasRenderer
                     if (file != null && file.IsGlobal)
                     {
                         // A global file changed. Must now rebuild all SCSS (but there might be some other changes, so wait).
-                        WriteColourLine.Info("A slow global SCSS change happened which takes a little longer to process. We'll let you know when it's done.");
-                        Console.WriteLine("Tip: Put a mixin, function etc you're working on in a non-global file just whilst you build it out.");
+                        Log.Info(
+                            "frontendcodeservice",
+                            "A slow global SCSS change happened which takes a little longer to process. We'll let you know when it's done. "+
+                            "Tip: Put a mixin, function etc you're working on in a non-global file just whilst you build it out."
+                        );
 
                         // Update content:
                         file.Content = File.ReadAllText(file.Path);
