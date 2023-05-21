@@ -1,4 +1,3 @@
-using Api.ColourConsole;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using Newtonsoft.Json.Serialization;
@@ -238,7 +237,7 @@ namespace Api.StackTools
 					catch
 					{
 						// Wasn't json (or a valid message) - just write it out.
-						Console.WriteLine(e.Data);
+						Log.Info("stacktools", e.Data);
 					}
 				}
 
@@ -250,7 +249,7 @@ namespace Api.StackTools
 						return;
 					}
 
-					Console.WriteLine(e.Data);
+					Log.Info("stacktools", e.Data);
 					return;
 				}
 
@@ -371,8 +370,7 @@ namespace Api.StackTools
 			}
 			catch (Exception e)
 			{
-                WriteColourLine.Warning("[WARN] Caught this whilst trying to run socialstack tools:");
-				Console.WriteLine(e.ToString());
+				Log.Warn("stacktools", e, "Error whilst trying to run socialstack tools");
 				
 				StateChange(NodeProcessState.FAILED);
 				StateChange(NodeProcessState.EXITING);

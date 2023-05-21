@@ -159,15 +159,15 @@ namespace Api.StackTools
 			
 			if (version == null)
 			{
-				Console.WriteLine("Socialstack tools isn't installed - attempting to install now.");
+				Log.Info("stacktools", "Socialstack tools isn't installed - attempting to install now.");
 			}
 			else if (version < MinVersion)
 			{
-				Console.WriteLine("Socialstack tools is below the required min version - upgrading now.");
+				Log.Info("stacktools", "Socialstack tools is below the required min version - upgrading now.");
 			}
 			else
 			{
-				Console.WriteLine("Socialstack tools passed version check.");
+				Log.Info("stacktools", "Socialstack tools passed version check.");
 				return;
 			}
 
@@ -188,7 +188,7 @@ namespace Api.StackTools
 					// Node probably isn't installed.
 					// If it is installed, then this error can also occur 
 					// if you don't have npm in your PATH (on Windows).
-					Console.WriteLine("Unable to install socialstack tools because you don't have npm. " +
+					Log.Error("stacktools", null, "Unable to install socialstack tools because you don't have npm. " +
 						"Make sure node.js is installed and npm is available on your shell/ command line.");
 				}
 
