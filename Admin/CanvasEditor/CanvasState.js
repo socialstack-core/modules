@@ -538,7 +538,20 @@ export default class CanvasState{
 		
 		return {t: 'div', c: children};
 	}
-	
+
+	isExternalUrl(string) {
+		var r = new RegExp('^(?:[a-z+]+:)?//', 'i');
+		var isExternal = r.test(string);
+
+		if (isExternal) {
+			// check domain
+			var url = new URL(string);
+			isExternal = url.origin != window.origin;
+		}
+
+		return isExternal;
+	};
+
 	toTreeFromRTE(block, blockEntities){
 
 		var blockType = 'p';
@@ -626,7 +639,10 @@ export default class CanvasState{
 					}
 				}
 
-				url = url.toLowerCase();
+				// ensure link is lowercase
+				if (!this.isExternalUrl(url)) {
+					url = url.toLowerCase();
+				}
 			} 
 
 			inlines.push({  
