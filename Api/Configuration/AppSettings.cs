@@ -1,9 +1,7 @@
 using System;
 using System.IO;
 using System.Threading.Tasks;
-using Microsoft.Extensions.Configuration;
 using Newtonsoft.Json.Linq;
-using Api.ColourConsole;
 
 namespace Api.Configuration
 {
@@ -214,7 +212,7 @@ namespace Api.Configuration
 			}
 			
 			// Failed to parse the value. Let them know but use the default in the meantime.
-			WriteColourLine.Warning("[Warning]: Field '" + name + "' in appsettings.json isn't an int32 number. Using the default value " + defaultValue + " instead.");
+			Log.Warn("configuration", "Field '" + name + "' in appsettings.json isn't an int32 number. Using the default value " + defaultValue + " instead.");
 			
 			return defaultValue;
 		}
@@ -242,7 +240,7 @@ namespace Api.Configuration
 			}
 			
 			// Failed to parse the value. Let them know but use the default in the meantime.
-			WriteColourLine.Warning("[Warning]: Field '" + name + "' in appsettings.json isn't an int64 number. Using the default value " + defaultValue + " instead.");
+			Log.Warn("configuration", "Field '" + name + "' in appsettings.json isn't an int64 number. Using the default value " + defaultValue + " instead.");
 			
 			return defaultValue;
 		}
@@ -292,7 +290,7 @@ namespace Api.Configuration
 			}
 			catch
 			{
-                WriteColourLine.Warning("[Notice] Config from '" + Path + "' wasn't loaded (usually because file not found)");
+				Log.Info("configuration", "Config from '" + Path + "' wasn't loaded (usually because file not found)");
 
 				// File not found.
 				_rawConfig = null;
@@ -306,7 +304,7 @@ namespace Api.Configuration
 			}
 			catch(Exception e)
 			{
-                WriteColourLine.Warning("[Warn] Failed to load configuration file '" + Path + "' due to JSON parse error: " + e.ToString());
+                Log.Warn("configuration", e, "Failed to load configuration file '" + Path + "' due to JSON parse error.");
 			}
 
 		}
@@ -345,7 +343,7 @@ namespace Api.Configuration
 
 				await Task.Delay(200);
 
-				Console.WriteLine("Reloading appsettings file at '" + Path + "' due to external change");
+				Log.Info("configuration", "Reloading appsettings file at '" + Path + "' due to external change");
 
 				LoadFile();
 
