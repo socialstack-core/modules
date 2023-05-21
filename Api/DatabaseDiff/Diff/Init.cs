@@ -258,7 +258,15 @@ namespace Api.Database
 				{
 					// If the newEntity is not in the primary locale, we will need to derive the raw object.
 					// Any localised fields should be set to their default value (null/ 0).
-					var raw = context.LocaleId == 1 ? newEntity : service.CreateRawEntityFromTarget(newEntity);
+					// [May2023] The above causes issues where an entity is created on a locale other than 1 and is then used by an include
+					// which iterates over the cache for locale #1 to collect IDs. DB engine gets it correct but cache does not.
+
+					var raw = context.LocaleId == 1 ? newEntity : new T();
+
+					if (context.LocaleId != 1)
+					{
+						service.CloneEntityInto(newEntity, raw);
+					}
 
 					var localeSet = ContentTypes.Locales;
 
