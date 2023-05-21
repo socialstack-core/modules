@@ -145,7 +145,7 @@ namespace Api.PasswordAuth
 
 			if (user == null)
 			{
-				Console.WriteLine("Creating default admin account with password 'admin' (you'll only see this once, unless you delete the user)");
+				Log.Info(LogTag, "Creating default admin account with password 'admin' (you'll only see this once, unless you delete the user)");
 
 				user = await _users.Create(context, new User()
 				{
@@ -271,7 +271,7 @@ namespace Api.PasswordAuth
 				catch(Exception e)
 				{
 					// Unavailable - we'll let it through.
-					Console.WriteLine(e.ToString());
+					Log.Warn(LogTag, e, "PwnedPasswords is unavailable. Potentially weak passwords are being let through.");
 				}
 
 				if (isExposed)
