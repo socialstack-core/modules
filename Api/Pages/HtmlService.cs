@@ -1,5 +1,4 @@
 ﻿using System.Threading.Tasks;
-using Microsoft.AspNetCore.Mvc;
 using Api.Configuration;
 using System;
 using System.IO;
@@ -15,7 +14,6 @@ using Api.CanvasRenderer;
 using Api.Translate;
 using Api.Database;
 using Api.SocketServerLibrary;
-using Api.Permissions;
 using Microsoft.AspNetCore.Http;
 using Api.Themes;
 using Api.Startup;
@@ -377,6 +375,21 @@ namespace Api.Pages
 				}
 			}
 
+			if (pageAndTokens.Page != null && !string.IsNullOrEmpty(pageAndTokens.Page.Description))
+			{
+				writer.WriteASCII(",\"description\":");
+				var descriptionStr = pageAndTokens.Page.Description;
+
+				if (primaryObject != null)
+				{
+					writer.WriteEscaped(ReplaceTokens(descriptionStr, primaryObject));
+				}
+				else
+				{
+					writer.WriteEscaped(descriptionStr);
+				}
+			}
+
 			writer.Write((byte)'}');
 			await writer.CopyToAsync(responseStream);
 			writer.Release();
@@ -403,8 +416,10 @@ namespace Api.Pages
 
 			// Charset must be within first 1kb of the header:
 			doc.Head.AppendChild(new DocumentNode("meta", true).With("charset", "utf-8"));
-			doc.Head.AppendChild(new DocumentNode("meta", true).With("viewport", "width=device-width, initial-scale=1"));
-			doc.Head.AppendChild(new DocumentNode("title").AppendChild(new TextNode(doc.Title)));
+            doc.Head.AppendChild(new DocumentNode("meta", true).With("name", "viewport").With("content", "width=device-width, initial-scale=1"));
+            doc.Head.AppendChild(new DocumentNode("meta", true).With("name", "robots").With("content", "noindex"));
+
+            doc.Head.AppendChild(new DocumentNode("title").AppendChild(new TextNode(doc.Title)));
 
 			// Fail in style:
 			doc.Head.AppendChild(new DocumentNode("link").With("rel", "stylesheet").With("href", "https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css"));
@@ -615,8 +630,8 @@ svg {
 			doc.Head.AppendChild(new DocumentNode("meta", true).With("charset", "utf-8"));
 			doc.Head.AppendChild(new DocumentNode("title").AppendChild(new TextNode(doc.Title)));
 
-			// Fail in style:
-			doc.Head.AppendChild(new DocumentNode("link").With("rel", "stylesheet").With("href", "https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css"));
+            // Fail in style:
+            doc.Head.AppendChild(new DocumentNode("link").With("rel", "stylesheet").With("href", "https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css"));
 			doc.Head.AppendChild(new DocumentNode("style").AppendChild(new TextNode(
 				@".callout {padding: 20px;margin: 20px 0;border: 1px solid #eee;border-left-width: 5px;border-radius: 3px;}
 				.callout h4 {margin-top: 0; margin-bottom: 5px;}
@@ -684,7 +699,7 @@ svg {
 		private async ValueTask<List<DocumentNode>> RenderHeaderOnly(Context context, Locale locale)
 		{
 			var themeConfig = _themeService.GetConfig();
-			var localeCode = locale.ShortCode;
+			var localeCode = locale.Code;
 
 			// Generate the document:
 			var doc = new Document();
@@ -738,8 +753,8 @@ svg {
 				.AppendChild(new DocumentNode("meta", true).With("name", "theme-color").With("content", "#ffffff"))
 				.AppendChild(new DocumentNode("meta", true).With("name", "viewport").With("content", "width=device-width, initial-scale=1"));
 
-			// Handle all End Head tags in the config.
-			HandleCustomHeadList(_config.EndHeadTags, head, false);
+            // Handle all End Head tags in the config.
+            HandleCustomHeadList(_config.EndHeadTags, head, false);
 
 			// Build the flat HTML for the page:
 			var flatNodes = doc.Flatten();
@@ -772,7 +787,7 @@ svg {
 		private async ValueTask<List<DocumentNode>> RenderMobilePage(Context context, Locale locale, MobilePageMeta pageMeta)
 		{
 			var themeConfig = _themeService.GetConfig();
-            var localeCode = locale.ShortCode;
+            var localeCode = locale.Code;
 
             // Generate the document:
             var doc = new Document();
@@ -801,8 +816,8 @@ svg {
 			// Charset must be within first 1kb of the header:
 			head.AppendChild(new DocumentNode("meta", true).With("charset", "utf-8"));
 
-			// Handle all Start Head Tags in the config.
-			HandleCustomHeadList(_config.StartHeadTags, head, false);
+            // Handle all Start Head Tags in the config.
+            HandleCustomHeadList(_config.StartHeadTags, head, false);
 
 			// Handle all Start Head Scripts in the config.
 			HandleCustomScriptList(_config.StartHeadScripts, head, false);
@@ -1013,7 +1028,7 @@ svg {
 			}
 
 			var page = pageAndTokens.Page;
-            var localeCode = locale.ShortCode;
+            var localeCode = locale.Code;
 
             // Generate the document:
             doc.Path = path;
@@ -1041,8 +1056,8 @@ svg {
 			// Charset must be within first 1kb of the header:
 			head.AppendChild(new DocumentNode("meta", true).With("charset", "utf-8"));
 
-			// Handle all Start Head Tags in the config.
-			HandleCustomHeadList(_config.StartHeadTags, head);
+            // Handle all Start Head Tags in the config.
+            HandleCustomHeadList(_config.StartHeadTags, head);
 
 			// Handle all Start Head Scripts in the config.
 			HandleCustomScriptList(_config.StartHeadScripts, head);
@@ -1127,7 +1142,7 @@ svg {
 						catch (Exception e)
 						{
 							// SSR failed. Return nothing and let the JS handle it for itself.
-							Console.WriteLine(e.ToString());
+							Log.Error(LogTag, e, "Unable to render a page with SSR.");
 							return "";
 						}
 					}

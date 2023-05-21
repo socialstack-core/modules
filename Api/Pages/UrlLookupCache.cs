@@ -1,8 +1,6 @@
-using Api.ColourConsole;
 using Api.Contexts;
 using Api.Eventing;
 using Api.Permissions;
-using MySqlX.XDevAPI.Common;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Serialization;
 using System;
@@ -135,7 +133,7 @@ namespace Api.Pages
 
 								if (type == null)
 								{
-                                    WriteColourLine.Warning("[WARN] Bad page URL using a type that doesn't exist. It was " + url + " using type " + contentType);
+                                    Log.Warn("page", "Bad page URL using a type that doesn't exist. It was " + url + " using type " + contentType);
 									skip = true;
 									break;
 								}
