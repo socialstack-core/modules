@@ -446,9 +446,7 @@ var protocolHandlers = {
     'emoji': emojiStr
 };
 
-function parseArg(query, key, value) {
-    var args = parseArgs(query);
-
+function getArg(args, key, value) {
     if (args && args[key]) {
         return args[key]
     }
@@ -516,7 +514,7 @@ getRef.update = (ref, args) => {
         basepath = basepath.substring(0, argsIndex);
     }
 
-    var existingArgs = parseArgs(queryStr);
+    var existingArgs = info.args;
 
     Object.keys(args).forEach(function (key) {
         existingArgs[key] = args[key];
@@ -579,7 +577,9 @@ getRef.parse = (ref) => {
             file = fileName + '.' + fileType;
         }
     }
-
+	
+	var args = parseArgs(queryStr);
+	
     var refInfo = {
         src,
         scheme,
@@ -602,11 +602,11 @@ getRef.parse = (ref) => {
             });
             return map;
         },
-        args: parseArgs(queryStr),
-        focalX: parseArg(queryStr, 'fx', 50),
-        focalY: parseArg(queryStr, 'fy', 50),
-        altText: parseArg(queryStr, 'al', ''),
-        author: parseArg(queryStr, 'au', '')
+        args,
+        focalX: getArg(args, 'fx', 50),
+        focalY: getArg(args, 'fy', 50),
+        altText: getArg(args, 'al', ''),
+        author: getArg(args, 'au', '')
     };
 
     refInfo.toString = () => {
