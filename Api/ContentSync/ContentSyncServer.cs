@@ -17,7 +17,7 @@ namespace Api.ContentSync
 		{
 			base.Close();
 
-			Console.WriteLine("[CSync] A server disconnected. Bye!");
+			Log.Info("contentsyncservice", "A server disconnected. Bye!");
 
 			// Tell the sync service to remove this:
 			Services.Get<ContentSyncService>().RemoveServer(this);

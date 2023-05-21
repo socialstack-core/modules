@@ -144,7 +144,7 @@ namespace Api.ContentSync
 					{
 						var tickDiff = ((kvp.Value.ModifiedTicksUtc - localFile.ModifiedTicksUtc) / TimeSpan.TicksPerSecond);
 
-						Console.WriteLine("Tick diff " + tickDiff + "s");
+						Log.Info("contentsyncservice", "Tick diff " + tickDiff + "s");
 
 						if (localFile.Size == kvp.Value.Size && tickDiff < 30)
 						{

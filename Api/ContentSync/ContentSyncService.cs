@@ -12,12 +12,9 @@ using System.Linq;
 using System.IO;
 using System.Net;
 using Api.Signatures;
-using System.Collections.Concurrent;
-using Newtonsoft.Json.Linq;
 using Api.WebSockets;
 using System.Net.Http;
 using Newtonsoft.Json;
-using Api.ColourConsole;
 
 namespace Api.ContentSync
 {
@@ -120,7 +117,7 @@ namespace Api.ContentSync
 
 			if (Verbose)
 			{
-				Console.WriteLine("Content sync is in verbose mode - it will tell you each thing it syncs over your network.");
+				Log.Info(LogTag, "Content sync is in verbose mode - it will tell you each thing it syncs over your network.");
 			}
 
 			// Get system name:
@@ -200,7 +197,7 @@ namespace Api.ContentSync
 				(new FileInfo(localPath)).Directory.Create();
 				System.IO.File.WriteAllBytes(localPath, fileBytes);
 
-				Console.WriteLine("Chunk " + i + "/" + lastChunkId);
+				Log.Info(LogTag, "Chunk " + i + "/" + lastChunkId);
 			}
 
 			return true;
@@ -246,7 +243,7 @@ namespace Api.ContentSync
 				System.IO.File.WriteAllBytes(localPath, fileBytes);
 				System.IO.File.SetLastWriteTimeUtc(localPath, new DateTime(file.ModifiedTicksUtc));
 
-				Console.WriteLine(i + "/" + diffset.RemoteOnly.Count);
+				Log.Info(LogTag, i + "/" + diffset.RemoteOnly.Count);
 			}
 
 			return new SyncStats()
@@ -366,7 +363,7 @@ namespace Api.ContentSync
 
 			if (anyDeleted)
 			{
-                WriteColourLine.Warning("[WARN] A server has been deleted from the " + nameof(ClusteredServer) + " table because it was from a different environment. " +
+                Log.Warn(LogTag, "A server has been deleted from the " + nameof(ClusteredServer) + " table because it was from a different environment. " +
 					"When copying data between environments, don't include this table. " +
 					"Doing so wastes server IDs and will in turn make your site assign large ID values unnecessarily.");
 			}
@@ -575,7 +572,7 @@ namespace Api.ContentSync
 
 			if (_configuration.GlobalCluster)
 			{
-				Console.WriteLine("ContentSync running as global cluster.");
+				Log.Info(LogTag, "ContentSync running as global cluster.");
 			}
 			else
 			{
@@ -650,7 +647,7 @@ namespace Api.ContentSync
 				response.Release();
 				msg.Release();
 
-				Console.WriteLine("[CSync] Connected to " + theirId);
+				Log.Info(LogTag, "Connected to " + theirId);
 			});
 
 			HandshakeOpCode.IsHello = true;
@@ -666,7 +663,7 @@ namespace Api.ContentSync
 
 				}
 
-				Console.WriteLine("[CSync] Connected to " + message.ServerId);
+				Log.Info(LogTag, "Connected to " + message.ServerId);
 			});
 
 			var reader = new SyncServerRemoteReader(1, _websocketService);
@@ -689,14 +686,14 @@ namespace Api.ContentSync
 
 			if (Services.HostMapping != null && !Services.HostMapping.ShouldSync)
 			{
-				Console.WriteLine("ContentSync disabled on this node because appsettings declares the hostType '" + Services.HostType + "' should not sync.");
+				Log.Info(LogTag, "ContentSync disabled on this node because appsettings declares the hostType '" + Services.HostType + "' should not sync.");
 				return;
 			}
-			
+
 			// Try to explicitly connect to the other servers. Note that AllServers is setup by EventListener.
 			// We might be the first one up, so some of these can outright fail.
 			// That's ok though - they'll contact us instead.
-			Console.WriteLine("[CSync] Started connecting to peers");
+			Log.Info(LogTag, "Started connecting to peers");
 
 			var env = Services.Environment;
 
@@ -727,7 +724,7 @@ namespace Api.ContentSync
 					ipAddress = new IPAddress(serverInfo.PrivateIPv4);
 				}
 
-				Console.WriteLine("[CSync] Connect to " + ipAddress);
+				Log.Info(LogTag, "Connect to " + ipAddress);
 
 				SyncServer.ConnectTo(ipAddress, serverInfo.Port, serverInfo.Id, (ContentSyncServer s) => {
 					s.Id = serverInfo.Id;
@@ -1581,7 +1578,7 @@ namespace Api.ContentSync
 			}
 			catch(Exception e)
 			{
-				Console.WriteLine("Sync non-fatal error:" + e.ToString());
+				Log.Warn("contentsyncservice", e, "Sync encountered non-fatal error.");
 			}
 		}
 
@@ -1737,7 +1734,7 @@ namespace Api.ContentSync
 			}
 			catch (Exception e)
 			{
-				Console.WriteLine("Sync non-fatal error:" + e.ToString());
+				Log.Warn("contentsyncservice", e, "Sync encountered a non-fatal error.");
 			}
 		}
 
