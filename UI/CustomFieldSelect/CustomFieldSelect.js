@@ -16,6 +16,17 @@ export default class CustomFieldSelect extends React.Component {
 		}).then(response => {
 			if (response && response.json && response.json.results) {
 				var results = response.json.results;
+
+				// sort results
+				results = results.sort((a, b) => {
+
+					if (a && b) {
+						return a.value.trim().localeCompare(b.value.trim());
+					}
+
+					return -1;
+				});
+
 				results.unshift({ value: null });
 				this.setState({ options: results });
 			}
@@ -25,6 +36,8 @@ export default class CustomFieldSelect extends React.Component {
 	}
 
 	render(){
+		var defaultValue = this.props.defaultValue;
+
 		return <div className="custom-field-select">
 			<Input {...omit(this.props, ['contentType'])} type="select">{
 				this.state.options ? this.state.options.map(option => {
@@ -35,8 +48,11 @@ export default class CustomFieldSelect extends React.Component {
 					return <option value={option.value}>{
 						option.value
 					}</option>;
-				}) : [
-				]
+				}) : defaultValue
+				? [<option value={defaultValue}>{
+						defaultValue
+					}</option>] 
+				: []
 			}</Input>
 		</div>;
 		
