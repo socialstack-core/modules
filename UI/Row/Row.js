@@ -19,6 +19,10 @@ export default function Row(props) {
 		rowClass += props.className;
 	}
 
+	if (props.reverseColumnOrderOnMobile) {
+		rowClass += " row--reverse-mobile-columns";
+	}
+
 	return <div 
 		className={rowClass}
 		{...(omit(props, ['className', 'noGutters']))}
@@ -28,6 +32,7 @@ export default function Row(props) {
 }
 
 Row.propTypes={
+	reverseColumnOrderOnMobile: 'boolean',
 	noGutters: 'boolean',
 	horizontalAlignment: [
 		{ name: 'No preference', value: '' },
