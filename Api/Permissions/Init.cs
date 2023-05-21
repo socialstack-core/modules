@@ -231,7 +231,7 @@ namespace Api.Permissions
 				{
 					// No user role - can't grant this capability.
 					// This is likely to indicate a deeper issue, so we'll warn about it:
-					Console.WriteLine("Warning: User ID " + context.UserId + " has no role (or the role with that ID hasn't been instanced).");
+					Log.Warn("user", "User ID " + context.UserId + " has no role (or the role with that ID hasn't been instanced).");
 					throw PermissionException.Create(capability.Name, context);
 				}
 
