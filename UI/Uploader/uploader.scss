@@ -2,6 +2,11 @@ $uploader_width: 256px;
 $uploader_compact_width: 192px;
 $uploader_icon_width: 96px;
 
+$focal_reticle_size: 24px;
+$focal_reticle_half: $focal_reticle_size * .5;
+$focal_reticle_border: 2px;
+$focal_reticle_color: #fff;
+
 .uploader {
     $uploader: &;
 
@@ -34,6 +39,60 @@ $uploader_icon_width: 96px;
         position: absolute;
         background: #f0f0f0;
         background-image: url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABQAAAAUCAAAAACo4kLRAAAAH0lEQVQY02OcxQADZ+AsJgYsYKgIsiD8YTJInEShIAA1NwKQeKc4/QAAAABJRU5ErkJggg==);
+
+		&-crosshair {
+			position: absolute;
+			width: $focal_reticle_size;
+			height: $focal_reticle_size;
+			border-radius: 100%;
+			border: $focal_reticle_border solid $focal_reticle_color;
+			box-shadow: 2px 2px 1px 0 rgba(0,0,0,.5);
+			transform: translate(-$focal_reticle_half, -$focal_reticle_half);
+			pointer-events: none;
+			transition: all .2s ease-in-out;
+			animation-iteration-count: infinite;
+			animation-duration: .67s;
+            z-index:1000;
+        
+			&::before {
+				content: '';
+				position: absolute;
+				width: $focal_reticle_border;
+				height: $focal_reticle_border;
+				left: calc(50% - (#{$focal_reticle_border} / 2));
+				top: calc(50% - (#{$focal_reticle_border} / 2));
+				box-shadow: 
+				  0 calc(#{$focal_reticle_border} * -3) $focal_reticle_color,
+				  0 calc(#{$focal_reticle_border} * -4) $focal_reticle_color,
+				  0 calc(#{$focal_reticle_border} * -5) $focal_reticle_color,
+				  0 calc(#{$focal_reticle_border} * -6) $focal_reticle_color,
+				  0 calc(#{$focal_reticle_border} * -7) $focal_reticle_color,
+				  0 calc(#{$focal_reticle_border} * -8) $focal_reticle_color,
+
+				  calc(#{$focal_reticle_border} * 3) 0 $focal_reticle_color,
+				  calc(#{$focal_reticle_border} * 4) 0 $focal_reticle_color,
+				  calc(#{$focal_reticle_border} * 5) 0 $focal_reticle_color,
+				  calc(#{$focal_reticle_border} * 6) 0 $focal_reticle_color,
+				  calc(#{$focal_reticle_border} * 7) 0 $focal_reticle_color,
+				  calc(#{$focal_reticle_border} * 8) 0 $focal_reticle_color,
+
+				  0 calc(#{$focal_reticle_border} * 3) $focal_reticle_color,
+				  0 calc(#{$focal_reticle_border} * 4) $focal_reticle_color,
+				  0 calc(#{$focal_reticle_border} * 5) $focal_reticle_color,
+				  0 calc(#{$focal_reticle_border} * 6) $focal_reticle_color,
+				  0 calc(#{$focal_reticle_border} * 7) $focal_reticle_color,
+				  0 calc(#{$focal_reticle_border} * 8) $focal_reticle_color,
+
+				  calc(#{$focal_reticle_border} * -3) 0 $focal_reticle_color,
+				  calc(#{$focal_reticle_border} * -4) 0 $focal_reticle_color,
+				  calc(#{$focal_reticle_border} * -5) 0 $focal_reticle_color,
+				  calc(#{$focal_reticle_border} * -6) 0 $focal_reticle_color,
+				  calc(#{$focal_reticle_border} * -7) 0 $focal_reticle_color,
+				  calc(#{$focal_reticle_border} * -8) 0 $focal_reticle_color;
+			}
+        
+		}
+
     }
 
     &__input {
@@ -173,6 +232,11 @@ $uploader_icon_width: 96px;
         margin-top: 0.25rem;
         width: $uploader_width;
         text-align: center;
+
+        &__single {
+            width:100%;
+            text-align:left;
+        }
     }
 
     &--16-9 {

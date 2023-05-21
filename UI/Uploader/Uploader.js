@@ -555,11 +555,32 @@ export default class Uploader extends React.Component {
 		var iconClass = "";
 		var iconName = "";
 
+		var focalX = 50;
+		var focalY= 50;
+		var altText = '';
+		var author = '';
+
 		if (hasRef) {
 			var refInfo = getRef.parse(ref);
 
 			uploaderClasses.push("uploader--content");
 			label = "";
+
+			// get the focal point (if any)
+			if (refInfo && refInfo.focalX && refInfo.focalY) {
+				focalX = refInfo.focalX;				
+				focalY = refInfo.focalY;
+			}
+
+			// get the author (if any)
+			if (refInfo && refInfo.author && refInfo.author.length > 0) {
+				author = refInfo.author;				
+			}
+	
+			// get the alt text (if any)
+			if (refInfo && refInfo.altText && refInfo.altText.length > 0) {
+				altText = refInfo.altText;				
+			}
 
 			// TODO: check original image width/height values here; if both are less than 256px,
 			// use the original image and set background-size to auto
@@ -604,6 +625,10 @@ export default class Uploader extends React.Component {
 
 				{(canShowImage || canShowVideo) && !canShowIcon &&
 					<div className="uploader__imagebackground">
+										<div className="uploader__imagebackground-crosshair" style={{
+                                                    left: focalX + '%',
+                                                    top: focalY + '%'
+                                                }}></div>
 					</div>
 				}
 
@@ -646,9 +671,24 @@ export default class Uploader extends React.Component {
 				</>}
 			</div>
 			{!isMultiple && <>
-				<small className="uploader__caption text-muted">
+				<small className="uploader__caption uploader__caption__single text-muted ">
 					{caption}
 					<br />
+
+					{altText && altText.length > 0 && 
+						<>
+							{altText}
+							<br/>
+						</>
+					}
+
+					{author && author.length > 0 && 
+						<>
+							{author}
+							<br/>
+						</>
+					}
+
 
 					{hasMaxSize && <>
 						{`Max file size: ${this.formatBytes(maxSize)}`}
