@@ -70,7 +70,7 @@ namespace Api.Startup
 				throw new PublicException("Command required", "command_required");
 			}
 
-			Console.WriteLine("Executing via command line (user #" + context.UserId + "), " + body.Command);
+			Log.Info("core", "Executing via command line (user #" + context.UserId + "), " + body.Command);
 			await CommandLine.Execute(body.Command, Response.Body);
 		}
 
@@ -87,7 +87,7 @@ namespace Api.Startup
 				throw PermissionException.Create("monitoring_query", context);
 			}
 
-			Console.WriteLine("Halting immediately by developer user request (user #" + context.UserId + ")");
+			Log.Info("core", "Halting immediately by developer user request (user #" + context.UserId + ")");
 			Environment.Exit(100);
 		}
 

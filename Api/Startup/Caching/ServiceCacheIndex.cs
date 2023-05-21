@@ -1,8 +1,4 @@
-using Api.ColourConsole;
-using Api.Database;
-using Api.Translate;
 using System;
-using System.Collections;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 
@@ -121,8 +117,8 @@ namespace Api.Startup{
 
 			if (keyValue == null)
 			{
-                // Can't add if key is null.
-                WriteColourLine.Warning("[WARN] Skipped adding object to a cache index because it had a null field (it was a " + entry.GetType() + ").");
+				// Can't add if key is null.
+				Log.Warn(entry.GetType().Name.ToLower(), "Skipped adding object to a cache index because it had a null key field.");
 				return;
 			}
 
@@ -246,7 +242,7 @@ namespace Api.Startup{
 			if (localKey == null)
 			{
 				// Can't add if key is null.
-				WriteColourLine.Warning("[WARN] Skipped adding object to a cache index because it had a null field (it was a " + entry.GetType() + ").");
+				Log.Warn(entry.GetType().Name.ToLower(), "Skipped adding object to a cache index because it had a null key field.");
 				return;
 			}
 
@@ -347,8 +343,8 @@ namespace Api.Startup{
 
 			if (keyValue == null)
 			{
-                // Can't add if key is null.
-                WriteColourLine.Warning("[WARN] Skipped adding object to a cache index because it had a null field (it was a " + entry.GetType() + ").");
+				// Can't add if key is null.
+				Log.Warn(entry.GetType().Name.ToLower(), "Skipped adding object to a cache index because it had a null key field.");
 				return;
 			}
 

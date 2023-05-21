@@ -1,14 +1,9 @@
 using Api.Contexts;
 using Api.Database;
-using Api.Eventing;
-using Api.Permissions;
 using Api.Startup;
 using System;
-using System.Collections;
-using System.Collections.Generic;
 using System.Threading.Tasks;
 using Api.Translate;
-using Api.ColourConsole;
 
 /// <summary>
 /// A general use service which manipulates an entity type. In the global namespace due to its common use.

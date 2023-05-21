@@ -314,7 +314,7 @@ namespace Api.Startup
 		/// </summary>
 		public static void DebugField(string s)
 		{
-			Console.WriteLine(s);
+			Log.Info("bolt", s);
 		}
 		
 		/// <summary>

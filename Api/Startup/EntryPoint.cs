@@ -4,14 +4,10 @@ using Microsoft.AspNetCore.Hosting;
 using Api.Configuration;
 using System;
 using Microsoft.AspNetCore.Server.Kestrel.Core;
-using Microsoft.Extensions.Logging;
 using System.Threading.Tasks;
 using System.Runtime.InteropServices;
 using System.Diagnostics.CodeAnalysis;
-using Microsoft.Extensions.Configuration;
-using System.Text.RegularExpressions;
 using System.Threading;
-using Api.ColourConsole;
 
 namespace Api.Startup
 {
@@ -38,12 +34,15 @@ namespace Api.Startup
 		/// </summary>
 		public static void Main()
         {
+#if !DEBUG
+			System.Console.WriteLine("API starting up. Log messages can be found in the socialstack log (not here) such that log entries are easier to filter and search.");
+#endif
 			// Hello! The very first thing we'll do is instance all event handlers.
 			Api.Eventing.Events.Init();
 			
 			TaskScheduler.UnobservedTaskException += (object sender, UnobservedTaskExceptionEventArgs e) => 
 			{
-				Console.WriteLine(e.Exception.ToString());
+				Log.Error("core", e.Exception, "A task threw an error which was not caught.");
 			};
 			
 			// Clone stdout into error engine:

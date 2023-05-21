@@ -3,6 +3,7 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Reflection;
+using System.Text;
 
 namespace Api.Startup
 {
@@ -440,46 +441,48 @@ namespace Api.Startup
 		/// </summary>
 		public void Debug()
         {
-			Console.WriteLine("IDCollector debug: ");
-
 			if(First == null)
             {
 				return;
             }
 
 			// Let's start going through our entries
-			PrintBlock(First);
-			Console.Write("Full Block Count: ");
-			Console.WriteLine(FullBlockCount);
-			Console.Write("Current Fill: ");
-			Console.WriteLine(CurrentFill);
+			var sb = new StringBuilder();
+			sb.Append("IDCollector debug: ");
+			PrintBlock(First, sb);
+			sb.Append("Full Block Count: ");
+			sb.Append(FullBlockCount);
+			sb.Append("\r\nCurrent Fill: ");
+			sb.Append(CurrentFill);
+			Log.Info("", sb.ToString());
 		}
 
         /// <summary>
 		/// 
 		/// </summary>
 		/// <param name="currentBlock"></param>
-		public void PrintBlock(IDBlock<T> currentBlock)
+		public void PrintBlock(IDBlock<T> currentBlock, StringBuilder sb)
         {
-			Console.Write("[");
+			sb.Append("[");
 			for (var i = 0; i < currentBlock.Entries.Length; i++)
 			{
 				if (currentBlock.Entries[i].Equals(0))
                 {
 					// We hit the end. - no need to continue
-					Console.WriteLine("]");
+					sb.Append("]\r\n");
 					return;
                 }
 
-				Console.Write(currentBlock.Entries[i] + ", ");
+				sb.Append(currentBlock.Entries[i]);
+				sb.Append(", ");
 			}
-			Console.WriteLine("]");
+			sb.Append("]\r\n");
 
 			// We safely hit the end - is there another block after this one?
 			if (currentBlock.Next != null)
             {
 				// There is an additional block
-				PrintBlock(currentBlock.Next);
+				PrintBlock(currentBlock.Next, sb);
             }
 		}
 

@@ -1,4 +1,3 @@
-using Api.ColourConsole;
 using Api.Contexts;
 using Api.Database;
 using Api.Eventing;
@@ -672,7 +671,7 @@ public partial class AutoService<T, ID> : AutoService
 		{
 			if (_filterSets.Count >= 10000)
 			{
-                WriteColourLine.Warning("[WARN] Clearing large filter cache. If this happens frequently it's a symptom of poorly designed filters.");
+                Log.Warn(LogTag, "Clearing large filter cache. If this happens frequently it's a symptom of poorly designed filters.");
 				_filterSets.Clear();
 			}
 

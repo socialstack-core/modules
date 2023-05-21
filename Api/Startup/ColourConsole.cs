@@ -11,7 +11,7 @@ namespace Api.ColourConsole
 		/// Outputs [marked] keywords in green (or the entire string if nothing marked)
 		/// </summary>
 		/// <param name="message"></param>
-		[Obsolete("Use Log.Ok instead")]
+		[Obsolete("Use Log.Ok instead", true)]
 		public static void Success(string message)
         {
             Log.Ok("", null, message);
@@ -21,7 +21,7 @@ namespace Api.ColourConsole
 		/// Outputs [marked] keywords in red (or the entire string if nothing marked)
 		/// </summary>
 		/// <param name="message"></param>
-		[Obsolete("Use Log.Error instead")]
+		[Obsolete("Use Log.Error instead", true)]
 		public static void Error(string message)
         {
             Log.Error("", null, message);
@@ -31,7 +31,7 @@ namespace Api.ColourConsole
 		/// Outputs [marked] keywords in yellow (or the entire string if nothing marked)
 		/// </summary>
 		/// <param name="message"></param>
-		[Obsolete("Use Log.Warn instead")]
+		[Obsolete("Use Log.Warn instead", true)]
 		public static void Warning(string message)
         {
             Log.Warn("", null, message);
@@ -41,7 +41,7 @@ namespace Api.ColourConsole
 		/// Outputs [marked] keywords in cyan (or the entire string if nothing marked)
 		/// </summary>
 		/// <param name="message"></param>
-		[Obsolete("Use Log.Info instead")]
+		[Obsolete("Use Log.Info instead", true)]
 		public static void Info(string message)
         {
             Log.Info("", null, message);
