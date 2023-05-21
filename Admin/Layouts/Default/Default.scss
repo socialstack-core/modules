@@ -114,6 +114,26 @@ html.admin {
 				}
 			}
 
+			.admin-page__badge {
+				font-weight: bold;
+				font-size: 14px;
+				margin-inline-start: 1rem;
+				display: none;
+
+				&--stage, &--uat {
+					color: var(--warning-fg);
+				}
+				
+				&--prod {
+					color: var(--danger-fg);
+				}
+
+				> i {
+					margin-inline-end: .25em;
+				}
+
+			}
+
 			> .admin-page-user {
 
 				.user-label {
@@ -290,6 +310,31 @@ html.admin {
 
 	:where(.table) {
 		border-color: var(--admin-field-border, var(--fallback__admin-field-border));
+		color: var(--admin-fg, var(--fallback__admin-fg));
+	}
+
+	&[data-env="stage"] {
+
+		.admin-page__badge--stage {
+			display: block;
+		}
+
+	}
+
+	&[data-env="uat"] {
+
+		.admin-page__badge--uat {
+			display: block;
+		}
+
+	}
+
+	&[data-env="prod"] {
+
+		.admin-page__badge--prod {
+			display: block;
+		}
+
 	}
 
 }

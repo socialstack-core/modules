@@ -5,10 +5,14 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'UI/Session';
 import getRef from 'UI/Functions/GetRef';
 import ConfirmModal from 'UI/Modal/ConfirmModal';
+import Search from 'UI/Search';
 
 export default function Datamap(props) {
 	const [ datamap, setDatamap ] = useState(false);
 	const [ showConfirmModal, setShowConfirmModal ] = useState(false);
+	const [ searchText, setSearchText ] = useState();
+	const [ isEmpty, setIsEmpty ] = useState();
+	const [ isLoading, setIsLoading ] = useState(true);
 	const { setPage } = useRouter();
 	var customData = [];
 
@@ -72,6 +76,7 @@ export default function Datamap(props) {
 	}
 
 	useEffect(() => {
+		setIsLoading(true);
 
 		webRequest('customcontenttype/list', {
 			where: {
@@ -102,9 +107,97 @@ export default function Datamap(props) {
 				var dm = buildDatamap(resp.json.results);
 				dm.sort((a, b) => (a.nickName > b.nickName) ? 1 : -1);
 				setDatamap(dm);
+				setIsLoading(false);
 			});
 		});
 	}, []);
+
+	function searchData(data) {
+
+		if (!data) {
+			return;
+		}
+
+		data.children.forEach(child => {
+			searchData(child);
+		});
+
+		let name = data.name ? data.name.toLowerCase() : '';
+		let nickName = data.nickName ? data.nickName.toLowerCase() : '';
+		let type = data.type ? data.type.toLowerCase() : '';
+		let numericSearch = parseInt(searchText, 10);
+
+		data.exclude = !name.includes(searchText) && !nickName.includes(searchText) && !type.includes(searchText);
+
+		if (data.exclude && !isNaN(numericSearch)) {
+			data.exclude = data.id != numericSearch;
+		}
+
+		// check - if a node has a child marked as not excluded, the parent should remain visible
+		if (data.exclude && data.children?.length) {
+			data.exclude = data.children.filter((child) => !child.exclude).length == 0;
+		}
+
+		return data.exclude;
+	}
+
+	function clearSearch(data) {
+
+		if (!data) {
+			return;
+		}
+
+		data.children.forEach(child => {
+			clearSearch(child);
+		});
+
+		data.exclude = false;
+	}
+
+	// update search filtering
+	useEffect(() => {
+		if (datamap) {
+			setIsLoading(true);
+			let searchMap = structuredClone(datamap);
+			let empty = true;
+
+			searchMap.forEach(data => {
+				// clear exclusions if search cleared
+				if (!searchText) {
+					clearSearch(data);
+				} else {
+					// mark elements as excluded if they don't match the search criteria
+					searchData(data);
+				}
+
+				if (!data.exclude) {
+					empty = false;
+				}
+			});
+
+			setIsEmpty(empty);
+			setDatamap(searchMap);
+			setIsLoading(false);
+		}
+
+	}, [searchText]);
+
+	function renderLoading() {
+		return <div className="datamap__loading">
+			<div className="spinner-border text-primary" role="status">
+				<span className="visually-hidden">
+					{`Loading...`}
+				</span>
+			</div>
+		</div>;
+	}
+
+	function renderEmpty() {
+		return <em className="datamap__empty">
+			{searchText && `No content types match your search criteria`}
+			{!searchText && `No available content types found`}
+		</em>;
+	}
 
 	function renderNode(data) {
 		var isInstance = data.type != 'CustomContentType';
@@ -178,7 +271,7 @@ export default function Datamap(props) {
 
 		return <>
 			<Collapsible compact expanderLeft title={data.nickName} subtitle={data.name} info={`ID: #${data.id}`} buttons={buttons} className="datamap-expander"
-				defaultClick={data.children.length ? undefined : editClick} icon={largeIcon}>
+				defaultClick={data.children.length ? undefined : editClick} icon={largeIcon} searchText={searchText} hidden={data.exclude}>
 				{data.children.length && data.children.map(child => {
 					return renderNode(child);
 				})}
@@ -225,9 +318,13 @@ export default function Datamap(props) {
 							</li>
 						</ul>
 					</div>
+					<Search className="admin-page__search" placeholder={`Search`}
+						onQuery={(where, query) => {
+							setSearchText((!query || query.trim().length == 0) ? false : query.toLowerCase());
+						}} />
 				</header>
-				<div className="sitemap__wrapper">
-					<div className="sitemap__internal">
+				<div className="datamap__wrapper">
+					<div className="datamap__internal">
 						{showConfirmModal && <>
 							<ConfirmModal confirmCallback={() => removeData(showConfirmModal)} confirmVariant="danger" cancelCallback={() => setShowConfirmModal(false)}>
 								<p>
@@ -238,7 +335,9 @@ export default function Datamap(props) {
 								</p>
 							</ConfirmModal>
 						</>}
-						{datamap && datamap.map(data => {
+						{isLoading && renderLoading()}
+						{!isLoading && isEmpty && renderEmpty()}
+						{!isLoading && datamap && datamap.map(data => {
 							return renderNode(data);
 						})}
 					</div>

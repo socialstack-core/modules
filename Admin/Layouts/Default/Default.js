@@ -153,6 +153,18 @@ export default props => {
                             </g>
                         </svg>
                     </a>
+                    <span class="admin-page__badge admin-page__badge--stage badge bg-warning">
+                        <i class="fal fa-fw fa-exclamation-triangle"></i>
+                        {`STAGE`}
+                    </span>
+                    <span class="admin-page__badge admin-page__badge--uat badge bg-warning">
+                        <i class="fal fa-fw fa-exclamation-triangle"></i>
+                        {`UAT`}
+                    </span>
+                    <span class="admin-page__badge admin-page__badge--prod badge bg-danger">
+                        <i class="fal fa-fw fa-exclamation-triangle"></i>
+                        {`PRODUCTION`}
+                    </span>
                 </div>
 
                 <div className="admin-page-user">

@@ -1,5 +1,5 @@
 $focal_reticle_size: 24px;
-$focal_reticle_half: $focal_reticle_size / 2;
+$focal_reticle_half: $focal_reticle_size * .5;
 $focal_reticle_border: 2px;
 $focal_reticle_color: #fff;
 $preview_size: 512px;
@@ -139,6 +139,10 @@ $preview_size: 512px;
 		right: .25rem;
 		top: .25rem !important;
 	}
+	
+	&__usage {
+		padding-right: 1rem;
+	}
 
 	&__original-filename {
 		text-align: center;
@@ -151,11 +155,19 @@ $preview_size: 512px;
 
 	&__upload-modal {
 
+		&.modal {
+			.modal-body {
+				overflow: scroll;
+				height: fit-content;
+			}
+		}
+
 		&-footer {
 			display: flex;
 			gap: .75rem;
 			justify-content: space-between;
 			margin-top: 1.5rem;
+			padding: 1rem;
 
 			&-options {
 				display: flex;
@@ -163,9 +175,12 @@ $preview_size: 512px;
 			}
 		}
 
+
 		.modal-footer {
 			display: none;
 		}
+
+
 
 		.uploader__internal {
 			aspect-ratio: initial;

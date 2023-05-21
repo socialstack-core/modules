@@ -15,6 +15,30 @@
 		flex: 1 1 auto;
 		overflow-y: auto;
 		color: inherit;
+		position: relative;
+	}
+
+	&__loading {
+		position: absolute;
+		left: 0;
+		right: 0;
+		top: 0;
+		bottom: 0;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+
+		.spinner-border {
+			width: 4rem;
+			height: 4rem;
+		}
+	}
+
+	&__empty {
+		display: block;
+		text-align: center;
+		margin: 2rem 0;
+		opacity: .6;
 	}
 
 	/*

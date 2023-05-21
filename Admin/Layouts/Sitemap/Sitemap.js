@@ -275,8 +275,16 @@ export default function Sitemap(props) {
 						variant: 'secondary',
 						//onClick: window.location.origin + page.url,
 						//target: '_blank'
-						onClick: function () {
-							setPage(page.url);
+						onClick: function (e) {
+							e.stopPropagation();
+
+							let launchUrl = page.url;
+
+							if (!launchUrl.startsWith("/")) {
+								launchUrl = "/" + page.url;
+							}
+
+							setPage(launchUrl);
 						},
 						children: [
 							{

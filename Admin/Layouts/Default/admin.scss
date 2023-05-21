@@ -52,6 +52,14 @@
 
 	}
 
+	&__url {
+		text-align: right;
+
+		p {
+			margin: 0;
+		}
+	}
+
 	&__title {
 		font-size: 1.05rem;
 		font-weight: 700;
