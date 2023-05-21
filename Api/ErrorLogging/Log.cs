@@ -34,7 +34,7 @@ public static class Log
 	/// The tag SHOULD be lowercase separated with hypens or underscores and represents a subset of logs.
 	/// It is suggested to use Service.LogTag: the lowercase type name, or the lowercase service name if you don't have a type.
 	/// </summary>
-	public static void Ok(string tag, Exception error = null, string message = null)
+	public static void Ok(string tag, Exception error, string message = null)
 	{
 		var ts = Write(Api.ErrorLogging.Schema.OkId, tag, error, message, false);
 
@@ -59,7 +59,7 @@ public static class Log
 	/// The tag SHOULD be lowercase separated with hypens or underscores and represents a subset of logs.
 	/// It is suggested to use Service.LogTag: the lowercase type name, or the lowercase service name if you don't have a type.
 	/// </summary>
-	public static void Info(string tag, Exception error = null, string message = null)
+	public static void Info(string tag, Exception error, string message = null)
 	{
 		var ts = Write(Api.ErrorLogging.Schema.InfoId, tag, error, message, false);
 
@@ -84,7 +84,7 @@ public static class Log
 	/// The tag SHOULD be lowercase separated with hypens or underscores and represents a subset of logs.
 	/// It is suggested to use Service.LogTag: the lowercase type name, or the lowercase service name if you don't have a type.
 	/// </summary>
-	public static void Warn(string tag, Exception error = null, string message = null)
+	public static void Warn(string tag, Exception error, string message = null)
 	{
 		var ts = Write(Api.ErrorLogging.Schema.WarnId, tag, error, message, false);
 
@@ -99,7 +99,17 @@ public static class Log
 	/// The tag SHOULD be lowercase separated with hypens or underscores and represents a subset of logs.
 	/// It is suggested to use Service.LogTag: the lowercase type name, or the lowercase service name if you don't have a type.
 	/// </summary>
-	public static void Error(string tag, Exception error = null, string message = null)
+	public static void Error(string tag, string message)
+	{
+		Error(tag, null, message);
+	}
+
+	/// <summary>
+	/// Logs an error message for the given tag. It is strongly recommended to pass the exception here too such that the stack trace will be logged.
+	/// The tag SHOULD be lowercase separated with hypens or underscores and represents a subset of logs.
+	/// It is suggested to use Service.LogTag: the lowercase type name, or the lowercase service name if you don't have a type.
+	/// </summary>
+	public static void Error(string tag, Exception error, string message = null)
 	{
 		var ts = Write(Api.ErrorLogging.Schema.ErrorId, tag, error, message, false);
 
@@ -117,7 +127,20 @@ public static class Log
 	/// The tag SHOULD be lowercase separated with hypens or underscores and represents a subset of logs.
 	/// It is suggested to use Service.LogTag: the lowercase type name, or the lowercase service name if you don't have a type.
 	/// </summary>
-	public static void Fatal(string tag, Exception error = null, string message = null)
+	public static void Fatal(string tag, string message)
+	{
+		Fatal(tag, null, message);
+	}
+
+	/// <summary>
+	/// Logs a fatal error message for the given tag. It is strongly recommended to pass the exception here too such that the stack trace will be logged.
+	/// Fatal exceptions usually happen just before or during a total application failure. For this reason, they are very high priority.
+	/// That means logging a fatal error will force all buffers to flush. If the link to the log store is down then they will be flushed 
+	/// to a file for safe keeping until service is restored.
+	/// The tag SHOULD be lowercase separated with hypens or underscores and represents a subset of logs.
+	/// It is suggested to use Service.LogTag: the lowercase type name, or the lowercase service name if you don't have a type.
+	/// </summary>
+	public static void Fatal(string tag, Exception error, string message = null)
 	{
 		var ts = Write(Api.ErrorLogging.Schema.FatalId, tag, error, message, true);
 
