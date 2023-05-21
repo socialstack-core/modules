@@ -129,6 +129,23 @@ namespace Api.Database
 			return await cmd.ExecuteNonQueryAsync() > 0;
 		}
 
+        /// <summary>
+        /// Run a raw query with no arguments. Avoid when possible.
+        /// </summary>
+        /// <param name="query">The query to run.</param>
+        /// <param name="timeout">Optional timeout to use.</param>
+        /// <returns></returns>
+        public async Task<bool> Run(string query, int timeout)
+        {
+
+            using var connection = GetConnection();
+            await connection.OpenAsync();
+            var cmd = new MySqlCommand(query, connection);
+      		cmd.CommandTimeout = timeout;
+
+            return await cmd.ExecuteNonQueryAsync() > 0;
+        }
+
 		/// <summary>
 		/// Usually used for bulk deletes.
 		/// </summary>
