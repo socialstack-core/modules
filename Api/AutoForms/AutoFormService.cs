@@ -242,6 +242,11 @@ namespace Api.AutoForms
 
 				// Remove "Ref" from the end of the label:
 				labelName = labelName.Substring(0, labelName.Length - 3);
+				
+				// If the remaining name is exactly "Icon", then use type="icon" instead:
+				if(labelName.ToLower() == "icon"){
+					type = "icon";
+				}
 			}
 			else if (fieldType == typeof(string) && (labelName.EndsWith("Color") || labelName.EndsWith("Colour")))
 			{
