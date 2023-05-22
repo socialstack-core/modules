@@ -94,10 +94,6 @@ class Canvas extends React.Component {
 		
 		// Resolve runtime field values now:
 		var dataFields = contentNode.data;
-
-		if (contentNode.data && contentNode.data.name && contentNode.data.name.toLowerCase().endsWith('iconref')) {
-			dataFields['iconOnly'] = true;
-        }
 		
 		return (
 			<Module key={index} {...dataFields}>
