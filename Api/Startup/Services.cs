@@ -284,7 +284,7 @@ namespace Api.Startup
 		{
 			name = name.ToLower().Trim();
 
-			if (string.IsNullOrEmpty(Environment) || name == "dev" || name == "development")
+			if (string.IsNullOrEmpty(name) || name == "dev" || name == "development")
 			{
 				return "dev";
 			}
