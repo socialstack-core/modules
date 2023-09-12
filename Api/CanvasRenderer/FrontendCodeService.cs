@@ -221,7 +221,10 @@ namespace Api.CanvasRenderer
 				// Reconstruct the CSS now.
 				cssVariables = themeService.OutputCss(themeConfig);
 
-				await UIBuilder.SetCssPrepend(cssVariables);
+    				if(UIBuilder != null)
+				{
+					await UIBuilder.SetCssPrepend(cssVariables);
+				}
 			};
 
 			_config = GetConfig<FrontendCodeServiceConfig>();
