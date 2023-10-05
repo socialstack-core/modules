@@ -4,7 +4,7 @@ import Icon from 'UI/Icon';
 export default class Carousel extends React.Component {
     constructor(props) {
         super(props);
-		
+		this.handleResize = this.handleResize.bind(this);
 		this.state = {
 			currentIndex: props.defaultSlide || 0
 		};
@@ -43,6 +43,8 @@ export default class Carousel extends React.Component {
 	}
 	
 	componentDidMount() {
+		window.addEventListener('resize', this.handleResize);
+		
 		if(this.interval || this.props.static || this.isExternallyControlled()){
 			return;
 		}
@@ -52,7 +54,13 @@ export default class Carousel extends React.Component {
 		}, (this.props.delay || 3) * 1000);
 	}
 	
+	handleResize(e){
+		// re-render:
+		this.setState({});
+	}
+	
 	componentWillUnmount(){
+		window.removeEventListener('resize', this.handleResize);
 		this.interval && clearInterval(this.interval);
 		this.interval = null;
 	}
@@ -119,6 +127,7 @@ export default class Carousel extends React.Component {
 		
         var visCount = visibleAtOnce || 1;
 		var visCountSm = visibleAtOnceSm || visCount;
+		//var visCountSm = 1;
 		var visCountMd = visibleAtOnceMd || visibleAtOnceSm;
 		var visCountLg = visibleAtOnceLg || visibleAtOnceMd;
 
@@ -149,7 +158,7 @@ export default class Carousel extends React.Component {
 		var width = 0;
 		
 		var screenWidth = window.innerWidth || window.screen.width;
-		var container = this.containerWidth(screenWidth);
+		var container = this.props.wide ? screenWidth : this.containerWidth(screenWidth);
 		
 		// TODO: update media query matches in realtime
 		if (window.matchMedia('(max-width: 575px)').matches) {
@@ -181,10 +190,34 @@ export default class Carousel extends React.Component {
 		var transformCalc = '';
 		var slideWidthCalc = '';
 		var slideWidth = '';
-		
-		transformCalc = spacing ?
+
+/*
+		// how many cards we show depends on carousle width
+		if (width < 514) {
+			transformCalc = spacing ?
+			(width / 1) + (padNum / 1) :
+			width / 1;
+		} else if (width >= 514 && width < 540) {
+			transformCalc = spacing ?
+			(width / 2) + (padNum / 2) :
+			width / 2;
+		} else if (width >= 540 && width < 720) {
+			transformCalc = spacing ?
+			(width / 1.5) + (padNum / 1.5) :
+			width / 1.5;
+		} else if (width >= 720 && width < 960) {
+			transformCalc = spacing ?
+			(width / 2) + (padNum / 2) :
+			width / 2;
+		} else {
+			transformCalc = spacing ?
 			(width / visCount) + (padNum / visCount) :
 			width / visCount;
+		}
+		*/
+		
+		transformCalc = width /visCount;
+		
 		slideWidthCalc = transformCalc + "px";
 		slideWidth = { flex: "0 0 " + slideWidthCalc };
 		
@@ -192,7 +225,7 @@ export default class Carousel extends React.Component {
 		
 		var slideOffset = centred ?
 			{ marginLeft: (containerLeftEdge - (transformCalc * currentIndex)) + 'px' } :
-			{ marginLeft: '-' + transformCalc + 'px' };
+			{ marginLeft: '-' + (transformCalc * currentIndex) + 'px' };
 		
 		// # to appear focused at once:
 		var focusCount = this.props.focusCount || visCount;
@@ -236,7 +269,7 @@ export default class Carousel extends React.Component {
 								}
 							</ul>
 						</div>
-						{showNext && currentIndex < items.length - 1 &&
+						{showNext && currentIndex < items.length - visibleAtOnce &&
 							<div className="slider-next-wrapper">
 								<button type="button" className="slider-next" onClick={() => {
 									this.moveNext();
