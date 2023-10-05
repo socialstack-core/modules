@@ -64,12 +64,53 @@ public partial class AutoService<T, ID>
     /// </summary>
     private static readonly byte[] IncludesValueFooter = new byte[] { (byte)']', (byte)'}' };
 
-    /// <summary>
-    /// Serialises the given object into the given stream (usually a response stream). By using this method, it will consider the fields a user is permitted to see (based on the role in the context)
-    /// and also may use a per-object cache which contains string segments.
-    /// dataSource is often a filter.
-    /// </summary>
-    public async ValueTask ToJson<ANY>(
+	/// <summary>
+	/// Serialises results from this service with the requested filter. 
+    /// Allocates the result as a string. Use sparingly to avoid unnecessary allocations.
+	/// </summary>
+	public async ValueTask<string> ToJson(Context context, Filter<T,ID> filter, string includes = null)
+	{
+		var writer = Writer.GetPooled();
+		writer.Start(null);
+		await ToJson(context, filter, async (Context ctx, Filter<T, ID> filt, Func<T, int, ValueTask> onResult) => {
+
+			return await GetResults(ctx, filt, async (Context ctx2, T result, int index, object src, object srcB) => {
+				var _onResult = src as Func<T, int, ValueTask>;
+				await _onResult(result, index);
+			}, onResult, null);
+
+		}, writer, null, includes, filter.IncludeTotal);
+		writer.Release();
+
+		var jsonString = writer.ToUTF8String();
+		writer.Release();
+        return jsonString;
+	}
+
+	/// <summary>
+	/// Serialises an object from this service to a JSON string.
+	/// Allocates the result as a string. Use sparingly to avoid unnecessary allocations.
+	/// </summary>
+	/// <param name="context"></param>
+	/// <param name="entity"></param>
+	/// <param name="includes"></param>
+	/// <returns></returns>
+	public async ValueTask<string> ToJson(Context context, T entity, string includes = null)
+	{
+        var writer = Writer.GetPooled();
+        writer.Start(null);
+        await ToJson(context, entity, writer, null, includes, false);
+		var jsonString = writer.ToUTF8String();
+		writer.Release();
+        return jsonString;
+	}
+
+	/// <summary>
+	/// Serialises the given object into the given stream (usually a response stream). By using this method, it will consider the fields a user is permitted to see (based on the role in the context)
+	/// and also may use a per-object cache which contains string segments.
+	/// dataSource is often a filter.
+	/// </summary>
+	public async ValueTask ToJson<ANY>(
         Context context, ANY dataSource,
         Func<Context, ANY, Func<T, int, ValueTask>, ValueTask<int>> onGetData,
         Writer writer,
