@@ -80,8 +80,6 @@ public partial class AutoService<T, ID>
 			}, onResult, null);
 
 		}, writer, null, includes, filter.IncludeTotal);
-		writer.Release();
-
 		var jsonString = writer.ToUTF8String();
 		writer.Release();
         return jsonString;
