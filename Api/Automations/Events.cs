@@ -1,9 +1,5 @@
 using Api.Automations;
-using Api.AvailableEndpoints;
-using Api.Permissions;
 using System;
-using System.Collections.Generic;
-using System.Threading.Tasks;
 
 namespace Api.Eventing
 {
