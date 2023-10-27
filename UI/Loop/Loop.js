@@ -40,31 +40,10 @@ export default class Loop extends React.Component {
 			
 		}else if(typeof props.over === 'string'){
 			
-			var firstSlash = props.over.indexOf('/');
-			var cached;
-			if(firstSlash == -1 || props.over.substring(firstSlash+1) == 'list'){
-				cached = Content.listCached(firstSlash == -1 ? props.over : props.over.substring(0, firstSlash), props.filter, props.includes);
-			}
+			this.state = {
+				pageIndex: 1
+			};
 			
-			if(cached){
-				if(cached.then){
-					// Special case on the server. It's a promise, but the result needs to be processed immediately.
-					// Only this constructor executes if a promise is in the state, so it's ok for it to directly overwrite all of this.state when its done.
-					cached = cached.then(r => {
-						this.state = this.processCached(r, props);
-					});
-					this.state = {
-						cached
-					};
-				}else{
-					this.state = this.processCached(cached, props);
-				}
-			}else{
-				// Can only client side load this one
-				this.state = {
-					pageIndex: 1
-				};
-			}
 		}else{
 			// Invalid!
 		}
@@ -458,13 +437,14 @@ export default class Loop extends React.Component {
 	}
 
 	componentDidUpdate(prevProps) {
-		var {over, filter} = this.props;
+		var {over, filter, paged} = this.props;
 		
 		// Has the filter/ over prop changed?
 		if(
 			over != prevProps.over || 
 			(Array.isArray(over) && over.length != prevProps.over.length) || 
-			JSON.stringify(filter) != JSON.stringify(prevProps.filter)
+			JSON.stringify(filter) != JSON.stringify(prevProps.filter) ||
+			JSON.stringify(paged) != JSON.stringify(prevProps.paged)
 		){
 			this.load(this.props, 1);
 		}
@@ -548,7 +528,7 @@ export default class Loop extends React.Component {
 				var results = (responseJson && responseJson.results) ? responseJson.results : [];
 
 				if (props.onResults) {
-					results = props.onResults(results);
+					results = props.onResults(results, responseJson);
 				}
 
 				if (props.reverse) {
@@ -563,7 +543,7 @@ export default class Loop extends React.Component {
 				var results = [];
 
 				if (props.onResults) {
-					results = this.props.onResults(results);
+					results = this.props.onResults(results, {results, total: 0});
 				}
 
 				if (props.reverse) {
@@ -590,12 +570,12 @@ export default class Loop extends React.Component {
 		var results = props.over;
 		
 		if (props.onResults) {
-			results = props.onResults(results);
+			results = props.onResults(results, {results, total: results ? (results.totalResults || results.length) : 0});
 		}
 		
-		var pageCfg = props.paged;
 		var totalResults = results.totalResults || results.length;
-		
+		var pageCfg = props.paged;
+				
 		if (pageCfg) {
 			var offset = (newPageIndex || this.state.pageIndex)-1;
 			var pageSize = pageCfg.pageSize || DEFAULT_PAGE_SIZE;
@@ -968,8 +948,10 @@ export default class Loop extends React.Component {
 		}
 		
 		var pageSize = pageCfg.pageSize || DEFAULT_PAGE_SIZE;
+		var pageIndex = pageCfg.pageIndex || 1;
 		var showInput = pageCfg.showInput !== undefined ? pageCfg.showInput : undefined;
 		var maxLinks = pageCfg.maxLinks || undefined;
+		var noScroll = pageCfg.noScroll || false;
 
 		if(typeof pageCfg == "number"){
 			pageSize = pageCfg;
@@ -980,6 +962,7 @@ export default class Loop extends React.Component {
 			pageSize = this.props.filter.pageSize;
 		}
 
+		/* NB: not available for SSR
 		// override with mobile pagesize if available
 		if (typeof pageCfg == "object" && pageCfg.mobilePageSize) {
 
@@ -989,6 +972,7 @@ export default class Loop extends React.Component {
 			}
 
 		}
+		*/
 
 		// Paginate
 		var Module = pageCfg.module || Paginator;
@@ -997,12 +981,14 @@ export default class Loop extends React.Component {
 			pageSize={pageSize}
 			showInput={showInput}
 			maxLinks={maxLinks}
-			pageIndex={this.state.pageIndex}
+			pageIndex={pageIndex}
 			totalResults={this.state.totalResults}
 			//scrollPref={this.props.scrollPref}
 			onChange={pageIndex => {
 				this.load(this.props, pageIndex);
-				global.scrollTo && global.scrollTo(0, 0);
+				if (!noScroll) {
+					global.scrollTo && global.scrollTo(0, 0);
+				}
 			}}
 		/>;
 		
