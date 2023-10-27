@@ -31,6 +31,16 @@ namespace Api.CloudHosts
 
 
 		}
+		
+		/// <summary>
+		/// Regenerates website config
+		/// </summary>
+		/// <returns></returns>
+		public async ValueTask Regenerate(Context context)
+		{
+			await platform.Apply(context);
+		}
+
 	}
     
 }
