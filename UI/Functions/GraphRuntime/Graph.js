@@ -82,20 +82,8 @@ function CC(ctx) {
 		}
 
 		// No - create a request now:
-		if (window.SERVER || (global.cIndex !== undefined && global.pgState && global.pgState.data)) {
-			if (body || id == "list") {
-				p = Content.listCached(type, body, includes, ctx);
-			} else {
-				p = Content.getCached(type, id, includes, ctx);
-			}
-			
-			if(p && p.then){
-				p = p.then(obj => { return { json: obj } });
-			}
-		} else {
-			p = webRequest(type + '/' + id, body, { includes });
-		}
-
+		p = webRequest(type + '/' + id, body, { includes });
+		
 		var request = {
 			p,
 			inc: makeIncludesSet(includes),
