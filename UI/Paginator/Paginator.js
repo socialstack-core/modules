@@ -74,9 +74,11 @@ export default class Paginator extends React.Component {
 		paginator.scrollIntoView({ block: "end" });
 
 		// check - offset slightly if on mobile (accounts for menus docked at bottom of page)
-		if (window.matchMedia('(max-width: 752px) and (pointer: coarse) and (orientation: portrait)').matches ||
-			window.matchMedia('(max-height: 752px) and (pointer: coarse) and (orientation: landscape)').matches) {
-			global.scrollBy && global.scrollBy(0, 80);
+		if (!window.SERVER) {
+			if (window.matchMedia('(max-width: 752px) and (pointer: coarse) and (orientation: portrait)').matches ||
+				window.matchMedia('(max-height: 752px) and (pointer: coarse) and (orientation: landscape)').matches) {
+				global.scrollBy && global.scrollBy(0, 80);
+			}
 		}
 
     }
