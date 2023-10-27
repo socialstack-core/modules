@@ -19,6 +19,8 @@ namespace Api.Currency
 		public ExchangeRateService() : base(Events.ExchangeRate)
         {
 			InstallAdminPages("ExchangeRates", "fa:fa-rocket", new string[] { "id", "name", "rate", "fromLocaleId", "toLocaleId" });
+
+			Cache();
 		}
 	}
     

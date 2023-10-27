@@ -20,6 +20,7 @@ namespace Api.Currency
 	public partial class CurrencyService : AutoService
     {
 		private ExchangeRateService _exchangeRates;
+        private CurrencyConfig _currencyConfig;
 
 		/// <summary>
 		/// Instanced automatically. Use injection to use this service, or Startup.Services.Get.
@@ -27,6 +28,7 @@ namespace Api.Currency
 		public CurrencyService(ExchangeRateService exchangeRates, LocaleService locales)
         {
 			_exchangeRates = exchangeRates;
+            _currencyConfig = GetConfig<CurrencyConfig>();
 
             var setupForTypeMethod = GetType().GetMethod(nameof(SetupForType));
 
@@ -127,7 +129,15 @@ namespace Api.Currency
             }
 
             async ValueTask<T> ConvertPrices(Context ctx, T entity, List<FieldInfo> priceFields, List<ExchangeRate> exchangeRates)
-            {
+            {   
+                // sets roundTo as an int based on what the user defined in the CMS config
+                double? roundTo = _currencyConfig.RoundTo;
+
+                if (!roundTo.HasValue)
+                {
+                    roundTo = 0;
+                }
+
                 foreach (FieldInfo field in priceFields)
                 {
                     object value = field.GetValue(entity);
@@ -143,18 +153,36 @@ namespace Api.Currency
                             {
                                 // Assumes price is a double, could cause some issues down the line
                                 double? convertedValue = null;
+
                                 try
                                 {
                                     convertedValue = (double)localisedValue * exchangeRate.Rate;
                                 }
-                                catch (Exception e)
+                                catch
                                 {
                                     // do nothing
                                 }
 
                                 if (convertedValue != null)
                                 {
-                                    field.SetValue(entity, convertedValue);
+                                    if (roundTo == 0)
+                                    {
+                                        // Check if user set the RoundTo = 0 (No conversion)
+                                        field.SetValue(entity, convertedValue.Value);
+                                    }
+                                    else
+                                    {
+                                        if (roundTo > 0)
+                                        {
+                                            field.SetValue(entity, Math.Round((double)(convertedValue.Value / roundTo)) * roundTo);
+                                        }
+                                        else
+                                        {
+                                            throw new ArgumentException("RountTo Value must have a value.");
+                                        }
+                                        
+                                    }
+
                                     // Currently uses first possible conversion we come across, might be nice to be able to specify prefered conversion(s) at some point
                                     break;
                                 }
