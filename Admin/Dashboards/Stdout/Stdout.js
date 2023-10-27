@@ -74,7 +74,7 @@ export default function StdOut() {
 						if(message.trace){
 							return <>
 								<p>{message.entry}</p>
-								<p>{message.trace}</p>
+								<pre>{message.trace}</pre>
 							</>;
 						}
 						return <p>{message.entry}</p>;
