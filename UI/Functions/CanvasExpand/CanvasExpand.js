@@ -1,4 +1,4 @@
-import webRequest from 'UI/Functions/WebRequest';
+import {expandIncludes} from 'UI/Functions/WebRequest';
 import Graph from 'UI/Functions/GraphRuntime/Graph';
 import Text from 'UI/Text';
 
@@ -36,7 +36,15 @@ function isCanvas2(node){
 	return (node.c || node.r || node.t || node.g);
 }
 
-function convertToNodesFromCanvas(node, onContentNode){
+function readMap(dataMap, ptr){
+	var host = dataMap.find(dm => dm.id == ptr);
+	if(host){
+		host.c = expandIncludes(host.c);
+		return (host.f && host.c) ? host.c[host.f] : host.c;
+	}
+}
+
+function convertToNodesFromCanvas(node, onContentNode, dataMap){
 	if(!node){
 		return;
 	}
@@ -49,6 +57,23 @@ function convertToNodesFromCanvas(node, onContentNode){
 			node = node[0];
 		}else{
 			node = {content: node};
+		}
+	}
+	
+	if(dataMap && node.p){
+		if(typeof node.p == "number"){
+			// If it is a number then the whole node object is actually swapped with the pointed-at data entry.
+			node = readMap(dataMap, node.p);
+		}else{
+			// If it is an object then it is to be resolved as d(ata) entries.
+			if(!node.d){
+				node.d={};
+			}
+			
+			for(var k in node.p){
+				var ptr = node.p[k];
+				node.d[k] = readMap(dataMap, ptr);
+			}
 		}
 	}
 	
@@ -68,11 +93,11 @@ function convertToNodesFromCanvas(node, onContentNode){
 			if(node.r){
 				if(Array.isArray(node.r)){
 					node.r.forEach((n, i) => {
-						roots[i + ''] = convertToNodesFromCanvas({t: 'span', c: n}, onContentNode);
+						roots[i + ''] = convertToNodesFromCanvas({t: 'span', c: n}, onContentNode, dataMap);
 					})
 				}else{
 					for(var key in node.r){
-						roots[key] = convertToNodesFromCanvas({t: 'span', c: node.r[key]}, onContentNode);
+						roots[key] = convertToNodesFromCanvas({t: 'span', c: node.r[key]}, onContentNode, dataMap);
 					}
 				}
 			}
@@ -80,7 +105,7 @@ function convertToNodesFromCanvas(node, onContentNode){
 			if(node.c){
 				// Simplified case for a common scenario of the node just having children only in it.
 				// Wrap it in a root node and set it as roots.children.
-				roots.children = convertToNodesFromCanvas({t: 'span', c: node.c}, onContentNode);
+				roots.children = convertToNodesFromCanvas({t: 'span', c: node.c}, onContentNode, dataMap);
 			}
 			
 			for(var k in roots){
@@ -105,13 +130,13 @@ function convertToNodesFromCanvas(node, onContentNode){
 			
 			if(node.c){
 				// Canvas 2
-				loadCanvasChildren(node, result, onContentNode);
+				loadCanvasChildren(node, result, onContentNode, dataMap);
 			}
 			
 		}
 	}else if(node.c){
 		// a root node
-		loadCanvasChildren(node, result, onContentNode);
+		loadCanvasChildren(node, result, onContentNode, dataMap);
 	}
 	
 	if(node.g){
@@ -144,7 +169,7 @@ function convertToNodesFromCanvas(node, onContentNode){
 }
 	
 
-function loadCanvasChildren(node, result, onContentNode){
+function loadCanvasChildren(node, result, onContentNode, dataMap){
 	var c = node.c;
 	if(typeof c == 'string'){
 		// It has one child which is a text node (no ID or templateID on this).
@@ -167,7 +192,7 @@ function loadCanvasChildren(node, result, onContentNode){
 				//  (no ID or templateID on this)
 				child = {type: TEXT, text: child, parent: result};
 			}else{
-				child = convertToNodesFromCanvas(child, onContentNode);
+				child = convertToNodesFromCanvas(child, onContentNode, dataMap);
 				if(!child){
 					continue;
 				}
@@ -191,7 +216,9 @@ export function expand(contentNode, onContentNode){
 	}
 	
 	if(isCanvas2(contentNode)){
-		var res = convertToNodesFromCanvas(contentNode, onContentNode);
+		
+		var dataMap = (contentNode && contentNode.m);
+		var res = convertToNodesFromCanvas(contentNode, onContentNode, dataMap);
 		res.expanded = true;
 		res.c2 = true;
 		return res;
