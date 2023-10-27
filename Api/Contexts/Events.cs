@@ -25,6 +25,11 @@ namespace Api.Eventing
 		/// Called during GetContext.
 		/// </summary>
 		public EventHandler<HttpRequest> OnLoad;
-		
+
+		/// <summary>
+		/// Called if the context is able to use the page cache.
+		/// The given value is the current cache access (true means it can use the cache).
+		/// </summary>
+		public EventHandler<bool> CanUseCache;
 	}
 }
