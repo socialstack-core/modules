@@ -1,19 +1,23 @@
 import getRef from 'UI/Functions/GetRef';
 import omit from 'UI/Functions/Omit';
-import logoRef from './logo.png';
 
 /*
 Used to display an image from a fileRef.
 Min required props: size, fileRef. Size must be an available size from your uploader config. You should pick the nearest bigger size from the physical size you're after.
 <Image fileRef='public:2.jpg' size=100 />
 */
-export default function Image (props) {
-	const { onClick, fileRef, linkUrl, size, fullWidth, float, className, 
-		animation, animationDirection, animationDuration } = props;
+export default function Image(props) {
+	const { onClick, fileRef, linkUrl, size, fullWidth, float, className,
+		animation, animationDirection, animationDuration,
+		width, height, disableBlurhash } = props;
 
 	var anim = animation ? animation : undefined;
 	var animOnce = animation ? true : undefined;
 	var animDuration = animationDuration > 0 ? animationDuration : undefined;
+
+	if (!(fileRef)) {
+		return null;
+	}
 
 	// ref: https://github.com/michalsnik/aos
 	// TODO: disable horizontal anims on mobile to prevent triggering horizontal scrolling issues
@@ -27,7 +31,7 @@ export default function Image (props) {
 			}
 
 			break;
-	
+
 		case 'flip':
 		case 'slide':
 
@@ -38,7 +42,7 @@ export default function Image (props) {
 				anim += "-up";
 			}
 
-		break;
+			break;
 	}
 
 	var imageClass = "image";
@@ -64,14 +68,26 @@ export default function Image (props) {
 	if (className) {
 		imageClass += " " + className;
 	}
-	
+
 	var attribs = omit(props, ['fileRef', 'onClick', 'linkUrl', 'size', 'fullWidth', 'float', 'className', 'animation', 'animationDirection', 'animationDuration']);
+
 	attribs.alt = attribs.alt || attribs.title;
+
+	if (width) {
+		attribs.width = width;
+	}
+
+	if (height) {
+		attribs.height = height;
+	}
+
 	var img = <div className={imageClass} onClick={props.onClick} 
 			data-aos={linkUrl ? undefined : anim} 
 			data-aos-once={linkUrl ? undefined : animOnce}
 			data-aos-duration={linkUrl ? undefined : animDuration}>
-		{getRef(props.fileRef, {attribs, size})}
+		{getRef(props.fileRef, {
+			attribs, size, nonResponsive: !fullWidth, disableBlurhash: disableBlurhash
+		})}
 	</div>;
 	return linkUrl ? <a alt={attribs.alt} title={attribs.title} href={linkUrl} 
 			data-aos={anim} data-aos-once={animOnce} data-aos-duration={animDuration}>
@@ -80,7 +96,7 @@ export default function Image (props) {
 }
 
 Image.defaultProps = {
-	fileRef: logoRef,
+	fileRef: null,
 	float: 'None',
 	animation: 'none',
 	animationDirection: 'static',
@@ -92,6 +108,8 @@ Image.propTypes = {
 	linkUrl: 'url',
 	title: 'string',
 	fullWidth: 'bool',
+	width: 'number',
+	height: 'number',
 	size: ['original', '2048', '1024', '512', '256', '200', '128', '100', '64', '32'], // todo: pull from api
 	float: { type: ['None', 'Left', 'Right', 'Center'] },
 	className: 'string',
@@ -116,7 +134,8 @@ Image.propTypes = {
 		{ name: 'Left', value: 'left' },
 		{ name: 'Right', value: 'right' },
 	],
-	animationDuration: 'int'
+	animationDuration: 'int',
+	disableBlurhash: 'bool'
 };
 
 Image.groups = 'formatting';
