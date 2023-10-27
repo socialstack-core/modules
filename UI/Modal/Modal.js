@@ -157,9 +157,9 @@ export default class Modal extends React.Component {
 						<div className="modal-body">
 							{this.props.children}
 						</div>
-						<div className="modal-footer">
+						{!this.props.noFooter && <div className="modal-footer">
 							{this.props.footer ? this.props.footer() : this.renderButtons()}
-						</div>
+						</div>}
 					</div>
 				</div>
 			</div>
