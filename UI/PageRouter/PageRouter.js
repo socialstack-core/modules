@@ -16,7 +16,8 @@ const initialUrl = currentUrl();
 
 // Initial event:
 
-const initState = localRouter ? localRouter(initialUrl, webRequest) : (global.pgState || {});
+var pgStateHold = document.getElementById('pgState');
+const initState = localRouter ? localRouter(initialUrl, webRequest) : (pgStateHold ? JSON.parse(pgStateHold.innerHTML) : {});
 
 if(!initState.loading){
 	triggerEvent(initState.page);
@@ -48,6 +49,8 @@ function canGoBack(){
 
 export default (props) => {
 	var [pageState, setPage] = React.useState({url: initialUrl, ...initState});
+	var [scrollTarget, setScrollTarget] = React.useState();
+	const scrollTimer = React.useRef(null);
 	
 	if(pageState.loading && !pageState.handled){
 		pageState.loading.then(pgState => {
@@ -149,50 +152,79 @@ export default (props) => {
 	}
 	
 	const onPopState = (e) => {
-		// todo: # support when pressing back
-		
-		var scrollTarget = null;
+		var newScrollTarget = null;
 		
 		if(e && e.state && e.state.scrollTop !== undefined){
-			scrollTarget = {
+			newScrollTarget = {
 				x: e.state.scrollLeft,
 				y: e.state.scrollTop
 			};
 		}
 		
 		setPageState(currentUrl()).then(() => {
-			if(scrollTarget){
-				document.body.parentNode.scrollTo({top: scrollTarget.y, left: scrollTarget.x, behavior: 'instant'});
+			if(newScrollTarget){
+				setScrollTarget(newScrollTarget);
+			} else {
+				setScrollTarget(null);
 			}
 		});
 	}
 	
-	const onLinkClick = (e) => {
-		if(e.button != 0 || e.defaultPrevented){
-			// Browser default action for right/ middle clicks
-			return;
-		}
-		var cur = e.target;
-		while(cur && cur != document){
-			if(cur.nodeName == 'A'){
-				var href = cur.getAttribute('href'); // cur.href is absolute
-				if(cur.getAttribute('target') || cur.getAttribute('download')){
-					return;
-				}
-				
-				if(href && href.length){
-					var pn = hash ? '' : document.location.pathname;
-					if(useDefaultNav(pn, href)){
-						return;
-					}
-					e.preventDefault();
-					go(hash ? href : cur.pathname + cur.search);
-					return;
-				}
-			}
-			cur = cur.parentNode;
+    const onLinkClick = (e) => {
+        if (e.button != 0 || e.defaultPrevented) {
+            // Browser default action for right/ middle clicks
+            return;
+        }
+        var cur = e.target;
+        while (cur && cur !== document) {
+            if (cur.nodeName === 'A') {
+                var href = cur.getAttribute('href'); // cur.href is absolute
+                if (cur.getAttribute('target') || cur.getAttribute('download')) {
+                    return;
+                }
+
+                if (href && href.length) {
+                    if (href.includes('#')) {
+                        const [pathname, hash] = href.split('#');
+                        if (pathname === '' || pathname === window.location.pathname) {
+                            e.preventDefault();
+                            const targetElement = document.getElementById(hash);
+                            if (targetElement) {
+                                targetElement.scrollIntoView({ behavior: 'smooth' });
+                                history.pushState(null, '', `${window.location.pathname}#${hash}`);
+                            }
+                            return;
+                        }
+                    } else {
+                        if (useDefaultNav(document.location.pathname, href)) {
+                            return;
+                        }
+                        e.preventDefault();
+                        go(href);
+                        return;
+                    }
+                }
+            }
+            cur = cur.parentNode;
+        }
+    };
+
+	const scroll = () => {
+		if (scrollTarget) {
+			document.body.parentNode.scrollTo({top: scrollTarget.y, left: scrollTarget.x, behavior: 'instant'});
 		}
 	}
+
+	React.useEffect(() => {
+		if (scrollTimer.current) {
+			clearInterval(scrollTimer.current);
+			scrollTimer.current = null;
+		}
+
+		if(scrollTarget){
+			scrollTimer.current = setTimeout(scroll, 100);
+		}
+	}, [scrollTarget]);
 	
 	React.useEffect(() => {
 		
@@ -218,6 +250,10 @@ export default (props) => {
 		document.addEventListener("websocketmessage", onWsMessage);
 		
 		return () => {
+			if (scrollTimer.current) {
+				clearInterval(scrollTimer.current);
+			}
+
 			window.removeEventListener("popstate", onPopState);
 			document.removeEventListener("click", onLinkClick);
 			document.removeEventListener("contentchange", onContentChange);
