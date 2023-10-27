@@ -1941,6 +1941,22 @@ namespace Api.SocketServerLibrary
 		}
 
 		/// <summary>
+		/// Copies this writer result to another writer.
+		/// </summary>
+		/// <param name="w"></param>
+		public void CopyTo(Writer w)
+		{
+			var currentBuffer = FirstBuffer;
+
+			while (currentBuffer != null)
+			{
+				var blockSize = (currentBuffer == LastBuffer) ? Fill : currentBuffer.Length;
+				w.Write(currentBuffer.Bytes, 0, blockSize);
+				currentBuffer = currentBuffer.After;
+			}
+		}
+
+		/// <summary>
 		/// Copies this writer result to the given stream.
 		/// </summary>
 		/// <param name="s"></param>

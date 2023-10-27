@@ -63,6 +63,56 @@ namespace Api.SocketServerLibrary
 		}
 
 		/// <summary>
+		/// Clears the writer pool.
+		/// </summary>
+		public void Clear()
+		{
+			lock (WriterPoolLock)
+			{
+				FirstCached = null;
+			}
+
+			lock (PoolLock)
+			{
+				First = null;
+			}
+		}
+
+		/// <summary>
+		/// Counts the current size of buffers in the pool.
+		/// </summary>
+		/// <returns></returns>
+		public int WriterPoolSize()
+		{
+			int c = 0;
+			var fc = FirstCached;
+			while (fc != null)
+			{
+				c++;
+				fc = fc.NextInLine;
+			}
+
+			return c;
+		}
+
+		/// <summary>
+		/// Counts the current size of buffers in the pool.
+		/// </summary>
+		/// <returns></returns>
+		public int BufferPoolSize()
+		{
+			int c = 0;
+			var fc = First;
+			while (fc != null)
+			{
+				c++;
+				fc = fc.After;
+			}
+
+			return c;
+		}
+
+		/// <summary>
 		/// Gets a writer which builds a series of the buffers from this pool.
 		/// </summary>
 		/// <returns></returns>
