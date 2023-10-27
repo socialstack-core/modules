@@ -488,16 +488,27 @@ namespace Api.Permissions{
 			else
 			{
 				// Regular field.
-				writer.Write((byte)'`');
-				writer.WriteS(Field.FieldInfo.Name);
-
+				
 				if (Field.Localised && localeCode != null)
 				{
+					writer.WriteASCII("if(`");
+					writer.WriteS(Field.FieldInfo.Name);
 					writer.Write((byte)'_');
 					writer.WriteS(localeCode);
+					writer.WriteASCII("` is null,`");
+					writer.WriteS(Field.FieldInfo.Name);
+					writer.WriteASCII("`,`");
+					writer.WriteS(Field.FieldInfo.Name);
+					writer.Write((byte)'_');
+					writer.WriteS(localeCode);
+					writer.WriteASCII("`)");
 				}
-
-				writer.Write((byte)'`');
+				else
+				{
+					writer.Write((byte)'`');
+					writer.WriteS(Field.FieldInfo.Name);
+					writer.Write((byte)'`');
+				}
 			}
 		}
 	}
