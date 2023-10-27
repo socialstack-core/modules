@@ -1,48 +1,48 @@
 import webRequest from 'UI/Functions/WebRequest';
 import Input from 'UI/Input';
 import omit from 'UI/Functions/Omit';
+import { useSession } from 'UI/Session';
 
-export default class CustomFieldSelect extends React.Component {
+export default function(props) {
 	
-	constructor(props) {
-		super(props);
-	}
+	const { defaultValue, optionsArePrices, placeHolder } = props;
+	const [options, setOptions] = React.useState();
 
-	componentDidMount() {
-		webRequest("customContentTypeSelectOption/list", {
-			where: {
-				customContentTypeFieldId: this.props.field
-			}
-		}).then(response => {
-			if (response && response.json && response.json.results) {
-				var results = response.json.results;
+	var { session } = useSession();
+    var currencyLocale = session && session.currencylocale ? session.currencylocale : null;
 
-				// sort results
-				results = results.sort((a, b) => {
+	React.useEffect(() => {
+		var locale = (optionsArePrices && currencyLocale) ? currencyLocale.id : null;
 
-					if (a && b) {
-						return a.value.trim().localeCompare(b.value.trim());
-					}
+		webRequest(
+			"customContentTypeSelectOption/list", 
+			{
+				where: {
+					customContentTypeFieldId: this.props.field
+				},
+				sort: { field: 'order' }
+			},
+			locale ? {
+				locale: locale
+			}: null
+		)
+			.then(response => {
+				if (response && response.json && response.json.results) {
+					var results = response.json.results;
 
-					return -1;
-				});
+					results.unshift({ value: null });
+					setOptions(results);
+				}
+			}).catch(e => {
+				console.error(e);
+			});
+	}, []);
 
-				results.unshift({ value: null });
-				this.setState({ options: results });
-			}
-		}).catch(e => {
-			console.error(e);
-		});
-	}
-
-	render(){
-		var defaultValue = this.props.defaultValue;
-
-		return <div className="custom-field-select">
-			<Input {...omit(this.props, ['contentType'])} type="select">{
-				this.state.options ? this.state.options.map(option => {
+	return <div className="custom-field-select">
+			<Input {...omit(props, ['contentType'])} type="select">{
+				options ? options.map(option => {
 					if(!option || !option.value){
-						return <option value={null}>{this.props.placeHolder ? this.props.placeHolder : "None"}</option>;
+						return <option value={null}>{placeHolder ? placeHolder : "None"}</option>;
 					}
 					
 					return <option value={option.value}>{
@@ -55,7 +55,5 @@ export default class CustomFieldSelect extends React.Component {
 				: []
 			}</Input>
 		</div>;
-		
-	}
 	
 }
