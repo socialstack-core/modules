@@ -714,6 +714,22 @@ namespace Api.SocketServerLibrary
 			_LastBufferBytes[Fill++]=(byte)(value>>24);
 		}
 
+		/// <summary>Write a float value.</summary>
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public void WriteBE(float val)
+		{
+			if (Fill > (Pool.BufferSize - 4))
+			{
+				NextBuffer();
+			}
+
+			uint value = new FloatBits(val).Int;
+			_LastBufferBytes[Fill++] = (byte)(value >> 24);
+			_LastBufferBytes[Fill++] = (byte)(value >> 16);
+			_LastBufferBytes[Fill++] = (byte)(value >> 8);
+			_LastBufferBytes[Fill++] = (byte)value;
+		}
+
 		/// <summary>Write a double value.</summary>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public void Write(double val)
@@ -732,6 +748,26 @@ namespace Api.SocketServerLibrary
 			_LastBufferBytes[Fill++] = (byte)(value >> 40);
 			_LastBufferBytes[Fill++] = (byte)(value >> 48);
 			_LastBufferBytes[Fill++] = (byte)(value >> 56);
+		}
+
+		/// <summary>Write a double value.</summary>
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public void WriteBE(double val)
+		{
+			if (Fill > (Pool.BufferSize - 8))
+			{
+				NextBuffer();
+			}
+
+			ulong value = new DoubleBits(val).Int;
+			_LastBufferBytes[Fill++] = (byte)(value >> 56);
+			_LastBufferBytes[Fill++] = (byte)(value >> 48);
+			_LastBufferBytes[Fill++] = (byte)(value >> 40);
+			_LastBufferBytes[Fill++] = (byte)(value >> 32);
+			_LastBufferBytes[Fill++] = (byte)(value >> 24);
+			_LastBufferBytes[Fill++] = (byte)(value >> 16);
+			_LastBufferBytes[Fill++] = (byte)(value >> 8);
+			_LastBufferBytes[Fill++] = (byte)value;
 		}
 
 		/// <summary>Write a date value.</summary>
