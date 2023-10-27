@@ -742,6 +742,7 @@ namespace Api.Permissions
 		/// <returns></returns>
 		public async ValueTask<T> First(Context context)
 		{
+			PageSize = 1;
 			var results = await ListAll(context);
 			return results.Count > 0 ? results[0] : null;
 		}
