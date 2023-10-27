@@ -1,6 +1,7 @@
 .admin-multiselect {
 	max-width: $admin-field-maxwidth;
 	min-width: $admin-field-minwidth;
+	position: relative;
 
 	&__entries {
 		list-style: none;
