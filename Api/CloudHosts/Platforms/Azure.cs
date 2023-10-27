@@ -83,20 +83,27 @@ namespace Api.CloudHosts
         /// <summary>
         /// Reads a files bytes from the remote host.
         /// </summary>
-        /// <param name="relativeUrl">e.g. 123-original.png</param>
-        /// <param name="isPrivate">True if /content-private/, false for regular /content/.</param>
+        /// <param name="locator">e.g. 123-original.png</param>
         /// <returns></returns>
         /// <exception cref="NotImplementedException"></exception>
-        public override async Task<System.IO.Stream> ReadFile(string relativeUrl, bool isPrivate)
+        public override async Task<System.IO.Stream> ReadFile(FilePartLocator locator)
         {
             if (_publicContainer == null)
             {
                 await SetupContainers();
             }
 
-            var blobClient = (isPrivate ? _privateContainer : _publicContainer).GetBlobClient(relativeUrl);
+            var blobClient = (locator.IsPrivate ? _privateContainer : _publicContainer).GetBlobClient(locator.Path);
 
-            var strResult = await blobClient.DownloadStreamingAsync();
+            BlobDownloadOptions opts = null;
+
+            if (locator.Size != 0)
+            {
+                opts = new BlobDownloadOptions();
+                opts.Range = new Azure.HttpRange(locator.Offset, locator.Size);
+            }
+
+            var strResult = await blobClient.DownloadStreamingAsync(opts);
 
             return strResult.Value.Content;
         }

@@ -78,7 +78,7 @@ namespace Api.CloudHosts
                 return upload;
             }, 10);
 
-            Events.Upload.ReadFile.AddEventListener(async (Context context, byte[] result, string relativePath, bool isPrivate) => {
+            Events.Upload.ReadFile.AddEventListener(async (Context context, byte[] result, FilePartLocator locator) => {
 
                 if (result != null)
                 {
@@ -90,9 +90,9 @@ namespace Api.CloudHosts
                 if (_uploadHost != null)
                 {
 
-                    if (isPrivate)
+                    if (locator.IsPrivate)
                     {
-                        var stream = await _uploadHost.ReadFile(relativePath, isPrivate);
+                        var stream = await _uploadHost.ReadFile(locator);
                         var ms = new MemoryStream();
                         await stream.CopyToAsync(ms);
                         return ms.ToArray();
@@ -100,10 +100,15 @@ namespace Api.CloudHosts
                     else
                     {
                         // Public URL:
-                        var url = _uploadHost.GetContentUrl() + "/content/" + relativePath;
+                        var url = _uploadHost.GetContentUrl() + "/content/" + locator.Path;
 
                         // Request the file:
                         var client = new HttpClient();
+
+                        if (locator.Size != 0)
+                        {
+                            client.DefaultRequestHeaders.Add("Range", "bytes=" + locator.Offset + "-" + locator.Size);
+                        }
 
                         try
                         {
@@ -114,7 +119,7 @@ namespace Api.CloudHosts
                         {
                             try
                             {
-                                var stream = await _uploadHost.ReadFile(relativePath, isPrivate);
+                                var stream = await _uploadHost.ReadFile(locator);
                                 var ms = new MemoryStream();
                                 await stream.CopyToAsync(ms);
                                 return ms.ToArray();
@@ -146,7 +151,7 @@ namespace Api.CloudHosts
 
 					if (isPrivate)
 					{
-						var stream = await _uploadHost.ReadFile(relativePath, isPrivate);
+						var stream = await _uploadHost.ReadFile(new FilePartLocator() { Path = relativePath, IsPrivate = isPrivate });
                         return stream;
 					}
 					else
@@ -166,7 +171,7 @@ namespace Api.CloudHosts
 						{
 							try
 							{
-								var stream = await _uploadHost.ReadFile(relativePath, isPrivate);
+								var stream = await _uploadHost.ReadFile(new FilePartLocator() { Path = relativePath, IsPrivate = isPrivate });
                                 return stream;
 							}
 							catch

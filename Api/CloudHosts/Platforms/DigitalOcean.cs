@@ -5,6 +5,8 @@ using Amazon.Runtime;
 using Api.Uploader;
 using Api.Contexts;
 using System;
+using System.Collections.Generic;
+using Amazon.S3.Model;
 
 namespace Api.CloudHosts
 {
@@ -116,22 +118,36 @@ namespace Api.CloudHosts
 
         private IAmazonS3 _uploadClient;
 
-        /// <summary>
-        /// Reads a files bytes from the remote host.
-        /// </summary>
-        /// <param name="relativeUrl">e.g. 123-original.png</param>
-        /// <param name="isPrivate">True if /content-private/, false for regular /content/.</param>
-        /// <returns></returns>
-        /// <exception cref="NotImplementedException"></exception>
-        public override async Task<System.IO.Stream> ReadFile(string relativeUrl, bool isPrivate)
+		/// <summary>
+		/// Reads a files bytes from the remote host.
+		/// </summary>
+		/// <param name="locator">e.g. 123-original.png</param>
+		/// <returns></returns>
+		/// <exception cref="NotImplementedException"></exception>
+		public override async Task<System.IO.Stream> ReadFile(FilePartLocator locator)
         {
             if (_uploadClient == null)
             {
                 SetupClient();
             }
             
-            var key = (isPrivate ? "content-private/" : "content/") + relativeUrl;
-            var str = await _uploadClient.GetObjectStreamAsync(_spaceName, key, null);
+            var key = (locator.IsPrivate ? "content-private/" : "content/") + locator.Path;
+
+			if (locator.Size != 0)
+			{
+				var gor = new GetObjectRequest
+				{
+					BucketName = _spaceName,
+					Key = key
+				};
+
+				gor.ByteRange = new ByteRange(locator.Offset, locator.Offset + locator.Size - 1);
+
+				var resp = await _uploadClient.GetObjectAsync(gor);
+				return resp.ResponseStream;
+			}
+
+			var str = await _uploadClient.GetObjectStreamAsync(_spaceName, key, null);
             return str;
         }
 
