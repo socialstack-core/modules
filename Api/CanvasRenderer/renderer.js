@@ -39,8 +39,9 @@ const siteOrigin = location.origin;
 
 /*
 * Originates from preact-render-to-string.
-* Custom source version is to make it async friendly such that it can wait on fetch 
-* requests without wasting large amounts of effort building strings to just throw them away.
+ * Was modified to make it async friendly, however, it caused massive bottlenecks 
+ * between C# and JS due to the way how the link is implemented by MS. So instead, 
+ * requires all data to be passed in. It knows what data is required via the graphs in the canvas.
 */
 
 function reactPreRender() {
@@ -150,11 +151,11 @@ function reactPreRender() {
 	renderToString.render = renderToString;
 	
 	const EMPTY_ARR = [];
-	async function renderToString(vnode, context, opts) {
+	function renderToString(vnode, context, opts) {
 		opts = opts || {};
-		var res = { body: '', text: '', data: opts.trackContextualData ? '[' : '' };
+		var res = { body: '', text: '' };
 		opts.result = res;
-		await _renderToString(vnode, context, opts);
+		_renderToString(vnode, context, opts);
 		// options._commit, we don't schedule any effects in this library right now,
 		// so we can pass an empty queue to this hook.
 		if (options.__c) options.__c(vnode, EMPTY_ARR);
@@ -162,7 +163,7 @@ function reactPreRender() {
 	}
 
 	/** The default export is an alias of `render()`. */
-	async function _renderToString(vnode, context, opts, inner, isSvgMode, selectValue, output) {
+	function _renderToString(vnode, context, opts, inner, isSvgMode, selectValue) {
 		if (vnode == null || typeof vnode === 'boolean') {
 			return;
 		}
@@ -200,7 +201,7 @@ function reactPreRender() {
 				getChildren(children, vnode.props.children);
 
 				for (let i = 0; i < children.length; i++) {
-					await _renderToString(
+					_renderToString(
 						children[i],
 						context,
 						opts,
@@ -246,9 +247,7 @@ function reactPreRender() {
 							: context;
 
 					// stateless functional components
-					_currentContext = opts;
 					rendered = nodeName.call(vnode.__c, props, cctx);
-					_currentContext = null;
 				} else {
 					// class-based components
 					let cxType = nodeName.contextType;
@@ -261,36 +260,13 @@ function reactPreRender() {
 							: context;
 
 					// c = new nodeName(props, context);
-					_currentContext = opts;
 					c = vnode.__c = new nodeName(props, cctx);
-					_currentContext = null;
 					c.__v = vnode;
 					// turn off stateful re-rendering:
 					c._dirty = c.__d = true;
 					c.props = props;
 					if (c.state == null) {
 						c.state = {};
-					} else {
-						// ------- Socialstack extension -----
-						// Does the state contain any thennable objects (promises)?
-						// If so, we'll await them before proceeding.
-						var promisesToWaitFor = null;
-
-						for (var field in c.state) {
-							var fieldValue = c.state[field];
-							if (fieldValue && fieldValue.then) {
-								// Thennable. Wait for it.
-								if (!promisesToWaitFor) {
-									promisesToWaitFor = [];
-								}
-
-								promisesToWaitFor.push(fieldValue.then(result => c.state[field] = result));
-							}
-						}
-
-						if (promisesToWaitFor) {
-							await Promise.all(promisesToWaitFor);
-						}
 					}
 
 					if (c._nextState == null && c.__s == null) {
@@ -325,7 +301,7 @@ function reactPreRender() {
 
 				if (options.diffed) options.diffed(vnode);
 
-				await _renderToString(
+				_renderToString(
 					rendered,
 					context,
 					opts,
@@ -469,8 +445,6 @@ function reactPreRender() {
 			propChildren != null &&
 			getChildren((children = []), propChildren).length
 		) {
-			let lastWasText = false;
-
 			if (opts.mode & 1) {
 				opts.result.body += '>';
 			}
@@ -486,7 +460,7 @@ function reactPreRender() {
 								? false
 								: isSvgMode;
 
-					await _renderToString(
+					_renderToString(
 						child,
 						context,
 						opts,
@@ -548,9 +522,7 @@ exports = undefined;
 var _Canvas = require('UI/Canvas').default;
 var _Session = require("UI/Session");
 var _Graph = require("UI/Functions/GraphRuntime/Graph");
-var _contentModule = require("UI/Content").default;
 var _webRequestModule = require("UI/Functions/WebRequest");
-var _currentContext = null;
 
 // Stub:
 pageRouter = {
@@ -559,132 +531,25 @@ pageRouter = {
 
 function fetch(url, opts) {
 	// Reject all fetch requests.
-	return Promise.reject({ error: 'This request is unsupported serverside.', serverside: true, url });
+	return Promise.reject({ error: 'This request is not supported server side.', serverside: true, url });
 }
-
-// Overwrite content.get, content.getCache etc:
-_contentModule.get = (type, id) => {
-	return Promise.reject({
-		error: 'This request is unsupported serverside. Use getCached in your constructor, and Content.get from componentDidMount/ componentDidUpdate/ useEffect.',
-		serverside: true,
-		type,
-		id
-	});
-};
-
-_contentModule.list = (type, filter) => {
-	return Promise.reject({
-		error: 'This request is unsupported serverside. Use listCached in your constructor, and Content.list from componentDidMount/ componentDidUpdate/ useEffect.',
-		serverside: true,
-		type,
-		filter
-	});
-};
-
-_contentModule.getCached = (type, id, includes, ctx) => {
-	var opts = ctx || _currentContext;
-	if (!opts) {
-		// Invalid call site - constructors only.
-		return null;
-	}
-
-	return new Promise(s => {
-		// Get the underlying service:
-		var svc = document.getService(type);
-
-		//console.log('get cached', opts, id);
-
-		svc.GetForSSR(opts.ctx.apiContext, parseInt(id), includes == null ? '' : includes.join(','), jsonResponse => {
-			// Expand includes:
-			jsonResponse = _webRequestModule.expandIncludes(JSON.parse(jsonResponse));
-
-			if (opts.trackContextualData) {
-				// We're tracking contextual data
-				if (opts.result.data.length != 1) {
-					opts.result.data += ",";
-				}
-				opts.result.data += JSON.stringify(jsonResponse);
-			}
-
-			s(jsonResponse);
-		});
-	});
-};
-
-_contentModule.listCached = (type, filter, includes, ctx) => {
-	var opts = ctx || _currentContext;
-	
-	if (!opts) {
-		// Invalid call site - constructors only.
-		return null;
-	}
-
-	var filterJson = "";
-	var includesText = "";
-
-	if (filter) {
-		// Remap it:
-		filterJson = JSON.stringify(_webRequestModule.remapData(filter, "/list"));
-	}
-
-	if (includes && includes.length > 0) {
-		includesText = includes.join(',');
-	}
-
-	return new Promise(s => {
-		// Get the underlying service:
-		var svc = document.getService(type);
-
-		svc.ListForSSR(opts.ctx.apiContext, filterJson, includesText, jsonResponse => {
-
-			// Expand includes:
-			jsonResponse = _webRequestModule.expandIncludes(JSON.parse(jsonResponse));
-
-			if (opts.trackContextualData) {
-				// We're tracking contextual data
-				if (opts.result.data.length != 1) {
-					opts.result.data += ",";
-				}
-				opts.result.data += JSON.stringify(jsonResponse);
-			}
-			s(jsonResponse);
-		});
-	});
-};
 
 function _noOp() { }
 
-function renderCanvas(bodyJson, apiContext, publicApiContextJson, url, pageState, trackContextualData, mode, absoluteUrls) {
+function renderCanvas(bodyJson, publicApiContextJson, pageState, mode, absoluteUrls) {
 
 	// Session state:
 	var session = {
 		...JSON.parse(publicApiContextJson)
 	};
 
+	// Page state:
+	pageState = JSON.parse(pageState);
+
 	// Expand includes on the session.
 	for (var k in session) {
 		session[k] = _webRequestModule.expandIncludes(session[k]);
 	}
-
-	// Page state with tokens etc:
-
-	var tokenNames = pageState.TokenNames;
-
-	if (tokenNames && tokenNames.IndexOf) {
-		// Fast convert to js array from the list that it is such that the frontend js (running here, on the server) can continue to use .indexOf:
-		var tn = [];
-		for (var i = 0; i < tokenNames.Count; i++) {
-			tn[i] = tokenNames[i];
-		}
-		tokenNames = tn;
-	}
-
-	var pageState = {
-		url,
-		tokens: pageState.Tokens,
-		tokenNames,
-		po: pageState.PrimaryObject ? (typeof pageState.PrimaryObject == 'string' ? JSON.parse(pageState.PrimaryObject) : { type: pageState.PrimaryObject.Type, id: pageState.PrimaryObject.Id }) : null
-	};
 
 	var canvas = preact.createElement(_Canvas, { children: bodyJson });
 
@@ -703,22 +568,27 @@ function renderCanvas(bodyJson, apiContext, publicApiContextJson, url, pageState
 		}, children: pageProvider
 	});
 
-	// Internal serverside only context:
 	var ctx = {
-		apiContext
 	};
 	
-	var opts = { mode, absoluteUrls, trackContextualData, ctx, result: null };
-	
+	var opts = { mode, absoluteUrls, ctx, result: null };
+
 	var graphCacheProvider = preact.createElement(_Graph.Provider, { ctx: opts, children: sessionProvider });
 
-	// Returns a promise.
-	return renderToString(graphCacheProvider, {}, opts).then(result => {
-		if(trackContextualData){
-			result.data += ']';
-		}
+	// Returns the string.
+	var result = renderToString(graphCacheProvider, {}, opts);
+
+	if (mode == 3) {
+		// Both
 		return result;
-	});
+	}
+	else if (mode == 2) {
+		// Text only
+		return result.text;
+	}
+
+	// html only
+	return result.body;
 }
 
 var htmlToText = (function () {

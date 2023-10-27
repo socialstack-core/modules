@@ -53,6 +53,61 @@ public partial class AutoService<T, ID> : AutoService
 	}
 
 	/// <summary>
+	/// Gets objects from this service using a generic serialized filter. Use List instead whenever possible.
+	/// </summary>
+	/// <param name="context"></param>
+	/// <param name="filterJson"></param>
+	/// <param name="includes"></param>
+	/// <returns></returns>
+	public async Task<string> ListForSSR(Context context, string filterJson, string includes)
+	{
+		var filterNs = Newtonsoft.Json.JsonConvert.DeserializeObject(filterJson) as JObject;
+
+		var filter = LoadFilter(filterNs) as Filter<T, ID>;
+
+		// Write:
+		var writer = Writer.GetPooled();
+		writer.Start(null);
+
+		await ToJson(context, filter, async (Context ctx, Filter<T, ID> filt, Func<T, int, ValueTask> onResult) => {
+
+			return await GetResults(ctx, filt, async (Context ctx2, T result, int index, object src, object src2) => {
+
+				var _onResult = src as Func<T, int, ValueTask>;
+				await _onResult(result, index);
+
+			}, onResult, null);
+
+		}, writer, null, includes, filter.IncludeTotal);
+
+		filter.Release();
+		var jsonResult = writer.ToUTF8String();
+		writer.Release();
+		
+		return jsonResult;
+	}
+
+	/// <summary>
+	/// Gets an object from this service for use by the serverside renderer. Returns it by executing the given callback.
+	/// </summary>
+	/// <param name="context"></param>
+	/// <param name="id"></param>
+	/// <param name="includes"></param>
+	public override async Task<string> GetForSSR(Context context, ulong id, string includes)
+	{
+		// Get the object (includes the perm checks):
+		var content = await Get(context, _idConverter.Convert(id));
+
+		// Write:
+		var writer = Writer.GetPooled();
+		writer.Start(null);
+		await ToJson(context, content, writer, null, includes);
+		var jsonResult = writer.ToUTF8String();
+		writer.Release();
+		return jsonResult;
+	}
+
+	/// <summary>
 	/// Gets an object from this service for use by the serverside renderer. Returns it by executing the given callback.
 	/// </summary>
 	/// <param name="context"></param>
@@ -105,7 +160,19 @@ public partial class AutoService
 	{
 		return null;
 	}
-	
+
+	/// <summary>
+	/// Gets objects from this service using a generic serialized filter. Use List instead whenever possible.
+	/// </summary>
+	/// <param name="context"></param>
+	/// <param name="filterJson"></param>
+	/// <param name="includes"></param>
+	/// <returns></returns>
+	public virtual Task<string> ListForSSR(Context context, string filterJson, string includes)
+	{
+		return null;
+	}
+
 	/// <summary>
 	/// Gets an object from this service for use by the serverside renderer. Returns it by executing the given callback.
 	/// </summary>
@@ -116,5 +183,16 @@ public partial class AutoService
 	public virtual ValueTask GetForSSR(Context context, ulong id, string includes, Microsoft.ClearScript.ScriptObject so)
 	{
 		return new ValueTask();
+	}
+
+	/// <summary>
+	/// Gets an object from this service for use by the serverside renderer. Returns it by executing the given callback.
+	/// </summary>
+	/// <param name="context"></param>
+	/// <param name="id"></param>
+	/// <param name="includes"></param>
+	public virtual Task<string> GetForSSR(Context context, ulong id, string includes)
+	{
+		return null;
 	}
 }

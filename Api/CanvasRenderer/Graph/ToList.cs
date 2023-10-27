@@ -1,0 +1,46 @@
+﻿using Api.Contexts;
+using Newtonsoft.Json.Linq;
+using System.Threading.Tasks;
+
+namespace Api.CanvasRenderer
+{
+    public class ToList : Executor
+    {
+        public ToList(JToken d) : base(d)
+        {
+        }
+
+		/// <summary>
+		/// 
+		/// </summary>
+		/// <param name="compileEngine"></param>
+		public override ValueTask Compile(NodeLoader compileEngine)
+		{
+			throw new System.NotImplementedException();
+		}
+        
+        /*
+		public override async Task<dynamic> Go(Context context, PageState pageState)
+        {
+            dynamic[] output = new dynamic[Links.Count];
+            int i=0;
+
+            foreach (var key in Links.Keys)
+            {
+                var node = Links[key];
+                dynamic nodeResult = null;
+
+                if (node != null)
+                {
+                    nodeResult = await Links[key].SourceNode.Run(context, pageState);
+                }
+
+                output[i] = nodeResult;
+                i++;
+            }
+
+            return output;
+        }
+        */
+    }
+}

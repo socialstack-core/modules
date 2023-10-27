@@ -220,8 +220,8 @@ namespace Api.CanvasRenderer
 				// A theme was reconfigured (this also includes when the message came via contentsync as well).
 				// Reconstruct the CSS now.
 				cssVariables = themeService.OutputCss(themeConfig);
-
-    				if(UIBuilder != null)
+				
+				if(UIBuilder != null)
 				{
 					await UIBuilder.SetCssPrepend(cssVariables);
 				}
@@ -742,6 +742,16 @@ namespace Api.CanvasRenderer
 		/// The file content, gzipped.
 		/// </summary>
 		public byte[] Precompressed;
+
+		/// <summary>
+		/// The file's E-Tag.
+		/// </summary>
+		public Microsoft.Net.Http.Headers.EntityTagHeaderValue Etag;
+
+		/// <summary>
+		/// The last modified date.
+		/// </summary>
+		public DateTime LastModifiedUtc;
 
 		/// <summary>
 		/// The hash of the file.

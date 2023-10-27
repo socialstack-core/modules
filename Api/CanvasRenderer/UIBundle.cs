@@ -315,7 +315,10 @@ namespace Api.CanvasRenderer
                 CssFile.Precompressed = Compress(bytes);
                 var hash = GetHash(CssFile.FileContent);
                 CssFile.Hash = hash;
-                SetCssPath(localeId);
+                CssFile.LastModifiedUtc = new DateTime(1970, 1, 1, 0, 0, 0, DateTimeKind.Utc).AddMilliseconds(BuildTimestampMs);
+                CssFile.Etag = new Microsoft.Net.Http.Headers.EntityTagHeaderValue("\"" + hash + "\"");
+
+				SetCssPath(localeId);
             }
 
             return new ValueTask<FrontendFile>(CssFile);
@@ -472,7 +475,9 @@ namespace Api.CanvasRenderer
                 FileContent = bytes,
                 Precompressed = Compress(bytes),
                 Hash = hash,
-                PublicUrl = pubUrl,
+                Etag = new Microsoft.Net.Http.Headers.EntityTagHeaderValue("\"" + hash + "\""),
+                LastModifiedUtc = new DateTime(1970, 1, 1, 0, 0,0,DateTimeKind.Utc).AddMilliseconds(BuildTimestampMs),
+				PublicUrl = pubUrl,
                 FqPublicUrl = FullyQualify(pubUrl, localeId)
             };
 

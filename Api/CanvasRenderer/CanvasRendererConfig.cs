@@ -20,6 +20,11 @@ namespace Api.CanvasRenderer
 		/// Debug render info to console?
 		/// </summary>
 		public bool DebugToConsole { get; set; } = true;
+
+		/// <summary>
+		/// Turns on the JS debugger. Connect to it with Chrome devtools on port 8118. Enabled remotely too, i.e. you can debug a remote server as well.
+		/// </summary>
+		public bool EnableJsDebugger { get; set; } = false;
 		
 	}
 	
