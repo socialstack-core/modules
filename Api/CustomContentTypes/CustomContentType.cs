@@ -41,6 +41,12 @@ namespace Api.CustomContentTypes
 		public List<CustomContentTypeField> Fields {get; set; }
 
 		/// <summary>
+		/// Is this data type for a page? 
+		/// Todo: would be ideal to keep this up to date whenever a page is created that references this data type in its url, rarther than manually ticking the checkbox
+		/// </summary>
+		public bool IsPage;
+
+		/// <summary>
 		/// Is this type used for capturing data from the user via a form?
 		/// </summary>
 		[Module(Hide = true)]

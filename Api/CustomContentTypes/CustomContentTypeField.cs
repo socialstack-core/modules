@@ -54,6 +54,16 @@ namespace Api.CustomContentTypes
 		public bool Localised;
 
 		/// <summary>
+		/// True if this field should be url encoded
+		/// </summary>
+		public bool UrlEncoded;		
+		
+		/// <summary>
+		/// True if this field should be hidden
+		/// </summary>
+		public bool IsHidden;
+
+		/// <summary>
 		/// The validation to be applied to this field
 		/// </summary>
 		public string Validation;
@@ -64,10 +74,35 @@ namespace Api.CustomContentTypes
 		public uint Order;
 
 		/// <summary>
+		/// Should the dropdown options follow currency locale?
+		/// </summary>
+		public bool OptionsArePrices;
+
+		/// <summary>
 		/// Has this field been deleted?
 		/// </summary>
 		[Module(Hide = true)]
 		public bool Deleted;
+
+		private string _metaType;
+
+		/// <summary>
+		/// Set the meta type of the field. This is used to determine how to render the field on the form.
+		/// </summary>
+		/// <param name="metaType"></param>
+		public void SetMetaType(string metaType)
+        {
+			_metaType = metaType;
+		}
+
+		/// <summary>
+		/// Get the meta type of the field. This is used to determine how to render the field on the form.
+		/// </summary>
+		/// <returns></returns>
+		public String GetMetaType()
+        {
+			return _metaType;
+        }
 	}
 
 }

@@ -25,6 +25,11 @@ namespace Api.CustomContentTypes
 		/// </summary>
 		[Localized]
 		public string Value;
+
+		/// <summary>
+		/// The order the field should display
+		/// </summary>
+		public uint Order;
 	}
 
 }

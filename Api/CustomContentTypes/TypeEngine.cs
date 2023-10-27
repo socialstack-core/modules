@@ -73,7 +73,7 @@ namespace Api.CustomContentTypes
 				code.Emit(OpCodes.Ldc_I8, value);
 			});
 
-			AddTo(map, "ulong", typeof(ulong?), (ILGenerator code, string val) => {
+			AddTo(map, "ulong", typeof(ulong), (ILGenerator code, string val) => {
 				var value = ulong.TryParse(val, out ulong result) ? result : 0;
 				code.Emit(OpCodes.Ldc_I8, value);
 			});
@@ -123,14 +123,19 @@ namespace Api.CustomContentTypes
 					code.Emit(OpCodes.Ldstr, val);
 			});
 
-			/*
+            AddTo(
+				map, "csv", typeof(List<string>), (ILGenerator code, string val) => {
+					code.Emit(OpCodes.Ldstr, val);
+				});
+
+            /*
 			AddTo(map, "short", typeof(short), OpCodes.Ldc_I4, (string val) => short.TryParse(val, out short result) ? result : (short)0);
 			AddTo(map, "ushort", typeof(ushort), OpCodes.Ldc_I4, (string val) => ushort.TryParse(val, out ushort result) ? result : (ushort)0);
 			AddTo(map, "decimal", typeof(decimal), OpCodes.Ldc_I4, (string val) => int.TryParse(val, out int result) ? result : 0);
 			AddTo(map, "byte", typeof(byte), OpCodes.Ldc_I4, (string val) => int.TryParse(val, out int result) ? result : 0);
 			*/
 
-			return map;
+            return map;
 		}
 		
 		private static FieldType AddTo(Dictionary<string, FieldType> map, string lowercaseName, Type type, Action<ILGenerator, string> onDefault)
@@ -174,7 +179,7 @@ namespace Api.CustomContentTypes
 			var builders = new List<UnconstructedCustomContentType>();
 			var result = new List<ConstructedCustomContentType>();
 			
-			AssemblyName assemblyName = new AssemblyName("GeneratedTypes_" + counter);
+			AssemblyName assemblyName = new AssemblyName("GeneratedTypesTE_" + counter);
 			counter++;
 			AssemblyBuilder assemblyBuilder = AssemblyBuilder.DefineDynamicAssembly(assemblyName, AssemblyBuilderAccess.RunAndCollect);
 			ModuleBuilder moduleBuilder = assemblyBuilder.DefineDynamicModule(assemblyName.Name);
@@ -190,7 +195,7 @@ namespace Api.CustomContentTypes
 
 				if (string.IsNullOrWhiteSpace(customType.Name))
 				{
-					Console.WriteLine("[WARN] Ignored custom content type #" + customType.Id + " because it has a blank name.");
+                    Log.Warn("customcontenttype", "[WARN] Ignored custom content type #" + customType.Id + " because it has a blank name.");
 					continue;
 				}
 
@@ -241,11 +246,57 @@ namespace Api.CustomContentTypes
 						}
 					);
 				}
-				
-				if(customType.Fields != null){
-					
+
+				var virtualFieldBuilders = new List<CustomAttributeBuilder>();
+
+				if (customType.Fields != null){
+					List<CustomContentTypeField> newFields = new List<CustomContentTypeField>();
+
+					// Generate the 2 required fields for each 'entitylink'
+					foreach (var field in customType.Fields.Where(field => field.DataType == "entitylink"))
+					{
+						var typeFieldName = field.Name + "_Type";
+						var idFieldName = field.Name + "_Id";
+						var virtualFieldName = field.Name + "_Entity";
+
+						var typeField = new CustomContentTypeField()
+                        {
+							NickName = field.NickName + " - Type",
+							Name = typeFieldName,
+							DataType = "string",
+							Order = field.Order
+						};
+
+						typeField.SetMetaType("entitylinktype");
+						newFields.Add(typeField);
+
+						var idField = new CustomContentTypeField()
+						{
+							NickName = field.NickName + " - Id",
+							Name = idFieldName,
+							DataType = "ulong",
+							Order = field.Order
+						};
+
+						idField.SetMetaType("entitylinkid");
+						newFields.Add(idField);
+
+						Type[] hvfAttrParams = new Type[3] { typeof(String), typeof(String), typeof(String) };
+
+						ConstructorInfo hvfAttrClassCtorInfo = typeof(HasVirtualFieldAttribute).GetConstructor(hvfAttrParams);
+
+						CustomAttributeBuilder myHVFAttributeBuilder = new CustomAttributeBuilder(
+							hvfAttrClassCtorInfo,
+							new object[3] { virtualFieldName, typeFieldName, idFieldName }
+						);
+
+						virtualFieldBuilders.Add(myHVFAttributeBuilder);
+					}
+
+					customType.Fields.AddRange(newFields);
+
 					// Add each field
-					foreach(var field in customType.Fields)
+					foreach (var field in customType.Fields)
 					{
 						if(field == null || string.IsNullOrWhiteSpace(field.DataType) || field.Deleted)
 						{
@@ -266,6 +317,11 @@ namespace Api.CustomContentTypes
 						if (!string.IsNullOrWhiteSpace(field.NickName))
                         {
 							AddDataAttribute(fieldBuilder, "label", field.NickName);
+						}
+
+						if (field.IsHidden)
+						{
+							AddDataAttribute(fieldBuilder, "type", "hidden");
 						}
 
 						if (field.Localised)
@@ -302,7 +358,24 @@ namespace Api.CustomContentTypes
 						}
 
 						// Add other attributes if needed
-						if (field.DataType == "jsonstring" || field.DataType.ToLower() == "jsonstring")
+						if (field.GetMetaType() == "entitylinktype")
+                        {
+							AddAttribute(fieldBuilder,
+								typeof(ModuleAttribute),
+								new Type[1] { typeof(String) },
+								new object[1] { "Admin/EntityLinkInputs/EntityLinkTypeInput" }
+							);
+						}
+						else if (field.GetMetaType() == "entitylinkid")
+                        {
+							AddAttribute(fieldBuilder,
+								typeof(ModuleAttribute),
+								new Type[1] { typeof(String) },
+								new object[1] { "Admin/EntityLinkInputs/EntityLinkIdInput" }
+							);
+
+						}
+						else if (field.DataType == "jsonstring" || field.DataType.ToLower() == "jsonstring")
                         {
 							AddDataAttribute(fieldBuilder, "type", "canvas");
 							AddDataAttribute(fieldBuilder, "textonly", true);
@@ -310,6 +383,18 @@ namespace Api.CustomContentTypes
 						else if (field.DataType == "textarea")
                         {
 							AddDataAttribute(fieldBuilder, "type", "textarea");
+						}
+						else if (field.DataType == "string")
+						{
+							if (field.UrlEncoded)
+                            {
+								AddAttribute(fieldBuilder,
+									typeof(ModuleAttribute),
+									new Type[1] { typeof(String) },
+									new object[1] { "Admin/UrlEncodedText" }
+								);
+								AddDataAttribute(fieldBuilder, "toLowerCase", true);
+							}
 						}
 						else if (field.DataType == "file")
                         {
@@ -332,6 +417,11 @@ namespace Api.CustomContentTypes
 							);
 
 							AddDataAttribute(fieldBuilder, "field", field.Id.ToString());
+
+							if (field.OptionsArePrices)
+                            {
+								AddDataAttribute(fieldBuilder, "optionsArePrices", true);
+							}
 						}
 						else if (field.DataType == "entity" && !string.IsNullOrEmpty(field.LinkedEntity))
                         {
@@ -342,6 +432,9 @@ namespace Api.CustomContentTypes
 								new Type[1] { typeof(String) },
 								new object[1] { "Admin/ContentSelect" }
 							);
+
+							AddDataAttribute(fieldBuilder, "titleField", "name");
+							AddDataAttribute(fieldBuilder, "search", "name");
 						}
 
 						if (!string.IsNullOrEmpty(field.DefaultValue))
@@ -374,7 +467,8 @@ namespace Api.CustomContentTypes
 					Name = typeName,
 					TypeBuilder = typeBuilder,
 					ControllerTypeBuilder = controllerTypeBuilder,
-					Fields = customType.Fields
+					Fields = customType.Fields,
+					VirtualFieldBuilders = virtualFieldBuilders
 				});
 			}
 
@@ -392,7 +486,7 @@ namespace Api.CustomContentTypes
 
 						CustomAttributeBuilder myHVFAttributeBuilder = new CustomAttributeBuilder(
 							hvfAttrClassCtorInfo,
-							new object[3] { linkedField.LinkedEntity, linkedField.LinkedEntity, linkedField.Name }
+							new object[3] { linkedField.Name + "Virtual", linkedField.LinkedEntity, linkedField.Name }
 						);
 
 						builder.TypeBuilder.SetCustomAttribute(myHVFAttributeBuilder);
@@ -409,6 +503,14 @@ namespace Api.CustomContentTypes
 						);
 
 						builder.TypeBuilder.SetCustomAttribute(myHVFAttributeBuilder);
+					}
+				}
+
+				if (builder.VirtualFieldBuilders != null)
+                {
+					foreach (var virtualFieldBuilder in builder.VirtualFieldBuilders)
+					{
+						builder.TypeBuilder.SetCustomAttribute(virtualFieldBuilder);
 					}
 				}
 
@@ -482,6 +584,8 @@ namespace Api.CustomContentTypes
 		public TypeBuilder ControllerTypeBuilder;
 
 		public List<CustomContentTypeField> Fields;
+
+		public List<CustomAttributeBuilder> VirtualFieldBuilders;
     }
 
 }
