@@ -18,6 +18,11 @@ namespace Api.Pages
 		public uint LocaleId { get; set; } = 0;
 
 		/// <summary>
+		/// Turn on caching of pages. This also implies PreRender of true for requests where the contextual role is public and the user is 0.
+		/// </summary>
+		public bool CacheAnonymousPages { get; set; } = false;
+
+		/// <summary>
 		/// True if core URLs should be fully qualified with your site's PublicUrl.
 		/// </summary>
 		public bool FullyQualifyUrls { get; set; } = false;
@@ -36,7 +41,17 @@ namespace Api.Pages
 		/// True if React should be pre-rendered on pages.
 		/// </summary>
 		public bool PreRender {get; set; } = false;
+
+		/// <summary>
+		/// True if the page graphs should be executed server side
+		/// </summary>
+		public bool PreExecuteGraphs {get; set;} = false;
 		
+		/// <summary>
+		/// Defer the main js file.
+		/// </summary>
+		public bool DeferMainJs { get; set;} = false;
+
 		/// <summary>
 		/// Tags added to the beginning of the head.
 		/// </summary>
@@ -76,6 +91,16 @@ namespace Api.Pages
 		/// Scripts added to the config that will be added at the end of the body.
 		/// </summary>
 		public List<BodyScript> EndBodyJs { get; set; }
+
+		/// <summary>
+		/// Lines to be added to the robots.txt file
+		/// </summary>
+		public List<string> RobotsTxt { get; set; }
+
+		/// <summary>
+		/// The maximum time in seconds cacheable page should be stored in an external cache
+		/// </summary>
+		public ulong CacheMaxAge = 86400;
 	}
 
 	/// <summary>

@@ -1,7 +1,10 @@
+using Api.CanvasRenderer;
 using Api.Contexts;
 using Api.Eventing;
 using Api.Permissions;
+using Api.SocketServerLibrary;
 using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
 using Newtonsoft.Json.Serialization;
 using System;
 using System.Collections.Generic;
@@ -34,8 +37,13 @@ namespace Api.Pages
 		/// <summary>
 		/// The 404 page. Its url is always /404
 		/// </summary>
-		public Page NotFoundPage;
+		public Page NotFoundPage => NotFoundTerminal == null ? null : NotFoundTerminal.Page;
 
+		/// <summary>
+		/// The 404 terminal in the URL tree. Its url is always /404.
+		/// </summary>
+		public UrlLookupTerminal NotFoundTerminal;
+		
 		/// <summary>
 		/// List of page URLs and their associated page ID.
 		/// </summary>
@@ -83,6 +91,8 @@ namespace Api.Pages
 			}
 
 			var tokenSet = new List<PageUrlToken>();
+			Type primaryContentType = null;
+			AutoService primaryContentService = null;
 
 			if (url.Length != 0 && url[0] == '/')
 			{
@@ -150,6 +160,10 @@ namespace Api.Pages
 									IsId = fieldName.ToLower() == "id",
 									ContentTypeId = Api.Database.ContentTypes.GetId(type)
 								});
+
+								// Assuming 1 content type per page
+								primaryContentService = service;
+								primaryContentType = type;
 							}
 							else
 							{
@@ -232,9 +246,13 @@ namespace Api.Pages
 				tokenNamesJson = Newtonsoft.Json.JsonConvert.SerializeObject(tokenNames, jsonSettings);
 			}
 
+			CanvasGenerator generator = new CanvasGenerator(page.BodyJson, primaryContentType);
+
 			var terminal = new UrlLookupTerminal()
 			{
 				Page = page,
+				IsAdmin = pg.IsAdmin,
+				Generator = generator,
 				UrlTokens = tokenSet,
 				UrlTokenNames = tokenNames,
 				UrlTokenNamesJson = tokenNamesJson
@@ -261,18 +279,17 @@ namespace Api.Pages
 		/// <param name="page"></param>
 		public UrlLookupNode Add(Page page)
 		{
-
 			if (page == null)
 			{
 				return null;
 			}
 
+			var pg = AddInternal(page.Url, page, out int _);
+
 			if (page.Url == "/404")
 			{
-				NotFoundPage = page;
+				NotFoundTerminal = pg.Terminals[0];
 			}
-
-			var pg = AddInternal(page.Url, page, out int index);
 
 			if (pg == null)
 			{
@@ -304,6 +321,74 @@ namespace Api.Pages
 
 		}
 
+		/*
+		private async Task<JToken> ReplaceGraphsInCanvasNode(Context context, PageState pageState, JToken node, Dictionary<int, Graph> graphs)
+		{
+			if (node == null)
+			{
+				return null;
+			}
+
+			if (node is JArray)
+			{
+				var children = node as JArray;
+				var childrenCount = node.Count();
+				var newChildren = new JToken[childrenCount];
+
+				for(var i=0;i<childrenCount;i++)
+				{
+					var child = children[i];
+					var newNode = await ReplaceGraphsInCanvasNode(context, pageState, child as JObject, graphs);
+					newChildren[i] = newNode;
+				}
+
+				for(var j=0;j<childrenCount;j++)
+                {
+					if (newChildren[j] != null)
+                    {
+						children[j].Replace(newChildren[j]);
+					}
+                }
+
+				return node;
+			}
+
+			var childrenNode = node["c"];
+
+			if (childrenNode != null)
+			{
+				var newNode = await ReplaceGraphsInCanvasNode(context, pageState, childrenNode, graphs);
+				node["c"].Replace(newNode);
+			}
+
+			var graphNode = node["g"];
+
+			if (graphNode != null && graphs != null)
+			{
+				var gIndex = node["i"].ToObject<int>();
+
+				if (graphs.ContainsKey(gIndex) && graphs[gIndex] != null)
+                {
+					var graphResult = await graphs[gIndex].Root.Run(context, pageState);
+
+					JToken resultJson = JToken.FromObject(graphResult);
+					if (node["c"] != null)
+                    {
+						resultJson["c"] = node["c"];
+					}
+					if (node["i"] != null)
+                    {
+						resultJson["i"] = node["i"];
+					}
+
+					return resultJson;
+				}
+			}
+
+			return node;
+		}
+		*/
+
 		/// <summary>
 		/// Gets the page to use for the given URL.
 		/// </summary>
@@ -319,10 +404,7 @@ namespace Api.Pages
 			{
 				return new PageWithTokens()
 				{
-					StatusCode = 404,
-					Page = null,
-					TokenValues = null,
-					TokenNamesJson = "null"
+					StatusCode = 404
 				};
 			}
 
@@ -355,10 +437,7 @@ namespace Api.Pages
 						// 404
 						return new PageWithTokens()
 						{
-							StatusCode = 404,
-							Page = null,
-							TokenValues = null,
-							TokenNamesJson = "null"
+							StatusCode = 404
 						};
 					}
 
@@ -366,7 +445,6 @@ namespace Api.Pages
 				}
 			}
 
-			var index = -1;
 			var terminals = curNode.Terminals;
 
 			if (terminals == null)
@@ -374,27 +452,28 @@ namespace Api.Pages
 				// 404
 				return new PageWithTokens()
 				{
-					StatusCode = 404,
-					Page = null,
-					TokenValues = null,
-					TokenNamesJson = "null"
+					StatusCode = 404
 				};
 			}
 
 			// There will always be at least one terminal if the array is not null.
 			object primaryObject = null;
+			AutoService primaryService = null;
+			Type primaryContentType = null;
 			var notFoundCount = 0;
 			var termCount = terminals.Length;
 
 			// Next, we'll perform permission testing.
 			// The login URL is always permitted no matter what.
+			UrlLookupTerminal terminal = null;
+
 			if (urlInfo.Matches("login"))
 			{
 				// Always permitted (assuming it exists!)
 				// This helps avoid any redirect cycles in the event the user is unable to see either the login or homepage.
 
 				// Use terminal 0 in this situ - the login page can't vary.
-				index = 0;
+				terminal = termCount > 0 ? terminals[0] : null;
 			}
 			else
 			{
@@ -409,8 +488,8 @@ namespace Api.Pages
 
 				for (var i = 0; i < termCount; i++)
 				{
-					var terminal = curNode.Terminals[i];
-					var pageToTest = terminal.Page;
+					var curTerminal = curNode.Terminals[i];
+					var pageToTest = curTerminal.Page;
 
 					// terminals with no page (usually a redirect node)
 					// are always granted.
@@ -419,17 +498,20 @@ namespace Api.Pages
 						// If there is a primary object, ensure it exists.
 						// If not, it's like this page doesn't exist at all.
 
-						if (terminal.UrlTokens != null && wildcardTokens != null && wildcardTokens.Count > 0)
+						if (curTerminal.UrlTokens != null && wildcardTokens != null && wildcardTokens.Count > 0)
 						{
-							var countA = terminal.UrlTokens.Count;
+							var countA = curTerminal.UrlTokens.Count;
 
-							var primaryToken = terminal.UrlTokens[countA - 1];
+							var primaryToken = curTerminal.UrlTokens[countA - 1];
 
 							// The actual value from the URL:
 							var primaryTokenValue = wildcardTokens[wildcardTokens.Count - 1];
 
 							if (primaryToken.ContentType != null)
 							{
+								primaryContentType = primaryToken.ContentType;
+								primaryService = primaryToken.Service;
+
 								if (primaryToken.IsId)
 								{
 									if (ulong.TryParse(primaryTokenValue, out ulong primaryObjectId))
@@ -439,17 +521,23 @@ namespace Api.Pages
 								}
 								else
 								{
-									var filterString = "";
+									var filterString = curTerminal.FilterString;
 
-									for (var j = 0; j < countA; j++)
-									{
-										if (j != 0)
+									if (filterString == null) {
+										filterString = "";
+
+										for (var j = 0; j < countA; j++)
 										{
-											filterString += " and ";
+											if (j != 0)
+											{
+												filterString += " and ";
+											}
+
+											var fieldName = curTerminal.UrlTokens[j].FieldName;
+											filterString += fieldName + "=?";
 										}
 
-										var fieldName = terminal.UrlTokens[j].FieldName;
-										filterString += fieldName + "=?";
+										curTerminal.FilterString = filterString;
 									}
 
 									primaryObject = await primaryToken.Service.GetObjectByFilter(context, filterString, wildcardTokens);
@@ -466,23 +554,20 @@ namespace Api.Pages
 							}
 						}
 
-						index = i;
+						terminal = curTerminal;
 						break;
 					}
 				}
 			}
 
-			if (index == -1)
+			if (terminal == null)
 			{
 				if (notFoundCount == termCount)
 				{
 					// All pages rejected it as a 404.
 					return new PageWithTokens()
 					{
-						StatusCode = 404,
-						Page = null,
-						TokenValues = null,
-						TokenNamesJson = "null"
+						StatusCode = 404
 					};
 				}
 
@@ -492,16 +577,13 @@ namespace Api.Pages
 				return new PageWithTokens()
 				{
 					StatusCode = 302,
-					Page = null,
-					TokenValues = null,
-					TokenNamesJson = "null",
 					RedirectTo = "/login?then=" +
 						System.Web.HttpUtility.UrlEncode(searchQuery.HasValue ? urlInfo.Url + searchQuery.Value : urlInfo.Url)
 				};
 			}
 
 			// A node and index has been selected.
-			var redir = terminals[index].Redirection;
+			var redir = terminal.Redirection;
 			if (redir != null)
 			{
 				var targetUrl = await redir(urlInfo, curNode, wildcardTokens);
@@ -511,43 +593,34 @@ namespace Api.Pages
 					// 404
 					return new PageWithTokens()
 					{
-						StatusCode = 404,
-						Page = null,
-						TokenValues = null,
-						TokenNamesJson = "null"
+						StatusCode = 404
 					};
 				}
 
 				return new PageWithTokens()
 				{
 					StatusCode = 302,
-					RedirectTo = targetUrl,
-					TokenNamesJson = "null"
+					RedirectTo = targetUrl
 				};
 			}
 
-			var page = terminals[index].Page;
+			var page = terminal.Page;
 
 			if (page == null)
 			{
 				// Seemingly empty terminal - 404
 				return new PageWithTokens()
 				{
-					StatusCode = 404,
-					Page = null,
-					TokenValues = null,
-					TokenNamesJson = "null"
+					StatusCode = 404
 				};
 			}
 
 			return new PageWithTokens()
 			{
 				StatusCode = 200,
-				Page = page,
+				PageTerminal = terminal,
 				PrimaryObject = primaryObject,
-				Tokens = terminals[index].UrlTokens,
-				TokenNames = terminals[index].UrlTokenNames,
-				TokenNamesJson = terminals[index].UrlTokenNamesJson,
+				PrimaryService = primaryService,
 				TokenValues = wildcardTokens,
 				Multiple = terminals.Length > 1
 			};
@@ -692,25 +765,17 @@ namespace Api.Pages
 		/// </summary>
 		public object PrimaryObject;
 		/// <summary>
+		/// The service for the primary object for this page.
+		/// </summary>
+		public AutoService PrimaryService;
+		/// <summary>
 		/// Custom set the http status code.
 		/// </summary>
 		public int StatusCode;
 		/// <summary>
-		/// The tokens associated with the page itself.
+		/// The full info about the URL for this page.
 		/// </summary>
-		public List<PageUrlToken> Tokens;
-		/// <summary>
-		/// The tokens associated with the page itself (just their names).
-		/// </summary>
-		public List<string> TokenNames;
-		/// <summary>
-		/// The token names as preformatted JSON. Can be the string "null".
-		/// </summary>
-		public string TokenNamesJson;
-		/// <summary>
-		/// The page.
-		/// </summary>
-		public Page Page;
+		public UrlInfo UrlInfo;
 		/// <summary>
 		/// Any token values in the URL.
 		/// </summary>
@@ -723,12 +788,21 @@ namespace Api.Pages
 		/// True if there are multiple variants of a page and it shouldn't get cached
 		/// </summary>
 		public bool Multiple;
+		/// <summary>
+		/// The page terminal in the lookup tree.
+		/// </summary>
+		public UrlLookupTerminal PageTerminal;
+
+		/// <summary>
+		/// The page.
+		/// </summary>
+		public Page Page => PageTerminal.Page;
 	}
 
 	/// <summary>
 	/// A leaf node in the URL lookup tree.
 	/// </summary>
-	public partial struct UrlLookupTerminal
+	public partial class UrlLookupTerminal
 	{
 		/// <summary>
 		/// Set if this node performs a redirect.
@@ -739,6 +813,10 @@ namespace Api.Pages
 		/// </summary>
 		public Page Page;
 		/// <summary>
+		/// The canvas generator for the associated page.
+		/// </summary>
+		public CanvasGenerator Generator;
+		/// <summary>
 		/// If this node has a page associated with it, this is the set of url tokens. The primary object is always derived from the last one.
 		/// </summary>
 		public List<PageUrlToken> UrlTokens;
@@ -747,9 +825,17 @@ namespace Api.Pages
 		/// </summary>
 		public List<string> UrlTokenNames;
 		/// <summary>
+		/// True if this is an admin page terminal.
+		/// </summary>
+		public bool IsAdmin;
+		/// <summary>
 		/// Preformatted JSON array of the url token names. ["A", "B", ..]. will be the string "null" if it is null.
 		/// </summary>
 		public string UrlTokenNamesJson;
+		/// <summary>
+		/// The filter string if it does not contain an ID based token.
+		/// </summary>
+		public string FilterString;
 	}
 
 	/// <summary>

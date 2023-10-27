@@ -130,7 +130,7 @@ namespace Api.Pages
 
 						if (!lookup.TryGetValue(contentType, out UrlGenerationMeta meta))
 						{
-							meta = new UrlGenerationMeta(contentType);
+							meta = new UrlGenerationMeta(contentType, this);
 							lookup[contentType] = meta;
 						}
 

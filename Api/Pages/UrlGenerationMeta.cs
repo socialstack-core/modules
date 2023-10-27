@@ -1,4 +1,5 @@
 using Api.Database;
+using Api.SocketServerLibrary;
 using System;
 using System.Collections.Generic;
 using System.Reflection;
@@ -13,6 +14,11 @@ namespace Api.Pages
 	public partial class UrlGenerationMeta
 	{
 		/// <summary>
+		/// The cache that this meta is a part of. Used to identify when generation meta is stale and needs to be re-obtained.
+		/// </summary>
+		public UrlGenerationCache Cache;
+
+		/// <summary>
 		/// The primary type for this meta. This is just the key in the dictionary of the cache.
 		/// </summary>
 		public Type PrimaryType;
@@ -26,9 +32,11 @@ namespace Api.Pages
 		/// Creates a new meta object for the given primary type.
 		/// </summary>
 		/// <param name="primaryType"></param>
-		public UrlGenerationMeta(Type primaryType)
+		/// <param name="cache"></param>
+		public UrlGenerationMeta(Type primaryType, UrlGenerationCache cache)
 		{
 			PrimaryType = primaryType;
+			Cache = cache;
 		}
 
 		/// <summary>
@@ -125,14 +133,21 @@ namespace Api.Pages
 		/// <param name="url"></param>
 		public UrlGenerator(string url)
 		{
-			if (url == null)
+			if (url != null)
 			{
-				UrlPieces = Array.Empty<string>();
+				url = url.Trim();
 			}
-			else
+
+			if (string.IsNullOrEmpty(url))
 			{
-				UrlPieces = url.Split('/');
+				url = "/";
 			}
+			else if(!url.StartsWith('/'))
+			{
+				url = "/" + url;
+			}
+
+			UrlPieces = url.Split('/');
 		}
 
 		/// <summary>
@@ -161,6 +176,7 @@ namespace Api.Pages
 
 				if (piece.LiteralText != null)
 				{
+					// Also includes any necessary slashes.
 					sb.Append(piece.LiteralText);
 				}
 				else
@@ -168,11 +184,47 @@ namespace Api.Pages
 					// It's not literal - it's a field spec. Resolve its value from the object:
 					sb.Append(piece.Resolve(content));
 				}
-
-				sb.Append('/');
 			}
 
 			return sb.ToString();
+		}
+
+		/// <summary>
+		/// Generates a URL for the given piece of content which MUST be of the primary type.
+		/// Puts the output in to the given writer.
+		/// </summary>
+		/// <param name="content"></param>
+		/// <param name="writer"></param>
+		/// <returns></returns>
+		public void Generate(object content, Writer writer)
+		{
+			if (LoadedUrlPieces == null)
+			{
+				// Load the url pieces:
+				LoadPieces();
+			}
+
+			for (var i = 0; i < LoadedUrlPieces.Length; i++)
+			{
+				var piece = LoadedUrlPieces[i];
+
+				if (piece == null)
+				{
+					continue;
+				}
+
+				if (piece.LiteralBytes != null)
+				{
+					// Also includes any necessary slashes.
+					writer.Write(piece.LiteralBytes, 0, piece.LiteralBytes.Length);
+				}
+				else
+				{
+					// It's not literal - it's a field spec. Resolve its value from the object:
+					writer.WriteUTF8(piece.Resolve(content));
+				}
+			}
+
 		}
 
 		/// <summary>
@@ -180,16 +232,22 @@ namespace Api.Pages
 		/// </summary>
 		private void LoadPieces()
 		{
-			var loadingUrlPieces = new UrlGenerationUrlFragment[UrlPieces.Length];
+			var loadingUrlPieces = new List<UrlGenerationUrlFragment>();
 
-			Type currentType = null;
+			// Current literal fragment. This gets /PIECE appended to it,
+			// unless PIECE is dynamic in which case the current literal is added as a fragment.
+			var currentLiteralText = "";
 
-			for (var i = UrlPieces.Length -1; i >= 0; i--)
+			for (var i = 0; i < UrlPieces.Length; i++)
 			{
 				var piece = UrlPieces[i].Trim();
-				var fragment = new UrlGenerationUrlFragment();
 
-				if (piece.Length > 0 && piece[0] == '{')
+				if (piece.Length == 0)
+				{
+					continue;
+				}
+
+				if (piece[0] == '{')
 				{
 					// It's a field ref of the form {contentType.field}
 					string typeAndField;
@@ -221,7 +279,7 @@ namespace Api.Pages
 					if (contentType == null)
 					{
 						// Unrecognised content type - treat piece literally:
-						fragment.LiteralText = piece;
+						currentLiteralText += "/" + piece;
 					}
 					else
 					{
@@ -235,28 +293,33 @@ namespace Api.Pages
 
 							if (property != null)
 							{
+								currentLiteralText += "/";
+								loadingUrlPieces.Add(new UrlGenerationUrlFragment(currentLiteralText));
+								currentLiteralText = "";
+								
+								var fragment = new UrlGenerationUrlFragment(null);
+								loadingUrlPieces.Add(fragment);
 								fragment.FieldReaders = new List<MemberInfo>();
 
-								// Todo: Add any readers needed to turn currentType into contentType.
-
 								fragment.FieldReaders.Add(property.GetGetMethod());
-								currentType = contentType;
 							}
 							else
 							{
 								// Treat it literally:
-								fragment.LiteralText = piece;
+								currentLiteralText += "/" + piece;
 							}
 						}
 						else
 						{
+							currentLiteralText += "/";
+							loadingUrlPieces.Add(new UrlGenerationUrlFragment(currentLiteralText));
+							currentLiteralText = "";
+							
+							var fragment = new UrlGenerationUrlFragment(null);
+							loadingUrlPieces.Add(fragment);
+
 							fragment.FieldReaders = new List<MemberInfo>();
-
-							// Todo: Add any readers needed to turn currentType into contentType.
-
 							fragment.FieldReaders.Add(field);
-
-							currentType = contentType;
 						}
 
 					}
@@ -264,13 +327,16 @@ namespace Api.Pages
 				else
 				{
 					// Treat it literally:
-					fragment.LiteralText = piece;
+					currentLiteralText += "/" + piece;
 				}
-
-				loadingUrlPieces[i] = fragment;
 			}
 
-			LoadedUrlPieces = loadingUrlPieces;
+			if (currentLiteralText.Length > 0)
+			{
+				loadingUrlPieces.Add(new UrlGenerationUrlFragment(currentLiteralText));
+			}
+
+			LoadedUrlPieces = loadingUrlPieces.ToArray();
 		}
 	}
 
@@ -285,9 +351,24 @@ namespace Api.Pages
 		public string LiteralText;
 
 		/// <summary>
+		/// The literal text but as UTF8 bytes.
+		/// </summary>
+		public byte[] LiteralBytes;
+
+		/// <summary>
 		/// Consecutive field reads required to resolve to the final value. Either FieldInfo or Property get methods.
 		/// </summary>
 		public List<MemberInfo> FieldReaders;
+
+		/// <summary>
+		/// Creates a literal text URL fragment.
+		/// </summary>
+		/// <param name="literalText"></param>
+		public UrlGenerationUrlFragment(string literalText)
+		{
+			LiteralText = literalText;
+			LiteralBytes = literalText == null ? null : Encoding.UTF8.GetBytes(literalText);
+		}
 
 		/// <summary>
 		/// Resolves this field reference fragment - e.g. {contentType.field} - to an actual textual value.

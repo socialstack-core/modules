@@ -60,7 +60,7 @@ namespace Api.Pages
 			}
 
 			// we first need to get the pageAndTokens
-			var pageAndTokens = await _pageService.GetPage(context, Request.Host.Value, pageDetails.Url, Microsoft.AspNetCore.Http.QueryString.Empty);
+			var pageAndTokens = await _pageService.GetPage(context, Request.Host.Value, pageDetails.Url, Microsoft.AspNetCore.Http.QueryString.Empty, true);
 
             if (pageAndTokens.RedirectTo != null)
             {
@@ -79,7 +79,7 @@ namespace Api.Pages
             await Events.Page.BeforeNavigate.Dispatch(context, pageAndTokens.Page, pageDetails.Url);
 
             Response.ContentType = "application/json";
-			await _htmlService.RenderState(context, pageAndTokens, pageDetails.Url, Response.Body);
+			await _htmlService.RenderState(context, pageAndTokens, Response, pageDetails.Url);
 		}
 
         /// <summary>

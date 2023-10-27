@@ -4,7 +4,6 @@ using System.Threading.Tasks;
 using System;
 using Api.SocketServerLibrary;
 using Api.Contexts;
-
 namespace Api.Pages;
 
 
@@ -20,8 +19,9 @@ public partial class PrimaryUrlValueGenerator<T, ID> : VirtualFieldValueGenerato
 	where ID : struct, IConvertible, IEquatable<ID>, IComparable<ID>
 {
 
+	private PageService _pageService;
 	private UrlGenerationMeta _genMeta;
-	private bool _hadNoPrimaryPage;
+	private UrlGenerationCache _cache;
 
 	/// <summary>
 	/// Generate the value.
@@ -32,23 +32,25 @@ public partial class PrimaryUrlValueGenerator<T, ID> : VirtualFieldValueGenerato
 	/// <returns></returns>
 	public override async ValueTask GetValue(Context context, T forObject, Writer writer)
 	{
+		if (_pageService == null)
+		{
+			_pageService = Services.Get<PageService>();
+		}
+
+		if (_cache == null || _pageService.IsUrlCacheStale(_cache))
+		{
+			// Get the current URL generation cache:
+			_cache = await _pageService.GetUrlGenerationCache();
+			var lookup = _cache.GetLookup(UrlGenerationScope.UI);
+
+			// Obtain URL generation metadata for the current type:
+			lookup.TryGetValue(typeof(T), out _genMeta);
+		}
+
 		if (_genMeta == null)
 		{
-			if (_hadNoPrimaryPage)
-			{
-				writer.WriteASCII("null");
-				return;
-			}
-
-			_genMeta = await Services.Get<PageService>()
-				.GetUrlGenerationMeta(typeof(T), UrlGenerationScope.UI);
-
-			if (_genMeta == null)
-			{
-				_hadNoPrimaryPage = true;
-				writer.WriteASCII("null");
-				return;
-			}
+			writer.WriteASCII("null");
+			return;
 		}
 
 		// Generate the URL:

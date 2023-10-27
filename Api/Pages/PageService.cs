@@ -212,36 +212,23 @@ namespace Api.Pages
 
 			Events.Page.AfterUpdate.AddEventListener((Context context, Page page) =>
 			{
-				if (_urlGenerationCache != null)
-				{
-					// Need to update the two caches. We'll just wipe them for now:
-					_urlGenerationCache = null;
-					_urlLookupCache = null;
-				}
+				// Need to update the two caches. We'll just wipe them for now:
+				ClearCaches();
 
 				return new ValueTask<Page>(page);
 			});
 
 			Events.Page.AfterDelete.AddEventListener((Context context, Page page) =>
 			{
-				if (_urlGenerationCache != null)
-				{
-					// Need to update the two caches. We'll just wipe them for now:
-					_urlGenerationCache = null;
-					_urlLookupCache = null;
-				}
+				// Need to update the two caches. We'll just wipe them for now:
+				ClearCaches();
 
 				return new ValueTask<Page>(page);
 			});
 
 			Events.Page.AfterCreate.AddEventListener((Context context, Page page) =>
 			{
-				if (_urlGenerationCache != null)
-				{
-					// Need to update the two caches. We'll just completely wipe them for now:
-					_urlGenerationCache = null;
-					_urlLookupCache = null;
-				}
+				ClearCaches();
 
 				return new ValueTask<Page>(page);
 			});
@@ -249,11 +236,7 @@ namespace Api.Pages
 			Events.Page.Received.AddEventListener((Context context, Page page, int mode) => {
 
 				// Doesn't matter what the change was - we'll wipe the caches.
-				if (_urlGenerationCache != null)
-				{
-					_urlGenerationCache = null;
-					_urlLookupCache = null;
-				}
+				ClearCaches();
 
 				return new ValueTask<Page>(page);
 			});
@@ -262,11 +245,7 @@ namespace Api.Pages
 
 				// Just in case anything during startup loaded the
 				// page tree before all services were ready.
-				if (_urlGenerationCache != null)
-				{
-					_urlGenerationCache = null;
-					_urlLookupCache = null;
-				}
+				ClearCaches();
 
 				return new ValueTask<object>(svc);
 			});
@@ -275,11 +254,9 @@ namespace Api.Pages
 
 				// A service has started up. This can mean we now have a new data type
 				// replacing one which was previously used and cached by the URL tree.
-
-				if (_urlGenerationCache != null)
+				if (!svc.IsMapping)
 				{
-					_urlGenerationCache = null;
-					_urlLookupCache = null;
+					ClearCaches();
 				}
 
 				return new ValueTask<AutoService>(svc);
@@ -291,6 +268,16 @@ namespace Api.Pages
 			Cache();
 #endif
 
+		}
+
+		/// <summary>
+		/// Clears the page lookup tree and URL generation caches.
+		/// They will be regenerated when next requested.
+		/// </summary>
+		public void ClearCaches()
+		{
+			_urlGenerationCache = null;
+			_urlLookupCache = null;
 		}
 
 		/// <summary>
@@ -379,20 +366,24 @@ namespace Api.Pages
 				};
 			}
 
-			if (_urlLookupCache == null || _urlLookupCache.Length < context.LocaleId || _urlLookupCache[context.LocaleId - 1] == null)
+			var ulc = _urlLookupCache;
+
+			if (ulc == null || ulc.Length < context.LocaleId || ulc[context.LocaleId - 1] == null)
 			{
-				await LoadCaches(context);
+				var cacheSet = await LoadCaches(context);
+				ulc = cacheSet.LookupCache;
 			}
 
-			var cache = _urlLookupCache[context.LocaleId - 1];
+			var cache = ulc[context.LocaleId - 1];
 
 			var pageInfo = await cache.GetPage(context, urlInfo, searchQuery);
 
 			pageInfo = await Events.Page.BeforeResolveUrl.Dispatch(context, pageInfo, url, searchQuery);
+			pageInfo.UrlInfo = urlInfo;
 
-			if (pageInfo.Page == null && return404IfNotFound)
+			if (pageInfo.PageTerminal == null && return404IfNotFound)
 			{
-				pageInfo.Page = cache.NotFoundPage;
+				pageInfo.PageTerminal = cache.NotFoundTerminal;
 			}
 
 			return pageInfo;
@@ -409,43 +400,55 @@ namespace Api.Pages
 			return cache.NotFoundPage;
 		}
 
-		private async Task LoadCaches(Context context)
+		private async Task<PageCacheSet> LoadCaches(Context context)
 		{
 			// Get all pages for this locale:
 			var allPages = await Where(DataOptions.IgnorePermissions).ListAll(context);
 
-			if (_urlGenerationCache == null)
+			var ugc = _urlGenerationCache;
+			var ulc = _urlLookupCache;
+
+			if (ugc == null)
 			{
 				// This cache is not locale sensitive as it exclusively uses the Url field which is not localised.
 
 				// Instance and wait for it to be created:
-				_urlGenerationCache = new UrlGenerationCache();
+				ugc = new UrlGenerationCache();
 
 				// Load now:
-				_urlGenerationCache.Load(allPages);
+				ugc.Load(allPages);
+
+				_urlGenerationCache = ugc;
 			}
 
 			// Setup url lookup cache as well:
 			var cache = new UrlLookupCache();
 
-			if (_urlLookupCache == null)
+			if (ulc == null)
 			{
 				// Create the cache:
-				_urlLookupCache = new UrlLookupCache[context.LocaleId];
+				ulc = new UrlLookupCache[context.LocaleId];
 			}
-			else if (_urlLookupCache.Length < context.LocaleId)
+			else if (ulc.Length < context.LocaleId)
 			{
 				// Resize the cache:
-				Array.Resize(ref _urlLookupCache, (int)context.LocaleId);
+				Array.Resize(ref ulc, (int)context.LocaleId);
 			}
 
 			// Add cache to lookup:
-			_urlLookupCache[context.LocaleId - 1] = cache;
-
+			ulc[context.LocaleId - 1] = cache;
 			cache.Load(allPages);
+			_urlLookupCache = ulc;
 
 			// Next, indicate that the cache has loaded. This is the event you'd use to add in things like custom redirect functions.
 			await Events.Page.AfterLookupReady.Dispatch(context, cache);
+
+
+			return new PageCacheSet()
+			{
+				LookupCache = ulc,
+				GenerationCache = ugc
+			};
 		}
 
 		/// <summary>
@@ -456,12 +459,15 @@ namespace Api.Pages
 		public async ValueTask<UrlLookupCache> GetPageTree(Context context){
 
 			// Load the tree:
-			if (_urlLookupCache == null || _urlLookupCache.Length < context.LocaleId || _urlLookupCache[context.LocaleId - 1] == null)
+			var ulc = _urlLookupCache;
+
+			if (ulc == null || ulc.Length < context.LocaleId || ulc[context.LocaleId - 1] == null)
 			{
-				await LoadCaches(context);
+				var cacheSet = await LoadCaches(context);
+				ulc = cacheSet.LookupCache;
 			}
 
-			return _urlLookupCache[context.LocaleId - 1];
+			return ulc[context.LocaleId - 1];
 		}
 
 		/// <summary>
@@ -472,14 +478,36 @@ namespace Api.Pages
 		/// <returns>A url which is relative to the site root.</returns>
 		public async ValueTask<UrlGenerationMeta> GetUrlGenerationMeta(Type contentType, UrlGenerationScope scope = null)
 		{
-			if (_urlGenerationCache == null)
-			{
-				await LoadCaches(new Context());
-			}
-
-			var lookup = _urlGenerationCache.GetLookup(scope);
+			var ugc = await GetUrlGenerationCache();
+			var lookup = ugc.GetLookup(scope);
 			lookup.TryGetValue(contentType, out UrlGenerationMeta meta);
 			return meta;
+		}
+
+		/// <summary>
+		/// True if the given cache is stale.
+		/// </summary>
+		/// <param name="cache"></param>
+		/// <returns></returns>
+		public bool IsUrlCacheStale(UrlGenerationCache cache)
+		{
+			return cache != _urlGenerationCache;
+		}
+
+		/// <summary>
+		/// Gets the current URL generation cache. Creates one if it does not currently exist.
+		/// </summary>
+		/// <returns></returns>
+		public async ValueTask<UrlGenerationCache> GetUrlGenerationCache()
+		{
+			var c = _urlGenerationCache;
+			if (c == null)
+			{
+				var cacheSet = await LoadCaches(new Context());
+				c = cacheSet.GenerationCache;
+			}
+
+			return c;
 		}
 
 		/// <summary>
@@ -491,12 +519,8 @@ namespace Api.Pages
 		/// <returns>A url which is relative to the site root.</returns>
 		public async ValueTask<string> GetUrl(Context context, object contentObject, UrlGenerationScope scope = null)
 		{
-			if (_urlGenerationCache == null)
-			{
-				await LoadCaches(context);
-			}
-
-			var lookup = _urlGenerationCache.GetLookup(scope);
+			var ugc = await GetUrlGenerationCache();
+			var lookup = ugc.GetLookup(scope);
 
 			if (!lookup.TryGetValue(contentObject.GetType(), out UrlGenerationMeta meta))
 			{

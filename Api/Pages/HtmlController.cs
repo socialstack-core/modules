@@ -8,6 +8,7 @@ using System.Text;
 using Api.Eventing;
 using Api.Startup;
 using Microsoft.Extensions.Primitives;
+using System.Linq;
 
 namespace Api.Pages
 {
@@ -66,7 +67,7 @@ namespace Api.Pages
 		public async ValueTask CatchAllAdmin()
 		{
 			var context = await Request.GetContext();
-			await _htmlService.BuildPage(context, Request, Response);
+			await _htmlService.BuildPage(context, Request, Response, false, true);
 		}
 		
 		/// <summary>
@@ -76,8 +77,26 @@ namespace Api.Pages
 		[Route("{*url}", Order = 9999)]
 		public async ValueTask CatchAll()
 		{
-			var context = await Request.GetContext();
-			await _htmlService.BuildPage(context, Request, Response, true, true);
+			bool cotainsUpperCase = Request.Path.HasValue && Request.Path.Value.Any(char.IsUpper);
+			bool hasTrailingSlash = Request.Path.HasValue && Request.Path.Value.Length > 1 && Request.Path.Value[Request.Path.Value.Length - 1] == '/';
+
+			if (cotainsUpperCase)
+            {
+				var newLocation = $"{Request.Scheme}://{Request.Host}{Request.PathBase}{Request.Path}{Request.QueryString}";
+				newLocation = newLocation.ToLower();
+				Response.StatusCode = 301;
+				Response.Headers.Location = newLocation;
+			} else if (hasTrailingSlash)
+            {
+				var newLocation = $"{Request.Scheme}://{Request.Host}{Request.PathBase}{Request.Path}{Request.QueryString}";
+				newLocation = newLocation.Remove(newLocation.Length - 1, 1);
+				Response.StatusCode = 301;
+				Response.Headers.Location = newLocation;
+			} else
+            {
+				var context = await Request.GetContext();
+				await _htmlService.BuildPage(context, Request, Response, true);
+			}
 		}
 
 		/// <summary>
@@ -85,10 +104,12 @@ namespace Api.Pages
 		/// </summary>
 		/// <returns></returns>
 		[Route("robots.txt")]
-		public FileResult Robots()
+		public async Task<FileResult> Robots()
 		{
+			var context = await Request.GetContext();
+
 			// Robots.txt as a byte[]:
-			var robots = _htmlService.GetRobotsTxt();
+			var robots = _htmlService.GetRobotsTxt(context);
 			return File(robots, "text/plain;charset=UTF-8");
 		}
 
