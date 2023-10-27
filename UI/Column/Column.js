@@ -105,9 +105,13 @@ export default function Column (props) {
 		colClass += ' ' + props.className;
 	}
 
+	if (props.customClass) {
+		colClass += ' ' + props.customClass;
+	}
+
 	return <div
-		className={colClass}
-		{...(omit(props, ['className', 'noGutters']))}
+		className={colClass} 
+		{...(omit(props, ['className', 'noGutters', 'customClass']))}
 	>
 		{props.children}
 	</div>;
@@ -155,7 +159,8 @@ Column.propTypes = {
 	offsetLg: offsetOptions,
 	offsetXl: offsetOptions,
 	margin: marginOptions,
-	children: true
+	children: true,
+	customClass: 'string' // If you need to add a custom class for targeting children via CSS
 };
 
 Column.icon = 'columns';
