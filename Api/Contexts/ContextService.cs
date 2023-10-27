@@ -251,7 +251,7 @@ namespace Api.Contexts
 				else
 				{
 					// Write the value:
-					await fld.Service.OutputById(context, id, writer);
+					await fld.Service.OutputById(context, id, writer, null);
 				}
 			}
 
@@ -276,6 +276,17 @@ namespace Api.Contexts
 			writer.Release();
 
 			return output;
+		}
+
+		/// <summary>
+		/// Serialises the given context.
+		/// </summary>
+		/// <param name="context"></param>
+		/// <param name="writer">A stream to write the JSON string to.</param>
+		/// <returns></returns>
+		public async ValueTask ToJsonString(Context context, Writer writer)
+		{
+			await ToJson(context, writer);
 		}
 
 		/// <summary>
