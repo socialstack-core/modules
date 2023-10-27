@@ -32,6 +32,19 @@ namespace Api.Currency
 
             var setupForTypeMethod = GetType().GetMethod(nameof(SetupForType));
 
+            Events.Context.CanUseCache.AddEventListener((Context context, bool current) => {
+
+                if (!current)
+                {
+                    return new ValueTask<bool>(false);
+                }
+
+                // Handle CurrencyLocaleId in the page cache state:
+                current = (context.LocaleId == context.CurrencyLocaleId || context.CurrencyLocaleId == 0);
+
+				return new ValueTask<bool>(current);
+            });
+
 			Events.Context.OnLoad.AddEventListener((Context context, HttpRequest request) => {
 
                 // Handle currency locale next. The cookie comes lower precedence to the Locale header.
