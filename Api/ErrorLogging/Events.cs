@@ -8,7 +8,7 @@ public partial class LoggingEventGroup : EventGroup
 	/// <summary>
 	/// Raised when the log file has been appended to. It is provided with the file path, append start and new total length.
 	/// </summary>
-	public EventHandler<string, long, long> FileAppended;
+	public EventHandler<string, long, long, bool> FileAppended;
 }
 
 /// <summary>

@@ -59,6 +59,9 @@ public partial class StdOutController : ControllerBase
 			throw PermissionException.Create("monitoring_log", context);
 		}
 
+		// Row limiter.
+		var rowCount = 0;
+
 		var writer = Writer.GetPooled();
 		writer.Start(null);
 
@@ -67,6 +70,14 @@ public partial class StdOutController : ControllerBase
 		bool first = true;
 
 		await Log.ReadSelfBackwards((LogTransactionReader reader) => {
+
+			if (rowCount > 300)
+			{
+				reader.Halt = true;
+				return;
+			}
+
+			rowCount++;
 
 			if (first)
 			{

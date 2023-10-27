@@ -18,6 +18,10 @@ public static class Log
 	private static Writer _writePoolHead;
 	private static Writer _writePoolTail;
 	private static int _writePoolSize;
+	/// <summary>
+	/// Max file length before a file rotation occurs.
+	/// </summary>
+	public static long MaxFileLength = 50000000; // 50MB (~100MB of logs total)
 
 	/// <summary>
 	/// Logs an informational success message for the given tag.
@@ -419,7 +423,8 @@ public static class Log
 		// This minimises the risk of fatal exceptions being dropped from memory.
 
 		// Open filestream:
-		var fs = File.Open(LogFilePath(), FileMode.OpenOrCreate, FileAccess.Write, FileShare.ReadWrite);
+		var lfp = LogFilePath();
+		var fs = File.Open(lfp, FileMode.OpenOrCreate, FileAccess.Write, FileShare.ReadWrite);
 		fs.Seek(0, SeekOrigin.End);
 		var startPoint = fs.Position;
 
@@ -434,10 +439,39 @@ public static class Log
 		var totalLength = fs.Length;
 		fs.Close();
 
+		// Do we need to rotate the file?
+		bool wasRotated = false;
+
+		if (totalLength > MaxFileLength)
+		{
+			// Initial rotation must also be inline too.
+			var rotated = lfp.Replace(".binlog", "-1.binlog");
+
+			try
+			{
+				File.Delete(rotated);
+			}
+			catch
+			{
+				// This is fine to swallow - we're using the delete cmd to
+				// test if the file exists as well. It often does not.
+			}
+
+			File.Move(lfp, rotated);
+			lfp = rotated;
+			wasRotated = true;
+		}
+
 		// Start a task which informs other services about the log file being appended.
 		Task.Run(async () => {
 
-			await Events.Logging.FileAppended.Dispatch(new Api.Contexts.Context(), _logFilePath, startPoint, totalLength);
+			await Events.Logging.FileAppended.Dispatch(
+				new Api.Contexts.Context(),
+				lfp,
+				startPoint,
+				totalLength,
+				wasRotated
+			);
 
 		});
 	}
