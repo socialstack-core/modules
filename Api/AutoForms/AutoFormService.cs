@@ -215,12 +215,20 @@ namespace Api.AutoForms
 				valueType = fieldType.Name;
 			}
 
+			var paramset = new Dictionary<string, object>();
+
+			// Copy from jsonField:
+			foreach (var kvp in jsonField.Data)
+			{
+				paramset[kvp.Key] = kvp.Value;
+			}
+
 			var field = new AutoFormField()
 			{
 				Includable = isIncludable,
 				ValueType = valueType,
 				Module = jsonField.Module,
-				Data = jsonField.Data
+				Data = paramset
 			};
 
 			var type = "text";
