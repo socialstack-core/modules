@@ -430,10 +430,10 @@ class AutoFormInternal extends React.Component {
 	renderConfirmDelete(pageState, setPage) {
 		return <>
 			<ConfirmModal
-				confirmCallback={() => this.confirmDelete(pageState, setPage)} confirmVariant="danger" confirmText={`Yes, delete it`}
+				confirmCallback={() => this.confirmDelete(pageState, setPage)} confirmVariant="danger" confirmText={`Yes, delete the ${this.props.singular}`}
 				cancelCallback={() => this.cancelDelete()}>
 				<p>
-					{`Are you sure you wish to delete this?`}
+					{`Are you sure you wish to delete this ${this.props.singular}?`}
 				</p>
 			</ConfirmModal>
 		</>;
@@ -634,8 +634,10 @@ class AutoFormInternal extends React.Component {
 				var newFields = [...this.state.fields.content];
 
 				newFields.forEach(field => {
-					field.data.currentContent = {...content};
-					field.data.canvasContext = this.getCanvasContext(content)
+					if (field) {
+						field.data.currentContent = {...content};
+						field.data.canvasContext = this.getCanvasContext(content)
+					}
 				});
 
 				this.setState({fields: { ...this.state.fields, content: newFields }});
@@ -718,7 +720,7 @@ class AutoFormInternal extends React.Component {
 					e.preventDefault();
 					this.startDelete();
 				}}>
-					{`Delete`}
+					{`Delete this ${this.props.singular}`}
 				</button>
 			</>}
 			{this.state.supportsRevisions && (
