@@ -223,6 +223,17 @@ namespace Api.Uploader
             {
                 var parts = idRange.Split('-');
 
+                if (parts.Length == 1)
+                {
+                    var id = parts[0].Trim();
+
+                    if (!string.IsNullOrEmpty(id))
+                    {
+                        uint.TryParse(parts[0], out minId);
+                        uint.TryParse(parts[0], out maxId);
+                    }
+                }
+
                 if (parts.Length == 2)
                 {
                     var min = parts[0].Trim();

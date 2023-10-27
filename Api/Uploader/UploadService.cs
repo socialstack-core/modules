@@ -44,7 +44,7 @@ namespace Api.Uploader
             };
 
             // The cron expression runs it every hour.
-            Events.Automation("image usage", "0 0 * ? * * *").AddEventListener(async (Context context, AutomationRunInfo runInfo) =>
+            Events.Automation("image usage", "0 0 */3 ? * * *").AddEventListener(async (Context context, AutomationRunInfo runInfo) =>
             {
 				if(_configuration.TrackRefUsage){
                     await UpdateImageUsage(context);
@@ -233,7 +233,7 @@ namespace Api.Uploader
                 return metaStream;
             }, 15);
 
-            Events.Upload.ReadFile.AddEventListener(async (Context context, byte[] result, string storagePath, bool isPrivate) =>
+            Events.Upload.ReadFile.AddEventListener(async (Context context, byte[] result, FilePartLocator locator) =>
             {
 
                 if (result != null)
@@ -244,11 +244,57 @@ namespace Api.Uploader
 
                 // Default filesystem handler.
                 // Get the complete path:
-                var basePath = isPrivate ? "Content/content-private/" : "Content/content/";
+                var basePath = locator.IsPrivate ? "Content/content-private/" : "Content/content/";
+                var filePath = System.IO.Path.GetFullPath(basePath + locator.Path);
 
-                var filePath = System.IO.Path.GetFullPath(basePath + storagePath);
+                try
+                {
+                    if (locator.Size == 0)
+                    {
+                        result = await File.ReadAllBytesAsync(filePath);
+                    }
+                    else
+                    {
+                        // Read part of a file specified by offset and size.
+                        
+                        using (var fs = File.Open(filePath, FileMode.Open))
+                        {
+                            var len = fs.Length;
+							var maxLen = len - (locator.Offset + locator.Size);
 
-                result = await File.ReadAllBytesAsync(filePath);
+							if (maxLen <= 0)
+                            {
+                                return null;
+                            }
+
+                            var size = locator.Size;
+
+                            if (size > maxLen)
+                            {
+                                size = (int)maxLen;
+                            }
+
+							result = new byte[size];
+                            
+							fs.Seek(locator.Offset, SeekOrigin.Begin);
+
+                            var bytesToRead = size;
+                            const int chunkSize = 4096;
+
+                            while (bytesToRead > 0)
+                            {
+                                var readSize = bytesToRead > chunkSize ? chunkSize : bytesToRead;
+                                await fs.ReadAsync(result, size - bytesToRead, readSize);
+                                bytesToRead -= readSize;
+                            }
+                        }
+                    }
+                }
+                catch (FileNotFoundException)
+                {
+                    // Attempted read of a file which does not exist. Return null.
+                    return null;
+                }
 
                 return result;
             }, 15);
@@ -1084,12 +1130,37 @@ namespace Api.Uploader
         }
 
         /// <summary>
-        /// To make image resizing as efficient as possible without repeatedly reloading the source into memory
-        /// a set of "resize groups" are made. These are based on the sizes in the configuration
-        /// and are sorted into multiples. For example, powers of 2 are grouped together.
-        /// Using default config, 2 groups exist: 2048, 1024, 512, .. 32 is one, and 200, 100 is the other.
+        /// Gets a range of file bytes of the given ref, if it is a file ref. Supports remote filesystems as well.
         /// </summary>
-        private ImageResizeGroup[] _resizeGroups;
+        /// <param name="upload"></param>
+        /// <param name="sizeName"></param>
+        /// <param name="offset"></param>
+        /// <param name="byteCount"></param>
+        /// <returns></returns>
+        public ValueTask<byte[]> ReadFile(Upload upload, string sizeName, long offset, int byteCount)
+        {
+            // Get path relative to the storage engine:
+            var uploadPath = upload.GetRelativePath(sizeName);
+
+            // Create a locator (struct):
+            var locator = new FilePartLocator()
+            {
+                Path = uploadPath,
+                IsPrivate = upload.IsPrivate,
+                Offset = offset,
+                Size = byteCount
+            };
+
+			return GetFileBytesForStoragePath(locator);
+		}
+
+		/// <summary>
+		/// To make image resizing as efficient as possible without repeatedly reloading the source into memory
+		/// a set of "resize groups" are made. These are based on the sizes in the configuration
+		/// and are sorted into multiples. For example, powers of 2 are grouped together.
+		/// Using default config, 2 groups exist: 2048, 1024, 512, .. 32 is one, and 200, 100 is the other.
+		/// </summary>
+		private ImageResizeGroup[] _resizeGroups;
         private int _smallestSize;
 
         private void UpdateConfig()
@@ -1237,7 +1308,19 @@ namespace Api.Uploader
         {
             // Trigger a read file event. The default handler will read from the file system, 
             // and the CloudHosts module adds a handler if it is handling uploads.
-            return await Events.Upload.ReadFile.Dispatch(readBytesContext, null, storagePath, isPrivate);
+            return await Events.Upload.ReadFile.Dispatch(readBytesContext, null, new FilePartLocator() { Path = storagePath, IsPrivate = isPrivate });
+        }
+
+		/// <summary>
+		/// Gets the file bytes for a given storage path. Usually use ReadFile with a ref or an Upload instead.
+		/// </summary>
+		/// <param name="locator">Locates all or part of a file.</param>
+		/// <returns></returns>
+		public async ValueTask<byte[]> GetFileBytesForStoragePath(FilePartLocator locator)
+        {
+            // Trigger a read file event. The default handler will read from the file system, 
+            // and the CloudHosts module adds a handler if it is handling uploads.
+            return await Events.Upload.ReadFile.Dispatch(readBytesContext, null, locator);
         }
 
         /// <summary>
@@ -2005,5 +2088,30 @@ namespace Api.Uploader
         /// Transcode this format to the given one.
         /// </summary>
         public MagickFormat TranscodeTo;
+    }
+
+    /// <summary>
+    /// Locates a segment of a file (or the whole thing) during file reads.
+    /// </summary>
+    public struct FilePartLocator
+    {
+        /// <summary>
+        /// File variant.
+        /// </summary>
+        public string Path;
+        /// <summary>
+        /// True if it is private.
+        /// </summary>
+        public bool IsPrivate;
+
+        /// <summary>
+        /// Offset in the file to start from.
+        /// </summary>
+        public long Offset;
+
+        /// <summary>
+        /// Number of bytes to obtain.
+        /// </summary>
+        public int Size;
     }
 }

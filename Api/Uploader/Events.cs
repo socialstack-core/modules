@@ -47,7 +47,7 @@ namespace Api.Eventing
 		/// <summary>
 		/// Reads the file at the given storage relative path, and returns its byte[]. You can block future event handlers by returning an empty array of bytes.
 		/// </summary>
-		public EventHandler<byte[], string, bool> ReadFile;
+		public EventHandler<byte[], FilePartLocator> ReadFile;
 		
 		/// <summary>
 		/// Reads the file at the given storage relative path, and returns it as a stream.
