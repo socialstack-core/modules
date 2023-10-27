@@ -63,6 +63,11 @@ public partial class AutoService<T, ID>
     /// End of include block. ]}.
     /// </summary>
     private static readonly byte[] IncludesValueFooter = new byte[] { (byte)']', (byte)'}' };
+    
+    /// <summary>
+    /// End of dynamic include block. }}.
+    /// </summary>
+    private static readonly byte[] IncludesDynamicValueFooter = new byte[] { (byte)'}', (byte)'}' };
 
 	/// <summary>
 	/// Serialises results from this service with the requested filter. 
@@ -104,11 +109,11 @@ public partial class AutoService<T, ID>
 	}
 
 	/// <summary>
-	/// Serialises the given object into the given stream (usually a response stream). By using this method, it will consider the fields a user is permitted to see (based on the role in the context)
-	/// and also may use a per-object cache which contains string segments.
-	/// dataSource is often a filter.
-	/// </summary>
-	public async ValueTask ToJson<ANY>(
+    /// Serialises the given object into the given stream (usually a response stream). By using this method, it will consider the fields a user is permitted to see (based on the role in the context)
+    /// and also may use a per-object cache which contains string segments.
+    /// dataSource is often a filter.
+    /// </summary>
+    public async ValueTask ToJson<ANY>(
         Context context, ANY dataSource,
         Func<Context, ANY, Func<T, int, ValueTask>, ValueTask<int>> onGetData,
         Writer writer,
@@ -402,7 +407,16 @@ public partial class AutoService<T, ID>
         }
     }
 
-    private async ValueTask ExecuteIncludes(Context context, Stream targetStream, Writer writer, IDCollector firstCollector, InclusionNode includeNode)
+    /// <summary>
+    /// Used to execute includes.
+    /// </summary>
+    /// <param name="context"></param>
+    /// <param name="targetStream"></param>
+    /// <param name="writer"></param>
+    /// <param name="firstCollector"></param>
+    /// <param name="includeNode"></param>
+    /// <returns></returns>
+    public async ValueTask ExecuteIncludes(Context context, Stream targetStream, Writer writer, IDCollector firstCollector, InclusionNode includeNode)
     {
         // Now all IDs that are needed have been collected,
         // go through the inclusions and perform the include.
@@ -436,17 +450,100 @@ public partial class AutoService<T, ID>
             // Spawn child collectors now, if we need any.
             var childCollectors = toExecute.GetCollectors();
 
-            if (toExecute.MappingTargetField == null)
+            if (toExecute.TypeSource != null)
+            {
+                // The collector in this case is a MultiIdCollector.
+                // Ask each service in it (which can be none) to output a JSON list.
+                var multiCollector = collector as MultiIdCollector;
+
+                if (multiCollector != null)
+                {
+					for (var n = 0; n < multiCollector.CollectorFill; n++)
+					{
+						var cbt = multiCollector.CollectorsByType[n];
+                        if (n == 0)
+                        {
+                            writer.Write((byte)'\"');
+                        }
+                        else
+                        {
+							writer.WriteASCII(",\"");
+						}
+                        writer.WriteASCII(cbt.Service.EntityName);
+
+						writer.WriteASCII("\":{\"results\":[");
+
+						// Load the sub-include set:
+						if (toExecute.DynamicChildIncludes != null)
+                        {
+                            var childIncludeSet = await cbt.Service.GetContentFields().GetIncludeSet(toExecute.DynamicChildIncludes);
+
+                            if (childIncludeSet != null)
+                            {
+                                // We've got some includes to add.
+
+                                // First we need to obtain ID collectors, and then collect the IDs.
+                                var childRoot = childIncludeSet.RootInclude;
+
+								var firstChildCollector = childRoot.GetCollectors();
+
+								await cbt.Service.OutputJsonList(
+                                    context,
+                                    firstChildCollector,
+                                    cbt.Collector,
+                                    writer, true,
+                                    childIncludeSet.RootInclude.FunctionalIncludes
+                                );
+
+                                writer.Write((byte)']');
+								// Write the includes header, then write out the data so far.
+								writer.Write(IncludesHeader, 0, 13);
+
+								if (childRoot.ChildNodes != null && childRoot.ChildNodes.Length > 0)
+								{
+									// NB: This will release the child collectors for us.
+									await ExecuteIncludes(context, targetStream, writer, firstChildCollector, childRoot);
+								}
+
+								writer.Write(IncludesFooter, 0, 2);
+                            }
+                            else
+                            {
+								await cbt.Service.OutputJsonList(context, null, cbt.Collector, writer, true, null);
+								writer.Write(IncludesValueFooter, 0, 2);
+							}
+						}
+                        else
+						{
+							await cbt.Service.OutputJsonList(context, null, cbt.Collector, writer, true, null);
+							writer.Write(IncludesValueFooter, 0, 2);
+						}
+					}   
+				}
+                
+				// End of this include.
+				writer.Write(IncludesDynamicValueFooter, 0, 2);
+
+			}
+            else if (toExecute.MappingTargetField == null)
             {
                 // Directly use IDs in collector with the service.
                 await toExecute.Service.OutputJsonList(context, childCollectors, collector, writer, true, toExecute.FunctionalIncludes); // Calls OutputJsonList on the service
-            }
-            else if (toExecute.MappingService == null)
+
+				// End of this include.
+				writer.Write(IncludesValueFooter, 0, 2);
+
+			}
+			else if (toExecute.MappingService == null)
             {
                 // Write the values:
                 await toExecute.Service.OutputJsonList<ID>(context, childCollectors, collector, toExecute.MappingTargetFieldName, writer, true, toExecute.FunctionalIncludes); // Calls OutputJsonList on the service
-            }
-            else
+
+				// End of this include.
+				writer.Write(IncludesValueFooter, 0, 2);
+
+			}
+			else
             {
                 // Write out a mapping of src->target IDs.
                 var mappingCollector = toExecute.MappingTargetField.RentCollector();
@@ -466,14 +563,15 @@ public partial class AutoService<T, ID>
 
                 // Release mapping collector:
                 mappingCollector.Release();
-            }
 
-            // End of this include.
-            writer.Write(IncludesValueFooter, 0, 2);
+				// End of this include.
+				writer.Write(IncludesValueFooter, 0, 2);
 
-            // Did it have any child nodes? If so, execute those as well.
-            // Above we will have collected the IDs that the children need.
-            if (toExecute.ChildNodes != null && toExecute.ChildNodes.Length > 0)
+			}
+
+			// Did it have any child nodes? If so, execute those as well.
+			// Above we will have collected the IDs that the children need.
+			if (toExecute.ChildNodes != null && toExecute.ChildNodes.Length > 0)
             {
                 // NB: This will release the child collectors for us.
                 await ExecuteIncludes(context, targetStream, writer, childCollectors, toExecute);
@@ -547,13 +645,13 @@ public partial class AutoService<T, ID>
     /// <param name="id"></param>
     /// <param name="writer"></param>
     /// <returns></returns>
-    public override async ValueTask OutputById(Context context, ulong id, Writer writer)
+    public override async ValueTask OutputById(Context context, ulong id, Writer writer, string includes = "*")
     {
         // Get the object:
         var content = await Get(context, ConvertId(id), DataOptions.Default);
 
         // Output it:
-        await ToJson(context, content, writer, null, "*");
+        await ToJson(context, content, writer, null, includes);
     }
 
 	/// <summary>

@@ -60,6 +60,10 @@ namespace Api.Startup
 
 		private static ConcurrentDictionary<Type, JsonFieldType> _typeMap;
 		
+		/// <summary>
+		/// Gets JSON field generators.
+		/// </summary>
+		/// <returns></returns>
 		private static ConcurrentDictionary<Type, JsonFieldType> GetTypeMap()
 		{
 			if (_typeMap != null)
@@ -70,7 +74,7 @@ namespace Api.Startup
 			var map = new ConcurrentDictionary<Type, JsonFieldType>();
 			_typeMap = map;
 
-			AddTo(map, typeof(bool), (ILGenerator code, JsonField field, Action emitValue) =>
+			AddTo(map, typeof(bool), (ILGenerator code, Action emitValue) =>
 			{
 				emitValue();
 				WriteBool(code);
@@ -88,105 +92,105 @@ namespace Api.Startup
 			var writeEscapedUString = typeof(Writer).GetMethod("WriteEscaped", new Type[] { typeof(ustring) });
 			var writeEscapedString = typeof(Writer).GetMethod("WriteEscaped", new Type[] { typeof(string) });
 
-			AddTo(map, typeof(uint), (ILGenerator code, JsonField field, Action emitValue) =>
+			AddTo(map, typeof(uint), (ILGenerator code, Action emitValue) =>
 			{
 				code.Emit(OpCodes.Ldarg_2); // Writer
 				emitValue();
 				code.Emit(OpCodes.Callvirt, writeSUint);
 			});
 
-			AddTo(map, typeof(int), (ILGenerator code, JsonField field, Action emitValue) =>
+			AddTo(map, typeof(int), (ILGenerator code, Action emitValue) =>
 			{
 				code.Emit(OpCodes.Ldarg_2); // Writer
 				emitValue();
 				code.Emit(OpCodes.Callvirt, writeSInt);
 			});
 
-			AddTo(map, typeof(byte), (ILGenerator code, JsonField field, Action emitValue) =>
+			AddTo(map, typeof(byte), (ILGenerator code, Action emitValue) =>
 			{
 				code.Emit(OpCodes.Ldarg_2); // Writer
 				emitValue();
 				code.Emit(OpCodes.Callvirt, writeSUint);
 			});
 
-			AddTo(map, typeof(char), (ILGenerator code, JsonField field, Action emitValue) =>
+			AddTo(map, typeof(char), (ILGenerator code, Action emitValue) =>
 			{
 				code.Emit(OpCodes.Ldarg_2); // Writer
 				emitValue();
 				code.Emit(OpCodes.Callvirt, writeSUint);
 			});
 
-			AddTo(map, typeof(sbyte), (ILGenerator code, JsonField field, Action emitValue) =>
+			AddTo(map, typeof(sbyte), (ILGenerator code, Action emitValue) =>
 			{
 				code.Emit(OpCodes.Ldarg_2); // Writer
 				emitValue();
 				code.Emit(OpCodes.Callvirt, writeSInt);
 			});
 
-			AddTo(map, typeof(ushort), (ILGenerator code, JsonField field, Action emitValue) =>
+			AddTo(map, typeof(ushort), (ILGenerator code, Action emitValue) =>
 			{
 				code.Emit(OpCodes.Ldarg_2); // Writer
 				emitValue();
 				code.Emit(OpCodes.Callvirt, writeSUint);
 			});
 
-			AddTo(map, typeof(short), (ILGenerator code, JsonField field, Action emitValue) =>
+			AddTo(map, typeof(short), (ILGenerator code, Action emitValue) =>
 			{
 				code.Emit(OpCodes.Ldarg_2); // Writer
 				emitValue();
 				code.Emit(OpCodes.Callvirt, writeSInt);
 			});
 
-			AddTo(map, typeof(ulong), (ILGenerator code, JsonField field, Action emitValue) =>
+			AddTo(map, typeof(ulong), (ILGenerator code, Action emitValue) =>
 			{
 				code.Emit(OpCodes.Ldarg_2); // Writer
 				emitValue();
 				code.Emit(OpCodes.Callvirt, writeSUlong);
 			});
 
-			AddTo(map, typeof(long), (ILGenerator code, JsonField field, Action emitValue) =>
+			AddTo(map, typeof(long), (ILGenerator code, Action emitValue) =>
 			{
 				code.Emit(OpCodes.Ldarg_2); // Writer
 				emitValue();
 				code.Emit(OpCodes.Callvirt, writeSLong);
 			});
 
-			AddTo(map, typeof(DateTime), (ILGenerator code, JsonField field, Action emitValue) =>
+			AddTo(map, typeof(DateTime), (ILGenerator code, Action emitValue) =>
 			{
 				code.Emit(OpCodes.Ldarg_2); // Writer
 				emitValue();
 				code.Emit(OpCodes.Callvirt, writeSDateTime);
 			});
 
-			AddTo(map, typeof(ustring), (ILGenerator code, JsonField field, Action emitValue) =>
+			AddTo(map, typeof(ustring), (ILGenerator code, Action emitValue) =>
 			{
 				code.Emit(OpCodes.Ldarg_2); // Writer
 				emitValue();
 				code.Emit(OpCodes.Callvirt, writeEscapedUString);
 			});
 
-			AddTo(map, typeof(string), (ILGenerator code, JsonField field, Action emitValue) =>
+			AddTo(map, typeof(string), (ILGenerator code, Action emitValue) =>
 			{
 				code.Emit(OpCodes.Ldarg_2); // Writer
 				emitValue();
 				code.Emit(OpCodes.Callvirt, writeEscapedString);
 			});
 
-			AddTo(map, typeof(double), (ILGenerator code, JsonField field, Action emitValue) =>
+			AddTo(map, typeof(double), (ILGenerator code, Action emitValue) =>
 			{
 				code.Emit(OpCodes.Ldarg_2); // Writer
 				emitValue();
 				code.Emit(OpCodes.Callvirt, writeSDouble);
 			});
 
-			AddTo(map, typeof(float), (ILGenerator code, JsonField field, Action emitValue) =>
+			AddTo(map, typeof(float), (ILGenerator code, Action emitValue) =>
 			{
 				code.Emit(OpCodes.Ldarg_2); // Writer
 				emitValue();
 				code.Emit(OpCodes.Callvirt, writeSFloat);
 			});
 
-			AddTo(map, typeof(decimal), (ILGenerator code, JsonField field, Action emitValue) =>
+			AddTo(map, typeof(decimal), (ILGenerator code, Action emitValue) =>
 			{
 				code.Emit(OpCodes.Ldarg_2); // Writer
 				emitValue();
@@ -196,6 +200,36 @@ namespace Api.Startup
 			// https://github.com/dotnet/runtime/blob/927b1c54956ddb031a2e1a3eddb94ccc16004c27/src/libraries/System.Private.CoreLib/src/System/Number.Formatting.cs#L1333
 
 			return map;
+		}
+
+		/// <summary>
+		/// Emits JSON write of a given content field in to the given body.
+		/// </summary>
+		/// <param name="body"></param>
+		/// <param name="field"></param>
+		/// <param name="objLoader"></param>
+		/// <exception cref="Exception"></exception>
+		public static void EmitWriteField(ILGenerator body, ContentField field, Action<ILGenerator> objLoader)
+		{
+			// Check if it's a nullable:
+			var fieldType = field.FieldType;
+
+			var nullableType = Nullable.GetUnderlyingType(fieldType);
+
+			if (nullableType != null)
+			{
+				fieldType = nullableType;
+			}
+
+			var typeMap = GetTypeMap();
+
+			if (!typeMap.TryGetValue(fieldType, out JsonFieldType jft))
+			{
+				// Can't serialise this here.
+				throw new Exception("Unable to serialise fields of this type.");
+			}
+
+			jft.EmitWrite(body, field, nullableType, objLoader);
 		}
 
 		/// <summary>
@@ -221,7 +255,7 @@ namespace Api.Startup
 				return;
 			}
 
-			AssemblyName assemblyName = new AssemblyName("GeneratedTypes_" + counter);
+			AssemblyName assemblyName = new AssemblyName("GeneratedTypesID_" + counter);
 			counter++;
 			AssemblyBuilder assemblyBuilder = AssemblyBuilder.DefineDynamicAssembly(assemblyName, AssemblyBuilderAccess.RunAndCollect);
 			ModuleBuilder moduleBuilder = assemblyBuilder.DefineDynamicModule(assemblyName.Name);
@@ -235,27 +269,99 @@ namespace Api.Startup
 					continue;
 				}
 
+				Type baseType;
+				MethodInfo addMethod;
+				TypeBuilder typeBuilder;
+				MethodBuilder collect;
+				ILGenerator body;
+
+				if (idField.VirtualInfo != null && idField.VirtualInfo.DynamicTypeField != null)
+				{
+					// Virtual field which requires collecting both type and ID.
+					// In this scenario, DynType is a string and ID source is a ulong always.
+					baseType = typeof(MultiIdCollector);
+					addMethod = baseType.GetMethod("Add");
+
+
+					// Build the type:
+					typeBuilder = moduleBuilder.DefineType("FieldWriter_" + idField.Name + "_" + counter, TypeAttributes.Public, baseType);
+					counter++;
+
+					collect = typeBuilder
+						.DefineMethod("Collect",
+							MethodAttributes.Public | MethodAttributes.HideBySig | MethodAttributes.Virtual,
+							typeof(void),
+							new Type[] {
+								typeof(object)
+							}
+						);
+
+					// "This" is the ID collector, with it's Add method.
+					// arg1 is the object to collect from.
+					body = collect.GetILGenerator();
+
+					body.Emit(OpCodes.Ldarg_0);
+
+					// Put the type field (or property) value on the stack:
+					var typeSrc = idField.VirtualInfo.DynamicTypeField;
+
+					if (typeSrc.FieldInfo != null)
+					{
+						body.Emit(OpCodes.Ldarg_1);
+						body.Emit(OpCodes.Ldfld, typeSrc.FieldInfo);
+					}
+					else
+					{
+						// Property
+						body.Emit(OpCodes.Ldarg_1);
+						body.Emit(OpCodes.Callvirt, typeSrc.PropertyInfo.GetGetMethod());
+					}
+
+					// Next, put the ID field (or property) on the stack:
+					var idSrc = idField.VirtualInfo.IdSource;
+
+					if (idSrc.FieldInfo != null)
+					{
+						body.Emit(OpCodes.Ldarg_1);
+						body.Emit(OpCodes.Ldfld, idSrc.FieldInfo);
+					}
+					else
+					{
+						// Property
+						body.Emit(OpCodes.Ldarg_1);
+						body.Emit(OpCodes.Callvirt, idSrc.PropertyInfo.GetGetMethod());
+					}
+
+					// Add to the collector:
+					body.Emit(OpCodes.Callvirt, addMethod);
+					body.Emit(OpCodes.Ret);
+
+					// Lock the type:
+					idField.SetIDCollectorType(typeBuilder.CreateType());
+					continue;
+				}
+
 				// If the field type is nullable, use the base type here.
 				var nullableBaseType = Nullable.GetUnderlyingType(idField.FieldType);
 
-				var baseType = typeof(IDCollector<>).MakeGenericType(new Type[] {
+				baseType = typeof(IDCollector<>).MakeGenericType(new Type[] {
 					nullableBaseType == null ? idField.FieldType : nullableBaseType
 				});
 
 				// Get the Add method:
-				var addMethod = baseType.GetMethod("Add");
+				addMethod = baseType.GetMethod("Add");
 
 				// Build the type:
-				TypeBuilder typeBuilder = moduleBuilder.DefineType("FieldWriter_" + idField.Name + "_" + counter, TypeAttributes.Public, baseType);
+				typeBuilder = moduleBuilder.DefineType("FieldWriter_" + idField.Name + "_" + counter, TypeAttributes.Public, baseType);
 				counter++;
 
-				var collect = typeBuilder.DefineMethod("Collect", MethodAttributes.Public | MethodAttributes.HideBySig | MethodAttributes.Virtual, typeof(void), new Type[] {
+				collect = typeBuilder.DefineMethod("Collect", MethodAttributes.Public | MethodAttributes.HideBySig | MethodAttributes.Virtual, typeof(void), new Type[] {
 					typeof(object)
 				});
 
 				// "This" is the ID collector, with it's Add method.
 				// arg1 is the object to collect from.
-				var body = collect.GetILGenerator();
+				body = collect.GetILGenerator();
 
 				body.Emit(OpCodes.Ldarg_0);
 
@@ -302,7 +408,7 @@ namespace Api.Startup
 
 		}
 
-		private static JsonFieldType AddTo(ConcurrentDictionary<Type, JsonFieldType> map, Type type, Action<ILGenerator, JsonField, Action> onWriteValue)
+		private static JsonFieldType AddTo(ConcurrentDictionary<Type, JsonFieldType> map, Type type, Action<ILGenerator, Action> onWriteValue)
 		{
 			var fieldType = new JsonFieldType(type, onWriteValue);
 			map[type] = fieldType;
@@ -326,7 +432,7 @@ namespace Api.Startup
 		{
 			var result = new List<TypeReaderWriter<T>>();
 			
-			AssemblyName assemblyName = new AssemblyName("GeneratedTypes_" + counter);
+			AssemblyName assemblyName = new AssemblyName("GeneratedTypesRW_" + counter);
 			counter++;
 			AssemblyBuilder assemblyBuilder = AssemblyBuilder.DefineDynamicAssembly(assemblyName, AssemblyBuilderAccess.RunAndCollect);
 			ModuleBuilder moduleBuilder = assemblyBuilder.DefineDynamicModule(assemblyName.Name);
@@ -629,14 +735,14 @@ namespace Api.Startup
 		/// <summary>
 		/// Serialises the value which is already on the stack.
 		/// </summary>
-		public Action<ILGenerator, JsonField, Action> OnSerialise;
+		public Action<ILGenerator, Action> OnSerialise;
 
 		/// <summary>
 		/// Defines info about an available field type.
 		/// </summary>
 		/// <param name="type"></param>
 		/// <param name="onSerialise"></param>
-		public JsonFieldType(Type type, Action<ILGenerator, JsonField, Action> onSerialise)
+		public JsonFieldType(Type type, Action<ILGenerator, Action> onSerialise)
 		{
 			Type = type;
 			OnSerialise = onSerialise;
@@ -685,7 +791,7 @@ namespace Api.Startup
 			}
 
 			// Serialise the value:
-			OnSerialise(body, field, () => {
+			OnSerialise(body, () => {
 
 				if (nullableType == null)
 				{
@@ -721,6 +827,95 @@ namespace Api.Startup
 					}
 
 					var getValueMethod = field.TargetType.GetProperty("Value").GetGetMethod();
+					body.Emit(OpCodes.Callvirt, getValueMethod);
+				}
+			});
+
+			if (endOfStatementLabel.HasValue)
+			{
+				body.MarkLabel(endOfStatementLabel.Value);
+			}
+		}
+
+		/// <summary>
+		/// Emits the necessary command to serialise the field.
+		/// </summary>
+		public void EmitWrite(ILGenerator body, ContentField field, Type nullableType, Action<ILGenerator> objLoader)
+		{
+			Label? endOfStatementLabel = nullableType == null ? null : body.DefineLabel();
+
+			// Check if it is null - output an address to the struct so we can call HasValue.
+			LocalBuilder propertyLocal = null;
+
+			if (nullableType != null)
+			{
+				// the object we're getting the field/ property from:
+				objLoader(body);
+
+				if (field.PropertyInfo != null)
+				{
+					// Property. Store in a local such that the address can be used.
+					propertyLocal = body.DeclareLocal(field.FieldType);
+					body.Emit(OpCodes.Callvirt, field.PropertyInfo.GetGetMethod());
+					body.Emit(OpCodes.Stloc, propertyLocal);
+					body.Emit(OpCodes.Ldloca, propertyLocal);
+				}
+				else
+				{
+					// Field:
+					body.Emit(OpCodes.Ldflda, field.FieldInfo);
+				}
+
+				// Check if it is null (and if so, output "null" and skip the following value)
+				var hasValueMethod = field.FieldType.GetProperty("HasValue").GetGetMethod();
+
+				body.Emit(OpCodes.Callvirt, hasValueMethod);
+
+				Label notNullLabel = body.DefineLabel();
+
+				body.Emit(OpCodes.Brtrue, notNullLabel);
+				TypeIOEngine.WriteNull(body);
+				body.Emit(OpCodes.Br, endOfStatementLabel.Value);
+				body.MarkLabel(notNullLabel);
+			}
+
+			// Serialise the value:
+			OnSerialise(body, () => {
+
+				if (nullableType == null)
+				{
+
+					// Emit a read of the field value:
+					objLoader(body);
+
+					if (field.PropertyInfo != null)
+					{
+						// Property:
+						body.Emit(OpCodes.Callvirt, field.PropertyInfo.GetGetMethod());
+					}
+					else
+					{
+						// Field:
+						body.Emit(OpCodes.Ldfld, field.FieldInfo);
+					}
+				}
+				else
+				{
+					// This value is nullable.
+
+					// Not null output. Put the actual value onto the stack here.
+					if (field.PropertyInfo != null)
+					{
+						body.Emit(OpCodes.Ldloca, propertyLocal);
+					}
+					else
+					{
+						// the object we're getting the field/ property from:
+						objLoader(body);
+						body.Emit(OpCodes.Ldflda, field.FieldInfo);
+					}
+
+					var getValueMethod = field.FieldType.GetProperty("Value").GetGetMethod();
 					body.Emit(OpCodes.Callvirt, getValueMethod);
 				}
 			});

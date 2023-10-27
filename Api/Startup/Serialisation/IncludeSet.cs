@@ -89,6 +89,35 @@ namespace Api.Startup
 					throw new PublicException("Nested includes are not available on functional includes.", "functional_include_nested");
 				}
 
+				// Trim the part:
+				currentName = currentName.Trim();
+
+				if (current.TypeSource != null)
+				{
+					// An include on a dynamic include.
+					// Append it to a string, with all remaining pieces.
+					var thisInclude = "";
+
+					for (var n = i; n < pieces.Length; n++)
+					{
+						if (n != i)
+						{
+							thisInclude += '.';
+						}
+						thisInclude += pieces[n];
+					}
+
+					if (current.DynamicChildIncludes == null)
+					{
+						current.DynamicChildIncludes = thisInclude;
+					}
+					else
+					{
+						current.DynamicChildIncludes += "," + thisInclude;
+					}
+					return;
+				}
+
 				if (currentName == "*")
 				{
 					// Every field on the current relative to. This can't go on a mixed content type, and it can only ever be the last piece.
@@ -99,9 +128,12 @@ namespace Api.Startup
 
 					// Add _every_ virtual field in RelativeTo.
 					// (Including globals, relative to it).
-					foreach (var field in current.RelativeTo.VirtualList)
+					if (current.RelativeTo != null)
 					{
-						await current.Add(field, rootRelativeFieldName);
+						foreach (var field in current.RelativeTo.VirtualList)
+						{
+							await current.Add(field, rootRelativeFieldName);
+						}
 					}
 
 					// Add every ListAs field except for the explicit ones where this is not an implicit type.
@@ -112,7 +144,7 @@ namespace Api.Startup
 						if (virtInfo != null && virtInfo.IsExplicit)
 						{
 							// Check if this is one of the implicit types.
-							if (!virtInfo.IsImplicitFor(current.RelativeTo.InstanceType))
+							if (current.RelativeTo == null || !virtInfo.IsImplicitFor(current.RelativeTo.InstanceType))
 							{
 								// Skip!
 								continue;
@@ -136,7 +168,9 @@ namespace Api.Startup
 				}
 
 				// It must be a local field, otherwise it doesn't exist:
-				if (!current.RelativeTo.LocalVirtualNameMap.TryGetValue(currentName, out ContentField localField))
+				if (
+					current.RelativeTo == null || 
+					!current.RelativeTo.LocalVirtualNameMap.TryGetValue(currentName, out ContentField localField))
 				{
 					throw new PublicException("Your request tried to use '" + currentName + "' in include '" + rootRelativeFieldName +  "' but it doesn't exist", "include_no_exist");
 				}
@@ -163,6 +197,18 @@ namespace Api.Startup
 		/// The service to use to resolve the actual value of this node.
 		/// </summary>
 		public AutoService Service;
+
+		/// <summary>
+		/// A field from which the type to use comes.
+		/// </summary>
+		public ContentField TypeSource;
+
+		/// <summary>
+		/// For includes which are children of a dynamic include node.
+		/// This string is evaluated as a new include set when the actual target service is known.
+		/// Because the include set comes from the includes cache, it incurs only a very little penalty.
+		/// </summary>
+		public string DynamicChildIncludes;
 
 		/// <summary>
 		/// Included as.
@@ -304,7 +350,22 @@ namespace Api.Startup
 
 			var header = "{\"name\":\"" + includedAs + "\",\"field\":\"" + fieldNameLC + "\",\"src\":\"" + srcFieldLC + "\"";
 
-			if (Parent.InclusionOutputIndex != -1)
+			if (TypeSource != null)
+			{
+				var typeSourceLC = char.ToLower(TypeSource.Name[0]) + TypeSource.Name.Substring(1);
+				header += ",\"srcType\":\"" + typeSourceLC + "\"";
+
+				if (Parent.InclusionOutputIndex != -1)
+				{
+					header += ",\"on\":" + Parent.InclusionOutputIndex;
+				}
+
+				// values is an object on this one.
+				header += ",\"values\":{";
+				_includeHeader = System.Text.Encoding.UTF8.GetBytes(header);
+				return;
+			}
+			else if (Parent.InclusionOutputIndex != -1)
 			{
 				header += ",\"on\":" + Parent.InclusionOutputIndex;
 			}
@@ -385,9 +446,19 @@ namespace Api.Startup
 				return result;
 			}
 
-			// Get its service and add:
-			result = new InclusionNode(svc.GetContentFields(), this);
-			result.Service = svc;
+			if (field.VirtualInfo.DynamicTypeField != null)
+			{
+				// Dynamic include
+				result = new InclusionNode(null, this);
+				result.TypeSource = field.VirtualInfo.DynamicTypeField;
+			}
+			else
+			{
+				// Regular include
+				result = new InclusionNode(svc.GetContentFields(), this);
+				result.Service = svc;
+			}
+			
 			result.HostField = field;
 			result.IncludeName = includeName;
 			UniqueChildNodes[name] = result;
@@ -462,6 +533,23 @@ namespace Api.Startup
 				// The ID source field is:
 				var hostField = node.HostField;
 				var idSource = hostField.VirtualInfo.IdSource;
+
+				if (hostField.VirtualInfo.DynamicTypeField != null)
+				{
+					// Dynamic includes. The ID source is actually a tuple - type and content ID fields.
+					// In this scenario, the host field *is* the ID source.
+					var fieldName = hostField.Name.ToLower();
+
+					if (!idFields.TryGetValue(fieldName, out int index))
+					{
+						index = idFieldList.Count;
+						idFields[fieldName] = index;
+						idFieldList.Add(hostField);
+					}
+
+					node.CollectorIndex = index;
+					continue;
+				}
 
 				if (idSource == null && hostField.VirtualInfo.IdSourceField != null)
 				{

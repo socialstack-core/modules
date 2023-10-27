@@ -583,6 +583,7 @@ namespace Api.Startup {
 			{
 				var virtualFieldType = fieldMeta.Type;
 				string virtualFieldTypeName = null;
+				ContentField dynamicTypeField = null;
 				AutoService knownService = null;
 
 				if (virtualFieldType == null)
@@ -592,42 +593,41 @@ namespace Api.Startup {
 						continue;
 					}
 
-					// Is it a field on the type?
-					if (_nameMap.TryGetValue(fieldMeta.TypeSourceField.ToLower(), out ContentField targetField))
+					// Is it a field on the type - and is it a string?
+					if (
+						_nameMap.TryGetValue(fieldMeta.TypeSourceField.ToLower(), out ContentField targetField) &&
+						targetField.FieldType == typeof(string) &&
+						!string.IsNullOrEmpty(fieldMeta.IdSourceField) &&
+						_nameMap.TryGetValue(fieldMeta.IdSourceField.ToLower(), out ContentField idSource)
+					)
 					{
-						// This field must be a string (holding type names) or an int (contentTypeId).
-						if (targetField.FieldType == typeof(string) || targetField.FieldType == typeof(int))
+						// ID field must be a ulong.
+						if (idSource.FieldType != typeof(ulong))
 						{
-							// So far so good!
-
-							// The ID field MUST be a ulong.
-							ContentField idSource;
-							if (!string.IsNullOrEmpty(fieldMeta.IdSourceField) && _nameMap.TryGetValue(fieldMeta.IdSourceField.ToLower(), out idSource))
-							{
-
-								if (idSource.FieldType == typeof(ulong))
-								{
-									// OK - all checks passed.
-									// We actually have a field which holds either a contentTypeId or content type names.
-								}
-
-							}
-							
+							throw new Exception(
+								"Dynamic includes requires your content ID field to be a ulong. If you're not sure if you wanted a dynamic include, check the wiki page about includes."
+							);
 						}
-					}
 
-					// Attempt to get the type by name instead:
-					var relatedService = Services.Get(fieldMeta.TypeSourceField + "Service");
-
-					if (relatedService != null)
-					{
-						virtualFieldType = relatedService.InstanceType;
-						knownService = relatedService;
+						// OK - all checks passed. This is a dynamic includes specification.
+						// We have a field which holds content type names, and another which holds ulong IDs.
+						dynamicTypeField = targetField;
 					}
 					else
 					{
-						// Lazy load it later. The service might be a dynamic one which simply hasn't loaded yet.
-						virtualFieldTypeName = fieldMeta.TypeSourceField;
+						// Attempt to get the type by name instead:
+						var relatedService = Services.Get(fieldMeta.TypeSourceField + "Service");
+
+						if (relatedService != null)
+						{
+							virtualFieldType = relatedService.InstanceType;
+							knownService = relatedService;
+						}
+						else
+						{
+							// Lazy load it later. The service might be a dynamic one which simply hasn't loaded yet.
+							virtualFieldTypeName = fieldMeta.TypeSourceField;
+						}
 					}
 				}
 
@@ -636,6 +636,7 @@ namespace Api.Startup {
 					FieldName = fieldMeta.FieldName,
 					Type = virtualFieldType,
 					TypeName = virtualFieldTypeName,
+					DynamicTypeField = dynamicTypeField,
 					IdSourceField = fieldMeta.IdSourceField,
 					IsList = fieldMeta.List,
 					Service = knownService
@@ -688,9 +689,33 @@ namespace Api.Startup {
 		public bool TryGetValue(string fieldName, out ContentField field){
 			return _nameMap.TryGetValue(fieldName, out field);
 		}
-		
+
+		/// <summary>
+		/// Attempts to get the named field. If not found locally, checks in the global set as well.
+		/// </summary>
+		public bool TryGetOrGlobal(string fieldName, out ContentField field)
+		{
+			if (_nameMap.TryGetValue(fieldName, out field))
+			{
+				return true;
+			}
+
+			// Local virtuals:
+			if (LocalVirtualNameMap.TryGetValue(fieldName, out field))
+			{
+				return true;
+			}
+
+			if (GlobalVirtualFields.TryGetValue(fieldName, out field))
+			{
+				return true;
+			}
+
+			return false;
+		}
+
 	}
-	
+
 	/// <summary>
 	/// A field or property on a Content type.
 	/// </summary>
@@ -1196,6 +1221,12 @@ namespace Api.Startup {
 		public string TypeName;
 
 		/// <summary>
+		/// A field which holds the name of the type to include.
+		/// Part of the Dynamic Includes system.
+		/// </summary>
+		public ContentField DynamicTypeField;
+
+		/// <summary>
 		/// If this virtual field is a value generator, this is the generic class which will be instanced.
 		/// </summary>
 		public Type ValueGeneratorType;
@@ -1278,6 +1309,12 @@ namespace Api.Startup {
 
 				if (_type == null)
 				{
+					if (DynamicTypeField != null)
+					{
+						// Anything!
+						return typeof(object);
+					}
+
 					if (TypeName == null)
 					{
 						throw new Exception("Type name required if lazy loading the type of a virtual field (" + FieldName + ")");
@@ -1325,6 +1362,11 @@ namespace Api.Startup {
 		/// </summary>
 		public AutoService Service {
 			get {
+				if (DynamicTypeField != null)
+				{
+					return null;
+				}
+
 				if (_service != null)
 				{
 					return _service;

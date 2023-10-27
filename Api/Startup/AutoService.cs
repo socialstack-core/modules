@@ -1530,14 +1530,15 @@ public partial class AutoService
 	}
 
 	/// <summary>
-	/// Outputs a single object from this service as JSON into the given writer. Acts like include * was specified.
+	/// Outputs a single object from this service as JSON into the given writer. Acts like include * was specified by default.
 	/// Executes the given collector(s) whilst it happens, which can also be null.
 	/// </summary>
 	/// <param name="context"></param>
 	/// <param name="id"></param>
 	/// <param name="writer"></param>
+	/// <param name="includes"></param>
 	/// <returns></returns>
-	public virtual ValueTask OutputById(Context context, ulong id, Writer writer)
+	public virtual ValueTask OutputById(Context context, ulong id, Writer writer, string includes = "*")
 	{
 		// Not supported on this service.
 		return new ValueTask();
@@ -1699,11 +1700,17 @@ public partial class AutoService
 	}
 
 	/// <summary>
-	/// Installs generic admin pages for this service.
-	/// Does nothing if there isn't a page service installed, or if the admin pages already exist.
+	/// List is mappings linked back to this service e.g tags
 	/// </summary>
-	/// <param name="fields"></param>
-	protected void InstallAdminPages(string[] fields)
+    public List<MappingServiceGenerationMeta> GeneratedMappings;
+
+
+    /// <summary>
+    /// Installs generic admin pages for this service.
+    /// Does nothing if there isn't a page service installed, or if the admin pages already exist.
+    /// </summary>
+    /// <param name="fields"></param>
+    protected void InstallAdminPages(string[] fields)
 	{
 		InstallAdminPages(null, null, fields, null);
 	}

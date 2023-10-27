@@ -62,6 +62,142 @@ namespace Api.Startup
 	}
 
 	/// <summary>
+	/// Used by dynamic includes. Holds multiple sub-collectors based on reading a type field.
+	/// </summary>
+	public class MultiIdCollector : IDCollector
+	{
+		/// <summary>
+		/// The number of slots used in the CollectorsByType set.
+		/// </summary>
+		public int CollectorFill;
+
+		/// <summary>
+		/// A buffer of collectors by type.
+		/// </summary>
+		public IDCollectorWithType[] CollectorsByType = new IDCollectorWithType[2];
+
+		// The generated Collect method will read the ID (a ulong) and the type (a string)
+		// Then call Add(type, id)
+
+		/// <summary>
+		/// Releases the collectors.
+		/// </summary>
+		public override void Release()
+		{
+			for (var i = 0; i < CollectorFill; i++)
+			{
+				var collector = CollectorsByType[i].Collector;
+
+				// Release its buffers:
+				collector.Release();
+
+				// And put it in the relevant pool:
+				if (collector is IDCollector<uint> uintCollector)
+				{
+					IDCollector<uint>.ReleaseGenericCollector(uintCollector);
+				}
+				else
+				{
+					IDCollector<ulong>.ReleaseGenericCollector((IDCollector<ulong>)collector);
+				}
+			}
+
+			CollectorFill = 0;
+
+			// Re-add to this pool:
+			if (Pool != null)
+			{
+				Pool.AddToPool(this);
+			}
+
+		}
+
+		/// <summary>
+		/// Adds the given typed ID to the set.
+		/// </summary>
+		/// <param name="type"></param>
+		/// <param name="id"></param>
+		public void Add(string type, ulong id)
+		{
+			// is the type already in here?
+			IDCollector collector = null;
+			AutoService svc = null;
+
+			for (var i = 0; i < CollectorFill; i++)
+			{
+				svc = CollectorsByType[i].Service;
+				if (svc.EntityName == type)
+				{
+					// Got it
+					collector = CollectorsByType[i].Collector;
+					break;
+				}
+			}
+
+			if (collector == null)
+			{
+				// Add it now
+				svc = Services.Get(type + "Service");
+
+				if (svc == null)
+				{
+					// Unknown type - ignore it.
+					return;
+				}
+
+				if (CollectorFill == CollectorsByType.Length)
+				{
+					// Add 5 slots:
+					Array.Resize(ref CollectorsByType, CollectorFill + 5);
+				}
+
+				// Rent a collector based on the service's ID type.
+				if (svc.IdType == typeof(uint))
+				{
+					collector = IDCollector<uint>.RentGenericCollector();
+				}
+				else if (svc.IdType == typeof(ulong))
+				{
+					collector = IDCollector<ulong>.RentGenericCollector();
+				}
+
+				CollectorsByType[CollectorFill] = new IDCollectorWithType() {
+					Collector = collector,
+					Service = svc
+				};
+
+				CollectorFill++;
+
+			}
+
+			if (svc.IdType == typeof(uint))
+			{
+				((IDCollector<uint>)collector).Add((uint)id);
+			}
+			else if (svc.IdType == typeof(ulong))
+			{
+				((IDCollector<ulong>)collector).Add(id);
+			}
+		}
+
+	}
+
+	/// <summary>
+	/// Holds a collector for a particular service.
+	/// </summary>
+	public struct IDCollectorWithType
+	{
+		/// <summary>
+		/// The collector. Will be an IDCollector[ID] where typeof(ID) == Service.IdType.
+		/// </summary>
+		public IDCollector Collector;
+		/// <summary>
+		/// The service being collected for.
+		/// </summary>
+		public AutoService Service;
+	}
+
+	/// <summary>
 	/// ID collector enumeration cursor.
 	/// </summary>
 	/// <typeparam name="T"></typeparam>
@@ -121,6 +257,57 @@ namespace Api.Startup
 	/// </summary>
 	public class IDCollector<T>: IDCollector, IEnumerable<T> where T:struct, IEquatable<T>, IComparable<T>
 	{
+		/// <summary>
+		/// Generic pool lock
+		/// </summary>
+		private static object GenericCollectorPoolLock = new object();
+
+		/// <summary>
+		/// First ID collector in the pool for this field.
+		/// </summary>
+		private static IDCollector<T> FirstInGenericPool;
+
+		/// <summary>
+		/// Global pool of non-field specific uint collectors.
+		/// </summary>
+		/// <returns></returns>
+		public static IDCollector<T> RentGenericCollector()
+		{
+			IDCollector<T> instance = null;
+
+			lock (GenericCollectorPoolLock)
+			{
+				if (FirstInGenericPool != null)
+				{
+					// Pop from the pool:
+					instance = FirstInGenericPool;
+					FirstInGenericPool = (IDCollector<T>)instance.NextCollector;
+				}
+			}
+
+			if (instance == null)
+			{
+				// Instance one:
+				instance = new IDCollector<T>();
+			}
+
+			instance.NextCollector = null;
+			return instance;
+		}
+
+		/// <summary>
+		/// Global pool of non-field specific ulong collectors.
+		/// </summary>
+		/// <returns></returns>
+		public static void ReleaseGenericCollector(IDCollector<T> collector)
+		{
+			lock (GenericCollectorPoolLock)
+			{
+				collector.NextCollector = FirstInGenericPool;
+				FirstInGenericPool = collector;
+			}
+		}
+
 		/// <summary>
 		/// Linked list of blocks in this collector.
 		/// </summary>

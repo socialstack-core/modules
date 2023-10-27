@@ -6,6 +6,7 @@ using Api.Permissions;
 using Api.Translate;
 using Newtonsoft.Json.Linq;
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Globalization;
 using System.Reflection;
@@ -639,7 +640,7 @@ namespace Api.Startup
 		/// The set of props to give to the display module when displaying this field in a form.
 		/// Must be json serializable.
 		/// </summary>
-		public Dictionary<string, object> Data = new Dictionary<string, object>();
+		public ConcurrentDictionary<string, object> Data = new ConcurrentDictionary<string, object>();
 		/// <summary>
 		/// True if this field should not appear in forms. Non-writeable properties are hidden by default.
 		/// </summary>
