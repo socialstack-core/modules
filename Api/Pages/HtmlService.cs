@@ -379,11 +379,15 @@ namespace Api.Pages
                 _config.CacheMaxAge > 0 &&
                 _config.CacheAnonymousPages &&
                 !isAdmin &&
-                context.UserId == 0 && context.RoleId == 6 &&
-                (context.LocaleId == context.CurrencyLocaleId || context.CurrencyLocaleId == 0)
+                context.UserId == 0 && context.RoleId == 6
             );
 
-            ConcurrentDictionary<string, CachedPageData> localeCache = null;
+			if (pullFromCache)
+			{
+				pullFromCache = await Events.Context.CanUseCache.Dispatch(context, pullFromCache);
+			}
+
+			ConcurrentDictionary<string, CachedPageData> localeCache = null;
             CachedPageData cpd = null;
 
             if (pullFromCache)
@@ -1099,7 +1103,6 @@ svg {
         /// <param name="context"></param>
         /// <param name="pageAndTokens"></param>
         /// <param name="path"></param>
-        /// <param name="country"></param>
         /// <param name="preRender">Optionally override if SSR should execute.</param>
         /// <returns></returns>
         private async ValueTask<List<DocumentNode>> RenderPage(Context context, PageWithTokens pageAndTokens, string path, bool? preRender = null)
@@ -2055,6 +2058,7 @@ svg {
         /// <param name="request"></param>
         /// <param name="response"></param>
         /// <param name="updateContext"></param>
+        /// <param name="isAdmin"></param>
         /// <returns></returns>
         public async ValueTask BuildPage(Context context, HttpRequest request, HttpResponse response, bool updateContext = false, bool isAdmin = false)
         {
@@ -2073,7 +2077,12 @@ svg {
 
             var pageAndTokens = await _pages.GetPage(context, request.Host.Value, path, searchQuery, true);
 
-            bool pullFromCache = (_config.CacheMaxAge > 0 && _config.CacheAnonymousPages && !isAdmin && context.UserId == 0 && context.RoleId == 6 && (context.LocaleId == context.CurrencyLocaleId || context.CurrencyLocaleId == 0));
+            bool pullFromCache = (_config.CacheMaxAge > 0 && _config.CacheAnonymousPages && !isAdmin && context.UserId == 0 && context.RoleId == 6);
+
+            if (pullFromCache)
+            {
+                pullFromCache = await Events.Context.CanUseCache.Dispatch(context, pullFromCache);
+            }
 
             response.ContentType = "text/html";
             response.Headers["Content-Encoding"] = "gzip";
