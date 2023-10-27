@@ -34,14 +34,14 @@ namespace Api.Users
 		/// <summary>
 		/// The feature image ref (optionally used on their profile page). See also: "Upload.Ref" in the Uploads module.
 		/// </summary>
-		[DatabaseField(Length = 80)]
+		[DatabaseField(Length = 300)]
 		[Permissions(HideFieldByDefault = false)]
 		public string FeatureRef;
 
 		/// <summary>
 		/// The avatar upload ref. See also: "Upload.Ref" in the Uploads module.
 		/// </summary>
-		[DatabaseField(Length = 80)]
+		[DatabaseField(Length = 300)]
 		[Permissions(HideFieldByDefault = false)]
 		public string AvatarRef;
 
