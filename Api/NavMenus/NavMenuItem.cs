@@ -17,7 +17,7 @@ namespace Api.NavMenus
 		/// <summary>
 		/// The ID of the nav menu this item belongs to.
 		/// </summary>
-		public int NavMenuId;
+		public uint NavMenuId;
 
 		/// <summary>
 		/// The key value of the host menu. Used to find these items quicker.
@@ -27,7 +27,7 @@ namespace Api.NavMenus
 		/// <summary>
 		/// ID of a parent nav menu item, if this is on a submenu. Null otherwise.
 		/// </summary>
-		public int? ParentItemId;
+		public uint? ParentItemId;
 
 		/// <summary>
 		/// The visual content of this menu item. Can contain imagery etc.
