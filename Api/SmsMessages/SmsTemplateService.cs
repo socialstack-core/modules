@@ -67,11 +67,8 @@ namespace Api.SmsMessages
 			}
 
 			// Render the template now:
-			return await _canvasRendererService.Render(recipient.Context, template.BodyJson, new PageState() {
-				Tokens = null,
-				TokenNames = null,
-				PrimaryObject = Newtonsoft.Json.JsonConvert.SerializeObject(recipient.CustomData, jsonSettings)
-			});
+			var state = "{\"po\": " + Newtonsoft.Json.JsonConvert.SerializeObject(recipient.CustomData, jsonSettings) + "}";
+			return await _canvasRendererService.Render(recipient.Context, template.BodyJson, state, RenderMode.Text);
 		}
 
 		private readonly JsonSerializerSettings jsonSettings = new JsonSerializerSettings
@@ -254,10 +251,8 @@ namespace Api.SmsMessages
 					var recipient = set.Recipients[i];
 
 					// Render all. The results are in the exact same order as the recipients set.
-					var renderedResult = await _canvasRendererService.Render(recipient.Context, set.Template.BodyJson, new PageState()
-					{
-						PrimaryObject = Newtonsoft.Json.JsonConvert.SerializeObject(recipient.CustomData, jsonSettings)
-					}, null, false, RenderMode.Text);
+					var state = "{\"po\": " + Newtonsoft.Json.JsonConvert.SerializeObject(recipient.CustomData, jsonSettings) + "}";
+					var renderedResult = await _canvasRendererService.Render(recipient.Context, set.Template.BodyJson, state, RenderMode.Text);
 
 					// SMS number to send to:
 					var targetNumber = recipient.ContactNumber == null ? recipient.User.ContactNumber : recipient.ContactNumber;
