@@ -159,11 +159,11 @@ export default class PropEditor extends React.Component {
 		return fieldName == 'children' || fieldName == 'editButton'
 	}
 	
-	getContentDropdown(typeName, field, filterFunc){
+	getContentDropdown(typeName, field, filterFunc, filter){
 		if(!__contentCacheByType[typeName]){
 			__contentCacheByType[typeName] = [];
 			
-			webRequest(typeName.toLowerCase() + '/list').then(result => {
+			webRequest(typeName.toLowerCase() + '/list', filter).then(result => {
 				__contentCacheByType[typeName] = result.json.results;
 				this.setState({});
 			});
@@ -283,7 +283,7 @@ export default class PropEditor extends React.Component {
 				inputContent.unshift(<option disabled value="">{`Pick a value`}</option>);
 			}else if(propType.type == 'id' || propType.type == 'contentField'){
 				inputType = 'select';
-				inputContent = this.getContentDropdown(propType.content || propType.contentType, propType.field || 'id', propType.filterFunction);
+				inputContent = this.getContentDropdown(propType.content || propType.contentType, propType.field || 'id', propType.filterFunction, propType.filter);
 				inputContent.unshift(<option disabled value="">{`Pick some content`}</option>);
 			}else if(propType.type == 'contentType'){
 				inputType = 'select';

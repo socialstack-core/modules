@@ -55,6 +55,18 @@ export default class Content extends GraphNode {
 				
 				
 		});
+
+		if(this.state.manualIncludes){
+			var manualIncludes = this.state.manualIncludes.split(",");
+
+			manualIncludes.forEach(manualInclude => {
+				if(!incl){
+					incl = [];
+				}
+
+				incl.push(manualInclude);
+			});
+		}
 		
 		this.state.includes = incl;
 	}
@@ -144,6 +156,18 @@ export default class Content extends GraphNode {
 			});
 			
 		}
+
+		fields.push({
+			key: 'manualIncludes',
+			name: `Includes`,
+			type: 'string',
+			/*onRender: (value, onSetValue, label) => {
+				return <div className="entry-content__includes-wrapper">
+					<Input type={'text'} label={label} value={value !== null && value !== undefined && !(value.link && value.node && value.field) ? value : undefined}
+						onChange={e => onSetValue(e.target.value)} onKeyUp={e => onSetValue(e.target.value)} />
+				</div>;
+			}*/
+		});
 		
 		return fields;
 	}

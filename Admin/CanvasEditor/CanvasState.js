@@ -640,7 +640,7 @@ export default class CanvasState{
 				}
 
 				// ensure link is lowercase
-				if (!this.isExternalUrl(url)) {
+				if (!this.isExternalUrl(url) && !url.includes("/content/")) {
 					url = url.toLowerCase();
 				}
 			} 
@@ -1107,8 +1107,8 @@ export default class CanvasState{
 	
 	// Note: after removing one or more nodes, you must snapshot the state.
 	// It is this way just in case you are making multiple changes in one user action.
-	removeNode(node, retainChildren){
-		if(!node.parent || !node.type){
+	removeNode(node, retainChildren, ignoreRootTypeRule){
+		if(!node.parent || (!ignoreRootTypeRule && !node.type)){
 			// It's a root. Just empty it instead via putting an RTE in there.
 			var decorator = createLinkDecorator();
 			var rootPara = {type: 'richtext', editorState: EditorState.createEmpty(decorator)};

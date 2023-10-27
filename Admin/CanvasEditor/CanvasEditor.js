@@ -138,7 +138,7 @@ function renderStructureNode(node, canvasState, onClick, snapshotState) {
 	}
 	
 	var removeNode = () => {
-		canvasState.removeNode(node);
+		canvasState.removeNode(node, false, true);
 		snapshotState();
 	};
 
