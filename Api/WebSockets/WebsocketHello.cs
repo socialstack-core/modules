@@ -310,7 +310,7 @@ namespace Api.SocketServerLibrary
 							}
 
 							client.Send(writer);
-							
+							writer.Release();
 
 							frame.Phase = 0;
 							break;
