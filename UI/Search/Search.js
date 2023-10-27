@@ -97,11 +97,24 @@ export default class Search extends React.Component {
 		if(this.props.host){
 			url = (url.indexOf('http') === 0 || url[0] == '/') ? url : this.props.host + '/v1/' + url;
 		}
-		
+
+		var requestOpts = this.props.requestOpts;
+
+		// if we are searching for tags get the categories
+		if (this.props.for == "tag") {
+			if (!requestOpts || requestOpts === "undefined") {
+				requestOpts = { includes: 'categories' };
+			} else {
+				if (!requestOpts.includes) {
+					requestOpts.includes = 'categories';
+                }
+            }
+        }
+
 		if(this.props.for){
 			// Otherwise it just exports the query
 			this.setState({loading: true});
-			webRequest(url, {where, pageSize: (this.props.limit || 50)}, this.props.requestOpts).then(response => {
+			webRequest(url, { where, pageSize: (this.props.limit || 50) }, requestOpts).then(response => {
 				var results = response.json ? response.json.results : [];
 				if (excludeIds && excludeIds.length > 0) {
 					results = results.filter(t => !excludeIds.includes(t.id));
@@ -129,14 +142,18 @@ export default class Search extends React.Component {
 		if(this.props.onDisplay){
 			return this.props.onDisplay(result, isSuggestion);
 		} 
-		
+
 		var field = this.props.field || 'name';
 		field = field.charAt(0).toLowerCase() + field.slice(1);
 		
 		if(field == 'fullName' && result.email){
 			return result[field] + ' (' + result.email + ')';
 		}
-		
+
+		if (this.props.for == 'tag' && result.categories && result.categories.length == 1) {
+			return result[field] + ' (' + result.categories[0].name + ')';
+		}
+
 		return result[field];
 	}
 	
