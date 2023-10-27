@@ -6,6 +6,11 @@
 	.custom-field-select-form--option {
 		height: 40px;
 
+		.option-order {
+			float: right;
+			margin-right: 1rem;
+		}
+
 		.option-buttons {
 			float: right;
 

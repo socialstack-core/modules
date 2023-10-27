@@ -26,7 +26,12 @@ export default class CustomFieldForm extends React.Component {
 		];
 
 		if (!props.isFormField) {
-			this.dataTypes = [...this.dataTypes, { value: "entity", name: "Link To Another Data Type" }, { value: "entitylist", name: "List Of Another Data Type" }, ];
+			this.dataTypes = [
+				...this.dataTypes, 
+				{ value: "entity", name: "Another Data Type" }, 
+				{ value: "entitylist", name: "List Of Another Data Type" },
+				{ value: "entitylink", name: "Link To Another Page Data Type" }
+			];
 		}
 	}
 
@@ -124,15 +129,35 @@ export default class CustomFieldForm extends React.Component {
 					<CustomFieldSelectForm fieldId={this.state.field.id} />
 				}
 
+				{this.state.dataType === "select" &&
+					<Input 
+						label="Are the options prices?"
+						name="optionsArePrices"
+						type="checkbox"
+						defaultValue={this.props.field && this.props.field.optionsArePrices ? true : null}
+					/>
+				}
+
 				{!this.props.isFormField
 					?
-						<Input 
-							label="Localised"
-							name="localised"
-							type="checkbox"
-							defaultValue={this.props.field ? this.props.field.localised : null}
-							validate={['Required']}
-						/>
+						this.state.dataType != "entitylink" &&
+							<div className="attributes">
+								<Input 
+									label="Localised"
+									name="localised"
+									type="checkbox"
+									defaultValue={this.props.field ? this.props.field.localised : null}
+									validate={['Required']}
+								/>
+								{this.state.dataType === "string" &&
+									<Input 
+										label="Should this text be url encoded?"
+										name="urlEncoded"
+										type="checkbox"
+										defaultValue={this.props.field && this.props.field.urlEncoded ? true : null}
+									/>
+								}
+							</div>
 					:
 						<div className="form-specific-vlaues">
 							<div className="validation">
@@ -141,6 +166,12 @@ export default class CustomFieldForm extends React.Component {
 									name="isRequired"
 									type="checkbox"
 									defaultValue={this.props.field && this.props.field.validation && this.props.field.validation.includes("Required") ? true : null}
+								/>
+								<Input 
+									label="Is this field hidden?"
+									name="isHidden"
+									type="checkbox"
+									defaultValue={this.props.field && this.props.field.isHidden ? true : null}
 								/>
 								{(this.state.dataType === "string" || this.state.dataType === "textarea") &&
 									<Input 

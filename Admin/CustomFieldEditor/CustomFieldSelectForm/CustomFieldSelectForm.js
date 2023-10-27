@@ -30,7 +30,8 @@ export default class CustomFieldSelectForm extends React.Component {
 						{
 							where: {
 								customContentTypeFieldId: this.props.fieldId
-							}
+							},
+							sort: { field: 'order' }
 						}
 					}
 				>
@@ -46,6 +47,7 @@ export default class CustomFieldSelectForm extends React.Component {
 											<icon className="fa fa-trash" />
 										</button>
 									</div>
+									<span className="option-order">Order: {option.order}</span>
 								</div>
 						}
 					}

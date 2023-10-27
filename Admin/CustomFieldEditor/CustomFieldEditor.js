@@ -137,7 +137,8 @@ export default class CustomFieldEditor extends React.Component {
 						where: {
 							customContentTypeId: this.props.currentContent.id,
 							deleted: false
-						}
+						},
+						sort: { field: 'order' }
 					}
 				}
 				orNone={() => this.renderEmpty()}>
