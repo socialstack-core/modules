@@ -68,8 +68,16 @@ public static class CommandLine
 
 		if (process.Start())
 		{
-			process.BeginOutputReadLine();
-			process.BeginErrorReadLine();
+			if (outputStream != null)
+			{
+				process.BeginOutputReadLine();
+
+			}
+			if (errStream != null)
+			{
+				process.BeginErrorReadLine();
+
+			}
 		}
 
 		return tcs.Task;
