@@ -96,7 +96,7 @@ namespace Api.Translate
 
 			});
 
-			Events.ContextAfterAnonymous.AddEventListener((Context context, Context result, HttpRequest request) =>
+			Events.Context.OnLoad.AddEventListener((Context context, HttpRequest request) =>
 			{
 				if (_multiDomain)
 				{
@@ -113,7 +113,13 @@ namespace Api.Translate
 						context.LocaleId = localeId.Value;
 					}
 				}
-				else if (cfg.HandleAcceptLanguageHeader && result != null)
+
+				return new ValueTask<HttpRequest>(request);
+			});
+
+			Events.ContextAfterAnonymous.AddEventListener((Context context, Context result, HttpRequest request) =>
+			{
+				if (cfg.HandleAcceptLanguageHeader && result != null)
 				{
 					// Identify most suitable locale from the accept-lang header.
 					StringValues acceptLangs;
@@ -206,7 +212,7 @@ namespace Api.Translate
 		/// <returns>null if not found.</returns>
 		public uint? GetByDomain(string domain)
 		{
-			if (_domainMap == null)
+			if (_domainMap == null || domain == null)
 			{
 				return null;
 			}
