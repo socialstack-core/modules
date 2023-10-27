@@ -28,6 +28,11 @@ namespace Api.Eventing
 		/// </summary>
 		public EventHandler<InviteCustomPayloadData, Invite> BeforeSend;
 
+		/// <summary>
+		/// Just after the invite is sucessfully redeemed.
+		/// </summary>
+		public EventHandler<Invite> AfterRedeem;
+
 	}
 
 }

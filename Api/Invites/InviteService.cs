@@ -113,13 +113,16 @@ namespace Api.Invites
 
 					if(user == null)
 					{
-						// Create the user now, as a member:
-						user = await users.Create(context,
+						// Create the user now, as a member. Because we're forcing a particular role, we'll need to elevate the context.
+						var elevatedContext = new Context(context.LocaleId, context.UserId, 1);
+
+						user = await users.Create(elevatedContext,
 							new User() {
 								Email = isEmail ? locator : null,
 								FirstName = invite.FirstName,
 								LastName = invite.LastName,
 								FullName = fullName,
+								Role = 4,
 								ContactNumber = !isEmail ? locator : null
 							}, DataOptions.IgnorePermissions);
 					}
@@ -195,6 +198,8 @@ namespace Api.Invites
 				await Events.UserOnLogin.Dispatch(context, loginResult);
 
 			}
+
+			await Events.Invite.AfterRedeem.Dispatch(context, result);
 
 			return result;
 		}
