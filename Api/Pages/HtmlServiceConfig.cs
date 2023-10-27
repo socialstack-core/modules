@@ -101,6 +101,11 @@ namespace Api.Pages
 		/// The maximum time in seconds cacheable page should be stored in an external cache
 		/// </summary>
 		public ulong CacheMaxAge = 86400;
+
+		/// <summary>
+		/// Theme colour of an app
+		/// </summary>
+		public string AppThemeColor { get; set; } = "#ffffff";
 	}
 
 	/// <summary>

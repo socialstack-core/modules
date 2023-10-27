@@ -891,7 +891,7 @@ svg {
             var mainAdminCssFile = await _frontend.GetAdminMainCss(context == null ? 1 : context.LocaleId);
             head.AppendChild(new DocumentNode("link", true).With("rel", "stylesheet").With("href", _config.FullyQualifyUrls ? mainAdminCssFile.FqPublicUrl : mainAdminCssFile.PublicUrl));
             head.AppendChild(new DocumentNode("meta", true).With("name", "msapplication-TileColor").With("content", "#ffffff"))
-                .AppendChild(new DocumentNode("meta", true).With("name", "theme-color").With("content", "#ffffff"))
+                .AppendChild(new DocumentNode("meta", true).With("name", "theme-color").With("content", _config.AppThemeColor))
                 .AppendChild(new DocumentNode("meta", true).With("name", "viewport").With("content", "width=device-width, initial-scale=1"));
 
             // Handle all End Head tags in the config.
@@ -971,7 +971,7 @@ svg {
             head.AppendChild(new DocumentNode("link", true).With("rel", "stylesheet").With("href", "pack/main." + locale.Code + ".css"));
 
             head.AppendChild(new DocumentNode("meta", true).With("name", "msapplication-TileColor").With("content", "#ffffff"))
-                .AppendChild(new DocumentNode("meta", true).With("name", "theme-color").With("content", "#ffffff"))
+                .AppendChild(new DocumentNode("meta", true).With("name", "theme-color").With("content", _config.AppThemeColor))
                 .AppendChild(new DocumentNode("meta", true).With("name", "viewport").With("content", "width=device-width, initial-scale=1"));
 
 #if DEBUG
