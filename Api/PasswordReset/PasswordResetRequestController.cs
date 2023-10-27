@@ -119,6 +119,7 @@ namespace Api.PasswordResetRequests
 
 			if (userToUpdate != null)
 			{
+				userToUpdate.PasswordReset = token;
 				userToUpdate.PasswordHash = PasswordStorage.CreateHash(newPassword.Password);
 
 				// This also effectively validates the user's email address, so if they were still a guest, elevate them to member.
