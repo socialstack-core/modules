@@ -18,8 +18,17 @@ public class IncludesExecutor<T, ID>
 	where T : Content<ID>, new()
 	where ID : struct, IConvertible, IEquatable<ID>, IComparable<ID>
 {
+	/// <summary>
+	/// The service this include is related to
+	/// </summary>
 	public AutoService<T, ID> _svc;
+	/// <summary>
+	/// The full fields
+	/// </summary>
 	protected ContentFields _fields;
+	/// <summary>
+	/// The include set this is part of
+	/// </summary>
 	public IncludeSet includeSet;
 	/// <summary>
 	/// JSON writer for this type.
