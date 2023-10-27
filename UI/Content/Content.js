@@ -9,9 +9,7 @@ class ContentIntl extends React.Component {
 	constructor(props){
 		super(props);
 		this.state={
-			// Get initial content object. This is to avoid very inefficient wasted renders 
-			// caused by using a promise here or componentDidUpdate only.
-			content: props.id ? Content.getCached(props.type, props.id) : null
+			content: null
 		};
 		this.onLiveMessage = this.onLiveMessage.bind(this);
 		this.onContentChange = this.onContentChange.bind(this);
@@ -221,26 +219,4 @@ Content.get = function(type, id, includes) {
 Content.list = function(type, filter, includes) {
 	var url = type + '/list';
 	return webRequest(url, filter, includes ? {includes} : null).then(response => response.json);
-};
-
-// E.g:
-// content.getCached("blog", 1, context);
-// Returns the object immediately if it came from the cache, otherwise null.
-// This should be used in your component constructor.
-// Using it prevents a wasted render when the data is available immediately.
-// 
-// When server side, this may return a promise. Any promises in a component's state when it has been 
-// constructed will be awaited and swapped with the resolved value before proceeding.
-Content.getCached = function(type, id) {
-	if(!global.pgState || global.cIndex === undefined){
-		return null;
-	}
-	var {data} = global.pgState;
-	
-	// Purely by order.
-	return data ? data[global.cIndex++] : null;
-};
-
-Content.listCached = function(type, filter, includes) {
-	return Content.getCached();
 };
