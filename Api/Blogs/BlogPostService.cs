@@ -84,7 +84,7 @@ namespace Api.Blogs
 							}
 
 							// No synopsis was added, let's get one based on the body json. 
-							var renderedPage = await _csr.Render(context, blogPost.BodyJson, PageState.None, null, false, RenderMode.Text);
+							var renderedPage = await _csr.Render(context, blogPost.BodyJson, null, RenderMode.Text, false);
 
 							synopsis = renderedPage.Text;
 
@@ -147,7 +147,7 @@ namespace Api.Blogs
 						}
 
 						// No synopsis was added, let's get one based on the body json. 
-						var renderedPage = await _csr.Render(context, blogPost.BodyJson, PageState.None, null, false, RenderMode.Text);
+						var renderedPage = await _csr.Render(context, blogPost.BodyJson, null, RenderMode.Text, false);
 
 						synopsis = renderedPage.Text;
 
