@@ -397,7 +397,7 @@ function _fetch(url, data, opts) {
 		return fetch(url, { method: opts && opts.method ? opts.method : 'get', mode, credentials, headers });
 	}
     
-	if (global.FormData && data instanceof global.FormData) {
+	if ((global.FormData && data instanceof global.FormData) || (global.Uint8Array && data instanceof global.Uint8Array)) {
 		return fetch(url, {
 			method: opts && opts.method ? opts.method : 'post',
             body: data,
