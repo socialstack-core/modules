@@ -138,6 +138,24 @@ export default class CustomFieldForm extends React.Component {
 					/>
 				}
 
+				{this.state.dataType === "dateTime" &&
+					<>
+						<Input
+							label="Should seconds be hidden?"
+							name="hideSeconds"
+							type="checkbox"
+							defaultValue={this.props.field && this.props.field.hideSeconds ? true : null}
+						/>
+
+						<Input
+							label="Should minutes be rounded (5 mins) ?" 
+							name="roundMinutes"
+							type="checkbox"
+							defaultValue={this.props.field && this.props.field.roundMinutes ? true : null}
+						/>
+					</>
+				}
+
 				{!this.props.isFormField
 					?
 						this.state.dataType != "entitylink" &&
