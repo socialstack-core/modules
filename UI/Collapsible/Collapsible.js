@@ -1,7 +1,7 @@
 import Dropdown from 'UI/Dropdown';
 
 export default function Collapsible(props) {
-	var { className, compact, defaultClick, alwaysOpen } = props;
+	var { className, compact, defaultClick, alwaysOpen, hidden } = props;
 	var noContent = props.noContent || !props.children;
 	var [isOpen, setOpen] = React.useState(noContent ? false : !!props.open);
 	
@@ -18,6 +18,10 @@ export default function Collapsible(props) {
 	if (compact) {
 		detailsClass += " collapsible--compact";
     }
+
+	if (hidden) {
+		detailsClass += " collapsible--hidden";
+	}
 
 	if (noContent) {
 		iconClass += " invisible";

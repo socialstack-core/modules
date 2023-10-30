@@ -183,6 +183,10 @@
 		
 	}
 	
+	&--hidden {
+		display: none !important;
+	}
+
 	&:last-child {
 
 		#{$collapsible}-summary,
