@@ -1,6 +1,7 @@
 import Search from 'UI/Search';
 import webRequest from 'UI/Functions/WebRequest';
 import Modal from 'UI/Modal';
+import getRef from 'UI/Functions/GetRef';
 
 var AutoForm = null;
 
@@ -72,6 +73,20 @@ export default class MultiSelect extends React.Component {
 			displayFieldName = displayFieldName[0].toLowerCase() + displayFieldName.substring(1);
 		}
 
+		// check to see if the object has a media ref
+		var mediaRefFieldName = '';
+		if (this.state.value != undefined && this.state.value.length > 0) {
+			var tempObject = this.state.value[0];
+
+			Object.keys(tempObject).forEach(function (key, index) {
+				if (tempObject[key] != null) {
+					if (getRef.isImage(tempObject[key].toString())) {
+						mediaRefFieldName = key;
+					}
+				}
+			});
+        }
+
 		var contentTypeLower = this.props.contentType ? this.props.contentType.toLowerCase() : "";
 
 		var atMax = false;
@@ -97,6 +112,11 @@ export default class MultiSelect extends React.Component {
 									{entry[displayFieldName]}
 								</p>
 								<div className="admin-multiselect__entry-options">
+									{mediaRefFieldName && mediaRefFieldName.length > 0 &&
+										<>
+										<img width='32' height='32' src={getRef(entry[mediaRefFieldName], { url: true , size:128})} />
+										</>
+									}
 									<button className="btn btn-sm btn-outline-primary btn-entry-select-action btn-view-entry" title={`Edit`}
 										onClick={e => {
 											e.preventDefault();
