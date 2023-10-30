@@ -187,7 +187,6 @@ export default function Dropdown(props) {
     }
 
     function handleClick(event) {
-
         // toggle dropdown
         if (toggleRef && toggleRef.current == event.target) {
 
@@ -332,11 +331,7 @@ export default function Dropdown(props) {
     }, [open]);
 
     return (
-        <div title={title} className={dropdownClasses.join(' ')} ref={dropdownWrapperRef} onClick={(e) => {
-            // necessary if hosted within UI/Collapsible
-            e.stopPropagation();
-            handleClick(e);
-        }}>
+        <div title={title} className={dropdownClasses.join(' ')} ref={dropdownWrapperRef}>
             {/* TODO: popper support
             <Manager>
                 <Reference>
