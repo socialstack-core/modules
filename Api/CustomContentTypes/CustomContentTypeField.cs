@@ -64,6 +64,16 @@ namespace Api.CustomContentTypes
 		public bool IsHidden;
 
 		/// <summary>
+        /// True if this date time field should hide seconds
+        /// </summary>
+        public bool HideSeconds;
+
+        /// <summary>
+        /// True if this date time field should be rounded to the nearest 5 minutes
+        /// </summary>
+        public bool RoundMinutes;
+
+        /// <summary>
 		/// The validation to be applied to this field
 		/// </summary>
 		public string Validation;

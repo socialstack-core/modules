@@ -83,37 +83,9 @@ namespace Api.CustomContentTypes
 			                        ""singular"": ""Custom Content Type"",
 			                        ""id"": ""${primary.id}"",
 			                        ""plural"": ""custom content types""
-		                        },
-		                        ""r"": {
-			                        ""children"": {
-				                        ""t"": ""p"",
-				                        ""c"": {
-					                        ""t"": ""br""
-				                        },
-				                        ""d"": {},
-				                        ""i"": 2
-			                        },
-			                        ""beforeForm"": {
-				                        ""t"": ""p"",
-				                        ""c"": {
-					                        ""t"": ""br""
-				                        },
-				                        ""d"": {},
-				                        ""i"": 3
-			                        },
-			                        ""afterForm"": {
-				                        ""t"": ""p"",
-				                        ""c"": {
-					                        ""t"": ""br""
-				                        },
-				                        ""d"": {},
-				                        ""i"": 4
-			                        }
-		                        },
-		                        ""i"": 5
-	                        },
-	                        ""i"": 6
-                            }"
+		                        }
+	                        }
+                        }"
                     },
                     new Page()
                     {
@@ -170,36 +142,8 @@ namespace Api.CustomContentTypes
 			                        ""hideEndpointUrl"": true,
 			                        ""previousPageUrl"": ""/en-admin/customcontenttype"",
 			                        ""previousPageName"": ""Data""
-		                        },
-		                        ""r"": {
-			                        ""children"": {
-				                        ""t"": ""p"",
-				                        ""c"": {
-					                        ""t"": ""br""
-				                        },
-				                        ""d"": {},
-				                        ""i"": 4
-			                        },
-			                        ""beforeForm"": {
-				                        ""t"": ""p"",
-				                        ""c"": {
-					                        ""t"": ""br""
-				                        },
-				                        ""d"": {},
-				                        ""i"": 4
-			                        },
-			                        ""afterForm"": {
-				                        ""t"": ""p"",
-				                        ""c"": {
-					                        ""t"": ""br""
-				                        },
-				                        ""d"": {},
-				                        ""i"": 5
-			                        }
-		                        },
-		                        ""i"": 2
-	                        },
-	                        ""i"": 3                            
+		                        }
+	                        }
                         }"
                     },
                     new Page()
@@ -281,37 +225,8 @@ namespace Api.CustomContentTypes
 				                        ""isForm"": true
 			                        },
 			                        ""showExportButton"": false
-		                        },
-		                        ""r"": {
-			                        ""children"": {
-				                        ""t"": ""p"",
-				                        ""c"": {
-					                        ""t"": ""br""
-				                        },
-				                        ""d"": {},
-				                        ""i"": 2
-			                        },
-			                        ""beforeForm"": {
-				                        ""t"": ""p"",
-				                        ""c"": {
-					                        ""t"": ""br""
-				                        },
-				                        ""d"": {},
-				                        ""i"": 5
-			                        },
-			                        ""afterForm"": {
-				                        ""t"": ""p"",
-				                        ""c"": {
-					                        ""t"": ""br""
-				                        },
-				                        ""d"": {},
-				                        ""i"": 6
-			                        }
-		                        },
-		                        ""i"": 3
-	                        },
-	                        ""i"": 4
-
+		                        }
+	                        }
                         }"
                     }
                     );
