@@ -331,8 +331,17 @@ function displayImage(url, options) {
 
     // setup structured data for the image based on the author
     var structuredDataHeader = (authorText && authorText.length > 0) ? { "itemscope": "", itemtype: "https://schema.org/ImageObject" } : {};
-    var structuredDataItem = (authorText && authorText.length > 0) ? { itemprop:"contentUrl" } : {};
+    var structuredDataItem = (authorText && authorText.length > 0) ? { itemprop: "contentUrl" } : {};
 
+    /*
+    var imageClass = ['responsive-media__image'];
+
+    if (options.attribs && options.attribs.className) {
+        imageClass.push(options.attribs.className);
+    }
+
+    var img = <img className={imageClass.join(' ')} src={url} srcset={hasWrapper ? undefined : options.landscapeSrcset}
+    */
     var img = <img className="responsive-media__image" src={url} srcset={hasWrapper ? undefined : options.landscapeSrcset}
         style={options.fx && options.fy && !(options.fx == 50 && options.fy == 50) ? { 'object-position': `${options.fx}% ${options.fy}%` } : undefined}
         width={imgWidth}
@@ -346,9 +355,15 @@ function displayImage(url, options) {
     />;
 
     if (hasWrapper) {
+        var wrapperClass = ['responsive-media__wrapper'];
+
+        if (options.attribs && options.attribs.wrapperClassName) {
+            wrapperClass.push(options.attribs.wrapperClassName);
+        }
+
         return (
             // support art direction / blurhash background
-            <ImgWrapperTag {...structuredDataHeader} className="responsive-media__wrapper" style={wrapperStyle}>
+            <ImgWrapperTag {...structuredDataHeader} className={wrapperClass.join(' ')} style={wrapperStyle}>
                 {options.portraitRef && options.portraitSrcset && options.responsiveSizes && <>
                     <source
                         media="(orientation: portrait)"
