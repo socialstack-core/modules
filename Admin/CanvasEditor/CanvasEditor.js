@@ -115,7 +115,7 @@ function niceGraphName(graph){
 
 function renderStructureNode(node, canvasState, onClick, snapshotState) {
 	var nodeName = node.typeName || node.type;
-	var isGridColumn = node.parent && node.parent.typeName == 'UI/Grid';
+	var isGridColumn = node.parent && (node.parent.typeName == 'UI/Grid' || node.parent.typeName == 'UI/SiteGrid');
 
 	if (isGridColumn) {
 		// default for the grid is 1 row, 2 columns; check for overrides
@@ -213,7 +213,7 @@ function renderStructureNode(node, canvasState, onClick, snapshotState) {
 			}
 
 			// give UI/Grid columns access to their index
-			if (childNode.parent.typeName == "UI/Grid") {
+			if (childNode.parent.typeName == "UI/Grid" || childNode.parent.typeName == "UI/SiteGrid") {
 				childNode.index = i;
             }
 
