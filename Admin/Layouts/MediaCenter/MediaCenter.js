@@ -31,6 +31,7 @@ export default class MediaCenter extends React.Component {
 
         this.renderHeader = this.renderHeader.bind(this);
         this.renderEntry = this.renderEntry.bind(this);
+        this.renderTag = this.renderTag.bind(this);
     }
 
     componentWillReceiveProps(props) {
@@ -52,6 +53,8 @@ export default class MediaCenter extends React.Component {
         var targetSize = size;
         //var minSize = size == 256 ? 238 : size;
 
+        var fileClassName = parsedRef.fileType != '' ? 'fal fa-4x fa-file fa-file-' + parsedRef.fileType : 'fal fa-4x fa-file';
+
         // Check if it's an image/ video/ audio file. If yes, a preview is shown. Otherwise it'll be a placeholder icon.
         var canShowImage = getRef.isImage(ref);
 
@@ -66,8 +69,49 @@ export default class MediaCenter extends React.Component {
 
         return canShowImage ?
             getRef(ref, { size: targetSize, portraitCheck: true }) :
-            <span className="fal fa-4x fa-file"></span>;
+            <span className={fileClassName}></span>;
 
+    }
+
+    renderTags(combinedFilter) {
+        var tagids = [];
+        var tags = [];
+            
+        return (
+            <ul classname='media-center__tags'>
+                <Loop raw over={'upload/list'} filter={combinedFilter} includes={'tags'} onResults={results => {
+                    results.map(media => {
+                        media.tags.map(tag => {
+                            if (!tagids.includes(tag.id)) {
+                                tagids.push(tag.id);
+                                tags.push(tag);
+                            }
+                        });
+                    });
+
+                    return tags;
+                }}>
+                    {this.renderTag}
+                </Loop>
+            </ul>
+        )
+    }
+
+    renderTag(tag) {
+
+        var tagClassName = (this.state.filterTagId && this.state.filterTagId == tag.id) ? "media-center__tag media-center__tag-selected" : "media-center__tag"
+
+        return (
+            <li className={tagClassName} onClick={() => {
+                if (this.state.filterTagId && this.state.filterTagId == tag.id) {
+                    this.setState({ filterTagId: null });
+                } else {
+                    this.setState({ filterTagId: tag.id });
+                }
+            }}>
+                {tag.name}
+            </li>
+        );
     }
 
     renderHeader(allContent) {
@@ -482,39 +526,55 @@ export default class MediaCenter extends React.Component {
             combinedFilter.sort = this.state.sort;
         }
 
+        if (this.state.filterTagId) {
+            combinedFilter.query = "Tags contains ?"
+            combinedFilter.args = [];
+            combinedFilter.args.push(this.state.filterTagId);
+        }
+
         if (this.state.searchText && searchFields) {
-            var where = [];
+            var searchQuery = '';
+            var searchQueryArgs = [];
+            var searchDelimiter = '';
 
             for (var i = 0; i < searchFields.length; i++) {
-                var ob = null;
 
                 var field = searchFields[i];
                 var fieldNameUcFirst = field.charAt(0).toUpperCase() + field.slice(1);
 
                 if (fieldNameUcFirst == "Id") {
                     if (/^\d+$/.test(this.state.searchText)) {
-                        ob = {};
-                        ob[fieldNameUcFirst] = {
-                            equals: this.state.searchText
-                        };
+
+                        searchQuery = searchQuery + searchDelimiter + fieldNameUcFirst + " =?"
+                        searchQueryArgs.push(this.state.searchText);
+                        searchDelimiter = ' OR ';
                     }
                 } else {
-                    ob = {};
-                    ob[fieldNameUcFirst] = {
-                        contains: this.state.searchText
-                    };
+                    searchQuery = searchQuery + searchDelimiter + fieldNameUcFirst + " contains ?"
+                    searchQueryArgs.push(this.state.searchText);
 
+                    searchDelimiter = ' OR ';
+                }
                 }
 
-                if (ob) {
-                    where.push(ob);
+            if (searchQuery.length > 0) {
+                if (!combinedFilter.query) {
+                    combinedFilter.query = searchQuery;
+                    combinedFilter.args = searchQueryArgs;
+                } else {
+                    combinedFilter.query = combinedFilter.query + ' AND (' + searchQuery + ')';
+                    searchQueryArgs.forEach(arg => combinedFilter.args.push(arg));
                 }
             }
 
-            combinedFilter.where = where;
         }
 
+        console.log('filter', combinedFilter);
+
         var selectedCount = this.selectedCount();
+
+        var tags = this.renderTags(combinedFilter);
+
         combinedFilter.pageSize = 60;
 
         return <Default>
@@ -546,6 +606,11 @@ export default class MediaCenter extends React.Component {
                 </header>
                 <div className="admin-page__content">
                     <div className="admin-page__internal">
+
+                        {tags && <>
+                                {tags}
+                        </>}
+
                         <div className="media-center__list">
                             <Loop raw over={'upload/list'} filter={combinedFilter} paged onResults={results => {
                                 // Either changed page or loaded for first time - clear bulk selects if there is any.
