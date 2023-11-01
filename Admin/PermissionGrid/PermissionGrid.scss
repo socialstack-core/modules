@@ -1,0 +1,33 @@
+.admin_permission-grid {
+
+    table {
+
+        thead {
+            position: sticky;
+            top: 0;
+            z-index: 1;
+        }
+
+        tfoot {
+            font-style: italic;
+            opacity: .6;
+        }
+
+    }
+
+    &__filter {
+        display: inline-flex;
+        flex-wrap: wrap;
+        gap: 1rem;
+
+        &-field {
+            flex: 1 0 0%;
+        }
+    }
+
+    &--nomatch {
+        font-style: italic;
+        opacity: .6;
+    }
+
+}
