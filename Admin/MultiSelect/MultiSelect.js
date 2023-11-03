@@ -2,6 +2,7 @@ import Search from 'UI/Search';
 import webRequest from 'UI/Functions/WebRequest';
 import Modal from 'UI/Modal';
 import getRef from 'UI/Functions/GetRef';
+import { isoConvert } from 'UI/Functions/DateTools';
 
 var AutoForm = null;
 
@@ -87,6 +88,21 @@ export default class MultiSelect extends React.Component {
 			});
         }
 
+		// check to see if the object has a date range
+		var metadataFields = [];
+		var showmetadataFields = ["startdate", "enddate"];
+		if (this.state.value != undefined && this.state.value.length > 0) {
+			var tempObject = this.state.value[0];
+
+			Object.keys(tempObject).forEach(function (key, index) {
+				if (tempObject[key] != null) {
+					if (showmetadataFields.includes(key.toLowerCase())){
+						metadataFields.push(key);
+					}
+				}
+			});
+		}
+
 		var contentTypeLower = this.props.contentType ? this.props.contentType.toLowerCase() : "";
 
 		var atMax = false;
@@ -108,15 +124,25 @@ export default class MultiSelect extends React.Component {
 					{
 						this.state.value.map((entry, i) => (
 							<li key={entry.id} className="admin-multiselect__entry">
-								<p>
+								<div>
 									{entry[displayFieldName]}
-								</p>
+								</div>
+
+								{metadataFields && metadataFields.length > 0 &&
+									<div className="admin-multiselect__metadata">
+										{metadataFields.map((metadataField) => (
+											<div>{isoConvert(entry[metadataField]).toUTCString()}</div>
+										))}
+									</div>
+								}
+
 								<div className="admin-multiselect__entry-options">
 									{mediaRefFieldName && mediaRefFieldName.length > 0 &&
-										<>
+										<div className="admin-multiselect__avatar">
 										<img width='32' height='32' src={getRef(entry[mediaRefFieldName], { url: true , size:128})} />
-										</>
+										</div>
 									}
+
 									<button className="btn btn-sm btn-outline-primary btn-entry-select-action btn-view-entry" title={`Edit`}
 										onClick={e => {
 											e.preventDefault();
@@ -124,11 +150,14 @@ export default class MultiSelect extends React.Component {
 										}}>
 										<i className="fal fa-fw fa-edit"></i> <span className="sr-only">{`Edit`}</span>
 									</button>
+
 									<button className="btn btn-sm btn-outline-danger btn-entry-select-action btn-remove-entry" title={`Remove`}
 										onClick={() => this.remove(entry)}>
 										<i className="fal fa-fw fa-times"></i> <span className="sr-only">{`Remove`}</span>
 									</button>
 								</div>
+
+
 							</li>
 						))
 					}
@@ -214,6 +243,8 @@ export default class MultiSelect extends React.Component {
 										entityToEditId: null,
 										value: value
 									});
+
+									this.props.onChange && this.props.onChange({ target: { value: value.map(e => e.id) }, fullValue: value });
 								}} 
 						/>
 					</Modal>
