@@ -9,7 +9,7 @@ import IconSelector from 'UI/FileSelector/IconSelector';
 import Dropdown from 'UI/Dropdown';
 import Col from 'UI/Column';
 import Input from 'UI/Input';
-import Debounce from 'UI/Functions/Debounce';
+import Search from 'UI/Search';
 
 var inputTypes = global.inputTypes = global.inputTypes || {};
 let lastId = 0;
@@ -71,18 +71,15 @@ export default class FileSelector extends React.Component {
     constructor(props) {
         super(props);
 
-        this.search = this.search.bind(this);
-
         var ref = props.value || props.defaultValue;
-        var refInfo = getRef.parse(ref);
 
         this.state = {
-            ref: ref,
-            debounce: new Debounce(this.search)
+            ref: ref
         };
 
         this.closeUploadModal = this.closeUploadModal.bind(this);
         this.closeEditModal = this.closeEditModal.bind(this);
+        this.renderTag = this.renderTag.bind(this);
     }
 
     newId() {
@@ -195,11 +192,6 @@ export default class FileSelector extends React.Component {
         this.setState({ editModalOpen: false });
     }
 
-    search(query) {
-        console.log('searching' , query);
-        this.setState({ searchFilter: query.toLowerCase() })
-    }
-
     renderEditModal() {
         var currentRef = this.props.value || this.props.defaultValue;
 
@@ -263,7 +255,8 @@ export default class FileSelector extends React.Component {
                                                     alt: e.target.value
                                                 });
                                             }} />
-                                        </div>
+                                    </div>
+
                                         {isImage && !isVideo &&
                                             <div className="form-text media-center__focal-point">
                                                 <button type="button" className="btn btn-sm btn-outline-secondary me-2" onClick={() => {
@@ -277,6 +270,7 @@ export default class FileSelector extends React.Component {
                                                 {this.state.focalX}%, {this.state.focalY}%
                                             </div>
                                         }
+
                                     </div>
                                 </Col>
                         </Row>
@@ -297,16 +291,62 @@ export default class FileSelector extends React.Component {
         </>;
     }
 
+    renderTags(combinedFilter) {
+        var tagids = [];
+        var tags = [];
+
+        return (
+            <ul className='file-selector__tags'>
+                <Loop raw over={'upload/list'} filter={combinedFilter} includes={'tags'} onResults={results => {
+                    results.map(media => {
+                        media.tags.map(tag => {
+                            if (!tagids.includes(tag.id)) {
+                                tagids.push(tag.id);
+                                tags.push(tag);
+                            }
+                        });
+                    });
+
+                    return tags;
+                }}>
+                    {this.renderTag}
+                </Loop>
+            </ul>
+        )
+    }
+
+    renderTag(tag) {
+        if (!tag || !tag.name || tag.name.length == 0) {
+            return ('');
+        }
+
+        var tagClassName = (this.state.filterTagId && this.state.filterTagId == tag.id) ? "file-selector__tag file-selector__tag-selected" : "file-selector__tag"
+
+        return (
+            <li className={tagClassName} onClick={() => {
+                if (this.state.filterTagId && this.state.filterTagId == tag.id) {
+                    this.setState({ filterTagId: null });
+                } else {
+                    this.setState({ filterTagId: tag.id });
+                }
+            }}>
+                {tag.name}
+            </li>
+        );
+    }
+
+
+
     renderHeader() {
-        return <div className="row header-container">
-            <Col size={4}>
-                <label htmlFor="file-search">
-                    {`Search`}
-                </label>
-                <Input type="text" value={this.state.searchFilter} name="file-search" onKeyUp={(e) => {
-                    this.state.debounce.handle(e.target.value);
-                }} />
-            </Col>
+        return <div className="row header-container file-selector__search">
+            {searchFields && <>
+                <Search className="admin-page__search" placeholder={`Search`}
+                    onQuery={(where, query) => {
+                        this.setState({
+                            searchFilter: query
+                        });
+                    }} />
+            </>}
         </div>;
     }
 
@@ -333,43 +373,53 @@ export default class FileSelector extends React.Component {
             source = "upload/active";
         }
 
-
         // do we need to search ?
-        var filter = { sort: { field: 'CreatedUtc', direction: 'desc' } };
+        var combinedFilter = { sort: { field: 'CreatedUtc', direction: 'desc' } };;
+
+        if (this.state.filterTagId) {
+            combinedFilter.query = "Tags contains ?"
+            combinedFilter.args = [];
+            combinedFilter.args.push(this.state.filterTagId);
+        }
 
         if (searchFilter && searchFilter.length > 0 && searchFields) {
-            var where = [];
+            var searchQuery = '';
+            var searchQueryArgs = [];
+            var searchDelimiter = '';
 
             for (var i = 0; i < searchFields.length; i++) {
-                var ob = null;
 
                 var field = searchFields[i];
                 var fieldNameUcFirst = field.charAt(0).toUpperCase() + field.slice(1);
 
                 if (fieldNameUcFirst == "Id") {
                     if (/^\d+$/.test(searchFilter)) {
-                        ob = {};
-                        ob[fieldNameUcFirst] = {
-                            equals: searchFilter
-                        };
+
+                        searchQuery = searchQuery + searchDelimiter + fieldNameUcFirst + " =?"
+                        searchQueryArgs.push(searchFilter);
+                        searchDelimiter = ' OR ';
                     }
                 } else {
-                    ob = {};
-                    ob[fieldNameUcFirst] = {
-                        contains: searchFilter
-                    };
+                    searchQuery = searchQuery + searchDelimiter + fieldNameUcFirst + " contains ?"
+                    searchQueryArgs.push(searchFilter);
 
-                }
-
-                if (ob) {
-                    where.push(ob);
+                    searchDelimiter = ' OR ';
                 }
             }
 
-            filter.where = where;
+            if (searchQuery.length > 0) {
+                if (!combinedFilter.query) {
+                    combinedFilter.query = searchQuery;
+                    combinedFilter.args = searchQueryArgs;
+                } else {
+                    combinedFilter.query = combinedFilter.query + ' AND (' + searchQuery + ')';
+                    searchQueryArgs.forEach(arg => combinedFilter.args.push(arg));
+                }
+            }
 
-            console.log('filter', filter);
         }
+
+        var tags = this.renderTags(combinedFilter);
 
         return <div className="file-selector">
 
@@ -388,8 +438,13 @@ export default class FileSelector extends React.Component {
                 visible={this.state.uploadModalOpen}
             >
                 {this.renderHeader()}
+
+                {tags && <>
+                    {tags}
+                </>}
+
                 <div className="file-selector__grid">
-                    <Loop raw over={source} filter={filter} paged={this.props.disablePaging ? undefined : true}>
+                    <Loop raw over={source} filter={combinedFilter} paged={this.props.disablePaging ? undefined : true}>
                         {
                             entry => {
 

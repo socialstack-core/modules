@@ -1,5 +1,36 @@
+$focal_reticle_size: 24px;
+$focal_reticle_half: $focal_reticle_size * .5;
+$focal_reticle_border: 2px;
+$focal_reticle_color: #fff;
+$preview_size: 512px;
+
 .file-selector {
     margin-bottom: 2rem;
+
+	&__search {
+		margin: 0;
+	}
+
+	&__tags {
+		padding :0;
+		margin: 0.5rem;
+	}
+
+	&__tag {
+		border-radius : 3px;
+		border : 1px solid #555;
+		padding : 3px;
+		background-color: #555;
+		display: inline;
+		color: $focal_reticle_color;
+		margin: 3px;
+
+		&-selected {
+			border : 1px solid #69b363;
+			padding : 3px;
+			background-color: #69b363;
+		}
+	}
 
 	&__grid {
 		display: flex;
