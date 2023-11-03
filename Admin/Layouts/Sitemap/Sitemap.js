@@ -4,9 +4,13 @@ import webRequest from 'UI/Functions/WebRequest';
 import { useState, useEffect } from 'react';
 import { useRouter } from 'UI/Session';
 import ConfirmModal from 'UI/Modal/ConfirmModal';
+import Modal from 'UI/Modal';
+import Input from 'UI/Input';
+import Form from 'UI/Form';
 
 export default function Sitemap(props) {
 	const [ sitemap, setSitemap ] = useState(false);
+	const [ showCloneModal, setShowCloneModal] = useState(false);
 	const [ showConfirmModal, setShowConfirmModal ] = useState(false);
 	const { setPage } = useRouter();
 
@@ -212,10 +216,19 @@ export default function Sitemap(props) {
 	}
 
 	useEffect(() => {
+		reloadPages();
+	}, []);
+
+	function reloadPages() {
 		webRequest('page/list').then(resp => {
 			setSitemap(buildSitemap(resp.json.results));
 		});
-	}, []);
+	}
+
+	function cloneBranchClick(e) {
+		e.stopPropagation();
+		// TODO
+	}
 
 	function renderNode(node, isRoot) {
 		var hasParameter = node.urlTokens && node.urlTokens.length > 0;
@@ -235,6 +248,17 @@ export default function Sitemap(props) {
 				largeIcon = 'fa-cog';
 			}
 
+			/* when available, add buttons={[cloneBranchButton]} to <Collapsible />
+			var cloneBranchButton = {
+				icon: 'far fa-fw fa-copy',
+				text: `Save branch as ...`,
+				showLabel: true,
+				variant: 'secondary',
+				onClick: cloneBranchClick,
+				children: []
+			};
+			*/
+
 			return <>
 				<Collapsible compact expanderLeft title={title}
 					open={isRoot} alwaysOpen={isRoot} className="sitemap-expander"
@@ -247,63 +271,104 @@ export default function Sitemap(props) {
 		return <>
 			{
 				node.pages.map(page => {
-					var pageUrl = '/' + window.location.pathname.replace(/^\/+|\/+$/g, '') + '/' + page.id;
+					// ensure all pages are prefixed with a path separator
+					let pageUrl = page.url;
+
+					if (!pageUrl.startsWith("/")) {
+						pageUrl = "/" + page.url;
+					}
 
 					var editClick = function (e) {
 						e.stopPropagation();
-						setPage(pageUrl);
+
+						let editUrl = '/' + window.location.pathname.replace(/^\/+|\/+$/g, '') + '/' + page.id;
+
+						// open target in new tab if clicked via middle mouse button / shift-clicked
+						if (e.button === 1 || (e.button === 0 && e.shiftKey)) {
+							const newWindow = window.open(editUrl, '_blank', 'noopener, noreferrer');
+
+							if (newWindow) {
+								newWindow.opener = null;
+							}
+
+						} else {
+							setPage(editUrl);
+						}
+
 					};
+
+					var cloneClick = function (e) {
+						e.stopPropagation();
+						setShowCloneModal(page);
+					}
 
 					var removeClick = function (e) {
 						e.stopPropagation();
-						setShowConfirmModal(page.id);
+						setShowConfirmModal(page);
 					}
 
-					var editButton = {
+					var optionsButton = {
 						icon: 'fa fa-edit',
 						text: `Edit`,
 						showLabel: true,
-						variant: 'primary',
-						onClick: editClick
-					};
-
-					var launchButton = {
-						disabled: hasParameter,
-						icon: 'fa fa-external-link',
-						text: `Launch`,
-						showLabel: true,
 						variant: 'secondary',
-						//onClick: window.location.origin + page.url,
-						//target: '_blank'
-						onClick: function (e) {
-							e.stopPropagation();
-
-							let launchUrl = page.url;
-
-							if (!launchUrl.startsWith("/")) {
-								launchUrl = "/" + page.url;
-							}
-
-							setPage(launchUrl);
-						},
-						children: [
-							{
-								icon: 'fa fa-fw fa-trash',
-								text: `Remove`,
-								onClick: removeClick
-							}
-						]
+						onClick: editClick,
+						children: []
 					};
 
 					var isPage = page.type == "Page";
-					var buttons = isPage ? [editButton, launchButton] : [launchButton];
 					var largeIcon = page.url == '/' ? 'fa-home' : 'fa-file';
 
-					if (page.url.startsWith('/en-admin')) {
+					let allowLaunch = !hasParameter;
+					let allowClone = true;
+					let allowRemove = true;
+
+					if (pageUrl.startsWith('/en-admin')) {
 						largeIcon = 'fa-cog';
+						//allowLaunch = false;
+						//allowClone = false;
+						allowRemove = false;
+					}
+
+					if (allowLaunch) {
+						optionsButton.children.push({
+							icon: 'far fa-fw fa-external-link',
+							text: `Launch`,
+							onClick: window.location.origin + pageUrl,
+							target: '_blank'
+						});
+					}
+
+					if (allowClone) {
+						optionsButton.children.push({
+							icon: 'far fa-fw fa-copy',
+							text: `Save as ...`,
+							onClick: cloneClick
+						});
 					}
 
 					var hasChildren = Object.keys(node.children).length;
+
+					/* TODO
+					if (allowClone && hasChildren) {
+						optionsButton.children.push({
+							icon: 'far fa-fw fa-copy',
+							text: `Save branch as ...`,
+							onClick: cloneBranchClick
+						});
+					}
+					*/
+
+					if (allowRemove) {
+						optionsButton.children.push({
+							separator: true
+						});
+						optionsButton.children.push({
+							icon: 'far fa-fw fa-trash',
+							text: `Remove`,
+							onClick: removeClick
+						});
+					}
 
 					var jsx = <>
 						{page.preferIfLoggedIn && <>
@@ -315,8 +380,8 @@ export default function Sitemap(props) {
 					</>;
 
 					return <>
-						<Collapsible compact expanderLeft title={page.url} subtitle={page.title}
-							jsx={jsx} buttons={buttons}
+						<Collapsible compact expanderLeft title={pageUrl} subtitle={page.title}
+							jsx={jsx} buttons={[optionsButton]}
 							open={isRoot} alwaysOpen={isRoot} noContent={!hasChildren} className="sitemap-expander"
 							defaultClick={hasChildren || !isPage ? undefined : editClick} icon={largeIcon}>
 							{renderNodeChildren(node)}
@@ -337,14 +402,25 @@ export default function Sitemap(props) {
 		</>;
 	}
 
-	function removePage(id) {
+	function removePage(page) {
 		webRequest(
-			'page/' + id,
+			'page/' + page.id,
 			null,
 			{ method: 'delete' }
 		).then(response => {
 			window.location.reload();
 		});
+	}
+
+	function getPageDescription(page) {
+		let hasUrl = page.url && page.url.trim().length;
+
+		if (page.title && page.title.trim().length) {
+			return `${page.title} (${hasUrl ? page.url + ', ' : ''}ID: ${page.id})`;
+		} else {
+			return hasUrl ? `${page.url} (ID: ${page.id})` : `ID: ${page.id}`;
+		}
+
 	}
 
 	var addUrl = window.location.href.replace(/\/+$/g, '') + '/add';
@@ -371,10 +447,45 @@ export default function Sitemap(props) {
 				</header>
 				<div className="sitemap__wrapper">
 					<div className="sitemap__internal">
+						{showCloneModal && <>
+							<Modal visible onClose={() => setShowCloneModal(false)} title={`Save Page As`}>
+								<p>
+									<strong>{`Cloning from:`}</strong> <br />
+									{getPageDescription(showCloneModal)}
+								</p>
+								<hr />
+								<Form 
+									onSuccess={(response) => {
+										let clonedPage = structuredClone(showCloneModal);
+										clonedPage.url = response.url;
+										clonedPage.title = response.title;
+										clonedPage.description = response.description;
+
+										webRequest("page", clonedPage, {}).then(response => {
+											setShowCloneModal(false);
+											reloadPages();
+										});
+
+									}}>
+
+									<Input label={`Url`} id="sitemap__clone-url" type="text" name="url" required />
+									<Input label={`Title`} id="sitemap__clone-title" type="text" name="title" />
+									<Input label={`Description`} id="sitemap__clone-description" type="text" name="description" />
+
+									<div className="sitemap__clone-modal-footer">
+										<button type="button" className="btn btn-outline-danger" onClick={() => setShowCloneModal(false)}>
+											{`Cancel`}
+										</button>
+										<input type="submit" className="btn btn-primary" value={`Save Copy`} />
+									</div>
+								</Form>
+							</Modal>
+						</>}
 						{showConfirmModal && <>
 							<ConfirmModal confirmCallback={() => removePage(showConfirmModal)} confirmVariant="danger" cancelCallback={() => setShowConfirmModal(false)}>
 								<p>
-									{`This will remove page ID #${showConfirmModal}.`}
+									<strong>{`This will remove the following page:`}</strong> <br />
+									{getPageDescription(showConfirmModal)}
 								</p>
 								<p>
 									{`Are you sure you wish to do this?`}

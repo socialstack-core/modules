@@ -10,9 +10,10 @@ import Modal from 'UI/Modal';
 import webRequest from 'UI/Functions/WebRequest';
 import getRef from 'UI/Functions/GetRef';
 import Default from 'Admin/Layouts/Default';
+import MultiSelect from 'Admin/MultiSelect'
 
 var fields = ['id', 'originalName'];
-var searchFields = ['originalName', 'alt','author','id'];
+var searchFields = ['originalName', 'alt', 'author', 'id'];
 
 const CLOSEST_MULTIPLE = 2;
 const PREVIEW_SIZE = 512;
@@ -78,7 +79,7 @@ export default class MediaCenter extends React.Component {
         var tags = [];
             
         return (
-            <ul classname='media-center__tags'>
+            <ul className='media-center__tags'>
                 <Loop raw over={'upload/list'} filter={combinedFilter} includes={'tags'} onResults={results => {
                     results.map(media => {
                         media.tags.map(tag => {
@@ -98,9 +99,11 @@ export default class MediaCenter extends React.Component {
     }
 
     renderTag(tag) {
+        if (!tag || !tag.name || tag.name.length == 0) {
+            return ('');
+        }
 
         var tagClassName = (this.state.filterTagId && this.state.filterTagId == tag.id) ? "media-center__tag media-center__tag-selected" : "media-center__tag"
-
         return (
             <li className={tagClassName} onClick={() => {
                 if (this.state.filterTagId && this.state.filterTagId == tag.id) {
@@ -240,7 +243,6 @@ export default class MediaCenter extends React.Component {
                 </label>
 
                 {/* allow image properties (such as focal point) to be set */}
-                {isImage ? <>
                     <button type="button" className="btn btn-sm btn-primary media-center__original-filename" data-clamp="2"
                         onClick={() => {
                             this.setState({
@@ -253,17 +255,12 @@ export default class MediaCenter extends React.Component {
                                 alt: entry.alt,
                                 author: entry.author,
                                 originalName: entry.originalName,
-                                transcodeState: entry.transcodeState
+                        	    transcodeState: entry.transcodeState,
+                          		tags: entry.tags
                             })
                         }}>
                         {`Edit - `}{entry.originalName}
                     </button>
-                </>
-                : <>
-                    <a href={url} target="_blank" className="btn btn-sm btn-primary media-center__original-filename">
-                        <i className="fa-fw fal fa-external-link"></i> {`Preview - `}{entry.originalName}
-                    </a>
-                </>}
 
             </div>
         </>;
@@ -354,7 +351,8 @@ export default class MediaCenter extends React.Component {
                 'focalX': this.state.focalX,
                 'focalY': this.state.focalY,
                 'alt': this.state.alt,
-                'author': this.state.author
+                'author': this.state.author,
+                'tags': this.state.tags ? this.state.tags.map(obj => obj.id) : null
             },
             { method: 'post' }).then(() => {
                 this.setState({
@@ -389,7 +387,7 @@ export default class MediaCenter extends React.Component {
                     <Container>
                         <Row>
                             {!isNewMedia && <>
-                                <Column sizeMd='9'>
+                                <Column sizeMd='6'>
                                     <div className='media-center__preview-wrapper'>
                                         <div className="media-center__preview"
                                             onClick={(e) => {
@@ -438,14 +436,15 @@ export default class MediaCenter extends React.Component {
                                     }} />
                             </>}
                             {this.state.uploaded && <>
-                                <Column sizeMd='3'>
+                                <Column sizeMd='6'>
                                     <div className="media-center__metadata">
 
                                         {isImage &&
+                                            <>
                                             <div className="media-center__transcode">
                                                 {`Transcode Status`}:{this.state.transcodeState}
                                             </div>
-                                        }
+
 
                                         <div className="form-text media-center__alt">
                                             <Input type="text" label={`Author/Photographer`} value={this.state.author} onChange={e => {
@@ -462,6 +461,9 @@ export default class MediaCenter extends React.Component {
                                                 });
                                             }} />
                                         </div>
+                                            </>
+                                        }
+
                                         {isImage && !isVideo &&
                                             <div className="form-text media-center__focal-point">
                                                 <button type="button" className="btn btn-sm btn-outline-secondary me-2" onClick={() => {
@@ -475,6 +477,16 @@ export default class MediaCenter extends React.Component {
                                                 {this.state.focalX}%, {this.state.focalY}%
                                             </div>
                                         }
+
+                                        <MultiSelect value={this.state.tags} contentType='tag' field='name' label={`Folders`} showCreateOrEditModal={true}
+                                            onChange={e => {
+                                                console.log('tags', e);
+                                                this.setState({
+                                                    tags: e.fullValue
+                                                });
+                                            }}>
+                                        </MultiSelect>
+
                                     </div>
 
                                 </Column>
@@ -520,6 +532,9 @@ export default class MediaCenter extends React.Component {
     }
 
     render() {
+
+        var { searchFilter } = this.state;
+
         var combinedFilter = {};
 
         if (!combinedFilter.sort && this.state.sort) {
@@ -532,7 +547,7 @@ export default class MediaCenter extends React.Component {
             combinedFilter.args.push(this.state.filterTagId);
         }
 
-        if (this.state.searchText && searchFields) {
+        if (searchFilter && searchFilter.length > 0 && searchFields) {
             var searchQuery = '';
             var searchQueryArgs = [];
             var searchDelimiter = '';
@@ -543,15 +558,15 @@ export default class MediaCenter extends React.Component {
                 var fieldNameUcFirst = field.charAt(0).toUpperCase() + field.slice(1);
 
                 if (fieldNameUcFirst == "Id") {
-                    if (/^\d+$/.test(this.state.searchText)) {
+                    if (/^\d+$/.test(searchFilter)) {
 
                         searchQuery = searchQuery + searchDelimiter + fieldNameUcFirst + " =?"
-                        searchQueryArgs.push(this.state.searchText);
+                        searchQueryArgs.push(searchFilter);
                         searchDelimiter = ' OR ';
                     }
                 } else {
                     searchQuery = searchQuery + searchDelimiter + fieldNameUcFirst + " contains ?"
-                    searchQueryArgs.push(this.state.searchText);
+                    searchQueryArgs.push(searchFilter);
 
                     searchDelimiter = ' OR ';
                 }
@@ -566,7 +581,6 @@ export default class MediaCenter extends React.Component {
                     searchQueryArgs.forEach(arg => combinedFilter.args.push(arg));
                 }
             }
-
         }
 
         console.log('filter', combinedFilter);
@@ -599,7 +613,7 @@ export default class MediaCenter extends React.Component {
                         <Search className="admin-page__search" placeholder={`Search`}
                             onQuery={(where, query) => {
                                 this.setState({
-                                    searchText: query
+                                    searchFilter: query
                                 });
                             }} />
                     </>}
@@ -612,7 +626,7 @@ export default class MediaCenter extends React.Component {
                         </>}
 
                         <div className="media-center__list">
-                            <Loop raw over={'upload/list'} filter={combinedFilter} paged onResults={results => {
+                            <Loop raw over={'upload/list'} filter={combinedFilter} includes={'tags'} paged onResults={results => {
                                 // Either changed page or loaded for first time - clear bulk selects if there is any.
                                 if (this.state.bulkSelections) {
                                     this.setState({ bulkSelections: null });
