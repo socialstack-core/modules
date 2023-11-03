@@ -161,7 +161,10 @@ class AutoFormInternal extends React.Component {
 
 		getAutoForm(props.formType || 'content', (props.endpoint || '').toLowerCase()).then(formData => {
 
-			var supportsRevisions = formData && formData.form && formData.form.supportsRevisions;
+			// todo - the endpoints need wiring up
+			// var supportsRevisions = formData && formData.form && formData.form.supportsRevisions;
+			var supportsRevisions = false;
+
 			var isLocalized = formData && formData.form && formData.form.fields && formData.form.fields.find(fld => fld.data.localized);
 
 			// build up master list of locales
@@ -434,6 +437,40 @@ class AutoFormInternal extends React.Component {
 				cancelCallback={() => this.cancelDelete()}>
 				<p>
 					{`Are you sure you wish to delete this ${this.props.singular}?`}
+				</p>
+			</ConfirmModal>
+		</>;
+	}
+
+	startSaveAs() {
+		this.setState({
+			confirmSaveAs: true
+		});
+	}
+
+	cancelSaveAs() {
+		this.setState({
+			confirmSaveAs: false
+		});
+	}
+
+	confirmSaveAs(pageState, setPage) {
+		this.setState({
+			confirmSaveAs: false,
+		});
+
+		this.draftBtn = this.state.supportsRevisions;
+		this.saveAsBtn = true;
+		this.form.submit();
+	}
+
+	renderConfirmSaveAs(pageState, setPage) {
+		return <>
+			<ConfirmModal
+				confirmCallback={() => this.confirmSaveAs(pageState, setPage)} confirmVariant="danger" confirmText={`Yes, save this as a new ${this.props.singular}`}
+				cancelCallback={() => this.cancelSaveAs()}>
+				<p>
+					{`You are about to the save this as a new ${this.props.singular}, any altered values will be saved in the new ${this.props.singular} and the existing ${this.props.singular} will be not be updated ?`}
 				</p>
 			</ConfirmModal>
 		</>;
@@ -726,13 +763,26 @@ class AutoFormInternal extends React.Component {
 			{this.state.supportsRevisions && (
 				<Input inline type="button" className="btn btn-outline-primary createDraft" onClick={() => {
 					this.draftBtn = true;
+					this.saveAsBtn = false;
 					this.form.submit();
 				}} disabled={this.state.submitting}>
 					{isEdit ? `Save Draft` : `Create Draft`}
 				</Input>
 			)}
+
+			{/* todo - check for content type and do more ?? */}
+			{isEdit &&
+				<button className="btn btn-danger" type="button" onClick={e => {
+					e.preventDefault();
+					this.startSaveAs();
+				}}>
+					{this.state.supportsRevisions ? `Save this ${this.props.singular} as a new draft` : `Save ${this.props.singular} as ...`}
+				</button>
+			}
+
 			<Input inline type="button" disabled={this.state.submitting} onClick={() => {
 				this.draftBtn = false;
+				this.saveAsBtn = false;
 				this.form.submit();
 			}}>
 				{isEdit ? `Save and Publish` : `Create`}
@@ -746,6 +796,7 @@ class AutoFormInternal extends React.Component {
 				</button>
 				<Input inline type="button" disabled={this.state.submitting} onClick={() => {
 					this.draftBtn = false;
+					this.saveAsBtn = false;
 					this.form.submit();
 				}}>
 					{`Save`}
@@ -758,19 +809,31 @@ class AutoFormInternal extends React.Component {
 				values = { ...values, ...this.props.values };
 			}
 
-			if (this.draftBtn) {
-				// Set content ID if there is one already:
-				if (isEdit && parsedId) {
-					values.id = parsedId;
+			if (this.saveAsBtn) {
+				// create a copy of the curent entry (as-is)
+				values.id = null;
+				if (this.draftBtn) {
+					values.setAction(this.props.endpoint + "/draft");
+				} else {
+					values.setAction(this.props.endpoint);
 				}
 
-				// Create a draft:
-				values.setAction(this.props.endpoint + "/draft");
 			} else {
-				// Potentially publishing a draft.
-				if (this.state.revisionId) {
-					// Use the publish EP.
-					values.setAction(this.props.endpoint + "/publish/" + this.state.revisionId);
+
+				if (this.draftBtn) {
+					// Set content ID if there is one already:
+					if (isEdit && parsedId) {
+						values.id = parsedId;
+					}
+
+					// Create a draft:
+					values.setAction(this.props.endpoint + "/draft");
+				} else {
+					// Potentially publishing a draft.
+					if (this.state.revisionId) {
+						// Use the publish EP.
+						values.setAction(this.props.endpoint + "/publish/" + this.state.revisionId);
+					}
 				}
 			}
 
@@ -824,7 +887,7 @@ class AutoFormInternal extends React.Component {
 						setPage(newUrl);
 
 					} else if (response.id != this.state.id || this.state.revisionId) {
-						// Published content from a draft. Go there now.
+						// Published content from a draft or cloned a copy. Go there now.
 						setPage(parts.join('/') + '?published=1&lid=' + locale);
 					}
 				}
@@ -994,6 +1057,7 @@ class AutoFormInternal extends React.Component {
 					/>
 				</Form>
 				{this.state.confirmDelete && this.renderConfirmDelete(pageState, setPage)}
+				{this.state.confirmSaveAs && this.renderConfirmSaveAs(pageState, setPage)}
 				{this.state.selectParam && this.renderSelectParam()}
 			</>;
 		}
@@ -1127,6 +1191,7 @@ class AutoFormInternal extends React.Component {
 				</div>
 			</div>
 			{this.state.confirmDelete && this.renderConfirmDelete(pageState, setPage)}
+			{this.state.confirmSaveAs && this.renderConfirmSaveAs(pageState, setPage)}
 		</>;
 	}
 
