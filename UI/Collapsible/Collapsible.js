@@ -101,6 +101,12 @@ export default function Collapsible(props) {
 										{
 											button.children.map(menuitem => {
 
+												if (menuitem.separator || menuitem.divider) {
+													return <li>
+														<hr class="dropdown-divider" />
+													</li>;
+												}
+
 												if (menuitem.onClick instanceof Function) {
 													return <li>
 														<button type="button" className="btn btn-sm dropdown-item" onClick={menuitem.onClick} title={menuitem.text} disabled={menuitem.disabled}>
