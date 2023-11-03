@@ -376,6 +376,7 @@ export default function Dropdown(props) {
                             type="button"
                             id={dropdownId}
                             onClick={splitCallback}
+                            onAuxClick={splitCallback} // for middle mouse button support
                             disabled={disabled}>
                             <span className="dropdown__label">
                                 {label}
