@@ -649,6 +649,30 @@ svg {
 	}
 
 }
+
+@media (max-width: 540px) and (hover: none) and (orientation: portrait) {
+
+    .block-page h1 {
+        font-size: 7vw;
+    }
+
+    .block-page h2,
+    .block-page input,
+    .block-page h3 {
+        font-size: 4vw;
+    }
+
+    svg {
+        width: 4vw;
+        height: 4vw;
+    }
+
+    .block-page p {
+        font-size: 4.5vw;
+        margin-bottom: 0.75em;
+    }
+
+}
 				"
             )));
 
@@ -693,9 +717,11 @@ svg {
             paragraph.AppendChild(new TextNode("To access this site, you'll need to request a copy of the&nbsp;"));
             paragraph.AppendChild(em);
             paragraph.AppendChild(new TextNode("."));
-            paragraph.AppendChild(new DocumentNode("br", true));
-            paragraph.AppendChild(new TextNode("Please note, this is not the same as a user account password."));
             container.AppendChild(paragraph);
+
+            var paragraph2 = new DocumentNode("p");
+            paragraph2.AppendChild(new TextNode("Please note, this is not the same as a user account password."));
+            container.AppendChild(paragraph2);
 
             body.AppendChild(new DocumentNode("script").With("type", "text/javascript").AppendChild(new TextNode(
                 @"
