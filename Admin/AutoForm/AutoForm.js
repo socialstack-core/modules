@@ -227,6 +227,8 @@ class AutoFormInternal extends React.Component {
 			if (Array.isArray(c)) {
 				var currentCanvas = null;
 				var canvasFields = [];
+				let isMainCanvas = false;
+				let notMainCanvas = null;
 
 				for (var i = 0; i < c.length; i++) {
 					var field = c[i];
@@ -242,14 +244,22 @@ class AutoFormInternal extends React.Component {
 						currentCanvas = field;
 
 						if (data.main) {
-							// Definitely the main canvas.
-							canvasCount = 1;
-							break;
+							let main = data.main.toLowerCase();
+
+							if (main == "false") {
+								// definitely not the main canvas
+								notMainCanvas = true;
+							} else {
+								// assume it's the main canvas
+								isMainCanvas = true;
+								break;
+							}
+
 						}
 					}
 				}
 
-				if (canvasFields.length == 1 && !canvasFields[0].textonly) {
+				if ((notMainCanvas == null && (canvasFields.length == 1 && !canvasFields[0].textonly)) || isMainCanvas) {
 					mainCanvas = currentCanvas;
 					this.tryPopulateMainCanvas(this.state.fieldData, mainCanvas);
 				}
@@ -919,6 +929,11 @@ class AutoFormInternal extends React.Component {
 
 		var html = window.SERVER ? undefined : document.querySelector("html");
 
+		// check for overriding "parent" property
+		// can be used to override the default parent breadcrumb link in the event the parent page is not available
+		// (e.g. /navmenu lists all nested menus, /navmenuitem/[id] describes a submenu, but /navmenuitem does not exist)
+		let parentUrl = this.props.parent && this.props.parent.trim().length ? `/en-admin/${this.props.parent}` : `/en-admin/${this.props.endpoint}`;
+
 		if (mainCanvas) {
 			// Check for a field called url on the object:
 			var pageUrl = this.state.fieldData && this.state.fieldData.url;
@@ -942,7 +957,7 @@ class AutoFormInternal extends React.Component {
 					</a>
 				</li>
 				<li>
-					<a href={'/en-admin/' + this.props.endpoint}>
+					<a href={parentUrl}>
 						{this.capitalise(this.props.plural)}
 					</a>
 				</li>
@@ -1106,7 +1121,7 @@ class AutoFormInternal extends React.Component {
 							</>}
 							{!this.props.hideEndpointUrl &&
 								<li>
-									<a href={'/en-admin/' + this.props.endpoint}>{this.capitalise(this.props.plural)}</a>
+									<a href={parentUrl}>{this.capitalise(this.props.plural)}</a>
 								</li>
 							}
 							<li>
