@@ -20,7 +20,6 @@ namespace Api.NavMenus
 		/// </summary>
 		public NavMenuService() : base(Events.NavMenu)
         {
-			/*
 			InstallAdminPages(
 				"Nav Menus", "fa:fa-map-signs", new string[] { "id", "name", "key" },
 
@@ -30,7 +29,6 @@ namespace Api.NavMenus
 					Fields = new string[] { "bodyJson" }
 				}
 			);
-			*/
 		}
 	}
     

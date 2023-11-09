@@ -1,9 +1,7 @@
-using System;
-using System.Collections.Generic;
 using Api.Database;
 using Api.Translate;
 using Api.Users;
-using Api.Permissions;
+using Api.AutoForms;
 
 
 namespace Api.NavMenus
@@ -34,6 +32,7 @@ namespace Api.NavMenus
 		/// </summary>
 		[DatabaseField(Length = 400)]
 		[Localized]
+        [Data("main", "false")] 
 		public string BodyJson;
 
 		/// <summary>
