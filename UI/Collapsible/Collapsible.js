@@ -1,4 +1,5 @@
 import Dropdown from 'UI/Dropdown';
+import Canvas from 'UI/Canvas';
 
 export default function Collapsible(props) {
 	var { className, compact, defaultClick, alwaysOpen, hidden } = props;
@@ -8,6 +9,7 @@ export default function Collapsible(props) {
 	var expanderLeft = props.expanderLeft;
 	var hasInfo = props.info;
 	var hasJsx = props.jsx;
+	var hasJson = props.json;
 	var hasButtons = props.buttons && props.buttons.length;
 	
 	// NB: include "open" class in addition to [open] attribute as we may be using a polyfill to render this
@@ -64,7 +66,8 @@ export default function Collapsible(props) {
 				<i className={"far fa-2x fa-fw collapsible__large-icon " + props.icon}></i>
 			</>}
 			<h4 className="collapsible-title">
-				{props.title}
+				{!hasJson && props.title}
+				{hasJson && <Canvas>{props.json}</Canvas>}
 				{props.subtitle &&
 					<small>
 						{props.subtitle}
