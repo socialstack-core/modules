@@ -15,6 +15,7 @@ export default class AutoEdit extends React.Component {
 	render(){
 		var { pageState } = useRouter();
 		var id = this.props.id;
+		var parent = this.props.parent;
 		var endpoint = this.props.endpoint;
 		var entityName = this.props.singular;
 		var entityNamePlural = this.props.plural;
@@ -43,7 +44,8 @@ export default class AutoEdit extends React.Component {
 				<Default>
 					{this.props.beforeFormFunc && this.props.beforeFormFunc(id)}
 					{this.props.beforeForm}
-					<AutoForm {...(omit(this.props, ['children']))} id={id} endpoint={endpoint}
+					<AutoForm {...(omit(this.props, ['children']))} id={id}
+						parent={parent}  endpoint={endpoint}
 						singular={entityName} plural={entityNamePlural}
 						previousPageUrl={previousPageUrl} previousPageName={previousPageName}>
 						{this.props.afterForm}
