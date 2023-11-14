@@ -289,7 +289,7 @@ namespace Api.Startup
 				return "dev";
 			}
 
-			if (name == "stage" || name == "staging" || name == "preprod" || name == "preproduction")
+			if (name == "stage" || name == "staging")
 			{
 				return "stage";
 			}
