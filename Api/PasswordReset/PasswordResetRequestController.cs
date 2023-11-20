@@ -128,7 +128,7 @@ namespace Api.PasswordResetRequests
 					userToUpdate.Role = Roles.Member.Id;
 				}
 
-				targetUser = await _users.FinishUpdate(context, userToUpdate, targetUser);
+				targetUser = await _users.FinishUpdate(context, userToUpdate, targetUser, DataOptions.IgnorePermissions);
 			}
 			else
 			{
@@ -147,7 +147,7 @@ namespace Api.PasswordResetRequests
 
 			if(reqToUpdate != null){
 				reqToUpdate.IsUsed = true;
-				await _service.FinishUpdate(context, reqToUpdate, request);
+				await _service.FinishUpdate(context, reqToUpdate, request, DataOptions.IgnorePermissions);
 			}
 
 			// Set user:
