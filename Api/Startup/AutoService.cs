@@ -123,6 +123,17 @@ public partial class AutoService<T, ID> : AutoService
 	private JsonStructure<T,ID>[] _jsonStructures = null;
 
 	/// <summary>
+	/// Updates the instance type, clearing any internal caches which used it before.
+	/// </summary>
+	/// <param name="instanceType"></param>
+	public override void SetInstanceType(Type instanceType)
+	{
+		base.SetInstanceType(instanceType);
+		_jsonStructures = null;
+		_filterSets.Clear();
+	}
+
+	/// <summary>
 	/// Gets a particular metadata field by its name. Common ones are "title" and "description".
 	/// Use this to generically read common descriptive things about a given content type.
 	/// Note that as fields vary by role, it is possible for users of different roles to obtain different meta values.
@@ -1598,6 +1609,17 @@ public partial class AutoService
 	/// The target Id type if this is a mapping service.
 	/// </summary>
 	public virtual Type MappingTargetIdType => null;
+
+	/// <summary>
+	/// Updates the instance type, clearing any internal caches which used it before.
+	/// </summary>
+	/// <param name="instanceType"></param>
+	public virtual void SetInstanceType(Type instanceType)
+	{
+		InstanceType = instanceType == null ? ServicedType : instanceType;
+		_contentFields = null;
+		FieldMap = new FieldMap(InstanceType, EntityName);
+	}
 
 	/// <summary>
 	/// Outputs a list of things from this service as JSON into the given writer.
