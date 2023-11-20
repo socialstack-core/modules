@@ -27,10 +27,17 @@ namespace Api.CustomContentTypes
 		[Data("label", "Name")]
 		public string NickName;
 
-		/// <summary>
-		/// Optional image to show with this item.
-		/// </summary>
-		[DatabaseField(Length = 100)]
+        /// <summary>
+        /// The summary/usage of the content.
+        /// </summary>
+        [DatabaseField(Length = 100)]
+        [Data("label", "Summary")]
+        public string Summary;
+
+        /// <summary>
+        /// Optional image to show with this item.
+        /// </summary>
+        [DatabaseField(Length = 100)]
 		[Data("type", "icon")]
 		public string IconRef;
 

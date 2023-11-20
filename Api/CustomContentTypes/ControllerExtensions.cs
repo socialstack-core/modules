@@ -38,6 +38,10 @@ namespace Api.CustomContentTypes
 			{
 				foreach (var customType in customTypeSet)
 				{
+					if (customType.Value.ControllerType == null)
+					{
+						continue;
+					}
 					feature.Controllers.Add(IntrospectionExtensions.GetTypeInfo(customType.Value.ControllerType));
 				}
 			}

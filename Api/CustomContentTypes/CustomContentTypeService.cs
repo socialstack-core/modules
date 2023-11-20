@@ -494,9 +494,20 @@ namespace Api.CustomContentTypes
             // Remove if exists.
             if (loadedTypes.TryGetValue(typeId, out ConstructedCustomContentType previousCompiledType))
             {
-                // Shutdown this existing service.
-                // This triggers a Delete event internally which 3rd party modules can attach to.
-                await Services.StateChange(false, previousCompiledType.Service);
+                // Shutdown this existing service if it is not native extension.
+                if (previousCompiledType.NativeType != null)
+                {
+                    if (previousCompiledType.Service != null)
+                    {
+						// Reset instance type:
+						previousCompiledType.Service.SetInstanceType(null);
+					}
+                }
+                else
+                {
+                    // This triggers a Delete event internally which 3rd party modules can attach to.
+                    await Services.StateChange(false, previousCompiledType.Service);
+                }
             }
         }
 
@@ -599,27 +610,56 @@ namespace Api.CustomContentTypes
         /// </summary>
         public async ValueTask InstallType<T>(ConstructedCustomContentType constructedType) where T : Content<uint>, new()
         {
-            // Create event group for this custom svc:
-            var events = new EventGroup<T>();
-
-            // Create the service:
-            constructedType.Service = new AutoService<T, uint>(events, constructedType.ContentType, constructedType.ContentType.Name);
-
-            if (loadedTypes == null)
+            if (constructedType.NativeType != null)
             {
-                loadedTypes = new Dictionary<uint, ConstructedCustomContentType>();
+                Console.WriteLine("- Installing native extension CCT -");
+
+                // This custom type is built on top of another built in type.
+                // Rather than instancing a new general-use service, we'll instead tell the
+                // active running service that it has a new instance type to use.
+                constructedType.Service = Services.GetByContentType(constructedType.NativeType);
+
+				if (constructedType.Service != null)
+                {
+                    constructedType.Service.SetInstanceType(typeof(T));
+                }
+                else
+                {
+                    // This happens if:
+                    // - A content type with the same name exists
+                    // - A service for it does not exist
+                    // - It should never actually happen. If it does, something in the API is wrong.
+                    Log.Warn("customcontenttype", "Unable to register custom content type " + typeof(T).Name + " due to a service mismatch.");
+                    return;
+                }
             }
             else
-            {
-                // Does it already exist? If so, we need to remove the existing loaded one.
-                await UnloadCustomType(new Context(), constructedType.Id);
+			{
+				// Create event group for this custom svc:
+				var events = new EventGroup<T>();
+
+				// Create the service:
+				constructedType.Service = new AutoService<T, uint>(events, constructedType.ContentType, constructedType.ContentType.Name);
+
+                if (loadedTypes == null)
+                {
+                    loadedTypes = new Dictionary<uint, ConstructedCustomContentType>();
+                }
+                else
+                {
+                    // Does it already exist? If so, we need to remove the existing loaded one.
+                    await UnloadCustomType(new Context(), constructedType.Id);
+                }
+
+                // Add it:
+                loadedTypes[constructedType.Id] = constructedType;
             }
 
-            // Add it:
-            loadedTypes[constructedType.Id] = constructedType;
-
-            // Register:
-            await Services.StateChange(true, constructedType.Service);
+			if (constructedType.NativeType == null)
+			{
+				// Register:
+				await Services.StateChange(true, constructedType.Service);  
+            }
         }
 
     }

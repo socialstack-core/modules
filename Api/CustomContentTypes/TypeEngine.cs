@@ -1,5 +1,6 @@
 using Api.AutoForms;
 using Api.Currency;
+using Api.Database;
 using Api.Startup;
 using Api.Translate;
 using Api.Users;
@@ -63,7 +64,12 @@ namespace Api.CustomContentTypes
 				code.Emit(OpCodes.Ldstr, val);
 			});
 
-			AddTo(
+            AddTo(map, "form", typeof(uint?), (ILGenerator code, string val) => {
+                var value = uint.TryParse(val, out uint result) ? result : 0;
+                code.Emit(OpCodes.Ldc_I4, value);
+            });
+
+            AddTo(
 				map, "select", typeof(string), (ILGenerator code, string val) => {
 				code.Emit(OpCodes.Ldstr, val);
 			});
@@ -199,11 +205,24 @@ namespace Api.CustomContentTypes
 					continue;
 				}
 
+				var typeName = TidyName(customType.Name);
+
+				// Does this content type exist as a native type already?
+				var nativeType = ContentTypes.GetType(typeName);
+
+				if (nativeType != null)
+				{
+					// Is it native? It is if the assembly it's in is the same as the one this class is in.
+					if (nativeType.Assembly != typeof(TypeEngine).Assembly)
+					{
+						nativeType = null;
+					}
+				}
+
 				// Base type to use:
-				var baseType = typeof(VersionedContent<uint>);
+				var baseType = nativeType == null ? typeof(VersionedContent<uint>) : nativeType;
 
 				// Start building the type:
-				var typeName = TidyName(customType.Name);
 				TypeBuilder typeBuilder = moduleBuilder.DefineType(typeName, TypeAttributes.Public, baseType);
 				
 				// We'll need a constructor to set any default field values.
@@ -233,19 +252,6 @@ namespace Api.CustomContentTypes
 						}
 					);
                 } 
-				else if (customType.IsForm)
-                {
-					// This is just for peak15, would be ideal to use an event or something to add fields to custom entitites without needing to modify this module
-					customType.Fields.Insert(0,
-						new CustomContentTypeField
-						{
-							CustomContentTypeId = customType.Id,
-							Name = "Peak15Id",
-							NickName = "Peak15Id",
-							DataType = "guid"
-						}
-					);
-				}
 
 				var virtualFieldBuilders = new List<CustomAttributeBuilder>();
 
@@ -338,16 +344,6 @@ namespace Api.CustomContentTypes
 							AddDataAttribute(fieldBuilder, "validation", field.Validation);
 						}
 
-						// This is just for peak15, would be ideal to use an event or something to add fields to custom entitites without needing to modify this module
-						if (field.Name == "Peak15Id")
-                        {
-							AddAttribute(fieldBuilder,
-								typeof(ModuleAttribute),
-								new Type[1] { typeof(bool) },
-								new object[1] { true }
-							);
-						}
-
 						if (field.Order > 0)
                         {
 							AddAttribute(fieldBuilder,
@@ -400,7 +396,15 @@ namespace Api.CustomContentTypes
                         {
 							AddDataAttribute(fieldBuilder, "type", "file");
 						}
-						else if (field.DataType == "price")
+                        else if (field.DataType == "form")
+                        {
+                            AddAttribute(fieldBuilder,
+                                typeof(ModuleAttribute),
+                                new Type[1] { typeof(String) },
+                                new object[1] { "Admin/CustomFormSelect" }
+                            );
+                        }
+                        else if (field.DataType == "price")
 						{
 							AddAttribute(fieldBuilder,
 								typeof(PriceAttribute),
@@ -453,16 +457,22 @@ namespace Api.CustomContentTypes
 
 				var controllerBaseType = typeof(AutoController<>).MakeGenericType(new Type[] { typeBuilder });
 
-				TypeBuilder controllerTypeBuilder = moduleBuilder.DefineType(typeName + "Controller", TypeAttributes.Public, controllerBaseType);
+				TypeBuilder controllerTypeBuilder = null;
 
-				var routeAttribute = typeof(Microsoft.AspNetCore.Mvc.RouteAttribute);
+				if (nativeType == null)
+				{
+					controllerTypeBuilder = moduleBuilder.DefineType(typeName + "Controller", TypeAttributes.Public, controllerBaseType);
 
-				var routeAttrCtor = routeAttribute.GetConstructor(new Type[] { typeof(string) });
+					var routeAttribute = typeof(Microsoft.AspNetCore.Mvc.RouteAttribute);
 
-				controllerTypeBuilder.SetCustomAttribute(new CustomAttributeBuilder(routeAttrCtor, new object[] { "v1/" + typeName.ToLower() }));
+					var routeAttrCtor = routeAttribute.GetConstructor(new Type[] { typeof(string) });
+
+					controllerTypeBuilder.SetCustomAttribute(new CustomAttributeBuilder(routeAttrCtor, new object[] { "v1/" + typeName.ToLower() }));
+				}
 
 				builders.Add(new UnconstructedCustomContentType()
 				{
+					NativeType = nativeType,
 					Id = customType.Id,
 					Name = typeName,
 					TypeBuilder = typeBuilder,
@@ -516,9 +526,16 @@ namespace Api.CustomContentTypes
 
 				// Finish the type.
 				Type builtType = builder.TypeBuilder.CreateType();
-				Type builtControllerType = builder.ControllerTypeBuilder.CreateType();
+				Type builtControllerType = null;
+
+				if (builder.ControllerTypeBuilder != null)
+				{
+					builtControllerType = builder.ControllerTypeBuilder.CreateType();
+				}
+				
 				result.Add(new ConstructedCustomContentType()
 				{
+					NativeType = builder.NativeType,
 					Id = builder.Id,
 					ContentType = builtType,
 					ControllerType = builtControllerType
@@ -556,6 +573,10 @@ namespace Api.CustomContentTypes
 	public class ConstructedCustomContentType
 	{
 		/// <summary>
+		/// Base type which originated from some other built in content type.
+		/// </summary>
+		public Type NativeType;
+		/// <summary>
 		/// The ID of the CustomContentType.
 		/// </summary>
 		public uint Id;
@@ -575,6 +596,11 @@ namespace Api.CustomContentTypes
 
 	class UnconstructedCustomContentType
     {
+		/// <summary>
+		/// Base native type.
+		/// </summary>
+		public Type NativeType;
+
 		public uint Id;
 
 		public string Name;

@@ -83,10 +83,15 @@ namespace Api.CustomContentTypes
 		/// </summary>
 		public uint Order;
 
-		/// <summary>
-		/// Should the dropdown options follow currency locale?
-		/// </summary>
-		public bool OptionsArePrices;
+        /// <summary>
+        /// The group/section to link together associatd elements on the form
+        /// </summary>
+        public string Group;
+
+        /// <summary>
+        /// Should the dropdown options follow currency locale?
+        /// </summary>
+        public bool OptionsArePrices;
 
 		/// <summary>
 		/// Has this field been deleted?
