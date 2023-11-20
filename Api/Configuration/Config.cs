@@ -87,12 +87,21 @@ namespace Api.Configuration
 			}
 			await OnChange();
 		}
-	}
 
-	/// <summary>
-	/// A set of configs.
-	/// </summary>
-	public partial class ConfigSet : Config
+        /// <summary>
+        /// Gets the name of this config type.
+        /// </summary>
+        public virtual string GetName()
+        {
+            return GetType().Name;
+        }
+
+    }
+
+    /// <summary>
+    /// A set of configs.
+    /// </summary>
+    public partial class ConfigSet : Config
 	{
 
 		/// <summary>
@@ -105,13 +114,12 @@ namespace Api.Configuration
 		/// </summary>
 		public Type EntryType;
 
-
-		/// <summary>
-		/// Gets the index of the config with the given ID.
-		/// </summary>
-		/// <param name="id"></param>
-		/// <returns></returns>
-		public virtual int GetIndex(uint id)
+        /// <summary>
+        /// Gets the index of the config with the given ID.
+        /// </summary>
+        /// <param name="id"></param>
+        /// <returns></returns>
+        public virtual int GetIndex(uint id)
 		{
 			return -1;
 		}
@@ -314,6 +322,13 @@ namespace Api.Configuration
 
 		}
 
-	}
+        /// <summary>
+        /// Gets the name of this config type.
+        /// </summary>
+        public override string GetName()
+        {
+            return typeof(T).Name;
+        }
+    }
 
 }

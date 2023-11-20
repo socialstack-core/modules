@@ -583,9 +583,9 @@ namespace Api.Configuration
 
 				var config = kvp.Key;
 
-				var name = config.GetType().Name;
+                var name = config.GetName();
 
-				if (name.EndsWith("Config"))
+                if (name.EndsWith("Config"))
 				{
 					// Trim it:
 					name = name.Substring(0, name.Length - 6);
