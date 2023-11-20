@@ -17,6 +17,8 @@ namespace Api.ThirdParty.Pages
         {
             _htmlService = htmlService;
 
+#warning disabled
+/*
 			var setupForTypeMethod = GetType().GetMethod(nameof(SetupForType));
 
 			Events.Service.AfterCreate.AddEventListener((Context context, AutoService service) => {
@@ -46,6 +48,8 @@ namespace Api.ThirdParty.Pages
 
 				return new ValueTask<AutoService>(service);
 			}, 1);
+*/
+
 		}
 
 		/// <summary>

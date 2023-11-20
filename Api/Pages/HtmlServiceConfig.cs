@@ -38,6 +38,12 @@ namespace Api.Pages
 		public DateTime? BlockWallActiveUntil { get; set; }
 
 		/// <summary>
+		/// True if all URLs should be forced to lowercase.
+		/// Don't use this if you have case-sensitive tokens in your URLs (excluding the query string).
+		/// </summary>
+		public bool ForceLowercaseUrls { get; set; } = false;
+
+		/// <summary>
 		/// True if React should be pre-rendered on pages.
 		/// </summary>
 		public bool PreRender {get; set; } = false;

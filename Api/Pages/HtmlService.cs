@@ -2099,6 +2099,29 @@ svg {
 
             var _config = (context.LocaleId < _configurationTable.Length) ? _configurationTable[context.LocaleId] : _defaultConfig;
 
+            if (_config.ForceLowercaseUrls)
+            {
+                bool cotainsUpperCase = path.Any(char.IsUpper);
+                bool hasTrailingSlash = path.Length > 1 && path[path.Length - 1] == '/';
+
+                if (cotainsUpperCase)
+                {
+                    var newLocation = $"{request.Scheme}://{request.Host}{request.PathBase}{request.Path}{request.QueryString}";
+                    newLocation = newLocation.ToLower();
+                    response.StatusCode = 301;
+                    response.Headers.Location = newLocation;
+                    return;
+                }
+                else if (hasTrailingSlash)
+                {
+                    var newLocation = $"{request.Scheme}://{request.Host}{request.PathBase}{request.Path}{request.QueryString}";
+                    newLocation = newLocation.Remove(newLocation.Length - 1, 1);
+                    response.StatusCode = 301;
+                    response.Headers.Location = newLocation;
+                    return;
+                }
+            }
+
             var pageAndTokens = await _pages.GetPage(context, request.Host.Value, path, searchQuery, true);
 
             bool pullFromCache = (_config.CacheMaxAge > 0 && _config.CacheAnonymousPages && !isAdmin && context.UserId == 0 && context.RoleId == 6);
