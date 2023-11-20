@@ -31,7 +31,6 @@ namespace Api.Database
 				typeName = type.Name;
 			}
 
-			// For now we just use *all* fields:
 			var fields = type.GetFields();
 			
 			var fieldSet = new List<Field>();
