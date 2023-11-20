@@ -157,7 +157,7 @@ namespace Api.Users
 				// Act like a login:
 				await Events.UserOnLogin.Dispatch(context, loginResult);
 
-				userToUpdate = await FinishUpdate(context, userToUpdate, user);
+				userToUpdate = await FinishUpdate(context, userToUpdate, user, DataOptions.IgnorePermissions);
 			}
 			
 			return userToUpdate;

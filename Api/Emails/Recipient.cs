@@ -51,18 +51,14 @@ namespace Api.Emails{
 		}
 
 		/// <summary>
-		/// Emails the given user, using the given optional locale. Uses their last seen locale otherwise.
+		/// Emails the given user. Uses their last seen locale.
 		/// </summary>
 		/// <param name="user"></param>
-		/// <param name="localeId"></param>
-		public Recipient(User user, uint localeId = 0)
+		public Recipient(User user)
 		{
 			User = user;
 			UserId = user.Id;
-			Context = new Context(localeId, user, user.Role)
-			{
-				LocaleId = localeId
-			};
+			Context = new Context(user.LocaleId.HasValue ? user.LocaleId.Value : 0, user, user.Role);
 		}
 
 		/// <summary>
