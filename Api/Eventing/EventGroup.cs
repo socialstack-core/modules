@@ -129,10 +129,9 @@ namespace Api.Eventing
 		public EventHandler<T, T> BeforeUpdate;
 
 		/// <summary>
-		/// Called to actually update the result in the data engine.
-		/// The second argument is the original object which MUST be unchanged but may be used for comparisons.
+		/// Called to actually update the result in the data engine. Given the updated object and the set of fields that were changed in it.
 		/// </summary>
-		public EventHandler<T, T> Update;
+		public EventHandler<T, ChangedFields, DataOptions> Update;
 
 		/// <summary>
 		/// Just after updating an entity.
