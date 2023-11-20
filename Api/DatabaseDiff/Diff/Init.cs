@@ -8,6 +8,9 @@ using System.Collections.Generic;
 using System.Text;
 using MySql.Data.MySqlClient;
 using Api.Permissions;
+using Api.Users;
+using Api.CanvasRenderer;
+using System.Reflection.Metadata;
 
 namespace Api.Database
 {
@@ -140,7 +143,9 @@ namespace Api.Database
 			var deleteQuery = Query.Delete(service.InstanceType, entityName);
 			var createQuery = Query.Insert(service.InstanceType, entityName);
 			var createWithIdQuery = Query.Insert(service.InstanceType, entityName, true);
-			var updateQuery = Query.Update(service.InstanceType, entityName);
+
+			var mainTableAs = createQuery.MainTableAs;
+
 			var selectQuery = Query.Select(service.InstanceType, entityName);
 			var listQuery = Query.List(service.InstanceType, entityName);
 			var listRawQuery = Query.List(service.InstanceType, entityName);
@@ -148,40 +153,52 @@ namespace Api.Database
 
 			var isDbStored = service.DataIsPersistent;
 
-			service.EventGroup.Delete.AddEventListener(async (Context context, T result) => {
-
-				// Delete the entry:
-				if (isDbStored)
+			service.EventGroup.Delete.AddEventListener((Context context, T result) =>
+			{
+				if (result == null)
 				{
-					await _database.RunWithId(context, deleteQuery, result.Id);
+					return new ValueTask<T>((T)null);
 				}
 
-				var cache = service.GetCacheForLocale(context == null ? 1 : context.LocaleId);
+				// Remove from the primary cache:
+				var cache = service.GetCacheForLocale(1);
 
 				if (cache != null)
 				{
-					cache.Remove(context, result.GetId());
+					cache.Remove(context, result.Id);
 				}
 
-				return result;
-			});
+				return new ValueTask<T>(result);
+			}, 100);
 
-			service.EventGroup.Update.AddEventListener(async (Context context, T entity, T orig) => {
+			service.EventGroup.Update.AddEventListener(async (Context context, T entity, ChangedFields changes, DataOptions opts) =>
+			{
+				if (entity == null)
+				{
+					return entity;
+				}
+
+				// Cache update.
+				var locale = context == null ? 1 : context.LocaleId;
+				var cache = service.GetCacheForLocale(locale);
+
+				if (cache == null)
+				{
+					return entity;
+				}
 
 				// Future improvement: rather than copying all fields and
 				// writing all fields, instead focus only on the ones which changed.
 
-				// Copy fields from entity -> orig
-				// Entity can then be returned to the pool, and anything that makes an
-				// assumption that the object doesn't change can continue with that assumption.
+				// Copy fields from entity -> orig.
+				var orig = cache.Get(entity.Id);
+
+				// Anything that makes an assumption that the object doesn't change can continue with that assumption.
 				service.CloneEntityInto(entity, orig);
-				
+
 				var id = orig.Id;
 
 				T raw = null;
-
-				var locale = context == null ? 1 : context.LocaleId;
-				var cache = service.GetCacheForLocale(locale);
 
 				if (locale == 1)
 				{
@@ -213,11 +230,6 @@ namespace Api.Database
 
 					service.PopulateRawEntityFromTarget(raw, orig, primaryEntity);
 				}
-				
-				if (isDbStored && !await _database.Run<T, ID>(context, updateQuery, raw, id))
-				{
-					return null;
-				}
 
 				if (cache != null)
 				{
@@ -229,27 +241,27 @@ namespace Api.Database
 					}
 
 				}
+				
+				return entity;
+			}, 100);
 
-				return orig;
-			});
-
-			service.EventGroup.Create.AddEventListener(async (Context context, T entity) => {
-
-				if (isDbStored)
+			service.EventGroup.Load.AddEventListener((Context context, T item, ID id) =>
+			{
+				if (item != null)
 				{
-					if (!entity.GetId().Equals(default(ID)))
-					{
-						// Explicit ID has been provided.
-						await _database.Run<T, ID>(context, createWithIdQuery, entity);
-					}
-					else if (!await _database.Run<T, ID>(context, createQuery, entity))
-					{
-						return default;
-					}
+					return new ValueTask<T>(item);
 				}
 
-				return entity;
-			});
+				// Load from cache if there is one.
+				var cache = service.GetCacheForLocale(context == null ? 1 : context.LocaleId);
+
+				if (cache != null)
+				{
+					item = cache.Get(id);
+				}
+
+				return new ValueTask<T>(item);
+			}, 5);
 
 			service.EventGroup.CreatePartial.AddEventListener((Context context, T newEntity) => {
 
@@ -298,58 +310,192 @@ namespace Api.Database
 						}
 						else
 						{
-                            // Secondary locale. The target object is just a clone of the raw object.
-                            var entity = (T)Activator.CreateInstance(service.InstanceType);
-                            service.PopulateTargetEntityFromRaw(entity, raw, raw);
+							// Secondary locale. The target object is just a clone of the raw object.
+							var entity = (T)Activator.CreateInstance(service.InstanceType);
+							service.PopulateTargetEntityFromRaw(entity, raw, raw);
 
-                            var localeRaw = (T)Activator.CreateInstance(service.InstanceType);
-                            service.PopulateTargetEntityFromRaw(localeRaw, raw, raw);
+							var localeRaw = (T)Activator.CreateInstance(service.InstanceType);
+							service.PopulateTargetEntityFromRaw(localeRaw, raw, raw);
 
-                            cache.Add(context, entity, localeRaw);
-                        }
+							cache.Add(context, entity, localeRaw);
+						}
 					}
 				}
 
 				return new ValueTask<T>(newEntity);
 			});
 
-			service.EventGroup.Load.AddEventListener(async (Context context, T item, ID id) => {
-
-				var cache = service.GetCacheForLocale(context == null ? 1 : context.LocaleId);
-
-				if (cache != null)
-				{
-					item = cache.Get(id);
-				}
-
-				if (item == null && isDbStored)
-				{
-					item = await _database.Select<T, ID>(context, selectQuery, service.InstanceType, id);
-				}
-				
-				return item;
-			});
-
 			service.EventGroup.List.AddEventListener(async (Context context, QueryPair<T, ID> queryPair) => {
+
+				if (queryPair.Handled)
+				{
+					return queryPair;
+				}
 
 				// Do we have a cache?
 				var cache = (queryPair.QueryA.DataOptions & DataOptions.CacheFlag) == DataOptions.CacheFlag ? service.GetCacheForLocale(context.LocaleId) : null;
 
 				if (cache != null)
 				{
+					queryPair.Handled = true;
+
 					// Great - we're using the cache:
 					queryPair.Total = await cache.GetResults(context, queryPair, queryPair.OnResult, queryPair.SrcA, queryPair.SrcB);
 				}
-				else if (isDbStored)
-				{
-					// "Raw" results are as-is from the database.
-					// That means the fields are not automatically filled in with the default locale when they're empty.
-					var raw = (queryPair.QueryA.DataOptions & DataOptions.RawFlag) == DataOptions.RawFlag;
 
-					// Get the results from the database:
-					queryPair.Total = await _database.GetResults(context, queryPair, queryPair.OnResult, queryPair.SrcA, queryPair.SrcB, service.InstanceType, raw ? listRawQuery : listQuery);
+				return queryPair;
+			}, 5);
+
+			if (isDbStored)
+			{
+				service.EventGroup.Delete.AddEventListener(async (Context context, T result) =>
+				{
+					// Delete the entry:
+					if (!await _database.RunWithId(context, deleteQuery, result.Id))
+					{
+						return null;
+					}
+
+					// Successful delete from the db.
+					return result;
+				});
+
+				service.EventGroup.Create.AddEventListener(async (Context context, T entity) =>
+				{
+					if (!entity.GetId().Equals(default(ID)))
+					{
+						// Explicit ID has been provided.
+						await _database.Run<T, ID>(context, createWithIdQuery, entity);
+					}
+					else if (!await _database.Run<T, ID>(context, createQuery, entity))
+					{
+						return default;
+					}
+
+					return entity;
+				});
+
+				service.EventGroup.Update.AddEventListener(async (Context context, T entity, ChangedFields changes, DataOptions opts) => {
+
+					if (entity == null || changes.None)
+					{
+						return entity;
+					}
+
+					DateTime? prevEdit = changes.PreviousEditedUtc;
+
+					// Attempt the db update.
+					using var connection = _database.GetConnection();
+					await connection.OpenAsync();
+					var cmd = new MySqlCommand();
+					cmd.Connection = connection;
+
+					// For each field change, if it is a localised field and locale is not 1 then update the relevant localised field.
+					// Otherwise, update the base field.
+
+					StringBuilder str = new StringBuilder();
+					str.Append("UPDATE ");
+					str.Append(mainTableAs);
+					str.Append(" SET ");
+
+					var paramIndex = 0;
+
+					var parameter = cmd.CreateParameter();
+					parameter.ParameterName = "id";
+					parameter.Value = entity.Id;
+					cmd.Parameters.Add(parameter);
+
+					// Get the locale code:
+					string localeCode = null;
+					var localeId = context.LocaleId;
+
+					if (localeId > 1)
+					{
+						var locale = (ContentTypes.Locales != null && localeId <= ContentTypes.Locales.Length ? 
+								ContentTypes.Locales[localeId - 1] : null);
+						localeCode = locale.Code;
+					}
+
+					foreach (var field in changes)
+					{
+						if (paramIndex != 0)
+						{
+							str.Append(", ");
+						}
+						if (localeCode == null || field.LocalisedName == null)
+						{
+							str.Append(field.FullName);
+						}
+						else
+						{
+							str.Append(field.LocalisedName);
+							str.Append(localeCode);
+							str.Append('`');
+						}
+						str.Append("=@p");
+						str.Append(paramIndex);
+
+						parameter = cmd.CreateParameter();
+						parameter.ParameterName = "p" + paramIndex;
+						parameter.Value = field.TargetField.GetValue(entity);
+						cmd.Parameters.Add(parameter);
+						paramIndex++;
+					}
+
+					// Add one of the two static where clauses:
+					if (prevEdit.HasValue)
+					{
+						str.Append(" WHERE Id=@id AND EditedUtc=@eUtc");
+						parameter = cmd.CreateParameter();
+						parameter.ParameterName = "eUtc";
+						parameter.Value = prevEdit.Value;
+						cmd.Parameters.Add(parameter);
+					}
+					else
+					{
+						str.Append(" WHERE Id=@id");
+					}
+
+					cmd.CommandText = str.ToString();
+
+					// Run update:
+					if (await cmd.ExecuteNonQueryAsync() > 0)
+					{
+						return entity;
+					}
+
+					// It failed.
+					return null;
+				});
+
+				service.EventGroup.Load.AddEventListener(async (Context context, T item, ID id) => {
+
+					if (item != null)
+					{
+						return item;
+					}
+
+					item = await _database.Select<T, ID>(context, selectQuery, service.InstanceType, id);
+					return item;
+				});
+			}
+
+			service.EventGroup.List.AddEventListener(async (Context context, QueryPair<T, ID> queryPair) => {
+
+				if (queryPair.Handled)
+				{
+					return queryPair;
 				}
 
+				queryPair.Handled = true;
+
+				// "Raw" results are as-is from the database.
+				// That means the fields are not automatically filled in with the default locale when they're empty.
+				var raw = (queryPair.QueryA.DataOptions & DataOptions.RawFlag) == DataOptions.RawFlag;
+
+				// Get the results from the database:
+				queryPair.Total = await _database.GetResults(context, queryPair, queryPair.OnResult, queryPair.SrcA, queryPair.SrcB, service.InstanceType, raw ? listRawQuery : listQuery);
+				
 				return queryPair;
 			});
 		}

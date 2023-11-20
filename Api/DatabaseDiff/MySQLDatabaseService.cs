@@ -298,14 +298,7 @@ namespace Api.Database
 
 			// Auto edited/ created dates.
 			// Applying to the actual entity so the object is up to date too.
-			if (q.IsUpdate)
-			{
-				if (srcObject is IHaveTimestamps revRow && context.PermitEditedUtcChange)
-				{
-					revRow.SetEditedUtc(DateTime.UtcNow);
-				}
-			}
-			else if(q.IsInsert)
+			if(q.IsInsert)
 			{
 				if (srcObject is IHaveTimestamps revRow)
 				{

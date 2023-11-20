@@ -28,11 +28,6 @@ namespace Api.Database
 		protected const int SELECT = 2;
 
 		/// <summary>
-		/// UPDATE queries.
-		/// </summary>
-		protected const int UPDATE = 3;
-
-		/// <summary>
 		/// DELETE queries.
 		/// </summary>
 		protected const int DELETE = 4;
@@ -81,9 +76,9 @@ namespace Api.Database
 		protected string MainEntity;
 
 		/// <summary>
-		/// Primary table name.
+		/// Primary table name with AS followed by the C# entity name.
 		/// </summary>
-		protected string MainTableAs;
+		public string MainTableAs;
 
 		/// <summary>
 		/// Id field to write out to.
@@ -142,17 +137,6 @@ namespace Api.Database
 			get
 			{
 				return Operation == SELECT;
-			}
-		}
-
-		/// <summary>
-		/// True if this is an UPDATE query.
-		/// </summary>
-		public bool IsUpdate
-		{
-			get
-			{
-				return Operation == UPDATE;
 			}
 		}
 
@@ -305,34 +289,6 @@ namespace Api.Database
 						cmd.CommandText = res;
 						return;
 					}
-					break;
-				case UPDATE:
-					str.WriteS("UPDATE ");
-					str.WriteS(MainTableAs);
-					str.WriteS(" SET ");
-
-					// List of parametric fields next!
-					for (var i = 0; i < Fields.Count; i++)
-					{
-						var field = Fields[i];
-						if (i != 0)
-						{
-							str.WriteS(", ");
-						}
-						if (localeCode == null || field.LocalisedName == null)
-						{
-							str.WriteS(field.FullName);
-						}
-						else
-						{
-							str.WriteS(field.LocalisedName);
-							str.WriteS(localeCode);
-							str.Write((byte)'`');
-						}
-						str.WriteS("=@p");
-						str.WriteS(i);
-					}
-
 					break;
 				case COPY:
 
@@ -653,36 +609,6 @@ namespace Api.Database
 						return str.ToString();
 					}
 					break;
-				case UPDATE:
-					str.Append("UPDATE ");
-					str.Append(MainTableAs);
-					str.Append(" SET ");
-
-					// List of parametric fields next!
-					for (var i = 0; i < Fields.Count; i++)
-					{
-						var field = Fields[i];
-						if (i != 0)
-						{
-							str.Append(", ");
-						}
-						if (localeCode == null || field.LocalisedName == null)
-						{
-							str.Append(field.FullName);
-						}
-						else
-						{
-							str.Append(field.LocalisedName);
-							str.Append(localeCode);
-							str.Append('`');
-						}
-						str.Append("=@p");
-						str.Append(i);
-					}
-
-					paramOffset = Fields.Count;
-
-					break;
 				case COPY:
 
 					// Insert..Select query.
@@ -935,30 +861,6 @@ namespace Api.Database
 				}
 			}
 
-		}
-
-		/// <summary>
-		/// Generates an update rowType.TableName() set field=?, field=?.. where.. query.
-		/// Type should be a DatabaseRow derived type. The type of data that will be getting updated.
-		/// </summary>
-		public static Query Update(Type type, string entityName)
-		{
-			var result = new Query
-			{
-				Operation = UPDATE
-			};
-			result.SetMainTable(entityName);
-
-			// Fields that we'll select are mapped ahead-of-time for rapid lookup speeds.
-			// Note that these maps aren't shared between queries so the fields can be removed etc from them.
-			result.Fields = new FieldMap(type, entityName);
-
-			// Remove "Id" field:
-			result.RemoveField("Id");
-
-			// Default where:
-			result.Where("Id=@id");
-			return result;
 		}
 
 		/// <summary>
