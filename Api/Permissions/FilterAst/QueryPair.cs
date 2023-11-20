@@ -33,6 +33,11 @@ namespace Api.Permissions
 		public int Total;
 
 		/// <summary>
+		/// True if anything has handled the request.
+		/// </summary>
+		public bool Handled;
+
+		/// <summary>
 		/// Callback when the queries get a result
 		/// </summary>
 		public Func<Context, T, int, object, object, ValueTask> OnResult;
