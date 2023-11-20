@@ -2,6 +2,7 @@
 using Api.Database;
 using Api.Translate;
 using System;
+using System.Collections;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
@@ -12,20 +13,183 @@ using System.Threading.Tasks;
 namespace Api.Startup {
 	
 	/// <summary>
-	/// Tracks fields which have changed, without allocating anything. 
-	/// Note that this is field specific (because only fields are persistent). Properties do not work.
-	/// Limited to 64 fields on an object.
+	/// An iterator used to identify fields which have changed without allocating anything itself whenever possible.
+	/// It will only allocate if you have excessively large objects.
 	/// </summary>
-	public struct ChangedFields {
-		
+	public struct ChangedFields : IEnumerable<Field>
+	{
 		/// <summary>
-		/// Specific map of fields.
+		/// A bitfield indicating which fields have changed in the given field list from the service FieldSet.
 		/// </summary>
-		public ChangedFields(ulong map){
+		public ulong FieldDiff;
+
+		/// <summary>
+		/// If a type has more than 64 fields (which itself is not recommended), this set is used instead of FieldDiff.
+		/// </summary>
+		// public ulong[] Diffs;
+		public FieldMap Fields = null;
+
+		/// <summary>
+		/// If this is set you should only update the data store if the value in the data store matches this.
+		/// </summary>
+		public DateTime? PreviousEditedUtc = null;
+
+		/// <summary>
+		/// True if this change set represents "no changes at all".
+		/// </summary>
+		public bool None
+		{
+			get
+			{
+				return FieldDiff == 0;
+			}
 		}
 
+		/// <summary>
+		/// </summary>
+		public ChangedFields(ulong fieldDiff)
+		{
+			FieldDiff = fieldDiff;
+		}
+
+		/// <summary>
+		/// Start iterating over the changed field set.
+		/// </summary>
+		/// <returns></returns>
+		public IEnumerator<Field> GetEnumerator()
+		{
+			return new ChangedFieldIterator(FieldDiff, Fields);
+		}
+
+		/// <summary>
+		/// Start iterating over the changed field set.
+		/// </summary>
+		/// <returns></returns>
+		IEnumerator IEnumerable.GetEnumerator()
+		{
+			return new ChangedFieldIterator(FieldDiff, Fields);
+		}
 	}
-	
+
+	/// <summary>
+	/// Iterates over a changedField set.
+	/// </summary>
+	public struct ChangedFieldIterator : IEnumerator<Field>
+	{
+		/// <summary>
+		/// The remaining diff.
+		/// </summary>
+		public ulong FieldDiff;
+		/// <summary>
+		/// The fields from the CF set.
+		/// </summary>
+		public FieldMap Fields;
+		/// <summary>
+		/// Current index.
+		/// </summary>
+		public int Index;
+
+		/// <summary>
+		/// Remaining diff.
+		/// </summary>
+		public ulong RemDiff;
+
+		/// <summary>
+		/// Current field.
+		/// </summary>
+		public Field Field;
+
+		/// <summary>
+		/// Create a new iterator.
+		/// </summary>
+		/// <param name="diff"></param>
+		/// <param name="fields"></param>
+		public ChangedFieldIterator(ulong diff, FieldMap fields)
+		{
+			FieldDiff = diff;
+			Fields = fields;
+			Field = null;
+			RemDiff = diff;
+			Index = 0;
+		}
+
+		/// <summary>
+		/// Current field.
+		/// </summary>
+		public Field Current => Field;
+
+		/// <summary>
+		/// Current field.
+		/// </summary>
+		object IEnumerator.Current => Field;
+
+		/// <summary>
+		/// Tidies up this iterator.
+		/// </summary>
+		public void Dispose()
+		{
+		}
+
+		/// <summary>
+		/// True if another field is present in this set.
+		/// </summary>
+		/// <returns></returns>
+		/// <exception cref="NotImplementedException"></exception>
+		public bool MoveNext()
+		{
+			var rd = RemDiff;
+			
+			if (rd == 0)
+			{
+				return false;
+			}
+
+			var ind = Index;
+
+			while ((rd & 1) == 0)
+			{
+				rd = rd >> 1;
+				ind++;
+			}
+
+			Field = Fields[ind];
+
+			// Consume this field:
+			rd = rd >> 1;
+			ind++;
+			Index = ind;
+			RemDiff = rd;
+
+			return true;
+		}
+
+		/// <summary>
+		/// Resets the iterator.
+		/// </summary>
+		public void Reset()
+		{
+			Index = 0;
+			Field = null;
+			RemDiff = FieldDiff;
+		}
+	}
+
+	/// <summary>
+	/// A changed field.
+	/// </summary>
+	/// <typeparam name="T"></typeparam>
+	/// <typeparam name="ID"></typeparam>
+	public struct ChangedField<T, ID>
+		where T : Content<ID>
+		where ID : struct
+	{
+		/// <summary>
+		/// The field which has changed.
+		/// </summary>
+		public FieldInfo Field;
+
+	}
+
 	/// <summary>
 	/// A map of field name -> field on a Content type. 
 	/// This level does not consider e.g. role accessibility - it is just a raw, complete set of fields and properties, including virtual ones.
@@ -87,7 +251,7 @@ namespace Api.Startup {
 			_globalVirtualFields = new Dictionary<string, ContentField>();
 
 			// Collect all value generators:
-			var allTypes = typeof(ChangedFields).Assembly.DefinedTypes;
+			var allTypes = typeof(ContentFields).Assembly.DefinedTypes;
 
 			foreach (var typeInfo in allTypes)
 			{

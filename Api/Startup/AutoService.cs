@@ -37,6 +37,10 @@ public partial class AutoService<T> : AutoService<T, uint>
 public enum DataOptions : int
 {
 	/// <summary>
+	/// Checks if the given row has not changed based on the EditedUtc date.
+	/// </summary>
+	CheckNotChanged = 8,
+	/// <summary>
 	/// Set this flag true to get the raw data from the db.
 	/// </summary>
 	RawFlag = 4,
@@ -1203,12 +1207,162 @@ public partial class AutoService<T, ID> : AutoService
 	}
 
 	/// <summary>
+	/// The field set used by Diff.
+	/// </summary>
+	private FieldMap _diffFields;
+
+	/// <summary>
+	/// Used by Diff.
+	/// </summary>
+	private Func<T, T, ChangedFields> _diffDelegate;
+
+	/// <summary>
+	/// Diffs the given objects returning information about fields which have changed. Does not allocate.
+	/// </summary>
+	/// <param name="updated"></param>
+	/// <param name="original"></param>
+	public ChangedFields Diff(T updated, T original)
+	{
+		if (_diffDelegate == null)
+		{
+			var dymMethod = new DynamicMethod("Diff", typeof(ChangedFields), new Type[] { typeof(T), typeof(T) }, true);
+			var generator = dymMethod.GetILGenerator();
+
+			// Fields that we'll select are mapped ahead-of-time for rapid lookup speeds.
+			// Note that these maps aren't shared between queries so the fields can be removed etc from them.
+			var flds = new FieldMap(typeof(T), EntityName);
+
+			// Remove "Id" field as it's not permitted to be marked as changed:
+			flds.Remove("Id");
+
+			_diffFields = flds;
+
+			if (flds.Count > 64)
+			{
+				// You've ignored the other error for too long and it has become more severe.
+				// If you encounter this situation and having this many fields is required, ChangedFields needs to instead allocate a ulong array.
+				throw new Exception("Too many fields");
+			}
+			else if (flds.Count >= 50)
+			{
+				Log.Warn(LogTag, "This service has an unusually large amount of fields (" + flds.Count + "). 64 is the current limit.");
+			}
+
+			var bitField = generator.DeclareLocal(typeof(ulong));
+			//var cfField = generator.DeclareLocal(typeof(ChangedFields));
+
+			generator.Emit(OpCodes.Ldc_I4_0);
+			generator.Emit(OpCodes.Conv_U8);
+			generator.Emit(OpCodes.Stloc, bitField);
+
+			for (var i=0;i<flds.Count;i++)
+			{
+				var field = flds[i];
+				var type = field.Type;
+				var nullableBase = Nullable.GetUnderlyingType(type);
+				var endLabel = generator.DefineLabel();
+
+				var fieldValue = ((ulong)1) << i;
+				var mainType = type;
+
+				if (nullableBase != null)
+				{
+					mainType = nullableBase;
+					var hasValueMethod = type.GetProperty("HasValue").GetGetMethod();
+					var getValueMethod = type.GetProperty("Value").GetGetMethod();
+
+					generator.Emit(OpCodes.Ldarg_1);
+					generator.Emit(OpCodes.Ldflda, field.TargetField);
+					generator.Emit(OpCodes.Callvirt, hasValueMethod);
+					generator.Emit(OpCodes.Dup);
+
+					generator.Emit(OpCodes.Ldarg_0);
+					generator.Emit(OpCodes.Ldflda, field.TargetField);
+					generator.Emit(OpCodes.Callvirt, hasValueMethod);
+
+					// Are they the same?
+					generator.Emit(OpCodes.Ceq);
+
+					Label sameType = generator.DefineLabel();
+
+					generator.Emit(OpCodes.Brtrue, sameType); // They both have a value or are both null.
+					generator.Emit(OpCodes.Pop); // Cancel out the dup earlier
+					generator.Emit(OpCodes.Ldloc, bitField);
+					generator.Emit(OpCodes.Ldc_I8, (long)fieldValue);
+					generator.Emit(OpCodes.Conv_U8);
+					generator.Emit(OpCodes.Or);
+					generator.Emit(OpCodes.Stloc, bitField);
+					generator.Emit(OpCodes.Br, endLabel);
+
+					generator.MarkLabel(sameType);
+
+					// If they're both null, go to end.
+					generator.Emit(OpCodes.Brfalse, endLabel);
+
+					// Otherwise, check if their values match. Load the values now.
+					generator.Emit(OpCodes.Ldarg_1);
+					generator.Emit(OpCodes.Ldflda, field.TargetField);
+					generator.Emit(OpCodes.Callvirt, getValueMethod);
+
+					generator.Emit(OpCodes.Ldarg_0);
+					generator.Emit(OpCodes.Ldflda, field.TargetField);
+					generator.Emit(OpCodes.Callvirt, getValueMethod);
+
+				}
+				else
+				{
+					generator.Emit(OpCodes.Ldarg_1);
+					generator.Emit(OpCodes.Ldfld, field.TargetField);
+					generator.Emit(OpCodes.Ldarg_0);
+					generator.Emit(OpCodes.Ldfld, field.TargetField);
+				}
+				
+				if (mainType == typeof(DateTime) || mainType == typeof(string) || mainType == typeof(decimal))
+				{
+					var eq = mainType.GetMethod("Equals", new Type[] { mainType, mainType });
+					generator.Emit(OpCodes.Call, eq);
+				}
+				else
+				{
+					generator.Emit(OpCodes.Ceq);
+				}
+
+				// if(false){ bitField |= fieldValue };
+
+				generator.Emit(OpCodes.Brtrue, endLabel);
+				generator.Emit(OpCodes.Ldloc, bitField);
+				generator.Emit(OpCodes.Ldc_I8, (long)fieldValue);
+				generator.Emit(OpCodes.Conv_U8);
+				generator.Emit(OpCodes.Or);
+				generator.Emit(OpCodes.Stloc, bitField);
+				generator.MarkLabel(endLabel);
+			}
+
+			// Return the new ChangedFields (struct).
+			var ctor = typeof(ChangedFields).GetConstructor(
+				BindingFlags.Public | BindingFlags.Instance,
+				new Type[] { typeof(ulong) }
+			);
+
+			generator.Emit(OpCodes.Ldloc, bitField);
+			generator.Emit(OpCodes.Newobj, ctor);
+			generator.Emit(OpCodes.Ret);
+
+			_diffDelegate = dymMethod.CreateDelegate<Func<T, T, ChangedFields>>();
+		}
+
+		var chgFields = _diffDelegate(updated, original);
+		chgFields.Fields = _diffFields;
+		return chgFields;
+	}
+
+	/// <summary>
 	/// Used by CloneEntityInto.
 	/// </summary>
 	private Action<T, T> _cloneDelegate;
 
 	/// <summary>
-	/// Clones the fields of the given source object into the given target object.
+	/// Clones the fields of the given source object into the given target object. Does not allocate.
 	/// </summary>
 	/// <param name="source"></param>
 	/// <param name="target"></param>
@@ -1255,11 +1409,22 @@ public partial class AutoService<T, ID> : AutoService
 			throw new ArgumentNullException("An update callback is required. Inside this callback is the only place where you can safely set field values, aside from BeforeUpdate event handlers.");
 		}
 
+		T ce = cachedEntity;
+
+		if (CacheAvailable)
+		{
+			// cachedEntity did actually come from the cache.
+			// To avoid invalid diffs if the cache object is changed by some other thread we need to clone it too.
+			// Like StartUpdate, this object should ultimately come from and return to a pool.
+			ce = new T();
+			CloneEntityInto(entityToUpdate, ce);
+		}
+
 		// Set fields now:
-		cb(context, entityToUpdate, cachedEntity);
+		cb(context, entityToUpdate, ce);
 
 		// And perform the save:
-		return await FinishUpdate(context, entityToUpdate, cachedEntity);
+		return await FinishUpdate(context, entityToUpdate, ce, options);
 	}
 	
 	/// <summary>
@@ -1285,7 +1450,7 @@ public partial class AutoService<T, ID> : AutoService
 		await cb(context, entityToUpdate, cachedEntity);
 
 		// And perform the save:
-		return await FinishUpdate(context, entityToUpdate, cachedEntity);
+		return await FinishUpdate(context, entityToUpdate, cachedEntity, options);
 	}
 
 	/// <summary>
@@ -1316,8 +1481,9 @@ public partial class AutoService<T, ID> : AutoService
 	/// <param name="context"></param>
 	/// <param name="entityToUpdate">The entity returned by StartUpdate.</param>
 	/// <param name="originalEntity">The original, unmodified entity.</param>
+	/// <param name="options">Data options</param>
 	/// <returns></returns>
-	public async ValueTask<T> FinishUpdate(Context context, T entityToUpdate, T originalEntity)
+	public async ValueTask<T> FinishUpdate(Context context, T entityToUpdate, T originalEntity, DataOptions options = DataOptions.Default)
 	{
 		entityToUpdate = await EventGroup.BeforeUpdate.Dispatch(context, entityToUpdate, originalEntity);
 		
@@ -1326,7 +1492,27 @@ public partial class AutoService<T, ID> : AutoService
 			return null;
 		}
 
-		entityToUpdate = await EventGroup.Update.Dispatch(context, entityToUpdate, originalEntity);
+		// Set editedUtc, before the diff is calculated:
+		DateTime? prevDate = null;
+
+		if (entityToUpdate is Api.Users.IHaveTimestamps revRow)
+		{
+			if ((options & DataOptions.CheckNotChanged) == DataOptions.CheckNotChanged)
+			{
+				prevDate = revRow.GetEditedUtc();
+			}
+
+			if (context.PermitEditedUtcChange)
+			{
+				revRow.SetEditedUtc(DateTime.UtcNow);
+			}
+		}
+
+		// Calculate the diff:
+		var changes = Diff(entityToUpdate, originalEntity);
+		changes.PreviousEditedUtc = prevDate;
+
+		entityToUpdate = await EventGroup.Update.Dispatch(context, entityToUpdate, changes, options);
 
 		if (entityToUpdate == null)
 		{
