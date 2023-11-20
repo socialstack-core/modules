@@ -67,6 +67,7 @@ public partial class AutoService<T, ID> {
 	/// CSV file mappings
 	/// </summary>
 	private CsvMapping<T, ID>[] _csvMappings = null;
+	private Type _csvMappingIT = null;
 
 	/// <summary>
 	/// Gets a CSV file mapping
@@ -75,6 +76,13 @@ public partial class AutoService<T, ID> {
 	public async ValueTask<CsvMapping<T, ID>> GetCsvMapping(Context ctx)
 	{
 		var roleId = ctx.RoleId;
+
+		if (_csvMappingIT != InstanceType)
+		{
+			// Instance type has changed or is being set for the first time. Clear all cached CSV mappings implicitly.
+			_csvMappings = null;
+			_csvMappingIT = InstanceType;
+		}
 
 		var size = _csvMappings == null ? 0 : _csvMappings.Length;
 
