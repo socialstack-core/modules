@@ -10,6 +10,7 @@ namespace Api.Users
         /// The token provided in the password reset email. Useful for checking whether
         /// a user update event was triggered by a password reset request.
         /// </summary>
+        [Newtonsoft.Json.JsonIgnore]
         public string PasswordReset { get; set; }
     }
 }
