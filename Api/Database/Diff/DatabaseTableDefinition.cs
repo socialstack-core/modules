@@ -39,6 +39,21 @@ namespace Api.Database
 		}
 
 		/// <summary>
+		/// Removes the given column from this table definition.
+		/// </summary>
+		/// <param name="column"></param>
+		public void RemoveColumn(DatabaseColumnDefinition column)
+		{
+			if (OwningType == null)
+			{
+				OwningType = column.OwningType;
+			}
+
+			var key = column.ColumnName.ToLower();
+			Columns.Remove(key);
+		}
+
+		/// <summary>
 		/// Adds the given column to this table definition.
 		/// </summary>
 		/// <param name="column"></param>

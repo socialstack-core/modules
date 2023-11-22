@@ -124,6 +124,22 @@ namespace Api.Database
 			var table = GetTable(column.TableName, true);
 			table.AddColumn(column);
 		}
+
+		/// <summary>
+		/// Removes the given column definition from this schema.
+		/// </summary>
+		/// <param name="column"></param>
+		public void Remove(DatabaseColumnDefinition column)
+		{
+			var table = GetTable(column.TableName, false);
+
+			if (table == null)
+			{
+				return;
+			}
+
+			table.RemoveColumn(column);
+		}
 	}
 	
 }
