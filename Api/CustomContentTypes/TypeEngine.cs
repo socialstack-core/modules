@@ -240,18 +240,18 @@ namespace Api.CustomContentTypes
 				}
 
 				// Every custom content type needs a name to identify it
-				if (!customType.IsForm && customType.Fields.FirstOrDefault(field => field.Name == "Name") == null)
-                {
-					customType.Fields.Insert(0, 
-						new CustomContentTypeField
-						{
-							CustomContentTypeId = customType.Id,
-							Name = "Name",
-							NickName = "Name",
-							DataType = "string"
-						}
-					);
-                } 
+				//if (!customType.IsForm && customType.Fields.FirstOrDefault(field => field.Name == "Name") == null)
+    //            {
+				//	customType.Fields.Insert(0, 
+				//		new CustomContentTypeField
+				//		{
+				//			CustomContentTypeId = customType.Id,
+				//			Name = "Name",
+				//			NickName = "Name",
+				//			DataType = "string"
+				//		}
+				//	);
+    //            } 
 
 				var virtualFieldBuilders = new List<CustomAttributeBuilder>();
 
@@ -431,11 +431,22 @@ namespace Api.CustomContentTypes
                         {
 							AddDataAttribute(fieldBuilder, "contentType", TidyName(field.LinkedEntity));
 
-							AddAttribute(fieldBuilder,
-								typeof(ModuleAttribute),
-								new Type[1] { typeof(String) },
-								new object[1] { "Admin/ContentSelect" }
-							);
+							if (customType.IsForm)
+							{
+								AddAttribute(fieldBuilder,
+									typeof(ModuleAttribute),
+									new Type[1] { typeof(String) },
+									new object[1] { "UI/ContentSelect" }
+								);
+							} 
+							else
+							{
+                                AddAttribute(fieldBuilder,
+                                    typeof(ModuleAttribute),
+                                    new Type[1] { typeof(String) },
+                                    new object[1] { "Admin/ContentSelect" }
+                                );
+                            }
 
 							AddDataAttribute(fieldBuilder, "titleField", "name");
 							AddDataAttribute(fieldBuilder, "search", "name");
