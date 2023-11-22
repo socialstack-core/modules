@@ -31,7 +31,6 @@ namespace Api.Startup
 		/// Instead, handle the Create and Delete events.
 		/// </summary>
 		public Api.Eventing.EventHandler<object> AfterStart;
-
 	}
 
 }

@@ -272,7 +272,7 @@ public partial class AutoController<T,ID> : ControllerBase
 
 		// Start building up our object.
 		// Most other fields, particularly custom extensions, are handled by autoform.
-		var entity = new T();
+		var entity = (T)Activator.CreateInstance(_service.InstanceType);
 
 		// If it's user created we'll set the user ID now:
 		var userCreated = (entity as Api.Users.UserCreatedContent<ID>);

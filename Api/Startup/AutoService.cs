@@ -125,12 +125,17 @@ public partial class AutoService<T, ID> : AutoService
 	/// <summary>
 	/// Updates the instance type, clearing any internal caches which used it before.
 	/// </summary>
+	/// <param name="context"></param>
 	/// <param name="instanceType"></param>
-	public override void SetInstanceType(Type instanceType)
+	public override async ValueTask SetInstanceType(Context context, Type instanceType)
 	{
-		base.SetInstanceType(instanceType);
+		await base.SetInstanceType(context, instanceType);
 		_jsonStructures = null;
 		_filterSets.Clear();
+		_diffFields = null;
+		_diffDelegate = null;
+		_cloneDelegate = null;
+		await EventGroup.AfterInstanceTypeUpdate.Dispatch(context, this);
 	}
 
 	/// <summary>
@@ -1241,7 +1246,7 @@ public partial class AutoService<T, ID> : AutoService
 
 			// Fields that we'll select are mapped ahead-of-time for rapid lookup speeds.
 			// Note that these maps aren't shared between queries so the fields can be removed etc from them.
-			var flds = new FieldMap(typeof(T), EntityName);
+			var flds = new FieldMap(InstanceType, EntityName);
 
 			// Remove "Id" field as it's not permitted to be marked as changed:
 			flds.Remove("Id");
@@ -1384,7 +1389,7 @@ public partial class AutoService<T, ID> : AutoService
 			var dymMethod = new DynamicMethod("CloneEntityInto", typeof(void), new Type[] { typeof(T), typeof(T) }, true);
 			var generator = dymMethod.GetILGenerator();
 
-			foreach (var field in typeof(T).GetFields(BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic))
+			foreach (var field in InstanceType.GetFields(BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic))
 			{
 				generator.Emit(OpCodes.Ldarg_1);
 				generator.Emit(OpCodes.Ldarg_0);
@@ -1427,7 +1432,7 @@ public partial class AutoService<T, ID> : AutoService
 			// cachedEntity did actually come from the cache.
 			// To avoid invalid diffs if the cache object is changed by some other thread we need to clone it too.
 			// Like StartUpdate, this object should ultimately come from and return to a pool.
-			ce = new T();
+			ce = (T)Activator.CreateInstance(InstanceType);
 			CloneEntityInto(entityToUpdate, ce);
 		}
 
@@ -1480,7 +1485,7 @@ public partial class AutoService<T, ID> : AutoService
 		}
 
 		// Minor todo: get this object from a pool for high velocity updates.
-		var t = new T();
+		var t = (T)Activator.CreateInstance(InstanceType);
 		CloneEntityInto(entity, t);
 		return t;
 	}
@@ -1613,12 +1618,14 @@ public partial class AutoService
 	/// <summary>
 	/// Updates the instance type, clearing any internal caches which used it before.
 	/// </summary>
+	/// <param name="context"></param>
 	/// <param name="instanceType"></param>
-	public virtual void SetInstanceType(Type instanceType)
+	public virtual ValueTask SetInstanceType(Context context, Type instanceType)
 	{
 		InstanceType = instanceType == null ? ServicedType : instanceType;
 		_contentFields = null;
 		FieldMap = new FieldMap(InstanceType, EntityName);
+		return new ValueTask();
 	}
 
 	/// <summary>
