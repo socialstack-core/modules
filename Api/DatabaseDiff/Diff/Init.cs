@@ -44,7 +44,7 @@ namespace Api.Database
 		/// </summary>
 		public Init()
 		{
-			var setupHandlersMethod = GetType().GetMethod(nameof(SetupServiceHandlers));
+			var setupHandlersMethod = GetType().GetMethod(nameof(SetupService));
 
 			// Add handler for the initial locale list:
 			Events.Locale.InitialList.AddEventListener(async (Context context, List<Locale> locales) => {
@@ -77,6 +77,16 @@ namespace Api.Database
 				return locales;
 			});
 
+			Events.Service.AfterInstanceTypeUpdate.AddEventListener(async (Context context, AutoService service) => {
+
+				if (service == null || service.ServicedType == null)
+				{
+					return service;
+				}
+
+				return service;
+			});
+
 			Events.Service.AfterCreate.AddEventListener(async (Context context, AutoService service) => {
 
 				if (service == null || service.ServicedType == null)
@@ -99,21 +109,11 @@ namespace Api.Database
 						service.IdType
 					});
 
-					setupType.Invoke(this, new object[] {
+					var task = (Task)setupType.Invoke(this, new object[] {
 						service
 					});
-				}
 
-				// If type derives from DatabaseRow, we have a thing we'll potentially need to reconfigure.
-				if (ContentTypes.IsAssignableToGenericType(service.ServicedType, typeof(Content<>)))
-				{
-					if (_database == null)
-					{
-                        Log.Warn("databasediff", "The type '" + service.ServicedType.Name  + "' did not have its database schema updated because the database service was not up in time.");
-						return service;
-					}
-
-					await HandleDatabaseType(service);
+					await task;
 				}
 
 				// Service can now attempt to load its cache:
@@ -125,12 +125,12 @@ namespace Api.Database
 		}
 
 		/// <summary>
-		/// Sets up for the given type with its event group.
+		/// Sets up for the given type with its event group along with updating any DB tables.
 		/// </summary>
 		/// <typeparam name="T"></typeparam>
 		/// <typeparam name="ID"></typeparam>
 		/// <param name="service"></param>
-		public void SetupServiceHandlers<T, ID>(AutoService<T, ID> service)
+		public async Task SetupService<T, ID>(AutoService<T, ID> service)
 			where T : Content<ID>, new()
 			where ID : struct, IConvertible, IEquatable<ID>, IComparable<ID>
 		{
@@ -139,18 +139,6 @@ namespace Api.Database
 
 			// Special case if it is a mapping type.
 			var entityName = service.EntityName;
-
-			var deleteQuery = Query.Delete(service.InstanceType, entityName);
-			var createQuery = Query.Insert(service.InstanceType, entityName);
-			var createWithIdQuery = Query.Insert(service.InstanceType, entityName, true);
-
-			var mainTableAs = createQuery.MainTableAs;
-
-			var selectQuery = Query.Select(service.InstanceType, entityName);
-			var listQuery = Query.List(service.InstanceType, entityName);
-			var listRawQuery = Query.List(service.InstanceType, entityName);
-			listRawQuery.Raw = true;
-
 			var isDbStored = service.DataIsPersistent;
 
 			service.EventGroup.Delete.AddEventListener((Context context, T result) =>
@@ -346,6 +334,41 @@ namespace Api.Database
 				return queryPair;
 			}, 5);
 
+			var deleteQuery = Query.Delete(service.InstanceType, entityName);
+			var createQuery = Query.Insert(service.InstanceType, entityName);
+			var createWithIdQuery = Query.Insert(service.InstanceType, entityName, true);
+			var mainTableAs = createQuery.MainTableAs;
+
+			var selectQuery = Query.Select(service.InstanceType, entityName);
+			var listQuery = Query.List(service.InstanceType, entityName);
+			var listRawQuery = Query.List(service.InstanceType, entityName);
+			listRawQuery.Raw = true;
+
+			service.EventGroup.AfterInstanceTypeUpdate.AddEventListener(async (Context context, AutoService s) => {
+
+				if (s == null)
+				{
+					return s;
+				}
+
+				// Recreate the cached query objects. This ensures their field set matches the desired field set.
+				deleteQuery = Query.Delete(s.InstanceType, entityName);
+				createQuery = Query.Insert(s.InstanceType, entityName);
+				createWithIdQuery = Query.Insert(s.InstanceType, entityName, true);
+
+				selectQuery = Query.Select(s.InstanceType, entityName);
+				listQuery = Query.List(s.InstanceType, entityName);
+				listRawQuery = Query.List(s.InstanceType, entityName);
+				listRawQuery.Raw = true;
+
+				if (isDbStored)
+				{
+					await HandleDatabaseType(s);
+				}
+
+				return s;
+			});
+			
 			if (isDbStored)
 			{
 				service.EventGroup.Delete.AddEventListener(async (Context context, T result) =>
@@ -478,6 +501,16 @@ namespace Api.Database
 					item = await _database.Select<T, ID>(context, selectQuery, service.InstanceType, id);
 					return item;
 				});
+
+				// We have a thing we'll potentially need to reconfigure.
+				if (_database == null)
+				{
+					Log.Warn("databasediff", "The type '" + service.ServicedType.Name + "' did not have its database schema updated because the database service was not up in time.");
+				}
+				else
+				{
+					await HandleDatabaseType(service);
+				}
 			}
 
 			service.EventGroup.List.AddEventListener(async (Context context, QueryPair<T, ID> queryPair) => {
@@ -751,6 +784,9 @@ namespace Api.Database
 					Log.Info("databasediff", "Adding column " + newColumn.TableName + "." + newColumn.ColumnName);
 					altersToRun.Append(((MySQLDatabaseColumnDefinition)newColumn).AlterTableSql());
 					altersToRun.Append(';');
+
+					// Add to existingSchema object:
+					existingSchema.Add(newColumn);
 				}
 
 				// Changed columns that can't be automatically upgraded must be handled via manually specified upgrade objects.
@@ -773,14 +809,12 @@ namespace Api.Database
 						// (No support for those upgrade objects yet)
 						Log.Info("databasediff", "Manual column change required: '" + to.AlterTableSql(true) + "'");
 					}
+
+					// Update in the existing schema by performing a remove and then a re-add:
+					existingSchema.Remove(changedColumn.FromColumn);
+					existingSchema.Add(changedColumn.ToColumn);
 				}
 
-			}
-
-			// Merge schema changes into existingSchema. Simply all tables in newSchema replace existing:
-			foreach (var kvp in newSchema.Tables)
-			{
-				existingSchema.Tables[kvp.Key] = kvp.Value;
 			}
 
 			// Run now:

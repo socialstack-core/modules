@@ -349,7 +349,14 @@ namespace Api.Database
 				if (q.IdField != null)
 				{
 					// Set the ID now:
-					q.IdField.SetValue(srcObject, (uint)cmd.LastInsertedId);
+					if (q.IdField.FieldType == typeof(ulong))
+					{
+						q.IdField.SetValue(srcObject, (ulong)cmd.LastInsertedId);
+					}
+					else
+					{
+						q.IdField.SetValue(srcObject, (uint)cmd.LastInsertedId);
+					}
 				}
 
 				return true;
