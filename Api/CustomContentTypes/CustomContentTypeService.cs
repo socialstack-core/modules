@@ -500,7 +500,7 @@ namespace Api.CustomContentTypes
                     if (previousCompiledType.Service != null)
                     {
 						// Reset instance type:
-						previousCompiledType.Service.SetInstanceType(null);
+						await previousCompiledType.Service.SetInstanceType(context, null);
 					}
                 }
                 else
@@ -610,10 +610,10 @@ namespace Api.CustomContentTypes
         /// </summary>
         public async ValueTask InstallType<T>(ConstructedCustomContentType constructedType) where T : Content<uint>, new()
         {
-            if (constructedType.NativeType != null)
-            {
-                Console.WriteLine("- Installing native extension CCT -");
+            var ctx = new Context();
 
+			if (constructedType.NativeType != null)
+            {
                 // This custom type is built on top of another built in type.
                 // Rather than instancing a new general-use service, we'll instead tell the
                 // active running service that it has a new instance type to use.
@@ -621,7 +621,7 @@ namespace Api.CustomContentTypes
 
 				if (constructedType.Service != null)
                 {
-                    constructedType.Service.SetInstanceType(typeof(T));
+                    await constructedType.Service.SetInstanceType(ctx, typeof(T));
                 }
                 else
                 {
@@ -648,7 +648,7 @@ namespace Api.CustomContentTypes
                 else
                 {
                     // Does it already exist? If so, we need to remove the existing loaded one.
-                    await UnloadCustomType(new Context(), constructedType.Id);
+                    await UnloadCustomType(ctx, constructedType.Id);
                 }
 
                 // Add it:
