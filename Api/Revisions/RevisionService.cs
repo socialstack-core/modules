@@ -11,7 +11,7 @@ namespace Api.Revisions
 	/// <summary>
 	/// Instanced automatically. Use injection to use this service, or Startup.Services.Get.
 	/// </summary>
-	public partial class RevisionService
+	public partial class RevisionService : AutoService
     {
 		/// <summary>
 		/// Instanced automatically. Use injection to use this service, or Startup.Services.Get.

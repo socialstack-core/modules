@@ -45,10 +45,10 @@ namespace Api.Revisions
 
 				var revisionIdField = revisionRowType.GetField("_RevisionId", BindingFlags.Instance | BindingFlags.NonPublic);
 				var isDraftField = revisionRowType.GetField("_IsDraft", BindingFlags.Instance | BindingFlags.NonPublic);
-			
-				
-				// We've got a revisionable content type. Add a revisions table to the schema:
-				var targetEntityName = typeInfo.Name + "_revisions";
+                var publishDraftDateField = revisionRowType.GetField("_PublishDraftDate", BindingFlags.Instance | BindingFlags.NonPublic);
+
+                // We've got a revisionable content type. Add a revisions table to the schema:
+                var targetEntityName = typeInfo.Name + "_revisions";
 				var targetTableName = MySQLSchema.TableName(typeInfo.Name) + "_revisions";
 				Field idField = null;
 
@@ -123,12 +123,20 @@ namespace Api.Revisions
 					TargetField = isDraftField,
 					Name = "RevisionIsDraft"
 				};
-
 				isDraft.SetFullName();
-
 				newSchema.AddColumn(isDraft);
 
-				return new ValueTask<FieldMap>(fieldMap);
+                // Add Publish Draft Date column:
+                var publishDraftDate = new Field(typeInfo, targetEntityName)
+                {
+                    Type = publishDraftDateField.FieldType,
+                    TargetField = publishDraftDateField,
+                    Name = "PublishDraftDate"
+                };
+                publishDraftDate.SetFullName();
+                newSchema.AddColumn(publishDraftDate);
+
+                return new ValueTask<FieldMap>(fieldMap);
 			});
 
 			// Next hook up all before update events for anything which is a RevisionRow type.
@@ -169,31 +177,15 @@ namespace Api.Revisions
 		/// </summary>
 		private MySQLDatabaseService database = null;
 
-		/// <summary>
-		/// Sets a particular type with revision handlers. Used via reflection.
-		/// </summary>
-		/// <typeparam name="T"></typeparam>
-		/// <typeparam name="ID"></typeparam>
-		/// <param name="autoService"></param>
-		public void SetupForRevisions<T, ID>(AutoService<T, ID> autoService)
-			where T : VersionedContent<ID>, new()
-			where ID: struct, IConvertible, IEquatable<ID>, IComparable<ID>
+		private Query BuildCopyQuery(Type contentType, string contentTypeName)
 		{
-			var contentType = autoService.InstanceType;
-			var evtGroup = autoService.EventGroup;
-
-			// Invoked by reflection
-
-			// Create the original field map:
-			var fieldMap = new FieldMap(contentType, autoService.EntityName);
+			var fieldMap = new FieldMap(contentType, contentTypeName);
 
 			// First, generate a 'copy' query. It'll transfer values from table A to table B.
 			var transferMap = new FieldTransferMap
 			{
 				TargetTypeNameExtension = "_revisions"
 			};
-
-			var contentTypeName = autoService.EntityName;
 
 			// For each field in the map, create a transfer:
 			foreach (var field in fieldMap.Fields)
@@ -216,8 +208,41 @@ namespace Api.Revisions
 			// The query itself:
 			var copyQuery = Query.Copy(transferMap);
 			copyQuery.Where("Id=@id");
+			return copyQuery;
+		}
 
-			var str = copyQuery.GetQuery();
+		/// <summary>
+		/// Sets a particular type with revision handlers. Used via reflection.
+		/// </summary>
+		/// <typeparam name="T"></typeparam>
+		/// <typeparam name="ID"></typeparam>
+		/// <param name="autoService"></param>
+		public void SetupForRevisions<T, ID>(AutoService<T, ID> autoService)
+			where T : VersionedContent<ID>, new()
+			where ID: struct, IConvertible, IEquatable<ID>, IComparable<ID>
+		{
+			var contentType = autoService.InstanceType;
+			var evtGroup = autoService.EventGroup;
+
+			// Invoked by reflection
+
+			// Create the query:
+			var copyQuery = BuildCopyQuery(autoService.InstanceType, autoService.EntityName);
+			copyQuery.GetQuery();
+
+			evtGroup.AfterInstanceTypeUpdate.AddEventListener((Context context, AutoService s) => {
+
+				if (s == null)
+				{
+					return new ValueTask<AutoService>(s);
+				}
+
+				var cq = BuildCopyQuery(autoService.InstanceType, autoService.EntityName);
+				cq.GetQuery();
+				copyQuery = cq;
+
+				return new ValueTask<AutoService>(s);
+			});
 
 			// And add an event handler now:
 			evtGroup.BeforeUpdate.AddEventListener(async (Context context, T content, T original) =>
