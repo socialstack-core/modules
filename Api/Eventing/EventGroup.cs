@@ -155,6 +155,11 @@ namespace Api.Eventing
 
 		#endregion
 
+		/// <summary>
+		/// Called just after the host service instance type has been changed. Use this to clear out any caches built on the instance type.
+		/// </summary>
+		public EventHandler<AutoService> AfterInstanceTypeUpdate;
+
 		#region Controller events
 
 		/// <summary>
