@@ -502,6 +502,25 @@ namespace Api.Database
 					return item;
 				});
 
+				service.EventGroup.List.AddEventListener(async (Context context, QueryPair<T, ID> queryPair) => {
+
+					if (queryPair.Handled)
+					{
+						return queryPair;
+					}
+
+					queryPair.Handled = true;
+
+					// "Raw" results are as-is from the database.
+					// That means the fields are not automatically filled in with the default locale when they're empty.
+					var raw = (queryPair.QueryA.DataOptions & DataOptions.RawFlag) == DataOptions.RawFlag;
+
+					// Get the results from the database:
+					queryPair.Total = await _database.GetResults(context, queryPair, queryPair.OnResult, queryPair.SrcA, queryPair.SrcB, service.InstanceType, raw ? listRawQuery : listQuery);
+
+					return queryPair;
+				});
+
 				// We have a thing we'll potentially need to reconfigure.
 				if (_database == null)
 				{
@@ -513,24 +532,6 @@ namespace Api.Database
 				}
 			}
 
-			service.EventGroup.List.AddEventListener(async (Context context, QueryPair<T, ID> queryPair) => {
-
-				if (queryPair.Handled)
-				{
-					return queryPair;
-				}
-
-				queryPair.Handled = true;
-
-				// "Raw" results are as-is from the database.
-				// That means the fields are not automatically filled in with the default locale when they're empty.
-				var raw = (queryPair.QueryA.DataOptions & DataOptions.RawFlag) == DataOptions.RawFlag;
-
-				// Get the results from the database:
-				queryPair.Total = await _database.GetResults(context, queryPair, queryPair.OnResult, queryPair.SrcA, queryPair.SrcB, service.InstanceType, raw ? listRawQuery : listQuery);
-				
-				return queryPair;
-			});
 		}
 			
 		/// <summary>
