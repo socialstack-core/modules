@@ -395,8 +395,9 @@ namespace Api.Pages
 		/// <param name="context"></param>
 		/// <param name="urlInfo"></param>
 		/// <param name="searchQuery">Optional, Including the ? at the start</param>
+		/// <param name="srcUrlInfo">The original urlInfo, before any processing occurred. Used for redirecting to the login page.</param>
 		/// <returns></returns>
-		public async ValueTask<PageWithTokens> GetPage(Context context, UrlInfo urlInfo, Microsoft.AspNetCore.Http.QueryString searchQuery)
+		public async ValueTask<PageWithTokens> GetPage(Context context, UrlInfo urlInfo, Microsoft.AspNetCore.Http.QueryString searchQuery, UrlInfo srcUrlInfo)
 		{
 			var curNode = rootPage;
 
@@ -578,7 +579,7 @@ namespace Api.Pages
 				{
 					StatusCode = 302,
 					RedirectTo = "/login?then=" +
-						System.Web.HttpUtility.UrlEncode(searchQuery.HasValue ? urlInfo.Url + searchQuery.Value : urlInfo.Url)
+						System.Web.HttpUtility.UrlEncode(searchQuery.HasValue ? srcUrlInfo.Url + searchQuery.Value : srcUrlInfo.Url)
 				};
 			}
 

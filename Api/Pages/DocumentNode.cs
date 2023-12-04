@@ -213,14 +213,14 @@ namespace Api.Pages
 		/// <summary>
 		/// Create a new substitution node
 		/// </summary>
-		public SubstituteNode(Func<Context, Writer, ValueTask> onGenerate) : base("substitution"){
+		public SubstituteNode(Func<Context, Writer, PageWithTokens, ValueTask> onGenerate) : base("substitution"){
 			OnGenerate = onGenerate;
 		}
 		
 		/// <summary>
 		/// The action to run during page loads.
 		/// </summary>
-		public Func<Context, Writer, ValueTask> OnGenerate;
+		public Func<Context, Writer, PageWithTokens, ValueTask> OnGenerate;
 
 		/// <summary>
 		/// Flattens the DOM into a list of TextNode for any static html, and SubstituteNode's for any that changes per request.

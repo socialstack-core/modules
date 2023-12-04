@@ -303,6 +303,8 @@ namespace Api.Pages
 				Host = host
 			};
 
+			var srcUrlInfo = urlInfo;
+
 			var max = urlInfo.Length + urlInfo.Start;
 
 			// Trim end:
@@ -376,7 +378,7 @@ namespace Api.Pages
 
 			var cache = ulc[context.LocaleId - 1];
 
-			var pageInfo = await cache.GetPage(context, urlInfo, searchQuery);
+			var pageInfo = await cache.GetPage(context, urlInfo, searchQuery, srcUrlInfo);
 
 			pageInfo = await Events.Page.BeforeResolveUrl.Dispatch(context, pageInfo, url, searchQuery);
 			pageInfo.UrlInfo = urlInfo;

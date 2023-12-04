@@ -1390,7 +1390,7 @@ svg {
                 var pgState = constantPageJson == null ? null : "{\"page\":{\"bodyJson\":" + constantPageJson + Encoding.UTF8.GetString(pgStateEnd);
 
                 body.AppendChild(new SubstituteNode(  // This is where user and page specific global state will be inserted. It gets substituted in.
-                    async (Context ctx, Writer writer) =>
+                    async (Context ctx, Writer writer, PageWithTokens pat) =>
                     {
                         // Serialise the user context:
                         var publicContext = await _contextService.ToJsonString(ctx);
@@ -1404,7 +1404,7 @@ svg {
 
                             var w = Writer.GetPooled();
                             w.Start(null);
-                            await terminal.Generator.Generate(ctx, w, pageAndTokens.PrimaryObject);
+                            await terminal.Generator.Generate(ctx, w, pat.PrimaryObject);
                             pageJson = w.ToUTF8String();
                             w.Reset(null);
 
@@ -1461,7 +1461,7 @@ svg {
                     new DocumentNode("script")
                     .AppendChild(new TextNode("window.gsInit="))
                     .AppendChild(new SubstituteNode(  // This is where user and page specific global state will be inserted. It gets substituted in.
-                        async (Context ctx, Writer writer) =>
+                        async (Context ctx, Writer writer, PageWithTokens pat) =>
                         {
                             // Serialise the user context:
                             await _contextService.ToJsonString(ctx, writer);
@@ -1484,10 +1484,10 @@ svg {
                 {
                     body.AppendChild(
                         new SubstituteNode(
-                                async (Context ctx, Writer writer) =>
+                                async (Context ctx, Writer writer, PageWithTokens pat) =>
                                 {
                                     // Run the graph engine.
-                                    await terminal.Generator.Generate(ctx, writer, pageAndTokens.PrimaryObject);
+                                    await terminal.Generator.Generate(ctx, writer, pat.PrimaryObject);
                                 }
                         )
                     );
@@ -1964,7 +1964,7 @@ svg {
             return sb.ToString();
         }
 
-        private async ValueTask<string> WriteCompressedAndHash(Context context, List<DocumentNode> flatNodes, Stream str)
+        private async ValueTask<string> WriteCompressedAndHash(Context context, List<DocumentNode> flatNodes, Stream str, PageWithTokens pat)
         {
             var outputStream = new GZipStream(str, CompressionMode.Compress);
 
@@ -1988,7 +1988,7 @@ svg {
                     {
                         // Substitute node
                         var subNode = (SubstituteNode)node;
-                        await subNode.OnGenerate(context, writer);
+                        await subNode.OnGenerate(context, writer, pat);
                         CopyToMd5(writer, md5);
                         await writer.CopyToAsync(outputStream);
                         writer.Reset(null);
@@ -2011,7 +2011,7 @@ svg {
             await outputStream.DisposeAsync();
         }
 
-        private async ValueTask WriteCompressed(Context context, List<DocumentNode> flatNodes, Stream str)
+        private async ValueTask WriteCompressed(Context context, List<DocumentNode> flatNodes, Stream str, PageWithTokens pat)
         {
             var outputStream = new GZipStream(str, CompressionMode.Compress);
 
@@ -2031,7 +2031,7 @@ svg {
                 {
                     // Substitute node
                     var subNode = (SubstituteNode)node;
-                    await subNode.OnGenerate(context, writer);
+                    await subNode.OnGenerate(context, writer, pat);
                     await writer.CopyToAsync(outputStream);
                     writer.Reset(null);
                 }
@@ -2091,7 +2091,7 @@ svg {
                 var flatNodes = await RenderPage(context, pageAndTokens, cachePath, true);
 
                 using var ms = new MemoryStream();
-                var hash = await WriteCompressedAndHash(context, flatNodes, ms);
+                var hash = await WriteCompressedAndHash(context, flatNodes, ms, pageAndTokens);
 
                 cpd = new CachedPageData(flatNodes, ms.ToArray(), hash, _config.CacheMaxAge);
 
@@ -2185,7 +2185,7 @@ svg {
                 if (string.IsNullOrEmpty(cookie) || cookie != _config.BlockWallPassword)
                 {
                     flatNodes = GenerateBlockPage();
-                    await WriteCompressed(context, flatNodes, response.Body);
+                    await WriteCompressed(context, flatNodes, response.Body, pageAndTokens);
                     return;
                 }
             }
@@ -2242,7 +2242,7 @@ svg {
                     flatNodes = await RenderPage(context, pageAndTokens, anonPageUrl, true);
 
                     using var ms = new MemoryStream();
-                    var hash = await WriteCompressedAndHash(context, flatNodes, ms);
+                    var hash = await WriteCompressedAndHash(context, flatNodes, ms, pageAndTokens);
 
                     cpd = new CachedPageData(flatNodes, ms.ToArray(), hash, _config.CacheMaxAge);
 
@@ -2266,7 +2266,7 @@ svg {
                 flatNodes = await RenderPage(context, pageAndTokens, path);
             }
 
-            await WriteCompressed(context, flatNodes, response.Body);
+            await WriteCompressed(context, flatNodes, response.Body, pageAndTokens);
         }
 
         /// <summary>
