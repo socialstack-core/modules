@@ -481,7 +481,7 @@ namespace Api.Pages
 
                 if (primaryObject != null)
                 {
-                    writer.WriteEscaped(ReplaceTokens(titleStr, primaryObject));
+                    writer.WriteEscaped(await ReplaceTokens(context, titleStr, primaryObject));
                 }
                 else
                 {
@@ -496,7 +496,7 @@ namespace Api.Pages
 
                 if (primaryObject != null)
                 {
-                    writer.WriteEscaped(ReplaceTokens(descriptionStr, primaryObject));
+                    writer.WriteEscaped(await ReplaceTokens(context, descriptionStr, primaryObject));
                 }
                 else
                 {
@@ -1289,11 +1289,20 @@ svg {
                 head.AppendChild(new DocumentNode("link", true).With("rel", "stylesheet").With("href", _config.FullyQualifyUrls ? mainAdminCssFile.FqPublicUrl : mainAdminCssFile.PublicUrl));
             }
 
-            head.AppendChild(new DocumentNode("meta", true).With("name", "msapplication-TileColor").With("content", "#ffffff"))
+			var pageTitle = page.Title;
+			var pageDescription = page.Description;
+
+			if (doc.PrimaryObject != null)
+			{
+				pageTitle = await ReplaceTokens(context, page.Title, doc.PrimaryObject);
+				pageDescription = await ReplaceTokens(context, page.Description, doc.PrimaryObject);
+			}
+
+			head.AppendChild(new DocumentNode("meta", true).With("name", "msapplication-TileColor").With("content", "#ffffff"))
                 .AppendChild(new DocumentNode("meta", true).With("name", "theme-color").With("content", "#ffffff"))
                 .AppendChild(new DocumentNode("meta", true).With("name", "viewport").With("content", "width=device-width, initial-scale=1"))
-                .AppendChild(new DocumentNode("meta", true).With("name", "description").With("content", ReplaceTokens(page.Description, doc.PrimaryObject)))
-                .AppendChild(new DocumentNode("title").AppendChild(new TextNode(ReplaceTokens(page.Title, doc.PrimaryObject))));
+                .AppendChild(new DocumentNode("meta", true).With("name", "description").With("content", pageDescription))
+                .AppendChild(new DocumentNode("title").AppendChild(new TextNode(pageTitle)));
 
             /*
 			 * PWA headers that should only be added if PWA mode is turned on and these files exist
@@ -1617,31 +1626,34 @@ svg {
             return flatNodes;
         }
 
-        /// <summary>
-        /// Used to replace tokens within a string with Primary object content
-        /// </summary>
-        /// <param name="pageTitle"></param>
-        /// <param name="primaryObject"></param>
-        /// <returns></returns>
-        public string ReplaceTokens(string pageTitle, object primaryObject)
+		/// <summary>
+		/// Used to replace tokens within a string with Primary object content
+		/// </summary>
+		/// <param name="context"></param>
+		/// <param name="pageField"></param>
+		/// <param name="primaryObject"></param>
+		/// <returns></returns>
+		public async ValueTask<string> ReplaceTokens(Context context, string pageField, object primaryObject)
         {
-            if (pageTitle == null)
+            if (pageField == null)
             {
-                return pageTitle;
+                return pageField;
             }
 
-            // We need to find out if there is a token to be handled.
-            if (primaryObject != null)
+			string state = null;
+
+			// We need to find out if there is a token to be handled.
+			if (primaryObject != null)
             {
 
                 var mode = 0; // 0= text, 1 = inside a {token.field}
                 List<string> tokens = new List<string>();
                 var storedIndex = 0;
 
-                // we have one. Now, do we have a meta file value stored within the title?
-                for (var i = 0; i < pageTitle.Length; i++)
+				// we have one. Now, do we have a meta file value stored within the field?
+				for (var i = 0; i < pageField.Length; i++)
                 {
-                    var currentChar = pageTitle[i];
+                    var currentChar = pageField[i];
                     if (mode == 0)
                     {
                         if (currentChar == '{')
@@ -1656,7 +1668,7 @@ svg {
                         if (currentChar == '}')
                         {
                             // we have the end of the token, let's get it.
-                            var token = pageTitle.Substring(storedIndex, i - storedIndex + 1);
+                            var token = pageField.Substring(storedIndex, i - storedIndex + 1);
                             tokens.Add(token);
                             mode = 0;
                         }
@@ -1684,7 +1696,7 @@ svg {
                     var field = contentAndField[1];
 
                     // Is the content type valid?
-                    var systemType = Database.ContentTypes.GetType(content);
+                    var systemType = ContentTypes.GetType(content);
 
                     if (systemType == null)
                     {
@@ -1706,11 +1718,25 @@ svg {
                         break;
                     }
 
-                    // We need to swap out the string with the value. 
-                    pageTitle = pageTitle.Replace(token, value.ToString());
-                }
-            }
-            return pageTitle;
+					// We need to swap out the string with the value.
+					var strValue = value.ToString();
+
+					if (strValue.StartsWith('{') && strValue.EndsWith('}'))
+					{
+						if (state == null)
+						{
+							state = "{\"po\": " + JsonConvert.SerializeObject(primaryObject, jsonSettings) + "}";
+						}
+
+						var renderResult = await _canvasRendererService.Render(context, strValue, state, RenderMode.Text);
+						strValue = renderResult.Text;
+					}
+
+					pageField = pageField.Replace(token, strValue);
+				}
+			}
+
+            return pageField;
         }
 
 
