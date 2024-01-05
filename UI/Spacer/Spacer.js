@@ -32,7 +32,7 @@ export default function Spacer(props) {
 	});
 
 	return <div className="spacer-container" data-theme={props['data-theme']}>
-		<div className="spacer" style={{ height: `${height}px` }} ref={spacerRef} />
+		<div className="spacer" style={{ height: `${height}px` }} ref={spacerRef}></div>
 	</div>;
 }
 
