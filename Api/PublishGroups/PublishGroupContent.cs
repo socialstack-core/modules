@@ -15,15 +15,15 @@ namespace Api.PublishGroups
 		/// <summary>
 		/// The type ID of the content. See also: Api.Database.ContentTypes
 		/// </summary>
-		public int ContentTypeId;
+		public string ContentType;
 		/// <summary>
 		/// The ID of the included content. Uses the latest draft of this content and publishes it (if there is one).
 		/// </summary>
-		public int ContentId;
+		public ulong ContentId;
 		/// <summary>
 		/// The ID of the publish group that this belongs to.
 		/// </summary>
-		public int PublishGroupId;
+		public uint PublishGroupId;
 	}
 
 }
