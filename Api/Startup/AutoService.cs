@@ -1212,7 +1212,7 @@ public partial class AutoService<T, ID> : AutoService
 	/// </summary>
 	public virtual async ValueTask<T> Update(Context context, ID id, Action<Context, T, T> cb, DataOptions options = DataOptions.Default)
 	{
-		var entity = await Get(context, id);
+		var entity = await Get(context, id, options);
 		
 		if (entity == null)
 		{
