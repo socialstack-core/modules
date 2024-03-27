@@ -67,6 +67,9 @@ export default class Form extends React.Component {
 				
 				return onValues ? onValues(values, evt) : values;
 			},
+			onSubmitted: this.props.onSubmitted ? (vals, opts) => {
+				return this.props.onSubmitted(vals, opts);
+			} : undefined,
 			onFailed: (r,v,evt) => {
 				this.setState({
 					loading: undefined,
