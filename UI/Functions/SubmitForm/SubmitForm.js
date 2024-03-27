@@ -85,9 +85,27 @@ export default function (e, options) {
 		}
 		
 		if(!action){
-			// Form doesn't have an action="", but we run onsuccess if validation passed:
-			options.onSuccess && options.onSuccess({formHasNoAction: true, ...values}, values, e);
-			return;
+			// Form doesn't have an action="". Does it have an onSubmitted handler?
+			if(options.onSubmitted){
+				// Yes! The form can do custom processing here.
+				var result = options.onSubmitted(values, options.requestOpts);
+				if(result && result.then){
+					return result.then(response => {
+						// How successful was it? (Did we get a 200 response?)
+						// NB: Run success last and after a small delay 
+						// (to be able to unmount the component in full / reset the form).
+						setTimeout(() => {
+							options.onSuccess && options.onSuccess(response, values, e);
+						}, 1);
+					}); // the catch further down handles this failure too.
+				}else{
+					options.onSuccess && options.onSuccess(values, values, e);
+				}
+			}else{
+				// Just run onsuccess if validation passed:
+				options.onSuccess && options.onSuccess({formHasNoAction: true, ...values}, values, e);
+				return;
+			}
 		}
 		
 		// Send it off now:
