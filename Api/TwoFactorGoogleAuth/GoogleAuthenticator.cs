@@ -55,9 +55,8 @@ namespace Api.TwoFactorGoogleAuth
 		public string GetProvisionUrl(string identifier, byte[] key, int width = 256, int height = 256)
 		{
 			var KeyString = Encoder.Base32Encode(key);
-			var ProvisionUrl = Encoder.UrlEncode(string.Format("otpauth://totp/{0}?secret={1}&issuer=Socialstack", identifier, KeyString));
-			return string.Format("https://chart.apis.google.com/chart?cht=qr&chs={0}x{1}&chl={2}", width, height, ProvisionUrl);
-			
+			var ProvisionUrl = string.Format("otpauth://totp/{0}?secret={1}&issuer=Socialstack", identifier, KeyString);
+			return ProvisionUrl;			
 		}
 
 		/// <summary>
