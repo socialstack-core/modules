@@ -4,13 +4,26 @@ import { useState, useEffect } from 'react';
 
 export default function Link (props) {
 	const { session, setSession } = useSession();
-
+	
 	var attribs = omit(props, ['children', 'href', '_rte' ,'hreflang']);
 	attribs.alt = attribs.alt || attribs.title;
 	attribs.ref = attribs.rootRef;
 	
 	var children = props.children || props.text;
 	var url = (props.url || props.href);
+
+	function isExternalUrl(string) {
+		var r = new RegExp('^(?:[a-z+]+:)?//', 'i');
+		var isExternal = r.test(string);
+
+		if (isExternal) {
+			// check domain
+			var url = new URL(string);
+			isExternal = url.origin != window.origin;
+		}
+		
+		return isExternal;
+	}
 
 	if(url){
 		// if url contains :// it must be as-is (which happens anyway).
@@ -34,19 +47,17 @@ export default function Link (props) {
 				}
 			}
 		}
-
+		
 		if (url != "/") {
-
 			// strip any trailing slashes
 			while (url.endsWith("/")) {
 				url = url.slice(0, -1);
 			}
-
 		}
 
 	}
 	
-	return <a href={url} {...attribs}>
+	return <a href={url} {...attribs} target={isExternalUrl(url) ? "_blank" : "_self"}>
 		{children}
 	</a>;
 }
