@@ -3,12 +3,6 @@ import { useSession } from 'UI/Session';
 import { useState, useEffect } from 'react';
 
 export default function Link (props) {
-	const [initialRender, setInitialRender] = useState(true);
-
-	useEffect(() => {
-		setInitialRender(false);
-	}, []);
-
 	const { session, setSession } = useSession();
 
 	var attribs = omit(props, ['children', 'href', '_rte' ,'hreflang']);
@@ -17,25 +11,6 @@ export default function Link (props) {
 	
 	var children = props.children || props.text;
 	var url = (props.url || props.href);
-
-	function isExternalUrl(string) {
-
-		// SSR or initial client render detected - treat as an external link (don't change case)
-		if (initialRender || window.SERVER) {
-			return true;
-		}
-
-		var r = new RegExp('^(?:[a-z+]+:)?//', 'i');
-		var isExternal = r.test(string);
-
-		if (isExternal) {
-				// check domain
-				var url = new URL(string);
-				isExternal = url.origin != window.origin;
-			  }
-
-		return isExternal;
-	}
 
 	if(url){
 		// if url contains :// it must be as-is (which happens anyway).
@@ -58,11 +33,6 @@ export default function Link (props) {
 					url = prefix + url;
 				}
 			}
-		}
-
-		// ensure internal links are lowercase unless doNotLower is passed to this component
-		if (!props.doNotLower && !isExternalUrl(url) && !url.includes("/content/")) {
-			url = url.toLowerCase();
 		}
 
 		if (url != "/") {
