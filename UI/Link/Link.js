@@ -57,7 +57,7 @@ export default function Link (props) {
 
 	}
 	
-	return <a href={url} {...attribs} target={isExternalUrl(url) ? "_blank" : "_self"}>
+	return <a href={url} {...attribs} target={isExternalUrl(url) ? "_blank" : undefined}>
 		{children}
 	</a>;
 }
