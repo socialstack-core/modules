@@ -834,7 +834,7 @@ public partial class AutoService<T, ID> : AutoService
 	/// <returns></returns>
 	public override async ValueTask<object> GetObjectByFilter(Context context, string filter, List<string> filterValues, DataOptions options = DataOptions.Default)
 	{
-		var filterObject = Where(filter); // Region=? and Slug=? and Article=?
+		var filterObject = Where(filter, options); // Region=? and Slug=? and Article=?
 
 		for (var i = 0; i < filterValues.Count; i++) // polar regions, svalbard, where-to-go
 		{
