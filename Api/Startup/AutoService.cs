@@ -1261,7 +1261,7 @@ public partial class AutoService<T, ID> : AutoService
 			}
 			else if (flds.Count >= 50)
 			{
-				Log.Warn(LogTag, "This service has an unusually large amount of fields (" + flds.Count + "). 64 is the current limit.");
+				Log.Warn(LogTag, EntityName + " has an unusually large amount of fields (" + flds.Count + "). 64 is the current limit.");
 			}
 
 			var bitField = generator.DeclareLocal(typeof(ulong));
