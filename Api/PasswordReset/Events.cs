@@ -1,5 +1,6 @@
 using Api.PasswordResetRequests;
 using Api.Permissions;
+using Api.Users;
 using System.Collections.Generic;
 
 namespace Api.Eventing
@@ -14,10 +15,15 @@ namespace Api.Eventing
 		/// Set of events for a passwordResetRequest.
 		/// </summary>
 		public static EventGroup<PasswordResetRequest> PasswordResetRequest;
-		
-		/// <summary>
-		/// After successful reset.
-		/// </summary>
-		public static EventHandler<PasswordResetRequest> PasswordResetRequestAfterSuccess;
+
+        /// <summary>
+        /// Allow other services to handle the password update/storage process
+        /// </summary>
+        public static EventHandler<bool, User, PasswordResetRequest, NewPassword> UserOnPasswordUpdate;
+
+        /// <summary>
+        /// After successful reset.
+        /// </summary>
+        public static EventHandler<PasswordResetRequest> PasswordResetRequestAfterSuccess;
 	}
 }
