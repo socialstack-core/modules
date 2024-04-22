@@ -38,9 +38,8 @@ namespace Api.CloudHosts
 			// For each redirect:
 			foreach (var redirect in redirects)
 			{
-
-				var from = redirect.From;
-				var to = redirect.To;
+				var from = redirect.From.Trim();
+				var to = redirect.To.Trim();
 
 				// From & to originate from the admin panel.
 				// They could be null, empty strings etc.
