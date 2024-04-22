@@ -3,19 +3,31 @@ import Alert from 'UI/Alert';
 import Loading from 'UI/Loading';
 import Form from 'UI/Form';
 import Input from 'UI/Input';
+import Text from 'UI/Text';
+import { useState } from 'react';
 import {useSession, useRouter} from 'UI/Session';
 import {useTokens} from 'UI/Token';
-
 
 export default function PasswordReset(props) {
 	
 	var {setPage} = useRouter();
 	var {session, setSession} = useSession();
-	var [loading, setLoading] = React.useState();
-	var [failed, setFailed] = React.useState();
-	var [policy, setPolicy] = React.useState();
+	var [loading, setLoading] = useState();
+	var [failed, setFailed] = useState();
+	var [policy, setPolicy] = useState();
+	var [password, setPassword] = useState();
+
 	var token = useTokens('${url.token}');
 	
+	function validatePasswordMatch(value) {
+		if (password != value) {
+			return {
+				error: 'FORMAT',
+				ui: <Text>{`The chosen passwords do not match`}</Text>
+			};
+		}
+	}
+
     React.useEffect(() => {
 		if(!token){
 			return;
@@ -25,6 +37,7 @@ export default function PasswordReset(props) {
 		
         webRequest("passwordresetrequest/token/" + token + "/").then(response => {
 			setLoading(false);
+
 			setFailed(!response.json || !response.json.token);
         }).catch(e => {
 			setFailed(true);
@@ -34,12 +47,12 @@ export default function PasswordReset(props) {
     
 	return <div className="password-reset">
 		{
-			this.state.failed ? (
+			failed ? (
 				<Alert type="error">
 					{`Invalid or expired token. You'll need to request another one if this token is too old or was already used.`}
 				</Alert>
 			) : (
-				this.state.loading ? (
+				loading ? (
 					<div>
 						<Loading />
 					</div>
@@ -69,7 +82,29 @@ export default function PasswordReset(props) {
 							setPolicy(e);
 						}}
 					>
-						<Input name="password" type="password" placeholder={`New password`} />
+
+						<fieldset>
+							<Input
+								autocomplete="new-password"
+								showMeter
+								type='password'
+								name='password'
+								label={`New Password`}
+								placeholder={`Enter new password`}
+								validate={['Required', 'Password']}
+								onChange={e => { setPassword(e.target.value); }} />
+						</fieldset>
+
+						<fieldset>
+							<Input
+								autocomplete="new-password"
+								type='password'
+								name='newPasswordConfirm'
+								label={`Confirm Password`}
+								placeholder={`Confirm password your new password`}
+								validate={['Required', function (value) { return validatePasswordMatch(value) }]} />
+						</fieldset>
+
 						{policy && (
 							<Alert type="error">
 								{policy.message || `Unable to set your password - the request may have expired`}
