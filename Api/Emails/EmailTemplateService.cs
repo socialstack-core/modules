@@ -92,26 +92,145 @@ namespace Api.Emails
 					Name = "Verify email address",
 					Subject = "Verify your email address",
 					Key = "verify_email",
-					BodyJson = "{\"module\":\"Email/Default\",\"content\":[{\"module\":\"Email/Centered\",\"data\":{}," +
-					"\"content\":\"An account was recently created with us. If this was you, click the following link to proceed:\"},"+
-					"{\"module\":\"Email/PrimaryButton\",\"data\":{\"label\":\"Verify my email address\",\"target\":\"/email-verify/${customData.userId}/${customData.token}\"}}]}"
+					BodyJson = @"
+{
+	""c"": {
+		""t"": ""Email/Default"",
+		""d"": {},
+		""r"": {
+			""children"": {
+				""t"": ""Email/Centered"",
+				""d"": {},
+				""c"": [
+					{
+						""t"": ""p"",
+						""c"": ""An account was recently created with us. If this was you, click the button below to proceed:"",
+						""d"": {},
+						""i"": 2
+					},
+					{
+						""t"": ""Email/PrimaryButton"",
+						""d"": {
+							""target"": ""/email-verify/${customData.userId}/${customData.token}""
+						},
+						""r"": {
+							""label"": {
+								""t"": ""p"",
+								""c"": ""Verify my email address"",
+								""d"": {},
+								""i"": 9
+							}
+						},
+						""i"": 10
+					}
+				],
+				""i"": 5
+			},
+			""customLogo"": {
+				""t"": ""p"",
+				""c"": {
+					""t"": ""br""
+				},
+				""d"": {},
+				""i"": 6
+			}
+		},
+		""i"": 7
+	},
+	""i"": 8
+}
+					"
 				},
 				new EmailTemplate()
                 {
 					Name = "Password reset",
 					Subject = "Password reset",
 					Key = "forgot_password",
-					BodyJson = "{\"module\":\"Email/Default\",\"content\":[{\"module\":\"Email/Centered\",\"data\":{}," +
-					"\"content\":\"A password reset request was recently created with us for this email. If this was you, click the following link to proceed:\"}," +
-					"{\"module\":\"Email/PrimaryButton\",\"data\":{\"label\":\"Verify my email address\",\"target\":\"/password/reset/${customData.token}\"}}]}"
+					BodyJson = @"
+{
+	""c"": {
+		""t"": ""Email/Default"",
+		""d"": {},
+		""r"": {
+			""children"": {
+				""t"": ""Email/Centered"",
+				""d"": {},
+				""c"": [
+					{
+						""t"": ""p"",
+						""c"": ""A password reset request was recently created with us for this email. If this was you, click the button below to proceed:"",
+						""d"": {},
+						""i"": 2
+					},
+					{
+						""t"": ""Email/PrimaryButton"",
+						""d"": {
+							""target"": ""/password/reset/${customData.token}""
+						},
+						""r"": {
+							""label"": {
+								""t"": ""p"",
+								""c"": ""Reset my password"",
+								""d"": {},
+								""i"": 9
+							}
+						},
+						""i"": 10
+					}
+				],
+				""i"": 5
+			},
+			""customLogo"": {
+				""t"": ""p"",
+				""c"": {
+					""t"": ""br""
+				},
+				""d"": {},
+				""i"": 6
+			}
+		},
+		""i"": 7
+	},
+	""i"": 8
+}
+					"
 				},
 				new EmailTemplate()
 				{
 					Name = "Welcome",
 					Subject = "Welcome aboard!",
 					Key = "welcome_member_email",
-					BodyJson = "{\"module\":\"Email/Default\",\"content\":[{\"module\":\"Email/Centered\",\"data\":{}," +
-					"\"content\":\"Thanks for joining! If you have any questions please reach out.\"}]}"
+					BodyJson = @"
+{
+	""c"": {
+		""t"": ""Email/Default"",
+		""d"": {},
+		""r"": {
+			""children"": {
+				""t"": ""Email/Centered"",
+				""d"": {},
+				""c"": {
+					""t"": ""p"",
+					""c"": ""Thanks for joining! If you have any questions please reach out."",
+					""d"": {},
+					""i"": 2
+				},
+				""i"": 5
+			},
+			""customLogo"": {
+				""t"": ""p"",
+				""c"": {
+					""t"": ""br""
+				},
+				""d"": {},
+				""i"": 6
+			}
+		},
+		""i"": 7
+	},
+	""i"": 8
+}
+					"
 				}
 			);
 			
