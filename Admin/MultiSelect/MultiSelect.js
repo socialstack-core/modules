@@ -3,6 +3,7 @@ import webRequest from 'UI/Functions/WebRequest';
 import Modal from 'UI/Modal';
 import getRef from 'UI/Functions/GetRef';
 import { isoConvert } from 'UI/Functions/DateTools';
+import { getPlainText, isJson } from "UI/Functions/CanvasTools";
 
 var AutoForm = null;
 
@@ -14,7 +15,7 @@ export default class MultiSelect extends React.Component {
 	
     constructor(props) {
         super(props);
-		
+
 		var mustLoad = false;
 		var initVal = (props.value || props.defaultValue || []).filter(t => t!=null);
 		
@@ -35,8 +36,14 @@ export default class MultiSelect extends React.Component {
     }
 	
 	componentDidMount(){
-		if(this.state.mustLoad){
-			webRequest(this.props.contentType + '/list', {where: {Id: this.state.value.map(e => e.id)}}).then(response => {
+		if (this.state.mustLoad) {
+
+			var filter = {
+				query: "Id=[?]",
+				args: [this.state.value.map(e => e.id)]
+			}
+
+			webRequest(this.props.contentType + '/list', filter).then(response => {
 				
 				// Loading the values and preserving order:
 				var idLookup = {};
@@ -68,7 +75,37 @@ export default class MultiSelect extends React.Component {
 	}
 
 	render() {
-		var fieldName = this.props.field || 'name';
+		var fieldName = this.props.field;
+
+		if (!fieldName) {
+
+			if (this.state.value && this.state.value.length) {
+				let val = this.state.value[0];
+				let strings = Object.keys(val).filter(e => typeof val[e] === 'string' && e != 'type' && !e.endsWith('Ref') && e != 'media');
+
+				if (strings.length) {
+					var pref = ['name', 'description', 'title', 'summary'];
+
+					pref.every(check => {
+
+						if (strings.includes(check)) {
+							fieldName = check;
+							return false;
+						}
+
+						return true;
+					});
+
+				}
+
+			}
+
+		}
+
+		if (!fieldName) {
+			fieldName = 'name';
+		}
+
 		var displayFieldName = this.props.displayField || fieldName;
 		if(displayFieldName.length){
 			displayFieldName = displayFieldName[0].toLowerCase() + displayFieldName.substring(1);
@@ -76,16 +113,26 @@ export default class MultiSelect extends React.Component {
 
 		// check to see if the object has a media ref
 		var mediaRefFieldName = '';
+
 		if (this.state.value != undefined && this.state.value.length > 0) {
 			var tempObject = this.state.value[0];
 
-			Object.keys(tempObject).forEach(function (key, index) {
-				if (tempObject[key] != null) {
-					if (getRef.isImage(tempObject[key].toString())) {
-						mediaRefFieldName = key;
-					}
+			Object.keys(tempObject).every(key => {
+
+				if (!tempObject[key]) {
+					return true;
 				}
+
+				let val = tempObject[key].toString();
+
+				if (getRef.isImage(val) || getRef.isMedia(val)) {
+					mediaRefFieldName = key;
+					return false;
+				}
+
+				return true;
 			});
+
         }
 
 		// check to see if the object has a date range
@@ -125,7 +172,9 @@ export default class MultiSelect extends React.Component {
 						this.state.value.map((entry, i) => (
 							<li key={entry.id} className="admin-multiselect__entry">
 								<div>
-									{entry[displayFieldName]}
+									{
+										isJson(entry[displayFieldName]) ? getPlainText(entry[displayFieldName]) : entry[displayFieldName]
+									}
 								</div>
 
 								{metadataFields && metadataFields.length > 0 &&
@@ -139,7 +188,12 @@ export default class MultiSelect extends React.Component {
 								<div className="admin-multiselect__entry-options">
 									{mediaRefFieldName && mediaRefFieldName.length > 0 &&
 										<div className="admin-multiselect__avatar">
-										<img width='32' height='32' src={getRef(entry[mediaRefFieldName], { url: true , size:128})} />
+											{getRef.isImage(entry[mediaRefFieldName]) && <>
+												<img width='32' height='32' src={getRef(entry[mediaRefFieldName], { url: true, size: 128 })} />
+											</>}
+											{getRef.isMedia(entry[mediaRefFieldName]) && <>
+												<i className="fa fa-2x far-file"></i>
+											</>}
 										</div>
 									}
 
