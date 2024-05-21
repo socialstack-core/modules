@@ -1,0 +1,15 @@
+// temporary patch file to account for missing mixin
+// (namely, breakpoint-up(), referenced from UI/Paginator)
+@mixin breakpoint-up($name) {
+
+    @if ($name == 'md') {
+
+        @media (min-width: 753px) {
+            @content;
+        }
+
+    } @else {
+        @content;
+    }
+    
+}
