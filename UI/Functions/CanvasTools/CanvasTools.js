@@ -2,7 +2,7 @@
  * getPlainText
  * returns plain text representation of a canvas object
  * 
- * @param {any} content  - expects a canvas JSON object or string representation thereof
+ * @param {any} content - expects a canvas JSON object or string representation thereof
  * @returns {string}
  */
 function getPlainText(content) {
