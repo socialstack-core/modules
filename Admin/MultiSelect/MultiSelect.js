@@ -1,9 +1,9 @@
 import Search from 'UI/Search';
 import webRequest from 'UI/Functions/WebRequest';
 import Modal from 'UI/Modal';
+import Canvas from 'UI/Canvas';
 import getRef from 'UI/Functions/GetRef';
 import { isoConvert } from 'UI/Functions/DateTools';
-import { getPlainText, isJson } from "UI/Functions/CanvasTools";
 
 var AutoForm = null;
 
@@ -173,7 +173,7 @@ export default class MultiSelect extends React.Component {
 							<li key={entry.id} className="admin-multiselect__entry">
 								<div>
 									{
-										isJson(entry[displayFieldName]) ? getPlainText(entry[displayFieldName]) : entry[displayFieldName]
+										displayFieldName.indexOf("Json") != -1 ? <Canvas>{entry[displayFieldName]}</Canvas> : entry[displayFieldName]
 									}
 								</div>
 
