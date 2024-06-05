@@ -350,9 +350,10 @@ namespace Api.Contexts
 
 			if (domain == null)
 			{
-				if(AppSettings.Configuration["CookieDomain"] != null)
+   				var cookieDomain = AppSettings.GetString("CookieDomain");
+				if (cookieDomain != null)
 				{
-					domain = AppSettings.Configuration["CookieDomain"];
+					_domain = cookieDomain;
 					_domains[localeId - 1] = domain;
 				}
 				else
