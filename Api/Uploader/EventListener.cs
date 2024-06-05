@@ -140,11 +140,7 @@ namespace Api.Uploader
 				var autoCreateGzips = false;
 
 				// UI path next:
-				var pathToUIDir = AppSettings.Configuration["UI"];
-				if (string.IsNullOrEmpty(pathToUIDir))
-				{
-					pathToUIDir = "UI/public";
-				}
+				var pathToUIDir = AppSettings.GetString("UI", "UI/public");
 
 				pathToUIDir = Path.GetFullPath(pathToUIDir);
 
@@ -161,11 +157,7 @@ namespace Api.Uploader
 				});
 
 				// And the admin panel:
-				var pathToAdminDir = AppSettings.Configuration["Admin"];
-				if (string.IsNullOrEmpty(pathToAdminDir))
-				{
-					pathToAdminDir = "Admin/public/en-admin";
-				}
+				var pathToAdminDir = AppSettings.GetString("Admin", "Admin/public/en-admin");
 
 				pathToAdminDir = Path.GetFullPath(pathToAdminDir);
 
