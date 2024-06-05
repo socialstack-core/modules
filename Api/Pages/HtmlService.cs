@@ -56,7 +56,7 @@ namespace Api.Pages
 
             _configSet = GetAllConfig<HtmlServiceConfig>();
 
-            var pathToUIDir = AppSettings.Configuration["UI"];
+            var pathToUIDir = AppSettings.GetString("UI");
 
             if (string.IsNullOrEmpty(pathToUIDir))
             {
