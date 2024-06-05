@@ -62,7 +62,7 @@ $paginator_justify_content: center;
 }
 
 // >= 768px
-@include breakpoint-up(md) {
+@include media-breakpoint-up(md) {
 
 	.paginator {
 		display: block;
