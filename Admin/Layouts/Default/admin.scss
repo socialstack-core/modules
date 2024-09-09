@@ -14,10 +14,6 @@
 
 	}
 
-	.is-draft {
-		color: var(--danger);
-	}
-
 	.localized-field-label, 
 	.hint-field-label{
 		margin-left: 5px;
@@ -48,15 +44,29 @@
 			justify-content: center;
 			flex: 0 0 auto;
 			margin-right: 6rem;
+			min-width: px_to_rem(300);
+			max-width: 60%;
 		}
 
 	}
 
 	&__url {
 		text-align: right;
+		flex: 0 1 auto;
+		font-size: px_to_rem(12);
+		min-width: 0;
+		max-width: 40%;
+		display: flex;
+		flex-direction: column;
 
 		p {
 			margin: 0;
+		}
+
+		a {
+			white-space: nowrap;
+			overflow: hidden;
+			text-overflow: ellipsis;
 		}
 	}
 
@@ -66,6 +76,10 @@
 		text-transform: uppercase;
 		letter-spacing: .1rem;
 		margin-bottom: .125rem;
+		white-space: nowrap;
+		overflow: hidden;
+		text-overflow: ellipsis;
+		width: 100%;
 	}
 
 	&__search {
@@ -93,6 +107,7 @@
 		li {
 			display: flex;
 			align-items: center;
+			white-space: nowrap;
 
 			// > separators
 			&::after {
@@ -127,6 +142,12 @@
 					text-decoration: underline;
 				}
 			}
+		}
+
+		.is-draft {
+			color: var(--danger);
+			text-transform: uppercase;
+			margin-left: 1rem;
 		}
 	}
 
@@ -322,6 +343,61 @@
 
 	+ .empty-canvas-node {
 		display: none;
+	}
+
+	&__save {
+
+		.dropdown-menu {
+			width: px_to_rem(330);
+			
+			> li {
+				margin-bottom: .5rem;
+				
+				.dropdown-item {
+					text-wrap: wrap;
+					
+					strong {
+						font-size: px_to_rem(15);
+						display: flex;
+						align-items: center;
+						gap: .25rem;
+
+						.responsive-media__image {
+							width: px_to_rem(15);
+							height: px_to_rem(15);
+						}
+					}
+					
+					p {
+						font-size: px_to_rem(13);
+						margin: 0;
+					}
+
+				}
+				
+				&:last-child {
+					margin-bottom: 0;
+				}
+				
+			}
+
+		}
+
+	}
+
+}
+
+// Api/CustomContentTypeService tends to inject <p><br/></p> blocks on save;
+// ensure these don't show as unpopulated areas causing additional scrollbars
+#react-root {
+
+	> .admin-page__header,
+	> .admin-page {
+
+		+ p:has(br:only-child) {
+			display: none;
+		}
+
 	}
 
 }
