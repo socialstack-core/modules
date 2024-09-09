@@ -75,6 +75,28 @@
 
 	}
 
+	&__loading {
+		padding-left: 2.75rem;
+		height: 4rem;
+		display: flex;
+		align-items: center;
+
+		.spinner-border {
+			width: 2rem;
+			height: 2rem;
+		}
+	}
+
+	&__no-data {
+		padding-left: 2.75rem;
+		height: 4rem;
+		display: flex;
+		align-items: center;
+		gap: .75rem;
+		font-style: italic;
+
+	}
+
 	&:hover {
 
 		> .collapsible-summary {
