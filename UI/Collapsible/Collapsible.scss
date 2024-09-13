@@ -104,6 +104,12 @@
 		margin-inline-end: .75rem;
 	}
 
+	.responsive-media__image {
+		margin-inline-end: .75rem;
+		width: px_to_rem(40);
+		height: 2rem;
+	}
+
 	&:not([open]) > #{$collapsible}-content,
 	&:not([open]) > #{$collapsible}__content {
 		display: none;
