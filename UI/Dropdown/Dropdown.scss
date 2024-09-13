@@ -181,6 +181,10 @@
   display: block;
 }
 
+.dropdown-menu.dropdown-menu--no-minwidth {
+	min-width: 0;
+}
+
 // Dropdown section headers
 .dropdown-header {
   display: block;
@@ -397,6 +401,7 @@
 			}
 
 			.dropdown-menu {
+				top: auto;
 				bottom: 100%;
 			}
 		}
