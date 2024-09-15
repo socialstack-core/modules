@@ -84,8 +84,8 @@ public static class BlurHashEncoder
 	/// <returns></returns>
 	public static string Encode(ImageMagick.MagickImage image, bool isWide)
 	{
-		var width = image.Width;
-		var height = image.Height;
+		var width = (int)image.Width;
+		var height = (int)image.Height;
 
 		if (width > 128 || height > 128 || height < 4 || width < 4)
 		{

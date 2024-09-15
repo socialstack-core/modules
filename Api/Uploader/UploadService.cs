@@ -409,7 +409,7 @@ namespace Api.Uploader
 
 			if (webpConfig.Quality.HasValue)
 			{
-				current.Quality = webpConfig.Quality.Value;
+				current.Quality = (uint)webpConfig.Quality.Value;
 			}
 
 			if (!string.IsNullOrWhiteSpace(webpConfig.AlphaCompression))
@@ -537,11 +537,6 @@ namespace Api.Uploader
 				defines.Method = webpConfig.Method.Value;
 			}
 
-			if (webpConfig.NearLossless.HasValue)
-			{
-				defines.NearLossless = webpConfig.NearLossless.Value;
-			}
-
 			if (webpConfig.PartitionLimit.HasValue)
 			{
 				defines.PartitionLimit = webpConfig.PartitionLimit.Value;
@@ -667,8 +662,8 @@ namespace Api.Uploader
                             current.Write(upload.TemporaryPath);
                         }
 
-                        width = current.Width;
-                        height = current.Height;
+                        width = (int)current.Width;
+                        height = (int)current.Height;
                         hasUpdates = true;
                     }
                     else
@@ -682,8 +677,8 @@ namespace Api.Uploader
                             origFileBytes = await ReadFile(upload);
                             current = new MagickImage(origFileBytes);
 
-                            width = current.Width;
-                            height = current.Height;
+                            width = (int)current.Width;
+                            height = (int)current.Height;
                             hasUpdates = true;
                         }
                     }
@@ -1772,7 +1767,7 @@ namespace Api.Uploader
         public void Resize(MagickImage current, int width)
         {
             int height = Convert.ToInt32(width * (double)current.Height / (double)current.Width);
-            current.Resize(width, height);
+            current.Resize((uint)width, (uint)height);
         }
 
         /// <summary>
