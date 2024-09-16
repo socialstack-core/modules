@@ -29,6 +29,8 @@ namespace Api.Pages
 		/// </summary>
 		[Localized]
 		[Data("groups", "*")]
+		// default max length is 64Kb - uncomment following line to expand this (9Mb in the following example):
+		//[DatabaseField(Length = 9000000)]
 		public string BodyJson;
 
 		/// <summary>
