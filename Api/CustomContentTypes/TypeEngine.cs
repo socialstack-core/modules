@@ -50,6 +50,21 @@ namespace Api.CustomContentTypes
 			});
 
 			AddTo(
+				map, "email", typeof(string), (ILGenerator code, string val) => {
+					code.Emit(OpCodes.Ldstr, val);
+				});
+
+			AddTo(
+				map, "tel", typeof(string), (ILGenerator code, string val) => {
+					code.Emit(OpCodes.Ldstr, val);
+				});
+
+			AddTo(
+				map, "url", typeof(string), (ILGenerator code, string val) => {
+					code.Emit(OpCodes.Ldstr, val);
+				});
+
+			AddTo(
 				map, "jsonstring", typeof(string), (ILGenerator code, string val) => {
 				code.Emit(OpCodes.Ldstr, val);
 			});
@@ -391,6 +406,18 @@ namespace Api.CustomContentTypes
 								);
 								AddDataAttribute(fieldBuilder, "toLowerCase", true);
 							}
+						}
+						else if (field.DataType == "email")
+						{
+							AddDataAttribute(fieldBuilder, "type", "email");
+						}
+						else if (field.DataType == "tel")
+						{
+							AddDataAttribute(fieldBuilder, "type", "tel");
+						}
+						else if (field.DataType == "url")
+						{
+							AddDataAttribute(fieldBuilder, "type", "url");
 						}
 						else if (field.DataType == "file")
                         {

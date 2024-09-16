@@ -14,23 +14,26 @@ export default class CustomFieldForm extends React.Component {
 		};
 
 		this.dataTypes = [
-			{ value: "string", name: "Text" },
-			{ value: "textarea", name: "Text Area" },
-			{ value: "jsonstring", name: "Styleable Text Block" },
-			{ value: "file", name: "Media" },
-			{ value: "select", name: "Select" },
-			{ value: "dateTime", name: "Date" },
-			{ value: "double", name: "Number" },
-			{ value: "price", name: "Price" },
-			{ value: "bool", name: "Boolean" }
+			{ value: "string", name: `Text` },
+			{ value: "tel", name: `Text (Telephone number)` },
+			{ value: "email", name: `Text (E-Mail address)` },
+			{ value: "url", name: `Text (Web address)` },
+			{ value: "textarea", name: `Text (Multiline)` },
+			{ value: "jsonstring", name: `Text (Styleable multiline)` },
+			{ value: "file", name: `Media` },
+			{ value: "select", name: `Select` },
+			{ value: "dateTime", name: `Date` },
+			{ value: "double", name: `Number` },
+			{ value: "price", name: `Price` },
+			{ value: "bool", name: `Boolean` }
 		];
 
 		if (!props.isFormField) {
 			this.dataTypes = [
 				...this.dataTypes, 
-				{ value: "entity", name: "Another Data Type" }, 
-				{ value: "entitylist", name: "List Of Another Data Type" },
-				{ value: "entitylink", name: "Link To Another Page Data Type" }
+				{ value: "entity", name: `Another Data Type` }, 
+				{ value: "entitylist", name: `List of Another Data Type` },
+				{ value: "entitylink", name: `Link to Another Page Data Type` }
 			];
 		}
 	}
@@ -72,7 +75,7 @@ export default class CustomFieldForm extends React.Component {
 						validation.push("Required");
 					}
 
-					if (values.isEmail) {
+					if (values.isEmail || values.dataType == "email") {
 						validation.push("EmailAddress");
 					}
 
@@ -191,14 +194,6 @@ export default class CustomFieldForm extends React.Component {
 									type="checkbox"
 									defaultValue={this.props.field && this.props.field.isHidden ? true : null}
 								/>
-								{(this.state.dataType === "string" || this.state.dataType === "textarea") &&
-									<Input 
-										label="Is this field an email address?"
-										name="isEmail"
-										type="checkbox"
-										defaultValue={this.props.field && this.props.field.validation && this.props.field.validation.includes("EmailAddress") ? true : null}
-									/>
-								}
 								<Input 
 									label="Peak 15 Identifier"
 									name="peak15FieldIdentifier"
