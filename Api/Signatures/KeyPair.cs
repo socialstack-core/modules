@@ -124,7 +124,7 @@ namespace Api.Signatures
 			};
 
 			// Create the D value:
-			var privD = new BigInteger(result.PrivateKeyBytes);
+			var privD = new BigInteger(1, result.PrivateKeyBytes);
 			result.PrivateKey = new ECPrivateKeyParameters(privD, DomainParams);
 			var q = result.PrivateKey.Parameters.G.Multiply(privD).Normalize();
 			result.PublicKey = new ECPublicKeyParameters(result.PrivateKey.AlgorithmName, q, DomainParams);
