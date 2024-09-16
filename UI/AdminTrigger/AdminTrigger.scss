@@ -38,10 +38,12 @@ html:not(.admin) {
             height: 2rem;
             transform-origin: 50% 50%;
             transition: all .3s ease;
+			padding: px_to_rem(4) px_to_rem(8);
         }
 
         .dropdown__label i:first-child {
             margin: 0;
+			font-size: .875rem;
         }
 
         .dropdown__arrow {
