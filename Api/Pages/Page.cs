@@ -38,7 +38,19 @@ namespace Api.Pages
 		/// </summary>
 		[Localized]
 		public string Description;
-		
+
+		/// <summary>
+		/// Prevent this page from being indexed by search crawlers.
+		/// </summary>
+		[Data("hint", "Prevent search crawlers from indexing this page")]
+		public bool NoIndex;
+
+		/// <summary>
+		/// Prevent links on this page from being followed by search crawlers.
+		/// </summary>
+		[Data("hint", "Prevent search crawlers from following links on this page")]
+		public bool NoFollow;
+
 		/// <summary>
 		/// A disambiguation mechanism when the permission system returns multiple pages.
 		/// Typically happens on the homepage.

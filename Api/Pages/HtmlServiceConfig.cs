@@ -112,6 +112,23 @@ namespace Api.Pages
 		/// Theme colour of an app
 		/// </summary>
 		public string AppThemeColor { get; set; } = "#ffffff";
+
+		/// <summary>
+		/// Log requests. Take care not to leave this set to true for extended periods!
+		/// </summary>
+		public bool DebugLogRequests { get; set; } = false;
+
+		/// <summary>
+		/// Disable internal page cache. Take care not to leave this set to true for extended periods!
+		/// </summary>
+		public bool DisablePageCache { get; set; } = false;
+
+		/// <summary>
+		/// True if requests to the primary locale should be redirected to the root
+		/// (e.g. www.mydomain.com/en-gb/my-page -> www.mydomain.com/my-page)
+		/// </summary>
+		public bool RedirectPrimaryLocale { get; set; } = false;
+
 	}
 
 	/// <summary>

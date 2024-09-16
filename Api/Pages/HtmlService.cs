@@ -375,7 +375,8 @@ namespace Api.Pages
             var _config = (locale.Id < _configurationTable.Length) ? _configurationTable[locale.Id] : _defaultConfig;
 
             bool pullFromCache = (
-                cacheUrl != null &&
+				!_config.DisablePageCache &&
+				cacheUrl != null &&
                 _config.CacheMaxAge > 0 &&
                 _config.CacheAnonymousPages &&
                 !isAdmin &&
@@ -1304,7 +1305,24 @@ svg {
                 .AppendChild(new DocumentNode("meta", true).With("name", "description").With("content", pageDescription))
                 .AppendChild(new DocumentNode("title").AppendChild(new TextNode(pageTitle)));
 
-            /*
+			var robotsDirectives = new List<string>();
+
+			if (page.NoIndex)
+			{
+				robotsDirectives.Add("noindex");
+			}
+
+			if (page.NoFollow)
+			{
+				robotsDirectives.Add("nofollow");
+			}
+
+			if (robotsDirectives.Count > 0)
+			{
+				head.AppendChild(new DocumentNode("meta", true).With("name", "robots").With("content", string.Join(",", robotsDirectives)));
+			}
+
+			/*
 			 * PWA headers that should only be added if PWA mode is turned on and these files exist
 			  .AppendChild(new DocumentNode("link", true).With("rel", "apple-touch-icon").With("sizes", "180x180").With("href", "/apple-touch-icon.png"))
 			  .AppendChild(new DocumentNode("link", true).With("rel", "manifest").With("href", "/site.webmanifest"))
@@ -1323,8 +1341,8 @@ svg {
             )));
 #endif
 
-            // Handle all End Head tags in the config.
-            HandleCustomHeadList(_config.EndHeadTags, head);
+			// Handle all End Head tags in the config.
+			HandleCustomHeadList(_config.EndHeadTags, head);
 
             // Handle all End Head Scripts in the config.
             HandleCustomScriptList(_config.EndHeadScripts, head);
@@ -2150,9 +2168,16 @@ svg {
 
             var pageAndTokens = await _pages.GetPage(context, request.Host.Value, path, searchQuery, true);
 
-            bool pullFromCache = (_config.CacheMaxAge > 0 && _config.CacheAnonymousPages && !isAdmin && context.UserId == 0 && context.RoleId == 6);
+			bool pullFromCache = (
+				!_config.DisablePageCache &&
+				_config.CacheMaxAge > 0 &&
+				_config.CacheAnonymousPages &&
+				!isAdmin &&
+				context.UserId == 0 &&
+				context.RoleId == 6
+			);
 
-            if (pullFromCache)
+			if (pullFromCache)
             {
                 pullFromCache = await Events.Context.CanUseCache.Dispatch(context, pullFromCache);
             }
