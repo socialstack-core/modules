@@ -74,10 +74,12 @@ namespace Api.CloudHosts
 			BuildConfigLocaleTable();
 			var htmlConfig = (context.LocaleId < _configurationTable.Length) ? _configurationTable[context.LocaleId] : _defaultConfig;
 
+			// redirect /[primary-locale-code/* to root (e.g. /en-gb/abc -> /abc)
 			if (htmlConfig.RedirectPrimaryLocale)
 			{
 				var primaryLocale = await _localeService.Get(context, 1);
-				httpsContext.AddLocationContext($" ~* ^/" + primaryLocale.Code.ToLower() + "/(.*)").AddDirective($"return", "301 /$1");
+				httpsContext.AddLocationContext($"= /" + primaryLocale.Code.ToLower()).AddDirective($"return", "301 /"); // root
+				httpsContext.AddLocationContext($"~ /" + primaryLocale.Code.ToLower() + "/(.*)").AddDirective($"return", "301 /$1"); // underlying pages
 			}
 
 			// Write it out:
