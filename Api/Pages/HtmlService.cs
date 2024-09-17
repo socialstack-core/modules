@@ -867,7 +867,7 @@ svg {
 		private async ValueTask<List<DocumentNode>> RenderHeaderOnly(Context context, Locale locale)
 		{
 			var themeConfig = _themeService.GetConfig();
-			var localeCode = locale.Code;
+			var localeCode = locale.Code.Contains('-') ? locale.Code.Split('-')[0] : locale.Code;
 
 			// Generate the document:
 			var doc = new Document();
@@ -955,7 +955,7 @@ svg {
 		private async ValueTask<List<DocumentNode>> RenderNativeAppPage(Context context, Locale locale, MobilePageMeta pageMeta)
 		{
 			var themeConfig = _themeService.GetConfig();
-			var localeCode = locale.Code;
+			var localeCode = locale.Code.Contains('-') ? locale.Code.Split('-')[0] : locale.Code;
 
 			// Generate the document:
 			var doc = new Document();
@@ -1213,7 +1213,7 @@ svg {
 				}
 			}
 
-			var localeCode = locale.Code;
+			var localeCode = locale.Code.Contains('-') ? locale.Code.Split('-')[0] : locale.Code;
 
 			// Generate the document:
 			doc.Path = path;
