@@ -3,7 +3,8 @@ import omit from 'UI/Functions/Omit';
 import { useConfig } from 'UI/Session';
 
 const uploaderConfig = useConfig('uploader') || {};
-var UPLOADER_SIZES = uploaderConfig[0].imageSizes || [32, 64, 100, 128, 200, 256, 512, 768, 1024, 1920, 2048];
+let UPLOADER_SIZES = uploaderConfig[0].imageSizes || [32, 64, 100, 128, 200, 256, 512, 768, 1024, 1920, 2048];
+UPLOADER_SIZES.unshift('original');
 
 /*
 Used to display an image from a fileRef.
@@ -119,7 +120,7 @@ Image.propTypes = {
 	width: 'number',
 	height: 'number',
 	size: {
-		type: UPLOADER_SIZES.shift('original'),
+		type: UPLOADER_SIZES,
 		help: `Note: will be overridden by width / height values, if supplied`,
 		helpPosition: 'icon'
 	},	
