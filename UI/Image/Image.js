@@ -1,5 +1,9 @@
 import getRef from 'UI/Functions/GetRef';
 import omit from 'UI/Functions/Omit';
+import { useConfig } from 'UI/Session';
+
+const uploaderConfig = useConfig('uploader') || {};
+var UPLOADER_SIZES = uploaderConfig[0].imageSizes || [32, 64, 100, 128, 200, 256, 512, 768, 1024, 1920, 2048];
 
 /*
 Used to display an image from a fileRef.
@@ -61,7 +65,11 @@ export default function Image(props) {
 			break;
 	}
 
-	if (fullWidth || size == "original") {
+	// NB: separate width/height values will override any size selected
+	let testWidth = parseInt(width, 10);
+	let testHeight = parseInt(height, 10);
+
+	if (fullWidth || (size == "original" && isNaN(testWidth))) {
 		imageClass += " image-wide";
 	}
 
@@ -69,16 +77,16 @@ export default function Image(props) {
 		imageClass += " " + className;
 	}
 
-	var attribs = omit(props, ['fileRef', 'onClick', 'linkUrl', 'size', 'fullWidth', 'float', 'className', 'animation', 'animationDirection', 'animationDuration']);
+	var attribs = omit(props, ['fileRef', 'onClick', 'linkUrl', 'size', 'width', 'height', 'fullWidth', 'float', 'className', 'animation', 'animationDirection', 'animationDuration']);
 
 	attribs.alt = attribs.alt || attribs.title;
 
-	if (width) {
-		attribs.width = width;
+	if (!isNaN(testWidth)) {
+		attribs.width = testWidth;
 	}
 
-	if (height) {
-		attribs.height = height;
+	if (!isNaN(testHeight)) {
+		attribs.height = testHeight;
 	}
 
 	var img = <div className={imageClass} onClick={props.onClick} 
@@ -110,7 +118,11 @@ Image.propTypes = {
 	fullWidth: 'bool',
 	width: 'number',
 	height: 'number',
-	size: ['original', '2048', '1024', '512', '256', '200', '128', '100', '64', '32'], // todo: pull from api
+	size: {
+		type: UPLOADER_SIZES.shift('original'),
+		help: `Note: will be overridden by width / height values, if supplied`,
+		helpPosition: 'icon'
+	},	
 	float: { type: ['None', 'Left', 'Right', 'Center'] },
 	className: 'string',
 	animation: [
