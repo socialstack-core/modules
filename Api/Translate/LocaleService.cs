@@ -129,6 +129,7 @@ namespace Api.Translate
 					{
 						// Locale header is set:
 						var acceptLanguageHeader = acceptLangs.FirstOrDefault();
+						acceptLanguageHeader = acceptLanguageHeader.ToLower();
 
 						var langsUpTo = acceptLanguageHeader.IndexOf(';');
 						var index = 0;
