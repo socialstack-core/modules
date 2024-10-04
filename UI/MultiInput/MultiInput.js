@@ -102,5 +102,4 @@ export default function MultiInput(props) {
 			</footer>
 		</div>
 	);
-
 }
