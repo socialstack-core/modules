@@ -1,8 +1,10 @@
 ﻿using Api.Contexts;
 using Api.Eventing;
 using Api.Pages;
-using Api.Configuration;
-
+using Api.CanvasRenderer;
+using Api.Startup;
+using HtmlAgilityPack;
+using System;
 
 namespace Api.OpenGraphTags
 {
@@ -20,7 +22,7 @@ namespace Api.OpenGraphTags
 
 			Events.Page.Generated.AddEventListener(async (Context ctx, Document pageDocument) =>
 			{
-				var baseUrl = AppSettings.Configuration["PublicUrl"];
+				var baseUrl = Services.Get<FrontendCodeService>().GetContentUrl(ctx.LocaleId);
 
 				// We need to add a title, type, url and image tag required.	
 				//Title
@@ -56,14 +58,19 @@ namespace Api.OpenGraphTags
 				imageNode.With("property", "og:image");
 
 				var imageMeta = (string)await pageDocument.GetMeta(ctx, "image");
+
 				// We have three options - either the primary object, the page image ref, or the favicon.
 				if (!string.IsNullOrEmpty(imageMeta))
                 {
 					// Let's handle our imageMeta which will be in the form of public:100.png
 					// We need to split by the colon, then the period to append the size.
 					var image = imageMeta.Substring(imageMeta.IndexOf(":") + 1);
+
 					var name = image.Split(".")[0];
-					var ext = "." + image.Split(".")[1];
+
+					// NB: second Split() removes excess attributes if found (other formats, dimension info, blurhash, etc)
+					// (e.g. 2942-512.jpg|webp?w=5464&h=3640&b=LbD%2Ciu%25MR*n~t-WYf5s)
+					var ext = "." + image.Split(".")[1].Split("|")[0];
 
 					var contentDir = "";
 					var imageSize = "";
@@ -99,15 +106,30 @@ namespace Api.OpenGraphTags
 				descriptionNode.With("property", "og:description");
 
 				var descriptionMeta = (string)await pageDocument.GetMeta(ctx, "description");
+				string ogDescription = "";
+
 				if (!string.IsNullOrEmpty(descriptionMeta))
                 {
-					descriptionNode.With("content", descriptionMeta);
+					var _canvasRendererService = Services.Get<CanvasRendererService>();
+					var descriptionHtmlString = _canvasRendererService.CanvasToComponentXml(descriptionMeta);
+					descriptionHtmlString = descriptionHtmlString.Replace("</li><li>", "; </li><li>");
+
+					var doc = new HtmlDocument();
+					doc.LoadHtml(descriptionHtmlString);
+					ogDescription = doc.DocumentNode.InnerText;
                 }
                 else
                 {
-					descriptionNode.With("content", config.DefaultDescription);
-                }
-				pageDocument.Head.AppendChild(descriptionNode);
+					ogDescription = config.DefaultDescription;
+				}
+
+				if (!string.IsNullOrEmpty(ogDescription))
+				{
+					descriptionNode.With("content", ogDescription.Length > 200 ?
+						ogDescription.Substring(0, Math.Min(ogDescription.Length, 199)) + (char)0x2026 : ogDescription);
+
+					pageDocument.Head.AppendChild(descriptionNode);
+				}
 
 				//Site name
 				DocumentNode siteNameNode = new DocumentNode("meta", true);
@@ -119,5 +141,6 @@ namespace Api.OpenGraphTags
 				return pageDocument;
 			});
 		}
-	}    
+
+	}
 }
