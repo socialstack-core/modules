@@ -12,6 +12,7 @@
 
   <ItemGroup>
     <PackageReference Include="BouncyCastle.Cryptography" Version="2.3.1" />
+    <PackageReference Include="HtmlAgilityPack" Version="1.11.46" />
     <PackageReference Include="Magick.NET-Q8-AnyCPU" Version="13.8.0" />
     <PackageReference Include="Microsoft.ClearScript.V8" Version="7.4.5" />
     <PackageReference Include="Microsoft.ClearScript.V8.Native.linux-x64" Version="7.4.5" />
