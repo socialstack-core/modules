@@ -30,13 +30,13 @@ namespace Api.Categories
 		/// <summary>
 		/// The feature image ref. See also: "Upload.Ref" in the Uploads module.
 		/// </summary>
-		[DatabaseField(Length = 80)]
+		[DatabaseField(Length = 300)]
 		public string FeatureRef;
 
 		/// <summary>
 		/// The icon ref. See also: "Upload.Ref" in the Uploads module.
 		/// </summary>
-		[DatabaseField(Length = 80)]
+	        [DatabaseField(Length = 300)]
 		public string IconRef;
 	}
 	
