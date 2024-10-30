@@ -55,7 +55,7 @@ namespace Api.Payments
 		/// <summary>
 		/// The feature image ref
 		/// </summary>
-		[DatabaseField(Length = 80)]
+		[DatabaseField(Length = 300)]
 		public string FeatureRef;
 
 		/// <summary>
