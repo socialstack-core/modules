@@ -304,7 +304,7 @@ namespace Api.Pages
 			{
 				var sb = new StringBuilder();
 				sb.Append("User-agent: *\r\n");
-				sb.Append("Disallow: /v1\r\n");
+				// sb.Append("Disallow: /v1\r\n");
 				// sb.Append("Sitemap: /sitemap.xml");
 
 				if (config != null && config.RobotsTxt != null)
