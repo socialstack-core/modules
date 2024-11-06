@@ -131,12 +131,12 @@ namespace Api.Translate
 						var acceptLanguageHeader = acceptLangs.FirstOrDefault();
 						acceptLanguageHeader = acceptLanguageHeader.ToLower();
 
+						acceptLanguageHeader = acceptLanguageHeader.ToLower();
 						var langsUpTo = acceptLanguageHeader.IndexOf(';');
 						var index = 0;
 
 						if (langsUpTo == -1)
 						{
-							acceptLanguageHeader = acceptLanguageHeader.ToLower();
 							var localeId = GetId(acceptLanguageHeader);
 
 							if (localeId.HasValue)
