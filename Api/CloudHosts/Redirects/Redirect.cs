@@ -28,7 +28,7 @@ namespace Api.Redirects
 		/// Will default to a temporary 302 redirect if not set
 		/// </summary>
 		[Data("hint", "Redirect will be temporary (302) by default - select here for a permanent (301) redirect. PLEASE NOTE - do not use this option if you are likely to require this URL again")]
-		public bool PermanentRedirect { get; set; } = false;
+		public bool PermanentRedirect = false;
 	}
 
 }

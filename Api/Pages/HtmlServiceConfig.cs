@@ -135,17 +135,17 @@ namespace Api.Pages
 		/// Will default to a temporary 302 redirect if not set
 		/// </summary>
 		[Data("hint", "Redirecting primary locale will be temporary (302) by default - select here for a permanent (301) redirect. PLEASE NOTE - do not use this option if you are likely to require this locale again")]
-		public bool PermanentRedirect { get; set; } = false;
+		public bool PermanentRedirect = false;
 
 		/// <summary>
 		/// True if <link rel="canonical" href="https://www.mydomain.com" /> entry should be excluded from the head
 		/// </summary>
-		public bool DisableCanonicalTag { get; set; } = false;
+		public bool DisableCanonicalTag = false;
 
 		/// <summary>
 		/// True if <link rel="alternate" hreflang="xx-XX" href="https://www.mydomain.com/xx-XX" /> style entries should be excluded from the head
 		/// </summary>
-		public bool DisableHrefLangTags { get; set; } = false;
+		public bool DisableHrefLangTags = false;
 	}
 
 	/// <summary>
