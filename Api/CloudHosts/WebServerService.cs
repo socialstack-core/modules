@@ -26,12 +26,33 @@ namespace Api.CloudHosts
 			// WebSecurityService has the job of ensuring certs are good.
 			// It provides us with the details of the certs (their file location for example) to be then used in webserver config.
 
+			Events.Configuration.AfterUpdate.AddEventListener(async (Context ctx, Configuration.Configuration configuration) =>
+			{
+
+				if (configuration != null && configuration.Key == "HtmlService")
+				{
+					await Regenerate(ctx);
+				}
+
+				return configuration;
+			});
+
+
+			Events.Configuration.AfterCreate.AddEventListener(async (Context ctx, Configuration.Configuration configuration) =>
+			{
+
+				if (configuration != null && configuration.Key == "HtmlService")
+				{
+					await Regenerate(ctx);
+				}
+
+				return configuration;
+			});
 
 			// Ensure webserver is initted.
 
-
 		}
-		
+
 		/// <summary>
 		/// Regenerates website config
 		/// </summary>
