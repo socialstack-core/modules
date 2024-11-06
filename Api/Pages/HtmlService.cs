@@ -39,6 +39,7 @@ namespace Api.Pages
 		private readonly ConfigurationService _configurationService;
 		private string _cacheControlHeader;
 		private List<Locale> _allLocales;
+		private string _siteDomains;
 
 		/// <summary>
 		/// Instanced automatically.
@@ -434,7 +435,7 @@ namespace Api.Pages
 			var writer = Writer.GetPooled();
 			writer.Start(null);
 
-			writer.WriteASCII("{\"page\":{\"bodyJson\":");
+			writer.WriteASCII("{" + GetAvailableDomains() + "\"page\":{\"bodyJson\":");
 
 			if (isAdmin || terminal.Generator == null)
 			{
@@ -1419,7 +1420,7 @@ svg {
 
 			if (preRenderHtml && !isAdmin)
 			{
-				var pgState = constantPageJson == null ? null : "{\"page\":{\"bodyJson\":" + constantPageJson + Encoding.UTF8.GetString(pgStateEnd);
+				var pgState = constantPageJson == null ? null : "{" + GetAvailableDomains() + "\"page\":{\"bodyJson\":" + constantPageJson + Encoding.UTF8.GetString(pgStateEnd);
 
 				body.AppendChild(new SubstituteNode(  // This is where user and page specific global state will be inserted. It gets substituted in.
 					async (Context ctx, Writer writer, PageWithTokens pat) =>
@@ -1502,7 +1503,7 @@ svg {
 					.AppendChild(new TextNode(";"))
 				);
 
-				body.AppendChild(new TextNode("<script type='application/json' id='pgState'>{\"page\":{\"bodyJson\":"));
+				body.AppendChild(new TextNode("<script type='application/json' id='pgState'>{" + GetAvailableDomains() + "\"page\":{\"bodyJson\":"));
 
 				if (constantPageJson != null)
 				{
@@ -1656,6 +1657,35 @@ svg {
 			}
 
 			return flatNodes;
+		}
+
+		/// <summary>
+		/// Get all the site domains for use in tokeniser and url links
+		/// </summary>
+		/// <returns></returns>
+		private string GetAvailableDomains()
+		{
+			if (_siteDomains != null)
+			{
+				return _siteDomains;
+			}
+
+			_siteDomains = "";
+
+			var domainService = Services.Get("SiteDomainService");
+			if (domainService != null)
+			{
+				var getSiteDomains = domainService.GetType().GetMethod("GetSiteDomains");
+
+				_siteDomains = getSiteDomains.Invoke(domainService, null).ToString();
+
+				if (!string.IsNullOrWhiteSpace(_siteDomains))
+				{
+					_siteDomains = _siteDomains + ",";
+				}
+			}
+
+			return _siteDomains;
 		}
 
 		/// <summary>
