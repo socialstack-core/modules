@@ -129,6 +129,15 @@ namespace Api.Pages
 		/// </summary>
 		public bool RedirectPrimaryLocale { get; set; } = false;
 
+		/// <summary>
+		/// True if <link rel="canonical" href="https://www.mydomain.com" /> entry should be excluded from the head
+		/// </summary>
+		public bool DisableCanonicalTag { get; set; } = false;
+
+		/// <summary>
+		/// True if <link rel="alternate" hreflang="xx-XX" href="https://www.mydomain.com/xx-XX" /> style entries should be excluded from the head
+		/// </summary>
+		public bool DisableHrefLangTags { get; set; } = false;
 	}
 
 	/// <summary>

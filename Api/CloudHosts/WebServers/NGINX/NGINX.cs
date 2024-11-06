@@ -9,6 +9,7 @@ using Api.Redirects;
 using Api.Pages;
 using Api.Translate;
 using Api.Configuration;
+using System.Linq;
 
 namespace Api.CloudHosts
 {
@@ -23,6 +24,7 @@ namespace Api.CloudHosts
 		private HtmlServiceConfig[] _configurationTable = new HtmlServiceConfig[0];
 		private HtmlServiceConfig _defaultConfig = new HtmlServiceConfig();
 		private LocaleService _localeService;
+		private List<Locale> _allLocales;
 
 		/// <summary>
 		/// Applies config changes and then performs a reload.
@@ -73,13 +75,29 @@ namespace Api.CloudHosts
 
 			BuildConfigLocaleTable();
 			var htmlConfig = (context.LocaleId < _configurationTable.Length) ? _configurationTable[context.LocaleId] : _defaultConfig;
+			var primaryLocale = await _localeService.Get(context, 1);
 
 			// redirect /[primary-locale-code/* to root (e.g. /en-gb/abc -> /abc)
 			if (htmlConfig.RedirectPrimaryLocale)
 			{
-				var primaryLocale = await _localeService.Get(context, 1);
 				httpsContext.AddLocationContext($"= /" + primaryLocale.Code.ToLower()).AddDirective($"return", "301 /"); // root
 				httpsContext.AddLocationContext($"~ /" + primaryLocale.Code.ToLower() + "/(.*)").AddDirective($"return", "301 /$1"); // underlying pages
+			}
+
+			// each locale can also be optionally redirected
+			var locales = GetAllLocales(context);
+
+			if (locales != null && locales.Count > 0)
+			{
+				foreach (var altLocale in locales)
+				{
+
+					if (altLocale.isRedirected)
+					{
+						httpsContext.AddLocationContext($"= /" + altLocale.Code.ToLower()).AddDirective($"return", "301 /"); // root
+						httpsContext.AddLocationContext($"~ /" + altLocale.Code.ToLower() + "/(.*)").AddDirective($"return", "301 /$1"); // underlying pages
+					}
+				}
 			}
 
 			// Write it out:
@@ -88,6 +106,33 @@ namespace Api.CloudHosts
 			// Tell NGINX to reload:
 			await Reload();
 
+		}
+
+		/// <summary>
+		/// Get all the active locales 
+		/// </summary>
+		/// <param name="ctx"></param>
+		/// <returns></returns>
+		private List<Locale> GetAllLocales(Context ctx)
+		{
+			if (_allLocales != null && _allLocales.Any())
+			{
+				return _allLocales;
+			}
+
+			// Get all the current locales:
+			var locales = _localeService.Where("").ListAll(ctx).Result;
+
+			if (locales != null && locales.Any())
+			{
+				_allLocales = locales;
+			}
+			else
+			{
+				_allLocales = new List<Locale>();
+			}
+
+			return _allLocales;
 		}
 
 		/// <summary>

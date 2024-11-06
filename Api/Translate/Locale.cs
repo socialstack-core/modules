@@ -41,6 +41,12 @@ namespace Api.Translate
 		public bool isDisabled;
 
 		/// <summary>
+		/// Indicates if the locale should be redirected to root (e.g. /en-us/abc > /abc)
+		/// </summary>
+		[Data("hint", "Indicates if the locale should be redirected to root (e.g. /en-us/abc > /abc)")]
+		public bool isRedirected;
+
+		/// <summary>
 		/// Indicates this locale goes primarily right to left, such as Hebrew or Arabic.
 		/// </summary>
 		[Data("hint", "Set this if the locale goes right to left, such as Hebrew or Arabic")]
